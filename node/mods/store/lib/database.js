@@ -440,10 +440,13 @@ class Database {
 
   sellerListingWhere(status = 'active') {
     if (status === 'sold') {
+      // Exclude seller-initiated delists (buyer set to seller as a self-sale).
       return `on_chain = 1
 				   AND longest_chain_listed = 1
 				   AND block_id_sold > 0
-				   AND longest_chain_sold = 1`;
+				   AND longest_chain_sold = 1
+				   AND buyer != ''
+				   AND buyer != seller`;
     }
     return `on_chain = 1
 				   AND longest_chain_listed = 1
@@ -531,6 +534,8 @@ class Database {
 				   AND longest_chain_listed = 1
 				   AND block_id_sold > 0
 				   AND longest_chain_sold = 1
+				   AND buyer != ''
+				   AND buyer != seller
 				 ORDER BY CASE WHEN sold_at > 0 THEN sold_at ELSE updated_at END DESC, block_id_sold DESC, signature ASC`,
         { $seller: key },
         this.dbname

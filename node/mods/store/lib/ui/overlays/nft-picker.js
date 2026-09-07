@@ -85,13 +85,10 @@ class NftPickerOverlay {
         statusEl.innerHTML = NftPickerTemplate.emptyInstructions(this.listing_mode);
       }
       if (instructionsEl) {
+        instructionsEl.hidden = false;
+        instructionsEl.innerHTML = NftPickerTemplate.createPrompt(this.listing_mode);
         if (this.listing_mode === 'sell') {
-          instructionsEl.hidden = false;
-          instructionsEl.innerHTML = NftPickerTemplate.createPrompt();
           this.attachEmptyEvents();
-        } else {
-          instructionsEl.hidden = true;
-          instructionsEl.innerHTML = '';
         }
       }
       return;

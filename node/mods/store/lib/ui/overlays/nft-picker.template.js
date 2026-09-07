@@ -30,20 +30,19 @@ const NftPickerTemplate = (model = {}) => {
 };
 
 NftPickerTemplate.emptyInstructions = (mode = 'sell') => {
-  const listing_mode = normalizeListingMode(mode);
-  if (listing_mode === 'rent') {
-    return `
-    <div class="empty">
-      <p>No items to rent.</p>
-      <p>A Vault rental NFT (vault-nft-rental) is required to create Store rental inventory.</p>
-    </div>
-  `;
-  }
-  // Sell empty state: bottom create-prompt is enough; no mid-panel "No NFTs" line.
+  // Empty state copy lives in the bottom instruction strip for both modes.
   return '';
 };
 
-NftPickerTemplate.createPrompt = () => {
+NftPickerTemplate.createPrompt = (mode = 'sell') => {
+  const listing_mode = normalizeListingMode(mode);
+  if (listing_mode === 'rent') {
+    return `
+    <div class="instructions">
+      You have no rental master keys.
+    </div>
+  `;
+  }
   return `
     <div class="instructions">
       Don't own any NFTs? <span class="saito-anchor" id="nft-picker-create-link" role="button" tabindex="0">

@@ -650,6 +650,15 @@
   border-bottom: 0;
 }
 
+.store .listings-table tbody tr.is-clickable {
+  cursor: pointer;
+  transition: background-color 0.12s ease;
+}
+
+.store .listings-table tbody tr.is-clickable:hover td {
+  background-color: color-mix(in srgb, var(--saito-border) 35%, transparent);
+}
+
 .store .sales-seller-note {
   margin: 0;
   font-size: var(--font-size-small);

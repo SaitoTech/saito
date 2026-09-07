@@ -219,6 +219,44 @@ class Warehouse {
     return removed;
   }
 
+  /**
+   * Seller delist: reuse markListingSold with buyer=seller so Sales can exclude self-sales.
+   * Preserves sold-chain anchors for existing reorg handling.
+   */
+  async consumeDelistedListing(row, tx = null, blk = null) {
+    if (this.app.BROWSER || !row?.signature) {
+      return null;
+    }
+
+    const listing_row = new Listing(row);
+    if (listing_row.isSoldOnChain()) {
+      return null;
+    }
+
+    const seller = String(row.seller || '').trim();
+    const now = Date.now();
+    const sold_block_id = Number(blk?.id ?? 0);
+    const sold_block_hash = String(blk?.hash ?? '');
+    const sold_transaction_id = transactionIndexInBlock(blk, tx);
+
+    await this.db.markListingSold(
+      row.signature,
+      {
+        sold_block_id,
+        sold_block_hash,
+        sold_transaction_id,
+        buyer: seller,
+        note: '',
+        quantity_sold: Math.max(0, Number(row.quantity ?? 0) || 0),
+        sold_at: now
+      },
+      now
+    );
+    delete this.listings[row.signature];
+    await this.syncSummaryForBucket(row.nft_id, row.price);
+    return row;
+  }
+
   // --- orders ---
 
   async addOrder(order) {

@@ -46,6 +46,9 @@ class Store extends ModTemplate {
       this.transaction_monitor = new SaitoTransactionMonitor(this.app, this);
       this.purchase_monitor = new PurchaseMonitor(this.app, this);
 
+      const DelistOverlay = require('./lib/ui/overlays/delist-overlay');
+      this.delist_overlay = new DelistOverlay(this.app, this);
+
       // TEMP: prove store-nft-rental arrives self-contained with Vault fields.
       this._store_rental_receipt_alerts = new Set();
       this.app.connection.on('on-nft-received', (payload) => {
@@ -325,6 +328,38 @@ class Store extends ModTemplate {
           seller: result.seller,
           active: (result.active || []).map((summary) => summary.serialize()),
           sold: (result.sold || []).map((summary) => summary.serialize())
+        });
+        return 1;
+      }
+    }
+
+    if (txmsg?.request === 'load-listing-spend') {
+      if (!this.app.BROWSER && mycallback != null) {
+        const data = txmsg.data && typeof txmsg.data === 'object' ? txmsg.data : {};
+        const signature = String(data.signature || '').trim();
+        const requester = String(tx.from?.[0]?.publicKey || '').trim();
+        const row = signature
+          ? await this.warehouse.db.returnListingBySignature(signature)
+          : null;
+        const Listing = require('./lib/listing');
+        const listing = row ? new Listing(row) : null;
+        if (!listing || !listing.isAvailable() || !requester || listing.seller !== requester) {
+          mycallback(null);
+          return 1;
+        }
+        mycallback({
+          signature: listing.signature,
+          nft_id: listing.nft_id,
+          seller: listing.seller,
+          quantity: listing.quantity,
+          price: listing.price,
+          category: listing.category,
+          access_script: listing.access_script,
+          access_hash: listing.access_hash,
+          p2sh_address: listing.p2sh_address,
+          utxo_slip1: listing.utxo_slip1,
+          utxo_slip2: listing.utxo_slip2,
+          utxo_slip3: listing.utxo_slip3
         });
         return 1;
       }
@@ -733,6 +768,11 @@ class Store extends ModTemplate {
         this.app.connection.emit('store-list-asset', { blk, tx, conf });
         console.log('Store: onConfirmation list-asset conf=0', tx.signature);
         await this.receiveListAssetTransaction(blk, tx);
+        break;
+
+      case 'delist-asset':
+        console.log('Store: onConfirmation delist-asset conf=0', tx.signature);
+        await this.receiveDelistAssetTransaction(blk, tx);
         break;
 
       case 'purchase-asset':

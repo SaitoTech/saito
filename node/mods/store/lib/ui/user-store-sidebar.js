@@ -44,7 +44,7 @@ class UserStoreSidebar {
     if (this.isOwnStore(publicKey)) {
       items.push({
         action: 'admin-store',
-        label: 'Admin Store',
+        label: 'Manage Store',
         icon: 'fa-solid fa-gear'
       });
     }

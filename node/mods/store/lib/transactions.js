@@ -83,9 +83,18 @@ module.exports = {
     });
 
     //
-    // create the listing txmsg
+    // create the listing txmsg — keep NFT payload from prior tx, but never carry
+    // prior Store control fields (e.g. delist-asset request / spent access_scripts).
     //
     const txmsg = JSON.parse(JSON.stringify(nft.txmsg));
+    delete txmsg.request;
+    delete txmsg.access_script;
+    delete txmsg.access_hash;
+    delete txmsg.p2sh_address;
+    delete txmsg.access_scripts;
+    delete txmsg.fulfill_sale;
+    delete txmsg.listing_signature;
+    delete txmsg.listing;
     txmsg.module = 'Store';
     txmsg.request = 'list-asset';
     txmsg.access_script = script_info.access_script;
@@ -109,6 +118,19 @@ module.exports = {
       BigInt(0),
       txmsg
     );
+    // wallet.createNFTTransaction does Object.assign(tx_msg, nft.txmsg), which can
+    // reintroduce stale Store fields from a prior delist/list. Force list-asset values.
+    newtx.msg = newtx.msg || {};
+    newtx.msg.module = 'Store';
+    newtx.msg.request = 'list-asset';
+    newtx.msg.access_script = script_info.access_script;
+    newtx.msg.access_hash = script_info.access_hash;
+    newtx.msg.p2sh_address = script_info.p2sh_address;
+    newtx.msg.listing = listing;
+    delete newtx.msg.access_scripts;
+    delete newtx.msg.fulfill_sale;
+    delete newtx.msg.listing_signature;
+
     // Listing user → Store for store-nft-rental is the authorized/delegated hop.
     // Other NFT types leave data default (no delegated flag).
     const is_store_rental =
@@ -119,6 +141,20 @@ module.exports = {
     }
     const listing_transfer_data = is_store_rental ? { delegated: true } : {};
     newtx = await nft.modifyBeforeSend(newtx, this.store_public_key, listing_transfer_data);
+    if (!newtx) {
+      throw new Error('NFT transfer blocked before list-asset broadcast');
+    }
+    newtx.msg = newtx.msg || {};
+    newtx.msg.module = 'Store';
+    newtx.msg.request = 'list-asset';
+    newtx.msg.access_script = script_info.access_script;
+    newtx.msg.access_hash = script_info.access_hash;
+    newtx.msg.p2sh_address = script_info.p2sh_address;
+    newtx.msg.listing = listing;
+    delete newtx.msg.access_scripts;
+    delete newtx.msg.fulfill_sale;
+    delete newtx.msg.listing_signature;
+
     await newtx.sign();
 
     console.log('Store: createListAssetTransaction complete', newtx.signature);
@@ -638,6 +674,198 @@ module.exports = {
 
     await fulfillment_tx.sign();
     return fulfillment_tx;
+  },
+
+  /**
+   * Seller reclaim: spend the listing NFT P2SH triple back to the seller wallet.
+   * listing_row must include utxo_slip1/2/3 + access_script (from Store DB / peer).
+   * listing_tx is optional (Archive) and used only for store-nft-rental hop mutation.
+   */
+  async createDelistAssetTransaction(listing_row, listing_tx = null) {
+    if (!listing_row?.signature) {
+      throw new Error('listing row is required');
+    }
+
+    const seller =
+      String(listing_row.seller || '').trim() || (await this.app.wallet.getPublicKey());
+    const my_key = await this.app.wallet.getPublicKey();
+    if (!seller || seller !== my_key) {
+      throw new Error('only the listing seller can delist');
+    }
+
+    const row_qty = Number(listing_row.quantity ?? 1);
+    if (row_qty <= 0) {
+      throw new Error('invalid listing quantity');
+    }
+
+    const listing_access_script = listing_row.access_script || '';
+    if (!listing_access_script) {
+      throw new Error('listing access script not available');
+    }
+
+    const row_triple_json = listingInputSlipJsonFromRecord(listing_row);
+    if (!row_triple_json) {
+      throw new Error('listing utxo slips not available');
+    }
+
+    const custody_utxo_key = String(row_triple_json[1]?.utxoKey || '');
+    if (!custody_utxo_key) {
+      throw new Error('P2SH input is missing utxoset key');
+    }
+
+    const delist_tx = new Transaction();
+    delist_tx.timestamp = Date.now();
+    delist_tx.type = TransactionType.Bound;
+    delist_tx.msg = {};
+
+    for (let j = 0; j < row_triple_json.length; j++) {
+      delist_tx.addFromSlip(new Slip(undefined, row_triple_json[j]));
+    }
+
+    {
+      const out1 = new Slip(undefined, row_triple_json[0]);
+      out1.amount = BigInt(row_triple_json[0]?.amount ?? row_qty);
+      delist_tx.addToSlip(out1);
+    }
+    {
+      const out2 = new Slip(undefined, row_triple_json[1]);
+      out2.publicKey = seller;
+      out2.amount = BigInt(row_triple_json[1]?.amount ?? 0);
+      delist_tx.addToSlip(out2);
+    }
+    {
+      delist_tx.addToSlip(new Slip(undefined, row_triple_json[2]));
+    }
+
+    const outputs = delist_tx.to || [];
+    for (let i = 0; i < outputs.length; i++) {
+      outputs[i].index = i;
+    }
+
+    const auth_parts = [];
+    for (let i = 0; i < outputs.length; i++) {
+      const slip = outputs[i];
+      const pk_b58 = String(slip?.publicKey || '');
+      if (!pk_b58) {
+        throw new Error('delist output is missing a public key');
+      }
+      const pk_bytes = Buffer.from(this.app.crypto.fromBase58(pk_b58), 'hex');
+      const amount_buf = Buffer.alloc(8);
+      amount_buf.writeBigUInt64BE(BigInt(slip?.amount ?? 0));
+      auth_parts.push(pk_bytes);
+      auth_parts.push(amount_buf);
+      auth_parts.push(Buffer.from([Number(slip.index) & 0xff]));
+      auth_parts.push(Buffer.from([Number(slip.type ?? 0) & 0xff]));
+    }
+    const p2sh_auth_hash = String(this.app.crypto.hash(Buffer.concat(auth_parts)));
+    const auth_message = `${custody_utxo_key}|${p2sh_auth_hash}`;
+
+    const access_scripts = [
+      await signAccessScriptWitness(this.app, listing_access_script, auth_message, {
+        logP2shScript: true,
+        context: 'createDelistAssetTransaction:listing-custody'
+      })
+    ];
+
+    const p2sh_indexes = listRustP2shInputIndexes(this.app, delist_tx);
+    if (access_scripts.length !== p2sh_indexes.length) {
+      throw new Error(
+        `access script count ${access_scripts.length} does not match P2SH input count ${p2sh_indexes.length}`
+      );
+    }
+
+    delist_tx.msg = {
+      module: 'Store',
+      request: 'delist-asset',
+      listing_signature: listing_row.signature,
+      seller,
+      nft_id: listing_row.nft_id || '',
+      quantity: row_qty,
+      access_script: listing_access_script,
+      access_hash: listing_row.access_hash || '',
+      p2sh_address: listing_row.p2sh_address || '',
+      access_scripts
+    };
+
+    if (listing_tx) {
+      const rental_nft = new SaitoNFT(this.app, this, listing_tx, null);
+      const listing_txmsg = listingTxmsg(listing_tx);
+      const is_store_rental =
+        (typeof rental_nft.returnType === 'function' &&
+          rental_nft.returnType() === 'store-nft-rental') ||
+        String(listing_txmsg?.listing?.listing_mode || '').toLowerCase() === 'rent';
+      if (is_store_rental) {
+        rental_nft.nft_type = 'store-nft-rental';
+        const mutated = await rental_nft.modifyBeforeSend(delist_tx, seller);
+        if (!mutated) {
+          throw new Error('store-nft-rental delist transfer hop blocked');
+        }
+      }
+    }
+
+    await delist_tx.sign();
+    return delist_tx;
+  },
+
+  async receiveDelistAssetTransaction(blk, tx) {
+    console.log('Store: receiveDelistAssetTransaction start', tx?.signature);
+
+    const txmsg = tx?.returnMessage?.() || {};
+    if (txmsg.module !== 'Store' || txmsg.request !== 'delist-asset') {
+      return;
+    }
+
+    if (this.app.BROWSER) {
+      this.app.connection.emit('store-delist-asset', { blk, tx, conf: 0 });
+      return;
+    }
+
+    try {
+      const spent_rows = await this.warehouse.matchSpentListings(tx);
+      if (!spent_rows.length) {
+        console.warn('Store: delist matched no active listing', tx.signature);
+        return;
+      }
+
+      const created_tuples = returnCreatedNftTuples(tx);
+      for (const row of spent_rows) {
+        const seller = String(row.seller || '').trim();
+        if (!seller) {
+          console.warn('Store: delist listing missing seller', row.signature);
+          continue;
+        }
+
+        const returned_to_seller = created_tuples.some(
+          (tuple) => tuple.custody_public_key === seller
+        );
+        if (!returned_to_seller) {
+          console.warn(
+            'Store: delist custody not returned to seller; skipping',
+            row.signature,
+            seller
+          );
+          continue;
+        }
+
+        if (
+          txmsg.listing_signature &&
+          String(txmsg.listing_signature) !== String(row.signature)
+        ) {
+          console.warn(
+            'Store: delist listing_signature mismatch; consuming slip-matched row',
+            txmsg.listing_signature,
+            row.signature
+          );
+        }
+
+        await this.warehouse.consumeDelistedListing(row, tx, blk);
+      }
+    } catch (err) {
+      console.error('Store: receiveDelistAssetTransaction failed', err);
+      if (err?.stack) {
+        console.error(err.stack);
+      }
+    }
   },
 
   async createPurchaseAssetTransaction(summary, sale = {}, nolan_to_send = 0n) {
