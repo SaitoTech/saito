@@ -879,6 +879,10 @@ class Browser {
   }
 
   removeElementBySelector(selector = '') {
+    if (selector === '') {
+      console.warn('no selector provided to removeElementBySelector');
+      return;
+    }
     let obj = document.querySelector(selector);
     if (obj) {
       obj.remove();

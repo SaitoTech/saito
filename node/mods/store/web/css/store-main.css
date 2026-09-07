@@ -335,6 +335,8 @@
   position: absolute;
   top: var(--saito-space-sm);
   right: var(--saito-space-sm);
+  color: var(--saito-green);
+  border-color: var(--saito-green);
 }
 
 .store .listing-success .title {
@@ -631,8 +633,7 @@
 
 .store .sales-table td:nth-child(2),
 .store .sales-table td:nth-child(3),
-.store .sales-table td:nth-child(4),
-.store .sales-table td:nth-child(6) {
+.store .sales-table td:nth-child(5) {
   white-space: nowrap;
 }
 
@@ -641,9 +642,36 @@
   word-break: break-word;
 }
 
-.store .sales-table .sales-note {
+.store .sales-table .sales-buyer-cell {
   min-width: 10rem;
   max-width: 22rem;
+}
+
+.store .sales-table .sales-buyer {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  align-items: flex-start;
+}
+
+.store .sales-table .sales-buyer-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  max-width: 100%;
+}
+
+.store .sales-table .sales-buyer-address {
+  font-family: var(--saito-font-monospace, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace);
+  font-size: var(--font-size-small);
+  color: var(--saito-foreground);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.store .sales-table .sales-buyer-copy {
+  flex-shrink: 0;
 }
 
 .store .listings-table tbody tr:last-child td {

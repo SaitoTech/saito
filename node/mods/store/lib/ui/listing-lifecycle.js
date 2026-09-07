@@ -4,6 +4,8 @@ const PHASE = {
   DISMISSED: 'dismissed'
 };
 
+const { SlipType } = require('saito-js/lib/slip');
+
 /**
  * Progress tracking for an in-flight listing broadcast.
  * Does not fabricate or inject listing teaser / Summary objects —
@@ -33,10 +35,16 @@ class ListingLifecycle {
       return null;
     }
 
+    // Bound from[0] is mint creator metadata; ownership is Normal/ATR from[1].
+    const from0 = listingTx?.from?.[0];
+    const from1 = listingTx?.from?.[1];
+    let listing_seller = from0?.publicKey || '';
+    if (from0?.type === SlipType.Bound && from1?.publicKey) {
+      listing_seller = from1.publicKey;
+    }
+
     const seller =
-      String(sellerPublicKey || this.mod.publicKey || '').trim() ||
-      listingTx?.from?.[0]?.publicKey ||
-      '';
+      String(sellerPublicKey || this.mod.publicKey || '').trim() || listing_seller || '';
 
     const title = String(listing.title || nft?.title || 'Untitled Item').trim();
 

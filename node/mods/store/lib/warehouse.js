@@ -4,6 +4,7 @@ const Database = require('./database');
 const { syncSummaryCache, summaryBucketKey } = require('./ui/summary-cache');
 const Order = require('./order');
 const Slip = require('../../../lib/saito/slip').default;
+const { SlipType } = require('saito-js/lib/slip');
 const {
   ORDER_STATUS_PENDING,
   ORDER_STATUS_SETTLING,
@@ -1089,6 +1090,14 @@ class Warehouse {
     const price_nolan = Number(this.app.wallet.convertSaitoToNolan(meta.price ?? 0) ?? 0);
     const change_qty = inventory_triple[0]?.amount;
 
+    // Bound from[0] is mint creator metadata; ownership is Normal/ATR from[1].
+    const from0 = tx.from?.[0];
+    const from1 = tx.from?.[1];
+    let listing_seller = from0?.publicKey || '';
+    if (from0?.type === SlipType.Bound && from1?.publicKey) {
+      listing_seller = from1.publicKey;
+    }
+
     const nft_type =
       (typeof nft?.returnType === 'function' ? nft.returnType() : null) || nft?.nft_type || '';
     const category = mapNFTTypeToCategory(nft_type);
@@ -1096,7 +1105,7 @@ class Warehouse {
     return {
       signature: tx.signature,
       nft_id: String(nft.id || nft.uuid || meta.nft_id || ''),
-      seller: fulfill.seller || tx.from?.[0]?.publicKey || '',
+      seller: fulfill.seller || listing_seller || '',
       category,
       quantity: Number(change_qty ?? nft.amount ?? inventory_triple[0]?.amount ?? 1) || 1,
       price: price_nolan,

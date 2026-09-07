@@ -34,12 +34,17 @@ class SelectNFT {
         this.overlay.close();
       });
 
-      // Wallet owns updateNFTList on wallet-updated; UI only refreshes from options.
-      app.connection.on('wallet-updated', () => {
+      // Prefer wallet-updated (not on-nft-sent/received): options.wallet.nfts
+      // is only fresh after updateNFTList. Await sync before re-render so we
+      // don't race the Wallet module's own async listener.
+      app.connection.on('wallet-updated', async () => {
+        if (typeof this.app.wallet?.updateNFTList === 'function') {
+          await this.app.wallet.updateNFTList();
+        }
         if (this.overlay.visible) {
-          this.render();
+          await this.render();
         } else {
-          void this.updateCardList();
+          await this.updateCardList();
         }
       });
     }
