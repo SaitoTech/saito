@@ -50,6 +50,8 @@ export default class Blockchain extends SaitoBlockchain {
       lowest_acceptable_block_id: Number(await this.instance.get_lowest_acceptable_block_id()),
       issuance_writing_block_interval:
         this.app.options.blockchain?.issuance_writing_block_interval ?? 10,
+      utxoset_writing_block_interval:
+        this.app.options.blockchain?.utxoset_writing_block_interval ?? 100,
       fork_id: await this.instance.get_fork_id(),
       confirmations: []
     };

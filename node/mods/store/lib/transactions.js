@@ -679,7 +679,7 @@ module.exports = {
   /**
    * Seller reclaim: spend the listing NFT P2SH triple back to the seller wallet.
    * listing_row must include utxo_slip1/2/3 + access_script (from Store DB / peer).
-   * listing_tx is optional (Archive) and used only for store-nft-rental hop mutation.
+   * listing_tx (Archive) supplies NFT txmsg payload (data/image/etc.) and rental hops.
    */
   async createDelistAssetTransaction(listing_row, listing_tx = null) {
     if (!listing_row?.signature) {
@@ -774,12 +774,21 @@ module.exports = {
       );
     }
 
+    // Carry NFT payload forward (data/image/title/etc.) like list-asset / fulfillment.
+    const listing_txmsg = listing_tx ? listingTxmsg(listing_tx) : {};
+    const nft_msg = JSON.parse(JSON.stringify(listing_txmsg || {}));
+    delete nft_msg.request;
+    delete nft_msg.access_scripts;
+    delete nft_msg.fulfill_sale;
+    delete nft_msg.listing_signature;
+
     delist_tx.msg = {
+      ...nft_msg,
       module: 'Store',
       request: 'delist-asset',
       listing_signature: listing_row.signature,
       seller,
-      nft_id: listing_row.nft_id || '',
+      nft_id: listing_row.nft_id || nft_msg.nft_id || nft_msg.listing?.nft_id || '',
       quantity: row_qty,
       access_script: listing_access_script,
       access_hash: listing_row.access_hash || '',
@@ -789,7 +798,6 @@ module.exports = {
 
     if (listing_tx) {
       const rental_nft = new SaitoNFT(this.app, this, listing_tx, null);
-      const listing_txmsg = listingTxmsg(listing_tx);
       const is_store_rental =
         (typeof rental_nft.returnType === 'function' &&
           rental_nft.returnType() === 'store-nft-rental') ||
@@ -800,6 +808,19 @@ module.exports = {
         if (!mutated) {
           throw new Error('store-nft-rental delist transfer hop blocked');
         }
+        // Keep delist control fields after hop mutation; preserve NFT data payload.
+        delist_tx.msg = delist_tx.msg || {};
+        delist_tx.msg.module = 'Store';
+        delist_tx.msg.request = 'delist-asset';
+        delist_tx.msg.listing_signature = listing_row.signature;
+        delist_tx.msg.seller = seller;
+        delist_tx.msg.nft_id =
+          listing_row.nft_id || delist_tx.msg.nft_id || delist_tx.msg.listing?.nft_id || '';
+        delist_tx.msg.quantity = row_qty;
+        delist_tx.msg.access_script = listing_access_script;
+        delist_tx.msg.access_hash = listing_row.access_hash || '';
+        delist_tx.msg.p2sh_address = listing_row.p2sh_address || '';
+        delist_tx.msg.access_scripts = access_scripts;
       }
     }
 

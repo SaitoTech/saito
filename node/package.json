@@ -11,6 +11,7 @@
     "cli": "ts-node --project config/build/tsconfig.json  ./scripts/cli.ts",
     "deserialize_block": "node ./scripts/deserialize_block.js",
     "generate-issuance": "NODE_OPTIONS='--max-old-space-size=12288' ts-node --project config/build/tsconfig.json ./scripts/gen-issuance",
+    "generate-utxoset": "NODE_OPTIONS='--max-old-space-size=12288' ts-node --project config/build/tsconfig.json ./scripts/gen-utxoset",
     "wh": "NODE_OPTIONS='--max-old-space-size=12288' ts-node  --project config/build/tsconfig.json ./scripts/wh.ts",
     "start": "NODE_OPTIONS='--max-old-space-size=8192' ts-node -T --files --project config/build/tsconfig.json ./scripts/start.ts --",
     "init": "./scripts/.compile nuke",

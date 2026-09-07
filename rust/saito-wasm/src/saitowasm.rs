@@ -1113,6 +1113,21 @@ pub async fn write_issuance_file(threshold: Currency) {
 }
 
 #[wasm_bindgen]
+pub async fn write_utxoset_file() {
+    let mut saito = SAITO.lock().await;
+    let blockchain_lock = saito
+        .as_mut()
+        .unwrap()
+        .routing_thread
+        .blockchain_lock
+        .clone();
+    let mut storage = &mut saito.as_mut().unwrap().consensus_thread.storage;
+
+    let blockchain = blockchain_lock.write().await;
+    blockchain.write_utxoset_file("", &mut storage).await;
+}
+
+#[wasm_bindgen]
 pub async fn disable_producing_blocks_by_timer() {
     let mut saito = SAITO.lock().await;
     saito

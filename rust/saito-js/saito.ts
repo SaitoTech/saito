@@ -574,6 +574,7 @@ export default class Saito {
       //
       admin: {
         writeIssuanceFile: wasm.write_issuance_file?.bind(wasm),
+        writeUtxosetFile: wasm.write_utxoset_file?.bind(wasm),
       },
     };
 

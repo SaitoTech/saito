@@ -7,7 +7,8 @@ use serde::Deserialize;
 use wasm_bindgen::prelude::*;
 
 use saito_core::core::util::configuration::{
-    get_default_issuance_writing_block_interval, BlockchainConfig, Configuration, ConsensusConfig,
+    get_default_issuance_writing_block_interval, get_default_utxoset_writing_block_interval,
+    BlockchainConfig, Configuration, ConsensusConfig,
     Endpoint, PeerConfig, Server, WalletConfig,
 };
 fn get_default_consensus() -> Option<ConsensusConfig> {
@@ -64,6 +65,7 @@ impl WasmConfiguration {
                 fork_id: "0000000000000000000000000000000000000000000000000000000000000000"
                     .to_string(),
                 issuance_writing_block_interval: get_default_issuance_writing_block_interval(),
+                utxoset_writing_block_interval: get_default_utxoset_writing_block_interval(),
                 confirmations: vec![],
             },
             spv_mode: false,
