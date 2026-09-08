@@ -3,8 +3,6 @@
  *
  * Presentation: `mods/crypto/web/css/crypto-overlays.css` (`.crypto-receive-overlay`).
  *
- * Preference: crypto_transfers_inbound_trusted (UI/storage; auto-skip behavior later).
- *
  * Queue resume is one-shot via completeReceiveOnce():
  *   - Continue click → completeReceiveOnce()
  *   - Payment arrived → success UI, then completeReceiveOnce()
@@ -49,25 +47,12 @@ class GameReceive {
   }
 
   /**
-   * First-time / absent preference → checked (opt-in invitation).
-   * After the user has saved a value → reflect that stored preference.
-   */
-  readInboundCheckboxDefault() {
-    const pref = this.app.options?.gameprefs?.crypto_transfers_inbound_trusted;
-    if (pref === undefined || pref === null) {
-      return true;
-    }
-    return !!pref;
-  }
-
-  /**
    * @returns {null | {
    *   root: HTMLElement,
    *   title: HTMLElement | null,
    *   amount: HTMLElement | null,
    *   countdown: HTMLElement | null,
-   *   closeBtn: HTMLButtonElement | null,
-   *   ignoreCheckbox: HTMLInputElement | null
+   *   closeBtn: HTMLButtonElement | null
    * }}
    */
   bindElements() {
@@ -78,19 +63,11 @@ class GameReceive {
         title: root.querySelector('#crypto_receive_title'),
         amount: root.querySelector('#crypto_receive_amount'),
         countdown: root.querySelector('#crypto_receive_countdown'),
-        closeBtn: root.querySelector('#crypto_receive_continue'),
-        ignoreCheckbox: root.querySelector('#crypto_receive_auto_accept')
+        closeBtn: root.querySelector('#crypto_receive_continue')
       };
     } else {
       return null;
     }
-  }
-
-  saveInboundPreferenceFromCheckbox() {
-    const checkbox = document.getElementById('crypto_receive_auto_accept');
-    this.app.options.gameprefs = this.app.options.gameprefs || {};
-    this.app.options.gameprefs.crypto_transfers_inbound_trusted = checkbox?.checked ? 1 : 0;
-    this.app.storage.saveOptions();
   }
 
   /**
@@ -103,8 +80,6 @@ class GameReceive {
     }
     this.receive_completed = true;
     this.expected_hash = null;
-
-    this.saveInboundPreferenceFromCheckbox();
 
     const cb = this.mycallback;
     this.mycallback = null;
@@ -143,7 +118,6 @@ class GameReceive {
     this.receive_completed = false;
 
     const publicKey = details.publicKey;
-    details.trustedInbound = this.readInboundCheckboxDefault();
     details.partyName = escapeHtml(this.app.keychain.returnUsername(publicKey));
     details.partyKey = escapeHtml(publicKey);
 

@@ -17,8 +17,8 @@ class Deposit {
       }
 
       // Cache these to fill in the overlay
-      this.title = obj.title || 'Top up wallet';
       this.ticker = obj.ticker || this.app.wallet.returnPreferredCryptoTicker();
+      this.title = obj.title || 'Deposit Saito';
       this.address = obj.address || this.app.wallet.returnCryptoAddressByTicker(this.ticker);
 
       this.desired_amount = obj.amount || null;
@@ -97,15 +97,16 @@ class Deposit {
 
       this.balance = Number(await cryptomod.fetchBalance());
 
-      if (document.querySelector(`#saito-deposit-form .balance-amount`)) {
-        document.querySelector(`#saito-deposit-form .balance-amount`).innerHTML =
-          this.app.browser.returnBalanceHTML(this.balance);
-      }
-
       if (cryptomod?.confirmations) {
-        document.querySelector('.network-confirmations-count').innerHTML = cryptomod.confirmations;
+        const countEl = document.querySelector('#saito-deposit-form .network-confirmations-count');
+        if (countEl) {
+          countEl.innerHTML = cryptomod.confirmations;
+        }
       } else {
-        document.querySelector('.network-confirmations').style.display = 'none';
+        const confEl = document.querySelector('#saito-deposit-form .network-confirmations');
+        if (confEl) {
+          confEl.style.display = 'none';
+        }
       }
 
       console.log('GEN QR 1: ' + this.address);

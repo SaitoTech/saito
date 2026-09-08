@@ -89,40 +89,29 @@
 /* The shared crypto deposit dialog needs a compact migration-specific layout. */
 #saito-deposit-form.saito-crypto-deposit.migration-deposit {
   box-sizing: border-box;
-  height: auto;
-  min-height: 0;
   max-height: min(90svh, 70rem);
   overflow-y: auto;
-  justify-content: flex-start;
-  gap: 1.5rem;
   color: var(--saito-foreground);
-}
-
-#saito-deposit-form.saito-crypto-deposit.migration-deposit > .saito-overlay-form-header {
-  box-sizing: border-box;
-  flex: 0 0 6rem;
-  min-height: 6rem;
-}
-
-#saito-deposit-form.saito-crypto-deposit.migration-deposit .saito-crypto-wallet-state {
-  flex: 0 0 auto;
 }
 
 #saito-deposit-form.saito-crypto-deposit.migration-deposit .call-to-action {
   width: 100%;
   box-sizing: border-box;
-  margin: 0;
-  padding: 0.5rem 0;
-  color: var(--saito-muted-foreground);
-  line-height: 1.4;
 }
 
 #saito-deposit-form.saito-crypto-deposit.migration-deposit > footer.saito-button-row {
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: stretch;
   gap: 1.5rem;
   margin-top: 0.5rem;
+}
+
+#saito-deposit-form.saito-crypto-deposit.migration-deposit .saito-crypto-deposit__footer-meta {
+  margin-right: 0;
+  align-items: center;
+  text-align: center;
+  width: 100%;
 }
 
 #saito-deposit-form.saito-crypto-deposit.migration-deposit .network-confirmations {

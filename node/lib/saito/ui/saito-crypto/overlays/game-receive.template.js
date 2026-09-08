@@ -44,18 +44,6 @@ module.exports = function gameCryptoReceiveOverlayTemplate(details) {
           ${partyKey}
         </div>
       </section>
-
-      <div class="crypto-receive-overlay__prefs game-crypto-transfer-card__prefs">
-        <label class="crypto-receive-overlay__checkbox-label game-crypto-transfer-card__checkbox-label">
-          <input
-            type="checkbox"
-            id="crypto_receive_auto_accept"
-            class="saito-checkbox"
-            ${details.trustedInbound ? 'checked' : ''}
-          />
-          <span>auto-accept in-game transfers</span>
-        </label>
-      </div>
     </div>
 
     <footer class="crypto-receive-overlay__footer crypto-receive-overlay__footer--trusted game-crypto-transfer-card__footer">
