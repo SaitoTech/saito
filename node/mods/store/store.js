@@ -5,7 +5,7 @@ const Main = require('./lib/ui/main');
 const Warehouse = require('./lib/warehouse');
 const transactions = require('./lib/transactions');
 const { serveCachedImageResponse } = require('./lib/images');
-const { DEFAULT_PAGE_SIZE, normalizeOffset, normalizePageSize } = require('./lib/categories');
+const { normalizeOffset, normalizePageSize } = require('./lib/categories');
 const index = require('./index');
 
 class Store extends ModTemplate {
@@ -252,32 +252,25 @@ class Store extends ModTemplate {
     this.store_peer_index = peer.peerIndex;
     console.log('Store: onPeerServiceUp store_public_key=', this.store_public_key);
 
-    if (!this.browser_active) {
+    if (!this.browser_active || !this.main?.manager) {
       return;
     }
 
-    if (this.main?.loadBrowsePage) {
-      this.main.loadBrowsePage({ category: '', page: 1 });
+    // Peer readiness only enables fetch — do not change which Store context is active.
+    const manager = this.main.manager;
+    if (manager.activePanel === 'my-listings') {
+      void manager.storefront.reloadInventory();
       return;
     }
-
-    this.app.network.sendRequestAsTransaction(
-      'load-listings',
-      {
-        module: 'Store',
-        public_key: '',
-        category: '',
-        offset: 0,
-        page_size: DEFAULT_PAGE_SIZE
-      },
-      (response) => {
-        console.log('Store: loadListings response', response);
-        if (response?.listings) {
-          this.app.connection.emit('store-render-listings');
-        }
-      },
-      peer.publicKey
-    );
+    if (manager.activePanel === 'sales') {
+      void manager.sales.show();
+      return;
+    }
+    void manager.browse.loadPage({
+      category: manager.browse.category,
+      page: manager.browse.page || 1,
+      scroll: false
+    });
   }
 
   async handlePeerTransaction(app, tx = null, peer, mycallback = null) {
