@@ -875,15 +875,14 @@ impl Transaction {
         }
 
         //
-        // no duplicate infputs
+        // no duplicate spendable inputs
         //
+        let mut input_keys = AHashSet::new();
         if self
             .from
             .iter()
-            .map(|slip| slip.utxoset_key)
-            .collect::<Vec<_>>()
-            .len()
-            != self.from.len()
+            .filter(|slip| slip.amount > 0)
+            .any(|slip| !input_keys.insert(slip.utxoset_key))
         {
             error!("ERROR: transaction : {} has duplicate inputs", self);
             return { false };
@@ -1764,6 +1763,11 @@ impl Transaction {
 
 #[cfg(test)]
 mod tests {
+    use std::sync::Arc;
+
+    use tokio::sync::RwLock;
+
+    use crate::core::consensus::wallet::Wallet;
     use crate::core::defs::{PrintForLog, SaitoPrivateKey, SaitoPublicKey};
     use crate::core::util::crypto::generate_keys;
 
@@ -1944,5 +1948,39 @@ mod tests {
 
         let serialized_tx = mock_tx.serialize_for_net();
         assert_eq!(serialized_tx.len(), 0);
+    }
+
+    #[test]
+    fn validate_rejects_duplicate_inputs() {
+        let (public_key, private_key) = generate_keys();
+        let wallet = Arc::new(RwLock::new(Wallet::new(private_key, public_key)));
+        let mut blockchain = Blockchain::new(wallet, 1_000, 0, 60, 6, 6);
+
+        let mut input = Slip {
+            public_key,
+            amount: 10,
+            block_id: 1,
+            tx_ordinal: 1,
+            slip_index: 0,
+            slip_type: SlipType::Normal,
+            ..Default::default()
+        };
+        input.generate_utxoset_key();
+        blockchain.utxoset.insert(input.utxoset_key, true);
+
+        let output = Slip {
+            public_key,
+            amount: 20,
+            slip_type: SlipType::Normal,
+            ..Default::default()
+        };
+
+        let mut tx = Transaction::default();
+        tx.from = vec![input.clone(), input];
+        tx.to = vec![output];
+        tx.generate(&public_key, 0, 0);
+        tx.sign(&private_key);
+
+        assert!(!tx.validate(&blockchain.utxoset, &blockchain, true));
     }
 }
