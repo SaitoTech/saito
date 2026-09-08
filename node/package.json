@@ -33,7 +33,8 @@
     "options": "node ./scripts/options-tool.js",
     "options-manager": "node ./scripts/options-manager.js",
     "module-databases": "node ./scripts/module-databases.js",
-    "upgrade-module-databases": "node ./scripts/upgrade-module-databases.js"
+    "upgrade-module-databases": "node ./scripts/upgrade-module-databases.js",
+    "upgrade-modules-config": "node ./scripts/upgrade-modules-config.js"
   },
   "author": "Team Saito",
   "license": "SAITO",
