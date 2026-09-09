@@ -134,9 +134,7 @@ class SaitoPurchaseOverlay {
   async render() {
     let self = this;
     const resumeStage =
-      this.acquisition_stage && this.acquisition_stage !== 'default'
-        ? this.acquisition_stage
-        : '';
+      this.acquisition_stage && this.acquisition_stage !== 'default' ? this.acquisition_stage : '';
 
     console.debug(
       'SaitoPurchaseOverlay Rendering...',
@@ -241,9 +239,7 @@ class SaitoPurchaseOverlay {
     const options = (this.app.modules.getRespondTos('buysaito-options') || [])
       .filter(
         (opt) =>
-          opt &&
-          (opt.title || opt.text) &&
-          (typeof opt.callback === 'function' || opt.inline_stage)
+          opt && (opt.title || opt.text) && (typeof opt.callback === 'function' || opt.inline_stage)
       )
       .sort((a, b) => (a.rank || 0) - (b.rank || 0));
 
@@ -371,9 +367,7 @@ class SaitoPurchaseOverlay {
       footer.innerHTML = this.stage1_footer_html;
       this.stage1_footer_html = null;
     }
-    document
-      .getElementById('purchase-container')
-      ?.classList.remove('buysaito-stage-faucet-auth');
+    document.getElementById('purchase-container')?.classList.remove('buysaito-stage-faucet-auth');
 
     this.attachEvents();
   }
@@ -406,13 +400,8 @@ class SaitoPurchaseOverlay {
         Array.isArray(opt?.providers) && opt.providers.length
           ? opt.providers
           : this.defaultFaucetAuthProviders();
-      stageEl.innerHTML = SaitoPurchaseFaucetAuthTemplate(
-        providers,
-        opt?.auth_message
-      );
-      document
-        .getElementById('purchase-container')
-        ?.classList.add('buysaito-stage-faucet-auth');
+      stageEl.innerHTML = SaitoPurchaseFaucetAuthTemplate(providers, opt?.auth_message);
+      document.getElementById('purchase-container')?.classList.add('buysaito-stage-faucet-auth');
 
       // Host back-nav in the same footer slot as the migration note (main-screen height/rhythm).
       const footer = document.querySelector('#purchase-container .buysaito-footer-note');
@@ -478,9 +467,7 @@ class SaitoPurchaseOverlay {
    */
   exitAcquisitionStage() {
     const stageEl = document.getElementById('buysaito-stage');
-    document
-      .getElementById('purchase-container')
-      ?.classList.remove('buysaito-stage-faucet-auth');
+    document.getElementById('purchase-container')?.classList.remove('buysaito-stage-faucet-auth');
 
     const footer = document.querySelector('#purchase-container .buysaito-footer-note');
     if (footer && this.stage1_footer_html != null) {
@@ -501,7 +488,6 @@ class SaitoPurchaseOverlay {
 
     // Rebind Stage 1 interactions (crypto select, etc.) without re-showing overlay.
     this.attachEvents();
-
   }
 
   attachEvents() {

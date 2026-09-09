@@ -254,6 +254,16 @@
   padding-left: 1.4em;
 }
 
+/* Cancel sibling block gap before lists; keep item rhythm via li + li below */
+.tweet .body > :is(p, blockquote, pre, table, hr, ul, ol) + :is(ul, ol) {
+  margin-top: 0;
+}
+
+.tweet .body li {
+  margin-top: 0;
+  margin-bottom: 0;
+}
+
 .tweet .body li + li,
 .tweet .body li > :is(ul, ol) {
   margin-top: var(--saito-space-xs);
