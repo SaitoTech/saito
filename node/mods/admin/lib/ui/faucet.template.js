@@ -33,7 +33,10 @@ module.exports = ({
   };
 
   const chainLabel = (row) => {
-    if (row.payment_status === 'orphaned' || (row.payment_block_hash && !row.payment_longest_chain)) {
+    if (
+      row.payment_status === 'orphaned' ||
+      (row.payment_block_hash && !row.payment_longest_chain)
+    ) {
       return 'orphaned';
     }
     if (row.payment_status === 'included' && row.payment_longest_chain) {
@@ -149,9 +152,7 @@ module.exports = ({
         <div>
           <label>Balance</label>
           <div class="admin-faucet-balance">${
-            loading && !state
-              ? '…'
-              : `${escapeHtml(state?.balance_saito || '0')} SAITO`
+            loading && !state ? '…' : `${escapeHtml(state?.balance_saito || '0')} SAITO`
           }</div>
           <div class="admin-faucet-nolan">${escapeHtml(state?.balance_nolan || '0')} nolan</div>
         </div>

@@ -38,11 +38,7 @@ module.exports = (modules, { dirty, saved, error, filter } = {}) => {
         <strong>Client</strong> is browsers only.
       </p>
 
-      ${
-        error
-          ? `<div class="admin-modules-error">${error}</div>`
-          : ''
-      }
+      ${error ? `<div class="admin-modules-error">${error}</div>` : ''}
 
       ${
         saved

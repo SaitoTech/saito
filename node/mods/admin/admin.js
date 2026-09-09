@@ -586,7 +586,9 @@ ${formatList(lite)}
   }
 
   sqliteError(dbname, err) {
-    const filename = dbname ? this.sqliteFile(dbname) : this.app.storage.data_dir || 'the data directory';
+    const filename = dbname
+      ? this.sqliteFile(dbname)
+      : this.app.storage.data_dir || 'the data directory';
     if (err?.code === 'EACCES' || err?.code === 'EPERM' || err?.code === 'SQLITE_READONLY') {
       return `We couldn't update ${filename} because this file is not writable by the Saito server. The user account that runs Saito needs write permission for that file. Give that account write access, then try again.`;
     }

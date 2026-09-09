@@ -1,21 +1,9 @@
-module.exports = ({
-  endpoint,
-  public_key,
-  live,
-  offline,
-  error,
-  notice,
-  loading_live
-} = {}) => {
+module.exports = ({ endpoint, public_key, live, offline, error, notice, loading_live } = {}) => {
   const live_rows = (live || [])
     .map((p) => {
       const address =
-        p.host && p.port
-          ? `${p.protocol ? p.protocol + '://' : ''}${p.host}:${p.port}`
-          : '—';
-      const badge = p.permanent
-        ? `<span class="admin-peer-badge">Permanent</span>`
-        : '';
+        p.host && p.port ? `${p.protocol ? p.protocol + '://' : ''}${p.host}:${p.port}` : '—';
+      const badge = p.permanent ? `<span class="admin-peer-badge">Permanent</span>` : '';
       const remove =
         p.permanent && p.configured_index >= 0
           ? `<button type="button" class="admin-button-quiet admin-peer-remove" data-index="${p.configured_index}">Remove</button>`

@@ -33,11 +33,7 @@ module.exports = (app, mod) => {
 
         <div class="admin-page admin-mempool"></div>
 
-        ${
-          faucet
-            ? `<div class="admin-page admin-faucet"></div>`
-            : ''
-        }
+        ${faucet ? `<div class="admin-page admin-faucet"></div>` : ''}
 
         <div class="admin-page admin-options">
           <h1>Config</h1>
