@@ -639,7 +639,14 @@ class StorageCore extends Storage {
     }
     if (this.app.options) {
       if (this.app.options.client_options) {
-        return JSON.stringify(this.app.options.client_options, null, 2);
+        return JSON.stringify(
+          {
+            ...this.app.options.client_options,
+            defaultModule: this.app.options.defaultModule || 'website'
+          },
+          null,
+          2
+        );
       }
     }
 
@@ -662,6 +669,7 @@ class StorageCore extends Storage {
     t.consensus = this.app.options.consensus;
     t.registry = this.app.options.registry;
     t.homeModule = this.app.options.homeModule;
+    t.defaultModule = this.app.options.defaultModule || 'website';
     //t.appstore             = {};
     //t.appstore.default     = this.app.wallet.getPublicKey();
     t.peers.push(client_peer);

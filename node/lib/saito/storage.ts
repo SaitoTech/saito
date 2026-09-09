@@ -84,6 +84,7 @@ class Storage {
       if (data != 'null' && data != null) {
         this.app.options = JSON.parse(data);
         this.app.options.consensus = receivedOptions.consensus;
+        this.app.options.defaultModule = receivedOptions.defaultModule;
         // Cached wallet previously only refreshed consensus from the server; peers stayed
         // whatever was in localStorage (often []). Core builds ws://…/wsopen from peers[].
         const cachedPeers = this.app.options.peers;

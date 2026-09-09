@@ -421,6 +421,10 @@ class Browser {
     const myurlpath = myurl.pathname.split('/');
     const default_mod = 'website';
 
+    if (myurl.pathname === '/') {
+      return this.app?.options?.defaultModule || default_mod;
+    }
+
     if (myurlpath[1]) {
       return myurlpath[1].toLowerCase();
     }
