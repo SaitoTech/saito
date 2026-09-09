@@ -8,7 +8,7 @@ const SYNCING_FADE_MS = 220;
 const PROGRESS_FILL_TRANSITION_MS = 700;
 /** Pause at a full bar before the overlay fades out. */
 const COMPLETE_HOLD_MS = 350;
-const NEAR_TIP_BLOCK_THRESHOLD = 2n;
+const NEAR_TIP_BLOCK_THRESHOLD = 100n;
 const ZERO_BLOCK_HASH = '0'.repeat(64);
 
 class SaitoSync {
@@ -119,6 +119,24 @@ class SaitoSync {
       // If peer dump is unavailable, fall through to the normal sync UI path.
     }
 
+    const current = this.getDisplayCurrentBlockId();
+
+    // Skip overlay when already within NEAR_TIP_BLOCK_THRESHOLD of the tip
+    // (avoids a flash on browser refresh when nearly synced).
+    if (this.isNearTip(current, target)) {
+      this.initial_sync_completed = true;
+      this.sync_complete = true;
+      this.stopProgressPolling();
+      this.cancelPendingUi();
+      this.pending_transition = null;
+      this.ui_mode = 'idle';
+      this.syncing_shown_at = null;
+      if (this.overlay.visible) {
+        this.overlay.remove();
+      }
+      return;
+    }
+
     const already_showing_syncing =
       this.ui_mode === 'syncing' &&
       this.overlay.visible &&
@@ -127,7 +145,6 @@ class SaitoSync {
 
     this.render();
 
-    const current = this.getDisplayCurrentBlockId();
     this.applyCurrentProgress(current, already_showing_syncing);
     if (already_showing_syncing) {
       this.pulseVisual('saito-sync-beat');
@@ -146,12 +163,6 @@ class SaitoSync {
 
     if (local_id != null && local_id > 0n && no_shared_ancestor) {
       this.scheduleFastForward();
-      return;
-    }
-
-    if (this.isNearTip(current, target)) {
-      this.sync_complete = true;
-      this.scheduleDismissSyncing();
       return;
     }
 

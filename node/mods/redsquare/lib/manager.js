@@ -1469,6 +1469,20 @@ class Manager {
     }
   }
 
+  onTweetDeleted(signature) {
+    if (!signature) {
+      return;
+    }
+
+    document
+      .querySelectorAll(`article.tweet[data-id="${signature}"]`)
+      .forEach((el) => el.remove());
+
+    if (this.mode === 'thread' && this.active_signature === signature) {
+      this.renderTimelineForNewPost();
+    }
+  }
+
   renderTimelineForNewPost() {
     this.saveScrollPosition();
     this.mode = 'timeline';

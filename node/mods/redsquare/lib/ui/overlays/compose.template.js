@@ -3,8 +3,16 @@ const TweetHeaderTemplate = require('../../tweet-header.template');
 
 module.exports = (compose) => {
   const mode = compose.mode || 'post';
-  const ariaLabel = mode === 'retweet' ? 'Retweet' : mode === 'reply' ? 'Reply' : 'Compose post';
-  const submitLabel = mode === 'retweet' ? 'Retweet' : mode === 'reply' ? 'Reply' : 'Post';
+  const ariaLabel =
+    mode === 'retweet'
+      ? 'Retweet'
+      : mode === 'edit'
+        ? 'Edit post'
+        : mode === 'reply'
+          ? 'Reply'
+          : 'Compose post';
+  const submitLabel =
+    mode === 'retweet' ? 'Retweet' : mode === 'edit' ? 'Save' : mode === 'reply' ? 'Reply' : 'Post';
 
   let replyPreview = '';
 
@@ -47,7 +55,6 @@ module.exports = (compose) => {
                   class="input"
                   placeholder="${compose.placeholder}"
                   rows="4"
-                  maxlength="${compose.char_limit}"
                 ></textarea>
 
                 <div class="image-preview"></div>
@@ -123,7 +130,9 @@ module.exports = (compose) => {
           <div class="posting-loader">
             <div class="saito-loader"></div>
           </div>
-          <p class="posting-message">${mode === 'retweet' ? 'Retweeting…' : 'Posting…'}</p>
+          <p class="posting-message">${
+            mode === 'retweet' ? 'Retweeting…' : mode === 'edit' ? 'Saving…' : 'Posting…'
+          }</p>
         </div>
 
         <input

@@ -196,7 +196,7 @@ class Faucet extends ModTemplate {
 
       return {
         id: 'faucet',
-        title: 'Request SAITO tokens from the server faucet...',
+        title: 'Click Here for SAITO from the token faucet...',
         description: free_use
           ? 'You may request a small amount once every 24 hours to try the network. No registration is required.'
           : 'You may request a small amount to try the network. Registration with a Github or Twitter account is needed to ensure our limited supply goes to real users and developers.',

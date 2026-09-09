@@ -390,6 +390,21 @@ class Store extends ModTemplate {
       };
     }
 
+    if (type === 'user-menu') {
+      const publicKey = String(obj?.publicKey || '').trim();
+      if (!publicKey) {
+        return null;
+      }
+
+      return {
+        text: publicKey === this.publicKey ? 'My Store' : 'View Store',
+        icon: 'fa-solid fa-store',
+        callback: (app, key) => {
+          navigateWindow(this.returnStorefrontPath(key));
+        }
+      };
+    }
+
     if (type === 'saito-header') {
       if (this.browser_active) {
         return [];

@@ -22,6 +22,7 @@ class ComposeOverlay {
     this.default_reply_to = reply_to;
     this.reply_to = reply_to;
     this.mode = 'post';
+    this.edit_tweet = null;
     this.images = [];
     this.posting = false;
     this.drag_drop_bound = false;
@@ -37,10 +38,15 @@ class ComposeOverlay {
     this.posting = false;
     this.drag_drop_bound = false;
     this.gif_picker_rendered = false;
+    this.edit_tweet = null;
 
     if (options.mode === 'retweet' || options.retweet_of) {
       this.mode = 'retweet';
       this.reply_to = options.retweet_of || options.reply_to || this.default_reply_to;
+    } else if (options.mode === 'edit') {
+      this.mode = 'edit';
+      this.edit_tweet = options.tweet || null;
+      this.reply_to = this.default_reply_to;
     } else if (options.reply_to || options.parentTweet) {
       this.mode = 'reply';
       this.reply_to = options.reply_to || options.parentTweet;
@@ -57,6 +63,9 @@ class ComposeOverlay {
     if (this.mode === 'retweet') {
       this.placeholder = 'Add a comment…';
       this.helper_text = 'Add optional commentary or leave empty to retweet…';
+    } else if (this.mode === 'edit') {
+      this.placeholder = 'Edit your post…';
+      this.helper_text = 'Tweets are editable for a brief period after posting…';
     } else if (this.mode === 'reply') {
       this.placeholder = 'Post your reply…';
       this.helper_text = 'Add your reply or drag-and-drop images…';
@@ -101,6 +110,7 @@ class ComposeOverlay {
     this.overlay.close();
     this.images = [];
     this.reply_to = this.default_reply_to;
+    this.edit_tweet = null;
     this.mode = 'post';
     this.posting = false;
   }
@@ -583,13 +593,14 @@ class ComposeOverlay {
 
   collectRecipientKeys() {
     const keys = [];
+    const source = this.mode === 'edit' ? this.edit_tweet : this.reply_to;
 
-    if (this.reply_to?.publicKey && !keys.includes(this.reply_to.publicKey)) {
-      keys.push(this.reply_to.publicKey);
+    if (source?.publicKey && !keys.includes(source.publicKey)) {
+      keys.push(source.publicKey);
     }
 
-    if (this.reply_to?.tx?.to) {
-      for (const slip of this.reply_to.tx.to) {
+    if (source?.tx?.to) {
+      for (const slip of source.tx.to) {
         const publicKey = slip?.publicKey;
 
         if (publicKey && !keys.includes(publicKey)) {
@@ -620,8 +631,17 @@ class ComposeOverlay {
     }
 
     if (text.length > this.char_limit) {
-      siteMessage(`Posts are limited to ${this.char_limit} characters`, 2500);
-      return;
+      let wallet_balance = 0;
+      const crypto = this.app.wallet?.saitoCrypto;
+
+      if (crypto && typeof crypto.getPendingBalance === 'function') {
+        wallet_balance = await crypto.getPendingBalance();
+      }
+
+      if (Number(wallet_balance) == 0) {
+        siteMessage('Accounts with SAITO can write longer posts...', 3000);
+        return;
+      }
     }
 
     this.posting = true;
@@ -657,6 +677,40 @@ class ComposeOverlay {
         return tx;
       }
 
+      if (this.mode === 'edit') {
+        if (!this.edit_tweet?.signature) {
+          siteMessage('Unable to edit tweet', 2500);
+          this.setPostingState(false);
+          this.posting = false;
+          return;
+        }
+
+        const data = {
+          text,
+          tweet_id: this.edit_tweet.signature
+        };
+
+        const [, tx] = await Promise.all([
+          minimumAnimation,
+          (async () => {
+            const unsigned = await this.mod.createEditTweetTransaction(data, keys);
+            await unsigned.sign();
+            await this.app.network.propagateTransaction(unsigned);
+            return unsigned;
+          })()
+        ]);
+
+        await this.mod.receiveEditTweetTransaction(tx);
+
+        siteMessage(
+          'Edit Request Broadcast: it may take a minute for your request to propagate...',
+          4000
+        );
+
+        this.close(tx);
+        return tx;
+      }
+
       const data = this.buildPostData();
 
       const [, tx] = await Promise.all([
@@ -683,7 +737,14 @@ class ComposeOverlay {
       return tx;
     } catch (err) {
       console.error('RedSquare compose submit failed:', err);
-      siteMessage(isRetweet ? 'Unable to retweet' : 'Unable to post tweet', 2500);
+      siteMessage(
+        isRetweet
+          ? 'Unable to retweet'
+          : this.mode === 'edit'
+            ? 'Unable to edit tweet'
+            : 'Unable to post tweet',
+        2500
+      );
       this.setPostingState(false);
       this.posting = false;
     }

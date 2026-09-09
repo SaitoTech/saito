@@ -1,6 +1,7 @@
 const TweetTemplate = require('./tweet.template');
 const SaitoLinkPreview = require('../../../lib/saito/ui/saito-link-preview/saito-link-preview');
 const SaitoLinkPreviewTemplate = require('../../../lib/saito/ui/saito-link-preview/saito-link-preview.template');
+const Transaction = require('../../../lib/saito/transaction').default;
 
 function returnMessage(tx) {
   if (tx && typeof tx.returnMessage === 'function') {
@@ -202,6 +203,8 @@ class Tweet {
 
     this.created_at = Number(this.tx.timestamp) || Date.now();
     this.updated_at = Number(optional.updated_at) || Number(optional.edit_ts) || this.created_at;
+
+    this.applyEditFromOptional();
 
     this.likes = Number(optional.num_likes) || 0;
     this.replies = Number(optional.num_replies) || 0;
@@ -456,6 +459,39 @@ class Tweet {
     }
 
     this.attachModerationEvents();
+  }
+
+  applyEditFromOptional() {
+    const update_tx = this.tx?.optional?.update_tx;
+
+    if (!update_tx) {
+      return;
+    }
+
+    try {
+      const editTx = new Transaction();
+      editTx.deserialize_from_web(this.app, update_tx);
+      const editMsg = returnMessage(editTx);
+
+      if (editMsg?.data?.text != null) {
+        this.text = String(editMsg.data.text);
+      }
+
+      this.updated_at =
+        Number(this.tx.optional.edit_ts) || Number(editTx.timestamp) || this.updated_at;
+    } catch (err) {
+      console.error('RedSquare failed to apply tweet edit:', err);
+    }
+  }
+
+  removeFromDom() {
+    if (!this.app.BROWSER || !this.signature) {
+      return;
+    }
+
+    document
+      .querySelectorAll(`article.tweet[data-id="${this.signature}"]`)
+      .forEach((el) => el.remove());
   }
 
   syncModeratedClassName(className = 'tweet') {
