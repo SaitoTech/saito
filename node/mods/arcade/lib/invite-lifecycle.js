@@ -44,7 +44,6 @@ module.exports = {
     return game_tx;
   },
 
-
   async onPeerHandshakeComplete(app, peer) {
     if (!app.BROWSER) {
       let newtx = await this.app.wallet.createUnsignedTransactionWithDefaultFee();
@@ -414,7 +413,6 @@ module.exports = {
         if (txmsg.request === 'accept') {
           await this.receiveAcceptTransaction(tx);
         }
-
 
         if (txmsg.request === 'arcade update peer status') {
           await this.receivePeerStatusUpdateTransaction(tx);
@@ -1400,7 +1398,6 @@ module.exports = {
     return false;
   },
 
-
   _handleGameReadyNotification(game_details) {
     if (!game_details?.id) return;
 
@@ -1653,7 +1650,5 @@ module.exports = {
         );
       }, 10000);
     }
-  },
-
-
+  }
 };

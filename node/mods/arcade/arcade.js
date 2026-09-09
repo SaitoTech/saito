@@ -468,7 +468,8 @@ class Arcade extends ModTemplate {
             game_id = decodeURIComponent(game_id);
           } catch (_) {}
         }
-        game_data = game_id && arcade_self.invites[game_id] ? arcade_self.invites[game_id].tx : null;
+        game_data =
+          game_id && arcade_self.invites[game_id] ? arcade_self.invites[game_id].tx : null;
       }
 
       let html = arcadeHome(app, arcade_self, app.build_number, updatedSocial, game_data);
