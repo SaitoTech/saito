@@ -85,9 +85,7 @@ class PokerStake {
    */
   isCryptoStakedGame() {
     return (
-      typeof this.game.stake === 'string' &&
-      !!this.game.crypto &&
-      this.game.crypto !== 'CHIPS'
+      typeof this.game.stake === 'string' && !!this.game.crypto && this.game.crypto !== 'CHIPS'
     );
   }
 

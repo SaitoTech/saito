@@ -5,7 +5,13 @@ const CONTROL_ROWS = [
   { label: 'D-Right', key: 4, joy: 4, mapKey: 'Mapping_Right', mapJoy: 'Joy_Mapping_Right' },
   { label: 'A', key: 5, joy: 5, mapKey: 'Mapping_Action_A', mapJoy: 'Joy_Mapping_Action_A' },
   { label: 'B', key: 6, joy: 6, mapKey: 'Mapping_Action_B', mapJoy: 'Joy_Mapping_Action_B' },
-  { label: 'Start', key: 8, joy: 8, mapKey: 'Mapping_Action_Start', mapJoy: 'Joy_Mapping_Action_Start' },
+  {
+    label: 'Start',
+    key: 8,
+    joy: 8,
+    mapKey: 'Mapping_Action_Start',
+    mapJoy: 'Joy_Mapping_Action_Start'
+  },
   { label: 'Z', key: 10, joy: 10, mapKey: 'Mapping_Action_Z', mapJoy: 'Joy_Mapping_Action_Z' },
   { label: 'L', key: 11, joy: 11, mapKey: 'Mapping_Action_L', mapJoy: 'Joy_Mapping_Action_L' },
   { label: 'R', key: 12, joy: 12, mapKey: 'Mapping_Action_R', mapJoy: 'Joy_Mapping_Action_R' },

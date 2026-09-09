@@ -171,10 +171,7 @@ function parseP2shShareLink(raw) {
   const params = url.searchParams;
   const blockId = params.get('block_id') || params.get('blockId') || '';
   const transactionId =
-    params.get('transaction_id') ||
-    params.get('transactionId') ||
-    params.get('signature') ||
-    '';
+    params.get('transaction_id') || params.get('transactionId') || params.get('signature') || '';
   const scripthash = params.get('scripthash') || '';
   const p2shAddress = params.get('p2sh_address') || params.get('p2shAddress') || '';
 

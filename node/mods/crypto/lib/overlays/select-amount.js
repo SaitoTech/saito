@@ -156,8 +156,10 @@ class CryptoSelectAmount {
 
   captureInputValues() {
     if (this.one_sided) {
-      this.player1_stake = document.getElementById('player1_stake_input')?.value ?? this.player1_stake;
-      this.player2_stake = document.getElementById('player2_stake_input')?.value ?? this.player2_stake;
+      this.player1_stake =
+        document.getElementById('player1_stake_input')?.value ?? this.player1_stake;
+      this.player2_stake =
+        document.getElementById('player2_stake_input')?.value ?? this.player2_stake;
     } else {
       this.stake = document.getElementById('amount_to_stake_input')?.value ?? this.stake;
     }
@@ -167,13 +169,15 @@ class CryptoSelectAmount {
     this.captureInputValues();
 
     if (!this.one_sided) {
-      this.player1_stake = document.getElementById('amount_to_stake_input')?.value || this.stake || '0';
+      this.player1_stake =
+        document.getElementById('amount_to_stake_input')?.value || this.stake || '0';
       if (this.player2_stake === undefined || this.player2_stake === '') {
         this.player2_stake = '0';
       }
       this.one_sided = true;
     } else {
-      this.stake = document.getElementById('player1_stake_input')?.value || this.player1_stake || '0';
+      this.stake =
+        document.getElementById('player1_stake_input')?.value || this.player1_stake || '0';
       this.one_sided = false;
     }
 
@@ -191,10 +195,14 @@ class CryptoSelectAmount {
     input_err.style.display = 'none';
 
     if (this.one_sided) {
-      const p1 = parseFloat(document.getElementById('player1_stake_input')?.value ?? this.player1_stake);
-      const p2 = parseFloat(document.getElementById('player2_stake_input')?.value ?? this.player2_stake);
+      const p1 = parseFloat(
+        document.getElementById('player1_stake_input')?.value ?? this.player1_stake
+      );
+      const p2 = parseFloat(
+        document.getElementById('player2_stake_input')?.value ?? this.player2_stake
+      );
 
-      if ((Number.isNaN(p1) || p1 < 0) || (Number.isNaN(p2) || p2 < 0)) {
+      if (Number.isNaN(p1) || p1 < 0 || Number.isNaN(p2) || p2 < 0) {
         errorMsg = 'stakes must be zero or greater';
       } else if (p1 <= 0 && p2 <= 0) {
         errorMsg = 'at least one player needs a stake greater than zero';
@@ -202,7 +210,9 @@ class CryptoSelectAmount {
         errorMsg = `you don't have that much to stake for player 1`;
       }
     } else {
-      let amount = parseFloat(document.getElementById('amount_to_stake_input')?.value ?? this.stake ?? '0');
+      let amount = parseFloat(
+        document.getElementById('amount_to_stake_input')?.value ?? this.stake ?? '0'
+      );
 
       if (amount <= 0) {
         errorMsg = 'you need to select a positive value';

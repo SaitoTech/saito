@@ -24,11 +24,7 @@ class Bugs extends ModTemplate {
     this.categories = 'Utilities Development';
     this.icon_fa = 'fa-solid fa-bug';
     this.possibleHome = 0;
-    this.styles = [
-      '/saito/saito.css',
-      '/redsquare/style.css',
-      '/bugs/style.css'
-    ];
+    this.styles = ['/saito/saito.css', '/redsquare/style.css', '/bugs/style.css'];
     this.completedRetentionMs = COMPLETED_RETENTION_MS;
     this.clientBugs = new Map();
     this.discoveredCandidates = new Map();
@@ -226,8 +222,8 @@ class Bugs extends ModTemplate {
       if (typeof this.app.crypto.verifyHashSignature === 'function') {
         return Boolean(
           signer &&
-            tx.signature &&
-            this.app.crypto.verifyHashSignature(tx.getHashForSignature(), tx.signature, signer)
+          tx.signature &&
+          this.app.crypto.verifyHashSignature(tx.getHashForSignature(), tx.signature, signer)
         );
       }
       return verifyTransactionSignatureHash(tx, signer);

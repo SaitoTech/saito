@@ -979,7 +979,9 @@ class Manager {
 
     const state = this.getPaginationState();
     const source = this.getActiveProfileSource();
-    state.exhausted = Boolean(source?.exhausted && state.cursor >= this.collectProfileTweets().length);
+    state.exhausted = Boolean(
+      source?.exhausted && state.cursor >= this.collectProfileTweets().length
+    );
     this.syncFeedStatus();
 
     if (!state.exhausted && this.isNearBottom()) {
@@ -1194,7 +1196,9 @@ class Manager {
     }
 
     const cache = this.getProfileCache();
-    return (cache[this.mode] || []).map((signature) => this.mod.getTweet(signature)).filter(Boolean);
+    return (cache[this.mode] || [])
+      .map((signature) => this.mod.getTweet(signature))
+      .filter(Boolean);
   }
 
   appendTimelineBatch() {
@@ -1474,9 +1478,7 @@ class Manager {
       return;
     }
 
-    document
-      .querySelectorAll(`article.tweet[data-id="${signature}"]`)
-      .forEach((el) => el.remove());
+    document.querySelectorAll(`article.tweet[data-id="${signature}"]`).forEach((el) => el.remove());
 
     if (this.mode === 'thread' && this.active_signature === signature) {
       this.renderTimelineForNewPost();

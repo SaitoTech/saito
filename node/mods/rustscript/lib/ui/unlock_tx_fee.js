@@ -16,7 +16,11 @@ const UNLOCK_FEE_LOCKED_ERROR =
   'Transaction fee is already set and cannot be changed. Restart Unlock Transaction to choose a different fee.';
 
 function hasUnlockFee(mod) {
-  return !!(mod?.unlock_fee && mod.unlock_fee.feeSaito != null && String(mod.unlock_fee.feeSaito) !== '');
+  return !!(
+    mod?.unlock_fee &&
+    mod.unlock_fee.feeSaito != null &&
+    String(mod.unlock_fee.feeSaito) !== ''
+  );
 }
 
 /** Default zero fee set at unlock-tx creation — still replaceable until a positive fee is chosen or the tx is signed. */
@@ -143,9 +147,7 @@ async function debugFeeFundWalletState(app, label, extra = {}) {
   }
   try {
     snap.balanceGetBalance =
-      typeof app?.wallet?.getBalance === 'function'
-        ? String(await app.wallet.getBalance())
-        : null;
+      typeof app?.wallet?.getBalance === 'function' ? String(await app.wallet.getBalance()) : null;
   } catch (err) {
     snap.balanceGetBalanceError = err?.message || String(err);
   }
@@ -171,10 +173,16 @@ async function debugFeeFundWalletState(app, label, extra = {}) {
       const j = typeof s?.toJson === 'function' ? s.toJson() : s;
       return {
         amount: j?.amount != null ? String(j.amount) : null,
-        blockId: j?.blockId != null ? String(j.blockId) : j?.block_id != null ? String(j.block_id) : null,
+        blockId:
+          j?.blockId != null ? String(j.blockId) : j?.block_id != null ? String(j.block_id) : null,
         spent: j?.spent,
         slipType: j?.slipType ?? j?.slip_type,
-        txIndex: j?.txIndex != null ? String(j.txIndex) : j?.tx_ordinal != null ? String(j.tx_ordinal) : null,
+        txIndex:
+          j?.txIndex != null
+            ? String(j.txIndex)
+            : j?.tx_ordinal != null
+              ? String(j.tx_ordinal)
+              : null,
         slipIndex: j?.slipIndex ?? j?.slip_index,
         utxokey: j?.utxokey ? String(j.utxokey).slice(0, 24) + '…' : null
       };
@@ -237,7 +245,11 @@ function assignOutputSlipIndices(tx) {
  * Mirrors saito-core get_p2sh_auth_hash / Slip::serialize_output_for_signature.
  */
 function getP2shAuthHash(app, tx) {
-  if (!tx || typeof app?.crypto?.hash !== 'function' || typeof app?.crypto?.fromBase58 !== 'function') {
+  if (
+    !tx ||
+    typeof app?.crypto?.hash !== 'function' ||
+    typeof app?.crypto?.fromBase58 !== 'function'
+  ) {
     throw new Error('Cannot compute authorization hash for this transaction.');
   }
 
@@ -410,9 +422,7 @@ async function ensureUnlockFeeFunded(app, mod) {
       balancePrecheck: balance.toString(),
       balanceSaito: have
     });
-    throw new Error(
-      `Insufficient wallet balance to fund this fee. Available: ${have} SAITO.`
-    );
+    throw new Error(`Insufficient wallet balance to fund this fee. Available: ${have} SAITO.`);
   }
 
   const me = await app.wallet.getPublicKey();

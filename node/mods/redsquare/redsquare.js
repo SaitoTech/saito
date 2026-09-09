@@ -596,13 +596,7 @@ class RedSquare extends ModTemplate {
           this.app.storage.loadTransactions(
             obj,
             (txs) => {
-              onPeerComplete(
-                peer_obj,
-                txs || [],
-                isOlder,
-                peerIndex,
-                isOlder || initialHydration
-              );
+              onPeerComplete(peer_obj, txs || [], isOlder, peerIndex, isOlder || initialHydration);
             },
             archivePeer
           );
@@ -1819,11 +1813,7 @@ class RedSquare extends ModTemplate {
       oldtx.optional.edit_ts = interactionTs;
       oldtx.optional.updated_at = interactionTs;
 
-      await this.app.storage.updateTransaction(
-        oldtx,
-        { updated_at: interactionTs },
-        'localhost'
-      );
+      await this.app.storage.updateTransaction(oldtx, { updated_at: interactionTs }, 'localhost');
 
       return oldtx;
     };
@@ -2849,10 +2839,7 @@ class RedSquare extends ModTemplate {
       }
 
       if (userPublicKey) {
-        return res.redirect(
-          301,
-          `${routeBase}/user/${encodeURIComponent(String(userPublicKey))}`
-        );
+        return res.redirect(301, `${routeBase}/user/${encodeURIComponent(String(userPublicKey))}`);
       }
 
       const html = index(app, self, app.build_number);

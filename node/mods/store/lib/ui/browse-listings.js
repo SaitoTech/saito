@@ -9,7 +9,13 @@ const { DEFAULT_PAGE_SIZE, normalizeOffset, normalizePageSize } = require('../ca
 function loadListingsPage(
   app,
   mod,
-  { public_key = '', category = '', offset = 0, page_size = DEFAULT_PAGE_SIZE, status = 'active' } = {}
+  {
+    public_key = '',
+    category = '',
+    offset = 0,
+    page_size = DEFAULT_PAGE_SIZE,
+    status = 'active'
+  } = {}
 ) {
   return new Promise((resolve, reject) => {
     const peerKey = mod.store_public_key;

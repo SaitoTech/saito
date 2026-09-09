@@ -114,7 +114,10 @@ class NwasmMain {
     if (!app.options.nwasm) {
       app.options.nwasm = {};
     }
-    if (!app.options.nwasm.vault_nft_index || typeof app.options.nwasm.vault_nft_index !== 'object') {
+    if (
+      !app.options.nwasm.vault_nft_index ||
+      typeof app.options.nwasm.vault_nft_index !== 'object'
+    ) {
       app.options.nwasm.vault_nft_index = {};
     }
     let vault_nft_index = app.options.nwasm.vault_nft_index;
@@ -321,7 +324,10 @@ class NwasmMain {
       };
       let file_key = String(file.file_id || '');
       let existing = file_key ? vault_games_by_file[file_key] : null;
-      if (!existing || this.vaultEntitlementRank(nft_type) > this.vaultEntitlementRank(existing.nft_type)) {
+      if (
+        !existing ||
+        this.vaultEntitlementRank(nft_type) > this.vaultEntitlementRank(existing.nft_type)
+      ) {
         vault_games_by_file[file_key || nft_sig] = game_entry;
       } else if (
         this.vaultEntitlementRank(nft_type) === this.vaultEntitlementRank(existing.nft_type) &&
@@ -415,10 +421,7 @@ class NwasmMain {
     let vault_mod = this.app.modules.returnModule('Vault');
     if (vault_mod && typeof vault_mod.firstUndelegatedHopFromRental === 'function') {
       try {
-        let hop = vault_mod.firstUndelegatedHopFromRental(
-          data?.file_access_script,
-          data?.path
-        );
+        let hop = vault_mod.firstUndelegatedHopFromRental(data?.file_access_script, data?.path);
         if (hop?.expires_at != null && hop.expires_at !== '') {
           hop_expires = Number(hop.expires_at);
         }
@@ -622,12 +625,9 @@ class NwasmMain {
                   filename:
                     data.filename != null ? String(data.filename) : vault_data?.filename || '',
                   link: data.link != null ? String(data.link) : vault_data?.link || '',
-                  slip1_utxokey:
-                    nft_entry?.slip1?.utxo_key || vault_data?.slip1_utxokey || '',
-                  slip2_utxokey:
-                    nft_entry?.slip2?.utxo_key || vault_data?.slip2_utxokey || '',
-                  slip3_utxokey:
-                    nft_entry?.slip3?.utxo_key || vault_data?.slip3_utxokey || '',
+                  slip1_utxokey: nft_entry?.slip1?.utxo_key || vault_data?.slip1_utxokey || '',
+                  slip2_utxokey: nft_entry?.slip2?.utxo_key || vault_data?.slip2_utxokey || '',
+                  slip3_utxokey: nft_entry?.slip3?.utxo_key || vault_data?.slip3_utxokey || '',
                   file_access_script:
                     data.file_access_script || vault_data?.file_access_script || null,
                   path: Array.isArray(data.path) ? data.path : vault_data?.path || [],

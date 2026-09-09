@@ -169,8 +169,7 @@ We never post on your behalf.`
         return;
       }
 
-      const slug =
-        typeof this.mod?.returnSlug === 'function' ? this.mod.returnSlug() : 'faucet';
+      const slug = typeof this.mod?.returnSlug === 'function' ? this.mod.returnSlug() : 'faucet';
       const oauthUrl = new URL(
         `/${encodeURI(slug)}/oauth/${encodeURI(provider.id)}`,
         window.location.origin

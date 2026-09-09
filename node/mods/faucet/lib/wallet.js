@@ -73,9 +73,7 @@ class FaucetWallet {
     }
 
     const slips = this.slips.filter((slip) => {
-      return (
-        String(slip.publicKey || '') === this.publickey && BigInt(slip.amount || 0) > 0n
-      );
+      return String(slip.publicKey || '') === this.publickey && BigInt(slip.amount || 0) > 0n;
     });
     const job = this.queue[0];
     const recipient_public_key = job ? job.publickey : '';
@@ -142,9 +140,7 @@ class FaucetWallet {
     const tx = new Transaction();
     tx.timestamp = Date.now();
     tx.txs_replacements = 1;
-    tx.msg = recipient_public_key
-      ? { module: 'Faucet', request: 'faucet issuance' }
-      : {};
+    tx.msg = recipient_public_key ? { module: 'Faucet', request: 'faucet issuance' } : {};
 
     for (const row of slips) {
       const input = new Slip();

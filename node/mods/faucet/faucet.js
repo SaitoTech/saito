@@ -151,9 +151,7 @@ class Faucet extends ModTemplate {
           }
 
           this.server_faucet_available = res.available === true;
-          this.server_faucet_amount = this.server_faucet_available
-            ? Number(res.amount) || 0
-            : 0;
+          this.server_faucet_amount = this.server_faucet_available ? Number(res.amount) || 0 : 0;
           this.server_faucet_free_use = res.free_use === true;
 
           try {
@@ -346,11 +344,11 @@ class Faucet extends ModTemplate {
     let peer = await this.app.network.getPeer(identity.publickey);
     if (!peer?.publicKey) {
       const peers = await this.app.network.getPeers();
-      peer = peers.find(
-        (p) => p?.publicKey === identity.publickey && p?.status !== 'disconnected'
-      );
+      peer = peers.find((p) => p?.publicKey === identity.publickey && p?.status !== 'disconnected');
     }
-    console.log('[Faucet] acceptAuthenticatedIdentity inserted — will issue after faucet request confirms');
+    console.log(
+      '[Faucet] acceptAuthenticatedIdentity inserted — will issue after faucet request confirms'
+    );
     await this.db.insertActivity({
       requester_publickey: identity.publickey,
       provider: identity.provider,
@@ -361,7 +359,9 @@ class Faucet extends ModTemplate {
       payment_status: 'none'
     });
     if (!peer?.publicKey) {
-      console.log('[Faucet] acceptAuthenticatedIdentity no connected peer for ' + identity.publickey);
+      console.log(
+        '[Faucet] acceptAuthenticatedIdentity no connected peer for ' + identity.publickey
+      );
       return {
         status: 200,
         popup: {
@@ -517,7 +517,9 @@ class Faucet extends ModTemplate {
       { issuance_status: 'pending' }
     );
     if (!began) {
-      console.log('[Faucet] receiveFaucetClaimTransaction refused — no eligible registration for ' + receiver);
+      console.log(
+        '[Faucet] receiveFaucetClaimTransaction refused — no eligible registration for ' + receiver
+      );
       await this.db.insertActivity({
         requester_publickey: receiver,
         provider: registration?.provider || '',
@@ -637,9 +639,7 @@ class Faucet extends ModTemplate {
     }
 
     if (txmsg?.request === 'faucet request') {
-      console.log(
-        '[Faucet] onConfirmation faucet request from=' + (tx.from?.[0]?.publicKey || '')
-      );
+      console.log('[Faucet] onConfirmation faucet request from=' + (tx.from?.[0]?.publicKey || ''));
       if (!this.app.BROWSER) {
         await this.receiveFaucetClaimTransaction(tx, blk);
       }
@@ -649,9 +649,7 @@ class Faucet extends ModTemplate {
     if (txmsg?.request === 'faucet issuance') {
       console.log(
         '[Faucet] onConfirmation faucet issuance to=' +
-          (tx.to || [])
-            .map((s) => s.publicKey + ':' + String(s.amount || ''))
-            .join(',')
+          (tx.to || []).map((s) => s.publicKey + ':' + String(s.amount || '')).join(',')
       );
       await this.receiveFaucetIssuanceTransaction(tx);
     }
@@ -748,8 +746,7 @@ class Faucet extends ModTemplate {
       this.oauth.secret_twitter = twitterSecret;
     }
 
-    this.free_use =
-      config.free_use === true || config.free_use === '1' || config.free_use === 'on';
+    this.free_use = config.free_use === true || config.free_use === '1' || config.free_use === 'on';
     this.mode = saveFaucetMode(this.app, {
       free: this.free_use,
       github: !!this.oauth.secret_github,
@@ -785,14 +782,8 @@ class Faucet extends ModTemplate {
         return 0;
       }
 
-      const available = !!(
-        this.free_use ||
-        this.oauth.secret_github ||
-        this.oauth.secret_twitter
-      );
-      const amount = available
-        ? Number(this.app.wallet.convertNolanToSaito(this.amount))
-        : 0;
+      const available = !!(this.free_use || this.oauth.secret_github || this.oauth.secret_twitter);
+      const amount = available ? Number(this.app.wallet.convertNolanToSaito(this.amount)) : 0;
       if (typeof mycallback === 'function') {
         mycallback({ available, amount, free_use: this.free_use === true });
       }

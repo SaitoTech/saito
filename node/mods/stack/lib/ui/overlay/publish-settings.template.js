@@ -6,28 +6,28 @@
  * Distribution options (profile link, RedSquare tweet) are identical for all access levels.
  */
 module.exports = (app, mod, postState = {}, wizardState = {}) => {
-	const parent_id =
-		mod.create_post_ui && mod.create_post_ui.parent_id ? mod.create_post_ui.parent_id : null;
-	const publishButtonText = parent_id ? 'Update' : 'Publish';
-	const accessLevel = postState.accessLevel || 'public';
-	const step = wizardState.step || 1;
+  const parent_id =
+    mod.create_post_ui && mod.create_post_ui.parent_id ? mod.create_post_ui.parent_id : null;
+  const publishButtonText = parent_id ? 'Update' : 'Publish';
+  const accessLevel = postState.accessLevel || 'public';
+  const step = wizardState.step || 1;
 
-	const isPublic = accessLevel === 'public';
-	const isPrivate = accessLevel === 'private';
-	const isSubscription = accessLevel === 'subscription';
-	const isRestricted = isPrivate || isSubscription;
+  const isPublic = accessLevel === 'public';
+  const isPrivate = accessLevel === 'private';
+  const isSubscription = accessLevel === 'subscription';
+  const isRestricted = isPrivate || isSubscription;
 
-	const keyLabel = isSubscription ? 'Subscription Key' : 'Access Key';
-	const keysLabel = isSubscription ? 'Subscription Keys' : 'Access Keys';
-	const hasAccessKey =
-		wizardState.hasAccessKey === true || wizardState.createNftStatus === 'confirmed';
-	const isConfirmed = wizardState.createNftStatus === 'confirmed';
-	const isListedInStore = wizardState.isListedInStore === true;
+  const keyLabel = isSubscription ? 'Subscription Key' : 'Access Key';
+  const keysLabel = isSubscription ? 'Subscription Keys' : 'Access Keys';
+  const hasAccessKey =
+    wizardState.hasAccessKey === true || wizardState.createNftStatus === 'confirmed';
+  const isConfirmed = wizardState.createNftStatus === 'confirmed';
+  const isListedInStore = wizardState.isListedInStore === true;
 
-	const profileLinkChecked = wizardState.linkToProfile !== false;
-	const tweetOnPublishChecked = wizardState.tweetOnPublish !== false;
+  const profileLinkChecked = wizardState.linkToProfile !== false;
+  const tweetOnPublishChecked = wizardState.tweetOnPublish !== false;
 
-	const distributionHtml = `
+  const distributionHtml = `
     <div class="distribution">
       <label class="option">
         <input
@@ -50,27 +50,27 @@ module.exports = (app, mod, postState = {}, wizardState = {}) => {
     </div>
   `;
 
-	const getStepContent = () => {
-		if (step === 1) {
-			let accessSummary = 'Anyone can read.';
-			if (isPrivate) {
-				accessSummary = 'Readers must have an Access Key.';
-			} else if (isSubscription) {
-				accessSummary = 'Readers must have an Active Subscription.';
-			}
+  const getStepContent = () => {
+    if (step === 1) {
+      let accessSummary = 'Anyone can read.';
+      if (isPrivate) {
+        accessSummary = 'Readers must have an Access Key.';
+      } else if (isSubscription) {
+        accessSummary = 'Readers must have an Active Subscription.';
+      }
 
-			return {
-				body: `
+      return {
+        body: `
           <div class="option-copy">
             <p class="heading">${accessSummary}</p>
             ${distributionHtml}
           </div>
         `
-			};
-		}
+      };
+    }
 
-		if (step === 2 && (isPrivate || isSubscription)) {
-			const checklistHtml = `
+    if (step === 2 && (isPrivate || isSubscription)) {
+      const checklistHtml = `
           <div class="checklist matrix">
             <div class="check-row complete">
               <span class="mark">✓</span>
@@ -81,32 +81,32 @@ module.exports = (app, mod, postState = {}, wizardState = {}) => {
               <span>${keysLabel} Created</span>
             </div>
             ${
-							isListedInStore
-								? `
+              isListedInStore
+                ? `
             <div class="check-row complete">
               <span class="mark">✓</span>
               <span>${keysLabel} Listed</span>
             </div>
                 `
-								: ''
-						}
+                : ''
+            }
           </div>
         `;
 
-			if (isListedInStore) {
-				return {
-					body: `
+      if (isListedInStore) {
+        return {
+          body: `
               ${checklistHtml}
               <div class="followup">
                 <p class="guidance">Everything is Ready. Go ahead and publish your post.</p>
               </div>
             `
-				};
-			}
+        };
+      }
 
-			if (isConfirmed || hasAccessKey) {
-				return {
-					body: `
+      if (isConfirmed || hasAccessKey) {
+        return {
+          body: `
               ${checklistHtml}
               <div class="followup">
                 <p class="guidance">Would you like to list some ${keysLabel} for sale?</p>
@@ -115,22 +115,22 @@ module.exports = (app, mod, postState = {}, wizardState = {}) => {
                 </p>
               </div>
             `
-				};
-			}
+        };
+      }
 
-			if (wizardState.createNftStatus === 'cancelled') {
-				return {
-					body: `
+      if (wizardState.createNftStatus === 'cancelled') {
+        return {
+          body: `
             ${checklistHtml}
             <div class="followup">
               <p class="guidance">You can publish now without creating ${keysLabel}, or create Stack ${keyLabel} NFTs later from your wallet.</p>
             </div>
           `
-				};
-			}
+        };
+      }
 
-			return {
-				body: `
+      return {
+        body: `
             ${checklistHtml}
             <div class="followup">
               <p class="guidance">Your wallet does not have any ${keysLabel}.</p>
@@ -139,50 +139,50 @@ module.exports = (app, mod, postState = {}, wizardState = {}) => {
               </p>
             </div>
           `
-			};
-		}
+      };
+    }
 
-		return {
-			body: `
+    return {
+      body: `
           <p class="guidance">You'll need a ${keyLabel} for this post. We'll help you create one.</p>
         `
-		};
-	};
+    };
+  };
 
-	const stepContent = getStepContent();
+  const stepContent = getStepContent();
 
-	let primaryLabel = publishButtonText;
-	let primaryAction = 'publish';
-	if (isRestricted) {
-		if (step < 2) {
-			primaryLabel = 'Next →';
-			primaryAction = 'next';
-		} else {
-			primaryLabel = publishButtonText;
-			primaryAction = 'publish';
-		}
-	}
+  let primaryLabel = publishButtonText;
+  let primaryAction = 'publish';
+  if (isRestricted) {
+    if (step < 2) {
+      primaryLabel = 'Next →';
+      primaryAction = 'next';
+    } else {
+      primaryLabel = publishButtonText;
+      primaryAction = 'publish';
+    }
+  }
 
-	const showBack = isRestricted && step > 1;
-	const showPublishImmediately = isRestricted && step === 1;
+  const showBack = isRestricted && step > 1;
+  const showPublishImmediately = isRestricted && step === 1;
 
-	const leftActionHtml = (() => {
-		if (showBack) {
-			return `
+  const leftActionHtml = (() => {
+    if (showBack) {
+      return `
         <button id="stack-publish-back-btn" class="saito-button-square" type="button" aria-label="Back">
           <i class="fa-solid fa-arrow-left" aria-hidden="true"></i>
         </button>
       `;
-		}
-		if (showPublishImmediately) {
-			return `
+    }
+    if (showPublishImmediately) {
+      return `
         <span id="stack-publish-immediately" class="saito-text-link immediately" role="button" tabindex="0">or skip access controls and publish immediately...</span>
       `;
-		}
-		return `<div class="spacer"></div>`;
-	})();
+    }
+    return `<div class="spacer"></div>`;
+  })();
 
-	return `
+  return `
     <div class="publish">
       <div class="content">
         <div class="header">

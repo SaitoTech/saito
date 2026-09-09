@@ -71,9 +71,7 @@ module.exports = (poker, tracked_stats) => {
       footnotes.push({ label: s.readable, note: s.further });
     }
 
-    const labelClass = hasNote
-      ? 'poker-stats-label poker-stats-label--note'
-      : 'poker-stats-label';
+    const labelClass = hasNote ? 'poker-stats-label poker-stats-label--note' : 'poker-stats-label';
     const labelTitle = hasNote ? ` title="${escapeHtml(s.further)}"` : '';
     const labelStar = hasNote ? '*' : '';
 

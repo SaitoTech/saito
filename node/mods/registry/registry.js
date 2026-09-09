@@ -178,10 +178,7 @@ class Registry extends ModTemplate {
         console.log('Registry public key: ' + this.registry_publickey);
       }
     } else {
-      if (
-        window.location.host.includes('localhost') ||
-        window.location.host.includes('testnet')
-      ) {
+      if (window.location.host.includes('localhost') || window.location.host.includes('testnet')) {
         this.local_dev = true;
       } else {
         this.local_dev = false;

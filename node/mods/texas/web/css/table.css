@@ -35,10 +35,11 @@
     nearest,
     calc(
       min(
-        calc((100cqi - 5rem) / 1.75),
-        calc((100cqh - 2.2rem - var(--texas-stack-gap) - var(--texas-card-height)) * 0.62 / 1.53),
-        28rem
-      ) * var(--texas-hand-scale)
+          calc((100cqi - 5rem) / 1.75),
+          calc((100cqh - 2.2rem - var(--texas-stack-gap) - var(--texas-card-height)) * 0.62 / 1.53),
+          28rem
+        ) *
+        var(--texas-hand-scale)
     ),
     1px
   );
@@ -105,10 +106,11 @@
       nearest,
       calc(
         min(
-          calc((100cqi - 2rem) / 1.8),
-          calc((100cqh - 1rem - var(--texas-stack-gap) - var(--texas-card-height)) * 0.58 / 1.53),
-          18rem
-        ) * var(--texas-hand-scale)
+            calc((100cqi - 2rem) / 1.8),
+            calc((100cqh - 1rem - var(--texas-stack-gap) - var(--texas-card-height)) * 0.58 / 1.53),
+            18rem
+          ) *
+          var(--texas-hand-scale)
       ),
       1px
     );

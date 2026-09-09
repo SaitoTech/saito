@@ -57,9 +57,7 @@
 }
 
 .nwasm-save-games .shot .placeholder {
-  background:
-    var(--dreamscape),
-    url('/saito/img/dreamscape.png');
+  background: var(--dreamscape), url('/saito/img/dreamscape.png');
   background-size: cover;
 }
 

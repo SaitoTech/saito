@@ -74,7 +74,11 @@ function rawTxToTransaction(app, rawTx) {
   return new Transaction(undefined, rawTx);
 }
 
-function exportTransaction(app, rawTx, { blk = null, block_id = null, transaction_id = null } = {}) {
+function exportTransaction(
+  app,
+  rawTx,
+  { blk = null, block_id = null, transaction_id = null } = {}
+) {
   const tx = rawTxToTransaction(app, rawTx);
   if (!tx || typeof tx.serialize_to_web !== 'function') {
     throw new Error('Transaction could not be serialized.');
@@ -90,7 +94,12 @@ function exportTransaction(app, rawTx, { blk = null, block_id = null, transactio
       transaction_id = idx;
     }
   }
-  if (block_id == null || String(block_id) === '' || transaction_id == null || String(transaction_id) === '') {
+  if (
+    block_id == null ||
+    String(block_id) === '' ||
+    transaction_id == null ||
+    String(transaction_id) === ''
+  ) {
     throw new Error('Confirmed block_id and transaction_id are required to export.');
   }
 
@@ -113,7 +122,12 @@ function exportTransaction(app, rawTx, { blk = null, block_id = null, transactio
   URL.revokeObjectURL(url);
 }
 
-function queueRustscriptImport(app, rawTx, target, { blk = null, block_id = null, transaction_id = null } = {}) {
+function queueRustscriptImport(
+  app,
+  rawTx,
+  target,
+  { blk = null, block_id = null, transaction_id = null } = {}
+) {
   const tx = rawTxToTransaction(app, rawTx);
   if (!tx || typeof tx.serialize_to_web !== 'function') {
     throw new Error('Transaction could not be serialized.');
@@ -129,7 +143,12 @@ function queueRustscriptImport(app, rawTx, target, { blk = null, block_id = null
       transaction_id = idx;
     }
   }
-  if (block_id == null || String(block_id) === '' || transaction_id == null || String(transaction_id) === '') {
+  if (
+    block_id == null ||
+    String(block_id) === '' ||
+    transaction_id == null ||
+    String(transaction_id) === ''
+  ) {
     throw new Error('Confirmed block_id and transaction_id are required to export.');
   }
 

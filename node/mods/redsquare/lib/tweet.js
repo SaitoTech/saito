@@ -188,7 +188,8 @@ class Tweet {
       data.thread_id != null && String(data.thread_id) !== ''
         ? String(data.thread_id)
         : this.signature;
-    this.link = data.link != null && String(data.link).trim() !== '' ? String(data.link).trim() : '';
+    this.link =
+      data.link != null && String(data.link).trim() !== '' ? String(data.link).trim() : '';
     this.link_properties =
       optional.link_properties && typeof optional.link_properties === 'object'
         ? optional.link_properties
@@ -272,10 +273,10 @@ class Tweet {
 
     return Boolean(
       props['og:title'] ||
-        props['og:description'] ||
-        props['og:image'] ||
-        props['saito:title'] ||
-        props['saito:description']
+      props['og:description'] ||
+      props['og:image'] ||
+      props['saito:title'] ||
+      props['saito:description']
     );
   }
 
@@ -285,13 +286,7 @@ class Tweet {
     }
 
     try {
-      const preview = new SaitoLinkPreview(
-        this.app,
-        this.mod,
-        '',
-        this.link,
-        this.link_properties
-      );
+      const preview = new SaitoLinkPreview(this.app, this.mod, '', this.link, this.link_properties);
       return `<div class="link-preview">${SaitoLinkPreviewTemplate(preview)}</div>`;
     } catch (err) {
       console.warn('RedSquare link preview render skipped', err?.message || err);
@@ -495,11 +490,7 @@ class Tweet {
   }
 
   syncModeratedClassName(className = 'tweet') {
-    const classes = new Set(
-      String(className)
-        .split(/\s+/)
-        .filter(Boolean)
-    );
+    const classes = new Set(String(className).split(/\s+/).filter(Boolean));
 
     classes.add('tweet');
 

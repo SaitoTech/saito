@@ -247,14 +247,10 @@ module.exports = {
         (res) => {
           const file_id = res?.file_id || '';
           if (res && res.status === 'ok') {
-            alert(
-              `Vault checkout: Archive update succeeded${file_id ? ` (${file_id})` : ''}`
-            );
+            alert(`Vault checkout: Archive update succeeded${file_id ? ` (${file_id})` : ''}`);
           } else {
             const err = res?.err || 'unknown';
-            alert(
-              `Vault checkout: Archive update failed${file_id ? ` (${file_id})` : ''}: ${err}`
-            );
+            alert(`Vault checkout: Archive update failed${file_id ? ` (${file_id})` : ''}: ${err}`);
           }
         },
         vault_mod.peer.publicKey
@@ -574,9 +570,7 @@ module.exports = {
     const access_scripts = [];
     for (const job of access_script_jobs) {
       const auth_message = `${job.message}|${p2sh_auth_hash}`;
-      access_scripts.push(
-        await signAccessScriptWitness(this.app, job.access_script, auth_message)
-      );
+      access_scripts.push(await signAccessScriptWitness(this.app, job.access_script, auth_message));
     }
 
     fulfillment_tx.msg.access_scripts = access_scripts;
@@ -805,10 +799,7 @@ module.exports = {
           continue;
         }
 
-        if (
-          txmsg.listing_signature &&
-          String(txmsg.listing_signature) !== String(row.signature)
-        ) {
+        if (txmsg.listing_signature && String(txmsg.listing_signature) !== String(row.signature)) {
           console.warn(
             'Store: delist listing_signature mismatch; consuming slip-matched row',
             txmsg.listing_signature,

@@ -157,15 +157,13 @@ class PrepareStoreOverlay {
   async loadWalletTokens() {
     try {
       const balance = await this.app.wallet.getBalance();
-      const has_available =
-        typeof balance === 'bigint' ? balance > 0n : Number(balance) > 0;
+      const has_available = typeof balance === 'bigint' ? balance > 0n : Number(balance) > 0;
 
       let has_pending = false;
       const crypto = this.app.wallet?.saitoCrypto;
       if (crypto && typeof crypto.getPendingBalance === 'function') {
         const pending = await crypto.getPendingBalance();
-        has_pending =
-          typeof pending === 'bigint' ? pending > 0n : Number(pending) > 0;
+        has_pending = typeof pending === 'bigint' ? pending > 0n : Number(pending) > 0;
       }
 
       this.has_tokens = has_available || has_pending || !!this.awaiting_mint_tx;

@@ -126,10 +126,7 @@ class ControlsOverlay {
           JSON.stringify(myApp.rivetsData.remappings)
         );
         myApp.rivetsData.inputController.setGamePadButtons();
-        localStorage.setItem(
-          'n64wasm_mappings_v3',
-          JSON.stringify(myApp.rivetsData.remappings)
-        );
+        localStorage.setItem('n64wasm_mappings_v3', JSON.stringify(myApp.rivetsData.remappings));
         this.stopRefreshLoop();
         this.overlay.hide();
       }

@@ -1,4 +1,6 @@
-const { saitoFileDropOverlay } = require('../../../../../lib/saito/ui/saito-file-drop/saito-file-drop.template');
+const {
+  saitoFileDropOverlay
+} = require('../../../../../lib/saito/ui/saito-file-drop/saito-file-drop.template');
 
 module.exports = (app, mod, isMobile = false) => {
   const uploadPrompt = isMobile ? 'Tap to Add File' : 'Drag and Drop File to Upload';

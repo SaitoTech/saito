@@ -1,4 +1,6 @@
-const { saitoFileDropOverlay } = require('../../../../lib/saito/ui/saito-file-drop/saito-file-drop.template');
+const {
+  saitoFileDropOverlay
+} = require('../../../../lib/saito/ui/saito-file-drop/saito-file-drop.template');
 
 module.exports = AddAppOverlayTemplate = (app, mod, isMobile = false) => {
   const prompt = isMobile
@@ -9,6 +11,6 @@ module.exports = AddAppOverlayTemplate = (app, mod, isMobile = false) => {
     title: 'Install Module',
     prompt,
     dropzoneId: 'saito-app-upload',
-    rootClass: 'saito-app-overlay',
+    rootClass: 'saito-app-overlay'
   });
 };

@@ -331,9 +331,7 @@ class Store extends ModTemplate {
         const data = txmsg.data && typeof txmsg.data === 'object' ? txmsg.data : {};
         const signature = String(data.signature || '').trim();
         const requester = String(tx.from?.[0]?.publicKey || '').trim();
-        const row = signature
-          ? await this.warehouse.db.returnListingBySignature(signature)
-          : null;
+        const row = signature ? await this.warehouse.db.returnListingBySignature(signature) : null;
         const Listing = require('./lib/listing');
         const listing = row ? new Listing(row) : null;
         if (!listing || !listing.isAvailable() || !requester || listing.seller !== requester) {
@@ -468,7 +466,9 @@ class Store extends ModTemplate {
           }
 
           const duration_ms =
-            Number(metadata.duration_ms) > 0 ? Number(metadata.duration_ms) : hours * 60 * 60 * 1000;
+            Number(metadata.duration_ms) > 0
+              ? Number(metadata.duration_ms)
+              : hours * 60 * 60 * 1000;
 
           // Vault protected-file fields stay on txmsg.data under established names.
           // Slip/NFT type remains store-nft-rental; data.nft_type is the source type.

@@ -39,10 +39,7 @@ class UnlockFlow {
     const feeSaito = String(this.mod.unlock_fee.feeSaito || '');
     const feeDisplay = feeSaito ? `${feeSaito} SAITO` : '—';
     const outputs = unlockUserOutputs(this.mod);
-    const outputSummary =
-      outputs.length === 1
-        ? '1 destination'
-        : `${outputs.length} destinations`;
+    const outputSummary = outputs.length === 1 ? '1 destination' : `${outputs.length} destinations`;
 
     this.step = 'solution';
     this.show(

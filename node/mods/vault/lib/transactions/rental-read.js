@@ -85,7 +85,12 @@ async function createRentalReadTransaction(app, mod, opts = {}) {
   if (!vault_data.file_id) {
     throw new Error('Vault rental read requires file_id');
   }
-  if (!vault_data.nft_id || !vault_data.slip1_utxokey || !vault_data.slip2_utxokey || !vault_data.slip3_utxokey) {
+  if (
+    !vault_data.nft_id ||
+    !vault_data.slip1_utxokey ||
+    !vault_data.slip2_utxokey ||
+    !vault_data.slip3_utxokey
+  ) {
     throw new Error(
       'Vault rental read requires nft_id and slip utxokeys (sendAccessFileRequest invariant)'
     );

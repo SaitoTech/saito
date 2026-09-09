@@ -211,7 +211,10 @@
   gap: calc(var(--saito-space-xxl) + var(--saito-space-md));
 }
 
-.rustscript-panel .rs-panel-ref-script-ready .rs-panel-ref-actions-stack .rs-panel-ref-action-publish {
+.rustscript-panel
+  .rs-panel-ref-script-ready
+  .rs-panel-ref-actions-stack
+  .rs-panel-ref-action-publish {
   flex: 0 0 auto;
   width: 100%;
   min-width: 0;
@@ -547,4 +550,3 @@
 .rs-tx-asset.rs-tx-output-change .rs-tx-asset-value {
   color: #98a89c;
 }
-

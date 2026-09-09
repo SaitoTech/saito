@@ -11,12 +11,7 @@ function escapeHtml(value = '') {
     .replace(/'/g, '&#39;');
 }
 
-module.exports = ({
-  ok = false,
-  title = '',
-  message = '',
-  details = ''
-} = {}) => {
+module.exports = ({ ok = false, title = '', message = '', details = '' } = {}) => {
   const safeTitle = escapeHtml(title);
   const safeMessage = escapeHtml(message);
   const safeDetails = details ? `<pre>${escapeHtml(details)}</pre>` : '';

@@ -75,9 +75,7 @@ function unlockInputRows(app, mod) {
         role: 'locked',
         title: 'SAITO',
         meta: pubkey,
-        value: spent
-          ? `${escapeHtml(saito)} SAITO remaining`
-          : `${escapeHtml(saito)} SAITO`,
+        value: spent ? `${escapeHtml(saito)} SAITO remaining` : `${escapeHtml(saito)} SAITO`,
         selectable: true
       });
     }
@@ -187,9 +185,7 @@ function unlockTransactionPanelMarkup({
   mod = null
 } = {}) {
   const inputsHtml = inputs.length
-    ? inputs
-        .map((row, index) => inputRowMarkup(row, index, selectedInputIndex))
-        .join('')
+    ? inputs.map((row, index) => inputRowMarkup(row, index, selectedInputIndex)).join('')
     : `<p class="rs-tx-empty">No inputs loaded.</p>`;
 
   const outputsBlock =

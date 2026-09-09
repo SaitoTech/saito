@@ -110,10 +110,7 @@ class RedSquareApi {
     return '';
   }
 
-  async renderThread(
-    container,
-    { root_tx_sig, source_tx_sig, reply = true } = {}
-  ) {
+  async renderThread(container, { root_tx_sig, source_tx_sig, reply = true } = {}) {
     this.ensureTweetStyles();
     const context = await this.resolveTweet({ root_tx_sig, source_tx_sig });
     await this.mod.loadTweetThread(context.source_tx_sig);

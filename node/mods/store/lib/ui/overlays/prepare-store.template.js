@@ -68,8 +68,7 @@ module.exports = {
     const step2Copy = awaiting_mint
       ? 'Waiting for your NFT to confirm on the network...'
       : 'Create an NFT or upload media to list and sell.';
-    const createEnabled =
-      !!actions.create_nft && state === 2 && !awaiting_mint;
+    const createEnabled = !!actions.create_nft && state === 2 && !awaiting_mint;
 
     return `
       <ol class="steps" data-state="${state}">

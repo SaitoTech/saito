@@ -89,7 +89,10 @@
 
   .poker-stats-row {
     display: grid;
-    grid-template-columns: minmax(10rem, 1.15fr) repeat(var(--poker-stats-players, 1), minmax(6.25rem, 1fr));
+    grid-template-columns: minmax(10rem, 1.15fr) repeat(
+        var(--poker-stats-players, 1),
+        minmax(6.25rem, 1fr)
+      );
     column-gap: 1.167rem;
     align-items: center;
     width: 100%;
@@ -197,7 +200,10 @@
     }
 
     .poker-stats-row {
-      grid-template-columns: minmax(7.917rem, 1.1fr) repeat(var(--poker-stats-players, 1), minmax(4.583rem, 1fr));
+      grid-template-columns: minmax(7.917rem, 1.1fr) repeat(
+          var(--poker-stats-players, 1),
+          minmax(4.583rem, 1fr)
+        );
       column-gap: 0.708rem;
       padding: 0.833rem 0.167rem;
     }

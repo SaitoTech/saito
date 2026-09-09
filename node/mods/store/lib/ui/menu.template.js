@@ -40,9 +40,7 @@ function dashboardTemplate({ dashboardView = 'store-admin' } = {}) {
     const active = on ? ' active' : '';
     const current = on ? 'page' : 'false';
     const childClass = child ? ' child' : '';
-    const caret = child
-      ? `<span class="caret" aria-hidden="true">&gt;</span>`
-      : '';
+    const caret = child ? `<span class="caret" aria-hidden="true">&gt;</span>` : '';
     return `<li class="item${childClass}${active}" role="button" tabindex="0" data-view="${id}" aria-current="${current}">${caret}<span class="label">${label}</span></li>`;
   };
 

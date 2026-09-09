@@ -740,10 +740,7 @@ class RustscriptMain {
       const { assignOutputSlipIndices } = require('./unlock_tx_fee');
       try {
         assignOutputSlipIndices(this.mod.unlock_transaction_final);
-        result = await evaluateWithTransaction(
-          scriptJson,
-          this.mod.unlock_transaction_final
-        );
+        result = await evaluateWithTransaction(scriptJson, this.mod.unlock_transaction_final);
       } catch (_err) {
         this.validationDisplay = 'invalid';
         this.executionStatus = { attempted: true, success: false };

@@ -123,8 +123,9 @@ class DelistOverlay {
     );
     const description = this.escapeHtml(summary.returnDescription?.() || '');
     const supply =
-      Number(summary.quantity_total ?? summary.returnQuantity?.() ?? summary.quantity_available ?? 1) ||
-      1;
+      Number(
+        summary.quantity_total ?? summary.returnQuantity?.() ?? summary.quantity_available ?? 1
+      ) || 1;
 
     return {
       identicon: this.escapeHtml(this.app?.keychain?.returnIdenticon?.(seller) || ''),

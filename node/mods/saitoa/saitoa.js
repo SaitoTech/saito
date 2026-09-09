@@ -9,8 +9,7 @@ class Saitoa extends GameTemplate {
     this.name = 'Saitoa';
     this.slug = 'saitoa';
     this.title = 'Settlers of Saitoa';
-    this.description =
-      'A three-dimensional island of trade and settlement for the Saito Arcade.';
+    this.description = 'A three-dimensional island of trade and settlement for the Saito Arcade.';
     this.categories = 'Games Boardgame Strategy';
     this.icon = 'fa-solid fa-mountain-sun';
 

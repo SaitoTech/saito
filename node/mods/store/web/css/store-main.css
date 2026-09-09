@@ -662,7 +662,14 @@
 }
 
 .store .sales-table .sales-buyer-address {
-  font-family: var(--saito-font-monospace, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace);
+  font-family: var(
+    --saito-font-monospace,
+    ui-monospace,
+    SFMono-Regular,
+    Menlo,
+    Consolas,
+    monospace
+  );
   font-size: var(--font-size-small);
   color: var(--saito-foreground);
   overflow: hidden;

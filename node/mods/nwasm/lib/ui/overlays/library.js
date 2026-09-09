@@ -335,8 +335,7 @@ class LibraryOverlay {
       throw new Error('N64 ROM NFT type is unavailable.');
     }
 
-    let create_nft =
-      this.mod.header?.select_nft_overlay?.create_nft_overlay || null;
+    let create_nft = this.mod.header?.select_nft_overlay?.create_nft_overlay || null;
 
     if (!create_nft) {
       if (!this.create_nft_overlay) {

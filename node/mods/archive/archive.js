@@ -551,7 +551,7 @@ class Archive extends ModTemplate {
     let newObj = {};
     let context = {};
     context.db = {};
-    context.db.type = "UPDATE";
+    context.db.type = 'UPDATE';
 
     //
     // Row identity (archives.sig) is immutable via this function.
@@ -633,7 +633,7 @@ class Archive extends ModTemplate {
         set_clauses.push(`${key} = $${key}`);
         params[`$${key}`] = obj[key];
         newObj[key] = obj[key];
-	context.db[key] = obj[key];
+        context.db[key] = obj[key];
       }
     }
 
@@ -660,7 +660,13 @@ class Archive extends ModTemplate {
         let request_tx = obj.request_tx || tx || null;
 
         if (this.app.core.scripting.hash(obj.access_script) === existing_row.owner) {
-          if (await this.app.core.scripting.evaluateWithTransaction(obj.access_script, request_tx, context)) {
+          if (
+            await this.app.core.scripting.evaluateWithTransaction(
+              obj.access_script,
+              request_tx,
+              context
+            )
+          ) {
             can_update = true;
           }
         }

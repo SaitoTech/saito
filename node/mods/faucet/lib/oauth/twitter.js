@@ -43,13 +43,7 @@ function createPkce() {
   return { code_verifier, code_challenge };
 }
 
-async function exchangeTwitterCode({
-  clientId,
-  clientSecret,
-  code,
-  redirectUri,
-  code_verifier
-}) {
+async function exchangeTwitterCode({ clientId, clientSecret, code, redirectUri, code_verifier }) {
   const body = new URLSearchParams();
   body.set('grant_type', 'authorization_code');
   body.set('code', code);

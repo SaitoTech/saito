@@ -89,95 +89,95 @@ class Stack extends ModTemplate {
   ////////////////////////////
   // Initialization        //
   ////////////////////////////
-	async initialize(app) {
-		await super.initialize(app);
+  async initialize(app) {
+    await super.initialize(app);
 
-		if (this.app.BROWSER) {
-			const SaitoTransactionMonitor = require('../../lib/saito/ui/saito-transaction-monitor/saito-transaction-monitor');
-			this.transaction_monitor = new SaitoTransactionMonitor(this.app, this);
-		}
+    if (this.app.BROWSER) {
+      const SaitoTransactionMonitor = require('../../lib/saito/ui/saito-transaction-monitor/saito-transaction-monitor');
+      this.transaction_monitor = new SaitoTransactionMonitor(this.app, this);
+    }
 
-		// Load persistent local UX state
-		this.load();
+    // Load persistent local UX state
+    this.load();
 
-		// Server: prime transactionCache and postsCache so we can serve posts with initial HTML
-		if (!this.app.BROWSER) {
-			this.prefetchStackCache().catch((err) => {
-				console.debug('Stack: prefetchStackCache failed', err);
-			});
-		}
-	}
+    // Server: prime transactionCache and postsCache so we can serve posts with initial HTML
+    if (!this.app.BROWSER) {
+      this.prefetchStackCache().catch((err) => {
+        console.debug('Stack: prefetchStackCache failed', err);
+      });
+    }
+  }
 
-	/**
-	 * Ask Profile (if installed) to set or clear the preferred Stack URL.
-	 * Blank address removes the Profile `stack` field. No-op when Profile is absent.
-	 */
-	async updateProfile(address = '') {
-		if (!this.app.BROWSER) {
-			return;
-		}
+  /**
+   * Ask Profile (if installed) to set or clear the preferred Stack URL.
+   * Blank address removes the Profile `stack` field. No-op when Profile is absent.
+   */
+  async updateProfile(address = '') {
+    if (!this.app.BROWSER) {
+      return;
+    }
 
-		const api = this.app.modules.returnFirstRespondTo('profile-update');
-		if (!api || typeof api.update !== 'function') {
-			return;
-		}
+    const api = this.app.modules.returnFirstRespondTo('profile-update');
+    if (!api || typeof api.update !== 'function') {
+      return;
+    }
 
-		const stack = address == null ? '' : String(address).trim();
-		await api.update({ stack });
-	}
+    const stack = address == null ? '' : String(address).trim();
+    await api.update({ stack });
+  }
 
-	/**
-	 * Current Profile `stack` field via optional profile-update capability.
-	 */
-	returnProfileStackUrl() {
-		const api = this.app.modules.returnFirstRespondTo?.('profile-update');
-		if (!api || typeof api.get !== 'function') {
-			return '';
-		}
-		try {
-			const profile = api.get() || {};
-			return String(profile.stack || '').trim();
-		} catch (err) {
-			return '';
-		}
-	}
+  /**
+   * Current Profile `stack` field via optional profile-update capability.
+   */
+  returnProfileStackUrl() {
+    const api = this.app.modules.returnFirstRespondTo?.('profile-update');
+    if (!api || typeof api.get !== 'function') {
+      return '';
+    }
+    try {
+      const profile = api.get() || {};
+      return String(profile.stack || '').trim();
+    } catch (err) {
+      return '';
+    }
+  }
 
-	/**
-	 * Path for a creator Stack feed: /stack/<publickey>
-	 */
-	returnStackPath(publicKey = '') {
-		const key = String(publicKey || '').trim();
-		if (!key) {
-			return '/' + encodeURI(this.returnSlug());
-		}
-		return `/${encodeURI(this.returnSlug())}/${encodeURIComponent(key)}`;
-	}
+  /**
+   * Path for a creator Stack feed: /stack/<publickey>
+   */
+  returnStackPath(publicKey = '') {
+    const key = String(publicKey || '').trim();
+    if (!key) {
+      return '/' + encodeURI(this.returnSlug());
+    }
+    return `/${encodeURI(this.returnSlug())}/${encodeURIComponent(key)}`;
+  }
 
-	/**
-	 * Absolute shareable URL for a creator Stack feed.
-	 */
-	returnStackUrl(publicKey = '') {
-		const path = this.returnStackPath(publicKey);
-		if (this.app.BROWSER && typeof window !== 'undefined' && window.location?.origin) {
-			return `${window.location.origin}${path}`;
-		}
-		return path;
-	}
+  /**
+   * Absolute shareable URL for a creator Stack feed.
+   */
+  returnStackUrl(publicKey = '') {
+    const path = this.returnStackPath(publicKey);
+    if (this.app.BROWSER && typeof window !== 'undefined' && window.location?.origin) {
+      return `${window.location.origin}${path}`;
+    }
+    return path;
+  }
 
-	shouldAffixCallbackToModule(modname, tx = null) {
-		if (modname === this.name) {
-			return 1;
-		}
-		// Allow the shared transaction monitor to receive NFT mint confirmations.
-		if (
-			this.transaction_monitor?.tx &&
-			tx?.signature &&
-			tx.signature === this.transaction_monitor.tx.signature
-		) {
-			return 1;
-		}
-		return 0;
-	}
+  shouldAffixCallbackToModule(modname, tx = null) {
+    if (modname === this.name) {
+      return 1;
+    }
+    // Allow the shared transaction monitor to receive NFT mint confirmations.
+    if (
+      this.transaction_monitor?.tx &&
+      tx?.signature &&
+      tx.signature === this.transaction_monitor.tx.signature
+    ) {
+      return 1;
+    }
+    return 0;
+  }
 
   /**
    * Server-only: fetch last 5 Saito Official posts and last 5 other recent public Stack posts

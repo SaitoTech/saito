@@ -76,12 +76,7 @@ function keysForRender(obj, mod, panelRole) {
     }
     if (key === 'required') {
       const val = obj[key];
-      if (
-        !val ||
-        typeof val !== 'object' ||
-        Array.isArray(val) ||
-        Object.keys(val).length === 0
-      ) {
+      if (!val || typeof val !== 'object' || Array.isArray(val) || Object.keys(val).length === 0) {
         return false;
       }
     }

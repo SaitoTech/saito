@@ -71,10 +71,7 @@ function sanitizeFilenamePart(value, maxLen = 12) {
  */
 function transactionExportFilename(tx, prefix = 'rustscript') {
   const kind = String(prefix || 'rustscript').toLowerCase();
-  const isScriptDraft =
-    kind === 'rustscript' ||
-    kind.includes('draft') ||
-    kind.includes('script');
+  const isScriptDraft = kind === 'rustscript' || kind.includes('draft') || kind.includes('script');
 
   if (isScriptDraft && !kind.includes('published') && !kind.includes('tx')) {
     return `rustscript-${Date.now()}.saito`;
@@ -88,7 +85,11 @@ function transactionExportFilename(tx, prefix = 'rustscript') {
  * Trigger a browser download of the canonical web-serialized transaction.
  * Content remains JSON; the .saito extension marks it as a RustScript artifact.
  */
-function downloadTransactionFile(app, tx, { filename, block_id, transaction_id, update_outputs } = {}) {
+function downloadTransactionFile(
+  app,
+  tx,
+  { filename, block_id, transaction_id, update_outputs } = {}
+) {
   const json = serializeTransactionToWeb(app, tx, {
     block_id,
     transaction_id,

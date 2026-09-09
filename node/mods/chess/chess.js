@@ -306,7 +306,7 @@ class Chessgame extends GameTemplate {
     if (data.draw) {
       if (data.draw === 'accept') {
         console.log('Ending game');
-          this.triggerGameOver(this.game.players, 'draw');
+        this.triggerGameOver(this.game.players, 'draw');
         return;
       } else {
         //(data.draw == "offer")

@@ -49,9 +49,7 @@ class FaucetDB {
         this.mod.returnSlug()
       );
       if (Array.isArray(duplicates) && duplicates.length > 0) {
-        console.error(
-          'FAUCET: cannot add UNIQUE(provider, provider_user_id) — duplicates exist'
-        );
+        console.error('FAUCET: cannot add UNIQUE(provider, provider_user_id) — duplicates exist');
         return;
       }
       await this.app.storage.executeDatabase(

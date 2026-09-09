@@ -111,11 +111,7 @@ class PokerUI {
     }
 
     if (player == this.game.player) {
-      if (
-        msg &&
-        !String(msg).includes('plog-update') &&
-        !String(msg).includes('in pot')
-      ) {
+      if (msg && !String(msg).includes('plog-update') && !String(msg).includes('in pot')) {
         this.updateStatus(msg);
       }
     }
@@ -175,7 +171,6 @@ class PokerUI {
     }
 
     this.playerbox.setChips(this.returnChipCryptoBalanceHtml(amount), player);
-
   }
 
   //

@@ -93,7 +93,9 @@ class ImportFlow {
   }
 
   bindIdleEvents() {
-    const root = document.querySelector('.rs-import-overlay:not(.rs-import-loading):not(.rs-import-script-overlay)');
+    const root = document.querySelector(
+      '.rs-import-overlay:not(.rs-import-loading):not(.rs-import-script-overlay)'
+    );
     if (!root) {
       return;
     }

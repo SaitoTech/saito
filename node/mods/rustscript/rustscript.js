@@ -4,7 +4,11 @@ const RustscriptMain = require('./lib/ui/main');
 const ast_execute = require('./lib/rustscript/ast_execute');
 const tokenize = require('./lib/rustscript/semantic_to_tokens');
 const parse = require('./lib/rustscript/tokens_to_ast');
-const { build_test_script_from_create, lockingView, expandLockingTree } = require('./lib/ui/script_build');
+const {
+  build_test_script_from_create,
+  lockingView,
+  expandLockingTree
+} = require('./lib/ui/script_build');
 const {
   downloadTransactionFile,
   serializeTransactionToWeb,
@@ -612,9 +616,7 @@ class Rustscript extends ModTemplate {
       this.unlock_transaction_candidate = null;
       return null;
     }
-    this.unlock_transaction_candidate = this.cloneTransactionSkeleton(
-      this.unlock_transaction_base
-    );
+    this.unlock_transaction_candidate = this.cloneTransactionSkeleton(this.unlock_transaction_base);
     return this.unlock_transaction_candidate;
   }
 
@@ -665,7 +667,9 @@ class Rustscript extends ModTemplate {
       throw new Error('Unlock transaction is required');
     }
     if (!this.unlockContext) {
-      throw new Error('unlockContext must be set before initializeUnlockTransactionsFromContinuation');
+      throw new Error(
+        'unlockContext must be set before initializeUnlockTransactionsFromContinuation'
+      );
     }
 
     this.unlock_transaction_spend = this.createUnlockSpendSnapshotFromContinuation(unlockTx);
@@ -690,7 +694,9 @@ class Rustscript extends ModTemplate {
     const from = tx.from || [];
     const to = tx.to || [];
     if (!from.length) {
-      throw new Error('This file has no inputs. Import a locking transaction via Unlock Transaction instead.');
+      throw new Error(
+        'This file has no inputs. Import a locking transaction via Unlock Transaction instead.'
+      );
     }
     if (!to.length) {
       throw new Error(
@@ -706,8 +712,7 @@ class Rustscript extends ModTemplate {
       );
     }
 
-    const hasAccessScripts =
-      Array.isArray(txmsg.access_scripts) && txmsg.access_scripts.length > 0;
+    const hasAccessScripts = Array.isArray(txmsg.access_scripts) && txmsg.access_scripts.length > 0;
     const accessScriptRaw = hasAccessScripts
       ? txmsg.access_scripts[0]
       : request === 'spend p2sh'
@@ -790,7 +795,12 @@ class Rustscript extends ModTemplate {
       throw new Error('Transaction is required');
     }
     const filename = prefix ? transactionExportFilename(tx, prefix) : undefined;
-    if (block_id != null && String(block_id) !== '' && transaction_id != null && String(transaction_id) !== '') {
+    if (
+      block_id != null &&
+      String(block_id) !== '' &&
+      transaction_id != null &&
+      String(transaction_id) !== ''
+    ) {
       return downloadTransactionFile(this.app, tx, {
         filename,
         block_id,
@@ -1171,11 +1181,7 @@ class Rustscript extends ModTemplate {
    * Prefers the silently funded unlock_transaction_final once the fee is set.
    * Starts the Transaction Monitor immediately before network propagation.
    */
-  async broadcastSolution({
-    destinationPublicKey = '',
-    feeSaito = '0',
-    callback = null
-  } = {}) {
+  async broadcastSolution({ destinationPublicKey = '', feeSaito = '0', callback = null } = {}) {
     const ctx = this.unlockContext;
     if (!ctx?.lockedSlip && !(Array.isArray(ctx?.lockedNftSlips) && ctx.lockedNftSlips.length)) {
       throw new Error('No unlock context — load a script-locked transaction first');
@@ -1214,10 +1220,7 @@ class Rustscript extends ModTemplate {
       ensureDefaultUnlockFee(this);
     }
 
-    const {
-      ensureUnlockFeeFunded,
-      assignOutputSlipIndices
-    } = require('./lib/ui/unlock_tx_fee');
+    const { ensureUnlockFeeFunded, assignOutputSlipIndices } = require('./lib/ui/unlock_tx_fee');
     const funded = await ensureUnlockFeeFunded(this.app, this);
     assignOutputSlipIndices(funded);
 
@@ -1365,11 +1368,7 @@ class Rustscript extends ModTemplate {
    *
    * Transaction type: Bound (required for wallet NFT recognition).
    */
-  async broadcastNftSolution({
-    destinationPublicKey = '',
-    feeSaito = '0',
-    callback = null
-  } = {}) {
+  async broadcastNftSolution({ destinationPublicKey = '', feeSaito = '0', callback = null } = {}) {
     const ctx = this.unlockContext;
     const slips = ctx.lockedNftSlips;
     const fullScript = this.getScript();

@@ -320,7 +320,10 @@ class PokerQueue {
 
           if (this.result) {
             this.result.show({
-              headline: this.game.player == player_left_idx + 1 ? 'YOU WIN' : `${this.game.state.player_names[player_left_idx]} WINS`
+              headline:
+                this.game.player == player_left_idx + 1
+                  ? 'YOU WIN'
+                  : `${this.game.state.player_names[player_left_idx]} WINS`
             });
           }
 
@@ -735,9 +738,7 @@ class PokerQueue {
             let local_win = winners.includes(this.game.player - 1);
             let headline = 'SPLIT POT';
             if (winners.length == 1) {
-              headline = local_win
-                ? 'YOU WIN'
-                : `${this.game.state.player_names[winners[0]]} WINS`;
+              headline = local_win ? 'YOU WIN' : `${this.game.state.player_names[winners[0]]} WINS`;
             } else if (local_win) {
               headline = 'YOU WIN';
             }

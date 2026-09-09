@@ -19,7 +19,8 @@
 module.exports = {
   id: 'loan',
   label: 'Loan Script',
-  description: 'Vault-defined loan constitution; instantiated from CHECKPATHHOP, never renter-supplied.',
+  description:
+    'Vault-defined loan constitution; instantiated from CHECKPATHHOP, never renter-supplied.',
 
   RENTER_PLACEHOLDER: 'LOAN_RENTER_PLACEHOLDER',
 

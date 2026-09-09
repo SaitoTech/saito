@@ -107,13 +107,12 @@ class FaucetOAuth {
         err.code = 'twitter_missing_pkce';
         err.httpStatus = 400;
         err.title = 'X authorization incomplete';
-        err.popupMessage = 'Could not recover the X authorization session. Close this window and try again.';
+        err.popupMessage =
+          'Could not recover the X authorization session. Close this window and try again.';
         throw err;
       }
 
-      console.log(
-        '[Faucet] OAuth twitter authenticateCredentials redirect_uri=' + redirectUri
-      );
+      console.log('[Faucet] OAuth twitter authenticateCredentials redirect_uri=' + redirectUri);
       const identity = await TwitterOAuth.authenticateCredentials({
         code,
         clientId,
@@ -229,9 +228,7 @@ class FaucetOAuth {
       }
 
       try {
-        const state = Buffer.from(JSON.stringify({ pk: publickey }), 'utf8').toString(
-          'base64url'
-        );
+        const state = Buffer.from(JSON.stringify({ pk: publickey }), 'utf8').toString('base64url');
 
         const url = new URL(authorizeUrl);
         url.searchParams.set('client_id', clientId);
@@ -296,10 +293,7 @@ class FaucetOAuth {
 
         res.setHeader(
           'Set-Cookie',
-          TWITTER_PKCE_COOKIE +
-            '=; Path=' +
-            cookie_path +
-            '; HttpOnly; SameSite=Lax; Max-Age=0'
+          TWITTER_PKCE_COOKIE + '=; Path=' + cookie_path + '; HttpOnly; SameSite=Lax; Max-Age=0'
         );
 
         if (oauthError) {
@@ -320,9 +314,7 @@ class FaucetOAuth {
           });
         }
 
-        console.log(
-          '[Faucet] OAuth twitter PKCE verifier recovered=' + !!code_verifier
-        );
+        console.log('[Faucet] OAuth twitter PKCE verifier recovered=' + !!code_verifier);
 
         try {
           const identity = await oauth_self.authenticateCredentials({
@@ -387,16 +379,13 @@ class FaucetOAuth {
         return sendPopup(res, 400, {
           ok: false,
           title: 'X OAuth not configured',
-          message:
-            'Public X OAuth settings are incomplete on this server (client_id).'
+          message: 'Public X OAuth settings are incomplete on this server (client_id).'
         });
       }
 
       try {
         const pkce = TwitterOAuth.createPkce();
-        const state = Buffer.from(JSON.stringify({ pk: publickey }), 'utf8').toString(
-          'base64url'
-        );
+        const state = Buffer.from(JSON.stringify({ pk: publickey }), 'utf8').toString('base64url');
 
         const secure =
           req.protocol === 'https' ||
@@ -426,9 +415,7 @@ class FaucetOAuth {
         url.searchParams.set('code_challenge', pkce.code_challenge);
         url.searchParams.set('code_challenge_method', 'S256');
 
-        console.log(
-          '[Faucet] OAuth twitter authorize started redirect_uri=' + redirect_uri
-        );
+        console.log('[Faucet] OAuth twitter authorize started redirect_uri=' + redirect_uri);
         return res.redirect(302, url.toString());
       } catch (err) {
         console.error('FAUCET OAUTH: failed to redirect to X', err?.message || err);
@@ -454,8 +441,7 @@ class FaucetOAuth {
         return sendPopup(res, 400, {
           ok: false,
           title: 'Invalid OAuth callback',
-          message:
-            'This endpoint accepts GitHub OAuth responses only. Start again from Get SAITO.'
+          message: 'This endpoint accepts GitHub OAuth responses only. Start again from Get SAITO.'
         });
       }
 

@@ -649,9 +649,7 @@ class Warehouse {
       });
     }
 
-    await this.db.replaceAllSummaries(
-      planned.map(({ active_listing, ...row }) => row)
-    );
+    await this.db.replaceAllSummaries(planned.map(({ active_listing, ...row }) => row));
 
     this.summaries = {};
     for (const item of planned) {
@@ -737,15 +735,10 @@ class Warehouse {
       note: sold ? String(row.note || '') : '',
       buyer: sold ? String(row.buyer || '') : '',
       quantity_sold: sold
-        ? Math.max(
-            0,
-            Number(row.quantity_sold ?? 0) || Number(row.quantity ?? 0) || 0
-          )
+        ? Math.max(0, Number(row.quantity_sold ?? 0) || Number(row.quantity ?? 0) || 0)
         : 0,
       // Prefer sold_at; for pre-migration sold rows, updated_at was set at settlement.
-      sold_at: sold
-        ? Number(row.sold_at || 0) || Number(row.updated_at || 0) || 0
-        : 0
+      sold_at: sold ? Number(row.sold_at || 0) || Number(row.updated_at || 0) || 0 : 0
     });
   }
 

@@ -546,9 +546,12 @@ class Nwasm extends OnePlayerGameTemplate {
     }
     let exp = Number(game.expires_at);
     this.rental_game_sig = game.sig || this.launch_sig || '';
-    this.rental_timer = setTimeout(() => {
-      this.expireRental();
-    }, Math.max(0, exp - Date.now()));
+    this.rental_timer = setTimeout(
+      () => {
+        this.expireRental();
+      },
+      Math.max(0, exp - Date.now())
+    );
   }
 
   clearRentalRomFromMemory() {
@@ -722,14 +725,7 @@ class Nwasm extends OnePlayerGameTemplate {
     }
 
     let sig = (meta.sig || tx?.signature || '').toString();
-    let title = (
-      meta.title ||
-      msg.title ||
-      msg.name ||
-      msg.data?.name ||
-      msg.data?.title ||
-      ''
-    )
+    let title = (meta.title || msg.title || msg.name || msg.data?.name || msg.data?.title || '')
       .toString()
       .trim();
     let id = (meta.id || msg.id || sig || '').toString();
@@ -915,7 +911,10 @@ class Nwasm extends OnePlayerGameTemplate {
     if (!this.app.options.nwasm) {
       this.app.options.nwasm = {};
     }
-    if (!this.app.options.nwasm.vault_nft_index || typeof this.app.options.nwasm.vault_nft_index !== 'object') {
+    if (
+      !this.app.options.nwasm.vault_nft_index ||
+      typeof this.app.options.nwasm.vault_nft_index !== 'object'
+    ) {
       this.app.options.nwasm.vault_nft_index = {};
     }
     this.app.options.nwasm.vault_nft_index[key] = entry;
@@ -959,7 +958,7 @@ class Nwasm extends OnePlayerGameTemplate {
 
     if (logline.indexOf('mupen64plus: ') == 0) {
       x = logline.substring(13);
-        if (x.indexOf('Name: ') == 0) {
+      if (x.indexOf('Name: ') == 0) {
         x = x.substring(6);
         if (x.indexOf('muopen') > -1) {
           x = x.substring(0, x.indexOf('muopen'));
@@ -1016,9 +1015,10 @@ class Nwasm extends OnePlayerGameTemplate {
   //
   packRom(base64, meta = {}) {
     let title = (meta.title || meta.filename || meta.name || '').trim();
-    let file = typeof base64 === 'string' && base64.indexOf('data:') === 0
-      ? base64
-      : `data:application/octet-stream;base64,${base64}`;
+    let file =
+      typeof base64 === 'string' && base64.indexOf('data:') === 0
+        ? base64
+        : `data:application/octet-stream;base64,${base64}`;
     let tx = new Transaction();
     tx.msg = {
       module: this.name,

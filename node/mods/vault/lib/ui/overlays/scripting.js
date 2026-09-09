@@ -1,10 +1,6 @@
 const ScriptingKeyTemplate = require('./scripting.template');
 const SaitoOverlay = require('./../../../../../lib/saito/ui/saito-overlay/saito-overlay');
-const {
-  listContracts,
-  getContractScriptJson,
-  getDefaultContractId
-} = require('../../contracts');
+const { listContracts, getContractScriptJson, getDefaultContractId } = require('../../contracts');
 
 class ScriptingKey {
   constructor(app, mod, container = '') {
@@ -90,7 +86,9 @@ class ScriptingKey {
         };
       }
 
-      const returnLink = document.querySelector('.vault-scripting-overlay [data-action="use-default-key"]');
+      const returnLink = document.querySelector(
+        '.vault-scripting-overlay [data-action="use-default-key"]'
+      );
       if (returnLink) {
         returnLink.onclick = (e) => {
           e.preventDefault();

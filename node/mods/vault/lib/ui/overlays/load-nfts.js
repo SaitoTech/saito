@@ -253,12 +253,15 @@ class LoadNFTs {
 
         let vault_entry = this.vault_nfts[idx];
 
-        console.log('CLICKED: ' + JSON.stringify({
-          access_kind: vault_entry.access_kind,
-          nft_id: vault_entry.nft_id,
-          file_id: vault_entry.file_id,
-          file_name: vault_entry.file_name
-        }));
+        console.log(
+          'CLICKED: ' +
+            JSON.stringify({
+              access_kind: vault_entry.access_kind,
+              nft_id: vault_entry.nft_id,
+              file_id: vault_entry.file_id,
+              file_name: vault_entry.file_name
+            })
+        );
 
         if (vault_entry.access_kind === 'rental') {
           this.overlay.hide();

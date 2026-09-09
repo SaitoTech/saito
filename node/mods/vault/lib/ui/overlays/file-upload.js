@@ -2,9 +2,7 @@ const ScriptingKeyOverlay = require('./scripting.js');
 const FileUploadTemplate = require('./file-upload.template');
 const SaitoOverlay = require('./../../../../../lib/saito/ui/saito-overlay/saito-overlay');
 const SaitoNFT = require('./../../../../../lib/saito/ui/saito-nft/saito-nft');
-const {
-  createVaultAddFileTransaction
-} = require('../../transactions/add-file');
+const { createVaultAddFileTransaction } = require('../../transactions/add-file');
 
 const DEFAULT_COPY =
   'A standard Access Key provides access to the owner of the NFT. Transfer the NFT and ownership of the file transfers with it.';
@@ -100,7 +98,10 @@ class FileUpload {
       confirm.disabled = mode === 'busy' || mode === 'success';
     }
     if (toggle) {
-      toggle.setAttribute('aria-disabled', mode === 'busy' || mode === 'success' ? 'true' : 'false');
+      toggle.setAttribute(
+        'aria-disabled',
+        mode === 'busy' || mode === 'success' ? 'true' : 'false'
+      );
       toggle.style.pointerEvents = mode === 'busy' || mode === 'success' ? 'none' : '';
     }
 

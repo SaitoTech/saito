@@ -88,9 +88,18 @@ html:has(body.redsquare-body) {
     font-size: 1.65rem;
   }
 
-  html:has(body.redsquare-body) #saito-header .balance-amount-segments--subunit .balance-amount-whole,
-  html:has(body.redsquare-body) #saito-header .balance-amount-segments--subunit .balance-amount-separator,
-  html:has(body.redsquare-body) #saito-header .balance-amount-segments--subunit .balance-amount-decimal {
+  html:has(body.redsquare-body)
+    #saito-header
+    .balance-amount-segments--subunit
+    .balance-amount-whole,
+  html:has(body.redsquare-body)
+    #saito-header
+    .balance-amount-segments--subunit
+    .balance-amount-separator,
+  html:has(body.redsquare-body)
+    #saito-header
+    .balance-amount-segments--subunit
+    .balance-amount-decimal {
     font-size: 2.9rem;
   }
 
@@ -189,7 +198,10 @@ html:has(body.redsquare-body) {
     margin-bottom: calc(0.75rem * 10 / 12);
   }
 
-  html:has(body.redsquare-body) .saito-header-menu-section .saito-header-appspace-option > i.navigation-symbol {
+  html:has(body.redsquare-body)
+    .saito-header-menu-section
+    .saito-header-appspace-option
+    > i.navigation-symbol {
     font-size: calc(1.4rem * 10 / 12);
   }
 

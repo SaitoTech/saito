@@ -55,7 +55,10 @@ NOT             → value equals none of the list elements
       let matched = false;
       for (let i = 0; i < list.length; i += 1) {
         let candidate = resolveRef(context, list[i]);
-        if (typeof candidate === 'string' && Object.prototype.hasOwnProperty.call(context, candidate)) {
+        if (
+          typeof candidate === 'string' &&
+          Object.prototype.hasOwnProperty.call(context, candidate)
+        ) {
           candidate = context[candidate];
         }
         if (valuesEqual(left, candidate)) {

@@ -82,9 +82,7 @@ class Sidebar {
 
     while (this.playerboxes.length < n) {
       let i = this.playerboxes.length;
-      this.playerboxes.push(
-        new Playerbox(this.app, this.mod, this.mod.game.players[i], i + 1)
-      );
+      this.playerboxes.push(new Playerbox(this.app, this.mod, this.mod.game.players[i], i + 1));
     }
 
     if (

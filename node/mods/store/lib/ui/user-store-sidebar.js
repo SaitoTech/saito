@@ -77,7 +77,9 @@ class UserStoreSidebar {
       void this.mod.main.openStorefront(key, { admin: true });
       return;
     }
-    const path = this.mod.returnAdminPath?.(key) || `${this.marketplacePath()}/${encodeURIComponent(key)}/admin`;
+    const path =
+      this.mod.returnAdminPath?.(key) ||
+      `${this.marketplacePath()}/${encodeURIComponent(key)}/admin`;
     if (typeof navigateWindow === 'function') {
       navigateWindow(path);
     } else {

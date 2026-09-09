@@ -39,7 +39,9 @@ class PokerState {
     let pool = this.shufflePlayerCharacters(this.game.id);
     let used = new Set(this.game.state.player_characters);
     while (this.game.state.player_characters.length < n) {
-      let next = pool.find((id) => !used.has(id)) || pool[this.game.state.player_characters.length % pool.length];
+      let next =
+        pool.find((id) => !used.has(id)) ||
+        pool[this.game.state.player_characters.length % pool.length];
       this.game.state.player_characters.push(next);
       used.add(next);
     }

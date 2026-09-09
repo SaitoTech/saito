@@ -36,9 +36,7 @@ async function createVaultAddFileTransaction(app, mod, nftid = null, access_scri
     }
 
     let access_script =
-      typeof access_script_obj === 'string'
-        ? access_script_obj
-        : JSON.stringify(access_script_obj);
+      typeof access_script_obj === 'string' ? access_script_obj : JSON.stringify(access_script_obj);
     let access_hash = app.core.scripting.hash(access_script);
 
     let msg = {

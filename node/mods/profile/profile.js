@@ -418,8 +418,7 @@ class Profile extends ModTemplate {
     let changed = false;
     for (const [key, next] of Object.entries(patch)) {
       const cur_raw = current[key];
-      const cur =
-        cur_raw == null || String(cur_raw).trim() === '' ? null : String(cur_raw).trim();
+      const cur = cur_raw == null || String(cur_raw).trim() === '' ? null : String(cur_raw).trim();
       if (cur !== next) {
         changed = true;
         break;

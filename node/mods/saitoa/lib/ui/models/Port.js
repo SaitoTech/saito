@@ -36,10 +36,7 @@ function createPort(THREE, ratio, mats) {
   dock.add(plank);
 
   for (const z of [0.12, dock_len - 0.08]) {
-    const post = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.022, 0.026, 0.18, 6),
-      mats.trim
-    );
+    const post = new THREE.Mesh(new THREE.CylinderGeometry(0.022, 0.026, 0.18, 6), mats.trim);
     post.position.set(0.06, -0.06, z);
     dock.add(post);
   }
@@ -65,10 +62,7 @@ function createPort(THREE, ratio, mats) {
   dock.add(boat);
 
   const sign = new THREE.Group();
-  const pole = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.014, 0.016, 0.22, 6),
-    mats.trim
-  );
+  const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.014, 0.016, 0.22, 6), mats.trim);
   pole.position.y = 0.11;
   sign.add(pole);
 
@@ -79,10 +73,7 @@ function createPort(THREE, ratio, mats) {
   );
   board.position.y = 0.24;
   sign.add(board);
-  const back = new THREE.Mesh(
-    board_geo,
-    new THREE.MeshLambertMaterial({ color: 0x5a4434 })
-  );
+  const back = new THREE.Mesh(board_geo, new THREE.MeshLambertMaterial({ color: 0x5a4434 }));
   back.position.y = 0.24;
   back.rotation.y = Math.PI;
   sign.add(back);

@@ -36,8 +36,7 @@ function extractSavedScript(tx) {
 
   let script;
   try {
-    script =
-      typeof accessScriptRaw === 'string' ? JSON.parse(accessScriptRaw) : accessScriptRaw;
+    script = typeof accessScriptRaw === 'string' ? JSON.parse(accessScriptRaw) : accessScriptRaw;
   } catch (_err) {
     throw new Error('Saved script is not valid JSON.');
   }

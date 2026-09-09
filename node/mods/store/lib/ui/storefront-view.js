@@ -56,7 +56,6 @@ class StorefrontView {
         });
       }
     });
-
   }
 
   armSuccessBanner() {

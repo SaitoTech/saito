@@ -39,11 +39,11 @@
 }
 
 .bug-detail-metadata dd {
-    margin: 0;
-    overflow-wrap: anywhere;
-    display: flex;
-    height: 6rem;
-    align-items: center;
+  margin: 0;
+  overflow-wrap: anywhere;
+  display: flex;
+  height: 6rem;
+  align-items: center;
 }
 
 .bug-thread {

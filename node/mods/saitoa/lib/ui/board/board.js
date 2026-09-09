@@ -544,9 +544,7 @@ class Board {
   }
 
   addNumberTokens() {
-    const numbers = [
-      10, 2, 9, 12, 6, 4, 10, 9, 11, 0, 3, 8, 8, 3, 4, 5, 5, 6, 11
-    ];
+    const numbers = [10, 2, 9, 12, 6, 4, 10, 9, 11, 0, 3, 8, 8, 3, 4, 5, 5, 6, 11];
     this.returnIslandTiles().forEach((tile, i) => {
       if (tile.terrain === 'desert') {
         return;
@@ -562,10 +560,7 @@ class Board {
     group.position.set(pos.x, this.tile_thickness + 0.006, pos.z);
 
     const body_geo = new THREE.CylinderGeometry(0.27, 0.27, 0.04, 28);
-    const body = new THREE.Mesh(
-      body_geo,
-      new THREE.MeshLambertMaterial({ color: 0xe8dcc4 })
-    );
+    const body = new THREE.Mesh(body_geo, new THREE.MeshLambertMaterial({ color: 0xe8dcc4 }));
     body.position.y = 0.02;
     body.castShadow = true;
     body.receiveShadow = true;
@@ -962,7 +957,9 @@ class Board {
     canvas.width = size;
     canvas.height = size;
     const ctx = canvas.getContext('2d');
-    const rand = this.seeded((q + 11) * 73856093 ^ (r + 19) * 19349663 ^ terrain.length * 83492791);
+    const rand = this.seeded(
+      ((q + 11) * 73856093) ^ ((r + 19) * 19349663) ^ (terrain.length * 83492791)
+    );
     const palette = this.terrainPalette(terrain);
 
     ctx.fillStyle = '#000000';
@@ -1155,7 +1152,7 @@ class Board {
   }
 
   addTerrainProps(tile, pos) {
-    const rand = this.seeded((tile.q + 5) * 83492791 ^ (tile.r + 13) * 73856093);
+    const rand = this.seeded(((tile.q + 5) * 83492791) ^ ((tile.r + 13) * 73856093));
     const occupied = [];
     if (tile.terrain === 'forest') {
       this.addForestGrove(pos, rand, occupied);
@@ -1370,10 +1367,7 @@ class Board {
       obj.getWorldPosition(this._face_pos || (this._face_pos = new this.THREE.Vector3()));
       const px = this._face_pos.x;
       const pz = this._face_pos.z;
-      obj.rotation.y = Math.atan2(
-        this.camera.position.x - px,
-        this.camera.position.z - pz
-      );
+      obj.rotation.y = Math.atan2(this.camera.position.x - px, this.camera.position.z - pz);
     });
   }
 
