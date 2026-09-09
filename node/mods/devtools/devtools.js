@@ -25,7 +25,7 @@ class DevTools extends ModTemplate {
     this.renderMode = 'none';
     this.search_options = {};
 
-    this.styles = ['/saito/saito.css'];
+    this.styles = ['/saito/saito.css', '/devtools/style.css'];
 
     this.addAppOverlay = null;
     this.zip_file = null;

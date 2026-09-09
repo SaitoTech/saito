@@ -22,6 +22,9 @@ class AddAppOverlay {
   }
 
   render() {
+    // Install may open from Settings/RedSquare where /devtools is not the
+    // active page — attach module CSS via the standard ModTemplate path.
+    this.mod?.attachStyleSheets?.();
     this.overlay.show(InstallAppOverlayTemplate(this.app, this.mod, this));
     this.attachEvents();
   }

@@ -20,6 +20,9 @@ class AddAppOverlay {
       this.app.browser.isMobileBrowser() ||
       (typeof window !== 'undefined' && window.innerWidth <= 768);
 
+    // Same vault-style path: ensure /devtools/style.css is present before
+    // drop → install confirmation (Settings/RedSquare hosts).
+    this.mod?.attachStyleSheets?.();
     this.overlay.show(AddAppOverlayTemplate(this.app, this.mod, isMobile));
     this.attachEvents();
   }

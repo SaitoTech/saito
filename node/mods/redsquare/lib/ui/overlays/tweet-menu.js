@@ -83,13 +83,13 @@ class TweetMenu {
         {
           id: 'edit',
           icon: 'fa-pen',
-          label: 'Edit tweet',
+          label: 'Edit post',
           handler: () => this.handleEdit(tweet)
         },
         {
           id: 'delete',
           icon: 'fa-trash',
-          label: 'Delete tweet',
+          label: 'Delete post',
           handler: () => this.handleDelete(tweet)
         }
       );
@@ -98,7 +98,7 @@ class TweetMenu {
         {
           id: 'hide',
           icon: 'fa-eye-slash',
-          label: 'Hide this tweet',
+          label: 'Hide this post',
           handler: () => this.handleHide(tweet)
         },
         {

@@ -1,89 +1,168 @@
 /*
- * Install Module preview overlay — presentation after a .saito file is parsed.
- * Shell sizing from .saito-module-overlay; appearance from Saito tokens/buttons.
+ * Install Module confirmation — after a .saito file is parsed.
+ * Scoped to this overlay only; drop-zone and shared overlay shells unchanged.
+ *
+ * Width: inherit .saito-overlay-form (min(60rem, 95vw)) — same desktop
+ * footprint as the preceding Install Module drag-and-drop dialog
+ * (.saito-overlay-form.saito-file-drop-overlay), which resolves to that
+ * shared rule. Do not reintroduce a narrower width here.
  */
 
-.saito-app-install-overlay {
-  gap: var(--saito-space-lg);
+.saito-overlay-form.saito-app-install-overlay {
+  /* width intentionally omitted — use shared .saito-overlay-form */
+  gap: var(--saito-space-md);
+  max-height: min(88vh, 72rem);
+  overflow: auto;
 }
 
-.saito-app-install-overlay .banner {
-  position: relative;
+/* Scoped header spacing — do not alter shared .saito-overlay-form-header */
+.saito-app-install-overlay > .saito-overlay-form-header {
+  padding-left: var(--saito-space-lg);
+  padding-right: var(--saito-space-lg);
+  box-sizing: border-box;
+}
+
+.saito-app-install-overlay .body {
   display: flex;
-  align-items: flex-end;
+  flex-direction: column;
+  gap: var(--saito-space-lg);
+  min-width: 0;
+}
+
+.saito-app-install-overlay .content {
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+  gap: var(--saito-space-lg);
+  align-items: start;
+  min-width: 0;
+}
+
+.saito-app-install-overlay .content:not(:has(.preview)) {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.saito-app-install-overlay .content > * {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.saito-app-install-overlay .preview {
+  display: block;
   width: 100%;
-  aspect-ratio: 16 / 7;
-  min-height: 12rem;
-  overflow: hidden;
+  height: auto;
+  max-width: 100%;
+  object-fit: contain;
+  object-position: center top;
   border-radius: var(--saito-radius);
   border: 1px solid var(--saito-border);
   background-color: var(--saito-secondary);
-  background-size: cover;
-  background-position: center;
-}
-
-.saito-app-install-overlay .banner::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(transparent 40%, rgba(0, 0, 0, 0.65));
-  pointer-events: none;
-}
-
-.saito-app-install-overlay .title {
-  position: relative;
-  z-index: 1;
-  margin: 0;
-  padding: var(--saito-space-md) var(--saito-space-lg);
-  font-size: 2rem;
-  font-weight: 600;
-  line-height: 1.25;
-  color: var(--saito-secondary-foreground, #fff);
 }
 
 .saito-app-install-overlay .description {
   margin: 0;
-  font-size: 1.6rem;
-  line-height: 1.5;
+  font-size: var(--font-size-medium);
+  line-height: 1.45;
   color: var(--saito-foreground);
+}
+
+.saito-app-install-overlay .footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--saito-space-md);
+  min-width: 0;
+  padding-top: var(--saito-space-md);
+  border-top: 1px solid var(--saito-border);
 }
 
 .saito-app-install-overlay .meta {
   display: flex;
-  flex-direction: column;
-  gap: var(--saito-space-sm);
-  padding-top: var(--saito-space-sm);
-  border-top: 1px solid var(--saito-border);
-}
-
-.saito-app-install-overlay .meta .row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--saito-space-xs) var(--saito-space-md);
-  align-items: baseline;
+  align-items: stretch;
+  gap: var(--saito-space-lg);
   min-width: 0;
 }
 
-.saito-app-install-overlay .meta .label {
-  flex: 0 0 8rem;
-  font-size: 1.3rem;
+.saito-app-install-overlay .field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-width: 0;
+}
+
+.saito-app-install-overlay .field + .field {
+  padding-left: var(--saito-space-lg);
+  border-left: 1px solid var(--saito-border);
+}
+
+.saito-app-install-overlay .label {
+  font-size: var(--font-size-tiny);
+  line-height: 1.2;
   color: var(--saito-muted-foreground);
 }
 
-.saito-app-install-overlay .meta .value,
-.saito-app-install-overlay .meta .unknown {
-  flex: 1 1 12rem;
-  min-width: 0;
-  font-size: 1.4rem;
-  line-height: 1.4;
+.saito-app-install-overlay .value {
+  font-size: var(--font-size-medium);
+  line-height: 1.3;
+  color: var(--saito-foreground);
   overflow-wrap: anywhere;
 }
 
-.saito-app-install-overlay .meta .unknown {
-  color: var(--saito-muted-foreground);
+.saito-app-install-overlay .value.unknown {
+  font-style: italic;
 }
 
 .saito-app-install-overlay .saito-button-row {
-  justify-content: center;
-  margin-top: var(--saito-space-sm);
+  flex: 0 0 auto;
+  width: auto;
+  margin-top: 0;
+  justify-content: flex-end;
+}
+
+.saito-app-install-overlay .saito-button-row .saito-button-primary {
+  min-width: 11rem;
+}
+
+/*
+ * Stack when the dialog is viewport-bound and two columns stop being
+ * comfortable. 768px matches shared Saito overlay mobile gates and is
+ * wider than 600px so phones/narrow windows don't keep a squeezed side-by-side.
+ */
+@media (max-width: 768px) {
+  .saito-app-install-overlay .content {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--saito-space-md);
+  }
+
+  .saito-app-install-overlay .preview {
+    max-height: min(40vh, 24rem);
+    width: auto;
+    max-width: 100%;
+    margin-inline: auto;
+  }
+
+  .saito-app-install-overlay .footer {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .saito-app-install-overlay .meta {
+    width: 100%;
+    flex-direction: column;
+    gap: var(--saito-space-md);
+  }
+
+  .saito-app-install-overlay .field + .field {
+    padding-left: 0;
+    border-left: none;
+  }
+
+  .saito-app-install-overlay .saito-button-row {
+    width: 100%;
+  }
+
+  .saito-app-install-overlay .saito-button-row .saito-button-primary {
+    min-width: 0;
+    flex: 1 1 auto;
+    width: 100%;
+  }
 }
