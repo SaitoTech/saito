@@ -19,7 +19,8 @@
  * File: web/saito/css-imports/saito-chat.css → bundled into /saito/saito.css
  *
  * Owns: manager list, floating/static popup, messages/bubbles, composer,
- *       overlay chrome, and component-level responsive behavior.
+ *       overlay chrome, Chat Settings (contact directory + prefs), and
+ *       component-level responsive behavior.
  *
  * Does NOT own: /chat page columns or splash → mods/chat/web/css/chat-base.css
  *               /chat profile rail → mods/chat/web/css/chat-sidebar.css
@@ -970,5 +971,435 @@
     height: var(--chat-viewport-height, 100dvh);
     transition: none;
     z-index: 91;
+  }
+}
+
+/* --- Chat Settings / Contacts (reusable outside /chat page) --- */
+
+.chat-settings {
+  --chat-settings-panel-height: min(72vh, 56rem);
+  display: flex;
+  flex-direction: column;
+  height: var(--chat-settings-panel-height);
+  min-height: var(--chat-settings-panel-height);
+  max-height: var(--chat-settings-panel-height);
+  overflow: hidden;
+}
+
+.module-settings-overlay:has(.chat-settings) {
+  width: min(52rem, 95vw);
+}
+
+.chat-settings-stages {
+  display: flex;
+  align-items: stretch;
+  flex: 1 1 auto;
+  width: 200%;
+  min-height: 0;
+  height: 100%;
+  transition: transform 0.28s ease;
+  will-change: transform;
+}
+
+.chat-settings[data-chat-settings-stage='detail'] .chat-settings-stages {
+  transform: translateX(-50%);
+}
+
+.chat-settings.chat-settings-no-anim .chat-settings-stages {
+  transition: none;
+}
+
+.chat-settings-stage {
+  flex: 0 0 50%;
+  width: 50%;
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: var(--saito-space-md);
+  overflow: hidden;
+}
+
+/* Title rides inside each stage so list ↔ detail slide as one panel */
+.chat-settings-panel-title {
+  flex: 0 0 auto;
+  margin: 0;
+  font-size: var(--font-size-large);
+  font-family: var(--saito-font-medium);
+  font-weight: normal;
+  line-height: 1.2;
+}
+
+/* Home: search + Add Contact as one control row (canonical Saito 3.6rem height) */
+.chat-settings-toolbar {
+  display: grid;
+  flex: 0 0 auto;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--saito-space-sm);
+  align-items: center;
+  width: 100%;
+}
+
+.chat-settings-search-wrap {
+  display: grid;
+  grid-template-columns: 3.2rem minmax(0, 1fr);
+  align-items: center;
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  height: 3.6rem;
+  min-height: 3.6rem;
+  max-height: 3.6rem;
+  border: 1px solid var(--saito-border);
+  border-radius: var(--saito-radius);
+  background-color: var(--saito-secondary);
+  overflow: hidden;
+}
+
+.chat-settings-search-wrap > i {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--saito-muted-foreground);
+  pointer-events: none;
+  font-size: 1.4rem;
+}
+
+.chat-settings-search-wrap > .chat-settings-search,
+.chat-settings-search-wrap > input.saito-input.chat-settings-search {
+  width: 100%;
+  min-width: 0;
+  height: 100%;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  padding-top: 0;
+  padding-bottom: 0;
+  padding-left: var(--saito-space-xs);
+  padding-right: var(--saito-space-sm);
+  font-size: 1.6rem;
+  line-height: 1.2;
+}
+
+/*
+ * Add Contact: match search-field height exactly.
+ * Global .saito-button-secondary uses margin + vertical padding that made this
+ * button taller/detached; .compact only clears min-width, not vertical padding.
+ */
+.chat-settings-add-contact.saito-button-secondary,
+.chat-settings-add-contact {
+  box-sizing: border-box;
+  margin: 0;
+  align-self: center;
+  width: auto;
+  min-width: 0;
+  max-width: 100%;
+  height: 3.6rem;
+  min-height: 3.6rem;
+  max-height: 3.6rem;
+  padding-top: 0;
+  padding-bottom: 0;
+  padding-left: 1.2rem;
+  padding-right: 1.2rem;
+  line-height: 1.2;
+}
+
+/* Contact directory — fills remaining home height; prefs stay pinned below */
+.chat-settings-list {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  width: 100%;
+  min-height: 0;
+  overflow-y: auto;
+  border: 1px solid var(--saito-border);
+  border-radius: var(--saito-radius);
+}
+
+.chat-settings-empty {
+  flex: 1 1 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--saito-space-lg);
+  color: var(--saito-muted-foreground);
+  text-align: center;
+}
+
+.chat-settings-contact {
+  display: grid;
+  grid-template-columns: 3.6rem minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--saito-space-sm);
+  width: 100%;
+  padding: var(--saito-space-sm) var(--saito-space-md);
+  border: 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--saito-border) 70%, transparent);
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.chat-settings-contact:last-child {
+  border-bottom: 0;
+}
+
+.chat-settings-contact:hover,
+.chat-settings-contact:focus-visible {
+  background: color-mix(in srgb, var(--saito-primary) 12%, transparent);
+}
+
+.chat-settings-contact .saito-identicon,
+.chat-settings-contact .saito-identicon-box {
+  width: 3.6rem;
+  height: 3.6rem;
+}
+
+.chat-settings-contact-meta {
+  min-width: 0;
+}
+
+.chat-settings-contact-name {
+  display: flex;
+  align-items: center;
+  gap: var(--saito-space-xs);
+  font-family: var(--saito-font-medium);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chat-settings-contact-key {
+  color: var(--saito-muted-foreground);
+  font-family: var(--saito-font-monospace);
+  font-size: 0.92em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chat-settings-contact-secure {
+  color: var(--saito-primary);
+  font-size: 0.85em;
+}
+
+.chat-settings-contact-chevron {
+  color: var(--saito-muted-foreground);
+}
+
+/* Prefs under directory — list border is the divider; no extra rule line */
+.chat-settings-prefs-block {
+  display: flex;
+  flex: 0 0 auto;
+  flex-direction: column;
+  gap: var(--saito-space-md);
+  padding-top: var(--saito-space-sm);
+}
+
+.chat-settings-prefs-heading,
+.chat-settings-section-heading {
+  margin: 0;
+  font-family: var(--saito-font-medium);
+  font-size: 1.67rem;
+  font-weight: normal;
+  line-height: 1.2;
+}
+
+.chat-settings-prefs {
+  display: flex;
+  flex-direction: column;
+  gap: var(--saito-space-sm);
+}
+
+.chat-settings-pref {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  column-gap: var(--saito-space-sm);
+}
+
+.chat-settings-pref > .saito-checkbox,
+.chat-settings-pref > input.saito-checkbox[type='checkbox'] {
+  margin: 0;
+  justify-self: start;
+}
+
+.chat-settings-pref-label {
+  min-width: 0;
+  cursor: pointer;
+}
+
+/* Detail header: back + Contacts title (same title language as home stage) */
+.chat-settings-detail-header {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: var(--saito-space-sm);
+  min-width: 0;
+}
+
+.chat-settings-detail-header .chat-settings-panel-title {
+  min-width: 0;
+}
+
+.chat-settings-detail-scroll {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  gap: var(--saito-space-md);
+  min-height: 0;
+  overflow-y: auto;
+}
+
+/* Compact identity — RedSquare/profile name/key proportions, smaller avatar */
+.chat-settings-identity {
+  display: grid;
+  grid-template-columns: 3.2rem minmax(0, 1fr);
+  gap: var(--saito-space-sm);
+  align-items: center;
+}
+
+.chat-settings-identity .saito-identicon,
+.chat-settings-identity .saito-identicon-box {
+  width: 3.2rem;
+  height: 3.2rem;
+}
+
+.chat-settings-identity-meta {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.chat-settings-identity-name {
+  display: block;
+  width: fit-content;
+  max-width: 100%;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--saito-foreground);
+  font-family: var(--saito-font-medium);
+  font-weight: 700;
+  font-size: 1.45rem;
+  line-height: 1.25;
+  text-align: left;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.chat-settings-identity-name:hover,
+.chat-settings-identity-name:focus-visible {
+  color: var(--saito-primary);
+}
+
+.chat-settings-identity-key-row {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  width: fit-content;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.chat-settings-pubkey {
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--saito-font-monospace);
+  font-size: 1.25rem;
+  line-height: 1.35;
+  color: var(--saito-muted-foreground);
+}
+
+.chat-settings-identity-key-row .saito-profile-copy-key {
+  flex: 0 0 auto;
+}
+
+.chat-settings-section-divider {
+  border-top: 1px solid var(--saito-border);
+}
+
+.chat-settings-options-block,
+.chat-settings-encryption-block {
+  display: flex;
+  flex-direction: column;
+  gap: var(--saito-space-sm);
+}
+
+.chat-settings-options {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Compact contact options — reuse menu option structure, denser than fullscreen modal */
+.chat-settings-options .saito-modal-menu-option {
+  height: auto;
+  min-height: 4.2rem;
+  margin-top: 0;
+  padding: var(--saito-space-sm) var(--saito-space-md);
+  font-size: inherit;
+  grid-template-columns: 2.8rem 1fr;
+  gap: var(--saito-space-sm);
+}
+
+.chat-settings-option-danger,
+.chat-settings-option-danger .saito-modal-menu-option-label {
+  color: var(--saito-destructive, #e0524d);
+}
+
+/* Label/icon keep destructive color via the rule above; force white on heavy-select orange hover */
+.chat-settings-option-danger:hover,
+.chat-settings-option-danger:hover > i,
+.chat-settings-option-danger:hover .saito-modal-menu-option-label {
+  color: var(--saito-primary-foreground, #fff);
+}
+
+.chat-settings-encryption-note {
+  color: var(--saito-muted-foreground);
+  font-size: 0.92em;
+  line-height: 1.4;
+}
+
+.chat-settings-encryption-block .saito-button-secondary {
+  margin: var(--saito-space-xs) 0 0;
+  align-self: start;
+}
+
+@media (max-width: 600px) {
+  .module-settings-overlay:has(.chat-settings) {
+    width: 100%;
+  }
+
+  .chat-settings {
+    --chat-settings-panel-height: min(82vh, 56rem);
+  }
+
+  .chat-settings-add-contact.saito-button-secondary,
+  .chat-settings-add-contact {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+
+  .chat-settings-options .saito-modal-menu-option {
+    padding-left: var(--saito-space-sm);
+    padding-right: var(--saito-space-sm);
+  }
+}
+
+@media (min-width: 601px) {
+  .chat-settings-pubkey {
+    white-space: normal;
+    overflow-wrap: anywhere;
+    text-overflow: unset;
   }
 }
