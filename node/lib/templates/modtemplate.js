@@ -729,10 +729,33 @@ class ModTemplate {
       const peers = await this.app.network.getPeers();
       for (let i = 0; i < peers.length; i++) {
         const p = peers[i];
-        const peer_host = String(p.host || '').toLowerCase();
+        if (p.status !== 'connected' || !p.publicKey) {
+          continue;
+        }
+
+        let peer_host = String(p.host || '').toLowerCase();
         let peer_port = String(p.port || '');
+        let peer_protocol = p.protocol;
+
+        // The advertised endpoint may name a backend behind a reverse proxy.
+        // Prefer the URL we actually connected to when identifying the page server.
+        const connection_url = p.get?.()?.url;
+        if (connection_url) {
+          try {
+            const url = new URL(connection_url);
+            if (!['ws:', 'wss:', 'http:', 'https:'].includes(url.protocol)) {
+              continue;
+            }
+            peer_host = url.hostname.toLowerCase();
+            peer_port = url.port;
+            peer_protocol = ['wss:', 'https:'].includes(url.protocol) ? 'https' : 'http';
+          } catch (err) {
+            continue;
+          }
+        }
+
         if (!peer_port || peer_port === '0') {
-          peer_port = p.protocol === 'https' ? '443' : '80';
+          peer_port = peer_protocol === 'https' ? '443' : '80';
         }
         const host_match =
           peer_host === page_host ||
