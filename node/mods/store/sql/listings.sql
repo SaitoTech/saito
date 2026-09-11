@@ -31,6 +31,8 @@ CREATE TABLE IF NOT EXISTS listings (
   quantity_sold INTEGER NOT NULL DEFAULT 0,
   sold_at INTEGER NOT NULL DEFAULT 0,
 
+  approved INTEGER NOT NULL DEFAULT 0,
+
   on_chain INTEGER NOT NULL DEFAULT 1,
 
   utxo_slip1 TEXT DEFAULT '',

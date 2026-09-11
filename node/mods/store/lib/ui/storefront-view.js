@@ -5,6 +5,7 @@ const ListingsTableTemplate = require('./listings-table.template');
 const CatalogFooterTemplate = require('./catalog-footer.template');
 const { loadListingsPage } = require('./browse-listings');
 const { DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE } = require('../categories');
+const { submitListingForApproval } = require('./listing-approval');
 
 class StorefrontView {
   constructor(app, mod, container = '', callbacks = {}) {
@@ -434,6 +435,24 @@ class StorefrontView {
           this.mod.delist_overlay = new DelistOverlay(this.app, this.mod);
         }
         this.mod.delist_overlay.open(summary);
+      });
+
+      const submitBtn = row.querySelector('[data-action="submit-main-store"]');
+      submitBtn?.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const signature = row.getAttribute('data-signature') || '';
+        if (!signature || submitBtn.disabled) {
+          return;
+        }
+        submitBtn.disabled = true;
+        submitListingForApproval(this.app, this.mod, signature).catch((err) => {
+          console.warn('Store: submit-listing failed', err?.message || err);
+          submitBtn.disabled = false;
+          if (typeof siteMessage === 'function') {
+            siteMessage(err?.message || 'Unable to submit listing for Store approval.', 4000);
+          }
+        });
       });
     });
 

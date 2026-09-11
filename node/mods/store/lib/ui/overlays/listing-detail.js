@@ -7,6 +7,13 @@ const { summaryBucketKey } = require('../summary-cache');
 const { isStoreRentalListing } = require('../../categories');
 const { durationLabel, rightsLabel } = require('./rental-listing.template');
 const { yieldForPaint } = require('../purchase-service');
+const {
+  isAutoSubmitListings,
+  isSubmitToMainStoreChecked,
+  attachSubmitToMainStoreCheckbox,
+  offerAutoSubmitOptInIfNeeded,
+  scheduleSubmitAfterListingConfirmed
+} = require('../listing-approval');
 
 function returnShortKey(key = '') {
   if (!key) {
@@ -236,7 +243,8 @@ class ListingDetailOverlay {
       productType: this.escapeHtml(nft?.returnType?.() || 'NFT'),
       fileType: this.escapeHtml(this.returnFileTypeFromNft(nft)),
       createdDate: new Date().toLocaleDateString(),
-      supply: this.listing.quantity_total
+      supply: this.listing.quantity_total,
+      submitToMainStoreChecked: isAutoSubmitListings(this.app)
     };
   }
 
@@ -347,6 +355,7 @@ class ListingDetailOverlay {
 
   renderEdit(nft, defaults = {}) {
     this.mode = 'edit';
+    this.listing_busy = false;
     this.defaults = defaults;
     this.selectedNft = nft?.nft || nft;
     this.resetListingFromNft(this.selectedNft);
@@ -434,10 +443,12 @@ class ListingDetailOverlay {
   }
 
   attachEditEvents() {
-    const root = document.querySelector('.listing-detail.edit');
+    const root = document.querySelector('.listing-detail.edit:not(.rental-ready)');
     if (!root) {
       return;
     }
+
+    attachSubmitToMainStoreCheckbox(root, this.app);
 
     const openFieldEdit = (field) => {
       if (this.defaults?.locked?.includes(field.lockKey || field.name)) {
@@ -613,14 +624,18 @@ class ListingDetailOverlay {
   }
 
   async submitListing() {
-    const submitBtn = document.querySelector(
-      '.listing-detail.edit:not(.rental-ready) [data-action="submit"]'
-    );
+    if (this.listing_busy) {
+      return;
+    }
+
+    const root = document.querySelector('.listing-detail.edit:not(.rental-ready)');
+    const submitBtn = root?.querySelector('[data-action="submit"]');
     if (submitBtn?.disabled) {
       return;
     }
 
     const restore = () => {
+      this.listing_busy = false;
       if (!submitBtn) {
         return;
       }
@@ -628,6 +643,16 @@ class ListingDetailOverlay {
       submitBtn.removeAttribute('aria-busy');
       submitBtn.textContent = 'Submit Listing';
     };
+
+    this.listing_busy = true;
+    const shouldSubmitToMainStore = isSubmitToMainStoreChecked(root);
+    if (shouldSubmitToMainStore) {
+      await offerAutoSubmitOptInIfNeeded(this.app);
+    }
+    if (this.overlay && this.overlay.visible === false) {
+      restore();
+      return;
+    }
 
     if (submitBtn) {
       submitBtn.disabled = true;
@@ -650,6 +675,9 @@ class ListingDetailOverlay {
       }
 
       this.beginListingProgress(tx);
+      if (shouldSubmitToMainStore) {
+        scheduleSubmitAfterListingConfirmed(this.app, this.mod, tx.signature);
+      }
     } catch (err) {
       console.error('Store: listing failed', err);
       restore();

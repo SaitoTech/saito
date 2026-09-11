@@ -627,8 +627,30 @@
 
 .store .listings-table td:nth-child(3),
 .store .listings-table td:nth-child(4),
-.store .listings-table td:nth-child(5) {
+.store .listings-table td:nth-child(5),
+.store .listings-table td:nth-child(6) {
   white-space: nowrap;
+}
+
+.store .listings-table .listing-approval {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.35rem;
+  white-space: normal;
+}
+
+.store .listings-table .listing-approval-status {
+  font-size: var(--font-size-small);
+  line-height: 1.3;
+  color: var(--saito-muted-foreground);
+}
+
+.store .listings-table .listing-submit-main {
+  padding: 0.25rem 0.65rem;
+  font-size: var(--font-size-small);
+  line-height: 1.2;
+  cursor: pointer;
 }
 
 .store .sales-table td:nth-child(2),

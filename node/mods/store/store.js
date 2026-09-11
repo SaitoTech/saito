@@ -284,29 +284,117 @@ class Store extends ModTemplate {
       if (!this.app.BROWSER && mycallback != null) {
         const data = txmsg.data && typeof txmsg.data === 'object' ? txmsg.data : {};
         const public_key = String(data.public_key || '').trim();
-        let sellers = [];
+        let result;
         if (public_key) {
-          sellers = [public_key];
+          result = await this.warehouse.returnActiveListingsPage({
+            sellers: [public_key],
+            category: data.category || '',
+            offset: normalizeOffset(data.offset),
+            page_size: normalizePageSize(data.page_size),
+            status: data.status
+          });
         } else {
           const modtools = this.app.modules.returnModuleBySlug('modtools');
-          sellers = Array.isArray(modtools?.whitelisted_publickeys)
+          const whitelist_sellers = Array.isArray(modtools?.whitelisted_publickeys)
             ? modtools.whitelisted_publickeys.slice()
             : [];
+          result = await this.warehouse.returnMarketplaceListingsPage({
+            whitelist_sellers,
+            category: data.category || '',
+            offset: normalizeOffset(data.offset),
+            page_size: normalizePageSize(data.page_size)
+          });
         }
-
-        const result = await this.warehouse.returnActiveListingsPage({
-          sellers,
-          category: data.category || '',
-          offset: normalizeOffset(data.offset),
-          page_size: normalizePageSize(data.page_size),
-          status: data.status
-        });
         const listings = result.listings.map((summary) => summary.serialize());
         mycallback({
           listings,
           public_key,
           category: result.category,
           pagination: result.pagination
+        });
+        return 1;
+      }
+    }
+
+    if (txmsg?.request === 'submit-listing') {
+      if (!this.app.BROWSER && mycallback != null) {
+        const data = txmsg.data && typeof txmsg.data === 'object' ? txmsg.data : {};
+        const signature = String(data.signature || '').trim();
+        const requester = String(tx.from?.[0]?.publicKey || '').trim();
+
+        if (!signature) {
+          mycallback({ err: 'Listing signature required' });
+          return 1;
+        }
+        if (!requester) {
+          mycallback({ err: 'Unauthorized' });
+          return 1;
+        }
+
+        const row = await this.warehouse.db.returnListingBySignature(signature);
+        if (!row) {
+          mycallback({ err: 'Listing not found' });
+          return 1;
+        }
+        if (String(row.seller || '') !== requester) {
+          mycallback({ err: 'Unauthorized' });
+          return 1;
+        }
+
+        const result = await this.warehouse.db.submitListingForMainStore(signature);
+        if (!result?.ok) {
+          mycallback({ err: result?.err || 'Unable to submit listing' });
+          return 1;
+        }
+
+        mycallback({
+          ok: true,
+          signature,
+          approved: result.approved,
+          unchanged: !!result.unchanged
+        });
+        return 1;
+      }
+    }
+
+    if (txmsg?.request === 'review-listing') {
+      if (!this.app.BROWSER && mycallback != null) {
+        if (!this.isStoreAdmin(tx)) {
+          mycallback({ err: 'Unauthorized access' });
+          return 1;
+        }
+
+        const data = txmsg.data && typeof txmsg.data === 'object' ? txmsg.data : {};
+        const signature = String(data.signature || '').trim();
+        const action = String(data.action || '')
+          .trim()
+          .toLowerCase();
+
+        if (!signature) {
+          mycallback({ err: 'Listing signature required' });
+          return 1;
+        }
+        if (action !== 'approve' && action !== 'unapprove') {
+          mycallback({ err: 'Invalid action' });
+          return 1;
+        }
+
+        const row = await this.warehouse.db.returnListingBySignature(signature);
+        if (!row) {
+          mycallback({ err: 'Listing not found' });
+          return 1;
+        }
+
+        const approved = action === 'approve';
+        const ok = await this.warehouse.db.setListingApproved(signature, approved);
+        if (!ok) {
+          mycallback({ err: 'Unable to update listing' });
+          return 1;
+        }
+
+        mycallback({
+          signature,
+          approved: approved ? 1 : 0
         });
         return 1;
       }
@@ -359,6 +447,25 @@ class Store extends ModTemplate {
     }
 
     return super.handlePeerTransaction(app, tx, peer, mycallback);
+  }
+
+  /**
+   * Listing approval is node-operator policy. Requires app.options.admin
+   * and a signed request from one of those keys. An empty admin list
+   * authorizes nobody (unlike Admin module's open-if-unconfigured default).
+   */
+  isStoreAdmin(tx) {
+    const admins = Array.isArray(this.app.options?.admin) ? this.app.options.admin : [];
+    if (!admins.length || !tx) {
+      return false;
+    }
+    return admins.some((key) => {
+      try {
+        return tx.isFrom(key);
+      } catch (err) {
+        return false;
+      }
+    });
   }
 
   respondTo(type = '', obj) {

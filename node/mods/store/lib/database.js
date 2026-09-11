@@ -28,7 +28,8 @@ class Database {
       'ALTER TABLE listings ADD COLUMN note TEXT NOT NULL DEFAULT ""',
       'ALTER TABLE listings ADD COLUMN buyer TEXT NOT NULL DEFAULT ""',
       'ALTER TABLE listings ADD COLUMN quantity_sold INTEGER NOT NULL DEFAULT 0',
-      'ALTER TABLE listings ADD COLUMN sold_at INTEGER NOT NULL DEFAULT 0'
+      'ALTER TABLE listings ADD COLUMN sold_at INTEGER NOT NULL DEFAULT 0',
+      'ALTER TABLE listings ADD COLUMN approved INTEGER NOT NULL DEFAULT 0'
     ];
     const summary_columns = ['ALTER TABLE summary ADD COLUMN category TEXT DEFAULT "Other"'];
     const order_columns = [
@@ -452,6 +453,145 @@ class Database {
 				   AND longest_chain_listed = 1
 				   AND block_id_sold = 0
 				   AND longest_chain_sold = 0`;
+  }
+
+  /**
+   * Main Store eligibility: active listing AND (seller IN whitelist OR approved = 1).
+   * Empty whitelist is valid — approved listings still qualify.
+   */
+  marketplaceEligibilityClause(whitelist_sellers = []) {
+    const keys = [
+      ...new Set(
+        (Array.isArray(whitelist_sellers) ? whitelist_sellers : [])
+          .map((key) => String(key || '').trim())
+          .filter(Boolean)
+      )
+    ];
+    const params = {};
+    if (!keys.length) {
+      return { sql: 'approved = 1', params };
+    }
+
+    const placeholders = keys.map((key, i) => {
+      const name = `$seller_${i}`;
+      params[name] = key;
+      return name;
+    });
+    return {
+      sql: `(seller IN (${placeholders.join(', ')}) OR approved = 1)`,
+      params
+    };
+  }
+
+  async setListingApproved(signature, approved) {
+    const sig = String(signature || '').trim();
+    if (!sig) {
+      return false;
+    }
+    const flag = approved ? 1 : 0;
+    await this.app.storage.runDatabase(
+      `UPDATE listings SET approved = $approved WHERE signature = $signature`,
+      { $signature: sig, $approved: flag },
+      this.dbname
+    );
+    const row = await this.returnListingBySignature(sig);
+    return Number(row?.approved ?? 0) === flag;
+  }
+
+  /**
+   * Seller submission: 0 → 2, -1 → 2. Already pending/approved is a no-op.
+   * Never writes 1 or -1.
+   */
+  async submitListingForMainStore(signature) {
+    const sig = String(signature || '').trim();
+    if (!sig) {
+      return { ok: false, err: 'Listing signature required' };
+    }
+
+    const row = await this.returnListingBySignature(sig);
+    if (!row) {
+      return { ok: false, err: 'Listing not found' };
+    }
+
+    const current = Number(row.approved ?? 0);
+    if (current === 1 || current === 2) {
+      return { ok: true, approved: current, unchanged: true };
+    }
+    if (current !== 0 && current !== -1) {
+      return { ok: false, err: 'Unable to submit listing' };
+    }
+
+    await this.app.storage.runDatabase(
+      `UPDATE listings SET approved = 2 WHERE signature = $signature AND approved IN (0, -1)`,
+      { $signature: sig },
+      this.dbname
+    );
+
+    const updated = await this.returnListingBySignature(sig);
+    const next = Number(updated?.approved ?? 0);
+    if (next === 2) {
+      return { ok: true, approved: 2 };
+    }
+    if (next === 1) {
+      return { ok: true, approved: 1, unchanged: true };
+    }
+    return { ok: false, err: 'Unable to submit listing' };
+  }
+
+  async countMarketplaceListings({ whitelist_sellers = [], category = '' } = {}) {
+    const filter = String(category || '').trim();
+    const eligibility = this.marketplaceEligibilityClause(whitelist_sellers);
+    const params = { ...eligibility.params };
+    let category_sql = '';
+    if (filter) {
+      category_sql = ' AND category = $category';
+      params.$category = filter;
+    }
+    try {
+      const res = await this.app.storage.queryDatabase(
+        `SELECT COUNT(*) AS total FROM listings
+				 WHERE ${this.sellerListingWhere('active')}
+				   AND ${eligibility.sql}${category_sql}`,
+        params,
+        this.dbname
+      );
+      return Number(res?.[0]?.total ?? 0) || 0;
+    } catch (err) {
+      return 0;
+    }
+  }
+
+  async returnMarketplaceListingsPage({
+    whitelist_sellers = [],
+    category = '',
+    offset = 0,
+    page_size = 24
+  } = {}) {
+    const filter = String(category || '').trim();
+    const eligibility = this.marketplaceEligibilityClause(whitelist_sellers);
+    const params = {
+      ...eligibility.params,
+      $limit: Math.max(1, Number(page_size) || 24),
+      $offset: Math.max(0, Number(offset) || 0)
+    };
+    let category_sql = '';
+    if (filter) {
+      category_sql = ' AND category = $category';
+      params.$category = filter;
+    }
+    try {
+      return await this.app.storage.queryDatabase(
+        `SELECT * FROM listings
+				 WHERE ${this.sellerListingWhere('active')}
+				   AND ${eligibility.sql}${category_sql}
+				 ORDER BY CASE WHEN updated_at > 0 THEN updated_at ELSE created_at END DESC, signature ASC
+				 LIMIT $limit OFFSET $offset`,
+        params,
+        this.dbname
+      );
+    } catch (err) {
+      return [];
+    }
   }
 
   async countListingsForSeller({ seller = '', status = 'active', category = '' } = {}) {

@@ -368,6 +368,26 @@
   padding-top: var(--saito-space-md);
 }
 
+.listing-detail .submit-main-store {
+  display: flex;
+  align-items: center;
+  gap: var(--saito-space-sm);
+  margin: 0;
+  font-size: var(--font-size-small);
+  line-height: 1.4;
+  color: var(--saito-muted-foreground);
+  cursor: pointer;
+  user-select: none;
+}
+
+.listing-detail .submit-main-store input {
+  width: 1.15rem;
+  height: 1.15rem;
+  margin: 0;
+  flex: 0 0 auto;
+  cursor: pointer;
+}
+
 .listing-detail .quantity {
   display: flex;
   flex-wrap: wrap;
