@@ -596,7 +596,7 @@ class ModTemplate {
       );
 
       if (!rows || rows.length === 0) {
-        res.status(404).sendFile(path.join(__dirname, '../../web/404.html'));
+        res.redirect(302, '/' + this.returnSlug());
         return;
       }
 
@@ -681,16 +681,7 @@ class ModTemplate {
         dbname
       );
 
-      try {
-        const target = new URL(row.link, `${req.protocol}://${req.get('host')}`);
-        if (target.hostname !== req.hostname) {
-          res.status(400).send('Invalid shortlink target');
-          return;
-        }
-        res.redirect(302, target.href);
-      } catch (err) {
-        res.status(400).send('Invalid shortlink target');
-      }
+      res.redirect(302, row.link);
     });
   }
 
