@@ -298,7 +298,7 @@ class Store extends ModTemplate {
 
     if (txmsg?.request === 'store-moderation') {
       if (!this.app.BROWSER && mycallback != null) {
-        const authorized = this.isStoreAdmin(tx) ? 1 : 0;
+        const authorized = this.canModerateStore(tx) ? 1 : 0;
         let pending = 0;
         if (authorized) {
           pending = await this.warehouse.db.countPendingModerationListings();
@@ -314,7 +314,7 @@ class Store extends ModTemplate {
 
     if (txmsg?.request === 'load-pending-listings') {
       if (!this.app.BROWSER && mycallback != null) {
-        if (!this.isStoreAdmin(tx)) {
+        if (!this.canModerateStore(tx)) {
           mycallback({
             err: 'Unauthorized access',
             authorized: 0,
@@ -346,7 +346,7 @@ class Store extends ModTemplate {
 
     if (txmsg?.request === 'moderate-listings') {
       if (!this.app.BROWSER && mycallback != null) {
-        if (!this.isStoreAdmin(tx)) {
+        if (!this.canModerateStore(tx)) {
           mycallback({
             err: 'Unauthorized access',
             authorized: 0,
@@ -403,12 +403,8 @@ class Store extends ModTemplate {
             status: data.status
           });
         } else {
-          const modtools = this.app.modules.returnModuleBySlug('modtools');
-          const whitelist_sellers = Array.isArray(modtools?.whitelisted_publickeys)
-            ? modtools.whitelisted_publickeys.slice()
-            : [];
           result = await this.warehouse.returnMarketplaceListingsPage({
-            whitelist_sellers,
+            whitelist_sellers: this.returnMarketplaceWhitelist(),
             category: data.category || '',
             offset: normalizeOffset(data.offset),
             page_size: normalizePageSize(data.page_size)
@@ -468,7 +464,7 @@ class Store extends ModTemplate {
 
     if (txmsg?.request === 'review-listing') {
       if (!this.app.BROWSER && mycallback != null) {
-        if (!this.isStoreAdmin(tx)) {
+        if (!this.canModerateStore(tx)) {
           mycallback({ err: 'Unauthorized access' });
           return 1;
         }
@@ -615,22 +611,42 @@ class Store extends ModTemplate {
   }
 
   /**
-   * Listing approval is node-operator policy. Requires app.options.admin
-   * and a signed request from one of those keys. An empty admin list
-   * authorizes nobody (unlike Admin module's open-if-unconfigured default).
+   * ModTools seller whitelist used for the main Store catalog.
    */
-  isStoreAdmin(tx) {
-    const admins = Array.isArray(this.app.options?.admin) ? this.app.options.admin : [];
-    if (!admins.length || !tx) {
+  returnMarketplaceWhitelist() {
+    const modtools = this.app.modules.returnModuleBySlug('modtools');
+    return Array.isArray(modtools?.whitelisted_publickeys)
+      ? modtools.whitelisted_publickeys.slice()
+      : [];
+  }
+
+  txIsFromAnyKey(tx, keys = []) {
+    if (!tx || !Array.isArray(keys) || !keys.length) {
       return false;
     }
-    return admins.some((key) => {
+    return keys.some((key) => {
       try {
         return tx.isFrom(key);
       } catch (err) {
         return false;
       }
     });
+  }
+
+  /**
+   * Node-operator keys in app.options.admin. An empty list authorizes nobody
+   * (unlike Admin module's open-if-unconfigured default).
+   */
+  isStoreAdmin(tx) {
+    const admins = Array.isArray(this.app.options?.admin) ? this.app.options.admin : [];
+    return this.txIsFromAnyKey(tx, admins);
+  }
+
+  /**
+   * Listing moderation: node admins, plus anyone on the Store seller whitelist.
+   */
+  canModerateStore(tx) {
+    return this.isStoreAdmin(tx) || this.txIsFromAnyKey(tx, this.returnMarketplaceWhitelist());
   }
 
   respondTo(type = '', obj) {

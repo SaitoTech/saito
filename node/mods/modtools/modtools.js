@@ -7,6 +7,8 @@ const modtoolsIndex = require('./index');
 const SaitoContacts = require('../../lib/saito/ui/modals/saito-contacts/saito-contacts');
 const WhitelistTemplate = require('./lib/add-whitelist.template');
 const jsonTree = require('json-tree-viewer');
+const Base58 = require('base-58');
+const secp256k1 = require('secp256k1');
 
 const SaitoHeader = require('../../lib/saito/ui/saito-header/saito-header');
 
@@ -60,6 +62,7 @@ class ModTools extends ModTemplate {
     //
     this.whitelisted_publickeys = [];
     this.blacklisted_publickeys = [];
+    this.modtools_peer_key = '';
 
     return this;
   }
@@ -99,11 +102,12 @@ class ModTools extends ModTemplate {
       // first we blacklist the address
       //
       this.blacklistAddress(data);
-      //
-      // next we share it with peers
-      //
-      let newtx = await this.createBlacklistTransaction(data);
-      await this.app.network.propagateTransaction(newtx);
+      try {
+        let newtx = await this.createBlacklistTransaction(data);
+        await this.sendModtoolsPeerTransaction(newtx);
+      } catch (err) {
+        console.error('ModTools blacklist peer send failed:', err);
+      }
     });
 
     this.app.connection.on('saito-whitelist', async (obj) => {
@@ -124,25 +128,34 @@ class ModTools extends ModTemplate {
       //
       this.whitelistAddress(data);
 
-      //
-      // next we share it with peers
-      //
-      let newtx = await this.createWhitelistTransaction(data);
-      await this.app.network.propagateTransaction(newtx);
+      try {
+        let newtx = await this.createWhitelistTransaction(data);
+        await this.sendModtoolsPeerTransaction(newtx);
+      } catch (err) {
+        console.error('ModTools whitelist peer send failed:', err);
+      }
     });
 
     this.app.connection.on('saito-unblacklist', async (address) => {
       this.unblacklistAddress(address);
 
-      let newtx = await this.createUnBlacklistTransaction(address);
-      await this.app.network.propagateTransaction(newtx);
+      try {
+        let newtx = await this.createUnBlacklistTransaction(address);
+        await this.sendModtoolsPeerTransaction(newtx);
+      } catch (err) {
+        console.error('ModTools unblacklist peer send failed:', err);
+      }
     });
 
     this.app.connection.on('saito-unwhitelist', async (address) => {
       this.unwhitelistAddress(address);
 
-      let newtx = await this.createUnWhitelistTransaction(address);
-      await this.app.network.propagateTransaction(newtx);
+      try {
+        let newtx = await this.createUnWhitelistTransaction(address);
+        await this.sendModtoolsPeerTransaction(newtx);
+      } catch (err) {
+        console.error('ModTools unwhitelist peer send failed:', err);
+      }
     });
   }
 
@@ -190,6 +203,13 @@ class ModTools extends ModTemplate {
               return;
             }
 
+            const credential = this.app.crypto.hash(pw);
+            const sudo_mode = credential === this.admin_credential_hash;
+            if (!sudo_mode && !this.whitelisted_publickeys.includes(this.publicKey)) {
+              siteMessage('Invalid admin password', 2500);
+              return;
+            }
+
             let data = {
               publicKey: key,
               moderator: this.publicKey,
@@ -199,11 +219,11 @@ class ModTools extends ModTemplate {
             };
 
             try {
-              this.whitelistAddress(data);
-              let newtx = await this.createWhitelistTransaction(data, this.app.crypto.hash(pw));
-              await this.app.network.propagateTransaction(newtx);
+              let newtx = await this.createWhitelistTransaction(data, credential);
+              await this.sendModtoolsPeerTransaction(newtx);
+              this.whitelistAddress(data, sudo_mode);
 
-              if (pw) {
+              if (sudo_mode) {
                 document.getElementById('pw-lock')?.classList.remove('fa-lock');
                 document.getElementById('pw-lock')?.classList.add('fa-lock-open');
               }
@@ -213,7 +233,7 @@ class ModTools extends ModTemplate {
               siteMessage('Address added to whitelist', 2500);
             } catch (err) {
               console.error('ModTools whitelist failed:', err);
-              siteMessage('Unable to whitelist address', 2500);
+              siteMessage(err?.message || 'Unable to whitelist address', 2500);
             }
           };
         }
@@ -229,8 +249,10 @@ class ModTools extends ModTemplate {
         contacts.callback = async (keys) => {
           for (let key of keys) {
             let newtx = await this.createUnWhitelistTransaction(key, this.app.crypto.hash(pw));
-            await this.app.network.propagateTransaction(newtx);
+            await this.sendModtoolsPeerTransaction(newtx);
+            this.unwhitelistAddress(key);
           }
+          this.refreshWhitelistUI();
         };
         contacts.render(window.whitelist);
       };
@@ -243,7 +265,8 @@ class ModTools extends ModTemplate {
         contacts.callback = async (keys) => {
           for (let key of keys) {
             let newtx = await this.createUnBlacklistTransaction(key, this.app.crypto.hash(pw));
-            await this.app.network.propagateTransaction(newtx);
+            await this.sendModtoolsPeerTransaction(newtx);
+            this.unblacklistAddress(key);
           }
         };
         contacts.render(window.blacklist);
@@ -295,6 +318,8 @@ class ModTools extends ModTemplate {
     // modtools -- share whitelists / blacklists
     //
     if (service.service === 'modtools') {
+      this.modtools_peer_key = peer.publicKey;
+
       //
       // Make sure our connected node is not! blacklisted!
       //
@@ -360,16 +385,12 @@ class ModTools extends ModTemplate {
 
     let txmsg = tx.returnMessage();
 
-    if (!txmsg?.request || !txmsg?.data) {
+    if (!txmsg?.request) {
       return 0;
     }
 
-    //
-    // saves TX containing archive insert instruction
-    //
-
     if (txmsg.request === 'modtools') {
-      if (txmsg.data.request === 'load') {
+      if (txmsg.data?.request === 'load') {
         if (mycallback) {
           mycallback({ whitelist: this.whitelist, blacklist: this.blacklist });
           return 1;
@@ -377,11 +398,111 @@ class ModTools extends ModTemplate {
       }
     }
 
+    if (
+      txmsg.request === 'whitelist' ||
+      txmsg.request === 'blacklist' ||
+      txmsg.request === 'unwhitelist' ||
+      txmsg.request === 'unblacklist'
+    ) {
+      if (this.app.BROWSER) {
+        return 0;
+      }
+
+      if (!this.isValidSignedTransaction(tx)) {
+        if (mycallback) {
+          mycallback({ err: 'Invalid signature' });
+        }
+        return 1;
+      }
+
+      if (txmsg.request === 'whitelist') {
+        await this.receiveWhitelistTransaction(null, tx, 0, app);
+        const ok = this.isWhitelisted(txmsg.data?.publicKey);
+        if (mycallback) {
+          mycallback(ok ? { ok: 1 } : { err: 'Unauthorized' });
+        }
+        return 1;
+      }
+
+      if (txmsg.request === 'blacklist') {
+        await this.receiveBlacklistTransaction(null, tx, 0, app);
+        if (mycallback) {
+          mycallback({ ok: 1 });
+        }
+        return 1;
+      }
+
+      if (txmsg.request === 'unwhitelist') {
+        await this.receiveUnWhitelistTransaction(null, tx, 0, app);
+        if (mycallback) {
+          mycallback({ ok: 1 });
+        }
+        return 1;
+      }
+
+      if (txmsg.request === 'unblacklist') {
+        await this.receiveUnBlacklistTransaction(null, tx, 0, app);
+        if (mycallback) {
+          mycallback({ ok: 1 });
+        }
+        return 1;
+      }
+    }
+
     return super.handlePeerTransaction(app, tx, peer, mycallback);
   }
 
+  sendModtoolsPeerTransaction(tx) {
+    return new Promise((resolve, reject) => {
+      const peerKey = this.modtools_peer_key;
+      if (!peerKey) {
+        reject(new Error('ModTools peer unavailable'));
+        return;
+      }
+
+      this.app.network.sendTransactionWithCallback(
+        tx,
+        (res_tx) => {
+          const res =
+            typeof res_tx?.returnMessage === 'function' ? res_tx.returnMessage() : res_tx;
+          if (res?.err) {
+            reject(new Error(res.err));
+            return;
+          }
+          resolve(res || {});
+        },
+        peerKey
+      );
+    });
+  }
+
+  isValidSignedTransaction(tx) {
+    try {
+      const signer = tx?.from?.[0]?.publicKey;
+      if (!tx?.signature || !signer) {
+        return false;
+      }
+      if (typeof tx.generateHashForSignature === 'function') {
+        tx.generateHashForSignature();
+      }
+      const hash = tx.getHashForSignature?.();
+      if (!hash) {
+        return false;
+      }
+      const signingHash = Buffer.from(hash);
+      const signature = Buffer.from(String(tx.signature), 'hex');
+      const publicKey = Buffer.from(Base58.decode(String(signer)));
+      if (signingHash.length !== 32 || signature.length !== 64 || publicKey.length !== 33) {
+        return false;
+      }
+      return secp256k1.verify(signingHash, signature, publicKey);
+    } catch (err) {
+      return false;
+    }
+  }
+
   async createBlacklistTransaction(data) {
-    let newtx = await this.app.wallet.createUnsignedTransaction();
+    let newtx = await this.app.wallet.createUnsignedTransaction(this.modtools_peer_key || '');
 
     newtx.msg = {
       module: this.name,
@@ -395,7 +516,7 @@ class ModTools extends ModTemplate {
   }
 
   async createWhitelistTransaction(data, credential = null) {
-    let newtx = await this.app.wallet.createUnsignedTransaction();
+    let newtx = await this.app.wallet.createUnsignedTransaction(this.modtools_peer_key || '');
     newtx.msg = {
       module: this.name,
       request: 'whitelist',
@@ -412,7 +533,7 @@ class ModTools extends ModTemplate {
   }
 
   async createUnBlacklistTransaction(address, credential = null) {
-    let newtx = await this.app.wallet.createUnsignedTransaction();
+    let newtx = await this.app.wallet.createUnsignedTransaction(this.modtools_peer_key || '');
 
     newtx.msg = {
       module: this.name,
@@ -430,7 +551,7 @@ class ModTools extends ModTemplate {
   }
 
   async createUnWhitelistTransaction(address, credential = null) {
-    let newtx = await this.app.wallet.createUnsignedTransaction();
+    let newtx = await this.app.wallet.createUnsignedTransaction(this.modtools_peer_key || '');
 
     newtx.msg = {
       module: this.name,
