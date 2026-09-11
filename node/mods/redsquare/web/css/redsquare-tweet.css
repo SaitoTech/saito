@@ -232,6 +232,15 @@
   margin: 0;
 }
 
+/*
+ * Paragraph gaps: the margin:0 reset above out-specifies `.tweet .body > * + *`,
+ * so adjacent <p>s got no spacing. Explicit p + p (same pattern as notifications).
+ * Single-newline <br> lines stay inside one <p> and are unaffected.
+ */
+.tweet .body p + p {
+  margin-top: var(--saito-space-md);
+}
+
 .tweet .body > * + * {
   margin-top: var(--saito-space-sm);
 }
