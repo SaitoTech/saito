@@ -1402,6 +1402,7 @@ export default class Wallet extends SaitoWallet {
           wobj.wallet.spends = [];
           wobj.games = [];
           this.app.options = wobj;
+	  await this.addNFTList();
         } catch (err) {
           // console.error(err);
           return err;
@@ -1544,9 +1545,9 @@ export default class Wallet extends SaitoWallet {
         let ticker = nft.ticker || '';
 
         //
-        // Nft is improper, but requires rationalization elsewhere
+        // NFT is improper, but requires rationalization elsewhere
         //
-        this.addNft(slip1_utxokey, slip2_utxokey, slip3_utxokey, id, tx_sig, ticker);
+        await this.addNft(slip1_utxokey, slip2_utxokey, slip3_utxokey, id, tx_sig, ticker);
       }
     }
   }
@@ -1574,12 +1575,21 @@ export default class Wallet extends SaitoWallet {
     //
     const local = (this.app.options.wallet.nfts as typeof nfts) ?? [];
 
+    if ((!Array.isArray(nfts) || nfts.length === 0) && local.length > 0) {
+      await this.addNFTList();
+      return { updated: [], rebroadcast: [], persisted: false };
+    }
+
     //
-    // ensure intents bag exists and keep a stable ref
+    // ensure nft_merges bag exists and keep a stable ref
     //
-    const intents: Record<string, number> = (this.app.options.wallet.nftMergeIntents ||=
+    if (this.app.options.wallet.nftMergeIntents && !this.app.options.wallet.nft_merges) {
+      this.app.options.wallet.nft_merges = this.app.options.wallet.nftMergeIntents;
+    }
+    delete this.app.options.wallet.nftMergeIntents;
+    const nft_merges: Record<string, number> = (this.app.options.wallet.nft_merges ||=
       {} as Record<string, number>);
-    let intentsMutated = false;
+    let nft_merges_mutated = false;
 
     //
     //  helpers
@@ -1622,16 +1632,16 @@ export default class Wallet extends SaitoWallet {
       return BigInt(typeof a === 'string' ? a : Number(a));
     };
 
-    const hasUserMergeIntent = (id: string) => {
-      const ts = intents[id];
+    const hasUserMerge = (id: string) => {
+      const ts = nft_merges[id];
       const TTL = 2 * 60_000; // 2 minutes
       return !!ts && Date.now() - ts <= TTL;
     };
 
-    const clearMergeIntent = (id: string) => {
-      if (id in intents) {
-        delete intents[id];
-        intentsMutated = true;
+    const clearMerge = (id: string) => {
+      if (id in nft_merges) {
+        delete nft_merges[id];
+        nft_merges_mutated = true;
       }
     };
 
@@ -1662,12 +1672,12 @@ export default class Wallet extends SaitoWallet {
           const curAmt = amt(c[0]);
 
           if (sumLocal === curAmt) {
-            if (hasUserMergeIntent(k)) {
+            if (hasUserMerge(k)) {
               updated.push(...c); // user-initiated
             } else {
               rebroadcast.push(...c); // network rebroadcast consolidation
             }
-            clearMergeIntent(k);
+            clearMerge(k);
             continue;
           }
         }
@@ -1694,13 +1704,13 @@ export default class Wallet extends SaitoWallet {
     await this.app.wallet.saveNFTList(nfts);
 
     if (hasChanges > 0) {
-      // re-attach the same intents object in case saveNFTList mutates options internally
-      this.app.options.wallet.nftMergeIntents = intents;
+      // re-attach the same nft_merges object in case saveNFTList mutates options internally
+      this.app.options.wallet.nft_merges = nft_merges;
       persisted = true;
     }
 
     //
-    // if (!hasChanges && intentsMutated) {
+    // if (!hasChanges && nft_merges_mutated) {
     //   await this.app.wallet.saveOptions?.();
     // }
 
