@@ -1402,6 +1402,7 @@ export default class Wallet extends SaitoWallet {
           wobj.wallet.spends = [];
           wobj.games = [];
           this.app.options = wobj;
+	  await this.addNFTList();
         } catch (err) {
           // console.error(err);
           return err;
@@ -1544,9 +1545,9 @@ export default class Wallet extends SaitoWallet {
         let ticker = nft.ticker || '';
 
         //
-        // Nft is improper, but requires rationalization elsewhere
+        // NFT is improper, but requires rationalization elsewhere
         //
-        this.addNft(slip1_utxokey, slip2_utxokey, slip3_utxokey, id, tx_sig, ticker);
+        await this.addNft(slip1_utxokey, slip2_utxokey, slip3_utxokey, id, tx_sig, ticker);
       }
     }
   }
@@ -1573,6 +1574,11 @@ export default class Wallet extends SaitoWallet {
     // snapshot local
     //
     const local = (this.app.options.wallet.nfts as typeof nfts) ?? [];
+
+    if ((!Array.isArray(nfts) || nfts.length === 0) && local.length > 0) {
+      await this.addNFTList();
+      return { updated: [], rebroadcast: [], persisted: false };
+    }
 
     //
     // ensure nft_merges bag exists and keep a stable ref
