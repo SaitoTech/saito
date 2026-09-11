@@ -149,6 +149,10 @@ function isReplyToOwnTweet(mod, notification) {
 }
 
 function shouldNotify(mod, notification) {
+  if (Tweets.getTweet(mod, notification?.tweet_signature)?.ephemeral) {
+    return true;
+  }
+
   if (!notification?.actor_publicKey || notification.actor_publicKey === mod.publicKey) {
     return false;
   }
@@ -286,7 +290,10 @@ function updateNotification(mod, input) {
     existing.tx = notification.tx;
   }
 
-  existing.refreshActionText();
+  if (!Tweets.getTweet(mod, existing.tweet_signature)?.ephemeral) {
+    existing.refreshActionText();
+  }
+
   resortNotificationTimeline(mod);
 
   return existing;

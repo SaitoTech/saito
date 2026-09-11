@@ -184,6 +184,21 @@
   color: var(--saito-muted-foreground);
 }
 
+.store > .menu .item.moderation-item {
+  justify-content: space-between;
+  gap: var(--saito-space-sm);
+}
+
+.store > .menu .item.moderation-item[hidden] {
+  display: none;
+}
+
+.store > .menu .item.moderation-item .saito-notification-dot {
+  position: static;
+  left: auto;
+  flex: 0 0 auto;
+}
+
 .store > .menu .item:focus-visible {
   outline: none;
   box-shadow: var(--saito-focus-ring);
@@ -244,7 +259,8 @@
 /* Panels participate in .manager flex gap */
 .store > .main-column > .manager > [data-panel='browse'].is-active,
 .store > .main-column > .manager > [data-panel='my-listings'].is-active,
-.store > .main-column > .manager > [data-panel='sales'].is-active {
+.store > .main-column > .manager > [data-panel='sales'].is-active,
+.store > .main-column > .manager > [data-panel='moderate'].is-active {
   display: contents;
 }
 
@@ -651,6 +667,64 @@
   font-size: var(--font-size-small);
   line-height: 1.2;
   cursor: pointer;
+}
+
+.store .moderation-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--saito-space-sm);
+  margin: 0 0 var(--saito-space-md);
+}
+
+.store .moderation-table th.select-cell,
+.store .moderation-table td.select-cell {
+  width: 2.5rem;
+  white-space: nowrap;
+}
+
+.store .moderation-table th.is-sortable {
+  cursor: pointer;
+  user-select: none;
+}
+
+.store .moderation-table th.is-sorted {
+  color: var(--saito-foreground);
+  font-family: var(--saito-font-heavy);
+}
+
+.store .moderation-table th[aria-sort='ascending']::after,
+.store .moderation-table th[aria-sort='descending']::after {
+  font-size: 0.85em;
+}
+
+.store .moderation-table th[aria-sort='ascending']::after {
+  content: ' ▲';
+}
+
+.store .moderation-table th[aria-sort='descending']::after {
+  content: ' ▼';
+}
+
+.store .moderation-table .user-key,
+.store .moderation-table .description-link {
+  appearance: none;
+  background: none;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  color: var(--saito-primary);
+  cursor: pointer;
+  text-align: left;
+}
+
+.store .moderation-table td:nth-child(3),
+.store .moderation-table .description-cell {
+  white-space: normal;
+}
+
+.store .moderation-table .description-cell {
+  max-width: 24rem;
 }
 
 .store .sales-table td:nth-child(2),

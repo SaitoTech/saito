@@ -63,6 +63,8 @@ class Tweet {
     this.time = '';
     this.likers = [];
     this.retweeters = [];
+    this.ephemeral = false;
+    this.href = '';
 
     if (this.tx) {
       this.parseFromTransaction();
@@ -189,6 +191,8 @@ class Tweet {
         ? String(data.thread_id)
         : this.signature;
     this.link = data.link != null && String(data.link).trim() !== '' ? String(data.link).trim() : '';
+    this.ephemeral = Boolean(data.ephemeral);
+    this.href = data.href != null && String(data.href).trim() !== '' ? String(data.href).trim() : '';
     this.link_properties =
       optional.link_properties && typeof optional.link_properties === 'object'
         ? optional.link_properties

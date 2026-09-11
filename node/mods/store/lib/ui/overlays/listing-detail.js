@@ -35,6 +35,7 @@ class ListingDetailOverlay {
     this.summary = null;
     this.selectedNft = null;
     this.defaults = {};
+    this.preview = false;
     this.onBack = null;
     this.listing = {
       title: '',
@@ -304,8 +305,10 @@ class ListingDetailOverlay {
   /**
    * Open a listing for viewing: paint immediately, then load anything missing.
    * Callers that only need a repaint (media updates, etc.) should use render().
+   * preview: hide purchase controls (moderation inspect).
    */
-  open(summary) {
+  open(summary, { preview = false } = {}) {
+    this.preview = !!preview;
     this.render(summary);
     if (!(summary instanceof Summary)) {
       return;
@@ -413,6 +416,16 @@ class ListingDetailOverlay {
     }
 
     const buyBtn = root.querySelector('[data-action="buy"]');
+    if (this.preview) {
+      const checkout = root.querySelector('.checkout');
+      if (checkout) {
+        checkout.hidden = true;
+      }
+      if (buyBtn) {
+        buyBtn.disabled = true;
+      }
+      return;
+    }
     if (buyBtn) {
       buyBtn.onclick = async (e) => {
         e.preventDefault();
