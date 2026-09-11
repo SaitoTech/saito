@@ -142,6 +142,10 @@ module.exports = {
           </section>
 
           <section class="section checkout">
+            <label class="setting submit-main-store">
+              <input type="checkbox" data-action="submit-main-store"${view.submitToMainStoreChecked ? ' checked' : ''} />
+              <span>Also submit listing for inclusion in Main Store</span>
+            </label>
             <button type="button" class="saito-button-primary action" data-action="submit">Submit Listing</button>
           </section>
         </div>

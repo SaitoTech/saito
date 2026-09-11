@@ -6,8 +6,9 @@ function escapeHtml(value = '') {
     .replace(/"/g, '&quot;');
 }
 
-module.exports = ({ profileLinkChecked = false } = {}) => {
+module.exports = ({ profileLinkChecked = false, autoSubmitListings = false } = {}) => {
   const checked = profileLinkChecked ? ' checked' : '';
+  const autoSubmitChecked = autoSubmitListings ? ' checked' : '';
 
   return `
     <div class="store-settings">
@@ -18,6 +19,10 @@ module.exports = ({ profileLinkChecked = false } = {}) => {
         <label class="setting">
           <input type="checkbox" data-action="toggle-profile-link"${checked} />
           <span>Add Store Link to RedSquare Profile</span>
+        </label>
+        <label class="setting">
+          <input type="checkbox" data-action="toggle-auto-submit"${autoSubmitChecked} />
+          <span>Automatically submit listings to Main Store</span>
         </label>
       </div>
     </div>

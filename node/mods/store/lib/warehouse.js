@@ -731,6 +731,7 @@ class Warehouse {
       quantity_available: sold ? 0 : qty,
       quantity_total: qty,
       listing_signature: row.signature || '',
+      approved: Number(row.approved ?? 0),
       created_at: Number(row.created_at || 0),
       updated_at: Number(row.updated_at || row.created_at || meta.updated_at || 0),
       status: sold ? 0 : 1,
@@ -839,6 +840,86 @@ class Warehouse {
     const listings = [];
     for (const row of rows) {
       const summary = await this.summaryFromListingRow(row, { sold });
+      if (summary) {
+        listings.push(summary);
+      }
+    }
+
+    const page = size > 0 ? Math.floor(start / size) + 1 : 1;
+
+    return {
+      listings,
+      category: filter,
+      pagination: {
+        offset: start,
+        page,
+        page_size: size,
+        total,
+        total_pages: total === 0 ? 0 : Math.ceil(total / size),
+        has_next: start + size < total,
+        has_previous: start > 0 && total > 0
+      }
+    };
+  }
+
+  /**
+   * Main Store catalog: active listings whose seller is ModTools-whitelisted
+   * OR whose listings.approved flag is 1. Independent of seller-scoped pages.
+   * Empty whitelist still returns independently approved listings.
+   */
+  async returnMarketplaceListingsPage({
+    whitelist_sellers = [],
+    category = '',
+    offset = 0,
+    page_size = 24
+  } = {}) {
+    const size = normalizePageSize(page_size);
+    let start = normalizeOffset(offset);
+    const filter = String(category || '').trim();
+
+    const empty = {
+      listings: [],
+      category: filter,
+      pagination: {
+        offset: 0,
+        page: 1,
+        page_size: size,
+        total: 0,
+        total_pages: 0,
+        has_next: false,
+        has_previous: false
+      }
+    };
+
+    if (filter && !isStoreCategory(filter)) {
+      return empty;
+    }
+
+    const keys = (Array.isArray(whitelist_sellers) ? whitelist_sellers : [])
+      .map((key) => String(key || '').trim())
+      .filter(Boolean);
+
+    let total = await this.db.countMarketplaceListings({
+      whitelist_sellers: keys,
+      category: filter
+    });
+    if (total > 0 && start >= total) {
+      start = Math.floor((total - 1) / size) * size;
+    }
+
+    const rows =
+      total > 0
+        ? (await this.db.returnMarketplaceListingsPage({
+            whitelist_sellers: keys,
+            category: filter,
+            offset: start,
+            page_size: size
+          })) || []
+        : [];
+
+    const listings = [];
+    for (const row of rows) {
+      const summary = await this.summaryFromListingRow(row, { sold: false });
       if (summary) {
         listings.push(summary);
       }
