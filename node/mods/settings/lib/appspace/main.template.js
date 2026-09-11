@@ -42,31 +42,6 @@ module.exports = (app, mod, main) => {
     </header>
 
     <div class="settings-appspace-body">
-      <div class="settings-wallet-actions" role="group" aria-label="Wallet actions">
-        <div class="settings-actions-container">
-          <button type="button" class="saito-large-square-button" id="restore-privatekey-btn" title="Wipe local data and restore account from private key or seed phrase">
-            <span class="saito-icon-button"><i class="fa-solid fa-key" aria-hidden="true"></i></span>
-            <span>Import Key</span>
-          </button>
-          <button type="button" class="saito-large-square-button" id="settings-add-module" title="Install a module from the App Store">
-            <span class="saito-icon-button"><i class="fa-solid fa-plus" aria-hidden="true"></i></span>
-            <span>Add Module</span>
-          </button>
-          <button type="button" class="saito-large-square-button" id="restore-account-btn" title="Restore account by uploading json-file of wallet">
-            <span class="saito-icon-button"><i class="fa-solid fa-file-arrow-up" aria-hidden="true"></i></span>
-            <span>Restore Wallet</span>
-          </button>
-          <button type="button" class="saito-large-square-button" id="backup-account-btn" title="Download json-file copy of wallet">
-            <span class="saito-icon-button"><i class="fa-solid fa-download" aria-hidden="true"></i></span>
-            <span>Backup Wallet</span>
-          </button>
-          <button type="button" class="saito-large-square-button" id="nuke-account-btn" title="Erase all local Saito data and reset this browser to a fresh installation">
-            <span class="saito-icon-button"><i class="fa-solid fa-trash" aria-hidden="true"></i></span>
-            <span>Nuke</span>
-          </button>
-        </div>
-      </div>
-
       <div id="settings-appspace-warning-bar" class="settings-appspace-warning-bar" style="display: none;" role="alert" aria-live="polite"></div>
 
       <details class="settings-appspace-section" open>
@@ -128,6 +103,27 @@ module.exports = (app, mod, main) => {
                    min="0"
                    value="${app.wallet.convertNolanToSaito(app.wallet.default_fee)}"
             />
+          </div>
+        </div>
+
+        <div class="settings-wallet-actions" role="group" aria-label="Wallet actions">
+          <div class="settings-actions-container">
+            <button type="button" class="saito-button-secondary" id="backup-account-btn" title="Download json-file copy of wallet">
+              <i class="fa-solid fa-download" aria-hidden="true"></i>
+              <span>Backup Wallet</span>
+            </button>
+            <button type="button" class="saito-button-secondary" id="restore-account-btn" title="Restore account by uploading json-file of wallet">
+              <i class="fa-solid fa-file-arrow-up" aria-hidden="true"></i>
+              <span>Restore Wallet</span>
+            </button>
+            <button type="button" class="saito-button-secondary" id="restore-privatekey-btn" title="Wipe local data and restore account from private key or seed phrase">
+              <i class="fa-solid fa-key" aria-hidden="true"></i>
+              <span>Import Key</span>
+            </button>
+            <button type="button" class="saito-button-secondary" id="nuke-account-btn" title="Erase all local Saito data and reset this browser to a fresh installation">
+              <i class="fa-solid fa-trash" aria-hidden="true"></i>
+              <span>Nuke</span>
+            </button>
           </div>
         </div>
       </details>

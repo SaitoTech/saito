@@ -48,44 +48,39 @@
   min-width: 0;
 }
 
-/* Primary wallet actions — dominate the overlay with large glyphs */
+/* Wallet actions — rectangular controls that stretch across the Wallet section */
 .settings-wallet-actions {
   width: 100%;
   flex: 0 0 auto;
+  box-sizing: border-box;
 }
 
 .settings-wallet-actions .settings-actions-container {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: var(--saito-space-sm);
   width: 100%;
 }
 
-.settings-appspace .settings-wallet-actions .saito-large-square-button {
+.settings-appspace .settings-wallet-actions .saito-button-secondary {
+  display: inline-flex;
+  align-items: center;
   justify-content: center;
+  gap: var(--saito-space-sm);
   width: 100%;
   min-width: 0;
-  min-height: 9.5rem;
   margin: 0;
-  aspect-ratio: 1;
-  gap: var(--saito-space-sm);
-  padding: var(--saito-space-md) var(--saito-space-sm);
+  white-space: nowrap;
 }
 
-.settings-appspace .settings-wallet-actions .saito-large-square-button > .saito-icon-button {
-  min-width: 3.4rem;
-  min-height: 3.4rem;
-}
-
-.settings-appspace .settings-wallet-actions .saito-large-square-button > .saito-icon-button i {
-  font-size: 3rem;
+.settings-appspace .settings-wallet-actions .saito-button-secondary > i {
+  font-size: 1.6rem;
   line-height: 1;
 }
 
-.settings-appspace .settings-wallet-actions .saito-large-square-button > span:not(.saito-icon-button) {
-  font-size: 1.25rem;
-  line-height: 1.2;
-  text-align: center;
+.settings-appspace .settings-wallet-actions .saito-button-secondary > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* Accordion — inherit overlay panel surface; orange active when open */
@@ -440,15 +435,7 @@
   }
 
   .settings-wallet-actions .settings-actions-container {
-    grid-template-columns: repeat(auto-fit, minmax(min(100%, 9rem), 1fr));
-  }
-
-  .settings-appspace .settings-wallet-actions .saito-large-square-button {
-    min-height: 8.5rem;
-  }
-
-  .settings-appspace .settings-wallet-actions .saito-large-square-button > .saito-icon-button i {
-    font-size: 2.6rem;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
