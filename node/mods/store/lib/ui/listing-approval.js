@@ -96,8 +96,7 @@ function confirmAutoSubmitOptIn() {
     wrapper.innerHTML = `<div id="saito-alert-shim">
       <div id="saito-alert-box" class="saito-overlay-panel compact">
         <div class="saito-alert-message">
-          Do you want to auto-submit all future listings to the Main Store?
-          <p>Click “Confirm” to update your settings or “Cancel” to submit this listing without changing your default settings. You may manually change this setting on your Store Settings overlay anytime.</p>
+          Submit all future listings automatically to the Main Store?
         </div>
         <div class="saito-button-row">
           <button type="button" class="saito-button-secondary" id="store-auto-submit-cancel">Cancel</button>
