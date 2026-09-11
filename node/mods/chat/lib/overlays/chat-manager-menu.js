@@ -170,6 +170,16 @@ class ChatManagerMenu {
   returnExternalContactOptions(publicKey) {
     const mods = this.app.modules.returnModulesRespondingTo('user-menu', { publicKey }) || [];
     const options = [];
+    // Preferred scan order for the two-column action grid (row-major).
+    const slugRank = {
+      store: 20,
+      modtools: 30,
+      redsquare: 40,
+      stack: 50,
+      videocall: 60,
+      fileshare: 70,
+      encrypt: 80
+    };
 
     for (const am of mods) {
       if (am.returnName?.() === this.mod.returnName?.()) {
@@ -186,23 +196,30 @@ class ChatManagerMenu {
         }
         const slug = String(am.returnSlug?.() || am.name || '').toLowerCase();
         let text = entry.text || 'Open';
+        let icon = entry.icon || 'fa-solid fa-arrow-up-right-from-square';
+        let image = entry.image || '';
         if (slug === 'redsquare') {
-          text = 'Visit RedSquare Profile';
+          text = 'View Posts';
         } else if (slug === 'store') {
-          text = 'Visit Store';
+          text = 'View Store';
         } else if (slug === 'stack') {
-          text = 'Visit Blog Post';
+          // Stack's SVG mask often fails to render here; use the module FA blog icon.
+          text = 'View Stack';
+          icon = entry.icon || 'fa-solid fa-newspaper';
+          image = '';
         }
         options.push({
           id: `ext-${slug || options.length}`,
           text,
-          icon: entry.icon || 'fa-solid fa-arrow-up-right-from-square',
-          image: entry.image || '',
-          callback: entry.callback
+          icon,
+          image,
+          callback: entry.callback,
+          rank: slugRank[slug] ?? 85
         });
       }
     }
 
+    options.sort((a, b) => (a.rank ?? 85) - (b.rank ?? 85));
     return options;
   }
 
@@ -342,7 +359,6 @@ class ChatManagerMenu {
       <div class="chat-settings-section-divider"></div>
 
       <div class="chat-settings-options-block">
-        <h3 class="chat-settings-section-heading">Contact Options</h3>
         <div class="chat-settings-options saito-menu-select-heavy">
           ${optionsHtml}
         </div>

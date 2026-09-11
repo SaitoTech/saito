@@ -472,6 +472,16 @@ class SaitoHeader extends UIModTemplate {
       }
     }
 
+    // Permanent final action — not an installed module; always last in the apps grid
+    const addAppId = `saito_header_menu_item_${index}`;
+    this.callbacks[addAppId] = (app) => {
+      app.connection.emit('saito-app-app-render-request');
+    };
+    this.addMenuItem(
+      { text: 'Add App', icon: 'fa-solid fa-plus', type: 'module' },
+      addAppId
+    );
+
     Array.from(document.querySelectorAll('.saito-header-appspace-option.quicklaunch')).forEach(
       (elem) => {
         if (elem.dataset.navigation) {

@@ -1336,9 +1336,13 @@
   gap: var(--saito-space-sm);
 }
 
+/* Contact actions — two columns on desktop detail panel; single column when narrow */
 .chat-settings-options {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  column-gap: var(--saito-space-sm);
+  row-gap: 0.15rem;
+  align-items: stretch;
 }
 
 /* Compact contact options — reuse menu option structure, denser than fullscreen modal */
@@ -1348,8 +1352,14 @@
   margin-top: 0;
   padding: var(--saito-space-sm) var(--saito-space-md);
   font-size: inherit;
-  grid-template-columns: 2.8rem 1fr;
+  grid-template-columns: 2.8rem minmax(0, 1fr);
   gap: var(--saito-space-sm);
+  min-width: 0;
+}
+
+.chat-settings-options .saito-modal-menu-option-label {
+  white-space: normal;
+  line-height: 1.25;
 }
 
 .chat-settings-option-danger,
@@ -1362,6 +1372,10 @@
 .chat-settings-option-danger:hover > i,
 .chat-settings-option-danger:hover .saito-modal-menu-option-label {
   color: var(--saito-primary-foreground, #fff);
+}
+
+.chat-settings-option-danger:hover .saito-modal-menu-option-icon {
+  background: var(--saito-primary-foreground, #fff);
 }
 
 .chat-settings-encryption-note {
@@ -1388,6 +1402,10 @@
   .chat-settings-add-contact {
     padding-left: 1rem;
     padding-right: 1rem;
+  }
+
+  .chat-settings-options {
+    grid-template-columns: 1fr;
   }
 
   .chat-settings-options .saito-modal-menu-option {
