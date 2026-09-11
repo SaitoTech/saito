@@ -1999,6 +1999,27 @@ class Manager {
         return;
       }
 
+      const tweet = this.mod.getTweet(signature);
+
+      if (tweet?.ephemeral) {
+        const href = String(tweet.href || '').trim();
+
+        if (!href) {
+          return;
+        }
+
+        e.preventDefault();
+        e.stopPropagation();
+
+        if (typeof navigateWindow === 'function') {
+          navigateWindow(href);
+        } else if (typeof window !== 'undefined') {
+          window.location.assign(href);
+        }
+
+        return;
+      }
+
       this.renderThread(signature);
     });
   }

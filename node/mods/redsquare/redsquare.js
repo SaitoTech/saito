@@ -170,6 +170,80 @@ class RedSquare extends ModTemplate {
       this.app.connection.on('modtools-on-server-whitelist', () => {
         this.enterModeratorMode();
       });
+
+      this.app.connection.on('saito-notification', (data = {}) => {
+        const id = data.id != null ? String(data.id) : '';
+
+        if (id !== 'store-moderation') {
+          return;
+        }
+
+        const pending = Math.max(0, Number(data.pending) || 0);
+        const signature = 'store-moderation';
+
+        if (pending <= 0) {
+          this.removeNotification(signature);
+          this.removeTweet(signature);
+        } else {
+          const text =
+            data.text != null && String(data.text).trim() !== ''
+              ? String(data.text)
+              : 'There are new listings on the Store to moderate.';
+          const href =
+            data.href != null && String(data.href).trim() !== ''
+              ? String(data.href).trim()
+              : '/store/moderate';
+          const storeMod = this.app.modules.returnModule('Store');
+          const actorPublicKey = storeMod?.store_public_key || storeMod?.publicKey || '';
+          const existing = this.getTweet(signature);
+          const timestamp = Number(existing?.created_at) || Date.now();
+          const msg = {
+            module: this.name,
+            request: 'create tweet',
+            data: {
+              text,
+              ephemeral: true,
+              href
+            }
+          };
+          const tweet = this.addTweet({
+            signature,
+            timestamp,
+            from: actorPublicKey ? [{ publicKey: actorPublicKey }] : [],
+            msg,
+            returnMessage() {
+              return msg;
+            }
+          });
+
+          if (tweet) {
+            this.addNotification({
+              signature,
+              tweet_signature: signature,
+              type: 'store-moderation',
+              actor_publicKey: actorPublicKey,
+              actor_name: 'Store',
+              text,
+              created_at: timestamp
+            });
+          }
+        }
+
+        if (this.manager?.mode === 'notifications') {
+          this.manager.render();
+        }
+      });
+
+      const store = this.app.modules.returnModule('Store');
+
+      if (store) {
+        this.app.connection.emit('saito-notification', {
+          id: 'store-moderation',
+          text: 'There are new listings on the Store to moderate.',
+          href: '/store/moderate',
+          pending: store.listings_to_moderate
+        });
+      }
     }
   }
 
@@ -1262,6 +1336,10 @@ class RedSquare extends ModTemplate {
   }
 
   async saveTweet(tweet, blk = null) {
+    if (tweet?.ephemeral) {
+      return;
+    }
+
     const signature = tweet?.tx?.signature;
 
     if (!signature || !tweet.thread_id) {

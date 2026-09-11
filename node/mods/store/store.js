@@ -23,6 +23,7 @@ class Store extends ModTemplate {
     this.image_cache = {};
     this.store_public_key = '';
     this.store_peer_index = null;
+    this.listings_to_moderate = 0;
     this.fee = 0;
     this.order_retry_limit = 10;
     // User-store chrome is read-only; edits stay on Profile / Red Square hosts.
@@ -244,13 +245,17 @@ class Store extends ModTemplate {
       return;
     }
 
-    if (this.store_public_key) {
+    if (!this.app.BROWSER) {
       return;
     }
 
     this.store_public_key = peer.publicKey;
     this.store_peer_index = peer.peerIndex;
     console.log('Store: onPeerServiceUp store_public_key=', this.store_public_key);
+
+    if (this.browser_active || Number(this.app.options?.store?.moderator) === 1) {
+      this.requestStoreModerationState();
+    }
 
     if (!this.browser_active || !this.main?.manager) {
       return;
@@ -266,6 +271,10 @@ class Store extends ModTemplate {
       void manager.sales.show();
       return;
     }
+    if (manager.activePanel === 'moderate') {
+      void manager.moderate?.reload?.();
+      return;
+    }
     void manager.browse.loadPage({
       category: manager.browse.category,
       page: manager.browse.page || 1,
@@ -279,6 +288,106 @@ class Store extends ModTemplate {
     }
 
     let txmsg = tx.returnMessage();
+
+    if (txmsg?.request === 'store-moderation-response') {
+      if (this.app.BROWSER) {
+        this.applyStoreModerationResponse(txmsg.data && typeof txmsg.data === 'object' ? txmsg.data : txmsg);
+        return 1;
+      }
+    }
+
+    if (txmsg?.request === 'store-moderation') {
+      if (!this.app.BROWSER && mycallback != null) {
+        const authorized = this.isStoreAdmin(tx) ? 1 : 0;
+        let pending = 0;
+        if (authorized) {
+          pending = await this.warehouse.db.countPendingModerationListings();
+        }
+        mycallback({
+          request: 'store-moderation-response',
+          authorized,
+          pending
+        });
+        return 1;
+      }
+    }
+
+    if (txmsg?.request === 'load-pending-listings') {
+      if (!this.app.BROWSER && mycallback != null) {
+        if (!this.isStoreAdmin(tx)) {
+          mycallback({
+            err: 'Unauthorized access',
+            authorized: 0,
+            pending: 0,
+            listings: []
+          });
+          return 1;
+        }
+
+        const data = txmsg.data && typeof txmsg.data === 'object' ? txmsg.data : {};
+        const result = await this.warehouse.returnPendingModerationPage({
+          offset: normalizeOffset(data.offset),
+          page_size: normalizePageSize(data.page_size),
+          sort: data.sort,
+          direction: data.direction
+        });
+        const pending = await this.warehouse.db.countPendingModerationListings();
+        mycallback({
+          authorized: 1,
+          pending,
+          listings: result.listings.map((summary) => summary.serialize()),
+          sort: result.sort,
+          direction: result.direction,
+          pagination: result.pagination
+        });
+        return 1;
+      }
+    }
+
+    if (txmsg?.request === 'moderate-listings') {
+      if (!this.app.BROWSER && mycallback != null) {
+        if (!this.isStoreAdmin(tx)) {
+          mycallback({
+            err: 'Unauthorized access',
+            authorized: 0,
+            pending: 0,
+            results: []
+          });
+          return 1;
+        }
+
+        const data = txmsg.data && typeof txmsg.data === 'object' ? txmsg.data : {};
+        const action = String(data.action || '')
+          .trim()
+          .toLowerCase();
+        if (action !== 'approve' && action !== 'reject') {
+          mycallback({ err: 'Invalid action', results: [] });
+          return 1;
+        }
+
+        const signatures = Array.isArray(data.signatures)
+          ? [...new Set(data.signatures.map((sig) => String(sig || '').trim()).filter(Boolean))]
+          : [];
+        const results = [];
+        for (const signature of signatures) {
+          const result = await this.warehouse.db.moderatePendingListing(signature, action);
+          results.push({
+            signature,
+            ok: !!result?.ok,
+            approved: result?.approved,
+            err: result?.err || ''
+          });
+        }
+
+        const pending = await this.warehouse.db.countPendingModerationListings();
+        mycallback({
+          authorized: 1,
+          pending,
+          results
+        });
+        return 1;
+      }
+    }
 
     if (txmsg?.request === 'load-listings') {
       if (!this.app.BROWSER && mycallback != null) {
@@ -447,6 +556,62 @@ class Store extends ModTemplate {
     }
 
     return super.handlePeerTransaction(app, tx, peer, mycallback);
+  }
+
+  requestStoreModerationState() {
+    if (!this.app.BROWSER) {
+      return;
+    }
+    const peerKey = this.store_public_key;
+    if (!peerKey || !this.app?.network?.sendRequestAsTransaction) {
+      return;
+    }
+
+    this.app.network.sendRequestAsTransaction(
+      'store-moderation',
+      { module: 'Store' },
+      (response) => {
+        this.applyStoreModerationResponse(response);
+      },
+      peerKey,
+      true
+    );
+  }
+
+  applyStoreModerationResponse(response = {}) {
+    if (!this.app.BROWSER) {
+      return;
+    }
+
+    const payload =
+      response && typeof response === 'object'
+        ? response.request === 'store-moderation-response' &&
+          response.data &&
+          typeof response.data === 'object'
+          ? response.data
+          : response
+        : {};
+
+    const authorized = Number(payload.authorized) === 1 ? 1 : 0;
+    const pending = authorized ? Math.max(0, Number(payload.pending) || 0) : 0;
+
+    this.listings_to_moderate = pending;
+    this.main?.menu?.showModeration?.(this.listings_to_moderate);
+    this.app.connection.emit('saito-notification', {
+      id: 'store-moderation',
+      text: 'There are new listings on the Store to moderate.',
+      href: '/store/moderate',
+      pending: this.listings_to_moderate
+    });
+
+    if (!this.app.options || typeof this.app.options !== 'object') {
+      this.app.options = {};
+    }
+    if (!this.app.options.store || typeof this.app.options.store !== 'object') {
+      this.app.options.store = {};
+    }
+    this.app.options.store.moderator = authorized;
+    this.app.storage?.saveOptions?.();
   }
 
   /**
@@ -801,6 +966,10 @@ class Store extends ModTemplate {
     await super.render();
 
     const route = this.returnStoreRouteFromPath();
+    if (route.moderate) {
+      await this.main.openModerate({ updateUrl: false });
+      return;
+    }
     if (route.publicKey) {
       await this.main.openStorefront(route.publicKey, {
         updateUrl: false,
@@ -810,18 +979,18 @@ class Store extends ModTemplate {
   }
 
   /**
-   * Parse /store/<publickey> or /store/<publickey>/admin from the current path.
-   * @returns {{ publicKey: string, admin: boolean }}
+   * Parse /store/<publickey>, /store/<publickey>/admin, or /store/moderate.
+   * @returns {{ publicKey: string, admin: boolean, moderate: boolean }}
    */
   returnStoreRouteFromPath() {
     if (!this.app.BROWSER || typeof window === 'undefined') {
-      return { publicKey: '', admin: false };
+      return { publicKey: '', admin: false, moderate: false };
     }
 
     const pathname = window.location.pathname || '';
     const slug = '/' + this.slug;
     if (!pathname.startsWith(slug)) {
-      return { publicKey: '', admin: false };
+      return { publicKey: '', admin: false, moderate: false };
     }
 
     const segments = pathname
@@ -829,21 +998,27 @@ class Store extends ModTemplate {
       .split('/')
       .filter((seg) => seg.length > 0);
 
+    if (segments.length === 1 && segments[0] === 'moderate') {
+      return { publicKey: '', admin: false, moderate: true };
+    }
+
     if (segments.length === 1 && segments[0] !== 'cache') {
       return {
         publicKey: decodeURIComponent(segments[0]),
-        admin: false
+        admin: false,
+        moderate: false
       };
     }
 
     if (segments.length === 2 && segments[0] !== 'cache' && segments[1] === 'admin') {
       return {
         publicKey: decodeURIComponent(segments[0]),
-        admin: true
+        admin: true,
+        moderate: false
       };
     }
 
-    return { publicKey: '', admin: false };
+    return { publicKey: '', admin: false, moderate: false };
   }
 
   /**
@@ -950,6 +1125,9 @@ class Store extends ModTemplate {
 
     // /store — main browse shell
     expressapp.get(uri, sendStoreHtml);
+
+    // /store/moderate — marketplace moderation (must precede /:publickey)
+    expressapp.get(`${uri}/moderate`, sendStoreHtml);
 
     // /store/<publickey>/admin — seller administration shell (client routes after load)
     expressapp.get(`${uri}/:publickey/admin`, sendStoreHtml);

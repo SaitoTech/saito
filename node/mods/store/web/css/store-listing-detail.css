@@ -421,6 +421,7 @@
   align-self: stretch;
   width: 100%;
   min-height: 2.75rem;
+  margin: 0;
 }
 
 /* Field-edit dialog — spacing on top of saito-overlay-form */

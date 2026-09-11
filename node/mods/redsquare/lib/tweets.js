@@ -241,7 +241,7 @@ function attachOrphans(mod, parentSignature) {
 function insertTimeline(mod, signature) {
   const tweet = getTweet(mod, signature);
 
-  if (!tweet || tweet.parent_id) {
+  if (!tweet || tweet.parent_id || tweet.ephemeral) {
     return;
   }
 

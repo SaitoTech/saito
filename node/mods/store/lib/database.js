@@ -455,6 +455,107 @@ class Database {
 				   AND longest_chain_sold = 0`;
   }
 
+  async countPendingModerationListings() {
+    try {
+      const res = await this.app.storage.queryDatabase(
+        `SELECT COUNT(*) AS total FROM listings
+				 WHERE ${this.sellerListingWhere('active')}
+				   AND approved = 2`,
+        {},
+        this.dbname
+      );
+      return Number(res?.[0]?.total ?? 0) || 0;
+    } catch (err) {
+      return 0;
+    }
+  }
+
+  moderationSortClause(sort = 'created_at', direction = 'desc') {
+    const columns = {
+      seller: 'listings.seller',
+      title: "COALESCE(summary.title, '')",
+      quantity: 'listings.quantity',
+      amount: 'listings.quantity',
+      price: 'listings.price',
+      created_at: 'listings.created_at',
+      description: "COALESCE(summary.description, '')"
+    };
+    const column = columns[String(sort || '').trim()] || columns.created_at;
+    const dir = String(direction || '').toLowerCase() === 'asc' ? 'ASC' : 'DESC';
+    return `${column} ${dir}, listings.signature ASC`;
+  }
+
+  async returnPendingModerationPage({
+    offset = 0,
+    page_size = 24,
+    sort = 'created_at',
+    direction = 'desc'
+  } = {}) {
+    const params = {
+      $limit: Math.max(1, Number(page_size) || 24),
+      $offset: Math.max(0, Number(offset) || 0)
+    };
+    const order = this.moderationSortClause(sort, direction);
+    try {
+      return await this.app.storage.queryDatabase(
+        `SELECT listings.* FROM listings
+				 LEFT JOIN summary
+				   ON summary.nft_id = listings.nft_id
+				  AND summary.price = listings.price
+				 WHERE ${this.sellerListingWhere('active')}
+				   AND listings.approved = 2
+				 ORDER BY ${order}
+				 LIMIT $limit OFFSET $offset`,
+        params,
+        this.dbname
+      );
+    } catch (err) {
+      return [];
+    }
+  }
+
+  /**
+   * Moderator action: 2 → 1 (approve) or 2 → -1 (reject).
+   * No-op / fail if the row is no longer pending.
+   */
+  async moderatePendingListing(signature, action = '') {
+    const sig = String(signature || '').trim();
+    const next = String(action || '').toLowerCase() === 'reject' ? -1 : 1;
+    if (!sig) {
+      return { ok: false, err: 'Listing signature required' };
+    }
+
+    const row = await this.returnListingBySignature(sig);
+    if (!row) {
+      return { ok: false, err: 'Listing not found' };
+    }
+    if (Number(row.approved ?? 0) !== 2) {
+      return {
+        ok: false,
+        err: 'No longer pending',
+        approved: Number(row.approved ?? 0)
+      };
+    }
+
+    await this.app.storage.runDatabase(
+      `UPDATE listings SET approved = $approved
+			 WHERE signature = $signature AND approved = 2`,
+      { $signature: sig, $approved: next },
+      this.dbname
+    );
+
+    const updated = await this.returnListingBySignature(sig);
+    const approved = Number(updated?.approved ?? 0);
+    if (approved !== next) {
+      return {
+        ok: false,
+        err: 'No longer pending',
+        approved
+      };
+    }
+    return { ok: true, approved };
+  }
+
   /**
    * Main Store eligibility: active listing AND (seller IN whitelist OR approved = 1).
    * Empty whitelist is valid — approved listings still qualify.

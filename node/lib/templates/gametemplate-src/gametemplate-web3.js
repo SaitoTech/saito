@@ -154,6 +154,10 @@ class GameWeb3 {
   }
 
   addPaymentToQueue(sender, receiver, amount_to_send) {
+    if (!(parseFloat(amount_to_send) > 0)) {
+      return;
+    }
+
     let ts = new Date().getTime();
     this.rollDice();
     amount_to_send = this.app.crypto.convertFloatToSmartPrecision(parseFloat(amount_to_send));

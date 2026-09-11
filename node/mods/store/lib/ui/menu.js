@@ -69,12 +69,49 @@ class Menu {
 
     if (this.mode === 'browse') {
       this.setActive(this.active);
+      this.showModeration(this.mod.listings_to_moderate);
       if (!this.has_store) {
         void this.refreshHasStore();
       }
     }
 
     this.attachEvents();
+  }
+
+  /**
+   * Update the existing Moderate row in place. Do not rebuild the menu.
+   * count > 0 shows the item and badge; 0 hides the item (it stays in the DOM).
+   */
+  showModeration(count = 0) {
+    if (!this.container || this.mode !== 'browse') {
+      return;
+    }
+
+    const root = document.querySelector(this.container);
+    const item = root?.querySelector('#store-menu-moderate');
+    if (!item) {
+      return;
+    }
+
+    const pending = Math.max(0, Number(count) || 0);
+    const badge = item.querySelector('[data-moderation-count]');
+
+    if (pending > 0) {
+      item.hidden = false;
+      item.removeAttribute('aria-hidden');
+      item.setAttribute('tabindex', '0');
+      if (badge) {
+        badge.textContent = String(pending);
+      }
+      return;
+    }
+
+    item.hidden = true;
+    item.setAttribute('aria-hidden', 'true');
+    item.setAttribute('tabindex', '-1');
+    if (badge) {
+      badge.textContent = '0';
+    }
   }
 
   /**

@@ -942,6 +942,75 @@ class Warehouse {
     };
   }
 
+  async returnPendingModerationPage({
+    offset = 0,
+    page_size = 24,
+    sort = 'created_at',
+    direction = 'desc'
+  } = {}) {
+    const size = normalizePageSize(page_size);
+    let start = normalizeOffset(offset);
+
+    const empty = {
+      listings: [],
+      sort: String(sort || 'created_at'),
+      direction: String(direction || '').toLowerCase() === 'asc' ? 'asc' : 'desc',
+      pagination: {
+        offset: 0,
+        page: 1,
+        page_size: size,
+        total: 0,
+        total_pages: 0,
+        has_next: false,
+        has_previous: false
+      }
+    };
+
+    if (this.app.BROWSER) {
+      return empty;
+    }
+
+    let total = await this.db.countPendingModerationListings();
+    if (total > 0 && start >= total) {
+      start = Math.floor((total - 1) / size) * size;
+    }
+
+    const rows =
+      total > 0
+        ? (await this.db.returnPendingModerationPage({
+            offset: start,
+            page_size: size,
+            sort,
+            direction
+          })) || []
+        : [];
+
+    const listings = [];
+    for (const row of rows) {
+      const summary = await this.summaryFromListingRow(row, { sold: false });
+      if (summary) {
+        listings.push(summary);
+      }
+    }
+
+    const page = size > 0 ? Math.floor(start / size) + 1 : 1;
+
+    return {
+      listings,
+      sort: String(sort || 'created_at'),
+      direction: String(direction || '').toLowerCase() === 'asc' ? 'asc' : 'desc',
+      pagination: {
+        offset: start,
+        page,
+        page_size: size,
+        total,
+        total_pages: total === 0 ? 0 : Math.ceil(total / size),
+        has_next: start + size < total,
+        has_previous: start > 0 && total > 0
+      }
+    };
+  }
+
   async returnSummaryByBucket(nft_id, price) {
     const key = summaryBucketKey(nft_id, price);
     if (this.summaries[key]) {

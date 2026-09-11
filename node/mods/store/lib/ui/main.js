@@ -98,8 +98,13 @@ class Main {
   onPathChange() {
     const route = this.mod.returnStoreRouteFromPath?.() || {
       publicKey: '',
-      admin: false
+      admin: false,
+      moderate: false
     };
+    if (route.moderate) {
+      void this.openModerate({ updateUrl: false });
+      return;
+    }
     if (route.publicKey) {
       this.openStorefront(route.publicKey, {
         updateUrl: false,
@@ -188,6 +193,11 @@ class Main {
 
     if (view === 'sold') {
       this.openSales();
+      return;
+    }
+
+    if (view === 'moderation') {
+      void this.openModerate();
       return;
     }
 
@@ -297,6 +307,25 @@ class Main {
     const path = '/' + (this.mod.returnSlug?.() || 'store');
     if (window.location.pathname !== path) {
       history.pushState({ store: 'browse' }, '', path);
+    }
+  }
+
+  setModerateUrl() {
+    if (!this.app.BROWSER || typeof history === 'undefined') {
+      return;
+    }
+    const path = '/' + (this.mod.returnSlug?.() || 'store') + '/moderate';
+    if (window.location.pathname !== path) {
+      history.pushState({ store: 'moderate' }, '', path);
+    }
+  }
+
+  openModerate({ updateUrl = true } = {}) {
+    this.setComposition('marketplace');
+    this.menu.setActive('moderation');
+    void this.manager.showModerate();
+    if (updateUrl) {
+      this.setModerateUrl();
     }
   }
 
