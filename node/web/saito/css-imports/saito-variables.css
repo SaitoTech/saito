@@ -132,6 +132,9 @@
   --saito-space-xl: 2rem;
   --saito-space-xxl: 3rem;
 
+  /* NFT artwork stage — 1:1, ~240px at desktop rem. Image size, not card chrome. */
+  --saito-nft-image-size: 20rem;
+
   --border-padding-normal: 1rem;
   --border-padding-wide: 2rem;
 }

@@ -1575,11 +1575,6 @@ export default class Wallet extends SaitoWallet {
     //
     const local = (this.app.options.wallet.nfts as typeof nfts) ?? [];
 
-    if ((!Array.isArray(nfts) || nfts.length === 0) && local.length > 0) {
-      await this.addNFTList();
-      return { updated: [], rebroadcast: [], persisted: false };
-    }
-
     //
     // ensure nft_merges bag exists and keep a stable ref
     //

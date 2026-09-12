@@ -2,7 +2,13 @@
 
 .teasers {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(15.5rem, 1fr));
+  grid-template-columns: repeat(
+    auto-fill,
+    minmax(min(100%, var(--saito-nft-image-size, 20rem)), max-content)
+  );
+  justify-content: start;
+  align-content: start;
+  align-items: start;
   gap: var(--saito-space-xl) var(--saito-space-lg);
   width: 100%;
   min-width: 0;
@@ -11,6 +17,8 @@
 .teaser {
   display: flex;
   flex-direction: column;
+  width: max-content;
+  max-width: 100%;
   min-width: 0;
   overflow: hidden;
   border-radius: var(--saito-radius);
@@ -39,7 +47,12 @@
 
 .teaser .media {
   position: relative;
+  box-sizing: border-box;
+  width: var(--saito-nft-image-size, 20rem);
+  max-width: 100%;
   aspect-ratio: 1 / 1;
+  height: auto;
+  flex: 0 0 auto;
   background-color: var(--saito-muted);
   background-size: cover;
   background-position: center;
@@ -136,7 +149,7 @@
 
 @media (max-width: 900px) {
   .teasers {
-    grid-template-columns: repeat(auto-fill, minmax(13rem, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, var(--saito-nft-image-size, 20rem)), max-content));
     gap: var(--saito-space-lg);
   }
 }
@@ -144,7 +157,16 @@
 @media (max-width: 600px) {
   .teasers {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+    justify-items: stretch;
     gap: var(--saito-space-md);
+  }
+
+  .teaser {
+    width: auto;
+  }
+
+  .teaser .media {
+    width: 100%;
   }
 
   .teaser .info {

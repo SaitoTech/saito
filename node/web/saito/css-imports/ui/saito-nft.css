@@ -1712,7 +1712,13 @@ html[data-theme='noir'] .saito-nft-panel-send .nft-advanced-toggle:active {
 }
 .send-nft-list:has(> .saito-nft-card) {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(22rem, 1fr));
+  grid-template-columns: repeat(
+    auto-fill,
+    minmax(min(100%, var(--saito-nft-image-size, 20rem)), max-content)
+  );
+  justify-content: start;
+  align-content: start;
+  align-items: start;
 }
 .create-nft-textarea {
   height: 30rem;
@@ -1775,10 +1781,12 @@ nft cards
   position: relative;
   display: flex;
   flex-direction: column;
-  width: 100%;
-  min-width: 22rem;
-  max-width: 30rem;
+  box-sizing: border-box;
+  width: var(--saito-nft-image-size, 20rem);
+  max-width: 100%;
+  min-width: 0;
   aspect-ratio: 1;
+  height: auto;
   border: 1px solid var(--saito-border);
   border-radius: var(--saito-radius);
   overflow: hidden;
@@ -1799,13 +1807,18 @@ nft cards
   background-color: color-mix(in srgb, var(--saito-black) 70%, transparent);
   z-index: 9;
   top: 18px;
-  line-height: 4rem;
+  line-height: 2.8rem;
   padding: 0 1rem;
   overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 .saito-nft-card-img {
+  box-sizing: border-box;
   width: 100%;
-  height: 100%;
+  flex: 1 1 0;
+  min-height: 0;
+  height: auto;
   background-position: center;
   background-size: cover;
   background-repeat: no-repeat;
@@ -1860,6 +1873,7 @@ nft cards
   flex-direction: row;
   justify-content: space-between;
   align-items: center;
+  flex: 0 0 auto;
   padding: 1rem 0 0 0;
   font-size: 1.4rem;
   gap: 1rem;
@@ -1914,11 +1928,7 @@ to {
   }
 
   .send-nft-list:has(> .saito-nft-card) {
-    grid-template-columns: 1fr;
-  }
-
-  .saito-nft-card {
-    min-width: 0;
-    max-width: none;
+    grid-template-columns: minmax(0, 1fr);
+    justify-items: start;
   }
 }

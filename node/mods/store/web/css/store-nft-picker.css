@@ -82,6 +82,8 @@
 .nft-picker .send-nft-list {
   display: grid;
   align-content: flex-start;
+  align-items: start;
+  justify-content: start;
   gap: var(--saito-space-lg);
   width: 100%;
   max-width: 100%;
