@@ -15,14 +15,8 @@ const {
   scheduleSubmitAfterListingConfirmed
 } = require('../listing-approval');
 
-function returnShortKey(key = '') {
-  if (!key) {
-    return 'anon-store';
-  }
-  if (key.length <= 18) {
-    return key;
-  }
-  return `${key.slice(0, 8)}...${key.slice(-8)}`;
+function returnDisplayKey(key = '') {
+  return key || 'anon-store';
 }
 
 class ListingDetailOverlay {
@@ -150,7 +144,6 @@ class ListingDetailOverlay {
   returnViewModel(summary = {}) {
     const listingTitle = this.escapeHtml(summary.returnTitle?.() || 'Untitled Item');
     const seller = summary.seller || 'anon-store';
-    const shortSeller = returnShortKey(seller);
 
     const display = summary.returnMediaDisplay?.() || {};
     const listingImage =
@@ -196,8 +189,7 @@ class ListingDetailOverlay {
     return {
       identicon: this.escapeHtml(this.app?.keychain?.returnIdenticon?.(seller) || ''),
       listingTitle,
-      seller: this.escapeHtml(seller),
-      shortSeller: this.escapeHtml(shortSeller),
+      seller: this.escapeHtml(returnDisplayKey(seller)),
       images: normalizedImages,
       hasGallery: normalizedImages.length > 1,
       primaryLabel: this.escapeHtml(primaryLabel),
@@ -213,7 +205,7 @@ class ListingDetailOverlay {
       productType: this.escapeHtml(isRental ? 'store-nft-rental' : this.returnProductType(summary)),
       fileType: this.escapeHtml(this.returnFileTypeFromImages(rawImages)),
       createdDate: this.escapeHtml(this.returnCreatedDate(summary)),
-      txidShort: this.escapeHtml(returnShortKey(txid)),
+      txidShort: this.escapeHtml(returnDisplayKey(txid)),
       imageLoading: summary.isImageLoading?.() ?? false,
       isRental,
       rentalDuration: this.escapeHtml(durationHours ? durationLabel(durationHours) : ''),

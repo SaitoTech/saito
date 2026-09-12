@@ -187,9 +187,11 @@ class ModTools extends ModTemplate {
       document.getElementById('whitelist').onclick = (e) => {
         let overlay = new SaitoOverlay(this.app, this);
         overlay.show(WhitelistTemplate(this));
+        document.getElementById('saito-overlay-form-password')?.focus();
 
-        if (document.getElementById('saito-overlay-submit')) {
-          document.getElementById('saito-overlay-submit').onclick = async (event) => {
+        const form = document.getElementById('register-whitelist-key-template');
+        if (form) {
+          form.onsubmit = async (event) => {
             event.preventDefault();
             let key = document.getElementById('saito-overlay-form-input')?.value?.trim() || '';
             pw = document.getElementById('saito-overlay-form-password')?.value || pw;

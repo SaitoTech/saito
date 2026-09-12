@@ -9,7 +9,7 @@ module.exports = (mod) => {
 	        <label for="saito-overlay-form-password">Admin password:</label>
 	        <input type="password" id="saito-overlay-form-password" class="saito-input" autocomplete="off" value="" />
 		    <div class="saito-button-row">
-          		<button type="button" class="saito-button-primary fat saito-overlay-form-submit" id="saito-overlay-submit">Submit</button> 
+          		<button type="submit" class="saito-button-primary fat saito-overlay-form-submit" id="saito-overlay-submit">Submit</button> 
     	    </div>
 		</form>
   `;

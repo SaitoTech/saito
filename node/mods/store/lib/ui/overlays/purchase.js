@@ -27,6 +27,7 @@ class PurchaseOverlay {
     this.quantity = 1;
     /** True while the shared Transaction Monitor owns payment confirmation UX. */
     this.watchingWithMonitor = false;
+    this._countdown_timer = null;
 
     this.app.connection.on('store-purchase-asset', (data) => {
       this.onStorePurchaseAsset(data);
@@ -106,15 +107,41 @@ class PurchaseOverlay {
 
   openFulfilling() {
     this.step = 'fulfilling';
+    if (this._countdown_timer) {
+      clearInterval(this._countdown_timer);
+      this._countdown_timer = null;
+    }
     this.show(
       PurchaseTemplate.fulfillingOverlay({
         listingTitle: escapeHtml(this.listingTitle)
       })
     );
+
+    const heartbeatMs = this.mod.transaction_monitor?.getHeartbeatIntervalMs?.() || 30000;
+    const cycle = Math.max(1, Math.round((2 * heartbeatMs) / 1000));
+    let seconds = cycle;
+    const paint = () => {
+      const el = document.querySelector('.purchase.fulfilling .countdown');
+      if (el) {
+        el.textContent = String(seconds);
+      }
+    };
+    paint();
+    this._countdown_timer = setInterval(() => {
+      seconds -= 1;
+      if (seconds <= 0) {
+        seconds = cycle;
+      }
+      paint();
+    }, 1000);
   }
 
   openComplete() {
     this.step = 'complete';
+    if (this._countdown_timer) {
+      clearInterval(this._countdown_timer);
+      this._countdown_timer = null;
+    }
     this.show(
       PurchaseTemplate.completeOverlay({
         listingTitle: escapeHtml(this.listingTitle)
@@ -141,6 +168,10 @@ class PurchaseOverlay {
 
   onOverlayClosed() {
     document.querySelector('.saito-container')?.classList.remove('store-purchase-modal-open');
+    if (this._countdown_timer) {
+      clearInterval(this._countdown_timer);
+      this._countdown_timer = null;
+    }
     // Keep lifecycle / listing-hide / pendingTxSignature — only clear presentation step.
     this.step = null;
   }

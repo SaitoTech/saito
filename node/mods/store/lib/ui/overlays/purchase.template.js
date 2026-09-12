@@ -11,6 +11,11 @@ module.exports = {
     <h2 class="title" id="purchase-fulfilling-title">Payment confirmed</h2>
     <p class="lead">${lead}</p>
     <p class="subtitle" data-purchase-detail aria-live="polite">Waiting for your NFT to arrive…</p>
+    <div class="timer">
+      <span class="timer-label">expected time to next block</span>
+      <span class="countdown" aria-live="polite">—</span>
+      <span class="timer-unit">seconds</span>
+    </div>
   </div>
 </article>`;
   },

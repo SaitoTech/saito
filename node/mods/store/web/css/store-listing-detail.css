@@ -123,6 +123,7 @@
 
 .listing-detail .creator {
   margin: 0;
+  max-width: 100%;
   font-family: var(--saito-font-mono, ui-monospace, monospace);
   font-size: 1.15rem;
   line-height: 1.35;
@@ -130,6 +131,8 @@
   word-break: break-all;
   overflow-wrap: anywhere;
   white-space: normal;
+  overflow: visible;
+  text-overflow: unset;
 }
 
 .listing-detail > .body {
