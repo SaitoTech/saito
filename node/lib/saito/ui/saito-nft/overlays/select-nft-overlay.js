@@ -5,8 +5,10 @@ const SaitoUser = require('./../../saito-user/saito-user');
 const CreateNFT = require('./create-overlay');
 const NFTOverlay = require('./nft-overlay');
 
+const NFT_LIST_TYPES = new Set(['image', 'css', 'js', 'vault-nft-key']);
+
 class SelectNFT {
-  constructor(app, mod, attach_events = true) {
+  constructor(app, mod, attach_events = true, type = '') {
     this.app = app;
     this.mod = mod;
     if (app?.browser?.addStylesheet) {
@@ -19,6 +21,7 @@ class SelectNFT {
     this.card_list = [];
 
     this.callback = null;
+    this.type = this.normalizeType(type);
 
     if (attach_events) {
       this.app.connection.on(
@@ -50,10 +53,21 @@ class SelectNFT {
     }
   }
 
+  normalizeType(type = '') {
+    if (type == null || type === '' || type === 'all') {
+      return '';
+    }
+    return NFT_LIST_TYPES.has(String(type)) ? String(type) : '';
+  }
+
   async render(filter = null) {
+    if (arguments.length >= 1) {
+      this.type = this.normalizeType(filter);
+    }
+
     this.overlay.show(SelectNFTTemplate(this));
 
-    await this.renderNFTList(filter);
+    await this.renderNFTList(this.type || null);
 
     setTimeout(() => {
       this.attachEvents();
@@ -144,6 +158,73 @@ class SelectNFT {
         this.overlay.close();
         this.create_nft_overlay.render();
       };
+    }
+
+    const typeWrap = document.getElementById('nft-list-type');
+    if (typeWrap) {
+      const button = typeWrap.querySelector('.nft-list-type-button');
+      const menu = typeWrap.querySelector('.nft-list-type-menu');
+      const label = typeWrap.querySelector('.nft-list-type-label');
+
+      const closeMenu = () => {
+        if (menu) {
+          menu.hidden = true;
+        }
+        if (button) {
+          button.setAttribute('aria-expanded', 'false');
+        }
+        typeWrap.classList.remove('is-open');
+      };
+
+      const openMenu = () => {
+        if (menu) {
+          menu.hidden = false;
+        }
+        if (button) {
+          button.setAttribute('aria-expanded', 'true');
+        }
+        typeWrap.classList.add('is-open');
+      };
+
+      button.onclick = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (menu?.hidden) {
+          openMenu();
+        } else {
+          closeMenu();
+        }
+      };
+
+      menu?.querySelectorAll('.nft-list-type-option').forEach((option) => {
+        option.onclick = (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          const value = this.normalizeType(option.getAttribute('data-value') || '');
+          this.type = value;
+          menu.querySelectorAll('.nft-list-type-option').forEach((item) => {
+            item.setAttribute(
+              'aria-selected',
+              item.getAttribute('data-value') === value ? 'true' : 'false'
+            );
+          });
+          if (label) {
+            label.textContent = option.textContent;
+          }
+          closeMenu();
+          void this.renderNFTList(this.type || null);
+        };
+      });
+
+      if (this._nftTypeMenuCloser) {
+        document.removeEventListener('mousedown', this._nftTypeMenuCloser, true);
+      }
+      this._nftTypeMenuCloser = (e) => {
+        if (!typeWrap.contains(e.target)) {
+          closeMenu();
+        }
+      };
+      document.addEventListener('mousedown', this._nftTypeMenuCloser, true);
     }
   }
 }

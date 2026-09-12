@@ -89,6 +89,10 @@ class SaitoHeader extends UIModTemplate {
       if (!this.installing_crypto) {
         this.renderCrypto();
       }
+      if (typeof this.app.wallet?.updateNFTList === 'function') {
+        await this.app.wallet.updateNFTList();
+      }
+      this.syncNftApplicationMenuItems({ bind_clicks: true });
     });
 
     app.connection.on('on-payment-sent', async (obj = null) => {
@@ -482,6 +486,8 @@ class SaitoHeader extends UIModTemplate {
       addAppId
     );
 
+    this.syncNftApplicationMenuItems({ bind_clicks: false });
+
     Array.from(document.querySelectorAll('.saito-header-appspace-option.quicklaunch')).forEach(
       (elem) => {
         if (elem.dataset.navigation) {
@@ -516,6 +522,106 @@ class SaitoHeader extends UIModTemplate {
       menu.innerHTML += html;
       menu.parentElement.classList.remove('empty-menu-section');
     }
+  }
+
+  walletHasNftType(type = '') {
+    const wanted = String(type || '');
+    if (!wanted) {
+      return false;
+    }
+    const nfts = this.app.options?.wallet?.nfts;
+    if (!Array.isArray(nfts) || !nfts.length) {
+      return false;
+    }
+    const extract = this.app.wallet?.extractNFTType;
+    if (typeof extract !== 'function') {
+      return false;
+    }
+    return nfts.some((nft) => extract.call(this.app.wallet, nft?.slip3?.utxo_key || '') === wanted);
+  }
+
+  syncNftApplicationMenuItems({ bind_clicks = false } = {}) {
+    this.upsertNftApplicationMenuItem({
+      id: 'saito_header_menu_item_nft_themes',
+      text: 'Themes',
+      icon: 'fa-solid fa-palette',
+      nft_type: 'css',
+      present: this.walletHasNftType('css'),
+      bind_clicks
+    });
+    this.upsertNftApplicationMenuItem({
+      id: 'saito_header_menu_item_nft_extensions',
+      text: 'Extensions',
+      icon: 'fa-solid fa-puzzle-piece',
+      nft_type: 'js',
+      present: this.walletHasNftType('js'),
+      bind_clicks
+    });
+  }
+
+  upsertNftApplicationMenuItem({
+    id,
+    text,
+    icon,
+    nft_type,
+    present,
+    bind_clicks = false
+  } = {}) {
+    const existing = document.getElementById(id);
+    if (!present) {
+      existing?.remove();
+      delete this.callbacks[id];
+      return;
+    }
+
+    this.callbacks[id] = () => {
+      this.select_nft_overlay?.render?.(nft_type);
+    };
+
+    if (existing) {
+      return;
+    }
+
+    const menu = document.querySelector('.saito-header-menu-section .module-menu > ul');
+    if (!menu) {
+      return;
+    }
+
+    const item = { text, icon, type: 'module' };
+    const icon_html = this.renderMenuItemIcon(item, 'module');
+    const html = `<li id="${id}" data-id="${text}" class="saito-header-appspace-option module">${icon_html}<span class="saito-menu-item-label">${text}</span></li>`;
+    const add_app = menu.querySelector('[data-id="Add App"]');
+    if (add_app) {
+      add_app.insertAdjacentHTML('beforebegin', html);
+    } else {
+      menu.insertAdjacentHTML('beforeend', html);
+    }
+
+    const added = document.getElementById(id);
+    if (bind_clicks && added) {
+      this.bindNftApplicationMenuItem(added);
+    }
+
+    if (menu.parentElement) {
+      menu.parentElement.classList.remove('empty-menu-section');
+    }
+  }
+
+  bindNftApplicationMenuItem(menu_el) {
+    if (!menu_el || menu_el.dataset.nftAppBound === '1') {
+      return;
+    }
+    menu_el.dataset.nftAppBound = '1';
+    const id = menu_el.getAttribute('id');
+    const data_id = menu_el.getAttribute('data-id');
+    menu_el.addEventListener('click', (e) => {
+      e.preventDefault();
+      this.toggleMenu();
+      const callback = this.callbacks[id];
+      if (typeof callback === 'function') {
+        callback(this.app, data_id);
+      }
+    });
   }
 
   renderMenuItemIcon(item, keyword) {

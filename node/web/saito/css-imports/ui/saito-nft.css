@@ -1556,11 +1556,93 @@ html[data-theme='noir'] .saito-nft-panel-send .nft-advanced-toggle:active {
 }
 
 /* Create NFT — My NFTs list header only (.saito-nft-list).
-   Appearance: .saito-button-square. Layout: [+] MY NFTs */
+   Appearance: .saito-button-square. Layout: [+] type dropdown */
 .saito-nft-list > .saito-overlay-form-header {
   justify-content: flex-start;
   gap: 1.2rem;
   padding-right: 1.6rem;
+}
+
+.saito-nft-list > .saito-overlay-form-header .nft-list-type {
+  position: relative;
+  flex: 0 0 auto;
+  height: 3.6rem;
+}
+
+.saito-nft-list > .saito-overlay-form-header .nft-list-type-button {
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.2rem;
+  height: 3.6rem;
+  min-height: 3.6rem;
+  margin: 0;
+  padding: 0 1.2rem;
+  border: 1px solid var(--saito-border);
+  border-radius: var(--saito-radius);
+  background: #0009;
+  color: #fff;
+  font-size: 1.4rem;
+  font-family: var(--saito-font-medium);
+  font-weight: inherit;
+  line-height: 1;
+  text-transform: uppercase;
+  white-space: nowrap;
+  cursor: pointer;
+  opacity: 0.9;
+}
+
+.saito-nft-list > .saito-overlay-form-header .nft-list-type-button:hover,
+.saito-nft-list > .saito-overlay-form-header .nft-list-type.is-open .nft-list-type-button {
+  background: #000c;
+  opacity: 1;
+}
+
+.saito-nft-list > .saito-overlay-form-header .nft-list-type-button:focus-visible {
+  outline: 1px solid rgba(255, 255, 255, 0.55);
+  outline-offset: 2px;
+}
+
+.saito-nft-list > .saito-overlay-form-header .nft-list-type-caret {
+  display: block;
+  flex: 0 0 auto;
+  width: 1.2rem;
+  height: 0.8rem;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%23ffffff' d='M1.4 0.6L6 5.2 10.6 0.6 12 2 6 8 0 2z'/%3E%3C/svg%3E")
+    center / contain no-repeat;
+}
+
+.saito-nft-list > .saito-overlay-form-header .nft-list-type-menu {
+  position: absolute;
+  top: calc(100% + 0.45rem);
+  left: 0;
+  z-index: 20;
+  min-width: 100%;
+  margin: 0;
+  padding: 0.35rem 0;
+  list-style: none;
+  background: rgba(18, 16, 14, 0.96);
+  border: 1px solid var(--saito-border);
+  border-radius: var(--saito-radius);
+  box-shadow: 0 0.8rem 2.4rem rgba(0, 0, 0, 0.45);
+}
+
+.saito-nft-list > .saito-overlay-form-header .nft-list-type-option {
+  padding: 0.85rem 1.2rem;
+  color: #fff;
+  font-size: 1.4rem;
+  font-family: var(--saito-font-medium);
+  line-height: 1.2;
+  text-transform: uppercase;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.saito-nft-list > .saito-overlay-form-header .nft-list-type-option:hover,
+.saito-nft-list > .saito-overlay-form-header .nft-list-type-option[aria-selected='true'] {
+  background: var(--saito-primary);
+  color: var(--saito-primary-foreground);
 }
 
 
