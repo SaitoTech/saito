@@ -6,7 +6,7 @@ function escapeHtml(value = '') {
     .replace(/"/g, '&quot;');
 }
 
-function formatCreatedAt(ms) {
+function formatListedDate(ms) {
   const n = Number(ms);
   if (!n) {
     return '—';
@@ -15,7 +15,7 @@ function formatCreatedAt(ms) {
   if (Number.isNaN(date.getTime())) {
     return '—';
   }
-  return date.toLocaleString();
+  return date.toLocaleDateString();
 }
 
 function shortKey(key = '') {
@@ -29,15 +29,11 @@ function shortKey(key = '') {
   return `${value.slice(0, 8)}…${value.slice(-8)}`;
 }
 
-function truncateDescription(value = '', max = 80) {
-  const text = String(value || '').replace(/\s+/g, ' ').trim();
-  if (!text) {
-    return '—';
+function riskLabel(value = '') {
+  if (value === 'Low' || value === 'Medium' || value === 'High' || value === 'Dangerous') {
+    return value;
   }
-  if (text.length <= max) {
-    return text;
-  }
-  return `${text.slice(0, max).trim()}…`;
+  return 'Unclassified';
 }
 
 function sortAttrs(column, sort, direction) {
@@ -60,12 +56,10 @@ function table({
       const sellerLabel = escapeHtml(shortKey(seller));
       const sellerFull = escapeHtml(seller);
       const title = escapeHtml(summary.returnTitle?.() || summary.title || 'Untitled Item');
-      const amount = Number(summary.quantity_total ?? summary.quantity_available ?? 0) || 0;
       const price = escapeHtml(summary.returnPrice?.() || '—');
-      const created = escapeHtml(formatCreatedAt(summary.created_at));
-      const description = escapeHtml(
-        truncateDescription(summary.returnDescription?.() || summary.description || '')
-      );
+      const listed = escapeHtml(formatListedDate(summary.created_at));
+      const risk = riskLabel(summary.risk);
+      const riskAttr = escapeHtml(risk);
       return `
           <tr data-signature="${signature}">
             <td class="select-cell">
@@ -75,11 +69,14 @@ function table({
               <button type="button" class="user-key" data-action="message-seller" data-public-key="${sellerFull}" title="${sellerFull}">${sellerLabel}</button>
             </td>
             <td>${title}</td>
-            <td>${amount}</td>
             <td>${price}</td>
-            <td>${created}</td>
-            <td class="description-cell">
-              <button type="button" class="description-link" data-action="preview-listing">${description}</button>
+            <td class="listed-cell">${listed}</td>
+            <td class="view-cell">
+              <a href="#" class="view-link" data-action="preview-listing">listing</a>
+              <a href="#" class="view-link" data-action="inspect-listing">inspect</a>
+            </td>
+            <td class="risk-cell">
+              <span class="risk-badge" data-risk="${riskAttr}">${riskAttr}</span>
             </td>
           </tr>`;
     })
@@ -96,10 +93,10 @@ function table({
             </th>
             <th scope="col" ${sortAttrs('seller', sort, dir)}>User</th>
             <th scope="col" ${sortAttrs('title', sort, dir)}>Title</th>
-            <th scope="col" ${sortAttrs('quantity', sort, dir)}>Amount</th>
             <th scope="col" ${sortAttrs('price', sort, dir)}>Price</th>
-            <th scope="col" ${sortAttrs('created_at', sort, dir)}>Created_at</th>
-            <th scope="col" ${sortAttrs('description', sort, dir)}>Description</th>
+            <th scope="col" ${sortAttrs('created_at', sort, dir)}>Listed</th>
+            <th scope="col">View</th>
+            <th scope="col" ${sortAttrs('risk', sort, dir)}>Risk</th>
           </tr>
         </thead>
         <tbody>${rows}

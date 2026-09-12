@@ -30,6 +30,13 @@ class Listing {
     this.utxo_slip3 = data.utxo_slip3 || '';
     this.created_at = data.created_at || 0;
     this.updated_at = data.updated_at || data.created_at || 0;
+    this.risk =
+      data.risk === 'Low' ||
+      data.risk === 'Medium' ||
+      data.risk === 'High' ||
+      data.risk === 'Dangerous'
+        ? data.risk
+        : '';
 
     // compatibility aliases used by fulfillment helpers
     this.block_id = this.block_id_listed;

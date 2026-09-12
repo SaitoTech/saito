@@ -5,6 +5,7 @@ const UserStoreSidebar = require('./user-store-sidebar');
 const NftPickerOverlay = require('./overlays/nft-picker');
 const PrepareStoreOverlay = require('./overlays/prepare-store');
 const ListingDetailOverlay = require('./overlays/listing-detail');
+const ListingInspectOverlay = require('./overlays/listing-inspect');
 const RentalListingOverlay = require('./overlays/rental-listing');
 const PurchaseOverlay = require('./overlays/purchase');
 const SettingsOverlay = require('./overlays/settings');
@@ -41,6 +42,7 @@ class Main {
     this.nft_picker = null;
     this.prepare_store = null;
     this.listing_detail = null;
+    this.listing_inspect = null;
     this.purchase_overlay = null;
     this.settings_overlay = null;
 
@@ -122,6 +124,7 @@ class Main {
     this.nft_picker = new NftPickerOverlay(this.app, this.mod);
     this.prepare_store = new PrepareStoreOverlay(this.app, this.mod);
     this.listing_detail = new ListingDetailOverlay(this.app, this.mod);
+    this.listing_inspect = new ListingInspectOverlay(this.app, this.mod);
     this.rental_listing = new RentalListingOverlay(this.app, this.mod);
     this.purchase_overlay = new PurchaseOverlay(this.app, this.mod);
     this.settings_overlay = new SettingsOverlay(this.app, this.mod);

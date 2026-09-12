@@ -353,6 +353,12 @@ class ModerateView {
         e.stopPropagation();
         this.openPreview(row.getAttribute('data-signature') || '');
       });
+
+      row.querySelector('[data-action="inspect-listing"]')?.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        this.openInspect(row.getAttribute('data-signature') || '');
+      });
     });
   }
 
@@ -377,6 +383,16 @@ class ModerateView {
     }
     const detail = this.mod.main?.listing_detail || this.mod.main?.product_overlay;
     detail?.open?.(summary, { preview: true });
+  }
+
+  openInspect(signature = '') {
+    const summary = this.listings.find(
+      (item) => String(item.listing_signature || '') === String(signature || '')
+    );
+    if (!summary) {
+      return;
+    }
+    this.mod.main?.listing_inspect?.open?.(summary);
   }
 
   async moderateSelected(action) {

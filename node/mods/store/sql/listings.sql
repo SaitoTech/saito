@@ -33,6 +33,8 @@ CREATE TABLE IF NOT EXISTS listings (
 
   approved INTEGER NOT NULL DEFAULT 0,
 
+  risk TEXT NOT NULL DEFAULT '',
+
   on_chain INTEGER NOT NULL DEFAULT 1,
 
   utxo_slip1 TEXT DEFAULT '',

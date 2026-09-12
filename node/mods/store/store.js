@@ -15,7 +15,7 @@ class Store extends ModTemplate {
     this.name = 'Store';
     this.slug = 'store';
     this.dbname = 'store';
-    this.styles = ['/store/style.css'];
+    this.styles = ['/store/style.css', '/saito/lib/jsonTree/jsonTree.css'];
 
     this.main = null;
     this.header = null;

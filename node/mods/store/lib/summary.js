@@ -43,6 +43,13 @@ class Summary {
     if (!Number.isFinite(this.approved)) {
       this.approved = 0;
     }
+    this.risk =
+      data.risk === 'Low' ||
+      data.risk === 'Medium' ||
+      data.risk === 'High' ||
+      data.risk === 'Dangerous'
+        ? data.risk
+        : '';
   }
 
   returnPlaceholderImage() {
@@ -230,7 +237,8 @@ class Summary {
       buyer: this.buyer || '',
       quantity_sold: this.quantity_sold || 0,
       sold_at: this.sold_at || 0,
-      approved: Number.isFinite(this.approved) ? this.approved : 0
+      approved: Number.isFinite(this.approved) ? this.approved : 0,
+      risk: this.risk || ''
     };
   }
 }

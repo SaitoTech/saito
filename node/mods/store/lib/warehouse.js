@@ -22,6 +22,7 @@ const {
 } = require('./helpers');
 const { loadTransactionFromArchive } = require('./archive');
 const { initializeImageCache } = require('./images');
+const { checkSecurityLevel } = require('../../../lib/helpers/security');
 const {
   executeListingScript,
   returnCreatedNftTuples,
@@ -732,6 +733,13 @@ class Warehouse {
       quantity_total: qty,
       listing_signature: row.signature || '',
       approved: Number(row.approved ?? 0),
+      risk:
+        row.risk === 'Low' ||
+        row.risk === 'Medium' ||
+        row.risk === 'High' ||
+        row.risk === 'Dangerous'
+          ? row.risk
+          : '',
       created_at: Number(row.created_at || 0),
       updated_at: Number(row.updated_at || row.created_at || meta.updated_at || 0),
       status: sold ? 0 : 1,
@@ -1057,6 +1065,19 @@ class Warehouse {
     if (!observation) {
       return null;
     }
+
+    // Server classifies the listing payload. Seller/browser-supplied risk is ignored.
+    let risk = '';
+    try {
+      risk = checkSecurityLevel(tx);
+    } catch (err) {
+      console.warn('Store: checkSecurityLevel failed', signature, err?.message || err);
+      risk = '';
+    }
+    if (risk !== 'Low' && risk !== 'Medium' && risk !== 'High' && risk !== 'Dangerous') {
+      risk = '';
+    }
+    observation.risk = risk;
 
     const listing = await this.addListing(observation);
     if (!listing) {

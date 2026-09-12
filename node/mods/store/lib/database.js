@@ -29,7 +29,8 @@ class Database {
       'ALTER TABLE listings ADD COLUMN buyer TEXT NOT NULL DEFAULT ""',
       'ALTER TABLE listings ADD COLUMN quantity_sold INTEGER NOT NULL DEFAULT 0',
       'ALTER TABLE listings ADD COLUMN sold_at INTEGER NOT NULL DEFAULT 0',
-      'ALTER TABLE listings ADD COLUMN approved INTEGER NOT NULL DEFAULT 0'
+      'ALTER TABLE listings ADD COLUMN approved INTEGER NOT NULL DEFAULT 0',
+      'ALTER TABLE listings ADD COLUMN risk TEXT NOT NULL DEFAULT ""'
     ];
     const summary_columns = ['ALTER TABLE summary ADD COLUMN category TEXT DEFAULT "Other"'];
     const order_columns = [
@@ -138,6 +139,13 @@ class Database {
   // --- listings (authoritative: one row per listing transaction) ---
 
   async insertListingRow(row) {
+    const risk =
+      row.risk === 'Low' ||
+      row.risk === 'Medium' ||
+      row.risk === 'High' ||
+      row.risk === 'Dangerous'
+        ? row.risk
+        : '';
     const sql = `INSERT INTO listings (
 			  signature, nft_id, seller, category, quantity, price,
 			  access_hash, access_script, p2sh_address, slip_id,
@@ -145,7 +153,7 @@ class Database {
 			  block_id_sold, block_hash_sold, transaction_id_sold, longest_chain_sold,
 			  on_chain,
 			  utxo_slip1, utxo_slip2, utxo_slip3,
-			  created_at, updated_at
+			  created_at, updated_at, risk
 			) VALUES (
 			  $signature, $nft_id, $seller, $category, $quantity, $price,
 			  $access_hash, $access_script, $p2sh_address, $slip_id,
@@ -153,7 +161,7 @@ class Database {
 			  $block_id_sold, $block_hash_sold, $transaction_id_sold, $longest_chain_sold,
 			  $on_chain,
 			  $utxo_slip1, $utxo_slip2, $utxo_slip3,
-			  $created_at, $updated_at
+			  $created_at, $updated_at, $risk
 			)`;
     const params = {
       $signature: row.signature,
@@ -179,7 +187,8 @@ class Database {
       $utxo_slip2: row.utxo_slip2 || '',
       $utxo_slip3: row.utxo_slip3 || '',
       $created_at: row.created_at,
-      $updated_at: row.updated_at
+      $updated_at: row.updated_at,
+      $risk: risk
     };
 
     // Bypass runDatabase so insert failures surface (runDatabase swallows errors).
@@ -474,11 +483,16 @@ class Database {
     const columns = {
       seller: 'listings.seller',
       title: "COALESCE(summary.title, '')",
-      quantity: 'listings.quantity',
-      amount: 'listings.quantity',
       price: 'listings.price',
       created_at: 'listings.created_at',
-      description: "COALESCE(summary.description, '')"
+      listed: 'listings.created_at',
+      risk: `CASE listings.risk
+			  WHEN 'Dangerous' THEN 4
+			  WHEN 'High' THEN 3
+			  WHEN 'Medium' THEN 2
+			  WHEN 'Low' THEN 1
+			  ELSE 0
+			END`
     };
     const column = columns[String(sort || '').trim()] || columns.created_at;
     const dir = String(direction || '').toLowerCase() === 'asc' ? 'ASC' : 'DESC';

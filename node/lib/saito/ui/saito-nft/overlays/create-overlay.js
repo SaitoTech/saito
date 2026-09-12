@@ -810,6 +810,7 @@ class CreateNFT {
         return;
       }
 
+      siteMessage('Transaction Broadcast: please wait for network to confirm...', 3000);
       this.overlay.close();
     };
   }
