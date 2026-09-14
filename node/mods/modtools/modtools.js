@@ -41,10 +41,24 @@ class ModTools extends ModTemplate {
     this.prune_after = 200000000; // ~2 day
     //this.prune_after = 120000; // ~2 minute
     this.max_hops = 2; // stop blacklisting after N hops
-    // use password 'testing' on local/dev setups and the actual secret password elsewhere.
+    // Use 'testing' only on loopback hosts; missing configuration uses the production hash.
     const endpoint = app.options?.server?.endpoint;
-    const endpoint_host = typeof endpoint === 'string' ? endpoint : endpoint?.host || '';
-    const use_testing_password = !endpoint || endpoint_host.toLowerCase().includes('localhost');
+    let hostname = '';
+    if (app.BROWSER) {
+      hostname = window.location.hostname.toLowerCase();
+    } else {
+      const endpoint_host = typeof endpoint === 'string' ? endpoint : endpoint?.host || '';
+      if (endpoint_host) {
+        try {
+          hostname = new URL(
+            endpoint_host.includes('://') ? endpoint_host : `http://${endpoint_host}`
+          ).hostname.toLowerCase();
+        } catch {
+          // Invalid endpoints keep the production hash.
+        }
+      }
+    }
+    const use_testing_password = ['localhost', '127.0.0.1', '[::1]'].includes(hostname);
     this.admin_credential_hash = use_testing_password
       ? '61cc98e42ded96807806bf1620e13c4e6a1b85068cad93382a2e3107c269aefe'
       : 'cceb1c83976a46634021ca252a218a53ae882788d9507741db89f6582fc17233';
