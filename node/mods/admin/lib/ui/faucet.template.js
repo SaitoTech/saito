@@ -198,7 +198,7 @@ module.exports = ({
         <div class="admin-faucet-settings-header">
           <div>
             <h2>Settings</h2>
-            <p>OAuth secrets stay in server memory and are never returned to this browser.</p>
+            <p>OAuth secrets are saved in the server configuration and are never returned to this browser.</p>
           </div>
           ${config_saved ? '<div class="admin-faucet-config-saved">Saved</div>' : ''}
         </div>

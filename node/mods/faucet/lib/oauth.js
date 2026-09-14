@@ -9,11 +9,9 @@ class FaucetOAuth {
     this.app = app;
     this.mod = mod;
 
-    // BEGIN TEMP_OAUTH_CONFIG — runtime OAuth client secrets (in-memory only).
-    // Remove when production environment secrets are available.
+    // Restored from server options during Faucet initialization.
     this.secret_github = null;
     this.secret_twitter = null;
-    // END TEMP_OAUTH_CONFIG
 
     this.github = {
       client_id: 'Ov23limOzW982I05opK6',
