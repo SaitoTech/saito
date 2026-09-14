@@ -7,7 +7,7 @@
   background-color: var(--saito-notification-background);
   color: var(--saito-notification-foreground);
   position: absolute;
-  left: 3.5rem;
+  right: 1rem;
   display: flex;
   align-items: center;
   justify-content: center;
