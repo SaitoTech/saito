@@ -385,6 +385,7 @@
 
 .tweet .gallery.count-1 .item img {
   height: auto;
+  max-height: 360px;
 }
 
 .tweet .gallery.count-2 .grid {
