@@ -1185,11 +1185,26 @@ class BuySaito extends ModTemplate {
     // Fourth, issue payments
 
     for (let pp of this.pending_payments) {
-      let available_balance = await this.app.wallet.getBalance();
-      available_balance = await this.app.wallet.convertNolanToSaito(available_balance);
-
       if (pp.status !== 'new' && !pp.paid) {
-        if (available_balance > pp.issue_amount) {
+        let available_nolan;
+        let required_nolan;
+        try {
+          available_nolan = await this.app.wallet.getBalance();
+          required_nolan = this.app.wallet.convertSaitoToNolan(pp.issue_amount);
+          if (
+            typeof available_nolan !== 'bigint' ||
+            typeof required_nolan !== 'bigint' ||
+            available_nolan < 0n ||
+            required_nolan <= 0n
+          ) {
+            throw new Error('Invalid payout balance or amount');
+          }
+        } catch (err) {
+          console.error(`BUYSAITO - Unable to check funding for payment ${pp.id}:`, err);
+          continue;
+        }
+
+        if (available_nolan >= required_nolan) {
           await this.createSaitoIssuanceTransaction(pp)
             .then(async (tx) => {
               // Persist before propagation. If the process stops after this point,
@@ -1199,21 +1214,14 @@ class BuySaito extends ModTemplate {
               await this.app.network.propagateTransaction(tx);
             })
             .catch((err) => {
-              // Don't do anything other than report the error
-              // console.error(err);
+              console.error(`BUYSAITO - Issuance failed for payment ${pp.id}:`, err);
 
               this.app.connection.emit('mailrelay-send-email', {
                 to: 'buysaito@saito.tech',
                 cc: 'richard@saito.tech',
                 from: 'Saito Token Sales Bot <info@saito.tech>',
                 subject: `ATTN: Saito Issuance Failure!!`,
-                text: err
-              });
-
-              this.app.connection.emit('relay-send-message', {
-                recipient: pp.initiator_pubkey,
-                request: 'buysaito report error',
-                data: null
+                text: String(err)
               });
 
               // If this is just a matter of the node lacking slips,
@@ -1222,7 +1230,24 @@ class BuySaito extends ModTemplate {
               // If the server crashes, it will be restored from DB backup and added to the queue
             });
         } else {
+          // Pending balance includes available funds and change returning from
+          // earlier payments. Waiting for that change does not require a refill.
+          try {
+            const pending_nolan = await this.app.core.wallet.getPendingBalance();
+            if (typeof pending_nolan !== 'bigint' || pending_nolan < 0n) {
+              throw new Error('Invalid pending balance');
+            }
+            if (pending_nolan >= required_nolan) continue;
+          } catch (err) {
+            console.error(
+              `BUYSAITO - Unable to confirm funding shortage for payment ${pp.id}:`,
+              err
+            );
+            continue;
+          }
+
           if (!pp.notified) {
+            const available_balance = this.app.wallet.convertNolanToSaito(available_nolan);
             console.error(
               'BuySaito cannot complete sale because lacking money: ',
               available_balance,
@@ -1248,7 +1273,12 @@ class BuySaito extends ModTemplate {
             this.app.connection.emit('relay-send-message', {
               recipient: pp.initiator_pubkey,
               request: 'buysaito report error',
-              data: null
+              data: {
+                code: 'insufficient_funds',
+                id: pp.id,
+                ticker: pp.ticker,
+                destination: pp.destination
+              }
             });
 
             pp.notified = true;

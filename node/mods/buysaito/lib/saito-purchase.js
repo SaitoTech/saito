@@ -73,6 +73,22 @@ class SaitoPurchaseOverlay {
 
     app.connection.on('saito-purchase-error-notification', (data = {}) => {
       if (!this.active) return;
+      if (data?.code === 'insufficient_funds') {
+        if (
+          !this.reservation ||
+          data.id !== this.reservation.id ||
+          data.ticker !== this.reservation.ticker ||
+          data.destination !== this.reservation.destination
+        )
+          return;
+        this.clearPaymentInstructionTimer();
+        this.clearReservationTimer();
+        // Keep the purchase session so a later payout can complete this overlay.
+        this.showOverlay(SaitoPurchaseErrorTemplate('', data.code));
+        return;
+      }
+      // An unclassified issuance error is not evidence that a refill is needed.
+      if (!data?.message) return;
       this.clearPaymentInstructionTimer();
       this.clearReservationTimer();
       this.reservation = null;
