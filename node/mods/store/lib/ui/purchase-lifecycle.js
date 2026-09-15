@@ -49,7 +49,6 @@ class PurchaseLifecycle {
 
     this.hideListing(summary);
 
-    const baselineCount = this.countNftInWallet(summary.nft_id);
     const purchase = {
       id: `${purchaseTxSignature}:${Date.now()}`,
       nft_id: String(summary.nft_id),
@@ -61,7 +60,8 @@ class PurchaseLifecycle {
       phase: PHASE.SUBMITTED,
       status: 'Purchasing NFT…',
       detail: 'Transaction submitted.',
-      baseline_wallet_count: baselineCount,
+      baseline_wallet_count: this.countAllNftsInWallet(),
+      baseline_nft_id_count: this.countNftInWallet(summary.nft_id),
       started_at: Date.now(),
       completed_at: 0
     };
@@ -244,6 +244,11 @@ class PurchaseLifecycle {
     });
   }
 
+  countAllNftsInWallet() {
+    const list = this.app.options?.wallet?.nfts || [];
+    return list.length;
+  }
+
   countNftInWallet(nft_id = '') {
     const id = String(nft_id || '');
     if (!id) {
@@ -260,16 +265,29 @@ class PurchaseLifecycle {
     return count;
   }
 
+  hasWalletCountIncreased(purchase) {
+    if (!purchase) {
+      return false;
+    }
+    return this.countAllNftsInWallet() >= (purchase.baseline_wallet_count || 0) + 1;
+  }
+
   /**
-   * Returns true when the wallet appears to hold the purchased NFT
-   * beyond the pre-purchase baseline.
+   * True when the wallet NFT list has grown since tracking began, or when
+   * the listing nft_id count has increased (fallback).
    */
   hasReceivedNft(purchase) {
-    if (!purchase?.nft_id) {
+    if (!purchase) {
+      return false;
+    }
+    if (this.hasWalletCountIncreased(purchase)) {
+      return true;
+    }
+    if (!purchase.nft_id) {
       return false;
     }
     const current = this.countNftInWallet(purchase.nft_id);
-    const needed = (purchase.baseline_wallet_count || 0) + (purchase.quantity || 1);
+    const needed = (purchase.baseline_nft_id_count || 0) + (purchase.quantity || 1);
     return current >= needed;
   }
 

@@ -83,15 +83,11 @@ class PurchaseOverlay {
     this.step = 'waiting';
     this.watchingWithMonitor = true;
 
-    const lead = this.listingTitle
-      ? `Your purchase of ${this.listingTitle} is being broadcast to the Saito network.`
-      : 'Your purchase is being broadcast to the Saito network.';
-
     this.mod.transaction_monitor.render({
       tx,
       title: 'Purchasing NFT',
-      lead,
-      subtitle: 'Waiting for confirmation...',
+      lead: 'Your purchase is being broadcast to the Saito network.',
+      subtitle: '',
       auto_continue_on_confirm: true,
       callback: (result) => {
         this.watchingWithMonitor = false;
@@ -267,14 +263,14 @@ class PurchaseOverlay {
       return;
     }
 
-    const matches =
-      !this.pendingTxSignature || purchase.purchase_tx_signature === this.pendingTxSignature;
-
-    if (!matches) {
-      return;
-    }
-
     if (purchase.phase === PurchaseLifecycle.PHASE.COMPLETE) {
+      const countArrived = !!this.lifecycle()?.hasWalletCountIncreased?.(purchase);
+      const matches =
+        !this.pendingTxSignature || purchase.purchase_tx_signature === this.pendingTxSignature;
+      if (!countArrived && !matches) {
+        return;
+      }
+
       this.listingTitle = purchase.title || this.listingTitle;
       this.pendingTxSignature = purchase.purchase_tx_signature;
       this.nft_id = purchase.nft_id;

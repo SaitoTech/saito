@@ -318,24 +318,6 @@ span.attention {
 	display: none;
 }
 
-.explanation {
-	padding: 1rem;
-	font-style: italic;
-}
-
-.league-settings .saitox-table {
-	grid-template-columns: 1fr repeat(3, max-content);
-}
-
-.league-settings .saitox-table > div {
-	justify-content: center;
-}
-
-.league-settings .clickable-element:hover {
-	color: var(--saito-muted-foreground);
-	background: var(--saito-accent);
-}
-
 @media screen and (max-width: 900px) {
 	.league-overlay-header {
 		height: unset;
