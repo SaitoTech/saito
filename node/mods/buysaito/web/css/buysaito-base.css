@@ -513,7 +513,7 @@ body.buysaito-body .buysaito-withdraw-container {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: space-between;
+  justify-content: space-evenly;
   gap: 1rem;
 
   & > .saito-overlay-form-header {
