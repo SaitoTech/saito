@@ -1,44 +1,63 @@
 module.exports = (app, mod, self) => {
-  let html = `
-    <div class="buysaito-payment-box saito-overlay-panel saito-overlay-size narrow">
-
-      <div class='saito-purchase-deposit-header'>Awaiting Payment</div>
+  const explorer = mod.returnPaymentAddressExplorer(self.crypto_selected, self.destination);
+  const processing = self.internal_payment_pending;
+  return `
+    <div class="buysaito-payment-box saito-overlay-panel saito-overlay-size${processing ? ' buysaito-payment-processing' : ''}">
+      <header class="saito-overlay-form-header">
+        <h2 class="saito-overlay-form-header-title">Awaiting Payment</h2>
+      </header>
 
       <div class="price">
         ${app.browser.formatDecimals(self.expected_deposit, true)} ${self.crypto_selected.ticker}
       </div>
 
+      ${
+        self.canPayFromWallet()
+          ? `
+        <button type="button" id="pay-from-wallet-btn" class="saito-button-primary" ${processing ? 'disabled' : ''}>
+          Pay from Wallet Balance (${app.browser.formatDecimals(self.crypto_selected.available_balance, true)} ${self.crypto_selected.ticker})
+        </button>
+        <div class="instructions">Or send payment to:</div>
+      `
+          : ''
+      }
+
       <div class="pqrcode qrcode" id="pqrcode"></div>
 
       <div class="pubkey-container" title="${self.destination}">
-         <div class="profile-public-key" id="profile-public-key">`;
-
-  if (self.destination.length > 28) {
-    html += self.destination.slice(0, 8) + '...' + self.destination.slice(-8);
-  } else {
-    html += self.destination;
-  }
-
-  html += `</div>
-         <i class="fas fa-copy"></i>
+        <div class="profile-public-key" id="profile-public-key">${self.destination}</div>
+        <i class="fas fa-copy"></i>
       </div>
 
       <div class="details">
         <div class="product-desc">${self.description || `Purchase ${app.browser.formatDecimals(self.amount, true)} SAITO`}</div>
       </div>
 
-      <div class="instructions">
-        Reserved for <span class="timer monospace">30:00</span>
+      <div class="instructions" role="status">
+        This screen will update automatically when your payment is detected.
       </div>
 
-      <div class="help"> any problems? <span class="support-email">support@saito.io</span></div>
-
-      <div class="saito-button-row auto-size">
-        <button id="cancel-purchase-btn" class="saito-button-secondary">Cancel</button>
-        <button id="confirm-purchase-btn" class="saito-button-primary">Done</button>
-      </div>
+      <details class="help">
+        <summary>Help</summary>
+        <div class="help-content">
+          <a class="support-email" href="mailto:support@saito.io">support@saito.io</a>
+          ${
+            explorer
+              ? `<a href="${explorer}" target="_blank" rel="noopener noreferrer">check transactions to payment address</a>`
+              : '<span>Address explorer unavailable for this network.</span>'
+          }
+        </div>
+      </details>
+      ${
+        processing
+          ? `<div class="payment-processing-overlay" role="status" aria-live="polite">
+              <div class="payment-processing-status">
+                <div class="saito-spinner" aria-hidden="true"></div>
+                <p>Payment processing...</p>
+              </div>
+            </div>`
+          : ''
+      }
     </div>
   `;
-
-  return html;
 };

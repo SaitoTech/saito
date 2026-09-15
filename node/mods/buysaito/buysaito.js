@@ -8,6 +8,18 @@ const SaitoPurchaseOverlay = require('./lib/saito-purchase');
 
 const EXCLUDED_PAYMENT_TICKERS = new Set(['ERC-SAITO', 'BEP-SAITO']);
 
+// Mixin chain IDs identify the deposit network, including tokens sharing a ticker.
+const PAYMENT_ADDRESS_EXPLORERS = Object.freeze({
+  '43d61dcd-e413-450d-80b8-101d5e903357': 'https://etherscan.io/address/',
+  '1949e683-6a08-49e2-b087-d6b72398588f': 'https://bscscan.com/address/',
+  'c6d0c728-2624-429b-8e0d-d9d19b6592fa': 'https://mempool.space/address/',
+  '64692c23-8971-4cf4-84a7-4dd1271dd887': 'https://explorer.solana.com/address/',
+  '25dabac5-056a-48ff-b9f9-f67395dc407c': 'https://tronscan.org/#/address/',
+  'cbc77539-0a20-4666-8c8a-4ded62b36f0a': 'https://subnets.avax.network/c-chain/address/',
+  'fd11b6e3-0b87-41f1-a41f-f0e9b49e5bf0': 'https://www.blockchain.com/explorer/addresses/bch/',
+  EGLD: 'https://explorer.multiversx.com/accounts/'
+});
+
 function isAvailablePaymentCurrency(currency) {
   return Boolean(currency?.ticker) && !EXCLUDED_PAYMENT_TICKERS.has(currency.ticker);
 }
@@ -149,15 +161,6 @@ class BuySaito extends ModTemplate {
 
     await super.render();
 
-    if (this.pending_payments.length) {
-      if (document.querySelector('.purchase-saito-prompt')) {
-        document.querySelector('.purchase-saito-prompt').visibility = 'hidden';
-      }
-      if (document.getElementById('buysaito-button')) {
-        document.getElementById('buysaito-button').innerText = 'Continue';
-      }
-    }
-
     // Called by modules.ts!!!
     //this.attachEvents();
   }
@@ -168,11 +171,6 @@ class BuySaito extends ModTemplate {
 
     if (btn) {
       btn.onclick = (e) => {
-        if (this.pending_payments.length) {
-          this.app.connection.emit('saito-purchase-address-reserved', this.pending_payments[0]);
-          return;
-        }
-
         const amount = purchaseAmountInput.value;
         this.app.connection.emit('saito-purchase-launch', amount);
       };
@@ -252,11 +250,12 @@ class BuySaito extends ModTemplate {
               throw new Error('BuySaito Mixin service is not initialized');
             }
 
-            // If user has an open address, ignore the new specifics... (?)
-            if (!this.hasPendingPayment(tx.from[0].publicKey)) {
-              if (!txmsg.data || !tx.isFrom(txmsg.data.initiator_pubkey)) {
-                throw new Error('Public key mismatch in payment instruction request');
-              }
+            if (!txmsg.data || !tx.isFrom(txmsg.data.initiator_pubkey)) {
+              throw new Error('Public key mismatch in payment instruction request');
+            }
+            // Resume this currency only; earlier deposits in other currencies
+            // remain monitored while the user starts a different purchase.
+            if (!this.hasPendingPayment(tx.from[0].publicKey, txmsg.data.ticker)) {
               await this.checkPrices();
               await this.findAvailableAddress(txmsg.data);
             }
@@ -286,6 +285,20 @@ class BuySaito extends ModTemplate {
         } else {
           console.warn("BUYSAITO - We are getting a request we shouldn't be...");
           // console.warn(txmsg);
+        }
+      }
+
+      if (txmsg.request === 'buysaito payment detected') {
+        if (this.app.BROWSER && tx.isFrom(this.authorized_public_key)) {
+          const data = txmsg.data;
+          const payment = this.pending_payments.find(
+            (p) =>
+              p.id === data?.id && p.destination === data?.destination && p.ticker === data?.ticker
+          );
+          if (payment && ['pending', 'confirmed'].includes(data.status)) {
+            payment.status = data.status;
+            this.app.connection.emit('saito-purchase-payment-detected', data);
+          }
         }
       }
 
@@ -433,6 +446,28 @@ class BuySaito extends ModTemplate {
   //
   // Check what mixin-supported web3 cryptos are on the service node
   //
+  returnPaymentAddressExplorer(currency, address) {
+    if (!currency || !address) return '';
+    const localCurrency = this.app.wallet?.returnCryptoModuleByTicker?.(currency.ticker);
+    if (currency.ticker === 'EGLD') {
+      // EGLD is configured independently of Mixin and may use testnet or devnet.
+      const configured = currency.explorer_url || localCurrency?.options?.explorer_url;
+      if (configured) {
+        try {
+          const url = new URL(configured);
+          if (url.protocol !== 'https:') return '';
+          return `${url.origin}/accounts/${encodeURIComponent(address)}`;
+        } catch (_err) {
+          return '';
+        }
+      }
+      return PAYMENT_ADDRESS_EXPLORERS.EGLD + encodeURIComponent(address);
+    }
+    const chainId = currency.chain_id || localCurrency?.chain_id;
+    const base = PAYMENT_ADDRESS_EXPLORERS[chainId];
+    return base ? base + encodeURIComponent(address) : '';
+  }
+
   loadAvailableCryptos() {
     if (!this.mixin_mod) {
       console.error('BUYSAITO - No mixin module -- loadAvailableCryptos');
@@ -450,6 +485,7 @@ class BuySaito extends ModTemplate {
       } else if (isAvailablePaymentCurrency(cm)) {
         this.available_currencies.push({
           ticker: cm.ticker,
+          chain_id: cm.chain_id,
           price_usd: cm.price_usd,
           last_update: cm.last_update,
           icon_url: cm.icon_url
@@ -647,16 +683,17 @@ class BuySaito extends ModTemplate {
 
   // Check if a user has a pending payment request
   // (so that we can restore that rather than generate a new one)
-  hasPendingPayment(publicKey) {
+  hasPendingPayment(publicKey, ticker) {
     this.clearInactivePayments();
 
     // Check if this user has a pending payment and send them that info again
     for (let p of this.pending_payments) {
-      if (p.initiator_pubkey == publicKey) {
+      if (p.initiator_pubkey == publicKey && (!ticker || p.ticker === ticker)) {
         this.app.connection.emit('relay-send-message', {
           recipient: publicKey,
           request: 'buysaito reserve address',
           data: {
+            id: p.id,
             initiator_pubkey: p.initiator_pubkey,
             issue_amount: p.issue_amount,
             ticker: p.ticker,
@@ -664,7 +701,7 @@ class BuySaito extends ModTemplate {
             mixin_id: p.mixin.user_id,
             expected_deposit: p.expected_deposit,
             reserved_until: p.ts + this.time_limit,
-            status: p.paid ? 'issuing' : 'pending'
+            status: p.paid ? 'issuing' : p.status
           }
         });
         return true;
@@ -770,6 +807,8 @@ class BuySaito extends ModTemplate {
       recipient: payment_data.initiator_pubkey,
       request: 'buysaito reserve address',
       data: {
+        id: payment_data.id,
+        status: payment_data.status,
         initiator_pubkey: payment_data.initiator_pubkey,
         recipient_pubkey: payment_data.recipient_pubkey,
         issue_amount: payment_data.issue_amount,
@@ -808,6 +847,7 @@ class BuySaito extends ModTemplate {
     let sql = `UPDATE purchases SET status = "pending", updated_at = $updated_at WHERE id=$id`;
     let params = { $id: payment_data.id, $updated_at: Date.now() };
     await this.app.storage.runDatabase(sql, params, 'buysaito');
+    this.notifyPaymentDetected(payment_data);
   }
 
   async confirmPaymentReceipt(payment_data) {
@@ -820,6 +860,21 @@ class BuySaito extends ModTemplate {
       $updated_at: Date.now()
     };
     await this.app.storage.runDatabase(sql, params, 'buysaito');
+    this.notifyPaymentDetected(payment_data);
+  }
+
+  notifyPaymentDetected(payment) {
+    // Send only public progress fields; payment.mixin contains account credentials.
+    this.app.connection.emit('relay-send-message', {
+      recipient: payment.initiator_pubkey,
+      request: 'buysaito payment detected',
+      data: {
+        id: payment.id,
+        ticker: payment.ticker,
+        destination: payment.destination,
+        status: payment.status
+      }
+    });
   }
 
   // Payment status is set as 'canceled' or 'failed' before calling the function
@@ -1039,6 +1094,10 @@ class BuySaito extends ModTemplate {
     // A saved payout must not depend on Mixin being reachable again. Queue the
     // exact signed transaction first, then continue refreshing deposit status.
     for (const payment of this.pending_payments) {
+      // Refresh browser progress in case an earlier relay notification was missed.
+      if (['pending', 'confirmed'].includes(payment.status)) {
+        this.notifyPaymentDetected(payment);
+      }
       if (payment.status !== 'new' && payment.paid) {
         try {
           await this.rebroadcastPaymentIssuance(payment);
