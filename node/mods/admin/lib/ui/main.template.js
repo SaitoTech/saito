@@ -8,6 +8,7 @@ module.exports = (app, mod) => {
         <div class="saito-admin-nav-item overview active" data-admin-view="overview">Overview</div>
         <div class="saito-admin-nav-item modules" data-admin-view="modules">Modules</div>
         <div class="saito-admin-nav-item peers" data-admin-view="peers">Peers</div>
+        <div class="saito-admin-nav-item administrators" data-admin-view="administrators">Administrators</div>
         <div class="saito-admin-nav-item database" data-admin-view="database">Database</div>
         <div class="saito-admin-nav-item blocks" data-admin-view="blocks">Blocks</div>
         <div class="saito-admin-nav-item mempool" data-admin-view="mempool">Mempool</div>
@@ -26,6 +27,7 @@ module.exports = (app, mod) => {
         <div class="admin-page admin-modules"></div>
 
         <div class="admin-page admin-peers"></div>
+        <div class="admin-page admin-administrators"></div>
 
         <div class="admin-page admin-database"></div>
 

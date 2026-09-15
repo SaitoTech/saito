@@ -62,7 +62,7 @@ class Admin extends ModTemplate {
       return 0;
     }
 
-    if (!tx.isTo(this.publicKey)) {
+    if (!tx || !tx.isTo(this.publicKey)) {
       return 0;
     }
 
@@ -77,6 +77,10 @@ class Admin extends ModTemplate {
       'list-peers',
       'run-sql-query',
       'set-admin-key',
+      'list-admins',
+      'add-admin',
+      'remove-admin',
+      'promote-admin',
       'validate-admin-key',
       'update-options',
       'update-modules-config',
@@ -92,15 +96,10 @@ class Admin extends ModTemplate {
       return super.handlePeerTransaction(app, tx, peer, mycallback);
     }
 
-    let validated = true;
-    if (app.options.admin?.length) {
-      validated = false;
-      for (let a of app.options.admin) {
-        if (tx.isFrom(a)) {
-          validated = true;
-        }
-      }
-    }
+    const signer = this.adminRequestSigner(tx);
+    const admins = this.app.options.admin || [];
+    const validated =
+      signer && (admins.length ? admins.includes(signer) : txmsg.request === 'set-admin-key');
 
     if (!validated) {
       console.error('Unauthorized access!');
@@ -108,6 +107,20 @@ class Admin extends ModTemplate {
         mycallback({ err: 'Unauthorized access' });
       }
       return 0;
+    }
+
+    if (
+      ['set-admin-key', 'list-admins', 'add-admin', 'remove-admin', 'promote-admin'].includes(
+        txmsg.request
+      )
+    ) {
+      try {
+        const result = this.manageAdministrators(txmsg.request, txmsg.key, signer);
+        if (mycallback) mycallback({ result });
+      } catch (err) {
+        if (mycallback) mycallback({ err: err.message || String(err) });
+      }
+      return 1;
     }
 
     if (txmsg.request == 'list-databases') {
@@ -241,21 +254,6 @@ class Admin extends ModTemplate {
       return 1;
     }
 
-    if (txmsg.request == 'set-admin-key') {
-      if (!this.app.options.admin) {
-        this.app.options.admin = [];
-      }
-
-      this.app.options.admin.push(txmsg.key);
-      this.app.storage.saveOptions();
-
-      const err = this.writeOptions({ admin: this.app.options.admin });
-      if (mycallback) {
-        mycallback(err ? { err } : { result: 1 });
-      }
-      return 1;
-    }
-
     if (txmsg.request == 'validate-admin-key') {
       if (mycallback) mycallback(this.getOptions());
       return 1;
@@ -292,6 +290,117 @@ class Admin extends ModTemplate {
     }
 
     return super.handlePeerTransaction(app, tx, peer, mycallback);
+  }
+
+  adminRequestSigner(tx) {
+    try {
+      const signer = tx.from?.[0]?.publicKey;
+      if (!signer || !/^[a-fA-F0-9]{128}$/.test(tx.signature || '')) return null;
+      tx.generateHashForSignature();
+      // verifySignature hashes its input; the transaction already supplies a digest.
+      const valid = require('secp256k1').verify(
+        Buffer.from(tx.getHashForSignature()),
+        Buffer.from(tx.signature, 'hex'),
+        Buffer.from(this.app.crypto.fromBase58(signer), 'hex')
+      );
+      return valid ? signer : null;
+    } catch (err) {
+      return null;
+    }
+  }
+
+  administratorState(signer) {
+    const admins = [...(this.app.options.admin || [])];
+    const is_admin = admins.includes(signer);
+    return {
+      admins,
+      permissions: {
+        is_admin,
+        is_primary: is_admin && admins[0] === signer,
+        can_add: is_admin,
+        can_remove: is_admin,
+        can_promote: is_admin && admins[0] === signer
+      }
+    };
+  }
+
+  manageAdministrators(request, key, signer) {
+    // Validation, atomic save, and activation are synchronous: requests cannot
+    // interleave or apply permissions captured before a different admin's change.
+    const admins = [...(this.app.options.admin || [])];
+    if (request === 'set-admin-key') {
+      if (admins.length) throw new Error('The initial administrator is already configured.');
+    } else if (!admins.includes(signer)) {
+      throw new Error('Unauthorized access');
+    }
+
+    if (request === 'list-admins') return this.administratorState(signer);
+    key = typeof key === 'string' ? key.trim() : '';
+    if (!this.app.crypto.isPublicKey(key)) throw new Error('Not a valid Saito public key.');
+
+    if (request === 'set-admin-key' || request === 'add-admin') {
+      if (admins.includes(key)) throw new Error('That administrator is already listed.');
+      admins.push(key);
+    } else {
+      const index = admins.indexOf(key);
+      if (index < 0) throw new Error('That administrator is not listed.');
+      if (request === 'remove-admin') {
+        if (index === 0)
+          throw new Error(
+            'The primary administrator cannot be removed. Transfer primary status first.'
+          );
+        admins.splice(index, 1);
+      } else if (request === 'promote-admin') {
+        if (admins[0] !== signer)
+          throw new Error('Only the primary administrator can transfer primary status.');
+        if (index === 0) throw new Error('That administrator is already primary.');
+        admins.splice(index, 1);
+        admins.unshift(key);
+      } else {
+        throw new Error('Unknown administrator operation.');
+      }
+    }
+
+    this.saveAdministrators(admins);
+    return this.administratorState(signer);
+  }
+
+  saveAdministrators(admins) {
+    const fs = this.app.storage.returnFileSystem();
+    const path = this.app.storage.returnPath();
+    if (!fs || !path) throw new Error('Filesystem is not available on this server.');
+    const filename = path.join(
+      this.app.storage.config_dir || path.resolve(__dirname, '../../config'),
+      'options'
+    );
+    const temporary = `${filename}.admin-${require('crypto').randomBytes(12).toString('hex')}.tmp`;
+    const json = require('json-bigint');
+    let fd;
+    try {
+      fs.accessSync(filename, fs.constants.W_OK);
+      const options = json.parse(fs.readFileSync(filename, 'utf8'));
+      options.admin = admins;
+      fd = fs.openSync(temporary, 'wx', fs.statSync(filename).mode & 0o777);
+      fs.writeFileSync(fd, json.stringify(options, null, 2));
+      fs.fsyncSync(fd);
+      fs.closeSync(fd);
+      fd = undefined;
+      fs.renameSync(temporary, filename);
+    } catch (err) {
+      throw new Error(this.returnWriteError(filename, err));
+    } finally {
+      if (fd !== undefined) {
+        try {
+          fs.closeSync(fd);
+        } catch (err) {}
+      }
+      try {
+        fs.unlinkSync(temporary);
+      } catch (err) {}
+    }
+    this.app.options.admin = admins;
+    // Let the next ordinary options save recompute its hash.
+    this.app.storage.wallet_options_hash = null;
   }
 
   /**
