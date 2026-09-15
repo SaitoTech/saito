@@ -77,17 +77,17 @@
 
 .compose .surface {
   position: relative;
-  display: grid;
-  grid-template-rows: 8rem auto;
-  row-gap: var(--saito-space-xs);
+  display: flex;
+  flex-direction: column;
+  gap: var(--saito-space-xs);
   min-width: 0;
   min-height: 0;
   overflow-y: auto;
 }
 
 .compose .input {
-  width: calc(100% - 8rem);
-  height: 100%;
+  width: 100%;
+  flex: 1 1 auto;
   min-height: 8rem;
   padding: 0;
   overflow-wrap: anywhere;
@@ -107,9 +107,15 @@
 }
 
 .compose .image-preview {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(7.5rem, 1fr));
+  display: flex;
+  flex-flow: row nowrap;
+  align-items: flex-end;
+  justify-content: flex-start;
   gap: 0.2rem;
+  flex: 0 0 auto;
+  width: 100%;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .compose .image-preview:empty {
@@ -118,6 +124,9 @@
 
 .compose .image-item {
   position: relative;
+  flex: 0 1 7.5rem;
+  width: 7.5rem;
+  min-width: 0;
   aspect-ratio: 1;
   overflow: hidden;
   border-radius: var(--saito-radius);
@@ -250,6 +259,7 @@
 .compose .dialog > .footer .actions {
   display: flex;
   align-items: center;
+  flex-shrink: 0;
   gap: var(--saito-space-md);
 }
 
@@ -429,5 +439,9 @@
 
   .compose .input {
     min-height: 12rem;
+  }
+
+  .compose .dialog > .footer .char-count {
+    display: none;
   }
 }

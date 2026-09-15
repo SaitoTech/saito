@@ -129,9 +129,13 @@ async function handleRequestUtxo(app, txmsg) {
   }
 
   const spendable = await isUtxoSpendable(app, utxokey);
+  const hasValue = parsed.amount > 0n;
   let status = 'NOT FOUND';
   if (spendable) {
     status = 'SPENDABLE';
+  } else if (!hasValue) {
+    // amount === 0 slips are never inserted into the UTXO hashmap
+    status = 'ZERO FEE';
   } else if (await creatingOutputExists(app, parsed)) {
     status = 'SPENT';
   }

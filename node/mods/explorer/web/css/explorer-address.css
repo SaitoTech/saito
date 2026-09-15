@@ -179,7 +179,8 @@
   );
 }
 
-.explorer-utxo-status-panel.explorer-utxo-status-not-found {
+.explorer-utxo-status-panel.explorer-utxo-status-not-found,
+.explorer-utxo-status-panel.explorer-utxo-status-zero-fee {
   color: var(--explorer-muted-foreground);
   background-color: var(--explorer-muted);
   border-color: var(--explorer-border);
