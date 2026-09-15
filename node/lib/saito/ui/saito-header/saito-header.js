@@ -481,10 +481,7 @@ class SaitoHeader extends UIModTemplate {
     this.callbacks[addAppId] = (app) => {
       app.connection.emit('saito-app-app-render-request');
     };
-    this.addMenuItem(
-      { text: 'Add App', icon: 'fa-solid fa-plus', type: 'module' },
-      addAppId
-    );
+    this.addMenuItem({ text: 'Add App', icon: 'fa-solid fa-plus', type: 'module' }, addAppId);
 
     this.syncNftApplicationMenuItems({ bind_clicks: false });
 
@@ -559,14 +556,7 @@ class SaitoHeader extends UIModTemplate {
     });
   }
 
-  upsertNftApplicationMenuItem({
-    id,
-    text,
-    icon,
-    nft_type,
-    present,
-    bind_clicks = false
-  } = {}) {
+  upsertNftApplicationMenuItem({ id, text, icon, nft_type, present, bind_clicks = false } = {}) {
     const existing = document.getElementById(id);
     if (!present) {
       existing?.remove();

@@ -1,10 +1,4 @@
-module.exports = ({
-  loading = false,
-  error = null,
-  utxokey = '',
-  status = '',
-  slip = null
-}) => {
+module.exports = ({ loading = false, error = null, utxokey = '', status = '', slip = null }) => {
   let statusHtml = '';
   if (loading) {
     statusHtml = `<p class="explorer-address-status">Checking UTXO set…</p>`;

@@ -11,7 +11,13 @@
 const LEVELS = Object.freeze(['Low', 'Medium', 'High', 'Dangerous']);
 const RANK = Object.freeze({ Low: 0, Medium: 1, High: 2, Dangerous: 3 });
 
-const RASTER_IMAGE_MIMES = new Set(['image/png', 'image/jpeg', 'image/jpg', 'image/gif', 'image/webp']);
+const RASTER_IMAGE_MIMES = new Set([
+  'image/png',
+  'image/jpeg',
+  'image/jpg',
+  'image/gif',
+  'image/webp'
+]);
 
 const WALLET_ACCESS_RE = /app\.options|\bwallet\b/i;
 

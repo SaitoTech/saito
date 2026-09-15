@@ -1402,7 +1402,7 @@ export default class Wallet extends SaitoWallet {
           wobj.wallet.spends = [];
           wobj.games = [];
           this.app.options = wobj;
-	  await this.addNFTList();
+          await this.addNFTList();
         } catch (err) {
           // console.error(err);
           return err;
@@ -1582,8 +1582,10 @@ export default class Wallet extends SaitoWallet {
       this.app.options.wallet.nft_merges = this.app.options.wallet.nftMergeIntents;
     }
     delete this.app.options.wallet.nftMergeIntents;
-    const nft_merges: Record<string, number> = (this.app.options.wallet.nft_merges ||=
-      {} as Record<string, number>);
+    const nft_merges: Record<string, number> = (this.app.options.wallet.nft_merges ||= {} as Record<
+      string,
+      number
+    >);
     let nft_merges_mutated = false;
 
     //

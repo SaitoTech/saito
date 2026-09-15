@@ -40,14 +40,15 @@ class Utxo {
     }
     const blockId = String(slip.blockId ?? '');
     const canVisitBlock = /^[1-9][0-9]*$/.test(blockId);
-    const typeName = String(slip.type || slip.slipTypeName || formatSlipTypeName(slip.typeId) || '');
+    const typeName = String(
+      slip.type || slip.slipTypeName || formatSlipTypeName(slip.typeId) || ''
+    );
     const amountRaw = slip.amount != null ? String(slip.amount) : '';
     let amountDisplay = amountRaw || '—';
     try {
       const amount = BigInt(amountRaw || 0);
       if (typeName === 'Bound') {
-        amountDisplay =
-          amount === 0n ? '0 (not SAITO)' : `${amount.toLocaleString('en-US')} units`;
+        amountDisplay = amount === 0n ? '0 (not SAITO)' : `${amount.toLocaleString('en-US')} units`;
       } else {
         amountDisplay = formatSaito(amount);
       }

@@ -448,7 +448,11 @@ class Block {
       }
 
       const toggleRow = (e) => {
-        if (e?.target?.closest('.explorer-action, .explorer-json-toggle, .explorer-link, .explorer-copy-btn')) {
+        if (
+          e?.target?.closest(
+            '.explorer-action, .explorer-json-toggle, .explorer-link, .explorer-copy-btn'
+          )
+        ) {
           return;
         }
         if (e) {
@@ -546,7 +550,6 @@ class Block {
         this.handleUnlockScript(signature);
       });
     });
-
   }
 }
 

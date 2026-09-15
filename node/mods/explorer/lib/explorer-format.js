@@ -497,7 +497,8 @@ function slipUtxoKey(slip) {
 
 function slipCreatedIn(app, slip, block = null) {
   const rawId = slipField(slip, 'blockId', 'block_id');
-  const slipId = rawId != null && String(rawId) !== '' && String(rawId) !== '0' ? String(rawId) : '';
+  const slipId =
+    rawId != null && String(rawId) !== '' && String(rawId) !== '0' ? String(rawId) : '';
   const blockId = slipId || (block?.id != null ? String(block.id) : '');
   const blockHash =
     blockId && block?.hash && String(block.id) === blockId ? String(block.hash) : '';

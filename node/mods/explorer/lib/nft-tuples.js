@@ -69,9 +69,7 @@ function isNftTuple(slips, index) {
     return false;
   }
   return (
-    isBoundSlip(slips[index]) &&
-    isCustodySlip(slips[index + 1]) &&
-    isBoundSlip(slips[index + 2])
+    isBoundSlip(slips[index]) && isCustodySlip(slips[index + 1]) && isBoundSlip(slips[index + 2])
   );
 }
 

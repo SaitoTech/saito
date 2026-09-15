@@ -261,7 +261,10 @@ class Explorer extends ModTemplate {
             }
           };
           if (navigator.clipboard?.writeText) {
-            navigator.clipboard.writeText(text).then(done).catch(() => {});
+            navigator.clipboard
+              .writeText(text)
+              .then(done)
+              .catch(() => {});
           } else {
             const ta = document.createElement('textarea');
             ta.value = text;
