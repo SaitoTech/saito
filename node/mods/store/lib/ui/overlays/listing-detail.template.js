@@ -47,7 +47,18 @@ module.exports = {
         <img class="saito-identicon" src="${view.identicon}" alt="" />
         <div class="meta">
           <h2 class="title" id="listing-detail-title"><span class="title-text">${view.listingTitle}</span></h2>
-          <p class="creator">${view.seller}</p>
+          <p class="meta-row nft-id">
+            <span class="meta-label">NFT ID:</span>
+            <span class="meta-value" title="${view.nftId}">${view.nftIdDisplay}</span>${
+              view.nftId
+                ? `<button type="button" class="saito-icon-button" data-action="copy-nft-id" data-nft-id="${view.nftId}" title="Copy NFT ID" aria-label="Copy NFT ID"><i class="fas fa-copy" aria-hidden="true"></i></button>`
+                : ''
+            }
+          </p>
+          <p class="meta-row seller">
+            <span class="meta-label">SELLER:</span>
+            <span class="meta-value${view.sellerIsKey ? ' is-key' : ''}">${view.seller}</span>
+          </p>
         </div>
       </header>
 

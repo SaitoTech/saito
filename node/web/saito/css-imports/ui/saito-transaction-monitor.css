@@ -49,8 +49,10 @@
 .saito-transaction-monitor .timer {
 	width: 100%;
 	max-width: 18rem;
-	margin-top: var(--saito-space-lg);
-	padding-top: var(--saito-space-lg);
+	/* Stack gap (lg) already sits above this element. Split the remaining
+	   2*lg so the border is midway in the lead→label space (3*lg total). */
+	margin-top: calc(var(--saito-space-lg) / 2);
+	padding-top: calc(var(--saito-space-lg) * 1.5);
 	border-top: 1px solid var(--saito-border);
 }
 

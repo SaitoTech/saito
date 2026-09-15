@@ -185,8 +185,8 @@
 }
 
 .store > .menu .item.moderation-item {
-  justify-content: space-between;
-  gap: var(--saito-space-sm);
+  position: relative;
+  justify-content: flex-start;
 }
 
 .store > .menu .item.moderation-item[hidden] {
@@ -194,9 +194,14 @@
 }
 
 .store > .menu .item.moderation-item .saito-notification-dot {
-  position: static;
+  position: absolute;
+  top: 0.1rem;
+  right: 0.35rem;
   left: auto;
-  flex: 0 0 auto;
+  bottom: auto;
+  width: max-content;
+  min-width: 1.6rem;
+  z-index: 1;
 }
 
 .store > .menu .item:focus-visible {

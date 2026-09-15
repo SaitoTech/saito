@@ -15,10 +15,6 @@ const {
   scheduleSubmitAfterListingConfirmed
 } = require('../listing-approval');
 
-function returnDisplayKey(key = '') {
-  return key || 'anon-store';
-}
-
 class ListingDetailOverlay {
   constructor(app, mod) {
     this.app = app;
@@ -122,6 +118,19 @@ class ListingDetailOverlay {
     return /[a-zA-Z]/.test(String(value));
   }
 
+  formatSaitoPriceDisplay(value, currency = 'SAITO') {
+    const raw = String(value ?? '').trim();
+    if (!raw || raw === 'N/A') {
+      return raw === 'N/A' ? 'N/A' : '';
+    }
+    const numeric = raw.replace(/SAITO/gi, '').replace(/,/g, '').trim();
+    if (!numeric || !Number.isFinite(Number(numeric))) {
+      return this.hasCurrencyLabel(raw) ? raw : `${raw} ${currency}`;
+    }
+    const formatted = Number(numeric).toLocaleString('en-US', { maximumFractionDigits: 8 });
+    return `${formatted} ${currency}`;
+  }
+
   returnProductType(summary = {}) {
     if (summary.type) {
       return summary.type;
@@ -141,9 +150,45 @@ class ListingDetailOverlay {
     return txmsg.listing || {};
   }
 
+  returnSellerDisplay(seller = '') {
+    const key = String(seller || '').trim();
+    if (!key) {
+      return { text: 'anon-store', isKey: false };
+    }
+    const identifier = this.app?.keychain?.returnIdentifierByPublicKey?.(key) || '';
+    if (identifier && identifier !== key) {
+      return { text: identifier, isKey: false };
+    }
+    return { text: key, isKey: true };
+  }
+
+  async copyText(value = '', successMessage = 'Copied') {
+    const text = String(value || '').trim();
+    if (!text) {
+      return;
+    }
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(text);
+      } else {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        ta.remove();
+      }
+      siteMessage(successMessage, 2000);
+    } catch (err) {
+      console.warn('Store: copy failed', err?.message || err);
+    }
+  }
+
   returnViewModel(summary = {}) {
     const listingTitle = this.escapeHtml(summary.returnTitle?.() || 'Untitled Item');
-    const seller = summary.seller || 'anon-store';
+    const sellerKey = summary.returnSeller?.() || summary.seller || '';
+    const sellerDisplay = this.returnSellerDisplay(sellerKey);
+    const nftId = String(summary.nft_id || summary.nft?.id || summary.nft?.uuid || '').trim();
 
     const display = summary.returnMediaDisplay?.() || {};
     const listingImage =
@@ -175,21 +220,21 @@ class ListingDetailOverlay {
     const supply = summary.returnQuantity?.() || 1;
     const actionText = isRental ? 'Rent' : isBid ? 'Bid' : 'Buy';
     const description = this.escapeHtml(summary.returnDescription?.() || '');
-    const txid = String(summary.listing_signature || summary.nft_id || 'N/A');
-    const primaryDisplay = this.escapeHtml(
-      this.hasCurrencyLabel(primaryValue) ? String(primaryValue) : `${primaryValue} ${currency}`
-    );
-    const nextBidDisplay = this.escapeHtml(
-      this.hasCurrencyLabel(nextBid) ? String(nextBid) : `${nextBid} ${currency}`
-    );
+    const primaryDisplay = this.escapeHtml(this.formatSaitoPriceDisplay(primaryValue, currency));
+    const nextBidDisplay = this.escapeHtml(this.formatSaitoPriceDisplay(nextBid, currency));
 
     const durationHours = listingMeta.rental_duration_hours || summary.nft?.data?.duration_hours;
     const rights = listingMeta.rental_rights || summary.nft?.data?.rights || 'all';
 
     return {
-      identicon: this.escapeHtml(this.app?.keychain?.returnIdenticon?.(seller) || ''),
+      identicon: this.escapeHtml(
+        this.app?.keychain?.returnIdenticon?.(nftId || sellerKey) || ''
+      ),
       listingTitle,
-      seller: this.escapeHtml(returnDisplayKey(seller)),
+      nftId: this.escapeHtml(nftId),
+      nftIdDisplay: this.escapeHtml(nftId || '—'),
+      seller: this.escapeHtml(sellerDisplay.text),
+      sellerIsKey: sellerDisplay.isKey,
       images: normalizedImages,
       hasGallery: normalizedImages.length > 1,
       primaryLabel: this.escapeHtml(primaryLabel),
@@ -205,7 +250,6 @@ class ListingDetailOverlay {
       productType: this.escapeHtml(isRental ? 'store-nft-rental' : this.returnProductType(summary)),
       fileType: this.escapeHtml(this.returnFileTypeFromImages(rawImages)),
       createdDate: this.escapeHtml(this.returnCreatedDate(summary)),
-      txidShort: this.escapeHtml(returnDisplayKey(txid)),
       imageLoading: summary.isImageLoading?.() ?? false,
       isRental,
       rentalDuration: this.escapeHtml(durationHours ? durationLabel(durationHours) : ''),
@@ -232,7 +276,7 @@ class ListingDetailOverlay {
       nftIdenticon,
       mediaHtml: this.returnMediaHtml(nft),
       description: this.escapeHtml(this.listing.description),
-      priceDisplay: `${priceNum} SAITO`,
+      priceDisplay: this.formatSaitoPriceDisplay(priceNum),
       productType: this.escapeHtml(nft?.returnType?.() || 'NFT'),
       fileType: this.escapeHtml(this.returnFileTypeFromNft(nft)),
       createdDate: new Date().toLocaleDateString(),
@@ -388,6 +432,14 @@ class ListingDetailOverlay {
       };
     });
 
+    root.querySelectorAll('[data-action="copy-nft-id"]').forEach((btn) => {
+      btn.onclick = async (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        await this.copyText(btn.getAttribute('data-nft-id'), 'NFT ID copied');
+      };
+    });
+
     if (mainImage) {
       mainImage.onerror = () => {
         const summary = this.summary;
@@ -530,7 +582,8 @@ class ListingDetailOverlay {
         },
         apply: (cleaned) => {
           this.listing.price = cleaned;
-          root.querySelector('[data-field="price"]').textContent = `${cleaned} SAITO`;
+          root.querySelector('[data-field="price"]').textContent =
+            this.formatSaitoPriceDisplay(cleaned);
         }
       });
     });
@@ -581,7 +634,7 @@ class ListingDetailOverlay {
       this.listing.price = String(this.defaults.price);
       const priceEl = root.querySelector('[data-field="price"]');
       if (priceEl) {
-        priceEl.textContent = `${this.listing.price} SAITO`;
+        priceEl.textContent = this.formatSaitoPriceDisplay(this.listing.price);
       }
       if (this.defaults.locked?.includes('price')) {
         const affordance = root.querySelector('[data-edit="price"]');

@@ -8,6 +8,7 @@ const REQUEST_TO_MODULE = {
   'request transaction': 'Explorer',
   'request supply': 'Explorer',
   'request address': 'Explorer',
+  'request utxo': 'Explorer',
   send: 'Wallet',
   receive: 'Wallet',
   registry: 'Registry',

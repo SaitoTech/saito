@@ -1,4 +1,4 @@
-module.exports = ({ placeholder = 'Search by Block Hash or User Publickey' } = {}) => {
+module.exports = ({ placeholder = 'Search by Block Hash, Public Key, or UTXOKEY' } = {}) => {
   return `
     <section class="explorer-search-component" aria-label="Search">
       <form class="explorer-search-form" action="#" method="get">
@@ -8,7 +8,7 @@ module.exports = ({ placeholder = 'Search by Block Hash or User Publickey' } = {
               type="search"
               class="saito-input explorer-search-input"
               placeholder="${placeholder}"
-              aria-label="Search by block hash or user public key"
+              aria-label="Search by block hash, public key, or UTXOKEY"
               autocomplete="off"
             />
           </div>

@@ -2,6 +2,12 @@ const NOLAN_PER_SAITO = 100000000n;
 const { formatTransactionTypeName, formatSlipTypeName } = require('./transaction-types');
 const { renderJsonTree } = require('./ui/tx/json-tree');
 const { hasP2shUnlockTargets } = require('./tx-actions');
+const {
+  slipField,
+  isBoundSlip,
+  nolanFromNonBoundSlips,
+  nftQuantityFromSlips
+} = require('./nft-tuples');
 
 // TransactionType::SPV — the placeholder type a full node substitutes for
 // transactions that are not relevant to a lite client when it generates a lite
@@ -378,24 +384,18 @@ function formatTimeAgo(app, timestamp) {
   return app.browser.formatTimeDifference(seconds);
 }
 
-function slipAmount(slip) {
-  if (slip == null) {
-    return 0n;
-  }
-  try {
-    return BigInt(slip.amount ?? 0);
-  } catch (err) {
-    return 0n;
-  }
+function txSaitoOutputAmount(tx) {
+  return nolanFromNonBoundSlips(tx?.to || []);
 }
 
-function txTotalToAmount(tx) {
-  const toSlips = tx?.to || [];
-  let total = 0n;
-  for (let i = 0; i < toSlips.length; i++) {
-    total += slipAmount(toSlips[i]);
+function formatNftUnits(amount) {
+  try {
+    const units = BigInt(amount ?? 0);
+    const suffix = units === 1n ? 'unit' : 'units';
+    return `${units.toLocaleString('en-US')} ${suffix}`;
+  } catch (err) {
+    return '0 units';
   }
-  return total;
 }
 
 function txPrimaryFrom(tx) {
@@ -474,29 +474,65 @@ function formatTransactionsForTeaser(app, transactions = [], limit = 10) {
       type: esc(app, formatTransactionTypeName(tx.type ?? tx.transaction_type)),
       from: buildPublicKeyLink(app, from, from),
       to: buildPublicKeyLink(app, to, to),
-      amount: esc(app, formatSaito(txTotalToAmount(tx)))
+      amount: esc(app, formatTransactionAmountBadge(tx))
     };
   });
 }
 
-function slipDisplay(app, slip) {
-  const slipType = slip?.type ?? slip?.slip_type;
-  const rawKey = slip?.publicKey || slip?.public_key || '';
-  const blockId = slip?.blockId ?? slip?.block_id;
-  const txOrdinal = slip?.txOrdinal ?? slip?.tx_ordinal;
-  const slipIndex = slip?.index ?? slip?.slip_index;
+function formatTransactionAmountBadge(tx) {
+  const saitoOut = txSaitoOutputAmount(tx);
+  if (saitoOut > 0n) {
+    return formatSaito(saitoOut);
+  }
+  const nftQty = nftQuantityFromSlips(tx?.to || []);
+  if (nftQty > 0n) {
+    return formatNftUnits(nftQty);
+  }
+  return formatSaito(0);
+}
+
+function slipUtxoKey(slip) {
+  return String(slipField(slip, 'utxoKey', 'utxo_key') || '').trim();
+}
+
+function slipCreatedIn(app, slip, block = null) {
+  const rawId = slipField(slip, 'blockId', 'block_id');
+  const slipId = rawId != null && String(rawId) !== '' && String(rawId) !== '0' ? String(rawId) : '';
+  const blockId = slipId || (block?.id != null ? String(block.id) : '');
+  const blockHash =
+    blockId && block?.hash && String(block.id) === blockId ? String(block.hash) : '';
+
   return {
-    publicKey: buildPublicKeyLink(app, rawKey, esc(app, rawKey)),
-    publicKeyRaw: esc(app, rawKey),
-    amount: esc(app, formatSaito(slipAmount(slip))),
-    slipType: esc(app, formatSlipTypeName(slipType)),
-    block: formatOptionalBigInt(app, blockId),
-    transaction: formatOptionalBigInt(app, txOrdinal),
-    slip: slipIndex != null && slipIndex !== '' ? esc(app, String(slipIndex)) : '—'
+    createdBlockId: esc(app, blockId),
+    createdBlockLabel: esc(app, blockId ? formatExplorerInteger(blockId) : '—'),
+    createdBlockHref: blockId ? `/explorer/block/${encodeURIComponent(blockId)}` : '',
+    createdBlockHash: blockHash ? esc(app, truncateHash(blockHash, 6, 6)) : '',
+    createdBlockHashRaw: esc(app, blockHash)
   };
 }
 
-function formatTransactionForBlockPage(app, tx, index = 0) {
+function slipDisplay(app, slip, ordinal = 0, block = null) {
+  const slipType = slipField(slip, 'type', 'slip_type');
+  const rawKey = String(slipField(slip, 'publicKey', 'public_key') || '');
+  const utxoKey = slipUtxoKey(slip);
+  const created = slipCreatedIn(app, slip, block);
+
+  return {
+    role: isBoundSlip(slip) ? 'bound' : 'saito',
+    ordinal: esc(app, String(ordinal)),
+    publicKey: buildPublicKeyLink(app, rawKey, rawKey),
+    publicKeyRaw: esc(app, rawKey),
+    slipType: esc(app, String(formatSlipTypeName(slipType) || '').toUpperCase()),
+    ...created,
+    utxoKeyRaw: esc(app, utxoKey)
+  };
+}
+
+function formatSlipRows(app, slips = [], block = null) {
+  return slips.map((slip, index) => slipDisplay(app, slip, index, block));
+}
+
+function formatTransactionForBlockPage(app, tx, index = 0, block = null) {
   const signature = tx?.signature || tx?.hash || '';
   const txType = tx?.type ?? tx?.transaction_type;
   const txMsg = decodeTxMsg(tx);
@@ -506,10 +542,15 @@ function formatTransactionForBlockPage(app, tx, index = 0) {
   const timeDetail = timeAbsolute || '—';
   const inputCount = fromSlips.length;
   const outputCount = toSlips.length;
+  const saitoIn = nolanFromNonBoundSlips(fromSlips);
+  const saitoOut = nolanFromNonBoundSlips(toSlips);
+  const blockId = tx?.block_id ?? block?.id ?? '';
+  const blockHash = tx?.block_hash ?? block?.hash ?? '';
+  const blockIdStr = blockId != null && String(blockId) !== '' ? String(blockId) : '';
 
   return {
     index,
-    hash: esc(app, truncateHash(signature, 8, 8)),
+    hash: esc(app, signature),
     hashFull: esc(app, signature),
     signatureRaw: esc(app, signature),
     signatureFull: esc(app, signature),
@@ -517,6 +558,8 @@ function formatTransactionForBlockPage(app, tx, index = 0) {
     time: esc(app, formatTimeAgo(app, tx?.timestamp)),
     timeAbsolute: esc(app, timeAbsolute),
     timeDetail: esc(app, timeDetail),
+    inputCount,
+    outputCount,
     inputs: esc(app, inputCount ? `${inputCount} input${inputCount === 1 ? '' : 's'}` : '0 inputs'),
     outputs: esc(
       app,
@@ -526,12 +569,18 @@ function formatTransactionForBlockPage(app, tx, index = 0) {
       app,
       `${inputCount} input${inputCount === 1 ? '' : 's'} · ${outputCount} output${outputCount === 1 ? '' : 's'}`
     ),
+    saitoIn: esc(app, formatSaito(saitoIn)),
+    saitoOut: esc(app, formatSaito(saitoOut)),
     fee: esc(app, formatSaito(tx?.total_fees ?? 0)),
     type: esc(app, formatTransactionTypeName(txType)),
     typeRaw: esc(app, String(txType ?? '')),
     fees: esc(app, formatSaito(tx?.total_fees ?? 0)),
-    fromSlips: fromSlips.map((slip) => slipDisplay(app, slip)),
-    toSlips: toSlips.map((slip) => slipDisplay(app, slip)),
+    blockId: esc(app, blockIdStr),
+    blockNumber: esc(app, blockIdStr ? formatExplorerInteger(blockIdStr) : '—'),
+    blockHash: esc(app, blockHash || ''),
+    blockHref: blockIdStr ? `/explorer/block/${encodeURIComponent(blockIdStr)}` : '',
+    fromSlips: formatSlipRows(app, fromSlips, block),
+    toSlips: formatSlipRows(app, toSlips, block),
     hasTxMsg: txMsg != null,
     txMsgHtml: txMsg != null ? renderJsonTree(app, txMsg) : null,
     hasP2shUnlock: hasP2shUnlockTargets(tx)
@@ -639,10 +688,10 @@ function formatBlockSummaryDetail(app, block, txCount = 0) {
   return rows;
 }
 
-function formatTransactionsForBlockPage(app, transactions = []) {
+function formatTransactionsForBlockPage(app, transactions = [], block = null) {
   return transactions
     .filter(Boolean)
-    .map((tx, index) => formatTransactionForBlockPage(app, tx, index));
+    .map((tx, index) => formatTransactionForBlockPage(app, tx, index, block));
 }
 
 function normalizeBlockRecord(block) {
@@ -696,7 +745,7 @@ function formatBlockForPage(app, rawBlock, txFormatter = formatTransactionsForBl
     summaryPrimary: formatBlockSummaryPrimary(app, block),
     summaryBadges: formatBlockSummaryBadges(app, block),
     summaryDetail: formatBlockSummaryDetail(app, block, transactions.length),
-    transactions: txFormatter(app, transactions)
+    transactions: txFormatter(app, transactions, block)
   };
 }
 
