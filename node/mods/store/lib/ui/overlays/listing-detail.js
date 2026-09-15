@@ -162,28 +162,6 @@ class ListingDetailOverlay {
     return { text: key, isKey: true };
   }
 
-  async copyText(value = '', successMessage = 'Copied') {
-    const text = String(value || '').trim();
-    if (!text) {
-      return;
-    }
-    try {
-      if (navigator.clipboard?.writeText) {
-        await navigator.clipboard.writeText(text);
-      } else {
-        const ta = document.createElement('textarea');
-        ta.value = text;
-        document.body.appendChild(ta);
-        ta.select();
-        document.execCommand('copy');
-        ta.remove();
-      }
-      siteMessage(successMessage, 2000);
-    } catch (err) {
-      console.warn('Store: copy failed', err?.message || err);
-    }
-  }
-
   returnViewModel(summary = {}) {
     const listingTitle = this.escapeHtml(summary.returnTitle?.() || 'Untitled Item');
     const sellerKey = summary.returnSeller?.() || summary.seller || '';
@@ -429,14 +407,6 @@ class ListingDetailOverlay {
         });
         thumb.classList.add('active');
         thumb.setAttribute('aria-pressed', 'true');
-      };
-    });
-
-    root.querySelectorAll('[data-action="copy-nft-id"]').forEach((btn) => {
-      btn.onclick = async (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        await this.copyText(btn.getAttribute('data-nft-id'), 'NFT ID copied');
       };
     });
 

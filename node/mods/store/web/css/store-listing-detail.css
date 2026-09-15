@@ -135,27 +135,31 @@
   text-overflow: unset;
 }
 
-/* Buy overlay header — compact identicon + title / NFT ID / seller */
-.listing-detail.view > header {
+/* Buy overlay header — identicon matches title + NFT ID + seller stack */
+.listing-detail.view:not(.delist) > header {
   align-items: flex-start;
-  gap: var(--saito-space-sm);
-  padding: var(--saito-space-md) 5.25rem var(--saito-space-md) var(--saito-space-xl);
+  gap: var(--saito-space-md);
+  padding: var(--saito-space-xl) 5.25rem var(--saito-space-xl) var(--saito-space-xl);
 }
 
-.listing-detail.view > header .saito-identicon {
-  width: 3.4rem;
-  height: 3.4rem;
-  min-width: 3.4rem;
-  min-height: 3.4rem;
-  margin-top: 0.12rem;
+.listing-detail.view:not(.delist) > header .saito-identicon {
+  --listing-header-identicon: calc(
+    (var(--font-size-large) * 1.15) + 0.06rem + (2 * 1.15rem * 1.25) + (2 * 0.08rem)
+  );
+  width: var(--listing-header-identicon);
+  height: var(--listing-header-identicon);
+  min-width: var(--listing-header-identicon);
+  min-height: var(--listing-header-identicon);
+  margin: 0;
 }
 
-.listing-detail.view .meta {
+.listing-detail.view:not(.delist) .meta {
+  justify-content: flex-start;
   gap: 0.08rem;
 }
 
-.listing-detail.view .title {
-  margin-bottom: 0.06rem;
+.listing-detail.view:not(.delist) .title {
+  margin: 0 0 0.06rem;
   line-height: 1.15;
 }
 
@@ -189,10 +193,6 @@
 .listing-detail.view .nft-id .meta-value,
 .listing-detail.view .seller .meta-value.is-key {
   font-family: var(--saito-font-mono, ui-monospace, monospace);
-}
-
-.listing-detail.view .meta-row .saito-icon-button {
-  align-self: center;
 }
 
 .listing-detail > .body {
@@ -508,8 +508,8 @@
     padding: var(--saito-space-lg) 5rem var(--saito-space-lg) var(--saito-space-lg);
   }
 
-  .listing-detail.view > header {
-    padding: var(--saito-space-md) 5rem var(--saito-space-md) var(--saito-space-lg);
+  .listing-detail.view:not(.delist) > header {
+    padding: var(--saito-space-lg) 5rem var(--saito-space-lg) var(--saito-space-lg);
   }
 
   .listing-detail > .body {
@@ -559,18 +559,17 @@
     padding-right: 4.5rem;
   }
 
-  .listing-detail.view > header {
+  .listing-detail.view:not(.delist) > header {
     align-items: flex-start;
-    gap: var(--saito-space-sm);
-    padding-top: max(var(--saito-space-sm), env(safe-area-inset-top, 0px));
-    padding-bottom: var(--saito-space-sm);
+    gap: var(--saito-space-md);
+    padding: var(--saito-space-md) 4.5rem var(--saito-space-md) var(--saito-space-md);
+    padding-top: max(var(--saito-space-md), env(safe-area-inset-top, 0px));
   }
 
-  .listing-detail.view > header .saito-identicon {
-    width: 2.8rem;
-    height: 2.8rem;
-    min-width: 2.8rem;
-    min-height: 2.8rem;
+  .listing-detail.view:not(.delist) > header .saito-identicon {
+    --listing-header-identicon: calc(
+      (var(--font-size-medium) * 1.15) + 0.06rem + (2 * 1.05rem * 1.2) + (2 * 0.08rem)
+    );
   }
 
   .listing-detail.view .meta-row {
