@@ -267,8 +267,8 @@
 
 .chat-unknown-contact {
   width: 100%;
-  padding: 0.2rem 0.75rem;
-  font-size: 1.1rem;
+  padding: 1rem;
+  font-size: 1.4rem;
   line-height: 1.4;
   text-align: center;
   color: var(--saito-muted-foreground);
