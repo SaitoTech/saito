@@ -1517,6 +1517,10 @@ class Chat extends ModTemplate {
     // DMs
     //
     if (members.length == 2 && !group?.member_ids) {
+      if (secret_holder) {
+        this.app.keychain.addKey(secret_holder);
+      }
+
       //
       // Only encrypts if we have swapped keys and haveSharedKey, otherwise just signs
       //

@@ -2230,8 +2230,13 @@ impl Blockchain {
         .await;
 
         let mut wallet_updated: WalletUpdateStatus = WALLET_NOT_UPDATED;
-        // skip out if earlier than we need to be vis-à-vis last_block_id
-        if self.last_block_id >= block_id {
+        // skip out if earlier than we need to be vis-à-vis last_block_id.
+        //
+        // last_block_id is seeded from the persisted config before any block is
+        // replayed from disk, so this covers the whole replay. it must stay
+        // scoped to is_loading: a live reorg unwinds and rewinds blocks at or
+        // below the current tip, and those notifications have to reach observers.
+        if self.is_loading && self.last_block_id >= block_id {
             debug!(
                 "last block id : {:?} is later than this block id : {:?}. skipping reorg",
                 self.last_block_id, block_id
