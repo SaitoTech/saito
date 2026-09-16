@@ -261,6 +261,31 @@
   align-items: center;
 }
 
+.chat-popup:has(.chat-unknown-contact) {
+  grid-template-rows: min-content min-content minmax(0, 1fr) min-content;
+}
+
+.chat-unknown-contact {
+  width: 100%;
+  padding: 0.2rem 0.75rem;
+  font-size: 1.1rem;
+  line-height: 1.4;
+  text-align: center;
+  color: var(--saito-muted-foreground);
+  opacity: 0.7;
+  border-bottom: 1px solid var(--saito-border);
+}
+
+.chat-unknown-contact-add {
+  cursor: pointer;
+  text-decoration: underline dashed;
+  text-underline-offset: 0.2em;
+}
+
+.chat-container.minimized .chat-unknown-contact {
+  display: none;
+}
+
 .chat-container.active {
   z-index: 21;
 }
