@@ -7,12 +7,12 @@ module.exports = (compose) => {
     mode === 'retweet'
       ? 'Retweet'
       : mode === 'edit'
-        ? 'Edit post'
+        ? 'Edit tweet'
         : mode === 'reply'
           ? 'Reply'
-          : 'Compose post';
+          : 'Compose tweet';
   const submitLabel =
-    mode === 'retweet' ? 'Retweet' : mode === 'edit' ? 'Save' : mode === 'reply' ? 'Reply' : 'Post';
+    mode === 'retweet' ? 'Retweet' : mode === 'edit' ? 'Save' : mode === 'reply' ? 'Reply' : 'Tweet';
 
   let replyPreview = '';
 

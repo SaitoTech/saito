@@ -30,6 +30,7 @@ class Listing {
     this.utxo_slip3 = data.utxo_slip3 || '';
     this.created_at = data.created_at || 0;
     this.updated_at = data.updated_at || data.created_at || 0;
+    this.approved = Number(data.approved ?? 0) || 0;
     this.risk =
       data.risk === 'Low' ||
       data.risk === 'Medium' ||

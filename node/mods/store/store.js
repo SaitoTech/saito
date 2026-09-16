@@ -436,7 +436,7 @@ class Store extends ModTemplate {
           return 1;
         }
 
-        const row = await this.warehouse.db.returnListingBySignature(signature);
+        const row = await this.warehouse.db.returnCanonicalListingBySignature(signature);
         if (!row) {
           mycallback({ err: 'Listing not found' });
           return 1;
@@ -484,7 +484,7 @@ class Store extends ModTemplate {
           return 1;
         }
 
-        const row = await this.warehouse.db.returnListingBySignature(signature);
+        const row = await this.warehouse.db.returnCanonicalListingBySignature(signature);
         if (!row) {
           mycallback({ err: 'Listing not found' });
           return 1;
@@ -524,8 +524,9 @@ class Store extends ModTemplate {
         const data = txmsg.data && typeof txmsg.data === 'object' ? txmsg.data : {};
         const signature = String(data.signature || '').trim();
         const requester = String(tx.from?.[0]?.publicKey || '').trim();
+        // Only the longest-chain inclusion holds slips the chain can still spend.
         const row = signature
-          ? await this.warehouse.db.returnListingBySignature(signature)
+          ? await this.warehouse.db.returnCanonicalListingBySignature(signature)
           : null;
         const Listing = require('./lib/listing');
         const listing = row ? new Listing(row) : null;

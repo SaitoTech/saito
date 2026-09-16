@@ -14,7 +14,7 @@ class ComposeOverlay {
 
     this.overlay_id = 'redsquare-compose-overlay';
     this.placeholder = 'What is happening?';
-    this.helper_text = 'Create a text post or drag-and-drop images…';
+    this.helper_text = 'Write a tweet or drag-and-drop images…';
     this.avatar = '/saito/img/dreamscape.png';
     this.display_name = 'You';
     this.char_limit = DEFAULT_CHAR_LIMIT;
@@ -64,11 +64,11 @@ class ComposeOverlay {
       this.placeholder = 'Add a comment…';
       this.helper_text = 'Add optional commentary or leave empty to retweet…';
     } else if (this.mode === 'edit') {
-      this.placeholder = 'Edit your post…';
+      this.placeholder = 'Edit your tweet…';
       this.helper_text = 'Tweets are editable for a brief period after posting…';
     } else if (this.mode === 'reply') {
-      this.placeholder = 'Post your reply…';
-      this.helper_text = 'Add your reply or drag-and-drop images…';
+      this.placeholder = 'Post a reply…';
+      this.helper_text = 'Add a reply or drag-and-drop images…';
     } else {
       this.placeholder = 'What is happening?';
       this.helper_text = 'Create a text post or drag-and-drop images…';
@@ -621,7 +621,7 @@ class ComposeOverlay {
     const isRetweet = this.mode === 'retweet';
 
     if (!isRetweet && this.images.length === 0 && text.length === 0) {
-      siteMessage('Post Empty', 1000);
+      siteMessage('Empty Tweet', 1000);
       return;
     }
 

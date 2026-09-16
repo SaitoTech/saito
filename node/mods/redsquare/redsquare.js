@@ -2183,7 +2183,7 @@ class RedSquare extends ModTemplate {
       }
 
       return {
-        text: publicKey === this.publicKey ? 'My Posts' : 'View Posts',
+        text: publicKey === this.publicKey ? 'My Tweets' : 'View Tweets',
         icon: 'fa-solid fa-square',
         image: '/saito/icons/saito-redsquare-icon-solid.svg',
         callback: () => {

@@ -1,7 +1,9 @@
 CREATE TABLE IF NOT EXISTS listings (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
 
-  signature TEXT NOT NULL UNIQUE,
+  -- One row per block inclusion of a list-asset transaction, so the UTXO slips
+  -- of a reorged-out inclusion survive for a later reorg back onto that chain.
+  signature TEXT NOT NULL,
 
   nft_id TEXT NOT NULL,
   seller TEXT DEFAULT '',
@@ -44,6 +46,9 @@ CREATE TABLE IF NOT EXISTS listings (
   created_at INTEGER DEFAULT 0,
   updated_at INTEGER DEFAULT 0
 );
+
+CREATE UNIQUE INDEX IF NOT EXISTS listings_signature_block_hash_uidx
+  ON listings (signature, block_hash_listed);
 
 CREATE INDEX IF NOT EXISTS listings_listed_chain_idx
   ON listings (block_id_listed, block_hash_listed);

@@ -379,7 +379,7 @@ class Manager {
       const labels = {
         timeline: 'Home',
         notifications: 'Notifications',
-        thread: 'Post'
+        thread: 'Tweet'
       };
 
       if (title) {
@@ -710,9 +710,9 @@ class Manager {
         end: 'No more replies.'
       },
       posts: {
-        loading: 'Loading posts...',
-        empty: 'No posts yet.',
-        end: 'No more posts.'
+        loading: 'Loading tweets...',
+        empty: 'No tweets yet.',
+        end: 'No more tweets.'
       },
       replies: {
         loading: 'Loading replies...',
@@ -721,8 +721,8 @@ class Manager {
       },
       likes: {
         loading: 'Loading likes...',
-        empty: 'No liked posts.',
-        end: 'No more liked posts.'
+        empty: 'No liked tweets.',
+        end: 'No more liked tweets.'
       }
     };
 
@@ -1938,10 +1938,10 @@ class Manager {
 
       try {
         const url = await this.mod.createShortLink(longUrl);
-        this.app.browser.handleShare({ title: 'Saito RedSquare Post', url });
+        this.app.browser.handleShare({ title: 'Saito RedSquare Tweet', url });
       } catch (err) {
         console.error('RedSquare share failed:', err);
-        this.app.browser.handleShare({ title: 'Saito RedSquare Post', url: longUrl });
+        this.app.browser.handleShare({ title: 'Saito RedSquare Tweet', url: longUrl });
       }
     });
   }
@@ -2366,7 +2366,7 @@ class Manager {
       banner = document.createElement('button');
       banner.className = 'new-posts-banner';
       banner.type = 'button';
-      banner.textContent = 'New posts available';
+      banner.textContent = 'New tweets available';
       banner.addEventListener('click', () => {
         this.revealPendingNewerTweets();
       });

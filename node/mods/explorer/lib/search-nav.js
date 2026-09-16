@@ -80,6 +80,10 @@ function classifySearchQuery(app, raw = '') {
     return { type: 'utxo', value: query };
   }
 
+  if (/^[0-9]+$/.test(query)) {
+    return { type: 'block', value: query };
+  }
+
   return null;
 }
 

@@ -137,6 +137,11 @@ class Warehouse {
 
   // --- listings ---
 
+  /** Cache key for one block inclusion of a listing transaction. */
+  listingCacheKey(signature, block_hash_listed = '') {
+    return `${String(signature || '')}:${String(block_hash_listed || '')}`;
+  }
+
   async addListing(nftOrRow, tx = null, txmsg = null, blk = null) {
     if (this.app.BROWSER) {
       return null;
@@ -147,17 +152,18 @@ class Warehouse {
     }
 
     const row = nftOrRow;
-    if (!row?.signature || (await this.listingExists(row.signature))) {
+    if (!row?.signature || (await this.listingExists(row.signature, row.block_hash_listed))) {
       return null;
     }
 
     const listing = new Listing(row);
-    this.listings[listing.signature] = listing;
+    const key = this.listingCacheKey(listing.signature, listing.block_hash_listed);
+    this.listings[key] = listing;
 
     try {
       await this.db.insertListingRow(listing);
     } catch (err) {
-      delete this.listings[listing.signature];
+      delete this.listings[key];
       if (String(err?.message || err).includes('UNIQUE')) {
         return null;
       }
@@ -203,6 +209,7 @@ class Warehouse {
       await this.db.markListingSold(
         row.signature,
         {
+          block_hash_listed: listing_row.block_hash_listed,
           sold_block_id,
           sold_block_hash,
           sold_transaction_id,
@@ -211,7 +218,7 @@ class Warehouse {
         },
         now
       );
-      delete this.listings[row.signature];
+      delete this.listings[this.listingCacheKey(row.signature, listing_row.block_hash_listed)];
 
       await this.syncSummaryForBucket(row.nft_id, row.price);
 
@@ -244,6 +251,7 @@ class Warehouse {
     await this.db.markListingSold(
       row.signature,
       {
+        block_hash_listed: listing_row.block_hash_listed,
         sold_block_id,
         sold_block_hash,
         sold_transaction_id,
@@ -254,17 +262,17 @@ class Warehouse {
       },
       now
     );
-    delete this.listings[row.signature];
+    delete this.listings[this.listingCacheKey(row.signature, listing_row.block_hash_listed)];
     await this.syncSummaryForBucket(row.nft_id, row.price);
     return row;
   }
 
   // --- orders ---
 
+  /** Returns false when this inclusion of the purchase is already on record. */
   async addOrder(order) {
     const params = order instanceof Order ? order.toInsertParams() : order;
-    await this.db.insertOrder(params);
-    return params;
+    return (await this.db.insertOrder(params)) > 0;
   }
 
   async confirmSettlement(blk, tx) {
@@ -312,14 +320,19 @@ class Warehouse {
 
     let remaining_sold = Number(order.quantity) || 1;
     for (const signature of consumed_signatures) {
+      // The settlement spent the canonical inclusion's slips; other inclusions of the
+      // same transaction keep their own slips for a later reorg. Fall back to the
+      // newest inclusion so a confirmed sale is still recorded against something.
       const listing_row =
-        this.listings[signature] || (await this.db.returnListingBySignature(signature));
+        (await this.db.returnCanonicalListingBySignature(signature)) ||
+        (await this.db.returnLatestListingInclusion(signature));
       const row_qty = Math.max(1, Number(listing_row?.quantity ?? 1) || 1);
       const quantity_sold = Math.min(row_qty, Math.max(0, remaining_sold));
       remaining_sold = Math.max(0, remaining_sold - quantity_sold);
       await this.db.markListingSold(
         signature,
         {
+          block_hash_listed: listing_row?.block_hash_listed ?? null,
           sold_block_id: fulfilled_block_id,
           sold_block_hash: fulfilled_block_hash,
           sold_transaction_id: fulfilled_transaction_id,
@@ -330,7 +343,7 @@ class Warehouse {
         },
         now
       );
-      delete this.listings[signature];
+      delete this.listings[this.listingCacheKey(signature, listing_row?.block_hash_listed)];
     }
 
     await this.syncSummaryForBucket(order.nft_id, order.price);
@@ -414,7 +427,7 @@ class Warehouse {
       if (reserved.has(row.signature)) {
         continue;
       }
-      await this.db.clearListingSettlementPending(row.signature, now);
+      await this.db.clearListingSettlementPending(row.signature, row.block_hash_listed, now);
       await this.syncSummaryForBucket(row.nft_id, row.price);
     }
   }
@@ -440,9 +453,13 @@ class Warehouse {
     const signatures = await this.returnSettlementListingSignatures(order);
     const now = Date.now();
     for (const signature of signatures) {
-      await this.db.clearListingSettlementPending(signature, now);
-      if (this.listings[signature]) {
-        this.listings[signature].block_id_sold = 0;
+      // Only the reserved inclusion carries the pending marker, so clearing by
+      // signature cannot release a different inclusion.
+      await this.db.clearListingSettlementPending(signature, null, now);
+      for (const listing of Object.values(this.listings)) {
+        if (listing.signature === signature && listing.isSettlementPending()) {
+          listing.block_id_sold = 0;
+        }
       }
     }
   }
@@ -583,9 +600,14 @@ class Warehouse {
 
     const now = Date.now();
     for (const listing_row of listing_rows) {
-      await this.db.markListingSettlementPending(listing_row.signature, now);
-      if (this.listings[listing_row.signature]) {
-        this.listings[listing_row.signature].block_id_sold = -1;
+      await this.db.markListingSettlementPending(
+        listing_row.signature,
+        listing_row.block_hash_listed,
+        now
+      );
+      const key = this.listingCacheKey(listing_row.signature, listing_row.block_hash_listed);
+      if (this.listings[key]) {
+        this.listings[key].block_id_sold = -1;
       }
     }
     await this.syncSummaryForBucket(order.nft_id, order.price);
@@ -1050,8 +1072,19 @@ class Warehouse {
       return null;
     }
 
-    if (await this.listingExists(tx.signature)) {
-      console.warn('Store: addListingFromTransaction: duplicate listing', signature);
+    // The block hash is half of a listing's identity: without it a second inclusion
+    // of the same transaction could not be told apart from the first.
+    const block_hash = String(blk?.hash || '');
+    if (!block_hash) {
+      console.warn(
+        'Store: addListingFromTransaction: confirmation without a block hash',
+        signature
+      );
+      return null;
+    }
+
+    if (await this.listingExists(tx.signature, block_hash)) {
+      console.warn('Store: addListingFromTransaction: duplicate inclusion', signature, block_hash);
       return null;
     }
 
@@ -1078,6 +1111,13 @@ class Warehouse {
       risk = '';
     }
     observation.risk = risk;
+
+    // A new inclusion is the same transaction in a different block: carry the
+    // moderation decision over instead of sending it back through review.
+    const prior_inclusion = await this.db.returnLatestListingInclusion(tx.signature);
+    if (prior_inclusion) {
+      observation.approved = Number(prior_inclusion.approved ?? 0) || 0;
+    }
 
     const listing = await this.addListing(observation);
     if (!listing) {
@@ -1388,14 +1428,15 @@ class Warehouse {
     return this._syncSummaryToCache(nft_id, price);
   }
 
-  async listingExists(signature) {
+  /** True when this exact block inclusion of the listing transaction is already stored. */
+  async listingExists(signature, block_hash_listed = '') {
     if (!signature) {
       return false;
     }
-    if (this.listings[signature]) {
+    if (this.listings[this.listingCacheKey(signature, block_hash_listed)]) {
       return true;
     }
-    return !!(await this.db.returnListingBySignature(signature));
+    return !!(await this.db.returnListingBySignatureAndBlockHash(signature, block_hash_listed));
   }
 }
 

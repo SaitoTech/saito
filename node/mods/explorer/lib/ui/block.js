@@ -1,5 +1,5 @@
 const BlockTemplate = require('./block.template');
-const { formatBlockForPage, normalizeBlockRecord } = require('../explorer-format');
+const { formatBlockForPage, normalizeBlockRecord, isSpvTransaction } = require('../explorer-format');
 const { blockLookupArgument, classifyBlockIdentifier } = require('../search-nav');
 const {
   collectP2shUnlockTargets,
@@ -276,6 +276,20 @@ class Block {
 
     this.paint();
     this.attachEvents();
+
+    const shouldFetchFullTransactions =
+      this.app.BROWSER &&
+      this.block &&
+      this.mod.explorerPeer &&
+      Array.isArray(this.block.transactions) &&
+      this.block.transactions.some(isSpvTransaction);
+
+    if (shouldFetchFullTransactions) {
+      await this.fetchFullTransactions();
+      if (token !== this.fetchToken) {
+        return;
+      }
+    }
 
     if (expandTarget && this.block) {
       this.expandAndScrollToTransaction(expandTarget);
