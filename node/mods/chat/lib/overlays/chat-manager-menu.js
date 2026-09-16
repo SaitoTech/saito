@@ -599,8 +599,9 @@ class ChatManagerMenu {
     }
 
     salert(`Adding ${address} as Contact`);
-    this.app.keychain.addKey(address);
-    this.app.connection.emit('encrypt-key-exchange', address);
+    this.app.keychain.addKey(address, { added: true });
+    this.mod.returnOrCreateChatGroupFromMembers([this.mod.publicKey, address]);
+    this.app.connection.emit('chat-manager-render-request');
     this.renderContactList();
   }
 
