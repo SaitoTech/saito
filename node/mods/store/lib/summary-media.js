@@ -1,4 +1,5 @@
 const SaitoNFT = require('../../../lib/saito/ui/saito-nft/saito-nft');
+const { SlipType } = require('saito-js/lib/slip');
 const { loadTransactionFromArchive } = require('./archive');
 
 const DREAMSCAPE_PLACEHOLDER = '/saito/img/dreamscape.png';
@@ -41,7 +42,13 @@ function applyListingTransaction(summary, tx) {
   }
 
   if (!summary.seller) {
-    const seller = tx.from?.[0]?.publicKey || '';
+    // Bound from[0] is mint creator metadata; ownership is Normal/ATR from[1].
+    const from0 = tx.from?.[0];
+    const from1 = tx.from?.[1];
+    let seller = from0?.publicKey || '';
+    if (from0?.type === SlipType.Bound && from1?.publicKey) {
+      seller = from1.publicKey;
+    }
     if (seller) {
       summary.seller = seller;
     }

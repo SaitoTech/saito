@@ -73,8 +73,8 @@ class Profile {
       .join('');
 
     return `
-      <nav class="nav redsquare-profile-nav" aria-label="Posts, replies, and likes">
-        <div class="item" role="link" tabindex="0" data-profile-nav="posts">Posts</div>
+      <nav class="nav redsquare-profile-nav" aria-label="Tweets, replies, and likes">
+        <div class="item" role="link" tabindex="0" data-profile-nav="posts">Tweets</div>
         <div class="item" role="link" tabindex="0" data-profile-nav="replies">Replies</div>
         <div class="item" role="link" tabindex="0" data-profile-nav="likes">Likes</div>
         ${extLinksHtml}

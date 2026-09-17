@@ -100,7 +100,8 @@
     justify-content: space-around;
     gap: 0;
     margin: 0;
-    padding: 0.4rem var(--saito-space-xs) 0.55rem;
+    /* Rem chrome below authored against legacy 10px mobile root */
+    padding: calc(0.4rem * 10 / 12) var(--saito-space-xs) calc(0.55rem * 10 / 12);
     min-height: var(--redsquare-mobile-nav-height);
   }
 
@@ -111,10 +112,10 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 0.2rem;
+    gap: calc(0.2rem * 10 / 12);
     min-width: 0;
-    min-height: 5rem;
-    padding: 0.35rem 0.2rem;
+    min-height: calc(5rem * 10 / 12);
+    padding: calc(0.35rem * 10 / 12) calc(0.2rem * 10 / 12);
     border-radius: var(--saito-radius-lg);
     color: var(--saito-muted-foreground);
   }
@@ -132,9 +133,9 @@
   .menu .item.active::before {
     content: '';
     position: absolute;
-    bottom: -0.3rem;
-    width: 2.6rem;
-    height: 0.2rem;
+    bottom: calc(-0.3rem * 10 / 12);
+    width: calc(2.6rem * 10 / 12);
+    height: calc(0.2rem * 10 / 12);
     border-radius: var(--saito-radius);
     background-color: var(--saito-primary);
   }
@@ -144,8 +145,8 @@
   }
 
   .menu .icon {
-    width: 2.6rem;
-    height: 2.6rem;
+    width: calc(2.6rem * 10 / 12);
+    height: calc(2.6rem * 10 / 12);
   }
 
   .menu .item:hover .icon i::before,
@@ -154,7 +155,7 @@
   }
 
   .menu .icon i {
-    font-size: 2.2rem;
+    font-size: calc(2.2rem * 10 / 12);
   }
 
   .menu .label {
@@ -171,7 +172,7 @@
   }
 
   .menu .icon .saito-notification-dot {
-    top: -0.15rem;
-    right: -0.35rem;
+    top: calc(-0.15rem * 10 / 12);
+    right: calc(-0.35rem * 10 / 12);
   }
 }

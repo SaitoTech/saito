@@ -11,10 +11,18 @@ class NFTStudio extends ModTemplate {
     this.name = 'NFTStudio';
     this.appname = 'NFT Studio';
     this.slug = 'nftstudio';
-    this.description = 'Create, preview, and publish JavaScript and CSS NFTs';
+    this.description = 'Create, preview, and publish JavaScript and CSS NFTs on Saito with NFT Studio, your browser-based code editor.';
     this.categories = 'Utilities Development NFT';
     this.icon = 'fa-solid fa-code';
     this.styles = ['/nftstudio/style.css'];
+    this.social = this.buildSocial({
+      twitter: '@SaitoOfficial',
+      title: 'NFT Studio | Saito',
+      description: this.description,
+      url: '/nftstudio/',
+      image: '/nftstudio/img/nftstudio-og.png',
+      image_alt: 'Saito NFT Studio — create, preview, and publish JavaScript and CSS NFTs, illustrated with code panels and orange generative artwork.'
+    });
 
     this.header = null;
     this.main = null;
@@ -54,9 +62,15 @@ class NFTStudio extends ModTemplate {
 
     expressapp.use(slug, express.static(webdir));
     expressapp.get(slug, (req, res) => {
+      const origin = mod.returnServerOrigin() || `${req.protocol}://${req.get('host')}`;
+      const social = {
+        ...mod.social,
+        url: new URL(`${slug}/`, origin).href,
+        image: new URL(mod.social.image, origin).href
+      };
       res.setHeader('Content-type', 'text/html');
       res.charset = 'UTF-8';
-      res.send(index(app, mod, app.build_number));
+      res.send(index(app, mod, app.build_number, social));
     });
   }
 }

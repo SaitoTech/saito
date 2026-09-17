@@ -4,6 +4,7 @@ const Main = require('./lib/ui/main');
 const Block = require('./lib/ui/block');
 const Supply = require('./lib/ui/supply');
 const Address = require('./lib/ui/address');
+const Utxo = require('./lib/ui/utxo');
 const AllBlocks = require('./lib/ui/all-blocks');
 const AllTransactions = require('./lib/ui/all-transactions');
 const Search = require('./lib/ui/search');
@@ -58,6 +59,7 @@ class Explorer extends ModTemplate {
     this.blockComponent = null;
     this.supplyComponent = null;
     this.addressComponent = null;
+    this.utxoComponent = null;
     this.allBlocksComponent = null;
     this.allTransactionsComponent = null;
     this.search = null;
@@ -88,6 +90,11 @@ class Explorer extends ModTemplate {
     this.addressRows = [];
     this.addressReady = false;
     this.addressError = null;
+
+    this.utxoKey = null;
+    this.utxoResult = null;
+    this.utxoReady = false;
+    this.utxoError = null;
 
     this.test_mode = false;
     this.enable_manual_testing = true;
@@ -129,13 +136,14 @@ class Explorer extends ModTemplate {
     const blockMatch = path.match(new RegExp(`^${prefix}/block/([^/]+)$`));
     const supplyMatch = path.match(new RegExp(`^${prefix}/supply$`));
     const addressMatch = path.match(new RegExp(`^${prefix}/address/([^/]+)$`));
+    const utxoMatch = path.match(new RegExp(`^${prefix}/utxo/([^/]+)$`));
     const allBlocksMatch = path.match(new RegExp(`^${prefix}/blocks$`));
     const allTransactionsMatch = path.match(new RegExp(`^${prefix}/transactions$`));
 
     if (blockMatch) {
       return {
         view: 'block',
-        hash: decodeURIComponent(blockMatch[1])
+        input: decodeURIComponent(blockMatch[1])
       };
     }
 
@@ -147,6 +155,13 @@ class Explorer extends ModTemplate {
       return {
         view: 'address',
         publicKey: decodeURIComponent(addressMatch[1])
+      };
+    }
+
+    if (utxoMatch) {
+      return {
+        view: 'utxo',
+        utxokey: decodeURIComponent(utxoMatch[1])
       };
     }
 
@@ -212,6 +227,57 @@ class Explorer extends ModTemplate {
         return;
       }
 
+      const utxoLink = event.target.closest('.explorer-utxokey-link[data-utxokey]');
+      if (utxoLink) {
+        event.preventDefault();
+        event.stopPropagation();
+        const utxokey = utxoLink.getAttribute('data-utxokey');
+        if (utxokey) {
+          this.renderUtxo(utxokey, { pushState: true, animate: true });
+        }
+        return;
+      }
+
+      const txBlockLink = event.target.closest('.explorer-tx-block-link[data-block-input]');
+      if (txBlockLink) {
+        event.preventDefault();
+        event.stopPropagation();
+        const input = txBlockLink.getAttribute('data-block-input');
+        if (input) {
+          this.renderBlock(input, { pushState: true, animate: true });
+        }
+        return;
+      }
+
+      const copyBtn = event.target.closest('.explorer-copy-btn[data-copy]');
+      if (copyBtn) {
+        event.preventDefault();
+        event.stopPropagation();
+        const text = copyBtn.getAttribute('data-copy') || '';
+        if (text) {
+          const done = () => {
+            if (typeof siteMessage === 'function') {
+              siteMessage('Copied', 1500);
+            }
+          };
+          if (navigator.clipboard?.writeText) {
+            navigator.clipboard
+              .writeText(text)
+              .then(done)
+              .catch(() => {});
+          } else {
+            const ta = document.createElement('textarea');
+            ta.value = text;
+            document.body.appendChild(ta);
+            ta.select();
+            document.execCommand('copy');
+            ta.remove();
+            done();
+          }
+        }
+        return;
+      }
+
       const link = event.target.closest('.explorer-footer-link');
       if (link) {
         const href = link.getAttribute('href') || '';
@@ -240,8 +306,8 @@ class Explorer extends ModTemplate {
     window.addEventListener('popstate', (event) => {
       const state = event.state || this.parseRoute();
 
-      if (state.view === 'block' && state.hash) {
-        this.renderBlock(state.hash, {
+      if (state.view === 'block' && (state.input || state.hash)) {
+        this.renderBlock(state.input || state.hash, {
           pushState: false,
           animate: true,
           expandTxSignature: state.expandTxSignature || null
@@ -256,6 +322,11 @@ class Explorer extends ModTemplate {
 
       if (state.view === 'address' && state.publicKey) {
         this.renderAddress(state.publicKey, { pushState: false, animate: true });
+        return;
+      }
+
+      if (state.view === 'utxo' && state.utxokey) {
+        this.renderUtxo(state.utxokey, { pushState: false, animate: true });
         return;
       }
 
@@ -297,6 +368,8 @@ class Explorer extends ModTemplate {
     this.supplyComponent = null;
     this.addressComponent = null;
     this.addressPublicKey = null;
+    this.utxoComponent = null;
+    this.utxoKey = null;
     this.cleanupListViews();
 
     if (pushState) {
@@ -331,6 +404,8 @@ class Explorer extends ModTemplate {
     this.supplyError = null;
     this.addressComponent = null;
     this.addressPublicKey = null;
+    this.utxoComponent = null;
+    this.utxoKey = null;
     this.cleanupListViews();
 
     if (pushState) {
@@ -369,6 +444,8 @@ class Explorer extends ModTemplate {
     this.addressRows = [];
     this.addressReady = false;
     this.addressError = null;
+    this.utxoComponent = null;
+    this.utxoKey = null;
     this.cleanupListViews();
 
     if (pushState) {
@@ -393,6 +470,48 @@ class Explorer extends ModTemplate {
     }
   }
 
+  async renderUtxo(utxokey, options = {}) {
+    const { pushState = true, animate = true } = options;
+
+    if (!utxokey) {
+      return;
+    }
+
+    this.activeView = 'utxo';
+    this.utxoKey = utxokey;
+    this.utxoResult = null;
+    this.utxoReady = false;
+    this.utxoError = null;
+    this.blockHash = null;
+    this.blockComponent = null;
+    this.main = null;
+    this.supplyComponent = null;
+    this.addressComponent = null;
+    this.addressPublicKey = null;
+    this.cleanupListViews();
+
+    if (pushState) {
+      window.history.pushState(
+        { view: 'utxo', utxokey },
+        '',
+        `/${this.slug}/utxo/${encodeURIComponent(utxokey)}`
+      );
+    }
+
+    this.ensureShell();
+
+    const renderContent = () => {
+      this.utxoComponent = new Utxo(this.app, this, utxokey);
+      this.utxoComponent.render('.explorer-view');
+    };
+
+    if (animate) {
+      await transitionView(this.getViewElement(), renderContent);
+    } else {
+      renderContent();
+    }
+  }
+
   resolveBlockHash(blockHash = '', blockId = '') {
     if (blockHash) {
       return blockHash;
@@ -406,29 +525,31 @@ class Explorer extends ModTemplate {
     return block?.hash || null;
   }
 
-  async renderBlock(blockHash, options = {}) {
+  async renderBlock(input, options = {}) {
     const { pushState = true, animate = true, expandTxSignature = null } = options;
 
-    if (!blockHash) {
+    if (!input) {
       return;
     }
 
     this.activeView = 'block';
-    this.blockHash = blockHash;
+    this.blockHash = input;
     this.supplyComponent = null;
     this.addressComponent = null;
     this.addressPublicKey = null;
+    this.utxoComponent = null;
+    this.utxoKey = null;
     this.cleanupListViews();
 
     if (pushState) {
-      const url = `/${this.slug}/block/${encodeURIComponent(blockHash)}`;
-      window.history.pushState({ view: 'block', hash: blockHash, expandTxSignature }, '', url);
+      const url = `/${this.slug}/block/${encodeURIComponent(input)}`;
+      window.history.pushState({ view: 'block', input, hash: input, expandTxSignature }, '', url);
     }
 
     this.ensureShell();
 
     const renderContent = () => {
-      this.blockComponent = new Block(this.app, this, blockHash, expandTxSignature);
+      this.blockComponent = new Block(this.app, this, input, expandTxSignature);
       this.blockComponent.render('.explorer-view');
     };
 
@@ -449,6 +570,8 @@ class Explorer extends ModTemplate {
     this.supplyComponent = null;
     this.addressComponent = null;
     this.addressPublicKey = null;
+    this.utxoComponent = null;
+    this.utxoKey = null;
     this.cleanupListViews();
 
     if (pushState) {
@@ -479,6 +602,8 @@ class Explorer extends ModTemplate {
     this.supplyComponent = null;
     this.addressComponent = null;
     this.addressPublicKey = null;
+    this.utxoComponent = null;
+    this.utxoKey = null;
     this.cleanupListViews();
 
     if (pushState) {
@@ -515,6 +640,9 @@ class Explorer extends ModTemplate {
     this.addressRows = [];
     this.addressReady = false;
     this.addressError = null;
+    this.utxoResult = null;
+    this.utxoReady = false;
+    this.utxoError = null;
   }
 
   async onPeerServiceUp(app, peer, service = {}) {
@@ -607,6 +735,10 @@ class Explorer extends ModTemplate {
 
         if (this.activeView === 'address' && this.addressPublicKey) {
           await this.fetchAddressData(app, peer, this.addressPublicKey);
+        }
+
+        if (this.activeView === 'utxo' && this.utxoKey) {
+          await this.fetchUtxoData(app, peer, this.utxoKey);
         }
       },
       peer
@@ -704,6 +836,54 @@ class Explorer extends ModTemplate {
 
           this.addressRows = Array.isArray(response.data?.rows) ? response.data.rows : [];
           this.addressReady = true;
+          await this.refreshActiveView();
+          resolve();
+        },
+        peer
+      });
+    });
+  }
+
+  fetchUtxoData(app, peer, utxokey) {
+    this.utxoReady = false;
+    this.utxoError = null;
+    this.utxoResult = null;
+
+    return new Promise((resolve) => {
+      sendExplorerPeerRequest(app, 'request utxo', {
+        data: {
+          request: 'request utxo',
+          utxokey: String(utxokey)
+        },
+        callback: async (response) => {
+          if (response?.err) {
+            console.error('Explorer: utxo request failed (network)', {
+              peer: peer?.publicKey,
+              error: response.err,
+              response
+            });
+            this.utxoError = 'Network error while looking up UTXO.';
+            this.utxoReady = true;
+            await this.refreshActiveView();
+            resolve();
+            return;
+          }
+
+          if (!response?.success) {
+            console.error('Explorer: utxo request failed', {
+              peer: peer?.publicKey,
+              error: response?.error || 'unknown error',
+              response
+            });
+            this.utxoError = response?.error || 'Failed to look up UTXO from Explorer peer.';
+            this.utxoReady = true;
+            await this.refreshActiveView();
+            resolve();
+            return;
+          }
+
+          this.utxoResult = response.data || null;
+          this.utxoReady = true;
           await this.refreshActiveView();
           resolve();
         },
@@ -835,6 +1015,11 @@ class Explorer extends ModTemplate {
 
     if (this.activeView === 'address' && this.addressComponent) {
       this.addressComponent.paint();
+      return;
+    }
+
+    if (this.activeView === 'utxo' && this.utxoComponent) {
+      this.utxoComponent.paint();
     }
   }
 
@@ -996,8 +1181,8 @@ class Explorer extends ModTemplate {
 
     const route = this.parseRoute();
 
-    if (route.view === 'block' && route.hash) {
-      await this.renderBlock(route.hash, { pushState: false, animate: false });
+    if (route.view === 'block' && (route.input || route.hash)) {
+      await this.renderBlock(route.input || route.hash, { pushState: false, animate: false });
       return;
     }
 
@@ -1008,6 +1193,11 @@ class Explorer extends ModTemplate {
 
     if (route.view === 'address' && route.publicKey) {
       await this.renderAddress(route.publicKey, { pushState: false, animate: false });
+      return;
+    }
+
+    if (route.view === 'utxo' && route.utxokey) {
+      await this.renderUtxo(route.utxokey, { pushState: false, animate: false });
       return;
     }
 
@@ -1137,11 +1327,12 @@ class Explorer extends ModTemplate {
       }
     });
 
-    expressapp.get(`${uri}/block/:hash`, sendIndex);
+    expressapp.get(`${uri}/block/:input`, sendIndex);
     expressapp.get(`${uri}/blocks`, sendIndex);
     expressapp.get(`${uri}/transactions`, sendIndex);
     expressapp.get(`${uri}/supply`, sendIndex);
     expressapp.get(`${uri}/address/:publickey`, sendIndex);
+    expressapp.get(`${uri}/utxo/:utxokey`, sendIndex);
     expressapp.get(uri, sendIndex);
   }
 }

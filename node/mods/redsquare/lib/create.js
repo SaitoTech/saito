@@ -24,7 +24,7 @@ class Create {
     const actions = [
       {
         id: 'post',
-        label: 'New Post',
+        label: 'New Tweet',
         image: '/saito/icons/saito-redsquare-icon-solid.svg',
         onClick: () => this.openPost()
       }

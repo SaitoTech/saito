@@ -4,6 +4,7 @@ const Database = require('./database');
 const { syncSummaryCache, summaryBucketKey } = require('./ui/summary-cache');
 const Order = require('./order');
 const Slip = require('../../../lib/saito/slip').default;
+const { SlipType } = require('saito-js/lib/slip');
 const {
   ORDER_STATUS_PENDING,
   ORDER_STATUS_SETTLING,
@@ -21,6 +22,7 @@ const {
 } = require('./helpers');
 const { loadTransactionFromArchive } = require('./archive');
 const { initializeImageCache } = require('./images');
+const { checkSecurityLevel } = require('../../../lib/helpers/security');
 const {
   executeListingScript,
   returnCreatedNftTuples,
@@ -135,6 +137,11 @@ class Warehouse {
 
   // --- listings ---
 
+  /** Cache key for one block inclusion of a listing transaction. */
+  listingCacheKey(signature, block_hash_listed = '') {
+    return `${String(signature || '')}:${String(block_hash_listed || '')}`;
+  }
+
   async addListing(nftOrRow, tx = null, txmsg = null, blk = null) {
     if (this.app.BROWSER) {
       return null;
@@ -145,17 +152,18 @@ class Warehouse {
     }
 
     const row = nftOrRow;
-    if (!row?.signature || (await this.listingExists(row.signature))) {
+    if (!row?.signature || (await this.listingExists(row.signature, row.block_hash_listed))) {
       return null;
     }
 
     const listing = new Listing(row);
-    this.listings[listing.signature] = listing;
+    const key = this.listingCacheKey(listing.signature, listing.block_hash_listed);
+    this.listings[key] = listing;
 
     try {
       await this.db.insertListingRow(listing);
     } catch (err) {
-      delete this.listings[listing.signature];
+      delete this.listings[key];
       if (String(err?.message || err).includes('UNIQUE')) {
         return null;
       }
@@ -201,6 +209,7 @@ class Warehouse {
       await this.db.markListingSold(
         row.signature,
         {
+          block_hash_listed: listing_row.block_hash_listed,
           sold_block_id,
           sold_block_hash,
           sold_transaction_id,
@@ -209,7 +218,7 @@ class Warehouse {
         },
         now
       );
-      delete this.listings[row.signature];
+      delete this.listings[this.listingCacheKey(row.signature, listing_row.block_hash_listed)];
 
       await this.syncSummaryForBucket(row.nft_id, row.price);
 
@@ -242,6 +251,7 @@ class Warehouse {
     await this.db.markListingSold(
       row.signature,
       {
+        block_hash_listed: listing_row.block_hash_listed,
         sold_block_id,
         sold_block_hash,
         sold_transaction_id,
@@ -252,17 +262,17 @@ class Warehouse {
       },
       now
     );
-    delete this.listings[row.signature];
+    delete this.listings[this.listingCacheKey(row.signature, listing_row.block_hash_listed)];
     await this.syncSummaryForBucket(row.nft_id, row.price);
     return row;
   }
 
   // --- orders ---
 
+  /** Returns false when this inclusion of the purchase is already on record. */
   async addOrder(order) {
     const params = order instanceof Order ? order.toInsertParams() : order;
-    await this.db.insertOrder(params);
-    return params;
+    return (await this.db.insertOrder(params)) > 0;
   }
 
   async confirmSettlement(blk, tx) {
@@ -310,14 +320,19 @@ class Warehouse {
 
     let remaining_sold = Number(order.quantity) || 1;
     for (const signature of consumed_signatures) {
+      // The settlement spent the canonical inclusion's slips; other inclusions of the
+      // same transaction keep their own slips for a later reorg. Fall back to the
+      // newest inclusion so a confirmed sale is still recorded against something.
       const listing_row =
-        this.listings[signature] || (await this.db.returnListingBySignature(signature));
+        (await this.db.returnCanonicalListingBySignature(signature)) ||
+        (await this.db.returnLatestListingInclusion(signature));
       const row_qty = Math.max(1, Number(listing_row?.quantity ?? 1) || 1);
       const quantity_sold = Math.min(row_qty, Math.max(0, remaining_sold));
       remaining_sold = Math.max(0, remaining_sold - quantity_sold);
       await this.db.markListingSold(
         signature,
         {
+          block_hash_listed: listing_row?.block_hash_listed ?? null,
           sold_block_id: fulfilled_block_id,
           sold_block_hash: fulfilled_block_hash,
           sold_transaction_id: fulfilled_transaction_id,
@@ -328,7 +343,7 @@ class Warehouse {
         },
         now
       );
-      delete this.listings[signature];
+      delete this.listings[this.listingCacheKey(signature, listing_row?.block_hash_listed)];
     }
 
     await this.syncSummaryForBucket(order.nft_id, order.price);
@@ -412,7 +427,7 @@ class Warehouse {
       if (reserved.has(row.signature)) {
         continue;
       }
-      await this.db.clearListingSettlementPending(row.signature, now);
+      await this.db.clearListingSettlementPending(row.signature, row.block_hash_listed, now);
       await this.syncSummaryForBucket(row.nft_id, row.price);
     }
   }
@@ -438,9 +453,13 @@ class Warehouse {
     const signatures = await this.returnSettlementListingSignatures(order);
     const now = Date.now();
     for (const signature of signatures) {
-      await this.db.clearListingSettlementPending(signature, now);
-      if (this.listings[signature]) {
-        this.listings[signature].block_id_sold = 0;
+      // Only the reserved inclusion carries the pending marker, so clearing by
+      // signature cannot release a different inclusion.
+      await this.db.clearListingSettlementPending(signature, null, now);
+      for (const listing of Object.values(this.listings)) {
+        if (listing.signature === signature && listing.isSettlementPending()) {
+          listing.block_id_sold = 0;
+        }
       }
     }
   }
@@ -581,9 +600,14 @@ class Warehouse {
 
     const now = Date.now();
     for (const listing_row of listing_rows) {
-      await this.db.markListingSettlementPending(listing_row.signature, now);
-      if (this.listings[listing_row.signature]) {
-        this.listings[listing_row.signature].block_id_sold = -1;
+      await this.db.markListingSettlementPending(
+        listing_row.signature,
+        listing_row.block_hash_listed,
+        now
+      );
+      const key = this.listingCacheKey(listing_row.signature, listing_row.block_hash_listed);
+      if (this.listings[key]) {
+        this.listings[key].block_id_sold = -1;
       }
     }
     await this.syncSummaryForBucket(order.nft_id, order.price);
@@ -730,6 +754,14 @@ class Warehouse {
       quantity_available: sold ? 0 : qty,
       quantity_total: qty,
       listing_signature: row.signature || '',
+      approved: Number(row.approved ?? 0),
+      risk:
+        row.risk === 'Low' ||
+        row.risk === 'Medium' ||
+        row.risk === 'High' ||
+        row.risk === 'Dangerous'
+          ? row.risk
+          : '',
       created_at: Number(row.created_at || 0),
       updated_at: Number(row.updated_at || row.created_at || meta.updated_at || 0),
       status: sold ? 0 : 1,
@@ -860,6 +892,155 @@ class Warehouse {
     };
   }
 
+  /**
+   * Main Store catalog: active listings whose seller is ModTools-whitelisted
+   * OR whose listings.approved flag is 1. Independent of seller-scoped pages.
+   * Empty whitelist still returns independently approved listings.
+   */
+  async returnMarketplaceListingsPage({
+    whitelist_sellers = [],
+    category = '',
+    offset = 0,
+    page_size = 24
+  } = {}) {
+    const size = normalizePageSize(page_size);
+    let start = normalizeOffset(offset);
+    const filter = String(category || '').trim();
+
+    const empty = {
+      listings: [],
+      category: filter,
+      pagination: {
+        offset: 0,
+        page: 1,
+        page_size: size,
+        total: 0,
+        total_pages: 0,
+        has_next: false,
+        has_previous: false
+      }
+    };
+
+    if (filter && !isStoreCategory(filter)) {
+      return empty;
+    }
+
+    const keys = (Array.isArray(whitelist_sellers) ? whitelist_sellers : [])
+      .map((key) => String(key || '').trim())
+      .filter(Boolean);
+
+    let total = await this.db.countMarketplaceListings({
+      whitelist_sellers: keys,
+      category: filter
+    });
+    if (total > 0 && start >= total) {
+      start = Math.floor((total - 1) / size) * size;
+    }
+
+    const rows =
+      total > 0
+        ? (await this.db.returnMarketplaceListingsPage({
+            whitelist_sellers: keys,
+            category: filter,
+            offset: start,
+            page_size: size
+          })) || []
+        : [];
+
+    const listings = [];
+    for (const row of rows) {
+      const summary = await this.summaryFromListingRow(row, { sold: false });
+      if (summary) {
+        listings.push(summary);
+      }
+    }
+
+    const page = size > 0 ? Math.floor(start / size) + 1 : 1;
+
+    return {
+      listings,
+      category: filter,
+      pagination: {
+        offset: start,
+        page,
+        page_size: size,
+        total,
+        total_pages: total === 0 ? 0 : Math.ceil(total / size),
+        has_next: start + size < total,
+        has_previous: start > 0 && total > 0
+      }
+    };
+  }
+
+  async returnPendingModerationPage({
+    offset = 0,
+    page_size = 24,
+    sort = 'created_at',
+    direction = 'desc'
+  } = {}) {
+    const size = normalizePageSize(page_size);
+    let start = normalizeOffset(offset);
+
+    const empty = {
+      listings: [],
+      sort: String(sort || 'created_at'),
+      direction: String(direction || '').toLowerCase() === 'asc' ? 'asc' : 'desc',
+      pagination: {
+        offset: 0,
+        page: 1,
+        page_size: size,
+        total: 0,
+        total_pages: 0,
+        has_next: false,
+        has_previous: false
+      }
+    };
+
+    if (this.app.BROWSER) {
+      return empty;
+    }
+
+    let total = await this.db.countPendingModerationListings();
+    if (total > 0 && start >= total) {
+      start = Math.floor((total - 1) / size) * size;
+    }
+
+    const rows =
+      total > 0
+        ? (await this.db.returnPendingModerationPage({
+            offset: start,
+            page_size: size,
+            sort,
+            direction
+          })) || []
+        : [];
+
+    const listings = [];
+    for (const row of rows) {
+      const summary = await this.summaryFromListingRow(row, { sold: false });
+      if (summary) {
+        listings.push(summary);
+      }
+    }
+
+    const page = size > 0 ? Math.floor(start / size) + 1 : 1;
+
+    return {
+      listings,
+      sort: String(sort || 'created_at'),
+      direction: String(direction || '').toLowerCase() === 'asc' ? 'asc' : 'desc',
+      pagination: {
+        offset: start,
+        page,
+        page_size: size,
+        total,
+        total_pages: total === 0 ? 0 : Math.ceil(total / size),
+        has_next: start + size < total,
+        has_previous: start > 0 && total > 0
+      }
+    };
+  }
+
   async returnSummaryByBucket(nft_id, price) {
     const key = summaryBucketKey(nft_id, price);
     if (this.summaries[key]) {
@@ -891,8 +1072,19 @@ class Warehouse {
       return null;
     }
 
-    if (await this.listingExists(tx.signature)) {
-      console.warn('Store: addListingFromTransaction: duplicate listing', signature);
+    // The block hash is half of a listing's identity: without it a second inclusion
+    // of the same transaction could not be told apart from the first.
+    const block_hash = String(blk?.hash || '');
+    if (!block_hash) {
+      console.warn(
+        'Store: addListingFromTransaction: confirmation without a block hash',
+        signature
+      );
+      return null;
+    }
+
+    if (await this.listingExists(tx.signature, block_hash)) {
+      console.warn('Store: addListingFromTransaction: duplicate inclusion', signature, block_hash);
       return null;
     }
 
@@ -905,6 +1097,26 @@ class Warehouse {
     const observation = this.observeListingFromTransaction(nft, tx, txmsg, blk);
     if (!observation) {
       return null;
+    }
+
+    // Server classifies the listing payload. Seller/browser-supplied risk is ignored.
+    let risk = '';
+    try {
+      risk = checkSecurityLevel(tx);
+    } catch (err) {
+      console.warn('Store: checkSecurityLevel failed', signature, err?.message || err);
+      risk = '';
+    }
+    if (risk !== 'Low' && risk !== 'Medium' && risk !== 'High' && risk !== 'Dangerous') {
+      risk = '';
+    }
+    observation.risk = risk;
+
+    // A new inclusion is the same transaction in a different block: carry the
+    // moderation decision over instead of sending it back through review.
+    const prior_inclusion = await this.db.returnLatestListingInclusion(tx.signature);
+    if (prior_inclusion) {
+      observation.approved = Number(prior_inclusion.approved ?? 0) || 0;
     }
 
     const listing = await this.addListing(observation);
@@ -1089,6 +1301,14 @@ class Warehouse {
     const price_nolan = Number(this.app.wallet.convertSaitoToNolan(meta.price ?? 0) ?? 0);
     const change_qty = inventory_triple[0]?.amount;
 
+    // Bound from[0] is mint creator metadata; ownership is Normal/ATR from[1].
+    const from0 = tx.from?.[0];
+    const from1 = tx.from?.[1];
+    let listing_seller = from0?.publicKey || '';
+    if (from0?.type === SlipType.Bound && from1?.publicKey) {
+      listing_seller = from1.publicKey;
+    }
+
     const nft_type =
       (typeof nft?.returnType === 'function' ? nft.returnType() : null) || nft?.nft_type || '';
     const category = mapNFTTypeToCategory(nft_type);
@@ -1096,7 +1316,7 @@ class Warehouse {
     return {
       signature: tx.signature,
       nft_id: String(nft.id || nft.uuid || meta.nft_id || ''),
-      seller: fulfill.seller || tx.from?.[0]?.publicKey || '',
+      seller: fulfill.seller || listing_seller || '',
       category,
       quantity: Number(change_qty ?? nft.amount ?? inventory_triple[0]?.amount ?? 1) || 1,
       price: price_nolan,
@@ -1208,14 +1428,15 @@ class Warehouse {
     return this._syncSummaryToCache(nft_id, price);
   }
 
-  async listingExists(signature) {
+  /** True when this exact block inclusion of the listing transaction is already stored. */
+  async listingExists(signature, block_hash_listed = '') {
     if (!signature) {
       return false;
     }
-    if (this.listings[signature]) {
+    if (this.listings[this.listingCacheKey(signature, block_hash_listed)]) {
       return true;
     }
-    return !!(await this.db.returnListingBySignature(signature));
+    return !!(await this.db.returnListingBySignatureAndBlockHash(signature, block_hash_listed));
   }
 }
 

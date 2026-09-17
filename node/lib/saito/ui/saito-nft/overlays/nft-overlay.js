@@ -845,11 +845,11 @@ class NFTOverlay {
       await tx.sign();
       await this.app.network.propagateTransaction(tx);
 
-      if (!this.app.options.wallet.nftMergeIntents) {
-        this.app.options.wallet.nftMergeIntents = {};
+      if (!this.app.options.wallet.nft_merges) {
+        this.app.options.wallet.nft_merges = {};
       }
 
-      this.app.options.wallet.nftMergeIntents[this.nft.id] = Date.now();
+      this.app.options.wallet.nft_merges[this.nft.id] = Date.now();
       this.app.wallet.saveWallet();
 
       siteMessage('Merge NFT tx sent', 2000);

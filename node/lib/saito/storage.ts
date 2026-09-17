@@ -84,6 +84,7 @@ class Storage {
       if (data != 'null' && data != null) {
         this.app.options = JSON.parse(data);
         this.app.options.consensus = receivedOptions.consensus;
+        this.app.options.defaultModule = receivedOptions.defaultModule;
         // Cached wallet previously only refreshed consensus from the server; peers stayed
         // whatever was in localStorage (often []). Core builds ws://…/wsopen from peers[].
         const cachedPeers = this.app.options.peers;
@@ -481,6 +482,9 @@ class Storage {
    * Wipe all locally persisted browser state so the origin behaves like a
    * brand-new Saito install. Does not create a wallet — callers reload or
    * re-init afterward.
+   *
+   * Re-opens the dyn_mods JsStore handle after the wipe so dynamic-module
+   * install still works in the same session (e.g. first-wallet resetWallet).
    */
   async resetBrowserInstallation() {
     if (!this.app.BROWSER) {
@@ -505,6 +509,14 @@ class Storage {
 
     await this.clearCacheStorage();
     await this.unregisterServiceWorkers();
+
+    // deleteAllIndexedDatabases() nulls this.localDB; recreate the connection
+    // so loadLocalApplications / saveLocalApplication work without a reload.
+    try {
+      await this.initializeApplicationDB();
+    } catch (err) {
+      console.log('Error initializeApplicationDB after resetBrowserInstallation:', err);
+    }
   }
 
   async resetOptionsFromKey(publicKey) {

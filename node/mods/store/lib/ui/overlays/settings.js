@@ -1,5 +1,6 @@
 const SaitoOverlay = require('../../../../../lib/saito/ui/saito-overlay/saito-overlay');
 const SettingsTemplate = require('./settings.template');
+const { isAutoSubmitListings, setAutoSubmitListings } = require('../listing-approval');
 
 class SettingsOverlay {
   constructor(app, mod) {
@@ -17,17 +18,18 @@ class SettingsOverlay {
   }
 
   render() {
-    this.overlay.show(SettingsTemplate({ profileLinkChecked: this.isProfileLinked() }));
+    this.overlay.show(
+      SettingsTemplate({
+        profileLinkChecked: this.isProfileLinked(),
+        autoSubmitListings: isAutoSubmitListings(this.app)
+      })
+    );
     this.attachEvents();
   }
 
   attachEvents() {
     const toggle = document.querySelector('.store-settings [data-action="toggle-profile-link"]');
-    if (!toggle) {
-      return;
-    }
-
-    toggle.addEventListener('change', async () => {
+    toggle?.addEventListener('change', async () => {
       const url = this.mod.returnStorefrontUrl?.(this.mod.publicKey) || '';
       try {
         if (toggle.checked) {
@@ -44,6 +46,11 @@ class SettingsOverlay {
         console.warn('Store: profile link toggle failed', err?.message || err);
         toggle.checked = !toggle.checked;
       }
+    });
+
+    const autoSubmit = document.querySelector('.store-settings [data-action="toggle-auto-submit"]');
+    autoSubmit?.addEventListener('change', () => {
+      setAutoSubmitListings(this.app, autoSubmit.checked);
     });
   }
 }

@@ -37,34 +37,6 @@
   flex-shrink: 0;
 }
 
-/*
- * Quieter section titles — same treatment for right-rail panels and left Chat.
- * Casing from markup (not uppercase). Zero margin for h5 defaults in .sidebar.
- */
-body.redsquare-body .sidebar-left .saito-sidebar-header,
-body.redsquare-body .sidebar .saito-sidebar-header,
-body.redsquare-body .sidebar .sidebar-header {
-  margin: 0;
-  margin-block: 0;
-  min-height: 0;
-  font-size: inherit;
-  font-family: inherit;
-  font-weight: normal;
-  line-height: 1.3;
-  text-transform: none;
-  color: inherit;
-}
-
-/* Desktop: section titles one step above body (Chats / Leaderboard / Who to Follow) */
-@media (min-width: 601px) {
-  body.redsquare-body .sidebar-left .saito-sidebar-header,
-  body.redsquare-body .sidebar .saito-sidebar-header,
-  body.redsquare-body .sidebar .sidebar-header {
-    font-size: 1.67rem;
-    font-family: var(--saito-font-medium);
-  }
-}
-
 @media (max-width: 1200px) {
   .sidebar-left {
     padding-inline: var(--saito-space-xs);

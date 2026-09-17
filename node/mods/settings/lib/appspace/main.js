@@ -1,9 +1,7 @@
 const SettingsAppspaceTemplate = require('./main.template.js');
-const SettingsContactsTemplate = require('./contacts.template');
 const SaitoOverlay = require('./../../../../lib/saito/ui/saito-overlay/saito-overlay');
 const SaitoModule = require('./../../../../lib/saito/ui/saito-module/saito-module');
 const SaitoRecover = require('./../../../../lib/saito/ui/modals/saito-recovery/saito-recovery');
-const UserMenu = require('./../../../../lib/saito/ui/modals/user-menu/user-menu');
 
 const jsonTree = require('json-tree-viewer');
 
@@ -81,11 +79,20 @@ class SettingsAppspace {
   updateBuildInfoValues(browserBuild, nodePeerBuildDisplay) {
     let browserEl = document.getElementById('settings-browser-build-value');
     let nodeEl = document.getElementById('settings-node-peer-build-value');
+    let footerVersion = document.getElementById('settings-footer-version');
+    let footerVersionInfo = document.getElementById('settings-footer-version-info');
+
     if (browserEl) {
       browserEl.textContent = browserBuild;
     }
     if (nodeEl) {
       nodeEl.textContent = nodePeerBuildDisplay;
+    }
+    if (footerVersion) {
+      footerVersion.textContent = `v${browserBuild}`;
+    }
+    if (footerVersionInfo) {
+      footerVersionInfo.title = `Browser build ${browserBuild}\nNode peer build ${nodePeerBuildDisplay}`;
     }
   }
 
@@ -145,6 +152,9 @@ class SettingsAppspace {
   renderDebugTree() {
     //debug info
     let el = document.querySelector('.settings-appspace-debug-content');
+    if (!el) {
+      return;
+    }
     el.innerHTML = '';
 
     try {
@@ -232,65 +242,78 @@ class SettingsAppspace {
       document.querySelector('#settings-appspace-crypto-transfer').innerHTML = html;
     } else {
       // hide container from settings overlay
-      document.querySelector('.settings-appspace-crypto-transfer-container').style.display = 'none';
+      let cryptoContainer = document.querySelector('.settings-appspace-crypto-transfer-container');
+      if (cryptoContainer) {
+        cryptoContainer.style.display = 'none';
+      }
     }
   }
 
-  renderContacts() {
-    const contacts = document.getElementById('settings-appspace-contacts');
-    if (!contacts) {
+  formatStorageBytes(bytes) {
+    let value = Number(bytes);
+    if (!Number.isFinite(value) || value < 0) {
+      return '—';
+    }
+    if (value >= 1024 * 1024 * 1024) {
+      return `${(value / (1024 * 1024 * 1024)).toFixed(1)} GB`;
+    }
+    if (value >= 1024 * 1024) {
+      return `${(value / (1024 * 1024)).toFixed(1)} MB`;
+    }
+    if (value >= 1024) {
+      return `${(value / 1024).toFixed(1)} KB`;
+    }
+    return `${Math.round(value)} B`;
+  }
+
+  toggleFooterDetail(detailId, triggerId) {
+    let detail = document.getElementById(detailId);
+    let trigger = document.getElementById(triggerId);
+    if (!detail || !trigger) {
       return;
     }
 
-    contacts.innerHTML = SettingsContactsTemplate(this.app);
-    this.attachContactEvents();
-  }
+    let opening = detail.hidden;
+    detail.hidden = !opening;
+    trigger.setAttribute('aria-expanded', opening ? 'true' : 'false');
 
-  attachContactEvents() {
-    document.querySelectorAll('.settings-appspace-contact').forEach((contact) => {
-      const openUserMenu = (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-
-        const publicKey = e.currentTarget.dataset.id;
-        const userMenu = new UserMenu(this.app, publicKey, {
-          contactAction: 'delete',
-          onDelete: () => this.renderContacts()
-        });
-        userMenu.render();
-      };
-
-      contact.onclick = openUserMenu;
-      contact.onkeydown = (e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          openUserMenu(e);
-        }
-      };
+    // Keep only one footer detail open at a time.
+    ['settings-footer-version-detail', 'settings-footer-storage-detail'].forEach((id) => {
+      if (id === detailId) {
+        return;
+      }
+      let other = document.getElementById(id);
+      if (other && !other.hidden) {
+        other.hidden = true;
+      }
+    });
+    ['settings-footer-version-info', 'settings-footer-storage-info'].forEach((id) => {
+      if (id === triggerId) {
+        return;
+      }
+      let otherTrigger = document.getElementById(id);
+      if (otherTrigger) {
+        otherTrigger.setAttribute('aria-expanded', 'false');
+      }
     });
   }
 
-  async addContact() {
-    const address = await sprompt('Enter Address of Contact to Add:');
-    if (!address) {
-      return;
-    }
-
-    if (!this.app.crypto.isPublicKey(address)) {
-      salert('Not a Network Address / Public Key');
-      return;
-    }
-
-    salert(`Adding ${address} as Contact`);
-    this.app.keychain.addKey(address);
-    this.app.connection.emit('encrypt-key-exchange', address);
-    this.renderContacts();
-  }
-
   renderStorageInfo() {
+    const updateFooter = (usageBytes, detailTitle) => {
+      let footerStorage = document.getElementById('settings-footer-storage');
+      let footerStorageInfo = document.getElementById('settings-footer-storage-info');
+      if (footerStorage) {
+        footerStorage.textContent = this.formatStorageBytes(usageBytes);
+      }
+      if (footerStorageInfo && detailTitle) {
+        footerStorageInfo.title = detailTitle;
+      }
+    };
+
     navigator.storage
       .estimate()
       .then((estimate) => {
-        if (estimate?.usage && estimate?.quota) {
+        if (estimate?.usage != null && estimate?.quota != null) {
           let percentage = (estimate.usage / estimate.quota) * 100;
           document.querySelector('.settings-appspace-indexdb-info .quota').innerHTML =
             this.app.browser.formatNumberToLocale(estimate.quota);
@@ -298,6 +321,11 @@ class SettingsAppspace {
             this.app.browser.formatNumberToLocale(estimate.usage);
           document.querySelector('.settings-appspace-indexdb-info .percent').innerHTML =
             this.app.browser.formatNumberToLocale(percentage);
+
+          updateFooter(
+            estimate.usage,
+            `IndexedDB usage ${this.formatStorageBytes(estimate.usage)} of ${this.formatStorageBytes(estimate.quota)} (${this.app.browser.formatNumberToLocale(percentage)}%)`
+          );
         } else {
           console.warn('Unexpected storage estimate: ', estimate);
         }
@@ -323,14 +351,22 @@ class SettingsAppspace {
       return percentageUsed.toFixed(2); // Returns the percentage with 2 decimal points
     }
 
+    let localUsage = getLocalStorageSize();
+    let localPercent = getLocalStorageUsagePercentage();
+
     document.querySelector('.settings-appspace-localstorage-info .quota').innerHTML =
       this.app.browser.formatNumberToLocale(5 * 1024 * 1024);
     document.querySelector('.settings-appspace-localstorage-info .usage').innerHTML =
-      this.app.browser.formatNumberToLocale(getLocalStorageSize());
+      this.app.browser.formatNumberToLocale(localUsage);
     document.querySelector('.settings-appspace-localstorage-info .percent').innerHTML =
-      this.app.browser.formatNumberToLocale(getLocalStorageUsagePercentage());
+      this.app.browser.formatNumberToLocale(localPercent);
 
-    console.log(`LocalStorage is ${getLocalStorageUsagePercentage()}% full.`);
+    let footerStorageInfo = document.getElementById('settings-footer-storage-info');
+    if (footerStorageInfo && !footerStorageInfo.title) {
+      footerStorageInfo.title = `Local Storage usage ${this.formatStorageBytes(localUsage)} (${localPercent}%)`;
+    }
+
+    console.log(`LocalStorage is ${localPercent}% full.`);
   }
 
   async attachEvents() {
@@ -395,8 +431,6 @@ class SettingsAppspace {
           app.connection.emit('register-username-or-login');
         };
       }
-
-      this.attachContactEvents();
 
       if (document.getElementById('trigger-appstore-btn')) {
         document.getElementById('trigger-appstore-btn').onclick = function (e) {
@@ -468,13 +502,13 @@ class SettingsAppspace {
         modlink.onclick = async (e) => {
           let modname = e.currentTarget.dataset.id;
           if (modname) {
-            let mod = this.app.modules.returnModule(modname);
-            if (!mod) {
+            let module = this.app.modules.returnModule(modname);
+            if (!module) {
               console.error('Module not found! ', modname);
               return;
             }
 
-            let mod_overlay = new SaitoModule(this.app, mod, () => {
+            let mod_overlay = new SaitoModule(this.app, module, () => {
               this.renderDebugTree();
             });
             mod_overlay.render();
@@ -574,6 +608,26 @@ class SettingsAppspace {
       document.getElementById('restore-privatekey-btn').onclick = async (e) => {
         this.recover.render();
       };
+
+      if (document.getElementById('settings-footer-version-info')) {
+        document.getElementById('settings-footer-version-info').onclick = (e) => {
+          e.preventDefault();
+          this.toggleFooterDetail(
+            'settings-footer-version-detail',
+            'settings-footer-version-info'
+          );
+        };
+      }
+
+      if (document.getElementById('settings-footer-storage-info')) {
+        document.getElementById('settings-footer-storage-info').onclick = (e) => {
+          e.preventDefault();
+          this.toggleFooterDetail(
+            'settings-footer-storage-detail',
+            'settings-footer-storage-info'
+          );
+        };
+      }
     } catch (err) {
       console.log('Error in Settings Appspace: ', err);
     }
@@ -583,31 +637,6 @@ class SettingsAppspace {
       e.stopPropagation();
       app.connection.emit('saito-app-app-render-request');
     };
-
-    if (document.querySelector('#settings-add-app')) {
-      let addAppBtn = document.querySelector('#settings-add-app');
-      addAppBtn.onclick = openModuleInstall;
-      addAppBtn.onkeydown = (e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          openModuleInstall(e);
-        }
-      };
-    }
-
-    if (document.getElementById('settings-add-contact')) {
-      const addContactBtn = document.getElementById('settings-add-contact');
-      const addContact = (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        this.addContact();
-      };
-      addContactBtn.onclick = addContact;
-      addContactBtn.onkeydown = (e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          addContact(e);
-        }
-      };
-    }
 
     if (document.getElementById('settings-add-module')) {
       let addModuleBtn = document.getElementById('settings-add-module');

@@ -6,8 +6,6 @@ const LeagueMain = require('./lib/main');
 const SaitoHeader = require('../../lib/saito/ui/saito-header/saito-header');
 const SaitoOverlay = require('../../lib/saito/ui/saito-overlay/saito-overlay');
 const JoinLeagueOverlay = require('./lib/overlays/join');
-const LeagueSettings = require('./lib/settings');
-
 const PeerService = require('saito-js/lib/peer_service').default;
 
 //Trial -- So that we can display league results in game page
@@ -31,8 +29,6 @@ class League extends ModTemplate {
     this.overlay = null;
 
     this.styles = ['/arcade/style.css', '/league/style.css'];
-
-    this.watch_list = {};
 
     this.leagues = [];
     // id
@@ -109,63 +105,6 @@ class League extends ModTemplate {
             return false;
           }
           return true;
-        }
-      };
-    }
-
-    if (type == 'redsquare-add-tweet') {
-      let league_self = this;
-      return {
-        processTweet: (tweet) => {
-          let idx = tweet.text.indexOf('Leaderboard Update_ #');
-          if (idx > -1) {
-            let reg_results = tweet.text.substring(0, idx).match(/[A-Za-z][\w]+( {0,1}[\w]+)*/g);
-            let game_name = null;
-
-            if (reg_results?.length) {
-              game_name = reg_results.pop();
-            }
-
-            tweet.parent_id = null;
-            tweet.rethread = true;
-            tweet.game = true;
-
-            if (!this.app.BROWSER && !tweet.tx.isFrom(this.publicKey)) {
-              tweet.thread_id = null;
-              return tweet;
-            }
-
-            for (let l of league_self.leagues) {
-              if (l.name == game_name || l.id == tweet.thread_id) {
-                // backwards compatability for old tweet meta data
-                let metaData = tweet.tx.returnMessage();
-                if (tweet.thread_id !== l.id || metaData.data.parent_id) {
-                  //console.log('Update old game tweet');
-                  // tx.optional will override tx.msg.data values when setting keys
-                  tweet.tx.optional.parent_id = '';
-                  tweet.tx.optional.thread_id = l.id;
-                  tweet.thread_id = l.id;
-                }
-
-                if (this.watch_list[l.id] == 'all' || !this.app.BROWSER) {
-                  // Unset flag so that it displays in main feed
-                  //console.log(`LEAGUE [${game_name}]: Want to show tweet`);
-                  tweet.rethread = false;
-                } else if (this.watch_list[l.id] == 'none') {
-                  //console.log(`LEAGUE [${game_name}]: Want to hide tweet`);
-                  // no thread_id --> do not display
-                  tweet.thread_id = null;
-                } else {
-                  //console.log(`LEAGUE [${game_name}]: Want to thread tweet`);
-                }
-                return tweet;
-              }
-            }
-
-            tweet.thread_id = null;
-          }
-
-          return tweet;
         }
       };
     }
@@ -649,12 +588,6 @@ class League extends ModTemplate {
             league.rank = value.rank;
             league.numPlayers = value.numPlayers;
 
-            if (league.rank > 0) {
-              if (this.watch_list[lid]) {
-                this.watch_list[lid] = 'some';
-              }
-            }
-
             if (league.game === league_self.app.modules.returnActiveModule()?.name) {
               console.debug(
                 'Local version of this game league: ',
@@ -673,12 +606,7 @@ class League extends ModTemplate {
         this.app.options.league.leagues = [];
       }
 
-      if (this.app.options.league.watch_list) {
-        console.log('Loading leagues...', this.app.options.league.watch_list);
-        for (let l in this.app.options.league.watch_list) {
-          this.watch_list[l] = this.app.options.league.watch_list[l];
-        }
-      }
+      delete this.app.options.league.watch_list;
     } else {
       let sqlResults = await this.app.storage.queryDatabase(
         `SELECT *
@@ -721,12 +649,7 @@ class League extends ModTemplate {
     }
 
     this.app.options.league.leagues = leagues_to_save;
-
-    // Settings / Watchlist
-    this.app.options.league.watch_list = {};
-    for (let l in this.watch_list) {
-      this.app.options.league.watch_list[l] = this.watch_list[l];
-    }
+    delete this.app.options.league.watch_list;
 
     if (this.debug) {
       console.info('Save Leagues:');
@@ -1313,31 +1236,6 @@ class League extends ModTemplate {
       return;
     }
 
-    let shouldTweet = false;
-
-    if (!this.app.BROWSER && txmsg.request == 'gameover') {
-      //
-      // Update March 25, 2026, only if this is the node that the winner was connected to...
-      //
-      for (let r of tx.routing_path) {
-        if (r.to == this.publicKey) {
-          shouldTweet = true;
-        }
-      }
-
-      // or player has a registered name on this node...
-      // revision from Oct 28, 2025 update
-      for (let key of players) {
-        if (this.app.keychain.returnIdentifierByPublicKey(key, false)) {
-          shouldTweet = true;
-        }
-      }
-    }
-
-    if (txmsg.reason == 'forfeit') {
-      shouldTweet = false;
-    }
-
     let playerStats = await this.getPlayersFromLeague(league.id, players);
 
     if (!playerStats || playerStats.length !== players.length) {
@@ -1346,15 +1244,9 @@ class League extends ModTemplate {
       return;
     }
 
-    if (shouldTweet) {
-      await this.fetchRankings(league.id, playerStats);
-    }
-
     let winner = [],
       loser = [];
     let qsum = 0;
-
-    let playerObj = {};
 
     for (let player of playerStats) {
       //Convert each players ELO rating into a logistic function
@@ -1383,11 +1275,6 @@ class League extends ModTemplate {
       } else {
         loser.push(player);
       }
-
-      playerObj[player.publicKey] = {
-        iRank: player?.rank,
-        iScore: Math.round(player.score)
-      };
     }
 
     for (let p of winner) {
@@ -1402,85 +1289,6 @@ class League extends ModTemplate {
       let diff2 = (p.k * p.q) / qsum;
       p.score -= diff2;
       await this.updatePlayerScore(p, league.id);
-    }
-
-    if (shouldTweet) {
-      await this.fetchRankings(league.id, playerStats);
-
-      let tweetContent = `##### _${league.name} Leaderboard Update_ #####\n|`;
-
-      for (let player of playerStats) {
-        tweetContent += ` | `;
-        if (player.publicKey == txmsg.winner || txmsg.winner.includes(player.publicKey)) {
-          tweetContent += '👑';
-        }
-        tweetContent += this.app.keychain.returnUsername(player.publicKey);
-      }
-
-      let space = ':----:|';
-
-      tweetContent += ` | \n|:---- |${space.repeat(playerStats.length)} \n| Ranking`;
-
-      for (let player of playerStats) {
-        tweetContent += ` | ${player.rank}`;
-        let rank = playerObj[player.publicKey]?.iRank;
-        if (rank) {
-          if (player.rank < rank) {
-            tweetContent += ` (+${rank - player.rank}) ⬆️`;
-          } else if (player.rank > rank) {
-            tweetContent += ` (${rank - player.rank}) ⬇️`;
-          } // else -- no change
-        } else {
-          tweetContent += ' (NEW)';
-        }
-      }
-
-      tweetContent += ` | \n| Points |`;
-
-      for (let player of playerStats) {
-        let points2 = Math.round(player.score);
-        let points1 = playerObj[player.publicKey]?.iScore;
-
-        if (points2 > points1) {
-          tweetContent += ` ${points2} (+${points2 - points1}) ⬆️ |`;
-        } else {
-          tweetContent += ` ${points2} (${points2 - points1}) ⬇️ |`;
-        }
-      }
-
-      // Add stake info if any
-      if (txmsg.options?.stake) {
-        if (typeof txmsg.options['stake'] === 'object') {
-          tweetContent += ` \n| $${txmsg.options.crypto} |`;
-          for (let player of playerStats) {
-            tweetContent += ` ${txmsg.options.stake[player.publicKey]} |`;
-          }
-        } else {
-          tweetContent += `\n\n${txmsg.options.stake} ${txmsg.options.crypto} were staked on the game!`;
-        }
-      }
-
-      if (txmsg.link) {
-        tweetContent += `\n\n\n${txmsg.link}`;
-      }
-
-      let now = new Date().getTime();
-
-      let obj = {
-        module: 'RedSquare',
-        request: 'create tweet',
-        data: { text: tweetContent, mentions: players, thread_id: league.id }
-      };
-
-      let newtx = await this.app.wallet.createUnsignedTransaction();
-      for (let player of players) {
-        newtx.addTo(player);
-      }
-
-      newtx.msg = obj;
-
-      await newtx.sign();
-      await this.app.network.propagateTransaction(newtx);
     }
   }
 
@@ -1685,9 +1493,6 @@ class League extends ModTemplate {
       }
 
       this.leagues.push(newLeague);
-      if (newLeague.ranking_algorithm == 'ELO') {
-        this.watch_list[newLeague.id] = 'none';
-      }
 
       await this.leagueInsert(newLeague);
     }
@@ -1747,13 +1552,6 @@ class League extends ModTemplate {
       if (!league?.rank || league.rank <= 0) {
         league.rank = 0;
         league.numPlayers = league.players.length;
-        // Newly joined...
-        if (league.ranking_algorithm == 'ELO') {
-          if (this.watch_list[league.id] == 'none') {
-            this.watch_list[league.id] = 'some';
-            console.info('Automatically add league to watch list on joining for the first time');
-          }
-        }
       }
 
       if (league.admin && league.admin !== this.publicKey) {
@@ -1802,27 +1600,6 @@ class League extends ModTemplate {
     }
 
     this.saveLeagues();
-  }
-
-  async fetchRankings(league_id, players) {
-    let sqlResults = await this.app.storage.queryDatabase(
-      `SELECT *
-       FROM players
-       WHERE league_id = $league_id AND deleted = 0
-       ORDER BY score DESC, games_won DESC, games_tied DESC, games_finished DESC`,
-      { $league_id: league_id },
-      'league'
-    );
-
-    if (sqlResults) {
-      for (let i = 0; i < sqlResults.length; i++) {
-        for (let p of players) {
-          if (p.publicKey == sqlResults[i].publickey) {
-            p.rank = i + 1;
-          }
-        }
-      }
-    }
   }
 
   fetchLeagueLeaderboard(league_id, mycallback = null) {
@@ -1974,15 +1751,6 @@ class League extends ModTemplate {
                WHERE players.timestamp < ?`;
     let cutoff = new Date().getTime() - this.inactive_player_cutoff;
     await this.app.storage.runDatabase(sql, [cutoff], 'league');
-  }
-
-  hasSettings() {
-    return true;
-  }
-
-  loadSettings(container) {
-    let as = new LeagueSettings(this.app, this, container);
-    as.render();
   }
 
   async entropy() {

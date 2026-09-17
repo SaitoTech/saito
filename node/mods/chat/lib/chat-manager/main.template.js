@@ -27,7 +27,7 @@ module.exports = (manager_self) => {
   const header = inChatPage
     ? ''
     : `<div id="chat-manager-header" class="saito-sidebar-header chat-manager-header">
-      <div class="title chat-manager-title" title="Recent Chats and Secure Contacts">Chats</div>
+      <div class="title chat-manager-title" title="Recent contacts and secure conversations">Contacts</div>
       <div class="actions">${actionsInner}</div>
     </div>`;
 

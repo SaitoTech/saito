@@ -39,6 +39,17 @@ class Summary {
     this.seller_note = data.seller_note || '';
     this.quantity_sold = Number(data.quantity_sold ?? 0) || 0;
     this.sold_at = Number(data.sold_at || 0) || 0;
+    this.approved = Number(data.approved ?? 0);
+    if (!Number.isFinite(this.approved)) {
+      this.approved = 0;
+    }
+    this.risk =
+      data.risk === 'Low' ||
+      data.risk === 'Medium' ||
+      data.risk === 'High' ||
+      data.risk === 'Dangerous'
+        ? data.risk
+        : '';
   }
 
   returnPlaceholderImage() {
@@ -225,7 +236,9 @@ class Summary {
       note: this.note || '',
       buyer: this.buyer || '',
       quantity_sold: this.quantity_sold || 0,
-      sold_at: this.sold_at || 0
+      sold_at: this.sold_at || 0,
+      approved: Number.isFinite(this.approved) ? this.approved : 0,
+      risk: this.risk || ''
     };
   }
 }

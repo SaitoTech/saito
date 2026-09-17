@@ -27,6 +27,7 @@ class PurchaseOverlay {
     this.quantity = 1;
     /** True while the shared Transaction Monitor owns payment confirmation UX. */
     this.watchingWithMonitor = false;
+    this._countdown_timer = null;
 
     this.app.connection.on('store-purchase-asset', (data) => {
       this.onStorePurchaseAsset(data);
@@ -82,15 +83,11 @@ class PurchaseOverlay {
     this.step = 'waiting';
     this.watchingWithMonitor = true;
 
-    const lead = this.listingTitle
-      ? `Your purchase of ${this.listingTitle} is being broadcast to the Saito network.`
-      : 'Your purchase is being broadcast to the Saito network.';
-
     this.mod.transaction_monitor.render({
       tx,
       title: 'Purchasing NFT',
-      lead,
-      subtitle: 'Waiting for confirmation...',
+      lead: 'Your purchase is being broadcast to the Saito network.',
+      subtitle: '',
       auto_continue_on_confirm: true,
       callback: (result) => {
         this.watchingWithMonitor = false;
@@ -106,15 +103,41 @@ class PurchaseOverlay {
 
   openFulfilling() {
     this.step = 'fulfilling';
+    if (this._countdown_timer) {
+      clearInterval(this._countdown_timer);
+      this._countdown_timer = null;
+    }
     this.show(
       PurchaseTemplate.fulfillingOverlay({
         listingTitle: escapeHtml(this.listingTitle)
       })
     );
+
+    const heartbeatMs = this.mod.transaction_monitor?.getHeartbeatIntervalMs?.() || 30000;
+    const cycle = Math.max(1, Math.round((2 * heartbeatMs) / 1000));
+    let seconds = cycle;
+    const paint = () => {
+      const el = document.querySelector('.purchase.fulfilling .countdown');
+      if (el) {
+        el.textContent = String(seconds);
+      }
+    };
+    paint();
+    this._countdown_timer = setInterval(() => {
+      seconds -= 1;
+      if (seconds <= 0) {
+        seconds = cycle;
+      }
+      paint();
+    }, 1000);
   }
 
   openComplete() {
     this.step = 'complete';
+    if (this._countdown_timer) {
+      clearInterval(this._countdown_timer);
+      this._countdown_timer = null;
+    }
     this.show(
       PurchaseTemplate.completeOverlay({
         listingTitle: escapeHtml(this.listingTitle)
@@ -141,6 +164,10 @@ class PurchaseOverlay {
 
   onOverlayClosed() {
     document.querySelector('.saito-container')?.classList.remove('store-purchase-modal-open');
+    if (this._countdown_timer) {
+      clearInterval(this._countdown_timer);
+      this._countdown_timer = null;
+    }
     // Keep lifecycle / listing-hide / pendingTxSignature — only clear presentation step.
     this.step = null;
   }
@@ -236,14 +263,14 @@ class PurchaseOverlay {
       return;
     }
 
-    const matches =
-      !this.pendingTxSignature || purchase.purchase_tx_signature === this.pendingTxSignature;
-
-    if (!matches) {
-      return;
-    }
-
     if (purchase.phase === PurchaseLifecycle.PHASE.COMPLETE) {
+      const countArrived = !!this.lifecycle()?.hasWalletCountIncreased?.(purchase);
+      const matches =
+        !this.pendingTxSignature || purchase.purchase_tx_signature === this.pendingTxSignature;
+      if (!countArrived && !matches) {
+        return;
+      }
+
       this.listingTitle = purchase.title || this.listingTitle;
       this.pendingTxSignature = purchase.purchase_tx_signature;
       this.nft_id = purchase.nft_id;

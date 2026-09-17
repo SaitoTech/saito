@@ -8,6 +8,7 @@ const AdminDatabaseUI = require('./database');
 const AdminBlocksUI = require('./blocks');
 const AdminMempoolUI = require('./mempool');
 const AdminFaucetUI = require('./faucet');
+const AdministratorsUI = require('./administrators');
 
 class AdminMain {
   constructor(app, mod, container = '.saito-container') {
@@ -26,6 +27,7 @@ class AdminMain {
     this.blocks_ui = new AdminBlocksUI(app, mod);
     this.mempool_ui = new AdminMempoolUI(app, mod);
     this.faucet_ui = new AdminFaucetUI(app, mod);
+    this.administrators_ui = new AdministratorsUI(app, mod);
   }
 
   hasAdminKey() {
@@ -96,6 +98,10 @@ class AdminMain {
 
     if (view === 'faucet') {
       this.faucet_ui.render();
+    }
+
+    if (view === 'administrators') {
+      this.administrators_ui.render();
     }
   }
 

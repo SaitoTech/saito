@@ -1137,13 +1137,14 @@ module.exports = {
       order.note = String(txmsg.note || '');
       order.created_at = now;
       order.updated_at = now;
-      await this.warehouse.addOrder(order);
-      console.log('Store: escrow payment recorded', tx.signature);
-    } catch (err) {
-      if (String(err?.message || err).includes('UNIQUE')) {
+      // A different block hash is a new inclusion and gets its own row with its own
+      // payment slip; the same block hash is a repeat delivery of one we already hold.
+      if (!(await this.warehouse.addOrder(order))) {
         console.log('Store: escrow payment already recorded', tx.signature);
         return;
       }
+      console.log('Store: escrow payment recorded', tx.signature);
+    } catch (err) {
       console.warn('Store: escrow payment record failed', err?.message);
       await refund('queue-failed');
     }

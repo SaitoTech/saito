@@ -1402,6 +1402,7 @@ export default class Wallet extends SaitoWallet {
           wobj.wallet.spends = [];
           wobj.games = [];
           this.app.options = wobj;
+          await this.addNFTList();
         } catch (err) {
           // console.error(err);
           return err;
@@ -1544,9 +1545,9 @@ export default class Wallet extends SaitoWallet {
         let ticker = nft.ticker || '';
 
         //
-        // Nft is improper, but requires rationalization elsewhere
+        // NFT is improper, but requires rationalization elsewhere
         //
-        this.addNft(slip1_utxokey, slip2_utxokey, slip3_utxokey, id, tx_sig, ticker);
+        await this.addNft(slip1_utxokey, slip2_utxokey, slip3_utxokey, id, tx_sig, ticker);
       }
     }
   }
@@ -1575,11 +1576,17 @@ export default class Wallet extends SaitoWallet {
     const local = (this.app.options.wallet.nfts as typeof nfts) ?? [];
 
     //
-    // ensure intents bag exists and keep a stable ref
+    // ensure nft_merges bag exists and keep a stable ref
     //
-    const intents: Record<string, number> = (this.app.options.wallet.nftMergeIntents ||=
-      {} as Record<string, number>);
-    let intentsMutated = false;
+    if (this.app.options.wallet.nftMergeIntents && !this.app.options.wallet.nft_merges) {
+      this.app.options.wallet.nft_merges = this.app.options.wallet.nftMergeIntents;
+    }
+    delete this.app.options.wallet.nftMergeIntents;
+    const nft_merges: Record<string, number> = (this.app.options.wallet.nft_merges ||= {} as Record<
+      string,
+      number
+    >);
+    let nft_merges_mutated = false;
 
     //
     //  helpers
@@ -1622,16 +1629,16 @@ export default class Wallet extends SaitoWallet {
       return BigInt(typeof a === 'string' ? a : Number(a));
     };
 
-    const hasUserMergeIntent = (id: string) => {
-      const ts = intents[id];
+    const hasUserMerge = (id: string) => {
+      const ts = nft_merges[id];
       const TTL = 2 * 60_000; // 2 minutes
       return !!ts && Date.now() - ts <= TTL;
     };
 
-    const clearMergeIntent = (id: string) => {
-      if (id in intents) {
-        delete intents[id];
-        intentsMutated = true;
+    const clearMerge = (id: string) => {
+      if (id in nft_merges) {
+        delete nft_merges[id];
+        nft_merges_mutated = true;
       }
     };
 
@@ -1662,12 +1669,12 @@ export default class Wallet extends SaitoWallet {
           const curAmt = amt(c[0]);
 
           if (sumLocal === curAmt) {
-            if (hasUserMergeIntent(k)) {
+            if (hasUserMerge(k)) {
               updated.push(...c); // user-initiated
             } else {
               rebroadcast.push(...c); // network rebroadcast consolidation
             }
-            clearMergeIntent(k);
+            clearMerge(k);
             continue;
           }
         }
@@ -1694,13 +1701,13 @@ export default class Wallet extends SaitoWallet {
     await this.app.wallet.saveNFTList(nfts);
 
     if (hasChanges > 0) {
-      // re-attach the same intents object in case saveNFTList mutates options internally
-      this.app.options.wallet.nftMergeIntents = intents;
+      // re-attach the same nft_merges object in case saveNFTList mutates options internally
+      this.app.options.wallet.nft_merges = nft_merges;
       persisted = true;
     }
 
     //
-    // if (!hasChanges && intentsMutated) {
+    // if (!hasChanges && nft_merges_mutated) {
     //   await this.app.wallet.saveOptions?.();
     // }
 
@@ -1976,48 +1983,64 @@ export default class Wallet extends SaitoWallet {
 
   public async onNewBoundTransaction(tx: Transaction) {
     try {
-      if (tx.isTo(this.app.wallet.publicKey)) {
-        console.log('%%% NFT %%%');
-        tx.printSlips();
-        console.log('%%% %%% %%%');
+      if (!tx.isTo(this.app.wallet.publicKey)) {
+        return;
+      }
 
-        if (tx.to[1] && tx.to[1].publicKey == this.app.wallet.publicKey) {
-          console.log('%%% yeah, it is for me!');
-          let nft_list = this.app.options.wallet.nfts || [];
-          let nft_id = this.computeNFTIdFromTx(tx);
+      if (!tx.to[1] || tx.to[1].publicKey != this.app.wallet.publicKey) {
+        return;
+      }
 
-          nft_list.forEach(function (nft) {
-            if (nft.tx_sig == tx.signature) {
-              console.log('Have nft saved locally');
-              if (nft_id !== nft.id) {
-                console.warn('Nft id mismatch!!!');
-                nft_id = nft.id;
-              }
-            }
-          });
+      let nft_list = this.app.options.wallet.nfts || [];
+      let nft_id = this.computeNFTIdFromTx(tx);
 
-          let txmsg = tx.returnMessage();
-          let field1 = txmsg.module || 'NFT';
-
-          if (nft_id)
-            this.app.storage.loadTransactions(
-              { field4: nft_id },
-              (txs) => {
-                if (txs.length) {
-                  console.log('%%% nft already in local archives' + nft_id);
-                } else {
-                  console.log('%%% saving nft transaction: ' + nft_id);
-                  this.app.storage.saveTransaction(
-                    tx,
-                    { field1, field4: nft_id, preserve: 1 },
-                    'localhost'
-                  );
-                }
-              },
-              'localhost',
-              0
-            );
+      nft_list.forEach(function (nft) {
+        if (nft.tx_sig == tx.signature) {
+          if (nft_id !== nft.id) {
+            console.warn('Nft id mismatch!!!');
+            nft_id = nft.id;
+          }
         }
+      });
+
+      if (!nft_id) {
+        return;
+      }
+
+      let txmsg = tx.returnMessage();
+      let field1 = txmsg.module || 'NFT';
+      const is_delist = txmsg?.module === 'Store' && txmsg?.request === 'delist-asset';
+
+      const existing = await new Promise<any[]>((resolve) => {
+        this.app.storage.loadTransactions(
+          { field4: nft_id },
+          (txs) => resolve(Array.isArray(txs) ? txs : []),
+          'localhost'
+        );
+      });
+
+      if (is_delist) {
+        // Replace archived mint/list tx with the delist Bound tx so wallet
+        // tx_sig and Archive field4/sig lookups stay aligned for re-list.
+        for (const old of existing) {
+          if (old?.signature && String(old.signature) !== String(tx.signature)) {
+            await this.app.storage.deleteTransaction(old, null, 'localhost');
+          }
+        }
+        await this.app.storage.saveTransaction(
+          tx,
+          { field1, field4: nft_id, preserve: 1 },
+          'localhost'
+        );
+        return;
+      }
+
+      if (!existing.length) {
+        await this.app.storage.saveTransaction(
+          tx,
+          { field1, field4: nft_id, preserve: 1 },
+          'localhost'
+        );
       }
     } catch (err) {
       // console.error('Error while saving NFT tx to archive in wallet.ts: ', err);

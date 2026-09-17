@@ -49,8 +49,7 @@ class Faucet extends ModTemplate {
       this.checkFaucetAvailability();
     });
 
-    // Server Faucet modes. OAuth secrets remain in memory, but the enabled
-    // mode flags are persisted in app.options.faucet.mode.
+    // Server Faucet mode flags are persisted in app.options.faucet.mode.
     this.mode = {
       free: false,
       github: false,
@@ -62,7 +61,7 @@ class Faucet extends ModTemplate {
       twitter: '@SaitoOfficial',
       title: '🟥 Saito Faucet',
       url: '/faucet/',
-      description: 'Get Testnet Saito',
+      description: 'Get Started wtih SAITO',
       image: 'https://saito.tech/wp-content/uploads/2023/11/faucet-300x300.png'
     });
   }
@@ -71,6 +70,8 @@ class Faucet extends ModTemplate {
     await super.initialize(app);
 
     if (!this.app.BROWSER) {
+      this.oauth.secret_github = this.app.options?.faucet?.github_secret || null;
+      this.oauth.secret_twitter = this.app.options?.faucet?.twitter_secret || null;
       this.mode = readFaucetMode(this.app.options);
       this.free_use = this.mode.free;
 
@@ -196,7 +197,7 @@ class Faucet extends ModTemplate {
 
       return {
         id: 'faucet',
-        title: 'Request SAITO tokens from the server faucet...',
+        title: 'Click Here for SAITO from the token faucet...',
         description: free_use
           ? 'You may request a small amount once every 24 hours to try the network. No registration is required.'
           : 'You may request a small amount to try the network. Registration with a Github or Twitter account is needed to ensure our limited supply goes to real users and developers.',
@@ -739,14 +740,23 @@ class Faucet extends ModTemplate {
     const githubSecret = String(config.github_secret || '');
     const twitterSecret = String(config.twitter_secret || '');
 
-    // Empty secret fields preserve the current in-memory value. Secrets are
-    // intentionally never persisted or included in the returned snapshot.
+    // Empty secret fields preserve the current value. Secrets are saved in
+    // server options but never included in the returned snapshot.
     if (githubSecret) {
       this.oauth.secret_github = githubSecret;
     }
     if (twitterSecret) {
       this.oauth.secret_twitter = twitterSecret;
     }
+
+    if (!this.app.options) {
+      this.app.options = {};
+    }
+    if (!this.app.options.faucet || typeof this.app.options.faucet !== 'object') {
+      this.app.options.faucet = {};
+    }
+    this.app.options.faucet.github_secret = this.oauth.secret_github;
+    this.app.options.faucet.twitter_secret = this.oauth.secret_twitter;
 
     this.free_use =
       config.free_use === true || config.free_use === '1' || config.free_use === 'on';

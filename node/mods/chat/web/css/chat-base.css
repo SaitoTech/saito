@@ -8,6 +8,7 @@
  *       .chat-main-container.
  *
  * Does NOT own: message/bubble/composer appearance → saito-chat.css
+ *               Chat Settings overlay → saito-chat.css
  *               profile/member rail → chat-sidebar.css
  * =============================================================================
  */

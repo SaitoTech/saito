@@ -108,9 +108,7 @@ module.exports = ({ state, error, loading } = {}) => {
               </div>
               <div class="admin-blocks-stat">
                 <label>Chain status</label>
-                <div>${
-                  state.is_loading ? 'loading blocks' : state.is_loaded ? 'loaded' : '—'
-                }</div>
+                <div>${state.is_loading ? 'loading blocks' : state.is_loaded ? 'loaded' : '—'}</div>
               </div>
               <div class="admin-blocks-stat">
                 <label>Lowest acceptable id</label>

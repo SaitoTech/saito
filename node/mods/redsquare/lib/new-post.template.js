@@ -3,7 +3,7 @@ module.exports = (newPost) => {
   return `
       <button class="new-post saito-button-primary compact" type="button">
         <i class="fa-solid fa-plus" aria-hidden="true"></i>
-        <span>Post</span>
+        <span>Tweet</span>
       </button>
   `;
 };

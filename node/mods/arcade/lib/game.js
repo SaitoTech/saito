@@ -16,9 +16,7 @@ class Game {
     this.name = game_data.name || this.game_mod?.name || '';
     this.slug = game_data.slug || this.game_mod?.returnSlug?.() || '';
     this.title =
-      game_data.title ||
-      (this.game_mod?.returnName ? this.game_mod.returnName() : '') ||
-      this.name;
+      game_data.title || (this.game_mod?.returnName ? this.game_mod.returnName() : '') || this.name;
     this.image = game_data.image || '';
     this.link = game_data.link || this.game_mod?.link || '';
     this.league_id = game_data.league_id || '';

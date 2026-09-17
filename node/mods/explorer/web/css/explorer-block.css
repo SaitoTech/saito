@@ -515,27 +515,61 @@
 }
 
 .explorer-tx-list.explorer-feed {
-  gap: 0;
+  gap: var(--explorer-space-2);
 }
 
 .explorer-tx-row {
   display: grid;
   grid-template-rows: auto 0fr;
   transition: grid-template-rows 180ms ease;
-  border-bottom: 1px solid var(--explorer-border);
   width: 100%;
-}
-
-.explorer-tx-row:last-child {
-  border-bottom: none;
+  border: 1px solid var(--explorer-border);
+  border-radius: var(--explorer-radius);
+  background-color: var(--explorer-card);
+  overflow: hidden;
 }
 
 .explorer-tx-row.is-expanded {
-  grid-template-rows: auto 1fr;
+  grid-template-rows: auto auto;
+  border-color: var(--explorer-link);
 }
 
 .explorer-tx-row .explorer-feed-item {
   border-bottom: none;
+  background-color: transparent;
+}
+
+.explorer-tx-row .explorer-tx-teaser:focus,
+.explorer-tx-row .explorer-tx-teaser:focus-visible {
+  outline: none;
+  box-shadow: none;
+}
+
+.explorer-tx-row:not(.is-expanded) .explorer-feed-item:hover {
+  background-color: color-mix(in oklch, var(--explorer-muted) 65%, var(--explorer-card));
+}
+
+.explorer-tx-row.is-expanded .explorer-feed-item:hover {
+  background-color: transparent;
+}
+
+.explorer-tx-teaser .explorer-feed-line {
+  flex-wrap: nowrap;
+  align-items: center;
+  min-width: 0;
+}
+
+.explorer-tx-teaser .explorer-hash-link {
+  flex: 1 1 0;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.explorer-tx-teaser .explorer-copy-btn,
+.explorer-tx-teaser .explorer-tx-type-badge {
+  flex: 0 0 auto;
 }
 
 .explorer-tx-row-expanded {
@@ -545,14 +579,17 @@
 }
 
 .explorer-tx-row-expanded-inner {
+  display: flex;
+  flex-direction: column;
   width: 100%;
   padding: var(--explorer-space-2) var(--explorer-space-4) var(--explorer-space-3);
-  padding-left: calc(var(--explorer-space-4) + 3.5rem + var(--explorer-space-3));
-  background-color: var(--explorer-card);
+  background-color: transparent;
   border-top: 1px solid var(--explorer-border);
 }
 
 .explorer-tx-section {
+  display: block;
+  width: 100%;
   margin-bottom: var(--explorer-space-3);
 }
 
@@ -560,7 +597,21 @@
   margin-bottom: 0;
 }
 
+.explorer-tx-footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--explorer-space-3);
+  margin-top: var(--explorer-space-1);
+}
+
+.explorer-page .explorer-action.explorer-tx-export-link {
+  text-decoration-style: solid;
+}
+
 .explorer-tx-section-title {
+  display: block;
+  width: 100%;
   margin: 0 0 var(--explorer-space-2);
   font-size: var(--explorer-text-xs);
   font-weight: var(--explorer-font-semibold);
@@ -576,6 +627,94 @@
 }
 
 /* Transaction metadata — two-column definition grid */
+.explorer-tx-detail-head {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  margin: 0 0 var(--explorer-space-3);
+}
+
+.explorer-tx-id-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.4rem 0.6rem;
+  min-width: 0;
+}
+
+.explorer-tx-id-label {
+  flex: 0 0 auto;
+  font-size: var(--explorer-text-xs);
+  font-weight: var(--explorer-font-medium);
+  color: var(--explorer-muted-foreground);
+}
+
+.explorer-tx-id-value {
+  min-width: 0;
+  flex: 1 1 16rem;
+  font-size: var(--explorer-text-sm);
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.explorer-copy-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 1.5rem;
+  height: 1.5rem;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--explorer-muted-foreground);
+  cursor: pointer;
+}
+
+.explorer-copy-btn:hover {
+  color: var(--explorer-foreground);
+}
+
+.explorer-tx-facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1.25rem;
+  margin: 0;
+}
+
+.explorer-tx-fact {
+  display: flex;
+  flex-direction: column;
+  gap: 0.12rem;
+  min-width: 0;
+}
+
+.explorer-tx-fact dt,
+.explorer-tx-fact dd {
+  margin: 0;
+}
+
+.explorer-tx-fact dt {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.7rem;
+  font-weight: var(--explorer-font-medium);
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--explorer-muted-foreground);
+}
+
+.explorer-tx-fact dd {
+  font-size: var(--explorer-text-sm);
+  font-variant-numeric: tabular-nums;
+}
+
+.explorer-tx-detail-head .explorer-txmsg-section {
+  margin: 0;
+  align-self: flex-end;
+}
+
 .explorer-tx-meta {
   display: grid;
   grid-template-columns: max-content minmax(0, 1fr);
@@ -751,6 +890,153 @@
   font-size: var(--explorer-text-xs);
   color: var(--explorer-tx-label, var(--explorer-muted-foreground));
   word-break: break-word;
+}
+
+.explorer-slip-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+.explorer-slip-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  align-items: stretch;
+  column-gap: 0.85rem;
+  min-width: 0;
+  padding: 0.55rem 0.75rem;
+  border: 1px solid var(--explorer-border);
+  border-radius: var(--explorer-radius-sm);
+  background: color-mix(in oklch, var(--explorer-muted) 28%, var(--explorer-card));
+  --explorer-slip-badge-width: 8.6rem;
+}
+
+.explorer-slip-pubkey,
+.explorer-slip-created {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.12rem;
+  min-width: 0;
+}
+
+.explorer-slip-kicker {
+  font-size: 1.05rem;
+  font-weight: var(--explorer-font-medium);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  line-height: 1.2;
+  color: var(--explorer-muted-foreground);
+}
+
+.explorer-slip-value-row {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  min-width: 0;
+}
+
+.explorer-slip-value-row .explorer-link,
+.explorer-slip-value {
+  min-width: 0;
+  font-size: var(--explorer-text-sm);
+  font-weight: var(--explorer-font-normal);
+  line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.explorer-slip-pubkey .explorer-slip-value-row .explorer-link {
+  font-family: var(--explorer-font-mono);
+}
+
+.explorer-slip-flags {
+  display: grid;
+  grid-template-columns: repeat(2, var(--explorer-slip-badge-width));
+  align-items: stretch;
+  gap: 0.7rem;
+  min-width: 0;
+}
+
+.explorer-slip-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  appearance: none;
+  align-self: stretch;
+  width: var(--explorer-slip-badge-width);
+  min-width: var(--explorer-slip-badge-width);
+  max-width: var(--explorer-slip-badge-width);
+  height: auto;
+  min-height: 0;
+  margin: 0;
+  padding: 0 0.5rem;
+  border: 1px solid var(--explorer-border);
+  border-radius: var(--explorer-radius-sm);
+  font-size: var(--explorer-text-xs);
+  font-weight: var(--explorer-font-medium);
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  line-height: 1;
+  color: var(--explorer-muted-foreground);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.explorer-slip-ordinal {
+  justify-self: center;
+  align-self: stretch;
+  width: 2.8rem;
+  min-width: 2.8rem;
+  max-width: 2.8rem;
+  height: auto;
+  background: color-mix(in oklch, var(--explorer-muted) 70%, var(--explorer-card));
+  font-variant-numeric: tabular-nums;
+}
+
+.explorer-slip-type-badge {
+  color: var(--explorer-foreground);
+  background: color-mix(in oklch, var(--explorer-primary) 28%, var(--explorer-card));
+  border-color: color-mix(in oklch, var(--explorer-primary) 40%, var(--explorer-border));
+}
+
+.explorer-slip-utxokey-badge.explorer-copy-btn {
+  width: var(--explorer-slip-badge-width);
+  min-width: var(--explorer-slip-badge-width);
+  max-width: var(--explorer-slip-badge-width);
+  height: auto;
+  min-height: 0;
+  align-self: stretch;
+  padding: 0 0.5rem;
+  border: 1px solid color-mix(in oklch, var(--explorer-link) 45%, var(--explorer-border));
+  border-radius: var(--explorer-radius-sm);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: inherit;
+  font-size: var(--explorer-text-xs);
+  font-weight: var(--explorer-font-medium);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--explorer-foreground);
+  background: color-mix(in oklch, var(--explorer-link) 24%, var(--explorer-card));
+  cursor: pointer;
+}
+
+@media (max-width: 48rem) {
+  .explorer-slip-row {
+    --explorer-slip-badge-width: 7.2rem;
+  }
+}
+
+@media (max-width: 40rem) {
+  .explorer-tx-id-value {
+    flex-basis: 100%;
+  }
 }
 
 .explorer-tx-picker-overlay {

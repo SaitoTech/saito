@@ -1,6 +1,21 @@
 /** Listing is reserved for an in-flight settlement until confirmed or reset. */
 const LISTING_SETTLEMENT_PENDING_BLOCK_ID = -1;
+/** Listing identity: one row per block inclusion of a list-asset transaction. */
+const LISTINGS_INCLUSION_INDEX = 'listings_signature_block_hash_uidx';
+const LISTINGS_MIGRATION_TABLE = 'listings_inclusion_migration';
+/** Order identity: one row per block inclusion of a purchase transaction. */
+const ORDERS_INCLUSION_INDEX = 'orders_order_tx_sig_block_hash_uidx';
+const ORDERS_PAYMENT_INCLUSION_INDEX = 'orders_payment_utxo_block_hash_uidx';
 const { STORE_CATEGORIES } = require('./categories');
+
+function quoteIdentifier(identifier) {
+  return `"${String(identifier).replace(/"/g, '""')}"`;
+}
+
+/** Quote only when needed, so a rebuilt table's stored DDL matches the definition. */
+function columnIdentifier(name) {
+  return /^[A-Za-z_][A-Za-z0-9_]*$/.test(String(name)) ? String(name) : quoteIdentifier(name);
+}
 
 class Database {
   constructor(app, mod) {
@@ -28,7 +43,9 @@ class Database {
       'ALTER TABLE listings ADD COLUMN note TEXT NOT NULL DEFAULT ""',
       'ALTER TABLE listings ADD COLUMN buyer TEXT NOT NULL DEFAULT ""',
       'ALTER TABLE listings ADD COLUMN quantity_sold INTEGER NOT NULL DEFAULT 0',
-      'ALTER TABLE listings ADD COLUMN sold_at INTEGER NOT NULL DEFAULT 0'
+      'ALTER TABLE listings ADD COLUMN sold_at INTEGER NOT NULL DEFAULT 0',
+      'ALTER TABLE listings ADD COLUMN approved INTEGER NOT NULL DEFAULT 0',
+      'ALTER TABLE listings ADD COLUMN risk TEXT NOT NULL DEFAULT ""'
     ];
     const summary_columns = ['ALTER TABLE summary ADD COLUMN category TEXT DEFAULT "Other"'];
     const order_columns = [
@@ -55,8 +72,199 @@ class Database {
     }
 
     await this.migrateListingChainFields();
+    await this.migrateListingInclusionUniqueness();
     await this.migrateOrderChainFields();
     await this.migrateOrderCryptoFieldNames();
+    await this.migrateOrderInclusionUniqueness();
+  }
+
+  /**
+   * Move live databases from order identity by signature alone to identity by
+   * (order_tx_sig, block_hash_received). Both legacy constraints are standalone
+   * indexes rather than inline column constraints, so they can be dropped in place
+   * without rebuilding the table. Existing rows hold at most one inclusion per
+   * signature, so the copy cannot violate either composite key.
+   */
+  async migrateOrderInclusionUniqueness() {
+    const db = await this.app.storage.returnDatabaseByName(this.dbname);
+    if (!db) {
+      return;
+    }
+
+    try {
+      const legacy = await this.returnLegacyOrderIndexes(db);
+
+      await db.exec('BEGIN IMMEDIATE');
+      try {
+        for (const index of legacy) {
+          await db.exec(`DROP INDEX ${quoteIdentifier(index.name)}`);
+        }
+        await db.exec(
+          `CREATE UNIQUE INDEX IF NOT EXISTS ${quoteIdentifier(ORDERS_INCLUSION_INDEX)}
+					 ON orders (order_tx_sig, block_hash_received)`
+        );
+        await db.exec(
+          `CREATE UNIQUE INDEX IF NOT EXISTS ${quoteIdentifier(ORDERS_PAYMENT_INCLUSION_INDEX)}
+					 ON orders (payment_tx_sig, payment_output_index, block_hash_received)`
+        );
+        await db.exec('COMMIT');
+      } catch (err) {
+        try {
+          await db.exec('ROLLBACK');
+        } catch (_) {
+          // ignore rollback failure; original error is what matters
+        }
+        throw err;
+      }
+    } catch (err) {
+      // Leaving the legacy constraints in place keeps the pre-inclusion behaviour
+      // (a re-included purchase tx is ignored) rather than stopping the module.
+      console.error('Store Database: orders inclusion migration failed', err?.message || err);
+    }
+  }
+
+  /**
+   * Unique order indexes that predate inclusion identity, matched on their columns so
+   * a renamed index is still found. Anything already carrying block_hash_received is
+   * left alone, which makes the migration idempotent.
+   */
+  async returnLegacyOrderIndexes(db) {
+    const legacy_shapes = [['order_tx_sig'], ['payment_tx_sig', 'payment_output_index']];
+    const indexes = await db.all(`PRAGMA index_list('orders')`);
+    const found = [];
+
+    for (const index of indexes || []) {
+      if (!Number(index.unique)) {
+        continue;
+      }
+      const columns = await db.all(`PRAGMA index_info(${quoteIdentifier(index.name)})`);
+      const names = (columns || []).map((column) => column.name);
+      const is_legacy = legacy_shapes.some(
+        (shape) =>
+          shape.length === names.length && shape.every((column, i) => column === names[i])
+      );
+      if (is_legacy) {
+        found.push(index);
+      }
+    }
+
+    return found;
+  }
+
+  /**
+   * Move live databases from UNIQUE(signature) to UNIQUE(signature, block_hash_listed).
+   * SQLite cannot drop an inline column constraint, so a legacy table is rebuilt in
+   * place. Existing rows hold at most one inclusion per signature, so the copy cannot
+   * violate the composite key.
+   */
+  async migrateListingInclusionUniqueness() {
+    const db = await this.app.storage.returnDatabaseByName(this.dbname);
+    if (!db) {
+      return;
+    }
+
+    try {
+      const legacy = await this.returnLegacySignatureIndex(db);
+      if (legacy && legacy.origin === 'c') {
+        await db.exec(`DROP INDEX ${quoteIdentifier(legacy.name)}`);
+      } else if (legacy) {
+        await this.rebuildListingsWithoutSignatureUnique(db);
+      }
+      await db.exec(
+        `CREATE UNIQUE INDEX IF NOT EXISTS ${quoteIdentifier(LISTINGS_INCLUSION_INDEX)}
+				 ON listings (signature, block_hash_listed)`
+      );
+    } catch (err) {
+      // Leaving the legacy constraint in place keeps the pre-inclusion behaviour
+      // (a re-included listing tx is ignored) rather than stopping the module.
+      console.error('Store Database: listings inclusion migration failed', err?.message || err);
+    }
+  }
+
+  /** The unique index enforcing signature-only listing identity, if one still exists. */
+  async returnLegacySignatureIndex(db) {
+    const indexes = await db.all(`PRAGMA index_list('listings')`);
+    for (const index of indexes || []) {
+      if (!Number(index.unique)) {
+        continue;
+      }
+      const columns = await db.all(`PRAGMA index_info(${quoteIdentifier(index.name)})`);
+      if (columns.length === 1 && columns[0].name === 'signature') {
+        return index;
+      }
+    }
+    return null;
+  }
+
+  /**
+   * Recreate listings from sql/listings.sql, keeping the rows and any retired column
+   * the live table still carries. The definition is replayed verbatim so a migrated
+   * database is indistinguishable from a fresh install.
+   */
+  async rebuildListingsWithoutSignatureUnique(db) {
+    const statements = this.returnListingsSchemaStatements();
+    if (!statements.some((sql) => /^CREATE\s+TABLE\b/i.test(sql))) {
+      throw new Error('sql/listings.sql does not define the listings table');
+    }
+
+    const existing = await db.all(`PRAGMA table_info('listings')`);
+    if (!existing?.length) {
+      throw new Error('listings table is missing');
+    }
+    const snapshot = quoteIdentifier(LISTINGS_MIGRATION_TABLE);
+
+    await db.exec('BEGIN IMMEDIATE');
+    try {
+      await db.exec(`DROP TABLE IF EXISTS ${snapshot}`);
+      await db.exec(`CREATE TABLE ${snapshot} AS SELECT * FROM listings`);
+      await db.exec('DROP TABLE listings');
+      for (const sql of statements) {
+        await db.exec(sql);
+      }
+
+      const rebuilt = await db.all(`PRAGMA table_info('listings')`);
+      const rebuilt_names = new Set((rebuilt || []).map((column) => column.name));
+      for (const column of existing) {
+        if (rebuilt_names.has(column.name)) {
+          continue;
+        }
+        // Column this checkout no longer defines but the live table still carries:
+        // re-add it exactly as it was so schema audits see no drift.
+        const type = String(column.type || '').trim() || 'TEXT';
+        const has_default = column.dflt_value !== null && column.dflt_value !== undefined;
+        // ADD COLUMN can only assert NOT NULL when it has a default to backfill with.
+        const not_null = Number(column.notnull) === 1 && has_default ? ' NOT NULL' : '';
+        const fallback = has_default ? ` DEFAULT ${column.dflt_value}` : '';
+        await db.exec(
+          `ALTER TABLE listings
+					 ADD COLUMN ${columnIdentifier(column.name)} ${type}${not_null}${fallback}`
+        );
+      }
+
+      const copied = existing.map((column) => quoteIdentifier(column.name)).join(', ');
+      await db.exec(`INSERT INTO listings (${copied}) SELECT ${copied} FROM ${snapshot}`);
+      await db.exec(`DROP TABLE ${snapshot}`);
+      await db.exec('COMMIT');
+    } catch (err) {
+      try {
+        await db.exec('ROLLBACK');
+      } catch (_) {
+        // ignore rollback failure; original error is what matters
+      }
+      throw err;
+    }
+  }
+
+  returnListingsSchemaStatements() {
+    const fs = this.app.storage.returnFileSystem();
+    if (!fs?.readFileSync) {
+      throw new Error('filesystem unavailable');
+    }
+    return fs
+      .readFileSync(`${__dirname}/../sql/listings.sql`, 'utf8')
+      .split(';')
+      .map((statement) => statement.replace(/^(?:\s*--[^\n]*)+/, '').trim())
+      .filter(Boolean);
   }
 
   async migrateListingChainFields() {
@@ -137,6 +345,13 @@ class Database {
   // --- listings (authoritative: one row per listing transaction) ---
 
   async insertListingRow(row) {
+    const risk =
+      row.risk === 'Low' ||
+      row.risk === 'Medium' ||
+      row.risk === 'High' ||
+      row.risk === 'Dangerous'
+        ? row.risk
+        : '';
     const sql = `INSERT INTO listings (
 			  signature, nft_id, seller, category, quantity, price,
 			  access_hash, access_script, p2sh_address, slip_id,
@@ -144,7 +359,7 @@ class Database {
 			  block_id_sold, block_hash_sold, transaction_id_sold, longest_chain_sold,
 			  on_chain,
 			  utxo_slip1, utxo_slip2, utxo_slip3,
-			  created_at, updated_at
+			  created_at, updated_at, risk, approved
 			) VALUES (
 			  $signature, $nft_id, $seller, $category, $quantity, $price,
 			  $access_hash, $access_script, $p2sh_address, $slip_id,
@@ -152,7 +367,7 @@ class Database {
 			  $block_id_sold, $block_hash_sold, $transaction_id_sold, $longest_chain_sold,
 			  $on_chain,
 			  $utxo_slip1, $utxo_slip2, $utxo_slip3,
-			  $created_at, $updated_at
+			  $created_at, $updated_at, $risk, $approved
 			)`;
     const params = {
       $signature: row.signature,
@@ -178,7 +393,9 @@ class Database {
       $utxo_slip2: row.utxo_slip2 || '',
       $utxo_slip3: row.utxo_slip3 || '',
       $created_at: row.created_at,
-      $updated_at: row.updated_at
+      $updated_at: row.updated_at,
+      $risk: risk,
+      $approved: Number(row.approved ?? 0) || 0
     };
 
     // Bypass runDatabase so insert failures surface (runDatabase swallows errors).
@@ -189,13 +406,74 @@ class Database {
     await db.run(sql, params);
   }
 
-  async returnListingBySignature(signature) {
+  /** One exact inclusion of a listing transaction. */
+  async returnListingBySignatureAndBlockHash(signature, block_hash_listed) {
     const res = await this.app.storage.queryDatabase(
-      `SELECT * FROM listings WHERE signature = $signature LIMIT 1`,
-      { $signature: signature },
+      `SELECT * FROM listings
+			 WHERE signature = $signature AND block_hash_listed = $block_hash_listed
+			 LIMIT 1`,
+      {
+        $signature: String(signature || ''),
+        $block_hash_listed: String(block_hash_listed || '')
+      },
       this.dbname
     );
     return res?.[0] || null;
+  }
+
+  /**
+   * The inclusion a listing transaction currently has on the longest chain. Inventory
+   * operations must use this row: its slips are the ones the chain can still spend.
+   */
+  async returnCanonicalListingBySignature(signature) {
+    const res = await this.app.storage.queryDatabase(
+      `SELECT * FROM listings
+			 WHERE signature = $signature
+			   AND on_chain = 1
+			   AND longest_chain_listed = 1
+			 ORDER BY block_id_listed DESC, id DESC
+			 LIMIT 1`,
+      { $signature: String(signature || '') },
+      this.dbname
+    );
+    return res?.[0] || null;
+  }
+
+  /** Newest stored inclusion of a listing transaction, on the longest chain or not. */
+  async returnLatestListingInclusion(signature) {
+    const res = await this.app.storage.queryDatabase(
+      `SELECT * FROM listings
+			 WHERE signature = $signature
+			 ORDER BY block_id_listed DESC, id DESC
+			 LIMIT 1`,
+      { $signature: String(signature || '') },
+      this.dbname
+    );
+    return res?.[0] || null;
+  }
+
+  /**
+   * WHERE clause selecting exactly one inclusion of $signature: the given block hash
+   * when the caller knows which inclusion it spent, otherwise the canonical row.
+   */
+  listingInclusionWhere(block_hash_listed = null) {
+    if (block_hash_listed === null || block_hash_listed === undefined) {
+      return {
+        sql: `id = (
+					  SELECT id FROM listings
+					   WHERE signature = $signature
+					     AND on_chain = 1
+					     AND longest_chain_listed = 1
+					   ORDER BY block_id_listed DESC, id DESC
+					   LIMIT 1
+					)`,
+        params: {}
+      };
+    }
+    return {
+      sql: 'signature = $signature AND block_hash_listed = $block_hash_listed',
+      params: { $block_hash_listed: String(block_hash_listed) }
+    };
   }
 
   async returnSpendableListingsForBucket(nft_id, price, limit = 1) {
@@ -269,9 +547,14 @@ class Database {
     }
   }
 
+  /**
+   * Record the sale against a single inclusion. block_hash_listed identifies the
+   * inclusion whose slips were spent; omit it to use the canonical row.
+   */
   async markListingSold(
     signature,
     {
+      block_hash_listed = null,
       sold_block_id = 0,
       sold_block_hash = '',
       sold_transaction_id = 0,
@@ -282,6 +565,7 @@ class Database {
     } = {},
     now = Date.now()
   ) {
+    const inclusion = this.listingInclusionWhere(block_hash_listed);
     await this.app.storage.runDatabase(
       `UPDATE listings
 			 SET block_id_sold = $block_id_sold,
@@ -293,8 +577,9 @@ class Database {
 			     quantity_sold = $quantity_sold,
 			     sold_at = $sold_at,
 			     updated_at = $updated_at
-			 WHERE signature = $signature`,
+			 WHERE ${inclusion.sql}`,
       {
+        ...inclusion.params,
         $signature: signature,
         $block_id_sold: Number(sold_block_id ?? 0),
         $block_hash_sold: String(sold_block_hash || ''),
@@ -309,7 +594,8 @@ class Database {
     );
   }
 
-  async markListingSettlementPending(signature, now = Date.now()) {
+  async markListingSettlementPending(signature, block_hash_listed = null, now = Date.now()) {
+    const inclusion = this.listingInclusionWhere(block_hash_listed);
     await this.app.storage.runDatabase(
       `UPDATE listings
 			 SET block_id_sold = $block_id_sold,
@@ -317,11 +603,12 @@ class Database {
 			     transaction_id_sold = 0,
 			     longest_chain_sold = 0,
 			     updated_at = $updated_at
-			 WHERE signature = $signature
+			 WHERE ${inclusion.sql}
 			   AND longest_chain_listed = 1
 			   AND block_id_sold = 0
 			   AND longest_chain_sold = 0`,
       {
+        ...inclusion.params,
         $signature: signature,
         $block_id_sold: LISTING_SETTLEMENT_PENDING_BLOCK_ID,
         $updated_at: now
@@ -330,7 +617,21 @@ class Database {
     );
   }
 
-  async clearListingSettlementPending(signature, now = Date.now()) {
+  /**
+   * The pending marker itself identifies the reserved inclusion, so the signature
+   * clause stays; block_hash_listed narrows it further when the caller knows it.
+   */
+  async clearListingSettlementPending(signature, block_hash_listed = null, now = Date.now()) {
+    const params = {
+      $signature: signature,
+      $block_id_sold: LISTING_SETTLEMENT_PENDING_BLOCK_ID,
+      $updated_at: now
+    };
+    let inclusion_sql = '';
+    if (block_hash_listed !== null && block_hash_listed !== undefined) {
+      inclusion_sql = ' AND block_hash_listed = $block_hash_listed';
+      params.$block_hash_listed = String(block_hash_listed);
+    }
     await this.app.storage.runDatabase(
       `UPDATE listings
 			 SET block_id_sold = 0,
@@ -339,12 +640,8 @@ class Database {
 			     longest_chain_sold = 0,
 			     updated_at = $updated_at
 			 WHERE signature = $signature
-			   AND block_id_sold = $block_id_sold`,
-      {
-        $signature: signature,
-        $block_id_sold: LISTING_SETTLEMENT_PENDING_BLOCK_ID,
-        $updated_at: now
-      },
+			   AND block_id_sold = $block_id_sold${inclusion_sql}`,
+      params,
       this.dbname
     );
   }
@@ -452,6 +749,253 @@ class Database {
 				   AND longest_chain_listed = 1
 				   AND block_id_sold = 0
 				   AND longest_chain_sold = 0`;
+  }
+
+  async countPendingModerationListings() {
+    try {
+      const res = await this.app.storage.queryDatabase(
+        `SELECT COUNT(*) AS total FROM listings
+				 WHERE ${this.sellerListingWhere('active')}
+				   AND approved = 2`,
+        {},
+        this.dbname
+      );
+      return Number(res?.[0]?.total ?? 0) || 0;
+    } catch (err) {
+      return 0;
+    }
+  }
+
+  moderationSortClause(sort = 'created_at', direction = 'desc') {
+    const columns = {
+      seller: 'listings.seller',
+      title: "COALESCE(summary.title, '')",
+      price: 'listings.price',
+      created_at: 'listings.created_at',
+      listed: 'listings.created_at',
+      risk: `CASE listings.risk
+			  WHEN 'Dangerous' THEN 4
+			  WHEN 'High' THEN 3
+			  WHEN 'Medium' THEN 2
+			  WHEN 'Low' THEN 1
+			  ELSE 0
+			END`
+    };
+    const column = columns[String(sort || '').trim()] || columns.created_at;
+    const dir = String(direction || '').toLowerCase() === 'asc' ? 'ASC' : 'DESC';
+    return `${column} ${dir}, listings.signature ASC`;
+  }
+
+  async returnPendingModerationPage({
+    offset = 0,
+    page_size = 24,
+    sort = 'created_at',
+    direction = 'desc'
+  } = {}) {
+    const params = {
+      $limit: Math.max(1, Number(page_size) || 24),
+      $offset: Math.max(0, Number(offset) || 0)
+    };
+    const order = this.moderationSortClause(sort, direction);
+    try {
+      return await this.app.storage.queryDatabase(
+        `SELECT listings.* FROM listings
+				 LEFT JOIN summary
+				   ON summary.nft_id = listings.nft_id
+				  AND summary.price = listings.price
+				 WHERE ${this.sellerListingWhere('active')}
+				   AND listings.approved = 2
+				 ORDER BY ${order}
+				 LIMIT $limit OFFSET $offset`,
+        params,
+        this.dbname
+      );
+    } catch (err) {
+      return [];
+    }
+  }
+
+  /**
+   * Moderator action: 2 → 1 (approve) or 2 → -1 (reject).
+   * No-op / fail if the row is no longer pending.
+   * Decided on the canonical inclusion but written to every inclusion of the same
+   * transaction, so the decision survives a reorg back onto another inclusion.
+   */
+  async moderatePendingListing(signature, action = '') {
+    const sig = String(signature || '').trim();
+    const next = String(action || '').toLowerCase() === 'reject' ? -1 : 1;
+    if (!sig) {
+      return { ok: false, err: 'Listing signature required' };
+    }
+
+    const row = await this.returnCanonicalListingBySignature(sig);
+    if (!row) {
+      return { ok: false, err: 'Listing not found' };
+    }
+    if (Number(row.approved ?? 0) !== 2) {
+      return {
+        ok: false,
+        err: 'No longer pending',
+        approved: Number(row.approved ?? 0)
+      };
+    }
+
+    await this.app.storage.runDatabase(
+      `UPDATE listings SET approved = $approved
+			 WHERE signature = $signature AND approved = 2`,
+      { $signature: sig, $approved: next },
+      this.dbname
+    );
+
+    const updated = await this.returnCanonicalListingBySignature(sig);
+    const approved = Number(updated?.approved ?? 0);
+    if (approved !== next) {
+      return {
+        ok: false,
+        err: 'No longer pending',
+        approved
+      };
+    }
+    return { ok: true, approved };
+  }
+
+  /**
+   * Main Store eligibility: active listing AND (seller IN whitelist OR approved = 1).
+   * Empty whitelist is valid — approved listings still qualify.
+   */
+  marketplaceEligibilityClause(whitelist_sellers = []) {
+    const keys = [
+      ...new Set(
+        (Array.isArray(whitelist_sellers) ? whitelist_sellers : [])
+          .map((key) => String(key || '').trim())
+          .filter(Boolean)
+      )
+    ];
+    const params = {};
+    if (!keys.length) {
+      return { sql: 'approved = 1', params };
+    }
+
+    const placeholders = keys.map((key, i) => {
+      const name = `$seller_${i}`;
+      params[name] = key;
+      return name;
+    });
+    return {
+      sql: `(seller IN (${placeholders.join(', ')}) OR approved = 1)`,
+      params
+    };
+  }
+
+  async setListingApproved(signature, approved) {
+    const sig = String(signature || '').trim();
+    if (!sig) {
+      return false;
+    }
+    const flag = approved ? 1 : 0;
+    await this.app.storage.runDatabase(
+      `UPDATE listings SET approved = $approved WHERE signature = $signature`,
+      { $signature: sig, $approved: flag },
+      this.dbname
+    );
+    const row = await this.returnCanonicalListingBySignature(sig);
+    return Number(row?.approved ?? 0) === flag;
+  }
+
+  /**
+   * Seller submission: 0 → 2, -1 → 2. Already pending/approved is a no-op.
+   * Never writes 1 or -1.
+   */
+  async submitListingForMainStore(signature) {
+    const sig = String(signature || '').trim();
+    if (!sig) {
+      return { ok: false, err: 'Listing signature required' };
+    }
+
+    const row = await this.returnCanonicalListingBySignature(sig);
+    if (!row) {
+      return { ok: false, err: 'Listing not found' };
+    }
+
+    const current = Number(row.approved ?? 0);
+    if (current === 1 || current === 2) {
+      return { ok: true, approved: current, unchanged: true };
+    }
+    if (current !== 0 && current !== -1) {
+      return { ok: false, err: 'Unable to submit listing' };
+    }
+
+    await this.app.storage.runDatabase(
+      `UPDATE listings SET approved = 2 WHERE signature = $signature AND approved IN (0, -1)`,
+      { $signature: sig },
+      this.dbname
+    );
+
+    const updated = await this.returnCanonicalListingBySignature(sig);
+    const next = Number(updated?.approved ?? 0);
+    if (next === 2) {
+      return { ok: true, approved: 2 };
+    }
+    if (next === 1) {
+      return { ok: true, approved: 1, unchanged: true };
+    }
+    return { ok: false, err: 'Unable to submit listing' };
+  }
+
+  async countMarketplaceListings({ whitelist_sellers = [], category = '' } = {}) {
+    const filter = String(category || '').trim();
+    const eligibility = this.marketplaceEligibilityClause(whitelist_sellers);
+    const params = { ...eligibility.params };
+    let category_sql = '';
+    if (filter) {
+      category_sql = ' AND category = $category';
+      params.$category = filter;
+    }
+    try {
+      const res = await this.app.storage.queryDatabase(
+        `SELECT COUNT(*) AS total FROM listings
+				 WHERE ${this.sellerListingWhere('active')}
+				   AND ${eligibility.sql}${category_sql}`,
+        params,
+        this.dbname
+      );
+      return Number(res?.[0]?.total ?? 0) || 0;
+    } catch (err) {
+      return 0;
+    }
+  }
+
+  async returnMarketplaceListingsPage({
+    whitelist_sellers = [],
+    category = '',
+    offset = 0,
+    page_size = 24
+  } = {}) {
+    const filter = String(category || '').trim();
+    const eligibility = this.marketplaceEligibilityClause(whitelist_sellers);
+    const params = {
+      ...eligibility.params,
+      $limit: Math.max(1, Number(page_size) || 24),
+      $offset: Math.max(0, Number(offset) || 0)
+    };
+    let category_sql = '';
+    if (filter) {
+      category_sql = ' AND category = $category';
+      params.$category = filter;
+    }
+    try {
+      return await this.app.storage.queryDatabase(
+        `SELECT * FROM listings
+				 WHERE ${this.sellerListingWhere('active')}
+				   AND ${eligibility.sql}${category_sql}
+				 ORDER BY CASE WHEN updated_at > 0 THEN updated_at ELSE created_at END DESC, signature ASC
+				 LIMIT $limit OFFSET $offset`,
+        params,
+        this.dbname
+      );
+    } catch (err) {
+      return [];
+    }
   }
 
   async countListingsForSeller({ seller = '', status = 'active', category = '' } = {}) {
@@ -729,8 +1273,11 @@ class Database {
   // --- orders ---
 
   async insertOrder(order) {
-    await this.app.storage.runDatabase(
-      `INSERT INTO orders (
+    // OR IGNORE makes re-delivery of an inclusion already on record an intentional
+    // no-op; both unique indexes are inclusion-scoped, so a conflict can only mean
+    // this exact (order_tx_sig, block_hash_received) row already exists.
+    const res = await this.app.storage.runDatabase(
+      `INSERT OR IGNORE INTO orders (
 			  order_tx_sig, buyer, nft_id, price, quantity, note,
 			  payment_tx_sig, payment_output_index, payment_amount, utxo_slip,
 			  access_hash, access_script, p2sh_address,
@@ -752,6 +1299,7 @@ class Database {
       order,
       this.dbname
     );
+    return Number(res?.changes ?? 0);
   }
 
   async updateOrder(order_id, fields = {}, now = Date.now()) {
@@ -803,9 +1351,17 @@ class Database {
     return Number(res?.[0]?.attempts ?? 0);
   }
 
+  /**
+   * The canonical inclusion of a purchase transaction. Prefers the longest-chain row;
+   * the block_id tiebreak only matters while a reorg notification is still in flight,
+   * where the newest inclusion is the one the chain is converging on.
+   */
   async returnOrderByTxSig(order_tx_sig) {
     const res = await this.app.storage.queryDatabase(
-      `SELECT * FROM orders WHERE order_tx_sig = $order_tx_sig LIMIT 1`,
+      `SELECT * FROM orders
+			 WHERE order_tx_sig = $order_tx_sig
+			 ORDER BY longest_chain_received DESC, block_id_received DESC, id DESC
+			 LIMIT 1`,
       { $order_tx_sig: order_tx_sig },
       this.dbname
     );
@@ -838,9 +1394,13 @@ class Database {
   async returnSettlingOrders() {
     try {
       return await this.app.storage.queryDatabase(
+        // An orphaned inclusion can be left in 'settling' with a settlement that can
+        // never confirm. Excluding it stops it reserving its listing in
+        // resetStaleSettlementPendingListings().
         `SELECT * FROM orders
 				 WHERE status = 'settling'
-				   AND settlement_tx_sig != ''`,
+				   AND settlement_tx_sig != ''
+				   AND longest_chain_received = 1`,
         {},
         this.dbname
       );
@@ -852,9 +1412,21 @@ class Database {
   async returnPendingOrders() {
     try {
       return await this.app.storage.queryDatabase(
+        // id ASC keeps the queue first-come-first-served across distinct purchases.
+        // The NOT EXISTS clause only bites if two inclusions of one purchase are both
+        // flagged longest-chain, which a reorg notification landing before the
+        // confirmation insert can cause; the newer inclusion is the correct one.
         `SELECT * FROM orders
 				 WHERE status IN ('pending', 'settling')
 				   AND longest_chain_received = 1
+				   AND NOT EXISTS (
+				     SELECT 1 FROM orders newer
+				     WHERE newer.order_tx_sig = orders.order_tx_sig
+				       AND newer.longest_chain_received = 1
+				       AND (newer.block_id_received > orders.block_id_received
+				            OR (newer.block_id_received = orders.block_id_received
+				                AND newer.id > orders.id))
+				   )
 				 ORDER BY id ASC`,
         {},
         this.dbname

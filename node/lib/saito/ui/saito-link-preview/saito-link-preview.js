@@ -43,6 +43,11 @@ class SaitoLinkPreview {
 
   render() {
     if (this.url) {
+      if (!this.container) {
+        console.warn('SaitoLinkPreview: empty container, skipping render');
+        return;
+      }
+
       let qs = this.container + ' > .saito-link-preview';
 
       if (document.querySelector(qs)) {

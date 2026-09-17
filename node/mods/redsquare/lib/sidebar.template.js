@@ -19,7 +19,7 @@ module.exports = (sidebar) => {
   //   .redsquare-leaderboard → League Leaderboard
   //   .redsquare-sidebar     → remaining peers (e.g. Limbo)
   // Who to Follow remains a Sidebar-owned presentation slot until a recommendation
-  // module owns it. Header/surface classes match Chats + Leaderboard (Saito primitives).
+  // module owns it. Header/surface classes match Contacts + Leaderboard (Saito primitives).
   return `
       <!-- Search UI parked: styling kept in sidebar.css; re-enable when search is wired up.
       <div class="search">

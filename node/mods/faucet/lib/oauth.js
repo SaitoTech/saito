@@ -9,23 +9,21 @@ class FaucetOAuth {
     this.app = app;
     this.mod = mod;
 
-    // BEGIN TEMP_OAUTH_CONFIG — runtime OAuth client secrets (in-memory only).
-    // Remove when production environment secrets are available.
+    // Restored from server options during Faucet initialization.
     this.secret_github = null;
     this.secret_twitter = null;
-    // END TEMP_OAUTH_CONFIG
 
     this.github = {
-      client_id: 'Ov23liMPm8lCgwlK1eHq',
+      client_id: 'Ov23limOzW982I05opK6',
       authorize_url: 'https://github.com/login/oauth/authorize',
-      callback_url: 'https://staging.saito.io/faucet/oauth',
+      callback_url: 'https://saito.io/faucet/oauth',
       scope: 'read:user'
     };
 
     this.twitter = {
-      client_id: 'YTNhRklWa1hvbmh6Q2FkX0k0SWo6MTpjaQ',
+      client_id: 'bjdRdG5tcTBnRFY4S0hJeHRvazk6MTpjaQ',
       authorize_url: 'https://twitter.com/i/oauth2/authorize',
-      callback_url: 'https://staging.saito.io/faucet/oauth/twitter',
+      callback_url: 'https://saito.io/faucet/oauth/twitter',
       scope: 'users.read tweet.read'
     };
   }
