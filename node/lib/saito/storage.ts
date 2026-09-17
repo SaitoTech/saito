@@ -510,8 +510,6 @@ class Storage {
     await this.clearCacheStorage();
     await this.unregisterServiceWorkers();
 
-    // deleteAllIndexedDatabases() nulls this.localDB; recreate the connection
-    // so loadLocalApplications / saveLocalApplication work without a reload.
     try {
       await this.initializeApplicationDB();
     } catch (err) {
@@ -640,7 +638,7 @@ class Storage {
     }
   }
 
-  async saveLocalApplication(mod, bin) {
+  async installLocalApplication(mod, bin, nft_id = '' , nft_tx_sig = '') {
     if (!this.app.BROWSER) {
       return;
     }
@@ -649,6 +647,8 @@ class Storage {
       let obj = {
         mod: mod,
         binary: bin,
+        nft_id: nft_id || '',
+        nft_tx_sig: nft_tx_sig || '',
         created_at: new Date().getTime(),
         updated_at: new Date().getTime()
       };
@@ -690,17 +690,19 @@ class Storage {
     }
   }
 
-  async removeLocalApplication(mod_slug = null) {
+  async uninstallLocalApplication(mod_slug = null, nft_tx_sig = null) {
     try {
       if (!this.app.BROWSER) {
         return;
       }
 
+      const where = nft_tx_sig
+        ? { nft_tx_sig: nft_tx_sig }
+        : { mod: mod_slug };
+
       let rowsDeleted = await this.localDB.remove({
         from: 'dyn_mods',
-        where: {
-          mod: mod_slug
-        }
+        where
       });
 
       return rowsDeleted;
@@ -738,6 +740,8 @@ class Storage {
           id: { primaryKey: true, autoIncrement: true },
           mod: { dataType: 'string', default: '' },
           binary: { dataType: 'string', default: '' },
+	  nft_id: { dataType: 'string', default: '' },
+	  nft_tx_sig: { dataType: 'string', default: '' },
           created_at: { dataType: 'number', default: 0 },
           updated_at: { dataType: 'number', default: 0 }
         }

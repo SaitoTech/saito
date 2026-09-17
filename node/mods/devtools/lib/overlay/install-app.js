@@ -48,7 +48,7 @@ class AddAppOverlay {
           // prompt user if they want to overwrite or cancel install
           if (c) {
             // remove old application
-            await this_self.app.storage.removeLocalApplication(this_self.slug);
+            await this_self.app.storage.uninstallLocalApplication(this_self.slug);
             await this_self.installApp();
           } else {
             this_self.overlay.close();
@@ -65,7 +65,7 @@ class AddAppOverlay {
 
   async installApp() {
     let this_self = this;
-    await this_self.app.storage.saveLocalApplication(this_self.name.toLowerCase(), this_self.bin);
+    await this_self.app.storage.installLocalApplication(this_self.name.toLowerCase(), this_self.bin);
 
     salert('Applicaton saved. Reloading page...');
     this_self.overlay.close();

@@ -47,6 +47,7 @@ class SaitoNFT {
     this.json = '';
     this.js = '';
     this.css = '';
+    this.saito = ''; // application
 
     //
     // UI helpers
@@ -286,7 +287,12 @@ class SaitoNFT {
       processed = true;
     }
 
-    if (Object.keys(this.data).length > 1) {
+    if (typeof this.data.saito !== 'undefined') {
+      this.saito = this.data.saito;
+      processed = true;
+    }
+
+    if (Object.keys(this.data).length > 1 && !this.saito) {
       if (has_image) {
         if (Object.keys(this.data).length > 2) {
           this.json = JSON.stringify(this.data, null, 2);
@@ -421,6 +427,12 @@ class SaitoNFT {
         return this.nft_type;
       }
     }
+
+    if (this.saito && String(this.saito).trim() !== '') {
+      this.nft_type = 'saito-app';
+      return 'saito-app';
+    }
+
     const properties = ['image', 'text', 'json', 'js', 'css'];
 
     for (const prop of properties) {
@@ -485,7 +497,7 @@ class SaitoNFT {
     if (this.returnModuleMediaDisplay()) {
       return true;
     }
-    return !!(this.js || this.css || this.text || this.json);
+    return !!(this.js || this.css || this.text || this.json || this.saito);
   }
 
   isMediaLoading() {
@@ -546,6 +558,15 @@ class SaitoNFT {
       return {
         backgroundImage: '',
         innerHtml: `<div class="saito-nft-card-text">${esc(this.json)}</div>`,
+        loading: false,
+        failed: false
+      };
+    }
+
+    if (this.saito) {
+      return {
+        backgroundImage: '',
+        innerHtml: '<i class="fa-solid fa-file-arrow-up"></i>',
         loading: false,
         failed: false
       };

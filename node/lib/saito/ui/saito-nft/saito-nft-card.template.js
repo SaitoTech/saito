@@ -1,6 +1,6 @@
 module.exports = (app, mod, nft) => {
   const units = Number(nft.getTotalAmount()).toLocaleString();
-  const can_toggle = !!(nft.css || nft.js);
+  const can_toggle = !!(nft.css || nft.js || nft.returnType() === 'saito-app');
   const enabled = (app.options?.permissions?.nfts || []).includes(nft.tx_sig);
   const current = enabled ? 'Enabled' : 'Disabled';
   const alt = enabled ? 'Disabled' : 'Enabled';

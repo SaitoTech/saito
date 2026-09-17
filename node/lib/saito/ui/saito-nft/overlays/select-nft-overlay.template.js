@@ -3,6 +3,7 @@ const NFT_LIST_TYPE_OPTIONS = [
   { value: 'image', label: 'IMAGE NFTs' },
   { value: 'css', label: 'CSS THEMES' },
   { value: 'js', label: 'EXTENSIONS' },
+  { value: 'saito-app', label: 'Saito Application' },
   { value: 'vault-nft-key', label: 'ACCESS KEYS' }
 ];
 
