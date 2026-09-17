@@ -9,7 +9,7 @@ const legacySpecIgnores = [
 
 module.exports = {
   testEnvironment: 'node',
-  roots: ['<rootDir>/tests'],
+  roots: ['<rootDir>/tests', '<rootDir>/mods/registry/tests'],
   testMatch: ['**/*.spec.ts', '**/*.spec.js'],
   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json', 'node'],
   modulePathIgnorePatterns: ['<rootDir>/dist/'],

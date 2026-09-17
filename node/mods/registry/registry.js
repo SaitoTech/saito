@@ -2,6 +2,13 @@ const ModTemplate = require('./../../lib/templates/modtemplate');
 const RegisterUsernameOverlay = require('./lib/register-username');
 const PeerService = require('saito-js/lib/peer_service').default;
 const AppSettings = require('./lib/registry-settings');
+const {
+  MAX_IDENTIFIER_LENGTH,
+  validateUsername,
+  isBoundedIdentifier,
+  isRegistrationIdentifier,
+  boundedIdentifiers
+} = require('./lib/identifier');
 
 class Registry extends ModTemplate {
   constructor(app) {
@@ -172,16 +179,19 @@ class Registry extends ModTemplate {
     await super.initialize(app);
 
     if (this.app.BROWSER == 0) {
+      // Reapply the idempotent schema so existing installations get length guards.
+      const fs = app.storage.returnFileSystem();
+      await app.storage.executeDatabase(
+        fs.readFileSync(`${__dirname}/sql/records.sql`, 'utf8'),
+        'registry'
+      );
       const endpointHost = app.options?.server?.endpoint?.host || '';
       if (endpointHost.includes('localhost') || endpointHost.includes('testnet')) {
         this.registry_publickey = this.publicKey;
         console.log('Registry public key: ' + this.registry_publickey);
       }
     } else {
-      if (
-        window.location.host.includes('localhost') ||
-        window.location.host.includes('testnet')
-      ) {
+      if (window.location.host.includes('localhost') || window.location.host.includes('testnet')) {
         this.local_dev = true;
       } else {
         this.local_dev = false;
@@ -234,7 +244,7 @@ class Registry extends ModTemplate {
       const identifier = this.app.keychain.returnIdentifierByPublicKey(publickey);
 
       //returns "" if not found
-      if (identifier) {
+      if (isBoundedIdentifier(identifier)) {
         found_keys[publickey] = identifier;
       } else {
         missing_keys.push(publickey);
@@ -361,6 +371,12 @@ class Registry extends ModTemplate {
   // Throws errors for invalid identifier types
   //
   async tryRegisterIdentifier(identifier, domain = '@saito') {
+    if (identifier instanceof String) identifier = identifier.toString();
+    validateUsername(identifier);
+    if (typeof domain !== 'string' || !isRegistrationIdentifier(identifier + domain)) {
+      throw Error('Invalid registry identifier');
+    }
+
     let newtx = await this.app.wallet.createUnsignedTransactionWithDefaultFee(
       this.registry_publickey
     );
@@ -368,25 +384,14 @@ class Registry extends ModTemplate {
       throw Error('NULL TX CREATED IN REGISTRY MODULE');
     }
 
-    if (typeof identifier === 'string' || identifier instanceof String) {
-      var regex = /^[0-9A-Za-z]+$/;
-      if (!regex.test(identifier)) {
-        throw Error('Alphanumeric Characters only');
-      }
-      newtx.msg.module = 'Registry';
-      newtx.msg.request = 'register';
-      newtx.msg.identifier = identifier + domain;
+    newtx.msg.module = 'Registry';
+    newtx.msg.request = 'register';
+    newtx.msg.identifier = identifier + domain;
 
-      await newtx.sign();
-      await this.app.network.propagateTransaction(newtx);
+    await newtx.sign();
+    await this.app.network.propagateTransaction(newtx);
 
-      //console.log("REGISTRY tx: ", newtx);
-
-      // sucessful send
-      return true;
-    } else {
-      throw TypeError('identifier must be a string');
-    }
+    return true;
   }
 
   /**
@@ -412,7 +417,7 @@ class Registry extends ModTemplate {
     return this.app.network.sendRequestAsTransaction(
       'registry query',
       data,
-      mycallback,
+      (identifiers) => mycallback?.(boundedIdentifiers(identifiers)),
       peer.publicKey
     );
   }
@@ -482,6 +487,7 @@ class Registry extends ModTemplate {
             console.log('REGISTRY: Invalid identifier', myKey.identifier);
             return;
           }
+          if (!isRegistrationIdentifier(myKey.identifier)) return;
           registry_self.tryRegisterIdentifier(identifier[0], '@' + identifier[1]);
           console.log('REGISTRY: Attempting to register our name again');
           //}
@@ -503,6 +509,7 @@ class Registry extends ModTemplate {
         'registry',
         msg,
         (keys) => {
+          keys = boundedIdentifiers(keys);
           console.debug('Synching cached keys with peer: ', keys);
           for (let key in keys) {
             if (!this.cached_keys[key] || key == this.cached_keys[key]) {
@@ -553,7 +560,7 @@ class Registry extends ModTemplate {
     if (txmsg.request == 'registry') {
       if (txmsg.data.request === 'cached keys') {
         if (mycallback) {
-          mycallback(this.cached_keys);
+          mycallback(boundedIdentifiers(this.cached_keys));
         }
       }
     }
@@ -576,6 +583,8 @@ class Registry extends ModTemplate {
 
     if (Number(conf) == 0) {
       if (txmsg?.module === 'Registry') {
+        // Validate before logging, signing, or storing an untrusted registration.
+        if (!isRegistrationIdentifier(txmsg.identifier)) return;
         console.log(`REGISTRY: ${tx.from[0].publicKey} -> ${txmsg.identifier}`);
 
         /////////////////////////////////////////
@@ -662,6 +671,7 @@ class Registry extends ModTemplate {
       // OTHER SERVERS - mirror central DNS //
       ////////////////////////////////////////
       if (txmsg?.module == 'Email') {
+        if (!isBoundedIdentifier(txmsg.identifier)) return;
         console.log('REGISTRY EMAIL: ' + txmsg.title, 'to: ', tx.to[0].publicKey);
         console.log(tx);
 
@@ -755,9 +765,10 @@ class Registry extends ModTemplate {
     //
     if (keys.length > 0) {
       const where_statement = `publickey in ("${keys.join('","')}")`;
-      const sql = `SELECT * 
+      const sql = `SELECT publickey, identifier
                    FROM records
-                   WHERE ${where_statement}`;
+                   WHERE ${where_statement}
+                     AND length(identifier) <= ${MAX_IDENTIFIER_LENGTH}`;
 
       let rows = await this.app.storage.queryDatabase(sql, {}, 'registry');
       if (rows?.length > 0) {
@@ -840,6 +851,11 @@ class Registry extends ModTemplate {
       return 0;
     }
 
+    if (!isBoundedIdentifier(identifier)) {
+      mycallback([]);
+      return 0;
+    }
+
     if (this.publicKey == this.registry_publickey) {
       const sql = `SELECT * FROM records WHERE identifier = ?`;
 
@@ -878,6 +894,8 @@ class Registry extends ModTemplate {
     signer = '',
     lc = 1
   ) {
+    if (!isBoundedIdentifier(identifier)) return 0;
+
     let sql = `INSERT OR IGNORE INTO records (identifier,
                                     publickey,
                                     unixtime,
