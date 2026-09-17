@@ -12,8 +12,11 @@ module.exports = AddContact = {
   attachEvents(app, data) {
     document.getElementById('add-contact-add-button').onclick = () => {
       let publickey = document.getElementById('add-contact-publickey').value;
-      let encrypt_mod = app.modules.returnModule('Encrypt');
-      encrypt_mod.initiate_key_exchange(publickey);
+      app.keychain.addKey(publickey, { added: true });
+      let chat_mod = app.modules.returnModule('Chat');
+      if (chat_mod) {
+        chat_mod.returnOrCreateChatGroupFromMembers([chat_mod.publicKey, publickey]);
+      }
 
       AddContactComplete.render(app, data);
     };

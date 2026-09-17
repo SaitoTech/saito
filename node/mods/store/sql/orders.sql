@@ -36,11 +36,15 @@ CREATE TABLE IF NOT EXISTS orders (
   updated_at INTEGER DEFAULT 0
 );
 
-CREATE UNIQUE INDEX IF NOT EXISTS orders_order_tx_sig_uidx
-  ON orders (order_tx_sig);
+-- One row per block inclusion of a purchase transaction, so the payment slip of a
+-- reorged-out inclusion survives for a later reorg back onto that chain.
+CREATE UNIQUE INDEX IF NOT EXISTS orders_order_tx_sig_block_hash_uidx
+  ON orders (order_tx_sig, block_hash_received);
 
-CREATE UNIQUE INDEX IF NOT EXISTS orders_payment_utxo_uidx
-  ON orders (payment_tx_sig, payment_output_index);
+-- payment_tx_sig/payment_output_index are identical across forks; only the block
+-- inclusion distinguishes the fork-specific payment UTXO.
+CREATE UNIQUE INDEX IF NOT EXISTS orders_payment_utxo_block_hash_uidx
+  ON orders (payment_tx_sig, payment_output_index, block_hash_received);
 
 CREATE INDEX IF NOT EXISTS orders_pending_idx
   ON orders (status, longest_chain_received, id)

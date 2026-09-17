@@ -1,4 +1,4 @@
-module.exports = (message = '') => {
+module.exports = (message = '', code = '') => {
   const escapedMessage = String(message)
     .replaceAll('&', '&amp;')
     .replaceAll('<', '&lt;')
@@ -6,11 +6,11 @@ module.exports = (message = '') => {
     .replaceAll('"', '&quot;')
     .replaceAll("'", '&#039;');
 
-  if (escapedMessage) {
+  if (code !== 'insufficient_funds') {
     return `
       <div class="saito-purchase-error saito-overlay-panel saito-overlay-size narrow loader-interstitial-overlay">
         <div class="container-header">Payment Instructions Unavailable</div>
-        <div class="container-body">${escapedMessage}</div>
+        <div class="container-body">${escapedMessage || 'Unable to prepare payment instructions.'}</div>
         <div class="container-footer">Please close this notice and try again.</div>
       </div>
     `;

@@ -209,6 +209,8 @@ class SalesView {
       caption: 'Sales'
     });
 
+    this.attachBuyerCopyEvents(host);
+
     if (footer) {
       footer.hidden = false;
       footer.innerHTML = CatalogFooterTemplate({
@@ -221,6 +223,39 @@ class SalesView {
         onPage: (nextPage) => this.loadPage({ page: nextPage })
       });
     }
+  }
+
+  attachBuyerCopyEvents(host) {
+    if (!host) {
+      return;
+    }
+    host.querySelectorAll('[data-action="copy-buyer"]').forEach((btn) => {
+      btn.onclick = async (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const buyer = String(btn.getAttribute('data-buyer') || '').trim();
+        if (!buyer) {
+          return;
+        }
+        try {
+          if (navigator.clipboard?.writeText) {
+            await navigator.clipboard.writeText(buyer);
+          } else {
+            const ta = document.createElement('textarea');
+            ta.value = buyer;
+            document.body.appendChild(ta);
+            ta.select();
+            document.execCommand('copy');
+            ta.remove();
+          }
+          if (typeof siteMessage === 'function') {
+            siteMessage('Buyer address copied', 2000);
+          }
+        } catch (err) {
+          console.warn('Store: copy buyer address failed', err?.message || err);
+        }
+      };
+    });
   }
 }
 

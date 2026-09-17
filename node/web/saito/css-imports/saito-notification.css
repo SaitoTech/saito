@@ -5,11 +5,13 @@
   color: var(--saito-foreground);
 }
 
-.hamburger-container .saito-notification-dot {
+#saito-header-menu-toggle .saito-notification-dot {
   bottom: unset;
-  top: -20%;
-  left: unset;
-  right: -10%;
+  top: 0;
+  left: auto;
+  right: 0;
+  width: max-content;
+  z-index: 2;
 }
 
 /* Chat notification badges — left in shared bundle; chat ownership out of scope for this pass */
@@ -18,7 +20,7 @@
   width: 20%;
   height: 100%;
   display: flex;
-  right: 0.5rem;
+  right: 0.8rem;
   top: 0;
   justify-content: flex-end;
   align-items: center;

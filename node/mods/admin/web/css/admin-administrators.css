@@ -1,0 +1,80 @@
+.admin-administrators-header,
+.admin-administrators-list li,
+.admin-administrators-add,
+.admin-administrator-actions,
+.admin-administrator-labels {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.admin-administrators-header,
+.admin-administrators-list li {
+  justify-content: space-between;
+}
+
+.admin-administrators-header h1 {
+  margin: 0;
+}
+
+.admin-administrators-header {
+  margin-bottom: 20px;
+}
+
+.admin-administrators-list {
+  padding: 0;
+  list-style: none;
+  margin: 24px 0;
+}
+
+.admin-administrators-list li {
+  padding: 16px 0;
+  border-bottom: 1px solid #ddd;
+}
+
+.admin-administrator-identity,
+.admin-administrators-add .admin-input {
+  min-width: 0;
+  flex: 1;
+}
+
+.admin-administrator-key {
+  font-family: monospace;
+  overflow-wrap: anywhere;
+}
+
+.admin-administrator-badge {
+  font-size: 12px;
+  color: #2e7d32;
+  background: #e8f3ec;
+  border-radius: 4px;
+  padding: 2px 8px;
+}
+
+.admin-administrator-labels {
+  margin-top: 6px;
+}
+
+.admin-administrator-actions {
+  flex-shrink: 0;
+}
+
+.admin-administrators-error {
+  color: #a4262c;
+}
+
+.admin-administrators-notice {
+  color: #2e7d32;
+}
+
+.admin-administrators-add {
+  margin-top: 8px;
+}
+
+@media (max-width: 700px) {
+  .admin-administrators-list li,
+  .admin-administrators-add {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}

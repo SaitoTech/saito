@@ -12,7 +12,7 @@ module.exports = (composer) => {
               <button class="composer-tool" type="button" title="Poll"><i class="fa-solid fa-chart-simple"></i></button>
               <button class="composer-tool" type="button" title="Schedule"><i class="fa-regular fa-calendar"></i></button>
             </div>
-            <button class="composer-submit saito-button-primary small" type="button">Post</button>
+            <button class="composer-submit saito-button-primary small" type="button">Tweet</button>
           </div>
         </div>
       </div>

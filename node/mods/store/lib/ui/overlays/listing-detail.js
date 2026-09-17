@@ -7,16 +7,13 @@ const { summaryBucketKey } = require('../summary-cache');
 const { isStoreRentalListing } = require('../../categories');
 const { durationLabel, rightsLabel } = require('./rental-listing.template');
 const { yieldForPaint } = require('../purchase-service');
-
-function returnShortKey(key = '') {
-  if (!key) {
-    return 'anon-store';
-  }
-  if (key.length <= 18) {
-    return key;
-  }
-  return `${key.slice(0, 8)}...${key.slice(-8)}`;
-}
+const {
+  isAutoSubmitListings,
+  isSubmitToMainStoreChecked,
+  attachSubmitToMainStoreCheckbox,
+  offerAutoSubmitOptInIfNeeded,
+  scheduleSubmitAfterListingConfirmed
+} = require('../listing-approval');
 
 class ListingDetailOverlay {
   constructor(app, mod) {
@@ -28,6 +25,7 @@ class ListingDetailOverlay {
     this.summary = null;
     this.selectedNft = null;
     this.defaults = {};
+    this.preview = false;
     this.onBack = null;
     this.listing = {
       title: '',
@@ -120,6 +118,19 @@ class ListingDetailOverlay {
     return /[a-zA-Z]/.test(String(value));
   }
 
+  formatSaitoPriceDisplay(value, currency = 'SAITO') {
+    const raw = String(value ?? '').trim();
+    if (!raw || raw === 'N/A') {
+      return raw === 'N/A' ? 'N/A' : '';
+    }
+    const numeric = raw.replace(/SAITO/gi, '').replace(/,/g, '').trim();
+    if (!numeric || !Number.isFinite(Number(numeric))) {
+      return this.hasCurrencyLabel(raw) ? raw : `${raw} ${currency}`;
+    }
+    const formatted = Number(numeric).toLocaleString('en-US', { maximumFractionDigits: 8 });
+    return `${formatted} ${currency}`;
+  }
+
   returnProductType(summary = {}) {
     if (summary.type) {
       return summary.type;
@@ -139,10 +150,23 @@ class ListingDetailOverlay {
     return txmsg.listing || {};
   }
 
+  returnSellerDisplay(seller = '') {
+    const key = String(seller || '').trim();
+    if (!key) {
+      return { text: 'anon-store', isKey: false };
+    }
+    const identifier = this.app?.keychain?.returnIdentifierByPublicKey?.(key) || '';
+    if (identifier && identifier !== key) {
+      return { text: identifier, isKey: false };
+    }
+    return { text: key, isKey: true };
+  }
+
   returnViewModel(summary = {}) {
     const listingTitle = this.escapeHtml(summary.returnTitle?.() || 'Untitled Item');
-    const seller = summary.seller || 'anon-store';
-    const shortSeller = returnShortKey(seller);
+    const sellerKey = summary.returnSeller?.() || summary.seller || '';
+    const sellerDisplay = this.returnSellerDisplay(sellerKey);
+    const nftId = String(summary.nft_id || summary.nft?.id || summary.nft?.uuid || '').trim();
 
     const display = summary.returnMediaDisplay?.() || {};
     const listingImage =
@@ -174,22 +198,21 @@ class ListingDetailOverlay {
     const supply = summary.returnQuantity?.() || 1;
     const actionText = isRental ? 'Rent' : isBid ? 'Bid' : 'Buy';
     const description = this.escapeHtml(summary.returnDescription?.() || '');
-    const txid = String(summary.listing_signature || summary.nft_id || 'N/A');
-    const primaryDisplay = this.escapeHtml(
-      this.hasCurrencyLabel(primaryValue) ? String(primaryValue) : `${primaryValue} ${currency}`
-    );
-    const nextBidDisplay = this.escapeHtml(
-      this.hasCurrencyLabel(nextBid) ? String(nextBid) : `${nextBid} ${currency}`
-    );
+    const primaryDisplay = this.escapeHtml(this.formatSaitoPriceDisplay(primaryValue, currency));
+    const nextBidDisplay = this.escapeHtml(this.formatSaitoPriceDisplay(nextBid, currency));
 
     const durationHours = listingMeta.rental_duration_hours || summary.nft?.data?.duration_hours;
     const rights = listingMeta.rental_rights || summary.nft?.data?.rights || 'all';
 
     return {
-      identicon: this.escapeHtml(this.app?.keychain?.returnIdenticon?.(seller) || ''),
+      identicon: this.escapeHtml(
+        this.app?.keychain?.returnIdenticon?.(nftId || sellerKey) || ''
+      ),
       listingTitle,
-      seller: this.escapeHtml(seller),
-      shortSeller: this.escapeHtml(shortSeller),
+      nftId: this.escapeHtml(nftId),
+      nftIdDisplay: this.escapeHtml(nftId || '—'),
+      seller: this.escapeHtml(sellerDisplay.text),
+      sellerIsKey: sellerDisplay.isKey,
       images: normalizedImages,
       hasGallery: normalizedImages.length > 1,
       primaryLabel: this.escapeHtml(primaryLabel),
@@ -205,7 +228,6 @@ class ListingDetailOverlay {
       productType: this.escapeHtml(isRental ? 'store-nft-rental' : this.returnProductType(summary)),
       fileType: this.escapeHtml(this.returnFileTypeFromImages(rawImages)),
       createdDate: this.escapeHtml(this.returnCreatedDate(summary)),
-      txidShort: this.escapeHtml(returnShortKey(txid)),
       imageLoading: summary.isImageLoading?.() ?? false,
       isRental,
       rentalDuration: this.escapeHtml(durationHours ? durationLabel(durationHours) : ''),
@@ -232,11 +254,12 @@ class ListingDetailOverlay {
       nftIdenticon,
       mediaHtml: this.returnMediaHtml(nft),
       description: this.escapeHtml(this.listing.description),
-      priceDisplay: `${priceNum} SAITO`,
+      priceDisplay: this.formatSaitoPriceDisplay(priceNum),
       productType: this.escapeHtml(nft?.returnType?.() || 'NFT'),
       fileType: this.escapeHtml(this.returnFileTypeFromNft(nft)),
       createdDate: new Date().toLocaleDateString(),
-      supply: this.listing.quantity_total
+      supply: this.listing.quantity_total,
+      submitToMainStoreChecked: isAutoSubmitListings(this.app)
     };
   }
 
@@ -296,8 +319,10 @@ class ListingDetailOverlay {
   /**
    * Open a listing for viewing: paint immediately, then load anything missing.
    * Callers that only need a repaint (media updates, etc.) should use render().
+   * preview: hide purchase controls (moderation inspect).
    */
-  open(summary) {
+  open(summary, { preview = false } = {}) {
+    this.preview = !!preview;
     this.render(summary);
     if (!(summary instanceof Summary)) {
       return;
@@ -347,6 +372,7 @@ class ListingDetailOverlay {
 
   renderEdit(nft, defaults = {}) {
     this.mode = 'edit';
+    this.listing_busy = false;
     this.defaults = defaults;
     this.selectedNft = nft?.nft || nft;
     this.resetListingFromNft(this.selectedNft);
@@ -404,6 +430,16 @@ class ListingDetailOverlay {
     }
 
     const buyBtn = root.querySelector('[data-action="buy"]');
+    if (this.preview) {
+      const checkout = root.querySelector('.checkout');
+      if (checkout) {
+        checkout.hidden = true;
+      }
+      if (buyBtn) {
+        buyBtn.disabled = true;
+      }
+      return;
+    }
     if (buyBtn) {
       buyBtn.onclick = async (e) => {
         e.preventDefault();
@@ -434,10 +470,12 @@ class ListingDetailOverlay {
   }
 
   attachEditEvents() {
-    const root = document.querySelector('.listing-detail.edit');
+    const root = document.querySelector('.listing-detail.edit:not(.rental-ready)');
     if (!root) {
       return;
     }
+
+    attachSubmitToMainStoreCheckbox(root, this.app);
 
     const openFieldEdit = (field) => {
       if (this.defaults?.locked?.includes(field.lockKey || field.name)) {
@@ -514,7 +552,8 @@ class ListingDetailOverlay {
         },
         apply: (cleaned) => {
           this.listing.price = cleaned;
-          root.querySelector('[data-field="price"]').textContent = `${cleaned} SAITO`;
+          root.querySelector('[data-field="price"]').textContent =
+            this.formatSaitoPriceDisplay(cleaned);
         }
       });
     });
@@ -565,7 +604,7 @@ class ListingDetailOverlay {
       this.listing.price = String(this.defaults.price);
       const priceEl = root.querySelector('[data-field="price"]');
       if (priceEl) {
-        priceEl.textContent = `${this.listing.price} SAITO`;
+        priceEl.textContent = this.formatSaitoPriceDisplay(this.listing.price);
       }
       if (this.defaults.locked?.includes('price')) {
         const affordance = root.querySelector('[data-edit="price"]');
@@ -613,14 +652,18 @@ class ListingDetailOverlay {
   }
 
   async submitListing() {
-    const submitBtn = document.querySelector(
-      '.listing-detail.edit:not(.rental-ready) [data-action="submit"]'
-    );
+    if (this.listing_busy) {
+      return;
+    }
+
+    const root = document.querySelector('.listing-detail.edit:not(.rental-ready)');
+    const submitBtn = root?.querySelector('[data-action="submit"]');
     if (submitBtn?.disabled) {
       return;
     }
 
     const restore = () => {
+      this.listing_busy = false;
       if (!submitBtn) {
         return;
       }
@@ -628,6 +671,16 @@ class ListingDetailOverlay {
       submitBtn.removeAttribute('aria-busy');
       submitBtn.textContent = 'Submit Listing';
     };
+
+    this.listing_busy = true;
+    const shouldSubmitToMainStore = isSubmitToMainStoreChecked(root);
+    if (shouldSubmitToMainStore) {
+      await offerAutoSubmitOptInIfNeeded(this.app);
+    }
+    if (this.overlay && this.overlay.visible === false) {
+      restore();
+      return;
+    }
 
     if (submitBtn) {
       submitBtn.disabled = true;
@@ -650,6 +703,9 @@ class ListingDetailOverlay {
       }
 
       this.beginListingProgress(tx);
+      if (shouldSubmitToMainStore) {
+        scheduleSubmitAfterListingConfirmed(this.app, this.mod, tx.signature);
+      }
     } catch (err) {
       console.error('Store: listing failed', err);
       restore();

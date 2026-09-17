@@ -7,16 +7,12 @@ module.exports = (ui) => {
     ? String(ui.error).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
     : '';
   const db_options = (ui.databases || [])
-    .map(
-      (name) =>
-        `<option value="${name}" ${name === ui.db ? 'selected' : ''}>${name}</option>`
-    )
+    .map((name) => `<option value="${name}" ${name === ui.db ? 'selected' : ''}>${name}</option>`)
     .join('');
 
   const table_options = (ui.tables || [])
     .map(
-      (name) =>
-        `<option value="${name}" ${name === ui.table ? 'selected' : ''}>${name}</option>`
+      (name) => `<option value="${name}" ${name === ui.table ? 'selected' : ''}>${name}</option>`
     )
     .join('');
 

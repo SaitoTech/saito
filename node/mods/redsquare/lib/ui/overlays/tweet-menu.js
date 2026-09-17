@@ -75,32 +75,53 @@ class TweetMenu {
 
   buildActions(tweet) {
     const username = tweet.username || tweet.handle || 'user';
-    const actions = [
-      {
-        id: 'hide',
-        icon: 'fa-eye-slash',
-        label: 'Hide this tweet',
-        handler: () => this.handleHide(tweet)
-      },
-      {
-        id: 'block',
-        icon: 'fa-ban',
-        label: `Block ${username}`,
-        handler: () => this.handleBlock(tweet)
-      },
-      {
-        id: 'report',
-        icon: 'fa-flag',
-        label: 'Report tweet',
-        handler: () => this.handleReport(tweet)
-      },
-      {
-        id: 'info',
-        icon: 'fa-circle-info',
-        label: 'Show info',
-        handler: () => this.handleShowInfo(tweet)
-      }
-    ];
+    const isMine = Boolean(tweet.publicKey && tweet.publicKey === this.mod.publicKey);
+    const actions = [];
+
+    if (isMine) {
+      actions.push(
+        {
+          id: 'edit',
+          icon: 'fa-pen',
+          label: 'Edit tweet',
+          handler: () => this.handleEdit(tweet)
+        },
+        {
+          id: 'delete',
+          icon: 'fa-trash',
+          label: 'Delete tweet',
+          handler: () => this.handleDelete(tweet)
+        }
+      );
+    } else {
+      actions.push(
+        {
+          id: 'hide',
+          icon: 'fa-eye-slash',
+          label: 'Hide this tweet',
+          handler: () => this.handleHide(tweet)
+        },
+        {
+          id: 'block',
+          icon: 'fa-ban',
+          label: `Block ${username}`,
+          handler: () => this.handleBlock(tweet)
+        },
+        {
+          id: 'report',
+          icon: 'fa-flag',
+          label: 'Report tweet',
+          handler: () => this.handleReport(tweet)
+        }
+      );
+    }
+
+    actions.push({
+      id: 'info',
+      icon: 'fa-circle-info',
+      label: 'Show info',
+      handler: () => this.handleShowInfo(tweet)
+    });
 
     const sourceSignature = tweet.tx?.signature || tweet.signature;
     const context = {
@@ -180,6 +201,49 @@ class TweetMenu {
     } catch (err) {
       console.error('RedSquare report failed:', err);
       siteMessage('Unable to report tweet', 2500);
+    }
+  }
+
+  handleEdit(tweet) {
+    if (!tweet?.signature || tweet.publicKey !== this.mod.publicKey) {
+      return;
+    }
+
+    this.mod.compose_overlay?.open({
+      mode: 'edit',
+      tweet,
+      text: tweet.text || ''
+    });
+  }
+
+  async handleDelete(tweet) {
+    if (!tweet?.signature || tweet.publicKey !== this.mod.publicKey) {
+      return;
+    }
+
+    try {
+      const keys = [];
+
+      for (const slip of tweet.tx?.to || []) {
+        if (slip?.publicKey && !keys.includes(slip.publicKey)) {
+          keys.push(slip.publicKey);
+        }
+      }
+
+      const unsigned = await this.mod.createDeleteTweetTransaction(
+        { tweet_id: tweet.signature },
+        keys
+      );
+      await unsigned.sign();
+      await this.app.network.propagateTransaction(unsigned);
+      await this.mod.receiveDeleteTweetTransaction(unsigned);
+      siteMessage(
+        'Delete Request Broadcast: it may take a minute for your request to propagate...',
+        4000
+      );
+    } catch (err) {
+      console.error('RedSquare delete failed:', err);
+      siteMessage('Unable to delete tweet', 2500);
     }
   }
 

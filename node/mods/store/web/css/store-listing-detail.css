@@ -123,6 +123,7 @@
 
 .listing-detail .creator {
   margin: 0;
+  max-width: 100%;
   font-family: var(--saito-font-mono, ui-monospace, monospace);
   font-size: 1.15rem;
   line-height: 1.35;
@@ -130,6 +131,68 @@
   word-break: break-all;
   overflow-wrap: anywhere;
   white-space: normal;
+  overflow: visible;
+  text-overflow: unset;
+}
+
+/* Buy overlay header — identicon matches title + NFT ID + seller stack */
+.listing-detail.view:not(.delist) > header {
+  align-items: flex-start;
+  gap: var(--saito-space-md);
+  padding: var(--saito-space-xl) 5.25rem var(--saito-space-xl) var(--saito-space-xl);
+}
+
+.listing-detail.view:not(.delist) > header .saito-identicon {
+  --listing-header-identicon: calc(
+    (var(--font-size-large) * 1.15) + 0.06rem + (2 * 1.15rem * 1.25) + (2 * 0.08rem)
+  );
+  width: var(--listing-header-identicon);
+  height: var(--listing-header-identicon);
+  min-width: var(--listing-header-identicon);
+  min-height: var(--listing-header-identicon);
+  margin: 0;
+}
+
+.listing-detail.view:not(.delist) .meta {
+  justify-content: flex-start;
+  gap: 0.08rem;
+}
+
+.listing-detail.view:not(.delist) .title {
+  margin: 0 0 0.06rem;
+  line-height: 1.15;
+}
+
+.listing-detail.view .meta-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  column-gap: 0.4rem;
+  row-gap: 0;
+  margin: 0;
+  max-width: 100%;
+  font-size: 1.15rem;
+  line-height: 1.25;
+}
+
+.listing-detail.view .meta-label {
+  flex: 0 0 auto;
+  color: var(--saito-muted-foreground);
+  font-family: var(--saito-font-medium);
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+.listing-detail.view .meta-value {
+  min-width: 0;
+  flex: 1 1 8rem;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.listing-detail.view .nft-id .meta-value,
+.listing-detail.view .seller .meta-value.is-key {
+  font-family: var(--saito-font-mono, ui-monospace, monospace);
 }
 
 .listing-detail > .body {
@@ -368,6 +431,26 @@
   padding-top: var(--saito-space-md);
 }
 
+.listing-detail .submit-main-store {
+  display: flex;
+  align-items: center;
+  gap: var(--saito-space-sm);
+  margin: 0;
+  font-size: var(--font-size-small);
+  line-height: 1.4;
+  color: var(--saito-muted-foreground);
+  cursor: pointer;
+  user-select: none;
+}
+
+.listing-detail .submit-main-store input {
+  width: 1.15rem;
+  height: 1.15rem;
+  margin: 0;
+  flex: 0 0 auto;
+  cursor: pointer;
+}
+
 .listing-detail .quantity {
   display: flex;
   flex-wrap: wrap;
@@ -401,6 +484,7 @@
   align-self: stretch;
   width: 100%;
   min-height: 2.75rem;
+  margin: 0;
 }
 
 /* Field-edit dialog — spacing on top of saito-overlay-form */
@@ -421,6 +505,10 @@
   }
 
   .listing-detail > header {
+    padding: var(--saito-space-lg) 5rem var(--saito-space-lg) var(--saito-space-lg);
+  }
+
+  .listing-detail.view:not(.delist) > header {
     padding: var(--saito-space-lg) 5rem var(--saito-space-lg) var(--saito-space-lg);
   }
 
@@ -469,6 +557,24 @@
     padding: var(--saito-space-md);
     padding-top: max(var(--saito-space-md), env(safe-area-inset-top, 0px));
     padding-right: 4.5rem;
+  }
+
+  .listing-detail.view:not(.delist) > header {
+    align-items: flex-start;
+    gap: var(--saito-space-md);
+    padding: var(--saito-space-md) 4.5rem var(--saito-space-md) var(--saito-space-md);
+    padding-top: max(var(--saito-space-md), env(safe-area-inset-top, 0px));
+  }
+
+  .listing-detail.view:not(.delist) > header .saito-identicon {
+    --listing-header-identicon: calc(
+      (var(--font-size-medium) * 1.15) + 0.06rem + (2 * 1.05rem * 1.2) + (2 * 0.08rem)
+    );
+  }
+
+  .listing-detail.view .meta-row {
+    font-size: 1.05rem;
+    line-height: 1.2;
   }
 
   .listing-detail .title {

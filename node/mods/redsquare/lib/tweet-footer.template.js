@@ -21,7 +21,7 @@ module.exports = ({ replies = 0, retweets = 0, likes = 0 } = {}) => {
           <i class="fa-solid fa-ellipsis"></i>
         </div>
       </div>
-      <div class="show-more" role="button" tabindex="0">Show more posts</div>
+      <div class="show-more" role="button" tabindex="0">Show more tweets</div>
     </footer>
   `;
 };

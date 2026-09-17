@@ -3,6 +3,13 @@ const SaitoNFT = require('../../../../../lib/saito/ui/saito-nft/saito-nft');
 const ListingFieldEdit = require('./listing-field-edit');
 const RentalListingTemplate = require('./rental-listing.template');
 const { yieldForPaint } = require('../purchase-service');
+const {
+  isAutoSubmitListings,
+  isSubmitToMainStoreChecked,
+  attachSubmitToMainStoreCheckbox,
+  offerAutoSubmitOptInIfNeeded,
+  scheduleSubmitAfterListingConfirmed
+} = require('../listing-approval');
 
 class RentalListingOverlay {
   constructor(app, mod) {
@@ -14,6 +21,7 @@ class RentalListingOverlay {
     this.onBack = null;
 
     this.phase = 'info';
+    this.listing_busy = false;
     this.defaults = {};
     // Source Vault rental NFT (vault-nft-rental) — never listed or modified.
     this.source_nft = null;
@@ -240,9 +248,11 @@ class RentalListingOverlay {
       rights: this.form.rights || 'all',
       amount: this.form.amount,
       createdDate: new Date().toLocaleDateString(),
-      mediaHtml: this.returnMediaHtml(nft)
+      mediaHtml: this.returnMediaHtml(nft),
+      submitToMainStoreChecked: isAutoSubmitListings(this.app)
     };
 
+    this.listing_busy = false;
     this.overlay.show(RentalListingTemplate.readyTemplate(view), () => {
       if (typeof this.defaults?.callback === 'function') {
         this.defaults.callback({ status: 'cancelled' });
@@ -306,6 +316,8 @@ class RentalListingOverlay {
     if (!root) {
       return;
     }
+
+    attachSubmitToMainStoreCheckbox(root, this.app);
 
     // Duration / rights / amount are fixed after mint — only presentation + listing price/title/desc.
 
@@ -544,15 +556,18 @@ class RentalListingOverlay {
       siteMessage('Create the rental NFT before listing.', 3000);
       return;
     }
+    if (this.listing_busy) {
+      return;
+    }
 
-    const submitBtn = document.querySelector(
-      '.listing-detail.edit.rental-ready [data-action="submit"]'
-    );
+    const root = document.querySelector('.listing-detail.edit.rental-ready');
+    const submitBtn = root?.querySelector('[data-action="submit"]');
     if (submitBtn?.disabled) {
       return;
     }
 
     const restore = () => {
+      this.listing_busy = false;
       if (!submitBtn) {
         return;
       }
@@ -560,6 +575,16 @@ class RentalListingOverlay {
       submitBtn.removeAttribute('aria-busy');
       submitBtn.textContent = 'List on Store';
     };
+
+    this.listing_busy = true;
+    const shouldSubmitToMainStore = isSubmitToMainStoreChecked(root);
+    if (shouldSubmitToMainStore) {
+      await offerAutoSubmitOptInIfNeeded(this.app);
+    }
+    if (this.overlay && this.overlay.visible === false) {
+      restore();
+      return;
+    }
 
     if (submitBtn) {
       submitBtn.disabled = true;
@@ -602,6 +627,9 @@ class RentalListingOverlay {
       }
 
       this.beginListingProgress(tx, listing);
+      if (shouldSubmitToMainStore) {
+        scheduleSubmitAfterListingConfirmed(this.app, this.mod, tx.signature);
+      }
     } catch (err) {
       console.error('Store: rental listing failed', err);
       restore();

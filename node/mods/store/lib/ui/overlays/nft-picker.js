@@ -48,6 +48,53 @@ class NftPickerOverlay {
     return isSellableNftType(nft_type);
   }
 
+  /**
+   * One card per NFT id. Fractional slips of the same NFT share an id and
+   * collide on #nft-card-${uuid}; keep the first record and let SaitoNFT
+   * aggregate units via returnAllSlips / getTotalAmount.
+   */
+  dedupeNftRecords(nft_list = []) {
+    const seen = new Set();
+    const unique = [];
+    for (const rec of nft_list) {
+      const id = rec?.id;
+      if (id == null || id === '') {
+        unique.push(rec);
+        continue;
+      }
+      const key = String(id);
+      if (seen.has(key)) {
+        continue;
+      }
+      seen.add(key);
+      unique.push(rec);
+    }
+    return unique;
+  }
+
+  hasNftPayload(nft) {
+    return !!(nft?.tx || nft?.image || nft?.text || nft?.js || nft?.css || nft?.json);
+  }
+
+  /**
+   * Prefer the picker card already hydrated from archive (same id), not a
+   * sibling slip instance that still has an empty image/tx.
+   */
+  resolveSelectedNft(nft) {
+    const incoming = nft?.nft || nft;
+    if (!incoming) {
+      return incoming;
+    }
+    const id = incoming.id;
+    if (id == null || id === '') {
+      return incoming;
+    }
+
+    const cards = this.card_list.filter((card) => String(card?.nft?.id) === String(id));
+    const hydrated = cards.find((card) => this.hasNftPayload(card.nft)) || cards[0];
+    return hydrated?.nft || incoming;
+  }
+
   attachModeEvents() {
     const select = document.querySelector('.nft-picker [data-listing-mode-select]');
     if (!select) {
@@ -73,11 +120,38 @@ class NftPickerOverlay {
     }
 
     await this.app.wallet.updateNFTList();
-    const nft_list = (this.app.options.wallet.nfts || []).filter((rec) =>
-      this.matchesListingMode(this.returnRecordType(rec))
+    const nft_list = this.dedupeNftRecords(
+      (this.app.options.wallet.nfts || []).filter((rec) =>
+        this.matchesListingMode(this.returnRecordType(rec))
+      )
     );
 
-    this.card_list = [];
+    this.card_list.forEach((card) => {
+      card.delete_me = true;
+    });
+
+    for (const rec of nft_list) {
+      const existing = this.card_list.find(
+        (card) => rec?.id != null && rec.id !== '' && String(card?.nft?.id) === String(rec.id)
+      );
+      if (existing) {
+        existing.callback = (nft) => this.handleSelect(nft);
+        delete existing.delete_me;
+        continue;
+      }
+      this.card_list.push(
+        new SaitoNFTCard(this.app, this.mod, '.nft-picker [data-nft-grid]', null, rec, (nft) =>
+          this.handleSelect(nft)
+        )
+      );
+    }
+
+    for (let i = this.card_list.length - 1; i >= 0; i--) {
+      if (this.card_list[i].delete_me) {
+        this.card_list.splice(i, 1);
+      }
+    }
+
     container.innerHTML = '';
 
     if (!nft_list.length) {
@@ -102,18 +176,7 @@ class NftPickerOverlay {
       instructionsEl.innerHTML = '';
     }
 
-    for (const rec of nft_list) {
-      const card = new SaitoNFTCard(
-        this.app,
-        this.mod,
-        '.nft-picker [data-nft-grid]',
-        null,
-        rec,
-        (nft) => {
-          this.handleSelect(nft);
-        }
-      );
-      this.card_list.push(card);
+    for (const card of this.card_list) {
       await card.render();
     }
   }
@@ -162,9 +225,9 @@ class NftPickerOverlay {
   }
 
   async handleSelect(nft) {
-    const selected = nft?.nft || nft;
+    const selected = this.resolveSelectedNft(nft);
 
-    if (selected && (!selected.tx_fetched || !selected.image)) {
+    if (selected && !this.hasNftPayload(selected) && typeof selected.fetchTransaction === 'function') {
       await new Promise((resolve) => {
         let settled = false;
         const finish = () => {

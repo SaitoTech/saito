@@ -1,6 +1,5 @@
 /**
  * Persist Faucet mode flags in app.options.faucet.mode.
- * OAuth secrets stay in memory; only enabled-mode flags are saved.
  */
 
 function normalizeMode(mode = {}) {

@@ -165,6 +165,16 @@ function splitTableDefinition(createSql) {
       }
       continue;
     }
+    if (character === '-' && createSql[i + 1] === '-') {
+      const end = createSql.indexOf('\n', i + 2);
+      i = end === -1 ? createSql.length : end;
+      continue;
+    }
+    if (character === '/' && createSql[i + 1] === '*') {
+      const end = createSql.indexOf('*/', i + 2);
+      i = end === -1 ? createSql.length : end + 1;
+      continue;
+    }
     if (["'", '"', '`', '['].includes(character)) {
       quote = character;
     } else if (character === '(') {
@@ -420,7 +430,7 @@ function diffSchemas(expected, actual) {
   return [...new Set(differences)];
 }
 
-function planRepairs(result) {
+function planRepairs(result, ignoreColumnOrder = false) {
   const operations = [];
   const { expected, actual, artifacts } = result;
 
@@ -438,8 +448,10 @@ function planRepairs(result) {
         (columnName, index) => expectedNames[index] === columnName
       );
 
-      if (actualIsExpectedPrefix) {
-        for (const column of expectedTable.columns.slice(actualNames.length)) {
+      if (ignoreColumnOrder || actualIsExpectedPrefix) {
+        for (const column of expectedTable.columns.filter(
+          (column) => !actualNames.includes(column.name)
+        )) {
           const clause = artifacts.columns[tableName] && artifacts.columns[tableName][column.name];
           const unsafeConstraint =
             !clause ||
@@ -714,7 +726,21 @@ async function main() {
   if (createFailures || repairFailures || remainingDifferent.size) process.exitCode = 1;
 }
 
-main().catch((error) => {
-  console.error(`module-databases: ${error.message}`);
-  process.exitCode = 2;
-});
+module.exports = {
+  loadModuleConfig,
+  moduleDefinition,
+  expectedSchema,
+  describeDatabase,
+  repairArtifacts,
+  planRepairs,
+  quoteIdentifier,
+  quoteSqlString,
+  columnDefinitions
+};
+
+if (require.main === module) {
+  main().catch((error) => {
+    console.error(`module-databases: ${error.message}`);
+    process.exitCode = 2;
+  });
+}

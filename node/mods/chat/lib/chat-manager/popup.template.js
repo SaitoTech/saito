@@ -32,6 +32,14 @@ module.exports = (app, mod, group, isStatic = false) => {
     }
   }
 
+  let unknown_contact = '';
+  if (dm && dm_counterparty) {
+    const key = app.keychain.returnKey(dm_counterparty, true);
+    if (!key?.added) {
+      unknown_contact = `<div class="chat-unknown-contact">unknown contact -- <span class="chat-unknown-contact-add" data-publickey="${app.browser.escapeHTML(dm_counterparty)}">add user</span></div>`;
+    }
+  }
+
   let html = `<div class="${class_name} chat-popup ${dm ? 'saito-dm-chat' : ''}" id="chat-popup-${group.id}">
           			<div class="chat-header" id="chat-header-${group.id}">
 			            	<div class="chat-mobile-back"><i class="fa-solid fa-arrow-left"></i></div>
@@ -49,6 +57,7 @@ module.exports = (app, mod, group, isStatic = false) => {
 				            <i id="chat-container-close" class="chat-container-close fas fa-times"></i>
 			            </div>
 			          </div>
+          ${unknown_contact}
 
           <div class="chat-body">
             <!--div id="load-older-chats" class="saito-chat-button" data-id="${group.id}">check for earlier messages</div-->

@@ -201,9 +201,7 @@ class AdminDatabaseUI {
         const changes = result?.changes;
         this.status = `Statement on "${this.db}" completed.${
           typeof changes === 'number' ? ` ${changes} row${changes === 1 ? '' : 's'} changed.` : ''
-        }${
-          result?.lastID != null && result.lastID !== 0 ? ` lastID ${result.lastID}.` : ''
-        }`;
+        }${result?.lastID != null && result.lastID !== 0 ? ` lastID ${result.lastID}.` : ''}`;
       }
       this.refresh();
     });

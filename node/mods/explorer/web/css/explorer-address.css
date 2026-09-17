@@ -110,3 +110,84 @@
     font-size: var(--explorer-text-xs);
   }
 }
+
+.explorer-utxo-fields {
+  margin: 0;
+  border: 0;
+}
+
+.explorer-utxo-block-visit {
+  margin: 0 0 var(--explorer-space-4);
+  font-size: var(--explorer-text-sm);
+  line-height: var(--explorer-leading-relaxed);
+}
+
+.explorer-utxo-fields .explorer-tx-meta-value {
+  white-space: normal;
+  overflow-x: hidden;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.explorer-utxo-fields .explorer-utxo-public-key,
+.explorer-utxo-fields .explorer-pubkey-link {
+  display: inline;
+  overflow-wrap: anywhere;
+  word-break: break-all;
+}
+
+.explorer-utxo-status-panel {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 6.5rem;
+  margin: 0 0 var(--explorer-space-5);
+  padding: var(--explorer-space-5) var(--explorer-space-4);
+  border: 1px solid var(--explorer-border);
+  border-radius: var(--explorer-radius);
+  background-color: var(--explorer-muted);
+}
+
+.explorer-utxo-status-value {
+  margin: 0;
+  font-size: var(--explorer-text-2xl);
+  font-weight: var(--explorer-font-bold);
+  letter-spacing: var(--explorer-tracking-tight);
+  line-height: var(--explorer-leading-tight);
+  text-align: center;
+}
+
+.explorer-utxo-status-panel.explorer-utxo-status-spendable {
+  color: var(--explorer-positive);
+  background-color: color-mix(in oklch, var(--explorer-positive) 14%, var(--explorer-card));
+  border-color: color-mix(in oklch, var(--explorer-positive) 40%, var(--explorer-border));
+}
+
+.explorer-utxo-status-panel.explorer-utxo-status-spent {
+  color: var(--explorer-negative, var(--explorer-destructive));
+  background-color: color-mix(
+    in oklch,
+    var(--explorer-negative, var(--explorer-destructive)) 14%,
+    var(--explorer-card)
+  );
+  border-color: color-mix(
+    in oklch,
+    var(--explorer-negative, var(--explorer-destructive)) 40%,
+    var(--explorer-border)
+  );
+}
+
+.explorer-utxo-status-panel.explorer-utxo-status-not-found,
+.explorer-utxo-status-panel.explorer-utxo-status-zero-fee {
+  color: var(--explorer-muted-foreground);
+  background-color: var(--explorer-muted);
+  border-color: var(--explorer-border);
+}
+
+@media (min-width: 48rem) {
+  .explorer-utxo-status-value {
+    font-size: var(--explorer-text-3xl);
+  }
+}

@@ -5,16 +5,6 @@ const { DREAMSCAPE_PLACEHOLDER } = require('../../summary');
 const { loadTransactionFromArchive } = require('../../archive');
 const { isStoreRentalListing } = require('../../categories');
 
-function returnShortKey(key = '') {
-  if (!key) {
-    return 'anon-store';
-  }
-  if (key.length <= 18) {
-    return key;
-  }
-  return `${key.slice(0, 8)}...${key.slice(-8)}`;
-}
-
 function loadListingSpend(app, mod, signature = '') {
   return new Promise((resolve, reject) => {
     const peerKey = mod.store_public_key;
@@ -129,7 +119,7 @@ class DelistOverlay {
     return {
       identicon: this.escapeHtml(this.app?.keychain?.returnIdenticon?.(seller) || ''),
       listingTitle,
-      seller: this.escapeHtml(returnShortKey(seller)),
+      seller: this.escapeHtml(seller),
       images: normalizedImages,
       primaryLabel: this.escapeHtml(isRental ? 'Rental Price' : 'Price'),
       primaryDisplay,

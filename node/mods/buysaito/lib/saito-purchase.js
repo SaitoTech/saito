@@ -1,4 +1,5 @@
 const SaitoPurchaseTemplate = require('./saito-purchase.template');
+const SaitoPurchaseCompleteTemplate = require('./saito-purchase-complete.template');
 const SaitoPurchaseLoaderTemplate = require('./saito-purchase-loader.template');
 const SaitoPurchaseErrorTemplate = require('./saito-purchase-error.template');
 const SaitoPurchaseCryptoTemplate = require('./saito-purchase-select-crypto.template');
@@ -12,7 +13,8 @@ class SaitoPurchaseOverlay {
     this.app = app;
     this.mod = mod;
 
-    this.overlay = new SaitoOverlay(app, mod, false, true);
+    this.overlay = new SaitoOverlay(app, mod, true, true);
+    this.session = 0;
 
     //
     // init
@@ -24,7 +26,12 @@ class SaitoPurchaseOverlay {
     this.tx = null;
     this.recipient = '';
     this.description = '';
-    this.deposit_confirmed_by_user = false;
+    this.payment_detected = false;
+    this.internal_payment_pending = false;
+    this.internal_payment_sending = false;
+    this.reservation = null;
+    this.saito_issuance = null;
+    this.saito_receipts = new Map();
     this.reserved_until = 0;
     this.fancy_ui = true;
     this.active = false;
@@ -35,7 +42,7 @@ class SaitoPurchaseOverlay {
     this.stage1_footer_html = null;
     this.faucet_already_issued = null;
 
-    this.countdown_interval = null;
+    this.reservation_timer = null;
     this.payment_instruction_timer = null;
 
     this.ui_msg = '';
@@ -52,15 +59,41 @@ class SaitoPurchaseOverlay {
       this.updateSaitoIssued(data);
     });
 
+    app.connection.on('on-payment-received', (data) => {
+      this.receiveSaitoPayment(data);
+    });
+
+    app.connection.on('saito-purchase-payment-detected', (data) => {
+      this.receivePaymentDetected(data);
+    });
+
     app.connection.on('saito-purchase-address-reserved', (data) => {
       this.receivePaymentAddressFromServer(data);
     });
 
     app.connection.on('saito-purchase-error-notification', (data = {}) => {
+      if (!this.active) return;
+      if (data?.code === 'insufficient_funds') {
+        if (
+          !this.reservation ||
+          data.id !== this.reservation.id ||
+          data.ticker !== this.reservation.ticker ||
+          data.destination !== this.reservation.destination
+        )
+          return;
+        this.clearPaymentInstructionTimer();
+        this.clearReservationTimer();
+        // Keep the purchase session so a later payout can complete this overlay.
+        this.showOverlay(SaitoPurchaseErrorTemplate('', data.code));
+        return;
+      }
+      // An unclassified issuance error is not evidence that a refill is needed.
+      if (!data?.message) return;
       this.clearPaymentInstructionTimer();
+      this.clearReservationTimer();
+      this.reservation = null;
       this.overlay.close();
-      this.overlay.closebox = true;
-      this.overlay.show(SaitoPurchaseErrorTemplate(data?.message));
+      this.showOverlay(SaitoPurchaseErrorTemplate(data?.message));
     });
 
     app.connection.on(
@@ -77,7 +110,7 @@ class SaitoPurchaseOverlay {
         this.tx = tx;
 
         if (this.mod.available_currencies?.length == 0) {
-          this.overlay.show(SaitoPurchaseLoaderTemplate('Checking availability...'));
+          this.showOverlay(SaitoPurchaseLoaderTemplate('Checking availability...'));
           this.app.connection.emit('relay-send-message', {
             recipient: this.mod.authorized_public_key,
             request: 'buysaito available currencies',
@@ -101,7 +134,7 @@ class SaitoPurchaseOverlay {
 
         if (this.fancy_ui) {
           // More complicated but smoother transition while fetching info
-          this.overlay.show(SaitoPurchaseLoaderTemplate('Checking availability...'));
+          this.showOverlay(SaitoPurchaseLoaderTemplate('Checking availability...'));
           this.timer = setTimeout(() => {
             if (!this.active) {
               return;
@@ -134,9 +167,7 @@ class SaitoPurchaseOverlay {
   async render() {
     let self = this;
     const resumeStage =
-      this.acquisition_stage && this.acquisition_stage !== 'default'
-        ? this.acquisition_stage
-        : '';
+      this.acquisition_stage && this.acquisition_stage !== 'default' ? this.acquisition_stage : '';
 
     console.debug(
       'SaitoPurchaseOverlay Rendering...',
@@ -159,49 +190,31 @@ class SaitoPurchaseOverlay {
       //
       // 1. user selects crypto
       //
-      this.overlay.closebox = true;
-      this.overlay.show(SaitoPurchaseCryptoTemplate(this.app, this.mod, this));
+      this.showOverlay(SaitoPurchaseCryptoTemplate(this.app, this.mod, this));
     } else {
       if (!this.destination) {
         // 1.5 alternate amount selection
         if (!this.amount) {
-          this.overlay.show(SaitoPurchaseAmountTemplate(this.app, this.mod, this));
+          this.showOverlay(SaitoPurchaseAmountTemplate(this.app, this.mod, this));
         } else {
           //
           // 2. show loading screen after selecting crypto ticker
           //
-          this.overlay.show(SaitoPurchaseLoaderTemplate(this.ui_msg, ''));
+          this.showOverlay(SaitoPurchaseLoaderTemplate(this.ui_msg, ''));
         }
       } else {
         //
         // 3. Show address screen when deposit address is created/fetched
         //
-        if (!this.deposit_confirmed_by_user) {
-          this.overlay.show(SaitoPurchaseTemplate(this.app, this.mod, this));
-          this.overlay.blockClose('#confirm-purchase-btn');
+        if (!this.payment_detected && !this.internal_payment_sending) {
+          this.showOverlay(SaitoPurchaseTemplate(this.app, this.mod, this));
+          this.overlay.blockClose();
           this.app.browser.generateQRCode(this.destination, 'pqrcode');
-          this.startReservationCountdown(this.reserved_until);
-
-          if (this.crypto_selected.available_balance >= this.expected_deposit) {
-            let c = await sconfirm(
-              `Authorize ${this.expected_deposit} ${this.crypto_selected.ticker} payment from Saito Multiwallet balance?`
-            );
-            if (c) {
-              this.overlay.show(SaitoPurchaseLoaderTemplate('Sending Payment...'));
-              let success = await this.handleInternalTransfer();
-              if (success) {
-                this.overlay.closebox = true;
-                this.deposit_confirmed_by_user = true;
-                this.ui_msg = 'Polling network transfer...';
-                this.render();
-              }
-            }
-          }
         } else {
           //
-          // 4. Show loading screen when payment, deposited by user, is confirmed
+          // 4. Wait for detection of an internal transfer or issuance of SAITO.
           //
-          this.overlay.show(SaitoPurchaseLoaderTemplate(this.ui_msg));
+          this.showOverlay(SaitoPurchaseLoaderTemplate(this.ui_msg));
           this.overlay.blockClose();
         }
       }
@@ -241,9 +254,7 @@ class SaitoPurchaseOverlay {
     const options = (this.app.modules.getRespondTos('buysaito-options') || [])
       .filter(
         (opt) =>
-          opt &&
-          (opt.title || opt.text) &&
-          (typeof opt.callback === 'function' || opt.inline_stage)
+          opt && (opt.title || opt.text) && (typeof opt.callback === 'function' || opt.inline_stage)
       )
       .sort((a, b) => (a.rank || 0) - (b.rank || 0));
 
@@ -371,9 +382,7 @@ class SaitoPurchaseOverlay {
       footer.innerHTML = this.stage1_footer_html;
       this.stage1_footer_html = null;
     }
-    document
-      .getElementById('purchase-container')
-      ?.classList.remove('buysaito-stage-faucet-auth');
+    document.getElementById('purchase-container')?.classList.remove('buysaito-stage-faucet-auth');
 
     this.attachEvents();
   }
@@ -406,13 +415,8 @@ class SaitoPurchaseOverlay {
         Array.isArray(opt?.providers) && opt.providers.length
           ? opt.providers
           : this.defaultFaucetAuthProviders();
-      stageEl.innerHTML = SaitoPurchaseFaucetAuthTemplate(
-        providers,
-        opt?.auth_message
-      );
-      document
-        .getElementById('purchase-container')
-        ?.classList.add('buysaito-stage-faucet-auth');
+      stageEl.innerHTML = SaitoPurchaseFaucetAuthTemplate(providers, opt?.auth_message);
+      document.getElementById('purchase-container')?.classList.add('buysaito-stage-faucet-auth');
 
       // Host back-nav in the same footer slot as the migration note (main-screen height/rhythm).
       const footer = document.querySelector('#purchase-container .buysaito-footer-note');
@@ -478,9 +482,7 @@ class SaitoPurchaseOverlay {
    */
   exitAcquisitionStage() {
     const stageEl = document.getElementById('buysaito-stage');
-    document
-      .getElementById('purchase-container')
-      ?.classList.remove('buysaito-stage-faucet-auth');
+    document.getElementById('purchase-container')?.classList.remove('buysaito-stage-faucet-auth');
 
     const footer = document.querySelector('#purchase-container .buysaito-footer-note');
     if (footer && this.stage1_footer_html != null) {
@@ -501,10 +503,15 @@ class SaitoPurchaseOverlay {
 
     // Rebind Stage 1 interactions (crypto select, etc.) without re-showing overlay.
     this.attachEvents();
-
   }
 
   attachEvents() {
+    const walletPaymentButton = document.getElementById('pay-from-wallet-btn');
+    if (walletPaymentButton) {
+      const reservation = this.reservation;
+      walletPaymentButton.onclick = () => this.payFromWallet(reservation);
+    }
+
     //////////////////////
     // Select Crypto Form
     /////////////////////
@@ -520,12 +527,14 @@ class SaitoPurchaseOverlay {
           return;
         }
 
-        this.overlay.closebox = false;
         console.log(this.crypto_selected);
+        const session = this.session;
+        const currency = this.crypto_selected;
         await this.checkForLocalCrypto();
+        if (!this.active || this.session !== session || this.crypto_selected !== currency) return;
 
         if (this.amount) {
-          this.overlay.show(SaitoPurchaseLoaderTemplate('Requesting Payment Instructions...'));
+          this.showOverlay(SaitoPurchaseLoaderTemplate('Requesting Payment Instructions...'));
           this.requestPaymentAddressFromServer();
         } else {
           this.render();
@@ -597,7 +606,7 @@ class SaitoPurchaseOverlay {
           this.expected_deposit = expectedDeposit;
         }
 
-        this.overlay.show(SaitoPurchaseLoaderTemplate('Requesting Payment Instructions...'));
+        this.showOverlay(SaitoPurchaseLoaderTemplate('Requesting Payment Instructions...'));
         this.requestPaymentAddressFromServer();
       };
     }
@@ -617,38 +626,22 @@ class SaitoPurchaseOverlay {
         }, 800);
       };
     }
-
-    if (document.getElementById('cancel-purchase-btn')) {
-      document.getElementById('cancel-purchase-btn').onclick = async () => {
-        this.app.connection.emit('relay-send-message', {
-          recipient: this.mod.authorized_public_key,
-          request: 'buysaito release address',
-          data: { ticker: this.crypto_selected.ticker }
-        });
-        this.reset();
-        this.overlay.close();
-      };
-    }
-
-    if (document.getElementById('confirm-purchase-btn')) {
-      document.getElementById('confirm-purchase-btn').onclick = async () => {
-        this.overlay.closebox = true;
-        this.deposit_confirmed_by_user = true;
-        this.ui_msg = 'Polling pending payment...';
-        this.render();
-      };
-    }
   }
 
   async checkForLocalCrypto() {
+    const currency = this.crypto_selected;
+    const session = this.session;
     try {
-      let cm = this.app.wallet.returnCryptoModuleByTicker(this.crypto_selected.ticker);
+      let cm = this.app.wallet.returnCryptoModuleByTicker(currency.ticker);
 
       if (cm?.options?.isActivated) {
         // query balance again
         await cm.activate();
 
-        this.crypto_selected.available_balance = Number(await cm.getAvailableBalance());
+        const balance = Number(await cm.getAvailableBalance());
+        if (this.session === session && this.crypto_selected === currency) {
+          currency.available_balance = balance;
+        }
       }
     } catch (err) {
       console.error(err);
@@ -691,15 +684,49 @@ class SaitoPurchaseOverlay {
     return value !== '' && Number.isFinite(amount) && amount > 0;
   }
 
+  canPayFromWallet() {
+    const balance = Number(this.crypto_selected?.available_balance);
+    const deposit = Number(this.expected_deposit);
+    return (
+      Number.isFinite(balance) && Number.isFinite(deposit) && deposit > 0 && balance >= deposit
+    );
+  }
+
+  async payFromWallet(reservation) {
+    if (
+      !this.active ||
+      !this.overlay.visible ||
+      !reservation ||
+      this.reservation !== reservation ||
+      this.payment_detected ||
+      this.internal_payment_pending ||
+      Date.now() >= this.reserved_until ||
+      !this.canPayFromWallet()
+    ) {
+      return;
+    }
+
+    // Clicking the button authorizes one transfer of the quoted deposit amount.
+    this.internal_payment_pending = true;
+    this.internal_payment_sending = true;
+    this.ui_msg = 'Sending Payment...';
+    this.render();
+    const success = await this.handleInternalTransfer();
+    if (!this.active || this.reservation !== reservation || this.payment_detected) return;
+    this.internal_payment_sending = false;
+    this.internal_payment_pending = success;
+    this.render();
+  }
+
   async handleInternalTransfer() {
     try {
       let cm = this.app.wallet.returnCryptoModuleByTicker(this.crypto_selected.ticker);
       if (this.destination && this.mixin_id) {
         let to_address = this.destination + '|' + this.mixin_id + '|mixin';
         let res = await cm.sendPayment(this.expected_deposit, to_address, 'success');
-        if (res == 'success') {
-          return true;
-        }
+        // Mixin returns the transaction hash, or the supplied identifier when
+        // no hash is included. Rejected transfers throw instead.
+        return typeof res === 'string' && res.trim().length > 0;
       }
     } catch (err) {
       console.error(err);
@@ -755,6 +782,8 @@ class SaitoPurchaseOverlay {
   }
 
   receivePaymentAddressFromServer(data) {
+    if (!this.active || !this.crypto_selected) return;
+    if (data?.ticker && data.ticker !== this.crypto_selected.ticker) return;
     this.clearPaymentInstructionTimer();
 
     console.log('\n/////////////////////////////////////');
@@ -769,129 +798,132 @@ class SaitoPurchaseOverlay {
       return;
     }
 
-    if (this.crypto_selected && data.ticker !== this.crypto_selected.ticker) {
-      console.debug(data);
-      console.debug(
-        this.crypto_selected,
-        this.issue_amount,
-        this.expected_deposit,
-        this.description,
-        this.destination
-      );
-      this.app.connection.emit('saito-purchase-error-notification', {
-        message: 'You have an active pending deposit for a different crypto.'
-      });
-      return;
-    }
     //
     // reserve address success — extract info
     //
+    if (
+      !this.reservation ||
+      this.reservation.id !== data.id ||
+      this.reservation.destination !== data.destination ||
+      this.reservation.ticker !== data.ticker
+    ) {
+      this.reservation = data;
+      this.payment_detected = false;
+      this.internal_payment_pending = false;
+      this.internal_payment_sending = false;
+    }
     this.destination = data.destination;
     this.expected_deposit = data.expected_deposit;
     this.mixin_id = data.mixin_id;
     this.reserved_until = data.reserved_until;
 
-    // Fallback recover data from rerunning...
-    if (!this.crypto_selected) {
-      for (let i = 0; i < this.mod.available_currencies.length; i++) {
-        if (this.mod.available_currencies[i].ticker == data.ticker)
-          this.crypto_selected = this.mod.available_currencies[i];
-      }
-    }
     if (!this.amount) {
       this.amount = data.issue_amount;
     }
 
-    //
-    // update UI
-    //
+    if (['pending', 'confirmed', 'issuing'].includes(data.status)) {
+      this.receivePaymentDetected(data);
+    } else {
+      this.startReservationTimeout(this.reserved_until);
+      this.render();
+    }
+  }
+
+  receivePaymentDetected(data) {
+    if (
+      !this.active ||
+      !this.reservation ||
+      data?.id !== this.reservation.id ||
+      data.destination !== this.destination ||
+      data.ticker !== this.crypto_selected?.ticker ||
+      !['pending', 'confirmed', 'issuing'].includes(data.status)
+    ) {
+      return;
+    }
+    this.payment_detected = true;
+    this.clearReservationTimer();
+    this.ui_msg =
+      data.status === 'pending'
+        ? 'Payment detected. Waiting for SAITO issuance...'
+        : 'Payment received. Waiting for SAITO issuance...';
     this.render();
   }
 
-  startReservationCountdown(expiryMs) {
-    //
-    // clear any previous countdown
-    //
-    if (this.countdown_interval) {
-      console.log('[countdown] clearing existing interval');
-      clearInterval(this.countdown_interval);
-      this.countdown_interval = null;
-    }
+  clearReservationTimer() {
+    clearTimeout(this.reservation_timer);
+    this.reservation_timer = null;
+  }
 
-    console.log(
-      '[countdown] startReservationCountdown called with expiryMs:',
-      expiryMs,
-      '=>',
-      new Date(expiryMs).toISOString()
+  startReservationTimeout(expiryMs) {
+    this.clearReservationTimer();
+    if (this.payment_detected || !Number.isFinite(Number(expiryMs))) return;
+    this.reservation_timer = setTimeout(
+      () => {
+        if (this.payment_detected) return;
+        this.close();
+        salert('The payment time has timed out. Please try again.');
+      },
+      Math.max(0, Number(expiryMs) - Date.now())
     );
-
-    let formatHMS = (msLeft) => {
-      let total = Math.max(0, Math.floor(msLeft / 1000));
-      let h = Math.floor(total / 3600);
-      let m = Math.floor((total % 3600) / 60);
-      let s = total % 60;
-      let pad = (n) => String(n).padStart(2, '0');
-      return `${pad(m)}:${pad(s)}`;
-    };
-
-    let tick = () => {
-      //
-      // locate timer element
-      //
-      let el = document.querySelector('.buysaito-payment-box .timer');
-
-      if (!el) {
-        console.log('[countdown] .buysaito-payment-box .timer not found — stopping interval');
-        clearInterval(this.countdown_interval);
-        this.countdown_interval = null;
-        return;
-      }
-
-      //
-      // compute time remaining
-      //
-      let now = Date.now();
-      let msLeft = expiryMs - now;
-
-      //console.log('[countdown] tick', { now, expiryMs, msLeft });
-
-      if (msLeft <= 0) {
-        console.log('[countdown] expired — setting 00:00:00 and stopping');
-        salert('Countdown for crypto payment expired');
-        el.textContent = '00:00:00';
-        clearInterval(this.countdown_interval);
-        this.countdown_interval = null;
-        this.reset();
-        this.overlay.close();
-        return;
-      }
-
-      let fmt = formatHMS(msLeft);
-      //console.log('[countdown] updating display to', fmt);
-      el.textContent = fmt;
-    };
-
-    //
-    // prime once immediately and then every second
-    //
-    tick();
-    this.countdown_interval = setInterval(tick, 1000);
-
-    console.log('[countdown] interval started (1s)');
   }
 
   updateSaitoIssued(data = {}) {
-    this.overlay.remove();
-    let msg = 'SAITO issuance processed! Please wait for the confirmation on chain...';
-    if (data?.paid) {
-      msg += `<div class="txsig">
-                <div class="sig-header">TX sig:</div>
-                <div class="sig monospace">${data.paid}</div>
-              <div>
-      `;
+    if (
+      !this.overlay.visible ||
+      !this.reservation ||
+      data.id !== this.reservation.id ||
+      data.destination !== this.reservation.destination ||
+      data.ticker !== this.reservation.ticker ||
+      !data.paid
+    ) {
+      return;
     }
-    salert(msg);
-    this.reset();
+    this.active = false;
+    clearTimeout(this.timer);
+    this.clearReservationTimer();
+    this.clearPaymentInstructionTimer();
+    this.saito_issuance = data;
+    this.renderSaitoCompletion();
+  }
+
+  receiveSaitoPayment(data) {
+    if (
+      !this.overlay.visible ||
+      !this.reservation ||
+      data?.ticker !== 'SAITO' ||
+      data.sender !== this.mod.authorized_public_key ||
+      data.receiver !== this.mod.publicKey ||
+      !data.signature ||
+      !Number.isFinite(Number(data.amount)) ||
+      Number(data.amount) <= 0
+    ) {
+      return;
+    }
+    // The browser can receive the payout block before the treasury's relay notice.
+    // Retain receipts for this purchase session and match its exact payout signature.
+    if (this.saito_receipts.has(data.signature)) return;
+    this.saito_receipts.set(data.signature, data.amount);
+    if (this.saito_issuance?.paid === data.signature) {
+      this.renderSaitoCompletion();
+    }
+  }
+
+  renderSaitoCompletion() {
+    if (!this.overlay.visible || !this.saito_issuance) return;
+    this.showOverlay(
+      SaitoPurchaseCompleteTemplate(this.app, {
+        ...this.saito_issuance,
+        received_amount: this.saito_receipts.get(this.saito_issuance.paid)
+      })
+    );
+  }
+
+  showOverlay(html) {
+    this.overlay.closebox = true;
+    this.overlay.show(html, () => {
+      this.active = false;
+      this.reset();
+    });
   }
 
   close() {
@@ -909,6 +941,7 @@ class SaitoPurchaseOverlay {
 
   reset() {
     console.log('Reset Saito-Purchase Values');
+    this.session++;
     this.mod.pending_payments = [];
 
     //
@@ -924,7 +957,12 @@ class SaitoPurchaseOverlay {
     this.recipient = '';
     this.destination = '';
     this.description = '';
-    this.deposit_confirmed_by_user = false;
+    this.payment_detected = false;
+    this.internal_payment_pending = false;
+    this.internal_payment_sending = false;
+    this.reservation = null;
+    this.saito_issuance = null;
+    this.saito_receipts.clear();
 
     this.acquisition_stage = 'default';
     this.acquisition_options = [];
@@ -936,13 +974,7 @@ class SaitoPurchaseOverlay {
     this.timer = null;
     this.clearPaymentInstructionTimer();
 
-    //
-    // reset countdown timer
-    //
-    if (this.countdown_interval) {
-      clearInterval(this.countdown_interval);
-      this.countdown_interval = null;
-    }
+    this.clearReservationTimer();
   }
 }
 

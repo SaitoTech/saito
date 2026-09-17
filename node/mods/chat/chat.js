@@ -1517,6 +1517,10 @@ class Chat extends ModTemplate {
     // DMs
     //
     if (members.length == 2 && !group?.member_ids) {
+      if (secret_holder) {
+        this.app.keychain.addKey(secret_holder);
+      }
+
       //
       // Only encrypts if we have swapped keys and haveSharedKey, otherwise just signs
       //
@@ -2291,7 +2295,7 @@ class Chat extends ModTemplate {
     let keys = this.app.keychain.returnKeys();
     //console.log("Populate chat list");
     for (let i = 0; i < keys.length; i++) {
-      if (keys[i].aes_publicKey && !keys[i]?.mute) {
+      if ((keys[i].added || keys[i].aes_publicKey) && !keys[i]?.mute) {
         this.returnOrCreateChatGroupFromMembers([keys[i].publicKey], keys[i].name, false);
       }
     }

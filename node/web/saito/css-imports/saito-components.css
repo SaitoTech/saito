@@ -7,17 +7,19 @@
   background-color: var(--saito-notification-background);
   color: var(--saito-notification-foreground);
   position: absolute;
-  left: 3.5rem;
+  right: 1rem;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 1.8rem;
   line-height: 1.8rem;
 }
-.saito-header-appspace-option .saito-notification-dot {
-  left: 60%;
+#saito-header .saito-header-appspace-option .saito-notification-dot {
+  left: calc(50% + 0.55rem);
+  right: auto;
   bottom: unset;
-  top: 5%;
+  top: 0.1rem;
+  width: max-content;
 }
 .online-status-indicator:after {
   position: absolute;

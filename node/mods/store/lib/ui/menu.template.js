@@ -21,6 +21,10 @@ function browseTemplate({ showMyStore = false } = {}) {
 
   return `
     <ul class="list saito-menu-select-subtle" role="list">
+      <li class="item moderation-item" id="store-menu-moderate" hidden role="button" tabindex="-1" data-view="moderation" aria-hidden="true">
+        <span class="label">Moderate</span>
+        <span class="saito-notification-dot badge" data-moderation-count aria-hidden="true">0</span>
+      </li>
       <li class="item active" role="button" tabindex="0" data-view="all" data-category="">All Listings</li>
       ${categoryItems}
       <li class="divider" role="separator"></li>

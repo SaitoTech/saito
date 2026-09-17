@@ -1,91 +1,58 @@
-module.exports = (app, mod, showCreationActions = false) => {
-  let html = `<div class="saito-module-settings">`;
+module.exports = (app, mod) => {
+  // Defaults/load live on the Chat module (see Chat constructor + loadOptions):
+  // - audio_notifications: default true; falsy/'', false → off; true|'all'|'groups'|'tabs' → on
+  // - auto_open_community: default false; Boolean from options
+  const chimeOn = Boolean(mod?.audio_notifications);
+  const autoOpen = Boolean(mod?.auto_open_community);
 
-  if ('Notification' in window) {
-    html += `
-			<fieldset class="saito-grid">
-				<legend class="settings-label">Notifications</legend>
+  return `
+  <div class="saito-module-settings chat-settings" data-chat-settings-stage="home">
+    <div class="chat-settings-stages">
+      <div class="chat-settings-stage chat-settings-home" data-chat-settings-view="home">
+        <h2 class="chat-settings-panel-title">Contacts</h2>
+        <div class="chat-settings-toolbar">
+          <div class="chat-settings-search-wrap">
+            <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+            <input
+              type="search"
+              class="saito-input chat-settings-search"
+              id="chat-settings-search"
+              placeholder="search contacts..."
+              autocomplete="off"
+              spellcheck="false"
+            />
+          </div>
+          <button type="button" class="saito-button-secondary compact chat-settings-add-contact" id="chat-settings-add-contact">
+            Add Contact
+          </button>
+        </div>
 
-				<input class="saito-checkbox" type="checkbox" id="audio-notifications" ${mod?.audio_notifications ? 'checked' : ''}/>
-				<label for="audio-notifications">incoming message chime</label>
+        <div class="chat-settings-list" id="chat-settings-list" role="list"></div>
 
-				<fieldset id="sensitivity-fieldset" class="saito-grid" ${mod?.audio_notifications ? '' : `style="display:none;"`}>
-					<legend class="settings-label">Sensitivity</legend>
-					<input class="saito-radio" type="radio" id="all" name="chime-threshold" value="all" ${mod?.audio_notifications == 'all' ? 'checked' : ''}/>
-					<label for="all">All messages</label>
-					<input class="saito-radio" type="radio" id="groups" name="chime-threshold" value="groups" ${mod?.audio_notifications == 'groups' ? 'checked' : ''}/>
-					<label for="groups">Unopened groups</label>
-					<input class="saito-radio" type="radio" id="tabs" name="chime-threshold" value="tabs" ${mod?.audio_notifications == 'tabs' ? 'checked' : ''}/>
-					<label for="tabs">Hidden tab</label>
-				</fieldset>
+        <div class="chat-settings-prefs-block">
+          <h3 class="chat-settings-prefs-heading">Chat Settings</h3>
+          <div class="chat-settings-prefs">
+            <div class="chat-settings-pref">
+              <input class="saito-checkbox" type="checkbox" id="audio-notifications" ${chimeOn ? 'checked' : ''}/>
+              <label class="chat-settings-pref-label" for="audio-notifications">Incoming message chime</label>
+            </div>
+            <div class="chat-settings-pref">
+              <input class="saito-checkbox" type="checkbox" id="auto-open" ${autoOpen ? 'checked' : ''}/>
+              <label class="chat-settings-pref-label" for="auto-open">Always open community chat</label>
+            </div>
+          </div>
+        </div>
+      </div>
 
-				<fieldset id="chime-fieldset" class="saito-grid" ${mod?.audio_notifications ? '' : `style="display:none;"`}>
-					<legend class="settings-label">Chimes</legend>
-					<input class="saito-radio" type="radio" id="Glass" name="chat-chime" value="Glass" ${mod?.audio_chime == 'Glass' ? 'checked' : ''}/>
-					<div class="flex-row"><label for="Glass">Chime A</label><i data-id="Glass" class="sound-preview fa-solid fa-volume-low"></i></div>
-					<input class="saito-radio" type="radio" id="Taptap" name="chat-chime" value="Taptap" ${mod?.audio_chime == 'Taptap' ? 'checked' : ''}/>
-					<div class="flex-row"><label for="Taptap">Chime B</label><i data-id="Taptap" class="sound-preview fa-solid fa-volume-low"></i></div>
-				</fieldset>
-
-
-			</fieldset>
-
-
-			<fieldset class="saito-grid">
-				<input class="saito-checkbox" type="checkbox" id="auto-open" ${mod.auto_open_community ? 'checked' : ''}/>
-				<label for="auto-open">always open community chat</label>
-			</fieldset>
-
-			`;
-  }
-
-  if (showCreationActions) {
-    html += `<fieldset id="add-publickey" class="saito-grid settings-link">
-			<i class="fa-solid fa-user-plus"></i>
-			<label>add contact</label>
-		</fieldset>`;
-  }
-
-  /* Intentionally disabled for now — restore by uncommenting. Handler remains in chat-manager-menu.js. */
-  // html += `<fieldset id="add-contacts" class="saito-grid settings-link">
-  // 		<i class="fa-solid fa-user-group"></i>
-  // 		<label>new/open chat</label>
-  // 	</fieldset>`;
-
-  if (showCreationActions) {
-    html += `<fieldset id="create-group" class="saito-grid settings-link">
-			<i class="fa-solid fa-users"></i>
-			<label>new group</label>
-		</fieldset>`;
-
-    html += `<fieldset id="mark-all-read" class="saito-grid settings-link">
-			<i class="fa-solid fa-check-double"></i>
-			<label>mark read</label>
-		</fieldset>`;
-  }
-
-  html += `<fieldset id="edit-contacts" class="saito-grid settings-link">
-			<i class="fa-solid fa-users-gear"></i>
-			<label>manage chats</label>
-		</fieldset>`;
-
-  html += `<fieldset id="chat-link" class="saito-grid settings-link">
-			<i class="fas fa-link"></i>
-			<label>my chat id</label>
-		</fieldset>`;
-
-  if (mod?.black_list?.length > 0) {
-    html += `<fieldset id="blocked-accounts" class="saito-grid settings-link">
-		<i class="fa-solid fa-ban"></i>
-		<label>Manage Blocked Accounts</label>
-		</fieldset>`;
-  }
-
-  return `${html}</div>`;
+      <div class="chat-settings-stage chat-settings-detail" data-chat-settings-view="detail" aria-hidden="true">
+        <div class="chat-settings-detail-header">
+          <button type="button" class="saito-button-square chat-settings-back" id="chat-settings-back" aria-label="Back" title="Back">
+            <i class="fa-solid fa-arrow-left" aria-hidden="true"></i>
+          </button>
+          <h2 class="chat-settings-panel-title">Contacts</h2>
+        </div>
+        <div class="chat-settings-detail-scroll" id="chat-settings-detail-body"></div>
+      </div>
+    </div>
+  </div>`;
 };
-
-/*
-				<!--input type="checkbox" id="enable-notifications" ${mod.audio_notifications ? "checked":"" }/>
-				<label for="enable-notifications">use system notifications <span class="note">(not recommended)</span></label-->
-
-*/

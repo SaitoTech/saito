@@ -1,5 +1,6 @@
 const BlockTemplate = require('./block.template');
-const { formatBlockForPage, normalizeBlockRecord } = require('../explorer-format');
+const { formatBlockForPage, normalizeBlockRecord, isSpvTransaction } = require('../explorer-format');
+const { blockLookupArgument, classifyBlockIdentifier } = require('../search-nav');
 const {
   collectP2shUnlockTargets,
   exportTransaction,
@@ -7,10 +8,11 @@ const {
 } = require('../tx-actions');
 
 class Block {
-  constructor(app, mod, blockHash, expandTxSignature = null) {
+  constructor(app, mod, input, expandTxSignature = null) {
     this.app = app;
     this.mod = mod;
-    this.blockHash = blockHash;
+    this.blockInput = input;
+    this.blockHash = input;
     this.block = null;
     this.loading = true;
     this.loadingMessage = 'Loading block…';
@@ -80,6 +82,11 @@ class Block {
       return;
     }
 
+    const identifier = this.blockLookupKey();
+    if (identifier == null) {
+      return;
+    }
+
     this.fetchingTransactions = true;
     this.fetchTransactionsError = null;
     this.paint();
@@ -87,7 +94,7 @@ class Block {
 
     let fullBlock = null;
     try {
-      fullBlock = await this.mod.requestBlockFromPeerPromise(this.app, peer, this.blockHash, true);
+      fullBlock = await this.mod.requestBlockFromPeerPromise(this.app, peer, identifier, true);
     } catch (err) {
       fullBlock = null;
     }
@@ -164,12 +171,20 @@ class Block {
     });
   }
 
+  blockLookupKey() {
+    return blockLookupArgument(this.app, this.blockInput);
+  }
+
   async tryLocalBlock() {
     try {
       if (!this.app?.core?.blockchain?.getBlock) {
         return null;
       }
-      return await this.app.core.blockchain.getBlock(this.blockHash, true);
+      const identifier = this.blockLookupKey();
+      if (identifier == null) {
+        return null;
+      }
+      return await this.app.core.blockchain.getBlock(identifier, true);
     } catch (err) {
       return null;
     }
@@ -181,11 +196,26 @@ class Block {
       return null;
     }
 
-    return this.mod.requestBlockFromPeerPromise(this.app, peer, this.blockHash, true);
+    const identifier = this.blockLookupKey();
+    if (identifier == null) {
+      return null;
+    }
+
+    return this.mod.requestBlockFromPeerPromise(this.app, peer, identifier, true);
   }
 
   async tryCachedBlock() {
-    const cached = (this.mod.blocks || []).find((block) => block?.hash === this.blockHash);
+    const classified = classifyBlockIdentifier(this.app, this.blockInput);
+    if (!classified) {
+      return null;
+    }
+
+    const cached = (this.mod.blocks || []).find((block) => {
+      if (classified.type === 'block_id') {
+        return String(block?.id) === classified.value;
+      }
+      return block?.hash === classified.value;
+    });
     if (!cached) {
       return null;
     }
@@ -236,6 +266,9 @@ class Block {
       this.block = rawBlock;
       this.loading = false;
       this.error = null;
+      if (rawBlock?.hash) {
+        this.blockHash = String(rawBlock.hash);
+      }
       if (expandTarget) {
         this.expandedSignature = expandTarget;
       }
@@ -243,6 +276,20 @@ class Block {
 
     this.paint();
     this.attachEvents();
+
+    const shouldFetchFullTransactions =
+      this.app.BROWSER &&
+      this.block &&
+      this.mod.explorerPeer &&
+      Array.isArray(this.block.transactions) &&
+      this.block.transactions.some(isSpvTransaction);
+
+    if (shouldFetchFullTransactions) {
+      await this.fetchFullTransactions();
+      if (token !== this.fetchToken) {
+        return;
+      }
+    }
 
     if (expandTarget && this.block) {
       this.expandAndScrollToTransaction(expandTarget);
@@ -415,7 +462,11 @@ class Block {
       }
 
       const toggleRow = (e) => {
-        if (e?.target?.closest('.explorer-action, .explorer-json-toggle, .explorer-link')) {
+        if (
+          e?.target?.closest(
+            '.explorer-action, .explorer-json-toggle, .explorer-link, .explorer-copy-btn'
+          )
+        ) {
           return;
         }
         if (e) {

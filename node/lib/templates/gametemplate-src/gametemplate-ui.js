@@ -307,6 +307,10 @@ class GameUI {
 
   setShotClock(target = '', timer = 3000, pause_on_activity = true, callback = null) {
     this.clearShotClock();
+    if (!target) {
+      console.warn('GT [setShotClock] empty target!');
+      return;
+    }
     let elem = document.querySelector(target);
     if (elem) {
       this.app.browser.addElementToSelector(`<div class="animated-mask"></div>`, target);
@@ -365,6 +369,10 @@ class GameUI {
 
   promptMove(target = '', timer = 10000) {
     this.clearShotClock();
+    if (!target) {
+      console.warn('GT [promptMove] empty target!');
+      return;
+    }
     let elem = document.querySelector(target);
     if (elem) {
       this.app.browser.addElementToSelector(`<div class="animated-mask flash2"></div>`, target);

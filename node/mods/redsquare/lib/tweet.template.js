@@ -71,7 +71,8 @@ const TweetTemplate = (tweet, className = 'tweet', options = {}) => {
   const presentation = resolvePresentation(className, options);
   const embedded = presentation === 'embedded' || options.embedded;
   const allowEmbed = options.allowEmbed !== false && !embedded;
-  const hideControls = embedded || options.hideControls || presentation === 'compose';
+  const hideControls =
+    embedded || options.hideControls || presentation === 'compose' || Boolean(tweet.ephemeral);
   const mode = options.mode || resolveHeaderMode(presentation);
 
   // Timeline: no key. Detail: public key only (no @). Compose: none.

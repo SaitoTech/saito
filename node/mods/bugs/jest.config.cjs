@@ -1,7 +1,6 @@
 module.exports = {
-  rootDir: __dirname,
-  testEnvironment: 'node',
-  testMatch: ['<rootDir>/test/**/*.spec.js'],
-  moduleFileExtensions: ['ts', 'js', 'json', 'node'],
+  ...require('../../jest.config.cjs'),
+  rootDir: require('path').resolve(__dirname, '../..'),
+  testMatch: ['<rootDir>/tests/mods/bugs/**/*.spec.js'],
   clearMocks: true
 };

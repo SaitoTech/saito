@@ -2,6 +2,7 @@ const ManagerTemplate = require('./manager.template');
 const BrowseView = require('./browse-view');
 const StorefrontView = require('./storefront-view');
 const SalesView = require('./sales-view');
+const ModerateView = require('./moderate-view');
 
 class Manager {
   constructor(app, mod, container = '', callbacks = {}) {
@@ -23,6 +24,7 @@ class Manager {
       onViewChange
     });
     this.sales = new SalesView(app, mod, '');
+    this.moderate = new ModerateView(app, mod, '');
   }
 
   render(container = '') {
@@ -39,6 +41,7 @@ class Manager {
     this.browse.render(`${this.container} [data-panel="browse"]`);
     this.storefront.render(`${this.container} [data-panel="my-listings"]`);
     this.sales.render(`${this.container} [data-panel="sales"]`);
+    this.moderate.render(`${this.container} [data-panel="moderate"]`);
 
     this.show(this.activePanel);
   }
@@ -74,6 +77,11 @@ class Manager {
   showSales() {
     this.show('sales');
     return this.sales.show();
+  }
+
+  showModerate() {
+    this.show('moderate');
+    return this.moderate.show();
   }
 
   scrollToListings() {

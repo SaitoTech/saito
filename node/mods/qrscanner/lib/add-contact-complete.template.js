@@ -13,7 +13,7 @@ module.exports = () => {
       ">
       <div style="display:grid; grid-template-columns: 5.2em auto 5.2e; width:100%">
         <i id="back-button" class="icon-med fas fa-arrow-left"></i>
-        <h3 style="justify-self: center">Your request has been sent</h3>
+        <h3 style="justify-self: center">Contact Added</h3>
       </div>
       <button class="saito-button-primary" style="margin: 0; width: 100%;padding: 1em;font-size: 1.2em;" onclick="location.href='/email'"><i class="far fa-envelope"></i>Email</button>
       <button class="saito-button-primary" style="margin: 0; width: 100%;padding: 1em;font-size: 1.2em;" onclick="location.href='/chat'"><i class="far fa-comments"></i>Chat</button>

@@ -47,7 +47,14 @@ module.exports = {
         <img class="saito-identicon" src="${view.identicon}" alt="" />
         <div class="meta">
           <h2 class="title" id="listing-detail-title"><span class="title-text">${view.listingTitle}</span></h2>
-          <p class="creator">${view.seller}</p>
+          <p class="meta-row nft-id">
+            <span class="meta-label">NFT ID:</span>
+            <span class="meta-value" title="${view.nftId}">${view.nftIdDisplay}</span>
+          </p>
+          <p class="meta-row seller">
+            <span class="meta-label">SELLER:</span>
+            <span class="meta-value${view.sellerIsKey ? ' is-key' : ''}">${view.seller}</span>
+          </p>
         </div>
       </header>
 
@@ -142,6 +149,10 @@ module.exports = {
           </section>
 
           <section class="section checkout">
+            <label class="setting submit-main-store">
+              <input type="checkbox" data-action="submit-main-store"${view.submitToMainStoreChecked ? ' checked' : ''} />
+              <span>Also submit listing for inclusion in Main Store</span>
+            </label>
             <button type="button" class="saito-button-primary action" data-action="submit">Submit Listing</button>
           </section>
         </div>

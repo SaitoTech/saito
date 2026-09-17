@@ -915,7 +915,7 @@ class Registry extends ModTemplate {
 
   async onChainReorganization(bid, bsh, lc) {
     var sql = 'UPDATE records SET lc = $lc WHERE bid = $bid AND bsh = $bsh';
-    var params = { $bid: bid, $bsh: bsh };
+    var params = { $bid: Number(bid), $bsh: String(bsh || ''), $lc: lc ? 1 : 0 };
     await this.app.storage.runDatabase(sql, params, 'registry');
     return;
   }

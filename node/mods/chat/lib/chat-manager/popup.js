@@ -499,6 +499,21 @@ class ChatPopup {
       return;
     }
 
+    const addUser = chatPopup.querySelector('.chat-unknown-contact-add');
+    if (addUser) {
+      addUser.onclick = (e) => {
+        e.stopPropagation();
+        const publicKey = addUser.dataset.publickey;
+        if (publicKey) {
+          app.keychain.addKey(publicKey, { added: true });
+        }
+        const bar = chatPopup.querySelector('.chat-unknown-contact');
+        if (bar) {
+          bar.remove();
+        }
+      };
+    }
+
     // add reply functionality
     document.querySelectorAll(`${popup_qs} .saito-userline-reply .chat-reply`).forEach((el) => {
       el.addEventListener('click', (e) => {
