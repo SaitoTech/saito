@@ -1,11 +1,18 @@
 module.exports = (app, mod, nft) => {
-  let identicon = '';
-  if (nft.id == null || nft.id == '') {
-    console.warn('NFT id not found: ', nft);
-    identicon = app.keychain.returnIdenticon('');
-  } else {
-    identicon = app.keychain.returnIdenticon(nft.id);
-  }
+  const units = Number(nft.getTotalAmount()).toLocaleString();
+  const can_toggle = !!(nft.css || nft.js);
+  const enabled = (app.options?.permissions?.nfts || []).includes(nft.tx_sig);
+  const current = enabled ? 'Enabled' : 'Disabled';
+  const alt = enabled ? 'Disabled' : 'Enabled';
+  const toggle = can_toggle
+    ? `<div class="saito-nft-card-toggle${enabled ? ' enabled' : ''}"><div class="saito-nft-card-toggle-face"><span class="saito-nft-card-toggle-dot${
+        enabled ? ' enabled' : ''
+      }"></span><span class="saito-nft-card-toggle-label">${current}</span><i class="fa-solid fa-caret-down"></i></div><div class="saito-nft-card-toggle-menu"><div class="saito-nft-card-toggle-option saito-nft-card-toggle-current"><span class="saito-nft-card-toggle-dot${
+        enabled ? ' enabled' : ''
+      }"></span><span class="saito-nft-card-toggle-label">${current}</span><i class="fa-solid fa-caret-down"></i></div><div class="saito-nft-card-toggle-option"><span class="saito-nft-card-toggle-dot${
+        enabled ? '' : ' enabled'
+      }"></span><span class="saito-nft-card-toggle-label">${alt}</span></div></div></div>`
+    : '';
 
   let html = `
       <article class="saito-nft-card" id="nft-card-${nft.uuid}">
@@ -13,15 +20,8 @@ module.exports = (app, mod, nft) => {
       <div class="saito-nft-card-img"></div>
 
          <div class="saito-nft-card-details">
-            <div class="saito-nft-card-amount">
-               <div class="saito-nft-card-info-title">Units</div>
-               <div class="saito-nft-card-info-amount">${nft.getTotalAmount()}${nft.getSlipCount() > 1 ? ` / ${nft.getSlipCount()} ` : ''}</div>
-            </div>
-            <div class="saito-nft-card-deposit">
-               <div class="saito-nft-card-info-title">Type</div>
-               <div class="saito-nft-card-info-deposit">${nft.returnType()}</div>
-            </div>
-            <img class="nft-identicon" src="${identicon}" />
+            <div class="saito-nft-card-amount">Units ${units}</div>
+            ${toggle}
          </div>
       </article>
    `;

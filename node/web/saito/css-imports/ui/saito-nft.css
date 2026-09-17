@@ -1802,12 +1802,13 @@ nft cards
 }
 .saito-nft-card-title {
   position: absolute;
-  width: calc(100% - 2rem);
+  left: 0;
+  top: 0;
+  width: 100%;
   color: var(--saito-foreground);
   background-color: color-mix(in srgb, var(--saito-black) 70%, transparent);
   z-index: 9;
-  top: 18px;
-  line-height: 2.8rem;
+  line-height: 3.4rem;
   padding: 0 1rem;
   overflow: hidden;
   white-space: nowrap;
@@ -1874,21 +1875,89 @@ nft cards
   justify-content: space-between;
   align-items: center;
   flex: 0 0 auto;
-  padding: 1rem 0 0 0;
-  font-size: 1.4rem;
-  gap: 1rem;
+  padding: 0.75rem 0 0 0;
+  font-size: 1.25rem;
+  gap: 0.75rem;
   position: relative;
-}
-.saito-nft-card-deposit {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  text-align: center;
+  min-height: 2.2rem;
 }
 .saito-nft-card-amount {
   display: flex;
+  flex-direction: row;
+  align-items: center;
+  white-space: nowrap;
+  color: var(--saito-muted-foreground);
+}
+.saito-nft-card:has(.saito-nft-card-toggle.open) {
+  overflow: visible;
+  z-index: 11;
+}
+.saito-nft-card-toggle {
+  display: inline-block;
+  margin-left: auto;
+  border: none;
+  background: none;
+  box-shadow: none;
+  padding: 0;
+  cursor: pointer;
+  color: var(--saito-muted-foreground);
+  line-height: 1.2;
+  position: relative;
+}
+.saito-nft-card-toggle.enabled,
+.saito-nft-card-toggle.enabled .saito-nft-card-toggle-face {
+  color: var(--saito-status-success);
+}
+.saito-nft-card-toggle-face,
+.saito-nft-card-toggle-option {
+  display: grid;
+  grid-template-columns: 0.7rem 1fr auto;
+  column-gap: 0.7rem;
+  align-items: center;
+  white-space: nowrap;
+}
+.saito-nft-card-toggle.open > .saito-nft-card-toggle-face {
+  visibility: hidden;
+}
+.saito-nft-card-toggle-dot {
+  width: 0.7rem;
+  height: 0.7rem;
+  border-radius: 50%;
+  background: var(--saito-muted-foreground);
+}
+.saito-nft-card-toggle-dot.enabled {
+  background: var(--saito-status-success);
+}
+.saito-nft-card-toggle .fa-caret-down {
+  font-size: 0.95em;
+  opacity: 0.75;
+  justify-self: end;
+}
+.saito-nft-card-toggle-menu {
+  display: none;
+  position: absolute;
+  top: -0.55rem;
+  right: -0.85rem;
+  z-index: 20;
+  min-width: calc(100% + 1.7rem);
+  padding: 0.55rem 0.85rem;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 0.55rem;
+  background: var(--saito-card, var(--saito-background));
+  border: 1px solid var(--saito-border);
+  border-radius: var(--saito-radius);
+  box-shadow: 0 0.4rem 1.2rem color-mix(in srgb, var(--saito-black) 25%, transparent);
+}
+.saito-nft-card-toggle.open .saito-nft-card-toggle-menu {
+  display: flex;
+}
+.saito-nft-card-toggle-option {
+  padding: 0.2rem 0;
+  cursor: pointer;
+  color: var(--saito-muted-foreground);
+}
+.saito-nft-card-toggle-option:has(.saito-nft-card-toggle-dot.enabled) {
+  color: var(--saito-status-success);
 }
 .saito-nft-card-text {
   font-family: monospace;
