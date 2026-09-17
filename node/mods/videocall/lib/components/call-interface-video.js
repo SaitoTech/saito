@@ -179,6 +179,9 @@ class CallInterfaceVideo {
   }
 
   close() {
+    // Optional call modules can finish local work before the page navigates away.
+    const completion = [];
+    this.app.connection.emit('videocall-ended', completion);
     for (let peer in this.video_boxes) {
       this.app.connection.emit('remove-peer-box', peer);
     }
@@ -196,7 +199,7 @@ class CallInterfaceVideo {
       let slug = mod?.returnSlug() || 'videocall';
       let url = '/' + slug;
 
-      navigateWindow(url, 2000);
+      Promise.allSettled(completion).then(() => navigateWindow(url, 2000));
     } else {
       //
       // Hopefully we don't have to reload the page on the end of a stun call

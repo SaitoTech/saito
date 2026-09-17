@@ -79,6 +79,7 @@ class Videocall extends ModTemplate {
 
     app.connection.on('reset-stun', () => {
       console.log('Reset Stun');
+      this.app.connection.emit('videocall-ended', []);
       this.room_obj = null;
       if (this.CallInterface) {
         this.CallInterface.destroy();

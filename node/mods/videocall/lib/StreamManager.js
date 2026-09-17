@@ -287,6 +287,7 @@ class StreamManager {
       );
 
       this.remoteStreams.set(id, remoteStream);
+      this.app.connection.emit('videocall-stream', id, remoteStream);
 
       if (!this.active) {
         console.warn('STUN/TALK: Receiving media tracks before in call state');
@@ -517,10 +518,12 @@ class StreamManager {
 
     //Plug local stream into UI component
     this.app.connection.emit('add-local-stream-request', this.localStream);
+    this.app.connection.emit('videocall-stream', 'local', this.localStream);
   }
 
   removePeer(peer, message = 'left the meeting') {
     this.remoteStreams.delete(peer);
+    this.app.connection.emit('videocall-peer-left', peer);
 
     if (this.auto_disconnect) {
       siteMessage(`${this.app.keychain.returnUsername(peer)} hung up`, 1500);

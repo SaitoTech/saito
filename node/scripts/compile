@@ -142,6 +142,7 @@ echo "Compiling Lite-Client JS..."
       rm -rf "$md/src"
       rm -rf "$md/docs"
       rm -rf "$md/compile"
+      rm -f "$md"/jest.config.*
       rm -rf "$md/BUGS.txt"
       rm -rf "$md/DESCRIPTION.txt"
       rm -rf "$md/README.txt"
@@ -295,7 +296,7 @@ if [ "$1" == "nuke" ]; then
   reset_bundler
 
 
-  (cd "${PROJECT_DIR}" && time node config/build/webpack.config.cjs $2 $3)
+  (cd "${PROJECT_DIR}" && time node config/build/webpack.config.cjs $2 $3) || exit $?
 
   post_compile
 
@@ -317,7 +318,7 @@ if [ "$1" == "reset" ] || [ "$1" == "dev" ]; then
   reset_nonpersistent
   reset_bundler
 
-  (cd "${PROJECT_DIR}" && time node config/build/webpack.config.cjs $2 $3)
+  (cd "${PROJECT_DIR}" && time node config/build/webpack.config.cjs $2 $3) || exit $?
 
   post_compile
 
@@ -338,7 +339,7 @@ if [ "$1" == "recompile" ]; then
 
   reset_bundler
 
-  (cd "${PROJECT_DIR}" && time node config/build/webpack.config.cjs $2 $3)
+  (cd "${PROJECT_DIR}" && time node config/build/webpack.config.cjs $2 $3) || exit $?
 
   post_compile
 
@@ -375,7 +376,7 @@ if [ "$1" == "setupprod" ]; then
   reset_persistent
   reset_bundler
 
-  (cd "${PROJECT_DIR}" && time node config/build/webpack.config.cjs $2 $3)
+  (cd "${PROJECT_DIR}" && time node config/build/webpack.config.cjs $2 $3) || exit $?
 
   post_compile
 
@@ -418,7 +419,7 @@ if [ "$1" == "setuplocal" ]; then
   reset_persistent
   reset_bundler
 
-  (cd "${PROJECT_DIR}" && time node config/build/webpack.config.cjs $2 $3)
+  (cd "${PROJECT_DIR}" && time node config/build/webpack.config.cjs $2 $3) || exit $?
 
   post_compile
 

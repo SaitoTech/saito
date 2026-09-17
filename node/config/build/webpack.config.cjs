@@ -306,6 +306,8 @@ webpack(
         let info = stats.toJson();
         console.log(info.errors);
       }
+      process.exitCode = 1;
+      return;
     }
     //
     // Done processing
