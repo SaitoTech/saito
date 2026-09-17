@@ -287,8 +287,6 @@ class NFTOverlay {
     // Capability action hooks (icons on artwork)
     //
     let send_btn = document.querySelector('.saito-nft-capability.send-nft');
-    let enable_btn = document.querySelector('.saito-nft-capability.enable-nft');
-    let disable_btn = document.querySelector('.saito-nft-capability.disable-nft');
     let sell_btn = document.querySelector('.saito-nft-capability.sell-nft');
 
     //
@@ -531,8 +529,6 @@ class NFTOverlay {
       updateSendForm();
     };
 
-    // enable / disable visibility is owned by NFTCapabilities.list()
-
     if (advanced_toggle && advanced_container) {
       advanced_toggle.onclick = (e) => {
         e.preventDefault();
@@ -768,52 +764,6 @@ class NFTOverlay {
           .querySelector('.saito-nft-overlay.panels')
           ?.classList.remove('saito-nft-mode-send');
         this.capabilities?.setActive('');
-      };
-    }
-
-    //
-    // Enable button
-    //
-    if (enable_btn) {
-      enable_btn.onclick = (e) => {
-        if (!this.app.options.permissions) this.app.options.permissions = {};
-        if (!this.app.options.permissions.nfts) this.app.options.permissions.nfts = [];
-
-        if (!this.app.options.permissions.nfts.includes(this.nft.tx_sig)) {
-          this.app.options.permissions.nfts.push(this.nft.tx_sig);
-          salert('NFT Activated for Next Reload');
-          this.app.storage.saveOptions();
-        }
-
-        this.app.connection.emit('saito-enable-nft', {
-          nft_id: this.nft.id,
-          nft_sig: this.nft.tx_sig
-        });
-
-        this.render();
-      };
-    }
-
-    //
-    // Disable button
-    //
-    if (disable_btn) {
-      disable_btn.onclick = (e) => {
-        if (!this.app.options.permissions) this.app.options.permissions = {};
-        if (!this.app.options.permissions.nfts) this.app.options.permissions.nfts = [];
-
-        this.app.options.permissions.nfts = this.app.options.permissions.nfts.filter(
-          (v) => v !== this.nft.tx_sig
-        );
-
-        this.app.connection.emit('saito-disable-nft', {
-          nft_id: this.nft.id,
-          nft_sig: this.nft.tx_sig
-        });
-
-        salert('NFT Disabled for Next Reload');
-        this.app.storage.saveOptions();
-        this.render();
       };
     }
 
