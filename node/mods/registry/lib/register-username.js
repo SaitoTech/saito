@@ -32,6 +32,11 @@ class RegisterUsername {
           identifier = identifier.substring(0, identifier.indexOf('@'));
         }
 
+        if (identifier.length > 45) {
+          salert('Username must be 45 characters or fewer');
+          return;
+        }
+
         try {
           document.querySelector('.saito-overlay-form-header-title').innerHTML =
             'Registering name...';
