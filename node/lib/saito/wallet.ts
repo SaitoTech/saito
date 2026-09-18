@@ -270,12 +270,11 @@ export default class Wallet extends SaitoWallet {
       // use this merely to save transaction history
       //
       async onConfirmation(blk, tx, conf) {
-
         if (Number(conf) != 0) {
-    	  return;
-  	}
-  	await tx.decryptMessage(this.app);
-  	await this.savePaymentTransaction(tx, tx.returnMessage(), blk);
+          return;
+        }
+        await tx.decryptMessage(this.app);
+        await this.savePaymentTransaction(tx, tx.returnMessage(), blk);
       }
 
       isActivated() {
@@ -299,98 +298,101 @@ export default class Wallet extends SaitoWallet {
       // Build a ledger of payments in real time
       //
       async savePaymentTransaction(tx, txmsg = null, blk = null) {
-  	if (!txmsg) {
-  	  txmsg = tx.returnMessage();
-  	}
+        if (!txmsg) {
+          txmsg = tx.returnMessage();
+        }
 
-  	if (!this.app.BROWSER || !txmsg) {
-  	  return;
-  	}
+        if (!this.app.BROWSER || !txmsg) {
+          return;
+        }
 
-  	if (!this.history?.length) {
-  	  await this.loadHistory();
-  	}
+        if (!this.history?.length) {
+          await this.loadHistory();
+        }
 
-  	const block_hash = blk?.hash || '';
-  	for (let i = 0; i < this.history.length; i++) {
-  	  if (this.history[i].trans_hash === tx.signature && this.history[i].block_hash === block_hash) {
-  	    if (this.history[i].lc !== 1) {
-  	      this.history[i].lc = 1;
-  	      this.save();
-  	    }
-  	    return;
-  	  }
-  	}
+        const block_hash = blk?.hash || '';
+        for (let i = 0; i < this.history.length; i++) {
+          if (
+            this.history[i].trans_hash === tx.signature &&
+            this.history[i].block_hash === block_hash
+          ) {
+            if (this.history[i].lc !== 1) {
+              this.history[i].lc = 1;
+              this.save();
+            }
+            return;
+          }
+        }
 
-  	console.log('Save SAITO payment transaction in ledger...');
+        console.log('Save SAITO payment transaction in ledger...');
 
-  	let transaction_id = 0;
-  	if (blk?.transactions) {
-  	  for (let i = 0; i < blk.transactions.length; i++) {
-  	    if (blk.transactions[i]?.signature === tx.signature) {
-  	      transaction_id = i;
-  	      break;
-  	    }
-  	  }
-  	}
+        let transaction_id = 0;
+        if (blk?.transactions) {
+          for (let i = 0; i < blk.transactions.length; i++) {
+            if (blk.transactions[i]?.signature === tx.signature) {
+              transaction_id = i;
+              break;
+            }
+          }
+        }
 
-  	const obj = {
-  	  counter_party: { publicKey: '' },
-  	  timestamp: tx.timestamp,
-  	  amount: 0,
-  	  trans_hash: tx.signature,
-  	  type: '',
-  	  memo: txmsg.memo || txmsg.request || txmsg.module,
-  	  block_hash,
-  	  transaction_id,
-  	  lc: 1
-  	};
+        const obj = {
+          counter_party: { publicKey: '' },
+          timestamp: tx.timestamp,
+          amount: 0,
+          trans_hash: tx.signature,
+          type: '',
+          memo: txmsg.memo || txmsg.request || txmsg.module,
+          block_hash,
+          transaction_id,
+          lc: 1
+        };
 
-  	if (tx.isFrom(this.publicKey) && (!tx.isTo(this.publicKey) || tx.to.length > 1)) {
-  	  obj.type = 'send';
-  	  if (txmsg.request === 'crypto payment' && txmsg.module === this.name) {
-  	    obj.counter_party.publicKey = txmsg.to;
-  	    obj.amount = -txmsg.amount;
-  	  } else {
-  	    let sent = BigInt(0);
-  	    for (let i = 0; i < tx.to.length; i++) {
-  	      if (tx.to[i].publicKey != this.publicKey) {
-  	        if (!obj.counter_party.publicKey) {
-  	          obj.counter_party.publicKey = tx.to[i].publicKey;
-  	        }
-  	        sent += BigInt(tx.to[i].amount);
-  	      }
-  	    }
-  	    obj.amount = -this.app.wallet.convertNolanToSaito(sent);
-  	  }
-  	} else if (tx.isTo(this.publicKey)) {
-    	  obj.type = 'receive';
-    	  if (txmsg.request === 'crypto payment' && txmsg.module === this.name) {
-    	    obj.counter_party.publicKey = txmsg.from;
-  	    obj.amount = txmsg.amount;
-  	  } else {
-  	    obj.counter_party.publicKey = tx.from[0]?.publicKey;
-  	    let received = BigInt(0);
-  	    for (let i = 0; i < tx.to.length; i++) {
-  	      if (tx.to[i].publicKey == this.publicKey) {
-  	        received += BigInt(tx.to[i].amount);
-  	      }
-  	    }
-  	    obj.amount = this.app.wallet.convertNolanToSaito(received);
-  	  }
-  	}
-	
-	if (!obj.type) {
-	  return;
-	}
+        if (tx.isFrom(this.publicKey) && (!tx.isTo(this.publicKey) || tx.to.length > 1)) {
+          obj.type = 'send';
+          if (txmsg.request === 'crypto payment' && txmsg.module === this.name) {
+            obj.counter_party.publicKey = txmsg.to;
+            obj.amount = -txmsg.amount;
+          } else {
+            let sent = BigInt(0);
+            for (let i = 0; i < tx.to.length; i++) {
+              if (tx.to[i].publicKey != this.publicKey) {
+                if (!obj.counter_party.publicKey) {
+                  obj.counter_party.publicKey = tx.to[i].publicKey;
+                }
+                sent += BigInt(tx.to[i].amount);
+              }
+            }
+            obj.amount = -this.app.wallet.convertNolanToSaito(sent);
+          }
+        } else if (tx.isTo(this.publicKey)) {
+          obj.type = 'receive';
+          if (txmsg.request === 'crypto payment' && txmsg.module === this.name) {
+            obj.counter_party.publicKey = txmsg.from;
+            obj.amount = txmsg.amount;
+          } else {
+            obj.counter_party.publicKey = tx.from[0]?.publicKey;
+            let received = BigInt(0);
+            for (let i = 0; i < tx.to.length; i++) {
+              if (tx.to[i].publicKey == this.publicKey) {
+                received += BigInt(tx.to[i].amount);
+              }
+            }
+            obj.amount = this.app.wallet.convertNolanToSaito(received);
+          }
+        }
 
-	if (Number(obj.amount) == 0) {
-	  return;
-	}
-	
-	this.history.push(obj);
-	this.history_update_ts = Math.max(this.history_update_ts, obj.timestamp) + 1;
-	this.save();
+        if (!obj.type) {
+          return;
+        }
+
+        if (Number(obj.amount) == 0) {
+          return;
+        }
+
+        this.history.push(obj);
+        this.history_update_ts = Math.max(this.history_update_ts, obj.timestamp) + 1;
+        this.save();
       }
 
       onChainReorganization(block_id, block_hash, lc) {

@@ -638,7 +638,7 @@ class Storage {
     }
   }
 
-  async installLocalApplication(mod, bin, nft_id = '' , nft_tx_sig = '') {
+  async installLocalApplication(mod, bin, nft_id = '', nft_tx_sig = '') {
     if (!this.app.BROWSER) {
       return;
     }
@@ -696,9 +696,7 @@ class Storage {
         return;
       }
 
-      const where = nft_tx_sig
-        ? { nft_tx_sig: nft_tx_sig }
-        : { mod: mod_slug };
+      const where = nft_tx_sig ? { nft_tx_sig: nft_tx_sig } : { mod: mod_slug };
 
       let rowsDeleted = await this.localDB.remove({
         from: 'dyn_mods',
@@ -740,8 +738,8 @@ class Storage {
           id: { primaryKey: true, autoIncrement: true },
           mod: { dataType: 'string', default: '' },
           binary: { dataType: 'string', default: '' },
-	  nft_id: { dataType: 'string', default: '' },
-	  nft_tx_sig: { dataType: 'string', default: '' },
+          nft_id: { dataType: 'string', default: '' },
+          nft_tx_sig: { dataType: 'string', default: '' },
           created_at: { dataType: 'number', default: 0 },
           updated_at: { dataType: 'number', default: 0 }
         }

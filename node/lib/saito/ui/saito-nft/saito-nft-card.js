@@ -95,19 +95,17 @@ class SaitoNFTCard {
             if (!this.app.options.permissions.nfts) this.app.options.permissions.nfts = [];
 
             if (this.app.options.permissions.nfts.includes(this.nft.tx_sig)) {
-
-	      if (this.nft.returnType() === 'saito-app') {
-	        try {
-	          await this.app.storage.uninstallLocalApplication(
-	            null,
-	            this.nft.tx_sig
-	          );
-	        } catch (err) {
-	          console.error('Error: ', err);
-	          salert('An error occurred while uninstalling application. Check console for details.');
-	          return;
- 	       }
-	      }
+              if (this.nft.returnType() === 'saito-app') {
+                try {
+                  await this.app.storage.uninstallLocalApplication(null, this.nft.tx_sig);
+                } catch (err) {
+                  console.error('Error: ', err);
+                  salert(
+                    'An error occurred while uninstalling application. Check console for details.'
+                  );
+                  return;
+                }
+              }
 
               this.app.options.permissions.nfts = this.app.options.permissions.nfts.filter(
                 (v) => v !== this.nft.tx_sig
@@ -119,42 +117,42 @@ class SaitoNFTCard {
               salert('NFT Disabled for Next Reload');
               this.app.storage.saveOptions();
             } else {
+              if (this.nft.returnType() === 'saito-app') {
+                try {
+                  await this.nft.fetchTransaction();
+                  const saito_text = this.nft.saito || this.nft.tx?.returnMessage()?.data?.saito;
 
-	      if (this.nft.returnType() === 'saito-app') {
-	        try {
+                  if (!saito_text || typeof saito_text !== 'string') {
+                    salert('Unable to load Saito Application');
+                    return;
+                  }
 
-    	          await this.nft.fetchTransaction();
-    	          const saito_text = this.nft.saito || this.nft.tx?.returnMessage()?.data?.saito;
+                  const newtx = new Transaction();
+                  newtx.deserialize_from_web(this.app, saito_text);
 
-	          if (!saito_text || typeof saito_text !== 'string') {
-      		    salert('Unable to load Saito Application');
-	            return;
-	          }
+                  const msg = newtx.returnMessage() || {};
 
-  	          const newtx = new Transaction();
-	          newtx.deserialize_from_web(this.app, saito_text);
+                  if (!msg.bin || !(msg.name || msg.slug)) {
+                    salert('Invalid .saito Application File');
+                    return;
+                  }
 
-    	          const msg = newtx.returnMessage() || {};
+                  const mod = (msg.name || msg.slug).toLowerCase();
 
-    	          if (!msg.bin || !(msg.name || msg.slug)) {
-      		    salert('Invalid .saito Application File');
-      		    return;
-    	      	  }
-
-    	          const mod = (msg.name || msg.slug).toLowerCase();
-
-    	          await this.app.storage.installLocalApplication(
-      		    mod,
-      		    msg.bin,
-      		    this.nft.id,
-      		    this.nft.tx_sig
-    	          );
-  		} catch (err) {
-    		  console.error('Error: ', err);
-    		  salert('An error occurred while installing application. Check console for details.');
-	          return;
-	        }
-	      }
+                  await this.app.storage.installLocalApplication(
+                    mod,
+                    msg.bin,
+                    this.nft.id,
+                    this.nft.tx_sig
+                  );
+                } catch (err) {
+                  console.error('Error: ', err);
+                  salert(
+                    'An error occurred while installing application. Check console for details.'
+                  );
+                  return;
+                }
+              }
 
               this.app.options.permissions.nfts.push(this.nft.tx_sig);
               salert('NFT Activated for Next Reload');
@@ -229,7 +227,11 @@ class SaitoNFTCard {
     console.log('Insert fetched NFT details into CARD');
 
     const details = document.querySelector(this.my_qs + ' .saito-nft-card-details');
-    if (details && (this.nft.css || this.nft.js) && !details.querySelector('.saito-nft-card-toggle')) {
+    if (
+      details &&
+      (this.nft.css || this.nft.js) &&
+      !details.querySelector('.saito-nft-card-toggle')
+    ) {
       if (!details.querySelector('.saito-nft-card-toggle')) {
         const enabled = (this.app.options?.permissions?.nfts || []).includes(this.nft.tx_sig);
         const toggle = document.createElement('div');
