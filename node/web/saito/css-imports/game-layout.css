@@ -92,6 +92,21 @@ body {
   z-index: 91;
 }
 
+/*
+  Chat popup rem geometry was authored at a 10px root.
+  html.game uses 12px — scale width/height back so the popup matches
+  chat JS placement (innerWidth - 375 / 360) and covers less of the board.
+  ≤600px stays fullscreen via saito-chat.css.
+*/
+@media screen and (min-width: 601px) {
+  html.game .chat-container {
+    width: 30rem;
+    min-width: 25rem;
+    height: 41.667rem;
+    min-height: 16.667rem;
+  }
+}
+
 /*********************/
 /*  SIZING ISSUES    */
 /*********************/

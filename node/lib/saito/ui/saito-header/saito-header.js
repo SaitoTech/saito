@@ -124,7 +124,7 @@ class SaitoHeader extends UIModTemplate {
 
       siteMessage(
         `${amount} ${ticker} inbound from ${this.app.keychain.returnUsername(obj.sender)}`,
-        3000
+        2000
       );
     });
 

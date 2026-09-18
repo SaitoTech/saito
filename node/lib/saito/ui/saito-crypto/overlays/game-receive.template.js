@@ -5,7 +5,7 @@
  *   pending  → "Awaiting Transfer"
  *   success  → "Payment Received"  (title + state set from game-receive.js)
  *
- * `data-receive-state` and `data-receive-mode` are set from game-receive.js after mount.
+ * `data-receive-mode` is `trusted` when inbound auto-continue is enabled.
  */
 module.exports = function gameCryptoReceiveOverlayTemplate(details) {
   const partyKey = details.partyKey
@@ -17,7 +17,7 @@ module.exports = function gameCryptoReceiveOverlayTemplate(details) {
     class="saito-crypto-transfer game-crypto-transfer-card crypto-receive-overlay"
     id="receive-crypto-request-root"
     data-receive-state="pending"
-    data-receive-mode="interactive"
+    data-receive-mode="${details.trusted ? 'trusted' : 'interactive'}"
   >
     <div class="crypto-receive-overlay__body game-crypto-transfer-card__body">
       <div class="crypto-receive-overlay__status" aria-live="polite">
@@ -47,8 +47,14 @@ module.exports = function gameCryptoReceiveOverlayTemplate(details) {
     </div>
 
     <footer class="crypto-receive-overlay__footer crypto-receive-overlay__footer--trusted game-crypto-transfer-card__footer">
-      <div class="crypto-transfer-countdown crypto-receive-overlay__countdown" aria-live="polite">
-        Closing in <span id="crypto_receive_countdown">3</span>s
+      <div
+        class="crypto-receive-overlay__progress"
+        role="progressbar"
+        aria-label="Auto-continuing"
+        aria-valuemin="0"
+        aria-valuemax="100"
+      >
+        <div class="crypto-receive-overlay__progress-fill"></div>
       </div>
     </footer>
 

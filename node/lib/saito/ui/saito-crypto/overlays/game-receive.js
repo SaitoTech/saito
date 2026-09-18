@@ -6,7 +6,9 @@
  * Queue resume is one-shot via completeReceiveOnce():
  *   - Continue click → completeReceiveOnce()
  *   - Payment arrived → success UI, then completeReceiveOnce()
+ *   - inbound trusted pref → 3s progress bar, then completeReceiveOnce()
  * Overlay close must not re-fire the game callback.
+ * Continue does not write crypto_transfers_inbound_trusted.
  */
 
 const GameReceiveTemplate = require('./game-receive.template');
@@ -34,6 +36,7 @@ class GameReceive {
     this.expected_hash = null;
     this.mycallback = null;
     this.receive_completed = false;
+    this.timeout = null;
 
     this.app.connection.on('saito-crypto-game-receive-render-request', (details) => {
       this.render(details);
@@ -51,7 +54,6 @@ class GameReceive {
    *   root: HTMLElement,
    *   title: HTMLElement | null,
    *   amount: HTMLElement | null,
-   *   countdown: HTMLElement | null,
    *   closeBtn: HTMLButtonElement | null
    * }}
    */
@@ -62,7 +64,6 @@ class GameReceive {
         root,
         title: root.querySelector('#crypto_receive_title'),
         amount: root.querySelector('#crypto_receive_amount'),
-        countdown: root.querySelector('#crypto_receive_countdown'),
         closeBtn: root.querySelector('#crypto_receive_continue')
       };
     } else {
@@ -75,6 +76,10 @@ class GameReceive {
    * Safe to call from Continue or from payment-arrived auto-continue.
    */
   completeReceiveOnce() {
+    if (this.timeout) {
+      clearTimeout(this.timeout);
+      this.timeout = null;
+    }
     if (this.receive_completed) {
       return;
     }
@@ -113,15 +118,27 @@ class GameReceive {
       return;
     }
 
+    if (this.timeout) {
+      clearTimeout(this.timeout);
+      this.timeout = null;
+    }
+
     this.expected_hash = details.hash;
     this.mycallback = typeof details.mycallback === 'function' ? details.mycallback : null;
     this.receive_completed = false;
+
+    const pref = this.app.options?.gameprefs?.crypto_transfers_inbound_trusted;
+    details.trusted = !(pref === undefined || pref === null) && !!pref;
 
     const publicKey = details.publicKey;
     details.partyName = escapeHtml(this.app.keychain.returnUsername(publicKey));
     details.partyKey = escapeHtml(publicKey);
 
     this.overlay.show(GameReceiveTemplate(details), () => {
+      if (this.timeout) {
+        clearTimeout(this.timeout);
+        this.timeout = null;
+      }
       this.expected_hash = null;
       // Queue resume is owned by completeReceiveOnce(); close must not re-fire it.
       this.mycallback = null;
@@ -135,6 +152,13 @@ class GameReceive {
     }
 
     this.attachEvents();
+
+    if (details.trusted) {
+      this.timeout = setTimeout(() => {
+        this.timeout = null;
+        this.completeReceiveOnce();
+      }, 3000);
+    }
   }
 
   onReceivePayment() {
