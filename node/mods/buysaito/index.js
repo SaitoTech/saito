@@ -77,18 +77,8 @@ module.exports = (app, mod, build_number = '', og_card) => {
     <div class="buysaito-withdraw-container">
       <h2>Buy SAITO</h2>
 
-      <div class='purchase-saito-prompt'>I want ...&nbsp; 
-        <select class="saito-form-select purchase-saito-amount" id="purchase-saito-amount">
-      	  <option id="1000" value="1000">1,000 SAITO</option>
-      	  <option id="10000" value="10000">10,000 SAITO</option>
-      	  <option id="50000" value="50000" selected>50,000 SAITO</option>
-      	  <option id="100000" value="100000">100,000 SAITO</option>
-          <option id="0" value="0">custom</option>
-        </select>
-      </div>
-
-      <div class='saito-button-row auto-size'>
-        <button class="saito-button-primary buysaito-button fat" id="buysaito-button" disabled >Get Quote</button>
+      <div id="buysaito-amount-form" aria-live="polite">
+        <p role="status">Checking available payment currencies...</p>
       </div>
       </div>
       <div class="buysaito-footer-note">Already have SAITO?<br>Visit our <a href="/migration">migration portal</a>.</div>

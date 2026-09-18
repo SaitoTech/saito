@@ -520,10 +520,11 @@ describe('BuySaito automatic payment progress', () => {
   test.each([
     ['pending deposit', [{ amount: '1', state: 'pending' }], [], 'pending'],
     ['safe receipt', [], [{ amount: '1', deposit: { sender: 'payer' } }], 'confirmed'],
+    ['safe receipt after another lookup fails', [], [{ amount: '1' }], 'confirmed', true],
     ['underpayment', [{ amount: '0.5', state: 'pending' }], [], 'new']
   ])(
     'polling a %s only advances when the expected amount is present',
-    async (_, deposits, snapshots, status) => {
+    async (_, deposits, snapshots, status, failedLookup = false) => {
       const { app, mod, reservation } = setup();
       const payment = {
         ...reservation,
@@ -532,10 +533,16 @@ describe('BuySaito automatic payment progress', () => {
         mixin: { user_id: 'account' }
       };
       mod.pending_payments = [payment];
+      if (failedLookup) {
+        mod.pending_payments.unshift({ ...payment, id: 41, destination: 'unavailable-address' });
+      }
       mod.time_limit = 10000;
       mod.mixin_mod = {
         mixin: { user_id: 'account' },
-        consolidatedLookUp: jest.fn(async () => ({ deposits, snapshots, utxo: 0 }))
+        consolidatedLookUp: jest.fn(async (_ticker, destination) => {
+          if (destination === 'unavailable-address') throw new Error('temporary outage');
+          return { deposits, snapshots, utxo: 0 };
+        })
       };
       app.storage = { runDatabase: jest.fn(async () => ({})) };
       app.wallet = {
@@ -583,7 +590,15 @@ describe('BuySaito automatic payment progress', () => {
           })
         );
       }
-      expect(errors).not.toHaveBeenCalled();
+      if (failedLookup) {
+        expect(errors).toHaveBeenCalledWith(
+          'BUYSAITO - Deposit lookup failed for payment 41:',
+          'temporary outage'
+        );
+        expect(mod.pending_payments[0].status).toBe('new');
+      } else {
+        expect(errors).not.toHaveBeenCalled();
+      }
     }
   );
 
@@ -627,20 +642,12 @@ describe('BuySaito automatic payment progress', () => {
     }
   );
 
-  test('Get SAITO always starts at crypto selection and ignores old deposit instructions', async () => {
+  test('external Get SAITO launches start at crypto selection and ignore old deposit instructions', async () => {
     const { app, mod, overlay, reservation, receive } = setup();
     await receive('buysaito reserve address', reservation);
     overlay.overlay.close();
-    const button = {};
-    const amountInput = { value: '100', addEventListener: jest.fn() };
-    jest
-      .spyOn(document, 'getElementById')
-      .mockImplementation(
-        (id) => ({ 'buysaito-button': button, 'purchase-saito-amount': amountInput })[id] || null
-      );
     mod.pending_payments = [reservation];
-    mod.attachEvents();
-    button.onclick();
+    app.connection.emit('saito-purchase-launch', 100);
     jest.advanceTimersByTime(1000);
     expect(overlay.overlay.closebox).toBe(true);
     expect(overlay.overlay.show.mock.calls.at(-1)[0]).toContain('CHOOSE PAYMENT METHOD');

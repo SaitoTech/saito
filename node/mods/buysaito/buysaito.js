@@ -65,6 +65,7 @@ class BuySaito extends ModTemplate {
     this.available_currencies = [];
     this.service_ready = false;
     this.processing_payments = false;
+    this.payment_poll_timer = null;
 
     // turn this on to fake receiving a mixin payment and test out the UX flow
     this.local_dev = false;
@@ -109,6 +110,7 @@ class BuySaito extends ModTemplate {
             await this.loadPendingPayments();
             await this.checkPrices();
             this.service_ready = true;
+            this.startPaymentPolling();
           } else if (this.authorized_public_key === this.publicKey) {
             console.warn('BUYSAITO disabled: Mixin module is not available');
           }
@@ -138,12 +140,12 @@ class BuySaito extends ModTemplate {
       this.authorized_public_key = peer.publicKey;
     }
 
-    if (service.service == 'relay') {
-      if (this.browser_active) {
-        if (document.getElementById('buysaito-button')) {
-          document.getElementById('buysaito-button').disabled = false;
-        }
-      }
+    if (this.browser_active && ['relay', 'buysaito'].includes(service.service)) {
+      this.app.connection.emit('relay-send-message', {
+        recipient: this.authorized_public_key,
+        request: 'buysaito available currencies',
+        data: null
+      });
     }
   }
 
@@ -166,23 +168,8 @@ class BuySaito extends ModTemplate {
   }
 
   attachEvents() {
-    let btn = document.getElementById('buysaito-button');
-    const purchaseAmountInput = document.getElementById('purchase-saito-amount');
-
-    if (btn) {
-      btn.onclick = (e) => {
-        const amount = purchaseAmountInput.value;
-        this.app.connection.emit('saito-purchase-launch', amount);
-      };
-    }
-
-    if (purchaseAmountInput) {
-      purchaseAmountInput.addEventListener('change', (e) => {
-        e.stopPropagation();
-        if (purchaseAmountInput.value == 0) {
-          this.app.connection.emit('saito-purchase-launch', 0);
-        }
-      });
+    if (this.browser_active) {
+      this.purchase_overlay.renderAmountPage();
     }
   }
 
@@ -230,6 +217,7 @@ class BuySaito extends ModTemplate {
           if (!this.erc_saito) {
             this.erc_saito = { price_usd: txmsg.data.erc };
           }
+          if (this.browser_active) this.purchase_overlay.renderAmountPage();
           this.app.connection.emit('saito-purchase-cryptos');
         } else {
           console.warn("BUYSAITO - We are getting a request we shouldn't be...");
@@ -323,14 +311,38 @@ class BuySaito extends ModTemplate {
   }
 
   /**
-   * On new block (assuming we get a slip back), roughtly every 30seconds,
-   * try to clear out the payments queue
+   * Confirm payouts on-chain and also refresh deposits when a block arrives.
+   * The independent timer keeps deposit detection running between blocks.
    */
   async onNewBlock(blk, lc) {
-    if (this.publicKey == this.authorized_public_key && !this.app.BROWSER) {
+    if (this.service_ready && this.publicKey == this.authorized_public_key && !this.app.BROWSER) {
       await this.confirmIssuedPaymentsInBlock(blk, lc);
       await this.processPendingPayments();
     }
+  }
+
+  startPaymentPolling() {
+    if (
+      this.payment_poll_timer ||
+      !this.service_ready ||
+      this.app.BROWSER ||
+      this.publicKey !== this.authorized_public_key
+    ) {
+      return;
+    }
+
+    this.payment_poll_timer = setInterval(() => {
+      this.processPendingPayments().catch((err) => {
+        console.error('BUYSAITO - Payment polling failed:', err.message);
+      });
+    }, 10000);
+    this.payment_poll_timer.unref?.();
+  }
+
+  destroy(app) {
+    clearInterval(this.payment_poll_timer);
+    this.payment_poll_timer = null;
+    super.destroy(app);
   }
 
   webServer(app, expressapp, express) {
@@ -1112,12 +1124,19 @@ class BuySaito extends ModTemplate {
     for (let pp of this.pending_payments) {
       let success = false;
       if (pp.status !== 'confirmed') {
-        let { deposits, utxo, snapshots } = await this.mixin_mod.consolidatedLookUp(
-          pp.ticker,
-          pp.destination,
-          pp.ts, // only check recent transactions post creating the pending payment
-          pp.mixin
-        );
+        let lookup;
+        try {
+          lookup = await this.mixin_mod.consolidatedLookUp(
+            pp.ticker,
+            pp.destination,
+            pp.ts, // only check recent transactions post creating the pending payment
+            pp.mixin
+          );
+        } catch (err) {
+          console.error(`BUYSAITO - Deposit lookup failed for payment ${pp.id}:`, err.message);
+          continue;
+        }
+        const { deposits, utxo, snapshots } = lookup;
 
         console.debug(pp.ticker, deposits, utxo, snapshots);
 
