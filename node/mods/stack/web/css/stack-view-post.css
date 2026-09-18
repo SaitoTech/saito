@@ -21,6 +21,7 @@
 .view-post .article {
   width: 100%;
   max-width: 720px;
+  min-width: 0;
   margin: 0 auto;
 }
 
@@ -57,7 +58,7 @@
 
 .view-post .feature {
   width: 100%;
-  margin: 0 0 2.5rem;
+  margin: 0 0 2rem;
   border-radius: 8px;
   overflow: hidden;
 }
@@ -80,25 +81,25 @@
 
 .view-post .title {
   font-family: var(--saito-font-medium);
-  font-size: 4.67rem;
+  font-size: 3.33rem;
   font-weight: normal;
   line-height: 1.12;
   letter-spacing: normal;
   color: var(--saito-foreground);
-  margin: 0 0 1.5rem;
+  margin: 0 0 1rem;
 }
 
 .view-post .title:only-child {
-  margin-bottom: 2rem;
+  margin-bottom: 1.4rem;
 }
 
 .view-post .subtitle {
-  font-size: 2.4rem;
+  font-size: 1.75rem;
   font-weight: 400;
-  line-height: 1.5;
+  line-height: 1.4;
   color: var(--saito-foreground);
   opacity: 0.75;
-  margin: 0 0 2rem;
+  margin: 0 0 1.15rem;
 }
 
 .view-post .attribution {
@@ -106,10 +107,10 @@
   align-items: center;
   justify-content: space-between;
   gap: 1.5rem;
-  margin: 2rem 0 2.5rem;
+  margin: 1.5rem 0 1.75rem;
   flex-wrap: wrap;
   background: color-mix(in srgb, var(--saito-foreground) 3%, var(--saito-background) 97%);
-  padding: 1.25rem 1rem;
+  padding: 1rem;
   border-left: 3px solid var(--saito-primary);
   border-right: 3px solid var(--saito-primary);
   border-radius: 0.5rem;
@@ -169,7 +170,8 @@
 }
 
 .view-post .body {
-  margin-bottom: 4rem;
+  margin-bottom: 3.5rem;
+  min-width: 0;
 }
 
 .view-post .body .content > p:first-child {
@@ -177,16 +179,28 @@
 }
 
 .view-post .content {
-  font-size: 2rem;
-  line-height: 1.75;
+  min-width: 0;
+  overflow-wrap: break-word;
+  font-size: 1.83rem;
+  line-height: 1.65;
   color: var(--saito-foreground);
   font-weight: 400;
 }
 
 .view-post .content p {
-  margin: 0 0 1.75rem;
-  font-size: 2rem;
-  line-height: 1.75;
+  margin: 0 0 1.25rem;
+  font-size: 1.83rem;
+  line-height: 1.65;
+}
+
+.view-post .content strong,
+.view-post .content b {
+  font-weight: 600;
+}
+
+.view-post .content em,
+.view-post .content i {
+  font-style: italic;
 }
 
 .view-post .content h2,
@@ -194,83 +208,131 @@
 .view-post .content h4,
 .view-post .content h5,
 .view-post .content h6 {
-  margin: 3rem 0 1.25rem;
   font-weight: 600;
   color: var(--saito-foreground);
   line-height: 1.3;
 }
 
 .view-post .body .content > h2:first-child,
-.view-post .body .content > h3:first-child {
+.view-post .body .content > h3:first-child,
+.view-post .body .content > h4:first-child {
   margin-top: 0;
 }
 
 .view-post .content h2 {
-  font-size: 3rem;
+  font-size: 2.5rem;
+  margin: 2.2rem 0 0.85rem;
 }
 
 .view-post .content h3 {
-  font-size: 2.6rem;
+  font-size: 2.17rem;
+  margin: 1.9rem 0 0.75rem;
 }
 
 .view-post .content h4 {
-  font-size: 2.3rem;
+  font-size: 1.95rem;
+  margin: 1.6rem 0 0.65rem;
 }
 
 .view-post .content h5 {
-  font-size: 2.1rem;
+  font-size: 1.8rem;
+  margin: 1.4rem 0 0.55rem;
 }
 
 .view-post .content h6 {
-  font-size: 2rem;
+  font-size: 1.67rem;
+  margin: 1.25rem 0 0.5rem;
 }
 
 .view-post .content ul,
 .view-post .content ol {
-  margin: 1.75rem 0;
-  padding-left: 2.5rem;
+  margin: 1.25rem 0;
+  padding-left: 2.2rem;
+}
+
+.view-post .content ul {
+  list-style-type: disc;
+}
+
+.view-post .content ol {
+  list-style-type: decimal;
+}
+
+.view-post .content ul ul,
+.view-post .content ol ol,
+.view-post .content ul ol,
+.view-post .content ol ul {
+  margin: 0.35rem 0;
+  padding-left: 1.8rem;
 }
 
 .view-post .content li {
-  margin: 0.5rem 0;
-  font-size: 2rem;
-  line-height: 1.75;
+  margin: 0.35rem 0;
+  font-size: 1.83rem;
+  line-height: 1.65;
+}
+
+.view-post .content li p {
+  display: block;
+  margin: 0.4rem 0;
+  font-size: inherit;
+  line-height: inherit;
 }
 
 .view-post .content blockquote {
-  margin: 2rem 0;
-  padding: 0 0 0 2rem;
+  margin: 1.5rem 0;
+  padding: 0 0 0 1.5rem;
   border-left: 3px solid var(--saito-primary);
+  font-size: 1.83rem;
   font-style: italic;
   color: var(--saito-foreground);
   opacity: 0.85;
-  line-height: 1.75;
+  line-height: 1.65;
 }
 
-.view-post .content code {
-  background: var(--saito-background-secondary, var(--saito-background));
-  padding: 0.2rem 0.4rem;
-  border-radius: 4px;
-  font-size: 1.8rem;
+.view-post .content blockquote p {
+  font-size: inherit;
+  line-height: inherit;
+}
+
+.view-post .content :not(pre) > code {
+  background: color-mix(in srgb, var(--saito-secondary) 55%, var(--saito-background));
+  padding: 0.12rem 0.35rem;
+  border-radius: var(--saito-radius, 4px);
+  font-size: 1.65rem;
   font-family: var(--saito-font-monospace);
+  font-weight: 400;
 }
 
 .view-post .content pre {
-  background: var(--saito-foreground);
-  color: var(--saito-background);
+  background: color-mix(in srgb, var(--saito-secondary) 80%, var(--saito-background));
+  color: var(--saito-foreground);
   font-family: var(--saito-font-monospace);
-  font-size: 0.9rem;
-  line-height: 1.5;
-  padding: 1rem 1.25rem;
-  margin: 1rem 0;
-  border-left: 4px solid var(--saito-primary);
-  border-radius: 6px;
+  font-size: 1.58rem;
+  line-height: 1.55;
+  padding: 1.2rem 1.4rem;
+  margin: 1.5rem 0;
+  border-left: 3px solid var(--saito-primary);
+  border-radius: var(--saito-radius, 6px);
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
   overflow-x: auto;
+  white-space: pre;
+  box-sizing: border-box;
 }
 
 .view-post .content pre code {
+  display: block;
   background: transparent;
   padding: 0;
+  border-radius: 0;
+  color: inherit;
+  font-family: inherit;
+  font-size: inherit;
+  line-height: inherit;
+  font-weight: 400;
+  white-space: inherit;
 }
 
 .view-post .content a {
@@ -286,8 +348,41 @@
   max-width: 100%;
   height: auto;
   border-radius: 8px;
-  margin: 2.5rem 0;
+  margin: 1.75rem 0;
   display: block;
+}
+
+.view-post .content hr {
+  margin: 1.75rem 0;
+  border: none;
+  border-top: 1px solid var(--saito-border);
+  color: transparent;
+  background: transparent;
+}
+
+.view-post .content table {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  margin: 1.5rem 0;
+  border-collapse: collapse;
+  overflow-x: auto;
+  font-size: 1.6rem;
+  line-height: 1.5;
+}
+
+.view-post .content th,
+.view-post .content td {
+  border: 1px solid var(--saito-border);
+  padding: 0.65rem 0.85rem;
+  text-align: left;
+  vertical-align: top;
+  overflow-wrap: anywhere;
+}
+
+.view-post .content th {
+  font-weight: 600;
+  background: color-mix(in srgb, var(--saito-foreground) 4%, var(--saito-background) 96%);
 }
 
 .view-post-error {
@@ -311,25 +406,25 @@
   }
 
   .view-post .title {
-    font-size: 3.3rem;
-    line-height: 1.12;
-    margin-bottom: 1.15rem;
+    font-size: 2.92rem;
+    line-height: 1.14;
+    margin-bottom: 0.85rem;
   }
 
   .view-post .title:only-child {
-    margin-bottom: 1.5rem;
+    margin-bottom: 1.15rem;
   }
 
   .view-post .subtitle {
-    font-size: 2rem;
-    margin-bottom: 1.75rem;
+    font-size: 1.6rem;
+    margin-bottom: 1rem;
   }
 
   .view-post .attribution {
     gap: 1rem;
-    margin: 1.5rem 0 2rem;
-    padding-top: 1rem;
-    padding-bottom: 1rem;
+    margin: 1.25rem 0 1.5rem;
+    padding-top: 0.85rem;
+    padding-bottom: 0.85rem;
   }
 
   .view-post .actions {
@@ -346,19 +441,49 @@
   }
 
   .view-post .content {
-    font-size: 1.8rem;
-    line-height: 1.7;
+    font-size: 1.67rem;
+    line-height: 1.65;
   }
 
-  .view-post .content p {
-    font-size: 1.8rem;
+  .view-post .content p,
+  .view-post .content li,
+  .view-post .content blockquote {
+    font-size: 1.67rem;
+    line-height: 1.65;
   }
 
   .view-post .content h2 {
-    font-size: 2.4rem;
+    font-size: 2.25rem;
+    margin: 1.85rem 0 0.75rem;
   }
 
   .view-post .content h3 {
-    font-size: 2.1rem;
+    font-size: 2rem;
+    margin: 1.6rem 0 0.65rem;
+  }
+
+  .view-post .content h4 {
+    font-size: 1.83rem;
+  }
+
+  .view-post .content h5 {
+    font-size: 1.75rem;
+  }
+
+  .view-post .content h6 {
+    font-size: 1.67rem;
+  }
+
+  .view-post .content :not(pre) > code {
+    font-size: 1.55rem;
+  }
+
+  .view-post .content pre {
+    font-size: 1.5rem;
+    padding: 1rem 1.15rem;
+  }
+
+  .view-post .content table {
+    font-size: 1.5rem;
   }
 }

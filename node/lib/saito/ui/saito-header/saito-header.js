@@ -508,15 +508,19 @@ class SaitoHeader extends UIModTemplate {
     }
 
     const icon = this.renderMenuItemIcon(item, keyword);
+    const esc = (value) => this.app.browser.escapeHTML(value);
+    const label = esc(item.text);
+    const type_class = esc(item.type || keyword);
+    const nav = item?.navigation ? ` data-navigation="${esc(item.navigation)}"` : '';
 
     let html = `     
-      <li id="${id}" data-id="${item.text}" class="saito-header-appspace-option ${item.type}" ${item?.navigation ? `data-navigation="${item.navigation}"` : ''}>
+      <li id="${esc(id)}" data-id="${label}" class="saito-header-appspace-option ${type_class}"${nav}>
         ${icon}
-        <span class="saito-menu-item-label">${item.text}</span></li>`;
+        <span class="saito-menu-item-label">${label}</span></li>`;
 
-    let menu = document.querySelector(`.saito-header-menu-section .${keyword}-menu > ul`);
+    let menu = document.querySelector(`.saito-header-menu-section .${keyword}-menu ul`);
     if (menu && menu.parentElement) {
-      menu.innerHTML += html;
+      menu.insertAdjacentHTML('beforeend', html);
       menu.parentElement.classList.remove('empty-menu-section');
     }
   }
@@ -572,14 +576,16 @@ class SaitoHeader extends UIModTemplate {
       return;
     }
 
-    const menu = document.querySelector('.saito-header-menu-section .module-menu > ul');
+    const menu = document.querySelector('.saito-header-menu-section .module-menu ul');
     if (!menu) {
       return;
     }
 
     const item = { text, icon, type: 'module' };
     const icon_html = this.renderMenuItemIcon(item, 'module');
-    const html = `<li id="${id}" data-id="${text}" class="saito-header-appspace-option module">${icon_html}<span class="saito-menu-item-label">${text}</span></li>`;
+    const esc = (value) => this.app.browser.escapeHTML(value);
+    const label = esc(text);
+    const html = `<li id="${esc(id)}" data-id="${label}" class="saito-header-appspace-option module">${icon_html}<span class="saito-menu-item-label">${label}</span></li>`;
     const add_app = menu.querySelector('[data-id="Add App"]');
     if (add_app) {
       add_app.insertAdjacentHTML('beforebegin', html);
@@ -625,7 +631,7 @@ class SaitoHeader extends UIModTemplate {
       }
     }
 
-    return `<i class="${item.icon}"></i>`;
+    return `<i class="${this.app.browser.escapeHTML(item.icon)}"></i>`;
   }
 
   returnModuleMenuIconPaths(text = '') {
