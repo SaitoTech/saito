@@ -4,7 +4,7 @@ const ListingFieldEdit = require('./listing-field-edit');
 const Summary = require('../../summary');
 const { DREAMSCAPE_PLACEHOLDER } = require('../../summary');
 const { summaryBucketKey } = require('../summary-cache');
-const { isStoreRentalListing } = require('../../categories');
+const { isStoreRentalListing, storeCategoryLabel } = require('../../categories');
 const { durationLabel, rightsLabel } = require('./rental-listing.template');
 const { yieldForPaint } = require('../purchase-service');
 const {
@@ -132,16 +132,12 @@ class ListingDetailOverlay {
   }
 
   returnProductType(summary = {}) {
-    if (summary.type) {
-      return summary.type;
-    }
-    if (summary.nft || summary.nft_id || summary.badge) {
-      return 'NFT';
-    }
-    if (summary.delivery || summary.shipping || summary.physical) {
-      return 'Physical';
-    }
-    return 'Digital';
+    const nft_type =
+      (typeof summary?.nft?.returnType === 'function' ? summary.nft.returnType() : '') ||
+      summary?.nft?.nft_type ||
+      summary?.type ||
+      '';
+    return storeCategoryLabel(summary.category, nft_type);
   }
 
   returnListingMeta(summary = {}) {
@@ -225,7 +221,7 @@ class ListingDetailOverlay {
       actionText: this.escapeHtml(actionText),
       description,
       hasDescription: !!description,
-      productType: this.escapeHtml(isRental ? 'store-nft-rental' : this.returnProductType(summary)),
+      productType: this.escapeHtml(this.returnProductType(summary)),
       fileType: this.escapeHtml(this.returnFileTypeFromImages(rawImages)),
       createdDate: this.escapeHtml(this.returnCreatedDate(summary)),
       imageLoading: summary.isImageLoading?.() ?? false,

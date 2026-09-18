@@ -40,6 +40,19 @@ function isStoreCategory(category = '') {
   return STORE_CATEGORY_LIST.includes(String(category || ''));
 }
 
+/**
+ * Buyer-facing Type label: a STORE_CATEGORY_LIST value, or Other.
+ * Uses a stored listing category when it is one of the canonical labels;
+ * otherwise maps protocol nft_type (unknown → Other).
+ */
+function storeCategoryLabel(category = '', nft_type = '') {
+  const stored = String(category || '').trim();
+  if (isStoreCategory(stored)) {
+    return stored;
+  }
+  return mapNFTTypeToCategory(nft_type);
+}
+
 function normalizePageSize(page_size) {
   const n = Number(page_size);
   if (!Number.isFinite(n) || n <= 0) {
@@ -153,6 +166,7 @@ module.exports = {
   MAX_PAGE_SIZE,
   categoryViewKey,
   isStoreCategory,
+  storeCategoryLabel,
   normalizePageSize,
   normalizePage,
   normalizeOffset,

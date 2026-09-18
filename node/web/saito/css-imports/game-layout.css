@@ -99,7 +99,7 @@ body {
   ≤600px stays fullscreen via saito-chat.css.
 */
 @media screen and (min-width: 601px) {
-  html.game .chat-container {
+  html.game .chat-container:not(.minimized) {
     width: 30rem;
     min-width: 25rem;
     height: 41.667rem;
@@ -176,7 +176,7 @@ div.h3 {
 }
 
 @media screen and (max-width: 768px) {
-  .chat-container {
+  .chat-container:not(.minimized) {
     max-height: 50vh !important;
     height: 280px !important;
     top: 45px;
