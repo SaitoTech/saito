@@ -152,18 +152,6 @@ class Vault extends ModTemplate {
   respondTo(type = '', obj) {
     let this_mod = this;
 
-    if (type === 'redsquare-create') {
-      return {
-        id: 'vault-share',
-        label: 'Share',
-        image: '/saito/icons/saito-vault-icon-solid.svg',
-        callback: () => {
-          this_mod.attachStyleSheets();
-          this_mod.access_file_overlay.file_upload_overlay.render();
-        }
-      };
-    }
-
     //
     // Optional N-WASM library action: store the canonical N-WASM game
     // transaction/message (not a raw-ROM-only payload) behind a Vault key.

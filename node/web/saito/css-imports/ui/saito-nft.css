@@ -1889,8 +1889,9 @@ nft cards
   color: var(--saito-muted-foreground);
 }
 .saito-nft-card:has(.saito-nft-card-toggle.open) {
-  overflow: visible;
-  z-index: 11;
+  overflow: clip;
+  overflow-clip-margin: 12rem;
+  z-index: 12;
 }
 .saito-nft-card-toggle {
   display: inline-block;

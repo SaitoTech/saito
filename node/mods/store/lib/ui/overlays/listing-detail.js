@@ -556,6 +556,43 @@ class ListingDetailOverlay {
             this.formatSaitoPriceDisplay(cleaned);
         }
       });
+      const input = document.getElementById('saito-overlay-form-input');
+      if (input) {
+        input.setAttribute('inputmode', 'decimal');
+        input.addEventListener('beforeinput', (ev) => {
+          if (!ev.data || !String(ev.inputType || '').startsWith('insert')) {
+            return;
+          }
+          if (/[^\d.]/.test(ev.data)) {
+            ev.preventDefault();
+            return;
+          }
+          const start = input.selectionStart ?? input.value.length;
+          const end = input.selectionEnd ?? start;
+          const next = input.value.slice(0, start) + ev.data + input.value.slice(end);
+          const dot = next.indexOf('.');
+          if (dot !== -1 && next.slice(dot + 1).includes('.')) {
+            ev.preventDefault();
+          }
+        });
+        input.addEventListener('input', () => {
+          const prev = input.value;
+          let cleaned = prev.replace(/[^\d.]/g, '');
+          const dot = cleaned.indexOf('.');
+          if (dot !== -1) {
+            cleaned = cleaned.slice(0, dot + 1) + cleaned.slice(dot + 1).replace(/\./g, '');
+          }
+          if (cleaned === prev) {
+            return;
+          }
+          const pos = input.selectionStart;
+          input.value = cleaned;
+          if (typeof pos === 'number') {
+            const nextPos = Math.max(0, pos - (prev.length - cleaned.length));
+            input.setSelectionRange(nextPos, nextPos);
+          }
+        });
+      }
     });
 
     root.querySelector('[data-edit="available"]')?.addEventListener('click', (e) => {

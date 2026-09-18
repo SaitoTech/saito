@@ -17,6 +17,11 @@
     width: 4em;
   }
 
+  .module-settings-overlay {
+    background-color: var(--saito-popover);
+    background-image: var(--saito-popover-wash);
+  }
+
   .gameboard {
     position: absolute;
     background-image: url(/saito/img/arcade/greenfelt.jpg);

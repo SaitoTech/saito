@@ -32,8 +32,7 @@ class Create {
 
     const seen = new Set(actions.map((a) => a.id));
     const labelOverrides = {
-      'stack-publish': 'New Article',
-      'vault-share': 'Share File'
+      'stack-publish': 'New Article'
     };
 
     for (const action of this._extra_actions) {

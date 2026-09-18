@@ -179,7 +179,7 @@ class CreateNFT {
   }
 
   supportsThumbnail() {
-    return ['text', 'json', 'css', 'js'].includes(this.nft_type);
+    return ['text', 'token', 'saito-app', 'json', 'css', 'js'].includes(this.nft_type);
   }
 
   renderThumbnail() {

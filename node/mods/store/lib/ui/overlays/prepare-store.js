@@ -306,11 +306,15 @@ class PrepareStoreOverlay {
       actions.create_nft = true;
     }
 
-    const upload = (this.app.modules.getRespondTos?.('redsquare-create') || []).find(
-      (item) => item?.id === 'vault-share' && typeof item.callback === 'function'
-    );
-    if (upload) {
-      this.upload_action = upload;
+    const vault = this.app.modules.returnModule?.('Vault');
+    const file_upload = vault?.access_file_overlay?.file_upload_overlay;
+    if (file_upload && typeof file_upload.render === 'function') {
+      this.upload_action = {
+        callback: () => {
+          vault.attachStyleSheets?.();
+          file_upload.render();
+        }
+      };
       actions.upload_media = true;
     }
 

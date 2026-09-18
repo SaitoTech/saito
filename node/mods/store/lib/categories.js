@@ -85,6 +85,7 @@ function mapNFTTypeToCategory(nft_type = '') {
       return STORE_CATEGORIES.EXTENSIONS;
     case 'stack':
     case 'nwasm-nft-mod':
+    case 'saito-app':
       return STORE_CATEGORIES.APPS_AND_GAMES;
     case 'vault-nft-key':
     case 'vault-nft-rental':
