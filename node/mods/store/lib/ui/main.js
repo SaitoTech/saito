@@ -11,7 +11,7 @@ const PurchaseOverlay = require('./overlays/purchase');
 const SettingsOverlay = require('./overlays/settings');
 const PurchaseLifecycle = require('./purchase-lifecycle');
 const ListingLifecycle = require('./listing-lifecycle');
-const { normalizeListingMode } = require('../categories');
+const { normalizeListingMode, categoryViewKey } = require('../categories');
 
 class Main {
   constructor(app, mod, container = '.saito-container') {
@@ -101,7 +101,8 @@ class Main {
     const route = this.mod.returnStoreRouteFromPath?.() || {
       publicKey: '',
       admin: false,
-      moderate: false
+      moderate: false,
+      category: ''
     };
     if (route.moderate) {
       void this.openModerate({ updateUrl: false });
@@ -110,14 +111,15 @@ class Main {
     if (route.publicKey) {
       this.openStorefront(route.publicKey, {
         updateUrl: false,
-        admin: !!route.admin
+        admin: !!route.admin,
+        category: route.category
       });
       return;
     }
     this.setComposition('marketplace');
-    this.menu.setActive('all');
+    this.menu.setActive(route.category ? categoryViewKey(route.category) : 'all');
     this.manager.show('browse');
-    this.loadBrowsePage({ category: '', page: 1 });
+    this.loadBrowsePage({ category: route.category || '', page: 1 });
   }
 
   async initialize() {
@@ -237,7 +239,13 @@ class Main {
    */
   async openStorefront(
     publicKey = '',
-    { updateUrl = true, celebrate = false, dashboardView = 'store-admin', admin = false } = {}
+    {
+      updateUrl = true,
+      celebrate = false,
+      dashboardView = 'store-admin',
+      admin = false,
+      category = ''
+    } = {}
   ) {
     const key = String(publicKey || this.mod.publicKey || '').trim();
     if (!key) {
@@ -260,11 +268,12 @@ class Main {
         }
         await this.manager.showStorefront(key, {
           viewMode: 'admin',
-          adminSection: view === 'active' ? 'active' : 'home'
+          adminSection: view === 'active' ? 'active' : 'home',
+          category
         });
       } else {
         this.setComposition('marketplace');
-        await this.manager.showStorefront(key, { viewMode: 'admin-denied' });
+        await this.manager.showStorefront(key, { viewMode: 'admin-denied', category });
       }
 
       if (updateUrl) {
@@ -274,7 +283,7 @@ class Main {
     }
 
     this.setComposition('user-store', key);
-    await this.manager.showStorefront(key, { viewMode: 'public' });
+    await this.manager.showStorefront(key, { viewMode: 'public', category });
 
     if (updateUrl) {
       this.setStorefrontUrl(key);

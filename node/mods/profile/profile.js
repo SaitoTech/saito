@@ -52,10 +52,10 @@ class Profile extends ModTemplate {
     });
 
     app.connection.on('profile-edit-description', (key) => {
-      const elementId = `profile-description-${key}`;
-      const element = document.querySelector(`#${elementId}`);
+      const profile = this.returnProfile(key);
+      const description = typeof profile.description === 'string' ? profile.description : '';
       this.updateDescription = new UpdateDescription(this.app, this, key);
-      this.updateDescription.render(element ? element.textContent : '');
+      this.updateDescription.render(description);
     });
   }
 

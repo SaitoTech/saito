@@ -1224,21 +1224,6 @@ class SaitoHeader extends UIModTemplate {
             menu_html += '<div></div>';
           }
 
-          if (is_activated) {
-            menu_html += `
-              <div
-                class="saito-icon-button header-crypto-history"
-                data-ticker="${crypto_mod.ticker}"
-                title="View ${crypto_mod.ticker} recent transactions"
-                aria-label="View ${crypto_mod.ticker} recent transactions"
-                role="button"
-                tabindex="0"
-              >
-                <i class="fa-solid fa-clock-rotate-left" aria-hidden="true"></i>
-              </div>
-            `;
-          }
-
           menu_html += `</div>`;
         }
       }
@@ -1258,9 +1243,15 @@ class SaitoHeader extends UIModTemplate {
       c.onclick = async (e) => {
         const ticker = e.currentTarget.dataset.ticker;
         const cryptoMod = this.app.wallet.returnCryptoModuleByTicker(ticker);
-        if (!cryptoMod.isActivated()) {
-          this.app.connection.emit('saito-header-install-crypto', ticker);
+        if (cryptoMod.isActivated()) {
+          this.app.connection.emit('saito-crypto-wallet-history-render-request', {
+            ticker
+          });
+          this.hideMenu();
+          return;
         }
+
+        this.app.connection.emit('saito-header-install-crypto', ticker);
 
         await this.app.wallet.setPreferredCrypto(ticker);
         clearTimeout(this.web3_start_polling_timeout);
@@ -1275,24 +1266,6 @@ class SaitoHeader extends UIModTemplate {
           sidebar.classList.remove('show-wallet');
         }
         await this.renderCrypto(true);
-      };
-    });
-
-    Array.from(document.querySelectorAll('.header-crypto-history')).forEach((button) => {
-      const openHistory = (e) => {
-        e.stopPropagation();
-        this.app.connection.emit('saito-crypto-wallet-history-render-request', {
-          ticker: e.currentTarget.dataset.ticker
-        });
-        this.hideMenu();
-      };
-
-      button.onclick = openHistory;
-      button.onkeydown = (e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          openHistory(e);
-        }
       };
     });
   }

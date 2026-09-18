@@ -38,6 +38,7 @@ class StorefrontView {
     this.viewMode = 'public';
     /** @type {'home' | 'active'} Admin content section when viewMode is admin */
     this.adminSection = 'home';
+    this.category = '';
 
     // Progress overlay complete → refresh inventory from warehouse (no local injection).
     this.app.connection.on('store-listing-lifecycle', (entry) => {
@@ -196,7 +197,10 @@ class StorefrontView {
    * @param {string} publicKey
    * @param {{ viewMode?: 'public' | 'admin' | 'admin-denied', adminSection?: 'home' | 'active' }} [opts]
    */
-  async show(publicKey = '', { viewMode = 'public', adminSection = 'home' } = {}) {
+  async show(
+    publicKey = '',
+    { viewMode = 'public', adminSection = 'home', category = '' } = {}
+  ) {
     const nextKey = String(publicKey || '').trim();
     if (!nextKey) {
       return;
@@ -204,16 +208,19 @@ class StorefrontView {
 
     const nextViewMode = viewMode === 'admin' || viewMode === 'admin-denied' ? viewMode : 'public';
     const nextSection = adminSection === 'active' ? 'active' : 'home';
+    const nextCategory = String(category || '');
     const reuseAdminData =
       this.publicKey === nextKey &&
       this.viewMode === 'admin' &&
       nextViewMode === 'admin' &&
       this.inventoryLoaded &&
-      !this.loading;
+      !this.loading &&
+      this.category === nextCategory;
 
     this.publicKey = nextKey;
     this.viewMode = nextViewMode;
     this.adminSection = nextSection;
+    this.category = nextCategory;
 
     if (this.viewMode === 'admin-denied') {
       this.loading = false;
@@ -256,7 +263,7 @@ class StorefrontView {
     try {
       const result = await loadListingsPage(this.app, this.mod, {
         public_key: this.publicKey,
-        category: '',
+        category: this.category || '',
         offset: 0,
         page_size: MAX_PAGE_SIZE
       });
@@ -298,7 +305,7 @@ class StorefrontView {
     try {
       const result = await loadListingsPage(this.app, this.mod, {
         public_key: this.publicKey,
-        category: '',
+        category: this.category || '',
         offset,
         page_size: this.page_size,
         status: 'active'

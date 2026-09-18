@@ -508,6 +508,7 @@
 
 /* Header wallet crypto row */
 .saito-header-crypto {
+  position: relative;
   display: grid;
   grid-template-columns: 5rem 1fr auto;
   grid-template-rows: 2fr 1fr;
@@ -561,17 +562,50 @@
   font: var(--saito-font-medium);
   color: var(--saito-foreground);
   font-size: 19px;
-  align-self: flex-end;
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  align-self: center;
+}
+
+.header-crypto-pending {
+  grid-column: 2;
+  grid-row: 2;
 }
 
 .header-crypto-value {
   color: var(--saito-muted-foreground);
 }
 
-.saito-header-crypto .header-crypto-history {
-  grid-column: 3;
-  grid-row: 1 / span 2;
-  align-self: center;
+.saito-header-crypto.active::after,
+.saito-header-crypto.inactive:hover::after {
+  position: absolute;
+  right: 1rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--saito-muted-foreground);
+  pointer-events: none;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.saito-header-crypto.active::after {
+  content: "›";
+  opacity: 0.35;
+  font-size: 1.8rem;
+  transform: translateY(calc(-50% - 0.12em));
+}
+
+.saito-header-crypto.active:hover::after {
+  content: "show history";
+  opacity: 0.85;
+  font-size: 1.2rem;
+  transform: translateY(-50%);
+}
+
+.saito-header-crypto.inactive:hover::after {
+  content: "enable crypto";
+  opacity: 0.85;
+  font-size: 1.2rem;
 }
 
 /*   Crypto Menu */

@@ -5,7 +5,12 @@ const Main = require('./lib/ui/main');
 const Warehouse = require('./lib/warehouse');
 const transactions = require('./lib/transactions');
 const { serveCachedImageResponse } = require('./lib/images');
-const { normalizeOffset, normalizePageSize } = require('./lib/categories');
+const {
+  normalizeOffset,
+  normalizePageSize,
+  mapNFTTypeToCategory,
+  categoryViewKey
+} = require('./lib/categories');
 const index = require('./index');
 
 class Store extends ModTemplate {
@@ -990,24 +995,36 @@ class Store extends ModTemplate {
     if (route.publicKey) {
       await this.main.openStorefront(route.publicKey, {
         updateUrl: false,
-        admin: route.admin
+        admin: route.admin,
+        category: route.category
       });
+      return;
+    }
+
+    if (route.category) {
+      this.main.manager.browse.category = route.category;
+      this.main.menu.setActive(categoryViewKey(route.category));
     }
   }
 
   /**
    * Parse /store/<publickey>, /store/<publickey>/admin, or /store/moderate.
-   * @returns {{ publicKey: string, admin: boolean, moderate: boolean }}
+   * Optional ?type=<nft-type> is mapped to a marketplace/storefront category.
+   * @returns {{ publicKey: string, admin: boolean, moderate: boolean, category: string }}
    */
   returnStoreRouteFromPath() {
+    const empty = { publicKey: '', admin: false, moderate: false, category: '' };
     if (!this.app.BROWSER || typeof window === 'undefined') {
-      return { publicKey: '', admin: false, moderate: false };
+      return empty;
     }
+
+    const type = new URLSearchParams(window.location.search || '').get('type') || '';
+    const category = type ? mapNFTTypeToCategory(type) : '';
 
     const pathname = window.location.pathname || '';
     const slug = '/' + this.slug;
     if (!pathname.startsWith(slug)) {
-      return { publicKey: '', admin: false, moderate: false };
+      return { ...empty, category };
     }
 
     const segments = pathname
@@ -1016,14 +1033,15 @@ class Store extends ModTemplate {
       .filter((seg) => seg.length > 0);
 
     if (segments.length === 1 && segments[0] === 'moderate') {
-      return { publicKey: '', admin: false, moderate: true };
+      return { publicKey: '', admin: false, moderate: true, category };
     }
 
     if (segments.length === 1 && segments[0] !== 'cache') {
       return {
         publicKey: decodeURIComponent(segments[0]),
         admin: false,
-        moderate: false
+        moderate: false,
+        category
       };
     }
 
@@ -1031,11 +1049,12 @@ class Store extends ModTemplate {
       return {
         publicKey: decodeURIComponent(segments[0]),
         admin: true,
-        moderate: false
+        moderate: false,
+        category
       };
     }
 
-    return { publicKey: '', admin: false, moderate: false };
+    return { publicKey: '', admin: false, moderate: false, category };
   }
 
   /**

@@ -27,21 +27,12 @@ class WalletHistory {
     }
   }
 
-  getExplorerUrl() {
-    if (this.ticker !== 'SAITO') {
-      return '';
-    }
-
-    const key = this.app.wallet?.publicKey || this.app.wallet?.returnPublicKey?.() || '';
-    return key ? `/explorer/address/${encodeURIComponent(key)}` : '/explorer';
-  }
-
   async render() {
     if (this.mod.ticker === 'SAITO' && !this.mod.history?.length) {
       await this.mod.loadHistory();
     }
 
-    this.overlay.show(WalletHistoryTemplate(this.mod, this.getExplorerUrl()));
+    this.overlay.show(WalletHistoryTemplate(this.mod));
     this.formatHistory();
     this.attachEvents();
   }
@@ -58,10 +49,11 @@ class WalletHistory {
       <div class="transaction-history-table saitox-table" data-crypto="${this.mod.ticker}">
         <div class="saitox-header-item">Time</div>
         <div class="saitox-header-item">Type</div>
-        <div class="saitox-header-item">Amount</div>
+        <div class="saitox-header-item crypto-amount">Amount</div>
         ${balanceHeader}
         <div class="saitox-header-item">To/From</div>
         <div class="saitox-header-item saito-only">Memo</div>
+        <div class="saitox-header-item saito-only"></div>
     `;
     let runningBalance = Number(this.mod.returnDisplayBalance());
     let day = new Date().toDateString();
@@ -75,6 +67,7 @@ class WalletHistory {
           <div class="crypto-amount">${this.app.browser.formatDecimals(difference)}</div>
           ${formatBalance(runningBalance)}
           <div></div>
+          <div class="saito-only"></div>
           <div class="saito-only"></div>`;
 
         runningBalance -= difference;
@@ -83,6 +76,9 @@ class WalletHistory {
 
       for (let i = this.mod.history.length - 1; i >= 0; i--) {
         const entry = this.mod.history[i];
+        if (entry.lc === 0) {
+          continue;
+        }
         if (entry.timestamp === lastTimestamp) {
           continue;
         }
@@ -95,7 +91,7 @@ class WalletHistory {
           historyHtml += `<div class="saitox-table-break">${day}</div>`;
         }
 
-        historyHtml += `<div class="crypto-timestamp">${timestamp.toLocaleTimeString()}</div>
+        historyHtml += `<div class="crypto-timestamp">${timestamp.toLocaleTimeString().replace(/\s*AM/i, 'am').replace(/\s*PM/i, 'pm')}</div>
           <div class="crypto-type">${entry.type}</div>
           <div class="crypto-amount">${this.app.browser.formatDecimals(entry.amount)}</div>
           ${formatBalance(runningBalance)}`;
@@ -114,6 +110,7 @@ class WalletHistory {
         }
 
         historyHtml += `<div class="saito-only">${entry.memo || ''}</div>`;
+        historyHtml += `<div class="saito-only history-tx-link">${this.mod.ticker === 'SAITO' && entry.block_hash ? `<a href="/explorer/block/${encodeURIComponent(entry.block_hash)}">view on explorer</a>` : ''}</div>`;
         runningBalance -= Number(entry.amount);
         runningBalance = Number(runningBalance.toFixed(8));
       }
@@ -125,6 +122,7 @@ class WalletHistory {
         <div class="crypto-amount">${this.app.browser.formatDecimals(runningBalance)}</div>
         ${formatBalance(runningBalance)}
         <div class="crypto-address">Starting balance</div>
+        <div class="saito-only"></div>
         <div class="saito-only"></div>`;
     }
 
@@ -141,11 +139,6 @@ class WalletHistory {
       refreshButton.onclick = () => {
         this.mod.fetchHistory(0, () => this.formatHistory());
       };
-    }
-
-    const explorerLink = document.getElementById('wallet-history-explorer');
-    if (explorerLink) {
-      explorerLink.onclick = () => this.overlay.close();
     }
   }
 }

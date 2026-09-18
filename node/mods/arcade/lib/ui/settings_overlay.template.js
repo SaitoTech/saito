@@ -16,7 +16,7 @@ module.exports = () => {
         </p>
       </div>
       <div class="actions">
-        <a class="saito-button-secondary" data-action="store" href="/store">
+        <a class="saito-button-secondary" data-action="store" href="/store?type=saito-app">
           Visit Saito Store
         </a>
         <a

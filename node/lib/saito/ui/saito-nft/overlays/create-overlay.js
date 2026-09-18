@@ -60,6 +60,15 @@ class CreateNFT {
       }
     }
 
+    if (!this.defaults?.type) {
+      const common = new Set(['image', 'token', 'text', 'css', 'json', 'js', 'saito-app']);
+      for (const opt of [...typeDropdown.options]) {
+        if (!common.has(opt.value)) {
+          opt.remove();
+        }
+      }
+    }
+
     this.attachEvents();
     this.renderFooterActions();
     this.setDefaults();

@@ -30,6 +30,7 @@ Module._resolveFilename = function (request, parent, isMain, options) {
 
 const path = require('path');
 const fs = require('fs');
+const readline = require('readline');
 const { execSync } = require('child_process');
 const unzipper = require('unzipper');
 const { getMetadataFromZip } = require('./helpers/metadata');
@@ -40,6 +41,8 @@ const { buildSaitoPayload } = require('./helpers/saitoPayload');
 const PROJECT_ROOT = path.resolve(path.join(__dirname, '..', '..'));
 
 let saitoJsInitialized = false;
+let wasmModule = null;
+let signingOpts = {};
 
 /**
  * Minimal saito-js init so Transaction/Slip.Type are set (WASM). Run once before any buildSaitoPayload().
@@ -55,9 +58,75 @@ async function initSaitoJsForCompile() {
   const wasm = requireFromSaitoJs('saito-wasm/pkg/node');
   const SaitoJsTransaction = require('saito-js/lib/transaction').default;
   const SaitoJsSlip = require('saito-js/lib/slip').default;
+  const Factory = require('saito-js/lib/factory').default;
+  const Saito = require(path.join(PROJECT_ROOT, 'node_modules', 'saito-js', 'dist', 'saito.js')).default;
   SaitoJsTransaction.Type = wasm.WasmTransaction;
   SaitoJsSlip.Type = wasm.WasmSlip;
+  // serialize_to_web clones via toJson(), which wraps from/to slips through Saito.getInstance().factory
+  Saito.instance = { factory: new Factory() };
+  wasmModule = wasm;
   saitoJsInitialized = true;
+}
+
+function printWelcome() {
+  console.log('');
+  console.log('  ╔══════════════════════════════════════════════════╗');
+  console.log('  ║                                                  ║');
+  console.log('  ║            SAITO  ·  DYNMOD COMPILER             ║');
+  console.log('  ║                                                  ║');
+  console.log('  ║      Compile modules into .saito app files       ║');
+  console.log('  ║                                                  ║');
+  console.log('  ╚══════════════════════════════════════════════════╝');
+  console.log('');
+}
+
+function promptHidden(question) {
+  return new Promise((resolve) => {
+    if (!process.stdin.isTTY) {
+      resolve('');
+      return;
+    }
+    const mutableStdout = new (require('stream').Writable)({
+      write(chunk, encoding, callback) {
+        if (!this.muted) {
+          process.stdout.write(chunk, encoding);
+        }
+        callback();
+      }
+    });
+    mutableStdout.muted = false;
+    const rl = readline.createInterface({
+      input: process.stdin,
+      output: mutableStdout,
+      terminal: true
+    });
+    mutableStdout.muted = true;
+    process.stdout.write(question);
+    rl.question('', (answer) => {
+      process.stdout.write('\n');
+      rl.close();
+      resolve(answer);
+    });
+  });
+}
+
+async function promptForSigning() {
+  printWelcome();
+  const entered = await promptHidden(
+    '  Private key to sign transactions (hex), or press Enter to continue unsigned: '
+  );
+  const privateKey = (entered || '').trim();
+  if (!privateKey) {
+    signingOpts = {};
+    console.log('  Continuing without a signature.\n');
+    return;
+  }
+  if (!/^[0-9a-fA-F]{64}$/.test(privateKey)) {
+    throw new Error('private key must be 64 hex characters');
+  }
+  const publicKey = String(wasmModule.generate_public_key(privateKey));
+  signingOpts = { privateKey, wasm: wasmModule };
+  console.log(`  Signing as ${publicKey}\n`);
 }
 const ZIP_DIR = path.join(PROJECT_ROOT, 'dist', 'mods', 'zip');
 const SAITO_DIR = path.join(PROJECT_ROOT, 'dist', 'mods', 'saito');
@@ -184,7 +253,7 @@ async function compileOne(zipFileName) {
     categories: metadata.categories || ''
   };
 
-  const saitoJson = buildSaitoPayload(msg);
+  const saitoJson = buildSaitoPayload(msg, signingOpts);
   const outPath = path.join(SAITO_DIR, `${slug}.saito`);
   fs.writeFileSync(outPath, saitoJson, 'utf8');
 
@@ -235,7 +304,7 @@ async function runSingle(zipPath, slugArg) {
       publisher: '',
       categories: metadata.categories || ''
     };
-    const saitoJson = buildSaitoPayload(msg);
+    const saitoJson = buildSaitoPayload(msg, signingOpts);
     const outPath = path.join(SAITO_DIR, `${slug}.saito`);
     fs.writeFileSync(outPath, saitoJson, 'utf8');
     console.log(`OK -> ${path.relative(PROJECT_ROOT, outPath)}`);
@@ -254,6 +323,7 @@ async function run() {
   }
 
   await initSaitoJsForCompile();
+  await promptForSigning();
 
   const single = parseArgs();
   if (single) {

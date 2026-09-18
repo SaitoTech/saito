@@ -526,11 +526,7 @@ class SaitoProfile {
         container.innerHTML = canEdit ? this.emptyDescriptionPlaceholderHtml(true) : '';
       } else {
         const sanitized = this.app.browser.sanitize(description, true).replaceAll('\n', '<br>');
-        container.innerHTML = `
-            <div id="profile-description-${publicKey}" class="profile-description-${keyClass}" data-id="${publicKey}">
-              ${sanitized}
-            </div>
-          `;
+        container.innerHTML = `<div id="profile-description-${publicKey}" class="profile-description-${keyClass}" data-id="${publicKey}">${sanitized}</div>`;
       }
 
       if (canEdit) {
