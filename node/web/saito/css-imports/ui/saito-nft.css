@@ -2002,3 +2002,191 @@ to {
     justify-items: start;
   }
 }
+
+/*
+ * NFT module security reminder — large install panel over security.png.
+ */
+.nft-security-overlay {
+  width: min(112rem, 97vw);
+  max-height: min(94vh, 74rem);
+  padding: 0;
+  overflow: hidden;
+  color: #fff;
+  background: transparent;
+  background-image: none;
+}
+
+.nft-security-overlay-art {
+  position: relative;
+  min-height: min(64rem, 86vh);
+  border-radius: var(--saito-radius);
+  overflow: hidden;
+  background: var(--saito-muted);
+}
+
+.nft-security-overlay-art .hero {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.nft-security-overlay-content {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: flex-start;
+  min-height: min(64rem, 86vh);
+  padding: 3.2rem 3.6rem;
+}
+
+.nft-security-overlay-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  width: min(68rem, 78%);
+  padding: 2.4rem 2.8rem 2.2rem;
+  border-radius: var(--saito-radius);
+  background: color-mix(in srgb, #000 62%, transparent);
+  border: 1px solid color-mix(in srgb, #fff 10%, transparent);
+  box-shadow: 0 1.2rem 3rem rgba(0, 0, 0, 0.22);
+}
+
+.nft-security-overlay-title {
+  margin: 0;
+  font-family: var(--saito-font-heavy);
+  font-size: 3.4rem;
+  font-weight: 600;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  text-align: left;
+  color: #fff;
+}
+
+.nft-security-overlay-message {
+  margin: 0;
+  font-size: 1.85rem;
+  line-height: 1.55;
+  color: color-mix(in srgb, #fff 92%, transparent);
+}
+
+.nft-security-overlay-message p {
+  margin: 0 0 1.1rem;
+  font-size: inherit;
+  line-height: inherit;
+  color: inherit;
+}
+
+.nft-security-overlay-message p:last-child {
+  margin-bottom: 0;
+}
+
+.nft-security-overlay-key {
+  margin: 0 0 1.4rem;
+  font-family: var(--saito-font-monospace, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace);
+  font-size: 1.7rem;
+  font-weight: 500;
+  line-height: 1.45;
+  letter-spacing: 0.01em;
+  color: #fff;
+  overflow-wrap: anywhere;
+  word-break: break-all;
+}
+
+.nft-security-overlay-footer {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1.2rem 1.6rem;
+  width: 100%;
+  margin-top: 0.6rem;
+}
+
+.nft-security-overlay-optout {
+  display: flex;
+  align-items: center;
+  gap: var(--saito-space-sm);
+  margin: 0;
+  font-size: 1.35rem;
+  line-height: 1.4;
+  color: color-mix(in srgb, #fff 70%, transparent);
+  cursor: pointer;
+}
+
+.nft-security-overlay-optout .saito-checkbox {
+  flex-shrink: 0;
+}
+
+.nft-security-overlay-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  align-items: center;
+  gap: var(--saito-space-sm);
+  margin-left: auto;
+}
+
+.nft-security-overlay-actions .saito-button-primary,
+.nft-security-overlay-actions .saito-button-secondary {
+  margin: 0;
+}
+
+.saito-overlay:has(> .nft-security-overlay) + .saito-overlay-backdrop {
+  filter: brightness(0.32) saturate(0.8);
+}
+
+@media (max-width: 700px) {
+  .nft-security-overlay {
+    width: min(96vw, 72rem);
+  }
+
+  .nft-security-overlay-art,
+  .nft-security-overlay-content {
+    min-height: min(44rem, 82vh);
+  }
+
+  .nft-security-overlay-content {
+    padding: var(--saito-space-lg);
+  }
+
+  .nft-security-overlay-copy {
+    width: 100%;
+    padding: 1.6rem 1.8rem;
+    gap: 1.4rem;
+  }
+
+  .nft-security-overlay-title {
+    font-size: 2.4rem;
+  }
+
+  .nft-security-overlay-message {
+    font-size: 1.55rem;
+  }
+
+  .nft-security-overlay-key {
+    font-size: 1.4rem;
+  }
+
+  .nft-security-overlay-footer {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .nft-security-overlay-actions {
+    margin-left: 0;
+    width: 100%;
+  }
+
+  .nft-security-overlay-actions .saito-button-primary,
+  .nft-security-overlay-actions .saito-button-secondary {
+    flex: 1 1 auto;
+    min-width: 0;
+    white-space: normal;
+  }
+}
+

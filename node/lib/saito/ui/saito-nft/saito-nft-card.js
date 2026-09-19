@@ -1,5 +1,6 @@
 const SaitoNFTCardTemplate = require('./saito-nft-card.template');
 const SaitoNFT = require('./saito-nft');
+const NFTSecurityOverlay = require('./overlays/nft-security-overlay');
 const Transaction = require('../../transaction').default;
 
 class SaitoNFTCard {
@@ -16,6 +17,7 @@ class SaitoNFTCard {
     //
     this.callback = callback;
     this.expires_timer = null;
+    this.security_overlay = null;
   }
 
   async render() {
@@ -75,6 +77,93 @@ class SaitoNFTCard {
     setTimeout(() => this.attachEvents(), 0);
   }
 
+  async enableExecutableNft() {
+    if (this.nft.returnType() === 'saito-app') {
+      try {
+        await this.nft.fetchTransaction();
+        let saito_payload = this.nft.saito || this.nft.tx?.returnMessage()?.data?.saito;
+
+        if (!saito_payload) {
+          salert('Unable to load Saito Application');
+          return false;
+        }
+
+        let data = saito_payload;
+        if (typeof data !== 'string') {
+          data = JSON.stringify(data);
+        }
+        if (data.indexOf('data:application/octet-stream;base64,') >= 0) {
+          data = this.app.crypto.base64ToString(data);
+        } else if (data.indexOf('data:') === 0 && data.indexOf('base64,') >= 0) {
+          data = this.app.crypto.base64ToString(data.substring(data.indexOf('base64,') + 7));
+        }
+
+        const newtx = new Transaction();
+        newtx.deserialize_from_web(this.app, data);
+
+        const msg = newtx.returnMessage() || {};
+
+        if (!msg.bin || !(msg.name || msg.slug)) {
+          salert('Invalid .saito Application File');
+          return false;
+        }
+
+        const mod = (msg.name || msg.slug).toLowerCase();
+
+        await this.app.storage.installLocalApplication(
+          mod,
+          msg.bin,
+          this.nft.id,
+          this.nft.tx_sig
+        );
+      } catch (err) {
+        console.error('Error: ', err);
+        salert('An error occurred while installing application. Check console for details.');
+        return false;
+      }
+    }
+
+    if (!this.app.options.permissions) this.app.options.permissions = {};
+    if (!this.app.options.permissions.nfts) this.app.options.permissions.nfts = [];
+    if (!this.app.options.permissions.nfts.includes(this.nft.tx_sig)) {
+      this.app.options.permissions.nfts.push(this.nft.tx_sig);
+    }
+    salert('NFT Activated for Next Reload');
+    this.app.storage.saveOptions();
+    this.app.connection.emit('saito-enable-nft', {
+      nft_id: this.nft.id,
+      nft_sig: this.nft.tx_sig
+    });
+    return true;
+  }
+
+  syncToggle(toggle) {
+    const enabled = this.app.options.permissions.nfts.includes(this.nft.tx_sig);
+    toggle.classList.toggle('enabled', enabled);
+    toggle.classList.remove('open');
+    toggle
+      .querySelectorAll(
+        '.saito-nft-card-toggle-face .saito-nft-card-toggle-dot, .saito-nft-card-toggle-current .saito-nft-card-toggle-dot'
+      )
+      .forEach((dot) => {
+        dot.classList.toggle('enabled', enabled);
+      });
+    toggle
+      .querySelectorAll(
+        '.saito-nft-card-toggle-face .saito-nft-card-toggle-label, .saito-nft-card-toggle-current .saito-nft-card-toggle-label'
+      )
+      .forEach((label) => {
+        label.textContent = enabled ? 'Enabled' : 'Disabled';
+      });
+    const alt = toggle.querySelector(
+      '.saito-nft-card-toggle-option:not(.saito-nft-card-toggle-current)'
+    );
+    alt.querySelector('.saito-nft-card-toggle-dot').classList.toggle('enabled', !enabled);
+    alt.querySelector('.saito-nft-card-toggle-label').textContent = enabled
+      ? 'Disabled'
+      : 'Enabled';
+  }
+
   async attachEvents() {
     const el = document.querySelector(this.my_qs);
     if (el) {
@@ -117,76 +206,35 @@ class SaitoNFTCard {
               salert('NFT Disabled for Next Reload');
               this.app.storage.saveOptions();
             } else {
-              if (this.nft.returnType() === 'saito-app') {
-                try {
-                  await this.nft.fetchTransaction();
-                  const saito_text = this.nft.saito || this.nft.tx?.returnMessage()?.data?.saito;
+              const isExecutable =
+                !!this.nft.js || this.nft.returnType() === 'saito-app';
+              const skipWarning = !!this.app.options.permissions.hide_nft_security_warning;
 
-                  if (!saito_text || typeof saito_text !== 'string') {
-                    salert('Unable to load Saito Application');
-                    return;
-                  }
-
-                  const newtx = new Transaction();
-                  newtx.deserialize_from_web(this.app, saito_text);
-
-                  const msg = newtx.returnMessage() || {};
-
-                  if (!msg.bin || !(msg.name || msg.slug)) {
-                    salert('Invalid .saito Application File');
-                    return;
-                  }
-
-                  const mod = (msg.name || msg.slug).toLowerCase();
-
-                  await this.app.storage.installLocalApplication(
-                    mod,
-                    msg.bin,
-                    this.nft.id,
-                    this.nft.tx_sig
-                  );
-                } catch (err) {
-                  console.error('Error: ', err);
-                  salert(
-                    'An error occurred while installing application. Check console for details.'
-                  );
-                  return;
+              if (isExecutable && !skipWarning) {
+                if (!this.security_overlay) {
+                  this.security_overlay = new NFTSecurityOverlay(this.app, this.mod);
                 }
+                this.security_overlay.render(
+                  'low',
+                  async () => {
+                    const enabledOk = await this.enableExecutableNft();
+                    if (enabledOk) {
+                      this.syncToggle(toggle);
+                    }
+                  },
+                  this.nft
+                );
+                toggle.classList.remove('open');
+                return;
               }
 
-              this.app.options.permissions.nfts.push(this.nft.tx_sig);
-              salert('NFT Activated for Next Reload');
-              this.app.storage.saveOptions();
-              this.app.connection.emit('saito-enable-nft', {
-                nft_id: this.nft.id,
-                nft_sig: this.nft.tx_sig
-              });
+              const enabledOk = await this.enableExecutableNft();
+              if (!enabledOk) {
+                return;
+              }
             }
 
-            const enabled = this.app.options.permissions.nfts.includes(this.nft.tx_sig);
-            toggle.classList.toggle('enabled', enabled);
-            toggle.classList.remove('open');
-            toggle
-              .querySelectorAll(
-                '.saito-nft-card-toggle-face .saito-nft-card-toggle-dot, .saito-nft-card-toggle-current .saito-nft-card-toggle-dot'
-              )
-              .forEach((dot) => {
-                dot.classList.toggle('enabled', enabled);
-              });
-            toggle
-              .querySelectorAll(
-                '.saito-nft-card-toggle-face .saito-nft-card-toggle-label, .saito-nft-card-toggle-current .saito-nft-card-toggle-label'
-              )
-              .forEach((label) => {
-                label.textContent = enabled ? 'Enabled' : 'Disabled';
-              });
-            const alt = toggle.querySelector(
-              '.saito-nft-card-toggle-option:not(.saito-nft-card-toggle-current)'
-            );
-            alt.querySelector('.saito-nft-card-toggle-dot').classList.toggle('enabled', !enabled);
-            alt.querySelector('.saito-nft-card-toggle-label').textContent = enabled
-              ? 'Disabled'
-              : 'Enabled';
+            this.syncToggle(toggle);
             return;
           }
 
