@@ -53,6 +53,13 @@ class Summary {
   }
 
   returnPlaceholderImage() {
+    const type =
+      (typeof this.nft?.returnType === 'function' ? this.nft.returnType() : '') ||
+      this.nft?.nft_type ||
+      '';
+    if (type === 'saito-app' || this.nft?.saito) {
+      return '/saito/img/application.png';
+    }
     return DREAMSCAPE_PLACEHOLDER;
   }
 

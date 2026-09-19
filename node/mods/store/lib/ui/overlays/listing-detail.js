@@ -777,6 +777,7 @@ class ListingDetailOverlay {
       tx,
       title: 'Listing Submitted',
       lead,
+      subtitle: '',
       successTitle: 'Listing Successful',
       successLead: 'You have successfully added an item to your Saito Store.',
       callback: (result) => {

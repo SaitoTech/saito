@@ -564,9 +564,29 @@ class SaitoNFT {
     }
 
     if (this.saito) {
+      let nested = '';
+      try {
+        let data = this.saito;
+        if (typeof data !== 'string') {
+          data = JSON.stringify(data);
+        }
+        if (data.indexOf('data:') === 0 && data.indexOf('base64,') >= 0) {
+          data = this.app.crypto.base64ToString(
+            data.indexOf('data:application/octet-stream;base64,') >= 0
+              ? data
+              : data.substring(data.indexOf('base64,') + 7)
+          );
+        }
+        const web = JSON.parse(data);
+        const msg =
+          web && web.m ? JSON.parse(this.app.crypto.base64ToString(web.m)) : web;
+        if (msg?.image) {
+          nested = msg.image;
+        }
+      } catch (err) {}
       return {
-        backgroundImage: '',
-        innerHtml: '<i class="fa-solid fa-file-arrow-up"></i>',
+        backgroundImage: mediaUrl(nested) || mediaUrl('/saito/img/application.png'),
+        innerHtml: '',
         loading: false,
         failed: false
       };

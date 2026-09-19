@@ -11,6 +11,18 @@ class Teaser {
     this.container = container;
   }
 
+  static formatListingPrice(value) {
+    const raw = String(value ?? '').trim();
+    if (!raw) {
+      return '';
+    }
+    const numeric = raw.replace(/SAITO/gi, '').replace(/,/g, '').trim();
+    if (!numeric || !Number.isFinite(Number(numeric))) {
+      return /[a-zA-Z]/.test(raw) ? raw : `${raw} SAITO`;
+    }
+    return `${Number(numeric).toLocaleString('en-US', { maximumFractionDigits: 8 })} SAITO`;
+  }
+
   /** All mounted teaser instances for this listing (browse + storefront, etc.). */
   static returnTeaserCards(summary) {
     const selector = listingTeaserSelector(summary);
@@ -56,10 +68,10 @@ class Teaser {
       !seller || seller.length <= 18
         ? seller || 'anon'
         : `${seller.slice(0, 8)}…${seller.slice(-6)}`;
-    const price = summary.returnPrice?.() || '';
+    const price = Teaser.formatListingPrice(summary.returnPrice?.() || '');
 
     for (const card of cards) {
-      const titleEl = card.querySelector('.info .title');
+      const titleEl = card.querySelector('.title');
       if (titleEl) {
         titleEl.textContent = title;
       }
@@ -69,25 +81,25 @@ class Teaser {
         if (!sellerEl) {
           sellerEl = document.createElement('p');
           sellerEl.className = 'seller';
-          const titleNode = card.querySelector('.info .title');
-          titleNode?.insertAdjacentElement('afterend', sellerEl);
+          card.querySelector('.info')?.appendChild(sellerEl);
         }
         sellerEl.textContent = shortSeller;
       }
 
-      let priceEl = card.querySelector('.info .price');
+      const media = card.querySelector('.media');
+      let priceEl = card.querySelector('.price');
       if (price) {
         if (!priceEl) {
-          priceEl = document.createElement('p');
+          priceEl = document.createElement('div');
           priceEl.className = 'price';
-          card.querySelector('.info')?.appendChild(priceEl);
+          media?.appendChild(priceEl);
         }
         priceEl.textContent = price;
       }
     }
   }
 
-  static applyMediaToElement(app, media, display = {}) {
+  static applyMediaToElement(app, media, display = {}, placeholder = DREAMSCAPE_PLACEHOLDER) {
     if (!media) {
       return;
     }
@@ -120,15 +132,19 @@ class Teaser {
 
     if (!display.innerHtml) {
       media.classList.add('placeholder');
-      media.style.background = `url(${DREAMSCAPE_PLACEHOLDER}) center / cover no-repeat`;
+      media.style.background = `url(${placeholder}) center / cover no-repeat`;
     } else {
       media.style.background = '';
     }
   }
 
   static applyMediaDisplay(app, summary, display = {}) {
+    const placeholder =
+      typeof summary?.returnPlaceholderImage === 'function'
+        ? summary.returnPlaceholderImage()
+        : DREAMSCAPE_PLACEHOLDER;
     for (const card of Teaser.returnTeaserCards(summary)) {
-      Teaser.applyMediaToElement(app, card.querySelector('.media'), display);
+      Teaser.applyMediaToElement(app, card.querySelector('.media'), display, placeholder);
     }
   }
 
@@ -154,7 +170,7 @@ class Teaser {
       !seller || seller.length <= 18
         ? seller || 'anon'
         : `${seller.slice(0, 8)}…${seller.slice(-6)}`;
-    const price = this.summary.returnPrice?.() || '';
+    const price = Teaser.formatListingPrice(this.summary.returnPrice?.() || '');
     const templateData = {
       title: this.summary.returnTitle() || 'Untitled Item',
       price,
@@ -204,9 +220,10 @@ class Teaser {
   }
 
   returnMediaBackground(image = '', display = {}) {
-    const raw = display.backgroundImage || image || DREAMSCAPE_PLACEHOLDER;
+    const fallback = this.summary.returnPlaceholderImage?.() || DREAMSCAPE_PLACEHOLDER;
+    const raw = display.backgroundImage || image || fallback;
     if (!this.app.browser.isSafeMediaUrl(raw)) {
-      return `url("${DREAMSCAPE_PLACEHOLDER}") center / cover no-repeat`;
+      return `url("${fallback}") center / cover no-repeat`;
     }
     return `url("${String(raw).replace(/"/g, '%22')}") center / cover no-repeat`;
   }

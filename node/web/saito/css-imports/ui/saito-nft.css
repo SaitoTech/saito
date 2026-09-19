@@ -367,8 +367,13 @@
   padding: 0;
   border: 0;
   background: none;
-  color: var(--saito-foreground);
+  color: var(--saito-muted-foreground);
   cursor: pointer;
+}
+
+.saito-nft-create .create-nft-thumbnail-picker:hover,
+.saito-nft-create .create-nft-thumbnail-picker:focus-visible {
+  color: var(--saito-foreground);
 }
 
 .saito-nft-create .create-nft-thumbnail-picker > span {
@@ -376,19 +381,19 @@
   text-underline-offset: 0.25em;
 }
 
-.saito-nft-create .create-nft-thumbnail-picker.has-image {
+.saito-nft-create .create-nft-thumbnail-picker.has-preview {
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.6rem;
+}
+
+.saito-nft-create .create-nft-thumbnail-picker.has-preview img {
   width: 8rem;
   height: 8rem;
-  overflow: hidden;
+  object-fit: cover;
   border: 1px solid var(--saito-border);
   border-radius: var(--saito-radius);
   background: var(--saito-background);
-}
-
-.saito-nft-create .create-nft-thumbnail-picker img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
 }
 
 /* Same footprint as #nft-image-upload so image selection does not resize the dialog */
@@ -405,11 +410,11 @@
 }
 
 .saito-nft-create .preview img {
+  width: 100%;
+  height: 100%;
   max-width: 100%;
   max-height: 100%;
-  width: auto;
-  height: auto;
-  object-fit: contain;
+  object-fit: cover;
 }
 
 .saito-nft-create .preview i {
@@ -438,15 +443,17 @@
 
 /* Same footprint as #nft-image-upload / .preview — selected file ack must not collapse. */
 .saito-nft-create .file.selected {
-  grid-template-rows: auto;
-  justify-items: start;
-  align-content: center;
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
   align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
   height: min(24rem, 40vh);
   min-height: min(24rem, 40vh);
   width: 100%;
   box-sizing: border-box;
-  padding: var(--saito-space-xl);
+  padding: 1rem;
 }
 
 .saito-nft-create .file i {
@@ -458,7 +465,10 @@
 }
 
 .saito-nft-create .file.selected i {
-  grid-row: 1;
+  grid-row: auto;
+  font-size: 1.4rem;
+  line-height: 1;
+  flex-shrink: 0;
   color: var(--saito-green);
   cursor: default;
 }
@@ -466,6 +476,15 @@
 .saito-nft-create .file-name,
 .saito-nft-create .file-size {
   z-index: 1;
+}
+
+.saito-nft-create .file.selected .file-name {
+  font-size: 1.6rem;
+  line-height: 1.3;
+  max-width: calc(100% - 10rem);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .saito-nft-create .primary .footer,
@@ -575,16 +594,16 @@
   overflow: hidden;
   width: 100%;
   height: 100%;
-  background-size: contain;
+  background-size: cover;
   background-repeat: no-repeat;
   background-position: center;
 }
 
 .saito-nft-image img {
-  width: auto;
+  width: 100%;
   height: 100%;
   max-height: 100%;
-  object-fit: contain;
+  object-fit: cover;
 }
 
 /* Capability toolbar above the artwork */
@@ -2118,8 +2137,14 @@ to {
   cursor: pointer;
 }
 
-.nft-security-overlay-optout .saito-checkbox {
+.nft-security-overlay-optout input.saito-checkbox[type='checkbox'] {
   flex-shrink: 0;
+  border: 1px solid color-mix(in srgb, #fff 70%, transparent);
+  background: transparent;
+}
+
+.nft-security-overlay-optout input.saito-checkbox[type='checkbox']:focus-visible {
+  border-color: color-mix(in srgb, #fff 70%, transparent);
 }
 
 .nft-security-overlay-actions {
