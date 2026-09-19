@@ -51,6 +51,7 @@ class RedSquare extends ModTemplate {
     this.like_target_updates = {};
     this.tweets_earliest_ts = new Date().getTime();
     this.tweets_latest_ts = 0;
+    this.tweets_last_viewed_ts = 0;
 
     //
     // notifications data structures
@@ -58,7 +59,6 @@ class RedSquare extends ModTemplate {
     this.notifications = {};
     this.notifications_timeline = [];
     this.notifications_aggregate = {};
-    this.notifications_unread_count = 0;
     this.notifications_last_viewed_ts = 0;
     this.notifications_earliest_like_ts = new Date().getTime();
     this.notifications_earliest_retweet_ts = new Date().getTime();
@@ -345,17 +345,30 @@ class RedSquare extends ModTemplate {
 
     const rso = this.app.options.redsquare;
 
-    if (!rso) {
-      return;
+    if (rso) {
+      if (rso.curated === false || rso.curated === 0) {
+        this.curated = false;
+      }
+
+      this.show_splash = Object.prototype.hasOwnProperty.call(rso, 'show-splash')
+        ? rso['show-splash']
+        : true;
     }
 
-    if (rso.curated === false || rso.curated === 0) {
-      this.curated = false;
+    const savedNotifications = Number(rso?.notifications_last_viewed_ts);
+
+    if (savedNotifications > 0) {
+      this.notifications_last_viewed_ts = savedNotifications;
+    } else {
+      this.notifications_last_viewed_ts = Date.now();
     }
 
-    this.show_splash = Object.prototype.hasOwnProperty.call(rso, 'show-splash')
-      ? rso['show-splash']
-      : true;
+    const savedTweets = Number(rso?.tweets_last_viewed_ts);
+    this.tweets_last_viewed_ts = savedTweets > 0 ? savedTweets : 0;
+
+    if (!(savedNotifications > 0)) {
+      this.saveOptions();
+    }
 
     if (document?.querySelector) {
       document.querySelector('#saito-container')?.classList.toggle('active-curation', this.curated);
@@ -373,6 +386,11 @@ class RedSquare extends ModTemplate {
 
     this.app.options.redsquare.curated = this.curated;
     this.app.options.redsquare['show-splash'] = this.show_splash;
+    this.app.options.redsquare.notifications_last_viewed_ts = this.notifications_last_viewed_ts;
+    this.app.options.redsquare.tweets_last_viewed_ts = Math.max(
+      Number(this.app.options.redsquare.tweets_last_viewed_ts) || 0,
+      Number(this.tweets_last_viewed_ts) || 0
+    );
     this.app.storage.saveOptions();
   }
 
@@ -622,9 +640,7 @@ class RedSquare extends ModTemplate {
         const peer_obj = this.peers[i];
         const initialHydration = !isOlder && peer_obj.tweets_latest_ts === 0;
         const eligible =
-          (isOlder &&
-            peer_obj.tweets_earliest_ts >= this.tweets_earliest_ts &&
-            peer_obj.tweets_earliest_ts > 0) ||
+          (isOlder && peer_obj.tweets_earliest_ts > 0) ||
           (!isOlder && (peer_obj.publicKey !== this.publicKey || peer_obj.peer === 'localhost'));
 
         if (!eligible) {
@@ -658,8 +674,12 @@ class RedSquare extends ModTemplate {
             flagged_ne: 1,
             limit: peer_obj.tweets_limit
           };
+          const catchup = initialHydration && Number(this.tweets_last_viewed_ts) > 0;
 
-          if (isOlder || initialHydration) {
+          if (catchup) {
+            obj.created_later_than = this.tweets_last_viewed_ts;
+            obj.limit = 100;
+          } else if (isOlder || initialHydration) {
             obj.created_earlier_than = peer_obj.tweets_earliest_ts;
           } else {
             obj.updated_later_than = peer_obj.tweets_latest_ts;
@@ -670,13 +690,7 @@ class RedSquare extends ModTemplate {
           this.app.storage.loadTransactions(
             obj,
             (txs) => {
-              onPeerComplete(
-                peer_obj,
-                txs || [],
-                isOlder,
-                peerIndex,
-                isOlder || initialHydration
-              );
+              onPeerComplete(peer_obj, txs || [], isOlder, peerIndex, isOlder || initialHydration);
             },
             archivePeer
           );
@@ -1897,11 +1911,7 @@ class RedSquare extends ModTemplate {
       oldtx.optional.edit_ts = interactionTs;
       oldtx.optional.updated_at = interactionTs;
 
-      await this.app.storage.updateTransaction(
-        oldtx,
-        { updated_at: interactionTs },
-        'localhost'
-      );
+      await this.app.storage.updateTransaction(oldtx, { updated_at: interactionTs }, 'localhost');
 
       return oldtx;
     };
@@ -2337,10 +2347,6 @@ class RedSquare extends ModTemplate {
     return Notifications.getUnreadNotificationCount(this);
   }
 
-  incrementUnreadNotifications(notification) {
-    return Notifications.incrementUnreadNotifications(this, notification);
-  }
-
   markNotificationsViewed() {
     return Notifications.markNotificationsViewed(this);
   }
@@ -2351,10 +2357,6 @@ class RedSquare extends ModTemplate {
 
   ensureNotificationTweet(notification) {
     return Notifications.ensureNotificationTweet(this, notification);
-  }
-
-  aggregateLikeNotification(existing, incoming) {
-    return Notifications.aggregateLikeNotification(this, existing, incoming);
   }
 
   addNotification(input) {
@@ -2927,10 +2929,7 @@ class RedSquare extends ModTemplate {
       }
 
       if (userPublicKey) {
-        return res.redirect(
-          301,
-          `${routeBase}/user/${encodeURIComponent(String(userPublicKey))}`
-        );
+        return res.redirect(301, `${routeBase}/user/${encodeURIComponent(String(userPublicKey))}`);
       }
 
       const html = index(app, self, app.build_number);

@@ -23,10 +23,9 @@ class Notification {
     this.actor_name = '';
     this.actor_avatar = '/saito/img/dreamscape.png';
     this.text = '';
-    this.count = 1;
+    this.likers = [];
     this.created_at = Date.now();
     this.time = '';
-    this.unread = true;
 
     if (data && data.tx) {
       this.tx = data.tx;
@@ -58,6 +57,8 @@ class Notification {
     if (txmsg.request === 'like tweet') {
       this.type = 'like';
       this.tweet_signature = data.signature != null ? String(data.signature) : '';
+      this.likers = [{ publicKey: this.actor_publicKey, name: this.actor_name, count: 1 }];
+      this.text = `${this.actor_name} liked your post`;
     } else if (txmsg.request === 'retweet') {
       const hasCommentary =
         Boolean(String(data.text || '').trim()) ||
@@ -65,9 +66,15 @@ class Notification {
 
       this.type = hasCommentary ? 'quote' : 'retweet';
       this.tweet_signature = data.signature != null ? String(data.signature) : '';
+      this.text = hasCommentary
+        ? `${this.actor_name} quoted your post`
+        : `${this.actor_name} reposted your post`;
     } else if (txmsg.request === 'create tweet') {
       this.type = data.parent_id ? 'reply' : 'tweet';
       this.tweet_signature = this.signature;
+      this.text = data.parent_id
+        ? `${this.actor_name} posted a new reply`
+        : `${this.actor_name} posted a new tweet`;
     } else {
       this.type = data.type != null ? String(data.type) : '';
       this.tweet_signature =
@@ -76,9 +83,9 @@ class Notification {
           : data.signature != null
             ? String(data.signature)
             : '';
+      this.text =
+        data.text != null ? String(data.text) : `${this.actor_name} sent you a notification`;
     }
-
-    this.text = this.buildActionText();
   }
 
   parseFromData(data) {
@@ -94,18 +101,17 @@ class Notification {
     this.actor_avatar =
       data.actor_avatar != null ? String(data.actor_avatar) : '/saito/img/dreamscape.png';
     this.text = data.text != null ? String(data.text) : '';
-    this.count = Number(data.count) > 0 ? Number(data.count) : 1;
+    this.likers = Array.isArray(data.likers) ? data.likers.slice() : [];
     this.created_at = Number(data.created_at) || Date.now();
     this.time =
       data.time != null ? String(data.time) : this.app.browser.formatRelativeTime(this.created_at);
-    this.unread = data.unread !== false;
-
-    if (!this.text) {
-      this.text = this.buildActionText();
-    }
 
     if (!this.actor_name && this.actor_publicKey) {
       this.applyActor(this.actor_publicKey);
+    }
+
+    if (!this.text) {
+      this.text = `${this.actor_name || 'anon'} sent you a notification`;
     }
   }
 
@@ -126,30 +132,6 @@ class Notification {
 
     this.actor_name = this.app.keychain.returnUsername(publicKey) || publicKey.slice(0, 8);
     this.actor_avatar = this.app.keychain.returnIdenticon(publicKey) || '/saito/img/dreamscape.png';
-  }
-
-  buildActionText() {
-    switch (this.type) {
-      case 'like':
-        if (this.count > 1) {
-          return `liked your post (${this.count})`;
-        }
-        return 'liked your post';
-      case 'reply':
-        return 'posted a new reply';
-      case 'quote':
-        return 'quoted your post';
-      case 'retweet':
-        return 'reposted your post';
-      case 'tweet':
-        return 'posted a new tweet';
-      default:
-        return 'sent you a notification';
-    }
-  }
-
-  refreshActionText() {
-    this.text = this.buildActionText();
   }
 
   getReferencedTweet() {

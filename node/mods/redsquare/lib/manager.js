@@ -796,18 +796,86 @@ class Manager {
     this._timeline_bootstrapping = true;
     this.syncFeedStatus();
 
-    if (this.timeline_rendered) {
-      this._timeline_bootstrapping = false;
-      this.syncFeedStatus();
-      return;
+    await new Promise((resolve) => {
+      let settled = false;
+      const finish = () => {
+        if (settled) {
+          return;
+        }
+
+        settled = true;
+        resolve();
+      };
+      const timer = setTimeout(finish, 12000);
+
+      try {
+        this.mod.loadTransactions('tweets', 'newer', () => {
+          clearTimeout(timer);
+          finish();
+        });
+      } catch (err) {
+        clearTimeout(timer);
+        finish();
+      }
+    });
+
+    const lastViewed = Number(this.mod.tweets_last_viewed_ts) || 0;
+
+    for (const tweet of Object.values(this.mod.tweets || {})) {
+      if (!tweet?.parent_id) {
+        continue;
+      }
+
+      if (lastViewed > 0 && Number(tweet.created_at) <= lastViewed) {
+        continue;
+      }
+
+      let parentId = tweet.parent_id;
+
+      while (parentId && !this.mod.hasTweet(parentId)) {
+        let loaded = false;
+
+        for (const peer of this.mod.returnTweetArchivePeers()) {
+          const txs = await this.mod.loadArchiveTransactions(
+            { sig: parentId, field1: 'RedSquare', flagged_ne: 1 },
+            peer
+          );
+          await this.mod.addLoadedTweetTransactions(txs);
+
+          if (this.mod.hasTweet(parentId)) {
+            loaded = true;
+            break;
+          }
+        }
+
+        if (!loaded) {
+          break;
+        }
+
+        parentId = this.mod.getTweet(parentId)?.parent_id || '';
+      }
     }
 
+    this.mod.resortTimeline();
+    this.clearPanel(this.getActivePanelSelector());
+    this.pagination.timeline.cursor = 0;
+    this.pagination.timeline.exhausted = false;
     this.appendTimelineBatch();
     this.timeline_rendered = true;
     this._timeline_bootstrapping = false;
-    this.syncFeedStatus();
 
+    if (!this.app.options.redsquare) {
+      this.app.options.redsquare = {};
+    }
+
+    this.app.options.redsquare.tweets_last_viewed_ts = Date.now();
+    this.mod.saveOptions();
+    this.syncFeedStatus();
     this.fetchRemoteTransactions('tweets', 'newer');
+
+    if (this.getRenderedItemCount() === 0 || this.isNearBottom()) {
+      this.loadMoreIfNeeded();
+    }
   }
 
   paintThread() {
@@ -979,7 +1047,9 @@ class Manager {
 
     const state = this.getPaginationState();
     const source = this.getActiveProfileSource();
-    state.exhausted = Boolean(source?.exhausted && state.cursor >= this.collectProfileTweets().length);
+    state.exhausted = Boolean(
+      source?.exhausted && state.cursor >= this.collectProfileTweets().length
+    );
     this.syncFeedStatus();
 
     if (!state.exhausted && this.isNearBottom()) {
@@ -1194,7 +1264,9 @@ class Manager {
     }
 
     const cache = this.getProfileCache();
-    return (cache[this.mode] || []).map((signature) => this.mod.getTweet(signature)).filter(Boolean);
+    return (cache[this.mode] || [])
+      .map((signature) => this.mod.getTweet(signature))
+      .filter(Boolean);
   }
 
   appendTimelineBatch() {
@@ -1474,9 +1546,7 @@ class Manager {
       return;
     }
 
-    document
-      .querySelectorAll(`article.tweet[data-id="${signature}"]`)
-      .forEach((el) => el.remove());
+    document.querySelectorAll(`article.tweet[data-id="${signature}"]`).forEach((el) => el.remove());
 
     if (this.mode === 'thread' && this.active_signature === signature) {
       this.renderTimelineForNewPost();
@@ -2185,8 +2255,7 @@ class Manager {
   }
 
   handleNewerTweets(result, { announce = false } = {}) {
-    // Archive hydration is initial feed state; only post-load event paths may
-    // place genuinely new tweets behind the notification banner.
+    // Live polls may place genuinely new tweets behind the notification banner.
     const signatures = Array.from(
       new Set(
         announce
@@ -2199,60 +2268,58 @@ class Manager {
       )
     );
 
-    if (!signatures?.length) {
-      return;
-    }
-
-    const timeline = document.querySelector(`${this.container} .list[data-panel="timeline"]`);
-    const rendered = new Set();
-    const immediatelyVisible = [];
-    let newestRenderedAt = 0;
-
-    for (const element of timeline?.querySelectorAll('article.tweet[data-id]') || []) {
-      const signature = element.getAttribute('data-id') || '';
-      const tweet = this.mod.getTweet(signature);
-
-      if (signature) {
-        rendered.add(signature);
+    if (announce && this.timeline_rendered) {
+      if (!signatures?.length) {
+        return;
       }
 
-      newestRenderedAt = Math.max(newestRenderedAt, Number(tweet?.created_at) || 0);
-    }
+      const timeline = document.querySelector(`${this.container} .list[data-panel="timeline"]`);
+      const rendered = new Set();
 
-    for (const signature of signatures) {
-      const tweet = this.mod.getTweet(signature);
+      for (const element of timeline?.querySelectorAll('article.tweet[data-id]') || []) {
+        const signature = element.getAttribute('data-id') || '';
 
-      if (
-        !tweet ||
-        tweet.parent_id ||
-        rendered.has(signature) ||
-        (newestRenderedAt > 0 && Number(tweet.created_at) < newestRenderedAt)
-      ) {
-        continue;
+        if (signature) {
+          rendered.add(signature);
+        }
       }
 
-      if (announce && this.timeline_rendered) {
+      for (const signature of signatures) {
+        const tweet = this.mod.getTweet(signature);
+
+        if (!tweet || tweet.parent_id || rendered.has(signature)) {
+          continue;
+        }
+
         if (!this.pending_newer_tweets.includes(signature)) {
           this.pending_newer_tweets.push(signature);
         }
-      } else {
-        immediatelyVisible.push(signature);
       }
+
+      if (this.pending_newer_tweets.length && this.mode === 'timeline') {
+        this.showNewPostsBanner();
+      }
+
+      return;
     }
 
-    if (immediatelyVisible.length) {
-      this.prependTimelineTweets(immediatelyVisible);
-      this.pagination.timeline.exhausted = false;
-      this.syncFeedStatus();
+    if (!signatures?.length || this.mode !== 'timeline' || this._timeline_bootstrapping) {
+      return;
     }
 
-    if (this.pending_newer_tweets.length && this.mode === 'timeline') {
-      this.showNewPostsBanner();
+    if (this.timeline_rendered && !this.isNearTop()) {
+      return;
     }
 
-    // Initial archive pages can contain mostly replies. Continue filling the
-    // viewport when the newly hydrated roots do not create a scrollbar.
-    if (!announce && this.mode === 'timeline' && this.isNearBottom()) {
+    this.mod.resortTimeline();
+    this.clearPanel(this.getActivePanelSelector());
+    this.pagination.timeline.cursor = 0;
+    this.pagination.timeline.exhausted = false;
+    this.appendTimelineBatch();
+    this.timeline_rendered = true;
+    this.syncFeedStatus();
+
+    if (this.isNearBottom()) {
       this.loadMoreIfNeeded();
     }
   }

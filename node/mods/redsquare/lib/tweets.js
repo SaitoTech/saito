@@ -260,8 +260,21 @@ function resortTimeline(mod) {
   mod.tweets_timeline.sort((a, b) => {
     const tweetA = getTweet(mod, a);
     const tweetB = getTweet(mod, b);
+    const lastViewed = Number(mod.tweets_last_viewed_ts) || 0;
+    const childA = tweetA?.critical_child ? getTweet(mod, tweetA.critical_child) : null;
+    const childB = tweetB?.critical_child ? getTweet(mod, tweetB.critical_child) : null;
+    let tsA = Number(tweetA?.created_at) || 0;
+    let tsB = Number(tweetB?.created_at) || 0;
 
-    return (tweetB?.created_at || 0) - (tweetA?.created_at || 0);
+    if (lastViewed > 0 && childA && Number(childA.created_at) > lastViewed) {
+      tsA = Number(childA.created_at);
+    }
+
+    if (lastViewed > 0 && childB && Number(childB.created_at) > lastViewed) {
+      tsB = Number(childB.created_at);
+    }
+
+    return tsB - tsA;
   });
 }
 

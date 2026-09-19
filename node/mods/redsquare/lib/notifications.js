@@ -14,19 +14,24 @@ function normalizeNotificationInput(mod, input) {
 }
 
 function getNotificationAggregateKey(mod, notification) {
-  if (!notification || notification.type !== 'like') {
+  if (!notification || notification.type !== 'like' || !notification.tweet_signature) {
     return '';
   }
 
-  if (!notification.actor_publicKey || !notification.tweet_signature) {
-    return '';
-  }
-
-  return `like:${notification.actor_publicKey}:${notification.tweet_signature}`;
+  return `like:${notification.tweet_signature}`;
 }
 
 function getUnreadNotificationCount(mod) {
-  const unread = mod.notifications_unread_count || 0;
+  const lastViewed = Number(mod.notifications_last_viewed_ts) || 0;
+  let unread = 0;
+
+  for (const signature of mod.notifications_timeline || []) {
+    const notification = getNotification(mod, signature);
+
+    if (notification && Number(notification.created_at) > lastViewed) {
+      unread += 1;
+    }
+  }
 
   if (!mod.moderator_mode) {
     return unread;
@@ -37,26 +42,9 @@ function getUnreadNotificationCount(mod) {
   return unread + reviewCount;
 }
 
-function incrementUnreadNotifications(mod, notification) {
-  if (!notification || notification.unread === false) {
-    return;
-  }
-
-  mod.notifications_unread_count += 1;
-}
-
 function markNotificationsViewed(mod) {
-  mod.notifications_unread_count = 0;
   mod.notifications_last_viewed_ts = Date.now();
-
-  for (const signature of mod.notifications_timeline) {
-    const notification = getNotification(mod, signature);
-
-    if (notification) {
-      notification.unread = false;
-    }
-  }
-
+  mod.saveOptions?.();
   updateNotificationBadge(mod);
 }
 
@@ -183,15 +171,6 @@ function shouldNotify(mod, notification) {
   return false;
 }
 
-function aggregateLikeNotification(mod, existing, incoming) {
-  existing.count = (existing.count || 1) + 1;
-  existing.created_at = Math.max(existing.created_at || 0, incoming.created_at || 0);
-  existing.time = mod.app.browser.formatRelativeTime(existing.created_at);
-  existing.refreshActionText();
-  resortNotificationTimeline(mod);
-  return existing;
-}
-
 function addNotification(mod, input) {
   const notification = normalizeNotificationInput(mod, input);
 
@@ -219,7 +198,63 @@ function addNotification(mod, input) {
     const existing = getNotification(mod, mod.notifications_aggregate[aggregateKey]);
 
     if (existing) {
-      return aggregateLikeNotification(mod, existing, notification);
+      if (!existing.likers?.length) {
+        existing.likers = [
+          {
+            publicKey: existing.actor_publicKey,
+            name: existing.actor_name || 'anon',
+            count: 1
+          }
+        ];
+      }
+
+      const incomingKey = notification.actor_publicKey;
+      const known = existing.likers.find((liker) => liker.publicKey === incomingKey);
+
+      if (known) {
+        known.count += 1;
+        existing.likers = [known, ...existing.likers.filter((liker) => liker !== known)];
+      } else {
+        existing.likers.unshift({
+          publicKey: incomingKey,
+          name: notification.actor_name || 'anon',
+          count: 1
+        });
+      }
+
+      existing.created_at = Math.max(existing.created_at || 0, notification.created_at || 0);
+      existing.time = mod.app.browser.formatRelativeTime(existing.created_at);
+
+      const shown = existing.likers.slice(0, 3);
+      const names = shown.map((liker) => liker.name);
+      let who = names[0] || 'anon';
+
+      if (names.length === 2) {
+        who = `${names[0]} and ${names[1]}`;
+      } else if (names.length >= 3) {
+        who = `${names[0]}, ${names[1]} and ${names[2]}`;
+      }
+
+      let clicks = 0;
+
+      for (const liker of shown) {
+        if (liker.count > clicks) {
+          clicks = liker.count;
+        }
+      }
+
+      let verb = 'liked';
+
+      if (clicks > 10) {
+        verb = 'really, really liked';
+      } else if (clicks > 5) {
+        verb = 'really liked';
+      }
+
+      existing.text = `${who} ${verb} your post`;
+      resortNotificationTimeline(mod);
+      updateNotificationBadge(mod);
+      return existing;
     }
   }
 
@@ -230,7 +265,6 @@ function addNotification(mod, input) {
     mod.notifications_aggregate[aggregateKey] = notification.signature;
   }
 
-  incrementUnreadNotifications(mod, notification);
   updateNotificationBadge(mod);
 
   return notification;
@@ -248,13 +282,9 @@ function removeNotification(mod, signature) {
     delete mod.notifications_aggregate[aggregateKey];
   }
 
-  if (notification?.unread) {
-    mod.notifications_unread_count = Math.max(0, mod.notifications_unread_count - 1);
-    updateNotificationBadge(mod);
-  }
-
   removeFromNotificationTimeline(mod, signature);
   delete mod.notifications[signature];
+  updateNotificationBadge(mod);
 
   return true;
 }
@@ -272,6 +302,10 @@ function updateNotification(mod, input) {
     return addNotification(mod, input);
   }
 
+  if (existing.type === 'like') {
+    return existing;
+  }
+
   existing.parseFromData({
     signature: notification.signature,
     tweet_signature: notification.tweet_signature,
@@ -280,18 +314,13 @@ function updateNotification(mod, input) {
     actor_name: notification.actor_name,
     actor_avatar: notification.actor_avatar,
     text: notification.text,
-    count: notification.count,
+    likers: notification.likers,
     created_at: notification.created_at,
-    time: notification.time,
-    unread: existing.unread
+    time: notification.time
   });
 
   if (notification.tx) {
     existing.tx = notification.tx;
-  }
-
-  if (!Tweets.getTweet(mod, existing.tweet_signature)?.ephemeral) {
-    existing.refreshActionText();
   }
 
   resortNotificationTimeline(mod);
@@ -342,7 +371,6 @@ module.exports = {
   normalizeNotificationInput,
   getNotificationAggregateKey,
   getUnreadNotificationCount,
-  incrementUnreadNotifications,
   markNotificationsViewed,
   updateNotificationBadge,
   ensureNotificationTweet,
@@ -351,7 +379,6 @@ module.exports = {
   isOwnTweetInteraction,
   isReplyToOwnTweet,
   shouldNotify,
-  aggregateLikeNotification,
   addNotification,
   removeNotification,
   updateNotification,

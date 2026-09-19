@@ -31,12 +31,8 @@
   line-height: 1.35;
 }
 
-.notification .actor {
-  font-family: var(--saito-font-medium);
-}
-
 .notification .text {
-  color: var(--saito-muted-foreground);
+  font-family: var(--saito-font-medium);
 }
 
 .notification .time {
