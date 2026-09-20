@@ -8,16 +8,10 @@
  */
 
 const crypto = require('crypto');
-const https = require('https');
-const fetch = require('node-fetch');
 
 const TWITTER_TOKEN_URL = 'https://api.x.com/2/oauth2/token';
 const TWITTER_USER_URL = 'https://api.x.com/2/users/me';
 const TWITTER_FETCH_TIMEOUT_MS = 20000;
-
-const twitterAgent = new https.Agent({
-  keepAlive: false
-});
 
 function authError(code, httpStatus, title, message, extra = {}) {
   const err = new Error(message);
@@ -55,9 +49,11 @@ function createPkce() {
 }
 
 function twitterFetch(url, options = {}) {
+  // Server-only. Faucet is webpack-bundled for the browser; a static
+  // node-fetch/https require would load Node http agents into saito.js.
+  const fetch = require(/* webpackIgnore: true */ 'node-fetch');
   return fetch(url, {
     timeout: TWITTER_FETCH_TIMEOUT_MS,
-    agent: twitterAgent,
     ...options,
     headers: {
       Accept: 'application/json',
