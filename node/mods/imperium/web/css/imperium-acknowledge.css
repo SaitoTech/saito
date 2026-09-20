@@ -1,24 +1,25 @@
 .game.imperium {
   .acknowledge-overlay {
     background:
-      linear-gradient(rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.4)),
+      linear-gradient(var(--imp-surface), var(--imp-surface)),
       url(/imperium/img/backgrounds/bombardment.jpg);
     background-size: cover;
     width: 90vw;
     height: 90vh;
-    padding: 1.667rem;
+    padding: var(--imp-space-xl);
     margin-top: auto;
     overflow-y: scroll;
   }
 
   .acknowledge-menu {
     margin-top: 20vh;
-    padding: 1.667rem;
+    padding: var(--imp-space-xl);
   }
 
   .acknowledge-notice {
-    color: white;
-    font-size: 1.667rem;
+    color: var(--imp-text);
+    font-family: var(--imp-font);
+    font-size: var(--imp-fs-lg);
     margin-left: auto;
     margin-right: auto;
     width: max-content;
@@ -27,22 +28,22 @@
 
   .acknowledge-overlay .acknowledge-menu ul li {
     width: 100%;
-    line-height: 2.917rem;
-    border-top: 1px solid var(--saito-gray-lighter);
+    min-height: 3.2rem;
+    line-height: 1.35;
+    border-top: 1px solid var(--imp-border);
     cursor: pointer;
-    border-color: #555;
     text-decoration: none;
-    color: #fffd;
+    color: var(--imp-text);
     text-align: center;
     list-style: none;
-    padding-top: 1.667rem;
-    font-weight: bolder;
-    font-family: 'orbitron-medium';
-    font-size: 1.667rem;
-    letter-spacing: 0.167rem;
+    padding: var(--imp-space-lg);
+    font-weight: 600;
+    font-family: var(--imp-font);
+    font-size: var(--imp-fs-lg);
+    letter-spacing: 0.08rem;
   }
 
   .acknowledge-overlay .acknowledge-menu ul li:hover {
-    background: #0005;
+    background: var(--imp-hover);
   }
 }

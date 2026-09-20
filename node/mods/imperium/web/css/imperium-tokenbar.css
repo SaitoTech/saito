@@ -2,23 +2,22 @@
   .tokenbar {
     display: block;
     position: relative;
-    margin-right: 0.833rem;
+    margin-right: var(--imp-space-md);
     min-width: 10rem;
+    font-family: var(--imp-font);
   }
 
   .tokenbar > div {
     float: right;
-    color: white;
-    font-size: 2.5rem;
-    padding-left: 0.625rem;
-    -webkit-text-stroke: 2px #000;
-    stroke: 2px #000;
+    color: var(--imp-text);
+    font-size: var(--imp-fs-lg);
+    padding-left: var(--imp-space-sm);
+    text-shadow: 0 1px 2px #000;
   }
 
   .hud-header > .tokenbar > div {
-    font-size: 1.667rem;
-    color: #000;
-    -webkit-text-stroke: 1px #fff;
-    stroke: 1px #fff;
+    font-size: var(--imp-fs);
+    color: var(--imp-text);
+    -webkit-text-stroke: 0;
   }
 }

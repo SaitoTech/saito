@@ -1,18 +1,20 @@
 .game.imperium {
   .factionbar {
     display: flex;
-    flex-direction: rows;
+    flex-direction: row;
     margin-top: -0.417rem;
+    font-family: var(--imp-font);
+    gap: var(--imp-space-sm);
   }
 
   .factionbar .sf-readable {
-    font-size: 1.583rem;
+    font-size: var(--imp-fs);
   }
 
   .hud-header {
     display: flex;
-    flex-direction: rows;
+    flex-direction: row;
     justify-content: space-between;
-    padding-top: 0.625rem;
+    padding-top: var(--imp-space-sm);
   }
 }

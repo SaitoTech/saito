@@ -18,6 +18,7 @@
   max-height: 26.4vh;
   overflow: hidden;
   border: 1px solid var(--saito-white);
+  background-color: #14161c;
   background-repeat: no-repeat;
   background-position: center;
   background-size: 100% 100%;

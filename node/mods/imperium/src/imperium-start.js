@@ -36,7 +36,6 @@ const FactionBar = require('./lib/factionbar');
 const TokenBar = require('./lib/tokenbar');
 const Dashboard = require('./lib/dashboard-manager');
 const RoundBox = require('./lib/round');
-const Leaderboard = require('./lib/leaderboard');
 const Sector = require('./lib/sector');
 
 
@@ -97,7 +96,6 @@ class Imperium extends GameTemplate {
     this.tokenbar = new TokenBar(this.app, this, ".hud-header");
     this.factionbar = new FactionBar(this.app, this, ".hud-header");
     this.roundbox = new RoundBox(this.app, this, "");
-    this.leaderboard = new Leaderboard(this.app, this, "");
 
     //
     // specific to THIS game

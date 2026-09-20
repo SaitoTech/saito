@@ -1,8 +1,10 @@
 module.exports = (imperium_self, i = 0, agenda_phase = 0) => {
-  html = '';
+  let html = '';
+  let pinfo = imperium_self.game.state.players_info[i];
+  let is_speaker = imperium_self.game.state.speaker == i + 1;
 
   html += `
-    <div data-id="${i + 1}" class="dash-faction p${i + 1}">
+    <div data-id="${i + 1}" class="dash-faction p${i + 1}${is_speaker ? ' is-speaker' : ''}">
      <div data-id="${i + 1}" class="dash-faction-name bk"></div>
   `;
 
@@ -13,7 +15,7 @@ module.exports = (imperium_self, i = 0, agenda_phase = 0) => {
           <span data-id="${i + 1}" class="avail">${
             imperium_self.game.state.votes_available[i]
           }</span>
-        </div> 
+        </div>
       </div>
     `;
   } else {
@@ -23,16 +25,16 @@ module.exports = (imperium_self, i = 0, agenda_phase = 0) => {
           <span data-id="${i + 1}" class="avail"></span>
           <span data-id="${i + 1}" class="total"></span>
         </div>
-  
+
         <div data-id="${i + 1}" class="dash-item tooltip dash-item-influence influence">
           <span data-id="${i + 1}" class="avail"></span>
           <span data-id="${i + 1}" class="total"></span>
         </div>
-    
+
         <div data-id="${i + 1}" class="dash-item tooltip dash-item-trade trade">
           <i data-id="${i + 1}" class="fas fa-database pc white-stroke"></i>
           <div data-id="${i + 1}" id="dash-item-goods" class="dash-item-goods">
-            ${imperium_self.game.state.players_info[i].goods}
+            ${pinfo.goods}
           </div>
         </div>
       </div>
@@ -44,16 +46,23 @@ module.exports = (imperium_self, i = 0, agenda_phase = 0) => {
         <div data-id="${i + 1}" class="dash-faction-status-${i + 1} dash-faction-status"></div>
 	<div class="dash-faction-status-text">
           commodities : <span data-id="${i + 1}" class="dash-item-commodities">${
-            imperium_self.game.state.players_info[i].commodities
+            pinfo.commodities
           }</span> / <span data-id="${i + 1}" class="dash-item-commodity-limit">${
-            imperium_self.game.state.players_info[i].commodity_limit
+            pinfo.commodity_limit
           }</span>
         </div>
       </div>
 
+      <div data-id="${i + 1}" class="dash-faction-footer">
+        <div data-id="${i + 1}" class="dash-faction-vp">
+          <span class="dash-vp-label">VP</span>
+          <span data-id="${i + 1}" class="dash-item-vp">${pinfo.vp}</span>
+        </div>
+      </div>
+
       <div data-id="${i + 1}" class="dash-faction-speaker`;
-  if (imperium_self.game.state.speaker == i + 1) {
-    html += ' speaker">speaker';
+  if (is_speaker) {
+    html += ` speaker">Speaker · ${imperium_self.returnFactionNickname(i + 1)}`;
   } else {
     html += '">';
   }
