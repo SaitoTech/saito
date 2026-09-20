@@ -106,7 +106,9 @@ class GameCards {
     boardHeight += parseInt(cs.marginTop) + parseInt(cs.marginBottom);
     topAdjustment += parseInt(cs.marginTop);
 
-    let scale = Math.floor(100 * Math.min(window.innerWidth / boardWidth, window.innerHeight / boardHeight));
+    let scale = Math.floor(
+      100 * Math.min(window.innerWidth / boardWidth, window.innerHeight / boardHeight)
+    );
     this.setBoardScale(scale);
     el.style.left = '';
     el.style.top = '';

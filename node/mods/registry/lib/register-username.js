@@ -1,6 +1,7 @@
 const RegisterUsernameTemplate = require('./register-username.template');
 const SaitoOverlay = require('./../../../lib/saito/ui/saito-overlay/saito-overlay');
 const SaitoLoader = require('./../../../lib/saito/ui/saito-loader/saito-loader');
+const { validateUsername } = require('./identifier');
 
 class RegisterUsername {
   constructor(app, mod) {
@@ -32,8 +33,10 @@ class RegisterUsername {
           identifier = identifier.substring(0, identifier.indexOf('@'));
         }
 
-        if (identifier.length > 45) {
-          salert('Username must be 45 characters or fewer');
+        try {
+          validateUsername(identifier);
+        } catch (err) {
+          salert(err.message);
           return;
         }
 

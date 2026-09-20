@@ -2,6 +2,7 @@ const ModTemplate = require('./../../lib/templates/modtemplate');
 const RegisterUsernameOverlay = require('./lib/register-username');
 const PeerService = require('saito-js/lib/peer_service').default;
 const AppSettings = require('./lib/registry-settings');
+const { validateUsername, isRegistrationIdentifier, shortenIdentifier } = require('./lib/identifier');
 
 class Registry extends ModTemplate {
   constructor(app) {
@@ -361,6 +362,9 @@ class Registry extends ModTemplate {
   // Throws errors for invalid identifier types
   //
   async tryRegisterIdentifier(identifier, domain = '@saito') {
+    if (identifier instanceof String) identifier = identifier.toString();
+    validateUsername(identifier);
+
     let newtx = await this.app.wallet.createUnsignedTransactionWithDefaultFee(
       this.registry_publickey
     );
@@ -368,25 +372,17 @@ class Registry extends ModTemplate {
       throw Error('NULL TX CREATED IN REGISTRY MODULE');
     }
 
-    if (typeof identifier === 'string' || identifier instanceof String) {
-      var regex = /^[0-9A-Za-z]+$/;
-      if (!regex.test(identifier)) {
-        throw Error('Alphanumeric Characters only');
-      }
-      newtx.msg.module = 'Registry';
-      newtx.msg.request = 'register';
-      newtx.msg.identifier = identifier + domain;
+    newtx.msg.module = 'Registry';
+    newtx.msg.request = 'register';
+    newtx.msg.identifier = identifier + domain;
 
-      await newtx.sign();
-      await this.app.network.propagateTransaction(newtx);
+    await newtx.sign();
+    await this.app.network.propagateTransaction(newtx);
 
-      //console.log("REGISTRY tx: ", newtx);
+    //console.log("REGISTRY tx: ", newtx);
 
-      // sucessful send
-      return true;
-    } else {
-      throw TypeError('identifier must be a string');
-    }
+    // sucessful send
+    return true;
   }
 
   /**
@@ -412,7 +408,14 @@ class Registry extends ModTemplate {
     return this.app.network.sendRequestAsTransaction(
       'registry query',
       data,
-      mycallback,
+      mycallback
+        ? (identifiers) => mycallback(Object.fromEntries(
+          Object.entries(identifiers || {}).map(([key, identifier]) => [
+            key,
+            identifier === key ? identifier : shortenIdentifier(identifier)
+          ])
+        ))
+        : mycallback,
       peer.publicKey
     );
   }
@@ -576,6 +579,8 @@ class Registry extends ModTemplate {
 
     if (Number(conf) == 0) {
       if (txmsg?.module === 'Registry') {
+        if (!isRegistrationIdentifier(txmsg.identifier)) return;
+
         console.log(`REGISTRY: ${tx.from[0].publicKey} -> ${txmsg.identifier}`);
 
         /////////////////////////////////////////
@@ -762,8 +767,9 @@ class Registry extends ModTemplate {
       let rows = await this.app.storage.queryDatabase(sql, {}, 'registry');
       if (rows?.length > 0) {
         for (let i = 0; i < rows.length; i++) {
-          found_keys[rows[i].publickey] = rows[i].identifier;
-          registry_self.cached_keys[rows[i].publickey] = rows[i].identifier;
+          const identifier = shortenIdentifier(rows[i].identifier);
+          found_keys[rows[i].publickey] = identifier;
+          registry_self.cached_keys[rows[i].publickey] = identifier;
         }
       }
     }
@@ -799,8 +805,9 @@ class Registry extends ModTemplate {
             //
             for (let key in res) {
               if (res[key] !== key) {
-                registry_self.cached_keys[key] = res[key];
-                found_keys[key] = res[key];
+                const identifier = shortenIdentifier(res[key]);
+                registry_self.cached_keys[key] = identifier;
+                found_keys[key] = identifier;
               }
             }
 

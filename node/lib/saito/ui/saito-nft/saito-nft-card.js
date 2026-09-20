@@ -110,12 +110,7 @@ class SaitoNFTCard {
 
         const mod = (msg.name || msg.slug).toLowerCase();
 
-        await this.app.storage.installLocalApplication(
-          mod,
-          msg.bin,
-          this.nft.id,
-          this.nft.tx_sig
-        );
+        await this.app.storage.installLocalApplication(mod, msg.bin, this.nft.id, this.nft.tx_sig);
       } catch (err) {
         console.error('Error: ', err);
         salert('An error occurred while installing application. Check console for details.');
@@ -206,8 +201,7 @@ class SaitoNFTCard {
               salert('NFT Disabled for Next Reload');
               this.app.storage.saveOptions();
             } else {
-              const isExecutable =
-                !!this.nft.js || this.nft.returnType() === 'saito-app';
+              const isExecutable = !!this.nft.js || this.nft.returnType() === 'saito-app';
               const skipWarning = !!this.app.options.permissions.hide_nft_security_warning;
 
               if (isExecutable && !skipWarning) {

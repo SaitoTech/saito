@@ -199,8 +199,7 @@ class CreateNFT {
       return;
     }
 
-    const show =
-      this.supportsThumbnail() && (this.nft_type !== 'saito-app' || !!this.file);
+    const show = this.supportsThumbnail() && (this.nft_type !== 'saito-app' || !!this.file);
 
     picker.style.display = show ? 'flex' : 'none';
     picker.replaceChildren();
@@ -210,9 +209,7 @@ class CreateNFT {
       return;
     }
 
-    const src =
-      this.image ||
-      (this.nft_type === 'saito-app' ? '/saito/img/application.png' : '');
+    const src = this.image || (this.nft_type === 'saito-app' ? '/saito/img/application.png' : '');
 
     if (src) {
       const preview = document.createElement('img');
@@ -593,10 +590,7 @@ class CreateNFT {
               );
             }
             const web = JSON.parse(data);
-            const msg =
-              web && web.m
-                ? JSON.parse(this.app.crypto.base64ToString(web.m))
-                : web;
+            const msg = web && web.m ? JSON.parse(this.app.crypto.base64ToString(web.m)) : web;
             if (msg?.image && this.app.browser.isSafeMediaUrl(msg.image)) {
               extracted_image = msg.image;
             }

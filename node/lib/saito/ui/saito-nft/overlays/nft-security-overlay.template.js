@@ -4,9 +4,7 @@ module.exports = (publisher = '') => {
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;');
-  const keyHtml = key
-    ? `<p class="nft-security-overlay-key">${key}</p>`
-    : '';
+  const keyHtml = key ? `<p class="nft-security-overlay-key">${key}</p>` : '';
 
   return `
     <div class="nft-security-overlay saito-overlay-panel">

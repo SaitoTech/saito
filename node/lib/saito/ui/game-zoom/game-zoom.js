@@ -137,9 +137,13 @@ class GameZoom {
       zoom_self.interacted = true;
       zoom_self.show();
     });
-    this.el.addEventListener('touchstart', (e) => {
-      e.stopPropagation();
-    }, { passive: true });
+    this.el.addEventListener(
+      'touchstart',
+      (e) => {
+        e.stopPropagation();
+      },
+      { passive: true }
+    );
 
     this.el.querySelector('.center').addEventListener('click', (e) => {
       e.preventDefault();
@@ -220,7 +224,10 @@ class GameZoom {
       if (typeof $ !== 'undefined') {
         $(board).draggable({
           stop: function (event, ui) {
-            zoom_self.mod.saveGamePreference(zoom_self.mod.returnSlug() + '-board-offset', ui.offset);
+            zoom_self.mod.saveGamePreference(
+              zoom_self.mod.returnSlug() + '-board-offset',
+              ui.offset
+            );
             zoom_self.minimap.render();
           }
         });

@@ -578,8 +578,7 @@ class SaitoNFT {
           );
         }
         const web = JSON.parse(data);
-        const msg =
-          web && web.m ? JSON.parse(this.app.crypto.base64ToString(web.m)) : web;
+        const msg = web && web.m ? JSON.parse(this.app.crypto.base64ToString(web.m)) : web;
         if (msg?.image) {
           nested = msg.image;
         }
