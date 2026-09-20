@@ -1,38 +1,55 @@
 .game.imperium {
   #confirm.option {
-    padding: 1.667rem;
+    padding: var(--imp-space-xl);
   }
 
   .status-header-text,
   .status-message {
-    padding-top: 1.25rem;
-    padding-bottom: 1.25rem;
-    font-family: helvetica, sans-serif;
-    font-size: 1.5rem;
-    line-height: 2.083rem;
+    padding-top: var(--imp-space-lg);
+    padding-bottom: var(--imp-space-lg);
+    font-family: var(--imp-font);
+    font-size: var(--imp-fs);
+    line-height: 1.35;
     box-shadow: none;
     background-color: unset;
+    color: var(--imp-text);
   }
+
   .status-update {
     display: grid;
     grid-template-columns: min-content 1fr;
     align-items: center;
-    font-size: 1.5rem;
+    font-size: var(--imp-fs);
   }
 
   .hud-body .status {
-    -ms-overflow-style: none; /* IE and Edge */
-    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none;
+    scrollbar-width: none;
     overflow-y: auto;
-    overflow-x: auto;
+    overflow-x: hidden;
+    background-color: transparent;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    padding: 0;
+  }
+
+  .hud-body .status ul {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    list-style: none;
   }
   .hud-body .status::-webkit-scrollbar {
     display: none;
   }
 
   .hud-header .hud-controls {
-    padding: 1.25rem;
-    padding: 1.25rem;
+    padding: var(--imp-space-lg);
     min-width: 10.417rem;
     margin-top: -0.417rem;
   }
@@ -41,15 +58,14 @@
     display: none;
   }
 
-  .hud-body .status {
-    background-color: #0005;
-    width: 100%;
-    height: 100%;
-    overflow-y: scroll;
-  }
-
   .status p {
-    color: white;
+    color: var(--imp-text);
+    margin: 0;
+    padding: 0 var(--imp-space-md);
+    text-align: left;
+    display: block;
+    font-family: var(--imp-font);
+    font-size: var(--imp-fs);
   }
 
   .status,
@@ -59,12 +75,13 @@
   .controls,
   #menu-container > ul > li,
   #menu-container > ul > li:first-child {
-    background-color: #222c;
-    color: #fff;
-    border-color: #555;
-    font-family: 'orbitron-medium', helvetica, sans-serif;
-    line-height: 1.3em;
+    background-color: var(--imp-surface);
+    color: var(--imp-text);
+    border-color: var(--imp-border);
+    font-family: var(--imp-font);
+    line-height: 1.35;
   }
+
   .hud-square {
     min-height: min-content;
     height: auto;
@@ -83,55 +100,53 @@
     width: 100%;
     opacity: 1;
     visibility: visible;
-    background-color: #222e;
+    background-color: var(--imp-surface-strong);
     cursor: move;
-    margin: 0 0 0 0;
+    margin: 0;
   }
 
-  #menu-container > ul > li:hover {
-    background-color: #3334;
-  }
-  .status-overlay > ul > li:hover {
-    background-color: #3334;
-  }
-  .status-overlay ul li:hover {
-    background: #8888;
-  }
-
+  #menu-container > ul > li:hover,
+  .status-overlay > ul > li:hover,
+  .status-overlay ul li:hover,
   .status ul li:hover,
   .hud-menu ul li a:hover,
   hud-menu-overlay ul li:hover {
-    background: #8888;
-  }
-
-  .status p {
-    margin: 0;
-    padding: 0 1em;
-    text-align: left;
-    display: block;
+    background: var(--imp-hover);
   }
 
   .hud-menu-overlay {
     background-color: transparent;
     overflow-y: auto;
-    color: #fff;
-    padding-top: 5px;
+    color: var(--imp-text);
+    padding-top: var(--imp-space-sm);
   }
 
   .status ul li,
   .status ul li:last-child,
   hud-menu-overlay ul li {
-    border-color: #555;
-    font-size: 1.667rem;
+    flex: 1 1 auto;
+    display: flex;
+    align-items: center;
+    border: 0;
+    border-bottom: 1px solid var(--imp-border);
+    font-size: var(--imp-fs);
+    font-family: var(--imp-font);
+    min-height: 3.2rem;
+    line-height: 1.3;
+    padding: 0 var(--imp-space-lg);
+    cursor: pointer;
+    color: var(--imp-text);
+  }
+
+  .status ul li:last-child {
+    border-bottom: 0;
   }
 
   .hud {
-    background-color: unset;
-    border: 1px solid var(--my-color);
+    background-color: var(--imp-surface);
+    border: 1px solid var(--imp-border);
+    border-radius: var(--imp-radius);
     box-shadow: none;
-  }
-
-  .hud {
     width: 600px;
     min-width: 600px;
   }
@@ -146,17 +161,17 @@
 
   .hud-menu ul li a {
     text-decoration: none;
-    color: #fffd;
+    color: var(--imp-text);
   }
 
   .hud-menu ul li:hover {
-    background-color: #888888;
+    background-color: var(--imp-hover);
   }
 
   .status {
     display: block;
-    text-align: center;
-    padding: 10px 10px;
+    text-align: left;
+    padding: 0;
     border: none;
     overflow-y: auto;
     background-color: transparent;
@@ -166,7 +181,7 @@
     display: flex;
     justify-content: space-around;
     align-items: center;
-    padding: 0 10px;
+    padding: 0 var(--imp-space-md);
     background-color: transparent;
   }
 }

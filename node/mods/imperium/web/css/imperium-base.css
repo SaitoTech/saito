@@ -1,17 +1,38 @@
 .game.imperium {
+  --imp-font: 'orbitron-medium', Helvetica, sans-serif;
+  --imp-font-label: 'bank-gothic', 'orbitron-medium', Helvetica, sans-serif;
+  --imp-font-body: Helvetica, sans-serif;
+  --imp-text: #f3f0ea;
+  --imp-text-muted: #b8b3aa;
+  --imp-surface: color-mix(in srgb, #14161c 82%, transparent);
+  --imp-surface-strong: color-mix(in srgb, #14161c 94%, transparent);
+  --imp-hover: color-mix(in srgb, #ffffff 12%, transparent);
+  --imp-border: color-mix(in srgb, #ffffff 16%, transparent);
+  --imp-radius: 0.5rem;
+  --imp-space-xs: 0.25rem;
+  --imp-space-sm: 0.5rem;
+  --imp-space-md: 0.833rem;
+  --imp-space-lg: 1.25rem;
+  --imp-space-xl: 1.667rem;
+  --imp-fs-sm: 1.167rem;
+  --imp-fs: 1.5rem;
+  --imp-fs-lg: 1.667rem;
+  --imp-fs-title: 1.333rem;
+  --imp-fs-num: 2.5rem;
+  --background-color-shim-normal: color-mix(in srgb, #000 80%, transparent);
+
   .saito-overlay {
     background: transparent;
     box-shadow: none;
   }
 
-  & {
-    --background-color-shim-normal: #000c;
-  }
-
   .help-question {
-    background-color: goldenrod;
-    padding: 0.417rem 1.25rem 0.417rem 1.25rem;
-    border: 1px solid #000;
+    background-color: color-mix(in srgb, goldenrod 85%, transparent);
+    padding: var(--imp-space-sm) var(--imp-space-lg);
+    border: 1px solid var(--imp-border);
+    border-radius: var(--imp-radius);
+    color: var(--imp-text-on-light, #1a1410);
+    font-family: var(--imp-font);
   }
 
   .status .status-update {
@@ -21,58 +42,64 @@
   }
 
   .objectives-toggle {
-    font-family: orbitron-medium, sans-serif;
+    font-family: var(--imp-font);
     float: right;
     height: 4.5vh;
-    font-size: 3vh;
-    background-color: goldenrod;
+    font-size: var(--imp-fs);
+    background-color: color-mix(in srgb, goldenrod 80%, transparent);
     width: 3.333rem;
-    opacity: 0.5;
-    margin: 3px;
-    padding-left: 1.167rem;
+    opacity: 0.7;
+    margin: var(--imp-space-xs);
+    padding-left: var(--imp-space-md);
     padding-top: 0.8vh;
     user-select: none;
     cursor: pointer;
     position: relative;
     top: -0.917rem;
+    border-radius: var(--imp-radius);
   }
 
   .game-overlay-button-continue,
   .game-overlay-cardlist-button {
-    background-color: white;
-    padding: 1.667rem;
-    color: #000d;
-    border-radius: 0.833rem;
+    font-family: var(--imp-font);
+    font-size: var(--imp-fs);
+    font-weight: 600;
+    background-color: var(--imp-surface-strong);
+    padding: var(--imp-space-md) var(--imp-space-xl);
+    color: var(--imp-text);
+    border: 1px solid var(--imp-border);
+    border-radius: var(--imp-radius);
     cursor: pointer;
   }
   .game-overlay-button-continue:hover,
   .game-overlay-cardlist-button:hover {
     background-color: var(--saito-primary);
-    padding: 1.667rem;
-    color: white;
-    border-radius: 0.833rem;
-    cursor: pointer;
+    color: var(--saito-primary-foreground);
+    border-color: transparent;
   }
 
   .goods_box {
     background-color: #006400;
-    padding: 4px;
-    border: 1px solid #fff;
-    color: white;
+    padding: var(--imp-space-xs);
+    border: 1px solid var(--imp-border);
+    border-radius: var(--imp-radius);
+    color: var(--imp-text);
   }
 
   .resources_box {
-    background-color: black;
-    padding: 4px;
-    border: 1px solid #fff;
-    color: white;
+    background-color: #000;
+    padding: var(--imp-space-xs);
+    border: 1px solid var(--imp-border);
+    border-radius: var(--imp-radius);
+    color: var(--imp-text);
   }
 
   .influence_box {
     background-color: goldenrod;
-    padding: 4px;
-    border: 1px solid #fff;
-    color: black;
+    padding: var(--imp-space-xs);
+    border: 1px solid var(--imp-border);
+    border-radius: var(--imp-radius);
+    color: #1a1410;
   }
 
   .flash-color {
@@ -92,23 +119,25 @@
     width: 160px;
   }
   .game-overlay-cardlist-title {
-    font-family: 'orbitron-medium', helvetica;
-    color: #000;
-    -webkit-text-stroke: 2px #fffd;
-    stroke: 2px #fff8;
-    font-size: 3.75rem;
+    font-family: var(--imp-font);
+    color: var(--imp-text);
+    -webkit-text-stroke: 0;
+    font-size: 2.5rem;
+    letter-spacing: 0.08em;
   }
   .game-overlay-cardlist-subtitle {
-    font-family: 'orbitron-light', helvetica;
+    font-family: var(--imp-font-body);
     height: auto;
-    padding: 0.833rem;
+    padding: var(--imp-space-md);
+    color: var(--imp-text-muted);
+    font-size: var(--imp-fs);
   }
 
   .sf-title {
-    font-family: 'bank-gothic';
+    font-family: var(--imp-font-label);
   }
   .sf-readable {
-    font-family: 'sans-serif';
+    font-family: var(--imp-font);
   }
 
   @font-face {
@@ -145,9 +174,6 @@
   }
 
   /*** generic cardlist overlays ***/
-  .game-overlay-cardlist-title {
-    font-family: 'orbitron-medium', helvetica;
-  }
 
   /*** unit overlay ***/
 
@@ -1014,96 +1040,52 @@
 
   .turns {
     position: absolute;
-    margin: 10px;
+    left: var(--imp-space-md);
+    top: 4.583rem;
+    margin: 0;
     display: grid;
     grid-template-columns: 1fr 1fr;
-    font-size: 3em;
-    width: 2em;
-    color: #fff;
-    margin-top: 5.625rem;
+    font-family: var(--imp-font);
+    width: auto;
+    color: var(--imp-text);
+    gap: var(--imp-space-xs);
+    z-index: 10;
   }
 
   .round {
     background-color: var(--playing-color);
-    border: 1px solid var(--playing-color);
-    width: 2em;
-    height: 2em;
-    color: #fff;
+    border: 1px solid var(--imp-border);
+    border-radius: var(--imp-radius);
+    width: 2.8rem;
+    height: 2.8rem;
+    color: var(--imp-text);
     text-align: center;
-    line-height: 2em;
-    font-size: 1em;
-    font-weight: bold;
+    line-height: 2.8rem;
+    font-size: var(--imp-fs-lg);
+    font-weight: 600;
   }
 
   .turn {
-    width: 2em;
-    height: 2em;
+    width: 2.8rem;
+    height: 2.8rem;
     color: var(--playing-color);
-    border: 1px solid var(--playing-color);
+    border: 1px solid var(--imp-border);
+    border-radius: var(--imp-radius);
+    background: var(--imp-surface);
     text-align: center;
-    line-height: 2em;
-    font-size: 1em;
-    font-weight: bold;
+    line-height: 2.8rem;
+    font-size: var(--imp-fs-lg);
+    font-weight: 600;
   }
 
   .round-label,
   .turn-label {
-    font-size: 0.5em;
+    font-size: var(--imp-fs-sm);
     text-align: center;
-    font-family: 'bank-gothic';
-    padding-top: 0.417rem;
-  }
-
-  .VP-track-label {
-    font-size: 1.35em;
-    color: #fff;
-    text-align: left;
-    padding-left: 0.833rem;
-    height: 2.5rem;
-    cursor: pointer;
-  }
-
-  .vp {
-    position: relative;
-    height: 5vh;
-    background: #5555;
-    margin: 3px;
-  }
-
-  .vp-players {
-    height: 100%;
-    display: grid;
-    position: absolute;
-    top: 0px;
-    width: 100%;
-    z-index: -1;
-  }
-
-  .vp-faction-name {
-    color: #fff;
-    display: inline-block;
-    padding: 2px;
-    position: relative;
-    top: 50%;
-    transform: translateY(-50%);
-    left: 5px;
-  }
-
-  .player-vp {
-    font-family: 'orbitron-medium', 'bank-gothic', arial, helvetica, sans-serif;
-  }
-
-  .player-vp-background {
-    position: relative;
-    width: 2em;
-    text-align: center;
-    color: #ddd;
-    font-size: 2em;
-    top: 50%;
-    transform: translateX(-50%) translateY(-50%);
-    left: 90%;
-    -webkit-text-stroke: 1px #8888;
-    font-weight: bolder;
+    font-family: var(--imp-font-label);
+    padding-top: var(--imp-space-xs);
+    color: var(--imp-text-muted);
+    letter-spacing: 0.06em;
   }
 
   .ship_graphic {
@@ -1310,7 +1292,9 @@
   }
 
   #hexGrid,
-  .gameboard-clone {
+  .gameboard,
+  .gameboard-clone,
+  .game-minimap-clone {
     display: flex;
     flex-wrap: wrap;
     width: 2000px;
@@ -1675,8 +1659,10 @@
 
   @media (min-width: 1201px) {
     /* <- 5-4  hexagons per row */
-    #hexGri,
-    .gameboard-cloned {
+    #hexGrid,
+    .gameboard,
+    .gameboard-clone,
+    .game-minimap-clone {
       padding-bottom: 4.4%;
     }
     .hex {
@@ -1693,7 +1679,9 @@
   @media (max-width: 1200px) and (min-width: 901px) {
     /* <- 4-3  hexagons per row */
     #hexGrid,
-    .gameboard-clone {
+    .gameboard,
+    .gameboard-clone,
+    .game-minimap-clone {
       padding-bottom: 5.5%;
     }
     .hex {
@@ -1710,7 +1698,9 @@
   @media (max-width: 900px) and (min-width: 601px) {
     /* <- 3-2  hexagons per row */
     #hexGrid,
-    .gameboard-clone {
+    .gameboard,
+    .gameboard-clone,
+    .game-minimap-clone {
       padding-bottom: 7.4%;
     }
     .hex {
@@ -1727,7 +1717,9 @@
   @media (max-width: 600px) {
     /* <- 2-1  hexagons per row */
     #hexGrid,
-    .gameboard-clone {
+    .gameboard,
+    .gameboard-clone,
+    .game-minimap-clone {
       padding-bottom: 11.2%;
     }
     .hex {
@@ -1743,7 +1735,9 @@
 
   @media (max-width: 400px) {
     #hexGrid,
-    .gameboard-clone {
+    .gameboard,
+    .gameboard-clone,
+    .game-minimap-clone {
       font-size: 13px;
     }
   }
@@ -1864,27 +1858,26 @@
     font-weight: heavy;
   }
 
-  /* double planet */
+  /* double planet — undo .hex_bg's 30deg so both planets sit upright */
 
+  .bi:has(.two_planet) .hex_img,
+  .bi .sector1,
+  .bi .sector2,
+  .bi .sector3,
+  .bi .sector4,
+  .bi .sector5,
+  .bi .sector6,
+  .bi .sector7,
   .bi .sector8,
-  .bi .sector9,
-  .bi .sector10,
   .bi .sector11,
   .bi .sector12,
-  .bi .sector13,
   .bi .sector14,
-  .bi .sector15,
-  .bi .sector16,
   .bi .sector17,
-  .bi .sector18,
-  .bi .sector19,
-  .bi .sector20,
-  .bi .sector21,
-  .bi .sector38,
-  .bi .sector39,
-  .bi .sector40,
-  .bi .sector50,
-  .bi .sector51 {
+  .bi .sector25,
+  .bi .sector27,
+  .bi .sector28,
+  .bi .sector29,
+  .bi .sector30 {
     transform: scale(2.6) rotate(-30deg);
   }
 
@@ -1893,13 +1886,8 @@
   .bi .sector22,
   .bi .sector23,
   .bi .sector24,
-  .bi .sector25,
   .bi .sector26,
-  .bi .sector27,
-  .bi .sector28,
   .bi .new-byzantium,
-  .bi .sector29,
-  .bi .sector30,
   .bi .sector31,
   .bi .sector32,
   .bi .sector45,
@@ -2066,8 +2054,8 @@
     }
 
     .dashboard {
-      transform: scale(0.4);
-      transform-origin: top left;
+      transform: scale(0.85);
+      transform-origin: top right;
     }
   }
 

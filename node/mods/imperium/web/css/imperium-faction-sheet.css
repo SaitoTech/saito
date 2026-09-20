@@ -1,214 +1,248 @@
 .game.imperium {
-  .faction-sheet-action-cards {
-    display: flex;
-    flex-direction: row;
-    flex-wrap: wrap;
-    grid-gap: 0.833rem;
-    height: min-content;
-    min-height: min-content;
-    padding-top: 0.833rem;
-  }
-
-  .faction-sheet-tech-cards {
-    display: flex;
-    flex-direction: row;
-    flex-wrap: wrap;
-    grid-gap: 0.833rem;
-    height: min-content;
-    min-height: min-content;
-    padding-top: 0.833rem;
-  }
-
-  .faction-sheet-planets {
-    display: flex;
-    flex-direction: row;
-    flex-wrap: wrap;
-    grid-gap: 0.833rem;
-    height: min-content;
-    min-height: min-content;
-    padding-top: 0.833rem;
-  }
-
-  .faction-sheet-action-cards:empty,
-  .faction-sheet-tech-cards:empty,
-  .faction-sheet-planets:empty {
-    padding-top: 0rem;
-  }
-
-  .faction_sheet_action_card_back {
-    background-image: url('/imperium/img/action_card_back.jpg') !important;
-    background-image: cover;
-  }
-
   .faction-sheet {
-    display: grid;
-    grid-template-columns: 1fr min-content;
-    height: 90vh;
-    width: 90vw;
-    background-image: url('/imperium/img/factions/faction3.jpg');
-    background-size: cover;
-    overflow-y: scroll;
+    display: flex;
+    flex-direction: column;
+    width: min(92vw, 78rem);
+    height: min(88vh, 56rem);
+    font-family: var(--imp-font-body);
+    color: var(--imp-text);
+    background: transparent;
+  }
+
+  .faction-sheet-tabs {
+    display: flex;
+    align-items: flex-end;
+    gap: 0.2rem;
+    padding: 0 1.2rem;
     position: relative;
-    padding: 0.833rem;
+    z-index: 2;
   }
-  .faction-sheet-main {
-    grid-column: 1 / 2;
+
+  .faction-sheet-tab {
+    appearance: none;
+    background: color-mix(in srgb, #1a1d26 78%, transparent);
+    color: var(--imp-text-muted);
+    border: 1px solid var(--imp-border);
+    border-bottom: none;
+    border-radius: 0.55rem 0.55rem 0 0;
+    padding: 0.7rem 1.35rem 0.85rem;
+    font-family: var(--imp-font);
+    font-size: var(--imp-fs-sm);
+    letter-spacing: 0.06em;
+    cursor: pointer;
+    clip-path: polygon(0.55rem 0, calc(100% - 0.55rem) 0, 100% 100%, 0 100%);
+    transform: translateY(0.15rem);
+    box-shadow: none;
   }
+
+  .faction-sheet-tab:hover {
+    color: var(--imp-text);
+    background: color-mix(in srgb, #252a36 86%, transparent);
+  }
+
+  .faction-sheet-tab.active {
+    color: var(--imp-text);
+    background: color-mix(in srgb, #14161c 94%, transparent);
+    transform: translateY(1px);
+    z-index: 3;
+    font-weight: 600;
+  }
+
+  .faction-sheet-dossier {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    background:
+      linear-gradient(var(--imp-surface-strong), var(--imp-surface-strong)),
+      url('/imperium/img/factions/faction3.jpg');
+    background-size: cover;
+    background-position: center;
+    border: 1px solid var(--imp-border);
+    border-radius: 0 0.5rem 0.5rem 0.5rem;
+    overflow: hidden;
+  }
+
   .faction-sheet-header {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    color: white;
-    font-size: 1.667rem;
-    font-weight: bold;
-    letter-spacing: 0.167rem;
-    background: linear-gradient(90deg, #000d, #0000);
-    margin-left: 0rem;
-    margin-right: 0.833rem;
-    padding: 0.208rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: var(--imp-space-lg);
+    color: var(--imp-text);
+    background: linear-gradient(90deg, #000c, #0004);
+    padding: var(--imp-space-md) var(--imp-space-lg);
+    border-bottom: 1px solid var(--imp-border);
   }
+
   .faction-sheet-title {
-    color: white;
-    padding-left: 0.625rem;
-    font-size: 2.5rem;
+    font-family: var(--imp-font);
+    font-size: 2.2rem;
+    letter-spacing: 0.12rem;
   }
 
-  .faction-sheet-tokens {
+  .faction-sheet-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: var(--imp-space-lg);
   }
-  .faction-sheet-sidebar {
-    grid-column: 2;
-    min-width: 20.833rem;
-    max-width: 25vw;
-    font-size: 1.25rem;
-    line-height: 1.667rem;
+
+  .fs-section {
+    margin-bottom: var(--imp-space-xl);
   }
-  .faction-sheet-faction-abilities {
-    background-color: #0008;
-    color: white;
-    padding: 0.833rem;
+
+  .fs-section h3 {
+    margin: 0 0 var(--imp-space-sm);
+    font-family: var(--imp-font);
+    font-size: var(--imp-fs);
+    letter-spacing: 0.08em;
+    color: var(--imp-text);
+    border-bottom: 1px solid var(--imp-border);
+    padding-bottom: var(--imp-space-xs);
   }
-  .faction-sheet-faction-tech {
-    max-width: 100%;
-    font-size: 0.833rem;
-    line-height: 1.25rem;
-    width: 100%;
+
+  .fs-entry {
+    background: var(--imp-surface);
+    border: 1px solid var(--imp-border);
+    border-radius: var(--imp-radius);
+    padding: var(--imp-space-md);
+    margin-bottom: var(--imp-space-sm);
+  }
+
+  .fs-entry.is-locked {
+    opacity: 0.55;
+  }
+
+  .fs-entry-title {
+    font-family: var(--imp-font);
+    font-weight: 600;
+    margin-bottom: var(--imp-space-xs);
+  }
+
+  .fs-entry-text {
+    color: var(--imp-text-muted);
+    line-height: 1.45;
+  }
+
+  .fs-empty {
+    color: var(--imp-text-muted);
+    font-style: italic;
+  }
+
+  .fs-intro {
+    margin-bottom: var(--imp-space-xl);
+    line-height: 1.6;
+    font-size: var(--imp-fs);
+  }
+
+  .fs-overview-grid,
+  .fs-tech-list,
+  .fs-units,
+  .fs-promissory {
+    display: block;
+  }
+
+  .fs-planets {
     display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr));
+    gap: var(--imp-space-md);
   }
 
-  .faction_sheet_token_box {
-    width: 40em;
-    height: 10em;
-    display: grid;
-    grid-gap: 0 2em;
-    grid-template-columns: auto auto auto;
-    transform: scale(1);
-    font-size: 0.333rem;
-    margin: 0.417rem;
+  .fs-planet {
+    display: flex;
+    gap: var(--imp-space-md);
+    background: var(--imp-surface);
+    border: 1px solid var(--imp-border);
+    border-radius: var(--imp-radius);
+    overflow: hidden;
   }
 
-  .faction_sheet_empire_title {
-    color: white;
-    font-size: 1.667rem;
-    font-weight: bold;
-    letter-spacing: 0.167rem;
-    background: linear-gradient(90deg, #000d, #0000);
-    margin-left: 0rem;
-    margin-right: 0.833rem;
-    padding: 0.208rem;
-    display: grid;
-    grid-template-columns: 1fr 1fr;
+  .fs-planet.exhausted {
+    opacity: 0.7;
   }
 
-  .faction_sheet_empire_title_name {
-    color: white;
-    padding-left: 0.625rem;
-  }
-
-  .faction_sheet_container {
-    overflow-y: scroll;
-    width: 90vw;
-    height: 90vh;
-    background-image: url('/imperium/img/factions/faction3.jpg');
+  .fs-planet-art {
+    width: 5.5rem;
+    min-height: 7.5rem;
     background-size: cover;
-    display: grid;
-    grid-template-columns: 1fr min-content;
-    position: relative;
-    padding: 0.833rem;
+    background-position: center;
+    flex-shrink: 0;
   }
-  .fa-stack {
-    height: 1em;
-    line-height: 1.5em;
+
+  .fs-planet-body {
+    padding: var(--imp-space-sm) var(--imp-space-sm) var(--imp-space-sm) 0;
   }
-  .faction_abilities_container {
-    background-color: #0008;
-    color: white;
-    padding: 0.833rem;
-    font-size: 0.833rem;
-    line-height: 1.25rem;
+
+  .fs-planet-name {
+    font-family: var(--imp-font);
+    font-size: var(--imp-fs);
+    margin-bottom: var(--imp-space-xs);
   }
+
+  .fs-planet-stats,
+  .fs-planet-state,
+  .fs-unit-meta {
+    color: var(--imp-text-muted);
+    font-size: var(--imp-fs-sm);
+  }
+
+  .fs-planet-stats {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+  }
+
+  .fs-unit-row {
+    display: flex;
+    justify-content: space-between;
+    gap: var(--imp-space-md);
+    padding: var(--imp-space-sm) 0;
+    border-bottom: 1px solid var(--imp-border);
+  }
+
+  .fs-tech {
+    margin-bottom: var(--imp-space-sm);
+  }
+
+  .fs-tech-head {
+    display: flex;
+    justify-content: space-between;
+    gap: var(--imp-space-md);
+    align-items: baseline;
+  }
+
+  .fs-tech-state {
+    font-size: var(--imp-fs-sm);
+    color: var(--imp-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+
+  .fs-tech.locked {
+    opacity: 0.55;
+  }
+
+  .fs-prereq {
+    display: inline-block;
+    margin-right: var(--imp-space-xs);
+    margin-top: var(--imp-space-xs);
+    font-size: 0.95rem;
+    letter-spacing: 0.04em;
+  }
+
+  .fs-prereq.blue {
+    color: #6ea8ff;
+  }
+  .fs-prereq.red {
+    color: #e07070;
+  }
+  .fs-prereq.yellow {
+    color: #e0c056;
+  }
+  .fs-prereq.green {
+    color: #6fbf7a;
+  }
+
   .faction_ability {
     margin-bottom: 1.667rem;
-  }
-  .faction_ability:last-child {
-    margin-bottom: 0rem;
-  }
-  .faction_ability:nth-child(n + 2) {
-    margin-top: 0.833rem;
-  }
-  .faction_ability_title {
-    font-weight: bold;
-    border-bottom: 1px solid #fff;
-    margin-bottom: 0.417rem;
-  }
-  .faction_ability_text {
-    font-weight: normal;
-  }
-  .faction_tech_container {
-    max-width: 100%;
-    font-size: 0.833rem;
-    line-height: 1.25rem;
-    width: 100%;
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-  }
-  .faction_tech_container.tech_card {
-    margin-left: 0.208rem;
-    margin-right: 0.208rem;
-  }
-
-  .faciton_sheet_empire_title {
-    color: white;
-    font-size: 1.667rem;
-    font-weight: bold;
-    letter-spacing: 0.167rem;
-    background-color: #0005;
-  }
-  .faction_sheet_planet_card_box {
-    margin: 1em 1em 17em 1em;
-  }
-
-  .faction_sheet_planet_card {
-    height: 26vh;
-    width: calc(26vh * 0.7211);
-    background-size: cover;
-    text-align: center;
-    font-size: 0.75vw;
-    transition: all 50ms;
-    margin-bottom: -15vw;
-    border: 1px solid;
-    float: left;
-    z-index: 1;
-  }
-
-  .faction_sheet_objectives {
-    display: grid;
-    grid-template-columns: auto auto;
-    margin-bottom: 17vw;
-  }
-
-  .faction_sheet_objective_cards {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: flex-start;
-    margin: 1em 1em 1em 1em;
   }
 }

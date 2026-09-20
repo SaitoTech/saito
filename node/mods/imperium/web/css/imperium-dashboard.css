@@ -1,161 +1,254 @@
 .game.imperium {
   .imperium-dashboard {
-    display: inline-flex;
-    column-gap: 1.25rem;
+    display: flex;
+    flex-direction: column;
+    row-gap: var(--imp-space-sm);
+    width: 100%;
   }
 
   .dashboard {
-    display: inline-flex;
-    position: absolute;
+    display: flex;
+    flex-direction: column;
+    position: fixed;
+    top: 4.5rem;
+    right: var(--imp-space-md);
+    left: auto;
+    margin: 0;
     z-index: 9;
-    color: #fff;
+    color: var(--imp-text);
     background: transparent;
-    margin-top: 4.583rem;
-    margin-left: 0.833rem;
+    font-family: var(--imp-font);
+    width: 16.5rem;
+    max-width: 22vw;
+    max-height: calc(100vh - 5.5rem);
+    overflow-x: hidden;
+    overflow-y: auto;
   }
 
   .dash-faction {
     display: flex;
     flex-direction: column;
-    grid-gap: 0.167rem;
     cursor: pointer;
     user-select: none;
-    width: max-content;
-    row-gap: 0.417rem;
+    width: 100%;
+    box-sizing: border-box;
+    row-gap: var(--imp-space-xs);
+    background: var(--imp-surface);
+    border: 1px solid var(--imp-border);
+    border-radius: var(--imp-radius);
+    padding: var(--imp-space-sm);
+    border-left-width: 0.35rem;
+  }
+
+  .dash-faction.p1 {
+    border-left-color: var(--p1);
+  }
+  .dash-faction.p2 {
+    border-left-color: var(--p2);
+  }
+  .dash-faction.p3 {
+    border-left-color: var(--p3);
+  }
+  .dash-faction.p4 {
+    border-left-color: var(--p4);
+  }
+  .dash-faction.p5 {
+    border-left-color: var(--p5);
+  }
+  .dash-faction.p6 {
+    border-left-color: var(--p6);
   }
 
   .dash-faction-name {
-    text-align: center;
-    color: #fff;
+    text-align: left;
+    color: var(--imp-text);
     cursor: pointer;
-    padding-top: 0.417rem;
-    padding-bottom: 0.208rem;
-    font-family: 'orbitron-medium';
-    font-size: 1.333rem;
+    padding-top: var(--imp-space-xs);
+    padding-bottom: var(--imp-space-xs);
+    font-family: var(--imp-font);
+    font-size: var(--imp-fs-title);
+    letter-spacing: 0.04em;
   }
 
   .dash-faction-info {
     display: flex;
     flex-direction: row;
     height: max-content;
-    padding-left: 0.25rem;
     justify-content: space-around;
+    gap: var(--imp-space-xs);
+  }
+
+  .dash-item {
+    color: var(--imp-text);
+    position: relative;
+    width: 3em;
+    line-height: 1.2;
+    text-align: center;
+    font-size: var(--imp-fs-num);
+    text-shadow: 0 1px 2px #000a;
   }
 
   .dash-item.resources {
     background-image: url(/imperium/img/blank_resources_hex.png);
     background-size: cover;
-    height: 4.167rem;
-    width: 4.708rem;
-    font-size: 2.917rem;
+    height: 3.6rem;
+    width: 4.1rem;
+    font-size: 2.1rem;
   }
 
   .dash-item.influence {
     background-image: url('/imperium/img/blank_influence_hex.png');
     background-size: cover;
-    height: 4.167rem;
-    width: 4.708rem;
+    height: 3.6rem;
+    width: 4.1rem;
     color: #c16400;
-    font-size: 2.917rem;
+    font-size: 2.1rem;
   }
 
   .dash-item.trade {
     display: flex;
     position: relative;
-    height: 4.167rem;
-    width: 4.708rem;
-    font-size: 4.167rem;
-    padding-left: 0.333rem;
-    z-index: 1001;
+    height: 3.6rem;
+    width: 4.1rem;
+    font-size: 2.4rem;
+    z-index: 1;
+    align-items: center;
+    justify-content: center;
   }
 
   .dash-item .avail {
-    transform: translateY(-0.2em);
     display: inline-block;
-    color: white;
+    color: var(--imp-text);
   }
 
   .dash-item .total,
   .dash-item .limit {
-    transform: translateY(0.2em);
     display: none;
     opacity: 0.7;
   }
 
   .dash-item-goods {
     position: relative;
-    top: -1.833rem;
-    left: -2.917rem;
-    font-size: 3.333rem;
+    font-size: var(--imp-fs);
   }
 
   .dash-faction-base {
-    background-color: #000;
-    opacity: 0.95;
-    color: white;
-    text-weight: bold;
-    padding-top: 0.208rem;
-    padding-bottom: 0.208rem;
+    background-color: var(--imp-surface-strong);
+    color: var(--imp-text-muted);
+    font-weight: 600;
+    padding: var(--imp-space-xs) var(--imp-space-sm);
+    border-radius: var(--imp-radius);
   }
 
-  .speaker {
-    background-color: red;
-    color: white;
-    font-size: 1.333rem;
-    font-weight: bold;
-    margin-left: auto;
-    margin-right: auto;
-    font-family: 'bank-gothic';
-    letter-spacing: 0.083rem;
-    padding-bottom: 0.417rem;
-    padding-top: 0.417rem;
-    padding-left: 0.833rem;
-    padding-right: 0.833rem;
+  .dash-faction-footer {
+    display: flex;
+    justify-content: flex-end;
+    align-items: baseline;
+    padding-top: var(--imp-space-xs);
+  }
+
+  .dash-faction-vp {
+    display: flex;
+    align-items: baseline;
+    gap: var(--imp-space-sm);
+    color: var(--imp-text);
+    font-family: var(--imp-font);
+  }
+
+  .dash-vp-label {
+    font-size: var(--imp-fs-sm);
+    color: var(--imp-text-muted);
+    letter-spacing: 0.08em;
+  }
+
+  .dash-item-vp {
+    font-size: var(--imp-fs-lg);
+    font-weight: 600;
+  }
+
+  .dash-faction-speaker {
+    display: none;
+  }
+
+  .dash-faction-speaker.speaker {
+    display: block;
+    position: fixed;
+    left: var(--imp-space-lg);
+    bottom: 21.5rem;
+    z-index: 12;
+    background-color: color-mix(in srgb, #c43c32 88%, transparent);
+    color: var(--imp-text);
+    font-size: var(--imp-fs-sm);
+    font-weight: 600;
+    font-family: var(--imp-font-label);
+    letter-spacing: 0.08rem;
+    padding: var(--imp-space-sm) var(--imp-space-lg);
+    border-radius: var(--imp-radius);
+    border: 1px solid var(--imp-border);
+    pointer-events: none;
   }
 
   .dash-faction-status {
     border: 1px solid #c16400;
-    background-color: green;
-    height: 0.833rem;
-    width: 1.667rem;
-    margin-right: 0.417rem;
-    margin-left: 0.417rem;
-    margin-top: 0.417rem;
+    background-color: #2d6a3e;
+    height: 0.75rem;
+    width: 1.5rem;
+    margin: var(--imp-space-xs);
     float: left;
+    border-radius: 2px;
   }
 
   .dash-faction-status-text {
-    padding-top: 0.208rem;
-    font-family: 'orbitron-medium';
-    letter-spacing: 0.083rem;
-    width: 16.667rem;
-    font-size: 1.167rem;
+    padding-top: var(--imp-space-xs);
+    font-family: var(--imp-font);
+    letter-spacing: 0.04rem;
+    font-size: var(--imp-fs-sm);
+    color: var(--imp-text-muted);
   }
 
   .dash-faction-agenda {
-    font-weight: bold;
-    font-size: 4em;
-    color: white;
-    background: #0004;
+    font-weight: 600;
+    font-size: var(--imp-fs-num);
+    color: var(--imp-text);
+    background: var(--imp-surface-strong);
     text-align: center;
-  }
-
-  .dash-item {
-    width: 3em;
-    line-height: 1.9em;
-    text-align: center;
-    font-size: 1.5em;
-    text-shadow: 2px 2px #000a;
+    border-radius: var(--imp-radius);
   }
 
   .dash-faction-action {
     text-align: center;
-    font-size: large;
-    color: #fff;
+    font-size: var(--imp-fs);
+    color: var(--imp-text);
   }
 
-  .dash-item {
-    color: #fff;
-    position: relative;
+  @media screen and (max-width: 1100px) {
+    .dashboard {
+      width: 14rem;
+      max-width: 28vw;
+    }
+
+    .dash-item.resources,
+    .dash-item.influence,
+    .dash-item.trade {
+      height: 3rem;
+      width: 3.4rem;
+      font-size: 1.7rem;
+    }
+  }
+
+  @media screen and (max-width: 800px) {
+    .dashboard {
+      top: auto;
+      bottom: 1rem;
+      right: 0.5rem;
+      max-height: 46vh;
+      width: 13rem;
+      max-width: 42vw;
+    }
+
+    .dash-faction-speaker.speaker {
+      bottom: 1.25rem;
+      left: 0.75rem;
+    }
   }
 }

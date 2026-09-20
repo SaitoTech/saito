@@ -457,6 +457,7 @@ displayFactionDashboard(agenda_phase=0) {
       document.querySelector(`.${pl} .dash-item-goods`).innerHTML = this.game.state.players_info[i].goods;
       document.querySelector(`.${pl} .dash-item-commodities`).innerHTML = this.game.state.players_info[i].commodities;
       document.querySelector(`.${pl} .dash-item-commodity-limit`).innerHTML = this.game.state.players_info[i].commodity_limit;
+      document.querySelector(`.${pl} .dash-item-vp`).innerHTML = this.game.state.players_info[i].vp;
       } catch (err) {}
 
       document.querySelector(fo).onclick = (e) => {
@@ -479,16 +480,6 @@ addUIEvents() {
   if (this.browser_active == 0) { return; }
 
   $('#hexGrid').draggable();
-
-  document.querySelector('.leaderboardbox').addEventListener('click', (e) => {
-
-    if (e.target.id === "objectives-toggle" || e.target.id === "VP-track-label") {
-      imperium_self.handleObjectivesMenuItem();
-      return;
-    }
-
-    document.querySelector('.leaderboardbox').classList.toggle('leaderboardbox-lock');
-  });
 
   //set player highlight color
   document.documentElement.style.setProperty('--my-color', `var(--p${this.game.player})`);
@@ -536,53 +527,9 @@ updateRound() {
 }
 
 updateLeaderboard() {
-
   if (this.browser_active == 0) { return; }
-  this.leaderboard.render();
-
-  let imperium_self = this;
-  let factions = this.returnFactions();
-
-  try {
-
-    //
-    // hide unnecessary VP entries
-    //
-    try {
-      if (this.game.state.vp_target < 14) {
-        for (let i = 14; i > this.game.state.vp_target; i--) {
-          let leaderboard_div = "."+i+"-points"; 
-          document.querySelector(leaderboard_div).style.display = "none";
-        }
-      }
-    } catch (err) { 
-    }
-
-
-    let html = '<div class="VP-track-label" id="VP-track-label">Victory Points</div>';
-
-    let vp_needed = 14;
-    if (this.game.state.vp_target != 14 && this.game.state.vp_target > 0) { vp_needed = this.game.state.vp_target; }
-    if (this.game.options.vp) { vp_needed = parseInt(this.game.options.vp); }
-
-    for (let j = vp_needed; j >= 0; j--) {
-      html += '<div class="vp ' + j + '-points"><div class="player-vp-background">' + j + '</div>';
-      html += '<div class="vp-players">'
-
-      for (let i = 0; i < this.game.state.players_info.length; i++) {
-        if (this.game.state.players_info[i].vp == j) {
-          html += `  <div class="player-vp" style="background-color:var(--p${i + 1});"><div class="vp-faction-name">${factions[this.game.state.players_info[i].faction].name}</div></div>`;
-        }
-      }
-
-      html += '</div></div>';
-    }
-
-    document.querySelector('.leaderboard').innerHTML = html;
-
-    this.updateRound();
-
-  } catch (err) { }
+  this.displayFactionDashboard();
+  this.updateRound();
 }
 
 
