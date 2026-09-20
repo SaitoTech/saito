@@ -1,12 +1,23 @@
 /**
  * Twitter/X OAuth 2.0 + PKCE. Authenticates X credentials.
  * Does not touch Faucet records, payments, or peer notify.
+ *
+ * Uses node-fetch (HTTP/1.1) rather than Node's global undici fetch.
+ * A hung or HTTP/2 failure against api.x.com must abort this attempt,
+ * not take down the Saito process.
  */
 
 const crypto = require('crypto');
+const https = require('https');
+const fetch = require('node-fetch');
 
 const TWITTER_TOKEN_URL = 'https://api.x.com/2/oauth2/token';
 const TWITTER_USER_URL = 'https://api.x.com/2/users/me';
+const TWITTER_FETCH_TIMEOUT_MS = 20000;
+
+const twitterAgent = new https.Agent({
+  keepAlive: false
+});
 
 function authError(code, httpStatus, title, message, extra = {}) {
   const err = new Error(message);
@@ -43,6 +54,38 @@ function createPkce() {
   return { code_verifier, code_challenge };
 }
 
+function twitterFetch(url, options = {}) {
+  return fetch(url, {
+    timeout: TWITTER_FETCH_TIMEOUT_MS,
+    agent: twitterAgent,
+    ...options,
+    headers: {
+      Accept: 'application/json',
+      'User-Agent': 'Saito-Faucet-OAuth',
+      ...(options.headers || {})
+    }
+  });
+}
+
+function mapTwitterFetchError(err, fallbackCode, title) {
+  if (err?.code === fallbackCode || err?.httpStatus) {
+    return err;
+  }
+  const aborted =
+    err?.name === 'AbortError' ||
+    err?.type === 'aborted' ||
+    err?.type === 'request-timeout' ||
+    /timeout/i.test(String(err?.message || ''));
+  return authError(
+    fallbackCode,
+    502,
+    title,
+    aborted
+      ? 'X authorization timed out. Close this window and try again.'
+      : 'Could not complete X authorization. Close this window and try again.'
+  );
+}
+
 async function exchangeTwitterCode({
   clientId,
   clientSecret,
@@ -57,23 +100,30 @@ async function exchangeTwitterCode({
   body.set('code_verifier', code_verifier);
   body.set('client_id', clientId);
 
-  const res = await fetch(TWITTER_TOKEN_URL, {
-    method: 'POST',
-    headers: {
-      Accept: 'application/json',
-      'Content-Type': 'application/x-www-form-urlencoded',
-      Authorization:
-        'Basic ' + Buffer.from(clientId + ':' + clientSecret, 'utf8').toString('base64')
-    },
-    body: body.toString()
-  });
+  let res;
+  try {
+    res = await twitterFetch(TWITTER_TOKEN_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        Authorization:
+          'Basic ' + Buffer.from(clientId + ':' + clientSecret, 'utf8').toString('base64')
+      },
+      body: body.toString()
+    });
+  } catch (err) {
+    throw mapTwitterFetchError(err, 'twitter_token_exchange_failed', 'X verification failed');
+  }
 
   const data = await res.json().catch(() => ({}));
   if (!res.ok || data.error || !data.access_token) {
     const msg = data.error_description || data.error || `token_http_${res.status}`;
-    const err = new Error(String(msg));
-    err.code = 'twitter_token_exchange_failed';
-    throw err;
+    throw authError(
+      'twitter_token_exchange_failed',
+      502,
+      'X verification failed',
+      String(msg)
+    );
   }
 
   return {
@@ -87,21 +137,28 @@ async function fetchTwitterUser(accessToken) {
   const url = new URL(TWITTER_USER_URL);
   url.searchParams.set('user.fields', 'created_at,name,username');
 
-  const res = await fetch(url.toString(), {
-    method: 'GET',
-    headers: {
-      Accept: 'application/json',
-      Authorization: `Bearer ${accessToken}`
-    }
-  });
+  let res;
+  try {
+    res = await twitterFetch(url.toString(), {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${accessToken}`
+      }
+    });
+  } catch (err) {
+    throw mapTwitterFetchError(err, 'twitter_user_fetch_failed', 'X verification failed');
+  }
 
   const data = await res.json().catch(() => ({}));
   const user = data.data || {};
   if (!res.ok || !user.id) {
     const msg = data.detail || data.title || data.message || `user_http_${res.status}`;
-    const err = new Error(String(msg));
-    err.code = 'twitter_user_fetch_failed';
-    throw err;
+    throw authError(
+      'twitter_user_fetch_failed',
+      502,
+      'X verification failed',
+      String(msg)
+    );
   }
 
   return {

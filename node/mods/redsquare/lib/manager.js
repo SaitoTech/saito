@@ -2063,6 +2063,10 @@ class Manager {
     root.dataset.tweetNavigationBound = '1';
 
     root.addEventListener('click', (e) => {
+      if (window.getSelection && !window.getSelection().isCollapsed) {
+        return;
+      }
+
       const signature = Manager.resolveClickedSignature(e.target);
 
       if (!signature) {
