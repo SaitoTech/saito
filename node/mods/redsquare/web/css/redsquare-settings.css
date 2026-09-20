@@ -49,60 +49,6 @@
   line-height: 1.45;
 }
 
-.preference-group {
-  display: flex;
-  flex-direction: column;
-  gap: var(--saito-space-xs);
-}
-
-.preference {
-  display: flex;
-  align-items: flex-start;
-  gap: var(--saito-space-sm);
-  padding: var(--saito-space-sm) var(--saito-space-md);
-  border-radius: var(--saito-radius);
-  cursor: pointer;
-}
-
-.preference input {
-  position: absolute;
-  opacity: 0;
-  width: 1px;
-  height: 1px;
-  pointer-events: none;
-}
-
-.preference .indicator {
-  position: relative;
-  flex-shrink: 0;
-  width: 1.8rem;
-  height: 1.8rem;
-  margin-top: 0.15rem;
-  border: 1px solid var(--saito-border);
-  border-radius: 50%;
-}
-
-.preference .indicator::after {
-  content: '';
-  position: absolute;
-  inset: 0.35rem;
-  border-radius: 50%;
-  background: var(--saito-foreground);
-  opacity: 0;
-  transform: scale(0.6);
-}
-
-.preference:has(input:checked) .indicator::after {
-  opacity: 1;
-  transform: scale(1);
-}
-
-.preference .text {
-  flex: 1;
-  min-width: 0;
-  line-height: 1.4;
-}
-
 .settings .list {
   display: flex;
   flex-direction: column;

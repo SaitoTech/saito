@@ -41,6 +41,11 @@ class Manager {
     this._browser_history_bound = false;
     this.image_overlay = null;
     this.profile_cache = {};
+    this._read_observer = null;
+    this._read_observer_root = null;
+    this._read_save_timer = null;
+    this._tip_prefetch_started = false;
+    this._last_scroll_top = 0;
 
     // Per-view Manager chrome. Header is navigation only (back + title).
     // Home / notifications / user-content (posts/replies/likes) omit sticky chrome.
@@ -305,6 +310,8 @@ class Manager {
     this.pending_newer_tweets = [];
     this._timeline_bootstrapping = false;
     this._notifications_bootstrapping = false;
+    this._tip_prefetch_started = false;
+    this._last_scroll_top = 0;
   }
 
   updateModeVisibility() {
@@ -809,10 +816,15 @@ class Manager {
       const timer = setTimeout(finish, 12000);
 
       try {
-        this.mod.loadTransactions('tweets', 'newer', () => {
-          clearTimeout(timer);
-          finish();
-        });
+        this.mod.loadTransactions(
+          'tweets',
+          'newer',
+          () => {
+            clearTimeout(timer);
+            finish();
+          },
+          { localOnly: true }
+        );
       } catch (err) {
         clearTimeout(timer);
         finish();
@@ -864,18 +876,8 @@ class Manager {
     this.timeline_rendered = true;
     this._timeline_bootstrapping = false;
 
-    if (!this.app.options.redsquare) {
-      this.app.options.redsquare = {};
-    }
-
-    this.app.options.redsquare.tweets_last_viewed_ts = Date.now();
-    this.mod.saveOptions();
     this.syncFeedStatus();
     this.fetchRemoteTransactions('tweets', 'newer');
-
-    if (this.getRenderedItemCount() === 0 || this.isNearBottom()) {
-      this.loadMoreIfNeeded();
-    }
   }
 
   paintThread() {
@@ -1290,6 +1292,7 @@ class Manager {
     state.cursor += signatures.length;
 
     this.syncFeedStatus();
+    this.observeVisibleTweets();
 
     return signatures.length;
   }
@@ -1629,6 +1632,7 @@ class Manager {
 
     const element = panel.querySelector(`article.tweet[data-id="${tweet.signature}"]`);
     this.animateTweetInsertion(element);
+    this.observeVisibleTweets();
   }
 
   insertThreadReply(tweet) {
@@ -1755,6 +1759,7 @@ class Manager {
     this.attachScrollEvents();
     this.attachViewportChrome();
     this.attachBrowserHistory();
+    this.observeVisibleTweets();
   }
 
   attachViewportChrome() {
@@ -2179,7 +2184,102 @@ class Manager {
     );
   }
 
+  ensureReadObserver() {
+    if (typeof IntersectionObserver === 'undefined') {
+      return;
+    }
+
+    const scroller = this.getScrollContainer();
+
+    if (!scroller) {
+      return;
+    }
+
+    if (this._read_observer && this._read_observer_root === scroller) {
+      return;
+    }
+
+    this._read_observer?.disconnect();
+    this._read_observer_root = scroller;
+    this._read_observer = new IntersectionObserver((entries) => this.onTweetIntersection(entries), {
+      root: scroller,
+      threshold: 0.5
+    });
+  }
+
+  observeVisibleTweets() {
+    if (this.mode !== 'timeline') {
+      return;
+    }
+
+    this.ensureReadObserver();
+
+    if (!this._read_observer) {
+      return;
+    }
+
+    const panel = document.querySelector(`${this.container} .list[data-panel="timeline"]`);
+
+    for (const element of panel?.querySelectorAll('article.tweet[data-id]') || []) {
+      this._read_observer.observe(element);
+    }
+  }
+
+  onTweetIntersection(entries) {
+    if (this.mode !== 'timeline') {
+      return;
+    }
+
+    let newestSeen = Number(this.mod.tweets_last_viewed_ts) || 0;
+
+    for (const entry of entries) {
+      if (!entry.isIntersecting) {
+        continue;
+      }
+
+      const signature = entry.target.getAttribute('data-id') || '';
+      const tweet = this.mod.getTweet(signature);
+
+      if (!tweet || tweet.parent_id) {
+        continue;
+      }
+
+      newestSeen = Math.max(newestSeen, Number(tweet.created_at) || 0);
+    }
+
+    if (newestSeen <= (Number(this.mod.tweets_last_viewed_ts) || 0)) {
+      return;
+    }
+
+    this.mod.tweets_last_viewed_ts = newestSeen;
+    this.scheduleSaveReadCursor();
+  }
+
+  scheduleSaveReadCursor() {
+    if (this._read_save_timer) {
+      clearTimeout(this._read_save_timer);
+    }
+
+    this._read_save_timer = setTimeout(() => {
+      this._read_save_timer = null;
+      this.mod.saveOptions();
+    }, 750);
+  }
+
   onScroll() {
+    const scroller = this.getScrollContainer();
+    const top = scroller ? scroller.scrollTop : 0;
+    const goingDown = top > (this._last_scroll_top || 0) + 4;
+    this._last_scroll_top = top;
+
+    if (this.mode === 'timeline') {
+      this.observeVisibleTweets();
+
+      if (goingDown && this.timeline_rendered && !this._timeline_bootstrapping) {
+        this.startTipPrefetch();
+      }
+    }
+
     if (!this.isNearBottom()) {
       return;
     }
@@ -2207,6 +2307,138 @@ class Manager {
     }
 
     return scroller.scrollTop <= SCROLL_THRESHOLD_PX;
+  }
+
+  startTipPrefetch() {
+    if (
+      this._tip_prefetch_started ||
+      this.mode !== 'timeline' ||
+      this._timeline_bootstrapping ||
+      !this.timeline_rendered
+    ) {
+      return;
+    }
+
+    this._tip_prefetch_started = true;
+
+    this.mod.loadTransactions(
+      'tweets',
+      'newer',
+      (result) => {
+        this.applyTipPrefetch(result);
+      },
+      { remoteOnly: true, tip: true, limit: 100 }
+    );
+  }
+
+  applyTipPrefetch(result) {
+    const added = (result?.added || []).filter((signature) => {
+      const tweet = this.mod.getTweet(signature);
+      return Boolean(tweet && !tweet.parent_id);
+    });
+
+    if (!added.length) {
+      return;
+    }
+
+    this.mod.resortTimeline();
+
+    const rendered = this.getRenderedTimelineSignatures();
+    const unrendered = added.filter((signature) => !rendered.has(signature));
+
+    if (!unrendered.length) {
+      return;
+    }
+
+    if (this.mode !== 'timeline') {
+      for (const signature of unrendered) {
+        if (!this.pending_newer_tweets.includes(signature)) {
+          this.pending_newer_tweets.push(signature);
+        }
+      }
+      return;
+    }
+
+    const nearTop = this.isNearTop();
+    const anchor = nearTop ? null : this.captureScrollAnchor();
+
+    this.prependTimelineTweets(unrendered);
+
+    if (nearTop) {
+      return;
+    }
+
+    this.restoreScrollAnchor(anchor);
+
+    for (const signature of unrendered) {
+      if (!this.pending_newer_tweets.includes(signature)) {
+        this.pending_newer_tweets.push(signature);
+      }
+    }
+
+    this.showNewPostsBanner();
+  }
+
+  getRenderedTimelineSignatures() {
+    const rendered = new Set();
+    const panel = document.querySelector(`${this.container} .list[data-panel="timeline"]`);
+
+    for (const element of panel?.querySelectorAll('article.tweet[data-id]') || []) {
+      const signature = element.getAttribute('data-id') || '';
+
+      if (signature) {
+        rendered.add(signature);
+      }
+    }
+
+    return rendered;
+  }
+
+  captureScrollAnchor() {
+    const scroller = this.getScrollContainer();
+    const panel = document.querySelector(`${this.container} .list[data-panel="timeline"]`);
+
+    if (!scroller || !panel) {
+      return null;
+    }
+
+    const scrollerTop = scroller.getBoundingClientRect().top;
+
+    for (const element of panel.querySelectorAll('article.tweet[data-id]')) {
+      const signature = element.getAttribute('data-id') || '';
+      const tweet = this.mod.getTweet(signature);
+
+      if (!tweet || tweet.parent_id) {
+        continue;
+      }
+
+      const rect = element.getBoundingClientRect();
+
+      if (rect.bottom > scrollerTop + 8) {
+        return { signature, offset: rect.top - scrollerTop };
+      }
+    }
+
+    return null;
+  }
+
+  restoreScrollAnchor(anchor) {
+    if (!anchor?.signature) {
+      return;
+    }
+
+    const scroller = this.getScrollContainer();
+    const element = document.querySelector(
+      `${this.container} article.tweet[data-id="${anchor.signature}"]`
+    );
+
+    if (!scroller || !element) {
+      return;
+    }
+
+    const scrollerTop = scroller.getBoundingClientRect().top;
+    const rect = element.getBoundingClientRect();
+    scroller.scrollTop += rect.top - scrollerTop - (anchor.offset || 0);
   }
 
   fetchRemoteTransactions(type, direction, { announce = false } = {}) {
@@ -2322,10 +2554,6 @@ class Manager {
     this.appendTimelineBatch();
     this.timeline_rendered = true;
     this.syncFeedStatus();
-
-    if (this.isNearBottom()) {
-      this.loadMoreIfNeeded();
-    }
   }
 
   syncPendingNewerTweets() {
@@ -2389,6 +2617,7 @@ class Manager {
 
     this.pagination.timeline.cursor += signatures.length;
     this.timeline_rendered = true;
+    this.observeVisibleTweets();
   }
 
   prependNotifications(signatures) {
@@ -2467,17 +2696,16 @@ class Manager {
   }
 
   flushPendingNewerTweets({ scrollToTop = false } = {}) {
-    const signatures = this.pending_newer_tweets.slice();
+    const rendered = this.getRenderedTimelineSignatures();
+    const signatures = this.pending_newer_tweets.filter((signature) => !rendered.has(signature));
     this.pending_newer_tweets = [];
     this.hideNewPostsBanner();
 
-    if (!signatures.length) {
-      return;
+    if (signatures.length) {
+      this.prependTimelineTweets(signatures);
+      this.pagination.timeline.exhausted = false;
+      this.syncFeedStatus();
     }
-
-    this.prependTimelineTweets(signatures);
-    this.pagination.timeline.exhausted = false;
-    this.syncFeedStatus();
 
     if (scrollToTop) {
       requestAnimationFrame(() => {

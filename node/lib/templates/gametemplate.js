@@ -90,6 +90,7 @@ class GameTemplate extends ModTemplate {
     this.game_length = 30; //Estimated number of minutes to complete a game
     this.game = {};
     this.moves = [];
+    this.snapshot = [];
     this.future = [];
     this.deferred_game_end = []; // stopgame/gameover txs parked while engine halted/active
     this.description = 'Peer to peer gaming on the blockchain';

@@ -1875,11 +1875,40 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
   }
 
 
+  removeMovementSnapshotUndo() {
+    document.querySelectorAll('.movement-undo-button').forEach((el) => { el.remove(); });
+    document.querySelectorAll('.has-movement-undo').forEach((el) => {
+      el.classList.remove('has-movement-undo');
+    });
+  }
+
+  attachMovementSnapshotUndo() {
+    this.removeMovementSnapshotUndo();
+    if (!this.showing_movement_undo) { return; }
+    if (!this.snapshot || this.snapshot.length == 0) { return; }
+
+    let overlay = document.querySelector('.zoom-overlay');
+    if (!overlay) { return; }
+
+    overlay.classList.add('has-movement-undo');
+    let btn = document.createElement('div');
+    btn.className = 'movement-undo-button';
+    btn.innerHTML = `<div class="movement-undo-arrow"><i class="fa fa-arrow-left" aria-hidden="true"></i></div><span class="movement-undo-label">undo</span>`;
+    btn.onclick = (e) => {
+      e.stopPropagation();
+      e.preventDefault();
+      this.restoreSnapshot();
+    };
+    overlay.appendChild(btn);
+  }
+
   playerPlayMovement(faction) {
 
     let active_unit = null;
     let active_unit_moves = 0;
     let active_units = [];
+    let movement_snapshot_taken = 0;
+    let restore_movement_ui = null;
 
     let paths_self = this;
     let options = this.returnSpacesWithFilter(
@@ -1890,19 +1919,10 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
       }
     );
 
-    // prevent breaking the game
-    //
     paths_self.unbindBackButtonFunction();
-
-    let backup_moves = paths_self.moves;
-    let backup_state = paths_self.game.state;
-
-    paths_self.bindBackButtonFunction(() => { 
-      paths_self.moves = backup_moves;
-      paths_self.game.state = backup_state;
-      paths_self.displayBoard();
-      paths_self.playerPlayMovement();
-    });
+    paths_self.clearSnapshots();
+    paths_self.showing_movement_undo = 1;
+    paths_self.removeMovementSnapshotUndo();
 
 
     let rendered_at = options[0];
@@ -1945,8 +1965,6 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
 	}
       }
 
-      if (sourcekey == currentkey) { paths_self.bindBackButtonFunction(() => { paths_self.unbindBackButtonFunction(); mainInterface(options); }); }
-
       let is_currentkey_on_near_east_map = false;
       if (paths_self.isSpaceOnNearEastMap(currentkey)) { is_currentkey_on_near_east_map = true; }
 
@@ -1956,6 +1974,8 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
 	stop_move_option = [];
       }
 
+
+      paths_self.attachMovementSnapshotUndo();
 
       paths_self.playerSelectSpaceWithFilter(
 
@@ -2197,12 +2217,16 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
 
     let mainInterface = function(options) {
 
+      movement_snapshot_taken = 0;
+
       //
       // sometimes this ends
       //
       if (options.length == 0) {
 	this.updateStatus("moving units...");
         paths_self.unbindBackButtonFunction();
+        paths_self.showing_movement_undo = 0;
+        paths_self.removeMovementSnapshotUndo();
 	this.endTurn();
 	return;
       }
@@ -2225,8 +2249,13 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
 	paths_self.removeSelectable();
 	paths_self.updateStatus("acknowledge...");
         paths_self.unbindBackButtonFunction();
+        paths_self.showing_movement_undo = 0;
+        paths_self.removeMovementSnapshotUndo();
 	paths_self.endTurn();
+	return;
       }
+
+      paths_self.attachMovementSnapshotUndo();
 
       paths_self.playerSelectSpaceWithFilter(
 	"Select Unit(s) to Move: ",
@@ -2253,6 +2282,8 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
             paths_self.addMove("resolve\tplayer_play_movement");
             paths_self.removeSelectable();
             paths_self.unbindBackButtonFunction();
+            paths_self.showing_movement_undo = 0;
+            paths_self.removeMovementSnapshotUndo();
             paths_self.endTurn();
             return;
 	  }
@@ -2305,6 +2336,7 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
       html += `<li class="option" id="skip">stand down</li>`;
       html += `</ul>`;
 
+      paths_self.attachMovementSnapshotUndo();
       paths_self.updateStatusWithOptions(`Select Action for ${unit.name}`, html);
       paths_self.attachCardboxEvents((action) => {
 
@@ -2382,6 +2414,8 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
       if (faction == "central" && paths_self.game.state.events.race_to_the_sea != 1 && (currentkey == "amiens" || currentkey == "ostend" || currentkey == "calais")) {
 	stop_move_option = [];
       }
+
+      paths_self.attachMovementSnapshotUndo();
 
       paths_self.playerSelectSpaceWithFilter(
 
@@ -2831,6 +2865,10 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
 
       if (units.length == 1) {
 
+	if (!movement_snapshot_taken && restore_movement_ui) {
+	  paths_self.addSnapshot(restore_movement_ui);
+	  movement_snapshot_taken = 1;
+	}
 	let unit = paths_self.game.spaces[key].units[units[0]];
 	paths_self.game.spaces[key].units[units[0]].moved = 1;
         unitActionInterface(key, units[0], options);
@@ -2843,6 +2881,8 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
 	  msg = "Move Another?";
 	  extra_options = [{ key : "all" , value : "[move together]" } , { key : "none" , value : "[stand down]" }];
 	}
+
+        paths_self.attachMovementSnapshotUndo();
 
         paths_self.playerSelectOptionWithFilter(
 	  msg ,
@@ -2863,6 +2903,10 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
 	    }
 
 	    if (idx == "all") {
+	      if (!movement_snapshot_taken && restore_movement_ui) {
+	        paths_self.addSnapshot(restore_movement_ui);
+	        movement_snapshot_taken = 1;
+	      }
 	      active_units = [];
 	      active_unit_moves = 0;
 	      for (let zz = 0; zz < paths_self.game.spaces[key].units.length; zz++) {
@@ -2876,6 +2920,10 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
 	      return;
 	    }
 
+	    if (!movement_snapshot_taken && restore_movement_ui) {
+	      paths_self.addSnapshot(restore_movement_ui);
+	      movement_snapshot_taken = 1;
+	    }
 	    let unit = paths_self.game.spaces[key].units[idx];
 	    paths_self.game.spaces[key].units[idx].moved = 1;
             unitActionInterface(key, idx, options);
@@ -2888,6 +2936,17 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
       }
 
     }
+
+    restore_movement_ui = () => {
+      active_unit = null;
+      active_units = [];
+      active_unit_moves = 0;
+      movement_snapshot_taken = 0;
+      paths_self.removeSelectable();
+      if (paths_self.zoom_overlay) { paths_self.zoom_overlay.spaces_onclick_callback = null; }
+      paths_self.displayBoard();
+      mainInterface(options);
+    };
 
     mainInterface(options);
 
@@ -3154,6 +3213,8 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
       mycallback(action);
     });
 
+    this.attachMovementSnapshotUndo();
+
   }
 
   countSpacesWithFilter(filter_fnct) {
@@ -3386,6 +3447,8 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
       mycallback(action);
 
     });
+
+    this.attachMovementSnapshotUndo();
 
     if (at_least_one_option) { return 1; }
     return 0;

@@ -520,6 +520,34 @@ class GameMoves {
     return this.moves.pop();
   }
 
+  addSnapshot(restore_ui) {
+    if (!this.snapshot) {
+      this.snapshot = [];
+    }
+    this.snapshot.push({
+      game: JSON.parse(JSON.stringify(this.game)),
+      moves: JSON.parse(JSON.stringify(this.moves)),
+      restore_ui: restore_ui
+    });
+  }
+
+  restoreSnapshot() {
+    if (!this.snapshot || this.snapshot.length == 0) {
+      return 0;
+    }
+    let snap = this.snapshot.pop();
+    this.game = JSON.parse(JSON.stringify(snap.game));
+    this.moves = Array.isArray(snap.moves) ? snap.moves.slice() : [];
+    if (typeof snap.restore_ui === 'function') {
+      snap.restore_ui();
+    }
+    return 1;
+  }
+
+  clearSnapshots() {
+    this.snapshot = [];
+  }
+
   /**
    *
    * End Turn is the developer friendly wrapper for packaging player moves to send
@@ -545,6 +573,7 @@ class GameMoves {
     }
     this.moves = [];
     this.endmoves = [];
+    this.clearSnapshots();
 
     //
     // AWAIT on this causes issues -- delays UI update

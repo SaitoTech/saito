@@ -54,7 +54,6 @@ class Tweet {
     this.likes = 0;
     this.replies = 0;
     this.retweets = 0;
-    this.curated = 0;
     this.flagged = 0;
     this.moderated = false;
     this.moderated_revealed = false;
@@ -216,7 +215,6 @@ class Tweet {
     this.likers = Array.isArray(optional.likers) ? optional.likers.slice() : [];
     this.retweeters = Array.isArray(optional.retweeters) ? optional.retweeters.slice() : [];
 
-    this.curated = optional.curated ? 1 : 0;
     this.flagged = Number(optional.flagged) || 0;
     this.is_reply = this.parent_id !== '';
 

@@ -232,6 +232,17 @@
   margin: 0;
 }
 
+.tweet .body hr {
+  height: 0;
+  padding: 0;
+  margin: var(--saito-space-sm) 0;
+  border: 0;
+  border-top: 1px solid var(--saito-border);
+  background: none;
+  color: inherit;
+  width: 100%;
+}
+
 /*
  * Paragraph gaps: the margin:0 reset above out-specifies `.tweet .body > * + *`,
  * so adjacent <p>s got no spacing. Explicit p + p (same pattern as notifications).

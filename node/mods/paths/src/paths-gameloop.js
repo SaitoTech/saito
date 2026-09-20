@@ -1730,6 +1730,12 @@ try {
 	  if (mv[1]) { cmd = mv[1]; }
 	  if (this.game.queue.length >= 1) {
 	    if (this.game.queue[qe-1].split("\t")[0] === cmd) {
+	      if (cmd === "play" && this.minimap) {
+	        let faction = this.game.queue[qe-1].split("\t")[1];
+	        if (this.game.player == this.returnPlayerOfFaction(faction)) {
+	          this.minimap.clear();
+	        }
+	      }
 	      this.game.queue.splice(qe-1, 1);
 	    }
 	  }
@@ -1886,6 +1892,21 @@ try {
 	  // update log
 	  //
 	  this.updateLog(this.returnFactionName(this.game.state.combat.attacking_faction) + " attacks " + this.returnSpaceNameForLog(key));
+
+	  if (this.minimap && this.returnPlayerOfFaction(this.game.state.combat.attacking_faction) != this.game.player) {
+	    let space = this.game.spaces[key];
+	    let board = this.getBoardState();
+	    if (space && board) {
+	      this.minimap.add("attack-" + key, {
+	        x: space.left / board.width,
+	        y: space.top / board.height,
+	        type: "circle",
+	        color: "#e74c3c",
+	        size: 14,
+	        flash: true
+	      });
+	    }
+	  }
 
 	  //
 	  // Great Retreat allows RU units to retreat
@@ -3533,6 +3554,23 @@ console.log("pushing back attacker corps!");
 
 	  if (this.game.player != player_to_ignore) {
 	    this.moveUnit(sourcekey, sourceidx, destinationkey);
+	  }
+
+	  if (this.minimap && this.returnPlayerOfFaction(faction) != this.game.player) {
+	    if (destinationkey != "aeubox" && destinationkey != "ceubox" && destinationkey != "arbox" && destinationkey != "crbox") {
+	      let space = this.game.spaces[destinationkey];
+	      let board = this.getBoardState();
+	      if (space && board) {
+	        this.minimap.add("move-" + destinationkey, {
+	          x: space.left / board.width,
+	          y: space.top / board.height,
+	          type: "circle",
+	          color: "#e8c547",
+	          size: 14,
+	          flash: true
+	        });
+	      }
+	    }
 	  }
 
 	  let deactivate_for_movement = true;

@@ -89,38 +89,8 @@ class SettingsOverlay {
       document.addEventListener('keydown', this.onEscapeKeyDown);
     }
 
-    this.attachCurationToggle(root);
     this.attachWhitelistEvents(root);
     this.attachBlacklistEvents(root);
-  }
-
-  attachCurationToggle(root) {
-    const container = root.querySelector('#curation-toggle');
-
-    if (!container) {
-      return;
-    }
-
-    const options = container.querySelectorAll('input[name="redsquare-feed-curation"]');
-
-    options.forEach((option) => {
-      option.addEventListener('change', () => {
-        if (!option.checked) {
-          return;
-        }
-
-        const curated = option.value === 'curated';
-
-        this.mod.curated = curated;
-        this.mod.saveOptions();
-
-        const scroller = document.querySelector('#saito-container');
-
-        if (scroller) {
-          scroller.classList.toggle('active-curation', curated);
-        }
-      });
-    });
   }
 
   attachWhitelistEvents(root) {

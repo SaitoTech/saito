@@ -309,6 +309,7 @@ class GameGame {
         if (this.app.options.games[i].id === game_id) {
           this.game = JSON.parse(JSON.stringify(this.app.options.games[i]));
           this.normalizeGameShape(this.game);
+          this.clearSnapshots();
           console.info('GT loading game: ' + game_id);
 
           return this.game;
