@@ -24,9 +24,19 @@
   cursor: pointer;
 }
 
+.game-minimap .board .game-minimap-clone {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 0;
+  transform-origin: top left;
+  pointer-events: none;
+}
+
 .game-minimap .markers {
   position: absolute;
   inset: 0;
+  z-index: 1;
   pointer-events: none;
 }
 
@@ -47,7 +57,7 @@
 
 .game-minimap .viewport {
   position: absolute;
-  z-index: 1;
+  z-index: 2;
   cursor: grab;
   border: 1px solid var(--saito-white);
   background: color-mix(in srgb, var(--saito-white) 25%, transparent);
