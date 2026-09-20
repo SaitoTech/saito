@@ -6,6 +6,9 @@ displayBoard() {
   for (let i in this.sectors) {
     this.sectors[i].render();
   }
+  if (this.minimap) {
+    this.minimap.render();
+  }
 }
 
 

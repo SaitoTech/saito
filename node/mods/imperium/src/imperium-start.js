@@ -29,6 +29,7 @@ const GroundCombatOverlay = require('./lib/overlays/ground-combat');
 const BombardmentOverlay = require('./lib/overlays/bombardment');
 const AntiFighterBarrageOverlay = require('./lib/overlays/anti-fighter-barrage');
 const ZoomOverlay = require('./lib/overlays/zoom');
+const GameMinimap = require('../../lib/saito/ui/game-minimap/game-minimap');
 const UnitTemplate = require('./lib/unit.template');
 const Unit = require('./lib/unit');
 const FactionBar = require('./lib/factionbar');
@@ -64,6 +65,9 @@ class Imperium extends GameTemplate {
     //this.rules_overlay = new RulesOverlay(this.app, this);
     this.faction_sheet_overlay = new FactionSheetOverlay(this.app, this);
     this.zoom_overlay = new ZoomOverlay(this.app, this);
+    this.minimap = new GameMinimap(this.app, this);
+    this.minimap.enable_zoom = 1;
+    this.default_board_scale = 180;
     this.strategy_card_selection_overlay = new StrategyCardSelectionOverlay(this.app, this);
     this.strategy_card_overlay = new StrategyCardOverlay(this.app, this);
     this.combat_overlay = new CombatOverlay(this.app, this);

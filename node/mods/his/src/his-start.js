@@ -624,26 +624,7 @@ if (this.game.players.length > 2) {
 
 
 
-    try {
-
-      if (app.browser.isMobileBrowser(navigator.userAgent)) {
-        //this.hammer.render();
-      } else {
-	let his_self = this;
-        this.sizer.render();
-        this.sizer.attachEvents('#gameboard');
-	//
-	// sizer makes draggable 
-	//
-        //$('#gameboard').draggable({
-	//  stop : function(event, ui) {
-	//    his_self.saveGamePreference((his_self.returnSlug()+"-board-offset"), ui.offset);
-	//  }
-	//});
-	//
-      }
-
-    } catch (err) {}
+    this.minimap.render();
 
     this.factionbar.render();
 

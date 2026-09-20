@@ -41,6 +41,7 @@ const LanguageZoneOverlay = require('./lib/ui/overlays/language-zone');
 
 // Tutorial Overlays
 const GameHelp = require('./lib/ui/game-help/game-help');
+const GameMinimap = require('../../lib/saito/ui/game-minimap/game-minimap');
 const TutorialTemplate = require('./lib/ui/overlays/tutorials/tutorial.template');
 
 const HISRules = require('./lib/core/rules.template');
@@ -120,6 +121,9 @@ class HereIStand extends GameTemplate {
     // triangular help button
     //
     this.game_help = new GameHelp(this.app, this);
+    this.minimap = new GameMinimap(this.app, this);
+    this.minimap.enable_zoom = 1;
+    this.default_board_scale = 100;
 
     //
     // this sets the ratio used for determining
@@ -4607,24 +4611,7 @@ the game engine automatically handles token denomination, merging smaller
       }
     }
 
-    try {
-      if (app.browser.isMobileBrowser(navigator.userAgent)) {
-        //this.hammer.render();
-      } else {
-        let his_self = this;
-        this.sizer.render();
-        this.sizer.attachEvents('#gameboard');
-        //
-        // sizer makes draggable
-        //
-        //$('#gameboard').draggable({
-        //  stop : function(event, ui) {
-        //    his_self.saveGamePreference((his_self.returnSlug()+"-board-offset"), ui.offset);
-        //  }
-        //});
-        //
-      }
-    } catch (err) {}
+    this.minimap.render();
 
     this.factionbar.render();
 
