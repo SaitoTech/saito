@@ -1,7 +1,6 @@
 const RegisterUsernameTemplate = require('./register-username.template');
 const SaitoOverlay = require('./../../../lib/saito/ui/saito-overlay/saito-overlay');
 const SaitoLoader = require('./../../../lib/saito/ui/saito-loader/saito-loader');
-const { validateUsername } = require('./identifier');
 
 class RegisterUsername {
   constructor(app, mod) {
@@ -31,13 +30,6 @@ class RegisterUsername {
       if (identifier) {
         if (identifier.indexOf('@') > -1) {
           identifier = identifier.substring(0, identifier.indexOf('@'));
-        }
-
-        try {
-          validateUsername(identifier);
-        } catch (err) {
-          salert(err.message);
-          return;
         }
 
         try {
@@ -99,11 +91,7 @@ class RegisterUsername {
                   this.render();
                 }
               } catch (err) {
-                if (err.message == 'Alphanumeric Characters only') {
-                  salert('Error: Alphanumeric Characters only');
-                } else {
-                  salert('Error: Error Registering Username');
-                }
+                salert(err.message || 'Error Registering Username');
                 this.render();
                 console.error(err);
               }

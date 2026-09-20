@@ -14,7 +14,6 @@ jest.mock('../../../mods/registry/lib/register-username', () => class {});
 jest.mock('saito-js/lib/peer_service', () => ({ default: class {} }));
 
 const Registry = require('../../../mods/registry/registry');
-const { validateUsername, isRegistrationIdentifier } = require('../../../mods/registry/lib/identifier');
 const schema = fs.readFileSync(path.join(__dirname, '../../../mods/registry/sql/records.sql'), 'utf8');
 
 function registry(db) {
@@ -49,9 +48,9 @@ describe('registry identifier limits', () => {
   });
   afterEach(async () => db.close());
 
-  test('accepts 45 username characters and rejects 46 before creating a transaction', async () => {
+  test('accepts 51 total characters and rejects 52 before creating a transaction', async () => {
     const mod = registry(db);
-    await expect(mod.tryRegisterIdentifier('a'.repeat(46))).rejects.toThrow('45');
+    await expect(mod.tryRegisterIdentifier('a'.repeat(46))).rejects.toThrow('51');
     expect(mod.app.wallet.createUnsignedTransactionWithDefaultFee).not.toHaveBeenCalled();
     await expect(mod.tryRegisterIdentifier('a'.repeat(45))).resolves.toBe(true);
     const tx = mod.app.network.propagateTransaction.mock.calls[0][0];
@@ -59,11 +58,13 @@ describe('registry identifier limits', () => {
     expect(tx.sign).toHaveBeenCalledTimes(1);
   });
 
-  test.each(['', 'a b', 'a_b', '<script>', null, 123])('rejects invalid username %p', (name) => {
-    expect(() => validateUsername(name)).toThrow();
+  test.each(['', 'a b', 'a_b', '<script>', null, 123])('rejects invalid registration input %p', async (name) => {
+    const mod = registry(db);
+    await expect(mod.tryRegisterIdentifier(name)).rejects.toThrow();
+    expect(mod.app.wallet.createUnsignedTransactionWithDefaultFee).not.toHaveBeenCalled();
   });
 
-  test.each(['a'.repeat(46) + '@saito', 'a'.repeat(1000000), null, {}])(
+  test.each(['a'.repeat(46) + '@saito', 'a'.repeat(1000000), '', 'a', '@saito', 'a@', 'a@@saito', 'a_b@saito', null, {}])(
     'rejects invalid registration before signing or storing',
     async (identifier) => {
       const mod = registry(db);
@@ -79,35 +80,41 @@ describe('registry identifier limits', () => {
     }
   );
 
-  test('registers an incoming 45-character username including its domain', async () => {
-    const mod = registry(db);
-    const identifier = 'a'.repeat(45) + '@saito';
-    const reply = { msg: {}, sign: jest.fn() };
-    mod.app.wallet.getPrivateKey = jest.fn().mockResolvedValue('RegistryPrivateKey');
-    mod.app.wallet.createUnsignedTransaction = jest.fn().mockResolvedValue(reply);
-    mod.addRecord = jest.fn().mockResolvedValue(1);
+  test.each(['a'.repeat(45) + '@saito', 'a'.repeat(49) + '@x', 'a@' + 'b'.repeat(49)])(
+    'registers an incoming 51-character identifier %s', async (identifier) => {
+      const mod = registry(db);
+      const reply = { msg: {}, sign: jest.fn() };
+      mod.app.wallet.getPrivateKey = jest.fn().mockResolvedValue('RegistryPrivateKey');
+      mod.app.wallet.createUnsignedTransaction = jest.fn().mockResolvedValue(reply);
+      mod.addRecord = jest.fn().mockResolvedValue(1);
 
-    await mod.onConfirmation(
-      { id: 1, hash: 'BlockHash' },
-      {
-        returnMessage: () => ({ module: 'Registry', identifier }),
-        from: [{ publicKey: 'UserKey' }],
-        isTo: (publicKey) => publicKey === mod.publicKey
-      },
-      0
-    );
+      await mod.onConfirmation(
+        { id: 1, hash: 'BlockHash' },
+        {
+          returnMessage: () => ({ module: 'Registry', identifier }),
+          from: [{ publicKey: 'UserKey' }],
+          isTo: (publicKey) => publicKey === mod.publicKey
+        },
+        0
+      );
 
-    expect(mod.app.crypto.signMessage).toHaveBeenCalledTimes(1);
-    expect(mod.addRecord.mock.calls[0][0]).toBe(identifier);
-    expect(reply.msg.identifier).toBe(identifier);
-    expect(reply.msg.title).toBe('Address Registration Success!');
-    expect(mod.app.network.propagateTransaction).toHaveBeenCalledWith(reply);
-  });
+      expect(mod.app.crypto.signMessage).toHaveBeenCalledTimes(1);
+      expect(mod.addRecord.mock.calls[0][0]).toBe(identifier);
+      expect(reply.msg.identifier).toBe(identifier);
+      expect(reply.msg.title).toBe('Address Registration Success!');
+      expect(mod.app.network.propagateTransaction).toHaveBeenCalledWith(reply);
+    }
+  );
 
-  test('bounds the full identifier including its domain', () => {
-    expect(isRegistrationIdentifier('a@' + 'b'.repeat(253))).toBe(true);
-    expect(isRegistrationIdentifier('a@' + 'b'.repeat(254))).toBe(false);
-  });
+  test.each([['a'.repeat(49), '@x'], ['a', '@' + 'b'.repeat(49)]])(
+    'counts the complete identifier for a custom domain', async (name, domain) => {
+      const mod = registry(db);
+      await expect(mod.tryRegisterIdentifier(name + 'a', domain)).rejects.toThrow('51');
+      expect(mod.app.wallet.createUnsignedTransactionWithDefaultFee).not.toHaveBeenCalled();
+      await expect(mod.tryRegisterIdentifier(name, domain)).resolves.toBe(true);
+      expect(mod.app.network.propagateTransaction.mock.calls[0][0].msg.identifier).toBe(name + domain);
+    }
+  );
 
   test('databases preserve identifiers longer than 255 characters on inserts and updates', async () => {
     await db.exec(schema);
@@ -149,11 +156,11 @@ describe('registry identifier limits', () => {
       .toEqual({ identifier: longName, sig: 'original-signature' });
   });
 
-  test.each([39, 40, 45, 10000])('shortens database lookup results for a %i-character username', async (length) => {
+  test.each([50, 51, 52, 10000])('caps database lookup results of length %i at 51 characters', async (length) => {
     await db.exec(schema);
     const prefix = 'abcdefghijklmnopqrstuvwxyz0123456789ABC';
-    const storedIdentifier = prefix + 'x'.repeat(length - prefix.length) + '@saito';
-    const expectedIdentifier = prefix + '@saito';
+    const storedIdentifier = prefix + 'x'.repeat(length - prefix.length - 6) + '@saito';
+    const expectedIdentifier = length <= 51 ? storedIdentifier : storedIdentifier.substring(0, 51);
     await db.run(
       'INSERT INTO records (identifier, publickey, sig) VALUES (?, ?, ?)',
       storedIdentifier,
@@ -179,7 +186,7 @@ describe('registry identifier limits', () => {
       .toEqual({ identifier: storedIdentifier, sig: 'original-signature' });
   });
 
-  test('shortens identifiers returned through the database lookup peer fallback', async () => {
+  test('caps identifiers returned through the database lookup peer fallback at 51 characters', async () => {
     await db.exec(schema);
     const mod = registry(db);
     mod.publicKey = 'LocalKey';
@@ -191,7 +198,7 @@ describe('registry identifier limits', () => {
 
     await mod.fetchIdentifiersFromDatabase(['LegacyKey', 'NormalKey'], callback);
 
-    const expected = { LegacyKey: 'a'.repeat(39) + '@saito', NormalKey: 'normal@saito' };
+    const expected = { LegacyKey: 'a'.repeat(46) + '@sait', NormalKey: 'normal@saito' };
     expect(callback).toHaveBeenCalledWith(expected);
     expect(mod.cached_keys).toEqual(expected);
   });
@@ -204,10 +211,10 @@ describe('registry identifier limits', () => {
     expect(await db.get('SELECT identifier FROM records')).toEqual({ identifier });
   });
 
-  test.each([45, 46, 256])('limits peer identifiers of length %i to 45 characters', (length) => {
+  test.each([50, 51, 52, 256])('caps peer identifiers of length %i at 51 characters', (length) => {
     const mod = registry(db);
     const identifier = 'a'.repeat(length - 6) + '@saito';
-    const missingKey = 'M'.repeat(46);
+    const missingKey = 'M'.repeat(60);
     const response = { NormalKey: 'normal@saito', LegacyKey: identifier, [missingKey]: missingKey };
     mod.app.network.sendRequestAsTransaction.mockImplementation((request, data, callback) => {
       callback(response);
@@ -216,32 +223,42 @@ describe('registry identifier limits', () => {
     mod.queryKeys({ publicKey: 'PeerKey' }, ['NormalKey', 'LegacyKey', missingKey], callback);
     expect(callback).toHaveBeenCalledWith({
       NormalKey: 'normal@saito',
-      LegacyKey: 'a'.repeat(39) + '@saito',
+      LegacyKey: length <= 51 ? identifier : identifier.substring(0, 51),
       [missingKey]: missingKey
     });
     expect(response.LegacyKey).toBe(identifier);
   });
 
-  test('overlay rejects 46 characters before querying availability or showing its loader', () => {
+  test('overlay displays the registry length error and restores the form', async () => {
     const RegisterUsername = jest.requireActual('../../../mods/registry/lib/register-username');
     const mod = registry(db);
-    const input = { value: 'a'.repeat(46) + '@saito', select: jest.fn() };
+    const input = { value: 'a'.repeat(46) + '@saito', select: jest.fn(), remove: jest.fn() };
     const submit = {};
     const overlay = Object.create(RegisterUsername.prototype);
     overlay.app = mod.app;
     overlay.mod = mod;
     overlay.loader = { render: jest.fn() };
+    overlay.render = jest.fn();
+    const element = { classList: { add: jest.fn() }, remove: jest.fn() };
+    mod.app.browser = { addElementToId: jest.fn() };
     global.document = {
-      querySelector: (selector) => (selector === '#saito-overlay-form-input' ? input : submit),
+      querySelector: (selector) => {
+        if (selector === '#saito-overlay-form-input') return input;
+        if (selector === '.saito-overlay-form-submit') return submit;
+        return element;
+      },
       getElementById: () => ({})
     };
     global.salert = jest.fn();
     try {
       overlay.attachEvents();
       submit.onclick({ preventDefault() {} });
-      expect(global.salert).toHaveBeenCalledWith('Username must be 45 characters or fewer');
-      expect(mod.app.network.sendRequestAsTransaction).not.toHaveBeenCalled();
-      expect(overlay.loader.render).not.toHaveBeenCalled();
+      const callback = mod.app.network.sendRequestAsTransaction.mock.calls[0][2];
+      await callback([]);
+      expect(global.salert).toHaveBeenCalledWith('Identifier must be 51 characters or fewer, including the domain');
+      expect(mod.app.wallet.createUnsignedTransactionWithDefaultFee).not.toHaveBeenCalled();
+      expect(mod.app.network.propagateTransaction).not.toHaveBeenCalled();
+      expect(overlay.render).toHaveBeenCalledTimes(1);
     } finally {
       delete global.document;
       delete global.salert;
