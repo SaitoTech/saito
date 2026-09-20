@@ -90,21 +90,49 @@ class LossOverlay {
         'Combat in ' + this.mod.returnSpaceName(this.mod.game.state.combat.key) + ': ' + msg;
     }
   }
-  maximum_hits_possible;
+
 
   renderToAssignAdditionalStepwiseLoss(faction = '') {
-    let qs = '.loss-overlay .units';
-    let qs_attacker = '.loss-overlay .units.attacker';
     let qs_defender = '.loss-overlay .units.defender';
-    let my_qs = '.loss-overlay .units.defender';
     let defender_units = this.mod.returnDefenderUnits();
     this.units = defender_units;
     let terrain = this.mod.game.spaces[this.mod.game.state.combat.key].terrain;
+
+    this.moves = [];
+    this.number_of_hits_assignable_defender_units = 0;
+    this.sole_defender_unit = null;
+    this.sole_defender_unit_id = null;
+
+    for (let i = 0; i < defender_units.length; i++) {
+      if (!defender_units[i].destroyed) {
+        this.number_of_hits_assignable_defender_units++;
+        this.sole_defender_unit = defender_units[i];
+        this.sole_defender_unit_id = i;
+      }
+    }
+
+    // one eligible unit: apply the extra step without the picker overlay
+    if (this.number_of_hits_assignable_defender_units == 1 && this.sole_defender_unit) {
+      this.loss_factor = 0;
+      this.assignHitToUnit(
+        this.sole_defender_unit,
+        this.sole_defender_unit.spacekey,
+        this.sole_defender_unit.key,
+        this.sole_defender_unit_id,
+        null,
+        false,
+        qs_defender,
+        'defender',
+        true
+      );
+      return;
+    }
 
     this.overlay.show(LossTemplate(terrain));
     this.updateInstructions('Defender - Take Additional Hit to Cancel Retreat');
 
     for (let i = 0; i < defender_units.length; i++) {
+      if (defender_units[i].destroyed) { continue; }
       let dkey = defender_units[i].key;
       let dskey = defender_units[i].spacekey;
       let dd = 0;
@@ -117,12 +145,13 @@ class LossOverlay {
 
     this.attachEvents(
       false,
-      '.loss-overlay .units.defender',
-      this.mod.game.state.combat.defender_power,
+      qs_defender,
+      'defender',
       true
-    ); // true = 1 more hit!
-    this.loss_factor = 0; // this results in canTakeMoreLosses() to return NO after the first hit
+    );
+    this.loss_factor = 0;
   }
+
 
   render(faction = '') {
     this.faction = faction;

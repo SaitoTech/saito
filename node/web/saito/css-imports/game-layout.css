@@ -56,7 +56,7 @@ body {
   position: relative;
   background-color: #4e4e4e;
   background-image: url(/saito/img/tiled-logo.svg);
-  color: var(--saito-primary-foreground);
+  color: #333;
 }
 
 .main {

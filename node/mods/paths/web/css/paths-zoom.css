@@ -1,5 +1,6 @@
 .game.paths {
   .zoom-overlay {
+    position: relative;
     height: 90vh;
     width: 90vw;
     overflow: hidden;
@@ -26,7 +27,45 @@
   }
 
   .zoom-overlay .controls {
+    position: relative;
+    float: left;
+    clear: both;
     max-height: 80vh;
+  }
+
+  .zoom-overlay.has-movement-undo .controls,
+  .zoom-overlay.has-movement-undo .controls ul {
+    max-height: calc(90vh - 11.2rem);
+  }
+
+  .zoom-overlay .movement-undo-button {
+    position: absolute;
+    bottom: 1.2rem;
+    left: 1.2rem;
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    cursor: pointer;
+    z-index: 20;
+    color: #222;
+    user-select: none;
+  }
+
+  .zoom-overlay .movement-undo-arrow {
+    width: 3.2rem;
+    height: 3.2rem;
+    border: 1px solid #222;
+    border-radius: 0.35rem;
+    background: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+  }
+
+  .zoom-overlay .movement-undo-label {
+    font-size: 1.5rem;
+    line-height: 3.2rem;
   }
 
   .zoom-overlay .last {

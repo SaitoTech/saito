@@ -95,7 +95,6 @@ class RedSquare extends ModTemplate {
     this.moderate = new Moderate(app, this);
     this.moderator_mode = false;
 
-    this.curated = true;
     this.show_splash = true;
     this.poll_block_interval = 5;
     this.blocks_since_poll = 0;
@@ -346,10 +345,6 @@ class RedSquare extends ModTemplate {
     const rso = this.app.options.redsquare;
 
     if (rso) {
-      if (rso.curated === false || rso.curated === 0) {
-        this.curated = false;
-      }
-
       this.show_splash = Object.prototype.hasOwnProperty.call(rso, 'show-splash')
         ? rso['show-splash']
         : true;
@@ -369,10 +364,6 @@ class RedSquare extends ModTemplate {
     if (!(savedNotifications > 0)) {
       this.saveOptions();
     }
-
-    if (document?.querySelector) {
-      document.querySelector('#saito-container')?.classList.toggle('active-curation', this.curated);
-    }
   }
 
   saveOptions() {
@@ -384,7 +375,7 @@ class RedSquare extends ModTemplate {
       this.app.options.redsquare = {};
     }
 
-    this.app.options.redsquare.curated = this.curated;
+    delete this.app.options.redsquare.curated;
     this.app.options.redsquare['show-splash'] = this.show_splash;
     this.app.options.redsquare.notifications_last_viewed_ts = this.notifications_last_viewed_ts;
     this.app.options.redsquare.tweets_last_viewed_ts = Math.max(
@@ -469,7 +460,7 @@ class RedSquare extends ModTemplate {
   //
   // Canonical remote loading entry point.
   //
-  loadTransactions(type, direction, callback) {
+  loadTransactions(type, direction, callback, options = {}) {
     if (typeof callback !== 'function') {
       return;
     }
@@ -501,7 +492,9 @@ class RedSquare extends ModTemplate {
     const isOlder = direction === 'older';
 
     if (type === 'tweets') {
-      const busyKey = `tweets:${direction}`;
+      const busyKey = `tweets:${direction}${options.localOnly ? ':local' : ''}${
+        options.remoteOnly ? ':remote' : ''
+      }${options.tip ? ':tip' : ''}`;
 
       if (!this._load_busy) {
         this._load_busy = {};
@@ -619,7 +612,7 @@ class RedSquare extends ModTemplate {
       const onPeerComplete = (peer_obj, txs, older, peerIndex, updateEarliest = older) => {
         const empty = !txs || txs.length === 0;
 
-        if (empty && updateEarliest) {
+        if (empty && older) {
           peer_obj.tweets_earliest_ts = 0;
 
           if (peer_obj.publicKey === this.publicKey) {
@@ -639,6 +632,14 @@ class RedSquare extends ModTemplate {
       for (let i = 0; i < this.peers.length; i++) {
         const peer_obj = this.peers[i];
         const initialHydration = !isOlder && peer_obj.tweets_latest_ts === 0;
+        if (options.localOnly && peer_obj.peer !== 'localhost') {
+          continue;
+        }
+
+        if (options.remoteOnly && peer_obj.peer === 'localhost') {
+          continue;
+        }
+
         const eligible =
           (isOlder && peer_obj.tweets_earliest_ts > 0) ||
           (!isOlder && (peer_obj.publicKey !== this.publicKey || peer_obj.peer === 'localhost'));
@@ -654,7 +655,7 @@ class RedSquare extends ModTemplate {
         if (isOlder && peer_obj.publicKey !== this.publicKey) {
           this.app.network.sendRequestAsTransaction(
             'load tweets',
-            { created_earlier_than: peer_obj.tweets_earliest_ts },
+            { created_earlier_than: peer_obj.tweets_earliest_ts, field4: '' },
             (txs) => {
               const deserialized = [];
 
@@ -672,13 +673,12 @@ class RedSquare extends ModTemplate {
           const obj = {
             field1: 'RedSquare',
             flagged_ne: 1,
-            limit: peer_obj.tweets_limit
+            field4: '',
+            limit: options.limit || peer_obj.tweets_limit
           };
-          const catchup = initialHydration && Number(this.tweets_last_viewed_ts) > 0;
 
-          if (catchup) {
-            obj.created_later_than = this.tweets_last_viewed_ts;
-            obj.limit = 100;
+          if (options.tip) {
+            obj.created_earlier_than = Date.now();
           } else if (isOlder || initialHydration) {
             obj.created_earlier_than = peer_obj.tweets_earliest_ts;
           } else {
@@ -690,7 +690,13 @@ class RedSquare extends ModTemplate {
           this.app.storage.loadTransactions(
             obj,
             (txs) => {
-              onPeerComplete(peer_obj, txs || [], isOlder, peerIndex, isOlder || initialHydration);
+              onPeerComplete(
+                peer_obj,
+                txs || [],
+                isOlder,
+                peerIndex,
+                options.tip ? false : isOlder || initialHydration
+              );
             },
             archivePeer
           );
@@ -1084,6 +1090,7 @@ class RedSquare extends ModTemplate {
       const obj = {
         field1: 'RedSquare',
         flagged_ne: 1,
+        field4: '',
         limit: 10,
         created_earlier_than: txmsg.data.created_earlier_than
       };
@@ -2098,12 +2105,11 @@ class RedSquare extends ModTemplate {
       return null;
     }
 
-    // approve → flagged = 2 (reviewed), curated = 1
+    // approve → flagged = 2 (reviewed)
     if (!targetTx.optional || typeof targetTx.optional !== 'object') {
       targetTx.optional = {};
     }
 
-    targetTx.optional.curated = 1;
     targetTx.optional.flagged = 2;
 
     await this.app.storage.updateTransaction(
@@ -2113,7 +2119,6 @@ class RedSquare extends ModTemplate {
     );
 
     if (tweet) {
-      tweet.curated = 1;
       tweet.flagged = 2;
     }
 

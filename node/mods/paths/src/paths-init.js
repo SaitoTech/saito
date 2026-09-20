@@ -17,6 +17,7 @@ const PathsOptions = require('./lib/core/advanced-options.template');
 const PathsSingularOption = require('./lib/core/options.template');
 
 const GameHelp = require('./lib/ui/game-help/game-help');
+const GameMinimap = require('../../lib/saito/ui/game-minimap/game-minimap');
 const TutorialTemplate = require('./lib/ui/overlays/tutorials/tutorial.template');
 
 
@@ -61,6 +62,9 @@ class PathsOfGlory extends GameTemplate {
     this.menu_overlay = new MenuOverlay(this.app, this); 
     this.space_overlay = new SpaceOverlay(this.app, this); 
     this.game_help = new GameHelp(this.app, this);
+    this.minimap = new GameMinimap(this.app, this);
+    this.minimap.enable_zoom = 1;
+    this.default_board_scale = 100;
 
     //
     // this sets the ratio used for determining
@@ -253,18 +257,7 @@ class PathsOfGlory extends GameTemplate {
       }
     }
 
-    try {
-
-      if (app.browser.isMobileBrowser(navigator.userAgent)) {
-        //this.hammer.render();
-      } else {
-	let paths_self = this;
-        this.sizer.render();
-        this.sizer.attachEvents('#gameboard');
-      }
-
-    } catch (err) {}
-
+    this.minimap.render();
     this.hud.render();
     this.displayBoard();
 

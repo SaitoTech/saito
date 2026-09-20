@@ -37,6 +37,102 @@ class GameCards {
     }
   }
 
+  getBoardState() {
+    const el = document.querySelector('.gameboard:not(.gameboard-clone)');
+    if (!el) {
+      return null;
+    }
+    const r = el.getBoundingClientRect();
+    const bg = window.getComputedStyle(el).backgroundImage;
+    const m = bg && bg !== 'none' ? bg.match(/url\(["']?(.*?)["']?\)/) : null;
+    return {
+      el,
+      width: el.offsetWidth,
+      height: el.offsetHeight,
+      scale: el.offsetWidth ? r.width / el.offsetWidth : 1,
+      x: r.left,
+      y: r.top,
+      image: m ? m[1] : ''
+    };
+  }
+
+  setBoardPosition(x, y) {
+    const el = document.querySelector('.gameboard:not(.gameboard-clone)');
+    if (!el) {
+      return;
+    }
+    el.style.left = x + 'px';
+    el.style.top = y + 'px';
+    this.saveGamePreference(this.returnSlug() + '-board-offset', { left: x, top: y });
+  }
+
+  setBoardScale(scale, save = true) {
+    const el = document.querySelector('.gameboard:not(.gameboard-clone)');
+    if (!el) {
+      return;
+    }
+    scale = Math.max(2, Math.min(200, Math.round(Number(scale) || 100)));
+    el.style.transformOrigin = 'top left';
+    el.style.transform = `scale(${scale / 100})`;
+    if (save) {
+      this.saveGamePreference(this.returnSlug() + '-board-scale', scale);
+    }
+    const input = document.querySelector('#game_board_sizer input');
+    if (input) {
+      input.value = scale;
+      let minZoom = parseFloat(input.min) || 2;
+      let maxZoom = parseFloat(input.max) || 200;
+      let progress = ((scale - minZoom) / (maxZoom - minZoom)) * 100;
+      input.style.setProperty('--board-scale-progress', `${Math.max(0, Math.min(100, progress))}%`);
+    }
+  }
+
+  centerBoard() {
+    const el = document.querySelector('.gameboard:not(.gameboard-clone)');
+    if (!el) {
+      return;
+    }
+
+    const cs = window.getComputedStyle(el);
+    let topAdjustment = 0;
+    let boardWidth = parseInt(cs.width) || 0;
+    let boardHeight = parseInt(cs.height) || 0;
+    if (cs.boxSizing == 'content-box') {
+      boardWidth += parseInt(cs.paddingLeft) + parseInt(cs.paddingRight);
+      boardHeight += parseInt(cs.paddingTop) + parseInt(cs.paddingBottom);
+      topAdjustment += parseInt(cs.paddingTop);
+    }
+    boardWidth += parseInt(cs.marginLeft) + parseInt(cs.marginRight);
+    boardHeight += parseInt(cs.marginTop) + parseInt(cs.marginBottom);
+    topAdjustment += parseInt(cs.marginTop);
+
+    let scale = Math.floor(100 * Math.min(window.innerWidth / boardWidth, window.innerHeight / boardHeight));
+    this.setBoardScale(scale);
+    el.style.left = '';
+    el.style.top = '';
+
+    if (el.getBoundingClientRect().width < window.innerWidth) {
+      let offset = Math.round((window.innerWidth - el.getBoundingClientRect().width) / 2) - 10;
+      el.style.left = offset + 'px';
+    }
+
+    if (el.getBoundingClientRect().height < window.innerHeight) {
+      let offset = 0;
+      if (window.innerHeight - el.getBoundingClientRect().height >= 40) {
+        offset = Math.min(50, window.innerHeight - el.getBoundingClientRect().height);
+      } else {
+        offset = Math.round((window.innerHeight - el.getBoundingClientRect().height) / 2) + 5;
+      }
+      offset = Math.max(0, offset - topAdjustment);
+      el.style.top = offset + 'px';
+    }
+
+    this.saveGamePreference(this.returnSlug() + '-board-offset', {
+      left: parseInt(el.style.left) || 0,
+      top: parseInt(el.style.top) || 0
+    });
+  }
+
   ////////////////////////////////////////////////////////////////////////////////////////////////////
   ///////////////////////  DICE  /////////////////////////////////////////////////////////////////////
   ////////////////////////////////////////////////////////////////////////////////////////////////////
