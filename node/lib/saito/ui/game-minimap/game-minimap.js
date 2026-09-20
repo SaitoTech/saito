@@ -24,6 +24,7 @@ class GameMinimap {
     this.board_el = null;
     this.viewport_el = null;
     this.markers_el = null;
+    this.clone_el = null;
   }
 
   render() {
@@ -69,6 +70,9 @@ class GameMinimap {
     }
 
     const map = this.board_el.getBoundingClientRect();
+    if (!b.image) {
+      this.syncClone(b, map);
+    }
     let vis_x = -b.x / b.scale;
     let vis_y = -b.y / b.scale;
     let vis_right = vis_x + window.innerWidth / b.scale;
@@ -104,6 +108,40 @@ class GameMinimap {
         this.markers_el.appendChild(el);
       }
       this.redraw_markers = false;
+    }
+  }
+
+  syncClone(b, map) {
+    if (!b.el || !this.board_el || !map.width) {
+      return;
+    }
+
+    if (!this.dragging && !this.moving) {
+      if (this.clone_el) {
+        this.clone_el.remove();
+      }
+      this.clone_el = b.el.cloneNode(true);
+      this.clone_el.removeAttribute('id');
+      this.clone_el.classList.remove('gameboard-clone');
+      this.clone_el.classList.add('game-minimap-clone');
+      this.clone_el.querySelectorAll('[id]').forEach((el) => {
+        el.id = 'minimap-' + el.id;
+      });
+      this.clone_el.style.position = 'absolute';
+      this.clone_el.style.top = '0px';
+      this.clone_el.style.left = '0px';
+      this.clone_el.style.right = 'auto';
+      this.clone_el.style.bottom = 'auto';
+      this.clone_el.style.margin = '0px';
+      this.clone_el.style.transformOrigin = 'top left';
+      this.clone_el.style.pointerEvents = 'none';
+      this.board_el.insertBefore(this.clone_el, this.board_el.firstChild);
+    }
+
+    if (this.clone_el && b.width) {
+      this.clone_el.style.width = b.width + 'px';
+      this.clone_el.style.height = b.height + 'px';
+      this.clone_el.style.transform = `scale(${map.width / b.width})`;
     }
   }
 
