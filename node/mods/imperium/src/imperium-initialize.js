@@ -254,13 +254,7 @@
     this.cardbox.render();
 
     try {
-
-      if (app.browser.isMobileBrowser(navigator.userAgent)) {
-        this.hammer.render('#hexGrid');
-      } else {
-        this.sizer.render();
-        this.sizer.attachEvents('#hexGrid'); // gameboard is hexgrid
-      }
+      this.minimap.render();
     } catch (err) {}
 
 

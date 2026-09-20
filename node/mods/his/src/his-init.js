@@ -41,6 +41,7 @@ const LanguageZoneOverlay = require('./lib/ui/overlays/language-zone');
 
 // Tutorial Overlays
 const GameHelp = require('./lib/ui/game-help/game-help');
+const GameMinimap = require('../../lib/saito/ui/game-minimap/game-minimap');
 const TutorialTemplate = require('./lib/ui/overlays/tutorials/tutorial.template');
 
 const HISRules = require('./lib/core/rules.template');
@@ -124,6 +125,9 @@ class HereIStand extends GameTemplate {
     // triangular help button
     //
     this.game_help = new GameHelp(this.app, this);
+    this.minimap = new GameMinimap(this.app, this);
+    this.minimap.enable_zoom = 1;
+    this.default_board_scale = 100;
 
     //
     // this sets the ratio used for determining
