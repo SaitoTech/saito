@@ -844,12 +844,6 @@ class Manager {
       return;
     }
 
-    const parent = this.mod.getTweet(focused.parent_id);
-
-    if (!parent) {
-      return;
-    }
-
     const root = this.getThreadRoot(this.active_signature);
     const html = `
       <div class="thread-context" role="button" tabindex="0" data-root="${root}">
@@ -1470,7 +1464,17 @@ class Manager {
       root = parent;
     }
 
-    return root;
+    if (root !== signature) {
+      return root;
+    }
+
+    const tweet = this.mod.getTweet(signature);
+
+    if (tweet?.thread_id && tweet.thread_id !== tweet.signature) {
+      return tweet.thread_id;
+    }
+
+    return tweet?.parent_id || root;
   }
 
   //
@@ -1548,7 +1552,7 @@ class Manager {
       return;
     }
 
-    this.renderThread(tweet.signature);
+    this.openEntireThread(tweet.signature);
   }
 
   insertTimelineTweet(tweet) {
@@ -1808,28 +1812,41 @@ class Manager {
   }
 
   async openEntireThread(rootSignature) {
-    if (!rootSignature || !this.mod.getTweet(rootSignature)) {
+    if (!rootSignature) {
       return null;
     }
 
-    // Show every relationship already in memory immediately, then refresh the
-    // root thread so replies known only to an archive peer are included too.
+    // Paint anything already in memory, then load the archive thread. The
+    // tweet does not need to be cached first — permalink and click-through
+    // share this path.
     this.renderThread(rootSignature);
 
     try {
       const result = await this.mod.loadTweetThread(rootSignature);
 
-      if (
-        result?.status === 'loaded' &&
-        this.mode === 'thread' &&
-        this.active_signature === rootSignature
-      ) {
+      if (this.mode !== 'thread' || this.active_signature !== rootSignature) {
+        return result;
+      }
+
+      if (result?.status === 'loaded' && result.tweet) {
         this.renderThread(rootSignature, { updateHistory: false });
+      } else if (!this.mod.getTweet(rootSignature)) {
+        const status = result?.status === 'unavailable' ? 'unavailable' : 'error';
+        this.renderPermalinkState(rootSignature, status, result?.reason);
       }
 
       return result;
     } catch (err) {
       console.error('RedSquare complete thread lookup failed:', err);
+
+      if (
+        this.mode === 'thread' &&
+        this.active_signature === rootSignature &&
+        !this.mod.getTweet(rootSignature)
+      ) {
+        this.renderPermalinkState(rootSignature, 'error', 'lookup-failed');
+      }
+
       return { status: 'error', reason: 'lookup-failed', tweet: null };
     }
   }
@@ -2058,7 +2075,7 @@ class Manager {
         return;
       }
 
-      this.renderThread(signature);
+      this.openEntireThread(signature);
     });
   }
 

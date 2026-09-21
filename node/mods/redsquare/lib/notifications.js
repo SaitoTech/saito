@@ -184,10 +184,6 @@ function addNotification(mod, input) {
 
   ensureNotificationTweet(mod, notification);
 
-  if (!Tweets.hasTweet(mod, notification.tweet_signature)) {
-    return null;
-  }
-
   if (hasNotification(mod, notification.signature)) {
     return updateNotification(mod, input);
   }

@@ -140,15 +140,12 @@ class Notification {
 
   renderHTML() {
     const tweet = this.getReferencedTweet();
-
-    if (!tweet) {
-      return '';
-    }
-
-    const tweetHtml = TweetTemplate(tweet, 'tweet slot', {
-      presentation: 'timeline',
-      hideControls: true
-    });
+    const tweetHtml = tweet
+      ? TweetTemplate(tweet, 'tweet slot', {
+          presentation: 'timeline',
+          hideControls: true
+        })
+      : '';
 
     return NotificationTemplate(this, tweetHtml);
   }
