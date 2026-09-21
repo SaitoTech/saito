@@ -1,0 +1,3361 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="referrer" content="no-referrer">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-kLU3bhM/4qcrMKvcvZ9K2C0dm+kVu3600hjkzf3a41M='; style-src 'sha256-/l2TyKPNNXMAjmAK98iRiC6lehM6BJFzKj0TgeBPaN4='; img-src data:; connect-src 'none'; font-src 'none'; media-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-src 'none'; worker-src 'none'">
+    <meta name="color-scheme" content="light dark">
+    <title>Saito Offline Wallet Tool</title>
+    <style>:root {
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.145 0 0);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.145 0 0);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.145 0 0);
+  --primary: oklch(0.553 0.195 38.402);
+  --primary-foreground: oklch(0.98 0.016 73.684);
+  --secondary: oklch(0.967 0.001 286.375);
+  --secondary-foreground: oklch(0.21 0.006 285.885);
+  --muted: oklch(0.97 0 0);
+  --muted-foreground: oklch(0.556 0 0);
+  --accent: oklch(0.97 0 0);
+  --accent-foreground: oklch(0.205 0 0);
+  --destructive: oklch(0.577 0.245 27.325);
+  --border: oklch(0.922 0 0);
+  --input: oklch(0.922 0 0);
+  --ring: oklch(0.708 0 0);
+  --chart-1: oklch(0.837 0.128 66.29);
+  --chart-2: oklch(0.705 0.213 47.604);
+  --chart-3: oklch(0.646 0.222 41.116);
+  --chart-4: oklch(0.553 0.195 38.402);
+  --chart-5: oklch(0.47 0.157 37.304);
+  --radius: 0.45rem;
+  --sidebar: oklch(0.985 0 0);
+  --sidebar-foreground: oklch(0.145 0 0);
+  --sidebar-primary: oklch(0.646 0.222 41.116);
+  --sidebar-primary-foreground: oklch(0.98 0.016 73.684);
+  --sidebar-accent: oklch(0.97 0 0);
+  --sidebar-accent-foreground: oklch(0.205 0 0);
+  --sidebar-border: oklch(0.922 0 0);
+  --sidebar-ring: oklch(0.708 0 0);
+}
+
+.dark {
+  --background: oklch(0.145 0 0);
+  --foreground: oklch(0.985 0 0);
+  --card: oklch(0.205 0 0);
+  --card-foreground: oklch(0.985 0 0);
+  --popover: oklch(0.205 0 0);
+  --popover-foreground: oklch(0.985 0 0);
+  --primary: oklch(0.47 0.157 37.304);
+  --primary-foreground: oklch(0.98 0.016 73.684);
+  --secondary: oklch(0.274 0.006 286.033);
+  --secondary-foreground: oklch(0.985 0 0);
+  --muted: oklch(0.269 0 0);
+  --muted-foreground: oklch(0.708 0 0);
+  --accent: oklch(0.269 0 0);
+  --accent-foreground: oklch(0.985 0 0);
+  --destructive: oklch(0.704 0.191 22.216);
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 15%);
+  --ring: oklch(0.556 0 0);
+  --chart-1: oklch(0.837 0.128 66.29);
+  --chart-2: oklch(0.705 0.213 47.604);
+  --chart-3: oklch(0.646 0.222 41.116);
+  --chart-4: oklch(0.553 0.195 38.402);
+  --chart-5: oklch(0.47 0.157 37.304);
+  --sidebar: oklch(0.205 0 0);
+  --sidebar-foreground: oklch(0.985 0 0);
+  --sidebar-primary: oklch(0.705 0.213 47.604);
+  --sidebar-primary-foreground: oklch(0.98 0.016 73.684);
+  --sidebar-accent: oklch(0.269 0 0);
+  --sidebar-accent-foreground: oklch(0.985 0 0);
+  --sidebar-border: oklch(1 0 0 / 10%);
+  --sidebar-ring: oklch(0.556 0 0);
+}
+* {
+  box-sizing: border-box;
+}
+
+html {
+  background: var(--background);
+  color-scheme: light;
+  scroll-behavior: smooth;
+}
+
+html.dark {
+  color-scheme: dark;
+}
+
+body {
+  min-width: 20rem;
+  min-height: 100vh;
+  margin: 0;
+  overflow-x: hidden;
+  background:
+    radial-gradient(circle at 50% -12rem, color-mix(in oklch, var(--primary) 12%, transparent), transparent 34rem),
+    var(--background);
+  color: var(--foreground);
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: 1rem;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+button,
+textarea {
+  color: inherit;
+  font: inherit;
+}
+
+button {
+  -webkit-tap-highlight-color: transparent;
+}
+
+button:not(:disabled) {
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+[hidden] {
+  display: none !important;
+}
+
+svg {
+  display: block;
+}
+
+code {
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+}
+
+.shell {
+  width: min(100% - 2rem, 70rem);
+  margin-inline: auto;
+}
+
+.skip-link {
+  position: fixed;
+  z-index: 100;
+  top: 0.75rem;
+  left: 0.75rem;
+  padding: 0.55rem 0.8rem;
+  transform: translateY(-200%);
+  border-radius: var(--radius);
+  background: var(--foreground);
+  color: var(--background);
+  text-decoration: none;
+}
+
+.skip-link:focus {
+  transform: translateY(0);
+}
+
+.site-header {
+  position: sticky;
+  z-index: 30;
+  top: 0;
+  border-bottom: 1px solid color-mix(in oklch, var(--border) 78%, transparent);
+  background: color-mix(in oklch, var(--background) 88%, transparent);
+  -webkit-backdrop-filter: blur(1rem);
+  backdrop-filter: blur(1rem);
+}
+
+.header-inner {
+  display: flex;
+  min-height: 4.5rem;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.brand,
+.header-actions,
+.key-card-heading,
+.action-row,
+.toolbar,
+.validation-row,
+.recovery-header,
+footer .shell {
+  display: flex;
+  align-items: center;
+}
+
+.brand {
+  gap: 0.75rem;
+}
+
+.brand-mark {
+  display: grid;
+  width: 2.35rem;
+  height: 2.35rem;
+  place-items: center;
+  border-radius: calc(var(--radius) + 0.2rem);
+  background: var(--primary);
+  box-shadow: 0 0.4rem 1.3rem color-mix(in oklch, var(--primary) 22%, transparent);
+  color: var(--primary-foreground);
+}
+
+.brand-mark svg {
+  width: 1.18rem;
+  fill: currentColor;
+}
+
+.brand strong,
+.brand small {
+  display: block;
+}
+
+.brand strong {
+  font-size: 0.95rem;
+  line-height: 1.15;
+  letter-spacing: -0.015em;
+}
+
+.brand small {
+  margin-top: 0.18rem;
+  color: var(--muted-foreground);
+  font-size: 0.75rem;
+  line-height: 1.1;
+}
+
+.header-actions {
+  gap: 0.6rem;
+}
+
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-height: 2rem;
+  padding: 0.28rem 0.7rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--card);
+  color: var(--muted-foreground);
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.status-badge::before {
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 50%;
+  background: var(--ring);
+  content: "";
+}
+
+.status-badge.is-safe::before {
+  background: oklch(0.64 0.17 150);
+  box-shadow: 0 0 0 0.2rem oklch(0.64 0.17 150 / 15%);
+}
+
+.status-badge.is-warning::before {
+  background: oklch(0.72 0.18 70);
+  box-shadow: 0 0 0 0.2rem oklch(0.72 0.18 70 / 15%);
+}
+
+.status-badge.is-danger::before {
+  background: var(--destructive);
+  box-shadow: 0 0 0 0.2rem color-mix(in oklch, var(--destructive) 16%, transparent);
+}
+
+.icon-button {
+  display: grid;
+  width: 2.25rem;
+  height: 2.25rem;
+  place-items: center;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--card);
+}
+
+.icon-button:hover,
+.button-outline:hover,
+.button-ghost:hover {
+  background: var(--accent);
+}
+
+.icon-button svg,
+.button svg,
+.tab svg,
+.alert > svg,
+.key-icon svg,
+.private-qr-placeholder svg {
+  width: 1rem;
+  height: 1rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.8;
+}
+
+.dark .sun-icon,
+html:not(.dark) .moon-icon,
+.eye-closed {
+  display: none;
+}
+
+.hero {
+  max-width: 51rem;
+  padding: 5.5rem 0 2.2rem;
+}
+
+.eyebrow,
+.step-label,
+.success-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.48rem;
+  color: var(--primary);
+  font-size: 0.72rem;
+  font-weight: 750;
+  letter-spacing: 0.105em;
+  text-transform: uppercase;
+}
+
+.eyebrow-dot {
+  width: 0.42rem;
+  height: 0.42rem;
+  border-radius: 50%;
+  background: var(--primary);
+  box-shadow: 0 0 0 0.22rem color-mix(in oklch, var(--primary) 13%, transparent);
+}
+
+.hero h1 {
+  max-width: 48rem;
+  margin: 1rem 0 1rem;
+  font-size: clamp(2.25rem, 6vw, 4.25rem);
+  font-weight: 720;
+  letter-spacing: -0.055em;
+  line-height: 1.02;
+}
+
+.hero > p {
+  max-width: 44rem;
+  margin: 0;
+  color: var(--muted-foreground);
+  font-size: clamp(1rem, 2vw, 1.13rem);
+}
+
+.alert {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.85rem;
+  padding: 1rem 1.1rem;
+  border: 1px solid var(--border);
+  border-radius: calc(var(--radius) + 0.15rem);
+  font-size: 0.88rem;
+}
+
+.alert > svg {
+  width: 1.15rem;
+  height: 1.15rem;
+  flex: 0 0 auto;
+  margin-top: 0.12rem;
+}
+
+.alert strong,
+.alert p {
+  display: block;
+}
+
+.alert p {
+  margin: 0.16rem 0 0;
+  color: var(--muted-foreground);
+}
+
+.alert-warning {
+  border-color: oklch(0.8 0.11 75 / 48%);
+  background: oklch(0.96 0.035 83 / 70%);
+  color: oklch(0.43 0.11 54);
+}
+
+.dark .alert-warning {
+  border-color: oklch(0.72 0.14 70 / 30%);
+  background: oklch(0.3 0.04 55 / 55%);
+  color: oklch(0.88 0.11 79);
+}
+
+.alert-warning p,
+.dark .alert-warning p {
+  color: inherit;
+  opacity: 0.78;
+}
+
+.alert-destructive {
+  margin-top: 1.25rem;
+  border-color: color-mix(in oklch, var(--destructive) 35%, var(--border));
+  background: color-mix(in oklch, var(--destructive) 8%, var(--card));
+  color: var(--destructive);
+}
+
+.workspace-card,
+.results {
+  margin-top: 1.1rem;
+  border: 1px solid var(--border);
+  border-radius: calc(var(--radius) + 0.35rem);
+  background: var(--card);
+  box-shadow: 0 1.4rem 3.5rem color-mix(in oklch, var(--foreground) 6%, transparent);
+}
+
+.tabs {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.35rem;
+  margin: 0.65rem;
+  padding: 0.3rem;
+  border-radius: calc(var(--radius) + 0.1rem);
+  background: var(--muted);
+}
+
+.tab {
+  display: inline-flex;
+  min-height: 2.7rem;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border: 0;
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--muted-foreground);
+  font-size: 0.86rem;
+  font-weight: 650;
+}
+
+.tab.is-active {
+  background: var(--card);
+  box-shadow: 0 1px 2px color-mix(in oklch, var(--foreground) 12%, transparent);
+  color: var(--card-foreground);
+}
+
+.panel {
+  padding: clamp(1.35rem, 4vw, 2.25rem);
+  border-top: 1px solid var(--border);
+}
+
+.panel-copy {
+  max-width: 43rem;
+}
+
+.panel-copy h2,
+.results h2,
+.section-heading h2 {
+  margin: 0.42rem 0 0.45rem;
+  color: var(--card-foreground);
+  font-size: clamp(1.3rem, 3vw, 1.65rem);
+  letter-spacing: -0.025em;
+  line-height: 1.2;
+}
+
+.panel-copy p,
+.results-heading p {
+  margin: 0;
+  color: var(--muted-foreground);
+  font-size: 0.91rem;
+}
+
+.action-row {
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+}
+
+.generation-actions {
+  display: grid;
+  gap: 0.85rem;
+  margin-top: 1.5rem;
+}
+
+.generation-actions .action-row {
+  margin-top: 0;
+}
+
+.action-hint {
+  color: var(--muted-foreground);
+  font-size: 0.78rem;
+}
+
+.override-control {
+  display: inline-flex;
+  width: fit-content;
+  align-items: flex-start;
+  gap: 0.65rem;
+  padding: 0.72rem 0.8rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--muted);
+  cursor: pointer;
+}
+
+.override-control input {
+  width: 1rem;
+  height: 1rem;
+  margin: 0.14rem 0 0;
+  accent-color: var(--primary);
+}
+
+.override-control input:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+.override-control strong,
+.override-control small {
+  display: block;
+}
+
+.override-control strong {
+  font-size: 0.8rem;
+  line-height: 1.25;
+}
+
+.override-control small {
+  margin-top: 0.2rem;
+  color: var(--muted-foreground);
+  font-size: 0.72rem;
+}
+
+.button {
+  display: inline-flex;
+  min-height: 2.45rem;
+  align-items: center;
+  justify-content: center;
+  gap: 0.48rem;
+  padding: 0.5rem 0.88rem;
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  font-size: 0.82rem;
+  font-weight: 650;
+  line-height: 1;
+  transition: background-color 120ms ease, border-color 120ms ease, box-shadow 120ms ease, transform 120ms ease;
+}
+
+.button:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.button-primary {
+  border-color: var(--primary);
+  background: var(--primary);
+  box-shadow: 0 0.4rem 1rem color-mix(in oklch, var(--primary) 18%, transparent);
+  color: var(--primary-foreground);
+}
+
+.button-primary:hover:not(:disabled) {
+  background: color-mix(in oklch, var(--primary) 91%, var(--foreground));
+}
+
+.button-outline {
+  border-color: var(--border);
+  background: var(--card);
+  color: var(--card-foreground);
+}
+
+.button-ghost {
+  background: transparent;
+  color: var(--muted-foreground);
+}
+
+button:focus-visible,
+textarea:focus-visible,
+a:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+.field-label {
+  display: block;
+  margin: 1.45rem 0 0.5rem;
+  font-size: 0.82rem;
+  font-weight: 650;
+}
+
+textarea {
+  width: 100%;
+  min-height: 7.2rem;
+  resize: vertical;
+  padding: 0.8rem 0.9rem;
+  border: 1px solid var(--input);
+  border-radius: var(--radius);
+  outline: 0;
+  background: var(--background);
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+  font-size: 0.9rem;
+  line-height: 1.65;
+}
+
+textarea:focus {
+  border-color: var(--ring);
+  box-shadow: 0 0 0 3px color-mix(in oklch, var(--ring) 18%, transparent);
+}
+
+textarea::placeholder {
+  color: var(--muted-foreground);
+  opacity: 0.7;
+}
+
+.validation-row {
+  justify-content: space-between;
+  gap: 1rem;
+  margin-top: 0.45rem;
+  color: var(--muted-foreground);
+  font-size: 0.75rem;
+}
+
+#restore-validation.is-valid {
+  color: oklch(0.56 0.16 150);
+}
+
+#restore-validation.is-invalid {
+  color: var(--destructive);
+}
+
+.results {
+  padding: clamp(1.35rem, 4vw, 2.25rem);
+}
+
+.results-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1.25rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.success-label {
+  color: oklch(0.56 0.16 150);
+}
+
+.success-label > span {
+  display: grid;
+  width: 1.15rem;
+  height: 1.15rem;
+  place-items: center;
+  border-radius: 50%;
+  background: oklch(0.56 0.16 150 / 14%);
+  font-size: 0.7rem;
+}
+
+.toolbar {
+  flex: 0 0 auto;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.45rem;
+}
+
+#reveal-button[aria-pressed="true"] .eye-open,
+#reveal-button[aria-pressed="false"] .eye-closed {
+  display: none;
+}
+
+#reveal-button[aria-pressed="true"] .eye-closed {
+  display: block;
+}
+
+.key-grid,
+.qr-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+  margin-top: 1.25rem;
+}
+
+.key-card,
+.recovery-card,
+.qr-card {
+  min-width: 0;
+  padding: 1.15rem;
+  border: 1px solid var(--border);
+  border-radius: calc(var(--radius) + 0.1rem);
+  background: var(--background);
+}
+
+.key-card-heading {
+  gap: 0.72rem;
+}
+
+.key-icon {
+  display: grid;
+  width: 2.25rem;
+  height: 2.25rem;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: var(--radius);
+}
+
+.public-icon {
+  background: color-mix(in oklch, var(--primary) 12%, transparent);
+  color: var(--primary);
+}
+
+.secret-icon {
+  background: color-mix(in oklch, var(--destructive) 11%, transparent);
+  color: var(--destructive);
+}
+
+.phrase-icon {
+  background: var(--secondary);
+  color: var(--secondary-foreground);
+}
+
+.key-card h3,
+.recovery-card h3,
+.qr-card h3 {
+  margin: 0;
+  color: var(--card-foreground);
+  font-size: 0.9rem;
+  letter-spacing: -0.01em;
+}
+
+.key-card p,
+.recovery-card p,
+.qr-card p {
+  margin: 0.1rem 0 0;
+  color: var(--muted-foreground);
+  font-size: 0.73rem;
+}
+
+.value-box {
+  min-height: 4.5rem;
+  margin: 1rem 0 0.75rem;
+  padding: 0.75rem;
+  overflow-wrap: anywhere;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--muted);
+}
+
+.value-box code {
+  color: var(--foreground);
+  font-size: 0.76rem;
+  line-height: 1.65;
+}
+
+.secret-value code {
+  letter-spacing: 0.06em;
+}
+
+.copy-button {
+  width: 100%;
+}
+
+.recovery-card {
+  margin-top: 1rem;
+}
+
+.recovery-header {
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.recovery-header .copy-button {
+  width: auto;
+  flex: 0 0 auto;
+}
+
+.word-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.55rem;
+  margin: 1rem 0 0;
+  padding: 0;
+  counter-reset: word;
+  list-style: none;
+}
+
+.word-grid li {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.58rem 0.62rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--muted);
+  counter-increment: word;
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+  font-size: 0.76rem;
+  font-weight: 650;
+}
+
+.word-grid li::before {
+  min-width: 1.1rem;
+  color: var(--muted-foreground);
+  content: counter(word, decimal-leading-zero);
+  font-size: 0.62rem;
+  font-weight: 500;
+}
+
+.qr-card {
+  text-align: center;
+}
+
+.qr-frame {
+  display: grid;
+  width: min(100%, 15rem);
+  aspect-ratio: 1;
+  margin: 1rem auto 0;
+  place-items: center;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: white;
+}
+
+.qr-frame img {
+  width: 100%;
+  height: 100%;
+  image-rendering: pixelated;
+}
+
+.secret-qr > span {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.6rem;
+  color: oklch(0.42 0 0);
+  font-size: 0.75rem;
+  font-weight: 650;
+}
+
+.secret-qr > span svg {
+  width: 1.8rem;
+  height: 1.8rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.5;
+}
+
+.safety-grid {
+  display: grid;
+  grid-template-columns: minmax(12rem, 0.75fr) minmax(0, 1.5fr);
+  gap: clamp(2rem, 7vw, 5rem);
+  padding: 5rem 0;
+}
+
+.section-heading h2 {
+  margin-top: 0.65rem;
+}
+
+.checklist {
+  border-top: 1px solid var(--border);
+}
+
+.check-item {
+  display: grid;
+  grid-template-columns: 2rem 1fr;
+  gap: 0.85rem;
+  padding: 1.15rem 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.check-item > span {
+  display: grid;
+  width: 1.7rem;
+  height: 1.7rem;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--secondary);
+  color: var(--secondary-foreground);
+  font-size: 0.7rem;
+  font-weight: 750;
+}
+
+.check-item strong {
+  display: block;
+  font-size: 0.86rem;
+}
+
+.check-item p {
+  margin: 0.25rem 0 0;
+  color: var(--muted-foreground);
+  font-size: 0.8rem;
+}
+
+footer {
+  border-top: 1px solid var(--border);
+  color: var(--muted-foreground);
+  font-size: 0.72rem;
+}
+
+footer .shell {
+  min-height: 4.5rem;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.toast {
+  position: fixed;
+  z-index: 60;
+  right: 1rem;
+  bottom: 1rem;
+  max-width: min(24rem, calc(100vw - 2rem));
+  padding: 0.72rem 0.9rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--popover);
+  box-shadow: 0 1rem 3rem color-mix(in oklch, var(--foreground) 18%, transparent);
+  color: var(--popover-foreground);
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.clipboard-helper {
+  position: fixed;
+  top: 0;
+  left: -10000px;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+
+@media (max-width: 47rem) {
+  .hero {
+    padding-top: 3.8rem;
+  }
+
+  .status-badge {
+    max-width: 9rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .results-heading,
+  .recovery-header {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .toolbar {
+    justify-content: flex-start;
+  }
+
+  .key-grid,
+  .qr-grid,
+  .safety-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .word-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .recovery-header .copy-button {
+    width: 100%;
+  }
+
+  .safety-grid {
+    gap: 1.25rem;
+    padding: 3.5rem 0;
+  }
+}
+
+@media (max-width: 31rem) {
+  .shell {
+    width: min(100% - 1.25rem, 70rem);
+  }
+
+  .brand small,
+  .status-badge {
+    display: none;
+  }
+
+  .tabs {
+    grid-template-columns: 1fr;
+  }
+
+  .word-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .toolbar .button {
+    flex: 1 1 auto;
+  }
+
+  footer .shell {
+    align-items: flex-start;
+    flex-direction: column;
+    justify-content: center;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+@media print {
+  @page {
+    margin: 12mm;
+    size: auto;
+  }
+
+  html,
+  body {
+    background: white !important;
+    color: black !important;
+  }
+
+  body {
+    font-size: 10pt;
+  }
+
+  .shell {
+    width: 100%;
+  }
+
+  .site-header {
+    position: static;
+    border: 0;
+    background: white;
+  }
+
+  .site-header .header-actions,
+  .hero,
+  #network-warning,
+  .workspace-card,
+  .toolbar,
+  .copy-button,
+  .alert-destructive,
+  .safety-grid,
+  footer,
+  .toast {
+    display: none !important;
+  }
+
+  .brand-mark {
+    box-shadow: none;
+    print-color-adjust: exact;
+  }
+
+  .results:not([hidden]) {
+    display: block !important;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    box-shadow: none;
+  }
+
+  .results-heading {
+    padding-bottom: 8mm;
+  }
+
+  .key-card,
+  .recovery-card,
+  .qr-card,
+  .value-box,
+  .word-grid li {
+    border-color: #bbb;
+    background: white;
+    break-inside: avoid;
+  }
+
+  .value-box code,
+  .word-grid li,
+  .key-card h3,
+  .recovery-card h3,
+  .qr-card h3,
+  .results h2 {
+    color: black;
+  }
+
+  .key-grid,
+  .qr-grid {
+    gap: 5mm;
+  }
+
+  .qr-frame {
+    width: 42mm;
+    border-color: #bbb;
+  }
+}
+</style>
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+    <header class="site-header">
+      <div class="shell header-inner">
+        <div class="brand" aria-label="Saito Offline Wallet Tool">
+          <span class="brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 112 129">
+              <path d="M111.21 31.66 56.72.17a1.56 1.56 0 0 0-.39-.15h-.07a1.47 1.47 0 0 0-.82.11h-.13L.83 31.58l-.11.08A1.43 1.43 0 0 0 0 32.9v63a1.42 1.42 0 0 0 .72 1.23l54.54 31.49a1.45 1.45 0 0 0 .72.2 1.42 1.42 0 0 0 .72-.2l54.54-31.49a1.41 1.41 0 0 0 .69-1v-.27l-.01-63a1.43 1.43 0 0 0-.72-1.2ZM54.52 124.9 3.31 95.33l26.08-44.69 25.13 14.58ZM2.84 35.23l24.07 14-24.07 41.22Zm54.55 30 27.05-15.63 24.62-14.2v59H57.39Zm26.85-18.83L63.3 11.02l-3.33-5.62 47.66 27.5ZM55.44 3.4l26.28 44.44-25.77 14.9L4.41 32.83Zm1.95 94h47.82l-47.82 27.5Z"/>
+            </svg>
+          </span>
+          <span>
+            <strong>Saito</strong>
+            <small>Offline Wallet Tool</small>
+          </span>
+        </div>
+        <div class="header-actions">
+          <span class="status-badge" id="environment-status" role="status">Checking environment…</span>
+          <button class="icon-button" id="theme-toggle" type="button" aria-label="Use dark theme" title="Toggle theme">
+            <svg class="sun-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.42 1.42M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.42-1.42M17.66 6.34l1.41-1.41"/></svg>
+            <svg class="moon-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20.5 14.2A8.5 8.5 0 0 1 9.8 3.5 8.5 8.5 0 1 0 20.5 14.2Z"/></svg>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <main id="main" class="shell">
+      <section class="hero" aria-labelledby="page-title">
+        <span class="eyebrow"><span class="eyebrow-dot" aria-hidden="true"></span>Cold storage utility</span>
+        <h1 id="page-title">Saito Offline Wallet Tool</h1>
+        <p>Create or restore a Saito wallet locally in your browser. This self-contained utility is designed to run from a verified file on a disconnected computer.</p>
+      </section>
+
+      <div class="alert alert-warning" id="network-warning" role="note">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10.3 3.7 2.2 18a2 2 0 0 0 1.7 3h16.2a2 2 0 0 0 1.7-3L13.7 3.7a2 2 0 0 0-3.4 0Z"/><path d="M12 9v4M12 17h.01"/></svg>
+        <div>
+          <strong>Disconnect before creating keys.</strong>
+          <p id="network-guidance">For strongest isolation, turn off Wi-Fi and unplug networking before you continue.</p>
+        </div>
+      </div>
+
+      <section class="workspace-card" aria-label="Key generator">
+        <div class="tabs" role="tablist" aria-label="Key actions">
+          <button class="tab is-active" id="tab-generate" type="button" role="tab" aria-selected="true" aria-controls="panel-generate" tabindex="0">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v18M3 12h18"/></svg>
+            Generate new
+          </button>
+          <button class="tab" id="tab-restore" type="button" role="tab" aria-selected="false" aria-controls="panel-restore" tabindex="-1">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5M12 7v5l3 2"/></svg>
+            Restore phrase
+          </button>
+        </div>
+
+        <div class="panel" id="panel-generate" role="tabpanel" aria-labelledby="tab-generate">
+          <div class="panel-copy">
+            <span class="step-label">New cold-storage wallet</span>
+            <h2>Generate a fresh key pair</h2>
+            <p>Your browser's cryptographic random-number generator creates a 24-word BIP39 phrase using 256 bits of entropy. Nothing is sent or automatically saved by this utility.</p>
+          </div>
+          <div class="generation-actions">
+            <div class="action-row">
+              <button class="button button-primary" id="generate-button" type="button" disabled>
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.64 5.64l2.12 2.12M16.24 16.24l2.12 2.12M5.64 18.36l2.12-2.12M16.24 7.76l2.12-2.12"/><circle cx="12" cy="12" r="3"/></svg>
+                Generate keys
+              </button>
+              <span class="action-hint" id="generation-guidance" role="status">Disconnect from all networks to enable key creation.</span>
+            </div>
+            <label class="override-control" for="online-override">
+              <input id="online-override" type="checkbox">
+              <span><strong>Allow key creation while online</strong><small>Session only. This weakens cold-storage isolation.</small></span>
+            </label>
+          </div>
+        </div>
+
+        <div class="panel" id="panel-restore" role="tabpanel" aria-labelledby="tab-restore" hidden>
+          <div class="panel-copy">
+            <span class="step-label">Existing cold-storage wallet</span>
+            <h2>Restore from a recovery phrase</h2>
+            <p>The phrase is checked against the English BIP39 wordlist and checksum, then decoded directly to the 32-byte private key exactly as in saito.io.</p>
+          </div>
+          <label class="field-label" for="restore-input">24-word recovery phrase</label>
+          <textarea id="restore-input" rows="5" autocomplete="off" autocapitalize="none" autocorrect="off" spellcheck="false" placeholder="Enter 24 words separated by spaces" aria-describedby="restore-validation"></textarea>
+          <div class="validation-row">
+            <span id="restore-validation" aria-live="polite">Waiting for a phrase.</span>
+            <span id="word-count">0 / 24 words</span>
+          </div>
+          <div class="action-row">
+            <button class="button button-primary" id="restore-button" type="button" disabled>
+              <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="8" cy="15" r="4"/><path d="m11 12 8-8M17 4l3 3M14 7l3 3"/></svg>
+              Restore keys
+            </button>
+            <button class="button button-ghost" id="clear-restore-button" type="button">Clear phrase</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="results" id="results" aria-labelledby="results-title" hidden>
+        <div class="results-heading">
+          <div>
+            <span class="success-label"><span aria-hidden="true">✓</span> Keys ready</span>
+            <h2 id="results-title">Your cold-storage wallet</h2>
+            <p>Record the recovery phrase and private key somewhere physically secure.</p>
+          </div>
+          <div class="toolbar">
+            <button class="button button-outline" id="reveal-button" type="button" aria-pressed="false">
+              <svg class="eye-open" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg>
+              <svg class="eye-closed" viewBox="0 0 24 24" aria-hidden="true"><path d="m3 3 18 18M10.6 10.6a2 2 0 0 0 2.8 2.8M9.9 5.2A11.6 11.6 0 0 1 12 5c6.5 0 10 7 10 7a16.8 16.8 0 0 1-2 2.7M6.6 6.6C3.7 8.4 2 12 2 12s3.5 7 10 7a10 10 0 0 0 3.4-.6"/></svg>
+              <span id="reveal-label">Reveal secrets</span>
+            </button>
+            <button class="button button-outline" id="print-button" type="button">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9V3h12v6M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><path d="M6 14h12v7H6z"/></svg>
+              Print
+            </button>
+            <button class="button button-outline" id="download-pdf-button" type="button">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12M7 10l5 5 5-5M4 19h16"/></svg>
+              Download PDF
+            </button>
+            <button class="button button-ghost" id="clear-button" type="button">Clear</button>
+          </div>
+        </div>
+
+        <div class="key-grid">
+          <article class="key-card public-card">
+            <div class="key-card-heading">
+              <span class="key-icon public-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24"><circle cx="8" cy="15" r="4"/><path d="m11 12 8-8M17 4l3 3M14 7l3 3"/></svg>
+              </span>
+              <div><h3>Public key</h3><p>Safe to share for receiving funds</p></div>
+            </div>
+            <div class="value-box"><code id="public-key"></code></div>
+            <button class="button button-outline copy-button" type="button" data-copy="public">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+              Copy public key
+            </button>
+          </article>
+
+          <article class="key-card secret-card">
+            <div class="key-card-heading">
+              <span class="key-icon secret-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3M12 14v3"/></svg>
+              </span>
+              <div><h3>Private key</h3><p>Never share this value</p></div>
+            </div>
+            <div class="value-box secret-value"><code id="private-key" aria-label="Private key hidden"></code></div>
+            <button class="button button-outline copy-button" type="button" data-copy="private">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+              Copy private key
+            </button>
+          </article>
+        </div>
+
+        <article class="recovery-card">
+          <div class="recovery-header">
+            <div class="key-card-heading">
+              <span class="key-icon phrase-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24"><path d="M4 3h16v18H4zM8 7h8M8 11h8M8 15h5"/></svg>
+              </span>
+              <div><h3>Recovery phrase</h3><p>The only backup needed to reconstruct this wallet</p></div>
+            </div>
+            <button class="button button-outline copy-button" type="button" data-copy="mnemonic">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+              Copy phrase
+            </button>
+          </div>
+          <ol class="word-grid" id="recovery-words" aria-label="Recovery phrase hidden"></ol>
+        </article>
+
+        <div class="qr-grid">
+          <article class="qr-card">
+            <h3>Public key QR</h3>
+            <p>Use this to receive funds.</p>
+            <div class="qr-frame"><img id="public-qr" alt="QR code containing the public key"></div>
+          </article>
+          <article class="qr-card secret-card">
+            <h3>Private key QR</h3>
+            <p>Keep this completely private.</p>
+            <div class="qr-frame secret-qr" id="private-qr-frame">
+              <img id="private-qr" alt="QR code containing the private key" hidden>
+              <span id="private-qr-placeholder"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>Hidden</span>
+            </div>
+          </article>
+        </div>
+
+        <div class="alert alert-destructive">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10.3 3.7 2.2 18a2 2 0 0 0 1.7 3h16.2a2 2 0 0 0 1.7-3L13.7 3.7a2 2 0 0 0-3.4 0Z"/><path d="M12 9v4M12 17h.01"/></svg>
+          <div><strong>Treat these secrets like cash.</strong><p>Do not photograph, email, upload, or store them in a password manager connected to the internet. Clear this utility when finished.</p></div>
+        </div>
+      </section>
+
+      <section class="safety-grid" aria-labelledby="safety-title">
+        <div class="section-heading"><span class="step-label">Before you trust it</span><h2 id="safety-title">Cold-storage checklist</h2></div>
+        <div class="checklist">
+          <div class="check-item"><span>1</span><div><strong>Verify the file</strong><p>Obtain <code>index.html</code> from a trusted release and compare its published SHA-256 digest.</p></div></div>
+          <div class="check-item"><span>2</span><div><strong>Use a clean device</strong><p>Open the file in an up-to-date browser without extensions, ideally on a dedicated computer.</p></div></div>
+          <div class="check-item"><span>3</span><div><strong>Disconnect physically</strong><p>Turn off Wi-Fi and Bluetooth and remove network cables before generating or restoring keys.</p></div></div>
+          <div class="check-item"><span>4</span><div><strong>Back up offline</strong><p>Write, print, or download the secrets, verify the copy, then clear the utility and shut down the device.</p></div></div>
+        </div>
+      </section>
+    </main>
+
+    <footer><div class="shell"><span>Saito Offline Wallet Tool</span><span>No network requests · No automatic storage</span></div></footer>
+    <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+    <script>(()=>{var ne=function(e,t){let s=e,a=se[t],i=null,o=0,c=null,f=[],y={},d=function(u,b){o=s*4+17,i=(function(l){let p=new Array(l);for(let h=0;h<l;h+=1){p[h]=new Array(l);for(let x=0;x<l;x+=1)p[h][x]=null}return p})(o),g(0,0),g(o-7,0),g(0,o-7),B(),E(),P(u,b),s>=7&&L(u),c==null&&(c=Ot(s,a,f)),C(c,b)},g=function(u,b){for(let l=-1;l<=7;l+=1)if(!(u+l<=-1||o<=u+l))for(let p=-1;p<=7;p+=1)b+p<=-1||o<=b+p||(0<=l&&l<=6&&(p==0||p==6)||0<=p&&p<=6&&(l==0||l==6)||2<=l&&l<=4&&2<=p&&p<=4?i[u+l][b+p]=!0:i[u+l][b+p]=!1)},A=function(){let u=0,b=0;for(let l=0;l<8;l+=1){d(!0,l);let p=W.getLostPoint(y);(l==0||u>p)&&(u=p,b=l)}return b},E=function(){for(let u=8;u<o-8;u+=1)i[u][6]==null&&(i[u][6]=u%2==0);for(let u=8;u<o-8;u+=1)i[6][u]==null&&(i[6][u]=u%2==0)},B=function(){let u=W.getPatternPosition(s);for(let b=0;b<u.length;b+=1)for(let l=0;l<u.length;l+=1){let p=u[b],h=u[l];if(i[p][h]==null)for(let x=-2;x<=2;x+=1)for(let v=-2;v<=2;v+=1)x==-2||x==2||v==-2||v==2||x==0&&v==0?i[p+x][h+v]=!0:i[p+x][h+v]=!1}},L=function(u){let b=W.getBCHTypeNumber(s);for(let l=0;l<18;l+=1){let p=!u&&(b>>l&1)==1;i[Math.floor(l/3)][l%3+o-8-3]=p}for(let l=0;l<18;l+=1){let p=!u&&(b>>l&1)==1;i[l%3+o-8-3][Math.floor(l/3)]=p}},P=function(u,b){let l=a<<3|b,p=W.getBCHTypeInfo(l);for(let h=0;h<15;h+=1){let x=!u&&(p>>h&1)==1;h<6?i[h][8]=x:h<8?i[h+1][8]=x:i[o-15+h][8]=x}for(let h=0;h<15;h+=1){let x=!u&&(p>>h&1)==1;h<8?i[8][o-h-1]=x:h<9?i[8][15-h-1+1]=x:i[8][15-h-1]=x}i[o-8][8]=!u},C=function(u,b){let l=-1,p=o-1,h=7,x=0,v=W.getMaskFunction(b);for(let T=o-1;T>0;T-=2)for(T==6&&(T-=1);;){for(let S=0;S<2;S+=1)if(i[p][T-S]==null){let D=!1;x<u.length&&(D=(u[x]>>>h&1)==1),v(p,T-S)&&(D=!D),i[p][T-S]=D,h-=1,h==-1&&(x+=1,h=7)}if(p+=l,p<0||o<=p){p-=l,l=-l;break}}},I=function(u,b){let l=0,p=0,h=0,x=new Array(b.length),v=new Array(b.length);for(let k=0;k<b.length;k+=1){let M=b[k].dataCount,U=b[k].totalCount-M;p=Math.max(p,M),h=Math.max(h,U),x[k]=new Array(M);for(let j=0;j<x[k].length;j+=1)x[k][j]=255&u.getBuffer()[j+l];l+=M;let Ae=W.getErrorCorrectPolynomial(U),Ge=ie(x[k],Ae.getLength()-1).mod(Ae);v[k]=new Array(Ae.getLength()-1);for(let j=0;j<v[k].length;j+=1){let Ve=j+Ge.getLength()-v[k].length;v[k][j]=Ve>=0?Ge.getAt(Ve):0}}let T=0;for(let k=0;k<b.length;k+=1)T+=b[k].totalCount;let S=new Array(T),D=0;for(let k=0;k<p;k+=1)for(let M=0;M<b.length;M+=1)k<x[M].length&&(S[D]=x[M][k],D+=1);for(let k=0;k<h;k+=1)for(let M=0;M<b.length;M+=1)k<v[M].length&&(S[D]=v[M][k],D+=1);return S},Ot=function(u,b,l){let p=We.getRSBlocks(u,b),h=qe();for(let v=0;v<l.length;v+=1){let T=l[v];h.put(T.getMode(),4),h.put(T.getLength(),W.getLengthInBits(T.getMode(),u)),T.write(h)}let x=0;for(let v=0;v<p.length;v+=1)x+=p[v].dataCount;if(h.getLengthInBits()>x*8)throw"code length overflow. ("+h.getLengthInBits()+">"+x*8+")";for(h.getLengthInBits()+4<=x*8&&h.put(0,4);h.getLengthInBits()%8!=0;)h.putBit(!1);for(;!(h.getLengthInBits()>=x*8||(h.put(236,8),h.getLengthInBits()>=x*8));)h.put(17,8);return I(h,p)};y.addData=function(u,b){b=b||"Byte";let l=null;switch(b){case"Numeric":l=Ft(u);break;case"Alphanumeric":l=jt(u);break;case"Byte":l=$t(u);break;case"Kanji":l=Gt(u);break;default:throw"mode:"+b}f.push(l),c=null},y.isDark=function(u,b){if(u<0||o<=u||b<0||o<=b)throw u+","+b;return i[u][b]},y.getModuleCount=function(){return o},y.make=function(){if(s<1){let u=1;for(;u<40;u++){let b=We.getRSBlocks(u,a),l=qe();for(let h=0;h<f.length;h++){let x=f[h];l.put(x.getMode(),4),l.put(x.getLength(),W.getLengthInBits(x.getMode(),u)),x.write(l)}let p=0;for(let h=0;h<b.length;h++)p+=b[h].dataCount;if(l.getLengthInBits()<=p*8)break}s=u}d(!1,A())},y.createTableTag=function(u,b){u=u||2,b=typeof b>"u"?u*4:b;let l="";l+='<table style="',l+=" border-width: 0px; border-style: none;",l+=" border-collapse: collapse;",l+=" padding: 0px; margin: "+b+"px;",l+='">',l+="<tbody>";for(let p=0;p<y.getModuleCount();p+=1){l+="<tr>";for(let h=0;h<y.getModuleCount();h+=1)l+='<td style="',l+=" border-width: 0px; border-style: none;",l+=" border-collapse: collapse;",l+=" padding: 0px; margin: 0px;",l+=" width: "+u+"px;",l+=" height: "+u+"px;",l+=" background-color: ",l+=y.isDark(p,h)?"#000000":"#ffffff",l+=";",l+='"/>';l+="</tr>"}return l+="</tbody>",l+="</table>",l},y.createSvgTag=function(u,b,l,p){let h={};typeof arguments[0]=="object"&&(h=arguments[0],u=h.cellSize,b=h.margin,l=h.alt,p=h.title),u=u||2,b=typeof b>"u"?u*4:b,l=typeof l=="string"?{text:l}:l||{},l.text=l.text||null,l.id=l.text?l.id||"qrcode-description":null,p=typeof p=="string"?{text:p}:p||{},p.text=p.text||null,p.id=p.text?p.id||"qrcode-title":null;let x=y.getModuleCount()*u+b*2,v,T,S,D,k="",M;for(M="l"+u+",0 0,"+u+" -"+u+",0 0,-"+u+"z ",k+='<svg version="1.1" xmlns="http://www.w3.org/2000/svg"',k+=h.scalable?"":' width="'+x+'px" height="'+x+'px"',k+=' viewBox="0 0 '+x+" "+x+'" ',k+=' preserveAspectRatio="xMinYMin meet"',k+=p.text||l.text?' role="img" aria-labelledby="'+te([p.id,l.id].join(" ").trim())+'"':"",k+=">",k+=p.text?'<title id="'+te(p.id)+'">'+te(p.text)+"</title>":"",k+=l.text?'<description id="'+te(l.id)+'">'+te(l.text)+"</description>":"",k+='<rect width="100%" height="100%" fill="white" cx="0" cy="0"/>',k+='<path d="',S=0;S<y.getModuleCount();S+=1)for(D=S*u+b,v=0;v<y.getModuleCount();v+=1)y.isDark(S,v)&&(T=v*u+b,k+="M"+T+","+D+M);return k+='" stroke="transparent" fill="black"/>',k+="</svg>",k},y.createDataURL=function(u,b){u=u||2,b=typeof b>"u"?u*4:b;let l=y.getModuleCount()*u+b*2,p=b,h=l-b;return zt(l,l,function(x,v){if(p<=x&&x<h&&p<=v&&v<h){let T=Math.floor((x-p)/u),S=Math.floor((v-p)/u);return y.isDark(S,T)?0:1}else return 1})},y.createImgTag=function(u,b,l){u=u||2,b=typeof b>"u"?u*4:b;let p=y.getModuleCount()*u+b*2,h="";return h+="<img",h+=' src="',h+=y.createDataURL(u,b),h+='"',h+=' width="',h+=p,h+='"',h+=' height="',h+=p,h+='"',l&&(h+=' alt="',h+=te(l),h+='"'),h+="/>",h};let te=function(u){let b="";for(let l=0;l<u.length;l+=1){let p=u.charAt(l);switch(p){case"<":b+="&lt;";break;case">":b+="&gt;";break;case"&":b+="&amp;";break;case'"':b+="&quot;";break;default:b+=p;break}}return b},Kt=function(u){u=typeof u>"u"?2:u;let l=y.getModuleCount()*1+u*2,p=u,h=l-u,x,v,T,S,D,k={"\u2588\u2588":"\u2588","\u2588 ":"\u2580"," \u2588":"\u2584","  ":" "},M={"\u2588\u2588":"\u2580","\u2588 ":"\u2580"," \u2588":" ","  ":" "},U="";for(x=0;x<l;x+=2){for(T=Math.floor((x-p)/1),S=Math.floor((x+1-p)/1),v=0;v<l;v+=1)D="\u2588",p<=v&&v<h&&p<=x&&x<h&&y.isDark(T,Math.floor((v-p)/1))&&(D=" "),p<=v&&v<h&&p<=x+1&&x+1<h&&y.isDark(S,Math.floor((v-p)/1))?D+=" ":D+="\u2588",U+=u<1&&x+1>=h?M[D]:k[D];U+=`
+`}return l%2&&u>0?U.substring(0,U.length-l-1)+Array(l+1).join("\u2580"):U.substring(0,U.length-1)};return y.createASCII=function(u,b){if(u=u||1,u<2)return Kt(b);u-=1,b=typeof b>"u"?u*2:b;let l=y.getModuleCount()*u+b*2,p=b,h=l-b,x,v,T,S,D=Array(u+1).join("\u2588\u2588"),k=Array(u+1).join("  "),M="",U="";for(x=0;x<l;x+=1){for(T=Math.floor((x-p)/u),U="",v=0;v<l;v+=1)S=1,p<=v&&v<h&&p<=x&&x<h&&y.isDark(T,Math.floor((v-p)/u))&&(S=0),U+=S?D:k;for(T=0;T<u;T+=1)M+=U+`
+`}return M.substring(0,M.length-1)},y.renderTo2dContext=function(u,b){b=b||2;let l=y.getModuleCount();for(let p=0;p<l;p++)for(let h=0;h<l;h++)u.fillStyle=y.isDark(p,h)?"black":"white",u.fillRect(h*b,p*b,b,b)},y};ne.stringToBytes=function(e){let t=[];for(let n=0;n<e.length;n+=1){let r=e.charCodeAt(n);t.push(r&255)}return t};ne.createStringToBytes=function(e,t){let n=(function(){let s=Wt(e),a=function(){let c=s.read();if(c==-1)throw"eof";return c},i=0,o={};for(;;){let c=s.read();if(c==-1)break;let f=a(),y=a(),d=a(),g=String.fromCharCode(c<<8|f),A=y<<8|d;o[g]=A,i+=1}if(i!=t)throw i+" != "+t;return o})(),r=63;return function(s){let a=[];for(let i=0;i<s.length;i+=1){let o=s.charCodeAt(i);if(o<128)a.push(o);else{let c=n[s.charAt(i)];typeof c=="number"?(c&255)==c?a.push(c):(a.push(c>>>8),a.push(c&255)):a.push(r)}}return a}};var H={MODE_NUMBER:1,MODE_ALPHA_NUM:2,MODE_8BIT_BYTE:4,MODE_KANJI:8},se={L:1,M:0,Q:3,H:2},V={PATTERN000:0,PATTERN001:1,PATTERN010:2,PATTERN011:3,PATTERN100:4,PATTERN101:5,PATTERN110:6,PATTERN111:7},W=(function(){let e=[[],[6,18],[6,22],[6,26],[6,30],[6,34],[6,22,38],[6,24,42],[6,26,46],[6,28,50],[6,30,54],[6,32,58],[6,34,62],[6,26,46,66],[6,26,48,70],[6,26,50,74],[6,30,54,78],[6,30,56,82],[6,30,58,86],[6,34,62,90],[6,28,50,72,94],[6,26,50,74,98],[6,30,54,78,102],[6,28,54,80,106],[6,32,58,84,110],[6,30,58,86,114],[6,34,62,90,118],[6,26,50,74,98,122],[6,30,54,78,102,126],[6,26,52,78,104,130],[6,30,56,82,108,134],[6,34,60,86,112,138],[6,30,58,86,114,142],[6,34,62,90,118,146],[6,30,54,78,102,126,150],[6,24,50,76,102,128,154],[6,28,54,80,106,132,158],[6,32,58,84,110,136,162],[6,26,54,82,110,138,166],[6,30,58,86,114,142,170]],t=1335,n=7973,r=21522,s={},a=function(i){let o=0;for(;i!=0;)o+=1,i>>>=1;return o};return s.getBCHTypeInfo=function(i){let o=i<<10;for(;a(o)-a(t)>=0;)o^=t<<a(o)-a(t);return(i<<10|o)^r},s.getBCHTypeNumber=function(i){let o=i<<12;for(;a(o)-a(n)>=0;)o^=n<<a(o)-a(n);return i<<12|o},s.getPatternPosition=function(i){return e[i-1]},s.getMaskFunction=function(i){switch(i){case V.PATTERN000:return function(o,c){return(o+c)%2==0};case V.PATTERN001:return function(o,c){return o%2==0};case V.PATTERN010:return function(o,c){return c%3==0};case V.PATTERN011:return function(o,c){return(o+c)%3==0};case V.PATTERN100:return function(o,c){return(Math.floor(o/2)+Math.floor(c/3))%2==0};case V.PATTERN101:return function(o,c){return o*c%2+o*c%3==0};case V.PATTERN110:return function(o,c){return(o*c%2+o*c%3)%2==0};case V.PATTERN111:return function(o,c){return(o*c%3+(o+c)%2)%2==0};default:throw"bad maskPattern:"+i}},s.getErrorCorrectPolynomial=function(i){let o=ie([1],0);for(let c=0;c<i;c+=1)o=o.multiply(ie([1,q.gexp(c)],0));return o},s.getLengthInBits=function(i,o){if(1<=o&&o<10)switch(i){case H.MODE_NUMBER:return 10;case H.MODE_ALPHA_NUM:return 9;case H.MODE_8BIT_BYTE:return 8;case H.MODE_KANJI:return 8;default:throw"mode:"+i}else if(o<27)switch(i){case H.MODE_NUMBER:return 12;case H.MODE_ALPHA_NUM:return 11;case H.MODE_8BIT_BYTE:return 16;case H.MODE_KANJI:return 10;default:throw"mode:"+i}else if(o<41)switch(i){case H.MODE_NUMBER:return 14;case H.MODE_ALPHA_NUM:return 13;case H.MODE_8BIT_BYTE:return 16;case H.MODE_KANJI:return 12;default:throw"mode:"+i}else throw"type:"+o},s.getLostPoint=function(i){let o=i.getModuleCount(),c=0;for(let d=0;d<o;d+=1)for(let g=0;g<o;g+=1){let A=0,E=i.isDark(d,g);for(let B=-1;B<=1;B+=1)if(!(d+B<0||o<=d+B))for(let L=-1;L<=1;L+=1)g+L<0||o<=g+L||B==0&&L==0||E==i.isDark(d+B,g+L)&&(A+=1);A>5&&(c+=3+A-5)}for(let d=0;d<o-1;d+=1)for(let g=0;g<o-1;g+=1){let A=0;i.isDark(d,g)&&(A+=1),i.isDark(d+1,g)&&(A+=1),i.isDark(d,g+1)&&(A+=1),i.isDark(d+1,g+1)&&(A+=1),(A==0||A==4)&&(c+=3)}for(let d=0;d<o;d+=1)for(let g=0;g<o-6;g+=1)i.isDark(d,g)&&!i.isDark(d,g+1)&&i.isDark(d,g+2)&&i.isDark(d,g+3)&&i.isDark(d,g+4)&&!i.isDark(d,g+5)&&i.isDark(d,g+6)&&(c+=40);for(let d=0;d<o;d+=1)for(let g=0;g<o-6;g+=1)i.isDark(g,d)&&!i.isDark(g+1,d)&&i.isDark(g+2,d)&&i.isDark(g+3,d)&&i.isDark(g+4,d)&&!i.isDark(g+5,d)&&i.isDark(g+6,d)&&(c+=40);let f=0;for(let d=0;d<o;d+=1)for(let g=0;g<o;g+=1)i.isDark(g,d)&&(f+=1);let y=Math.abs(100*f/o/o-50)/5;return c+=y*10,c},s})(),q=(function(){let e=new Array(256),t=new Array(256);for(let r=0;r<8;r+=1)e[r]=1<<r;for(let r=8;r<256;r+=1)e[r]=e[r-4]^e[r-5]^e[r-6]^e[r-8];for(let r=0;r<255;r+=1)t[e[r]]=r;let n={};return n.glog=function(r){if(r<1)throw"glog("+r+")";return t[r]},n.gexp=function(r){for(;r<0;)r+=255;for(;r>=256;)r-=255;return e[r]},n})(),ie=function(e,t){if(typeof e.length>"u")throw e.length+"/"+t;let n=(function(){let s=0;for(;s<e.length&&e[s]==0;)s+=1;let a=new Array(e.length-s+t);for(let i=0;i<e.length-s;i+=1)a[i]=e[i+s];return a})(),r={};return r.getAt=function(s){return n[s]},r.getLength=function(){return n.length},r.multiply=function(s){let a=new Array(r.getLength()+s.getLength()-1);for(let i=0;i<r.getLength();i+=1)for(let o=0;o<s.getLength();o+=1)a[i+o]^=q.gexp(q.glog(r.getAt(i))+q.glog(s.getAt(o)));return ie(a,0)},r.mod=function(s){if(r.getLength()-s.getLength()<0)return r;let a=q.glog(r.getAt(0))-q.glog(s.getAt(0)),i=new Array(r.getLength());for(let o=0;o<r.getLength();o+=1)i[o]=r.getAt(o);for(let o=0;o<s.getLength();o+=1)i[o]^=q.gexp(q.glog(s.getAt(o))+a);return ie(i,0).mod(s)},r},We=(function(){let e=[[1,26,19],[1,26,16],[1,26,13],[1,26,9],[1,44,34],[1,44,28],[1,44,22],[1,44,16],[1,70,55],[1,70,44],[2,35,17],[2,35,13],[1,100,80],[2,50,32],[2,50,24],[4,25,9],[1,134,108],[2,67,43],[2,33,15,2,34,16],[2,33,11,2,34,12],[2,86,68],[4,43,27],[4,43,19],[4,43,15],[2,98,78],[4,49,31],[2,32,14,4,33,15],[4,39,13,1,40,14],[2,121,97],[2,60,38,2,61,39],[4,40,18,2,41,19],[4,40,14,2,41,15],[2,146,116],[3,58,36,2,59,37],[4,36,16,4,37,17],[4,36,12,4,37,13],[2,86,68,2,87,69],[4,69,43,1,70,44],[6,43,19,2,44,20],[6,43,15,2,44,16],[4,101,81],[1,80,50,4,81,51],[4,50,22,4,51,23],[3,36,12,8,37,13],[2,116,92,2,117,93],[6,58,36,2,59,37],[4,46,20,6,47,21],[7,42,14,4,43,15],[4,133,107],[8,59,37,1,60,38],[8,44,20,4,45,21],[12,33,11,4,34,12],[3,145,115,1,146,116],[4,64,40,5,65,41],[11,36,16,5,37,17],[11,36,12,5,37,13],[5,109,87,1,110,88],[5,65,41,5,66,42],[5,54,24,7,55,25],[11,36,12,7,37,13],[5,122,98,1,123,99],[7,73,45,3,74,46],[15,43,19,2,44,20],[3,45,15,13,46,16],[1,135,107,5,136,108],[10,74,46,1,75,47],[1,50,22,15,51,23],[2,42,14,17,43,15],[5,150,120,1,151,121],[9,69,43,4,70,44],[17,50,22,1,51,23],[2,42,14,19,43,15],[3,141,113,4,142,114],[3,70,44,11,71,45],[17,47,21,4,48,22],[9,39,13,16,40,14],[3,135,107,5,136,108],[3,67,41,13,68,42],[15,54,24,5,55,25],[15,43,15,10,44,16],[4,144,116,4,145,117],[17,68,42],[17,50,22,6,51,23],[19,46,16,6,47,17],[2,139,111,7,140,112],[17,74,46],[7,54,24,16,55,25],[34,37,13],[4,151,121,5,152,122],[4,75,47,14,76,48],[11,54,24,14,55,25],[16,45,15,14,46,16],[6,147,117,4,148,118],[6,73,45,14,74,46],[11,54,24,16,55,25],[30,46,16,2,47,17],[8,132,106,4,133,107],[8,75,47,13,76,48],[7,54,24,22,55,25],[22,45,15,13,46,16],[10,142,114,2,143,115],[19,74,46,4,75,47],[28,50,22,6,51,23],[33,46,16,4,47,17],[8,152,122,4,153,123],[22,73,45,3,74,46],[8,53,23,26,54,24],[12,45,15,28,46,16],[3,147,117,10,148,118],[3,73,45,23,74,46],[4,54,24,31,55,25],[11,45,15,31,46,16],[7,146,116,7,147,117],[21,73,45,7,74,46],[1,53,23,37,54,24],[19,45,15,26,46,16],[5,145,115,10,146,116],[19,75,47,10,76,48],[15,54,24,25,55,25],[23,45,15,25,46,16],[13,145,115,3,146,116],[2,74,46,29,75,47],[42,54,24,1,55,25],[23,45,15,28,46,16],[17,145,115],[10,74,46,23,75,47],[10,54,24,35,55,25],[19,45,15,35,46,16],[17,145,115,1,146,116],[14,74,46,21,75,47],[29,54,24,19,55,25],[11,45,15,46,46,16],[13,145,115,6,146,116],[14,74,46,23,75,47],[44,54,24,7,55,25],[59,46,16,1,47,17],[12,151,121,7,152,122],[12,75,47,26,76,48],[39,54,24,14,55,25],[22,45,15,41,46,16],[6,151,121,14,152,122],[6,75,47,34,76,48],[46,54,24,10,55,25],[2,45,15,64,46,16],[17,152,122,4,153,123],[29,74,46,14,75,47],[49,54,24,10,55,25],[24,45,15,46,46,16],[4,152,122,18,153,123],[13,74,46,32,75,47],[48,54,24,14,55,25],[42,45,15,32,46,16],[20,147,117,4,148,118],[40,75,47,7,76,48],[43,54,24,22,55,25],[10,45,15,67,46,16],[19,148,118,6,149,119],[18,75,47,31,76,48],[34,54,24,34,55,25],[20,45,15,61,46,16]],t=function(s,a){let i={};return i.totalCount=s,i.dataCount=a,i},n={},r=function(s,a){switch(a){case se.L:return e[(s-1)*4+0];case se.M:return e[(s-1)*4+1];case se.Q:return e[(s-1)*4+2];case se.H:return e[(s-1)*4+3];default:return}};return n.getRSBlocks=function(s,a){let i=r(s,a);if(typeof i>"u")throw"bad rs block @ typeNumber:"+s+"/errorCorrectionLevel:"+a;let o=i.length/3,c=[];for(let f=0;f<o;f+=1){let y=i[f*3+0],d=i[f*3+1],g=i[f*3+2];for(let A=0;A<y;A+=1)c.push(t(d,g))}return c},n})(),qe=function(){let e=[],t=0,n={};return n.getBuffer=function(){return e},n.getAt=function(r){let s=Math.floor(r/8);return(e[s]>>>7-r%8&1)==1},n.put=function(r,s){for(let a=0;a<s;a+=1)n.putBit((r>>>s-a-1&1)==1)},n.getLengthInBits=function(){return t},n.putBit=function(r){let s=Math.floor(t/8);e.length<=s&&e.push(0),r&&(e[s]|=128>>>t%8),t+=1},n},Ft=function(e){let t=H.MODE_NUMBER,n=e,r={};r.getMode=function(){return t},r.getLength=function(i){return n.length},r.write=function(i){let o=n,c=0;for(;c+2<o.length;)i.put(s(o.substring(c,c+3)),10),c+=3;c<o.length&&(o.length-c==1?i.put(s(o.substring(c,c+1)),4):o.length-c==2&&i.put(s(o.substring(c,c+2)),7))};let s=function(i){let o=0;for(let c=0;c<i.length;c+=1)o=o*10+a(i.charAt(c));return o},a=function(i){if("0"<=i&&i<="9")return i.charCodeAt(0)-48;throw"illegal char :"+i};return r},jt=function(e){let t=H.MODE_ALPHA_NUM,n=e,r={};r.getMode=function(){return t},r.getLength=function(a){return n.length},r.write=function(a){let i=n,o=0;for(;o+1<i.length;)a.put(s(i.charAt(o))*45+s(i.charAt(o+1)),11),o+=2;o<i.length&&a.put(s(i.charAt(o)),6)};let s=function(a){if("0"<=a&&a<="9")return a.charCodeAt(0)-48;if("A"<=a&&a<="Z")return a.charCodeAt(0)-65+10;switch(a){case" ":return 36;case"$":return 37;case"%":return 38;case"*":return 39;case"+":return 40;case"-":return 41;case".":return 42;case"/":return 43;case":":return 44;default:throw"illegal char :"+a}};return r},$t=function(e){let t=H.MODE_8BIT_BYTE,n=e,r=ne.stringToBytes(e),s={};return s.getMode=function(){return t},s.getLength=function(a){return r.length},s.write=function(a){for(let i=0;i<r.length;i+=1)a.put(r[i],8)},s},Gt=function(e){let t=H.MODE_KANJI,n=e,r=ne.stringToBytes;(function(i,o){let c=r(i);if(c.length!=2||(c[0]<<8|c[1])!=o)throw"sjis not supported."})("\u53CB",38726);let s=r(e),a={};return a.getMode=function(){return t},a.getLength=function(i){return~~(s.length/2)},a.write=function(i){let o=s,c=0;for(;c+1<o.length;){let f=(255&o[c])<<8|255&o[c+1];if(33088<=f&&f<=40956)f-=33088;else if(57408<=f&&f<=60351)f-=49472;else throw"illegal char at "+(c+1)+"/"+f;f=(f>>>8&255)*192+(f&255),i.put(f,13),c+=2}if(c<o.length)throw"illegal char at "+(c+1)},a},ze=function(){let e=[],t={};return t.writeByte=function(n){e.push(n&255)},t.writeShort=function(n){t.writeByte(n),t.writeByte(n>>>8)},t.writeBytes=function(n,r,s){r=r||0,s=s||n.length;for(let a=0;a<s;a+=1)t.writeByte(n[a+r])},t.writeString=function(n){for(let r=0;r<n.length;r+=1)t.writeByte(n.charCodeAt(r))},t.toByteArray=function(){return e},t.toString=function(){let n="";n+="[";for(let r=0;r<e.length;r+=1)r>0&&(n+=","),n+=e[r];return n+="]",n},t},Vt=function(){let e=0,t=0,n=0,r="",s={},a=function(o){r+=String.fromCharCode(i(o&63))},i=function(o){if(o<0)throw"n:"+o;if(o<26)return 65+o;if(o<52)return 97+(o-26);if(o<62)return 48+(o-52);if(o==62)return 43;if(o==63)return 47;throw"n:"+o};return s.writeByte=function(o){for(e=e<<8|o&255,t+=8,n+=1;t>=6;)a(e>>>t-6),t-=6},s.flush=function(){if(t>0&&(a(e<<6-t),e=0,t=0),n%3!=0){let o=3-n%3;for(let c=0;c<o;c+=1)r+="="}},s.toString=function(){return r},s},Wt=function(e){let t=e,n=0,r=0,s=0,a={};a.read=function(){for(;s<8;){if(n>=t.length){if(s==0)return-1;throw"unexpected end of file./"+s}let c=t.charAt(n);if(n+=1,c=="=")return s=0,-1;if(c.match(/^\s$/))continue;r=r<<6|i(c.charCodeAt(0)),s+=6}let o=r>>>s-8&255;return s-=8,o};let i=function(o){if(65<=o&&o<=90)return o-65;if(97<=o&&o<=122)return o-97+26;if(48<=o&&o<=57)return o-48+52;if(o==43)return 62;if(o==47)return 63;throw"c:"+o};return a},qt=function(e,t){let n=e,r=t,s=new Array(e*t),a={};a.setPixel=function(f,y,d){s[y*n+f]=d},a.write=function(f){f.writeString("GIF87a"),f.writeShort(n),f.writeShort(r),f.writeByte(128),f.writeByte(0),f.writeByte(0),f.writeByte(0),f.writeByte(0),f.writeByte(0),f.writeByte(255),f.writeByte(255),f.writeByte(255),f.writeString(","),f.writeShort(0),f.writeShort(0),f.writeShort(n),f.writeShort(r),f.writeByte(0);let y=2,d=o(y);f.writeByte(y);let g=0;for(;d.length-g>255;)f.writeByte(255),f.writeBytes(d,g,255),g+=255;f.writeByte(d.length-g),f.writeBytes(d,g,d.length-g),f.writeByte(0),f.writeString(";")};let i=function(f){let y=f,d=0,g=0,A={};return A.write=function(E,B){if(E>>>B)throw"length over";for(;d+B>=8;)y.writeByte(255&(E<<d|g)),B-=8-d,E>>>=8-d,g=0,d=0;g=E<<d|g,d=d+B},A.flush=function(){d>0&&y.writeByte(g)},A},o=function(f){let y=1<<f,d=(1<<f)+1,g=f+1,A=c();for(let C=0;C<y;C+=1)A.add(String.fromCharCode(C));A.add(String.fromCharCode(y)),A.add(String.fromCharCode(d));let E=ze(),B=i(E);B.write(y,g);let L=0,P=String.fromCharCode(s[L]);for(L+=1;L<s.length;){let C=String.fromCharCode(s[L]);L+=1,A.contains(P+C)?P=P+C:(B.write(A.indexOf(P),g),A.size()<4095&&(A.size()==1<<g&&(g+=1),A.add(P+C)),P=C)}return B.write(A.indexOf(P),g),B.write(d,g),B.flush(),E.toByteArray()},c=function(){let f={},y=0,d={};return d.add=function(g){if(d.contains(g))throw"dup key:"+g;f[g]=y,y+=1},d.size=function(){return y},d.indexOf=function(g){return f[g]},d.contains=function(g){return typeof f[g]<"u"},d};return a},zt=function(e,t,n){let r=qt(e,t);for(let o=0;o<t;o+=1)for(let c=0;c<e;c+=1)r.setPixel(c,o,n(c,o));let s=ze();r.write(s);let a=Vt(),i=s.toByteArray();for(let o=0;o<i.length;o+=1)a.writeByte(i[o]);return a.flush(),"data:image/gif;base64,"+a},ue=ne,Un=ne.stringToBytes;var tt=Object.freeze({p:0xfffffffffffffffffffffffffffffffffffffffffffffffffffffffefffffc2fn,n:0xfffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141n,h:1n,a:0n,b:7n,Gx:0x79be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798n,Gy:0x483ada7726a3c4655da4fbfc0e1108a8fd17b448a68554199c47d08ffb10d4b8n}),{p:J,n:Ce,Gx:Yt,Gy:Qt,b:nt}=tt,ee=32,de=64,he={publicKey:ee+1,publicKeyUncompressed:de+1,signature:de,seed:ee+ee/2},R=(e="",t=Error)=>{let n=new t(e),{captureStackTrace:r}=Error;throw typeof r=="function"&&r(n,R),n},Xt=e=>e instanceof Uint8Array||ArrayBuffer.isView(e)&&e.constructor.name==="Uint8Array"&&e.BYTES_PER_ELEMENT===1,ae=(e,t,n="")=>{let r=Xt(e),s=e?.length,a=t!==void 0;if(!r||a&&s!==t){let i=n&&`"${n}" `,o=a?` of length ${t}`:"",c=r?`length=${s}`:`type=${typeof e}`,f=i+"expected Uint8Array"+o+", got "+c;return r?R(f,RangeError):R(f,TypeError)}return e},_e=e=>new Uint8Array(e),rt=(e,t)=>e.toString(16).padStart(t,"0"),ot=e=>{let t="";for(let n of ae(e))t+=rt(n,2);return t},$={_0:48,_9:57,A:65,F:70,a:97,f:102},Ye=e=>e>=$._0&&e<=$._9?e-$._0:e>=$.A&&e<=$.F?e-($.A-10):e>=$.a&&e<=$.f?e-($.a-10):void 0,st=e=>{let t="hex invalid";if(typeof e!="string")return R(t);let n=e.length,r=n/2;if(n%2)return R(t);let s=_e(r);for(let a=0,i=0;a<r;a++,i+=2){let o=Ye(e.charCodeAt(i)),c=Ye(e.charCodeAt(i+1));if(o===void 0||c===void 0)return R(t);s[a]=o*16+c}return s};var Qe=(...e)=>{let t=0;for(let s of e)t+=ae(s).length;let n=_e(t),r=0;for(let s of e)n.set(s,r),r+=s.length;return n},Zt=(e=ee)=>(globalThis?.crypto).getRandomValues(_e(e)),Ee=BigInt,ce=(e,t,n,r="bad number: out of range")=>typeof e!="bigint"?R(r,TypeError):t<=e&&e<n?e:R(r,RangeError),w=(e,t=J)=>{let n=e%t;return n>=0n?n:t+n};var Jt=(e,t)=>{(e===0n||t<=0n)&&R("no inverse n="+e+" mod="+t);let n=w(e,t),r=t,s=0n,a=1n,i=1n,o=0n;for(;n!==0n;){let c=r/n,f=r%n,y=s-i*c,d=a-o*c;r=n,n=f,s=i,a=o,i=y,o=d}return r===1n?w(s,t):R("no inverse")};var Be=e=>e instanceof z?e:R("Point expected"),it=e=>w(w(e*e)*e+nt),Xe=e=>ce(e,0n,J),fe=e=>ce(e,1n,J),en=e=>ce(e,1n,Ce),at=e=>!(e&1n),ct=e=>Uint8Array.of(e),tn=e=>ct(at(e)?2:3),nn=e=>{let t=it(fe(e)),n=1n;for(let r=t,s=(J+1n)/4n;s>0n;s>>=1n)s&1n&&(n=n*r%J),r=r*r%J;return w(n*n)!==t&&R("sqrt invalid"),at(n)?n:w(-n)};var z=class e{static BASE;static ZERO;X;Y;Z;constructor(t,n,r){this.X=Xe(t),this.Y=fe(n),this.Z=Xe(r),Object.freeze(this)}static CURVE(){return tt}static fromAffine(t){let{x:n,y:r}=t;return n===0n&&r===0n?Z:new e(n,r,1n)}static fromBytes(t){ae(t);let{publicKey:n,publicKeyUncompressed:r}=he,s,a=t.length,i=t[0],o=t.subarray(1),c=Ze(o,0,ee);if(a===n&&(i===2||i===3)){let f=nn(c);i===3&&(f=w(-f)),s=new e(c,f,1n)}return a===r&&i===4&&(s=new e(c,Ze(o,ee,de),1n)),s?s.assertValidity():R("bad point: not on curve")}static fromHex(t){return e.fromBytes(st(t))}get x(){return this.toAffine().x}get y(){return this.toAffine().y}equals(t){let{X:n,Y:r,Z:s}=this,{X:a,Y:i,Z:o}=Be(t),c=w(n*o),f=w(a*s),y=w(r*o),d=w(i*s);return c===f&&y===d}is0(){return this.equals(Z)}negate(){return new e(this.X,w(-this.Y),this.Z)}double(){return this.add(this)}add(t){let{X:n,Y:r,Z:s}=this,{X:a,Y:i,Z:o}=Be(t),c=0n,f=nt,y=0n,d=0n,g=0n,A=w(f*3n),E=w(n*a),B=w(r*i),L=w(s*o),P=w(n+r),C=w(a+i);P=w(P*C),C=w(E+B),P=w(P-C),C=w(n+s);let I=w(a+o);return C=w(C*I),I=w(E+L),C=w(C-I),I=w(r+s),y=w(i+o),I=w(I*y),y=w(B+L),I=w(I-y),g=w(c*C),y=w(A*L),g=w(y+g),y=w(B-g),g=w(B+g),d=w(y*g),B=w(E+E),B=w(B+E),L=w(c*L),C=w(A*C),B=w(B+L),L=w(E-L),L=w(c*L),C=w(C+L),E=w(B*C),d=w(d+E),E=w(I*C),y=w(P*y),y=w(y-E),E=w(P*B),g=w(I*g),g=w(g+E),new e(y,d,g)}subtract(t){return this.add(Be(t).negate())}multiply(t,n=!0){if(!n&&t===0n)return Z;if(en(t),t===1n)return this;if(this.equals(re))return un(t).p;let r=Z,s=re;for(let a=this;t>0n;a=a.double(),t>>=1n)t&1n?r=r.add(a):n&&(s=s.add(a));return r}multiplyUnsafe(t){return this.multiply(t,!1)}toAffine(){let{X:t,Y:n,Z:r}=this;if(this.equals(Z))return{x:0n,y:0n};if(r===1n)return{x:t,y:n};let s=Jt(r,J);return w(r*s)!==1n&&R("inverse invalid"),{x:w(t*s),y:w(n*s)}}assertValidity(){let{x:t,y:n}=this.toAffine();return fe(t),fe(n),w(n*n)===it(t)?this:R("bad point: not on curve")}toBytes(t=!0){let{x:n,y:r}=this.assertValidity().toAffine(),s=Te(n);return t?Qe(tn(r),s):Qe(ct(4),s,Te(r))}toHex(t){return ot(this.toBytes(t))}},re=new z(Yt,Qt,1n),Z=new z(0n,1n,0n);z.BASE=re;z.ZERO=Z;var Se=e=>Ee("0x"+(ot(e)||"0")),Ze=(e,t,n)=>Se(e.subarray(t,n)),rn=2n**256n,Te=e=>st(rt(ce(e,0n,rn),de)),lt=e=>{let t=Se(ae(e,ee,"secret key"));return ce(t,1n,Ce,"invalid secret key: outside of range")};var ut=(e,t=!0)=>re.multiply(lt(e)).toBytes(t),on=e=>{try{return!!lt(e)}catch{return!1}},sn=(e,t)=>{let{publicKey:n,publicKeyUncompressed:r}=he;try{let s=e.length;return t===!0&&s!==n||t===!1&&s!==r?!1:!!z.fromBytes(e)}catch{return!1}};var an=e=>{if(e=e===void 0?Zt(he.seed):e,ae(e),e.length<he.seed||e.length>1024)return R("expected 48-1024b",RangeError);let t=w(Se(e),Ce-1n);return Te(t+1n)};var Me=Object.freeze({isValidSecretKey:on,isValidPublicKey:sn,randomSecretKey:an});var pe=8,cn=256,ft=Math.ceil(cn/pe)+1,Le=2**(pe-1),ln=()=>{let e=[],t=re,n=t;for(let r=0;r<ft;r++){n=t,e.push(n);for(let s=1;s<Le;s++)n=n.add(t),e.push(n);t=n.double()}return e},Je,et=(e,t)=>{let n=t.negate();return e?n:t},un=e=>{let t=Je||(Je=ln()),n=Z,r=re,s=2**pe,a=s,i=Ee(s-1),o=Ee(pe);for(let c=0;c<ft;c++){let f=Number(e&i);e>>=o,f>Le&&(f-=a,e+=1n);let y=c*Le,d=y,g=y+Math.abs(f)-1,A=c%2!==0,E=f<0;f===0?r=r.add(et(A,t[d])):n=n.add(et(E,t[g]))}return e!==0n&&R("invalid wnaf"),{p:n,f:r}};function dt(e){return e instanceof Uint8Array||ArrayBuffer.isView(e)&&e.constructor.name==="Uint8Array"&&"BYTES_PER_ELEMENT"in e&&e.BYTES_PER_ELEMENT===1}var De=e=>e?`"${e}" `:"";function ge(e,t=""){if(typeof e!="number")throw new TypeError(De(t)+"expected number, got "+typeof e);if(!Number.isSafeInteger(e)||e<0)throw new RangeError(De(t)+"expected integer >= 0, got "+e);return e}function le(e,t,n=""){if(dt(e)&&(t===void 0||e.length===t))return e;t!==void 0&&ge(t,"length");let r=dt(e),s=t!==void 0?` of length ${t}`:"",a=r?`length=${e.length}`:`type=${typeof e}`,i=De(n)+"expected Uint8Array"+s+", got "+a;throw r?new RangeError(i):new TypeError(i)}var ht=(e,t)=>{if(e===null||typeof e!="object"||Array.isArray(e))throw new TypeError((t==="object"?"":`"${t}" `)+"expected object, got type="+typeof e)};function Re(e,t=!0){if(e.destroyed)throw new Error("hash was destroyed");if(t&&e.finished)throw new Error("digest() was already called")}function pt(e,t){le(e,void 0,"output");let n=t.outputLen;if(!(e.length>=n))throw new RangeError('"output" expected length >= '+n)}function Pe(...e){for(let t=0;t<e.length;t++)e[t].fill(0)}function be(e){return new DataView(e.buffer,e.byteOffset,e.byteLength)}function F(e,t){return e<<32-t|e>>>t}function fn(e,t,n="opts"){return ht(e,"defaults"),t!==void 0&&ht(t,n),Object.assign(e,t)}function gt(e,t={}){if(typeof e!="function")throw new TypeError('"hashCons" expected function, got type='+typeof e);t=fn({},t,"info");let n=(s,a)=>e(a).update(s).digest(),r=e(void 0);return n.outputLen=r.outputLen,n.blockLen=r.blockLen,n.canXOF=r.canXOF,n.create=s=>e(s),Object.assign(n,t),Object.freeze(n)}function bt(e=32){ge(e,"bytesLength");let t=typeof globalThis=="object"?globalThis.crypto:null;if(typeof t?.getRandomValues!="function")throw new Error("crypto.getRandomValues must be defined");if(e>65536)throw new RangeError(`"bytesLength" expected <= 65536, got ${e}`);return t.getRandomValues(new Uint8Array(e))}var yt=e=>({oid:Uint8Array.from([6,9,96,134,72,1,101,3,4,2,e])});var dn=e=>e/2**32|0,hn=e=>e>>>0;function mt(e,t,n,r){let s=dn(n),a=hn(n);e.setUint32(t,r?a:s,r),e.setUint32(t+4,r?s:a,r)}function xt(e,t,n){return e&t^~e&n}function wt(e,t,n){return e&t^e&n^t&n}var ye=class{blockLen;outputLen;canXOF=!1;padOffset;isLE;buffer;view;finished=!1;length=0;pos=0;destroyed=!1;constructor(t,n,r,s){this.blockLen=t,this.outputLen=n,this.padOffset=r,this.isLE=s,this.buffer=new Uint8Array(t),this.view=be(this.buffer)}update(t){Re(this),le(t);let{view:n,buffer:r,blockLen:s}=this,a=t.length,i=!1;for(let o=0;o<a;){let c=Math.min(s-this.pos,a-o);if(c===s){let f=be(t);for(;s<=a-o;o+=s)this.process(f,o);i=!0;continue}r.set(o===0&&c===a?t:t.subarray(o,o+c),this.pos),this.pos+=c,o+=c,this.pos===s&&(this.process(n,0),this.pos=0,i=!0)}return this.length+=t.length,i&&this.roundClean(),this}digestInto(t){Re(this),pt(t,this),this.finished=!0;let{buffer:n,view:r,blockLen:s,isLE:a}=this,{pos:i}=this;n[i++]=128,n.fill(0,i),this.padOffset>s-i&&(this.process(r,0),n.fill(0)),mt(r,s-8,this.length*8,a),this.process(r,0),this.roundClean();let o=t===n?r:be(t),c=this.outputLen,f=c/4,y=this.get();if(c%4||f>y.length)throw new Error("invalid outputLen");for(let d=0;d<f;d++)o.setUint32(4*d,y[d],a)}digest(){let{buffer:t,outputLen:n}=this;this.digestInto(t);let r=t.slice(0,n);return this.destroy(),r}_cloneIntoMeta(t){let{buffer:n,length:r,finished:s,destroyed:a,pos:i}=this;return t.destroyed=a,t.finished=s,t.length=r,t.pos=i,i&&t.buffer.set(n),t}clone(){return this._cloneInto()}},vt=Uint32Array.from([1779033703,3144134277,1013904242,2773480762,1359893119,2600822924,528734635,1541459225]);var pn=Uint32Array.from([1116352408,1899447441,3049323471,3921009573,961987163,1508970993,2453635748,2870763221,3624381080,310598401,607225278,1426881987,1925078388,2162078206,2614888103,3248222580,3835390401,4022224774,264347078,604807628,770255983,1249150122,1555081692,1996064986,2554220882,2821834349,2952996808,3210313671,3336571891,3584528711,113926993,338241895,666307205,773529912,1294757372,1396182291,1695183700,1986661051,2177026350,2456956037,2730485921,2820302411,3259730800,3345764771,3516065817,3600352804,4094571909,275423344,430227734,506948616,659060556,883997877,958139571,1322822218,1537002063,1747873779,1955562222,2024104815,2227730452,2361852424,2428436474,2756734187,3204031479,3329325298]),Y=new Uint32Array(64),He=class extends ye{A=0;B=0;C=0;D=0;E=0;F=0;G=0;H=0;constructor(t,n){super(64,t,8,!1),this.A=n[0]|0,this.B=n[1]|0,this.C=n[2]|0,this.D=n[3]|0,this.E=n[4]|0,this.F=n[5]|0,this.G=n[6]|0,this.H=n[7]|0}get(){let{A:t,B:n,C:r,D:s,E:a,F:i,G:o,H:c}=this;return[t,n,r,s,a,i,o,c]}set(t,n,r,s,a,i,o,c){this.A=t|0,this.B=n|0,this.C=r|0,this.D=s|0,this.E=a|0,this.F=i|0,this.G=o|0,this.H=c|0}_cloneInto(t){return(t||=new this.constructor).set(...this.get()),this._cloneIntoMeta(t)}process(t,n){for(let d=0;d<16;d++,n+=4)Y[d]=t.getUint32(n,!1);for(let d=16;d<64;d++){let g=Y[d-15],A=Y[d-2],E=F(g,7)^F(g,18)^g>>>3,B=F(A,17)^F(A,19)^A>>>10;Y[d]=B+Y[d-7]+E+Y[d-16]|0}let{A:r,B:s,C:a,D:i,E:o,F:c,G:f,H:y}=this;for(let d=0;d<64;d++){let g=F(o,6)^F(o,11)^F(o,25),A=y+g+xt(o,c,f)+pn[d]+Y[d]|0,B=(F(r,2)^F(r,13)^F(r,22))+wt(r,s,a)|0;y=f,f=c,c=o,o=i+A|0,i=a,a=s,s=r,r=A+B|0}r=r+this.A|0,s=s+this.B|0,a=a+this.C|0,i=i+this.D|0,o=o+this.E|0,c=c+this.F|0,f=f+this.G|0,y=y+this.H|0,this.set(r,s,a,i,o,c,f,y)}roundClean(){Pe(Y)}destroy(){this.destroyed=!0,this.set(0,0,0,0,0,0,0,0),Pe(this.buffer)}},Ne=class extends He{constructor(){super(32,vt)}};var kt=gt(()=>new Ne,yt(1));var gn=e=>e[0]==="\u3042\u3044\u3053\u304F\u3057\u3093";function bn(e){if(typeof e!="string")throw new TypeError("invalid mnemonic type: "+typeof e);return e.normalize("NFKD")}function yn(e){let t=bn(e),n=t.split(" ");if(![12,15,18,21,24].includes(n.length))throw new Error("Invalid mnemonic");return{nfkd:t,words:n}}function At(e){if(le(e),![16,20,24,28,32].includes(e.length))throw new RangeError("invalid entropy length")}function Bt(e,t=128){if(ge(t),t%32!==0||t>256)throw new RangeError("Invalid entropy");return wn(bt(t/8),e)}var Et=e=>{let t=8-e.length/4;return kt(e)[0]>>t<<t};function Tt(e){if(!Array.isArray(e)||e.length!==2048||typeof e[0]!="string")throw new TypeError("Wordlist: expected array of 2048 strings");e.forEach(t=>{if(typeof t!="string")throw new TypeError("wordlist: non-string element: "+t)})}function mn(e,t){Tt(t);let n=new Uint8Array(e.length+1);n.set(e),n[e.length]=Et(e);let r=[],s=0,a=0;for(let i of n)s=s<<8|i,a+=8,a>=11&&(a-=11,r.push(t[s>>>a&2047]),s&=(1<<a)-1);return r}function xn(e,t){Tt(t);let n=e.length/3*4,r=new Uint8Array(n+1),s=0,a=0,i=0;for(let c of e){let f=t.indexOf(c);if(f===-1)throw new Error("Unknown word: "+c);for(s=s<<11|f,a+=11;a>=8;)a-=8,r[i++]=s>>>a&255;s&=(1<<a)-1}a>0&&(r[i]=s<<8-a);let o=r.subarray(0,n);if(r[n]!==Et(o))throw new Error("Invalid checksum");return Uint8Array.from(o)}function me(e,t){let{words:n}=yn(e),r=xn(n,t);return At(r),r}function wn(e,t){return At(e),mn(e,t).join(gn(t)?"\u3000":" ")}function Ue(e,t){try{me(e,t)}catch{return!1}return!0}var oe=Object.freeze(`abandon
+ability
+able
+about
+above
+absent
+absorb
+abstract
+absurd
+abuse
+access
+accident
+account
+accuse
+achieve
+acid
+acoustic
+acquire
+across
+act
+action
+actor
+actress
+actual
+adapt
+add
+addict
+address
+adjust
+admit
+adult
+advance
+advice
+aerobic
+affair
+afford
+afraid
+again
+age
+agent
+agree
+ahead
+aim
+air
+airport
+aisle
+alarm
+album
+alcohol
+alert
+alien
+all
+alley
+allow
+almost
+alone
+alpha
+already
+also
+alter
+always
+amateur
+amazing
+among
+amount
+amused
+analyst
+anchor
+ancient
+anger
+angle
+angry
+animal
+ankle
+announce
+annual
+another
+answer
+antenna
+antique
+anxiety
+any
+apart
+apology
+appear
+apple
+approve
+april
+arch
+arctic
+area
+arena
+argue
+arm
+armed
+armor
+army
+around
+arrange
+arrest
+arrive
+arrow
+art
+artefact
+artist
+artwork
+ask
+aspect
+assault
+asset
+assist
+assume
+asthma
+athlete
+atom
+attack
+attend
+attitude
+attract
+auction
+audit
+august
+aunt
+author
+auto
+autumn
+average
+avocado
+avoid
+awake
+aware
+away
+awesome
+awful
+awkward
+axis
+baby
+bachelor
+bacon
+badge
+bag
+balance
+balcony
+ball
+bamboo
+banana
+banner
+bar
+barely
+bargain
+barrel
+base
+basic
+basket
+battle
+beach
+bean
+beauty
+because
+become
+beef
+before
+begin
+behave
+behind
+believe
+below
+belt
+bench
+benefit
+best
+betray
+better
+between
+beyond
+bicycle
+bid
+bike
+bind
+biology
+bird
+birth
+bitter
+black
+blade
+blame
+blanket
+blast
+bleak
+bless
+blind
+blood
+blossom
+blouse
+blue
+blur
+blush
+board
+boat
+body
+boil
+bomb
+bone
+bonus
+book
+boost
+border
+boring
+borrow
+boss
+bottom
+bounce
+box
+boy
+bracket
+brain
+brand
+brass
+brave
+bread
+breeze
+brick
+bridge
+brief
+bright
+bring
+brisk
+broccoli
+broken
+bronze
+broom
+brother
+brown
+brush
+bubble
+buddy
+budget
+buffalo
+build
+bulb
+bulk
+bullet
+bundle
+bunker
+burden
+burger
+burst
+bus
+business
+busy
+butter
+buyer
+buzz
+cabbage
+cabin
+cable
+cactus
+cage
+cake
+call
+calm
+camera
+camp
+can
+canal
+cancel
+candy
+cannon
+canoe
+canvas
+canyon
+capable
+capital
+captain
+car
+carbon
+card
+cargo
+carpet
+carry
+cart
+case
+cash
+casino
+castle
+casual
+cat
+catalog
+catch
+category
+cattle
+caught
+cause
+caution
+cave
+ceiling
+celery
+cement
+census
+century
+cereal
+certain
+chair
+chalk
+champion
+change
+chaos
+chapter
+charge
+chase
+chat
+cheap
+check
+cheese
+chef
+cherry
+chest
+chicken
+chief
+child
+chimney
+choice
+choose
+chronic
+chuckle
+chunk
+churn
+cigar
+cinnamon
+circle
+citizen
+city
+civil
+claim
+clap
+clarify
+claw
+clay
+clean
+clerk
+clever
+click
+client
+cliff
+climb
+clinic
+clip
+clock
+clog
+close
+cloth
+cloud
+clown
+club
+clump
+cluster
+clutch
+coach
+coast
+coconut
+code
+coffee
+coil
+coin
+collect
+color
+column
+combine
+come
+comfort
+comic
+common
+company
+concert
+conduct
+confirm
+congress
+connect
+consider
+control
+convince
+cook
+cool
+copper
+copy
+coral
+core
+corn
+correct
+cost
+cotton
+couch
+country
+couple
+course
+cousin
+cover
+coyote
+crack
+cradle
+craft
+cram
+crane
+crash
+crater
+crawl
+crazy
+cream
+credit
+creek
+crew
+cricket
+crime
+crisp
+critic
+crop
+cross
+crouch
+crowd
+crucial
+cruel
+cruise
+crumble
+crunch
+crush
+cry
+crystal
+cube
+culture
+cup
+cupboard
+curious
+current
+curtain
+curve
+cushion
+custom
+cute
+cycle
+dad
+damage
+damp
+dance
+danger
+daring
+dash
+daughter
+dawn
+day
+deal
+debate
+debris
+decade
+december
+decide
+decline
+decorate
+decrease
+deer
+defense
+define
+defy
+degree
+delay
+deliver
+demand
+demise
+denial
+dentist
+deny
+depart
+depend
+deposit
+depth
+deputy
+derive
+describe
+desert
+design
+desk
+despair
+destroy
+detail
+detect
+develop
+device
+devote
+diagram
+dial
+diamond
+diary
+dice
+diesel
+diet
+differ
+digital
+dignity
+dilemma
+dinner
+dinosaur
+direct
+dirt
+disagree
+discover
+disease
+dish
+dismiss
+disorder
+display
+distance
+divert
+divide
+divorce
+dizzy
+doctor
+document
+dog
+doll
+dolphin
+domain
+donate
+donkey
+donor
+door
+dose
+double
+dove
+draft
+dragon
+drama
+drastic
+draw
+dream
+dress
+drift
+drill
+drink
+drip
+drive
+drop
+drum
+dry
+duck
+dumb
+dune
+during
+dust
+dutch
+duty
+dwarf
+dynamic
+eager
+eagle
+early
+earn
+earth
+easily
+east
+easy
+echo
+ecology
+economy
+edge
+edit
+educate
+effort
+egg
+eight
+either
+elbow
+elder
+electric
+elegant
+element
+elephant
+elevator
+elite
+else
+embark
+embody
+embrace
+emerge
+emotion
+employ
+empower
+empty
+enable
+enact
+end
+endless
+endorse
+enemy
+energy
+enforce
+engage
+engine
+enhance
+enjoy
+enlist
+enough
+enrich
+enroll
+ensure
+enter
+entire
+entry
+envelope
+episode
+equal
+equip
+era
+erase
+erode
+erosion
+error
+erupt
+escape
+essay
+essence
+estate
+eternal
+ethics
+evidence
+evil
+evoke
+evolve
+exact
+example
+excess
+exchange
+excite
+exclude
+excuse
+execute
+exercise
+exhaust
+exhibit
+exile
+exist
+exit
+exotic
+expand
+expect
+expire
+explain
+expose
+express
+extend
+extra
+eye
+eyebrow
+fabric
+face
+faculty
+fade
+faint
+faith
+fall
+false
+fame
+family
+famous
+fan
+fancy
+fantasy
+farm
+fashion
+fat
+fatal
+father
+fatigue
+fault
+favorite
+feature
+february
+federal
+fee
+feed
+feel
+female
+fence
+festival
+fetch
+fever
+few
+fiber
+fiction
+field
+figure
+file
+film
+filter
+final
+find
+fine
+finger
+finish
+fire
+firm
+first
+fiscal
+fish
+fit
+fitness
+fix
+flag
+flame
+flash
+flat
+flavor
+flee
+flight
+flip
+float
+flock
+floor
+flower
+fluid
+flush
+fly
+foam
+focus
+fog
+foil
+fold
+follow
+food
+foot
+force
+forest
+forget
+fork
+fortune
+forum
+forward
+fossil
+foster
+found
+fox
+fragile
+frame
+frequent
+fresh
+friend
+fringe
+frog
+front
+frost
+frown
+frozen
+fruit
+fuel
+fun
+funny
+furnace
+fury
+future
+gadget
+gain
+galaxy
+gallery
+game
+gap
+garage
+garbage
+garden
+garlic
+garment
+gas
+gasp
+gate
+gather
+gauge
+gaze
+general
+genius
+genre
+gentle
+genuine
+gesture
+ghost
+giant
+gift
+giggle
+ginger
+giraffe
+girl
+give
+glad
+glance
+glare
+glass
+glide
+glimpse
+globe
+gloom
+glory
+glove
+glow
+glue
+goat
+goddess
+gold
+good
+goose
+gorilla
+gospel
+gossip
+govern
+gown
+grab
+grace
+grain
+grant
+grape
+grass
+gravity
+great
+green
+grid
+grief
+grit
+grocery
+group
+grow
+grunt
+guard
+guess
+guide
+guilt
+guitar
+gun
+gym
+habit
+hair
+half
+hammer
+hamster
+hand
+happy
+harbor
+hard
+harsh
+harvest
+hat
+have
+hawk
+hazard
+head
+health
+heart
+heavy
+hedgehog
+height
+hello
+helmet
+help
+hen
+hero
+hidden
+high
+hill
+hint
+hip
+hire
+history
+hobby
+hockey
+hold
+hole
+holiday
+hollow
+home
+honey
+hood
+hope
+horn
+horror
+horse
+hospital
+host
+hotel
+hour
+hover
+hub
+huge
+human
+humble
+humor
+hundred
+hungry
+hunt
+hurdle
+hurry
+hurt
+husband
+hybrid
+ice
+icon
+idea
+identify
+idle
+ignore
+ill
+illegal
+illness
+image
+imitate
+immense
+immune
+impact
+impose
+improve
+impulse
+inch
+include
+income
+increase
+index
+indicate
+indoor
+industry
+infant
+inflict
+inform
+inhale
+inherit
+initial
+inject
+injury
+inmate
+inner
+innocent
+input
+inquiry
+insane
+insect
+inside
+inspire
+install
+intact
+interest
+into
+invest
+invite
+involve
+iron
+island
+isolate
+issue
+item
+ivory
+jacket
+jaguar
+jar
+jazz
+jealous
+jeans
+jelly
+jewel
+job
+join
+joke
+journey
+joy
+judge
+juice
+jump
+jungle
+junior
+junk
+just
+kangaroo
+keen
+keep
+ketchup
+key
+kick
+kid
+kidney
+kind
+kingdom
+kiss
+kit
+kitchen
+kite
+kitten
+kiwi
+knee
+knife
+knock
+know
+lab
+label
+labor
+ladder
+lady
+lake
+lamp
+language
+laptop
+large
+later
+latin
+laugh
+laundry
+lava
+law
+lawn
+lawsuit
+layer
+lazy
+leader
+leaf
+learn
+leave
+lecture
+left
+leg
+legal
+legend
+leisure
+lemon
+lend
+length
+lens
+leopard
+lesson
+letter
+level
+liar
+liberty
+library
+license
+life
+lift
+light
+like
+limb
+limit
+link
+lion
+liquid
+list
+little
+live
+lizard
+load
+loan
+lobster
+local
+lock
+logic
+lonely
+long
+loop
+lottery
+loud
+lounge
+love
+loyal
+lucky
+luggage
+lumber
+lunar
+lunch
+luxury
+lyrics
+machine
+mad
+magic
+magnet
+maid
+mail
+main
+major
+make
+mammal
+man
+manage
+mandate
+mango
+mansion
+manual
+maple
+marble
+march
+margin
+marine
+market
+marriage
+mask
+mass
+master
+match
+material
+math
+matrix
+matter
+maximum
+maze
+meadow
+mean
+measure
+meat
+mechanic
+medal
+media
+melody
+melt
+member
+memory
+mention
+menu
+mercy
+merge
+merit
+merry
+mesh
+message
+metal
+method
+middle
+midnight
+milk
+million
+mimic
+mind
+minimum
+minor
+minute
+miracle
+mirror
+misery
+miss
+mistake
+mix
+mixed
+mixture
+mobile
+model
+modify
+mom
+moment
+monitor
+monkey
+monster
+month
+moon
+moral
+more
+morning
+mosquito
+mother
+motion
+motor
+mountain
+mouse
+move
+movie
+much
+muffin
+mule
+multiply
+muscle
+museum
+mushroom
+music
+must
+mutual
+myself
+mystery
+myth
+naive
+name
+napkin
+narrow
+nasty
+nation
+nature
+near
+neck
+need
+negative
+neglect
+neither
+nephew
+nerve
+nest
+net
+network
+neutral
+never
+news
+next
+nice
+night
+noble
+noise
+nominee
+noodle
+normal
+north
+nose
+notable
+note
+nothing
+notice
+novel
+now
+nuclear
+number
+nurse
+nut
+oak
+obey
+object
+oblige
+obscure
+observe
+obtain
+obvious
+occur
+ocean
+october
+odor
+off
+offer
+office
+often
+oil
+okay
+old
+olive
+olympic
+omit
+once
+one
+onion
+online
+only
+open
+opera
+opinion
+oppose
+option
+orange
+orbit
+orchard
+order
+ordinary
+organ
+orient
+original
+orphan
+ostrich
+other
+outdoor
+outer
+output
+outside
+oval
+oven
+over
+own
+owner
+oxygen
+oyster
+ozone
+pact
+paddle
+page
+pair
+palace
+palm
+panda
+panel
+panic
+panther
+paper
+parade
+parent
+park
+parrot
+party
+pass
+patch
+path
+patient
+patrol
+pattern
+pause
+pave
+payment
+peace
+peanut
+pear
+peasant
+pelican
+pen
+penalty
+pencil
+people
+pepper
+perfect
+permit
+person
+pet
+phone
+photo
+phrase
+physical
+piano
+picnic
+picture
+piece
+pig
+pigeon
+pill
+pilot
+pink
+pioneer
+pipe
+pistol
+pitch
+pizza
+place
+planet
+plastic
+plate
+play
+please
+pledge
+pluck
+plug
+plunge
+poem
+poet
+point
+polar
+pole
+police
+pond
+pony
+pool
+popular
+portion
+position
+possible
+post
+potato
+pottery
+poverty
+powder
+power
+practice
+praise
+predict
+prefer
+prepare
+present
+pretty
+prevent
+price
+pride
+primary
+print
+priority
+prison
+private
+prize
+problem
+process
+produce
+profit
+program
+project
+promote
+proof
+property
+prosper
+protect
+proud
+provide
+public
+pudding
+pull
+pulp
+pulse
+pumpkin
+punch
+pupil
+puppy
+purchase
+purity
+purpose
+purse
+push
+put
+puzzle
+pyramid
+quality
+quantum
+quarter
+question
+quick
+quit
+quiz
+quote
+rabbit
+raccoon
+race
+rack
+radar
+radio
+rail
+rain
+raise
+rally
+ramp
+ranch
+random
+range
+rapid
+rare
+rate
+rather
+raven
+raw
+razor
+ready
+real
+reason
+rebel
+rebuild
+recall
+receive
+recipe
+record
+recycle
+reduce
+reflect
+reform
+refuse
+region
+regret
+regular
+reject
+relax
+release
+relief
+rely
+remain
+remember
+remind
+remove
+render
+renew
+rent
+reopen
+repair
+repeat
+replace
+report
+require
+rescue
+resemble
+resist
+resource
+response
+result
+retire
+retreat
+return
+reunion
+reveal
+review
+reward
+rhythm
+rib
+ribbon
+rice
+rich
+ride
+ridge
+rifle
+right
+rigid
+ring
+riot
+ripple
+risk
+ritual
+rival
+river
+road
+roast
+robot
+robust
+rocket
+romance
+roof
+rookie
+room
+rose
+rotate
+rough
+round
+route
+royal
+rubber
+rude
+rug
+rule
+run
+runway
+rural
+sad
+saddle
+sadness
+safe
+sail
+salad
+salmon
+salon
+salt
+salute
+same
+sample
+sand
+satisfy
+satoshi
+sauce
+sausage
+save
+say
+scale
+scan
+scare
+scatter
+scene
+scheme
+school
+science
+scissors
+scorpion
+scout
+scrap
+screen
+script
+scrub
+sea
+search
+season
+seat
+second
+secret
+section
+security
+seed
+seek
+segment
+select
+sell
+seminar
+senior
+sense
+sentence
+series
+service
+session
+settle
+setup
+seven
+shadow
+shaft
+shallow
+share
+shed
+shell
+sheriff
+shield
+shift
+shine
+ship
+shiver
+shock
+shoe
+shoot
+shop
+short
+shoulder
+shove
+shrimp
+shrug
+shuffle
+shy
+sibling
+sick
+side
+siege
+sight
+sign
+silent
+silk
+silly
+silver
+similar
+simple
+since
+sing
+siren
+sister
+situate
+six
+size
+skate
+sketch
+ski
+skill
+skin
+skirt
+skull
+slab
+slam
+sleep
+slender
+slice
+slide
+slight
+slim
+slogan
+slot
+slow
+slush
+small
+smart
+smile
+smoke
+smooth
+snack
+snake
+snap
+sniff
+snow
+soap
+soccer
+social
+sock
+soda
+soft
+solar
+soldier
+solid
+solution
+solve
+someone
+song
+soon
+sorry
+sort
+soul
+sound
+soup
+source
+south
+space
+spare
+spatial
+spawn
+speak
+special
+speed
+spell
+spend
+sphere
+spice
+spider
+spike
+spin
+spirit
+split
+spoil
+sponsor
+spoon
+sport
+spot
+spray
+spread
+spring
+spy
+square
+squeeze
+squirrel
+stable
+stadium
+staff
+stage
+stairs
+stamp
+stand
+start
+state
+stay
+steak
+steel
+stem
+step
+stereo
+stick
+still
+sting
+stock
+stomach
+stone
+stool
+story
+stove
+strategy
+street
+strike
+strong
+struggle
+student
+stuff
+stumble
+style
+subject
+submit
+subway
+success
+such
+sudden
+suffer
+sugar
+suggest
+suit
+summer
+sun
+sunny
+sunset
+super
+supply
+supreme
+sure
+surface
+surge
+surprise
+surround
+survey
+suspect
+sustain
+swallow
+swamp
+swap
+swarm
+swear
+sweet
+swift
+swim
+swing
+switch
+sword
+symbol
+symptom
+syrup
+system
+table
+tackle
+tag
+tail
+talent
+talk
+tank
+tape
+target
+task
+taste
+tattoo
+taxi
+teach
+team
+tell
+ten
+tenant
+tennis
+tent
+term
+test
+text
+thank
+that
+theme
+then
+theory
+there
+they
+thing
+this
+thought
+three
+thrive
+throw
+thumb
+thunder
+ticket
+tide
+tiger
+tilt
+timber
+time
+tiny
+tip
+tired
+tissue
+title
+toast
+tobacco
+today
+toddler
+toe
+together
+toilet
+token
+tomato
+tomorrow
+tone
+tongue
+tonight
+tool
+tooth
+top
+topic
+topple
+torch
+tornado
+tortoise
+toss
+total
+tourist
+toward
+tower
+town
+toy
+track
+trade
+traffic
+tragic
+train
+transfer
+trap
+trash
+travel
+tray
+treat
+tree
+trend
+trial
+tribe
+trick
+trigger
+trim
+trip
+trophy
+trouble
+truck
+true
+truly
+trumpet
+trust
+truth
+try
+tube
+tuition
+tumble
+tuna
+tunnel
+turkey
+turn
+turtle
+twelve
+twenty
+twice
+twin
+twist
+two
+type
+typical
+ugly
+umbrella
+unable
+unaware
+uncle
+uncover
+under
+undo
+unfair
+unfold
+unhappy
+uniform
+unique
+unit
+universe
+unknown
+unlock
+until
+unusual
+unveil
+update
+upgrade
+uphold
+upon
+upper
+upset
+urban
+urge
+usage
+use
+used
+useful
+useless
+usual
+utility
+vacant
+vacuum
+vague
+valid
+valley
+valve
+van
+vanish
+vapor
+various
+vast
+vault
+vehicle
+velvet
+vendor
+venture
+venue
+verb
+verify
+version
+very
+vessel
+veteran
+viable
+vibrant
+vicious
+victory
+video
+view
+village
+vintage
+violin
+virtual
+virus
+visa
+visit
+visual
+vital
+vivid
+vocal
+voice
+void
+volcano
+volume
+vote
+voyage
+wage
+wagon
+wait
+walk
+wall
+walnut
+want
+warfare
+warm
+warrior
+wash
+wasp
+waste
+water
+wave
+way
+wealth
+weapon
+wear
+weasel
+weather
+web
+wedding
+weekend
+weird
+welcome
+west
+wet
+whale
+what
+wheat
+wheel
+when
+where
+whip
+whisper
+wide
+width
+wife
+wild
+will
+win
+window
+wine
+wing
+wink
+winner
+winter
+wire
+wisdom
+wise
+wish
+witness
+wolf
+woman
+wonder
+wood
+wool
+word
+work
+world
+worry
+worth
+wrap
+wreck
+wrestle
+wrist
+write
+wrong
+yard
+year
+yellow
+you
+young
+youth
+zebra
+zero
+zone
+zoo`.split(`
+`));var vn="123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz",kn=256,Lt=24,An=16;function xe(e){return String(e??"").normalize("NFKD").trim().toLowerCase().split(/\s+/u).filter(Boolean).join(" ")}function Ct(e){let t=xe(e);if(t.split(" ").length!==Lt||!Ue(t,oe))return!1;let n=me(t,oe);try{return Me.isValidSecretKey(n)}finally{n.fill(0)}}function Bn(e){return Array.from(e,t=>t.toString(16).padStart(2,"0")).join("")}function En(e){if(!(e instanceof Uint8Array))throw new TypeError("base58Encode expects a Uint8Array");if(e.length===0)return"";let t=0n;for(let s of e)t=t*256n+BigInt(s);let n="";for(;t>0n;){let s=Number(t%58n);n=vn[s]+n,t/=58n}let r=0;for(;r<e.length&&e[r]===0;)r+=1;return"1".repeat(r)+n}function Ie(e){let t=xe(e);if(t.split(" ").length!==Lt||!Ue(t,oe))throw new Error("Enter a valid 24-word BIP39 recovery phrase.");let n=me(t,oe);try{if(!Me.isValidSecretKey(n))throw new Error("The recovery phrase derived an invalid secp256k1 key.");let r=ut(n,!0);return Object.freeze({mnemonic:t,privateKey:Bn(n),publicKey:En(r)})}finally{n.fill(0)}}function _t(){for(let e=0;e<An;e+=1){let t=Bt(oe,kn);try{return Ie(t)}catch(n){if(!String(n?.message).includes("invalid secp256k1 key"))throw n}}throw new Error("Unable to generate a valid key. Reload and try again.")}var we=new TextEncoder;function Tn(e){return e.replaceAll("\\","\\\\").replaceAll("(","\\(").replaceAll(")","\\)").replace(/[\r\n]+/gu," ")}function N(e,t,n,r,s){return`BT /${e} ${t} Tf 1 0 0 1 ${n} ${r} Tm (${Tn(s)}) Tj ET`}function Ln(e,t){let n=[],r="";for(let s of e.split(" ")){let a=r?`${r} ${s}`:s;r&&a.length>t?(n.push(r),r=s):r=a}return r&&n.push(r),n}function Q(e){return Number(e.toFixed(3)).toString()}function St(e,t,n,r){let s=ue(0,"M");s.addData(e,"Byte"),s.make();let a=s.getModuleCount(),i=4,o=r/(a+i*2),c=["1 1 1 rg",`${Q(t)} ${Q(n)} ${Q(r)} ${Q(r)} re f`,"0 0 0 rg"];for(let f=0;f<a;f+=1)for(let y=0;y<a;y+=1){if(!s.isDark(f,y))continue;let d=t+(y+i)*o,g=n+(a-f-1+i)*o;c.push(`${Q(d)} ${Q(g)} ${Q(o)} ${Q(o)} re f`)}return c}function Cn(e){for(let t of["publicKey","privateKey","mnemonic"]){if(typeof e?.[t]!="string"||!e[t])throw new TypeError(`Missing wallet ${t}`);if(!/^[\x20-\x7e]+$/u.test(e[t]))throw new TypeError(`Wallet ${t} contains unsupported characters`)}}function Mt(e){Cn(e);let t=e.mnemonic.split(" ").length,n=["0.16 0.18 0.23 rg",N("F1",20,54,748,"Saito Offline Wallet Tool"),"0.75 0.12 0.12 rg",N("F1",10,54,724,"CONFIDENTIAL - anyone with these secrets can control this wallet."),"0.16 0.18 0.23 rg",N("F1",11,54,680,"Public key"),N("F2",9,54,660,e.publicKey),N("F1",11,54,614,"Private key"),N("F2",9,54,594,e.privateKey),N("F1",11,54,548,`${t}-word recovery phrase`)];Ln(e.mnemonic,58).forEach((c,f)=>{n.push(N("F2",10,54,526-f*18,c))}),n.push(N("F1",11,54,440,"Offline handling checklist"),N("F1",9,54,418,"1. Verify every value before funding the wallet."),N("F1",9,54,401,"2. Store this document where it cannot be photographed, copied, or damaged."),N("F1",9,54,384,"3. Delete digital copies and clear download history only if that is safe to do."),N("F1",9,54,367,"4. Shut down the offline device when finished."),N("F1",11,54,330,"Public key QR"),N("F1",11,324,330,"Private key QR - keep secret"),...St(e.publicKey,54,112,190),...St(e.privateKey,324,112,190),"0.45 0.47 0.52 rg",N("F1",8,54,54,"Generated locally. No data was transmitted by this utility."));let r=`${n.join(`
+`)}
+`,s=["<< /Type /Catalog /Pages 2 0 R >>","<< /Type /Pages /Kids [3 0 R] /Count 1 >>","<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 5 0 R /F2 6 0 R >> >> /Contents 4 0 R >>",`<< /Length ${we.encode(r).length} >>
+stream
+${r}endstream`,"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>","<< /Type /Font /Subtype /Type1 /BaseFont /Courier >>"],a=`%PDF-1.4
+% Saito offline wallet
+`,i=[0];s.forEach((c,f)=>{i.push(we.encode(a).length),a+=`${f+1} 0 obj
+${c}
+endobj
+`});let o=we.encode(a).length;a+=`xref
+0 ${s.length+1}
+`,a+=`0000000000 65535 f\r
+`;for(let c of i.slice(1))a+=`${String(c).padStart(10,"0")} 00000 n\r
+`;return a+=`trailer
+<< /Size ${s.length+1} /Root 1 0 R >>
+`,a+=`startxref
+${o}
+%%EOF
+`,we.encode(a)}var _=e=>document.getElementById(e),m={environmentStatus:_("environment-status"),networkGuidance:_("network-guidance"),themeToggle:_("theme-toggle"),generateButton:_("generate-button"),generationGuidance:_("generation-guidance"),onlineOverride:_("online-override"),restoreButton:_("restore-button"),clearRestoreButton:_("clear-restore-button"),restoreInput:_("restore-input"),restoreValidation:_("restore-validation"),wordCount:_("word-count"),results:_("results"),publicKey:_("public-key"),privateKey:_("private-key"),recoveryWords:_("recovery-words"),publicQr:_("public-qr"),privateQr:_("private-qr"),privateQrPlaceholder:_("private-qr-placeholder"),revealButton:_("reveal-button"),revealLabel:_("reveal-label"),printButton:_("print-button"),downloadPdfButton:_("download-pdf-button"),clearButton:_("clear-button"),toast:_("toast")},G=Array.from(document.querySelectorAll('[role="tab"]')),_n=Array.from(document.querySelectorAll("[data-copy]")),Sn="\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022  \u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022  \u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022  \u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022",K=null,O=!1,Oe=!1,Dt,Ke=!1;function ve(){let e=!!window.crypto?.getRandomValues,t=window.navigator.onLine!==!1,n=t&&!m.onlineOverride.checked;m.generateButton.disabled=Ke||!e||n,e?n?(m.generationGuidance.textContent="Disconnect from all networks to enable key creation.",m.generateButton.title=m.generationGuidance.textContent):t?(m.generationGuidance.textContent="Online override enabled. Key creation is less secure while connected.",m.generateButton.removeAttribute("title")):(m.generationGuidance.textContent="Browser reports offline. Key creation is enabled.",m.generateButton.removeAttribute("title")):(m.generationGuidance.textContent="Key creation is unavailable because this browser has no secure random-number generator.",m.generateButton.title=m.generationGuidance.textContent)}function Pt(e){let t=ue(0,"M");return t.addData(e,"Byte"),t.make(),t.createDataURL(6,12)}function X(e){window.clearTimeout(Dt),m.toast.textContent=e,m.toast.hidden=!1,Dt=window.setTimeout(()=>{m.toast.hidden=!0,m.toast.textContent=""},3200)}function Ht(e){document.documentElement.classList.toggle("dark",e),m.themeToggle.setAttribute("aria-label",e?"Use light theme":"Use dark theme")}function Fe(){let e=window.location.protocol==="file:",t=window.navigator.onLine===!1;m.environmentStatus.classList.remove("is-safe","is-warning","is-danger"),e&&t?(m.environmentStatus.textContent="Local file \xB7 offline",m.environmentStatus.classList.add("is-safe"),m.networkGuidance.textContent="The browser reports that this local file is offline. Keep networking disconnected while handling keys."):e?(m.environmentStatus.textContent="Local file \xB7 network available",m.environmentStatus.classList.add("is-warning"),m.networkGuidance.textContent="This is a local file, but the browser reports network access. Disconnect Wi-Fi, Bluetooth, and cables before continuing."):(m.environmentStatus.textContent="Not opened as a local file",m.environmentStatus.classList.add("is-danger"),m.networkGuidance.textContent="Save the verified index.html file, disconnect the computer, and open the file directly instead of using a web server."),ve()}function Rt(e){for(let t of G){let n=t===e;t.classList.toggle("is-active",n),t.setAttribute("aria-selected",String(n)),t.tabIndex=n?0:-1,_(t.getAttribute("aria-controls")).hidden=!n}}function Mn(e){let t=xe(e);return t?t.split(" ").length:0}function ke(){let e=m.restoreInput.value,t=Mn(e),n=Ct(e);m.wordCount.textContent=`${t} / 24 words`,m.restoreButton.disabled=!n,m.restoreValidation.classList.remove("is-valid","is-invalid"),t===0?m.restoreValidation.textContent="Waiting for a phrase.":n?(m.restoreValidation.textContent=`Valid ${t}-word BIP39 phrase and checksum.`,m.restoreValidation.classList.add("is-valid")):t!==24?(m.restoreValidation.textContent="Enter all 24 words.",m.restoreValidation.classList.add("is-invalid")):(m.restoreValidation.textContent="A word or the BIP39 checksum is invalid.",m.restoreValidation.classList.add("is-invalid"))}function Dn(){m.recoveryWords.replaceChildren();let e=K.mnemonic.split(" "),t=O?e:Array.from({length:e.length},()=>"\u2022\u2022\u2022\u2022");for(let n of t){let r=document.createElement("li");r.textContent=n,m.recoveryWords.append(r)}m.recoveryWords.setAttribute("aria-label",O?`${e.length}-word recovery phrase`:"Recovery phrase hidden")}function Nt(){K&&(m.revealButton.setAttribute("aria-pressed",String(O)),m.revealLabel.textContent=O?"Hide secrets":"Reveal secrets",m.privateKey.textContent=O?K.privateKey:Sn,m.privateKey.setAttribute("aria-label",O?"Private key":"Private key hidden"),Dn(),O?(m.privateQr.src=Pt(K.privateKey),m.privateQr.hidden=!1,m.privateQrPlaceholder.hidden=!0):(m.privateQr.hidden=!0,m.privateQr.removeAttribute("src"),m.privateQrPlaceholder.hidden=!1))}function je(e){O=!!e,Nt()}function Ut(e){K=e,O=!1,m.publicKey.textContent=e.publicKey,m.publicQr.src=Pt(e.publicKey),Nt(),m.results.hidden=!1,m.results.scrollIntoView({behavior:"smooth",block:"start"})}function $e(){m.restoreInput.value="",ke()}function It({announce:e=!0}={}){K=null,O=!1,m.publicKey.textContent="",m.privateKey.textContent="",m.recoveryWords.replaceChildren(),m.publicQr.removeAttribute("src"),m.privateQr.removeAttribute("src"),m.results.hidden=!0,$e(),e&&X("Keys cleared from the utility.")}async function Rn(e){if(window.navigator.clipboard?.writeText)try{await window.navigator.clipboard.writeText(e);return}catch{}let t=document.createElement("textarea");t.className="clipboard-helper",t.value=e,t.readOnly=!0,document.body.append(t),t.select();let n=document.execCommand("copy");if(t.value="",t.remove(),!n)throw new Error("Clipboard access was denied.")}async function Pn(e){if(!K)return;let t={public:K.publicKey,private:K.privateKey,mnemonic:K.mnemonic},n={public:"Public key",private:"Private key",mnemonic:"Recovery phrase"};if(!(e!=="public"&&!window.confirm(`Copy ${n[e].toLowerCase()} to the system clipboard? Other applications may be able to read it.`)))try{await Rn(t[e]),X(`${n[e]} copied.`)}catch{X("Clipboard access failed. Reveal and transcribe the value instead.")}}for(let e of G)e.addEventListener("click",()=>Rt(e)),e.addEventListener("keydown",t=>{if(!["ArrowLeft","ArrowRight","Home","End"].includes(t.key))return;t.preventDefault();let n=G.indexOf(e);t.key==="ArrowLeft"&&(n=(n-1+G.length)%G.length),t.key==="ArrowRight"&&(n=(n+1)%G.length),t.key==="Home"&&(n=0),t.key==="End"&&(n=G.length-1),Rt(G[n]),G[n].focus()});m.themeToggle.addEventListener("click",()=>{Ht(!document.documentElement.classList.contains("dark"))});m.generateButton.addEventListener("click",()=>{Ke=!0,ve();try{Ut(_t()),X("New keys generated locally.")}catch{X("Secure key generation failed. Reload in a current browser and try again.")}finally{Ke=!1,ve()}});m.onlineOverride.addEventListener("change",ve);m.restoreInput.addEventListener("input",ke);m.clearRestoreButton.addEventListener("click",$e);m.restoreButton.addEventListener("click",()=>{try{let e=Ie(m.restoreInput.value);$e(),Ut(e),X("Keys restored locally.")}catch{ke(),X("The recovery phrase is not valid.")}});m.revealButton.addEventListener("click",()=>{je(!O)});for(let e of _n)e.addEventListener("click",()=>Pn(e.dataset.copy));m.printButton.addEventListener("click",()=>{window.confirm("Print the private key and recovery phrase? Printer queues, shared printers, and PDF destinations can retain copies.")&&(Oe=!O,je(!0),window.requestAnimationFrame(()=>window.print()))});m.downloadPdfButton.addEventListener("click",()=>{if(!K||!window.confirm("Download a PDF containing the private key and recovery phrase? The file, browser download history, backups, and synced folders may retain copies."))return;let e=Mt(K),t=URL.createObjectURL(new Blob([e],{type:"application/pdf"})),n=document.createElement("a");n.href=t,n.download="saito-offline-wallet.pdf",n.rel="noopener",document.body.append(n),n.click(),n.remove(),window.setTimeout(()=>URL.revokeObjectURL(t),0),e.fill(0),X("Wallet PDF created locally.")});window.addEventListener("afterprint",()=>{Oe&&je(!1),Oe=!1});m.clearButton.addEventListener("click",()=>{window.confirm("Clear these keys from the utility? Make sure your offline backup is complete first.")&&It()});window.addEventListener("online",Fe);window.addEventListener("offline",Fe);window.addEventListener("pagehide",()=>It({announce:!1}));var Hn=window.matchMedia?.("(prefers-color-scheme: dark)").matches;Ht(!!Hn);Fe();ke();})();</script>
+  </body>
+</html>
