@@ -97,6 +97,9 @@ class GameMinimap {
         const obj = this.markers[id];
         const el = document.createElement('div');
         el.className = 'circle';
+        if (obj.type) {
+          el.classList.add(obj.type);
+        }
         if (obj.flash) {
           el.classList.add('flash');
         }

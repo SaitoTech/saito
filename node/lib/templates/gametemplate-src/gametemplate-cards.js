@@ -72,8 +72,31 @@ class GameCards {
       return;
     }
     scale = Math.max(2, Math.min(200, Math.round(Number(scale) || 100)));
+
+    const before = el.getBoundingClientRect();
+    const oldScale = el.offsetWidth ? before.width / el.offsetWidth : 0;
+    const cx = window.innerWidth / 2;
+    const cy = window.innerHeight / 2;
+    const bx = oldScale ? (cx - before.left) / oldScale : 0;
+    const by = oldScale ? (cy - before.top) / oldScale : 0;
+
     el.style.transformOrigin = 'top left';
     el.style.transform = `scale(${scale / 100})`;
+
+    if (oldScale) {
+      const after = el.getBoundingClientRect();
+      const newScale = el.offsetWidth ? after.width / el.offsetWidth : scale / 100;
+      const dx = cx - bx * newScale - after.left;
+      const dy = cy - by * newScale - after.top;
+      const left = (parseFloat(el.style.left) || 0) + dx;
+      const top = (parseFloat(el.style.top) || 0) + dy;
+      el.style.left = left + 'px';
+      el.style.top = top + 'px';
+      if (save) {
+        this.saveGamePreference(this.returnSlug() + '-board-offset', { left, top });
+      }
+    }
+
     if (save) {
       this.saveGamePreference(this.returnSlug() + '-board-scale', scale);
     }

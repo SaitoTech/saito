@@ -1646,6 +1646,23 @@ try {
 
 	  this.updateLog(unit.name + " redeploys to " + this.returnSpaceNameForLog(destination));
 
+	  if (this.minimap && this.returnPlayerOfFaction(faction) != this.game.player) {
+	    if (destination != "aeubox" && destination != "ceubox" && destination != "arbox" && destination != "crbox") {
+	      let space = this.game.spaces[destination];
+	      let board = this.getBoardState();
+	      if (space && board) {
+	        this.minimap.add("move-" + destination, {
+	          x: (space.left + 45) / board.width,
+	          y: (space.top + 45) / board.height,
+	          type: "circle",
+	          color: "#e8c547",
+	          size: 14,
+	          flash: true
+	        });
+	      }
+	    }
+	  }
+
 	  this.displaySpace(source);
 	  this.displaySpace(destination);
 	  this.displayReserveBoxes();
@@ -1898,8 +1915,8 @@ try {
 	    let board = this.getBoardState();
 	    if (space && board) {
 	      this.minimap.add("attack-" + key, {
-	        x: space.left / board.width,
-	        y: space.top / board.height,
+	        x: (space.left + 45) / board.width,
+	        y: (space.top + 45) / board.height,
 	        type: "circle",
 	        color: "#e74c3c",
 	        size: 14,
@@ -3183,11 +3200,15 @@ console.log("moving unit: " + JSON.stringify(u));
 	  let unitkey = mv[2];
 	  let player_to_ignore = 0;
 	  if (mv[3]) { player_to_ignore = parseInt(mv[3]); }
+	  let prefer_damaged = -1;
+	  if (mv[4] === "0" || mv[4] === "1") { prefer_damaged = parseInt(mv[4]); }
 
 	  if (player_to_ignore != this.game.player) {
 
 	    for (let z = 0; z < this.game.spaces[spacekey].units.length; z++) {
 	      if (this.game.spaces[spacekey].units[z].key === unitkey) {
+		if (prefer_damaged == 1 && !this.game.spaces[spacekey].units[z].damaged) { continue; }
+		if (prefer_damaged == 0 && this.game.spaces[spacekey].units[z].damaged) { continue; }
 
 		this.game.spaces[spacekey].units.splice(z, 1);
 		z = this.game.spaces[spacekey].units.length + 2;
@@ -3225,10 +3246,13 @@ console.log("moving unit: " + JSON.stringify(u));
 	  if (mv[3]) { player_to_ignore = parseInt(mv[3]); }
 	  let attacked = false; // adding because army is attacker / damaged
 	  if (mv[4]) { attacked = true; }
+	  let added_damaged = false;
+	  if (mv[5] == 1 || mv[5] == "1") { added_damaged = true; }
 
 	  if (player_to_ignore != this.game.player) {
 	    let unit = this.cloneUnit(unitkey);
 	    unit.spacekey = spacekey;
+	    if (added_damaged) { unit.damaged = true; }
 	    this.game.spaces[spacekey].units.push(unit);
 	    if (attacked) {
 	      this.game.spaces[spacekey].units[this.game.spaces[spacekey].units.length-1].attacked = 1;
@@ -3367,6 +3391,21 @@ console.log("pushing back attacker corps!");
 	  }
 	  this.activateSpaceForCombat(key);
 
+	  if (this.minimap && this.returnPlayerOfFaction(faction) != this.game.player) {
+	    let space = this.game.spaces[key];
+	    let board = this.getBoardState();
+	    if (space && board) {
+	      this.minimap.add("attack-" + key, {
+	        x: (space.left + 45) / board.width,
+	        y: (space.top + 45) / board.height,
+	        type: "circle",
+	        color: "#e74c3c",
+	        size: 14,
+	        flash: true
+	      });
+	    }
+	  }
+
 	  this.game.queue.splice(qe, 1);
 	  return 1;
 
@@ -3383,6 +3422,21 @@ console.log("pushing back attacker corps!");
 	    this.game.spaces[key].units[i].spacekey = key;
 	  }
 	  this.activateSpaceForMovement(key);
+
+	  if (this.minimap && this.returnPlayerOfFaction(faction) != this.game.player) {
+	    let space = this.game.spaces[key];
+	    let board = this.getBoardState();
+	    if (space && board) {
+	      this.minimap.add("move-" + key, {
+	        x: (space.left + 45) / board.width,
+	        y: (space.top + 45) / board.height,
+	        type: "circle",
+	        color: "#e8c547",
+	        size: 14,
+	        flash: true
+	      });
+	    }
+	  }
 
 	  this.game.queue.splice(qe, 1);
 	  return 1;
@@ -3562,8 +3616,8 @@ console.log("pushing back attacker corps!");
 	      let board = this.getBoardState();
 	      if (space && board) {
 	        this.minimap.add("move-" + destinationkey, {
-	          x: space.left / board.width,
-	          y: space.top / board.height,
+	          x: (space.left + 45) / board.width,
+	          y: (space.top + 45) / board.height,
 	          type: "circle",
 	          color: "#e8c547",
 	          size: 14,

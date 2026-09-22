@@ -52,6 +52,10 @@ html.game #saito-alert-box {
   color: var(--saito-foreground);
 }
 
+html.game .saito-user-menu {
+  color: var(--saito-foreground);
+}
+
 body {
   position: relative;
   background-color: #4e4e4e;

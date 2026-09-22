@@ -3,6 +3,11 @@ function parseListingUnitPrice(price = '') {
   return match ? match[0] : null;
 }
 
+function isInsufficientSaito(err) {
+  const msg = err?.message || String(err || '');
+  return msg.includes('insufficient SAITO balance');
+}
+
 /**
  * Yield until after the next paint so preparation UI can render before
  * wallet/WASM work stalls the main thread. Not an artificial delay.
@@ -76,6 +81,7 @@ async function startPurchase(app, mod, purchaseOverlay, summary, quantity = 1, o
     const wallet_balance = await app.wallet.getBalance();
 
     monitor?.setStage('creating');
+    let openGetSaito = false;
     try {
       newtx = await mod.createPurchaseAssetTransaction(
         summary,
@@ -83,10 +89,26 @@ async function startPurchase(app, mod, purchaseOverlay, summary, quantity = 1, o
         total_nolan
       );
     } catch (err) {
-      console.error('Store: createPurchaseAssetTransaction failed', err);
-      monitor?.hide();
-      salert(err?.message || 'Could not create purchase transaction.');
-      return;
+      if (!isInsufficientSaito(err)) {
+        console.error('Store: createPurchaseAssetTransaction failed', err);
+        monitor?.hide();
+        salert(err?.message || 'Could not create purchase transaction.');
+        return;
+      }
+
+      try {
+        newtx = await mod.createPurchaseAssetTransaction(
+          summary,
+          { price: unit_price, fee, quantity, note, unfunded: true },
+          total_nolan
+        );
+      } catch (unfundedErr) {
+        console.error('Store: unfunded purchase transaction failed', unfundedErr);
+        monitor?.hide();
+        salert(unfundedErr?.message || 'Could not create purchase transaction.');
+        return;
+      }
+      openGetSaito = true;
     }
 
     const pendingTxSignature = newtx.signature || '';
@@ -96,7 +118,7 @@ async function startPurchase(app, mod, purchaseOverlay, summary, quantity = 1, o
       return;
     }
 
-    if (wallet_balance < total_nolan) {
+    if (openGetSaito || wallet_balance < total_nolan) {
       monitor?.hide();
       app.connection.emit(
         'saito-purchase-launch',
@@ -112,8 +134,19 @@ async function startPurchase(app, mod, purchaseOverlay, summary, quantity = 1, o
         pendingTxSignature,
         quantity,
         resolvedTitle,
-        newtx
+        openGetSaito ? null : newtx
       );
+      if (openGetSaito) {
+        // The carrier is not broadcast. BuySaito issues the on-chain payment,
+        // so watching this signature would cover Get Saito and never confirm.
+        purchaseOverlay.pendingTxSignature = pendingTxSignature;
+        purchaseOverlay.listingTitle = resolvedTitle;
+        purchaseOverlay.nft_id = String(summary.nft_id || '');
+        purchaseOverlay.quantity = quantity;
+        if (typeof siteMessage === 'function') {
+          siteMessage('Insufficient Saito to Purchase Item');
+        }
+      }
       return;
     }
 

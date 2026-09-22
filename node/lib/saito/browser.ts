@@ -1636,6 +1636,14 @@ class Browser {
           document.onmousemove = null;
 
           element_to_move.style.transition = '';
+          if (element_moved) {
+            const suppressClick = (clickEvent) => {
+              clickEvent.preventDefault();
+              clickEvent.stopPropagation();
+              document.removeEventListener('click', suppressClick, true);
+            };
+            document.addEventListener('click', suppressClick, true);
+          }
           if (mycallback && element_moved) {
             await mycallback();
           }
@@ -1837,6 +1845,7 @@ class Browser {
     pullTab = d.getElementById(`resize-icon-${unique_id}`);
 
     let ht, wd, x, y, dx, dy;
+    let resized = false;
 
     const prepareToResize = () => {
       let dimensions = target.getBoundingClientRect();
@@ -1853,6 +1862,7 @@ class Browser {
     };
 
     pullTab.onmousedown = (evt) => {
+      resized = false;
       x = evt.screenX;
       y = evt.screenY;
 
@@ -1869,6 +1879,9 @@ class Browser {
         dy = evt.screenY - y;
         x = evt.screenX;
         y = evt.screenY;
+        if (dx !== 0 || dy !== 0) {
+          resized = true;
+        }
 
         if (direction == 'horizontal') {
           wd += dx;
@@ -1890,6 +1903,14 @@ class Browser {
       d.body.onmouseup = () => {
         d.body.onmousemove = null;
         target.style.transition = '';
+        if (resized) {
+          const suppressClick = (clickEvent) => {
+            clickEvent.preventDefault();
+            clickEvent.stopPropagation();
+            document.removeEventListener('click', suppressClick, true);
+          };
+          document.addEventListener('click', suppressClick, true);
+        }
       };
 
       if (callback) {

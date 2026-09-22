@@ -170,6 +170,7 @@
       country           :       "Army of Islam" ,
       name		:	"AOI Army" ,
       type		:	"army" ,
+      irreplaceable	:	1 ,
       front		:	"aoi_army.png" ,
       back		:	"aoi_army_back.png" ,
       combat		:	1 ,
@@ -244,6 +245,7 @@
       country           :       "British Expeditionary Force" ,
       name		:	"BEF Army" ,
       type		:	"army" ,
+      irreplaceable	:	1 ,
       front		:	"bef_army.png" ,
       back		:	"bef_army_back.png" ,
       combat		:	5 ,
@@ -385,6 +387,7 @@
     // Caucasus
     //
     this.importUnit('cau_army', {
+      irreplaceable	:	1 ,
       ckey		:       "CAU" ,
       country           :       "Russia" ,
       name		:	"CAU Army" ,
@@ -922,6 +925,7 @@
     // Mediterranean Expeditionary Force
     //
     this.importUnit('mef_army', {
+      irreplaceable	:	1 ,
       ckey		:       "MEF" ,
       country           :       "Mediterranean Expeditionary Force" ,
       name		:	"MEF Army" ,
@@ -961,6 +965,7 @@
     // Near East Army
     //
     this.importUnit('ne_army', {
+      irreplaceable	:	1 ,
       ckey		:       "NE" ,
       country           :       "Near East Army" ,
       name		:	"NE Army" ,
@@ -981,6 +986,7 @@
     // Orient Army
     //
     this.importUnit('orient_army', {
+      irreplaceable	:	1 ,
       ckey		:       "OA" ,
       country           :       "Orient Army" ,
       name		:	"OA Army" ,
@@ -1414,6 +1420,7 @@
     // Yilderim Army
     //
     this.importUnit('yld_army01', {
+      irreplaceable	:	1 ,
       ckey		:       "YLD" ,
       country           :       "Yilderim" ,
       name		:	"1st Army" ,

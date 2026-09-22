@@ -2965,8 +2965,6 @@ When implementing Saito UI, remember:
 
     Do not turn mod.js into the application's universal controller.
 
-    Do not create helper functions merely to wrap one or two lines.
-
     Do not create controllers, services, repositories, view models, or UI stores without a real need.
 
     Do not duplicate the domain model in the UI.

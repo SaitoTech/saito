@@ -112,7 +112,12 @@ class LossOverlay {
     }
 
     // one eligible unit: apply the extra step without the picker overlay
+    // a reduced sole defender is the last step and cannot be eliminated to cancel the retreat
     if (this.number_of_hits_assignable_defender_units == 1 && this.sole_defender_unit) {
+      if (this.sole_defender_unit.damaged) {
+        this.mod.playerHandleRetreat();
+        return;
+      }
       this.loss_factor = 0;
       this.assignHitToUnit(
         this.sole_defender_unit,
@@ -143,13 +148,13 @@ class LossOverlay {
       this.app.browser.addElementToSelector(html, qs_defender);
     }
 
+    this.loss_factor = 0;
     this.attachEvents(
       false,
       qs_defender,
       'defender',
       true
     );
-    this.loss_factor = 0;
   }
 
 
@@ -715,19 +720,46 @@ class LossOverlay {
       //
       // replace with corps if destroyed
       //
-      if (unit.key.indexOf('army') > 0) {
+      if (unit.key.indexOf('army') > 0 || unit.key == 'aoi_corps') {
         let corpsbox = 'arbox';
         if (paths_self.returnFactionOfPlayer() == 'central') {
           corpsbox = 'crbox';
         }
         let corpskey = unit.key.split('_')[0] + '_corps';
-        let corpsunit = paths_self.cloneUnit(corpskey);
-        corpsunit.attacked = 1; // we don't want to give this the op to attack
-        corpsunit.damaged_this_combat = true; // used to be an army...
-        corpsunit.spacekey = unit.spacekey;
+        if (unit.key == 'mef_army' || unit.key == 'ne_army') { corpskey = 'br_corps'; }
+        if (unit.key == 'cau_army') { corpskey = 'ru_corps'; }
+        if (unit.key == 'orient_army') { corpskey = 'fr_corps'; }
+        if (unit.key == 'yld_army01' || unit.key == 'aoi_corps') { corpskey = 'tu_corps'; }
 
-        if (paths_self.doesSpaceHaveUnit(corpsbox, corpskey)) {
+        let corps_idx = -1;
+        let corps_damaged = 0;
+        let box = paths_self.game.spaces[corpsbox];
+        if (box) {
+          for (let z = 0; z < box.units.length; z++) {
+            if (box.units[z].key == corpskey && !box.units[z].damaged) {
+              corps_idx = z;
+              corps_damaged = 0;
+              break;
+            }
+          }
+          if (corps_idx == -1) {
+            for (let z = 0; z < box.units.length; z++) {
+              if (box.units[z].key == corpskey && box.units[z].damaged) {
+                corps_idx = z;
+                corps_damaged = 1;
+                break;
+              }
+            }
+          }
+        }
+
+        if (corps_idx >= 0) {
           console.log('space has this unit: ' + corpskey);
+          let corpsunit = paths_self.cloneUnit(corpskey);
+          corpsunit.attacked = 1; // we don't want to give this the op to attack
+          corpsunit.damaged_this_combat = true; // used to be an army...
+          corpsunit.spacekey = unit.spacekey;
+          if (corps_damaged) { corpsunit.damaged = true; }
           this.units.push(corpsunit);
           if (am_i_the_attacker) {
             paths_self.game.spaces[corpsunit.spacekey].units.push(corpsunit);
@@ -737,10 +769,10 @@ class LossOverlay {
               unit_sourcekey: corpsunit.spacekey
             });
           }
-          this.moves.push(`add\t${unit.spacekey}\t${corpskey}\t${this.mod.game.player}\tattacked`);
-          this.moves.push(`remove\t${corpsbox}\t${corpskey}\t${this.mod.game.player}`);
-          this.mod.removeUnit(corpsbox, corpskey);
-          let html = `<div class="loss-overlay-unit" data-spacekey="${corpsunit.spacekey}" data-key="${corpskey}" data-damaged="0" id="${this.units.length - 1}">${this.mod.returnUnitImageWithMouseoverOfStepwiseLoss(this.units[this.units.length - 1], false, true)}</div>`;
+          this.moves.push(`add\t${unit.spacekey}\t${corpskey}\t${this.mod.game.player}\tattacked\t${corps_damaged}`);
+          this.moves.push(`remove\t${corpsbox}\t${corpskey}\t${this.mod.game.player}\t${corps_damaged}`);
+          box.units.splice(corps_idx, 1);
+          let html = `<div class="loss-overlay-unit" data-spacekey="${corpsunit.spacekey}" data-key="${corpskey}" data-damaged="${corps_damaged}" id="${this.units.length - 1}">${this.mod.returnUnitImageWithMouseoverOfStepwiseLoss(this.units[this.units.length - 1], false, true)}</div>`;
           this.app.browser.addElementToSelector(html, my_qs);
           //
           // replace our specified element
@@ -762,8 +794,8 @@ class LossOverlay {
         if (faction == 'attacker') {
           for (let y = 0; y < attacker_units.length; y++) {
             if (!attacker_units[y].destroyed) {
-              this.sole_defender_unit_id = y;
-              this.sole_defender_unit = attacker_units[y];
+              this.sole_attacker_unit_id = y;
+              this.sole_attacker_unit = attacker_units[y];
             }
           }
         }
@@ -918,18 +950,18 @@ class LossOverlay {
         let idx = e.currentTarget.id;
         let unit = this.units[idx];
 
-        /*****
-				if (unit.unassignable == 1) {
-				  if (this.priority_hits_required == 1) {
-alert("Units exist which take priority damage... assign first hit to priority target...");
-return;
-				  } else {
-alert("This unit cannot be assigned hits without leaving unassignable damage... assign hits to damaged army first...");
-return;
-				  }
+        if (just_one_more_hit) {
+          if (unit.damaged) {
+            let others = 0;
+            for (let z = 0; z < this.units.length; z++) {
+              if (z != idx && this.units[z].destroyed == false) { others++; }
+            }
+            if (others == 0) { return; }
+          }
+        } else {
+          if (unit.unassignable == 1) { return; }
+        }
 
-				}
-******/
         let unit_key = e.currentTarget.dataset.key;
         let unit_spacekey = e.currentTarget.dataset.spacekey;
 
@@ -965,6 +997,9 @@ return;
       let priority_found = 0;
       for (let z = 0; z < this.units.length; z++) {
         let u = this.units[z];
+        if (u.destroyed) { continue; }
+        let priority_step = u.damaged ? u.rloss : u.loss;
+        if (this.loss_factor > 0 && priority_step > this.loss_factor) { continue; }
         if (u.priority > 0 && u.priority > priority_found) {
           priority_found = u.priority;
           for (let zz = 0; zz < this.units.length; zz++) {
@@ -979,6 +1014,14 @@ return;
     }
 
     if (this.priority_hits_required == 1) {
+      for (let z = 0; z < this.units.length; z++) {
+        if (this.units[z].destroyed) { continue; }
+        let step = this.units[z].damaged ? this.units[z].rloss : this.units[z].loss;
+        if (this.loss_factor > 0 && step > this.loss_factor) {
+          this.units[z].unassignable = 1;
+          this.are_any_units_unassignable = 1;
+        }
+      }
       return;
     }
 
@@ -1079,6 +1122,15 @@ return;
             }
           }
         }
+      }
+    }
+
+    for (let z = 0; z < this.units.length; z++) {
+      if (this.units[z].destroyed) { continue; }
+      let step = this.units[z].damaged ? this.units[z].rloss : this.units[z].loss;
+      if (this.loss_factor > 0 && step > this.loss_factor) {
+        this.units[z].unassignable = 1;
+        this.are_any_units_unassignable = 1;
       }
     }
   }

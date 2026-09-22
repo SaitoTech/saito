@@ -10,12 +10,13 @@
   height: auto;
   overflow: visible;
   z-index: 40;
+  container-type: inline-size;
 }
 
 .game-minimap .board {
   position: relative;
   width: 100%;
-  max-height: 26.4vh;
+  max-height: 100cqw;
   overflow: hidden;
   border: 1px solid var(--saito-white);
   background-color: #14161c;

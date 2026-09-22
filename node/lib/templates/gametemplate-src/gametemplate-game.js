@@ -646,11 +646,13 @@ class GameGame {
       }
     }
 
-    this.saveGame(this.game.id);
-
     if (this.game.players.length == 1) {
+      this.game.over = 1;
+      this.saveGame(this.game.id);
       return;
     }
+
+    this.saveGame(this.game.id);
 
     let winners = [];
 
