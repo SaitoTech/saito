@@ -2,6 +2,13 @@
 
 Use this file as the combined project and Codex runtime guide. Keep context small: read only what is needed, make narrow changes, and verify concretely.
 
+## Documentation
+
+ - Other files in this directory contain guidelines on developing Saito Applications (modules).
+ - The main file is SAITO-FRAMEWORK.md -- it contains the other documents in the directory
+ - If you are developing a Saito Application, consult this file for an understanding of existing code
+
+
 ## Shell
 
 - RTK is optional. If `rtk` is available and useful for reducing command output, you may prefix shell commands with it.
