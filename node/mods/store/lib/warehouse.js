@@ -299,7 +299,13 @@ class Warehouse {
     const fulfilled_transaction_id = transactionIndexInBlock(blk, tx);
     const now = Date.now();
 
-    if (order.isFulfilled()) {
+    // Same canonical inclusion already recorded. A replay after reorg has a new
+    // block hash and longest_chain_fulfilled = 0, so settlement runs again.
+    if (
+      order.isFulfilledOnChain() &&
+      order.block_hash_fulfilled === fulfilled_block_hash &&
+      order.settlement_tx_sig === tx.signature
+    ) {
       return;
     }
 
