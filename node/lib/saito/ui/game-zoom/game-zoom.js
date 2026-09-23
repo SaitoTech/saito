@@ -43,7 +43,10 @@ class GameZoom {
       const board = document.querySelector('.gameboard:not(.gameboard-clone)');
       if (board) {
         let saved_scale = this.mod.loadGamePreference(this.mod.returnSlug() + '-board-scale');
-        if (saved_scale) {
+        let view_ready = this.mod.default_board_view
+          ? this.mod.loadGamePreference(this.mod.returnSlug() + '-board-view-set')
+          : 1;
+        if (saved_scale && view_ready) {
           this.mod.setBoardScale(saved_scale, false);
           try {
             let boardoffset = this.mod.loadGamePreference(this.mod.returnSlug() + '-board-offset');
@@ -55,6 +58,9 @@ class GameZoom {
               }
             }
           } catch (err) {}
+        } else if (this.mod.default_board_view) {
+          this.applyDefaultBoardView(board);
+          this.mod.saveGamePreference(this.mod.returnSlug() + '-board-view-set', 1);
         } else if (this.mod.default_board_scale) {
           this.mod.setBoardScale(this.mod.default_board_scale);
         } else {
@@ -72,6 +78,26 @@ class GameZoom {
     let t = (this.max - scale) / (this.max - this.min);
     t = Math.max(0, Math.min(1, t));
     this.fill_el.style.width = t * 100 + '%';
+  }
+
+  applyDefaultBoardView(board) {
+    const view = this.mod.default_board_view;
+    const boardWidth = board.offsetWidth;
+    const boardHeight = board.offsetHeight;
+    if (!view || !boardWidth || !boardHeight || !view.w || !view.h) {
+      return;
+    }
+
+    let scale = Math.round((100 * window.innerWidth) / (view.w * boardWidth));
+    scale = Math.max(this.min, Math.min(this.max, scale));
+    this.mod.setBoardScale(scale, false);
+
+    const s = scale / 100;
+    this.mod.setBoardPosition(
+      Math.round(-view.x * boardWidth * s),
+      Math.round(-view.y * boardHeight * s)
+    );
+    this.mod.saveGamePreference(this.mod.returnSlug() + '-board-scale', scale);
   }
 
   show() {

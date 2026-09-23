@@ -38,7 +38,6 @@ class Shogun extends GameTemplate {
 
     this.hud.mode = 0; // long-horizontal
     //this.hud.enable_mode_change = 1;
-    this.hud.card_width = 120;
     this.hud.respectDocking = true;
     this.shop = new ShopOverlay(app, this);
 
@@ -153,7 +152,6 @@ class Shogun extends GameTemplate {
     try {
       if (app.browser.isMobileBrowser(navigator.userAgent)) {
         console.log('Mobile user!');
-        this.hud.card_width = 100; //Smaller cards
         this.cardbox.skip_card_prompt = 0;
       }
     } catch (err) {
@@ -667,10 +665,6 @@ class Shogun extends GameTemplate {
         this.game.deck[player - 1].cards[code.toString()] = card_to_buy;
         if (direct_to_hand) {
           this.game.deck[player - 1].hand.push(code);
-          animationDestination = '#slot00';
-          if (player == this.game.player) {
-            this.hud.insertCard(`<div id="slot00" class="card hud-card"></div>`);
-          }
         } else if (add_to_deck) {
           let cobj = {};
           cobj[code] = card_to_buy;
@@ -1100,9 +1094,7 @@ class Shogun extends GameTemplate {
             this.attachCardboxEvents(function (action) {
               if (action == 'keep') {
                 this.game.deck[player - 1].hand.push(c);
-                this.hud.insertCard(this.flipCardHTML(cardname), () => {
-                  this.restartQueue();
-                });
+                this.restartQueue();
               } else {
                 this.game.pool[player - 1].hand.unshift(c);
                 this.addMove(`POOLDEAL\t${mv[1]}\t1\t${mv[1]}`);
@@ -1112,9 +1104,7 @@ class Shogun extends GameTemplate {
             return 0;
           } else {
             this.game.deck[player - 1].hand.push(c);
-            this.hud.insertCard(this.flipCardHTML(cardname), () => {
-              this.restartQueue();
-            });
+            this.restartQueue();
             return 0;
           }
         }

@@ -654,34 +654,30 @@ class GameTestSuite extends GameTemplate {
   }
 
   display_cardhud_test(app) {
-    this.hud.render(this.app, this);
-    this.hud.attachEvents(this.app, this);
-    this.hud.updateStatusMessageAndShowCards(
+    this.hud.render();
+    this.updateStatusAndListCards(
       'updating the status message',
       this.game.deck[0].hand,
-      this.game.deck[0].cards
+      function (card) {
+        alert('Selected a card: ' + card);
+      }
     );
-    this.hud.onCardClick(function (card) {
-      alert('Selected a card: ' + card);
-    });
   }
 
   toggle_cardbox_test(app) {
-    this.hud.render(this.app, this);
-    this.hud.attachEvents(this.app, this);
-    if (this.hud.use_cardbox == 1) {
-      this.hud.use_cardbox = 0;
-      this.hud.updateStatusMessageAndShowCards(
+    this.hud.render();
+    this.cardbox.render();
+    if (this.useCardbox == 1) {
+      this.useCardbox = 0;
+      this.updateStatusAndListCards(
         'cardbox disabled in hud',
-        this.game.deck[0].hand,
-        this.game.deck[0].cards
+        this.game.deck[0].hand
       );
     } else {
-      this.hud.use_cardbox = 1;
-      this.hud.updateStatusMessageAndShowCards(
+      this.useCardbox = 1;
+      this.updateStatusAndListCards(
         'cardbox enabled in hud',
-        this.game.deck[0].hand,
-        this.game.deck[0].cards
+        this.game.deck[0].hand
       );
     }
   }

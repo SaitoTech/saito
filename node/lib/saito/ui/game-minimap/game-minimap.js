@@ -148,6 +148,38 @@ class GameMinimap {
     }
   }
 
+  snapshot() {
+    if (!this.mod.browser_active) {
+      return;
+    }
+    if (!this.minimap_el) {
+      this.render();
+    }
+    if (!this.board_el) {
+      return;
+    }
+
+    const b = this.mod.getBoardState();
+    if (!b) {
+      return;
+    }
+
+    const map = this.board_el.getBoundingClientRect();
+    if (!map.width) {
+      if (!this.snapshot_wait) {
+        this.snapshot_wait = true;
+        requestAnimationFrame(() => {
+          this.snapshot_wait = false;
+          this.snapshot();
+        });
+      }
+      return;
+    }
+
+    this.board_el.style.backgroundImage = 'none';
+    this.syncClone(b, map);
+  }
+
   attachEvents() {
     const minimap = this.minimap_el;
     const board = this.board_el;
@@ -338,8 +370,9 @@ class GameMinimap {
     const box = this.minimap_el.getBoundingClientRect();
     let left = e.clientX - this.move_x;
     let top = e.clientY - this.move_y;
-    left = Math.max(0, Math.min(left, window.innerWidth - box.width));
-    top = Math.max(0, Math.min(top, window.innerHeight - box.height));
+    const visible = 36;
+    left = Math.max(visible - box.width, Math.min(left, window.innerWidth - visible));
+    top = Math.max(visible - box.height, Math.min(top, window.innerHeight - visible));
 
     this.minimap_el.style.left = left + 'px';
     this.minimap_el.style.top = top + 'px';

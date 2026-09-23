@@ -68,7 +68,6 @@ class Jaipur extends GameTemplate {
     this.playerbox.render();
     //this.playerbox.addClassAll('poker-seat-', true);
 
-    this.hud.card_width = 120;
     this.hud.draggable_whole = false;
     this.hud.render();
   }
@@ -361,11 +360,9 @@ class Jaipur extends GameTemplate {
         if (this.game.player == player) {
           this.game.state.hand.push(card);
 
-          let dest = document.querySelector(`#status .hud-card[data-id="${card}"]`);
-          if (!dest) {
-            await this.hud.insertCard(`<div id="slot00" class="card hud-card"></div>`);
-            dest = '#slot00';
-          }
+          let dest =
+            document.querySelector(`#status .hud-card[data-id="${card}"]`) ||
+            document.querySelector('#hud');
           this.moveGameElement(moving_card, dest, { resize: 1 }, () => {
             this.restartQueue();
           });

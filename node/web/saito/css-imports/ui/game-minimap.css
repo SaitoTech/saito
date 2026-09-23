@@ -38,7 +38,7 @@
 .game-minimap .markers {
   position: absolute;
   inset: 0;
-  z-index: 1;
+  z-index: 2;
   pointer-events: none;
 }
 
@@ -59,10 +59,11 @@
 
 .game-minimap .viewport {
   position: absolute;
-  z-index: 2;
+  z-index: 1;
   cursor: grab;
   border: 1px solid var(--saito-white);
-  background: color-mix(in srgb, var(--saito-white) 25%, transparent);
+  background: transparent;
+  box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.32);
 }
 
 .game-minimap .viewport:active {

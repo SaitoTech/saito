@@ -31,17 +31,6 @@
     width: 24vw;
   }
 
-  .game-minimap .viewport {
-    z-index: 1;
-    background: transparent;
-    border: 1px solid var(--saito-white);
-    box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.32);
-  }
-
-  .game-minimap .markers {
-    z-index: 2;
-  }
-
   .game-minimap .markers .circle {
     box-shadow:
       0 0 0 1px rgba(0, 0, 0, 0.85),

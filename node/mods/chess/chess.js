@@ -311,11 +311,6 @@ class Chessgame extends GameTemplate {
       } else {
         //(data.draw == "offer")
         this.game.draw_offered = msg.extra.target; //I am receving offer
-        if (this.game.player === msg.extra.target) {
-          /*this.updateStatusMessage(
-						'Opponent offers a draw; ' + this.game.status
-					);*/
-        }
         this.initialize_game_run = 0;
         this.render(this.app);
         this.initialize_game_run = 1;

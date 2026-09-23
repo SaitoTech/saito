@@ -70,17 +70,6 @@
   max-width: 9.1em;
 }
 
-.hud-vertical {
-  width: 280px;
-  max-width: 300px;
-  height: 100%;
-  max-height: 100vh;
-  top: 0px;
-  left: 0px;
-  margin-top: 45px;
-  padding: 0 5px 5px 5px;
-}
-
 .hud-long {
   width: max-content;
   max-width: calc(100vw - 0.833rem);

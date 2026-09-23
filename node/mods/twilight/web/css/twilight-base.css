@@ -686,6 +686,14 @@
     }
   }
 
+  .game-minimap {
+    top: calc(40px + 1.667rem);
+    left: 1.667rem;
+    right: auto;
+    bottom: auto;
+    width: 24vw;
+  }
+
   @media screen and (orientation: portrait) and (max-width: 600px) {
     .cardbox-card,
     .game-cardbox {

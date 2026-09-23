@@ -32,7 +32,6 @@ class Pandemic extends GameTemplate {
     this.interface = 1; // default to graphics (as opposed to text interface)
 
     this.hud.mode = 0;
-    this.hud.card_width = 120;
     /*this.hud.enable_mode_change = 1;*/
 
     let temp_self = this;
@@ -336,7 +335,6 @@ class Pandemic extends GameTemplate {
 
     try {
       if (app.browser.isMobileBrowser(navigator.userAgent)) {
-        this.hud.card_width = 100; //Smaller cards
         this.cardbox.skip_card_prompt = 0;
         this.hammer.render();
       } else {

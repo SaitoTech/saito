@@ -11,6 +11,7 @@ const HeadlineOverlay = require('./lib/overlays/headline');
 const ZoomOverlay = require('./lib/overlays/zoom');
 const htmlTemplate = require('./lib/core/game-html.template').default;
 const GameHelp = require('./lib/overlays/game-help');
+const GameMinimap = require('../../lib/saito/ui/game-minimap/game-minimap');
 
 const JSON = require('json-bigint');
 
@@ -70,6 +71,10 @@ class Twilight extends GameTemplate {
     this.headline_overlay = new HeadlineOverlay(this.app, this);
     this.zoom_overlay = new ZoomOverlay(this.app, this);
     this.game_help = new GameHelp(this.app, this);
+    this.minimap = new GameMinimap(this.app, this);
+    this.minimap.enable_zoom = 1;
+    // Opening frame measured from the Europe–Asia crop on the 2550×1650 board.
+    this.default_board_view = { x: 70 / 558, y: 39 / 361, w: 349 / 558, h: 185 / 361 };
 
     //
     // newbie mode
@@ -85,7 +90,6 @@ class Twilight extends GameTemplate {
     
     // Temporarily block this because the alternate hud css was messed up by recent refactors
     //this.hud.enable_mode_change = 1;
-    this.hud.card_width = 120;
     this.roles = ["observer", "ussr", "us"];
     this.region_key = { "asia": "Asia", "seasia": "Southeast Asia", "europe":"Europe", "africa":"Africa", "mideast":"Middle East", "camerica": "Central America", "samerica":"South America"};
     this.grace_window = 25;
@@ -444,16 +448,14 @@ class Twilight extends GameTemplate {
 
     try {
       if (app.browser.isMobileBrowser(navigator.userAgent)) {
-        this.hud.card_width = 110;
         this.cardbox.skip_card_prompt = 0;
         this.hammer.render();
-      } else {
-        this.hud.card_width = 120; // hardcode max card size
-        this.sizer.render();
-        this.sizer.attachEvents('.gameboard');
       }
-
     } catch (err) {}
+
+    if (this.minimap) {
+      this.minimap.render();
+    }
 
     document.querySelector('.gameboard').addEventListener('click', (e) => {
 
@@ -1077,6 +1079,19 @@ console.log("error here 222");
   //
   // Core Game Logic
   //
+  showMinimapMarker(countryname, faction) {
+    if (!this.minimap || this.game.player === 0) { return; }
+    let country = this.countries[countryname];
+    if (!country) { return; }
+    this.minimap.add("move-" + countryname, {
+      x: country.left / this.boardWidth,
+      y: country.top / 3300,
+      color: faction == "us" ? "#3d6cb3" : "#c23b3b",
+      size: 14,
+      flash: true
+    });
+  }
+
   handleGameLoop() {
 
     let twilight_self = this;
@@ -2692,6 +2707,9 @@ console.log("DESC: " + JSON.stringify(discarded_cards));
       // do not submit card, ops already modified
       //
       this.playCoup(mv[1], mv[2], parseInt(mv[3]));
+      if (this.game.player > 0 && mv[1] != ((this.game.player === 1) ? "ussr" : "us")) {
+        this.showMinimapMarker(countryname, mv[1]);
+      }
       this.game.queue.splice(qe, 1);
     }
 
@@ -2699,6 +2717,7 @@ console.log("DESC: " + JSON.stringify(discarded_cards));
     if (mv[0] === "realign") {
       if (mv[1] != player) {
         this.playRealign(mv[1], mv[2]);
+        this.showMinimapMarker(mv[2], mv[1]);
       }
       this.game.queue.splice(qe, 1);
     }
@@ -2841,7 +2860,10 @@ console.log("DESC: " + JSON.stringify(discarded_cards));
 
 
     if (mv[0] === "place") {
-      if (player !== mv[1]) { this.placeInfluence(mv[3], parseInt(mv[4]), mv[2]); }
+      if (player !== mv[1]) {
+        this.placeInfluence(mv[3], parseInt(mv[4]), mv[2]);
+        this.showMinimapMarker(mv[3], mv[2]);
+      }
       this.game.queue.splice(qe, 1);
     }
 
@@ -2943,6 +2965,9 @@ console.log("DESC: " + JSON.stringify(discarded_cards));
             rmvd = 1;
           }
           if (lmv[0] == "play" && mv[1] == "play") {
+            if (this.minimap && parseInt(lmv[1]) === this.game.player) {
+              this.minimap.clear();
+            }
             this.game.queue.splice(le, 2);
             rmvd = 1;
           }
@@ -3150,8 +3175,12 @@ console.log("DESC: " + JSON.stringify(discarded_cards));
 
       let x = this.playHeadlinePostModern(stage, hash, xor, card);
       //
-      // do not remove from queue -- handle RESOLVE on endTurn submission
+      // 1 means this command was removed and the next headline steps
+      // were queued locally. Otherwise keep waiting for a submission.
       //
+      if (x === 1) {
+        return 1;
+      }
       return 0;
 
     }
@@ -3793,17 +3822,17 @@ try {
 
   playHeadlinePostModern(stage, hash="", xor="", card="") {
 
-     if (this.game.player === 0) {
-      this.updateLog("Processing Headline Cards...");
-      return;
-    }
-
     // NO HEADLINE PEEKING
     if (this.game.state.man_in_earth_orbit == "") {
       if (stage == "headline1"){
         //Directly push these, so only a single copy is added to queue
         this.game.queue.push("resolve\theadline");
         this.game.queue.push("headline\theadline4");
+
+        if (this.game.player === 0) {
+          this.updateLog("Processing Headline Cards...");
+          return 0;
+        }
 
         this.startClock(3-this.game.player); //Run opponent's clock
         this.startClockAndSetActivePlayer(); //And my own
@@ -3815,7 +3844,9 @@ try {
         //We should have results back from simultaneous pick
         //stored in -- game_self.game.state.sp[player_id - 1] = player_card;
 
-        this.game.state.headline_opponent_card = this.game.state.sp[2-this.game.player];
+        if (this.game.player == 1 || this.game.player == 2) {
+          this.game.state.headline_opponent_card = this.game.state.sp[2-this.game.player];
+        }
         stage = "headline6";
       }
     }else{ // man in earth orbit = HEADLINE PEEKING
@@ -3890,6 +3921,60 @@ try {
     }
    
 
+    if (stage == "headline6" && this.game.state.man_in_earth_orbit == "") {
+
+      let shared_ussr = this.game.state.sp ? this.game.state.sp[0] : "";
+      let shared_us = this.game.state.sp ? this.game.state.sp[1] : "";
+      let knownOps = (key) => {
+        if (!key || !this.game.deck[0]) { return null; }
+        if (this.game.deck[0].cards[key] != undefined) { return this.game.deck[0].cards[key].ops; }
+        if (this.game.deck[0].discards[key] != undefined) { return this.game.deck[0].discards[key].ops; }
+        if (this.game.deck[0].removed[key] != undefined) { return this.game.deck[0].removed[key].ops; }
+        if (key == "china") { return 4; }
+        return null;
+      };
+      let ussr_ops = knownOps(shared_ussr);
+      let us_ops = knownOps(shared_us);
+
+      if (ussr_ops != null && us_ops != null) {
+        let first = ussr_ops > us_ops ? 1 : 2;
+        this.game.state.player_to_go = first;
+
+        if (this.browser_active) {
+          this.headline_overlay.render(shared_us, shared_ussr);
+        }
+        if (this.game.state.headline_card) {
+          this.removeTwilightCardFromHand(this.game.state.headline_card);
+        }
+
+        this.game.queue.splice(this.game.queue.length - 1, 1);
+
+        if (shared_us === "defectors" || (shared_ussr != "defectors" && this.game.state.defectors_pulled_in_headline == 1)) {
+          this.updateLog(`USSR headlines ${this.cardToText(shared_ussr)}`);
+          this.updateLog(`US headlines ${this.cardToText("defectors")} and cancels USSR headline.`);
+          this.updateStatus(`>${this.cardToText("defectors")} cancels USSR headline. Moving into first turn...`);
+          this.game.queue.push("clear\theadline");
+          this.game.queue.push("discard\tus\tdefectors");
+          this.game.queue.push("discard\tussr\t"+shared_ussr);
+        } else {
+          let first_card = first == 1 ? shared_ussr : shared_us;
+          let first_faction = first == 1 ? "ussr" : "us";
+          if (first == 1) {
+            this.updateLog(`USSR headlines ${this.cardToText(shared_ussr)}.`);
+            this.updateLog(`US headlines ${this.cardToText(shared_us)}`);
+            this.updateStatus(`USSR headlines ${this.cardToText(shared_ussr)}. US headlines ${this.cardToText(shared_us)}`);
+          } else {
+            this.updateLog(`US headlines ${this.cardToText(shared_us)}.`);
+            this.updateLog(`USSR headlines ${this.cardToText(shared_ussr)}`);
+            this.updateStatus(`US headlines ${this.cardToText(shared_us)}. USSR headlines ${this.cardToText(shared_ussr)}`);
+          }
+          this.game.queue.push("headline\theadline7\t"+first);
+          this.game.queue.push("event\t"+first_faction+"\t"+first_card);
+        }
+        return 1;
+      }
+    }
+
     if (stage == "headline6") {
 
       if (this.browser_active) {
@@ -3952,6 +4037,35 @@ try {
     //
     // second player plays headline card
     //
+    if (stage == "headline7" && this.game.state.man_in_earth_orbit == "") {
+
+      let shared_ussr = this.game.state.sp ? this.game.state.sp[0] : "";
+      let shared_us = this.game.state.sp ? this.game.state.sp[1] : "";
+      let first = parseInt(hash);
+      if ((first === 1 || first === 2) && shared_ussr && shared_us) {
+        let second = 3 - first;
+        this.game.state.player_to_go = second;
+        this.game.queue.splice(this.game.queue.length - 1, 1);
+
+        if (shared_us === "defectors" || (shared_ussr != "defectors" && this.game.state.defectors_pulled_in_headline == 1)) {
+          this.updateLog(`USSR headlines ${this.cardToText(shared_ussr)}, but it is cancelled by ${this.cardToText("defectors")}`);
+          this.updateStatus(`>${this.cardToText("defectors")} cancels USSR headline. Moving into first turn...`);
+          this.game.queue.push("discard\tussr\t"+shared_ussr);
+        } else {
+          let second_card = second == 1 ? shared_ussr : shared_us;
+          let second_faction = second == 1 ? "ussr" : "us";
+          if (second == 1) {
+            this.updateStatus(`Resolving USSR headline: ${this.cardToText(shared_ussr)}`);
+          } else {
+            this.updateStatus(`Resolving US headline: ${this.cardToText(shared_us)}`);
+          }
+          this.game.queue.push("clear\theadline");
+          this.game.queue.push("event\t"+second_faction+"\t"+second_card);
+        }
+        return 1;
+      }
+    }
+
     if (stage == "headline7") {
 
       //You don't have to recalculate if we store the first player_to_go in game.state
@@ -6683,6 +6797,11 @@ try {
 
     } catch (err) {
 console.log("DISPLAY ERROR: " + JSON.stringify(err));
+    }
+
+    if (this.minimap) {
+      this.minimap.render();
+      this.minimap.snapshot();
     }
 
   }

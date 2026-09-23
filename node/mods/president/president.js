@@ -57,14 +57,6 @@ class President extends GameTemplate {
 
     this.cardbox.addCardType('showcard', '', null);
     this.cardbox.addCardType('card', 'select', this.cardbox_callback);
-    if (!app.browser.isMobileBrowser(navigator.userAgent)) {
-      //this.hud.cardbox.skip_card_prompt = 1;
-      // we have to confirm as card select is not automatic in multi-card cardfan
-      //this.hud.cardbox.skip_card_prompt = 0;
-      this.hud.card_width = 80;
-    } else {
-      this.hud.card_width = 80;
-    }
 
     this.log.render(app, this);
     this.log.attachEvents(app, this);
