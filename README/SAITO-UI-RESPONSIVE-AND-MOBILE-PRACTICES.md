@@ -822,31 +822,14 @@ Games also have their own header dimensions and game-specific responsive CSS.
 
 ## 20. Game HUD Responsiveness
 
-The game HUD provides a clear example of CSS and JavaScript working together.
-
-`GameHud.checkSizeAndOrientation()` determines whether the interface is:
-
-- desktop
-- mobile portrait
-- mobile landscape
-
-It uses viewport dimensions and orientation.
-
-It then adds classes such as:
+The game HUD layout is selected by `this.hud.mode` and CSS classes:
 
     hud-long
     hud-square
-    hud-vertical
 
-The CSS uses those classes to determine the actual layout.
+Games set a mode in the constructor (or leave the default long HUD). Optional mode cycling switches between those two layouts. Vertical HUD mode has been removed.
 
-This is a good pattern when the application needs to classify a complex responsive state that cannot conveniently be represented by one CSS rule.
-
-The JavaScript determines the state.
-
-The CSS renders the state.
-
-Do not reproduce this pattern for a normal page whose layout can simply be expressed with media queries.
+Do not treat the HUD as a pattern for classifying desktop / mobile portrait / mobile landscape in JavaScript. Prefer media queries for ordinary page layout.
 
 ---
 
