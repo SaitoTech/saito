@@ -94,24 +94,22 @@
 	playActionCard : function(imperium_self, player, action_card_player, card) {
 	  if (imperium_self.game.player == action_card_player) {
 
-	    let html  = '<div class="sf-readable">Spend any number of trade goods to purchase additional votes: </div><ul>';
+	    let html  = '<div class="sf-readable">Spend any number of trade goods to purchase additional votes: </div>';
+	    let menu = [];
 	    if (imperium_self.game.state.players_info[action_card_player-1].goods > 0) {
-	      html   += '<li class="textchoice" id="0">0 votes</li>';
+	      menu.push({ id: '0', label: '0 votes' });
 	      for (let i = 1; i <= imperium_self.game.state.players_info[action_card_player-1].goods+1; i++) {
-	        if (i == 1) { html   += '<li class="textchoice" id="1">'+i+' vote</li>'; }
-	        else { html   += '<li class="textchoice" id="'+i+'">'+i+' votes</li>'; }
+	        if (i == 1) { menu.push({ id: '1', label: i+' vote' }); }
+	        else { menu.push({ id: String(i), label: i+' votes' }); }
 	      }
 	    } else {
-	      html   += '<li class="textchoice" id="0">0 votes</li>';
+	      menu.push({ id: '0', label: '0 votes' });
             }
-	    html += '</ul>';
 
-	    imperium_self.updateStatus(html);
-
-	    $('.textchoice').off();
-	    $('.textchoice').on('click', function() {
-
-	      let action = $(this).attr("id");
+	    	    imperium_self.game.status = html;
+	    imperium_self.hud.updateStatus(imperium_self.game.status);
+	    imperium_self.hud.updateCards([]);
+	    imperium_self.hud.updateMenu(menu, function (action) {
 
 	      imperium_self.addMove("bribery\t"+action_card_player+"\t"+action);
 	      imperium_self.endTurn();

@@ -396,21 +396,23 @@
 
       let p = his_self.returnPlayerCommandingFaction(giving_faction);
       let msg = `${his_self.returnFactionName(faction)} - Return which Leader? `;
-      let html = '<ul>';
+      let html = [];
       for (let i = 0; i < his_self.game.state.players_info[p-1].captured.length; i++) {
         let u = his_self.game.state.players_info[p-1].captured[i];
         if (u.capturing_faction == giving_faction) {
-          html += `<li class="option" id="${u.type}">${u.type}</li>`;
+          html.push({ id: `${u.type}`, label: `${u.type}` });
         }
       }
-      html += '</ul>';
       
-      his_self.updateStatusWithOptions(msg, html);
-
-      $('.option').off();
-      $('.option').on('click', function () {
-        let give_which_leader = $(this).attr("id");
-        his_self.updateStatus("submitted");
+            his_self.game.status = msg;
+      his_self.hud.updateStatus(his_self.game.status);
+      his_self.hud.updateCards([]);
+      his_self.hud.updateMenu(html, function (user_choice) {
+        let give_which_leader = user_choice;
+                his_self.game.status = "submitted";
+        his_self.hud.updateStatus(his_self.game.status);
+        his_self.hud.updateMenu([]);
+        his_self.hud.updateCards([]);
         if (mycallback == null) { return; }
         mycallback([`give_captured_leader\t${giving_faction}\t${receiving_faction}\t${give_which_leader}`]);      
       });
@@ -427,7 +429,7 @@
     let io = his_self.returnDiplomacyImpulseOrder(faction);
     let factions_with_leaders = [];
     let other_factions_with_leaders = [];
-    let html = '<ul>';
+    let html = [];
     let auto_select_target = true;
     for (let i = 0; i < io.length; i++) {
       if (io[i] != faction) {
@@ -438,33 +440,32 @@
 	    if (his_self.game.state.players_info[p1-1].captured[z].capturing_faction == io[i]) {
     	      factions_with_leaders.push(io[i]);
 	      if (io[i] != target_faction) { other_factions_with_leaders.push(io[i]); }
-              html += `<li class="option" id="${io[i]}">${his_self.returnFactionName(io[i])}</li>`;
+              html.push({ id: `${io[i]}`, label: `${his_self.returnFactionName(io[i])}` });
 	    }
 	  }
 	}
       }
     }
-    html += '</ul>';
 
-    let html2 = '<ul>';
-    html2 += `<li class="option" id="${target_faction}">${his_self.returnFactionName(target_faction)}</li>`;
+    let html2 = [];
+    html2.push({ id: `${target_faction}`, label: `${his_self.returnFactionName(target_faction)}` });
     if (other_factions_with_leaders.length > 0) {
-      html2 += `<li class="option" id="other">another faction</li>`;
+      html2.push({ id: `other`, label: `another faction` });
     }
-    html2 += '</ul>';
 
-    his_self.updateStatusWithOptions(msg, html2);     
-    $('.option').off();
-    $('.option').on('click', function () {
+        his_self.game.status = msg;
+    his_self.hud.updateStatus(his_self.game.status);
+    his_self.hud.updateCards([]);
+    his_self.hud.updateMenu(html2, function (user_choice) {
 
-      let action2 = $(this).attr("id");
+        let action2 = user_choice;
       if (action2 !== target_faction) {
 
-        his_self.updateStatusWithOptions(msg, html);
-
-        $('.option').off();
-        $('.option').on('click', function () {
-          let action3 = $(this).attr("id");
+                his_self.game.status = msg;
+        his_self.hud.updateStatus(his_self.game.status);
+        his_self.hud.updateCards([]);
+        his_self.hud.updateMenu(html, function (user_choice) {
+        let action3 = user_choice;
           if (mycallback == null) { return; }
           submit_choose_leader(action3, faction);
         });
@@ -485,21 +486,23 @@
 
       let p = his_self.returnPlayerCommandingFaction(giving_faction);
       let msg = `${his_self.returnFactionName(faction)} - Return which Leader? `;
-      let html = '<ul>';
+      let html = [];
       for (let i = 0; i < his_self.game.state.players_info[p-1].captured.length; i++) {
         let u = his_self.game.state.players_info[p-1].captured[i];
         if (u.capturing_faction == faction) {
-          html += `<li class="option" id="${u.type}">${u.type}</li>`;
+          html.push({ id: `${u.type}`, label: `${u.type}` });
         }
       }
-      html += '</ul>';
       
-      his_self.updateStatusWithOptions(msg, html);
-
-      $('.option').off();
-      $('.option').on('click', function () {
-        let give_which_leader = $(this).attr("id");
-        his_self.updateStatus("submitted");
+            his_self.game.status = msg;
+      his_self.hud.updateStatus(his_self.game.status);
+      his_self.hud.updateCards([]);
+      his_self.hud.updateMenu(html, function (user_choice) {
+        let give_which_leader = user_choice;
+                his_self.game.status = "submitted";
+        his_self.hud.updateStatus(his_self.game.status);
+        his_self.hud.updateMenu([]);
+        his_self.hud.updateCards([]);
         if (mycallback == null) { return; }
         mycallback([`give_captured_leader\t${giving_faction}\t${receiving_faction}\t${give_which_leader}`]);      
       });
@@ -514,30 +517,29 @@
     let terms = [];
     let msg = `${his_self.returnFactionName(faction)} - Give to Whom?`;
     let io = his_self.returnDiplomacyImpulseOrder(faction);
-    let html = '<ul>';
+    let html = [];
     let auto_select_target = true;
     for (let i = 0; i < io.length; i++) {
-      html += `<li class="option" id="${io[i]}">${his_self.returnFactionName(io[i])}</li>`;
+      html.push({ id: `${io[i]}`, label: `${his_self.returnFactionName(io[i])}` });
     }
-    html += '</ul>';
 
-    let html2 = '<ul>';
-    html2 += `<li class="option" id="${target_faction}">${his_self.returnFactionName(target_faction)}</li>`;
-    html2 += `<li class="option" id="other">another faction</li>`;
-    html2 += '</ul>';
+    let html2 = [];
+    html2.push({ id: `${target_faction}`, label: `${his_self.returnFactionName(target_faction)}` });
+    html2.push({ id: `other`, label: `another faction` });
 
-    his_self.updateStatusWithOptions(msg, html2);     
-    $('.option').off();
-    $('.option').on('click', function () {
+        his_self.game.status = msg;
+    his_self.hud.updateStatus(his_self.game.status);
+    his_self.hud.updateCards([]);
+    his_self.hud.updateMenu(html2, function (user_choice) {
 
-      let action2 = $(this).attr("id");
+        let action2 = user_choice;
       if (action2 !== target_faction) {
 
-        his_self.updateStatusWithOptions(msg, html);
-
-        $('.option').off();
-        $('.option').on('click', function () {
-          let action3 = $(this).attr("id");
+                his_self.game.status = msg;
+        his_self.hud.updateStatus(his_self.game.status);
+        his_self.hud.updateCards([]);
+        his_self.hud.updateMenu(html, function (user_choice) {
+        let action3 = user_choice;
           if (mycallback == null) { return; }
           submit_choose_leader(faction, action3);
         });
@@ -557,7 +559,10 @@
   async playerEndWar(his_self, faction, mycallback=null) {
 
     let submit_end_war = function(action2) {
-      his_self.updateStatus("submitted");
+            his_self.game.status = "submitted";
+      his_self.hud.updateStatus(his_self.game.status);
+      his_self.hud.updateMenu([]);
+      his_self.hud.updateCards([]);
       mycallback([`declare_peace\t${faction}\t${action2}`]);      
     }
 
@@ -567,37 +572,36 @@
     let terms = [];
     let msg = `${his_self.returnFactionName(faction)} - End War with Whom: `;
     let io = his_self.returnDiplomacyImpulseOrder(faction);
-    let html = '<ul>';
+    let html = [];
     let auto_select_target = true;
     for (let i = 0; i < io.length; i++) {
       if (his_self.areEnemies(faction, io[i]) && faction != io[i]) {
-        html += `<li class="option" id="${io[i]}">${his_self.returnFactionName(io[i])}</li>`;
+        html.push({ id: `${io[i]}`, label: `${his_self.returnFactionName(io[i])}` });
         if (io[i] !== target_faction) {
 	  auto_select_target = false;
 	}
       }
     }
-    html += '</ul>';
 
     if (auto_select_target == false) {
 
-      let html2 = '<ul>';
-      html2 += `<li class="option" id="${target_faction}">${his_self.returnFactionName(target_faction)}</li>`;
-      html2 += `<li class="option" id="other">another faction</li>`;
-      html2 += '</ul>';
+      let html2 = [];
+      html2.push({ id: `${target_faction}`, label: `${his_self.returnFactionName(target_faction)}` });
+      html2.push({ id: `other`, label: `another faction` });
 
-      his_self.updateStatusWithOptions(msg, html2);     
-      $('.option').off();
-      $('.option').on('click', function () {
+            his_self.game.status = msg;
+      his_self.hud.updateStatus(his_self.game.status);
+      his_self.hud.updateCards([]);
+      his_self.hud.updateMenu(html2, function (user_choice) {
 
-        let action2 = $(this).attr("id");
+        let action2 = user_choice;
 	if (action2 !== target_faction) {
 
-          his_self.updateStatusWithOptions(msg, html);
-
-          $('.option').off();
-          $('.option').on('click', function () {
-            let action3 = $(this).attr("id");
+                    his_self.game.status = msg;
+          his_self.hud.updateStatus(his_self.game.status);
+          his_self.hud.updateCards([]);
+          his_self.hud.updateMenu(html, function (user_choice) {
+        let action3 = user_choice;
             if (mycallback == null) { return; }
             submit_end_war(action3);
           });
@@ -623,7 +627,10 @@
   async playerFormAlliance(his_self, faction, mycallback=null) {
 
     let submit_form_alliance = function(action2) {
-      his_self.updateStatus("submitted");
+            his_self.game.status = "submitted";
+      his_self.hud.updateStatus(his_self.game.status);
+      his_self.hud.updateMenu([]);
+      his_self.hud.updateCards([]);
       mycallback([`set_allies\t${faction}\t${action2}`,`unset_enemies\t${faction}\t${action2}`]);
     }
     let target_faction = "";
@@ -635,7 +642,7 @@
 
     let msg = `${his_self.returnFactionName(faction)} - Form Alliance with Whom: `;
     let io = his_self.returnDiplomacyImpulseOrder(faction);
-    let html = '<ul>';
+    let html = [];
     for (let i = 0; i < io.length; i++) {
       let prohibited_alliance = false;
       if (faction == "papacy" && io[i] == "hapsburg" && his_self.game.state.henry_viii_pope_approves_divorce == 1) {
@@ -652,30 +659,29 @@
       }
       if (prohibited_alliance == false && !his_self.areAllies(faction, io[i])) {
         if (io[i] != target_faction) { auto_select_target = false; }
-        html += `<li class="option" id="${io[i]}">${his_self.returnFactionName(io[i])}</li>`;
+        html.push({ id: `${io[i]}`, label: `${his_self.returnFactionName(io[i])}` });
       }
     }
-    html += '</ul>';
 
     if (auto_select_target == false) {
 
-      let html2 = '<ul>';
-      html2 += `<li class="option" id="${target_faction}">${his_self.returnFactionName(target_faction)}</li>`;
-      html2 += `<li class="option" id="other">another faction</li>`;
-      html2 += '</ul>';
+      let html2 = [];
+      html2.push({ id: `${target_faction}`, label: `${his_self.returnFactionName(target_faction)}` });
+      html2.push({ id: `other`, label: `another faction` });
 
-      his_self.updateStatusWithOptions(msg, html2);     
-      $('.option').off();
-      $('.option').on('click', function () {
+            his_self.game.status = msg;
+      his_self.hud.updateStatus(his_self.game.status);
+      his_self.hud.updateCards([]);
+      his_self.hud.updateMenu(html2, function (user_choice) {
 
-        let action2 = $(this).attr("id");
+        let action2 = user_choice;
 	if (action2 !== target_faction) {
 
-          his_self.updateStatusWithOptions(msg, html);
-
-          $('.option').off();
-          $('.option').on('click', function () {
-            let action3 = $(this).attr("id");
+                    his_self.game.status = msg;
+          his_self.hud.updateStatus(his_self.game.status);
+          his_self.hud.updateCards([]);
+          his_self.hud.updateMenu(html, function (user_choice) {
+        let action3 = user_choice;
             if (mycallback == null) { return; }
             submit_form_alliance(action3);
           });
@@ -701,7 +707,10 @@
   async playerIssueCards(his_self, faction, mycallback=null) {
 
     let submit_issue_cards = function(action2) {
-      his_self.updateStatus("submitted");
+            his_self.game.status = "submitted";
+      his_self.hud.updateStatus(his_self.game.status);
+      his_self.hud.updateMenu([]);
+      his_self.hud.updateCards([]);
       his_self.game.state.cards_issued[faction] += 1;
       mycallback([`pull_card\t${action2}\t${faction}`,`NOTIFY\t${his_self.returnFactionName(action2)} pulls card from ${his_self.returnFactionName(faction)}`]);
     }
@@ -713,34 +722,33 @@
 
     let msg = `${his_self.returnFactionName(faction)} - Issue Random Card Draw to Whom: `;
     let io = his_self.returnDiplomacyImpulseOrder(faction);
-    let html = '<ul>';
+    let html = [];
     for (let i = 0; i < io.length; i++) {
       if (faction != io[i]) {
 	if (io[i] != target_faction) { auto_select_target = false; }
-        html += `<li class="option" id="${io[i]}">${his_self.returnFactionName(io[i])}</li>`;
+        html.push({ id: `${io[i]}`, label: `${his_self.returnFactionName(io[i])}` });
       }
     }
-    html += '</ul>';
 
     if (auto_select_target == false) {
 
-      let html2 = '<ul>';
-      html2 += `<li class="option" id="${target_faction}">${his_self.returnFactionName(target_faction)}</li>`;
-      html2 += `<li class="option" id="other">another faction</li>`;
-      html2 += '</ul>';
+      let html2 = [];
+      html2.push({ id: `${target_faction}`, label: `${his_self.returnFactionName(target_faction)}` });
+      html2.push({ id: `other`, label: `another faction` });
 
-      his_self.updateStatusWithOptions(msg, html2);
-      $('.option').off();
-      $('.option').on('click', function () {
+            his_self.game.status = msg;
+      his_self.hud.updateStatus(his_self.game.status);
+      his_self.hud.updateCards([]);
+      his_self.hud.updateMenu(html2, function (user_choice) {
 
-        let action2 = $(this).attr("id");
+        let action2 = user_choice;
         if (action2 !== target_faction) {
 
-          his_self.updateStatusWithOptions(msg, html);
-
-          $('.option').off();
-          $('.option').on('click', function () {
-            let action3 = $(this).attr("id");
+                    his_self.game.status = msg;
+          his_self.hud.updateStatus(his_self.game.status);
+          his_self.hud.updateCards([]);
+          his_self.hud.updateMenu(html, function (user_choice) {
+        let action3 = user_choice;
             if (mycallback == null) { return; }
             submit_issue_cards(action3);
           });
@@ -763,7 +771,10 @@
   async playerPullCards(his_self, faction, mycallback=null) {
 
     let submit_pull_cards = function(action2) {
-      his_self.updateStatus("submitted");
+            his_self.game.status = "submitted";
+      his_self.hud.updateStatus(his_self.game.status);
+      his_self.hud.updateMenu([]);
+      his_self.hud.updateCards([]);
       his_self.game.state.cards_issued[action2] += 1;
       mycallback([`pull_card\t${faction}\t${action2}`,`NOTIFY\t${his_self.returnFactionName(faction)} pulls card from ${his_self.returnFactionName(action2)}`]);
     }
@@ -777,36 +788,35 @@
 
     let msg = `${his_self.returnFactionName(faction)} - Pull Random Card from Whom? `;
     let io = his_self.returnDiplomacyImpulseOrder(faction);
-    let html = '<ul>';
+    let html = [];
     for (let i = 0; i < io.length; i++) {
       if (faction != io[i]) {
 	if (his_self.game.state.cards_issued[io[i]] < 2) {
 	  if (io[i] != target_faction) { auto_select_target = false; }
-          html += `<li class="option" id="${io[i]}">${his_self.returnFactionName(io[i])}</li>`;
+          html.push({ id: `${io[i]}`, label: `${his_self.returnFactionName(io[i])}` });
         }
       }
     }
-    html += '</ul>';
 
     if (auto_select_target == false) {
 
-      let html2 = '<ul>';
-      html2 += `<li class="option" id="${target_faction}">${his_self.returnFactionName(target_faction)}</li>`;
-      html2 += `<li class="option" id="other">another faction</li>`;
-      html2 += '</ul>';
+      let html2 = [];
+      html2.push({ id: `${target_faction}`, label: `${his_self.returnFactionName(target_faction)}` });
+      html2.push({ id: `other`, label: `another faction` });
 
-      his_self.updateStatusWithOptions(msg, html2);
-      $('.option').off();
-      $('.option').on('click', function () {
+            his_self.game.status = msg;
+      his_self.hud.updateStatus(his_self.game.status);
+      his_self.hud.updateCards([]);
+      his_self.hud.updateMenu(html2, function (user_choice) {
 
-        let action2 = $(this).attr("id");
+        let action2 = user_choice;
         if (action2 !== target_faction) {
 
-          his_self.updateStatusWithOptions(msg, html);
-
-          $('.option').off();
-          $('.option').on('click', function () {
-            let action3 = $(this).attr("id");
+                    his_self.game.status = msg;
+          his_self.hud.updateStatus(his_self.game.status);
+          his_self.hud.updateCards([]);
+          his_self.hud.updateMenu(html, function (user_choice) {
+        let action3 = user_choice;
             if (mycallback == null) { return; }
             submit_pull_cards(action3);
           });
@@ -829,7 +839,10 @@
   async playerGainTerritory(his_self, faction, mycallback=null) {
 
     let submit_gain_territory = function(giving_faction, spacekey) {
-      his_self.updateStatus("submitted");
+            his_self.game.status = "submitted";
+      his_self.hud.updateStatus(his_self.game.status);
+      his_self.hud.updateMenu([]);
+      his_self.hud.updateCards([]);
       mycallback([`evacuate\t${giving_faction}\t${spacekey}`,`control\t${faction}\t${spacekey}\t${giving_faction}`,`NOTIFY\t${his_self.returnFactionName(giving_faction)} yields ${his_self.returnSpaceName(spacekey)} to ${his_self.returnFactionName(faction)}`]);
     }   
     let target_faction = "";
@@ -841,36 +854,35 @@
 
     let msg = `${his_self.returnFactionName(faction)} - Gain Territory from Whom: `;
     let io = his_self.returnDiplomacyImpulseOrder(faction);
-    let html = '<ul>';
+    let html = [];
     for (let i = 0; i < io.length; i++) {
       if (faction != io[i] && !(io[i] == "protestant" && his_self.game.state.events.schmalkaldic_league == 0)) {
         if (his_self.returnPlayerCommandingFaction(faction) != his_self.returnPlayerCommandingFaction(io[i])) {
 	  if (target_faction != io[i]) { auto_select_target = false; }
-          html += `<li class="option" id="${io[i]}">${his_self.returnFactionName(io[i])}</li>`;
+          html.push({ id: `${io[i]}`, label: `${his_self.returnFactionName(io[i])}` });
         }
       }
     }
-    html += '</ul>';
 
     if (auto_select_target == false) {
 
-      let html2 = '<ul>';
-      html2 += `<li class="option" id="${target_faction}">${his_self.returnFactionName(target_faction)}</li>`;
-      html2 += `<li class="option" id="other">another faction</li>`;
-      html2 += '</ul>';
+      let html2 = [];
+      html2.push({ id: `${target_faction}`, label: `${his_self.returnFactionName(target_faction)}` });
+      html2.push({ id: `other`, label: `another faction` });
 
-      his_self.updateStatusWithOptions(msg, html2);
-      $('.option').off();
-      $('.option').on('click', function () {
+            his_self.game.status = msg;
+      his_self.hud.updateStatus(his_self.game.status);
+      his_self.hud.updateCards([]);
+      his_self.hud.updateMenu(html2, function (user_choice) {
 
-        let action2 = $(this).attr("id");
+        let action2 = user_choice;
         if (action2 !== target_faction) {
 
-          his_self.updateStatusWithOptions(msg, html);
-
-          $('.option').off();
-          $('.option').on('click', function () {
-            let action3 = $(this).attr("id");
+                    his_self.game.status = msg;
+          his_self.hud.updateStatus(his_self.game.status);
+          his_self.hud.updateCards([]);
+          his_self.hud.updateMenu(html, function (user_choice) {
+        let action3 = user_choice;
             if (mycallback == null) { return; }
 	    let giving_faction = action3;
       	    his_self.playerSelectSpaceWithFilter(
@@ -936,7 +948,10 @@
   async playerYieldTerritory(his_self, faction, mycallback=null) {
 
     let submit_give_territory = function(receiving_faction, spacekey) {
-      his_self.updateStatus("submitted");
+            his_self.game.status = "submitted";
+      his_self.hud.updateStatus(his_self.game.status);
+      his_self.hud.updateMenu([]);
+      his_self.hud.updateCards([]);
       mycallback([`evacuate\t${faction}\t${spacekey}`,`control\t${receiving_faction}\t${spacekey}\t${faction}`,`NOTIFY\t${his_self.returnFactionName(faction)} yields ${his_self.returnSpaceName(spacekey)} to ${his_self.returnFactionName(receiving_faction)}`]);
     }   
     let target_faction = "";
@@ -947,28 +962,27 @@
 
     let msg = `${his_self.returnFactionName(faction)} - Yield Territory to Whom: `;
     let io = his_self.returnDiplomacyImpulseOrder(faction);
-    let html = '<ul>';
+    let html = [];
     for (let i = 0; i < io.length; i++) {
       if (faction != io[i] && his_self.returnPlayerCommandingFaction(faction) != his_self.returnPlayerCommandingFaction(io[i]) && !(io[i] == "protestant" && his_self.game.state.events.schmalkaldic_league == 0)) {
 	if (target_faction != io[i]) { auto_select_target = false; }
-        html += `<li class="option" id="${io[i]}">${his_self.returnFactionName(io[i])}</li>`;
+        html.push({ id: `${io[i]}`, label: `${his_self.returnFactionName(io[i])}` });
       }
     }
-    html += '</ul>';
 
 
     if (auto_select_target == false) {
     
-      let html2 = '<ul>';
-      html2 += `<li class="option" id="${target_faction}">${his_self.returnFactionName(target_faction)}</li>`;
-      html2 += `<li class="option" id="other">another faction</li>`;
-      html2 += '</ul>';
+      let html2 = [];
+      html2.push({ id: `${target_faction}`, label: `${his_self.returnFactionName(target_faction)}` });
+      html2.push({ id: `other`, label: `another faction` });
         
-      his_self.updateStatusWithOptions(msg, html2);
-      $('.option').off();
-      $('.option').on('click', function () {
+            his_self.game.status = msg;
+      his_self.hud.updateStatus(his_self.game.status);
+      his_self.hud.updateCards([]);
+      his_self.hud.updateMenu(html2, function (user_choice) {
 
-        let action2 = $(this).attr("id");
+        let action2 = user_choice;
         if (action2 !== target_faction) {
 
 	  let faction_capitals = his_self.returnCapitals(faction);            
@@ -1007,7 +1021,10 @@
          	},
           	function(spacekey) {
           	  if (mycallback == null) { return; }
-          	  his_self.updateStatus("submitted");
+          	            	  his_self.game.status = "submitted";
+          	  his_self.hud.updateStatus(his_self.game.status);
+          	  his_self.hud.updateMenu([]);
+          	  his_self.hud.updateCards([]);
           	  submit_give_territory(receiving_faction, spacekey);
           	},
           	null,
@@ -1028,7 +1045,10 @@
          	},
           	function(spacekey) {
           	  if (mycallback == null) { return; }
-          	  his_self.updateStatus("submitted");
+          	            	  his_self.game.status = "submitted";
+          	  his_self.hud.updateStatus(his_self.game.status);
+          	  his_self.hud.updateMenu([]);
+          	  his_self.hud.updateCards([]);
           	  submit_give_territory(receiving_faction, spacekey);
           	},
           	null,
@@ -1050,7 +1070,10 @@
          	},
           	function(spacekey) {
           	  if (mycallback == null) { return; }
-          	  his_self.updateStatus("submitted");
+          	            	  his_self.game.status = "submitted";
+          	  his_self.hud.updateStatus(his_self.game.status);
+          	  his_self.hud.updateMenu([]);
+          	  his_self.hud.updateCards([]);
           	  submit_give_territory(receiving_faction, spacekey);
           	},
           	null,
@@ -1073,23 +1096,25 @@
   async playerRescindExcommunication(his_self, faction, mycallback) {
 
     let msg = `Rescind Excommunication of Whom: `;
-    let html = '<ul>';
+    let html = [];
     if (his_self.game.state.excommunicated_factions["france"] == 1) {
-      html += `<li class="option" id="france">France</li>`;
+      html.push({ id: `france`, label: `France` });
     }
     if (his_self.game.state.excommunicated_factions["england"] == 1) {
-      html += `<li class="option" id="england">England</li>`;
+      html.push({ id: `england`, label: `England` });
     }
     if (his_self.game.state.excommunicated_factions["hapsburg"] == 1) {
-      html += `<li class="option" id="hapsburg">Hapsburg</li>`;
+      html.push({ id: `hapsburg`, label: `Hapsburg` });
     }
-    html += '</ul>';
-    his_self.updateStatusWithOptions(msg, html);
-
-    $('.option').off();
-    $('.option').on('click', function () {
-      let beneficiary = $(this).attr("id");
-      his_self.updateStatus("submitted");
+        his_self.game.status = msg;
+    his_self.hud.updateStatus(his_self.game.status);
+    his_self.hud.updateCards([]);
+    his_self.hud.updateMenu(html, function (user_choice) {
+        let beneficiary = user_choice;
+            his_self.game.status = "submitted";
+      his_self.hud.updateStatus(his_self.game.status);
+      his_self.hud.updateMenu([]);
+      his_self.hud.updateCards([]);
       mycallback([`unexcommunicate_faction\t${beneficiary}`,`NOTIFY\tThe Papacy rescinds the excommunication of ${his_self.returnFactionName(beneficiary)}`]);
 
     });
@@ -1105,21 +1130,23 @@
 
     let msg = `${his_self.returnFactionName(faction)} - Give Mercenaries to Whom: `;
     let io = his_self.returnDiplomacyImpulseOrder(faction);
-    let html = '<ul>';
+    let html = [];
     for (let i = 0; i < io.length; i++) {
       if (faction != io[i] && io[i] != "ottoman" && !(io[i] == "protestant" && his_self.game.state.events.schmalkaldic_league == 0)) {
-        html += `<li class="option" id="${io[i]}">${his_self.returnFactionName(io[i])}</li>`;
+        html.push({ id: `${io[i]}`, label: `${his_self.returnFactionName(io[i])}` });
       }
     }
-    html += '</ul>';
-    his_self.updateStatusWithOptions(msg, html);
+        his_self.game.status = msg;
+    his_self.hud.updateStatus(his_self.game.status);
+    his_self.hud.updateCards([]);
+    his_self.hud.updateMenu(html, function (user_choice) {
 
-    $('.option').off();
-    $('.option').on('click', function () {
-
-      let target_faction = $(this).attr("id");
+        let target_faction = user_choice;
       $('.option').off();
-      his_self.updateStatus("submitted");
+            his_self.game.status = "submitted";
+      his_self.hud.updateStatus(his_self.game.status);
+      his_self.hud.updateMenu([]);
+      his_self.hud.updateCards([]);
       let num = 0;
       for (let key in his_self.game.spaces) {
 	let s = his_self.game.spaces[key];
@@ -1131,20 +1158,22 @@
       if (mycallback == null) { return; }
 
       msg = `${his_self.returnFactionName(faction)} - How Many Mercenaries? `;
-      html = '<ul>';
+      html = [];
       for (let i = 1; i <= num && i <= 4; i++) {
-        html += `<li class="option" id="${i}">${i}</li>`;
+        html.push({ id: `${i}`, label: `${i}` });
       }
-      html += '</ul>';
-      his_self.updateStatusWithOptions(msg, html);
+            his_self.game.status = msg;
+      his_self.hud.updateStatus(his_self.game.status);
+      his_self.hud.updateCards([]);
+      his_self.hud.updateMenu(html, function (user_choice) {
 
-      $('.option').off();
-      $('.option').on('click', function () {
-
-        let target_number = parseInt($(this).attr("id"));
+        let target_number = parseInt(user_choice);
         $('.option').off();
 
-        his_self.updateStatus("submitted");
+                his_self.game.status = "submitted";
+        his_self.hud.updateStatus(his_self.game.status);
+        his_self.hud.updateMenu([]);
+        his_self.hud.updateCards([]);
         mycallback([`place_mercenaries\t${faction}\t${target_faction}\t${target_number}`,`give_mercenaries\t${faction}\t${target_faction}\t${target_number}`]);
 
       });
@@ -1160,21 +1189,23 @@
 
     let msg = `${his_self.returnFactionName(faction)} - Get Mercenaries from Whom: `;
     let io = his_self.returnDiplomacyImpulseOrder(faction);
-    let html = '<ul>';
+    let html = [];
     for (let i = 0; i < io.length; i++) {
       if (faction != io[i] && io[i] != "ottoman") {
-        html += `<li class="option" id="${io[i]}">${his_self.returnFactionName(io[i])}</li>`;
+        html.push({ id: `${io[i]}`, label: `${his_self.returnFactionName(io[i])}` });
       }
     }
-    html += '</ul>';
-    his_self.updateStatusWithOptions(msg, html);
+        his_self.game.status = msg;
+    his_self.hud.updateStatus(his_self.game.status);
+    his_self.hud.updateCards([]);
+    his_self.hud.updateMenu(html, function (user_choice) {
 
-    $('.option').off();
-    $('.option').on('click', function () {
-
-      let target_faction = $(this).attr("id");
+        let target_faction = user_choice;
       $('.option').off();
-      his_self.updateStatus("submitted");
+            his_self.game.status = "submitted";
+      his_self.hud.updateStatus(his_self.game.status);
+      his_self.hud.updateMenu([]);
+      his_self.hud.updateCards([]);
       let num = 0;
       for (let key in his_self.game.spaces) {
 	let s = his_self.game.spaces[key];
@@ -1186,20 +1217,22 @@
       if (mycallback == null) { return; }
 
       msg = `${his_self.returnFactionName(faction)} - How Many Mercenaries? `;
-      html = '<ul>';
+      html = [];
       for (let i = 1; i <= num && i <= 4; i++) {
-        html += `<li class="option" id="${i}">${i}</li>`;
+        html.push({ id: `${i}`, label: `${i}` });
       }
-      html += '</ul>';
-      his_self.updateStatusWithOptions(msg, html);
+            his_self.game.status = msg;
+      his_self.hud.updateStatus(his_self.game.status);
+      his_self.hud.updateCards([]);
+      his_self.hud.updateMenu(html, function (user_choice) {
 
-      $('.option').off();
-      $('.option').on('click', function () {
-
-        let target_number = parseInt($(this).attr("id"));
+        let target_number = parseInt(user_choice);
         $('.option').off();
 
-        his_self.updateStatus("submitted");
+                his_self.game.status = "submitted";
+        his_self.hud.updateStatus(his_self.game.status);
+        his_self.hud.updateMenu([]);
+        his_self.hud.updateCards([]);
         mycallback([`place_mercenaries\t${target_faction}\t${faction}\t${target_number}`,`give_mercenaries\t${target_faction}\t${faction}\t${target_number}`]);
 
       });
@@ -1215,20 +1248,22 @@
 
     let msg = `${his_self.returnFactionName(faction)} - Give Squadrons to Whom: `;
     let io = his_self.returnDiplomacyImpulseOrder(faction);
-    let html = '<ul>';
+    let html = [];
     for (let i = 0; i < io.length; i++) {
       if (faction != io[i] && io[i] != "protestant") {
-        html += `<li class="option" id="${io[i]}">${his_self.returnFactionName(io[i])}</li>`;
+        html.push({ id: `${io[i]}`, label: `${his_self.returnFactionName(io[i])}` });
       }
     }
-    html += '</ul>';
-    his_self.updateStatusWithOptions(msg, html);
+        his_self.game.status = msg;
+    his_self.hud.updateStatus(his_self.game.status);
+    his_self.hud.updateCards([]);
+    his_self.hud.updateMenu(html, function (user_choice) {
 
-    $('.option').off();
-    $('.option').on('click', function () {
-
-      let target_faction = $(this).attr("id");
-      his_self.updateStatus("submitted");
+        let target_faction = user_choice;
+            his_self.game.status = "submitted";
+      his_self.hud.updateStatus(his_self.game.status);
+      his_self.hud.updateMenu([]);
+      his_self.hud.updateCards([]);
       $('.option').off();
       let num = 0;
       for (let key in his_self.game.spaces) {
@@ -1241,21 +1276,23 @@
       if (mycallback == null) { return; }
 
       msg = `${his_self.returnFactionName(faction)} - How Many Squadrons? `;
-      html = '<ul>';
+      html = [];
       for (let i = 1; i <= num && i <= 4; i++) {
-        html += `<li class="option" id="${i}">${i}</li>`;
+        html.push({ id: `${i}`, label: `${i}` });
       }
-      html += '</ul>';
-      his_self.updateStatusWithOptions(msg, html);
+            his_self.game.status = msg;
+      his_self.hud.updateStatus(his_self.game.status);
+      his_self.hud.updateCards([]);
+      his_self.hud.updateMenu(html, function (user_choice) {
 
-      $('.option').off();
-      $('.option').on('click', function () {
-
-        let target_number = parseInt($(this).attr("id"));
+        let target_number = parseInt(user_choice);
         $('.option').off();
 
 	let instructions = [];
-        his_self.updateStatus("submitted");
+                his_self.game.status = "submitted";
+        his_self.hud.updateStatus(his_self.game.status);
+        his_self.hud.updateMenu([]);
+        his_self.hud.updateCards([]);
 
 	for (let z = 0; z < target_number; z++) {
 	  instructions.push(`give_squadron\t${faction}\t${target_faction}\t${target_number}`);
@@ -1293,22 +1330,24 @@
     }
 
     let msg = `${his_self.returnFactionName(faction)} - Get Squadrons from Whom: `;
-    let html = '<ul>';
+    let html = [];
     for (let i = 0; i < io.length; i++) {
       if (factions_with_squadrons[io[i]]) {
         if (factions_with_squadrons[io[i]] == 1 && faction != io[i] && io[i] != "protestant") {
-          html += `<li class="option" id="${io[i]}">${his_self.returnFactionName(io[i])}</li>`;
+          html.push({ id: `${io[i]}`, label: `${his_self.returnFactionName(io[i])}` });
         }
       }
     }
-    html += '</ul>';
-    his_self.updateStatusWithOptions(msg, html);
+        his_self.game.status = msg;
+    his_self.hud.updateStatus(his_self.game.status);
+    his_self.hud.updateCards([]);
+    his_self.hud.updateMenu(html, function (user_choice) {
 
-    $('.option').off();
-    $('.option').on('click', function () {
-
-      let target_faction = $(this).attr("id");
-      his_self.updateStatus("submitted");
+        let target_faction = user_choice;
+            his_self.game.status = "submitted";
+      his_self.hud.updateStatus(his_self.game.status);
+      his_self.hud.updateMenu([]);
+      his_self.hud.updateCards([]);
       $('.option').off();
       let num = 0;
       for (let key in his_self.game.spaces) {
@@ -1321,21 +1360,23 @@
       if (mycallback == null) { return; }
 
       msg = `${his_self.returnFactionName(faction)} - How Many Squadrons? `;
-      html = '<ul>';
+      html = [];
       for (let i = 1; i <= num && i <= 4; i++) {
-        html += `<li class="option" id="${i}">${i}</li>`;
+        html.push({ id: `${i}`, label: `${i}` });
       }
-      html += '</ul>';
-      his_self.updateStatusWithOptions(msg, html);
+            his_self.game.status = msg;
+      his_self.hud.updateStatus(his_self.game.status);
+      his_self.hud.updateCards([]);
+      his_self.hud.updateMenu(html, function (user_choice) {
 
-      $('.option').off();
-      $('.option').on('click', function () {
-
-        let target_number = parseInt($(this).attr("id"));
+        let target_number = parseInt(user_choice);
         $('.option').off();
 
 	let instructions = [];
-        his_self.updateStatus("submitted");
+                his_self.game.status = "submitted";
+        his_self.hud.updateStatus(his_self.game.status);
+        his_self.hud.updateMenu([]);
+        his_self.hud.updateCards([]);
 
 	for (let z = 0; z < target_number; z++) {
 	  instructions.push(`give_squadron\t${target_faction}\t${faction}\t${target_number}`);

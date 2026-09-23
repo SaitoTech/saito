@@ -61,9 +61,8 @@ class GameQueue {
     //Log the game state before we start doing anything...
     //console.debug('GT [initializeGameQueue]:', JSON.parse(JSON.stringify(this.game)));
 
-    if (this.game.status != '') {
-      this.hud.back_button = false;
-      this.updateStatus(this.game.status);
+    if (this.game.status) {
+      this.hud.updateStatus(this.game.status);
     }
 
     //
@@ -442,8 +441,9 @@ class GameQueue {
         }
         for (let i = 0; i < players_to_go.length; i++) {
           if (game_self.game.player == i + 1) {
-            game_self.hud.back_button = false;
-            game_self.updateStatus(gmv[1]);
+            game_self.hud.hideBackButton();
+            game_self.game.status = gmv[1];
+            game_self.hud.updateStatus(gmv[1]);
           }
         }
         game_self.game.queue.splice(game_self.game.queue.length - 1, 1);
@@ -511,7 +511,8 @@ class GameQueue {
       if (gmv[0] === 'HALTED') {
         // if we have confirms needed, we are halted
         if (this.areMoreConfirmsNeeded()) {
-          game_self.updateStatus('waiting for opponent...');
+          game_self.game.status = 'waiting for opponent...';
+          game_self.hud.updateStatus('waiting for opponent...');
           return 0;
         }
         return 1;
@@ -531,15 +532,17 @@ class GameQueue {
           return 0;
         }
 
-        // prevent back button on any HUD
-        game_self.unbindBackButtonFunction();
+        game_self.hud.hideBackButton();
 
         game_self.saveGame(game_self.game.id);
 
         if (game_self.game.player == 0) {
           game_self.game.queue.splice(game_self.game.queue.length - 1, 1);
-          game_self.hud.back_button = false;
-          game_self.updateStatusAndListCards(notice);
+          game_self.hud.hideBackButton();
+          game_self.game.status = notice;
+          game_self.hud.updateStatus(notice);
+          game_self.hud.updateMenu([]);
+          game_self.hud.updateCards([]);
           return 1;
         }
 
@@ -559,7 +562,8 @@ class GameQueue {
         game_self.setPlayerActive();
 
         game_self.playerAcknowledgeNotice(notice, async function () {
-          game_self.updateStatus('acknowledged...');
+          game_self.game.status = 'acknowledged...';
+          game_self.hud.updateStatus('acknowledged...');
 
           //
           // it can be computationally expensive to restart the queue, so we
@@ -571,7 +575,7 @@ class GameQueue {
               game_self.game = game_self.loadGame(my_specific_game_id);
             }
             game_self.acknowledge_overlay.hide();
-            game_self.hud.back_button = false;
+            game_self.hud.hideBackButton();
             game_self.game.queue.splice(game_self.game.queue.length - 1, 1);
             game_self.restartQueue();
 
@@ -738,7 +742,8 @@ class GameQueue {
           //
           // we are HALTED, so we should
           //
-          this.updateStatus('Waiting for Other Players');
+          this.game.status = 'Waiting for Other Players';
+          this.hud.updateStatus('Waiting for Other Players');
           return 0;
         }
 
@@ -863,25 +868,27 @@ class GameQueue {
         );
 
         let msg = 'Players still to move:';
-        let notice = '<ul>';
+        let notice = [];
         let am_i_still_to_move = 0;
         let anyone_left_to_move = 0;
         for (let i = 0; i < game_self.game.confirms_needed.length; i++) {
           if (game_self.game.confirms_needed[i] == 1) {
-            notice +=
-              '<li class="option resolve">' +
-              game_self.returnUsername(game_self.game.players[i]) +
-              '</li>';
+            notice.push({
+              id: String(notice.length),
+              label: game_self.returnUsername(game_self.game.players[i])
+            });
             anyone_left_to_move = 1;
           }
           if (game_self.game.player == i + 1) {
             am_i_still_to_move = game_self.game.confirms_needed[i];
           }
         }
-        notice += '</ul>';
         if (!am_i_still_to_move && anyone_left_to_move) {
-          game_self.hud.back_button = false;
-          game_self.updateStatusWithOptions(msg, notice);
+          game_self.hud.hideBackButton();
+          game_self.game.status = msg;
+          game_self.hud.updateStatus(msg);
+          game_self.hud.updateCards([]);
+          game_self.hud.updateMenu(notice);
         }
 
         //

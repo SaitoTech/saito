@@ -34,7 +34,10 @@
           this.countries[i].place = 1;
         }
 
-        twilight_self.updateStatus("Select a non-controlled country in Europe to remove all USSR influence:");
+        twilight_self.game.status = "Select a non-controlled country in Europe to remove all USSR influence:";
+        twilight_self.hud.updateStatus(twilight_self.game.status);
+        twilight_self.hud.updateMenu([]);
+        twilight_self.hud.updateCards([]);
         twilight_self.addMove("resolve\ttruman");
         
         $(".westerneurope").off();

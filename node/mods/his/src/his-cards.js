@@ -216,7 +216,10 @@
               },
 
               function(spacekey) {
-		his_self.updateStatus("placing units");
+				his_self.game.status = "placing units";
+		his_self.hud.updateStatus(his_self.game.status);
+		his_self.hud.updateMenu([]);
+		his_self.hud.updateCards([]);
                 his_self.addMove("build\tland\tgenoa\t"+"regular"+"\t"+spacekey);
                 his_self.addMove("build\tland\tgenoa\t"+"regular"+"\t"+spacekey);
                 his_self.addMove("build\tland\tgenoa\t"+"regular"+"\t"+spacekey);
@@ -230,7 +233,10 @@
 
             );
 	  } else {
-	    his_self.updateStatus("Genoa adding 4 Regulars");
+	    	    his_self.game.status = "Genoa adding 4 Regulars";
+	    his_self.hud.updateStatus(his_self.game.status);
+	    his_self.hud.updateMenu([]);
+	    his_self.hud.updateCards([]);
 	  }
 
           return 0;
@@ -263,7 +269,10 @@
             },
 
             function(spacekey) {
-	      his_self.updateStatus("updating...");
+	      	      his_self.game.status = "updating...";
+	      his_self.hud.updateStatus(his_self.game.status);
+	      his_self.hud.updateMenu([]);
+	      his_self.hud.updateCards([]);
 	      his_self.addMove("french_constable_invades\t"+spacekey);
 	      his_self.addMove("hand_to_fhand\t1\t"+p+"\t"+"protestant"+"\t1"); // 1 = overlay
               his_self.addMove(`DEAL\t1\t${p}\t1`);
@@ -304,19 +313,21 @@
 	  if (his_self.game.player == p) {
 
    	    let msg = "Additional Military Support:";
-            let html = '<ul>';
-            html += '<li class="option" id="squadron">1 squadron in French home port</li>';
-            html += '<li class="option" id="mercenaries">2 more mercenaries in '+his_self.returnSpaceName(spacekey)+'</li>';
-    	    html += '</ul>';
+            let html = [];
+            html.push({ id: 'squadron', label: '1 squadron in French home port' });
+            html.push({ id: 'mercenaries', label: '2 more mercenaries in ' + his_self.returnSpaceName(spacekey) });
 
-            his_self.updateStatusWithOptions(msg, html);
-
-	    $('.option').off();
-	    $('.option').on('click', function () {
+                        his_self.game.status = msg;
+            his_self.hud.updateStatus(his_self.game.status);
+            his_self.hud.updateCards([]);
+            his_self.hud.updateMenu(html, function (user_choice) {
 
 	      $('.option').off();
-	      let action = $(this).attr("id");
-	      his_self.updateStatus("processing...");
+        let action = user_choice;
+	      	      his_self.game.status = "processing...";
+	      his_self.hud.updateStatus(his_self.game.status);
+	      his_self.hud.updateMenu([]);
+	      his_self.hud.updateCards([]);
 
 	      if (action === "squadron") {
 
@@ -331,7 +342,10 @@
                   },
 
                   function(spacekey) {
-		    his_self.updateStatus("French build squadrons in " + his_self.returnSpaceName(spacekey));
+		    		    his_self.game.status = "French build squadrons in " + his_self.returnSpaceName(spacekey);
+		    his_self.hud.updateStatus(his_self.game.status);
+		    his_self.hud.updateMenu([]);
+		    his_self.hud.updateCards([]);
                     his_self.addMove("build\tland\tfrance\t"+"squadron"+"\t"+spacekey);
                     his_self.endTurn();
                   },
@@ -343,7 +357,10 @@
                 );
 	      }
 	      if (action === "mercenaries") {
-	        his_self.updateStatus("French add mercenaries in " + his_self.returnSpaceName(spacekey));
+	        	        his_self.game.status = "French add mercenaries in " + his_self.returnSpaceName(spacekey);
+	        his_self.hud.updateStatus(his_self.game.status);
+	        his_self.hud.updateMenu([]);
+	        his_self.hud.updateCards([]);
                 his_self.addMove("build\tland\tfrance\t"+"mercenary"+"\t"+spacekey);
                 his_self.addMove("build\tland\tfrance\t"+"mercenary"+"\t"+spacekey);
                 his_self.endTurn();
@@ -352,7 +369,10 @@
 	    });
 
 	  } else {
-	    his_self.updateStatus("Protestants playing French Constable Invades.");
+	    	    his_self.game.status = "Protestants playing French Constable Invades.";
+	    his_self.hud.updateStatus(his_self.game.status);
+	    his_self.hud.updateMenu([]);
+	    his_self.hud.updateCards([]);
 	  }
 
 	  return 0;
@@ -450,20 +470,19 @@
 
 
  	    let msg = "Corsair Raid: "+num+" of "+total+" "+hit+":";
-            let html = '<ul>';
-            html += '<li class="option" id="discard">discard card</li>';
+            let html = [];
+            html.push({ id: 'discard', label: 'discard card' });
 	    if (is_squadron_available) {
-              html += '<li class="option" id="eliminate">eliminate squadron</li>';
+              html.push({ id: 'eliminate', label: 'eliminate squadron' });
 	    }
-    	    html += '</ul>';
 
-            his_self.updateStatusWithOptions(msg, html);
-
-  	    $('.option').off();
-	    $('.option').on('click', function () {
+                        his_self.game.status = msg;
+            his_self.hud.updateStatus(his_self.game.status);
+            his_self.hud.updateCards([]);
+            his_self.hud.updateMenu(html, function (user_choice) {
 
 	      $('.option').off();
-	      let action = $(this).attr("id");
+        let action = user_choice;
 
 	      if (action === "eliminate") {
 
@@ -498,7 +517,10 @@
 		    let land_or_sea = "land";
 		    let space = null;
 
-	            his_self.updateStatus("processing...");
+	            	            his_self.game.status = "processing...";
+	            his_self.hud.updateStatus(his_self.game.status);
+	            his_self.hud.updateMenu([]);
+	            his_self.hud.updateCards([]);
 
 	            if (his_self.game.navalspaces[spacekey]) {
 		      land_or_sea = "sea";
@@ -513,7 +535,10 @@
 		  	  for (let i = 0; i < space.units[key].length; i++) {
 			    if (space.units[key][i].type === "squadron") {
   	    		      $('.option').off();
-			      his_self.updateStatus("Papacy removes squadron");
+			      			      his_self.game.status = "Papacy removes squadron";
+			      his_self.hud.updateStatus(his_self.game.status);
+			      his_self.hud.updateMenu([]);
+			      his_self.hud.updateCards([]);
           	  	      his_self.addMove("remove_unit\t"+land_or_sea+"\t"+key+"\t"+"squadron"+"\t"+spacekey+"\t"+0);
           	  	      his_self.addMove("NOTIFY\tPapacy removes squadron from "+his_self.returnSpaceName(spacekey));
           	  	      his_self.endTurn();
@@ -530,7 +555,10 @@
 			  for (let i = 0; i < space.units[key].length; i++) {
 			    if (space.units[key][i].type === "squadron") {
   	    		      $('.option').off();
-			      his_self.updateStatus("Protestants remove squadron");
+			      			      his_self.game.status = "Protestants remove squadron";
+			      his_self.hud.updateStatus(his_self.game.status);
+			      his_self.hud.updateMenu([]);
+			      his_self.hud.updateCards([]);
           	  	      his_self.addMove("remove_unit\t"+land_or_sea+"\t"+key+"\t"+"squadron"+"\t"+spacekey+"\t"+0);
           	  	      his_self.addMove("NOTIFY\tProtestant removes squadron from "+his_self.returnSpaceName(spacekey));
           	  	      his_self.endTurn();
@@ -542,7 +570,10 @@
 		    }
 
   	    	    $('.option').off();
-		    his_self.updateStatus("No Squadrons Available to Remove");
+		    		    his_self.game.status = "No Squadrons Available to Remove";
+		    his_self.hud.updateStatus(his_self.game.status);
+		    his_self.hud.updateMenu([]);
+		    his_self.hud.updateCards([]);
 	            his_self.addMove("NOTIFY\tNo Squadrons Available to Remove");
 		    his_self.endTurn();
 		    return 0;
@@ -612,21 +643,24 @@
 	  }
 
 	  let msg = 'Activate or De-activate a Minor Power?';
-    	  let html = '<ul>';
+    	  let html = [];
 	  for (let i = 0; i < ca.length; i++) {
-            html += `<li class="option" id="activate_${ca[i]}">activate ${ca[i]}</li>`;
+            html.push({ id: `activate_${ca[i]}`, label: `activate ${ca[i]}` });
 	  }
 	  for (let i = 0; i < cd.length; i++) {
-            html += `<li class="option" id="deactivate_${cd[i]}">deactivate ${cd[i]}</li>`;
+            html.push({ id: `deactivate_${cd[i]}`, label: `deactivate ${cd[i]}` });
 	  }
-          html += `<li class="option" id="skip">skip</li>`;
-          his_self.updateStatusWithOptions(msg, html);
+          html.push({ id: `skip`, label: `skip` });
+                    his_self.game.status = msg;
+          his_self.hud.updateStatus(his_self.game.status);
+          his_self.hud.updateCards([]);
+          his_self.hud.updateMenu(html, function (user_choice) {
 
-          $('.option').off();
-	  $('.option').on('click', function () {
-
-	    let action = $(this).attr("id");
-	    his_self.updateStatus("processing...");
+        let action = user_choice;
+	    	    his_self.game.status = "processing...";
+	    his_self.hud.updateStatus(his_self.game.status);
+	    his_self.hud.updateMenu([]);
+	    his_self.hud.updateCards([]);
 
 	    if (action === "skip") { his_self.endTurn(); return 0; }
 	    let zzt = action.split("_")[1];
@@ -719,19 +753,21 @@
 	  if (his_self.game.player === his_self.returnPlayerOfFaction("papacy")) {
 
    	    let msg = "Choose Protestant Card:";
-            let html = '<ul>';
+            let html = [];
 	    for (let i = 0; i < cards.length; i++) {
-              html += `<li class="option showcard" id="${cards[i]}">${his_self.game.deck[1].cards[cards[i]].name}</li>`;
+              html.push({ id: `${cards[i]}`, label: `${his_self.game.deck[1].cards[cards[i]].name}` });
 	    }
-    	    html += '</ul>';
 
-            his_self.updateStatusWithOptions(msg, html);
-
-  	    $('.option').off();
-	    $('.option').on('click', function () {
+                        his_self.game.status = msg;
+            his_self.hud.updateStatus(his_self.game.status);
+            his_self.hud.updateCards([]);
+            his_self.hud.updateMenu(html, function (user_choice) {
   	      $('.option').off();
-              his_self.updateStatus("acknowledge...");
-	      let action = $(this).attr("id");
+                            his_self.game.status = "acknowledge...";
+              his_self.hud.updateStatus(his_self.game.status);
+              his_self.hud.updateMenu([]);
+              his_self.hud.updateCards([]);
+	      let action = user_choice;
               his_self.addMove("diplomacy_card_event\tprotestant\t"+action);
               his_self.addMove("discard_diplomacy_card\tprotestant\t"+action);
 	      his_self.addMove("NOTIFY\tPapacy selects "+his_self.popup(action));
@@ -780,25 +816,30 @@
           let cards = JSON.parse(mv[1]);
 
  	  let msg = "Papal Card is "+his_self.popup(cards[0]);
-          let html = '<ul>';
-          html += `<li class="option" id="discard">discard ${his_self.game.deck[1].cards[cards[0]].name}</li>`;
-          html += `<li class="option" id="swap">swap ${his_self.game.deck[1].cards[cards[0]].name}</li>`;
-    	  html += '</ul>';
+          let html = [];
+          html.push({ id: `discard`, label: `discard ${his_self.game.deck[1].cards[cards[0]].name}` });
+          html.push({ id: `swap`, label: `swap ${his_self.game.deck[1].cards[cards[0]].name}` });
 
 
 	  if (his_self.game.player === his_self.returnPlayerOfFaction("papacy")) {
-	    his_self.updateStatus("Protestants playing Diplomatic Pressure");
+	    	    his_self.game.status = "Protestants playing Diplomatic Pressure";
+	    his_self.hud.updateStatus(his_self.game.status);
+	    his_self.hud.updateMenu([]);
+	    his_self.hud.updateCards([]);
 	    return 0;
 	  }
 
-          his_self.updateStatusWithOptions(msg, html);
-
-	  $('.option').off();
-	  $('.option').on('click', function () {
+                    his_self.game.status = msg;
+          his_self.hud.updateStatus(his_self.game.status);
+          his_self.hud.updateCards([]);
+          his_self.hud.updateMenu(html, function (user_choice) {
 
   	    $('.option').off();
-	    let action = $(this).attr("id");
-            his_self.updateStatus("acknowledge...");
+        let action = user_choice;
+                        his_self.game.status = "acknowledge...";
+            his_self.hud.updateStatus(his_self.game.status);
+            his_self.hud.updateMenu([]);
+            his_self.hud.updateCards([]);
 
 	    if (action === "discard") {
 	      his_self.addMove("DEAL\t2\t"+(his_self.returnPlayerOfFaction("papacy"))+"\t1");
@@ -848,7 +889,10 @@
             },
 
             function(spacekey) {
-              his_self.updateStatus("acknowledge...");
+                            his_self.game.status = "acknowledge...";
+              his_self.hud.updateStatus(his_self.game.status);
+              his_self.hud.updateMenu([]);
+              his_self.hud.updateCards([]);
 	      his_self.addMove("french_invasion\t"+spacekey);
 	      his_self.addMove("hand_to_fhand\t1\t"+p+"\t"+"protestant\t1");
               his_self.addMove(`DEAL\t1\t${p}\t1`);
@@ -893,19 +937,21 @@
 	  if (his_self.game.player == player) {
 
  	    let msg = "Choose Option:";
-            let html = '<ul>';
-            html += '<li class="option" id="squadron">1 squadron in French home port</li>';
-            html += '<li class="option" id="mercenaries">2 more mercenaries in '+his_self.returnSpaceName(spacekey)+'</li>';
-    	    html += '</ul>';
+            let html = [];
+            html.push({ id: 'squadron', label: '1 squadron in French home port' });
+            html.push({ id: 'mercenaries', label: '2 more mercenaries in ' + his_self.returnSpaceName(spacekey) });
 
-            his_self.updateStatusWithOptions(msg, html);
-
-	    $('.option').off();
-	    $('.option').on('click', function () {
+                        his_self.game.status = msg;
+            his_self.hud.updateStatus(his_self.game.status);
+            his_self.hud.updateCards([]);
+            his_self.hud.updateMenu(html, function (user_choice) {
 
 	      $('.option').off();
-	      let action = $(this).attr("id");
-              his_self.updateStatus("acknowledge...");
+        let action = user_choice;
+                            his_self.game.status = "acknowledge...";
+              his_self.hud.updateStatus(his_self.game.status);
+              his_self.hud.updateMenu([]);
+              his_self.hud.updateCards([]);
 	      if (action === "squadron") {
 
                 his_self.playerSelectSpaceWithFilter(
@@ -919,7 +965,10 @@
                   },
 
                   function(spacekey) {
-		    his_self.updateStatus("French add Squadrons in " + his_self.returnSpaceName(spacekey));
+		    		    his_self.game.status = "French add Squadrons in " + his_self.returnSpaceName(spacekey);
+		    his_self.hud.updateStatus(his_self.game.status);
+		    his_self.hud.updateMenu([]);
+		    his_self.hud.updateCards([]);
                     his_self.addMove("build\tland\tfrance\t"+"squadron"+"\t"+spacekey);
                     his_self.endTurn();
                   },
@@ -960,22 +1009,24 @@
 	if (his_self.game.player == p) {
 
           let msg = his_self.popup("207") + " played for Diplomatic Event";
-          let html = '<ul>';
-          html += '<li class="option" id="grant">Grant Divorce</li>';
-          html += '<li class="option" id="refuse">Refuse Divorce</li>';
-          html += '</ul>';
+          let html = [];
+          html.push({ id: 'grant', label: 'Grant Divorce' });
+          html.push({ id: 'refuse', label: 'Refuse Divorce' });
 
-          his_self.updateStatusWithOptions(msg, html);
+                    his_self.game.status = msg;
+          his_self.hud.updateStatus(his_self.game.status);
+          his_self.hud.updateCards([]);
+          his_self.hud.updateMenu(html, function (user_choice) {
 
-          $('.option').off();
-          $('.option').on('click', function () {
-
-            let action = $(this).attr("id");
+        let action = user_choice;
             $('.option').off();
 
 	    if (action === "grant") {
 
-	      his_self.updateStatus("Papacy grants divorce...");
+	      	      his_self.game.status = "Papacy grants divorce...";
+	      his_self.hud.updateStatus(his_self.game.status);
+	      his_self.hud.updateMenu([]);
+	      his_self.hud.updateCards([]);
 	      his_self.addMove(`NOTIFY\t${his_self.popup("207")} - Papacy grants divorce...`);
 	      his_self.addMove("player_call_theological_debate\tpapacy");
 	      his_self.addMove("henry_petitions_for_divorce_grant");
@@ -985,7 +1036,10 @@
 	    }
 
 	    if (action === "refuse") {
-	      his_self.updateStatus("Papacy refuses divorce...");
+	      	      his_self.game.status = "Papacy refuses divorce...";
+	      his_self.hud.updateStatus(his_self.game.status);
+	      his_self.hud.updateMenu([]);
+	      his_self.hud.updateCards([]);
 	      his_self.addMove(`NOTIFY\t${his_self.popup("207")} - Papacy refuses divorce...`);
 	      his_self.addMove("henry_petitions_for_divorce_refuse\t3");
 	      his_self.addMove("henry_petitions_for_divorce_refuse\t2");
@@ -1019,7 +1073,10 @@
 	      },
 
               (spacekey) => {
-                his_self.updateStatus("acknowledge...");
+                                his_self.game.status = "acknowledge...";
+                his_self.hud.updateStatus(his_self.game.status);
+                his_self.hud.updateMenu([]);
+                his_self.hud.updateCards([]);
                 his_self.addMove("build\tland\thapsburg\t"+"mercenary"+"\t"+spacekey);
                 his_self.addMove("build\tland\thapsburg\t"+"mercenary"+"\t"+spacekey);
                 his_self.addMove("build\tland\thapsburg\t"+"mercenary"+"\t"+spacekey);
@@ -1035,7 +1092,10 @@
 	    );
 
 	  } else {
-	    his_self.updateStatus("Protestants selecting Italian space for reinforcements");
+	    	    his_self.game.status = "Protestants selecting Italian space for reinforcements";
+	    his_self.hud.updateStatus(his_self.game.status);
+	    his_self.hud.updateMenu([]);
+	    his_self.hud.updateCards([]);
 	  }
 
 	  return 0;
@@ -1066,7 +1126,10 @@
               },
 
               function(spacekey) {
-                his_self.updateStatus("acknowledge...");
+                                his_self.game.status = "acknowledge...";
+                his_self.hud.updateStatus(his_self.game.status);
+                his_self.hud.updateMenu([]);
+                his_self.hud.updateCards([]);
                 his_self.addMove("build\tland\thapsburg\tregular\t"+spacekey);
 	        his_self.addMove(`NOTIFY\tHapsburg add regular in ${his_self.returnSpaceName(spacekey)}`);
           	his_self.endTurn();
@@ -1192,7 +1255,10 @@
 	      let land_or_sea = "land";
 	      let space = null;
 
-              his_self.updateStatus("acknowledge...");
+                            his_self.game.status = "acknowledge...";
+              his_self.hud.updateStatus(his_self.game.status);
+              his_self.hud.updateMenu([]);
+              his_self.hud.updateCards([]);
 
 	      if (his_self.game.navalspaces[spacekey]) {
 		land_or_sea = "sea";
@@ -1207,34 +1273,36 @@
 	      }
 	      
    	      let msg = "Choose Faction to Destroy Unit:";
-              let html = '<ul>';
+              let html = [];
 	      let u = 0;
-              if (space.units["hapsburg"].length) { u++; html += '<li class="option" id="hapsburg">hapsburgs</li>'; }
-              if (space.units["france"].length) { u++; html += '<li class="option" id="france">france</li>'; }
-              if (space.units["england"].length) { u++; html += '<li class="option" id="england">england</li>'; }
-              if (space.units["papacy"].length) { u++; html += '<li class="option" id="papacy">papacy</li>'; }
-              if (space.units["protestant"].length) { u++; html += '<li class="option" id="protestant">protestant</li>'; }
-              if (space.units["ottoman"].length) { u++; html += '<li class="option" id="ottoman">ottoman</li>'; }
-              if (space.units["hungary"].length) { u++; html += '<li class="option" id="hungary">hungary</li>'; }
-              if (space.units["venice"].length) { u++; html += '<li class="option" id="venice">venice</li>'; }
-              if (space.units["scotland"].length) { u++; html += '<li class="option" id="scotland">scotland</li>'; }
-              if (space.units["genoa"].length) { u++; html += '<li class="option" id="genoa">genoa</li>'; }
-              if (space.units["independent"].length) { u++; html += '<li class="option" id="independent">independent</li>'; }
-    	      html += '</ul>';
+              if (space.units["hapsburg"].length) { u++; html.push({ id: 'hapsburg', label: 'hapsburgs' }); }
+              if (space.units["france"].length) { u++; html.push({ id: 'france', label: 'france' }); }
+              if (space.units["england"].length) { u++; html.push({ id: 'england', label: 'england' }); }
+              if (space.units["papacy"].length) { u++; html.push({ id: 'papacy', label: 'papacy' }); }
+              if (space.units["protestant"].length) { u++; html.push({ id: 'protestant', label: 'protestant' }); }
+              if (space.units["ottoman"].length) { u++; html.push({ id: 'ottoman', label: 'ottoman' }); }
+              if (space.units["hungary"].length) { u++; html.push({ id: 'hungary', label: 'hungary' }); }
+              if (space.units["venice"].length) { u++; html.push({ id: 'venice', label: 'venice' }); }
+              if (space.units["scotland"].length) { u++; html.push({ id: 'scotland', label: 'scotland' }); }
+              if (space.units["genoa"].length) { u++; html.push({ id: 'genoa', label: 'genoa' }); }
+              if (space.units["independent"].length) { u++; html.push({ id: 'independent', label: 'independent' }); }
 
-              his_self.updateStatusWithOptions(msg, html);
-
-   	      $('.option').off();
-	      $('.option').on('click', function () {
+                            his_self.game.status = msg;
+              his_self.hud.updateStatus(his_self.game.status);
+              his_self.hud.updateCards([]);
+              his_self.hud.updateMenu(html, function (user_choice) {
 
    	        $('.option').off();
-                his_self.updateStatus("acknowledge...");
+                                his_self.game.status = "acknowledge...";
+                his_self.hud.updateStatus(his_self.game.status);
+                his_self.hud.updateMenu([]);
+                his_self.hud.updateCards([]);
 
-	        let faction_to_destroy = $(this).attr("id");
+	        let faction_to_destroy = user_choice;
    	        let msg = "Destroy Which Unit: ";
                 let unittypes = [];
 		let unit_destroyed = 0;
-                let html = '<ul>';
+                let html = [];
 		let du = -1;
                 for (let i = 0; i < space.units[faction_to_destroy].length; i++) {
                   if (space.units[faction_to_destroy][i].command_value == 0) {
@@ -1246,22 +1314,24 @@
 		        space.units[faction_to_destroy][i].type == "cavalry")
 		    ) {
 		      if (du == -1) { du = i; } else { du = -2; }
-  		      html += `<li class="option nonskip" id="${space.units[faction_to_destroy][i].type}">${space.units[faction_to_destroy][i].type}</li>`;
+  		      html.push({ id: `${space.units[faction_to_destroy][i].type}`, label: `${space.units[faction_to_destroy][i].type}` });
 		      unittypes.push(space.units[faction_to_destroy][i].type);
 		    }
 		  }
 		}
-  		html += `<li class="option" id="skip">skip</li>`;
-    	        html += '</ul>';
+  		html.push({ id: `skip`, label: `skip` });
 
-                his_self.updateStatusWithOptions(msg, html);
-
-   	        $('.option').off();
-	        $('.option').on('click', function () {
+                                his_self.game.status = msg;
+                his_self.hud.updateStatus(his_self.game.status);
+                his_self.hud.updateCards([]);
+                his_self.hud.updateMenu(html, function (user_choice) {
 
    	          $('.option').off();
-	          let unittype = $(this).attr("id");
-                  his_self.updateStatus("acknowledge...");
+        let unittype = user_choice;
+                                    his_self.game.status = "acknowledge...";
+                  his_self.hud.updateStatus(his_self.game.status);
+                  his_self.hud.updateMenu([]);
+                  his_self.hud.updateCards([]);
 		  if (unit_destroyed == 1) { return; }	
 		  unit_destroyed = 1;
 
@@ -1276,7 +1346,10 @@
 
 		  his_self.displaySpace(spacekey);
 		  if (num === "3rd") { 
-		    his_self.updateStatus("submitted");
+		    		    his_self.game.status = "submitted";
+		    his_self.hud.updateStatus(his_self.game.status);
+		    his_self.hud.updateMenu([]);
+		    his_self.hud.updateCards([]);
 		    his_self.addMove("discard_random\t"+opponent_faction);
 		  }
 
@@ -1370,7 +1443,10 @@
 
                       (spacekey) => {
 
-              		his_self.updateStatus("acknowledge...");
+              		              		his_self.game.status = "acknowledge...";
+              		his_self.hud.updateStatus(his_self.game.status);
+              		his_self.hud.updateMenu([]);
+              		his_self.hud.updateCards([]);
                         let secondspace = spacekey;
                         his_self.addMove("build\tland\tpapacy\t"+"squadron"+"\t"+firstspace);
                         his_self.addMove("build\tland\tpapacy\t"+"squadron"+"\t"+secondspace);
@@ -1400,20 +1476,22 @@
                 let msg = "Add 1st Naval Squadron Where?";
 		if (num == 2) { msg = "Add 2nd Naval Squadron Where?"; }
 
-                let html = '<ul>';
-                html += '<li class="option" id="french">French - Marseille</li>';
-                html += '<li class="option" id="hapsburg">Hapsburg - Naples</li>';
-                html += '<li class="option" id="ottoman">Ottoman - any home port</li>';
-                html += '<li class="option" id="skip">skip</li>';
-                html += '</ul>';
+                let html = [];
+                html.push({ id: 'french', label: 'French - Marseille' });
+                html.push({ id: 'hapsburg', label: 'Hapsburg - Naples' });
+                html.push({ id: 'ottoman', label: 'Ottoman - any home port' });
+                html.push({ id: 'skip', label: 'skip' });
 
-                his_self.updateStatusWithOptions(msg, html);
+                                his_self.game.status = msg;
+                his_self.hud.updateStatus(his_self.game.status);
+                his_self.hud.updateCards([]);
+                his_self.hud.updateMenu(html, function (user_choice) {
 
-                $('.option').off();
-                $('.option').on('click', function () {
-
-                  let action = $(this).attr("id");
-                  his_self.updateStatus("acknowledge...");
+        let action = user_choice;
+                                    his_self.game.status = "acknowledge...";
+                  his_self.hud.updateStatus(his_self.game.status);
+                  his_self.hud.updateMenu([]);
+                  his_self.hud.updateCards([]);
 
 		  if (action === "skip") {
 		    his_self.endTurn();
@@ -1449,7 +1527,10 @@
 		      },
 
                       (spacekey) => {
-                        his_self.updateStatus("acknowledge...");
+                                                his_self.game.status = "acknowledge...";
+                        his_self.hud.updateStatus(his_self.game.status);
+                        his_self.hud.updateMenu([]);
+                        his_self.hud.updateCards([]);
                         let space = his_self.game.spaces[spacekey];
                         his_self.addMove("build\tland\tottoman\t"+"squadron"+"\t"+spacekey);
 		        if (num == 2) { his_self.endTurn(); return; }
@@ -1546,7 +1627,10 @@
 
               function(spacekey) {
 
-		his_self.updateStatus("acknowledge...");
+				his_self.game.status = "acknowledge...";
+		his_self.hud.updateStatus(his_self.game.status);
+		his_self.hud.updateMenu([]);
+		his_self.hud.updateCards([]);
 
 	        //
 	        // move Duke of Alva, add regulars
@@ -1587,17 +1671,16 @@
 	  if (his_self.game.player === controlling_player) {
 
             let msg = "Add Additional Units:";
-            let html = '<ul>';
-            html += '<li class="option" id="squadron">Naval Squadron</li>';
-            html += '<li class="option" id="mercenaries">+2 Mercenaries</li>';
-            html += '</ul>';
+            let html = [];
+            html.push({ id: 'squadron', label: 'Naval Squadron' });
+            html.push({ id: 'mercenaries', label: '+2 Mercenaries' });
 
-            his_self.updateStatusWithOptions(msg, html);
+                        his_self.game.status = msg;
+            his_self.hud.updateStatus(his_self.game.status);
+            his_self.hud.updateCards([]);
+            his_self.hud.updateMenu(html, function (user_choice) {
 
-            $('.option').off();
-            $('.option').on('click', function () {
-
-              let action = $(this).attr("id");
+        let action = user_choice;
               $('.option').off();
 
 	      if (action === "squadron") {
@@ -1612,7 +1695,10 @@
                   },
 
                   function(spacekey) {
-		    his_self.updateStatus("acknowledge...");
+		    		    his_self.game.status = "acknowledge...";
+		    his_self.hud.updateStatus(his_self.game.status);
+		    his_self.hud.updateMenu([]);
+		    his_self.hud.updateCards([]);
                     his_self.addMove("build\tland\thapsburg\t"+"squadron"+"\t"+spacekey);
                     his_self.endTurn();
 		  },
@@ -1624,7 +1710,10 @@
 	      }
 
 	      if (action === "mercenaries") {
-		his_self.updateStatus("acknowledge...");
+				his_self.game.status = "acknowledge...";
+		his_self.hud.updateStatus(his_self.game.status);
+		his_self.hud.updateMenu([]);
+		his_self.hud.updateCards([]);
 	        his_self.addMove("build\tland\thapsburg\t"+"mercenary"+"\t"+land_spacekey);
 	        his_self.addMove("build\tland\thapsburg\t"+"mercenary"+"\t"+land_spacekey);
 		his_self.endTurn();
@@ -1691,7 +1780,10 @@
               },
 
               function(spacekey) {
-                his_self.updateStatus("acknowledge...");
+                                his_self.game.status = "acknowledge...";
+                his_self.hud.updateStatus(his_self.game.status);
+                his_self.hud.updateMenu([]);
+                his_self.hud.updateCards([]);
 	        his_self.addMove("build\tland\tvenice\t"+"regular"+"\t"+spacekey);
                 his_self.addMove("build\tland\tvenice\t"+"squadron"+"\t"+spacekey);
                 his_self.addMove("build\tland\tvenice\t"+"squadron"+"\t"+spacekey);
@@ -1705,7 +1797,10 @@
             );
             return 0;
           } else {
-	    his_self.updateStatus("Papacy executing " + his_self.popup("212"));
+	    	    his_self.game.status = "Papacy executing " + his_self.popup("212");
+	    his_self.hud.updateStatus(his_self.game.status);
+	    his_self.hud.updateMenu([]);
+	    his_self.hud.updateCards([]);
 	  }
 
 	  return 0;
@@ -1740,7 +1835,10 @@
             },
 
             function(spacekey) {
-              his_self.updateStatus("acknowledge...");
+                            his_self.game.status = "acknowledge...";
+              his_self.hud.updateStatus(his_self.game.status);
+              his_self.hud.updateMenu([]);
+              his_self.hud.updateCards([]);
 	      his_self.addMove("hand_to_fhand\t1\t"+p+"\t"+"papacy"+"\t1");
               his_self.addMove(`DEAL\t1\t${p}\t1`);
               his_self.addMove("add_army_leader\thapsburg\t"+spacekey+"\tferdinand");
@@ -1787,7 +1885,10 @@
             },
 
             function(spacekey) {
-              his_self.updateStatus("acknowledge...");
+                            his_self.game.status = "acknowledge...";
+              his_self.hud.updateStatus(his_self.game.status);
+              his_self.hud.updateMenu([]);
+              his_self.hud.updateCards([]);
 	      his_self.addMove("hand_to_fhand\t1\t"+p+"\t"+"papacy\t1");
               his_self.addMove(`DEAL\t1\t${p}\t1`);
               his_self.addMove("add_army_leader\thapsburg\t"+spacekey+"\tcharles-v");
@@ -1835,29 +1936,34 @@
 	if (his_self.game.player == his_self.returnPlayerOfFaction(winner)) {
 
           let msg = "Select Invasion Card:";
-          let html = '<ul>';
-          html += '<li class="option showcard" id="216">Ottoman Invasion</li>';
-          html += '<li class="option showcard" id="214">Imperial Invasion</li>';
-          html += '<li class="option showcard" id="213">Austrian Invasion</li>';
-          html += '<li class="option showcard" id="211">Spanish Invasion</li>';
-          html += '<li class="option showcard" id="206">French Invasion</li>';
-          html += '<li class="option showcard" id="202">French Constable Invades</li>';
-          html += '</ul>';
+          let html = [];
+          html.push({ id: '216', label: 'Ottoman Invasion' });
+          html.push({ id: '214', label: 'Imperial Invasion' });
+          html.push({ id: '213', label: 'Austrian Invasion' });
+          html.push({ id: '211', label: 'Spanish Invasion' });
+          html.push({ id: '206', label: 'French Invasion' });
+          html.push({ id: '202', label: 'French Constable Invades' });
 
-          his_self.updateStatusWithOptions(msg, html);
+                    his_self.game.status = msg;
+          his_self.hud.updateStatus(his_self.game.status);
+          his_self.hud.updateCards([]);
+          his_self.hud.updateMenu(html, function (user_choice) {
 
-          $('.option').off();
-          $('.option').on('click', function () {
-
-	    his_self.updateStatus("acknowledge...");
-            let card = $(this).attr("id");
+	    	    his_self.game.status = "acknowledge...";
+	    his_self.hud.updateStatus(his_self.game.status);
+	    his_self.hud.updateMenu([]);
+	    his_self.hud.updateCards([]);
+            let card = user_choice;
 	    his_self.addMove("reshuffle_diplomacy_deck");
 	    his_self.addMove("diplomacy_card_event\t"+winner+"\t"+card);
 	    his_self.endTurn();
 
 	  });
 	} else {
-	  his_self.updateStatus("Opponent playing " + his_self.popup("215"));
+	  	  his_self.game.status = "Opponent playing " + his_self.popup("215");
+	  his_self.hud.updateStatus(his_self.game.status);
+	  his_self.hud.updateMenu([]);
+	  his_self.hud.updateCards([]);
 	}
 
         return 0;
@@ -1894,7 +2000,10 @@
             },
 
             function(spacekey) {
-              his_self.updateStatus("acknowledge...");
+                            his_self.game.status = "acknowledge...";
+              his_self.hud.updateStatus(his_self.game.status);
+              his_self.hud.updateMenu([]);
+              his_self.hud.updateCards([]);
 	      his_self.addMove("hand_to_fhand\t1\t"+p+"\t"+"protestant\t1");
               his_self.addMove(`DEAL\t1\t${p}\t1`);
               his_self.addMove("add_army_leader\tottoman\t"+spacekey+"\tsuleiman");
@@ -1966,7 +2075,10 @@
               },
 
               function(spacekey) {
-                his_self.updateStatus("acknowledge...");
+                                his_self.game.status = "acknowledge...";
+                his_self.hud.updateStatus(his_self.game.status);
+                his_self.hud.updateMenu([]);
+                his_self.hud.updateCards([]);
                 his_self.addMove("convert\t"+spacekey+"\tprotestant");
                 his_self.endTurn();
               },
@@ -2035,17 +2147,16 @@
 	  if (player == his_self.game.player) {
 
  	    let msg = `${his_self.popup("218")}: remove unit #${num}:`;
-            let html = '<ul>';
-            html += '<li class="option" id="hapsburg">remove hapsburg unit</li>';
-            html += '<li class="option" id="hungary">remove hungarian unit</li>';
-    	    html += '</ul>';
+            let html = [];
+            html.push({ id: 'hapsburg', label: 'remove hapsburg unit' });
+            html.push({ id: 'hungary', label: 'remove hungarian unit' });
 
-            his_self.updateStatusWithOptions(msg, html);
+                        his_self.game.status = msg;
+            his_self.hud.updateStatus(his_self.game.status);
+            his_self.hud.updateCards([]);
+            his_self.hud.updateMenu(html, function (user_choice) {
 
-   	    $('.option').off();
-	    $('.option').on('click', function () {
-
-	      let action = $(this).attr("id");
+        let action = user_choice;
 
 	      if (action === "hapsburg") {
 
@@ -2074,7 +2185,10 @@
 
                   function(spacekey) {
 
-		    his_self.updateStatus("acknowledge...");
+		    		    his_self.game.status = "acknowledge...";
+		    his_self.hud.updateStatus(his_self.game.status);
+		    his_self.hud.updateMenu([]);
+		    his_self.hud.updateCards([]);
 
 		    let has_mercenary = false;
 		    let has_regular = false;
@@ -2087,19 +2201,21 @@
 		    }
 
    	            let msg = "Choose Unit to Destroy:";
-                    let html = '<ul>';
-                    if (has_regular) { html += '<li class="option" id="regular">hapsburg regular</li>'; }
-                    if (has_mercenary) { html += '<li class="option" id="mercenary">hapsburg mercenary</li>'; }
-                    if (has_cavalry) { html += '<li class="option" id="cavalry">hapsburg cavalry</li>'; }
-    	            html += '</ul>';
+                    let html = [];
+                    if (has_regular) { html.push({ id: 'regular', label: 'hapsburg regular' }); }
+                    if (has_mercenary) { html.push({ id: 'mercenary', label: 'hapsburg mercenary' }); }
+                    if (has_cavalry) { html.push({ id: 'cavalry', label: 'hapsburg cavalry' }); }
 
-                    his_self.updateStatusWithOptions(msg, html);
+                                        his_self.game.status = msg;
+                    his_self.hud.updateStatus(his_self.game.status);
+                    his_self.hud.updateCards([]);
+                    his_self.hud.updateMenu(html, function (user_choice) {
 
-   	            $('.option').off();
-	            $('.option').on('click', function () {
-
-		      let unittype = $(this).attr("id");
-		      his_self.updateStatus("acknowledge...");
+        let unittype = user_choice;
+		      		      his_self.game.status = "acknowledge...";
+		      his_self.hud.updateStatus(his_self.game.status);
+		      his_self.hud.updateMenu([]);
+		      his_self.hud.updateCards([]);
           	      his_self.removeUnit("hapsburg", spacekey, unittype);
 		      his_self.displaySpace(spacekey);
           	      his_self.addMove("remove_unit\tland\thapsburg\t"+unittype+"\t"+spacekey+"\t"+his_self.game.player);
@@ -2136,7 +2252,10 @@
 
                   function(spacekey) {
 
-		    his_self.updateStatus("acknowledge...");
+		    		    his_self.game.status = "acknowledge...";
+		    his_self.hud.updateStatus(his_self.game.status);
+		    his_self.hud.updateMenu([]);
+		    his_self.hud.updateCards([]);
 
 		    let has_mercenary = false;
 		    let has_regular = false;
@@ -2149,19 +2268,21 @@
 		    }
 
    	            let msg = "Choose Unit to Destroy:";
-                    let html = '<ul>';
-                    if (has_regular) { html += '<li class="option" id="regular">hungarian regular</li>'; }
-                    if (has_mercenary) { html += '<li class="option" id="mercenary">hungarian mercenary</li>'; }
-                    if (has_cavalry) { html += '<li class="option" id="cavalry">hungarian cavalry</li>'; }
-    	            html += '</ul>';
+                    let html = [];
+                    if (has_regular) { html.push({ id: 'regular', label: 'hungarian regular' }); }
+                    if (has_mercenary) { html.push({ id: 'mercenary', label: 'hungarian mercenary' }); }
+                    if (has_cavalry) { html.push({ id: 'cavalry', label: 'hungarian cavalry' }); }
 
-                    his_self.updateStatusWithOptions(msg, html);
+                                        his_self.game.status = msg;
+                    his_self.hud.updateStatus(his_self.game.status);
+                    his_self.hud.updateCards([]);
+                    his_self.hud.updateMenu(html, function (user_choice) {
 
-   	            $('.option').off();
-	            $('.option').on('click', function () {
-
-		      let unittype = $(this).attr("id");
-		      his_self.updateStatus("acknowledge...");
+        let unittype = user_choice;
+		      		      his_self.game.status = "acknowledge...";
+		      his_self.hud.updateStatus(his_self.game.status);
+		      his_self.hud.updateMenu([]);
+		      his_self.hud.updateCards([]);
           	      his_self.removeUnit("hungary", spacekey, unittype);
 		      his_self.displaySpace(spacekey);
           	      his_self.addMove("remove_unit\tland\thungary\t"+unittype+"\t"+spacekey+"\t"+his_self.game.player);
@@ -2234,21 +2355,23 @@
 	  if (his_self.game.player === his_self.returnPlayerOfFaction("papacy")) {
 
    	    let msg = "Choose Protestant Card to Discard:";
-            let html = '<ul>';
+            let html = [];
 	    for (let i = 0; i < cards.length; i++) {
-              html += `<li class="showcard option" id="${cards[i]}">${his_self.game.deck[1].cards[cards[i]].name}</li>`;
+              html.push({ id: `${cards[i]}`, label: `${his_self.game.deck[1].cards[cards[i]].name}` });
 	    }
-    	    html += '</ul>';
 
-            his_self.updateStatusWithOptions(msg, html);
-
-  	    $('.option').off();
-	    $('.option').on('click', function () {
+                        his_self.game.status = msg;
+            his_self.hud.updateStatus(his_self.game.status);
+            his_self.hud.updateCards([]);
+            his_self.hud.updateMenu(html, function (user_choice) {
 
   	      $('.option').off();
-	      let action = $(this).attr("id");
+        let action = user_choice;
 
-	      his_self.updateStatus("acknowledge...");
+	      	      his_self.game.status = "acknowledge...";
+	      his_self.hud.updateStatus(his_self.game.status);
+	      his_self.hud.updateMenu([]);
+	      his_self.hud.updateCards([]);
 
 	      let chosen_card = action;
 	      let unchosen_card = "";
@@ -2306,7 +2429,7 @@
           for (let i = 0; i < his_self.game.deck[0].fhand.length; i++) {
             if (his_self.game.deck[0].fhand[i].includes('001')) {
               let f = "ottoman";
-              return { faction : f , event : '001', html : `<li class="option" id="001">janissaries (${f})</li>` };
+              return { faction : f , event : '001', id: "001", label: `janissaries (${f})` };
             }
           }
         }
@@ -2341,14 +2464,20 @@
           his_self.addMove("discard\tottoman\t001");
           his_self.addMove("janissaries");
 	  his_self.endTurn();
-	  his_self.updateStatus("acknowledge");
+	  	  his_self.game.status = "acknowledge";
+	  his_self.hud.updateStatus(his_self.game.status);
+	  his_self.hud.updateMenu([]);
+	  his_self.hud.updateCards([]);
         }
         if (menu == "janissaries_naval") {
 	  his_self.addMove("ACKNOWLEDGE\tOttomans play Janissaries");
           his_self.addMove("discard\tottoman\t001");
           his_self.addMove("janissaries\tnaval");
 	  his_self.endTurn();
-	  his_self.updateStatus("acknowledge");
+	  	  his_self.game.status = "acknowledge";
+	  his_self.hud.updateStatus(his_self.game.status);
+	  his_self.hud.updateMenu([]);
+	  his_self.hud.updateCards([]);
         }
         return 0;
       },
@@ -2552,18 +2681,20 @@
 		if (ak === ck && ak !== "") {
 
 		  let msg = "Move Duke of Alva with Charles V?";
-    		  let html = '<ul>';
-        	  html += '<li class="option" id="yes">yes</li>';
-        	  html += '<li class="option" id="no">no</li>';
-    		  html += '</ul>';
+    		  let html = [];
+        	  html.push({ id: 'yes', label: 'yes' });
+        	  html.push({ id: 'no', label: 'no' });
 
-    		  his_self.updateStatusWithOptions(msg, html);
+    		      		  his_self.game.status = msg;
+    		  his_self.hud.updateStatus(his_self.game.status);
+    		  his_self.hud.updateCards([]);
+    		  his_self.hud.updateMenu(html, function (user_choice) {
 
-	          $('.option').off();
-	          $('.option').on('click', function () {
-
-	            let action = $(this).attr("id");
-		    his_self.updateStatus("moving...");
+        let action = user_choice;
+		    		    his_self.game.status = "moving...";
+		    his_self.hud.updateStatus(his_self.game.status);
+		    his_self.hud.updateMenu([]);
+		    his_self.hud.updateCards([]);
 		    if (action === "yes") {
 		      his_self.addMove("ops\t"+faction+"\t"+"002"+"\t"+5);
 		      if (ck_idx > ak_idx) {
@@ -2594,7 +2725,10 @@
 	  true 
 	);
 	} else {
-	  his_self.updateStatus("Hapsburgs playing Home Card");
+	  	  his_self.game.status = "Hapsburgs playing Home Card";
+	  his_self.hud.updateStatus(his_self.game.status);
+	  his_self.hud.updateMenu([]);
+	  his_self.hud.updateCards([]);
 	}
 
         return 0;
@@ -2646,17 +2780,19 @@
 	      if (his_self.game.player == his_self.returnPlayerCommandingFaction("england")) {
 
                 let msg = "Choose an Option: ";
-                let html = '<ul>';
-                html += `<li class="option" id="war">Declare War</li>`;
-                html += `<li class="option" id="marital">Advance Marital Status</li>`;
-	        html += '</ul>';
-                his_self.updateStatusWithOptions(msg, html);
-
-                $('.option').off();
-                $('.option').on('click', function () {
+                let html = [];
+                html.push({ id: `war`, label: `Declare War` });
+                html.push({ id: `marital`, label: `Advance Marital Status` });
+                                his_self.game.status = msg;
+                his_self.hud.updateStatus(his_self.game.status);
+                his_self.hud.updateCards([]);
+                his_self.hud.updateMenu(html, function (user_choice) {
 		
-                  let action2 = $(this).attr("id");
-	          his_self.updateStatus("submitting...");
+        let action2 = user_choice;
+	          	          his_self.game.status = "submitting...";
+	          his_self.hud.updateStatus(his_self.game.status);
+	          his_self.hud.updateMenu([]);
+	          his_self.hud.updateCards([]);
 
 	          if (action2 === "war") {
 	    	    his_self.addMove("henry_viii_declaration_of_war");
@@ -2703,18 +2839,20 @@
 	  if (his_self.game.player == his_self.returnPlayerCommandingFaction("england")) {
 
             let msg = "Declare War on Whom?";
-            let html = '<ul>';
-            if (target_haps) { html += `<li class="option" id="hapsburg">Hapsburg</li>`; }
-            if (target_france) { html += `<li class="option" id="france">France</li>`; }
-            if (target_scotland) { html += `<li class="option" id="scotland">Scotland</li>`; }
-	    html += '</ul>';
-            his_self.updateStatusWithOptions(msg, html);
-
-            $('.option').off();
-            $('.option').on('click', function () {
+            let html = [];
+            if (target_haps) { html.push({ id: `hapsburg`, label: `Hapsburg` }); }
+            if (target_france) { html.push({ id: `france`, label: `France` }); }
+            if (target_scotland) { html.push({ id: `scotland`, label: `Scotland` }); }
+                        his_self.game.status = msg;
+            his_self.hud.updateStatus(his_self.game.status);
+            his_self.hud.updateCards([]);
+            his_self.hud.updateMenu(html, function (user_choice) {
 		
-              let action2 = $(this).attr("id");
-	      his_self.updateStatus("acknowledge");
+        let action2 = user_choice;
+	      	      his_self.game.status = "acknowledge";
+	      his_self.hud.updateStatus(his_self.game.status);
+	      his_self.hud.updateMenu([]);
+	      his_self.hud.updateCards([]);
 
 	      his_self.addMove("ops\tengland\t003\t5");
 	      if (action2 === "scotland" && (!his_self.areAllies("england", "scotland") || !his_self.areEnemies("england","france"))) {
@@ -2807,7 +2945,10 @@
 	  if (his_self.game.state.henry_viii_marital_status > 7) { his_self.game.state.henry_viii_marital_status = 7; return 1; }
 	  if (his_self.game.state.henry_viii_marital_status >= 2) {
 
-	    his_self.updateStatus("Henry VIII makes a roll on the pregnancy chart");
+	    	    his_self.game.status = "Henry VIII makes a roll on the pregnancy chart";
+	    his_self.hud.updateStatus(his_self.game.status);
+	    his_self.hud.updateMenu([]);
+	    his_self.hud.updateCards([]);
 	    let dd = his_self.rollDice(6);
 
 	    if (his_self.game.state.henry_viii_marital_status == 3) { 
@@ -2880,7 +3021,10 @@
 	      his_self.game.state.henry_viii_add_elizabeth = 0;
 	    }
 
-	    his_self.updateStatus(msg);
+	    	    his_self.game.status = msg;
+	    his_self.hud.updateStatus(his_self.game.status);
+	    his_self.hud.updateMenu([]);
+	    his_self.hud.updateCards([]);
 	  }
 
 	  his_self.marriage_overlay.render(msg);
@@ -2984,7 +3128,10 @@
                       return 0;
                     },
                     function(spacekey2) {
-                      his_self.updateStatus("adding unrest...");
+                                            his_self.game.status = "adding unrest...";
+                      his_self.hud.updateStatus(his_self.game.status);
+                      his_self.hud.updateMenu([]);
+                      his_self.hud.updateCards([]);
                       space2 = spacekey2;
 
                       his_self.addUnrest(space2);
@@ -3003,7 +3150,10 @@
 	      );
 
 	    } else {
-	      his_self.updateStatus("Papacy adding unrest after Excommunication");
+	      	      his_self.game.status = "Papacy adding unrest after Excommunication";
+	      his_self.hud.updateStatus(his_self.game.status);
+	      his_self.hud.updateMenu([]);
+	      his_self.hud.updateCards([]);
 	    }
 
 	    return 0;
@@ -3029,25 +3179,30 @@
 	    if (papacy == his_self.game.player) {
 
               let msg = "Excommunicate Which Leader?";
-              let html = '<ul>';
+              let html = [];
 	      for (let z = 0; z < do_grounds_for_excommunication_exist.length; z++) {
-                html += `<li class="option" id="${do_grounds_for_excommunication_exist[z]}">${his_self.returnFactionName(do_grounds_for_excommunication_exist[z])}</li>`;
+                html.push({ id: `${do_grounds_for_excommunication_exist[z]}`, label: `${his_self.returnFactionName(do_grounds_for_excommunication_exist[z])}` });
 	      }
-	      html += '</ul>';
-              his_self.updateStatusWithOptions(msg, html);
+                            his_self.game.status = msg;
+              his_self.hud.updateStatus(his_self.game.status);
+              his_self.hud.updateCards([]);
+              his_self.hud.updateMenu(html, function (user_choice) {
 
-              $('.option').off();
-              $('.option').on('click', function () {
-
-                let action2 = $(this).attr("id");
-		his_self.updateStatus("clerics processing excommunication...");
+        let action2 = user_choice;
+				his_self.game.status = "clerics processing excommunication...";
+		his_self.hud.updateStatus(his_self.game.status);
+		his_self.hud.updateMenu([]);
+		his_self.hud.updateCards([]);
 	        his_self.addMove("papal_bull_add_unrest\t"+action2);
 	        his_self.addMove("excommunicate_faction\t"+action2);
 	        his_self.endTurn();
 
 	      });
 	    } else {
-	      his_self.updateStatus("Papacy Excommunicating Heretic");
+	      	      his_self.game.status = "Papacy Excommunicating Heretic";
+	      his_self.hud.updateStatus(his_self.game.status);
+	      his_self.hud.updateMenu([]);
+	      his_self.hud.updateCards([]);
 	    }
 	  };
 
@@ -3057,13 +3212,13 @@
 
               let msg = "Excommunicate Protestant Reformer:";
 	      let reformer_exists = 0;
-              let html = '<ul>';
+              let html = [];
 	      for (let key in his_self.reformers) {
 	        let s = his_self.returnSpaceOfPersonage("protestant", key);
 	        if (s) {
 	  	  if (!his_self.game.state.already_excommunicated.includes(key)) {
 	            reformer_exists = 1;
-                    html += `<li class="option" id="${key}">${his_self.reformers[key].name}</li>`;
+                    html.push({ id: `${key}`, label: `${his_self.reformers[key].name}` });
 	          }
 	        }
 	      }
@@ -3071,17 +3226,19 @@
 	      if (reformer_exists == 0) {
 
                 let msg = "Convene Theological Debate?";
-                let html = '<ul>';
-                html += `<li class="option" id="yes">yes</li>`;
-                html += `<li class="option" id="no">no</li>`;
-	        html += '</ul>';
-                his_self.updateStatusWithOptions(msg, html);
+                let html = [];
+                html.push({ id: `yes`, label: `yes` });
+                html.push({ id: `no`, label: `no` });
+                                his_self.game.status = msg;
+                his_self.hud.updateStatus(his_self.game.status);
+                his_self.hud.updateCards([]);
+                his_self.hud.updateMenu(html, function (user_choice) {
 
-                $('.option').off();
-                $('.option').on('click', function () {
-
-                  let action2 = $(this).attr("id");
-	          his_self.updateStatus("convening debate...");
+        let action2 = user_choice;
+	          	          his_self.game.status = "convening debate...";
+	          his_self.hud.updateStatus(his_self.game.status);
+	          his_self.hud.updateMenu([]);
+	          his_self.hud.updateCards([]);
 
 		  if (action2 === "yes") {
 		    his_self.playerCallTheologicalDebate(his_self, his_self.game.player, "papacy");
@@ -3098,13 +3255,12 @@
 	        return 0;
 	      }
 
-	      html += '</ul>';
-              his_self.updateStatusWithOptions(msg, html);
-  
-              $('.option').off();
-              $('.option').on('click', function () {
+                            his_self.game.status = msg;
+              his_self.hud.updateStatus(his_self.game.status);
+              his_self.hud.updateCards([]);
+              his_self.hud.updateMenu(html, function (user_choice) {
 
-                let selected_reformer = $(this).attr("id");
+        let selected_reformer = user_choice;
 
 	        if (selected_reformer === "cranmer-reformer") {
 	  	  his_self.addEndMove("counter_or_acknowledge\tPapal Bull announces excommunication of Cranmer\tpapal_bull_cranmer_excommunication");
@@ -3113,18 +3269,20 @@
 	        his_self.addEndMove("excommunicate_reformer\t"+selected_reformer);
 
                 let msg = "Convene Theological Debate after Excommunication?";
-                let html = '<ul>';
-                html += `<li class="option" id="yes">yes</li>`;
-                html += `<li class="option" id="no">no</li>`;
-	        html += '</ul>';
+                let html = [];
+                html.push({ id: `yes`, label: `yes` });
+                html.push({ id: `no`, label: `no` });
 
-                his_self.updateStatusWithOptions(msg, html);
-
-                $('.option').off();
-                $('.option').on('click', function () {
+                                his_self.game.status = msg;
+                his_self.hud.updateStatus(his_self.game.status);
+                his_self.hud.updateCards([]);
+                his_self.hud.updateMenu(html, function (user_choice) {
 		
-	          his_self.updateStatus("convening...");
-                  let action2 = $(this).attr("id");
+	          	          his_self.game.status = "convening...";
+	          his_self.hud.updateStatus(his_self.game.status);
+	          his_self.hud.updateMenu([]);
+	          his_self.hud.updateCards([]);
+                  let action2 = user_choice;
 
 		  let language_zone = "german";
 		  //if (selected_reformer == "luther-reformer") { language_zone = "english"; }
@@ -3148,7 +3306,10 @@
 
 	      });
             } else {
-	      his_self.updateStatus("Papacy playing "+his_self.popup("005"));
+	      	      his_self.game.status = "Papacy playing "+his_self.popup("005");
+	      his_self.hud.updateStatus(his_self.game.status);
+	      his_self.hud.updateMenu([]);
+	      his_self.hud.updateCards([]);
 	    }
 	  };
 
@@ -3156,18 +3317,17 @@
 	  if (papacy == his_self.game.player) {
 
             let msg = "Excommunicate Heretic?";
-            let html = '<ul>';
-                html += `<li class="option" id="reformer">Protestant Reformer</li>`;
+            let html = [];
+                html.push({ id: `reformer`, label: `Protestant Reformer` });
 	        if (do_grounds_for_excommunication_exist.length > 0) {
-                  html += `<li class="option" id="leader">Unfaithful Monarch</li>`;
+                  html.push({ id: `leader`, label: `Unfaithful Monarch` });
 	        }
-		html += '</ul>';
-            his_self.updateStatusWithOptions(msg, html);
+                        his_self.game.status = msg;
+            his_self.hud.updateStatus(his_self.game.status);
+            his_self.hud.updateCards([]);
+            his_self.hud.updateMenu(html, function (user_choice) {
 
-            $('.option').off();
-            $('.option').on('click', function () {
-
-              let action2 = $(this).attr("id");
+        let action2 = user_choice;
 	      if (action2 == "reformer") {
 	        excommunicate_reformer_subfunction();
 	      } else {
@@ -3175,7 +3335,10 @@
     	      }
 	    });
 	  } else {
-	    his_self.updateStatus("Papacy playing "+his_self.popup("005"));
+	    	    his_self.game.status = "Papacy playing "+his_self.popup("005");
+	    his_self.hud.updateStatus(his_self.game.status);
+	    his_self.hud.updateMenu([]);
+	    his_self.hud.updateCards([]);
 	  }
 
 	  return 0;
@@ -3200,13 +3363,13 @@
 
             let msg = "Excommunicate Protestant Reformer:";
 	    let reformer_exists = 0;
-            let html = '<ul>';
+            let html = [];
 	    for (let key in his_self.reformers) {
 	      let s = his_self.returnSpaceOfPersonage("protestant", key);
 	      if (s) {
 		if (!his_self.game.state.already_excommunicated.includes(key)) {
 	          reformer_exists = 1;
-                  html += `<li class="option" id="${key}">${his_self.reformers[key].name}</li>`;
+                  html.push({ id: `${key}`, label: `${his_self.reformers[key].name}` });
 	        }
 	      }
 	    }
@@ -3214,17 +3377,19 @@
 	    if (reformer_exists == 0) {
 
               let msg = "Convene Theological Debate?";
-              let html = '<ul>';
-              html += `<li class="option" id="yes">yes</li>`;
-              html += `<li class="option" id="no">no</li>`;
-	      html += '</ul>';
-              his_self.updateStatusWithOptions(msg, html);
+              let html = [];
+              html.push({ id: `yes`, label: `yes` });
+              html.push({ id: `no`, label: `no` });
+                            his_self.game.status = msg;
+              his_self.hud.updateStatus(his_self.game.status);
+              his_self.hud.updateCards([]);
+              his_self.hud.updateMenu(html, function (user_choice) {
 
-              $('.option').off();
-              $('.option').on('click', function () {
-
-                let action2 = $(this).attr("id");
-	        his_self.updateStatus("submitting...");
+        let action2 = user_choice;
+	        	        his_self.game.status = "submitting...";
+	        his_self.hud.updateStatus(his_self.game.status);
+	        his_self.hud.updateMenu([]);
+	        his_self.hud.updateCards([]);
 
 		if (action2 === "yes") {
 		  his_self.playerCallTheologicalDebate(his_self, his_self.game.player, "papacy");
@@ -3241,13 +3406,12 @@
 	      return 0;
 	    }
 
-	    html += '</ul>';
-            his_self.updateStatusWithOptions(msg, html);
-  
-            $('.option').off();
-            $('.option').on('click', function () {
+                        his_self.game.status = msg;
+            his_self.hud.updateStatus(his_self.game.status);
+            his_self.hud.updateCards([]);
+            his_self.hud.updateMenu(html, function (user_choice) {
 
-              let selected_reformer = $(this).attr("id");
+        let selected_reformer = user_choice;
 
 	      if (selected_reformer === "cranmer-reformer") {
 		his_self.addEndMove("counter_or_acknowledge\tPapal Bull announces excommunication of Cranmer\tpapal_bull_cranmer_excommunication");
@@ -3256,18 +3420,20 @@
 	      his_self.addEndMove("excommunicate_reformer\t"+selected_reformer);
 
               let msg = "Convene Theological Debate after Excommunication?";
-              let html = '<ul>';
-              html += `<li class="option" id="yes">yes</li>`;
-              html += `<li class="option" id="no">no</li>`;
-	      html += '</ul>';
+              let html = [];
+              html.push({ id: `yes`, label: `yes` });
+              html.push({ id: `no`, label: `no` });
 
-              his_self.updateStatusWithOptions(msg, html);
-
-              $('.option').off();
-              $('.option').on('click', function () {
+                            his_self.game.status = msg;
+              his_self.hud.updateStatus(his_self.game.status);
+              his_self.hud.updateCards([]);
+              his_self.hud.updateMenu(html, function (user_choice) {
 		
-	        his_self.updateStatus("convening...");
-                let action2 = $(this).attr("id");
+	        	        his_self.game.status = "convening...";
+	        his_self.hud.updateStatus(his_self.game.status);
+	        his_self.hud.updateMenu([]);
+	        his_self.hud.updateCards([]);
+                let action2 = user_choice;
 
 		if (action2 === "yes") {
 	          his_self.addMove("excommunicate_reformer\t"+selected_reformer);
@@ -3288,7 +3454,10 @@
 	    return 0;
 
           } else {
-	    his_self.updateStatus("Papacy playing "+his_self.popup("005"));
+	    	    his_self.game.status = "Papacy playing "+his_self.popup("005");
+	    his_self.hud.updateStatus(his_self.game.status);
+	    his_self.hud.updateMenu([]);
+	    his_self.hud.updateCards([]);
 	  }
 
 	  return 0;
@@ -3316,43 +3485,147 @@
 	if (his_self.game.player === p) {
 
           let msg = "Select Language Zone for Theological Debate:";
-          let html = '<ul>';
+          let html = [];
 
           if (his_self.returnDebatersInLanguageZone("german", "protestant")) { 
-            html += '<li class="option" style="" id="german">German</li>';
+            html.push({ id: 'german', label: 'German' });
           }
           if (his_self.returnDebatersInLanguageZone("french", "france")) { 
-            html += '<li class="option" style="" id="french">French</li>';
+            html.push({ id: 'french', label: 'French' });
           }
           if (his_self.returnDebatersInLanguageZone("english", "france")) { 
-            html += '<li class="option" style="" id="english">English</li>';
+            html.push({ id: 'english', label: 'English' });
           }
-          html += '</ul>';
 
 	  //
   	  // show visual language zone selector
   	  //
   	  his_self.language_zone_overlay.render("catholic_counter_reformation");
 
-          his_self.updateStatusWithOptions(msg, html);
+                    his_self.game.status = msg;
+          his_self.hud.updateStatus(his_self.game.status);
+          his_self.hud.updateCards([]);
+          his_self.hud.updateMenu(html, function (user_choice) {
 
-          $('.option').off();
-          $('.option').on('click', function () {
-
-            let language_zone = $(this).attr("id");
+        let language_zone = user_choice;
 
             let msg = "Target Committed or Uncommitted Protestant?";
-            let html = '<ul>';
+            let html = [];
             if (1 <= his_self.returnDebatersInLanguageZone(language_zone, "protestant", 0)) {
-              html += '<li class="option uncommitted" id="uncommitted">Uncommitted</li>';
+              html.push({ id: 'uncommitted', label: 'Uncommitted' });
             }
             if (1 <= his_self.returnDebatersInLanguageZone(language_zone, "protestant", 1)) {
-              html += '<li class="option committed" id="committed">Committed</li>';
+              html.push({ id: 'committed', label: 'Committed' });
             }
-            html += '</ul>';
 
-            his_self.updateStatusWithOptions(msg, html);
-            $('.option').off();
+                        his_self.game.status = msg;
+            his_self.hud.updateStatus(his_self.game.status);
+            his_self.hud.updateCards([]);
+            his_self.hud.updateMenu(html, function (user_choice) {
+
+              let is_committed = user_choice;
+	      if (is_committed == "uncommitted") { is_committed = 0; } else { is_committed = 1; }
+
+              let msg = "Leipzig Debate Format?";
+              let html = [];
+              html.push({ id: 'select', label: 'Pick My Debater' });
+	      // or prohibit uncommitted debaters
+              if (is_committed == 0 && 1 < his_self.returnDebatersInLanguageZone(language_zone, "protestant", is_committed)) {
+                html.push({ id: 'prohibit', label: 'Prohibit Protestant Debater' });
+              }
+
+                            his_self.game.status = msg;
+              his_self.hud.updateStatus(his_self.game.status);
+              his_self.hud.updateCards([]);
+              his_self.hud.updateMenu(html, function (user_choice) {
+
+        let opt = user_choice;
+
+	        if (opt === "select") {
+
+                  let msg = "Select Uncommitted Papal Debater:";
+                  let html = [];
+		  for (let i = 0; i < his_self.game.state.debaters.length; i++) {
+		    let d = his_self.game.state.debaters[i];
+		    if (d.faction === "papacy" && d.committed === 0) {
+            	      html.push({ id: `${d.type}`, label: `${d.name}` });
+		    }
+		  }
+                                    his_self.game.status = msg;
+                  his_self.hud.updateStatus(his_self.game.status);
+                  his_self.hud.updateCards([]);
+                  his_self.hud.updateMenu(html, function (user_choice) {
+                    his_self.language_zone_overlay.hide();
+                    let selected_papal_debater = user_choice;
+	            his_self.addMove("theological_debate");
+        	    his_self.addMove("counter_or_acknowledge\tPapacy calls a theological debate\tdebate\t" + language_zone);
+                    let c = [his_self.game.players[his_self.returnPlayerOfFaction("papacy")-1],his_self.game.players[his_self.returnPlayerOfFaction("protestant")-1]];
+        	    his_self.addMove("RESETCONFIRMSNEEDED\t"+JSON.stringify(c));
+	            if (is_committed == 0) {
+		      his_self.addMove("pick_first_round_debaters\tpapacy\tprotestant\t"+language_zone+"\t"+"uncommitted\t" + selected_papal_debater);
+	            } else { 
+		      his_self.addMove("pick_first_round_debaters\tpapacy\tprotestant\t"+language_zone+"\t"+"committed\t" + selected_papal_debater);
+		    }
+		    his_self.endTurn();
+		  });
+                  $('.option').on('mouseover', function() {
+                    let action2 = $(this).attr("id");
+                    if (his_self.debaters[action2]) {
+                      his_self.cardbox.show(action2);
+                    }
+                  });
+                  $('.option').on('mouseout', function() {
+                    let action2 = $(this).attr("id");
+                    if (his_self.debaters[action2]) {
+                      his_self.cardbox.hide(action2);
+                    }
+                  });
+	
+	        } else {
+
+                  let msg = "Prohibit Protestant Debater:";
+                  let html = [];
+		  for (let i = 0; i < his_self.game.state.debaters.length; i++) {
+		    let d = his_self.game.state.debaters[i];
+		    if (d.faction !== "papacy" && d.language_zone === language_zone && d.committed == is_committed) {
+            	      html.push({ id: `${i}`, label: `${d.name}` });
+		    }
+		  }
+                                    his_self.game.status = msg;
+                  his_self.hud.updateStatus(his_self.game.status);
+                  his_self.hud.updateCards([]);
+                  his_self.hud.updateMenu(html, function (user_choice) {
+                    his_self.language_zone_overlay.hide();
+                    let selected_idx = parseInt(user_choice);
+		    let prohibited_protestant_debater = his_self.game.state.debaters[selected_idx].type;
+	            his_self.addMove("theological_debate");
+        	    his_self.addMove("counter_or_acknowledge\tPapacy calls a theological debate\tdebate\t" + language_zone);
+                    let c = [his_self.game.players[his_self.returnPlayerOfFaction("papacy")-1],his_self.game.players[his_self.returnPlayerOfFaction("protestant")-1]];
+        	    his_self.addMove("RESETCONFIRMSNEEDED\t"+JSON.stringify(c));
+	 	    if (is_committed == 0) {
+	              his_self.addMove("pick_first_round_debaters\tpapacy\tprotestant\t"+language_zone+"\t"+"uncommitted\t\t"+prohibited_protestant_debater);
+		    } else {
+	              his_self.addMove("pick_first_round_debaters\tpapacy\tprotestant\t"+language_zone+"\t"+"committed\t\t"+prohibited_protestant_debater);
+		    }
+		    his_self.endTurn();
+		  });
+                  $('.option').on('mouseover', function() {
+                    let action2 = $(this).attr("id");
+                    if (his_self.debaters[action2]) {
+                      his_self.cardbox.show(action2);
+                    }
+                  });
+                  $('.option').on('mouseout', function() {
+                    let action2 = $(this).attr("id");
+                    if (his_self.debaters[action2]) {
+                      his_self.cardbox.hide(action2);
+                    }
+                  });
+	
+	        }
+
+	      });
+            });
             $('.committed').on('mouseover', function () {
 	      his_self.language_zone_overlay.hideDebaters();
 	      his_self.language_zone_overlay.showDebaters(language_zone, "committed", "protestant");
@@ -3367,119 +3640,13 @@
             $('.uncommitted').on('mouseout', function () {
 	      his_self.language_zone_overlay.hideDebaters();
             });
-
-            $('.option').on('click', function () {
-
-              let is_committed = $(this).attr("id");
-	      if (is_committed == "uncommitted") { is_committed = 0; } else { is_committed = 1; }
-
-              let msg = "Leipzig Debate Format?";
-              let html = '<ul>';
-              html += '<li class="option" id="select">Pick My Debater</li>';
-	      // or prohibit uncommitted debaters
-              if (is_committed == 0 && 1 < his_self.returnDebatersInLanguageZone(language_zone, "protestant", is_committed)) {
-                html += '<li class="option" id="prohibit">Prohibit Protestant Debater</li>';
-              }
-              html += '</ul>';
-
-              his_self.updateStatusWithOptions(msg, html);
-  
-              $('.option').off();
-              $('.option').on('click', function () {
-
-                let opt = $(this).attr("id");
-
-	        if (opt === "select") {
-
-                  let msg = "Select Uncommitted Papal Debater:";
-                  let html = '<ul>';
-		  for (let i = 0; i < his_self.game.state.debaters.length; i++) {
-		    let d = his_self.game.state.debaters[i];
-		    if (d.faction === "papacy" && d.committed === 0) {
-            	      html += `<li class="option" id="${d.type}">${d.name}</li>`;
-		    }
-		  }
-		  html += '</ul>';
-                  his_self.updateStatusWithOptions(msg, html);
-  
-                  $('.option').off();
-                  $('.option').on('mouseover', function() {
-                    let action2 = $(this).attr("id");
-                    if (his_self.debaters[action2]) {
-                      his_self.cardbox.show(action2);
-                    }
-                  });
-                  $('.option').on('mouseout', function() {
-                    let action2 = $(this).attr("id");
-                    if (his_self.debaters[action2]) {
-                      his_self.cardbox.hide(action2);
-                    }
-                  });
-                  $('.option').on('click', function () {
-                    his_self.language_zone_overlay.hide();
-                    let selected_papal_debater = $(this).attr("id");
-	            his_self.addMove("theological_debate");
-        	    his_self.addMove("counter_or_acknowledge\tPapacy calls a theological debate\tdebate\t" + language_zone);
-                    let c = [his_self.game.players[his_self.returnPlayerOfFaction("papacy")-1],his_self.game.players[his_self.returnPlayerOfFaction("protestant")-1]];
-        	    his_self.addMove("RESETCONFIRMSNEEDED\t"+JSON.stringify(c));
-	            if (is_committed == 0) {
-		      his_self.addMove("pick_first_round_debaters\tpapacy\tprotestant\t"+language_zone+"\t"+"uncommitted\t" + selected_papal_debater);
-	            } else { 
-		      his_self.addMove("pick_first_round_debaters\tpapacy\tprotestant\t"+language_zone+"\t"+"committed\t" + selected_papal_debater);
-		    }
-		    his_self.endTurn();
-		  });
-	
-	        } else {
-
-                  let msg = "Prohibit Protestant Debater:";
-                  let html = '<ul>';
-		  for (let i = 0; i < his_self.game.state.debaters.length; i++) {
-		    let d = his_self.game.state.debaters[i];
-		    if (d.faction !== "papacy" && d.language_zone === language_zone && d.committed == is_committed) {
-            	      html += `<li class="option" id="${i}">${d.name}</li>`;
-		    }
-		  }
-		  html += '</ul>';
-                  his_self.updateStatusWithOptions(msg, html);
-  
-                  $('.option').off();
-                  $('.option').on('mouseover', function() {
-                    let action2 = $(this).attr("id");
-                    if (his_self.debaters[action2]) {
-                      his_self.cardbox.show(action2);
-                    }
-                  });
-                  $('.option').on('mouseout', function() {
-                    let action2 = $(this).attr("id");
-                    if (his_self.debaters[action2]) {
-                      his_self.cardbox.hide(action2);
-                    }
-                  });
-                  $('.option').on('click', function () {
-                    his_self.language_zone_overlay.hide();
-                    let selected_idx = parseInt($(this).attr("id"));
-		    let prohibited_protestant_debater = his_self.game.state.debaters[selected_idx].type;
-	            his_self.addMove("theological_debate");
-        	    his_self.addMove("counter_or_acknowledge\tPapacy calls a theological debate\tdebate\t" + language_zone);
-                    let c = [his_self.game.players[his_self.returnPlayerOfFaction("papacy")-1],his_self.game.players[his_self.returnPlayerOfFaction("protestant")-1]];
-        	    his_self.addMove("RESETCONFIRMSNEEDED\t"+JSON.stringify(c));
-	 	    if (is_committed == 0) {
-	              his_self.addMove("pick_first_round_debaters\tpapacy\tprotestant\t"+language_zone+"\t"+"uncommitted\t\t"+prohibited_protestant_debater);
-		    } else {
-	              his_self.addMove("pick_first_round_debaters\tpapacy\tprotestant\t"+language_zone+"\t"+"committed\t\t"+prohibited_protestant_debater);
-		    }
-		    his_self.endTurn();
-		  });
-	
-	        }
-
-	      });
-	    });
 	  });
 
 	} else {
-	  his_self.updateStatus("Papacy calling Theological Debate");
+	  	  his_self.game.status = "Papacy calling Theological Debate";
+	  his_self.hud.updateStatus(his_self.game.status);
+	  his_self.hud.updateMenu([]);
+	  his_self.hud.updateCards([]);
 	}
 
 	return 0;
@@ -3510,43 +3677,32 @@
 	if (his_self.game.player === p) {
 
 	  let msg = "Retrieve Card from Discard Pile: ";
-          let html = '<ul>';
+          let html = [];
 	  for (let key in his_self.game.deck[0].discards) {
 	    if (parseInt(key) > 9 && !his_self.game.state.protestant_cards_evented.includes(key)) {
-              html += `<li class="option" id="${key}">${his_self.game.deck[0].cards[key].name}</li>`;
+              html.push({ id: `${key}`, label: `${his_self.game.deck[0].cards[key].name}` });
 	    }
 	  }
-          html += '</ul>';
 
-    	  his_self.updateStatusWithOptions(msg, html);
+    	      	  his_self.game.status = msg;
+    	  his_self.hud.updateStatus(his_self.game.status);
+    	  his_self.hud.updateCards([]);
+    	  his_self.hud.updateMenu(html, function (user_choice) {
 
-	  $('.option').off();
-          $('.option').on('mouseover', function() {
-            let action2 = $(this).attr("id");
-            his_self.cardbox.show(action2);
-          });
-          $('.option').on('mouseout', function() {
-            let action2 = $(this).attr("id");
-            his_self.cardbox.hide(action2);
-          });
-	  $('.option').on('click', function () {
-
-	    $('.option').off();
-	    let card = $(this).attr("id");
+	    let card = user_choice;
 
 	    let msg = "Play or Hold Card? ";
-            let html = '<ul>';
-            html += '<li class="option" id="play">play card</li>';
-            html += '<li class="option" id="hold">hold card</li>';
-            html += '</ul>';
+            let html = [];
+            html.push({ id: 'play', label: 'play card' });
+            html.push({ id: 'hold', label: 'hold card' });
 
-            his_self.updateStatusWithOptions(msg, html);
-
-	    $('.option').off();
-	    $('.option').on('click', function () {
+                        his_self.game.status = msg;
+            his_self.hud.updateStatus(his_self.game.status);
+            his_self.hud.updateCards([]);
+            his_self.hud.updateMenu(html, function (user_choice) {
 
 	      $('.option').off();
-	      let action = $(this).attr("id");
+        let action = user_choice;
 
 	      if (action == "play") {
 
@@ -3578,8 +3734,20 @@
 
 	    });
 	  });
+
+          $('.option').on('mouseover', function() {
+            let action2 = $(this).attr("id");
+            his_self.cardbox.show(action2);
+          });
+          $('.option').on('mouseout', function() {
+            let action2 = $(this).attr("id");
+            his_self.cardbox.hide(action2);
+          });
 	} else {
-	  his_self.updateStatus("Protestants retrieving card: " + his_self.popup("007"));
+	  	  his_self.game.status = "Protestants retrieving card: " + his_self.popup("007");
+	  his_self.hud.updateStatus(his_self.game.status);
+	  his_self.hud.updateMenu([]);
+	  his_self.hud.updateCards([]);
 	}
 
 	return 0;
@@ -3587,7 +3755,7 @@
       menuOption  :       function(his_self, menu, player, extra) {
         if (menu === "debate") {
 	  if (extra === "german") {
-            return { faction : "protestant" , event : '007', html : `<li class="option" id="007">Here I Stand (assign Luther)</li>` };
+            return { faction : "protestant" , event : '007', id: "007", label: `Here I Stand (assign Luther)` };
 	  }
         }
         return {};
@@ -4687,12 +4855,12 @@ console.log(JSON.stringify(his_self.game.state.theological_debate));
           }
 	  if (menu === "pre_field_battle_rolls") {
 	    if (his_self.doesFactionHaveLandUnitsInSpace(f, his_self.game.state.field_battle.spacekey)) {
-              return { faction : f , event : '024', html : `<li class="option" id="024">arquebusiers (${f})</li>` };
+              return { faction : f , event : '024', id: "024", label: `arquebusiers (${f})` };
             }
 	  }
 	  if (menu === "pre_naval_battle_rolls") {
 	    if (his_self.doesFactionHaveNavalUnitsInSpace(f, his_self.game.state.naval_battle.spacekey)) {
-              return { faction : f , event : '024', html : `<li class="option" id="024">arquebusiers (${f})</li>` };
+              return { faction : f , event : '024', id: "024", label: `arquebusiers (${f})` };
             }
 	  }
         }
@@ -4761,7 +4929,7 @@ console.log("ERR: " + JSON.stringify(err));
             }
           }
 	  if (his_self.doesFactionHaveLandUnitsInSpace(f, his_self.game.state.field_battle.spacekey)) {
-            return { faction : f , event : '025', html : `<li class="option" id="025">field artillery (${f})</li>` };
+            return { faction : f , event : '025', id: "025", label: `field artillery (${f})` };
           }
         }
         return {};
@@ -4819,7 +4987,7 @@ console.log("ERR: " + JSON.stringify(err));
 	    if (his_self.doesFactionHaveLandUnitsInSpace(f, his_self.game.state.field_battle.spacekey)) {
 	      // if the space is Ottoman-controlled... we cannot event because they don't have mercs
 	      if (his_self.isSpaceControlled(his_self.game.state.field_battle.spacekey, "ottoman")) { return {}; };
-              return { faction : f , event : '026', html : `<li class="option" id="026">mercenaries bribed (${f})</li>` };
+              return { faction : f , event : '026', id: "026", label: `mercenaries bribed (${f})` };
             }
           }
         }
@@ -4943,7 +5111,7 @@ console.log("ERR: " + JSON.stringify(err));
           for (let i = 0; i < his_self.game.deck[0].fhand.length; i++) {
             if (his_self.game.deck[0].fhand[i].includes('027')) {
               f = his_self.game.state.players_info[his_self.game.player-1].factions[i];
-              return { faction : f , event : '027', html : `<li class="option" id="027">mercenaries grow restless (${f})</li>` };
+              return { faction : f , event : '027', id: "027", label: `mercenaries grow restless (${f})` };
               break;
             }
           }
@@ -5088,7 +5256,7 @@ console.log("ERR: " + JSON.stringify(err));
 	    if (fis.includes(f)) {
               if (his_self.game.deck[0].fhand[i].includes('028')) {
                 f = his_self.game.state.players_info[his_self.game.player-1].factions[i];
-                return { faction : f , event : '028', html : `<li class="option" id="028">siege mining (${f})</li>` };
+                return { faction : f , event : '028', id: "028", label: `siege mining (${f})` };
               }
             }
           }
@@ -5133,7 +5301,7 @@ console.log("ERR: " + JSON.stringify(err));
             }
           }
 	  if (his_self.doesFactionHaveLandUnitsInSpace(f, his_self.game.state.field_battle.spacekey)) {
-            return { faction : f , event : '029', html : `<li class="option" id="029">surprise attack (${f})</li>` };
+            return { faction : f , event : '029', id: "029", label: `surprise attack (${f})` };
           }
         }
         return {};
@@ -5204,7 +5372,7 @@ console.log("ERR: " + JSON.stringify(err));
 	    }
 	  }
 	  if (!are_haps_in_space) { return {}; }
-          return { faction : f , event : '030', html : `<li class="option" id="030">tercios (${f})</li>` };
+          return { faction : f , event : '030', id: "030", label: `tercios (${f})` };
         }
         return {};
       },
@@ -5316,7 +5484,7 @@ console.log("ERR: " + JSON.stringify(err));
               break;
             }
           }
-          return { faction : f , event : '031', html : `<li class="option blink" id="031">foul weather (${f})</li>` };
+          return { faction : f , event : '031', id: "031", label: `foul weather (${f})` };
         }
         return {};
       },
@@ -5418,7 +5586,7 @@ console.log("ERR: " + JSON.stringify(err));
         if (menu == "event") {
 	  for (let i = 0; i < his_self.game.deck[0].fhand.length; i++) {
 	    if (his_self.game.deck[0].fhand[i].includes('032')) {
-              return { faction : f , event : '032', html : '<li class="option blink" id="032">play gout</li>' };
+              return { faction : f , event : '032', id: '032', label: 'play gout'};
 	    }
 	  }
 	  return {};
@@ -5478,7 +5646,7 @@ console.log("ERR: " + JSON.stringify(err));
 	  }
 
 	  if (includes_army_leader) {
-            return { faction : f , event : '032', html : '<li class="option blink" id="032">play gout</li>' };
+            return { faction : f , event : '032', id: '032', label: 'play gout'};
 	  } 
        }
         return {};
@@ -5702,7 +5870,7 @@ console.log("POST_GOUT_QUEUE: " + JSON.stringify(his_self.game.queue));
 	  }
 	  // removal is very messy if done when units are moving pre-field battle due to RESOLVES flying around
 	  if (f === "ottoman" && menu === "pre_field_battle_rolls") { return {}; }
-          return { faction : f , event : '033', html : `<li class="option blink" id="033">landsknechts (${f})</li>` };
+          return { faction : f , event : '033', id: "033", label: `landsknechts (${f})` };
         }
         return {};
       },
@@ -5823,7 +5991,10 @@ console.log("POST_GOUT_QUEUE: " + JSON.stringify(his_self.game.queue));
 	      }
 	    }
 	  } else {
-	    his_self.updateStatus(his_self.returnFactionName(faction) + " playing Landsknechts");
+	    	    his_self.game.status = his_self.returnFactionName(faction) + " playing Landsknechts";
+	    his_self.hud.updateStatus(his_self.game.status);
+	    his_self.hud.updateMenu([]);
+	    his_self.hud.updateCards([]);
 	  }
 
           his_self.game.queue.splice(qe, 1);
@@ -5850,7 +6021,7 @@ console.log("POST_GOUT_QUEUE: " + JSON.stringify(his_self.game.queue));
               i = 100;
             }
           }
-          return { faction : f , event : '034', html : `<li class="option" id="034">professional rowers (${f})</li>` };
+          return { faction : f , event : '034', id: "034", label: `professional rowers (${f})` };
 	}
         if (menu === "naval_intercept" || menu === "pre_naval_battle_rolls") {
           let f = "";
@@ -5861,7 +6032,7 @@ console.log("POST_GOUT_QUEUE: " + JSON.stringify(his_self.game.queue));
             }
           }
 	  if (his_self.game.state.naval_battle.attacker_faction != f && his_self.game.state.naval_battle.defender_faction != f) { return {}; }
-          return { faction : f , event : '034', html : `<li class="option" id="034">professional rowers (${f})</li>` };
+          return { faction : f , event : '034', id: "034", label: `professional rowers (${f})` };
         }
         return {};
       },
@@ -5919,23 +6090,28 @@ console.log("POST_GOUT_QUEUE: " + JSON.stringify(his_self.game.queue));
             his_self.addMove("add_naval_battle_bonus_rolls\t"+faction+"\t3");
             his_self.addMove("SETVAR\tstate\tevents\tintervention_post_naval_battle_possible\t0");
 	    his_self.endTurn();
-	    his_self.updateStatus("acknowledge");
+	    	    his_self.game.status = "acknowledge";
+	    his_self.hud.updateStatus(his_self.game.status);
+	    his_self.hud.updateMenu([]);
+	    his_self.hud.updateCards([]);
 
           } else {
 
-            let html = '<ul>';
-  	    html += `<li class="option" id="${attacker_faction}">${attacker_faction}</li>`;
-  	    html += `<li class="option" id="${defender_faction}">${defender_faction}</li>`;
-    	    html += '</ul>';
+            let html = [];
+  	    html.push({ id: `${attacker_faction}`, label: `${attacker_faction}` });
+  	    html.push({ id: `${defender_faction}`, label: `${defender_faction}` });
 
-            his_self.updateStatusWithOptions("Bonus Hits for Whom?", html);
+                        his_self.game.status = "Bonus Hits for Whom?";
+            his_self.hud.updateStatus(his_self.game.status);
+            his_self.hud.updateCards([]);
+            his_self.hud.updateMenu(html, function (user_choice) {
 
-   	    $('.option').off();
-	    $('.option').on('click', function () {
-
-	      let winner = $(this).attr("id");
+        let winner = user_choice;
    	      $('.option').off();
-	      his_self.updateStatus("acknowledge");
+	      	      his_self.game.status = "acknowledge";
+	      his_self.hud.updateStatus(his_self.game.status);
+	      his_self.hud.updateMenu([]);
+	      his_self.hud.updateCards([]);
 	      his_self.addMove("ACKNOWLEDGE\t"+his_self.returnFactionName(faction)+" triggers " + his_self.popup("034"));
               his_self.addMove("discard\t"+faction+"\t034");
               his_self.addMove("add_naval_battle_bonus_rolls\t"+winner+"\t3");
@@ -5969,7 +6145,7 @@ console.log("POST_GOUT_QUEUE: " + JSON.stringify(his_self.game.queue));
                   if (4 >= his_self.returnHopsToFortifiedHomeSpace(assault_spacekey, attacker_faction)) {
               	    f = his_self.game.state.players_info[his_self.game.player-1].factions[i];
               	    i = 100;
-              	    return { faction : f , event : '035', html : `<li class="option blink" id="035">siege artillery (${f})</li>` };
+              	    return { faction : f , event : '035', id: "035", label: `siege artillery (${f})` };
 		  }
 		}
 	      }
@@ -6010,7 +6186,10 @@ console.log("POST_GOUT_QUEUE: " + JSON.stringify(his_self.game.queue));
 	  his_self.addMove("NOTIFY\t"+his_self.returnFactionName(faction)+" triggers " + his_self.popup("035"));
           his_self.addMove("SETVAR\tstate\tevents\tintervention_post_assault_possible\t0");
 	  his_self.endTurn();
-	  his_self.updateStatus("acknowledge");
+	  	  his_self.game.status = "acknowledge";
+	  his_self.hud.updateStatus(his_self.game.status);
+	  his_self.hud.updateMenu([]);
+	  his_self.hud.updateCards([]);
         }
         return 0;
       },
@@ -6051,7 +6230,7 @@ console.log("POST_GOUT_QUEUE: " + JSON.stringify(his_self.game.queue));
             }
           }
 	  if (f != "") {
-            return { faction : f , event : '036', html : `<li class="option blink" id="036">swiss mercenaries (${f})</li>` };
+            return { faction : f , event : '036', id: "036", label: `swiss mercenaries (${f})` };
           }
         }
         return {};
@@ -6133,7 +6312,10 @@ console.log("POST_GOUT_QUEUE: " + JSON.stringify(his_self.game.queue));
 	      true
 	    );
 	  } else {
-	    his_self.updateStatus(his_self.returnFactionName(faction) + " playing " + his_self.popup("036"));
+	    	    his_self.game.status = his_self.returnFactionName(faction) + " playing " + his_self.popup("036");
+	    his_self.hud.updateStatus(his_self.game.status);
+	    his_self.hud.updateMenu([]);
+	    his_self.hud.updateCards([]);
 	  }
 
 	  return 0;
@@ -6179,7 +6361,7 @@ console.log("POST_GOUT_QUEUE: " + JSON.stringify(his_self.game.queue));
 	  if (cardobj.type === "mandatory") { return {}; }
 	  if (cardobj.type === "combat") { return {}; }
 
-          return { faction : "protestant" , event : '037', html : `<li class="option blink" id="037">wartburg (protestant)</li>` };
+          return { faction : "protestant" , event : '037', id: "037", label: `wartburg (protestant)` };
         }
         return {};
       },
@@ -6203,7 +6385,10 @@ console.log("POST_GOUT_QUEUE: " + JSON.stringify(his_self.game.queue));
           his_self.addMove("discard\tprotestant\t037");
           his_self.addMove("commit\tprotestant\tluther-debater");
 	  his_self.endTurn();
-	  his_self.updateStatus("wartburg acknowledge");
+	  	  his_self.game.status = "wartburg acknowledge";
+	  his_self.hud.updateStatus(his_self.game.status);
+	  his_self.hud.updateMenu([]);
+	  his_self.hud.updateCards([]);
         }
         return 0;
       },
@@ -6215,7 +6400,10 @@ console.log("POST_GOUT_QUEUE: " + JSON.stringify(his_self.game.queue));
 
 	  his_self.displayModal("Protestants cancel event with the Wartburg");
 
-	  his_self.updateStatus(his_self.popup("037") + " triggered");
+	  	  his_self.game.status = his_self.popup("037") + " triggered";
+	  his_self.hud.updateStatus(his_self.game.status);
+	  his_self.hud.updateMenu([]);
+	  his_self.hud.updateCards([]);
 	  his_self.game.state.events.wartburg = 1;
 	  his_self.commitDebater("protestant", "luther-debater", 0);
 	  his_self.updateLog(his_self.popup("037") + " triggered");
@@ -6267,7 +6455,7 @@ console.log("POST_GOUT_QUEUE: " + JSON.stringify(his_self.game.queue));
               break;
             }
           }
-          return { faction : f , event : '038', html : `<li class="option blink" id="038">halley's comet (${f})</li>` };
+          return { faction : f , event : '038', id: "038", label: `halley's comet (${f})` };
         }
         return {};
       },
@@ -6297,41 +6485,42 @@ console.log("POST_GOUT_QUEUE: " + JSON.stringify(his_self.game.queue));
 	  if (his_self.game.player == p) {
 
 	    let msg = "Target which Power?";
-	    let html = '<ul>';
+	    let html = [];
 
-	    if (faction != "protestant") { html += '<li class="option" id="protestant">Protestant</li>'; }
-	    if (faction != "papacy") { html += '<li class="option" id="papacy">Papacy</li>'; }
+	    if (faction != "protestant") { html.push({ id: 'protestant', label: 'Protestant' }); }
+	    if (faction != "papacy") { html.push({ id: 'papacy', label: 'Papacy' }); }
 	    if (his_self.game.players.length > 2) {
-	      if (faction != "england") { html += '<li class="option" id="england">England</li>'; }
-	      if (faction != "france") { html += '<li class="option" id="france">France</li>'; }
-	      if (faction != "hapsburg") { html += '<li class="option" id="hapsburg">Hapsburg</li>'; }
-	      if (faction != "ottoman") { html += '<li class="option" id="ottoman">Ottoman</li>'; }
+	      if (faction != "england") { html.push({ id: 'england', label: 'England' }); }
+	      if (faction != "france") { html.push({ id: 'france', label: 'France' }); }
+	      if (faction != "hapsburg") { html.push({ id: 'hapsburg', label: 'Hapsburg' }); }
+	      if (faction != "ottoman") { html.push({ id: 'ottoman', label: 'Ottoman' }); }
 	    }
-            html += '</ul>';
 
-    	    his_self.updateStatusWithOptions(msg, html);
-
-	    $('.option').off();
-	    $('.option').on('click', function () {
+    	        	    his_self.game.status = msg;
+    	    his_self.hud.updateStatus(his_self.game.status);
+    	    his_self.hud.updateCards([]);
+    	    his_self.hud.updateMenu(html, function (user_choice) {
 
 	      $('.option').off();
-	      let target_faction = $(this).attr("id");
+        let target_faction = user_choice;
 
   	      let msg = "Force Power to Discard or Skip Turn?";
-	      let html = '<ul>';
-	      html += '<li class="option" id="discard">discard random card</li>';
-	      html += '<li class="option" id="skip">skip next turn</li>';
-	      html += '<ul>';
+	      let html = [];
+	      html.push({ id: 'discard', label: 'discard random card' });
+	      html.push({ id: 'skip', label: 'skip next turn' });
 
-    	      his_self.updateStatusWithOptions(msg, html);
-
-	      $('.option').off();
-	      $('.option').on('click', function () {
+    	          	      his_self.game.status = msg;
+    	      his_self.hud.updateStatus(his_self.game.status);
+    	      his_self.hud.updateCards([]);
+    	      his_self.hud.updateMenu(html, function (user_choice) {
 
 	        $('.option').off();
-	        let action = $(this).attr("id");
+        let action = user_choice;
 
-	        his_self.updateStatus("submitted");
+	        	        his_self.game.status = "submitted";
+	        his_self.hud.updateStatus(his_self.game.status);
+	        his_self.hud.updateMenu([]);
+	        his_self.hud.updateCards([]);
 
 	        if (action === "discard") {
                   his_self.addMove("discard_random\t"+target_faction);
@@ -6361,41 +6550,42 @@ console.log("POST_GOUT_QUEUE: " + JSON.stringify(his_self.game.queue));
 	if (player == his_self.game.player) {
 
 	  let msg = "Target which Power?";
-	  let html = '<ul>';
+	  let html = [];
 
-	  if (faction != "protestant") { html += '<li class="option" id="protestant">Protestant</li>'; }
-	  if (faction != "papacy") { html += '<li class="option" id="papacy">Papacy</li>'; }
+	  if (faction != "protestant") { html.push({ id: 'protestant', label: 'Protestant' }); }
+	  if (faction != "papacy") { html.push({ id: 'papacy', label: 'Papacy' }); }
 	  if (his_self.game.players.length > 2) {
-	    if (faction != "england") { html += '<li class="option" id="england">England</li>'; }
-	    if (faction != "france") { html += '<li class="option" id="france">France</li>'; }
-	    if (faction != "hapsburg") { html += '<li class="option" id="hapsburg">Hapsburg</li>'; }
-	    if (faction != "ottoman") { html += '<li class="option" id="ottoman">Ottoman</li>'; }
+	    if (faction != "england") { html.push({ id: 'england', label: 'England' }); }
+	    if (faction != "france") { html.push({ id: 'france', label: 'France' }); }
+	    if (faction != "hapsburg") { html.push({ id: 'hapsburg', label: 'Hapsburg' }); }
+	    if (faction != "ottoman") { html.push({ id: 'ottoman', label: 'Ottoman' }); }
 	  }
-          html += '</ul>';
 
-    	  his_self.updateStatusWithOptions(msg, html);
-
-	  $('.option').off();
-	  $('.option').on('click', function () {
+    	      	  his_self.game.status = msg;
+    	  his_self.hud.updateStatus(his_self.game.status);
+    	  his_self.hud.updateCards([]);
+    	  his_self.hud.updateMenu(html, function (user_choice) {
 
 	    $('.option').off();
-	    let target_faction = $(this).attr("id");
+        let target_faction = user_choice;
 
   	    let msg = "Force Power to Discard or Skip Turn?";
-	    let html = '<ul>';
-	    html += '<li class="option" id="discard">discard random card</li>';
-	    html += '<li class="option" id="skip">skip next turn</li>';
-	    html += '<ul>';
+	    let html = [];
+	    html.push({ id: 'discard', label: 'discard random card' });
+	    html.push({ id: 'skip', label: 'skip next turn' });
 
-    	    his_self.updateStatusWithOptions(msg, html);
-
-	    $('.option').off();
-	    $('.option').on('click', function () {
+    	        	    his_self.game.status = msg;
+    	    his_self.hud.updateStatus(his_self.game.status);
+    	    his_self.hud.updateCards([]);
+    	    his_self.hud.updateMenu(html, function (user_choice) {
 
 	      $('.option').off();
-	      let action = $(this).attr("id");
+        let action = user_choice;
 
-	      his_self.updateStatus("submitted");
+	      	      his_self.game.status = "submitted";
+	      his_self.hud.updateStatus(his_self.game.status);
+	      his_self.hud.updateMenu([]);
+	      his_self.hud.updateCards([]);
 
 	      if (action === "discard") {
                 his_self.addMove("discard_random\t"+target_faction);
@@ -6459,30 +6649,29 @@ console.log("POST_GOUT_QUEUE: " + JSON.stringify(his_self.game.queue));
 	  let powers = his_self.returnImpulseOrder();
 	  let msg = "Declare War on which Power?";
 
-          let html = '<ul>';
+          let html = [];
 	  for (let i = 0; i < powers.length; i++) {
 	    if (powers[i] !== faction) {
 	      if (!(powers[i] == "protestant" && his_self.game.state.events.schmalkaldic_league != 1)) {
 		if (!his_self.areEnemies(powers[i], faction) && !his_self.areAllies(powers[i], faction)) {
 		  if (powers[i] === "ottoman" && faction === "france" && his_self.game.players.length == 3) {} else {
-                    html += `<li class="option" id="${powers[i]}">${powers[i]}</li>`;
+                    html.push({ id: `${powers[i]}`, label: `${powers[i]}` });
 		  }
 	        }
 	      }
 	    }
 	  }
 	  if (html === "") {
-            html += `<li class="option" id="skip">skip declaration</li>`;
+            html.push({ id: `skip`, label: `skip declaration` });
 	  }
-          html += '</ul>';
 
-    	  his_self.updateStatusWithOptions(msg, html);
-
-	  $('.option').off();
-	  $('.option').on('click', function () {
+    	      	  his_self.game.status = msg;
+    	  his_self.hud.updateStatus(his_self.game.status);
+    	  his_self.hud.updateCards([]);
+    	  his_self.hud.updateMenu(html, function (user_choice) {
 
 	    $('.option').off();
-	    let action = $(this).attr("id");
+        let action = user_choice;
 
 	    if (action === "skip") { 
               his_self.addMove("ops\t"+faction+"\t"+"040"+"\t"+2);
@@ -6525,33 +6714,32 @@ console.log("POST_GOUT_QUEUE: " + JSON.stringify(his_self.game.queue));
 	if (his_self.game.player === player) {
 
 	  let msg = "Commit which Debaters?";
-          let html = '<ul>';
+          let html = [];
 	  if (his_self.isCommitted("luther-debater") != 1) {
 	    if (his_self.isCommitted("zwingli-debater") != 1) {
-              html += '<li class="option" id="lz">Luther and Zwingli</li>';
+              html.push({ id: 'lz', label: 'Luther and Zwingli' });
 	    }
 	    if (his_self.isCommitted("oekolampadius-debater") != 1) {
-              html += '<li class="option" id="lo">Luther and Oekolampadius</li>';
+              html.push({ id: 'lo', label: 'Luther and Oekolampadius' });
 	    }
 	  }
 	  if (his_self.isCommitted("melanchthon-debater") != 1) {
 	    if (his_self.isCommitted("zwingli-debater") != 1) {
-              html += '<li class="option" id="mz">Melanchthon and Zwingli</li>';
+              html.push({ id: 'mz', label: 'Melanchthon and Zwingli' });
 	    }
 	    if (his_self.isCommitted("oekolampadius-debater") != 1) {
-              html += '<li class="option" id="mo">Melanchthon and Oekolampadius</li>';
+              html.push({ id: 'mo', label: 'Melanchthon and Oekolampadius' });
 	    }
 	  }
-          html += '<li class="option" id="skip">skip colloquy</li>';
-          html += '</ul>';
+          html.push({ id: 'skip', label: 'skip colloquy' });
 
-    	  his_self.updateStatusWithOptions(msg, html);
-
-	  $('.option').off();
-	  $('.option').on('click', function () {
+    	      	  his_self.game.status = msg;
+    	  his_self.hud.updateStatus(his_self.game.status);
+    	  his_self.hud.updateCards([]);
+    	  his_self.hud.updateMenu(html, function (user_choice) {
 
 	    $('.option').off();
-	    let action = $(this).attr("id");
+        let action = user_choice;
 	    let refs = 0;
 
 	    if (action === "skip") {
@@ -6560,7 +6748,10 @@ console.log("POST_GOUT_QUEUE: " + JSON.stringify(his_self.game.queue));
 	      return;
 	    }
 
-	    his_self.updateStatus("convening colloquy...");
+	    	    his_self.game.status = "convening colloquy...";
+	    his_self.hud.updateStatus(his_self.game.status);
+	    his_self.hud.updateMenu([]);
+	    his_self.hud.updateCards([]);
 
             his_self.game.queue.push("SETVAR\tstate\tskip_counter_or_acknowledge\t0");
 
@@ -6620,19 +6811,21 @@ console.log("POST_GOUT_QUEUE: " + JSON.stringify(his_self.game.queue));
 	  if (his_self.game.player == his_self.returnPlayerCommandingFaction(faction)) {
 
 	    let msg = "Send Suleiman to Istanbul (2 CP)?";
-            let html = '<ul>';
-                html += '<li class="option" id="yes">yes</li>';
-                html += '<li class="option" id="no">no</li>';
-                html += '</ul>';
+            let html = [];
+                html.push({ id: 'yes', label: 'yes' });
+                html.push({ id: 'no', label: 'no' });
 
-    	    his_self.updateStatusWithOptions(msg, html);
+    	        	    his_self.game.status = msg;
+    	    his_self.hud.updateStatus(his_self.game.status);
+    	    his_self.hud.updateCards([]);
+    	    his_self.hud.updateMenu(html, function (user_choice) {
 
-	    $('.option').off();
-	    $('.option').on('click', function () {
-
-	      his_self.updateStatus("acknowledge");
+	      	      his_self.game.status = "acknowledge";
+	      his_self.hud.updateStatus(his_self.game.status);
+	      his_self.hud.updateMenu([]);
+	      his_self.hud.updateCards([]);
 	      $('.option').off();
-	      let action = $(this).attr("id");
+	      let action = user_choice;
 
 	      let sk = his_self.returnSpaceOfPersonage("ottoman", "suleiman");
 	      let sk_idx = his_self.returnIndexOfPersonageInSpace("ottoman", "suleiman", sk);
@@ -6695,10 +6888,10 @@ console.log("POST_GOUT_QUEUE: " + JSON.stringify(his_self.game.queue));
 
               let catholic_land_units = his_self.returnCatholicLandUnitsInSpace(spacekey);
               let msg = "Remove which Unit?";
-              let html = '<ul>';
+              let html = [];
               for (let i = 0; i < catholic_land_units.length; i++) {
                 let u = his_self.game.spaces[spacekey].units[catholic_land_units[i].faction][catholic_land_units[i].unit_idx];
-                html += `<li class="option" id="${catholic_land_units[i].faction}_${catholic_land_units[i].unit_idx}">${catholic_land_units[i].faction} - ${u.type}</li>`;
+                html.push({ id: `${catholic_land_units[i].faction}_${catholic_land_units[i].unit_idx}`, label: `${catholic_land_units[i].faction} - ${u.type}` });
               }
 
 	      if (catholic_land_units.length == 1) {
@@ -6708,12 +6901,12 @@ console.log("POST_GOUT_QUEUE: " + JSON.stringify(his_self.game.queue));
 		return 0;
 	      }
 
-              his_self.updateStatusWithOptions(msg, html);
-
-	      $('.option').off();
-	      $('.option').on('click', function () {
+                            his_self.game.status = msg;
+              his_self.hud.updateStatus(his_self.game.status);
+              his_self.hud.updateCards([]);
+              his_self.hud.updateMenu(html, function (user_choice) {
 	        $('.option').off();
-	        let x = $(this).attr("id").split("_");
+	        let x = user_choice.split("_");
 		his_self.addMove("destroy_unit_by_index\t"+x[0]+"\t"+spacekey+"\t"+"\t"+x[1]);
 		his_self.endTurn();            
 	      });
@@ -6855,19 +7048,21 @@ console.log("POST_GOUT_QUEUE: " + JSON.stringify(his_self.game.queue));
 	  if (his_self.game.player == p) {
 
 	    let msg = "Which would you prefer?";
-    	    let html = '<ul>';
-                html += '<li class="option" id="draw">draw 1 card</li>';
-                html += '<li class="option" id="discard">protestants discard</li>';
-    		html += '</ul>';
+    	    let html = [];
+                html.push({ id: 'draw', label: 'draw 1 card' });
+                html.push({ id: 'discard', label: 'protestants discard' });
 
-    	    his_self.updateStatusWithOptions(msg, html);
+    	        	    his_self.game.status = msg;
+    	    his_self.hud.updateStatus(his_self.game.status);
+    	    his_self.hud.updateCards([]);
+    	    his_self.hud.updateMenu(html, function (user_choice) {
 
-	    $('.option').off();
-	    $('.option').on('click', function () {
+	      	      his_self.game.status = "selected...";
+	      his_self.hud.updateStatus(his_self.game.status);
+	      his_self.hud.updateMenu([]);
+	      his_self.hud.updateCards([]);
 
-	      his_self.updateStatus("selected...");
-
-	      let action = $(this).attr("id");
+	      let action = user_choice;
    	      $('.option').off();
 	      if (action === "draw") {
 	        let cardnum = 1;
@@ -6909,24 +7104,26 @@ console.log("POST_GOUT_QUEUE: " + JSON.stringify(his_self.game.queue));
 	if (his_self.game.player == p) {
 
 	    let msg = "Which Faction gets Galleons?";
-    	    let html = '<ul>';
+    	    let html = [];
 	    if (his_self.game.state.galleons['france'] == 0) {
-                html += '<li class="option" id="france">France</li>';
+                html.push({ id: 'france', label: 'France' });
  	    }  
 	    if (his_self.game.state.galleons['england'] == 0) {
-                html += '<li class="option" id="england">England</li>';
+                html.push({ id: 'england', label: 'England' });
  	    }  
 	    if (his_self.game.state.galleons['hapsburg'] == 0) {
-                html += '<li class="option" id="hapsburg">Hapsburgs</li>';
+                html.push({ id: 'hapsburg', label: 'Hapsburgs' });
  	    }  
- 		html += '</ul>';
 
-    	    his_self.updateStatusWithOptions(msg, html);
-
-	    $('.option').off();
-	    $('.option').on('click', function () {
-	      his_self.updateStatus("acknowledge");
-	      let action = $(this).attr("id");
+    	        	    his_self.game.status = msg;
+    	    his_self.hud.updateStatus(his_self.game.status);
+    	    his_self.hud.updateCards([]);
+    	    his_self.hud.updateMenu(html, function (user_choice) {
+	      	      his_self.game.status = "acknowledge";
+	      his_self.hud.updateStatus(his_self.game.status);
+	      his_self.hud.updateMenu([]);
+	      his_self.hud.updateCards([]);
+	      let action = user_choice;
 	      his_self.addMove("display_new_world");
 	      his_self.addMove("SETVAR\tstate\tgalleons\t"+action+"\t1");
 	      his_self.endTurn();
@@ -6974,26 +7171,28 @@ console.log("POST_GOUT_QUEUE: " + JSON.stringify(his_self.game.queue));
 	  }
 
  	  let msg = "Choose Faction for Huguenot Raiders?";
-          let html = '<ul>';
+          let html = [];
 	  if (valid_for_protestant) {
-	    html += '<li class="option" id="protestant">Protestant</li>';
+	    html.push({ id: 'protestant', label: 'Protestant' });
 	  }
 	  if (valid_for_england) {
-	    html += '<li class="option" id="england">England</li>';
+	    html.push({ id: 'england', label: 'England' });
 	  }
 	  if (valid_for_france) {
-	    html += '<li class="option" id="france">France</li>';
+	    html.push({ id: 'france', label: 'France' });
 	  }
-    	  html += '</ul>';
 
-          his_self.updateStatusWithOptions(msg, html);
-
-	  $('.option').off();
-	  $('.option').on('click', function () {
+                    his_self.game.status = msg;
+          his_self.hud.updateStatus(his_self.game.status);
+          his_self.hud.updateCards([]);
+          his_self.hud.updateMenu(html, function (user_choice) {
 
 	    $('.option').off();
-	    let action = $(this).attr("id");
-	    his_self.updateStatus("acknowledge");
+        let action = user_choice;
+	    	    his_self.game.status = "acknowledge";
+	    his_self.hud.updateStatus(his_self.game.status);
+	    his_self.hud.updateMenu([]);
+	    his_self.hud.updateCards([]);
 
 	    his_self.addMove("display_new_world");
             his_self.addMove("SETVAR\tstate\traiders\t"+action+"\t1");
@@ -7002,7 +7201,10 @@ console.log("POST_GOUT_QUEUE: " + JSON.stringify(his_self.game.queue));
 
 	  });
 	} else {
-	  his_self.updateStatus(his_self.returnFactionName(faction) + " selecting Raiders");
+	  	  his_self.game.status = his_self.returnFactionName(faction) + " selecting Raiders";
+	  his_self.hud.updateStatus(his_self.game.status);
+	  his_self.hud.updateMenu([]);
+	  his_self.hud.updateCards([]);
 	}
 
 	return 0;
@@ -7022,26 +7224,28 @@ console.log("POST_GOUT_QUEUE: " + JSON.stringify(his_self.game.queue));
 	if (his_self.game.player === p) {
 
  	  let msg = "Launch Voyage of Discovery for Whom?";
-          let html = '<ul>';
+          let html = [];
           if (his_self.game.state.may_explore['england'] == 1) { 
-	    html += '<li class="option" id="england">England</li>';
+	    html.push({ id: 'england', label: 'England' });
           }
           if (his_self.game.state.may_explore['france'] == 1) { 
-	    html += '<li class="option" id="france">France</li>';
+	    html.push({ id: 'france', label: 'France' });
           }
           if (his_self.game.state.may_explore['hapsburg'] == 1) { 
-            html += '<li class="option" id="hapsburg">Hapsburg</li>';
+            html.push({ id: 'hapsburg', label: 'Hapsburg' });
           }
-    	  html += '</ul>';
 
-          his_self.updateStatusWithOptions(msg, html);
-
-	  $('.option').off();
-	  $('.option').on('click', function () {
+                    his_self.game.status = msg;
+          his_self.hud.updateStatus(his_self.game.status);
+          his_self.hud.updateCards([]);
+          his_self.hud.updateMenu(html, function (user_choice) {
 
 	    $('.option').off();
-	    let action = $(this).attr("id");
-	    his_self.updateStatus("acknowledge");
+        let action = user_choice;
+	    	    his_self.game.status = "acknowledge";
+	    his_self.hud.updateStatus(his_self.game.status);
+	    his_self.hud.updateMenu([]);
+	    his_self.hud.updateCards([]);
 
             his_self.addMove("explore\t"+action);
 	    his_self.addMove("display_new_world");
@@ -7051,7 +7255,10 @@ console.log("POST_GOUT_QUEUE: " + JSON.stringify(his_self.game.queue));
 
 	  });
 	} else {
-	  his_self.updateStatus(his_self.returnFactionName(faction) + " playing Mercator's Map");
+	  	  his_self.game.status = his_self.returnFactionName(faction) + " playing Mercator's Map";
+	  his_self.hud.updateStatus(his_self.game.status);
+	  his_self.hud.updateMenu([]);
+	  his_self.hud.updateCards([]);
 	}
 
 	return 0;
@@ -7115,26 +7322,28 @@ console.log("POST_GOUT_QUEUE: " + JSON.stringify(his_self.game.queue));
 	if (his_self.game.player === p) {
 
  	  let msg = "Choose Faction for Plantations?";
-          let html = '<ul>';
+          let html = [];
 	  if (his_self.game.state.plantations['england'] == 0) {
-	    html += '<li class="option" id="england">England</li>';
+	    html.push({ id: 'england', label: 'England' });
 	  }
 	  if (his_self.game.state.plantations['france'] == 0) {
-	    html += '<li class="option" id="france">France</li>';
+	    html.push({ id: 'france', label: 'France' });
 	  }
 	  if (his_self.game.state.plantations['hapsburg'] == 0) {
-	    html += '<li class="option" id="hapsburg">Hapsburg</li>';
+	    html.push({ id: 'hapsburg', label: 'Hapsburg' });
 	  }
-    	  html += '</ul>';
 
-          his_self.updateStatusWithOptions(msg, html);
-
-	  $('.option').off();
-	  $('.option').on('click', function () {
+                    his_self.game.status = msg;
+          his_self.hud.updateStatus(his_self.game.status);
+          his_self.hud.updateCards([]);
+          his_self.hud.updateMenu(html, function (user_choice) {
 
 	    $('.option').off();
-	    let action = $(this).attr("id");
-	    his_self.updateStatus("acknowledge");
+        let action = user_choice;
+	    	    his_self.game.status = "acknowledge";
+	    his_self.hud.updateStatus(his_self.game.status);
+	    his_self.hud.updateMenu([]);
+	    his_self.hud.updateCards([]);
 
 	    his_self.addMove("display_new_world");
             his_self.addMove("SETVAR\tstate\tplantations\t"+action+"\t1");
@@ -7142,7 +7351,10 @@ console.log("POST_GOUT_QUEUE: " + JSON.stringify(his_self.game.queue));
 
 	  });
 	} else {
-	  his_self.updateStatus(his_self.returnFactionName(faction) + " building Plantations");
+	  	  his_self.game.status = his_self.returnFactionName(faction) + " building Plantations";
+	  his_self.hud.updateStatus(his_self.game.status);
+	  his_self.hud.updateMenu([]);
+	  his_self.hud.updateCards([]);
 	}
 
 	return 0;
@@ -7162,20 +7374,22 @@ console.log("POST_GOUT_QUEUE: " + JSON.stringify(his_self.game.queue));
 	if (his_self.game.player === p) {
 
  	  let msg = "Who Discovers the Potosi Silver Mines?";
-          let html = '<ul>';
-          html += '<li class="option" id="england">England</li>';
-          html += '<li class="option" id="france">France</li>';
-          html += '<li class="option" id="hapsburg">Hapsburg</li>';
-    	  html += '</ul>';
+          let html = [];
+          html.push({ id: 'england', label: 'England' });
+          html.push({ id: 'france', label: 'France' });
+          html.push({ id: 'hapsburg', label: 'Hapsburg' });
 
-          his_self.updateStatusWithOptions(msg, html);
-
-	  $('.option').off();
-	  $('.option').on('click', function () {
+                    his_self.game.status = msg;
+          his_self.hud.updateStatus(his_self.game.status);
+          his_self.hud.updateCards([]);
+          his_self.hud.updateMenu(html, function (user_choice) {
 
 	    $('.option').off();
-	    let action = $(this).attr("id");
-	    his_self.updateStatus("acknowledge");
+        let action = user_choice;
+	    	    his_self.game.status = "acknowledge";
+	    his_self.hud.updateStatus(his_self.game.status);
+	    his_self.hud.updateMenu([]);
+	    his_self.hud.updateCards([]);
 
 	    his_self.addMove("display_new_world");
 	    his_self.addMove("SETVAR\tstate\tevents\tpotosi_silver_mines\t"+action);
@@ -7184,7 +7398,10 @@ console.log("POST_GOUT_QUEUE: " + JSON.stringify(his_self.game.queue));
 
 	  });
 	} else {
-	  his_self.updateStatus(his_self.returnFactionName(faction) + " placing Potosi Silver Mines");
+	  	  his_self.game.status = his_self.returnFactionName(faction) + " placing Potosi Silver Mines";
+	  his_self.hud.updateStatus(his_self.game.status);
+	  his_self.hud.updateMenu([]);
+	  his_self.hud.updateCards([]);
 	}
 
 	return 0;
@@ -7228,7 +7445,10 @@ console.log("POST_GOUT_QUEUE: " + JSON.stringify(his_self.game.queue));
 	          "Select Catholic Space for 2nd Jesuit University",
 	          function(space) { if (space.key != first_spacekey && space.religion === "catholic" && space.university != 1) { return 1; } return 0; },
 	          function(spacekey) {
-		    his_self.updateStatus("building universities...");
+		    		    his_self.game.status = "building universities...";
+		    his_self.hud.updateStatus(his_self.game.status);
+		    his_self.hud.updateMenu([]);
+		    his_self.hud.updateCards([]);
 	            his_self.game.spaces[spacekey].university = 1;
 	            his_self.displaySpace(spacekey);
 		    his_self.addMove("found_jesuit_university\t"+spacekey);
@@ -7244,7 +7464,10 @@ console.log("POST_GOUT_QUEUE: " + JSON.stringify(his_self.game.queue));
 	    );
 
 	  } else {
-	    his_self.updateStatus("Papacy building Jesuit Universities");
+	    	    his_self.game.status = "Papacy building Jesuit Universities";
+	    his_self.hud.updateStatus(his_self.game.status);
+	    his_self.hud.updateMenu([]);
+	    his_self.hud.updateCards([]);
 	  }
 
 	  return 0;
@@ -7316,7 +7539,10 @@ console.log("POST_GOUT_QUEUE: " + JSON.stringify(his_self.game.queue));
 	    );
 
 	  } else {
-	    his_self.updateStatus("Papal Inquisition - Religion Conversion");
+	    	    his_self.game.status = "Papal Inquisition - Religion Conversion";
+	    his_self.hud.updateStatus(his_self.game.status);
+	    his_self.hud.updateMenu([]);
+	    his_self.hud.updateCards([]);
 	  }
 
 	  return 0;
@@ -7331,19 +7557,21 @@ console.log("POST_GOUT_QUEUE: " + JSON.stringify(his_self.game.queue));
 	  if (his_self.game.player == player) {
 
  	    let msg = "Choose Player to Reveal Cards:";
-            let html = '<ul>';
-            html += '<li class="option" id="protestant">Protestant</li>';
-            if (his_self.game.players.length > 2) { html += '<li class="option" id="england">England</li>'; }
-    	    html += '</ul>';
+            let html = [];
+            html.push({ id: 'protestant', label: 'Protestant' });
+            if (his_self.game.players.length > 2) { html.push({ id: 'england', label: 'England' }); }
 
-            his_self.updateStatusWithOptions(msg, html);
-
-	    $('.option').off();
-	    $('.option').on('click', function () {
+                        his_self.game.status = msg;
+            his_self.hud.updateStatus(his_self.game.status);
+            his_self.hud.updateCards([]);
+            his_self.hud.updateMenu(html, function (user_choice) {
 
 	      $('.option').off();
-	      his_self.updateStatus("selecting...");
-	      let action = $(this).attr("id");
+	      	      his_self.game.status = "selecting...";
+	      his_self.hud.updateStatus(his_self.game.status);
+	      his_self.hud.updateMenu([]);
+	      his_self.hud.updateCards([]);
+	      let action = user_choice;
 
               his_self.addMove("papal_inquisition_card_draw\t"+action);
               his_self.addMove("request_reveal_hand\tpapacy\t"+action);
@@ -7351,7 +7579,10 @@ console.log("POST_GOUT_QUEUE: " + JSON.stringify(his_self.game.queue));
 
 	    });
 	  } else {
-	    his_self.updateStatus("Papal Inquisition - Selecting Target");
+	    	    his_self.game.status = "Papal Inquisition - Selecting Target";
+	    his_self.hud.updateStatus(his_self.game.status);
+	    his_self.hud.updateMenu([]);
+	    his_self.hud.updateCards([]);
 	  }
 
 	  return 0;
@@ -7368,38 +7599,49 @@ console.log("POST_GOUT_QUEUE: " + JSON.stringify(his_self.game.queue));
 	  if (his_self.game.player === player) {
 
  	    let msg = "Choose Action:";
-            let html = '<ul>';
-            html += `<li class="option" id="draw">draw ${target} card</li>`;
-            html += '<li class="option" id="recover">recover from discard pile</li>';
-            html += '<li class="option" id="debate">initiate debate +2 dice</li>';
-    	    html += '</ul>';
+            let html = [];
+            html.push({ id: `draw`, label: `draw ${target} card` });
+            html.push({ id: 'recover', label: 'recover from discard pile' });
+            html.push({ id: 'debate', label: 'initiate debate +2 dice' });
 
-            his_self.updateStatusWithOptions(msg, html);
-
-	    $('.option').off();
-	    $('.option').on('click', function () {
+                        his_self.game.status = msg;
+            his_self.hud.updateStatus(his_self.game.status);
+            his_self.hud.updateCards([]);
+            his_self.hud.updateMenu(html, function (user_choice) {
 
 	      $('.option').off();
-	      let action = $(this).attr("id");
+        let action = user_choice;
 
 	      if (action === "draw") {
-		his_self.updateStatus("drawing card...");
+				his_self.game.status = "drawing card...";
+		his_self.hud.updateStatus(his_self.game.status);
+		his_self.hud.updateMenu([]);
+		his_self.hud.updateCards([]);
                 his_self.addMove("pull_card\tpapacy\t"+target);
                 his_self.endTurn();
 	      }
 	      if (action === "recover") {
-		his_self.updateStatus("recovering discard...");
+				his_self.game.status = "recovering discard...";
+		his_self.hud.updateStatus(his_self.game.status);
+		his_self.hud.updateMenu([]);
+		his_self.hud.updateCards([]);
                 his_self.addMove("papal_inquisition_recover_discard");
                 his_self.endTurn();
 	      }
 	      if (action === "debate") {
-		his_self.updateStatus("commencing debate...");
+				his_self.game.status = "commencing debate...";
+		his_self.hud.updateStatus(his_self.game.status);
+		his_self.hud.updateMenu([]);
+		his_self.hud.updateCards([]);
                 his_self.addMove("papal_inquisition_debate");
                 his_self.endTurn();
 	      }
 	    });
 	  } else {
-	    his_self.updateStatus("Papal Inquisition - Follow-Up Action");
+	    	    his_self.game.status = "Papal Inquisition - Follow-Up Action";
+	    his_self.hud.updateStatus(his_self.game.status);
+	    his_self.hud.updateMenu([]);
+	    his_self.hud.updateCards([]);
 	  }
 
 	  return 0;
@@ -7415,25 +7657,30 @@ console.log("POST_GOUT_QUEUE: " + JSON.stringify(his_self.game.queue));
 	  if (his_self.game.player == player) {
 
             let msg = "Retrieve Card from Discard Pile: ";
-            let html = '<ul>';
+            let html = [];
             for (let key in his_self.game.deck[0].discards) {
-              html += `<li class="option" id="${key}">${his_self.game.deck[0].cards[key].name}</li>`;
+              html.push({ id: `${key}`, label: `${his_self.game.deck[0].cards[key].name}` });
             }
-            html += '</ul>';
 
-            his_self.updateStatusWithOptions(msg, html);
-
-            $('.option').off();
-            $('.option').on('click', function () {
+                        his_self.game.status = msg;
+            his_self.hud.updateStatus(his_self.game.status);
+            his_self.hud.updateCards([]);
+            his_self.hud.updateMenu(html, function (user_choice) {
               $('.option').off();
-              let card = $(this).attr("id");
-	      his_self.updateStatus("recovering...");
+        let card = user_choice;
+	      	      his_self.game.status = "recovering...";
+	      his_self.hud.updateStatus(his_self.game.status);
+	      his_self.hud.updateMenu([]);
+	      his_self.hud.updateCards([]);
               his_self.addMove("papal_inquisition_recover_card\t"+card);
               his_self.endTurn();
             });
 
 	  } else {
-	    his_self.updateStatus("Papal Inquisition - Recovering Card");
+	    	    his_self.game.status = "Papal Inquisition - Recovering Card";
+	    his_self.hud.updateStatus(his_self.game.status);
+	    his_self.hud.updateMenu([]);
+	    his_self.hud.updateCards([]);
 	  }
 
 	  return 0;
@@ -7483,7 +7730,10 @@ console.log("POST_GOUT_QUEUE: " + JSON.stringify(his_self.game.queue));
 	  if (his_self.game.player == player) {
 	    his_self.playerCallTheologicalDebate(his_self, player, "papacy");
 	  } else {
-	    his_self.updateStatus("Papacy calling Theological Debate");
+	    	    his_self.game.status = "Papacy calling Theological Debate";
+	    his_self.hud.updateStatus(his_self.game.status);
+	    his_self.hud.updateMenu([]);
+	    his_self.hud.updateCards([]);
 	  }
  
 	  return 0;
@@ -7530,8 +7780,8 @@ console.log("POST_GOUT_QUEUE: " + JSON.stringify(his_self.game.queue));
 	  if (his_self.game.player === player) {
 
  	    let msg = "Choose Action: ";
-            let html = '<ul>';
-            html += '<li class="option" id="discard">discard card</li>';
+            let html = [];
+            html.push({ id: 'discard', label: 'discard card' });
 
 	    let adequate_cards_to_discard = false;
             let fhand_idx = his_self.returnFactionHandIdx(his_self.game.player, "protestant");
@@ -7539,16 +7789,15 @@ console.log("POST_GOUT_QUEUE: " + JSON.stringify(his_self.game.queue));
 	      if (parseInt(his_self.game.deck[0].fhand[fhand_idx][i]) > 7) { adequate_cards_to_discard = true; } 
 	    };
 
-            if (ph && adequate_cards_to_discard == true) { html += '<li class="option" id="hesse">remove Philip of Hesse</li>'; }
-    	    html += '</ul>';
+            if (ph && adequate_cards_to_discard == true) { html.push({ id: 'hesse', label: 'remove Philip of Hesse' }); }
 
-            his_self.updateStatusWithOptions(msg, html);
-
-	    $('.option').off();
-	    $('.option').on('click', function () {
+                        his_self.game.status = msg;
+            his_self.hud.updateStatus(his_self.game.status);
+            his_self.hud.updateCards([]);
+            his_self.hud.updateMenu(html, function (user_choice) {
 
 	      $('.option').off();
-	      let action = $(this).attr("id");
+        let action = user_choice;
 
 	      if (action === "hesse") {
 		his_self.addMove("remove_philip_of_hesse");
@@ -7562,7 +7811,10 @@ console.log("POST_GOUT_QUEUE: " + JSON.stringify(his_self.game.queue));
 
 	    });
 	  } else {
-	    his_self.updateStatus("Protestants - Philip of Hesse's Bigamy");
+	    	    his_self.game.status = "Protestants - Philip of Hesse's Bigamy";
+	    his_self.hud.updateStatus(his_self.game.status);
+	    his_self.hud.updateMenu([]);
+	    his_self.hud.updateCards([]);
 	  }
 
 	  return 0;
@@ -7657,12 +7909,18 @@ console.log("POST_GOUT_QUEUE: " + JSON.stringify(his_self.game.queue));
 	      true 
 	    );
 	  } else {
-	    his_self.updateStatus("No acceptable Protestant targets for Spanish Inquisition");
+	    	    his_self.game.status = "No acceptable Protestant targets for Spanish Inquisition";
+	    his_self.hud.updateStatus(his_self.game.status);
+	    his_self.hud.updateMenu([]);
+	    his_self.hud.updateCards([]);
 	    his_self.addMove("spanish_inquisition_secondary\t"+faction);
 	    his_self.endTurn();
 	  }
         } else {
-          his_self.updateStatus("Papacy playing "+his_self.popup("067"));
+                    his_self.game.status = "Papacy playing "+his_self.popup("067");
+          his_self.hud.updateStatus(his_self.game.status);
+          his_self.hud.updateMenu([]);
+          his_self.hud.updateCards([]);
         }
         return 0;
       },
@@ -7774,7 +8032,10 @@ console.log("POST_GOUT_QUEUE: " + JSON.stringify(his_self.game.queue));
 	      }
 	    );
 	  } else {
-	    his_self.updateStatus(his_self.returnFactionName(faction) + " giving card to Papacy");
+	    	    his_self.game.status = his_self.returnFactionName(faction) + " giving card to Papacy";
+	    his_self.hud.updateStatus(his_self.game.status);
+	    his_self.hud.updateMenu([]);
+	    his_self.hud.updateCards([]);
 	  }
 
           return 0;
@@ -7798,7 +8059,10 @@ console.log("POST_GOUT_QUEUE: " + JSON.stringify(his_self.game.queue));
 	  his_self.game.queue.push("select_from_saved_and_discard\thapsburg");
 	  his_self.game.queue.push("show_hand_and_save\thapsburg\tengland");
 	  his_self.game.queue.push("show_hand_and_save\thapsburg\tprotestant");
-          his_self.updateStatus("Spanish Inquisition in process...");
+                    his_self.game.status = "Spanish Inquisition in process...";
+          his_self.hud.updateStatus(his_self.game.status);
+          his_self.hud.updateMenu([]);
+          his_self.hud.updateCards([]);
 	  his_self.game.state.pulled_cards = [];
 
 	  return 1;
@@ -7861,20 +8125,22 @@ console.log("POST_GOUT_QUEUE: " + JSON.stringify(his_self.game.queue));
 	        function(card) {
 
                   let msg = "Give " + his_self.popup(card) + " to Which Faction?";
-                  let html = '<ul>';
-                  html += `<li class="option" id="papacy">Papacy</li>`;
-                  html += `<li class="option" id="protestant">Protestant</li>`;
-   	          html += '</ul>';
+                  let html = [];
+                  html.push({ id: `papacy`, label: `Papacy` });
+                  html.push({ id: `protestant`, label: `Protestant` });
 
-       	          his_self.updateStatusWithOptions(msg, html);
+       	                 	          his_self.game.status = msg;
+       	          his_self.hud.updateStatus(his_self.game.status);
+       	          his_self.hud.updateCards([]);
+       	          his_self.hud.updateMenu(html, function (user_choice) {
 
-	           $('.option').off();
-	           $('.option').on('click', function () {
-
-	             let target = $(this).attr("id");
+        let target = user_choice;
 	             $('.option').off();
 
-                     his_self.updateStatus("giving card...");
+                                          his_self.game.status = "giving card...";
+                     his_self.hud.updateStatus(his_self.game.status);
+                     his_self.hud.updateMenu([]);
+                     his_self.hud.updateCards([]);
                      his_self.addMove("give_card\t"+target+"\t"+faction+"\t"+card);
 	             his_self.endTurn();
 
@@ -7884,7 +8150,10 @@ console.log("POST_GOUT_QUEUE: " + JSON.stringify(his_self.game.queue));
 	     );
 
 	  } else {
-	    his_self.updateStatus(his_self.returnFactionName(faction) + " playing " + his_self.popup("059"));
+	    	    his_self.game.status = his_self.returnFactionName(faction) + " playing " + his_self.popup("059");
+	    his_self.hud.updateStatus(his_self.game.status);
+	    his_self.hud.updateMenu([]);
+	    his_self.hud.updateCards([]);
 	  }
 
 	  return 0;
@@ -7936,7 +8205,10 @@ console.log("POST_GOUT_QUEUE: " + JSON.stringify(his_self.game.queue));
 	  );
 
 	} else {
-	  his_self.updateStatus(his_self.returnFactionName(faction) + " playing " + his_self.popup("060"));
+	  	  his_self.game.status = his_self.returnFactionName(faction) + " playing " + his_self.popup("060");
+	  his_self.hud.updateStatus(his_self.game.status);
+	  his_self.hud.updateMenu([]);
+	  his_self.hud.updateCards([]);
 	}
 
 	return 0;
@@ -8179,7 +8451,10 @@ console.log("POST_GOUT_QUEUE: " + JSON.stringify(his_self.game.queue));
 	   }, null, true);
 
 	} else {
-	  his_self.updateStatus(his_self.returnFactionName(faction) + " playing " + his_self.popup("064"));
+	  	  his_self.game.status = his_self.returnFactionName(faction) + " playing " + his_self.popup("064");
+	  his_self.hud.updateStatus(his_self.game.status);
+	  his_self.hud.updateMenu([]);
+	  his_self.hud.updateCards([]);
 	}
 
 	   return 0;
@@ -8355,23 +8630,25 @@ console.log("POST_GOUT_QUEUE: " + JSON.stringify(his_self.game.queue));
 	}
 
         let msg = "Steal Random Card from Which Faction?";
-        let html = '<ul>';
+        let html = [];
 	let options_provided = [];
         for (let i = 0; i < valid_target_factions.length; i++) {
 	   if (!options_provided.includes(valid_target_factions[i])) {
 	     options_provided.push(valid_target_factions[i]);
-             html += `<li class="option" id="${valid_target_factions[i]}">${valid_target_factions[i]}</li>`;
+             html.push({ id: `${valid_target_factions[i]}`, label: `${valid_target_factions[i]}` });
 	  }
 	}
-	html += '</ul>';
 
-    	his_self.updateStatusWithOptions(msg, html);
+    	    	his_self.game.status = msg;
+    	his_self.hud.updateStatus(his_self.game.status);
+    	his_self.hud.updateCards([]);
+    	his_self.hud.updateMenu(html, function (user_choice) {
 
-	$('.option').off();
-	$('.option').on('click', function () {
-
-	  his_self.updateStatus("submitting...");
-	  let action = $(this).attr("id");
+	  	  his_self.game.status = "submitting...";
+	  his_self.hud.updateStatus(his_self.game.status);
+	  his_self.hud.updateMenu([]);
+	  his_self.hud.updateCards([]);
+	  let action = user_choice;
 	  his_self.addMove("pull_card\tottoman\t"+action);
           his_self.endTurn();
 
@@ -8445,7 +8722,10 @@ console.log("POST_GOUT_QUEUE: " + JSON.stringify(his_self.game.queue));
 		    },
 
 	            function(second_choice) {
-		      his_self.updateStatus("submitting...");
+		      		      his_self.game.status = "submitting...";
+		      his_self.hud.updateStatus(his_self.game.status);
+		      his_self.hud.updateMenu([]);
+		      his_self.hud.updateCards([]);
 		      his_self.addMove("convert\t"+second_choice+"\tcatholic");
 		      his_self.addMove("convert\t"+first_choice+"\tcatholic");
 		      his_self.endTurn();
@@ -8454,7 +8734,10 @@ console.log("POST_GOUT_QUEUE: " + JSON.stringify(his_self.game.queue));
 		    true 
 	          );
 	  	} else {
-	          his_self.updateStatus("No acceptable targets for Anabaptists");
+	          	          his_self.game.status = "No acceptable targets for Anabaptists";
+	          his_self.hud.updateStatus(his_self.game.status);
+	          his_self.hud.updateMenu([]);
+	          his_self.hud.updateCards([]);
 	          his_self.endTurn();
 	        }
 	      },
@@ -8462,11 +8745,17 @@ console.log("POST_GOUT_QUEUE: " + JSON.stringify(his_self.game.queue));
 	      true 
 	    );
 	  } else {
-	    his_self.updateStatus("No acceptable targets for Anabaptists");
+	    	    his_self.game.status = "No acceptable targets for Anabaptists";
+	    his_self.hud.updateStatus(his_self.game.status);
+	    his_self.hud.updateMenu([]);
+	    his_self.hud.updateCards([]);
 	    his_self.endTurn();
 	  }
         } else {
-          his_self.updateStatus("Papacy playing "+his_self.popup("067"));
+                    his_self.game.status = "Papacy playing "+his_self.popup("067");
+          his_self.hud.updateStatus(his_self.game.status);
+          his_self.hud.updateMenu([]);
+          his_self.hud.updateCards([]);
         }
         return 0;
       },
@@ -8620,7 +8909,10 @@ console.log("POST_GOUT_QUEUE: " + JSON.stringify(his_self.game.queue));
 
 	  );
 	} else {
-	  his_self.updateStatus(his_self.popup("070") + " entering play");
+	  	  his_self.game.status = his_self.popup("070") + " entering play";
+	  his_self.hud.updateStatus(his_self.game.status);
+	  his_self.hud.updateMenu([]);
+	  his_self.hud.updateCards([]);
 	}
 
 	return 0;
@@ -8709,7 +9001,10 @@ console.log("POST_GOUT_QUEUE: " + JSON.stringify(his_self.game.queue));
 	    },
 
 	    function(spacekey) {
-	      his_self.updateStatus("selected");
+	      	      his_self.game.status = "selected";
+	      his_self.hud.updateStatus(his_self.game.status);
+	      his_self.hud.updateMenu([]);
+	      his_self.hud.updateCards([]);
 	      let s = his_self.game.spaces[spacekey];
 	      let controlling_faction = "";
 	      if (s.political) { controlling_faction = s.political; }
@@ -8724,7 +9019,10 @@ console.log("POST_GOUT_QUEUE: " + JSON.stringify(his_self.game.queue));
 
 	  );
 	} else {
-	  his_self.updateStatus("Opponent playing " + his_self.popup("071"));
+	  	  his_self.game.status = "Opponent playing " + his_self.popup("071");
+	  his_self.hud.updateStatus(his_self.game.status);
+	  his_self.hud.updateMenu([]);
+	  his_self.hud.updateCards([]);
 	}
 
 	return 0;
@@ -8872,7 +9170,10 @@ console.log("POST_GOUT_QUEUE: " + JSON.stringify(his_self.game.queue));
 	  if (p == his_self.game.player) {
 
 	    if (faction === "protestant" && his_self.game.state.events.schmalkaldic_league != 1) {
-	      his_self.updateStatus("skipping: Protestants cannot place mercenaries yet...");
+	      	      his_self.game.status = "skipping: Protestants cannot place mercenaries yet...";
+	      his_self.hud.updateStatus(his_self.game.status);
+	      his_self.hud.updateMenu([]);
+	      his_self.hud.updateCards([]);
 	      his_self.addMove("NOTIFY\tProtestants cannot place mercenaries yet...");
 	      his_self.endTurn();
 	      return 0;
@@ -8892,7 +9193,10 @@ console.log("POST_GOUT_QUEUE: " + JSON.stringify(his_self.game.queue));
 	          return 0;
 	        },
 	        function(spacekey) {
-	          his_self.updateStatus("processing...");
+	          	          his_self.game.status = "processing...";
+	          his_self.hud.updateStatus(his_self.game.status);
+	          his_self.hud.updateMenu([]);
+	          his_self.hud.updateCards([]);
 	          let space = his_self.game.spaces[spacekey];
                   his_self.addMove("build\tland\t"+faction+"\t"+"cavalry"+"\t"+spacekey);
                   his_self.addMove("build\tland\t"+faction+"\t"+"cavalry"+"\t"+spacekey);
@@ -8916,7 +9220,10 @@ console.log("POST_GOUT_QUEUE: " + JSON.stringify(his_self.game.queue));
 	          return 0;
 	        },
 	        function(spacekey) {
-	          his_self.updateStatus("processing...");
+	          	          his_self.game.status = "processing...";
+	          his_self.hud.updateStatus(his_self.game.status);
+	          his_self.hud.updateMenu([]);
+	          his_self.hud.updateCards([]);
 	          let space = his_self.game.spaces[spacekey];
                   his_self.addMove("build\tland\t"+faction+"\t"+"mercenary"+"\t"+spacekey);
                   his_self.addMove("build\tland\t"+faction+"\t"+"mercenary"+"\t"+spacekey);
@@ -8972,7 +9279,10 @@ console.log("POST_GOUT_QUEUE: " + JSON.stringify(his_self.game.queue));
 	        return 0;
 	        },
 	        function(unrest_spacekey2) {
-	          his_self.updateStatus("processing...");
+	          	          his_self.game.status = "processing...";
+	          his_self.hud.updateStatus(his_self.game.status);
+	          his_self.hud.updateMenu([]);
+	          his_self.hud.updateCards([]);
                   his_self.addMove("unrest\t"+unrest_spacekey2);
 	          his_self.endTurn();
 	        }
@@ -9022,18 +9332,18 @@ console.log("POST_GOUT_QUEUE: " + JSON.stringify(his_self.game.queue));
 	  }
 	
 	  let msg = 'Activate or De-activate a Minor Power?';
-    	  let html = '<ul>';
+    	  let html = [];
 	  for (let i = 0; i < ca.length; i++) {
-            html += `<li class="option" id="${ca[i]}">activate ${ca[i]}</li>`;
+            html.push({ id: `${ca[i]}`, label: `activate ${ca[i]}` });
 	  }
 	  for (let i = 0; i < cd.length; i++) {
-            html += `<li class="option" id="${cd[i]}">deactivate ${cd[i]}</li>`;
+            html.push({ id: `${cd[i]}`, label: `deactivate ${cd[i]}` });
 	  }
-          his_self.updateStatusWithOptions(msg, html);
-
-          $('.option').off();
-	  $('.option').on('click', function () {
-	    let action = $(this).attr("id");
+                    his_self.game.status = msg;
+          his_self.hud.updateStatus(his_self.game.status);
+          his_self.hud.updateCards([]);
+          his_self.hud.updateMenu(html, function (user_choice) {
+        let action = user_choice;
 	    if (ca.includes(action)) {
 	      if (faction === "hapsburg" && action == "hungary") {
 		his_self.game.state.events.diplomatic_alliance_triggers_hapsburg_hungary_alliance = 1;
@@ -9182,21 +9492,23 @@ console.log("POST_GOUT_QUEUE: " + JSON.stringify(his_self.game.queue));
   	  if (his_self.game.state.activated_powers[faction].length > 0) {
 
 	    let msg = "Which Faction gets Recruits?";
-    	    let html = '<ul>';
+    	    let html = [];
 	    if (!(faction == "protestant" && his_self.game.state.events.schmalkaldic_league != 1)) {
-              html += `<li class="option" id="${faction}">${his_self.returnFactionName(faction)}</li>`;
+              html.push({ id: `${faction}`, label: `${his_self.returnFactionName(faction)}` });
 	    }
 	    for (let i = 0; i < his_self.game.state.activated_powers[faction].length; i++) {
 	      let f = his_self.game.state.activated_powers[faction][i];
-              html += `<li class="option" id="${f}">${his_self.returnFactionName(f)}</li>`;
+              html.push({ id: `${f}`, label: `${his_self.returnFactionName(f)}` });
  	    }  
- 	    html += '</ul>';
-    	    his_self.updateStatusWithOptions(msg, html);
-
-	    $('.option').off();
-	    $('.option').on('click', function () {
-	      his_self.updateStatus("acknowledge");
-	      let action = $(this).attr("id");
+    	        	    his_self.game.status = msg;
+    	    his_self.hud.updateStatus(his_self.game.status);
+    	    his_self.hud.updateCards([]);
+    	    his_self.hud.updateMenu(html, function (user_choice) {
+	      	      his_self.game.status = "acknowledge";
+	      his_self.hud.updateStatus(his_self.game.status);
+	      his_self.hud.updateMenu([]);
+	      his_self.hud.updateCards([]);
+	      let action = user_choice;
 	      his_self.game.state.events.foreign_recruits = action;
   	      his_self.playerPlayOps("", action, 4, "build");
 	    });
@@ -9211,7 +9523,10 @@ console.log("POST_GOUT_QUEUE: " + JSON.stringify(his_self.game.queue));
   	  his_self.playerPlayOps("", faction, 4, "build");
 
 	} else {
-	  his_self.updateStatus(his_self.returnFactionName(faction) + " playing " + his_self.popup("076"));
+	  	  his_self.game.status = his_self.returnFactionName(faction) + " playing " + his_self.popup("076");
+	  his_self.hud.updateStatus(his_self.game.status);
+	  his_self.hud.updateMenu([]);
+	  his_self.hud.updateCards([]);
 	}
 
 	return 0;
@@ -9249,7 +9564,7 @@ console.log("POST_GOUT_QUEUE: " + JSON.stringify(his_self.game.queue));
 	  let cabot_hapsburg_found = 0;
 
 	  let msg = "Cancel Which Expedition / Conquest?";
-          let html = '<ul>';
+          let html = [];
 	  let cabot_found = 0;
 
 	  for (let i = 0; i < his_self.game.state.explorations.length; i++) {
@@ -9263,36 +9578,38 @@ console.log("POST_GOUT_QUEUE: " + JSON.stringify(his_self.game.queue));
             }
 
 	    if (exp.round == his_self.game.state.round) {
-              html += `<li class="option" id="${his_self.game.state.explorations[i].faction}">${his_self.returnFactionName(his_self.game.state.explorations[i].faction)} (exploration)</li>`;
+              html.push({ id: `${his_self.game.state.explorations[i].faction}`, label: `${his_self.returnFactionName(his_self.game.state.explorations[i].faction)} (exploration)` });
 	    }
 	    if (cabot_found == 0 && his_self.game.state.events.cabot_england == 1 && cabot_england_found == 0) {
-              html += `<li class="option" id="cabot_england">sebastian cabot (england)</li>`;
+              html.push({ id: `cabot_england`, label: `sebastian cabot (england)` });
 	      cabot_found = 1;
 	    }
 	    if (cabot_found == 0 && his_self.game.state.events.cabot_france == 1 && cabot_france_found == 0) {
-              html += `<li class="option" id="cabot_france">sebastian cabot (france)</li>`;
+              html.push({ id: `cabot_france`, label: `sebastian cabot (france)` });
 	      cabot_found = 1;
 	    }
 	    if (cabot_found == 0 && his_self.game.state.events.cabot_hapsburg == 1 && cabot_hapsburg_found == 0) {
-              html += `<li class="option" id="cabot_hapsburg">sebastian cabot (haps)</li>`;
+              html.push({ id: `cabot_hapsburg`, label: `sebastian cabot (haps)` });
 	      cabot_found = 1;
 	    }
 	  }
 	  for (let i = 0; i < his_self.game.state.conquests.length; i++) {
 	    if (his_self.game.state.conquests[i].round == his_self.game.state.round) {
-              html += `<li class="option" id="conquest-${his_self.game.state.conquests[i].faction}">${his_self.returnFactionName(his_self.game.state.conquests[i].faction)} (conquest)</li>`;
+              html.push({ id: `conquest-${his_self.game.state.conquests[i].faction}`, label: `${his_self.returnFactionName(his_self.game.state.conquests[i].faction)} (conquest)` });
 	    }
 	  }
-          html += '</ul>';
 
- 	  his_self.updateStatusWithOptions(msg, html);
-
-          $('.option').off();
-	  $('.option').on('click', function () {
+ 	   	  his_self.game.status = msg;
+ 	  his_self.hud.updateStatus(his_self.game.status);
+ 	  his_self.hud.updateCards([]);
+ 	  his_self.hud.updateMenu(html, function (user_choice) {
 
             $('.option').off();
-	    let action = $(this).attr("id");
-	    his_self.updateStatus("submitting...");
+        let action = user_choice;
+	    	    his_self.game.status = "submitting...";
+	    his_self.hud.updateStatus(his_self.game.status);
+	    his_self.hud.updateMenu([]);
+	    his_self.hud.updateCards([]);
 
 	    his_self.addMove("display_new_world");
 	    if (action == "conquest-england" || action == "conquest-france" || action == "conquest-hapsburg") {
@@ -9407,7 +9724,10 @@ console.log("POST_GOUT_QUEUE: " + JSON.stringify(his_self.game.queue));
 	      true
 	    );
 	  } else {
-	    his_self.updateStatus(his_self.returnFactionName("protestant") + " playing " + his_self.popup("078"));
+	    	    his_self.game.status = his_self.returnFactionName("protestant") + " playing " + his_self.popup("078");
+	    his_self.hud.updateStatus(his_self.game.status);
+	    his_self.hud.updateMenu([]);
+	    his_self.hud.updateCards([]);
 	  }
 
 	  return 0;
@@ -9494,7 +9814,10 @@ console.log("POST_GOUT_QUEUE: " + JSON.stringify(his_self.game.queue));
 	          return 0;
 	        },
 		function(spacekey2) {
-		  his_self.updateStatus("adding unrest...");
+		  		  his_self.game.status = "adding unrest...";
+		  his_self.hud.updateStatus(his_self.game.status);
+		  his_self.hud.updateMenu([]);
+		  his_self.hud.updateCards([]);
 		  space2 = spacekey2;
 
 	          his_self.addUnrest(space2);
@@ -9646,7 +9969,10 @@ console.log("POST_GOUT_QUEUE: " + JSON.stringify(his_self.game.queue));
 
 	    );
 	  } else {
-	    his_self.updateStatus(his_self.returnFactionName(faction) + " playing " + his_self.popup("088"));
+	    	    his_self.game.status = his_self.returnFactionName(faction) + " playing " + his_self.popup("088");
+	    his_self.hud.updateStatus(his_self.game.status);
+	    his_self.hud.updateMenu([]);
+	    his_self.hud.updateCards([]);
 	  }
   
 	  return 0;
@@ -9806,7 +10132,10 @@ console.log("POST_GOUT_QUEUE: " + JSON.stringify(his_self.game.queue));
 	    );
 	    
 	  } else {
-	    his_self.updateStatus("Hapsburgs placing Knights of St. John");
+	    	    his_self.game.status = "Hapsburgs placing Knights of St. John";
+	    his_self.hud.updateStatus(his_self.game.status);
+	    his_self.hud.updateMenu([]);
+	    his_self.hud.updateCards([]);
 	  }
 
 	  return 0;
@@ -9904,7 +10233,10 @@ console.log("POST_GOUT_QUEUE: " + JSON.stringify(his_self.game.queue));
 	  let player = his_self.returnPlayerOfFaction(target);
 
 	  his_self.displayModal(his_self.returnFactionName(faction) + " plays Mercenaries Demand Pay");
-	  his_self.updateStatus(his_self.returnFactionName(target) + " discarding card...");
+	  	  his_self.game.status = his_self.returnFactionName(target) + " discarding card...";
+	  his_self.hud.updateStatus(his_self.game.status);
+	  his_self.hud.updateMenu([]);
+	  his_self.hud.updateCards([]);
 
 	  if (player == his_self.game.player) {
 
@@ -10090,7 +10422,10 @@ console.log("POST_GOUT_QUEUE: " + JSON.stringify(his_self.game.queue));
 
 	    );
 	  } else {
-	    his_self.updateStatus(his_self.returnFactionName(faction) + " playing " + his_self.popup("088"));
+	    	    his_self.game.status = his_self.returnFactionName(faction) + " playing " + his_self.popup("088");
+	    his_self.hud.updateStatus(his_self.game.status);
+	    his_self.hud.updateMenu([]);
+	    his_self.hud.updateCards([]);
 	  }
   
 	  return 0;
@@ -10186,19 +10521,21 @@ console.log("POST_GOUT_QUEUE: " + JSON.stringify(his_self.game.queue));
         }
 
    	let msg = "Convert Space into Pirate Haven: ";
-        let html = '<ul>';
-  	if (target_oran)    { html += `<li class="option" id="oran">Oran</li>`; }
-  	if (target_tripoli) { html += `<li class="option" id="tripoli">Tripoli</li>`; }
-    	html += '</ul>';
+        let html = [];
+  	if (target_oran)    { html.push({ id: `oran`, label: `Oran` }); }
+  	if (target_tripoli) { html.push({ id: `tripoli`, label: `Tripoli` }); }
 
-        his_self.updateStatusWithOptions(msg, html);
-
-   	$('.option').off();
-	$('.option').on('click', function () {
+                his_self.game.status = msg;
+        his_self.hud.updateStatus(his_self.game.status);
+        his_self.hud.updateCards([]);
+        his_self.hud.updateMenu(html, function (user_choice) {
 
    	  $('.option').off();
-	  let action2 = $(this).attr("id");
-	  his_self.updateStatus("converting...");
+        let action2 = user_choice;
+	  	  his_self.game.status = "converting...";
+	  his_self.hud.updateStatus(his_self.game.status);
+	  his_self.hud.updateMenu([]);
+	  his_self.hud.updateCards([]);
 
 	  his_self.addMove("pirate_haven\t"+action2);
 	  his_self.endTurn();
@@ -10291,19 +10628,21 @@ console.log("POST_GOUT_QUEUE: " + JSON.stringify(his_self.game.queue));
 	  }	
 
    	  let msg = "Select Leader to Ransom: ";
-	  let html = '<ul>';
-	  for (let i = 0; i < options.length; i++) { html += `<li class="option" id="${i}">${options[i]}</li>`; }
-    	  html += '</ul>';
+	  let html = [];
+	  for (let i = 0; i < options.length; i++) { html.push({ id: `${i}`, label: `${options[i]}` }); }
 
-          his_self.updateStatusWithOptions(msg, html);
-
-   	  $('.option').off();
-	  $('.option').on('click', function () {
+                    his_self.game.status = msg;
+          his_self.hud.updateStatus(his_self.game.status);
+          his_self.hud.updateCards([]);
+          his_self.hud.updateMenu(html, function (user_choice) {
    	    $('.option').off();
 
-	    his_self.updateStatus("sending");
+	    	    his_self.game.status = "sending";
+	    his_self.hud.updateStatus(his_self.game.status);
+	    his_self.hud.updateMenu([]);
+	    his_self.hud.updateCards([]);
 
-	    let options_idx = $(this).attr("id");
+	    let options_idx = user_choice;
 	    his_self.addMove("ransom\t"+options[options_idx]);
 	    his_self.addMove("NOTIFY\t" + options[options_idx] + " ransomed...");
 	    his_self.endTurn();
@@ -10439,21 +10778,23 @@ console.log("POST_GOUT_QUEUE: " + JSON.stringify(his_self.game.queue));
 	      }
 	    }
 
-            let html = '<ul>';
+            let html = [];
 	    for (let i = 0; i < options.length; i++) {
-  	      html += `<li class="option" id="${i}">${options[i].name}</li>`;
+  	      html.push({ id: `${i}`, label: `${options[i].name}` });
 	    }
-  	    html += `<li class="option" id="skip">skip</li>`;
-    	    html += '</ul>';
+  	    html.push({ id: `skip`, label: `skip` });
 
-            his_self.updateStatusWithOptions(msg, html);
-
-   	    $('.option').off();
-	    $('.option').on('click', function () {
+                        his_self.game.status = msg;
+            his_self.hud.updateStatus(his_self.game.status);
+            his_self.hud.updateCards([]);
+            his_self.hud.updateMenu(html, function (user_choice) {
 
    	      $('.option').off();
-	      his_self.updateStatus("moving...");
-	      let options_idx = $(this).attr("id");
+	      	      his_self.game.status = "moving...";
+	      his_self.hud.updateStatus(his_self.game.status);
+	      his_self.hud.updateMenu([]);
+	      his_self.hud.updateCards([]);
+	      let options_idx = user_choice;
 
 	      if (options_idx === "skip") {
                 his_self.endTurn();
@@ -10466,7 +10807,10 @@ console.log("POST_GOUT_QUEUE: " + JSON.stringify(his_self.game.queue));
 	    });
 
 	  } else {
-	    his_self.updateStatus("Ottomans selecting Foreign War Leader...");
+	    	    his_self.game.status = "Ottomans selecting Foreign War Leader...";
+	    his_self.hud.updateStatus(his_self.game.status);
+	    his_self.hud.updateMenu([]);
+	    his_self.hud.updateCards([]);
 	  }
 
 	  return 0;
@@ -10529,28 +10873,27 @@ console.log("POST_GOUT_QUEUE: " + JSON.stringify(his_self.game.queue));
    	      let msg = "Remove Which Unit: ";
               let unittypes = ["corsair", "squadron"];
 	      let unit_destroyed = 0;
-              let html = '<ul>';
+              let html = [];
 	      let du = -1;
               for (let i = 0; i < space.units["ottoman"].length; i++) {
                 if (space.units["ottoman"][i].command_value == 0) {
 		  if (!unittypes.includes(space.units["ottoman"][i].type) && space.units["ottoman"][i].army_leader != true && space.units["ottoman"][i].personage != true) {
 		    if (du == -1) { du = i; } else { du = -2; }
-  		    html += `<li class="option nonskip" id="${space.units["ottoman"][i].type}">${space.units["ottoman"][i].type}</li>`;
+  		    html.push({ id: `${space.units["ottoman"][i].type}`, label: `${space.units["ottoman"][i].type}` });
 		    unittypes.push(space.units["ottoman"][i].type);
 		  }
 		}
 	      }
 
-  	      html += `<li class="option" id="skip">skip</li>`;
-    	      html += '</ul>';
+  	      html.push({ id: `skip`, label: `skip` });
 
-              his_self.updateStatusWithOptions(msg, html);
-
-   	      $('.option').off();
-	      $('.option').on('click', function () {
+                            his_self.game.status = msg;
+              his_self.hud.updateStatus(his_self.game.status);
+              his_self.hud.updateCards([]);
+              his_self.hud.updateMenu(html, function (user_choice) {
 
    	        $('.option').off();
-	        let unittype = $(this).attr("id");
+        let unittype = user_choice;
 		if (unit_destroyed == 1) { return; }	
 		unit_destroyed = 1;
 
@@ -10646,22 +10989,24 @@ console.log("POST_GOUT_QUEUE: " + JSON.stringify(his_self.game.queue));
 	      }
 	    }
 
-            let html = '<ul>';
+            let html = [];
 	    for (let i = 0; i < options.length; i++) {
-  	      html += `<li class="option" id="${i}">${options[i].name}</li>`;
+  	      html.push({ id: `${i}`, label: `${options[i].name}` });
 	    }
-  	    html += `<li class="option" id="skip">skip</li>`;
-    	    html += '</ul>';
+  	    html.push({ id: `skip`, label: `skip` });
 
-            his_self.updateStatusWithOptions(msg, html);
+                        his_self.game.status = msg;
+            his_self.hud.updateStatus(his_self.game.status);
+            his_self.hud.updateCards([]);
+            his_self.hud.updateMenu(html, function (user_choice) {
 
-   	    $('.option').off();
-	    $('.option').on('click', function () {
-
-	      let options_idx = $(this).attr("id");
+        let options_idx = user_choice;
    	      $('.option').off();
 
-	      his_self.updateStatus("shifting forces to Ireland...");
+	      	      his_self.game.status = "shifting forces to Ireland...";
+	      his_self.hud.updateStatus(his_self.game.status);
+	      his_self.hud.updateMenu([]);
+	      his_self.hud.updateCards([]);
 
 	      if (options_idx === "skip") {
                 his_self.endTurn();
@@ -10674,7 +11019,10 @@ console.log("POST_GOUT_QUEUE: " + JSON.stringify(his_self.game.queue));
 	    });
 
 	  } else {
-	    his_self.updateStatus("England choosing Foreign War Leader...");
+	    	    his_self.game.status = "England choosing Foreign War Leader...";
+	    his_self.hud.updateStatus(his_self.game.status);
+	    his_self.hud.updateMenu([]);
+	    his_self.hud.updateCards([]);
 	  }
 
 	  return 0;
@@ -10737,28 +11085,27 @@ console.log("POST_GOUT_QUEUE: " + JSON.stringify(his_self.game.queue));
    	      let msg = "Remove Which Unit: ";
               let unittypes = ["corsair", "squadron"];
 	      let unit_destroyed = 0;
-              let html = '<ul>';
+              let html = [];
 	      let du = -1;
               for (let i = 0; i < space.units["england"].length; i++) {
                 if (space.units["england"][i].command_value == 0) {
 		  if (!unittypes.includes(space.units["england"][i].type) && space.units["england"][i].army_leader != true && space.units["england"][i].personage != true) {
 		    if (du == -1) { du = i; } else { du = -2; }
-  		    html += `<li class="option nonskip" id="${space.units["england"][i].type}">${space.units["england"][i].type}</li>`;
+  		    html.push({ id: `${space.units["england"][i].type}`, label: `${space.units["england"][i].type}` });
 		    unittypes.push(space.units["england"][i].type);
 		  }
 		}
 	      }
 
-  	      html += `<li class="option" id="skip">skip</li>`;
-    	      html += '</ul>';
+  	      html.push({ id: `skip`, label: `skip` });
 
-              his_self.updateStatusWithOptions(msg, html);
-
-   	      $('.option').off();
-	      $('.option').on('click', function () {
+                            his_self.game.status = msg;
+              his_self.hud.updateStatus(his_self.game.status);
+              his_self.hud.updateCards([]);
+              his_self.hud.updateMenu(html, function (user_choice) {
 
    	        $('.option').off();
-	        let unittype = $(this).attr("id");
+        let unittype = user_choice;
 		if (unit_destroyed == 1) { return; }	
 		unit_destroyed = 1;
 
@@ -10802,19 +11149,21 @@ console.log("POST_GOUT_QUEUE: " + JSON.stringify(his_self.game.queue));
 	  if (his_self.game.player === p) {
 
             let msg = "Remove 1 Land Unit to Fortify Irish Resistance?";
-            let html = '<ul>';
-            html += '<li class="option" id="yes">yes</li>';
-            html += '<li class="option" id="no">no</li>';
-            html += '</ul>';
+            let html = [];
+            html.push({ id: 'yes', label: 'yes' });
+            html.push({ id: 'no', label: 'no' });
 
-            his_self.updateStatusWithOptions(msg, html);
+                        his_self.game.status = msg;
+            his_self.hud.updateStatus(his_self.game.status);
+            his_self.hud.updateCards([]);
+            his_self.hud.updateMenu(html, function (user_choice) {
 
-            $('.option').off();
-            $('.option').on('click', function () {
+        let action = user_choice;
 
-              let action = $(this).attr("id");
-
-	      his_self.updateStatus("acknowledge");
+	      	      his_self.game.status = "acknowledge";
+	      his_self.hud.updateStatus(his_self.game.status);
+	      his_self.hud.updateMenu([]);
+	      his_self.hud.updateCards([]);
 
               if (action == "yes") {
 		
@@ -10833,37 +11182,39 @@ console.log("POST_GOUT_QUEUE: " + JSON.stringify(his_self.game.queue));
 		    let space = his_self.game.spaces[spacekey];
 
             	    let msg = "Remove which Land Unit?";
-            	    let html = '<ul>';
+            	    let html = [];
 
 		    for (let i = 0; i < space.units[faction].length; i++) {
 		      if (space.units[faction][i].type === "cavalry") {
-   	                html += `<li class="option" id="${i}">cavalry</li>`;
+   	                html.push({ id: `${i}`, label: `cavalry` });
 			break;
 		      }
 		    }
 		    for (let i = 0; i < space.units[faction].length; i++) {
 		      if (space.units[faction][i].type === "regular") {
-   	                html += `<li class="option" id="${i}">regular</li>`;
+   	                html.push({ id: `${i}`, label: `regular` });
 			break;
 		      }
 		    }
 		    for (let i = 0; i < space.units[faction].length; i++) {
 		      if (space.units[faction][i].type === "mercenary") {
-   	                html += `<li class="option" id="${i}">mercenary</li>`;
+   	                html.push({ id: `${i}`, label: `mercenary` });
 			break;
 		      }
 		    }
 
-            	    html += '</ul>';
 
-            	    his_self.updateStatusWithOptions(msg, html);
+            	                	    his_self.game.status = msg;
+            	    his_self.hud.updateStatus(his_self.game.status);
+            	    his_self.hud.updateCards([]);
+            	    his_self.hud.updateMenu(html, function (user_choice) {
 
-	            $('.option').off();
-        	    $('.option').on('click', function () {
+	              let action = parseInt(user_choice);
 
-	              let action = parseInt($(this).attr("id"));
-
-		      his_self.updateStatus("removing unit...");
+		      		      his_self.game.status = "removing unit...";
+		      his_self.hud.updateStatus(his_self.game.status);
+		      his_self.hud.updateMenu([]);
+		      his_self.hud.updateCards([]);
           	      his_self.addMove("build\tland\tindependent\tregular\tireland");
 		      his_self.addMove(	"remove_unit" + "\t" +
 					"land" + "\t" +
@@ -10956,7 +11307,10 @@ console.log("POST_GOUT_QUEUE: " + JSON.stringify(his_self.game.queue));
 
 	    );
 	  } else {
-	    his_self.updateStatus(his_self.returnFactionName(faction) + " playing " + his_self.popup("094"));
+	    	    his_self.game.status = his_self.returnFactionName(faction) + " playing " + his_self.popup("094");
+	    his_self.hud.updateStatus(his_self.game.status);
+	    his_self.hud.updateMenu([]);
+	    his_self.hud.updateCards([]);
 	  }
   
 	  return 0;
@@ -11223,19 +11577,21 @@ console.log("POST_GOUT_QUEUE: " + JSON.stringify(his_self.game.queue));
 	  // choose between 3 and 6 OPs
 	  //
 	  let msg = "Scots Raid: move French Army Leader to Scotland?";
-          let html = '<ul>';
-          html += '<li class="option" id="yes">Yes (3 OPs)</li>';
-          html += '<li class="option" id="no">No (6 OPs)</li>';
-          html += '</ul>';
+          let html = [];
+          html.push({ id: 'yes', label: 'Yes (3 OPs)' });
+          html.push({ id: 'no', label: 'No (6 OPs)' });
 
-          his_self.updateStatusWithOptions(msg, html);
-
-     	  $('.option').off();
-	  $('.option').on('click', function () {
+                    his_self.game.status = msg;
+          his_self.hud.updateStatus(his_self.game.status);
+          his_self.hud.updateCards([]);
+          his_self.hud.updateMenu(html, function (user_choice) {
 
             $('.option').off();
-	    let action = $(this).attr("id");
- 	    his_self.updateStatus("acknowledge");
+        let action = user_choice;
+ 	     	    his_self.game.status = "acknowledge";
+ 	    his_self.hud.updateStatus(his_self.game.status);
+ 	    his_self.hud.updateMenu([]);
+ 	    his_self.hud.updateCards([]);
 
 	    if (action === "yes") {
 
@@ -11251,21 +11607,23 @@ console.log("POST_GOUT_QUEUE: " + JSON.stringify(his_self.game.queue));
                 }
               }
 
-              let html = '<ul>';
+              let html = [];
               for (let i = 0; i < options.length; i++) {
-                html += `<li class="option" id="${i}">${options[i].name}</li>`;
+                html.push({ id: `${i}`, label: `${options[i].name}` });
               }
-              html += `<li class="option" id="skip">skip</li>`;
-              html += '</ul>';
+              html.push({ id: `skip`, label: `skip` });
 
-              his_self.updateStatusWithOptions(msg, html);
-
-              $('.option').off();
-              $('.option').on('click', function () {
+                            his_self.game.status = msg;
+              his_self.hud.updateStatus(his_self.game.status);
+              his_self.hud.updateCards([]);
+              his_self.hud.updateMenu(html, function (user_choice) {
 
                 $('.option').off();
-                let options_idx = $(this).attr("id");
-		his_self.updateStatus("acknowledge");
+        let options_idx = user_choice;
+				his_self.game.status = "acknowledge";
+		his_self.hud.updateStatus(his_self.game.status);
+		his_self.hud.updateMenu([]);
+		his_self.hud.updateCards([]);
 
                 his_self.addMove("SETVAR\tstate\tevents\tscots_raid\t0");
                 his_self.addMove("ops\tfrance\t097\t3");
@@ -11317,7 +11675,7 @@ console.log("POST_GOUT_QUEUE: " + JSON.stringify(his_self.game.queue));
 	  let cabot_hapsburg_found = 0;
 
 	  let msg = "Cancel Which Expedition / Conquest?";
-          let html = '<ul>';
+          let html = [];
 	  for (let i = 0; i < his_self.game.state.explorations.length; i++) {
 
 	    let exp = his_self.game.state.explorations[i];
@@ -11329,32 +11687,31 @@ console.log("POST_GOUT_QUEUE: " + JSON.stringify(his_self.game.queue));
             }
 
 	    if (his_self.game.state.explorations[i].round == his_self.game.state.round) {
-              html += `<li class="option" id="${his_self.game.state.explorations[i].faction}">${his_self.returnFactionName(his_self.game.state.explorations[i].faction)} (exploration)</li>`;
+              html.push({ id: `${his_self.game.state.explorations[i].faction}`, label: `${his_self.returnFactionName(his_self.game.state.explorations[i].faction)} (exploration)` });
 	    }
 	  }
 	  if (his_self.game.state.events.cabot_england == 1 && cabot_england_found == 0) {
-            html += `<li class="option" id="cabot_england">sebastian cabot (england - exploration)</li>`;
+            html.push({ id: `cabot_england`, label: `sebastian cabot (england - exploration)` });
 	  }
 	  if (his_self.game.state.events.cabot_france == 1 && cabot_france_found == 0) {
-            html += `<li class="option" id="cabot_france">sebastian cabot (france - exploration)</li>`;
+            html.push({ id: `cabot_france`, label: `sebastian cabot (france - exploration)` });
 	  }
 	  if (his_self.game.state.events.cabot_hapsburg == 1 && cabot_hapsburg_found == 0) {
-            html += `<li class="option" id="cabot_hapsburg">sebastian cabot (haps - exploration)</li>`;
+            html.push({ id: `cabot_hapsburg`, label: `sebastian cabot (haps - exploration)` });
 	  }
 	  for (let i = 0; i < his_self.game.state.conquests.length; i++) {
 	    if (his_self.game.state.conquests[i].round == his_self.game.state.round) {
-              html += `<li class="option" id="conquest-${his_self.game.state.conquests[i].faction}">${his_self.returnFactionName(his_self.game.state.conquests[i].faction)} (conquest)</li>`;
+              html.push({ id: `conquest-${his_self.game.state.conquests[i].faction}`, label: `${his_self.returnFactionName(his_self.game.state.conquests[i].faction)} (conquest)` });
 	    }
 	  }
-          html += '</ul>';
 
- 	  his_self.updateStatusWithOptions(msg, html);
-
-          $('.option').off();
-	  $('.option').on('click', function () {
+ 	   	  his_self.game.status = msg;
+ 	  his_self.hud.updateStatus(his_self.game.status);
+ 	  his_self.hud.updateCards([]);
+ 	  his_self.hud.updateMenu(html, function (user_choice) {
 
             $('.option').off();
-	    let action = $(this).attr("id");
+        let action = user_choice;
 
 	    if (action === "conquest-england") {  
 		his_self.addMove("NOTIFY\t"+his_self.popup('098')+" cancels English conquest");
@@ -11487,18 +11844,17 @@ console.log("POST_GOUT_QUEUE: " + JSON.stringify(his_self.game.queue));
 		  } else {
 
 	  	    let msg = "Produce 2 Corsairs instead of Squadron?";
-          	    let html = '<ul>';
-          	    html += '<li class="option" id="corsair">Corsairs</li>';
-          	    html += '<li class="option" id="squadron">Squadron</li>';
-          	    html += '</ul>';
+          	    let html = [];
+          	    html.push({ id: 'corsair', label: 'Corsairs' });
+          	    html.push({ id: 'squadron', label: 'Squadron' });
 
- 		    his_self.updateStatusWithOptions(msg, html);
-
-          	    $('.option').off();
-	  	    $('.option').on('click', function () {
+ 		     		    his_self.game.status = msg;
+ 		    his_self.hud.updateStatus(his_self.game.status);
+ 		    his_self.hud.updateCards([]);
+ 		    his_self.hud.updateMenu(html, function (user_choice) {
 
           	      $('.option').off();
-	  	      let unittype = $(this).attr("id");
+        let unittype = user_choice;
 		      if (unittype == "corsair") {
                         his_self.addMove("build\tland\t"+faction+"\t"+unittype+"\t"+spacekey);
 		      }
@@ -11561,7 +11917,7 @@ console.log("POST_GOUT_QUEUE: " + JSON.stringify(his_self.game.queue));
               break;
             }
           }
-          return { faction : f , event : '102', html : `<li class="option" id="102">spring preparations (${f})</li>` };
+          return { faction : f , event : '102', id: "102", label: `spring preparations (${f})` };
         }
         return {};
       },
@@ -11629,28 +11985,27 @@ console.log("POST_GOUT_QUEUE: " + JSON.stringify(his_self.game.queue));
 	if (p == his_self.game.player) {
 
 	  let msg = "Target Which Minor Army Leader?";
-          let html = '<ul>';
+          let html = [];
 	  if (his_self.returnSpaceOfPersonage("england", "charles-brandon") != "" && his_self.game.state.leaders.henry_viii == 1) {
-            html += '<li class="option" id="charles-brandon">Charles Brandon (England)</li>';
+            html.push({ id: 'charles-brandon', label: 'Charles Brandon (England)' });
 	  }
 	  if (his_self.returnSpaceOfPersonage("hapsburg", "duke-of-alva") != "") {
-            html += '<li class="option" id="duke-of-alva">Duke of Alva (Hapsburgs)</li>';
+            html.push({ id: 'duke-of-alva', label: 'Duke of Alva (Hapsburgs)' });
           }
 	  if (his_self.returnSpaceOfPersonage("france", "montmorency") != "") {
-            html += '<li class="option" id="montmorency">Montmorency (France)</li>';
+            html.push({ id: 'montmorency', label: 'Montmorency (France)' });
           }
 	  if (his_self.returnSpaceOfPersonage("ottoman", "ibrahim-pasha") != "") {
-            html += '<li class="option" id="ibrahim-pasha">Ibrahim Pasha (Ottomans)</li>';
+            html.push({ id: 'ibrahim-pasha', label: 'Ibrahim Pasha (Ottomans)' });
           }
-	  html += '</ul>';
 
-          his_self.updateStatusWithOptions(msg, html);
-
-          $('.option').off();
-	  $('.option').on('click', function () {
+                    his_self.game.status = msg;
+          his_self.hud.updateStatus(his_self.game.status);
+          his_self.hud.updateCards([]);
+          his_self.hud.updateMenu(html, function (user_choice) {
 
             $('.option').off();
-	    let action = $(this).attr("id");
+        let action = user_choice;
 
 	    his_self.addMove("threat_to_power\t"+action);
 	    his_self.endTurn();
@@ -11758,7 +12113,10 @@ console.log("POST_GOUT_QUEUE: " + JSON.stringify(his_self.game.queue));
             },
 
             function(spacekey) {
-	      his_self.updateStatus("selected...");
+	      	      his_self.game.status = "selected...";
+	      his_self.hud.updateStatus(his_self.game.status);
+	      his_self.hud.updateMenu([]);
+	      his_self.hud.updateCards([]);
 	      let s = his_self.game.spaces[spacekey];
 	      if (s.home === "independent" && s.political === "") {
 	      } else {
@@ -11778,7 +12136,10 @@ console.log("POST_GOUT_QUEUE: " + JSON.stringify(his_self.game.queue));
 
           );
         } else {
-	  his_self.updateStatus(his_self.returnFactionName(faction) + " playing " + his_self.popup("104"));;
+	  	  his_self.game.status = his_self.returnFactionName(faction) + " playing " + his_self.popup("104");
+	  his_self.hud.updateStatus(his_self.game.status);
+	  his_self.hud.updateMenu([]);
+	  his_self.hud.updateCards([]);;
 	}
 
         return 0;
@@ -11949,7 +12310,10 @@ console.log("POST_GOUT_QUEUE: " + JSON.stringify(his_self.game.queue));
 
             function(spacekey) {
 
-	      his_self.updateStatus("processing...");
+	      	      his_self.game.status = "processing...";
+	      his_self.hud.updateStatus(his_self.game.status);
+	      his_self.hud.updateMenu([]);
+	      his_self.hud.updateCards([]);
 
 	      let space = his_self.game.spaces[spacekey];
 	      let factions = [];
@@ -11967,22 +12331,24 @@ console.log("POST_GOUT_QUEUE: " + JSON.stringify(his_self.game.queue));
 	      if (factions.length > 0) {
 
  	        let msg = "Choose Faction to Lose Mercenaries:";
-                let html = '<ul>';
+                let html = [];
 	        for (let i = 0; i < factions.length; i++) {
-                  html += `<li class="option" id="${factions[i]}">${factions[i]}</li>`;
+                  html.push({ id: `${factions[i]}`, label: `${factions[i]}` });
 		}
-                html += `<li class="option" id="switch">change target</li>`;
-    	        html += '</ul>';
+                html.push({ id: `switch`, label: `change target` });
 
-                his_self.updateStatusWithOptions(msg, html);
-
- 		$('.option').off();
-	  	$('.option').on('click', function () {
+                                his_self.game.status = msg;
+                his_self.hud.updateStatus(his_self.game.status);
+                his_self.hud.updateCards([]);
+                his_self.hud.updateMenu(html, function (user_choice) {
 
  		  $('.option').off();
-	    	  let action = $(this).attr("id");
+        let action = user_choice;
 
-	          his_self.updateStatus("processing...");
+	          	          his_self.game.status = "processing...";
+	          his_self.hud.updateStatus(his_self.game.status);
+	          his_self.hud.updateMenu([]);
+	          his_self.hud.updateCards([]);
 
 		  // we can switch if we want now
 		  if (action == "switch") { sswf_function(); return; }
@@ -12052,23 +12418,22 @@ console.log("POST_GOUT_QUEUE: " + JSON.stringify(his_self.game.queue));
 	      if (factions.length > 0) {
 
  	        let msg = "Choose Faction to Suffer Losses:";
-                let html = '<ul>';
+                let html = [];
 		let op = 0;
 	        for (let i = 0; i < factions.length; i++) {
 		  op++;
-                  html += `<li class="option" id="${factions[i]}">${factions[i]}</li>`;
+                  html.push({ id: `${factions[i]}`, label: `${factions[i]}` });
 		}
-                html += `<li class="option" id="switch">change target</li>`;
-    	        html += '</ul>';
+                html.push({ id: `switch`, label: `change target` });
 
-                his_self.updateStatusWithOptions(msg, html);
-
- 		$('.option').off();
-	  	$('.option').on('click', function () {
+                                his_self.game.status = msg;
+                his_self.hud.updateStatus(his_self.game.status);
+                his_self.hud.updateCards([]);
+                his_self.hud.updateMenu(html, function (user_choice) {
 
 
  		  $('.option').off();
-	    	  let action = $(this).attr("id");
+        let action = user_choice;
 
 		  if (action == "switch") {
 		    sswf_function(); return;
@@ -12079,7 +12444,10 @@ console.log("POST_GOUT_QUEUE: " + JSON.stringify(his_self.game.queue));
                     if (!c) { sswf_function(); return; }
             	  }
 
-		  his_self.updateStatus("selected...");
+		  		  his_self.game.status = "selected...";
+		  his_self.hud.updateStatus(his_self.game.status);
+		  his_self.hud.updateMenu([]);
+		  his_self.hud.updateCards([]);
 
 		  let total_units = 0;
 		  let regular_units = 0;
@@ -12230,7 +12598,7 @@ console.log("POST_GOUT_QUEUE: " + JSON.stringify(his_self.game.queue));
               break;
             }
           }
-          return { faction : f , event : '109', html : `<li class="option" id="109">venetian informant (${f})</li>` };
+          return { faction : f , event : '109', id: "109", label: `venetian informant (${f})` };
         }
         return {};
       },
@@ -12324,20 +12692,19 @@ console.log("POST_GOUT_QUEUE: " + JSON.stringify(his_self.game.queue));
 	      let powers = his_self.returnImpulseOrder();
 	      let msg = "View which Faction Cards?";
 
-              let html = '<ul>';
+              let html = [];
 	      for (let i = 0; i < powers.length; i++) {
 	        if (powers[i] != faction && his_self.returnPlayerCommandingFaction(powers[i]) > 0) {
-                  html += `<li class="option" id="${powers[i]}">${his_self.returnFactionName(powers[i])}</li>`;
+                  html.push({ id: `${powers[i]}`, label: `${his_self.returnFactionName(powers[i])}` });
 	        }
 	      }
-              html += '</ul>';
 
-    	      his_self.updateStatusWithOptions(msg, html);
-
-	      $('.option').off();
-	      $('.option').on('click', function () {
+    	          	      his_self.game.status = msg;
+    	      his_self.hud.updateStatus(his_self.game.status);
+    	      his_self.hud.updateCards([]);
+    	      his_self.hud.updateMenu(html, function (user_choice) {
 	        $('.option').off();
-	        let action = $(this).attr("id");
+        let action = user_choice;
 	        his_self.addMove("show_hand\t"+faction+"\t"+action);
 	        his_self.endTurn();
 	      });
@@ -12411,20 +12778,19 @@ console.log("POST_GOUT_QUEUE: " + JSON.stringify(his_self.game.queue));
 	      }
 	    }
 
-            let html = '<ul>';
+            let html = [];
 	    for (let i = 0; i < options.length; i++) {
-  	      html += `<li class="option" id="${i}">${options[i].name}</li>`;
+  	      html.push({ id: `${i}`, label: `${options[i].name}` });
 	    }
-  	    html += `<li class="option" id="skip">skip</li>`;
-    	    html += '</ul>';
+  	    html.push({ id: `skip`, label: `skip` });
 
-            his_self.updateStatusWithOptions(msg, html);
-
-   	    $('.option').off();
-	    $('.option').on('click', function () {
+                        his_self.game.status = msg;
+            his_self.hud.updateStatus(his_self.game.status);
+            his_self.hud.updateCards([]);
+            his_self.hud.updateMenu(html, function (user_choice) {
 
    	      $('.option').off();
-	      let options_idx = $(this).attr("id");
+        let options_idx = user_choice;
 
 	      if (options_idx === "skip") {
                 his_self.endTurn();
@@ -12436,7 +12802,10 @@ console.log("POST_GOUT_QUEUE: " + JSON.stringify(his_self.game.queue));
 
 	    });
 	  } else {
-	    his_self.updateStatus("Ottomans selecting Foreign War Leader...");
+	    	    his_self.game.status = "Ottomans selecting Foreign War Leader...";
+	    his_self.hud.updateStatus(his_self.game.status);
+	    his_self.hud.updateMenu([]);
+	    his_self.hud.updateCards([]);
 	  }
 
 	  return 0;
@@ -12499,28 +12868,27 @@ console.log("POST_GOUT_QUEUE: " + JSON.stringify(his_self.game.queue));
    	      let msg = "Remove Which Unit: ";
               let unittypes = ["squadron","corsair"]; // avoids listing these units
 	      let unit_destroyed = 0;
-              let html = '<ul>';
+              let html = [];
 	      let du = -1;
               for (let i = 0; i < space.units["ottoman"].length; i++) {
                 if (space.units["ottoman"][i].command_value == 0) {
 		  if (!unittypes.includes(space.units["ottoman"][i].type) && space.units["ottoman"][i].army_leader != true && space.units["ottoman"][i].personage != true) {
 		    if (du == -1) { du = i; } else { du = -2; }
-  		    html += `<li class="option nonskip" id="${space.units["ottoman"][i].type}">${space.units["ottoman"][i].type}</li>`;
+  		    html.push({ id: `${space.units["ottoman"][i].type}`, label: `${space.units["ottoman"][i].type}` });
 		    unittypes.push(space.units["ottoman"][i].type);
 		  }
 		}
 	      }
 
-  	      html += `<li class="option" id="skip">skip</li>`;
-    	      html += '</ul>';
+  	      html.push({ id: `skip`, label: `skip` });
 
-              his_self.updateStatusWithOptions(msg, html);
-
-   	      $('.option').off();
-	      $('.option').on('click', function () {
+                            his_self.game.status = msg;
+              his_self.hud.updateStatus(his_self.game.status);
+              his_self.hud.updateCards([]);
+              his_self.hud.updateMenu(html, function (user_choice) {
 
    	        $('.option').off();
-	        let unittype = $(this).attr("id");
+        let unittype = user_choice;
 		if (unit_destroyed == 1) { return; }	
 		unit_destroyed = 1;
 
@@ -12574,34 +12942,38 @@ console.log("POST_GOUT_QUEUE: " + JSON.stringify(his_self.game.queue));
 
 	if (his_self.game.player == p) {
 
-          let html = '<ul>';
-              html += `<li class="option" id="governor">Colonial Governor</li>`;
-              html += `<li class="option" id="uprising">Native Uprising</li>`;
-              html += '</ul>';
+          let html = [];
+              html.push({ id: `governor`, label: `Colonial Governor` });
+              html.push({ id: `uprising`, label: `Native Uprising` });
 
-          his_self.updateStatusWithOptions("Select Colony-Roll Modifier:", html);
+                    his_self.game.status = "Select Colony-Roll Modifier:";
+          his_self.hud.updateStatus(his_self.game.status);
+          his_self.hud.updateCards([]);
+          his_self.hud.updateMenu(html, function (user_choice) {
 
- 	  $('.option').off();
-	  $('.option').on('click', function () {
-
-	    his_self.updateStatus("selecting...");
+	    	    his_self.game.status = "selecting...";
+	    his_self.hud.updateStatus(his_self.game.status);
+	    his_self.hud.updateMenu([]);
+	    his_self.hud.updateCards([]);
  	    $('.option').off();
-	    let modifier = $(this).attr("id");
+	    let modifier = user_choice;
 
 	    if (modifier == "governor") {
 
-              let html = '<ul>';
-                  html += `<li class="option" id="hapsburg">Hapsburg Governor</li>`;
-                  html += `<li class="option" id="england">English Governor</li>`;
-                  html += `<li class="option" id="france">French Governor</li>`;
-                  html += '</ul>';
-              his_self.updateStatusWithOptions("Select Colonial Governor", html);
-
- 	      $('.option').off();
-	      $('.option').on('click', function () {
-	        his_self.updateStatus("selecting...");
+              let html = [];
+                  html.push({ id: `hapsburg`, label: `Hapsburg Governor` });
+                  html.push({ id: `england`, label: `English Governor` });
+                  html.push({ id: `france`, label: `French Governor` });
+                            his_self.game.status = "Select Colonial Governor";
+              his_self.hud.updateStatus(his_self.game.status);
+              his_self.hud.updateCards([]);
+              his_self.hud.updateMenu(html, function (user_choice) {
+	        	        his_self.game.status = "selecting...";
+	        his_self.hud.updateStatus(his_self.game.status);
+	        his_self.hud.updateMenu([]);
+	        his_self.hud.updateCards([]);
  	        $('.option').off();
-	        let action = $(this).attr("id");
+	        let action = user_choice;
 	        his_self.addMove("display_new_world");
 	        his_self.addMove("NOTIFY\t"+his_self.returnFactionName(faction)+" selected " + his_self.returnFactionName(action) + " governor");
 	        his_self.addMove("SETVAR\tstate\tevents\tcolonial_governor\t"+action);
@@ -12611,18 +12983,20 @@ console.log("POST_GOUT_QUEUE: " + JSON.stringify(his_self.game.queue));
 
 	    } else {
 
-              let html = '<ul>';
-                  html += `<li class="option" id="hapsburg">Destablize Hapsburg Colonies</li>`;
-                  html += `<li class="option" id="england">Destabilize English Colonies</li>`;
-                  html += `<li class="option" id="france">Destabilize French Colonies</li>`;
-                  html += '</ul>';
-              his_self.updateStatusWithOptions("Select Target for Native Uprising:", html);
-
- 	      $('.option').off();
-	      $('.option').on('click', function () {
-	        his_self.updateStatus("selecting...");
+              let html = [];
+                  html.push({ id: `hapsburg`, label: `Destablize Hapsburg Colonies` });
+                  html.push({ id: `england`, label: `Destabilize English Colonies` });
+                  html.push({ id: `france`, label: `Destabilize French Colonies` });
+                            his_self.game.status = "Select Target for Native Uprising:";
+              his_self.hud.updateStatus(his_self.game.status);
+              his_self.hud.updateCards([]);
+              his_self.hud.updateMenu(html, function (user_choice) {
+	        	        his_self.game.status = "selecting...";
+	        his_self.hud.updateStatus(his_self.game.status);
+	        his_self.hud.updateMenu([]);
+	        his_self.hud.updateCards([]);
  	        $('.option').off();
-	        let action = $(this).attr("id");
+	        let action = user_choice;
 	        his_self.addMove("display_new_world");
 	        his_self.addMove("NOTIFY\t"+his_self.returnFactionName(faction)+" targets " + his_self.returnFactionName(action) + " colonies");
 	        his_self.addMove("SETVAR\tstate\tevents\tcolonial_governor\t0");
@@ -12632,7 +13006,10 @@ console.log("POST_GOUT_QUEUE: " + JSON.stringify(his_self.game.queue));
 	    }
 	  });
         } else {
-	  his_self.updateStatus(his_self.returnFactionName(faction) + " playing Colonial Governor");
+	  	  his_self.game.status = his_self.returnFactionName(faction) + " playing Colonial Governor";
+	  his_self.hud.updateStatus(his_self.game.status);
+	  his_self.hud.updateMenu([]);
+	  his_self.hud.updateCards([]);
 	}
 
 	return 0;
@@ -12678,17 +13055,19 @@ console.log("POST_GOUT_QUEUE: " + JSON.stringify(his_self.game.queue));
 	  if (his_self.returnPlayerCommandingFaction("papacy") == his_self.game.player) {
 
             let msg = "Convene Theological Debate?";
-            let html = '<ul>';
-            html += `<li class="option" id="yes">yes</li>`;
-            html += `<li class="option" id="no">no</li>`;
-            html += '</ul>';
-            his_self.updateStatusWithOptions(msg, html);
+            let html = [];
+            html.push({ id: `yes`, label: `yes` });
+            html.push({ id: `no`, label: `no` });
+                        his_self.game.status = msg;
+            his_self.hud.updateStatus(his_self.game.status);
+            his_self.hud.updateCards([]);
+            his_self.hud.updateMenu(html, function (user_choice) {
 
-            $('.option').off();
-            $('.option').on('click', function () {
-
-              let action2 = $(this).attr("id");
-              his_self.updateStatus("submitting...");
+        let action2 = user_choice;
+                            his_self.game.status = "submitting...";
+              his_self.hud.updateStatus(his_self.game.status);
+              his_self.hud.updateMenu([]);
+              his_self.hud.updateCards([]);
 
               if (action2 === "yes") {
                 his_self.playerCallTheologicalDebate(his_self, his_self.game.player, "papacy");
@@ -12791,21 +13170,23 @@ console.log("POST_GOUT_QUEUE: " + JSON.stringify(his_self.game.queue));
 	if (his_self.game.player == p) {
 
    	let msg = "Which Action?";
-        let html = '<ul>';
+        let html = [];
         if (his_self.game.deck[0].discards["063"]) {
-          html += '<li class="option showcard" id="063">retrieve Dissolution of the Monasteries</li>';
+          html.push({ id: '063', label: 'retrieve Dissolution of the Monasteries' });
         }
-        html += '<li class="option" id="treatise">publish treatise in England</li>';
-    	html += '</ul>';
+        html.push({ id: 'treatise', label: 'publish treatise in England' });
 
-        his_self.updateStatusWithOptions(msg, html);
-
-	$('.option').off();
-	$('.option').on('click', function () {
+                his_self.game.status = msg;
+        his_self.hud.updateStatus(his_self.game.status);
+        his_self.hud.updateCards([]);
+        his_self.hud.updateMenu(html, function (user_choice) {
 
 	  $('.option').off();
-	  let action = $(this).attr("id");
-	  his_self.updateStatus("processing");
+        let action = user_choice;
+	  	  his_self.game.status = "processing";
+	  his_self.hud.updateStatus(his_self.game.status);
+	  his_self.hud.updateMenu([]);
+	  his_self.hud.updateCards([]);
 
 	  if (action === "063") {
 	    his_self.addMove("thomas_cromwell_retrieves_monasteries");
@@ -12822,7 +13203,10 @@ console.log("POST_GOUT_QUEUE: " + JSON.stringify(his_self.game.queue));
 	});
 
 	} else {
-	  his_self.updateStatus(his_self.returnFactionName(faction) + " playing " + his_self.popup("115") );
+	  	  his_self.game.status = his_self.returnFactionName(faction) + " playing " + his_self.popup("115");
+	  his_self.hud.updateStatus(his_self.game.status);
+	  his_self.hud.updateMenu([]);
+	  his_self.hud.updateCards([]);
 	}
 	return 0;
       },
@@ -12842,7 +13226,7 @@ console.log("POST_GOUT_QUEUE: " + JSON.stringify(his_self.game.queue));
               break;
             }
           }
-          return { faction : f , event : '115', html : `<li class="option blink" id="115">thomas cromwell (${f})</li>` };
+          return { faction : f , event : '115', id: "115", label: `thomas cromwell (${f})` };
         }
         return {};
       },

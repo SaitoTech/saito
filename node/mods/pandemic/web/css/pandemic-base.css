@@ -53,20 +53,19 @@
     background-color: #444a;
   }
 
-  /* Original */
-  .hud-header.scientist {
+  .pandemic-hud-tools.scientist {
     background-color: #ffffff;
   }
-  .hud-header.generalist {
+  .pandemic-hud-tools.generalist {
     background-color: #778281;
   }
-  .hud-header.medic {
+  .pandemic-hud-tools.medic {
     background-color: #de7b38;
   }
-  .hud-header.quarantine {
+  .pandemic-hud-tools.quarantine {
     background-color: #337c51;
   }
-  .hud-header.operations {
+  .pandemic-hud-tools.operations {
     background-color: #6cb24f;
   }
   .scientist .hud-controls {
@@ -75,22 +74,22 @@
 
   /* Retro */
 
-  .hud-header.pantologist {
+  .pandemic-hud-tools.pantologist {
     background-color: #8e51a0;
   }
-  .hud-header.experimenter {
+  .pandemic-hud-tools.experimenter {
     background-color: #00bac8;
   }
-  .hud-header.physician {
+  .pandemic-hud-tools.physician {
     background-color: #49575b;
   }
-  .hud-header.field {
+  .pandemic-hud-tools.field {
     background-color: #c57a28;
   }
-  .hud-header.contamination {
+  .pandemic-hud-tools.contamination {
     background-color: #49575b;
   }
-  .hud-header.investigator {
+  .pandemic-hud-tools.investigator {
     background-color: #48555a;
   }
 

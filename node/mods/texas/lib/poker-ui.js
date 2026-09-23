@@ -72,9 +72,10 @@ class PokerUI {
       this.updateStatus(
         this.game.pending_join
           ? `Waiting to be dealt in -- you will join at the start of the next hand`
-          : `you are observing the game`,
-        -1
+          : `you are observing the game`
       );
+      this.hud.updateMenu([]);
+      this.hud.updateCards([]);
       return;
     }
 
@@ -116,7 +117,9 @@ class PokerUI {
         !String(msg).includes('plog-update') &&
         !String(msg).includes('in pot')
       ) {
-        this.updateStatus(msg);
+                this.updateStatus(msg);
+        this.hud.updateMenu([]);
+        this.hud.updateCards([]);
       }
     }
 
@@ -326,7 +329,9 @@ class PokerUI {
     });
 
     if (!can_call) {
-      this.updateStatus('you can only fold...');
+            this.updateStatus('you can only fold...');
+      this.hud.updateMenu([]);
+      this.hud.updateCards([]);
       this.addMove('fold\t' + poker_self.game.player);
       this.endTurn();
       return;

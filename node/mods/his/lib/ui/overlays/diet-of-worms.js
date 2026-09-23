@@ -22,9 +22,9 @@ class DietOfWormsOverlay {
     // pull GAME HUD over overlay
     //
     let overlay_zindex = parseInt(this.overlay.zIndex);
-    if (document.querySelector('.hud')) {
-      document.querySelector('.hud').style.zIndex = overlay_zindex + 1;
-      this.mod.hud.zIndex = overlay_zindex + 1;
+    let hud = document.getElementById('game-hud2');
+    if (hud) {
+      hud.style.zIndex = overlay_zindex + 1;
     }
 
     this.attachEvents();
@@ -60,9 +60,9 @@ class DietOfWormsOverlay {
   showResults(obj) {
     let his_self = this.mod;
 
-    this.mod.hud.zIndex = 10;
-    if (document.querySelector('.hud')) {
-      document.querySelector('.hud').style.zIndex = 10;
+    let hud = document.getElementById('game-hud2');
+    if (hud) {
+      hud.style.zIndex = 10;
     }
     this.mod.updateStatus('');
 

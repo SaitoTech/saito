@@ -77,7 +77,10 @@
             invasion_function("iraq");
         });
 
-        twilight_self.updateStatusWithOptions('Iran-Iraq War. Choose Target:',`<ul><li class="option" id="iraq">Iraq</li><li class="option" id="iran">Iran</li></ul>`, invasion_function);
+        twilight_self.game.status = 'Iran-Iraq War. Choose Target:';
+        twilight_self.hud.updateStatus(twilight_self.game.status);
+        twilight_self.hud.updateCards([]);
+        twilight_self.hud.updateMenu([ { id: 'iraq', label: 'Iraq' }, { id: 'iran', label: 'Iran' } ], invasion_function);
 
       } else {
         let burned = this.rollDice(6);

@@ -12,7 +12,10 @@
 
         twilight_self.addMove("resolve\tpuppet");
 
-        this.updateStatus("US place three influence in countries without any influence");
+        this.game.status = "US place three influence in countries without any influence";
+        this.hud.updateStatus(this.game.status);
+        this.hud.updateMenu([]);
+        this.hud.updateCards([]);
 
         for (var i in this.countries) {
 

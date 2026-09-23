@@ -71,25 +71,25 @@ ACTION CARD - types
 
 	  if (imperium_self.game.player == action_card_player) {
 
-	    let html = '<div class="sf-readable">Pick a Strategy Card to keep for next round: </div><ul>';
+	    let html = '<div class="sf-readable">Pick a Strategy Card to keep for next round: </div>';
+	    let menu = [];
 	    for (let i = 0; i < imperium_self.game.state.players_info[action_card_player-1].strategy_cards_played.length; i++) {
 	      let card = imperium_self.game.state.players_info[action_card_player-1].strategy_cards_played[i];
-              html += '<li class="option" id="'+card+'">' + imperium_self.strategy_cards[card].name + '</li>';
+              menu.push({ id: card, label: imperium_self.strategy_cards[card].name });
 	    }
 	    for (let i = 0; i < imperium_self.game.state.players_info[action_card_player-1].strategy.length; i++) {
     	      if (!imperium_self.game.state.players_info[imperium_self.game.player - 1].strategy_cards_played.includes(imperium_self.game.state.players_info[action_card_player-1].strategy[i])) {
 	        let card = imperium_self.game.state.players_info[action_card_player-1].strategy[i];
 	     
-                html += '<li class="option" id="'+card+'">' + imperium_self.strategy_cards[card].name + '</li>';
+                menu.push({ id: card, label: imperium_self.strategy_cards[card].name });
 	      }
 	    }
-	    html += '</ul>';
 
-	    imperium_self.updateStatus(html);
+	    	    imperium_self.game.status = html;
+	    imperium_self.hud.updateStatus(imperium_self.game.status);
+	    imperium_self.hud.updateCards([]);
 
-	    $('.option').off();
-	    $('.option').on('click', function() {
-	      let card = $(this).attr("id");
+	    imperium_self.hud.updateMenu(menu, function(card) {
 	      imperium_self.addMove("strategy_card_retained\t"+imperium_self.game.player+"\t"+card);
 	      imperium_self.endTurn();
 	      return 0;
@@ -212,22 +212,20 @@ console.log("qe: " + qe);
 
           if (imperium_self.game.player == action_card_player) {
 
-	    let html = '<div class="sf-readable">Pick a Law to Repeal: </div><ul>';
+	    let html = '<div class="sf-readable">Pick a Law to Repeal: </div>';
+	    let menu = [];
 	    for (let i = 0; i < imperium_self.game.state.laws.length; i++) {
 	      let law = imperium_self.game.state.laws[i];
 	      let agenda = imperium_self.agenda_cards[law];
-              html += '<li class="option" id="'+agenda+'">' + agenda.name + '</li>';
+              menu.push({ id: String(agenda), label: agenda.name });
 	    }
-            html += '<li class="option" id="cancel">cancel</li>';
-	    html += '</ul>';
+            menu.push({ id: 'cancel', label: 'cancel' });
 
-	    imperium_self.updateStatus(html);
+	    	    imperium_self.game.status = html;
+	    imperium_self.hud.updateStatus(imperium_self.game.status);
+	    imperium_self.hud.updateCards([]);
 
-	    $('.option').off();
-	    $('.option').on('click', function() {
-
-	      let card = $(this).attr("id");
-
+	    imperium_self.hud.updateMenu(menu, function(card) {
 	      if (card === "cancel") {
 	        imperium_self.endTurn();
 		return 0;
@@ -272,24 +270,24 @@ console.log("qe: " + qe);
           if (imperium_self.game.player == action_card_player) {
 
             let html = '';
-            html += 'Select one agenda to quash in the Galactic Senate.<ul>';
+            html += 'Select one agenda to quash in the Galactic Senate.';
+            let menu = [];
             for (i = 0; i < 3; i++) {
-              html += '<li class="option" id="'+imperium_self.game.state.agendas[i]+'">' + imperium_self.agenda_cards[imperium_self.game.state.agendas[i]].name + '</li>';
+              menu.push({ id: String(imperium_self.game.state.agendas[i]), label: imperium_self.agenda_cards[imperium_self.game.state.agendas[i]].name });
             }
-            html += '</ul>';
 
-            imperium_self.updateStatus(html);
+                        imperium_self.game.status = html;
+            imperium_self.hud.updateStatus(imperium_self.game.status);
+            imperium_self.hud.updateCards([]);
 
-            $('.option').off();
-            $('.option').on('mouseenter', function() { let s = $(this).attr("id"); imperium_self.showAgendaCard(s); });
-            $('.option').on('mouseleave', function() { let s = $(this).attr("id"); imperium_self.hideAgendaCard(s); });
-            $('.option').on('click', function() {
-
-              let agenda_to_quash = $(this).attr('id');
+            imperium_self.hud.updateMenu(menu, function(agenda_to_quash) {
 
 	      imperium_self.hideAgendaCard(agenda_to_quash);
 
-              imperium_self.updateStatus("Quashing Agenda");
+                            imperium_self.game.status = "Quashing Agenda";
+              imperium_self.hud.updateStatus(imperium_self.game.status);
+              imperium_self.hud.updateMenu([]);
+              imperium_self.hud.updateCards([]);
               imperium_self.addMove("quash\t"+agenda_to_quash+"\t"+"1"); // 1 = re-deal
               imperium_self.endTurn();
             });
@@ -1081,18 +1079,15 @@ console.log("qe: " + qe);
               },
 	      function(sector) {
 
-	        let html = '<div class="sf-readable">Gain command or strategy token?</div><ul>';
-                    html += '<li class="option" id="command">command token</li>';
-                    html += '<li class="option" id="strategy">strategy token</li>';
+	        let html = '<div class="sf-readable">Gain command or strategy token?</div>';
+                    let menu = [];
+                    menu.push({ id: 'command', label: 'command token' });
+                    menu.push({ id: 'strategy', label: 'strategy token' });
+	        	        imperium_self.game.status = html;
+	        imperium_self.hud.updateStatus(imperium_self.game.status);
+	        imperium_self.hud.updateCards([]);
 
-	        html += '</ul>';
-	        imperium_self.updateStatus(html);
-
-	        $('.option').off();
-	        $('.option').on('click', function() {
-
-	          let tokentype = $(this).attr("id");
-
+	        imperium_self.hud.updateMenu(menu, function(tokentype) {
                   imperium_self.addMove("purchase\t"+action_card_player+"\t"+tokentype+"\t"+"1");
                   imperium_self.addMove("deactivate\t"+action_card_player+"\t"+sector);
                   imperium_self.addMove("NOTIFY\t"+imperium_self.returnFaction(action_card_player) + " deactivates " + imperium_self.game.sectors[sector].name);

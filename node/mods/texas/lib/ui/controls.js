@@ -53,10 +53,8 @@ class Controls {
     if (main) {
       main.classList.remove('is-your-move');
     }
-    if (this.mod && typeof this.mod.updateControls === 'function') {
-      this.mod.updateControls('', 1);
-    }
     if (this.mod?.result) {
+      this.mod.result.clearAcknowledge();
       this.mod.result.hide();
     }
     this.closeRaiseSheet();
@@ -73,8 +71,8 @@ class Controls {
 
     this.closeRaiseSheet();
     row.innerHTML = '';
-    if (this.mod && typeof this.mod.updateControls === 'function') {
-      this.mod.updateControls('', 1);
+    if (this.mod?.result) {
+      this.mod.result.clearAcknowledge();
     }
 
     this.addArtifact(row, {

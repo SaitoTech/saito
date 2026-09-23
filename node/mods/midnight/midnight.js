@@ -117,7 +117,10 @@ class Midnight extends GameTemplate {
 
   initializeGame(game_id) {
     if (!this.game.state) {
-      this.updateStatus('Generating the Game');
+            this.game.status = 'Generating the Game';
+      this.hud.updateStatus(this.game.status);
+      this.hud.updateMenu([]);
+      this.hud.updateCards([]);
       this.game.queue = [];
       this.game.queue.push('page\t001');
       this.game.queue.push('select_potion');
@@ -406,7 +409,10 @@ class Midnight extends GameTemplate {
       html += `<div class="potion" id="${s}">${this.potions[s].name} : ${this.potions[s].desc}</div>`;
     }
     html += `</div>`;
-    this.updateStatus(html);
+        this.game.status = html;
+    this.hud.updateStatus(this.game.status);
+    this.hud.updateMenu([]);
+    this.hud.updateCards([]);
 
     $('.potion').on('click', function () {
       let choice = $(this).attr('id');
@@ -425,7 +431,10 @@ class Midnight extends GameTemplate {
     }
     html += `</div>
             <button class="saito-button-primary" id="confirm_btn">CONFIRM</button>`;
-    this.updateStatus(html);
+        this.game.status = html;
+    this.hud.updateStatus(this.game.status);
+    this.hud.updateMenu([]);
+    this.hud.updateCards([]);
     let skills = [];
     $('.special_skills div').on('click', function () {
       let choice = $(this).attr('id');
@@ -576,9 +585,10 @@ class Midnight extends GameTemplate {
       }
     }
 
-    this.updateStatus(
-      `<div class="page_number">${page_num}</div><div class="story">${page.text}</div>${html}`
-    );
+        this.game.status = `<div class="page_number">${page_num}</div><div class="story">${page.text}</div>${html}`;
+    this.hud.updateStatus(this.game.status);
+    this.hud.updateMenu([]);
+    this.hud.updateCards([]);
 
     $('.textchoice').off();
     $('.textchoice').on('click', function () {
@@ -626,9 +636,10 @@ class Midnight extends GameTemplate {
       html += '</ul>';
     }
 
-    this.updateStatus(
-      `<div class="page_number">${this.game.state.currentpage}</div><div class="story">${page.text}</div>${html}`
-    );
+        this.game.status = `<div class="page_number">${this.game.state.currentpage}</div><div class="story">${page.text}</div>${html}`;
+    this.hud.updateStatus(this.game.status);
+    this.hud.updateMenu([]);
+    this.hud.updateCards([]);
 
     $('.textchoice').off();
     $('.textchoice').on('click', function () {
@@ -684,9 +695,10 @@ class Midnight extends GameTemplate {
       }">Failure! You lose 4 STAMINA points and 1 SKILL point</li>`;
     }
 
-    this.updateStatus(
-      `<div class="page_number">${this.game.state.currentpage}</div><div class="story">${page.text}</div>${html}${choicesHTML}`
-    );
+        this.game.status = `<div class="page_number">${this.game.state.currentpage}</div><div class="story">${page.text}</div>${html}${choicesHTML}`;
+    this.hud.updateStatus(this.game.status);
+    this.hud.updateMenu([]);
+    this.hud.updateCards([]);
     this.displayPlayer();
 
     $('.textchoice').off();
@@ -717,9 +729,10 @@ class Midnight extends GameTemplate {
       this.game.state.luck--;
     }
 
-    this.updateStatus(
-      `<div class="page_number">${this.game.state.currentpage}</div><div class="story">${page.text}</div>${html}${choices}`
-    );
+        this.game.status = `<div class="page_number">${this.game.state.currentpage}</div><div class="story">${page.text}</div>${html}${choices}`;
+    this.hud.updateStatus(this.game.status);
+    this.hud.updateMenu([]);
+    this.hud.updateCards([]);
     this.displayPlayer();
 
     $('.textchoice').off();
@@ -804,11 +817,12 @@ class Midnight extends GameTemplate {
 
     const update = () => {
       this.displayPlayer();
-      this.updateStatus(
-        `<div class="page_number">${this.game.state.currentpage}</div><div class="story">${
+            this.game.status = `<div class="page_number">${this.game.state.currentpage}</div><div class="story">${
           this.book[this.game.state.currentpage].text
-        }</div>${combatHTML}${choicesHTML}`
-      );
+        }</div>${combatHTML}${choicesHTML}`;
+      this.hud.updateStatus(this.game.status);
+      this.hud.updateMenu([]);
+      this.hud.updateCards([]);
 
       $('.textchoice').off();
       $('.textchoice').on('click', function () {
@@ -980,11 +994,12 @@ class Midnight extends GameTemplate {
 
     const update = () => {
       this.displayPlayer();
-      this.updateStatus(
-        `<div class="page_number">${this.game.state.currentpage}</div><div class="story">${
+            this.game.status = `<div class="page_number">${this.game.state.currentpage}</div><div class="story">${
           this.book[this.game.state.currentpage].text
-        }</div>${combatHTML}${choicesHTML}`
-      );
+        }</div>${combatHTML}${choicesHTML}`;
+      this.hud.updateStatus(this.game.status);
+      this.hud.updateMenu([]);
+      this.hud.updateCards([]);
 
       $('.textchoice').off();
       $('.textchoice').on('click', function () {
@@ -1058,11 +1073,12 @@ class Midnight extends GameTemplate {
         choicesHTML = `<ul class="choicelist"><li class="textchoice" id="success">${success_message}</li></ul>`;
       }
 
-      this.updateStatus(
-        `<div class="page_number">${this.game.state.currentpage}</div><div class="story">${
+            this.game.status = `<div class="page_number">${this.game.state.currentpage}</div><div class="story">${
           this.book[this.game.state.currentpage].text
-        }</div>${html}${choicesHTML}`
-      );
+        }</div>${html}${choicesHTML}`;
+      this.hud.updateStatus(this.game.status);
+      this.hud.updateMenu([]);
+      this.hud.updateCards([]);
       $('.textchoice').off();
       $('.textchoice').on('click', function () {
         let action = $(this).attr('id');
@@ -1073,11 +1089,12 @@ class Midnight extends GameTemplate {
       });
     };
 
-    this.updateStatus(
-      `<div class="page_number">${this.game.state.currentpage}</div><div class="story">${
+        this.game.status = `<div class="page_number">${this.game.state.currentpage}</div><div class="story">${
         this.book[this.game.state.currentpage].text
-      }</div>${html}${choicesHTML}`
-    );
+      }</div>${html}${choicesHTML}`;
+    this.hud.updateStatus(this.game.status);
+    this.hud.updateMenu([]);
+    this.hud.updateCards([]);
 
     $('.textchoice').off();
     $('.textchoice').on('click', function () {
@@ -1106,11 +1123,12 @@ class Midnight extends GameTemplate {
     }
     choicesHTML += '</ul>';
 
-    this.updateStatus(
-      `<div class="page_number">${this.game.state.currentpage}</div><div class="story">${
+        this.game.status = `<div class="page_number">${this.game.state.currentpage}</div><div class="story">${
         this.book[this.game.state.currentpage].text
-      }</div>${choicesHTML}`
-    );
+      }</div>${choicesHTML}`;
+    this.hud.updateStatus(this.game.status);
+    this.hud.updateMenu([]);
+    this.hud.updateCards([]);
 
     $('.textchoice').off();
     $('.textchoice').on('click', function () {
@@ -1140,11 +1158,12 @@ class Midnight extends GameTemplate {
     }
     choicesHTML += `</div>`;
 
-    this.updateStatus(
-      `<div class="page_number">${this.game.state.currentpage}</div><div class="story">${
+        this.game.status = `<div class="page_number">${this.game.state.currentpage}</div><div class="story">${
         this.book[this.game.state.currentpage].text
-      }</div>${choicesHTML}`
-    );
+      }</div>${choicesHTML}`;
+    this.hud.updateStatus(this.game.status);
+    this.hud.updateMenu([]);
+    this.hud.updateCards([]);
 
     $('.special_skills div').off();
     $('.special_skills div').on('click', function () {

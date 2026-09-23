@@ -235,7 +235,7 @@ class PathsOfGlory extends GameTemplate {
     // add card events -- text shown and callback run if there
     //
     this.cardbox.addCardType("showcard", "", null);
-    this.cardbox.addCardType("card", "select", this.cardbox_callback);
+    this.cardbox.addCardType("card", "select", null);
     if (app.browser.isMobileBrowser(navigator.userAgent)) {
       this.cardbox.skip_card_prompt = 0;
     }
@@ -302,7 +302,7 @@ class PathsOfGlory extends GameTemplate {
     //
     // re-fill status and log
     //
-    if (this.game.status != "") { this.updateStatus(this.game.status); }
+    if (this.game.status != "") {     this.hud.updateStatus(this.game.status); }
 
     //
     // initialize game objects
@@ -1779,7 +1779,10 @@ console.log("---------------------------");
 console.log("DECK: " + this.game.options.deck);
 console.log("\n\n\n\n");
 
-      this.updateStatus("<div class='status-message' id='status-message'>Generating the Game</div>");
+            this.game.status = "<div class='status-message' id='status-message'>Generating the Game</div>";
+      this.hud.updateStatus(this.game.status);
+      this.hud.updateMenu([]);
+      this.hud.updateCards([]);
 
       //
       // Game Queue
@@ -2269,7 +2272,10 @@ console.log(JSON.stringify(attacker_units));
           	if (options.includes(key)) { return 1; }
               },
               (key) => {
-		paths_self.updateStatus("processing...");
+				paths_self.game.status = "processing...";
+		paths_self.hud.updateStatus(paths_self.game.status);
+		paths_self.hud.updateMenu([]);
+		paths_self.hud.updateCards([]);
  		paths_self.addMove("entrench\tallies\t"+key);
  		paths_self.endTurn();
 		return 0;
@@ -2486,7 +2492,10 @@ deck['ap14'] = {
       	    }
 
 	    let execute_fnct = (spacekey, unit_idx) => {
-      		paths_self.updateStatus("processing...");
+      		      		paths_self.game.status = "processing...";
+      		paths_self.hud.updateStatus(paths_self.game.status);
+      		paths_self.hud.updateMenu([]);
+      		paths_self.hud.updateCards([]);
 	        if (spacekey === "pass") {
         	  paths_self.removeSelectable();
         	  paths_self.endTurn();
@@ -2550,7 +2559,10 @@ deck['ap14'] = {
 	    if (paths_self.game.player == p1) {
 	      loop_fnct();
 	    } else {
-	      paths_self.updateStatus("Central Powers playing " + paths_self.popup("cp05"));
+	      	      paths_self.game.status = "Central Powers playing " + paths_self.popup("cp05");
+	      paths_self.hud.updateStatus(paths_self.game.status);
+	      paths_self.hud.updateMenu([]);
+	      paths_self.hud.updateCards([]);
 	    }
             return 0;
           } 
@@ -2610,7 +2622,10 @@ deck['ap14'] = {
           	if (options.includes(key)) { return 1; }
               },
               (key) => {
-		paths_self.updateStatus("processing...");
+				paths_self.game.status = "processing...";
+		paths_self.hud.updateStatus(paths_self.game.status);
+		paths_self.hud.updateMenu([]);
+		paths_self.hud.updateCards([]);
  		paths_self.addMove("entrench\tcentral\t"+key);
  		paths_self.endTurn();
 		return 0;
@@ -2838,7 +2853,10 @@ deck['ap16'] = {
 	      paths_self.endTurn();
 	    });
 	  } else {
-	    paths_self.updateStatus("Romania entering war...");
+	    	    paths_self.game.status = "Romania entering war...";
+	    paths_self.hud.updateStatus(paths_self.game.status);
+	    paths_self.hud.updateMenu([]);
+	    paths_self.hud.updateCards([]);
 	  }
 
           paths_self.displayCustomOverlay({
@@ -3045,7 +3063,10 @@ deck['ap23'] = {
               paths_self.addMove("cloak_and_dagger_results\t"+JSON.stringify(paths_self.game.deck[0].hand));
               paths_self.endTurn();
 	    } else {
-	      paths_self.updateStatus("opponent revealing hand...");
+	      	      paths_self.game.status = "opponent revealing hand...";
+	      paths_self.hud.updateStatus(paths_self.game.status);
+	      paths_self.hud.updateMenu([]);
+	      paths_self.hud.updateCards([]);
 	    }
             return 0;
           } 
@@ -3204,7 +3225,10 @@ deck['ap29'] = {
 	      paths_self.endTurn();
 	    });
 	  } else {
-	    paths_self.updateStatus("Russia placing unit...");
+	    	    paths_self.game.status = "Russia placing unit...";
+	    paths_self.hud.updateStatus(paths_self.game.status);
+	    paths_self.hud.updateMenu([]);
+	    paths_self.hud.updateCards([]);
 	  }       
 
 	  return 0;
@@ -3256,7 +3280,10 @@ deck['ap30'] = {
             let loop_fnct = () => {
 
 	      max_units_movable = 3 - paths_self.game.spaces["salonika"].units.length;
-	      if (max_units_movable <= 0) { paths_self.updateStatus("submitting"); paths_self.endTurn(); return 0; }
+	      if (max_units_movable <= 0) { 	      paths_self.game.status = "submitting";
+	      paths_self.hud.updateStatus(paths_self.game.status);
+	      paths_self.hud.updateMenu([]);
+	      paths_self.hud.updateCards([]); paths_self.endTurn(); return 0; }
 
               if (continue_fnct()) {
         	paths_self.playerSelectUnitWithFilter(
@@ -3288,7 +3315,10 @@ deck['ap30'] = {
 	    }
 
 	    let execute_fnct = (spacekey, unit_idx) => {
-	      paths_self.updateStatus("processing...");
+	      	      paths_self.game.status = "processing...";
+	      paths_self.hud.updateStatus(paths_self.game.status);
+	      paths_self.hud.updateMenu([]);
+	      paths_self.hud.updateCards([]);
 	      if (spacekey === "pass") {
 	        paths_self.removeSelectable();
 	        paths_self.endTurn();
@@ -3355,7 +3385,10 @@ deck['ap31'] = {
               "Place MEF Where? " ,
               filter_fnct ,
               (key) => {
-		paths_self.updateStatus("processing...");
+				paths_self.game.status = "processing...";
+		paths_self.hud.updateStatus(paths_self.game.status);
+		paths_self.hud.updateMenu([]);
+		paths_self.hud.updateCards([]);
  		paths_self.addMove("mef_placement\t"+key);
  		paths_self.endTurn();
 		return 0;
@@ -3367,7 +3400,10 @@ deck['ap31'] = {
 	    return 0;
 
 	  } else {
-	    paths_self.updateStatus("Allies placing MEF...");
+	    	    paths_self.game.status = "Allies placing MEF...";
+	    paths_self.hud.updateStatus(paths_self.game.status);
+	    paths_self.hud.updateMenu([]);
+	    paths_self.hud.updateCards([]);
 	  }	
 	  return 0;
 	},
@@ -3521,7 +3557,10 @@ deck['ap34'] = {
               paths_self.addMove("matahari_results\t"+JSON.stringify(paths_self.game.deck[1].hand)+"\t2");
               paths_self.endTurn();
             } else {
-              paths_self.updateStatus("opponent revealing hand...");
+                            paths_self.game.status = "opponent revealing hand...";
+              paths_self.hud.updateStatus(paths_self.game.status);
+              paths_self.hud.updateMenu([]);
+              paths_self.hud.updateCards([]);
             }
             return 0;
           }
@@ -3880,7 +3919,10 @@ deck['cp32'] = {
 	    }
 
 	    let execute_fnct = (spacekey, unit_idx) => {
-	      paths_self.updateStatus("processing...");
+	      	      paths_self.game.status = "processing...";
+	      paths_self.hud.updateStatus(paths_self.game.status);
+	      paths_self.hud.updateMenu([]);
+	      paths_self.hud.updateCards([]);
 	      if (spacekey === "pass") {
 	        paths_self.removeSelectable();
 	        paths_self.endTurn();
@@ -3909,13 +3951,15 @@ deck['cp32'] = {
 	    //
 	    // should they remove 
 	    //
-    	    let html = `<ul>`;
-    	    html    += `<li class="card" id="remove">remove BR corps</li>`;
-    	    html    += `<li class="card" id="vp">cede +1 VP</li>`;
-    	    html    += `</ul>`; 
+    	    let options = [
+    	      { id: "remove", label: "remove BR corps" },
+    	      { id: "vp", label: "cede +1 VP" },
+    	    ];
 
-    	    paths_self.updateStatusWithOptions(`War in Africa!`, html);
-    	    paths_self.attachCardboxEvents((action) => {
+    	    paths_self.game.status = `War in Africa!`;
+    	    paths_self.hud.updateStatus(paths_self.game.status);
+    	    paths_self.hud.updateCards([]);
+    	    paths_self.hud.updateMenu(options, (action) => {
     
       	      if (action === "remove") {
                 paths_self.playerSelectUnitWithFilter(
@@ -3938,7 +3982,10 @@ deck['cp32'] = {
     	    });
 
 	  } else {
-	    paths_self.updateStatus("Allies playing War in Africa");
+	    	    paths_self.game.status = "Allies playing War in Africa";
+	    paths_self.hud.updateStatus(paths_self.game.status);
+	    paths_self.hud.updateMenu([]);
+	    paths_self.hud.updateCards([]);
 	  }
 
 	  return 0;
@@ -3986,7 +4033,10 @@ deck['cp33'] = {
 	      paths_self.endTurn();
 	    });
 	  } else {
-	    paths_self.updateStatus("Bulgaria entering war...");
+	    	    paths_self.game.status = "Bulgaria entering war...";
+	    paths_self.hud.updateStatus(paths_self.game.status);
+	    paths_self.hud.updateMenu([]);
+	    paths_self.hud.updateCards([]);
 	  }
 
           paths_self.displayCustomOverlay({
@@ -4483,7 +4533,10 @@ deck['ap56'] = {
       	    }
 
 	    let execute_fnct = (spacekey, unit_idx) => {
-      		paths_self.updateStatus("processing...");
+      		      		paths_self.game.status = "processing...";
+      		paths_self.hud.updateStatus(paths_self.game.status);
+      		paths_self.hud.updateMenu([]);
+      		paths_self.hud.updateCards([]);
 	        if (spacekey === "pass") {
         	  paths_self.removeSelectable();
         	  paths_self.endTurn();
@@ -4557,7 +4610,10 @@ deck['ap57'] = {
                 paths_self.endTurn();
               });
             } else {
-              paths_self.updateStatus("Russia placing unit...");
+                            paths_self.game.status = "Russia placing unit...";
+              paths_self.hud.updateStatus(paths_self.game.status);
+              paths_self.hud.updateMenu([]);
+              paths_self.hud.updateCards([]);
             }
 
 	  }
@@ -11529,7 +11585,10 @@ this.updateLog(`###############`);
 
 	if (mv[0] == "deal_strategy_cards") {
 
-	  this.updateStatus("reshuffling discards...");
+	  	  this.game.status = "reshuffling discards...";
+	  this.hud.updateStatus(this.game.status);
+	  this.hud.updateMenu([]);
+	  this.hud.updateCards([]);
 
 	  this.game.queue.splice(qe, 1);
 
@@ -11695,7 +11754,10 @@ console.log("central_cards_post_deal: " + central_cards_post_deal);
 	    this.playerSpendReplacementPoints(faction);
 	  } else {
 	    this.replacements_overlay.hide();
-	    this.updateStatus(this.returnFactionName(faction) + " assigning replacement points...");
+	    	    this.game.status = this.returnFactionName(faction) + " assigning replacement points...";
+	    this.hud.updateStatus(this.game.status);
+	    this.hud.updateMenu([]);
+	    this.hud.updateCards([]);
 	  }
 
 	  return 0;
@@ -11717,7 +11779,10 @@ console.log("central_cards_post_deal: " + central_cards_post_deal);
 
 	  if (vp.vp <= 0) {
 	    this.displayGeneralRecordsTrack();
-	    this.updateStatus("Allied Powers Victory!");
+	    	    this.game.status = "Allied Powers Victory!";
+	    this.hud.updateStatus(this.game.status);
+	    this.hud.updateMenu([]);
+	    this.hud.updateCards([]);
             this.displayCustomOverlay({
               text : "The Allied Powers secure peace on beneficial terms...",
               title : "Allied Victory!",
@@ -11732,7 +11797,10 @@ console.log("central_cards_post_deal: " + central_cards_post_deal);
 
 	  if (vp.vp >= 20) {
 	    this.displayGeneralRecordsTrack();
-	    this.updateStatus("Central Powers Victory!");
+	    	    this.game.status = "Central Powers Victory!";
+	    this.hud.updateStatus(this.game.status);
+	    this.hud.updateMenu([]);
+	    this.hud.updateCards([]);
             this.displayCustomOverlay({
               text : "The Central Powers crush the Allied Powers...",
               title : "Central Victory!",
@@ -11893,7 +11961,10 @@ console.log("central_cards_post_deal: " + central_cards_post_deal);
 		    if (roll > space.fort) {
 		      space.fort = -1;
 		      this.updateLog(this.returnSpaceNameForLog(space.key) + " fort destroyed (roll: " + roll + ")");
-		      this.updateStatus(this.returnSpaceNameForLog(space.key) + " fort destroyed (roll: " + roll + ")");
+		      		      this.game.status = this.returnSpaceNameForLog(space.key) + " fort destroyed (roll: " + roll + ")";
+		      this.hud.updateStatus(this.game.status);
+		      this.hud.updateMenu([]);
+		      this.hud.updateCards([]);
 
 	              //
 	              // switch control
@@ -11908,7 +11979,10 @@ console.log("central_cards_post_deal: " + central_cards_post_deal);
 		      this.shakeSpacekey(key);
 
 		    } else {
-		      this.updateStatus(this.returnSpaceNameForLog(space.key) + " fort resists siege (roll: " + roll + ")");
+		      		      this.game.status = this.returnSpaceNameForLog(space.key) + " fort resists siege (roll: " + roll + ")";
+		      this.hud.updateStatus(this.game.status);
+		      this.hud.updateMenu([]);
+		      this.hud.updateCards([]);
 		      this.updateLog(this.returnSpaceNameForLog(space.key) + " fort resists siege (roll: " + roll + ")");
 		    }
 
@@ -11978,15 +12052,20 @@ console.log("central_cards_post_deal: " + central_cards_post_deal);
 	      hold = this.game.deck[1].hand[0];
 	    }
 
-    	    let html = `<ul>`;
-	    html    += `<li class="card" id="discard">discard [${paths_self.popup(hold)}]</li>`;
-	    html    += `<li class="card" id="hold">do not discard</li>`;
-	    html    += `</ul>`;
+    	    let options = [
+	      { id: "discard", label: `discard [${paths_self.popup(hold)}]` },
+	      { id: "hold", label: "do not discard" },
+	    ];
 
-	    this.updateStatusWithOptions(`Discard Combat Card?`, html);
-	    this.attachCardboxEvents((action) => {
+	    this.game.status = `Discard Combat Card?`;
+	    this.hud.updateStatus(this.game.status);
+	    this.hud.updateCards([]);
+	    this.hud.updateMenu(options, (action) => {
 
-	      this.updateStatus("processing...");
+	      	      this.game.status = "processing...";
+	      this.hud.updateStatus(this.game.status);
+	      this.hud.updateMenu([]);
+	      this.hud.updateCards([]);
 
 	      if (action === "discard") {
 		this.addMove("SETVAR\tstate\tcards_left\t"+this.returnFactionOfPlayer()+"\t"+(num-1));
@@ -12002,7 +12081,10 @@ console.log("central_cards_post_deal: " + central_cards_post_deal);
 
 	  } else {
 	    this.displayBoard();
-	    this.updateStatus("Opponent deciding on card discard...");
+	    	    this.game.status = "Opponent deciding on card discard...";
+	    this.hud.updateStatus(this.game.status);
+	    this.hud.updateMenu([]);
+	    this.hud.updateCards([]);
 	  }
 
 	  return 0;
@@ -12493,7 +12575,10 @@ if (this.game.state.turn == 1) {
 	    }
 	    if (end_the_game) {
               this.displayGeneralRecordsTrack();
-              this.updateStatus("Allied Powers Victory!");
+                            this.game.status = "Allied Powers Victory!";
+              this.hud.updateStatus(this.game.status);
+              this.hud.updateMenu([]);
+              this.hud.updateCards([]);
               this.displayCustomOverlay({
                 text : "The Allies crush the Central Powers...",
                 title : "Allied Victory!",
@@ -12523,7 +12608,7 @@ if (this.game.state.turn == 1) {
 	  this.removeOverstackedUnits();
 	  this.checkSupplyStatus();
 
-	  this.unbindBackButtonFunction();
+	  this.hud.hideBackButton();
 
 console.log("faction: " + faction);
 console.log("central_passed: " + this.game.state.central_passed);
@@ -12534,14 +12619,20 @@ console.log("allies_passed: " + this.game.state.allies_passed);
 	  if (faction === "central" && parseInt(this.game.state.central_passed) == 1) {
 	    for (let z = 0; z < this.game.deck[0].hand.length; z++) { if (this.game.deck[0].hand[z] == "pass") { this.game.deck[0].hand.splice(z, 1); } }
 	    this.game.queue.splice(qe, 1); 
-	    this.updateStatusAndListCards(`Opponent Turn 1`, hand);
-	    this.attachCardboxEvents((action) => {});
+	    this.game.status = `Opponent Turn 1`;
+	    this.hud.updateStatus(this.game.status);
+	    this.hud.updateMenu([]);
+	    this.hud.updateCards(hand);
+	    this.cardbox.attachCardEvents();
 	    return 1; 
 	  }
 	  if (faction === "allies" && parseInt(this.game.state.allies_passed) == 1) {
 	    for (let z = 0; z < this.game.deck[1].hand.length; z++) { if (this.game.deck[1].hand[z] == "pass") { this.game.deck[0].hand.splice(z, 1); } }
-	    this.updateStatusAndListCards(`Opponent Turn`, hand);
-	    this.attachCardboxEvents((action) => {});
+	    this.game.status = `Opponent Turn`;
+	    this.hud.updateStatus(this.game.status);
+	    this.hud.updateMenu([]);
+	    this.hud.updateCards(hand);
+	    this.cardbox.attachCardEvents();
 	    this.game.queue.splice(qe, 1);
 	    return 1; 
 	  }
@@ -12551,8 +12642,11 @@ console.log("allies_passed: " + this.game.state.allies_passed);
 	  if (this.game.player == player) {
 	    this.playerTurn(faction);
 	  } else {
-	    this.updateStatusAndListCards(`Opponent Turn`, hand);
-	    this.attachCardboxEvents((action) => {});
+	    this.game.status = `Opponent Turn`;
+	    this.hud.updateStatus(this.game.status);
+	    this.hud.updateMenu([]);
+	    this.hud.updateCards(hand);
+	    this.cardbox.attachCardEvents();
 	  }
 	  
 	  return 0;
@@ -12930,7 +13024,10 @@ try {
 	    if (this.game.player == this.returnPlayerOfFaction(faction)) {
 	      this.playerPlayStrategicRedeployment(faction, card, value);
             } else {
-	      this.updateStatus("Opponent Redeploying...");
+	      	      this.game.status = "Opponent Redeploying...";
+	      this.hud.updateStatus(this.game.status);
+	      this.hud.updateMenu([]);
+	      this.hud.updateCards([]);
 	    }
 	    return 0;
 	  } else {
@@ -13072,7 +13169,10 @@ try {
 	  if (this.game.player == player) {
 	    this.playerPlayCombat(faction);
 	  } else {
-	    this.updateStatus(this.returnFactionName(faction) + " executing combat");
+	    	    this.game.status = this.returnFactionName(faction) + " executing combat";
+	    this.hud.updateStatus(this.game.status);
+	    this.hud.updateMenu([]);
+	    this.hud.updateCards([]);
 	  }
 
 	  return 0;
@@ -13482,7 +13582,10 @@ console.log(JSON.stringify(this.game.state.cc_allies_active));
 	  if (this.game.player != this.returnPlayerOfFaction(this.game.state.combat.attacking_faction)) {
 	    this.playerSelectDefenderCombatCards();
 	  } else {
-	    this.updateStatus("Defender Selecting Combat Cards...");
+	    	    this.game.status = "Defender Selecting Combat Cards...";
+	    this.hud.updateStatus(this.game.status);
+	    this.hud.updateMenu([]);
+	    this.hud.updateCards([]);
 	  }
 
 	  return 0;
@@ -13501,7 +13604,10 @@ console.log("AT: " + this.returnPlayerOfFaction(this.game.state.combat.attacking
 	  if (this.game.player == this.returnPlayerOfFaction(this.game.state.combat.attacking_faction)) {
 	    this.playerSelectAttackerCombatCards();
 	  } else {
-	    this.updateStatus("Attacker Selecting Combat Cards...");
+	    	    this.game.status = "Attacker Selecting Combat Cards...";
+	    this.hud.updateStatus(this.game.status);
+	    this.hud.updateMenu([]);
+	    this.hud.updateCards([]);
 	  }
 
 	  return 0;
@@ -13919,12 +14025,14 @@ console.log("error updated attacker loss factor: " + JSON.stringify(err));
 
 	    this.combat_overlay.hide();
   
-    	    let html = `<ul>`;
-	    html    += `<li class="card" id="advance">show overlay</li>`;
-	    html    += `</ul>`;
+    	    let options = [
+	      { id: "advance", label: "show overlay" },
+	    ];
 
-	    this.updateStatusWithOptions(`Assign Losses...`, html);
-	    this.attachCardboxEvents((action) => {
+	    this.game.status = `Assign Losses...`;
+	    this.hud.updateStatus(this.game.status);
+	    this.hud.updateCards([]);
+	    this.hud.updateMenu(options, (action) => {
 	      reloadWindow(1);
 	    });
 	    this.loss_overlay.render(power);
@@ -13933,8 +14041,11 @@ console.log("error updated attacker loss factor: " + JSON.stringify(err));
 
 	    this.combat_overlay.hide();
 	    this.loss_overlay.render(power);
-	    this.unbindBackButtonFunction();
-	    this.updateStatus("Opponent Assigning Losses");
+	    this.hud.hideBackButton();
+	    	    this.game.status = "Opponent Assigning Losses";
+	    this.hud.updateStatus(this.game.status);
+	    this.hud.updateMenu([]);
+	    this.hud.updateCards([]);
 	  }
 
 	  this.game.queue.splice(qe, 1);
@@ -13970,7 +14081,10 @@ console.log("error updated attacker loss factor: " + JSON.stringify(err));
           if (this.game.player == player) {
 	    this.playerPlayGreatAdvance(spacekey);
           } else {
-	    this.updateStatus("Central Powers considering advance...");
+	    	    this.game.status = "Central Powers considering advance...";
+	    this.hud.updateStatus(this.game.status);
+	    this.hud.updateMenu([]);
+	    this.hud.updateCards([]);
           }
 
 	  this.game.queue.splice(qe, 1);
@@ -13987,7 +14101,10 @@ console.log("error updated attacker loss factor: " + JSON.stringify(err));
           if (this.game.player == player) {
 	    this.playerHandleGreatRetreat(spacekey);
           } else {
-	    this.updateStatus("Russian evaluating retreat..."); 
+	    	    this.game.status = "Russian evaluating retreat...";
+	    this.hud.updateStatus(this.game.status);
+	    this.hud.updateMenu([]);
+	    this.hud.updateCards([]); 
           }
 
 	  return 0;
@@ -14127,7 +14244,10 @@ this.updateLog("Winner of the Combat: " + this.game.state.combat.winner);
 	    if (this.game.player == player) {
 	      this.playerPlayPostCombatRetreat();
 	    } else {
-	      this.updateStatus("Opponent Retreating...");
+	      	      this.game.status = "Opponent Retreating...";
+	      this.hud.updateStatus(this.game.status);
+	      this.hud.updateMenu([]);
+	      this.hud.updateCards([]);
 	    }
 	    return 0;
 	  } else {
@@ -14148,7 +14268,10 @@ this.updateLog("Winner of the Combat: " + this.game.state.combat.winner);
 	    if (this.game.player == player) {
 	      this.playerPlayAdvance();
 	    } else {
-	      this.updateStatus("Opponent deciding on advance...");
+	      	      this.game.status = "Opponent deciding on advance...";
+	      this.hud.updateStatus(this.game.status);
+	      this.hud.updateMenu([]);
+	      this.hud.updateCards([]);
 	    }
 	    return 1;
 	  }
@@ -14174,7 +14297,10 @@ this.updateLog("Winner of the Combat: " + this.game.state.combat.winner);
 	  if (this.game.player == player) {
 	    this.playerPlayAdvance();
 	  } else {
-	    this.updateStatus("Opponent deciding on advance...");
+	    	    this.game.status = "Opponent deciding on advance...";
+	    this.hud.updateStatus(this.game.status);
+	    this.hud.updateMenu([]);
+	    this.hud.updateCards([]);
 	  }
 
 	  return 0;
@@ -14207,7 +14333,10 @@ this.updateLog("Winner of the Combat: " + this.game.state.combat.winner);
 	    if (this.game.player == this.returnPlayerOfFaction(this.game.state.combat.attacking_faction)) {
 	      this.playerPlayFlankAttack();
 	    } else {
-	      this.updateStatus("Opponent considering Flank Attack");
+	      	      this.game.status = "Opponent considering Flank Attack";
+	      this.hud.updateStatus(this.game.status);
+	      this.hud.updateMenu([]);
+	      this.hud.updateCards([]);
 	    }
 	    return 0;
           }
@@ -14610,7 +14739,10 @@ console.log("pushing back attacker corps!");
 	  if (this.game.player == player) {
 	    this.playerPlayMovement(faction);
 	  } else {
-	    this.updateStatus(this.returnFactionName(faction) + " executing movement");
+	    	    this.game.status = this.returnFactionName(faction) + " executing movement";
+	    this.hud.updateStatus(this.game.status);
+	    this.hud.updateMenu([]);
+	    this.hud.updateCards([]);
 	  }
 
 	  return 0;
@@ -14632,7 +14764,10 @@ console.log("pushing back attacker corps!");
 	  if (this.game.player == player) {
 	    this.playerPlayOps(faction, card, cost, skipend);    
 	  } else {
-	    this.updateStatus(this.returnFactionName(faction) + " playing OPS");
+	    	    this.game.status = this.returnFactionName(faction) + " playing OPS";
+	    this.hud.updateStatus(this.game.status);
+	    this.hud.updateMenu([]);
+	    this.hud.updateCards([]);
 	  }
 
 	  return 0;
@@ -15191,8 +15326,11 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
 
     ccs.push("pass");
    
-    this.updateStatusAndListCards(`${name} - play combat card?`, ccs);
-    this.attachCardboxEvents((card) => {
+    this.game.status = `${name} - play combat card?`;
+    this.hud.updateStatus(this.game.status);
+    this.hud.updateMenu([]);
+    this.hud.updateCards(ccs);
+    this.cardbox.bindCallback((card) => {
 
       if (cards[card]) {
         if (!cards[card].canEvent(this, "attacker")) {
@@ -15201,8 +15339,11 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
         }
       }
 
-      this.unbindBackButtonFunction();
-      this.updateStatus("submitting...");
+      this.hud.hideBackButton();
+            this.game.status = "submitting...";
+      this.hud.updateStatus(this.game.status);
+      this.hud.updateMenu([]);
+      this.hud.updateCards([]);
 
       if (card == "pass") {
 	this.endTurn();
@@ -15218,7 +15359,8 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
 	this.endTurn();
       }
 
-    }); 
+    });
+    this.cardbox.attachCardEvents();
   }
 
   playerSelectDefenderCombatCards() {
@@ -15351,8 +15493,11 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
 
     ccs.push("pass");
    
-    this.updateStatusAndListCards(`${name} - play combat card?`, ccs);
-    this.attachCardboxEvents((card) => {
+    this.game.status = `${name} - play combat card?`;
+    this.hud.updateStatus(this.game.status);
+    this.hud.updateMenu([]);
+    this.hud.updateCards(ccs);
+    this.cardbox.bindCallback((card) => {
 
       if (cards[card]) {
         if (!cards[card].canEvent(this, "defender")) {
@@ -15361,8 +15506,11 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
         }
       }
 
-      this.unbindBackButtonFunction();
-      this.updateStatus("submitting...");
+      this.hud.hideBackButton();
+            this.game.status = "submitting...";
+      this.hud.updateStatus(this.game.status);
+      this.hud.updateMenu([]);
+      this.hud.updateCards([]);
 
       if (card == "pass") {
 	this.endTurn();
@@ -15378,7 +15526,8 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
 	this.endTurn();
       }
 
-    }); 
+    });
+    this.cardbox.attachCardEvents();
   }
 
 
@@ -15408,7 +15557,10 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
     }
 
     let execute_func = (spacekey) => {
-      paths_self.updateStatus("deploying...");
+            paths_self.game.status = "deploying...";
+      paths_self.hud.updateStatus(paths_self.game.status);
+      paths_self.hud.updateMenu([]);
+      paths_self.hud.updateCards([]);
       paths_self.removeSelectable();
       paths_self.addUnitToSpace(unit.key, spacekey);
       paths_self.addMove(`add\t${spacekey}\t${unit.key}\t${paths_self.game.player}`);    
@@ -15541,16 +15693,21 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
     }
 
 
-    let html = `<ul>`;
-    html    += `<li class="card" id="advance">advance</li>`;
-    html    += `<li class="card" id="refuse">do not advance</li>`;
-    html    += `</ul>`;
+    let options = [
+      { id: "advance", label: "advance" },
+      { id: "refuse", label: "do not advance" },
+    ];
 
-    this.updateStatusWithOptions(`Advance Full-Strength Units?`, html);
-    this.attachCardboxEvents((action) => {
+    this.game.status = `Advance Full-Strength Units?`;
+    this.hud.updateStatus(this.game.status);
+    this.hud.updateCards([]);
+    this.hud.updateMenu(options, (action) => {
 
-      this.unbindBackButtonFunction();
-      this.updateStatus("submitting...");
+      this.hud.hideBackButton();
+            this.game.status = "submitting...";
+      this.hud.updateStatus(this.game.status);
+      this.hud.updateMenu([]);
+      this.hud.updateCards([]);
 
       if (action === "advance") {
 	this.playerHandleAdvance();
@@ -15597,16 +15754,21 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
     }
 
 
-    let html = `<ul>`;
-    html    += `<li class="card" id="advance">advance</li>`;
-    html    += `<li class="card" id="refuse">do not advance</li>`;
-    html    += `</ul>`;
+    let options = [
+      { id: "advance", label: "advance" },
+      { id: "refuse", label: "do not advance" },
+    ];
 
-    this.updateStatusWithOptions(`Russians Retreat - Advance Full-Strength Units?`, html);
-    this.attachCardboxEvents((action) => {
+    this.game.status = `Russians Retreat - Advance Full-Strength Units?`;
+    this.hud.updateStatus(this.game.status);
+    this.hud.updateCards([]);
+    this.hud.updateMenu(options, (action) => {
 
-      this.unbindBackButtonFunction();
-      this.updateStatus("submitting...");
+      this.hud.hideBackButton();
+            this.game.status = "submitting...";
+      this.hud.updateStatus(this.game.status);
+      this.hud.updateMenu([]);
+      this.hud.updateCards([]);
 
       if (action === "advance") {
 	this.playerHandleGreatAdvance(spacekey);
@@ -15637,8 +15799,11 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
 
     if (this.game.state.combat.unoccupied_fort == 1 && this.game.spaces[this.game.state.combat.key].fort == -1) {
       let key = this.game.state.combat.key;
-      this.unbindBackButtonFunction();
-      this.updateStatus("advancing...");
+      this.hud.hideBackButton();
+            this.game.status = "advancing...";
+      this.hud.updateStatus(this.game.status);
+      this.hud.updateMenu([]);
+      this.hud.updateCards([]);
 
       for (let i = 0; i < attacker_units.length; i++) {
         let x = attacker_units[i];
@@ -15723,8 +15888,11 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
 
     if (roptions.length == 1) {
       let key = roptions[0];
-      this.unbindBackButtonFunction();
-      this.updateStatus("advancing...");
+      this.hud.hideBackButton();
+            this.game.status = "advancing...";
+      this.hud.updateStatus(this.game.status);
+      this.hud.updateMenu([]);
+      this.hud.updateCards([]);
 
       for (let i = 0, j = 0; j <= 2 && i < attacker_units.length; i++) {
         let x = attacker_units[i];
@@ -15766,8 +15934,11 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
       },
       (key) => {
 
-	this.unbindBackButtonFunction();
-	this.updateStatus("advancing...");
+	this.hud.hideBackButton();
+		this.game.status = "advancing...";
+	this.hud.updateStatus(this.game.status);
+	this.hud.updateMenu([]);
+	this.hud.updateCards([]);
 
 	for (let i = 0, j = 0; j <= 2 && i < attacker_units.length; i++) {
           let x = attacker_units[i];
@@ -15810,8 +15981,11 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
     let faction = "central";
     let key = sourcekey;
 
-    this.unbindBackButtonFunction();
-    this.updateStatus("advancing...");
+    this.hud.hideBackButton();
+        this.game.status = "advancing...";
+    this.hud.updateStatus(this.game.status);
+    this.hud.updateMenu([]);
+    this.hud.updateCards([]);
 
     for (let i = 0; i < attacker_units.length; i++) {
       let x = attacker_units[i];
@@ -15842,18 +16016,23 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
 
     let continue_func = () => {};
 
-    let html = `<ul>`;
-    html    += `<li class="card" id="overlay">show overlay</li>`;
-    html    += `<li class="card" id="finish">finish</li>`;
-    html    += `</ul>`;
+    let options = [
+      { id: "overlay", label: "show overlay" },
+      { id: "finish", label: "finish" },
+    ];
 
     this.replacements_overlay.hideSubMenu();
 
-    this.updateStatusWithOptions(`Replacements Stage`, html);
-    this.attachCardboxEvents((action) => {
+    this.game.status = `Replacements Stage`;
+    this.hud.updateStatus(this.game.status);
+    this.hud.updateCards([]);
+    this.hud.updateMenu(options, (action) => {
 
-      this.updateStatus("continuing...");
-      this.unbindBackButtonFunction();
+            this.game.status = "continuing...";
+      this.hud.updateStatus(this.game.status);
+      this.hud.updateMenu([]);
+      this.hud.updateCards([]);
+      this.hud.hideBackButton();
 
       if (action === "overlay") {
         if (continue_func()) {
@@ -16019,16 +16198,21 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
       return;
     }
 
-    let html = `<ul>`;
-    html    += `<li class="card" id="retreat">retreat</li>`;
-    html    += `<li class="card" id="hit">take additional hit</li>`;
-    html    += `</ul>`;
+    let options = [
+      { id: "retreat", label: "retreat" },
+      { id: "hit", label: "take additional hit" },
+    ];
 
-    this.updateStatusWithOptions(`Retreat?`, html);
-    this.attachCardboxEvents((action) => {
+    this.game.status = `Retreat?`;
+    this.hud.updateStatus(this.game.status);
+    this.hud.updateCards([]);
+    this.hud.updateMenu(options, (action) => {
 
-      this.updateStatus("continuing...");
-      this.unbindBackButtonFunction();
+            this.game.status = "continuing...";
+      this.hud.updateStatus(this.game.status);
+      this.hud.updateMenu([]);
+      this.hud.updateCards([]);
+      this.hud.hideBackButton();
 
       if (action === "retreat") {
 	this.playerHandleRetreat();
@@ -16161,7 +16345,10 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
       }
 
       let finishRetreat = (key) => {
-	paths_self.updateStatus("retreating...");
+		paths_self.game.status = "retreating...";
+	paths_self.hud.updateStatus(paths_self.game.status);
+	paths_self.hud.updateMenu([]);
+	paths_self.hud.updateCards([]);
         if (source.units[unit_idx].key === "mn_corps") {
 	  paths_self.prependMove("NOTIFY\tMN Corps disintegrates during retreat...");
           paths_self.prependMove(`eliminate\t${source.key}\t${unit_idx}`);
@@ -16290,7 +16477,10 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
 	      return;
 	    }
 
-	    paths_self.updateStatus("retreating...");
+	    	    paths_self.game.status = "retreating...";
+	    paths_self.hud.updateStatus(paths_self.game.status);
+	    paths_self.hud.updateMenu([]);
+	    paths_self.hud.updateCards([]);
             paths_self.moveUnit(sourcekey, unit_idx, key);
 	    paths_self.prependMove(`SETVAR\tstate\tevents\tgreat_retreat_used\t1`);
 	    paths_self.prependMove(`retreat\t${faction}\t${sourcekey}\t${unit_idx}\t${key}\t${paths_self.game.player}`);
@@ -16320,19 +16510,23 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
 
   playerPlayGunsOfAugust() {
 
-    let html = `<ul>`;
-    html    += `<li class="card" id="guns">Guns of August</li>`;
-    html    += `<li class="card" id="other">other card</li>`;
-    html    += `</ul>`;
+    let options = [
+      { id: "guns", label: "Guns of August" },
+      { id: "other", label: "other card" },
+    ];
 
-    this.updateStatusWithOptions(`Choose Your Seventh Card:`, html);
+    this.game.status = `Choose Your Seventh Card:`;
+    this.hud.updateStatus(this.game.status);
+    this.hud.updateCards([]);
     this.guns_overlay.render();
+    this.hud.updateMenu(options, (action) => {
 
-    this.attachCardboxEvents((action) => {
-
-      this.unbindBackButtonFunction();
+      this.hud.hideBackButton();
       this.guns_overlay.remove();
-      this.updateStatus("processing...");
+            this.game.status = "processing...";
+      this.hud.updateStatus(this.game.status);
+      this.hud.updateMenu([]);
+      this.hud.updateCards([]);
 
       if (action === "guns") {
         this.game.deck[0].hand.push("cp01");
@@ -16353,9 +16547,10 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
     //
     // it is possible to launch a flank attack if we want
     //
-    let html = `<ul>`;
-    html    += `<li class="option" id="yes">flank attack</li>`;
-    html    += `<li class="option" id="no">normal attack</li>`;
+    let options = [
+      { id: "yes", label: "flank attack" },
+      { id: "no", label: "normal attack" },
+    ];
     if (this.game.deck[0].hand.includes("cp44")) {
       let attacker_units = this.returnAttackerUnits();
       let defender_units = this.returnDefenderUnits();
@@ -16364,7 +16559,7 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
       for (let i = 0; i < attacker_units.length; i++) { if (attacker_units[i].ckey == "GE") { valid_attacker = true; } }
       for (let i = 0; i < defender_units.length; i++) { if (defender_units[i].ckey == "RU") { valid_defender = true; } }
       if (valid_attacker && valid_defender) {
-        html    += `<li class="option showcard" id="cp44">von hutier</li>`;
+        options.push({ id: "cp44", label: "von hutier" });
       }
     }
     if (this.game.deck[0].hand.includes("cp02")) {
@@ -16374,17 +16569,21 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
       for (let i = 0; i < attacker_units.length; i++) { if (attacker_units[i].ckey == "GE") { valid_option = true; } }
       for (let i = 0; i < defender_units.length; i++) { if (defender_units[i].ckey != "RU") { valid_option = false; } }
       if (valid_option == true) {
-        html    += `<li class="option showcard" id="cp02">wireless intercepts</li>`;
+        options.push({ id: "cp02", label: "wireless intercepts" });
       }
     }
-    html    += `</ul>`;
 
     //this.flank_overlay.render();
-    this.updateStatusWithOptions(`Flank Attack?`, html);
-    this.attachCardboxEvents((action) => {
+    this.game.status = `Flank Attack?`;
+    this.hud.updateStatus(this.game.status);
+    this.hud.updateCards([]);
+    this.hud.updateMenu(options, (action) => {
 
-      this.unbindBackButtonFunction();
-      this.updateStatus("submitting...");
+      this.hud.hideBackButton();
+            this.game.status = "submitting...";
+      this.hud.updateStatus(this.game.status);
+      this.hud.updateMenu([]);
+      this.hud.updateCards([]);
       //this.flank_overlay.hide();
 
       if (action === "no") {
@@ -16412,7 +16611,6 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
         //
         // select pinning unit
         //
-        let html = `<ul>`;
 	let eligible_spaces = [];
 	for (let i = 0; i < this.game.state.combat.attacker.length; i++) {
 	  let unit = this.game.state.combat.attacker[i];
@@ -16499,34 +16697,56 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
     //
     this.cardbox.hide();
 
-    let html = `<ul>`;
+    let options = [];
 
     let can_event_card = true;
     if (only_play_as_event != true) {
       can_event_card = false;
-      html    += `<li class="card movement" id="ops">ops (movement / combat)</li>`;
+      options.push({
+        id: "ops",
+        label: "ops (movement / combat)",
+        img: "/paths/img/backgrounds/menu/artillery.png",
+        title: "Movement / Combat"
+      });
       if (c.sr && this.canPlayStrategicRedeployment(faction)) {
-        html    += `<li class="card redeployment" id="sr">strategic redeployment</li>`;
+        options.push({
+          id: "sr",
+          label: "strategic redeployment",
+          img: "/paths/img/backgrounds/menu/train.jpg",
+          title: "Strategic Redeployment"
+        });
       }
       if (c.rp && this.canPlayReinforcementPoints(faction)) {
-        html    += `<li class="card reinforcement" id="rp">reinforcement points</li>`;
+        options.push({
+          id: "rp",
+          label: "reinforcement points",
+          img: "/paths/img/backgrounds/menu/recruiting.jpg",
+          title: "Replacement Points"
+        });
       }
       try { can_event_card = c.canEvent(this, faction); } catch (err) {}
     }
     if (can_event_card) {
-      html    += `<li class="card event" id="event">trigger event</li>`;
+      options.push({
+        id: "event",
+        label: "trigger event",
+        img: "/paths/img/backgrounds/menu/suez.jpg",
+        title: "Card Event"
+      });
     }
-    html    += `</ul>`;
 
-    this.bindBackButtonFunction(() => { this.playerTurn(faction); });
-    this.updateStatusWithOptions(`${this.returnFactionName(faction)} - playing ${this.popup(card)}`, html, true);
+    this.hud.showBackButton(() => { this.playerTurn(faction); });
+    this.game.status = `${this.returnFactionName(faction)} - playing ${this.popup(card)}`;
+    this.hud.updateStatus(this.game.status);
+    this.hud.updateCards([]);
 
-    this.menu_overlay.render(this.game.player, faction, card);
-    this.attachCardboxEvents((action) => {
+    this.hud.updateMenu(options, (action) => {
 
-      this.unbindBackButtonFunction();
-      this.updateStatus("selected...");
-      this.menu_overlay.hide();
+      this.hud.hideBackButton();
+            this.game.status = "selected...";
+      this.hud.updateStatus(this.game.status);
+      this.hud.updateMenu([]);
+      this.hud.updateCards([]);
 
       //
       // discard the card
@@ -16641,7 +16861,10 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
       // sometimes this ends
       //
       if (options.length == 0) {
-	paths_self.updateStatus("combat finished...");
+		paths_self.game.status = "combat finished...";
+	paths_self.hud.updateStatus(paths_self.game.status);
+	paths_self.hud.updateMenu([]);
+	paths_self.hud.updateCards([]);
 	paths_self.addMove("resolve\tplayer_play_combat");
 	paths_self.addMove("post_combat_cleanup");
 	paths_self.endTurn();
@@ -16682,7 +16905,10 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
 	// nothing left
 	//
 	paths_self.removeSelectable();
-	paths_self.updateStatus("acknowledge...");
+		paths_self.game.status = "acknowledge...";
+	paths_self.hud.updateStatus(paths_self.game.status);
+	paths_self.hud.updateMenu([]);
+	paths_self.hud.updateCards([]);
 	paths_self.addMove("resolve\tplayer_play_combat");
 	paths_self.addMove("post_combat_cleanup");
 	paths_self.endTurn();
@@ -16692,7 +16918,7 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
       //
       // prevent breaking the game
       //
-      paths_self.unbindBackButtonFunction();
+      paths_self.hud.hideBackButton();
 
 
       //
@@ -16812,7 +17038,10 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
 
       if (units.length == 1) {
 	paths_self.zoom_overlay.hide();
-	paths_self.updateStatusWithOptions("attacking...", "");
+	paths_self.game.status = "attacking...";
+	paths_self.hud.updateStatus(paths_self.game.status);
+	paths_self.hud.updateMenu([]);
+	paths_self.hud.updateCards([]);
 	paths_self.addMove("resolve\tplayer_play_combat");
 	paths_self.addMove("player_play_combat\t"+paths_self.returnFactionOfPlayer());
 	paths_self.addMove("post_combat_cleanup");
@@ -16905,7 +17134,10 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
 	  if (idx === "skip") {
 	    let finished = false;
 	    paths_self.zoom_overlay.hide();
-	    paths_self.updateStatusWithOptions("attacking...", "");
+	    paths_self.game.status = "attacking...";
+	    paths_self.hud.updateStatus(paths_self.game.status);
+	    paths_self.hud.updateMenu([]);
+	    paths_self.hud.updateCards([]);
 	    if (selected.length > 0) {
 	      let s = [];
 	      for (let z = 0; z < selected.length; z++) {
@@ -16995,7 +17227,7 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
       }
     );
 
-    paths_self.unbindBackButtonFunction();
+    paths_self.hud.hideBackButton();
     paths_self.clearSnapshots();
     paths_self.showing_movement_undo = 1;
     paths_self.removeMovementSnapshotUndo();
@@ -17114,7 +17346,7 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
 	      //
 	      // unbind back button function
 	      //
-	      paths_self.unbindBackButtonFunction();
+	      paths_self.hud.hideBackButton();
 
 	      //
 	      // end turn
@@ -17299,8 +17531,11 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
       // sometimes this ends
       //
       if (options.length == 0) {
-	this.updateStatus("moving units...");
-        paths_self.unbindBackButtonFunction();
+		this.game.status = "moving units...";
+	this.hud.updateStatus(this.game.status);
+	this.hud.updateMenu([]);
+	this.hud.updateCards([]);
+        paths_self.hud.hideBackButton();
         paths_self.showing_movement_undo = 0;
         paths_self.removeMovementSnapshotUndo();
 	this.endTurn();
@@ -17323,8 +17558,11 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
 	// nothing left
 	//
 	paths_self.removeSelectable();
-	paths_self.updateStatus("acknowledge...");
-        paths_self.unbindBackButtonFunction();
+		paths_self.game.status = "acknowledge...";
+	paths_self.hud.updateStatus(paths_self.game.status);
+	paths_self.hud.updateMenu([]);
+	paths_self.hud.updateCards([]);
+        paths_self.hud.hideBackButton();
         paths_self.showing_movement_undo = 0;
         paths_self.removeMovementSnapshotUndo();
 	paths_self.endTurn();
@@ -17357,7 +17595,7 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
 	  if (key === "skip") {
             paths_self.addMove("resolve\tplayer_play_movement");
             paths_self.removeSelectable();
-            paths_self.unbindBackButtonFunction();
+            paths_self.hud.hideBackButton();
             paths_self.showing_movement_undo = 0;
             paths_self.removeMovementSnapshotUndo();
             paths_self.endTurn();
@@ -17395,29 +17633,33 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
       if (unit.damaged) { active_unit_moves = unit.rmovement; }
      
       let sourcekey = key;
-      let html  = `<ul>`;
+      let menu_options = [];
       if (paths_self.game.spaces[key].oos != 1) {
-        html += `<li class="option" id="move">move</li>`;
+        menu_options.push({ id: "move", label: "move" });
         if (paths_self.game.state.events.entrench == 1) {
          let can_entrench_here = true;
 	  for (let z = 0; z < paths_self.game.state.entrenchments.length; z++) {
 	    if (paths_self.game.state.entrenchments[z].spacekey == key) { can_entrench_here = false; }
 	  }
 	  if (can_entrench_here) {
-            html += `<li class="option" id="entrench">entrench</li>`;
+            menu_options.push({ id: "entrench", label: "entrench" });
   	  }
         }
       }
 
-      html += `<li class="option" id="skip">stand down</li>`;
-      html += `</ul>`;
+      menu_options.push({ id: "skip", label: "stand down" });
 
       paths_self.attachMovementSnapshotUndo();
-      paths_self.updateStatusWithOptions(`Select Action for ${unit.name}`, html);
-      paths_self.attachCardboxEvents((action) => {
+      paths_self.game.status = `Select Action for ${unit.name}`;
+      paths_self.hud.updateStatus(paths_self.game.status);
+      paths_self.hud.updateCards([]);
+      paths_self.hud.updateMenu(menu_options, (action) => {
 
-	paths_self.updateStatus("processing...");
-        paths_self.unbindBackButtonFunction();
+		paths_self.game.status = "processing...";
+	paths_self.hud.updateStatus(paths_self.game.status);
+	paths_self.hud.updateMenu([]);
+	paths_self.hud.updateCards([]);
+        paths_self.hud.hideBackButton();
 
 
         if (action === "move") {
@@ -17430,7 +17672,7 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
 	  paths_self.addMove(`entrench\t${faction}\t${sourcekey}\t${idx}\t${lf}`);
 	  paths_self.addMove(`player_play_movement\t${faction}`);
           paths_self.game.state.entrenchments.push({ spacekey : sourcekey , loss_factor : lf , finished : 0 });
-          paths_self.unbindBackButtonFunction();
+          paths_self.hud.hideBackButton();
 	  paths_self.endTurn();
 	  return;
         }
@@ -17969,7 +18211,10 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
 	  },
 	  (idx) => {
 
-	    paths_self.updateStatus("moving...");
+	    	    paths_self.game.status = "moving...";
+	    paths_self.hud.updateStatus(paths_self.game.status);
+	    paths_self.hud.updateMenu([]);
+	    paths_self.hud.updateCards([]);
 
 	    if (idx == "none") {
 	      active_units = [];
@@ -18054,17 +18299,14 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
     //
     this.cardbox.hide();
 
-    let html = `<ul>`;
+    let options = [];
     if (targets > 0) {
-      html    += `<li class="card" id="movement">activate for movement</li>`;
+      options.push({ id: "movement", label: "activate for movement" });
+      options.push({ id: "combat", label: "activate for combat" });
     }
-    if (targets > 0) {
-      html    += `<li class="card" id="combat">activate for combat</li>`;
-    }
-    html    += `<li class="card" id="end">skip remaining ops...</li>`;
-    html    += `</ul>`;
+    options.push({ id: "end", label: "skip remaining ops..." });
 
-    this.bindBackButtonFunction(() => { 
+    this.hud.showBackButton(() => { 
       for (let key in this.game.spaces) { if (this.game.spaces[key].activated_for_movement == 1 || this.game.spaces[key].activated_for_combat == 1) { this.game.spaces[key].activated_for_movement = 0; this.game.spaces[key].activated_for_combat = 0; this.displaySpace(key)} } 
       this.moves = [];
       if (this.game.queue[this.game.queue.length-1].split("\t")[0] == "play") {
@@ -18077,15 +18319,20 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
     // remove back button for mid-event cards
     //
     if (card === "ap23" || card === "cp17") {
-      this.unbindBackButtonFunction();
+      this.hud.hideBackButton();
     }
 
-    this.updateStatusWithOptions(`You have ${cost} OPS remaining`, html, true);
-    this.attachCardboxEvents((action) => {
+    this.game.status = `You have ${cost} OPS remaining`;
+    this.hud.updateStatus(this.game.status);
+    this.hud.updateCards([]);
+    this.hud.updateMenu(options, (action) => {
 
       if (action === "end") {
-	this.unbindBackButtonFunction();
-	this.updateStatus("ending turn");
+	this.hud.hideBackButton();
+		this.game.status = "ending turn";
+	this.hud.updateStatus(this.game.status);
+	this.hud.updateMenu([]);
+	this.hud.updateCards([]);
 	this.endTurn();
       }
 
@@ -18110,7 +18357,10 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
 	    return 0;
 	  },
 	  (key) => {
-	    this.updateStatus("activating...");
+	    	    this.game.status = "activating...";
+	    this.hud.updateStatus(this.game.status);
+	    this.hud.updateMenu([]);
+	    this.hud.updateCards([]);
 	    this.activateSpaceForMovement(key);
             this.displaySpace(key);
 	    let cost_paid = this.returnActivationCost(faction, key); 
@@ -18210,7 +18460,10 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
 	    return 0;
 	  },
 	  (key) => {
-	    this.updateStatus("activating...");
+	    	    this.game.status = "activating...";
+	    this.hud.updateStatus(this.game.status);
+	    this.hud.updateMenu([]);
+	    this.hud.updateCards([]);
 	    this.activateSpaceForCombat(key);
 	    let cost_paid = this.returnActivationCost(faction, key); 
 	    cost -= cost_paid;
@@ -18263,7 +18516,10 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
     //
     //
     //
-    this.updateStatus("adding replacement points...");
+        this.game.status = "adding replacement points...";
+    this.hud.updateStatus(this.game.status);
+    this.hud.updateMenu([]);
+    this.hud.updateCards([]);
     this.addMove(`rp\t${faction}\t${card}`);
     this.endTurn();
 
@@ -18273,19 +18529,31 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
 
     let paths_self = this;
 
-    let html = '<ul>';
-    for (let i = 0; i < opts.length; i++) { let x = filter_fnct(opts[i]); if (x != null) { html += x; } }
-    if (extra_options.length > 0) {
-      for (let z = 0; z < extra_options.length; z++) { html += `<li class="option ${extra_options[z].key}" id="${extra_options[z].key}">${extra_options[z].value}</li>`; }
+    let options = [];
+    for (let i = 0; i < opts.length; i++) {
+      let x = filter_fnct(opts[i]);
+      if (x != null && String(x).indexOf("noselect") == -1) {
+        let id_match = String(x).match(/\sid=['"]([^'"]+)['"]/i);
+        let label_match = String(x).match(/>([^<]*)<\/li>/i);
+        if (id_match) {
+          options.push({ id: id_match[1], label: label_match ? label_match[1].trim() : id_match[1] });
+        }
+      }
     }
-    html += '</ul>';
+    if (extra_options.length > 0) {
+      for (let z = 0; z < extra_options.length; z++) {
+        options.push({ id: extra_options[z].key, label: extra_options[z].value });
+      }
+    }
 
-    this.updateStatusWithOptions(msg, html);
-    $('.option').off();
-    $('.option').on('click', function () {
-      let action = $(this).attr("id");
-      $('.option').off();
-      paths_self.updateStatus("acknowledge...");
+    this.game.status = msg;
+    this.hud.updateStatus(this.game.status);
+    this.hud.updateCards([]);
+    this.hud.updateMenu(options, (action) => {
+      paths_self.game.status = "acknowledge...";
+      paths_self.hud.updateStatus(paths_self.game.status);
+      paths_self.hud.updateMenu([]);
+      paths_self.hud.updateCards([]);
       mycallback(action);
     });
 
@@ -18330,8 +18598,7 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
     let paths_self = this;
     let callback_run = false;
     let at_least_one_option = false;
-    let html = '';
-    html += '<ul class="hide-scrollbar">';
+    let options = [];
 
     $('.trench-tile').off();
     $('.army-tile').off();
@@ -18345,7 +18612,7 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
         if (filter_fnct(key, this.game.spaces[key].units[z]) == 1) {
 	  at_least_one_eligible_unit_in_spacekey = true;
           at_least_one_option = true;
-          html += '<li class="option .'+key+'-'+z+'" id="' + key + '-'+z+'">' + key + ' - ' + this.game.spaces[key].units[z].name + '</li>';
+          options.push({ id: key + '-' + z, label: key + ' - ' + this.game.spaces[key].units[z].name });
 	}
       }
       if (at_least_one_eligible_unit_in_spacekey) {
@@ -18378,19 +18645,17 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
                   mycallback(clicked_key, 0);
                 }
 	      } else {
-	        let h =  '<ul>';
+	        let unit_options = [];
 		for (let z = 0; z < paths_self.game.spaces[clicked_key].units.length; z++) {
 		  if (filter_fnct(clicked_key, paths_self.game.spaces[clicked_key].units[z]) == 1) {
-                    h += '<li class="option .'+clicked_key+'-'+z+'" id="' + clicked_key + '-'+z+'">' + clicked_key + ' - ' + this.game.spaces[clicked_key].units[z].name + '</li>';
+                    unit_options.push({ id: clicked_key + '-' + z, label: clicked_key + ' - ' + this.game.spaces[clicked_key].units[z].name });
 		  }
 		}
-		h += '</ul>';
 
-    		this.updateStatusWithOptions("Select Unit", h);
-
-    		$('.option').off();
-  		$('.option').on('click', function () {
-  		  let action = $(this).attr("id");
+    		paths_self.game.status = "Select Unit";
+    		paths_self.hud.updateStatus(paths_self.game.status);
+    		paths_self.hud.updateCards([]);
+    		paths_self.hud.updateMenu(unit_options, (action) => {
   		  let tmpx = action.split("-");
   		  mycallback(tmpx[0], tmpx[1]);
   		});
@@ -18404,19 +18669,19 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
 
 
     if (cancel_func != null) {
-      html += '<li class="option" id="cancel">cancel</li>';
+      options.push({ id: "cancel", label: "cancel" });
     }
     if (extra_options.length > 0) {
-      for (let z = 0; z < extra_options.length; z++) { html += `<li class="option ${extra_options[z].key}" id="${extra_options[z].key}">${extra_options[z].value}</li>`; }
+      for (let z = 0; z < extra_options.length; z++) {
+        options.push({ id: extra_options[z].key, label: extra_options[z].value });
+      }
     }
-    html += '</ul>';
 
-    this.updateStatusWithOptions(msg, html);
+    this.game.status = msg;
+    this.hud.updateStatus(this.game.status);
+    this.hud.updateCards([]);
+    this.hud.updateMenu(options, (action) => {
 
-    $('.option').off();
-    $('.option').on('click', function () {
-
-      let action = $(this).attr("id");
       let tmpx = action.split("-");
       if (action == "cancel") {
         cancel_func();
@@ -18437,8 +18702,7 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
     let paths_self = this;
     let callback_run = false;
     let at_least_one_option = false;
-    let html = '';
-    html += '<ul class="hide-scrollbar">';
+    let options = [];
 
     $('.trench-tile').off();
     $('.army-tile').off();
@@ -18450,7 +18714,7 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
       if (filter_fnct(key) == 1) {
         at_least_one_option = true;
 	let name = this.game.spaces[key].name;
-        html += '<li class="option '+key+'" id="' + key + '">' + name + '</li>';
+        options.push({ id: key, label: name });
 
         //
         // the spaces that are selectable are clickable on the main board (whatever board shows)
@@ -18478,20 +18742,24 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
       }
     }
     if (cancel_func != null) {
-      html += '<li class="option" id="cancel">cancel</li>';
+      options.push({ id: "cancel", label: "cancel" });
     }
     if (extra_options.length > 0) {
-      for (let z = 0; z < extra_options.length; z++) { html += `<li class="option ${extra_options[z].key}" id="${extra_options[z].key}">${extra_options[z].value}</li>`; }
+      for (let z = 0; z < extra_options.length; z++) {
+        options.push({ id: extra_options[z].key, label: extra_options[z].value });
+      }
     }
-    html += '</ul>';
 
-    this.updateStatusWithOptions(msg, html);
+    this.game.status = msg;
+    this.hud.updateStatus(this.game.status);
+    this.hud.updateCards([]);
+    this.hud.updateMenu(options, (action) => {
 
-    $('.option').off();
-    $('.option').on('click', function () {
-
-      paths_self.unbindBackButtonFunction();
-      paths_self.updateStatus("selected...");
+      paths_self.hud.hideBackButton();
+      paths_self.game.status = "selected...";
+      paths_self.hud.updateStatus(paths_self.game.status);
+      paths_self.hud.updateMenu([]);
+      paths_self.hud.updateCards([]);
 
       //
       // and remove on-board clickability
@@ -18513,7 +18781,6 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
       $('.army-tile').off();
       $('.space').off();
 
-      let action = $(this).attr("id");
       if (action == "cancel") {
         cancel_func();
         return 0;
@@ -18542,8 +18809,8 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
     paths_self.game.state.does_movement_end_outside_near_east = 1;
     paths_self.game.state.does_movement_end_inside_near_east = 1;
 
-    paths_self.bindBackButtonFunction(() => { paths_self.playerPlayCard(faction, card); });
-    if (deck[card].sr > value) { paths_self.unbindBackButtonFunction(); }
+    paths_self.hud.showBackButton(() => { paths_self.playerPlayCard(faction, card); });
+    if (deck[card].sr > value) { paths_self.hud.hideBackButton(); }
 
     let spaces = this.returnSpacesWithFilter((key) => {
 
@@ -18597,8 +18864,11 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
       (key) => {
 
 	if (key === "end") {
-	  paths_self.unbindBackButtonFunction();
-	  paths_self.updateStatus("submitting...");
+	  paths_self.hud.hideBackButton();
+	  	  paths_self.game.status = "submitting...";
+	  paths_self.hud.updateStatus(paths_self.game.status);
+	  paths_self.hud.updateMenu([]);
+	  paths_self.hud.updateCards([]);
 	  paths_self.endTurn();
 	  return 1;
 	}
@@ -18669,7 +18939,7 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
           );
 	} else {
 
-	  paths_self.unbindBackButtonFunction();
+	  paths_self.hud.hideBackButton();
 	
 	  let unit = paths_self.game.spaces[key].units[units[0]];
           if (unit.type == "corps") { value -= 1; }
@@ -18808,7 +19078,7 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
       },
       (key) => {
 
-        paths_self.unbindBackButtonFunction();
+        paths_self.hud.hideBackButton();
 
 	//
 	// is this on the near east?
@@ -18823,7 +19093,10 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
 	  paths_self.trackDeploymentIntoNearEast(faction, paths_self.game.spaces[spacekey].units[unit_idx]);
 	}
 
-	this.updateStatus("redeploying...");
+		this.game.status = "redeploying...";
+	this.hud.updateStatus(this.game.status);
+	this.hud.updateMenu([]);
+	this.hud.updateCards([]);
         this.addMove(`sr\t${faction}\t${spacekey}\t${key}\t${unit_idx}\t${value}\t${card}`);
         this.endTurn();
       },
@@ -18845,11 +19118,17 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
     this.addMove("resolve\tplay");
 
     this.game.state.player_turn_card_select = true;
-    this.updateStatusAndListCards(`${name} - select card`, hand);
-    this.attachCardboxEvents((card) => {
+    this.game.status = `${name} - select card`;
+    this.hud.updateStatus(this.game.status);
+    this.hud.updateMenu([]);
+    this.hud.updateCards(hand);
+    this.cardbox.bindCallback((card) => {
 
-      this.unbindBackButtonFunction();
-      this.updateStatus("continuing...");
+      this.hud.hideBackButton();
+            this.game.status = "continuing...";
+      this.hud.updateStatus(this.game.status);
+      this.hud.updateMenu([]);
+      this.hud.updateCards([]);
 
       //
       // remove "pass"
@@ -18864,6 +19143,7 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
       this.game.state.player_turn_card_select = false;
       this.playerPlayCard(faction, card);
     });
+    this.cardbox.attachCardEvents();
 
   }
 
@@ -19029,7 +19309,10 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
 
 
     let finish_fnct = (spacekey) => {
-      this.updateStatus("placing unit...");
+            this.game.status = "placing unit...";
+      this.hud.updateStatus(this.game.status);
+      this.hud.updateMenu([]);
+      this.hud.updateCards([]);
       this.addUnitToSpace(units[unit_idx], spacekey);
       this.addMove(`add\t${spacekey}\t${this.game.units[units[unit_idx]].key}\t${this.game.player}`);
       this.displaySpace(spacekey);

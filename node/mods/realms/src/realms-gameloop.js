@@ -182,7 +182,11 @@
 		this.board.render();
 		this.playerTurn();
 	      } else {
-	        this.updateStatusAndListCards("Opponent Turn", this.game.deck[this.game.player-1].hand);
+	        	        this.game.status = "Opponent Turn";
+	        this.hud.updateStatus(this.game.status);
+	        this.hud.updateMenu([]);
+	        this.hud.updateCards(this.game.deck[this.game.player-1].hand);
+	        this.cardbox.attachCardEvents();
 	      }
 
 	      return 0;
@@ -225,7 +229,7 @@
           //
           // 
           //
-          this.unbindBackButtonFunction();
+          this.hud.hideBackButton();
           
           //
           // hide any cardbox 
@@ -274,7 +278,10 @@
               this.game.queue.splice(qe, 1);
             }
 
-            this.updateStatus("acknowledged");
+                        this.game.status = "acknowledged";
+            this.hud.updateStatus(this.game.status);
+            this.hud.updateMenu([]);
+            this.hud.updateCards([]);
             return ack;
           }
 
@@ -300,12 +307,12 @@
           // click acknowledge and the msg counts as notification of an
           // important game development.
           //
-          let html = '<ul>';
+          let html = [];
           let menu_index = [];
           let menu_triggers = [];
           let attach_menu_events = 0;
 
-          html += '<li class="option" id="ok">acknowledge</li>';
+          html.push({ id: 'ok', label: 'acknowledge' });
 
           let z = this.returnEventObjects();
           for (let i = 0; i < z.length; i++) {
@@ -318,8 +325,13 @@
               if (z[i].key !== this.game.state.active_card) {
                 if (z[i].menuOptionTriggers(this, stage, this.game.player, extra) == 1) {
                   let x = z[i].menuOption(this, stage, this.game.player, extra);
-                  if (x.html) {
-                    html += x.html;
+                  if (x.id || x.html) {
+                    if (x.id) {
+                      html.push({ id: x.id, label: x.label });
+                    } else {
+                      let _m = String(x.html).match(/id=["']([^"']+)["'][^>]*>([\s\S]*?)<\/li>/i);
+                      if (_m) { html.push({ id: _m[1], label: _m[2].trim() }); }
+                    }
                     z[i].faction = x.faction;
                     menu_index.push(i);
                     menu_triggers.push(x.event);
@@ -334,7 +346,6 @@
 
 
           }
-          html += '</ul>';
 
           //
           // skipping, and no options for active player -- skip completely
@@ -345,7 +356,10 @@
               realms_self.game.confirms_needed[realms_self.game.player-1] = 1;
               realms_self.addMove("RESOLVE\t"+realms_self.publicKey);
               realms_self.endTurn();
-              realms_self.updateStatus("skipping acknowledge...");
+                            realms_self.game.status = "skipping acknowledge...";
+              realms_self.hud.updateStatus(realms_self.game.status);
+              realms_self.hud.updateMenu([]);
+              realms_self.hud.updateCards([]);
               return 0;
             }
           }
@@ -367,16 +381,16 @@
             //
             realms_self.halted = 1;
             realms_self.game.queue[realms_self.game.queue.length-1] = "HALTED\tWaiting for Game to Continue\t"+realms_self.publicKey;
-            realms_self.hud.back_button = false;
+            realms_self.hud.hideBackButton();
 
-            let html = '<ul><li class="option" id="ok">acknowledge</li></ul>';
-            realms_self.updateStatusWithOptions(msg, html);
-
-            $('.option').off();
-            $('.option').on('click', function () {
+            let html = [{ id: 'ok', label: 'acknowledge' }];
+                        realms_self.game.status = msg;
+            realms_self.hud.updateStatus(realms_self.game.status);
+            realms_self.hud.updateCards([]);
+            realms_self.hud.updateMenu(html, function (user_choice) {
 
               $('.option').off();
-              let action = $(this).attr("id");
+        let action = user_choice;
 
               if (realms_self.game.id != my_specific_game_id) {
                 realms_self.game = realms_self.loadGame(my_specific_game_id);
@@ -386,7 +400,10 @@
               realms_self.halted = 0;
               realms_self.gaming_active = 0;
 
-              realms_self.updateStatus('continuing...');
+                            realms_self.game.status = 'continuing...';
+              realms_self.hud.updateStatus(realms_self.game.status);
+              realms_self.hud.updateMenu([]);
+              realms_self.hud.updateCards([]);
 
               //
               // our own move will have been ticked into the future queue, along with
@@ -409,7 +426,10 @@
 
           }
 
-          this.updateStatusWithOptions(msg, html);
+                    this.game.status = msg;
+          this.hud.updateStatus(this.game.status);
+          this.hud.updateCards([]);
+          this.hud.updateMenu(html);
           let deck = realms_self.returnDeck(true);
 
           //
@@ -435,21 +455,24 @@
             realms_self.cardbox.hide();
 
             realms_self.halted = 1;
-            realms_self.hud.back_button = false;
+            realms_self.hud.hideBackButton();
 
-            let html = '<ul><li class="option acknowledge" id="ok">acknowledge</li></ul>';
-            realms_self.updateStatusWithOptions(msg, html);
-
-            $('.option').off();
-            $('.option').on('click', function () {
+            let html = [{ id: 'ok', label: 'acknowledge' }];
+                        realms_self.game.status = msg;
+            realms_self.hud.updateStatus(realms_self.game.status);
+            realms_self.hud.updateCards([]);
+            realms_self.hud.updateMenu(html, function (user_choice) {
 
                     true_if_counter_or_acknowledge_cleared = true;
 
                     $('.option').off();
 
-                    realms_self.updateStatus("continuing...");
+                                        realms_self.game.status = "continuing...";
+                    realms_self.hud.updateStatus(realms_self.game.status);
+                    realms_self.hud.updateMenu([]);
+                    realms_self.hud.updateCards([]);
 
-                    let action = $(this).attr("id");
+                    let action = user_choice;
 
                     setTimeout(() => {
 
@@ -541,7 +564,10 @@
               for (let i = 0; i < menu_triggers.length; i++) {
                 if (action2 == menu_triggers[i]) {
                   $(this).remove();
-                  realms_self.updateStatus("acknowledged...");
+                                    realms_self.game.status = "acknowledged...";
+                  realms_self.hud.updateStatus(realms_self.game.status);
+                  realms_self.hud.updateMenu([]);
+                  realms_self.hud.updateCards([]);
                   if (realms_self.game.confirms_needed[realms_self.game.player-1] == 1) {
                     realms_self.prependMove("RESOLVE\t"+realms_self.publicKey);
                     z[menu_index[i]].menuOptionActivated(realms_self, stage, realms_self.game.player, z[menu_index[i]].faction);
@@ -564,7 +590,10 @@
               // manually add, to avoid re-processing
               if (realms_self.game.confirms_needed[realms_self.game.player-1] == 1) {
                 realms_self.prependMove("RESOLVE\t"+realms_self.publicKey);
-                realms_self.updateStatus("acknowledged");
+                                realms_self.game.status = "acknowledged";
+                realms_self.hud.updateStatus(realms_self.game.status);
+                realms_self.hud.updateMenu([]);
+                realms_self.hud.updateCards([]);
                 realms_self.endTurn();
               }
               return 0;

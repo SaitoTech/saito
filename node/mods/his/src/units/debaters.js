@@ -15,7 +15,7 @@
         if (menu == "translation_german_language_zone") {
 	  let p = his_self.returnPlayerOfFaction("protestant");
 	  if (p === his_self.game.player) {
-            return { faction : extra , event : 'luther-debater', html : `<li class="option" id="luther-debater">Martin Luther +1 Bonus CP</li>` };
+            return { faction : extra , event : 'luther-debater', id: "luther-debater", label: `Martin Luther +1 Bonus CP` };
           }
         } 
         return {};
@@ -55,7 +55,7 @@
         if (menu == "translation_german_language_zone") {
 	  let p = his_self.returnPlayerOfFaction("protestant");
 	  if (p === his_self.game.player) {
-            return { faction : extra , event : 'melanchthon-debater', html : `<li class="option" id="melanchthon-debater">Melanchthon +1 Bonus CP</li>` };
+            return { faction : extra , event : 'melanchthon-debater', id: "melanchthon-debater", label: `Melanchthon +1 Bonus CP` };
           }
         } 
         return {};
@@ -101,7 +101,7 @@
         if (menu == "protestant_reformation") {
 	  let p = his_self.returnPlayerOfFaction("protestant");
 	  if (p === his_self.game.player) {
-            return { faction : extra , event : 'zwingli-debater', html : `<li class="option" id="zwingli-debater">Ulrich Zwingli +1 Roll</li>` };
+            return { faction : extra , event : 'zwingli-debater', id: "zwingli-debater", label: `Ulrich Zwingli +1 Roll` };
           }
         } 
         return {};
@@ -146,7 +146,7 @@
         if (menu == "protestant_reformation") {
 	  let p = his_self.returnPlayerOfFaction("protestant");
 	  if (p === his_self.game.player) {
-            return { faction : extra , event : 'bucer-debater', html : `<li class="option" id="bucer-debater">Martin Bucer +1 Roll</li>` };
+            return { faction : extra , event : 'bucer-debater', id: "bucer-debater", label: `Martin Bucer +1 Roll` };
           }
         } 
         return {};
@@ -191,7 +191,7 @@
         if (menu == "protestant_reformation") {
 	  let p = his_self.returnPlayerOfFaction("protestant");
 	  if (p === his_self.game.player) {
-            return { faction : extra , event : 'oekolampadius-debater', html : `<li class="option" id="oekolampadius-debater">Johannes Oekolampadius +1 Bonus</li>` };
+            return { faction : extra , event : 'oekolampadius-debater', id: "oekolampadius-debater", label: `Johannes Oekolampadius +1 Bonus` };
           }
         } 
         return {};
@@ -236,7 +236,7 @@
       committed		: 	0,
       menuOption  :       function(his_self, menu, player) {
         if (menu === "debate") {
-          return { faction : "protestant" , event : 'bullinger-debater', html : `<li class="option" id="bullinger-debater">substitute Bullinger</li>` };
+          return { faction : "protestant" , event : 'bullinger-debater', id: "bullinger-debater", label: `substitute Bullinger` };
         }
         return {};
       },
@@ -435,7 +435,7 @@
         if (menu == "catholic_counter_reformation") {
           let p = his_self.returnPlayerOfFaction("papacy");
           if (p === his_self.game.player) {
-            return { faction : extra , event : 'canisius-debater', html : `<li class="option" id="canisius-debater">Peter Canisius +1 Roll</li>` };
+            return { faction : extra , event : 'canisius-debater', id: "canisius-debater", label: `Peter Canisius +1 Roll` };
           }
         }
         return {};
@@ -484,7 +484,7 @@
         if (menu == "catholic_counter_reformation") {
           let p = his_self.returnPlayerOfFaction("papacy");
           if (p === his_self.game.player) {
-            return { faction : extra , event : 'contarini-debater', html : `<li class="option" id="contarini-debater">Gasparo Contarini +1 Roll</li>` };
+            return { faction : extra , event : 'contarini-debater', id: "contarini-debater", label: `Gasparo Contarini +1 Roll` };
           }
         }
         return {};
@@ -567,7 +567,7 @@
         if (menu == "catholic_counter_reformation") {
           let p = his_self.returnPlayerOfFaction("papacy");
           if (p === his_self.game.player) {
-            return { faction : extra , event : 'faber-debater', html : `<li class="option" id="faber-debater">Peter Faber +1 Roll</li>` };
+            return { faction : extra , event : 'faber-debater', id: "faber-debater", label: `Peter Faber +1 Roll` };
           }
         }
         return {};
@@ -636,7 +636,7 @@
         if (menu == "protestant_reformation") {
           let p = his_self.returnPlayerOfFaction("protestant");
           if (p === his_self.game.player) {
-            return { faction : extra , event : 'cop-debater', html : `<li class="option" id="cop-debater">Nicholas Cop +1 Roll</li>` };
+            return { faction : extra , event : 'cop-debater', id: "cop-debater", label: `Nicholas Cop +1 Roll` };
           }
         } 
         return {};
@@ -681,7 +681,7 @@
         if (menu == "protestant_reformation") {
           let p = his_self.returnPlayerOfFaction("protestant");
           if (p === his_self.game.player) {
-            return { faction : extra , event : 'farel-debater', html : `<li class="option" id="farel-debater">William Farel +1 Roll</li>` };
+            return { faction : extra , event : 'farel-debater', id: "farel-debater", label: `William Farel +1 Roll` };
           }
         } 
         return {};
@@ -727,7 +727,7 @@
         if (menu == "translation_french_language_zone") {
 	  let p = his_self.returnPlayerOfFaction("protestant");
 	  if (p === his_self.game.player) {
-            return { faction : extra , event : 'olivetan-debater', html : `<li class="option" id="olivetan-debater">Olivetan +1 Bonus CP</li>` };
+            return { faction : extra , event : 'olivetan-debater', id: "olivetan-debater", label: `Olivetan +1 Bonus CP` };
           }
         } 
         return {};
@@ -750,7 +750,10 @@
           his_self.addMove("insert_before_counter_or_acknowledge\tcommit\tprotestant\tolivetan-debater\t1");
           his_self.addMove("insert_before_counter_or_acknowledge\ttranslation\tfrench");
           his_self.endTurn();
-          his_self.updateStatus("acknowledge");
+                    his_self.game.status = "acknowledge";
+          his_self.hud.updateStatus(his_self.game.status);
+          his_self.hud.updateMenu([]);
+          his_self.hud.updateCards([]);
         } 
         return 0; 
       },
@@ -776,7 +779,7 @@
         if (menu == "protestant_reformation") {
 	  let p = his_self.returnPlayerOfFaction("protestant");
 	  if (p === his_self.game.player) {
-            return { faction : extra , event : 'cranmer-debater', html : `<li class="option" id="cranmer-debater">Thomas Cranmer +1 Roll</li>` };
+            return { faction : extra , event : 'cranmer-debater', id: "cranmer-debater", label: `Thomas Cranmer +1 Roll` };
           }
         } 
         return {};
@@ -821,7 +824,7 @@
         if (menu == "protestant_reformation") {
 	  let p = his_self.returnPlayerOfFaction("protestant");
 	  if (p === his_self.game.player) {
-            return { faction : extra , event : 'wishart-debater', html : `<li class="option" id="wishart-debater">George Wishart +1 Roll</li>` };
+            return { faction : extra , event : 'wishart-debater', id: "wishart-debater", label: `George Wishart +1 Roll` };
           }
         } 
         return {};
@@ -866,7 +869,7 @@
         if (menu == "protestant_reformation") {
 	  let p = his_self.returnPlayerOfFaction("protestant");
 	  if (p === his_self.game.player) {
-            return { faction : extra , event : 'latimer-debater', html : `<li class="option" id="latimer-debater">Hugh Latimer +1 Roll</li>` };
+            return { faction : extra , event : 'latimer-debater', id: "latimer-debater", label: `Hugh Latimer +1 Roll` };
           }
         } 
         return {};
@@ -911,7 +914,7 @@
         if (menu == "protestant_reformation") {
 	  let p = his_self.returnPlayerOfFaction("protestant");
 	  if (p === his_self.game.player) {
-            return { faction : extra , event : 'knox-debater', html : `<li class="option" id="knox-debater">John Knox +1 Roll</li>` };
+            return { faction : extra , event : 'knox-debater', id: "knox-debater", label: `John Knox +1 Roll` };
           }
         } 
         return {};
@@ -957,7 +960,7 @@
         if (menu == "translation_english_language_zone") {
           let p = his_self.returnPlayerOfFaction("protestant");
           if (p === his_self.game.player) {
-            return { faction : extra , event : 'tyndale-debater', html : `<li class="option" id="tyndale-debater">William Tyndale +1 Bonus CP</li>` };
+            return { faction : extra , event : 'tyndale-debater', id: "tyndale-debater", label: `William Tyndale +1 Bonus CP` };
           }
         }
         return {};
@@ -998,7 +1001,7 @@
         if (menu == "translation_english_language_zone") {
           let p = his_self.returnPlayerOfFaction("protestant");
           if (p === his_self.game.player) {
-            return { faction : extra , event : 'coverdale-debater', html : `<li class="option" id="coverdale-debater">Myles Coverdale +1 Bonus CP</li>` };
+            return { faction : extra , event : 'coverdale-debater', id: "coverdale-debater", label: `Myles Coverdale +1 Bonus CP` };
           }
         }
         return {};

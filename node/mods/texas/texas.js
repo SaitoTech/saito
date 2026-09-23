@@ -83,6 +83,10 @@ class Texas extends GameTableTemplate {
     this.sort_priority = 1;
   }
 
+  returnBanner() {
+    return this.returnImage();
+  }
+
   initializeGame() {
     super.initializeGame();
 
@@ -274,6 +278,8 @@ class Texas extends GameTableTemplate {
   endTurn(nextTarget = 0) {
     if (this.browser_active) {
       this.updateStatus('submitting move to peers...');
+      this.hud.updateMenu([]);
+      this.hud.updateCards([]);
       this.controls.clear();
     }
 
@@ -312,10 +318,7 @@ class Texas extends GameTableTemplate {
     }
 
     if (!force && str === this.game.status) {
-      let el = document.getElementById('status');
-      if (el && el.innerHTML === str) {
-        return;
-      }
+      return;
     }
 
     this.game.status = str;
@@ -323,32 +326,7 @@ class Texas extends GameTableTemplate {
       return;
     }
 
-    let el = document.getElementById('status');
-    if (el) {
-      el.innerHTML = str;
-    }
-  }
-
-  updateControls(str = '', force = 0) {
-    // Required by GameAcknowledge / end-of-hand: without this the queue stays halted.
-    if (!force && this.lock_interface) {
-      return;
-    }
-
-    this.game.controls = str;
-    if (!this.gameBrowserActive()) {
-      return;
-    }
-
-    let el = document.getElementById('controls');
-    if (el) {
-      el.innerHTML = str || '';
-    }
-    document.querySelectorAll('.texas-controls .controls').forEach((node) => {
-      if (node !== el) {
-        node.innerHTML = str || '';
-      }
-    });
+    this.hud.updateStatus(str);
   }
 
   actionFromStatus(str) {

@@ -17,18 +17,22 @@
         var twilight_self = this;
         twilight_self.playerFinishedPlacingInfluence();
 
-        let html = `
-          <ul>
-            <li class="option" id="remove">remove all US influence in four countries in Eastern Europe</li>
-            <li class="option" id="add">add five USSR influence in Eastern Europe (max 2 per country)</li>
-          </ul>`;
-        twilight_self.updateStatusWithOptions("USSR establishes the Warsaw Pact:", html, function(action2) {
+        twilight_self.game.status = "USSR establishes the Warsaw Pact:";
+        twilight_self.hud.updateStatus(twilight_self.game.status);
+        twilight_self.hud.updateCards([]);
+        twilight_self.hud.updateMenu([
+          { id: 'remove', label: 'remove all US influence in four countries in Eastern Europe' },
+          { id: 'add', label: 'add five USSR influence in Eastern Europe (max 2 per country)' }
+        ], function(action2) {
           const europeanCountries = ["czechoslovakia", "austria", "hungary", "romania", "yugoslavia", "bulgaria", "eastgermany", "poland", "finland"];
 
           if (action2 == "remove") {
 
             twilight_self.addMove("resolve\twarsawpact");
-            twilight_self.updateStatus('<div class="status-message" id="status-message">Remove all US influence from four countries in Eastern Europe</div>');
+            twilight_self.game.status = '<div class="status-message" id="status-message">Remove all US influence from four countries in Eastern Europe</div>';
+            twilight_self.hud.updateStatus(twilight_self.game.status);
+            twilight_self.hud.updateMenu([]);
+            twilight_self.hud.updateCards([]);
 
             var countries_to_purge = 4;
             var options_purge = [];
@@ -57,7 +61,10 @@
               }
 
               twilight_self.endTurn();
-              twilight_self.updateStatus(`Only ${options_purge.length} countries in Eastern Europe with US influence...`);
+              twilight_self.game.status = `Only ${options_purge.length} countries in Eastern Europe with US influence...`;
+              twilight_self.hud.updateStatus(twilight_self.game.status);
+              twilight_self.hud.updateMenu([]);
+              twilight_self.hud.updateCards([]);
 
             } else {
 
@@ -89,7 +96,10 @@
           if (action2 == "add") {
 
             twilight_self.addMove("resolve\twarsawpact");
-            twilight_self.updateStatus('<div class="status-message" id="status-message">Add five influence in Eastern Europe (max 2 per country)</div>');
+            twilight_self.game.status = '<div class="status-message" id="status-message">Add five influence in Eastern Europe (max 2 per country)</div>';
+            twilight_self.hud.updateStatus(twilight_self.game.status);
+            twilight_self.hud.updateMenu([]);
+            twilight_self.hud.updateCards([]);
 
             var ops_to_place = 5;
             var ops_placed = {};

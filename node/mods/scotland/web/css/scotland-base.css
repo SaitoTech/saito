@@ -1,7 +1,7 @@
 .game.scotland {
-  .hud.hud-long {
+  .game-hud2 {
     width: unset;
-    height: 200px;
+    background-color: #444a;
   }
 
   .main {
@@ -32,18 +32,33 @@
     display: none;
   }
 
-  .hud-header {
-    margin: 0;
-    height: 25px;
+  .scotland-hud-chrome {
+    width: min(52rem, calc(100vw - 1.5rem));
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
   }
 
-  .hud-header i {
+  .scotland-hud-tools {
+    margin: 0;
+    min-height: 25px;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.25rem 0.75rem;
+  }
+
+  .scotland-hud-tools i {
     cursor: pointer;
     text-shadow: 1px 1px 2px #010101;
   }
 
-  .hud {
-    background-color: #444a;
+  .scotland-hud-tickets:empty {
+    display: none;
+  }
+
+  .scotland-hud-tickets.readonly {
+    pointer-events: none;
   }
 
   .menu_icon_icon {
@@ -54,10 +69,9 @@
     padding: 0.2em 0.05em 0.15em;
   }
 
-  .status {
+  .hud-status {
     min-width: 300px;
     min-height: 50px;
-    /*background-color: whitesmoke;*/
   }
 
   .status-message {

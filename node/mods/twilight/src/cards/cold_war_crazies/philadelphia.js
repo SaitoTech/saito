@@ -14,7 +14,10 @@
         twilight_self.playerFinishedPlacingInfluence();
 
         twilight_self.addMove("resolve\tphiladelphia");
-        twilight_self.updateStatus('<div class="status-message" id="status-message">Pick country to remove all US influence:</div>');
+        twilight_self.game.status = '<div class="status-message" id="status-message">Pick country to remove all US influence:</div>';
+        twilight_self.hud.updateStatus(twilight_self.game.status);
+        twilight_self.hud.updateMenu([]);
+        twilight_self.hud.updateCards([]);
 
         for (var i in twilight_self.countries) {
 
@@ -31,7 +34,10 @@
 	    if (us_influence <= 0) { alert("Invalid Choice - country must have US influence"); return; }
 	    twilight_self.removeInfluence(c, us_influence, "us");
 
-            twilight_self.updateStatus('<div class="status-message" id="status-message">Place '+us_influence+' in any country not controlled by the USSR:</div>');
+            twilight_self.game.status = '<div class="status-message" id="status-message">Place '+us_influence+' in any country not controlled by the USSR:</div>';
+            twilight_self.hud.updateStatus(twilight_self.game.status);
+            twilight_self.hud.updateMenu([]);
+            twilight_self.hud.updateCards([]);
             for (var i in twilight_self.countries) {
 
 	      if (twilight_self.isControlled("ussr", i) == 1) {} else {

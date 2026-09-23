@@ -9,16 +9,20 @@
 
       if (this.game.player == 2) {
 
-        let choicehtml = '<ul><li class="option" id="endgame">end the game</li><li class="option" id="cont">continue playing</li></ul>';
-
-        this.updateStatusWithOptions(`${this.cardToText(card)}: do you want to trigger Final Scoring?`, choicehtml, function(action2) {
+        this.game.status = `${this.cardToText(card)}: do you want to trigger Final Scoring?`;
+        this.hud.updateStatus(this.game.status);
+        this.hud.updateCards([]);
+        this.hud.updateMenu([ { id: 'endgame', label: 'end the game' }, { id: 'cont', label: 'continue playing' } ], function(action2) {
 
           if (action2 == "endgame") {
             twilight_self.addMove("final_scoring");
             twilight_self.endTurn();
           }
           if (action2 == "cont") {
-            twilight_self.updateStatus("Not Triggering Final Scoring...");
+            twilight_self.game.status = "Not Triggering Final Scoring...";
+            twilight_self.hud.updateStatus(twilight_self.game.status);
+            twilight_self.hud.updateMenu([]);
+            twilight_self.hud.updateCards([]);
             twilight_self.addMove("resolve\trevolutionsof1989");
             twilight_self.endTurn();
           }

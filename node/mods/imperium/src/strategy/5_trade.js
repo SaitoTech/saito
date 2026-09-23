@@ -15,26 +15,32 @@ this.importStrategyCard("trade", {
       imperium_self.addMove("purchase\t" + imperium_self.game.player + "\tcommodities\t" + imperium_self.game.state.players_info[imperium_self.game.player - 1].commodity_limit);
 
       let factions = imperium_self.returnFactions();
-      let html = '<p class="status-message">Replenish commodities for any other player?</p><ul>';
+      let html = '<p class="status-message">Replenish commodities for any other player?</p>';
+      let menu = [];
       for (let i = 0; i < imperium_self.game.state.players_info.length; i++) {
         if (i != imperium_self.game.player - 1) {
-          html += '<li class="option" id="' + i + '">' + factions[imperium_self.game.state.players_info[i].faction].name + '</li>';
+          menu.push({ id: String(i), label: factions[imperium_self.game.state.players_info[i].faction].name });
         }
       }
-      html += '<li class="option" id="finish">done</li>';
+      menu.push({ id: 'finish', label: 'done' });
 
-      imperium_self.updateStatus(html);
+            imperium_self.game.status = html;
+      imperium_self.hud.updateStatus(imperium_self.game.status);
+      imperium_self.hud.updateCards([]);
 
-      $('.option').off();
-      $('.option').on('click', function() {
-        let id = $(this).attr("id");
+      let trade_menu = menu.slice();
+      let render_trade_menu = function () {
+        imperium_self.hud.updateMenu(trade_menu, function(id) {
         if (id != "finish") {
           imperium_self.addMove("purchase\t" + (parseInt(id) + 1) + "\tcommodities\t" + imperium_self.game.state.players_info[id].commodity_limit);
-          $(this).hide();
+          trade_menu = trade_menu.filter((opt) => opt.id != id);
+          render_trade_menu();
         } else {
           imperium_self.endTurn();
         }
       });
+      };
+      render_trade_menu();
 
     }
 
@@ -50,15 +56,15 @@ this.importStrategyCard("trade", {
         return 1;
       }
 
-      let html = '<p>Trade has been played. Do you wish to spend 1 strategy token to refresh your commodities? </p><ul>';
+      let html = '<p>Trade has been played. Do you wish to spend 1 strategy token to refresh your commodities? </p>';
       if (imperium_self.game.state.round == 1) {
-        html = `<div class="status-message doublespace">${imperium_self.returnFaction(strategy_card_player)} has played the Trade strategy card. You may spend 1 strategy token to refresh your faction commodities, which may be exchanged with your neighbours on the board for trade goods. You have ${imperium_self.game.state.players_info[player - 1].strategy_tokens} strategy tokens. Use this ability? </div><ul>`;
+        html = `<div class="status-message doublespace">${imperium_self.returnFaction(strategy_card_player)} has played the Trade strategy card. You may spend 1 strategy token to refresh your faction commodities, which may be exchanged with your neighbours on the board for trade goods. You have ${imperium_self.game.state.players_info[player - 1].strategy_tokens} strategy tokens. Use this ability? </div>`;
       }
+      let menu = [];
       if (imperium_self.game.state.players_info[player - 1].strategy_tokens > 0) {
-        html += '<li class="option" id="yes">Yes</li>';
+        menu.push({ id: 'yes', label: 'Yes' });
       }
-      html += '<li class="option" id="no">No</li>';
-      html += '</ul>';
+      menu.push({ id: 'no', label: 'No' });
 
 
       if (imperium_self.game.state.players_info[imperium_self.game.player - 1].commodities == imperium_self.game.state.players_info[imperium_self.game.player - 1].commodity_limit) {
@@ -70,21 +76,19 @@ this.importStrategyCard("trade", {
       }
 
 
-      imperium_self.updateStatus(html);
+            imperium_self.game.status = html;
+      imperium_self.hud.updateStatus(imperium_self.game.status);
+      imperium_self.hud.updateCards([]);
 
       imperium_self.lockInterface();
 
-      $('.option').off();
-      $('.option').on('click', function() {
+      imperium_self.hud.updateMenu(menu, function(id) {
 
         if (!imperium_self.mayUnlockInterface()) {
           salert("The game engine is currently processing moves related to another player's move. Please wait a few seconds and reload your browser.");
           return;
         }
         imperium_self.unlockInterface();
-
-        $('.option').off();
-        let id = $(this).attr("id");
 
         if (id == "yes") {
           imperium_self.addMove("resolve\tstrategy\t1\t" + imperium_self.getPublicKey());

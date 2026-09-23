@@ -41,17 +41,23 @@
     text-shadow: 1px 1px 1px white;
   }
 
-  .hud-header {
-    padding: 1rem;
-    height: 2.5rem;
+  .pandemic-hud-chrome {
+    width: min(52rem, calc(100vw - 1.5rem));
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
   }
 
-  .hud-body {
-    height: unset;
+  .pandemic-hud-tools {
+    padding: 0.5rem 1rem;
+    min-height: 2.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
   }
 
-  .hud-body .status {
-    width: unset;
+  .pandemic-hud-actions:empty {
+    display: none;
   }
 
   .game-cardbox {

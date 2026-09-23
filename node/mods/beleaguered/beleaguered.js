@@ -263,7 +263,10 @@ class Beleaguered extends OnePlayerGameTemplate {
           this.game.board['m4'].length ==
         52
       ) {
-        this.updateStatus('You Win');
+                this.game.status = 'You Win';
+        this.hud.updateStatus(this.game.status);
+        this.hud.updateMenu([]);
+        this.hud.updateCards([]);
         let c = await sconfirm('You win! Start new Game?');
         if (c) {
           this.prependMove('win');
@@ -284,7 +287,10 @@ class Beleaguered extends OnePlayerGameTemplate {
       if (!success) {
         let c = await sconfirm(`No more moves. Start new Game?`);
         if (c) {
-          this.updateStatus('Game Over');
+                    this.game.status = 'Game Over';
+          this.hud.updateStatus(this.game.status);
+          this.hud.updateMenu([]);
+          this.hud.updateCards([]);
           this.prependMove('lose');
           this.endTurn();
         }
@@ -472,7 +478,10 @@ class Beleaguered extends OnePlayerGameTemplate {
     }
     html += `<div class="auto_solve status_option">Auto Complete</div></div>`;
 
-    this.updateStatus(html);
+        this.game.status = html;
+    this.hud.updateStatus(this.game.status);
+    this.hud.updateMenu([]);
+    this.hud.updateCards([]);
 
     $('.new_game').on('click', async () => {
       let c = await sconfirm('Do you want to end this game and start a new one?');

@@ -244,10 +244,8 @@
 
     this.menu.render();
 
-    this.hud.auto_sizing = 0;
-    if (!document.querySelector(".hud")) {
-      this.hud.render();
-    }
+    this.hud.render();
+    this.ensureHudChrome();
 
     this.log.render();
 
@@ -283,7 +281,7 @@
 //
 //    this.loadGame(game_id);
 
-    if (this.game.status != "") { this.updateStatus(this.game.status); }
+    if (this.game.status != "") {     this.hud.updateStatus(this.game.status); }
   
     //
     // specify players
@@ -662,14 +660,6 @@ console.log("QUEUE IN INIT: " + JSON.stringify(this.game.queue.push));
 	this.agenda_cards[this_law.agenda].initialize(this, agenda_option);
       }
     }
-
-    //
-    // HIDE HUD LOG
-    //
-    try {
-      $('.hud-body > .log').remove();
-      $('.status').css('display','block');
-    } catch (err) {}
 
     //
     // display board

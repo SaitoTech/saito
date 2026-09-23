@@ -224,7 +224,9 @@ class OnePlayerGameTemplate extends GameTemplate {
     this.halted = 0;
     this.gaming_active = 0;
 
-    this.updateStatusWithOptions('Saving game to the blockchain...');
+    this.game.status = msg;
+    this.hud.updateStatus(msg);
+    this.hud.updateCards([]);
     this.prependMove('EXITGAME');
     this.endTurn();
   }

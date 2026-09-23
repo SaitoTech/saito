@@ -15,7 +15,10 @@
 
         twilight_self.addMove("resolve\tdestalinization");
 
-        twilight_self.updateStatus('<div class="status-message" id="status-message">Remove four USSR influence from existing countries:</div>');
+        twilight_self.game.status = '<div class="status-message" id="status-message">Remove four USSR influence from existing countries:</div>';
+        twilight_self.hud.updateStatus(twilight_self.game.status);
+        twilight_self.hud.updateMenu([]);
+        twilight_self.hud.updateCards([]);
 
         let ops_to_purge = 4;
 
@@ -35,7 +38,10 @@
             
             if (ops_to_purge == 0) {
 
-              twilight_self.updateStatus('<div class="status-message" id="status-message">Add four USSR influence to any non-US controlled countries</div>');
+              twilight_self.game.status = '<div class="status-message" id="status-message">Add four USSR influence to any non-US controlled countries</div>';
+              twilight_self.hud.updateStatus(twilight_self.game.status);
+              twilight_self.hud.updateMenu([]);
+              twilight_self.hud.updateCards([]);
               twilight_self.playerFinishedPlacingInfluence();
 
               var ops_to_place = 4;

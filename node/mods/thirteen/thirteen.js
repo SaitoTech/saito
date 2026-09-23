@@ -98,7 +98,7 @@ class Thirteen extends GameTemplate {
     this.menu.render();
 
     this.cardbox.addCardType('showcard', '', null);
-    this.cardbox.addCardType('card', 'select', this.cardbox_callback);
+    this.cardbox.addCardType('card', 'select', null);
 
     this.hud.render();
 
@@ -145,7 +145,7 @@ class Thirteen extends GameTemplate {
     twilight_self.overlay.show(html);
 
     $('.menu-item').on('click', function () {
-      let player_action = $(this).attr('id');
+      let player_action = user_choice;
       var deck = twilight_self.game.deck[1];
       var html = '';
       var cards;
@@ -218,9 +218,10 @@ class Thirteen extends GameTemplate {
       console.log('---------------------------');
       console.log('\n\n\n\n');
 
-      this.updateStatus(
-        "<div class='status-message' id='status-message'>generating the game</div>"
-      );
+            this.game.status = "<div class='status-message' id='status-message'>generating the game</div>";
+      this.hud.updateStatus(this.game.status);
+      this.hud.updateMenu([]);
+      this.hud.updateCards([]);
 
       this.game.queue.push('round');
       this.game.queue.push('READY');
@@ -386,7 +387,10 @@ class Thirteen extends GameTemplate {
 
           let hand = this.game.deck[0].hand;
 
-          this.updateStatus('Pick your agenda card');
+                    this.game.status = 'Pick your agenda card';
+          this.hud.updateStatus(this.game.status);
+          this.hud.updateMenu([]);
+          this.hud.updateCards([]);
           this.overlay.showCardSelectionOverlay(this.app, this, hand, {
             columns: 3,
             textAlign: 'center',
@@ -414,7 +418,10 @@ class Thirteen extends GameTemplate {
           });
           this.overlay.blockClose();
         } else {
-          this.updateStatus('waiting for opponent to select agenda card');
+                    this.game.status = 'waiting for opponent to select agenda card';
+          this.hud.updateStatus(this.game.status);
+          this.hud.updateMenu([]);
+          this.hud.updateCards([]);
         }
 
         return 0;
@@ -673,14 +680,16 @@ class Thirteen extends GameTemplate {
           this.updateLog(`${this.roles[television_bonus]} wins the Television Battleground bonus.`);
 
           if (this.game.player == television_bonus) {
-            this.updateStatus(
-              `<div class="status-message" id="status-message">You receive Television Battleground bonus: adjust one DEFCON track one level.</div>`
-            );
+                        this.game.status = `<div class="status-message" id="status-message">You receive Television Battleground bonus: adjust one DEFCON track one level.</div>`;
+            this.hud.updateStatus(this.game.status);
+            this.hud.updateMenu([]);
+            this.hud.updateCards([]);
             this.eventShiftDefcon(this.game.player, this.game.player, [1, 2, 3], 1);
           } else {
-            this.updateStatus(
-              "<div class='status-message' id='status-message'>Opponent is taking Television Battleground bonus</div>"
-            );
+                        this.game.status = "<div class='status-message' id='status-message'>Opponent is taking Television Battleground bonus</div>";
+            this.hud.updateStatus(this.game.status);
+            this.hud.updateMenu([]);
+            this.hud.updateCards([]);
             return 0;
           }
 
@@ -725,16 +734,18 @@ class Thirteen extends GameTemplate {
           this.updateLog(`${this.roles[alliances_bonus]} wins the Alliances Battleground bonus.`);
 
           if (this.game.player == alliances_bonus) {
-            this.updateStatus(
-              "<div class='status-message' id='status-message'>You are pulling the Alliances Battleground Bonus: pulling strategy card</div>"
-            );
+                        this.game.status = "<div class='status-message' id='status-message'>You are pulling the Alliances Battleground Bonus: pulling strategy card</div>";
+            this.hud.updateStatus(this.game.status);
+            this.hud.updateMenu([]);
+            this.hud.updateCards([]);
             this.addMove('aftermath_or_discard\t' + this.game.player);
             this.addMove('DEAL\t2\t1\t1'); // deck 2, player 1, 1 card
             this.endTurn();
           } else {
-            this.updateStatus(
-              "<div class='status-message' id='status-message'>Alliances Battleground Bonus: Opponent is pulling strategy card</div>"
-            );
+                        this.game.status = "<div class='status-message' id='status-message'>Alliances Battleground Bonus: Opponent is pulling strategy card</div>";
+            this.hud.updateStatus(this.game.status);
+            this.hud.updateMenu([]);
+            this.hud.updateCards([]);
           }
 
           return 0;
@@ -750,10 +761,12 @@ class Thirteen extends GameTemplate {
           let card = this.game.deck[1].hand[0];
 
           let statMsg = `You have pulled ${this.cardToText(card)} as an Aftermath bonus card:`;
-          let html = '<ul><li class="card nocard" id="discard">discard card</li>';
-          html += `<li class="card nocard" id="${card}">put in aftermath</li></ul>`;
-          thirteen_self.updateStatusWithOptions(statMsg, html);
-          thirteen_self.attachCardboxEvents(function (action) {
+          let html = [{ id: 'discard', label: 'discard card' }];
+          html.push({ id: `${card}`, label: `put in aftermath` });
+                    thirteen_self.game.status = statMsg;
+          thirteen_self.hud.updateStatus(thirteen_self.game.status);
+          thirteen_self.hud.updateCards([]);
+          thirteen_self.hud.updateMenu(html, function (action) {
             if (action == 'discard') {
               thirteen_self.addMove(`discard\t${player}\t2\t${card}`);
               thirteen_self.addMove('notify\tWorld Opinion bonus card is discarded');
@@ -769,6 +782,7 @@ class Thirteen extends GameTemplate {
             }
             thirteen_self.endTurn();
           });
+          thirteen_self.cardbox.attachCardEvents();
         }
         return 0;
       }
@@ -813,13 +827,14 @@ class Thirteen extends GameTemplate {
           // play or discard
           //
 
-          let html = '<ul>';
-          html += '<li class="card" id="discard">discard card</li>';
-          html += `<li class="card" id="${card}">play card</li>`;
-          html += '</ul>';
+          let html = [];
+          html.push({ id: 'discard', label: 'discard card' });
+          html.push({ id: `${card}`, label: `play card` });
 
-          thirteen_self.updateStatusWithOptions(`You pulled ${this.cardToText(card)}:`, html);
-          thirteen_self.attachCardboxEvents(function (card) {
+                    thirteen_self.game.status = `You pulled ${this.cardToText(card)}:`;
+          thirteen_self.hud.updateStatus(thirteen_self.game.status);
+          thirteen_self.hud.updateCards([]);
+          thirteen_self.hud.updateMenu(html, function (card) {
             if (card == 'discard') {
               thirteen_self.addMove(
                 `notify\t${
@@ -831,6 +846,7 @@ class Thirteen extends GameTemplate {
               thirteen_self.playerPlayStrategyCard(card);
             }
           });
+          thirteen_self.cardbox.attachCardEvents();
         }
 
         this.game.queue.splice(qe, 1);
@@ -977,7 +993,10 @@ class Thirteen extends GameTemplate {
 
         if (this.game.player == player) {
           //Just in case the card event doesn't update status
-          this.updateStatus(`Opponent triggers ${this.cardToText(card)}`);
+                    this.game.status = `Opponent triggers ${this.cardToText(card)}`;
+          this.hud.updateStatus(this.game.status);
+          this.hud.updateMenu([]);
+          this.hud.updateCards([]);
           this.strategies[card].event(player);
         }
 
@@ -997,10 +1016,11 @@ class Thirteen extends GameTemplate {
         if (this.game.player == player) {
           this.playerPlaceCommandTokens(player, number);
         } else {
-          this.updateStatusAndListCards(
-            `Opponent commanding ${this.adjustInfluence(player, number) + letter} influence`,
-            this.returnHand()
-          );
+                    this.game.status = `Opponent commanding ${this.adjustInfluence(player, number) + letter} influence`;
+          this.hud.updateStatus(this.game.status);
+          this.hud.updateMenu([]);
+          this.hud.updateCards(this.returnHand());
+          this.cardbox.attachCardEvents();
         }
 
         return 0;
@@ -1094,10 +1114,11 @@ class Thirteen extends GameTemplate {
         if (this.game.player == player) {
           this.eventShiftDefcon(player, player_getting_moved, options, number);
         } else {
-          this.updateStatusAndListCards(
-            `Opponent shifting ${player == player_getting_moved ? 'their' : 'your'} defcon levels`,
-            this.returnHand()
-          );
+                    this.game.status = `Opponent shifting ${player == player_getting_moved ? 'their' : 'your'} defcon levels`;
+          this.hud.updateStatus(this.game.status);
+          this.hud.updateMenu([]);
+          this.hud.updateCards(this.returnHand());
+          this.cardbox.attachCardEvents();
         }
 
         this.game.queue.splice(qe, 1);
@@ -1134,22 +1155,19 @@ class Thirteen extends GameTemplate {
         // us deals with bays of pigs invasion
         //
         if (this.game.player == 2) {
-          let html = '<ul>';
+          let html = [];
 
           if (this.game.arenas['alliances'].us >= 2) {
-            html += '<li class="card nocard" id="remove">remove influence</li>';
+            html.push({ id: 'remove', label: 'remove influence' });
           }
-          html += '<li class="card nocard" id="restrict">defcon restriction</li>';
-          html += '</ul>';
+          html.push({ id: 'restrict', label: 'defcon restriction' });
 
-          thirteen_self.updateStatusWithOptions(
-            `${this.cardToText(
+                    thirteen_self.game.status = `${this.cardToText(
               's34b'
-            )}: Either remove two influence from alliance battleground or choose not to use events to lower defcon for this round:`,
-            html
-          );
-
-          thirteen_self.attachCardboxEvents(function (action) {
+            )}: Either remove two influence from alliance battleground or choose not to use events to lower defcon for this round:`;
+          thirteen_self.hud.updateStatus(thirteen_self.game.status);
+          thirteen_self.hud.updateCards([]);
+          thirteen_self.hud.updateMenu(html, function (action) {
             if (action == 'remove') {
               thirteen_self.addMove('remove_influence\t2\talliances\t2');
               thirteen_self.endTurn();
@@ -1159,11 +1177,13 @@ class Thirteen extends GameTemplate {
               thirteen_self.endTurn();
             }
           });
+          thirteen_self.cardbox.attachCardEvents();
         } else {
-          this.updateStatusAndListCards(
-            `US dealing with ${this.cardToText('s34b')}`,
-            this.returnHand()
-          );
+                    this.game.status = `US dealing with ${this.cardToText('s34b')}`;
+          this.hud.updateStatus(this.game.status);
+          this.hud.updateMenu([]);
+          this.hud.updateCards(this.returnHand());
+          this.cardbox.attachCardEvents();
         }
 
         return 0;
@@ -1216,31 +1236,39 @@ class Thirteen extends GameTemplate {
 
     if (this.game.state.turn != this.game.player) {
       this.cardbox.hide(1);
-      this.updateStatusAndListCards(
-        `waiting for ${this.game.player == 1 ? 'US' : 'USSR'} to move...`,
-        this.returnHand()
-      );
-      this.attachCardboxEvents(); //Allow mouseover zoom
+            this.game.status = `waiting for ${this.game.player == 1 ? 'US' : 'USSR'} to move...`;
+      this.hud.updateStatus(this.game.status);
+      this.hud.updateMenu([]);
+      this.hud.updateCards(this.returnHand());
+      this.cardbox.attachCardEvents();
+            this.cardbox.attachCardEvents(); //Allow mouseover zoom
     } else {
-      this.updateStatusAndListCards('Pick a card to play', this.returnHand());
-      this.attachCardboxEvents(function (card) {
+            this.game.status = 'Pick a card to play';
+      this.hud.updateStatus(this.game.status);
+      this.hud.updateMenu([]);
+      this.hud.updateCards(this.returnHand());
+      this.cardbox.attachCardEvents();
+            this.cardbox.bindCallback(function (card) {
         if (card == 'personal_letter') {
           thirteen_self.game.state.personal_letter_bonus = 1;
           thirteen_self.addMove('setvar\tpersonal_letter\t' + thirteen_self.game.player);
 
-          thirteen_self.updateStatusAndListCards(
-            'Pick a card to play for Command (+1 bonus)',
-            this.game.deck[1].hand
-          );
-          thirteen_self.attachCardboxEvents(function (card) {
+                    thirteen_self.game.status = 'Pick a card to play for Command (+1 bonus)';
+          thirteen_self.hud.updateStatus(thirteen_self.game.status);
+          thirteen_self.hud.updateMenu([]);
+          thirteen_self.hud.updateCards(this.game.deck[1].hand);
+          thirteen_self.cardbox.attachCardEvents();
+                    thirteen_self.cardbox.bindCallback(function (card) {
             thirteen_self.addMove(`discard\t${thirteen_self.game.player}\t2\t${card}`);
             thirteen_self.playerPlayStrategyCard(card);
           });
+          thirteen_self.cardbox.attachCardEvents();
         } else {
           thirteen_self.addMove(`discard\t${thirteen_self.game.player}\t2\t${card}`);
           thirteen_self.playerPlayStrategyCard(card);
         }
       });
+      this.cardbox.attachCardEvents();
     }
   }
 
@@ -1260,9 +1288,10 @@ class Thirteen extends GameTemplate {
       if (this_card.side == 'neutral' || this_card.side == me) {
         thirteen_self.playerPlaceCommandTokens(thirteen_self.game.player, number);
       } else {
-        thirteen_self.updateStatus(
-          `wait for opponent to play ${thirteen_self.cardToText(card)} event`
-        );
+                thirteen_self.game.status = `wait for opponent to play ${thirteen_self.cardToText(card)} event`;
+        thirteen_self.hud.updateStatus(thirteen_self.game.status);
+        thirteen_self.hud.updateMenu([]);
+        thirteen_self.hud.updateCards([]);
         thirteen_self.addMove(
           `command_influence\t${thirteen_self.game.player}\t${number}\t${thirteen_self.game.state.personal_letter_bonus}`
         );
@@ -1277,17 +1306,16 @@ class Thirteen extends GameTemplate {
       return;
     }
 
-    let html = '<ul>';
+    let html = [];
     if (this_card.side == 'neutral' || this_card.side == me) {
-      html += '<li class="card noncard" id="playevent">play event</li>';
+      html.push({ id: 'playevent', label: 'play event' });
     }
-    html += '<li class="card noncard" id="playcommand">command (add/remove cubes)</li></ul>';
+    html.push({ id: 'playcommand', label: 'command (add/remove cubes)' });
 
-    thirteen_self.updateStatusWithOptions(
-      `how would you like to play ${thirteen_self.cardToText(card)}:`,
-      html
-    );
-    thirteen_self.attachCardboxEvents(function (action) {
+        thirteen_self.game.status = `how would you like to play ${thirteen_self.cardToText(card)}:`;
+    thirteen_self.hud.updateStatus(thirteen_self.game.status);
+    thirteen_self.hud.updateCards([]);
+    thirteen_self.hud.updateMenu(html, function (action) {
       if (action == 'playevent') {
         thirteen_self.addMove(`notify\t${me} plays ${thirteen_self.cardToText(card)} for event`);
         this_card.event(thirteen_self.game.player);
@@ -1297,6 +1325,7 @@ class Thirteen extends GameTemplate {
         playCommand(card);
       }
     });
+    thirteen_self.cardbox.attachCardEvents();
   }
 
   addInfluence(player, arena_id, num) {
@@ -1423,21 +1452,19 @@ class Thirteen extends GameTemplate {
         choosedirection(options[0]);
       }
 
-      let html2 = '<ul>';
+      let html2 = [];
       for (let op of options) {
-        html2 += `<li class="card nocard" id="${op}">${defcon_tracks[parseInt(op) - 1]}</li>`;
+        html2.push({ id: `${op}`, label: `${defcon_tracks[parseInt(op) - 1]}` });
       }
 
-      html2 += '<li class="card nocard" id="done">finish move</li>';
-      html2 += '</ul>';
+      html2.push({ id: 'done', label: 'finish move' });
 
-      thirteen_self.updateStatusWithOptions(
-        `Adjust which DEFCON track for ${
+            thirteen_self.game.status = `Adjust which DEFCON track for ${
           player == player_getting_moved ? 'you' : 'your opponent'
-        }:`,
-        html2
-      );
-      thirteen_self.attachCardboxEvents(function (action) {
+        }:`;
+      thirteen_self.hud.updateStatus(thirteen_self.game.status);
+      thirteen_self.hud.updateCards([]);
+      thirteen_self.hud.updateMenu(html2, function (action) {
         if (action == 'done') {
           runCallback(0);
           return;
@@ -1445,50 +1472,48 @@ class Thirteen extends GameTemplate {
           choosedirection(action);
         }
       });
+      thirteen_self.cardbox.attachCardEvents();
     };
 
     const choosedirection = function (track) {
       let choices = 0;
       let nochoice = '';
 
-      let html = '<ul>';
+      let html = [];
       if (directions != 'decrease') {
         if (thirteen_self.getDefcon(player_getting_moved, track) < 8) {
           choices++;
           nochoice = 'increase';
-          html += `<li class="card nocard" id="increase">escalate!</li>`;
+          html.push({ id: `increase`, label: `escalate!` });
         }
       }
       if (directions != 'increase') {
         if (thirteen_self.getDefcon(player_getting_moved, track) > 1) {
           choices++;
           nochoice = 'decrease';
-          html += `<li class="card nocard" id="decrease">de-escalate</li>`;
+          html.push({ id: `decrease`, label: `de-escalate` });
         }
       }
-      html += '<li class="card nocard" id="done">finish move</li>';
-      html += '</ul>';
+      html.push({ id: 'done', label: 'finish move' });
 
       if (choices === 1) {
         chooseamount(track, nochoice);
         return;
       }
 
-      thirteen_self.updateStatusWithOptions(
-        `escalate or de-escalate ${defcon_tracks[track - 1]} defcon track for ${
+            thirteen_self.game.status = `escalate or de-escalate ${defcon_tracks[track - 1]} defcon track for ${
           player == player_getting_moved ? 'you' : 'your opponent'
-        }?`,
-        html,
-        true
-      );
-
-      thirteen_self.attachCardboxEvents(function (direction) {
+        }?`;
+      thirteen_self.hud.updateStatus(thirteen_self.game.status);
+      thirteen_self.hud.updateCards([]);
+      thirteen_self.hud.updateMenu(html, function (direction) {
         if (direction == 'done') {
           runCallback(0);
         }
 
         chooseamount(track, direction);
       });
+      thirteen_self.cardbox.attachCardEvents();
     };
 
     const chooseamount = function (track, direction) {
@@ -1496,22 +1521,20 @@ class Thirteen extends GameTemplate {
       let current = thirteen_self.getDefcon(player_getting_moved, track);
 
       if (number != 1) {
-        let html3 = '<ul>';
+        let html3 = [];
         for (let i = 1; i <= number; i++) {
           let value = multiplier * i + current;
           if (value <= 1 || value >= 8) {
             break;
           }
-          html3 += `<li class="card nocard" id="${i}">${i}</li>`;
+          html3.push({ id: `${i}`, label: `${i}` });
         }
-        html3 += `<li class="card nocard" id="done">finish move</li></ul>`;
+        html3.push({ id: `done`, label: `finish move` });
 
-        thirteen_self.updateStatusWithOptions(
-          `${direction} ${defcon_tracks[track - 1]} by how much?`,
-          html3,
-          true
-        );
-        thirteen_self.attachCardboxEvents(function (num) {
+                thirteen_self.game.status = `${direction} ${defcon_tracks[track - 1]} by how much?`;
+        thirteen_self.hud.updateStatus(thirteen_self.game.status);
+        thirteen_self.hud.updateCards([]);
+        thirteen_self.hud.updateMenu(html3, function (num) {
           if (num === 'done') {
             runCallback(0);
             return;
@@ -1522,6 +1545,7 @@ class Thirteen extends GameTemplate {
           thirteen_self.addMove(`${direction}_defcon\t${player_getting_moved}\t${track}\t${num}`);
           runCallback(num);
         });
+        thirteen_self.cardbox.attachCardEvents();
       } else {
         thirteen_self.addMove(`${direction}_defcon\t${player_getting_moved}\t${track}\t1`);
         runCallback(1);
@@ -1547,7 +1571,7 @@ class Thirteen extends GameTemplate {
     let thirteen_self = this;
     let battleground_selected = '';
 
-    this.attachCardboxEvents(function (action) {
+        this.cardbox.bindCallback(function (action) {
       if (action == 'done') {
         if (mycallback) {
           mycallback();
@@ -1556,6 +1580,7 @@ class Thirteen extends GameTemplate {
         }
       }
     });
+    this.cardbox.attachCardEvents();
 
     let placed = {};
     let total_placed = 0;
@@ -1569,7 +1594,7 @@ class Thirteen extends GameTemplate {
 
     $('.active_battleground').off();
     $('.active_battleground').on('click', function () {
-      let arena_id = $(this).attr('id');
+      let arena_id = user_choice;
 
       // Not sure which event requires user to select one battleground and add an optional amount of influence
       if (number == 100) {
@@ -1681,11 +1706,12 @@ class Thirteen extends GameTemplate {
     };
 
     this.removeEventsFromBoard();
-    this.attachCardboxEvents(function (action) {
+        this.cardbox.bindCallback(function (action) {
       if (action == 'done') {
         runCallback(total_placed);
       }
     });
+    this.cardbox.attachCardEvents();
 
     for (let bg of options) {
       placed[bg] = 0;
@@ -1694,7 +1720,7 @@ class Thirteen extends GameTemplate {
 
     $('.active_battleground').off();
     $('.active_battleground').on('click', function () {
-      let arena_id = $(this).attr('id');
+      let arena_id = user_choice;
 
       //
       // remove half
@@ -1816,20 +1842,20 @@ class Thirteen extends GameTemplate {
 
     tokens = this.adjustInfluence(player, tokens);
 
-    this.updateStatusWithOptions(
-      `Pick a battleground to add/remove up to ${tokens} cubes:`,
-      `<ul><li class="card nocard" id="done">finish</li></ul>`
-    );
-    this.attachCardboxEvents(function (card) {
+        this.game.status = `Pick a battleground to add/remove up to ${tokens} cubes:`;
+    this.hud.updateStatus(this.game.status);
+    this.hud.updateCards([]);
+    this.hud.updateMenu([{ id: "done", label: "finish" }], function (card) {
       if (card === 'done') {
         thirteen_self.endTurn();
       }
     });
+    this.cardbox.attachCardEvents();
 
     $('.country').off();
     $('.country').on('click', function () {
       $('.country').off();
-      pickDirection($(this).attr('id'));
+      pickDirection(user_choice);
     });
 
     const pickDirection = (arena) => {
@@ -1837,48 +1863,51 @@ class Thirteen extends GameTemplate {
         player == 1 ? thirteen_self.game.arenas[arena].ussr : thirteen_self.game.arenas[arena].us;
       let choice = '';
       let choices = 0;
-      let html = `<ul>`;
+      let html = [];
       if (currentTokens < 5) {
-        html += `<li class="card nocard" id="addtokens">add command tokens</li>`;
+        html.push({ id: `addtokens`, label: `add command tokens` });
         choice = 'addtokens';
         choices++;
       }
       if (currentTokens > 0) {
-        html += '<li class="card nocard" id="removetokens">remove command tokens</li>';
+        html.push({ id: 'removetokens', label: 'remove command tokens' });
         choice = 'removetokens';
         choices++;
       }
-      html += `<li class="card nocard" id="done">end turn</li>`;
-      html += '</ul>';
+      html.push({ id: `done`, label: `end turn` });
 
       if (choices == 1) {
         pickAmount(arena, choice);
       } else {
-        thirteen_self.updateStatusWithOptions(`do you wish to add or remove command tokens?`, html);
-        thirteen_self.attachCardboxEvents(function (action) {
+                thirteen_self.game.status = `do you wish to add or remove command tokens?`;
+        thirteen_self.hud.updateStatus(thirteen_self.game.status);
+        thirteen_self.hud.updateCards([]);
+        thirteen_self.hud.updateMenu(html, function (action) {
           if (action == 'done') {
             thirteen_self.endTurn();
             return;
           }
           pickAmount(arena, action);
         });
+        thirteen_self.cardbox.attachCardEvents();
       }
     };
 
     const pickAmount = (arena, direction) => {
-      let html = '<ul>';
+      let html = [];
       let currentTokens =
         player == 1 ? thirteen_self.game.arenas[arena].ussr : thirteen_self.game.arenas[arena].us;
 
       if (direction == 'addtokens') {
         for (let i = currentTokens, j = 1; i < 5 && j <= tokens; i++, j++) {
-          html += `<li class="card nocard" id="${j}">${j}</li>`;
+          html.push({ id: `${j}`, label: `${j}` });
         }
-        html += `<li class="card nocard" id="done">end turn</li>`;
-        html += '</ul>';
+        html.push({ id: `done`, label: `end turn` });
 
-        thirteen_self.updateStatusWithOptions(`how many command tokens do you wish to add?`, html);
-        thirteen_self.attachCardboxEvents(function (number) {
+                thirteen_self.game.status = `how many command tokens do you wish to add?`;
+        thirteen_self.hud.updateStatus(thirteen_self.game.status);
+        thirteen_self.hud.updateCards([]);
+        thirteen_self.hud.updateMenu(html, function (number) {
           if (number == 'done') {
             thirteen_self.endTurn();
             return;
@@ -1917,19 +1946,18 @@ class Thirteen extends GameTemplate {
             thirteen_self.endTurn();
           }
         });
+        thirteen_self.cardbox.attachCardEvents();
       }
 
       if (direction == 'removetokens') {
         for (let i = 1; i <= currentTokens && i <= tokens; i++) {
-          html += `<li class="card nocard" id="${i}">${i}</li>`;
+          html.push({ id: `${i}`, label: `${i}` });
         }
-        html += '</ul>';
 
-        thirteen_self.updateStatusWithOptions(
-          `how many command tokens do you wish to remove?`,
-          html
-        );
-        thirteen_self.attachCardboxEvents(function (number) {
+                thirteen_self.game.status = `how many command tokens do you wish to remove?`;
+        thirteen_self.hud.updateStatus(thirteen_self.game.status);
+        thirteen_self.hud.updateCards([]);
+        thirteen_self.hud.updateMenu(html, function (number) {
           let defcon_decrease = parseInt(number) - 1;
           let defcon_track = thirteen_self.returnDefconFromBattleground(arena);
 
@@ -1958,6 +1986,7 @@ class Thirteen extends GameTemplate {
             thirteen_self.endTurn();
           }
         });
+        thirteen_self.cardbox.attachCardEvents();
       }
     };
   }
@@ -3228,12 +3257,12 @@ class Thirteen extends GameTemplate {
       tokens: 3,
       defcon: 0,
       event: function (player) {
-        thirteen_self.updateStatusWithOptions(
-          `${thirteen_self.cardToText(
+                thirteen_self.game.status = `${thirteen_self.cardToText(
             's01b'
-          )}: Place up to three influence cubes in total on one or more world opinion battlegrounds (max 2 per battleground)`,
-          `<ul><li class="card nocard" id="done">finish</li></ul>`
-        );
+          )}: Place up to three influence cubes in total on one or more world opinion battlegrounds (max 2 per battleground)`;
+        thirteen_self.hud.updateStatus(thirteen_self.game.status);
+        thirteen_self.hud.updateCards([]);
+        thirteen_self.hud.updateMenu([{ id: "done", label: "finish" }]);
         thirteen_self.eventAddInfluence(player, player, ['un', 'television', 'alliances'], 3, 2, 0);
       }
     };
@@ -3247,10 +3276,10 @@ class Thirteen extends GameTemplate {
       event: function (player) {
         // escalate / de-escalate DEFCON tracks by up to 2 steps
         thirteen_self.eventShiftDefcon(player, player, [1, 2, 3], 2, 'both', function (args) {
-          thirteen_self.updateStatusWithOptions(
-            'Command 1 Influence cube:',
-            `<ul><li class="card nocard" id="done">finish</li></ul>`
-          );
+                    thirteen_self.game.status = 'Command 1 Influence cube:';
+          thirteen_self.hud.updateStatus(thirteen_self.game.status);
+          thirteen_self.hud.updateCards([]);
+          thirteen_self.hud.updateMenu([{ id: "done", label: "finish" }]);
           thirteen_self.playerPlaceCommandTokens(player, 1);
         });
       }
@@ -3324,10 +3353,10 @@ class Thirteen extends GameTemplate {
       defcon: 0,
       event: function (player) {
         // place up to 2 influence cubes in total on one or more political battlegrounds
-        thirteen_self.updateStatusWithOptions(
-          'Place up to two influence cubes in total on one or more political battlegrounds:',
-          `<ul><li class="card nocard" id="done">finish</li></ul>`
-        );
+                thirteen_self.game.status = 'Place up to two influence cubes in total on one or more political battlegrounds:';
+        thirteen_self.hud.updateStatus(thirteen_self.game.status);
+        thirteen_self.hud.updateCards([]);
+        thirteen_self.hud.updateMenu([{ id: "done", label: "finish" }]);
         thirteen_self.eventAddInfluence(player, player, ['cuba_pol', 'italy', 'turkey'], 2, 2, 0);
       }
     };
@@ -3355,27 +3384,28 @@ class Thirteen extends GameTemplate {
       event: function (player) {
         let cards_discarded = 0;
         let max_cards = 0;
-        let html = '<ul>';
+        let html = [];
         for (let i = 0; i < thirteen_self.game.deck[1].hand.length; i++) {
           if (thirteen_self.game.deck[1].hand[i] !== 's07b') {
             max_cards++;
-            html += `<li class="card nocard" id="${
+            html.push({ id: `${
               thirteen_self.game.deck[1].hand[i]
-            }">${thirteen_self.cardToText(thirteen_self.game.deck[1].hand[i])}</li>`;
+            }`, label: `${thirteen_self.cardToText(thirteen_self.game.deck[1].hand[i])}` });
           }
         }
-        html += '<li class="card nocard dashed" id="finished">Done Discarding</li></ul>';
+        html.push({ id: 'finished', label: 'Done Discarding' });
 
-        thirteen_self.updateStatusWithOptions(`Select cards to discard:`, html);
-
-        thirteen_self.attachCardboxEvents(function (card) {
+                thirteen_self.game.status = `Select cards to discard:`;
+        thirteen_self.hud.updateStatus(thirteen_self.game.status);
+        thirteen_self.hud.updateCards([]);
+        thirteen_self.hud.updateMenu(html, function (card) {
           if (card == 'finished') {
             thirteen_self.addMove(
               'SAFEDEAL\t2\t' + thirteen_self.game.player + '\t' + cards_discarded
             );
             thirteen_self.endTurn();
           } else {
-            let li = document.querySelector(`.status ul #${card}.card.nocard`);
+            let li = document.querySelector(`.hud-menu #${card}`);
             if (li) {
               cards_discarded++;
               li.remove();
@@ -3392,6 +3422,7 @@ class Thirteen extends GameTemplate {
             }
           }
         });
+        thirteen_self.cardbox.attachCardEvents();
       }
     };
     deck['s08b'] = {
@@ -3422,10 +3453,10 @@ class Thirteen extends GameTemplate {
       defcon: 0,
       event: function (player) {
         // place up to 2 influence cubes in total on one or more military battlegrounds
-        thirteen_self.updateStatusWithOptions(
-          'Place up to two influence cubes in total on one or more military battlegrounds:',
-          `<ul><li class="card nocard" id="done">finish</li></ul>`
-        );
+                thirteen_self.game.status = 'Place up to two influence cubes in total on one or more military battlegrounds:';
+        thirteen_self.hud.updateStatus(thirteen_self.game.status);
+        thirteen_self.hud.updateCards([]);
+        thirteen_self.hud.updateMenu([{ id: "done", label: "finish" }]);
         thirteen_self.eventAddInfluence(
           player,
           player,
@@ -3445,7 +3476,10 @@ class Thirteen extends GameTemplate {
       defcon: 0,
       event: function (player) {
         // deflate all your DEFCON tracks by 1
-        thirteen_self.updateStatus('Decreasing all of your DEFCON tracks by 1:');
+                thirteen_self.game.status = 'Decreasing all of your DEFCON tracks by 1:';
+        thirteen_self.hud.updateStatus(thirteen_self.game.status);
+        thirteen_self.hud.updateMenu([]);
+        thirteen_self.hud.updateCards([]);
         thirteen_self.addMove('decrease_defcon\t' + player + '\t1\t1');
         thirteen_self.addMove('decrease_defcon\t' + player + '\t2\t1');
         thirteen_self.addMove('decrease_defcon\t' + player + '\t3\t1');
@@ -3483,10 +3517,10 @@ class Thirteen extends GameTemplate {
 
         // command three influence, then opponent may command 1 influence
         thirteen_self.addMove(`command_influence\t${opponent}\t1`);
-        thirteen_self.updateStatusWithOptions(
-          'Command 3 Influence cubes',
-          `<ul><li class="card nocard" id="done">finish</li></ul>`
-        );
+                thirteen_self.game.status = 'Command 3 Influence cubes';
+        thirteen_self.hud.updateStatus(thirteen_self.game.status);
+        thirteen_self.hud.updateCards([]);
+        thirteen_self.hud.updateMenu([{ id: "done", label: "finish" }]);
         thirteen_self.playerPlaceCommandTokens(thirteen_self.game.player, 3);
       }
     };
@@ -3498,10 +3532,10 @@ class Thirteen extends GameTemplate {
       tokens: 3,
       defcon: 0,
       event: function (player) {
-        thirteen_self.updateStatusWithOptions(
-          'Place up to three influence cubes on up to three battlegrounds (1 each):',
-          `<ul><li class="card nocard" id="done">finish</li></ul>`
-        );
+                thirteen_self.game.status = 'Place up to three influence cubes on up to three battlegrounds (1 each):';
+        thirteen_self.hud.updateStatus(thirteen_self.game.status);
+        thirteen_self.hud.updateCards([]);
+        thirteen_self.hud.updateMenu([{ id: "done", label: "finish" }]);
         thirteen_self.eventAddInfluence(player, player, thirteen_self.all_battlegrounds, 3, 1, 0);
       }
     };
@@ -3514,10 +3548,10 @@ class Thirteen extends GameTemplate {
       defcon: 1,
       event: function (player) {
         thirteen_self.eventShiftDefcon(player, player, [2], 2, 'both', function (args) {
-          thirteen_self.updateStatusWithOptions(
-            'Command 1 influence cube:',
-            `<ul><li class="card nocard" id="done">finish</li></ul>`
-          );
+                    thirteen_self.game.status = 'Command 1 influence cube:';
+          thirteen_self.hud.updateStatus(thirteen_self.game.status);
+          thirteen_self.hud.updateCards([]);
+          thirteen_self.hud.updateMenu([{ id: "done", label: "finish" }]);
           thirteen_self.playerPlaceCommandTokens(player, 1);
         });
       }
@@ -3537,10 +3571,10 @@ class Thirteen extends GameTemplate {
             options.push(i);
           }
         }
-        thirteen_self.updateStatusWithOptions(
-          'Place up to 4 Influence in battlegrounds where the US currently has no influence. Max 2 per battleround:',
-          `<ul><li class="card nocard" id="done">finish</li></ul>`
-        );
+                thirteen_self.game.status = 'Place up to 4 Influence in battlegrounds where the US currently has no influence. Max 2 per battleround:';
+        thirteen_self.hud.updateStatus(thirteen_self.game.status);
+        thirteen_self.hud.updateCards([]);
+        thirteen_self.hud.updateMenu([{ id: "done", label: "finish" }]);
         thirteen_self.eventAddInfluence(player, player, options, 4, 2, 1);
       }
     };
@@ -3569,10 +3603,10 @@ class Thirteen extends GameTemplate {
           return;
         }
 
-        thirteen_self.updateStatusWithOptions(
-          'Select a battleground from which to remove US influence:',
-          `<ul><li class="card nocard" id="done">finish</li></ul>`
-        );
+                thirteen_self.game.status = 'Select a battleground from which to remove US influence:';
+        thirteen_self.hud.updateStatus(thirteen_self.game.status);
+        thirteen_self.hud.updateCards([]);
+        thirteen_self.hud.updateMenu([{ id: "done", label: "finish" }]);
         thirteen_self.eventRemoveInfluence(thirteen_self.game.player, 2, options, 100, 1, 0);
       }
     };
@@ -3585,10 +3619,10 @@ class Thirteen extends GameTemplate {
       tokens: 3,
       defcon: 0,
       event: function (player) {
-        thirteen_self.updateStatusWithOptions(
-          'Place up to 4 Influence in total on Berlin, Italy, and Turkey Battlegrounds. Max 2 per battleground',
-          `<ul><li class="card nocard" id="done">finish</li></ul>`
-        );
+                thirteen_self.game.status = 'Place up to 4 Influence in total on Berlin, Italy, and Turkey Battlegrounds. Max 2 per battleground';
+        thirteen_self.hud.updateStatus(thirteen_self.game.status);
+        thirteen_self.hud.updateCards([]);
+        thirteen_self.hud.updateMenu([{ id: "done", label: "finish" }]);
         thirteen_self.eventAddInfluence(
           player,
           player,
@@ -3626,32 +3660,29 @@ class Thirteen extends GameTemplate {
       tokens: 2,
       defcon: 0,
       event: function (player) {
-        let html = '<ul>';
-        html +=
-          '<li class="card nocard" id="remove_from_cuba">remove half of USSR influence from one Cuban battleground (rounded up)</li>';
-        html +=
-          '<li class="card nocard" id="add_alliances">place up to 2 Influence on the Alliances battleground</li>';
-        html += '</ul>';
-        thirteen_self.updateStatusWithOptions(
-          `${thirteen_self.cardToText('s19b')}: which would you prefer?`,
-          html
-        );
-        thirteen_self.attachCardboxEvents(function (action) {
+        let html = [];
+        html.push({ id: 'remove_from_cuba', label: 'remove half of USSR influence from one Cuban battleground (rounded up)' });
+        html.push({ id: 'add_alliances', label: 'place up to 2 Influence on the Alliances battleground' });
+                thirteen_self.game.status = `${thirteen_self.cardToText('s19b')}: which would you prefer?`;
+        thirteen_self.hud.updateStatus(thirteen_self.game.status);
+        thirteen_self.hud.updateCards([]);
+        thirteen_self.hud.updateMenu(html, function (action) {
           if (action == 'remove_from_cuba') {
-            thirteen_self.updateStatusWithOptions(
-              'Select a Cuban battleground to remove half of the USSR influence:',
-              `<ul><li class="card nocard" id="done">finish</li></ul>`
-            );
+                        thirteen_self.game.status = 'Select a Cuban battleground to remove half of the USSR influence:';
+            thirteen_self.hud.updateStatus(thirteen_self.game.status);
+            thirteen_self.hud.updateCards([]);
+            thirteen_self.hud.updateMenu([{ id: "done", label: "finish" }]);
             thirteen_self.eventRemoveInfluence(2, 1, ['cuba_pol', 'cuba_mil'], 101, 1, 0);
           }
           if (action == 'add_alliances') {
-            thirteen_self.updateStatusWithOptions(
-              'Add up to two influence to the Alliances battleground:',
-              `<ul><li class="card nocard" id="done">finish</li></ul>`
-            );
+                        thirteen_self.game.status = 'Add up to two influence to the Alliances battleground:';
+            thirteen_self.hud.updateStatus(thirteen_self.game.status);
+            thirteen_self.hud.updateCards([]);
+            thirteen_self.hud.updateMenu([{ id: "done", label: "finish" }]);
             thirteen_self.eventAddInfluence(2, 2, ['alliances'], 2, 2, 0);
           }
         });
+        thirteen_self.cardbox.attachCardEvents();
       }
     };
     deck['s20b'] = {
@@ -3662,10 +3693,10 @@ class Thirteen extends GameTemplate {
       tokens: 2,
       defcon: 0,
       event: function (player) {
-        thirteen_self.updateStatusWithOptions(
-          'Remove up to 2 USSR Influence cubes from the Turkey battleground.',
-          `<ul><li class="card nocard" id="done">finish</li></ul>`
-        );
+                thirteen_self.game.status = 'Remove up to 2 USSR Influence cubes from the Turkey battleground.';
+        thirteen_self.hud.updateStatus(thirteen_self.game.status);
+        thirteen_self.hud.updateCards([]);
+        thirteen_self.hud.updateMenu([{ id: "done", label: "finish" }]);
         thirteen_self.eventRemoveInfluence(player, 1, ['turkey'], 2, 2, 0, function (args) {
           thirteen_self.eventShiftDefcon(player, player, [2], 2);
         });
@@ -3680,10 +3711,10 @@ class Thirteen extends GameTemplate {
       defcon: 0,
       event: function (player) {
         if (thirteen_self.game.state.defcon2_us < 4) {
-          thirteen_self.updateStatusWithOptions(
-            'Place up to 3 Influence in Cuba (pol), Italy and Turkey (max 1 per battleground):',
-            `<ul><li class="card nocard" id="done">finish</li></ul>`
-          );
+                    thirteen_self.game.status = 'Place up to 3 Influence in Cuba (pol), Italy and Turkey (max 1 per battleground):';
+          thirteen_self.hud.updateStatus(thirteen_self.game.status);
+          thirteen_self.hud.updateCards([]);
+          thirteen_self.hud.updateMenu([{ id: "done", label: "finish" }]);
           thirteen_self.addMove('notify\tUS installs offensive missiles in political chokepoints');
           thirteen_self.eventAddInfluence(2, 2, ['cuba_pol', 'italy', 'turkey'], 3, 1, 0);
         } else {
@@ -3720,10 +3751,10 @@ class Thirteen extends GameTemplate {
       tokens: 1,
       defcon: 0,
       event: function (player) {
-        thirteen_self.updateStatusWithOptions(
-          'Place up to 2 Influence on the Atlantic battleground:',
-          `<ul><li class="card nocard" id="done">finish</li></ul>`
-        );
+                thirteen_self.game.status = 'Place up to 2 Influence on the Atlantic battleground:';
+        thirteen_self.hud.updateStatus(thirteen_self.game.status);
+        thirteen_self.hud.updateCards([]);
+        thirteen_self.hud.updateMenu([{ id: "done", label: "finish" }]);
         thirteen_self.eventAddInfluence(player, player, ['atlantic'], 2, 2, 0);
       }
     };
@@ -3754,10 +3785,10 @@ class Thirteen extends GameTemplate {
       tokens: 2,
       defcon: 0,
       event: function (player) {
-        thirteen_self.updateStatusWithOptions(
-          'Remove up to 2 US influence cubes in total from one or more battlegrounds. Place them on other battlegrounds:',
-          `<ul><li class="card nocard" id="done">finish</li></ul>`
-        );
+                thirteen_self.game.status = 'Remove up to 2 US influence cubes in total from one or more battlegrounds. Place them on other battlegrounds:';
+        thirteen_self.hud.updateStatus(thirteen_self.game.status);
+        thirteen_self.hud.updateCards([]);
+        thirteen_self.hud.updateMenu([{ id: "done", label: "finish" }]);
         thirteen_self.eventRemoveInfluence(
           player,
           player,
@@ -3766,10 +3797,10 @@ class Thirteen extends GameTemplate {
           2,
           0,
           function (arg) {
-            thirteen_self.updateStatusWithOptions(
-              `Now place the ${arg} influence on other battlegrounds:`,
-              `<ul><li class="card nocard" id="done">finish</li></ul>`
-            );
+                        thirteen_self.game.status = `Now place the ${arg} influence on other battlegrounds:`;
+            thirteen_self.hud.updateStatus(thirteen_self.game.status);
+            thirteen_self.hud.updateCards([]);
+            thirteen_self.hud.updateMenu([{ id: "done", label: "finish" }]);
             thirteen_self.eventAddInfluence(
               player,
               player,
@@ -3824,10 +3855,10 @@ class Thirteen extends GameTemplate {
       tokens: 3,
       defcon: 1,
       event: function (player) {
-        thirteen_self.updateStatusWithOptions(
-          'Place up to 4 Influence cubes in total on battlegrounds where the USSR player currently has Influence cubes. Max 2 per battleground: ',
-          `<ul><li class="card nocard" id="done">finish</li></ul>`
-        );
+                thirteen_self.game.status = 'Place up to 4 Influence cubes in total on battlegrounds where the USSR player currently has Influence cubes. Max 2 per battleground: ';
+        thirteen_self.hud.updateStatus(thirteen_self.game.status);
+        thirteen_self.hud.updateCards([]);
+        thirteen_self.hud.updateMenu([{ id: "done", label: "finish" }]);
         let options = [];
 
         for (var i in thirteen_self.game.arenas) {
@@ -3846,10 +3877,10 @@ class Thirteen extends GameTemplate {
       tokens: 3,
       defcon: 1,
       event: function (player) {
-        thirteen_self.updateStatusWithOptions(
-          'Remove up to 3 USSR Influence cubes in total from one or more battlegrounds: ',
-          `<ul><li class="card nocard" id="done">finish</li></ul>`
-        );
+                thirteen_self.game.status = 'Remove up to 3 USSR Influence cubes in total from one or more battlegrounds: ';
+        thirteen_self.hud.updateStatus(thirteen_self.game.status);
+        thirteen_self.hud.updateCards([]);
+        thirteen_self.hud.updateMenu([{ id: "done", label: "finish" }]);
         thirteen_self.eventRemoveInfluence(player, 1, thirteen_self.all_battlegrounds, 3, 3, 1);
       }
     };
@@ -3861,10 +3892,10 @@ class Thirteen extends GameTemplate {
       tokens: 3,
       defcon: 0,
       event: function (player) {
-        thirteen_self.updateStatusWithOptions(
-          'Place up to 3 USSR Influence cubes in total on one or both Cuba battlegrounds: ',
-          `<ul><li class="card nocard" id="done">finish</li></ul>`
-        );
+                thirteen_self.game.status = 'Place up to 3 USSR Influence cubes in total on one or both Cuba battlegrounds: ';
+        thirteen_self.hud.updateStatus(thirteen_self.game.status);
+        thirteen_self.hud.updateCards([]);
+        thirteen_self.hud.updateMenu([{ id: "done", label: "finish" }]);
         thirteen_self.eventAddInfluence(player, player, ['cuba_mil', 'cuba_pol'], 3, 3, 0);
       }
     };
@@ -3980,10 +4011,10 @@ class Thirteen extends GameTemplate {
       tokens: 1,
       defcon: 1,
       event: function (player) {
-        thirteen_self.updateStatusWithOptions(
-          'Place up to 3 Influence on the Atlantic battleground: ',
-          `<ul><li class="card nocard" id="done">finish</li></ul>`
-        );
+                thirteen_self.game.status = 'Place up to 3 Influence on the Atlantic battleground: ';
+        thirteen_self.hud.updateStatus(thirteen_self.game.status);
+        thirteen_self.hud.updateCards([]);
+        thirteen_self.hud.updateMenu([{ id: "done", label: "finish" }]);
         thirteen_self.eventAddInfluence(player, player, ['atlantic'], 3, 3, 1);
       }
     };
@@ -3995,10 +4026,10 @@ class Thirteen extends GameTemplate {
       tokens: 1,
       defcon: 1,
       event: function (player) {
-        thirteen_self.updateStatusWithOptions(
-          'Command 3 Influence cubes on to one political battleground: ',
-          `<ul><li class="card nocard" id="done">finish</li></ul>`
-        );
+                thirteen_self.game.status = 'Command 3 Influence cubes on to one political battleground: ';
+        thirteen_self.hud.updateStatus(thirteen_self.game.status);
+        thirteen_self.hud.updateCards([]);
+        thirteen_self.hud.updateMenu([{ id: "done", label: "finish" }]);
         thirteen_self.eventAddInfluence(player, player, ['cuba_pol', 'italy', 'turkey'], 100, 3, 1);
       }
     };
@@ -4010,15 +4041,15 @@ class Thirteen extends GameTemplate {
       tokens: 2,
       defcon: 0,
       event: function (player) {
-        thirteen_self.updateStatusWithOptions(
-          'Add up to 2 influence cubes in Turkey: ',
-          `<ul><li class="card nocard" id="done">finish</li></ul>`
-        );
+                thirteen_self.game.status = 'Add up to 2 influence cubes in Turkey: ';
+        thirteen_self.hud.updateStatus(thirteen_self.game.status);
+        thirteen_self.hud.updateCards([]);
+        thirteen_self.hud.updateMenu([{ id: "done", label: "finish" }]);
         thirteen_self.eventAddInfluence(player, player, ['turkey'], 2, 2, 0, function (args) {
-          thirteen_self.updateStatusWithOptions(
-            'Now, click remove half of US influence from one Cuban battleground: ',
-            `<ul><li class="card nocard" id="done">finish</li></ul>`
-          );
+                    thirteen_self.game.status = 'Now, click remove half of US influence from one Cuban battleground: ';
+          thirteen_self.hud.updateStatus(thirteen_self.game.status);
+          thirteen_self.hud.updateCards([]);
+          thirteen_self.hud.updateMenu([{ id: "done", label: "finish" }]);
           thirteen_self.eventRemoveInfluence(player, 2, ['cuba_pol', 'cuba_mil'], 101, 2, 0);
         });
       }
@@ -4031,10 +4062,10 @@ class Thirteen extends GameTemplate {
       tokens: 1,
       defcon: 1,
       event: function (player) {
-        thirteen_self.updateStatusWithOptions(
-          'Place up to 2 Influence cubes in total on the Television and United Nations battlegrounds: ',
-          `<ul><li class="card nocard" id="done">finish</li></ul>`
-        );
+                thirteen_self.game.status = 'Place up to 2 Influence cubes in total on the Television and United Nations battlegrounds: ';
+        thirteen_self.hud.updateStatus(thirteen_self.game.status);
+        thirteen_self.hud.updateCards([]);
+        thirteen_self.hud.updateMenu([{ id: "done", label: "finish" }]);
         thirteen_self.eventAddInfluence(player, player, ['un', 'television'], 2, 2, 1);
       }
     };

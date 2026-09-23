@@ -9,7 +9,10 @@
 
       if (this.game.player == 2) {
 
-        this.updateStatus("USSR is playing Aldrich Ames<");
+        this.game.status = "USSR is playing Aldrich Ames<";
+        this.hud.updateStatus(this.game.status);
+        this.hud.updateMenu([]);
+        this.hud.updateCards([]);
 
         this.addMove("resolve\taldrichames");
 

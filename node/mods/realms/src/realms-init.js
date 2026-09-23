@@ -4,7 +4,7 @@
 		//
 		// initialize
 		//
-		if (this.game.status) { this.updateStatus(this.game.status); }
+		if (this.game.status) { 		this.hud.updateStatus(this.game.status); }
 
 		//
 		// import player cards

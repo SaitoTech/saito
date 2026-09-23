@@ -14,7 +14,10 @@
 
         twilight_self.addMove("resolve\tantiapartheid");
 
-        twilight_self.updateStatusWithOptions(`${twilight_self.cardToText(card)}: `,'<ul><li class="option" id="anywhere">2 Influence in Non-Battlegrounds</li><li class="option" id="african">2 Influence in African Battlegrounds</li></ul>', function(action2) {
+        twilight_self.game.status = `${twilight_self.cardToText(card)}: `;
+        twilight_self.hud.updateStatus(twilight_self.game.status);
+        twilight_self.hud.updateCards([]);
+        twilight_self.hud.updateMenu([ { id: 'anywhere', label: '2 Influence in Non-Battlegrounds' }, { id: 'african', label: '2 Influence in African Battlegrounds' } ], function(action2) {
 
           let bgs = twilight_self.returnBattlegroundCountries();
           let targets = [];
@@ -58,7 +61,10 @@
 
           let ops_to_purge = Math.min(2, us_troops);
 
-          twilight_self.updateStatus("Remove "+ops_to_purge+" US influence");
+          twilight_self.game.status = "Remove "+ops_to_purge+" US influence";
+          twilight_self.hud.updateStatus(twilight_self.game.status);
+          twilight_self.hud.updateMenu([]);
+          twilight_self.hud.updateCards([]);
 
           $(".easterneurope").off();
           $(".easterneurope").on('click', function() {
@@ -76,7 +82,10 @@
                 twilight_self.endTurn();
               }
             }
-            twilight_self.updateStatus("Remove "+ops_to_purge+" US influence");
+            twilight_self.game.status = "Remove "+ops_to_purge+" US influence";
+            twilight_self.hud.updateStatus(twilight_self.game.status);
+            twilight_self.hud.updateMenu([]);
+            twilight_self.hud.updateCards([]);
           });
         });
       }

@@ -591,32 +591,19 @@ class Mahjong extends OnePlayerGameTemplate {
 
     let html = `Remove tiles in pairs until none remain. Tiles must not be blocked to their left and right.`;
 
-    let option = '<ul>';
-    option += `<li id="hint" class="option"><span>Hint: ${tilesLeftToUnlock.length}<span class="hidable"> pairs available</span></span></li>`;
+    let options = [];
+    options.push({
+      id: 'hint',
+      label: `<span>Hint: ${tilesLeftToUnlock.length}<span class="hidable"> pairs available</span></span>`
+    });
     if (this.game.state.hidden.length > 0) {
-      option += `<li class="option" id="undo">Undo</li>`;
+      options.push({ id: 'undo', label: 'Undo' });
     }
-    option += `</ul>`;
 
-    this.updateStatusWithOptions(html, option);
-
-    let tiles = this.returnTiles();
-    html = '';
-    for (let tile of tiles) {
-      let num_found = this.returnHidden(tile);
-      html += `<div class="scoreboard_tile ${
-        num_found > 1 ? 'found' : 'notfound'
-      } ${tile.toLowerCase()}">${this.returnCardImageHTML(tile)}</div>
-               <div class="scoreboard_tile ${
-                 num_found > 3 ? 'found' : 'notfound'
-               } ${tile.toLowerCase()}">${this.returnCardImageHTML(tile)}</div>
-       `;
-    }
-    $('#tiles').html(html);
-    $('#tiles').show();
-    $('.option').off();
-    $('.option').on('click', function () {
-      let action = $(this).attr('id');
+        this.game.status = html;
+    this.hud.updateStatus(this.game.status);
+    this.hud.updateCards([]);
+    this.hud.updateMenu(options, function (action) {
       if (action === 'undo') {
         mahjong_self.undoMove();
         return;
@@ -650,6 +637,21 @@ class Mahjong extends OnePlayerGameTemplate {
         tilesLeftToUnlock.unshift(pair);
       }
     });
+
+    let tiles = this.returnTiles();
+    html = '';
+    for (let tile of tiles) {
+      let num_found = this.returnHidden(tile);
+      html += `<div class="scoreboard_tile ${
+        num_found > 1 ? 'found' : 'notfound'
+      } ${tile.toLowerCase()}">${this.returnCardImageHTML(tile)}</div>
+               <div class="scoreboard_tile ${
+                 num_found > 3 ? 'found' : 'notfound'
+               } ${tile.toLowerCase()}">${this.returnCardImageHTML(tile)}</div>
+       `;
+    }
+    $('#tiles').html(html);
+    $('#tiles').show();
   }
 
   undoMove() {

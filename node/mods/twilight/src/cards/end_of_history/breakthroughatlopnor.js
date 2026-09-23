@@ -38,7 +38,10 @@
       if (this.game.player == 2) { return 0; }
       if (this.game.player == 1) {
 
-        this.updateStatus("Remove 3 US influence from Southeast Asia or North Korea (max 2 per country)");
+        this.game.status = "Remove 3 US influence from Southeast Asia or North Korea (max 2 per country)";
+        this.hud.updateStatus(this.game.status);
+        this.hud.updateMenu([]);
+        this.hud.updateCards([]);
 
         var twilight_self = this;
         var ops_purged = {};

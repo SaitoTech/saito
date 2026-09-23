@@ -235,7 +235,7 @@ class PathsOfGlory extends GameTemplate {
     // add card events -- text shown and callback run if there
     //
     this.cardbox.addCardType("showcard", "", null);
-    this.cardbox.addCardType("card", "select", this.cardbox_callback);
+    this.cardbox.addCardType("card", "select", null);
     if (app.browser.isMobileBrowser(navigator.userAgent)) {
       this.cardbox.skip_card_prompt = 0;
     }
@@ -302,7 +302,7 @@ class PathsOfGlory extends GameTemplate {
     //
     // re-fill status and log
     //
-    if (this.game.status != "") { this.updateStatus(this.game.status); }
+    if (this.game.status != "") {     this.hud.updateStatus(this.game.status); }
 
     //
     // initialize game objects

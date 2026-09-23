@@ -997,17 +997,20 @@
     line-height: 1.25;
   }
 
-  .status .player-notice {
+  .status .player-notice,
+  .hud-status .player-notice {
     opacity: 0.72;
     padding: 0.292rem 0.417rem;
     border-radius: 0.5rem;
   }
 
-  .status .player-notice:last-child {
+  .status .player-notice:last-child,
+  .hud-status .player-notice:last-child {
     opacity: 1;
   }
 
-  .status .player-notice::before {
+  .status .player-notice::before,
+  .hud-status .player-notice::before {
     content: '';
     position: absolute;
     bottom: -10px;
@@ -1020,7 +1023,8 @@
     background-color: var(--text-color);
   }
 
-  .status .player-notice:last-child::before {
+  .status .player-notice:last-child::before,
+  .hud-status .player-notice:last-child::before {
     display: none;
   }
 

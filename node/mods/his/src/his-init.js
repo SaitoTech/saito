@@ -198,7 +198,7 @@ class HereIStand extends GameTemplate {
     //
     // re-fill status and log
     //
-    if (this.game.status != "") { this.updateStatus(this.game.status); }
+    if (this.game.status != "") {     this.hud.updateStatus(this.game.status); }
 
     //
     // initialize game objects

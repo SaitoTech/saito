@@ -235,15 +235,15 @@ this.playIndoctrination = function(imperium_self, player, sector, planet_idx, my
     return;
   }
 
-  let html = "<div class='sf-readable'>Do you wish to spend 2 influence to convert 1 enemy infantry to your side?</div><ul>";
-      html += '<li class="textchoice" id="yes">yes</li>';
-      html += '<li class="textchoice" id="no">no</li>';
-      html += '</ul>';
-  this.updateStatus(html);
-
-  $('.textchoice').off();
-  $('.textchoice').on('click', function () {
-    let action2 = $(this).attr("id");
+  let html = "<div class='sf-readable'>Do you wish to spend 2 influence to convert 1 enemy infantry to your side?</div>";
+  let menu = [
+    { id: 'yes', label: 'yes' },
+    { id: 'no', label: 'no' }
+  ];
+    this.game.status = html;
+  this.hud.updateStatus(this.game.status);
+  this.hud.updateCards([]);
+  this.hud.updateMenu(menu, function (action2) {
     if (action2 === "no") {
       mycallback(imperium_self);
       return;
@@ -288,20 +288,19 @@ this.playDevotion = function(imperium_self, player, sector, mycallback, impulse_
     return;
   }
 
-  let html = "<div class='sf-readable'>Do you wish to sacrifice a Destroyer or Cruiser to assign 1 hit to an enemy ship?</div><ul>";
+  let html = "<div class='sf-readable'>Do you wish to sacrifice a Destroyer or Cruiser to assign 1 hit to an enemy ship?</div>";
+  let menu = [];
   if (can_sacrifice_destroyer) {
-      html += '<li class="textchoice" id="destroyer">sacrifice destroyer</li>';
+      menu.push({ id: 'destroyer', label: 'sacrifice destroyer' });
   }
   if (can_sacrifice_cruiser) {
-      html += '<li class="textchoice" id="cruiser">sacrifice cruiser</li>';
+      menu.push({ id: 'cruiser', label: 'sacrifice cruiser' });
   }
-      html += '<li class="textchoice" id="no">no</li>';
-      html += '</ul>';
-  imperium_self.updateStatus(html);
-
-  $('.textchoice').off();
-  $('.textchoice').on('click', function () {
-    let action2 = $(this).attr("id");
+      menu.push({ id: 'no', label: 'no' });
+    imperium_self.game.status = html;
+  imperium_self.hud.updateStatus(imperium_self.game.status);
+  imperium_self.hud.updateCards([]);
+  imperium_self.hud.updateMenu(menu, function (action2) {
     if (action2 === "no") {
       mycallback(imperium_self);
       return;
@@ -348,24 +347,22 @@ this.playDevotionAssignHit = function(imperium_self, player, sector, mycallback,
     return;
   }
 
-  let html = "<div class='sf-readable'>Assign 1 hit to which opponent ship?</div><ul>";
+  let html = "<div class='sf-readable'>Assign 1 hit to which opponent ship?</div>";
+  let menu = [];
 
   for (let i = 0; i < sys.s.units[opponent-1].length; i++) {
 
     let unit = sys.s.units[opponent-1][i];
     if (unit.destroyed != 1) {
-      html += '<li class="textchoice" id="'+i+'">' + imperium_self.returnShipInformation(unit) + '</li>';
+      menu.push({ id: String(i), label: imperium_self.returnShipInformation(unit) });
     }
   }
-  html += '</ul>';
 
-  imperium_self.updateStatus(html);
+    imperium_self.game.status = html;
+  imperium_self.hud.updateStatus(imperium_self.game.status);
+  imperium_self.hud.updateCards([]);
+  imperium_self.hud.updateMenu(menu, function (unit_idx) {
 
-  $('.textchoice').off();
-  $('.textchoice').on('click', function () {
-
-    $('.textchoice').off();
-    let unit_idx = $(this).attr("id");
     imperium_self.addMove("assign_hit"+"\t"+player+"\t"+opponent+"\t"+player+"\t"+"ship"+"\t"+sector+"\t"+unit_idx+"\t"+1);
     mycallback(imperium_self);
     return;
@@ -399,18 +396,16 @@ this.playDevotionAssignHit = function(imperium_self, player, sector, mycallback,
       groundCombatEvent : function(imperium_self, player, sector, planet_idx) {
         if (imperium_self.game.player == player) {
 
-          let html = `<div class="status-message">Do you wish to return your Yin Promissary to convert 1 opponent infantry?</div><ul>`;
-              html += '<li class="option" id="yes">Yes</li>';
-              html += '<li class="option" id="no">No</li>';
-              html += '</ul>';
+          let html = `<div class="status-message">Do you wish to return your Yin Promissary to convert 1 opponent infantry?</div>`;
+          let menu = [];
+              menu.push({ id: 'yes', label: 'Yes' });
+              menu.push({ id: 'no', label: 'No' });
 
-          imperium_self.updateStatus(html);
+                    imperium_self.game.status = html;
+          imperium_self.hud.updateStatus(imperium_self.game.status);
+          imperium_self.hud.updateCards([]);
 
-          $('.option').off();
-          $('.option').on('click', function() {
-
-            let id = $(this).attr("id");
-
+          imperium_self.hud.updateMenu(menu, function(id) {
             if (id === "no") {
               imperium_self.endTurn();
             }

@@ -55,6 +55,7 @@ class Result {
 
   hide() {
     this.clearCountdown();
+    this.clearAcknowledge();
     let host = document.getElementById('texas-result');
     if (host) {
       host.classList.remove('is-visible');
@@ -63,6 +64,13 @@ class Result {
     let cards_el = document.getElementById('texas-result-cards');
     if (cards_el) {
       cards_el.innerHTML = '';
+    }
+  }
+
+  clearAcknowledge() {
+    let el = document.getElementById('controls');
+    if (el && el.closest('.texas-result')) {
+      el.innerHTML = '';
     }
   }
 

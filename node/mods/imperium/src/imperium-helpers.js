@@ -84,7 +84,10 @@
     this.rmoves = [];
     this.sendGameMoveTransaction("game", {});
 
-    this.updateStatus("Waiting for information from peers....");
+        this.game.status = "Waiting for information from peers....";
+    this.hud.updateStatus(this.game.status);
+    this.hud.updateMenu([]);
+    this.hud.updateCards([]);
   
   };
 

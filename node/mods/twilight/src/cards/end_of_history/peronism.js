@@ -10,17 +10,21 @@
       this.placeInfluence("argentina", 1, "ussr");
 
       if (player != me) {
-        this.updateStatus("Opponent deciding to add influence to or coup or realign Argentina");
+        this.game.status = "Opponent deciding to add influence to or coup or realign Argentina";
+        this.hud.updateStatus(this.game.status);
+        this.hud.updateMenu([]);
+        this.hud.updateCards([]);
         return 0;
 
       } else {
 
-        let html = `<ul>
-                    <li class="option" id="place">place 1 influence in Argentina</li>
-                    <li class="option" id="couporrealign">coup or realign Argentina</li>
-                    </ul>`;
-
-        this.updateStatusWithOptions("Do you choose to:",html, function(action2) {
+        this.game.status = "Do you choose to:";
+        this.hud.updateStatus(this.game.status);
+        this.hud.updateCards([]);
+        this.hud.updateMenu([
+          { id: 'place', label: 'place 1 influence in Argentina' },
+          { id: 'couporrealign', label: 'coup or realign Argentina' }
+        ], function(action2) {
           if (action2 == "place") {
             twilight_self.placeInfluence("argentina", 1, player, function() {
               twilight_self.addMove("resolve\tperonism");
@@ -31,12 +35,13 @@
           }
           if (action2 == "couporrealign") {
             let user_message = "Do you choose to:";
-            html = `<ul>
-                    <li class="option" id="coup">coup in Argentina</li>
-                    <li class="option" id="realign">realign in Argentina</li>
-                    </ul>`;
-
-            twilight_self.updateStatusWithOptions(user_message,html, function(action2) {
+            twilight_self.game.status = user_message;
+            twilight_self.hud.updateStatus(twilight_self.game.status);
+            twilight_self.hud.updateCards([]);
+            twilight_self.hud.updateMenu([
+              { id: 'coup', label: 'coup in Argentina' },
+              { id: 'realign', label: 'realign in Argentina' }
+            ], function(action2) {
 
               let modified_ops = twilight_self.modifyOps(1, "peronism", me);
 

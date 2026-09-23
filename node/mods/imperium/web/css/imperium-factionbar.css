@@ -1,20 +1,24 @@
 .game.imperium {
+  .imperium-hud-chrome {
+    width: min(52rem, calc(100vw - 1.5rem));
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--imp-space-sm) var(--imp-space-md);
+    background-color: var(--imp-surface-strong);
+    min-height: 40px;
+    box-sizing: border-box;
+  }
+
   .factionbar {
     display: flex;
     flex-direction: row;
-    margin-top: -0.417rem;
     font-family: var(--imp-font);
     gap: var(--imp-space-sm);
   }
 
   .factionbar .sf-readable {
     font-size: var(--imp-fs);
-  }
-
-  .hud-header {
-    display: flex;
-    flex-direction: row;
-    justify-content: space-between;
-    padding-top: var(--imp-space-sm);
   }
 }

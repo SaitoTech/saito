@@ -435,7 +435,10 @@ console.log(JSON.stringify(attacker_units));
           	if (options.includes(key)) { return 1; }
               },
               (key) => {
-		paths_self.updateStatus("processing...");
+				paths_self.game.status = "processing...";
+		paths_self.hud.updateStatus(paths_self.game.status);
+		paths_self.hud.updateMenu([]);
+		paths_self.hud.updateCards([]);
  		paths_self.addMove("entrench\tallies\t"+key);
  		paths_self.endTurn();
 		return 0;
@@ -652,7 +655,10 @@ deck['ap14'] = {
       	    }
 
 	    let execute_fnct = (spacekey, unit_idx) => {
-      		paths_self.updateStatus("processing...");
+      		      		paths_self.game.status = "processing...";
+      		paths_self.hud.updateStatus(paths_self.game.status);
+      		paths_self.hud.updateMenu([]);
+      		paths_self.hud.updateCards([]);
 	        if (spacekey === "pass") {
         	  paths_self.removeSelectable();
         	  paths_self.endTurn();
@@ -716,7 +722,10 @@ deck['ap14'] = {
 	    if (paths_self.game.player == p1) {
 	      loop_fnct();
 	    } else {
-	      paths_self.updateStatus("Central Powers playing " + paths_self.popup("cp05"));
+	      	      paths_self.game.status = "Central Powers playing " + paths_self.popup("cp05");
+	      paths_self.hud.updateStatus(paths_self.game.status);
+	      paths_self.hud.updateMenu([]);
+	      paths_self.hud.updateCards([]);
 	    }
             return 0;
           } 
@@ -776,7 +785,10 @@ deck['ap14'] = {
           	if (options.includes(key)) { return 1; }
               },
               (key) => {
-		paths_self.updateStatus("processing...");
+				paths_self.game.status = "processing...";
+		paths_self.hud.updateStatus(paths_self.game.status);
+		paths_self.hud.updateMenu([]);
+		paths_self.hud.updateCards([]);
  		paths_self.addMove("entrench\tcentral\t"+key);
  		paths_self.endTurn();
 		return 0;
@@ -1004,7 +1016,10 @@ deck['ap16'] = {
 	      paths_self.endTurn();
 	    });
 	  } else {
-	    paths_self.updateStatus("Romania entering war...");
+	    	    paths_self.game.status = "Romania entering war...";
+	    paths_self.hud.updateStatus(paths_self.game.status);
+	    paths_self.hud.updateMenu([]);
+	    paths_self.hud.updateCards([]);
 	  }
 
           paths_self.displayCustomOverlay({
@@ -1211,7 +1226,10 @@ deck['ap23'] = {
               paths_self.addMove("cloak_and_dagger_results\t"+JSON.stringify(paths_self.game.deck[0].hand));
               paths_self.endTurn();
 	    } else {
-	      paths_self.updateStatus("opponent revealing hand...");
+	      	      paths_self.game.status = "opponent revealing hand...";
+	      paths_self.hud.updateStatus(paths_self.game.status);
+	      paths_self.hud.updateMenu([]);
+	      paths_self.hud.updateCards([]);
 	    }
             return 0;
           } 
@@ -1370,7 +1388,10 @@ deck['ap29'] = {
 	      paths_self.endTurn();
 	    });
 	  } else {
-	    paths_self.updateStatus("Russia placing unit...");
+	    	    paths_self.game.status = "Russia placing unit...";
+	    paths_self.hud.updateStatus(paths_self.game.status);
+	    paths_self.hud.updateMenu([]);
+	    paths_self.hud.updateCards([]);
 	  }       
 
 	  return 0;
@@ -1422,7 +1443,10 @@ deck['ap30'] = {
             let loop_fnct = () => {
 
 	      max_units_movable = 3 - paths_self.game.spaces["salonika"].units.length;
-	      if (max_units_movable <= 0) { paths_self.updateStatus("submitting"); paths_self.endTurn(); return 0; }
+	      if (max_units_movable <= 0) { 	      paths_self.game.status = "submitting";
+	      paths_self.hud.updateStatus(paths_self.game.status);
+	      paths_self.hud.updateMenu([]);
+	      paths_self.hud.updateCards([]); paths_self.endTurn(); return 0; }
 
               if (continue_fnct()) {
         	paths_self.playerSelectUnitWithFilter(
@@ -1454,7 +1478,10 @@ deck['ap30'] = {
 	    }
 
 	    let execute_fnct = (spacekey, unit_idx) => {
-	      paths_self.updateStatus("processing...");
+	      	      paths_self.game.status = "processing...";
+	      paths_self.hud.updateStatus(paths_self.game.status);
+	      paths_self.hud.updateMenu([]);
+	      paths_self.hud.updateCards([]);
 	      if (spacekey === "pass") {
 	        paths_self.removeSelectable();
 	        paths_self.endTurn();
@@ -1521,7 +1548,10 @@ deck['ap31'] = {
               "Place MEF Where? " ,
               filter_fnct ,
               (key) => {
-		paths_self.updateStatus("processing...");
+				paths_self.game.status = "processing...";
+		paths_self.hud.updateStatus(paths_self.game.status);
+		paths_self.hud.updateMenu([]);
+		paths_self.hud.updateCards([]);
  		paths_self.addMove("mef_placement\t"+key);
  		paths_self.endTurn();
 		return 0;
@@ -1533,7 +1563,10 @@ deck['ap31'] = {
 	    return 0;
 
 	  } else {
-	    paths_self.updateStatus("Allies placing MEF...");
+	    	    paths_self.game.status = "Allies placing MEF...";
+	    paths_self.hud.updateStatus(paths_self.game.status);
+	    paths_self.hud.updateMenu([]);
+	    paths_self.hud.updateCards([]);
 	  }	
 	  return 0;
 	},
@@ -1687,7 +1720,10 @@ deck['ap34'] = {
               paths_self.addMove("matahari_results\t"+JSON.stringify(paths_self.game.deck[1].hand)+"\t2");
               paths_self.endTurn();
             } else {
-              paths_self.updateStatus("opponent revealing hand...");
+                            paths_self.game.status = "opponent revealing hand...";
+              paths_self.hud.updateStatus(paths_self.game.status);
+              paths_self.hud.updateMenu([]);
+              paths_self.hud.updateCards([]);
             }
             return 0;
           }
@@ -2046,7 +2082,10 @@ deck['cp32'] = {
 	    }
 
 	    let execute_fnct = (spacekey, unit_idx) => {
-	      paths_self.updateStatus("processing...");
+	      	      paths_self.game.status = "processing...";
+	      paths_self.hud.updateStatus(paths_self.game.status);
+	      paths_self.hud.updateMenu([]);
+	      paths_self.hud.updateCards([]);
 	      if (spacekey === "pass") {
 	        paths_self.removeSelectable();
 	        paths_self.endTurn();
@@ -2075,13 +2114,15 @@ deck['cp32'] = {
 	    //
 	    // should they remove 
 	    //
-    	    let html = `<ul>`;
-    	    html    += `<li class="card" id="remove">remove BR corps</li>`;
-    	    html    += `<li class="card" id="vp">cede +1 VP</li>`;
-    	    html    += `</ul>`; 
+    	    let options = [
+    	      { id: "remove", label: "remove BR corps" },
+    	      { id: "vp", label: "cede +1 VP" },
+    	    ];
 
-    	    paths_self.updateStatusWithOptions(`War in Africa!`, html);
-    	    paths_self.attachCardboxEvents((action) => {
+    	    paths_self.game.status = `War in Africa!`;
+    	    paths_self.hud.updateStatus(paths_self.game.status);
+    	    paths_self.hud.updateCards([]);
+    	    paths_self.hud.updateMenu(options, (action) => {
     
       	      if (action === "remove") {
                 paths_self.playerSelectUnitWithFilter(
@@ -2104,7 +2145,10 @@ deck['cp32'] = {
     	    });
 
 	  } else {
-	    paths_self.updateStatus("Allies playing War in Africa");
+	    	    paths_self.game.status = "Allies playing War in Africa";
+	    paths_self.hud.updateStatus(paths_self.game.status);
+	    paths_self.hud.updateMenu([]);
+	    paths_self.hud.updateCards([]);
 	  }
 
 	  return 0;
@@ -2152,7 +2196,10 @@ deck['cp33'] = {
 	      paths_self.endTurn();
 	    });
 	  } else {
-	    paths_self.updateStatus("Bulgaria entering war...");
+	    	    paths_self.game.status = "Bulgaria entering war...";
+	    paths_self.hud.updateStatus(paths_self.game.status);
+	    paths_self.hud.updateMenu([]);
+	    paths_self.hud.updateCards([]);
 	  }
 
           paths_self.displayCustomOverlay({
@@ -2649,7 +2696,10 @@ deck['ap56'] = {
       	    }
 
 	    let execute_fnct = (spacekey, unit_idx) => {
-      		paths_self.updateStatus("processing...");
+      		      		paths_self.game.status = "processing...";
+      		paths_self.hud.updateStatus(paths_self.game.status);
+      		paths_self.hud.updateMenu([]);
+      		paths_self.hud.updateCards([]);
 	        if (spacekey === "pass") {
         	  paths_self.removeSelectable();
         	  paths_self.endTurn();
@@ -2723,7 +2773,10 @@ deck['ap57'] = {
                 paths_self.endTurn();
               });
             } else {
-              paths_self.updateStatus("Russia placing unit...");
+                            paths_self.game.status = "Russia placing unit...";
+              paths_self.hud.updateStatus(paths_self.game.status);
+              paths_self.hud.updateMenu([]);
+              paths_self.hud.updateCards([]);
             }
 
 	  }
