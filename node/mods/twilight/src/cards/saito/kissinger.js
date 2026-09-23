@@ -4,21 +4,25 @@
       let twilight_self = this;
 
       if (this.game.player == 1) {
-        this.updateStatus("US playing Kissinger:");
+        this.game.status = "US playing Kissinger:";
+        this.hud.updateStatus(this.game.status);
+        this.hud.updateMenu([]);
+        this.hud.updateCards([]);
         return 0;
       }
 
       let user_message = "Designate a region to turn all 1-stability countries into battleground countries:";
-      let html = `<ul>";
-                  <li class="option" id="asia">Asia</li>
-                  <li class="option" id="europe">Europe</li>
-                  <li class="option" id="africa">Africa</li>
-                  <li class="option" id="camerica">Central America</li>
-                  <li class="option" id="samerica">South America</li>
-                  <li class="option" id="mideast">Middle-East</li>
-                  </ul>`;
-
-      this.updateStatusWithOptions(user_message, html, function(action2) {
+      this.game.status = user_message;
+      this.hud.updateStatus(this.game.status);
+      this.hud.updateCards([]);
+      this.hud.updateMenu([
+        { id: 'asia', label: 'Asia' },
+        { id: 'europe', label: 'Europe' },
+        { id: 'africa', label: 'Africa' },
+        { id: 'camerica', label: 'Central America' },
+        { id: 'samerica', label: 'South America' },
+        { id: 'mideast', label: 'Middle-East' }
+      ], function(action2) {
 
 	let selreg = "europe";
 	if (action2 == "asia") { selreg = "Asia"; }

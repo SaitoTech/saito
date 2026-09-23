@@ -93,8 +93,8 @@ class Imperium extends GameTemplate {
     this.bombardment_overlay = new BombardmentOverlay(this.app, this);
     this.anti_fighter_barrage_overlay = new AntiFighterBarrageOverlay(this.app, this);
     this.dashboard = new Dashboard(this.app, this, ".dashboard");
-    this.tokenbar = new TokenBar(this.app, this, ".hud-header");
-    this.factionbar = new FactionBar(this.app, this, ".hud-header");
+    this.tokenbar = new TokenBar(this.app, this, "#imperium-hud-chrome");
+    this.factionbar = new FactionBar(this.app, this, "#imperium-hud-chrome");
     this.roundbox = new RoundBox(this.app, this, "");
 
     //
@@ -125,8 +125,6 @@ class Imperium extends GameTemplate {
     this.stage_ii_objectives    = {};
     this.units          	= {};
     this.promissary_notes	= {};
-
-    this.hud.mode = 1;  // classic interface
 
     //
     // tutorial related

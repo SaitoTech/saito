@@ -40,7 +40,10 @@ this.importStrategyCard("imperial", {
                         imperium_self.game.state.players_info[
                           imperium_self.game.player - 1
                         ].objectives_scored_this_round.push(objective);
-                        imperium_self.updateStatus("scoring completed");
+                                                imperium_self.game.status = "scoring completed";
+                        imperium_self.hud.updateStatus(imperium_self.game.status);
+                        imperium_self.hud.updateMenu([]);
+                        imperium_self.hud.updateCards([]);
                         imperium_self.endTurn();
                       }
                     );
@@ -61,7 +64,10 @@ this.importStrategyCard("imperial", {
                         imperium_self.game.state.players_info[
                           imperium_self.game.player - 1
                         ].objectives_scored_this_round.push(objective);
-                        imperium_self.updateStatus("scoring completed");
+                                                imperium_self.game.status = "scoring completed";
+                        imperium_self.hud.updateStatus(imperium_self.game.status);
+                        imperium_self.hud.updateMenu([]);
+                        imperium_self.hud.updateCards([]);
                         imperium_self.endTurn();
                       }
                     );
@@ -70,7 +76,10 @@ this.importStrategyCard("imperial", {
                   imperium_self.addMove(
                     "score\t" + imperium_self.game.player + "\t" + "1" + "\t" + "new-byzantium"
                   );
-                  imperium_self.updateStatus("scoring completed");
+                                    imperium_self.game.status = "scoring completed";
+                  imperium_self.hud.updateStatus(imperium_self.game.status);
+                  imperium_self.hud.updateMenu([]);
+                  imperium_self.hud.updateCards([]);
                   imperium_self.endTurn();
                 }
               },
@@ -107,7 +116,10 @@ this.importStrategyCard("imperial", {
                         imperium_self.game.state.players_info[
                           imperium_self.game.player - 1
                         ].objectives_scored_this_round.push(objective);
-                        imperium_self.updateStatus("scoring completed");
+                                                imperium_self.game.status = "scoring completed";
+                        imperium_self.hud.updateStatus(imperium_self.game.status);
+                        imperium_self.hud.updateMenu([]);
+                        imperium_self.hud.updateCards([]);
                         imperium_self.addMove(
                           "gain\t" + strategy_card_player + "\t" + "secret_objective" + "\t" + "1"
                         );
@@ -124,7 +136,10 @@ this.importStrategyCard("imperial", {
                         imperium_self.game.state.players_info[
                           imperium_self.game.player - 1
                         ].objectives_scored_this_round.push(objective);
-                        imperium_self.updateStatus("scoring completed");
+                                                imperium_self.game.status = "scoring completed";
+                        imperium_self.hud.updateStatus(imperium_self.game.status);
+                        imperium_self.hud.updateMenu([]);
+                        imperium_self.hud.updateCards([]);
                         imperium_self.addMove(
                           "gain\t" + strategy_card_player + "\t" + "secret_objective" + "\t" + "1"
                         );
@@ -197,7 +212,10 @@ this.importStrategyCard("imperial", {
         imperium_self.playerScoreVictoryPoints(
           imperium_self,
           function (x, vp, objective) {
-            imperium_self.updateStatus("scoring completed");
+                        imperium_self.game.status = "scoring completed";
+            imperium_self.hud.updateStatus(imperium_self.game.status);
+            imperium_self.hud.updateMenu([]);
+            imperium_self.hud.updateCards([]);
             imperium_self.addMove("resolve\tstrategy\t1\t" + imperium_self.getPublicKey());
             imperium_self.addPublickeyConfirm(imperium_self.getPublicKey(), 1);
 

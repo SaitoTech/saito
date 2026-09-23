@@ -550,7 +550,7 @@ if (this.game.players.length > 2) {
     // add card events -- text shown and callback run if there
     //
     this.cardbox.addCardType("showcard", "", null);
-    this.cardbox.addCardType("card", "select", this.cardbox_callback);
+    this.cardbox.addCardType("card", "select", null);
     if (app.browser.isMobileBrowser(navigator.userAgent)) {
       this.cardbox.skip_card_prompt = 0;
     }

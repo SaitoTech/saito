@@ -1,17 +1,4 @@
 
-  cancelBackButtonFunction() {
-    this.hud.back_button = false;
-    this.hud.back_button_callback = null;
-  }       
-  unbindBackButtonFunction() {
-    this.cancelBackButtonFunction();
-  } 
-  bindBackButtonFunction(mycallback) {
-    // we bind before we update UI, so this should remove any outstanding options
-    this.removeSelectable();
-    this.hud.back_button = true;
-    this.hud.back_button_callback = mycallback;
-  }   
 
   returnArrayOfPlayersInFieldBattle() {
     if (this.game.state.field_battle.spacekey) {
@@ -387,7 +374,7 @@
     let selectUnitsInterface = function(his_self, units_to_destroy, hits_to_assign, selectUnitsInterface) {
 
       let msg = "Hits Remaining: " + hits_to_assign;
-      let html = "<ul>";
+      let html = [];
       let targets = 0;
 
       for (let i = 0; i < space.units[faction].length; i++) {
@@ -399,11 +386,10 @@
 
 	  if (is_fodder == true) {
 	    targets++;
-            html += `<li class="option" id="${i}">${space.units[faction][i].name}</li>`;
+            html.push({ id: `${i}`, label: `${space.units[faction][i].name}` });
           }
 	}
       }
-      html += "</ul>";
 
       if (targets <= 0 || hits_to_assign <= 0) {
 	his_self.addMove("destroy_units\t"+faction+"\t"+spacekey+"\t"+JSON.stringify(units_to_destroy));
@@ -411,15 +397,18 @@
 	return;
       }
 
-      his_self.updateStatusWithOptions(msg, html);
-
-      $('.option').off();
-      $('.option').on('click', function () {
+            his_self.game.status = msg;
+      his_self.hud.updateStatus(his_self.game.status);
+      his_self.hud.updateCards([]);
+      his_self.hud.updateMenu(html, function (user_choice) {
 
         $('.option').off();
-        let id = $(this).attr("id");
+        let id = user_choice;
 
-	his_self.updateStatus("assign hit...");
+		his_self.game.status = "assign hit...";
+	his_self.hud.updateStatus(his_self.game.status);
+	his_self.hud.updateMenu([]);
+	his_self.hud.updateCards([]);
 
         if (!units_to_destroy.includes(id)) {
           units_to_destroy.push(parseInt(id));
@@ -459,7 +448,7 @@
     let selectUnitsInterface = function(his_self, units_to_destroy, hits_to_assign, selectUnitsInterface) {
 
       let msg = "Hits Remaining: " + hits_to_assign;
-      let html = "<ul>";
+      let html = [];
       let targets = 0;
       let one_hit_targets = false;
       for (let i = 0; i < space.units[faction].length; i++) {
@@ -468,13 +457,12 @@
             if (!units_to_destroy.includes(parseInt(i))) {
   	      targets++;
 	      if (space.units[faction][i].type === "squadron") {
-                html += `<li class="option" id="${i}">${space.units[faction][i].name} (2 hits)</li>`;
+                html.push({ id: `${i}`, label: `${space.units[faction][i].name} (2 hits)` });
               } else {
-                html += `<li class="option" id="${i}">${space.units[faction][i].name} (1 hit)</li>`;
+                html.push({ id: `${i}`, label: `${space.units[faction][i].name} (1 hit)` });
 		one_hit_targets = true;
 	      }
             }
-            html += "</ul>";
           }
         }
       }
@@ -485,14 +473,17 @@
 	return;
       }
 
-      his_self.updateStatusWithOptions(msg, html);
+            his_self.game.status = msg;
+      his_self.hud.updateStatus(his_self.game.status);
+      his_self.hud.updateCards([]);
+      his_self.hud.updateMenu(html, function (user_choice) {
 
-      $('.option').off();
-      $('.option').on('click', function () {
+		his_self.game.status = "assigning hits";
+	his_self.hud.updateStatus(his_self.game.status);
+	his_self.hud.updateMenu([]);
+	his_self.hud.updateCards([]);
 
-	his_self.updateStatus("assigning hits");
-
-        let id = $(this).attr("id");
+        let id = user_choice;
 
         if (!units_to_destroy.includes(id)) {
           units_to_destroy.push(parseInt(id));
@@ -524,25 +515,27 @@
     let res = this.returnNearestFactionControlledPorts(faction, spacekey);
 
     let msg = this.returnFactionName(faction) + " - Select Winter Port for Naval Units in "+space.name;
-    let opt = "<ul>";
+    let opt = [];
     for (let i = 0; i < res.length; i++) {
-      opt += `<li class="option" id="${res[i].key}">${res[i].key}</li>`;
+      opt.push({ id: `${res[i].key}`, label: `${res[i].key}` });
     }
-    opt += "</ul>";
 
     if (res.length == 0) {
       this.endTurn();
       return 0;
     }
 
-    this.updateStatusWithOptions(msg, opt);
+        this.game.status = msg;
+    this.hud.updateStatus(this.game.status);
+    this.hud.updateCards([]);
+    this.hud.updateMenu(opt, function (user_choice) {
 
-    $(".option").off();
-    $(".option").on('click', function () {
-
-      let id = $(this).attr('id');
+        let id = user_choice;
       $(".option").off();
-      his_self.updateStatus("wintering ships");
+            his_self.game.status = "wintering ships";
+      his_self.hud.updateStatus(his_self.game.status);
+      his_self.hud.updateMenu([]);
+      his_self.hud.updateCards([]);
 
       his_self.addMove("retreat_to_winter_ports_resolve\t"+faction+"\t"+spacekey+"\t"+id);
       his_self.endTurn();
@@ -574,26 +567,28 @@
     let space = this.game.spaces[spacekey];
 
     let msg = this.returnFactionName(faction) + " - Select Winter Location for Units in "+space.name;
-    let opt = "<ul>";
+    let opt = [];
     for (let i = 0; i < res.length; i++) {
-      opt += `<li class="option" id="${res[i].key}">${res[i].key}</li>`;
+      opt.push({ id: `${res[i].key}`, label: `${res[i].key}` });
     }
-    opt += "</ul>";
 
     if (res.length == 0) {
       this.endTurn();
       return 0;
     }
 
-    this.updateStatusWithOptions(msg, opt);
+        this.game.status = msg;
+    this.hud.updateStatus(this.game.status);
+    this.hud.updateCards([]);
+    this.hud.updateMenu(opt, function (user_choice) {
 
-    $(".option").off();
-    $(".option").on('click', function () {
-
-      let id = $(this).attr('id');
+        let id = user_choice;
       $(".option").off();
 
-      his_self.updateStatus("handling retreat...");
+            his_self.game.status = "handling retreat...";
+      his_self.hud.updateStatus(his_self.game.status);
+      his_self.hud.updateMenu([]);
+      his_self.hud.updateCards([]);
       his_self.addMove("retreat_to_winter_spaces_resolve\t"+faction+"\t"+spacekey+"\t"+id);
       his_self.endTurn();
 
@@ -620,28 +615,30 @@
     let selectUnitsInterface = function(his_self, units_to_retain, units_available, selectUnitsInterface) {
 
       let msg = "Select Units to Retain: ";
-      let html = "<ul>";
+      let html = [];
       for (let i = 0; i < units_available.length; i++) {
 	let spacekey = units_available[i].spacekey;
 	let unit = his_self.game.spaces[spacekey].units[faction][units_available[i].idx];
         if (units_to_retain.includes(parseInt(i))) {
-          html += `<li class="option" style="font-weight:bold" id="${i}">* ${unit.type} - ${units_available[i].spacekey} *</li>`;
+          html.push({ id: `${i}`, label: `* ${unit.type} - ${units_available[i].spacekey} *` });
         } else {
-          html += `<li class="option" id="${i}">${unit.type} - ${units_available[i].spacekey}</li>`;
+          html.push({ id: `${i}`, label: `${unit.type} - ${units_available[i].spacekey}` });
         }
       }
-      html += `<li class="option" id="end">finish</li>`;
-      html += "</ul>";
+      html.push({ id: `end`, label: `finish` });
 
-      his_self.updateStatusWithOptions(msg, html);
+            his_self.game.status = msg;
+      his_self.hud.updateStatus(his_self.game.status);
+      his_self.hud.updateCards([]);
+      his_self.hud.updateMenu(html, function (user_choice) {
 
-      $('.option').off();
-      $('.option').on('click', function () {
+        let id = user_choice;
 
-        let id = $(this).attr("id");
-
-        his_self.unbindBackButtonFunction();
-	his_self.updateStatus("acknowledge...");
+        his_self.hud.hideBackButton();
+		his_self.game.status = "acknowledge...";
+	his_self.hud.updateStatus(his_self.game.status);
+	his_self.hud.updateMenu([]);
+	his_self.hud.updateCards([]);
 
         if (id === "end") {
 
@@ -677,7 +674,10 @@
 	//
 	if (units_to_retain.length === num_to_retain) {
 
-	  his_self.updateStatus("submitting...");
+	  	  his_self.game.status = "submitting...";
+	  his_self.hud.updateStatus(his_self.game.status);
+	  his_self.hud.updateMenu([]);
+	  his_self.hud.updateCards([]);
 
 	  //
 	  // moves prepended to last removed first
@@ -704,6 +704,117 @@
 
   returnPlayerFactions(player) {
     return this.game.state.players_info[player-1].factions;
+  }
+
+  returnEligibleActionOptions(menu, faction, ops) {
+    let options = [];
+    for (let i = 0; i < menu.length; i++) {
+      if (this.game.state.events.foul_weather == 1 && menu[i].name == "Assault") {
+        continue;
+      }
+      if (!menu[i].check(this, this.game.player, faction, ops)) {
+        continue;
+      }
+      for (let z = 0; z < menu[i].factions.length; z++) {
+        if (menu[i].factions[z] === faction) {
+          let cost = menu[i].cost[z];
+          if (cost <= ops) {
+            let cat = menu[i].category;
+            if (cat != "build" && cat != "move" && cat != "attack") {
+              cat = "special";
+            }
+            let label = menu[i].name;
+            let title = menu[i].name;
+            if (cost > 0) {
+              label += ` [${cost} ops]`;
+              title += cost > 1 ? ` - ${cost} ops` : " - 1 op";
+            }
+            options.push({
+              id: `${i}`,
+              label: label,
+              img: menu[i].img,
+              title: title,
+              category: cat
+            });
+          }
+          break;
+        }
+      }
+    }
+    options.push({ id: "end_turn", label: "end turn" });
+    return options;
+  }
+
+  presentHudActionMenu(leaf_options, onSelect) {
+    let groups = { build: [], move: [], special: [] };
+    let has_attack = false;
+    for (let i = 0; i < leaf_options.length; i++) {
+      let opt = leaf_options[i];
+      if (opt.id === "end_turn" || !opt.img) {
+        continue;
+      }
+      let cat = opt.category;
+      if (cat === "attack") {
+        has_attack = true;
+        cat = "move";
+      }
+      if (!groups[cat]) {
+        cat = "special";
+      }
+      groups[cat].push(opt);
+    }
+
+    let end_turn = leaf_options.filter((o) => o.id === "end_turn");
+    let filled = ["build", "move", "special"].filter((k) => groups[k].length > 0);
+    let graphical_count = leaf_options.filter((o) => o.img).length;
+
+    if (graphical_count > 20 && filled.length > 1) {
+      let root_options = [];
+      if (groups.build.length) {
+        root_options.push({
+          id: "build",
+          label: "Build",
+          img: "/his/img/backgrounds/move/corsair.jpg",
+          title: "Build"
+        });
+      }
+      if (groups.move.length) {
+        let move_label = has_attack ? "Move and Attack" : "Move";
+        root_options.push({
+          id: "move",
+          label: move_label,
+          img: "/his/img/backgrounds/move/move_over_pass.jpg",
+          title: move_label
+        });
+      }
+      if (groups.special.length) {
+        root_options.push({
+          id: "special",
+          label: "Special",
+          img: "/his/img/backgrounds/move/colonize.jpg",
+          title: "Special"
+        });
+      }
+
+      let parent_back = this.his_back_callback;
+      let show_root = () => {
+        if (parent_back) {
+          this.hud.showBackButton(parent_back);
+        }
+        this.hud.updateMenu(root_options, (id) => {
+          if (groups[id]) {
+            this.hud.showBackButton(show_root);
+            this.hud.updateMenu(groups[id].concat(end_turn), onSelect);
+            return;
+          }
+          onSelect(id);
+        });
+      };
+      show_root();
+      return;
+    }
+
+    this.hud.updateMenu(leaf_options, onSelect);
   }
 
   returnActionMenuOptions(player=null, faction=null, limit="") {
@@ -1177,19 +1288,18 @@ if (this.game.state.events.society_of_jesus == 1) {
       if (filter_func(factions[i])) { f.push(factions[i]); }
     }
 
-    let html = "<ul>";
+    let html = [];
     for (let i = 0; i < f.length; i++) {
-      html += `<li class="option" id="${f[i]}">${f[i]}</li>`;
+      html.push({ id: `${f[i]}`, label: `${f[i]}` });
     }
-    if (permit_no_selection){ html += `<li class="option" id="none">none</li>`; }
-    html += "</ul>";
+    if (permit_no_selection){ html.push({ id: `none`, label: `none` }); }
 
-    his_self.updateStatusWithOptions(msg, html);
-     
-    $('.option').off();
-    $('.option').on('click', function () {
+        his_self.game.status = msg;
+    his_self.hud.updateStatus(his_self.game.status);
+    his_self.hud.updateCards([]);
+    his_self.hud.updateMenu(html, function (user_choice) {
 
-      let id = $(this).attr("id");
+        let id = user_choice;
       $('.option').off();
       mycallback(id);
     });
@@ -1211,10 +1321,15 @@ if (this.game.state.events.society_of_jesus == 1) {
       cards.push("pass");
     }
 
-    this.updateStatusAndListCards(msg, cards);
-    this.attachCardboxEvents(function(card) {
+        this.game.status = msg;
+    this.hud.updateStatus(this.game.status);
+    this.hud.updateMenu([]);
+    this.hud.updateCards(cards);
+    this.cardbox.attachCardEvents();
+        this.cardbox.bindCallback(function(card) {
       mycallback(card);
     });
+    this.cardbox.attachCardEvents();
 
   }
 
@@ -1241,13 +1356,18 @@ if (this.game.state.events.society_of_jesus == 1) {
       cards.push("pass");
     }
 
-    this.updateStatusAndListCards(msg, cards);
-    this.attachCardboxEvents(function(card) {
+        this.game.status = msg;
+    this.hud.updateStatus(this.game.status);
+    this.hud.updateMenu([]);
+    this.hud.updateCards(cards);
+    this.cardbox.attachCardEvents();
+        this.cardbox.bindCallback(function(card) {
       if (card == "pass") {
 	this.cardbox.hide();
       }
       mycallback(card, faction);
     });
+    this.cardbox.attachCardEvents();
 
   }
 
@@ -1256,8 +1376,7 @@ if (this.game.state.events.society_of_jesus == 1) {
     let his_self = this;
     let callback_run = false;
     let at_least_one_option = false;
-    let html = '';
-    html += '<ul class="hide-scrollbar">';
+    let html = [];
 
     $('.option').off();
     $('.hextile').off();
@@ -1269,7 +1388,7 @@ if (this.game.state.events.society_of_jesus == 1) {
       if (filter_func(this.game.spaces[key]) == 1) {
 
         at_least_one_option = true;
-        html += '<li class="option '+key+'" id="' + key + '">' + his_self.returnSpaceName(key) + '</li>';
+        html.push({ id: key, label: his_self.returnSpaceName(key) });
 
 	//
 	// the spaces that are selectable are clickable on the main board (whatever board shows)
@@ -1297,16 +1416,15 @@ if (this.game.state.events.society_of_jesus == 1) {
       }
     }
     if (cancel_func != null) {
-      html += '<li class="option" id="cancel">cancel</li>';
+      html.push({ id: 'cancel', label: 'cancel' });
     }
-    html += '</ul>';
 
-    this.updateStatusWithOptions(msg, html);
+        this.game.status = msg;
+    this.hud.updateStatus(this.game.status);
+    this.hud.updateCards([]);
+    this.hud.updateMenu(html, function (user_choice) {
 
-    $('.option').off();
-    $('.option').on('click', function () {
-
-      let action = $(this).attr("id");
+        let action = user_choice;
 
       //
       // and remove on-board clickability
@@ -1360,12 +1478,11 @@ if (this.game.state.events.society_of_jesus == 1) {
     $('.hextile').off();
     $('.space').off();
 
-    let html = '';
-    html += '<ul class="hide-scrollbar">';
+    let html = [];
     for (let key in this.game.navalspaces) {
       if (filter_func(this.game.navalspaces[key]) == 1) {
 	at_least_one_option = true;
-        html += '<li class="option" id="' + key + '">' + key + '</li>';
+        html.push({ id: key, label: key });
 	if (board_clickable) {
 	  document.querySelectorAll(`.${key}`).forEach((el) => { his_self.addSelectable(el); });
 	  document.getElementById(key).onclick = (e) => {
@@ -1380,7 +1497,10 @@ if (this.game.state.events.society_of_jesus == 1) {
             his_self.theses_overlay.space_onclick_callback = null;
     	    if (callback_run == false) {
 	      callback_run = true;
-    	      his_self.updateStatus("selected...");
+    	          	      his_self.game.status = "selected...";
+    	      his_self.hud.updateStatus(his_self.game.status);
+    	      his_self.hud.updateMenu([]);
+    	      his_self.hud.updateCards([]);
 	      mycallback(key);
 	    }
 	  }
@@ -1390,7 +1510,7 @@ if (this.game.state.events.society_of_jesus == 1) {
     for (let key in this.game.spaces) {
       if (filter_func(this.game.spaces[key]) == 1) {
         at_least_one_option = true;
-        html += '<li class="option" id="' + key + '">' + key + '</li>';
+        html.push({ id: key, label: key });
 	if (board_clickable) {
 	  document.querySelectorAll(`.${key}`).forEach((el) => { his_self.addSelectable(el); });
 	  document.getElementById(key).onclick = (e) => { 
@@ -1404,7 +1524,10 @@ if (this.game.state.events.society_of_jesus == 1) {
 	    e.preventDefault();   // clicking on keys triggers selection -- but clicking on map will still show zoom-in
 	    his_self.removeSelectable();
             his_self.theses_overlay.space_onclick_callback = null;
-    	    his_self.updateStatus("selected...");
+    	        	    his_self.game.status = "selected...";
+    	    his_self.hud.updateStatus(his_self.game.status);
+    	    his_self.hud.updateMenu([]);
+    	    his_self.hud.updateCards([]);
 	    mycallback(key);
 	    return;
 	  }
@@ -1412,16 +1535,15 @@ if (this.game.state.events.society_of_jesus == 1) {
       }
     }
     if (cancel_func != null) {
-      html += '<li class="option" id="cancel">cancel</li>';
+      html.push({ id: 'cancel', label: 'cancel' });
     }
-    html += '</ul>';
 
-    this.updateStatusWithOptions(msg, html);
+        this.game.status = msg;
+    this.hud.updateStatus(this.game.status);
+    this.hud.updateCards([]);
+    this.hud.updateMenu(html, function (user_choice) {
 
-    $('.option').off();
-    $('.option').on('click', function () {
-
-      let action = $(this).attr("id");
+        let action = user_choice;
 
       // remove events to prevent re-firing
       $('.option').off();
@@ -1452,7 +1574,7 @@ if (this.game.state.events.society_of_jesus == 1) {
     //   
     // back button should return us here, so unbind if here
     //
-    this.unbindBackButtonFunction();
+    this.hud.hideBackButton();
 
     this.startClock();
 
@@ -1513,10 +1635,14 @@ if (this.game.state.events.society_of_jesus == 1) {
         let my_specific_game_id = his_self.game.id;
         his_self.halted = 1;
         his_self.game.queue[his_self.game.queue.length-1] = "HALTED\tWaiting for Game to Continue\t"+his_self.publicKey;
-        his_self.hud.back_button = false;
+        his_self.hud.hideBackButton();
               
-        his_self.updateStatusAndListCards(his_self.returnFactionName(faction) + " - You Must Pass", cards);
-        his_self.attachCardboxEvents((card) => {
+                his_self.game.status = his_self.returnFactionName(faction) + " - You Must Pass";
+        his_self.hud.updateStatus(his_self.game.status);
+        his_self.hud.updateMenu([]);
+        his_self.hud.updateCards(cards);
+        his_self.cardbox.attachCardEvents();
+                his_self.cardbox.bindCallback((card) => {
           try {
             $('.card').off();
             $('.card img').off();
@@ -1528,7 +1654,10 @@ if (this.game.state.events.society_of_jesus == 1) {
           his_self.halted = 0;
           his_self.gaming_active = 0;
 
-          his_self.updateStatus('continuing...');
+                    his_self.game.status = 'continuing...';
+          his_self.hud.updateStatus(his_self.game.status);
+          his_self.hud.updateMenu([]);
+          his_self.hud.updateCards([]);
 
           //
           // our own move will have been ticked into the future queue, along with
@@ -1555,8 +1684,12 @@ if (this.game.state.events.society_of_jesus == 1) {
       }
     }
 
-    this.updateStatusAndListCards(this.returnFactionName(faction) + " - Select Your Card: ", cards);
-    this.attachCardboxEvents((card) => {
+        this.game.status = this.returnFactionName(faction) + " - Select Your Card: ";
+    this.hud.updateStatus(this.game.status);
+    this.hud.updateMenu([]);
+    this.hud.updateCards(cards);
+    this.cardbox.attachCardEvents();
+        this.cardbox.bindCallback((card) => {
       try {
         $('.card').off();
         $('.card img').off();
@@ -1594,7 +1727,9 @@ if (this.game.state.events.society_of_jesus == 1) {
           // set back button to move us back here
           //
           let his_self = this;
-          his_self.bindBackButtonFunction(() => { his_self.displayBoard(); his_self.moves = []; his_self.playerTurn(faction, selected_card); });
+          his_self.removeSelectable();
+          his_self.his_back_callback = () => { his_self.removeSelectable(); his_self.displayBoard(); his_self.moves = []; his_self.playerTurn(faction, selected_card); };
+          his_self.hud.showBackButton(his_self.his_back_callback);
           this.playerPlayCard(card, this.game.player, faction);
 	} else {
           his_self.displayBoard(); 
@@ -1619,10 +1754,13 @@ if (this.game.state.events.society_of_jesus == 1) {
         // set back button to move us back here
         //
         let his_self = this;
-        his_self.bindBackButtonFunction(() => { his_self.displayBoard(); his_self.moves = []; his_self.playerTurn(faction, selected_card); });
+        his_self.removeSelectable();
+        his_self.his_back_callback = () => { his_self.removeSelectable(); his_self.displayBoard(); his_self.moves = []; his_self.playerTurn(faction, selected_card); };
+        his_self.hud.showBackButton(his_self.his_back_callback);
         this.playerPlayCard(card, this.game.player, faction);
       }  
-    });  
+    });
+    this.cardbox.attachCardEvents();  
   }
 
 
@@ -1675,7 +1813,7 @@ if (this.game.state.events.society_of_jesus == 1) {
       let moved_units = [];
 
       let msg = "Which Fortified Units Join the Field Battle: ";
-      let html = "<ul>";
+      let html = [];
 
       for (let i = 0; i < available_units.length; i++) {
 	let is_this_unit_moving = false;
@@ -1690,15 +1828,14 @@ if (this.game.state.events.society_of_jesus == 1) {
         let tf = available_units[i].faction;
         let tu = space.units[available_units[i].faction][available_units[i].unit_idx];
 	if (is_this_unit_moving) {
-          html += `<li class="option" style="font-weight:bold" id="${i}">* ${tu.name} - ${his_self.returnFactionName(tf)} *</li>`;
+          html.push({ id: `${i}`, label: `* ${tu.name} - ${his_self.returnFactionName(tf)} *` });
 	  moved_units.push({ faction : available_units[i].faction , idx : available_units[i].unit_idx , type : available_units[i].type });
 	} else {
-          html += `<li class="option" style="" id="${i}">${tu.name} - ${his_self.returnFactionName(tf)}</li>`;
+          html.push({ id: `${i}`, label: `${tu.name} - ${his_self.returnFactionName(tf)}` });
 	  unmoved_units.push({ faction : available_units[i].faction , idx : available_units[i].unit_idx , type : available_units[i].type });
         }
       }
-      html += `<li class="option" id="end">finish</li>`;
-      html += "</ul>";
+      html.push({ id: `end`, label: `finish` });
 
       let mobj = {
         spacekey : spacekey ,
@@ -1707,12 +1844,12 @@ if (this.game.state.events.society_of_jesus == 1) {
       }
 
       his_self.fortification_overlay.render(mobj, [], selectUnitsInterface, finishAndFortify, 1); // 1 => "unfortifying"
-      his_self.updateStatusWithOptions(msg, html);
+            his_self.game.status = msg;
+      his_self.hud.updateStatus(his_self.game.status);
+      his_self.hud.updateCards([]);
+      his_self.hud.updateMenu(html, function (user_choice) {
 
-      $('.option').off();
-      $('.option').on('click', function () {
-
-        let id = $(this).attr("id");
+        let id = user_choice;
 
         if (id === "end") {
           his_self.fortification_overlay.hide();
@@ -1837,7 +1974,7 @@ if (relief_siege == 1) {
       let moved_units = [];
 
       let msg = "Fortification Holds 4 Units: ";
-      let html = "<ul>";
+      let html = [];
 
       for (let i = 0; i < available_units.length; i++) {
 	let is_this_unit_moving = false;
@@ -1852,15 +1989,14 @@ if (relief_siege == 1) {
         let tf = available_units[i].faction;
         let tu = space.units[available_units[i].faction][available_units[i].unit_idx];
 	if (is_this_unit_moving) {
-          html += `<li class="option" style="font-weight:bold" id="${tf}-${i}">* ${tu.name} - ${his_self.returnFactionName(tf)} *</li>`;
+          html.push({ id: `${tf}-${i}`, label: `* ${tu.name} - ${his_self.returnFactionName(tf)} *` });
 	  moved_units.push({ faction : available_units[i].faction , idx : available_units[i].unit_idx , type : available_units[i].type });
 	} else {
-          html += `<li class="option" style="" id="${tf}-${i}">${tu.name} - ${his_self.returnFactionName(tf)}</li>`;
+          html.push({ id: `${tf}-${i}`, label: `${tu.name} - ${his_self.returnFactionName(tf)}` });
 	  unmoved_units.push({ faction : available_units[i].faction , idx : available_units[i].unit_idx , type : available_units[i].type });
         }
       }
-      html += `<li class="option" id="end">finish</li>`;
-      html += "</ul>";
+      html.push({ id: `end`, label: `finish` });
 
       let mobj = {
         spacekey : spacekey ,
@@ -1869,12 +2005,12 @@ if (relief_siege == 1) {
       }
 
       his_self.fortification_overlay.render(mobj, [], selectUnitsInterface, finishAndFortify); // no destination interface
-      his_self.updateStatusWithOptions(msg, html);
+            his_self.game.status = msg;
+      his_self.hud.updateStatus(his_self.game.status);
+      his_self.hud.updateCards([]);
+      his_self.hud.updateMenu(html, function (user_choice) {
 
-      $('.option').off();
-      $('.option').on('click', function () {
-
-        let id = $(this).attr("id");
+        let id = user_choice;
 
         if (id === "end") {
           his_self.fortification_overlay.hide();
@@ -1943,18 +2079,17 @@ if (relief_siege == 1) {
       }
 
       let msg = "Choose Fortification Option: ";
-      let html = "<ul>";
-      html += `<li class="option" id="auto">fortify everything (auto)</li>`;
+      let html = [];
+      html.push({ id: `auto`, label: `fortify everything (auto)` });
       if (post_battle == 1) {
-        html += `<li class="option" id="manual">select units (manual)</li>`;
+        html.push({ id: `manual`, label: `select units (manual)` });
       }
-      html += "</ul>";
-      his_self.updateStatusWithOptions(msg, html);
+            his_self.game.status = msg;
+      his_self.hud.updateStatus(his_self.game.status);
+      his_self.hud.updateCards([]);
+      his_self.hud.updateMenu(html, function (user_choice) {
 
-      $('.option').off();
-      $('.option').on('click', function () {
-
-        let id = $(this).attr("id");
+        let id = user_choice;
 
         if (id === "auto") {
           for (let i = 0; i < available_units.length; i++) {
@@ -2053,7 +2188,10 @@ if (relief_siege == 1) {
     }
 
     if (any_need_to_intervene == false) {
-      his_self.updateStatus("processing...");
+            his_self.game.status = "processing...";
+      his_self.hud.updateStatus(his_self.game.status);
+      his_self.hud.updateMenu([]);
+      his_self.hud.updateCards([]);
       his_self.theses_overlay.hide();
       his_self.endTurn();
       return 1;
@@ -2063,7 +2201,10 @@ if (relief_siege == 1) {
     let next_unit_fnct = async (sources, sources_idx, unit_idx, next_unit_fnct) => {
 
       if (sources.length < (sources_idx+1)) {
-        his_self.updateStatus("processing...");
+                his_self.game.status = "processing...";
+        his_self.hud.updateStatus(his_self.game.status);
+        his_self.hud.updateMenu([]);
+        his_self.hud.updateCards([]);
         his_self.theses_overlay.hide();
 	for (let z = units_to_remove_moves.length-1; z >= 0; z--) {
 	  his_self.addMove(units_to_remove_moves[z]);
@@ -2228,7 +2369,10 @@ if (relief_siege == 1) {
       next_unit_idx = his_self.game.spaces[sources[0].spacekey].units[f].length-1;
       next_unit_fnct(sources, 0, next_unit_idx, next_unit_fnct);
     } else {
-      his_self.updateStatus("processing...");
+            his_self.game.status = "processing...";
+      his_self.hud.updateStatus(his_self.game.status);
+      his_self.hud.updateMenu([]);
+      his_self.hud.updateCards([]);
       his_self.theses_overlay.hide();
       his_self.endTurn();
     }
@@ -2242,10 +2386,17 @@ if (relief_siege == 1) {
     let p = this.returnPlayerOfFaction(faction);
     let his_self = this;
 
-    this.updateStatusAndListCards(his_self.returnFactionName(faction) + " - Select Diplomacy Card", this.game.deck[1].hand);
-    this.attachCardboxEvents(function(card) {
+        this.game.status = his_self.returnFactionName(faction) + " - Select Diplomacy Card";
+    this.hud.updateStatus(this.game.status);
+    this.hud.updateMenu([]);
+    this.hud.updateCards(this.game.deck[1].hand);
+    this.cardbox.attachCardEvents();
+        this.cardbox.bindCallback(function(card) {
 
-      this.updateStatus(`Playing ${this.popup(card)}`, this.game.deck[1].hand);
+            this.game.status = `Playing ${this.popup(card)}`, this.game.deck[1].hand;
+      this.hud.updateStatus(this.game.status);
+      this.hud.updateMenu([]);
+      this.hud.updateCards([]);
       his_self.addMove("diplomacy_card_event\t"+faction+"\t"+card);
       his_self.addMove("discard_diplomacy_card\t"+faction+"\t"+card);
 
@@ -2254,6 +2405,7 @@ if (relief_siege == 1) {
 
       his_self.endTurn();
     });
+    this.cardbox.attachCardEvents();
 
   }
 
@@ -2275,7 +2427,10 @@ if (relief_siege == 1) {
 
     if (card === "pass") {
       this.cardbox.hide();
-      this.updateStatus("Passing this Round...");
+            this.game.status = "Passing this Round...";
+      this.hud.updateStatus(this.game.status);
+      this.hud.updateMenu([]);
+      this.hud.updateCards([]);
       this.addMove("pass\t"+faction+"\t"+cards_in_hand);
       this.endTurn();
       return;
@@ -2318,14 +2473,14 @@ if (relief_siege == 1) {
     } catch (err) {}
 
     if (event_this) {
-      this.unbindBackButtonFunction();
+      this.hud.hideBackButton();
       this.addMove("remove\t"+faction+"\t"+card);
       this.addMove("ops\t"+faction+"\t"+card+"\t"+2);
       this.playerPlayEvent(card, faction);
     } else {
 
-      let html = `<ul>`;
-      html    += `<li class="card" id="ops">play for ops</li>`;
+      let html = [];
+      html.push({ id: `ops`, label: `play for ops` });
       try {
         if (deck[card].canEvent(this, faction) && !this.game.state.cards_evented.includes(card)) {
   	  can_event_this = true;
@@ -2341,16 +2496,20 @@ if (relief_siege == 1) {
       }
 
       if (can_event_this) {
-        html    += `<li class="card" id="event">play for event</li>`;
+        html.push({ id: `event`, label: `play for event` });
       }
-      html    += `</ul>`;
 
       let pick_card_function = () => {
 
-        this.updateStatusWithOptions(`Playing ${this.popup(card)}`, html);
-        this.attachCardboxEvents((user_choice) => {      
+                this.game.status = `Playing ${this.popup(card)}`;
+        this.hud.updateStatus(this.game.status);
+        this.hud.updateCards([]);
+        this.hud.updateMenu(html, (user_choice) => {
 
-	  this.updateStatus("submitting...");
+	  	  this.game.status = "submitting...";
+	  this.hud.updateStatus(this.game.status);
+	  this.hud.updateMenu([]);
+	  this.hud.updateCards([]);
 
           if (user_choice === "ops") {
             let ops = this.game.deck[0].cards[card].ops;
@@ -2358,7 +2517,7 @@ if (relief_siege == 1) {
             return;
           }
           if (user_choice === "event") {
-            this.unbindBackButtonFunction();
+            this.hud.hideBackButton();
             if (this.game.deck[0].cards[card].warn.includes(faction)) {
               let c = confirm("Unorthodox! Are you sure you want to event this card?");
               if (!c) {
@@ -2394,12 +2553,12 @@ if (relief_siege == 1) {
     let ops = deck[card].ops;
     let pfactions = this.returnPlayerFactions(this.game.player);
 
-    let attachEventsToMenuOptions = () => {
+    let html = this.returnEligibleActionOptions(menu, faction, ops);
 
-      this.updateStatusWithOptions(`${this.returnFactionName(faction)}: ${ops} ops remaining`, html);
-      this.attachCardboxEvents(async (user_choice) => {      
-
-	his_self.menu_overlay.hide();
+            this.game.status = `${this.returnFactionName(faction)}: ${ops} ops remaining`;
+      this.hud.updateStatus(this.game.status);
+      this.hud.updateCards([]);
+      this.presentHudActionMenu(html, async (user_choice) => {
 
         if (user_choice === "end_turn") {
           this.endTurn();
@@ -2426,11 +2585,6 @@ if (relief_siege == 1) {
         return;
 
       });
-
-    } // attach events to menu options
-
-    this.menu_overlay.render(menu, this.game.player, faction, ops, attachEventsToMenuOptions);
-    attachEventsToMenuOptions();
 
   }
 
@@ -2459,16 +2613,16 @@ if (relief_siege == 1) {
     // unbind in all cases except where OPS are max from card
     //
     if (card == "") {
-      this.unbindBackButtonFunction();
+      this.hud.hideBackButton();
     } else {
       try {
         let expected_ops = this.game.deck[0].cards[card].ops;
         if (expected_ops != ops || ops == null || card == "") {
-          this.unbindBackButtonFunction();
+          this.hud.hideBackButton();
         }
       } catch (err) {
         // probably mandatory card already removed from deck
-        this.unbindBackButtonFunction();
+        this.hud.hideBackButton();
       }
     }
 
@@ -2536,8 +2690,8 @@ if (relief_siege == 1) {
     //
     if (this.game.state.activated_powers[faction].length > 0) {
 
-      let html = `<ul>`;
-      html    += `<li class="card" id="${faction}">${faction}</li>`;
+      let html = [];
+      html.push({ id: `${faction}`, label: `${faction}` });
       for (let i = 0; i < this.game.state.activated_powers[faction].length; i++) {
 	 let can_select = true;
 	 let ap = this.game.state.activated_powers[faction][i];
@@ -2545,7 +2699,7 @@ if (relief_siege == 1) {
 	   if (ap != "scotland") { can_select = false; }
 	 }
 	 if (can_select == true) {
-           html    += `<li class="card" id="${this.game.state.activated_powers[faction][i]}">${this.game.state.activated_powers[faction][i]}</li>`;
+           html.push({ id: `${this.game.state.activated_powers[faction][i]}`, label: `${this.game.state.activated_powers[faction][i]}` });
 	 }
          for (let z = 0; z < this.game.state.activated_powers[this.game.state.activated_powers[faction][i]].length; z++) {
 	   let mp = this.game.state.activated_powers[this.game.state.activated_powers[faction][i]][z];
@@ -2553,16 +2707,17 @@ if (relief_siege == 1) {
 	   if (faction === "france" && this.game.state.events.scots_raid == 1) {
 	     if (!(mp == "france" || mp == "scotland")) { can_select = false; }
 	   }
-	   if (can_select) { html += `<li class="card" id="${this.game.state.activated_powers[this.game.state.activated_powers[faction][i]][z]}">${this.game.state.activated_powers[this.game.state.activated_powers[faction][i]][z]}</li>`; }
+	   if (can_select) { html.push({ id: `${this.game.state.activated_powers[this.game.state.activated_powers[faction][i]][z]}`, label: `${this.game.state.activated_powers[this.game.state.activated_powers[faction][i]][z]}` }); }
 	 }
       }
-      html    += `</ul>`;
 
       let ops_text = `${ops} op`;
       if (ops > 0) { ops_text += 's'; }
 
-      this.updateStatusWithOptions(`Which Faction: ${ops_text}`, html);
-      this.attachCardboxEvents(function(selected_faction) {
+            this.game.status = `Which Faction: ${ops_text}`;
+      this.hud.updateStatus(this.game.status);
+      this.hud.updateCards([]);
+      this.hud.updateMenu(html, function (selected_faction) {
 
         menu = this.returnActionMenuOptions(this.game.player, selected_faction, limit);
 
@@ -2582,35 +2737,23 @@ console.log("MENU: " + JSON.stringify(menu));
 	//
 	// duplicates code below
 	//
-        let html = `<ul>`;
-        for (let i = 0; i < menu.length; i++) {
-	  // added ops to check() for naval transport
-          if (menu[i].check(this, this.game.player, selected_faction, ops)) {
-            for (let z = 0; z < menu[i].factions.length; z++) {
-              if (menu[i].factions[z] === selected_faction) {
-  	        if (menu[i].cost[z] <= ops) {
-		  if (menu[i].cost[z] > 0) {
-                    html    += `<li class="card" id="${i}">${menu[i].name} [${menu[i].cost[z]} ops]</li>`;
-                  }
-                }
-	        z = menu[i].factions.length+1;
-              }
-            }
-          }
-        }
-
-        html    += `<li class="card" id="end_turn">end turn</li>`;
-        html    += `</ul>`;
+        let html = this.returnEligibleActionOptions(menu, selected_faction, ops);
 
 	let attachEventsToMenuOptions = () => {
 
-        his_self.bindBackButtonFunction(() => { his_self.displayBoard(); his_self.moves = []; his_self.playerPlayOps(card, faction, ops, limit); });
-        his_self.updateStatusWithOptions(`${his_self.returnFactionName(selected_faction)}: ${ops} ops remaining`, html);
-        this.attachCardboxEvents(async (user_choice) => {      
+        his_self.removeSelectable();
+        his_self.his_back_callback = () => { his_self.removeSelectable(); his_self.displayBoard(); his_self.moves = []; his_self.playerPlayOps(card, faction, ops, limit); };
+        his_self.hud.showBackButton(his_self.his_back_callback);
+                his_self.game.status = `${his_self.returnFactionName(selected_faction)}: ${ops} ops remaining`;
+        his_self.hud.updateStatus(his_self.game.status);
+        his_self.hud.updateCards([]);
+        his_self.presentHudActionMenu(html, async (user_choice) => {      
 
-	  his_self.unbindBackButtonFunction();
-	  his_self.updateStatus("acknowledge");
-	  his_self.menu_overlay.hide();
+	  his_self.hud.hideBackButton();
+	  	  his_self.game.status = "acknowledge";
+	  his_self.hud.updateStatus(his_self.game.status);
+	  his_self.hud.updateMenu([]);
+	  his_self.hud.updateCards([]);
 
           if (user_choice === "end_turn") {
             if (his_self.game.player_last_card == "034") {
@@ -2635,14 +2778,15 @@ console.log("MENU: " + JSON.stringify(menu));
     	    if (this.canPlayerCommitDebater("papacy", "loyola-debater")) {
 
 	      let msg = "Commit Loyola to reduce cost to 2 OPs?";
-      	      let html = `<ul>`;
-              html += `<li class="option" id="commit">commit Loyola (2 OPs)</li>`;
-              if (ops > 2) { html += `<li class="option" id="donot">do not commit (3 OPs)</li>`; }
-              html += `<li class="option" id="back">return to menu</li>`;
-	      html += '</ul>';
+      	      let html = [];
+              html.push({ id: `commit`, label: `commit Loyola (2 OPs)` });
+              if (ops > 2) { html.push({ id: `donot`, label: `do not commit (3 OPs)` }); }
+              html.push({ id: `back`, label: `return to menu` });
 
-	      his_self.updateStatusWithOptions(msg, html);
-      	      his_self.attachCardboxEvents(async (moar_user_choice) => {      
+	      	      his_self.game.status = msg;
+	      his_self.hud.updateStatus(his_self.game.status);
+	      his_self.hud.updateCards([]);
+	      his_self.hud.updateMenu(html, async (moar_user_choice) => {      
 
 	        if (moar_user_choice === "back") {
 		  his_self.playerPlayOps(card, faction, ops, limit);
@@ -2697,17 +2841,21 @@ console.log("MENU: " + JSON.stringify(menu));
 	      } else {
 
 	        let msg = "How many OPs to Spend: ";
-                let html = `<ul>`;
+                let html = [];
 	        let desc = ['one', 'two', 'three', 'four', 'five', 'six'];
                 for (let i = 1; i <= ops; i++) {
-                  html += `<li class="card" id="${i}">${desc[i-1]}</li>`;
+                  html.push({ id: `${i}`, label: `${desc[i-1]}` });
                 }
-                html += '</ul>';
 
-                this.updateStatusWithOptions(msg, html);
-                this.attachCardboxEvents(async (uc) => {      
+                                this.game.status = msg;
+                this.hud.updateStatus(this.game.status);
+                this.hud.updateCards([]);
+                this.hud.updateMenu(html, async (uc) => {      
 
-		  this.updateStatus("selected...");
+		  		  this.game.status = "selected...";
+		  this.hud.updateStatus(this.game.status);
+		  this.hud.updateMenu([]);
+		  this.hud.updateCards([]);
 
 	          let ops_to_spend = parseInt(uc);
 	          let ops_remaining = ops - ops_to_spend;
@@ -2751,44 +2899,29 @@ console.log("MENU: " + JSON.stringify(menu));
 
 	} // function
 
-	his_self.menu_overlay.render(menu, this.game.player, selected_faction, ops, attachEventsToMenuOptions);
-
 	attachEventsToMenuOptions();
 
       });
+      this.cardbox.attachCardEvents();
     } else {
 
       //
       // duplicates code above
       //
-      let html = `<ul>`;
-      for (let i = 0; i < menu.length; i++) {
-
-        if (menu[i].check(this, this.game.player, faction)) {
-          for (let z = 0; z < menu[i].factions.length; z++) {
-            if (menu[i].factions[z] === faction) {
-  	      if (menu[i].cost[z] <= ops) {
-		if (menu[i].cost[z] > 0) {
-                  html += `<li class="card" id="${i}">${menu[i].name} [${menu[i].cost[z]} ops]</li>`;
-                }
-              }
-	      z = menu[i].factions.length+1;
-            }
-          }
-        }
-      }
-
-      html    += `<li class="card" id="end_turn">end turn</li>`;
-      html    += `</ul>`;
+      let html = this.returnEligibleActionOptions(menu, faction, ops);
 
       let attachEventsToMenuOptions = () => {
 
-      this.updateStatusWithOptions(`${this.returnFactionName(faction)}: ${ops} ops remaining`, html);
-      this.attachCardboxEvents(async (user_choice) => {      
+            this.game.status = `${this.returnFactionName(faction)}: ${ops} ops remaining`;
+      this.hud.updateStatus(this.game.status);
+      this.hud.updateCards([]);
+      this.presentHudActionMenu(html, async (user_choice) => {
 
-        his_self.unbindBackButtonFunction();
-	his_self.updateStatus("acknowledge");
-	his_self.menu_overlay.hide();
+        his_self.hud.hideBackButton();
+		his_self.game.status = "acknowledge";
+	his_self.hud.updateStatus(his_self.game.status);
+	his_self.hud.updateMenu([]);
+	his_self.hud.updateCards([]);
 
         if (user_choice === "end_turn") {
           if (his_self.game.player_last_card == "034") {
@@ -2813,14 +2946,15 @@ console.log("MENU: " + JSON.stringify(menu));
     	  if (this.canPlayerCommitDebater("papacy", "loyola-debater")) {
 
 	    let msg = "Commit Loyola to reduce cost to 2 OPs?";
-      	    let html = `<ul>`;
-            html += `<li class="option" id="commit">commit Loyola (2 OPs)</li>`;
-            if (ops > 2) { html += `<li class="option" id="donot">do not commit (3 OPs)</li>`; }
-            html += `<li class="option" id="back">return to menu</li>`;
-	    html += '</ul>';
+      	    let html = [];
+            html.push({ id: `commit`, label: `commit Loyola (2 OPs)` });
+            if (ops > 2) { html.push({ id: `donot`, label: `do not commit (3 OPs)` }); }
+            html.push({ id: `back`, label: `return to menu` });
 
-	    his_self.updateStatusWithOptions(msg, html);
-      	    his_self.attachCardboxEvents(async (moar_user_choice) => {      
+	    	    his_self.game.status = msg;
+	    his_self.hud.updateStatus(his_self.game.status);
+	    his_self.hud.updateCards([]);
+	    his_self.hud.updateMenu(html, async (moar_user_choice) => {      
 
 	      if (moar_user_choice === "back") {
 	        his_self.playerPlayOps(card, faction, ops, limit);
@@ -2873,17 +3007,21 @@ console.log("MENU: " + JSON.stringify(menu));
 	  }
 
 	  let msg = "How many OPs to Spend: ";
-          let html = `<ul>`;
+          let html = [];
 	  let desc = ['one', 'two', 'three', 'four', 'five', 'six'];
           for (let i = 1; i <= ops; i++) {
-            html += `<li class="card" id="${i}">${desc[i-1]}</li>`;
+            html.push({ id: `${i}`, label: `${desc[i-1]}` });
           }
-          html += '</ul>';
 
-          this.updateStatusWithOptions(msg, html);
-          this.attachCardboxEvents(async (uc) => {      
+                    this.game.status = msg;
+          this.hud.updateStatus(this.game.status);
+          this.hud.updateCards([]);
+          this.hud.updateMenu(html, async (uc) => {      
 
-	    this.updateStatus("selected...");
+	    	    this.game.status = "selected...";
+	    this.hud.updateStatus(this.game.status);
+	    this.hud.updateMenu([]);
+	    this.hud.updateCards([]);
 
 	    let ops_to_spend = parseInt(uc);
 	    let ops_remaining = ops - ops_to_spend;
@@ -2917,7 +3055,7 @@ console.log("MENU: " + JSON.stringify(menu));
           if (ops > 0) {
   	    this.addMove("continue\t"+this.game.player+"\t"+faction+"\t"+card+"\t"+ops+"\t"+limit);
           }
-          menu[user_choice].fnct(this, this.game.player, faction, ops_to_spend, ops);
+            menu[user_choice].fnct(this, this.game.player, faction, ops_to_spend, ops);
           return;
 
 	}
@@ -2925,7 +3063,6 @@ console.log("MENU: " + JSON.stringify(menu));
 
       } // attach events to menu options
 
-      this.menu_overlay.render(menu, this.game.player, faction, ops, attachEventsToMenuOptions);
       attachEventsToMenuOptions();
 
     }
@@ -3014,7 +3151,10 @@ console.log("MENU: " + JSON.stringify(menu));
   }
 
   async playerReformationAttempt(player) {
-    this.updateStatus("Attempting Reformation Attempt");
+        this.game.status = "Attempting Reformation Attempt";
+    this.hud.updateStatus(this.game.status);
+    this.hud.updateMenu([]);
+    this.hud.updateCards([]);
     return;
   }
   async playerCounterReformationAttempt(player) {
@@ -3025,27 +3165,32 @@ return;
 
     let his_self = this;
     let player = this.returnPlayerOfFaction("papacy");
-    if (this.game.player != player) { this.updateStatus("ERROR: you are not the papacy"); return; }
+    if (this.game.player != player) {     this.game.status = "ERROR: you are not the papacy";
+    this.hud.updateStatus(this.game.status);
+    this.hud.updateMenu([]);
+    this.hud.updateCards([]); return; }
 
  
     let msg = `End a War? [`;
     for (let i = 0; i < enemies.length; i++) { if (i > 0) { msg += ", "; } msg += this.returnFactionName(enemies[i]); };
     msg += ']';
-    let opt = "<ul>";
-    opt += `<li class="option" id="yes">yes</li>`;
-    opt += `<li class="option" id="no">no</li>`;
-    opt += '</ul>';
+    let opt = [];
+    opt.push({ id: `yes`, label: `yes` });
+    opt.push({ id: `no`, label: `no` });
 
-    this.updateStatusWithOptions(msg, opt);
+        this.game.status = msg;
+    this.hud.updateStatus(this.game.status);
+    this.hud.updateCards([]);
+    this.hud.updateMenu(opt, function (user_choice) {
 
-    $(".option").off();
-    $(".option").on('click', function () {
-
-      his_self.unbindBackButtonFunction();
-      his_self.updateStatus("acknowledge...");
+      his_self.hud.hideBackButton();
+            his_self.game.status = "acknowledge...";
+      his_self.hud.updateStatus(his_self.game.status);
+      his_self.hud.updateMenu([]);
+      his_self.hud.updateCards([]);
 
       $(".option").off();
-      let id = $(this).attr('id');
+      let id = user_choice;
 
       if (id === "no") {
 	his_self.endTurn();
@@ -3056,42 +3201,43 @@ return;
       // otherwise YES
       //
       let msg = `Which Faction?`;
-      let opt = "<ul>";
+      let opt = [];
       for (let i = 0; i < enemies.length; i++) {
-        opt += `<li class="option" id="${enemies[i]}">${enemies[i]}</li>`;
+        opt.push({ id: `${enemies[i]}`, label: `${enemies[i]}` });
       }
-      opt += '</ul>';
 
-      his_self.updateStatusWithOptions(msg, opt);
+            his_self.game.status = msg;
+      his_self.hud.updateStatus(his_self.game.status);
+      his_self.hud.updateCards([]);
+      his_self.hud.updateMenu(opt, function (user_choice) {
 
-      $(".option").off();
-      $(".option").on('click', function () {
-
-	let enemy = $(this).attr('id');
+        let enemy = user_choice;
 
         //
         // otherwise YES
         //
         let msg = `How would you like to End the War?`;
-        let opt = "<ul>";
+        let opt = [];
 	let allow_bull = 0;
 
 	if (enemy == "hapsburg" && his_self.game.state.excommunicated_factions["hapsburg"] != 1) { allow_bull = 1; }
 	if (enemy == "france" && his_self.game.state.excommunicated_factions["france"] != 1) { allow_bull = 1; }
 
 	if (allow_bull) {
-          opt += `<li class="option" id="005">papal bull</li>`;
+          opt.push({ id: `005`, label: `papal bull` });
 	}
-        opt += `<li class="option" id="sue">sue for peace</li>`;
-        opt += '</ul>';
+        opt.push({ id: `sue`, label: `sue for peace` });
 
-        his_self.updateStatusWithOptions(msg, opt);
+                his_self.game.status = msg;
+        his_self.hud.updateStatus(his_self.game.status);
+        his_self.hud.updateCards([]);
+        his_self.hud.updateMenu(opt, function (user_choice) {
 
-        $(".option").off();
-        $(".option").on('click', function () {
-
-	  let method = $(this).attr('id');
-	  his_self.updateStatus("processing...");
+        let method = user_choice;
+	  	  his_self.game.status = "processing...";
+	  his_self.hud.updateStatus(his_self.game.status);
+	  his_self.hud.updateMenu([]);
+	  his_self.hud.updateCards([]);
 
 	  if (method === "005") {
 
@@ -3118,19 +3264,18 @@ return;
 	    // regain control of home space, or draw card
 	    //
     	    let msg = `Regain Home Space or Draw Card?`;
-    	    let opt = "<ul>";
+    	    let opt = [];
 	    if (do_any_foreign_occupied_spaces_exist == true) {
-    	      opt += `<li class="option" id="regain">regain home space</li>`;
+    	      opt.push({ id: `regain`, label: `regain home space` });
 	    } 
-   	    opt += `<li class="option" id="draw">draw card</li>`;
-    	    opt += '</ul>';
+   	    opt.push({ id: `draw`, label: `draw card` });
 
-	    his_self.updateStatusWithOptions(msg, opt);
+	    	    his_self.game.status = msg;
+	    his_self.hud.updateStatus(his_self.game.status);
+	    his_self.hud.updateCards([]);
+	    his_self.hud.updateMenu(opt, function (user_choice) {
 
-	    $(".option").off();
-	    $(".option").on('click', function () {
-
-	      let action2 = $(this).attr('id');
+        let action2 = user_choice;
 
 	      if (action2 === "draw") {
                 his_self.addMove("hand_to_fhand\t1\t"+his_self.game.player+"\t"+"papacy");
@@ -3212,21 +3357,24 @@ return;
 	        let faction_to_destroy = "papacy";
    	        let msg = "Destroy Which Unit: ";
                 let unittypes = [];
-                let html = '<ul>';
+                let html = [];
                 for (let i = 0; i < space.units[faction_to_destroy].length; i++) {
                   if (space.units[faction_to_destroy][i].command_value == 0 && space.units[faction_to_destroy][i].personage != true) {
                     if (!unittypes.includes(space.units[faction_to_destroy][i].key)) {
-                      html += `<li class="option" id="${space.units[faction_to_destroy][i].key}">${space.units[faction_to_destroy][i].key}</li>`;
+                      html.push({ id: `${space.units[faction_to_destroy][i].key}`, label: `${space.units[faction_to_destroy][i].key}` });
                       unittypes.push(space.units[faction_to_destroy][i].key);
                     }
                   }
                 }
-                html += '</ul>';
-                his_self.updateStatusWithOptions(msg, html);
-                $('.option').off();
-                $('.option').on('click', function () {
-                  let unittype = $(this).attr("id");
-		  his_self.updateStatus("removing unit...");
+                                his_self.game.status = msg;
+                his_self.hud.updateStatus(his_self.game.status);
+                his_self.hud.updateCards([]);
+                his_self.hud.updateMenu(html, function (user_choice) {
+        let unittype = user_choice;
+		  		  his_self.game.status = "removing unit...";
+		  his_self.hud.updateStatus(his_self.game.status);
+		  his_self.hud.updateMenu([]);
+		  his_self.hud.updateCards([]);
                   his_self.removeUnit(faction_to_destroy, spacekey, unittype);
                   his_self.displaySpace(spacekey);
                   his_self.addMove("remove_unit\t"+land_or_sea+"\t"+faction_to_destroy+"\t"+unittype+"\t"+spacekey+"\t"+his_self.game.player);
@@ -3241,7 +3389,10 @@ return;
                     },
                     function(spacekey) {
 
-		      his_self.updateStatus("removing unit...");
+		      		      his_self.game.status = "removing unit...";
+		      his_self.hud.updateStatus(his_self.game.status);
+		      his_self.hud.updateMenu([]);
+		      his_self.hud.updateCards([]);
 
 	              let land_or_sea = "land";
 	              let space = null;
@@ -3258,21 +3409,24 @@ return;
 	              let faction_to_destroy = "papacy";
    	              let msg = "Destroy Which Unit: ";
                       let unittypes = [];
-                      let html = '<ul>';
+                      let html = [];
                       for (let i = 0; i < space.units[faction_to_destroy].length; i++) {
                         if (space.units[faction_to_destroy][i].personage != true && space.units[faction_to_destroy][i].battle_rating != 1) {
                          if (!unittypes.includes(space.units[faction_to_destroy][i].key)) {
-                            html += `<li class="option" id="${space.units[faction_to_destroy][i].key}">${space.units[faction_to_destroy][i].key}</li>`;
+                            html.push({ id: `${space.units[faction_to_destroy][i].key}`, label: `${space.units[faction_to_destroy][i].key}` });
                             unittypes.push(space.units[faction_to_destroy][i].key);
                           }
                         }
                       }
-                      html += '</ul>';
-                      his_self.updateStatusWithOptions(msg, html);
-                      $('.option').off();
-                      $('.option').on('click', function () {
-                        let unittype = $(this).attr("id");
-		        his_self.updateStatus("removing unit...");
+                                            his_self.game.status = msg;
+                      his_self.hud.updateStatus(his_self.game.status);
+                      his_self.hud.updateCards([]);
+                      his_self.hud.updateMenu(html, function (user_choice) {
+        let unittype = user_choice;
+		        		        his_self.game.status = "removing unit...";
+		        his_self.hud.updateStatus(his_self.game.status);
+		        his_self.hud.updateMenu([]);
+		        his_self.hud.updateCards([]);
                         his_self.removeUnit(faction_to_destroy, spacekey, unittype);
                         his_self.displaySpace(spacekey);
                         his_self.addMove("remove_unit\t"+land_or_sea+"\t"+faction_to_destroy+"\t"+unittype+"\t"+spacekey+"\t"+his_self.game.player);
@@ -3314,19 +3468,18 @@ return;
     } 
    
     let msg = "Regain Leader for 1 VP or 1 CARD DRAW: ";
-    let opt = "<ul>";
+    let opt = [];
     for (let z = 0; z < target_leaders.length; z++) {
-      opt += `<li class="option" id="${z}">${target_leaders[z].type}</li>`;
+      opt.push({ id: `${z}`, label: `${target_leaders[z].type}` });
     }
-    opt += `<li class="option" id="skip">skip</li>`;
-    opt += '</ul>';
+    opt.push({ id: `skip`, label: `skip` });
 
-    this.updateStatusWithOptions(msg, opt);
+        this.game.status = msg;
+    this.hud.updateStatus(this.game.status);
+    this.hud.updateCards([]);
+    this.hud.updateMenu(opt, function (user_choice) {
 
-    $(".option").off();
-    $(".option").on('click', function () {
-
-      let leader = $(this).attr('id');
+        let leader = user_choice;
       
       if (prize == "skip") {
 	his_self.endTurn();
@@ -3353,18 +3506,17 @@ return;
     let target_faction = winner;
 
     let msg = "Do you wish to Regain TWO Non-Key Home Spaces for 1 VP or 1 CARD DRAW: ";
-    let opt = "<ul>";
-    opt += `<li class="option" id="vp">regain and give VP</li>`;
-    opt += `<li class="option" id="card">regain and give card</li>`;
-    opt += `<li class="option" id="skip">skip</li>`;
-    opt += '</ul>';
+    let opt = [];
+    opt.push({ id: `vp`, label: `regain and give VP` });
+    opt.push({ id: `card`, label: `regain and give card` });
+    opt.push({ id: `skip`, label: `skip` });
 
-    this.updateStatusWithOptions(msg, opt);
+        this.game.status = msg;
+    this.hud.updateStatus(this.game.status);
+    this.hud.updateCards([]);
+    this.hud.updateMenu(opt, function (user_choice) {
 
-    $(".option").off();
-    $(".option").on('click', function () {
-
-      let prize = $(this).attr('id');
+        let prize = user_choice;
       
       if (prize == "skip") {
 	his_self.endTurn();
@@ -3444,18 +3596,17 @@ return;
     }
 
     let msg = "Do you wish to Regain Home Keys for 1 VP Each: ";
-    let opt = "<ul>";
-    opt += `<li class="option" id="regain">regain and give VP</li>`;
-    opt += `<li class="option" id="skip">skip</li>`;
-    opt += '</ul>';
+    let opt = [];
+    opt.push({ id: `regain`, label: `regain and give VP` });
+    opt.push({ id: `skip`, label: `skip` });
 
-    this.updateStatusWithOptions(msg, opt);
-
-    $(".option").off();
-    $(".option").on('click', function () {
+        this.game.status = msg;
+    this.hud.updateStatus(this.game.status);
+    this.hud.updateCards([]);
+    this.hud.updateMenu(opt, function (user_choice) {
 
       $(".option").off();
-      let id = $(this).attr('id');
+        let id = user_choice;
 
       if (id === "skip") {
 	his_self.endTurn();
@@ -3525,18 +3676,17 @@ return;
     }
 
     let msg = "Do you wish to Regain Home Space for 1 VP: ";
-    let opt = "<ul>";
-    opt += `<li class="option" id="regain">regain and give VP</li>`;
-    opt += `<li class="option" id="skip">skip</li>`;
-    opt += '</ul>';
+    let opt = [];
+    opt.push({ id: `regain`, label: `regain and give VP` });
+    opt.push({ id: `skip`, label: `skip` });
 
-    this.updateStatusWithOptions(msg, opt);
-
-    $(".option").off();
-    $(".option").on('click', function () {
+        this.game.status = msg;
+    this.hud.updateStatus(this.game.status);
+    this.hud.updateCards([]);
+    this.hud.updateMenu(opt, function (user_choice) {
 
       $(".option").off();
-      let id = $(this).attr('id');
+        let id = user_choice;
 
       if (id === "skip") {
 	his_self.endTurn();
@@ -3609,7 +3759,10 @@ return;
 
     finish_selecting_from_space_function = function(his_self, units_to_move) {
 
-      his_self.updateStatus("processing...");
+            his_self.game.status = "processing...";
+      his_self.hud.updateStatus(his_self.game.status);
+      his_self.hud.updateMenu([]);
+      his_self.hud.updateCards([]);
 
       processed_spacekeys.push(source_spacekey);
 
@@ -3643,34 +3796,38 @@ return;
       // no viable spaces, so we exit
       //
       if (count == 0) {
-        his_self.updateStatus(his_self.returnFactionName(faction) + " no more spaces with units to withdraw");
+                his_self.game.status = his_self.returnFactionName(faction) + " no more spaces with units to withdraw";
+        his_self.hud.updateStatus(his_self.game.status);
+        his_self.hud.updateMenu([]);
+        his_self.hud.updateCards([]);
         his_self.endTurn(); 
         return;
       }
 
       let msg = his_self.returnFactionName(faction) + " - Winter Return to Capital?";
       if (viable_capitals.length == 1) { msg = his_self.returnFactionName(faction) + " - Winter Recall to " + his_self.returnSpaceName(viable_capitals[0]) + "?"; }
-      let opt = "<ul>";
+      let opt = [];
       for (let i = 0; i < viable_capitals.length; i++) {
 	if (viable_capitals.length == 1) {
-          opt += `<li class="option" id="${viable_capitals[i]}">yes</li>`;
+          opt.push({ id: `${viable_capitals[i]}`, label: `yes` });
 	} else {
-          opt += `<li class="option" id="${viable_capitals[i]}">${viable_capitals[i]}</li>`;
+          opt.push({ id: `${viable_capitals[i]}`, label: `${viable_capitals[i]}` });
         }
       }
-      opt += `<li class="option" id="finish">no more movements</li>`;
-      opt += '</ul>';
+      opt.push({ id: `finish`, label: `no more movements` });
 
-      his_self.updateStatusWithOptions(msg, opt);
-      his_self.theses_overlay.pushHudUnderOverlay();
+            his_self.game.status = msg;
+      his_self.hud.updateStatus(his_self.game.status);
+      his_self.hud.updateCards([]);
+      his_self.hud.updateMenu(opt, function (user_choice) {
 
-      $(".option").off();
-      $(".option").on('click', function () {
-
-        let id = $(this).attr('id');
+        let id = user_choice;
 
         if (id == "finish") {
-          his_self.updateStatus("processing winter relocation...");
+                    his_self.game.status = "processing winter relocation...";
+          his_self.hud.updateStatus(his_self.game.status);
+          his_self.hud.updateMenu([]);
+          his_self.hud.updateCards([]);
           his_self.theses_overlay.hide();
           his_self.endTurn();
           return;
@@ -3679,6 +3836,7 @@ return;
         selected_destination = id;
         select_spacekey_function(his_self, pick_capital_function, select_spacekey_function, select_units_function, finish_selecting_from_space_function);
       });
+      his_self.theses_overlay.pushHudUnderOverlay();
 
     }
 
@@ -3692,7 +3850,7 @@ return;
       let max_formation_size = 100;
       let msg = his_self.returnFactionName(faction) + " - Select from " + his_self.returnSpaceName(source_spacekey);
 
-      let html = "<ul>";
+      let html = [];
 
       for (let i = 0; i < space.units[faction].length; i++) {
         let u = space.units[faction][i];
@@ -3702,10 +3860,10 @@ return;
 	    if (units_to_move[z].faction == faction && units_to_move[z].idx == i && units_to_move[z].spacekey == source_spacekey) { does_units_to_move_have_unit = true; break; }
 	  }
 	  if (does_units_to_move_have_unit) {
-	    html += `<li class="option" style="font-weight:bold" id="${faction}-${i}">*${u.name} (${faction})*</li>`;
+	    html.push({ id: `${faction}-${i}`, label: `*${u.name} (${faction})*` });
 	    moved_units.push({ spacekey : source_spacekey , faction : faction , idx : i , type : u.type });
 	  } else {
-	    html += `<li class="option" id="${faction}-${i}">${u.name} (${faction})</li>`;
+	    html.push({ id: `${faction}-${i}`, label: `${u.name} (${faction})` });
 	    unmoved_units.push({ spacekey : source_spacekey, faction : faction , idx : i , type : u.type });
 	  }
 	}
@@ -3727,16 +3885,15 @@ return;
       his_self.movement_overlay.renderForceOpen(mobj, units_to_move, select_units_function, finish_selecting_from_space_function); // no destination interface
       his_self.movement_overlay.pushHudUnderOverlay();
 
-      html += `<li class="option" id="end">finish</li>`;
-      html += "</ul>";
+      html.push({ id: `end`, label: `finish` });
 
 
-      his_self.updateStatusWithOptions(msg, html);
+            his_self.game.status = msg;
+      his_self.hud.updateStatus(his_self.game.status);
+      his_self.hud.updateCards([]);
+      his_self.hud.updateMenu(html, function (user_choice) {
 
-      $('.option').off();
-      $('.option').on('click', function () {
-
-        let id = $(this).attr("id");
+        let id = user_choice;
 
         if (id == "end") {
 	    his_self.movement_overlay.hide();
@@ -3798,7 +3955,10 @@ return;
       // no viable spaces, so we exit
       //
       if (count == 0) {
-        his_self.updateStatus(his_self.returnFactionName(faction) + " no more spaces with units to withdraw");
+                his_self.game.status = his_self.returnFactionName(faction) + " no more spaces with units to withdraw";
+        his_self.hud.updateStatus(his_self.game.status);
+        his_self.hud.updateMenu([]);
+        his_self.hud.updateCards([]);
         his_self.endTurn(); 
         return;
       }
@@ -3843,19 +4003,21 @@ return;
 
       let msg = his_self.returnFactionName(faction) + " - Winter Recall to Capital?";
       if (viable_capitals.length == 1) { msg = his_self.returnFactionName(faction) + " - Winter Recall to " + his_self.returnSpaceName(viable_capitals[0]) + "?"; }
-      let opt = "<ul>";
+      let opt = [];
       for (let i = 0; i < viable_capitals.length; i++) {
 	if (viable_capitals.length == 1) {
-          opt += `<li class="option" id="${viable_capitals[i]}">yes</li>`;
+          opt.push({ id: `${viable_capitals[i]}`, label: `yes` });
 	} else {
-          opt += `<li class="option" id="${viable_capitals[i]}">${viable_capitals[i]}</li>`;
+          opt.push({ id: `${viable_capitals[i]}`, label: `${viable_capitals[i]}` });
         }
       }
-      opt += `<li class="option" id="finish">finish</li>`;
-      opt += '</ul>';
+      opt.push({ id: `finish`, label: `finish` });
 
       if (viable_capitals.length == 0) {
-        his_self.updateStatus(his_self.returnFactionName(faction) + " skipping wintering in capital");
+                his_self.game.status = his_self.returnFactionName(faction) + " skipping wintering in capital";
+        his_self.hud.updateStatus(his_self.game.status);
+        his_self.hud.updateMenu([]);
+        his_self.hud.updateCards([]);
         his_self.endTurn(); 
 	return;
       }
@@ -3867,13 +4029,16 @@ return;
       if (faction == "hapsburg") { his_self.theses_overlay.render("spanish"); }
       if (faction == "ottoman") { his_self.theses_overlay.render("ottoman"); }
       his_self.theses_overlay.pushHudUnderOverlay();
-      his_self.updateStatusWithOptions(msg, opt);
-
-      $(".option").off();
-      $(".option").on('click', function () {
-        let id = $(this).attr('id');
+            his_self.game.status = msg;
+      his_self.hud.updateStatus(his_self.game.status);
+      his_self.hud.updateCards([]);
+      his_self.hud.updateMenu(opt, function (user_choice) {
+        let id = user_choice;
 	if (id == "finish") {
-	  his_self.updateStatus("processing winter relocation...");
+	  	  his_self.game.status = "processing winter relocation...";
+	  his_self.hud.updateStatus(his_self.game.status);
+	  his_self.hud.updateMenu([]);
+	  his_self.hud.updateCards([]);
 	  his_self.theses_overlay.hide();
 	  his_self.endTurn();
 	  return;
@@ -3895,7 +4060,9 @@ return;
 
     let his_self = this;
 
-    his_self.bindBackButtonFunction(() => { his_self.displayBoard(); his_self.moves = []; his_self.addMove("RESOLVE\t"+this.publicKey); his_self.playerPlaySpringDeployment(faction, player, removed_queue_instruction); });
+    his_self.removeSelectable();
+    his_self.his_back_callback = () => { his_self.removeSelectable(); his_self.displayBoard(); his_self.moves = []; his_self.addMove("RESOLVE\t"+this.publicKey); his_self.playerPlaySpringDeployment(faction, player, removed_queue_instruction); };
+    his_self.hud.showBackButton(his_self.his_back_callback);
 
     let capitals = this.returnCapitals(faction);
     let viable_capitals = [];
@@ -3951,33 +4118,35 @@ return;
     }
 
     if (can_deploy == 0 || anything_to_deploy == false) {
-      his_self.updateStatus("Spring Deployment not possible");
+            his_self.game.status = "Spring Deployment not possible";
+      his_self.hud.updateStatus(his_self.game.status);
+      his_self.hud.updateMenu([]);
+      his_self.hud.updateCards([]);
       his_self.endTurn();
     } else {
 
       let msg = his_self.returnFactionName(faction) + " - Spring Deploy from:";     
       if (faction === "ottoman") { msg = "Ottomans - Spring Deploy from?"; }
 
-      let opt = "<ul>";
+      let opt = [];
       for (let i = 0; i < viable_capitals.length; i++) {
-	opt += `<li class="option" id="${viable_capitals[i]}">${viable_capitals[i]}</li>`;
+	opt.push({ id: `${viable_capitals[i]}`, label: `${viable_capitals[i]}` });
       }
       if (does_faction_have_spring_preparations == true) {
-	opt += `<li class="option showcard" id="102">Spring Preparations</li>`;
+	opt.push({ id: `102`, label: `Spring Preparations` });
       }
-      opt += `<li class="option" id="pass">skip</li>`;
-      opt += '</ul>';
+      opt.push({ id: `pass`, label: `skip` });
 
 
       his_self.spring_deployment_overlay.render(faction);
       his_self.spring_deployment_overlay.pushHudUnderOverlay();
 
-      his_self.updateStatusWithOptions(msg, opt);
+            his_self.game.status = msg;
+      his_self.hud.updateStatus(his_self.game.status);
+      his_self.hud.updateCards([]);
+      his_self.hud.updateMenu(opt, function (user_choice) {
 
-      $(".option").off();
-      $(".option").on('click', function () {
-
-        let id = $(this).attr('id');
+        let id = user_choice;
 
 	his_self.cardbox.hide();
 
@@ -3998,8 +4167,11 @@ return;
         his_self.spring_deployment_overlay.hide();
 
 	if (id === "pass") {
-	  his_self.unbindBackButtonFunction();
-	  his_self.updateStatus("passing...");
+	  his_self.hud.hideBackButton();
+	  	  his_self.game.status = "passing...";
+	  his_self.hud.updateStatus(his_self.game.status);
+	  his_self.hud.updateMenu([]);
+	  his_self.hud.updateCards([]);
 	  his_self.endTurn();
 	  return;
         }
@@ -4046,7 +4218,7 @@ return;
 		his_self.addMove("move\t"+units_to_move[i].faction+"\tland\t"+source_spacekey+"\t"+destination_spacekey+"\t"+units_to_move[i].idx);
               }
 
-	      his_self.unbindBackButtonFunction();
+	      his_self.hud.hideBackButton();
 
               //his_self.addMove("ACKNOWLEDGE\t"+his_self.returnFactionName(faction)+" spring deploys to "+his_self.game.spaces[destination_spacekey].name);
               his_self.endTurn();
@@ -4068,7 +4240,7 @@ return;
   	      }
 
 	      let msg = "Max Formation Size: " + max_formation_size + " units";
-	      let html = '<ul>';
+	      let html = [];
 
 	      for (let key in space.units) {
                 if (his_self.returnPlayerCommandingFaction(key) == his_self.game.player) {
@@ -4082,10 +4254,10 @@ return;
 does_units_to_move_have_unit = true; }
 		      }
                       if (does_units_to_move_have_unit) {
-                        html += `<li class="option" style="font-weight:bold" id="${key}-${i}">*${space.units[key][i].name} (${key})*</li>`;
+                        html.push({ id: `${key}-${i}`, label: `*${space.units[key][i].name} (${key})*` });
                         moved_units.push({ faction : key , idx : i , type : space.units[key][i].type });
                       } else {
-                        html += `<li class="option" id="${key}-${i}">${space.units[key][i].name} (${key})</li>`;
+                        html.push({ id: `${key}-${i}`, label: `${space.units[key][i].name} (${key})` });
                         unmoved_units.push({ faction : key , idx : i , type : space.units[key][i].type });
                       }
                     }
@@ -4117,15 +4289,14 @@ does_units_to_move_have_unit = true; }
    	        his_self.movement_overlay.render(mobj, units_to_move, selectUnitsInterface, selectDestinationInterface); // no destination interface
               }
 
-	      html += `<li class="option" id="end">finish</li>`;
-              html += "</ul>";
+	      html.push({ id: `end`, label: `finish` });
 
-              his_self.updateStatusWithOptions(msg, html);
+                            his_self.game.status = msg;
+              his_self.hud.updateStatus(his_self.game.status);
+              his_self.hud.updateCards([]);
+              his_self.hud.updateMenu(html, function (user_choice) {
 
-              $('.option').off();
-              $('.option').on('click', function () {
-
-                let id = $(this).attr("id");
+        let id = user_choice;
 
 	        if (id === "end") {
 	          his_self.movement_overlay.hide();
@@ -4200,7 +4371,10 @@ does_units_to_move_have_unit = true; }
 	        selectDestinationInterface(his_self, units_to_move, selectUnitsInterface, selectDestinationInterface);
 	        his_self.displaySpace(source_spacekey);
 	        his_self.displaySpace(destination_spacekey);
-		his_self.updateStatus("deploying...");
+				his_self.game.status = "deploying...";
+		his_self.hud.updateStatus(his_self.game.status);
+		his_self.hud.updateMenu([]);
+		his_self.hud.updateCards([]);
 		return;
 	      }
             }
@@ -4210,9 +4384,8 @@ does_units_to_move_have_unit = true; }
 
 	  null ,
 
-	  true
-
-        );
+	  true);
+        his_self.cardbox.attachCardEvents();
       });
     }
   }
@@ -4286,7 +4459,9 @@ does_units_to_move_have_unit = true; }
   async playerContinueToMoveFormationInClear(his_self, player, faction, spacekey, ops_to_spend, ops_remaining=0) {
 
     // BACK moves us to OPS menu
-    his_self.bindBackButtonFunction(() => { his_self.displayBoard(); his_self.moves = []; his_self.addMove("discard\t"+his_self.returnControllingPower(faction)+"\t"+his_self.game.player_last_card); his_self.playerPlayOps("", his_self.returnControllingPower(faction), ops_remaining, ""); });
+    his_self.removeSelectable();
+    his_self.his_back_callback = () => { his_self.removeSelectable(); his_self.displayBoard(); his_self.moves = []; his_self.addMove("discard\t"+his_self.returnControllingPower(faction)+"\t"+his_self.game.player_last_card); his_self.playerPlayOps("", his_self.returnControllingPower(faction), ops_remaining, ""); };
+    his_self.hud.showBackButton(his_self.his_back_callback);
 
     //
     // we add this before broadcasting, or the turn ends 
@@ -4400,7 +4575,7 @@ does_units_to_move_have_unit = true; }
           let space = his_self.game.spaces[spacekey];
 	  let max_formation_size = his_self.returnMaxFormationSize(units_to_move, faction, spacekey);
 	  let msg = "Max Formation Size: " + max_formation_size + " units";
-	  let html = "<ul>";
+	  let html = [];
 	  for (let key in space.units) {
 	    if (his_self.returnPlayerCommandingFaction(key) == parent_player && (key == faction || his_self.returnControllingPower(key) == faction)) {
 	      for (let i = 0; i < space.units[key].length; i++) {
@@ -4413,10 +4588,10 @@ does_units_to_move_have_unit = true; }
 	    	      if (units_to_move[z].faction == key && units_to_move[z].idx == i) { does_units_to_move_have_unit = true; break; }
 	    	    }
 	            if (does_units_to_move_have_unit) {
-	              html += `<li class="option" style="font-weight:bold" id="${i}">*${space.units[key][i].name} (${key})*</li>`;
+	              html.push({ id: `${i}`, label: `*${space.units[key][i].name} (${key})*` });
 		      moved_units.push({ faction : key , idx : i , type : space.units[key][i].type });
 	            } else {
-	              html += `<li class="option" id="${key}-${i}">${space.units[key][i].name} (${key})</li>`;
+	              html.push({ id: `${key}-${i}`, label: `${space.units[key][i].name} (${key})` });
 		      unmoved_units.push({ faction : key , idx : i , type : space.units[key][i].type });
 	            }
 	          }
@@ -4439,15 +4614,14 @@ does_units_to_move_have_unit = true; }
 	  }
 
    	  his_self.movement_overlay.render(mobj, units_to_move, selectUnitsInterface, selectDestinationInterface); // no destination interface
-	  html += `<li class="option" id="end">finish</li>`;
-	  html += "</ul>";
+	  html.push({ id: `end`, label: `finish` });
 
-	  his_self.updateStatusWithOptions(msg, html);
+	  	  his_self.game.status = msg;
+	  his_self.hud.updateStatus(his_self.game.status);
+	  his_self.hud.updateCards([]);
+	  his_self.hud.updateMenu(html, function (user_choice) {
 
-          $('.option').off();
-          $('.option').on('click', function () {
-
-            let id = $(this).attr("id");
+        let id = user_choice;
 
 	    if (id === "end") {
 	      his_self.movement_overlay.hide();
@@ -4537,16 +4711,15 @@ does_units_to_move_have_unit = true; }
 	if (can_we_quick_move == true) {
 
 	  let msg = "Choose Movement Option: ";
-	  let html = "<ul>";
-	  html += `<li class="option" id="auto">move everything (auto)</li>`;
-	  html += `<li class="option" id="manual">select units (manual)</li>`;
-	  html += "</ul>";
-	  his_self.updateStatusWithOptions(msg, html);
+	  let html = [];
+	  html.push({ id: `auto`, label: `move everything (auto)` });
+	  html.push({ id: `manual`, label: `select units (manual)` });
+	  	  his_self.game.status = msg;
+	  his_self.hud.updateStatus(his_self.game.status);
+	  his_self.hud.updateCards([]);
+	  his_self.hud.updateMenu(html, function (user_choice) {
 
-          $('.option').off();
-          $('.option').on('click', function () {
-
-            let id = $(this).attr("id");
+        let id = user_choice;
 
 	    for (let key in space.units) {
 	      if (his_self.returnPlayerCommandingFaction(key) == his_self.game.player) {
@@ -4604,7 +4777,9 @@ does_units_to_move_have_unit = true; }
   async playerMoveFormationInClear(his_self, player, faction, ops_to_spend=0, ops_remaining=0) {
 
     // BACK moves us to OPS menu
-    his_self.bindBackButtonFunction(() => { his_self.displayBoard(); his_self.moves = []; his_self.addMove("discard\t"+his_self.returnControllingPower(faction)+"\t"+his_self.game.player_last_card); his_self.playerPlayOps("", his_self.returnControllingPower(faction), ops_remaining+ops_to_spend, ""); });
+    his_self.removeSelectable();
+    his_self.his_back_callback = () => { his_self.removeSelectable(); his_self.displayBoard(); his_self.moves = []; his_self.addMove("discard\t"+his_self.returnControllingPower(faction)+"\t"+his_self.game.player_last_card); his_self.playerPlayOps("", his_self.returnControllingPower(faction), ops_remaining+ops_to_spend, ""); };
+    his_self.hud.showBackButton(his_self.his_back_callback);
 
     let parent_faction = faction;
     let units_to_move = [];
@@ -4725,7 +4900,7 @@ does_units_to_move_have_unit = true; }
           let space = his_self.game.spaces[spacekey];
 	  let max_formation_size = his_self.returnMaxFormationSize(units_to_move, faction, spacekey);
 	  let msg = "Max Formation Size: " + max_formation_size + " units";
-	  let html = "<ul>";
+	  let html = [];
 	  for (let key in space.units) {
 	    if (his_self.returnPlayerCommandingFaction(key) == parent_player && (key == faction || his_self.returnControllingPower(key) == faction)) {
 	      for (let i = 0; i < space.units[key].length; i++) {
@@ -4738,10 +4913,10 @@ does_units_to_move_have_unit = true; }
 	    	      if (units_to_move[z].faction == key && units_to_move[z].idx == i) { does_units_to_move_have_unit = true; break; }
 	    	    }
 	            if (does_units_to_move_have_unit) {
-	              html += `<li class="option" style="font-weight:bold" id="${i}">*${space.units[key][i].name} (${key})*</li>`;
+	              html.push({ id: `${i}`, label: `*${space.units[key][i].name} (${key})*` });
 		      moved_units.push({ faction : key , idx : i , type : space.units[key][i].type });
 	            } else {
-	              html += `<li class="option" id="${key}-${i}">${space.units[key][i].name} (${key})</li>`;
+	              html.push({ id: `${key}-${i}`, label: `${space.units[key][i].name} (${key})` });
 		      unmoved_units.push({ faction : key , idx : i , type : space.units[key][i].type });
 	            }
 	          }
@@ -4764,15 +4939,14 @@ does_units_to_move_have_unit = true; }
 	  }
 
    	  his_self.movement_overlay.render(mobj, units_to_move, selectUnitsInterface, selectDestinationInterface); // no destination interface
-	  html += `<li class="option" id="end">finish</li>`;
-	  html += "</ul>";
+	  html.push({ id: `end`, label: `finish` });
 
-	  his_self.updateStatusWithOptions(msg, html);
+	  	  his_self.game.status = msg;
+	  his_self.hud.updateStatus(his_self.game.status);
+	  his_self.hud.updateCards([]);
+	  his_self.hud.updateMenu(html, function (user_choice) {
 
-          $('.option').off();
-          $('.option').on('click', function () {
-
-            let id = $(this).attr("id");
+        let id = user_choice;
 
 	    if (id === "end") {
 	      his_self.movement_overlay.hide();
@@ -4927,16 +5101,15 @@ does_units_to_move_have_unit = true; }
 	if (can_we_quick_move == true) {
 
 	  let msg = "Choose Movement Option: ";
-	  let html = "<ul>";
-	  html += `<li class="option" id="auto">move everything (auto)</li>`;
-	  html += `<li class="option" id="manual">select units (manual)</li>`;
-	  html += "</ul>";
-	  his_self.updateStatusWithOptions(msg, html);
+	  let html = [];
+	  html.push({ id: `auto`, label: `move everything (auto)` });
+	  html.push({ id: `manual`, label: `select units (manual)` });
+	  	  his_self.game.status = msg;
+	  his_self.hud.updateStatus(his_self.game.status);
+	  his_self.hud.updateCards([]);
+	  his_self.hud.updateMenu(html, function (user_choice) {
 
-          $('.option').off();
-          $('.option').on('click', function () {
-
-            let id = $(this).attr("id");
+        let id = user_choice;
 
 	    for (let key in space.units) {
 	      if (his_self.returnPlayerCommandingFaction(key) == his_self.game.player) {
@@ -5033,14 +5206,19 @@ does_units_to_move_have_unit = true; }
     }
 
     if (optional_msg == "") { optional_msg = "Select a Card: "; }
-    this.updateStatusAndListCards(optional_msg, cards);
-    this.attachCardboxEvents((card) => {
+        this.game.status = optional_msg;
+    this.hud.updateStatus(this.game.status);
+    this.hud.updateMenu([]);
+    this.hud.updateCards(cards);
+    this.cardbox.attachCardEvents();
+        this.cardbox.bindCallback((card) => {
       try {
         $('.card').off();
         $('.card img').off();
       } catch (err) {}
       mycallback(card);
-    });  
+    });
+    this.cardbox.attachCardEvents();  
 
   }
 
@@ -5113,25 +5291,27 @@ does_units_to_move_have_unit = true; }
 
     let selectDestinationInterface = function(his_self, selectDestinationInterface, onFinishSelect) {
       let available_destinations = false;
-      let html = "<ul>";
+      let html = [];
       for (let i = 0; i < neighbours.length; i++) {
         if (his_self.canFactionRetreatToNavalSpace(defender, neighbours[i])) {
           available_destinations = true;
-          html += `<li class="option" id="${neighbours[i]}">${his_self.returnSpaceName(neighbours[i])}</li>`;
+          html.push({ id: `${neighbours[i]}`, label: `${his_self.returnSpaceName(neighbours[i])}` });
 	}
       }
       if (available_destinations == false) {
-        html += `<li class="option" id="skip">skip (no options)</li>`;
+        html.push({ id: `skip`, label: `skip (no options)` });
       }
-      html += "</ul>";
 
-      his_self.updateStatusWithOptions("Choose Destination for Naval Retreat: ", html);
+            his_self.game.status = "Choose Destination for Naval Retreat: ";
+      his_self.hud.updateStatus(his_self.game.status);
+      his_self.hud.updateCards([]);
+      his_self.hud.updateMenu(html, function (user_choice) {
+        let id = user_choice;
 
-      $('.option').off();
-      $('.option').on('click', function () {
-        let id = $(this).attr("id");
-
-	his_self.updateStatus("retreating...");
+		his_self.game.status = "retreating...";
+	his_self.hud.updateStatus(his_self.game.status);
+	his_self.hud.updateMenu([]);
+	his_self.hud.updateCards([]);
 
 	if (id === "skip") {
 	  his_self.endTurn();
@@ -5142,46 +5322,67 @@ does_units_to_move_have_unit = true; }
     };
 
 
-    let html = `<ul>`;
-    html    += `<li class="card" id="skip">do not retreat</li>`;
-    html    += `<li class="card" id="retreat">retreat</li>`;
-    html    += `</ul>`;
+    let html = [];
+    html.push({ id: `skip`, label: `do not retreat` });
+    html.push({ id: `retreat`, label: `retreat` });
 
-    if (post_battle) {
-      if (this.game.state.events.unexpected_war == 1) {
-        this.updateStatusWithOptions(`${this.returnFactionName(faction)} must retreat. Retreat?`, html);
-      } else {
-	if (is_port_battle) {
-          this.updateStatusWithOptions(`${this.returnFactionName(faction)} must retreat from Port Assault. Retreat?`, html);
-	} else {
-          this.updateStatusWithOptions(`${this.returnFactionName(faction)} loses the battle. Retreat?`, html);
-	}
-      }
-    } else {
-      this.updateStatusWithOptions(`${this.returnFactionName(defender)} - ${this.returnFactionName(faction)} approaches ${this.returnSpaceName(spacekey)}. Retreat?`, html);
-      //
-      // pre-battle, this swap is NEEDED as faction is what retreats
-      //
-      faction = defender;
-    }
-    this.attachCardboxEvents(function(user_choice) {
+    let retreatChoiceCallback = function(user_choice) {
 
       if (user_choice === "retreat") {
-        his_self.updateStatus("retreating...");
+                his_self.game.status = "retreating...";
+        his_self.hud.updateStatus(his_self.game.status);
+        his_self.hud.updateMenu([]);
+        his_self.hud.updateCards([]);
 	selectDestinationInterface(his_self, selectDestinationInterface, onFinishSelect);
         return;
       }
       if (user_choice === "skip") {
 	if (post_battle) {
-          his_self.updateStatus("fleet is sacrificed...");
+                    his_self.game.status = "fleet is sacrificed...";
+          his_self.hud.updateStatus(his_self.game.status);
+          his_self.hud.updateMenu([]);
+          his_self.hud.updateCards([]);
           his_self.addMove("destroy_faction_units_in_spacekey\t"+faction+"\t"+spacekey);
 	} else {
-          his_self.updateStatus("processing...");
+                    his_self.game.status = "processing...";
+          his_self.hud.updateStatus(his_self.game.status);
+          his_self.hud.updateMenu([]);
+          his_self.hud.updateCards([]);
 	}
 	his_self.endTurn();
         return;
       }
-    });
+    };
+
+    if (post_battle) {
+      if (this.game.state.events.unexpected_war == 1) {
+                this.game.status = `${this.returnFactionName(faction)} must retreat. Retreat?`;
+        this.hud.updateStatus(this.game.status);
+        this.hud.updateCards([]);
+        this.hud.updateMenu(html, retreatChoiceCallback);
+      } else {
+	if (is_port_battle) {
+                    this.game.status = `${this.returnFactionName(faction)} must retreat from Port Assault. Retreat?`;
+          this.hud.updateStatus(this.game.status);
+          this.hud.updateCards([]);
+          this.hud.updateMenu(html, retreatChoiceCallback);
+	} else {
+                    this.game.status = `${this.returnFactionName(faction)} loses the battle. Retreat?`;
+          this.hud.updateStatus(this.game.status);
+          this.hud.updateCards([]);
+          this.hud.updateMenu(html, retreatChoiceCallback);
+	}
+      }
+    } else {
+            this.game.status = `${this.returnFactionName(defender)} - ${this.returnFactionName(faction)} approaches ${this.returnSpaceName(spacekey)}. Retreat?`;
+      this.hud.updateStatus(this.game.status);
+      this.hud.updateCards([]);
+      this.hud.updateMenu(html, retreatChoiceCallback);
+      //
+      // pre-battle, this swap is NEEDED as faction is what retreats
+      //
+      faction = defender;
+    }
 
   }
 
@@ -5201,31 +5402,34 @@ does_units_to_move_have_unit = true; }
 
       let space = his_self.game.spaces[spacekey];
 
-      let html = "<ul>";
+      let html = [];
       for (let i = 0; i < space.neighbours.length; i++) {
         if (his_self.canFactionRetreatToSpace(attacker, space.neighbours[i])) {
-          html += `<li class="option" id="${space.neighbours[i]}">${his_self.game.spaces[space.neighbours[i]].key}</li>`;
+          html.push({ id: `${space.neighbours[i]}`, label: `${his_self.game.spaces[space.neighbours[i]].key}` });
         }
       }
-      html += "</ul>";
 
-      his_self.updateStatusWithOptions("Choose Destination for Retreat: ", html);
-
-      $('.option').off();
-      $('.option').on('click', function () {
-        let id = $(this).attr("id");
-	his_self.updateStatus("retreating...");
+            his_self.game.status = "Choose Destination for Retreat: ";
+      his_self.hud.updateStatus(his_self.game.status);
+      his_self.hud.updateCards([]);
+      his_self.hud.updateMenu(html, function (user_choice) {
+        let id = user_choice;
+		his_self.game.status = "retreating...";
+	his_self.hud.updateStatus(his_self.game.status);
+	his_self.hud.updateMenu([]);
+	his_self.hud.updateCards([]);
         onFinishSelect(his_self, id);
       });
     };
 
-    let html = `<ul>`;
-    html    += `<li class="card" id="retreat">retreat</li>`;
-    html    += `<li class="card" id="skip">sacrifice forces</li>`;
-    html    += `</ul>`;
+    let html = [];
+    html.push({ id: `retreat`, label: `retreat` });
+    html.push({ id: `skip`, label: `sacrifice forces` });
 
-    this.updateStatusWithOptions(`${this.returnFactionName(attacker)} - siege broken in ${this.returnSpaceName(spacekey)}?`, html);
-    this.attachCardboxEvents(function(user_choice) {
+        this.game.status = `${this.returnFactionName(attacker)} - siege broken in ${this.returnSpaceName(spacekey)}?`;
+    this.hud.updateStatus(this.game.status);
+    this.hud.updateCards([]);
+    this.hud.updateMenu(html, function (user_choice) {
       if (user_choice === "retreat") {
 	selectDestinationInterface(his_self, selectDestinationInterface, onFinishSelect);
         return;
@@ -5236,6 +5440,7 @@ does_units_to_move_have_unit = true; }
         return;
       }
     });
+    this.cardbox.attachCardEvents();
 
   }
 
@@ -5292,7 +5497,10 @@ does_units_to_move_have_unit = true; }
 		  },
 
       		  function(spacekey) {
-		    his_self.updateStatus("retreating...");
+		    		    his_self.game.status = "retreating...";
+		    his_self.hud.updateStatus(his_self.game.status);
+		    his_self.hud.updateMenu([]);
+		    his_self.hud.updateCards([]);
 
                     onFinishSelect(his_self, spacekey);
 		  },
@@ -5305,13 +5513,14 @@ does_units_to_move_have_unit = true; }
     };
 
     
-    let html = `<ul>`;
-    html    += `<li class="card" id="retreat">retreat</li>`;
-    html    += `<li class="card" id="skip">sacrifice forces</li>`;
-    html    += `</ul>`;
+    let html = [];
+    html.push({ id: `retreat`, label: `retreat` });
+    html.push({ id: `skip`, label: `sacrifice forces` });
 
-    this.updateStatusWithOptions(`${this.returnFactionName(loser)} retreats, yes?`, html);
-    this.attachCardboxEvents(function(user_choice) {
+        this.game.status = `${this.returnFactionName(loser)} retreats, yes?`;
+    this.hud.updateStatus(this.game.status);
+    this.hud.updateCards([]);
+    this.hud.updateMenu(html, function (user_choice) {
       if (user_choice === "retreat") {
 	selectDestinationInterface(his_self, selectDestinationInterface, onFinishSelect);
         return;
@@ -5322,6 +5531,7 @@ does_units_to_move_have_unit = true; }
         return;
       }
     });
+    this.cardbox.attachCardEvents();
 
   }
 
@@ -5345,43 +5555,46 @@ does_units_to_move_have_unit = true; }
 
       let space = his_self.game.spaces[spacekey];
 
-      let html = "<ul>";
+      let html = [];
       for (let i = 0; i < space.neighbours.length; i++) {
 	if (is_attacker_loser) {
           if (his_self.canFactionRetreatToSpace(attacker, space.neighbours[i], attacker_comes_from_this_spacekey)) {
-            html += `<li class="option" id="${space.neighbours[i]}">${his_self.game.spaces[space.neighbours[i]].key}</li>`;
+            html.push({ id: `${space.neighbours[i]}`, label: `${his_self.game.spaces[space.neighbours[i]].key}` });
 	  }
 	} else {
           if (his_self.canFactionRetreatToSpace(defender, space.neighbours[i], attacker_comes_from_this_spacekey)) {
-            html += `<li class="option" id="${space.neighbours[i]}">${his_self.game.spaces[space.neighbours[i]].key}</li>`;
+            html.push({ id: `${space.neighbours[i]}`, label: `${his_self.game.spaces[space.neighbours[i]].key}` });
 	  }
 	}
       }
-      html += "</ul>";
 
-      his_self.updateStatusWithOptions("Choose Destination for Retreat: ", html);
-
-      $('.option').off();
-      $('.option').on('click', function () {
-        let id = $(this).attr("id");
-	his_self.updateStatus("retreating...");
+            his_self.game.status = "Choose Destination for Retreat: ";
+      his_self.hud.updateStatus(his_self.game.status);
+      his_self.hud.updateCards([]);
+      his_self.hud.updateMenu(html, function (user_choice) {
+        let id = user_choice;
+		his_self.game.status = "retreating...";
+	his_self.hud.updateStatus(his_self.game.status);
+	his_self.hud.updateMenu([]);
+	his_self.hud.updateCards([]);
         onFinishSelect(his_self, id);
       });
 
     };
 
     
-    let html = `<ul>`;
-    html    += `<li class="card" id="retreat">retreat</li>`;
+    let html = [];
+    html.push({ id: `retreat`, label: `retreat` });
     if (is_attacker_loser) { 
-      html    += `<li class="card" id="skip">sacrifice forces</li>`;
+      html.push({ id: `skip`, label: `sacrifice forces` });
     } else {
-      html    += `<li class="card" id="skip">do not retreat</li>`;
+      html.push({ id: `skip`, label: `do not retreat` });
     }
-    html    += `</ul>`;
 
-    this.updateStatusWithOptions(`${this.returnFactionName(defender)} -- ${this.returnFactionName(attacker)} approaches ${this.returnSpaceName(spacekey)}. Retreat?`, html);
-    this.attachCardboxEvents(function(user_choice) {
+        this.game.status = `${this.returnFactionName(defender)} -- ${this.returnFactionName(attacker)} approaches ${this.returnSpaceName(spacekey)}. Retreat?`;
+    this.hud.updateStatus(this.game.status);
+    this.hud.updateCards([]);
+    this.hud.updateMenu(html, function (user_choice) {
 
       if (user_choice === "retreat") {
 	selectDestinationInterface(his_self, selectDestinationInterface, onFinishSelect);
@@ -5395,6 +5608,7 @@ does_units_to_move_have_unit = true; }
         return;
       }
     });
+    this.cardbox.attachCardEvents();
   }
 
 
@@ -5402,15 +5616,19 @@ does_units_to_move_have_unit = true; }
 
     let his_self = this;
 
-    let html = `<ul>`;
-    html    += `<li class="card" id="fortify">withdraw into fortification</li>`;
-    html    += `<li class="card" id="skip">skip</li>`;
-    html    += `</ul>`;
+    let html = [];
+    html.push({ id: `fortify`, label: `withdraw into fortification` });
+    html.push({ id: `skip`, label: `skip` });
 
-    this.updateStatusWithOptions(`${his_self.returnFactionName(faction)} - Withdraw Units into Fortification?`, html);
-    this.attachCardboxEvents(function(user_choice) {
-      this.unbindBackButtonFunction();
-      this.updateStatus("acknowledge...");
+        this.game.status = `${his_self.returnFactionName(faction)} - Withdraw Units into Fortification?`;
+    this.hud.updateStatus(this.game.status);
+    this.hud.updateCards([]);
+    this.hud.updateMenu(html, function (user_choice) {
+      this.hud.hideBackButton();
+            this.game.status = "acknowledge...";
+      this.hud.updateStatus(this.game.status);
+      this.hud.updateMenu([]);
+      this.hud.updateCards([]);
       if (user_choice === "fortify") {
 	his_self.addMove("fortification\t"+attacker+"\t"+faction+"\t"+spacekey+"\t"+post_battle+"\t"+relief_siege);
 	his_self.endTurn();
@@ -5422,6 +5640,7 @@ does_units_to_move_have_unit = true; }
         return;
       }
     });
+    this.cardbox.attachCardEvents();
 
   }
 
@@ -5430,15 +5649,16 @@ does_units_to_move_have_unit = true; }
 
     let his_self = this;
 
-    let html = `<ul>`;
-    html    += `<li class="card" id="break">participate in battle</li>`;
-    html    += `<li class="card" id="skip">remain besieged</li>`;
-    html    += `</ul>`;
+    let html = [];
+    html.push({ id: `break`, label: `participate in battle` });
+    html.push({ id: `skip`, label: `remain besieged` });
 
     this.game.state.field_battle_relief_battle = true;
 
-    this.updateStatusWithOptions(`Do Your Besieged Forces participate in this Field Battle?`, html);
-    this.attachCardboxEvents(function(user_choice) {
+        this.game.status = `Do Your Besieged Forces participate in this Field Battle?`;
+    this.hud.updateStatus(this.game.status);
+    this.hud.updateCards([]);
+    this.hud.updateMenu(html, function (user_choice) {
       if (user_choice === "break") {
 	his_self.addMove("relief_forces_join_battle\t"+faction+"\t"+spacekey);
 	his_self.endTurn();
@@ -5449,6 +5669,7 @@ does_units_to_move_have_unit = true; }
         return;
       }
     });
+    this.cardbox.attachCardEvents();
 
   }
 
@@ -5476,7 +5697,7 @@ does_units_to_move_have_unit = true; }
 
 	  let max_formation_size = his_self.returnMaxFormationSize(units_to_move, defender, defender_spacekey);
 	  let msg = "Max Formation Size: " + max_formation_size + " units";
-	  let html = "<ul>";
+	  let html = [];
 	  for (let key in space.units) {
 	    if (his_self.returnPlayerCommandingFaction(key) == parent_player) {
 	      for (let i = 0; i < space.units[key].length; i++) {
@@ -5489,10 +5710,10 @@ does_units_to_move_have_unit = true; }
 	    	      if (units_to_move[z].faction == key && units_to_move[z].idx == i) { does_units_to_move_have_unit = true; break; }
 	    	    }
 	            if (does_units_to_move_have_unit) {
-	              html += `<li class="option" style="font-weight:bold" id="${i}">*${space.units[key][i].name} (${key})*</li>`;
+	              html.push({ id: `${i}`, label: `*${space.units[key][i].name} (${key})*` });
 		      moved_units.push({ faction : key , idx : i , type : space.units[key][i].type });
 	            } else {
-	              html += `<li class="option" id="${key}-${i}">${space.units[key][i].name} (${key})</li>`;
+	              html.push({ id: `${key}-${i}`, label: `${space.units[key][i].name} (${key})` });
 		      unmoved_units.push({ faction : key , idx : i , type : space.units[key][i].type });
 	            }
 	          }
@@ -5524,15 +5745,14 @@ does_units_to_move_have_unit = true; }
    	    his_self.movement_overlay.render(mobj, units_to_move, selectUnitsInterface, selectDestinationInterface); // no destination interface
 	  }
 
-	  html += `<li class="option" id="end">finish</li>`;
-	  html += "</ul>";
+	  html.push({ id: `end`, label: `finish` });
 
-	  his_self.updateStatusWithOptions(msg, html);
+	  	  his_self.game.status = msg;
+	  his_self.hud.updateStatus(his_self.game.status);
+	  his_self.hud.updateCards([]);
+	  his_self.hud.updateMenu(html, function (user_choice) {
 
-          $('.option').off();
-          $('.option').on('click', function () {
-
-            let id = $(this).attr("id");
+        let id = user_choice;
 
 	    if (id === "end") {
 	      his_self.movement_overlay.hide();
@@ -5583,7 +5803,10 @@ does_units_to_move_have_unit = true; }
             selectDestinationInterface(his_self, units_to_move, selectUnitsInterface, selectDestinationInterface);
             his_self.displaySpace(source_spacekey);
             his_self.displaySpace(destination_spacekey);
-            his_self.updateStatus("intercepting...");
+                        his_self.game.status = "intercepting...";
+            his_self.hud.updateStatus(his_self.game.status);
+            his_self.hud.updateMenu([]);
+            his_self.hud.updateCards([]);
             return;
           }
 
@@ -5594,17 +5817,24 @@ does_units_to_move_have_unit = true; }
 
 
 
-    let html = `<ul>`;
-    html    += `<li class="card" id="intercept">intercept</li>`;
-    html    += `<li class="card" id="skip">skip</li>`;
-    html    += `</ul>`;
+    let html = [];
+    html.push({ id: `intercept`, label: `intercept` });
+    html.push({ id: `skip`, label: `skip` });
 
-    this.updateStatusWithOptions(`${this.returnFactionName(defender)} - Intercept from ${this.returnSpaceName(defender_spacekey)}?`, html);
-    this.attachCardboxEvents(function(user_choice) {
-      his_self.updateStatus("acknowledge");
-      his_self.unbindBackButtonFunction();
+        this.game.status = `${this.returnFactionName(defender)} - Intercept from ${this.returnSpaceName(defender_spacekey)}?`;
+    this.hud.updateStatus(this.game.status);
+    this.hud.updateCards([]);
+    this.hud.updateMenu(html, function (user_choice) {
+            his_self.game.status = "acknowledge";
+      his_self.hud.updateStatus(his_self.game.status);
+      his_self.hud.updateMenu([]);
+      his_self.hud.updateCards([]);
+      his_self.hud.hideBackButton();
       if (user_choice === "intercept") {
-	his_self.updateStatus("attempting intercept...");
+		his_self.game.status = "attempting intercept...";
+	his_self.hud.updateStatus(his_self.game.status);
+	his_self.hud.updateMenu([]);
+	his_self.hud.updateCards([]);
 	selectUnitsInterface(his_self, units_to_move, selectUnitsInterface, onFinishSelect);
         return;
       }
@@ -5613,6 +5843,7 @@ does_units_to_move_have_unit = true; }
         return;
       }
     });
+    this.cardbox.attachCardEvents();
 
   }
 
@@ -5690,29 +5921,31 @@ does_units_to_move_have_unit = true; }
         space = his_self.game.navalspaces[defender_spacekey];
       }
 
-      let html = "<ul>";
+      let html = [];
 
       for (let i = 0; i < space.units[defender].length; i++) {
         if (space.units[defender][i].locked != 1 && space.units[defender][i].army_leader != true) {
           if (space.units[defender][i].land_or_sea === "sea" || space.units[defender][i].land_or_sea === "both") {
             if (units_to_move_idx.includes(parseInt(i))) {
-              html += `<li class="option" style="font-weight:bold" id="${defender}-${i}">* ${space.units[defender][i].name} *</li>`;
+              html.push({ id: `${defender}-${i}`, label: `* ${space.units[defender][i].name} *` });
             } else {
-              html += `<li class="option" id="${defender}-${i}">${space.units[defender][i].name}</li>`;
+              html.push({ id: `${defender}-${i}`, label: `${space.units[defender][i].name}` });
             }
           }
         }
       }
-      html += `<li class="option" id="end">finish</li>`;
-      html += "</ul>";
+      html.push({ id: `end`, label: `finish` });
 
-      his_self.updateStatusWithOptions(msg, html);
+            his_self.game.status = msg;
+      his_self.hud.updateStatus(his_self.game.status);
+      his_self.hud.updateCards([]);
+      his_self.hud.updateMenu(html, function (user_choice) {
 
-      $('.option').off();
-      $('.option').on('click', function () {
-
-        let tmpx = $(this).attr("id");
-	his_self.updateStatus("processing...");
+        let tmpx = user_choice;
+		his_self.game.status = "processing...";
+	his_self.hud.updateStatus(his_self.game.status);
+	his_self.hud.updateMenu([]);
+	his_self.hud.updateCards([]);
 
         if (tmpx === "end") {
           onFinishSelect(his_self, units_to_move);
@@ -5739,24 +5972,32 @@ does_units_to_move_have_unit = true; }
     };
 
 
-    let html = `<ul>`;
-    html    += `<li class="card" id="intercept">intercept</li>`;
-    html    += `<li class="card" id="skip">skip</li>`;
-    html    += `</ul>`;
+    let html = [];
+    html.push({ id: `intercept`, label: `intercept` });
+    html.push({ id: `skip`, label: `skip` });
 
-    this.updateStatusWithOptions(`Intercept ${this.returnSpaceName(spacekey)} from ${this.returnSpaceName(defender_spacekey)}?`, html);
-    this.attachCardboxEvents(function(user_choice) {
+        this.game.status = `Intercept ${this.returnSpaceName(spacekey)} from ${this.returnSpaceName(defender_spacekey)}?`;
+    this.hud.updateStatus(this.game.status);
+    this.hud.updateCards([]);
+    this.hud.updateMenu(html, function (user_choice) {
       if (user_choice === "intercept") {
-        his_self.updateStatus("acknowledge");
+                his_self.game.status = "acknowledge";
+        his_self.hud.updateStatus(his_self.game.status);
+        his_self.hud.updateMenu([]);
+        his_self.hud.updateCards([]);
 	selectUnitsInterface(his_self, units_to_move, selectUnitsInterface, onFinishSelect);
         return;
       }
       if (user_choice === "skip") {
-        his_self.updateStatus("acknowledge");
+                his_self.game.status = "acknowledge";
+        his_self.hud.updateStatus(his_self.game.status);
+        his_self.hud.updateMenu([]);
+        his_self.hud.updateCards([]);
 	his_self.endTurn();
         return;
       }
     });
+    this.cardbox.attachCardEvents();
 
   }
 
@@ -5817,7 +6058,9 @@ does_units_to_move_have_unit = true; }
   async playerNavalTransport(his_self, player, faction, ops_to_spend=0, ops_remaining=0) {
 
     // BACK moves us to OPS menu
-    his_self.bindBackButtonFunction(() => { his_self.displayBoard(); his_self.moves = []; his_self.addMove("discard\t"+his_self.returnControllingPower(faction)+"\t"+his_self.game.player_last_card); his_self.playerPlayOps("", his_self.returnControllingPower(faction), ops_remaining+ops_to_spend, ""); });
+    his_self.removeSelectable();
+    his_self.his_back_callback = () => { his_self.removeSelectable(); his_self.displayBoard(); his_self.moves = []; his_self.addMove("discard\t"+his_self.returnControllingPower(faction)+"\t"+his_self.game.player_last_card); his_self.playerPlayOps("", his_self.returnControllingPower(faction), ops_remaining+ops_to_spend, ""); };
+    his_self.hud.showBackButton(his_self.his_back_callback);
 
     let spacekey = "";
     let units_to_move = [];
@@ -5883,7 +6126,7 @@ does_units_to_move_have_unit = true; }
           let space = his_self.game.spaces[spacekey];
 	  let max_formation_size = 5; // cannot naval transport more than 5 units
 	  let msg = "Max Formation Size: " + max_formation_size + " units";
-	  let html = "<ul>";
+	  let html = [];
 	  for (let key in space.units) {
 	    if (his_self.returnPlayerCommandingFaction(key) == player) {
 	      for (let i = 0; i < space.units[key].length; i++) {
@@ -5895,10 +6138,10 @@ does_units_to_move_have_unit = true; }
 	    	      if (units_to_move[z].faction == key && units_to_move[z].idx == i) { does_units_to_move_have_unit = true; break; }
 	    	    }
 	            if (does_units_to_move_have_unit) {
-	              html += `<li class="option" style="font-weight:bold" id="${i}">*${space.units[key][i].name} (${key})*</li>`;
+	              html.push({ id: `${i}`, label: `*${space.units[key][i].name} (${key})*` });
 		      moved_units.push({ faction : key , idx : i , type : space.units[key][i].type });
 	            } else {
-	              html += `<li class="option" id="${key}-${i}">${space.units[key][i].name} (${key})</li>`;
+	              html.push({ id: `${key}-${i}`, label: `${space.units[key][i].name} (${key})` });
 		      unmoved_units.push({ faction : key , idx : i , type : space.units[key][i].type });
 	            }
 	          }
@@ -5920,15 +6163,14 @@ does_units_to_move_have_unit = true; }
  	  }
 
    	  his_self.movement_overlay.render(mobj, units_to_move, selectUnitsInterface, selectDestinationInterface); // no destination interface
-	  html += `<li class="option" id="end">finish</li>`;
-	  html += "</ul>";
+	  html.push({ id: `end`, label: `finish` });
 
-	  his_self.updateStatusWithOptions(msg, html);
+	  	  his_self.game.status = msg;
+	  his_self.hud.updateStatus(his_self.game.status);
+	  his_self.hud.updateCards([]);
+	  his_self.hud.updateMenu(html, function (user_choice) {
 
-          $('.option').off();
-          $('.option').on('click', function () {
-
-            let id = $(this).attr("id");
+        let id = user_choice;
 
 	    if (id === "end") {
 	      his_self.movement_overlay.hide();
@@ -6001,86 +6243,104 @@ does_units_to_move_have_unit = true; }
       }
     }
 
-    let html = `<ul>`;
+    let html = [];
     let spacekeys = [];
     for (let i = 0; i < spaces_with_infantry.length; i++) {
-      html    += `<li class="option" id="${i}">${spaces_with_infantry[i]}</li>`;
+      html.push({ id: `${i}`, label: `${spaces_with_infantry[i]}` });
       spacekeys.push(spaces_with_infantry[i]);
     }
-    html    += `</ul>`;
 
     his_self.playerMakeSpacekeyClickableOnBoard(spacekeys, (psskey) => {
 
       spacekey = psskey;
 
-      his_self.updateStatus("processing...");
+            his_self.game.status = "processing...";
+      his_self.hud.updateStatus(his_self.game.status);
+      his_self.hud.updateMenu([]);
+      his_self.hud.updateCards([]);
       his_self.removeSelectable();
 
       let dest = his_self.returnNavalTransportDestinations(faction, spacekey, (ops_remaining+ops_to_spend));
 
-      let html = `<ul>`;
+      let html = [];
       let skeys = [];
       for (let i = 0; i < dest.length; i++) {
 	let c = ops_remaining + ops_to_spend - dest[i].cost;
-        html    += `<li class="option" id="${i}">${dest[i].key} (${c} CP)</li>`;
+        html.push({ id: `${i}`, label: `${dest[i].key} (${c} CP)` });
 	skeys.push(dest[i].key);
       }
-      html    += `</ul>`;
 
       his_self.playerMakeSpacekeyClickableOnBoard(skeys, (key) => {
-	his_self.updateStatus("processing...");
+		his_self.game.status = "processing...";
+	his_self.hud.updateStatus(his_self.game.status);
+	his_self.hud.updateMenu([]);
+	his_self.hud.updateCards([]);
 	destination = key;
 	cost_of_transport = ops_remaining + ops_to_spend;
 	for (let z = 0; z < dest.length; z++) { if (dest[z].key === key) { cost_of_transport -= dest[z].cost; } }
 	selectUnitsInterface(his_self, units_to_move, selectUnitsInterface, selectDestinationInterface);
       });
 
-      his_self.updateStatusWithOptions(`Select Destination:`, html);
-      his_self.attachCardboxEvents(function(d) {
-	his_self.updateStatus("processing");
+            his_self.game.status = `Select Destination:`;
+      his_self.hud.updateStatus(his_self.game.status);
+      his_self.hud.updateCards([]);
+      his_self.hud.updateMenu(html, function (d) {
+		his_self.game.status = "processing";
+	his_self.hud.updateStatus(his_self.game.status);
+	his_self.hud.updateMenu([]);
+	his_self.hud.updateCards([]);
+	his_self.removeSelectable();
+	destination = dest[d].key;
+	cost_of_transport = ops_remaining + ops_to_spend - dest[d].cost;
+	selectUnitsInterface(his_self, units_to_move, selectUnitsInterface, selectDestinationInterface);
+      });
+      his_self.cardbox.attachCardEvents();
+    });
+
+
+
+        his_self.game.status = `Transport from Which Port?`;
+    his_self.hud.updateStatus(his_self.game.status);
+    his_self.hud.updateCards([]);
+    his_self.hud.updateMenu(html, function (user_choice) {
+
+      spacekey = spaces_with_infantry[user_choice];
+      let dest = his_self.returnNavalTransportDestinations(faction, spaces_with_infantry[user_choice], (ops_remaining+ops_to_spend));
+
+      let html = [];
+      let skeys = [];
+      for (let i = 0; i < dest.length; i++) {
+	let c = ops_remaining + ops_to_spend - dest[i].cost;
+        html.push({ id: `${i}`, label: `${dest[i].key} (${c} CP)` });
+	skeys.push(dest[i].key);
+      }
+
+      his_self.playerMakeSpacekeyClickableOnBoard(skeys, (key) => {
+		his_self.game.status = "processing...";
+	his_self.hud.updateStatus(his_self.game.status);
+	his_self.hud.updateMenu([]);
+	his_self.hud.updateCards([]);
+	destination = key;
+	cost_of_transport = ops_remaining + ops_to_spend;
+	for (let z = 0; z < dest.length; z++) { if (dest[z].key === key) { cost_of_transport -= dest[z].cost; } }
+	selectUnitsInterface(his_self, units_to_move, selectUnitsInterface, selectDestinationInterface);
+      });
+
+            his_self.game.status = `Select Destination:`;
+      his_self.hud.updateStatus(his_self.game.status);
+      his_self.hud.updateCards([]);
+      his_self.hud.updateMenu(html, function(d) {
+		his_self.game.status = "processing";
+	his_self.hud.updateStatus(his_self.game.status);
+	his_self.hud.updateMenu([]);
+	his_self.hud.updateCards([]);
 	his_self.removeSelectable();
 	destination = dest[d].key;
 	cost_of_transport = ops_remaining + ops_to_spend - dest[d].cost;
 	selectUnitsInterface(his_self, units_to_move, selectUnitsInterface, selectDestinationInterface);
       });
     });
-
-
-
-    his_self.updateStatusWithOptions(`Transport from Which Port?`, html);
-    his_self.attachCardboxEvents(
-    function(user_choice) {
-
-      spacekey = spaces_with_infantry[user_choice];
-      let dest = his_self.returnNavalTransportDestinations(faction, spaces_with_infantry[user_choice], (ops_remaining+ops_to_spend));
-
-      let html = `<ul>`;
-      let skeys = [];
-      for (let i = 0; i < dest.length; i++) {
-	let c = ops_remaining + ops_to_spend - dest[i].cost;
-        html    += `<li class="option" id="${i}">${dest[i].key} (${c} CP)</li>`;
-	skeys.push(dest[i].key);
-      }
-      html    += `</ul>`;
-
-      his_self.playerMakeSpacekeyClickableOnBoard(skeys, (key) => {
-	his_self.updateStatus("processing...");
-	destination = key;
-	cost_of_transport = ops_remaining + ops_to_spend;
-	for (let z = 0; z < dest.length; z++) { if (dest[z].key === key) { cost_of_transport -= dest[z].cost; } }
-	selectUnitsInterface(his_self, units_to_move, selectUnitsInterface, selectDestinationInterface);
-      });
-
-      his_self.updateStatusWithOptions(`Select Destination:`, html);
-      his_self.attachCardboxEvents(function(d) {
-	his_self.updateStatus("processing");
-	his_self.removeSelectable();
-	destination = dest[d].key;
-	cost_of_transport = ops_remaining + ops_to_spend - dest[d].cost;
-	selectUnitsInterface(his_self, units_to_move, selectUnitsInterface, selectDestinationInterface);
-      });
-    }
-    );
+    his_self.cardbox.attachCardEvents();
 
   }
 
@@ -6200,7 +6460,9 @@ does_units_to_move_have_unit = true; }
     his_self.naval_movement_overlay.render();
 
     // BACK moves us to OPS menu
-    his_self.bindBackButtonFunction(() => { his_self.displayBoard(); his_self.moves = []; his_self.addMove("discard\t"+his_self.returnControllingPower(faction)+"\t"+his_self.game.player_last_card); his_self.playerPlayOps("", his_self.returnControllingPower(faction), ops_remaining+ops_to_spend, ""); });
+    his_self.removeSelectable();
+    his_self.his_back_callback = () => { his_self.removeSelectable(); his_self.displayBoard(); his_self.moves = []; his_self.addMove("discard\t"+his_self.returnControllingPower(faction)+"\t"+his_self.game.player_last_card); his_self.playerPlayOps("", his_self.returnControllingPower(faction), ops_remaining+ops_to_spend, ""); };
+    his_self.hud.showBackButton(his_self.his_back_callback);
 
     let units_to_move = [];
     let units_available = his_self.returnFactionNavalUnitsToMove(faction);
@@ -6214,7 +6476,7 @@ does_units_to_move_have_unit = true; }
     let selectUnitsInterface = function(his_self, units_to_move, units_available, selectUnitsInterface, selectDestinationInterface) {
 
       let msg = "Select Unit to Move";
-      let html = "<ul>";
+      let html = [];
 
       for (let i = 0; i < units_available.length; i++) {
         if (units_to_move.includes(parseInt(i))) {
@@ -6249,15 +6511,17 @@ does_units_to_move_have_unit = true; }
 	let spacekey = units_available[i].spacekey;
 	let unit = units_available[i];
         if (units_to_move.includes(parseInt(i))) {
-          html += `<li class="option source" style="font-weight:bold" id="${i}">${units_available[i].name} (${units_available[i].spacekey} -> ${units_available[i].destination})</li>`;
+          html.push({ id: `${i}`, label: `${units_available[i].name} (${units_available[i].spacekey} -> ${units_available[i].destination})` });
         } else {
-          html += `<li class="option source" id="${i}">${units_available[i].name} (${his_self.returnSpaceName(units_available[i].spacekey)})</li>`;
+          html.push({ id: `${i}`, label: `${units_available[i].name} (${his_self.returnSpaceName(units_available[i].spacekey)})` });
         }
       }
-      html += `<li class="option" id="end">finish</li>`;
-      html += "</ul>";
+      html.push({ id: `end`, label: `finish` });
 
-      his_self.updateStatusWithOptions(msg, html);
+            his_self.game.status = msg;
+      his_self.hud.updateStatus(his_self.game.status);
+      his_self.hud.updateCards([]);
+      his_self.hud.updateMenu(html);
       his_self.naval_movement_overlay.selectUnits(msg, html);
 
 
@@ -6304,7 +6568,10 @@ does_units_to_move_have_unit = true; }
 	  return;
 	}
 
-	his_self.updateStatus("moving...");
+		his_self.game.status = "moving...";
+	his_self.hud.updateStatus(his_self.game.status);
+	his_self.hud.updateMenu([]);
+	his_self.hud.updateCards([]);
 
         if (id === "end") {
 
@@ -6317,7 +6584,7 @@ does_units_to_move_have_unit = true; }
 	  //
 	  if (units_to_move.length == 0) {
 	    // "end" without anything selected is like clicking on the back button...
-	    if (his_self.hud.back_button_callback != null) { his_self.hud.back_button_callback(); return; }
+	    if (his_self.his_back_callback != null) { his_self.his_back_callback(); return; }
 	  }
 
 
@@ -6403,7 +6670,7 @@ does_units_to_move_have_unit = true; }
       let destinations = his_self.returnNavalMoveOptions(unit.spacekey);
 
       let msg = "Select Destination";
-      let html = "<ul>";
+      let html = [];
       let any_options = false;
       let num_options = 0;
       for (let i = 0; i < destinations.length; i++) {
@@ -6413,27 +6680,29 @@ does_units_to_move_have_unit = true; }
 	    if (his_self.doesSpaceHaveNonFactionNavalUnits(spacekey, faction)) {
               any_options = true;
   	      num_options++;
-              html += `<li class="option destination" style="font-weight:bold" id="${spacekey}">${his_self.returnSpaceName(spacekey)}</li>`;
+              html.push({ id: `${spacekey}`, label: `${his_self.returnSpaceName(spacekey)}` });
 	    }
 	  } else {
 	    if (his_self.isSpaceFriendly(spacekey, faction)) {
               any_options = true;
   	      num_options++;
-              html += `<li class="option destination" style="font-weight:bold" id="${spacekey}">${his_self.returnSpaceName(spacekey)}</li>`;
+              html.push({ id: `${spacekey}`, label: `${his_self.returnSpaceName(spacekey)}` });
             }
           }
         } else {
           any_options = true;
 	  num_options++;
-          html += `<li class="option destination" style="font-weight:bold" id="${spacekey}">${his_self.returnSpaceName(spacekey)}</li>`;
+          html.push({ id: `${spacekey}`, label: `${his_self.returnSpaceName(spacekey)}` });
 	}
       }
       if (any_options == false) {
-        html += `<li class="option destination" style="font-weight:bold" id="none">no valid options</li>`;
+        html.push({ id: `none`, label: `no valid options` });
       }
-      html += "</ul>";
 
-      his_self.updateStatusWithOptions(msg, html);
+            his_self.game.status = msg;
+      his_self.hud.updateStatus(his_self.game.status);
+      his_self.hud.updateCards([]);
+      his_self.hud.updateMenu(html);
       if (num_options > 1) { his_self.naval_movement_overlay.selectDestination(msg, html); }
 
       $('.option').off();
@@ -6547,7 +6816,9 @@ does_units_to_move_have_unit = true; }
   }
   playerBuyMercenary(his_self, player, faction, ops_to_spend, ops_remaining) {
 
-    his_self.bindBackButtonFunction(() => { his_self.displayBoard(); his_self.moves = []; his_self.addMove("discard\t"+his_self.returnControllingPower(faction)+"\t"+his_self.game.player_last_card); his_self.playerPlayOps("", his_self.returnControllingPower(faction), ops_remaining+ops_to_spend, ""); });
+    his_self.removeSelectable();
+    his_self.his_back_callback = () => { his_self.removeSelectable(); his_self.displayBoard(); his_self.moves = []; his_self.addMove("discard\t"+his_self.returnControllingPower(faction)+"\t"+his_self.game.player_last_card); his_self.playerPlayOps("", his_self.returnControllingPower(faction), ops_remaining+ops_to_spend, ""); };
+    his_self.hud.showBackButton(his_self.his_back_callback);
 
     //
     // ui for building multiple units
@@ -6598,8 +6869,11 @@ does_units_to_move_have_unit = true; }
         },
 
         function(destination_spacekey) {
-          his_self.unbindBackButtonFunction();
-  	  his_self.updateStatus("acknowledge...");
+          his_self.hud.hideBackButton();
+  	    	  his_self.game.status = "acknowledge...";
+  	  his_self.hud.updateStatus(his_self.game.status);
+  	  his_self.hud.updateMenu([]);
+  	  his_self.hud.updateCards([]);
           for (let i = 0; i < num; i++) {
 	    his_self.addMove("build\tland\t"+faction+"\t"+"mercenary"+"\t"+destination_spacekey);
 	  }
@@ -6639,8 +6913,11 @@ does_units_to_move_have_unit = true; }
       },
 
       function(destination_spacekey) {
-        his_self.unbindBackButtonFunction();
-	his_self.updateStatus("acknowledge...");
+        his_self.hud.hideBackButton();
+		his_self.game.status = "acknowledge...";
+	his_self.hud.updateStatus(his_self.game.status);
+	his_self.hud.updateMenu([]);
+	his_self.hud.updateCards([]);
 	his_self.addMove("build\tland\t"+faction+"\t"+"mercenary"+"\t"+destination_spacekey);
 	his_self.endTurn();
       },
@@ -6745,8 +7022,11 @@ does_units_to_move_have_unit = true; }
         },
 
         function(destination_spacekey) {
-          his_self.unbindBackButtonFunction();
-	  his_self.updateStatus("acknowledge...");
+          his_self.hud.hideBackButton();
+	  	  his_self.game.status = "acknowledge...";
+	  his_self.hud.updateStatus(his_self.game.status);
+	  his_self.hud.updateMenu([]);
+	  his_self.hud.updateCards([]);
 	  for (let z = 0; z < num; z++) {
 	    his_self.addMove("build\tland\t"+faction+"\t"+"regular"+"\t"+destination_spacekey);
 	  }
@@ -6808,8 +7088,11 @@ does_units_to_move_have_unit = true; }
       },
 
       function(destination_spacekey) {
-        his_self.unbindBackButtonFunction();
-	his_self.updateStatus("acknowledge...");
+        his_self.hud.hideBackButton();
+		his_self.game.status = "acknowledge...";
+	his_self.hud.updateStatus(his_self.game.status);
+	his_self.hud.updateMenu([]);
+	his_self.hud.updateCards([]);
 	his_self.addMove("build\tland\t"+faction+"\t"+"regular"+"\t"+destination_spacekey);
 	his_self.endTurn();
       },
@@ -6852,8 +7135,11 @@ does_units_to_move_have_unit = true; }
       },
 
       function(destination_spacekey) {
-        his_self.unbindBackButtonFunction();
-	his_self.updateStatus("acknowledge...");
+        his_self.hud.hideBackButton();
+		his_self.game.status = "acknowledge...";
+	his_self.hud.updateStatus(his_self.game.status);
+	his_self.hud.updateMenu([]);
+	his_self.hud.updateCards([]);
 	his_self.addMove("build\tland\t"+faction+"\t"+"squadron"+"\t"+destination_spacekey);
 	his_self.endTurn();
       },
@@ -6876,25 +7162,27 @@ does_units_to_move_have_unit = true; }
   playerFightForeignWar(his_self, player, faction) {
 
     let msg = "Attack in Foreign War: ";
-    let html = '<ul>';
+    let html = [];
     if (faction === "ottoman" && his_self.game.state.events.war_in_persia == 1 && !his_self.game.state.foreign_wars_fought_this_impulse.includes("persia")) {
-      html += '<li class="option" id="persia">War in Persia</li>';	
+      html.push({ id: 'persia', label: 'War in Persia' });
     }
     if (faction === "ottoman" && his_self.game.state.events.revolt_in_egypt == 1 && !his_self.game.state.foreign_wars_fought_this_impulse.includes("egypt")) {
-      html += '<li class="option" id="egypt">Revolt in Egypt</li>';	
+      html.push({ id: 'egypt', label: 'Revolt in Egypt' });
     }
     if (faction === "england" && his_self.game.state.events.revolt_in_ireland == 1 && !his_self.game.state.foreign_wars_fought_this_impulse.includes("ireland")) {
-      html += '<li class="option" id="ireland">Revolt in Ireland</li>';	
+      html.push({ id: 'ireland', label: 'Revolt in Ireland' });
     }
-    html += '</ul>';
 
-    his_self.updateStatusWithOptions(msg, html);
-
-    $('.option').off();
-    $('.option').on('click', function () {
-      his_self.unbindBackButtonFunction();
-      his_self.updateStatus("acknowledge");
-      let key = $(this).attr("id");
+        his_self.game.status = msg;
+    his_self.hud.updateStatus(his_self.game.status);
+    his_self.hud.updateCards([]);
+    his_self.hud.updateMenu(html, function (user_choice) {
+      his_self.hud.hideBackButton();
+            his_self.game.status = "acknowledge";
+      his_self.hud.updateStatus(his_self.game.status);
+      his_self.hud.updateMenu([]);
+      his_self.hud.updateCards([]);
+      let key = user_choice;
       if (key == "persia") {
         his_self.addMove("field_battle\tpersia\tottoman");
       }
@@ -7079,7 +7367,10 @@ does_units_to_move_have_unit = true; }
       },
 
       function(destination_spacekey) {
-	his_self.updateStatus("assaulting...");
+		his_self.game.status = "assaulting...";
+	his_self.hud.updateStatus(his_self.game.status);
+	his_self.hud.updateMenu([]);
+	his_self.hud.updateCards([]);
 	if (faction == "ottoman" && destination_spacekey == "persia") { his_self.addMove("war\tottoman\tpersia"); his_self.endTurn(); return; }
 	if (faction == "ottoman" && destination_spacekey == "egypt") { his_self.addMove("war\tottoman\tegypt"); his_self.endTurn(); return; }
 	if (faction == "england" && destination_spacekey == "ireland") { his_self.addMove("war\tottoman\tireland"); his_self.endTurn(); return; }
@@ -7263,7 +7554,9 @@ does_units_to_move_have_unit = true; }
   async playerRemoveUnrest(his_self, player, faction, ops_to_spend, ops_remaining=0) {
 
     // BACK moves us to OPS menu
-    his_self.bindBackButtonFunction(() => { his_self.displayBoard(); his_self.moves = []; his_self.addMove("discard\t"+his_self.returnControllingPower(faction)+"\t"+his_self.game.player_last_card); his_self.playerPlayOps("", his_self.returnControllingPower(faction), ops_remaining+ops_to_spend, ""); });
+    his_self.removeSelectable();
+    his_self.his_back_callback = () => { his_self.removeSelectable(); his_self.displayBoard(); his_self.moves = []; his_self.addMove("discard\t"+his_self.returnControllingPower(faction)+"\t"+his_self.game.player_last_card); his_self.playerPlayOps("", his_self.returnControllingPower(faction), ops_remaining+ops_to_spend, ""); };
+    his_self.hud.showBackButton(his_self.his_back_callback);
 
     let spaces_in_unrest = his_self.returnSpacesInUnrest();
     let spaces_to_fix = [];
@@ -7327,7 +7620,10 @@ does_units_to_move_have_unit = true; }
       },
 
       function(destination_spacekey) {
-	his_self.updateStatus("removing unrest...");
+		his_self.game.status = "removing unrest...";
+	his_self.hud.updateStatus(his_self.game.status);
+	his_self.hud.updateMenu([]);
+	his_self.hud.updateCards([]);
 	his_self.addMove("remove_unrest\t"+faction+"\t"+destination_spacekey);
 	his_self.endTurn();
       },
@@ -7359,7 +7655,9 @@ does_units_to_move_have_unit = true; }
   async playerControlUnfortifiedSpace(his_self, player, faction, ops_to_spend=0, ops_remaining=0) {
 
     // BACK moves us to OPS menu
-    his_self.bindBackButtonFunction(() => { his_self.displayBoard(); his_self.moves = []; his_self.addMove("discard\t"+his_self.returnControllingPower(faction)+"\t"+his_self.game.player_last_card); his_self.playerPlayOps("", his_self.returnControllingPower(faction), ops_remaining+ops_to_spend, ""); });
+    his_self.removeSelectable();
+    his_self.his_back_callback = () => { his_self.removeSelectable(); his_self.displayBoard(); his_self.moves = []; his_self.addMove("discard\t"+his_self.returnControllingPower(faction)+"\t"+his_self.game.player_last_card); his_self.playerPlayOps("", his_self.returnControllingPower(faction), ops_remaining+ops_to_spend, ""); };
+    his_self.hud.showBackButton(his_self.his_back_callback);
 
     let spaces_in_unrest = his_self.returnSpacesInUnrest();
     let pacifiable_spaces_in_unrest = [];
@@ -7465,7 +7763,10 @@ does_units_to_move_have_unit = true; }
       },
 
       function(destination_spacekey) {
-	his_self.updateStatus("Controlling Space...");
+		his_self.game.status = "Controlling Space...";
+	his_self.hud.updateStatus(his_self.game.status);
+	his_self.hud.updateMenu([]);
+	his_self.hud.updateCards([]);
 	his_self.addMove("pacify\t"+faction+"\t"+destination_spacekey);
 	his_self.endTurn();
       },
@@ -7581,10 +7882,12 @@ does_units_to_move_have_unit = true; }
     //state.events.ottoman_piracy_attempts = 0;
     //state.events.ottoman_piracy_seazones = [];
 
-    his_self.bindBackButtonFunction(() => { his_self.displayBoard(); his_self.moves = []; his_self.addMove("discard\t"+his_self.returnControllingPower(faction)+"\t"+his_self.game.player_last_card); his_self.playerPlayOps("", his_self.returnControllingPower(faction), ops_remaining+ops_to_spend, ""); });
+    his_self.removeSelectable();
+    his_self.his_back_callback = () => { his_self.removeSelectable(); his_self.displayBoard(); his_self.moves = []; his_self.addMove("discard\t"+his_self.returnControllingPower(faction)+"\t"+his_self.game.player_last_card); his_self.playerPlayOps("", his_self.returnControllingPower(faction), ops_remaining+ops_to_spend, ""); };
+    his_self.hud.showBackButton(his_self.his_back_callback);
 
     let msg = "Select Sea for Piracy: ";
-    let html = '<ul>';
+    let html = [];
     for (let key in his_self.game.navalspaces) {
       let targetsea = false;
       for (let i = 0; i < his_self.game.navalspaces[key].units[faction].length; i++) {
@@ -7602,20 +7905,22 @@ does_units_to_move_have_unit = true; }
 	}
       }
       if (targetsea == true) {
-        html += '<li class="option" id="'+key+'">'+his_self.returnSpaceName(key)+'</li>';
+        html.push({ id: key, label: his_self.returnSpaceName(key) });
       }
     }
-    html += '</ul>';
 
-    his_self.updateStatusWithOptions(msg, html);
-
-    $('.option').off();
-    $('.option').on('click', function () {
+        his_self.game.status = msg;
+    his_self.hud.updateStatus(his_self.game.status);
+    his_self.hud.updateCards([]);
+    his_self.hud.updateMenu(html, function (user_choice) {
  
       // maybe no targets
-      //his_self.unbindBackButtonFunction();
-      his_self.updateStatus("acknowledge");
-      let key = $(this).attr("id");
+      //his_self.hud.hideBackButton();
+            his_self.game.status = "acknowledge";
+      his_self.hud.updateStatus(his_self.game.status);
+      his_self.hud.updateMenu([]);
+      his_self.hud.updateCards([]);
+      let key = user_choice;
       let ports = [];
       let dragut = false;
       let barbarossa = false;
@@ -7639,28 +7944,33 @@ does_units_to_move_have_unit = true; }
       }
 
       let msg = "Select Target for Piracy: ";
-      let html = '<ul>';
+      let html = [];
 
       for (let z = 0; z < ports.length; z++) {
 	let controller = his_self.game.spaces[ports[z]].political;
 	if (his_self.game.spaces[ports[z]].political == "") { controller = his_self.game.spaces[ports[z]].home; }
 	controller = his_self.returnControllingPower(controller);
         if (io.includes(controller) && controller != "ottoman") {
-          html += '<li class="option" id="'+ports[z]+'">'+his_self.returnSpaceName(ports[z])+'</li>';
+          html.push({ id: ports[z], label: his_self.returnSpaceName(ports[z]) });
         }
       }
-      html += '</ul>';
 
-      his_self.updateStatusWithOptions(msg, html);
-
-      $('.option').off();
-      $('.option').on('click', function () {
+            his_self.game.status = msg;
+      his_self.hud.updateStatus(his_self.game.status);
+      his_self.hud.updateCards([]);
+      his_self.hud.updateMenu(html, function (user_choice) {
 	
-	his_self.updateStatus("going out pirating...");
+		his_self.game.status = "going out pirating...";
+	his_self.hud.updateStatus(his_self.game.status);
+	his_self.hud.updateMenu([]);
+	his_self.hud.updateCards([]);
 
-        let target_port = $(this).attr("id");
-        his_self.unbindBackButtonFunction();
-        his_self.updateStatus("acknowledge");
+        let target_port = user_choice;
+        his_self.hud.hideBackButton();
+                his_self.game.status = "acknowledge";
+        his_self.hud.updateStatus(his_self.game.status);
+        his_self.hud.updateMenu([]);
+        his_self.hud.updateCards([]);
 	his_self.addMove("piracy\t"+faction+"\t"+key+"\t"+target_port);
 	his_self.endTurn();
 
@@ -7740,8 +8050,11 @@ does_units_to_move_have_unit = true; }
         },
 
         function(destination_spacekey) {
-          his_self.unbindBackButtonFunction();
-	  his_self.updateStatus("acknowledge...");
+          his_self.hud.hideBackButton();
+	  	  his_self.game.status = "acknowledge...";
+	  his_self.hud.updateStatus(his_self.game.status);
+	  his_self.hud.updateMenu([]);
+	  his_self.hud.updateCards([]);
 	  for (let z = 0; z < num; z++) {
 	    his_self.addMove("build\tland\t"+faction+"\t"+"cavalry"+"\t"+destination_spacekey);
 	  }
@@ -7791,8 +8104,11 @@ does_units_to_move_have_unit = true; }
       },
 
       function(destination_spacekey) {
-        his_self.unbindBackButtonFunction();
-	his_self.updateStatus("acknowledge...");
+        his_self.hud.hideBackButton();
+		his_self.game.status = "acknowledge...";
+	his_self.hud.updateStatus(his_self.game.status);
+	his_self.hud.updateMenu([]);
+	his_self.hud.updateCards([]);
 	his_self.addMove("build\tland\t"+faction+"\t"+"cavalry"+"\t"+destination_spacekey);
 	his_self.endTurn();
       },
@@ -7835,8 +8151,11 @@ does_units_to_move_have_unit = true; }
       },
 
       function(destination_spacekey) {
-        his_self.unbindBackButtonFunction();
-	his_self.updateStatus("acknowledge...");
+        his_self.hud.hideBackButton();
+		his_self.game.status = "acknowledge...";
+	his_self.hud.updateStatus(his_self.game.status);
+	his_self.hud.updateMenu([]);
+	his_self.hud.updateCards([]);
 	his_self.addMove("build\tland\t"+faction+"\t"+"corsair"+"\t"+destination_spacekey);
 	his_self.endTurn();
       },
@@ -7854,40 +8173,42 @@ does_units_to_move_have_unit = true; }
   async playerTranslateScripture(his_self, player, faction, ops_to_spend=1, ops_remaining=0) {
 
     let msg = "Select Work to Translate:";
-    let html = '<ul>';
+    let html = [];
 
     if (his_self.game.state.translations['new']['german'] < 6) {
-      html += '<li class="option german" style="" id="1">German (new testament)</li>';
+      html.push({ id: '1', label: 'German (new testament)' });
     }
     if (his_self.game.state.translations['new']['french'] < 6) {
-      html += '<li class="option french" style="" id="2">French (new testament)</li>';
+      html.push({ id: '2', label: 'French (new testament)' });
     }
     if (his_self.game.state.translations['new']['english'] < 6) {
-      html += '<li class="option english" style="" id="3">English (new testament)</li>';
+      html.push({ id: '3', label: 'English (new testament)' });
     }
     if (his_self.game.state.translations['full']['german'] < 10 && his_self.game.state.translations['new']['german'] >= 6) {
-      html += '<li class="option german" style="" id="4">German (full bible)</li>';
+      html.push({ id: '4', label: 'German (full bible)' });
     }
     if (his_self.game.state.translations['full']['french'] < 10 && his_self.game.state.translations['new']['french'] >= 6) {
-      html += '<li class="option french" style="" id="5">French (full bible)</li>';
+      html.push({ id: '5', label: 'French (full bible)' });
     }
     if (his_self.game.state.translations['full']['english'] < 10 && his_self.game.state.translations['new']['english'] >= 6) {
-      html += '<li class="option english" style="" id="6">English (full bible)</li>';
+      html.push({ id: '6', label: 'English (full bible)' });
     }
-    html += '</ul>';
 
     //
     // show visual language zone selector
     //
     his_self.language_zone_overlay.render();
 
-    his_self.updateStatusWithOptions(msg, html);
+        his_self.game.status = msg;
+    his_self.hud.updateStatus(his_self.game.status);
+    his_self.hud.updateCards([]);
+    his_self.hud.updateMenu(html, function (user_choice) {
 
-    $('.option').off();
-    $('.option').on('click', function () {
-
-      let id = parseInt($(this).attr("id"));
-      his_self.updateStatus("selecting...");
+      let id = parseInt(user_choice);
+            his_self.game.status = "selecting...";
+      his_self.hud.updateStatus(his_self.game.status);
+      his_self.hud.updateMenu([]);
+      his_self.hud.updateCards([]);
       his_self.language_zone_overlay.hide();
 
       if (id == 1 || id == 4) {
@@ -7931,66 +8252,55 @@ does_units_to_move_have_unit = true; }
     if (faction === "protestant") {
 
       let msg = "Select Language Zone for Reformation Attempts:";
-      let html = '<ul>';
+      let html = [];
       if (his_self.returnNumberOfProtestantSpacesInLanguageZone("german") || his_self.canProtestantsReformInLanguageZone("german")) {
-        html += '<li class="option german" style="" id="german">German</li>';
+        html.push({ id: 'german', label: 'German' });
       }
       if (his_self.returnNumberOfProtestantSpacesInLanguageZone("english") || his_self.canProtestantsReformInLanguageZone("english")) {
-        html += '<li class="option english" style="" id="english">English</li>';
+        html.push({ id: 'english', label: 'English' });
       }
       if (his_self.returnNumberOfProtestantSpacesInLanguageZone("french") || his_self.canProtestantsReformInLanguageZone("french")) {
-        html += '<li class="option french" style="" id="french">French</li>';
+        html.push({ id: 'french', label: 'French' });
       }
       if (his_self.returnNumberOfProtestantSpacesInLanguageZone("spanish") || his_self.canProtestantsReformInLanguageZone("spanish")) {
-        html += '<li class="option spanish" style="" id="spanish">Spanish</li>';
+        html.push({ id: 'spanish', label: 'Spanish' });
       }
       if (his_self.returnNumberOfProtestantSpacesInLanguageZone("italian") || his_self.canProtestantsReformInLanguageZone("italian")) {
-        html += '<li class="option italian" style="" id="italian">Italian</li>';
+        html.push({ id: 'italian', label: 'Italian' });
       }
-      html += '</ul>';
 
       //
       // show visual language zone selector
       //
       his_self.language_zone_overlay.render();
 
-      his_self.updateStatusWithOptions(msg, html);
-
-      $('.option').off();
-      $('.option').on('click', function () {
+            his_self.game.status = msg;
+      his_self.hud.updateStatus(his_self.game.status);
+      his_self.hud.updateCards([]);
+      his_self.hud.updateMenu(html, function (user_choice) {
 
         $('.option').off();
         his_self.language_zone_overlay.hide();
 
-        let id = $(this).attr("id");
+        let id = user_choice;
 
 	if (id === "french" && his_self.canPlayerCommitDebater("protestant", "calvin-debater") && his_self.game.player === his_self.returnPlayerOfFaction("protestant")) {
 
           let msg = "Use Calvin Debater Bonus +1 Attempt:";
-          let html = '<ul>';
-          html += '<li class="option" style="" id="calvin-debater">Yes, Commit Calvin</li>';
-          html += '<li class="option" style="" id="no">No</li>';
-          html += '</ul>';
+          let html = [];
+          html.push({ id: 'calvin-debater', label: 'Yes, Commit Calvin' });
+          html.push({ id: 'no', label: 'No' });
 
-          his_self.updateStatusWithOptions(msg, html);
+                    his_self.game.status = msg;
+          his_self.hud.updateStatus(his_self.game.status);
+          his_self.hud.updateCards([]);
+          his_self.hud.updateMenu(html, function (user_choice) {
+            let id = user_choice;
 
-          $('.option').off();
-          $('.option').on('mouseover', function () {
-            let action2 = $(this).attr("id");
-            if (his_self.debaters[action2]) {
-              his_self.cardbox.show(action2);
-            }
-          });
-          $('.option').on('mouseout', function () {
-            let action2 = $(this).attr("id");
-            if (his_self.debaters[action2]) {
-              his_self.cardbox.hide(action2);
-            }
-          });
-          $('.option').on('click', function () {
-            let id = $(this).attr("id");
-
-	    his_self.updateStatus("submitting...");
+	    	    his_self.game.status = "submitting...";
+	    his_self.hud.updateStatus(his_self.game.status);
+	    his_self.hud.updateMenu([]);
+	    his_self.hud.updateCards([]);
 	    his_self.addMove("hide_overlay\tpublish_treatise\tfrench");
 	    his_self.addMove("SETVAR\tstate\tskip_counter_or_acknowledge\t0");
 	    if (id === "calvin-debater") {
@@ -8010,22 +8320,6 @@ does_units_to_move_have_unit = true; }
 
 	    return 0;
 	  });
-
-	  return 0;
-        }
-
-
-	if (id === "german" && his_self.canPlayerCommitDebater("protestant", "carlstadt-debater") && his_self.game.player === his_self.returnPlayerOfFaction("protestant")) {
-
-          let msg = "Use Carlstadt Debater Bonus +1 Attempt:";
-          let html = '<ul>';
-          html += '<li class="option" style="" id="carlstadt-debater">Yes, Commit Carlstadt</li>';
-          html += '<li class="option" style="" id="no">No</li>';
-          html += '</ul>';
-
-          his_self.updateStatusWithOptions(msg, html);
-
-          $('.option').off();
           $('.option').on('mouseover', function () {
             let action2 = $(this).attr("id");
             if (his_self.debaters[action2]) {
@@ -8038,10 +8332,28 @@ does_units_to_move_have_unit = true; }
               his_self.cardbox.hide(action2);
             }
           });
-          $('.option').on('click', function () {
-            let id = $(this).attr("id");
 
-	    his_self.updateStatus("submitting...");
+	  return 0;
+        }
+
+
+	if (id === "german" && his_self.canPlayerCommitDebater("protestant", "carlstadt-debater") && his_self.game.player === his_self.returnPlayerOfFaction("protestant")) {
+
+          let msg = "Use Carlstadt Debater Bonus +1 Attempt:";
+          let html = [];
+          html.push({ id: 'carlstadt-debater', label: 'Yes, Commit Carlstadt' });
+          html.push({ id: 'no', label: 'No' });
+
+                    his_self.game.status = msg;
+          his_self.hud.updateStatus(his_self.game.status);
+          his_self.hud.updateCards([]);
+          his_self.hud.updateMenu(html, function (user_choice) {
+            let id = user_choice;
+
+	    	    his_self.game.status = "submitting...";
+	    his_self.hud.updateStatus(his_self.game.status);
+	    his_self.hud.updateMenu([]);
+	    his_self.hud.updateCards([]);
 	    his_self.cardbox.hide();
 
 	    his_self.addMove("hide_overlay\tpublish_treatise\tgerman");
@@ -8066,6 +8378,18 @@ does_units_to_move_have_unit = true; }
 
 	    return 0;
 	  });
+          $('.option').on('mouseover', function () {
+            let action2 = $(this).attr("id");
+            if (his_self.debaters[action2]) {
+              his_self.cardbox.show(action2);
+            }
+          });
+          $('.option').on('mouseout', function () {
+            let action2 = $(this).attr("id");
+            if (his_self.debaters[action2]) {
+              his_self.cardbox.hide(action2);
+            }
+          });
 
 	  return 0;
         }
@@ -8115,14 +8439,13 @@ does_units_to_move_have_unit = true; }
       if (faction != "papacy") { opponent_faction = "papacy"; }
 
       let msg = "Against Commited or Uncommited Debater?";
-      let html = '<ul>';
+      let html = [];
       if (0 < his_self.returnDebatersInLanguageZone(language_zone, opponent_faction, 1)) {
-          html += '<li class="option committed" id="committed">Committed</li>';
+          html.push({ id: 'committed', label: 'Committed' });
       }
       if (0 < his_self.returnDebatersInLanguageZone(language_zone, opponent_faction, 0)) {
-          html += '<li class="option uncommitted" id="uncommitted">Uncommitted</li>';
+          html.push({ id: 'uncommitted', label: 'Uncommitted' });
       }
-      html += '</ul>';
 
       //
       // show visual language zone selector
@@ -8130,9 +8453,32 @@ does_units_to_move_have_unit = true; }
       his_self.language_zone_overlay.render();
       his_self.language_zone_overlay.pushHudUnderOverlay();
 
-      his_self.updateStatusWithOptions(msg, html);
+            his_self.game.status = msg;
+      his_self.hud.updateStatus(his_self.game.status);
+      his_self.hud.updateCards([]);
+      his_self.hud.updateMenu(html, function (user_choice) {
 
-      $('.option').off();
+        let committed = user_choice;
+
+        his_self.language_zone_overlay.hide();
+
+        if (committed === "committed") { committed = 1; } else { committed = 0; }
+
+        if (faction === "papacy") {
+	  his_self.addMove("theological_debate");
+          his_self.addMove("counter_or_acknowledge\tPapacy calls a theological debate\tdebate\t"+language_zone);
+          his_self.addMove("RESETCONFIRMSNEEDED\tall");
+	  his_self.addMove("pick_first_round_debaters\tpapacy\tprotestant\t"+language_zone+"\t"+committed);
+        } else {
+    	  his_self.addMove("theological_debate");
+          his_self.addMove("counter_or_acknowledge\tProtestants call a theological debate\tdebate\t"+language_zone);
+          his_self.addMove("RESETCONFIRMSNEEDED\tall");
+    	  his_self.addMove("pick_first_round_debaters\tprotestant\tpapacy\t"+language_zone+"\t"+committed);
+        }
+        his_self.endTurn();
+
+      });
+
       $('.committed').on('mouseover', function () {
         his_self.language_zone_overlay.hideDebaters();
         if (faction == "papacy") { 
@@ -8154,29 +8500,6 @@ does_units_to_move_have_unit = true; }
       });
       $('.uncommitted').on('mouseout', function () {
         his_self.language_zone_overlay.hideDebaters();
-      });
-
-      $('.option').on('click', function () {
-
-        let committed = $(this).attr("id");
-
-        his_self.language_zone_overlay.hide();
-
-        if (committed === "committed") { committed = 1; } else { committed = 0; }
-
-        if (faction === "papacy") {
-	  his_self.addMove("theological_debate");
-          his_self.addMove("counter_or_acknowledge\tPapacy calls a theological debate\tdebate\t"+language_zone);
-          his_self.addMove("RESETCONFIRMSNEEDED\tall");
-	  his_self.addMove("pick_first_round_debaters\tpapacy\tprotestant\t"+language_zone+"\t"+committed);
-        } else {
-    	  his_self.addMove("theological_debate");
-          his_self.addMove("counter_or_acknowledge\tProtestants call a theological debate\tdebate\t"+language_zone);
-          his_self.addMove("RESETCONFIRMSNEEDED\tall");
-    	  his_self.addMove("pick_first_round_debaters\tprotestant\tpapacy\t"+language_zone+"\t"+committed);
-        }
-        his_self.endTurn();
-
       });
 
     return 0;
@@ -8185,35 +8508,34 @@ does_units_to_move_have_unit = true; }
   async playerCallTheologicalDebate(his_self, player, faction, mary_i=0) {
 
     let msg = "Select Language Zone for Theological Debate:";
-    let html = '<ul>';
+    let html = [];
 
     if (faction === "protestant" || faction === "england") {
       if (his_self.returnDebatersInLanguageZone("german", "protestant", 0)) {
-        html += '<li class="option german" style="" id="german">German</li>';
+        html.push({ id: 'german', label: 'German' });
       }
       if (his_self.returnDebatersInLanguageZone("french", "protestant", 0)) {
-        html += '<li class="option french" style="" id="french">French</li>';
+        html.push({ id: 'french', label: 'French' });
       }
       if (his_self.returnDebatersInLanguageZone("english", "protestant", 0)) {
 	if (his_self.game.state.events.more_executed_limits_debates != 1) {
-          html += '<li class="option english" style="" id="english">English</li>';
+          html.push({ id: 'english', label: 'English' });
         }
       }
     }
     if (faction === "papacy") {
       if (mary_i == 1) {
-        html += '<li class="option english" style="" id="english">English</li>';
+        html.push({ id: 'english', label: 'English' });
       } else {
-        html += '<li class="option german" style="" id="german">German</li>';
+        html.push({ id: 'german', label: 'German' });
         if (his_self.returnDebatersInLanguageZone("french", "protestant", 0) || his_self.returnDebatersInLanguageZone("french", "protestant", 1)) {
-          html += '<li class="option french" style="" id="french">French</li>';
+          html.push({ id: 'french', label: 'French' });
         }
         if (his_self.returnDebatersInLanguageZone("english", "protestant", 0) || his_self.returnDebatersInLanguageZone("english", "protestant", 1)) {
-          html += '<li class="option english" style="" id="english">English</li>';
+          html.push({ id: 'english', label: 'English' });
         }
       }
     }
-    html += '</ul>';
 
     //
     // show visual language zone selector
@@ -8221,29 +8543,50 @@ does_units_to_move_have_unit = true; }
     his_self.language_zone_overlay.render();
     his_self.language_zone_overlay.pushHudUnderOverlay();
 
-    his_self.updateStatusWithOptions(msg, html);
+        his_self.game.status = msg;
+    his_self.hud.updateStatus(his_self.game.status);
+    his_self.hud.updateCards([]);
+    his_self.hud.updateMenu(html, function (user_choice) {
 
-    $('.option').off();
-    $('.option').on('click', (e) => {
-
-      $('.option').off();
-      let language_zone = e.currentTarget.id;
+      let language_zone = user_choice;
       let opponent_faction = "protestant";
       if (faction != "papacy") { opponent_faction = "papacy"; }
 
       let msg = "Against Commited or Uncommited Debater?";
-      let html = '<ul>';
+      let html = [];
       if (0 < his_self.returnDebatersInLanguageZone(language_zone, opponent_faction, 1)) {
-          html += '<li class="option committed" id="committed">Committed</li>';
+          html.push({ id: 'committed', label: 'Committed' });
       }
       if (0 < his_self.returnDebatersInLanguageZone(language_zone, opponent_faction, 0)) {
-          html += '<li class="option uncommitted" id="uncommitted">Uncommitted</li>';
+          html.push({ id: 'uncommitted', label: 'Uncommitted' });
       }
-      html += '</ul>';
 
-      his_self.updateStatusWithOptions(msg, html);
+            his_self.game.status = msg;
+      his_self.hud.updateStatus(his_self.game.status);
+      his_self.hud.updateCards([]);
+      his_self.hud.updateMenu(html, function (user_choice) {
 
-      $('.option').off();
+        let committed = user_choice;
+
+        his_self.language_zone_overlay.hide();
+
+        if (committed === "committed") { committed = 1; } else { committed = 0; }
+
+        if (faction === "papacy") {
+	  his_self.addMove("theological_debate");
+          his_self.addMove("counter_or_acknowledge\tPapacy calls a theological debate\tdebate\t"+language_zone);
+          his_self.addMove("RESETCONFIRMSNEEDED\tall");
+	  his_self.addMove("pick_first_round_debaters\tpapacy\tprotestant\t"+language_zone+"\t"+committed);
+        } else {
+    	  his_self.addMove("theological_debate");
+          his_self.addMove("counter_or_acknowledge\tProtestants call a theological debate\tdebate\t"+language_zone);
+          his_self.addMove("RESETCONFIRMSNEEDED\tall");
+    	  his_self.addMove("pick_first_round_debaters\tprotestant\tpapacy\t"+language_zone+"\t"+committed);
+        }
+        his_self.endTurn();
+
+      });
+
       $('.committed').on('mouseover', function () {
         his_self.language_zone_overlay.hideDebaters();
         if (faction == "papacy") { 
@@ -8265,29 +8608,6 @@ does_units_to_move_have_unit = true; }
       });
       $('.uncommitted').on('mouseout', function () {
         his_self.language_zone_overlay.hideDebaters();
-      });
-
-      $('.option').on('click', function () {
-
-        let committed = $(this).attr("id");
-
-        his_self.language_zone_overlay.hide();
-
-        if (committed === "committed") { committed = 1; } else { committed = 0; }
-
-        if (faction === "papacy") {
-	  his_self.addMove("theological_debate");
-          his_self.addMove("counter_or_acknowledge\tPapacy calls a theological debate\tdebate\t"+language_zone);
-          his_self.addMove("RESETCONFIRMSNEEDED\tall");
-	  his_self.addMove("pick_first_round_debaters\tpapacy\tprotestant\t"+language_zone+"\t"+committed);
-        } else {
-    	  his_self.addMove("theological_debate");
-          his_self.addMove("counter_or_acknowledge\tProtestants call a theological debate\tdebate\t"+language_zone);
-          his_self.addMove("RESETCONFIRMSNEEDED\tall");
-    	  his_self.addMove("pick_first_round_debaters\tprotestant\tpapacy\t"+language_zone+"\t"+committed);
-        }
-        his_self.endTurn();
-
       });
     });
 
@@ -8571,76 +8891,62 @@ does_units_to_move_have_unit = true; }
   async playerBurnBooks(his_self, player, faction, ops_to_spend, ops_remaining, mary_i=0) {
 
     let msg = "Select Language Zone for Counter Reformations";
-    let html = '<ul>';
+    let html = [];
 
     if (mary_i == 0) {
       if (his_self.returnNumberOfProtestantSpacesInLanguageZone("german")) {
-        html += '<li class="option german" style="" id="german">German</li>';
+        html.push({ id: 'german', label: 'German' });
       }
       if (his_self.returnNumberOfProtestantSpacesInLanguageZone("english")) {
-        html += '<li class="option english" style="" id="english">English</li>';
+        html.push({ id: 'english', label: 'English' });
       }
       if (his_self.returnNumberOfProtestantSpacesInLanguageZone("french")) {
-        html += '<li class="option french" style="" id="french">French</li>';
+        html.push({ id: 'french', label: 'French' });
       }
       if (his_self.returnNumberOfProtestantSpacesInLanguageZone("spanish")) {
-        html += '<li class="option spanish" style="" id="spanish">Spanish</li>';
+        html.push({ id: 'spanish', label: 'Spanish' });
       }
       if (his_self.returnNumberOfProtestantSpacesInLanguageZone("italian")) {
-        html += '<li class="option italian" style="" id="italian">Italian</li>';
+        html.push({ id: 'italian', label: 'Italian' });
       }
     } else {
-      html += '<li class="option english" style="" id="english">English</li>';
+      html.push({ id: 'english', label: 'English' });
     }
-    html += '</ul>';
 
     //
     // show visual language zone selector
     //
     his_self.language_zone_overlay.render();
 
-    his_self.updateStatusWithOptions(msg, html);
-
-    $('.option').off();
-    $('.option').on('click', function () {
+        his_self.game.status = msg;
+    his_self.hud.updateStatus(his_self.game.status);
+    his_self.hud.updateCards([]);
+    his_self.hud.updateMenu(html, function (user_choice) {
 
       $('.option').off();
       his_self.language_zone_overlay.hide();
-      let id = $(this).attr("id");
+      let id = user_choice;
 
       if ((his_self.canPlayerCommitDebater("papacy", "cajetan-debater") || his_self.canPlayerCommitDebater("papacy", "tetzel-debater") || his_self.canPlayerCommitDebater("papacy", "caraffa")) && his_self.game.player === his_self.returnPlayerOfFaction("papacy")) {
 
         let msg = "Commit Debater for Burn Books Bonus:";
-        let html = '<ul>';
-        html += '<li class="option" style="" id="no">No</li>';
+        let html = [];
+        html.push({ id: 'no', label: 'No' });
 	if (his_self.canPlayerCommitDebater("papacy", "tetzel-debater")) {
-          html += '<li class="option" style="" id="tetzel-debater">Tetzel +1 to St Peters</li>';
+          html.push({ id: 'tetzel-debater', label: 'Tetzel +1 to St Peters' });
 	}
 	if (his_self.canPlayerCommitDebater("papacy", "cajetan-debater")) {
-          html += '<li class="option" style="" id="cajetan-debater">Cajetan +1 Attempt</li>';
+          html.push({ id: 'cajetan-debater', label: 'Cajetan +1 Attempt' });
 	}
 	if (his_self.canPlayerCommitDebater("papacy", "caraffa-debater")) {
-          html += '<li class="option" style="" id="caraffa-debater">Caraffa +1 Attempt</li>';
+          html.push({ id: 'caraffa-debater', label: 'Caraffa +1 Attempt' });
         }
-	html += '</ul>';
 
-        his_self.updateStatusWithOptions(msg, html);
-
-        $('.option').off();
-        $('.option').on('mouseover', function () {
-          let action2 = $(this).attr("id");
-          if (his_self.debaters[action2]) {
-            his_self.cardbox.show(action2);
-          }
-        });
-        $('.option').on('mouseout', function () {
-          let action2 = $(this).attr("id");
-          if (his_self.debaters[action2]) {
-            his_self.cardbox.hide(action2);
-          }
-        });
-        $('.option').on('click', function () {
-          let id2 = $(this).attr("id");
+                his_self.game.status = msg;
+        his_self.hud.updateStatus(his_self.game.status);
+        his_self.hud.updateCards([]);
+        his_self.hud.updateMenu(html, function (user_choice) {
+          let id2 = user_choice;
 
 	  his_self.cardbox.hide();
 
@@ -8667,6 +8973,18 @@ does_units_to_move_have_unit = true; }
 
 	  return 0;
 	});
+        $('.option').on('mouseover', function () {
+          let action2 = $(this).attr("id");
+          if (his_self.debaters[action2]) {
+            his_self.cardbox.show(action2);
+          }
+        });
+        $('.option').on('mouseout', function () {
+          let action2 = $(this).attr("id");
+          if (his_self.debaters[action2]) {
+            his_self.cardbox.hide(action2);
+          }
+        });
 
 	return 0;
       }
@@ -8698,7 +9016,10 @@ does_units_to_move_have_unit = true; }
       },
 
       function(destination_spacekey) {
-        his_self.updateStatus("building university...");
+                his_self.game.status = "building university...";
+        his_self.hud.updateStatus(his_self.game.status);
+        his_self.hud.updateMenu([]);
+        his_self.hud.updateCards([]);
         his_self.addMove("found_jesuit_university\t"+destination_spacekey);
         his_self.addMove("SETVAR\tstate\tloyola_bonus_active\t1");
 	his_self.endTurn();
@@ -8730,8 +9051,11 @@ does_units_to_move_have_unit = true; }
 
       function(spacekey) {
         
-        his_self.unbindBackButtonFunction();
-	his_self.updateStatus("acknowledge...");
+        his_self.hud.hideBackButton();
+		his_self.game.status = "acknowledge...";
+	his_self.hud.updateStatus(his_self.game.status);
+	his_self.hud.updateMenu([]);
+	his_self.hud.updateCards([]);
 	his_self.addUnit(faction, spacekey, unittype);
 	his_self.displaySpace(spacekey);
         his_self.addMove("build\tland\t"+faction+"\t"+unittype+"\t"+spacekey+"\t"+his_self.game.player);	
@@ -8758,7 +9082,10 @@ does_units_to_move_have_unit = true; }
 
     let count = his_self.countSpacesWithFilter(filter_func);
     if (count == 0) { 
-      his_self.updateStatus("No Spaces Available for Unit Removal"); 
+            his_self.game.status = "No Spaces Available for Unit Removal";
+      his_self.hud.updateStatus(his_self.game.status);
+      his_self.hud.updateMenu([]);
+      his_self.hud.updateCards([]); 
       his_self.endTurn();
       return 0;
     }
@@ -8771,7 +9098,10 @@ does_units_to_move_have_unit = true; }
 
       function(spacekey) {
 
-	his_self.updateStatus("removing unit...");
+		his_self.game.status = "removing unit...";
+	his_self.hud.updateStatus(his_self.game.status);
+	his_self.hud.updateMenu([]);
+	his_self.hud.updateCards([]);
 
 	his_self.removeUnit(faction, spacekey, unittype);
 
@@ -8803,7 +9133,10 @@ does_units_to_move_have_unit = true; }
 
     let count = his_self.countSpacesWithFilter(filter_func);
     if (count == 0) { 
-      his_self.updateStatus("No Spaces Available for Unit Removal"); 
+            his_self.game.status = "No Spaces Available for Unit Removal";
+      his_self.hud.updateStatus(his_self.game.status);
+      his_self.hud.updateMenu([]);
+      his_self.hud.updateCards([]); 
       his_self.endTurn();
       return 0;
     }
@@ -8816,7 +9149,10 @@ does_units_to_move_have_unit = true; }
 
       function(spacekey) {
 
-	his_self.updateStatus("removing unit...");
+		his_self.game.status = "removing unit...";
+	his_self.hud.updateStatus(his_self.game.status);
+	his_self.hud.updateMenu([]);
+	his_self.hud.updateCards([]);
 
 	let s = his_self.game.spaces[spacekey];
 	let factions_with_units = [];
@@ -8839,16 +9175,15 @@ does_units_to_move_have_unit = true; }
 	} else {
 
           let msg = "Remove Mercenary from which Faction?";
-          let html = '<ul>';
+          let html = [];
           for (let z = 0; z < factions_with_units.length; z++) {
-	    html += `<li class="option" id="${factions_with_units[z]}">${his_self.returnFactionName(factions_with_units[z])}</li>`;
+	    html.push({ id: `${factions_with_units[z]}`, label: `${his_self.returnFactionName(factions_with_units[z])}` });
 	  }
-          html += '</ul>';
-          his_self.updateStatusWithOptions(msg, html);
-
-          $('.option').off();
-          $('.option').on('click', function () {
-            let faction = $(this).attr("id");
+                    his_self.game.status = msg;
+          his_self.hud.updateStatus(his_self.game.status);
+          his_self.hud.updateCards([]);
+          his_self.hud.updateMenu(html, function (user_choice) {
+        let faction = user_choice;
 	    his_self.removeUnit(faction, spacekey, unittype);
 	    his_self.displaySpace(spacekey);
             his_self.addMove("remove_unit\tland\t"+faction+"\t"+unittype+"\t"+spacekey+"\t"+his_self.game.player);	
@@ -8889,17 +9224,16 @@ does_units_to_move_have_unit = true; }
   playerManuallyRemoveExcommunication(his_self, faction) {
 
     let msg = "Give Papacy Card to Remove Excommunication?";
-    let html = '<ul>';
-    html += `<li class="option" id="yes">give random card</li>`;
-    html += `<li class="option" id="no">remain excommunicated</li>`;
-    html += '</ul>';
+    let html = [];
+    html.push({ id: `yes`, label: `give random card` });
+    html.push({ id: `no`, label: `remain excommunicated` });
 
-    his_self.updateStatusWithOptions(msg, html);
+        his_self.game.status = msg;
+    his_self.hud.updateStatus(his_self.game.status);
+    his_self.hud.updateCards([]);
+    his_self.hud.updateMenu(html, function (user_choice) {
 
-    $('.option').off();
-    $('.option').on('click', function () {
-
-      let id = $(this).attr("id");
+        let id = user_choice;
 
       if (id == "yes") {
         his_self.addMove("unexcommunicate_faction\t"+faction);
@@ -8981,25 +9315,29 @@ does_units_to_move_have_unit = true; }
     let f = this.canFactionSueForPeace(faction);
 
     let msg = `${his_self.returnFactionName(faction)} - Sue for Peace?`;
-    let html = '<ul>';
+    let html = [];
     for (let i = 0; i < f.length; i++) {
-      html += `<li class="option" id="${f[i]}">${his_self.returnFactionName(f[i])}</li>`;
+      html.push({ id: `${f[i]}`, label: `${his_self.returnFactionName(f[i])}` });
     }
-    html += `<li class="option" id="skip">skip</li>`;
-    html += '</ul>';
+    html.push({ id: `skip`, label: `skip` });
 
-    his_self.updateStatusWithOptions(msg, html);
+        his_self.game.status = msg;
+    his_self.hud.updateStatus(his_self.game.status);
+    his_self.hud.updateCards([]);
+    his_self.hud.updateMenu(html, function (user_choice) {
 
-    $('.option').off();
-    $('.option').on('click', function () {
+      his_self.removeSelectable();
+      his_self.his_back_callback = () => { his_self.removeSelectable(); his_self.moves = []; his_self.playerSueForPeace(his_self, faction); };
+      his_self.hud.showBackButton(his_self.his_back_callback);
 
-      his_self.bindBackButtonFunction(() => { his_self.moves = []; his_self.playerSueForPeace(his_self, faction); });
-
-      let target_faction = $(this).attr("id");
+      let target_faction = user_choice;
 
       if (target_faction == "skip") {
-	his_self.unbindBackButtonFunction();
-        his_self.updateStatus("skipping...");
+	his_self.hud.hideBackButton();
+                his_self.game.status = "skipping...";
+        his_self.hud.updateStatus(his_self.game.status);
+        his_self.hud.updateMenu([]);
+        his_self.hud.updateCards([]);
 	his_self.endTurn();
 	return;
       }
@@ -9076,23 +9414,28 @@ does_units_to_move_have_unit = true; }
           let faction_to_destroy = faction;
           let msg = "Destroy Which Unit: ";
           let unittypes = [];
-          let html = '<ul>';
+          let html = [];
           for (let i = 0; i < space.units[faction_to_destroy].length; i++) {
             if (space.units[faction_to_destroy][i].command_value == 0 && space.units[faction_to_destroy][i].personage != true) {
               if (!unittypes.includes(space.units[faction_to_destroy][i].key)) {
-                html += `<li class="option" id="${space.units[faction_to_destroy][i].key}">${space.units[faction_to_destroy][i].key}</li>`;
+                html.push({ id: `${space.units[faction_to_destroy][i].key}`, label: `${space.units[faction_to_destroy][i].key}` });
                 unittypes.push(space.units[faction_to_destroy][i].key);
               }
             }
           }
-          html += '</ul>';
-          his_self.updateStatusWithOptions(msg, html);
-          $('.option').off();
-          $('.option').on('click', function () {
-            let unittype = $(this).attr("id");
-            his_self.updateStatus("removing unit...");
+                    his_self.game.status = msg;
+          his_self.hud.updateStatus(his_self.game.status);
+          his_self.hud.updateCards([]);
+          his_self.hud.updateMenu(html, function (user_choice) {
+        let unittype = user_choice;
+                        his_self.game.status = "removing unit...";
+            his_self.hud.updateStatus(his_self.game.status);
+            his_self.hud.updateMenu([]);
+            his_self.hud.updateCards([]);
             his_self.removeUnit(faction_to_destroy, spacekey, unittype);
-            his_self.bindBackButtonFunction(() => { his_self.moves = []; his_self.addUnit(faction_to_destroy, spacekey, unittype); his_self.displayBoard(); his_self.playerSueForPeace(his_self, faction); });
+            his_self.removeSelectable();
+            his_self.his_back_callback = () => { his_self.removeSelectable(); his_self.moves = []; his_self.addUnit(faction_to_destroy, spacekey, unittype); his_self.displayBoard(); his_self.playerSueForPeace(his_self, faction); };
+            his_self.hud.showBackButton(his_self.his_back_callback);
             his_self.displaySpace(spacekey);
             his_self.addMove("remove_unit\t"+land_or_sea+"\t"+faction_to_destroy+"\t"+unittype+"\t"+spacekey+"\t"+his_self.game.player);
             //
@@ -9110,7 +9453,10 @@ does_units_to_move_have_unit = true; }
                 return 0;
               },
               function(spacekey) {
-                his_self.updateStatus("removing unit...");
+                                his_self.game.status = "removing unit...";
+                his_self.hud.updateStatus(his_self.game.status);
+                his_self.hud.updateMenu([]);
+                his_self.hud.updateCards([]);
                 let land_or_sea = "land";
                 let space = null;
                 if (his_self.game.navalspaces[spacekey]) {
@@ -9126,23 +9472,26 @@ does_units_to_move_have_unit = true; }
                 let faction_to_destroy = faction;
                 let msg = "Destroy Which Unit: ";
                 let unittypes = [];
-                let html = '<ul>';
+                let html = [];
                 for (let i = 0; i < space.units[faction_to_destroy].length; i++) {
                   if (space.units[faction_to_destroy][i].personage != true && space.units[faction_to_destroy][i].battle_rating != 1) {
                     if (!unittypes.includes(space.units[faction_to_destroy][i].key)) {
-                      html += `<li class="option" id="${space.units[faction_to_destroy][i].key}">${space.units[faction_to_destroy][i].key}</li>`;
+                      html.push({ id: `${space.units[faction_to_destroy][i].key}`, label: `${space.units[faction_to_destroy][i].key}` });
                       unittypes.push(space.units[faction_to_destroy][i].key);
                     }
                   }
                 }
-	        html += '</ul>';
-                his_self.updateStatusWithOptions(msg, html);
-                $('.option').off();
-                $('.option').on('click', function () {
-                  let unittype = $(this).attr("id");
-                  his_self.updateStatus("removing unit...");
+                                his_self.game.status = msg;
+                his_self.hud.updateStatus(his_self.game.status);
+                his_self.hud.updateCards([]);
+                his_self.hud.updateMenu(html, function (user_choice) {
+        let unittype = user_choice;
+                                    his_self.game.status = "removing unit...";
+                  his_self.hud.updateStatus(his_self.game.status);
+                  his_self.hud.updateMenu([]);
+                  his_self.hud.updateCards([]);
                   his_self.removeUnit(faction_to_destroy, spacekey, unittype);
-		  his_self.unbindBackButtonFunction();
+		  his_self.hud.hideBackButton();
                   his_self.displaySpace(spacekey);
                   his_self.addMove("remove_unit\t"+land_or_sea+"\t"+faction_to_destroy+"\t"+unittype+"\t"+spacekey+"\t"+his_self.game.player);
                   let z = false;
@@ -9191,7 +9540,7 @@ does_units_to_move_have_unit = true; }
 
       let msg = `${his_self.returnFactionName(faction)} - Declarations of War?`;
       let existing_cost = 0;
-      let html = '<ul>';
+      let html = [];
       let final_message = "do not declare war";
 
       for (let i = 0; i < targets.length; i++) {
@@ -9215,23 +9564,25 @@ does_units_to_move_have_unit = true; }
 
 	if (include_faction) {
           if (already_declaring_war) {
-  	    html += `<li class="option" id="${i}">* ${his_self.returnFactionName(t[i].faction)} (${t[i].cost} OPS) *</li>`;
+  	    html.push({ id: `${i}`, label: `* ${his_self.returnFactionName(t[i].faction)} (${t[i].cost} OPS) *` });
             final_message = "declare war (and pay)";
 	  } else {
-            html += `<li class="option" id="${i}">${his_self.returnFactionName(t[i].faction)} (${t[i].cost} OPS)</li>`;
+            html.push({ id: `${i}`, label: `${his_self.returnFactionName(t[i].faction)} (${t[i].cost} OPS)` });
           }
         }
       }
-      html += `<li class="option" id="end">${final_message}</li>`;
-      html += '</ul>';
+      html.push({ id: `end`, label: `${final_message}` });
 
-      his_self.updateStatusWithOptions(msg, html);
+            his_self.game.status = msg;
+      his_self.hud.updateStatus(his_self.game.status);
+      his_self.hud.updateCards([]);
+      his_self.hud.updateMenu(html, function (user_choice) {
 
-      $('.option').off();
-      $('.option').on('click', function () {
-
-	let action = $(this).attr("id");
-	his_self.updateStatus("processing...");
+        let action = user_choice;
+		his_self.game.status = "processing...";
+	his_self.hud.updateStatus(his_self.game.status);
+	his_self.hud.updateMenu([]);
+	his_self.hud.updateCards([]);
 
         his_self.war_overlay.hide();
 
@@ -9294,7 +9645,10 @@ does_units_to_move_have_unit = true; }
           his_self.addMove(`discard\t${faction}\t${card}`);
 
 	  if (total_cost_paid >= total_cost) {
-	    his_self.updateStatus("acknowledge");
+	    	    his_self.game.status = "acknowledge";
+	    his_self.hud.updateStatus(his_self.game.status);
+	    his_self.hud.updateMenu([]);
+	    his_self.hud.updateCards([]);
 	    for (let i = 0; i < targets.length; i++) {
               his_self.addMove(`declare_war\t${faction}\t${targets[i].faction}`);
 	    }
@@ -9322,26 +9676,25 @@ does_units_to_move_have_unit = true; }
     let t = his_self.returnDeclarationOfWarTargets(faction);
 
     let msg = "Declare War on which Power?";
-    let html = '<ul>';
+    let html = [];
     for (let i = 0; i < t.length; i++) {
       if ((this.canPlayerSelectOps(faction, t[i].cost) || cost == -1) || (this.canPlayerSelectOps(faction, cost))) {
 	if (targets.length > 0) {
           if (targets.includes(t[i].faction)) {
-	    html += `<li class="option" id="${i}">${t[i].faction}</li>`;
+	    html.push({ id: `${i}`, label: `${t[i].faction}` });
 	  }
 	} else {
-          html += `<li class="option" id="${i}">${t[i].faction}</li>`;
+          html.push({ id: `${i}`, label: `${t[i].faction}` });
         }
       }
     }
-    html += '</ul>';
 
-    his_self.updateStatusWithOptions(msg, html);
+        his_self.game.status = msg;
+    his_self.hud.updateStatus(his_self.game.status);
+    his_self.hud.updateCards([]);
+    his_self.hud.updateMenu(html, function (user_choice) {
 
-    $('.option').off();
-    $('.option').on('click', function () {
-
-      let id = $(this).attr("id");
+        let id = user_choice;
       let enemy = t[id].faction;
       let cost = t[id].cost;
 

@@ -1,0 +1,290 @@
+.game-hud2 {
+  font-family: 'visuelt-light', 'Microsoft Yahei', 'Hiragino Sans GB';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0.75rem;
+  margin-left: auto;
+  margin-right: auto;
+  z-index: 50;
+  box-sizing: border-box;
+  width: max-content;
+  max-width: calc(100vw - 1.5rem);
+  height: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.833rem;
+  font-size: 1.333rem;
+  overflow: visible;
+  background-color: transparent;
+}
+
+.hud-status-row {
+  position: relative;
+  flex: 0 0 auto;
+  width: 500px;
+  max-width: 100%;
+  cursor: move;
+  user-select: none;
+  -webkit-user-select: none;
+  background-color: transparent;
+}
+
+.hud-status {
+  padding-top: 0.75rem;
+  padding-bottom: 0.75rem;
+  color: #000;
+  background-color: whitesmoke;
+  box-shadow: 2px 2px 5px 0px rgba(0, 0, 0, 0.75);
+  text-align: center;
+  font-size: 1.333rem;
+}
+
+.hud-back-button {
+  display: none;
+  padding: 0.833rem;
+  font-size: 1.542rem;
+  position: absolute;
+  top: 50%;
+  left: 0;
+  transform: translateY(-50%);
+  cursor: pointer;
+  z-index: 2;
+  user-select: none;
+}
+
+.hud-back-button:hover {
+  transform: translateY(-50%) scale(1.3);
+}
+
+.hud-menu {
+  flex: 0 1 auto;
+  width: 500px;
+  max-width: 100%;
+  max-height: min(40vh, 22rem);
+  overflow-x: hidden;
+  overflow-y: auto;
+  background-color: transparent;
+  color: #000;
+  font-size: 1.333rem;
+}
+
+.hud-menu:empty {
+  display: none;
+}
+
+.hud-menu ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  font-size: 1.333rem;
+}
+
+.hud-menu li,
+.hud-menu .option {
+  box-sizing: border-box;
+  background-color: whitesmoke;
+  color: #000;
+  height: 6.667rem;
+  width: 100%;
+  padding: 0.833rem;
+  font-size: 1.5rem;
+  border-top: 1px solid var(--saito-gray-200);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  list-style: none;
+}
+
+.hud-menu li:first-child,
+.hud-menu .option:first-child {
+  border-top: 0;
+}
+
+.hud-menu li:hover,
+.hud-menu .option:hover {
+  background-color: #e7e7e7;
+}
+
+.hud-visual-menu {
+  display: none;
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 1;
+  box-sizing: border-box;
+  width: 95vw;
+  max-width: none;
+  height: 92.5vh;
+  overflow: hidden;
+  background-color: transparent;
+  gap: 1.667rem;
+}
+
+.hud-visual-menu:not(:empty) {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+}
+
+.hud-visual-option {
+  position: relative;
+  box-sizing: border-box;
+  cursor: pointer;
+  overflow: hidden;
+  min-width: 0;
+  min-height: 0;
+  width: 100%;
+  height: 100%;
+  border: 1px solid var(--saito-border);
+}
+
+.hud-visual-option:hover {
+  border: 2px solid whitesmoke;
+}
+
+.hud-visual-option::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: var(--hud-option-img);
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  z-index: 0;
+}
+
+.hud-visual-option-title {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 5rem;
+  width: 100%;
+  box-sizing: border-box;
+  background-color: rgba(0, 0, 0, 0.65);
+  padding: 1.333rem;
+  color: #fff;
+  font-size: 2rem;
+  text-transform: uppercase;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  z-index: 2;
+}
+
+.hud-visual-menu.m1 {
+  grid-template-columns: 1fr;
+  grid-template-rows: 1fr;
+  width: 90vw;
+  max-width: 1400px;
+  height: 85vh;
+}
+
+.hud-visual-menu.m2 {
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr;
+  width: 90vw;
+  max-width: 1400px;
+  height: 85vh;
+}
+
+.hud-visual-menu.m3 {
+  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-rows: 1fr;
+  width: 90vw;
+  max-width: 1400px;
+  height: 85vh;
+}
+
+.hud-visual-menu.m4 {
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+  width: 95vw;
+  height: 92.5vh;
+}
+
+.hud-visual-menu.m5,
+.hud-visual-menu.m6 {
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr 1fr;
+  width: 90vw;
+  max-width: 1400px;
+  height: 85vh;
+}
+
+.hud-visual-menu.m7,
+.hud-visual-menu.m8 {
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr 1fr 1fr;
+  width: 90vw;
+  max-width: 1400px;
+  height: 85vh;
+}
+
+.hud-visual-menu.m9 {
+  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-rows: 1fr 1fr 1fr;
+  width: 90vw;
+  max-width: 1400px;
+  height: 85vh;
+}
+
+.hud-cards {
+  flex: 0 0 auto;
+  display: flex;
+  flex-wrap: nowrap;
+  flex-direction: row;
+  align-items: flex-end;
+  justify-content: center;
+  column-gap: 0.417rem;
+  max-width: calc(100vw - 1.5rem);
+  overflow-x: auto;
+  overflow-y: visible;
+  padding: 0;
+  background-color: transparent;
+  box-shadow: none;
+}
+
+.hud-cards .card {
+  position: relative;
+  flex: 0 0 auto;
+  cursor: pointer;
+}
+
+.hud-cards .card img,
+.hud-cards img {
+  display: block;
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+
+@media screen and (max-width: 600px) {
+  .game-hud2 {
+    max-width: calc(100vw - 0.75rem);
+    bottom: 0.4rem;
+  }
+
+  .hud-status-row {
+    width: 500px;
+    max-width: 100%;
+  }
+
+  .hud-menu {
+    width: 500px;
+    max-width: 100%;
+  }
+
+  .hud-cards {
+    max-width: calc(100vw - 0.75rem);
+  }
+}

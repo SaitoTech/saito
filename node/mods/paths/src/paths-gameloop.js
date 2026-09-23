@@ -270,7 +270,10 @@ this.updateLog(`###############`);
 
 	if (mv[0] == "deal_strategy_cards") {
 
-	  this.updateStatus("reshuffling discards...");
+	  	  this.game.status = "reshuffling discards...";
+	  this.hud.updateStatus(this.game.status);
+	  this.hud.updateMenu([]);
+	  this.hud.updateCards([]);
 
 	  this.game.queue.splice(qe, 1);
 
@@ -436,7 +439,10 @@ console.log("central_cards_post_deal: " + central_cards_post_deal);
 	    this.playerSpendReplacementPoints(faction);
 	  } else {
 	    this.replacements_overlay.hide();
-	    this.updateStatus(this.returnFactionName(faction) + " assigning replacement points...");
+	    	    this.game.status = this.returnFactionName(faction) + " assigning replacement points...";
+	    this.hud.updateStatus(this.game.status);
+	    this.hud.updateMenu([]);
+	    this.hud.updateCards([]);
 	  }
 
 	  return 0;
@@ -458,7 +464,10 @@ console.log("central_cards_post_deal: " + central_cards_post_deal);
 
 	  if (vp.vp <= 0) {
 	    this.displayGeneralRecordsTrack();
-	    this.updateStatus("Allied Powers Victory!");
+	    	    this.game.status = "Allied Powers Victory!";
+	    this.hud.updateStatus(this.game.status);
+	    this.hud.updateMenu([]);
+	    this.hud.updateCards([]);
             this.displayCustomOverlay({
               text : "The Allied Powers secure peace on beneficial terms...",
               title : "Allied Victory!",
@@ -473,7 +482,10 @@ console.log("central_cards_post_deal: " + central_cards_post_deal);
 
 	  if (vp.vp >= 20) {
 	    this.displayGeneralRecordsTrack();
-	    this.updateStatus("Central Powers Victory!");
+	    	    this.game.status = "Central Powers Victory!";
+	    this.hud.updateStatus(this.game.status);
+	    this.hud.updateMenu([]);
+	    this.hud.updateCards([]);
             this.displayCustomOverlay({
               text : "The Central Powers crush the Allied Powers...",
               title : "Central Victory!",
@@ -634,7 +646,10 @@ console.log("central_cards_post_deal: " + central_cards_post_deal);
 		    if (roll > space.fort) {
 		      space.fort = -1;
 		      this.updateLog(this.returnSpaceNameForLog(space.key) + " fort destroyed (roll: " + roll + ")");
-		      this.updateStatus(this.returnSpaceNameForLog(space.key) + " fort destroyed (roll: " + roll + ")");
+		      		      this.game.status = this.returnSpaceNameForLog(space.key) + " fort destroyed (roll: " + roll + ")";
+		      this.hud.updateStatus(this.game.status);
+		      this.hud.updateMenu([]);
+		      this.hud.updateCards([]);
 
 	              //
 	              // switch control
@@ -649,7 +664,10 @@ console.log("central_cards_post_deal: " + central_cards_post_deal);
 		      this.shakeSpacekey(key);
 
 		    } else {
-		      this.updateStatus(this.returnSpaceNameForLog(space.key) + " fort resists siege (roll: " + roll + ")");
+		      		      this.game.status = this.returnSpaceNameForLog(space.key) + " fort resists siege (roll: " + roll + ")";
+		      this.hud.updateStatus(this.game.status);
+		      this.hud.updateMenu([]);
+		      this.hud.updateCards([]);
 		      this.updateLog(this.returnSpaceNameForLog(space.key) + " fort resists siege (roll: " + roll + ")");
 		    }
 
@@ -719,15 +737,20 @@ console.log("central_cards_post_deal: " + central_cards_post_deal);
 	      hold = this.game.deck[1].hand[0];
 	    }
 
-    	    let html = `<ul>`;
-	    html    += `<li class="card" id="discard">discard [${paths_self.popup(hold)}]</li>`;
-	    html    += `<li class="card" id="hold">do not discard</li>`;
-	    html    += `</ul>`;
+    	    let options = [
+	      { id: "discard", label: `discard [${paths_self.popup(hold)}]` },
+	      { id: "hold", label: "do not discard" },
+	    ];
 
-	    this.updateStatusWithOptions(`Discard Combat Card?`, html);
-	    this.attachCardboxEvents((action) => {
+	    this.game.status = `Discard Combat Card?`;
+	    this.hud.updateStatus(this.game.status);
+	    this.hud.updateCards([]);
+	    this.hud.updateMenu(options, (action) => {
 
-	      this.updateStatus("processing...");
+	      	      this.game.status = "processing...";
+	      this.hud.updateStatus(this.game.status);
+	      this.hud.updateMenu([]);
+	      this.hud.updateCards([]);
 
 	      if (action === "discard") {
 		this.addMove("SETVAR\tstate\tcards_left\t"+this.returnFactionOfPlayer()+"\t"+(num-1));
@@ -743,7 +766,10 @@ console.log("central_cards_post_deal: " + central_cards_post_deal);
 
 	  } else {
 	    this.displayBoard();
-	    this.updateStatus("Opponent deciding on card discard...");
+	    	    this.game.status = "Opponent deciding on card discard...";
+	    this.hud.updateStatus(this.game.status);
+	    this.hud.updateMenu([]);
+	    this.hud.updateCards([]);
 	  }
 
 	  return 0;
@@ -1234,7 +1260,10 @@ if (this.game.state.turn == 1) {
 	    }
 	    if (end_the_game) {
               this.displayGeneralRecordsTrack();
-              this.updateStatus("Allied Powers Victory!");
+                            this.game.status = "Allied Powers Victory!";
+              this.hud.updateStatus(this.game.status);
+              this.hud.updateMenu([]);
+              this.hud.updateCards([]);
               this.displayCustomOverlay({
                 text : "The Allies crush the Central Powers...",
                 title : "Allied Victory!",
@@ -1264,7 +1293,7 @@ if (this.game.state.turn == 1) {
 	  this.removeOverstackedUnits();
 	  this.checkSupplyStatus();
 
-	  this.unbindBackButtonFunction();
+	  this.hud.hideBackButton();
 
 console.log("faction: " + faction);
 console.log("central_passed: " + this.game.state.central_passed);
@@ -1275,14 +1304,20 @@ console.log("allies_passed: " + this.game.state.allies_passed);
 	  if (faction === "central" && parseInt(this.game.state.central_passed) == 1) {
 	    for (let z = 0; z < this.game.deck[0].hand.length; z++) { if (this.game.deck[0].hand[z] == "pass") { this.game.deck[0].hand.splice(z, 1); } }
 	    this.game.queue.splice(qe, 1); 
-	    this.updateStatusAndListCards(`Opponent Turn 1`, hand);
-	    this.attachCardboxEvents((action) => {});
+	    this.game.status = `Opponent Turn 1`;
+	    this.hud.updateStatus(this.game.status);
+	    this.hud.updateMenu([]);
+	    this.hud.updateCards(hand);
+	    this.cardbox.attachCardEvents();
 	    return 1; 
 	  }
 	  if (faction === "allies" && parseInt(this.game.state.allies_passed) == 1) {
 	    for (let z = 0; z < this.game.deck[1].hand.length; z++) { if (this.game.deck[1].hand[z] == "pass") { this.game.deck[0].hand.splice(z, 1); } }
-	    this.updateStatusAndListCards(`Opponent Turn`, hand);
-	    this.attachCardboxEvents((action) => {});
+	    this.game.status = `Opponent Turn`;
+	    this.hud.updateStatus(this.game.status);
+	    this.hud.updateMenu([]);
+	    this.hud.updateCards(hand);
+	    this.cardbox.attachCardEvents();
 	    this.game.queue.splice(qe, 1);
 	    return 1; 
 	  }
@@ -1292,8 +1327,11 @@ console.log("allies_passed: " + this.game.state.allies_passed);
 	  if (this.game.player == player) {
 	    this.playerTurn(faction);
 	  } else {
-	    this.updateStatusAndListCards(`Opponent Turn`, hand);
-	    this.attachCardboxEvents((action) => {});
+	    this.game.status = `Opponent Turn`;
+	    this.hud.updateStatus(this.game.status);
+	    this.hud.updateMenu([]);
+	    this.hud.updateCards(hand);
+	    this.cardbox.attachCardEvents();
 	  }
 	  
 	  return 0;
@@ -1671,7 +1709,10 @@ try {
 	    if (this.game.player == this.returnPlayerOfFaction(faction)) {
 	      this.playerPlayStrategicRedeployment(faction, card, value);
             } else {
-	      this.updateStatus("Opponent Redeploying...");
+	      	      this.game.status = "Opponent Redeploying...";
+	      this.hud.updateStatus(this.game.status);
+	      this.hud.updateMenu([]);
+	      this.hud.updateCards([]);
 	    }
 	    return 0;
 	  } else {
@@ -1813,7 +1854,10 @@ try {
 	  if (this.game.player == player) {
 	    this.playerPlayCombat(faction);
 	  } else {
-	    this.updateStatus(this.returnFactionName(faction) + " executing combat");
+	    	    this.game.status = this.returnFactionName(faction) + " executing combat";
+	    this.hud.updateStatus(this.game.status);
+	    this.hud.updateMenu([]);
+	    this.hud.updateCards([]);
 	  }
 
 	  return 0;
@@ -2223,7 +2267,10 @@ console.log(JSON.stringify(this.game.state.cc_allies_active));
 	  if (this.game.player != this.returnPlayerOfFaction(this.game.state.combat.attacking_faction)) {
 	    this.playerSelectDefenderCombatCards();
 	  } else {
-	    this.updateStatus("Defender Selecting Combat Cards...");
+	    	    this.game.status = "Defender Selecting Combat Cards...";
+	    this.hud.updateStatus(this.game.status);
+	    this.hud.updateMenu([]);
+	    this.hud.updateCards([]);
 	  }
 
 	  return 0;
@@ -2242,7 +2289,10 @@ console.log("AT: " + this.returnPlayerOfFaction(this.game.state.combat.attacking
 	  if (this.game.player == this.returnPlayerOfFaction(this.game.state.combat.attacking_faction)) {
 	    this.playerSelectAttackerCombatCards();
 	  } else {
-	    this.updateStatus("Attacker Selecting Combat Cards...");
+	    	    this.game.status = "Attacker Selecting Combat Cards...";
+	    this.hud.updateStatus(this.game.status);
+	    this.hud.updateMenu([]);
+	    this.hud.updateCards([]);
 	  }
 
 	  return 0;
@@ -2660,12 +2710,14 @@ console.log("error updated attacker loss factor: " + JSON.stringify(err));
 
 	    this.combat_overlay.hide();
   
-    	    let html = `<ul>`;
-	    html    += `<li class="card" id="advance">show overlay</li>`;
-	    html    += `</ul>`;
+    	    let options = [
+	      { id: "advance", label: "show overlay" },
+	    ];
 
-	    this.updateStatusWithOptions(`Assign Losses...`, html);
-	    this.attachCardboxEvents((action) => {
+	    this.game.status = `Assign Losses...`;
+	    this.hud.updateStatus(this.game.status);
+	    this.hud.updateCards([]);
+	    this.hud.updateMenu(options, (action) => {
 	      reloadWindow(1);
 	    });
 	    this.loss_overlay.render(power);
@@ -2674,8 +2726,11 @@ console.log("error updated attacker loss factor: " + JSON.stringify(err));
 
 	    this.combat_overlay.hide();
 	    this.loss_overlay.render(power);
-	    this.unbindBackButtonFunction();
-	    this.updateStatus("Opponent Assigning Losses");
+	    this.hud.hideBackButton();
+	    	    this.game.status = "Opponent Assigning Losses";
+	    this.hud.updateStatus(this.game.status);
+	    this.hud.updateMenu([]);
+	    this.hud.updateCards([]);
 	  }
 
 	  this.game.queue.splice(qe, 1);
@@ -2711,7 +2766,10 @@ console.log("error updated attacker loss factor: " + JSON.stringify(err));
           if (this.game.player == player) {
 	    this.playerPlayGreatAdvance(spacekey);
           } else {
-	    this.updateStatus("Central Powers considering advance...");
+	    	    this.game.status = "Central Powers considering advance...";
+	    this.hud.updateStatus(this.game.status);
+	    this.hud.updateMenu([]);
+	    this.hud.updateCards([]);
           }
 
 	  this.game.queue.splice(qe, 1);
@@ -2728,7 +2786,10 @@ console.log("error updated attacker loss factor: " + JSON.stringify(err));
           if (this.game.player == player) {
 	    this.playerHandleGreatRetreat(spacekey);
           } else {
-	    this.updateStatus("Russian evaluating retreat..."); 
+	    	    this.game.status = "Russian evaluating retreat...";
+	    this.hud.updateStatus(this.game.status);
+	    this.hud.updateMenu([]);
+	    this.hud.updateCards([]); 
           }
 
 	  return 0;
@@ -2868,7 +2929,10 @@ this.updateLog("Winner of the Combat: " + this.game.state.combat.winner);
 	    if (this.game.player == player) {
 	      this.playerPlayPostCombatRetreat();
 	    } else {
-	      this.updateStatus("Opponent Retreating...");
+	      	      this.game.status = "Opponent Retreating...";
+	      this.hud.updateStatus(this.game.status);
+	      this.hud.updateMenu([]);
+	      this.hud.updateCards([]);
 	    }
 	    return 0;
 	  } else {
@@ -2889,7 +2953,10 @@ this.updateLog("Winner of the Combat: " + this.game.state.combat.winner);
 	    if (this.game.player == player) {
 	      this.playerPlayAdvance();
 	    } else {
-	      this.updateStatus("Opponent deciding on advance...");
+	      	      this.game.status = "Opponent deciding on advance...";
+	      this.hud.updateStatus(this.game.status);
+	      this.hud.updateMenu([]);
+	      this.hud.updateCards([]);
 	    }
 	    return 1;
 	  }
@@ -2915,7 +2982,10 @@ this.updateLog("Winner of the Combat: " + this.game.state.combat.winner);
 	  if (this.game.player == player) {
 	    this.playerPlayAdvance();
 	  } else {
-	    this.updateStatus("Opponent deciding on advance...");
+	    	    this.game.status = "Opponent deciding on advance...";
+	    this.hud.updateStatus(this.game.status);
+	    this.hud.updateMenu([]);
+	    this.hud.updateCards([]);
 	  }
 
 	  return 0;
@@ -2948,7 +3018,10 @@ this.updateLog("Winner of the Combat: " + this.game.state.combat.winner);
 	    if (this.game.player == this.returnPlayerOfFaction(this.game.state.combat.attacking_faction)) {
 	      this.playerPlayFlankAttack();
 	    } else {
-	      this.updateStatus("Opponent considering Flank Attack");
+	      	      this.game.status = "Opponent considering Flank Attack";
+	      this.hud.updateStatus(this.game.status);
+	      this.hud.updateMenu([]);
+	      this.hud.updateCards([]);
 	    }
 	    return 0;
           }
@@ -3351,7 +3424,10 @@ console.log("pushing back attacker corps!");
 	  if (this.game.player == player) {
 	    this.playerPlayMovement(faction);
 	  } else {
-	    this.updateStatus(this.returnFactionName(faction) + " executing movement");
+	    	    this.game.status = this.returnFactionName(faction) + " executing movement";
+	    this.hud.updateStatus(this.game.status);
+	    this.hud.updateMenu([]);
+	    this.hud.updateCards([]);
 	  }
 
 	  return 0;
@@ -3373,7 +3449,10 @@ console.log("pushing back attacker corps!");
 	  if (this.game.player == player) {
 	    this.playerPlayOps(faction, card, cost, skipend);    
 	  } else {
-	    this.updateStatus(this.returnFactionName(faction) + " playing OPS");
+	    	    this.game.status = this.returnFactionName(faction) + " playing OPS";
+	    this.hud.updateStatus(this.game.status);
+	    this.hud.updateMenu([]);
+	    this.hud.updateCards([]);
 	  }
 
 	  return 0;

@@ -155,7 +155,10 @@
 
 	  if (imperium_self.game.state.players_info[player-1].peace_accords == 1) {
 
-	    imperium_self.updateStatus("XXCha selecting planet to annex with Peace Accords");
+	    	    imperium_self.game.status = "XXCha selecting planet to annex with Peace Accords";
+	    imperium_self.hud.updateStatus(imperium_self.game.status);
+	    imperium_self.hud.updateMenu([]);
+	    imperium_self.hud.updateCards([]);
 
 	    if (imperium_self.game.player == player) {
               imperium_self.playerSelectPlanetWithFilter(
@@ -206,6 +209,8 @@
 	if (menu === "main") {
           x.event = 'quash';
           x.html = '<li class="option" id="quash">quash agenda</li>';
+          x.id = 'quash';
+          x.label = 'quash agenda';
         }
         return x;
       },
@@ -224,28 +229,32 @@
         if (imperium_self.game.player == player) {
 
           let html = '';
-          html += 'Select one agenda to quash in the Galactic Senate.<ul>';
+          html += 'Select one agenda to quash in the Galactic Senate.';
+          let menu = [];
           for (i = 0; i < imperium_self.game.state.agendas.length; i++) {
 	    if (imperium_self.game.state.agendas[i] != "") {
-              html += '<li class="option" id="'+imperium_self.game.state.agendas[i]+'">' + imperium_self.agenda_cards[imperium_self.game.state.agendas[i]].name + '</li>';
+              menu.push({ id: String(imperium_self.game.state.agendas[i]), label: imperium_self.agenda_cards[imperium_self.game.state.agendas[i]].name });
             }
           }
-          html += '</ul>';
 
-          imperium_self.updateStatus(html);
+                    imperium_self.game.status = html;
+          imperium_self.hud.updateStatus(imperium_self.game.status);
+          imperium_self.hud.updateCards([]);
 
-          $('.option').off();
-          $('.option').on('mouseenter', function() { let s = $(this).attr("id"); imperium_self.showAgendaCard(s); });
-          $('.option').on('mouseleave', function() { let s = $(this).attr("id"); imperium_self.hideAgendaCard(s); });
-          $('.option').on('click', function() {
-
-             let agenda_to_quash = $(this).attr('id');
-	     imperium_self.updateStatus("Quashing Agenda");
+          imperium_self.hud.updateMenu(menu, function(agenda_to_quash) {
+	     	     imperium_self.game.status = "Quashing Agenda";
+	     imperium_self.hud.updateStatus(imperium_self.game.status);
+	     imperium_self.hud.updateMenu([]);
+	     imperium_self.hud.updateCards([]);
 
              imperium_self.addMove("expend\t"+imperium_self.game.player+"\t"+"strategy"+"\t"+"1");
              imperium_self.addMove("quash\t"+agenda_to_quash+"\t"+"1"); // 1 = re-deal
 	     imperium_self.endTurn();
 	  });
+          document.querySelectorAll('.hud-menu .option').forEach((el) => {
+            el.addEventListener('mouseenter', function() { imperium_self.showAgendaCard(el.id); });
+            el.addEventListener('mouseleave', function() { imperium_self.hideAgendaCard(el.id); });
+          });
 	}
       }
     });
@@ -278,16 +287,16 @@
 
         if (imperium_self.game.player == player) {
 
-          let html = "<div class='sf-readable'>Do you wish to spend a strategy token to cancel opponent action card with Instinct Training?</div><ul>";
-              html += '<li class="textchoice" id="yes">yes</li>';
-              html += '<li class="textchoice" id="no">no</li>';
-              html += '</ul>';
+          let html = "<div class='sf-readable'>Do you wish to spend a strategy token to cancel opponent action card with Instinct Training?</div>";
+          let menu = [
+            { id: 'yes', label: 'yes' },
+            { id: 'no', label: 'no' }
+          ];
 
-          imperium_self.updateStatus(html);
-
-          $('.textchoice').off();
-          $('.textchoice').on('click', function () {
-            let action2 = $(this).attr("id");
+                    imperium_self.game.status = html;
+          imperium_self.hud.updateStatus(imperium_self.game.status);
+          imperium_self.hud.updateCards([]);
+          imperium_self.hud.updateMenu(menu, function (action2) {
             if (action2 === "no") {
 	      imperium_self.endTurn();
             } else {
@@ -344,21 +353,23 @@
 	  if (imperium_self.game.state.players_info[player-1].field_nullification_exhausted == 1) { return 1; }
 
 	  if (imperium_self.game.player != player) {
-	    imperium_self.updateStatus(imperium_self.returnFaction(player) + " is deciding whether to use Nullification Fields");
+	    	    imperium_self.game.status = imperium_self.returnFaction(player) + " is deciding whether to use Nullification Fields";
+	    imperium_self.hud.updateStatus(imperium_self.game.status);
+	    imperium_self.hud.updateMenu([]);
+	    imperium_self.hud.updateCards([]);
 	    return 0;
 	  }
 
-	  let html = 'Do you wish to use Field Nullification to terminate this player\'s turn? <ul>';
-	  html += '<li class="textchoice" id="yes">activate nullification field</li>';
-	  html += '<li class="textchoice" id="no">do not activate</li>';
-	  html += '</ul>';
+	  let html = 'Do you wish to use Field Nullification to terminate this player\'s turn?';
+	  let menu = [
+	    { id: 'yes', label: 'activate nullification field' },
+	    { id: 'no', label: 'do not activate' }
+	  ];
 
-	  imperium_self.updateStatus(html);
-
-	  $('.textchoice').off();
-	  $('.textchoice').on('click', function() {
-
-	    let choice = $(this).attr("id");
+	  	  imperium_self.game.status = html;
+	  imperium_self.hud.updateStatus(imperium_self.game.status);
+	  imperium_self.hud.updateCards([]);
+	  imperium_self.hud.updateMenu(menu, function (choice) {
 
 	    if (choice == "yes") {
               imperium_self.addMove("resolve\tplay");
@@ -403,6 +414,8 @@
         if (menu == "main") {
           x.event = 'faction3-promissary';
           x.html = '<li class="option" id="faction3-promissary">Political Favour (XXCha Promissary)</li>';
+          x.id = 'faction3-promissary';
+          x.label = 'Political Favour (XXCha Promissary)';
         }
         return x;
       },
@@ -422,29 +435,33 @@
         if (imperium_self.game.player == player) {
 
           let html = '';
-          html += 'Select one agenda to quash in the Galactic Senate.<ul>';
+          html += 'Select one agenda to quash in the Galactic Senate.';
+          let menu = [];
           for (i = 0; i < imperium_self.game.state.agendas.length; i++) {
             if (imperium_self.game.state.agendas[i] != "") {
-              html += '<li class="option" id="'+imperium_self.game.state.agendas[i]+'">' + imperium_self.agenda_cards[imperium_self.game.state.agendas[i]].name + '</li>';
+              menu.push({ id: String(imperium_self.game.state.agendas[i]), label: imperium_self.agenda_cards[imperium_self.game.state.agendas[i]].name });
             }
           }
-          html += '</ul>';
 
-          imperium_self.updateStatus(html);
+                    imperium_self.game.status = html;
+          imperium_self.hud.updateStatus(imperium_self.game.status);
+          imperium_self.hud.updateCards([]);
 
-          $('.option').off();
-          $('.option').on('mouseenter', function() { let s = $(this).attr("id"); imperium_self.showAgendaCard(s); });
-          $('.option').on('mouseleave', function() { let s = $(this).attr("id"); imperium_self.hideAgendaCard(s); });
-          $('.option').on('click', function() {
-
-             let agenda_to_quash = $(this).attr('id');
-             imperium_self.updateStatus("Quashing Agenda");
+          imperium_self.hud.updateMenu(menu, function(agenda_to_quash) {
+                          imperium_self.game.status = "Quashing Agenda";
+             imperium_self.hud.updateStatus(imperium_self.game.status);
+             imperium_self.hud.updateMenu([]);
+             imperium_self.hud.updateCards([]);
 
              imperium_self.addMove("quash\t"+agenda_to_quash+"\t"+"1"); // 1 = re-deal
              imperium_self.addMove("expend\t"+xxcha_player+"\t"+"strategy"+"\t"+"1");
              imperium_self.addMove("give" + "\t" + player + "\t" + xxcha_player + "\t" + "promissary" + "\t"+"faction3-promissary");
              imperium_self.addMove("NOTIFY\t"+imperium_self.returnFaction(imperium_self.game.player) + " redeems XXCha Promissary");
              imperium_self.endTurn();
+          });
+          document.querySelectorAll('.hud-menu .option').forEach((el) => {
+            el.addEventListener('mouseenter', function() { imperium_self.showAgendaCard(el.id); });
+            el.addEventListener('mouseleave', function() { imperium_self.hideAgendaCard(el.id); });
           });
         }
         return 0;

@@ -24,7 +24,10 @@
 
         cards_to_discard.push("no discard");
         
-        this.updateStatusAndListCards(user_message, cards_to_discard, false);
+        this.game.status = user_message;
+        this.hud.updateStatus(this.game.status);
+        this.hud.updateMenu([]);
+        this.hud.updateCards(cards_to_discard);
 
         if (cards_to_discard.length <= 1) {
           this.addMove("resolve\tdebtcrisis");
@@ -34,7 +37,7 @@
           return 0;
         }
 
-        twilight_self.hud.attachControlCallback(function(action2) {
+        twilight_self.cardbox.bindCallback(function(action2) {
           if (action2 == "no discard") {
             twilight_self.addMove("resolve\tdebtcrisis");
             twilight_self.addMove("latinamericandebtcrisis");
@@ -49,6 +52,7 @@
           twilight_self.endTurn();
 
         });
+        twilight_self.cardbox.attachCardEvents();
       }
       return 0;
     }

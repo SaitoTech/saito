@@ -61,13 +61,13 @@ this.importStrategyCard("technology", {
       }
 
       html =
-        '<div class="status-message">Technology has been played. Do you wish to spend 4 resources and a strategy token to research a technology? </div><ul>';
+        '<div class="status-message">Technology has been played. Do you wish to spend 4 resources and a strategy token to research a technology? </div>';
       if (imperium_self.game.state.round == 1) {
         html = `<div class="status-message doublespace">${imperium_self.returnFaction(
           strategy_card_player
         )} has played the Technology strategy card. You may spend 4 resources and a strategy token to gain a permanent new unit or ability. You have ${
           imperium_self.game.state.players_info[player - 1].strategy_tokens
-        } strategy tokens. Use this ability?</div><ul>`;
+        } strategy tokens. Use this ability?</div>`;
       }
 
       if (
@@ -77,26 +77,25 @@ this.importStrategyCard("technology", {
           .temporary_research_technology_card_must_not_spend_resources == 1
       ) {
         html =
-          '<div class="status-message">Technology has been played. Do you wish to spend a strategy token to research a technology? </div><ul>';
+          '<div class="status-message">Technology has been played. Do you wish to spend a strategy token to research a technology? </div>';
         resources_to_spend = 0;
       }
 
       let available_resources = imperium_self.returnAvailableResources(imperium_self.game.player);
+      let menu = [];
       if (
         available_resources >= resources_to_spend &&
         imperium_self.game.state.players_info[player - 1].strategy_tokens > 0
       ) {
-        html += '<li class="option" id="yes">Yes</li>';
+        menu.push({ id: 'yes', label: 'Yes' });
       }
-      html += '<li class="option" id="no">No</li>';
-      html += "</ul>";
+      menu.push({ id: 'no', label: 'No' });
 
-      imperium_self.updateStatus(html);
+            imperium_self.game.status = html;
+      imperium_self.hud.updateStatus(imperium_self.game.status);
+      imperium_self.hud.updateCards([]);
 
-      $(".option").off();
-      $(".option").on("click", async function () {
-        let id = $(this).attr("id");
-
+      imperium_self.hud.updateMenu(menu, async function (id) {
         if (id === "yes") {
           imperium_self.game.state.players_info[
             player - 1
@@ -140,7 +139,7 @@ this.importStrategyCard("technology", {
       html =
         '<div class="status-message">Do you wish to spend ' +
         resources_to_spend +
-        " resources to research an additional technology? </div><ul>";
+        " resources to research an additional technology? </div>";
 
       if (
         imperium_self.game.state.players_info[imperium_self.game.player - 1]
@@ -149,23 +148,22 @@ this.importStrategyCard("technology", {
           .temporary_research_technology_card_must_not_spend_resources == 1
       ) {
         html =
-          '<div class="status-message">Do you wish to research an additional technology? </div><ul>';
+          '<div class="status-message">Do you wish to research an additional technology? </div>';
         resources_to_spend = 0;
       }
 
       let available_resources = imperium_self.returnAvailableResources(imperium_self.game.player);
+      let menu = [];
       if (available_resources >= resources_to_spend) {
-        html += '<li class="option" id="yes">Yes</li>';
+        menu.push({ id: 'yes', label: 'Yes' });
       }
-      html += '<li class="option" id="no">No</li>';
-      html += "</ul>";
+      menu.push({ id: 'no', label: 'No' });
 
-      imperium_self.updateStatus(html);
+            imperium_self.game.status = html;
+      imperium_self.hud.updateStatus(imperium_self.game.status);
+      imperium_self.hud.updateCards([]);
 
-      $(".option").off();
-      $(".option").on("click", function () {
-        let id = $(this).attr("id");
-
+      imperium_self.hud.updateMenu(menu, function (id) {
         if (id == "yes") {
           imperium_self.game.state.players_info[imperium_self.game.player - 1]
             .temporary_research_technology_card_must_not_spend_resources == 0;

@@ -7,7 +7,10 @@ this.importStrategyCard("diplomacy", {
 
     if (imperium_self.game.player == strategy_card_player && player == strategy_card_player) {
 
-      imperium_self.updateStatus('Select sector to quagmire in diplomatic negotiations, and refresh any planets in that system: ');
+            imperium_self.game.status = 'Select sector to quagmire in diplomatic negotiations, and refresh any planets in that system: ';
+      imperium_self.hud.updateStatus(imperium_self.game.status);
+      imperium_self.hud.updateMenu([]);
+      imperium_self.hud.updateCards([]);
       imperium_self.playerSelectSector(function(sector) {
 
         if (sector.indexOf("_") > -1) {
@@ -53,21 +56,19 @@ this.importStrategyCard("diplomacy", {
 
     if (imperium_self.game.player != strategy_card_player && imperium_self.game.player == player) {
 
-      let html = '<div class="status-message">Do you wish to spend 1 strategy token to unexhaust two planet cards? </div><ul>';
+      let html = '<div class="status-message">Do you wish to spend 1 strategy token to unexhaust two planet cards? </div>';
       if (imperium_self.game.state.round == 1) {
-        html = `<div class="status-message doublespace">${imperium_self.returnFaction(strategy_card_player)} plays Diplomacy. Do you wish to spend 1 strategy token to unexhaust two planet cards. You have ${imperium_self.game.state.players_info[player - 1].strategy_tokens} strategy tokens.</div><ul>`;
+        html = `<div class="status-message doublespace">${imperium_self.returnFaction(strategy_card_player)} plays Diplomacy. Do you wish to spend 1 strategy token to unexhaust two planet cards. You have ${imperium_self.game.state.players_info[player - 1].strategy_tokens} strategy tokens.</div>`;
       }
+      let menu = [];
       if (imperium_self.game.state.players_info[player - 1].strategy_tokens > 0) {
-        html += '<li class="option" id="yes">Yes</li>';
+        menu.push({ id: 'yes', label: 'Yes' });
       }
-      html += '<li class="option" id="no">No</li>';
-      html += '</ul>';
-      imperium_self.updateStatus(html);
-
-      $('.option').off();
-      $('.option').on('click', function() {
-
-        let id = $(this).attr("id");
+      menu.push({ id: 'no', label: 'No' });
+            imperium_self.game.status = html;
+      imperium_self.hud.updateStatus(imperium_self.game.status);
+      imperium_self.hud.updateCards([]);
+      imperium_self.hud.updateMenu(menu, function (id) {
 
         if (id == "yes") {
 
@@ -91,7 +92,10 @@ this.importStrategyCard("diplomacy", {
             max_choices = 2;
           }
 
-          imperium_self.updateStatus(html);
+                    imperium_self.game.status = html;
+          imperium_self.hud.updateStatus(imperium_self.game.status);
+          imperium_self.hud.updateMenu([]);
+          imperium_self.hud.updateCards([]);
           imperium_self.lockInterface();
 
           $(divname).off();

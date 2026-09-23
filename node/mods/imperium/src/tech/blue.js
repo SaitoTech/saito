@@ -71,7 +71,7 @@
       menuOption  :       function(imperium_self, menu, player) {
         if (menu == "main") {
           if (imperium_self.doesPlayerHaveTech(player, "fleet-logistics")) {
-            return { event : 'fleetlogistics', html : '<li class="option" id="fleetlogistics">use fleet logistics</li>' };
+            return { event : 'fleetlogistics', id: 'fleetlogistics', label: 'use fleet logistics', html : '<li class="option" id="fleetlogistics">use fleet logistics</li>' };
 	  }
         }
         return {};
@@ -99,7 +99,10 @@
 	  imperium_self.addMove("play\t"+player);
           imperium_self.addMove("NOTIFY\t"+player+" activates fleet logistics");
 	  imperium_self.endTurn();
-	  imperium_self.updateStatus("Activating Fleet Logistics");
+	  	  imperium_self.game.status = "Activating Fleet Logistics";
+	  imperium_self.hud.updateStatus(imperium_self.game.status);
+	  imperium_self.hud.updateMenu([]);
+	  imperium_self.hud.updateCards([]);
         }
         return 0;
       }

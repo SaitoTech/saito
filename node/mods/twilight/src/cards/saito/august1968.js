@@ -29,14 +29,18 @@
 	  }
 	}
 
-        twilight_self.updateStatusAndListCards("Choose Card to Purge:", cards, true);
+        twilight_self.game.status = "Choose Card to Purge:";
+        twilight_self.hud.updateStatus(twilight_self.game.status);
+        twilight_self.hud.updateMenu([]);
+        twilight_self.hud.updateCards(cards);
         twilight_self.addMove("resolve\taugust1968");
 
-        twilight_self.hud.attachControlCallback(function(action2) {
+        twilight_self.cardbox.bindCallback(function(action2) {
           twilight_self.addMove("NOTIFY\t"+player.toUpperCase() +" purged "+twilight_self.cardToText(action2));
           twilight_self.addMove("purge\t"+action2); 
           twilight_self.endTurn();
         });
+        twilight_self.cardbox.attachCardEvents();
       }
 
       return 0;

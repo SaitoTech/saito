@@ -41,16 +41,18 @@
       if (this.game.player == 1) {
           
         let user_message = `${this.cardToText(card)} takes effect. Pick first target for coup:`;
-        let html = '<ul>';
+        let options = [];
     	if (this.game.player == this.game.state.events.cubanmissilecrisis && this.game.player > 0) {
           if (this.canCancelCMC()) {
-            html += '<li class="option" id="cancelcmc">cancel missile crisis</li>';
+            options.push({ id: 'cancelcmc', label: 'cancel missile crisis' });
           }
-        } 
-	    html += '<li class="option" id="skipche">or skip coup</li>';
-	    html += '</ul>';   
-         
-        twilight_self.updateStatusWithOptions(user_message, html, function(action2) {
+        }
+	    options.push({ id: 'skipche', label: 'or skip coup' });
+
+        twilight_self.game.status = user_message;
+        twilight_self.hud.updateStatus(twilight_self.game.status);
+        twilight_self.hud.updateCards([]);
+        twilight_self.hud.updateMenu(options, function(action2) {
           if (action2 == "cancelcmc") {
 	    twilight_self.cancelCubanMissileCrisis();
 	    return 0;
@@ -58,7 +60,10 @@
           if (action2 == "skipche") {
             twilight_self.addMove("resolve\tche");
             twilight_self.endTurn();
-            twilight_self.updateStatus("Skipping Che coups...");
+            twilight_self.game.status = "Skipping Che coups...";
+            twilight_self.hud.updateStatus(twilight_self.game.status);
+            twilight_self.hud.updateMenu([]);
+            twilight_self.hud.updateCards([]);
           }
         });
           

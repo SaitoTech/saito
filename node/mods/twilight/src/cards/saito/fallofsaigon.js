@@ -14,7 +14,10 @@
         twilight_self.playerFinishedPlacingInfluence();
         twilight_self.addMove("resolve\tfallofsaigon");
 
-        twilight_self.updateStatus('<div class="status-message" id="status-message">Select Country for Evacuation</div>');
+        twilight_self.game.status = '<div class="status-message" id="status-message">Select Country for Evacuation</div>';
+        twilight_self.hud.updateStatus(twilight_self.game.status);
+        twilight_self.hud.updateMenu([]);
+        twilight_self.hud.updateCards([]);
 
         for (var i in twilight_self.countries) {
 
@@ -41,7 +44,10 @@
               twilight_self.removeInfluence(c, influence_to_remove, me);
               twilight_self.addMove(`remove\t${player}\t${me}\t${c}\t${influence_to_remove}`);
 
-	      twilight_self.updateStatus('<div class="status-message" id="status-message">Select Country to Place</div>');
+	      twilight_self.game.status = '<div class="status-message" id="status-message">Select Country to Place</div>';
+	      twilight_self.hud.updateStatus(twilight_self.game.status);
+	      twilight_self.hud.updateMenu([]);
+	      twilight_self.hud.updateCards([]);
 
         	for (var i in twilight_self.countries) {
 

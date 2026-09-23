@@ -443,21 +443,23 @@
 
 	  if (player != imperium_self.game.player) {
 	    let html = imperium_self.returnFaction(imperium_self.game.player) + " is deciding whether to Form a Committee";
-	    imperium_self.updateStatus(html);
+	    	    imperium_self.game.status = html;
+	    imperium_self.hud.updateStatus(imperium_self.game.status);
+	    imperium_self.hud.updateMenu([]);
+	    imperium_self.hud.updateCards([]);
 	    return 0;
 	  }
 
-	  let html = "Do you wish to use Committee Formation to select the winner yourself? <ul>";
-	      html += '<li class="textchoice" id="yes">assemble the committee</li>';
-	      html += '<li class="textchoice" id="no">not this time</li>';
-	      html += '</ul>';
+	  let html = "Do you wish to use Committee Formation to select the winner yourself?";
+	  let menu = [
+	    { id: 'yes', label: 'assemble the committee' },
+	    { id: 'no', label: 'not this time' }
+	  ];
 
-	  imperium_self.updateStatus(html);
-
-	  $('.textchoice').off();
-	  $('.textchoice').on('click', function() {
-
-	    let action = $(this).attr("id");
+	  	  imperium_self.game.status = html;
+	  imperium_self.hud.updateStatus(imperium_self.game.status);
+	  imperium_self.hud.updateCards([]);
+	  imperium_self.hud.updateMenu(menu, function (action) {
 
 	    if (action == "no") { imperium_self.endTurn(); }
 
@@ -816,7 +818,7 @@
         },
         menuOption  :       function(imperium_self, menu, player) {
           if (menu == "main" && imperium_self.game.planets[imperium_self.game.state.research_team_biotic_planet].owner == player) {
-            return { event : 'research_team_biotic', html : '<li class="option" id="research_team_biotic">use biotic (green) tech-skip</li>' };
+            return { event : 'research_team_biotic', id: 'research_team_biotic', label: 'use biotic (green) tech-skip', html : '<li class="option" id="research_team_biotic">use biotic (green) tech-skip</li>' };
 	  }
 	  return {};
         },
@@ -886,7 +888,7 @@
         },
         menuOption  :       function(imperium_self, menu, player) {
           if (menu == "main" && imperium_self.game.planets[imperium_self.game.state.research_team_cybernetic_planet].owner == player) {
-            return { event : 'research_team_cybernetic', html : '<li class="option" id="research_team_cybernetic">use cybernetic (yellow) tech-skip</li>' };
+            return { event : 'research_team_cybernetic', id: 'research_team_cybernetic', label: 'use cybernetic (yellow) tech-skip', html : '<li class="option" id="research_team_cybernetic">use cybernetic (yellow) tech-skip</li>' };
 	  }
 	  return {};
         },
@@ -956,7 +958,7 @@
         },
         menuOption  :       function(imperium_self, menu, player) {
           if (menu == "main" && imperium_self.game.planets[imperium_self.game.state.research_team_propulsion_planet].owner == player) {
-            return { event : 'research_team_propulsion', html : '<li class="option" id="research_team_propulsion">use propulsion (blue) tech-skip</li>' };
+            return { event : 'research_team_propulsion', id: 'research_team_propulsion', label: 'use propulsion (blue) tech-skip', html : '<li class="option" id="research_team_propulsion">use propulsion (blue) tech-skip</li>' };
 	  }
 	  return {};
         },
@@ -1025,7 +1027,7 @@
         },
         menuOption  :       function(imperium_self, menu, player) {
           if (menu == "main" && imperium_self.game.planets[imperium_self.game.state.research_team_warfare_planet].owner == player) {
-            return { event : 'research_team_warfare', html : '<li class="option" id="research_team_warfare">use warfare (red) tech-skip</li>' };
+            return { event : 'research_team_warfare', id: 'research_team_warfare', label: 'use warfare (red) tech-skip', html : '<li class="option" id="research_team_warfare">use warfare (red) tech-skip</li>' };
 	  }
 	  return {};
         },
@@ -2158,7 +2160,10 @@
 		return 1;
               },
 	      function(player) {
-		imperium_self.updateStatus("");
+				imperium_self.game.status = "";
+		imperium_self.hud.updateStatus(imperium_self.game.status);
+		imperium_self.hud.updateMenu([]);
+		imperium_self.hud.updateCards([]);
 		imperium_self.addMove("produce\t" + player + "\t" + "1" + "\t" + planet_idx + "\t" + "infantry" + "\t" + sector);
 		imperium_self.addMove("annex\t" + player + "\t" + sector + "\t" + planet_idx);
 		imperium_self.addMove("NOTIFY\t" + imperium_self.returnFaction(player) + " gains the contested planet");

@@ -7,14 +7,9 @@ const GameCardboxTemplate = require('./game-cardbox.template');
  * is associated with a (name) and (callback function). Hovering over the css-class element will trigger the cardbox to display
  * and clicking on it will trigger the action in the callback.
  * Many games use .card (or .showcard) as target css classes. Remember to call attachCardEvents after refreshing the DOM.
- * For convenience, gameTemplate includes a wrapper functino attachCardboxEvents to update the clickable event and re-attach events.
  *
  * skip_card_prompt is a flag that allows cardbox to directly enact the action upon clicking on the target element.
  * Set the flag to 0 to bring up a confirmation window before instantiating the action.
- * For convenience, gameTemplate includes a pair of functions cardbox_callback and changeable_callback.
- * You can associate cardbox_callback with a css class through addCardType once upon initialization of the game, and if you want different actions to occur
- * simply call game_mod.attachCardboxEvents(new_callback) to change the reference of cardbox_callback. gameTemplate automatically does this with
- * some wrapper functions for updating the DOM, such as updateStatusAndListCards
  *
  */
 class GameCardbox {
@@ -32,6 +27,7 @@ class GameCardbox {
     this.skip_card_prompt = 1; // 1 = don't prompt for action, just execute
     this.card_types = []; // associative array of css / text / callback
     this.current = null;
+    this.callback = null;
   }
 
   /**
@@ -120,7 +116,8 @@ class GameCardbox {
                 // lock so mouse can hover on cardbox
                 document.querySelector('.game-cardbox').style.pointerEvents = 'unset';
               } catch (err) {}
-              this.show(e.currentTarget.id, card_action, card_callback);
+              let invoke_cb = card_action ? this.callback || card_callback : card_callback;
+              this.show(e.currentTarget.id, card_action, invoke_cb);
             }
           };
         });
@@ -284,6 +281,10 @@ class GameCardbox {
       });
     }
     this.card_types = [];
+  }
+
+  bindCallback(callback) {
+    this.callback = callback;
   }
 
   /**

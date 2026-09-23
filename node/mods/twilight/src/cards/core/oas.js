@@ -16,7 +16,10 @@
 
         twilight_self.addMove("resolve\toas");
 
-        this.updateStatus("US places two influence in Central or South America");
+        this.game.status = "US places two influence in Central or South America";
+        this.hud.updateStatus(this.game.status);
+        this.hud.updateMenu([]);
+        this.hud.updateCards([]);
         for (var i in this.countries) {
           if (this.countries[i].region == "samerica" || this.countries[i].region == "camerica"){
             this.countries[i].place = 1;

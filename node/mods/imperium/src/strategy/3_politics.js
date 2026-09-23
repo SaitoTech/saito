@@ -24,24 +24,23 @@ this.importStrategyCard("politics", {
       // pick the speaker
       //
       let factions = imperium_self.returnFactions();
-      let html = `<div class="status-message">Make which player the speaker?</div><ul>`;
+      let html = `<div class="status-message">Make which player the speaker?</div>`;
+      let menu = [];
       for (let i = 0; i < imperium_self.game.state.players_info.length; i++) {
-        html +=
-          '<li class="option" id="' +
-          i +
-          '">' +
-          factions[imperium_self.game.state.players_info[i].faction].name +
-          "</li>";
+        menu.push({
+          id: String(i),
+          label: factions[imperium_self.game.state.players_info[i].faction].name,
+        });
       }
-      html += "</ul>";
-      imperium_self.updateStatus(html);
+            imperium_self.game.status = html;
+      imperium_self.hud.updateStatus(imperium_self.game.status);
+      imperium_self.hud.updateCards([]);
 
       let chancellor = imperium_self.game.player;
       let selected_agendas = [];
 
-      $(".option").off();
-      $(".option").on("click", function () {
-        let chancellor = parseInt($(this).attr("id")) + 1;
+      imperium_self.hud.updateMenu(menu, function (id) {
+        let chancellor = parseInt(id) + 1;
         let laws = imperium_self.returnAgendaCards();
         let laws_selected = 0;
 
@@ -83,26 +82,26 @@ this.importStrategyCard("politics", {
     if (imperium_self.game.player === imperium_self.game.state.speaker) {
       let html = "";
       if (imperium_self.game.state.agendas_per_round == 1) {
-        html += "Select one agenda to advance for consideration in the Galactic Senate.<ul>";
+        html += "Select one agenda to advance for consideration in the Galactic Senate.";
       }
       if (imperium_self.game.state.agendas_per_round == 2) {
-        html += "Select two agendas to advance for consideration in the Galactic Senate.<ul>";
+        html += "Select two agendas to advance for consideration in the Galactic Senate.";
       }
       if (imperium_self.game.state.agendas_per_round == 3) {
-        html += "Select three agendas to advance for consideration in the Galactic Senate.<ul>";
+        html += "Select three agendas to advance for consideration in the Galactic Senate.";
       }
 
+      let menu = [];
       for (i = 0; i < 3 && i < imperium_self.game.state.agendas.length; i++) {
-        html +=
-          '<li class="option" id="' +
-          imperium_self.game.state.agendas[i] +
-          '">' +
-          laws[imperium_self.game.state.agendas[i]].name +
-          "</li>";
+        menu.push({
+          id: String(imperium_self.game.state.agendas[i]),
+          label: laws[imperium_self.game.state.agendas[i]].name,
+        });
       }
-      html += "</ul>";
 
-      imperium_self.updateStatus(html);
+            imperium_self.game.status = html;
+      imperium_self.hud.updateStatus(imperium_self.game.status);
+      imperium_self.hud.updateCards([]);
 
       let card_removal_function = function (cardkey) {
         laws_selected--;
@@ -167,23 +166,29 @@ this.importStrategyCard("politics", {
         card_removal_function
       );
 
-      // this doesn't trigger overlays, as those are divs not li
-      $("li.option").off();
-      $("li.option").on("mouseenter", function () {
-        let s = $(this).attr("id");
-        imperium_self.showAgendaCard(s);
-      });
-      $("li.option").on("mouseleave", function () {
-        let s = $(this).attr("id");
-        imperium_self.hideAgendaCard(s);
-      });
-      $("li.option").on("click", function () {
-        $(".option").off();
-        let cardkey = $(this).attr("id");
+      let render_agenda_menu = function () {
+        imperium_self.hud.updateMenu(menu, function (cardkey) {
         card_selection_function(cardkey);
+        menu = menu.filter((opt) => opt.id != cardkey);
+        if (laws_selected < imperium_self.game.state.agendas_per_round) {
+          render_agenda_menu();
+        }
       });
+      document.querySelectorAll('.hud-menu .option').forEach((el) => {
+        el.addEventListener('mouseenter', function () {
+          imperium_self.showAgendaCard(el.id);
+        });
+        el.addEventListener('mouseleave', function () {
+          imperium_self.hideAgendaCard(el.id);
+        });
+      });
+      };
+      render_agenda_menu();
     } else {
-      imperium_self.updateStatus("Speaker selecting Agendas for consideration by Senate");
+            imperium_self.game.status = "Speaker selecting Agendas for consideration by Senate";
+      imperium_self.hud.updateStatus(imperium_self.game.status);
+      imperium_self.hud.updateMenu([]);
+      imperium_self.hud.updateCards([]);
     }
   },
 });

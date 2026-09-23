@@ -312,7 +312,10 @@ console.log(JSON.stringify(factions));
   checkForVictory() {
     for (let i = 0; i < this.game.state.players_info.length; i++) {
       if (this.game.state.players_info[i].vp >= this.game.state.vp_target) {
-        this.updateStatus("Game Over: " + this.returnFaction(i+1) + " has reached "+this.game.state.vo_target+" VP");
+                this.game.status = "Game Over: " + this.returnFaction(i+1) + " has reached "+this.game.state.vo_target+" VP";
+        this.hud.updateStatus(this.game.status);
+        this.hud.updateMenu([]);
+        this.hud.updateCards([]);
         return 1;
       }
     }

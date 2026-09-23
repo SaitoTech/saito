@@ -105,9 +105,9 @@ class PokerQueue {
           );
         }
 
-        this.updateStatus(
-          `${this.game.state.player_names[this.game.state.button_player - 1]} dealing the cards...`
-        );
+                this.updateStatus(`${this.game.state.player_names[this.game.state.button_player - 1]} dealing the cards...`);
+        this.hud.updateMenu([]);
+        this.hud.updateCards([]);
 
         this.game.state.flipped = 0;
         this.game.state.plays_since_last_raise = 0;
@@ -328,9 +328,9 @@ class PokerQueue {
             if (this.result) {
               this.result.hide();
             }
-            this.updateStatus(
-              `Clearing the table${this.needToSettleDebt() ? ' and settling bets' : ''}...`
-            );
+                        this.updateStatus(`Clearing the table${this.needToSettleDebt() ? ' and settling bets' : ''}...`);
+            this.hud.updateMenu([]);
+            this.hud.updateCards([]);
             this.animating = false;
             this.cardfan.hide();
             this.pot.clearPot();
@@ -724,7 +724,9 @@ class PokerQueue {
 
         this.animateWin(pot_total, winObj);
         this.halted = 1;
-        this.updateStatus(winnerStr);
+                this.updateStatus(winnerStr);
+        this.hud.updateMenu([]);
+        this.hud.updateCards([]);
 
         this.saveGame(this.game.id);
 
@@ -752,9 +754,9 @@ class PokerQueue {
             if (this.result) {
               this.result.hide();
             }
-            this.updateStatus(
-              `Clearing the table${this.needToSettleDebt() ? ' and settling bets' : ''}...`
-            );
+                        this.updateStatus(`Clearing the table${this.needToSettleDebt() ? ' and settling bets' : ''}...`);
+            this.hud.updateMenu([]);
+            this.hud.updateCards([]);
             console.log('Continuing poker...');
             this.animating = false;
             this.cardfan.hide();
@@ -826,7 +828,9 @@ class PokerQueue {
         this.board.render(true);
 
         if (this.game.player) {
-          this.updateStatus('waiting to ante');
+                    this.updateStatus('waiting to ante');
+          this.hud.updateMenu([]);
+          this.hud.updateCards([]);
         }
 
         let bbpi = this.game.state.big_blind_player - 1;
@@ -932,7 +936,9 @@ class PokerQueue {
           if (this.game.player !== player) {
             this.displayPlayerNotice(`<div class="plog-update">all in!</div>`, player);
           } else {
-            this.updateStatus('all in!');
+                        this.updateStatus('all in!');
+            this.hud.updateMenu([]);
+            this.hud.updateCards([]);
           }
         } else {
           this.updateLog(
@@ -943,7 +949,9 @@ class PokerQueue {
           if (this.game.player !== player) {
             this.displayPlayerNotice(`<div class="plog-update">calls</div>`, player);
           } else {
-            this.updateStatus('you called');
+                        this.updateStatus('you called');
+            this.hud.updateMenu([]);
+            this.hud.updateCards([]);
           }
         }
 
@@ -979,7 +987,9 @@ class PokerQueue {
             this.displayPlayerNotice(`<div class="plog-update">folds</div>`, player);
             this.playerbox.addClass('folded', player);
           } else {
-            this.updateStatus('you folded');
+                        this.updateStatus('you folded');
+            this.hud.updateMenu([]);
+            this.hud.updateCards([]);
             this.displayHand();
             this.ignore_notifications = true;
           }
@@ -999,7 +1009,9 @@ class PokerQueue {
         if (this.game.player !== player && this.browser_active) {
           this.displayPlayerNotice(`<div class="plog-update">checks</div>`, player);
         } else {
-          this.updateStatus('you checked');
+                    this.updateStatus('you checked');
+          this.hud.updateMenu([]);
+          this.hud.updateCards([]);
         }
         this.game.state.plays_since_last_raise++;
 
@@ -1033,7 +1045,9 @@ class PokerQueue {
         if (this.game.player !== player) {
           this.displayPlayerNotice(`<div class="plog-update">${raise_message}</div>`, player);
         } else {
-          this.updateStatus(raise_message);
+                    this.updateStatus(raise_message);
+          this.hud.updateMenu([]);
+          this.hud.updateCards([]);
         }
 
         await this.animateBet(player, raise);

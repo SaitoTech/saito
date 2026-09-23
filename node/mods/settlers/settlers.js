@@ -388,8 +388,6 @@ class Settlers extends GameTemplate {
       if (app.browser.isMobileBrowser(navigator.userAgent)) {
         console.log('mobile environment');
         this.hammer.render('#game-hexgrid');
-        //Prevent hud dragging in mobile
-        this.hud.draggable_whole = false;
       } else {
         this.sizer.render();
         this.sizer.attachEvents('#game-hexgrid');
@@ -431,8 +429,7 @@ class Settlers extends GameTemplate {
     //
     //Maybe we should standardize addClass() or classlist = [], for our UI components
     //
-    document.querySelector('#hud-body')?.classList.add('saitoa');
-    $('.hud-body .controls').appendTo('#hud');
+    document.querySelector('#game-hud2 .hud-status')?.classList.add('saitoa');
 
     let html = `<ul><li class="option enabled" id="score" title="view game statistics"><i class="fa-solid fa-ranking-star"></i><span class="settlers-control-label">Stats</span></li>
         <li class="option enabled" id="trade" title="trade with other players"><i class="fa-solid fa-money-bill-transfer"></i><span class="settlers-control-label">Trade</span></li>
@@ -442,40 +439,50 @@ class Settlers extends GameTemplate {
         <li class="option enabled primary-action" id="rolldice"><i class="fa-solid fa-forward"></i><span class="settlers-control-label">Next</span></li></ul>
 	    	`;
 
-    this.hud.updateControls(html);
-    this.updateControls();
+    let hud = document.getElementById('game-hud2');
+    let controls = document.getElementById('settlers-hud-controls');
+    if (hud && !controls) {
+      controls = document.createElement('div');
+      controls.id = 'settlers-hud-controls';
+      controls.className = 'settlers-hud-controls';
+      hud.appendChild(controls);
+    }
+    if (controls) {
+      controls.innerHTML = html;
+    }
+    this.setToolbarState();
 
     if (this.game.state.placedCity) {
-      $('.option').css('visibility', 'hidden');
+      $('#settlers-hud-controls .option').css('visibility', 'hidden');
     }
 
     //
     // hook up interactivity
     //
-    if (document.querySelector('.controls #score')) {
-      document.querySelector('.controls #score').onclick = (e) => {
+    if (document.querySelector('#settlers-hud-controls #score')) {
+      document.querySelector('#settlers-hud-controls #score').onclick = (e) => {
         this.stats_overlay.render();
       };
 
-      if (document.querySelector('.controls #playcard')) {
-        document.querySelector('.controls #playcard').onclick = (e) => {
+      if (document.querySelector('#settlers-hud-controls #playcard')) {
+        document.querySelector('#settlers-hud-controls #playcard').onclick = (e) => {
           this.dev_card.render();
         };
       }
 
-      if (document.querySelector('.controls #bank')) {
-        document.querySelector('.controls #bank').onclick = (e) => {
+      if (document.querySelector('#settlers-hud-controls #bank')) {
+        document.querySelector('#settlers-hud-controls #bank').onclick = (e) => {
           this.bank.render();
         };
       }
 
-      if (document.querySelector('.controls #spend')) {
-        document.querySelector('.controls #spend').onclick = (e) => {
+      if (document.querySelector('#settlers-hud-controls #spend')) {
+        document.querySelector('#settlers-hud-controls #spend').onclick = (e) => {
           this.build.render();
         };
       }
 
-      let trade_btn = document.querySelector('.controls #trade');
+      let trade_btn = document.querySelector('#settlers-hud-controls #trade');
 
       if (!trade_btn || this.game.over) {
         return;
@@ -707,26 +714,26 @@ class Settlers extends GameTemplate {
     this.clearShotClock();
     this.clock.stopClock();
 
-    this.updateStatus('submitting game move...');
-    this.updateControls('WAIT');
+        this.updateStatus('submitting game move...');
+    this.setToolbarState('WAIT');
 
     super.endTurn();
   }
 
-  updateControls(str) {
+  setToolbarState(str) {
     if (!this.gameBrowserActive()) {
       return;
     }
 
     if (str) {
       if (str.includes('<i')) {
-        $('.controls .option').css('visibility', 'hidden');
+        $('#settlers-hud-controls .option').css('visibility', 'hidden');
         $('#rolldice').addClass('enabled');
         $('#rolldice').css('visibility', 'visible');
         $('#rolldice').html(str);
         return;
       } else if (str === 'WAIT') {
-        $('.controls .option').css('visibility', 'hidden');
+        $('#settlers-hud-controls .option').css('visibility', 'hidden');
         $('#rolldice').css('visibility', 'visible');
         $('#rolldice').html(`<i class="fa-solid fa-pause"></i>`);
         $('#rolldice').removeClass('enabled');
@@ -738,7 +745,7 @@ class Settlers extends GameTemplate {
       }
     }
 
-    $('.controls .option').css('visibility', 'visible');
+    $('#settlers-hud-controls .option').css('visibility', 'visible');
 
     if (this.game.state.playerTurn !== this.game.player) {
       $('#rolldice').html(`<i class="fa-solid fa-pause"></i>`);
@@ -761,14 +768,14 @@ class Settlers extends GameTemplate {
                       ${allowRematch ? '<!--li class="textchoice" id="rematch">Rematch</li-->' : ''}
                    </ul>`;
 
-    this.hud.back_button = false;
+    this.hud.hideBackButton();
 
-    this.updateStatus(status);
+        this.updateStatus(status);
 
     let settlers_self = this;
 
-    $('.controls .option').css('visibility', 'hidden');
-    $('.controls .option').removeClass('enabled');
+    $('#settlers-hud-controls .option').css('visibility', 'hidden');
+    $('#settlers-hud-controls .option').removeClass('enabled');
 
     $('#score').addClass('enabled');
     $('#score').css('visibility', 'visible');
@@ -808,22 +815,24 @@ class Settlers extends GameTemplate {
       let btn = document.getElementById('spend');
       if (btn) {
         if (tx.isFrom(this.publicKey)) {
-          this.updateStatus('Rematch requested');
+                    this.updateStatus('Rematch requested');
         } else {
-          this.updateStatus('Accept Rematch?');
+                    this.updateStatus('Accept Rematch?');
         }
       }
     });
 
     this.app.connection.on('arcade-game-initialize-render-request', (game_id) => {
-      this.updateStatus('Preparing rematch...');
-      this.updateControls('WAIT');
+            this.updateStatus('Preparing rematch...');
+      this.setToolbarState('WAIT');
       this.browser_active = 0; //Hack to simulate not being in the game mod
     });
 
     this.app.connection.on('arcade-game-ready-render-request', (game_details) => {
-      let status = document.getElementById('status') || document.querySelector('.status');
-      status.innerHTML = `<div class="player-notice">Set sail for a new island</div>`;
+      let was_browser_active = this.browser_active;
+      this.browser_active = 1;
+      this.updateStatus('Set sail for a new island');
+      this.browser_active = was_browser_active;
 
       $('#rolldice').addClass('enabled');
       $('#rolldice').html(`<i class="fa-solid fa-anchor"></i>`);

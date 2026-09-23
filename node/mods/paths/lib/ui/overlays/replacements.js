@@ -10,7 +10,10 @@ class ReplacementsOverlay {
   }
 
   hide() {
-    this.mod.updateStatus('submitting...');
+    this.mod.game.status = 'submitting...';
+    this.mod.hud.updateStatus(this.mod.game.status);
+    this.mod.hud.updateMenu([]);
+    this.mod.hud.updateCards([]);
     this.visible = false;
     this.overlay.hide();
   }
@@ -20,9 +23,9 @@ class ReplacementsOverlay {
     // pull GAME HUD over overlay
     //
     let overlay_zindex = parseInt(this.overlay.zIndex);
-    if (document.querySelector('.hud')) {
-      document.querySelector('.hud').style.zIndex = overlay_zindex + 1;
-      this.mod.hud.zIndex = overlay_zindex + 1;
+    let hud = document.getElementById('game-hud2');
+    if (hud) {
+      hud.style.zIndex = overlay_zindex + 1;
     }
   }
   pushHudUnderOverlay() {
@@ -30,9 +33,9 @@ class ReplacementsOverlay {
     // push GAME HUD under overlay
     //
     let overlay_zindex = parseInt(this.overlay.zIndex);
-    if (document.querySelector('.hud')) {
-      document.querySelector('.hud').style.zIndex = overlay_zindex - 2;
-      this.mod.hud.zIndex = overlay_zindex - 2;
+    let hud = document.getElementById('game-hud2');
+    if (hud) {
+      hud.style.zIndex = overlay_zindex - 2;
     }
   }
 
@@ -337,7 +340,10 @@ class ReplacementsOverlay {
                 paths_self.trackDeploymentIntoNearEast(faction, unit);
               }
 
-              paths_self.updateStatus('moving...');
+              paths_self.game.status = 'moving...';
+              paths_self.hud.updateStatus(paths_self.game.status);
+              paths_self.hud.updateMenu([]);
+              paths_self.hud.updateCards([]);
               paths_self.moveUnit(eu[z].key, eu[z].idx, spacekey);
               paths_self.prependMove(
                 `NOTIFY\t${paths_self.returnFactionName(faction)} deploys ${unit.name} to ${paths_self.returnSpaceNameForLog(eu[z].key)}`

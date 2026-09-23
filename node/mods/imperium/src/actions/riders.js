@@ -113,18 +113,19 @@
             imperium_self.addMove("NOTIFY\tdealing two action cards to "+imperium_self.returnFactionNickname(imperium_self.game.player));
 
 	    // and change speaker
-	    let html = '<div class="status-message">Make which player the speaker?</div><ul>';
+	    let html = '<div class="status-message">Make which player the speaker?</div>';
+	    let menu = [];
             for (let i = 0; i < imperium_self.game.state.players_info.length; i++) {
-              html += '<li class="textchoice" id="'+i+'">' + factions[imperium_self.game.state.players_info[i].faction].name + '</li>';
+              menu.push({ id: String(i), label: factions[imperium_self.game.state.players_info[i].faction].name });
             }
-            html += '</ul>';
-            imperium_self.updateStatus(html);
+                        imperium_self.game.status = html;
+            imperium_self.hud.updateStatus(imperium_self.game.status);
+            imperium_self.hud.updateCards([]);
 
             let chancellor = imperium_self.game.player;
 
-            $('.textchoice').off();
-            $('.textchoice').on('click', function() {
-              let chancellor = (parseInt($(this).attr("id")) + 1);
+            imperium_self.hud.updateMenu(menu, function (id) {
+              let chancellor = (parseInt(id) + 1);
 	      imperium_self.addMove("change_speaker\t"+chancellor);
 	      imperium_self.endTurn();
 	    });

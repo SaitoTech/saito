@@ -132,16 +132,16 @@ this.importTech("faction2-brilliant", {
             "The Tech strategy card has been played. You may expend a strategy token to research a technology. You can then purchase a second for 6 resources:",
             function () {
               let html =
-                '<div class="status-message">Technology has been played. Do you wish to spend a strategy token to research a technology? </div><ul>';
-              html += '<li class="option" id="yes">Yes</li>';
-              html += '<li class="option" id="no">No</li>';
-              html += "</ul>";
+                '<div class="status-message">Technology has been played. Do you wish to spend a strategy token to research a technology? </div>';
+              let menu = [
+                { id: 'yes', label: 'Yes' },
+                { id: 'no', label: 'No' }
+              ];
 
-              imperium_self.updateStatus(html);
-
-              $(".option").off();
-              $(".option").on("click", function () {
-                let id = $(this).attr("id");
+                            imperium_self.game.status = html;
+              imperium_self.hud.updateStatus(imperium_self.game.status);
+              imperium_self.hud.updateCards([]);
+              imperium_self.hud.updateMenu(menu, function (id) {
 
                 if (id === "no") {
                   imperium_self.addMove("resolve\tstrategy\t1\t" + imperium_self.getPublicKey());
@@ -164,7 +164,7 @@ this.importTech("faction2-brilliant", {
 
                   let resources_to_spend = 6;
                   let html =
-                    '<div class="status-message">Do you wish to spend 6 resources to research a second technology? </div><ul>';
+                    '<div class="status-message">Do you wish to spend 6 resources to research a second technology? </div>';
 
                   if (
                     imperium_self.game.state.players_info[player - 1]
@@ -173,24 +173,23 @@ this.importTech("faction2-brilliant", {
                       .temporary_research_technology_card_must_not_spend_resources == 1
                   ) {
                     html =
-                      '<div class="status-message">Do you wish to research a second technology for free?</div><ul>';
+                      '<div class="status-message">Do you wish to research a second technology for free?</div>';
                     resources_to_spend = 0;
                   }
 
+                  let menu = [];
                   let available_resources = imperium_self.returnAvailableResources(
                     imperium_self.game.player
                   );
                   if (available_resources >= resources_to_spend) {
-                    html += '<li class="option" id="yes">Yes</li>';
+                    menu.push({ id: 'yes', label: 'Yes' });
                   }
-                  html += '<li class="option" id="no">No</li>';
-                  html += "</ul>";
+                  menu.push({ id: 'no', label: 'No' });
 
-                  imperium_self.updateStatus(html);
-
-                  $(".option").off();
-                  $(".option").on("click", function () {
-                    let id = $(this).attr("id");
+                                    imperium_self.game.status = html;
+                  imperium_self.hud.updateStatus(imperium_self.game.status);
+                  imperium_self.hud.updateCards([]);
+                  imperium_self.hud.updateMenu(menu, function (id) {
 
                     if (id === "yes") {
                       imperium_self.game.state.players_info[
@@ -306,16 +305,16 @@ this.importTech("faction2-deep-space-conduits", {
     return 0;
   },
   activateSystemEvent: function (imperium_self, activating_player, player, sector) {
-    let html = "Do you wish to activate Deep Space Conduits: <ul>";
-    html += '<li class="textchoice" id="yes">activate</li>';
-    html += '<li class="textchoice" id="no">skip</li>';
-    html += "</ul>";
+    let html = "Do you wish to activate Deep Space Conduits: ";
+    let menu = [
+      { id: 'yes', label: 'activate' },
+      { id: 'no', label: 'skip' }
+    ];
 
-    imperium_self.updateStatus(html);
-
-    $(".textchoice").off();
-    $(".textchoice").on("click", function () {
-      let action = $(this).attr("id");
+        imperium_self.game.status = html;
+    imperium_self.hud.updateStatus(imperium_self.game.status);
+    imperium_self.hud.updateCards([]);
+    imperium_self.hud.updateMenu(menu, function (action) {
 
       if (action == "yes") {
         let sectors = imperium_self.returnSectorsWithPlayerUnits(activating_player);
@@ -339,7 +338,10 @@ this.importTech("faction2-deep-space-conduits", {
       }
 
       if (action == "no") {
-        imperium_self.updateStatus();
+                imperium_self.game.status = '';
+        imperium_self.hud.updateStatus(imperium_self.game.status);
+        imperium_self.hud.updateMenu([]);
+        imperium_self.hud.updateCards([]);
         imperium_self.endTurn();
       }
     });
@@ -364,16 +366,16 @@ this.importPromissary("faction2-promissary", {
   },
   researchTechnologyEvent: function (imperium_self, researcher, player, tech) {
     if (imperium_self.game.player === player) {
-      let html = `<div class="status-message">Do you wish to return your Research Agreement and gain ${imperium_self.tech[tech].name}? </div><ul>`;
-      html += '<li class="option" id="yes">Yes</li>';
-      html += '<li class="option" id="no">No</li>';
-      html += "</ul>";
+      let html = `<div class="status-message">Do you wish to return your Research Agreement and gain ${imperium_self.tech[tech].name}? </div>`;
+      let menu = [
+        { id: 'yes', label: 'Yes' },
+        { id: 'no', label: 'No' }
+      ];
 
-      imperium_self.updateStatus(html);
-
-      $(".option").off();
-      $(".option").on("click", function () {
-        let id = $(this).attr("id");
+            imperium_self.game.status = html;
+      imperium_self.hud.updateStatus(imperium_self.game.status);
+      imperium_self.hud.updateCards([]);
+      imperium_self.hud.updateMenu(menu, function (id) {
 
         if (id === "no") {
           imperium_self.endTurn();

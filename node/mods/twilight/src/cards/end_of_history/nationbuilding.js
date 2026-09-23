@@ -7,7 +7,10 @@
       if (this.game.player == 2) { opponent = "ussr"; me = "us"; }
 
       if (player != me) {
-        this.updateStatus("Opponent is playing Nation Building");
+        this.game.status = "Opponent is playing Nation Building";
+        this.hud.updateStatus(this.game.status);
+        this.hud.updateMenu([]);
+        this.hud.updateCards([]);
         return 0;
 
       } else {
@@ -30,7 +33,10 @@
 
 
         let eligible_countries = 0;
-        this.updateStatus("Select any country in Africa, Central America or South America that is not controlled by the opposing player and in which you have at least 1 influence:");
+        this.game.status = "Select any country in Africa, Central America or South America that is not controlled by the opposing player and in which you have at least 1 influence:";
+        this.hud.updateStatus(this.game.status);
+        this.hud.updateMenu([]);
+        this.hud.updateCards([]);
         for (var i in this.countries) {
 
           let divname      = '#'+i;
@@ -52,8 +58,11 @@
               $('.country').off();
 
               let html = 'Discard one of the following cards to increase the stability of this country by 1 and add 1 influence: ';
-              twilight_self.updateStatusAndListCards(html, eligible_cards);
-              twilight_self.hud.attachControlCallback(function(card) {
+              twilight_self.game.status = html;
+              twilight_self.hud.updateStatus(twilight_self.game.status);
+              twilight_self.hud.updateMenu([]);
+              twilight_self.hud.updateCards(eligible_cards);
+              twilight_self.cardbox.bindCallback(function(card) {
                 twilight_self.placeInfluence(c, 1, player, function() {
                   twilight_self.removeCardFromHand(card);
                   twilight_self.addMove("place\t"+player+"\t"+player+"\t"+c+"\t1");
@@ -63,6 +72,7 @@
                   twilight_self.endTurn(1);
                 });
               });
+              twilight_self.cardbox.attachCardEvents();
             });
 
           } else {

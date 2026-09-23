@@ -853,7 +853,10 @@ class LossOverlay {
       for (let i = this.moves.length - 1; i >= 0; i--) {
         this.mod.addMove(this.moves[i]);
       }
-      this.mod.updateStatus('processing...'); // prevent re-rendering from options
+      this.mod.game.status = 'processing...';
+      this.mod.hud.updateStatus(this.mod.game.status);
+      this.mod.hud.updateMenu([]);
+      this.mod.hud.updateCards([]);
       this.mod.endTurn();
 
       this.mod.displaySpace(this.mod.game.state.combat.key);
@@ -888,7 +891,10 @@ class LossOverlay {
       for (let i = this.moves.length - 1; i >= 0; i--) {
         paths_self.addMove(this.moves[i]);
       }
-      paths_self.updateStatus('processing...'); // prevent re-rendering from options
+      paths_self.game.status = 'processing...';
+      paths_self.hud.updateStatus(paths_self.game.status);
+      paths_self.hud.updateMenu([]);
+      paths_self.hud.updateCards([]);
       paths_self.endTurn();
       return;
     }

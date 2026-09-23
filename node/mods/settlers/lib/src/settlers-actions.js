@@ -4,14 +4,16 @@ class SettlersActions {
   // and override the callback
   //
   playerAcknowledgeNotice(msg, mycallback) {
-    let html = `<i class="fa-solid fa-forward"></i>`;
     try {
-      this.updateStatusWithOptions(`<div class="player-notice">${msg}</div>`, html);
+            this.game.status = `<div class="player-notice">${msg}</div>`;
+      this.hud.updateStatus(this.game.status);
+      this.hud.updateCards([]);
+      this.hud.updateMenu([]);
 
       document.getElementById('rolldice').onclick = async (e) => {
         e.currentTarget.onclick = null;
         this.clearShotClock();
-        this.updateControls();
+        this.setToolbarState();
         this.game.queue.splice(this.game.queue.length - 1, 1);
         this.restartQueue();
       };
@@ -121,12 +123,13 @@ class SettlersActions {
     }
 
     if (poor_harvest) {
-      this.updateStatus(`${firstMsg}: ${this.randomMsg()}`, 1);
+            this.updateStatus(`${firstMsg}: ${this.randomMsg()}`, 1);
     } else {
-      this.updateStatus(
-        `<div class="player-notice"><span>${firstMsg}! you gain: </span><div class="hud-status-card-list">${notice}</div></div>`,
-        1
-      );
+            this.game.status = `<div class="player-notice"><span>${firstMsg}! you gain: </span><div class="hud-status-card-list">${notice}</div></div>`,
+        1;
+      this.hud.updateStatus(this.game.status);
+      this.hud.updateMenu([]);
+      this.hud.updateCards([]);
     }
 
     if (this.animationSequence.length > 0) {

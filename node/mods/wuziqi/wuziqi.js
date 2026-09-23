@@ -212,10 +212,9 @@ class Wuziqi extends GameTemplate {
     this.game.status = str;
 
     if (this.gameBrowserActive()) {
-      let status_obj = document.querySelector('.status');
-      if (status_obj) {
-        status_obj.innerHTML = str;
-      }
+      this.hud.updateStatus(str);
+      this.hud.updateMenu([]);
+      this.hud.updateCards([]);
     }
   }
 
@@ -370,12 +369,16 @@ class Wuziqi extends GameTemplate {
 
         if (this.game.player == first_player) {
           this.addEvents(this.game.board);
-          this.updateStatus('You go first');
+                    this.game.status = 'You go first';
+          this.hud.updateStatus(this.game.status);
+          this.hud.updateMenu([]);
+          this.hud.updateCards([]);
         } else {
           this.startClock();
-          this.updateStatus(
-            `Waiting for <span class="playertitle">${this.roles[first_player]} (${this.app.keychain.returnUsername(this.game.players[first_player - 1])})</span> to start`
-          );
+                    this.game.status = `Waiting for <span class="playertitle">${this.roles[first_player]} (${this.app.keychain.returnUsername(this.game.players[first_player - 1])})</span> to start`;
+          this.hud.updateStatus(this.game.status);
+          this.hud.updateMenu([]);
+          this.hud.updateCards([]);
         }
         return 0;
       }
@@ -387,11 +390,12 @@ class Wuziqi extends GameTemplate {
         if (player != this.game.player && this.game.player > 0) {
           this.addContinueButton(`It's a draw -- no winner.`);
         } else {
-          this.updateStatus(
-            `Draw! <span class="playertitle">${
+                    this.game.status = `Draw! <span class="playertitle">${
               this.roles[3 - player]
-            }</span> (${this.app.keychain.returnUsername(this.game.players[2 - player])}) will start`
-          );
+            }</span> (${this.app.keychain.returnUsername(this.game.players[2 - player])}) will start`;
+          this.hud.updateStatus(this.game.status);
+          this.hud.updateMenu([]);
+          this.hud.updateCards([]);
         }
         // Remove this item from the queue.
         this.game.queue.splice(this.game.queue.length - 1, 1);
@@ -405,7 +409,10 @@ class Wuziqi extends GameTemplate {
         this.game.target = this.returnNextPlayer(winner);
 
         if (!this.gameBrowserActive() && this.game.player === this.game.target) {
-          this.updateStatus('You lost the round');
+                    this.game.status = 'You lost the round';
+          this.hud.updateStatus(this.game.status);
+          this.hud.updateMenu([]);
+          this.hud.updateCards([]);
           this.setPlayerActive();
           return 0;
         }
@@ -432,11 +439,12 @@ class Wuziqi extends GameTemplate {
           if (winner != this.game.player) {
             this.addContinueButton('You lost!');
           } else {
-            this.updateStatus(
-              `You win the round! <span class="playertitle">${
+                        this.game.status = `You win the round! <span class="playertitle">${
                 this.roles[3 - winner]
-              }</span> (${this.app.keychain.returnUsername(this.game.players[2 - winner])}) will start`
-            );
+              }</span> (${this.app.keychain.returnUsername(this.game.players[2 - winner])}) will start`;
+            this.hud.updateStatus(this.game.status);
+            this.hud.updateMenu([]);
+            this.hud.updateCards([]);
             this.drawBoard(this.game.board);
           }
         }
@@ -490,18 +498,25 @@ class Wuziqi extends GameTemplate {
       console.log('cell: ', cell);
 
       if (this.gameBrowserActive() && cell) {
-        this.updateStatus(`Your move <span class="replay">Replay Last</span>`);
+                this.game.status = `Your move <span class="replay">Replay Last</span>`;
+        this.hud.updateStatus(this.game.status);
+        this.hud.updateMenu([]);
+        this.hud.updateCards([]);
         document.querySelector('.replay').onclick = (e) => {
           this.animatePlay(cell);
         };
       } else {
-        this.updateStatus('Your move');
+                this.game.status = 'Your move';
+        this.hud.updateStatus(this.game.status);
+        this.hud.updateMenu([]);
+        this.hud.updateCards([]);
       }
     } else {
       this.startClock();
-      this.updateStatus(
-        `Waiting on <span class='playertitle'>${this.roles[3 - this.game.player]}</span> (${this.app.keychain.returnUsername(this.game.players[2 - this.game.player])})`
-      );
+            this.game.status = `Waiting on <span class='playertitle'>${this.roles[3 - this.game.player]}</span> (${this.app.keychain.returnUsername(this.game.players[2 - this.game.player])})`;
+      this.hud.updateStatus(this.game.status);
+      this.hud.updateMenu([]);
+      this.hud.updateCards([]);
     }
 
     return 0;

@@ -923,8 +923,6 @@ class PandemicRetroSkin extends PandemicOriginalSkin {
   animateInfection(city, msg, dontplace, mycallback) {
     let pandemic_self = this.mod;
 
-    let html = `<ul><li class="textchoice confirmit" id="confirmit">I understand...</li></ul>`;
-
     try {
       this.app.browser.addElementToElement(
         `<div class="infection_highlight${
@@ -935,8 +933,10 @@ class PandemicRetroSkin extends PandemicOriginalSkin {
         document.getElementById('gameboard')
       );
       $('.confirmit').off();
-      pandemic_self.updateStatusWithOptions(msg, html);
-      $('.confirmit').on('click', async (e) => {
+            pandemic_self.game.status = msg;
+      pandemic_self.hud.updateStatus(pandemic_self.game.status);
+      pandemic_self.hud.updateCards([]);
+      let confirmInfection = async (e) => {
         $('.confirmit').off();
         $('.infection_highlight').addClass('animateit');
         pandemic_self.showBoard();
@@ -944,7 +944,9 @@ class PandemicRetroSkin extends PandemicOriginalSkin {
           document.querySelector('.infection_highlight').remove();
         }, 2500);
         mycallback();
-      });
+      };
+      pandemic_self.hud.updateMenu([{ id: 'confirmit', label: 'I understand...' }], confirmInfection);
+      $('.confirmit').on('click', confirmInfection);
     } catch (err) {
       console.log(err);
     }

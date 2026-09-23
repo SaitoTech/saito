@@ -15,9 +15,11 @@
 
       if (this.game.player == 2) {
 
-        this.hud.back_button = false;
-        this.hud.back_button_callback = null;
-        this.updateStatus("Remove 4 USSR influence from non-European countries (max 2 per country)");
+        this.hud.hideBackButton();
+        this.game.status = "Remove 4 USSR influence from non-European countries (max 2 per country)";
+        this.hud.updateStatus(this.game.status);
+        this.hud.updateMenu([]);
+        this.hud.updateCards([]);
 
         var twilight_self = this;
         var ops_purged = {};

@@ -8,7 +8,10 @@
       this.startClockAndSetActivePlayer(this.roles.indexOf(player));
 
       if (my_go == 0) {
-        this.updateStatus("Waiting for Opponent to play Polio Vaccine");
+        this.game.status = "Waiting for Opponent to play Polio Vaccine";
+        this.hud.updateStatus(this.game.status);
+        this.hud.updateMenu([]);
+        this.hud.updateCards([]);
         return 0;
 
       }
@@ -58,10 +61,10 @@
         let discard_function = () => {
 
           let remaining = 0;
-          let html = "<ul>";
+          let options = [];
           for (let i = 0; i < twilight_self.game.deck[0].hand.length; i++) {
             if (twilight_self.game.deck[0].hand[i] != "china") {
-              html += `<li class="option" id="${twilight_self.game.deck[0].hand[i]}">${twilight_self.game.deck[0].cards[twilight_self.game.deck[0].hand[i]].name}</li>`;
+              options.push({ id: twilight_self.game.deck[0].hand[i], label: twilight_self.game.deck[0].cards[twilight_self.game.deck[0].hand[i]].name });
               remaining++;
             }
           }
@@ -74,9 +77,12 @@
             return 0;
           }
 
-          html += '<li class="option dashed nocard" id="finished">finished</li></ul>';
+          options.push({ id: 'finished', label: 'finished' });
 
-          twilight_self.updateStatusWithOptions("Select cards to discard:", html, function(card) {
+          twilight_self.game.status = "Select cards to discard:";
+          twilight_self.hud.updateStatus(twilight_self.game.status);
+          twilight_self.hud.updateCards([]);
+          twilight_self.hud.updateMenu(options, function(card) {
 
             if (card == "finished") {
               finish_discard();

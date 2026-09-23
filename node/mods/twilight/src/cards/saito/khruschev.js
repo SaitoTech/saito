@@ -19,7 +19,10 @@
 
         twilight_self.addMove("resolve\tkhruschevthaw");
 
-        twilight_self.updateStatus("Add 3 influence to 3 non-battleground countries in Eastern Europe");          
+        twilight_self.game.status = "Add 3 influence to 3 non-battleground countries in Eastern Europe";
+        twilight_self.hud.updateStatus(twilight_self.game.status);
+        twilight_self.hud.updateMenu([]);
+        twilight_self.hud.updateCards([]);          
 
         for (let c of options_add) {
           $("#"+c).addClass("westerneurope");

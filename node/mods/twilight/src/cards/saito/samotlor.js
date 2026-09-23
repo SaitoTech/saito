@@ -40,9 +40,12 @@
 
         cardList.push("finished");
 
-        twilight_self.updateStatusAndListCards(user_message, cardList, false);
+        twilight_self.game.status = user_message;
+        twilight_self.hud.updateStatus(twilight_self.game.status);
+        twilight_self.hud.updateMenu([]);
+        twilight_self.hud.updateCards(cardList);
         twilight_self.addMove("resolve\tsamotlor");
-        twilight_self.hud.attachControlCallback(function(action2) {
+        twilight_self.cardbox.bindCallback(function(action2) {
 
           if (action2 == "finished") {
 
@@ -101,6 +104,7 @@
             }
           }
         });
+        twilight_self.cardbox.attachCardEvents();
 
       }
 

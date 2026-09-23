@@ -41,6 +41,8 @@
         if (menu === "main") {
           x.event = 'stalltactics';
           x.html = '<li class="option" id="stalltactics">discard action card (stall)</li>';
+          x.id = 'stalltactics';
+          x.label = 'discard action card (stall)';
         }
         return x;
       },
@@ -129,7 +131,10 @@
 	      imperium_self.endTurn();
 	    });
 	  } else {
-	    imperium_self.updateStatus("Yssaril are discarding an action card...");
+	    	    imperium_self.game.status = "Yssaril are discarding an action card...";
+	    imperium_self.hud.updateStatus(imperium_self.game.status);
+	    imperium_self.hud.updateMenu([]);
+	    imperium_self.hud.updateCards([]);
 	  }
 
           return 0;
@@ -214,7 +219,7 @@
       },
       menuOption  :       function(imperium_self, menu, player) {
         if (menu == "main") {
-          return { event : 'mageonimplants', html : '<li class="option" id="mageonimplants">exhaust mageon implants</li>' };
+          return { event : 'mageonimplants', id: 'mageonimplants', label: 'exhaust mageon implants', html : '<li class="option" id="mageonimplants">exhaust mageon implants</li>' };
         }
         return {};
       },
@@ -271,22 +276,18 @@
 
 	  if (imperium_self.game.player === faction6_player) {
 
-    	    let html = '<div class="" style="margin-bottom:10px">Select ' + imperium_self.returnFactionNickname(faction6_target) + ' action card:</div><ul>';
+    	    let html = '<div class="" style="margin-bottom:10px">Select ' + imperium_self.returnFactionNickname(faction6_target) + ' action card:</div>';
+            let menu = [];
 	    for (let i = 0; i < faction6_target_cards.length; i++) {
-      	      html += `<li class="option" id="${i}">${imperium_self.action_cards[faction6_target_cards[i]].name}</li>`;
+      	      menu.push({ id: String(i), label: imperium_self.action_cards[faction6_target_cards[i]].name });
 	    }
-	    html += `<li class="option" id="cancel">skip</li>`;
+	    menu.push({ id: 'cancel', label: 'skip' });
 
-	    imperium_self.updateStatus(html);
+	    	    imperium_self.game.status = html;
+	    imperium_self.hud.updateStatus(imperium_self.game.status);
+	    imperium_self.hud.updateCards([]);
 
-            $('.option').off();
-            $('.option').on('click', function () {
-
-	      $('.option').off();
-
-              let opt = $(this).attr("id");
-
-
+            imperium_self.hud.updateMenu(menu, function (opt) {
 	      if (opt === "skip") {
 		imperium_self.playerTurn();	
 		return 0;
@@ -343,6 +344,8 @@
         if (menu == "main") {
           x.event = 'faction6-promissary';
           x.html = '<li class="option" id="faction6-promissary">Nest of Spies (Yssaril Promissary)</li>';
+          x.id = 'faction6-promissary';
+          x.label = 'Nest of Spies (Yssaril Promissary)';
         }
         return x;
       },
@@ -359,18 +362,16 @@
         let yssaril_player = imperium_self.returnPlayerOfFaction("faction6");
         if (imperium_self.game.player == player) {
 
-          let html = 'Reveal Yssaril Action Cards and Take One? <ul>';
-              html += '<li class="option" id="yes">yes</li>';
-              html += '<li class="option" id="no">no</li>';
-              html += '</ul>';
+          let html = 'Reveal Yssaril Action Cards and Take One?';
+          let menu = [];
+              menu.push({ id: 'yes', label: 'yes' });
+              menu.push({ id: 'no', label: 'no' });
 
-          imperium_self.updateStatus(html);
+                    imperium_self.game.status = html;
+          imperium_self.hud.updateStatus(imperium_self.game.status);
+          imperium_self.hud.updateCards([]);
 
-          $('.option').off();
-          $('.option').on('click', function() {
-
-             let id = $(this).attr('id');
-
+          imperium_self.hud.updateMenu(menu, function(id) {
 	     if (id === "yes") {
 	       imperium_self.addMove("faction6_promissary_triggered"+"\t"+imperium_self.game.player+"\t"+yssaril_player);
                imperium_self.addMove("NOTIFY\t" + imperium_self.returnFaction(imperium_self.game.player) + " redeems Yssaril promissary");
@@ -412,7 +413,10 @@
           imperium_self.game.queue.splice(qe, 1);
 
 	  if (relevant_action_cards.length <= 0) {
-	    imperium_self.updateStatus("Yssaril has no action cards to steal...");
+	    	    imperium_self.game.status = "Yssaril has no action cards to steal...";
+	    imperium_self.hud.updateStatus(imperium_self.game.status);
+	    imperium_self.hud.updateMenu([]);
+	    imperium_self.hud.updateCards([]);
 	    return 1;
 	  }
 

@@ -17,7 +17,10 @@
 
         twilight_self.addMove("resolve\tnixonshock");
 
-        twilight_self.updateStatusWithOptions(`${twilight_self.cardToText(card)}: `,'<ul><li class="option" id="draw">Drawl Additional Card from Deck</li><li class="option" id="skip">Skip</li></ul>', function(action2) {
+        twilight_self.game.status = `${twilight_self.cardToText(card)}: `;
+        twilight_self.hud.updateStatus(twilight_self.game.status);
+        twilight_self.hud.updateCards([]);
+        twilight_self.hud.updateMenu([ { id: 'draw', label: 'Drawl Additional Card from Deck' }, { id: 'skip', label: 'Skip' } ], function(action2) {
 
 	  if (action2 === "skip") {
 	    twilight_self.endTurn();

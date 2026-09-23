@@ -856,7 +856,31 @@ A good rule for AI is:
 Create a function when it gives the application a meaningful semantic boundary.
 
 
-## 21. Do Not Move UI Logic Back Into the Module
+## 21. Prefer semantic operations over implementation wrappers
+
+A function in UI Components should normally represent a meaningful operation in the visual abstraction in which it is used. Do not create functions merely to forward arguments, return another function's result, return a DOM element, move data between layers, or separate consecutive implementation steps.
+
+Before introducing a helper, ask whether it gives the caller or the component a meaningful new abstraction. If the answer is no, keep the operation in the existing function, and access data needed inline from the source that would otherwise be fetched from the wrapper.
+
+In particular, avoid chains in which a public operation delegates to a wrapper, which delegates to another wrapper, which finally performs the actual work. A short function that directly performs its operation is preferable to several small functions that merely divide the implementation into steps.
+
+Internal helpers are appropriate when they represent a meaningful operation, enforce a non-obvious invariant, or encapsulate genuinely shared non-trivial behavior. They are not justified merely because extracting a few lines makes individual functions appear shorter.
+
+The purpose of this principle is to make clear that decomposition and abstraction are not synonymous. A UI component should not accumulate wrapper functions simply to make its implementation appear more modular.
+
+As an example of the intended style, if a UI component needs to update one of its own DOM elements, it should normally locate that element and perform the update directly in the semantic public operation rather than introducing a chain such as:
+
+    updateMenu()
+        → menuNode()
+        → defaultMenuNode()
+        → querySelector()
+
+Likewise, if a component creates a DOM element itself, code within that component should be able to locate and use that element directly when needed. A separate accessor function is not justified merely because it returns the element.
+
+This principle is particularly intended to prevent small UI components from developing internal middleware layers, trivial DOM accessors, or rendering pipelines whose functions do not represent meaningful operations.
+
+
+## 22. Do Not Move UI Logic Back Into the Module
 
 A common mistake is to create a component but then leave its behavior in the module.
 
@@ -885,7 +909,7 @@ The module should construct the component and provide it with the application co
 The component should own the details of its interface.
 
 
-## 22. Avoid Extracting UI State Into Module Helpers
+## 23. Avoid Extracting UI State Into Module Helpers
 
 Another common AI pattern is to have the module inspect HTML and reconstruct its understanding of the UI.
 
@@ -911,7 +935,7 @@ The application then contains stale assumptions about its own UI.
 The component that owns the interface should normally also own the logic needed to understand and manipulate that interface.
 
 
-## 23. A Component Should Be a Localized Black Box
+## 24. A Component Should Be a Localized Black Box
 
 A useful component exposes a small interface to its parent.
 
@@ -953,7 +977,7 @@ This is valuable for both humans and AI.
 If a user asks to change the purchase interface, the AI can inspect the purchase component rather than searching through the entire module.
 
 
-## 24. Parent Components Own Child Components
+## 25. Parent Components Own Child Components
 
 A parent component should normally construct and own its children.
 
@@ -993,7 +1017,7 @@ The child knows:
     what data it displays
 
 
-## 25. Callbacks Are Useful for Child-to-Parent Interaction
+## 26. Callbacks Are Useful for Child-to-Parent Interaction
 
 A child component may need to notify its parent about an interaction.
 
@@ -1012,7 +1036,7 @@ The child can remain focused on its UI while the parent decides what navigation 
 Callbacks are often preferable to introducing a global event merely to communicate between two objects that already have an explicit parent-child relationship.
 
 
-## 26. Use `app.connection` for Genuine Cross-Component or Cross-Module Events
+## 27. Use `app.connection` for Genuine Cross-Component or Cross-Module Events
 
 `app.connection` is an application-wide event mechanism.
 
@@ -1047,7 +1071,7 @@ Do not turn every UI interaction into a global event.
 Global events make it harder to determine where behavior originates and where it will be received.
 
 
-## 27. Be Careful With Global UI Events
+## 28. Be Careful With Global UI Events
 
 Because `app.connection` is process-wide, an event can be observed by components that are not visually related.
 
@@ -1068,7 +1092,7 @@ A useful distinction is:
 Use the mechanism that reflects the actual relationship.
 
 
-## 28. Templates Should Primarily Contain HTML
+## 29. Templates Should Primarily Contain HTML
 
 A component may have a template file.
 
@@ -1108,7 +1132,7 @@ The JavaScript component tells the developer:
     how it communicates with the module
 
 
-## 29. Keep Application Logic in the JavaScript Component
+## 30. Keep Application Logic in the JavaScript Component
 
 Templates can contain presentation branching when necessary.
 
@@ -1131,7 +1155,7 @@ A developer examining:
 should be able to understand the component's HTML structure.
 
 
-## 30. Keep UI Logic Close to the User Interaction
+## 31. Keep UI Logic Close to the User Interaction
 
 Suppose a component contains:
 
@@ -1159,7 +1183,7 @@ The important thing is that a developer can find the behavior by examining the c
 Do not scatter the behavior through unrelated module helpers unless the behavior is genuinely shared or belongs to another domain concept.
 
 
-## 31. CSS Should Correspond to the Component Structure
+## 32. CSS Should Correspond to the Component Structure
 
 The HTML template defines the DOM.
 
@@ -1198,7 +1222,7 @@ If a developer wants to modify a component, the relevant:
 should be easy to find.
 
 
-## 32. Use a Component or Page Root as the Styling Context
+## 33. Use a Component or Page Root as the Styling Context
 
 The UI should normally provide a recognizable root element for the component or page.
 
@@ -1229,7 +1253,7 @@ Follow the existing Saito CSS conventions for the application being modified.
 When creating a new application, give major UI regions a clear root so their styling remains localized.
 
 
-## 33. Do Not Over-Define Typography and Spacing
+## 34. Do Not Over-Define Typography and Spacing
 
 Applications should be able to accept Saito's existing defaults where appropriate.
 
@@ -1251,7 +1275,7 @@ Application-specific CSS should describe actual application requirements rather 
 The goal is to allow applications to inherit Saito's defaults while still permitting deliberate application-specific styling.
 
 
-## 34. Responsive Behavior Should Normally Be CSS
+## 35. Responsive Behavior Should Normally Be CSS
 
 Responsive behavior should generally be handled through the component's CSS and responsive layout rules.
 
@@ -1276,7 +1300,7 @@ For example, JavaScript may be appropriate when:
 Do not use JavaScript to reproduce layout behavior that CSS already handles naturally.
 
 
-## 35. Do Not Build a Virtual DOM
+## 36. Do Not Build a Virtual DOM
 
 Saito's ordinary application UI does not require:
 
@@ -1301,7 +1325,7 @@ The simplicity is useful because the UI code is directly connected to:
     application objects
 
 
-## 36. Do Not Create a Global UI Store
+## 37. Do Not Create a Global UI Store
 
 Application state should remain with the application objects that own it.
 
@@ -1333,7 +1357,7 @@ A component may maintain presentation state such as:
 but that does not make the component the authoritative owner of the application's underlying data.
 
 
-## 37. Do Not Turn Components Into Hidden Databases
+## 38. Do Not Turn Components Into Hidden Databases
 
 A UI component may cache data when there is a reason to do so.
 
@@ -1355,7 +1379,7 @@ The component can maintain:
 without becoming the application's database.
 
 
-## 38. Data Should Flow Through Domain Objects
+## 39. Data Should Flow Through Domain Objects
 
 A useful Saito pattern is:
 
@@ -1382,7 +1406,7 @@ The UI component gives the object a visual representation.
 This makes UI changes easier because the UI can operate on meaningful objects rather than repeatedly parsing raw transaction structures.
 
 
-## 39. Pass Transactions Rather Than Reconstructing Their Data
+## 40. Pass Transactions Rather Than Reconstructing Their Data
 
 When application data comes from a transaction, prefer passing the transaction object through the application rather than extracting a large collection of fields into middleware.
 
@@ -1408,7 +1432,7 @@ The domain object can retain the transaction.
 This keeps the protocol object available without forcing every UI layer to understand it.
 
 
-## 40. UI Updates May Be Triggered by Saito Events
+## 41. UI Updates May Be Triggered by Saito Events
 
 A component may render before the data it ultimately displays exists.
 
@@ -1443,7 +1467,7 @@ Do not assume that all application data exists at `initialize()` time.
 Do not assume that all remote data exists when the first UI render occurs.
 
 
-## 41. Initial Rendering and Live Updates Are Different Concerns
+## 42. Initial Rendering and Live Updates Are Different Concerns
 
 A component may initially render:
 
@@ -1474,7 +1498,7 @@ Others may need asynchronous work.
 The important principle is that the component should own the behavior associated with its own loading and update states.
 
 
-## 42. Avoid Network Calls in Templates
+## 43. Avoid Network Calls in Templates
 
 A template should generally transform data into HTML.
 
@@ -1500,7 +1524,7 @@ Instead:
 This keeps the data flow visible in the component's JavaScript file.
 
 
-## 43. Components May Perform Application Operations
+## 44. Components May Perform Application Operations
 
 A UI component is not required to be purely presentational.
 
@@ -1529,7 +1553,7 @@ A Tweet component can handle Tweet interaction.
 The module should not become the universal controller for all of these operations.
 
 
-## 44. Managers Are Useful but Not Mandatory
+## 45. Managers Are Useful but Not Mandatory
 
 Names such as:
 
@@ -1560,7 +1584,7 @@ Do not create a Manager merely because another Saito application has one.
 Create one when it gives the application a useful boundary.
 
 
-## 45. A Manager Can Own List Interaction Without Owning the Data
+## 46. A Manager Can Own List Interaction Without Owning the Data
 
 For example:
 
@@ -1586,7 +1610,7 @@ while the module remains the owner of the application's Tweet collection.
 This separation gives the UI a useful boundary without inventing another database.
 
 
-## 46. Overlays Are UI Components
+## 47. Overlays Are UI Components
 
 An overlay is simply another UI responsibility.
 
@@ -1614,7 +1638,7 @@ If an overlay needs to notify its parent, callbacks are often sufficient.
 Do not require the main module to contain every overlay's implementation merely because the overlay belongs to the module.
 
 
-## 47. Game UI Is a Special Case, Not a Different Philosophy
+## 48. Game UI Is a Special Case, Not a Different Philosophy
 
 Games have specialized framework infrastructure such as:
 
@@ -1639,7 +1663,7 @@ The same basic principle still applies:
 The exact game architecture should follow the Saito Game Engine conventions rather than being imported from a generic web framework.
 
 
-## 48. Use the Existing Saito UI Patterns
+## 49. Use the Existing Saito UI Patterns
 
 Saito contains multiple generations of UI code.
 
@@ -1678,7 +1702,7 @@ When creating new code, prefer the clearer and more localized modern pattern:
     localized CSS and templates
 
 
-## 49. Do Not Copy Legacy Architecture Merely Because It Exists
+## 50. Do Not Copy Legacy Architecture Merely Because It Exists
 
 Existing Saito applications are valuable sources of examples.
 
@@ -1706,7 +1730,7 @@ That may still be an excellent pattern.
 The AI should understand the reason for the structure rather than copying the syntax mechanically.
 
 
-## 50. Localize Changes
+## 51. Localize Changes
 
 One of the major benefits of this architecture is that a UI request should usually map to a small set of files.
 
@@ -1747,7 +1771,7 @@ The architectural goal is:
 > A change should be localized to the object that owns the behavior.
 
 
-## 51. This Architecture Is Especially Useful for AI
+## 52. This Architecture Is Especially Useful for AI
 
 AI systems tend to create abstractions when they cannot identify where behavior belongs.
 
@@ -1779,7 +1803,7 @@ For example:
 The AI does not need to understand the entire application to make a localized UI change.
 
 
-## 52. UI Components Should Be Easy for AI to Inspect
+## 53. UI Components Should Be Easy for AI to Inspect
 
 A good component should make its responsibility obvious from its file.
 
@@ -1815,7 +1839,7 @@ Those layers are not inherently forbidden.
 They simply should not be introduced without a genuine architectural reason.
 
 
-## 53. Prefer Fewer, Fatter Functions Over Fragmentation
+## 54. Prefer Fewer, Fatter Functions Over Fragmentation
 
 When a function represents a coherent action, it is often better to keep its implementation together.
 
@@ -1852,7 +1876,7 @@ This does not mean long functions are always good.
 It means that functions should be split because the resulting boundaries represent meaningful concepts, not because an AI assumes every operation deserves a helper.
 
 
-## 54. Extract a Function When It Creates a Real Boundary
+## 55. Extract a Function When It Creates a Real Boundary
 
 A helper function is justified when:
 
@@ -1879,7 +1903,7 @@ usually is not.
 The goal is semantic organization, not maximum function count.
 
 
-## 55. Do Not Create Controllers, Services, or View Models Automatically
+## 56. Do Not Create Controllers, Services, or View Models Automatically
 
 A conventional web AI may attempt to create:
 
@@ -1910,7 +1934,7 @@ Use those existing semantic boundaries.
 Create a new object when a new meaningful concept actually appears.
 
 
-## 56. A UI Component Can Call Its Module Directly
+## 57. A UI Component Can Call Its Module Directly
 
 If a component needs an operation provided by its owning module, it can call the module.
 
@@ -1936,7 +1960,7 @@ can be used directly.
 The application already has explicit access to these objects.
 
 
-## 57. Keep the Component's Data Model Understandable
+## 58. Keep the Component's Data Model Understandable
 
 A UI component should receive the data it needs in a recognizable form.
 
@@ -1957,7 +1981,7 @@ is clearer than passing a large anonymous collection of unrelated values.
 The component should not need to reconstruct its domain object from scattered pieces of state if the application already has a meaningful object representing it.
 
 
-## 58. Do Not Duplicate the Domain Model in the UI
+## 59. Do Not Duplicate the Domain Model in the UI
 
 Avoid:
 
@@ -1986,7 +2010,7 @@ A component may derive display-specific values.
 That does not require inventing a second application model.
 
 
-## 59. The DOM Is Part of the Component's Interface
+## 60. The DOM Is Part of the Component's Interface
 
 A component's template defines its DOM structure.
 
@@ -2016,7 +2040,7 @@ This gives the developer a straightforward mapping:
 Keeping these relationships visible is especially useful when modifying applications with AI.
 
 
-## 60. Avoid Child Components Manipulating Unrelated Parent DOM
+## 61. Avoid Child Components Manipulating Unrelated Parent DOM
 
 A child component should normally write into its own container.
 
@@ -2051,7 +2075,7 @@ or, when the relationship is genuinely cross-boundary:
 This keeps DOM ownership understandable.
 
 
-## 61. Avoid Document-Global Selectors When a Component Container Exists
+## 62. Avoid Document-Global Selectors When a Component Container Exists
 
 Prefer selecting relative to the component's own container.
 
@@ -2068,7 +2092,7 @@ Global IDs and selectors are sometimes necessary for application shells or frame
 They should not become the default mechanism for every component.
 
 
-## 62. Components Can Be Rendered at Different Times
+## 63. Components Can Be Rendered at Different Times
 
 A component may be rendered:
 
@@ -2099,7 +2123,7 @@ The architecture should not assume that all components are created and rendered 
 This is one of the important differences between Saito applications and static web pages.
 
 
-## 63. Initialization Is Not Rendering
+## 64. Initialization Is Not Rendering
 
 `initialize()` is part of the Saito module lifecycle.
 
@@ -2119,7 +2143,7 @@ Network-dependent work belongs in the appropriate Saito networking hooks or appl
 The UI should then update when the data it needs becomes available.
 
 
-## 64. Do Not Assume the Network Is Available During Initial Render
+## 65. Do Not Assume the Network Is Available During Initial Render
 
 A component may render before peer connectivity exists.
 
@@ -2142,7 +2166,7 @@ This is normal.
 Do not make initial rendering depend on a peer being immediately available unless the application genuinely requires it.
 
 
-## 65. Do Not Poll for UI Availability
+## 66. Do Not Poll for UI Availability
 
 A component should not repeatedly ask:
 
@@ -2163,7 +2187,7 @@ When a parent owns a child, the parent knows when it renders the child.
 When an application-wide event genuinely needs to cross boundaries, use `app.connection`.
 
 
-## 66. Use Saito's Existing Browser Utilities
+## 67. Use Saito's Existing Browser Utilities
 
 Saito provides browser helpers for common DOM operations.
 
@@ -2186,7 +2210,7 @@ Do not create:
 merely to wrap these functions.
 
 
-## 67. Shared UI Should Be Promoted Only When It Is Actually Shared
+## 68. Shared UI Should Be Promoted Only When It Is Actually Shared
 
 A module-specific component should normally stay inside the module.
 
@@ -2203,7 +2227,7 @@ Do not modify framework UI merely because two application components happen to l
 The narrowest appropriate ownership boundary is usually preferable.
 
 
-## 68. Component Directory Structure Should Reflect Meaning
+## 69. Component Directory Structure Should Reflect Meaning
 
 There is no mandatory directory structure for UI components.
 
@@ -2234,7 +2258,7 @@ A substantial application-specific UI may reasonably live under:
 The important thing is that developers and AI can predict where meaningful objects are located.
 
 
-## 69. Do Not Create a UI Directory Merely to Satisfy a Rule
+## 70. Do Not Create a UI Directory Merely to Satisfy a Rule
 
 `lib/ui/` is an organizational convention.
 
@@ -2267,7 +2291,7 @@ may communicate its role more clearly.
 Choose the location according to semantic responsibility.
 
 
-## 70. The Application Should Be Understandable by Drawing It
+## 71. The Application Should Be Understandable by Drawing It
 
 A useful design exercise is to draw the page.
 
@@ -2306,7 +2330,7 @@ Then implementation becomes:
 This is often a better starting point than designing a set of abstract software layers.
 
 
-## 71. Let the UI Structure Guide Application Structure
+## 72. Let the UI Structure Guide Application Structure
 
 When beginning a new application, identify:
 
@@ -2351,7 +2375,7 @@ For example:
 This gives both the developer and AI a clear map.
 
 
-## 72. The Main Module Composes the Application
+## 73. The Main Module Composes the Application
 
 The module should normally construct its major objects.
 
@@ -2374,7 +2398,7 @@ The main module therefore remains the place where application composition can be
 But the implementation of those objects remains in their own files.
 
 
-## 73. Keep the Module as the Application Map
+## 74. Keep the Module as the Application Map
 
 A developer should be able to inspect the module and see something like:
 
@@ -2407,7 +2431,7 @@ The detailed database implementation is elsewhere.
 This is much easier to review than a module containing hundreds of application-specific helper methods.
 
 
-## 74. UI Components Should Not Become Miniature Frameworks
+## 75. UI Components Should Not Become Miniature Frameworks
 
 A component should be substantial enough to own its responsibility.
 
@@ -2435,7 +2459,7 @@ Most Saito components only need:
 Keep the architecture concrete.
 
 
-## 75. Do Not Over-Abstract Simple UI Operations
+## 76. Do Not Over-Abstract Simple UI Operations
 
 If a button needs to call a module method, call it.
 
@@ -2454,7 +2478,7 @@ Do not create a chain of wrappers merely because conventional enterprise softwar
 The Saito architecture is deliberately direct.
 
 
-## 76. Component Boundaries Should Correspond to User-Visible Responsibility
+## 77. Component Boundaries Should Correspond to User-Visible Responsibility
 
 Good boundaries often correspond to things a user can identify.
 
@@ -2482,7 +2506,7 @@ is less useful if its only purpose is to pass data between two UI elements.
 Prefer boundaries that correspond to real application concepts.
 
 
-## 77. UI Components Are Good Review Boundaries
+## 78. UI Components Are Good Review Boundaries
 
 A developer reviewing:
 
@@ -2505,7 +2529,7 @@ should be able to understand the sidebar.
 This improves human code review and AI code modification at the same time.
 
 
-## 78. Keep Behavior With the Object It Describes
+## 79. Keep Behavior With the Object It Describes
 
 A useful general rule is:
 
@@ -2536,7 +2560,7 @@ The main module coordinates these objects.
 It should not absorb their behavior.
 
 
-## 79. Keep Transaction Behavior With Transactions
+## 80. Keep Transaction Behavior With Transactions
 
 If an operation is specifically about constructing or processing transactions, it can belong in:
 
@@ -2557,7 +2581,7 @@ The UI component can call the transaction operation.
 The transaction implementation should not be reproduced inside the UI merely because a button triggers it.
 
 
-## 80. Keep Domain Behavior With Domain Objects
+## 81. Keep Domain Behavior With Domain Objects
 
 If behavior belongs to:
 
@@ -2584,7 +2608,7 @@ The goal is not to force every function into a separate file.
 The goal is to make semantic ownership obvious.
 
 
-## 81. Use UI Components to Prevent Main-File Growth
+## 82. Use UI Components to Prevent Main-File Growth
 
 The most important architectural benefit of this approach is containment.
 
@@ -2607,7 +2631,7 @@ This means that an application can grow without continuously increasing the comp
 It also means an AI can make a UI change without touching unrelated application infrastructure.
 
 
-## 82. AI Rules for Creating a New UI Component
+## 83. AI Rules for Creating a New UI Component
 
 When a new visible feature is requested:
 
@@ -2642,7 +2666,7 @@ When a new visible feature is requested:
 15. Use existing Saito browser and application APIs.
 
 
-## 83. AI Rules for Modifying Existing UI
+## 84. AI Rules for Modifying Existing UI
 
 Before changing UI:
 
@@ -2669,7 +2693,7 @@ Before changing UI:
 11. Preserve the existing component ownership structure unless the requested change genuinely requires changing it.
 
 
-## 84. AI Rules for Event Handling
+## 85. AI Rules for Event Handling
 
 When adding interaction:
 
@@ -2694,7 +2718,7 @@ When adding interaction:
 10. Do not create a global event for a relationship that is already explicit.
 
 
-## 85. AI Rules for Templates
+## 86. AI Rules for Templates
 
 When creating a template:
 
@@ -2715,7 +2739,7 @@ When creating a template:
 8. Keep the main behavior in the component JavaScript file.
 
 
-## 86. AI Rules for CSS
+## 87. AI Rules for CSS
 
 When styling a component:
 
@@ -2738,7 +2762,7 @@ When styling a component:
 9. Avoid generic global selectors that can unintentionally affect unrelated application UI.
 
 
-## 87. AI Rules for Domain Objects and UI Components
+## 88. AI Rules for Domain Objects and UI Components
 
 When deciding whether to combine or separate a domain object and UI component:
 
@@ -2773,7 +2797,7 @@ may be more appropriate.
 Neither structure is inherently required.
 
 
-## 88. AI Rules for Application Composition
+## 89. AI Rules for Application Composition
 
 A useful default structure is:
 
@@ -2809,7 +2833,7 @@ This is a default, not a rigid framework.
 The application may legitimately differ when its domain requires another structure.
 
 
-## 89. The Main Test for Good UI Architecture
+## 90. The Main Test for Good UI Architecture
 
 Ask:
 
@@ -2828,7 +2852,7 @@ then the application may have introduced unnecessary abstraction.
 Saito UI should make changes local whenever possible.
 
 
-## 90. The Main Test for AI-Generated Code
+## 91. The Main Test for AI-Generated Code
 
 Ask:
 
@@ -2853,7 +2877,7 @@ If the answer is:
 the AI has probably failed to identify the application's semantic boundaries.
 
 
-## 91. Preferred Saito UI Shape
+## 92. Preferred Saito UI Shape
 
 A strong default for a new application is:
 
@@ -2900,7 +2924,7 @@ This is not a framework that every application must implement literally.
 It is a useful mental model for keeping responsibilities local.
 
 
-## 92. Saito's UI Architecture Is Deliberately Concrete
+## 93. Saito's UI Architecture Is Deliberately Concrete
 
 The preferred architecture is not based on maximizing abstraction.
 
@@ -2923,7 +2947,7 @@ The application should not hide those concepts behind generic infrastructure.
 The best abstraction is usually the one that corresponds to a real application concept.
 
 
-## 93. Final AI Guidance
+## 94. Final AI Guidance
 
 When implementing Saito UI, remember:
 

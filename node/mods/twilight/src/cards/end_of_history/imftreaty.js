@@ -17,7 +17,10 @@
       if (player === "ussr" && this.game.player == 1) { my_go = 1; }
       if (player === "us" && this.game.player == 2) { my_go = 1; }
       if (my_go == 0) {
-        this.updateStatus("Opponent playing INF Treaty");
+        this.game.status = "Opponent playing INF Treaty";
+        this.hud.updateStatus(this.game.status);
+        this.hud.updateMenu([]);
+        this.hud.updateCards([]);
         return 0;
       }
 

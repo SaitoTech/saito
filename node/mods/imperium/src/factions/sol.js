@@ -70,6 +70,8 @@
 	if (menu === "main") {
           x.event = 'orbitaldrop';
           x.html = '<li class="option" id="orbitaldrop">orbital drop</li>';
+          x.id = 'orbitaldrop';
+          x.label = 'orbital drop';
 	}
         return x;
       },
@@ -197,6 +199,8 @@
         if (menu == "main") {
           x.event = 'faction1-promissary';
           x.html = '<li class="option" id="faction1-promissary">Military Support (Sol Promissary)</li>';
+          x.id = 'faction1-promissary';
+          x.label = 'Military Support (Sol Promissary)';
         }
         return x;
       },

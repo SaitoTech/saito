@@ -40,6 +40,8 @@
         if (menu === "main") {
           x.event = 'starforge';
           x.html = '<li class="option" id="starforge">star forge</li>';
+          x.id = 'starforge';
+          x.label = 'star forge';
         }
         return x;
       },
@@ -254,6 +256,8 @@
         if (menu == "main") {
           x.event = 'faction7-promissary';
           x.html = '<li class="option" id="faction7-promissary">Fires of the Gashlai (Muaat Promissary)</li>';
+          x.id = 'faction7-promissary';
+          x.label = 'Fires of the Gashlai (Muaat Promissary)';
         }
         return x;
       },

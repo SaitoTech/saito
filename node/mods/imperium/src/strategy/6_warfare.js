@@ -8,7 +8,10 @@
 
         if (imperium_self.game.player == strategy_card_player && player == strategy_card_player) {
 
-          imperium_self.updateStatus('Select sector to de-activate.');
+                    imperium_self.game.status = 'Select sector to de-activate.';
+          imperium_self.hud.updateStatus(imperium_self.game.status);
+          imperium_self.hud.updateMenu([]);
+          imperium_self.hud.updateCards([]);
           imperium_self.playerSelectSector(function(sector) {
 
 	    let sys = imperium_self.returnSectorAndPlanets(sector);
@@ -41,22 +44,20 @@
 	    return 0;
 	  }
 
-          let html = '<div class="status-message">Do you wish to spend 1 strategy token to produce in your home sector? </div><ul>';
+          let html = '<div class="status-message">Do you wish to spend 1 strategy token to produce in your home sector? </div>';
           if (imperium_self.game.state.round == 1) {
-            html = `<div class="status-message doublespace">${imperium_self.returnFaction(strategy_card_player)} has played the Warfare strategy card. You may spend 1 strategy token to produce in your Homeworld without activating the sector. You have ${imperium_self.game.state.players_info[player-1].strategy_tokens} strategy tokens. Use this ability? </div><ul>`;
+            html = `<div class="status-message doublespace">${imperium_self.returnFaction(strategy_card_player)} has played the Warfare strategy card. You may spend 1 strategy token to produce in your Homeworld without activating the sector. You have ${imperium_self.game.state.players_info[player-1].strategy_tokens} strategy tokens. Use this ability? </div>`;
           }
+          let menu = [];
           if (imperium_self.game.state.players_info[player-1].strategy_tokens > 0 ) { 
-            html += '<li class="option" id="yes">Yes</li>';
+            menu.push({ id: 'yes', label: 'Yes' });
 	  }
-          html += '<li class="option" id="no">No</li>';
-          html += '</ul>';
+          menu.push({ id: 'no', label: 'No' });
  
-          imperium_self.updateStatus(html);
-
-          $('.option').off();
-          $('.option').on('click', function() {
-
-            let id = $(this).attr("id");
+                    imperium_self.game.status = html;
+          imperium_self.hud.updateStatus(imperium_self.game.status);
+          imperium_self.hud.updateCards([]);
+          imperium_self.hud.updateMenu(menu, function (id) {
  
             if (id == "yes") {
               imperium_self.playerProduceUnits(imperium_self.game.state.players_info[imperium_self.game.player-1].homeworld, 0, 0, 2, 1); // final is warfare card

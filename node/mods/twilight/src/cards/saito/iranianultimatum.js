@@ -42,7 +42,10 @@
 
         let ops_to_purge = Math.min(1, ops_available);
 
-        this.updateStatus("Remove 1 USSR influence from the Middle East");
+        this.game.status = "Remove 1 USSR influence from the Middle East";
+        this.hud.updateStatus(this.game.status);
+        this.hud.updateMenu([]);
+        this.hud.updateCards([]);
         
         $(".easterneurope").off();
         $(".easterneurope").on('click', function() {

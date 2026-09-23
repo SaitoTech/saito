@@ -5,6 +5,41 @@
 /////////////////
 /// HUD MENUS ///
 /////////////////
+ensureHudChrome() {
+  this.hud.render();
+  let hud = document.getElementById('game-hud2');
+  if (!hud) {
+    return null;
+  }
+  let chrome = document.getElementById('imperium-hud-chrome');
+  if (!chrome) {
+    chrome = document.createElement('div');
+    chrome.id = 'imperium-hud-chrome';
+    chrome.className = 'imperium-hud-chrome';
+    hud.insertBefore(chrome, hud.firstChild);
+  }
+  return chrome;
+}
+
+hudMenuOptionFromEvent(x) {
+  if (!x) {
+    return null;
+  }
+  if (x.id) {
+    return { id: String(x.id), label: x.label };
+  }
+  if (x.html) {
+    let m = String(x.html).match(/id="([^"]+)"[^>]*>([\s\S]*?)<\/li>/i);
+    if (m) {
+      return { id: m[1], label: m[2].replace(/<[^>]+>/g, '').trim() };
+    }
+  }
+  if (x.event) {
+    return { id: x.event, label: x.event };
+  }
+  return null;
+}
+
 hideOverlays() {
   document.querySelectorAll('.overlay').forEach(el => {
     el.classList.add('hidden');

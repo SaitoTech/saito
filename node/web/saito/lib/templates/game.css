@@ -7,12 +7,12 @@
 @import url("./../../cssx-imports/game-clock.css");
 @import url("./../../cssx-imports/game-crypto-transfer-manager.css");
 @import url("./../../cssx-imports/game-hexgrid.css");
-@import url("./../../cssx-imports/game-hud.css");
 @import url("./../../cssx-imports/game-layout.css");
 @import url("./../../cssx-imports/game-log.css");
 @import url("./../../cssx-imports/game-menu.css");
 @import url("./../../css-imports/ui/game-minimap.css");
 @import url("./../../css-imports/ui/game-zoom.css");
+@import url("./../../css-imports/ui/game-hud2.css");
 @import url("./../../cssx-imports/game-overlay.css");
 @import url("./../../cssx-imports/game-playerbox.css");
 @import url("./../../cssx-imports/game-popups.css");

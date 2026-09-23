@@ -76,7 +76,10 @@ this.importTech("faction8-flagship", {
   },
   postShipsFireEvent: function (imperium_self, player, attacker, defender, sector, combat_info) {
     if (player != imperium_self.game.player) {
-      imperium_self.updateStatus("Hacan considering using Flagship Ability to modify hits...");
+            imperium_self.game.status = "Hacan considering using Flagship Ability to modify hits...";
+      imperium_self.hud.updateStatus(imperium_self.game.status);
+      imperium_self.hud.updateMenu([]);
+      imperium_self.hud.updateCards([]);
       return 0;
     } else {
       let costs_per_hit = [];
@@ -89,30 +92,24 @@ this.importTech("faction8-flagship", {
       }
       costs_per_hit.sort((a, b) => a - b);
       let html =
-        '<div class="status-message">Do you wish to boost hits with Flagship Ability?</div><ul>';
+        '<div class="status-message">Do you wish to boost hits with Flagship Ability?</div>';
+      let menu = [];
       let cumulative_cost = 0;
       let available_trade_goods = imperium_self.game.state.players_info[player - 1].goods;
       for (let i = 0; i < costs_per_hit.length && cumulative_cost <= available_trade_goods; i++) {
         cumulative_cost += costs_per_hit[i];
-        html +=
-          '<li class="option" id="' +
-          i +
-          '">' +
-          (i + 1) +
-          " extra hits - " +
-          cumulative_cost +
-          " trade goods</li>";
+        menu.push({
+          id: String(i),
+          label: (i + 1) + " extra hits - " + cumulative_cost + " trade goods",
+        });
       }
-      html += '<li class="option" id="no">skip ability</li>';
-      html += "</ul>";
+      menu.push({ id: 'no', label: 'skip ability' });
 
-      imperium_self.updateStatus(html);
+            imperium_self.game.status = html;
+      imperium_self.hud.updateStatus(imperium_self.game.status);
+      imperium_self.hud.updateCards([]);
 
-      $(".option").off();
-      $(".option").on("click", function () {
-        let id = $(this).attr("id");
-        $(this).hide();
-
+      imperium_self.hud.updateMenu(menu, function (id) {
         if (id == "no") {
           imperium_self.endTurn();
           return;
@@ -207,17 +204,16 @@ this.importTech("faction8-merchant-class", {
           }
 
           let html =
-            '<div class="status-message">Do you wish to refresh your commodities free-of-charge?</div><ul>';
-          html += '<li class="option" id="yes">yes, of course</li>';
-          html += '<li class="option" id="no">no, perhaps not</li>';
-          html += "</ul>";
+            '<div class="status-message">Do you wish to refresh your commodities free-of-charge?</div>';
+          let menu = [];
+          menu.push({ id: 'yes', label: 'yes, of course' });
+          menu.push({ id: 'no', label: 'no, perhaps not' });
 
-          imperium_self.updateStatus(html);
+                    imperium_self.game.status = html;
+          imperium_self.hud.updateStatus(imperium_self.game.status);
+          imperium_self.hud.updateCards([]);
 
-          $(".option").off();
-          $(".option").on("click", async function () {
-            let id = $(this).attr("id");
-            $(this).hide();
+          imperium_self.hud.updateMenu(menu, async function (id) {
             if (id != "yes") {
               imperium_self.addMove(
                 "resolve\tstrategy\t1\t" + (imperium_self.getPublicKey())
@@ -308,6 +304,8 @@ this.importTech("faction8-production-biomes", {
       if (imperium_self.game.state.players_info[player - 1].production_biomes === 1) {
         x.event = "production_biomes";
         x.html = '<li class="option" id="production_biomes">production biomes</li>';
+        x.id = 'production_biomes';
+        x.label = 'production biomes';
       }
     }
     return x;
@@ -391,6 +389,8 @@ this.importTech("faction8-quantum-datahub-node", {
       if (imperium_self.game.state.players_info[player - 1].faction8_quantum_datahub_node === 1) {
         x.event = "quantum_datahub_node";
         x.html = '<li class="option" id="quantum_datahub_node">quantum datahub node</li>';
+        x.id = 'quantum_datahub_node';
+        x.label = 'quantum datahub node';
       }
     }
     return x;
@@ -426,24 +426,23 @@ this.importTech("faction8-quantum-datahub-node", {
         function (pnum) {
           let strategy_cards = imperium_self.returnStrategyCards();
 
-          let html = '<div>Select Strategy Card to Steal: </div><ul>"';
+          let html = '<div>Select Strategy Card to Steal: </div>';
+          let menu = [];
           for (
             let i = 0;
             i < imperium_self.game.state.players_info[pnum - 1].strategy.length;
             i++
           ) {
             let s = imperium_self.game.state.players_info[pnum - 1].strategy[i];
-            html += `<li class="option" id="${i}">${strategy_cards[s].name}</li>`;
+            menu.push({ id: String(i), label: strategy_cards[s].name });
           }
-          html += '<li class="option" id="skip">skip</li>';
+          menu.push({ id: 'skip', label: 'skip' });
 
-          imperium_self.updateStatus(html);
+                    imperium_self.game.status = html;
+          imperium_self.hud.updateStatus(imperium_self.game.status);
+          imperium_self.hud.updateCards([]);
 
-          $(".option").off();
-          $(".option").on("click", function () {
-            let id = $(this).attr("id");
-            $(this).hide();
-
+          imperium_self.hud.updateMenu(menu, function (id) {
             if (id == "skip") {
               imperium_self.updateLog("Hacan skips Quantum Datahub Node");
               imperium_self.endTurn();
@@ -453,7 +452,8 @@ this.importTech("faction8-quantum-datahub-node", {
             let pull_strategy_card = imperium_self.game.state.players_info[pnum - 1].strategy[id];
             let pull_strategy_card_from = pnum;
 
-            let html = '<div>Select Your Strategy Card to Return: </div><ul>"';
+            let html = '<div>Select Your Strategy Card to Return: </div>';
+            let return_menu = [];
             for (
               let i = 0;
               i <
@@ -462,17 +462,15 @@ this.importTech("faction8-quantum-datahub-node", {
             ) {
               let s =
                 imperium_self.game.state.players_info[imperium_self.game.player - 1].strategy[i];
-              html += `<li class="option" id="${i}">${strategy_cards[s].name}</li>`;
+              return_menu.push({ id: String(i), label: strategy_cards[s].name });
             }
-            html += '<li class="option" id="skip">skip</li>';
+            return_menu.push({ id: 'skip', label: 'skip' });
 
-            imperium_self.updateStatus(html);
+                        imperium_self.game.status = html;
+            imperium_self.hud.updateStatus(imperium_self.game.status);
+            imperium_self.hud.updateCards([]);
 
-            $(".option").off();
-            $(".option").on("click", function () {
-              let id = parseInt($(this).attr("id"));
-              $(this).hide();
-
+            imperium_self.hud.updateMenu(return_menu, function (id) {
               let push_strategy_card =
                 imperium_self.game.state.players_info[imperium_self.game.player - 1].strategy[id];
 

@@ -557,11 +557,6 @@
     cursor: pointer;
   }
 
-  .hud {
-    left: 140px;
-    transform: translate(0, 0);
-  }
-
   .hud-menu-overlay ul {
     list-style: none;
     margin-bottom: 10px;

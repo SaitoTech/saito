@@ -111,18 +111,16 @@
         let planet = sys.p[planet_idx];
 	let html = '';
 
-        html = '<p>Do you wish to use Bacterial Weapons during Bombardment?</p><ul>';
-        html += '<li class="option textchoice" id="attack">use bacterial weapons?</li>';
-        html += '<li class="option textchoice" id="skip">skip</li>';
-        html += '</ul>';
+        html = '<p>Do you wish to use Bacterial Weapons during Bombardment?</p>';
+        let menu = [];
+        menu.push({ id: 'attack', label: 'use bacterial weapons?' });
+        menu.push({ id: 'skip', label: 'skip' });
 
-	imperium_self.updateStatus(html);
+		imperium_self.game.status = html;
+	imperium_self.hud.updateStatus(imperium_self.game.status);
+	imperium_self.hud.updateCards([]);
 
-        $('.textchoice').off();
-        $('.textchoice').on('click', function() {
-
-          let action2 = $(this).attr("id");
-
+        imperium_self.hud.updateMenu(menu, function(action2) {
 	  if (action2 == "attack") {
 
 	    // destroy 100 == destroy them all :)

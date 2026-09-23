@@ -20,22 +20,23 @@
       activateSystemEvent	:	function(imperium_self, attacker, player, sector) {
 
 	if (imperium_self.game.player != player) {
-	  imperium_self.updateStatus(imperium_self.returnFaction(player) + " is deciding whether to use Ceasefire");
+	  	  imperium_self.game.status = imperium_self.returnFaction(player) + " is deciding whether to use Ceasefire";
+	  imperium_self.hud.updateStatus(imperium_self.game.status);
+	  imperium_self.hud.updateMenu([]);
+	  imperium_self.hud.updateCards([]);
 	  return 0; 
 	}
 
-        let html = '<div clss="sf-readable">Permit '+imperium_self.returnFaction(attacker) + ' to activate sector or use ceasefire? </div><ul>';
-        html += '<li class="option" id="activate">use ceasefire</li>';
-        html += '<li class="option" id="nothing">do nothing</li>';
-        html += '</ul>';
+        let html = '<div clss="sf-readable">Permit '+imperium_self.returnFaction(attacker) + ' to activate sector or use ceasefire? </div>';
+        let menu = [];
+        menu.push({ id: 'activate', label: 'use ceasefire' });
+        menu.push({ id: 'nothing', label: 'do nothing' });
 
-        imperium_self.updateStatus(html);
+                imperium_self.game.status = html;
+        imperium_self.hud.updateStatus(imperium_self.game.status);
+        imperium_self.hud.updateCards([]);
 
-        $('.option').off();
-        $('.option').on('click', function () {
-
-          let opt = $(this).attr("id");
-
+        imperium_self.hud.updateMenu(menu, function (opt) {
 	  if (opt === "nothing") {
 	    imperium_self.addMove("NOTIFY\t" + imperium_self.returnFaction(imperium_self.game.player) + " does not use Ceasefire");
 	    imperium_self.endTurn();
@@ -114,6 +115,8 @@
         if (menu == "pre_agenda") {
           x.event = 'political-promissary';
           x.html = '<li class="option" id="political-promissary">Political Promissary</li>';
+          x.id = 'political-promissary';
+          x.label = 'Political Promissary';
         }
         return x;
       },
@@ -131,21 +134,20 @@
       menuOptionActivated:  function(imperium_self, menu, player) {
         if (imperium_self.game.player == player) {
 
-          let html = '<div class="sf-readable">Select a Specific Promissary: </div><ul>';
+          let html = '<div class="sf-readable">Select a Specific Promissary: </div>';
           let playable_promissaries = imperium_self.returnPlayablePromissaryArray(player, "political");
+          let menu = [];
 	  for (let i = 0; i < playable_promissaries.length; i++) {
 	    let tmpar = playable_promissaries[i].split("-");
 	    let pprom = imperium_self.returnPromissaryPlayer(playable_promissaries[i]);
-            html += `<li class="option" id="${i}">${imperium_self.returnFactionName(pprom)} - ${imperium_self.promissary_notes[tmpar[1]].name}</li>`;
+            menu.push({ id: String(i), label: `${imperium_self.returnFactionName(pprom)} - ${imperium_self.promissary_notes[tmpar[1]].name}` });
           }
-          html += '</ul>';
 
-          imperium_self.updateStatus(html);
+                    imperium_self.game.status = html;
+          imperium_self.hud.updateStatus(imperium_self.game.status);
+          imperium_self.hud.updateCards([]);
 
-          $('.option').off();
-          $('.option').on('click', function() {
-
-            let i = $(this).attr("id");
+          imperium_self.hud.updateMenu(menu, function(i) {
 	    let prom = playable_promissaries[parseInt(i)]
 	    let pprom = imperium_self.returnPromissaryPlayer(playable_promissaries[parseInt(i)]);
 
