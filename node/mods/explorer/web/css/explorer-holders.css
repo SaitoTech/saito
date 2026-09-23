@@ -1,0 +1,36 @@
+.explorer-holders-page .explorer-card {
+  min-width: 0;
+}
+
+.explorer-holders-table td {
+  white-space: nowrap;
+}
+
+.explorer-holders-pagination {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--explorer-space-2);
+  margin-top: var(--explorer-space-3);
+  font-size: var(--explorer-text-sm);
+}
+
+.explorer-holders-pagination button {
+  padding: var(--explorer-space-1) var(--explorer-space-2);
+  color: var(--explorer-foreground);
+  background: var(--explorer-card);
+  border: 1px solid var(--explorer-border);
+  border-radius: var(--explorer-radius-sm);
+  cursor: pointer;
+}
+
+.explorer-holders-pagination button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.explorer-holders-pagination button[aria-current='page'] {
+  font-weight: bold;
+  background: var(--explorer-muted);
+  opacity: 1;
+}

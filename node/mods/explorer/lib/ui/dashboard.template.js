@@ -126,6 +126,7 @@ module.exports = ({ peerNode = {}, blockchain = {}, modules = {}, app = null } =
         <div class="explorer-card explorer-dashboard-card explorer-dashboard-info-card">
           <div class="explorer-stat-label">Blockchain Information</div>
           ${blockchainBody}
+          <a href="/explorer/holders" class="explorer-link" data-explorer-nav="holders">Holders &amp; UTXO Set</a>
         </div>
 
         <div class="explorer-card explorer-dashboard-card explorer-dashboard-modules-card">

@@ -5,6 +5,8 @@ const Block = require('./lib/ui/block');
 const Supply = require('./lib/ui/supply');
 const Address = require('./lib/ui/address');
 const Utxo = require('./lib/ui/utxo');
+const Holders = require('./lib/ui/holders');
+const { invalidateHolderSnapshots } = require('./lib/holders');
 const AllBlocks = require('./lib/ui/all-blocks');
 const AllTransactions = require('./lib/ui/all-transactions');
 const Search = require('./lib/ui/search');
@@ -60,6 +62,8 @@ class Explorer extends ModTemplate {
     this.supplyComponent = null;
     this.addressComponent = null;
     this.utxoComponent = null;
+    this.holdersComponent = null;
+    this.holdersRenderToken = 0;
     this.allBlocksComponent = null;
     this.allTransactionsComponent = null;
     this.search = null;
@@ -139,6 +143,13 @@ class Explorer extends ModTemplate {
     const utxoMatch = path.match(new RegExp(`^${prefix}/utxo/([^/]+)$`));
     const allBlocksMatch = path.match(new RegExp(`^${prefix}/blocks$`));
     const allTransactionsMatch = path.match(new RegExp(`^${prefix}/transactions$`));
+
+    if (path === `${prefix}/holders`) {
+      return {
+        view: 'holders',
+        page: Holders.normalizePage(new URLSearchParams(window.location.search).get('page'))
+      };
+    }
 
     if (blockMatch) {
       return {
@@ -284,6 +295,9 @@ class Explorer extends ModTemplate {
         if (href.endsWith('/explorer/supply')) {
           event.preventDefault();
           this.renderSupply({ pushState: true, animate: true });
+        } else if (href.endsWith('/explorer/holders')) {
+          event.preventDefault();
+          this.renderHolders();
         }
         return;
       }
@@ -291,7 +305,10 @@ class Explorer extends ModTemplate {
       const viewAllLink = event.target.closest('[data-explorer-nav]');
       if (viewAllLink) {
         const nav = viewAllLink.getAttribute('data-explorer-nav');
-        if (nav === 'all-blocks') {
+        if (nav === 'holders') {
+          event.preventDefault();
+          this.renderHolders();
+        } else if (nav === 'all-blocks') {
           event.preventDefault();
           event.stopPropagation();
           this.renderAllBlocks({ pushState: true, animate: true });
@@ -305,6 +322,16 @@ class Explorer extends ModTemplate {
 
     window.addEventListener('popstate', (event) => {
       const state = event.state || this.parseRoute();
+
+      if (state.view === 'holders') {
+        this.renderHolders({
+          page: state.page,
+          snapshotId: state.snapshotId,
+          pushState: false,
+          animate: true
+        });
+        return;
+      }
 
       if (state.view === 'block' && (state.input || state.hash)) {
         this.renderBlock(state.input || state.hash, {
@@ -349,6 +376,11 @@ class Explorer extends ModTemplate {
   }
 
   cleanupListViews() {
+    this.holdersRenderToken++;
+    if (this.holdersComponent) {
+      this.holdersComponent.cleanup();
+      this.holdersComponent = null;
+    }
     if (this.allBlocksComponent) {
       this.allBlocksComponent.cleanup();
       this.allBlocksComponent = null;
@@ -385,6 +417,41 @@ class Explorer extends ModTemplate {
       this.main.render('.explorer-view');
     };
 
+    if (animate) {
+      await transitionView(this.getViewElement(), renderContent);
+    } else {
+      renderContent();
+    }
+  }
+
+  async renderHolders(options = {}) {
+    const { pushState = true, animate = true, snapshotId = null } = options;
+    const page = Holders.normalizePage(options.page);
+    this.activeView = 'holders';
+    this.blockHash = null;
+    this.blockComponent = null;
+    this.main = null;
+    this.supplyComponent = null;
+    this.addressComponent = null;
+    this.addressPublicKey = null;
+    this.utxoComponent = null;
+    this.utxoKey = null;
+    this.cleanupListViews();
+    const renderToken = this.holdersRenderToken;
+
+    if (pushState) {
+      window.history.pushState(
+        { view: 'holders', page, snapshotId },
+        '',
+        `/${this.slug}/holders?page=${page}`
+      );
+    }
+    this.ensureShell();
+    const renderContent = () => {
+      if (this.activeView !== 'holders' || renderToken !== this.holdersRenderToken) return;
+      this.holdersComponent = new Holders(this.app, this, page, snapshotId);
+      this.holdersComponent.render('.explorer-view');
+    };
     if (animate) {
       await transitionView(this.getViewElement(), renderContent);
     } else {
@@ -656,6 +723,15 @@ class Explorer extends ModTemplate {
 
     this.explorerPeer = peer;
     this.resetExplorerData();
+
+    if (this.activeView === 'holders') {
+      await this.renderHolders({
+        page: this.holdersComponent?.page,
+        pushState: false,
+        animate: false
+      });
+      return;
+    }
 
     if (this.activeView === 'allBlocks') {
       this.cleanupListViews();
@@ -1181,6 +1257,11 @@ class Explorer extends ModTemplate {
 
     const route = this.parseRoute();
 
+    if (route.view === 'holders') {
+      await this.renderHolders({ page: route.page, pushState: false, animate: false });
+      return;
+    }
+
     if (route.view === 'block' && (route.input || route.hash)) {
       await this.renderBlock(route.input || route.hash, { pushState: false, animate: false });
       return;
@@ -1263,6 +1344,8 @@ class Explorer extends ModTemplate {
   }
 
   async onChainReorganization(block_id, block_hash, lc) {
+    // Keep snapshots stable as the chain advances; discard them on an unwind.
+    if (this.app.BROWSER === 0 && !lc) invalidateHolderSnapshots(this);
     if (this.app.BROWSER !== 0 || !this.database || !this.INDEX_PUBLICKEYS) {
       return;
     }
@@ -1331,6 +1414,7 @@ class Explorer extends ModTemplate {
     expressapp.get(`${uri}/blocks`, sendIndex);
     expressapp.get(`${uri}/transactions`, sendIndex);
     expressapp.get(`${uri}/supply`, sendIndex);
+    expressapp.get(`${uri}/holders`, sendIndex);
     expressapp.get(`${uri}/address/:publickey`, sendIndex);
     expressapp.get(`${uri}/utxo/:utxokey`, sendIndex);
     expressapp.get(uri, sendIndex);
