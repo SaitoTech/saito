@@ -112,7 +112,7 @@ class NavalBattleOverlay {
     this.updateInstructions(
       `Assign <span class="hits_to_assign">${hits_to_assign}</span> ${hitstext} (squadrons take 2 hits)`
     );
-    this.mod.updateStatus(
+    this.mod.hud.updateStatus(
       `Assign <span class="hits_to_assign">${hits_to_assign}</span> ${hitstext} (squadrons take 2 hits)`
     );
 
@@ -241,7 +241,7 @@ class NavalBattleOverlay {
             hits_left = hits_to_assign - hits_assigned;
 
             if (hits_left > 0) {
-              this.mod.updateStatus(`Assign <span class="hits_to_assign">${hits_left}</span> Hits`);
+              this.mod.hud.updateStatus(`Assign <span class="hits_to_assign">${hits_left}</span> Hits`);
             }
 
             el.remove();
@@ -312,7 +312,7 @@ class NavalBattleOverlay {
 
     if (faction != '') {
       if (this.mod.game.player == this.mod.returnPlayerCommandingFaction(faction)) {
-        this.mod.updateStatus(`Assign <span class="hits_to_assign">${hits_to_assign}</span> Hits`);
+        this.mod.hud.updateStatus(`Assign <span class="hits_to_assign">${hits_to_assign}</span> Hits`);
       } else {
         this.updateInstructions(this.mod.returnFactionName(faction) + ' Assigning Hits');
       }

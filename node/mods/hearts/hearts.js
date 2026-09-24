@@ -177,17 +177,21 @@ class Hearts extends GameTemplate {
         let hearts_self = this;
 
         if (this.game.player == player_to_go) {
-          this.updateStatusAndListCards('Select a Card', this.game.deck[0].hand, function (card) {
+          this.game.status = 'Select a Card';
+          this.hud.updateStatus(this.game.status);
+          this.hud.updateMenu([]);
+          this.hud.updateCards(this.game.deck[0].hand, function (card) {
             alert(`You picked: ${card}`);
 
-            this.addMove('resolve');
-            this.addMove(
-              `NOTIFY\tPlayer ${this.game.player} picked card ${this.game.deck[0].cards[card].name}`
+            hearts_self.addMove('resolve');
+            hearts_self.addMove(
+              `NOTIFY\tPlayer ${hearts_self.game.player} picked card ${hearts_self.game.deck[0].cards[card].name}`
             );
-            this.endTurn();
+            hearts_self.endTurn();
           });
         } else {
-          this.updateStatus(`Player ${player_to_go} is taking their turn`);
+          this.game.status = `Player ${player_to_go} is taking their turn`;
+          this.hud.updateStatus(this.game.status);
         }
 
         //

@@ -24,6 +24,8 @@
     margin-top: 0.833rem;
     padding-left: 0.833rem;
     padding-right: 0.833rem;
+    text-align: center;
+    font-size: 1.333rem;
   }
 
   .zoom-overlay .controls {
@@ -102,7 +104,7 @@
     display: block;
     position: relative;
     background-color: whitesmoke;
-    line-height: 3.333rem;
+    line-height: normal;
     width: 25rem;
     max-width: 29.167rem;
     max-height: 80vh;
@@ -114,14 +116,35 @@
     float: left;
     margin-left: 0.833rem;
     margin-top: 0.833rem;
-    padding-left: 0.833rem;
-    padding-right: 0.833rem;
+    padding: 0;
+    list-style: none;
     clear: both;
-    min-height: max-content;
     height: auto;
     cursor: pointer;
-    overflow-y: scroll;
-    min-height: 100%;
+    min-height: 0;
+  }
+
+  .zoom-overlay .controls .option {
+    box-sizing: border-box;
+    min-height: 6.667rem;
+    height: 6.667rem;
+    font-size: 1.5rem;
+    line-height: normal;
+    text-align: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.833rem;
+    cursor: pointer;
+    border-top: 1px solid var(--saito-gray-200);
+  }
+
+  .zoom-overlay .controls .option:first-child {
+    border-top: 0;
+  }
+
+  .zoom-overlay .controls .option:hover {
+    background-color: #e7e7e7;
   }
 
   .zoom-overlay .status .status-header {

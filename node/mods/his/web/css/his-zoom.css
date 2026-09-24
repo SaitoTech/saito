@@ -1,5 +1,6 @@
 .game.his {
   .theses-overlay {
+    position: relative;
     height: 90vh;
     width: 90vw;
     overflow: hidden;
@@ -23,9 +24,14 @@
     margin-top: 0.833rem;
     padding-left: 0.833rem;
     padding-right: 0.833rem;
+    text-align: center;
+    font-size: 1.333rem;
   }
 
   .theses-overlay .controls {
+    position: relative;
+    float: left;
+    clear: both;
     max-height: 80vh;
   }
 
@@ -49,9 +55,9 @@
     padding: 0;
     list-style: none;
     clear: both;
-    min-height: 0;
     height: auto;
     cursor: pointer;
+    min-height: 0;
   }
 
   .theses-overlay .controls .option {
@@ -75,63 +81,5 @@
 
   .theses-overlay .controls .option:hover {
     background-color: #e7e7e7;
-  }
-
-  .theses-overlay .status .status-header {
-    box-shadow: none;
-    margin-bottom: 0px;
-  }
-
-  .theses-overlay .status .message {
-    padding: 0.833rem;
-    margin-bottom: 0px;
-    box-shadow: none;
-  }
-
-  .theses-overlay .status ul {
-    margin-top: 0.833rem;
-    background-color: whitesmoke;
-    border-radius: 0.417rem;
-  }
-
-  .theses-overlay .status ul {
-    list-style: none;
-  }
-
-  .theses-overlay .status ul .option {
-    padding: 1.25rem;
-    cursor: pointer;
-  }
-  .theses-overlay .status ul .option:hover {
-    background: #ddd;
-  }
-
-  .theses-overlay .gameboard {
-    position: relative;
-  }
-
-  .theses-overlay .status .status-text-menu ul .textchoice {
-    background-color: whitesmoke;
-    padding: 1.25rem;
-    border-radius: 0.417rem;
-  }
-
-  .zoom-german {
-    transform: translate(-42%, -20%) scaleX(0.7) scaleY(0.7);
-  }
-  .zoom-english {
-    transform: translate(-24%, -15%) scaleX(0.7) scaleY(0.7);
-  }
-  .zoom-french {
-    transform: translate(-32%, -35%) scaleX(0.6) scaleY(0.6);
-  }
-  .zoom-spanish {
-    transform: translate(-29%, -53%) scaleX(0.6) scaleY(0.6);
-  }
-  .zoom-italian {
-    transform: translate(-49%, -44%) scaleX(0.6) scaleY(0.6);
-  }
-  .zoom-ottoman {
-    transform: translate(-60%, -46%) scaleX(0.6) scaleY(0.6);
   }
 }

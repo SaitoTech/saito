@@ -102,6 +102,40 @@
     pointer-events: none; /* Prevent interaction */
   }
 
+  /* Rules forbid assigning to this unit right now (see updateAssignableUnits) */
+  .loss-overlay-unit.unassignable::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: url('/paths/img/cancel_x.png') no-repeat center;
+    background-size: contain;
+    pointer-events: none;
+  }
+
+  .loss-overlay-unit.unassignable-shake {
+    animation: loss-overlay-shake 0.45s ease-in-out;
+  }
+
+  @keyframes loss-overlay-shake {
+    10%,
+    90% {
+      transform: translate3d(-4px, 0, 0);
+    }
+    20%,
+    80% {
+      transform: translate3d(4px, 0, 0);
+    }
+    30%,
+    50%,
+    70% {
+      transform: translate3d(-8px, 0, 0);
+    }
+    40%,
+    60% {
+      transform: translate3d(8px, 0, 0);
+    }
+  }
+
   .loss-overlay .info {
     display: grid;
     grid-template-columns: 2fr 1fr 1fr;

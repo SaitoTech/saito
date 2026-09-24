@@ -870,6 +870,9 @@ class LossOverlay {
       //
       if (el == null) {
         this.attachEvents(am_i_the_attacker, my_qs, faction, just_one_more_hit);
+      } else {
+        // Refresh red-X markers without waiting for the next click
+        this.updateAssignableUnits();
       }
     }
 
@@ -962,10 +965,22 @@ class LossOverlay {
             for (let z = 0; z < this.units.length; z++) {
               if (z != idx && this.units[z].destroyed == false) { others++; }
             }
-            if (others == 0) { return; }
+            if (others == 0) {
+              let target = e.currentTarget;
+              target.classList.remove('unassignable-shake');
+              void target.offsetWidth;
+              target.classList.add('unassignable-shake');
+              return;
+            }
           }
         } else {
-          if (unit.unassignable == 1) { return; }
+          if (unit.unassignable == 1) {
+            let target = e.currentTarget;
+            target.classList.remove('unassignable-shake');
+            void target.offsetWidth;
+            target.classList.add('unassignable-shake');
+            return;
+          }
         }
 
         let unit_key = e.currentTarget.dataset.key;
@@ -1028,6 +1043,7 @@ class LossOverlay {
           this.are_any_units_unassignable = 1;
         }
       }
+      this.syncUnassignableUI();
       return;
     }
 
@@ -1139,6 +1155,15 @@ class LossOverlay {
         this.are_any_units_unassignable = 1;
       }
     }
+
+    this.syncUnassignableUI();
+  }
+
+  syncUnassignableUI() {
+    document.querySelectorAll('.loss-overlay-unit').forEach((el) => {
+      let unit = this.units[el.id];
+      el.classList.toggle('unassignable', !!(unit && unit.unassignable == 1));
+    });
   }
 }
 

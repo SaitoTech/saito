@@ -81,7 +81,7 @@ class FieldBattleOverlay {
     let his_self = this.mod;
 
     this.updateInstructions(`Assign <span class="hits_to_assign">${hits_to_assign}</span> Hits`);
-    this.mod.updateStatus(`Assign <span class="hits_to_assign">${hits_to_assign}</span> Hits`);
+    this.mod.hud.updateStatus(`Assign <span class="hits_to_assign">${hits_to_assign}</span> Hits`);
 
     document.querySelectorAll('.not-assignable').forEach((el) => {
       el.remove();
@@ -157,7 +157,7 @@ class FieldBattleOverlay {
     });
     if (faction != '') {
       if (this.mod.game.player == this.mod.returnPlayerCommandingFaction(faction)) {
-        this.mod.updateStatus(`Assign <span class="hits_to_assign">${hits_to_assign}</span> Hits`);
+        this.mod.hud.updateStatus(`Assign <span class="hits_to_assign">${hits_to_assign}</span> Hits`);
       } else {
         this.updateInstructions(this.mod.returnFactionName(faction) + ' Assigning Hits');
       }

@@ -17649,6 +17649,18 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
 
       menu_options.push({ id: "skip", label: "stand down" });
 
+      // Speed-boost: single actionable choice is move vs stand-down (no entrench).
+      // Skip the action menu and jump straight into destination selection.
+      let only_move_or_stand_down =
+        menu_options.length === 2 &&
+        menu_options.some((o) => o.id === "move") &&
+        menu_options.some((o) => o.id === "skip");
+      if (only_move_or_stand_down) {
+        paths_self.attachMovementSnapshotUndo();
+        continueMoveInterface(sourcekey, sourcekey, idx, options);
+        return;
+      }
+
       paths_self.attachMovementSnapshotUndo();
       paths_self.game.status = `Select Action for ${unit.name}`;
       paths_self.hud.updateStatus(paths_self.game.status);
