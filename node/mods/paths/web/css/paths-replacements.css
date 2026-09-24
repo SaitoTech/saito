@@ -1,116 +1,389 @@
 .game.paths {
-  .replacements-overlay {
-    height: 90vh;
-    width: 90vw;
-    overflow: hidden;
-    overflow-y: scroll;
-    background-image: url(/paths/img/backgrounds/mark_iv_tank.jpg);
-    background-size: cover;
-    min-width: 90vw;
-    display: grid;
-    grid-template-columns: min-content 1fr max-content;
-  }
-  .replacements-overlay .points {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 10px; /* spacing between boxes */
-    padding: 0.833rem;
-  }
-  .replacements-overlay .points .box {
-    width: 120px;
-    height: 120px;
-    border: 1px solid #000;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    background-color: #efefef;
-  }
-  .replacements-overlay .points .box .num {
-    font-size: 4.5rem;
-    line-height: 1;
-    font-weight: bolder;
-  }
-  .replacements-overlay .points .box .ckey {
-    font-size: 1.833rem;
-    margin-top: 4px;
-    font-weight: bolder;
-  }
-  .replacements-overlay .mainmenu + .submenu {
-    max-width: 100%;
-    text-align: center;
-    display: flex;
-    justify-content: flex-start;
-    margin-right: 4.167rem;
-    margin-top: 4.167rem;
+  /* Host must not paint a second full-screen surface behind this overlay */
+  .saito-overlay:has(.replacements-overlay) {
+    background: transparent;
+    padding: 0;
   }
 
-  .replacements-overlay .mainmenu .controls ul li,
-  .replacements-overlay .submenu .controls ul li {
-    background-color: whitesmoke;
-    height: 6.667rem;
-    border-top: 1px solid var(--saito-border);
-    width: 100%;
-    font-size: 1.5rem;
-    display: list-item;
-    list-style: none;
-    cursor: pointer;
-    padding: 0.833rem;
+  .replacements-overlay {
+    --rp-central-deep: #4a141c;
+    --rp-central-mid: #5c1822;
+    --rp-allies-deep: #152446;
+    --rp-allies-mid: #1a2e5c;
+    --rp-title: 3.15rem;
+    --rp-sub: 1.55rem;
+    --rp-icon: calc(var(--rp-title) * 1.08 + 0.18rem + var(--rp-sub) * 1.25);
+    --rp-corps-scale: 0.82;
+    --rp-action: 1.45rem;
+    --rp-unit-name: 1.45rem;
+    --rp-unit-loc: 1.25rem;
+    --rp-chit: 3.6rem;
+    --rp-ink: #1a1a1a;
+
+    position: relative;
+    width: min(1090px, 90vw);
+    height: min(720px, 90vh);
+    max-width: 90vw;
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    border-radius: 0.95rem;
+    box-shadow: 0 1rem 2.5rem rgba(0, 0, 0, 0.55);
+    background-color: transparent;
+    background-image: url(/paths/img/backgrounds/mark_iv_tank.jpg);
+    background-size: cover;
+    background-position: center;
+    color: #f5f2ea;
+    font-family: Helvetica, Arial, sans-serif;
+    line-height: 1.25;
+    border: none;
+  }
+
+  /* Neutralize Saito panel chrome so the photo remains the only surface */
+  .replacements-overlay.saito-overlay-panel {
+    background-color: transparent;
+    background-image: url(/paths/img/backgrounds/mark_iv_tank.jpg);
+    background-size: cover;
+    background-position: center;
+    border: none;
+    box-shadow: 0 1rem 2.5rem rgba(0, 0, 0, 0.55);
+    padding: 0;
+  }
+
+  .replacements-overlay .rp-header {
+    position: relative;
+    z-index: 3;
+    flex: 0 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 0.7rem;
+    padding: 0.75rem 1.1rem 0.85rem;
+    background: #3a3a3a;
+    box-sizing: border-box;
+  }
+
+  .replacements-overlay.is-central .rp-header {
+    background: linear-gradient(180deg, var(--rp-central-mid) 0%, var(--rp-central-deep) 100%);
+  }
+
+  .replacements-overlay.is-allies .rp-header {
+    background: linear-gradient(180deg, var(--rp-allies-mid) 0%, var(--rp-allies-deep) 100%);
+  }
+
+  .replacements-overlay .rp-header-main {
     display: flex;
     align-items: center;
-    justify-content: center;
+    gap: 0.95rem;
+    min-width: 0;
+    padding-right: 2.5rem; /* room for standard Saito closebox */
   }
-  .replacements-overlay .mainmenu .status,
-  .replacements-overlay .submenu .status {
-    width: 20.833rem;
-    max-width: 20.833rem;
-    text-align: center;
-    line-height: 3.333rem;
+
+  .replacements-overlay .rp-header-icon {
+    width: var(--rp-icon);
+    height: var(--rp-icon);
+    flex-shrink: 0;
+    background-color: transparent;
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: contain;
+  }
+
+  .replacements-overlay .rp-header-icon[data-faction='central'] {
+    background-image: url('/paths/img/axis_powers_icon.png');
+  }
+
+  .replacements-overlay .rp-header-icon[data-faction='allies'] {
+    background-image: url('/paths/img/allied_powers_icon.png');
+  }
+
+  .replacements-overlay .rp-header-copy {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .replacements-overlay .rp-header-copy strong {
+    display: block;
+    font-size: var(--rp-title);
+    font-weight: 500;
+    line-height: 1.08;
+    letter-spacing: 0.005em;
+    color: rgba(255, 255, 255, 0.98);
+  }
+
+  .replacements-overlay .rp-header-sub {
+    display: block;
+    margin-top: 0.18rem;
+    font-size: var(--rp-sub);
+    font-weight: 400;
+    line-height: 1.25;
+    color: rgba(255, 255, 255, 0.78);
+  }
+
+  /* Nationality-specific RP counters — compact resource strip in header */
+  .replacements-overlay .points {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: stretch;
+    gap: 0.45rem;
+    padding: 0;
+  }
+
+  .replacements-overlay .points .box {
+    min-width: 4.6rem;
+    height: 3.2rem;
+    padding: 0.3rem 0.65rem;
+    border: 1px solid rgba(0, 0, 0, 0.2);
+    border-radius: 0.35rem;
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.75rem;
+    background: #fff;
+    color: #1a1a1a;
+    box-sizing: border-box;
+  }
+
+  .replacements-overlay .points .box .ckey,
+  .replacements-overlay .points .box .num {
+    font-size: 1.45rem;
+    font-weight: 600;
+    line-height: 1;
+    color: #1a1a1a;
+  }
+
+  .replacements-overlay .points .box .ckey {
+    letter-spacing: 0.03em;
+  }
+
+  .replacements-overlay .rp-body {
     position: relative;
-    height: 3.333rem;
+    flex: 1 1 auto;
     min-height: 0;
-    background-color: whitesmoke;
-    z-index: 10;
-    border-radius: 0.833rem;
-    top: 0px;
-    left: 0px;
-    white-space: nowrap;
-    float: left;
-    margin-left: 4.167rem;
-    margin-top: 0.833rem;
-    padding-left: 0.417rem;
-    padding-right: 0.417rem;
+    display: grid;
+    grid-template-columns: minmax(15rem, 22rem) minmax(0, 1fr);
+    gap: 0.75rem;
+    padding: 0.85rem;
+    box-sizing: border-box;
+    overflow: hidden;
+    background: transparent;
+  }
+
+  .replacements-overlay .mainmenu,
+  .replacements-overlay .submenu {
+    min-width: 0;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    background: transparent;
+  }
+
+  /* Closed: leave the photo fully visible — no reserved opaque panel */
+  .replacements-overlay .submenu {
+    display: none;
+    padding: 0;
+    border-radius: 0;
+    overflow: hidden;
+  }
+
+  .replacements-overlay .submenu.is-open {
+    display: flex;
+    pointer-events: auto;
+  }
+
+  .replacements-overlay .mainmenu .controls,
+  .replacements-overlay .submenu .controls {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: auto;
+    background: transparent;
   }
 
   .replacements-overlay .mainmenu .controls ul,
   .replacements-overlay .submenu .controls ul {
-    display: block;
-    position: relative;
-    background-color: whitesmoke;
-    line-height: 3.333rem;
-    width: 20.833rem;
-    max-width: 29.167rem;
-    z-index: 10;
-    border-radius: 0.833rem;
-    top: 0px;
-    left: 0px;
-    white-space: nowrap;
-    float: left;
-    margin-left: 4.167rem;
-    margin-top: 0.833rem;
-    padding-left: 0.833rem;
-    padding-right: 0.833rem;
-    clear: both;
-    min-height: max-content;
-    max-height: max-content;
-    height: auto;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+    background: transparent;
+  }
+
+  .replacements-overlay .mainmenu .controls ul li {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    min-height: 3.6rem;
+    padding: 0.7rem 0.85rem;
+    border-radius: 0.45rem;
+    border: 1px solid #1a1a1a;
+    background: #fff;
+    color: var(--rp-ink);
+    font-size: var(--rp-action);
+    font-weight: 400;
     cursor: pointer;
+    box-sizing: border-box;
   }
-  .replacements-overlay .submenu .controls {
-    margin-top: 0rem;
+
+  .replacements-overlay .mainmenu .controls ul li .rp-action-label {
+    flex: 1 1 auto;
+    min-width: 0;
   }
-  .replacements-overlay .submenu .controls ul {
-    width: min-content;
+
+  .replacements-overlay .mainmenu .controls ul li .rp-chevron {
+    flex: 0 0 auto;
+    opacity: 0.55;
+    font-weight: 400;
+    color: var(--rp-ink);
+  }
+
+  .replacements-overlay .mainmenu .controls ul li.is-selected {
+    background: #fff;
+    border-width: 2px;
+  }
+
+  .replacements-overlay.is-central .mainmenu .controls ul li.is-selected {
+    border-color: var(--rp-central-mid);
+    box-shadow: inset 3px 0 0 var(--rp-central-mid);
+  }
+
+  .replacements-overlay.is-allies .mainmenu .controls ul li.is-selected {
+    border-color: var(--rp-allies-mid);
+    box-shadow: inset 3px 0 0 var(--rp-allies-mid);
+  }
+
+  .replacements-overlay .mainmenu .controls ul li.is-selected .rp-chevron {
+    opacity: 0.95;
+  }
+
+  .replacements-overlay .submenu .controls ul li.rp-unit-row {
+    display: flex;
+    flex-direction: row;
+    justify-content: flex-start;
+    align-items: center;
+    gap: 0.55rem;
+    height: max-content;
+    min-height: 0;
+    padding: 0.75rem;
+    border-radius: 0.4rem;
+    border: 1px solid rgba(0, 0, 0, 0.18);
+    background: rgba(255, 255, 255, 0.92);
+    color: var(--rp-ink);
+    cursor: pointer;
+    box-sizing: border-box;
+    overflow: hidden;
+    text-align: left;
+  }
+
+  .replacements-overlay .submenu .controls ul li.rp-unit-row:hover {
+    background: #fff;
+  }
+
+  /*
+   * Unit chits: .army-tile is globally position:absolute; width/height 100%.
+   * Without a positioned containing block it sizes to the whole overlay.
+   * This box is the containing block and hard-caps intrinsic image size.
+   */
+  .replacements-overlay .rp-unit-chit {
+    position: relative;
+    flex: 0 0 auto;
+    width: var(--rp-chit);
+    height: var(--rp-chit);
+    display: block;
+    overflow: hidden;
+    border-radius: 0.35rem;
+  }
+
+  .replacements-overlay .rp-unit-row.is-corps .rp-unit-chit,
+  .replacements-overlay .rp-unit-row[data-key*='corps'] .rp-unit-chit {
+    width: calc(var(--rp-chit) * var(--rp-corps-scale));
+    height: calc(var(--rp-chit) * var(--rp-corps-scale));
+  }
+
+  .replacements-overlay .rp-unit-chit img,
+  .replacements-overlay .rp-unit-chit .army-tile,
+  .replacements-overlay .rp-unit-chit .unit {
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    max-width: 100% !important;
+    max-height: 100% !important;
+    margin: 0 !important;
+    object-fit: contain;
+    display: block;
+    z-index: 1;
+  }
+
+  .replacements-overlay .rp-unit-chit .army-tile:hover {
+    z-index: 1;
+  }
+
+  .replacements-overlay .rp-unit-meta {
+    flex: 1 1 auto;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: flex-start;
+    gap: 0.1rem;
+    text-align: left;
+  }
+
+  .replacements-overlay .rp-unit-name {
+    display: block;
+    width: 100%;
+    font-size: var(--rp-unit-name);
+    font-weight: 500;
+    line-height: 1.15;
+    text-align: left;
+  }
+
+  .replacements-overlay .rp-unit-loc {
+    display: block;
+    width: 100%;
+    font-size: var(--rp-unit-loc);
+    font-weight: 400;
+    line-height: 1.15;
+    color: rgba(42, 42, 42, 0.72);
+    text-align: left;
+  }
+
+  .replacements-overlay .submenu .rp-chevron {
+    flex: 0 0 auto;
+    margin-left: auto;
+    opacity: 0.4;
+    color: var(--rp-ink);
+  }
+
+  @media (max-width: 820px) {
+    .replacements-overlay {
+      width: 94vw;
+      height: 92vh;
+    }
+
+    .replacements-overlay .rp-body {
+      grid-template-columns: 1fr;
+      grid-template-rows: auto minmax(0, 1fr);
+      overflow: auto;
+    }
+
+    .replacements-overlay .rp-header-copy strong {
+      font-size: 2.4rem;
+    }
+
+    .replacements-overlay .rp-header-sub {
+      font-size: 1.35rem;
+    }
+
+    .replacements-overlay .rp-header-icon {
+      width: 4.2rem;
+      height: 4.2rem;
+    }
   }
 }
