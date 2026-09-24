@@ -77,7 +77,7 @@ class LossOverlay {
     this.render(this.faction || this.assignment_faction || 'defender');
     try {
       this.updateInstructions(
-        `<div class="continue_btn">All possible damage assigned — <span style="text-decoration:underline;cursor:pointer">Click to Continue</span></div>`,
+        `<div class="continue_btn">All possible damage assigned — <span style="text-decoration:underline dashed;cursor:pointer">Close to Continue</span></div>`,
         'resolved'
       );
       let btn = document.querySelector('.loss-overlay .continue_btn');
@@ -87,6 +87,10 @@ class LossOverlay {
         };
       }
     } catch (err) {}
+  }
+
+  viewingPlayerPower() {
+    return this.mod.returnFactionOfPlayer() || '';
   }
 
   activeAssigningPower() {
@@ -104,11 +108,12 @@ class LossOverlay {
     return '';
   }
 
+  // Header color/icon = viewing player's faction (not attacker/defender/assigner).
   syncActiveHeader(power = '') {
     let status = document.querySelector('.loss-overlay .loss-overlay-status');
     let icon = document.querySelector('.loss-overlay .loss-overlay-status-icon');
     if (!power) {
-      power = this.activeAssigningPower();
+      power = this.viewingPlayerPower();
     }
     if (status) {
       status.classList.remove('is-central', 'is-allies');
@@ -144,7 +149,9 @@ class LossOverlay {
 
     this.syncActiveHeader();
 
-    let title = resolved ? 'Combat resolved' : action ? 'Assign losses' : 'Waiting…';
+    // Title stays "Assign losses" during the assignment phase (action or waiting);
+    // subtitle carries who is assigning / how much.
+    let title = resolved ? 'Combat resolved' : 'Assign losses';
     if (/take additional hit/i.test(String(msg))) {
       title = 'Cancel retreat?';
     }
@@ -214,25 +221,39 @@ class LossOverlay {
     let space = this.mod.game.spaces[combat.key];
     let snap = this.fireSnapshot();
     let terrain = space.terrain || 'clear';
-    let fort_label =
-      space.fort > 0 ? `Fort ${space.fort}` : space.fort == -1 ? 'Fort destroyed' : 'No Fort';
+    let show_terrain =
+      !!terrain && terrain !== 'normal' && terrain !== 'clear';
+    let show_fort = space.fort > 0;
 
     let title = document.querySelector('.loss-overlay .loss-overlay-title');
     let space_name = this.mod.returnSpaceName(combat.key);
     let attacker_label =
       combat.attacker_power === 'central' ? 'Central Powers' : 'Allied Powers';
-    let terrain_label = terrain === 'normal' ? 'Clear' : terrain;
     if (title) {
       title.innerHTML = `Combat at ${space_name} - ${attacker_label} attack`;
     }
 
+    let terrain_item = document.querySelector('.loss-overlay .loss-overlay-terrain-item');
+    let fort_item = document.querySelector('.loss-overlay .loss-overlay-fort-item');
     let terrain_name = document.querySelector('.loss-overlay .loss-overlay-terrain-name');
     let fort_name = document.querySelector('.loss-overlay .loss-overlay-fort-name');
-    if (terrain_name) {
-      terrain_name.innerHTML = terrain_label;
+    if (terrain_item && terrain_name) {
+      if (show_terrain) {
+        terrain_name.innerHTML = terrain;
+        terrain_item.hidden = false;
+      } else {
+        terrain_name.innerHTML = '';
+        terrain_item.hidden = true;
+      }
     }
-    if (fort_name) {
-      fort_name.innerHTML = fort_label;
+    if (fort_item && fort_name) {
+      if (show_fort) {
+        fort_name.innerHTML = 'Fortified';
+        fort_item.hidden = false;
+      } else {
+        fort_name.innerHTML = '';
+        fort_item.hidden = true;
+      }
     }
 
     let attacker_panel = document.querySelector('.loss-overlay .attacker-panel');
@@ -250,77 +271,29 @@ class LossOverlay {
       );
     }
 
-    let a_str = document.querySelector('.loss-overlay .attacker-strength');
-    let d_str = document.querySelector('.loss-overlay .defender-strength');
-    if (a_str) {
-      a_str.innerHTML = `Combat Strength: ${snap.attacker_cp}`;
-    }
-    if (d_str) {
-      d_str.innerHTML = `Combat Strength: ${snap.defender_cp}`;
-    }
-
-    this.syncActiveHeader();
-
-    // Center result: historical fire result (hits taken by each side from opposing fire)
-    let a_die = document.querySelector('.loss-overlay .attacker-die');
-    let d_die = document.querySelector('.loss-overlay .defender-die');
-    let a_calc = document.querySelector('.loss-overlay .attacker-calc');
-    let d_calc = document.querySelector('.loss-overlay .defender-calc');
-    let a_hits = document.querySelector('.loss-overlay .attacker-hits .hits-value');
-    let d_hits = document.querySelector('.loss-overlay .defender-hits .hits-value');
-    let a_hits_box = document.querySelector('.loss-overlay .attacker-hits');
-    let d_hits_box = document.querySelector('.loss-overlay .defender-hits');
-    let a_hits_label = document.querySelector('.loss-overlay .attacker-hits-label');
-    let d_hits_label = document.querySelector('.loss-overlay .defender-hits-label');
-
-    this.setDieSprite(a_die, combat.attacker_roll, combat.attacker_power);
-    this.setDieSprite(d_die, combat.defender_roll, combat.defender_power);
-
-    if (a_hits_box) {
-      a_hits_box.classList.toggle('is-central', combat.attacker_power === 'central');
-      a_hits_box.classList.toggle('is-allies', combat.attacker_power !== 'central');
-    }
-    if (d_hits_box) {
-      d_hits_box.classList.toggle('is-central', combat.defender_power === 'central');
-      d_hits_box.classList.toggle('is-allies', combat.defender_power !== 'central');
+    // Orient panels from the local player's perspective: own side left, opponent right.
+    let body = document.querySelector('.loss-overlay .loss-overlay-body');
+    let my_power = this.viewingPlayerPower();
+    if (body) {
+      body.classList.toggle(
+        'own-side-left',
+        my_power === combat.defender_power
+      );
     }
 
-    if (a_calc) {
-      a_calc.innerHTML = this.formatRollModifier(combat.attacker_roll, combat.attacker_drm);
-    }
-    if (d_calc) {
-      d_calc.innerHTML = this.formatRollModifier(combat.defender_roll, combat.defender_drm);
-    }
-    // Attacker's fire produces defender hits; defender's fire produces attacker hits
+    let a_hits = document.querySelector('.loss-overlay .attacker-hits-count');
+    let d_hits = document.querySelector('.loss-overlay .defender-hits-count');
+    // Hits = damage this side generated against the opponent (not hits they absorb)
     if (a_hits) {
       a_hits.innerHTML = snap.defender_hits;
     }
     if (d_hits) {
       d_hits.innerHTML = snap.attacker_hits;
     }
-    if (a_hits_label) {
-      a_hits_label.innerHTML = parseInt(snap.defender_hits) === 1 ? 'hit' : 'hits';
-    }
-    if (d_hits_label) {
-      d_hits_label.innerHTML = parseInt(snap.attacker_hits) === 1 ? 'hit' : 'hits';
-    }
-    if (a_hits_box) {
-      a_hits_box.classList.toggle(
-        'flank-adjusted',
-        combat.defender_loss_factor_at_fire != null &&
-          combat.defender_loss_factor != combat.defender_loss_factor_at_fire
-      );
-    }
-    if (d_hits_box) {
-      d_hits_box.classList.toggle(
-        'flank-adjusted',
-        combat.attacker_loss_factor_at_fire != null &&
-          combat.attacker_loss_factor != combat.attacker_loss_factor_at_fire
-      );
-    }
+
+    this.syncActiveHeader();
 
     let details_btn = document.querySelector('.loss-overlay .loss-overlay-see-details');
-    let hide_btn = document.querySelector('.loss-overlay .loss-overlay-hide-details');
     let details = document.querySelector('.loss-overlay .loss-overlay-details');
     let toggleDetails = (open) => {
       if (!details) {
@@ -329,19 +302,17 @@ class LossOverlay {
       details.classList.toggle('is-open', open);
       details.setAttribute('aria-hidden', open ? 'false' : 'true');
       if (details_btn) {
-        details_btn.innerHTML = open ? 'hide details' : 'view details';
+        details_btn.classList.toggle('is-open', open);
+        details_btn.setAttribute(
+          'aria-label',
+          open ? 'Hide combat details' : 'Show combat details'
+        );
       }
     };
     if (details_btn) {
       details_btn.onclick = (e) => {
         e.preventDefault();
         toggleDetails(!details.classList.contains('is-open'));
-      };
-    }
-    if (hide_btn) {
-      hide_btn.onclick = (e) => {
-        e.preventDefault();
-        toggleDetails(false);
       };
     }
   }
@@ -662,13 +633,32 @@ class LossOverlay {
     if (!unit) {
       return false;
     }
+    // Prefer key — reliable for freshly cloned replacement corps after army loss
+    if (unit.key && unit.key.indexOf('army') > -1) {
+      return false;
+    }
+    if (unit.key && unit.key.indexOf('corps') > -1) {
+      return true;
+    }
     if (unit.corps) {
       return true;
     }
     if (unit.army) {
       return false;
     }
-    return !!(unit.key && unit.key.indexOf('corps') > -1);
+    return false;
+  }
+
+  applyUnitTypeClass(el, unit) {
+    if (!el) {
+      return;
+    }
+    let corps = this.isCorpsUnit(unit);
+    el.classList.toggle('is-corps', corps);
+    el.classList.toggle('is-army', !corps);
+    if (unit && unit.key) {
+      el.dataset.key = unit.key;
+    }
   }
 
   unitTokenInnerHtml(unit, mouseout_first = false) {
@@ -999,6 +989,13 @@ class LossOverlay {
           if (el != null) {
             let container = document.querySelector(my_qs);
             el = container.querySelector('.loss-overlay-unit:last-child');
+            this.applyUnitTypeClass(el, this.units[this.units.length - 1]);
+          } else {
+            let container = document.querySelector(my_qs);
+            let new_el = container
+              ? container.querySelector('.loss-overlay-unit:last-child')
+              : null;
+            this.applyUnitTypeClass(new_el, this.units[this.units.length - 1]);
           }
         }
 
@@ -1051,8 +1048,7 @@ class LossOverlay {
       unit.damaged_this_combat = true;
       this.loss_factor -= unit.loss;
       if (el != null) {
-        el.classList.toggle('is-corps', this.isCorpsUnit(unit));
-        el.classList.toggle('is-army', !this.isCorpsUnit(unit));
+        this.applyUnitTypeClass(el, unit);
         el.innerHTML = this.unitTokenInnerHtml(unit, true);
       }
       this.updateInstructions(
