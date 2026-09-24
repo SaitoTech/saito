@@ -19,7 +19,7 @@ This means that Saito applications should generally prefer:
     module
       ├── transactions
       ├── domain objects
-      ├── UI components
+      ├── top-level UI, which owns the visual hierarchy
       ├── database
       └── other semantically meaningful objects
 
@@ -479,18 +479,11 @@ This avoids startup races in which initialization succeeds but the network-depen
 
 # 12. `render()` Is the Browser UI Entry Point
 
-For modern Saito applications, `render()` is the primary module-level UI entry point.
+For modern Saito applications, `render()` is the module's UI lifecycle entry point.
 
 It should normally be thin.
 
-Its purpose is to:
-
-- determine which application components need to exist;
-- create or register those components;
-- invoke their rendering;
-- establish application-level routing or screen state.
-
-Substantial DOM implementation should normally live in `lib/ui/`.
+For a multi-surface application, it should normally hand visual ownership to the application's top-level UI component rather than implement the visual hierarchy itself.
 
 A conceptual pattern is:
 
@@ -505,11 +498,52 @@ A conceptual pattern is:
       await this.main.render();
     }
 
-The exact implementation varies.
+The distinction is:
 
-The architectural principle is more important:
+    ModTemplate render()
+        enters and coordinates application UI rendering
 
-> The module's `render()` method should identify and coordinate the UI rather than contain a giant implementation of the UI itself.
+    Main UI render()
+        owns the application's visual hierarchy
+
+Main then decides which visual surface is displayed and composes Header, Body, and the application's child UI components. Header and Body are examples of major visual regions. They do not have to be literal classes.
+
+`render()` does not have to be one line. It can perform module-level setup, or a rendering decision that genuinely belongs to the module. Once the application has a meaningful UI hierarchy, that hierarchy should normally live in UI components.
+
+Direct construction from the module is acceptable for a simple application:
+
+    ModTemplate
+      -> Header
+      -> Body
+      -> Splash
+      -> Prepare
+
+    ModTemplate also contains:
+      showSplash()
+      showPrepare()
+      showDocument()
+
+That structure becomes a problem when the module is the owner of the visual hierarchy and accumulates the methods that switch among those surfaces.
+
+Prefer, for a multi-surface application:
+
+    ModTemplate
+      -> Main UI
+           -> Header
+           -> Body
+                -> Splash
+                -> Prepare
+                -> Document
+
+Main or Body owns transitions between those UI surfaces.
+
+The module remains the application map. The UI hierarchy remains the UI ownership map.
+
+The module may construct the top-level UI object. The top-level UI object should normally construct and own the UI components beneath it.
+
+    this.main = new Main(app, this);
+
+Substantial DOM implementation should normally live in `lib/ui/`.
 
 ---
 
@@ -1412,6 +1446,12 @@ Those responsibilities are part of what it means to be a Saito module.
 
 Split them into semantic objects when useful, but preserve the module as the ownership boundary.
 
+The fact that ModTemplate is not a controller does not mean that ModTemplate should own UI navigation. A normal UI component hierarchy is not a controller architecture.
+
+Main is the top-level UI component. It is not a controller, service, or router. Creating Main so that it owns Header, Body, and the surfaces beneath them is ordinary Saito component ownership. Refusing to create it, and then adding `showSplash()`, `showPrepare()`, or `reject()` to the module, is how the module becomes the UI router that this section is not asking for.
+
+The module remains the application map. The UI hierarchy remains the UI ownership map.
+
 ---
 
 # 41. The Main File Is Not a Generic Dispatcher
@@ -1478,8 +1518,12 @@ A typical modern application can have a structure conceptually like:
       async render() {
         if (!this.browser_active) return;
 
-        // establish/render UI components
+        if (!this.main) {
+          this.main = new Main(this.app, this);
+        }
+
         await super.render();
+        await this.main.render();
       }
 
       async onConfirmation(blk, tx, conf, app) {
@@ -1949,9 +1993,9 @@ When creating or modifying a Saito application, an AI should follow these rules.
 
 8. Use `onPeerServiceUp()` for behavior that depends on peers or advertised services.
 
-9. Keep `render()` as the browser UI entry point.
+9. Keep `render()` as the module's UI lifecycle entry point. For a multi-surface application, hand the visual hierarchy to the top-level UI component rather than implementing screen transitions on the module.
 
-10. Keep substantial DOM/UI logic in `lib/ui/` rather than turning the main module into a giant UI implementation.
+10. Keep substantial DOM/UI logic in `lib/ui/` rather than turning the main module into a giant UI implementation or a UI router.
 
 11. Give UI components `app` and `mod` so they can directly use the application's runtime and owned objects.
 
@@ -1987,7 +2031,7 @@ When creating or modifying a Saito application, an AI should follow these rules.
 
 25. Do not treat `onConfirmation()` as a generic event bus.
 
-26. Do not introduce controllers, services, repositories, dispatchers, managers, resolvers, or middleware merely to wrap existing Saito functionality.
+26. Do not introduce controllers, services, repositories, dispatchers, managers, resolvers, or middleware merely to wrap existing Saito functionality. A Main UI component that owns Header, Body, and the surfaces beneath them is ordinary component ownership, not one of those layers.
 
 27. Use `app.wallet`, `app.network`, `app.connection`, `app.storage`, `app.keychain`, `app.crypto`, and other Saito APIs directly where appropriate.
 
@@ -2032,10 +2076,13 @@ The most useful mental model for an AI working on a Saito application is:
          │
          ├── database
          │
-         ├── UI components
+         ├── top-level UI
+         │     └── the visual hierarchy that UI owns
          │
          └── peer protocol
-         
+
+The module remains the application map. The UI hierarchy remains the UI ownership map.
+
 The module is not a controller.
 
 It is not a service.

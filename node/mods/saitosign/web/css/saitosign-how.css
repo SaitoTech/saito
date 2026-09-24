@@ -1,0 +1,71 @@
+.how {
+  display: flex;
+  flex-direction: column;
+  gap: var(--saito-space-xl);
+  width: min(46rem, 100%);
+  margin-inline: auto;
+  padding: var(--saito-space-xl) var(--saito-space-lg) var(--saito-space-xxl);
+}
+
+.how .back {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--saito-space-xs);
+  align-self: flex-start;
+  color: var(--saito-foreground);
+}
+
+.how .intro,
+.how section,
+.how ol {
+  display: flex;
+  flex-direction: column;
+  gap: var(--saito-space-sm);
+}
+
+.how h1,
+.how p {
+  margin: 0;
+}
+
+.how h1 {
+  font-family: var(--saito-font-heavy);
+}
+
+.how .summary,
+.how section > p,
+.how li > p {
+  color: var(--saito-muted-foreground);
+}
+
+.how .title,
+.how li .title {
+  color: var(--saito-foreground);
+  font-family: var(--saito-font-medium);
+}
+
+.how ol {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: step;
+  gap: var(--saito-space-lg);
+}
+
+.how li {
+  display: flex;
+  flex-direction: column;
+  gap: var(--saito-space-xs);
+  counter-increment: step;
+}
+
+.how li .title::before {
+  content: counter(step) ". ";
+  color: var(--saito-primary);
+}
+
+@media (max-width: 800px) {
+  .how {
+    padding-inline: var(--saito-space-md);
+  }
+}

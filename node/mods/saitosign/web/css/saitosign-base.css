@@ -1,0 +1,21 @@
+/*
+ * Page shell. Saito's default container is a three-column app grid.
+ * SaitoSign's splash is a single page, so this container is one column.
+ */
+
+.saito-container.saitosign {
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  grid-template-columns: unset;
+  column-gap: unset;
+}
+
+.saito-container.saitosign:has(.prepare) {
+  overflow: hidden;
+}
+
+body:has(.saito-container.saitosign) #saito-header {
+  padding-left: 1.6rem;
+  padding-right: 1.6rem;
+}

@@ -595,7 +595,7 @@ But an AI should not create:
 
 simply because several objects exist.
 
-If a module has three UI components, the main module can construct them directly.
+If a module has three UI components, the main module can construct them directly when the application is simple. Once those components form a visual hierarchy, the module should normally construct the top-level UI object, and that object should construct the components beneath it.
 
 If a module has several transaction handlers, it can handle them directly or organize them semantically in a transactions file.
 
@@ -1218,18 +1218,48 @@ The opposite mistake is keeping an entire application interface inside:
 
 with hundreds or thousands of lines of HTML and event handling.
 
-A module can construct:
+A module can construct its top-level UI and let that UI own the visual hierarchy beneath it.
 
-    this.header
-    this.main
-    this.tweet_manager
-    this.sidebar
+For a simple module, constructing several UI objects directly is fine. For a multi-surface application, the usual shape is `this.main`, with Main owning Header, Body, and the surfaces under them. Directly attaching every screen to the module, and then adding the methods that switch among them, is the UI-router problem described next.
 
-and let those objects own their visual responsibilities.
-
-The main module should remain the application-level coordinator.
+The module remains the application map. The UI hierarchy remains the UI ownership map.
 
 The components should contain the details of their own presentation and interaction.
+
+---
+
+# Do Not Turn the ModTemplate Into a UI Router
+
+A common AI-generated failure is to accumulate methods such as:
+
+    showSplash()
+    showSettings()
+    showDocument()
+    showPurchase()
+    reject()
+    openView()
+
+on the ModTemplate.
+
+The problem is not the number of lines, and it is not the presence of a method whose name starts with `show`.
+
+The problem is that the ModTemplate gradually becomes the owner of a UI hierarchy that should be owned by UI components.
+
+Prefer:
+
+    ModTemplate
+      -> Main UI
+           -> Header
+           -> Body
+                -> application UI
+
+The UI owner should normally decide which child surface is displayed.
+
+This is a default for applications with a meaningful UI hierarchy, not an absolute ban on UI methods in ModTemplate. Simple single-screen modules and specialized cases may reasonably keep small UI behavior in the module when that is the simplest design.
+
+Do not solve this by introducing Controller, ViewManager, ScreenManager, Router, UIService, or similar abstractions unless the application genuinely requires them.
+
+The solution is ordinary Saito component composition.
 
 ---
 

@@ -430,7 +430,7 @@ It provides access to framework facilities such as:
     app.crypto
     app.blockchain
 
-`mod` is the application module that owns the object.
+`mod` is the application module.
 
 It provides access to application-specific objects such as:
 
@@ -446,7 +446,11 @@ The distinction is:
         Saito runtime
 
     mod
-        owning application
+        the application and its runtime state
+
+Passing `mod` into a UI component gives that component access to the Saito module. It does not make the module the UI parent, and it does not mean the module owns the component's visual behavior.
+
+Object construction does not by itself establish UI ownership. If the module constructs Main, and Main constructs Body, and Body constructs Prepare, then Main is the UI parent of Body and Body is the UI parent of Prepare.
 
 This distinction should be preserved.
 
@@ -1006,6 +1010,29 @@ or:
     Tweet
 
 Each component owns the components beneath it.
+
+Object construction does not by itself establish that ownership. The ModTemplate may create Main, while Main remains the UI parent of the components Main creates.
+
+For example:
+
+    Main
+      -> Header
+      -> Body
+           -> Splash
+           -> Prepare
+           -> Document
+
+If Splash changes the surface to Prepare, the normal first question is which UI component owns Splash and Prepare. If Body owns them, Body should normally own that transition.
+
+Do not automatically create:
+
+    mod.showPrepare()
+
+merely because the component has a `mod` reference. `mod` is application and runtime access. It is not automatic UI ownership.
+
+A simple application may still use the module for a UI action. That is a reasonable choice when there is no real UI hierarchy. It is a poor default once several surfaces exist.
+
+A Main UI object is a UI component. It is not an enterprise-style controller.
 
 This allows a UI to be constructed hierarchically.
 
@@ -1826,7 +1853,9 @@ The distinction is:
         meaningful to the application
 
     presentation state
-        meaningful only to the current UI
+        meaningful to the UI that displays it
+
+Which surface is displayed is presentation state of the UI component that owns those surfaces. The domain object being displayed can still live on the module.
 
 Do not force transient presentation state into the database or blockchain.
 

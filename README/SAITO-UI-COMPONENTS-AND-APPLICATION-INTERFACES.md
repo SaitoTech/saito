@@ -1017,6 +1017,100 @@ The child knows:
     what data it displays
 
 
+## The Main UI Owns the Application UI
+
+For anything more complicated than a trivial single-screen module, the top-level UI should normally be a top-level UI object.
+
+A common structure is:
+
+    ModTemplate
+        |
+        v
+      Main UI
+      /      \
+   Header    Body
+              |
+        child UI components
+
+Header and Body are examples of major visual regions. They do not have to be literal classes. The important thing is ownership.
+
+The module may construct the Main UI:
+
+    this.main = new Main(app, this);
+
+and its `render()` may delegate:
+
+    this.main.render();
+
+Main then owns the visual structure beneath it. It can construct or coordinate Header, Body, Splash, Prepare, a document surface, Settings, and so on, according to the application.
+
+The module remains responsible for Saito lifecycle hooks and application or domain state. It does not need to become the owner of every visual transition merely because it is the ModTemplate.
+
+Distinguish application state from presentation state.
+
+    this.document
+
+may legitimately live on the module, because the document is application or domain state.
+
+These are normally presentation state, and they normally belong to the UI component that owns the surfaces:
+
+    which UI surface is currently displayed
+    whether the splash screen or the editor is visible
+    which application view is active
+    which child UI component should render
+
+Not every value called a screen, a view, or a mode has to leave the module. The question is what the state represents, and which object owns the behavior that uses it.
+
+Use this heuristic:
+
+> If a method's primary job is to decide which visual component or visual surface should render, first ask which UI component owns that visual hierarchy before putting the method on the ModTemplate.
+
+For a multi-surface application, this is an undesirable default:
+
+    mod.showSplash()
+    mod.showPrepare()
+    mod.showDocument()
+    mod.showSettings()
+
+The module gradually becomes the UI router.
+
+Prefer:
+
+    main.showSplash()
+    main.showPrepare()
+    main.showDocument()
+    main.showSettings()
+
+or, where ownership is deeper:
+
+    body.showPrepare()
+    body.showDocument()
+
+The names are illustrative. The issue is ownership, not the word `show`. A method named `openDocument()`, `selectView()`, `reject()`, or `beginSigning()` has the same problem when its main purpose is to manipulate the UI hierarchy.
+
+A child that needs to change a parent-owned surface should normally talk to its UI parent:
+
+    Splash -> Main -> Prepare
+
+is preferable to:
+
+    Splash -> ModTemplate -> Prepare
+
+when Main owns those surfaces.
+
+A child may still call the module. `mod` is how a component reaches application state, Saito APIs, transactions, storage, and the network.
+
+    mod reference = application and runtime access
+
+It is not:
+
+    mod reference = automatic UI ownership
+
+Main is an ordinary UI component. It is not a controller, service, or router, and it does not require a component framework.
+
+A trivial single-screen module does not need an artificial Main. Establish this ownership when there is a real UI hierarchy, not as ceremony.
+
+
 ## 26. Callbacks Are Useful for Child-to-Parent Interaction
 
 A child component may need to notify its parent about an interaction.
@@ -1031,7 +1125,9 @@ For example:
       }
     });
 
-The child can remain focused on its UI while the parent decides what navigation means.
+The child can remain focused on its UI while its UI parent decides what navigation means.
+
+That parent is the UI component that owns the surfaces involved. It is not automatically the ModTemplate. See "The Main UI Owns the Application UI."
 
 Callbacks are often preferable to introducing a global event merely to communicate between two objects that already have an explicit parent-child relationship.
 
@@ -1551,6 +1647,8 @@ A game component can perform a game action.
 A Tweet component can handle Tweet interaction.
 
 The module should not become the universal controller for all of these operations.
+
+Calling the module for application state, a transaction, or a Saito API is normal. Calling the module to decide which surface is visible is a different question. That decision normally belongs to the UI component that owns the surfaces.
 
 
 ## 45. Managers Are Useful but Not Mandatory
@@ -2377,7 +2475,7 @@ This gives both the developer and AI a clear map.
 
 ## 73. The Main Module Composes the Application
 
-The module should normally construct its major objects.
+The module should normally construct its major application objects, including the top-level UI object.
 
 For example:
 
@@ -2393,9 +2491,20 @@ Then:
       this.main.render();
     }
 
-The main module therefore remains the place where application composition can be understood.
+The module remains the application map. The UI hierarchy remains the UI ownership map.
 
-But the implementation of those objects remains in their own files.
+Main should normally construct and own the UI beneath it:
+
+    Main
+      -> Header
+      -> Body
+           -> Splash
+           -> Prepare
+           -> Document
+
+The module may construct Header, Body, Splash, and Prepare directly when the application is simple. The problem appears when the module becomes the owner of that visual hierarchy and accumulates the methods that switch among those surfaces.
+
+The implementation of these objects remains in their own files.
 
 
 ## 74. Keep the Module as the Application Map
@@ -2987,7 +3096,13 @@ When implementing Saito UI, remember:
 
     The main module should remain the Saito lifecycle and application map.
 
-    Do not turn mod.js into the application's universal controller.
+    The UI hierarchy remains the UI ownership map.
+
+    For a multi-surface application, the top-level UI component owns which surface is displayed.
+
+    Do not turn mod.js into the application's universal controller or its UI router.
+
+    A Main UI component is ordinary component ownership, not a controller layer.
 
     Do not create controllers, services, repositories, view models, or UI stores without a real need.
 
