@@ -6,7 +6,15 @@ class ReplacementsOverlay {
     this.app = app;
     this.mod = mod;
     this.visible = false;
-    this.overlay = new SaitoOverlay(app, mod);
+    this.selectedAction = '';
+    // Standard Saito closebox; keep host alive across re-renders after each spend.
+    // closebox=true, removeOnClose=false, clickToClose=false
+    this.overlay = new SaitoOverlay(app, mod, true, false, false);
+  }
+
+  onOverlayClose() {
+    this.visible = false;
+    this.selectedAction = '';
   }
 
   hide() {
@@ -15,23 +23,25 @@ class ReplacementsOverlay {
     this.mod.hud.updateMenu([]);
     this.mod.hud.updateCards([]);
     this.visible = false;
+    this.selectedAction = '';
+    this.overlay.callback_on_close = null;
+    this.overlay.hide();
+  }
+
+  softClose() {
+    this.onOverlayClose();
     this.overlay.hide();
   }
 
   pullHudOverOverlay() {
-    //
-    // pull GAME HUD over overlay
-    //
     let overlay_zindex = parseInt(this.overlay.zIndex);
     let hud = document.getElementById('game-hud2');
     if (hud) {
       hud.style.zIndex = overlay_zindex + 1;
     }
   }
+
   pushHudUnderOverlay() {
-    //
-    // push GAME HUD under overlay
-    //
     let overlay_zindex = parseInt(this.overlay.zIndex);
     let hud = document.getElementById('game-hud2');
     if (hud) {
@@ -39,35 +49,100 @@ class ReplacementsOverlay {
     }
   }
 
-  render() {
+  viewingPlayerPower() {
+    return this.mod.returnFactionOfPlayer() || '';
+  }
+
+  rootEl() {
+    return document.querySelector('.replacements-overlay');
+  }
+
+  syncPlayerHeader() {
+    let root = this.rootEl();
+    let icon = document.querySelector('.replacements-overlay .rp-header-icon');
+    let power = this.viewingPlayerPower();
+    if (root) {
+      root.classList.remove('is-central', 'is-allies');
+      if (power === 'central') {
+        root.classList.add('is-central');
+      } else if (power) {
+        root.classList.add('is-allies');
+      }
+      root.dataset.faction = power || '';
+    }
+    if (icon) {
+      icon.dataset.faction = power || '';
+    }
+  }
+
+  isCorpsUnit(unit) {
+    if (!unit) {
+      return false;
+    }
+    if (unit.key && unit.key.indexOf('army') > -1) {
+      return false;
+    }
+    if (unit.key && unit.key.indexOf('corps') > -1) {
+      return true;
+    }
+    if (unit.corps) {
+      return true;
+    }
+    if (unit.army) {
+      return false;
+    }
+    return false;
+  }
+
+  ensureHost() {
+    // Always refresh from template so stale nodes (e.g. old submenu-status) cannot linger.
+    let onClose = () => this.onOverlayClose();
+    this.overlay.show(ReplacementsTemplate(), onClose);
+    return this.rootEl();
+  }
+
+  renderPoints() {
     let paths_self = this.mod;
-    let faction = paths_self.returnFactionOfPlayer();
-
-    paths_self.game.state.is_movement_from_outside_near_east = true;
-
-    this.visible = true;
-    this.overlay.show(ReplacementsTemplate());
-
+    let faction = this.viewingPlayerPower();
     let pts = document.querySelector('.replacements-overlay .points');
+    if (!pts) {
+      return;
+    }
     pts.innerHTML = '';
     for (let key in paths_self.game.state.rp[faction]) {
       if (paths_self.game.state.rp[faction][key] > 0) {
         pts.innerHTML += `
 		      <div class="box">
-		        <div class="num">${paths_self.game.state.rp[faction][key]}</div>
 		        <div class="ckey">${key}</div>
+		        <div class="num">${paths_self.game.state.rp[faction][key]}</div>
 		      </div>
 		    `;
       }
     }
+  }
 
-    let obj = document.querySelector('.replacements-overlay .mainmenu .status');
-    obj.innerHTML = 'Select Option:';
+  markSelectedAction(id = '') {
+    this.selectedAction = id || '';
+    document.querySelectorAll('.replacements-overlay .mainmenu .controls .option').forEach((el) => {
+      el.classList.toggle('is-selected', el.id === this.selectedAction);
+    });
+  }
 
+  renderActions() {
+    let paths_self = this.mod;
     let obk = document.querySelector('.replacements-overlay .mainmenu .controls');
+    if (!obk) {
+      return;
+    }
     let html = '<ul>';
     for (let z = 0; z < paths_self.game.state.replacements.options.length; z++) {
-      html += paths_self.game.state.replacements.options[z];
+      let opt = paths_self.game.state.replacements.options[z];
+      opt = opt.replace(
+        /<li class="option" id="([^"]+)">([^<]*)<\/li>/,
+        (match, id, label) =>
+          `<li class="option" id="${id}"><span class="rp-action-label">${label}</span><span class="rp-chevron" aria-hidden="true">&gt;</span></li>`
+      );
+      html += opt;
     }
     html += '</ul>';
     obk.innerHTML = html;
@@ -82,19 +157,47 @@ class ReplacementsOverlay {
           return 1;
         }
 
+        this.markSelectedAction(id);
         this.showSubMenu(id);
       };
     });
   }
 
+  render() {
+    let paths_self = this.mod;
+
+    paths_self.game.state.is_movement_from_outside_near_east = true;
+
+    this.visible = true;
+    this.selectedAction = '';
+    this.ensureHost();
+    this.syncPlayerHeader();
+    this.renderPoints();
+    this.renderActions();
+
+    let submenu = document.querySelector('.replacements-overlay .submenu');
+    if (submenu) {
+      submenu.classList.remove('is-open');
+      let controls = submenu.querySelector('.controls');
+      if (controls) {
+        controls.innerHTML = '';
+      }
+    }
+  }
+
   hideSubMenu() {
     try {
-      document.querySelector('.replacements-overlay .submenu').style.visibility = 'hidden';
+      let submenu = document.querySelector('.replacements-overlay .submenu');
+      if (submenu) {
+        submenu.classList.remove('is-open');
+      }
+      this.markSelectedAction('');
     } catch (err) {}
   }
 
   showSubMenu(id = 'uneliminate') {
     let paths_self = this.mod;
+    document.querySelectorAll('.replacements-overlay .submenu-status').forEach((el) => el.remove());
     let eu = paths_self.game.state.replacements.can_uneliminate_unit_array;
     if (id == 'repair_board') {
       eu = paths_self.game.state.replacements.can_repair_unit_on_board_array;
@@ -122,7 +225,16 @@ class ReplacementsOverlay {
     let obk = document.querySelector('.replacements-overlay .submenu .controls');
     let html = '<ul>';
     for (let z = 0; z < eu.length; z++) {
-      html += `<li class="option" id="${z}">${eu[z].ckey} ${eu[z].name} - ${paths_self.game.spaces[eu[z].key].name}</li>`;
+      let entry = eu[z];
+      let unit = paths_self.game.spaces[entry.key].units[entry.idx];
+      let loc = paths_self.game.spaces[entry.key].name;
+      let type_class = this.isCorpsUnit(unit) ? 'is-corps' : 'is-army';
+      let chit = paths_self.returnUnitImage(unit);
+      html += `<li class="option rp-unit-row ${type_class}" id="${z}" data-key="${unit.key || ''}">
+        <div class="rp-unit-chit">${chit}</div>
+        <div class="rp-unit-meta"><span class="rp-unit-name">${entry.ckey} ${entry.name}</span><span class="rp-unit-loc">${loc}</span></div>
+        <span class="rp-chevron" aria-hidden="true">&gt;</span>
+      </li>`;
     }
     html += '</ul>';
     obk.innerHTML = html;
@@ -243,9 +355,6 @@ class ReplacementsOverlay {
                   }
                 }
 
-                //
-                // Serbs at Salonika
-                //
                 if (spacekey == 'salonika') {
                   if (
                     unit.ckey == 'SB' &&
@@ -256,9 +365,6 @@ class ReplacementsOverlay {
                   }
                 }
 
-                //
-                // Russian limits on deployment to NE
-                //
                 if (unit.ckey == 'RU') {
                   if (unit.army) {
                     if (this.game.spaces[spacekey].country != 'russia') {
@@ -279,9 +385,6 @@ class ReplacementsOverlay {
                   }
                 }
 
-                //
-                // Belgian
-                //
                 if (unit.ckey == 'BE') {
                   if (spacekey == 'brussels') {
                     return 1;
@@ -308,9 +411,6 @@ class ReplacementsOverlay {
 
                 if (paths_self.checkSupplyStatus(unit.ckey.toLowerCase(), spacekey) == 1) {
                   if (paths_self.game.spaces[spacekey].units.length < 3) {
-                    //
-                    // is this on the near east?
-                    //
                     if (paths_self.isSpaceOnNearEastMap(spacekey)) {
                       if (!paths_self.canPlayerDeployUnitIntoNearEast(faction, unit)) {
                         return 1;
@@ -364,7 +464,11 @@ class ReplacementsOverlay {
     });
 
     try {
-      document.querySelector('.replacements-overlay .submenu').style.visibility = 'visible';
+      let submenu = document.querySelector('.replacements-overlay .submenu');
+      if (submenu) {
+        submenu.classList.add('is-open');
+      }
+      this.markSelectedAction(id);
     } catch (err) {}
   }
 }
