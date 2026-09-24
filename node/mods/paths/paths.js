@@ -13101,15 +13101,20 @@ try {
 
 	  let cmd = "";
 	  if (mv[1]) { cmd = mv[1]; }
-	  if (this.game.queue.length >= 1) {
-	    if (this.game.queue[qe-1].split("\t")[0] === cmd) {
-	      if (cmd === "play" && this.minimap) {
-	        let faction = this.game.queue[qe-1].split("\t")[1];
-	        if (this.game.player == this.returnPlayerOfFaction(faction)) {
-	          this.minimap.clear();
+	  // Walk back past ACKNOWLEDGE/NOTIFY/etc. so resolve\tplay still
+	  // clears the active play when RP/SR prepend an opponent notice.
+	  if (cmd) {
+	    for (let i = this.game.queue.length - 1; i >= 0; i--) {
+	      if (this.game.queue[i].split("\t")[0] === cmd) {
+	        if (cmd === "play" && this.minimap) {
+	          let faction = this.game.queue[i].split("\t")[1];
+	          if (this.game.player == this.returnPlayerOfFaction(faction)) {
+	            this.minimap.clear();
+	          }
 	        }
+	        this.game.queue.splice(i, 1);
+	        break;
 	      }
-	      this.game.queue.splice(qe-1, 1);
 	    }
 	  }
 
