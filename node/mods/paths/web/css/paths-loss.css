@@ -1,304 +1,892 @@
 .game.paths {
+  /*
+   * LossOverlay typography
+   * ----------------------
+   * Saito root is 12px (`:root { font-size: 12px }` in saito-base.css),
+   * so 1rem = 12px. Scale values below are chosen for laptop readability
+   * against that root (not a 16px browser default).
+   */
   .loss-overlay {
-    min-width: 1131px;
-    min-height: 827px;
-    max-height: 90vh;
-    max-width: 90vw;
-    border-radius: 1.667rem;
-    background-image: url('/paths/img/backgrounds/gun.jpg');
-    background-size: cover;
-  }
+    /* PRIMARY — active-player header (size over weight) */
+    --lo-assign-title: 3.65rem; /* ~44px — Assign losses */
+    --lo-assign-sub: 1.95rem; /* ~23px — who / how much */
+    --lo-status-icon: 5.5rem; /* active faction icon — supports text */
 
-  .loss-overlay.desert {
-    background-image: url('/paths/img/backgrounds/desert1-wwi.jpg');
-  }
-  .loss-overlay.forest {
-    background-image: url('/paths/img/backgrounds/forest1-wwi.png');
-  }
-  .loss-overlay.fort {
-    background-image: url('/paths/img/backgrounds/fort4-wwi.jpg');
-  }
-  .loss-overlay.mountain {
-    background-image: url('/paths/img/backgrounds/alpine4-wwi.jpg');
-  }
-  .loss-overlay.swamp {
-    background-image: url('/paths/img/backgrounds/swamp2-wwi.png');
-  }
-  .loss-overlay.fort {
-    background-image: url('/paths/img/backgrounds/swamp2-wwi.png');
-  }
+    /* Side panels — compact Combat Strength header (no icons) */
+    --lo-strength: 1.85rem; /* ~22px */
 
-  .loss-overlay .help {
-    background: #0009;
-    width: 100%;
-    color: white;
-    margin-left: auto;
-    margin-right: auto;
-    font-size: 2rem;
-    padding: 0.625rem;
-    max-width: 100%;
-    padding: 0.833rem;
-    line-height: 2.833rem;
-    text-align: center;
-  }
+    /* UNIT SUPPORT — leave chit layout unchanged */
+    --lo-location: 2.25rem;
+    --lo-unit-gap-row: 2rem;
+    --lo-unit-gap-col: 1.8rem;
+    --lo-chit-radius: 0.55rem;
 
-  .loss-overlay-unit {
-    height: 12.5rem;
-    width: 12.5rem;
+    /* COMBAT RESULT — larger dice; hits boxes unchanged */
+    --lo-calc: 1.85rem;
+    --lo-hits-num: 3.75rem;
+    --lo-hits-label: 1.75rem;
+    --lo-die-size: 10.85rem; /* ~130px — match TARGET */
+    --lo-see-details: 1.55rem; /* quiet gray control */
+
+    /* FOOTER — single-line context */
+    --lo-title: 1.65rem;
+    --lo-terrain-name: 1.65rem;
+    --lo-terrain-fort: 1.5rem;
+
     position: relative;
-    display: block;
-    min-width: 12.5rem;
-    min-height: 12.5rem;
-  }
-
-  .loss-overlay-group {
+    width: min(1360px, 96vw);
+    height: min(860px, 92vh);
+    max-width: 96vw;
+    max-height: 92vh;
     display: flex;
     flex-direction: column;
-    row-gap: 0.833rem;
+    border-radius: 1.1rem;
+    overflow: hidden;
+    box-shadow: 0 1.25rem 3rem rgba(0, 0, 0, 0.55);
+    background: #1a1a1a;
+    color: #f5f2ea;
+    font-family: Helvetica, Arial, sans-serif;
+    line-height: 1.25;
+  }
+
+  .loss-overlay-panel {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 0;
+  }
+
+  /* PRIMARY HEADER — active faction assigning losses */
+  .loss-overlay-status {
+    position: relative;
+    z-index: 3;
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 1.15rem;
+    padding: 0.95rem 3.25rem 0.95rem 1.35rem;
+    background: #3a3a3a;
+    color: #f5f2ea;
+    min-height: 7.25rem;
+    box-sizing: border-box;
+  }
+
+  .loss-overlay-status.is-central {
+    background: linear-gradient(180deg, #7a1a24 0%, #5c1018 100%);
+  }
+
+  .loss-overlay-status.is-allies {
+    background: linear-gradient(180deg, #1a3474 0%, #122456 100%);
+  }
+
+  .loss-overlay-status.is-resolved:not(.is-central):not(.is-allies) {
+    background: #2f4a28;
+  }
+
+  .loss-overlay-status-icon {
+    width: var(--lo-status-icon);
+    height: var(--lo-status-icon);
+    border-radius: 0;
+    flex-shrink: 0;
+    align-self: center;
+    background-color: transparent;
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: contain;
+    box-shadow: none;
+  }
+
+  .loss-overlay-status-icon[data-faction='central'] {
+    background-image: url('/paths/img/axis_powers_icon.png');
+  }
+
+  .loss-overlay-status-icon[data-faction='allies'] {
+    background-image: url('/paths/img/allied_powers_icon.png');
+  }
+
+  .loss-overlay-status-copy {
+    flex: 1 1 auto;
+    min-width: 0;
+    font-family: Helvetica, Arial, sans-serif;
+    line-height: 1.2;
+  }
+
+  .loss-overlay-status-copy strong {
+    display: block;
+    font-size: var(--lo-assign-title);
+    font-weight: 500;
+    line-height: 1.08;
+    letter-spacing: 0.005em;
+    text-transform: none;
+    color: rgba(255, 255, 255, 0.98);
+  }
+
+  .loss-overlay-status-copy .status-sub {
+    display: block;
+    margin-top: 0.18rem;
+    font-size: var(--lo-assign-sub);
+    font-weight: 400;
+    line-height: 1.25;
+    color: rgba(255, 255, 255, 0.88);
+  }
+
+  .loss-overlay-stage {
+    position: relative;
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: hidden;
+    background: #121212;
+  }
+
+  .loss-overlay-body {
+    display: grid;
+    /* Center is content-driven: two full result columns must fit without clipping */
+    grid-template-columns: minmax(0, 1.1fr) minmax(28rem, 1fr) minmax(0, 1.1fr);
+    gap: 0.75rem;
+    padding: 0.75rem;
+    height: 100%;
+    box-sizing: border-box;
+    min-height: 0;
+  }
+
+  .loss-overlay-faction {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    border-radius: 0.55rem;
+    overflow: hidden;
+    padding: 0;
+  }
+
+  .loss-overlay-faction.is-central .loss-overlay-faction-header {
+    background: linear-gradient(180deg, #7a1a24 0%, #5c1018 100%);
+  }
+
+  .loss-overlay-faction.is-central .loss-overlay-faction-body {
+    background-color: #6a2a32;
+    background-image: linear-gradient(
+        180deg,
+        rgba(90, 28, 36, 0.78) 0%,
+        rgba(58, 20, 26, 0.82) 100%
+      ),
+      url('/paths/img/backgrounds/battleground01.png');
+    background-size: cover;
+    background-position: center;
+  }
+
+  .loss-overlay-faction.is-allies .loss-overlay-faction-header {
+    background: linear-gradient(180deg, #1a3474 0%, #122456 100%);
+  }
+
+  .loss-overlay-faction.is-allies .loss-overlay-faction-body {
+    background-color: #2a4068;
+    background-image: linear-gradient(
+        180deg,
+        rgba(36, 58, 104, 0.78) 0%,
+        rgba(22, 36, 68, 0.84) 100%
+      ),
+      url('/paths/img/backgrounds/trench.png');
+    background-size: cover;
+    background-position: center;
+  }
+
+  .loss-overlay-faction-header {
+    display: flex;
+    align-items: center;
+    flex: 0 0 auto;
+    padding: 0.45rem 1rem;
+    min-height: 0;
+  }
+
+  .loss-overlay-strength {
+    margin-top: 0;
+    font-family: Helvetica, Arial, sans-serif;
+    font-size: var(--lo-strength);
+    font-weight: 400;
+    line-height: 1.25;
+    color: rgba(255, 255, 255, 0.9);
+  }
+
+  .loss-overlay-faction-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    padding: 1rem 0.9rem 1.05rem;
   }
 
   .loss-overlay .units {
-    display: flex;
-    padding: 3.333rem;
-    row-gap: 4.167rem;
-    column-gap: 1.667rem;
-    width: 100%;
-    justify-content: space-around;
+    display: grid;
+    grid-template-columns: repeat(4, minmax(9.5rem, 1fr));
+    gap: var(--lo-unit-gap-row) var(--lo-unit-gap-col);
+    align-content: start;
+    justify-items: stretch;
     overflow-y: auto;
+    overflow-x: hidden;
+    min-height: 0;
+    flex: 1 1 auto;
+    padding: 0.2rem 0.1rem;
+    width: 100%;
+    box-sizing: border-box;
   }
 
-  .loss-overlay .red {
-    background-color: rgb(242, 218, 222);
-    padding: 0.833rem;
+  .loss-overlay-unit {
+    position: relative;
+    width: 100%;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    cursor: pointer;
   }
-  .loss-overlay .blue {
-    background-color: rgb(218, 220, 242);
-    padding: 0.833rem;
+
+  /* LEVEL 5 — enlarge physical unit artwork */
+  .loss-overlay-unit-token {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    height: auto;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    flex-shrink: 0;
+    border-radius: var(--lo-chit-radius);
+    overflow: hidden;
+  }
+
+  .loss-overlay-unit-token img,
+  .loss-overlay-unit-token .unit,
+  .loss-overlay-unit-token .army-tile {
+    display: block;
+    position: absolute;
+    top: auto;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    margin: 0 auto;
+    width: 100%;
+    height: auto;
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+  }
+
+  .loss-overlay-unit.is-army .loss-overlay-unit-token img,
+  .loss-overlay-unit.is-army .loss-overlay-unit-token .unit,
+  .loss-overlay-unit.is-army .loss-overlay-unit-token .army-tile {
+    width: 100%;
+    height: 100%;
+    left: 0;
+    right: 0;
+  }
+
+  .loss-overlay-unit.is-corps .loss-overlay-unit-token img,
+  .loss-overlay-unit.is-corps .loss-overlay-unit-token .unit,
+  .loss-overlay-unit.is-corps .loss-overlay-unit-token .army-tile {
+    width: 90%;
+    height: 90%;
+    left: 5%;
+    right: 5%;
   }
 
   .loss-overlay-unit-spacekey {
-    margin-top: 105%;
-    text-align: center;
-    font-weight: bolder;
-    font-size: 1.667rem;
-    background-color: #fffb;
-    border-radius: 0.417rem;
-  }
-
-  .destroyed-unit {
-    position: relative;
-    display: block;
-  }
-
-  .destroyed_unit::after {
-    content: '';
-    position: absolute;
-    top: 0px;
-    right: 0px;
+    box-sizing: border-box;
+    margin-top: 0.45rem;
     width: 100%;
-    height: 100%;
-    background: url('/paths/img/cancel_x.png') no-repeat center;
-    background-size: contain;
-    pointer-events: none; /* Prevent interaction */
+    min-height: 2.85rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    font-family: Helvetica, Arial, sans-serif;
+    font-weight: 400;
+    font-size: var(--lo-location);
+    line-height: 1.2;
+    padding: 0.4rem 0.35rem;
+    background: rgba(255, 255, 255, 0.95);
+    color: #333;
+    border-radius: var(--lo-chit-radius);
   }
 
-  /* Rules forbid assigning to this unit right now (see updateAssignableUnits) */
-  .loss-overlay-unit.unassignable::after {
+  .destroyed_unit .loss-overlay-unit-token::after,
+  .loss-overlay-unit#destroyed_unit .loss-overlay-unit-token::after {
     content: '';
     position: absolute;
     inset: 0;
     background: url('/paths/img/cancel_x.png') no-repeat center;
     background-size: contain;
     pointer-events: none;
+    z-index: 2;
+  }
+
+  .loss-overlay-unit.unassignable {
+    cursor: not-allowed;
+  }
+
+  .loss-overlay-unit.unassignable:hover .loss-overlay-unit-token::after,
+  .loss-overlay-unit.unassignable.unassignable-shake .loss-overlay-unit-token::after,
+  .loss-overlay-unit.unassignable-shake .loss-overlay-unit-token::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    pointer-events: none;
+    background-color: rgba(160, 16, 16, 0.22);
+    background-image: url('/paths/img/cancel_x.png');
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: 92% 92%;
+    opacity: 0.92;
   }
 
   .loss-overlay-unit.unassignable-shake {
-    animation: loss-overlay-shake 0.45s ease-in-out;
+    animation: loss-overlay-shake 0.3s ease-in-out;
   }
 
   @keyframes loss-overlay-shake {
-    10%,
-    90% {
+    0%,
+    100% {
+      transform: translate3d(0, 0, 0);
+    }
+    20% {
       transform: translate3d(-4px, 0, 0);
     }
-    20%,
-    80% {
-      transform: translate3d(4px, 0, 0);
+    40% {
+      transform: translate3d(5px, 0, 0);
     }
-    30%,
-    50%,
-    70% {
-      transform: translate3d(-8px, 0, 0);
-    }
-    40%,
     60% {
-      transform: translate3d(8px, 0, 0);
+      transform: translate3d(-3px, 0, 0);
+    }
+    80% {
+      transform: translate3d(3px, 0, 0);
     }
   }
 
-  .loss-overlay .info {
-    display: grid;
-    grid-template-columns: 2fr 1fr 1fr;
-    grid-template-rows: min-content min-content 1fr;
-    background-color: white;
-    column-gap: 0.833rem;
-    row-gap: 0.833rem;
-    padding-left: 0.833rem;
-    padding-right: 0.833rem;
-    position: absolute;
-    bottom: 0px;
-    height: min-content;
-    width: 100%;
-    padding-bottom: 0.833rem;
-    max-height: 16.667rem;
-    overflow-y: auto;
-  }
-
-  .loss-overlay .info_header {
-    display: contents;
-    text-align: center;
-    font-style: italic;
-  }
-  .loss-overlay .info_header div {
-    margin-top: 0.833rem;
-    margin-bottom: 0.417rem;
-  }
-
-  .row-0 .col {
-    min-height: 1.5rem;
-    max-height: 1.5rem;
-    font-weight: bold;
-    padding-top: 0.167rem;
-  }
-
-  .results_table {
-    display: grid;
-    grid-template-columns: repeat(8, auto);
-    grid-template-rows: min-content 1fr 1fr;
-    font-size: 1.667rem;
-  }
-
-  .results_table .row {
-    display: contents;
-  }
-
-  .results_table .row .col {
-    text-align: center;
-  }
-
-  .results_table .row-1 .col {
-    margin-bottom: 0.833rem;
-  }
-
-  .results_table .row-1 .col-2,
-  .results_table .row-2 .col-2,
-  .results_table .row-1 .col-5,
-  .results_table .row-2 .col-5 {
-    height: 92.5%;
-  }
-
-  .results_table .row-0 > .col,
-  .results_table .row-2 > .col {
-    align-self: center;
-  }
-
-  .results_table .row-1 > .col,
-  .results_table .row-2 > .col {
-    align-self: center;
-  }
-
-  .dice .attacker_damage {
-    background-color: yellow;
-  }
-
-  .dice .defender_damage {
-    background-color: yellow;
-  }
-
-  .dice {
-    background-color: #efefef;
-    aspect-ratio: 1;
-    margin-bottom: 0.417rem;
-    border: 3px dashed #ddd;
-    height: inherit;
-    border-radius: 0.833rem;
-    justify-self: center;
+  .loss-overlay-result {
+    display: flex;
+    flex-direction: column;
     align-items: center;
+    justify-content: flex-start;
+    gap: 0.65rem;
+    padding: 1.25rem 1.15rem 1.1rem;
+    border-radius: 0.55rem;
+    background: linear-gradient(180deg, #efe4d2 0%, #e2d3b8 100%);
+    color: #222;
+    min-width: 0;
+    min-height: 0;
+    overflow: auto;
+  }
+
+  .loss-overlay-result-columns {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0;
+    width: 100%;
+    flex: 1 1 auto;
+    align-content: center;
+    min-height: 0;
+  }
+
+  .loss-overlay-fire {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 1.2rem;
+    padding: 0.55rem 1.1rem 0.7rem;
+    box-sizing: border-box;
+  }
+
+  .loss-overlay-fire + .loss-overlay-fire {
+    border-left: 1px solid rgba(90, 70, 45, 0.22);
+  }
+
+  .loss-overlay-die-sprite {
+    --die-size: var(--lo-die-size);
+    --die-src-x: 30;
+    --die-src-y: 236;
+    --die-crop: 224;
+    --die-sheet-w: 1536;
+    --die-sheet-h: 1024;
+    width: var(--die-size);
+    height: var(--die-size);
+    flex-shrink: 0;
+    border-radius: 18%;
+    box-shadow: 0 0.22rem 0.45rem rgba(0, 0, 0, 0.22);
+    background-image: url('/paths/img/dice.png');
+    background-repeat: no-repeat;
+    background-size: calc(var(--die-sheet-w) / var(--die-crop) * var(--die-size))
+      calc(var(--die-sheet-h) / var(--die-crop) * var(--die-size));
+    background-position: calc(var(--die-src-x) / var(--die-crop) * var(--die-size) * -1)
+      calc(var(--die-src-y) / var(--die-crop) * var(--die-size) * -1);
+  }
+
+  /* Roll + modifier — readable, subordinate to hits */
+  .loss-overlay-calc {
+    display: flex;
+    align-items: baseline;
+    justify-content: center;
+    gap: 0.5rem;
+    font-family: Helvetica, Arial, sans-serif;
+    font-size: var(--lo-calc);
+    font-weight: 500;
+    color: #6a6358;
+    letter-spacing: 0;
+    line-height: 1;
+    text-align: center;
+    width: 100%;
+    box-sizing: border-box;
+    padding: 0.1rem 0;
+  }
+
+  .loss-overlay-calc .calc-roll,
+  .loss-overlay-calc .calc-op,
+  .loss-overlay-calc .calc-mod {
+    font-family: inherit;
+    font-size: inherit;
+    font-weight: inherit;
+    line-height: inherit;
+    color: inherit;
+  }
+
+  /* LEVEL 7 — Result badge */
+  .loss-overlay-hits {
+    display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
+    gap: 0.4rem;
+    box-sizing: border-box;
+    width: 90%;
+    max-width: 9rem;
+    min-width: 7rem;
+    min-height: 7.25rem;
+    padding: 1.25rem 1.1rem 1.15rem;
+    border-radius: 0.5rem;
+    text-align: center;
+    background: rgba(90, 90, 90, 0.14);
+    color: #333;
+  }
+
+  .loss-overlay-hits.is-central {
+    background: rgba(176, 29, 46, 0.18);
+    color: #8a1a26;
+  }
+
+  .loss-overlay-hits.is-allies {
+    background: rgba(35, 70, 168, 0.18);
+    color: #1c3685;
+  }
+
+  .loss-overlay-hits .hits-value {
+    font-family: Helvetica, Arial, sans-serif;
+    font-size: var(--lo-hits-num);
+    font-weight: 800;
+    line-height: 1;
+  }
+
+  .loss-overlay-hits .hits-label {
+    font-family: Helvetica, Arial, sans-serif;
+    font-size: var(--lo-hits-label);
+    font-weight: 500;
+    text-transform: lowercase;
+    letter-spacing: 0.02em;
+    line-height: 1.1;
+    opacity: 0.9;
+    color: inherit;
+  }
+
+  .loss-overlay-hits.flank-adjusted {
+    outline: 2px solid rgba(255, 220, 80, 0.85);
+    outline-offset: 1px;
+  }
+
+  .loss-overlay button.loss-overlay-see-details,
+  .loss-overlay button.loss-overlay-hide-details {
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    color: #6e675c;
+    text-decoration: none;
+    cursor: pointer;
+    font-family: Helvetica, Arial, sans-serif;
+    font-size: var(--lo-see-details);
+    font-weight: 500;
+    letter-spacing: 0.04em;
+    text-transform: none;
+    padding: 0.4rem 0.55rem;
+  }
+
+  .loss-overlay button.loss-overlay-see-details {
+    margin-top: auto;
+    flex: 0 0 auto;
+    padding-top: 1rem;
+  }
+
+  .loss-overlay button.loss-overlay-see-details:hover,
+  .loss-overlay button.loss-overlay-hide-details:hover,
+  .loss-overlay button.loss-overlay-see-details:focus,
+  .loss-overlay button.loss-overlay-hide-details:focus {
+    color: #3f3a32;
+    text-decoration: none;
+    outline: none;
+    background: transparent;
+  }
+
+  /* FOOTER — secondary combat context + terrain / fort */
+  .loss-overlay-footer {
+    position: relative;
+    z-index: 3;
+    flex: 0 0 auto;
     display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1.25rem;
+    padding: 0.4rem 1.35rem;
+    min-height: 0;
+    box-sizing: border-box;
+    background-image: linear-gradient(180deg, rgba(10, 10, 10, 0.45), rgba(10, 10, 10, 0.78)),
+      url('/paths/img/backgrounds/gun.jpg');
+    background-size: cover;
+    background-position: center;
+    color: #fff;
   }
 
-  .corps_firing_table .firing_table {
+  .loss-overlay.desert .loss-overlay-footer {
+    background-image: linear-gradient(180deg, rgba(10, 10, 10, 0.45), rgba(10, 10, 10, 0.78)),
+      url('/paths/img/backgrounds/desert1-wwi.jpg');
+  }
+  .loss-overlay.forest .loss-overlay-footer {
+    background-image: linear-gradient(180deg, rgba(10, 10, 10, 0.45), rgba(10, 10, 10, 0.78)),
+      url('/paths/img/backgrounds/forest1-wwi.png');
+  }
+  .loss-overlay.mountain .loss-overlay-footer {
+    background-image: linear-gradient(180deg, rgba(10, 10, 10, 0.45), rgba(10, 10, 10, 0.78)),
+      url('/paths/img/backgrounds/alpine4-wwi.jpg');
+  }
+  .loss-overlay.swamp .loss-overlay-footer {
+    background-image: linear-gradient(180deg, rgba(10, 10, 10, 0.45), rgba(10, 10, 10, 0.78)),
+      url('/paths/img/backgrounds/swamp2-wwi.png');
+  }
+
+  .loss-overlay-footer-copy {
+    min-width: 0;
+    flex: 1 1 auto;
+    display: flex;
+    align-items: center;
+  }
+
+  .loss-overlay-footer .loss-overlay-title {
+    font-family: Helvetica, Arial, sans-serif;
+    font-size: var(--lo-title);
+    font-weight: 400;
+    letter-spacing: 0.01em;
+    line-height: 1.2;
+    color: rgba(255, 255, 255, 0.82);
+  }
+
+  /* Terrain + fortification — two separate contextual items, matched to footer copy scale */
+  .loss-overlay-footer .loss-overlay-context-meta {
+    display: flex;
+    align-items: stretch;
+    align-self: center;
+    flex: 0 0 auto;
+    gap: 0.55rem;
+  }
+
+  .loss-overlay-footer .loss-overlay-terrain-item,
+  .loss-overlay-footer .loss-overlay-fort-item {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    min-width: 7.5rem;
+    padding: 0.4rem 0.85rem;
+    border-radius: 0.5rem;
+    background: rgba(245, 236, 220, 0.94);
+    color: #2b2b2b;
+    box-shadow: 0 0.1rem 0.28rem rgba(0, 0, 0, 0.14);
+  }
+
+  .loss-overlay-footer .loss-overlay-terrain-name {
+    font-family: Helvetica, Arial, sans-serif;
+    font-weight: 500;
+    font-size: var(--lo-terrain-name);
+    line-height: 1.2;
+    text-transform: capitalize;
+  }
+
+  .loss-overlay-footer .loss-overlay-fort-name {
+    font-family: Helvetica, Arial, sans-serif;
+    font-size: var(--lo-terrain-fort);
+    font-weight: 400;
+    color: #444;
+    line-height: 1.2;
+  }
+
+  .loss-overlay-details {
+    position: absolute;
+    inset: 0;
+    z-index: 6;
+    display: flex;
+    flex-direction: column;
+    background: #f3ecdf;
+    color: #1f1f1f;
+    transform: translateY(105%);
+    transition: transform 0.28s ease;
+    pointer-events: none;
+  }
+
+  .loss-overlay-details.is-open {
+    transform: translateY(0);
+    pointer-events: auto;
+  }
+
+  .loss-overlay-details-bar {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+    background: #ebe2d1;
+  }
+
+  .loss-overlay-details-title {
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: 1.2rem;
+    font-weight: 700;
+  }
+
+  .loss-overlay-details-scroll {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: auto;
+    padding: 0.85rem 1rem 1.1rem;
+  }
+
+  .loss-overlay-calc-fires {
     display: grid;
-    grid-template-columns: repeat(10, auto);
+    grid-template-columns: 1fr 1fr;
+    gap: 0.85rem;
   }
 
-  .corps_firing_table .firing_table .row {
-    display: contents;
+  .fire-calc {
+    background: #fffdf8;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    border-radius: 0.65rem;
+    padding: 0.85rem;
+    min-width: 0;
   }
 
-  .corps_firing_table .firing_table .row .col {
-    text-align: center;
+  .fire-calc.red {
+    box-shadow: inset 3px 0 0 #b01d2e;
   }
 
-  .army_firing_table .firing_table {
+  .fire-calc.blue {
+    box-shadow: inset 3px 0 0 #2346a8;
+  }
+
+  .fire-calc-title {
+    margin: 0 0 0.7rem;
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: 1.05rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+  }
+
+  .fire-calc.red .fire-calc-title {
+    color: #8f1825;
+  }
+
+  .fire-calc.blue .fire-calc-title {
+    color: #1c3685;
+  }
+
+  .fire-calc-layout {
     display: grid;
-    grid-template-columns: repeat(11, auto);
+    grid-template-columns: minmax(10rem, 0.85fr) minmax(0, 1.4fr);
+    gap: 0.75rem;
+    align-items: start;
   }
 
-  .army_firing_table .firing_table .row {
-    display: contents;
-  }
-
-  .army_firing_table .firing_table .row .col {
-    text-align: center;
-  }
-
-  .terrain_effects_table {
-    clear: both;
-  }
-
-  .effects_table {
+  .fire-calc-summary {
+    margin: 0;
     display: grid;
-    grid-template-columns: repeat(5, auto);
+    gap: 0.35rem;
   }
 
-  .effects_table .row {
-    display: contents;
-  }
-  .effects_table .row-2,
-  .effects_table .row-3,
-  .effects_table .row-4,
-  .effects_table .row-5 {
-    display: none;
-  }
-
-  .effects_table .row .col {
-    padding: 0.417rem;
-    text-align: center;
+  .fire-calc-summary > div {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 0.5rem;
+    align-items: baseline;
+    padding: 0.2rem 0;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+    font-size: 0.92rem;
   }
 
-  .firing_table .row:nth-child(odd) > .col {
-    background-color: #efe3d5;
+  .fire-calc-summary dt {
+    margin: 0;
+    color: #555;
+    font-weight: 600;
   }
 
-  .results_table .row-0 .col,
-  .firing_table .row-0 .col,
-  .effects_table .row-0 .col {
-    font-weight: bold;
+  .fire-calc-summary dd {
+    margin: 0;
+    font-weight: 800;
+    text-align: right;
+  }
+
+  .fire-calc-summary .fire-calc-result {
+    margin-top: 0.25rem;
+    padding: 0.45rem 0.5rem;
+    border: none;
+    border-radius: 0.4rem;
+    background: #1f1f1f;
+    color: #fff;
+  }
+
+  .fire-calc.red .fire-calc-result {
+    background: #b01d2e;
+  }
+
+  .fire-calc.blue .fire-calc-result {
+    background: #2346a8;
+  }
+
+  .fire-calc-summary .fire-calc-result dt,
+  .fire-calc-summary .fire-calc-result dd {
+    color: #fff;
     font-size: 1rem;
   }
 
-  .firing_table .row {
-    display: flex;
-    flex-direction: column;
-  }
-  .firing_table .row .col {
+  .calc-muted {
+    font-weight: 600;
+    color: #777;
+    font-size: 0.85em;
   }
 
-  .other_effects {
+  .fire-calc-table-label {
+    margin-bottom: 0.4rem;
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: #6a5b45;
+  }
+
+  .pog-fire-table-wrap {
+    overflow-x: auto;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    border-radius: 0.45rem;
+    background: #fff;
+  }
+
+  .pog-fire-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.92rem;
+    min-width: 22rem;
+  }
+
+  .pog-fire-table th,
+  .pog-fire-table td {
+    min-width: 2.1rem;
+    padding: 0.38rem 0.28rem;
+    text-align: center;
+    border: 1px solid rgba(0, 0, 0, 0.07);
+  }
+
+  .pog-fire-table thead th {
+    background: #efe4d2;
+    font-weight: 700;
+    font-size: 0.8rem;
+  }
+
+  .pog-fire-table .roll-head,
+  .pog-fire-table .roll-label {
+    background: #efe4d2;
+    font-weight: 700;
+    position: sticky;
+    left: 0;
+    z-index: 1;
+  }
+
+  .pog-fire-table tbody tr:nth-child(even) td {
+    background: #faf6ef;
+  }
+
+  .pog-fire-table .is-selected-col {
+    background: rgba(59, 130, 246, 0.18) !important;
+  }
+
+  .pog-fire-table tr.is-selected-row th,
+  .pog-fire-table tr.is-selected-row td {
+    background: rgba(59, 130, 246, 0.12) !important;
+  }
+
+  .pog-fire-table td.is-result-cell {
+    background: #b01d2e !important;
+    color: #fff !important;
+    font-weight: 800;
+    font-size: 1.05rem;
+    box-shadow: inset 0 0 0 2px #7f101c;
+  }
+
+  .pog-fire-table-wrap.accent-blue td.is-result-cell {
+    background: #2346a8 !important;
+    box-shadow: inset 0 0 0 2px #152c6d;
+  }
+
+  .fire-calc-notes {
+    margin: 0.65rem 0 0;
+    padding-left: 1.1rem;
+    color: #555;
+    font-size: 0.86rem;
+  }
+
+  .calc-context {
+    margin-top: 0.85rem;
     display: flex;
-    grid-column: span 2;
+    flex-wrap: wrap;
+    gap: 0.55rem 1rem;
+    padding: 0.7rem 0.85rem;
+    border-radius: 0.5rem;
+    background: rgba(0, 0, 0, 0.04);
+    font-size: 0.9rem;
+  }
+
+  @media (max-width: 980px) {
+    .loss-overlay-calc-fires,
+    .fire-calc-layout {
+      grid-template-columns: 1fr;
+    }
+
+    .loss-overlay-body {
+      grid-template-columns: 1fr;
+      grid-template-rows: auto auto auto;
+    }
+
+    .loss-overlay-result {
+      order: -1;
+    }
+
+    .loss-overlay {
+      height: min(900px, 92vh);
+    }
+
+    .loss-overlay {
+      --lo-die-size: 8.5rem;
+      --lo-assign-title: 2.85rem;
+      --lo-status-icon: 4.5rem;
+      --lo-title: 1.5rem;
+    }
+
+    .loss-overlay .units {
+      grid-template-columns: repeat(4, minmax(7.5rem, 1fr));
+    }
   }
 }
