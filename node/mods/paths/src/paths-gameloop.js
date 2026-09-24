@@ -2569,6 +2569,36 @@ console.log("error updated attacker loss factor: " + JSON.stringify(err));
 	  this.game.state.combat.defender_modified_roll = defender_modified_roll;
 	  this.game.state.combat.attacker_loss_factor = this.returnAttackerLossFactor();
 	  this.game.state.combat.defender_loss_factor = this.returnDefenderLossFactor();
+
+	  //
+	  // Freeze the simultaneous fire-resolution result before flank sequencing
+	  // overwrites live loss factors / CP (or sets a side's CP to "?").
+	  // Live attacker_loss_factor / defender_loss_factor remain authoritative for
+	  // assignment; these *_at_fire fields are historical display only.
+	  //
+	  this.game.state.combat.attacker_loss_factor_at_fire = this.game.state.combat.attacker_loss_factor;
+	  this.game.state.combat.defender_loss_factor_at_fire = this.game.state.combat.defender_loss_factor;
+	  this.game.state.combat.attacker_cp_at_fire = this.returnAttackerCombatPower();
+	  {
+	    let defender_cp_at_fire = this.returnDefenderCombatPower();
+	    if (this.game.spaces[this.game.state.combat.key].fort > 0) {
+	      let s = this.game.spaces[this.game.state.combat.key];
+	      let original_spaces = this.returnSpaces();
+	      if (this.game.spaces[this.game.state.combat.key].control == original_spaces[this.game.state.combat.key].control) {
+	        if (!this.game.spaces[this.game.state.combat.key].besieged) {
+	          if (s.units.length > 0) {
+	            if (this.returnPowerOfUnit(s.units[0]) == this.game.state.combat.defender_power) {
+	              defender_cp_at_fire += this.game.spaces[this.game.state.combat.key].fort;
+	            }
+	          } else {
+	            defender_cp_at_fire += this.game.spaces[this.game.state.combat.key].fort;
+	          }
+	        }
+	      }
+	    }
+	    this.game.state.combat.defender_cp_at_fire = defender_cp_at_fire;
+	  }
+
 	  this.game.state.combat.winner = "none";
 	  if (this.game.state.combat.attacker_loss_factor > this.game.state.combat.defender_loss_factor) {
 	    this.game.state.combat.winner = "defender";

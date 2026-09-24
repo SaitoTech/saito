@@ -2,302 +2,85 @@ module.exports = (terrain = '') => {
   let html = `
     <div class="loss-overlay ${terrain}">
 
-      <div class="help"></div>
+      <div class="loss-overlay-panel">
 
-      <div class="units attacker"></div>
-      <div class="units defender"></div>
-
-      <div class="info">
-
-	<div class="info_header">
-	  <div class="results_table_header">combat results</div>
-	  <div class="corps_table_header">corps table</div>
-	  <div class="army_table_header">army table</div>
-	</div>
-
-        <div class="results_table">
-          <div class="row row-0">
-            <div class="col col-0">faction</div>
-            <div class="col col-1">position</div>
-            <div class="col col-7">roll</div>
-            <div class="col col-2">mod</div>
-            <div class="col col-6">fort</div>
-            <div class="col col-3">bonus</div>
-            <div class="col col-4">col-shift</div>
-            <div class="col col-5">hits</div>
-          </div>
-          <div class="row row-1">
-            <div class="col col-0 attacker_faction">central</div>
-            <div class="col col-1">attacker</div>
-            <div class="col col-7"><div class="attacker_roll_unmodified">-</div></div>
-            <div class="col col-2"><div class="dice attacker_roll">-</div></div>
-            <div class="col col-6">0</div>
-            <div class="col col-3 attacker_modifiers">-</div>
-            <div class="col col-4 attacker_column_shift">-</div>
-            <div class="col col-5"><div class="dice attacker_damage">-</div></div>
-          </div>
-          <div class="row row-2">
-            <div class="col col-0 defender_faction">allies</div>
-            <div class="col col-1">defender</div>
-            <div class="col col-7"><div class="defender_roll_unmodified">-</div></div>
-            <div class="col col-2"><div class="dice defender_roll">-</div></div>
-            <div class="col col-6">0</div>
-            <div class="col col-3 defender_modifiers">-</div>
-            <div class="col col-4 defender_column_shift">-</div>
-            <div class="col col-5"><div class="dice defender_damage">-</div></div>
-          </div>
+        <div class="loss-overlay-status help">
+          <div class="loss-overlay-status-icon" data-faction="" aria-hidden="true"></div>
+          <div class="loss-overlay-status-copy"></div>
         </div>
 
-        <div class="corps_firing_table">
-          <div class="firing_table">
-            <div class="row row-0">
-              <div class="col col-0">roll</div>
-              <div class="col col-1">0</div>
-              <div class="col col-2">1</div>
-              <div class="col col-3">2</div>
-              <div class="col col-4">3</div>
-              <div class="col col-5">4</div>
-              <div class="col col-6">5</div>
-              <div class="col col-7">6</div>
-              <div class="col col-8">7</div>
-              <div class="col col-9">8+</div>
-            </div>
-            <div class="row row-1">
-              <div class="col col-0">1</div>
-              <div class="col col-1">-</div>
-              <div class="col col-2">-</div>
-              <div class="col col-3">-</div>
-              <div class="col col-4">1</div>
-              <div class="col col-5">1</div>
-              <div class="col col-6">1</div>
-              <div class="col col-7">1</div>
-              <div class="col col-8">1</div>
-              <div class="col col-9">2</div>
-            </div>
-            <div class="row row-2">
-              <div class="col col-0">2</div>
-              <div class="col col-1">-</div>
-              <div class="col col-2">-</div>
-              <div class="col col-3">1</div>
-              <div class="col col-4">1</div>
-              <div class="col col-5">1</div>
-              <div class="col col-6">1</div>
-              <div class="col col-7">1</div>
-              <div class="col col-8">2</div>
-              <div class="col col-9">2</div>
-            </div>
-            <div class="row row-3">
-              <div class="col col-0">3</div>
-              <div class="col col-1">-</div>
-              <div class="col col-2">-</div>
-              <div class="col col-3">1</div>
-              <div class="col col-4">1</div>
-              <div class="col col-5">1</div>
-              <div class="col col-6">2</div>
-              <div class="col col-7">2</div>
-              <div class="col col-8">2</div>
-              <div class="col col-9">3</div>
-            </div>
-            <div class="row row-4">
-              <div class="col col-0">4</div>
-              <div class="col col-1">-</div>
-              <div class="col col-2">1</div>
-              <div class="col col-3">1</div>
-              <div class="col col-4">1</div>
-              <div class="col col-5">2</div>
-              <div class="col col-6">2</div>
-              <div class="col col-7">2</div>
-              <div class="col col-8">3</div>
-              <div class="col col-9">3</div>
-            </div>
-            <div class="row row-5">
-              <div class="col col-0">5</div>
-              <div class="col col-1">1</div>
-              <div class="col col-2">1</div>
-              <div class="col col-3">1</div>
-              <div class="col col-4">2</div>
-              <div class="col col-5">2</div>
-              <div class="col col-6">2</div>
-              <div class="col col-7">3</div>
-              <div class="col col-8">3</div>
-              <div class="col col-9">4</div>
-            </div>
-            <div class="row row-6">
-              <div class="col col-0">6</div>
-              <div class="col col-1">1</div>
-              <div class="col col-2">1</div>
-              <div class="col col-3">1</div>
-              <div class="col col-4">2</div>
-              <div class="col col-5">2</div>
-              <div class="col col-6">3</div>
-              <div class="col col-7">3</div>
-              <div class="col col-8">4</div>
-              <div class="col col-9">4</div>
-            </div>
-          </div>
-        </div>
+        <div class="loss-overlay-stage">
 
-        <div class="army_firing_table">
-          <div class="firing_table">
-            <div class="row row-0">
-              <div class="col col-0">roll</div>
-              <div class="col col-1">1</div>
-              <div class="col col-2">2</div>
-              <div class="col col-3">3</div>
-              <div class="col col-4">4</div>
-              <div class="col col-5">5</div>
-              <div class="col col-6">6+</div>
-              <div class="col col-7">9+</div>
-              <div class="col col-8">12+</div>
-              <div class="col col-9">15</div>
-              <div class="col col-10">16+</div>
-            </div>
-            <div class="row row-1">
-              <div class="col col-0">1</div>
-              <div class="col col-1">-</div>
-              <div class="col col-2">1</div>
-              <div class="col col-3">1</div>
-              <div class="col col-4">2</div>
-              <div class="col col-5">2</div>
-              <div class="col col-6">3</div>
-              <div class="col col-7">3</div>
-              <div class="col col-8">4</div>
-              <div class="col col-9">4</div>
-              <div class="col col-10">5</div>
-            </div>
-            <div class="row row-2">
-              <div class="col col-0">2</div>
-              <div class="col col-1">1</div>
-              <div class="col col-2">1</div>
-              <div class="col col-3">2</div>
-              <div class="col col-4">2</div>
-              <div class="col col-5">3</div>
-              <div class="col col-6">3</div>
-              <div class="col col-7">4</div>
-              <div class="col col-8">4</div>
-              <div class="col col-9">5</div>
-              <div class="col col-10">5</div>
-            </div>
-            <div class="row row-3">
-              <div class="col col-0">3</div>
-              <div class="col col-1">1</div>
-              <div class="col col-2">2</div>
-              <div class="col col-3">2</div>
-              <div class="col col-4">3</div>
-              <div class="col col-5">3</div>
-              <div class="col col-6">4</div>
-              <div class="col col-7">4</div>
-              <div class="col col-8">5</div>
-              <div class="col col-9">5</div>
-              <div class="col col-10">7</div>
-            </div>
-            <div class="row row-4">
-              <div class="col col-0">4</div>
-              <div class="col col-1">1</div>
-              <div class="col col-2">2</div>
-              <div class="col col-3">3</div>
-              <div class="col col-4">3</div>
-              <div class="col col-5">4</div>
-              <div class="col col-6">4</div>
-              <div class="col col-7">5</div>
-              <div class="col col-8">5</div>
-              <div class="col col-9">7</div>
-              <div class="col col-10">7</div>
-            </div>
-            <div class="row row-5">
-              <div class="col col-0">5</div>
-              <div class="col col-1">2</div>
-              <div class="col col-2">3</div>
-              <div class="col col-3">3</div>
-              <div class="col col-4">4</div>
-              <div class="col col-5">4</div>
-              <div class="col col-6">5</div>
-              <div class="col col-7">5</div>
-              <div class="col col-8">7</div>
-              <div class="col col-9">7</div>
-              <div class="col col-10">7</div>
-            </div>
-            <div class="row row-6">
-              <div class="col col-0">6</div>
-              <div class="col col-1">2</div>
-              <div class="col col-2">3</div>
-              <div class="col col-3">4</div>
-              <div class="col col-4">4</div>
-              <div class="col col-5">5</div>
-              <div class="col col-6">5</div>
-              <div class="col col-7">7</div>
-              <div class="col col-8">7</div>
-              <div class="col col-9">7</div>
-              <div class="col col-10">7</div>
-            </div>
-          </div>
-        </div>
+          <div class="loss-overlay-body">
 
-        <div class="terrain_effects_table">
-          <div class="effects_table">
-            <div class="row row-0">
-              <div class="col col-1">terrain</div>
-              <div class="col col-3">col-shift</div>
-              <div class="col col-4">cancel retreat?</div>
-              <div class="col col-5">stop advance?</div>
-              <div class="col col-6">flank attack?</div>
+            <div class="loss-overlay-faction attacker-panel">
+              <div class="loss-overlay-faction-header">
+                <div class="loss-overlay-strength attacker-strength"></div>
+              </div>
+              <div class="loss-overlay-faction-body">
+                <div class="units attacker"></div>
+              </div>
             </div>
-            <div class="row row-1 clear">
-              <div class="col col-1">clear</div>
-              <div class="col col-3">-</div>
-              <div class="col col-4">no</div>
-              <div class="col col-5">no</div>
-              <div class="col col-6">yes</div>
+
+            <div class="loss-overlay-result">
+              <div class="loss-overlay-result-columns">
+                <div class="loss-overlay-fire attacker-fire">
+                  <div class="loss-overlay-die-sprite attacker-die" role="img" aria-label="attacker die"></div>
+                  <div class="loss-overlay-calc attacker-calc">-</div>
+                  <div class="loss-overlay-hits attacker-hits">
+                    <div class="hits-value">-</div>
+                    <div class="hits-label attacker-hits-label">hits</div>
+                  </div>
+                </div>
+                <div class="loss-overlay-fire defender-fire">
+                  <div class="loss-overlay-die-sprite defender-die" role="img" aria-label="defender die"></div>
+                  <div class="loss-overlay-calc defender-calc">-</div>
+                  <div class="loss-overlay-hits defender-hits">
+                    <div class="hits-value">-</div>
+                    <div class="hits-label defender-hits-label">hits</div>
+                  </div>
+                </div>
+              </div>
+              <button type="button" class="loss-overlay-see-details">view details</button>
             </div>
-            <div class="row row-2 mountain">
-              <div class="col col-1">mountain</div>
-              <div class="col col-3">-1 / 0</div>
-              <div class="col col-4">yes</div>
-              <div class="col col-5">yes</div>
-              <div class="col col-6">no</div>
+
+            <div class="loss-overlay-faction defender-panel">
+              <div class="loss-overlay-faction-header">
+                <div class="loss-overlay-strength defender-strength"></div>
+              </div>
+              <div class="loss-overlay-faction-body">
+                <div class="units defender"></div>
+              </div>
             </div>
-            <div class="row row-3 swamp">
-              <div class="col col-1">swamp</div>
-              <div class="col col-3">-1 / 0</div>
-              <div class="col col-4">yes</div>
-              <div class="col col-5">yes</div>
-              <div class="col col-6">no</div>
-            </div>
-            <div class="row row-4 forest">
-              <div class="col col-1">forest</div>
-              <div class="col col-3">-</div>
-              <div class="col col-4">yes</div>
-              <div class="col col-5">yes</div>
-              <div class="col col-6">yes</div>
-            </div>
-            <div class="row row-5 desert">
-              <div class="col col-1">desert</div>
-              <div class="col col-3">-</div>
-              <div class="col col-4">yes</div>
-              <div class="col col-5">yes</div>
-              <div class="col col-6">yes</div>
-            </div>
-            <div class="row row-6 trench1">
-              <div class="col col-1">trench 1</div>
-              <div class="col col-3">-1 / +1</div>
-              <div class="col col-4">yes</div>
-              <div class="col col-5">no</div>
-              <div class="col col-6">no</div>
-            </div>
-            <div class="row row-7 trench2">
-              <div class="col col-1">trench 2</div>
-              <div class="col col-3">-2 / +1</div>
-              <div class="col col-4">yes</div>
-              <div class="col col-5">no</div>
-              <div class="col col-6">no</div>
-            </div>
+
           </div>
 
+          <div class="loss-overlay-details" aria-hidden="true">
+            <div class="loss-overlay-details-bar">
+              <div class="loss-overlay-details-title">How was this calculated?</div>
+              <button type="button" class="loss-overlay-hide-details">hide details</button>
+            </div>
+            <div class="loss-overlay-details-scroll">
+              <div class="loss-overlay-calc-fires"></div>
+              <div class="loss-overlay-calc-notes"></div>
+            </div>
+          </div>
 
         </div>
 
-	<div class="other_effects">
-	</div>
+        <div class="loss-overlay-footer">
+          <div class="loss-overlay-footer-copy">
+            <div class="loss-overlay-title">Combat</div>
+          </div>
+          <div class="loss-overlay-context-meta">
+            <div class="loss-overlay-terrain-item">
+              <div class="loss-overlay-terrain-name"></div>
+            </div>
+            <div class="loss-overlay-fort-item">
+              <div class="loss-overlay-fort-name"></div>
+            </div>
+          </div>
+        </div>
 
       </div>
     </div>
