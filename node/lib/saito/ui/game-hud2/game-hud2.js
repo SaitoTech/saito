@@ -5,6 +5,8 @@ class GameHUD2 {
     this.app = app;
     this.mod = mod;
     this.drag_bound = false;
+    this.esc_bound = false;
+    this.back_button_callback = null;
   }
 
   render() {
@@ -70,6 +72,27 @@ class GameHUD2 {
       document.addEventListener('mousemove', on_move);
       document.addEventListener('mouseup', on_up);
     });
+
+    if (!this.esc_bound) {
+      this.esc_bound = true;
+      document.addEventListener('keydown', (e) => {
+        if (e.key !== 'Escape' && e.keyCode !== 27) {
+          return;
+        }
+        if (!this.back_button_callback) {
+          return;
+        }
+        let t = e.target;
+        if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) {
+          return;
+        }
+        e.preventDefault();
+        e.stopPropagation();
+        let cb = this.back_button_callback;
+        this.hideBackButton();
+        cb();
+      });
+    }
   }
 
   hide() {
@@ -81,17 +104,20 @@ class GameHUD2 {
       visual_menu.innerHTML = '';
       visual_menu.className = 'hud-visual-menu';
     }
+    this.back_button_callback = null;
   }
 
   updateStatus(status) {
     this.render();
-    document.querySelectorAll('.hud-status, .zoom-overlay .status').forEach((el) => {
+    document.querySelectorAll('.hud-status, .zoom-overlay .status, .saito-overlay .status').forEach((el) => {
       el.innerHTML = status;
     });
   }
 
   showBackButton(callback) {
     this.render();
+
+    this.back_button_callback = typeof callback === 'function' ? callback : null;
 
     let html = this.mod.back_button_html;
     if (!html) {
@@ -103,12 +129,17 @@ class GameHUD2 {
       el.style.display = 'inline-block';
       el.onclick = (e) => {
         e.stopPropagation();
-        callback();
+        let cb = this.back_button_callback;
+        this.hideBackButton();
+        if (typeof cb === 'function') {
+          cb();
+        }
       };
     });
   }
 
   hideBackButton() {
+    this.back_button_callback = null;
     document.querySelectorAll('.hud-back-button').forEach((el) => {
       el.style.display = 'none';
       el.onclick = null;
@@ -131,7 +162,7 @@ class GameHUD2 {
       html += '</ul>';
     }
 
-    document.querySelectorAll('.hud-menu, .zoom-overlay .controls').forEach((el) => {
+    document.querySelectorAll('.hud-menu, .zoom-overlay .controls, .saito-overlay .controls').forEach((el) => {
       el.innerHTML = html;
       if (typeof callback === 'function') {
         el.querySelectorAll('.option').forEach((item) => {

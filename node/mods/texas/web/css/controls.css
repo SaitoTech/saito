@@ -52,6 +52,7 @@
   color: #1f3d38;
   text-align: center;
   cursor: pointer;
+  position: relative;
   transform: translateY(0);
   transition:
     transform 0.18s ease,
@@ -113,6 +114,10 @@
 }
 
 .game.texas .texas-artifact-detail {
+  position: absolute;
+  top: 0.6rem;
+  left: 0;
+  right: 0;
   font-family: var(--saito-font-medium);
   font-size: 1.3rem;
   color: #3d2a18;

@@ -528,8 +528,6 @@ class SettlersDisplay {
 
       if (this.game.players.includes(this.publicKey)) {
         if (this.gameBrowserActive()) {
-          let status_obj = document.querySelector('.hud-status');
-
           let complex_str = '';
           for (let ud of this.status) {
             let s = ud[0];
@@ -539,11 +537,7 @@ class SettlersDisplay {
             complex_str += s;
           }
 
-          //console.log(complex_str);
-
-          if (status_obj) {
-            status_obj.innerHTML = complex_str;
-          }
+          this.hud.updateStatus(complex_str);
         }
       }
     } catch (err) {

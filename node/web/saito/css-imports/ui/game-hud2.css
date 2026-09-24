@@ -112,6 +112,58 @@
   background-color: #e7e7e7;
 }
 
+.zoom-overlay .status,
+.saito-overlay .status {
+  box-sizing: border-box;
+  background-color: whitesmoke;
+  color: #000;
+  text-align: center;
+  font-size: 1.333rem;
+  /* Slim text banner — not a control button */
+  height: 3.333rem;
+  line-height: 3.333rem;
+  min-height: 0;
+  padding: 0 1.25rem;
+  border-radius: 0.833rem;
+}
+
+.zoom-overlay .controls ul,
+.saito-overlay .controls ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  background-color: whitesmoke;
+  border-radius: 0.833rem;
+}
+
+.zoom-overlay .controls .option,
+.saito-overlay .controls .option {
+  box-sizing: border-box;
+  min-height: 6.667rem;
+  height: 6.667rem;
+  width: 100%;
+  padding: 0.833rem;
+  font-size: 1.5rem;
+  line-height: normal;
+  text-align: center;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  list-style: none;
+  border-top: 1px solid var(--saito-gray-200);
+}
+
+.zoom-overlay .controls .option:first-child,
+.saito-overlay .controls .option:first-child {
+  border-top: 0;
+}
+
+.zoom-overlay .controls .option:hover,
+.saito-overlay .controls .option:hover {
+  background-color: #e7e7e7;
+}
+
 .hud-visual-menu {
   display: none;
   position: fixed;
@@ -126,6 +178,8 @@
   overflow: hidden;
   background-color: transparent;
   gap: 1.667rem;
+  /* Shell lets clicks fall through to HUD (back button); tiles re-enable below */
+  pointer-events: none;
 }
 
 .hud-visual-menu:not(:empty) {
@@ -144,6 +198,7 @@
   width: 100%;
   height: 100%;
   border: 1px solid var(--saito-border);
+  pointer-events: auto;
 }
 
 .hud-visual-option:hover {

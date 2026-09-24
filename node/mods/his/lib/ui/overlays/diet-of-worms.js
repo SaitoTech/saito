@@ -64,7 +64,7 @@ class DietOfWormsOverlay {
     if (hud) {
       hud.style.zIndex = 10;
     }
-    this.mod.updateStatus('');
+    this.mod.hud.updateStatus('');
 
     if (!document.querySelector('.diet-overlay')) {
       return;
