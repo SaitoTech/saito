@@ -25,6 +25,16 @@ class GameMinimap {
     this.viewport_el = null;
     this.markers_el = null;
     this.clone_el = null;
+    this.restore_el = null;
+    this.minimized = false;
+    this.saved_box = null;
+    this.resizing = false;
+    this.resize_right = 0;
+    this.resize_bottom = 0;
+    this.resize_ratio = 1;
+    this.resize_start_x = 0;
+    this.resize_start_y = 0;
+    this.resize_start_width = 0;
   }
 
   render() {
@@ -45,6 +55,12 @@ class GameMinimap {
       this.viewport_el = document.querySelector('.game-minimap .viewport');
       this.markers_el = document.querySelector('.game-minimap .markers');
       this.attachEvents();
+    }
+
+    this.ensureRestoreButton();
+
+    if (this.minimized) {
+      return;
     }
 
     if (this.enable_zoom && this.minimap_el) {
@@ -119,7 +135,7 @@ class GameMinimap {
       return;
     }
 
-    if (!this.dragging && !this.moving) {
+    if (!this.dragging && !this.moving && !this.resizing) {
       if (this.clone_el) {
         this.clone_el.remove();
       }
@@ -149,7 +165,7 @@ class GameMinimap {
   }
 
   snapshot() {
-    if (!this.mod.browser_active) {
+    if (!this.mod.browser_active || this.minimized) {
       return;
     }
     if (!this.minimap_el) {
@@ -196,9 +212,33 @@ class GameMinimap {
           this.zoom.hide();
         }
       });
+      const close_el = minimap.querySelector('.game-minimap-close');
+      if (close_el) {
+        close_el.addEventListener('mousedown', (e) => {
+          e.stopPropagation();
+        });
+        close_el.addEventListener('click', (e) => {
+          e.stopPropagation();
+          e.preventDefault();
+          this.minimize();
+        });
+      }
+      const resize_el = minimap.querySelector('.game-minimap-resize');
+      if (resize_el) {
+        resize_el.addEventListener('mousedown', (e) => {
+          e.stopPropagation();
+          e.preventDefault();
+          this.beginResize(e);
+        });
+      }
       minimap.addEventListener('mousedown', (e) => {
         e.stopPropagation();
-        if (e.target.closest('.viewport') || e.target.closest('.game-zoom')) {
+        if (
+          e.target.closest('.viewport') ||
+          e.target.closest('.game-zoom') ||
+          e.target.closest('.game-minimap-close') ||
+          e.target.closest('.game-minimap-resize')
+        ) {
           return;
         }
         this.moving = true;
@@ -211,6 +251,12 @@ class GameMinimap {
       });
       minimap.addEventListener('click', (e) => {
         e.stopPropagation();
+        if (
+          e.target.closest('.game-minimap-close') ||
+          e.target.closest('.game-minimap-resize')
+        ) {
+          return;
+        }
         if (this.zoom && !this.dragged) {
           this.zoom.interacted = true;
           this.zoom.show();
@@ -242,6 +288,11 @@ class GameMinimap {
     }
 
     document.addEventListener('mousemove', (e) => {
+      if (this.resizing) {
+        this.onResize(e);
+        return;
+      }
+
       if (this.moving) {
         this.onDrag(e);
         return;
@@ -280,11 +331,14 @@ class GameMinimap {
     });
 
     document.addEventListener('mouseup', (e) => {
-      if (!this.dragging && !this.moving) {
+      if (!this.dragging && !this.moving && !this.resizing) {
         return;
       }
       if (!this.dragged) {
-        if (!e.target.closest || !e.target.closest('.game-zoom')) {
+        if (
+          !this.resizing &&
+          (!e.target.closest || !e.target.closest('.game-zoom'))
+        ) {
           this.onClick(e);
         }
       } else {
@@ -297,7 +351,11 @@ class GameMinimap {
       }
       this.dragging = false;
       this.moving = false;
+      this.resizing = false;
       this.dragged = false;
+      if (this.minimap_el) {
+        this.minimap_el.classList.remove('resizing');
+      }
     });
 
     const el = document.querySelector('.gameboard:not(.gameboard-clone)');
@@ -331,6 +389,88 @@ class GameMinimap {
     });
   }
 
+  ensureRestoreButton() {
+    if (this.restore_el && document.body.contains(this.restore_el)) {
+      return;
+    }
+
+    let restore_el = document.getElementById('game-minimap-restore');
+    if (!restore_el) {
+      const hamburger = document.querySelector('#saito-header .hamburger-container');
+      if (!hamburger) {
+        return;
+      }
+      hamburger.insertAdjacentHTML('afterbegin', GameMinimapTemplate.restoreButton());
+      restore_el = document.getElementById('game-minimap-restore');
+    }
+
+    if (!restore_el) {
+      return;
+    }
+
+    this.restore_el = restore_el;
+    if (!this.restore_el.dataset.bound) {
+      this.restore_el.dataset.bound = '1';
+      this.restore_el.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.restore();
+      });
+    }
+  }
+
+  minimize() {
+    if (!this.minimap_el || this.minimized) {
+      return;
+    }
+
+    const box = this.minimap_el.getBoundingClientRect();
+    this.saved_box = {
+      left: box.left,
+      top: box.top,
+      width: box.width,
+      height: box.height
+    };
+
+    this.minimized = true;
+    this.moving = false;
+    this.dragging = false;
+    this.resizing = false;
+    this.minimap_el.classList.add('minimized');
+
+    if (this.zoom) {
+      this.zoom.hide();
+    }
+
+    this.ensureRestoreButton();
+    if (this.restore_el) {
+      this.restore_el.classList.add('visible');
+    }
+  }
+
+  restore() {
+    if (!this.minimap_el || !this.minimized) {
+      return;
+    }
+
+    if (this.saved_box) {
+      this.minimap_el.style.left = this.saved_box.left + 'px';
+      this.minimap_el.style.top = this.saved_box.top + 'px';
+      this.minimap_el.style.width = this.saved_box.width + 'px';
+      this.minimap_el.style.height = this.saved_box.height + 'px';
+      this.minimap_el.style.right = 'auto';
+      this.minimap_el.style.bottom = 'auto';
+    }
+
+    this.minimized = false;
+    this.minimap_el.classList.remove('minimized');
+    if (this.restore_el) {
+      this.restore_el.classList.remove('visible');
+    }
+
+    this.redraw_markers = true;
+    this.render();
+  }
+
   onClick(e) {
     const b = this.mod.getBoardState();
     if (!b || !this.board_el) {
@@ -348,6 +488,69 @@ class GameMinimap {
     vis_y = Math.max(0, Math.min(vis_y, Math.max(0, b.height - view_h)));
 
     this.mod.setBoardPosition(-vis_x * b.scale, -vis_y * b.scale);
+    this.render();
+  }
+
+  beginResize(e) {
+    if (!this.minimap_el || !this.board_el || this.minimized) {
+      return;
+    }
+
+    const board = this.board_el.getBoundingClientRect();
+    if (!board.width || !board.height) {
+      return;
+    }
+
+    this.resizing = true;
+    this.moving = false;
+    this.dragging = false;
+    this.dragged = false;
+    this.resize_right = board.right;
+    this.resize_bottom = board.bottom;
+    this.resize_ratio = board.height / board.width;
+    this.resize_start_x = e.clientX;
+    this.resize_start_y = e.clientY;
+    this.resize_start_width = board.width;
+    this.minimap_el.classList.add('resizing');
+  }
+
+  onResize(e) {
+    if (!this.resizing || !this.minimap_el) {
+      return;
+    }
+
+    if (
+      Math.abs(e.clientX - this.resize_start_x) > 4 ||
+      Math.abs(e.clientY - this.resize_start_y) > 4
+    ) {
+      this.dragged = true;
+    }
+
+    if (!this.dragged) {
+      return;
+    }
+
+    const dw = this.resize_start_x - e.clientX;
+    const dh = this.resize_start_y - e.clientY;
+    let width = this.resize_start_width + (dw + dh / this.resize_ratio) / 2;
+
+    const min_width = 140;
+    const max_width = Math.min(
+      window.innerWidth * 0.7,
+      this.resize_right,
+      this.resize_bottom / this.resize_ratio
+    );
+    width = Math.max(min_width, Math.min(width, max_width));
+    const height = width * this.resize_ratio;
+
+    this.minimap_el.style.width = width + 'px';
+    this.minimap_el.style.height = 'auto';
+    this.minimap_el.style.left = this.resize_right - width + 'px';
+    this.minimap_el.style.top = this.resize_bottom - height + 'px';
+    this.minimap_el.style.right = 'auto';
+    this.minimap_el.style.bottom = 'auto';
+
+    this.redraw_markers = true;
     this.render();
   }
 

@@ -731,7 +731,6 @@ class Database {
       $buyer: String(buyer || ''),
       $quantity_sold: Math.max(0, Number(quantity_sold ?? 0) || 0),
       $sold_at: Number(sold_at || now) || now,
-      $created_at: now,
       $updated_at: now
     };
 
@@ -744,7 +743,7 @@ class Database {
 					) VALUES (
 					  $signature, $block_hash_listed,
 					  $block_id_sold, $block_hash_sold, $transaction_id_sold, 1,
-					  $buyer, $note, $quantity_sold, $sold_at, $created_at, $updated_at
+					  $buyer, $note, $quantity_sold, $sold_at, $updated_at, $updated_at
 					)
 					ON CONFLICT(signature, block_hash_listed, block_hash_sold) DO UPDATE SET
 					  block_id_sold = excluded.block_id_sold,
@@ -875,14 +874,15 @@ class Database {
     const id = Number(block_id) || 0;
     const hash = String(block_hash || '');
     const now = Date.now();
-    const params = { $block_id: id, $block_hash: hash, $updated_at: now };
+    const chain = { $block_id: id, $block_hash: hash };
+    const params = { ...chain, $updated_at: now };
 
     await this.withImmediateTransaction(async (db) => {
       if (!on_lc) {
         await db.run(
           `UPDATE listings SET longest_chain_listed = 0
 					 WHERE block_id_listed = $block_id AND block_hash_listed = $block_hash`,
-          params
+          chain
         );
         await db.run(
           `UPDATE listing_sales
@@ -903,7 +903,7 @@ class Database {
         await db.run(
           `UPDATE listings SET longest_chain_listed = 1
 					 WHERE block_id_listed = $block_id AND block_hash_listed = $block_hash`,
-          params
+          chain
         );
       }
     });
