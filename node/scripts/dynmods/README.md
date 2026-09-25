@@ -8,11 +8,23 @@ This generates .zip files for each module and places them in /dist/mods/zip
 
 It then compiles the modules into /dist/mods/saito/*.saito dynamic mods
 
+To zip and compile only one directory under `mods/`, run from the node project:
+
+```bash
+npm run .saito -- limbo
+```
+
+This compiles only `mods/limbo/`, even if other ZIPs already exist in
+`dist/mods/zip/`. The output is `dist/mods/saito/<slug>.saito`, using the module's
+metadata slug. With no argument, `npm run .saito` compiles all modules as before.
+
 ---
 
 ## zipmods.sh
 
 This zips the modules and copies them into /dist/mods/zip. It is run by compile.js
+Pass a directory name to zip only that module: `bash scripts/dynmods/zipmods.sh limbo`.
+ZIP creation uses the project's `archiver` npm dependency; no system `zip` command is required.
 
 ## dyn-mod-compile.sh
 

@@ -5,13 +5,13 @@ const Module = require('module');
 const originalResolveFilename = Module._resolveFilename;
 
 Module._resolveFilename = function (request, parent, isMain, options) {
-  if (request.startsWith('saito-js/lib/')) {
+  if (request.startsWith('saito-js/lib/') || request === 'saito-js/saito') {
     // try normal npm layout first
     try {
       return originalResolveFilename.call(this, request, parent, isMain, options);
     } catch (err) {
       // fallback to legacy dist layout
-      const alt = request.replace('saito-js/lib/', 'saito-js/dist/lib/');
+      const alt = request.replace('saito-js/', 'saito-js/dist/');
       return originalResolveFilename.call(this, alt, parent, isMain, options);
     }
   }
@@ -31,7 +31,7 @@ Module._resolveFilename = function (request, parent, isMain, options) {
 const path = require('path');
 const fs = require('fs');
 const readline = require('readline');
-const { execSync } = require('child_process');
+const { execSync, execFileSync } = require('child_process');
 const unzipper = require('unzipper');
 const { getMetadataFromZip } = require('./helpers/metadata');
 const { getAppPath } = require('./helpers/getAppPath');
@@ -59,7 +59,7 @@ async function initSaitoJsForCompile() {
   const SaitoJsTransaction = require('saito-js/lib/transaction').default;
   const SaitoJsSlip = require('saito-js/lib/slip').default;
   const Factory = require('saito-js/lib/factory').default;
-  const Saito = require(path.join(PROJECT_ROOT, 'node_modules', 'saito-js', 'dist', 'saito.js')).default;
+  const Saito = require('saito-js/saito').default;
   SaitoJsTransaction.Type = wasm.WasmTransaction;
   SaitoJsSlip.Type = wasm.WasmSlip;
   // serialize_to_web clones via toJson(), which wraps from/to slips through Saito.getInstance().factory
@@ -170,9 +170,9 @@ function getZipFiles() {
   return fs.readdirSync(ZIP_DIR).filter((f) => f.toLowerCase().endsWith('.zip'));
 }
 
-function runZipmods() {
+function runZipmods(mod) {
   const zipmodsPath = path.join(__dirname, 'zipmods.sh');
-  execSync(`bash "${zipmodsPath}"`, {
+  execFileSync('bash', [zipmodsPath, ...(mod ? [mod] : [])], {
     cwd: PROJECT_ROOT,
     stdio: 'inherit'
   });
@@ -180,13 +180,20 @@ function runZipmods() {
 
 function parseArgs() {
   const args = process.argv.slice(2);
+  if (args.length === 0) return null;
+  if (args.length === 1 && /^[a-zA-Z0-9_][a-zA-Z0-9_-]*$/.test(args[0])) {
+    return { mod: args[0] };
+  }
   const zipIdx = args.indexOf('--zip');
   const slugIdx = args.indexOf('--slug');
-  if (zipIdx === -1 || slugIdx === -1) return null;
-  const zipPath = args[zipIdx + 1];
-  const slug = args[slugIdx + 1];
-  if (!zipPath || !slug) return null;
-  return { zipPath: path.resolve(zipPath), slug };
+  if (args.length === 4 && ((zipIdx === 0 && slugIdx === 2) || (zipIdx === 2 && slugIdx === 0))) {
+    const zipPath = args[zipIdx + 1];
+    const slug = args[slugIdx + 1];
+    if (zipPath && slug && !zipPath.startsWith('--') && !slug.startsWith('--')) {
+      return { zipPath: path.resolve(zipPath), slug };
+    }
+  }
+  throw new Error('Usage: npm run .saito -- [mod-directory | --zip <path> --slug <slug>]');
 }
 
 async function compileOne(zipFileName) {
@@ -322,25 +329,36 @@ async function run() {
     return;
   }
 
+  const single = parseArgs();
+  const mod = single?.mod;
+  const modsDir = path.join(PROJECT_ROOT, 'mods');
+  if (mod) {
+    const modDir = path.join(modsDir, mod);
+    if (!fs.existsSync(modDir) || !fs.statSync(modDir).isDirectory()) {
+      throw new Error(`Module directory not found: mods/${mod}`);
+    }
+  }
+
   await initSaitoJsForCompile();
   await promptForSigning();
 
-  const single = parseArgs();
-  if (single) {
+  if (single?.zipPath) {
     await runSingle(single.zipPath, single.slug);
     return;
   }
 
   ensureDirs();
-  const modsDir = path.join(PROJECT_ROOT, 'mods');
-  if (
+  if (mod) {
+    console.log(`Running zipmods to create zip from mods/${mod}/...\n`);
+    runZipmods(mod);
+  } else if (
     fs.existsSync(modsDir) &&
     fs.readdirSync(modsDir).some((f) => fs.statSync(path.join(modsDir, f)).isDirectory())
   ) {
     console.log('Running zipmods to create zips from mods/...\n');
     runZipmods();
   }
-  const zips = getZipFiles();
+  const zips = mod ? [`${mod}.zip`] : getZipFiles();
   if (zips.length === 0) {
     console.log(
       'No .zip files found in dist/mods/zip/. Place module zips there, or ensure mods/ has at least one directory so zipmods can create them.'
@@ -390,6 +408,7 @@ async function run() {
   console.log('\n---');
   console.log(`SUCCESS: ${success}`);
   console.log(`FAILED: ${failed}`);
+  if (mod && failed) process.exitCode = 1;
 }
 
 run().catch((err) => {
