@@ -44,6 +44,9 @@ class Warehouse {
     this.db = new Database(app, mod);
     this.listings = {};
     this.summaries = {};
+    // Wind of a block that has no spend rows yet. Drained on the next canonical
+    // tip, outside the reorg callback, so the block body can be loaded.
+    this.pendingSpendRecovery = [];
     // Serializes summary table + this.summaries / mod.summaries mutations.
     this._summary_mutation_tail = Promise.resolve();
   }
@@ -95,12 +98,35 @@ class Warehouse {
     if (!lc) {
       return;
     }
+    await this.finishDeferredSpendRecovery();
     await this.processQueue();
   }
 
   async onChainReorganization(block_id, block_hash, longest_chain) {
-    await this.db.updateListingsListedChainState(block_id, block_hash, longest_chain);
-    await this.db.updateListingsSoldChainState(block_id, block_hash, longest_chain);
+    // A missing spend row must be rebuilt from the block before inclusions
+    // created in that block become visible. The reorg callback has no block
+    // body, so reveal waits until finishDeferredSpendRecovery.
+    let reveal_listings = true;
+    if (longest_chain) {
+      const existing_sales = await this.db.countListingSalesForBlock(block_id, block_hash);
+      const existing_listings = await this.db.countListingsInBlock(block_id, block_hash);
+      // First inclusion has no rows yet; confirmation writes the spend and the
+      // remainder. A returning block already has rows, and confirmation will
+      // not run again. Rebuild a missing spend before those rows are shown.
+      if (existing_sales === 0 && existing_listings > 0) {
+        this.pendingSpendRecovery.push({
+          block_id: Number(block_id) || 0,
+          block_hash: String(block_hash || '')
+        });
+        reveal_listings = false;
+      }
+    }
+    await this.db.applyListingChainReorganization(
+      block_id,
+      block_hash,
+      longest_chain,
+      reveal_listings
+    );
     await this.db.updateOrdersReceivedChainState(block_id, block_hash, longest_chain);
     await this.db.updateOrdersFulfilledChainState(block_id, block_hash, longest_chain);
 
@@ -112,26 +138,44 @@ class Warehouse {
         Number(row.block_id_sold) === Number(block_id) &&
         String(row.block_hash_sold || '') === String(block_hash || '');
 
-      if (listed) {
+      if (listed && (!longest_chain || reveal_listings)) {
         row.longest_chain_listed = longest_chain ? 1 : 0;
       }
+      // Snapshot chain flag only. Sale identity stays so a later wind can match.
       if (sold) {
-        if (longest_chain) {
-          row.longest_chain_sold = 1;
-        } else {
-          // Mirror DB clear: sale left LC → listing is active again.
-          row.block_id_sold = 0;
-          row.block_hash_sold = '';
-          row.transaction_id_sold = 0;
-          row.longest_chain_sold = 0;
-        }
+        row.longest_chain_sold = longest_chain ? 1 : 0;
       }
     }
 
-    // Chain extensions do not need a full rebuild; only rollbacks do.
-    // Unconditional rebuild raced with applyListingToSummary on every tip.
-    if (!longest_chain) {
-      await this.rebuildSummaries();
+    const sales = await this.db.returnListingSalesForBlock(block_id, block_hash);
+    for (const sale of sales || []) {
+      const key = this.listingCacheKey(sale.signature, sale.block_hash_listed);
+      const cached = this.listings[key];
+      if (!cached) {
+        continue;
+      }
+      const fresh = await this.db.returnListingBySignatureAndBlockHash(
+        sale.signature,
+        sale.block_hash_listed
+      );
+      if (!fresh) {
+        continue;
+      }
+      cached.block_id_sold = Number(fresh.block_id_sold ?? 0);
+      cached.block_hash_sold = fresh.block_hash_sold || '';
+      cached.transaction_id_sold = Number(fresh.transaction_id_sold ?? 0);
+      cached.longest_chain_sold = Number(fresh.longest_chain_sold ?? 0);
+      cached.settlement_pending = Number(fresh.settlement_pending ?? 0) ? 1 : 0;
+      cached.buyer = fresh.buyer || '';
+      cached.quantity_sold = Number(fresh.quantity_sold ?? 0);
+    }
+
+    // A brand-new block has no listing rows yet; confirmation writes those.
+    // A block leaving or returning already has rows, and their buckets must
+    // follow the flags just written. Full rebuild on every tip raced confirmation.
+    const buckets = await this.db.returnBucketsAffectedByBlock(block_id, block_hash);
+    for (const bucket of buckets || []) {
+      await this.syncSummaryForBucket(bucket.nft_id, bucket.price);
     }
   }
 
@@ -289,15 +333,21 @@ class Warehouse {
     const order_row =
       (await this.db.returnOrderBySettlementSig(tx.signature)) ||
       (await this.db.returnOrderByTxSig(fulfill.sale_signature));
-    if (!order_row) {
+    const order = order_row ? new Order(order_row) : null;
+
+    await this.recordFulfillmentSpends(blk, tx, {
+      buyer: order?.buyer || fulfill.buyer || '',
+      note: order?.note || '',
+      quantity: order ? Number(order.quantity) || 1 : null
+    });
+
+    if (!order) {
       return;
     }
 
-    const order = new Order(order_row);
     const fulfilled_block_id = Number(blk?.id ?? 0);
     const fulfilled_block_hash = String(blk?.hash ?? '');
     const fulfilled_transaction_id = transactionIndexInBlock(blk, tx);
-    const now = Date.now();
 
     // Same canonical inclusion already recorded. A replay after reorg has a new
     // block hash and longest_chain_fulfilled = 0, so settlement runs again.
@@ -316,43 +366,192 @@ class Warehouse {
       transaction_id_fulfilled: fulfilled_transaction_id,
       longest_chain_fulfilled: 1
     });
+  }
 
-    const prior_listing = fulfill.prior_inventory || '';
-    const consumed_signatures = Array.isArray(fulfill.listing_signatures)
-      ? fulfill.listing_signatures.filter(Boolean)
-      : prior_listing
-        ? [prior_listing]
-        : [];
+  /**
+   * A fulfillment consumes the listing inclusion whose three stored slips match
+   * the transaction inputs by block id, tx ordinal, and slip index. The listing
+   * signature is not the match key: two inclusions of one transaction have
+   * different outpoints, and only the spent one is recorded.
+   */
+  returnTransactionMessage(tx) {
+    try {
+      if (typeof tx?.returnMessage === 'function') {
+        return tx.returnMessage() || {};
+      }
+      if (tx?.msg && typeof tx.msg === 'object') {
+        return tx.msg;
+      }
+      if (tx?.data && tx.data.byteLength > 0) {
+        return JSON.parse(Buffer.from(tx.data).toString('utf-8'));
+      }
+    } catch (err) {
+      return {};
+    }
+    return {};
+  }
 
-    let remaining_sold = Number(order.quantity) || 1;
-    for (const signature of consumed_signatures) {
-      // The settlement spent the canonical inclusion's slips; other inclusions of the
-      // same transaction keep their own slips for a later reorg. Fall back to the
-      // newest inclusion so a confirmed sale is still recorded against something.
-      const listing_row =
-        (await this.db.returnCanonicalListingBySignature(signature)) ||
-        (await this.db.returnLatestListingInclusion(signature));
-      const row_qty = Math.max(1, Number(listing_row?.quantity ?? 1) || 1);
-      const quantity_sold = Math.min(row_qty, Math.max(0, remaining_sold));
-      remaining_sold = Math.max(0, remaining_sold - quantity_sold);
+  listingOutpointsSpentBy(row, tx) {
+    const slip_json = listingInputSlipJsonFromRecord(row);
+    if (!slip_json) {
+      return false;
+    }
+    const anchored = slip_json.map((data) => new Slip(undefined, normalizeSlipJson(data)));
+    return anchored.every((expected) =>
+      (tx.from || []).some(
+        (input) =>
+          Number(input?.blockId ?? input?.block_id ?? 0) === Number(expected.blockId ?? 0) &&
+          Number(input?.txOrdinal ?? input?.tx_ordinal ?? 0) === Number(expected.txOrdinal ?? 0) &&
+          Number(input?.index ?? 0) === Number(expected.index ?? 0)
+      )
+    );
+  }
+
+  async recordFulfillmentSpends(blk, tx, sale = {}) {
+    const rows = await this.db.returnListingRowsForSpendMatch();
+    const matched = (rows || []).filter((row) => this.listingOutpointsSpentBy(row, tx));
+    if (!matched.length) {
+      console.warn('Store: fulfillment inputs did not match a stored listing inclusion', tx.signature);
+      return [];
+    }
+
+    const sold_block_id = Number(blk?.id ?? 0);
+    const sold_block_hash = String(blk?.hash ?? '');
+    const sold_transaction_id = transactionIndexInBlock(blk, tx);
+    const now = Date.now();
+    let remaining = sale.quantity == null ? null : Math.max(0, Number(sale.quantity) || 0);
+    const touched = [];
+
+    for (const row of matched) {
+      const row_qty = Math.max(1, Number(row.quantity ?? 1) || 1);
+      const quantity_sold =
+        remaining == null ? row_qty : Math.min(row_qty, Math.max(0, remaining));
+      if (remaining != null) {
+        remaining = Math.max(0, remaining - quantity_sold);
+      }
       await this.db.markListingSold(
-        signature,
+        row.signature,
         {
-          block_hash_listed: listing_row?.block_hash_listed ?? null,
-          sold_block_id: fulfilled_block_id,
-          sold_block_hash: fulfilled_block_hash,
-          sold_transaction_id: fulfilled_transaction_id,
-          note: order.note || '',
-          buyer: order.buyer || '',
+          block_hash_listed: row.block_hash_listed,
+          sold_block_id,
+          sold_block_hash,
+          sold_transaction_id,
+          note: sale.note || '',
+          buyer: sale.buyer || '',
           quantity_sold,
           sold_at: now
         },
         now
       );
-      delete this.listings[this.listingCacheKey(signature, listing_row?.block_hash_listed)];
+      delete this.listings[this.listingCacheKey(row.signature, row.block_hash_listed)];
+      touched.push(row);
     }
 
-    await this.syncSummaryForBucket(order.nft_id, order.price);
+    const buckets = new Set(touched.map((row) => `${row.nft_id}\0${row.price}`));
+    for (const key of buckets) {
+      const [nft_id, price] = key.split('\0');
+      await this.syncSummaryForBucket(nft_id, price);
+    }
+    return touched;
+  }
+
+  /**
+   * Blocks wound with no spend rows stay hidden until this runs. It loads each
+   * block, writes sale inclusions from the outpoint match, then reveals listing
+   * inclusions created in that block. Sale canonicality is written first.
+   */
+  async finishDeferredSpendRecovery() {
+    if (this.app.BROWSER || !this.pendingSpendRecovery.length) {
+      return;
+    }
+    const pending = this.pendingSpendRecovery.splice(0);
+    const retry = [];
+    for (const item of pending) {
+      const recorded = await this.recoverMissingFulfillmentSpends(item.block_id, item.block_hash);
+      if (!recorded) {
+        retry.push(item);
+        continue;
+      }
+      await this.db.revealListingsInBlock(item.block_id, item.block_hash);
+      for (const row of Object.values(this.listings)) {
+        const listed =
+          Number(row.block_id_listed ?? row.block_id) === Number(item.block_id) &&
+          String((row.block_hash_listed ?? row.block_hash) || '') === String(item.block_hash || '');
+        if (listed) {
+          row.longest_chain_listed = 1;
+        }
+      }
+      const sales = await this.db.returnListingSalesForBlock(item.block_id, item.block_hash);
+      for (const sale of sales || []) {
+        const key = this.listingCacheKey(sale.signature, sale.block_hash_listed);
+        const cached = this.listings[key];
+        if (!cached) {
+          continue;
+        }
+        const fresh = await this.db.returnListingBySignatureAndBlockHash(
+          sale.signature,
+          sale.block_hash_listed
+        );
+        if (!fresh) {
+          continue;
+        }
+        cached.block_id_sold = Number(fresh.block_id_sold ?? 0);
+        cached.block_hash_sold = fresh.block_hash_sold || '';
+        cached.transaction_id_sold = Number(fresh.transaction_id_sold ?? 0);
+        cached.longest_chain_sold = Number(fresh.longest_chain_sold ?? 0);
+        cached.settlement_pending = Number(fresh.settlement_pending ?? 0) ? 1 : 0;
+        cached.buyer = fresh.buyer || '';
+        cached.quantity_sold = Number(fresh.quantity_sold ?? 0);
+      }
+      const buckets = await this.db.returnBucketsAffectedByBlock(item.block_id, item.block_hash);
+      for (const bucket of buckets || []) {
+        await this.syncSummaryForBucket(bucket.nft_id, bucket.price);
+      }
+    }
+    if (retry.length) {
+      this.pendingSpendRecovery.unshift(...retry);
+    }
+  }
+
+  /**
+   * A block is on the longest chain but this process never wrote its spend rows.
+   * Replay the block's fulfillment transactions through the same outpoint match.
+   * Returns false when the block could not be loaded, so the caller does not
+   * reveal remainder inclusions before the spend exists.
+   * Ordinary reorg of an existing spend only flips longest_chain_sold.
+   */
+  async recoverMissingFulfillmentSpends(block_id, block_hash) {
+    if (this.app.BROWSER || !block_hash) {
+      return false;
+    }
+    const existing = await this.db.countListingSalesForBlock(block_id, block_hash);
+    if (existing > 0) {
+      return true;
+    }
+    let block = null;
+    try {
+      block = await this.app.core?.blockchain?.getBlock(String(block_hash), true);
+    } catch (err) {
+      console.warn('Store: could not load block to recover fulfillment spends', block_hash, err);
+      return false;
+    }
+    if (!block) {
+      console.warn('Store: block missing while recovering fulfillment spends', block_hash);
+      return false;
+    }
+    const transactions = block?.transactions || [];
+    for (const tx of transactions) {
+      const txmsg = this.returnTransactionMessage(tx);
+      if (txmsg.module !== 'Store' || !txmsg.fulfill_sale) {
+        continue;
+      }
+      await this.recordFulfillmentSpends(block, tx, {
+        buyer: txmsg.fulfill_sale.buyer || '',
+        note: '',
+        quantity: Number(txmsg.fulfill_sale.quantity) || null
+      });
+    }
+    return true;
   }
 
   async processQueue() {
@@ -464,7 +663,7 @@ class Warehouse {
       await this.db.clearListingSettlementPending(signature, null, now);
       for (const listing of Object.values(this.listings)) {
         if (listing.signature === signature && listing.isSettlementPending()) {
-          listing.block_id_sold = 0;
+          listing.settlement_pending = 0;
         }
       }
     }
@@ -613,7 +812,7 @@ class Warehouse {
       );
       const key = this.listingCacheKey(listing_row.signature, listing_row.block_hash_listed);
       if (this.listings[key]) {
-        this.listings[key].block_id_sold = -1;
+        this.listings[key].settlement_pending = 1;
       }
     }
     await this.syncSummaryForBucket(order.nft_id, order.price);
@@ -1090,7 +1289,9 @@ class Warehouse {
     }
 
     if (await this.listingExists(tx.signature, block_hash)) {
-      console.warn('Store: addListingFromTransaction: duplicate inclusion', signature, block_hash);
+      // Replay of a block whose reveal was deferred. The spend, if any, was
+      // recorded by confirmSettlement before this call.
+      await this.db.revealListingsInBlock(Number(blk?.id ?? 0), block_hash);
       return null;
     }
 
@@ -1337,6 +1538,7 @@ class Warehouse {
       block_hash_sold: '',
       transaction_id_sold: 0,
       longest_chain_sold: 0,
+      settlement_pending: 0,
       slip_id: returnListingSlipId(tx, slip_key),
       on_chain: 1,
       utxo_slip1: serializeSlip(inventory_triple[0]),
@@ -1361,24 +1563,7 @@ class Warehouse {
       if (listing_row.isSoldOnChain()) {
         continue;
       }
-
-      const slip_json = listingInputSlipJsonFromRecord(row);
-      if (!slip_json) {
-        continue;
-      }
-
-      const anchored = slip_json.map((data) => new Slip(undefined, normalizeSlipJson(data)));
-      const consumes = anchored.every((expected) =>
-        (tx.from || []).some(
-          (input) =>
-            Number(input?.blockId ?? input?.block_id ?? 0) === Number(expected.blockId ?? 0) &&
-            Number(input?.txOrdinal ?? input?.tx_ordinal ?? 0) ===
-              Number(expected.txOrdinal ?? 0) &&
-            Number(input?.index ?? 0) === Number(expected.index ?? 0)
-        )
-      );
-
-      if (consumes) {
+      if (this.listingOutpointsSpentBy(row, tx)) {
         spent.push(row);
       }
     }

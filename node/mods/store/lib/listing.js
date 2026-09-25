@@ -23,6 +23,7 @@ class Listing {
     this.block_hash_sold = data.block_hash_sold || '';
     this.transaction_id_sold = Number(data.transaction_id_sold ?? 0);
     this.longest_chain_sold = data.longest_chain_sold ?? 0;
+    this.settlement_pending = Number(data.settlement_pending ?? 0) ? 1 : 0;
 
     this.on_chain = data.on_chain ?? 1;
     this.utxo_slip1 = data.utxo_slip1 || '';
@@ -58,12 +59,17 @@ class Listing {
     return Number(this.longest_chain_listed) === 1;
   }
 
+  /**
+   * The listing inclusion is on the longest chain and a canonical spend exists.
+   * longest_chain_sold is the snapshot of that spend. block_id_sold > 0 with the
+   * flag at 0 is a sale inclusion that is not currently canonical.
+   */
   isSoldOnChain() {
-    return Number(this.block_id_sold) > 0 && Number(this.longest_chain_sold) === 1;
+    return this.isListedOnChain() && Number(this.longest_chain_sold) === 1;
   }
 
   isSettlementPending() {
-    return Number(this.block_id_sold) === -1 && Number(this.longest_chain_sold) === 0;
+    return Number(this.settlement_pending) === 1;
   }
 
   isAvailable() {
