@@ -157,6 +157,61 @@ class LossOverlay {
     }
 
     copy.innerHTML = `<strong>${title}</strong><span class="status-sub">${msg}</span>`;
+    this.updateCasualtyLines(resolved);
+  }
+
+  rememberCombatRoster(attacker_units = [], defender_units = []) {
+    let step = this.mod.game?.state?.combat?.step;
+    if (this.roster && this.roster.step === step) {
+      return;
+    }
+    this.roster = {
+      step,
+      attacker: attacker_units.slice(),
+      defender: defender_units.slice()
+    };
+  }
+
+  casualtySummary(units = []) {
+    let eliminated = [];
+    let damaged = [];
+
+    for (let i = 0; i < units.length; i++) {
+      let unit = units[i];
+      if (!unit) {
+        continue;
+      }
+      let name = unit.name || unit.key;
+      let eliminated_box = unit.spacekey === 'aeubox' || unit.spacekey === 'ceubox';
+      if (unit.destroyed || eliminated_box) {
+        eliminated.push(name);
+      } else if (unit.damaged_this_combat && unit.damaged) {
+        damaged.push(name);
+      }
+    }
+
+    if (eliminated.length) {
+      return `Eliminated: ${eliminated.join(', ')}`;
+    }
+    if (damaged.length) {
+      return `Damaged: ${damaged.join(', ')}`;
+    }
+    return '';
+  }
+
+  updateCasualtyLines(resolved = false) {
+    let attacker_el = document.querySelector('.loss-overlay .attacker-casualty');
+    let defender_el = document.querySelector('.loss-overlay .defender-casualty');
+    if (!attacker_el || !defender_el) {
+      return;
+    }
+    if (!resolved || !this.roster) {
+      attacker_el.textContent = '';
+      defender_el.textContent = '';
+      return;
+    }
+    attacker_el.textContent = this.casualtySummary(this.roster.attacker);
+    defender_el.textContent = this.casualtySummary(this.roster.defender);
   }
 
   summarizeForce(units = []) {
@@ -759,6 +814,7 @@ class LossOverlay {
 
     attacker_units = this.mod.returnAttackerUnits();
     defender_units = this.mod.returnDefenderUnits();
+    this.rememberCombatRoster(attacker_units, defender_units);
 
     this.units = defender_units;
 
@@ -968,8 +1024,10 @@ class LossOverlay {
           corpsunit.spacekey = unit.spacekey;
           if (corps_damaged) { corpsunit.damaged = true; }
           this.units.push(corpsunit);
+          // The assigning player ignores the later add move, so the replacement
+          // corps has to be placed here. Attackers also record it on the combat.
+          paths_self.game.spaces[corpsunit.spacekey].units.push(corpsunit);
           if (am_i_the_attacker) {
-            paths_self.game.spaces[corpsunit.spacekey].units.push(corpsunit);
             paths_self.game.state.combat.attacker.push({
               key: paths_self.game.state.combat.key,
               unit_idx: paths_self.game.spaces[corpsunit.spacekey].units.length - 1,

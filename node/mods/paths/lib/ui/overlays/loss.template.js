@@ -23,6 +23,7 @@ module.exports = (terrain = '') => {
               </div>
               <div class="loss-overlay-faction-body">
                 <div class="units attacker"></div>
+                <div class="loss-overlay-casualty attacker-casualty"></div>
               </div>
             </div>
 
@@ -36,6 +37,7 @@ module.exports = (terrain = '') => {
               </div>
               <div class="loss-overlay-faction-body">
                 <div class="units defender"></div>
+                <div class="loss-overlay-casualty defender-casualty"></div>
               </div>
             </div>
 

@@ -256,6 +256,27 @@
     padding: 1.45rem 1.35rem 1rem;
   }
 
+  .loss-overlay-casualty {
+    flex: 0 0 auto;
+    margin-top: auto;
+    padding-top: 0.7rem;
+    font-family: Helvetica, Arial, sans-serif;
+    font-size: 1.15rem;
+    font-weight: 400;
+    line-height: 1.3;
+    text-align: left;
+    color: rgba(255, 255, 255, 0.92);
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.75);
+    background: none;
+    border: 0;
+    pointer-events: none;
+  }
+
+  .loss-overlay-casualty:empty {
+    display: none;
+    padding-top: 0;
+  }
+
   .loss-overlay .units {
     display: grid;
     grid-template-columns: repeat(4, minmax(7.75rem, 1fr));
