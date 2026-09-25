@@ -976,7 +976,6 @@ Games may legitimately define:
 Game CSS is commonly scoped under a game root such as:
 
     .game.poker
-    .game.texas
 
 Shared game infrastructure can provide common structures such as:
 
@@ -1489,7 +1488,7 @@ This distinction is more important than mechanically copying the repository's ex
 
 Games are another legitimate exception.
 
-Poker, Texas, and strategy games may define:
+Poker and strategy games may define:
 
     board appearance
     felt

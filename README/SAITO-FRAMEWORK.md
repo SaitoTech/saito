@@ -33546,7 +33546,6 @@ Games may legitimately define:
 Game CSS is commonly scoped under a game root such as:
 
     .game.poker
-    .game.texas
 
 Shared game infrastructure can provide common structures such as:
 
@@ -34059,7 +34058,7 @@ This distinction is more important than mechanically copying the repository's ex
 
 Games are another legitimate exception.
 
-Poker, Texas, and strategy games may define:
+Poker and strategy games may define:
 
     board appearance
     felt
@@ -35400,7 +35399,7 @@ Use orientation queries when orientation actually changes the application's info
 
 Some games use `isMobileBrowser()` to choose between different visual implementations.
 
-For example, Poker, Texas, and Blackjack can select a flatter mobile theme instead of the desktop three-dimensional table.
+For example, Poker and Blackjack can select a flatter mobile theme instead of the desktop three-dimensional table.
 
 This is a legitimate device-specific decision.
 

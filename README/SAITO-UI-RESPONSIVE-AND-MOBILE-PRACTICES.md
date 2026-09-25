@@ -886,7 +886,7 @@ Use orientation queries when orientation actually changes the application's info
 
 Some games use `isMobileBrowser()` to choose between different visual implementations.
 
-For example, Poker, Texas, and Blackjack can select a flatter mobile theme instead of the desktop three-dimensional table.
+For example, Poker and Blackjack can select a flatter mobile theme instead of the desktop three-dimensional table.
 
 This is a legitimate device-specific decision.
 

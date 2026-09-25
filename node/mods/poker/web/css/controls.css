@@ -11,7 +11,8 @@
   box-sizing: border-box;
 }
 
-.game.poker .poker-controls .status {
+.game.poker .poker-controls .status,
+.game.poker .hud-status {
   display: none;
 }
 

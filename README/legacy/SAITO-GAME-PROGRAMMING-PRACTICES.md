@@ -11,7 +11,7 @@ This document is an implementation guide for building future multiplayer games (
 |------|--------|
 | Engine | `node/lib/templates/gametemplate.js`, `node/lib/templates/gametemplate-src/*`, `table-gametemplate.js`, `oneplayer-gametemplate.js` |
 | Docs (partially stale) | `node/docs/gaming/saito-game-engine/{readme.md,api.md}` |
-| Poker (modern table + betting) | `node/mods/poker/` (+ brief `node/mods/texas/` UI evolution) |
+| Poker (modern table + betting) | `node/mods/poker/` |
 | Here I Stand (modern card/event) | `node/mods/his/` |
 | Paths of Glory (latest complex strategy) | `node/mods/paths/` |
 | Red Imperium (simultaneous moves, legacy) | `node/mods/imperium/` |
@@ -71,7 +71,7 @@ node/mods/<slug>/
 
 | Style | Games | Pattern |
 |-------|-------|---------|
-| **Mixin modules** | Poker, Texas | Thin shell + `Class.importFunctions(State, Queue, UI, …)` |
+| **Mixin modules** | Poker | Thin shell + `Class.importFunctions(State, Queue, UI, …)` |
 | **Compile-cat monoliths** | HIS, Paths, Imperium, Twilight | `src/*.js` concatenated into one class file; `lib/` holds overlays/templates |
 
 Both extend the same engine. Mixins match how `GameTemplate` itself is built.
@@ -669,7 +669,7 @@ Constructed on `GameTemplate` / used widely:
 | Settings | `lib/poker-settings.js` |
 | Stats | `lib/stats.js` |
 
-**Texas** (`node/mods/texas/`) keeps the same poker mixins but componentizes UI (`Main`/`Table`/`Controls`/`Sidebar`) and sets `settle_every_hand = true`. Treat Texas as UI evolution over the same rules engine.
+Poker (`node/mods/poker/`) componentizes UI (`Main`/`Table`/`Controls`/`Sidebar`) and sets `settle_every_hand = true`.
 
 ### Strategy game UI
 
@@ -848,7 +848,7 @@ Options land on **`this.game.options`** from the accept transaction and persist 
 | **Cards** | French deck + score | Rich `addEvents` objects | Rich, thinner hooks | Import packs | Compiled `playEvent` |
 | **Hidden info** | Hole crypto + reveal | fhand + faster_play leak tradeoff | Dual decks | Hands; votes public | Hands + blind headline |
 | **Sync** | Moves + table commitments | Moves + HALTED/faster_play | Moves + SAVE | Moves + custom resolve | Moves + SIMPICK |
-| **UI** | Board/pot/HUD; Texas more componentized | Many overlays | Fewer overlays | HUD + many overlays | Board + overlays |
+| **UI** | Board/pot/HUD; componentized table | Many overlays | Fewer overlays | HUD + many overlays | Board + overlays |
 | **Config** | Blind mode (+ stake legacy) | Scenarios | Scenarios | VP/factions | Editions/removals |
 | **Betting** | **Full chip+crypto** | No | No | No (game resources) | No |
 | **Settlement** | Debt + SEND/RECEIVE | N/A | N/A | N/A | N/A |
@@ -863,7 +863,7 @@ Options land on **`this.game.options`** from the accept transaction and persist 
 - Engine DECKXOR/ENCRYPT/DEAL for money-relevant hidden cards  
 - GT `PLAY`/`RESOLVE` or `SIMULTANEOUS_PICK` for multi-player waits  
 - `returnAdvancedOptions` → `game.options` for rules flags  
-- Poker/Texas for betting UI + `GameWeb3` settlement  
+- Poker for betting UI + `GameWeb3` settlement  
 - `GameTableTemplate` when open tables needed  
 
 ### Legacy patterns
