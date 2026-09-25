@@ -194,7 +194,7 @@ function parseArgs() {
       return { zipPath: path.resolve(zipPath), slug };
     }
   }
-  throw new Error('Usage: npm run .saito -- [mod-directory | --zip <path> --slug <slug>]');
+  throw new Error('Usage: npm run .saito -- [mod-directory | --deploy | --zip <path> --slug <slug>]');
 }
 
 async function compileOne(zipFileName) {
@@ -332,9 +332,9 @@ async function runSingle(zipPath, slugArg) {
 }
 
 async function run() {
-  if (process.argv[2] === 'deploy') {
+  if (process.argv.length === 3 && ['deploy', '--deploy'].includes(process.argv[2])) {
     const deploySh = path.join(__dirname, 'deploy.sh');
-    execSync(`bash "${deploySh}"`, { cwd: PROJECT_ROOT, stdio: 'inherit' });
+    execFileSync('bash', [deploySh], { cwd: PROJECT_ROOT, stdio: 'inherit' });
     return;
   }
 

@@ -18,6 +18,18 @@ This compiles only `mods/limbo/`, even if other ZIPs already exist in
 `dist/mods/zip/`. The output is `dist/mods/saito/<slug>.saito`, using the module's
 metadata slug. With no argument, `npm run .saito` compiles all modules as before.
 
+To deploy existing packages using `scripts/dynmods/deploy.sh`:
+
+```bash
+npm run .saito -- --deploy
+```
+
+The `--` separator is required so npm forwards `--deploy` to the script;
+`npm run .saito --deploy` is rejected by npm 12 as an unknown npm flag.
+Deployment uploads `dist/mods/saito/` to `mods.saito.io` and refreshes the remote
+module metadata. It skips compilation and signing. The existing
+`npm run .saito -- deploy` form also works.
+
 The application message in each `.saito` JSON includes `name`, `gamename`, `slug`,
 `description`, `categories`, `publisher_message`, `status`, and `class`, extracted
 from literal assignments in the module constructor. Multiline strings and HTML
