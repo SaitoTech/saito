@@ -1,0 +1,277 @@
+{
+  "collection": "Settlers X \u2014 The Island Expedition",
+  "style": "Original ligne claire adventure illustrations. Flat pigment, warm paper, navy ink.",
+  "license": "Original project artwork; generated from the accompanying hand-authored SVG source.",
+  "assets": [
+    {
+      "path": "resources/brick.svg",
+      "description": "Brick \u2014 illustrated island resource",
+      "width": 240,
+      "height": 240
+    },
+    {
+      "path": "resources/wood.svg",
+      "description": "Wood \u2014 illustrated island resource",
+      "width": 240,
+      "height": 240
+    },
+    {
+      "path": "resources/wheat.svg",
+      "description": "Wheat \u2014 illustrated island resource",
+      "width": 240,
+      "height": 240
+    },
+    {
+      "path": "resources/wool.svg",
+      "description": "Wool \u2014 illustrated island resource",
+      "width": 240,
+      "height": 240
+    },
+    {
+      "path": "resources/ore.svg",
+      "description": "Ore \u2014 illustrated island resource",
+      "width": 240,
+      "height": 240
+    },
+    {
+      "path": "resources/desert.svg",
+      "description": "Desert \u2014 illustrated island resource",
+      "width": 240,
+      "height": 240
+    },
+    {
+      "path": "portraits/1.svg",
+      "description": "The navigator \u2014 original expedition portrait",
+      "width": 240,
+      "height": 240
+    },
+    {
+      "path": "portraits/2.svg",
+      "description": "The botanist \u2014 original expedition portrait",
+      "width": 240,
+      "height": 240
+    },
+    {
+      "path": "portraits/3.svg",
+      "description": "The engineer \u2014 original expedition portrait",
+      "width": 240,
+      "height": 240
+    },
+    {
+      "path": "portraits/4.svg",
+      "description": "The cartographer \u2014 original expedition portrait",
+      "width": 240,
+      "height": 240
+    },
+    {
+      "path": "icons/village.svg",
+      "description": "Village game symbol",
+      "width": 240,
+      "height": 240
+    },
+    {
+      "path": "icons/city.svg",
+      "description": "City game symbol",
+      "width": 240,
+      "height": 240
+    },
+    {
+      "path": "icons/road.svg",
+      "description": "Road game symbol",
+      "width": 240,
+      "height": 240
+    },
+    {
+      "path": "icons/bandit.svg",
+      "description": "Bandit game symbol",
+      "width": 240,
+      "height": 240
+    },
+    {
+      "path": "icons/knight.svg",
+      "description": "Knight game symbol",
+      "width": 240,
+      "height": 240
+    },
+    {
+      "path": "icons/any-port.svg",
+      "description": "Any-Port game symbol",
+      "width": 240,
+      "height": 240
+    },
+    {
+      "path": "icons/brick.svg",
+      "description": "Brick game symbol",
+      "width": 240,
+      "height": 240
+    },
+    {
+      "path": "icons/wood.svg",
+      "description": "Wood game symbol",
+      "width": 240,
+      "height": 240
+    },
+    {
+      "path": "icons/wheat.svg",
+      "description": "Wheat game symbol",
+      "width": 240,
+      "height": 240
+    },
+    {
+      "path": "icons/wool.svg",
+      "description": "Wool game symbol",
+      "width": 240,
+      "height": 240
+    },
+    {
+      "path": "icons/ore.svg",
+      "description": "Ore game symbol",
+      "width": 240,
+      "height": 240
+    },
+    {
+      "path": "compass.svg",
+      "description": "Eight-point expedition compass rose",
+      "width": 240,
+      "height": 240
+    },
+    {
+      "path": "ship.svg",
+      "description": "The expedition sailing cutter",
+      "width": 240,
+      "height": 240
+    },
+    {
+      "path": "cards/brick.svg",
+      "description": "Earth \u2022 fire \u2022 industry",
+      "width": 320,
+      "height": 450
+    },
+    {
+      "path": "cards/wood.svg",
+      "description": "The forest provides",
+      "width": 320,
+      "height": 450
+    },
+    {
+      "path": "cards/wheat.svg",
+      "description": "Gold from the fields",
+      "width": 320,
+      "height": 450
+    },
+    {
+      "path": "cards/wool.svg",
+      "description": "The green highlands",
+      "width": 320,
+      "height": 450
+    },
+    {
+      "path": "cards/ore.svg",
+      "description": "Treasures of the mountain",
+      "width": 320,
+      "height": 450
+    },
+    {
+      "path": "cards/desert.svg",
+      "description": "Beneath the silent sun",
+      "width": 320,
+      "height": 450
+    },
+    {
+      "path": "cards/bandit.svg",
+      "description": "Trouble on the horizon",
+      "width": 320,
+      "height": 450
+    },
+    {
+      "path": "cards/robin_hood.svg",
+      "description": "An outlaw with a purpose",
+      "width": 320,
+      "height": 450
+    },
+    {
+      "path": "cards/knight.svg",
+      "description": "Guardian of the expedition",
+      "width": 320,
+      "height": 450
+    },
+    {
+      "path": "cards/largest_army.svg",
+      "description": "Strength in numbers",
+      "width": 320,
+      "height": 450
+    },
+    {
+      "path": "cards/road_construction.svg",
+      "description": "A way through the wilderness",
+      "width": 320,
+      "height": 450
+    },
+    {
+      "path": "cards/longest_road.svg",
+      "description": "From one horizon to the next",
+      "width": 320,
+      "height": 450
+    },
+    {
+      "path": "cards/unexpected_bounty.svg",
+      "description": "Fortune favours the island",
+      "width": 320,
+      "height": 450
+    },
+    {
+      "path": "cards/monopoly.svg",
+      "description": "A most profitable venture",
+      "width": 320,
+      "height": 450
+    },
+    {
+      "path": "cards/market.svg",
+      "description": "The world comes to trade",
+      "width": 320,
+      "height": 450
+    },
+    {
+      "path": "cards/university.svg",
+      "description": "Knowledge opens new horizons",
+      "width": 320,
+      "height": 450
+    },
+    {
+      "path": "cards/cathedral.svg",
+      "description": "A landmark for the ages",
+      "width": 320,
+      "height": 450
+    },
+    {
+      "path": "cards/lighthouse.svg",
+      "description": "A light across the water",
+      "width": 320,
+      "height": 450
+    },
+    {
+      "path": "cards/chemistry.svg",
+      "description": "Discovery in every drop",
+      "width": 320,
+      "height": 450
+    },
+    {
+      "path": "cards/governors_statue.svg",
+      "description": "A name to be remembered",
+      "width": 320,
+      "height": 450
+    },
+    {
+      "path": "cards/devcard.svg",
+      "description": "An adventure awaits",
+      "width": 320,
+      "height": 450
+    },
+    {
+      "path": "cover.svg",
+      "description": "An island of new horizons \u2014 Settlers X expedition cover",
+      "width": 1280,
+      "height": 720
+    }
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "name": "saito-settlersx",
+  "private": true,
+  "main": "settlersx.js",
+  "browser": {
+    "./tools/serve.cjs": false,
+    "./tests/browser.cjs": false,
+    "./tests/flows.cjs": false,
+    "./tests/geometry.cjs": false,
+    "./tests/parity.cjs": false,
+    "./tests/scene-browser.cjs": false,
+    "./tests/build.cjs": false
+  }
+}

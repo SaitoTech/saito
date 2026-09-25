@@ -1,0 +1,69 @@
+module.exports = (app, mod, bank) => {
+  console.log(bank?.selected_resource);
+  let prompt = bank?.selected_resource
+    ? `Giving ${bank.minForTrade[bank.selected_resource]} ${bank.selected_resource}`
+    : 'Select resource to give bank';
+  let html = '';
+
+  if (Object.keys(bank.my_resources).length > 0) {
+    html += `<div class="saitoa bank-overlay">
+			          <div class="settlers-items-container">
+			            <div class="settlers-item-info-text">${prompt}</div>`;
+
+    for (let i in bank.my_resources) {
+      let row = `<div class="settlers-cards-container settlers-trade-resources 
+			${bank?.selected_resource == i ? 'selected' : ''} 
+			${mod.canPlayerTradeWithBank() ? `` : `settlers-row-disabled`}" id="${i}" data-selected="0" role="button" tabindex="0" aria-disabled="${!mod.canPlayerTradeWithBank()}" aria-label="Give ${bank.minForTrade[i]} ${i} for one resource" >`;
+      for (let j = 0; j < bank.minForTrade[i]; j++) {
+        row += `<img src="${mod.returnCardImage(i)}">`;
+      }
+      row += `<div class="settlers-bank-ratio">${bank.minForTrade[i]}:1 ${i}</div></div>`;
+
+      if (!bank?.selected_resource || bank.selected_resource == i) {
+        html += row;
+      }
+    }
+  } else {
+    html += `<div class="saitoa bank-overlay">
+			          <div class="settlers-items-container">
+			            <div class="settlers-item-info-text">Bank/Port Trading</div>`;
+
+    let three4one = false;
+    for (let i in bank.minForTrade) {
+      if (bank.minForTrade[i] == 3) {
+        three4one = true;
+      } else if (bank.minForTrade[i] == 2) {
+        let row = `<div class="settlers-cards-container settlers-row-disabled">`;
+        for (let j = 0; j < bank.minForTrade[i]; j++) {
+          row += `<img src="${mod.returnCardImage(i)}">`;
+        }
+        row += `</div>`;
+        html += row;
+      }
+    }
+
+    html += `<div class="settlers-cards-container settlers-item-info-text">${three4one ? 3 : 4}:1 with matching resources</div>`;
+  }
+
+  html += `</div>`;
+
+  if (!bank?.selected_resource) {
+    return html + `</div>`;
+  }
+
+  html += `<div class="settlers-items-container settlers-items-container-desired-resources">
+            <div class="settlers-item-info-text">Select resource to receive</div>
+            <div class="settlers-cards-container settlers-desired-resources">`;
+
+  for (let i of mod.returnResources()) {
+    if (i !== bank.selected_resource) {
+      html += `<img id="${i}" src="${mod.returnCardImage(i)}" alt="${i}" role="button" tabindex="0" aria-label="Receive one ${i}">`;
+    }
+  }
+
+  html += `</div>
+          </div>
+        </div>`;
+
+  return html;
+};
