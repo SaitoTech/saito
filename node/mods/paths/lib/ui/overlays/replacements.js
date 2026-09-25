@@ -246,6 +246,29 @@ class ReplacementsOverlay {
         let faction = paths_self.returnFactionOfPlayer();
 
         //
+        // recreated armies are placed as reinforcements (17.1.5 / 9.5.3.3)
+        //
+        let army_spacekeys = [];
+        if (id == 'uneliminate' && !unit.corps) {
+          let country = '';
+          if (unit.ckey == 'GE') { country = 'germany'; }
+          if (unit.ckey == 'AH') { country = 'austria'; }
+          if (unit.ckey == 'BU' || unit.ckey == 'BG') { country = 'bulgaria'; }
+          if (unit.ckey == 'FR') { country = 'france'; }
+          if (unit.ckey == 'IT') { country = 'italy'; }
+          if (unit.ckey == 'RO') { country = 'romania'; }
+          if (unit.ckey == 'RU') { country = 'russia'; }
+          if (unit.ckey == 'SB') { country = 'serbia'; }
+          if (unit.ckey == 'US') { country = 'usa'; }
+          if (unit.ckey == 'BR' || unit.ckey == 'BEF' || unit.ckey == 'AUS' || unit.ckey == 'CND' || unit.ckey == 'PT' || unit.ckey == 'ANA' || unit.ckey == 'MEF' || unit.ckey == 'NE') { country = 'england'; }
+          army_spacekeys = paths_self.returnArrayOfSpacekeysForPlacingReinforcements(country);
+          if (army_spacekeys.length == 0) {
+            alert('Error -- no viable placement options?');
+            return;
+          }
+        }
+
+        //
         // deduct RP
         //
         if (paths_self.game.state.rp[faction][unit.ckey] > 0) {
@@ -270,33 +293,67 @@ class ReplacementsOverlay {
         if (id == 'uneliminate') {
           paths_self.game.spaces[eu[z].key].units[eu[z].idx].destroyed = 0;
           paths_self.game.spaces[eu[z].key].units[eu[z].idx].damaged = 1;
-          if (paths_self.returnFactionOfPlayer() == 'central') {
-            paths_self.moveUnit(eu[z].key, eu[z].idx, 'crbox');
-            paths_self.prependMove(
-              `NOTIFY\t${paths_self.returnFactionName(faction)} uneliminates ${unit.name}`
-            );
-            paths_self.prependMove(
-              `repair\t${faction}\t${eu[z].key}\t${eu[z].idx}\t${paths_self.game.player}`
-            );
-            paths_self.prependMove(
-              `move\t${faction}\t${eu[z].key}\t${eu[z].idx}\tcrbox\t${paths_self.game.player}`
-            );
+          if (unit.corps) {
+            if (paths_self.returnFactionOfPlayer() == 'central') {
+              paths_self.moveUnit(eu[z].key, eu[z].idx, 'crbox');
+              paths_self.prependMove(
+                `NOTIFY\t${paths_self.returnFactionName(faction)} uneliminates ${unit.name}`
+              );
+              paths_self.prependMove(
+                `repair\t${faction}\t${eu[z].key}\t${eu[z].idx}\t${paths_self.game.player}`
+              );
+              paths_self.prependMove(
+                `move\t${faction}\t${eu[z].key}\t${eu[z].idx}\tcrbox\t${paths_self.game.player}`
+              );
+            } else {
+              paths_self.moveUnit(eu[z].key, eu[z].idx, 'arbox');
+              paths_self.prependMove(
+                `NOTIFY\t${paths_self.returnFactionName(faction)} uneliminates ${unit.name}`
+              );
+              paths_self.prependMove(
+                `repair\t${faction}\t${eu[z].key}\t${eu[z].idx}\t${paths_self.game.player}`
+              );
+              paths_self.prependMove(
+                `move\t${faction}\t${eu[z].key}\t${eu[z].idx}\tarbox\t${paths_self.game.player}`
+              );
+            }
+            paths_self.displaySpace(eu[z].key);
+            paths_self.displaySpace('arbox');
+            paths_self.displaySpace('crbox');
+            paths_self.playerSpendReplacementPoints(paths_self.returnFactionOfPlayer());
           } else {
-            paths_self.moveUnit(eu[z].key, eu[z].idx, 'arbox');
-            paths_self.prependMove(
-              `NOTIFY\t${paths_self.returnFactionName(faction)} uneliminates ${unit.name}`
-            );
-            paths_self.prependMove(
-              `repair\t${faction}\t${eu[z].key}\t${eu[z].idx}\t${paths_self.game.player}`
-            );
-            paths_self.prependMove(
-              `move\t${faction}\t${eu[z].key}\t${eu[z].idx}\tarbox\t${paths_self.game.player}`
-            );
+            let place_army = (spacekey) => {
+              paths_self.moveUnit(eu[z].key, eu[z].idx, spacekey);
+              paths_self.prependMove(
+                `NOTIFY\t${paths_self.returnFactionName(faction)} uneliminates ${unit.name}`
+              );
+              paths_self.prependMove(
+                `repair\t${faction}\t${eu[z].key}\t${eu[z].idx}\t${paths_self.game.player}`
+              );
+              paths_self.prependMove(
+                `move\t${faction}\t${eu[z].key}\t${eu[z].idx}\t${spacekey}\t${paths_self.game.player}`
+              );
+              paths_self.displaySpace(eu[z].key);
+              paths_self.displaySpace(spacekey);
+              if (army_spacekeys.length == 1) {
+                siteMessage(`${unit.name} returns to ${paths_self.returnSpaceName(spacekey)}, damaged`, 2500);
+              }
+              paths_self.playerSpendReplacementPoints(paths_self.returnFactionOfPlayer());
+            };
+
+            if (army_spacekeys.length == 1) {
+              place_army(army_spacekeys[0]);
+            } else {
+              this.hideSubMenu();
+              paths_self.playerSelectSpaceWithFilter(
+                `Destination for ${unit.name}`,
+                (spacekey) => { if (army_spacekeys.includes(spacekey)) { return 1; } return 0; },
+                place_army,
+                null,
+                true
+              );
+            }
           }
-          paths_self.displaySpace(eu[z].key);
-          paths_self.displaySpace('arbox');
-          paths_self.displaySpace('crbox');
-          paths_self.playerSpendReplacementPoints(paths_self.returnFactionOfPlayer());
         }
         if (id == 'repair_reserves') {
           paths_self.game.spaces[eu[z].key].units[eu[z].idx].damaged = 0;
