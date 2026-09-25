@@ -178,7 +178,6 @@
   overflow: hidden;
   background-color: transparent;
   gap: 1.667rem;
-  /* Shell lets clicks fall through to HUD (back button); tiles re-enable below */
   pointer-events: none;
 }
 
@@ -186,6 +185,7 @@
   display: grid;
   grid-template-columns: 1fr 1fr;
   grid-template-rows: 1fr 1fr;
+  pointer-events: auto;
 }
 
 .hud-visual-option {

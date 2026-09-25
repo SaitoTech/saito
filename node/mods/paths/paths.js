@@ -18858,7 +18858,13 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
     paths_self.game.state.does_movement_end_outside_near_east = 1;
     paths_self.game.state.does_movement_end_inside_near_east = 1;
 
-    paths_self.hud.showBackButton(() => { paths_self.playerPlayCard(faction, card); });
+    paths_self.hud.showBackButton(() => {
+      paths_self.moves = [];
+      if (paths_self.game.queue[paths_self.game.queue.length-1].split("\t")[0] == "play") {
+        paths_self.addMove("resolve\tplay");
+      }
+      paths_self.playerPlayCard(faction, card);
+    });
     if (deck[card].sr > value) { paths_self.hud.hideBackButton(); }
 
     let spaces = this.returnSpacesWithFilter((key) => {
@@ -19159,6 +19165,12 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
 
     let name = this.returnPlayerName(faction);
     let hand = this.returnPlayerHand();
+
+    //
+    // back from the card menu calls this again; drop any earlier resolve
+    // so a second resolve\tplay cannot clear the opponent's action
+    //
+    this.moves = [];
 
     //
     // you can pass once only 1 card left

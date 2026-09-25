@@ -191,8 +191,17 @@ class GameHUD2 {
 
     visual_menu.innerHTML = visual_html;
     visual_menu.className = 'hud-visual-menu';
+    visual_menu.onclick = null;
     if (visual_count > 0) {
       visual_menu.classList.add('m' + Math.min(visual_count, 9));
+      visual_menu.onclick = (e) => {
+        if (e.target.closest('.hud-visual-option')) {
+          return;
+        }
+        visual_menu.innerHTML = '';
+        visual_menu.className = 'hud-visual-menu';
+        visual_menu.onclick = null;
+      };
       if (typeof callback === 'function') {
         visual_menu.querySelectorAll('.hud-visual-option').forEach((item) => {
           item.onclick = (e) => {
