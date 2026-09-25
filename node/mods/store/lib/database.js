@@ -6,6 +6,9 @@ const ORDERS_INCLUSION_INDEX = 'orders_order_tx_sig_block_hash_uidx';
 const ORDERS_PAYMENT_INCLUSION_INDEX = 'orders_payment_utxo_block_hash_uidx';
 const { STORE_CATEGORIES } = require('./categories');
 
+// Shared across Database instances using the same SQLite connection.
+const transactionTails = new WeakMap();
+
 function quoteIdentifier(identifier) {
   return `"${String(identifier).replace(/"/g, '""')}"`;
 }
@@ -845,23 +848,39 @@ class Database {
     }
   }
 
+  // Non-reentrant: transaction callbacks must use db directly, not this helper.
   async withImmediateTransaction(fn) {
     const db = await this.app.storage.returnDatabaseByName(this.dbname);
     if (!db) {
       throw new Error('Store database unavailable');
     }
-    await db.exec('BEGIN IMMEDIATE');
-    try {
-      await fn(db);
-      await db.exec('COMMIT');
-    } catch (err) {
+    const previous = transactionTails.get(db) || Promise.resolve();
+    const operation = previous.then(async () => {
+      // If BEGIN fails, do not roll back another caller's transaction.
+      await db.exec('BEGIN IMMEDIATE');
       try {
-        await db.exec('ROLLBACK');
-      } catch (_) {
-        // ignore rollback failure; original error is what matters
+        const result = await fn(db);
+        await db.exec('COMMIT');
+        return result;
+      } catch (err) {
+        try {
+          await db.exec('ROLLBACK');
+        } catch (rollbackError) {
+          console.error('Store Database: rollback failed', rollbackError);
+        }
+        throw err;
       }
-      throw err;
-    }
+    });
+
+    // Recover the queue after failure while preserving rejection for the caller.
+    transactionTails.set(
+      db,
+      operation.then(
+        () => undefined,
+        () => undefined
+      )
+    );
+    return operation;
   }
 
   /**
