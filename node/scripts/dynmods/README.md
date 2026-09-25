@@ -18,6 +18,14 @@ This compiles only `mods/limbo/`, even if other ZIPs already exist in
 `dist/mods/zip/`. The output is `dist/mods/saito/<slug>.saito`, using the module's
 metadata slug. With no argument, `npm run .saito` compiles all modules as before.
 
+The application message in each `.saito` JSON includes `name`, `gamename`, `slug`,
+`description`, `categories`, `publisher_message`, `status`, and `class`, extracted
+from literal assignments in the module constructor. Multiline strings and HTML
+are preserved. Missing optional fields are empty strings. `version` uses the
+module's explicit `this.version` string when nonempty, otherwise it falls back to
+the `saito-js` dependency value from the node project's `package.json` (including
+any version range prefix, for example `^0.3.3`).
+
 ---
 
 ## zipmods.sh
