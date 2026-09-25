@@ -75,6 +75,7 @@ class ZoomOverlay {
     if (ob2) {
       ob2.style.display = 'block';
     }
+    this.keepCombatOverlayInFront();
   }
 
   hideControls() {
@@ -139,17 +140,41 @@ class ZoomOverlay {
     controls.style.display = 'none';
 
     this.attachEvents();
+    this.keepCombatOverlayInFront();
+  }
 
-    //
-    // pull loss overlay over if it is visible
-    //
-    let lossOverlay = document.querySelector('.loss-overlay');
-    if (lossOverlay) {
-      lossOverlay = lossOverlay.parentElement;
-      if (lossOverlay.style.zIndex < zoomOverlay.style.zIndex) {
-        lossOverlay.style.zIndex = zoomOverlay.style.zIndex + 1;
-      }
+  // Next-target zoom is opened while combat results are still up. Keep the
+  // combat/loss overlay, and its backdrop, above that zoom layer.
+  keepCombatOverlayInFront() {
+    let zoom = document.querySelector('.zoom-overlay');
+    if (!zoom) {
+      return;
     }
+    let zoom_host = zoom.closest('.saito-overlay');
+    if (!zoom_host) {
+      return;
+    }
+    let zoom_z = parseInt(zoom_host.style.zIndex, 10) || 0;
+
+    document.querySelectorAll('.loss-overlay, .combat-overlay').forEach((el) => {
+      let host = el.closest('.saito-overlay');
+      if (!host) {
+        return;
+      }
+      let host_z = parseInt(host.style.zIndex, 10) || 0;
+      if (host_z <= zoom_z) {
+        host.style.zIndex = String(zoom_z + 2);
+      }
+      let backdrop = document.getElementById(
+        host.id.replace('saito-overlay', 'saito-overlay-backdrop')
+      );
+      if (backdrop) {
+        let backdrop_z = parseInt(backdrop.style.zIndex, 10) || 0;
+        if (backdrop_z <= zoom_z) {
+          backdrop.style.zIndex = String(zoom_z + 1);
+        }
+      }
+    });
   }
 
   render() {

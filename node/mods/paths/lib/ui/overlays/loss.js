@@ -73,8 +73,9 @@ class LossOverlay {
   }
 
   showRetreatNotice() {
-    // update the UI to show any hits taken
-    this.render(this.faction || this.assignment_faction || 'defender');
+    // Refresh the resolved view only. Re-entering assignment here
+    // spends the loss factor again and hides the overlay.
+    this.render(this.faction || this.assignment_faction || 'defender', false);
     try {
       this.updateInstructions(
         `<div class="continue_btn">All possible damage assigned — <span style="text-decoration:underline dashed;cursor:pointer">Close to Continue</span></div>`,
@@ -793,7 +794,7 @@ class LossOverlay {
   }
 
 
-  render(faction = '') {
+  render(faction = '', assign_hits = true) {
     this.faction = faction;
     this.assignment_faction = faction;
 
@@ -907,10 +908,10 @@ class LossOverlay {
       );
     }
 
-    if (am_iii_the_attacker == 1 && faction == 'attacker') {
+    if (assign_hits && am_iii_the_attacker == 1 && faction == 'attacker') {
       this.attachEvents(am_i_the_attacker, my_qs, faction);
     }
-    if (am_iii_the_attacker == 0 && faction == 'defender') {
+    if (assign_hits && am_iii_the_attacker == 0 && faction == 'defender') {
       this.attachEvents(am_i_the_attacker, my_qs, faction);
     }
   }
