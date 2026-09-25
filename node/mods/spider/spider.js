@@ -20,7 +20,8 @@ class Spider extends OnePlayerGameTemplate {
       'Classic multideck solitaire game with three levels of difficulty available. Complete stacks of Ace through King in a single suit to remove them from the board. Partial stacks of the same suit can be moved to access the cards below them.';
     this.categories = 'Games Cardgame One-player';
 
-    this.status = 'Beta';
+    this.status = 'prod';
+    this.class = 'app';
     this.difficulty = 2; //default medium, 1 = easy, 4 = hard
 
     this.selected_stack = null;

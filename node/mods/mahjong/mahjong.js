@@ -18,6 +18,8 @@ class Mahjong extends OnePlayerGameTemplate {
     this.categories = 'Games Cardgame One-player';
     this.publisher_message =
       'originally developed by Pawel (twitter: @PawelPawlak14). Feel free to pm me with any suggestions/feedback';
+    this.status = 'prod';
+    this.class = 'app';
 
     this.social.creator = 'Pawel Pawlak';
     this.social.twitter = '@PawelPawlak14';

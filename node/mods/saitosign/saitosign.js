@@ -18,6 +18,8 @@ class SaitoSign extends ModTemplate {
     this.slug = 'saitosign';
     this.description = 'Create, sign, and exchange documents with cryptographic proof.';
     this.categories = 'Utilities Productivity';
+    this.status = 'beta';
+    this.class = 'app';
     this.icon = 'fa-solid fa-file-signature';
 
     this.styles = ['/saitosign/style.css'];

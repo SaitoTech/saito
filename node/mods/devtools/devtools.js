@@ -31,6 +31,8 @@ class DevTools extends ModTemplate {
     this.zip_file = null;
     this.title = null;
     this.description = null;
+    this.status = 'prod';
+    this.class = 'utility';
     this.app_slug = null;
     this.version = null;
     this.publisher = null;

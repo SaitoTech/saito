@@ -17,7 +17,7 @@ class Steamed extends GameTemplate {
     this.gamename = 'Steam Bonanza';
 
     this.description = `Win the industrial revolution by building and liquidating factories in an open source clone of Bohnanza`;
-    this.status = 'Alpha';
+    this.status = 'alpha';
 
     this.card_height_ratio = 1.5;
 
@@ -28,6 +28,7 @@ class Steamed extends GameTemplate {
     this.slug = this.name.toLowerCase();
     this.card_img_dir = `/${this.slug}/img/cards/`;
     this.categories = 'Games Cardgame Tactical';
+    this.class = 'app';
     this.factory = this.returnFactoryRules();
   }
 

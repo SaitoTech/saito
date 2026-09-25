@@ -9,6 +9,9 @@ class Vote extends ModTemplate {
     this.app = app;
     this.name = 'zk-poll';
     this.slug = 'zk-poll';
+    this.description = 'Provably fair secret ballots using zero knowledge proofs.';
+    this.status = 'alpha';
+    this.class = 'utility';
     this.elections = new Map(); // Store elections
     this.votes = new Map(); // Store vote commitments
     this.nullifiers = new Set(); // Prevent double voting

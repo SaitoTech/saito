@@ -13,6 +13,7 @@ class Registry extends ModTemplate {
     this.description = 'Saito DNS support';
     this.categories = 'Core Utilities Messaging';
     this.class = 'utility';
+    this.status = 'prod';
     //
     // master DNS publickey for this module
     //

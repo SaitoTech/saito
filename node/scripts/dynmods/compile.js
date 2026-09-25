@@ -39,6 +39,7 @@ const { buildSaitoPayload } = require('./helpers/saitoPayload');
 
 // Project root (node/) from script location so it works whether you run from node/ or scripts/dynmods/
 const PROJECT_ROOT = path.resolve(path.join(__dirname, '..', '..'));
+const SAITO_JS_VERSION = require(path.join(PROJECT_ROOT, 'package.json')).dependencies['saito-js'];
 
 let saitoJsInitialized = false;
 let wasmModule = null;
@@ -193,7 +194,7 @@ function parseArgs() {
       return { zipPath: path.resolve(zipPath), slug };
     }
   }
-  throw new Error('Usage: npm run .saito -- [mod-directory | --zip <path> --slug <slug>]');
+  throw new Error('Usage: npm run .saito -- [mod-directory | --deploy | --zip <path> --slug <slug>]');
 }
 
 async function compileOne(zipFileName) {
@@ -252,12 +253,16 @@ async function compileOne(zipFileName) {
     request: 'submit application',
     bin: DYN_MOD_WEB,
     name: metadata.name || '',
+    gamename: metadata.gamename || '',
     description: metadata.description || '',
     slug: metadata.slug || '',
     image: metadata.image || '',
-    version: metadata.version || '1.0.0',
+    version: metadata.version || SAITO_JS_VERSION,
     publisher: '',
-    categories: metadata.categories || ''
+    categories: metadata.categories || '',
+    publisher_message: metadata.publisher_message || '',
+    status: metadata.status || '',
+    class: metadata.class || ''
   };
 
   const saitoJson = buildSaitoPayload(msg, signingOpts);
@@ -291,7 +296,7 @@ async function runSingle(zipPath, slugArg) {
     //fix for path on linux
     //const entry = appPath.replace(`${slug}/`, '');
     //execSync(`node config/build/webpack.config.dynmod.cjs --entrypoint=${entry}`, {
-    execSync(`node config/build/webpack.config.dynmod.cjs --entrypoint=${entry}`, {
+    execSync(`node config/build/webpack.config.dynmod.cjs --entrypoint=${appPath}`, {
       cwd: PROJECT_ROOT,
       stdio: 'pipe',
       maxBuffer: 10 * 1024 * 1024
@@ -304,12 +309,16 @@ async function runSingle(zipPath, slugArg) {
       request: 'submit application',
       bin: DYN_MOD_WEB,
       name: metadata.name || '',
+      gamename: metadata.gamename || '',
       description: metadata.description || '',
       slug: metadata.slug || '',
       image: metadata.image || '',
-      version: metadata.version || '1.0.0',
+      version: metadata.version || SAITO_JS_VERSION,
       publisher: '',
-      categories: metadata.categories || ''
+      categories: metadata.categories || '',
+      publisher_message: metadata.publisher_message || '',
+      status: metadata.status || '',
+      class: metadata.class || ''
     };
     const saitoJson = buildSaitoPayload(msg, signingOpts);
     const outPath = path.join(SAITO_DIR, `${slug}.saito`);
@@ -323,9 +332,9 @@ async function runSingle(zipPath, slugArg) {
 }
 
 async function run() {
-  if (process.argv[2] === 'deploy') {
+  if (process.argv.length === 3 && ['deploy', '--deploy'].includes(process.argv[2])) {
     const deploySh = path.join(__dirname, 'deploy.sh');
-    execSync(`bash "${deploySh}"`, { cwd: PROJECT_ROOT, stdio: 'inherit' });
+    execFileSync('bash', [deploySh], { cwd: PROJECT_ROOT, stdio: 'inherit' });
     return;
   }
 

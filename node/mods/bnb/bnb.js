@@ -11,6 +11,8 @@ class BNB extends ModTemplate {
     this.ticker = 'BNB';
     this.description = 'Adds support for Mixin-powered BNB transfers on the Saito Network';
     this.categories = 'Utility Cryptocurrency Finance';
+    this.status = 'prod';
+    this.class = 'utility';
 
     // MIXIN STUFF
     this.asset_id = '1949e683-6a08-49e2-b087-d6b72398588f';

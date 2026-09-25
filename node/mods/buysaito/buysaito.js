@@ -38,6 +38,8 @@ class BuySaito extends ModTemplate {
     this.dependencies = ['Relay', 'Mixin', 'ERC'];
     this.description = 'Buy native SAITO';
     this.categories = 'Utility Ecommerce NFTs';
+    this.status = 'prod';
+    this.class = 'utility';
 
     this.social = this.buildSocial({
       twitter: '@SaitoOfficial',

@@ -10,6 +10,8 @@ class Admin extends ModTemplate {
     this.slug = 'admin';
     this.description = 'Admin module for Saito application management';
     this.categories = 'Admin utilities';
+    this.status = 'prod';
+    this.class = 'utility';
 
     this.server_publickey = '';
     this.server_info = null;

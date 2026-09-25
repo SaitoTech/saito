@@ -29,6 +29,8 @@ class Arcade extends ModTemplate {
     this.description =
       'Interface for creating and joining games coded for the Saito Open Source Game Engine.';
     this.categories = 'Games Entertainment Appspace';
+    this.status = 'prod';
+    this.class = 'app';
     this.icon = 'fas fa-gamepad';
     this.styles = ['/arcade/style.css'];
     this.shortlinks_enabled = 1;

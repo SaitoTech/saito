@@ -24,7 +24,8 @@ class Beleaguered extends OnePlayerGameTemplate {
     this.card_img_dir = '/beleaguered/img/cards';
 
     this.app = app;
-    this.status = 'Beta';
+    this.status = 'beta';
+    this.class = 'app';
     this.stacks = ['l1', 'm1', 'r1', 'l2', 'm2', 'r2', 'l3', 'm3', 'r3', 'l4', 'm4', 'r4'];
 
     this.social.creator = 'Pawel Pawlak';

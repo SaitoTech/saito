@@ -21,6 +21,8 @@ class Midnight extends GameTemplate {
 												As a thief apprentice, you are tasked to steal the EYE OF THE BASILISK and your special skills
 												will be put to the limit. What terrors await in the darkness as you test your luck and choose 
 												your way through this adventure?`;
+    this.status = 'beta';
+    this.class = 'app';
     this.maxPlayers = 1;
     this.minPlayers = 1;
     this.app = app;

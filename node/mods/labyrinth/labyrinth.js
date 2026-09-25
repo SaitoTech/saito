@@ -18,6 +18,8 @@ class Labyrinth extends GameTemplate {
     this.description     = `Labyrinth is a 1-2 player strategic boardgame based around the clash between Islamist jihad and the West in the era of the Global War on Terror.`;
     this.publisher_message = "Labyrinth is owned by GMT Games. This module is made available under an open source license provided by GMT Games that permits usage provided that at least one player per game has purchased a copy of the game.";
     this.categories      = "Games Boardgame Strategy";
+    this.status = 'alpha';
+    this.class = 'app';
 
     this.interface = 1; // graphical interface
 

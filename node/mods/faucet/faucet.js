@@ -22,6 +22,8 @@ class Faucet extends ModTemplate {
 
     this.description = 'Testnet Faucet for Testing and Application Development';
     this.categories = 'Utility Ecommerce NFTs';
+    this.status = 'prod';
+    this.class = 'utility';
 
     this.icon_fa = 'fa-solid fa-faucet';
     this.styles = ['/faucet/style.css'];

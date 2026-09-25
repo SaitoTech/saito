@@ -82,6 +82,8 @@ class Rustscript extends ModTemplate {
     this.slug = 'rustscript';
     this.description = 'Symbolic P2SH contract scripting';
     this.categories = 'Utility Programming Cryptography';
+    this.status = 'beta';
+    this.class = 'utility';
 
     this.styles = ['/rustscript/style.css', '/saito/css-imports/ui/saito-nft.css'];
 

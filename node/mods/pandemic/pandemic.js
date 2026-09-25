@@ -20,7 +20,8 @@ class Pandemic extends GameTemplate {
     this.categories = 'Games Boardgame Strategy Cooperative';
     this.maxPlayers = 4;
     this.minPlayers = 2;
-    this.status = 'Beta';
+    this.status = 'prod';
+    this.class = 'app';
 
     this.boardWidth = 2602;
     this.card_height_ratio = 1.41;

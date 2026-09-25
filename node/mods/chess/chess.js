@@ -32,6 +32,8 @@ class Chessgame extends GameTemplate {
     this.description =
       '"Minutes to learn, a lifetime to master" <br><br> Chess is the king of games and original application on the Saito Network. ';
     this.categories = 'Games Boardgame Classic';
+    this.status = 'prod';
+    this.class = 'app';
 
     this.confirm_moves = 1;
 

@@ -35,8 +35,9 @@ class ModTools extends ModTemplate {
     this.slug = 'modtools';
     this.description =
       'Module for managing and customizing wallet and application moderation tools';
-    this.class = 'modtools';
+    this.class = 'utility';
     this.categories = 'Core Moderation';
+    this.status = 'prod';
     this.icon = 'fas fa-eye-slash';
     this.prune_after = 200000000; // ~2 day
     //this.prune_after = 120000; // ~2 minute

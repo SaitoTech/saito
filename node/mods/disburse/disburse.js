@@ -10,6 +10,7 @@ class Disburse extends ModTemplate {
     this.description = '';
     this.categories = 'Core Utilities Messaging';
     this.class = 'utility';
+    this.status = 'prod';
     this.styles = ['/disburse/style.css', '/saito/saito.css'];
 
     return this;

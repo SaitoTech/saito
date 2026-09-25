@@ -43,6 +43,8 @@ class PathsOfGlory extends GameTemplate {
     this.description     = `Paths of Glory: The First World War invites players to assume the roles of the leaders of the Central Powers and Allies who led the world to the precipice of destruction between 1914 and 1918.`;
     this.publisher_message = `Here I Stand is published by GMT Games. This module is made available under an open source license provided by GMT Games that permits usage provided that at least one player per game has purchased a copy of the game. Support GMT Games: <a href="https://boardgamegeek.com/boardgame/91/paths-glory">Paths of Glory</a>`;
     this.categories      = "Games Boardgame Strategy";
+    this.status = 'beta';
+    this.class = 'app';
 
     this.interface = 1; // graphical interface
 

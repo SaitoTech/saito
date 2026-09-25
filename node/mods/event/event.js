@@ -11,6 +11,8 @@ class Event extends InviteTemplate {
     this.appname = 'Event';
     this.description = 'Module for generic scheduling functionality';
     this.categories = 'Utilities Scheduling Office';
+    this.status = 'beta';
+    this.class = 'app';
 
     this.icon = 'fas fa-envelope-open-text';
     this.invites = [];

@@ -53,10 +53,10 @@ class Library extends ModTemplate {
     this.app = app;
     this.name = 'Library';
     this.slug = 'library';
-    this.description = `Adds digital rights management (DRM) and curation and lending functionality, permitting 
-			users to create curated collections of content and share it in rights-permitting fashion.
-		`;
+    this.description = 'Adds digital rights management (DRM) and curation and lending functionality, permitting users to create curated collections of content and share it in rights-permitting fashion.       ';
     this.categories = 'Core Utilities DRM';
+    this.status = 'beta';
+    this.class = 'utility';
 
     //
     // any library borrowing coded for 2 hour minimum increments

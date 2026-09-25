@@ -12,6 +12,8 @@ class USDC extends ModTemplate {
     this.description =
       'Adds support for Mixin-powered ERC20 USD Coin transfers on the Saito Network';
     this.categories = 'Utility Cryptocurrency Finance';
+    this.status = 'prod';
+    this.class = 'utility';
 
     // MIXIN STUFF
     this.asset_id = '9b180ab6-6abe-3dc0-a13f-04169eb34bfa';

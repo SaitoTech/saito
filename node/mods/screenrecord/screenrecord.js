@@ -29,6 +29,7 @@ class Record extends ModTemplate {
     this.description = 'Recording Module';
     this.categories = 'Utilities Communications';
     this.class = 'utility';
+    this.status = 'prod';
     this.record_video = false;
 
     this.styles = ['/screenrecord/style.css'];

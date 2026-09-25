@@ -22,6 +22,8 @@ class Bugs extends ModTemplate {
     this.appname = 'Bugs';
     this.description = 'Transaction-driven bug tracking over RedSquare threads';
     this.categories = 'Utilities Development';
+    this.status = 'beta';
+    this.class = 'app';
     this.icon_fa = 'fa-solid fa-bug';
     this.possibleHome = 0;
     this.styles = [

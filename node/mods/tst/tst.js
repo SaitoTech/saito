@@ -7,6 +7,8 @@ class TST extends CryptoModule {
     this.slug = 'tst';
 
     this.description = 'This module implement CryptoModule functions without moving tokens';
+    this.status = 'prod';
+    this.class = 'utility';
     this.information =
       'This is some important information you may care to read about when enabling the TST crypto module';
     this.warning = 'The TST crypto module wishes you to read this warning';

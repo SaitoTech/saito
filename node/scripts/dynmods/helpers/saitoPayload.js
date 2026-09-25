@@ -68,7 +68,7 @@ function serializeForSignature(jsonobj, data) {
 /**
  * Build serialized .saito string (JSON) for the given msg object.
  * Uses real Transaction so installer can deserialize_from_web() and returnMessage().
- * @param {object} msg - { module, request, bin, name, description, slug, image, version, publisher, categories }
+ * @param {object} msg - { module, request, bin, name, gamename, description, slug, image, version, publisher, categories, publisher_message, status, class }
  * @param {{ privateKey?: string, wasm?: object }} [opts]
  * @returns {string} JSON string to write to .saito file
  */

@@ -14,6 +14,7 @@ class Teasers extends ModTemplate {
     this.categories = 'Finance Utilities';
     this.icon = 'fas fa-wallet';
     this.class = 'utility';
+    this.status = 'beta';
 
     this.teasers = [
       {
