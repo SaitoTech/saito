@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" fill="none">
+  <circle cx="60" cy="60" r="38" fill="#d7c49a" stroke="#6a4a28" stroke-width="4"/>
+  <circle cx="60" cy="60" r="30" fill="#f3ead2" stroke="#8a6a3c" stroke-width="2"/>
+  <path d="M60 34v8M60 78v8M34 60h8M78 60h8" stroke="#6a4a28" stroke-width="2"/>
+  <path d="M60 60 L60 40" stroke="#7a1f1f" stroke-width="3" stroke-linecap="round"/>
+  <path d="M60 60 L72 68" stroke="#1f3d38" stroke-width="3" stroke-linecap="round"/>
+  <circle cx="60" cy="60" r="4" fill="#6a4a28"/>
+  <text x="60" y="28" text-anchor="middle" font-size="10" font-family="Georgia, serif" fill="#6a4a28">N</text>
+</svg>
