@@ -11,6 +11,8 @@ class BCH extends ModTemplate {
     this.ticker = 'BCH';
     this.description = 'Adds support for Mixin-powered BCH transfers on the Saito Network';
     this.categories = 'Utility Cryptocurrency Finance';
+    this.status = 'prod';
+    this.class = 'utility';
 
     // MIXIN STUFF
     this.asset_id = 'fd11b6e3-0b87-41f1-a41f-f0e9b49e5bf0';

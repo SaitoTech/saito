@@ -12,6 +12,7 @@ class YoutubeServer extends ModTemplate {
     this.description = 'Server for encoding video for YT stream via ffmpeg with WebSocket';
     this.categories = 'Utilities Communications';
     this.class = 'utility';
+    this.status = 'beta';
     this.publickey = '';
     this.styles = ['/youtube-server/style.css', '/saito/saito.css'];
 

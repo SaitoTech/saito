@@ -11,6 +11,8 @@ class AVAX extends ModTemplate {
     this.slug = 'avax';
     this.description = 'Adds support for Mixin-powered AVAX transfers on the Saito Network';
     this.categories = 'Utility Cryptocurrency Finance';
+    this.status = 'prod';
+    this.class = 'utility';
 
     // MIXIN STUFF
     this.asset_id = 'cbc77539-0a20-4666-8c8a-4ded62b36f0a';

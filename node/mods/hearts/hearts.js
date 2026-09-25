@@ -13,6 +13,8 @@ class Hearts extends GameTemplate {
     this.description = 'A version of Hearts for the Saito Arcade';
 
     this.categories = 'Games Cardgame Classic';
+    this.status = 'beta';
+    this.class = 'app';
 
     this.card_img_dir = '/hearts/img/cards';
 

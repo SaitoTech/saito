@@ -53,6 +53,8 @@ class Explorer extends ModTemplate {
     this.dbname = 'explorer';
     this.description = 'Saito Blockchain Explorer';
     this.categories = 'Utilities Information';
+    this.status = 'prod';
+    this.class = 'app';
 
     this.INDEX_BLOCKS = 1;
     this.INDEX_PUBLICKEYS = 1;

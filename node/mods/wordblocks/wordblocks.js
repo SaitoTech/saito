@@ -16,6 +16,8 @@ class Wordblocks extends GameTemplate {
 		this.slug = 'wordblocks';
 		this.description = `A crossword puzzle game with customizable dictionary (language) options. Players take turns moving tiles from their rack to the board to spell out words. `;
 		this.categories = 'Games Boardgame Classic';
+		this.status = 'prod';
+		this.class = 'app';
 		//
 		// Game Class VARS
 		//

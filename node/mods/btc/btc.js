@@ -11,6 +11,8 @@ class BTC extends ModTemplate {
     this.ticker = 'BTC';
     this.description = 'Adds support for Mixin-powered BTC transfers on the Saito Network';
     this.categories = 'Utility Cryptocurrency Finance';
+    this.status = 'prod';
+    this.class = 'utility';
 
     // MIXIN STUFF
     this.asset_id = 'c6d0c728-2624-429b-8e0d-d9d19b6592fa';

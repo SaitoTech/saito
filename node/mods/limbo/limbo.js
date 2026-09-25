@@ -29,6 +29,8 @@ class Limbo extends ModTemplate {
       'a shared dream space allowing you to "swarmcast" voice or video with no middleman software';
 
     this.categories = 'Utilities Communications Broadcast';
+    this.status = 'alpha';
+    this.class = 'utility';
 
     this.styles = ['/videocall/style.css'];
 

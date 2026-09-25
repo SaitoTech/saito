@@ -15,6 +15,7 @@ class NTFY extends ModTemplate {
     this.deascription = 'Integrates on-chain messages with mobile phones';
     this.categories = 'Core Utilities';
     this.class = 'utility';
+    this.status = 'alpha';
 
     this.ntfy = {};
     this.ntfy.server = process.env.NTFY_SERVER || '';

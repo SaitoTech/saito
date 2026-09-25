@@ -23,6 +23,8 @@ class EGLDModule extends CryptoModule {
     this.networkConfig = null;
 
     this.slug = 'egld';
+    this.status = 'prod';
+    this.class = 'utility';
     this.account = null;
     this.address_obj = null;
     this.secretKey = null;

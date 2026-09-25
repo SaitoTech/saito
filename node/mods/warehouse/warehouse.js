@@ -9,6 +9,8 @@ class Warehouse extends ModTemplate {
     this.description =
       'Block data warehouse for the Saito blockchain. Not suitable for lite-clients';
     this.categories = 'Utilities Dev';
+    this.status = 'prod';
+    this.class = 'utility';
   }
 
   onConfirmation(blk, tx, conf) {

@@ -9,6 +9,7 @@ class Matomo extends ModTemplate {
     this.description = 'Saito tracking tag';
     this.categories = 'Marketing';
     this.class = 'utility';
+    this.status = 'prod';
     //this.browserize(this);
     this.alreadyAdded = false;
     return this;

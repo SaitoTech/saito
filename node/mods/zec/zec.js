@@ -11,6 +11,8 @@ class ZEC extends ModTemplate {
     this.ticker = 'ZEC';
     this.description = 'Adds support for Mixin-powered ZEC transfers on the Saito Network';
     this.categories = 'Utility Cryptocurrency Finance';
+    this.status = 'prod';
+    this.class = 'utility';
 
     // MIXIN STUFF
     this.asset_id = '879e4329-a5fc-3181-8c42-7af1859bfc21';

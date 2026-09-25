@@ -10,6 +10,8 @@ class Saveload extends ModTemplate {
     this.slug = 'saveload';
     this.description = 'Save and load games - useful for bughunting';
     this.categories = 'Utility Entertainment';
+    this.status = 'prod';
+    this.class = 'utility';
   }
   /*****
 	respondTo(type = '') {

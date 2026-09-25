@@ -19,6 +19,9 @@ class Store extends ModTemplate {
 
     this.name = 'Store';
     this.slug = 'store';
+    this.description = 'A marketplace for digital and phyisical goods. The Saito store showcases the best of the community. Everyone has a store, as soon as they list anitem for sale!';
+    this.status = 'beta';
+    this.class = 'utility';
     this.dbname = 'store';
     this.styles = ['/store/style.css', '/saito/lib/jsonTree/jsonTree.css'];
 

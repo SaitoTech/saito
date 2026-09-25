@@ -29,6 +29,7 @@ class Stun extends ModTemplate {
     this.description = 'P2P Connection Module';
     this.categories = 'Utilities Communications';
     this.class = 'utility';
+    this.status = 'prod';
     this.servers = [
       {
         urls: 'turn:stun-sf.saito.io:3478',

@@ -10,6 +10,8 @@ class Memento extends ModTemplate {
     this.description =
       'Saito "Way Back Machine" to process and store block, transaction, and UTXO information';
     this.categories = 'Utilities Information';
+    this.status = 'prod';
+    this.class = 'utility';
 
     return this;
   }

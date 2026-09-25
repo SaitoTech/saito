@@ -50,6 +50,8 @@ class Twilight extends GameTemplate {
                             if you end up causing world war three, you lose!`;
     this.publisher_message = "Twilight Struggle is owned by GMT Games. This module is made available under an open source license provided by GMT Games for usage in open source game engines. Publisher requirements is that at least one player per game has purchased a copy of the game.";
     this.categories      = "Games Boardgame Strategy";
+    this.status = 'prod';
+    this.class = 'app';
 
     this.boardWidth  = 5100; //Pieces originally scaled to 5100px wide board
     this.card_height_ratio = 1.39; // height is 1.39x width

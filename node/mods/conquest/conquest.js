@@ -13,6 +13,8 @@ class Conquest extends GameTemplate {
     this.title = 'Conquest · An atlas of ambition';
     this.description = 'A brush-painted world of strategy. Classic world conquest for two to six players, with automatic bookkeeping and animated battles.';
     this.categories = 'Games Boardgame Strategy';
+    this.status = 'alpha';
+    this.class = 'app';
     this.minPlayers = 2;
     this.maxPlayers = 6;
     this.game_length = 90;

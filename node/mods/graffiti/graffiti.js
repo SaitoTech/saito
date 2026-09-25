@@ -16,6 +16,8 @@ class Graffiti extends ModTemplate {
     this.app = app;
     this.name = 'Graffiti';
     this.slug = 'graffiti';
+    this.status = 'prod';
+    this.class = 'utility';
 
     this.boardWidth = 800;
     this.boardHeight = 600;

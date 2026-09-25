@@ -17,6 +17,8 @@ class Profile extends ModTemplate {
     this.name = 'Profile';
     this.slug = 'profile';
     this.description = 'Profile Module';
+    this.status = 'prod';
+    this.class = 'utility';
     this.archive_public_key;
 
     // publicKey → complete profile object (authoritative local snapshot)

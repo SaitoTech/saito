@@ -28,6 +28,9 @@ class Realms extends GameTemplate {
 		this.name = "Realms";
 		this.description = "Saito Realms is a card-driven magical battle game";
 		this.categories 	 = "Games Cardgame Strategy Deckbuilding";
+		this.slug = 'realms';
+		this.status = 'beta';
+		this.class = 'app';
 		this.card_img_dir = "/realms/img/cards";
 
 		this.card_height_ratio = 1.39;

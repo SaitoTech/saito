@@ -13,6 +13,8 @@ class Notifications extends ModTemplate {
     this.name = 'Notifications';
     this.slug = 'notifications';
     this.description = 'RedSquare Refactor';
+    this.status = 'prod';
+    this.class = 'utility';
 
     this.tweets = {};
 

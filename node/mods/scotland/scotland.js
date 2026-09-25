@@ -60,6 +60,8 @@ class Scotland extends GameTemplate {
     this.gamename = 'Scotland Yard';
     this.description = `Scotland Yard is a cat-and-mouse detective game set in London, England. Criminal mastermind Mister X must wind his way through the city while hiding from Scotland Yard.`;
     this.categories = 'Games Boardgame Strategy';
+    this.status = 'alpha';
+    this.class = 'app';
     //
     // this sets the ratio used for determining
     // the size of the original pieces
