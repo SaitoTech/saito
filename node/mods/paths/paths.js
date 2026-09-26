@@ -5429,7 +5429,7 @@ deck['cp65'] = {
     for (let i = 0; i < this.game.spaces[this.game.state.combat.key].units.length; i++) {
       let unit = this.game.spaces[this.game.state.combat.key].units[i];
       // units that have retreated this turn do not add their combat
-      if (!unit.moved) {
+      if (!unit.moved && !unit.destroyed) {
         if (unit.damaged) {
           x += unit.rcombat;
         } else {
@@ -5444,7 +5444,7 @@ deck['cp65'] = {
     let x = 0;
     for (let i = 0; i < this.game.state.combat.attacker.length; i++) {
       let unit = this.game.spaces[this.game.state.combat.attacker[i].unit_sourcekey].units[this.game.state.combat.attacker[i].unit_idx];
-      if (unit) {
+      if (unit && !unit.destroyed) {
         if (unit.damaged) {
           x += unit.rcombat;
         } else {
@@ -7082,7 +7082,7 @@ if (spacekey == "stanislau") {
     if (faction == "ru" || faction == "russia") { sources.push(...["moscow","petrograd","kharkov","caucasus"]); }
     if (faction == "ro" || faction == "romania") { sources.push(...["belgrade","moscow","petrograd","kharkov","caucasus"]); }
     if (faction == "sb" || faction == "serbia") { 
-      sources.push(...["moscow","petrograd","kharkov","caucasus","london"]); 
+      sources.push(...["belgrade","moscow","petrograd","kharkov","caucasus"]); 
       if (this.returnControlOfSpace("salonika") == "allies") { sources.push("salonika"); }
     }
     if (sources.length == 0) {
@@ -14558,17 +14558,26 @@ console.log("DAMAGE: " + JSON.stringify(tmpx));
 	  if (player_to_ignore != this.game.player) {
 	    let unit = null;
 	    let unit_idx = 0;
-	    for (let z = 0; z < this.game.spaces[spacekey].units.length; z++) {
-	      if (!this.game.spaces[spacekey].units[z].destroyed) {
-	        if (damaged == 1) {
-	          if (this.game.spaces[spacekey].units[z].damaged == true && key === this.game.spaces[spacekey].units[z].key) {
-		    unit = this.game.spaces[spacekey].units[z];
-		    unit_idx = z;
-	          }
-	        } else {
-	          if (this.game.spaces[spacekey].units[z].damaged == false && key === this.game.spaces[spacekey].units[z].key) {
-		    unit = this.game.spaces[spacekey].units[z];
-		    unit_idx = z;
+	    if (mv[5] !== undefined && mv[5] !== "") {
+	      let z = parseInt(mv[5]);
+	      if (!isNaN(z) && this.game.spaces[spacekey].units[z] && this.game.spaces[spacekey].units[z].key === key && !this.game.spaces[spacekey].units[z].destroyed) {
+	        unit = this.game.spaces[spacekey].units[z];
+	        unit_idx = z;
+	      }
+	    }
+	    if (!unit) {
+	      for (let z = 0; z < this.game.spaces[spacekey].units.length; z++) {
+	        if (!this.game.spaces[spacekey].units[z].destroyed) {
+	          if (damaged == 1) {
+	            if (this.game.spaces[spacekey].units[z].damaged == true && key === this.game.spaces[spacekey].units[z].key) {
+		      unit = this.game.spaces[spacekey].units[z];
+		      unit_idx = z;
+	            }
+	          } else {
+	            if (this.game.spaces[spacekey].units[z].damaged == false && key === this.game.spaces[spacekey].units[z].key) {
+		      unit = this.game.spaces[spacekey].units[z];
+		      unit_idx = z;
+	            }
 	          }
 	        }
 	      }
@@ -16890,10 +16899,17 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
 
     if (options.length > 0) {
       let rendered_at = options[0];
+      for (let i = 0; i < options.length; i++) {
+        let already = false;
+        for (let key2 in paths_self.game.state.attacks) {
+          if (paths_self.game.state.attacks[key2].includes(options[i])) { already = true; }
+        }
+        if (!already) { rendered_at = options[i]; break; }
+      }
       if (paths_self.zoom_overlay.visible) {
-        paths_self.zoom_overlay.scrollTo(options[0]);
+        paths_self.zoom_overlay.scrollTo(rendered_at);
       } else {
-        paths_self.zoom_overlay.renderAtSpacekey(options[0]);
+        paths_self.zoom_overlay.renderAtSpacekey(rendered_at);
       }
       paths_self.zoom_overlay.showControls();
     }
@@ -17692,13 +17708,8 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
 
       menu_options.push({ id: "skip", label: "stand down" });
 
-      // Speed-boost: single actionable choice is move vs stand-down (no entrench).
-      // Skip the action menu and jump straight into destination selection.
-      let only_move_or_stand_down =
-        menu_options.length === 2 &&
-        menu_options.some((o) => o.id === "move") &&
-        menu_options.some((o) => o.id === "skip");
-      if (only_move_or_stand_down) {
+      // Destinations, stop-here, and entrench share one list.
+      if (menu_options.some((o) => o.id === "move")) {
         paths_self.attachMovementSnapshotUndo();
         continueMoveInterface(sourcekey, sourcekey, idx, options);
         return;
@@ -17787,6 +17798,16 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
       if (faction == "central" && paths_self.game.state.events.race_to_the_sea != 1 && (currentkey == "amiens" || currentkey == "ostend" || currentkey == "calais")) {
 	stop_move_option = [];
       }
+      if (sourcekey == currentkey && paths_self.game.spaces[sourcekey].oos != 1 && paths_self.game.state.events.entrench == 1) {
+	let can_entrench_here = true;
+	for (let z = 0; z < paths_self.game.state.entrenchments.length; z++) {
+	  if (paths_self.game.state.entrenchments[z].spacekey == sourcekey) { can_entrench_here = false; }
+	}
+	if (can_entrench_here) {
+	  stop_move_option.push({ key : "entrench" , value : "entrench" });
+	  stop_move_option.push({ key : "standdown" , value : "stand down" });
+	}
+      }
 
       paths_self.attachMovementSnapshotUndo();
 
@@ -17870,6 +17891,23 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
 		// we finish the movement of one unit, and move on to the next 
 		//
 	        mainInterface(options);
+		return 1;
+	      }
+
+	      if (key2 === "entrench") {
+		let u = paths_self.game.spaces[sourcekey].units[idx];
+		let lf = u.loss; if (u.damaged) { lf = u.rloss; }
+		paths_self.addMove(`entrench\t${faction}\t${sourcekey}\t${idx}\t${lf}`);
+		paths_self.addMove(`player_play_movement\t${faction}`);
+		paths_self.game.state.entrenchments.push({ spacekey : sourcekey , loss_factor : lf , finished : 0 });
+		paths_self.hud.hideBackButton();
+		paths_self.endTurn();
+		return 1;
+	      }
+
+	      if (key2 === "standdown") {
+		paths_self.game.spaces[sourcekey].units[idx].moved = 1;
+		mainInterface(options);
 		return 1;
 	      }
 
@@ -18844,6 +18882,19 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
       paths_self.zoom_overlay.spaces_onclick_callback = null;
       mycallback(action);
 
+    });
+
+    document.querySelectorAll('.zoom-overlay .controls ul').forEach((ul) => {
+      let entrench = ul.querySelector(':scope > li[id="entrench"]');
+      let standdown = ul.querySelector(':scope > li[id="standdown"]');
+      let skip = ul.querySelector(':scope > li[id="skip"]');
+      if (!entrench && !standdown && !skip) { return; }
+      let row = document.createElement('div');
+      row.className = 'movement-actions';
+      if (entrench) { row.appendChild(entrench); }
+      if (standdown) { row.appendChild(standdown); }
+      if (skip) { row.appendChild(skip); }
+      ul.parentElement.insertBefore(row, ul);
     });
 
     this.attachMovementSnapshotUndo();

@@ -1,6 +1,6 @@
-const HowTemplate = require('./how.template');
+const FaqTemplate = require('./faq.template');
 
-class How {
+class Faq {
   constructor(app, mod, main) {
     this.app = app;
     this.mod = mod;
@@ -14,13 +14,13 @@ class How {
     }
 
     container.classList.add('saitosign');
-    this.app.browser.replaceElementContentBySelector(HowTemplate(), '.saito-container');
+    this.app.browser.replaceElementContentBySelector(FaqTemplate(), '.saito-container');
 
-    const back = document.querySelector('.how [data-back]');
+    const back = document.querySelector('.faq [data-back]');
     if (back) {
       back.onclick = () => this.main.showSplash();
     }
   }
 }
 
-module.exports = How;
+module.exports = Faq;

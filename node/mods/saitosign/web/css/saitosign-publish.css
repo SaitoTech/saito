@@ -1,0 +1,767 @@
+.saitosign-publish-host {
+  width: min(110rem, 92vw);
+}
+
+.saitosign-publish-host-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: color-mix(in srgb, #000 94%, transparent);
+}
+
+.saitosign-publish {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  width: min(110rem, 92vw);
+  height: min(64rem, 90vh);
+  max-height: 90vh;
+  overflow: hidden;
+  padding: 0;
+  background-color: var(--saito-popover);
+  background-image: var(--saito-popover-wash);
+  border: 1px solid var(--saito-border);
+  border-radius: var(--saito-radius-lg);
+  box-shadow: var(--saito-elevation-3);
+  color: var(--saito-foreground);
+}
+
+.saitosign-publish .content {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--saito-space-xl);
+  min-height: 0;
+  padding: var(--saito-space-xxl);
+}
+
+.saitosign-publish .viewport {
+  flex: 1;
+  overflow-x: hidden;
+  overflow-y: auto;
+  min-height: 0;
+}
+
+.saitosign-publish .step {
+  display: flex;
+  flex-direction: column;
+  gap: var(--saito-space-lg);
+  min-height: 100%;
+  transition: transform 0.2s ease, opacity 0.2s ease;
+}
+
+.saitosign-publish .title {
+  margin: 0;
+  padding-right: 4rem;
+  color: var(--saito-foreground);
+  font-family: var(--saito-font-medium);
+  font-size: var(--font-size-large);
+  font-weight: 500;
+  line-height: 1.3;
+}
+
+.saitosign-publish .stage {
+  flex: 1;
+  min-height: 0;
+}
+
+.saitosign-publish .choice {
+  display: grid;
+  grid-template-columns: minmax(22rem, 1fr) minmax(0, 1.6fr);
+  gap: var(--saito-space-lg);
+  align-items: stretch;
+  min-height: 24rem;
+}
+
+.saitosign-publish .options {
+  display: flex;
+  flex-direction: column;
+  gap: var(--saito-space-sm);
+  height: 100%;
+}
+
+.saitosign-publish .option {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.4rem;
+  flex: 1;
+  margin: 0;
+  padding: var(--saito-space-lg);
+  border: 1px solid var(--saito-border);
+  border-radius: var(--saito-radius);
+  background: var(--saito-secondary);
+  color: var(--saito-foreground);
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.16s ease, background-color 0.16s ease;
+}
+
+.saitosign-publish .option:hover {
+  border-color: color-mix(in srgb, var(--saito-primary) 55%, var(--saito-border));
+  background: color-mix(in srgb, var(--saito-primary) 8%, var(--saito-secondary));
+}
+
+.saitosign-publish .option.active {
+  border-color: var(--saito-primary);
+  background: color-mix(in srgb, var(--saito-primary) 14%, var(--saito-secondary));
+}
+
+.saitosign-publish .kicker {
+  color: var(--saito-primary);
+  font-family: var(--saito-font-heavy);
+  font-size: 1.2rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.saitosign-publish .option .label {
+  font-family: var(--saito-font-medium);
+  font-size: var(--font-size-medium);
+  line-height: 1.35;
+}
+
+.saitosign-publish .detail,
+.saitosign-publish .focus {
+  display: flex;
+  flex-direction: column;
+  gap: var(--saito-space-lg);
+  min-height: 24rem;
+  padding: var(--saito-space-xl);
+  border: 1px solid var(--saito-border);
+  border-radius: var(--saito-radius);
+  background: var(--saito-card);
+}
+
+.saitosign-publish .focus {
+  max-width: 64rem;
+}
+
+.saitosign-publish .heading,
+.saitosign-publish p {
+  margin: 0;
+}
+
+.saitosign-publish .heading {
+  color: var(--saito-foreground);
+  font-family: var(--saito-font-medium);
+  font-size: var(--font-size-medium);
+  line-height: 1.4;
+}
+
+.saitosign-publish p,
+.saitosign-publish .points li {
+  color: var(--saito-muted-foreground);
+  font-size: var(--font-size-medium);
+  line-height: 1.5;
+}
+
+.saitosign-publish .quiet {
+  color: var(--saito-muted-foreground);
+  font-size: 1.4rem;
+}
+
+.saitosign-publish .points {
+  display: flex;
+  flex-direction: column;
+  gap: var(--saito-space-sm);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.saitosign-publish .points li {
+  position: relative;
+  padding-left: 1.4rem;
+}
+
+.saitosign-publish .points li::before {
+  content: '▸';
+  position: absolute;
+  left: 0;
+}
+
+.saitosign-publish .people {
+  display: flex;
+  flex-direction: column;
+  gap: var(--saito-space-sm);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.saitosign-publish .person {
+  display: grid;
+  grid-template-columns: 1.6rem minmax(0, 1fr);
+  column-gap: var(--saito-space-sm);
+  align-items: start;
+  color: var(--saito-muted-foreground);
+  font-size: var(--font-size-medium);
+  line-height: 1.4;
+}
+
+.saitosign-publish .person .person-line,
+.saitosign-publish .person .lines {
+  margin: 0;
+}
+
+.saitosign-publish .person .lines {
+  margin-top: 0.4rem;
+  padding: 0 0 0 1.4rem;
+  list-style: disc;
+  color: var(--saito-muted-foreground);
+  font-size: 1.4rem;
+}
+
+.saitosign-publish .person.done {
+  color: var(--saito-status-success, var(--saito-foreground));
+}
+
+.saitosign-publish .person .who {
+  color: var(--saito-foreground);
+  font-family: var(--saito-font-medium);
+}
+
+.saitosign-publish .person .status {
+  color: inherit;
+}
+
+.saitosign-publish .person.done .who {
+  color: var(--saito-status-success, #10b981);
+  font-size: var(--font-size-large);
+  line-height: 1.2;
+}
+
+.saitosign-publish .person.done .mark {
+  margin-top: 0.35rem;
+  color: var(--saito-status-success, #10b981);
+}
+
+.saitosign-publish .person.done .lines {
+  color: var(--saito-status-success, #10b981);
+}
+
+.saitosign-publish .person.waiting .mark {
+  color: var(--saito-primary);
+}
+
+.saitosign-publish .person.waiting .who {
+  color: var(--saito-muted-foreground);
+}
+
+.saitosign-publish .share-instruction {
+  margin: 0;
+  color: var(--saito-foreground);
+  font-size: var(--font-size-medium);
+  line-height: 1.5;
+}
+
+.saitosign-publish .mark {
+  width: 1.6rem;
+  flex: none;
+  text-align: center;
+}
+
+.saitosign-publish .later,
+.saitosign-publish .upsell {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.saitosign-publish .upsell {
+  margin-top: auto;
+  padding-top: var(--saito-space-md);
+  border-top: 1px solid var(--saito-border);
+}
+
+.saitosign-publish .note {
+  margin: 0;
+  color: var(--saito-muted-foreground);
+  font-size: 1.3rem;
+}
+
+.saitosign-publish .note.fail {
+  color: var(--saito-status-error, var(--saito-foreground));
+}
+
+.saitosign-publish .saito-text-link {
+  align-self: flex-start;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  font-size: inherit;
+  cursor: pointer;
+}
+
+.saitosign-publish .actions {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--saito-space-lg);
+}
+
+.saitosign-publish .actions-left {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  flex: 1;
+}
+
+.saitosign-publish .draft-export {
+  font-size: 1.3rem;
+  text-align: left;
+}
+
+.saitosign-publish .actions .saito-button-primary,
+.saitosign-publish .actions .saito-button-secondary {
+  min-width: 18rem;
+  margin: 0;
+  white-space: nowrap;
+}
+
+.saitosign-publish .actions .saito-button-primary.continue-activate {
+  animation: saitosign-continue 0.45s ease;
+}
+
+@keyframes saitosign-continue {
+  0% {
+    background: var(--saito-button-disabled-background);
+    color: var(--saito-button-disabled-foreground);
+  }
+  45% {
+    filter: brightness(1.35);
+  }
+  100% {
+    background: var(--saito-button-primary-background);
+    color: var(--saito-button-primary-foreground);
+    filter: none;
+  }
+}
+
+.saitosign-publish .who {
+  display: flex;
+  flex-direction: column;
+  gap: var(--saito-space-sm);
+  margin-top: auto;
+}
+
+.saitosign-publish .who-row,
+.saitosign-publish .new-signer,
+.saitosign-publish .send-row {
+  display: flex;
+  align-items: stretch;
+  gap: var(--saito-space-sm);
+}
+
+.saitosign-publish .new-signer[hidden] {
+  display: none;
+}
+
+.saitosign-publish .who-row select,
+.saitosign-publish .new-signer input,
+.saitosign-publish .send-row input {
+  flex: 1;
+  min-width: 0;
+  box-sizing: border-box;
+  height: 4.4rem;
+  margin: 0;
+  padding: 0 1.2rem;
+  border: 1px solid var(--saito-border);
+  border-radius: var(--saito-radius);
+  background: var(--saito-background);
+  color: var(--saito-foreground);
+  font: inherit;
+  font-size: var(--font-size-medium);
+}
+
+.saitosign-publish .who-row select {
+  appearance: none;
+  -webkit-appearance: none;
+  padding-right: 3.6rem;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%23a6a09b' d='M1.4 0.6L6 5.2 10.6 0.6 12 2 6 8 0 2z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 1.2rem center;
+  background-size: 1.2rem 0.8rem;
+  cursor: pointer;
+}
+
+.saitosign-publish .who-row button,
+.saitosign-publish .new-signer button,
+.saitosign-publish .send-row button {
+  flex: none;
+  align-self: stretch;
+  box-sizing: border-box;
+  height: 4.4rem;
+  min-height: 4.4rem;
+  margin: 0;
+  padding: 0 1.6rem;
+  border: 1px solid var(--saito-border);
+  border-radius: var(--saito-radius);
+  background: var(--saito-background);
+  color: var(--saito-foreground);
+  font: inherit;
+  font-size: var(--font-size-medium);
+  cursor: pointer;
+}
+
+.saitosign-publish .send-row button {
+  width: 14rem;
+}
+
+.saitosign-publish .send-row button:disabled {
+  cursor: default;
+}
+
+.saitosign-publish .key-preview {
+  overflow: hidden;
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.saitosign-publish .key-preview--enter {
+  opacity: 0;
+  transform: translateY(0.35rem);
+}
+
+.saitosign-publish .key-preview--enter-active {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.saitosign-publish .key-preview .saito-user {
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  column-gap: 0;
+  justify-items: start;
+}
+
+.saitosign-publish .key-preview .saito-identicon-box {
+  margin: 0;
+  padding: 0 1.2rem 0 0;
+  box-sizing: content-box;
+}
+
+.saitosign-publish .key-preview .saito-address {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.saitosign-publish .sign-step,
+.saitosign-publish .share-step,
+.saitosign-publish .verify-main {
+  display: flex;
+  flex-direction: column;
+  gap: var(--saito-space-lg);
+  max-width: 64rem;
+}
+
+.saitosign-publish .sign-step .key-preview {
+  padding: 1.2rem 0;
+}
+
+.saitosign-publish .sign-step .key-preview .saito-user {
+  padding-left: 1.2rem;
+}
+
+.saitosign-publish .review-link {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  line-height: inherit;
+  cursor: pointer;
+  text-decoration: underline;
+  text-decoration-style: dashed;
+  text-underline-offset: 0.28rem;
+}
+
+.saitosign-publish .verify-flow {
+  display: grid;
+  grid-template-columns: minmax(26rem, 0.82fr) minmax(0, 1.35fr);
+  gap: var(--saito-space-lg);
+  align-items: stretch;
+}
+
+.saitosign-publish .verify-methods {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  height: 100%;
+}
+
+.saitosign-publish .verify-method {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 1.4rem;
+  width: 100%;
+  min-height: 7.6rem;
+  margin: 0;
+  padding: 1.4rem 1.6rem;
+  border: 1px solid var(--saito-border);
+  border-radius: var(--saito-radius);
+  background: var(--saito-secondary);
+  color: var(--saito-foreground);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.saitosign-publish .verify-mark {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 3.6rem;
+  height: 3.6rem;
+  border-radius: 0.7rem;
+  background: color-mix(in srgb, var(--saito-muted-foreground) 28%, var(--saito-background));
+  color: var(--saito-muted-foreground);
+  font-size: 1.5rem;
+  pointer-events: none;
+}
+
+.saitosign-publish .verify-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-width: 0;
+}
+
+.saitosign-publish .verify-method .verify-name {
+  color: var(--saito-foreground);
+  font-family: var(--saito-font-medium);
+  font-size: var(--font-size-medium);
+  line-height: 1.3;
+}
+
+.saitosign-publish .verify-method .verify-status {
+  color: var(--saito-muted-foreground);
+  font-size: 1.4rem;
+  line-height: 1.3;
+}
+
+.saitosign-publish .verify-method.required .verify-mark {
+  background: var(--saito-primary);
+  color: var(--saito-primary-foreground, #fff);
+}
+
+.saitosign-publish .verify-method.selected {
+  border-color: var(--saito-primary);
+  background: color-mix(in srgb, var(--saito-primary) 22%, var(--saito-secondary));
+}
+
+.saitosign-publish .verify-method.verified {
+  border-color: var(--saito-status-success, #10b981);
+  background: color-mix(in srgb, var(--saito-status-success, #10b981) 22%, var(--saito-secondary));
+}
+
+.saitosign-publish .verify-method.verified .verify-mark {
+  background: var(--saito-status-success, #10b981);
+  color: #fff;
+}
+
+.saitosign-publish .verify-method.verified .verify-status {
+  color: var(--saito-status-success, #10b981);
+}
+
+.saitosign-publish .dev-code {
+  margin: 0;
+  color: var(--saito-foreground);
+  font-size: 1.3rem;
+  line-height: 1.4;
+  word-break: break-all;
+}
+
+.saitosign-publish .dev-code code {
+  font-family: inherit;
+}
+
+.saitosign-publish .email-address {
+  color: var(--saito-foreground);
+  font-family: var(--saito-font-medium);
+}
+
+.saitosign-publish .verify-action {
+  box-sizing: border-box;
+  width: 14rem;
+  height: 4.4rem;
+  margin: 0;
+  padding: 0 1.6rem;
+  border: 1px solid var(--saito-border);
+  border-radius: var(--saito-radius);
+  background: var(--saito-background);
+  color: var(--saito-foreground);
+  font: inherit;
+  font-size: var(--font-size-medium);
+  cursor: pointer;
+}
+
+.saitosign-publish .verify-action:disabled {
+  cursor: default;
+}
+
+.saitosign-publish .method-note {
+  margin: 0;
+  color: var(--saito-foreground);
+  line-height: 1.45;
+}
+
+.saitosign-publish .verify-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.saitosign-publish .verify-title {
+  color: var(--saito-foreground);
+  font-family: var(--saito-font-medium);
+  font-size: var(--font-size-medium);
+}
+
+.saitosign-publish .verify-description {
+  color: var(--saito-muted-foreground);
+  font-size: 1.4rem;
+  line-height: 1.4;
+}
+
+.saitosign-publish .requirement-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  color: var(--saito-muted-foreground);
+  font-size: 1.4rem;
+}
+
+.saitosign-publish .requirement-list .done {
+  color: var(--saito-foreground);
+}
+
+.saitosign-publish .step-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--saito-space-lg);
+}
+
+.saitosign-publish .step-head .title {
+  margin: 0;
+}
+
+.saitosign-publish .method-menu {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.4rem 1.4rem;
+  padding-top: 0.4rem;
+}
+
+.saitosign-publish .method-menu label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--saito-muted-foreground);
+  font-size: 1.4rem;
+  cursor: pointer;
+}
+
+.saitosign-publish .method[hidden],
+.saitosign-publish .proof[hidden] {
+  display: none;
+}
+
+.saitosign-publish .proof {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+}
+
+.saitosign-publish .verify .mark {
+  color: var(--saito-primary);
+}
+
+.saitosign-publish .verify {
+  display: flex;
+  flex-direction: column;
+  gap: var(--saito-space-xxl);
+  max-width: 64rem;
+}
+
+.saitosign-publish .verify .method {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+}
+
+.saitosign-publish .verify .name {
+  color: var(--saito-foreground);
+  font-family: var(--saito-font-medium);
+  font-size: var(--font-size-medium);
+}
+
+.saitosign-publish .tip {
+  margin-top: auto;
+  font-size: 1.4rem;
+}
+
+.saitosign-publish .verify .tip {
+  margin-top: 0;
+}
+
+.saitosign-publish .slide-exit-left {
+  transform: translateX(-2.8rem);
+  opacity: 0;
+}
+
+.saitosign-publish .slide-exit-right {
+  transform: translateX(2.8rem);
+  opacity: 0;
+}
+
+.saitosign-publish .slide-enter-right {
+  transform: translateX(2.8rem);
+  opacity: 0;
+}
+
+.saitosign-publish .slide-enter-left {
+  transform: translateX(-2.8rem);
+  opacity: 0;
+}
+
+@media (max-width: 800px) {
+  .saitosign-publish-host,
+  .saitosign-publish {
+    width: calc(100vw - 2rem);
+  }
+
+  .saitosign-publish .choice,
+  .saitosign-publish .verify-flow {
+    grid-template-columns: 1fr;
+  }
+
+  .saitosign-publish .verify-methods {
+    flex-direction: column;
+  }
+
+  .saitosign-publish .actions {
+    flex-direction: column-reverse;
+    align-items: stretch;
+  }
+
+  .saitosign-publish .actions .saito-button-primary,
+  .saitosign-publish .actions .saito-button-secondary {
+    width: 100%;
+    min-width: 0;
+  }
+}

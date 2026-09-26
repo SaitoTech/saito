@@ -11,7 +11,7 @@
   column-gap: unset;
 }
 
-.saito-container.saitosign:has(.prepare) {
+.saito-container.saitosign:has(.workspace) {
   overflow: hidden;
 }
 

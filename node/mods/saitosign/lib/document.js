@@ -1,135 +1,203 @@
-const Signer = require('./signer');
-const Field = require('./field');
+const ACTION_TYPES = {
+  signature: 'signature',
+  initial: 'initial',
+  date: 'date'
+};
 
-class Document {
-  constructor(app, mod, file, page_count, page_width, page_height) {
-    this.app = app;
-    this.mod = mod;
-    this.file = file;
-    this.page_count = page_count;
-    this.page_width = page_width;
-    this.page_height = page_height;
-    this.signers = [];
-    this.fields = [];
-    this.next_field_id = 1;
-    this.edited = false;
-    this.url =
-      typeof URL !== 'undefined' &&
-      typeof URL.createObjectURL === 'function' &&
-      typeof Blob !== 'undefined' &&
-      file instanceof Blob
+function emptyDocument() {
+  return {
+    document: {
+      name: '',
+      pdf: '',
+      page_count: 0,
+      page_width: 0,
+      page_height: 0,
+      url: ''
+    },
+    users: [],
+    actions: [],
+    edited: false
+  };
+}
+
+function isPdf(file) {
+  const name = String(file?.name || '').toLowerCase();
+  const type = String(file?.type || '').toLowerCase();
+  return type === 'application/pdf' || name.endsWith('.pdf');
+}
+
+function revoke(record) {
+  const url = record?.document?.url;
+  if (url && typeof URL.revokeObjectURL === 'function') {
+    URL.revokeObjectURL(url);
+  }
+  if (record?.document) {
+    record.document.url = '';
+  }
+}
+
+function addUser(record, name) {
+  record.users.push({
+    name: String(name || '').trim(),
+    email: '',
+    publickey: '',
+    verifications: [],
+    signatures: []
+  });
+  record.edited = true;
+  return record.users.length - 1;
+}
+
+function renameUser(record, index, name) {
+  const user = record.users[index];
+  const next = String(name || '').trim();
+  if (!user || !next || user.name === next) {
+    return;
+  }
+  user.name = next;
+  record.edited = true;
+}
+
+function removeUser(record, index) {
+  if (!record.users[index]) {
+    return;
+  }
+  record.users.splice(index, 1);
+  record.actions = record.actions
+    .filter((action) => action.user !== index)
+    .map((action) => ({
+      ...action,
+      user: action.user > index ? action.user - 1 : action.user
+    }));
+  stripSignatures(record);
+  record.edited = true;
+}
+
+function addAction(record, action) {
+  const id = record.actions.reduce((max, item) => Math.max(max, Number(item.id) || 0), 0) + 1;
+  const next = {
+    id,
+    type: ACTION_TYPES[action.type] ? action.type : 'signature',
+    user: action.user,
+    page: action.page,
+    x: action.x,
+    y: action.y,
+    width: action.width,
+    height: action.height
+  };
+  record.actions.push(next);
+  stripSignatures(record);
+  record.edited = true;
+  return next;
+}
+
+function stripSignatures(record) {
+  (record.users || []).forEach((user) => {
+    user.signatures = [];
+  });
+}
+
+function actionById(record, id) {
+  const wanted = Number(id);
+  return record.actions.find((action) => action.id === wanted) || null;
+}
+
+function removeAction(record, id) {
+  const wanted = Number(id);
+  const before = record.actions.length;
+  record.actions = record.actions.filter((action) => action.id !== wanted);
+  if (record.actions.length !== before) {
+    record.edited = true;
+  }
+}
+
+function actionsOnPage(record, page) {
+  return record.actions.filter((action) => action.page === page);
+}
+
+function copy(record) {
+  return {
+    document: {
+      name: record.document?.name || '',
+      pdf: record.document?.pdf || '',
+      page_count: record.document?.page_count || 0,
+      page_width: record.document?.page_width || 0,
+      page_height: record.document?.page_height || 0
+    },
+    users: (record.users || []).map((user) => ({
+      name: user.name || '',
+      email: user.email || '',
+      publickey: user.publickey || '',
+      verifications: (user.verifications || []).map((entry) => ({
+        method: entry.method || '',
+        publickey: entry.publickey || '',
+        message: entry.message || '',
+        signature: entry.signature || ''
+      })),
+      signatures: (user.signatures || []).map((entry) => ({
+        id: entry.id,
+        signature: entry.signature || ''
+      }))
+    })),
+    actions: (record.actions || []).map((action) => ({
+      id: action.id,
+      type: action.type,
+      user: action.user,
+      page: action.page,
+      x: action.x,
+      y: action.y,
+      width: action.width,
+      height: action.height
+    }))
+  };
+}
+
+async function openPdf(file) {
+  const record = emptyDocument();
+  record.document = await readFile(file);
+  return record;
+}
+
+async function hydrate(saved) {
+  const record = emptyDocument();
+  record.document.name = saved.document?.name || 'document.pdf';
+  record.document.pdf = saved.document?.pdf || '';
+  record.users = Array.isArray(saved.users) ? saved.users : [];
+  record.actions = Array.isArray(saved.actions) ? saved.actions : [];
+  record.edited = saved.edited === true || record.actions.length > 0;
+  const parsed = await readBase64(record.document.pdf, record.document.name);
+  record.document = parsed;
+  return record;
+}
+
+async function readFile(file) {
+  const bytes = new Uint8Array(await file.arrayBuffer());
+  return describe(bytes, file.name || 'document.pdf');
+}
+
+async function readBase64(pdf, name) {
+  const bytes = Uint8Array.from(Buffer.from(pdf, 'base64'));
+  return describe(bytes, name || 'document.pdf');
+}
+
+async function describe(bytes, name) {
+  const text = binaryString(bytes);
+  if (!text.slice(0, 1024).includes('%PDF')) {
+    throw new Error('not a pdf');
+  }
+  const file = new File([bytes], name, { type: 'application/pdf' });
+  const [page_width, page_height] = pageSize(text);
+  return {
+    name,
+    pdf: Buffer.from(bytes).toString('base64'),
+    page_count: await readPageCount(text),
+    page_width,
+    page_height,
+    url:
+      typeof URL !== 'undefined' && typeof URL.createObjectURL === 'function'
         ? URL.createObjectURL(file)
-        : '';
-  }
-
-  static isPdf(file) {
-    const name = String(file?.name || '').toLowerCase();
-    const type = String(file?.type || '').toLowerCase();
-    return type === 'application/pdf' || name.endsWith('.pdf');
-  }
-
-  static async open(app, mod, file) {
-    const bytes = new Uint8Array(await file.arrayBuffer());
-    const text = binaryString(bytes);
-    if (!text.slice(0, 1024).includes('%PDF')) {
-      throw new Error('not a pdf');
-    }
-
-    return new Document(
-      app,
-      mod,
-      file,
-      await readPageCount(text),
-      ...pageSize(text)
-    );
-  }
-
-  close() {
-    if (this.url && typeof URL.revokeObjectURL === 'function') {
-      URL.revokeObjectURL(this.url);
-    }
-    this.url = '';
-  }
-
-  markEdited() {
-    this.edited = true;
-  }
-
-  addSigner(name) {
-    const signer = new Signer(this.app, this.mod, String(name || '').trim());
-    this.signers.push(signer);
-    this.markEdited();
-    return signer;
-  }
-
-  placeField(type, signer, page, x, y, width, height) {
-    const field = new Field(this.next_field_id, type, signer, page, x, y, width, height);
-    this.next_field_id += 1;
-    this.fields.push(field);
-    this.markEdited();
-    return field;
-  }
-
-  fieldById(id) {
-    const wanted = Number(id);
-    return this.fields.find((field) => field.id === wanted) || null;
-  }
-
-  removeField(id) {
-    const wanted = Number(id);
-    const before = this.fields.length;
-    this.fields = this.fields.filter((field) => field.id !== wanted);
-    if (this.fields.length !== before) {
-      this.markEdited();
-    }
-  }
-
-  renameSigner(signer, name) {
-    const next = String(name || '').trim();
-    if (!signer || !this.signers.includes(signer) || !next || signer.name === next) {
-      return;
-    }
-    signer.name = next;
-    this.markEdited();
-  }
-
-  removeSigner(signer) {
-    if (!signer || !this.signers.includes(signer)) {
-      return;
-    }
-    this.fields = this.fields.filter((field) => field.signer !== signer);
-    this.signers = this.signers.filter((candidate) => candidate !== signer);
-    this.markEdited();
-  }
-
-  fieldsOnPage(page) {
-    return this.fields.filter((field) => field.page === page);
-  }
-
-  static async restore(app, mod, data) {
-    const bytes = Uint8Array.from(Buffer.from(data.pdf, 'base64'));
-    const file = new File([bytes], data.name || 'document.pdf', { type: 'application/pdf' });
-    const document = await Document.open(app, mod, file);
-
-    for (const name of data.signers) {
-      document.addSigner(name);
-    }
-
-    for (const field of data.fields) {
-      document.placeField(
-        field.type,
-        document.signers[field.signer],
-        field.page,
-        field.x,
-        field.y,
-        field.width,
-        field.height
-      );
-    }
-
-    document.edited = false;
-    return document;
-  }
+        : ''
+  };
 }
 
 async function readPageCount(text) {
@@ -632,4 +700,20 @@ function pageSize(text) {
   return [width, height];
 }
 
-module.exports = Document;
+module.exports = {
+  ACTION_TYPES,
+  emptyDocument,
+  isPdf,
+  revoke,
+  addUser,
+  renameUser,
+  removeUser,
+  addAction,
+  stripSignatures,
+  actionById,
+  removeAction,
+  actionsOnPage,
+  copy,
+  openPdf,
+  hydrate
+};

@@ -1,6 +1,6 @@
 const Splash = require('./splash');
-const How = require('./how');
-const Prepare = require('./prepare');
+const Faq = require('./faq');
+const Workspace = require('./workspace');
 
 class Main {
   constructor(app, mod) {
@@ -8,22 +8,22 @@ class Main {
     this.mod = mod;
     this.screen = 'splash';
     this.splash = new Splash(app, mod, this);
-    this.how = new How(app, mod, this);
-    this.prepare = new Prepare(app, mod);
+    this.faq = new Faq(app, mod, this);
+    this.workspace = new Workspace(app, mod);
   }
 
   render() {
-    if (this.mod.document) {
-      this.screen = 'prepare';
+    if (this.mod.document.document.pdf) {
+      this.screen = 'workspace';
     }
 
-    if (this.screen === 'how') {
-      this.how.render();
+    if (this.screen === 'faq') {
+      this.faq.render();
       return;
     }
 
-    if (this.screen === 'prepare' && this.mod.document) {
-      this.prepare.render();
+    if (this.screen === 'workspace' && this.mod.document.document.pdf) {
+      this.workspace.render();
       return;
     }
 
@@ -36,21 +36,21 @@ class Main {
     this.splash.render();
   }
 
-  showHow() {
-    this.screen = 'how';
-    this.how.render();
+  showFaq() {
+    this.screen = 'faq';
+    this.faq.render();
   }
 
-  showPrepare() {
-    this.screen = 'prepare';
+  showWorkspace() {
+    this.screen = 'workspace';
     this.splash.notice = '';
-    this.prepare.show();
+    this.workspace.show();
   }
 
   fail(message) {
-    if (this.mod.document && this.screen === 'prepare') {
-      this.prepare.notice = message;
-      this.prepare.render();
+    if (this.mod.document.document.pdf && this.screen === 'workspace') {
+      this.workspace.notice = message;
+      this.workspace.render();
       return;
     }
 

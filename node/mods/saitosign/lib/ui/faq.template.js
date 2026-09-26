@@ -1,6 +1,6 @@
-module.exports = function howTemplate() {
+module.exports = function faqTemplate() {
   return `
-    <main class="how">
+    <main class="faq">
       <button type="button" class="back" data-back>
         <i class="fa-solid fa-arrow-left" aria-hidden="true"></i>
         Back

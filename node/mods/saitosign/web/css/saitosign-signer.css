@@ -1,0 +1,104 @@
+.saitosign-user-overlay {
+  width: min(36rem, calc(100vw - 4rem));
+}
+
+.saitosign-user {
+  display: flex;
+  flex-direction: column;
+  gap: 1.4rem;
+  box-sizing: border-box;
+  width: min(36rem, calc(100vw - 6rem));
+  padding: 2.2rem 2rem 1.8rem;
+}
+
+.saitosign-user .facts {
+  display: flex;
+  flex-direction: column;
+  gap: 1.2rem;
+  margin: 0;
+}
+
+.saitosign-user .fact {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.saitosign-user .fact > span,
+.saitosign-user label.fact {
+  color: var(--saito-muted-foreground);
+  font-size: 1.3rem;
+  line-height: 1.2;
+}
+
+.saitosign-user p,
+.saitosign-user .fact input {
+  margin: 0;
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 2.8rem;
+  padding: 0.55rem 0.9rem;
+  border: 1px solid var(--saito-border);
+  border-radius: var(--saito-radius);
+  background: var(--saito-card);
+  color: var(--saito-foreground);
+  font: inherit;
+  font-size: 1.5rem;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.saitosign-user .status {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  margin: 0;
+  color: var(--saito-foreground);
+  font-size: 1.5rem;
+  line-height: 1.2;
+  cursor: default;
+}
+
+.saitosign-user .status input {
+  width: 1.6rem;
+  height: 1.6rem;
+  margin: 0;
+  accent-color: var(--saito-primary);
+  pointer-events: none;
+}
+
+.saitosign-user .actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--saito-space-sm);
+  margin-top: 0.6rem;
+}
+
+.saitosign-user button.primary {
+  height: 4.4rem;
+  padding: 0 1.6rem;
+  border: 1px solid var(--saito-primary);
+  border-radius: var(--saito-radius);
+  background: var(--saito-primary);
+  color: #fff;
+  font-family: var(--saito-font-heavy);
+  font-weight: 700;
+  font-size: 1.5rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.saitosign-user [data-remove-signer-confirm] {
+  height: 4.4rem;
+  padding: 0 1.6rem;
+  border: 1px solid var(--saito-destructive);
+  border-radius: var(--saito-radius);
+  background: var(--saito-destructive);
+  color: #fff;
+  font-family: var(--saito-font-heavy);
+  font-weight: 700;
+  font-size: 1.5rem;
+  line-height: 1;
+  cursor: pointer;
+}

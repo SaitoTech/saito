@@ -1,13 +1,25 @@
-const SaitoOverlay = require('../../../../lib/saito/ui/saito-overlay/saito-overlay');
-const PrepareTemplate = require('./prepare.template');
-const Field = require('../field');
+const WorkspaceTemplate = require('./workspace.template');
+const FieldOverlay = require('./overlays/field');
+const SignerOverlay = require('./overlays/signer');
+const PublishOverlay = require('./overlays/publish');
+const {
+  ACTION_TYPES,
+  addUser,
+  renameUser,
+  removeUser,
+  addAction,
+  actionById,
+  removeAction,
+  actionsOnPage
+} = require('../document');
+const { verifyActionSignature } = require('../auth');
 
 const MIN_DRAG = 12;
 const ZOOM_MIN = 1;
 const ZOOM_MAX = 3;
 const ZOOM_STEP = 1.35;
 
-class Prepare {
+class Workspace {
   constructor(app, mod) {
     this.app = app;
     this.mod = mod;
@@ -20,6 +32,7 @@ class Prepare {
     this.drag = null;
     this.arrived = null;
     this.overlay = null;
+    this.publish = new PublishOverlay(app, mod);
     this.listening = false;
     this.pending_scroll = false;
     this.suspend_scroll = false;
@@ -50,17 +63,17 @@ class Prepare {
   render() {
     const container = document.querySelector('.saito-container');
     const doc = this.mod.document;
-    if (!container || !doc) {
+    if (!container || !doc.document.pdf) {
       return;
     }
 
     container.classList.add('saitosign');
 
-    let root = container.querySelector(':scope > .prepare');
-    if (!root || root.dataset.src !== doc.url) {
-      container.innerHTML = PrepareTemplate(this.view());
-      root = container.querySelector(':scope > .prepare');
-      root.dataset.src = doc.url;
+    let root = container.querySelector(':scope > .workspace');
+    if (!root || root.dataset.src !== doc.document.url) {
+      container.innerHTML = WorkspaceTemplate(this.view());
+      root = container.querySelector(':scope > .workspace');
+      root.dataset.src = doc.document.url;
       this.attachEvents(root);
     } else {
       this.update(root);
@@ -68,14 +81,14 @@ class Prepare {
     }
 
     this.fitSheet(root);
-    root.querySelector('.reader').innerHTML = PrepareTemplate.reader(this.view());
+    root.querySelector('.reader').innerHTML = WorkspaceTemplate.reader(this.view());
     this.loadPages(root);
     this.listen();
   }
 
   update(root) {
     const view = this.view();
-    root.querySelector('.rail').innerHTML = PrepareTemplate.rail(view);
+    root.querySelector('.rail').innerHTML = WorkspaceTemplate.rail(view);
     this.paintFields(root, view);
 
     if (this.focus_name) {
@@ -84,7 +97,7 @@ class Prepare {
     }
 
     this.fitSheet(root);
-    root.querySelector('.reader').innerHTML = PrepareTemplate.reader(this.view());
+    root.querySelector('.reader').innerHTML = WorkspaceTemplate.reader(this.view());
     this.loadPages(root);
     if (this.pending_scroll) {
       this.pending_scroll = false;
@@ -115,7 +128,7 @@ class Prepare {
 
       const signer_row = event.target.closest('[data-open-signer]');
       if (signer_row) {
-        this.openSigner(doc.signers[Number(signer_row.dataset.openSigner)]);
+        this.openSigner(Number(signer_row.dataset.openSigner));
         return;
       }
 
@@ -130,13 +143,13 @@ class Prepare {
 
       const listed = event.target.closest('[data-open-field]');
       if (listed) {
-        this.openExisting(doc.fieldById(listed.dataset.openField), root);
+        this.openExisting(actionById(doc, listed.dataset.openField), root);
         return;
       }
 
       const placed = event.target.closest('[data-field-id]');
       if (placed) {
-        this.openExisting(doc.fieldById(placed.dataset.fieldId), root);
+        this.openExisting(actionById(doc, placed.dataset.fieldId), root);
         return;
       }
 
@@ -148,7 +161,7 @@ class Prepare {
       }
 
       if (event.target.closest('[data-page="next"]')) {
-        this.page = Math.min(doc.page_count, this.page + 1);
+        this.page = Math.min(doc.document.page_count, this.page + 1);
         this.pending_scroll = true;
         this.update(root);
         return;
@@ -161,7 +174,7 @@ class Prepare {
       }
 
       if (event.target.closest('[data-export]')) {
-        this.mod.exportDocument();
+        this.publish.render();
       }
     });
 
@@ -176,7 +189,7 @@ class Prepare {
       if (!doc || !name) {
         return;
       }
-      this.arrived = doc.addSigner(name);
+      this.arrived = addUser(doc, name);
       this.adding_signer = false;
       this.update(root);
     });
@@ -186,7 +199,7 @@ class Prepare {
       if (!page_input || !this.mod.document) {
         return;
       }
-      this.page = clampPage(page_input.value, this.mod.document.page_count, this.page);
+      this.page = clampPage(page_input.value, this.mod.document.document.page_count, this.page);
       this.pending_scroll = true;
       this.update(root);
     });
@@ -255,7 +268,7 @@ class Prepare {
     this.draft = {
       page: this.drag.page,
       type: 'signature',
-      signer: doc.signers[0],
+      user: 0,
       ...rect
     };
     paintDraft(this.drag.stage, this.draft);
@@ -287,70 +300,62 @@ class Prepare {
     this.draft = {
       page,
       type: 'signature',
-      signer: doc.signers[0],
+      user: 0,
       ...rect
     };
     this.update(root);
     this.openField(root);
   }
 
-  openSigner(signer) {
-    if (!signer) {
+  openSigner(index) {
+    const user = this.mod.document.users[index];
+    if (!user) {
       return;
     }
 
-    const overlay = new SaitoOverlay(this.app, this.mod, true);
-    overlay.class = 'saito-overlay saitosign-overlay saitosign-user-overlay';
+    const overlay = new SignerOverlay(this.app, this.mod);
     this.overlay = overlay;
-    const identity = userIdentity(signer);
-    overlay.show(
-      PrepareTemplate.signerForm({
+    const identity = userIdentity(user);
+    overlay.render(
+      {
         name: identity.name,
         email: identity.email,
-        publickey: signer.publicKey || signer.publickey || '',
-        verified: signer.verified === true,
-        signed: signer.signed === true
-      }),
-      () => {
-        this.overlay = null;
-        const current = document.querySelector('.saito-container > .prepare');
-        if (current) {
-          this.update(current);
+        publickey: user.publickey || '',
+        verified: user.verifications?.length > 0,
+        signed: user.signed === true
+      },
+      {
+        onUpdate: (fields) => this.saveUser(index, fields),
+        onRemove: () => {
+          removeUser(this.mod.document, index);
+          overlay.close();
+        },
+        onClose: () => {
+          if (this.overlay === overlay) {
+            this.overlay = null;
+          }
+          const current = document.querySelector('.saito-container > .workspace');
+          if (current) {
+            this.update(current);
+          }
         }
       }
     );
-
-    const remove = document.querySelector('[data-remove-signer-confirm]');
-    if (remove) {
-      remove.onclick = () => {
-        this.mod.document.removeSigner(signer);
-        this.overlay.close();
-      };
-    }
-
-    const update = document.querySelector('[data-update-user]');
-    if (update) {
-      update.onclick = () => {
-        this.saveUser(signer);
-      };
-    }
   }
 
-  saveUser(signer) {
-    const nameInput = document.querySelector('[data-user-name]');
-    const emailInput = document.querySelector('[data-user-email]');
-    if (!nameInput || !emailInput || !this.mod.document) {
+  saveUser(index, fields) {
+    const doc = this.mod.document;
+    const user = doc.users[index];
+    if (!fields || !user) {
       return;
     }
 
-    const name = nameInput.value.trim();
-    const email = emailInput.value.trim();
-    if (name) {
-      this.mod.document.renameSigner(signer, name);
+    if (fields.name) {
+      renameUser(doc, index, fields.name);
     }
-    if ((signer.email || '') !== email) {
-      signer.email = email;
-      this.mod.document.markEdited();
+    if ((user.email || '') !== fields.email) {
+      user.email = fields.email;
+      doc.edited = true;
     }
     this.overlay.close();
   }
@@ -366,7 +371,7 @@ class Prepare {
       id: field.id,
       page: field.page,
       type: field.type,
-      signer: field.signer,
+      user: field.user,
       x: field.x,
       y: field.y,
       width: field.width,
@@ -377,124 +382,102 @@ class Prepare {
   }
 
   openField(root) {
-    const overlay = new SaitoOverlay(this.app, this.mod, true);
-    overlay.class = 'saito-overlay saitosign-overlay';
+    const overlay = new FieldOverlay(this.app, this.mod);
     this.overlay = overlay;
-    overlay.show(PrepareTemplate.fieldForm(this.fieldView()), () => {
-      this.draft = null;
-      this.overlay = null;
-      const current = document.querySelector('.saito-container > .prepare');
-      if (current) {
-        this.update(current);
+    overlay.render(this.fieldView(), {
+      onCreateSigner: (name) => {
+        const doc = this.mod.document;
+        if (!doc || !name) {
+          return null;
+        }
+        const index = addUser(doc, name);
+        this.arrived = index;
+        this.draft.user = index;
+        this.update(root);
+        return {
+          index,
+          name: doc.users[index].name
+        };
+      },
+      onRemove: () => {
+        removeAction(this.mod.document, this.draft.id);
+        overlay.close();
+      },
+      onSave: (form) => this.saveField(form),
+      onClose: () => {
+        this.draft = null;
+        if (this.overlay === overlay) {
+          this.overlay = null;
+        }
+        const current = document.querySelector('.saito-container > .workspace');
+        if (current) {
+          this.update(current);
+        }
       }
     });
-    this.bindFieldForm(root);
-  }
-
-  bindFieldForm(root) {
-    const form = document.querySelector('.saitosign-field');
-    if (!form) {
-      return;
-    }
-
-    const signer_select = form.querySelector('[data-field-signer]');
-    const extra = form.querySelector('.new-signer');
-    signer_select.addEventListener('change', () => {
-      extra.hidden = signer_select.value !== 'new';
-      if (!extra.hidden) {
-        form.querySelector('[data-new-signer]')?.focus();
-      }
-    });
-
-    form.querySelector('[data-create-signer]').onclick = () => {
-      const doc = this.mod.document;
-      const name = form.querySelector('[data-new-signer]')?.value.trim();
-      if (!doc || !name) {
-        return;
-      }
-      const signer = doc.addSigner(name);
-      this.arrived = signer;
-      this.draft.signer = signer;
-      signer_select.insertAdjacentHTML(
-        'beforeend',
-        `<option value="${doc.signers.length - 1}">${escapeHTML(signer.name)}</option>`
-      );
-      const added = signer_select.querySelector('option[value="new"]');
-      signer_select.value = String(doc.signers.indexOf(signer));
-      if (added) {
-        signer_select.appendChild(added);
-      }
-      extra.hidden = true;
-      form.querySelector('[data-new-signer]').value = '';
-      this.update(root);
-    };
-
-    const remove = form.querySelector('[data-remove-field]');
-    if (remove) {
-      remove.onclick = () => {
-        this.mod.document.removeField(this.draft.id);
-        this.overlay.close();
-      };
-    }
-
-    form.onsubmit = (event) => {
-      event.preventDefault();
-      this.saveField(form);
-    };
   }
 
   saveField(form) {
     const doc = this.mod.document;
     const draft = this.draft;
     if (!doc || !draft) {
-      return;
+      return false;
     }
 
     const type = form.querySelector('[data-field-type]').value;
     const chosen = form.querySelector('[data-field-signer]').value;
     if (chosen === 'new') {
-      return;
+      return false;
     }
 
-    const signer = doc.signers[Number(chosen)];
-    if (!signer || !Field.types[type]) {
-      return;
+    const user = doc.users[Number(chosen)];
+    if (!user || !ACTION_TYPES[type]) {
+      return false;
     }
 
     if (draft.id) {
-      const field = doc.fieldById(draft.id);
-      if (field && (field.type !== type || field.signer !== signer)) {
-        field.type = type;
-        field.signer = signer;
-        doc.markEdited();
+      const action = actionById(doc, draft.id);
+      if (action && (action.type !== type || action.user !== Number(chosen))) {
+        action.type = type;
+        action.user = Number(chosen);
+        doc.edited = true;
       }
     } else {
-      doc.placeField(type, signer, draft.page, draft.x, draft.y, draft.width, draft.height);
+      addAction(doc, {
+        type,
+        user: Number(chosen),
+        page: draft.page,
+        x: draft.x,
+        y: draft.y,
+        width: draft.width,
+        height: draft.height
+      });
     }
 
     this.overlay.close();
+    return true;
   }
 
   fieldView() {
     const doc = this.mod.document;
     const draft = this.draft;
-    const signer_index = Math.max(0, doc.signers.indexOf(draft.signer));
+    const signer_index = Number.isInteger(draft.user) ? draft.user : 0;
 
     return {
       existing: Boolean(draft.id),
       type: draft.type || 'signature',
       signer_index,
-      signers: doc.signers.map((signer, index) => ({
+      signers: doc.users.map((user, index) => ({
         index,
-        name: signer.name
+        name: user.name
       }))
     };
   }
 
   view() {
     const doc = this.mod.document;
-    if (this.page > doc.page_count) {
-      this.page = doc.page_count;
+    if (this.page > doc.document.page_count) {
+      this.page = doc.document.page_count;
     }
     if (this.page < 1) {
       this.page = 1;
@@ -504,7 +487,7 @@ class Prepare {
       ? {
           page: this.draft.page,
           type: this.draft.type || 'signature',
-          name: this.draft.signer?.name || '',
+          name: doc.users[this.draft.user]?.name || '',
           x: this.draft.x,
           y: this.draft.y,
           width: this.draft.width,
@@ -513,9 +496,9 @@ class Prepare {
       : null;
 
     return {
-      file_name: doc.file?.name || 'Document',
+      file_name: doc.document.name || 'Document',
       page: this.page,
-      page_count: doc.page_count,
+      page_count: doc.document.page_count,
       notice: this.notice,
       placing: this.placing,
       adding_signer: this.adding_signer,
@@ -525,29 +508,37 @@ class Prepare {
       zoom_max: ZOOM_MAX,
       reader_x: this.reader_x,
       reader_y: this.reader_y,
-      signers: doc.signers.map((signer, index) => ({
-        index,
-        name: signer.name,
-        arrived: signer === this.arrived
+      signers: doc.users.map((user, index) => {
+        const mine = (doc.actions || []).filter((action) => {
+          return action.user === index && (action.type === 'signature' || action.type === 'initial');
+        });
+        const complete = mine.length > 0 && mine.every((action) => verifyActionSignature(this.app, action, user));
+        return {
+          index,
+          name: user.name,
+          arrived: index === this.arrived,
+          complete
+        };
+      }),
+      field_list: doc.actions.map((action) => ({
+        id: action.id,
+        page: action.page,
+        type: action.type,
+        name: doc.users[action.user]?.name || '',
+        signed: verifyActionSignature(this.app, action, doc.users[action.user])
       })),
-      field_list: doc.fields.map((field) => ({
-        id: field.id,
-        page: field.page,
-        type: field.type,
-        name: field.signer.name
-      })),
-      pages: Array.from({ length: doc.page_count }, (_, index) => {
+      pages: Array.from({ length: doc.document.page_count }, (_, index) => {
         const page = index + 1;
         return {
           page,
-          fields: doc.fieldsOnPage(page).map((field) => ({
-            id: field.id,
-            type: field.type,
-            name: field.signer.name,
-            x: field.x,
-            y: field.y,
-            width: field.width,
-            height: field.height
+          fields: actionsOnPage(doc, page).map((action) => ({
+            id: action.id,
+            type: action.type,
+            name: doc.users[action.user]?.name || '',
+            x: action.x,
+            y: action.y,
+            width: action.width,
+            height: action.height
           })),
           draft: draft && draft.page === page ? draft : null
         };
@@ -562,7 +553,7 @@ class Prepare {
         return;
       }
       layer.classList.toggle('placing', view.placing);
-      layer.innerHTML = PrepareTemplate.fields(page);
+      layer.innerHTML = WorkspaceTemplate.fields(page);
     });
   }
 
@@ -574,7 +565,7 @@ class Prepare {
   loadPages(root) {
     const doc = this.mod.document;
     const wrap = root.querySelector('.sheet-wrap');
-    if (!doc?.url || !wrap) {
+    if (!doc?.document?.url || !wrap) {
       return;
     }
 
@@ -597,7 +588,7 @@ class Prepare {
       }
 
       frame.dataset.loaded = '1';
-      frame.src = `${doc.url}#page=${page}&view=FitH&toolbar=0&navpanes=0`;
+      frame.src = `${doc.document.url}#page=${page}&view=FitH&toolbar=0&navpanes=0`;
       frame.addEventListener(
         'load',
         () => {
@@ -630,7 +621,7 @@ class Prepare {
     if (document.activeElement?.matches('[data-page-input]')) {
       return;
     }
-    root.querySelector('.reader').innerHTML = PrepareTemplate.reader(this.view());
+    root.querySelector('.reader').innerHTML = WorkspaceTemplate.reader(this.view());
   }
 
   scrollToPage(root, page) {
@@ -671,14 +662,14 @@ class Prepare {
     const after = sheet.getBoundingClientRect();
     wrap.scrollLeft += after.left + after.width * focusX - (wrapBox.left + wrapBox.width / 2);
     wrap.scrollTop += after.top + after.height * focusY - (wrapBox.top + wrapBox.height / 2);
-    root.querySelector('.reader').innerHTML = PrepareTemplate.reader(this.view());
+    root.querySelector('.reader').innerHTML = WorkspaceTemplate.reader(this.view());
   }
 
   fitSheet(root) {
     const stage = root.querySelector('.stage');
     const sheet = root.querySelector('.sheet');
     const doc = this.mod.document;
-    if (!stage || !sheet || !doc?.page_width || !doc?.page_height) {
+    if (!stage || !sheet || !doc?.document?.page_width || !doc?.document?.page_height) {
       return;
     }
 
@@ -689,7 +680,7 @@ class Prepare {
       return;
     }
 
-    const ratio = doc.page_width / doc.page_height;
+    const ratio = doc.document.page_width / doc.document.page_height;
     const available = Math.max(40, boundsW - 40);
     const widthFit = Math.min(available, 1280);
     const containWidth = Math.min(widthFit, Math.max(40, boundsH * ratio));
@@ -769,7 +760,7 @@ class Prepare {
     }
     this.listening = true;
     window.addEventListener('resize', () => {
-      const root = document.querySelector('.saito-container > .prepare');
+      const root = document.querySelector('.saito-container > .workspace');
       if (root) {
         this.fitSheet(root);
         this.loadPages(root);
@@ -871,12 +862,4 @@ function clamp01(value) {
   return Math.min(1, Math.max(0, value));
 }
 
-function escapeHTML(value) {
-  return String(value)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
-}
-
-module.exports = Prepare;
+module.exports = Workspace;

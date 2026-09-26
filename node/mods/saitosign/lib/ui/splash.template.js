@@ -45,7 +45,7 @@ module.exports = function splashTemplate(view = {}) {
 
         <p class="more">
           Want to know more?
-          <button type="button" class="saito-text-link" data-how>Learn how SaitoSign works...</button>
+          <button type="button" class="saito-text-link" data-faq>Learn how SaitoSign works...</button>
         </p>
       </div>
     </main>

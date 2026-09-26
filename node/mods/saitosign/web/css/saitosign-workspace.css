@@ -1,11 +1,11 @@
-.prepare {
+.workspace {
   display: flex;
   flex: 1;
   min-height: 0;
   height: 100%;
 }
 
-.prepare .rail {
+.workspace .rail {
   display: flex;
   flex-direction: column;
   gap: var(--saito-space-lg);
@@ -18,61 +18,58 @@
   background: var(--saito-secondary);
 }
 
-.prepare .identity,
-.prepare .signers-panel,
-.prepare .fields-panel,
-.prepare .add-signer,
-.saitosign-field {
+.workspace .identity,
+.workspace .signers-panel,
+.workspace .fields-panel,
+.workspace .add-signer {
   display: flex;
   flex-direction: column;
   gap: var(--saito-space-sm);
 }
 
-.prepare p,
-.prepare .role,
-.prepare .file,
-.prepare .hint,
-.prepare .empty {
+.workspace p,
+.workspace .role,
+.workspace .file,
+.workspace .hint,
+.workspace .empty {
   margin: 0;
 }
 
-.prepare .name,
-.prepare .title,
-.saitosign-field .title {
+.workspace .name,
+.workspace .title {
   margin: 0;
   color: var(--saito-foreground);
   font-family: var(--saito-font-medium);
 }
 
-.prepare .name {
+.workspace .name {
   color: var(--saito-primary);
   font-family: var(--saito-font-heavy);
   font-size: 2.6rem;
   line-height: 1.1;
 }
 
-.prepare .section-head .title {
+.workspace .section-head .title {
   font-family: var(--saito-font-heavy);
   font-size: 2rem;
   line-height: 1.1;
 }
 
-.prepare .section-head {
+.workspace .section-head {
   display: flex;
   align-items: center;
   gap: var(--saito-space-md);
 }
 
-.prepare .file,
-.prepare .role,
-.prepare .hint,
-.prepare .empty,
-.saitosign-field label {
+.workspace .file,
+.workspace .role,
+.workspace .hint,
+.workspace .empty {
   color: var(--saito-muted-foreground);
 }
 
-.prepare .people,
-.prepare .field-list {
+.workspace .people,
+.workspace .field-list {
   display: flex;
   flex-direction: column;
   gap: var(--saito-space-sm);
@@ -81,25 +78,26 @@
   list-style: none;
 }
 
-.prepare .row {
+.workspace .row {
   display: flex;
   align-items: stretch;
   box-sizing: border-box;
   height: 4.4rem;
   min-height: 4.4rem;
   padding: 0;
+  overflow: hidden;
   border: 1px solid var(--saito-border);
   border-radius: var(--saito-radius);
   background: var(--saito-background);
   color: var(--saito-foreground);
 }
 
-.prepare .row:hover {
+.workspace .row:hover {
   border-color: color-mix(in srgb, var(--saito-primary) 50%, var(--saito-border));
 }
 
-.prepare .row > i,
-.prepare .row .open i {
+.workspace .row > i,
+.workspace .row .open i {
   flex: none;
   width: 1.6rem;
   color: var(--saito-primary);
@@ -107,14 +105,21 @@
   text-align: center;
 }
 
-.prepare .row .label {
-  flex: 1;
-  min-width: 0;
-  color: var(--saito-foreground);
-  line-height: 1.3;
+.workspace .row .open i.signed {
+  color: var(--saito-status-success, #3cba6e);
 }
 
-.prepare .row .open {
+.workspace .row .label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--saito-foreground);
+  line-height: 1.3;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.workspace .row .open {
   display: flex;
   align-items: center;
   gap: var(--saito-space-sm);
@@ -133,20 +138,18 @@
   cursor: pointer;
 }
 
-.prepare .row .open:focus-visible {
+.workspace .row .open:focus-visible {
   outline: 2px solid var(--saito-primary);
   outline-offset: -2px;
 }
 
-.prepare .signer.arrived {
+.workspace .signer.arrived {
   animation: saitosign-arrive 180ms ease-out;
 }
 
-.prepare button.plus,
-.prepare .reader button,
-.prepare .actions button,
-.saitosign-field .actions button,
-.saitosign-field .new-signer button {
+.workspace button.plus,
+.workspace .reader button,
+.workspace .actions button {
   border: 1px solid var(--saito-border);
   border-radius: var(--saito-radius);
   background: var(--saito-background);
@@ -154,7 +157,7 @@
   font: inherit;
 }
 
-.prepare button.plus {
+.workspace button.plus {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -169,64 +172,28 @@
   cursor: pointer;
 }
 
-.prepare button.plus:hover {
+.workspace button.plus:hover {
   border-color: var(--saito-primary);
   color: var(--saito-primary);
 }
 
-.prepare button.plus[aria-pressed='true'] {
+.workspace button.plus[aria-pressed='true'] {
   border-color: var(--saito-primary);
   background: color-mix(in srgb, var(--saito-primary) 16%, var(--saito-background));
 }
 
-.prepare .add-signer {
+.workspace .add-signer {
   display: flex;
   flex-direction: row;
   align-items: stretch;
   gap: var(--saito-space-sm);
 }
 
-.prepare .add-signer button {
+.workspace .add-signer button {
   flex: none;
 }
 
-.saitosign-field .new-signer {
-  display: flex;
-  align-items: stretch;
-  gap: var(--saito-space-sm);
-}
-
-.saitosign-field .new-signer[hidden] {
-  display: none;
-}
-
-.saitosign-field .new-signer button {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex: none;
-  box-sizing: border-box;
-  padding: 0 var(--saito-space-md);
-  border: 1px solid var(--saito-border);
-  border-radius: var(--saito-radius);
-  background: var(--saito-background);
-  color: var(--saito-foreground);
-  font: inherit;
-}
-
-.saitosign-field {
-  gap: var(--saito-space-md);
-  min-width: min(32rem, calc(100vw - 8rem));
-  padding: 2.8rem var(--saito-space-lg) var(--saito-space-lg);
-}
-
-.saitosign-field label {
-  display: flex;
-  flex-direction: column;
-  gap: var(--saito-space-xs);
-}
-
-.prepare .add-signer input {
+.workspace .add-signer input {
   flex: 1;
   width: auto;
   min-width: 0;
@@ -241,7 +208,7 @@
   font-size: var(--font-size-medium);
 }
 
-.prepare .add-signer button.primary {
+.workspace .add-signer button.primary {
   box-sizing: border-box;
   height: 4.4rem;
   padding: 0 1.6rem;
@@ -255,79 +222,22 @@
   line-height: 1;
 }
 
-.saitosign-field input,
-.saitosign-field select {
-  width: 100%;
-  box-sizing: border-box;
-  padding: var(--saito-space-md);
-  border: 1px solid var(--saito-border);
-  border-radius: var(--saito-radius);
-  background: var(--saito-card);
-  color: var(--saito-foreground);
-  font: inherit;
-  font-size: var(--font-size-medium);
-}
-
-.saitosign-field .new-signer input {
-  flex: 1;
-  width: auto;
-  min-width: 0;
-}
-
-.saitosign-field select {
-  appearance: none;
-  -webkit-appearance: none;
-  padding-right: 3.2rem;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%23a6a09b' d='M1.4 0.6L6 5.2 10.6 0.6 12 2 6 8 0 2z'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 1rem center;
-  background-size: 1.2rem 0.8rem;
-  cursor: pointer;
-}
-
-.prepare .actions,
-.saitosign-field .actions {
+.workspace .actions {
   display: flex;
   gap: var(--saito-space-sm);
 }
 
-.prepare .actions button,
-.saitosign-field .actions button,
-.prepare .export {
+.workspace .actions button,
+.workspace .export {
   padding: var(--saito-space-sm) var(--saito-space-md);
   font: inherit;
 }
 
-.prepare .actions button {
+.workspace .actions button {
   flex: 1;
 }
 
-.saitosign-field .actions {
-  align-items: center;
-  justify-content: flex-end;
-}
-
-.saitosign-field .actions .primary {
-  flex: none;
-  min-width: 8rem;
-}
-
-.saitosign-field [data-remove-field],
-.saitosign-field [data-remove-signer-confirm] {
-  margin-right: auto;
-  border-color: transparent;
-  background: transparent;
-  color: var(--saito-muted-foreground);
-  cursor: pointer;
-}
-
-.saitosign-field [data-remove-field]:hover,
-.saitosign-field [data-remove-signer-confirm]:hover {
-  color: var(--saito-foreground);
-}
-
-.prepare button.primary,
-.saitosign-field button.primary {
+.workspace button.primary {
   border-color: var(--saito-primary);
   background: var(--saito-primary);
   color: var(--saito-primary-foreground);
@@ -336,7 +246,7 @@
   cursor: pointer;
 }
 
-.prepare button.export {
+.workspace button.export {
   margin-top: auto;
   border: 1px solid #fff;
   border-radius: var(--saito-radius);
@@ -345,27 +255,27 @@
   cursor: default;
 }
 
-.prepare button.export.primary:not(:disabled) {
+.workspace button.export.primary:not(:disabled) {
   border-color: var(--saito-primary);
   background: var(--saito-primary);
   color: var(--saito-primary-foreground);
   cursor: pointer;
 }
 
-.prepare button.export:disabled {
+.workspace button.export:disabled {
   opacity: 1;
 }
 
-.prepare .row .open {
+.workspace .row .open {
   cursor: pointer;
 }
 
-.prepare .notice {
+.workspace .notice {
   margin: 0;
   color: var(--saito-destructive);
 }
 
-.prepare .stage {
+.workspace .stage {
   position: relative;
   display: flex;
   flex: 1;
@@ -374,14 +284,14 @@
   padding: var(--saito-space-sm);
 }
 
-.prepare .sheet-wrap {
+.workspace .sheet-wrap {
   flex: 1;
   min-width: 0;
   min-height: 0;
   overflow: auto;
 }
 
-.prepare .sheet-sizer {
+.workspace .sheet-sizer {
   display: flex;
   align-items: flex-start;
   justify-content: center;
@@ -389,7 +299,7 @@
   min-height: 100%;
 }
 
-.prepare .reader {
+.workspace .reader {
   position: absolute;
   top: 1.2rem;
   right: 1.2rem;
@@ -408,31 +318,31 @@
   user-select: none;
 }
 
-.prepare .reader.moving {
+.workspace .reader.moving {
   cursor: grabbing;
 }
 
-.prepare .reader .pages,
-.prepare .reader .zoom,
-.prepare .reader .where {
+.workspace .reader .pages,
+.workspace .reader .zoom,
+.workspace .reader .where {
   display: flex;
   align-items: center;
   gap: var(--saito-space-xs);
 }
 
-.prepare .reader button {
+.workspace .reader button {
   width: 3.2rem;
   height: 3.2rem;
   padding: 0;
   cursor: pointer;
 }
 
-.prepare .reader button:disabled {
+.workspace .reader button:disabled {
   opacity: 0.35;
   cursor: default;
 }
 
-.prepare .reader input {
+.workspace .reader input {
   width: 3.6rem;
   box-sizing: border-box;
   padding: 0.3rem;
@@ -445,7 +355,7 @@
   cursor: text;
 }
 
-.prepare .sheet {
+.workspace .sheet {
   display: flex;
   flex-direction: column;
   gap: var(--saito-space-lg);
@@ -454,7 +364,7 @@
   background: transparent;
 }
 
-.prepare .pdf-page {
+.workspace .pdf-page {
   position: relative;
   flex: none;
   border: 1px solid var(--saito-border);
@@ -462,26 +372,26 @@
   box-shadow: var(--saito-elevation-1);
 }
 
-.prepare .page,
-.prepare .fields {
+.workspace .page,
+.workspace .fields {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
 }
 
-.prepare .page {
+.workspace .page {
   border: 0;
   pointer-events: none;
   background: var(--saito-card);
 }
 
-.prepare .fields.placing {
+.workspace .fields.placing {
   cursor: crosshair;
   box-shadow: inset 0 0 0 2px var(--saito-primary);
 }
 
-.prepare .field {
+.workspace .field {
   position: absolute;
   display: flex;
   align-items: center;
@@ -502,132 +412,25 @@
   line-height: 1.2;
 }
 
-.prepare .field .text {
+.workspace .field .text {
   min-width: 0;
   max-width: 100%;
   overflow: hidden;
   color: #fff;
+  font-family: 'visuelt-black', var(--saito-font-heavy);
+  font-weight: 400;
   line-height: 1.2;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.prepare .field:hover {
+.workspace .field:hover {
   background: color-mix(in srgb, var(--saito-primary) 86%, #000);
   border-color: color-mix(in srgb, var(--saito-primary) 86%, #000);
 }
 
-.prepare .field.draft {
+.workspace .field.draft {
   pointer-events: none;
-}
-
-.saitosign-overlay {
-  width: min(44rem, calc(100vw - 4rem));
-}
-
-.saitosign-user-overlay {
-  width: min(36rem, calc(100vw - 4rem));
-}
-
-.saitosign-user {
-  display: flex;
-  flex-direction: column;
-  gap: 1.4rem;
-  box-sizing: border-box;
-  width: min(36rem, calc(100vw - 6rem));
-  padding: 2.2rem 2rem 1.8rem;
-}
-
-.saitosign-user .facts {
-  display: flex;
-  flex-direction: column;
-  gap: 1.2rem;
-  margin: 0;
-}
-
-.saitosign-user .fact {
-  display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
-}
-
-.saitosign-user .fact > span,
-.saitosign-user label.fact {
-  color: var(--saito-muted-foreground);
-  font-size: 1.3rem;
-  line-height: 1.2;
-}
-
-.saitosign-user p,
-.saitosign-user .fact input {
-  margin: 0;
-  box-sizing: border-box;
-  width: 100%;
-  min-height: 2.8rem;
-  padding: 0.55rem 0.9rem;
-  border: 1px solid var(--saito-border);
-  border-radius: var(--saito-radius);
-  background: var(--saito-card);
-  color: var(--saito-foreground);
-  font: inherit;
-  font-size: 1.5rem;
-  line-height: 1.35;
-  overflow-wrap: anywhere;
-}
-
-.saitosign-user .status {
-  display: flex;
-  align-items: center;
-  gap: 0.8rem;
-  margin: 0;
-  color: var(--saito-foreground);
-  font-size: 1.5rem;
-  line-height: 1.2;
-  cursor: default;
-}
-
-.saitosign-user .status input {
-  width: 1.6rem;
-  height: 1.6rem;
-  margin: 0;
-  accent-color: var(--saito-primary);
-  pointer-events: none;
-}
-
-.saitosign-user .actions {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--saito-space-sm);
-  margin-top: 0.6rem;
-}
-
-.saitosign-user button.primary {
-  height: 4.4rem;
-  padding: 0 1.6rem;
-  border: 1px solid var(--saito-primary);
-  border-radius: var(--saito-radius);
-  background: var(--saito-primary);
-  color: #fff;
-  font-family: var(--saito-font-heavy);
-  font-weight: 700;
-  font-size: 1.5rem;
-  line-height: 1;
-  cursor: pointer;
-}
-
-.saitosign-user [data-remove-signer-confirm] {
-  height: 4.4rem;
-  padding: 0 1.6rem;
-  border: 1px solid var(--saito-destructive);
-  border-radius: var(--saito-radius);
-  background: var(--saito-destructive);
-  color: #fff;
-  font-family: var(--saito-font-heavy);
-  font-weight: 700;
-  font-size: 1.5rem;
-  line-height: 1;
-  cursor: pointer;
 }
 
 @keyframes saitosign-arrive {
@@ -641,11 +444,11 @@
 }
 
 @media (max-width: 800px) {
-  .prepare {
+  .workspace {
     flex-direction: column;
   }
 
-  .prepare .rail {
+  .workspace .rail {
     width: auto;
     max-height: 42%;
     border-right: 0;

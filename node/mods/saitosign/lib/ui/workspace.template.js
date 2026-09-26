@@ -17,7 +17,7 @@ function signersHTML(view) {
       return `
         <li class="row signer${arrived}">
           <button type="button" class="open" data-open-signer="${signer.index}">
-            <i class="fa-solid fa-user" aria-hidden="true"></i>
+            <i class="fa-solid fa-user${signer.complete ? ' signed' : ''}" aria-hidden="true"></i>
             <span class="label">${escapeHTML(signer.name)}</span>
           </button>
         </li>
@@ -59,8 +59,8 @@ function fieldListHTML(view) {
           (field) => `
             <li class="row">
               <button type="button" class="open" data-open-field="${field.id}">
-                <i class="fa-solid fa-pen" aria-hidden="true"></i>
-                <span class="label">${escapeHTML(field.type)} · ${escapeHTML(field.name)} · page ${field.page}</span>
+                <i class="fa-solid ${field.signed ? 'fa-check signed' : 'fa-pen'}" aria-hidden="true"></i>
+                <span class="label">${escapeHTML(field.type)} - ${escapeHTML(field.name)} - page ${field.page}</span>
               </button>
             </li>
           `
@@ -113,7 +113,7 @@ function railHTML(view) {
     ${fieldsSectionHTML(view)}
     ${notice}
 
-    <button type="button" class="export${exportable}" data-export${disabled}>Export as SaitoSign</button>
+    <button type="button" class="export${exportable}" data-export${disabled}>Next Step</button>
   `;
 }
 
@@ -122,7 +122,7 @@ function fieldsHTML(page) {
     .map(
       (field) => `
         <button type="button" class="field" data-field-id="${field.id}" style="left:${pct(field.x)};top:${pct(field.y)};width:${pct(field.width)};height:${pct(field.height)}">
-          <span class="text">${escapeHTML(field.type)} · ${escapeHTML(field.name)}</span>
+          <span class="text">${escapeHTML(field.type)} - ${escapeHTML(field.name)}</span>
         </button>
       `
     )
@@ -131,7 +131,7 @@ function fieldsHTML(page) {
   const draft = page.draft
     ? `
       <div class="field draft" style="left:${pct(page.draft.x)};top:${pct(page.draft.y)};width:${pct(page.draft.width)};height:${pct(page.draft.height)}">
-        <span class="text">${escapeHTML(page.draft.type)} · ${escapeHTML(page.draft.name)}</span>
+        <span class="text">${escapeHTML(page.draft.type)} - ${escapeHTML(page.draft.name)}</span>
       </div>
     `
     : '';
@@ -174,89 +174,9 @@ function readerHTML(view) {
   `;
 }
 
-function signerFormHTML(view) {
-  const verified = view.verified ? ' checked' : '';
-  const signed = view.signed ? ' checked' : '';
-
+function workspaceTemplate(view) {
   return `
-    <section class="saitosign-user">
-      <div class="facts">
-        <label class="fact">
-          name:
-          <input data-user-name type="text" value="${escapeHTML(view.name || '')}" autocomplete="name" />
-        </label>
-        <label class="fact">
-          email:
-          <input data-user-email type="text" value="${escapeHTML(view.email || '')}" autocomplete="email" />
-        </label>
-        <div class="fact">
-          <span>public key:</span>
-          <p>${escapeHTML(view.publickey || '')}</p>
-        </div>
-      </div>
-      <label class="status">
-        <input type="checkbox" disabled${verified}>
-        has verified
-      </label>
-      <label class="status">
-        <input type="checkbox" disabled${signed}>
-        signed verified
-      </label>
-      <div class="actions">
-        <button type="button" data-remove-signer-confirm>delete user</button>
-        <button type="button" class="primary" data-update-user>Update</button>
-      </div>
-    </section>
-  `;
-}
-
-function fieldFormHTML(view) {
-  const types = ['signature', 'initial', 'date']
-    .map((type) => {
-      const selected = view.type === type ? ' selected' : '';
-      return `<option value="${type}"${selected}>${type}</option>`;
-    })
-    .join('');
-
-  const signers = view.signers
-    .map((signer) => {
-      const selected = signer.index === view.signer_index ? ' selected' : '';
-      return `<option value="${signer.index}"${selected}>${escapeHTML(signer.name)}</option>`;
-    })
-    .join('');
-
-  const remove = view.existing
-    ? '<button type="button" data-remove-field>Delete Action</button>'
-    : '';
-
-  return `
-    <form class="saitosign-field">
-      <label>
-        Who
-        <select data-field-signer>
-          ${signers}
-          <option value="new">Add New Signer</option>
-        </select>
-      </label>
-      <div class="new-signer" hidden>
-        <input data-new-signer type="text" placeholder="name or email" aria-label="Signer name" autocomplete="name" />
-        <button type="button" data-create-signer>Add</button>
-      </div>
-      <label>
-        What
-        <select data-field-type>${types}</select>
-      </label>
-      <div class="actions">
-        ${remove}
-        <button type="submit" class="primary">${view.existing ? 'Update' : 'Place'}</button>
-      </div>
-    </form>
-  `;
-}
-
-function prepareTemplate(view) {
-  return `
-    <main class="prepare">
+    <main class="workspace">
       <aside class="rail">${railHTML(view)}</aside>
       <section class="stage">
         <div class="sheet-wrap">
@@ -274,9 +194,7 @@ function prepareTemplate(view) {
   `;
 }
 
-module.exports = prepareTemplate;
+module.exports = workspaceTemplate;
 module.exports.rail = railHTML;
 module.exports.fields = fieldsHTML;
 module.exports.reader = readerHTML;
-module.exports.fieldForm = fieldFormHTML;
-module.exports.signerForm = signerFormHTML;

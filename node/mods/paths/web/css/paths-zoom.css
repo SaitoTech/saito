@@ -147,6 +147,33 @@
     background-color: #e7e7e7;
   }
 
+  .zoom-overlay .controls .movement-actions {
+    position: absolute;
+    top: -3.333rem;
+    left: 26.666rem;
+    display: flex;
+    gap: 0.833rem;
+    height: 3.333rem;
+    width: max-content;
+    z-index: 11;
+    pointer-events: none;
+  }
+
+  .zoom-overlay .controls .movement-actions .option {
+    pointer-events: auto;
+    height: 3.333rem;
+    min-height: 0;
+    width: auto;
+    margin: 0;
+    padding: 0 1rem;
+    border-top: 0;
+    border-radius: 0.833rem;
+    background-color: whitesmoke;
+    font-size: 1.333rem;
+    line-height: 3.333rem;
+    white-space: nowrap;
+  }
+
   .zoom-overlay .status .status-header {
     box-shadow: none;
     margin-bottom: 0px;

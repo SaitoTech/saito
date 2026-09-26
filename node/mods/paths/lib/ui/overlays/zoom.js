@@ -62,6 +62,8 @@ class ZoomOverlay {
     }
 
     let board = document.querySelector('.zoom-overlay .gameboard');
+    board.style.left = '0px';
+    board.style.top = '0px';
     board.style.transition = 'transform 0.5s ease';
     board.style.transform = `translate(-${scrollLeft}px, -${scrollTop}px)`;
   }

@@ -88,9 +88,9 @@ class Splash {
       }
     };
 
-    const learn = document.querySelector('.splash [data-how]');
+    const learn = document.querySelector('.splash [data-faq]');
     if (learn) {
-      learn.onclick = () => this.main.showHow();
+      learn.onclick = () => this.main.showFaq();
     }
   }
 

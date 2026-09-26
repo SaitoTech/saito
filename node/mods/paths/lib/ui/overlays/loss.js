@@ -162,7 +162,9 @@ class LossOverlay {
   }
 
   rememberCombatRoster(attacker_units = [], defender_units = []) {
-    let step = this.mod.game?.state?.combat?.step;
+    let game = this.mod.game;
+    let combat = game && game.state && game.state.combat;
+    let step = combat ? combat.step : undefined;
     if (this.roster && this.roster.step === step) {
       return;
     }
@@ -256,19 +258,40 @@ class LossOverlay {
 
   fireSnapshot() {
     let c = this.mod.game.state.combat;
+    let attacker_hits =
+      c.attacker_loss_factor_at_fire != null
+        ? c.attacker_loss_factor_at_fire
+        : c.attacker_loss_factor;
+    let defender_hits =
+      c.defender_loss_factor_at_fire != null
+        ? c.defender_loss_factor_at_fire
+        : c.defender_loss_factor;
+
+    // Attacker flank: defender fires after taking losses. defender_cp stays "?"
+    // until that fire is recalculated on the reduced force.
+    if (c.flank_attack == 'attacker') {
+      if (c.defender_cp == '?') {
+        attacker_hits = '?';
+      } else {
+        attacker_hits = c.attacker_loss_factor;
+      }
+    }
+    // Defender flank: attacker fires after taking losses.
+    if (c.flank_attack == 'defender') {
+      if (c.attacker_cp == '?') {
+        defender_hits = '?';
+      } else {
+        defender_hits = c.defender_loss_factor;
+      }
+    }
+
     return {
       attacker_cp:
         c.attacker_cp_at_fire != null ? c.attacker_cp_at_fire : c.attacker_cp,
       defender_cp:
         c.defender_cp_at_fire != null ? c.defender_cp_at_fire : c.defender_cp,
-      attacker_hits:
-        c.attacker_loss_factor_at_fire != null
-          ? c.attacker_loss_factor_at_fire
-          : c.attacker_loss_factor,
-      defender_hits:
-        c.defender_loss_factor_at_fire != null
-          ? c.defender_loss_factor_at_fire
-          : c.defender_loss_factor
+      attacker_hits: attacker_hits,
+      defender_hits: defender_hits
     };
   }
 
@@ -944,6 +967,7 @@ class LossOverlay {
 
     let didx = idx;
     let unit_idx = didx;
+    let space_idx = paths_self.game.spaces[unit_spacekey].units.indexOf(unit);
 
     //
     // withdrawal
@@ -968,7 +992,7 @@ class LossOverlay {
     if (unit.damaged && !unit.destroyed) {
       console.log('assigning hit to damaged unit...');
 
-      this.moves.push(`damage\t${unit_spacekey}\t${unit_key}\t1\t${paths_self.game.player}`);
+      this.moves.push(`damage\t${unit_spacekey}\t${unit_key}\t1\t${paths_self.game.player}\t${space_idx}`);
       this.loss_factor -= unit.rloss;
 
       unit.damaged = true;
@@ -1024,14 +1048,16 @@ class LossOverlay {
           corpsunit.damaged_this_combat = true; // used to be an army...
           corpsunit.spacekey = unit.spacekey;
           if (corps_damaged) { corpsunit.damaged = true; }
+          // Defender this.units is the combat space. Pushing both inserts the corps twice.
+          let space_units = paths_self.game.spaces[corpsunit.spacekey].units;
+          if (this.units !== space_units) {
+            space_units.push(corpsunit);
+          }
           this.units.push(corpsunit);
-          // The assigning player ignores the later add move, so the replacement
-          // corps has to be placed here. Attackers also record it on the combat.
-          paths_self.game.spaces[corpsunit.spacekey].units.push(corpsunit);
           if (am_i_the_attacker) {
             paths_self.game.state.combat.attacker.push({
               key: paths_self.game.state.combat.key,
-              unit_idx: paths_self.game.spaces[corpsunit.spacekey].units.length - 1,
+              unit_idx: space_units.length - 1,
               unit_sourcekey: corpsunit.spacekey
             });
           }
@@ -1102,7 +1128,7 @@ class LossOverlay {
     } else {
       console.log('assigning hit to undamaged unit...');
 
-      this.moves.push(`damage\t${unit_spacekey}\t${unit_key}\t0\t${this.mod.game.player}`);
+      this.moves.push(`damage\t${unit_spacekey}\t${unit_key}\t0\t${this.mod.game.player}\t${space_idx}`);
       unit.damaged = true;
       unit.damaged_this_combat = true;
       this.loss_factor -= unit.loss;
@@ -1199,6 +1225,37 @@ class LossOverlay {
     console.log('assigning hits? ' + faction);
     console.log('hits assignable def? ' + this.number_of_hits_assignable_defender_units);
     console.log('hits assignable att? ' + this.number_of_hits_assignable_attacker_units);
+
+    // Corps leave no replacement. If the hits cover every remaining step, order does not matter.
+    let corps_only = true;
+    let hits_to_wipe = 0;
+    for (let z = 0; z < this.units.length; z++) {
+      let u = this.units[z];
+      if (u.destroyed) { continue; }
+      if (!u.corps || u.key == 'aoi_corps') { corps_only = false; break; }
+      if (u.damaged) { hits_to_wipe += u.rloss; }
+      else { hits_to_wipe += u.loss + u.rloss; }
+    }
+    if (corps_only && hits_to_wipe > 0 && this.loss_factor >= hits_to_wipe) {
+      for (let z = 0; z < this.units.length; z++) {
+        if (!this.units[z].destroyed) {
+          this.assignHitToUnit(
+            this.units[z],
+            this.units[z].spacekey,
+            this.units[z].key,
+            z,
+            null,
+            am_i_the_attacker,
+            my_qs,
+            faction,
+            just_one_more_hit
+          );
+          this.hits_already_assigned = 1;
+          this.updateInstructions('All losses have been assigned automatically.', 'resolved');
+          return;
+        }
+      }
+    }
 
     if (faction === 'defender' && this.number_of_hits_assignable_defender_units == 1) {
       let idx = this.sole_defender_unit_id;

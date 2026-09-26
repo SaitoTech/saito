@@ -417,7 +417,11 @@ class Arcade extends ModTemplate {
 
     if (type === 'saito-filter-link') {
       if (obj.slug == this.returnSlug()) {
-        if (!obj.url.includes('invite')) {
+        const url = String(obj.url || '');
+        // Shared invites are shortened to /arcade/s/<code>, which drops the
+        // invite=1 query the long link used to carry.
+        const isGameInvite = url.includes('invite') || /\/s\/[^/?#]+/.test(url);
+        if (!isGameInvite) {
           return {
             info: [],
             no_photo: true
