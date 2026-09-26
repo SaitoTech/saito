@@ -17630,6 +17630,19 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
 
       paths_self.attachMovementSnapshotUndo();
 
+      let rendered_at = options[0];
+      for (let i = 0; i < options.length; i++) {
+        let still = false;
+        let space = paths_self.game.spaces[options[i]];
+        for (let z = 0; z < space.units.length; z++) {
+          if (space.units[z].moved != 1) { still = true; }
+        }
+        if (still) { rendered_at = options[i]; break; }
+      }
+      if (paths_self.zoom_overlay.visible) {
+        paths_self.zoom_overlay.scrollTo(rendered_at);
+      }
+
       paths_self.playerSelectSpaceWithFilter(
 	"Select Unit(s) to Move: ",
 	(key) => {
