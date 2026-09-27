@@ -12344,7 +12344,26 @@ console.log("qe: " + qe);
     this.cardbox.render();
 
     try {
+      this.default_board_view = null;
+      let slug = this.returnSlug();
+      if (this.loadGamePreference(slug + '-board-view-set')) {
+        this.deleteGamePreference(slug + '-board-offset');
+        this.deleteGamePreference(slug + '-board-scale');
+        this.deleteGamePreference(slug + '-board-view-set');
+        let live = document.getElementById('hexGrid');
+        if (live) {
+          live.style.left = '';
+          live.style.top = '';
+          live.style.transform = '';
+          live.style.transformOrigin = '';
+        }
+      }
       this.minimap.render();
+      let dash = document.querySelector('.dashboard');
+      let map = document.querySelector('.game-minimap');
+      if (dash && map && map.parentElement !== dash) {
+        dash.prepend(map);
+      }
     } catch (err) {}
 
 
@@ -13176,6 +13195,58 @@ ensureHudChrome() {
     chrome.id = 'imperium-hud-chrome';
     chrome.className = 'imperium-hud-chrome';
     hud.insertBefore(chrome, hud.firstChild);
+  }
+  if (!hud.dataset.imperiumDrag) {
+    hud.dataset.imperiumDrag = '1';
+    hud.addEventListener('selectstart', (e) => {
+      e.preventDefault();
+    });
+    hud.addEventListener('mousedown', (e) => {
+      if (e.button !== 0) {
+        return;
+      }
+      if (e.target.closest('.hud-back-button, a, input, textarea, button, select')) {
+        return;
+      }
+      e.preventDefault();
+      e.stopPropagation();
+      let click_el = e.target.closest('.option, .hud-menu li, .hud-visual-option, .hud-cards .card');
+      let rect = hud.getBoundingClientRect();
+      let start_x = e.clientX;
+      let start_y = e.clientY;
+      let orig_left = rect.left;
+      let orig_top = rect.top;
+      let dragged = false;
+      let place = (dx, dy) => {
+        hud.style.left = orig_left + dx + 'px';
+        hud.style.top = orig_top + dy + 'px';
+        hud.style.right = 'auto';
+        hud.style.bottom = 'auto';
+        hud.style.marginLeft = '0px';
+        hud.style.marginRight = '0px';
+        hud.style.transform = 'none';
+      };
+      let on_move = (ev) => {
+        let dx = ev.clientX - start_x;
+        let dy = ev.clientY - start_y;
+        if (!dragged && Math.abs(dx) < 4 && Math.abs(dy) < 4) {
+          return;
+        }
+        dragged = true;
+        place(dx, dy);
+      };
+      let on_up = () => {
+        document.removeEventListener('mousemove', on_move);
+        document.removeEventListener('mouseup', on_up);
+        document.body.style.userSelect = '';
+        if (!dragged && click_el) {
+          click_el.click();
+        }
+      };
+      document.body.style.userSelect = 'none';
+      document.addEventListener('mousemove', on_move);
+      document.addEventListener('mouseup', on_up);
+    }, true);
   }
   return chrome;
 }
@@ -32432,6 +32503,7 @@ addUIEvents() {
   if (this.browser_active == 0) { return; }
 
   $('#hexGrid').draggable();
+  this.ensureBoardVisible();
 
   //set player highlight color
   document.documentElement.style.setProperty('--my-color', `var(--p${this.game.player})`);
@@ -32616,24 +32688,6 @@ updateLeaderboard() {
 
     let strategy_cards = this.returnStrategyCards();
     let thiscard = strategy_cards[c];
-
-    // - show bonus available
-    let strategy_card_bonus = 0;
-    for (let i = 0; i < this.game.state.strategy_cards.length; i++) {
-      if (thiscard === this.game.state.strategy_cards[i]) {
-        strategy_card_bonus = this.game.state.strategy_cards_bonus[i];
-      }
-    }
-
-    let strategy_card_bonus_html = "";
-    if (strategy_card_bonus > 0) {
-      strategy_card_bonus_html = 
-      `<div class="strategy_card_bonus">    
-        <i class="fas fa-database white-stroke"></i>
-        <span>${strategy_card_bonus}</span>
-      </div>`;
-
-    }
     this.cardbox.showCardboxHTML(thiscard, thiscard.returnCardImage());
   }
 
@@ -32757,10 +32811,10 @@ updateLeaderboard() {
           }
         }
 
+        let file = String(obj.img || '').split('/').pop();
         return `
           <div class="strategy-card strategy-card-${name}" id="${name}">
-	    <img id="${name}" src="/imperium/img/cards${obj.img}">
-	    <div class="text">${obj.text}</div>
+	    <img id="${name}" src="/imperium/img/cards/strategy/${file}">
 	    ${bonus_html} ${card_html}
 	  </div>
         `;

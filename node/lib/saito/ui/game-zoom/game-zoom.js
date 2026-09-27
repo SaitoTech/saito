@@ -40,7 +40,7 @@ class GameZoom {
 
     if (!this.initialized) {
       this.initialized = true;
-      const board = document.querySelector('.gameboard:not(.gameboard-clone)');
+      const board = document.querySelector('#hexGrid.gameboard, .gameboard:not(.game-minimap-clone):not(.gameboard-clone)');
       if (board) {
         let saved_scale = this.mod.loadGamePreference(this.mod.returnSlug() + '-board-scale');
         let view_ready = this.mod.default_board_view
@@ -48,16 +48,25 @@ class GameZoom {
           : 1;
         if (saved_scale && view_ready) {
           this.mod.setBoardScale(saved_scale, false);
+          let boardoffset = null;
           try {
-            let boardoffset = this.mod.loadGamePreference(this.mod.returnSlug() + '-board-offset');
-            if (boardoffset) {
-              if (typeof $ !== 'undefined' && boardoffset.top !== undefined) {
-                $(board).offset(boardoffset);
-              } else {
-                this.mod.setBoardPosition(boardoffset.left, boardoffset.top);
-              }
-            }
+            boardoffset = this.mod.loadGamePreference(this.mod.returnSlug() + '-board-offset');
           } catch (err) {}
+          const s = (Number(saved_scale) || 100) / 100;
+          const inWindow =
+            boardoffset &&
+            this.mod.boardOffsetInWindow(
+              boardoffset.left,
+              boardoffset.top,
+              board.offsetWidth * s,
+              board.offsetHeight * s
+            );
+          if (inWindow) {
+            board.style.left = boardoffset.left + 'px';
+            board.style.top = boardoffset.top + 'px';
+          } else if (boardoffset) {
+            this.mod.deleteGamePreference(this.mod.returnSlug() + '-board-offset');
+          }
         } else if (this.mod.default_board_view) {
           this.applyDefaultBoardView(board);
           this.mod.saveGamePreference(this.mod.returnSlug() + '-board-view-set', 1);
@@ -65,6 +74,9 @@ class GameZoom {
           this.mod.setBoardScale(this.mod.default_board_scale);
         } else {
           this.mod.centerBoard();
+        }
+        if (this.mod.ensureBoardVisible) {
+          this.mod.ensureBoardVisible();
         }
       }
     }
@@ -231,7 +243,7 @@ class GameZoom {
       zoom_self.dragging = false;
     });
 
-    const board = document.querySelector('.gameboard:not(.gameboard-clone)');
+    const board = document.querySelector('#hexGrid.gameboard, .gameboard:not(.game-minimap-clone):not(.gameboard-clone)');
     if (board) {
       board.addEventListener(
         'wheel',
@@ -249,11 +261,8 @@ class GameZoom {
 
       if (typeof $ !== 'undefined') {
         $(board).draggable({
-          stop: function (event, ui) {
-            zoom_self.mod.saveGamePreference(
-              zoom_self.mod.returnSlug() + '-board-offset',
-              ui.offset
-            );
+          stop: function () {
+            zoom_self.mod.saveBoardDocumentOffset(board);
             zoom_self.minimap.render();
           }
         });

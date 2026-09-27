@@ -252,7 +252,26 @@
     this.cardbox.render();
 
     try {
+      this.default_board_view = null;
+      let slug = this.returnSlug();
+      if (this.loadGamePreference(slug + '-board-view-set')) {
+        this.deleteGamePreference(slug + '-board-offset');
+        this.deleteGamePreference(slug + '-board-scale');
+        this.deleteGamePreference(slug + '-board-view-set');
+        let live = document.getElementById('hexGrid');
+        if (live) {
+          live.style.left = '';
+          live.style.top = '';
+          live.style.transform = '';
+          live.style.transformOrigin = '';
+        }
+      }
       this.minimap.render();
+      let dash = document.querySelector('.dashboard');
+      let map = document.querySelector('.game-minimap');
+      if (dash && map && map.parentElement !== dash) {
+        dash.prepend(map);
+      }
     } catch (err) {}
 
 

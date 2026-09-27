@@ -141,7 +141,7 @@ class GameMinimap {
       }
       this.clone_el = b.el.cloneNode(true);
       this.clone_el.removeAttribute('id');
-      this.clone_el.classList.remove('gameboard-clone');
+      this.clone_el.classList.remove('gameboard', 'gameboard-clone');
       this.clone_el.classList.add('game-minimap-clone');
       this.clone_el.querySelectorAll('[id]').forEach((el) => {
         el.id = 'minimap-' + el.id;
@@ -358,7 +358,7 @@ class GameMinimap {
       }
     });
 
-    const el = document.querySelector('.gameboard:not(.gameboard-clone)');
+    const el = document.querySelector('#hexGrid.gameboard, .gameboard:not(.game-minimap-clone):not(.gameboard-clone)');
     if (el) {
       if (typeof $ !== 'undefined') {
         $(el).on('drag dragstop', () => {

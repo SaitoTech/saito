@@ -480,6 +480,7 @@ addUIEvents() {
   if (this.browser_active == 0) { return; }
 
   $('#hexGrid').draggable();
+  this.ensureBoardVisible();
 
   //set player highlight color
   document.documentElement.style.setProperty('--my-color', `var(--p${this.game.player})`);
@@ -664,24 +665,6 @@ updateLeaderboard() {
 
     let strategy_cards = this.returnStrategyCards();
     let thiscard = strategy_cards[c];
-
-    // - show bonus available
-    let strategy_card_bonus = 0;
-    for (let i = 0; i < this.game.state.strategy_cards.length; i++) {
-      if (thiscard === this.game.state.strategy_cards[i]) {
-        strategy_card_bonus = this.game.state.strategy_cards_bonus[i];
-      }
-    }
-
-    let strategy_card_bonus_html = "";
-    if (strategy_card_bonus > 0) {
-      strategy_card_bonus_html = 
-      `<div class="strategy_card_bonus">    
-        <i class="fas fa-database white-stroke"></i>
-        <span>${strategy_card_bonus}</span>
-      </div>`;
-
-    }
     this.cardbox.showCardboxHTML(thiscard, thiscard.returnCardImage());
   }
 

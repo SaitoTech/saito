@@ -115,9 +115,6 @@
     list-style: none;
   }
 
-  .game-menu ul li {
-    width: 160px;
-  }
   .game-overlay-cardlist-title {
     font-family: var(--imp-font);
     color: var(--imp-text);

@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <g fill="none" stroke="#000" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round">
+    <!-- impossible cube -->
+    <path d="M8 19 L32 5 L56 19 L56 46 L32 59 L8 46 Z"/>
+    <path d="M8 19 L32 33 L56 19"/>
+    <path d="M32 33 L32 59"/>
+    <path d="M8 46 L20 25"/>
+    <path d="M20 25 L8 19"/>
+    <path d="M20 25 L32 33"/>
+    <path d="M32 5 L43 25 L56 19"/>
+    <path d="M43 25 L32 33"/>
+    <path d="M32 46 L56 46"/>
+    <path d="M32 46 L32 59"/>
+  </g>
+</svg>

@@ -18,6 +18,58 @@ ensureHudChrome() {
     chrome.className = 'imperium-hud-chrome';
     hud.insertBefore(chrome, hud.firstChild);
   }
+  if (!hud.dataset.imperiumDrag) {
+    hud.dataset.imperiumDrag = '1';
+    hud.addEventListener('selectstart', (e) => {
+      e.preventDefault();
+    });
+    hud.addEventListener('mousedown', (e) => {
+      if (e.button !== 0) {
+        return;
+      }
+      if (e.target.closest('.hud-back-button, a, input, textarea, button, select')) {
+        return;
+      }
+      e.preventDefault();
+      e.stopPropagation();
+      let click_el = e.target.closest('.option, .hud-menu li, .hud-visual-option, .hud-cards .card');
+      let rect = hud.getBoundingClientRect();
+      let start_x = e.clientX;
+      let start_y = e.clientY;
+      let orig_left = rect.left;
+      let orig_top = rect.top;
+      let dragged = false;
+      let place = (dx, dy) => {
+        hud.style.left = orig_left + dx + 'px';
+        hud.style.top = orig_top + dy + 'px';
+        hud.style.right = 'auto';
+        hud.style.bottom = 'auto';
+        hud.style.marginLeft = '0px';
+        hud.style.marginRight = '0px';
+        hud.style.transform = 'none';
+      };
+      let on_move = (ev) => {
+        let dx = ev.clientX - start_x;
+        let dy = ev.clientY - start_y;
+        if (!dragged && Math.abs(dx) < 4 && Math.abs(dy) < 4) {
+          return;
+        }
+        dragged = true;
+        place(dx, dy);
+      };
+      let on_up = () => {
+        document.removeEventListener('mousemove', on_move);
+        document.removeEventListener('mouseup', on_up);
+        document.body.style.userSelect = '';
+        if (!dragged && click_el) {
+          click_el.click();
+        }
+      };
+      document.body.style.userSelect = 'none';
+      document.addEventListener('mousemove', on_move);
+      document.addEventListener('mouseup', on_up);
+    }, true);
+  }
   return chrome;
 }
 

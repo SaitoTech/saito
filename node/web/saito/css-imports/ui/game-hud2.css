@@ -18,6 +18,14 @@
   font-size: 1.333rem;
   overflow: visible;
   background-color: transparent;
+  cursor: move;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.game-hud2 * {
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 .hud-status-row {
@@ -65,7 +73,7 @@
   max-height: min(40vh, 22rem);
   overflow-x: hidden;
   overflow-y: auto;
-  background-color: transparent;
+  background-color: whitesmoke;
   color: #000;
   font-size: 1.333rem;
 }
@@ -87,8 +95,8 @@
 .hud-menu li,
 .hud-menu .option {
   box-sizing: border-box;
-  background-color: whitesmoke;
-  color: #000;
+  background-color: inherit;
+  color: inherit;
   height: 6.667rem;
   width: 100%;
   padding: 0.833rem;

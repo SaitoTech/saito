@@ -147,6 +147,14 @@
     background-color: #e7e7e7;
   }
 
+  .zoom-overlay .controls .option:has(.move-unit-chit) {
+    height: auto;
+    justify-content: flex-start;
+    text-align: left;
+    gap: 1rem;
+    padding: 0.7rem 1rem;
+  }
+
   .zoom-overlay .controls .movement-actions {
     position: absolute;
     top: -3.333rem;
@@ -206,4 +214,57 @@
   .zoom-overlay .gameboard {
     position: relative;
   }
+}
+
+.move-unit-chit {
+  position: relative;
+  flex: 0 0 auto;
+  width: 5.6rem;
+  height: 5.6rem;
+  display: block;
+  overflow: hidden;
+}
+
+.move-unit-chit img,
+.move-unit-chit .army-tile {
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  max-width: 100% !important;
+  max-height: 100% !important;
+  margin: 0 !important;
+  object-fit: contain;
+  display: block;
+  z-index: 1;
+}
+
+.move-unit-chit .army-tile:hover {
+  z-index: 1;
+}
+
+.move-unit-label {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 0.2rem;
+  min-width: 0;
+  text-align: left;
+}
+
+.move-unit-country,
+.move-unit-name {
+  display: block;
+  line-height: 1.2;
+}
+
+#game-hud2 .hud-menu .option:has(.move-unit-chit) {
+  height: auto;
+  justify-content: flex-start;
+  text-align: left;
+  gap: 1rem;
 }

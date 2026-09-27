@@ -32,7 +32,7 @@ module.exports = (imperium_self, i = 0, agenda_phase = 0) => {
         </div>
 
         <div data-id="${i + 1}" class="dash-item tooltip dash-item-trade trade">
-          <i data-id="${i + 1}" class="fas fa-database pc white-stroke"></i>
+          <div data-id="${i + 1}" class="credits-icon pc"></div>
           <div data-id="${i + 1}" id="dash-item-goods" class="dash-item-goods">
             ${pinfo.goods}
           </div>
@@ -42,31 +42,22 @@ module.exports = (imperium_self, i = 0, agenda_phase = 0) => {
   }
 
   html += `
-      <div data-id="${i + 1}" class="dash-faction-base">
-        <div data-id="${i + 1}" class="dash-faction-status-${i + 1} dash-faction-status"></div>
-	<div class="dash-faction-status-text">
-          commodities : <span data-id="${i + 1}" class="dash-item-commodities">${
-            pinfo.commodities
-          }</span> / <span data-id="${i + 1}" class="dash-item-commodity-limit">${
-            pinfo.commodity_limit
-          }</span>
-        </div>
-      </div>
-
+      <div class="dash-faction-rule"></div>
       <div data-id="${i + 1}" class="dash-faction-footer">
+        <div data-id="${i + 1}" class="dash-faction-base" title="commodities">
+          <div class="dash-faction-status-text">
+            <span data-id="${i + 1}" class="dash-item-commodities">${pinfo.commodities}</span>
+            <span class="dash-commodity-slash">/</span>
+            <span data-id="${i + 1}" class="dash-item-commodity-limit">${pinfo.commodity_limit}</span>
+          </div>
+          <div data-id="${i + 1}" class="dash-faction-status-${i + 1} dash-faction-status"></div>
+        </div>
+        <div data-id="${i + 1}" class="dash-faction-speaker${is_speaker ? ' speaker' : ''}">${is_speaker ? 'speaker' : ''}</div>
         <div data-id="${i + 1}" class="dash-faction-vp">
           <span class="dash-vp-label">VP</span>
           <span data-id="${i + 1}" class="dash-item-vp">${pinfo.vp}</span>
         </div>
       </div>
-
-      <div data-id="${i + 1}" class="dash-faction-speaker`;
-  if (is_speaker) {
-    html += ` speaker">Speaker · ${imperium_self.returnFactionNickname(i + 1)}`;
-  } else {
-    html += '">';
-  }
-  html += `</div>
     </div>
   `;
 

@@ -37,8 +37,88 @@ class GameCards {
     }
   }
 
+  boardEl() {
+    return (
+      document.getElementById('hexGrid') ||
+      document.querySelector('.gameboard:not(.game-minimap-clone):not(.gameboard-clone)')
+    );
+  }
+
+  prepareBoard(el) {
+    el.style.position = 'fixed';
+    el.style.margin = '0';
+    el.style.right = 'auto';
+    el.style.bottom = 'auto';
+    el.style.zIndex = '1';
+    el.style.transformOrigin = 'top left';
+  }
+
+  boardDocumentOffset(el) {
+    const r = el.getBoundingClientRect();
+    return { left: r.left, top: r.top };
+  }
+
+  saveBoardDocumentOffset(el) {
+    this.saveGamePreference(this.returnSlug() + '-board-offset', this.boardDocumentOffset(el));
+  }
+
+  // left/top are viewport coordinates of the visual top-left.
+  boardOffsetInWindow(left, top, visualW, visualH) {
+    if (left == null || top == null || !(visualW > 0) || !(visualH > 0)) {
+      return false;
+    }
+    const ix = Math.min(left + visualW, window.innerWidth) - Math.max(left, 0);
+    const iy = Math.min(top + visualH, window.innerHeight) - Math.max(top, 0);
+    return ix > 160 && iy > 160;
+  }
+
+  boardFillsView(el) {
+    if (!el) {
+      return false;
+    }
+    const r = el.getBoundingClientRect();
+    return this.boardOffsetInWindow(r.left, r.top, r.width, r.height);
+  }
+
+  moveBoardTo(el, viewLeft, viewTop) {
+    this.prepareBoard(el);
+    el.style.left = viewLeft + 'px';
+    el.style.top = viewTop + 'px';
+  }
+
+  placeBoardInWindow(el) {
+    if (!el) {
+      el = this.boardEl();
+    }
+    if (!el) {
+      return;
+    }
+    this.prepareBoard(el);
+    const r = el.getBoundingClientRect();
+    const scale = el.offsetWidth ? r.width / el.offsetWidth : 1;
+    const visualW = el.offsetWidth * scale;
+    const visualH = el.offsetHeight * scale;
+    el.style.left = (window.innerWidth - visualW) / 2 + 'px';
+    el.style.top = (window.innerHeight - visualH) / 2 + 'px';
+    this.saveBoardDocumentOffset(el);
+  }
+
+  ensureBoardVisible() {
+    const el = this.boardEl();
+    if (!el || this.boardFillsView(el)) {
+      return;
+    }
+    const scaled = el.offsetWidth && el.getBoundingClientRect().width / el.offsetWidth > 1.05;
+    if (!scaled && this.default_board_scale) {
+      this.setBoardScale(this.default_board_scale, false);
+    }
+    if (!this.boardFillsView(el)) {
+      this.placeBoardInWindow(el);
+    }
+  }
+
   getBoardState() {
-    const el = document.querySelector('.gameboard:not(.gameboard-clone)');
+    const el = this.boardEl();
     if (!el) {
       return null;
     }
@@ -57,21 +137,22 @@ class GameCards {
   }
 
   setBoardPosition(x, y) {
-    const el = document.querySelector('.gameboard:not(.gameboard-clone)');
+    const el = this.boardEl();
     if (!el) {
       return;
     }
-    el.style.left = x + 'px';
-    el.style.top = y + 'px';
-    this.saveGamePreference(this.returnSlug() + '-board-offset', { left: x, top: y });
+    this.moveBoardTo(el, x, y);
+    this.saveBoardDocumentOffset(el);
   }
 
   setBoardScale(scale, save = true) {
-    const el = document.querySelector('.gameboard:not(.gameboard-clone)');
+    const el = this.boardEl();
     if (!el) {
       return;
     }
     scale = Math.max(2, Math.min(200, Math.round(Number(scale) || 100)));
+
+    this.prepareBoard(el);
 
     const before = el.getBoundingClientRect();
     const oldScale = el.offsetWidth ? before.width / el.offsetWidth : 0;
@@ -80,25 +161,17 @@ class GameCards {
     const bx = oldScale ? (cx - before.left) / oldScale : 0;
     const by = oldScale ? (cy - before.top) / oldScale : 0;
 
-    el.style.transformOrigin = 'top left';
     el.style.transform = `scale(${scale / 100})`;
 
     if (oldScale) {
-      const after = el.getBoundingClientRect();
-      const newScale = el.offsetWidth ? after.width / el.offsetWidth : scale / 100;
-      const dx = cx - bx * newScale - after.left;
-      const dy = cy - by * newScale - after.top;
-      const left = (parseFloat(el.style.left) || 0) + dx;
-      const top = (parseFloat(el.style.top) || 0) + dy;
-      el.style.left = left + 'px';
-      el.style.top = top + 'px';
-      if (save) {
-        this.saveGamePreference(this.returnSlug() + '-board-offset', { left, top });
-      }
+      const newScale = scale / 100;
+      el.style.left = cx - bx * newScale + 'px';
+      el.style.top = cy - by * newScale + 'px';
     }
 
     if (save) {
       this.saveGamePreference(this.returnSlug() + '-board-scale', scale);
+      this.saveBoardDocumentOffset(el);
     }
     const input = document.querySelector('#game_board_sizer input');
     if (input) {
@@ -111,51 +184,23 @@ class GameCards {
   }
 
   centerBoard() {
-    const el = document.querySelector('.gameboard:not(.gameboard-clone)');
+    const el = document.getElementById('hexGrid') || this.boardEl();
     if (!el) {
       return;
     }
 
-    const cs = window.getComputedStyle(el);
-    let topAdjustment = 0;
-    let boardWidth = parseInt(cs.width) || 0;
-    let boardHeight = parseInt(cs.height) || 0;
-    if (cs.boxSizing == 'content-box') {
-      boardWidth += parseInt(cs.paddingLeft) + parseInt(cs.paddingRight);
-      boardHeight += parseInt(cs.paddingTop) + parseInt(cs.paddingBottom);
-      topAdjustment += parseInt(cs.paddingTop);
+    const boardWidth = el.offsetWidth;
+    const boardHeight = el.offsetHeight;
+    if (!boardWidth || !boardHeight) {
+      return;
     }
-    boardWidth += parseInt(cs.marginLeft) + parseInt(cs.marginRight);
-    boardHeight += parseInt(cs.marginTop) + parseInt(cs.marginBottom);
-    topAdjustment += parseInt(cs.marginTop);
 
     let scale = Math.floor(
       100 * Math.min(window.innerWidth / boardWidth, window.innerHeight / boardHeight)
     );
-    this.setBoardScale(scale);
-    el.style.left = '';
-    el.style.top = '';
-
-    if (el.getBoundingClientRect().width < window.innerWidth) {
-      let offset = Math.round((window.innerWidth - el.getBoundingClientRect().width) / 2) - 10;
-      el.style.left = offset + 'px';
-    }
-
-    if (el.getBoundingClientRect().height < window.innerHeight) {
-      let offset = 0;
-      if (window.innerHeight - el.getBoundingClientRect().height >= 40) {
-        offset = Math.min(50, window.innerHeight - el.getBoundingClientRect().height);
-      } else {
-        offset = Math.round((window.innerHeight - el.getBoundingClientRect().height) / 2) + 5;
-      }
-      offset = Math.max(0, offset - topAdjustment);
-      el.style.top = offset + 'px';
-    }
-
-    this.saveGamePreference(this.returnSlug() + '-board-offset', {
-      left: parseInt(el.style.left) || 0,
-      top: parseInt(el.style.top) || 0
-    });
+    this.setBoardScale(scale, false);
+    this.placeBoardInWindow(el);
+    this.saveGamePreference(this.returnSlug() + '-board-scale', scale);
   }
 
   ////////////////////////////////////////////////////////////////////////////////////////////////////

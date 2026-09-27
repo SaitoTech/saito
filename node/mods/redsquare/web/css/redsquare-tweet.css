@@ -274,9 +274,14 @@
   padding-left: 1.4em;
 }
 
-/* Cancel sibling block gap before lists; keep item rhythm via li + li below */
-.tweet .body > :is(p, blockquote, pre, table, hr, ul, ol) + :is(ul, ol) {
-  margin-top: 0;
+/*
+ * Block gap around lists. The margin:0 reset out-specifies `> * + *`, so
+ * lists need an explicit sibling rule. sm is slightly larger than li + li
+ * (xs) so a preceding paragraph reads as a separate block.
+ */
+.tweet .body > :is(p, blockquote, pre, table, hr, ul, ol) + :is(ul, ol),
+.tweet .body > :is(ul, ol) + :is(p, blockquote, pre, table, hr) {
+  margin-top: var(--saito-space-sm);
 }
 
 .tweet .body li {

@@ -28,44 +28,57 @@ class GameHUD2 {
       return;
     }
 
-    let handle = hud.querySelector('.hud-status-row');
-    if (!handle) {
-      return;
-    }
-
     this.drag_bound = true;
 
-    handle.addEventListener('mousedown', (e) => {
+    hud.addEventListener('selectstart', (e) => {
+      e.preventDefault();
+    });
+
+    hud.addEventListener('mousedown', (e) => {
       if (e.button !== 0) {
         return;
       }
-      if (e.target.closest('.hud-back-button')) {
+      if (e.target.closest('.hud-back-button, a, input, textarea, button, select')) {
         return;
       }
 
       e.preventDefault();
 
+      let click_el = e.target.closest('.option, .hud-menu li, .hud-visual-option, .hud-cards .card');
       let rect = hud.getBoundingClientRect();
-      hud.style.left = rect.left + 'px';
-      hud.style.top = rect.top + 'px';
-      hud.style.right = 'auto';
-      hud.style.bottom = 'auto';
-      hud.style.transform = 'none';
-
       let start_x = e.clientX;
       let start_y = e.clientY;
       let orig_left = rect.left;
       let orig_top = rect.top;
+      let dragged = false;
+
+      let place = (dx, dy) => {
+        hud.style.left = orig_left + dx + 'px';
+        hud.style.top = orig_top + dy + 'px';
+        hud.style.right = 'auto';
+        hud.style.bottom = 'auto';
+        hud.style.marginLeft = '0px';
+        hud.style.marginRight = '0px';
+        hud.style.transform = 'none';
+      };
 
       let on_move = (ev) => {
-        hud.style.left = orig_left + (ev.clientX - start_x) + 'px';
-        hud.style.top = orig_top + (ev.clientY - start_y) + 'px';
+        let dx = ev.clientX - start_x;
+        let dy = ev.clientY - start_y;
+        if (!dragged && Math.abs(dx) < 4 && Math.abs(dy) < 4) {
+          return;
+        }
+        dragged = true;
+        place(dx, dy);
       };
 
       let on_up = () => {
         document.removeEventListener('mousemove', on_move);
         document.removeEventListener('mouseup', on_up);
         document.body.style.userSelect = '';
+        if (!dragged && click_el) {
+          click_el.click();
+        }
       };
 
       document.body.style.userSelect = 'none';

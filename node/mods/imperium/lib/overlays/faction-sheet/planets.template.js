@@ -1,8 +1,19 @@
 module.exports = (imperium_self, player) => {
-  let cards = imperium_self.returnPlayerPlanetCards(player);
+  let cards = imperium_self.returnPlayerPlanetCards(player).slice();
   if (!cards.length) {
     return `<div class="fs-empty">This faction does not currently control any planets.</div>`;
   }
+
+  cards.sort((a, b) => {
+    let pa = imperium_self.game.planets[a] || {};
+    let pb = imperium_self.game.planets[b] || {};
+    let sa = (Number(pa.resources) || 0) + (Number(pa.influence) || 0);
+    let sb = (Number(pb.resources) || 0) + (Number(pb.influence) || 0);
+    if (sa !== sb) {
+      return sb - sa;
+    }
+    return String(pa.name || '').localeCompare(String(pb.name || ''));
+  });
 
   let html = '<div class="fs-planets">';
   for (let i = 0; i < cards.length; i++) {
@@ -10,20 +21,20 @@ module.exports = (imperium_self, player) => {
     if (!planet) {
       continue;
     }
-    let exhausted = planet.exhausted == 1 ? ' exhausted' : '';
-    let bonus = planet.bonus ? planet.bonus : '—';
+    let is_exhausted = planet.exhausted == 1;
+    let bonus = planet.bonus ? String(planet.bonus) : '';
+    let label = planet.name + '. Resources ' + planet.resources + '. Influence ' + planet.influence + '.';
+    if (bonus) {
+      label += ' ' + bonus + '.';
+    }
+    if (is_exhausted) {
+      label += ' Exhausted.';
+    }
     html += `
-      <article class="fs-planet${exhausted}">
-        <div class="fs-planet-art" style="background-image:url('${planet.img || ''}')"></div>
-        <div class="fs-planet-body">
-          <div class="fs-planet-name">${planet.name}</div>
-          <div class="fs-planet-stats">
-            <span>Resources ${planet.resources}</span>
-            <span>Influence ${planet.influence}</span>
-            <span>Bonus ${bonus}</span>
-          </div>
-          <div class="fs-planet-state">${planet.exhausted == 1 ? 'exhausted' : 'ready'}</div>
-        </div>
+      <article class="fs-planet${is_exhausted ? ' exhausted' : ''}" data-planet="${cards[i]}" data-exhausted="${is_exhausted ? 1 : 0}">
+        <div class="fs-planet-card" style="background-image:url('${planet.img || ''}')" role="img" aria-label="${label}"></div>
+        ${bonus ? `<div class="fs-planet-bonus ${bonus}">${bonus}</div>` : ''}
+        ${is_exhausted ? '<div class="fs-planet-banner">Exhausted</div>' : ''}
       </article>
     `;
   }

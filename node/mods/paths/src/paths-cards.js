@@ -704,21 +704,6 @@ deck['ap14'] = {
 	      return 1;
 	    }
 
-            if ((count == 1 && units_to_restore >= 1) || (count == 2 && units_to_restore >= 2)) {
-    	      let update_filter_fnct = (spacekey, unit) => {
-	        if (paths_self.returnPowerOfUnit(unit) == "allies") { return 0; }
-                if (unit.damaged == 1 && unit.destroyed != 1 && unit.army) {
-		  unit.damaged = 0; paths_self.displaySpace(spacekey);
-		  paths_self.updateLog(`${unit.name} repaired in ${paths_self.game.spaces[spacekey].name}`);
-        	  paths_self.shakeSpacekey(spacekey);
-		}
-	        return 1;
-	      }
-	      // filter function will update now
-	      paths_self.countUnitsWithFilter(update_filter_fnct);
-	      return 1;
-	    }
-
 	    if (paths_self.game.player == p1) {
 	      loop_fnct();
 	    } else {
@@ -1457,11 +1442,13 @@ deck['ap30'] = {
         	  true ,
         	  [{ key : "pass" , value : "pass" }]
         	);
-      	      }
+      	      } else {
+		paths_self.endTurn();
+	      }
     	    }
 
     	    let filter_fnct = (spacekey, unit) => {
-	      if (spacekey == "arbox" || paths_self.game.spaces[spacekey].port.length > 0) {
+	      if (spacekey == "arbox" || paths_self.game.spaces[spacekey].port > 0) {
 		if (unit.corps) {
 		  if (unit.ckey == "BR" || unit.ckey == "FR") { return 1; }
 		}
@@ -2317,7 +2304,7 @@ deck['ap38'] = {
         type : "normal" ,
         removeFromDeckAfterPlay : function(paths_self, faction) { return 1; } ,
         canEvent : function(paths_self, faction) { if (paths_self.game.state.events.over_there == 1) { return 1; } return 0;  } ,
-        onEvent : function(paths_self, faction) { return 1; 
+        onEvent : function(paths_self, faction) {
 	  if (paths_self.game.player == paths_self.returnPlayerOfFaction(faction)) {
 	    paths_self.addMove("SETVAR\tstate\tallies_reinforcements_us\t"+paths_self.game.state.round);
 	    paths_self.playerAddReinforcements("allies", ["us_corps"], "usa");
@@ -2746,9 +2733,6 @@ deck['ap57'] = {
         canEvent : function(paths_self, faction) { return 1; } ,
         onEvent : function(paths_self, faction) {
 
-	  let p = paths_self.returnPlayerOfFaction("allies");
-	  if (paths_self.game.player == p) {
-
             //
             // supplied Russian spaces
             //
@@ -2778,8 +2762,6 @@ deck['ap57'] = {
               paths_self.hud.updateMenu([]);
               paths_self.hud.updateCards([]);
             }
-
-	  }
 
           return 0;
         } ,
@@ -2929,7 +2911,7 @@ deck['ap64'] = {
         type : "normal" ,
         removeFromDeckAfterPlay : function(paths_self, faction) { return 1; } ,
         canEvent : function(paths_self, faction) { if (paths_self.game.state.events.over_there == 1) { return 1; } return 0;  } ,
-        onEvent : function(paths_self, faction) { return 1; 
+        onEvent : function(paths_self, faction) {
 	  if (paths_self.game.player == paths_self.returnPlayerOfFaction(faction)) {
 	    paths_self.addMove("SETVAR\tstate\tallies_reinforcements_us\t"+paths_self.game.state.round);
 	    paths_self.playerAddReinforcements("allies", ["us_corps", "us_corps"], "usa");
@@ -3184,7 +3166,7 @@ deck['ap65'] = {
 	  }
 	  return 0;
         } ,
-        onEvent : function(paths_self, faction) { return 1; 
+        onEvent : function(paths_self, faction) {
 	  paths_self.game.state.events.von_hutier = 1;
 	  paths_self.game.queue.push("combat_card\tcentral\tcp44");
 	  paths_self.game.state.combat.cancel_trench_effects = 1;

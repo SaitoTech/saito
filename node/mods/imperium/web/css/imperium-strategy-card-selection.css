@@ -3,86 +3,166 @@
     overflow: visible !important;
   }
 
+  .strategy-card-selection-content {
+    display: none;
+  }
+
   .strategy-card-selection-controls {
-    display: flex;
-    flex-direction: row;
-    row-gap: 0.833rem;
+    --sc-old-h: min(40vh, calc(96vw * 2 / 9 * 1484 / 1060));
+    --sc-span: calc(var(--sc-old-h) * 2 + 6vh);
+    --sc-card-h: min(calc(var(--sc-span) / 1.55), calc(96vw / 4.5 * 1484 / 1060));
+    --sc-card-w: calc(var(--sc-card-h) * 1060 / 1484);
+    position: relative;
+    height: var(--sc-span);
+    width: calc(var(--sc-card-w) * 4.5);
+    margin: 0 auto;
     overflow: visible;
-    width: 80vw;
   }
 
   .strategy-card-selection-controls .strategy-card {
-    width: 20vw;
-    height: calc(20vw * 1.42);
-    font-size: 0.7vw;
-    line-height: 1vw;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: var(--sc-card-w);
+    height: var(--sc-card-h);
+    aspect-ratio: 1060 / 1484;
+    margin: 0;
+    padding: 0;
+    right: auto;
+    overflow: visible;
+    transform: none;
+    transform-origin: center center;
+    cursor: pointer;
+    transition: transform 0.18s ease, filter 0.18s ease, box-shadow 0.18s ease;
   }
 
   .strategy-card-selection-controls .strategy-card img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    filter: none;
+    pointer-events: none;
+  }
+
+  .strategy-card-selection-controls .strategy-card .bonus {
+    position: absolute;
+    left: 7%;
+    bottom: 31%;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
     width: auto;
-    filter: brightness(0.8);
+    margin: 0;
+    padding: 0.2rem 0.55rem;
+    float: none;
+    font-size: 1.15rem;
+    line-height: 1;
+    color: #f3e2a0;
+    background: #14161ce6;
+    border: 1px solid #f3e2a066;
+    border-radius: 0.35rem;
+    pointer-events: none;
   }
 
-  .strat_slot_1 {
-    transform: scale(0.9);
-    overflow: visible;
-    top: -10vh;
-    z-index: 8;
-  }
-  .strat_slot_2 {
-    transform: scale(0.9);
-    overflow: visible;
-    top: 10vh;
-    right: 5vw;
-    z-index: 10;
-  }
-  .strat_slot_3 {
-    transform: scale(0.9);
-    overflow: visible;
-    top: -10vh;
-    z-index: 8;
-  }
-  .strat_slot_4 {
-    transform: scale(0.9);
-    overflow: visible;
-    top: 10vh;
-    right: 5vw;
-    z-index: 10;
-  }
-  .strat_slot_5 {
-    transform: scale(0.9);
-    overflow: visible;
-    top: -10vh;
-    z-index: 8;
-  }
-  .strat_slot_6 {
-    transform: scale(0.9);
-    overflow: visible;
-    top: 10vh;
-    right: 5vw;
-    z-index: 10;
-  }
-  .strat_slot_7 {
-    transform: scale(0.9);
-    overflow: visible;
-    top: -10vh;
-    z-index: 8;
-  }
-  .strat_slot_8 {
-    transform: scale(0.9);
-    overflow: visible;
-    z-index: 8;
-    top: 10vh;
-    right: 5vw;
+  .strategy-card-selection-controls .strat_slot_1,
+  .strategy-card-selection-controls .strat_slot_3,
+  .strategy-card-selection-controls .strat_slot_5,
+  .strategy-card-selection-controls .strat_slot_7 {
+    z-index: 2;
   }
 
-  .strategy-card-popup:hover {
-    transform: scale(1.1) !important;
-    z-index: 20 !important;
-    filter: brightness(1.5);
+  .strategy-card-selection-controls .strat_slot_2,
+  .strategy-card-selection-controls .strat_slot_4,
+  .strategy-card-selection-controls .strat_slot_6,
+  .strategy-card-selection-controls .strat_slot_8 {
+    top: calc(var(--sc-span) - var(--sc-card-h));
+    z-index: 5;
   }
 
-  .strategy-card-selection-controls .strategy-card.strategy-card-popup.opaque {
-    visibility: hidden;
+  .strategy-card-selection-controls .strat_slot_1 { left: 0%; }
+  .strategy-card-selection-controls .strat_slot_2 { left: 11.111%; }
+  .strategy-card-selection-controls .strat_slot_3 { left: 22.222%; }
+  .strategy-card-selection-controls .strat_slot_4 { left: 33.333%; }
+  .strategy-card-selection-controls .strat_slot_5 { left: 44.444%; }
+  .strategy-card-selection-controls .strat_slot_6 { left: 55.555%; }
+  .strategy-card-selection-controls .strat_slot_7 { left: 66.666%; }
+  .strategy-card-selection-controls .strat_slot_8 { left: 77.777%; }
+
+  .strategy-card-selection-controls .strategy-card-popup:hover:not(.opaque) {
+    transform: translateY(-1.1vh) scale(1.045);
+    z-index: 30;
+    filter: brightness(1.06);
+    box-shadow: 0 1.1rem 1.8rem #000c;
+  }
+
+  .strategy-card-selection-controls:has(.strat_slot_1:hover:not(.opaque)) .strat_slot_2:not(:hover) {
+    transform: translate(0.8%, 1.6vh);
+  }
+
+  .strategy-card-selection-controls:has(.strat_slot_3:hover:not(.opaque)) .strat_slot_2:not(:hover) {
+    transform: translate(-0.8%, 1.6vh);
+  }
+
+  .strategy-card-selection-controls:has(.strat_slot_3:hover:not(.opaque)) .strat_slot_4:not(:hover) {
+    transform: translate(0.8%, 1.6vh);
+  }
+
+  .strategy-card-selection-controls:has(.strat_slot_5:hover:not(.opaque)) .strat_slot_4:not(:hover) {
+    transform: translate(-0.8%, 1.6vh);
+  }
+
+  .strategy-card-selection-controls:has(.strat_slot_5:hover:not(.opaque)) .strat_slot_6:not(:hover) {
+    transform: translate(0.8%, 1.6vh);
+  }
+
+  .strategy-card-selection-controls:has(.strat_slot_7:hover:not(.opaque)) .strat_slot_6:not(:hover) {
+    transform: translate(-0.8%, 1.6vh);
+  }
+
+  .strategy-card-selection-controls:has(.strat_slot_7:hover:not(.opaque)) .strat_slot_8:not(:hover) {
+    transform: translate(0.8%, 1.6vh);
+  }
+
+  .strategy-card-selection-controls:has(.strat_slot_2:hover:not(.opaque)) .strat_slot_1:not(:hover) {
+    transform: translate(-0.7%, -0.8vh);
+  }
+
+  .strategy-card-selection-controls:has(.strat_slot_2:hover:not(.opaque)) .strat_slot_3:not(:hover) {
+    transform: translate(0.7%, -0.8vh);
+  }
+
+  .strategy-card-selection-controls:has(.strat_slot_4:hover:not(.opaque)) .strat_slot_3:not(:hover) {
+    transform: translate(-0.7%, -0.8vh);
+  }
+
+  .strategy-card-selection-controls:has(.strat_slot_4:hover:not(.opaque)) .strat_slot_5:not(:hover) {
+    transform: translate(0.7%, -0.8vh);
+  }
+
+  .strategy-card-selection-controls:has(.strat_slot_6:hover:not(.opaque)) .strat_slot_5:not(:hover) {
+    transform: translate(-0.7%, -0.8vh);
+  }
+
+  .strategy-card-selection-controls:has(.strat_slot_6:hover:not(.opaque)) .strat_slot_7:not(:hover) {
+    transform: translate(0.7%, -0.8vh);
+  }
+
+  .strategy-card-selection-controls:has(.strat_slot_8:hover:not(.opaque)) .strat_slot_7:not(:hover) {
+    transform: translate(-0.7%, -0.8vh);
+  }
+
+  .strategy-card-selection-controls .strategy-card.opaque {
+    opacity: 0.4;
+    filter: grayscale(0.75) brightness(0.55);
+  }
+
+  .strategy-card-selection-controls .strategy-card.opaque:hover {
+    opacity: 0.52;
+    filter: grayscale(0.4) brightness(0.72);
+    transform: none;
+    box-shadow: none;
   }
 }

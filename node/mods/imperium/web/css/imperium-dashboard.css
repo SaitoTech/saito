@@ -9,10 +9,11 @@
   .dashboard {
     display: flex;
     flex-direction: column;
+    gap: var(--imp-space-sm);
     position: fixed;
-    top: 4.5rem;
-    right: var(--imp-space-md);
-    left: auto;
+    top: 3.6rem;
+    left: var(--imp-space-md);
+    right: auto;
     margin: 0;
     z-index: 9;
     color: var(--imp-text);
@@ -20,9 +21,19 @@
     font-family: var(--imp-font);
     width: 16.5rem;
     max-width: 22vw;
-    max-height: calc(100vh - 5.5rem);
+    max-height: calc(100vh - 4.4rem);
     overflow-x: hidden;
     overflow-y: auto;
+  }
+
+  .dashboard .game-minimap {
+    position: relative;
+    top: auto;
+    right: auto;
+    bottom: auto;
+    left: auto;
+    width: 100%;
+    flex: 0 0 auto;
   }
 
   .dash-faction {
@@ -30,14 +41,17 @@
     flex-direction: column;
     cursor: pointer;
     user-select: none;
+    position: relative;
     width: 100%;
     box-sizing: border-box;
-    row-gap: var(--imp-space-xs);
+    row-gap: var(--imp-space-sm);
     background: var(--imp-surface);
     border: 1px solid var(--imp-border);
     border-radius: var(--imp-radius);
-    padding: var(--imp-space-sm);
+    padding: 0 0 var(--imp-space-sm);
     border-left-width: 0.35rem;
+    overflow: hidden;
+    container-type: inline-size;
   }
 
   .dash-faction.p1 {
@@ -63,8 +77,8 @@
     text-align: left;
     color: var(--imp-text);
     cursor: pointer;
-    padding-top: var(--imp-space-xs);
-    padding-bottom: var(--imp-space-xs);
+    padding: var(--imp-space-sm) var(--imp-space-md);
+    border-top-right-radius: calc(var(--imp-radius) - 1px);
     font-family: var(--imp-font);
     font-size: var(--imp-fs-title);
     letter-spacing: 0.04em;
@@ -75,7 +89,9 @@
     flex-direction: row;
     height: max-content;
     justify-content: space-around;
+    align-items: center;
     gap: var(--imp-space-xs);
+    margin: 0 var(--imp-space-sm);
   }
 
   .dash-item {
@@ -88,21 +104,27 @@
     text-shadow: 0 1px 2px #000a;
   }
 
-  .dash-item.resources {
-    background-image: url(/imperium/img/blank_resources_hex.png);
-    background-size: cover;
+  .dash-item.resources,
+  .dash-item.influence {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
     height: 3.6rem;
     width: 4.1rem;
-    font-size: 2.1rem;
+    font-size: 2.6rem;
+    line-height: 1;
+  }
+
+  .dash-item.resources {
+    background-image: url(/imperium/img/blank_resources_hex.png);
   }
 
   .dash-item.influence {
     background-image: url('/imperium/img/blank_influence_hex.png');
-    background-size: cover;
-    height: 3.6rem;
-    width: 4.1rem;
     color: #c16400;
-    font-size: 2.1rem;
   }
 
   .dash-item.trade {
@@ -110,14 +132,35 @@
     position: relative;
     height: 3.6rem;
     width: 4.1rem;
-    font-size: 2.4rem;
+    font-size: 2.6rem;
+    line-height: 1;
     z-index: 1;
     align-items: center;
     justify-content: center;
   }
 
+  .dash-item.trade .credits-icon {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    /* resource art fills the 3.6rem height; the rotated mask hex fills ~91% of its square */
+    width: calc(3.6rem * 167 / 148 / 0.9105);
+    height: calc(3.6rem * 167 / 148 / 0.9105);
+    background-color: currentColor;
+    transform: translate(-50%, -50%) rotate(30deg);
+    -webkit-mask: url('/imperium/img/icons/saito-impossible-cube-credits.svg') center / contain no-repeat;
+    mask: url('/imperium/img/icons/saito-impossible-cube-credits.svg') center / contain no-repeat;
+  }
+
   .dash-item .avail {
     display: inline-block;
+    color: var(--imp-text);
+  }
+
+  .dash-item.resources .avail,
+  .dash-item.influence .avail {
+    display: block;
+    line-height: 1;
     color: var(--imp-text);
   }
 
@@ -129,30 +172,59 @@
 
   .dash-item-goods {
     position: relative;
-    font-size: var(--imp-fs);
+    z-index: 1;
+    font-size: inherit;
+    font-weight: inherit;
+    line-height: 1;
+    color: var(--imp-text);
+  }
+
+  .dash-faction-rule {
+    height: 1px;
+    margin: 0 var(--imp-space-sm);
+    background: color-mix(in srgb, var(--imp-text) 18%, transparent);
   }
 
   .dash-faction-base {
-    background-color: var(--imp-surface-strong);
-    color: var(--imp-text-muted);
-    font-weight: 600;
-    padding: var(--imp-space-xs) var(--imp-space-sm);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    justify-self: start;
+    min-width: 0;
+    margin: 0;
+    padding: 0.2rem 0.45rem;
+    background: color-mix(in srgb, #000 28%, transparent);
+    border: 1px solid color-mix(in srgb, var(--imp-text) 16%, transparent);
     border-radius: var(--imp-radius);
   }
 
   .dash-faction-footer {
     display: flex;
-    justify-content: flex-end;
-    align-items: baseline;
-    padding-top: var(--imp-space-xs);
+    justify-content: space-between;
+    align-items: center;
+    gap: var(--imp-space-xs);
+    margin: 0 var(--imp-space-sm);
+    min-height: 1.6rem;
+  }
+
+  .dash-faction.is-speaker .dash-faction-footer {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
   }
 
   .dash-faction-vp {
     display: flex;
     align-items: baseline;
-    gap: var(--imp-space-sm);
+    justify-self: end;
+    gap: 0.35rem;
+    margin-left: auto;
     color: var(--imp-text);
     font-family: var(--imp-font);
+  }
+
+  .dash-faction.is-speaker .dash-faction-vp {
+    margin-left: 0;
   }
 
   .dash-vp-label {
@@ -171,39 +243,49 @@
   }
 
   .dash-faction-speaker.speaker {
-    display: block;
-    position: fixed;
-    left: var(--imp-space-lg);
-    bottom: 21.5rem;
-    z-index: 12;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    justify-self: center;
+    position: static;
+    z-index: 2;
     background-color: color-mix(in srgb, #c43c32 88%, transparent);
     color: var(--imp-text);
-    font-size: var(--imp-fs-sm);
+    font-size: clamp(0.85rem, 7cqi, var(--imp-fs));
     font-weight: 600;
     font-family: var(--imp-font-label);
-    letter-spacing: 0.08rem;
-    padding: var(--imp-space-sm) var(--imp-space-lg);
+    letter-spacing: 0.04em;
+    line-height: 1;
+    padding: 0.22rem 0.4rem;
     border-radius: var(--imp-radius);
-    border: 1px solid var(--imp-border);
+    border: 1px solid color-mix(in srgb, #fff 22%, transparent);
     pointer-events: none;
+    white-space: nowrap;
   }
 
   .dash-faction-status {
-    border: 1px solid #c16400;
-    background-color: #2d6a3e;
-    height: 0.75rem;
-    width: 1.5rem;
-    margin: var(--imp-space-xs);
-    float: left;
-    border-radius: 2px;
+    display: none;
   }
 
   .dash-faction-status-text {
-    padding-top: var(--imp-space-xs);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    gap: 0.3rem;
+    padding: 0;
     font-family: var(--imp-font);
+    font-weight: 400;
     letter-spacing: 0.04rem;
     font-size: var(--imp-fs-sm);
+    line-height: 1;
     color: var(--imp-text-muted);
+  }
+
+  .dash-commodity-slash {
+    color: color-mix(in srgb, var(--imp-text-muted) 75%, transparent);
+    font-size: inherit;
+    font-weight: 400;
   }
 
   .dash-faction-agenda {
@@ -234,21 +316,38 @@
       width: 3.4rem;
       font-size: 1.7rem;
     }
+
+    .dash-item.trade .credits-icon {
+      width: calc(3rem * 167 / 148 / 0.9105);
+      height: calc(3rem * 167 / 148 / 0.9105);
+    }
   }
 
   @media screen and (max-width: 800px) {
     .dashboard {
-      top: auto;
-      bottom: 1rem;
-      right: 0.5rem;
+      top: 3.2rem;
+      bottom: auto;
+      left: 0.5rem;
+      right: auto;
       max-height: 46vh;
       width: 13rem;
       max-width: 42vw;
     }
 
     .dash-faction-speaker.speaker {
-      bottom: 1.25rem;
-      left: 0.75rem;
+      letter-spacing: 0.04rem;
+      padding: 0.2rem 0.4rem;
+    }
+
+    .dash-faction-status-text {
+      letter-spacing: 0.02rem;
+    }
+  }
+
+  @container (max-width: 15rem) {
+    .dash-faction-speaker.speaker {
+      letter-spacing: 0.02em;
+      padding: 0.16rem 0.28rem;
     }
   }
 }

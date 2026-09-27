@@ -107,7 +107,9 @@ class ZoomOverlay {
   }
 
   renderAtCoordinates(top = 0, left = 0) {
-    this.render();
+    if (!document.querySelector('.zoom-overlay .gameboard')) {
+      this.render();
+    }
     let zoomOverlay = document.querySelector('.zoom-overlay');
     let board = document.querySelector('.zoom-overlay .gameboard');
 
@@ -186,7 +188,7 @@ class ZoomOverlay {
     // if already visible, don't reload
     //
     if (this.visible == true) {
-      if (document.querySelector('.zoom_overlay')) {
+      if (document.querySelector('.zoom-overlay')) {
         return;
       }
     }
