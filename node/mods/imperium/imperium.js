@@ -15,7 +15,6 @@ const FactionsOverlay = require('./lib/overlays/factions');
 const SectorOverlay = require('./lib/overlays/sector');
 const ProductionOverlay = require('./lib/overlays/production');
 const UnitsOverlay = require('./lib/overlays/units');
-const UpgradesOverlay = require('./lib/overlays/upgrades');
 const ObjectivesOverlay = require('./lib/overlays/objectives');
 const AgendasOverlay = require('./lib/overlays/agenda');
 const AgendaSelectionOverlay = require('./lib/overlays/agenda-selection');
@@ -69,6 +68,7 @@ class Imperium extends GameTemplate {
     this.minimap = new GameMinimap(this.app, this);
     this.minimap.enable_zoom = 1;
     this.default_board_scale = 180;
+    this.remember_board_position = false;
     this.strategy_card_selection_overlay = new StrategyCardSelectionOverlay(this.app, this);
     this.strategy_card_overlay = new StrategyCardOverlay(this.app, this);
     this.combat_overlay = new CombatOverlay(this.app, this);
@@ -78,7 +78,6 @@ class Imperium extends GameTemplate {
     this.movement_overlay = new MovementOverlay(this.app, this);
     this.senate_overlay = new SenateOverlay(this.app, this);
     this.production_overlay = new ProductionOverlay(this.app, this);
-    this.upgrades_overlay = new UpgradesOverlay(this.app, this);
     this.objectives_overlay = new ObjectivesOverlay(this.app, this);
     this.agendas_overlay = new AgendasOverlay(this.app, this);
     this.agenda_selection_overlay = new AgendaSelectionOverlay(this.app, this);
@@ -12235,10 +12234,7 @@ console.log("qe: " + qe);
         class : "game-tech-dependencies-basic",
         callback : function(app, game_mod) {
           game_mod.menu.hideSubMenus();
-	  let tech = game_mod.returnTechnology();
-          let t2 = [];
-          for (let x in tech) { if (tech[x].type == "normal" && tech[x].unit != 1) { t2.push(tech[x]); } }
-          game_mod.overlay.showCardSelectionOverlay(game_mod.app, game_mod, t2, { backgroundImage : "/imperium/img/backgrounds/unit-upgrades.jpg" , padding : "50px"});
+          game_mod.faction_sheet_overlay.render(game_mod.game.player, 'technologies');
         }
     });
     this.menu.addSubMenuOption("game-tech-dependencies", {
@@ -12256,10 +12252,7 @@ console.log("qe: " + qe);
         class : "game-tech-dependencies-upgrades",
         callback : function(app, game_mod) {
           game_mod.menu.hideSubMenus();
-	  let tech = game_mod.returnTechnology();
-          let t2 = [];
-          for (let x in tech) { if (tech[x].type == "normal" && tech[x].unit == 1) { t2.push(tech[x]); } }
-          game_mod.upgrades_overlay.render({ tech : t2 , img : "/imperium/img/backgrounds/unit-upgrades.jpg" });
+          game_mod.faction_sheet_overlay.render(game_mod.game.player, 'technologies');
         }
     });
     for (let i = 0; i < this.game.players.length; i++) {
@@ -12269,11 +12262,7 @@ console.log("qe: " + qe);
         class : "game-faction-tech-"+(i+1),
         callback : function(app, game_mod) {
           game_mod.menu.hideSubMenus();
-	  let faction_key = game_mod.game.state.players_info[i].faction;
-	  let tech = game_mod.returnTechnology();
-          let t2 = [];
-          for (let x in tech) { if (tech[x].faction == faction_key) { t2.push(tech[x]); } }
-          game_mod.overlay.showCardSelectionOverlay(game_mod.app, game_mod, t2, { backgroundImage : "/imperium/img/backgrounds/unit-upgrades.jpg" , padding : "50px"});
+          game_mod.faction_sheet_overlay.render(i + 1, 'technologies');
         }
       });
     }
@@ -12345,7 +12334,9 @@ console.log("qe: " + qe);
 
     try {
       this.default_board_view = null;
+      this.default_board_scale = this.returnDefaultBoardScale();
       let slug = this.returnSlug();
+      this.deleteGamePreference(slug + '-board-offset');
       if (this.loadGamePreference(slug + '-board-view-set')) {
         this.deleteGamePreference(slug + '-board-offset');
         this.deleteGamePreference(slug + '-board-scale');
@@ -12778,7 +12769,7 @@ console.log("QUEUE IN INIT: " + JSON.stringify(this.game.queue.push));
     for (let i in this.game.board) {
 
       // add html to index
-      let boardslot = ".sector_" + i;
+      let boardslot = "#hexGrid .sector_" + i;
 
 console.log("initing sector: " + i);
 
@@ -12792,8 +12783,11 @@ console.log("initing sector: " + i);
       $(planet_div).attr("src", this.game.sectors[this.game.board[i].tile].img);
 
     }
-  
-  
+
+    if (this.minimap) {
+      this.minimap.render();
+    }
+
     this.updateLeaderboard();
   
     //
@@ -12879,7 +12873,6 @@ console.log("ABOUT TO DINISH INITIALIZATION!");
 			"img/planet_card_template.png",
 			"img/secret_objective.jpg",
 			"img/arcade_release.jpg",
-			"img/tech_card_template.jpg",
 			"img/blank_influence_hex.png",
 			"img/spaceb2.jpg",
 			"img/frame/white_space_frame_1_5.png",
@@ -13434,7 +13427,6 @@ handleSystemsMenuItem() {
   // faction -> is this restricted to a specific faction
   // prereqs -> array of colors needed
   // unit --> unit technology
-  // returnCardImage(cardkey) --> returns image of card
   //
   returnTechnology() {
     return this.tech;
@@ -13453,25 +13445,6 @@ handleSystemsMenuItem() {
     if (obj.text == null)	{ obj.text = ""; }
     if (obj.unit == null)	{ obj.unit = 0; }
     if (obj.key == null)	{ obj.key = name; }
-    if (obj.returnCardImage == null)	{ obj.returnCardImage = function() {
-
-      let prereqs = "";
-
-      for (let i = 0; i < obj.prereqs.length; i++) {
-        if (obj.prereqs[i] == "yellow") { prereqs += '<span class="yellow">♦</span>'; }
-        if (obj.prereqs[i] == "blue") { prereqs += '<span class="blue">♦</span>'; }
-        if (obj.prereqs[i] == "green") { prereqs += '<span class="green">♦</span>'; }
-        if (obj.prereqs[i] == "red") { prereqs += '<span class="red">♦</span>'; }      
-      }
-
-      return `
-        <div id="${obj.key}" class="tech-card tech-${obj.color} nonopaque">
-          <div class="name">${obj.name}</div>
-          <div class="text">${obj.text}</div>
-          <div class="prereqs">${prereqs}</div>
-        </div>
-      `;
-    }; }
 
     obj = this.addEvents(obj);
     this.tech[name] = obj;
@@ -23576,20 +23549,17 @@ playerResearchTechnology(mycallback) {
   this.hud.updateStatus(this.game.status);
   this.hud.updateCards([]);
 
-  this.hud.updateMenu(menu, function (i) {
-    imperium_self.hideTechCard(i);
-
-    //
-    // handle prerequisites
-    //
+  let chooseTechnology = function (i) {
+    imperium_self.faction_sheet_overlay.finishTechnologyResearch();
     imperium_self.exhaustPlayerResearchTechnologyPrerequisites(i);
     mycallback(i);
+  };
 
+  this.hud.updateMenu(menu, function (i) {
+    chooseTechnology(i);
   });
-  document.querySelectorAll('.hud-menu .option').forEach((el) => {
-    el.addEventListener('mouseenter', function () { imperium_self.showTechCard(el.id); });
-    el.addEventListener('mouseleave', function () { imperium_self.hideTechCard(el.id); });
-  });
+
+  this.faction_sheet_overlay.beginTechnologyResearch(this.game.player, chooseTechnology);
 
 }
 
@@ -24121,7 +24091,7 @@ playerScoreVictoryPoints(imperium_self, mycallback, stage = 0) {
 	if (!c) { return; }
       }
 
-      imperium_self.playerSelectResources(total_cost, function (success) {
+      imperium_self.playerSelectProductionResources(total_cost, function (success) {
 
         if (success == 1) {
           imperium_self.addMove("post_production\t" + imperium_self.game.player + "\t" + sector + "\t" + JSON.stringify(stuff_to_build));
@@ -24874,6 +24844,44 @@ playerSelectInfluence(cost, mycallback) {
 }
 
 
+
+playerSelectProductionResources(cost, mycallback) {
+
+  if (cost == 0) { mycallback(1); return; }
+
+  let imperium_self = this;
+  let payment = {
+    cost: cost,
+    paid: 0,
+    goods_left: this.game.state.players_info[this.game.player - 1].goods,
+    spent: {},
+    commit: (kind, id) => {
+      if (payment.paid >= payment.cost) { return; }
+      if (kind == "goods") {
+        if (payment.goods_left <= 0) { return; }
+        imperium_self.addMove("expend\t" + imperium_self.game.player + "\tgoods\t1");
+        payment.goods_left--;
+        payment.paid += 1;
+      } else {
+        if (!id || payment.spent[id]) { return; }
+        let planet = imperium_self.game.planets[id];
+        if (!planet || planet.exhausted == 1) { return; }
+        if ((parseInt(planet.resources) || 0) <= 0) { return; }
+        imperium_self.addMove("expend\t" + imperium_self.game.player + "\tplanet\t" + id);
+        payment.spent[id] = 1;
+        payment.paid += parseInt(planet.resources);
+      }
+      if (payment.paid >= payment.cost) {
+        imperium_self.faction_sheet_overlay.finishProductionPayment();
+        mycallback(1);
+        return;
+      }
+      imperium_self.faction_sheet_overlay.updateProductionPayment(payment);
+    }
+  };
+
+  this.faction_sheet_overlay.beginProductionPayment(this.game.player, payment);
+}
 
 playerSelectResources(cost, mycallback) {
 
@@ -32504,6 +32512,7 @@ addUIEvents() {
 
   $('#hexGrid').draggable();
   this.ensureBoardVisible();
+  this.frameHomeworld();
 
   //set player highlight color
   document.documentElement.style.setProperty('--my-color', `var(--p${this.game.player})`);
@@ -32518,6 +32527,59 @@ addUIEvents() {
 
 
 
+
+returnDefaultBoardScale() {
+  let hex = 250;
+  let target = window.innerWidth * 0.3;
+  let scale = Math.round((100 * target) / hex);
+  return Math.max(90, Math.min(200, scale));
+}
+
+frameHomeworld() {
+  if (this.homeworld_framed) {
+    return;
+  }
+  if (!this.game || !this.game.player || !this.game.state || !this.game.state.players_info) {
+    return;
+  }
+  let info = this.game.state.players_info[this.game.player - 1];
+  if (!info || !info.homeworld) {
+    return;
+  }
+  let el = this.boardEl();
+  let sector = document.getElementById(info.homeworld);
+  if (!el || !sector || !el.offsetWidth || !sector.offsetWidth) {
+    return;
+  }
+
+  this.homeworld_framed = 1;
+  this.default_board_scale = this.returnDefaultBoardScale();
+  let current = el.getBoundingClientRect().width / el.offsetWidth;
+  if (Math.abs(current - this.default_board_scale / 100) > 0.05) {
+    this.setBoardScale(this.default_board_scale, false);
+  }
+
+  let board = el.getBoundingClientRect();
+  let box = sector.getBoundingClientRect();
+  let scale = el.offsetWidth ? board.width / el.offsetWidth : 1;
+  let local_x = (box.left + box.width / 2 - board.left) / scale;
+  let local_y = (box.top + box.height / 2 - board.top) / scale;
+
+  let left_bound = 16;
+  let dash = document.querySelector('.dashboard');
+  if (dash) {
+    let d = dash.getBoundingClientRect();
+    if (d.width > 40 && d.left < window.innerWidth * 0.4) {
+      left_bound = d.right + 24;
+    }
+  }
+  let cx = (left_bound + window.innerWidth) / 2;
+  let cy = window.innerHeight * 0.42;
+  this.moveBoardTo(el, cx - local_x * scale, cy - local_y * scale);
+  if (this.minimap) {
+    this.minimap.render();
+  }
+}
 
 showSector(pid) {
 
@@ -32716,12 +32778,6 @@ updateLeaderboard() {
     this.cardbox.showCardboxHTML(thiscard, html);
   }
   hideAgendaCard(sector, pid) {
-    this.cardbox.hide(1);
-  }
-  showTechCard(tech) {
-    this.cardbox.showCardboxHTML(tech, this.tech[tech].returnCardImage());
-  }
-  hideTechCard(tech) {
     this.cardbox.hide(1);
   }
 

@@ -481,6 +481,7 @@ addUIEvents() {
 
   $('#hexGrid').draggable();
   this.ensureBoardVisible();
+  this.frameHomeworld();
 
   //set player highlight color
   document.documentElement.style.setProperty('--my-color', `var(--p${this.game.player})`);
@@ -495,6 +496,60 @@ addUIEvents() {
 
 
 
+
+
+returnDefaultBoardScale() {
+  let hex = 250;
+  let target = window.innerWidth * 0.3;
+  let scale = Math.round((100 * target) / hex);
+  return Math.max(90, Math.min(200, scale));
+}
+
+frameHomeworld() {
+  if (this.homeworld_framed) {
+    return;
+  }
+  if (!this.game || !this.game.player || !this.game.state || !this.game.state.players_info) {
+    return;
+  }
+  let info = this.game.state.players_info[this.game.player - 1];
+  if (!info || !info.homeworld) {
+    return;
+  }
+  let el = this.boardEl();
+  let sector = document.getElementById(info.homeworld);
+  if (!el || !sector || !el.offsetWidth || !sector.offsetWidth) {
+    return;
+  }
+
+  this.homeworld_framed = 1;
+  this.default_board_scale = this.returnDefaultBoardScale();
+  let current = el.getBoundingClientRect().width / el.offsetWidth;
+  if (Math.abs(current - this.default_board_scale / 100) > 0.05) {
+    this.setBoardScale(this.default_board_scale, false);
+  }
+
+  let board = el.getBoundingClientRect();
+  let box = sector.getBoundingClientRect();
+  let scale = el.offsetWidth ? board.width / el.offsetWidth : 1;
+  let local_x = (box.left + box.width / 2 - board.left) / scale;
+  let local_y = (box.top + box.height / 2 - board.top) / scale;
+
+  let left_bound = 16;
+  let dash = document.querySelector('.dashboard');
+  if (dash) {
+    let d = dash.getBoundingClientRect();
+    if (d.width > 40 && d.left < window.innerWidth * 0.4) {
+      left_bound = d.right + 24;
+    }
+  }
+  let cx = (left_bound + window.innerWidth) / 2;
+  let cy = window.innerHeight * 0.42;
+  this.moveBoardTo(el, cx - local_x * scale, cy - local_y * scale);
+  if (this.minimap) {
+    this.minimap.render();
+  }
+}
 
 showSector(pid) {
 
@@ -693,12 +748,6 @@ updateLeaderboard() {
     this.cardbox.showCardboxHTML(thiscard, html);
   }
   hideAgendaCard(sector, pid) {
-    this.cardbox.hide(1);
-  }
-  showTechCard(tech) {
-    this.cardbox.showCardboxHTML(tech, this.tech[tech].returnCardImage());
-  }
-  hideTechCard(tech) {
     this.cardbox.hide(1);
   }
 

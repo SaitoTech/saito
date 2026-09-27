@@ -508,22 +508,6 @@
     margin: 0 auto;
   }
 
-  .cardbox_card tech_card {
-    font-size: 1.6em;
-    padding: 5px;
-  }
-  .tech_card_overlay {
-    position: absolute;
-    color: white;
-    padding-left: 20px;
-    padding-right: 20px;
-    padding-top: 100px;
-    top: 0px;
-    line-height: 1.8em;
-    font-family: 'orbitron-light', helvetica, sans-serif;
-    font-size: 2em;
-  }
-
   .action_card_overlay {
     position: absolute;
     color: white;
@@ -1260,13 +1244,6 @@
   }
 
   .actioncards {
-  }
-
-  .techbox {
-    background-color: lightgrey;
-  }
-
-  .techcards {
   }
 
   .objectivebox {

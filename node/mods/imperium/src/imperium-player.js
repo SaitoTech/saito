@@ -2822,20 +2822,17 @@ playerResearchTechnology(mycallback) {
   this.hud.updateStatus(this.game.status);
   this.hud.updateCards([]);
 
-  this.hud.updateMenu(menu, function (i) {
-    imperium_self.hideTechCard(i);
-
-    //
-    // handle prerequisites
-    //
+  let chooseTechnology = function (i) {
+    imperium_self.faction_sheet_overlay.finishTechnologyResearch();
     imperium_self.exhaustPlayerResearchTechnologyPrerequisites(i);
     mycallback(i);
+  };
 
+  this.hud.updateMenu(menu, function (i) {
+    chooseTechnology(i);
   });
-  document.querySelectorAll('.hud-menu .option').forEach((el) => {
-    el.addEventListener('mouseenter', function () { imperium_self.showTechCard(el.id); });
-    el.addEventListener('mouseleave', function () { imperium_self.hideTechCard(el.id); });
-  });
+
+  this.faction_sheet_overlay.beginTechnologyResearch(this.game.player, chooseTechnology);
 
 }
 
@@ -3367,7 +3364,7 @@ playerScoreVictoryPoints(imperium_self, mycallback, stage = 0) {
 	if (!c) { return; }
       }
 
-      imperium_self.playerSelectResources(total_cost, function (success) {
+      imperium_self.playerSelectProductionResources(total_cost, function (success) {
 
         if (success == 1) {
           imperium_self.addMove("post_production\t" + imperium_self.game.player + "\t" + sector + "\t" + JSON.stringify(stuff_to_build));
@@ -4120,6 +4117,44 @@ playerSelectInfluence(cost, mycallback) {
 }
 
 
+
+playerSelectProductionResources(cost, mycallback) {
+
+  if (cost == 0) { mycallback(1); return; }
+
+  let imperium_self = this;
+  let payment = {
+    cost: cost,
+    paid: 0,
+    goods_left: this.game.state.players_info[this.game.player - 1].goods,
+    spent: {},
+    commit: (kind, id) => {
+      if (payment.paid >= payment.cost) { return; }
+      if (kind == "goods") {
+        if (payment.goods_left <= 0) { return; }
+        imperium_self.addMove("expend\t" + imperium_self.game.player + "\tgoods\t1");
+        payment.goods_left--;
+        payment.paid += 1;
+      } else {
+        if (!id || payment.spent[id]) { return; }
+        let planet = imperium_self.game.planets[id];
+        if (!planet || planet.exhausted == 1) { return; }
+        if ((parseInt(planet.resources) || 0) <= 0) { return; }
+        imperium_self.addMove("expend\t" + imperium_self.game.player + "\tplanet\t" + id);
+        payment.spent[id] = 1;
+        payment.paid += parseInt(planet.resources);
+      }
+      if (payment.paid >= payment.cost) {
+        imperium_self.faction_sheet_overlay.finishProductionPayment();
+        mycallback(1);
+        return;
+      }
+      imperium_self.faction_sheet_overlay.updateProductionPayment(payment);
+    }
+  };
+
+  this.faction_sheet_overlay.beginProductionPayment(this.game.player, payment);
+}
 
 playerSelectResources(cost, mycallback) {
 

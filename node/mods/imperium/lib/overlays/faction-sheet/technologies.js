@@ -21,7 +21,8 @@ class FactionSheetTechnologies {
     let board = el.querySelector('.fs-techmap-board');
     let detail = el.querySelector('.fs-tech-detail');
     let body = el.querySelector('.fs-tech-detail-body');
-    if (!root || !board || !detail || !body) {
+    let action = el.querySelector('.fs-tech-detail-action');
+    if (!root || !board || !detail || !body || !action) {
       return;
     }
 
@@ -131,33 +132,14 @@ class FactionSheetTechnologies {
         <div class="fs-tech-detail-prereqs">${prereqHtml(tech)}</div>
         ${unlocksHtml(key, tech)}
       `;
-    };
-
-    let relate = (key) => {
-      root.querySelectorAll('.is-related').forEach((node) => {
-        node.classList.remove('is-related');
-      });
-      let tech = mod.tech[key];
-      if (!tech) {
-        return;
-      }
-      let colors = tech.prereqs || [];
-      if (tech.color) {
-        colors = colors.concat([tech.color]);
-      }
-      root.querySelectorAll('.fs-tech-node').forEach((node) => {
-        if (colors.indexOf(node.getAttribute('data-color')) != -1) {
-          node.classList.add('is-related');
-        }
-      });
+      let research = mod.faction_sheet_overlay && mod.faction_sheet_overlay.technology_research;
+      let researchable = research && player == mod.game.player && mod.canPlayerResearchTechnology(key);
+      action.innerHTML = researchable ? `<button type="button" class="fs-tech-research" data-key="${key}">Research</button>` : '';
     };
 
     let clearSelection = () => {
       root.querySelectorAll('.is-selected').forEach((node) => {
         node.classList.remove('is-selected');
-      });
-      root.querySelectorAll('.is-related').forEach((node) => {
-        node.classList.remove('is-related');
       });
     };
 
@@ -179,7 +161,6 @@ class FactionSheetTechnologies {
         return;
       }
       node.classList.add('is-selected');
-      relate(node.getAttribute('data-key'));
     };
 
     let finishClose = () => {
@@ -293,6 +274,19 @@ class FactionSheetTechnologies {
     detail.querySelector('.fs-tech-detail-close').addEventListener('click', (event) => {
       event.stopPropagation();
       close();
+    });
+
+    detail.addEventListener('click', (event) => {
+      let button = event.target.closest('.fs-tech-research');
+      if (!button) {
+        return;
+      }
+      event.stopPropagation();
+      let key = button.getAttribute('data-key');
+      let choose = mod.faction_sheet_overlay && mod.faction_sheet_overlay.technology_research;
+      if (choose && mod.canPlayerResearchTechnology(key)) {
+        choose(key);
+      }
     });
 
     board.addEventListener('click', () => {

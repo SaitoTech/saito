@@ -15,7 +15,6 @@ const FactionsOverlay = require('./lib/overlays/factions');
 const SectorOverlay = require('./lib/overlays/sector');
 const ProductionOverlay = require('./lib/overlays/production');
 const UnitsOverlay = require('./lib/overlays/units');
-const UpgradesOverlay = require('./lib/overlays/upgrades');
 const ObjectivesOverlay = require('./lib/overlays/objectives');
 const AgendasOverlay = require('./lib/overlays/agenda');
 const AgendaSelectionOverlay = require('./lib/overlays/agenda-selection');
@@ -67,6 +66,7 @@ class Imperium extends GameTemplate {
     this.minimap = new GameMinimap(this.app, this);
     this.minimap.enable_zoom = 1;
     this.default_board_scale = 180;
+    this.remember_board_position = false;
     this.strategy_card_selection_overlay = new StrategyCardSelectionOverlay(this.app, this);
     this.strategy_card_overlay = new StrategyCardOverlay(this.app, this);
     this.combat_overlay = new CombatOverlay(this.app, this);
@@ -76,7 +76,6 @@ class Imperium extends GameTemplate {
     this.movement_overlay = new MovementOverlay(this.app, this);
     this.senate_overlay = new SenateOverlay(this.app, this);
     this.production_overlay = new ProductionOverlay(this.app, this);
-    this.upgrades_overlay = new UpgradesOverlay(this.app, this);
     this.objectives_overlay = new ObjectivesOverlay(this.app, this);
     this.agendas_overlay = new AgendasOverlay(this.app, this);
     this.agenda_selection_overlay = new AgendaSelectionOverlay(this.app, this);

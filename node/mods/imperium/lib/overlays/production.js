@@ -43,10 +43,7 @@ class ProductionOverlay {
 
   update(stuff_to_build, calculated_total_cost) {
     document.querySelector('.production-description .required').innerHTML =
-      calculated_total_cost + 'resource';
-    if (calculated_total_cost != 1) {
-      document.querySelector('.production-description .required').innerHTML += 's';
-    }
+      calculated_total_cost + (calculated_total_cost == 1 ? ' resource' : ' resources');
   }
 
   reset() {

@@ -92,6 +92,13 @@
     padding: var(--imp-space-md);
   }
 
+  .faction-sheet-body:has(.fs-pay-status) {
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    padding: var(--imp-space-md);
+  }
+
   .fs-section {
     margin-bottom: var(--imp-space-xl);
   }
@@ -322,6 +329,74 @@
     color: #6fbf7a;
   }
 
+  .fs-planets-panel:has(.fs-pay-status) {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+    gap: var(--imp-space-md);
+  }
+
+  .fs-planets-panel:has(.fs-pay-status) .fs-planets {
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
+  }
+
+  .fs-pay-status {
+    flex: 0 0 auto;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: var(--imp-space-md);
+    padding: 0.55rem 0.8rem;
+    background: color-mix(in srgb, #0c0e14 82%, transparent);
+    border: 1px solid var(--imp-border);
+    border-radius: var(--imp-radius);
+    font-family: var(--imp-font);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  .fs-pay-paid {
+    color: #e0c056;
+  }
+
+  .fs-planet.is-payable {
+    cursor: pointer;
+    outline: 2px solid #e0c056;
+    outline-offset: 2px;
+  }
+
+  .fs-pay-goods {
+    appearance: none;
+    flex: 1 1 14rem;
+    width: min(16rem, 100%);
+    max-width: 16rem;
+    min-width: 11rem;
+    min-height: 8rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 0.4rem;
+    cursor: pointer;
+    color: var(--imp-text);
+    background: color-mix(in srgb, #0c0e14 82%, transparent);
+    border: 1px solid #e0c056;
+    border-radius: var(--imp-radius);
+    font-family: var(--imp-font);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .fs-pay-goods-count {
+    font-size: var(--imp-fs-num);
+    color: #e0c056;
+    letter-spacing: 0;
+    text-transform: none;
+  }
+
   .fs-unit-meta {
     color: var(--imp-text-muted);
     font-size: var(--imp-fs-sm);
@@ -362,8 +437,9 @@
 
   .fs-tech-col {
     --tech: #8d93a0;
-    --node-h: 4rem;
-    --node-gap: 0.35rem;
+    --node-h: 5rem;
+    --link-h: 1.05rem;
+    --node-gap: var(--link-h);
     display: flex;
     flex-direction: column;
     align-items: stretch;
@@ -373,20 +449,29 @@
     height: 100%;
   }
 
+  .fs-tech-tier {
+    display: flex;
+    flex-direction: column;
+    min-height: calc(
+      var(--tier-rows) * var(--node-h) + (var(--tier-rows) - 1) * var(--node-gap) + var(--link-h)
+    );
+  }
+
+  .fs-tech-tier:last-child {
+    min-height: calc(var(--tier-rows) * var(--node-h) + (var(--tier-rows) - 1) * var(--node-gap));
+  }
+
   .fs-tech-tier-nodes {
     display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    align-content: flex-start;
-    align-items: flex-start;
-    gap: var(--node-gap);
-    min-height: calc(var(--tier-rows) * var(--node-h) + (var(--tier-rows) - 1) * var(--node-gap));
+    flex-direction: column;
+    align-items: stretch;
+    flex: 0 0 auto;
   }
 
   .fs-tech-link {
     width: 2px;
-    flex: 1 1 1.25rem;
-    min-height: 1.25rem;
+    flex: 1 1 auto;
+    min-height: var(--link-h);
     margin: 0 auto;
     background: color-mix(in srgb, var(--tech) 55%, #6d7280);
   }
@@ -417,14 +502,27 @@
 
   .fs-tech-node {
     box-sizing: border-box;
-    width: calc(50% - var(--node-gap) / 2);
+    position: relative;
+    z-index: var(--stack, 1);
+    width: 100%;
     height: var(--node-h);
-    flex: 0 0 calc(50% - var(--node-gap) / 2);
+    flex: 0 0 auto;
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 0.35rem 0.3rem;
+    padding: 0.4rem 0.55rem;
     border-radius: var(--imp-radius);
+  }
+
+  .fs-tech-node + .fs-tech-node {
+    margin-top: var(--node-gap);
+  }
+
+  .fs-tech-faction-mark {
+    font-size: 0.72em;
+    line-height: 0;
+    margin-left: 0.12em;
+    color: #e0c056;
   }
 
   .fs-tech-node-name,
@@ -457,36 +555,23 @@
     filter: brightness(1.2);
   }
 
-  .fs-tech-node.is-related {
-    outline: 1px solid color-mix(in srgb, var(--tech) 80%, #fff);
-    outline-offset: 2px;
-  }
-
   .fs-upgrades {
     flex: 0 0 auto;
     display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: var(--imp-space-sm);
-    padding-top: var(--imp-space-sm);
+    width: 100%;
+    gap: 0.55rem;
+    padding-top: var(--imp-space-md);
     border-top: 1px solid var(--imp-border);
   }
 
   .fs-upgrade {
-    min-width: 6.2rem;
-    max-width: 10rem;
-    padding: 0.45rem 0.45rem;
+    box-sizing: border-box;
+    flex: 1 1 0;
+    min-width: 0;
+    min-height: 3.6rem;
+    padding: 0.75rem 0.55rem;
+    border-radius: var(--imp-radius);
     background: #16130f;
-    clip-path: polygon(
-      0.55rem 0,
-      calc(100% - 0.55rem) 0,
-      100% 0.55rem,
-      100% calc(100% - 0.55rem),
-      calc(100% - 0.55rem) 100%,
-      0.55rem 100%,
-      0 calc(100% - 0.55rem),
-      0 0.55rem
-    );
   }
 
   .fs-upgrade.is-available {
@@ -508,12 +593,46 @@
     bottom: 0;
     width: min(24rem, 44%);
     z-index: 4;
-    overflow: auto;
-    padding: var(--imp-space-md);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
     background: #101218;
     border: 1px solid var(--imp-border);
     box-shadow: 0 0 1.4rem #000c;
     transition: transform 0.22s ease;
+  }
+
+  .fs-tech-detail-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: auto;
+    padding: var(--imp-space-md);
+    padding-right: 5.5rem;
+  }
+
+  .fs-tech-detail-action:empty {
+    display: none;
+  }
+
+  .fs-tech-detail-action {
+    flex: 0 0 auto;
+    padding: var(--imp-space-md);
+    border-top: 1px solid var(--imp-border);
+  }
+
+  .fs-tech-research {
+    width: 100%;
+    appearance: none;
+    cursor: pointer;
+    font-family: var(--imp-font);
+    font-size: var(--imp-fs);
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: #1a1410;
+    background: color-mix(in srgb, goldenrod 85%, #fff);
+    border: 1px solid #e0c056;
+    border-radius: var(--imp-radius);
+    padding: 0.75rem 1rem;
   }
 
   .fs-tech-detail.from-right {
@@ -534,7 +653,11 @@
 
   .fs-tech-detail-close {
     appearance: none;
-    float: right;
+    position: absolute;
+    top: var(--imp-space-md);
+    right: var(--imp-space-md);
+    z-index: 1;
+    float: none;
     background: transparent;
     color: var(--imp-text-muted);
     border: 1px solid var(--imp-border);

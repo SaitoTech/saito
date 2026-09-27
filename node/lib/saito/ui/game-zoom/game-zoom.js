@@ -46,7 +46,13 @@ class GameZoom {
         let view_ready = this.mod.default_board_view
           ? this.mod.loadGamePreference(this.mod.returnSlug() + '-board-view-set')
           : 1;
-        if (saved_scale && view_ready) {
+        if (this.mod.remember_board_position === false) {
+          if (this.mod.default_board_scale) {
+            this.mod.setBoardScale(this.mod.default_board_scale, false);
+          } else {
+            this.mod.centerBoard();
+          }
+        } else if (saved_scale && view_ready) {
           this.mod.setBoardScale(saved_scale, false);
           let boardoffset = null;
           try {

@@ -185,6 +185,16 @@
     background: color-mix(in srgb, var(--imp-text) 18%, transparent);
   }
 
+  .dash-faction-base,
+  .dash-faction-speaker.speaker {
+    box-sizing: border-box;
+    height: calc(var(--imp-fs-sm) + 0.4rem + 2px);
+    padding: 0.2rem 0.45rem;
+    border-radius: var(--imp-radius);
+    border-width: 1px;
+    border-style: solid;
+  }
+
   .dash-faction-base {
     display: inline-flex;
     align-items: center;
@@ -192,10 +202,8 @@
     justify-self: start;
     min-width: 0;
     margin: 0;
-    padding: 0.2rem 0.45rem;
     background: color-mix(in srgb, #000 28%, transparent);
-    border: 1px solid color-mix(in srgb, var(--imp-text) 16%, transparent);
-    border-radius: var(--imp-radius);
+    border-color: color-mix(in srgb, var(--imp-text) 16%, transparent);
   }
 
   .dash-faction-footer {
@@ -252,13 +260,11 @@
     background-color: color-mix(in srgb, #c43c32 88%, transparent);
     color: var(--imp-text);
     font-size: clamp(0.85rem, 7cqi, var(--imp-fs));
-    font-weight: 600;
+    font-weight: 400;
     font-family: var(--imp-font-label);
     letter-spacing: 0.04em;
     line-height: 1;
-    padding: 0.22rem 0.4rem;
-    border-radius: var(--imp-radius);
-    border: 1px solid color-mix(in srgb, #fff 22%, transparent);
+    border-color: color-mix(in srgb, #fff 22%, transparent);
     pointer-events: none;
     white-space: nowrap;
   }
@@ -336,7 +342,6 @@
 
     .dash-faction-speaker.speaker {
       letter-spacing: 0.04rem;
-      padding: 0.2rem 0.4rem;
     }
 
     .dash-faction-status-text {
@@ -347,7 +352,6 @@
   @container (max-width: 15rem) {
     .dash-faction-speaker.speaker {
       letter-spacing: 0.02em;
-      padding: 0.16rem 0.28rem;
     }
   }
 }

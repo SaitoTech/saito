@@ -15,6 +15,8 @@ class FactionSheetOverlay {
     this.overlay = new SaitoOverlay(this.app, this.mod, false);
     this.player = 1;
     this.active_tab = 'overview';
+    this.production_payment = null;
+    this.technology_research = null;
     this.tabs = [
       { id: 'overview', label: 'Overview' },
       { id: 'planets', label: 'Planets' },
@@ -31,9 +33,45 @@ class FactionSheetOverlay {
     };
   }
 
-  render(player) {
+  beginProductionPayment(player, payment) {
+    this.production_payment = payment;
+    this.render(player, 'planets');
+  }
+
+  updateProductionPayment(payment) {
+    this.production_payment = payment;
+    if (this.active_tab == 'planets') {
+      this.panels.planets.render(this.player);
+    }
+  }
+
+  finishProductionPayment() {
+    this.production_payment = null;
+    this.overlay.remove();
+  }
+
+  beginTechnologyResearch(player, choose) {
+    this.technology_research = choose;
+    this.render(player, 'technologies');
+  }
+
+  finishTechnologyResearch() {
+    this.technology_research = null;
+    this.overlay.remove();
+  }
+
+  render(player, tab) {
     this.player = player;
-    this.active_tab = 'overview';
+    if (!tab) {
+      if (this.production_payment) {
+        tab = 'planets';
+      } else if (this.technology_research) {
+        tab = 'technologies';
+      } else {
+        tab = 'overview';
+      }
+    }
+    this.active_tab = tab;
 
     let faction_name = this.mod.returnFactionNickname(player);
     this.overlay.show(

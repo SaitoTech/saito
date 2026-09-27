@@ -59,6 +59,9 @@ class GameCards {
   }
 
   saveBoardDocumentOffset(el) {
+    if (this.remember_board_position === false) {
+      return;
+    }
     this.saveGamePreference(this.returnSlug() + '-board-offset', this.boardDocumentOffset(el));
   }
 
@@ -78,6 +81,27 @@ class GameCards {
     }
     const r = el.getBoundingClientRect();
     return this.boardOffsetInWindow(r.left, r.top, r.width, r.height);
+  }
+
+  // The grid box is much larger than the sectors. A corner of that box can
+  // sit in the window while every sector is off-screen.
+  boardShowsSectors(el) {
+    if (!el) {
+      return false;
+    }
+    const nodes = el.querySelectorAll('.sector');
+    if (!nodes.length) {
+      return this.boardFillsView(el);
+    }
+    for (let i = 0; i < nodes.length; i++) {
+      const r = nodes[i].getBoundingClientRect();
+      const ix = Math.min(r.right, window.innerWidth) - Math.max(r.left, 0);
+      const iy = Math.min(r.bottom, window.innerHeight) - Math.max(r.top, 0);
+      if (ix > 48 && iy > 48) {
+        return true;
+      }
+    }
+    return false;
   }
 
   moveBoardTo(el, viewLeft, viewTop) {
@@ -105,14 +129,14 @@ class GameCards {
 
   ensureBoardVisible() {
     const el = this.boardEl();
-    if (!el || this.boardFillsView(el)) {
+    if (!el || this.boardShowsSectors(el)) {
       return;
     }
     const scaled = el.offsetWidth && el.getBoundingClientRect().width / el.offsetWidth > 1.05;
     if (!scaled && this.default_board_scale) {
       this.setBoardScale(this.default_board_scale, false);
     }
-    if (!this.boardFillsView(el)) {
+    if (!this.boardShowsSectors(el)) {
       this.placeBoardInWindow(el);
     }
   }

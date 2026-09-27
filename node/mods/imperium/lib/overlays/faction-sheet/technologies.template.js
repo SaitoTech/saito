@@ -191,10 +191,11 @@ function mapModel(mod, player) {
         key: item.key,
         name: tech.name,
         color: color,
+        factional: item.factional,
         state: nodeState(item.key, tech, owned, counts, pinfo)
       });
       depths[item.depth] = 1;
-      let rows = Math.ceil(tiers[item.depth].length / 2);
+      let rows = tiers[item.depth].length;
       if (!tier_rows[item.depth] || rows > tier_rows[item.depth]) {
         tier_rows[item.depth] = rows;
       }
@@ -229,13 +230,14 @@ function render(mod, player) {
         let depth = model.tier_depths[i];
         let tier_nodes = column.tiers[depth] || [];
         let buttons = tier_nodes
-          .map((node) => {
-            return `<button type="button" class="fs-tech-node is-${node.state}" data-key="${esc(node.key)}" data-kind="tech" data-color="${esc(node.color)}"><span class="fs-tech-node-name">${esc(node.name)}</span></button>`;
+          .map((node, index) => {
+            let mark = node.factional ? '<sup class="fs-tech-faction-mark">*</sup>' : '';
+            return `<button type="button" class="fs-tech-node is-${node.state}" style="--stack:${index + 1}" data-key="${esc(node.key)}" data-kind="tech" data-color="${esc(node.color)}"><span class="fs-tech-node-name">${esc(node.name)}${mark}</span></button>`;
           })
           .join('');
         let link = i < model.tier_depths.length - 1 ? '<div class="fs-tech-link"></div>' : '';
         tiers.push(
-          `<div class="fs-tech-tier" style="--tier-rows:${model.tier_rows[depth] || 1}"><div class="fs-tech-tier-nodes">${buttons}</div></div>${link}`
+          `<div class="fs-tech-tier" style="--tier-rows:${model.tier_rows[depth] || 1}"><div class="fs-tech-tier-nodes">${buttons}</div>${link}</div>`
         );
       }
       return `<div class="fs-tech-col" data-color="${esc(column.color)}">${tiers.join('')}</div>`;
@@ -248,7 +250,8 @@ function render(mod, player) {
       if (unit.factional) {
         classes.push('is-faction');
       }
-      return `<button type="button" class="${classes.join(' ')}" data-key="${esc(unit.key)}" data-kind="unit"><span class="fs-upgrade-name">${esc(unit.name)}</span></button>`;
+      let mark = unit.factional ? '<sup class="fs-tech-faction-mark">*</sup>' : '';
+      return `<button type="button" class="${classes.join(' ')}" data-key="${esc(unit.key)}" data-kind="unit"><span class="fs-upgrade-name">${esc(unit.name)}${mark}</span></button>`;
     })
     .join('');
 
@@ -261,6 +264,7 @@ function render(mod, player) {
       <aside class="fs-tech-detail from-right" aria-hidden="true">
         <button type="button" class="fs-tech-detail-close">close</button>
         <div class="fs-tech-detail-body"></div>
+        <div class="fs-tech-detail-action"></div>
       </aside>
     </div>
   `;

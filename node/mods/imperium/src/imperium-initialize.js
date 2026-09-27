@@ -143,10 +143,7 @@
         class : "game-tech-dependencies-basic",
         callback : function(app, game_mod) {
           game_mod.menu.hideSubMenus();
-	  let tech = game_mod.returnTechnology();
-          let t2 = [];
-          for (let x in tech) { if (tech[x].type == "normal" && tech[x].unit != 1) { t2.push(tech[x]); } }
-          game_mod.overlay.showCardSelectionOverlay(game_mod.app, game_mod, t2, { backgroundImage : "/imperium/img/backgrounds/unit-upgrades.jpg" , padding : "50px"});
+          game_mod.faction_sheet_overlay.render(game_mod.game.player, 'technologies');
         }
     });
     this.menu.addSubMenuOption("game-tech-dependencies", {
@@ -164,10 +161,7 @@
         class : "game-tech-dependencies-upgrades",
         callback : function(app, game_mod) {
           game_mod.menu.hideSubMenus();
-	  let tech = game_mod.returnTechnology();
-          let t2 = [];
-          for (let x in tech) { if (tech[x].type == "normal" && tech[x].unit == 1) { t2.push(tech[x]); } }
-          game_mod.upgrades_overlay.render({ tech : t2 , img : "/imperium/img/backgrounds/unit-upgrades.jpg" });
+          game_mod.faction_sheet_overlay.render(game_mod.game.player, 'technologies');
         }
     });
     for (let i = 0; i < this.game.players.length; i++) {
@@ -177,11 +171,7 @@
         class : "game-faction-tech-"+(i+1),
         callback : function(app, game_mod) {
           game_mod.menu.hideSubMenus();
-	  let faction_key = game_mod.game.state.players_info[i].faction;
-	  let tech = game_mod.returnTechnology();
-          let t2 = [];
-          for (let x in tech) { if (tech[x].faction == faction_key) { t2.push(tech[x]); } }
-          game_mod.overlay.showCardSelectionOverlay(game_mod.app, game_mod, t2, { backgroundImage : "/imperium/img/backgrounds/unit-upgrades.jpg" , padding : "50px"});
+          game_mod.faction_sheet_overlay.render(i + 1, 'technologies');
         }
       });
     }
@@ -253,7 +243,9 @@
 
     try {
       this.default_board_view = null;
+      this.default_board_scale = this.returnDefaultBoardScale();
       let slug = this.returnSlug();
+      this.deleteGamePreference(slug + '-board-offset');
       if (this.loadGamePreference(slug + '-board-view-set')) {
         this.deleteGamePreference(slug + '-board-offset');
         this.deleteGamePreference(slug + '-board-scale');
@@ -686,7 +678,7 @@ console.log("QUEUE IN INIT: " + JSON.stringify(this.game.queue.push));
     for (let i in this.game.board) {
 
       // add html to index
-      let boardslot = ".sector_" + i;
+      let boardslot = "#hexGrid .sector_" + i;
 
 console.log("initing sector: " + i);
 
@@ -700,8 +692,11 @@ console.log("initing sector: " + i);
       $(planet_div).attr("src", this.game.sectors[this.game.board[i].tile].img);
 
     }
-  
-  
+
+    if (this.minimap) {
+      this.minimap.render();
+    }
+
     this.updateLeaderboard();
   
     //
@@ -787,7 +782,6 @@ console.log("ABOUT TO DINISH INITIALIZATION!");
 			"img/planet_card_template.png",
 			"img/secret_objective.jpg",
 			"img/arcade_release.jpg",
-			"img/tech_card_template.jpg",
 			"img/blank_influence_hex.png",
 			"img/spaceb2.jpg",
 			"img/frame/white_space_frame_1_5.png",

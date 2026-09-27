@@ -17,7 +17,7 @@ module.exports = (
   <div class="production-info">
     <div class="production-header">
       <div class="production-description">
-	Available: <span class="resources_box available">4 resources</span><br>
+	Available: <span class="resources_box available">${resources_available} resources</span><br>
 	Required: <span class="resources_box required">0 resources</span>
       </div>
       <div class="production-button saito-button-secondary">CONTINUE</div>
