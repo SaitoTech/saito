@@ -117,6 +117,7 @@ class Mixin extends ModTemplate {
     this.categories = 'Finance Utilities';
     this.icon = 'fas fa-wallet';
     this.class = 'utility';
+    this.status = 'prod';
 
     //
     // reference for dynamic modules

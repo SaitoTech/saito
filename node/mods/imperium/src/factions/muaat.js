@@ -11,7 +11,7 @@
       background	: 	'faction7.jpg' ,
       promissary_notes	:	["trade","political","ceasefire","throne","faction7-promissary"],
       commodity_limit	:	4,
-      intro             :       `<div style="font-weight:bold">Welcome to Red Imperium!</div><div style="line-height:2.8rem;margin-top:10px;margin-bottom:0px;">You are playing as the Embers of Muaat, a faction which forges its instruments of war in the heat of lava-powered furnaces and whose technical research expands to conquering the heat of the very starts themselves. Goodl luck!</div>`
+      intro             :       `You are the Embers of Muaat, a race with weapons forged in the living fire of the dying stars. At full strength -- unstoppable.`
     });
 
 
@@ -40,6 +40,8 @@
         if (menu === "main") {
           x.event = 'starforge';
           x.html = '<li class="option" id="starforge">star forge</li>';
+          x.id = 'starforge';
+          x.label = 'star forge';
         }
         return x;
       },
@@ -254,6 +256,8 @@
         if (menu == "main") {
           x.event = 'faction7-promissary';
           x.html = '<li class="option" id="faction7-promissary">Fires of the Gashlai (Muaat Promissary)</li>';
+          x.id = 'faction7-promissary';
+          x.label = 'Fires of the Gashlai (Muaat Promissary)';
         }
         return x;
       },

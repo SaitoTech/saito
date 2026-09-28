@@ -14,6 +14,8 @@ class SaitoMania extends OnePlayerGameTemplate {
     this.description =
       'Blast shitcoins, pick up superpowers, destroy rocks to collect Saito and learn about the Saito project while playing ;)';
     this.categories = 'Games Arcadegame One-player';
+    this.status = 'alpha';
+    this.class = 'app';
     this.request_no_interrupts = true; // don't popup chat
     this.app = app;
     this.statistical_unit = 'game';

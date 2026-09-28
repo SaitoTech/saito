@@ -57,7 +57,10 @@
           var ops_to_place = 4;
           twilight_self.addMove("resolve\tussuri");
 
-          this.updateStatus("US place four influence in Asia (2 max per country)");
+          this.game.status = "US place four influence in Asia (2 max per country)";
+          this.hud.updateStatus(this.game.status);
+          this.hud.updateMenu([]);
+          this.hud.updateCards([]);
 
           for (var i in this.countries) {
 
@@ -93,7 +96,10 @@
             }
           }
         }else{
-          this.updateStatus(`<div class='status-message' id='status-message'>${this.cardToText(card)}: US is placing influence in Asia </div>`);
+          this.game.status = `<div class='status-message' id='status-message'>${this.cardToText(card)}: US is placing influence in Asia </div>`;
+          this.hud.updateStatus(this.game.status);
+          this.hud.updateMenu([]);
+          this.hud.updateCards([]);
         }
         return 0;
   

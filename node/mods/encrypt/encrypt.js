@@ -36,6 +36,7 @@ class Encrypt extends ModTemplate {
     this.description = 'A Diffie-Hellman encryption tool for Saito';
     this.categories = 'Encryption Utilities';
     this.class = 'utility';
+    this.status = 'prod';
 
     app.connection.on('encrypt-key-exchange', (publicKey) => {
       console.log('initiating key exchange...');

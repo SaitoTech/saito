@@ -696,30 +696,75 @@ impl Wallet {
     }
 
     pub fn get_pending_balance(&self) -> Currency {
-        let base = self.get_available_balance();
-        let mut pending_return: Currency = 0;
+        let mut spendable: AHashSet<SaitoUTXOSetKey> = AHashSet::new();
+        let mut total: Currency = 0;
 
-        for tx in self.pending_txs.values() {
-            let mut i = 0;
-            while i < tx.to.len() {
-                if tx.is_nft(&tx.to, i) {
-                    // do not count deposits as balance
-                    //let slip2 = &tx.to[i + 1];
-                    //if slip2.public_key == self.public_key {
-                    //    pending_return = pending_return.saturating_add(slip2.amount);
-                    //}
-                    i += 3;
-                } else {
-                    let out = &tx.to[i];
-                    if out.public_key == self.public_key {
-                        pending_return = pending_return.saturating_add(out.amount);
+        for utxokey in self.unspent_slips.iter() {
+            if let Some(ws) = self.slips.get(utxokey) {
+                if ws.spent {
+                    continue;
+                }
+                match ws.slip_type {
+                    SlipType::Bound | SlipType::BlockStake => continue,
+                    _ => {
+                        spendable.insert(*utxokey);
+                        total = total.saturating_add(ws.amount);
                     }
-                    i += 1;
                 }
             }
         }
 
-        base.saturating_add(pending_return)
+        let mut consumed: AHashSet<SaitoUTXOSetKey> = AHashSet::new();
+
+        for tx in self.pending_txs.values() {
+            let mut spent_here: Vec<SaitoUTXOSetKey> = Vec::new();
+            let mut overlap = false;
+
+            let mut i = 0;
+            while i < tx.from.len() {
+                if tx.is_nft(&tx.from, i) {
+                    i += 3;
+                    continue;
+                }
+                let input = &tx.from[i];
+                if input.public_key == self.public_key && input.amount > 0 {
+                    let key = input.get_utxoset_key();
+                    if spendable.contains(&key) {
+                        spent_here.push(key);
+                    } else if consumed.contains(&key) {
+                        overlap = true;
+                    }
+                }
+                i += 1;
+            }
+
+            if overlap {
+                continue;
+            }
+
+            for key in spent_here {
+                if let Some(ws) = self.slips.get(&key) {
+                    total = total.saturating_sub(ws.amount);
+                }
+                spendable.remove(&key);
+                consumed.insert(key);
+            }
+
+            let mut j = 0;
+            while j < tx.to.len() {
+                if tx.is_nft(&tx.to, j) {
+                    j += 3;
+                    continue;
+                }
+                let out = &tx.to[j];
+                if out.public_key == self.public_key {
+                    total = total.saturating_add(out.amount);
+                }
+                j += 1;
+            }
+        }
+
+        total
     }
 
     /// Debug-only: log Nolan balances and pending tx keys (header / WASM debugging).

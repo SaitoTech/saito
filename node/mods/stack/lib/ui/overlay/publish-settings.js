@@ -473,8 +473,7 @@ class PublishSettingsOverlay {
 					this.overlay.hide();
 					this.watchTransaction(obj.tx, {
 						title: `Creating ${keyLabel}`,
-						lead: `Your ${keyLabel} is being broadcast to the Saito network.`,
-						subtitle: 'Waiting for confirmation...',
+						lead: `Your ${keyLabel} is being broadcast...`,
 						successTitle: `${keyLabel} Confirmed`,
 						successLead: `Your ${keyLabel} has been confirmed and is available in your wallet.`,
 						onConfirmed: () => {
@@ -684,7 +683,7 @@ class PublishSettingsOverlay {
 	watchTransaction(tx, {
 		title = 'Waiting for Confirmation',
 		lead = '',
-		subtitle = 'Waiting for confirmation...',
+		subtitle = '',
 		successTitle = 'Confirmed',
 		successLead = '',
 		onConfirmed = null,
@@ -989,10 +988,7 @@ class PublishSettingsOverlay {
 			const isUpdate = !!parent_id;
 			this.watchTransaction(publishedTx, {
 				title: isUpdate ? 'Updating Post' : 'Publishing Post',
-				lead: isUpdate
-					? 'Your update is being broadcast to the Saito network.'
-					: 'Your post is being broadcast to the Saito network.',
-				subtitle: 'Waiting for confirmation...',
+				lead: 'Your post is being broadcast...',
 				successTitle: isUpdate ? 'Post Updated' : 'Post Published',
 				successLead: isUpdate
 					? 'Your update has been confirmed and is now available on the network.'

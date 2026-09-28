@@ -217,6 +217,11 @@ console.log(JSON.stringify(unit));
       }
     }
 
+    // 12.4.7.5 / 17.1.7 — dotted armies are permanently eliminated.
+    if (this.isIrreplaceableArmy(unit) && (destinationkey == "aeubox" || destinationkey == "ceubox")) {
+      eliminate_rather_than_move = true;
+    }
+
     this.game.spaces[sourcekey].units[sourceidx].moved = 1;
     this.game.spaces[sourcekey].units.splice(sourceidx, 1);
     if (!this.game.spaces[destinationkey].units) { this.game.spaces[destinationkey].units = []; }
@@ -412,9 +417,20 @@ console.log(JSON.stringify(unit));
   // 2. flip damaged units in the RB
   // 3. return eliminated units to RB
   //
+  isIrreplaceableArmy(unit=null) {
+    if (!unit) { return 0; }
+    if (unit.irreplaceable) { return 1; }
+    // Saved pieces created before the flag was stored on the unit record.
+    if (unit.key == "yld_army01" || unit.key == "aoi_corps" || unit.key == "orient_army" || unit.key == "cau_army" || unit.key == "bef_army" || unit.key == "mef_army" || unit.key == "ne_army") {
+      return 1;
+    }
+    return 0;
+  }
+
   doReplacementPointsExistForUnit(unit=null) {
 
     if (!unit) { return 0; }
+    if (this.isIrreplaceableArmy(unit)) { return 0; }
 
     let faction = this.returnFactionOfUnit(unit);
     let rp = this.game.state.rp[faction];

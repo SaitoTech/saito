@@ -4,7 +4,7 @@ const ListingFieldEdit = require('./listing-field-edit');
 const Summary = require('../../summary');
 const { DREAMSCAPE_PLACEHOLDER } = require('../../summary');
 const { summaryBucketKey } = require('../summary-cache');
-const { isStoreRentalListing } = require('../../categories');
+const { isStoreRentalListing, storeCategoryLabel } = require('../../categories');
 const { durationLabel, rightsLabel } = require('./rental-listing.template');
 const { yieldForPaint } = require('../purchase-service');
 const {
@@ -132,16 +132,12 @@ class ListingDetailOverlay {
   }
 
   returnProductType(summary = {}) {
-    if (summary.type) {
-      return summary.type;
-    }
-    if (summary.nft || summary.nft_id || summary.badge) {
-      return 'NFT';
-    }
-    if (summary.delivery || summary.shipping || summary.physical) {
-      return 'Physical';
-    }
-    return 'Digital';
+    const nft_type =
+      (typeof summary?.nft?.returnType === 'function' ? summary.nft.returnType() : '') ||
+      summary?.nft?.nft_type ||
+      summary?.type ||
+      '';
+    return storeCategoryLabel(summary.category, nft_type);
   }
 
   returnListingMeta(summary = {}) {
@@ -225,7 +221,7 @@ class ListingDetailOverlay {
       actionText: this.escapeHtml(actionText),
       description,
       hasDescription: !!description,
-      productType: this.escapeHtml(isRental ? 'store-nft-rental' : this.returnProductType(summary)),
+      productType: this.escapeHtml(this.returnProductType(summary)),
       fileType: this.escapeHtml(this.returnFileTypeFromImages(rawImages)),
       createdDate: this.escapeHtml(this.returnCreatedDate(summary)),
       imageLoading: summary.isImageLoading?.() ?? false,
@@ -556,6 +552,43 @@ class ListingDetailOverlay {
             this.formatSaitoPriceDisplay(cleaned);
         }
       });
+      const input = document.getElementById('saito-overlay-form-input');
+      if (input) {
+        input.setAttribute('inputmode', 'decimal');
+        input.addEventListener('beforeinput', (ev) => {
+          if (!ev.data || !String(ev.inputType || '').startsWith('insert')) {
+            return;
+          }
+          if (/[^\d.]/.test(ev.data)) {
+            ev.preventDefault();
+            return;
+          }
+          const start = input.selectionStart ?? input.value.length;
+          const end = input.selectionEnd ?? start;
+          const next = input.value.slice(0, start) + ev.data + input.value.slice(end);
+          const dot = next.indexOf('.');
+          if (dot !== -1 && next.slice(dot + 1).includes('.')) {
+            ev.preventDefault();
+          }
+        });
+        input.addEventListener('input', () => {
+          const prev = input.value;
+          let cleaned = prev.replace(/[^\d.]/g, '');
+          const dot = cleaned.indexOf('.');
+          if (dot !== -1) {
+            cleaned = cleaned.slice(0, dot + 1) + cleaned.slice(dot + 1).replace(/\./g, '');
+          }
+          if (cleaned === prev) {
+            return;
+          }
+          const pos = input.selectionStart;
+          input.value = cleaned;
+          if (typeof pos === 'number') {
+            const nextPos = Math.max(0, pos - (prev.length - cleaned.length));
+            input.setSelectionRange(nextPos, nextPos);
+          }
+        });
+      }
     });
 
     root.querySelector('[data-edit="available"]')?.addEventListener('click', (e) => {
@@ -744,6 +777,7 @@ class ListingDetailOverlay {
       tx,
       title: 'Listing Submitted',
       lead,
+      subtitle: '',
       successTitle: 'Listing Successful',
       successLead: 'You have successfully added an item to your Saito Store.',
       callback: (result) => {

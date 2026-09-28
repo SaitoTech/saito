@@ -15,7 +15,6 @@ const FactionsOverlay = require('./lib/overlays/factions');
 const SectorOverlay = require('./lib/overlays/sector');
 const ProductionOverlay = require('./lib/overlays/production');
 const UnitsOverlay = require('./lib/overlays/units');
-const UpgradesOverlay = require('./lib/overlays/upgrades');
 const ObjectivesOverlay = require('./lib/overlays/objectives');
 const AgendasOverlay = require('./lib/overlays/agenda');
 const AgendaSelectionOverlay = require('./lib/overlays/agenda-selection');
@@ -29,14 +28,15 @@ const GroundCombatOverlay = require('./lib/overlays/ground-combat');
 const BombardmentOverlay = require('./lib/overlays/bombardment');
 const AntiFighterBarrageOverlay = require('./lib/overlays/anti-fighter-barrage');
 const ZoomOverlay = require('./lib/overlays/zoom');
+const GameMinimap = require('../../lib/saito/ui/game-minimap/game-minimap');
 const UnitTemplate = require('./lib/unit.template');
 const Unit = require('./lib/unit');
 const FactionBar = require('./lib/factionbar');
 const TokenBar = require('./lib/tokenbar');
 const Dashboard = require('./lib/dashboard-manager');
 const RoundBox = require('./lib/round');
-const Leaderboard = require('./lib/leaderboard');
 const Sector = require('./lib/sector');
+const ImperiumGameHUD = require('./lib/imperium-game-hud/imperium-game-hud');
 
 
 class Imperium extends GameTemplate {
@@ -44,6 +44,7 @@ class Imperium extends GameTemplate {
   constructor(app) {
   
     super(app);
+    this.hud = new ImperiumGameHUD(app, this);
   
     this.name             = "Imperium";
     this.gamename         = "Red Imperium";
@@ -64,6 +65,10 @@ class Imperium extends GameTemplate {
     //this.rules_overlay = new RulesOverlay(this.app, this);
     this.faction_sheet_overlay = new FactionSheetOverlay(this.app, this);
     this.zoom_overlay = new ZoomOverlay(this.app, this);
+    this.minimap = new GameMinimap(this.app, this);
+    this.minimap.enable_zoom = 1;
+    this.default_board_scale = 180;
+    this.remember_board_position = false;
     this.strategy_card_selection_overlay = new StrategyCardSelectionOverlay(this.app, this);
     this.strategy_card_overlay = new StrategyCardOverlay(this.app, this);
     this.combat_overlay = new CombatOverlay(this.app, this);
@@ -73,7 +78,6 @@ class Imperium extends GameTemplate {
     this.movement_overlay = new MovementOverlay(this.app, this);
     this.senate_overlay = new SenateOverlay(this.app, this);
     this.production_overlay = new ProductionOverlay(this.app, this);
-    this.upgrades_overlay = new UpgradesOverlay(this.app, this);
     this.objectives_overlay = new ObjectivesOverlay(this.app, this);
     this.agendas_overlay = new AgendasOverlay(this.app, this);
     this.agenda_selection_overlay = new AgendaSelectionOverlay(this.app, this);
@@ -90,10 +94,9 @@ class Imperium extends GameTemplate {
     this.bombardment_overlay = new BombardmentOverlay(this.app, this);
     this.anti_fighter_barrage_overlay = new AntiFighterBarrageOverlay(this.app, this);
     this.dashboard = new Dashboard(this.app, this, ".dashboard");
-    this.tokenbar = new TokenBar(this.app, this, ".hud-header");
-    this.factionbar = new FactionBar(this.app, this, ".hud-header");
+    this.tokenbar = new TokenBar(this.app, this, "#imperium-hud-chrome");
+    this.factionbar = new FactionBar(this.app, this, "#imperium-hud-chrome");
     this.roundbox = new RoundBox(this.app, this, "");
-    this.leaderboard = new Leaderboard(this.app, this, "");
 
     //
     // specific to THIS game
@@ -123,8 +126,6 @@ class Imperium extends GameTemplate {
     this.stage_ii_objectives    = {};
     this.units          	= {};
     this.promissary_notes	= {};
-
-    this.hud.mode = 1;  // classic interface
 
     //
     // tutorial related

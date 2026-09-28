@@ -21,7 +21,7 @@ class StrategyCardSelectionOverlay {
 
     for (let i = 0; i < scards_objs.length; i++) {
       this.app.browser.addElementToSelector(
-        scards_objs[i].returnCardImage(1),
+        this.selectionCard(scards_objs[i]),
         '.strategy-card-selection-controls'
       );
     }
@@ -41,6 +41,25 @@ class StrategyCardSelectionOverlay {
     }
 
     this.attachEvents(cards, unselect_cards, mycallback);
+  }
+
+  selectionCard(card) {
+    let file = String(card.img || '').split('/').pop();
+    let src = '/imperium/img/cards/strategy/' + file;
+    let bonus = 0;
+    let state = this.mod.game && this.mod.game.state;
+    if (state && state.strategy_cards) {
+      for (let i = 0; i < state.strategy_cards.length; i++) {
+        if (state.strategy_cards[i] === card.key) {
+          bonus = state.strategy_cards_bonus[i] || 0;
+        }
+      }
+    }
+    let bonus_html = '';
+    if (bonus > 0) {
+      bonus_html = `<div class="bonus"><i class="fas fa-database"></i><span>${bonus}</span></div>`;
+    }
+    return `<div class="strategy-card strategy-card-${card.key}" id="${card.key}"><img src="${src}" alt="">${bonus_html}</div>`;
   }
 
   attachEvents(cards, unselectable, mycallback) {

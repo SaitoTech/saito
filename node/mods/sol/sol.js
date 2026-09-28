@@ -11,6 +11,8 @@ class SOL extends ModTemplate {
     this.ticker = 'SOL';
     this.description = 'Adds support for Mixin-powered Solana transfers on the Saito Network';
     this.categories = 'Utility Cryptocurrency Finance';
+    this.status = 'prod';
+    this.class = 'utility';
 
     // MIXIN STUFF
     this.asset_id = '64692c23-8971-4cf4-84a7-4dd1271dd887';

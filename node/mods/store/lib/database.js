@@ -1,5 +1,3 @@
-/** Listing is reserved for an in-flight settlement until confirmed or reset. */
-const LISTING_SETTLEMENT_PENDING_BLOCK_ID = -1;
 /** Listing identity: one row per block inclusion of a list-asset transaction. */
 const LISTINGS_INCLUSION_INDEX = 'listings_signature_block_hash_uidx';
 const LISTINGS_MIGRATION_TABLE = 'listings_inclusion_migration';
@@ -7,6 +5,9 @@ const LISTINGS_MIGRATION_TABLE = 'listings_inclusion_migration';
 const ORDERS_INCLUSION_INDEX = 'orders_order_tx_sig_block_hash_uidx';
 const ORDERS_PAYMENT_INCLUSION_INDEX = 'orders_payment_utxo_block_hash_uidx';
 const { STORE_CATEGORIES } = require('./categories');
+
+// Shared across Database instances using the same SQLite connection.
+const transactionTails = new WeakMap();
 
 function quoteIdentifier(identifier) {
   return `"${String(identifier).replace(/"/g, '""')}"`;
@@ -39,6 +40,7 @@ class Database {
       'ALTER TABLE listings ADD COLUMN block_hash_sold TEXT NOT NULL DEFAULT ""',
       'ALTER TABLE listings ADD COLUMN transaction_id_sold INTEGER NOT NULL DEFAULT 0',
       'ALTER TABLE listings ADD COLUMN longest_chain_sold INTEGER NOT NULL DEFAULT 0',
+      'ALTER TABLE listings ADD COLUMN settlement_pending INTEGER NOT NULL DEFAULT 0',
       'ALTER TABLE listings ADD COLUMN category TEXT DEFAULT "Other"',
       'ALTER TABLE listings ADD COLUMN note TEXT NOT NULL DEFAULT ""',
       'ALTER TABLE listings ADD COLUMN buyer TEXT NOT NULL DEFAULT ""',
@@ -73,9 +75,64 @@ class Database {
 
     await this.migrateListingChainFields();
     await this.migrateListingInclusionUniqueness();
+    await this.ensureListingSales();
     await this.migrateOrderChainFields();
     await this.migrateOrderCryptoFieldNames();
     await this.migrateOrderInclusionUniqueness();
+  }
+
+  /**
+   * Sale inclusions: one row per (listing inclusion, fulfillment block).
+   * Backfill from listing rows that still have a real sale hash. Rows whose
+   * sale identity was wiped to empty are not guessed here. A later confirmation
+   * or wind recovery rebuilds them by matching fulfillment inputs to slips.
+   * block_id_sold = -1 was the local pending sentinel, not a block.
+   */
+  async ensureListingSales() {
+    const db = await this.app.storage.returnDatabaseByName(this.dbname);
+    if (!db) {
+      return;
+    }
+
+    const statements = this.returnSchemaStatements('listing_sales.sql');
+    for (const sql of statements) {
+      await db.exec(sql);
+    }
+
+    await db.exec(
+      `INSERT OR IGNORE INTO listing_sales (
+				  signature, block_hash_listed,
+				  block_id_sold, block_hash_sold, transaction_id_sold, longest_chain_sold,
+				  buyer, note, quantity_sold, sold_at, created_at, updated_at
+				)
+				SELECT signature, block_hash_listed,
+				       block_id_sold, block_hash_sold, transaction_id_sold, longest_chain_sold,
+				       buyer, note, quantity_sold, sold_at, created_at, updated_at
+				  FROM listings
+				 WHERE block_id_sold > 0 AND block_hash_sold != ''`
+    );
+
+    await db.run(
+      `UPDATE listings
+				  SET settlement_pending = 1,
+				      block_id_sold = 0,
+				      longest_chain_sold = 0,
+				      updated_at = $updated_at
+				WHERE block_id_sold = -1`,
+      { $updated_at: Date.now() }
+    );
+  }
+
+  returnSchemaStatements(filename) {
+    const fs = this.app.storage.returnFileSystem();
+    if (!fs?.readFileSync) {
+      throw new Error('filesystem unavailable');
+    }
+    return fs
+      .readFileSync(`${__dirname}/../sql/${filename}`, 'utf8')
+      .split(';')
+      .map((statement) => statement.replace(/^(?:\s*--[^\n]*)+/, '').trim())
+      .filter(Boolean);
   }
 
   /**
@@ -256,15 +313,7 @@ class Database {
   }
 
   returnListingsSchemaStatements() {
-    const fs = this.app.storage.returnFileSystem();
-    if (!fs?.readFileSync) {
-      throw new Error('filesystem unavailable');
-    }
-    return fs
-      .readFileSync(`${__dirname}/../sql/listings.sql`, 'utf8')
-      .split(';')
-      .map((statement) => statement.replace(/^(?:\s*--[^\n]*)+/, '').trim())
-      .filter(Boolean);
+    return this.returnSchemaStatements('listings.sql');
   }
 
   async migrateListingChainFields() {
@@ -357,7 +406,7 @@ class Database {
 			  access_hash, access_script, p2sh_address, slip_id,
 			  block_id_listed, block_hash_listed, transaction_id_listed, longest_chain_listed,
 			  block_id_sold, block_hash_sold, transaction_id_sold, longest_chain_sold,
-			  on_chain,
+			  settlement_pending, on_chain,
 			  utxo_slip1, utxo_slip2, utxo_slip3,
 			  created_at, updated_at, risk, approved
 			) VALUES (
@@ -365,7 +414,7 @@ class Database {
 			  $access_hash, $access_script, $p2sh_address, $slip_id,
 			  $block_id_listed, $block_hash_listed, $transaction_id_listed, $longest_chain_listed,
 			  $block_id_sold, $block_hash_sold, $transaction_id_sold, $longest_chain_sold,
-			  $on_chain,
+			  $settlement_pending, $on_chain,
 			  $utxo_slip1, $utxo_slip2, $utxo_slip3,
 			  $created_at, $updated_at, $risk, $approved
 			)`;
@@ -388,6 +437,7 @@ class Database {
       $block_hash_sold: row.block_hash_sold || '',
       $transaction_id_sold: row.transaction_id_sold ?? 0,
       $longest_chain_sold: row.longest_chain_sold ?? 0,
+      $settlement_pending: Number(row.settlement_pending ?? 0) ? 1 : 0,
       $on_chain: row.on_chain ?? 1,
       $utxo_slip1: row.utxo_slip1 || '',
       $utxo_slip2: row.utxo_slip2 || '',
@@ -476,15 +526,38 @@ class Database {
     };
   }
 
+  /**
+   * Listed on the longest chain, not reserved locally, and no sale inclusion
+   * of this listing inclusion is currently canonical.
+   */
+  availableListingWhere() {
+    return `on_chain = 1
+				   AND longest_chain_listed = 1
+				   AND settlement_pending = 0
+				   AND NOT EXISTS (
+				     SELECT 1 FROM listing_sales
+				      WHERE listing_sales.signature = listings.signature
+				        AND listing_sales.block_hash_listed = listings.block_hash_listed
+				        AND listing_sales.longest_chain_sold = 1
+				   )`;
+  }
+
+  /** A sale inclusion of this listing inclusion is on the longest chain. */
+  canonicalSaleWhere() {
+    return `EXISTS (
+				     SELECT 1 FROM listing_sales
+				      WHERE listing_sales.signature = listings.signature
+				        AND listing_sales.block_hash_listed = listings.block_hash_listed
+				        AND listing_sales.longest_chain_sold = 1
+				   )`;
+  }
+
   async returnSpendableListingsForBucket(nft_id, price, limit = 1) {
     try {
       return await this.app.storage.queryDatabase(
         `SELECT * FROM listings
 				 WHERE nft_id = $nft_id AND price = $price
-				   AND on_chain = 1
-				   AND longest_chain_listed = 1
-				   AND block_id_sold = 0
-				   AND longest_chain_sold = 0
+				   AND ${this.availableListingWhere()}
 				 ORDER BY created_at ASC, id ASC
 				 LIMIT $limit`,
         { $nft_id: nft_id, $price: Number(price), $limit: Number(limit) || 1 },
@@ -501,10 +574,7 @@ class Database {
         `SELECT price, SUM(quantity) AS total_quantity
 				 FROM listings
 				 WHERE nft_id = $nft_id AND price <= $max_price
-				   AND on_chain = 1
-				   AND longest_chain_listed = 1
-				   AND block_id_sold = 0
-				   AND longest_chain_sold = 0
+				   AND ${this.availableListingWhere()}
 				 GROUP BY price
 				 HAVING SUM(quantity) >= $quantity
 				 ORDER BY price ASC
@@ -534,10 +604,7 @@ class Database {
     try {
       return await this.app.storage.queryDatabase(
         `SELECT * FROM listings
-				 WHERE on_chain = 1
-				   AND longest_chain_listed = 1
-				   AND block_id_sold = 0
-				   AND longest_chain_sold = 0
+				 WHERE ${this.availableListingWhere()}
 				 ORDER BY created_at ASC`,
         {},
         this.dbname
@@ -548,8 +615,82 @@ class Database {
   }
 
   /**
-   * Record the sale against a single inclusion. block_hash_listed identifies the
-   * inclusion whose slips were spent; omit it to use the canonical row.
+   * Inclusions that stored the three output slips. Not filtered by availability:
+   * the fulfillment match is the outpoint, including an inclusion whose last
+   * sale is currently off the longest chain.
+   */
+  async returnListingRowsForSpendMatch() {
+    try {
+      return await this.app.storage.queryDatabase(
+        `SELECT signature, block_hash_listed, quantity, nft_id, price,
+				        utxo_slip1, utxo_slip2, utxo_slip3
+				   FROM listings
+				  WHERE utxo_slip1 != ''
+				    AND utxo_slip2 != ''
+				    AND utxo_slip3 != ''`,
+        {},
+        this.dbname
+      );
+    } catch (err) {
+      return [];
+    }
+  }
+
+  async countListingsInBlock(block_id, block_hash) {
+    try {
+      const rows = await this.app.storage.queryDatabase(
+        `SELECT COUNT(*) AS n
+				   FROM listings
+				  WHERE block_id_listed = $block_id
+				    AND block_hash_listed = $block_hash`,
+        {
+          $block_id: Number(block_id ?? 0),
+          $block_hash: String(block_hash ?? '')
+        },
+        this.dbname
+      );
+      return Number(rows?.[0]?.n ?? 0);
+    } catch (err) {
+      return 0;
+    }
+  }
+
+  async countListingSalesForBlock(block_id, block_hash) {
+    try {
+      const rows = await this.app.storage.queryDatabase(
+        `SELECT COUNT(*) AS n
+				   FROM listing_sales
+				  WHERE block_id_sold = $block_id
+				    AND block_hash_sold = $block_hash`,
+        {
+          $block_id: Number(block_id ?? 0),
+          $block_hash: String(block_hash ?? '')
+        },
+        this.dbname
+      );
+      return Number(rows?.[0]?.n ?? 0);
+    } catch (err) {
+      return 0;
+    }
+  }
+
+  async revealListingsInBlock(block_id, block_hash) {
+    await this.app.storage.runDatabase(
+      `UPDATE listings SET longest_chain_listed = 1
+			  WHERE block_id_listed = $block_id AND block_hash_listed = $block_hash`,
+      {
+        $block_id: Number(block_id) || 0,
+        $block_hash: String(block_hash || '')
+      },
+      this.dbname
+    );
+  }
+
+  /**
+   * Record one fulfillment block's sale of a single listing inclusion.
+   * A different fulfillment block inserts its own listing_sales row.
+   * block_hash_listed is the inclusion whose outpoints were spent. It is required.
+   * The columns on listings are a snapshot of this canonical sale, not the reorg key.
    */
   async markListingSold(
     signature,
@@ -565,52 +706,101 @@ class Database {
     } = {},
     now = Date.now()
   ) {
-    const inclusion = this.listingInclusionWhere(block_hash_listed);
-    await this.app.storage.runDatabase(
-      `UPDATE listings
-			 SET block_id_sold = $block_id_sold,
-			     block_hash_sold = $block_hash_sold,
-			     transaction_id_sold = $transaction_id_sold,
-			     longest_chain_sold = 1,
-			     note = $note,
-			     buyer = $buyer,
-			     quantity_sold = $quantity_sold,
-			     sold_at = $sold_at,
-			     updated_at = $updated_at
-			 WHERE ${inclusion.sql}`,
-      {
-        ...inclusion.params,
-        $signature: signature,
-        $block_id_sold: Number(sold_block_id ?? 0),
-        $block_hash_sold: String(sold_block_hash || ''),
-        $transaction_id_sold: Number(sold_transaction_id ?? 0),
-        $note: String(note || ''),
-        $buyer: String(buyer || ''),
-        $quantity_sold: Math.max(0, Number(quantity_sold ?? 0) || 0),
-        $sold_at: Number(sold_at || now) || now,
-        $updated_at: now
-      },
-      this.dbname
-    );
+    const listed_hash =
+      block_hash_listed === null || block_hash_listed === undefined
+        ? ''
+        : String(block_hash_listed);
+    if (!listed_hash) {
+      console.warn('Store: refusing to record a sale without the listing inclusion hash', signature);
+      return;
+    }
+    const inclusion = await this.returnListingBySignatureAndBlockHash(signature, listed_hash);
+    if (!inclusion) {
+      return;
+    }
+
+    const sale_hash = String(sold_block_hash || '');
+    if (!sale_hash) {
+      return;
+    }
+
+    const params = {
+      $signature: String(signature || ''),
+      $block_hash_listed: String(inclusion.block_hash_listed || ''),
+      $block_id_sold: Number(sold_block_id ?? 0),
+      $block_hash_sold: sale_hash,
+      $transaction_id_sold: Number(sold_transaction_id ?? 0),
+      $note: String(note || ''),
+      $buyer: String(buyer || ''),
+      $quantity_sold: Math.max(0, Number(quantity_sold ?? 0) || 0),
+      $sold_at: Number(sold_at || now) || now,
+      $updated_at: now
+    };
+
+    await this.withImmediateTransaction(async (db) => {
+      await db.run(
+        `INSERT INTO listing_sales (
+					  signature, block_hash_listed,
+					  block_id_sold, block_hash_sold, transaction_id_sold, longest_chain_sold,
+					  buyer, note, quantity_sold, sold_at, created_at, updated_at
+					) VALUES (
+					  $signature, $block_hash_listed,
+					  $block_id_sold, $block_hash_sold, $transaction_id_sold, 1,
+					  $buyer, $note, $quantity_sold, $sold_at, $updated_at, $updated_at
+					)
+					ON CONFLICT(signature, block_hash_listed, block_hash_sold) DO UPDATE SET
+					  block_id_sold = excluded.block_id_sold,
+					  transaction_id_sold = excluded.transaction_id_sold,
+					  longest_chain_sold = 1,
+					  buyer = excluded.buyer,
+					  note = excluded.note,
+					  quantity_sold = excluded.quantity_sold,
+					  sold_at = excluded.sold_at,
+					  updated_at = excluded.updated_at`,
+        params
+      );
+      await db.run(
+        `UPDATE listings
+				 SET block_id_sold = $block_id_sold,
+				     block_hash_sold = $block_hash_sold,
+				     transaction_id_sold = $transaction_id_sold,
+				     longest_chain_sold = 1,
+				     settlement_pending = 0,
+				     note = $note,
+				     buyer = $buyer,
+				     quantity_sold = $quantity_sold,
+				     sold_at = $sold_at,
+				     updated_at = $updated_at
+				 WHERE signature = $signature AND block_hash_listed = $block_hash_listed`,
+        params
+      );
+    });
   }
 
+  /**
+   * Local reservation so the queue does not build a second fulfillment before
+   * the first one is in a block. Does not write sale identity or chain flags.
+   * Matches an inclusion that is listed and not canonically sold, including one
+   * whose last sale block is currently off-chain.
+   */
   async markListingSettlementPending(signature, block_hash_listed = null, now = Date.now()) {
     const inclusion = this.listingInclusionWhere(block_hash_listed);
     await this.app.storage.runDatabase(
       `UPDATE listings
-			 SET block_id_sold = $block_id_sold,
-			     block_hash_sold = '',
-			     transaction_id_sold = 0,
-			     longest_chain_sold = 0,
+			 SET settlement_pending = 1,
 			     updated_at = $updated_at
 			 WHERE ${inclusion.sql}
 			   AND longest_chain_listed = 1
-			   AND block_id_sold = 0
-			   AND longest_chain_sold = 0`,
+			   AND settlement_pending = 0
+			   AND NOT EXISTS (
+			     SELECT 1 FROM listing_sales
+			      WHERE listing_sales.signature = listings.signature
+			        AND listing_sales.block_hash_listed = listings.block_hash_listed
+			        AND listing_sales.longest_chain_sold = 1
+			   )`,
       {
         ...inclusion.params,
         $signature: signature,
-        $block_id_sold: LISTING_SETTLEMENT_PENDING_BLOCK_ID,
         $updated_at: now
       },
       this.dbname
@@ -618,13 +808,12 @@ class Database {
   }
 
   /**
-   * The pending marker itself identifies the reserved inclusion, so the signature
-   * clause stays; block_hash_listed narrows it further when the caller knows it.
+   * Drop the local reservation. block_hash_listed narrows it when the caller
+   * knows the inclusion. Sale identity is left untouched.
    */
   async clearListingSettlementPending(signature, block_hash_listed = null, now = Date.now()) {
     const params = {
       $signature: signature,
-      $block_id_sold: LISTING_SETTLEMENT_PENDING_BLOCK_ID,
       $updated_at: now
     };
     let inclusion_sql = '';
@@ -634,13 +823,10 @@ class Database {
     }
     await this.app.storage.runDatabase(
       `UPDATE listings
-			 SET block_id_sold = 0,
-			     block_hash_sold = '',
-			     transaction_id_sold = 0,
-			     longest_chain_sold = 0,
+			 SET settlement_pending = 0,
 			     updated_at = $updated_at
 			 WHERE signature = $signature
-			   AND block_id_sold = $block_id_sold${inclusion_sql}`,
+			   AND settlement_pending = 1${inclusion_sql}`,
       params,
       this.dbname
     );
@@ -652,10 +838,7 @@ class Database {
         `SELECT COALESCE(SUM(quantity), 0) AS total_quantity
 				 FROM listings
 				 WHERE nft_id = $nft_id AND price = $price
-				   AND on_chain = 1
-				   AND longest_chain_listed = 1
-				   AND block_id_sold = 0
-				   AND longest_chain_sold = 0`,
+				   AND ${this.availableListingWhere()}`,
         { $nft_id: nft_id, $price: Number(price) },
         this.dbname
       );
@@ -665,52 +848,225 @@ class Database {
     }
   }
 
-  async updateListingsListedChainState(block_id, block_hash, longest_chain) {
-    await this.app.storage.runDatabase(
-      `UPDATE listings SET longest_chain_listed = $longest_chain
-			 WHERE block_id_listed = $block_id AND block_hash_listed = $block_hash`,
-      {
-        $block_id: Number(block_id) || 0,
-        $block_hash: String(block_hash || ''),
-        $longest_chain: longest_chain ? 1 : 0
-      },
-      this.dbname
+  // Non-reentrant: transaction callbacks must use db directly, not this helper.
+  async withImmediateTransaction(fn) {
+    const db = await this.app.storage.returnDatabaseByName(this.dbname);
+    if (!db) {
+      throw new Error('Store database unavailable');
+    }
+    const previous = transactionTails.get(db) || Promise.resolve();
+    const operation = previous.then(async () => {
+      // If BEGIN fails, do not roll back another caller's transaction.
+      await db.exec('BEGIN IMMEDIATE');
+      try {
+        const result = await fn(db);
+        await db.exec('COMMIT');
+        return result;
+      } catch (err) {
+        try {
+          await db.exec('ROLLBACK');
+        } catch (rollbackError) {
+          console.error('Store Database: rollback failed', rollbackError);
+        }
+        throw err;
+      }
+    });
+
+    // Recover the queue after failure while preserving rejection for the caller.
+    transactionTails.set(
+      db,
+      operation.then(
+        () => undefined,
+        () => undefined
+      )
+    );
+    return operation;
+  }
+
+  /**
+   * Reorg one block. Unwind hides remainder inclusions before the consumed
+   * listing can become available. Wind marks the sale canonical before the
+   * remainder inclusion becomes visible. Sale identity columns are not cleared.
+   */
+  async applyListingChainReorganization(block_id, block_hash, longest_chain, reveal_listings = true) {
+    const on_lc = !!longest_chain;
+    const id = Number(block_id) || 0;
+    const hash = String(block_hash || '');
+    const now = Date.now();
+    const chain = { $block_id: id, $block_hash: hash };
+    const params = { ...chain, $updated_at: now };
+
+    await this.withImmediateTransaction(async (db) => {
+      if (!on_lc) {
+        await db.run(
+          `UPDATE listings SET longest_chain_listed = 0
+					 WHERE block_id_listed = $block_id AND block_hash_listed = $block_hash`,
+          chain
+        );
+        await db.run(
+          `UPDATE listing_sales
+					 SET longest_chain_sold = 0, updated_at = $updated_at
+					 WHERE block_id_sold = $block_id AND block_hash_sold = $block_hash`,
+          params
+        );
+      } else {
+        await db.run(
+          `UPDATE listing_sales
+					 SET longest_chain_sold = 1, updated_at = $updated_at
+					 WHERE block_id_sold = $block_id AND block_hash_sold = $block_hash`,
+          params
+        );
+      }
+      await this.refreshSaleSnapshots(db, params);
+      if (on_lc && reveal_listings) {
+        await db.run(
+          `UPDATE listings SET longest_chain_listed = 1
+					 WHERE block_id_listed = $block_id AND block_hash_listed = $block_hash`,
+          chain
+        );
+      }
+    });
+  }
+
+  /**
+   * Copy the canonical sale onto the listing snapshot when one exists.
+   * When none does, clear only longest_chain_sold and keep the last sale identity.
+   */
+  async refreshSaleSnapshots(db, params) {
+    await db.run(
+      `UPDATE listings
+			 SET block_id_sold = (
+			       SELECT s.block_id_sold FROM listing_sales s
+			        WHERE s.signature = listings.signature
+			          AND s.block_hash_listed = listings.block_hash_listed
+			          AND s.longest_chain_sold = 1
+			        ORDER BY s.block_id_sold DESC, s.id DESC
+			        LIMIT 1
+			     ),
+			     block_hash_sold = (
+			       SELECT s.block_hash_sold FROM listing_sales s
+			        WHERE s.signature = listings.signature
+			          AND s.block_hash_listed = listings.block_hash_listed
+			          AND s.longest_chain_sold = 1
+			        ORDER BY s.block_id_sold DESC, s.id DESC
+			        LIMIT 1
+			     ),
+			     transaction_id_sold = (
+			       SELECT s.transaction_id_sold FROM listing_sales s
+			        WHERE s.signature = listings.signature
+			          AND s.block_hash_listed = listings.block_hash_listed
+			          AND s.longest_chain_sold = 1
+			        ORDER BY s.block_id_sold DESC, s.id DESC
+			        LIMIT 1
+			     ),
+			     longest_chain_sold = 1,
+			     buyer = (
+			       SELECT s.buyer FROM listing_sales s
+			        WHERE s.signature = listings.signature
+			          AND s.block_hash_listed = listings.block_hash_listed
+			          AND s.longest_chain_sold = 1
+			        ORDER BY s.block_id_sold DESC, s.id DESC
+			        LIMIT 1
+			     ),
+			     note = (
+			       SELECT s.note FROM listing_sales s
+			        WHERE s.signature = listings.signature
+			          AND s.block_hash_listed = listings.block_hash_listed
+			          AND s.longest_chain_sold = 1
+			        ORDER BY s.block_id_sold DESC, s.id DESC
+			        LIMIT 1
+			     ),
+			     quantity_sold = (
+			       SELECT s.quantity_sold FROM listing_sales s
+			        WHERE s.signature = listings.signature
+			          AND s.block_hash_listed = listings.block_hash_listed
+			          AND s.longest_chain_sold = 1
+			        ORDER BY s.block_id_sold DESC, s.id DESC
+			        LIMIT 1
+			     ),
+			     sold_at = (
+			       SELECT s.sold_at FROM listing_sales s
+			        WHERE s.signature = listings.signature
+			          AND s.block_hash_listed = listings.block_hash_listed
+			          AND s.longest_chain_sold = 1
+			        ORDER BY s.block_id_sold DESC, s.id DESC
+			        LIMIT 1
+			     ),
+			     updated_at = $updated_at
+			 WHERE EXISTS (
+			   SELECT 1 FROM listing_sales touched
+			    WHERE touched.signature = listings.signature
+			      AND touched.block_hash_listed = listings.block_hash_listed
+			      AND touched.block_id_sold = $block_id
+			      AND touched.block_hash_sold = $block_hash
+			 )
+			 AND EXISTS (
+			   SELECT 1 FROM listing_sales canonical
+			    WHERE canonical.signature = listings.signature
+			      AND canonical.block_hash_listed = listings.block_hash_listed
+			      AND canonical.longest_chain_sold = 1
+			 )`,
+      params
+    );
+
+    await db.run(
+      `UPDATE listings
+			 SET longest_chain_sold = 0,
+			     updated_at = $updated_at
+			 WHERE EXISTS (
+			   SELECT 1 FROM listing_sales touched
+			    WHERE touched.signature = listings.signature
+			      AND touched.block_hash_listed = listings.block_hash_listed
+			      AND touched.block_id_sold = $block_id
+			      AND touched.block_hash_sold = $block_hash
+			 )
+			 AND NOT EXISTS (
+			   SELECT 1 FROM listing_sales canonical
+			    WHERE canonical.signature = listings.signature
+			      AND canonical.block_hash_listed = listings.block_hash_listed
+			      AND canonical.longest_chain_sold = 1
+			 )`,
+      params
     );
   }
 
-  async updateListingsSoldChainState(block_id, block_hash, longest_chain) {
-    const on_lc = !!longest_chain;
-    // When a sale leaves the longest chain, clear sold anchors so the row
-    // becomes active again (active SQL requires block_id_sold = 0).
-    if (!on_lc) {
-      await this.app.storage.runDatabase(
-        `UPDATE listings
-				 SET block_id_sold = 0,
-				     block_hash_sold = '',
-				     transaction_id_sold = 0,
-				     longest_chain_sold = 0,
-				     updated_at = $updated_at
-				 WHERE block_id_sold = $block_id AND block_hash_sold = $block_hash
-				   AND block_id_sold > 0`,
+  async returnListingSalesForBlock(block_id, block_hash) {
+    try {
+      return await this.app.storage.queryDatabase(
+        `SELECT * FROM listing_sales
+				 WHERE block_id_sold = $block_id AND block_hash_sold = $block_hash`,
         {
           $block_id: Number(block_id) || 0,
-          $block_hash: String(block_hash || ''),
-          $updated_at: Date.now()
+          $block_hash: String(block_hash || '')
         },
         this.dbname
       );
-      return;
+    } catch (err) {
+      return [];
     }
+  }
 
-    await this.app.storage.runDatabase(
-      `UPDATE listings SET longest_chain_sold = 1
-			 WHERE block_id_sold = $block_id AND block_hash_sold = $block_hash`,
-      {
-        $block_id: Number(block_id) || 0,
-        $block_hash: String(block_hash || '')
-      },
-      this.dbname
-    );
+  async returnBucketsAffectedByBlock(block_id, block_hash) {
+    try {
+      return await this.app.storage.queryDatabase(
+        `SELECT DISTINCT nft_id, price FROM listings
+				 WHERE (block_id_listed = $block_id AND block_hash_listed = $block_hash)
+				    OR EXISTS (
+				      SELECT 1 FROM listing_sales s
+				       WHERE s.signature = listings.signature
+				         AND s.block_hash_listed = listings.block_hash_listed
+				         AND s.block_id_sold = $block_id
+				         AND s.block_hash_sold = $block_hash
+				    )`,
+        {
+          $block_id: Number(block_id) || 0,
+          $block_hash: String(block_hash || '')
+        },
+        this.dbname
+      );
+    } catch (err) {
+      return [];
+    }
   }
 
   async returnActiveListingsForSeller(seller = '') {
@@ -722,10 +1078,7 @@ class Database {
       return await this.app.storage.queryDatabase(
         `SELECT * FROM listings
 				 WHERE seller = $seller
-				   AND on_chain = 1
-				   AND longest_chain_listed = 1
-				   AND block_id_sold = 0
-				   AND longest_chain_sold = 0
+				   AND ${this.availableListingWhere()}
 				 ORDER BY created_at DESC`,
         { $seller: key },
         this.dbname
@@ -738,17 +1091,14 @@ class Database {
   sellerListingWhere(status = 'active') {
     if (status === 'sold') {
       // Exclude seller-initiated delists (buyer set to seller as a self-sale).
+      // Buyer is the snapshot of the canonical sale, refreshed with that sale.
       return `on_chain = 1
 				   AND longest_chain_listed = 1
-				   AND block_id_sold > 0
-				   AND longest_chain_sold = 1
+				   AND ${this.canonicalSaleWhere()}
 				   AND buyer != ''
 				   AND buyer != seller`;
     }
-    return `on_chain = 1
-				   AND longest_chain_listed = 1
-				   AND block_id_sold = 0
-				   AND longest_chain_sold = 0`;
+    return this.availableListingWhere();
   }
 
   async countPendingModerationListings() {
@@ -1074,12 +1424,7 @@ class Database {
       return await this.app.storage.queryDatabase(
         `SELECT * FROM listings
 				 WHERE seller = $seller
-				   AND on_chain = 1
-				   AND longest_chain_listed = 1
-				   AND block_id_sold > 0
-				   AND longest_chain_sold = 1
-				   AND buyer != ''
-				   AND buyer != seller
+				   AND ${this.sellerListingWhere('sold')}
 				 ORDER BY CASE WHEN sold_at > 0 THEN sold_at ELSE updated_at END DESC, block_id_sold DESC, signature ASC`,
         { $seller: key },
         this.dbname
@@ -1094,10 +1439,7 @@ class Database {
       return await this.app.storage.queryDatabase(
         `SELECT nft_id, price, SUM(quantity) AS total_quantity
 				 FROM listings
-				 WHERE on_chain = 1
-				   AND longest_chain_listed = 1
-				   AND block_id_sold = 0
-				   AND longest_chain_sold = 0
+				 WHERE ${this.availableListingWhere()}
 				 GROUP BY nft_id, price`,
         {},
         this.dbname
@@ -1381,9 +1723,8 @@ class Database {
     try {
       return await this.app.storage.queryDatabase(
         `SELECT * FROM listings
-				 WHERE block_id_sold = $block_id_sold
-				   AND longest_chain_sold = 0`,
-        { $block_id_sold: LISTING_SETTLEMENT_PENDING_BLOCK_ID },
+				 WHERE settlement_pending = 1`,
+        {},
         this.dbname
       );
     } catch (err) {
@@ -1499,4 +1840,3 @@ class Database {
 }
 
 module.exports = Database;
-module.exports.LISTING_SETTLEMENT_PENDING_BLOCK_ID = LISTING_SETTLEMENT_PENDING_BLOCK_ID;

@@ -57,27 +57,29 @@ console.log("total countries: " + total_countries);
 	    return 0;
 	  }
 
-          let userhtml = "<ul>";
+          let options = [];
 
           if (yugo_diff > 0) {
-            userhtml += '<li class="option" id="yugoslavia">Yugoslavia</li>';
+            options.push({ id: 'yugoslavia', label: 'Yugoslavia' });
           }
           if (romania_diff > 0) {
-            userhtml += '<li class="option" id="romania">Romania</li>';
+            options.push({ id: 'romania', label: 'Romania' });
           }
           if (bulgaria_diff > 0) {
-            userhtml += '<li class="option" id="bulgaria">Bulgaria</li>';
+            options.push({ id: 'bulgaria', label: 'Bulgaria' });
           }
           if (hungary_diff > 0) {
-            userhtml += '<li class="option" id="hungary">Hungary</li>';
+            options.push({ id: 'hungary', label: 'Hungary' });
           }
           if (czechoslovakia_diff > 0) {
-            userhtml += '<li class="option" id="czechoslovakia">Czechoslovakia</li>';
+            options.push({ id: 'czechoslovakia', label: 'Czechoslovakia' });
           }
-          userhtml += '</ul>';
 
           let twilight_self = this;
-          this.updateStatusWithOptions("Match USSR influence in which country?", userhtml, function(myselect) {
+          this.game.status = "Match USSR influence in which country?";
+          this.hud.updateStatus(this.game.status);
+          this.hud.updateCards([]);
+          this.hud.updateMenu(options, function(myselect) {
             $('.card').off();
 
             if (myselect == "romania") {

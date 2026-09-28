@@ -11,6 +11,8 @@
   border-radius: 12px;
   overflow: hidden;
   cursor: pointer;
+  -webkit-user-select: none;
+  user-select: none;
   transition: all 0.2s ease;
   display: flex;
   flex-direction: row;

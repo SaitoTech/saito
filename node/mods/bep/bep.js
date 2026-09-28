@@ -11,6 +11,8 @@ class BEP extends ModTemplate {
     this.description =
       'Adds support for Mixin-powered BEP20-wrapped Saito transfers on the Saito Network';
     this.categories = 'Utility Cryptocurrency Finance';
+    this.status = 'prod';
+    this.class = 'utility';
 
     // Mixin BEP20 SAITO on BNB Smart Chain
     this.asset_id = 'f1cf31a2-35e4-3902-860a-9b72de3dc7f8';

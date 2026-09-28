@@ -309,6 +309,7 @@ class GameGame {
         if (this.app.options.games[i].id === game_id) {
           this.game = JSON.parse(JSON.stringify(this.app.options.games[i]));
           this.normalizeGameShape(this.game);
+          this.clearSnapshots();
           console.info('GT loading game: ' + game_id);
 
           return this.game;
@@ -645,11 +646,13 @@ class GameGame {
       }
     }
 
-    this.saveGame(this.game.id);
-
     if (this.game.players.length == 1) {
+      this.game.over = 1;
+      this.saveGame(this.game.id);
       return;
     }
+
+    this.saveGame(this.game.id);
 
     let winners = [];
 

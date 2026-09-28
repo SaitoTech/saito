@@ -10,7 +10,7 @@
       background	: 	"faction1.jpg",
       promissary_notes	:	["trade","political","ceasefire","throne","faction1-promissary"],
       commodity_limit	:	4,
-      intro             :       `<div style="font-weight:bold">Welcome to Red Imperium!</div><div style="line-height:2.8rem;margin-top:10px;margin-bottom:0px;">You are playing as the Sol Federation. a Terran faction under cellular military government. Your reinforced infantry and tactical flexibility will be important in your fight for the Imperial Throne. Good luck!</div>`
+      intro             :       `As the Terran Federation expanded, all pretense of democratic control was replaced with a will for power-extension and racial dominance.`
     });
  
 
@@ -70,6 +70,8 @@
 	if (menu === "main") {
           x.event = 'orbitaldrop';
           x.html = '<li class="option" id="orbitaldrop">orbital drop</li>';
+          x.id = 'orbitaldrop';
+          x.label = 'orbital drop';
 	}
         return x;
       },
@@ -197,6 +199,8 @@
         if (menu == "main") {
           x.event = 'faction1-promissary';
           x.html = '<li class="option" id="faction1-promissary">Military Support (Sol Promissary)</li>';
+          x.id = 'faction1-promissary';
+          x.label = 'Military Support (Sol Promissary)';
         }
         return x;
       },

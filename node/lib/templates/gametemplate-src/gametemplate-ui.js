@@ -1,60 +1,20 @@
 /*********************************************************************************
  GAME UI
 
- There are three general UI instructions that are tracked by games universally
- so that on re-load the UI can be appropriately updated. These are the Game Log, 
- Game Status and Game Controls.
+ Persistent game UI state owned by the engine:
 
  - log - an array of game updates
  - status - a single sentence describing state of processing
- - controls - a flexible HTML box for making game choices
 
- All of these functions should be passed raw-text with whatever minimal-markup
- is needed for internal functionality. You can write something to the log that
- contains the HTML needed for cards to track mouseover, for instance, but should
- not provide WRAPPING HTML around the log entry or status market.
-
- This class also provides GameHud integration, as the GameHud is a standard 
- component that has both a STATUS and CONTROL space. If your game has the GameHud
- activated and you run updateStatus() or updateControls() you will see the 
- gamehud UI components updated and formatted properly. In the event tha the 
- GameHud is in use, this component will work with the GameHud to properly wrap
- the updates so that they are formatted properly.
-
- For any more complicated UI requirements, please have the games override these
- functions and merge / combine input streams to update whatever custom UI components
- they have created and/or are using.
+ HUD presentation is GameHUD2:
+   this.hud.updateStatus(status)
+   this.hud.updateMenu(options, callback)
+   this.hud.updateCards(cards, callback)
 
 **********************************************************************************/
 let SaitoOverlay = require('./../../saito/ui/saito-overlay/saito-overlay');
 
 class GameUI {
-  updateControls(str, force = 0) {
-    if (!force && this.lock_interface) {
-      console.warn('GT [updateControls] Attempting to change locked controls interface with ', str);
-      return;
-    }
-
-    this.game.controls = str;
-    if (!this.gameBrowserActive()) {
-      return 0;
-    }
-
-    try {
-      document.querySelectorAll('.controls').forEach((el) => {
-        el.innerHTML = str;
-      });
-      if (document.getElementById('controls')) {
-        document.getElementById('controls').innerHTML = str;
-      }
-      if (this.useHUD) {
-        this.hud.updateControls(str);
-      }
-    } catch (err) {
-      console.error('GT [updateControls] Error: ', err);
-    }
-  }
-
   updateLog(str, force = 0) {
     try {
       this.game.log.unshift(str);
@@ -70,162 +30,6 @@ class GameUI {
           this.cardbox.attachCardEvents();
         }
       }
-    } catch (err) {}
-  }
-
-  updateStatus(str, force = 0) {
-    //
-    // no-op if this status is already on screen -- queue commands re-fire on
-    // every pass, and repainting the same status flickers the UI (and would
-    // needlessly clear the controls). the DOM check keeps this safe across
-    // body re-renders that empty the status container.
-    //
-    if (!force && str === this.game.status) {
-      let el = document.getElementById('status');
-      if (el && el.innerHTML === str) {
-        return;
-      }
-    }
-
-    this.updateControls('', force);
-
-    try {
-      this.game.status = str;
-      if (!this.gameBrowserActive()) {
-        return;
-      }
-
-      document.querySelectorAll('.status').forEach((el) => {
-        el.innerHTML = str;
-      });
-      if (document.getElementById('status')) {
-        document.getElementById('status').innerHTML = str;
-      }
-
-      // back button inserted here
-      if (this.useHUD) {
-        this.hud.updateStatus(str);
-      }
-
-      if (this.useCardbox) {
-        this.cardbox.attachCardEvents();
-      }
-    } catch (err) {
-      console.error('GT [updateStatis] Error: ', err);
-    }
-  }
-
-  /**
-   *  Update Status (in HUD) and include a graphical display/textual description of cards (either provided or in one's hand)
-   *  @param message - text (non-HTML formatted message) to insert in the (HUD) status
-   *  @param cards - an array of cards (indices to this.game.deck[].cards)
-   *
-   */
-  updateStatusAndListCards(message = null, cards = [], mycallback = null) {
-    //
-    // update the status
-    //
-    if (message !== null) {
-      this.updateStatus(`${message}`);
-    }
-
-    //
-    // observers do not get controls
-    //
-    if (this.game.player == 0) {
-      return 0;
-    }
-
-    //
-    // update the controls
-    //
-    if (this.interface === 1) {
-      this.updateControls(
-        `<div class="game-cardgrid hide-scrollbar">${this.returnCardList(cards)}</div>`
-      );
-    } else if (this.interface === 2) {
-      this.updateControls(`${this.returnCardList(cards)}`);
-    }
-
-    //
-    // allow cardbox to attach popups to message
-    //
-    if (this.useCardbox) {
-      this.cardbox.attachCardEvents();
-    }
-
-    if (mycallback != null) {
-      this.attachCardboxEvents(mycallback);
-    }
-  }
-
-  /**
-   *  Update Status (in HUD) and include a graphical display/textual description of cards (either provided or in one's hand)
-   *  @param message - text (non-HTML formatted message) to insert in the (HUD) status
-   *  @param optionHTML - an html list of actions a user can take
-   *
-   */
-  updateStatusWithOptions(message = '', options = '', mycallback = null) {
-    //
-    // update the status
-    //
-    this.updateStatus(message);
-
-    //In case the controls are inside the status (and thus got wiped out), rerender with a hook for controls
-    if (!document.getElementById('controls') && !document.querySelector('.controls')) {
-      this.updateStatus(message + `<div id="controls"></div>`);
-    }
-
-    //
-    // observers do not get controls
-    // except we might want for meta-game functions...
-    /*if (this.game.player == 0) {
-      return;
-    }*/
-
-    //
-    // update the controls
-    //
-    this.updateControls(options);
-
-    //
-    // allow cardbox to attach popups to message
-    //
-    if (this.useCardbox) {
-      this.cardbox.attachCardEvents();
-    }
-
-    if (mycallback != null) {
-      this.attachCardboxEvents(mycallback);
-    }
-  }
-
-  //
-  // deprecated but included for convenience
-  //
-  attachCardboxEvents(fn = null) {
-    if (fn != null) {
-      this.hud.attachControlCallback(fn);
-    }
-  }
-
-  unbindBackButtonFunction() {
-    this.hud.back_button = false;
-    this.hud.back_button_callback = null;
-  }
-
-  bindBackButtonFunction(mycallback) {
-    // for HUD
-    this.hud.back_button = true;
-    this.hud.back_button_callback = mycallback;
-    // for independent button
-    try {
-      let back_button = document.getElementById('back_button');
-      // Make it dyanmically visible
-      back_button.style.display = 'block';
-      back_button.onclick = (e) => {
-        mycallback();
-      };
     } catch (err) {}
   }
 
@@ -435,7 +239,7 @@ class GameUI {
     readable = 'Game Over: ' + readable;
 
     try {
-      this.hud.back_button = false;
+      this.hud.hideBackButton();
 
       this.updateLog(readable);
 
@@ -449,32 +253,31 @@ class GameUI {
     let target = this.app.options.homeModule || 'Arcade';
     allowRematch = allowRematch && this.game.player !== 0 && this.game.players.length == 2;
 
-    let options = `<ul>
-                      <li class="textchoice" id="confirmit">Return to ${target}</li>
-                      ${allowRematch ? '<li class="textchoice" id="rematch">Rematch</li>' : ''}
-                   </ul>`;
+    this.hud.hideBackButton();
 
-    this.hud.back_button = false;
+    this.game.status = status;
+    this.hud.updateStatus(status);
+    this.hud.updateCards([]);
 
-    this.updateStatusWithOptions(status, options);
+    let menu = [{ id: 'confirmit', label: `Return to ${target}` }];
+    if (allowRematch) {
+      menu.push({ id: 'rematch', label: 'Rematch' });
+    }
 
-    if (document.getElementById('rematch')) {
-      document.getElementById('rematch').onclick = (e) => {
+    this.hud.updateMenu(menu, (id) => {
+      if (id === 'rematch') {
         this.initialize_game_run = 0;
-        e.currentTarget.onclick = null;
         this.app.connection.emit('arcade-issue-challenge', {
           game: this.name,
           players: this.game.players,
           options: this.game.options
         });
-      };
-    }
-    if (document.getElementById('confirmit')) {
-      document.getElementById('confirmit').onclick = (e) => {
-        document.getElementById('confirmit').onclick = null; //If player clicks multiple times, don't want callback executed multiple times
+        return;
+      }
+      if (id === 'confirmit') {
         this.exitGame();
-      };
-    }
+      }
+    });
 
     ////////////////////////////////////////
     // Attach Listeners for rematch actions
@@ -492,8 +295,9 @@ class GameUI {
     });
 
     this.app.connection.on('arcade-game-initialize-render-request', (game_id) => {
-      this.updateStatus('Preparing rematch...');
-      this.updateControls();
+      this.game.status = 'Preparing rematch...';
+      this.hud.updateStatus('Preparing rematch...');
+      this.hud.updateMenu([]);
       this.browser_active = 0; //Hack to simulate not being in the game mod
     });
 
@@ -521,31 +325,18 @@ class GameUI {
   updateStatusForPlayerOut(status, allowObserver = false) {
     let target = this.app.options.homeModule || 'Arcade';
 
-    let options = `<ul><li class="textchoice" id="confirmit">Return to ${target}</li>`;
-
-    //if (allowObserver) {
-    //  options += '<li class="textchoice" id="observer">Stay and Watch</li>';
-    //}
-
-    options += `</ul>`;
-
-    this.hud.back_button = false;
+    this.hud.hideBackButton();
 
     this.halted = 1;
 
-    this.updateStatusWithOptions(status, options);
-
-    if (document.getElementById('observer')) {
-      document.getElementById('observer').onclick = (e) => {
-        this.resetGameWithFewerPlayers();
-        this.unlockInterface();
-        this.halted = 0;
-      };
-    }
-    document.getElementById('confirmit').onclick = (e) => {
-      document.getElementById('confirmit').onclick = null;
-      this.exitGame();
-    };
+    this.game.status = status;
+    this.hud.updateStatus(status);
+    this.hud.updateCards([]);
+    this.hud.updateMenu([{ id: 'confirmit', label: `Return to ${target}` }], (id) => {
+      if (id === 'confirmit') {
+        this.exitGame();
+      }
+    });
 
     this.lockInterface();
   }

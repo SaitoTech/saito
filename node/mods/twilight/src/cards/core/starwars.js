@@ -42,13 +42,17 @@
       
       if (this.game.player == 2) {
     
-        twilight_self.updateStatusAndListCards(`${this.cardToText(card)}: Choose card to play immediately:`, discard_deck, false);
-        twilight_self.hud.attachControlCallback(function(action2) {
+        twilight_self.game.status = `${this.cardToText(card)}: Choose card to play immediately:`;
+        twilight_self.hud.updateStatus(twilight_self.game.status);
+        twilight_self.hud.updateMenu([]);
+        twilight_self.hud.updateCards(discard_deck);
+        twilight_self.cardbox.bindCallback(function(action2) {
           twilight_self.addMove("event\tus\t"+action2);
           twilight_self.addMove("NOTIFY\t"+player+" retrieved "+twilight_self.cardToText(action2));
           twilight_self.addMove("undiscard\t"+action2);
           twilight_self.endTurn();
         });
+        twilight_self.cardbox.attachCardEvents();
       }
       return 0;
     }

@@ -63,7 +63,7 @@ const HomePage = require('./gametemplate-src/index');
 let saito = require('./../saito/saito');
 
 const GameLog = require('./../saito/ui/game-log/game-log');
-const GameHud = require('./../saito/ui/game-hud/game-hud');
+const GameHUD2 = require('./../saito/ui/game-hud2/game-hud2');
 const GameMenu = require('./../saito/ui/game-menu/game-menu');
 const GameClock = require('./../saito/ui/game-clock/game-clock');
 const SaitoOverlay = require('./../saito/ui/saito-overlay/saito-overlay');
@@ -90,6 +90,7 @@ class GameTemplate extends ModTemplate {
     this.game_length = 30; //Estimated number of minutes to complete a game
     this.game = {};
     this.moves = [];
+    this.snapshot = [];
     this.future = [];
     this.deferred_game_end = []; // stopgame/gameover txs parked while engine halted/active
     this.description = 'Peer to peer gaming on the blockchain';
@@ -174,7 +175,7 @@ class GameTemplate extends ModTemplate {
 
     this.next_move_onchain_only = 0;
 
-    this.hud = new GameHud(app, this);
+    this.hud = new GameHUD2(app, this);
     this.clock = new GameClock(app, this);
     this.log = new GameLog(app, this);
     this.cardfan = new GameCardfan(app, this);
@@ -256,19 +257,6 @@ class GameTemplate extends ModTemplate {
     // this.game.initialize_game_run is set to 1 but it is
     // a freshly loaded browser.
     //
-    //
-    // instead of associating a different function with each card css we are
-    // associating a single one, and changing the reference function inside
-    // to get different actions executed on click. Basically we swap out the
-    // changeable function before attachingCardEvents and everything just works
-    //
-    let temp_self = this;
-    this.changeable_callback = function (card) {};
-    this.cardbox_callback = async function (card) {
-      if (temp_self.changeable_callback !== null) {
-        await temp_self.changeable_callback(card);
-      }
-    };
     this.menu_backup_callback = null;
     this.back_button_html = `<i class="fa fa-arrow-left" aria-hidden="true"></i>`;
 

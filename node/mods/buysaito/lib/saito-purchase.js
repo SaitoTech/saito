@@ -149,7 +149,7 @@ class SaitoPurchaseOverlay {
     );
 
     app.connection.on('saito-purchase-cryptos', () => {
-      if (!this.active) {
+      if (!this.active || this.crypto_selected) {
         return;
       }
       console.log('saito-purchase-cryptos', this.mod.available_currencies);
@@ -542,74 +542,7 @@ class SaitoPurchaseOverlay {
       };
     });
 
-    //////////////////////
-    // Select Amount Form
-    /////////////////////
-    if (document.getElementById('back-purchase-btn')) {
-      document.getElementById('back-purchase-btn').onclick = (e) => {
-        this.reset();
-        this.render();
-      };
-    }
-
-    const cryptoInput = document.getElementById('input-amount');
-    const saitoInput = document.getElementById('saito-input-amount');
-
-    if (cryptoInput && saitoInput) {
-      const updateAmount = (sourceInput, targetInput, converter, source) => {
-        sourceInput.value = this.sanitizeAmountInput(sourceInput.value);
-        this.amount_input_source = source;
-
-        if (!sourceInput.value) {
-          targetInput.value = '';
-          return;
-        }
-
-        const convertedAmount = Number(converter(Number(sourceInput.value)));
-        targetInput.value = this.formatAmountInput(convertedAmount);
-      };
-
-      cryptoInput.oninput = () => {
-        updateAmount(
-          cryptoInput,
-          saitoInput,
-          (amount) => this.mod.convertToSaito(amount, this.crypto_selected.ticker),
-          'crypto'
-        );
-      };
-
-      saitoInput.oninput = () => {
-        updateAmount(
-          saitoInput,
-          cryptoInput,
-          (amount) => this.mod.convertSaitoToOther(amount, this.crypto_selected.ticker),
-          'saito'
-        );
-      };
-    }
-
-    if (document.getElementById('next-purchase-btn')) {
-      document.getElementById('next-purchase-btn').onclick = (e) => {
-        const expectedDeposit = cryptoInput?.value || '';
-        const issueAmount = saitoInput?.value || '';
-
-        if (!this.isValidAmount(expectedDeposit) || !this.isValidAmount(issueAmount)) {
-          salert('Invalid input');
-          return;
-        }
-
-        if (this.amount_input_source === 'saito') {
-          this.amount = issueAmount;
-          this.expected_deposit = 0;
-        } else {
-          this.amount = 0;
-          this.expected_deposit = expectedDeposit;
-        }
-
-        this.showOverlay(SaitoPurchaseLoaderTemplate('Requesting Payment Instructions...'));
-        this.requestPaymentAddressFromServer();
-      };
-    }
+    this.attachAmountEvents();
 
     ///////////////////
     // Deposit form
@@ -626,6 +559,104 @@ class SaitoPurchaseOverlay {
         }, 800);
       };
     }
+  }
+
+  renderAmountPage() {
+    const root = document.getElementById('buysaito-amount-form');
+    if (!root) return;
+
+    const state = this.page_amount_selection || { amount_input_source: 'crypto' };
+    const sourceId = state.amount_input_source === 'saito' ? 'saito-input-amount' : 'input-amount';
+    const value = root.querySelector(`#buy-page-${sourceId}`)?.value || '';
+    state.crypto_selected =
+      this.mod.available_currencies?.find(
+        (currency) => currency.ticker === state.crypto_selected?.ticker
+      ) || this.mod.available_currencies?.[0];
+    this.page_amount_selection = state;
+    root.innerHTML = SaitoPurchaseAmountTemplate(this.app, this.mod, state, { inline: true });
+    this.attachAmountEvents({ root, state, prefix: 'buy-page-', inline: true });
+    const source = root.querySelector(`#buy-page-${sourceId}`);
+    source.value = value;
+    source.oninput();
+  }
+
+  attachAmountEvents({ root = document, state = this, prefix = '', inline = false } = {}) {
+    const get = (id) =>
+      root === document ? document.getElementById(id) : root.querySelector(`#${prefix}${id}`);
+    const cryptoInput = get('input-amount');
+    const saitoInput = get('saito-input-amount');
+    const nextButton = get('next-purchase-btn');
+    const currencySelect = get('payment-currency');
+    if (!cryptoInput || !saitoInput || !nextButton) return;
+
+    const updateNext = () => {
+      nextButton.disabled =
+        !state.crypto_selected ||
+        !this.isValidAmount(cryptoInput.value) ||
+        !this.isValidAmount(saitoInput.value);
+    };
+    const updateAmount = (sourceInput, targetInput, source) => {
+      sourceInput.value = this.sanitizeAmountInput(sourceInput.value);
+      state.amount_input_source = source;
+      const ticker = state.crypto_selected?.ticker;
+      const converted =
+        ticker && sourceInput.value
+          ? source === 'saito'
+            ? this.mod.convertSaitoToOther(Number(sourceInput.value), ticker)
+            : this.mod.convertToSaito(Number(sourceInput.value), ticker)
+          : NaN;
+      targetInput.value = this.formatAmountInput(Number(converted));
+      updateNext();
+    };
+    cryptoInput.oninput = () => updateAmount(cryptoInput, saitoInput, 'crypto');
+    saitoInput.oninput = () => updateAmount(saitoInput, cryptoInput, 'saito');
+
+    if (currencySelect) {
+      currencySelect.onchange = () => {
+        state.crypto_selected = this.mod.available_currencies?.find(
+          (currency) => currency.ticker === currencySelect.value
+        );
+        cryptoInput.setAttribute('aria-label', `Amount in ${currencySelect.value}`);
+        const form = currencySelect.closest('.amount-selection-box');
+        form.querySelectorAll('[data-payment-logo]').forEach((logo) => {
+          logo.hidden = logo.dataset.paymentLogo !== currencySelect.value;
+        });
+        if (state.amount_input_source === 'saito') saitoInput.oninput();
+        else cryptoInput.oninput();
+      };
+    }
+
+    updateNext();
+    nextButton.onclick = async () => {
+      if (nextButton.disabled) return;
+      const currency = state.crypto_selected;
+      const amount = state.amount_input_source === 'saito' ? saitoInput.value : 0;
+      const deposit = state.amount_input_source === 'saito' ? 0 : cryptoInput.value;
+      if (
+        !currency ||
+        !this.isValidAmount(cryptoInput.value) ||
+        !this.isValidAmount(saitoInput.value)
+      )
+        return;
+      if (inline && this.overlay.visible) return;
+      nextButton.disabled = true;
+      if (inline) {
+        this.reset();
+        this.active = true;
+        this.app.connection.emit('saito-purchase-overlay-open', () => this.close());
+        this.recipient = this.mod.publicKey;
+      }
+      this.crypto_selected = currency;
+      this.amount = amount;
+      this.expected_deposit = deposit;
+      this.showOverlay(SaitoPurchaseLoaderTemplate('Requesting Payment Instructions...'));
+      const session = this.session;
+      await this.checkForLocalCrypto();
+      if (this.active && this.session === session && this.crypto_selected === currency) {
+        this.requestPaymentAddressFromServer();
+      }
+      if (inline) updateNext();
+    };
   }
 
   async checkForLocalCrypto() {

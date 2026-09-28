@@ -25,6 +25,8 @@ class Docs extends ModTemplate {
     this.slug = 'docs';
     this.description = 'End-to-end encrypted collaborative documents, powered by CryptPad';
     this.categories = 'Utilities Productivity';
+    this.status = 'alpha';
+    this.class = 'utility';
     this.icon = 'fa-solid fa-file-lines';
 
     this.styles = ['/docs/style.css'];

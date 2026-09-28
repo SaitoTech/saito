@@ -1,22 +1,61 @@
 .game.solitrio {
-  .status {
+  /*
+    The shared HUD floats over the board. Solitrio keeps the instruction
+    in the left sidebar, under the logo, the way .status and .controls
+    used to sit in the logobox. Options stack under that box only when
+    the menu actually has items.
+  */
+  .game-hud2 {
+    position: absolute;
+    top: 220px;
+    bottom: auto;
+    right: auto;
+    left: 0;
+    width: max(200px, 20vw);
+    max-width: max(200px, 20vw);
+    padding: 0 0.75rem;
+    box-sizing: border-box;
+    margin: 0;
+    transform: none;
+    align-items: stretch;
+    gap: 0;
+    z-index: 40;
+  }
+
+  .hud-status-row,
+  .hud-menu {
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .hud-status {
     background-color: whitesmoke;
+    color: #333;
     padding: 1rem;
+    border-radius: 5px;
+    text-align: center;
+    height: auto;
+    box-shadow: 2px 2px 5px 0px rgba(0, 0, 0, 0.75);
   }
 
-  .controls {
-    overflow-y: hidden;
-    min-height: 160px;
+  .hud-menu:empty,
+  .hud-cards:empty {
+    display: none;
   }
-  .controls ul {
+
+  .hud-menu:not(:empty) {
+    margin-top: 0.833rem;
+  }
+
+  .hud-menu ul {
     border-radius: 0.5rem;
+    overflow: hidden;
   }
 
-  /* portrait: the board needs the height (see solitrio-base.css) */
-  @media screen and (orientation: portrait) and (max-width: 600px) {
-    .controls {
-      min-height: unset;
-    }
+  /* the template still has a leftover status line under the logo */
+  .logobox > .status,
+  .logobox > .controls {
+    display: none;
   }
 
   .stats-menu-controls {
@@ -27,5 +66,43 @@
 
   .stats-menu-controls .option {
     margin-top: 2rem;
+  }
+
+  @media screen and (orientation: landscape) and (max-height: 600px) {
+    .game-hud2 {
+      top: 50%;
+      left: max(0px, calc((20vw - 150px) / 2));
+      width: 150px;
+      max-width: 150px;
+      transform: translateY(-50%);
+    }
+  }
+
+  /* portrait: compact bar under the board, options side by side */
+  @media screen and (orientation: portrait) and (max-width: 600px) {
+    .game-hud2 {
+      top: auto;
+      bottom: 0.4rem;
+      left: 0;
+      right: 0;
+      width: 100%;
+      max-width: 100%;
+      padding: 0 8px;
+      transform: none;
+    }
+
+    .hud-menu ul {
+      flex-direction: row;
+    }
+
+    .hud-menu li,
+    .hud-menu .option {
+      height: 4rem;
+      min-height: 0;
+      font-size: 1.4rem;
+      border-top: 0;
+      white-space: nowrap;
+      flex: 1 1 0;
+    }
   }
 }

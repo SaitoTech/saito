@@ -92,6 +92,12 @@ class SaitoInput {
     //
     let msg_input = document.querySelector(`${this.container} .saito-input .text-input`);
     if (msg_input) {
+      msg_input.onpaste = (e) => {
+        e.preventDefault();
+        const text = (e.clipboardData || window.clipboardData).getData('text/plain');
+        document.execCommand('insertText', false, text);
+      };
+
       msg_input.onkeydown = (e) => {
         if ((e.which == 13 || e.keyCode == 13) && !e.shiftKey) {
           // check if saito mention list is open
@@ -108,7 +114,7 @@ class SaitoInput {
           e.preventDefault();
           if (this.callbackOnReturn) {
             this.callbackOnReturn(this.getInput(false));
-            msg_input.value = '';
+            msg_input.innerHTML = '';
           }
         }
       };

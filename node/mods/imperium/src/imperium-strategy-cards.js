@@ -58,10 +58,10 @@
           }
         }
 
+        let file = String(obj.img || '').split('/').pop();
         return `
           <div class="strategy-card strategy-card-${name}" id="${name}">
-	    <img id="${name}" src="/imperium/img/cards${obj.img}">
-	    <div class="text">${obj.text}</div>
+	    <img id="${name}" src="/imperium/img/cards/strategy/${file}">
 	    ${bonus_html} ${card_html}
 	  </div>
         `;

@@ -17,7 +17,10 @@
         var ops_to_place = 4;
         twilight_self.addMove("resolve\tdecolonization");
 
-        this.updateStatus(`<div class='status-message' id='status-message'>Place ${ops_to_place} influence in Africa or Southeast Asia (1 per country)</div>`);
+        this.game.status = `<div class='status-message' id='status-message'>Place ${ops_to_place} influence in Africa or Southeast Asia (1 per country)</div>`;
+        this.hud.updateStatus(this.game.status);
+        this.hud.updateMenu([]);
+        this.hud.updateCards([]);
 
         for (var i in this.countries) {
           if (this.countries[i].region == "africa" || this.countries[i].region == "seasia"){
@@ -41,7 +44,10 @@
               twilight_self.endTurn();
               return 0;
             }
-            twilight_self.updateStatus(`<div class='status-message' id='status-message'>Place ${ops_to_place} influence in Africa or Southeast Asia (1 per country)</div>`);
+            twilight_self.game.status = `<div class='status-message' id='status-message'>Place ${ops_to_place} influence in Africa or Southeast Asia (1 per country)</div>`;
+            twilight_self.hud.updateStatus(twilight_self.game.status);
+            twilight_self.hud.updateMenu([]);
+            twilight_self.hud.updateCards([]);
           } else {
             twilight_self.displayModal("you already placed there...");
           }

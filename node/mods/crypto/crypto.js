@@ -19,6 +19,7 @@ class Crypto extends ModTemplate {
     this.categories = 'Utility Entertainment';
 
     this.class = 'utility';
+    this.status = 'prod';
 
     this.balances = {};
 

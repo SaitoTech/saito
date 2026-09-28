@@ -46,7 +46,10 @@
 
       if (this.game.player == 1) {
 
-        this.updateStatus("Remove All US influence from 2 countries among: Sudan, Egypt, Iran, Iraq, Libya, Saudi Arabia, Syria, Jordan.");
+        this.game.status = "Remove All US influence from 2 countries among: Sudan, Egypt, Iran, Iraq, Libya, Saudi Arabia, Syria, Jordan.";
+        this.hud.updateStatus(this.game.status);
+        this.hud.updateMenu([]);
+        this.hud.updateCards([]);
 
         var twilight_self = this;
         twilight_self.playerFinishedPlacingInfluence();

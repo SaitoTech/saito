@@ -106,34 +106,6 @@ const BUILTIN_CAPABILITIES = [
         p.classList.remove('saito-nft-mode-send');
       }
     }
-  },
-  {
-    id: 'enable',
-    icon: 'fa-solid fa-toggle-on',
-    label: 'Enable',
-    description: 'Enable this NFT as a theme or script on your wallet.',
-    className: 'enable-nft',
-    visible: (ctx) => {
-      if (!(ctx.nft?.css || ctx.nft?.js)) {
-        return false;
-      }
-      const enabled = ctx.app.options?.permissions?.nfts || [];
-      return !enabled.includes(ctx.nft.tx_sig);
-    }
-  },
-  {
-    id: 'disable',
-    icon: 'fa-solid fa-toggle-off',
-    label: 'Disable',
-    description: 'Disable this NFT theme or script on your wallet.',
-    className: 'disable-nft',
-    visible: (ctx) => {
-      if (!(ctx.nft?.css || ctx.nft?.js)) {
-        return false;
-      }
-      const enabled = ctx.app.options?.permissions?.nfts || [];
-      return enabled.includes(ctx.nft.tx_sig);
-    }
   }
 ];
 

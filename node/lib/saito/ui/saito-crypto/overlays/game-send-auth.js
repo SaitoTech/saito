@@ -3,12 +3,12 @@
  *
  * Listens for: saito-game-crypto-send-auth-open-request
  *
- * If `details.trusted` is true, mycallback is invoked immediately (no UI).
- * Otherwise the overlay appears and waits for explicit user authorization.
- *
- * After a successful payment (`saito-crypto-send-confirm` with hash), opens a
- * UI-only SaitoTransactionMonitor hosted on wallet.saitoCrypto. Does not touch
- * the game queue, halted, or restartQueue.
+ * If `details.trusted` is true, mycallback is invoked immediately (no UI and
+ * no Payment Sent monitor). Otherwise the overlay appears and waits for
+ * explicit user authorization; after a successful payment
+ * (`saito-crypto-send-confirm` with hash), opens a UI-only
+ * SaitoTransactionMonitor hosted on wallet.saitoCrypto. Does not touch the
+ * game queue, halted, or restartQueue.
  *
  * This component deliberately has NO close/dismiss/cancel controls.
  * The game remains halted until the player authorizes the payment.
@@ -65,8 +65,9 @@ class GameSendAuth {
   }
 
   /**
-   * Register one-shot success listener, then invoke the existing payment callback.
-   * Payment hash comes from saito-crypto-send-confirm (emitted by the SEND path).
+   * Manual-authorization path only: register one-shot success listener, then
+   * invoke the existing payment callback. Payment hash comes from
+   * saito-crypto-send-confirm (emitted by the SEND path).
    */
   invokePaymentCallback(mycallback) {
     const onConfirm = (robj) => {
@@ -102,7 +103,7 @@ class GameSendAuth {
     }
 
     if (details.trusted) {
-      this.invokePaymentCallback(details.mycallback);
+      details.mycallback();
       return;
     }
 

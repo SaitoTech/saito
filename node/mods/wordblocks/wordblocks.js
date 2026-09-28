@@ -16,6 +16,8 @@ class Wordblocks extends GameTemplate {
 		this.slug = 'wordblocks';
 		this.description = `A crossword puzzle game with customizable dictionary (language) options. Players take turns moving tiles from their rack to the board to spell out words. `;
 		this.categories = 'Games Boardgame Classic';
+		this.status = 'prod';
+		this.class = 'app';
 		//
 		// Game Class VARS
 		//
@@ -257,7 +259,10 @@ class Wordblocks extends GameTemplate {
 			//Set a flag to keep processing moves until ready for gameover state
 			this.game.canProcess = false;
 
-			this.updateStatus('Generating the Game');
+						this.game.status = 'Generating the Game';
+			this.hud.updateStatus(this.game.status);
+			this.hud.updateMenu([]);
+			this.hud.updateCards([]);
 			this.game.queue = [];
 			this.game.queue.push('READY');
 			for (let i = this.game.players.length; i > 0; i--) {
@@ -423,7 +428,10 @@ class Wordblocks extends GameTemplate {
 
 	updateStatusWithTiles(status) {
 		if (this.game.player == 0) {
-			this.updateStatus(`<div class="hud-status-update-message">${status}</div>`);
+						this.game.status = `<div class="hud-status-update-message">${status}</div>`;
+			this.hud.updateStatus(this.game.status);
+			this.hud.updateMenu([]);
+			this.hud.updateCards([]);
 			return;
 		}
 
@@ -434,7 +442,10 @@ class Wordblocks extends GameTemplate {
 			}
 
 			if (!this.gameBrowserActive()) {
-				this.updateStatus(status + tile_html);
+								this.game.status = status + tile_html;
+				this.hud.updateStatus(this.game.status);
+				this.hud.updateMenu([]);
+				this.hud.updateCards([]);
 				return;
 			}
 
@@ -458,7 +469,10 @@ class Wordblocks extends GameTemplate {
       </div>
     `;
 
-			this.updateStatus(html); //Attach html to #status box
+						this.game.status = html;
+			this.hud.updateStatus(this.game.status);
+			this.hud.updateMenu([]);
+			this.hud.updateCards([]); //Attach html to #status box
 			this.limitedEvents(); //Baseline functionality
 		} catch (err) {
 			console.error(err);

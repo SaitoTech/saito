@@ -852,10 +852,15 @@ module.exports = {
       'createPurchaseAssetTransaction'
     );
 
-    const newtx = await this.app.wallet.createUnsignedTransactionWithDefaultFee(
-      payment_recipient,
-      nolan_to_send
-    );
+    // A buyer without spendable SAITO still needs this purchase message. BuySaito
+    // copies it onto its own payment, so the carrier itself sends nothing.
+    const unfunded = sale.unfunded === true;
+    const newtx = unfunded
+      ? await this.app.wallet.createUnsignedTransactionWithDefaultFee(payment_recipient, 0n, 0n)
+      : await this.app.wallet.createUnsignedTransactionWithDefaultFee(
+          payment_recipient,
+          nolan_to_send
+        );
 
     newtx.msg = {
       module: 'Store',

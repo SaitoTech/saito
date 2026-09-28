@@ -19,17 +19,17 @@ class MarriageOverlay {
 
   pullHudOverOverlay() {
     let overlay_zindex = parseInt(this.overlay.zIndex);
-    if (document.querySelector('.hud')) {
-      document.querySelector('.hud').style.zIndex = overlay_zindex + 1;
-      this.mod.hud.zIndex = overlay_zindex + 1;
+    let hud = document.getElementById('game-hud2');
+    if (hud) {
+      hud.style.zIndex = overlay_zindex + 1;
     }
   }
 
   pushHudUnderOverlay() {
     let overlay_zindex = parseInt(this.overlay.zIndex);
-    if (document.querySelector('.hud')) {
-      document.querySelector('.hud').style.zIndex = overlay_zindex - 2;
-      this.mod.hud.zIndex = overlay_zindex - 2;
+    let hud = document.getElementById('game-hud2');
+    if (hud) {
+      hud.style.zIndex = overlay_zindex - 2;
     }
   }
 
@@ -45,16 +45,15 @@ class MarriageOverlay {
     this.app.browser.addElementToSelector('<div class="controls"></div>', '.marriage-overlay');
 
     let msg = "Approve Henry VIII's Divorce?";
-    let html = '<ul>';
-    html += '<li class="option" id="approve">approve divorce</li>';
-    html += '<li class="option" id="disapprove">do not approve</li>';
-    html += '</ul>';
+    let html = [];
+    html.push({ id: 'approve', label: 'approve divorce' });
+    html.push({ id: 'disapprove', label: 'do not approve' });
 
-    his_self.updateStatusWithOptions(msg, html);
-
-    $('.option').off();
-    $('.option').on('click', function () {
-      let action = $(this).attr('id');
+    his_self.game.status = msg;
+    his_self.hud.updateStatus(msg);
+    his_self.hud.updateCards([]);
+    his_self.hud.updateMenu(html, function (user_choice) {
+        let action = user_choice;
 
       if (action === 'approve') {
         his_self.addMove('advance_henry_viii_marital_status');

@@ -1,78 +1,136 @@
 .game.imperium {
   .objectives-overlay {
-    width: 100%;
-    height: min-content;
-    width: min-content;
-    max-width: 1000px;
-    max-height: 85vh;
-    padding: 3.333rem;
-    min-width: 80vw;
+    box-sizing: border-box;
+    width: max-content;
+    max-width: min(92vw, 78rem);
+    max-height: 86vh;
+    min-width: 0;
+    padding: 1.4rem 1.6rem 1.6rem;
+    overflow: auto;
+    background: color-mix(in srgb, #101218 90%, transparent);
   }
 
   .objectives-overlay-title {
-    color: white;
-    font-family: 'bank-gothic';
-    letter-spacing: 0.625rem;
-    font-size: 4.167rem;
-    font-weight: bold;
-    margin-left: auto;
-    margin-right: auto;
-    width: min-content;
+    margin: 0 0 1.1rem;
+    width: auto;
+    color: var(--imp-text);
+    font-family: var(--imp-font-label);
+    font-size: 1.35rem;
+    font-weight: 400;
+    letter-spacing: 0.28em;
+    line-height: 1.2;
+    text-align: center;
+    text-transform: uppercase;
   }
 
   .objectives-overlay-content {
     display: flex;
-    flex-direction: row;
-    gap: 1.667rem;
-    justify-content: space-evenly;
-    width: 100%;
-    max-width: 80vw;
-    max-height: 85vh;
-    height: min-content;
-    width: 100%;
-    padding: 1.667rem;
+    flex-flow: row wrap;
+    align-items: stretch;
+    justify-content: center;
+    gap: 1.1rem;
+    width: auto;
+    max-width: none;
+    height: auto;
+    max-height: none;
+    margin: 0;
+    padding: 0;
   }
 
-  .objectives_card_content {
-    color: white;
-    background: #0006;
-    position: relative;
-    color: white;
-    margin-top: 0px;
-    padding: 1.167rem;
-    padding-top: 0.833rem;
-    line-height: 2.5rem;
-    height: calc(42vh - 5em);
-    text-align: center;
-    font-size: 1.917rem;
+  .objectives-overlay .objective-card {
+    display: flex;
+    flex-direction: column;
+    width: 16.75rem;
+    max-width: calc(92vw - 3.2rem);
+    margin: 0;
+    overflow: hidden;
+    background: #0c0e14;
+    border: 1px solid color-mix(in srgb, #fff 16%, transparent);
+    color: var(--imp-text);
   }
 
-  .objectives_card_name {
-    color: white;
-    background: #0008;
+  .objectives-overlay .objective-card-art {
     position: relative;
-    min-height: min-content;
-    text-align: center;
-    width: 100%;
-    padding-bottom: 0.833rem;
-    padding-top: 0.833rem;
-    font-size: 2.083rem;
-    font-weight: bold;
-    padding-left: 0.417rem;
-    padding-right: 0.417rem;
-  }
-
-  .objectives_overlay_objectives_card {
-    position: relative;
-    width: calc(50vh * 0.7211);
-    height: 50vh;
-    margin: 10px;
+    flex: 0 0 auto;
+    height: 9.25rem;
+    margin: 0;
+    background-color: #07080c;
+    background-repeat: no-repeat;
     background-size: cover;
-    max-width: 30rem;
-    max-height: 45rem;
-    float: left;
-    font-size: 0.8em;
-    z-index: 5;
-    border: 1px solid #fff;
+    background-position: center 70%;
+  }
+
+  .objectives-overlay .objective-card-vp {
+    position: absolute;
+    left: 50%;
+    bottom: -1.2rem;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.7rem;
+    height: 2.7rem;
+    margin: 0;
+    padding: 0;
+    transform: translateX(-50%);
+    border-radius: 50%;
+    background: #1a4eaa;
+    box-shadow: 0 0 0 0.28rem #0c0e14;
+    color: #fff;
+    font-family: var(--imp-font-label);
+    font-size: 1.4rem;
+    line-height: 1;
+  }
+
+  .objectives-overlay .objective-card.is-stage-ii .objective-card-vp {
+    background: #6a348f;
+  }
+
+  .objectives-overlay .objective-card.is-secret .objective-card-vp {
+    background: #8a3168;
+  }
+
+  .objectives-overlay .objective-card-body {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    gap: 0.45rem;
+    margin: 0;
+    padding: 1.7rem 1rem 1.05rem;
+  }
+
+  .objectives-overlay .objective-card-kind {
+    margin: 0;
+    padding: 0;
+    color: var(--imp-text-muted);
+    font-family: var(--imp-font);
+    font-size: 0.78rem;
+    letter-spacing: 0.16em;
+    line-height: 1.2;
+    text-align: center;
+    text-transform: uppercase;
+  }
+
+  .objectives-overlay .objective-card-name {
+    margin: 0;
+    padding: 0;
+    background: transparent;
+    color: var(--imp-text);
+    font-family: var(--imp-font-label);
+    font-size: 1.2rem;
+    font-weight: 400;
+    line-height: 1.25;
+    text-align: center;
+  }
+
+  .objectives-overlay .objective-card-text {
+    margin: 0;
+    padding: 0;
+    background: transparent;
+    color: var(--imp-text);
+    font-family: var(--imp-font-body);
+    font-size: 1.05rem;
+    line-height: 1.4;
+    text-align: center;
   }
 }

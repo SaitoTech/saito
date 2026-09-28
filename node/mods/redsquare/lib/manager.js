@@ -41,6 +41,10 @@ class Manager {
     this._browser_history_bound = false;
     this.image_overlay = null;
     this.profile_cache = {};
+    this._read_observer = null;
+    this._read_observer_root = null;
+    this._read_save_timer = null;
+    this._last_scroll_top = 0;
 
     // Per-view Manager chrome. Header is navigation only (back + title).
     // Home / notifications / user-content (posts/replies/likes) omit sticky chrome.
@@ -305,6 +309,7 @@ class Manager {
     this.pending_newer_tweets = [];
     this._timeline_bootstrapping = false;
     this._notifications_bootstrapping = false;
+    this._last_scroll_top = 0;
   }
 
   updateModeVisibility() {
@@ -796,18 +801,31 @@ class Manager {
     this._timeline_bootstrapping = true;
     this.syncFeedStatus();
 
-    if (this.timeline_rendered) {
-      this._timeline_bootstrapping = false;
-      this.syncFeedStatus();
-      return;
-    }
+    await this.requestTweetLoad('newer');
 
-    this.appendTimelineBatch();
+    this.mod.resortTimeline();
+    this.clearPanel(this.getActivePanelSelector());
+    this.pagination.timeline.cursor = 0;
+    this.pagination.timeline.exhausted = false;
+    this.fillTimelineToViewport();
     this.timeline_rendered = true;
     this._timeline_bootstrapping = false;
+
     this.syncFeedStatus();
 
-    this.fetchRemoteTransactions('tweets', 'newer');
+    const unhydratedRemote = (this.mod.peers || []).some(
+      (peer_obj) => peer_obj.peer !== 'localhost' && !peer_obj.tweets_hydrated
+    );
+
+    if (unhydratedRemote) {
+      this.mod.loadTransactions('tweets', 'newer', (result) => {
+        this.onNewerContentLoaded(result, { announce: !this.isNearTop() });
+      });
+    }
+
+    if (this.isNearBottom()) {
+      this.loadMoreIfNeeded();
+    }
   }
 
   paintThread() {
@@ -823,12 +841,6 @@ class Manager {
     const focused = this.mod.getTweet(this.active_signature);
 
     if (!focused?.parent_id) {
-      return;
-    }
-
-    const parent = this.mod.getTweet(focused.parent_id);
-
-    if (!parent) {
       return;
     }
 
@@ -979,7 +991,9 @@ class Manager {
 
     const state = this.getPaginationState();
     const source = this.getActiveProfileSource();
-    state.exhausted = Boolean(source?.exhausted && state.cursor >= this.collectProfileTweets().length);
+    state.exhausted = Boolean(
+      source?.exhausted && state.cursor >= this.collectProfileTweets().length
+    );
     this.syncFeedStatus();
 
     if (!state.exhausted && this.isNearBottom()) {
@@ -1194,7 +1208,9 @@ class Manager {
     }
 
     const cache = this.getProfileCache();
-    return (cache[this.mode] || []).map((signature) => this.mod.getTweet(signature)).filter(Boolean);
+    return (cache[this.mode] || [])
+      .map((signature) => this.mod.getTweet(signature))
+      .filter(Boolean);
   }
 
   appendTimelineBatch() {
@@ -1207,10 +1223,12 @@ class Manager {
       return 0;
     }
 
+    const panel = document.querySelector(container);
+
     for (const signature of signatures) {
       const tweet = this.mod.getTweet(signature);
 
-      if (tweet) {
+      if (tweet && !panel?.querySelector(`article.tweet[data-id="${signature}"]`)) {
         this.renderTweetWithCriticalChild(tweet, container);
       }
     }
@@ -1218,8 +1236,33 @@ class Manager {
     state.cursor += signatures.length;
 
     this.syncFeedStatus();
+    this.observeVisibleTweets();
 
     return signatures.length;
+  }
+
+  fillTimelineToViewport() {
+    let painted = 0;
+    let batch;
+
+    do {
+      batch = this.appendTimelineBatch();
+      painted += batch;
+    } while (batch > 0 && this.isNearBottom());
+
+    return painted;
+  }
+
+  oldestRenderedTweetTs() {
+    const signatures = this.mod.tweets_timeline || [];
+    const cursor = this.pagination.timeline.cursor;
+
+    if (cursor <= 0 || signatures.length === 0) {
+      return Date.now();
+    }
+
+    const tweet = this.mod.getTweet(signatures[Math.min(cursor, signatures.length) - 1]);
+    return Number(tweet?.created_at) || Date.now();
   }
 
   appendNotificationsBatch() {
@@ -1342,20 +1385,7 @@ class Manager {
       }
 
       state.cursor += signatures.length;
-      return;
     }
-
-    for (const signature of signatures) {
-      const tweet = this.mod.getTweet(signature);
-
-      if (!tweet || tweet.parent_id) {
-        continue;
-      }
-
-      this.renderTweetWithCriticalChild(tweet, container);
-    }
-
-    state.cursor += signatures.length;
   }
 
   resetThreadPagination(signature) {
@@ -1436,7 +1466,17 @@ class Manager {
       root = parent;
     }
 
-    return root;
+    if (root !== signature) {
+      return root;
+    }
+
+    const tweet = this.mod.getTweet(signature);
+
+    if (tweet?.thread_id && tweet.thread_id !== tweet.signature) {
+      return tweet.thread_id;
+    }
+
+    return tweet?.parent_id || root;
   }
 
   //
@@ -1474,9 +1514,7 @@ class Manager {
       return;
     }
 
-    document
-      .querySelectorAll(`article.tweet[data-id="${signature}"]`)
-      .forEach((el) => el.remove());
+    document.querySelectorAll(`article.tweet[data-id="${signature}"]`).forEach((el) => el.remove());
 
     if (this.mode === 'thread' && this.active_signature === signature) {
       this.renderTimelineForNewPost();
@@ -1516,7 +1554,7 @@ class Manager {
       return;
     }
 
-    this.renderThread(tweet.signature);
+    this.openEntireThread(tweet.signature);
   }
 
   insertTimelineTweet(tweet) {
@@ -1559,6 +1597,7 @@ class Manager {
 
     const element = panel.querySelector(`article.tweet[data-id="${tweet.signature}"]`);
     this.animateTweetInsertion(element);
+    this.observeVisibleTweets();
   }
 
   insertThreadReply(tweet) {
@@ -1685,6 +1724,7 @@ class Manager {
     this.attachScrollEvents();
     this.attachViewportChrome();
     this.attachBrowserHistory();
+    this.observeVisibleTweets();
   }
 
   attachViewportChrome() {
@@ -1774,28 +1814,41 @@ class Manager {
   }
 
   async openEntireThread(rootSignature) {
-    if (!rootSignature || !this.mod.getTweet(rootSignature)) {
+    if (!rootSignature) {
       return null;
     }
 
-    // Show every relationship already in memory immediately, then refresh the
-    // root thread so replies known only to an archive peer are included too.
+    // Paint anything already in memory, then load the archive thread. The
+    // tweet does not need to be cached first — permalink and click-through
+    // share this path.
     this.renderThread(rootSignature);
 
     try {
       const result = await this.mod.loadTweetThread(rootSignature);
 
-      if (
-        result?.status === 'loaded' &&
-        this.mode === 'thread' &&
-        this.active_signature === rootSignature
-      ) {
+      if (this.mode !== 'thread' || this.active_signature !== rootSignature) {
+        return result;
+      }
+
+      if (result?.status === 'loaded' && result.tweet) {
         this.renderThread(rootSignature, { updateHistory: false });
+      } else if (!this.mod.getTweet(rootSignature)) {
+        const status = result?.status === 'unavailable' ? 'unavailable' : 'error';
+        this.renderPermalinkState(rootSignature, status, result?.reason);
       }
 
       return result;
     } catch (err) {
       console.error('RedSquare complete thread lookup failed:', err);
+
+      if (
+        this.mode === 'thread' &&
+        this.active_signature === rootSignature &&
+        !this.mod.getTweet(rootSignature)
+      ) {
+        this.renderPermalinkState(rootSignature, 'error', 'lookup-failed');
+      }
+
       return { status: 'error', reason: 'lookup-failed', tweet: null };
     }
   }
@@ -1993,6 +2046,10 @@ class Manager {
     root.dataset.tweetNavigationBound = '1';
 
     root.addEventListener('click', (e) => {
+      if (window.getSelection && !window.getSelection().isCollapsed) {
+        return;
+      }
+
       const signature = Manager.resolveClickedSignature(e.target);
 
       if (!signature) {
@@ -2020,7 +2077,7 @@ class Manager {
         return;
       }
 
-      this.renderThread(signature);
+      this.openEntireThread(signature);
     });
   }
 
@@ -2105,7 +2162,96 @@ class Manager {
     );
   }
 
+  ensureReadObserver() {
+    if (typeof IntersectionObserver === 'undefined') {
+      return;
+    }
+
+    const scroller = this.getScrollContainer();
+
+    if (!scroller) {
+      return;
+    }
+
+    if (this._read_observer && this._read_observer_root === scroller) {
+      return;
+    }
+
+    this._read_observer?.disconnect();
+    this._read_observer_root = scroller;
+    this._read_observer = new IntersectionObserver((entries) => this.onTweetIntersection(entries), {
+      root: scroller,
+      threshold: 0.5
+    });
+  }
+
+  observeVisibleTweets() {
+    if (this.mode !== 'timeline') {
+      return;
+    }
+
+    this.ensureReadObserver();
+
+    if (!this._read_observer) {
+      return;
+    }
+
+    const panel = document.querySelector(`${this.container} .list[data-panel="timeline"]`);
+
+    for (const element of panel?.querySelectorAll('article.tweet[data-id]') || []) {
+      this._read_observer.observe(element);
+    }
+  }
+
+  onTweetIntersection(entries) {
+    if (this.mode !== 'timeline') {
+      return;
+    }
+
+    let newestSeen = Number(this.mod.tweets_last_viewed_ts) || 0;
+
+    for (const entry of entries) {
+      if (!entry.isIntersecting) {
+        continue;
+      }
+
+      const signature = entry.target.getAttribute('data-id') || '';
+      const tweet = this.mod.getTweet(signature);
+
+      if (!tweet || tweet.parent_id) {
+        continue;
+      }
+
+      newestSeen = Math.max(newestSeen, Number(tweet.created_at) || 0);
+    }
+
+    if (newestSeen <= (Number(this.mod.tweets_last_viewed_ts) || 0)) {
+      return;
+    }
+
+    this.mod.tweets_last_viewed_ts = newestSeen;
+    this.scheduleSaveReadCursor();
+  }
+
+  scheduleSaveReadCursor() {
+    if (this._read_save_timer) {
+      clearTimeout(this._read_save_timer);
+    }
+
+    this._read_save_timer = setTimeout(() => {
+      this._read_save_timer = null;
+      this.mod.saveOptions();
+    }, 750);
+  }
+
   onScroll() {
+    const scroller = this.getScrollContainer();
+    this._last_scroll_top = scroller ? scroller.scrollTop : 0;
+
+    if (this.mode === 'timeline') {
+      this.observeVisibleTweets();
+    }
+
     if (!this.isNearBottom()) {
       return;
     }
@@ -2122,7 +2268,7 @@ class Manager {
 
     const remaining = scroller.scrollHeight - scroller.scrollTop - scroller.clientHeight;
 
-    return remaining <= SCROLL_THRESHOLD_PX;
+    return remaining <= Math.max(SCROLL_THRESHOLD_PX, scroller.clientHeight);
   }
 
   isNearTop() {
@@ -2135,19 +2281,104 @@ class Manager {
     return scroller.scrollTop <= SCROLL_THRESHOLD_PX;
   }
 
-  fetchRemoteTransactions(type, direction, { announce = false } = {}) {
-    this.mod.loadTransactions(type, direction, (result) => {
-      const payload = result || {
-        type,
-        direction,
-        added: [],
-        updated: [],
-        ignored: [],
-        exhausted: true
-      };
+  getRenderedTimelineSignatures() {
+    const rendered = new Set();
+    const panel = document.querySelector(`${this.container} .list[data-panel="timeline"]`);
 
-      if (direction === 'newer') {
-        this.onNewerContentLoaded(payload, { announce });
+    for (const element of panel?.querySelectorAll('article.tweet[data-id]') || []) {
+      const signature = element.getAttribute('data-id') || '';
+
+      if (signature) {
+        rendered.add(signature);
+      }
+    }
+
+    return rendered;
+  }
+
+  captureScrollAnchor() {
+    const scroller = this.getScrollContainer();
+    const panel = document.querySelector(`${this.container} .list[data-panel="timeline"]`);
+
+    if (!scroller || !panel) {
+      return null;
+    }
+
+    const scrollerTop = scroller.getBoundingClientRect().top;
+
+    for (const element of panel.querySelectorAll('article.tweet[data-id]')) {
+      const signature = element.getAttribute('data-id') || '';
+      const tweet = this.mod.getTweet(signature);
+
+      if (!tweet || tweet.parent_id) {
+        continue;
+      }
+
+      const rect = element.getBoundingClientRect();
+
+      if (rect.bottom > scrollerTop + 8) {
+        return { signature, offset: rect.top - scrollerTop };
+      }
+    }
+
+    return null;
+  }
+
+  restoreScrollAnchor(anchor) {
+    if (!anchor?.signature) {
+      return;
+    }
+
+    const scroller = this.getScrollContainer();
+    const element = document.querySelector(
+      `${this.container} article.tweet[data-id="${anchor.signature}"]`
+    );
+
+    if (!scroller || !element) {
+      return;
+    }
+
+    const scrollerTop = scroller.getBoundingClientRect().top;
+    const rect = element.getBoundingClientRect();
+    scroller.scrollTop += rect.top - scrollerTop - (anchor.offset || 0);
+  }
+
+  requestTweetLoad(direction, extra = {}) {
+    return new Promise((resolve) => {
+      let settled = false;
+      const finish = (result) => {
+        if (settled) {
+          return;
+        }
+
+        settled = true;
+        resolve(
+          result || {
+            type: 'tweets',
+            direction,
+            added: [],
+            new_tweets: [],
+            updated: [],
+            ignored: [],
+            exhausted: true
+          }
+        );
+      };
+      const timer = setTimeout(() => finish(null), 12000);
+
+      try {
+        this.mod.loadTransactions(
+          'tweets',
+          direction,
+          (result) => {
+            clearTimeout(timer);
+            finish(result);
+          },
+          extra
+        );
+      } catch (err) {
+        clearTimeout(timer);
+        finish(null);
       }
     });
   }
@@ -2164,9 +2395,22 @@ class Manager {
       this.loadMoreIfNeeded();
     }
 
-    if (this.mode === 'timeline' && this.timeline_rendered) {
-      this.fetchRemoteTransactions('tweets', 'newer');
+    if (this.mode !== 'timeline') {
+      return;
     }
+
+    if (this._timeline_bootstrapping) {
+      return;
+    }
+
+    if (!this.timeline_rendered) {
+      this.paintTimeline();
+      return;
+    }
+
+    this.mod.loadTransactions('tweets', 'newer', (result) => {
+      this.onNewerContentLoaded(result, { announce: !this.isNearTop() });
+    });
   }
 
   onNewerContentLoaded(result, { announce = false } = {}) {
@@ -2185,8 +2429,8 @@ class Manager {
   }
 
   handleNewerTweets(result, { announce = false } = {}) {
-    // Archive hydration is initial feed state; only post-load event paths may
-    // place genuinely new tweets behind the notification banner.
+    this.syncConfirmedTweetRenders(result);
+
     const signatures = Array.from(
       new Set(
         announce
@@ -2198,63 +2442,103 @@ class Manager {
             : []
       )
     );
+    const rendered = this.getRenderedTimelineSignatures();
+    const unrenderedRoots = signatures.filter((signature) => {
+      const tweet = this.mod.getTweet(signature);
+      return Boolean(tweet && !tweet.parent_id && !rendered.has(signature));
+    });
 
-    if (!signatures?.length) {
+    if (!unrenderedRoots.length) {
       return;
     }
 
-    const timeline = document.querySelector(`${this.container} .list[data-panel="timeline"]`);
-    const rendered = new Set();
-    const immediatelyVisible = [];
-    let newestRenderedAt = 0;
-
-    for (const element of timeline?.querySelectorAll('article.tweet[data-id]') || []) {
-      const signature = element.getAttribute('data-id') || '';
-      const tweet = this.mod.getTweet(signature);
-
-      if (signature) {
-        rendered.add(signature);
-      }
-
-      newestRenderedAt = Math.max(newestRenderedAt, Number(tweet?.created_at) || 0);
-    }
-
-    for (const signature of signatures) {
-      const tweet = this.mod.getTweet(signature);
-
-      if (
-        !tweet ||
-        tweet.parent_id ||
-        rendered.has(signature) ||
-        (newestRenderedAt > 0 && Number(tweet.created_at) < newestRenderedAt)
-      ) {
-        continue;
-      }
-
-      if (announce && this.timeline_rendered) {
+    if (this.mode !== 'timeline' || this._timeline_bootstrapping || !this.timeline_rendered) {
+      for (const signature of unrenderedRoots) {
         if (!this.pending_newer_tweets.includes(signature)) {
           this.pending_newer_tweets.push(signature);
         }
-      } else {
-        immediatelyVisible.push(signature);
+      }
+      return;
+    }
+
+    if (announce || !this.isNearTop()) {
+      for (const signature of unrenderedRoots) {
+        if (!this.pending_newer_tweets.includes(signature)) {
+          this.pending_newer_tweets.push(signature);
+        }
+      }
+
+      this.showNewPostsBanner();
+      return;
+    }
+
+    this.prependTimelineTweets(unrenderedRoots);
+  }
+
+  syncConfirmedTweetRenders(result) {
+    const signatures = [].concat(result?.added || [], result?.new_tweets || [], result?.updated || []);
+    const seen = new Set();
+
+    for (const signature of signatures) {
+      if (!signature || seen.has(signature)) {
+        continue;
+      }
+
+      seen.add(signature);
+      const tweet = this.mod.getTweet(signature);
+
+      if (!tweet?.parent_id) {
+        continue;
+      }
+
+      const parent = this.mod.getTweet(tweet.parent_id);
+
+      if (parent) {
+        this.refreshParentCriticalChild(parent);
       }
     }
+  }
 
-    if (immediatelyVisible.length) {
-      this.prependTimelineTweets(immediatelyVisible);
-      this.pagination.timeline.exhausted = false;
-      this.syncFeedStatus();
+  refreshParentCriticalChild(parent) {
+    if (!parent || this.mode !== 'timeline') {
+      return;
     }
 
-    if (this.pending_newer_tweets.length && this.mode === 'timeline') {
-      this.showNewPostsBanner();
+    const panel = document.querySelector(`${this.container} .list[data-panel="timeline"]`);
+    const parentEl = panel?.querySelector(`article.tweet[data-id="${parent.signature}"]`);
+
+    if (!parentEl) {
+      return;
     }
 
-    // Initial archive pages can contain mostly replies. Continue filling the
-    // viewport when the newly hydrated roots do not create a scrollbar.
-    if (!announce && this.mode === 'timeline' && this.isNearBottom()) {
-      this.loadMoreIfNeeded();
+    const child = parent.critical_child ? this.mod.getTweet(parent.critical_child) : null;
+
+    parent.refresh();
+
+    if (!child) {
+      return;
     }
+
+    const panelAfter = document.querySelector(`${this.container} .list[data-panel="timeline"]`);
+    const existingChild = panelAfter?.querySelector(`article.tweet[data-id="${child.signature}"]`);
+
+    if (existingChild) {
+      child.refresh();
+      return;
+    }
+
+    const parentNode = panelAfter?.querySelector(`article.tweet[data-id="${parent.signature}"]`);
+
+    if (!parentNode) {
+      return;
+    }
+
+    parentNode.classList.add('chain-next', 'chain-continue');
+    const childOptions = { chainPrev: true, presentation: 'reply', reply: true };
+    parentNode.insertAdjacentHTML(
+      'afterend',
+      TweetTemplate(child, child.buildClassName(childOptions), childOptions)
+    );
   }
 
   syncPendingNewerTweets() {
@@ -2318,6 +2602,7 @@ class Manager {
 
     this.pagination.timeline.cursor += signatures.length;
     this.timeline_rendered = true;
+    this.observeVisibleTweets();
   }
 
   prependNotifications(signatures) {
@@ -2396,17 +2681,16 @@ class Manager {
   }
 
   flushPendingNewerTweets({ scrollToTop = false } = {}) {
-    const signatures = this.pending_newer_tweets.slice();
+    const rendered = this.getRenderedTimelineSignatures();
+    const signatures = this.pending_newer_tweets.filter((signature) => !rendered.has(signature));
     this.pending_newer_tweets = [];
     this.hideNewPostsBanner();
 
-    if (!signatures.length) {
-      return;
+    if (signatures.length) {
+      this.prependTimelineTweets(signatures);
+      this.pagination.timeline.exhausted = false;
+      this.syncFeedStatus();
     }
-
-    this.prependTimelineTweets(signatures);
-    this.pagination.timeline.exhausted = false;
-    this.syncFeedStatus();
 
     if (scrollToTop) {
       requestAnimationFrame(() => {
@@ -2491,14 +2775,44 @@ class Manager {
         return;
       }
 
-      const type = this.mode === 'notifications' ? 'notifications' : 'tweets';
-      const timeline =
-        type === 'notifications' ? this.mod.notifications_timeline : this.mod.tweets_timeline;
-      const pending = this.sliceUnrendered(timeline, state.cursor, state.batchSize);
+      if (this.mode === 'timeline') {
+        this.fillTimelineToViewport();
+
+        if (!this.isNearBottom()) {
+          return;
+        }
+
+        if (state.cursor < (this.mod.tweets_timeline || []).length) {
+          continueLoading = true;
+          return;
+        }
+
+        const result = await this.requestTweetLoad('older', {
+          demand_ts: this.oldestRenderedTweetTs()
+        });
+
+        this.mod.resortTimeline();
+        const painted = this.fillTimelineToViewport();
+
+        if (!painted && result.exhausted && state.cursor >= (this.mod.tweets_timeline || []).length) {
+          state.exhausted = true;
+        } else if (!result.exhausted) {
+          state.exhausted = false;
+        }
+
+        continueLoading = !state.exhausted && this.isNearBottom();
+        return;
+      }
+
+      const pending = this.sliceUnrendered(
+        this.mod.notifications_timeline,
+        state.cursor,
+        state.batchSize
+      );
 
       if (pending.length > 0) {
         continueLoading = this.applyOlderLoadResult({
-          type,
+          type: 'notifications',
           direction: 'older',
           added: pending.slice(),
           updated: [],
@@ -2519,7 +2833,7 @@ class Manager {
           settled = true;
           continueLoading = this.applyOlderLoadResult(
             result || {
-              type,
+              type: 'notifications',
               direction: 'older',
               added: [],
               updated: [],
@@ -2532,7 +2846,7 @@ class Manager {
 
         const timer = setTimeout(() => {
           finish({
-            type,
+            type: 'notifications',
             direction: 'older',
             added: [],
             updated: [],
@@ -2542,14 +2856,14 @@ class Manager {
         }, 12000);
 
         try {
-          this.mod.loadTransactions(type, 'older', (result) => {
+          this.mod.loadTransactions('notifications', 'older', (result) => {
             clearTimeout(timer);
             finish(result);
           });
         } catch (err) {
           clearTimeout(timer);
           finish({
-            type,
+            type: 'notifications',
             direction: 'older',
             added: [],
             updated: [],

@@ -63,6 +63,7 @@
 .game-menu > ul li.game-menu-icon {
   min-width: unset;
   width: 50px;
+  max-width: 50px;
   padding: 0 5px;
   line-height: 40px;
 }

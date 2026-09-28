@@ -50,7 +50,7 @@ module.exports = (imperium_self, units) => {
         </div>
 
         <div class="how-to-move-example-desc">
-	  NOTE: value is how many hexes ships can move - only units from inactivated sectors may move.
+	  NOTE: only units from inactivated sectors may move.
         </div>
 
     </div>

@@ -14,6 +14,8 @@ class Quake3 extends GameTemplate {
     this.categories = 'Games Videogame Shooter';
     this.publisher_message =
       'Quake 3 is owned by ID Software. This module is made available under an open source license. Your browser will use data-files distributed freely online by the publisher but please note that the publisher requires purchase of the game to play. Saito recommends GOG.com for purchase.';
+    this.status = 'beta';
+    this.class = 'app';
 
     this.controls = {};
     this.controls = new QuakeControls(app, this);

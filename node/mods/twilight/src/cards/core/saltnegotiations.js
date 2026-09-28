@@ -70,8 +70,11 @@
 		document.querySelectorAll('.saito-overlay .transparent-card-overlay .card').forEach((el) => { el.onclick = (e) => {}; });
 	  	twilight_self.overlay.clickToClose = true;
 		twilight_self.overlay.close();
-        	twilight_self.unbindBackButtonFunction();
-        	twilight_self.updateStatus("Retrieving Card...");
+        	twilight_self.hud.hideBackButton();
+        	twilight_self.game.status = "Retrieving Card...";
+        	twilight_self.hud.updateStatus(twilight_self.game.status);
+        	twilight_self.hud.updateMenu([]);
+        	twilight_self.hud.updateCards([]);
           	twilight_self.game.deck[0].hand.push(action2);
         	twilight_self.addMove("resolve\tsaltnegotiations");
           	twilight_self.addMove("NOTIFY\t"+player.toUpperCase() +" retrieved "+twilight_self.cardToText(action2));
@@ -82,7 +85,11 @@
 	}, 25);
 
 /****
-        twilight_self.updateStatusAndListCards("Choose Card to Reclaim:",discard_deck,true);
+                twilight_self.game.status = "Choose Card to Reclaim:";
+        twilight_self.hud.updateStatus(twilight_self.game.status);
+        twilight_self.hud.updateMenu([]);
+        twilight_self.hud.updateCards(discard_deck);
+        twilight_self.cardbox.attachCardEvents();
 
         twilight_self.hud.attachControlCallback(function(action2) {
           twilight_self.game.deck[0].hand.push(action2);

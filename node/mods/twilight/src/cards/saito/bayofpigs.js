@@ -21,14 +21,16 @@
 	  }
         }
 
-        let html = `<ul>`;
+        let options = [];
         for (let i = 0; i < available.length; i++) {
-          html += `<li class="option" id="${available[i]}">${ac[available[i]].name}</li>`;
+          options.push({ id: available[i], label: ac[available[i]].name });
         }
-	html += `<li class="option" id="skip">do not discard</li>`;
-        html += `</ul>`;
+	options.push({ id: 'skip', label: 'do not discard' });
 
-        this.updateStatusWithOptions(`${this.cardToText(card)} discard:`, html, function(action2) {
+        this.game.status = `${this.cardToText(card)} discard:`;
+        this.hud.updateStatus(this.game.status);
+        this.hud.updateCards([]);
+        this.hud.updateMenu(options, function(action2) {
 
 	  let discarded = false;
 
@@ -66,7 +68,10 @@
 	});
 
       } else {
-        this.updateStatus(`<div class='status-message' id='status-message'>USSR responding to ${this.cardToText(card)}</div>`);
+        this.game.status = `<div class='status-message' id='status-message'>USSR responding to ${this.cardToText(card)}</div>`;
+        this.hud.updateStatus(this.game.status);
+        this.hud.updateMenu([]);
+        this.hud.updateCards([]);
       }
 
       return 0;

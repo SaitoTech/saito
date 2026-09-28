@@ -50,6 +50,7 @@ class Archive extends ModTemplate {
     this.description = 'Supports the saving and serving of network transactions';
     this.categories = 'Utilities Core';
     this.class = 'utility';
+    this.status = 'prod';
     this.localDB = null;
     this.opt_out = ['Chat', 'RedSquare', 'Blog']; // Modules that handle their own automated storage
 

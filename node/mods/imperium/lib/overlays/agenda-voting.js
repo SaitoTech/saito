@@ -16,13 +16,17 @@ class AgendaVotingOverlay {
       //
       // return to smaller proportions
       //
-      let el = document.querySelector('.hud');
-      el.classList.remove('voting-hud');
-      el.style.top = 'unset';
-      el.style.bottom = '0px';
+      let el = document.getElementById('game-hud2');
+      if (el) {
+        el.classList.remove('voting-hud');
+        el.style.top = 'unset';
+        el.style.bottom = '0px';
+        el.style.zIndex = 11;
+      }
 
-      document.querySelector('.hud').style.zIndex = 11;
-      document.querySelector('.dashboard').style.zIndex = 10;
+      if (document.querySelector('.dashboard')) {
+        document.querySelector('.dashboard').style.zIndex = 10;
+      }
     } catch (err) {}
   }
 
@@ -34,9 +38,9 @@ class AgendaVotingOverlay {
     // pull GAME HUD over overlay
     //
     let overlay_zindex = parseInt(this.overlay.zIndex);
-    if (document.querySelector('.hud')) {
-      document.querySelector('.hud').style.zIndex = overlay_zindex + 1;
-      this.mod.hud.zIndex = overlay_zindex + 1;
+    let hud = document.getElementById('game-hud2');
+    if (hud) {
+      hud.style.zIndex = overlay_zindex + 1;
     }
 
     //
@@ -49,8 +53,9 @@ class AgendaVotingOverlay {
     //
     // increase hud size
     //
-    let el = document.querySelector('.hud');
-    el.classList.add('voting-hud');
+    if (hud) {
+      hud.classList.add('voting-hud');
+    }
 
     this.attachEvents();
   }

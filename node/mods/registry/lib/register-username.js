@@ -51,7 +51,7 @@ class RegisterUsername {
           console.log(err);
         }
 
-        let domain = '@saito';
+        let domain = this.mod.domain;
 
         let data = {
           identifier: identifier + domain,
@@ -91,11 +91,7 @@ class RegisterUsername {
                   this.render();
                 }
               } catch (err) {
-                if (err.message == 'Alphanumeric Characters only') {
-                  salert('Error: Alphanumeric Characters only');
-                } else {
-                  salert('Error: Error Registering Username');
-                }
+                salert(err.message || 'Error Registering Username');
                 this.render();
                 console.error(err);
               }

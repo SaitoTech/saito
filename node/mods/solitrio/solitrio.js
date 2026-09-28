@@ -16,6 +16,8 @@ class Solitrio extends OnePlayerGameTemplate {
     this.description =
       "Once you've started playing Solitrio, how can you go back to old-fashioned Solitaire? This one-player card game is the perfect way to pass a flight from Hong Kong to pretty much anywhere. Arrange the cards on the table from 2-10 ordered by suit. Harder than it looks and wildly addictive.";
     this.categories = 'Games Cardgame One-player';
+    this.status = 'prod';
+    this.class = 'app';
     this.animationSpeed = 500;
     this.card_img_dir = '/saito/img/arcade/cards';
     this.app = app;
@@ -820,7 +822,7 @@ no status atm, but this is to update the hud
   displayUserInterface() {
     let html =
       '<span>Arrange the cards from 2 to 10, one suit per row by moving cards into empty spaces. </span>';
-    let option = `<ul><li class="option"`;
+    let options = [];
     if (this.game.state.recycles_remaining > 0) {
       html += '<span>You may shuffle the unarranged cards ';
       if (this.game.state.recycles_remaining == 2) {
@@ -829,30 +831,27 @@ no status atm, but this is to update the hud
         html += '<strong>one</strong> more time.';
       }
       html += '</span>';
-      option += ` id="shuffle">Shuffle cards`;
+      options.push({ id: 'shuffle', label: 'Shuffle cards' });
     } else {
-      option += ` id="quit">New Game`;
+      options.push({ id: 'quit', label: 'New Game' });
     }
-    option += `</li><li class="option" id="hint">Hint`;
+    options.push({ id: 'hint', label: 'Hint' });
     if (this.moves.length > 0) {
-      option += `</li><li class="option" id="undo">Undo`;
+      options.push({ id: 'undo', label: 'Undo' });
     }
 
-    option += '</li></ul>';
-
-    this.updateStatusWithOptions(html, option);
-    this.attachHUDEvents();
-  }
-
-  attachHUDEvents() {
     let solitrio_self = this;
 
-    $('.option').off();
-    $('.option').on('click', async function () {
-      let action = $(this).attr('id');
+        this.game.status = html;
+    this.hud.updateStatus(this.game.status);
+    this.hud.updateCards([]);
+    this.hud.updateMenu(options, async function (action) {
       $('#rowbox').removeClass('nomoves');
       if (action == 'shuffle') {
-        solitrio_self.updateStatusWithOptions('shuffle cards...');
+                solitrio_self.game.status = 'shuffle cards...';
+        solitrio_self.hud.updateStatus(solitrio_self.game.status);
+        solitrio_self.hud.updateCards([]);
+        solitrio_self.hud.updateMenu([]);
         solitrio_self.prependMove('shuffle');
         solitrio_self.endTurn();
         return;

@@ -25,7 +25,10 @@ console.log("---------------------------");
 console.log("DECK: " + this.game.options.deck);
 console.log("\n\n\n\n");
 
-      this.updateStatus("<div class='status-message' id='status-message'>Generating the Game</div>");
+            this.game.status = "<div class='status-message' id='status-message'>Generating the Game</div>";
+      this.hud.updateStatus(this.game.status);
+      this.hud.updateMenu([]);
+      this.hud.updateCards([]);
 
       //
       // Game Queue

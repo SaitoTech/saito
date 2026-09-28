@@ -169,27 +169,10 @@ alert("showing: " + c);
         updateStatus(str, hide_info = 0) {
 	
                 try {
-                        //if (hide_info == 0) {
-                        //      this.playerbox.showInfo();
-                        //} else {
-                        //      this.playerbox.hideInfo();
-                        //}
-
-//                        if (this.lock_interface == 1) {
-//                                return;
-//                        }
-//
-//                        this.game.status = str;
-//
-//                        if (this.browser_active == 1) {
-//                                let status_obj = document.querySelector('.status');
-//                                if (this.game.players.includes(this.publicKey)) {
-//                                        status_obj.innerHTML = str;
-//                                }
-//                        }
-
-console.log("uPDATING Status: " + str);
-
+                        this.game.status = str;
+                        if (this.gameBrowserActive()) {
+                                this.hud.updateStatus(str);
+                        }
                 } catch (err) {
                         console.error('ERR: ' + err);
                 }

@@ -60,6 +60,8 @@ class Scotland extends GameTemplate {
     this.gamename = 'Scotland Yard';
     this.description = `Scotland Yard is a cat-and-mouse detective game set in London, England. Criminal mastermind Mister X must wind his way through the city while hiding from Scotland Yard.`;
     this.categories = 'Games Boardgame Strategy';
+    this.status = 'alpha';
+    this.class = 'app';
     //
     // this sets the ratio used for determining
     // the size of the original pieces
@@ -70,8 +72,6 @@ class Scotland extends GameTemplate {
     this.minPlayers = 2;
     this.maxPlayers = 6;
 
-    this.hud.mode = 0;
-    this.hud.auto_sizing = 0;
     this.sizer.maxZoom = 100;
   }
 
@@ -198,31 +198,12 @@ class Scotland extends GameTemplate {
 
     this.log.render();
 
-    this.hud.draggable_whole = false;
     this.hud.render();
+    this.ensureHudChrome();
 
-    let hh = document.querySelector('.hud-header');
-    if (!hh.querySelector('.handy-help')) {
-      this.app.browser.addElementToElement(
-        `<i id="hud_zoom" class="handy-help hud-controls fas fa-search" aria-hidden="true"" title="Turn mouse into a magnifying glass"></i>`,
-        hh
-      );
-      this.app.browser.addElementToElement(
-        `<i id="hud_clues" class="handy-help hud-controls fas fa-shoe-prints" aria-hidden="true" title="Check logbook of clues"></i>`,
-        hh
-      );
-      this.app.browser.addElementToElement(
-        `<i id="hud_bus" class="handy-help hud-controls fas fa-bus" aria-hidden="true"" title="Display bus routes"></i>`,
-        hh
-      );
-      this.app.browser.addElementToElement(
-        `<i id="hud_underground" class="handy-help hud-controls fas fa-subway" aria-hidden="true" title="Display Underground routes"></i>`,
-        hh
-      );
-      this.app.browser.addElementToElement(
-        `<i id="hud_clear" class="handy-help hud-controls far fa-map" aria-hidden="true" title="Clear map"></i>`,
-        hh
-      );
+    let tools = document.getElementById('scotland-hud-tools');
+    if (tools && !tools.querySelector('.handy-help')) {
+      tools.innerHTML = `<i id="hud_zoom" class="handy-help hud-controls fas fa-search" aria-hidden="true" title="Turn mouse into a magnifying glass"></i><i id="hud_clues" class="handy-help hud-controls fas fa-shoe-prints" aria-hidden="true" title="Check logbook of clues"></i><i id="hud_bus" class="handy-help hud-controls fas fa-bus" aria-hidden="true" title="Display bus routes"></i><i id="hud_underground" class="handy-help hud-controls fas fa-subway" aria-hidden="true" title="Display Underground routes"></i><i id="hud_clear" class="handy-help hud-controls far fa-map" aria-hidden="true" title="Clear map"></i>`;
     }
     try {
       document.getElementById('hud_zoom').onclick = this.magnifyingGlass.bind(this);
@@ -264,7 +245,10 @@ class Scotland extends GameTemplate {
       console.log('-------------------------');
       console.log('\n\n\n\n');
 
-      this.updateStatus('generating the game');
+            this.game.status = 'generating the game';
+      this.hud.updateStatus(this.game.status);
+      this.hud.updateMenu([]);
+      this.hud.updateCards([]);
 
       //
       // keys are not backed-up when saved, so "deck"
@@ -308,9 +292,15 @@ class Scotland extends GameTemplate {
     // -- need a new default for team victories
     if (this.game.over == 1) {
       if (this.game.winner == this.game.state.x) {
-        this.updateStatus('Mr X wins');
+                this.game.status = 'Mr X wins';
+        this.hud.updateStatus(this.game.status);
+        this.hud.updateMenu([]);
+        this.hud.updateCards([]);
       } else {
-        this.updateStatus('Scotland Yard wins');
+                this.game.status = 'Scotland Yard wins';
+        this.hud.updateStatus(this.game.status);
+        this.hud.updateMenu([]);
+        this.hud.updateCards([]);
       }
       return 0;
     }
@@ -564,16 +554,18 @@ class Scotland extends GameTemplate {
         } else {
           if (pawn == this.game.state.numDetectives) {
             this.setHudClass();
-            this.updateStatus(
-              `<div class="status-message">Waiting for Mr X to move (Player ${player})</div>`
-            );
+                        this.game.status = `<div class="status-message">Waiting for Mr X to move (Player ${player})</div>`;
+            this.hud.updateStatus(this.game.status);
+            this.hud.updateMenu([]);
+            this.hud.updateCards([]);
+            this.clearHudTickets();
           } else {
             let sHeader = `Waiting for Detective ${pawn + 1} to move (Player ${player})`;
-            this.updateStatus(
-              `<div class="status-message">${sHeader}</div>${this.ticketsToHTML(
-                this.game.state.numDetectives
-              )}`
-            );
+                        this.game.status = `<div class="status-message">${sHeader}</div>`;
+            this.hud.updateStatus(this.game.status);
+            this.hud.updateMenu([]);
+            this.hud.updateCards([]);
+            this.setHudTickets(this.ticketsToHTML(this.game.state.numDetectives), false);
           }
         }
         return 0;
@@ -663,6 +655,45 @@ class Scotland extends GameTemplate {
     return html;
   }
 
+  ensureHudChrome() {
+    this.hud.render();
+    let hud = document.getElementById('game-hud2');
+    if (!hud) {
+      return null;
+    }
+    let chrome = document.getElementById('scotland-hud-chrome');
+    if (!chrome) {
+      chrome = document.createElement('div');
+      chrome.id = 'scotland-hud-chrome';
+      chrome.className = 'scotland-hud-chrome';
+      chrome.innerHTML =
+        '<div id="scotland-hud-tools" class="scotland-hud-tools"></div><div id="scotland-hud-tickets" class="scotland-hud-tickets"></div>';
+      hud.appendChild(chrome);
+    }
+    return chrome;
+  }
+
+  setHudTickets(html, interactive = true) {
+    this.ensureHudChrome();
+    let el = document.getElementById('scotland-hud-tickets');
+    if (el) {
+      el.innerHTML = html || '';
+      if (interactive) {
+        el.classList.remove('readonly');
+      } else {
+        el.classList.add('readonly');
+      }
+    }
+  }
+
+  clearHudTickets() {
+    let el = document.getElementById('scotland-hud-tickets');
+    if (el) {
+      el.innerHTML = '';
+      el.classList.remove('readonly');
+    }
+  }
+
   //
   // player is the human this.game.player
   // gamer is the player (may only be 2)
@@ -671,10 +702,6 @@ class Scotland extends GameTemplate {
     if (!this.browser_active) return;
 
     let scotland_self = this;
-
-    this.menu_backup_callback = function () {
-      scotland_self.playerTurn(player, pawn);
-    };
 
     //
     // generate instructions and print to HUD
@@ -699,9 +726,13 @@ class Scotland extends GameTemplate {
       }
     }
 
-    let html = `<div class="status-message">${sHeader}</div>${this.ticketsToHTML(pawn)}`;
+    let html = `<div class="status-message">${sHeader}</div>`;
 
-    this.updateStatus(html);
+        this.game.status = html;
+    this.hud.updateStatus(this.game.status);
+    this.hud.updateMenu([]);
+    this.hud.updateCards([]);
+    this.setHudTickets(this.ticketsToHTML(pawn), true);
     if (player !== this.game.state.x) {
       this.setHudClass(pawn);
     } else {
@@ -716,7 +747,7 @@ class Scotland extends GameTemplate {
 
     // attach events
     $('.menu_icon').off();
-    $('.menu_icon').on('click', function () {
+    $('#scotland-hud-tickets .menu_icon').on('click', function () {
       scotland_self.disableBoardClicks();
 
       let action = $(this).attr('id');
@@ -871,7 +902,10 @@ class Scotland extends GameTemplate {
         target_id = this.app.crypto.hash(secret_decrypt + target_id);
       }
     }
-    this.updateStatus('Sending your move...');
+        this.game.status = 'Sending your move...';
+    this.hud.updateStatus(this.game.status);
+    this.hud.updateMenu([]);
+    this.hud.updateCards([]);
     this.addMove('move\t' + player + '\t' + pawn + '\t' + target_id + '\t' + ticket);
     this.endTurn();
   }
@@ -956,10 +990,11 @@ class Scotland extends GameTemplate {
   }
 
   setHudClass(pawn_id = null) {
-    let hh = document.querySelector('.hud-header');
+    this.ensureHudChrome();
+    let hh = document.getElementById('scotland-hud-tools');
     if (!hh) return;
 
-    hh.classList.remove('pawn0', 'pawn1', 'pawn2', 'pawn3', 'pawn4');
+    hh.classList.remove('pawn0', 'pawn1', 'pawn2', 'pawn3', 'pawn4', 'pawn-1');
     if (pawn_id != null) {
       hh.classList.add(`pawn${pawn_id}`);
     }

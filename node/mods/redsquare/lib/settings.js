@@ -8,7 +8,6 @@ class Settings {
 
     this.dark_mode = true;
     this.notifications_enabled = true;
-    this.curated_feed = true;
   }
 
   render(container = '') {

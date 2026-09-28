@@ -52,11 +52,15 @@ html.game #saito-alert-box {
   color: var(--saito-foreground);
 }
 
+html.game .saito-user-menu {
+  color: var(--saito-foreground);
+}
+
 body {
   position: relative;
   background-color: #4e4e4e;
   background-image: url(/saito/img/tiled-logo.svg);
-  color: var(--saito-primary-foreground);
+  color: #333;
 }
 
 .main {
@@ -90,6 +94,21 @@ body {
 
 .chat-container.active {
   z-index: 91;
+}
+
+/*
+  Chat popup rem geometry was authored at a 10px root.
+  html.game uses 12px — scale width/height back so the popup matches
+  chat JS placement (innerWidth - 375 / 360) and covers less of the board.
+  ≤600px stays fullscreen via saito-chat.css.
+*/
+@media screen and (min-width: 601px) {
+  html.game .chat-container:not(.minimized) {
+    width: 30rem;
+    min-width: 25rem;
+    height: 41.667rem;
+    min-height: 16.667rem;
+  }
 }
 
 /*********************/
@@ -161,7 +180,7 @@ div.h3 {
 }
 
 @media screen and (max-width: 768px) {
-  .chat-container {
+  .chat-container:not(.minimized) {
     max-height: 50vh !important;
     height: 280px !important;
     top: 45px;

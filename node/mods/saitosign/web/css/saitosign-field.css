@@ -1,0 +1,123 @@
+.saitosign-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--saito-space-md);
+  min-width: min(32rem, calc(100vw - 8rem));
+  padding: 2.8rem var(--saito-space-lg) var(--saito-space-lg);
+}
+
+.saitosign-field .title {
+  margin: 0;
+  color: var(--saito-foreground);
+  font-family: var(--saito-font-medium);
+}
+
+.saitosign-field label {
+  display: flex;
+  flex-direction: column;
+  gap: var(--saito-space-xs);
+  color: var(--saito-muted-foreground);
+}
+
+.saitosign-field .actions button,
+.saitosign-field .new-signer button {
+  border: 1px solid var(--saito-border);
+  border-radius: var(--saito-radius);
+  background: var(--saito-background);
+  color: var(--saito-foreground);
+  font: inherit;
+}
+
+.saitosign-field .new-signer {
+  display: flex;
+  align-items: stretch;
+  gap: var(--saito-space-sm);
+}
+
+.saitosign-field .new-signer[hidden] {
+  display: none;
+}
+
+.saitosign-field .new-signer button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  box-sizing: border-box;
+  padding: 0 var(--saito-space-md);
+  border: 1px solid var(--saito-border);
+  border-radius: var(--saito-radius);
+  background: var(--saito-background);
+  color: var(--saito-foreground);
+  font: inherit;
+}
+
+.saitosign-field input,
+.saitosign-field select {
+  width: 100%;
+  box-sizing: border-box;
+  padding: var(--saito-space-md);
+  border: 1px solid var(--saito-border);
+  border-radius: var(--saito-radius);
+  background: var(--saito-card);
+  color: var(--saito-foreground);
+  font: inherit;
+  font-size: var(--font-size-medium);
+}
+
+.saitosign-field .new-signer input {
+  flex: 1;
+  width: auto;
+  min-width: 0;
+}
+
+.saitosign-field select {
+  appearance: none;
+  -webkit-appearance: none;
+  padding-right: 3.2rem;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%23a6a09b' d='M1.4 0.6L6 5.2 10.6 0.6 12 2 6 8 0 2z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 1rem center;
+  background-size: 1.2rem 0.8rem;
+  cursor: pointer;
+}
+
+.saitosign-field .actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--saito-space-sm);
+}
+
+.saitosign-field .actions button {
+  padding: var(--saito-space-sm) var(--saito-space-md);
+  font: inherit;
+}
+
+.saitosign-field .actions .primary {
+  flex: none;
+  min-width: 8rem;
+}
+
+.saitosign-field [data-remove-field],
+.saitosign-field [data-remove-signer-confirm] {
+  margin-right: auto;
+  border-color: transparent;
+  background: transparent;
+  color: var(--saito-muted-foreground);
+  cursor: pointer;
+}
+
+.saitosign-field [data-remove-field]:hover,
+.saitosign-field [data-remove-signer-confirm]:hover {
+  color: var(--saito-foreground);
+}
+
+.saitosign-field button.primary {
+  border-color: var(--saito-primary);
+  background: var(--saito-primary);
+  color: var(--saito-primary-foreground);
+  font-family: var(--saito-font-heavy);
+  font-weight: 700;
+  cursor: pointer;
+}

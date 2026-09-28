@@ -19,9 +19,9 @@ class NavalBattleOverlay {
     // pull GAME HUD over overlay
     //
     let overlay_zindex = parseInt(this.overlay.zIndex);
-    if (document.querySelector('.hud')) {
-      document.querySelector('.hud').style.zIndex = overlay_zindex + 1;
-      this.mod.hud.zIndex = overlay_zindex + 1;
+    let hud = document.getElementById('game-hud2');
+    if (hud) {
+      hud.style.zIndex = overlay_zindex + 1;
     }
   }
   pushHudUnderOverlay() {
@@ -29,9 +29,9 @@ class NavalBattleOverlay {
     // push GAME HUD under overlay
     //
     let overlay_zindex = parseInt(this.overlay.zIndex);
-    if (document.querySelector('.hud')) {
-      document.querySelector('.hud').style.zIndex = overlay_zindex - 2;
-      this.mod.hud.zIndex = overlay_zindex - 2;
+    let hud = document.getElementById('game-hud2');
+    if (hud) {
+      hud.style.zIndex = overlay_zindex - 2;
     }
   }
 
@@ -112,7 +112,7 @@ class NavalBattleOverlay {
     this.updateInstructions(
       `Assign <span class="hits_to_assign">${hits_to_assign}</span> ${hitstext} (squadrons take 2 hits)`
     );
-    this.mod.updateStatus(
+    this.mod.hud.updateStatus(
       `Assign <span class="hits_to_assign">${hits_to_assign}</span> ${hitstext} (squadrons take 2 hits)`
     );
 
@@ -241,7 +241,7 @@ class NavalBattleOverlay {
             hits_left = hits_to_assign - hits_assigned;
 
             if (hits_left > 0) {
-              this.mod.updateStatus(`Assign <span class="hits_to_assign">${hits_left}</span> Hits`);
+              this.mod.hud.updateStatus(`Assign <span class="hits_to_assign">${hits_left}</span> Hits`);
             }
 
             el.remove();
@@ -312,7 +312,7 @@ class NavalBattleOverlay {
 
     if (faction != '') {
       if (this.mod.game.player == this.mod.returnPlayerCommandingFaction(faction)) {
-        this.mod.updateStatus(`Assign <span class="hits_to_assign">${hits_to_assign}</span> Hits`);
+        this.mod.hud.updateStatus(`Assign <span class="hits_to_assign">${hits_to_assign}</span> Hits`);
       } else {
         this.updateInstructions(this.mod.returnFactionName(faction) + ' Assigning Hits');
       }

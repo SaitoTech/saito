@@ -5,13 +5,13 @@ const Module = require('module');
 const originalResolveFilename = Module._resolveFilename;
 
 Module._resolveFilename = function (request, parent, isMain, options) {
-  if (request.startsWith('saito-js/lib/')) {
+  if (request.startsWith('saito-js/lib/') || request === 'saito-js/saito') {
     // try normal npm layout first
     try {
       return originalResolveFilename.call(this, request, parent, isMain, options);
     } catch (err) {
       // fallback to legacy dist layout
-      const alt = request.replace('saito-js/lib/', 'saito-js/dist/lib/');
+      const alt = request.replace('saito-js/', 'saito-js/dist/');
       return originalResolveFilename.call(this, alt, parent, isMain, options);
     }
   }
@@ -30,7 +30,8 @@ Module._resolveFilename = function (request, parent, isMain, options) {
 
 const path = require('path');
 const fs = require('fs');
-const { execSync } = require('child_process');
+const readline = require('readline');
+const { execSync, execFileSync } = require('child_process');
 const unzipper = require('unzipper');
 const { getMetadataFromZip } = require('./helpers/metadata');
 const { getAppPath } = require('./helpers/getAppPath');
@@ -38,8 +39,11 @@ const { buildSaitoPayload } = require('./helpers/saitoPayload');
 
 // Project root (node/) from script location so it works whether you run from node/ or scripts/dynmods/
 const PROJECT_ROOT = path.resolve(path.join(__dirname, '..', '..'));
+const SAITO_JS_VERSION = require(path.join(PROJECT_ROOT, 'package.json')).dependencies['saito-js'];
 
 let saitoJsInitialized = false;
+let wasmModule = null;
+let signingOpts = {};
 
 /**
  * Minimal saito-js init so Transaction/Slip.Type are set (WASM). Run once before any buildSaitoPayload().
@@ -55,9 +59,75 @@ async function initSaitoJsForCompile() {
   const wasm = requireFromSaitoJs('saito-wasm/pkg/node');
   const SaitoJsTransaction = require('saito-js/lib/transaction').default;
   const SaitoJsSlip = require('saito-js/lib/slip').default;
+  const Factory = require('saito-js/lib/factory').default;
+  const Saito = require('saito-js/saito').default;
   SaitoJsTransaction.Type = wasm.WasmTransaction;
   SaitoJsSlip.Type = wasm.WasmSlip;
+  // serialize_to_web clones via toJson(), which wraps from/to slips through Saito.getInstance().factory
+  Saito.instance = { factory: new Factory() };
+  wasmModule = wasm;
   saitoJsInitialized = true;
+}
+
+function printWelcome() {
+  console.log('');
+  console.log('  ╔══════════════════════════════════════════════════╗');
+  console.log('  ║                                                  ║');
+  console.log('  ║            SAITO  ·  DYNMOD COMPILER             ║');
+  console.log('  ║                                                  ║');
+  console.log('  ║      Compile modules into .saito app files       ║');
+  console.log('  ║                                                  ║');
+  console.log('  ╚══════════════════════════════════════════════════╝');
+  console.log('');
+}
+
+function promptHidden(question) {
+  return new Promise((resolve) => {
+    if (!process.stdin.isTTY) {
+      resolve('');
+      return;
+    }
+    const mutableStdout = new (require('stream').Writable)({
+      write(chunk, encoding, callback) {
+        if (!this.muted) {
+          process.stdout.write(chunk, encoding);
+        }
+        callback();
+      }
+    });
+    mutableStdout.muted = false;
+    const rl = readline.createInterface({
+      input: process.stdin,
+      output: mutableStdout,
+      terminal: true
+    });
+    mutableStdout.muted = true;
+    process.stdout.write(question);
+    rl.question('', (answer) => {
+      process.stdout.write('\n');
+      rl.close();
+      resolve(answer);
+    });
+  });
+}
+
+async function promptForSigning() {
+  printWelcome();
+  const entered = await promptHidden(
+    '  Private key to sign transactions (hex), or press Enter to continue unsigned: '
+  );
+  const privateKey = (entered || '').trim();
+  if (!privateKey) {
+    signingOpts = {};
+    console.log('  Continuing without a signature.\n');
+    return;
+  }
+  if (!/^[0-9a-fA-F]{64}$/.test(privateKey)) {
+    throw new Error('private key must be 64 hex characters');
+  }
+  const publicKey = String(wasmModule.generate_public_key(privateKey));
+  signingOpts = { privateKey, wasm: wasmModule };
+  console.log(`  Signing as ${publicKey}\n`);
 }
 const ZIP_DIR = path.join(PROJECT_ROOT, 'dist', 'mods', 'zip');
 const SAITO_DIR = path.join(PROJECT_ROOT, 'dist', 'mods', 'saito');
@@ -101,9 +171,9 @@ function getZipFiles() {
   return fs.readdirSync(ZIP_DIR).filter((f) => f.toLowerCase().endsWith('.zip'));
 }
 
-function runZipmods() {
+function runZipmods(mod) {
   const zipmodsPath = path.join(__dirname, 'zipmods.sh');
-  execSync(`bash "${zipmodsPath}"`, {
+  execFileSync('bash', [zipmodsPath, ...(mod ? [mod] : [])], {
     cwd: PROJECT_ROOT,
     stdio: 'inherit'
   });
@@ -111,13 +181,20 @@ function runZipmods() {
 
 function parseArgs() {
   const args = process.argv.slice(2);
+  if (args.length === 0) return null;
+  if (args.length === 1 && /^[a-zA-Z0-9_][a-zA-Z0-9_-]*$/.test(args[0])) {
+    return { mod: args[0] };
+  }
   const zipIdx = args.indexOf('--zip');
   const slugIdx = args.indexOf('--slug');
-  if (zipIdx === -1 || slugIdx === -1) return null;
-  const zipPath = args[zipIdx + 1];
-  const slug = args[slugIdx + 1];
-  if (!zipPath || !slug) return null;
-  return { zipPath: path.resolve(zipPath), slug };
+  if (args.length === 4 && ((zipIdx === 0 && slugIdx === 2) || (zipIdx === 2 && slugIdx === 0))) {
+    const zipPath = args[zipIdx + 1];
+    const slug = args[slugIdx + 1];
+    if (zipPath && slug && !zipPath.startsWith('--') && !slug.startsWith('--')) {
+      return { zipPath: path.resolve(zipPath), slug };
+    }
+  }
+  throw new Error('Usage: npm run .saito -- [mod-directory | --deploy | --zip <path> --slug <slug>]');
 }
 
 async function compileOne(zipFileName) {
@@ -176,15 +253,19 @@ async function compileOne(zipFileName) {
     request: 'submit application',
     bin: DYN_MOD_WEB,
     name: metadata.name || '',
+    gamename: metadata.gamename || '',
     description: metadata.description || '',
     slug: metadata.slug || '',
     image: metadata.image || '',
-    version: metadata.version || '1.0.0',
+    version: metadata.version || SAITO_JS_VERSION,
     publisher: '',
-    categories: metadata.categories || ''
+    categories: metadata.categories || '',
+    publisher_message: metadata.publisher_message || '',
+    status: metadata.status || '',
+    class: metadata.class || ''
   };
 
-  const saitoJson = buildSaitoPayload(msg);
+  const saitoJson = buildSaitoPayload(msg, signingOpts);
   const outPath = path.join(SAITO_DIR, `${slug}.saito`);
   fs.writeFileSync(outPath, saitoJson, 'utf8');
 
@@ -215,7 +296,7 @@ async function runSingle(zipPath, slugArg) {
     //fix for path on linux
     //const entry = appPath.replace(`${slug}/`, '');
     //execSync(`node config/build/webpack.config.dynmod.cjs --entrypoint=${entry}`, {
-    execSync(`node config/build/webpack.config.dynmod.cjs --entrypoint=${entry}`, {
+    execSync(`node config/build/webpack.config.dynmod.cjs --entrypoint=${appPath}`, {
       cwd: PROJECT_ROOT,
       stdio: 'pipe',
       maxBuffer: 10 * 1024 * 1024
@@ -228,14 +309,18 @@ async function runSingle(zipPath, slugArg) {
       request: 'submit application',
       bin: DYN_MOD_WEB,
       name: metadata.name || '',
+      gamename: metadata.gamename || '',
       description: metadata.description || '',
       slug: metadata.slug || '',
       image: metadata.image || '',
-      version: metadata.version || '1.0.0',
+      version: metadata.version || SAITO_JS_VERSION,
       publisher: '',
-      categories: metadata.categories || ''
+      categories: metadata.categories || '',
+      publisher_message: metadata.publisher_message || '',
+      status: metadata.status || '',
+      class: metadata.class || ''
     };
-    const saitoJson = buildSaitoPayload(msg);
+    const saitoJson = buildSaitoPayload(msg, signingOpts);
     const outPath = path.join(SAITO_DIR, `${slug}.saito`);
     fs.writeFileSync(outPath, saitoJson, 'utf8');
     console.log(`OK -> ${path.relative(PROJECT_ROOT, outPath)}`);
@@ -247,30 +332,42 @@ async function runSingle(zipPath, slugArg) {
 }
 
 async function run() {
-  if (process.argv[2] === 'deploy') {
+  if (process.argv.length === 3 && ['deploy', '--deploy'].includes(process.argv[2])) {
     const deploySh = path.join(__dirname, 'deploy.sh');
-    execSync(`bash "${deploySh}"`, { cwd: PROJECT_ROOT, stdio: 'inherit' });
+    execFileSync('bash', [deploySh], { cwd: PROJECT_ROOT, stdio: 'inherit' });
     return;
   }
 
-  await initSaitoJsForCompile();
-
   const single = parseArgs();
-  if (single) {
+  const mod = single?.mod;
+  const modsDir = path.join(PROJECT_ROOT, 'mods');
+  if (mod) {
+    const modDir = path.join(modsDir, mod);
+    if (!fs.existsSync(modDir) || !fs.statSync(modDir).isDirectory()) {
+      throw new Error(`Module directory not found: mods/${mod}`);
+    }
+  }
+
+  await initSaitoJsForCompile();
+  await promptForSigning();
+
+  if (single?.zipPath) {
     await runSingle(single.zipPath, single.slug);
     return;
   }
 
   ensureDirs();
-  const modsDir = path.join(PROJECT_ROOT, 'mods');
-  if (
+  if (mod) {
+    console.log(`Running zipmods to create zip from mods/${mod}/...\n`);
+    runZipmods(mod);
+  } else if (
     fs.existsSync(modsDir) &&
     fs.readdirSync(modsDir).some((f) => fs.statSync(path.join(modsDir, f)).isDirectory())
   ) {
     console.log('Running zipmods to create zips from mods/...\n');
     runZipmods();
   }
-  const zips = getZipFiles();
+  const zips = mod ? [`${mod}.zip`] : getZipFiles();
   if (zips.length === 0) {
     console.log(
       'No .zip files found in dist/mods/zip/. Place module zips there, or ensure mods/ has at least one directory so zipmods can create them.'
@@ -320,6 +417,7 @@ async function run() {
   console.log('\n---');
   console.log(`SUCCESS: ${success}`);
   console.log(`FAILED: ${failed}`);
+  if (mod && failed) process.exitCode = 1;
 }
 
 run().catch((err) => {

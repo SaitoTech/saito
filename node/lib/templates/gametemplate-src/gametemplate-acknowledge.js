@@ -49,36 +49,53 @@ class GameAcknowledge {
     }
 
     try {
-      this.hud.back_button = false;
-      this.updateStatusWithOptions(msg, html);
+      this.hud.hideBackButton();
+      this.game.status = msg;
+      this.hud.updateStatus(msg);
+      this.hud.updateCards([]);
 
       this.lockInterface();
 
-      this.attachCardboxEvents();
+      let menu = [];
+      if (options) {
+        for (let z = 0; z < options.length; z++) {
+          menu.push({ id: String(z), label: options[z].text });
+        }
+      } else {
+        menu.push({ id: 'confirmit', label: this.acknowledge_text });
+      }
+
+      let done = false;
+      let finish = async (id) => {
+        if (done) {
+          return;
+        }
+        done = true;
+        this.unlockInterface();
+        this.game.status = 'acknowledged';
+        this.hud.updateStatus('acknowledged');
+        this.clearShotClock();
+        this.hud.updateMenu([]);
+        document.querySelectorAll('.acknowledge').forEach((el) => {
+          el.onclick = null;
+        });
+        if (options) {
+          let idx = parseInt(id);
+          await options[idx].mycallback();
+        } else {
+          await mycallback();
+        }
+        this.halted = 0;
+      };
+
+      this.hud.updateMenu(menu, async (id) => {
+        await finish(id);
+      });
+      this.cardbox.attachCardEvents();
       document.querySelectorAll('.acknowledge').forEach((el) => {
         el.onclick = async (e) => {
           e.stopPropagation();
-
-          this.unlockInterface();
-          this.updateStatus('acknowledged');
-          this.clearShotClock();
-
-          // update controls
-          this.updateControls('');
-          // if player clicks multiple times, don't want callback executed multiple times
-          document.querySelectorAll('.acknowledge').forEach((el) => {
-            el.onclick = null;
-          });
-
-          if (options) {
-            let idx = parseInt(e.currentTarget.id);
-            await options[idx].mycallback();
-          } else {
-            await mycallback();
-          }
-
-          // undo halted
-          this.halted = 0;
+          await finish(e.currentTarget.id);
         };
       });
 

@@ -1,5 +1,6 @@
 .game.paths {
   .zoom-overlay {
+    position: relative;
     height: 90vh;
     width: 90vw;
     overflow: hidden;
@@ -23,10 +24,50 @@
     margin-top: 0.833rem;
     padding-left: 0.833rem;
     padding-right: 0.833rem;
+    text-align: center;
+    font-size: 1.333rem;
   }
 
   .zoom-overlay .controls {
+    position: relative;
+    float: left;
+    clear: both;
     max-height: 80vh;
+  }
+
+  .zoom-overlay.has-movement-undo .controls,
+  .zoom-overlay.has-movement-undo .controls ul {
+    max-height: calc(90vh - 11.2rem);
+  }
+
+  .zoom-overlay .movement-undo-button {
+    position: absolute;
+    bottom: 1.2rem;
+    left: 1.2rem;
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    cursor: pointer;
+    z-index: 20;
+    color: #222;
+    user-select: none;
+  }
+
+  .zoom-overlay .movement-undo-arrow {
+    width: 3.2rem;
+    height: 3.2rem;
+    border: 1px solid #222;
+    border-radius: 0.35rem;
+    background: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+  }
+
+  .zoom-overlay .movement-undo-label {
+    font-size: 1.5rem;
+    line-height: 3.2rem;
   }
 
   .zoom-overlay .last {
@@ -63,7 +104,7 @@
     display: block;
     position: relative;
     background-color: whitesmoke;
-    line-height: 3.333rem;
+    line-height: normal;
     width: 25rem;
     max-width: 29.167rem;
     max-height: 80vh;
@@ -75,14 +116,70 @@
     float: left;
     margin-left: 0.833rem;
     margin-top: 0.833rem;
-    padding-left: 0.833rem;
-    padding-right: 0.833rem;
+    padding: 0;
+    list-style: none;
     clear: both;
-    min-height: max-content;
     height: auto;
     cursor: pointer;
-    overflow-y: scroll;
-    min-height: 100%;
+    min-height: 0;
+  }
+
+  .zoom-overlay .controls .option {
+    box-sizing: border-box;
+    min-height: 6.667rem;
+    height: 6.667rem;
+    font-size: 1.5rem;
+    line-height: normal;
+    text-align: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.833rem;
+    cursor: pointer;
+    border-top: 1px solid var(--saito-gray-200);
+  }
+
+  .zoom-overlay .controls .option:first-child {
+    border-top: 0;
+  }
+
+  .zoom-overlay .controls .option:hover {
+    background-color: #e7e7e7;
+  }
+
+  .zoom-overlay .controls .option:has(.move-unit-chit) {
+    height: auto;
+    justify-content: flex-start;
+    text-align: left;
+    gap: 1rem;
+    padding: 0.7rem 1rem;
+  }
+
+  .zoom-overlay .controls .movement-actions {
+    position: absolute;
+    top: -3.333rem;
+    left: 26.666rem;
+    display: flex;
+    gap: 0.833rem;
+    height: 3.333rem;
+    width: max-content;
+    z-index: 11;
+    pointer-events: none;
+  }
+
+  .zoom-overlay .controls .movement-actions .option {
+    pointer-events: auto;
+    height: 3.333rem;
+    min-height: 0;
+    width: auto;
+    margin: 0;
+    padding: 0 1rem;
+    border-top: 0;
+    border-radius: 0.833rem;
+    background-color: whitesmoke;
+    font-size: 1.333rem;
+    line-height: 3.333rem;
+    white-space: nowrap;
   }
 
   .zoom-overlay .status .status-header {
@@ -117,4 +214,57 @@
   .zoom-overlay .gameboard {
     position: relative;
   }
+}
+
+.move-unit-chit {
+  position: relative;
+  flex: 0 0 auto;
+  width: 5.6rem;
+  height: 5.6rem;
+  display: block;
+  overflow: hidden;
+}
+
+.move-unit-chit img,
+.move-unit-chit .army-tile {
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  max-width: 100% !important;
+  max-height: 100% !important;
+  margin: 0 !important;
+  object-fit: contain;
+  display: block;
+  z-index: 1;
+}
+
+.move-unit-chit .army-tile:hover {
+  z-index: 1;
+}
+
+.move-unit-label {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 0.2rem;
+  min-width: 0;
+  text-align: left;
+}
+
+.move-unit-country,
+.move-unit-name {
+  display: block;
+  line-height: 1.2;
+}
+
+#game-hud2 .hud-menu .option:has(.move-unit-chit) {
+  height: auto;
+  justify-content: flex-start;
+  text-align: left;
+  gap: 1rem;
 }

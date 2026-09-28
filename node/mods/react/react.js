@@ -23,6 +23,8 @@ class ReactMod extends ModTemplate {
       image: 'https://saito.tech/wp-content/uploads/2023/11/videocall-300x300.png'
     });
     this.description = 'A placeholder react app';
+    this.status = 'alpha';
+    this.class = 'utility';
 
     this.styles = ['/saito/saito.css', '/react/style.css'];
   }

@@ -96,6 +96,8 @@ class Vault extends ModTemplate {
     this.dependencies = ['Archive'];
     this.description = 'Storage Vault regulated by NFT Keys';
     this.categories = 'Utility Cryptography Programming';
+    this.status = 'prod';
+    this.class = 'app';
     this.icon = 'fas fa-vault';
 
     this.peer_connected = false;
@@ -151,18 +153,6 @@ class Vault extends ModTemplate {
   /////////////////////////////////
   respondTo(type = '', obj) {
     let this_mod = this;
-
-    if (type === 'redsquare-create') {
-      return {
-        id: 'vault-share',
-        label: 'Share',
-        image: '/saito/icons/saito-vault-icon-solid.svg',
-        callback: () => {
-          this_mod.attachStyleSheets();
-          this_mod.access_file_overlay.file_upload_overlay.render();
-        }
-      };
-    }
 
     //
     // Optional N-WASM library action: store the canonical N-WASM game

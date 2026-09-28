@@ -10,7 +10,10 @@
         var twilight_self = this;
         twilight_self.playerFinishedPlacingInfluence();
 
-        twilight_self.updateStatusWithOptions(`${twilight_self.cardToText(card)}: `,'<ul><li class="option" id="chile">2 Influence in Chile</li><li class="option" id="argentina">2 Influence in Argentina</li></ul>', function(action2) {
+        twilight_self.game.status = `${twilight_self.cardToText(card)}: `;
+        twilight_self.hud.updateStatus(twilight_self.game.status);
+        twilight_self.hud.updateCards([]);
+        twilight_self.hud.updateMenu([ { id: 'chile', label: '2 Influence in Chile' }, { id: 'argentina', label: '2 Influence in Argentina' } ], function(action2) {
 
           twilight_self.addMove("resolve\tpinochet");
           twilight_self.addMove("pinochet");

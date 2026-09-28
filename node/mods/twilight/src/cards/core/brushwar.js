@@ -19,7 +19,10 @@
         twilight_self.playerFinishedPlacingInfluence();
 
         twilight_self.addMove("resolve\tbrushwar");
-        twilight_self.updateStatus('<div class="status-message" id="status-message">Pick target for Brush War</div>');
+        twilight_self.game.status = '<div class="status-message" id="status-message">Pick target for Brush War</div>';
+        twilight_self.hud.updateStatus(twilight_self.game.status);
+        twilight_self.hud.updateMenu([]);
+        twilight_self.hud.updateCards([]);
 
 
         for (var i in twilight_self.countries) {

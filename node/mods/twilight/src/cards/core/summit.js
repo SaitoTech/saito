@@ -100,7 +100,10 @@
           let x = 0;
           let y = 0;
 
-          twilight_self.updateStatusWithOptions(`You win the ${twilight_self.cardToText(card)}:`,'<ul><li class="option" id="raise">raise DEFCON</li><li class="option" id="lower">lower DEFCON</li><li class="option" id="same">do not change</li></ul>', function(action2) {
+          twilight_self.game.status = `You win the ${twilight_self.cardToText(card)}:`;
+          twilight_self.hud.updateStatus(twilight_self.game.status);
+          twilight_self.hud.updateCards([]);
+          twilight_self.hud.updateMenu([ { id: 'raise', label: 'raise DEFCON' }, { id: 'lower', label: 'lower DEFCON' }, { id: 'same', label: 'do not change' } ], function(action2) {
 
             if (action2 == "raise") {
               twilight_self.addMove("defcon\traise");
@@ -120,9 +123,15 @@
           });
         }else{
           if (this.game.player == 0){
-            this.updateStatus(`${this.roles[winner].toUpperCase()} won the ${this.cardToText(card)}`);
+            this.game.status = `${this.roles[winner].toUpperCase()} won the ${this.cardToText(card)}`;
+            this.hud.updateStatus(this.game.status);
+            this.hud.updateMenu([]);
+            this.hud.updateCards([]);
           }else{
-            this.updateStatus(`You lost the ${this.cardToText(card)}, waiting for opponent to change DEFCON`);            
+            this.game.status = `You lost the ${this.cardToText(card)}, waiting for opponent to change DEFCON`;
+            this.hud.updateStatus(this.game.status);
+            this.hud.updateMenu([]);
+            this.hud.updateCards([]);            
           }
 
         }

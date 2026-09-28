@@ -38,7 +38,10 @@
           twilight_self.endTurn();
         } else {
 
-          twilight_self.updateStatus("Remove "+ops_to_purge+" from 3 countries in Eastern Europe");          
+          twilight_self.game.status = "Remove "+ops_to_purge+" from 3 countries in Eastern Europe";
+          twilight_self.hud.updateStatus(twilight_self.game.status);
+          twilight_self.hud.updateMenu([]);
+          twilight_self.hud.updateCards([]);          
 
           for (let c of options_purge) {
             $("#"+c).addClass("westerneurope");
