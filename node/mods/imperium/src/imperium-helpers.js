@@ -85,8 +85,7 @@
     this.sendGameMoveTransaction("game", {});
 
         this.game.status = "Waiting for information from peers....";
-    this.hud.updateStatus(this.game.status);
-    this.hud.updateMenu([]);
+    this.hud.prepareIdle(this.game.status);
     this.hud.updateCards([]);
   
   };

@@ -487,9 +487,6 @@ addUIEvents() {
   document.documentElement.style.setProperty('--my-color', `var(--p${this.game.player})`);
   this.displayFactionDashboard();
 
-  this.factionbar.render(this.game.player);
-  this.tokenbar.render(this.game.player);
-
 }
 
 
@@ -570,10 +567,6 @@ hideSector(pid) {
 
 
 updateTokenDisplay() {
-
-  let imperium_self = this;
-  this.factionbar.render(this.game.player);
-  this.tokenbar.render(this.game.player);
 
 }
 

@@ -16,7 +16,7 @@ this.importFaction("faction8", {
   background: "faction8.jpg",
   promissary_notes: ["trade", "political", "ceasefire", "throne", "faction8-promissary"],
   commodity_limit: 6,
-  intro: `<div style="font-weight:bold">Welcome to Red Imperium!</div><div style="line-height:2.8rem;margin-top:10px;margin-bottom:0px;">You are playing as the Emirates of Hacan, a guild-class of traders whose political machinations play out behind the veil of ruthless commercial competition. May you trade your way to wealth and power. Good luck!</div>`,
+  intro: `You are the Emirates of Hacan, a race of merchant traders who mask their political ambitions behind the facade of a ruthless guild system.`,
 });
 
 this.importTech("faction8-flagship", {
@@ -77,8 +77,7 @@ this.importTech("faction8-flagship", {
   postShipsFireEvent: function (imperium_self, player, attacker, defender, sector, combat_info) {
     if (player != imperium_self.game.player) {
             imperium_self.game.status = "Hacan considering using Flagship Ability to modify hits...";
-      imperium_self.hud.updateStatus(imperium_self.game.status);
-      imperium_self.hud.updateMenu([]);
+      imperium_self.hud.prepareIdle(imperium_self.game.status);
       imperium_self.hud.updateCards([]);
       return 0;
     } else {
@@ -106,7 +105,7 @@ this.importTech("faction8-flagship", {
       menu.push({ id: 'no', label: 'skip ability' });
 
             imperium_self.game.status = html;
-      imperium_self.hud.updateStatus(imperium_self.game.status);
+      imperium_self.hud.preparePrompt(imperium_self.game.status);
       imperium_self.hud.updateCards([]);
 
       imperium_self.hud.updateMenu(menu, function (id) {
@@ -210,7 +209,7 @@ this.importTech("faction8-merchant-class", {
           menu.push({ id: 'no', label: 'no, perhaps not' });
 
                     imperium_self.game.status = html;
-          imperium_self.hud.updateStatus(imperium_self.game.status);
+          imperium_self.hud.preparePrompt(imperium_self.game.status);
           imperium_self.hud.updateCards([]);
 
           imperium_self.hud.updateMenu(menu, async function (id) {
@@ -439,7 +438,7 @@ this.importTech("faction8-quantum-datahub-node", {
           menu.push({ id: 'skip', label: 'skip' });
 
                     imperium_self.game.status = html;
-          imperium_self.hud.updateStatus(imperium_self.game.status);
+          imperium_self.hud.preparePrompt(imperium_self.game.status);
           imperium_self.hud.updateCards([]);
 
           imperium_self.hud.updateMenu(menu, function (id) {
@@ -467,7 +466,7 @@ this.importTech("faction8-quantum-datahub-node", {
             return_menu.push({ id: 'skip', label: 'skip' });
 
                         imperium_self.game.status = html;
-            imperium_self.hud.updateStatus(imperium_self.game.status);
+            imperium_self.hud.preparePrompt(imperium_self.game.status);
             imperium_self.hud.updateCards([]);
 
             imperium_self.hud.updateMenu(return_menu, function (id) {

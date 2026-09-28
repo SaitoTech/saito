@@ -46,9 +46,41 @@
   }
 
   .production-description {
-    font-size: 1.5rem;
-    line-height: 1.45;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 1.75rem 2.5rem;
+    font-size: 1.35rem;
+    line-height: 1.35;
     min-height: 0;
+  }
+
+  .production-overlay .production-stat {
+    display: grid;
+    grid-template-columns: auto auto;
+    column-gap: 0.7rem;
+    row-gap: 0.35rem;
+    align-items: center;
+    margin: 0;
+    padding: 0;
+  }
+
+  .production-overlay .production-stat-label {
+    grid-column: 1 / -1;
+    margin: 0 0 0.15rem;
+    padding: 0;
+    color: var(--imp-text-muted);
+    font-family: var(--imp-font-label);
+    font-size: 0.85rem;
+    letter-spacing: 0.16em;
+    line-height: 1.2;
+    text-transform: uppercase;
+  }
+
+  .production-overlay .production-stat-key {
+    margin: 0;
+    padding: 0;
+    color: var(--imp-text);
   }
 
   .production-button {

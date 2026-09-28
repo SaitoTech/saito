@@ -139,8 +139,7 @@
 	//
 	if (this.game.state.playing_strategy_card_secondary == 0 && this.playing_token_allocation == 0) {
                     this.game.status = "Waiting for Opponent Move...";
-          this.hud.updateStatus(this.game.status);
-          this.hud.updateMenu([]);
+          this.hud.prepareIdle(this.game.status);
           this.hud.updateCards([]);
 	}
 
@@ -208,8 +207,7 @@
 	    notice += '</ul>';
 	    if (am_i_still_to_move == 0) {
 	      	      this.game.status = notice;
-	      this.hud.updateStatus(this.game.status);
-	      this.hud.updateMenu([]);
+	      this.hud.prepareIdle(this.game.status);
 	      this.hud.updateCards([]);
 	    }
 
@@ -298,8 +296,7 @@
           imperium_self.playerRearrangeTokens();
         } else {
 	  	  imperium_self.game.status = imperium_self.returnFaction(player) + " is redistributing tokens...";
-	  imperium_self.hud.updateStatus(imperium_self.game.status);
-	  imperium_self.hud.updateMenu([]);
+	  imperium_self.hud.prepareIdle(imperium_self.game.status);
 	  imperium_self.hud.updateCards([]);
 	}
 
@@ -343,8 +340,7 @@
           });
         } else {
 	  	  imperium_self.game.status = imperium_self.returnFaction(player) + " is researching technology...";
-	  imperium_self.hud.updateStatus(imperium_self.game.status);
-	  imperium_self.hud.updateMenu([]);
+	  imperium_self.hud.prepareIdle(imperium_self.game.status);
 	  imperium_self.hud.updateCards([]);
 	}
 	return 0;
@@ -407,16 +403,14 @@
 
 
                 this.game.status = this.returnFactionNickname(player) + " announces a retreat";
-        this.hud.updateStatus(this.game.status);
-        this.hud.updateMenu([]);
+        this.hud.prepareIdle(this.game.status);
         this.hud.updateCards([]);
 
 	if (this.game.player === opponent) {
 	  this.playerRespondToRetreat(player, opponent, from, to);
 	} else {
 	  	  this.game.status = this.returnFaction(opponent) + " responding to " + this.returnFaction(player) + " retreat";
-	  this.hud.updateStatus(this.game.status);
-	  this.hud.updateMenu([]);
+	  this.hud.prepareIdle(this.game.status);
 	  this.hud.updateCards([]);
 	}
 
@@ -542,8 +536,7 @@
   	  this.playerContinueTurn(player, sector);
 	} else {
 	  	  this.game.status = this.returnFaction(player) + " has moved into " + this.game.sectors[this.game.board[sector].tile].name;
-	  this.hud.updateStatus(this.game.status);
-	  this.hud.updateMenu([]);
+	  this.hud.prepareIdle(this.game.status);
 	  this.hud.updateCards([]);
 	}
 
@@ -632,8 +625,6 @@
 
       if (mv[0] === "play") {
 
-	this.factionbar.render(this.game.player);
-	this.tokenbar.render(this.game.player);
         this.updateLeaderboard();
 
     	let player = mv[1];
@@ -690,8 +681,7 @@
 
 	  this.hideStrategyCard();
   	    	  this.game.status = "<div class=\"status-header-text\">" + this.returnFaction(parseInt(player)) + " is taking their turn.</div>";
-  	  this.hud.updateStatus(this.game.status);
-  	  this.hud.updateMenu([]);
+  	  this.hud.prepareIdle(this.game.status);
   	  this.hud.updateCards([]);
 
   	}
@@ -736,16 +726,14 @@
   	if (stage == 1) {
 	  this.updateLog(this.returnFactionNickname(strategy_card_player) + " plays " + this.strategy_cards[card].name);
 	  	  this.game.status = this.returnFaction(strategy_card_player) + " is playing " + this.strategy_cards[card].name;
-	  this.hud.updateStatus(this.game.status);
-	  this.hud.updateMenu([]);
+	  this.hud.prepareIdle(this.game.status);
 	  this.hud.updateCards([]);
   	  this.playStrategyCardPrimary(strategy_card_player, card);
 	  return 0;
   	}
   	if (stage == 2) {
 	  	  this.game.status = "All factions have the opportunity to play " + this.strategy_cards[card].name;
-	  this.hud.updateStatus(this.game.status);
-	  this.hud.updateMenu([]);
+	  this.hud.prepareIdle(this.game.status);
 	  this.hud.updateCards([]);
 	  this.game.state.playing_strategy_card_secondary = 1;
   	  this.playStrategyCardSecondary(strategy_card_player, card);
@@ -753,8 +741,7 @@
   	}
   	if (stage == 3) {
 	  	  this.game.status = "All factions have the opportunity to play " + this.strategy_cards[card].name;
-	  this.hud.updateStatus(this.game.status);
-	  this.hud.updateMenu([]);
+	  this.hud.prepareIdle(this.game.status);
 	  this.hud.updateCards([]);
 	  this.game.state.playing_strategy_card_secondary = 1;
   	  this.playStrategyCardTertiary(strategy_card_player, card);
@@ -1271,8 +1258,7 @@
 	      html += '</div>';
 	      html += '<div class="agenda_status">'+this.returnFaction(who_is_next)+' is now voting.</div>';
 	  	  this.game.status = html;
-	  this.hud.updateStatus(this.game.status);
-	  this.hud.updateMenu([]);
+	  this.hud.prepareIdle(this.game.status);
 	  this.hud.updateCards([]);
 
           //
@@ -1316,7 +1302,7 @@
 	  }
               menu.push({ id: 'abstain', label: 'abstain' });
 	  	  imperium_self.game.status = html;
-	  imperium_self.hud.updateStatus(imperium_self.game.status);
+	  imperium_self.hud.preparePrompt(imperium_self.game.status);
 	  imperium_self.hud.updateCards([]);
 	  imperium_self.hud.updateMenu(menu, function (vote) {
 	    let votes = 0;
@@ -1345,7 +1331,7 @@
 	      }
 	    }
 	    	    imperium_self.game.status = html;
-	    imperium_self.hud.updateStatus(imperium_self.game.status);
+	    imperium_self.hud.preparePrompt(imperium_self.game.status);
 	    imperium_self.hud.updateCards([]);
 	    imperium_self.hud.updateMenu(vote_menu, function (votes) {
 
@@ -1442,8 +1428,7 @@
 	      html += imperium_self.agenda_cards[agenda].text;
 	      html += '</div>';
 	  	  this.game.status = html;
-	  this.hud.updateStatus(this.game.status);
-	  this.hud.updateMenu([]);
+	  this.hud.prepareIdle(this.game.status);
 	  this.hud.updateCards([]);
 
           //
@@ -1487,7 +1472,7 @@
 	  }
               menu.push({ id: 'abstain', label: 'abstain' });
 	  	  imperium_self.game.status = html;
-	  imperium_self.hud.updateStatus(imperium_self.game.status);
+	  imperium_self.hud.preparePrompt(imperium_self.game.status);
 	  imperium_self.hud.updateCards([]);
 	  imperium_self.hud.updateMenu(menu, function (vote) {
 	    let votes = 0;
@@ -1516,7 +1501,7 @@
 	      }
 	    }
 	    	    imperium_self.game.status = html;
-	    imperium_self.hud.updateStatus(imperium_self.game.status);
+	    imperium_self.hud.preparePrompt(imperium_self.game.status);
 	    imperium_self.hud.updateCards([]);
 	    imperium_self.hud.updateMenu(vote_menu, function (votes) {
 
@@ -1665,8 +1650,7 @@
           if (this.game.state.players_info[io[i]-1].vp >= this.game.state.vp_target) {
 	    this.updateLeaderboard();
                         this.game.status = "Game Over: " + this.returnFaction(io[i]) + " has reached " + this.game.state.vp_target + " VP";
-            this.hud.updateStatus(this.game.status);
-            this.hud.updateMenu([]);
+            this.hud.prepareIdle(this.game.status);
             this.hud.updateCards([]);
             this.updateLog("Game Over: " + this.returnFactionNickname(io[i]) + " has reached " + this.game.state.vp_target + " VP");
             return 0;
@@ -1691,8 +1675,7 @@
     	this.game.state.round++;
     	this.updateLog("ROUND: " + this.game.state.round);
   	  	this.game.status = "Moving into Round " + this.game.state.round + "<p></p> Please be patient as we deal cards securely...";
-  	this.hud.updateStatus(this.game.status);
-  	this.hud.updateMenu([]);
+  	this.hud.prepareIdle(this.game.status);
   	this.hud.updateCards([]);
 
 
@@ -2068,8 +2051,7 @@ if (debugging == 0) {
 	if (this.game.state.end_round_scoring != 1) {
 	  if (this.checkForVictory() == 1) {
 	    	    this.game.status = "Game Over: " + this.returnFaction(player-1) + " has reached " + this.game.state.vp_target + " VP";
-	    this.hud.updateStatus(this.game.status);
-	    this.hud.updateMenu([]);
+	    this.hud.prepareIdle(this.game.status);
 	    this.hud.updateCards([]);
 	    return 0;
 	  }
@@ -2089,8 +2071,7 @@ if (debugging == 0) {
       if (mv[0] === "playerschoosestrategycards") {
 
   	  	this.game.status = "Players selecting strategy cards, starting from " + this.returnSpeaker();
-  	this.hud.updateStatus(this.game.status);
-  	this.hud.updateMenu([]);
+  	this.hud.prepareIdle(this.game.status);
   	this.hud.updateCards([]);
 
 	let cards_issued = [];
@@ -2180,8 +2161,7 @@ if (debugging == 0) {
 	if (type === "planet") {
 	  if (player != this.game.player) {
 	    	    this.game.status = this.returnFactionName(this, player) + " is selecting planets to exhaust.";
-	    this.hud.updateStatus(this.game.status);
-	    this.hud.updateMenu([]);
+	    this.hud.prepareIdle(this.game.status);
 	    this.hud.updateCards([]);
 	    return 0;
 	  } else {
@@ -2293,7 +2273,7 @@ if (debugging == 0) {
           }
 
   	    	  this.game.status = html;
-  	  this.hud.updateStatus(this.game.status);
+  	  this.hud.preparePrompt(this.game.status);
   	  this.hud.updateCards([]);
   	  this.hud.updateMenu(menu, function () {});
     	  document.querySelectorAll('.hud-menu .option').forEach((el) => {
@@ -3328,8 +3308,7 @@ if (debugging == 0) {
 
 	this.updateLog(this.returnFactionNickname(activating_player) + " activates " + this.returnSectorName(sector));
 		this.game.status = this.returnFaction(activating_player) + " activates " + this.returnSectorName(sector);
-	this.hud.updateStatus(this.game.status);
-	this.hud.updateMenu([]);
+	this.hud.prepareIdle(this.game.status);
 	this.hud.updateCards([]);
 
   	this.game.queue.splice(qe, 1);
@@ -3375,8 +3354,7 @@ console.log("K: " + z[k].name);
 	} else {
           let sys = imperium_self.returnSectorAndPlanets(sector);
 	  	  this.game.status = this.returnFactionName(this, player) + " continues after activating " + sys.s.name;
-	  this.hud.updateStatus(this.game.status);
-	  this.hud.updateMenu([]);
+	  this.hud.prepareIdle(this.game.status);
 	  this.hud.updateCards([]);
 	}
 	return 0;
@@ -4070,8 +4048,7 @@ console.log("K: " + z[k].name);
 
 	if (total_hits > 0 ) {
                     this.game.status = this.returnFaction(defender) + " is assigning hits to units ... ";
-          this.hud.updateStatus(this.game.status);
-          this.hud.updateMenu([]);
+          this.hud.prepareIdle(this.game.status);
           this.hud.updateCards([]);
 	}
 
@@ -4088,8 +4065,7 @@ console.log("K: " + z[k].name);
 	      return 0;
 	    } else {
                             this.game.status = this.returnFaction(defender) + " assigning hits to units ... ";
-              this.hud.updateStatus(this.game.status);
-              this.hud.updateMenu([]);
+              this.hud.prepareIdle(this.game.status);
               this.hud.updateCards([]);
 	    }
   	    return 0;
@@ -4116,8 +4092,7 @@ console.log("K: " + z[k].name);
 	      return 0;
 	    } else {
                             this.game.status = this.returnFaction(defender) + " assigning hits to units ... ";
-              this.hud.updateStatus(this.game.status);
-              this.hud.updateMenu([]);
+              this.hud.prepareIdle(this.game.status);
               this.hud.updateCards([]);
 	    }
 	    return 0;
@@ -4133,8 +4108,7 @@ console.log("K: " + z[k].name);
 	      return 0;
 	    } else {
                             this.game.status = this.returnFaction(defender) + " assigning hits to units ... ";
-              this.hud.updateStatus(this.game.status);
-              this.hud.updateMenu([]);
+              this.hud.prepareIdle(this.game.status);
               this.hud.updateCards([]);
 	      if (this.space_combat_overlay.visible) {
 		this.space_combat_overlay.updateStatus("<div>opponent assigning hits</div>");
@@ -4273,13 +4247,11 @@ console.log("K: " + z[k].name);
 
 	if (total == 1) {
   	    	  this.game.status = this.returnFaction(player) + " is destroying "+total+" unit";
-  	  this.hud.updateStatus(this.game.status);
-  	  this.hud.updateMenu([]);
+  	  this.hud.prepareIdle(this.game.status);
   	  this.hud.updateCards([]);
 	} else {
   	    	  this.game.status = this.returnFaction(player) + " is destroying "+total+" units";
-  	  this.hud.updateStatus(this.game.status);
-  	  this.hud.updateMenu([]);
+  	  this.hud.prepareIdle(this.game.status);
   	  this.hud.updateCards([]);
 	}
 
@@ -4317,13 +4289,11 @@ console.log("K: " + z[k].name);
 
 	if (total == 1) {
   	    	  this.game.status = this.returnFaction(player) + " is destroying "+total+" ship";
-  	  this.hud.updateStatus(this.game.status);
-  	  this.hud.updateMenu([]);
+  	  this.hud.prepareIdle(this.game.status);
   	  this.hud.updateCards([]);
 	} else {
   	    	  this.game.status = this.returnFaction(player) + " is destroying "+total+" ships";
-  	  this.hud.updateStatus(this.game.status);
-  	  this.hud.updateMenu([]);
+  	  this.hud.prepareIdle(this.game.status);
   	  this.hud.updateCards([]);
 	}
 
@@ -6109,8 +6079,7 @@ console.log("HIDING SPACE COMBAT OVERLAY!");
 	if (this.game.player == action_card_player) {
     	  //this.game.queue.splice(qe, 1);
 	  	  this.game.status = "Your opponents are being notified you have played " + this.action_cards[action_card].name;
-	  this.hud.updateStatus(this.game.status);
-	  this.hud.updateMenu([]);
+	  this.hud.prepareIdle(this.game.status);
 	  this.hud.updateCards([]);
 	  if (this.hasPlayerConfirmed(this.getPublicKey())) {
 	    if (action_card.indexOf("sabotage") != 0) {
@@ -6133,8 +6102,7 @@ console.log("HIDING SPACE COMBAT OVERLAY!");
 	  // sabotage is a special case where we want to show the menu even if we have already confirmed
 	  if (this.hasPlayerConfirmed(this.getPublicKey()) && action_card.indexOf("sabotage") != 0) {
   	      	    this.game.status = "Waiting for players to respond to "+this.action_cards[action_card].name;
-  	    this.hud.updateStatus(this.game.status);
-  	    this.hud.updateMenu([]);
+  	    this.hud.prepareIdle(this.game.status);
   	    this.hud.updateCards([]);
 	  } else {
     	    //this.game.queue.splice(qe, 1);
@@ -6156,8 +6124,7 @@ console.log("HIDING SPACE COMBAT OVERLAY!");
 	//
 	if (player == action_card_player) {
 	  	  this.game.status = "Your opponents are being notified you have played " + this.action_cards[action_card].name;
-	  this.hud.updateStatus(this.game.status);
-	  this.hud.updateMenu([]);
+	  this.hud.prepareIdle(this.game.status);
 	  this.hud.updateCards([]);
 	  return 0;
 	}
@@ -6166,8 +6133,7 @@ console.log("HIDING SPACE COMBAT OVERLAY!");
 	  this.playerPlayActionCardMenu(action_card_player, action_card);
 	} else {
 	  	  this.game.status = this.returnFaction(player) + " is responding to action card " + this.action_cards[action_card].name;
-	  this.hud.updateStatus(this.game.status);
-	  this.hud.updateMenu([]);
+	  this.hud.prepareIdle(this.game.status);
 	  this.hud.updateCards([]);
 	}
 	return 0;

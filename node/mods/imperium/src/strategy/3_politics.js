@@ -33,7 +33,7 @@ this.importStrategyCard("politics", {
         });
       }
             imperium_self.game.status = html;
-      imperium_self.hud.updateStatus(imperium_self.game.status);
+      imperium_self.hud.preparePrompt(imperium_self.game.status);
       imperium_self.hud.updateCards([]);
 
       let chancellor = imperium_self.game.player;
@@ -100,7 +100,7 @@ this.importStrategyCard("politics", {
       }
 
             imperium_self.game.status = html;
-      imperium_self.hud.updateStatus(imperium_self.game.status);
+      imperium_self.hud.prepareIdle(imperium_self.game.status);
       imperium_self.hud.updateCards([]);
 
       let card_removal_function = function (cardkey) {
@@ -186,8 +186,7 @@ this.importStrategyCard("politics", {
       render_agenda_menu();
     } else {
             imperium_self.game.status = "Speaker selecting Agendas for consideration by Senate";
-      imperium_self.hud.updateStatus(imperium_self.game.status);
-      imperium_self.hud.updateMenu([]);
+      imperium_self.hud.prepareIdle(imperium_self.game.status);
       imperium_self.hud.updateCards([]);
     }
   },

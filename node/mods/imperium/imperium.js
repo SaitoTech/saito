@@ -36,6 +36,7 @@ const TokenBar = require('./lib/tokenbar');
 const Dashboard = require('./lib/dashboard-manager');
 const RoundBox = require('./lib/round');
 const Sector = require('./lib/sector');
+const ImperiumGameHUD = require('./lib/imperium-game-hud/imperium-game-hud');
 
 
 class Imperium extends GameTemplate {
@@ -43,6 +44,7 @@ class Imperium extends GameTemplate {
   constructor(app) {
   
     super(app);
+    this.hud = new ImperiumGameHUD(app, this);
   
     this.name             = "Imperium";
     this.gamename         = "Red Imperium";
@@ -260,8 +262,7 @@ class Imperium extends GameTemplate {
           imperium_self.addMove("NOTIFY\t"+player+" activates fleet logistics");
 	  imperium_self.endTurn();
 	  	  imperium_self.game.status = "Activating Fleet Logistics";
-	  imperium_self.hud.updateStatus(imperium_self.game.status);
-	  imperium_self.hud.updateMenu([]);
+	  imperium_self.hud.prepareIdle(imperium_self.game.status);
 	  imperium_self.hud.updateCards([]);
         }
         return 0;
@@ -408,7 +409,7 @@ class Imperium extends GameTemplate {
         menu.push({ id: 'skip', label: 'skip' });
 
 		imperium_self.game.status = html;
-	imperium_self.hud.updateStatus(imperium_self.game.status);
+	imperium_self.hud.preparePrompt(imperium_self.game.status);
 	imperium_self.hud.updateCards([]);
 
         imperium_self.hud.updateMenu(menu, function(action2) {
@@ -1269,8 +1270,7 @@ class Imperium extends GameTemplate {
 
 	if (imperium_self.game.player != player) {
 	  	  imperium_self.game.status = imperium_self.returnFaction(player) + " is deciding whether to use Ceasefire";
-	  imperium_self.hud.updateStatus(imperium_self.game.status);
-	  imperium_self.hud.updateMenu([]);
+	  imperium_self.hud.prepareIdle(imperium_self.game.status);
 	  imperium_self.hud.updateCards([]);
 	  return 0; 
 	}
@@ -1281,7 +1281,7 @@ class Imperium extends GameTemplate {
         menu.push({ id: 'nothing', label: 'do nothing' });
 
                 imperium_self.game.status = html;
-        imperium_self.hud.updateStatus(imperium_self.game.status);
+        imperium_self.hud.preparePrompt(imperium_self.game.status);
         imperium_self.hud.updateCards([]);
 
         imperium_self.hud.updateMenu(menu, function (opt) {
@@ -1392,7 +1392,7 @@ class Imperium extends GameTemplate {
           }
 
                     imperium_self.game.status = html;
-          imperium_self.hud.updateStatus(imperium_self.game.status);
+          imperium_self.hud.preparePrompt(imperium_self.game.status);
           imperium_self.hud.updateCards([]);
 
           imperium_self.hud.updateMenu(menu, function(i) {
@@ -1475,7 +1475,7 @@ this.importFaction("faction8", {
   background: "faction8.jpg",
   promissary_notes: ["trade", "political", "ceasefire", "throne", "faction8-promissary"],
   commodity_limit: 6,
-  intro: `<div style="font-weight:bold">Welcome to Red Imperium!</div><div style="line-height:2.8rem;margin-top:10px;margin-bottom:0px;">You are playing as the Emirates of Hacan, a guild-class of traders whose political machinations play out behind the veil of ruthless commercial competition. May you trade your way to wealth and power. Good luck!</div>`,
+  intro: `You are the Emirates of Hacan, a race of merchant traders who mask their political ambitions behind the facade of a ruthless guild system.`,
 });
 
 this.importTech("faction8-flagship", {
@@ -1536,8 +1536,7 @@ this.importTech("faction8-flagship", {
   postShipsFireEvent: function (imperium_self, player, attacker, defender, sector, combat_info) {
     if (player != imperium_self.game.player) {
             imperium_self.game.status = "Hacan considering using Flagship Ability to modify hits...";
-      imperium_self.hud.updateStatus(imperium_self.game.status);
-      imperium_self.hud.updateMenu([]);
+      imperium_self.hud.prepareIdle(imperium_self.game.status);
       imperium_self.hud.updateCards([]);
       return 0;
     } else {
@@ -1565,7 +1564,7 @@ this.importTech("faction8-flagship", {
       menu.push({ id: 'no', label: 'skip ability' });
 
             imperium_self.game.status = html;
-      imperium_self.hud.updateStatus(imperium_self.game.status);
+      imperium_self.hud.preparePrompt(imperium_self.game.status);
       imperium_self.hud.updateCards([]);
 
       imperium_self.hud.updateMenu(menu, function (id) {
@@ -1669,7 +1668,7 @@ this.importTech("faction8-merchant-class", {
           menu.push({ id: 'no', label: 'no, perhaps not' });
 
                     imperium_self.game.status = html;
-          imperium_self.hud.updateStatus(imperium_self.game.status);
+          imperium_self.hud.preparePrompt(imperium_self.game.status);
           imperium_self.hud.updateCards([]);
 
           imperium_self.hud.updateMenu(menu, async function (id) {
@@ -1898,7 +1897,7 @@ this.importTech("faction8-quantum-datahub-node", {
           menu.push({ id: 'skip', label: 'skip' });
 
                     imperium_self.game.status = html;
-          imperium_self.hud.updateStatus(imperium_self.game.status);
+          imperium_self.hud.preparePrompt(imperium_self.game.status);
           imperium_self.hud.updateCards([]);
 
           imperium_self.hud.updateMenu(menu, function (id) {
@@ -1926,7 +1925,7 @@ this.importTech("faction8-quantum-datahub-node", {
             return_menu.push({ id: 'skip', label: 'skip' });
 
                         imperium_self.game.status = html;
-            imperium_self.hud.updateStatus(imperium_self.game.status);
+            imperium_self.hud.preparePrompt(imperium_self.game.status);
             imperium_self.hud.updateCards([]);
 
             imperium_self.hud.updateMenu(return_menu, function (id) {
@@ -2077,7 +2076,7 @@ this.importFaction("faction2", {
   background: "faction2.jpg",
   promissary_notes: ["trade", "political", "ceasefire", "throne", "faction2-promissary"],
   commodity_limit: 4,
-  intro: `<div style="font-weight:bold">Welcome to Red Imperium!</div><div style="line-height:2.8rem;margin-top:10px;margin-bottom:0px;">You are playing as the Universities of Jol Nar, a physically weak faction which excells at science and technology. Survive long enough to amass enough protective technology and you can be a contender for the Imperial Throne. Good luck!</div>`,
+  intro: `You are the Universities of Jol-Nar, an amphibious race whose mastery of science fuels a relentless pursuit for the power of the Imperial Throne.`,
 });
 
 this.importTech("faction2-flagship", {
@@ -2187,7 +2186,7 @@ this.importTech("faction2-brilliant", {
               ];
 
                             imperium_self.game.status = html;
-              imperium_self.hud.updateStatus(imperium_self.game.status);
+              imperium_self.hud.preparePrompt(imperium_self.game.status);
               imperium_self.hud.updateCards([]);
               imperium_self.hud.updateMenu(menu, function (id) {
 
@@ -2235,7 +2234,7 @@ this.importTech("faction2-brilliant", {
                   menu.push({ id: 'no', label: 'No' });
 
                                     imperium_self.game.status = html;
-                  imperium_self.hud.updateStatus(imperium_self.game.status);
+                  imperium_self.hud.preparePrompt(imperium_self.game.status);
                   imperium_self.hud.updateCards([]);
                   imperium_self.hud.updateMenu(menu, function (id) {
 
@@ -2360,7 +2359,7 @@ this.importTech("faction2-deep-space-conduits", {
     ];
 
         imperium_self.game.status = html;
-    imperium_self.hud.updateStatus(imperium_self.game.status);
+    imperium_self.hud.preparePrompt(imperium_self.game.status);
     imperium_self.hud.updateCards([]);
     imperium_self.hud.updateMenu(menu, function (action) {
 
@@ -2387,8 +2386,7 @@ this.importTech("faction2-deep-space-conduits", {
 
       if (action == "no") {
                 imperium_self.game.status = '';
-        imperium_self.hud.updateStatus(imperium_self.game.status);
-        imperium_self.hud.updateMenu([]);
+        imperium_self.hud.prepareIdle(imperium_self.game.status);
         imperium_self.hud.updateCards([]);
         imperium_self.endTurn();
       }
@@ -2421,7 +2419,7 @@ this.importPromissary("faction2-promissary", {
       ];
 
             imperium_self.game.status = html;
-      imperium_self.hud.updateStatus(imperium_self.game.status);
+      imperium_self.hud.preparePrompt(imperium_self.game.status);
       imperium_self.hud.updateCards([]);
       imperium_self.hud.updateMenu(menu, function (id) {
 
@@ -2479,7 +2477,7 @@ this.importPromissary("faction2-promissary", {
       background	: 	'faction7.jpg' ,
       promissary_notes	:	["trade","political","ceasefire","throne","faction7-promissary"],
       commodity_limit	:	4,
-      intro             :       `<div style="font-weight:bold">Welcome to Red Imperium!</div><div style="line-height:2.8rem;margin-top:10px;margin-bottom:0px;">You are playing as the Embers of Muaat, a faction which forges its instruments of war in the heat of lava-powered furnaces and whose technical research expands to conquering the heat of the very starts themselves. Goodl luck!</div>`
+      intro             :       `You are the Embers of Muaat, a race with weapons forged in the living fire of the dying stars. At full strength -- unstoppable.`
     });
 
 
@@ -2764,7 +2762,7 @@ this.importPromissary("faction2-promissary", {
       background	: 	'faction4.jpg' ,
       promissary_notes	:	["trade","political","ceasefire","throne","faction4-promissary"],
       commodity_limit	:	3,
-      intro             :       `<div style="font-weight:bold">Welcome to Red Imperium!</div><div style="line-height:2.8rem;margin-top:10px;margin-bottom:0px;">You are playing as the Sardaak N'Orr, an overpowered faction known for its raw strength in combat. Your brutal power makes you an intimidating faction on the board. Good luck!</div>`
+      intro             :       `You are the Sardakk N'orr, a race of spiny teeth and jaws whose raw strength and imperviousness to pain has earned a grim reputatation.`
     });
 
 
@@ -2940,7 +2938,7 @@ this.importPromissary("faction2-promissary", {
             menu.push({ id: 'no', label: 'do not sacrifice' });
 
 	    	    imperium_self.game.status = html;
-	    imperium_self.hud.updateStatus(imperium_self.game.status);
+	    imperium_self.hud.preparePrompt(imperium_self.game.status);
 	    imperium_self.hud.updateCards([]);
 
             imperium_self.hud.updateMenu(menu, function (action2) {
@@ -2973,8 +2971,7 @@ this.importPromissary("faction2-promissary", {
 	    imperium_self.playerDestroyOpponentShips(player_to_go, 2, mv[2]);
 	  } else {
 	    	    imperium_self.game.status = "Exotrireme II engaging in suicide assault";
-	    imperium_self.hud.updateStatus(imperium_self.game.status);
-	    imperium_self.hud.updateMenu([]);
+	    imperium_self.hud.prepareIdle(imperium_self.game.status);
 	    imperium_self.hud.updateCards([]);
 	  }
 
@@ -3120,7 +3117,7 @@ this.importPromissary("faction2-promissary", {
               menu.push({ id: 'no', label: 'No' });
 
                     imperium_self.game.status = html;
-          imperium_self.hud.updateStatus(imperium_self.game.status);
+          imperium_self.hud.preparePrompt(imperium_self.game.status);
           imperium_self.hud.updateCards([]);
 
           imperium_self.hud.updateMenu(menu, function(id) {
@@ -3160,7 +3157,7 @@ this.importPromissary("faction2-promissary", {
               menu.push({ id: 'no', label: 'No' });
 
                     imperium_self.game.status = html;
-          imperium_self.hud.updateStatus(imperium_self.game.status);
+          imperium_self.hud.preparePrompt(imperium_self.game.status);
           imperium_self.hud.updateCards([]);
 
           imperium_self.hud.updateMenu(menu, function(id) {
@@ -3211,7 +3208,7 @@ this.importPromissary("faction2-promissary", {
       background	: 	"faction1.jpg",
       promissary_notes	:	["trade","political","ceasefire","throne","faction1-promissary"],
       commodity_limit	:	4,
-      intro             :       `<div style="font-weight:bold">Welcome to Red Imperium!</div><div style="line-height:2.8rem;margin-top:10px;margin-bottom:0px;">You are playing as the Sol Federation. a Terran faction under cellular military government. Your reinforced infantry and tactical flexibility will be important in your fight for the Imperial Throne. Good luck!</div>`
+      intro             :       `As the Terran Federation expanded, all pretense of democratic control was replaced with a will for power-extension and racial dominance.`
     });
  
 
@@ -3458,7 +3455,7 @@ this.importPromissary("faction2-promissary", {
       background	: 	'faction3.jpg',
       commodity_limit	:	4,
       promissary_notes	:	["trade","political","ceasefire","throne","faction3-promissary"],
-      intro             :       `<div style="font-weight:bold">Welcome to Red Imperium!</div><div style="line-height:2.8rem;margin-top:10px;margin-bottom:0px;">You are playing as the XXCha Kingdom, a faction which excels in diplomacy and defensive weaponry. With the proper alliances and political maneuvers your faction you can be a contender for the Imperial Throne. Good luck!</div>`
+      intro             :       `Your weapons are a cautious diplomacy and fleet armed with such "defensive" weapons that few have survived to contest such description.`
     });
   
 
@@ -3603,8 +3600,7 @@ this.importPromissary("faction2-promissary", {
 	  if (imperium_self.game.state.players_info[player-1].peace_accords == 1) {
 
 	    	    imperium_self.game.status = "XXCha selecting planet to annex with Peace Accords";
-	    imperium_self.hud.updateStatus(imperium_self.game.status);
-	    imperium_self.hud.updateMenu([]);
+	    imperium_self.hud.prepareIdle(imperium_self.game.status);
 	    imperium_self.hud.updateCards([]);
 
 	    if (imperium_self.game.player == player) {
@@ -3685,13 +3681,12 @@ this.importPromissary("faction2-promissary", {
           }
 
                     imperium_self.game.status = html;
-          imperium_self.hud.updateStatus(imperium_self.game.status);
+          imperium_self.hud.preparePrompt(imperium_self.game.status);
           imperium_self.hud.updateCards([]);
 
           imperium_self.hud.updateMenu(menu, function(agenda_to_quash) {
 	     	     imperium_self.game.status = "Quashing Agenda";
-	     imperium_self.hud.updateStatus(imperium_self.game.status);
-	     imperium_self.hud.updateMenu([]);
+	     imperium_self.hud.prepareIdle(imperium_self.game.status);
 	     imperium_self.hud.updateCards([]);
 
              imperium_self.addMove("expend\t"+imperium_self.game.player+"\t"+"strategy"+"\t"+"1");
@@ -3741,7 +3736,7 @@ this.importPromissary("faction2-promissary", {
           ];
 
                     imperium_self.game.status = html;
-          imperium_self.hud.updateStatus(imperium_self.game.status);
+          imperium_self.hud.preparePrompt(imperium_self.game.status);
           imperium_self.hud.updateCards([]);
           imperium_self.hud.updateMenu(menu, function (action2) {
             if (action2 === "no") {
@@ -3801,8 +3796,7 @@ this.importPromissary("faction2-promissary", {
 
 	  if (imperium_self.game.player != player) {
 	    	    imperium_self.game.status = imperium_self.returnFaction(player) + " is deciding whether to use Nullification Fields";
-	    imperium_self.hud.updateStatus(imperium_self.game.status);
-	    imperium_self.hud.updateMenu([]);
+	    imperium_self.hud.prepareIdle(imperium_self.game.status);
 	    imperium_self.hud.updateCards([]);
 	    return 0;
 	  }
@@ -3814,7 +3808,7 @@ this.importPromissary("faction2-promissary", {
 	  ];
 
 	  	  imperium_self.game.status = html;
-	  imperium_self.hud.updateStatus(imperium_self.game.status);
+	  imperium_self.hud.preparePrompt(imperium_self.game.status);
 	  imperium_self.hud.updateCards([]);
 	  imperium_self.hud.updateMenu(menu, function (choice) {
 
@@ -3891,13 +3885,12 @@ this.importPromissary("faction2-promissary", {
           }
 
                     imperium_self.game.status = html;
-          imperium_self.hud.updateStatus(imperium_self.game.status);
+          imperium_self.hud.preparePrompt(imperium_self.game.status);
           imperium_self.hud.updateCards([]);
 
           imperium_self.hud.updateMenu(menu, function(agenda_to_quash) {
                           imperium_self.game.status = "Quashing Agenda";
-             imperium_self.hud.updateStatus(imperium_self.game.status);
-             imperium_self.hud.updateMenu([]);
+             imperium_self.hud.prepareIdle(imperium_self.game.status);
              imperium_self.hud.updateCards([]);
 
              imperium_self.addMove("quash\t"+agenda_to_quash+"\t"+"1"); // 1 = re-deal
@@ -3930,7 +3923,7 @@ this.importPromissary("faction2-promissary", {
       background	: 	'faction5.jpg' ,
       promissary_notes	:	["trade","political","ceasefire","throne","faction5-promissary"],
       commodity_limit	:	2,
-      intro             :       `<div style="font-weight:bold">Welcome to Red Imperium!</div><div style="line-height:2.8rem;margin-top:10px;margin-bottom:0px;">You are playing as the Yin Brotherhood, a monastic order of religious zealots whose eagerness to sacrifice their lives for the collective good makes them terrifying in one-on-one combat. Direct their self-destructive passion and you can win the Imperial Throne. Good luck!</div>`
+      intro             :       `Those who live will live. Those who die will die. The fate of the galaxy was determined long before its troubles were known. Be the servants of its actualization.`
     });
 
 
@@ -4161,7 +4154,7 @@ this.playIndoctrination = function(imperium_self, player, sector, planet_idx, my
     { id: 'no', label: 'no' }
   ];
     this.game.status = html;
-  this.hud.updateStatus(this.game.status);
+  this.hud.preparePrompt(this.game.status);
   this.hud.updateCards([]);
   this.hud.updateMenu(menu, function (action2) {
     if (action2 === "no") {
@@ -4218,7 +4211,7 @@ this.playDevotion = function(imperium_self, player, sector, mycallback, impulse_
   }
       menu.push({ id: 'no', label: 'no' });
     imperium_self.game.status = html;
-  imperium_self.hud.updateStatus(imperium_self.game.status);
+  imperium_self.hud.preparePrompt(imperium_self.game.status);
   imperium_self.hud.updateCards([]);
   imperium_self.hud.updateMenu(menu, function (action2) {
     if (action2 === "no") {
@@ -4279,7 +4272,7 @@ this.playDevotionAssignHit = function(imperium_self, player, sector, mycallback,
   }
 
     imperium_self.game.status = html;
-  imperium_self.hud.updateStatus(imperium_self.game.status);
+  imperium_self.hud.preparePrompt(imperium_self.game.status);
   imperium_self.hud.updateCards([]);
   imperium_self.hud.updateMenu(menu, function (unit_idx) {
 
@@ -4322,7 +4315,7 @@ this.playDevotionAssignHit = function(imperium_self, player, sector, mycallback,
               menu.push({ id: 'no', label: 'No' });
 
                     imperium_self.game.status = html;
-          imperium_self.hud.updateStatus(imperium_self.game.status);
+          imperium_self.hud.preparePrompt(imperium_self.game.status);
           imperium_self.hud.updateCards([]);
 
           imperium_self.hud.updateMenu(menu, function(id) {
@@ -4366,7 +4359,7 @@ this.playDevotionAssignHit = function(imperium_self, player, sector, mycallback,
       background	: 	'faction6.jpg' ,
       promissary_notes	:	["trade","political","ceasefire","throne","faction6-promissary"],
       commodity_limit	:	3,
-      intro             :       `<div style="font-weight:bold">Welcome to Red Imperium!</div><div style="line-height:2.8rem;margin-top:10px;margin-bottom:0px;">You are playing as the Yssaril Tribe, a primitive race of swamp-dwelling creatures whose fast instincts and almost unerring ability to change tactics on-the-fly lead many to suspect more is at work than their primitive appearance belies. Good luck!</div>`
+      intro             :       `Overlooked and disregarded by the more established diplomatic races, your race has a quiet advantage in your speed and subtly of tactical shift.`
     });
 
 
@@ -4486,8 +4479,7 @@ this.playDevotionAssignHit = function(imperium_self, player, sector, mycallback,
 	    });
 	  } else {
 	    	    imperium_self.game.status = "Yssaril are discarding an action card...";
-	    imperium_self.hud.updateStatus(imperium_self.game.status);
-	    imperium_self.hud.updateMenu([]);
+	    imperium_self.hud.prepareIdle(imperium_self.game.status);
 	    imperium_self.hud.updateCards([]);
 	  }
 
@@ -4638,7 +4630,7 @@ this.playDevotionAssignHit = function(imperium_self, player, sector, mycallback,
 	    menu.push({ id: 'cancel', label: 'skip' });
 
 	    	    imperium_self.game.status = html;
-	    imperium_self.hud.updateStatus(imperium_self.game.status);
+	    imperium_self.hud.preparePrompt(imperium_self.game.status);
 	    imperium_self.hud.updateCards([]);
 
             imperium_self.hud.updateMenu(menu, function (opt) {
@@ -4722,7 +4714,7 @@ this.playDevotionAssignHit = function(imperium_self, player, sector, mycallback,
               menu.push({ id: 'no', label: 'no' });
 
                     imperium_self.game.status = html;
-          imperium_self.hud.updateStatus(imperium_self.game.status);
+          imperium_self.hud.preparePrompt(imperium_self.game.status);
           imperium_self.hud.updateCards([]);
 
           imperium_self.hud.updateMenu(menu, function(id) {
@@ -4768,8 +4760,7 @@ this.playDevotionAssignHit = function(imperium_self, player, sector, mycallback,
 
 	  if (relevant_action_cards.length <= 0) {
 	    	    imperium_self.game.status = "Yssaril has no action cards to steal...";
-	    imperium_self.hud.updateStatus(imperium_self.game.status);
-	    imperium_self.hud.updateMenu([]);
+	    imperium_self.hud.prepareIdle(imperium_self.game.status);
 	    imperium_self.hud.updateCards([]);
 	    return 1;
 	  }
@@ -4856,8 +4847,7 @@ this.importStrategyCard("diplomacy", {
     if (imperium_self.game.player == strategy_card_player && player == strategy_card_player) {
 
             imperium_self.game.status = 'Select sector to quagmire in diplomatic negotiations, and refresh any planets in that system: ';
-      imperium_self.hud.updateStatus(imperium_self.game.status);
-      imperium_self.hud.updateMenu([]);
+      imperium_self.hud.prepareIdle(imperium_self.game.status);
       imperium_self.hud.updateCards([]);
       imperium_self.playerSelectSector(function(sector) {
 
@@ -4914,7 +4904,7 @@ this.importStrategyCard("diplomacy", {
       }
       menu.push({ id: 'no', label: 'No' });
             imperium_self.game.status = html;
-      imperium_self.hud.updateStatus(imperium_self.game.status);
+      imperium_self.hud.preparePrompt(imperium_self.game.status);
       imperium_self.hud.updateCards([]);
       imperium_self.hud.updateMenu(menu, function (id) {
 
@@ -4941,8 +4931,7 @@ this.importStrategyCard("diplomacy", {
           }
 
                     imperium_self.game.status = html;
-          imperium_self.hud.updateStatus(imperium_self.game.status);
-          imperium_self.hud.updateMenu([]);
+          imperium_self.hud.prepareIdle(imperium_self.game.status);
           imperium_self.hud.updateCards([]);
           imperium_self.lockInterface();
 
@@ -5040,7 +5029,7 @@ this.importStrategyCard("politics", {
         });
       }
             imperium_self.game.status = html;
-      imperium_self.hud.updateStatus(imperium_self.game.status);
+      imperium_self.hud.preparePrompt(imperium_self.game.status);
       imperium_self.hud.updateCards([]);
 
       let chancellor = imperium_self.game.player;
@@ -5107,7 +5096,7 @@ this.importStrategyCard("politics", {
       }
 
             imperium_self.game.status = html;
-      imperium_self.hud.updateStatus(imperium_self.game.status);
+      imperium_self.hud.prepareIdle(imperium_self.game.status);
       imperium_self.hud.updateCards([]);
 
       let card_removal_function = function (cardkey) {
@@ -5193,8 +5182,7 @@ this.importStrategyCard("politics", {
       render_agenda_menu();
     } else {
             imperium_self.game.status = "Speaker selecting Agendas for consideration by Senate";
-      imperium_self.hud.updateStatus(imperium_self.game.status);
-      imperium_self.hud.updateMenu([]);
+      imperium_self.hud.prepareIdle(imperium_self.game.status);
       imperium_self.hud.updateCards([]);
     }
   },
@@ -5243,7 +5231,7 @@ this.importStrategyCard("construction", {
       menu.push({ id: 'no', label: 'No' });
 
             imperium_self.game.status = html;
-      imperium_self.hud.updateStatus(imperium_self.game.status);
+      imperium_self.hud.preparePrompt(imperium_self.game.status);
       imperium_self.hud.updateCards([]);
 
       imperium_self.lockInterface();
@@ -5307,7 +5295,7 @@ this.importStrategyCard("trade", {
       menu.push({ id: 'finish', label: 'done' });
 
             imperium_self.game.status = html;
-      imperium_self.hud.updateStatus(imperium_self.game.status);
+      imperium_self.hud.preparePrompt(imperium_self.game.status);
       imperium_self.hud.updateCards([]);
 
       let trade_menu = menu.slice();
@@ -5359,7 +5347,7 @@ this.importStrategyCard("trade", {
 
 
             imperium_self.game.status = html;
-      imperium_self.hud.updateStatus(imperium_self.game.status);
+      imperium_self.hud.preparePrompt(imperium_self.game.status);
       imperium_self.hud.updateCards([]);
 
       imperium_self.lockInterface();
@@ -5402,8 +5390,7 @@ this.importStrategyCard("trade", {
         if (imperium_self.game.player == strategy_card_player && player == strategy_card_player) {
 
                     imperium_self.game.status = 'Select sector to de-activate.';
-          imperium_self.hud.updateStatus(imperium_self.game.status);
-          imperium_self.hud.updateMenu([]);
+          imperium_self.hud.prepareIdle(imperium_self.game.status);
           imperium_self.hud.updateCards([]);
           imperium_self.playerSelectSector(function(sector) {
 
@@ -5448,7 +5435,7 @@ this.importStrategyCard("trade", {
           menu.push({ id: 'no', label: 'No' });
  
                     imperium_self.game.status = html;
-          imperium_self.hud.updateStatus(imperium_self.game.status);
+          imperium_self.hud.preparePrompt(imperium_self.game.status);
           imperium_self.hud.updateCards([]);
           imperium_self.hud.updateMenu(menu, function (id) {
  
@@ -5561,7 +5548,7 @@ this.importStrategyCard("technology", {
       menu.push({ id: 'no', label: 'No' });
 
             imperium_self.game.status = html;
-      imperium_self.hud.updateStatus(imperium_self.game.status);
+      imperium_self.hud.preparePrompt(imperium_self.game.status);
       imperium_self.hud.updateCards([]);
 
       imperium_self.hud.updateMenu(menu, async function (id) {
@@ -5629,7 +5616,7 @@ this.importStrategyCard("technology", {
       menu.push({ id: 'no', label: 'No' });
 
             imperium_self.game.status = html;
-      imperium_self.hud.updateStatus(imperium_self.game.status);
+      imperium_self.hud.preparePrompt(imperium_self.game.status);
       imperium_self.hud.updateCards([]);
 
       imperium_self.hud.updateMenu(menu, function (id) {
@@ -5767,8 +5754,7 @@ this.importStrategyCard("imperial", {
                           imperium_self.game.player - 1
                         ].objectives_scored_this_round.push(objective);
                                                 imperium_self.game.status = "scoring completed";
-                        imperium_self.hud.updateStatus(imperium_self.game.status);
-                        imperium_self.hud.updateMenu([]);
+                        imperium_self.hud.prepareIdle(imperium_self.game.status);
                         imperium_self.hud.updateCards([]);
                         imperium_self.endTurn();
                       }
@@ -5791,8 +5777,7 @@ this.importStrategyCard("imperial", {
                           imperium_self.game.player - 1
                         ].objectives_scored_this_round.push(objective);
                                                 imperium_self.game.status = "scoring completed";
-                        imperium_self.hud.updateStatus(imperium_self.game.status);
-                        imperium_self.hud.updateMenu([]);
+                        imperium_self.hud.prepareIdle(imperium_self.game.status);
                         imperium_self.hud.updateCards([]);
                         imperium_self.endTurn();
                       }
@@ -5803,8 +5788,7 @@ this.importStrategyCard("imperial", {
                     "score\t" + imperium_self.game.player + "\t" + "1" + "\t" + "new-byzantium"
                   );
                                     imperium_self.game.status = "scoring completed";
-                  imperium_self.hud.updateStatus(imperium_self.game.status);
-                  imperium_self.hud.updateMenu([]);
+                  imperium_self.hud.prepareIdle(imperium_self.game.status);
                   imperium_self.hud.updateCards([]);
                   imperium_self.endTurn();
                 }
@@ -5843,8 +5827,7 @@ this.importStrategyCard("imperial", {
                           imperium_self.game.player - 1
                         ].objectives_scored_this_round.push(objective);
                                                 imperium_self.game.status = "scoring completed";
-                        imperium_self.hud.updateStatus(imperium_self.game.status);
-                        imperium_self.hud.updateMenu([]);
+                        imperium_self.hud.prepareIdle(imperium_self.game.status);
                         imperium_self.hud.updateCards([]);
                         imperium_self.addMove(
                           "gain\t" + strategy_card_player + "\t" + "secret_objective" + "\t" + "1"
@@ -5863,8 +5846,7 @@ this.importStrategyCard("imperial", {
                           imperium_self.game.player - 1
                         ].objectives_scored_this_round.push(objective);
                                                 imperium_self.game.status = "scoring completed";
-                        imperium_self.hud.updateStatus(imperium_self.game.status);
-                        imperium_self.hud.updateMenu([]);
+                        imperium_self.hud.prepareIdle(imperium_self.game.status);
                         imperium_self.hud.updateCards([]);
                         imperium_self.addMove(
                           "gain\t" + strategy_card_player + "\t" + "secret_objective" + "\t" + "1"
@@ -5939,8 +5921,7 @@ this.importStrategyCard("imperial", {
           imperium_self,
           function (x, vp, objective) {
                         imperium_self.game.status = "scoring completed";
-            imperium_self.hud.updateStatus(imperium_self.game.status);
-            imperium_self.hud.updateMenu([]);
+            imperium_self.hud.prepareIdle(imperium_self.game.status);
             imperium_self.hud.updateCards([]);
             imperium_self.addMove("resolve\tstrategy\t1\t" + imperium_self.getPublicKey());
             imperium_self.addPublickeyConfirm(imperium_self.getPublicKey(), 1);
@@ -7576,8 +7557,7 @@ this.importStrategyCard("imperial", {
 	  if (player != imperium_self.game.player) {
 	    let html = imperium_self.returnFaction(imperium_self.game.player) + " is deciding whether to Form a Committee";
 	    	    imperium_self.game.status = html;
-	    imperium_self.hud.updateStatus(imperium_self.game.status);
-	    imperium_self.hud.updateMenu([]);
+	    imperium_self.hud.prepareIdle(imperium_self.game.status);
 	    imperium_self.hud.updateCards([]);
 	    return 0;
 	  }
@@ -7589,7 +7569,7 @@ this.importStrategyCard("imperial", {
 	  ];
 
 	  	  imperium_self.game.status = html;
-	  imperium_self.hud.updateStatus(imperium_self.game.status);
+	  imperium_self.hud.preparePrompt(imperium_self.game.status);
 	  imperium_self.hud.updateCards([]);
 	  imperium_self.hud.updateMenu(menu, function (action) {
 
@@ -9293,8 +9273,7 @@ this.importStrategyCard("imperial", {
               },
 	      function(player) {
 				imperium_self.game.status = "";
-		imperium_self.hud.updateStatus(imperium_self.game.status);
-		imperium_self.hud.updateMenu([]);
+		imperium_self.hud.prepareIdle(imperium_self.game.status);
 		imperium_self.hud.updateCards([]);
 		imperium_self.addMove("produce\t" + player + "\t" + "1" + "\t" + planet_idx + "\t" + "infantry" + "\t" + sector);
 		imperium_self.addMove("annex\t" + player + "\t" + sector + "\t" + planet_idx);
@@ -9590,7 +9569,7 @@ ACTION CARD - types
 	    }
 
 	    	    imperium_self.game.status = html;
-	    imperium_self.hud.updateStatus(imperium_self.game.status);
+	    imperium_self.hud.preparePrompt(imperium_self.game.status);
 	    imperium_self.hud.updateCards([]);
 
 	    imperium_self.hud.updateMenu(menu, function(card) {
@@ -9726,7 +9705,7 @@ console.log("qe: " + qe);
             menu.push({ id: 'cancel', label: 'cancel' });
 
 	    	    imperium_self.game.status = html;
-	    imperium_self.hud.updateStatus(imperium_self.game.status);
+	    imperium_self.hud.preparePrompt(imperium_self.game.status);
 	    imperium_self.hud.updateCards([]);
 
 	    imperium_self.hud.updateMenu(menu, function(card) {
@@ -9781,7 +9760,7 @@ console.log("qe: " + qe);
             }
 
                         imperium_self.game.status = html;
-            imperium_self.hud.updateStatus(imperium_self.game.status);
+            imperium_self.hud.preparePrompt(imperium_self.game.status);
             imperium_self.hud.updateCards([]);
 
             imperium_self.hud.updateMenu(menu, function(agenda_to_quash) {
@@ -9789,8 +9768,7 @@ console.log("qe: " + qe);
 	      imperium_self.hideAgendaCard(agenda_to_quash);
 
                             imperium_self.game.status = "Quashing Agenda";
-              imperium_self.hud.updateStatus(imperium_self.game.status);
-              imperium_self.hud.updateMenu([]);
+              imperium_self.hud.prepareIdle(imperium_self.game.status);
               imperium_self.hud.updateCards([]);
               imperium_self.addMove("quash\t"+agenda_to_quash+"\t"+"1"); // 1 = re-deal
               imperium_self.endTurn();
@@ -10588,7 +10566,7 @@ console.log("qe: " + qe);
                     menu.push({ id: 'command', label: 'command token' });
                     menu.push({ id: 'strategy', label: 'strategy token' });
 	        	        imperium_self.game.status = html;
-	        imperium_self.hud.updateStatus(imperium_self.game.status);
+	        imperium_self.hud.preparePrompt(imperium_self.game.status);
 	        imperium_self.hud.updateCards([]);
 
 	        imperium_self.hud.updateMenu(menu, function(tokentype) {
@@ -10955,7 +10933,7 @@ console.log("qe: " + qe);
             }
 
 	    	    imperium_self.game.status = html;
-	    imperium_self.hud.updateStatus(imperium_self.game.status);
+	    imperium_self.hud.preparePrompt(imperium_self.game.status);
 	    imperium_self.hud.updateCards([]);
 	    imperium_self.hud.updateMenu(menu, function (action) {
 
@@ -11199,7 +11177,7 @@ console.log("qe: " + qe);
               menu.push({ id: String(i), label: factions[imperium_self.game.state.players_info[i].faction].name });
             }
                         imperium_self.game.status = html;
-            imperium_self.hud.updateStatus(imperium_self.game.status);
+            imperium_self.hud.preparePrompt(imperium_self.game.status);
             imperium_self.hud.updateCards([]);
 
             let chancellor = imperium_self.game.player;
@@ -12383,7 +12361,7 @@ console.log("qe: " + qe);
 //
 //    this.loadGame(game_id);
 
-    if (this.game.status != "") {     this.hud.updateStatus(this.game.status); }
+    if (this.game.status != "") {     this.hud.prepareIdle(this.game.status); }
   
     //
     // specify players
@@ -13178,70 +13156,7 @@ console.log("ABOUT TO DINISH INITIALIZATION!");
 /////////////////
 ensureHudChrome() {
   this.hud.render();
-  let hud = document.getElementById('game-hud2');
-  if (!hud) {
-    return null;
-  }
-  let chrome = document.getElementById('imperium-hud-chrome');
-  if (!chrome) {
-    chrome = document.createElement('div');
-    chrome.id = 'imperium-hud-chrome';
-    chrome.className = 'imperium-hud-chrome';
-    hud.insertBefore(chrome, hud.firstChild);
-  }
-  if (!hud.dataset.imperiumDrag) {
-    hud.dataset.imperiumDrag = '1';
-    hud.addEventListener('selectstart', (e) => {
-      e.preventDefault();
-    });
-    hud.addEventListener('mousedown', (e) => {
-      if (e.button !== 0) {
-        return;
-      }
-      if (e.target.closest('.hud-back-button, a, input, textarea, button, select')) {
-        return;
-      }
-      e.preventDefault();
-      e.stopPropagation();
-      let click_el = e.target.closest('.option, .hud-menu li, .hud-visual-option, .hud-cards .card');
-      let rect = hud.getBoundingClientRect();
-      let start_x = e.clientX;
-      let start_y = e.clientY;
-      let orig_left = rect.left;
-      let orig_top = rect.top;
-      let dragged = false;
-      let place = (dx, dy) => {
-        hud.style.left = orig_left + dx + 'px';
-        hud.style.top = orig_top + dy + 'px';
-        hud.style.right = 'auto';
-        hud.style.bottom = 'auto';
-        hud.style.marginLeft = '0px';
-        hud.style.marginRight = '0px';
-        hud.style.transform = 'none';
-      };
-      let on_move = (ev) => {
-        let dx = ev.clientX - start_x;
-        let dy = ev.clientY - start_y;
-        if (!dragged && Math.abs(dx) < 4 && Math.abs(dy) < 4) {
-          return;
-        }
-        dragged = true;
-        place(dx, dy);
-      };
-      let on_up = () => {
-        document.removeEventListener('mousemove', on_move);
-        document.removeEventListener('mouseup', on_up);
-        document.body.style.userSelect = '';
-        if (!dragged && click_el) {
-          click_el.click();
-        }
-      };
-      document.body.style.userSelect = 'none';
-      document.addEventListener('mousemove', on_move);
-      document.addEventListener('mouseup', on_up);
-    }, true);
-  }
-  return chrome;
+  return null;
 }
 
 hudMenuOptionFromEvent(x) {
@@ -14104,14 +14019,17 @@ console.log("HERE: " + planet_idx + " -- " + sector);
     if (obj.returnCardImage == null) {
       obj.returnCardImage = function() {
         return `
-	  <div class="objectives_overlay_objectives_card" style="background-image: url(${obj.img})">
-            <div class="objectives_card_name">${obj.name}</div>
-              <div class="objectives_card_content">
-                ${obj.text}
-              <div class="objectives_secret_notice">secret</div>
+          <article class="objective-card is-secret">
+            <div class="objective-card-art" style="background-image: url(${obj.img})">
+              <div class="objective-card-vp">${obj.vp}</div>
             </div>
-	  </div>
-	`;
+            <div class="objective-card-body">
+              <div class="objective-card-kind">Secret</div>
+              <div class="objective-card-name">${obj.name}</div>
+              <div class="objective-card-text">${obj.text}</div>
+            </div>
+          </article>
+        `;
       };
     }
 
@@ -14136,10 +14054,16 @@ console.log("HERE: " + planet_idx + " -- " + sector);
     if (obj.returnCardImage == null) {
       obj.returnCardImage = function() {
         return `
-          <div class="objectives_overlay_objectives_card" style="background-image: url(${obj.img})">
-            <div class="objectives_card_name">${obj.name}</div>
-            <div class="objectives_card_content">${obj.text}</div>
-          </div>
+          <article class="objective-card is-stage-i">
+            <div class="objective-card-art" style="background-image: url(${obj.img})">
+              <div class="objective-card-vp">${obj.vp}</div>
+            </div>
+            <div class="objective-card-body">
+              <div class="objective-card-kind">Stage I</div>
+              <div class="objective-card-name">${obj.name}</div>
+              <div class="objective-card-text">${obj.text}</div>
+            </div>
+          </article>
         `;
       };
     }
@@ -14165,10 +14089,16 @@ console.log("HERE: " + planet_idx + " -- " + sector);
     if (obj.returnCardImage == null) {
       obj.returnCardImage = function() {
         return `
-          <div class="objectives_overlay_objectives_card" style="background-image: url(${obj.img})">
-            <div class="objectives_card_name">${obj.name}</div>
-            <div class="objectives_card_content">${obj.text}</div>
-          </div>
+          <article class="objective-card is-stage-ii">
+            <div class="objective-card-art" style="background-image: url(${obj.img})">
+              <div class="objective-card-vp">${obj.vp}</div>
+            </div>
+            <div class="objective-card-body">
+              <div class="objective-card-kind">Stage II</div>
+              <div class="objective-card-name">${obj.name}</div>
+              <div class="objective-card-text">${obj.text}</div>
+            </div>
+          </article>
         `;
       };
     }
@@ -14465,8 +14395,7 @@ console.log("#");
 	//
 	if (this.game.state.playing_strategy_card_secondary == 0 && this.playing_token_allocation == 0) {
                     this.game.status = "Waiting for Opponent Move...";
-          this.hud.updateStatus(this.game.status);
-          this.hud.updateMenu([]);
+          this.hud.prepareIdle(this.game.status);
           this.hud.updateCards([]);
 	}
 
@@ -14534,8 +14463,7 @@ console.log("#");
 	    notice += '</ul>';
 	    if (am_i_still_to_move == 0) {
 	      	      this.game.status = notice;
-	      this.hud.updateStatus(this.game.status);
-	      this.hud.updateMenu([]);
+	      this.hud.prepareIdle(this.game.status);
 	      this.hud.updateCards([]);
 	    }
 
@@ -14624,8 +14552,7 @@ console.log("#");
           imperium_self.playerRearrangeTokens();
         } else {
 	  	  imperium_self.game.status = imperium_self.returnFaction(player) + " is redistributing tokens...";
-	  imperium_self.hud.updateStatus(imperium_self.game.status);
-	  imperium_self.hud.updateMenu([]);
+	  imperium_self.hud.prepareIdle(imperium_self.game.status);
 	  imperium_self.hud.updateCards([]);
 	}
 
@@ -14669,8 +14596,7 @@ console.log("#");
           });
         } else {
 	  	  imperium_self.game.status = imperium_self.returnFaction(player) + " is researching technology...";
-	  imperium_self.hud.updateStatus(imperium_self.game.status);
-	  imperium_self.hud.updateMenu([]);
+	  imperium_self.hud.prepareIdle(imperium_self.game.status);
 	  imperium_self.hud.updateCards([]);
 	}
 	return 0;
@@ -14733,16 +14659,14 @@ console.log("#");
 
 
                 this.game.status = this.returnFactionNickname(player) + " announces a retreat";
-        this.hud.updateStatus(this.game.status);
-        this.hud.updateMenu([]);
+        this.hud.prepareIdle(this.game.status);
         this.hud.updateCards([]);
 
 	if (this.game.player === opponent) {
 	  this.playerRespondToRetreat(player, opponent, from, to);
 	} else {
 	  	  this.game.status = this.returnFaction(opponent) + " responding to " + this.returnFaction(player) + " retreat";
-	  this.hud.updateStatus(this.game.status);
-	  this.hud.updateMenu([]);
+	  this.hud.prepareIdle(this.game.status);
 	  this.hud.updateCards([]);
 	}
 
@@ -14868,8 +14792,7 @@ console.log("#");
   	  this.playerContinueTurn(player, sector);
 	} else {
 	  	  this.game.status = this.returnFaction(player) + " has moved into " + this.game.sectors[this.game.board[sector].tile].name;
-	  this.hud.updateStatus(this.game.status);
-	  this.hud.updateMenu([]);
+	  this.hud.prepareIdle(this.game.status);
 	  this.hud.updateCards([]);
 	}
 
@@ -14958,8 +14881,6 @@ console.log("#");
 
       if (mv[0] === "play") {
 
-	this.factionbar.render(this.game.player);
-	this.tokenbar.render(this.game.player);
         this.updateLeaderboard();
 
     	let player = mv[1];
@@ -15016,8 +14937,7 @@ console.log("#");
 
 	  this.hideStrategyCard();
   	    	  this.game.status = "<div class=\"status-header-text\">" + this.returnFaction(parseInt(player)) + " is taking their turn.</div>";
-  	  this.hud.updateStatus(this.game.status);
-  	  this.hud.updateMenu([]);
+  	  this.hud.prepareIdle(this.game.status);
   	  this.hud.updateCards([]);
 
   	}
@@ -15062,16 +14982,14 @@ console.log("#");
   	if (stage == 1) {
 	  this.updateLog(this.returnFactionNickname(strategy_card_player) + " plays " + this.strategy_cards[card].name);
 	  	  this.game.status = this.returnFaction(strategy_card_player) + " is playing " + this.strategy_cards[card].name;
-	  this.hud.updateStatus(this.game.status);
-	  this.hud.updateMenu([]);
+	  this.hud.prepareIdle(this.game.status);
 	  this.hud.updateCards([]);
   	  this.playStrategyCardPrimary(strategy_card_player, card);
 	  return 0;
   	}
   	if (stage == 2) {
 	  	  this.game.status = "All factions have the opportunity to play " + this.strategy_cards[card].name;
-	  this.hud.updateStatus(this.game.status);
-	  this.hud.updateMenu([]);
+	  this.hud.prepareIdle(this.game.status);
 	  this.hud.updateCards([]);
 	  this.game.state.playing_strategy_card_secondary = 1;
   	  this.playStrategyCardSecondary(strategy_card_player, card);
@@ -15079,8 +14997,7 @@ console.log("#");
   	}
   	if (stage == 3) {
 	  	  this.game.status = "All factions have the opportunity to play " + this.strategy_cards[card].name;
-	  this.hud.updateStatus(this.game.status);
-	  this.hud.updateMenu([]);
+	  this.hud.prepareIdle(this.game.status);
 	  this.hud.updateCards([]);
 	  this.game.state.playing_strategy_card_secondary = 1;
   	  this.playStrategyCardTertiary(strategy_card_player, card);
@@ -15597,8 +15514,7 @@ console.log("#");
 	      html += '</div>';
 	      html += '<div class="agenda_status">'+this.returnFaction(who_is_next)+' is now voting.</div>';
 	  	  this.game.status = html;
-	  this.hud.updateStatus(this.game.status);
-	  this.hud.updateMenu([]);
+	  this.hud.prepareIdle(this.game.status);
 	  this.hud.updateCards([]);
 
           //
@@ -15642,7 +15558,7 @@ console.log("#");
 	  }
               menu.push({ id: 'abstain', label: 'abstain' });
 	  	  imperium_self.game.status = html;
-	  imperium_self.hud.updateStatus(imperium_self.game.status);
+	  imperium_self.hud.preparePrompt(imperium_self.game.status);
 	  imperium_self.hud.updateCards([]);
 	  imperium_self.hud.updateMenu(menu, function (vote) {
 	    let votes = 0;
@@ -15671,7 +15587,7 @@ console.log("#");
 	      }
 	    }
 	    	    imperium_self.game.status = html;
-	    imperium_self.hud.updateStatus(imperium_self.game.status);
+	    imperium_self.hud.preparePrompt(imperium_self.game.status);
 	    imperium_self.hud.updateCards([]);
 	    imperium_self.hud.updateMenu(vote_menu, function (votes) {
 
@@ -15768,8 +15684,7 @@ console.log("#");
 	      html += imperium_self.agenda_cards[agenda].text;
 	      html += '</div>';
 	  	  this.game.status = html;
-	  this.hud.updateStatus(this.game.status);
-	  this.hud.updateMenu([]);
+	  this.hud.prepareIdle(this.game.status);
 	  this.hud.updateCards([]);
 
           //
@@ -15813,7 +15728,7 @@ console.log("#");
 	  }
               menu.push({ id: 'abstain', label: 'abstain' });
 	  	  imperium_self.game.status = html;
-	  imperium_self.hud.updateStatus(imperium_self.game.status);
+	  imperium_self.hud.preparePrompt(imperium_self.game.status);
 	  imperium_self.hud.updateCards([]);
 	  imperium_self.hud.updateMenu(menu, function (vote) {
 	    let votes = 0;
@@ -15842,7 +15757,7 @@ console.log("#");
 	      }
 	    }
 	    	    imperium_self.game.status = html;
-	    imperium_self.hud.updateStatus(imperium_self.game.status);
+	    imperium_self.hud.preparePrompt(imperium_self.game.status);
 	    imperium_self.hud.updateCards([]);
 	    imperium_self.hud.updateMenu(vote_menu, function (votes) {
 
@@ -15991,8 +15906,7 @@ console.log("#");
           if (this.game.state.players_info[io[i]-1].vp >= this.game.state.vp_target) {
 	    this.updateLeaderboard();
                         this.game.status = "Game Over: " + this.returnFaction(io[i]) + " has reached " + this.game.state.vp_target + " VP";
-            this.hud.updateStatus(this.game.status);
-            this.hud.updateMenu([]);
+            this.hud.prepareIdle(this.game.status);
             this.hud.updateCards([]);
             this.updateLog("Game Over: " + this.returnFactionNickname(io[i]) + " has reached " + this.game.state.vp_target + " VP");
             return 0;
@@ -16017,8 +15931,7 @@ console.log("#");
     	this.game.state.round++;
     	this.updateLog("ROUND: " + this.game.state.round);
   	  	this.game.status = "Moving into Round " + this.game.state.round + "<p></p> Please be patient as we deal cards securely...";
-  	this.hud.updateStatus(this.game.status);
-  	this.hud.updateMenu([]);
+  	this.hud.prepareIdle(this.game.status);
   	this.hud.updateCards([]);
 
 
@@ -16394,8 +16307,7 @@ if (debugging == 0) {
 	if (this.game.state.end_round_scoring != 1) {
 	  if (this.checkForVictory() == 1) {
 	    	    this.game.status = "Game Over: " + this.returnFaction(player-1) + " has reached " + this.game.state.vp_target + " VP";
-	    this.hud.updateStatus(this.game.status);
-	    this.hud.updateMenu([]);
+	    this.hud.prepareIdle(this.game.status);
 	    this.hud.updateCards([]);
 	    return 0;
 	  }
@@ -16415,8 +16327,7 @@ if (debugging == 0) {
       if (mv[0] === "playerschoosestrategycards") {
 
   	  	this.game.status = "Players selecting strategy cards, starting from " + this.returnSpeaker();
-  	this.hud.updateStatus(this.game.status);
-  	this.hud.updateMenu([]);
+  	this.hud.prepareIdle(this.game.status);
   	this.hud.updateCards([]);
 
 	let cards_issued = [];
@@ -16506,8 +16417,7 @@ if (debugging == 0) {
 	if (type === "planet") {
 	  if (player != this.game.player) {
 	    	    this.game.status = this.returnFactionName(this, player) + " is selecting planets to exhaust.";
-	    this.hud.updateStatus(this.game.status);
-	    this.hud.updateMenu([]);
+	    this.hud.prepareIdle(this.game.status);
 	    this.hud.updateCards([]);
 	    return 0;
 	  } else {
@@ -16619,7 +16529,7 @@ if (debugging == 0) {
           }
 
   	    	  this.game.status = html;
-  	  this.hud.updateStatus(this.game.status);
+  	  this.hud.preparePrompt(this.game.status);
   	  this.hud.updateCards([]);
   	  this.hud.updateMenu(menu, function () {});
     	  document.querySelectorAll('.hud-menu .option').forEach((el) => {
@@ -17654,8 +17564,7 @@ if (debugging == 0) {
 
 	this.updateLog(this.returnFactionNickname(activating_player) + " activates " + this.returnSectorName(sector));
 		this.game.status = this.returnFaction(activating_player) + " activates " + this.returnSectorName(sector);
-	this.hud.updateStatus(this.game.status);
-	this.hud.updateMenu([]);
+	this.hud.prepareIdle(this.game.status);
 	this.hud.updateCards([]);
 
   	this.game.queue.splice(qe, 1);
@@ -17701,8 +17610,7 @@ console.log("K: " + z[k].name);
 	} else {
           let sys = imperium_self.returnSectorAndPlanets(sector);
 	  	  this.game.status = this.returnFactionName(this, player) + " continues after activating " + sys.s.name;
-	  this.hud.updateStatus(this.game.status);
-	  this.hud.updateMenu([]);
+	  this.hud.prepareIdle(this.game.status);
 	  this.hud.updateCards([]);
 	}
 	return 0;
@@ -18396,8 +18304,7 @@ console.log("K: " + z[k].name);
 
 	if (total_hits > 0 ) {
                     this.game.status = this.returnFaction(defender) + " is assigning hits to units ... ";
-          this.hud.updateStatus(this.game.status);
-          this.hud.updateMenu([]);
+          this.hud.prepareIdle(this.game.status);
           this.hud.updateCards([]);
 	}
 
@@ -18414,8 +18321,7 @@ console.log("K: " + z[k].name);
 	      return 0;
 	    } else {
                             this.game.status = this.returnFaction(defender) + " assigning hits to units ... ";
-              this.hud.updateStatus(this.game.status);
-              this.hud.updateMenu([]);
+              this.hud.prepareIdle(this.game.status);
               this.hud.updateCards([]);
 	    }
   	    return 0;
@@ -18442,8 +18348,7 @@ console.log("K: " + z[k].name);
 	      return 0;
 	    } else {
                             this.game.status = this.returnFaction(defender) + " assigning hits to units ... ";
-              this.hud.updateStatus(this.game.status);
-              this.hud.updateMenu([]);
+              this.hud.prepareIdle(this.game.status);
               this.hud.updateCards([]);
 	    }
 	    return 0;
@@ -18459,8 +18364,7 @@ console.log("K: " + z[k].name);
 	      return 0;
 	    } else {
                             this.game.status = this.returnFaction(defender) + " assigning hits to units ... ";
-              this.hud.updateStatus(this.game.status);
-              this.hud.updateMenu([]);
+              this.hud.prepareIdle(this.game.status);
               this.hud.updateCards([]);
 	      if (this.space_combat_overlay.visible) {
 		this.space_combat_overlay.updateStatus("<div>opponent assigning hits</div>");
@@ -18599,13 +18503,11 @@ console.log("K: " + z[k].name);
 
 	if (total == 1) {
   	    	  this.game.status = this.returnFaction(player) + " is destroying "+total+" unit";
-  	  this.hud.updateStatus(this.game.status);
-  	  this.hud.updateMenu([]);
+  	  this.hud.prepareIdle(this.game.status);
   	  this.hud.updateCards([]);
 	} else {
   	    	  this.game.status = this.returnFaction(player) + " is destroying "+total+" units";
-  	  this.hud.updateStatus(this.game.status);
-  	  this.hud.updateMenu([]);
+  	  this.hud.prepareIdle(this.game.status);
   	  this.hud.updateCards([]);
 	}
 
@@ -18643,13 +18545,11 @@ console.log("K: " + z[k].name);
 
 	if (total == 1) {
   	    	  this.game.status = this.returnFaction(player) + " is destroying "+total+" ship";
-  	  this.hud.updateStatus(this.game.status);
-  	  this.hud.updateMenu([]);
+  	  this.hud.prepareIdle(this.game.status);
   	  this.hud.updateCards([]);
 	} else {
   	    	  this.game.status = this.returnFaction(player) + " is destroying "+total+" ships";
-  	  this.hud.updateStatus(this.game.status);
-  	  this.hud.updateMenu([]);
+  	  this.hud.prepareIdle(this.game.status);
   	  this.hud.updateCards([]);
 	}
 
@@ -20435,8 +20335,7 @@ console.log("HIDING SPACE COMBAT OVERLAY!");
 	if (this.game.player == action_card_player) {
     	  //this.game.queue.splice(qe, 1);
 	  	  this.game.status = "Your opponents are being notified you have played " + this.action_cards[action_card].name;
-	  this.hud.updateStatus(this.game.status);
-	  this.hud.updateMenu([]);
+	  this.hud.prepareIdle(this.game.status);
 	  this.hud.updateCards([]);
 	  if (this.hasPlayerConfirmed(this.getPublicKey())) {
 	    if (action_card.indexOf("sabotage") != 0) {
@@ -20459,8 +20358,7 @@ console.log("HIDING SPACE COMBAT OVERLAY!");
 	  // sabotage is a special case where we want to show the menu even if we have already confirmed
 	  if (this.hasPlayerConfirmed(this.getPublicKey()) && action_card.indexOf("sabotage") != 0) {
   	      	    this.game.status = "Waiting for players to respond to "+this.action_cards[action_card].name;
-  	    this.hud.updateStatus(this.game.status);
-  	    this.hud.updateMenu([]);
+  	    this.hud.prepareIdle(this.game.status);
   	    this.hud.updateCards([]);
 	  } else {
     	    //this.game.queue.splice(qe, 1);
@@ -20482,8 +20380,7 @@ console.log("HIDING SPACE COMBAT OVERLAY!");
 	//
 	if (player == action_card_player) {
 	  	  this.game.status = "Your opponents are being notified you have played " + this.action_cards[action_card].name;
-	  this.hud.updateStatus(this.game.status);
-	  this.hud.updateMenu([]);
+	  this.hud.prepareIdle(this.game.status);
 	  this.hud.updateCards([]);
 	  return 0;
 	}
@@ -20492,8 +20389,7 @@ console.log("HIDING SPACE COMBAT OVERLAY!");
 	  this.playerPlayActionCardMenu(action_card_player, action_card);
 	} else {
 	  	  this.game.status = this.returnFaction(player) + " is responding to action card " + this.action_cards[action_card].name;
-	  this.hud.updateStatus(this.game.status);
-	  this.hud.updateMenu([]);
+	  this.hud.prepareIdle(this.game.status);
 	  this.hud.updateCards([]);
 	}
 	return 0;
@@ -20636,8 +20532,7 @@ console.log("HGL 1: " + z[i].name);
     this.sendGameMoveTransaction("game", {});
 
         this.game.status = "Waiting for information from peers....";
-    this.hud.updateStatus(this.game.status);
-    this.hud.updateMenu([]);
+    this.hud.prepareIdle(this.game.status);
     this.hud.updateCards([]);
   
   };
@@ -21079,8 +20974,7 @@ playerTurn(stage = "main") {
     //
     if (auto_end_turn == 1) {
             imperium_self.game.status = "No more moves possible, ending turn...";
-      imperium_self.hud.updateStatus(imperium_self.game.status);
-      imperium_self.hud.updateMenu([]);
+      imperium_self.hud.prepareIdle(imperium_self.game.status);
       imperium_self.hud.updateCards([]);
       imperium_self.addMove("resolve\tplay");
       imperium_self.addMove("setvar\tstate\t0\tactive_player_moved\t" + "int" + "\t" + "0");
@@ -21090,7 +20984,7 @@ playerTurn(stage = "main") {
     }
 
         this.game.status = '';
-    this.hud.updateStatus(this.game.status);
+    this.hud.preparePrompt(this.game.status);
     this.hud.updateCards([]);
     this.hud.updateMenu(menu, function (action2) {
 
@@ -21212,7 +21106,7 @@ playerRearrangeTokens() {
     }
 
         imperium_self.game.status = status;
-    imperium_self.hud.updateStatus(imperium_self.game.status);
+    imperium_self.hud.preparePrompt(imperium_self.game.status);
     imperium_self.hud.updateCards([]);
     imperium_self.hud.updateMenu(menu, function (action2) {
 
@@ -21251,7 +21145,7 @@ playerRearrangeTokens() {
   }
 
     this.game.status = html;
-  this.hud.updateStatus(this.game.status);
+  this.hud.preparePrompt(this.game.status);
   this.hud.updateCards([]);
   this.hud.updateMenu(
     [
@@ -21321,7 +21215,7 @@ playerPlayActionCardMenu(action_card_player, card, action_cards_played = []) {
     }
 
         this.game.status = html;
-    this.hud.updateStatus(this.game.status);
+    this.hud.preparePrompt(this.game.status);
     this.hud.updateCards([]);
     this.hud.updateMenu(menu, function (action2) {
 
@@ -21494,7 +21388,7 @@ playerPlayBombardment(attacker, sector, planet_idx) {
   }
 
     this.game.status = html;
-  this.hud.updateStatus(this.game.status);
+  this.hud.preparePrompt(this.game.status);
   this.hud.updateCards([]);
   this.hud.updateMenu(menu, function (action2) {
 
@@ -21537,12 +21431,11 @@ playerPlayBombardment(attacker, sector, planet_idx) {
 
 playerAcknowledgeNotice(msg, mycallback) {
 
-  let html = '<div class="status-header-text">' + msg + "</div>";
-
-    this.game.status = html;
-  this.hud.updateStatus(this.game.status);
+  this.game.status = msg;
+  this.hud.updateStatus('');
+  this.hud.updateHeader('');
   this.hud.updateCards([]);
-  this.hud.updateMenu([{ id: 'acknowledge', label: 'I understand...' }], function () { mycallback(); });
+  this.hud.updateAcknowledge(msg, function () { mycallback(); });
 
   return 0;
 
@@ -21564,7 +21457,7 @@ playerAcknowledgeNotice(msg, mycallback) {
 
   html = '<div class="status-header-text">You must assign ' + total_hits + ' to capital ships (if possible):</div>';
     this.game.status = html;
-  this.hud.updateStatus(this.game.status);
+  this.hud.preparePrompt(this.game.status);
   this.hud.updateCards([]);
 
   if (imperium_self.space_combat_overlay.visible) {
@@ -21602,8 +21495,7 @@ playerAcknowledgeNotice(msg, mycallback) {
       }
 
             imperium_self.game.status = html;
-      imperium_self.hud.updateStatus(imperium_self.game.status);
-      imperium_self.hud.updateMenu([]);
+      imperium_self.hud.prepareIdle(imperium_self.game.status);
       imperium_self.hud.updateCards([]);
 
       $('.textchoice').off();
@@ -21646,13 +21538,11 @@ playerAcknowledgeNotice(msg, mycallback) {
 
         if (total_hits == 0 || hits_assigned >= maximum_assignable_hits) {
                     imperium_self.game.status = "Notifying players of hits assignment...";
-          imperium_self.hud.updateStatus(imperium_self.game.status);
-          imperium_self.hud.updateMenu([]);
+          imperium_self.hud.prepareIdle(imperium_self.game.status);
           imperium_self.hud.updateCards([]);
           imperium_self.endTurn();
                     imperium_self.game.status = "Hits taken...";
-          imperium_self.hud.updateStatus(imperium_self.game.status);
-          imperium_self.hud.updateMenu([]);
+          imperium_self.hud.prepareIdle(imperium_self.game.status);
           imperium_self.hud.updateCards([]);
         }
 
@@ -21726,7 +21616,7 @@ playerAcknowledgeNotice(msg, mycallback) {
   }
 
     this.game.status = html;
-  this.hud.updateStatus(this.game.status);
+  this.hud.preparePrompt(this.game.status);
   this.hud.updateCards([]);
 
   let onAssignHitsMenu = function (action2) {
@@ -21755,8 +21645,7 @@ playerAcknowledgeNotice(msg, mycallback) {
         imperium_self.addMove("lose\t" + imperium_self.game.player + "\taction_cards\t1");
         imperium_self.endTurn();
                 imperium_self.game.status = "playing action card before hits assignment";
-        imperium_self.hud.updateStatus(imperium_self.game.status);
-        imperium_self.hud.updateMenu([]);
+        imperium_self.hud.prepareIdle(imperium_self.game.status);
         imperium_self.hud.updateCards([]);
       }, function () {
         imperium_self.playerAssignHits(attacker, defender, type, sector, details, total_hits, source);
@@ -21817,8 +21706,7 @@ playerAcknowledgeNotice(msg, mycallback) {
       }
 
             imperium_self.game.status = html;
-      imperium_self.hud.updateStatus(imperium_self.game.status);
-      imperium_self.hud.updateMenu([]);
+      imperium_self.hud.prepareIdle(imperium_self.game.status);
       imperium_self.hud.updateCards([]);
 
       $('.textchoice').off();
@@ -21861,13 +21749,11 @@ playerAcknowledgeNotice(msg, mycallback) {
 
         if (total_hits == 0 || hits_assigned >= maximum_assignable_hits) {
                     imperium_self.game.status = "Notifying players of hits assignment...";
-          imperium_self.hud.updateStatus(imperium_self.game.status);
-          imperium_self.hud.updateMenu([]);
+          imperium_self.hud.prepareIdle(imperium_self.game.status);
           imperium_self.hud.updateCards([]);
           imperium_self.endTurn();
                     imperium_self.game.status = "Hits taken...";
-          imperium_self.hud.updateStatus(imperium_self.game.status);
-          imperium_self.hud.updateMenu([]);
+          imperium_self.hud.prepareIdle(imperium_self.game.status);
           imperium_self.hud.updateCards([]);
         }
 
@@ -21937,8 +21823,7 @@ playerDestroyUnits(player, total, sector, capital = 0) {
 
 
     imperium_self.game.status = html;
-  imperium_self.hud.updateStatus(imperium_self.game.status);
-  imperium_self.hud.updateMenu([]);
+  imperium_self.hud.prepareIdle(imperium_self.game.status);
   imperium_self.hud.updateCards([]);
 
   $('.textchoice').off();
@@ -21989,8 +21874,7 @@ playerDestroyUnits(player, total, sector, capital = 0) {
 
     if (total_hits == 0 || hits_assigned >= maximum_assignable_hits) {
             imperium_self.game.status = "Notifying players of units destroyed...";
-      imperium_self.hud.updateStatus(imperium_self.game.status);
-      imperium_self.hud.updateMenu([]);
+      imperium_self.hud.prepareIdle(imperium_self.game.status);
       imperium_self.hud.updateCards([]);
       imperium_self.endTurn();
     }
@@ -22061,8 +21945,7 @@ playerDestroyShips(player, total, sector, capital = 0) {
 
 
     imperium_self.game.status = html;
-  imperium_self.hud.updateStatus(imperium_self.game.status);
-  imperium_self.hud.updateMenu([]);
+  imperium_self.hud.prepareIdle(imperium_self.game.status);
   imperium_self.hud.updateCards([]);
 
   $('.textchoice').off();
@@ -22091,8 +21974,7 @@ playerDestroyShips(player, total, sector, capital = 0) {
 
     if (total_hits == 0 || hits_assigned >= maximum_assignable_hits) {
             imperium_self.game.status = "Notifying players of hits assignment...";
-      imperium_self.hud.updateStatus(imperium_self.game.status);
-      imperium_self.hud.updateMenu([]);
+      imperium_self.hud.prepareIdle(imperium_self.game.status);
       imperium_self.hud.updateCards([]);
       imperium_self.endTurn();
     }
@@ -22150,8 +22032,7 @@ playerDestroyOpponentShips(player, total, sector, capital = 0) {
   }
 
     imperium_self.game.status = html;
-  imperium_self.hud.updateStatus(imperium_self.game.status);
-  imperium_self.hud.updateMenu([]);
+  imperium_self.hud.prepareIdle(imperium_self.game.status);
   imperium_self.hud.updateCards([]);
 
   $('.textchoice').off();
@@ -22180,8 +22061,7 @@ playerDestroyOpponentShips(player, total, sector, capital = 0) {
 
     if (total == 0 || ships_destroyed >= maximum_destroyable_ships) {
             imperium_self.game.status = "Notifying players of destroyed ships...";
-      imperium_self.hud.updateStatus(imperium_self.game.status);
-      imperium_self.hud.updateMenu([]);
+      imperium_self.hud.prepareIdle(imperium_self.game.status);
       imperium_self.hud.updateCards([]);
       imperium_self.endTurn();
     }
@@ -22256,7 +22136,7 @@ playerPlaySpaceCombat(attacker, defender, sector) {
   html = '<div class="status-header-text"><b>Space Combat: round ' + this.game.state.space_combat_round + ':</b><div class="combat_attacker">' + this.returnFaction(attacker) + '</div><div class="combat_attacker_fleet">' + this.returnPlayerFleetInSector(attacker, sector) + '</div><div class="combat_defender">' + this.returnFaction(defender) + '</div><div class="combat_defender_fleet">' + this.returnPlayerFleetInSector(defender, sector) + '</div></div>';
 
     this.game.status = html;
-  this.hud.updateStatus(this.game.status);
+  this.hud.preparePrompt(this.game.status);
   this.hud.updateCards([]);
 
   this.space_combat_overlay.render(attacker, defender, sector, overlay_html);
@@ -22316,7 +22196,7 @@ playerPlaySpaceCombat(attacker, defender, sector) {
         }
 
                 imperium_self.game.status = html;
-        imperium_self.hud.updateStatus(imperium_self.game.status);
+        imperium_self.hud.preparePrompt(imperium_self.game.status);
         imperium_self.hud.updateCards([]);
         imperium_self.hud.updateMenu(retreat_menu, function (opt) {
 
@@ -22375,7 +22255,7 @@ playerRespondToRetreat(player, opponent, from, to) {
   }
 
     this.game.status = html;
-  this.hud.updateStatus(this.game.status);
+  this.hud.preparePrompt(this.game.status);
   this.hud.updateCards([]);
   this.hud.updateMenu(menu, function (action2) {
 
@@ -22455,9 +22335,8 @@ playerPlayGroundCombatOver(player, sector, planet_idx) {
   }
 
     this.game.status = html;
-  this.hud.updateStatus(this.game.status);
   this.hud.updateCards([]);
-  this.hud.updateMenu(menu, function (action2) {
+  let onGroundCombatOver = function (action2) {
 
     if (tech_attach_menu_events == 1) {
       for (let i = 0; i < tech_attach_menu_triggers.length; i++) {
@@ -22491,7 +22370,15 @@ playerPlayGroundCombatOver(player, sector, planet_idx) {
       imperium_self.endTurn();
     }
 
-  });
+  };
+  if (menu.length === 1 && menu[0].id === 'ok') {
+    this.hud.updateStatus('');
+    this.hud.updateHeader('');
+    this.hud.updateAcknowledge(html, function () { onGroundCombatOver('ok'); });
+  } else {
+    this.hud.preparePrompt(this.game.status);
+    this.hud.updateMenu(menu, onGroundCombatOver);
+  }
 }
 
 
@@ -22557,7 +22444,7 @@ playerPlaySpaceCombatOver(player, sector) {
   }
 
     this.game.status = html;
-  this.hud.updateStatus(this.game.status);
+  this.hud.preparePrompt(this.game.status);
   this.hud.updateCards([]);
 
   let onSpaceCombatOver = function (action2, overlay_el) {
@@ -22593,7 +22480,13 @@ playerPlaySpaceCombatOver(player, sector) {
     }
 
   };
-  this.hud.updateMenu(menu, function (id) { onSpaceCombatOver(id); });
+  if (menu.length === 1 && menu[0].id === 'ok') {
+    this.hud.updateStatus('');
+    this.hud.updateHeader('');
+    this.hud.updateAcknowledge(html, function () { onSpaceCombatOver('ok'); });
+  } else {
+    this.hud.updateMenu(menu, function (id) { onSpaceCombatOver(id); });
+  }
   $('.space-combat-menu .option').off();
   $('.space-combat-menu .option').on('click', function () {
     onSpaceCombatOver($(this).attr("id"), this);
@@ -22668,7 +22561,7 @@ playerPlayGroundCombat(attacker, defender, sector, planet_idx) {
   }
 
     this.game.status = html;
-  this.hud.updateStatus(this.game.status);
+  this.hud.preparePrompt(this.game.status);
   this.hud.updateCards([]);
 
   let onGroundCombatChoice = function (action2, overlay_el) {
@@ -22786,7 +22679,7 @@ playerPlayPDSAttack(player, attacker, sector) {
   }
 
     this.game.status = html;
-  this.hud.updateStatus(this.game.status);
+  this.hud.preparePrompt(this.game.status);
   this.hud.updateCards([]);
   this.hud.updateMenu(menu, function (action2) {
 
@@ -22875,7 +22768,7 @@ playerPlayPDSDefense(player, attacker, sector) {
   }
 
     this.game.status = html;
-  this.hud.updateStatus(this.game.status);
+  this.hud.preparePrompt(this.game.status);
   this.hud.updateCards([]);
   this.hud.updateMenu(menu, function (action2) {
 
@@ -22929,7 +22822,7 @@ playerResolveDeadlockedAgenda(agenda, choices) {
   }
 
     this.game.status = html;
-  this.hud.updateStatus(this.game.status);
+  this.hud.preparePrompt(this.game.status);
   this.hud.updateCards([]);
 
   this.hud.updateMenu(menu, function (action2) {
@@ -22993,7 +22886,7 @@ playerPlayPreAgendaStage(player, agenda, agenda_idx) {
 
 
     this.game.status = html;
-  this.hud.updateStatus(this.game.status);
+  this.hud.preparePrompt(this.game.status);
   this.hud.updateCards([]);
 
   this.hud.updateMenu(menu, function (action2) {
@@ -23072,7 +22965,7 @@ playerPlayPostAgendaStage(player, agenda, array_of_winning_options) {
   }
 
     this.game.status = html;
-  this.hud.updateStatus(this.game.status);
+  this.hud.preparePrompt(this.game.status);
   this.hud.updateCards([]);
 
   this.hud.updateMenu(menu, function (action2) {
@@ -23177,8 +23070,7 @@ playerContinueTurn(player, sector) {
   //
   if (options_available == 0) {
         imperium_self.game.status = "No more moves possible, ending turn...";
-    imperium_self.hud.updateStatus(imperium_self.game.status);
-    imperium_self.hud.updateMenu([]);
+    imperium_self.hud.prepareIdle(imperium_self.game.status);
     imperium_self.hud.updateCards([]);
     imperium_self.addMove("resolve\tplay");
     imperium_self.addMove("setvar\tstate\t0\tactive_player_moved\t" + "int" + "\t" + "0");
@@ -23189,7 +23081,7 @@ playerContinueTurn(player, sector) {
 
 
     this.game.status = '';
-  this.hud.updateStatus(this.game.status);
+  this.hud.preparePrompt(this.game.status);
   this.hud.updateCards([]);
   this.hud.updateMenu(menu, async function (action2) {
 
@@ -23309,8 +23201,7 @@ playerBuyTokens(stage = 0, resolve = 1) {
   if (this.returnAvailableInfluence(this.game.player) <= 2) {
     this.updateLog("You skip the initiative secondary, as you lack adequate influence...");
         this.game.status = "Skipping purchase of tokens as insufficient influence...";
-    this.hud.updateStatus(this.game.status);
-    this.hud.updateMenu([]);
+    this.hud.prepareIdle(this.game.status);
     this.hud.updateCards([]);
     if (resolve == 1) {
       imperium_self.addMove("resolve\tstrategy\t1\t" + imperium_self.getPublicKey());
@@ -23338,8 +23229,7 @@ playerBuyTokens(stage = 0, resolve = 1) {
   html += '<div id="confirm" class="buildchoice">click here to finish</div>';
 
     this.game.status = html;
-  this.hud.updateStatus(this.game.status);
-  this.hud.updateMenu([]);
+  this.hud.prepareIdle(this.game.status);
   this.hud.updateCards([]);
 
 
@@ -23440,7 +23330,7 @@ playerBuyTokens(stage = 0, resolve = 1) {
   ];
 
     this.game.status = html;
-  this.hud.updateStatus(this.game.status);
+  this.hud.preparePrompt(this.game.status);
   this.hud.updateCards([]);
   this.hud.updateMenu(menu, function (id) {
 
@@ -23454,8 +23344,7 @@ playerBuyTokens(stage = 0, resolve = 1) {
       imperium_self.addMove("expend\t" + imperium_self.game.player + "\tstrategy\t1");
       imperium_self.endTurn();
             imperium_self.game.status = "submitted...";
-      imperium_self.hud.updateStatus(imperium_self.game.status);
-      imperium_self.hud.updateMenu([]);
+      imperium_self.hud.prepareIdle(imperium_self.game.status);
       imperium_self.hud.updateCards([]);
       return;
 
@@ -23465,8 +23354,7 @@ playerBuyTokens(stage = 0, resolve = 1) {
       imperium_self.addPublickeyConfirm(imperium_self.getPublicKey(), 1);
       imperium_self.endTurn();
             imperium_self.game.status = "submitted...";
-      imperium_self.hud.updateStatus(imperium_self.game.status);
-      imperium_self.hud.updateMenu([]);
+      imperium_self.hud.prepareIdle(imperium_self.game.status);
       imperium_self.hud.updateCards([]);
       return;
 
@@ -23495,7 +23383,7 @@ playerBuyTokens(stage = 0, resolve = 1) {
   ];
 
     this.game.status = html;
-  this.hud.updateStatus(this.game.status);
+  this.hud.preparePrompt(this.game.status);
   this.hud.updateCards([]);
   this.hud.updateMenu(menu, function (id) {
 
@@ -23508,8 +23396,7 @@ playerBuyTokens(stage = 0, resolve = 1) {
       imperium_self.addMove("expend\t" + imperium_self.game.player + "\tstrategy\t1");
       imperium_self.endTurn();
             imperium_self.game.status = "submitted...";
-      imperium_self.hud.updateStatus(imperium_self.game.status);
-      imperium_self.hud.updateMenu([]);
+      imperium_self.hud.prepareIdle(imperium_self.game.status);
       imperium_self.hud.updateCards([]);
       return;
 
@@ -23519,8 +23406,7 @@ playerBuyTokens(stage = 0, resolve = 1) {
       imperium_self.addPublickeyConfirm(imperium_self.getPublicKey(), 1);
       imperium_self.endTurn();
             imperium_self.game.status = "submitted...";
-      imperium_self.hud.updateStatus(imperium_self.game.status);
-      imperium_self.hud.updateMenu([]);
+      imperium_self.hud.prepareIdle(imperium_self.game.status);
       imperium_self.hud.updateCards([]);
       return;
 
@@ -23546,7 +23432,7 @@ playerResearchTechnology(mycallback) {
   }
 
     this.game.status = html;
-  this.hud.updateStatus(this.game.status);
+  this.hud.preparePrompt(this.game.status);
   this.hud.updateCards([]);
 
   let chooseTechnology = function (i) {
@@ -23600,7 +23486,7 @@ playerScoreActionStageVictoryPoints(imperium_self, mycallback, stage = 0) {
   menu.push({ id: 'cancel', label: 'cancel' });
 
     imperium_self.game.status = html;
-  imperium_self.hud.updateStatus(imperium_self.game.status);
+  imperium_self.hud.preparePrompt(imperium_self.game.status);
   imperium_self.hud.updateCards([]);
   imperium_self.hud.updateMenu(menu, function (action) {
 
@@ -23682,7 +23568,7 @@ playerScoreSecretObjective(imperium_self, mycallback, stage = 0) {
   menu.push({ id: 'no', label: 'I choose not to score...' });
 
     imperium_self.game.status = html;
-  imperium_self.hud.updateStatus(imperium_self.game.status);
+  imperium_self.hud.preparePrompt(imperium_self.game.status);
   imperium_self.hud.updateCards([]);
   imperium_self.hud.updateMenu(menu, function (action) {
 
@@ -23711,7 +23597,7 @@ playerScoreVictoryPoints(imperium_self, mycallback, stage = 0) {
     let menu = [{ id: 'no', label: 'I choose not to score...' }];
 
         imperium_self.game.status = html;
-    imperium_self.hud.updateStatus(imperium_self.game.status);
+    imperium_self.hud.preparePrompt(imperium_self.game.status);
     imperium_self.hud.updateCards([]);
     imperium_self.hud.updateMenu(menu, function () {
       mycallback(imperium_self, 0, "");
@@ -23751,7 +23637,7 @@ playerScoreVictoryPoints(imperium_self, mycallback, stage = 0) {
   menu.push({ id: 'no', label: 'I choose not to score...' });
 
     imperium_self.game.status = html;
-  imperium_self.hud.updateStatus(imperium_self.game.status);
+  imperium_self.hud.preparePrompt(imperium_self.game.status);
   imperium_self.hud.updateCards([]);
   imperium_self.hud.updateMenu(menu, function (action) {
 
@@ -23788,8 +23674,7 @@ playerScoreVictoryPoints(imperium_self, mycallback, stage = 0) {
   html += '</ul>';
 
     this.game.status = html;
-  this.hud.updateStatus(this.game.status);
-  this.hud.updateMenu([]);
+  this.hud.prepareIdle(this.game.status);
   this.hud.updateCards([]);
 
   let stuff_to_build = [];
@@ -23937,8 +23822,7 @@ playerScoreVictoryPoints(imperium_self, mycallback, stage = 0) {
   html += '<div id="confirm" class="buildchoice">click here to build</div>';
 
     this.game.status = html;
-  this.hud.updateStatus(this.game.status);
-  this.hud.updateMenu([]);
+  this.hud.prepareIdle(this.game.status);
   this.hud.updateCards([]);
 
   let stuff_to_build = [];
@@ -24031,14 +23915,13 @@ playerScoreVictoryPoints(imperium_self, mycallback, stage = 0) {
       player_build.warsuns = 0;
       imperium_self.production_overlay.reset();
       return;
-    } else {
-      imperium_self.production_overlay.update(stuff_to_build, calculated_total_cost);
     }
 
     //
     //  figure out if we need to load infantry / fighters
     //
     stuff_to_build.push(id);
+    imperium_self.production_overlay.update(stuff_to_build, calculated_total_cost);
 
     let total_cost = 0;
     for (let i = 0; i < stuff_to_build.length; i++) {
@@ -24218,7 +24101,7 @@ playerHandleTradeOffer(faction_offering, their_offer, my_offer, offer_log) {
   menu.push({ id: 'no', label: 'refuse trade' });
 
     imperium_self.game.status = html;
-  imperium_self.hud.updateStatus(imperium_self.game.status);
+  imperium_self.hud.preparePrompt(imperium_self.game.status);
   imperium_self.hud.updateCards([]);
 
   imperium_self.hud.updateMenu(menu, function (action) {
@@ -24324,8 +24207,7 @@ playerHandleTradeOffer(faction_offering, their_offer, my_offer, offer_log) {
       html += '</ul>';
 
             imperium_self.game.status = html;
-      imperium_self.hud.updateStatus(imperium_self.game.status);
-      imperium_self.hud.updateMenu([]);
+      imperium_self.hud.prepareIdle(imperium_self.game.status);
       imperium_self.hud.updateCards([]);
 
       $('.option').off();
@@ -24370,8 +24252,7 @@ playerHandleTradeOffer(faction_offering, their_offer, my_offer, offer_log) {
 
           imperium_self.addMove("offer\t" + imperium_self.game.player + "\t" + player + "\t" + JSON.stringify(my_offer) + "\t" + JSON.stringify(my_receive));
                     imperium_self.game.status = "trade offer submitted";
-          imperium_self.hud.updateStatus(imperium_self.game.status);
-          imperium_self.hud.updateMenu([]);
+          imperium_self.hud.prepareIdle(imperium_self.game.status);
           imperium_self.hud.updateCards([]);
           imperium_self.endTurn();
 
@@ -24418,8 +24299,7 @@ playerHandleTradeOffer(faction_offering, their_offer, my_offer, offer_log) {
         html += `  <li class="option" id="cancel">cancel</li>`;
 
 		imperium_self.game.status = html;
-	imperium_self.hud.updateStatus(imperium_self.game.status);
-	imperium_self.hud.updateMenu([]);
+	imperium_self.hud.prepareIdle(imperium_self.game.status);
 	imperium_self.hud.updateCards([]);
         $('.option').off();
         $('.option').on('click', function () {
@@ -24466,8 +24346,7 @@ playerHandleTradeOffer(faction_offering, their_offer, my_offer, offer_log) {
         html += `  <li class="option" id="cancel">cancel</li>`;
 
 		imperium_self.game.status = html;
-	imperium_self.hud.updateStatus(imperium_self.game.status);
-	imperium_self.hud.updateMenu([]);
+	imperium_self.hud.prepareIdle(imperium_self.game.status);
 	imperium_self.hud.updateCards([]);
         $('.option').off();
         $('.option').on('click', function () {
@@ -24517,8 +24396,7 @@ playerHandleTradeOffer(faction_offering, their_offer, my_offer, offer_log) {
         html += `  <li class="option" id="cancel">cancel</li>`;
 
 		imperium_self.game.status = html;
-	imperium_self.hud.updateStatus(imperium_self.game.status);
-	imperium_self.hud.updateMenu([]);
+	imperium_self.hud.prepareIdle(imperium_self.game.status);
 	imperium_self.hud.updateCards([]);
         $('.option').off();
         $('.option').on('click', function () {
@@ -24542,8 +24420,7 @@ playerHandleTradeOffer(faction_offering, their_offer, my_offer, offer_log) {
         let html = '<div class="status-header-text">You may not request action cards - players must send on their turn</div><ul>';
         html += `  <li class="option" id="cancel">return to trade menu</li>`;
 		imperium_self.game.status = html;
-	imperium_self.hud.updateStatus(imperium_self.game.status);
-	imperium_self.hud.updateMenu([]);
+	imperium_self.hud.prepareIdle(imperium_self.game.status);
 	imperium_self.hud.updateCards([]);
         $('.option').off();
         $('.option').on('click', function () {
@@ -24572,8 +24449,7 @@ playerHandleTradeOffer(faction_offering, their_offer, my_offer, offer_log) {
       html += '</ul>';
 
             imperium_self.game.status = html;
-      imperium_self.hud.updateStatus(imperium_self.game.status);
-      imperium_self.hud.updateMenu([]);
+      imperium_self.hud.prepareIdle(imperium_self.game.status);
       imperium_self.hud.updateCards([]);
 
       $('.option').off();
@@ -24640,8 +24516,7 @@ playerSelectPlanet(mycallback, mode = 0) {
 
   let html = "Select a system in which to select a planet: ";
     this.game.status = html;
-  this.hud.updateStatus(this.game.status);
-  this.hud.updateMenu([]);
+  this.hud.prepareIdle(this.game.status);
   this.hud.updateCards([]);
 
   $('.sector').on('click', function () {
@@ -24682,8 +24557,7 @@ playerSelectPlanet(mycallback, mode = 0) {
 
 
         imperium_self.game.status = html;
-    imperium_self.hud.updateStatus(imperium_self.game.status);
-    imperium_self.hud.updateMenu([]);
+    imperium_self.hud.prepareIdle(imperium_self.game.status);
     imperium_self.hud.updateCards([]);
 
     $('.option').off();
@@ -24719,8 +24593,7 @@ playerSelectStrategyAndCommandTokens(cost, mycallback) {
   html += '</ul>';
 
     this.game.status = html;
-  this.hud.updateStatus(this.game.status);
-  this.hud.updateMenu([]);
+  this.hud.prepareIdle(this.game.status);
   this.hud.updateCards([]);
 
   $('.textchoice').on('click', function () {
@@ -24777,8 +24650,7 @@ playerSelectInfluence(cost, mycallback) {
   html += '</ul>';
 
     this.game.status = html;
-  this.hud.updateStatus(this.game.status);
-  this.hud.updateMenu([]);
+  this.hud.prepareIdle(this.game.status);
   this.hud.updateCards([]);
 
   let selectInfluence = (action2) => {
@@ -24905,8 +24777,7 @@ playerSelectResources(cost, mycallback) {
   html += '</ul>';
 
     this.game.status = html;
-  this.hud.updateStatus(this.game.status);
-  this.hud.updateMenu([]);
+  this.hud.prepareIdle(this.game.status);
   this.hud.updateCards([]);
 
 
@@ -25004,7 +24875,7 @@ playerSelectActionCard(mycallback, cancel_callback, types = []) {
   menu.push({ id: 'cancel', label: 'cancel' });
 
     this.game.status = html;
-  this.hud.updateStatus(this.game.status);
+  this.hud.preparePrompt(this.game.status);
   this.hud.updateCards([]);
   this.hud.updateMenu(menu, function (action2) {
 
@@ -25052,7 +24923,7 @@ playerSelectActionCardFromList(mycallback, cancel_callback, array_of_cards = [])
   menu.push({ id: 'cancel', label: 'cancel' });
 
     this.game.status = html;
-  this.hud.updateStatus(this.game.status);
+  this.hud.preparePrompt(this.game.status);
   this.hud.updateCards([]);
   this.hud.updateMenu(menu, function (action2) {
 
@@ -25089,7 +24960,7 @@ playerSelectStrategyCard(mycallback, mode = 0) {
   menu.push({ id: 'cancel', label: 'cancel' });
 
     this.game.status = html;
-  this.hud.updateStatus(this.game.status);
+  this.hud.preparePrompt(this.game.status);
   this.hud.updateCards([]);
   this.hud.updateMenu(menu, function (action2) {
 
@@ -25169,7 +25040,7 @@ playerSelectStrategyCards(mycallback, selection = 0) {
   html += '';
 
     this.game.status = html;
-  this.hud.updateStatus(this.game.status);
+  this.hud.preparePrompt(this.game.status);
   this.hud.updateCards([]);
   this.hud.updateMenu(menu, function (action2) {
 
@@ -25232,8 +25103,7 @@ playerRemoveInfantryFromPlanets(player, total = 1, mycallback) {
   html += '</ul>';
 
     this.game.status = html;
-  this.hud.updateStatus(this.game.status);
-  this.hud.updateMenu([]);
+  this.hud.prepareIdle(this.game.status);
   this.hud.updateCards([]);
 
   $('.textchoice').off();
@@ -25306,8 +25176,7 @@ playerAddInfantryToPlanets(player, total = 1, mycallback) {
   html += '</ul>';
 
     this.game.status = html;
-  this.hud.updateStatus(this.game.status);
-  this.hud.updateMenu([]);
+  this.hud.prepareIdle(this.game.status);
   this.hud.updateCards([]);
 
   $('.textchoice').off();
@@ -25606,7 +25475,7 @@ console.log("FIGHTERS AVAILABLE TO MOVE: " + fighters_available_to_move);
   }
 
     this.game.status = html;
-  this.hud.updateStatus(this.game.status);
+  this.hud.preparePrompt(this.game.status);
   this.hud.updateCards([]);
   this.hud.updateMenu(menu, function (id) {
 
@@ -25756,8 +25625,7 @@ playerSelectUnitsToMove(destination) {
 //    html += '<div id="clear" class="option">clear selected</div>';
     html += '<hr />';
         imperium_self.game.status = html;
-    imperium_self.hud.updateStatus(imperium_self.game.status);
-    imperium_self.hud.updateMenu([]);
+    imperium_self.hud.prepareIdle(imperium_self.game.status);
     imperium_self.hud.updateCards([]);
 
     //
@@ -26357,8 +26225,7 @@ playerSelectInfantryToLand(sector) {
 //  html += '<hr />';
 //  html += '<div id="clear" class="option">clear selected</div>';
     imperium_self.game.status = html;
-  imperium_self.hud.updateStatus(imperium_self.game.status);
-  imperium_self.hud.updateMenu([]);
+  imperium_self.hud.prepareIdle(imperium_self.game.status);
   imperium_self.hud.updateCards([]);
 
   $('.option').off();
@@ -26398,8 +26265,7 @@ playerSelectInfantryToLand(sector) {
           html += '</div>';
 
             imperium_self.game.status = html;
-      imperium_self.hud.updateStatus(imperium_self.game.status);
-      imperium_self.hud.updateMenu([]);
+      imperium_self.hud.prepareIdle(imperium_self.game.status);
       imperium_self.hud.updateCards([]);
 
       $('.option').off();
@@ -26515,7 +26381,7 @@ playerInvadePlanet(player, sector, auto_option=1) {
     ];
 
         this.game.status = html;
-    this.hud.updateStatus(this.game.status);
+    this.hud.preparePrompt(this.game.status);
     this.hud.updateCards([]);
     this.hud.updateMenu(auto_menu, function (choice) {
 
@@ -26575,8 +26441,7 @@ playerInvadePlanet(player, sector, auto_option=1) {
   html += '<li class="option" id="confirm">launch invasion(s)</li>';
   html += '</ul>';
     this.game.status = html;
-  this.hud.updateStatus(this.game.status);
-  this.hud.updateMenu([]);
+  this.hud.prepareIdle(this.game.status);
   this.hud.updateCards([]);
 
   let populated_planet_forces = 0;
@@ -26773,8 +26638,7 @@ playerActivateSystem() {
   let ypos = 0;
 
     imperium_self.game.status = html;
-  imperium_self.hud.updateStatus(imperium_self.game.status);
-  imperium_self.hud.updateMenu([]);
+  imperium_self.hud.prepareIdle(imperium_self.game.status);
   imperium_self.hud.updateCards([]);
 
   $('.sector').off();
@@ -26866,7 +26730,7 @@ playerActivateSystem() {
       ];
 
             imperium_self.game.status = chtml;
-      imperium_self.hud.updateStatus(imperium_self.game.status);
+      imperium_self.hud.preparePrompt(imperium_self.game.status);
       imperium_self.hud.updateCards([]);
       imperium_self.hud.updateMenu(cmenu, function (action2) {
 
@@ -26940,7 +26804,7 @@ playerPostActivateSystem(sector) {
   menu.push({ id: 'finish', label: 'end turn' });
 
     imperium_self.game.status = html;
-  imperium_self.hud.updateStatus(imperium_self.game.status);
+  imperium_self.hud.preparePrompt(imperium_self.game.status);
   imperium_self.hud.updateCards([]);
   imperium_self.hud.updateMenu(menu, function (action2) {
     if (action2 == "action") {
@@ -27060,8 +26924,7 @@ playerAllocateNewTokens(player, tokens, resolve_needed = 1, stage = 0, leadershi
       html += '</ul>';
 
             imperium_self.game.status = html;
-      imperium_self.hud.updateStatus(imperium_self.game.status);
-      imperium_self.hud.updateMenu([]);
+      imperium_self.hud.prepareIdle(imperium_self.game.status);
       imperium_self.hud.updateCards([]);
 
       $('.option').off();
@@ -27131,7 +26994,7 @@ playerSelectPlayerWithFilter(msg, filter_func, mycallback = null, cancel_func = 
   }
 
     this.game.status = html;
-  this.hud.updateStatus(this.game.status);
+  this.hud.preparePrompt(this.game.status);
   this.hud.updateCards([]);
   this.hud.updateMenu(menu, function (action) {
 
@@ -27164,7 +27027,7 @@ playerSelectSectorWithFilter(msg, filter_func, mycallback = null, cancel_func = 
   }
 
     this.game.status = html;
-  this.hud.updateStatus(this.game.status);
+  this.hud.preparePrompt(this.game.status);
   this.hud.updateCards([]);
   this.hud.updateMenu(menu, function (action) {
 
@@ -27178,8 +27041,7 @@ playerSelectSectorWithFilter(msg, filter_func, mycallback = null, cancel_func = 
     }
 
         imperium_self.game.status = "";
-    imperium_self.hud.updateStatus(imperium_self.game.status);
-    imperium_self.hud.updateMenu([]);
+    imperium_self.hud.prepareIdle(imperium_self.game.status);
     imperium_self.hud.updateCards([]);
     mycallback(imperium_self.game.board[action].tile);
 
@@ -27225,7 +27087,7 @@ playerSelectChoice(msg, choices, elect = "other", mycallback = null) {
   }
 
     this.game.status = html;
-  this.hud.updateStatus(this.game.status);
+  this.hud.preparePrompt(this.game.status);
   this.hud.updateCards([]);
   this.hud.updateMenu(menu, function (action) {
     mycallback(action);
@@ -27260,7 +27122,7 @@ playerSelectPlanetWithFilter(msg, filter_func, mycallback = null, cancel_func = 
   }
 
     this.game.status = html;
-  this.hud.updateStatus(this.game.status);
+  this.hud.preparePrompt(this.game.status);
   this.hud.updateCards([]);
   this.hud.updateMenu(menu, function (action) {
 
@@ -27276,8 +27138,7 @@ playerSelectPlanetWithFilter(msg, filter_func, mycallback = null, cancel_func = 
     }
 
         imperium_self.game.status = "";
-    imperium_self.hud.updateStatus(imperium_self.game.status);
-    imperium_self.hud.updateMenu([]);
+    imperium_self.hud.prepareIdle(imperium_self.game.status);
     imperium_self.hud.updateCards([]);
     imperium_self.hideSectorHighlight(action);
     mycallback(action);
@@ -27348,7 +27209,7 @@ playerSelectUnitInSectorWithFilter(msg, sector, filter_func, mycallback = null, 
   }
 
     this.game.status = html;
-  this.hud.updateStatus(this.game.status);
+  this.hud.preparePrompt(this.game.status);
   this.hud.updateCards([]);
   this.hud.updateMenu(menu, function (action) {
 
@@ -27366,8 +27227,7 @@ playerSelectUnitInSectorWithFilter(msg, sector, filter_func, mycallback = null, 
     let unit_to_return = { sector: sector_array[action], planet_idx: planet_array[action], unit_idx: unit_idx[action], unit: unit_array[action] }
 
         imperium_self.game.status = "";
-    imperium_self.hud.updateStatus(imperium_self.game.status);
-    imperium_self.hud.updateMenu([]);
+    imperium_self.hud.prepareIdle(imperium_self.game.status);
     imperium_self.hud.updateCards([]);
     mycallback(unit_to_return);
 
@@ -27430,7 +27290,7 @@ playerSelectUnitWithFilter(msg, filter_func, mycallback = null, cancel_func = nu
   }
 
     this.game.status = html;
-  this.hud.updateStatus(this.game.status);
+  this.hud.preparePrompt(this.game.status);
   this.hud.updateCards([]);
   this.hud.updateMenu(menu, function (action) {
 
@@ -27448,8 +27308,7 @@ playerSelectUnitWithFilter(msg, filter_func, mycallback = null, cancel_func = nu
     let unit_to_return = { sector: sector_array[action], planet_idx: planet_array[action], unit_idx: unit_idx[action], unit: unit_array[action] }
 
         imperium_self.game.status = "";
-    imperium_self.hud.updateStatus(imperium_self.game.status);
-    imperium_self.hud.updateMenu([]);
+    imperium_self.hud.prepareIdle(imperium_self.game.status);
     imperium_self.hud.updateCards([]);
     mycallback(unit_to_return);
 
@@ -27512,7 +27371,7 @@ playerSelectOpponentUnitInSectorWithFilter(msg, sector, filter_func, mycallback 
   }
 
     this.game.status = html;
-  this.hud.updateStatus(this.game.status);
+  this.hud.preparePrompt(this.game.status);
   this.hud.updateCards([]);
   this.hud.updateMenu(menu, function (action) {
 
@@ -27530,8 +27389,7 @@ playerSelectOpponentUnitInSectorWithFilter(msg, sector, filter_func, mycallback 
     let unit_to_return = { sector: sector_array[action], planet_idx: planet_array[action], unit_idx: unit_idx[action], unit: unit_array[action] }
 
         imperium_self.game.status = "";
-    imperium_self.hud.updateStatus(imperium_self.game.status);
-    imperium_self.hud.updateMenu([]);
+    imperium_self.hud.prepareIdle(imperium_self.game.status);
     imperium_self.hud.updateCards([]);
     mycallback(unit_to_return);
 
@@ -27562,7 +27420,7 @@ playerSelectUnitInSectorFilter(msg, sector, filter_func, mycallback = null, canc
   }
 
     this.game.status = html;
-  this.hud.updateStatus(this.game.status);
+  this.hud.preparePrompt(this.game.status);
   this.hud.updateCards([]);
   this.hud.updateMenu(menu, function (action) {
 
@@ -27600,8 +27458,7 @@ playerDiscardActionCards(num, mycallback=null) {
   html += '</ul>';
 
     this.game.status = html;
-  this.hud.updateStatus(this.game.status);
-  this.hud.updateMenu([]);
+  this.hud.prepareIdle(this.game.status);
   this.hud.updateCards([]);
 
   $('.textchoice').off();
@@ -27624,8 +27481,7 @@ playerDiscardActionCards(num, mycallback=null) {
 
       if (mycallback == null) {
                 imperium_self.game.status = "discarding...";
-        imperium_self.hud.updateStatus(imperium_self.game.status);
-        imperium_self.hud.updateMenu([]);
+        imperium_self.hud.prepareIdle(imperium_self.game.status);
         imperium_self.hud.updateCards([]);
         imperium_self.endTurn();
       } else {
@@ -28926,8 +28782,7 @@ console.log(JSON.stringify(factions));
     for (let i = 0; i < this.game.state.players_info.length; i++) {
       if (this.game.state.players_info[i].vp >= this.game.state.vp_target) {
                 this.game.status = "Game Over: " + this.returnFaction(i+1) + " has reached "+this.game.state.vo_target+" VP";
-        this.hud.updateStatus(this.game.status);
-        this.hud.updateMenu([]);
+        this.hud.prepareIdle(this.game.status);
         this.hud.updateCards([]);
         return 1;
       }
@@ -32518,8 +32373,6 @@ addUIEvents() {
   document.documentElement.style.setProperty('--my-color', `var(--p${this.game.player})`);
   this.displayFactionDashboard();
 
-  this.factionbar.render(this.game.player);
-  this.tokenbar.render(this.game.player);
 
 }
 
@@ -32602,8 +32455,6 @@ hideSector(pid) {
 updateTokenDisplay() {
 
   let imperium_self = this;
-  this.factionbar.render(this.game.player);
-  this.tokenbar.render(this.game.player);
 
 }
 

@@ -41,9 +41,21 @@ class ProductionOverlay {
     this.attachEvents();
   }
 
+  limitLabel(used) {
+    let limit = this.production_limit;
+    if (used > 0) {
+      return used + ' / ' + limit;
+    }
+    return limit + (limit == 1 ? ' unit' : ' units');
+  }
+
   update(stuff_to_build, calculated_total_cost) {
     document.querySelector('.production-description .required').innerHTML =
       calculated_total_cost + (calculated_total_cost == 1 ? ' resource' : ' resources');
+    let limit = document.querySelector('.production-description .production_limit');
+    if (limit) {
+      limit.innerHTML = this.limitLabel(stuff_to_build.length);
+    }
   }
 
   reset() {
@@ -55,6 +67,10 @@ class ProductionOverlay {
       desc.classList.remove('highlight');
     });
     document.querySelector('.production-description .required').innerHTML = '0 resources';
+    let limit = document.querySelector('.production-description .production_limit');
+    if (limit) {
+      limit.innerHTML = this.limitLabel(0);
+    }
   }
 
   attachEvents() {

@@ -29,7 +29,7 @@ this.importFaction("faction2", {
   background: "faction2.jpg",
   promissary_notes: ["trade", "political", "ceasefire", "throne", "faction2-promissary"],
   commodity_limit: 4,
-  intro: `<div style="font-weight:bold">Welcome to Red Imperium!</div><div style="line-height:2.8rem;margin-top:10px;margin-bottom:0px;">You are playing as the Universities of Jol Nar, a physically weak faction which excells at science and technology. Survive long enough to amass enough protective technology and you can be a contender for the Imperial Throne. Good luck!</div>`,
+  intro: `You are the Universities of Jol-Nar, an amphibious race whose mastery of science fuels a relentless pursuit for the power of the Imperial Throne.`,
 });
 
 this.importTech("faction2-flagship", {
@@ -139,7 +139,7 @@ this.importTech("faction2-brilliant", {
               ];
 
                             imperium_self.game.status = html;
-              imperium_self.hud.updateStatus(imperium_self.game.status);
+              imperium_self.hud.preparePrompt(imperium_self.game.status);
               imperium_self.hud.updateCards([]);
               imperium_self.hud.updateMenu(menu, function (id) {
 
@@ -187,7 +187,7 @@ this.importTech("faction2-brilliant", {
                   menu.push({ id: 'no', label: 'No' });
 
                                     imperium_self.game.status = html;
-                  imperium_self.hud.updateStatus(imperium_self.game.status);
+                  imperium_self.hud.preparePrompt(imperium_self.game.status);
                   imperium_self.hud.updateCards([]);
                   imperium_self.hud.updateMenu(menu, function (id) {
 
@@ -312,7 +312,7 @@ this.importTech("faction2-deep-space-conduits", {
     ];
 
         imperium_self.game.status = html;
-    imperium_self.hud.updateStatus(imperium_self.game.status);
+    imperium_self.hud.preparePrompt(imperium_self.game.status);
     imperium_self.hud.updateCards([]);
     imperium_self.hud.updateMenu(menu, function (action) {
 
@@ -339,8 +339,7 @@ this.importTech("faction2-deep-space-conduits", {
 
       if (action == "no") {
                 imperium_self.game.status = '';
-        imperium_self.hud.updateStatus(imperium_self.game.status);
-        imperium_self.hud.updateMenu([]);
+        imperium_self.hud.prepareIdle(imperium_self.game.status);
         imperium_self.hud.updateCards([]);
         imperium_self.endTurn();
       }
@@ -373,7 +372,7 @@ this.importPromissary("faction2-promissary", {
       ];
 
             imperium_self.game.status = html;
-      imperium_self.hud.updateStatus(imperium_self.game.status);
+      imperium_self.hud.preparePrompt(imperium_self.game.status);
       imperium_self.hud.updateCards([]);
       imperium_self.hud.updateMenu(menu, function (id) {
 

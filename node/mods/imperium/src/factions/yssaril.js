@@ -12,7 +12,7 @@
       background	: 	'faction6.jpg' ,
       promissary_notes	:	["trade","political","ceasefire","throne","faction6-promissary"],
       commodity_limit	:	3,
-      intro             :       `<div style="font-weight:bold">Welcome to Red Imperium!</div><div style="line-height:2.8rem;margin-top:10px;margin-bottom:0px;">You are playing as the Yssaril Tribe, a primitive race of swamp-dwelling creatures whose fast instincts and almost unerring ability to change tactics on-the-fly lead many to suspect more is at work than their primitive appearance belies. Good luck!</div>`
+      intro             :       `Overlooked and disregarded by the more established diplomatic races, your race has a quiet advantage in your speed and subtly of tactical shift.`
     });
 
 
@@ -132,8 +132,7 @@
 	    });
 	  } else {
 	    	    imperium_self.game.status = "Yssaril are discarding an action card...";
-	    imperium_self.hud.updateStatus(imperium_self.game.status);
-	    imperium_self.hud.updateMenu([]);
+	    imperium_self.hud.prepareIdle(imperium_self.game.status);
 	    imperium_self.hud.updateCards([]);
 	  }
 
@@ -284,7 +283,7 @@
 	    menu.push({ id: 'cancel', label: 'skip' });
 
 	    	    imperium_self.game.status = html;
-	    imperium_self.hud.updateStatus(imperium_self.game.status);
+	    imperium_self.hud.preparePrompt(imperium_self.game.status);
 	    imperium_self.hud.updateCards([]);
 
             imperium_self.hud.updateMenu(menu, function (opt) {
@@ -368,7 +367,7 @@
               menu.push({ id: 'no', label: 'no' });
 
                     imperium_self.game.status = html;
-          imperium_self.hud.updateStatus(imperium_self.game.status);
+          imperium_self.hud.preparePrompt(imperium_self.game.status);
           imperium_self.hud.updateCards([]);
 
           imperium_self.hud.updateMenu(menu, function(id) {
@@ -414,8 +413,7 @@
 
 	  if (relevant_action_cards.length <= 0) {
 	    	    imperium_self.game.status = "Yssaril has no action cards to steal...";
-	    imperium_self.hud.updateStatus(imperium_self.game.status);
-	    imperium_self.hud.updateMenu([]);
+	    imperium_self.hud.prepareIdle(imperium_self.game.status);
 	    imperium_self.hud.updateCards([]);
 	    return 1;
 	  }

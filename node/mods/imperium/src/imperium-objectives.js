@@ -16,14 +16,17 @@
     if (obj.returnCardImage == null) {
       obj.returnCardImage = function() {
         return `
-	  <div class="objectives_overlay_objectives_card" style="background-image: url(${obj.img})">
-            <div class="objectives_card_name">${obj.name}</div>
-              <div class="objectives_card_content">
-                ${obj.text}
-              <div class="objectives_secret_notice">secret</div>
+          <article class="objective-card is-secret">
+            <div class="objective-card-art" style="background-image: url(${obj.img})">
+              <div class="objective-card-vp">${obj.vp}</div>
             </div>
-	  </div>
-	`;
+            <div class="objective-card-body">
+              <div class="objective-card-kind">Secret</div>
+              <div class="objective-card-name">${obj.name}</div>
+              <div class="objective-card-text">${obj.text}</div>
+            </div>
+          </article>
+        `;
       };
     }
 
@@ -48,10 +51,16 @@
     if (obj.returnCardImage == null) {
       obj.returnCardImage = function() {
         return `
-          <div class="objectives_overlay_objectives_card" style="background-image: url(${obj.img})">
-            <div class="objectives_card_name">${obj.name}</div>
-            <div class="objectives_card_content">${obj.text}</div>
-          </div>
+          <article class="objective-card is-stage-i">
+            <div class="objective-card-art" style="background-image: url(${obj.img})">
+              <div class="objective-card-vp">${obj.vp}</div>
+            </div>
+            <div class="objective-card-body">
+              <div class="objective-card-kind">Stage I</div>
+              <div class="objective-card-name">${obj.name}</div>
+              <div class="objective-card-text">${obj.text}</div>
+            </div>
+          </article>
         `;
       };
     }
@@ -77,10 +86,16 @@
     if (obj.returnCardImage == null) {
       obj.returnCardImage = function() {
         return `
-          <div class="objectives_overlay_objectives_card" style="background-image: url(${obj.img})">
-            <div class="objectives_card_name">${obj.name}</div>
-            <div class="objectives_card_content">${obj.text}</div>
-          </div>
+          <article class="objective-card is-stage-ii">
+            <div class="objective-card-art" style="background-image: url(${obj.img})">
+              <div class="objective-card-vp">${obj.vp}</div>
+            </div>
+            <div class="objective-card-body">
+              <div class="objective-card-kind">Stage II</div>
+              <div class="objective-card-name">${obj.name}</div>
+              <div class="objective-card-text">${obj.text}</div>
+            </div>
+          </article>
         `;
       };
     }

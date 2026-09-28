@@ -86,7 +86,7 @@ ACTION CARD - types
 	    }
 
 	    	    imperium_self.game.status = html;
-	    imperium_self.hud.updateStatus(imperium_self.game.status);
+	    imperium_self.hud.preparePrompt(imperium_self.game.status);
 	    imperium_self.hud.updateCards([]);
 
 	    imperium_self.hud.updateMenu(menu, function(card) {
@@ -222,7 +222,7 @@ console.log("qe: " + qe);
             menu.push({ id: 'cancel', label: 'cancel' });
 
 	    	    imperium_self.game.status = html;
-	    imperium_self.hud.updateStatus(imperium_self.game.status);
+	    imperium_self.hud.preparePrompt(imperium_self.game.status);
 	    imperium_self.hud.updateCards([]);
 
 	    imperium_self.hud.updateMenu(menu, function(card) {
@@ -277,7 +277,7 @@ console.log("qe: " + qe);
             }
 
                         imperium_self.game.status = html;
-            imperium_self.hud.updateStatus(imperium_self.game.status);
+            imperium_self.hud.preparePrompt(imperium_self.game.status);
             imperium_self.hud.updateCards([]);
 
             imperium_self.hud.updateMenu(menu, function(agenda_to_quash) {
@@ -285,8 +285,7 @@ console.log("qe: " + qe);
 	      imperium_self.hideAgendaCard(agenda_to_quash);
 
                             imperium_self.game.status = "Quashing Agenda";
-              imperium_self.hud.updateStatus(imperium_self.game.status);
-              imperium_self.hud.updateMenu([]);
+              imperium_self.hud.prepareIdle(imperium_self.game.status);
               imperium_self.hud.updateCards([]);
               imperium_self.addMove("quash\t"+agenda_to_quash+"\t"+"1"); // 1 = re-deal
               imperium_self.endTurn();
@@ -1084,7 +1083,7 @@ console.log("qe: " + qe);
                     menu.push({ id: 'command', label: 'command token' });
                     menu.push({ id: 'strategy', label: 'strategy token' });
 	        	        imperium_self.game.status = html;
-	        imperium_self.hud.updateStatus(imperium_self.game.status);
+	        imperium_self.hud.preparePrompt(imperium_self.game.status);
 	        imperium_self.hud.updateCards([]);
 
 	        imperium_self.hud.updateMenu(menu, function(tokentype) {

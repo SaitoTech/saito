@@ -11,7 +11,7 @@
       background	: 	'faction3.jpg',
       commodity_limit	:	4,
       promissary_notes	:	["trade","political","ceasefire","throne","faction3-promissary"],
-      intro             :       `<div style="font-weight:bold">Welcome to Red Imperium!</div><div style="line-height:2.8rem;margin-top:10px;margin-bottom:0px;">You are playing as the XXCha Kingdom, a faction which excels in diplomacy and defensive weaponry. With the proper alliances and political maneuvers your faction you can be a contender for the Imperial Throne. Good luck!</div>`
+      intro             :       `Your weapons are a cautious diplomacy and fleet armed with such "defensive" weapons that few have survived to contest such description.`
     });
   
 
@@ -156,8 +156,7 @@
 	  if (imperium_self.game.state.players_info[player-1].peace_accords == 1) {
 
 	    	    imperium_self.game.status = "XXCha selecting planet to annex with Peace Accords";
-	    imperium_self.hud.updateStatus(imperium_self.game.status);
-	    imperium_self.hud.updateMenu([]);
+	    imperium_self.hud.prepareIdle(imperium_self.game.status);
 	    imperium_self.hud.updateCards([]);
 
 	    if (imperium_self.game.player == player) {
@@ -238,13 +237,12 @@
           }
 
                     imperium_self.game.status = html;
-          imperium_self.hud.updateStatus(imperium_self.game.status);
+          imperium_self.hud.preparePrompt(imperium_self.game.status);
           imperium_self.hud.updateCards([]);
 
           imperium_self.hud.updateMenu(menu, function(agenda_to_quash) {
 	     	     imperium_self.game.status = "Quashing Agenda";
-	     imperium_self.hud.updateStatus(imperium_self.game.status);
-	     imperium_self.hud.updateMenu([]);
+	     imperium_self.hud.prepareIdle(imperium_self.game.status);
 	     imperium_self.hud.updateCards([]);
 
              imperium_self.addMove("expend\t"+imperium_self.game.player+"\t"+"strategy"+"\t"+"1");
@@ -294,7 +292,7 @@
           ];
 
                     imperium_self.game.status = html;
-          imperium_self.hud.updateStatus(imperium_self.game.status);
+          imperium_self.hud.preparePrompt(imperium_self.game.status);
           imperium_self.hud.updateCards([]);
           imperium_self.hud.updateMenu(menu, function (action2) {
             if (action2 === "no") {
@@ -354,8 +352,7 @@
 
 	  if (imperium_self.game.player != player) {
 	    	    imperium_self.game.status = imperium_self.returnFaction(player) + " is deciding whether to use Nullification Fields";
-	    imperium_self.hud.updateStatus(imperium_self.game.status);
-	    imperium_self.hud.updateMenu([]);
+	    imperium_self.hud.prepareIdle(imperium_self.game.status);
 	    imperium_self.hud.updateCards([]);
 	    return 0;
 	  }
@@ -367,7 +364,7 @@
 	  ];
 
 	  	  imperium_self.game.status = html;
-	  imperium_self.hud.updateStatus(imperium_self.game.status);
+	  imperium_self.hud.preparePrompt(imperium_self.game.status);
 	  imperium_self.hud.updateCards([]);
 	  imperium_self.hud.updateMenu(menu, function (choice) {
 
@@ -444,13 +441,12 @@
           }
 
                     imperium_self.game.status = html;
-          imperium_self.hud.updateStatus(imperium_self.game.status);
+          imperium_self.hud.preparePrompt(imperium_self.game.status);
           imperium_self.hud.updateCards([]);
 
           imperium_self.hud.updateMenu(menu, function(agenda_to_quash) {
                           imperium_self.game.status = "Quashing Agenda";
-             imperium_self.hud.updateStatus(imperium_self.game.status);
-             imperium_self.hud.updateMenu([]);
+             imperium_self.hud.prepareIdle(imperium_self.game.status);
              imperium_self.hud.updateCards([]);
 
              imperium_self.addMove("quash\t"+agenda_to_quash+"\t"+"1"); // 1 = re-deal

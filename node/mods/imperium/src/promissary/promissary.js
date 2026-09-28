@@ -21,8 +21,7 @@
 
 	if (imperium_self.game.player != player) {
 	  	  imperium_self.game.status = imperium_self.returnFaction(player) + " is deciding whether to use Ceasefire";
-	  imperium_self.hud.updateStatus(imperium_self.game.status);
-	  imperium_self.hud.updateMenu([]);
+	  imperium_self.hud.prepareIdle(imperium_self.game.status);
 	  imperium_self.hud.updateCards([]);
 	  return 0; 
 	}
@@ -33,7 +32,7 @@
         menu.push({ id: 'nothing', label: 'do nothing' });
 
                 imperium_self.game.status = html;
-        imperium_self.hud.updateStatus(imperium_self.game.status);
+        imperium_self.hud.preparePrompt(imperium_self.game.status);
         imperium_self.hud.updateCards([]);
 
         imperium_self.hud.updateMenu(menu, function (opt) {
@@ -144,7 +143,7 @@
           }
 
                     imperium_self.game.status = html;
-          imperium_self.hud.updateStatus(imperium_self.game.status);
+          imperium_self.hud.preparePrompt(imperium_self.game.status);
           imperium_self.hud.updateCards([]);
 
           imperium_self.hud.updateMenu(menu, function(i) {

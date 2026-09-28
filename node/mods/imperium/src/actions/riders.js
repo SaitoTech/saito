@@ -119,7 +119,7 @@
               menu.push({ id: String(i), label: factions[imperium_self.game.state.players_info[i].faction].name });
             }
                         imperium_self.game.status = html;
-            imperium_self.hud.updateStatus(imperium_self.game.status);
+            imperium_self.hud.preparePrompt(imperium_self.game.status);
             imperium_self.hud.updateCards([]);
 
             let chancellor = imperium_self.game.player;

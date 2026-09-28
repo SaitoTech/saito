@@ -100,8 +100,7 @@
           imperium_self.addMove("NOTIFY\t"+player+" activates fleet logistics");
 	  imperium_self.endTurn();
 	  	  imperium_self.game.status = "Activating Fleet Logistics";
-	  imperium_self.hud.updateStatus(imperium_self.game.status);
-	  imperium_self.hud.updateMenu([]);
+	  imperium_self.hud.prepareIdle(imperium_self.game.status);
 	  imperium_self.hud.updateCards([]);
         }
         return 0;

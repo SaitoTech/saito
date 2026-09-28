@@ -10,7 +10,7 @@
       background	: 	'faction5.jpg' ,
       promissary_notes	:	["trade","political","ceasefire","throne","faction5-promissary"],
       commodity_limit	:	2,
-      intro             :       `<div style="font-weight:bold">Welcome to Red Imperium!</div><div style="line-height:2.8rem;margin-top:10px;margin-bottom:0px;">You are playing as the Yin Brotherhood, a monastic order of religious zealots whose eagerness to sacrifice their lives for the collective good makes them terrifying in one-on-one combat. Direct their self-destructive passion and you can win the Imperial Throne. Good luck!</div>`
+      intro             :       `Those who live will live. Those who die will die. The fate of the galaxy was determined long before its troubles were known. Be the servants of its actualization.`
     });
 
 
@@ -241,7 +241,7 @@ this.playIndoctrination = function(imperium_self, player, sector, planet_idx, my
     { id: 'no', label: 'no' }
   ];
     this.game.status = html;
-  this.hud.updateStatus(this.game.status);
+  this.hud.preparePrompt(this.game.status);
   this.hud.updateCards([]);
   this.hud.updateMenu(menu, function (action2) {
     if (action2 === "no") {
@@ -298,7 +298,7 @@ this.playDevotion = function(imperium_self, player, sector, mycallback, impulse_
   }
       menu.push({ id: 'no', label: 'no' });
     imperium_self.game.status = html;
-  imperium_self.hud.updateStatus(imperium_self.game.status);
+  imperium_self.hud.preparePrompt(imperium_self.game.status);
   imperium_self.hud.updateCards([]);
   imperium_self.hud.updateMenu(menu, function (action2) {
     if (action2 === "no") {
@@ -359,7 +359,7 @@ this.playDevotionAssignHit = function(imperium_self, player, sector, mycallback,
   }
 
     imperium_self.game.status = html;
-  imperium_self.hud.updateStatus(imperium_self.game.status);
+  imperium_self.hud.preparePrompt(imperium_self.game.status);
   imperium_self.hud.updateCards([]);
   imperium_self.hud.updateMenu(menu, function (unit_idx) {
 
@@ -402,7 +402,7 @@ this.playDevotionAssignHit = function(imperium_self, player, sector, mycallback,
               menu.push({ id: 'no', label: 'No' });
 
                     imperium_self.game.status = html;
-          imperium_self.hud.updateStatus(imperium_self.game.status);
+          imperium_self.hud.preparePrompt(imperium_self.game.status);
           imperium_self.hud.updateCards([]);
 
           imperium_self.hud.updateMenu(menu, function(id) {

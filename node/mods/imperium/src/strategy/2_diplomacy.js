@@ -8,8 +8,7 @@ this.importStrategyCard("diplomacy", {
     if (imperium_self.game.player == strategy_card_player && player == strategy_card_player) {
 
             imperium_self.game.status = 'Select sector to quagmire in diplomatic negotiations, and refresh any planets in that system: ';
-      imperium_self.hud.updateStatus(imperium_self.game.status);
-      imperium_self.hud.updateMenu([]);
+      imperium_self.hud.prepareIdle(imperium_self.game.status);
       imperium_self.hud.updateCards([]);
       imperium_self.playerSelectSector(function(sector) {
 
@@ -66,7 +65,7 @@ this.importStrategyCard("diplomacy", {
       }
       menu.push({ id: 'no', label: 'No' });
             imperium_self.game.status = html;
-      imperium_self.hud.updateStatus(imperium_self.game.status);
+      imperium_self.hud.preparePrompt(imperium_self.game.status);
       imperium_self.hud.updateCards([]);
       imperium_self.hud.updateMenu(menu, function (id) {
 
@@ -93,8 +92,7 @@ this.importStrategyCard("diplomacy", {
           }
 
                     imperium_self.game.status = html;
-          imperium_self.hud.updateStatus(imperium_self.game.status);
-          imperium_self.hud.updateMenu([]);
+          imperium_self.hud.prepareIdle(imperium_self.game.status);
           imperium_self.hud.updateCards([]);
           imperium_self.lockInterface();
 

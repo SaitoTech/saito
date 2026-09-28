@@ -25,7 +25,7 @@ this.importStrategyCard("trade", {
       menu.push({ id: 'finish', label: 'done' });
 
             imperium_self.game.status = html;
-      imperium_self.hud.updateStatus(imperium_self.game.status);
+      imperium_self.hud.preparePrompt(imperium_self.game.status);
       imperium_self.hud.updateCards([]);
 
       let trade_menu = menu.slice();
@@ -77,7 +77,7 @@ this.importStrategyCard("trade", {
 
 
             imperium_self.game.status = html;
-      imperium_self.hud.updateStatus(imperium_self.game.status);
+      imperium_self.hud.preparePrompt(imperium_self.game.status);
       imperium_self.hud.updateCards([]);
 
       imperium_self.lockInterface();

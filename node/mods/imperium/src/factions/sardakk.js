@@ -10,7 +10,7 @@
       background	: 	'faction4.jpg' ,
       promissary_notes	:	["trade","political","ceasefire","throne","faction4-promissary"],
       commodity_limit	:	3,
-      intro             :       `<div style="font-weight:bold">Welcome to Red Imperium!</div><div style="line-height:2.8rem;margin-top:10px;margin-bottom:0px;">You are playing as the Sardaak N'Orr, an overpowered faction known for its raw strength in combat. Your brutal power makes you an intimidating faction on the board. Good luck!</div>`
+      intro             :       `You are the Sardakk N'orr, a race of spiny teeth and jaws whose raw strength and imperviousness to pain has earned a grim reputatation.`
     });
 
 
@@ -186,7 +186,7 @@
             menu.push({ id: 'no', label: 'do not sacrifice' });
 
 	    	    imperium_self.game.status = html;
-	    imperium_self.hud.updateStatus(imperium_self.game.status);
+	    imperium_self.hud.preparePrompt(imperium_self.game.status);
 	    imperium_self.hud.updateCards([]);
 
             imperium_self.hud.updateMenu(menu, function (action2) {
@@ -219,8 +219,7 @@
 	    imperium_self.playerDestroyOpponentShips(player_to_go, 2, mv[2]);
 	  } else {
 	    	    imperium_self.game.status = "Exotrireme II engaging in suicide assault";
-	    imperium_self.hud.updateStatus(imperium_self.game.status);
-	    imperium_self.hud.updateMenu([]);
+	    imperium_self.hud.prepareIdle(imperium_self.game.status);
 	    imperium_self.hud.updateCards([]);
 	  }
 
@@ -366,7 +365,7 @@
               menu.push({ id: 'no', label: 'No' });
 
                     imperium_self.game.status = html;
-          imperium_self.hud.updateStatus(imperium_self.game.status);
+          imperium_self.hud.preparePrompt(imperium_self.game.status);
           imperium_self.hud.updateCards([]);
 
           imperium_self.hud.updateMenu(menu, function(id) {
@@ -406,7 +405,7 @@
               menu.push({ id: 'no', label: 'No' });
 
                     imperium_self.game.status = html;
-          imperium_self.hud.updateStatus(imperium_self.game.status);
+          imperium_self.hud.preparePrompt(imperium_self.game.status);
           imperium_self.hud.updateCards([]);
 
           imperium_self.hud.updateMenu(menu, function(id) {

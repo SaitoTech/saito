@@ -444,8 +444,7 @@
 	  if (player != imperium_self.game.player) {
 	    let html = imperium_self.returnFaction(imperium_self.game.player) + " is deciding whether to Form a Committee";
 	    	    imperium_self.game.status = html;
-	    imperium_self.hud.updateStatus(imperium_self.game.status);
-	    imperium_self.hud.updateMenu([]);
+	    imperium_self.hud.prepareIdle(imperium_self.game.status);
 	    imperium_self.hud.updateCards([]);
 	    return 0;
 	  }
@@ -457,7 +456,7 @@
 	  ];
 
 	  	  imperium_self.game.status = html;
-	  imperium_self.hud.updateStatus(imperium_self.game.status);
+	  imperium_self.hud.preparePrompt(imperium_self.game.status);
 	  imperium_self.hud.updateCards([]);
 	  imperium_self.hud.updateMenu(menu, function (action) {
 
@@ -2161,8 +2160,7 @@
               },
 	      function(player) {
 				imperium_self.game.status = "";
-		imperium_self.hud.updateStatus(imperium_self.game.status);
-		imperium_self.hud.updateMenu([]);
+		imperium_self.hud.prepareIdle(imperium_self.game.status);
 		imperium_self.hud.updateCards([]);
 		imperium_self.addMove("produce\t" + player + "\t" + "1" + "\t" + planet_idx + "\t" + "infantry" + "\t" + sector);
 		imperium_self.addMove("annex\t" + player + "\t" + sector + "\t" + planet_idx);

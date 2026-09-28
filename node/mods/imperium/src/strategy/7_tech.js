@@ -92,7 +92,7 @@ this.importStrategyCard("technology", {
       menu.push({ id: 'no', label: 'No' });
 
             imperium_self.game.status = html;
-      imperium_self.hud.updateStatus(imperium_self.game.status);
+      imperium_self.hud.preparePrompt(imperium_self.game.status);
       imperium_self.hud.updateCards([]);
 
       imperium_self.hud.updateMenu(menu, async function (id) {
@@ -160,7 +160,7 @@ this.importStrategyCard("technology", {
       menu.push({ id: 'no', label: 'No' });
 
             imperium_self.game.status = html;
-      imperium_self.hud.updateStatus(imperium_self.game.status);
+      imperium_self.hud.preparePrompt(imperium_self.game.status);
       imperium_self.hud.updateCards([]);
 
       imperium_self.hud.updateMenu(menu, function (id) {

@@ -36,6 +36,7 @@ const TokenBar = require('./lib/tokenbar');
 const Dashboard = require('./lib/dashboard-manager');
 const RoundBox = require('./lib/round');
 const Sector = require('./lib/sector');
+const ImperiumGameHUD = require('./lib/imperium-game-hud/imperium-game-hud');
 
 
 class Imperium extends GameTemplate {
@@ -43,6 +44,7 @@ class Imperium extends GameTemplate {
   constructor(app) {
   
     super(app);
+    this.hud = new ImperiumGameHUD(app, this);
   
     this.name             = "Imperium";
     this.gamename         = "Red Imperium";

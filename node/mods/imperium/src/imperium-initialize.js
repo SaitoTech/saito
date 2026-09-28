@@ -292,7 +292,7 @@
 //
 //    this.loadGame(game_id);
 
-    if (this.game.status != "") {     this.hud.updateStatus(this.game.status); }
+    if (this.game.status != "") {     this.hud.prepareIdle(this.game.status); }
   
     //
     // specify players
