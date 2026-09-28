@@ -448,6 +448,9 @@ displayFactionDashboard(agenda_phase=0) {
       let available_influence = this.returnAvailableInfluence((i+1)) - this.game.state.players_info[i].goods;
 
       document.querySelector(`.${pl} .dash-faction-name`).innerHTML = this.returnFaction(i+1);
+      document.querySelector(`.${pl} .dash-item-strategy`).innerHTML = this.game.state.players_info[i].strategy_tokens;
+      document.querySelector(`.${pl} .dash-item-command`).innerHTML = this.game.state.players_info[i].command_tokens;
+      document.querySelector(`.${pl} .dash-item-fleet`).innerHTML = this.game.state.players_info[i].fleet_supply;
       try {
 // availableinfluence first as rest will error-out on agenda overlay
       document.querySelector(`.${pl} .influence .avail`).innerHTML = available_influence;
@@ -698,12 +701,13 @@ updateLeaderboard() {
   }
   showActionCard(c) {
     let thiscard = this.action_cards[c];
-    let html = `
-      <div class="overlay_action_card bc">
-        <div class="action_card_name">${thiscard.name}</div>
-        <div class="action_card_content">${thiscard.text}</div>
-      </div>
-    `;
+    if (!thiscard) {
+      return;
+    }
+    let html = typeof thiscard.returnCardImage === 'function' ? thiscard.returnCardImage() : '';
+    if (!html) {
+      return;
+    }
     this.cardbox.showCardboxHTML(thiscard, html);
   }
   hideActionCard(c) {

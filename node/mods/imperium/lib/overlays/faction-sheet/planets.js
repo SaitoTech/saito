@@ -19,7 +19,7 @@ class FactionSheetPlanets {
   }
 
   bindPayment(el, payment) {
-    el.querySelectorAll('.fs-planet.is-payable').forEach((card) => {
+    el.querySelectorAll('.fs-planet.is-payable, .fs-planet.is-committed').forEach((card) => {
       card.onclick = (e) => {
         e.preventDefault();
         e.stopPropagation();
@@ -32,6 +32,21 @@ class FactionSheetPlanets {
         e.preventDefault();
         e.stopPropagation();
         payment.commit('goods');
+      };
+    }
+    el.querySelectorAll('.fs-pay-drop').forEach((row) => {
+      row.onclick = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        payment.commit(row.getAttribute('data-kind') == 'goods' ? 'goods-remove' : 'planet', row.getAttribute('data-id'));
+      };
+    });
+    let submit = el.querySelector('.fs-pay-submit');
+    if (submit) {
+      submit.onclick = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        payment.commit('submit');
       };
     }
   }

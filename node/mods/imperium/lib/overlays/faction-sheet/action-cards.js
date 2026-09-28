@@ -1,6 +1,6 @@
-const Template = require('./units.template');
+const Template = require('./action-cards.template');
 
-class FactionSheetUnits {
+class FactionSheetActionCards {
   constructor(app, mod) {
     this.app = app;
     this.mod = mod;
@@ -15,4 +15,4 @@ class FactionSheetUnits {
   }
 }
 
-module.exports = FactionSheetUnits;
+module.exports = FactionSheetActionCards;

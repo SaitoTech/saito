@@ -12,15 +12,20 @@
   }
 
   .agenda-card-title {
-    font-weight: bold;
+    font-family: 'orbitron-medium', helvetica, arial;
+    font-weight: normal;
     text-align: center;
-    font-size: 1.667rem;
+    font-size: 1.5rem;
+    line-height: 1.25;
     margin-bottom: 0.833rem;
   }
 
   .agenda-card-content {
-    font-size: 1.25rem;
-    line-height: 1.75rem;
+    font-family: 'orbitron-light', helvetica, arial;
+    font-weight: normal;
+    font-size: 1.15rem;
+    line-height: 1.45;
+    text-align: center;
   }
 
   .saito-overlay:has(> .agenda-overlay) {

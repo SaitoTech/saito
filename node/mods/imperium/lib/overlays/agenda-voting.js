@@ -19,8 +19,8 @@ class AgendaVotingOverlay {
       let el = document.getElementById('game-hud2');
       if (el) {
         el.classList.remove('voting-hud');
-        el.style.top = 'unset';
-        el.style.bottom = '0px';
+        el.style.top = '';
+        el.style.bottom = '';
         el.style.zIndex = 11;
       }
 

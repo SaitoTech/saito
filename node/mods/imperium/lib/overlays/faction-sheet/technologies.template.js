@@ -159,6 +159,17 @@ function nextUpgrades(mod, faction, owned) {
   return next;
 }
 
+function choosable(mod, player, key) {
+  let research = mod.faction_sheet_overlay && mod.faction_sheet_overlay.technology_research;
+  if (!research || player != mod.game.player) {
+    return false;
+  }
+  if (typeof mod.canPlayerResearchTechnology !== 'function') {
+    return false;
+  }
+  return !!mod.canPlayerResearchTechnology(key);
+}
+
 function nodeState(key, tech, owned, counts, pinfo) {
   if (owned.indexOf(key) != -1) {
     return 'researched';
@@ -232,7 +243,9 @@ function render(mod, player) {
         let buttons = tier_nodes
           .map((node, index) => {
             let mark = node.factional ? '<sup class="fs-tech-faction-mark">*</sup>' : '';
-            return `<button type="button" class="fs-tech-node is-${node.state}" style="--stack:${index + 1}" data-key="${esc(node.key)}" data-kind="tech" data-color="${esc(node.color)}"><span class="fs-tech-node-name">${esc(node.name)}${mark}</span></button>`;
+            let choice = choosable(mod, player, node.key) ? ' is-choice' : '';
+            let choiceTitle = choice ? ' title="you can research this"' : '';
+            return `<button type="button" class="fs-tech-node is-${node.state}${choice}" style="--stack:${index + 1}" data-key="${esc(node.key)}" data-kind="tech" data-color="${esc(node.color)}"${choiceTitle}><span class="fs-tech-node-name">${esc(node.name)}${mark}</span></button>`;
           })
           .join('');
         let link = i < model.tier_depths.length - 1 ? '<div class="fs-tech-link"></div>' : '';
@@ -250,8 +263,12 @@ function render(mod, player) {
       if (unit.factional) {
         classes.push('is-faction');
       }
+      if (choosable(mod, player, unit.key)) {
+        classes.push('is-choice');
+      }
       let mark = unit.factional ? '<sup class="fs-tech-faction-mark">*</sup>' : '';
-      return `<button type="button" class="${classes.join(' ')}" data-key="${esc(unit.key)}" data-kind="unit"><span class="fs-upgrade-name">${esc(unit.name)}${mark}</span></button>`;
+      let choiceTitle = classes.indexOf('is-choice') >= 0 ? ' title="you can research this"' : '';
+      return `<button type="button" class="${classes.join(' ')}" data-key="${esc(unit.key)}" data-kind="unit"${choiceTitle}><span class="fs-upgrade-name">${esc(unit.name)}${mark}</span></button>`;
     })
     .join('');
 

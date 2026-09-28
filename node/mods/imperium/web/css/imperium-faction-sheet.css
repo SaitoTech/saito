@@ -29,6 +29,7 @@
     font-family: var(--imp-font);
     font-size: var(--imp-fs-sm);
     letter-spacing: 0.06em;
+    white-space: nowrap;
     cursor: pointer;
     clip-path: polygon(0.55rem 0, calc(100% - 0.55rem) 0, 100% 100%, 0 100%);
     transform: translateY(0.15rem);
@@ -92,10 +93,9 @@
     padding: var(--imp-space-md);
   }
 
-  .faction-sheet-body:has(.fs-pay-status) {
+  .faction-sheet-body:has(.fs-planets-panel.is-paying) {
     overflow: hidden;
     display: flex;
-    flex-direction: column;
     padding: var(--imp-space-md);
   }
 
@@ -238,8 +238,38 @@
   .fs-overview-grid,
   .fs-tech-list,
   .fs-units,
+  .fs-action-cards,
+  .fs-objectives,
   .fs-promissory {
     display: block;
+  }
+
+  .fs-objective-grid {
+    display: flex;
+    flex-flow: row wrap;
+    align-items: stretch;
+    gap: 1.1rem;
+  }
+
+  .fs-objective {
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+  }
+
+  .fs-objective-note {
+    color: #e0c056;
+    font-family: var(--imp-font);
+    font-size: 0.85rem;
+    letter-spacing: 0.08em;
+    text-align: center;
+    text-transform: uppercase;
+  }
+
+  .fs-action-count {
+    font-family: var(--imp-font);
+    font-size: var(--imp-fs-lg);
+    letter-spacing: 0.04em;
   }
 
   .fs-planets {
@@ -329,72 +359,159 @@
     color: #6fbf7a;
   }
 
-  .fs-planets-panel:has(.fs-pay-status) {
+  .fs-planets-panel.is-paying {
     display: flex;
-    flex-direction: column;
     flex: 1;
+    min-width: 0;
     min-height: 0;
     gap: var(--imp-space-md);
   }
 
-  .fs-planets-panel:has(.fs-pay-status) .fs-planets {
-    flex: 1;
+  .fs-planets-panel.is-paying .fs-planets {
+    flex: 1 1 auto;
+    min-width: 0;
     min-height: 0;
     overflow: auto;
+    justify-content: flex-start;
+    align-content: flex-start;
   }
 
-  .fs-pay-status {
-    flex: 0 0 auto;
+  .fs-planet.is-payable,
+  .fs-planet.is-committed {
+    cursor: pointer;
+  }
+
+  .fs-planet.is-payable {
+    outline: 2px solid #e0c056;
+    outline-offset: 2px;
+  }
+
+  .fs-planet.is-committed {
+    outline: 2px solid #fff;
+    outline-offset: 2px;
+  }
+
+  .fs-planet-banner.is-committed {
+    background: color-mix(in srgb, goldenrod 78%, #1a1410);
+    color: #1a1410;
+    border-color: #e0c056;
+  }
+
+  .fs-pay-side {
+    flex: 0 0 min(22rem, 38%);
+    min-height: 0;
     display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: var(--imp-space-md);
-    padding: 0.55rem 0.8rem;
-    background: color-mix(in srgb, #0c0e14 82%, transparent);
+    flex-direction: column;
+    background: #101218;
     border: 1px solid var(--imp-border);
-    border-radius: var(--imp-radius);
+  }
+
+  .fs-pay-side-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: auto;
+    padding: var(--imp-space-md);
+  }
+
+  .fs-pay-kicker {
     font-family: var(--imp-font);
-    letter-spacing: 0.06em;
+    font-size: var(--imp-fs-sm);
+    letter-spacing: 0.08em;
     text-transform: uppercase;
+    color: var(--imp-text-muted);
+    margin-top: var(--imp-space-md);
+  }
+
+  .fs-pay-kicker:first-child {
+    margin-top: 0;
+  }
+
+  .fs-pay-cost {
+    font-family: var(--imp-font);
+    font-size: var(--imp-fs-num);
+    color: var(--imp-text);
+    line-height: 1.1;
+  }
+
+  .fs-pay-paid-line {
+    font-family: var(--imp-font);
+    font-size: var(--imp-fs);
+    color: var(--imp-text);
   }
 
   .fs-pay-paid {
     color: #e0c056;
   }
 
-  .fs-planet.is-payable {
+  .fs-pay-list {
+    list-style: none;
+    margin: var(--imp-space-sm) 0 0;
+    padding: 0;
+  }
+
+  .fs-pay-none {
+    color: var(--imp-text-muted);
+    font-size: var(--imp-fs-sm);
+    padding: 0.35rem 0;
+  }
+
+  .fs-pay-drop,
+  .fs-pay-goods {
+    appearance: none;
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: var(--imp-space-sm);
+    margin-top: 0.35rem;
+    padding: 0.55rem 0.7rem;
     cursor: pointer;
-    outline: 2px solid #e0c056;
-    outline-offset: 2px;
+    color: var(--imp-text);
+    background: transparent;
+    border: 1px solid var(--imp-border);
+    border-radius: var(--imp-radius);
+    font-family: var(--imp-font);
+    font-size: var(--imp-fs-sm);
+    letter-spacing: 0.04em;
+    text-align: left;
   }
 
   .fs-pay-goods {
-    appearance: none;
-    flex: 1 1 14rem;
-    width: min(16rem, 100%);
-    max-width: 16rem;
-    min-width: 11rem;
-    min-height: 8rem;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    gap: 0.4rem;
-    cursor: pointer;
-    color: var(--imp-text);
-    background: color-mix(in srgb, #0c0e14 82%, transparent);
-    border: 1px solid #e0c056;
-    border-radius: var(--imp-radius);
-    font-family: var(--imp-font);
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
+    margin-top: var(--imp-space-md);
+    border-color: #e0c056;
   }
 
-  .fs-pay-goods-count {
-    font-size: var(--imp-fs-num);
+  .fs-pay-goods span,
+  .fs-pay-drop span:last-child {
     color: #e0c056;
-    letter-spacing: 0;
-    text-transform: none;
+  }
+
+  .fs-pay-side-action {
+    flex: 0 0 auto;
+    padding: var(--imp-space-md);
+    border-top: 1px solid var(--imp-border);
+  }
+
+  .fs-pay-submit {
+    width: 100%;
+    appearance: none;
+    font-family: var(--imp-font);
+    font-size: var(--imp-fs);
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--imp-text-muted);
+    background: #1a1d26;
+    border: 1px solid var(--imp-border);
+    border-radius: var(--imp-radius);
+    padding: 0.75rem 1rem;
+    cursor: default;
+  }
+
+  .fs-pay-submit.is-ready {
+    cursor: pointer;
+    color: #1a1410;
+    background: color-mix(in srgb, goldenrod 85%, #fff);
+    border-color: #e0c056;
   }
 
   .fs-unit-meta {
@@ -553,6 +670,46 @@
   .fs-tech-node.is-selected,
   .fs-upgrade.is-selected {
     filter: brightness(1.2);
+  }
+
+  .fs-tech-node.is-choice,
+  .fs-upgrade.is-choice {
+    position: relative;
+    color: #fff;
+    border-color: #fff;
+    background: color-mix(in srgb, #fff 16%, #12141a);
+    box-shadow: 0 0 0 2px #fff, 0 0 0.85rem #ffffff99;
+    animation: fs-choice-pulse 1.6s ease-in-out infinite;
+  }
+
+  .fs-tech-node.is-choice::after,
+  .fs-upgrade.is-choice::after {
+    content: '';
+    position: absolute;
+    top: 0.32rem;
+    right: 0.32rem;
+    width: 0.55rem;
+    height: 0.55rem;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 0 0.45rem #fff;
+  }
+
+  @keyframes fs-choice-pulse {
+    0%,
+    100% {
+      box-shadow: 0 0 0 2px #fff, 0 0 0.4rem #ffffff66;
+    }
+    50% {
+      box-shadow: 0 0 0 2px #fff, 0 0 1.15rem #ffffffdd;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .fs-tech-node.is-choice,
+    .fs-upgrade.is-choice {
+      animation: none;
+    }
   }
 
   .fs-upgrades {

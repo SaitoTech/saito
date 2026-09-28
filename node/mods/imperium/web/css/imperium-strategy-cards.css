@@ -48,12 +48,44 @@
   }
 
   .strategy-card .bonus {
+    position: absolute;
+    top: -5%;
+    right: -7%;
+    left: auto;
+    bottom: auto;
+    z-index: 3;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 22%;
+    aspect-ratio: 1;
+    height: auto;
+    min-width: 2.4rem;
+    margin: 0;
+    padding: 0;
+    float: none;
+    color: #f0c84a;
+    background: none;
+    border: none;
+    pointer-events: none;
+  }
+
+  .strategy-card .bonus-cube {
+    position: absolute;
+    inset: 0;
+    background-color: currentColor;
+    filter: drop-shadow(0 1px 1px #000c);
+    -webkit-mask: url('/imperium/img/icons/saito-impossible-cube-credits.png') center / contain no-repeat;
+    mask: url('/imperium/img/icons/saito-impossible-cube-credits.png') center / contain no-repeat;
+  }
+
+  .strategy-card .bonus-count {
     position: relative;
-    bottom: 0px;
-    left: 75%;
-    font-size: 3em;
-    color: gold;
-    float: right;
-    width: 100%;
+    z-index: 1;
+    color: #fff;
+    font-family: var(--imp-font);
+    font-size: 1.35rem;
+    line-height: 1;
+    text-shadow: 0 1px 2px #000c;
   }
 }

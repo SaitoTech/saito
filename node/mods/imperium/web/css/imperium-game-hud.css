@@ -22,14 +22,16 @@
     height: auto;
     max-height: 40vh;
     margin: 0 0 0.6rem;
-    padding: var(--imp-space-md) var(--imp-space-lg);
+    padding: 2rem;
     overflow: auto;
     box-sizing: border-box;
+    border-radius: 0.5rem;
     background: var(--imp-surface-strong);
     color: var(--imp-text);
-    font-family: var(--imp-font-body);
+    font-family: 'orbitron-light', Helvetica, sans-serif;
+    font-weight: 100;
     font-size: var(--imp-fs);
-    line-height: 1.35;
+    line-height: 1.6;
     text-align: center;
     opacity: 0;
     pointer-events: none;
@@ -39,6 +41,18 @@
   .imperium-game-hud > .hud-status.is-visible {
     opacity: 1;
     pointer-events: auto;
+  }
+
+  .imperium-game-hud > .hud-status .textchoice {
+    display: block;
+    cursor: pointer;
+    margin-top: 0.35rem;
+    padding: 0.45rem 0.2rem;
+    border-top: 1px solid var(--imp-border);
+  }
+
+  .imperium-game-hud > .hud-status .textchoice:hover {
+    color: #e0c056;
   }
 
   .imperium-hud-frame {
@@ -152,6 +166,17 @@
     box-sizing: border-box;
     min-height: var(--imperium-hud-option);
     height: auto;
+    padding: var(--imp-space-md) var(--imp-space-lg);
+    font-family: 'orbitron-light', Helvetica, sans-serif;
+    font-weight: 100;
+    font-size: var(--imp-fs);
+    line-height: 1.25;
+  }
+
+  .imperium-game-hud .hud-menu > .status-message,
+  .imperium-game-hud .hud-menu > .status-header-text {
+    box-sizing: border-box;
+    margin: 0;
     padding: var(--imp-space-md) var(--imp-space-lg);
     font-family: 'orbitron-light', Helvetica, sans-serif;
     font-weight: 100;
