@@ -13,9 +13,7 @@ function saitoFileDropOverlay({
   extraBodyHtml = '',
   footerHtml = ''
 } = {}) {
-  const footer = footerHtml
-    ? `<div class="saito-file-drop-footer">${footerHtml}</div>`
-    : '';
+  const footer = footerHtml ? `<div class="saito-file-drop-footer">${footerHtml}</div>` : '';
   return `
 <div class="saito-overlay-form saito-file-drop-overlay ${rootClass}">
   <div class="saito-overlay-form-header">

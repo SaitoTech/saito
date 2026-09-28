@@ -44,7 +44,9 @@ class GameHUD2 {
 
       e.preventDefault();
 
-      let click_el = e.target.closest('.option, .hud-menu li, .hud-visual-option, .hud-cards .card');
+      let click_el = e.target.closest(
+        '.option, .hud-menu li, .hud-visual-option, .hud-cards .card'
+      );
       let rect = hud.getBoundingClientRect();
       let start_x = e.clientX;
       let start_y = e.clientY;
@@ -122,9 +124,11 @@ class GameHUD2 {
 
   updateStatus(status) {
     this.render();
-    document.querySelectorAll('.hud-status, .zoom-overlay .status, .saito-overlay .status').forEach((el) => {
-      el.innerHTML = status;
-    });
+    document
+      .querySelectorAll('.hud-status, .zoom-overlay .status, .saito-overlay .status')
+      .forEach((el) => {
+        el.innerHTML = status;
+      });
   }
 
   showBackButton(callback) {
@@ -175,16 +179,18 @@ class GameHUD2 {
       html += '</ul>';
     }
 
-    document.querySelectorAll('.hud-menu, .zoom-overlay .controls, .saito-overlay .controls').forEach((el) => {
-      el.innerHTML = html;
-      if (typeof callback === 'function') {
-        el.querySelectorAll('.option').forEach((item) => {
-          item.onclick = (e) => {
-            callback(e.currentTarget.id);
-          };
-        });
-      }
-    });
+    document
+      .querySelectorAll('.hud-menu, .zoom-overlay .controls, .saito-overlay .controls')
+      .forEach((el) => {
+        el.innerHTML = html;
+        if (typeof callback === 'function') {
+          el.querySelectorAll('.option').forEach((item) => {
+            item.onclick = (e) => {
+              callback(e.currentTarget.id);
+            };
+          });
+        }
+      });
 
     let visual_menu = document.getElementById('hud-visual-menu');
     if (!visual_menu) {

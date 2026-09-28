@@ -251,10 +251,7 @@ class GameMinimap {
       });
       minimap.addEventListener('click', (e) => {
         e.stopPropagation();
-        if (
-          e.target.closest('.game-minimap-close') ||
-          e.target.closest('.game-minimap-resize')
-        ) {
+        if (e.target.closest('.game-minimap-close') || e.target.closest('.game-minimap-resize')) {
           return;
         }
         if (this.zoom && !this.dragged) {
@@ -335,10 +332,7 @@ class GameMinimap {
         return;
       }
       if (!this.dragged) {
-        if (
-          !this.resizing &&
-          (!e.target.closest || !e.target.closest('.game-zoom'))
-        ) {
+        if (!this.resizing && (!e.target.closest || !e.target.closest('.game-zoom'))) {
           this.onClick(e);
         }
       } else {
@@ -358,7 +352,9 @@ class GameMinimap {
       }
     });
 
-    const el = document.querySelector('#hexGrid.gameboard, .gameboard:not(.game-minimap-clone):not(.gameboard-clone)');
+    const el = document.querySelector(
+      '#hexGrid.gameboard, .gameboard:not(.game-minimap-clone):not(.gameboard-clone)'
+    );
     if (el) {
       if (typeof $ !== 'undefined') {
         $(el).on('drag dragstop', () => {

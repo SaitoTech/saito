@@ -40,7 +40,9 @@ class GameZoom {
 
     if (!this.initialized) {
       this.initialized = true;
-      const board = document.querySelector('#hexGrid.gameboard, .gameboard:not(.game-minimap-clone):not(.gameboard-clone)');
+      const board = document.querySelector(
+        '#hexGrid.gameboard, .gameboard:not(.game-minimap-clone):not(.gameboard-clone)'
+      );
       if (board) {
         let saved_scale = this.mod.loadGamePreference(this.mod.returnSlug() + '-board-scale');
         let view_ready = this.mod.default_board_view
@@ -249,7 +251,9 @@ class GameZoom {
       zoom_self.dragging = false;
     });
 
-    const board = document.querySelector('#hexGrid.gameboard, .gameboard:not(.game-minimap-clone):not(.gameboard-clone)');
+    const board = document.querySelector(
+      '#hexGrid.gameboard, .gameboard:not(.game-minimap-clone):not(.gameboard-clone)'
+    );
     if (board) {
       board.addEventListener(
         'wheel',

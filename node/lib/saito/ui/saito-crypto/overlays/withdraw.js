@@ -482,7 +482,9 @@ class Withdraw {
       if (registry?.isRegistryIdentifier?.(address)) {
         const cached = this.app.keychain.returnKey({ identifier: address });
         let publicKey =
-          cached?.publicKey && this.app.crypto.isPublicKey(cached.publicKey) ? cached.publicKey : '';
+          cached?.publicKey && this.app.crypto.isPublicKey(cached.publicKey)
+            ? cached.publicKey
+            : '';
 
         if (!publicKey) {
           this.setUsernameSearchSpinner(true);
