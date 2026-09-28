@@ -29,7 +29,7 @@ module.exports = (app, mod, subs = []) => {
           
           <!-- Contextual help note - only shown when subscription list is short (2 or fewer) -->
           <div id="stack-explore-add-subscription-btn" class="help">
-            <p>Need help? Explore shows posts from people you follow. <span class="saito-anchor">Subscribe to creators to see their posts here.</span></p>
+            <p>This sidebar shows the accounts you follow. <span class="saito-anchor">Add others to see their posts here.</span></p>
             <div class="item"><i class="fa-solid fa-user-plus"></i><span>add creator</span></div>
           </div>
         </div>
@@ -60,21 +60,12 @@ module.exports = (app, mod, subs = []) => {
               <div class="name">Loading...</div>
             </div>
           </div>
-          <div id="stack-explore-subscribe-button-container" class="subscribe">
-            <button type="button" class="saito-button-primary compact" id="stack-explore-subscribe-btn">
-              Subscribe
-            </button>
-          </div>
-          
           <div class="actions">
-            <a href="#" class="badge alt-new-post is-hidden" id="stack-explore-new-post-btn">
+            <a href="#" class="badge is-hidden" id="stack-explore-plus-btn">
               <i class="fa-solid fa-plus"></i>
             </a>
             <a href="#" class="badge is-hidden" id="stack-explore-settings-btn">
               <i class="fa-solid fa-gear"></i>
-            </a>
-            <a href="#" id="stack-explore-author-share" class="badge" aria-label="Share Author" title="Share Author">
-              <i class="fa-solid fa-share-nodes"></i>
             </a>
           </div>
         </div>

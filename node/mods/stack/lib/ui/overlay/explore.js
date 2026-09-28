@@ -144,44 +144,34 @@ class ExploreOverlay {
     );
     saitoUser.render();
 
-    // Show/hide subscribe button based on subscription status
-    // Hide action buttons when Subscribe button is shown (mutually exclusive)
-    const isSubscribed = this.mod.isSubscribed(currentUserPublicKey);
-    const subscribeBtnContainer = document.querySelector(
-      '#stack-explore-subscribe-button-container'
-    );
-    const actionBtnContainer = document.querySelector('.explore .actions');
-    if (subscribeBtnContainer) {
-      subscribeBtnContainer.classList.toggle('is-visible', !isSubscribed);
-    }
-    if (actionBtnContainer) {
-      actionBtnContainer.classList.toggle('is-hidden', !isSubscribed);
-    }
-
     // ========================================================================
     // INVARIANT 3: Update action buttons based on filter
     // ========================================================================
-    const shareAuthorBtn = document.getElementById('stack-explore-author-share');
-    if (shareAuthorBtn) {
-      shareAuthorBtn.classList.toggle(
-        'is-hidden',
-        currentUserPublicKey == this.mod.STACK_OFFICIAL_PUBLICKEY
-      );
-    }
-
     const settingsBtn = document.querySelector('#stack-explore-settings-btn');
     if (settingsBtn) {
       // Temporary since there is no connected functionality
     }
 
-    const postBtn = document.querySelector('#stack-explore-new-post-btn');
-    if (postBtn) {
-      if (currentUserPublicKey === this.mod.publicKey) {
-        postBtn.classList.remove('is-hidden');
-        this.attachGetStartedHandler();
-      } else {
-        postBtn.classList.add('is-hidden');
-      }
+    // ( + ) is "new post" on my own feed and "subscribe" on a creator I don't follow yet.
+    // isSubscribed() is true for my own key, so check ownership first.
+    const plusBtn = document.querySelector('#stack-explore-plus-btn');
+    if (plusBtn) {
+      const isOwnFeed = currentUserPublicKey === this.mod.publicKey;
+      const canSubscribe = !isOwnFeed && !this.mod.isSubscribed(currentUserPublicKey);
+      const label = isOwnFeed ? 'New post' : 'Subscribe';
+
+      plusBtn.classList.toggle('is-hidden', !isOwnFeed && !canSubscribe);
+      plusBtn.setAttribute('aria-label', label);
+      plusBtn.setAttribute('title', label);
+      plusBtn.onclick = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (isOwnFeed) {
+          this.startNewPost();
+        } else {
+          this.handleSubscribeToCreator();
+        }
+      };
     }
   }
 
@@ -383,10 +373,14 @@ class ExploreOverlay {
   attachGetStartedHandler() {
     Array.from(document.querySelectorAll('.alt-new-post')).forEach((btn) => {
       btn.onclick = (e) => {
-        document.querySelector('#stack-create-post-btn').click();
-        this.overlay.hide();
+        this.startNewPost();
       };
     });
+  }
+
+  startNewPost() {
+    document.querySelector('#stack-create-post-btn').click();
+    this.overlay.hide();
   }
 
   /**
@@ -503,50 +497,6 @@ class ExploreOverlay {
           e.preventDefault();
           e.stopPropagation();
           this.handleAddSubscription();
-        };
-      }
-
-      const shareAuthorBtn = document.getElementById('stack-explore-author-share');
-      if (shareAuthorBtn) {
-        shareAuthorBtn.onclick = async (e) => {
-          e.preventDefault();
-          e.stopPropagation();
-
-          const longUrl = window.location.origin + `/${this.mod.slug}/${this.targetPublicKey}`;
-          let title = 'Stack Creator';
-          if (this.app.keychain.returnIdentifierByPublicKey(this.targetPublicKey)) {
-            title += ' --- ' + this.app.keychain.returnIdentifierByPublicKey(this.targetPublicKey);
-          }
-
-          try {
-            const url = await this.mod.createShortLink(longUrl);
-            this.app.browser.handleShare({ title, url });
-          } catch (err) {
-            console.error('Stack author share failed:', err);
-            this.app.browser.handleShare({ title, url: longUrl });
-          }
-        };
-      }
-
-      // Hide action buttons if Subscribe button is visible (mutually exclusive)
-      if (!this.targetPublicKey) {
-        const subscribeBtnContainer = document.querySelector(
-          '#stack-explore-subscribe-button-container'
-        );
-        const actionBtnContainer = document.querySelector('.explore .actions');
-        if (subscribeBtnContainer && actionBtnContainer) {
-          const isSubscribeVisible = subscribeBtnContainer.classList.contains('is-visible');
-          actionBtnContainer.classList.toggle('is-hidden', isSubscribeVisible);
-        }
-      }
-
-      // Subscribe button (for URL-based creator view)
-      const subscribeBtn = document.querySelector('#stack-explore-subscribe-btn');
-      if (subscribeBtn) {
-        subscribeBtn.onclick = (e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          this.handleSubscribeToCreator();
         };
       }
 
@@ -698,18 +648,7 @@ class ExploreOverlay {
 
     const added = this.mod.addSubscription(this.targetPublicKey);
     if (added) {
-      // Hide subscribe button and show action buttons (mutually exclusive)
-      const subscribeContainer = document.querySelector(
-        '#stack-explore-subscribe-button-container'
-      );
-      const actionBtnContainer = document.querySelector('.explore .actions');
-      if (subscribeContainer) {
-        subscribeContainer.classList.remove('is-visible');
-      }
-      if (actionBtnContainer) {
-        actionBtnContainer.classList.remove('is-hidden');
-      }
-
+      this.updateAuthorHeader();
       this.addCreatorToSidebar(this.targetPublicKey);
       siteMessage('Subscribed!', 2000);
     }

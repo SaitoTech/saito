@@ -60,6 +60,10 @@
 
 #stack-explore-author-identity .saito-userline a {
   color: var(--saito-primary);
+  text-decoration: none;
+}
+
+#stack-explore-author-identity .saito-userline a:hover {
   text-decoration: underline;
   text-underline-offset: 0.15em;
 }
@@ -224,31 +228,12 @@
   flex: 1;
 }
 
-.explore .subscribe {
-  display: none;
-  flex-shrink: 0;
-  justify-content: flex-end;
-  align-items: flex-start;
-}
-
-.explore .subscribe.is-visible {
-  display: flex;
-}
-
-.explore .subscribe .saito-button-primary {
-  margin: 0;
-}
-
 .explore .actions {
   flex-shrink: 0;
   display: flex;
   justify-content: flex-end;
   align-items: center;
   gap: 1rem;
-}
-
-.explore .actions.is-hidden {
-  display: none;
 }
 
 /*
@@ -495,15 +480,6 @@
   .explore .actions {
     width: 100%;
     justify-content: center;
-  }
-
-  .explore .subscribe {
-    width: 100%;
-    justify-content: center;
-  }
-
-  .explore .subscribe .saito-button-primary {
-    width: 100%;
   }
 
   .explore .badge {
