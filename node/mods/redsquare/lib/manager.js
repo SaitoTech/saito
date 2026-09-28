@@ -1223,10 +1223,12 @@ class Manager {
       return 0;
     }
 
+    const panel = document.querySelector(container);
+
     for (const signature of signatures) {
       const tweet = this.mod.getTweet(signature);
 
-      if (tweet) {
+      if (tweet && !panel?.querySelector(`article.tweet[data-id="${signature}"]`)) {
         this.renderTweetWithCriticalChild(tweet, container);
       }
     }

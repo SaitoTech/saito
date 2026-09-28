@@ -35,7 +35,6 @@ class Stack extends ModTemplate {
     this.icon_fa = 'fa-solid fa-newspaper';
     this.shortlinks_enabled = 1;
 
-    this.pending_author_load = null;
     this.pending_post_sig = null;
     this.pending_post_pk = null;
     this.pending_post_loaded = null;
@@ -317,7 +316,7 @@ class Stack extends ModTemplate {
 
     // Show overlay immediately with loading state
     this.exploreOverlay.isLoading = true;
-    this.exploreOverlay.posts = [];
+    this.exploreOverlay.posts = {};
     this.exploreOverlay.targetPublicKey = publicKey;
     this.exploreOverlay.render();
   }
@@ -490,10 +489,13 @@ class Stack extends ModTemplate {
         this.pending_post_sig = '';
         this.pending_post_pk = '';
       }
-      if (this.pending_author_load) {
-        let pk = this.pending_author_load;
-        this.pending_author_load = null;
-        await this.handleCreatorView(pk);
+      const explore = this.exploreOverlay;
+      if (
+        explore?.awaitingPeers &&
+        explore.targetPublicKey &&
+        document.querySelector('#stack-explore-posts-grid')
+      ) {
+        await explore.loadPostsForFilter(explore.targetPublicKey);
       }
     }
   }
@@ -2283,9 +2285,21 @@ class Stack extends ModTemplate {
    * @param {boolean} options.forceRemote - If true, also query remote peers (default: true)
    * @returns {Promise<Array<Transaction>>} Array of Transaction objects, deduplicated by signature
    */
-  async loadPostsForAuthor(publicKey, { forceRemote = true } = {}) {
+  async loadPostsForAuthor(publicKey, options = {}) {
+    const { posts } = await this.fetchPostsForAuthor(publicKey, options);
+    return posts;
+  }
+
+  /**
+   * Same as loadPostsForAuthor, but also reports whether the result is complete.
+   * `complete` is false only when a remote query was requested but skipped because
+   * no peers were connected yet — callers should not treat that result as final.
+   *
+   * @returns {Promise<{posts: Array<Transaction>, complete: boolean}>}
+   */
+  async fetchPostsForAuthor(publicKey, { forceRemote = true } = {}) {
     if (!publicKey || !this.app.crypto.isPublicKey(publicKey)) {
-      return [];
+      return { posts: [], complete: true };
     }
 
     const seenSignatures = new Set();
@@ -2366,9 +2380,8 @@ class Stack extends ModTemplate {
     if (forceRemote) {
       let peers = await this.app.network.getPeers();
       if (peers.length === 0) {
-        // Defer until peers are available
-        this.pending_author_load = publicKey;
-        return posts;
+        // Explore retries from onPeerServiceUp once an archive peer connects
+        return { posts, complete: false };
       }
 
       let remotePosts = [];
@@ -2540,7 +2553,7 @@ class Stack extends ModTemplate {
 
     this.postsCache.byAuthor.set(publicKey, collapsedPosts);
 
-    return collapsedPosts;
+    return { posts: collapsedPosts, complete: true };
   }
 
   /**

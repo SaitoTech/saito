@@ -110,6 +110,9 @@ html:has(.create-post) {
   max-height: calc(100vh - var(--saito-header-height, 6rem));
   overflow-y: auto;
   overflow-x: hidden;
+  /* Stretch + .view-post min-height: 100% caps the reader at one viewport; its solid
+     background then ends and long articles overflow onto the body canvas wash. */
+  align-items: start;
 }
 
 .saito-container:has(.view-post) .saito-sidebar {

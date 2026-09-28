@@ -11,11 +11,15 @@ module.exports = (app, mod, subs = []) => {
   `;
   for (let z = 0; z < subs.length; z++) {
     let active = subs[z].publickey == pk ? ' active' : '';
+    let label = app.browser.escapeHTML(subs[z].label);
+    let address = subs[z].isAddress
+      ? ` class="saito-address" data-id="${subs[z].publickey}" data-disable="true"`
+      : '';
 
     html += `
             <div class="item${active}" data-filter="${subs[z].publickey}">
               <i class="${subs[z].icon}"></i>
-              <span>${subs[z].label}</span>
+              <span${address}>${label}</span>
             </div>
     `;
   }
@@ -33,7 +37,10 @@ module.exports = (app, mod, subs = []) => {
         <select class="saito-form-select mobile-selector">`;
   for (let z = 0; z < subs.length; z++) {
     let active = subs[z].publickey == pk ? 'selected' : '';
-    html += `<option value="${subs[z].publickey}" ${active}>${subs[z].label}</option>`;
+    let address = subs[z].isAddress
+      ? ` class="saito-address" data-id="${subs[z].publickey}" data-disable="true"`
+      : '';
+    html += `<option value="${subs[z].publickey}"${address} ${active}>${app.browser.escapeHTML(subs[z].label)}</option>`;
   }
 
   html += `</select>

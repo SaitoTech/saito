@@ -255,6 +255,16 @@ class Withdraw {
     return this.pc?.chain_id === 'NATIVE';
   }
 
+  setUsernameSearchSpinner(on) {
+    const book = document.getElementById('address-book');
+    if (!book) {
+      return;
+    }
+    book.innerHTML = on
+      ? '<i class="fa-solid fa-spinner fa-spin" aria-hidden="true"></i>'
+      : '<i class="fa-solid fa-users" aria-hidden="true"></i>';
+  }
+
   escapeHTML(value = '') {
     return this.app?.browser?.escapeHTML
       ? this.app.browser.escapeHTML(String(value))
@@ -451,7 +461,11 @@ class Withdraw {
       return false;
     }
 
-    const address = input.value.trim();
+    this.usernameLookupId = (this.usernameLookupId || 0) + 1;
+    const lookupId = this.usernameLookupId;
+    this.setUsernameSearchSpinner(false);
+
+    let address = input.value.trim();
     if (!address) {
       this.address = '';
       this.recipientAddressValid = false;
@@ -461,6 +475,34 @@ class Withdraw {
       this.hideAddressPreview();
       this.handleErrors();
       return false;
+    }
+
+    if (this.isNativeSaitoSelection() && !this.pc.validateAddress(address)) {
+      const registry = this.app.modules.returnModule('Registry');
+      if (registry?.isRegistryIdentifier?.(address)) {
+        const cached = this.app.keychain.returnKey({ identifier: address });
+        let publicKey =
+          cached?.publicKey && this.app.crypto.isPublicKey(cached.publicKey) ? cached.publicKey : '';
+
+        if (!publicKey) {
+          this.setUsernameSearchSpinner(true);
+          try {
+            publicKey = await registry.resolveIdentifier(address);
+          } catch (err) {
+            console.warn('Withdraw: unable to resolve username', err);
+            publicKey = '';
+          }
+          if (lookupId !== this.usernameLookupId || input.value.trim() !== address) {
+            return false;
+          }
+          this.setUsernameSearchSpinner(false);
+        }
+
+        if (publicKey && this.app.crypto.isPublicKey(publicKey)) {
+          input.value = publicKey;
+          address = publicKey;
+        }
+      }
     }
 
     const valid = this.pc.validateAddress(address);

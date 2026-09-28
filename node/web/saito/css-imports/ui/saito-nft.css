@@ -1945,8 +1945,11 @@ nft cards
   border-radius: 50%;
   background: var(--saito-muted-foreground);
 }
-.saito-nft-card-toggle-dot.enabled {
+.saito-nft-card-toggle.enabled .saito-nft-card-toggle-dot.enabled {
   background: var(--saito-status-success);
+}
+.saito-nft-card-toggle:not(.enabled) .saito-nft-card-toggle-dot.enabled {
+  background: var(--saito-muted-foreground);
 }
 .saito-nft-card-toggle .fa-caret-down {
   font-size: 0.95em;
@@ -1976,8 +1979,11 @@ nft cards
   cursor: pointer;
   color: var(--saito-muted-foreground);
 }
-.saito-nft-card-toggle-option:has(.saito-nft-card-toggle-dot.enabled) {
+.saito-nft-card-toggle.enabled .saito-nft-card-toggle-option:has(.saito-nft-card-toggle-dot.enabled) {
   color: var(--saito-status-success);
+}
+.saito-nft-card-toggle:not(.enabled) .saito-nft-card-toggle-option:has(.saito-nft-card-toggle-dot.enabled) {
+  color: var(--saito-muted-foreground);
 }
 .saito-nft-card-text {
   font-family: monospace;

@@ -18,8 +18,7 @@
   }
 
   .module-settings-overlay {
-    background-color: var(--saito-popover);
-    background-image: var(--saito-popover-wash);
+    color: var(--saito-popover-foreground);
   }
 
   .gameboard {

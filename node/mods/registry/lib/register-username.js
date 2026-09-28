@@ -51,7 +51,7 @@ class RegisterUsername {
           console.log(err);
         }
 
-        let domain = '@saito';
+        let domain = this.mod.domain;
 
         let data = {
           identifier: identifier + domain,

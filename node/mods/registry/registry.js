@@ -46,6 +46,11 @@ class Registry extends ModTemplate {
     this.publicKey = '';
 
     //
+    // Username suffix stored with registry identifiers, e.g. omskian@saito.
+    //
+    this.domain = '@saito';
+
+    //
     // set true for testing locally
     // All it does is allows both main nodes and lite clients to update
     // this.registry_publickey with the public key of the main node
@@ -361,7 +366,7 @@ class Registry extends ModTemplate {
   // Creates and sends an on-chain tx to register the identifier @ the domain
   // The complete identifier, including its domain, is limited to 51 characters.
   //
-  async tryRegisterIdentifier(identifier, domain = '@saito') {
+  async tryRegisterIdentifier(identifier, domain = this.domain) {
     if (identifier instanceof String) identifier = identifier.toString();
     if (typeof identifier !== 'string') {
       throw TypeError('identifier must be a string');
@@ -392,6 +397,72 @@ class Registry extends ModTemplate {
 
     // sucessful send
     return true;
+  }
+
+  //
+  // A finished registry username is a name plus this.domain, e.g. omskian@saito.
+  // Partial input such as "omskian@sai" is not a lookup.
+  //
+  isRegistryIdentifier(identifier) {
+    if (typeof identifier !== 'string' || !this.domain || !identifier.endsWith(this.domain)) {
+      return false;
+    }
+    const name = identifier.slice(0, -this.domain.length);
+    return /^[0-9A-Za-z]+$/.test(name) && identifier.length <= 51;
+  }
+
+  //
+  // Local keychain first, then one registry namecheck for a finished username.
+  // Returns a Saito public key, or null.
+  //
+  async resolveIdentifier(identifier) {
+    if (!this.isRegistryIdentifier(identifier)) {
+      return null;
+    }
+
+    const local = this.app.keychain?.returnPublicKeyByIdentifier?.(identifier);
+    if (local && this.app.crypto.isPublicKey(local)) {
+      return local;
+    }
+
+    const peer = this.peers[0]?.publicKey;
+    if (!peer) {
+      return null;
+    }
+
+    const rows = await new Promise((resolve) => {
+      let settled = false;
+      const finish = (value) => {
+        if (settled) {
+          return;
+        }
+        settled = true;
+        resolve(Array.isArray(value) ? value : []);
+      };
+
+      try {
+        this.app.network.sendRequestAsTransaction(
+          'registry query',
+          { request: 'registry namecheck', identifier },
+          (res) => finish(res),
+          peer
+        );
+      } catch (err) {
+        finish([]);
+      }
+
+      setTimeout(() => finish([]), 8000);
+    });
+
+    const row = rows.find(
+      (entry) => entry?.identifier === identifier && this.app.crypto.isPublicKey(entry.publickey)
+    );
+    if (!row) {
+      return null;
+    }
+
+    this.app.keychain?.addKey?.(row.publickey, { identifier });
+    return row.publickey;
   }
 
   /**
@@ -575,7 +646,7 @@ class Registry extends ModTemplate {
 
   //
   // There are TWO types of requests that this module will process on-chain. The first is
-  // the request to REGISTER a @saito address. This will only be processed by the node that
+  // the request to REGISTER an address on this.domain. This will only be processed by the node that
   // is running the publickey identified in this module as the "registry_publickey".
   //
   // The second is a confirmation that the node running the domain broadcasts into the network
