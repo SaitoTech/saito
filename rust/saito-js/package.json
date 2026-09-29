@@ -34,7 +34,7 @@
     "buffer": "6.0.3",
     "node-fetch": "2.7.0",
     "process": "0.11.10",
-    "saito-wasm": "0.3.3",
+    "saito-wasm": "0.3.4",
     "url": "0.11.4",
     "util": "0.12.5",
     "ws": "8.21.3"
