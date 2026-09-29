@@ -179,7 +179,6 @@ class GameHUD2 {
       html += '</ul>';
     }
 
-
     let consumed = false;
     let choose = (id) => {
       if (consumed) {
@@ -196,17 +195,19 @@ class GameHUD2 {
       callback(id);
     };
 
-    document.querySelectorAll('.hud-menu, .zoom-overlay .controls, .saito-overlay .controls').forEach((el) => {
-      el.innerHTML = html;
-      if (typeof callback === 'function') {
-        el.querySelectorAll('.option').forEach((item) => {
-          item.onclick = (e) => {
-            e.stopPropagation();
-            choose(e.currentTarget.id);
-          };
-        });
-      }
-    });
+    document
+      .querySelectorAll('.hud-menu, .zoom-overlay .controls, .saito-overlay .controls')
+      .forEach((el) => {
+        el.innerHTML = html;
+        if (typeof callback === 'function') {
+          el.querySelectorAll('.option').forEach((item) => {
+            item.onclick = (e) => {
+              e.stopPropagation();
+              choose(e.currentTarget.id);
+            };
+          });
+        }
+      });
 
     let visual_menu = document.getElementById('hud-visual-menu');
     if (!visual_menu) {
