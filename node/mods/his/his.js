@@ -43744,6 +43744,7 @@ if (this.game.state.events.society_of_jesus == 1) {
 	    if (space.units[units_to_move[i].faction][units_to_move[i].idx].army_leader == false) { unitno++; }
 	    if (unitno >= 4) {
 	      alert("Max 4 Units Permitted in Fortification");
+	      selectUnitsInterface(his_self, units_to_move, selectUnitsInterface, finishAndFortify);
 	      return;
 	    }
 	  }
@@ -43905,6 +43906,7 @@ if (relief_siege == 1) {
 	    if (space.units[units_to_move[i].faction][units_to_move[i].idx].army_leader == false) { unitno++; }
 	    if (unitno >= 4) {
 	      alert("Max 4 Units Permitted in Fortification");
+	      selectUnitsInterface(his_self, units_to_move, selectUnitsInterface, finishAndFortify);
 	      return;
 	    }
 	  }
@@ -46222,6 +46224,7 @@ does_units_to_move_have_unit = true; }
 		      max_formation_size = his_self.returnMaxFormationSize(units_to_move, faction, spacekey);
 	              if (unitno >= max_formation_size) { 
 	                alert("Maximum Formation Size: " + max_formation_size);
+	                selectUnitsInterface(his_self, units_to_move, selectUnitsInterface, selectDestinationInterface);
 	                return;
 		      }
 	            }
@@ -46551,6 +46554,7 @@ does_units_to_move_have_unit = true; }
 		  max_formation_size = his_self.returnMaxFormationSize(units_to_move, faction, spacekey);
 	          if (unitno >= max_formation_size) { 
 	            alert("Maximum Formation Size: " + max_formation_size);
+	            selectUnitsInterface(his_self, units_to_move, selectUnitsInterface, selectDestinationInterface);
 	            return;
 		  }
 	        }
@@ -46594,6 +46598,7 @@ does_units_to_move_have_unit = true; }
 	        for (let i = 0; i < space.units[key].length; i++) {
 	          if (space.units[key][i].already_moved == 1 && his_self.game.state.events.foul_weather == 1 && id === "auto") {
 		    alert("Foul Weather: units in this space have already been moved, so movement from this space must happen manually using only unmoved forces");
+		    selectUnitsInterface(his_self, units_to_move, selectUnitsInterface, selectDestinationInterface);
 		    return;
 	          }
 	        }
@@ -46876,6 +46881,7 @@ does_units_to_move_have_unit = true; }
 		  max_formation_size = his_self.returnMaxFormationSize(units_to_move, faction, spacekey);
 	          if (unitno >= max_formation_size) { 
 	            alert("Maximum Formation Size: " + max_formation_size);
+	            selectUnitsInterface(his_self, units_to_move, selectUnitsInterface, selectDestinationInterface);
 	            return;
 		  }
 	        }
@@ -46984,6 +46990,7 @@ does_units_to_move_have_unit = true; }
 	        for (let i = 0; i < space.units[key].length; i++) {
 	          if (space.units[key][i].already_moved == 1 && his_self.game.state.events.foul_weather == 1 && id === "auto") {
 		    alert("Foul Weather: units in this space have already been moved, so movement from this space must happen manually using only unmoved forces");
+		    selectUnitsInterface(his_self, units_to_move, selectUnitsInterface, selectDestinationInterface);
 		    return;
 	          }
 	        }
@@ -47654,6 +47661,7 @@ does_units_to_move_have_unit = true; }
 		  max_formation_size = his_self.returnMaxFormationSize(units_to_move, faction, spacekey);
 	          if (unitno >= max_formation_size) { 
 	            alert("Maximum Formation Size: " + max_formation_size);
+	            selectUnitsInterface(his_self, units_to_move, selectUnitsInterface, selectDestinationInterface);
 	            return;
 		  }
 	        }
@@ -48071,6 +48079,7 @@ does_units_to_move_have_unit = true; }
 		  max_formation_size = his_self.returnMaxFormationSize(units_to_move, faction, spacekey);
 	          if (unitno >= max_formation_size) { 
 	            alert("Maximum Formation Size: " + max_formation_size);
+	            selectUnitsInterface(his_self, units_to_move, selectUnitsInterface, selectDestinationInterface);
 	            return;
 		  }
 	        }
@@ -57685,12 +57694,12 @@ console.log("ERROR DISPLAYING NEW WORLD STUFF: " + JSON.stringify(err));
 
     if (!his_self.bound_gameboard_zoom) {
 
-      $('.gameboard').on('mousedown', function (e) {
+      $('.gameboard').not('.game-minimap-clone, .gameboard-clone').on('mousedown', function (e) {
         if (e.currentTarget.classList.contains("space")) { return; }
         xpos = e.clientX;
         ypos = e.clientY;
       });
-      $('.gameboard').on('mouseup', function (e) { 
+      $('.gameboard').not('.game-minimap-clone, .gameboard-clone').on('mouseup', function (e) { 
         if (Math.abs(xpos-e.clientX) > 4) { return; }
         if (Math.abs(ypos-e.clientY) > 4) { return; }
 	//

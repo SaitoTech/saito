@@ -42,6 +42,15 @@ class ImperiumGameHUD extends GameHUD2 {
     this.render();
     this.setInteractionMode('menu');
     super.updateMenu(options, callback);
+    let region = this.interactionRegion();
+    if (region && !region.dataset.menuClickBound) {
+      region.dataset.menuClickBound = '1';
+      region.addEventListener('mousedown', (e) => {
+        if (e.target.closest('.option')) {
+          e.stopPropagation();
+        }
+      });
+    }
   }
 
   updatePanel(html) {
@@ -209,7 +218,7 @@ class ImperiumGameHUD extends GameHUD2 {
     this.writeOverlayStatus(raw);
     this.updateHeader('');
     this.updateMenu([]);
-    this.updatePanel(raw.trim().charAt(0) === '<' ? raw : '<div>' + this.escapeHtml(text) + '</div>');
+    this.updatePanel(raw.trim().charAt(0) === '<' ? raw : '<div class="status-message">' + this.escapeHtml(text) + '</div>');
   }
 
   plainHudText(message) {

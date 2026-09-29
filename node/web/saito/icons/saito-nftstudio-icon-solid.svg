@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 355">
+  <title>Saito NFT Studio solid icon</title>
+  <defs>
+    <mask id="nftstudio-art" maskUnits="userSpaceOnUse" x="0" y="0" width="320" height="355">
+      <path fill="#fff" d="M160 15 300 96v162l-140 81L20 258V96Z"/>
+      <g fill="none" stroke="#000" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="m20 96 140 81 140-81 M160 177v162"/>
+        <g transform="matrix(1 .577 0 1 43 133)">
+          <rect width="90" height="91" rx="2"/>
+          <path d="m0 70 28-34 25 33 16-18 21 27"/>
+          <circle cx="65" cy="24" r="7" fill="#000" stroke="none"/>
+        </g>
+        <path transform="matrix(1 -.577 0 1 185 193)" d="M45 6v66 M12 39h66"/>
+      </g>
+    </mask>
+  </defs>
+  <path fill="#fff" mask="url(#nftstudio-art)" d="M160 15 300 96v162l-140 81L20 258V96Z"/>
+</svg>

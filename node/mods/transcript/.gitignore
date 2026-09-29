@@ -1,0 +1,3 @@
+# Reproducibly downloaded by scripts/fetch-assets.mjs; deploy these with the module.
+web/vendor/
+web/models/

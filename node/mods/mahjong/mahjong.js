@@ -638,6 +638,9 @@ class Mahjong extends OnePlayerGameTemplate {
 
         tilesLeftToUnlock.unshift(pair);
       }
+      if (action == 'hint') {
+        mahjong_self.displayUserInterface();
+      }
     });
 
     let tiles = this.returnTiles();

@@ -874,6 +874,7 @@ no status atm, but this is to update the hud
       }
       if (action == 'hint') {
         solitrio_self.provideHint();
+        solitrio_self.displayUserInterface();
         return;
       }
     });

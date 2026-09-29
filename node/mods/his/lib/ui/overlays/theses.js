@@ -83,7 +83,10 @@ class ThesesOverlay {
 
     this.visible = true;
     this.rendering_at_coordinates = true;
-    let gb = document.querySelector('.gameboard');
+    let gb = this.mod.getBoardElement();
+    if (!gb) {
+      return;
+    }
 
     xpos = parseInt(xpos);
     ypos = parseInt(ypos);
@@ -155,7 +158,10 @@ class ThesesOverlay {
     this.overlay.show(ThesesTemplate());
 
     let dw = document.querySelector('.theses-overlay');
-    let gb = document.querySelector('.gameboard');
+    let gb = this.mod.getBoardElement();
+    if (!gb) {
+      return;
+    }
 
     let gb2 = gb.cloneNode(true);
     gb2.removeAttribute('id');

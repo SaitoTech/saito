@@ -1394,7 +1394,7 @@
 	    for (let i = 0; i < io.length; i++) {
 	      if (lowest_vp == imperium_self.game.state.players_info[io[i]-1].vp) {
 		imperium_self.game.state.players_info[io[i]-1].vp += 1;
-		imperium_self.game.queue.push("NOTIFY\t"+imperium_self.returnFaction((io[i]+1)) + " gains 1 VP from Seeds of an Empire");
+		imperium_self.game.queue.push("NOTIFY\t"+imperium_self.returnFaction((io[i])) + " gains 1 VP from Seeds of an Empire");
 	        imperium_self.game.state.seeds_of_an_empire = (io[i]);
 		if (imperium_self.checkForVictory()) { return 0; }
 

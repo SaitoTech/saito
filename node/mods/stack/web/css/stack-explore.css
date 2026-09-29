@@ -68,6 +68,36 @@
   text-underline-offset: 0.15em;
 }
 
+#stack-explore-author-identity .stack-page-link-copy {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.4rem;
+  height: 2.4rem;
+  margin-left: var(--saito-space-xs);
+  vertical-align: middle;
+  border-radius: var(--saito-radius);
+  color: var(--saito-muted-foreground);
+  cursor: pointer;
+  transition:
+    color 0.15s ease,
+    background-color 0.15s ease,
+    transform 0.1s ease;
+}
+
+#stack-explore-author-identity .stack-page-link-copy:hover {
+  color: var(--saito-foreground);
+  background-color: var(--saito-highlight);
+}
+
+#stack-explore-author-identity .stack-page-link-copy:active {
+  transform: scale(0.85);
+}
+
+#stack-explore-author-identity .stack-page-link-copy.is-copied {
+  color: var(--saito-status-success);
+}
+
 
 .explore .sidebar > .body {
   flex: 1;

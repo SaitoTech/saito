@@ -27,6 +27,10 @@ class GameMinimap {
     this.clone_el = null;
     this.restore_el = null;
     this.minimized = false;
+    this.floating = false;
+    this.dock_parent = null;
+    this.dock_next = null;
+    this.dock_rect = null;
     this.saved_box = null;
     this.resizing = false;
     this.resize_right = 0;
@@ -141,7 +145,10 @@ class GameMinimap {
       }
       this.clone_el = b.el.cloneNode(true);
       this.clone_el.removeAttribute('id');
-      this.clone_el.classList.remove('gameboard', 'gameboard-clone');
+      // Keep `gameboard` so module CSS still paints the clone (Twilight/Paths/HIS
+      // map image, Imperium hex layout). `game-minimap-clone` marks it so live-board
+      // lookups (getBoardElement) never treat this copy as the board on the table.
+      this.clone_el.classList.remove('gameboard-clone');
       this.clone_el.classList.add('game-minimap-clone');
       this.clone_el.querySelectorAll('[id]').forEach((el) => {
         el.id = 'minimap-' + el.id;
@@ -343,6 +350,9 @@ class GameMinimap {
         };
         document.addEventListener('click', swallow, true);
       }
+      if (this.moving && this.floating) {
+        this.maybeRedock(e);
+      }
       this.dragging = false;
       this.moving = false;
       this.resizing = false;
@@ -352,9 +362,7 @@ class GameMinimap {
       }
     });
 
-    const el = document.querySelector(
-      '#hexGrid.gameboard, .gameboard:not(.game-minimap-clone):not(.gameboard-clone)'
-    );
+    const el = this.mod.getBoardElement();
     if (el) {
       if (typeof $ !== 'undefined') {
         $(el).on('drag dragstop', () => {
@@ -566,6 +574,8 @@ class GameMinimap {
       return;
     }
 
+    this.liftFromDock();
+
     const box = this.minimap_el.getBoundingClientRect();
     let left = e.clientX - this.move_x;
     let top = e.clientY - this.move_y;
@@ -577,6 +587,101 @@ class GameMinimap {
     this.minimap_el.style.top = top + 'px';
     this.minimap_el.style.right = 'auto';
     this.minimap_el.style.bottom = 'auto';
+  }
+
+  liftFromDock() {
+    const el = this.minimap_el;
+    if (!el || this.floating) {
+      return;
+    }
+
+    const positioned = window.getComputedStyle(el).position;
+    if (positioned === 'fixed' || positioned === 'absolute') {
+      return;
+    }
+
+    const box = el.getBoundingClientRect();
+    this.dock_parent = el.parentElement;
+    this.dock_next = el.nextSibling;
+    this.dock_rect = {
+      left: box.left,
+      top: box.top,
+      width: box.width,
+      height: box.height
+    };
+
+    document.body.appendChild(el);
+    el.classList.add('is-floating');
+    el.style.position = 'fixed';
+    el.style.left = box.left + 'px';
+    el.style.top = box.top + 'px';
+    el.style.right = 'auto';
+    el.style.bottom = 'auto';
+    el.style.width = box.width + 'px';
+    el.style.height = 'auto';
+    el.style.margin = '0';
+    el.style.zIndex = '80';
+    this.floating = true;
+  }
+
+  maybeRedock(e) {
+    if (!this.floating || !this.minimap_el || !this.dock_parent || !this.dock_rect) {
+      return;
+    }
+    if (!document.body.contains(this.dock_parent)) {
+      return;
+    }
+
+    const slot = this.dock_rect;
+    const pad = 24;
+    const pointer_in_slot =
+      e.clientX >= slot.left - pad &&
+      e.clientX <= slot.left + slot.width + pad &&
+      e.clientY >= slot.top - pad &&
+      e.clientY <= slot.top + slot.height + pad;
+
+    const box = this.minimap_el.getBoundingClientRect();
+    const cx = box.left + box.width / 2;
+    const cy = box.top + box.height / 2;
+    const center_in_slot =
+      cx >= slot.left &&
+      cx <= slot.left + slot.width &&
+      cy >= slot.top &&
+      cy <= slot.top + slot.height;
+
+    if (pointer_in_slot || center_in_slot) {
+      this.redock();
+    }
+  }
+
+  redock() {
+    const el = this.minimap_el;
+    if (!el || !this.dock_parent) {
+      return;
+    }
+
+    if (this.dock_next && this.dock_next.parentElement === this.dock_parent) {
+      this.dock_parent.insertBefore(el, this.dock_next);
+    } else {
+      this.dock_parent.prepend(el);
+    }
+
+    el.classList.remove('is-floating');
+    el.style.position = '';
+    el.style.left = '';
+    el.style.top = '';
+    el.style.right = '';
+    el.style.bottom = '';
+    el.style.width = '';
+    el.style.height = '';
+    el.style.margin = '';
+    el.style.zIndex = '';
+    this.floating = false;
+    this.dock_parent = null;
+    this.dock_next = null;
+    this.dock_rect = null;
+    this.redraw_markers = true;
+    this.render();
   }
 
   add(id, obj) {

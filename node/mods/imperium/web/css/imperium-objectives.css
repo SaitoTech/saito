@@ -37,7 +37,8 @@
     padding: 0;
   }
 
-  .objectives-overlay .objective-card {
+  .objectives-overlay .objective-card,
+  .fs-objectives .objective-card {
     display: flex;
     flex-direction: column;
     width: 16.75rem;
@@ -49,7 +50,8 @@
     color: var(--imp-text);
   }
 
-  .objectives-overlay .objective-card-art {
+  .objectives-overlay .objective-card-art,
+  .fs-objectives .objective-card-art {
     position: relative;
     flex: 0 0 auto;
     height: 9.25rem;
@@ -60,7 +62,8 @@
     background-position: center 70%;
   }
 
-  .objectives-overlay .objective-card-vp {
+  .objectives-overlay .objective-card-vp,
+  .fs-objectives .objective-card-vp {
     position: absolute;
     left: 50%;
     bottom: -1.2rem;
@@ -82,15 +85,18 @@
     line-height: 1;
   }
 
-  .objectives-overlay .objective-card.is-stage-ii .objective-card-vp {
+  .objectives-overlay .objective-card.is-stage-ii .objective-card-vp,
+  .fs-objectives .objective-card.is-stage-ii .objective-card-vp {
     background: #6a348f;
   }
 
-  .objectives-overlay .objective-card.is-secret .objective-card-vp {
+  .objectives-overlay .objective-card.is-secret .objective-card-vp,
+  .fs-objectives .objective-card.is-secret .objective-card-vp {
     background: #8a3168;
   }
 
-  .objectives-overlay .objective-card-body {
+  .objectives-overlay .objective-card-body,
+  .fs-objectives .objective-card-body {
     display: flex;
     flex: 1 1 auto;
     flex-direction: column;
@@ -99,7 +105,8 @@
     padding: 1.7rem 1rem 1.05rem;
   }
 
-  .objectives-overlay .objective-card-kind {
+  .objectives-overlay .objective-card-kind,
+  .fs-objectives .objective-card-kind {
     margin: 0;
     padding: 0;
     color: var(--imp-text-muted);
@@ -111,7 +118,8 @@
     text-transform: uppercase;
   }
 
-  .objectives-overlay .objective-card-name {
+  .objectives-overlay .objective-card-name,
+  .fs-objectives .objective-card-name {
     margin: 0;
     padding: 0;
     background: transparent;
@@ -123,7 +131,8 @@
     text-align: center;
   }
 
-  .objectives-overlay .objective-card-text {
+  .objectives-overlay .objective-card-text,
+  .fs-objectives .objective-card-text {
     margin: 0;
     padding: 0;
     background: transparent;

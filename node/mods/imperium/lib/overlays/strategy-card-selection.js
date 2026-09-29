@@ -57,7 +57,7 @@ class StrategyCardSelectionOverlay {
     }
     let bonus_html = '';
     if (bonus > 0) {
-      bonus_html = `<div class="bonus"><i class="fas fa-database"></i><span>${bonus}</span></div>`;
+      bonus_html = `<div class="bonus" title="trade goods"><span class="bonus-cube"></span><span class="bonus-count">${bonus}</span></div>`;
     }
     return `<div class="strategy-card strategy-card-${card.key}" id="${card.key}"><img src="${src}" alt="">${bonus_html}</div>`;
   }

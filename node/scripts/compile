@@ -338,7 +338,7 @@ if [ "$1" == "recompile" ]; then
 
   reset_bundler
 
-  (cd "${PROJECT_DIR}" && time node config/build/webpack.config.cjs $2 $3)
+  (cd "${PROJECT_DIR}" && time node config/build/webpack.config.cjs $2 $3) || exit $?
 
   post_compile
 

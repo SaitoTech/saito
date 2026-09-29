@@ -37,8 +37,10 @@
     line-height: 2.333rem;
   }
   .new-action-cards > .action-card > .text {
-    font-size: 1.5rem;
-    line-height: 2rem;
+    font-family: 'orbitron-light', helvetica, arial;
+    font-weight: normal;
+    font-size: 1.35rem;
+    line-height: 1.5;
   }
   .new-action-cards > .action-card:hover {
     transform: unset;
@@ -66,9 +68,26 @@
   }
 
   .action-card .text {
-    font-size: 1.167rem;
-    line-height: 1.583rem;
+    font-family: 'orbitron-light', helvetica, arial;
+    font-weight: normal;
+    font-size: 1.05rem;
+    line-height: 1.45;
     text-align: center;
+  }
+
+  .game-cardbox {
+    width: calc(55vh * 0.7211);
+  }
+
+  .game-cardbox .action-card {
+    box-sizing: border-box;
+    width: 100%;
+    height: 55vh;
+    cursor: default;
+  }
+
+  .game-cardbox .action-card:hover {
+    transform: none;
   }
 
   .action-card:hover {

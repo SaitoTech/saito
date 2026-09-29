@@ -3,7 +3,8 @@ const SaitoOverlay = require('./../../../../lib/saito/ui/saito-overlay/saito-ove
 const TokenBar = require('./../tokenbar');
 const FactionSheetOverview = require('./faction-sheet/overview');
 const FactionSheetPlanets = require('./faction-sheet/planets');
-const FactionSheetUnits = require('./faction-sheet/units');
+const FactionSheetActionCards = require('./faction-sheet/action-cards');
+const FactionSheetObjectives = require('./faction-sheet/objectives');
 const FactionSheetTechnologies = require('./faction-sheet/technologies');
 const FactionSheetPromissory = require('./faction-sheet/promissory');
 
@@ -20,14 +21,16 @@ class FactionSheetOverlay {
     this.tabs = [
       { id: 'overview', label: 'Overview' },
       { id: 'planets', label: 'Planets' },
-      { id: 'units', label: 'Units' },
+      { id: 'action-cards', label: 'Action Cards' },
+      { id: 'objectives', label: 'Objectives' },
       { id: 'technologies', label: 'Technologies' },
       { id: 'promissory', label: 'Promissory' }
     ];
     this.panels = {
       overview: new FactionSheetOverview(this.app, this.mod),
       planets: new FactionSheetPlanets(this.app, this.mod),
-      units: new FactionSheetUnits(this.app, this.mod),
+      'action-cards': new FactionSheetActionCards(this.app, this.mod),
+      objectives: new FactionSheetObjectives(this.app, this.mod),
       technologies: new FactionSheetTechnologies(this.app, this.mod),
       promissory: new FactionSheetPromissory(this.app, this.mod)
     };

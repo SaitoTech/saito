@@ -47,24 +47,13 @@
   }
 
   .strategy-card-selection-controls .strategy-card .bonus {
-    position: absolute;
-    left: 7%;
-    bottom: 31%;
-    z-index: 2;
-    display: flex;
-    align-items: center;
-    gap: 0.35rem;
-    width: auto;
-    margin: 0;
-    padding: 0.2rem 0.55rem;
-    float: none;
-    font-size: 1.15rem;
-    line-height: 1;
-    color: #f3e2a0;
-    background: #14161ce6;
-    border: 1px solid #f3e2a066;
-    border-radius: 0.35rem;
-    pointer-events: none;
+    top: -6%;
+    right: -8%;
+    width: 22%;
+  }
+
+  .strategy-card-selection-controls .strategy-card .bonus-count {
+    font-size: 1.55rem;
   }
 
   .strategy-card-selection-controls .strat_slot_1,

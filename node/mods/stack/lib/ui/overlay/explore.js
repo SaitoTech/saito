@@ -139,10 +139,34 @@ class ExploreOverlay {
       this.mod,
       '#stack-explore-author-identity',
       currentUserPublicKey,
-      `<a class="stack-page-link" href="${safePageUrl}">${safePageUrl}</a>`,
+      `<a class="stack-page-link" href="${safePageUrl}">${safePageUrl}</a>` +
+        `<button type="button" class="stack-page-link-copy" aria-label="Copy link" title="Copy link">` +
+        `<i class="fa-solid fa-copy" aria-hidden="true"></i></button>`,
       '' // fourthelem
     );
     saitoUser.render();
+
+    const copyBtn = authorIdentityContainer.querySelector('.stack-page-link-copy');
+    if (copyBtn) {
+      copyBtn.onclick = async (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        try {
+          await navigator.clipboard.writeText(pageUrl);
+        } catch (err) {
+          console.error('Stack: copy link failed:', err);
+          return;
+        }
+        const icon = copyBtn.querySelector('i');
+        copyBtn.classList.add('is-copied');
+        icon?.classList.replace('fa-copy', 'fa-check');
+        clearTimeout(copyBtn._copiedTimer);
+        copyBtn._copiedTimer = setTimeout(() => {
+          copyBtn.classList.remove('is-copied');
+          icon?.classList.replace('fa-check', 'fa-copy');
+        }, 1200);
+      };
+    }
 
     // ========================================================================
     // INVARIANT 3: Update action buttons based on filter

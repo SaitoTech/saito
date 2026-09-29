@@ -76,68 +76,64 @@ this.importStrategyCard("diplomacy", {
           let choices_selected = 0;
           let max_choices = 0;
 
-          let html = '<div class="status-message">Select planets to unexhaust: </div><ul>';
-          let divname = ".cardchoice";
+          let remaining = [];
           for (let z = 0; z < array_of_cards.length; z++) {
             max_choices++;
-            html += '<li class="cardchoice" id="cardchoice_' + array_of_cards[z] + '">' + imperium_self.returnPlanetCard(array_of_cards[z]) + '</li>';
+            remaining.push(String(z));
           }
-          if (max_choices == 0) {
-            html += '<li class="textchoice" id="cancel">cancel (no options)</li>';
-            divname = ".textchoice";
-          }
-          html += '</ul>';
           if (max_choices >= 2) {
             max_choices = 2;
           }
 
-                    imperium_self.game.status = html;
-          imperium_self.hud.prepareIdle(imperium_self.game.status);
-          imperium_self.hud.updateCards([]);
           imperium_self.lockInterface();
 
-          $(divname).off();
-          $(divname).on('click', function() {
-
-            if (!imperium_self.mayUnlockInterface()) {
-              salert("The game engine is currently processing moves related to another player's move. Please wait a few seconds and reload your browser.");
-              return;
-            }
-            imperium_self.unlockInterface();
-
-            let action2 = $(this).attr("id");
-
-            if (action2 === "cancel") {
-              imperium_self.addMove("resolve\tstrategy\t1\t" + imperium_self.getPublicKey());
-              imperium_self.addPublickeyConfirm(imperium_self.getPublicKey(), 1);
-              imperium_self.endTurn();
-              return;
-            }
-
-            let tmpx = action2.split("_");
-            let divid = "#" + action2;
-            let y = tmpx[1];
-            let idx = 0;
-            for (let i = 0; i < array_of_cards.length; i++) {
-              if (array_of_cards[i] === y) {
-                idx = i;
+          let renderUnexhaustMenu = function () {
+            let menu = [];
+            if (remaining.length == 0) {
+              menu.push({ id: 'cancel', label: 'cancel (no options)' });
+            } else {
+              for (let z = 0; z < remaining.length; z++) {
+                let idx = parseInt(remaining[z]);
+                let planet = imperium_self.game.planets[array_of_cards[idx]];
+                menu.push({ id: remaining[z], label: planet && planet.name ? planet.name : array_of_cards[idx] });
               }
             }
+            imperium_self.game.status = 'Select planets to unexhaust:';
+            imperium_self.hud.preparePrompt(imperium_self.game.status);
+            imperium_self.hud.updateCards([]);
+            imperium_self.hud.updateMenu(menu, function (action2) {
 
-            choices_selected++;
-            imperium_self.addMove("unexhaust\t" + imperium_self.game.player + "\tplanet\t" + array_of_cards[idx]);
+              if (!imperium_self.mayUnlockInterface()) {
+                salert("The game engine is currently processing moves related to another player's move. Please wait a few seconds and reload your browser.");
+                return;
+              }
+              imperium_self.unlockInterface();
 
-            $(divid).off();
-            $(divid).css('opacity', '0.2');
+              if (action2 === "cancel") {
+                imperium_self.addMove("resolve\tstrategy\t1\t" + imperium_self.getPublicKey());
+                imperium_self.addPublickeyConfirm(imperium_self.getPublicKey(), 1);
+                imperium_self.endTurn();
+                return;
+              }
 
-            if (choices_selected >= max_choices) {
-              imperium_self.prependMove("resolve\tstrategy\t1\t" + imperium_self.getPublicKey());
-              imperium_self.addPublickeyConfirm(imperium_self.getPublicKey(), 1);
-              imperium_self.addMove("expend\t" + imperium_self.game.player + "\tstrategy\t1");
-              imperium_self.endTurn();
-            }
+              let idx = parseInt(action2);
+              choices_selected++;
+              imperium_self.addMove("unexhaust\t" + imperium_self.game.player + "\tplanet\t" + array_of_cards[idx]);
+              remaining = remaining.filter((id) => id !== action2);
 
-          });
+              if (choices_selected >= max_choices) {
+                imperium_self.prependMove("resolve\tstrategy\t1\t" + imperium_self.getPublicKey());
+                imperium_self.addPublickeyConfirm(imperium_self.getPublicKey(), 1);
+                imperium_self.addMove("expend\t" + imperium_self.game.player + "\tstrategy\t1");
+                imperium_self.endTurn();
+                return;
+              }
+
+              imperium_self.lockInterface();
+              renderUnexhaustMenu();
+            });
+          };
+          renderUnexhaustMenu();
         }
 
         if (id == "no") {
