@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 355">
+  <title>Saito NFT Studio outline icon</title>
+  <g fill="none" stroke="#fff" stroke-width="7" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M160 15 300 96v162l-140 81L20 258V96Z M20 96l140 81 140-81 M160 177v162"/>
+    <g transform="matrix(1 .577 0 1 43 133)">
+      <rect width="90" height="91" rx="2"/>
+      <path d="m0 70 28-34 25 33 16-18 21 27"/>
+      <circle cx="65" cy="24" r="7" fill="#fff" stroke="none"/>
+    </g>
+    <path transform="matrix(1 -.577 0 1 185 193)" d="M45 6v66 M12 39h66"/>
+  </g>
+</svg>
