@@ -158,6 +158,7 @@ class Videocall extends ModTemplate {
       this.addComponent(this.header);
       this.addComponent(new CallLauncher(this.app, this, 'body'));
       await super.render();
+      this.app.connection.emit('videocall-opened');
     }
   }
 
@@ -171,6 +172,7 @@ class Videocall extends ModTemplate {
       this.renderIntos[qs].forEach((comp) => {
         comp.render();
       });
+      this.app.connection.emit('videocall-opened');
     }
   }
 

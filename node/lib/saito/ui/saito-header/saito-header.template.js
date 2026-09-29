@@ -44,13 +44,13 @@ let SaitoHeaderTemplate = (app, mod, headerClass) => {
                    <div class="wallet-btn-container">
                        <div class="saito-large-square-button" id="wallet-btn-withdraw">
                            <div class="saito-icon-button">
-                               <i class="fa-solid fa-arrow-up"></i>
+                               <span class="wallet-action-icon wallet-send-icon" aria-hidden="true"></span>
                            </div>
                            <span>Send</span>
                        </div>
                        <div class="saito-large-square-button" id="wallet-btn-switch">
                            <div class="saito-icon-button">
-                               <i class="fa-solid fa-wallet"></i>
+                               <span class="wallet-action-icon wallet-tokens-icon" aria-hidden="true"></span>
                            </div>
                            <span>Tokens</span>
                        </div>
@@ -62,7 +62,7 @@ let SaitoHeaderTemplate = (app, mod, headerClass) => {
                        </div>
                        <div class="saito-large-square-button" id="wallet-btn-settings">
                            <div class="saito-icon-button">
-                               <i class="fas fa-cog"></i>
+                               <span class="wallet-action-icon wallet-settings-icon" aria-hidden="true"></span>
                            </div>
                            <span>Admin</span>
                        </div>
