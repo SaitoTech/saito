@@ -62,7 +62,7 @@
       },
       menuOption  :       function(imperium_self, menu, player) {
 	if (menu == "pds") {
-          return { event : 'graviton', html : '<li class="option" id="graviton">use graviton laser targetting</li>' };
+          return { event : 'graviton', id: 'graviton', label: 'use graviton laser targetting', html : '<li class="option" id="graviton">use graviton laser targetting</li>' };
         }
         return {};
       },
@@ -109,7 +109,7 @@
       },
       menuOption  :       function(imperium_self, menu, player) {
 	if (menu == "main") {
-          return { event : 'transitdiodes', html : '<li class="option" id="transitdiodes">use transit diodes</li>' };
+          return { event : 'transitdiodes', id: 'transitdiodes', label: 'use transit diodes', html : '<li class="option" id="transitdiodes">use transit diodes</li>' };
         }
         return {};
       },

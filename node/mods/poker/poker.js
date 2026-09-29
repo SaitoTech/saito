@@ -1,18 +1,15 @@
 const GameTableTemplate = require('../../lib/templates/table-gametemplate');
-const GameBoard = require('./lib/ui/game-board/game-board');
-const Pot = require('./lib/ui/pot/pot');
 const JSON = require('json-bigint');
 const PokerStats = require('./lib/stats');
-const htmlTemplate = require('./lib/game-html.template');
-const PokerGameRulesTemplate = require('./lib/poker-game-rules.template');
-const PokerGameOptionsTemplate = require('./lib/poker-game-options.template');
+const GameRulesTemplate = require('./lib/core/game-rules.template');
+const GameOptionsTemplate = require('./lib/core/game-options.template');
+const Main = require('./lib/ui/main');
 
 const PokerState = require('./lib/poker-state.js');
 const PokerStake = require('./lib/poker-stake.js');
 const PokerQueue = require('./lib/poker-queue.js');
 const PokerUI = require('./lib/poker-ui.js');
 const PokerCards = require('./lib/poker-cards.js');
-const AppSettings = require('./lib/poker-settings');
 
 //////////////////
 // CONSTRUCTOR  //
@@ -28,18 +25,26 @@ class Poker extends GameTableTemplate {
     this.description = `Texas Hold\'em Poker for the Saito Arcade. With five cards on the table and two in your hand, can you bet and bluff your way to victory? 
 				<br> Play with up to five other players for fun or wager integrated web3 cryptocurrencies through your handy Saito Wallets`;
     this.categories = 'Games Cardgame Casino';
-    this.card_img_dir = '/saito/img/arcade/cards';
-    this.card_img = 'new_red';
+    this.card_img_dir = '/poker/img/cards';
+    this.card_back = '/poker/img/cards/red.png';
     this.felt = 'green';
     this.theme = 'threed';
     this.icon = 'fa-solid fa-diamond';
 
+    this.useHUD = 0;
     this.minPlayers = 2;
     this.maxPlayers = 6;
 
     this.stats = new PokerStats(app, this);
-    this.board = new GameBoard(app, this);
-    this.pot = new Pot(app, this);
+    this.main = new Main(app, this);
+    this.board = this.main.table.board;
+    this.hand = this.main.table.hand;
+    this.controls = this.main.table.controls;
+    this.sidebar = this.main.sidebar;
+    this.playerbox = this.sidebar;
+    this.pot = this.sidebar.pot;
+    this.cardfan = this.hand;
+    this.result = this.main.table.result;
 
     /********************
 		*********************
@@ -78,30 +83,18 @@ class Poker extends GameTableTemplate {
     this.sort_priority = 1;
   }
 
-  initializeGame() {
-    //
-    // test crypto hand scoring
-    //
-    // this is just convenience code for checking why two hands
-    // might not score properly. please leave this in for now.
-    //
-    //let hand1 = ["S8","S7","H3","H5","C2","S6","H4"];
-    //let hand2 = ["C10","D2","H3","H5","C2","S6","H4"];
-    //console.log("TESTING HAND SCORING");
-    //let score1 = this.scoreHand(hand1);
-    //let score2 = this.scoreHand(hand2);
-    //let winner = this.pickWinner(score1, score2);
-    //console.log("score1: " + JSON.stringify(score1));
-    //console.log("score2: " + JSON.stringify(score2));
-    //console.log("winner: " + JSON.stringify(winner));
+  returnBanner() {
+    return this.returnImage();
+  }
 
+  initializeGame() {
     super.initializeGame();
 
-    //
-    // CHIPS or CRYPTO ?
-    //
     this.settleNow = false;
-    this.settle_every_hand = false;
+    // Crypto poker should settle after every completed hand by default.
+    // This is Poker-specific (not generic) and relies on existing poker debt/settlement
+    // logic in `lib/poker-stake.js` + existing queue `settle` handling in `lib/poker-queue.js`.
+    this.settle_every_hand = true;
 
     if (this.game.player == 0) {
       if (!this.game.pool[0]) {
@@ -109,30 +102,18 @@ class Poker extends GameTableTemplate {
       }
     }
 
-    //
-    // initialize game state
-    //
     if (!this.game?.state) {
       this.game.state = this.returnState(this.game.players.length);
       this.initializeGameStake(this.game.crypto, this.game.stake);
       this.game.stats = this.returnStats();
-      this.startRound(); // DOM update on new round
+      this.startRound();
     }
 
-    //
-    // browsers display UI
-    //
     if (this.browser_active) {
-      this.board.render();
+      this.main.render();
     }
   }
 
-  //
-  // Consensus fields specific to poker that a late joiner must be able to
-  // verify (beyond the engine's id/players/round/credit/debt). The dealer
-  // button drives the blinds and turn order, so a joiner seated against a
-  // different button than the table would desync immediately.
-  //
   returnExtraCommitmentFields(game_obj) {
     return {
       button_player: game_obj?.state?.button_player || 0,
@@ -172,8 +153,6 @@ class Poker extends GameTableTemplate {
           }
 
           if (okey == 'eliminated') {
-            // rendered as its own "cashed out" section in the arcade lounge,
-            // not as a game-options row
             output_me = 0;
           }
 
@@ -198,11 +177,8 @@ class Poker extends GameTableTemplate {
       return;
     }
 
-    await this.injectGameHTML(htmlTemplate());
+    await this.injectGameHTML(this.main.html());
 
-    //
-    // ADD MENU
-    //
     this.menu.addMenuOption('game-game', 'Game');
     this.menu.addSubMenuOption('game-game', {
       text: 'How to Play',
@@ -222,46 +198,29 @@ class Poker extends GameTableTemplate {
         game_mod.stats.toggle();
       }
     });
-
     this.menu.addSubMenuOption('game-game', {
-      text: 'Settings',
-      id: 'game-settings',
-      class: 'game-settings',
+      text: 'Log',
+      id: 'game-log',
+      class: 'game-log',
       callback: function (app, game_mod) {
-        game_mod.loadSettings();
+        game_mod.menu.hideSubMenus();
+        game_mod.log.toggleLog();
       }
     });
 
-    //default by device
     this.theme = this.app.browser.isMobileBrowser() ? 'flat' : 'threed';
-    if (this.loadGamePreference('poker-theme')) {
-      this.theme = this.loadGamePreference('poker-theme');
-    }
-    if (this.loadGamePreference('poker-cards')) {
-      this.card_img = this.loadGamePreference('poker-cards');
-    }
-    if (this.loadGamePreference('poker-felt')) {
-      this.felt = this.loadGamePreference('poker-felt');
-    }
-
-    this.cardfan.container = '.mystuff';
 
     await super.render(app);
 
-    this.board.render();
-    this.playerbox.mode = 2;
+    this.main.render();
     this.refreshPlayerboxes();
     this.menu.addChatMenu();
     this.menu.render();
     this.log.render();
+    this.introduceLog();
     this.displayButton();
     this.insertCryptoLogo(this.game?.options?.crypto);
 
-    //
-    // gametabletemplate adds a scoreboard DIV that shows HIDE / LEAVE / JOIN instructions
-    // which we are going to hide to prevent UI / UX clutter, but leave functional so as to
-    // enable faster experimentation.
-    //
     if (document.querySelector('.game-scoreboard')) {
       document.querySelector('.game-scoreboard').style.display = 'none';
     }
@@ -319,7 +278,9 @@ class Poker extends GameTableTemplate {
   endTurn(nextTarget = 0) {
     if (this.browser_active) {
       this.updateStatus('submitting move to peers...');
-      $('.option').off();
+      this.hud.updateMenu([]);
+      this.hud.updateCards([]);
+      this.controls.clear();
     }
 
     if (this.shot_clock) {
@@ -332,15 +293,74 @@ class Poker extends GameTableTemplate {
     super.endTurn(nextTarget);
   }
 
+  introduceLog() {
+    if (this.log_intro_shown || !this.log) {
+      return;
+    }
+    this.log_intro_shown = true;
+    try {
+      this.log.toggleLog();
+      setTimeout(() => {
+        let obj = document.querySelector('#log-wrapper');
+        if (obj && obj.classList.contains('log-lock')) {
+          this.log.toggleLog();
+        }
+      }, 2000);
+    } catch (err) {}
+  }
+
+  updateStatus(str, force = 0) {
+    if (this.browser_active && this.game.player) {
+      let action = this.actionFromStatus(str);
+      if (action) {
+        this.playerbox.setAction(action, this.game.player);
+      }
+    }
+
+    if (!force && str === this.game.status) {
+      return;
+    }
+
+    this.game.status = str;
+    if (!this.gameBrowserActive()) {
+      return;
+    }
+
+    this.hud.updateStatus(str);
+  }
+
+  actionFromStatus(str) {
+    let text = String(str || '')
+      .replace(/<[^>]*>/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+
+    if (text === 'you called') {
+      let amt = this.game.state.required_pot - this.game.state.player_pot[this.game.player - 1];
+      return `called ${this.formatWager(amt, false)}`;
+    }
+    if (text === 'you folded') {
+      return 'folded';
+    }
+    if (text === 'you checked') {
+      return 'checked';
+    }
+    if (text === 'all in!') {
+      return 'all in';
+    }
+    if (text.indexOf('bets ') === 0 || text.indexOf('goes all in') === 0) {
+      return text;
+    }
+    return '';
+  }
+
   returnGameRulesHTML() {
-    return PokerGameRulesTemplate(this.app, this);
+    return GameRulesTemplate(this.app, this);
   }
 
   returnAdvancedOptions() {
-    return PokerGameOptionsTemplate(this.app, this);
+    return GameOptionsTemplate(this.app, this);
   }
-
-  // Extension of game engine stub for advanced stake selection before starting a game
 
   attachAdvancedOptionsEventListeners() {
     let blindModeInput = document.getElementById('blind_mode');
@@ -349,10 +369,9 @@ class Poker extends GameTableTemplate {
     let crypto = document.getElementById('crypto');
     let stakeValue = document.getElementById('stake');
     let chipInput = document.getElementById('chip_wrapper');
-    //let stake = document.getElementById("stake");
 
     const updateChips = function () {
-      if (numChips && stakeValue && chipInput /*&& stake*/) {
+      if (numChips && stakeValue && chipInput) {
         if (crypto.value == '') {
           chipInput.style.display = 'none';
           stake.value = '0';
@@ -383,19 +402,6 @@ class Poker extends GameTableTemplate {
     if (numChips) {
       numChips.onchange = updateChips;
     }
-  }
-
-  loadSettings(container = null) {
-    if (!container) {
-      this.overlay.show(
-        `<div class="module-settings-overlay"><h2>${this.returnName()} Settings</h2></div>`
-      );
-      container = '.module-settings-overlay';
-      this.overlay.setBackgroundColor('#0001');
-    }
-
-    let as = new AppSettings(this.app, this, container);
-    as.render();
   }
 }
 

@@ -42,7 +42,10 @@
             twilight_self.addMove("setvar\tgame\tstate\tback_button_cancelled\t1");
             twilight_self.addMove("notify\tUSSR shares "+twilight_self.cardToText(newcard));
             twilight_self.endTurn();
-            twilight_self.updateStatus(`<div class='status-message' id='status-message'>Sending ${twilight_self.cardToText(newcard)} to US</div>`);
+            twilight_self.game.status = `<div class='status-message' id='status-message'>Sending ${twilight_self.cardToText(newcard)} to US</div>`;
+            twilight_self.hud.updateStatus(twilight_self.game.status);
+            twilight_self.hud.updateMenu([]);
+            twilight_self.hud.updateCards([]);
           });
         }
       }else{

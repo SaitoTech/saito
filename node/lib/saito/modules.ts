@@ -702,6 +702,7 @@ class Mods {
     for (let imp = 0; imp < this.mods.length; imp++) {
       this.mods[imp].onChainReorganization(block_id, block_hash, lc);
     }
+    this.app.wallet.saitoCrypto?.onChainReorganization(block_id, block_hash, lc);
     return null;
   }
 

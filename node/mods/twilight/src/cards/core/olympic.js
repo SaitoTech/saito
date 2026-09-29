@@ -17,7 +17,10 @@
 
         this.addMove("resolve\tolympic");
 
-        twilight_self.updateStatusWithOptions(`${opponent.toUpperCase()} hosts the ${this.cardToText(card)}:`,'<ul><li class="option" id="boycott">boycott</li><li class="option" id="participate">participate</li></ul>', function(action) {
+        twilight_self.game.status = `${opponent.toUpperCase()} hosts the ${this.cardToText(card)}:`;
+        twilight_self.hud.updateStatus(twilight_self.game.status);
+        twilight_self.hud.updateCards([]);
+        twilight_self.hud.updateMenu([ { id: 'boycott', label: 'boycott' }, { id: 'participate', label: 'participate' } ], function(action) {
 
           if (action == "boycott") {
             twilight_self.addMove("ops\t"+opponent+"\tolympic\t4");
@@ -64,7 +67,10 @@
           }
         });
       }else{
-        this.updateStatus(`<div class='status-message' id='status-message'>${opponent.toUpperCase()} is deciding whether to boycott the ${this.cardToText(card)}</div>`);
+        this.game.status = `<div class='status-message' id='status-message'>${opponent.toUpperCase()} is deciding whether to boycott the ${this.cardToText(card)}</div>`;
+        this.hud.updateStatus(this.game.status);
+        this.hud.updateMenu([]);
+        this.hud.updateCards([]);
       }
 
       return 0;

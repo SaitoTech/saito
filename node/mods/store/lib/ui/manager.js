@@ -69,9 +69,12 @@ class Manager {
    * @param {string} publicKey
    * @param {{ viewMode?: 'public' | 'admin' | 'admin-denied', adminSection?: 'home' | 'active' }} [opts]
    */
-  showStorefront(publicKey = '', { viewMode = 'public', adminSection = 'home' } = {}) {
+  showStorefront(
+    publicKey = '',
+    { viewMode = 'public', adminSection = 'home', category = '' } = {}
+  ) {
     this.show('my-listings');
-    return this.storefront.show(publicKey, { viewMode, adminSection });
+    return this.storefront.show(publicKey, { viewMode, adminSection, category });
   }
 
   showSales() {

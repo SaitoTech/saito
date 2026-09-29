@@ -11,6 +11,8 @@ class XMR extends ModTemplate {
     this.ticker = 'XMR';
     this.description = 'Adds support for Mixin-powered XMR transfers on the Saito Network';
     this.categories = 'Utility Cryptocurrency Finance';
+    this.status = 'beta';
+    this.class = 'utility';
 
     // MIXIN STUFF
     this.asset_id = '05c5ac01-31f9-4a69-aa8a-ab796de1d041';

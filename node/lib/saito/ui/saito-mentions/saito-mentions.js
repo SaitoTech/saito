@@ -61,21 +61,67 @@ class SaitoMentions {
     setTimeout(() => {
       this.options = [];
       this.triggerIdx = undefined;
+      this.caretIdx = undefined;
       this.renderMenu();
     }, 0);
   }
 
-  selectItem(active) {
-    let text = '';
-    if (this.inputType == 'div') {
-      text = this.ref.innerText;
-    } else {
-      text = this.ref.value;
+  fieldText() {
+    if (this.inputType != 'div') {
+      return this.ref.value || '';
     }
+    const range = document.createRange();
+    range.selectNodeContents(this.ref);
+    return range.toString().replace(/\n$/, '');
+  }
 
+  caretOffset() {
+    if (this.inputType != 'div') {
+      return this.ref.selectionStart ?? (this.ref.value || '').length;
+    }
+    const selection = window.getSelection();
+    if (!selection || selection.rangeCount === 0 || !this.ref.contains(selection.focusNode)) {
+      return this.fieldText().length;
+    }
+    const range = selection.getRangeAt(0);
+    const pre = range.cloneRange();
+    pre.selectNodeContents(this.ref);
+    pre.setEnd(range.endContainer, range.endOffset);
+    return pre.toString().length;
+  }
+
+  placeCaret(offset) {
+    this.ref.focus();
+    const selection = window.getSelection();
+    if (!selection) {
+      return;
+    }
+    const walker = document.createTreeWalker(this.ref, NodeFilter.SHOW_TEXT);
+    let remaining = offset;
+    let node = walker.nextNode();
+    while (node) {
+      if (remaining <= node.textContent.length) {
+        const range = document.createRange();
+        range.setStart(node, remaining);
+        range.collapse(true);
+        selection.removeAllRanges();
+        selection.addRange(range);
+        return;
+      }
+      remaining -= node.textContent.length;
+      node = walker.nextNode();
+    }
+    const range = document.createRange();
+    range.selectNodeContents(this.ref);
+    range.collapse(false);
+    selection.removeAllRanges();
+    selection.addRange(range);
+  }
+
+  selectItem(active) {
+    const text = this.fieldText();
     const preMention = text.substr(0, this.triggerIdx);
     const option = this.options[active];
-    let trigger = '';
 
     if (!option) {
       console.log('Null Items, nope out');
@@ -84,94 +130,38 @@ class SaitoMentions {
       return;
     }
 
-    if (this.inputType == 'div') {
-      trigger = this.ref.innerText[this.triggerIdx];
-    } else {
-      trigger = this.ref.value[this.triggerIdx];
-    }
-
+    const trigger = text[this.triggerIdx] || '@';
     const mention = option?.identifier
       ? `${trigger}${option.identifier} `
       : `${trigger}${option.publicKey} `;
 
-    let selectionStart = null;
-    if (this.inputType == 'div') {
-      if (typeof window.getSelection != 'undefined') {
-        var sel = window.getSelection();
-        console.log(sel);
-        sel.modify('extend', 'backward', 'word');
-        var pos = sel.toString().length;
-        if (sel.anchorNode != undefined) sel.collapseToEnd();
-        selectionStart = pos + (mention.length - 1);
-      }
-    } else {
-      selectionStart = this.ref.selectionStart;
+    let end = this.inputType == 'div' ? this.caretIdx : this.ref.selectionStart;
+    if (typeof end != 'number' || end < this.triggerIdx) {
+      end = text.length;
     }
-    //console.log('selection:', selectionStart);
 
-    const postMention = text.substr(selectionStart);
+    const postMention = text.substr(end);
     const newValue = `${preMention}${mention}${postMention}`;
+    const caretPosition = preMention.length + mention.length;
 
-    // console.log('${preMention}: ', preMention);
-    // console.log('${mention}: ', mention);
-    // console.log('${postMention}: ', postMention);
-    // console.log('newValue:', newValue);
-
-    // console.log('inputType:', this.inputType);
-    let caretPosition = 0;
     if (this.inputType == 'div') {
       this.ref.innerText = newValue;
-      caretPosition = selectionStart;
     } else {
       this.ref.value = newValue;
-      caretPosition = this.ref.value.length - postMention.length;
-    }
-    console.log('caretPosition:', caretPosition);
-
-    if (this.inputType != 'div') {
-      this.ref.setSelectionRange(caretPosition, caretPosition);
-    } else {
-      var range = document.createRange();
-      let char = caretPosition,
-        sel;
-      if (document.selection) {
-        sel = document.selection.createRange();
-        sel.moveStart('character', char);
-        sel.select();
-      } else {
-        sel = window.getSelection();
-
-        console.log('char:', char);
-        console.log('this.ref.lastChild.length', this.ref.lastChild.length);
-        console.log(this.ref.lastChild.length);
-
-        if (char > this.ref.lastChild.length) {
-          sel.collapse(this.ref.lastChild, this.ref.lastChild.length);
-        } else {
-          sel.collapse(this.ref.lastChild, char);
-        }
-      }
     }
 
     this.closeMenu();
     this.ref.focus();
+    if (this.inputType == 'div') {
+      this.placeCaret(caretPosition);
+    } else {
+      this.ref.setSelectionRange(caretPosition, caretPosition);
+    }
   }
 
   async onInput(ev) {
-    /*  
-      This will apparently be undefined for <div>s, but the slice just
-      returns the entire text.
-    */
-
-    const positionIndex = this.ref.selectionStart;
-
-    let text = '';
-    if (this.inputType == 'div') {
-      // Should drop the <br> from Firefox
-      text = this.ref.innerText.trim();
-    } else {
-      text = this.ref.value;
-    }
+    const positionIndex = Math.min(this.caretOffset(), this.fieldText().length);
+    const text = this.fieldText();
 
     const textBeforeCaret = text.slice(0, positionIndex);
     const tokens = textBeforeCaret ? textBeforeCaret.split(/\s+/) : [];
@@ -198,9 +188,10 @@ class SaitoMentions {
       const boundPos = this.ref.getBoundingClientRect();
       this.top = 0;
       this.left = 0;
+      this.active = 0;
+      this.triggerIdx = triggerIdx;
+      this.caretIdx = positionIndex;
       setTimeout(() => {
-        this.active = 0;
-        this.triggerIdx = triggerIdx;
         this.renderMenu(boundPos, coords);
       }, 1);
     } else {

@@ -64,7 +64,10 @@
       	//
       	// and handle with the HUD too
       	//
-        twilight_self.updateStatusWithOptions('Set DEFCON to:','<ul><li class="option" id="5">five</li><li class="option" id="4">four</li><li class="option" id="3">three</li><li class="option" id="2">two</li><li class="option" id="1">one</li></ul></div>', function(action2) {
+        twilight_self.game.status = 'Set DEFCON to:';
+        twilight_self.hud.updateStatus(twilight_self.game.status);
+        twilight_self.hud.updateCards([]);
+        twilight_self.hud.updateMenu([ { id: '5', label: 'five' }, { id: '4', label: 'four' }, { id: '3', label: 'three' }, { id: '2', label: 'two' }, { id: '1', label: 'one' } ], function(action2) {
           adjustDefcon(parseInt(action2));
       	  $('.set_defcon_box').remove();
 

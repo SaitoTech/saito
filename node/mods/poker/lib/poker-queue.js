@@ -1,4 +1,5 @@
 const html2canvas = require('html2canvas');
+const Result = require('./ui/result');
 
 class PokerQueue {
   initializeQueue() {
@@ -104,9 +105,9 @@ class PokerQueue {
           );
         }
 
-        this.updateStatus(
-          `${this.game.state.player_names[this.game.state.button_player - 1]} dealing the cards...`
-        );
+                this.updateStatus(`${this.game.state.player_names[this.game.state.button_player - 1]} dealing the cards...`);
+        this.hud.updateMenu([]);
+        this.hud.updateCards([]);
 
         this.game.state.flipped = 0;
         this.game.state.plays_since_last_raise = 0;
@@ -317,10 +318,19 @@ class PokerQueue {
             `settle\t${JSON.stringify([this.game.players[player_left_idx]])}\tfold`
           );
 
+          if (this.result) {
+            this.result.show({
+              headline: this.game.player == player_left_idx + 1 ? 'YOU WIN' : `${this.game.state.player_names[player_left_idx]} WINS`
+            });
+          }
+
           this.playerAcknowledgeNotice(msg, async () => {
-            this.updateStatus(
-              `Clearing the table${this.needToSettleDebt() ? ' and settling bets' : ''}...`
-            );
+            if (this.result) {
+              this.result.hide();
+            }
+                        this.updateStatus(`Clearing the table${this.needToSettleDebt() ? ' and settling bets' : ''}...`);
+            this.hud.updateMenu([]);
+            this.hud.updateCards([]);
             this.animating = false;
             this.cardfan.hide();
             this.pot.clearPot();
@@ -330,7 +340,10 @@ class PokerQueue {
             this.restartQueue();
           });
           this.saveGame(this.game.id);
-          this.setShotClock('.acknowledge', 5000, false);
+          this.setShotClock('.acknowledge', Result.ACKNOWLEDGE_MS, false);
+          if (this.result) {
+            this.result.startCountdown(Result.ACKNOWLEDGE_MS);
+          }
 
           return 0;
         }
@@ -711,17 +724,39 @@ class PokerQueue {
 
         this.animateWin(pot_total, winObj);
         this.halted = 1;
-        this.updateStatus(winnerStr);
+                this.updateStatus(winnerStr);
+        this.hud.updateMenu([]);
+        this.hud.updateCards([]);
 
         this.saveGame(this.game.id);
 
         const clearBoardAndContinue = (screenshot = null) => {
           this.game.queue.push(`settle\t${JSON.stringify(winner_keys)}\tbesthand`);
 
+          if (this.result) {
+            let local_win = winners.includes(this.game.player - 1);
+            let headline = 'SPLIT POT';
+            if (winners.length == 1) {
+              headline = local_win
+                ? 'YOU WIN'
+                : `${this.game.state.player_names[winners[0]]} WINS`;
+            } else if (local_win) {
+              headline = 'YOU WIN';
+            }
+            this.result.show({
+              cards: topPlayer.player_hand.cards_to_score,
+              headline,
+              hand: this.result.formatHandName(winning_hand)
+            });
+          }
+
           this.playerAcknowledgeNotice(winnerStr, async () => {
-            this.updateStatus(
-              `Clearing the table${this.needToSettleDebt() ? ' and settling bets' : ''}...`
-            );
+            if (this.result) {
+              this.result.hide();
+            }
+                        this.updateStatus(`Clearing the table${this.needToSettleDebt() ? ' and settling bets' : ''}...`);
+            this.hud.updateMenu([]);
+            this.hud.updateCards([]);
             console.log('Continuing poker...');
             this.animating = false;
             this.cardfan.hide();
@@ -732,25 +767,20 @@ class PokerQueue {
             this.restartQueue();
           });
 
-          this.setShotClock('.acknowledge', 9000, false, () => {
+          this.setShotClock('.acknowledge', Result.ACKNOWLEDGE_MS, false, () => {
             this.game_help.render({
-              title: 'Showdown',
-              text: `Tip: click anywhere on the screen to interrupt the 3 second countdown that keeps the game moving along`,
-              //img: '/poker/img/poker_screenshot.jpg',
+              title: 'The Clock is Ticking',
+              text: `Cards auto-clear after several seconds. Check the game log for more information...`,
+              img: '/poker/img/showdown-clock.png',
               line1: 'what',
               line2: 'happened?',
               fontsize: '2.1rem',
-              id: 'showdown',
-              callback: () => {
-                if (screenshot) {
-                  let ov = document.querySelector('.game-help-overlay');
-                  if (ov) {
-                    ov.prepend(screenshot);
-                  }
-                }
-              }
+              id: 'showdown'
             });
           });
+          if (this.result) {
+            this.result.startCountdown(Result.ACKNOWLEDGE_MS);
+          }
         };
 
         if (this.game.player) {
@@ -798,7 +828,9 @@ class PokerQueue {
         this.board.render(true);
 
         if (this.game.player) {
-          this.updateStatus('waiting to ante');
+                    this.updateStatus('waiting to ante');
+          this.hud.updateMenu([]);
+          this.hud.updateCards([]);
         }
 
         let bbpi = this.game.state.big_blind_player - 1;
@@ -904,7 +936,9 @@ class PokerQueue {
           if (this.game.player !== player) {
             this.displayPlayerNotice(`<div class="plog-update">all in!</div>`, player);
           } else {
-            this.updateStatus('all in!');
+                        this.updateStatus('all in!');
+            this.hud.updateMenu([]);
+            this.hud.updateCards([]);
           }
         } else {
           this.updateLog(
@@ -915,7 +949,9 @@ class PokerQueue {
           if (this.game.player !== player) {
             this.displayPlayerNotice(`<div class="plog-update">calls</div>`, player);
           } else {
-            this.updateStatus('you called');
+                        this.updateStatus('you called');
+            this.hud.updateMenu([]);
+            this.hud.updateCards([]);
           }
         }
 
@@ -951,7 +987,9 @@ class PokerQueue {
             this.displayPlayerNotice(`<div class="plog-update">folds</div>`, player);
             this.playerbox.addClass('folded', player);
           } else {
-            this.updateStatus('you folded');
+                        this.updateStatus('you folded');
+            this.hud.updateMenu([]);
+            this.hud.updateCards([]);
             this.displayHand();
             this.ignore_notifications = true;
           }
@@ -971,7 +1009,9 @@ class PokerQueue {
         if (this.game.player !== player && this.browser_active) {
           this.displayPlayerNotice(`<div class="plog-update">checks</div>`, player);
         } else {
-          this.updateStatus('you checked');
+                    this.updateStatus('you checked');
+          this.hud.updateMenu([]);
+          this.hud.updateCards([]);
         }
         this.game.state.plays_since_last_raise++;
 
@@ -1005,7 +1045,9 @@ class PokerQueue {
         if (this.game.player !== player) {
           this.displayPlayerNotice(`<div class="plog-update">${raise_message}</div>`, player);
         } else {
-          this.updateStatus(raise_message);
+                    this.updateStatus(raise_message);
+          this.hud.updateMenu([]);
+          this.hud.updateCards([]);
         }
 
         await this.animateBet(player, raise);

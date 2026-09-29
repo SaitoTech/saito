@@ -12,6 +12,7 @@ class ExploreOverlay {
     this.posts = {};
     this.lastTimeStamp = {};
     this.isLoading = true;
+    this.awaitingPeers = false;
     this.subscriptions = [];
     this.targetPublicKey = null; // For URL-based routing: publicKey to show posts for
   }
@@ -53,52 +54,50 @@ class ExploreOverlay {
     return this.app.keychain.returnUsername(publicKey);
   }
 
+  /**
+   * Fixed labels (SaitoOfficial, My Posts) must not be rewritten by the
+   * .saito-address registry lookup; every other creator label should be.
+   */
+  isAddressLabel(publicKey) {
+    return publicKey != this.mod.STACK_OFFICIAL_PUBLICKEY && publicKey != this.mod.publicKey;
+  }
+
   //
-  // URL - publicKey on top of list, then Official, then My Posts, then whatever is in in app.options.stack.subscriptions
-  // We prevent duplication of items if the URL is one of our otherwise listed publicKeys
+  // Sidebar is SaitoOfficial, My Posts, then active subscriptions.
+  // The creator currently open in the main pane is not listed unless they
+  // are one of those.
   //
   calculateSubscriptions() {
-    let subscriptions = [];
-
-    // 1. URL-driven single-user view
-    if (this.targetPublicKey) {
-      subscriptions = [
-        {
-          publickey: this.targetPublicKey,
-          icon: 'fa-solid fa-user',
-          label: this.createLabel(this.targetPublicKey),
-          source: 'url'
-        }
-      ];
-    }
-
-    if (this.targetPublicKey !== this.mod.STACK_OFFICIAL_PUBLICKEY) {
-      subscriptions.push({
+    const subscriptions = [
+      {
         icon: 'fa-solid fa-user',
         label: 'SaitoOfficial',
         publickey: this.mod.STACK_OFFICIAL_PUBLICKEY,
+        isAddress: false,
         source: 'default'
-      });
-    }
-
-    if (this.targetPublicKey !== this.mod.publicKey) {
-      subscriptions.push({
+      },
+      {
         icon: 'fa-solid fa-user',
         label: 'My Posts',
         publickey: this.mod.publicKey,
+        isAddress: false,
         source: 'default'
-      });
-    }
-
-    for (let pk of this.mod.getSubscriptions()) {
-      if (this.targetPublicKey !== pk) {
-        subscriptions.push({
-          publickey: pk,
-          icon: 'fa-solid fa-user',
-          label: this.createLabel(pk),
-          source: 'subscription'
-        });
       }
+    ];
+
+    const listed = new Set(subscriptions.map((entry) => entry.publickey));
+    for (const pk of this.mod.getSubscriptions()) {
+      if (!pk || listed.has(pk)) {
+        continue;
+      }
+      listed.add(pk);
+      subscriptions.push({
+        publickey: pk,
+        icon: 'fa-solid fa-user',
+        label: this.createLabel(pk),
+        isAddress: this.isAddressLabel(pk),
+        source: 'subscription'
+      });
     }
 
     return subscriptions;
@@ -123,6 +122,8 @@ class ExploreOverlay {
     if (!authorHeader) return;
 
     const currentUserPublicKey = this.targetPublicKey || this.mod.publicKey;
+    const pageUrl = this.mod.returnStackUrl(currentUserPublicKey);
+    const safePageUrl = this.app.browser.escapeHTML(pageUrl);
 
     // Clear header
     authorHeader.innerHTML = '';
@@ -138,74 +139,75 @@ class ExploreOverlay {
       this.mod,
       '#stack-explore-author-identity',
       currentUserPublicKey,
-      'Explore', // User notice parameter for description
+      `<a class="stack-page-link" href="${safePageUrl}">${safePageUrl}</a>`,
       '' // fourthelem
     );
     saitoUser.render();
 
-    // Show/hide subscribe button based on subscription status
-    // Hide action buttons when Subscribe button is shown (mutually exclusive)
-    const isSubscribed = this.mod.isSubscribed(currentUserPublicKey);
-    const subscribeBtnContainer = document.querySelector(
-      '#stack-explore-subscribe-button-container'
-    );
-    const actionBtnContainer = document.querySelector('.explore .actions');
-    if (subscribeBtnContainer) {
-      subscribeBtnContainer.classList.toggle('is-visible', !isSubscribed);
-    }
-    if (actionBtnContainer) {
-      actionBtnContainer.classList.toggle('is-hidden', !isSubscribed);
-    }
-
     // ========================================================================
     // INVARIANT 3: Update action buttons based on filter
     // ========================================================================
-    const shareAuthorBtn = document.getElementById('stack-explore-author-share');
-    if (shareAuthorBtn) {
-      shareAuthorBtn.classList.toggle(
-        'is-hidden',
-        currentUserPublicKey == this.mod.STACK_OFFICIAL_PUBLICKEY
-      );
-    }
-
     const settingsBtn = document.querySelector('#stack-explore-settings-btn');
     if (settingsBtn) {
       // Temporary since there is no connected functionality
     }
 
-    const postBtn = document.querySelector('#stack-explore-new-post-btn');
-    if (postBtn) {
-      if (currentUserPublicKey === this.mod.publicKey) {
-        postBtn.classList.remove('is-hidden');
-        this.attachGetStartedHandler();
-      } else {
-        postBtn.classList.add('is-hidden');
-      }
+    // ( + ) is "new post" on my own feed and "subscribe" on a creator I don't follow yet.
+    // isSubscribed() is true for my own key, so check ownership first.
+    const plusBtn = document.querySelector('#stack-explore-plus-btn');
+    if (plusBtn) {
+      const isOwnFeed = currentUserPublicKey === this.mod.publicKey;
+      const canSubscribe = !isOwnFeed && !this.mod.isSubscribed(currentUserPublicKey);
+      const label = isOwnFeed ? 'New post' : 'Subscribe';
+
+      plusBtn.classList.toggle('is-hidden', !isOwnFeed && !canSubscribe);
+      plusBtn.setAttribute('aria-label', label);
+      plusBtn.setAttribute('title', label);
+      plusBtn.onclick = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (isOwnFeed) {
+          this.startNewPost();
+        } else {
+          this.handleSubscribeToCreator();
+        }
+      };
     }
   }
 
   /**
-   * Loads posts for the given filter using loadPostsForAuthor().
+   * Loads posts for the given filter using fetchPostsForAuthor().
    * Shows loading state, then populated or empty state.
+   *
+   * Remote fetches are throttled per author for two minutes, but only once a fetch
+   * has actually reached peers — results gathered before peers connect are partial.
+   *
+   * @param {string} author - publicKey to load
+   * @param {Object} options
+   * @param {boolean} options.force - bypass the throttle (explicit refresh)
    */
-  async loadPostsForFilter(author) {
+  async loadPostsForFilter(author, { force = false } = {}) {
     if (!author) {
       console.warn('No author resolved for filter:', author);
       return;
     }
 
-    let ts = Date.now();
+    const ts = Date.now();
+    const fresh = this.lastTimeStamp[author] && ts - this.lastTimeStamp[author] <= 120000;
 
-    // Don't harrass the server with pull requests...
-    if (!this.lastTimeStamp[author] || ts - this.lastTimeStamp[author] > 120000) {
+    if (force || !fresh) {
       this.isLoading = true;
       this.updatePostsGrid(author);
 
-      // Delegate ALL loading to the author loader
       console.log('fetching', author);
-      let posts = await this.mod.loadPostsForAuthor(author, { forceRemote: true });
+      const { posts, complete } = await this.mod.fetchPostsForAuthor(author, {
+        forceRemote: true
+      });
       this.posts[author] = posts;
-      this.lastTimeStamp[author] = ts;
+      if (complete) {
+        this.lastTimeStamp[author] = ts;
+      }
+      this.awaitingPeers = !complete;
     }
 
     this.isLoading = false;
@@ -223,17 +225,19 @@ class ExploreOverlay {
 
     this.pruneEditedPosts();
 
-    if (this.isLoading) {
+    const hasPosts = this.posts[author]?.length > 0;
+
+    if (this.isLoading || (this.awaitingPeers && !hasPosts)) {
       // PART 5: Show loading spinner with "Fetching latest posts…" message
       grid.innerHTML = `
         <div class="loading">
           <div class="loading-inner">
             <i class="fa-solid fa-spinner fa-spin"></i>
-            <p>Fetching latest posts…</p>
+            <p>${this.awaitingPeers && !this.isLoading ? 'Connecting to the network…' : 'Fetching latest posts…'}</p>
           </div>
         </div>
       `;
-    } else if (this.posts[author]?.length > 0) {
+    } else if (hasPosts) {
       const teaserHtml = this.posts[author]
         .map((transaction) => {
           const teaser = new PostTeaser(this.app, this.mod, '', transaction);
@@ -369,10 +373,14 @@ class ExploreOverlay {
   attachGetStartedHandler() {
     Array.from(document.querySelectorAll('.alt-new-post')).forEach((btn) => {
       btn.onclick = (e) => {
-        document.querySelector('#stack-create-post-btn').click();
-        this.overlay.hide();
+        this.startNewPost();
       };
     });
+  }
+
+  startNewPost() {
+    document.querySelector('#stack-create-post-btn').click();
+    this.overlay.hide();
   }
 
   /**
@@ -492,50 +500,6 @@ class ExploreOverlay {
         };
       }
 
-      const shareAuthorBtn = document.getElementById('stack-explore-author-share');
-      if (shareAuthorBtn) {
-        shareAuthorBtn.onclick = async (e) => {
-          e.preventDefault();
-          e.stopPropagation();
-
-          const longUrl = window.location.origin + `/${this.mod.slug}/${this.targetPublicKey}`;
-          let title = 'Stack Creator';
-          if (this.app.keychain.returnIdentifierByPublicKey(this.targetPublicKey)) {
-            title += ' --- ' + this.app.keychain.returnIdentifierByPublicKey(this.targetPublicKey);
-          }
-
-          try {
-            const url = await this.mod.createShortLink(longUrl);
-            this.app.browser.handleShare({ title, url });
-          } catch (err) {
-            console.error('Stack author share failed:', err);
-            this.app.browser.handleShare({ title, url: longUrl });
-          }
-        };
-      }
-
-      // Hide action buttons if Subscribe button is visible (mutually exclusive)
-      if (!this.targetPublicKey) {
-        const subscribeBtnContainer = document.querySelector(
-          '#stack-explore-subscribe-button-container'
-        );
-        const actionBtnContainer = document.querySelector('.explore .actions');
-        if (subscribeBtnContainer && actionBtnContainer) {
-          const isSubscribeVisible = subscribeBtnContainer.classList.contains('is-visible');
-          actionBtnContainer.classList.toggle('is-hidden', isSubscribeVisible);
-        }
-      }
-
-      // Subscribe button (for URL-based creator view)
-      const subscribeBtn = document.querySelector('#stack-explore-subscribe-btn');
-      if (subscribeBtn) {
-        subscribeBtn.onclick = (e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          this.handleSubscribeToCreator();
-        };
-      }
-
       const settingsBtn = document.querySelector('#stack-explore-settings-btn');
       if (settingsBtn) {
         settingsBtn.onclick = (e) => {
@@ -543,23 +507,8 @@ class ExploreOverlay {
         };
       }
 
-      // Subscription/Identity list items
-      const subscriptionItems = document.querySelectorAll('.explore .filters > .item');
-      subscriptionItems.forEach((item) => {
-        item.onclick = (e) => {
-          e.preventDefault();
-          // Remove active class from all items
-          subscriptionItems.forEach((i) => i.classList.remove('active'));
-          // Add active class to clicked item
-          item.classList.add('active');
-          const filter = item.getAttribute('data-filter');
-          // IMPORTANT: user-driven navigation overrides URL bootstrap
-          this.targetPublicKey = filter;
-          // Update author header based on selection
-          this.updateAuthorHeader();
-          // Load posts for the selected filter
-          this.loadPostsForFilter(filter);
-        };
+      document.querySelectorAll('.explore .filters > .item').forEach((item) => {
+        this.bindFilterItem(item);
       });
 
       // Mobile author selector
@@ -642,6 +591,52 @@ class ExploreOverlay {
     }
   }
 
+  bindFilterItem(item) {
+    item.onclick = (e) => {
+      e.preventDefault();
+      document.querySelectorAll('.explore .filters > .item').forEach((entry) => {
+        entry.classList.remove('active');
+      });
+      item.classList.add('active');
+      const filter = item.getAttribute('data-filter');
+      this.targetPublicKey = filter;
+      const mobileSelector = document.querySelector('.explore .mobile-selector');
+      if (mobileSelector) {
+        mobileSelector.value = filter;
+      }
+      this.updateAuthorHeader();
+      this.loadPostsForFilter(filter);
+    };
+  }
+
+  addCreatorToSidebar(publicKey) {
+    const filters = document.querySelector('.explore .filters');
+    if (filters && !filters.querySelector(`.item[data-filter="${publicKey}"]`)) {
+      const item = document.createElement('div');
+      item.className = 'item' + (this.targetPublicKey === publicKey ? ' active' : '');
+      item.dataset.filter = publicKey;
+      const address = this.isAddressLabel(publicKey)
+        ? ` class="saito-address" data-id="${publicKey}" data-disable="true"`
+        : '';
+      item.innerHTML = `<i class="fa-solid fa-user"></i><span${address}>${this.app.browser.escapeHTML(this.createLabel(publicKey))}</span>`;
+      filters.appendChild(item);
+      this.bindFilterItem(item);
+    }
+
+    const mobileSelector = document.querySelector('.explore .mobile-selector');
+    if (mobileSelector && !mobileSelector.querySelector(`option[value="${publicKey}"]`)) {
+      const option = document.createElement('option');
+      option.value = publicKey;
+      option.textContent = this.createLabel(publicKey);
+      if (this.targetPublicKey === publicKey) {
+        option.selected = true;
+      }
+      mobileSelector.appendChild(option);
+    }
+
+    this.updateHelpNoteVisibility();
+  }
+
   /**
    * Handle contextual subscription (when viewing creator via URL)
    * Adds the targetPublicKey to subscriptions
@@ -653,19 +648,8 @@ class ExploreOverlay {
 
     const added = this.mod.addSubscription(this.targetPublicKey);
     if (added) {
-      // Hide subscribe button and show action buttons (mutually exclusive)
-      const subscribeContainer = document.querySelector(
-        '#stack-explore-subscribe-button-container'
-      );
-      const actionBtnContainer = document.querySelector('.explore .actions');
-      if (subscribeContainer) {
-        subscribeContainer.classList.remove('is-visible');
-      }
-      if (actionBtnContainer) {
-        actionBtnContainer.classList.remove('is-hidden');
-      }
-
-      // Show success message
+      this.updateAuthorHeader();
+      this.addCreatorToSidebar(this.targetPublicKey);
       siteMessage('Subscribed!', 2000);
     }
   }

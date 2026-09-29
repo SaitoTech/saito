@@ -5,7 +5,7 @@ const SaitoUser = require('./../../saito-user/saito-user');
 const CreateNFT = require('./create-overlay');
 const NFTOverlay = require('./nft-overlay');
 
-const NFT_LIST_TYPES = new Set(['image', 'css', 'js', 'vault-nft-key']);
+const NFT_LIST_TYPES = new Set(['image', 'css', 'js', 'saito-app', 'vault-nft-key']);
 
 class SelectNFT {
   constructor(app, mod, attach_events = true, type = '') {

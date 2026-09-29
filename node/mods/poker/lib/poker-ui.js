@@ -27,21 +27,25 @@ class PokerUI {
     if (!this.browser_active) {
       return;
     }
-    for (let i = 1; i <= this.game.players.length; i++) {
-      this.playerbox.updateUserline(this.returnPlayerRole(i), i);
 
+    if (this._action_street === undefined) {
+      this._action_street = this.game.state.flipped;
+    } else if (this._action_street !== this.game.state.flipped) {
+      this._action_street = this.game.state.flipped;
+      preserveLog = false;
+    }
+
+    for (let i = 1; i <= this.game.players.length; i++) {
+      this.playerbox.setRole(this.returnPlayerRole(i), i);
       this.displayPlayerStack(i);
 
       if (!preserveLog) {
-        this.displayPlayerNotice(`<div class="plog-update"></div>`, i);
+        this.playerbox.setAction('', i);
       }
     }
   }
 
   clearPlayers() {
-    //
-    // clear displayed cards... / button / player-pots
-    //
     for (let i = 1; i <= this.game.players.length; i++) {
       this.playerbox.updateGraphics('', i);
     }
@@ -50,33 +54,16 @@ class PokerUI {
   refreshPlayerboxes() {
     this.playerbox.removeBoxes();
     this.playerbox.render();
-    this.displayPlayerNotice(this?.status || '', this.game.player);
-
-    $('.game-playerbox-seat-1').appendTo('.mystuff');
+    this.displayPlayers(true);
 
     if (this.game.player == 0) {
       this.displayHand();
     }
-
-    // observer controls are for true spectators, not players or pending joiners
-    // if (this.game.player == 0 && !this.game.pending_join) {}
   }
 
   displayButton() {
     for (let i = 1; i <= this.game.players.length; i++) {
-      if (i == this.game.state.button_player) {
-        this.playerbox.updateGraphics(
-          `<div class="dealer-button" title="dealer button">D</div>`,
-          i
-        );
-      } else {
-        this.playerbox.updateGraphics('', i);
-      }
-
-      /*if (this.game.state.player_pot[i - 1] && !this.loadGamePreference('poker-hide-pot')) {
-        let html = `<div class="poker-player-stake"><span class="stake-in-chips">${this.game.state.player_pot[i - 1]}</span></div>`;
-        this.playerbox.replaceGraphics(html, '.poker-player-stake', i);
-      }*/
+      this.playerbox.setRole(this.returnPlayerRole(i), i);
     }
   }
 
@@ -85,9 +72,10 @@ class PokerUI {
       this.updateStatus(
         this.game.pending_join
           ? `Waiting to be dealt in -- you will join at the start of the next hand`
-          : `you are observing the game`,
-        -1
+          : `you are observing the game`
       );
+      this.hud.updateMenu([]);
+      this.hud.updateCards([]);
       return;
     }
 
@@ -118,20 +106,68 @@ class PokerUI {
   // (game.player == 0) that is the viewer box in seat 1.
   //
   displayPlayerNotice(msg, player = this.game.player) {
+    let action = this.actionFromNotice(msg, player);
+    if (action !== null) {
+      this.playerbox.setAction(action, player);
+    }
+
     if (player == this.game.player) {
-      this.playerbox.updateBody(
-        `<div class="status" id="status"></div><div class="controls" id="controls"></div>`,
-        player
-      );
-      this.updateStatus(msg);
-    } else {
-      this.playerbox.updateBody(msg, player);
+      if (
+        msg &&
+        !String(msg).includes('plog-update') &&
+        !String(msg).includes('in pot')
+      ) {
+                this.updateStatus(msg);
+        this.hud.updateMenu([]);
+        this.hud.updateCards([]);
+      }
     }
 
     console.log('displayPlayerNotice:', msg);
   }
 
-  // Update the player's role and wager...
+  actionFromNotice(msg, player) {
+    let text = String(msg || '')
+      .replace(/<[^>]*>/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+
+    if (!text) {
+      return '';
+    }
+
+    if (text.includes('in pot')) {
+      return 'thinking';
+    }
+
+    if (text === 'calls') {
+      let amt = this.game.state.required_pot - this.game.state.player_pot[player - 1];
+      return `called ${this.formatWager(amt, false)}`;
+    }
+
+    if (text === 'checks') {
+      return 'checked';
+    }
+
+    if (text === 'folds') {
+      return 'folded';
+    }
+
+    if (text === 'thinking') {
+      return 'thinking';
+    }
+
+    if (text.indexOf('blind bets ') === 0) {
+      return `bet ${text.slice('blind bets '.length)}`;
+    }
+
+    if (text.indexOf('bets ') === 0) {
+      return text;
+    }
+
+    return text;
+  }
+
   displayPlayerStack(player, amount = -1) {
     if (!this.browser_active) {
       return;
@@ -140,26 +176,9 @@ class PokerUI {
     if (amount === -1) {
       amount = this.game.state.player_credit[player - 1];
     }
-    let credit = this.convertChipsToCrypto(amount);
 
-    //
-    // Amount = number of chips in player stack, credit = crypto value of chips in player stack
-    //
+    this.playerbox.setChips(this.returnChipCryptoBalanceHtml(amount), player);
 
-    let chips = 'CHIP';
-    if (amount !== 1) {
-      chips += 'S';
-    }
-
-    let stack_html =
-      (stack_html = `<div class="poker-stack-balance">${amount}</div><div class="poker-stack-units">${chips}</div>`);
-
-    if (typeof this.game.stake === 'string' && this.game.crypto !== 'CHIPS') {
-      // Could add a test for an option to should crypto by default (either globally or just a toggle here)
-      stack_html += `<div class="crypto-hover-balance">${credit} <span class="smaller-font">${this.game.crypto}</span></div>`;
-    }
-
-    this.playerbox.updateIcons(stack_html, player);
   }
 
   //
@@ -310,120 +329,27 @@ class PokerUI {
     });
 
     if (!can_call) {
-      this.updateStatus('you can only fold...');
+            this.updateStatus('you can only fold...');
+      this.hud.updateMenu([]);
+      this.hud.updateCards([]);
       this.addMove('fold\t' + poker_self.game.player);
       this.endTurn();
       return;
     }
 
-    // Makes sure the controls are available and updates status
     this.displayPlayerNotice(
       `${this.formatWager(this.game.state.player_pot[this.game.player - 1])} in pot`,
       this.game.player
     );
 
-    let html =
-      '<div class="option" id="fold"><img src="/poker/img/fold_icon.svg" alt="fold"><span>fold</span></div>';
-
-    if (match_required > 0) {
-      html += `<div class="option" id="call"><img src="/poker/img/call_icon.svg" alt="call"><span>call <span class="call-wager">(${this.formatWager(match_required, false)})</span></span></div>`;
-    } else {
-      // we don't NEED to match
-      html +=
-        '<div class="option" id="check"><img src="/poker/img/check_icon.svg" alt="check"><span>check</span></div>';
-    }
-    if (can_raise) {
-      html += `<div class="option" id="raise"><img src="/poker/img/raise_icon.svg" alt="raise"><span>raise</span></div>`;
-    }
-
-    this.updateControls(html);
-
-    $('.option').off();
-    $('.option').on('click', async function () {
-      let choice = $(this).attr('id');
-
-      if (choice === 'raise') {
-        let credit_remaining =
-          poker_self.game.state.player_credit[poker_self.game.player - 1] - match_required;
-
-        html = `<div class="option raise_option" id="0"><img src="/poker/img/cancel_raise_icon.svg" alt="cancel"></div>`;
-        if (match_required > 0) {
-          html += `match ${poker_self.formatWager(match_required)} and  `;
-        }
-        html += `raise`;
-
-        poker_self.updateStatus(html);
-
-        let max_raise = Math.min(credit_remaining, smallest_stack);
-
-        html = '';
-
-        for (let i = 0; i < 3; i++) {
-          let this_raise = poker_self.game.state.last_raise * 2 ** i;
-
-          if (max_raise > this_raise) {
-            html += `<div class="option raise_option" id="${this_raise + match_required}"><img src="/poker/img/raise_value_icon.svg" alt="raise">`;
-            html += poker_self.formatWager(this_raise, false);
-            if (typeof poker_self.game.stake === 'string' && poker_self.game.crypto !== 'CHIPS') {
-              html += `<div class="crypto-hover-raise">${poker_self.convertChipsToCrypto(this_raise)} <span class="smaller-font"> ${poker_self.game.crypto}</span></div>`;
-            }
-            html += '</div>';
-          } else {
-            break;
-          }
-        }
-
-        //Option for manual input...
-        html += `<div class="option raise_option" id="manual"><img src="/poker/img/raise_allin_icon.svg" alt="raise"><span>?</span></div>`;
-
-        //Always give option for all in
-        html += `<div class="option raise_option all-in" id="${max_raise + match_required}"><img src="/poker/img/raise_allin_icon.svg" alt="raise">`;
-        html += poker_self.formatWager(max_raise, false);
-        if (typeof poker_self.game.stake === 'string' && poker_self.game.crypto !== 'CHIPS') {
-          html += `<div class="crypto-hover-raise">${poker_self.convertChipsToCrypto(max_raise)} <span class="smaller-font"> ${poker_self.game.crypto}</span></div>`;
-        }
-        html += `</div>`;
-
-        poker_self.updateControls(html);
-
-        const enterRaise = async () => {
-          let c = await sprompt('How many chips would you like to raise?');
-          if (c) {
-            let amt = parseInt(c);
-            if (amt >= poker_self.game.state.last_raise && amt <= max_raise) {
-              poker_self.addMove(`raise\t${poker_self.game.player}\t${amt + match_required}`);
-              poker_self.endTurn();
-            } else {
-              await sconfirm('Invalid input');
-              enterRaise();
-            }
-          }
-        };
-
-        $('.option').off();
-        $('.option').on('click', async function () {
-          let raise = $(this).attr('id');
-
-          if (raise === '0') {
-            poker_self.playerTurn();
-          } else if (raise === 'manual') {
-            enterRaise();
-          } else {
-            poker_self.addMove(`raise\t${poker_self.game.player}\t${raise}`);
-            poker_self.endTurn();
-          }
-        });
-      } else {
-        if (choice == 'fold' && !match_required) {
-          let c = await sconfirm('Are you sure you want to fold?');
-          if (!c) {
-            poker_self.playerTurn();
-            return;
-          }
-        }
-        poker_self.addMove(`${choice}\t${poker_self.game.player}`);
-        poker_self.endTurn();
-      }
+    this.controls.showPrimary({
+      match_required,
+      can_raise,
+      max_raise: Math.min(
+        this.game.state.player_credit[this.game.player - 1] - match_required,
+        smallest_stack
+      ),
+      last_raise: this.game.state.last_raise
     });
   }
 }

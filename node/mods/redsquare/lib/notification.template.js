@@ -16,7 +16,6 @@ module.exports = (notification, tweetHtml = '') => {
           <i class="fa-solid ${icon}"></i>
         </span>
         <div class="summary">
-          <span class="actor saito-address">${notification.actor_name}</span>
           <span class="text">${notification.text}</span>
           <span class="time saito-userline">${notification.time}</span>
         </div>

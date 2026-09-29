@@ -30,7 +30,10 @@
 	}
 
 
-        twilight_self.updateStatusWithOptions(`${twilight_self.cardToText(card)}: `,'<ul><li class="option" id="givevp">give USSR 2 VP</li><li class="option" id="discard">discard US OPs</li></ul>', function(action2) {
+        twilight_self.game.status = `${twilight_self.cardToText(card)}: `;
+        twilight_self.hud.updateStatus(twilight_self.game.status);
+        twilight_self.hud.updateCards([]);
+        twilight_self.hud.updateMenu([ { id: 'givevp', label: 'give USSR 2 VP' }, { id: 'discard', label: 'discard US OPs' } ], function(action2) {
 
   	  if (action2 === "givevp") {
 	    twilight_self.addMove("vp\tussr\t2");
@@ -51,16 +54,23 @@
               }
             }
 
-            twilight_self.updateStatusAndListCards(user_message, cardList, false);
-            twilight_self.hud.attachControlCallback(function(action2) {
+            twilight_self.game.status = user_message;
+            twilight_self.hud.updateStatus(twilight_self.game.status);
+            twilight_self.hud.updateMenu([]);
+            twilight_self.hud.updateCards(cardList);
+            twilight_self.cardbox.bindCallback(function(action2) {
               if (twilight_self.game.deck[0].hand.includes(action2)){
                 try {$(`#${action2}.card`).hide();} catch (err) {}
                 twilight_self.removeCardFromHand(action2);
-                twilight_self.updateStatus("discarding...");
+                twilight_self.game.status = "discarding...";
+                twilight_self.hud.updateStatus(twilight_self.game.status);
+                twilight_self.hud.updateMenu([]);
+                twilight_self.hud.updateCards([]);
                 twilight_self.addMove("discard\tus\t"+action2);
 		twilight_self.endTurn();
               }
             });
+            twilight_self.cardbox.attachCardEvents();
 
 	  }
 

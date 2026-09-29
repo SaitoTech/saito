@@ -1,5 +1,4 @@
-module.exports = (app, mod) => {
-  const curated = mod.curated !== false;
+module.exports = (app) => {
   const modtools = app.options.modtools || {};
   const whitelistCount = Array.isArray(modtools.whitelist) ? modtools.whitelist.length : 0;
   const blacklistCount = Array.isArray(modtools.blacklist) ? modtools.blacklist.length : 0;
@@ -52,34 +51,6 @@ module.exports = (app, mod) => {
             Unless you have whitelisted an account, your browser will also respect the filtering
             preferences of your friends on the network.
           </p>
-
-          <div
-            id="curation-toggle"
-            class="preference-group"
-            role="radiogroup"
-            aria-label="RedSquare feed preference"
-          >
-            <label class="preference">
-              <input
-                type="radio"
-                name="redsquare-feed-curation"
-                value="curated"
-                ${curated ? 'checked' : ''}
-              />
-              <span class="indicator" aria-hidden="true"></span>
-              <span class="text">I would prefer a curated feed</span>
-            </label>
-            <label class="preference">
-              <input
-                type="radio"
-                name="redsquare-feed-curation"
-                value="unfiltered"
-                ${curated ? '' : 'checked'}
-              />
-              <span class="indicator" aria-hidden="true"></span>
-              <span class="text">I would prefer a totally unfiltered feed</span>
-            </label>
-          </div>
         </section>
 
         <section class="section">

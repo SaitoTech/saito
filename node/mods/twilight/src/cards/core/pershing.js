@@ -9,7 +9,10 @@
       if (this.game.player == 1) {
 
         var twilight_self = this;
-        this.updateStatus(`<div class='status-message' id='status-message'>${this.cardToText(card)}: Remove 3 US influence from Western Europe (max 1 per country)</div>`);
+        this.game.status = `<div class='status-message' id='status-message'>${this.cardToText(card)}: Remove 3 US influence from Western Europe (max 1 per country)</div>`;
+        this.hud.updateStatus(this.game.status);
+        this.hud.updateMenu([]);
+        this.hud.updateCards([]);
         
         twilight_self.playerFinishedPlacingInfluence();
 
@@ -65,7 +68,10 @@
               twilight_self.playerFinishedPlacingInfluence();
               twilight_self.endTurn();
             }  
-            twilight_self.updateStatus(`<div class='status-message' id='status-message'>${twilight_self.cardToText(card)}: Remove ${ops_to_purge} US influence from Western Europe (max 1 per country)</div>`);
+            twilight_self.game.status = `<div class='status-message' id='status-message'>${twilight_self.cardToText(card)}: Remove ${ops_to_purge} US influence from Western Europe (max 1 per country)</div>`;
+            twilight_self.hud.updateStatus(twilight_self.game.status);
+            twilight_self.hud.updateMenu([]);
+            twilight_self.hud.updateCards([]);
           }
         });
       }

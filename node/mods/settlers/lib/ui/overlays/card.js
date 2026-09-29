@@ -1,16 +1,16 @@
 const CardTemplate = require('./card.template');
+const SaitoOverlay = require('./../../../../../lib/saito/ui/saito-overlay/saito-overlay');
 
 class CardOverlay {
   constructor(app, mod) {
     this.app = app;
     this.mod = mod;
+    this.overlay = new SaitoOverlay(this.app, this.mod, false);
   }
 
   //obj = {player, card: cardname}
 
   render(obj = {}) {
-    let settlers_self = this.mod;
-
     let player = obj.player;
     let cardname = obj.card;
     let card;
@@ -40,7 +40,10 @@ class CardOverlay {
       card.cardtext = obj.cardtext;
     }
 
-    settlers_self.hud.showPopup(CardTemplate(card), 3500);
+    this.overlay.show(CardTemplate(card));
+    setTimeout(() => {
+      this.overlay.hide();
+    }, 3500);
 
     // this will clear any ACKNOWLEDGE
     this.attachEvents();

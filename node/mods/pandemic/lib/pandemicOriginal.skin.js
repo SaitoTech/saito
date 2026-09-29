@@ -910,18 +910,18 @@ class PandemicOriginalSkin {
   animateInfection(city, msg, dontplace, mycallback) {
     let pandemic_self = this.mod;
 
-    let html = `<ul><li class="textchoice confirmit" id="confirmit">I understand...</li></ul>`;
-
     pandemic_self.defaultDeck = 0;
     pandemic_self.card_height_ratio = 0.709;
     pandemic_self.cardbox.show(city);
     document.getElementById('game-cardbox').style.pointerEvents = 'unset';
     document.getElementById('game-cardbox').classList.add('confirmit');
     try {
-      pandemic_self.updateStatusWithOptions(msg, html);
-      $('.confirmit').on('click', async (e) => {
+            pandemic_self.game.status = msg;
+      pandemic_self.hud.updateStatus(pandemic_self.game.status);
+      pandemic_self.hud.updateCards([]);
+      let confirmInfection = async (e) => {
         $('.confirmit').off();
-        $('.textchoice.confirmit').addClass('confirmed');
+        document.getElementById('game-cardbox')?.classList.add('confirmed');
         let cb = window.getComputedStyle(document.querySelector('#game-cardbox'));
         let dp = document.querySelector('.infection_discard_pile').getBoundingClientRect();
         let sizedif = Math.round((100 * dp.width) / parseInt(cb.width));
@@ -929,8 +929,6 @@ class PandemicOriginalSkin {
           'transform 1.5s, left 1.5s, top 1.5s';
         document.getElementById('game-cardbox').style.transformOrigin = 'left top';
         document.getElementById('game-cardbox').classList.remove('confirmit');
-        //console.log(`++Cardbox++ Left: ${cb.left}, Top: ${cb.top}`);
-        //console.log(`++Discard++ Left: ${dp.left}, Top: ${dp.top}, Right: ${dp.right}, Bottom: ${dp.bottom}`);
         document.getElementById('game-cardbox').style.transform = `scale(${sizedif}%)`;
         document.getElementById('game-cardbox').style.top = `${dp.top}`;
         document.getElementById('game-cardbox').style.left = `${dp.left}`;
@@ -938,7 +936,6 @@ class PandemicOriginalSkin {
         setTimeout(() => {
           pandemic_self.defaultDeck = 1;
           pandemic_self.card_height_ratio = 1.41;
-          //document.getElementById("game-cardbox").classList.remove("move-to-discard");
           document.getElementById('game-cardbox').style.transition = '';
           document.getElementById('game-cardbox').style.transform = '';
           document.getElementById('game-cardbox').style.top = '';
@@ -947,7 +944,9 @@ class PandemicOriginalSkin {
           pandemic_self.cardbox.hide();
           mycallback();
         }, 1200);
-      });
+      };
+      pandemic_self.hud.updateMenu([{ id: 'confirmit', label: 'I understand...' }], confirmInfection);
+      $('.confirmit').on('click', confirmInfection);
     } catch (err) {
       console.error('Error with ACKWNOLEDGE notice!: ' + err);
     }

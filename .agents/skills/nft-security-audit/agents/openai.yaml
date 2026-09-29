@@ -1,0 +1,4 @@
+interface:
+  display_name: "NFT Security Audit"
+  short_description: "Decode NFT JavaScript and audit wallet risks"
+  default_prompt: "Use $nft-security-audit to save readable JavaScript and audit this NFT for code injection, wallet access, and persistent payloads."

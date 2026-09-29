@@ -7,17 +7,19 @@
         return 0;
       }
 
-      let html = `<ul>
-                  <li class="option" id="asia">Asia</li>
-                  <li class="option" id="europe">Europe</li>
-                  <li class="option" id="africa">Africa</li>
-                  <li class="option" id="camerica">Central America</li>
-                  <li class="option" id="samerica">South America</li>
-                  <li class="option" id="mideast">Middle-East</li>
-                  </ul>`;
       let twilight_self = this;
 
-      this.updateStatusWithOptions("Chernobyl triggered. Designate region to prohibit USSR placement of influence from OPS:", html, function(action2) {
+      this.game.status = "Chernobyl triggered. Designate region to prohibit USSR placement of influence from OPS:";
+      this.hud.updateStatus(this.game.status);
+      this.hud.updateCards([]);
+      this.hud.updateMenu([
+        { id: 'asia', label: 'Asia' },
+        { id: 'europe', label: 'Europe' },
+        { id: 'africa', label: 'Africa' },
+        { id: 'camerica', label: 'Central America' },
+        { id: 'samerica', label: 'South America' },
+        { id: 'mideast', label: 'Middle-East' }
+      ], function(action2) {
 
         twilight_self.addMove("resolve\tchernobyl");
         twilight_self.addMove("chernobyl\t"+action2);

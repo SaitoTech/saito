@@ -26,6 +26,8 @@ class League extends ModTemplate {
     this.slug = 'league';
     this.description = 'Leaderboards and leagues for Saito Games';
     this.categories = 'Arcade Gaming';
+    this.status = 'prod';
+    this.class = 'app';
     this.overlay = null;
 
     this.styles = ['/arcade/style.css', '/league/style.css'];

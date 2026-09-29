@@ -2,6 +2,7 @@ const Saito = require('saito-js/saito').default;
 const { handleRequestSupply } = require('./supply');
 const { handleRequestAddress } = require('./address');
 const { handleRequestUtxo } = require('./utxo');
+const { handleRequestHolders } = require('./holders');
 const { requestParams, success, failure } = require('./response');
 
 function addBlockStatus(obj, block) {
@@ -243,6 +244,8 @@ async function handleExplorerRequest(app, txmsg, mod = null) {
       return handleRequestAddress(app, mod, txmsg);
     case 'request utxo':
       return handleRequestUtxo(app, txmsg);
+    case 'request holders':
+      return handleRequestHolders(app, mod, txmsg);
     default:
       return null;
   }

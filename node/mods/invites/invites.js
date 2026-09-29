@@ -12,6 +12,8 @@ class Invites extends InviteTemplate {
     this.appname = 'Invites';
     this.description = 'Demo module with UI for invite display and acceptance';
     this.categories = 'Utilities Education Demo';
+    this.status = 'beta';
+    this.class = 'utility';
 
     this.icon = 'fas fa-envelope-open-text';
     this.invites = [];

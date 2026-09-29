@@ -30,11 +30,17 @@
             placeable.push("norway");
             placeable.push("sweden");
             placeable.push("finland");
-            this.updateStatus("US is playing Special Relationship. Add 2 Influence to any country in Western Europe.");
+            this.game.status = "US is playing Special Relationship. Add 2 Influence to any country in Western Europe.";
+            this.hud.updateStatus(this.game.status);
+            this.hud.updateMenu([]);
+            this.hud.updateCards([]);
 
           } else {
 
-            this.updateStatus("US is playing Special Relationship. Add 1 Influence to any country adjacent to the UK.");
+            this.game.status = "US is playing Special Relationship. Add 1 Influence to any country adjacent to the UK.";
+            this.hud.updateStatus(this.game.status);
+            this.hud.updateMenu([]);
+            this.hud.updateCards([]);
             placeable.push("canada");
             placeable.push("france");
             placeable.push("norway");

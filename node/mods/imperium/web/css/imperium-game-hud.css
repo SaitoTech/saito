@@ -1,0 +1,209 @@
+.game.imperium {
+  .imperium-game-hud {
+    --imperium-hud-width: 41.4rem;
+    --imperium-hud-header: 3.4rem;
+    --imperium-hud-option: 5.46rem;
+    --imperium-hud-interaction: 15.97rem;
+    width: var(--imperium-hud-width);
+    max-width: calc(100vw - 1.5rem);
+    height: auto;
+    gap: 0;
+    align-items: stretch;
+  }
+
+  .imperium-game-hud > .hud-status {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 100%;
+    z-index: 2;
+    display: block;
+    width: 100%;
+    height: auto;
+    max-height: 40vh;
+    margin: 0 0 0.6rem;
+    padding: var(--imp-space-md) var(--imp-space-lg);
+    overflow: auto;
+    box-sizing: border-box;
+    background: var(--imp-surface-strong);
+    color: var(--imp-text);
+    font-family: var(--imp-font-body);
+    font-size: var(--imp-fs);
+    line-height: 1.35;
+    text-align: center;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.35s ease;
+  }
+
+  .imperium-game-hud > .hud-status.is-visible {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .imperium-hud-frame {
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    height: calc(var(--imperium-hud-header) + var(--imperium-hud-interaction));
+    flex: 0 0 calc(var(--imperium-hud-header) + var(--imperium-hud-interaction));
+    background: var(--imp-surface-strong);
+    color: var(--imp-text);
+    overflow: hidden;
+  }
+
+  .imperium-hud-header {
+    position: relative;
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    gap: var(--imp-space-sm);
+    width: 100%;
+    height: var(--imperium-hud-header);
+    flex: 0 0 var(--imperium-hud-header);
+    padding: 0 var(--imp-space-md) 0 var(--imp-space-md);
+    border-bottom: 1px solid var(--imp-border);
+    overflow: hidden;
+  }
+
+  .imperium-hud-swatch {
+    flex: 0 0 auto;
+    width: 1.05rem;
+    height: 1.05rem;
+    width: 1cap;
+    height: 1cap;
+    font-family: var(--imp-font);
+    font-size: var(--imp-fs);
+    background: var(--imp-border);
+  }
+
+  .imperium-hud-swatch.p1 {
+    background: var(--p1);
+  }
+
+  .imperium-hud-swatch.p2 {
+    background: var(--p2);
+  }
+
+  .imperium-hud-swatch.p3 {
+    background: var(--p3);
+  }
+
+  .imperium-hud-swatch.p4 {
+    background: var(--p4);
+  }
+
+  .imperium-hud-swatch.p5 {
+    background: var(--p5);
+  }
+
+  .imperium-hud-swatch.p6 {
+    background: var(--p6);
+  }
+
+  .imperium-hud-heading {
+    min-width: 0;
+    flex: 1 1 auto;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    font-family: var(--imp-font);
+    font-size: var(--imp-fs);
+    line-height: 1.2;
+  }
+
+  .imperium-hud-faction,
+  .imperium-hud-colon,
+  .imperium-hud-instruction {
+    font: inherit;
+    color: inherit;
+  }
+
+  .imperium-game-hud .hud-menu {
+    box-sizing: border-box;
+    display: block;
+    width: 100%;
+    height: var(--imperium-hud-interaction);
+    min-height: var(--imperium-hud-interaction);
+    max-height: var(--imperium-hud-interaction);
+    flex: 0 0 var(--imperium-hud-interaction);
+    margin: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
+    background: transparent;
+    color: var(--imp-text);
+    font-family: 'orbitron-light', Helvetica, sans-serif;
+    font-weight: 100;
+  }
+
+  .imperium-game-hud .hud-menu:empty {
+    display: block;
+  }
+
+  .imperium-game-hud .hud-menu ul {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+  }
+
+  .imperium-game-hud .hud-menu li,
+  .imperium-game-hud .hud-menu .option {
+    box-sizing: border-box;
+    min-height: var(--imperium-hud-option);
+    height: auto;
+    padding: var(--imp-space-md) var(--imp-space-lg);
+    font-family: 'orbitron-light', Helvetica, sans-serif;
+    font-weight: 100;
+    font-size: var(--imp-fs);
+    line-height: 1.25;
+  }
+
+  .imperium-game-hud .imperium-hud-ack {
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    max-height: 100%;
+    min-height: 0;
+    margin: 0;
+    overflow: hidden;
+    padding: var(--imp-space-md) var(--imp-space-lg) 0;
+  }
+
+  .imperium-game-hud .imperium-hud-ack-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    margin: 0;
+    overflow: auto;
+    font-family: 'orbitron-light', Helvetica, sans-serif;
+    font-weight: 100;
+    font-size: var(--imp-fs);
+    line-height: 1.35;
+  }
+
+  .imperium-game-hud .imperium-hud-ack-button {
+    box-sizing: border-box;
+    display: flex;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    min-height: var(--imperium-hud-option);
+    margin: 0;
+    padding: var(--imp-space-md) var(--imp-space-lg);
+    border: 0;
+    border-top: 1px solid var(--imp-border);
+    background: transparent;
+    color: var(--imp-text);
+    font-family: 'orbitron-light', Helvetica, sans-serif;
+    font-weight: 100;
+    font-size: var(--imp-fs);
+    letter-spacing: 0.06em;
+    cursor: pointer;
+  }
+
+  .imperium-hud-ack-button:hover {
+    background: var(--imp-hover);
+  }
+}

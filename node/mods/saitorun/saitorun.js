@@ -16,6 +16,8 @@ class SaitoRun extends OnePlayerGameTemplate {
     this.categories = 'Games Arcadegame One-player';
     this.publisher_message =
       'developed by Pawel (twitter: @PawelPawlak14). Feel free to pm me with any suggestions/feedback';
+    this.status = 'alpha';
+    this.class = 'app';
     this.request_no_interrupts = true; // don't popup chat
     this.maxPlayers = 1;
     this.minPlayers = 1;

@@ -9,24 +9,31 @@
     scale: 2;
   }
 
-  .zoom-overlay .status {
+  .zoom-overlay .status,
+  .zoom-overlay .controls ul {
     position: relative;
-    height: 3.333rem;
-    line-height: 3.333rem;
     min-height: 0;
     width: 25rem;
     max-width: 29.167rem;
-    background-color: whitesmoke;
+    background-color: var(--imp-surface-strong);
+    color: var(--imp-text);
+    font-family: var(--imp-font);
+    font-size: var(--imp-fs);
     z-index: 10;
-    border-radius: 0.833rem;
-    top: 0px;
-    left: 0px;
+    border: 1px solid var(--imp-border);
+    border-radius: var(--imp-radius);
+    top: 0;
+    left: 0;
     white-space: nowrap;
     float: left;
-    margin-left: 0.833rem;
-    margin-top: 0.833rem;
-    padding-left: 0.833rem;
-    padding-right: 0.833rem;
+    margin-left: var(--imp-space-md);
+    margin-top: var(--imp-space-md);
+    padding: var(--imp-space-md);
+  }
+
+  .zoom-overlay .status {
+    height: auto;
+    line-height: 1.35;
   }
 
   .zoom-overlay .controls {
@@ -36,22 +43,8 @@
   .zoom-overlay .controls ul {
     overflow-y: auto;
     display: block;
-    position: relative;
-    background-color: whitesmoke;
-    line-height: 3.333rem;
-    width: 25rem;
-    max-width: 29.167rem;
+    line-height: 1.35;
     max-height: 80vh;
-    z-index: 10;
-    border-radius: 0.833rem;
-    top: 0px;
-    left: 0px;
-    white-space: nowrap;
-    float: left;
-    margin-left: 0.833rem;
-    margin-top: 0.833rem;
-    padding-left: 0.833rem;
-    padding-right: 0.833rem;
     clear: both;
     min-height: max-content;
     height: auto;
@@ -60,55 +53,32 @@
 
   .zoom-overlay .status .status-header {
     box-shadow: none;
-    margin-bottom: 0px;
+    margin-bottom: 0;
   }
 
   .zoom-overlay .status .message {
-    padding: 0.833rem;
-    margin-bottom: 0px;
+    padding: var(--imp-space-sm) 0;
+    margin-bottom: 0;
     box-shadow: none;
   }
 
   .zoom-overlay .status ul {
-    margin-top: 0.833rem;
-    background-color: whitesmoke;
-    border-radius: 0.417rem;
-  }
-
-  .zoom-overlay .status ul {
     list-style: none;
+    margin-top: var(--imp-space-md);
+    background-color: transparent;
+    border-radius: var(--imp-radius);
   }
 
   .zoom-overlay .status ul .option {
-    padding: 1.25rem;
+    padding: var(--imp-space-md) var(--imp-space-lg);
     cursor: pointer;
+    border-radius: var(--imp-radius);
   }
   .zoom-overlay .status ul .option:hover {
-    background: #ddd;
+    background: var(--imp-hover);
   }
 
   .zoom-overlay .gameboard {
     position: relative;
   }
-
-  /*
-.zoom-german {
-	transform: translate(-42%, -20%) scaleX(0.7) scaleY(0.7);
-}
-.zoom-english {
-	transform: translate(-24%, -15%) scaleX(0.7) scaleY(0.7);
-}
-.zoom-french {
-	transform: translate(-32%, -35%) scaleX(0.6) scaleY(0.6);
-}
-.zoom-spanish {
-	transform: translate(-29%, -53%) scaleX(0.6) scaleY(0.6);
-}
-.zoom-italian {
-	transform: translate(-49%, -44%) scaleX(0.6) scaleY(0.6);
-}
-.zoom-ottoman {
-	transform: translate(-60%, -46%) scaleX(0.6) scaleY(0.6);
-}
-*/
 }

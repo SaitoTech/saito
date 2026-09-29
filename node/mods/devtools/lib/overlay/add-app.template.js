@@ -10,5 +10,6 @@ module.exports = AddAppOverlayTemplate = (app, mod, isMobile = false) => {
     prompt,
     dropzoneId: 'saito-app-upload',
     rootClass: 'saito-app-overlay',
+    footerHtml: `<a class="saito-text-link" href="https://wiki.saito.io/applications/install" target="_blank" rel="noopener noreferrer">Find many more applications and games on the Saito Wiki...</a>`
   });
 };

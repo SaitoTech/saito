@@ -51,6 +51,8 @@ class Migration extends ModTemplate {
     this.slug = 'migration';
     this.description = 'Migrate ERC20 or BEP20 tokens to Saito Native Tokens';
     this.categories = 'Core Utilities Messaging';
+    this.status = 'prod';
+    this.class = 'utility';
     this.styles = ['/migration/style.css'];
 
     this.dependencies = ['Relay', 'Mixin', 'ERC', 'BEP', 'MailRelay'];

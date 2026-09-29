@@ -28,6 +28,9 @@ CREATE TABLE IF NOT EXISTS listings (
   transaction_id_sold INTEGER NOT NULL DEFAULT 0,
   longest_chain_sold INTEGER NOT NULL DEFAULT 0,
 
+  -- Local queue reservation. Not a sale and not a block id.
+  settlement_pending INTEGER NOT NULL DEFAULT 0,
+
   note TEXT NOT NULL DEFAULT '',
   buyer TEXT NOT NULL DEFAULT '',
   quantity_sold INTEGER NOT NULL DEFAULT 0,

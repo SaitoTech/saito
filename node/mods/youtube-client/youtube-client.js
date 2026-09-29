@@ -12,6 +12,7 @@ class YoutubeClient extends ModTemplate {
     this.description = 'UI for connecting to youtube stream';
     this.categories = 'Utilities Communications';
     this.class = 'utility';
+    this.status = 'beta';
     this.publickey = '';
     this.styles = ['/youtube-client/style.css', '/saito/saito.css'];
 

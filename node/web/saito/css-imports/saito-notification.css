@@ -31,6 +31,7 @@
   position: relative;
   bottom: unset;
   left: unset;
+  right: unset;
   height: 3rem;
   min-width: 3rem;
 }

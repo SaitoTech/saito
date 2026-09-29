@@ -11,18 +11,25 @@
 
       if (i_played_the_card){
 
-        let choicehtml = '<ul><li class="option" id="endgame">end the game</li><li class="option" id="cont">continue playing</li></ul>';
-
-        this.updateStatusWithOptions(`${this.cardToText(card)}: Do you want to give your opponent 6 VP and End the Game? (VP ties will be won by opponent)`, choicehtml, function(action2) {
+        this.game.status = `${this.cardToText(card)}: Do you want to give your opponent 6 VP and End the Game? (VP ties will be won by opponent)`;
+        this.hud.updateStatus(this.game.status);
+        this.hud.updateCards([]);
+        this.hud.updateMenu([ { id: 'endgame', label: 'end the game' }, { id: 'cont', label: 'continue playing' } ], function(action2) {
 
           if (action2 == "endgame") {
-            twilight_self.updateStatus("Triggering Wargames...");
+            twilight_self.game.status = "Triggering Wargames...";
+            twilight_self.hud.updateStatus(twilight_self.game.status);
+            twilight_self.hud.updateMenu([]);
+            twilight_self.hud.updateCards([]);
             twilight_self.addMove("resolve\twargames");
             twilight_self.addMove("wargames\t"+player+"\t1");
             twilight_self.endTurn();
           }
           if (action2 == "cont") {
-            twilight_self.updateStatus("Discarding Wargames...");
+            twilight_self.game.status = "Discarding Wargames...";
+            twilight_self.hud.updateStatus(twilight_self.game.status);
+            twilight_self.hud.updateMenu([]);
+            twilight_self.hud.updateCards([]);
             twilight_self.addMove("resolve\twargames");
             twilight_self.addMove("wargames\t"+player+"\t0");
             twilight_self.endTurn();

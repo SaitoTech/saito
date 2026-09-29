@@ -13,6 +13,8 @@ class NFTStudio extends ModTemplate {
     this.slug = 'nftstudio';
     this.description = 'Create, preview, and publish JavaScript and CSS NFTs on Saito with NFT Studio, your browser-based code editor.';
     this.categories = 'Utilities Development NFT';
+    this.status = 'beta';
+    this.class = 'utility';
     this.icon = 'fa-solid fa-code';
     this.styles = ['/nftstudio/style.css'];
     this.social = this.buildSocial({

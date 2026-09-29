@@ -1,0 +1,48 @@
+.game.poker .poker-board {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+  flex: 0 0 auto;
+  min-width: 0;
+  overflow: visible;
+  gap: var(--poker-card-gap);
+}
+
+.game.poker .poker-board .card {
+  position: relative;
+  left: 0;
+  flex: 0 0 auto;
+  width: var(--poker-card-width) !important;
+  height: var(--poker-card-height) !important;
+  max-width: none !important;
+  max-height: none !important;
+  transform-style: preserve-3d;
+}
+
+.game.poker .poker-board .card > img,
+.game.poker .poker-board .cardFront,
+.game.poker .poker-board .cardBack {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  backface-visibility: hidden;
+}
+
+.game.poker .poker-board .cardFront {
+  transform: rotateY(0deg);
+}
+
+.game.poker .poker-board .cardBack {
+  transform: rotateY(180deg);
+}
+
+.game.poker .poker-board .flipped .cardFront {
+  transform: rotateY(180deg);
+}
+
+.game.poker .poker-board .flipped .cardBack {
+  transform: rotateY(0deg);
+}

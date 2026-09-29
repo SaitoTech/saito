@@ -60,6 +60,15 @@ class CreateNFT {
       }
     }
 
+    if (!this.defaults?.type) {
+      const common = new Set(['image', 'token', 'text', 'css', 'json', 'js', 'saito-app']);
+      for (const opt of [...typeDropdown.options]) {
+        if (!common.has(opt.value)) {
+          opt.remove();
+        }
+      }
+    }
+
     this.attachEvents();
     this.renderFooterActions();
     this.setDefaults();
@@ -134,9 +143,7 @@ class CreateNFT {
 
     if (this.defaults?.image) {
       this.image = this.defaults.image;
-      if (this.supportsThumbnail()) {
-        this.renderThumbnail();
-      } else {
+      if (!this.supportsThumbnail()) {
         this.addImage(this.defaults.image);
       }
     }
@@ -149,6 +156,10 @@ class CreateNFT {
     if (this.defaults?.file) {
       this.file = this.defaults.file;
       this.show_selected_file(this.defaults.file_name || 'Selected file');
+    }
+
+    if (this.supportsThumbnail()) {
+      this.renderThumbnail();
     }
 
     if (this.defaults?.quantity) {
@@ -179,7 +190,7 @@ class CreateNFT {
   }
 
   supportsThumbnail() {
-    return ['text', 'json', 'css', 'js'].includes(this.nft_type);
+    return ['text', 'token', 'saito-app', 'json', 'css', 'js'].includes(this.nft_type);
   }
 
   renderThumbnail() {
@@ -188,26 +199,36 @@ class CreateNFT {
       return;
     }
 
-    picker.style.display = this.supportsThumbnail() ? 'flex' : 'none';
-    picker.replaceChildren();
+    const show = this.supportsThumbnail() && (this.nft_type !== 'saito-app' || !!this.file);
 
-    if (this.image) {
-      const image = document.createElement('img');
-      image.src = this.image;
-      image.alt = 'NFT thumbnail';
-      picker.appendChild(image);
-      picker.classList.add('has-image');
-      picker.setAttribute('aria-label', 'Replace thumbnail');
-      picker.title = 'Replace thumbnail';
+    picker.style.display = show ? 'flex' : 'none';
+    picker.replaceChildren();
+    picker.classList.remove('has-preview');
+
+    if (!show) {
       return;
     }
 
+    const src = this.image || (this.nft_type === 'saito-app' ? '/saito/img/application.png' : '');
+
+    if (src) {
+      const preview = document.createElement('img');
+      preview.src = src;
+      preview.alt = 'NFT thumbnail';
+      picker.appendChild(preview);
+      picker.classList.add('has-preview');
+    }
+
+    const replacing = !!this.image;
     const label = document.createElement('span');
-    label.textContent = 'add thumbnail';
+    label.textContent = replacing ? 'replace thumbnail' : 'add thumbnail';
     picker.appendChild(label);
-    picker.classList.remove('has-image');
-    picker.setAttribute('aria-label', 'add thumbnail');
-    picker.removeAttribute('title');
+    picker.setAttribute('aria-label', label.textContent);
+    if (replacing) {
+      picker.title = 'Replace thumbnail';
+    } else {
+      picker.removeAttribute('title');
+    }
   }
 
   apply_upload_presentation(modobj = null) {
@@ -246,8 +267,8 @@ class CreateNFT {
 
     let html = `
       <div class="file selected">
-        <i class="fa-solid fa-check" aria-hidden="true"></i>
         <div class="file-name">${this.escape_html(file_name)}</div>
+        <i class="fa-solid fa-check" aria-hidden="true"></i>
       </div>
     `;
 
@@ -359,6 +380,15 @@ class CreateNFT {
         salert('Provide parseable JS to create NFT');
         return false;
       }
+      processed = true;
+    }
+
+    if (this.nft_type === 'saito-app' && processed == false) {
+      if (!this.file) {
+        salert('Attach a .saito file');
+        return false;
+      }
+      obj.saito = this.file;
       processed = true;
     }
 
@@ -511,6 +541,77 @@ class CreateNFT {
       'nft-image-upload',
 
       async (file, _is_drag, native_file) => {
+        const picking_thumbnail =
+          this.supportsThumbnail() &&
+          file &&
+          this.isImageDataUri(file) &&
+          (this.nft_type !== 'saito-app' || !!this.file);
+
+        if (picking_thumbnail) {
+          try {
+            this.image = await this.app.browser.resizeImg(file, 128, { w: 512, h: 512 });
+          } catch (err) {
+            console.error('CreateNFT: thumbnail resize failed', err);
+            salert('Unable to process the selected thumbnail');
+            return;
+          }
+          this.renderThumbnail();
+          return;
+        }
+
+        if (this.nft_type === 'saito-app') {
+          const name = (native_file?.name || '').toLowerCase();
+          if (!native_file || !name.endsWith('.saito')) {
+            salert('Attach a .saito file');
+            return;
+          }
+
+          const saito_text = await new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result);
+            reader.onerror = () => reject(reader.error);
+            reader.readAsText(native_file);
+          });
+
+          if (!saito_text || typeof saito_text !== 'string') {
+            salert('Attach a .saito file');
+            return;
+          }
+
+          this.file = saito_text;
+          let extracted_image = '';
+          try {
+            let data = saito_text;
+            if (data.indexOf('data:') === 0 && data.indexOf('base64,') >= 0) {
+              data = this.app.crypto.base64ToString(
+                data.indexOf('data:application/octet-stream;base64,') >= 0
+                  ? data
+                  : data.substring(data.indexOf('base64,') + 7)
+              );
+            }
+            const web = JSON.parse(data);
+            const msg = web && web.m ? JSON.parse(this.app.crypto.base64ToString(web.m)) : web;
+            if (msg?.image && this.app.browser.isSafeMediaUrl(msg.image)) {
+              extracted_image = msg.image;
+            }
+          } catch (err) {}
+
+          if (extracted_image) {
+            try {
+              this.image = await this.app.browser.resizeImg(extracted_image, 128, {
+                w: 512,
+                h: 512
+              });
+            } catch (err) {
+              this.image = extracted_image;
+            }
+          }
+
+          this.show_selected_file(native_file.name || 'Selected file');
+          this.renderThumbnail();
+          return;
+        }
+
         let modobj = this.return_module_nft();
         if (modobj?.createData) {
           this.file = file;
@@ -535,18 +636,7 @@ class CreateNFT {
         }
 
         if (this.supportsThumbnail()) {
-          if (!file || !this.isImageDataUri(file)) {
-            salert('Select a valid image for the NFT thumbnail');
-            return;
-          }
-
-          try {
-            this.image = await this.app.browser.resizeImg(file, 128, { w: 512, h: 512 });
-            this.renderThumbnail();
-          } catch (err) {
-            console.error('CreateNFT: thumbnail resize failed', err);
-            salert('Unable to process the selected thumbnail');
-          }
+          salert('Select a valid image for the NFT thumbnail');
           return;
         }
 
@@ -622,6 +712,14 @@ class CreateNFT {
         uploadEl.style.display = 'none';
         textarea.style.display = 'flex';
         textarea.innerHTML = JSON.stringify({ key1: 'value1', key2: 'value2' }, null, 2);
+      }
+      if (this.nft_type === 'saito-app') {
+        this.apply_upload_presentation({
+          upload_text: 'upload .saito application file'
+        });
+        uploadEl.style.display = 'flex';
+        textarea.style.display = 'none';
+        this.file = null;
       }
       if (this.nft_type === 'image') {
         this.apply_upload_presentation();

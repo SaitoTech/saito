@@ -301,7 +301,7 @@ class SettlersDisplay {
       this.game.deck[0].hand.length == 0 &&
       this.game.state.players[this.game.player - 1].devcards.length == 0
     ) {
-      $('.controls #playcard').removeClass('enabled');
+      $('#settlers-hud-controls #playcard').removeClass('enabled');
     }
 
     if (this.game.player == 0) {
@@ -528,8 +528,6 @@ class SettlersDisplay {
 
       if (this.game.players.includes(this.publicKey)) {
         if (this.gameBrowserActive()) {
-          let status_obj = document.querySelector('.hud-body .status');
-
           let complex_str = '';
           for (let ud of this.status) {
             let s = ud[0];
@@ -539,10 +537,7 @@ class SettlersDisplay {
             complex_str += s;
           }
 
-          //console.log(complex_str);
-
-          status_obj.innerHTML = complex_str;
-          $('.status').disableSelection();
+          this.hud.updateStatus(complex_str);
         }
       }
     } catch (err) {

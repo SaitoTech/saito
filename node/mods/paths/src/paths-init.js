@@ -17,6 +17,7 @@ const PathsOptions = require('./lib/core/advanced-options.template');
 const PathsSingularOption = require('./lib/core/options.template');
 
 const GameHelp = require('./lib/ui/game-help/game-help');
+const GameMinimap = require('../../lib/saito/ui/game-minimap/game-minimap');
 const TutorialTemplate = require('./lib/ui/overlays/tutorials/tutorial.template');
 
 
@@ -61,6 +62,9 @@ class PathsOfGlory extends GameTemplate {
     this.menu_overlay = new MenuOverlay(this.app, this); 
     this.space_overlay = new SpaceOverlay(this.app, this); 
     this.game_help = new GameHelp(this.app, this);
+    this.minimap = new GameMinimap(this.app, this);
+    this.minimap.enable_zoom = 1;
+    this.default_board_scale = 100;
 
     //
     // this sets the ratio used for determining
@@ -231,7 +235,7 @@ class PathsOfGlory extends GameTemplate {
     // add card events -- text shown and callback run if there
     //
     this.cardbox.addCardType("showcard", "", null);
-    this.cardbox.addCardType("card", "select", this.cardbox_callback);
+    this.cardbox.addCardType("card", "select", null);
     if (app.browser.isMobileBrowser(navigator.userAgent)) {
       this.cardbox.skip_card_prompt = 0;
     }
@@ -253,18 +257,7 @@ class PathsOfGlory extends GameTemplate {
       }
     }
 
-    try {
-
-      if (app.browser.isMobileBrowser(navigator.userAgent)) {
-        //this.hammer.render();
-      } else {
-	let paths_self = this;
-        this.sizer.render();
-        this.sizer.attachEvents('#gameboard');
-      }
-
-    } catch (err) {}
-
+    this.minimap.render();
     this.hud.render();
     this.displayBoard();
 
@@ -309,7 +302,7 @@ class PathsOfGlory extends GameTemplate {
     //
     // re-fill status and log
     //
-    if (this.game.status != "") { this.updateStatus(this.game.status); }
+    if (this.game.status != "") {     this.hud.updateStatus(this.game.status); }
 
     //
     // initialize game objects

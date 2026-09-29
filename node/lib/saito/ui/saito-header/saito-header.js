@@ -124,7 +124,7 @@ class SaitoHeader extends UIModTemplate {
 
       siteMessage(
         `${amount} ${ticker} inbound from ${this.app.keychain.returnUsername(obj.sender)}`,
-        3000
+        2000
       );
     });
 
@@ -508,15 +508,19 @@ class SaitoHeader extends UIModTemplate {
     }
 
     const icon = this.renderMenuItemIcon(item, keyword);
+    const esc = (value) => this.app.browser.escapeHTML(value);
+    const label = esc(item.text);
+    const type_class = esc(item.type || keyword);
+    const nav = item?.navigation ? ` data-navigation="${esc(item.navigation)}"` : '';
 
     let html = `     
-      <li id="${id}" data-id="${item.text}" class="saito-header-appspace-option ${item.type}" ${item?.navigation ? `data-navigation="${item.navigation}"` : ''}>
+      <li id="${esc(id)}" data-id="${label}" class="saito-header-appspace-option ${type_class}"${nav}>
         ${icon}
-        <span class="saito-menu-item-label">${item.text}</span></li>`;
+        <span class="saito-menu-item-label">${label}</span></li>`;
 
-    let menu = document.querySelector(`.saito-header-menu-section .${keyword}-menu > ul`);
+    let menu = document.querySelector(`.saito-header-menu-section .${keyword}-menu ul`);
     if (menu && menu.parentElement) {
-      menu.innerHTML += html;
+      menu.insertAdjacentHTML('beforeend', html);
       menu.parentElement.classList.remove('empty-menu-section');
     }
   }
@@ -572,14 +576,16 @@ class SaitoHeader extends UIModTemplate {
       return;
     }
 
-    const menu = document.querySelector('.saito-header-menu-section .module-menu > ul');
+    const menu = document.querySelector('.saito-header-menu-section .module-menu ul');
     if (!menu) {
       return;
     }
 
     const item = { text, icon, type: 'module' };
     const icon_html = this.renderMenuItemIcon(item, 'module');
-    const html = `<li id="${id}" data-id="${text}" class="saito-header-appspace-option module">${icon_html}<span class="saito-menu-item-label">${text}</span></li>`;
+    const esc = (value) => this.app.browser.escapeHTML(value);
+    const label = esc(text);
+    const html = `<li id="${esc(id)}" data-id="${label}" class="saito-header-appspace-option module">${icon_html}<span class="saito-menu-item-label">${label}</span></li>`;
     const add_app = menu.querySelector('[data-id="Add App"]');
     if (add_app) {
       add_app.insertAdjacentHTML('beforebegin', html);
@@ -625,7 +631,7 @@ class SaitoHeader extends UIModTemplate {
       }
     }
 
-    return `<i class="${item.icon}"></i>`;
+    return `<i class="${this.app.browser.escapeHTML(item.icon)}"></i>`;
   }
 
   returnModuleMenuIconPaths(text = '') {
@@ -1224,21 +1230,6 @@ class SaitoHeader extends UIModTemplate {
             menu_html += '<div></div>';
           }
 
-          if (is_activated) {
-            menu_html += `
-              <div
-                class="saito-icon-button header-crypto-history"
-                data-ticker="${crypto_mod.ticker}"
-                title="View ${crypto_mod.ticker} recent transactions"
-                aria-label="View ${crypto_mod.ticker} recent transactions"
-                role="button"
-                tabindex="0"
-              >
-                <i class="fa-solid fa-clock-rotate-left" aria-hidden="true"></i>
-              </div>
-            `;
-          }
-
           menu_html += `</div>`;
         }
       }
@@ -1258,9 +1249,15 @@ class SaitoHeader extends UIModTemplate {
       c.onclick = async (e) => {
         const ticker = e.currentTarget.dataset.ticker;
         const cryptoMod = this.app.wallet.returnCryptoModuleByTicker(ticker);
-        if (!cryptoMod.isActivated()) {
-          this.app.connection.emit('saito-header-install-crypto', ticker);
+        if (cryptoMod.isActivated()) {
+          this.app.connection.emit('saito-crypto-wallet-history-render-request', {
+            ticker
+          });
+          this.hideMenu();
+          return;
         }
+
+        this.app.connection.emit('saito-header-install-crypto', ticker);
 
         await this.app.wallet.setPreferredCrypto(ticker);
         clearTimeout(this.web3_start_polling_timeout);
@@ -1275,24 +1272,6 @@ class SaitoHeader extends UIModTemplate {
           sidebar.classList.remove('show-wallet');
         }
         await this.renderCrypto(true);
-      };
-    });
-
-    Array.from(document.querySelectorAll('.header-crypto-history')).forEach((button) => {
-      const openHistory = (e) => {
-        e.stopPropagation();
-        this.app.connection.emit('saito-crypto-wallet-history-render-request', {
-          ticker: e.currentTarget.dataset.ticker
-        });
-        this.hideMenu();
-      };
-
-      button.onclick = openHistory;
-      button.onkeydown = (e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          openHistory(e);
-        }
       };
     });
   }

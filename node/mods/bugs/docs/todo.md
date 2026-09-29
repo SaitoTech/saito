@@ -57,13 +57,6 @@ app.modules.getRespondTos('redsquare-tweet-menu', {
 
 Each returned action is appended using its `text`, `icon`, and `callback`. The callback receives the same context. RedSquare does not special-case Bugs or inspect `app.options.bugs`; Bugs already returns no action until `/bugs` has enabled it.
 
-Acceptance checks:
-
-1. Before visiting `/bugs`, no Capture as Bug item is shown.
-2. After visiting `/bugs`, root tweets and replies show Capture as Bug.
-3. A reply context supplies its own signature as `source_tx_sig` and the thread root as `root_tx_sig`.
-4. Selecting the item opens the standard Bugs overlay without changing the tweet.
-
 ## 3. Module selection/build configuration
 
 If this checkout uses an explicit module allow-list rather than directory discovery, add `Bugs` to that normal build/runtime configuration. This repository change is deliberately not made here because the requested scope permits edits only inside `mods/bugs`.

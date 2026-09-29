@@ -144,10 +144,28 @@ class FaucetOAuth {
     const slug = encodeURI(this.mod.returnSlug());
 
     const sendPopup = (res, status, opts) => {
-      res.status(status);
+      if (!res || res.writableEnded || res.finished) {
+        return;
+      }
+      const code = Number(status);
+      res.status(Number.isInteger(code) && code >= 100 && code <= 599 ? code : 500);
       res.setHeader('Content-type', 'text/html; charset=UTF-8');
       res.setHeader('Cache-Control', 'no-store');
-      return res.send(OAuthResultTemplate(opts));
+      return res.send(OAuthResultTemplate(opts || {}));
+    };
+
+    const failPopup = (res, status, opts) => {
+      try {
+        return sendPopup(res, status, opts);
+      } catch (err) {
+        try {
+          if (!res.writableEnded) {
+            res.end();
+          }
+        } catch (endErr) {
+          // client already gone
+        }
+      }
     };
 
     // TEMP DEV: skip GitHub and feed a synthetic identity into the real
@@ -249,8 +267,8 @@ class FaucetOAuth {
       }
     });
 
-    expressapp.get(`/${slug}/oauth/twitter`, async (req, res) => {
-      if (res.finished) {
+    const handleTwitterOAuth = async (req, res) => {
+      if (res.finished || res.writableEnded) {
         return;
       }
 
@@ -351,17 +369,20 @@ class FaucetOAuth {
               '[Faucet] OAuth twitter exchange/profile failed',
               err?.code || err?.message || err
             );
-            return sendPopup(res, 502, {
+            return failPopup(res, 502, {
               ok: false,
               title: 'X verification failed',
               message: 'Could not complete X token exchange or profile lookup. Try again.'
             });
           }
 
-          return sendPopup(res, err.httpStatus, {
+          return failPopup(res, err.httpStatus || 502, {
             ok: false,
-            title: err.title,
-            message: err.popupMessage || err.message,
+            title: err.title || 'X verification failed',
+            message:
+              err.popupMessage ||
+              err.message ||
+              'Could not complete X authorization. Close this window and try again.',
             details: err.details || ''
           });
         }
@@ -437,6 +458,23 @@ class FaucetOAuth {
             'Could not start X authorization. Close this window and try again from Get SAITO.'
         });
       }
+    };
+
+    expressapp.get(`/${slug}/oauth/twitter`, (req, res) => {
+      res.on('error', (err) => {
+        console.error('[Faucet] OAuth twitter response error', err?.message || err);
+      });
+
+      Promise.resolve()
+        .then(() => handleTwitterOAuth(req, res))
+        .catch((err) => {
+          console.error('[Faucet] OAuth twitter route aborted', err?.message || err);
+          failPopup(res, 502, {
+            ok: false,
+            title: 'X verification failed',
+            message: 'Could not complete X authorization. Close this window and try again.'
+          });
+        });
     });
 
     expressapp.get(`/${slug}/oauth`, async (req, res) => {

@@ -6,6 +6,9 @@ displayBoard() {
   for (let i in this.sectors) {
     this.sectors[i].render();
   }
+  if (this.minimap) {
+    this.minimap.render();
+  }
 }
 
 
@@ -454,6 +457,7 @@ displayFactionDashboard(agenda_phase=0) {
       document.querySelector(`.${pl} .dash-item-goods`).innerHTML = this.game.state.players_info[i].goods;
       document.querySelector(`.${pl} .dash-item-commodities`).innerHTML = this.game.state.players_info[i].commodities;
       document.querySelector(`.${pl} .dash-item-commodity-limit`).innerHTML = this.game.state.players_info[i].commodity_limit;
+      document.querySelector(`.${pl} .dash-item-vp`).innerHTML = this.game.state.players_info[i].vp;
       } catch (err) {}
 
       document.querySelector(fo).onclick = (e) => {
@@ -476,23 +480,12 @@ addUIEvents() {
   if (this.browser_active == 0) { return; }
 
   $('#hexGrid').draggable();
-
-  document.querySelector('.leaderboardbox').addEventListener('click', (e) => {
-
-    if (e.target.id === "objectives-toggle" || e.target.id === "VP-track-label") {
-      imperium_self.handleObjectivesMenuItem();
-      return;
-    }
-
-    document.querySelector('.leaderboardbox').classList.toggle('leaderboardbox-lock');
-  });
+  this.ensureBoardVisible();
+  this.frameHomeworld();
 
   //set player highlight color
   document.documentElement.style.setProperty('--my-color', `var(--p${this.game.player})`);
   this.displayFactionDashboard();
-
-  this.factionbar.render(this.game.player);
-  this.tokenbar.render(this.game.player);
 
 }
 
@@ -500,6 +493,60 @@ addUIEvents() {
 
 
 
+
+
+returnDefaultBoardScale() {
+  let hex = 250;
+  let target = window.innerWidth * 0.3;
+  let scale = Math.round((100 * target) / hex);
+  return Math.max(90, Math.min(200, scale));
+}
+
+frameHomeworld() {
+  if (this.homeworld_framed) {
+    return;
+  }
+  if (!this.game || !this.game.player || !this.game.state || !this.game.state.players_info) {
+    return;
+  }
+  let info = this.game.state.players_info[this.game.player - 1];
+  if (!info || !info.homeworld) {
+    return;
+  }
+  let el = this.boardEl();
+  let sector = document.getElementById(info.homeworld);
+  if (!el || !sector || !el.offsetWidth || !sector.offsetWidth) {
+    return;
+  }
+
+  this.homeworld_framed = 1;
+  this.default_board_scale = this.returnDefaultBoardScale();
+  let current = el.getBoundingClientRect().width / el.offsetWidth;
+  if (Math.abs(current - this.default_board_scale / 100) > 0.05) {
+    this.setBoardScale(this.default_board_scale, false);
+  }
+
+  let board = el.getBoundingClientRect();
+  let box = sector.getBoundingClientRect();
+  let scale = el.offsetWidth ? board.width / el.offsetWidth : 1;
+  let local_x = (box.left + box.width / 2 - board.left) / scale;
+  let local_y = (box.top + box.height / 2 - board.top) / scale;
+
+  let left_bound = 16;
+  let dash = document.querySelector('.dashboard');
+  if (dash) {
+    let d = dash.getBoundingClientRect();
+    if (d.width > 40 && d.left < window.innerWidth * 0.4) {
+      left_bound = d.right + 24;
+    }
+  }
+  let cx = (left_bound + window.innerWidth) / 2;
+  let cy = window.innerHeight * 0.42;
+  this.moveBoardTo(el, cx - local_x * scale, cy - local_y * scale);
+  if (this.minimap) {
+    this.minimap.render();
+  }
+}
 
 showSector(pid) {
 
@@ -521,10 +568,6 @@ hideSector(pid) {
 
 updateTokenDisplay() {
 
-  let imperium_self = this;
-  this.factionbar.render(this.game.player);
-  this.tokenbar.render(this.game.player);
-
 }
 
 
@@ -533,53 +576,9 @@ updateRound() {
 }
 
 updateLeaderboard() {
-
   if (this.browser_active == 0) { return; }
-  this.leaderboard.render();
-
-  let imperium_self = this;
-  let factions = this.returnFactions();
-
-  try {
-
-    //
-    // hide unnecessary VP entries
-    //
-    try {
-      if (this.game.state.vp_target < 14) {
-        for (let i = 14; i > this.game.state.vp_target; i--) {
-          let leaderboard_div = "."+i+"-points"; 
-          document.querySelector(leaderboard_div).style.display = "none";
-        }
-      }
-    } catch (err) { 
-    }
-
-
-    let html = '<div class="VP-track-label" id="VP-track-label">Victory Points</div>';
-
-    let vp_needed = 14;
-    if (this.game.state.vp_target != 14 && this.game.state.vp_target > 0) { vp_needed = this.game.state.vp_target; }
-    if (this.game.options.vp) { vp_needed = parseInt(this.game.options.vp); }
-
-    for (let j = vp_needed; j >= 0; j--) {
-      html += '<div class="vp ' + j + '-points"><div class="player-vp-background">' + j + '</div>';
-      html += '<div class="vp-players">'
-
-      for (let i = 0; i < this.game.state.players_info.length; i++) {
-        if (this.game.state.players_info[i].vp == j) {
-          html += `  <div class="player-vp" style="background-color:var(--p${i + 1});"><div class="vp-faction-name">${factions[this.game.state.players_info[i].faction].name}</div></div>`;
-        }
-      }
-
-      html += '</div></div>';
-    }
-
-    document.querySelector('.leaderboard').innerHTML = html;
-
-    this.updateRound();
-
-  } catch (err) { }
+  this.displayFactionDashboard();
+  this.updateRound();
 }
 
 
@@ -714,24 +713,6 @@ updateLeaderboard() {
 
     let strategy_cards = this.returnStrategyCards();
     let thiscard = strategy_cards[c];
-
-    // - show bonus available
-    let strategy_card_bonus = 0;
-    for (let i = 0; i < this.game.state.strategy_cards.length; i++) {
-      if (thiscard === this.game.state.strategy_cards[i]) {
-        strategy_card_bonus = this.game.state.strategy_cards_bonus[i];
-      }
-    }
-
-    let strategy_card_bonus_html = "";
-    if (strategy_card_bonus > 0) {
-      strategy_card_bonus_html = 
-      `<div class="strategy_card_bonus">    
-        <i class="fas fa-database white-stroke"></i>
-        <span>${strategy_card_bonus}</span>
-      </div>`;
-
-    }
     this.cardbox.showCardboxHTML(thiscard, thiscard.returnCardImage());
   }
 
@@ -760,12 +741,6 @@ updateLeaderboard() {
     this.cardbox.showCardboxHTML(thiscard, html);
   }
   hideAgendaCard(sector, pid) {
-    this.cardbox.hide(1);
-  }
-  showTechCard(tech) {
-    this.cardbox.showCardboxHTML(tech, this.tech[tech].returnCardImage());
-  }
-  hideTechCard(tech) {
     this.cardbox.hide(1);
   }
 

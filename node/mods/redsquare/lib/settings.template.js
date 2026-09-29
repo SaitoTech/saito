@@ -13,10 +13,6 @@ module.exports = (settings) => {
           <span>Notifications</span>
           <input type="checkbox" ${settings.notifications_enabled ? 'checked' : ''} disabled />
         </li>
-        <li class="item">
-          <span>Curated feed</span>
-          <input type="checkbox" ${settings.curated_feed ? 'checked' : ''} disabled />
-        </li>
       </ul>
     </section>
   `;

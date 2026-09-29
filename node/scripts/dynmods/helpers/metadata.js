@@ -1,13 +1,12 @@
 'use strict';
 
 /**
- * Extract module metadata from zip (same logic as DevTools getNameAndDescriptionFromZip).
+ * Extract literal module metadata from zip without executing module code.
  * Does not require app or browser.
  */
 
 const unzipper = require('unzipper');
-const path = require('path');
-const fs = require('fs');
+const ts = require('typescript');
 
 function cleanString(str) {
   if (!str || typeof str !== 'string') return '';
@@ -29,15 +28,21 @@ function cleanString(str) {
 
 /**
  * @param {string} zipPath - absolute path to zip file
- * @returns {Promise<{ name, image, description, categories, slug, version }>}
+ * @returns {Promise<{ name, gamename, image, description, categories, slug, publisher_message, status, class, version }>}
  */
 async function getMetadataFromZip(zipPath) {
-  let name = 'Unknown Module';
-  let image = '';
-  let description = 'unknown';
-  let categories = 'unknown';
-  let slug = '';
-  let version = '1.0.0';
+  const metadata = {
+    name: 'Unknown Module',
+    gamename: '',
+    image: '',
+    description: 'unknown',
+    categories: 'unknown',
+    slug: '',
+    publisher_message: '',
+    status: '',
+    class: '',
+    version: ''
+  };
 
   const directory = await unzipper.Open.file(zipPath);
   const promises = directory.files.map(async (file) => {
@@ -47,7 +52,7 @@ async function getMetadataFromZip(zipPath) {
 
     if (filePath.endsWith('arcade.jpg') || filePath.endsWith('saito_icon.jpg')) {
       const content = await file.buffer();
-      image = 'data:image/jpeg;base64,' + content.toString('base64');
+      metadata.image = 'data:image/jpeg;base64,' + content.toString('base64');
       return;
     }
     if (filePath.substr(0, 3) === 'lib') return;
@@ -61,66 +66,46 @@ async function getMetadataFromZip(zipPath) {
     if (filePath.indexOf('sql/') > -1) return;
 
     const content = await file.buffer();
-    const zipText = content.toString('utf-8');
-    const zipLines = zipText.split('\n');
+    const source = ts.createSourceFile(
+      filePath,
+      content.toString('utf-8'),
+      ts.ScriptTarget.Latest,
+      false,
+      ts.ScriptKind.JS
+    );
+    const found = new Set();
 
-    let foundName = 0;
-    let foundDescription = 0;
-    let foundCategories = 0;
-    let foundSlug = 0;
-
-    for (
-      let i = 0;
-      i < zipLines.length &&
-      i < 100 &&
-      (foundName === 0 || foundDescription === 0 || foundCategories === 0 || foundSlug === 0);
-      i++
-    ) {
-      if (/this\.name/.test(zipLines[i]) && foundName === 0) {
-        foundName = 1;
-        if (zipLines[i].indexOf('=') > 0) {
-          name = zipLines[i].substring(zipLines[i].indexOf('='));
-          name = cleanString(name);
-          name = name.replace(/^\s+|\s+$/gm, '');
-          if (name.length > 50) {
-            name = 'Unknown';
-            foundName = 0;
-          }
-          if (name === 'name') {
-            name = 'Unknown';
-            foundName = 0;
-          }
+    // Read constructor literals, preserving multiline strings, HTML and punctuation.
+    // Parsing rather than evaluating also skips comments and dynamic expressions.
+    function visit(node) {
+      if (ts.isConstructorDeclaration(node) && node.body) {
+        for (const statement of node.body.statements) {
+          if (!ts.isExpressionStatement(statement)) continue;
+          const assignment = statement.expression;
+          if (
+            !ts.isBinaryExpression(assignment) ||
+            assignment.operatorToken.kind !== ts.SyntaxKind.EqualsToken
+          ) continue;
+          const { left, right } = assignment;
+          if (
+            !ts.isPropertyAccessExpression(left) ||
+            left.expression.kind !== ts.SyntaxKind.ThisKeyword
+          ) continue;
+          const key = left.name.text;
+          if (key === 'image' || !Object.hasOwn(metadata, key) || found.has(key)) continue;
+          if (!ts.isStringLiteral(right) && !ts.isNoSubstitutionTemplateLiteral(right)) continue;
+          metadata[key] = right.text;
+          found.add(key);
         }
+        return;
       }
-      if (/this\.description/.test(zipLines[i]) && foundDescription === 0) {
-        foundDescription = 1;
-        if (zipLines[i].indexOf('=') > 0) {
-          description = zipLines[i].substring(zipLines[i].indexOf('='));
-          description = cleanString(description);
-          description = description.replace(/^\s+|\s+$/gm, '');
-        }
-      }
-      if (/this\.categories/.test(zipLines[i]) && foundCategories === 0) {
-        foundCategories = 1;
-        if (zipLines[i].indexOf('=') > 0) {
-          categories = zipLines[i].substring(zipLines[i].indexOf('='));
-          categories = cleanString(categories);
-          categories = categories.replace(/^\s+|\s+$/gm, '');
-        }
-      }
-      if (/this\.slug/.test(zipLines[i]) && foundSlug === 0) {
-        foundSlug = 1;
-        if (zipLines[i].indexOf('=') > 0) {
-          slug = zipLines[i].substring(zipLines[i].indexOf('='));
-          slug = cleanString(slug);
-          slug = slug.replace(/^\s+|\s+$/gm, '');
-        }
-      }
+      ts.forEachChild(node, visit);
     }
+    visit(source);
   });
 
   await Promise.all(promises);
-  return { name, image, description, categories, slug, version };
+  return metadata;
 }
 
 module.exports = { getMetadataFromZip, cleanString };

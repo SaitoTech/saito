@@ -12,6 +12,8 @@ class USDT extends ModTemplate {
     this.description =
       'Adds support for Mixin-powered ERC20 Tether USD transfers on the Saito Network';
     this.categories = 'Utility Cryptocurrency Finance';
+    this.status = 'prod';
+    this.class = 'utility';
 
     // MIXIN STUFF
     this.asset_id = '4d8c508b-91c5-375b-92b0-ee702ed2dac5';

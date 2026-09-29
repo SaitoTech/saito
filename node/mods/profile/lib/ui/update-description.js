@@ -12,21 +12,31 @@ class UpdateDescription {
   }
 
   render(description) {
-    this.overlay.show(UpdateDescriptionTemplate(description));
+    this.overlay.show(UpdateDescriptionTemplate());
+    const inputBox = document.getElementById('saito-overlay-form-input');
+    if (inputBox) {
+      inputBox.value = description || '';
+    }
     this.attachEvents();
   }
 
   attachEvents() {
     const inputBox = document.getElementById('saito-overlay-form-input');
+    if (!inputBox) {
+      return;
+    }
 
     inputBox.select();
 
-    document.querySelector('.saito-overlay-form-submit').onclick = (e) => {
+    const submit = document.querySelector('.saito-overlay-form-submit');
+    if (!submit) {
+      return;
+    }
+
+    submit.onclick = (e) => {
       e.preventDefault();
 
-      var description = inputBox.innerText || inputBox.value;
-
-      console.log('update-description: ', description);
+      const description = inputBox.value;
 
       this.mod.sendProfileTransaction({ description }, this.key);
       this.overlay.remove();

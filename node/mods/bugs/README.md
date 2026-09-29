@@ -90,11 +90,3 @@ Exact signatures are processed once. A later confirmed event is ordered by block
 ## RedSquare boundary
 
 All callable RedSquare behavior is obtained through `respondTo("redsquare-api")`. Bugs also responds to the existing `redsquare-create` hook and the proposed `redsquare-tweet-menu` hook. The upstream hooks still required by the current RedSquare implementation are specified in [docs/todo.md](docs/todo.md).
-
-## Tests
-
-Run the focused suite from the repository root:
-
-```sh
-npx jest --config mods/bugs/jest.config.cjs --runInBand
-```

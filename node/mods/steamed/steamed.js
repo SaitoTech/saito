@@ -17,7 +17,7 @@ class Steamed extends GameTemplate {
     this.gamename = 'Steam Bonanza';
 
     this.description = `Win the industrial revolution by building and liquidating factories in an open source clone of Bohnanza`;
-    this.status = 'Alpha';
+    this.status = 'alpha';
 
     this.card_height_ratio = 1.5;
 
@@ -28,6 +28,7 @@ class Steamed extends GameTemplate {
     this.slug = this.name.toLowerCase();
     this.card_img_dir = `/${this.slug}/img/cards/`;
     this.categories = 'Games Cardgame Tactical';
+    this.class = 'app';
     this.factory = this.returnFactoryRules();
   }
 
@@ -76,7 +77,7 @@ class Steamed extends GameTemplate {
   ////////////////
   initializeGame(game_id) {
     if (this.game.status != '') {
-      this.updateStatus(this.game.status);
+            this.hud.updateStatus(this.game.status);
     }
 
     //
@@ -96,7 +97,10 @@ class Steamed extends GameTemplate {
       console.log('---------------------------');
       console.log('\n\n\n\n');
 
-      this.updateStatus("<div class='status-message'>Generating the Game</div>");
+            this.game.status = "<div class='status-message'>Generating the Game</div>";
+      this.hud.updateStatus(this.game.status);
+      this.hud.updateMenu([]);
+      this.hud.updateCards([]);
 
       this.game.queue = [];
       this.game.queue.push(`turn\t1`);
@@ -242,9 +246,10 @@ class Steamed extends GameTemplate {
             $('.status').css('display', 'block');
             $('.offer').fadeOut();
           }
-          this.updateStatus(
-            "<div class='status-message'>Liquidating remaining factories to tally final score</div>"
-          );
+                    this.game.status = "<div class='status-message'>Liquidating remaining factories to tally final score</div>";
+          this.hud.updateStatus(this.game.status);
+          this.hud.updateMenu([]);
+          this.hud.updateCards([]);
           this.game.queue.push('gameover');
           this.game.queue.push(`liquidate\t1\t1`);
           this.game.queue.push(`liquidate\t1\t2`);
@@ -265,7 +270,10 @@ class Steamed extends GameTemplate {
           this.playerTurn();
         } else {
           this.removeEvents();
-          this.updateStatus(`<div class='status-message'>Opponent making their moves...</div>`);
+                    this.game.status = `<div class='status-message'>Opponent making their moves...</div>`;
+          this.hud.updateStatus(this.game.status);
+          this.hud.updateMenu([]);
+          this.hud.updateCards([]);
         }
 
         $('.active').removeClass('active');
@@ -677,7 +685,10 @@ class Steamed extends GameTemplate {
     //  this.showTutorial(this.game.state.planted.toString());
     //}
 
-    this.updateStatus(html);
+        this.game.status = html;
+    this.hud.updateStatus(this.game.status);
+    this.hud.updateMenu([]);
+    this.hud.updateCards([]);
     this.attachBoardEvents();
   }
 
@@ -871,7 +882,10 @@ class Steamed extends GameTemplate {
 
   dealCards() {
     this.removeEvents();
-    this.updateStatus("<div class='status-message'>Dealing new cards...</div>");
+        this.game.status = "<div class='status-message'>Dealing new cards...</div>";
+    this.hud.updateStatus(this.game.status);
+    this.hud.updateMenu([]);
+    this.hud.updateCards([]);
     this.prependMove('continue');
     if (this.animation_queue.length == 0) {
       this.endTurn();

@@ -14,7 +14,10 @@
         var twilight_self = this;
         twilight_self.playerFinishedPlacingInfluence();
 
-        twilight_self.updateStatus('<div class="status-message" id="status-message">' + player.toUpperCase() + ' to place 2 Influence in Central or South America</div>');
+        twilight_self.game.status = '<div class="status-message" id="status-message">' + player.toUpperCase() + ' to place 2 Influence in Central or South America</div>';
+        twilight_self.hud.updateStatus(twilight_self.game.status);
+        twilight_self.hud.updateMenu([]);
+        twilight_self.hud.updateCards([]);
 
         for (var i in this.countries) {
           if (this.countries[i].region === "samerica" || this.countries[i].region === "camerica") {
@@ -31,8 +34,10 @@
           twilight_self.placeInfluence(c, 2, player);
           twilight_self.playerFinishedPlacingInfluence();
               
-          let confirmoptional = '<ul><li class="option" id="conduct">coup or realign</li><li class="option" id="skip">skip</li></ul>';
-          twilight_self.updateStatusWithOptions("Do you wish to use 2 free OPS for a coup or realignment rolls in Central or South America?",confirmoptional, function(action2) {
+          twilight_self.game.status = "Do you wish to use 2 free OPS for a coup or realignment rolls in Central or South America?";
+          twilight_self.hud.updateStatus(twilight_self.game.status);
+          twilight_self.hud.updateCards([]);
+          twilight_self.hud.updateMenu([ { id: 'conduct', label: 'coup or realign' }, { id: 'skip', label: 'skip' } ], function(action2) {
 
             if (action2 == "conduct") {
               twilight_self.addMove("resolve\tjunta");

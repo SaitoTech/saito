@@ -735,6 +735,7 @@
     this.movement_overlay.hide();
     this.welcome_overlay.hide();
     this.deck_overlay.hide();
+    this.hud.updateMenu([]);
     this.menu_overlay.hide();
     this.winter_overlay.hide();
     this.units_overlay.hide();

@@ -79,14 +79,16 @@ console.log("respondant: " + respondant);
           //
           // select highest card
           //
-          let html = "<ul>";
+          let options = [];
           for (let i = 0; i < available_cards.length; i++) {
             if (this.modifyOps(ac[available_cards[i]].ops, available_cards[i], opponent) == selected_ops && available_cards[i] != "china") {
-              html += `<li class="option" id="${available_cards[i]}">${ac[available_cards[i]].name}</li>`;
+              options.push({ id: available_cards[i], label: ac[available_cards[i]].name });
             }
           }
-          html += '</ul>';
-          this.updateStatusWithOptions("Select card to give opponent:", html, function(action2) {
+          this.game.status = "Select card to give opponent:";
+          this.hud.updateStatus(this.game.status);
+          this.hud.updateCards([]);
+          this.hud.updateMenu(options, function(action2) {
 
             //
             // offer card
@@ -97,7 +99,10 @@ console.log("respondant: " + respondant);
           });
         }
       }else{
-        this.updateStatus(`<div class='status-message' id='status-message'>${this.roles[respondant].toUpperCase()} is returning card for ${this.cardToText(card)}</div>`);
+        this.game.status = `<div class='status-message' id='status-message'>${this.roles[respondant].toUpperCase()} is returning card for ${this.cardToText(card)}</div>`;
+        this.hud.updateStatus(this.game.status);
+        this.hud.updateMenu([]);
+        this.hud.updateCards([]);
       }
       return 0;
     }

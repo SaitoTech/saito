@@ -71,7 +71,7 @@ class Realms extends GameTemplate {
 		this.cardbox.render(app, this);
 		//this.cardbox.skip_card_prompt = 0;
 		this.cardbox.addCardType("showcard", "", null);
-		this.cardbox.addCardType("card", "select", this.cardbox_callback);
+		this.cardbox.addCardType("card", "select", null);
 
 		this.log.render(app, this);
 		this.hud.render(app, this);

@@ -28,7 +28,7 @@ class SettingsOverlay {
         e.preventDefault();
         if (this.app.modules.returnModule('Store')) {
           this.overlay.remove();
-          navigateWindow('/store', 200);
+          navigateWindow('/store?type=saito-app', 200);
         } else {
           siteMessage('The Saito Store is not available on this node.', 3000);
         }

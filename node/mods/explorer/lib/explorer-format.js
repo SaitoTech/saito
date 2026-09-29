@@ -772,6 +772,7 @@ module.exports = {
   formatMonetaryWhole,
   formatNolanAsExplorerCurrency,
   formatSaito,
+  formatAbsoluteTime,
   formatTimeAgo,
   displayName,
   isAnonymousUsername,

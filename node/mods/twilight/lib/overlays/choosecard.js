@@ -32,23 +32,20 @@ class ChoiceOverlay {
       msg = 'Choose Card for Mid-War';
     }
 
-    let html = `
-			<ul>
-		`;
+    let options = [];
     if (deck[card1]?.name) {
-      html += `
-				<li class="card option" id="${card1}">${deck[card1].name}</li>
-			`;
+      options.push({ id: card1, label: deck[card1].name });
     }
     if (deck[card2]?.name) {
-      html += `
-				<li class="card option" id="${card2}">${deck[card2].name}</li>
-			`;
+      options.push({ id: card2, label: deck[card2].name });
     }
 
     this.overlay.show(ChoiceTemplate(this.mod, card1, card2, stage));
 
-    this.mod.updateStatusWithOptions(msg, html);
+    twilight_self.game.status = msg;
+    twilight_self.hud.updateStatus(twilight_self.game.status);
+    twilight_self.hud.updateCards([]);
+    twilight_self.hud.updateMenu(options);
 
     $('.option').off();
     $('.option').on('click', function () {
@@ -60,7 +57,10 @@ class ChoiceOverlay {
         twilight_self.addMove('add_midwar_card_to_deck\t' + action);
       }
       twilight_self.endTurn();
-      twilight_self.updateStatus('waiting for opponent to choose...');
+      twilight_self.game.status = 'waiting for opponent to choose...';
+      twilight_self.hud.updateStatus(twilight_self.game.status);
+      twilight_self.hud.updateMenu([]);
+      twilight_self.hud.updateCards([]);
       ui_self.hide();
     });
   }

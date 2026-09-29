@@ -10,7 +10,7 @@
       background	: 	'faction4.jpg' ,
       promissary_notes	:	["trade","political","ceasefire","throne","faction4-promissary"],
       commodity_limit	:	3,
-      intro             :       `<div style="font-weight:bold">Welcome to Red Imperium!</div><div style="line-height:2.8rem;margin-top:10px;margin-bottom:0px;">You are playing as the Sardaak N'Orr, an overpowered faction known for its raw strength in combat. Your brutal power makes you an intimidating faction on the board. Good luck!</div>`
+      intro             :       `You are the Sardakk N'orr, a race of spiny teeth and jaws whose raw strength and imperviousness to pain has earned a grim reputatation.`
     });
 
 
@@ -176,21 +176,20 @@
 	      return 0;
 	    }
 
-            html = '<div class="sf-readable">Do you wish to sacrifice a Dreadnaught to destroy up to 2 opponent ships?</div><ul>';
+            html = '<div class="sf-readable">Do you wish to sacrifice a Dreadnaught to destroy up to 2 opponent ships?</div>';
+            let menu = [];
 	    for (let i = 0; i < sys.s.units[imperium_self.game.player-1].length; i++) {
 	      if (sys.s.units[imperium_self.game.player-1][i].type == "dreadnaught") {
-                html += `<li class="option" id="${i}">sacrifice ${imperium_self.returnShipInformation(sys.s.units[imperium_self.game.player-1][i])}</li>`;
+                menu.push({ id: String(i), label: 'sacrifice ' + imperium_self.returnShipInformation(sys.s.units[imperium_self.game.player-1][i]) });
 	      }
 	    }
-            html += '<li class="option" id="no">do not sacrifice</li>';
-            html += '</ul>';
+            menu.push({ id: 'no', label: 'do not sacrifice' });
 
-	    imperium_self.updateStatus(html);
+	    	    imperium_self.game.status = html;
+	    imperium_self.hud.preparePrompt(imperium_self.game.status);
+	    imperium_self.hud.updateCards([]);
 
-            $('.option').on('click', function () {
-
-	      let action2 = $(this).attr("id");
-
+            imperium_self.hud.updateMenu(menu, function (action2) {
 	      if (action2 === "no") {
 	        imperium_self.addMove("resolve\tfaction4_exotrireme_ii_sacrifice");
 	        imperium_self.endTurn();
@@ -219,7 +218,9 @@
 	    imperium_self.addMove("resolve\tfaction4_exotrireme_ii_picktwo");
 	    imperium_self.playerDestroyOpponentShips(player_to_go, 2, mv[2]);
 	  } else {
-	    imperium_self.updateStatus("Exotrireme II engaging in suicide assault");
+	    	    imperium_self.game.status = "Exotrireme II engaging in suicide assault";
+	    imperium_self.hud.prepareIdle(imperium_self.game.status);
+	    imperium_self.hud.updateCards([]);
 	  }
 
 	  return 0;
@@ -358,17 +359,16 @@
 
 	  let sardaak_player = imperium_self.returnPlayerOfFaction("faction4");
 
-          let html = `<div class="status-message">Do you wish to return your Sardaak Promissary for +1 combat bonus?</div><ul>`;
-              html += '<li class="option" id="yes">Yes</li>';
-              html += '<li class="option" id="no">No</li>';
-              html += '</ul>';
+          let html = `<div class="status-message">Do you wish to return your Sardaak Promissary for +1 combat bonus?</div>`;
+              let menu = [];
+              menu.push({ id: 'yes', label: 'Yes' });
+              menu.push({ id: 'no', label: 'No' });
 
-          imperium_self.updateStatus(html);
+                    imperium_self.game.status = html;
+          imperium_self.hud.preparePrompt(imperium_self.game.status);
+          imperium_self.hud.updateCards([]);
 
-          $('.option').off();
-          $('.option').on('click', function() {
-
-            let id = $(this).attr("id");
+          imperium_self.hud.updateMenu(menu, function(id) {
 
             if (id === "no") {
 	      imperium_self.endTurn();
@@ -399,17 +399,16 @@
       groundCombatEvent : function(imperium_self, player, sector, planet_idx) {
         if (imperium_self.game.player == player) {
 
-          let html = `<div class="status-message">Do you wish to return your Sardaak Promissary for +1 combat bonus?</div><ul>`;
-              html += '<li class="option" id="yes">Yes</li>';
-              html += '<li class="option" id="no">No</li>';
-              html += '</ul>';
+          let html = `<div class="status-message">Do you wish to return your Sardaak Promissary for +1 combat bonus?</div>`;
+              let menu = [];
+              menu.push({ id: 'yes', label: 'Yes' });
+              menu.push({ id: 'no', label: 'No' });
 
-          imperium_self.updateStatus(html);
+                    imperium_self.game.status = html;
+          imperium_self.hud.preparePrompt(imperium_self.game.status);
+          imperium_self.hud.updateCards([]);
 
-          $('.option').off();
-          $('.option').on('click', function() {
-
-            let id = $(this).attr("id");
+          imperium_self.hud.updateMenu(menu, function(id) {
 
             if (id === "no") {
 	      imperium_self.endTurn();

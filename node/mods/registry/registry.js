@@ -13,6 +13,7 @@ class Registry extends ModTemplate {
     this.description = 'Saito DNS support';
     this.categories = 'Core Utilities Messaging';
     this.class = 'utility';
+    this.status = 'prod';
     //
     // master DNS publickey for this module
     //
@@ -43,6 +44,11 @@ class Registry extends ModTemplate {
     // super.initialize(app).
     //
     this.publicKey = '';
+
+    //
+    // Username suffix stored with registry identifiers, e.g. omskian@saito.
+    //
+    this.domain = '@saito';
 
     //
     // set true for testing locally
@@ -358,9 +364,21 @@ class Registry extends ModTemplate {
 
   //
   // Creates and sends an on-chain tx to register the identifier @ the domain
-  // Throws errors for invalid identifier types
+  // The complete identifier, including its domain, is limited to 51 characters.
   //
-  async tryRegisterIdentifier(identifier, domain = '@saito') {
+  async tryRegisterIdentifier(identifier, domain = this.domain) {
+    if (identifier instanceof String) identifier = identifier.toString();
+    if (typeof identifier !== 'string') {
+      throw TypeError('identifier must be a string');
+    }
+    identifier += domain;
+    if (identifier.length > 51) {
+      throw Error('Identifier must be 51 characters or fewer, including the domain');
+    }
+    if (!/^[0-9A-Za-z]+@[^@]+$/.test(identifier)) {
+      throw Error('Alphanumeric Characters only');
+    }
+
     let newtx = await this.app.wallet.createUnsignedTransactionWithDefaultFee(
       this.registry_publickey
     );
@@ -368,25 +386,83 @@ class Registry extends ModTemplate {
       throw Error('NULL TX CREATED IN REGISTRY MODULE');
     }
 
-    if (typeof identifier === 'string' || identifier instanceof String) {
-      var regex = /^[0-9A-Za-z]+$/;
-      if (!regex.test(identifier)) {
-        throw Error('Alphanumeric Characters only');
-      }
-      newtx.msg.module = 'Registry';
-      newtx.msg.request = 'register';
-      newtx.msg.identifier = identifier + domain;
+    newtx.msg.module = 'Registry';
+    newtx.msg.request = 'register';
+    newtx.msg.identifier = identifier;
 
-      await newtx.sign();
-      await this.app.network.propagateTransaction(newtx);
+    await newtx.sign();
+    await this.app.network.propagateTransaction(newtx);
 
-      //console.log("REGISTRY tx: ", newtx);
+    //console.log("REGISTRY tx: ", newtx);
 
-      // sucessful send
-      return true;
-    } else {
-      throw TypeError('identifier must be a string');
+    // sucessful send
+    return true;
+  }
+
+  //
+  // A finished registry username is a name plus this.domain, e.g. omskian@saito.
+  // Partial input such as "omskian@sai" is not a lookup.
+  //
+  isRegistryIdentifier(identifier) {
+    if (typeof identifier !== 'string' || !this.domain || !identifier.endsWith(this.domain)) {
+      return false;
     }
+    const name = identifier.slice(0, -this.domain.length);
+    return /^[0-9A-Za-z]+$/.test(name) && identifier.length <= 51;
+  }
+
+  //
+  // Local keychain first, then one registry namecheck for a finished username.
+  // Returns a Saito public key, or null.
+  //
+  async resolveIdentifier(identifier) {
+    if (!this.isRegistryIdentifier(identifier)) {
+      return null;
+    }
+
+    const local = this.app.keychain?.returnPublicKeyByIdentifier?.(identifier);
+    if (local && this.app.crypto.isPublicKey(local)) {
+      return local;
+    }
+
+    const peer = this.peers[0]?.publicKey;
+    if (!peer) {
+      return null;
+    }
+
+    const rows = await new Promise((resolve) => {
+      let settled = false;
+      const finish = (value) => {
+        if (settled) {
+          return;
+        }
+        settled = true;
+        resolve(Array.isArray(value) ? value : []);
+      };
+
+      try {
+        this.app.network.sendRequestAsTransaction(
+          'registry query',
+          { request: 'registry namecheck', identifier },
+          (res) => finish(res),
+          peer
+        );
+      } catch (err) {
+        finish([]);
+      }
+
+      setTimeout(() => finish([]), 8000);
+    });
+
+    const row = rows.find(
+      (entry) => entry?.identifier === identifier && this.app.crypto.isPublicKey(entry.publickey)
+    );
+    if (!row) {
+      return null;
+    }
+
+    this.app.keychain?.addKey?.(row.publickey, { identifier });
+    return row.publickey;
   }
 
   /**
@@ -412,7 +488,14 @@ class Registry extends ModTemplate {
     return this.app.network.sendRequestAsTransaction(
       'registry query',
       data,
-      mycallback,
+      mycallback
+        ? (identifiers) => mycallback(Object.fromEntries(
+          Object.entries(identifiers || {}).map(([key, identifier]) => [
+            key,
+            typeof identifier === 'string' && identifier !== key ? identifier.slice(0, 51) : identifier
+          ])
+        ))
+        : mycallback,
       peer.publicKey
     );
   }
@@ -563,7 +646,7 @@ class Registry extends ModTemplate {
 
   //
   // There are TWO types of requests that this module will process on-chain. The first is
-  // the request to REGISTER a @saito address. This will only be processed by the node that
+  // the request to REGISTER an address on this.domain. This will only be processed by the node that
   // is running the publickey identified in this module as the "registry_publickey".
   //
   // The second is a confirmation that the node running the domain broadcasts into the network
@@ -576,6 +659,14 @@ class Registry extends ModTemplate {
 
     if (Number(conf) == 0) {
       if (txmsg?.module === 'Registry') {
+        if (
+          typeof txmsg.identifier !== 'string' ||
+          txmsg.identifier.length > 51 ||
+          !/^[0-9A-Za-z]+@[^@]+$/.test(txmsg.identifier)
+        ) {
+          return;
+        }
+
         console.log(`REGISTRY: ${tx.from[0].publicKey} -> ${txmsg.identifier}`);
 
         /////////////////////////////////////////
@@ -762,8 +853,12 @@ class Registry extends ModTemplate {
       let rows = await this.app.storage.queryDatabase(sql, {}, 'registry');
       if (rows?.length > 0) {
         for (let i = 0; i < rows.length; i++) {
-          found_keys[rows[i].publickey] = rows[i].identifier;
-          registry_self.cached_keys[rows[i].publickey] = rows[i].identifier;
+          // Bound lookup results without rewriting signed records.
+          const identifier = typeof rows[i].identifier === 'string'
+            ? rows[i].identifier.slice(0, 51)
+            : rows[i].identifier;
+          found_keys[rows[i].publickey] = identifier;
+          registry_self.cached_keys[rows[i].publickey] = identifier;
         }
       }
     }
@@ -799,8 +894,9 @@ class Registry extends ModTemplate {
             //
             for (let key in res) {
               if (res[key] !== key) {
-                registry_self.cached_keys[key] = res[key];
-                found_keys[key] = res[key];
+                const identifier = typeof res[key] === 'string' ? res[key].slice(0, 51) : res[key];
+                registry_self.cached_keys[key] = identifier;
+                found_keys[key] = identifier;
               }
             }
 

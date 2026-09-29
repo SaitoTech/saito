@@ -1,0 +1,95 @@
+.game-zoom {
+  --game-zoom-size: 2.8rem;
+  --game-zoom-icon: 1.45rem;
+
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 100%;
+  bottom: auto;
+  z-index: 3;
+  display: none;
+  flex-direction: row;
+  align-items: stretch;
+  gap: 0.25rem;
+  width: 100%;
+  height: var(--game-zoom-size);
+  margin: 0.25rem 0 0 0;
+  box-sizing: border-box;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.game-minimap.has-zoom .game-zoom {
+  display: flex;
+  opacity: 1;
+  pointer-events: auto;
+  transition: opacity 0.15s ease;
+}
+
+.game-minimap.has-zoom.zoom-fading .game-zoom {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.45s ease;
+}
+
+.game-zoom .center,
+.game-zoom .minus,
+.game-zoom .plus {
+  appearance: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 var(--game-zoom-size);
+  width: var(--game-zoom-size);
+  height: var(--game-zoom-size);
+  margin: 0;
+  padding: 0;
+  border: 1px solid color-mix(in srgb, var(--saito-white) 18%, transparent);
+  border-radius: 4px;
+  color: var(--saito-white);
+  background: color-mix(in srgb, #1a141c 72%, transparent);
+  cursor: pointer;
+  font-size: var(--game-zoom-icon);
+  font-weight: 600;
+  line-height: 1;
+}
+
+.game-zoom .plus,
+.game-zoom .minus {
+  font-size: 2.4rem;
+  font-weight: 700;
+}
+
+.game-zoom .center:hover,
+.game-zoom .minus:hover,
+.game-zoom .plus:hover {
+  background: color-mix(in srgb, #1a141c 88%, transparent);
+}
+
+.game-zoom .center i {
+  font-size: var(--game-zoom-icon);
+  line-height: 1;
+}
+
+.game-zoom .track {
+  position: relative;
+  flex: 1 1 auto;
+  min-width: 0;
+  height: var(--game-zoom-size);
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--saito-white) 18%, transparent);
+  border-radius: 4px;
+  background: color-mix(in srgb, #1a141c 62%, transparent);
+  cursor: pointer;
+  touch-action: none;
+  box-sizing: border-box;
+}
+
+.game-zoom .fill {
+  height: 100%;
+  width: 0%;
+  border-radius: 3px;
+  background: var(--saito-primary);
+  pointer-events: none;
+}

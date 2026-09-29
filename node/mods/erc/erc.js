@@ -12,6 +12,8 @@ class ERC extends ModTemplate {
     this.description =
       'Adds support for Mixin-powered ERC20-wrapped Saito transfers on the Saito Network';
     this.categories = 'Utility Cryptocurrency Finance';
+    this.status = 'prod';
+    this.class = 'utility';
 
     // MIXIN STUFF
     this.asset_id = '58f18254-8087-3501-b0da-a6a9c15ea808';

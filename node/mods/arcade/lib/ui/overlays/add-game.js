@@ -65,7 +65,7 @@ class AddGameOverlay {
   openStore() {
     if (this.app.modules.returnModule('Store')) {
       this.close();
-      navigateWindow('/store', 200);
+      navigateWindow('/store?type=saito-app', 200);
       return;
     }
     siteMessage('The Saito Store is not available on this node.', 3000);

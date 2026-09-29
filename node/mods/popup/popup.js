@@ -17,6 +17,8 @@ class Popup extends ModTemplate {
     this.slug = 'popup';
     this.description = 'Chinese Language Education on the Saito Network';
     this.categories = 'Social Entertainment';
+    this.status = 'beta';
+    this.class = 'app';
     this.icon_fa = 'fa-solid fa-language';
 
     this.lesson = {}; // if being studied

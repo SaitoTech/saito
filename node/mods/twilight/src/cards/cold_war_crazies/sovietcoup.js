@@ -14,7 +14,10 @@ console.log("ROUND: " + this.game.state.round);
 	}
 	
         twilight_self.addMove("resolve\tsovietcoup");
-        twilight_self.updateStatusWithOptions('Sacrifice any VP before rolling for +1 modifier:','<ul><li class="option" id="zero">0 VP</li><li class="option" id="one">1 VP</li><li class="option" id="two">2 VP</li><li class="option" id="three">3 VP</li></ul>', function(action) {
+        twilight_self.game.status = 'Sacrifice any VP before rolling for +1 modifier:';
+        twilight_self.hud.updateStatus(twilight_self.game.status);
+        twilight_self.hud.updateCards([]);
+        twilight_self.hud.updateMenu([ { id: 'zero', label: '0 VP' }, { id: 'one', label: '1 VP' }, { id: 'two', label: '2 VP' }, { id: 'three', label: '3 VP' } ], function(action) {
 
 	  let modifier = 0;
 
@@ -71,7 +74,10 @@ console.log("ROUND: " + this.game.state.round);
           twilight_self.removeInfluence("us", "finland", x);
 	  twilight_self.addMove("remove\tus\tfinland\t"+x);
 
-          this.updateStatus("Place eight influence in non-US controlled countries:");
+          this.game.status = "Place eight influence in non-US controlled countries:";
+          this.hud.updateStatus(this.game.status);
+          this.hud.updateMenu([]);
+          this.hud.updateCards([]);
 	  let influence_remaining = 8;
 
           for (var i in this.countries) {

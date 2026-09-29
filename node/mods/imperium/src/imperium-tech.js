@@ -12,7 +12,6 @@
   // faction -> is this restricted to a specific faction
   // prereqs -> array of colors needed
   // unit --> unit technology
-  // returnCardImage(cardkey) --> returns image of card
   //
   returnTechnology() {
     return this.tech;
@@ -31,25 +30,6 @@
     if (obj.text == null)	{ obj.text = ""; }
     if (obj.unit == null)	{ obj.unit = 0; }
     if (obj.key == null)	{ obj.key = name; }
-    if (obj.returnCardImage == null)	{ obj.returnCardImage = function() {
-
-      let prereqs = "";
-
-      for (let i = 0; i < obj.prereqs.length; i++) {
-        if (obj.prereqs[i] == "yellow") { prereqs += '<span class="yellow">♦</span>'; }
-        if (obj.prereqs[i] == "blue") { prereqs += '<span class="blue">♦</span>'; }
-        if (obj.prereqs[i] == "green") { prereqs += '<span class="green">♦</span>'; }
-        if (obj.prereqs[i] == "red") { prereqs += '<span class="red">♦</span>'; }      
-      }
-
-      return `
-        <div id="${obj.key}" class="tech-card tech-${obj.color} nonopaque">
-          <div class="name">${obj.name}</div>
-          <div class="text">${obj.text}</div>
-          <div class="prereqs">${prereqs}</div>
-        </div>
-      `;
-    }; }
 
     obj = this.addEvents(obj);
     this.tech[name] = obj;

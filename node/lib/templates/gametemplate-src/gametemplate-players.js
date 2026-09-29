@@ -142,7 +142,8 @@ class GamePlayers {
   // moves
 
   nonPlayerTurn() {
-    this.hud.updateStatusMessage('Waiting for Opponent to Move');
+    this.game.status = 'Waiting for Opponent to Move';
+    this.hud.updateStatus('Waiting for Opponent to Move');
   }
 
   playerTurn() {

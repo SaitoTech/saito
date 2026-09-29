@@ -67,7 +67,10 @@
         if (menu == "field_battle_hits_assignment") {
           his_self.addMove("janissaries");
 	  his_self.endTurn();
-	  his_self.updateStatus("acknowledge");
+	  	  his_self.game.status = "acknowledge";
+	  his_self.hud.updateStatus(his_self.game.status);
+	  his_self.hud.updateMenu([]);
+	  his_self.hud.updateCards([]);
         }
         return 0;
       },

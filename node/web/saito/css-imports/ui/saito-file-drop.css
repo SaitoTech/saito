@@ -64,6 +64,16 @@
   color: var(--saito-muted-foreground);
 }
 
+.saito-file-drop-footer {
+  width: 100%;
+  min-width: 0;
+}
+
+.saito-app-overlay .saito-file-drop-footer a {
+  font-size: 1.5rem;
+  line-height: 1.4;
+}
+
 @media (max-width: 768px) {
   .saito-file-drop-overlay .saito-file-drop-body,
   .saito-file-drop-overlay .saito-file-drop-zone-wrap {

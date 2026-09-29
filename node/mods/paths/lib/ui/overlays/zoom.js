@@ -12,17 +12,17 @@ class ZoomOverlay {
 
   pullHudOverOverlay() {
     let overlay_zindex = parseInt(this.overlay.zIndex);
-    if (document.querySelector('.hud')) {
-      document.querySelector('.hud').style.zIndex = overlay_zindex + 1;
-      this.mod.hud.zIndex = overlay_zindex + 1;
+    let hud = document.getElementById('game-hud2');
+    if (hud) {
+      hud.style.zIndex = overlay_zindex + 1;
     }
   }
 
   pushHudUnderOverlay() {
     let overlay_zindex = parseInt(this.overlay.zIndex);
-    if (document.querySelector('.hud')) {
-      document.querySelector('.hud').style.zIndex = overlay_zindex - 2;
-      this.mod.hud.zIndex = overlay_zindex - 2;
+    let hud = document.getElementById('game-hud2');
+    if (hud) {
+      hud.style.zIndex = overlay_zindex - 2;
     }
   }
 
@@ -62,6 +62,8 @@ class ZoomOverlay {
     }
 
     let board = document.querySelector('.zoom-overlay .gameboard');
+    board.style.left = '0px';
+    board.style.top = '0px';
     board.style.transition = 'transform 0.5s ease';
     board.style.transform = `translate(-${scrollLeft}px, -${scrollTop}px)`;
   }
@@ -75,6 +77,7 @@ class ZoomOverlay {
     if (ob2) {
       ob2.style.display = 'block';
     }
+    this.keepCombatOverlayInFront();
   }
 
   hideControls() {
@@ -104,7 +107,9 @@ class ZoomOverlay {
   }
 
   renderAtCoordinates(top = 0, left = 0) {
-    this.render();
+    if (!document.querySelector('.zoom-overlay .gameboard')) {
+      this.render();
+    }
     let zoomOverlay = document.querySelector('.zoom-overlay');
     let board = document.querySelector('.zoom-overlay .gameboard');
 
@@ -139,17 +144,41 @@ class ZoomOverlay {
     controls.style.display = 'none';
 
     this.attachEvents();
+    this.keepCombatOverlayInFront();
+  }
 
-    //
-    // pull loss overlay over if it is visible
-    //
-    let lossOverlay = document.querySelector('.loss-overlay');
-    if (lossOverlay) {
-      lossOverlay = lossOverlay.parentElement;
-      if (lossOverlay.style.zIndex < zoomOverlay.style.zIndex) {
-        lossOverlay.style.zIndex = zoomOverlay.style.zIndex + 1;
-      }
+  // Next-target zoom is opened while combat results are still up. Keep the
+  // combat/loss overlay, and its backdrop, above that zoom layer.
+  keepCombatOverlayInFront() {
+    let zoom = document.querySelector('.zoom-overlay');
+    if (!zoom) {
+      return;
     }
+    let zoom_host = zoom.closest('.saito-overlay');
+    if (!zoom_host) {
+      return;
+    }
+    let zoom_z = parseInt(zoom_host.style.zIndex, 10) || 0;
+
+    document.querySelectorAll('.loss-overlay, .combat-overlay').forEach((el) => {
+      let host = el.closest('.saito-overlay');
+      if (!host) {
+        return;
+      }
+      let host_z = parseInt(host.style.zIndex, 10) || 0;
+      if (host_z <= zoom_z) {
+        host.style.zIndex = String(zoom_z + 2);
+      }
+      let backdrop = document.getElementById(
+        host.id.replace('saito-overlay', 'saito-overlay-backdrop')
+      );
+      if (backdrop) {
+        let backdrop_z = parseInt(backdrop.style.zIndex, 10) || 0;
+        if (backdrop_z <= zoom_z) {
+          backdrop.style.zIndex = String(zoom_z + 1);
+        }
+      }
+    });
   }
 
   render() {
@@ -159,7 +188,7 @@ class ZoomOverlay {
     // if already visible, don't reload
     //
     if (this.visible == true) {
-      if (document.querySelector('.zoom_overlay')) {
+      if (document.querySelector('.zoom-overlay')) {
         return;
       }
     }

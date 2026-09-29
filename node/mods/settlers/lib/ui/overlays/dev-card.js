@@ -78,7 +78,7 @@ class DevCardOverlay {
           this_dev_card.mod.game.state.players[this_dev_card.mod.game.player - 1].devcards.length ==
             0
         ) {
-          $('.controls #playcard').removeClass('enabled');
+          $('#settlers-hud-controls #playcard').removeClass('enabled');
         }
       };
     });

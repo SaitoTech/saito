@@ -1,0 +1,2 @@
+# Keep local test environment configuration out of Git.
+/config/env/

@@ -6,7 +6,9 @@ class LossOverlay {
     this.app = app;
     this.mod = mod;
     this.visible = false;
-    this.overlay = new SaitoOverlay(app, mod, false, true, false);
+    this.overlay = new SaitoOverlay(app, mod, true, true, false);
+    this.assignment_faction = '';
+    this.i_am_assigning = false;
     this.faction = '';
     this.units = null;
     this.loss_factor = 0;
@@ -71,61 +73,753 @@ class LossOverlay {
   }
 
   showRetreatNotice() {
-    // update the UI to show any hits taken
-    this.render();
+    // Refresh the resolved view only. Re-entering assignment here
+    // spends the loss factor again and hides the overlay.
+    this.render(this.faction || this.assignment_faction || 'defender', false);
     try {
       this.updateInstructions(
-        `<div class="continue_btn">All Possible Damage Assigned - <span style="text-decoration:underline;cursor:pointer">Click to Continue</span></div>`
+        `<div class="continue_btn">All possible damage assigned — <span style="text-decoration:underline dashed;cursor:pointer">Close to Continue</span></div>`,
+        'resolved'
       );
-      document.querySelector('.continue_btn').onclick = (e) => {
-        this.hide();
-      };
+      let btn = document.querySelector('.loss-overlay .continue_btn');
+      if (btn) {
+        btn.onclick = (e) => {
+          this.hide();
+        };
+      }
     } catch (err) {}
   }
 
-  updateInstructions(msg = '') {
-    let obj = document.querySelector('.loss-overlay .help');
-    if (obj) {
-      obj.innerHTML =
-        'Combat in ' + this.mod.returnSpaceName(this.mod.game.state.combat.key) + ': ' + msg;
+  viewingPlayerPower() {
+    return this.mod.returnFactionOfPlayer() || '';
+  }
+
+  activeAssigningPower() {
+    let combat = this.mod.game.state.combat;
+    if (!combat) {
+      return '';
+    }
+    let side = this.assignment_faction || this.faction || '';
+    if (side === 'attacker') {
+      return combat.attacker_power;
+    }
+    if (side === 'defender') {
+      return combat.defender_power;
+    }
+    return '';
+  }
+
+  // Header color/icon = viewing player's faction (not attacker/defender/assigner).
+  syncActiveHeader(power = '') {
+    let status = document.querySelector('.loss-overlay .loss-overlay-status');
+    let icon = document.querySelector('.loss-overlay .loss-overlay-status-icon');
+    if (!power) {
+      power = this.viewingPlayerPower();
+    }
+    if (status) {
+      status.classList.remove('is-central', 'is-allies');
+      if (power === 'central') {
+        status.classList.add('is-central');
+      } else if (power) {
+        status.classList.add('is-allies');
+      }
+    }
+    if (icon) {
+      icon.dataset.faction = power || '';
     }
   }
-  maximum_hits_possible;
+
+  updateInstructions(msg = '', mode = '') {
+    let status = document.querySelector('.loss-overlay .loss-overlay-status');
+    let copy = document.querySelector('.loss-overlay .loss-overlay-status-copy');
+    if (!status || !copy) {
+      return;
+    }
+
+    let resolved =
+      mode === 'resolved' ||
+      /automatically assigned|all possible damage|combat resolved/i.test(String(msg));
+    let action =
+      mode === 'action' ||
+      (!resolved && this.i_am_assigning && /assign/i.test(String(msg)));
+    let waiting = mode === 'waiting' || (!resolved && !action);
+
+    status.classList.toggle('is-resolved', resolved);
+    status.classList.toggle('is-action', action && !resolved);
+    status.classList.toggle('is-waiting', waiting && !resolved);
+
+    this.syncActiveHeader();
+
+    // Title stays "Assign losses" during the assignment phase (action or waiting);
+    // subtitle carries who is assigning / how much.
+    let title = resolved ? 'Combat resolved' : 'Assign losses';
+    if (/take additional hit/i.test(String(msg))) {
+      title = 'Cancel retreat?';
+    }
+
+    copy.innerHTML = `<strong>${title}</strong><span class="status-sub">${msg}</span>`;
+    this.updateCasualtyLines(resolved);
+  }
+
+  rememberCombatRoster(attacker_units = [], defender_units = []) {
+    let game = this.mod.game;
+    let combat = game && game.state && game.state.combat;
+    let step = combat ? combat.step : undefined;
+    if (this.roster && this.roster.step === step) {
+      return;
+    }
+    this.roster = {
+      step,
+      attacker: attacker_units.slice(),
+      defender: defender_units.slice()
+    };
+  }
+
+  casualtySummary(units = []) {
+    let eliminated = [];
+    let damaged = [];
+
+    for (let i = 0; i < units.length; i++) {
+      let unit = units[i];
+      if (!unit) {
+        continue;
+      }
+      let name = unit.name || unit.key;
+      let eliminated_box = unit.spacekey === 'aeubox' || unit.spacekey === 'ceubox';
+      if (unit.destroyed || eliminated_box) {
+        eliminated.push(name);
+      } else if (unit.damaged_this_combat && unit.damaged) {
+        damaged.push(name);
+      }
+    }
+
+    if (eliminated.length) {
+      return `Eliminated: ${eliminated.join(', ')}`;
+    }
+    if (damaged.length) {
+      return `Damaged: ${damaged.join(', ')}`;
+    }
+    return '';
+  }
+
+  updateCasualtyLines(resolved = false) {
+    let attacker_el = document.querySelector('.loss-overlay .attacker-casualty');
+    let defender_el = document.querySelector('.loss-overlay .defender-casualty');
+    if (!attacker_el || !defender_el) {
+      return;
+    }
+    if (!resolved || !this.roster) {
+      attacker_el.textContent = '';
+      defender_el.textContent = '';
+      return;
+    }
+    attacker_el.textContent = this.casualtySummary(this.roster.attacker);
+    defender_el.textContent = this.casualtySummary(this.roster.defender);
+  }
+
+  summarizeForce(units = []) {
+    let armies = 0;
+    let corps = 0;
+    for (let i = 0; i < units.length; i++) {
+      if (units[i].destroyed) {
+        continue;
+      }
+      if (units[i].army || (units[i].key && units[i].key.indexOf('army') > -1)) {
+        armies++;
+      } else {
+        corps++;
+      }
+    }
+    let parts = [];
+    if (armies > 0) {
+      parts.push(`${armies} Arm${armies === 1 ? 'y' : 'ies'}`);
+    }
+    if (corps > 0) {
+      parts.push(`${corps} Corps`);
+    }
+    return parts.length ? parts.join(', ') : 'No units';
+  }
+
+  terrainIcon(terrain = '') {
+    if (terrain === 'forest') {
+      return '🌲';
+    }
+    if (terrain === 'mountain') {
+      return '⛰';
+    }
+    if (terrain === 'swamp') {
+      return '🌿';
+    }
+    if (terrain === 'desert') {
+      return '☀';
+    }
+    return '⚔';
+  }
+
+  fireSnapshot() {
+    let c = this.mod.game.state.combat;
+    let attacker_hits =
+      c.attacker_loss_factor_at_fire != null
+        ? c.attacker_loss_factor_at_fire
+        : c.attacker_loss_factor;
+    let defender_hits =
+      c.defender_loss_factor_at_fire != null
+        ? c.defender_loss_factor_at_fire
+        : c.defender_loss_factor;
+
+    // Attacker flank: defender fires after taking losses. defender_cp stays "?"
+    // until that fire is recalculated on the reduced force.
+    if (c.flank_attack == 'attacker') {
+      if (c.defender_cp == '?') {
+        attacker_hits = '?';
+      } else {
+        attacker_hits = c.attacker_loss_factor;
+      }
+    }
+    // Defender flank: attacker fires after taking losses.
+    if (c.flank_attack == 'defender') {
+      if (c.attacker_cp == '?') {
+        defender_hits = '?';
+      } else {
+        defender_hits = c.defender_loss_factor;
+      }
+    }
+
+    return {
+      attacker_cp:
+        c.attacker_cp_at_fire != null ? c.attacker_cp_at_fire : c.attacker_cp,
+      defender_cp:
+        c.defender_cp_at_fire != null ? c.defender_cp_at_fire : c.defender_cp,
+      attacker_hits: attacker_hits,
+      defender_hits: defender_hits
+    };
+  }
+
+  fillPresentationChrome(attacker_units, defender_units) {
+    let combat = this.mod.game.state.combat;
+    let space = this.mod.game.spaces[combat.key];
+    let snap = this.fireSnapshot();
+    let terrain = space.terrain || 'clear';
+    let show_terrain =
+      !!terrain && terrain !== 'normal' && terrain !== 'clear';
+    let show_fort = space.fort > 0;
+
+    let title = document.querySelector('.loss-overlay .loss-overlay-title');
+    let space_name = this.mod.returnSpaceName(combat.key);
+    let attacker_label =
+      combat.attacker_power === 'central' ? 'Central Powers' : 'Allied Powers';
+    if (title) {
+      title.innerHTML = `Combat at ${space_name} - ${attacker_label} attack`;
+    }
+
+    let terrain_item = document.querySelector('.loss-overlay .loss-overlay-terrain-item');
+    let fort_item = document.querySelector('.loss-overlay .loss-overlay-fort-item');
+    let terrain_name = document.querySelector('.loss-overlay .loss-overlay-terrain-name');
+    let fort_name = document.querySelector('.loss-overlay .loss-overlay-fort-name');
+    if (terrain_item && terrain_name) {
+      if (show_terrain) {
+        terrain_name.innerHTML = terrain;
+        terrain_item.hidden = false;
+      } else {
+        terrain_name.innerHTML = '';
+        terrain_item.hidden = true;
+      }
+    }
+    if (fort_item && fort_name) {
+      if (show_fort) {
+        fort_name.innerHTML = 'Fortified';
+        fort_item.hidden = false;
+      } else {
+        fort_name.innerHTML = '';
+        fort_item.hidden = true;
+      }
+    }
+
+    let attacker_panel = document.querySelector('.loss-overlay .attacker-panel');
+    let defender_panel = document.querySelector('.loss-overlay .defender-panel');
+    if (attacker_panel) {
+      attacker_panel.classList.remove('is-central', 'is-allies');
+      attacker_panel.classList.add(
+        combat.attacker_power === 'central' ? 'is-central' : 'is-allies'
+      );
+    }
+    if (defender_panel) {
+      defender_panel.classList.remove('is-central', 'is-allies');
+      defender_panel.classList.add(
+        combat.defender_power === 'central' ? 'is-central' : 'is-allies'
+      );
+    }
+
+    // Orient panels from the local player's perspective: own side left, opponent right.
+    let body = document.querySelector('.loss-overlay .loss-overlay-body');
+    let my_power = this.viewingPlayerPower();
+    if (body) {
+      body.classList.toggle(
+        'own-side-left',
+        my_power === combat.defender_power
+      );
+    }
+
+    let a_hits = document.querySelector('.loss-overlay .attacker-hits-count');
+    let d_hits = document.querySelector('.loss-overlay .defender-hits-count');
+    // Hits = damage this side generated against the opponent (not hits they absorb)
+    if (a_hits) {
+      a_hits.innerHTML = snap.defender_hits;
+    }
+    if (d_hits) {
+      d_hits.innerHTML = snap.attacker_hits;
+    }
+
+    this.syncActiveHeader();
+
+    let details_btn = document.querySelector('.loss-overlay .loss-overlay-see-details');
+    let details = document.querySelector('.loss-overlay .loss-overlay-details');
+    let toggleDetails = (open) => {
+      if (!details) {
+        return;
+      }
+      details.classList.toggle('is-open', open);
+      details.setAttribute('aria-hidden', open ? 'false' : 'true');
+      if (details_btn) {
+        details_btn.classList.toggle('is-open', open);
+        details_btn.setAttribute(
+          'aria-label',
+          open ? 'Hide combat details' : 'Show combat details'
+        );
+      }
+    };
+    if (details_btn) {
+      details_btn.onclick = (e) => {
+        e.preventDefault();
+        toggleDetails(!details.classList.contains('is-open'));
+      };
+    }
+  }
+
+  factionLabel(power = '') {
+    return power === 'central' ? 'Central Powers' : 'Allied Powers';
+  }
+
+  formatRollModifier(roll, drm) {
+    let mod = parseInt(drm) || 0;
+    let op = mod >= 0 ? '+' : '-';
+    let abs = Math.abs(mod);
+    return `<span class="calc-roll">${roll}</span><span class="calc-op">${op}</span><span class="calc-mod">${abs}</span>`;
+  }
+
+  // Exact content crops from dice.png (1536×1024). Each face is a 224×224 square
+  // centered on the non-transparent die art (not the full 256×512 grid cell).
+  // red/central row y≈236; blue/allies row y≈556.
+  dieSourceRect(face, power = 'central') {
+    const CROP = 224;
+    // [x, y] top-left of 224×224 source rectangle for faces 1–6
+    const central = [
+      [30, 236],
+      [282, 236],
+      [532, 236],
+      [782, 236],
+      [1031, 236],
+      [1281, 236]
+    ];
+    const allies = [
+      [31, 556],
+      [282, 556],
+      [532, 556],
+      [782, 556],
+      [1031, 556],
+      [1281, 556]
+    ];
+    let f = parseInt(face) || 1;
+    if (f < 1) {
+      f = 1;
+    }
+    if (f > 6) {
+      f = 6;
+    }
+    let xy = (power === 'central' ? central : allies)[f - 1];
+    return { x: xy[0], y: xy[1], w: CROP, h: CROP, sheet_w: 1536, sheet_h: 1024 };
+  }
+
+  setDieSprite(el, face, power = 'central') {
+    if (!el) {
+      return;
+    }
+    let f = parseInt(face) || 1;
+    if (f < 1) {
+      f = 1;
+    }
+    if (f > 6) {
+      f = 6;
+    }
+    let src = this.dieSourceRect(f, power);
+    el.classList.add('loss-overlay-die-sprite');
+    el.classList.toggle('is-central', power === 'central');
+    el.classList.toggle('is-allies', power !== 'central');
+    el.style.setProperty('--die-src-x', String(src.x));
+    el.style.setProperty('--die-src-y', String(src.y));
+    el.style.setProperty('--die-crop', String(src.w));
+    el.style.setProperty('--die-sheet-w', String(src.sheet_w));
+    el.style.setProperty('--die-sheet-h', String(src.sheet_h));
+    el.setAttribute('aria-label', `${this.factionLabel(power)} rolled ${f}`);
+  }
+
+  fireColumnLabel(entry) {
+    if (!entry) {
+      return '-';
+    }
+    if (entry.max >= 100) {
+      return `${entry.min}+`;
+    }
+    if (entry.min === entry.max) {
+      return String(entry.min);
+    }
+    return `${entry.min}–${entry.max}`;
+  }
+
+  resolveFireColumn(hits = [], cp = 0, shift = 0) {
+    let base = 0;
+    for (let i = hits.length - 1; i >= 0; i--) {
+      if (hits[i].max >= cp && hits[i].min <= cp) {
+        base = i;
+        break;
+      }
+    }
+    let col = base + (parseInt(shift) || 0);
+    if (col < 0) {
+      col = 0;
+    }
+    if (col >= hits.length) {
+      col = hits.length - 1;
+    }
+    return {
+      base,
+      col,
+      base_label: this.fireColumnLabel(hits[base]),
+      column_label: this.fireColumnLabel(hits[col]),
+      result: hits[col] ? hits[col] : null
+    };
+  }
+
+  buildFireTableHtml(hits = [], selected_col = 0, selected_roll = 1, accent = 'red') {
+    let head = `<thead><tr><th class="roll-head">Roll</th>`;
+    for (let c = 0; c < hits.length; c++) {
+      head += `<th class="${c === selected_col ? 'is-selected-col' : ''}">${this.fireColumnLabel(hits[c])}</th>`;
+    }
+    head += `</tr></thead>`;
+
+    let body = `<tbody>`;
+    for (let roll = 1; roll <= 6; roll++) {
+      body += `<tr class="${roll === selected_roll ? 'is-selected-row' : ''}">`;
+      body += `<th class="roll-label">${roll}</th>`;
+      for (let c = 0; c < hits.length; c++) {
+        let val = hits[c][roll];
+        let cell = val === undefined || val === null ? '—' : val;
+        let cls = [];
+        if (c === selected_col) {
+          cls.push('is-selected-col');
+        }
+        if (roll === selected_roll) {
+          cls.push('is-selected-row');
+        }
+        if (c === selected_col && roll === selected_roll) {
+          cls.push('is-result-cell');
+        }
+        body += `<td class="${cls.join(' ')}">${cell === 0 ? '—' : cell}</td>`;
+      }
+      body += `</tr>`;
+    }
+    body += `</tbody>`;
+
+    return `<div class="pog-fire-table-wrap accent-${accent}"><table class="pog-fire-table">${head}${body}</table></div>`;
+  }
+
+  buildFireCalcBlock(opts = {}) {
+    let drm = parseInt(opts.drm) || 0;
+    let drm_text = drm === 0 ? '0' : drm > 0 ? `+${drm}` : `−${Math.abs(drm)}`;
+    let column_text = opts.column_label;
+    if (opts.shift && opts.base_label !== opts.column_label) {
+      column_text = `${opts.column_label} <span class="calc-muted">(from ${opts.base_label})</span>`;
+    }
+    let notes = '';
+    if (opts.notes && opts.notes.length) {
+      notes = `<ul class="fire-calc-notes">${opts.notes.map((n) => `<li>${n}</li>`).join('')}</ul>`;
+    }
+
+    return `
+      <section class="fire-calc ${opts.accent}">
+        <h3 class="fire-calc-title">${opts.title}</h3>
+        <div class="fire-calc-layout">
+          <dl class="fire-calc-summary">
+            <div><dt>Combat Strength</dt><dd>${opts.cp}</dd></div>
+            <div><dt>Fire Table</dt><dd>${opts.table_name}</dd></div>
+            <div><dt>Column</dt><dd>${column_text}</dd></div>
+            <div><dt>Die Roll</dt><dd>${opts.roll}</dd></div>
+            <div><dt>Modifier</dt><dd>${drm_text}</dd></div>
+            <div><dt>Modified Roll</dt><dd>${opts.modified_roll}</dd></div>
+            <div class="fire-calc-result"><dt>Result</dt><dd>${opts.hits} hits</dd></div>
+          </dl>
+          <div class="fire-calc-table">
+            <div class="fire-calc-table-label">${opts.table_name} Fire Table</div>
+            ${this.buildFireTableHtml(opts.hits_table, opts.column_index, opts.modified_roll, opts.accent)}
+          </div>
+        </div>
+        ${notes}
+      </section>
+    `;
+  }
+
+  fillCalculationDetails() {
+    let combat = this.mod.game.state.combat;
+    let space = this.mod.game.spaces[combat.key];
+    let snap = this.fireSnapshot();
+    let fires = document.querySelector('.loss-overlay .loss-overlay-calc-fires');
+    let notes_el = document.querySelector('.loss-overlay .loss-overlay-calc-notes');
+    if (!fires || !notes_el) {
+      return;
+    }
+
+    let attacker_cp = parseInt(snap.attacker_cp);
+    let defender_cp = parseInt(snap.defender_cp);
+    if (isNaN(attacker_cp)) {
+      attacker_cp = parseInt(combat.attacker_strength) || 0;
+    }
+    if (isNaN(defender_cp)) {
+      defender_cp = parseInt(combat.defender_strength) || 0;
+    }
+
+    let attacker_hits_table =
+      combat.attacker_table === 'corps'
+        ? this.mod.returnCorpsFireTable()
+        : this.mod.returnArmyFireTable();
+    let defender_hits_table =
+      combat.defender_table === 'corps'
+        ? this.mod.returnCorpsFireTable()
+        : this.mod.returnArmyFireTable();
+
+    let attacker_col = this.resolveFireColumn(
+      attacker_hits_table,
+      attacker_cp,
+      combat.attacker_column_shift
+    );
+    let defender_col = this.resolveFireColumn(
+      defender_hits_table,
+      defender_cp,
+      combat.defender_column_shift
+    );
+
+    let attacker_accent = combat.attacker_power === 'central' ? 'red' : 'blue';
+    let defender_accent = combat.defender_power === 'central' ? 'red' : 'blue';
+
+    let attacker_notes = [];
+    let defender_notes = [];
+    let a_shift = parseInt(combat.attacker_column_shift) || 0;
+    let d_shift = parseInt(combat.defender_column_shift) || 0;
+    if (a_shift !== 0) {
+      attacker_notes.push(
+        `Column shift ${a_shift > 0 ? '+' : ''}${a_shift} applied to attacker fire.`
+      );
+    }
+    if (d_shift !== 0) {
+      defender_notes.push(
+        `Column shift ${d_shift > 0 ? '+' : ''}${d_shift} applied to defender fire.`
+      );
+    }
+    if (space.fort > 0 && snap.defender_cp != null) {
+      defender_notes.push(`Fort strength included in defender combat power used for fire.`);
+    }
+
+    // Attacker fire → hits on defender; defender fire → hits on attacker
+    fires.innerHTML =
+      this.buildFireCalcBlock({
+        title: `${this.factionLabel(combat.attacker_power)} Fire`,
+        accent: attacker_accent,
+        cp: attacker_cp,
+        table_name: combat.attacker_table === 'corps' ? 'Corps' : 'Army',
+        column_label: attacker_col.column_label,
+        base_label: attacker_col.base_label,
+        shift: a_shift,
+        column_index: attacker_col.col,
+        roll: combat.attacker_roll,
+        drm: combat.attacker_drm,
+        modified_roll: combat.attacker_modified_roll,
+        hits: snap.defender_hits,
+        hits_table: attacker_hits_table,
+        notes: attacker_notes
+      }) +
+      this.buildFireCalcBlock({
+        title: `${this.factionLabel(combat.defender_power)} Fire`,
+        accent: defender_accent,
+        cp: defender_cp,
+        table_name: combat.defender_table === 'corps' ? 'Corps' : 'Army',
+        column_label: defender_col.column_label,
+        base_label: defender_col.base_label,
+        shift: d_shift,
+        column_index: defender_col.col,
+        roll: combat.defender_roll,
+        drm: combat.defender_drm,
+        modified_roll: combat.defender_modified_roll,
+        hits: snap.attacker_hits,
+        hits_table: defender_hits_table,
+        notes: defender_notes
+      });
+
+    let note_bits = [];
+    let terrain = space.terrain || 'clear';
+    if (terrain && terrain !== 'normal' && terrain !== 'clear') {
+      note_bits.push(`Terrain: <strong>${terrain}</strong>`);
+    } else {
+      note_bits.push(`Terrain: <strong>clear</strong>`);
+    }
+    if (space.trench > 0) {
+      note_bits.push(`Trench level <strong>${space.trench}</strong>`);
+    }
+    if (space.fort > 0) {
+      note_bits.push(`Fort <strong>${space.fort}</strong>`);
+    } else if (space.fort == -1) {
+      note_bits.push(`Fort destroyed`);
+    }
+    if (combat.flank_attack) {
+      note_bits.push(
+        `Flank attack (${combat.flank_attack === 'attacker' ? 'attacker success' : 'defender success'})`
+      );
+    }
+
+    let cards = [];
+    for (let z = 0; z < this.mod.game.state.cc_allies_active.length; z++) {
+      cards.push(this.mod.popup(this.mod.game.state.cc_allies_active[z]));
+    }
+    for (let z = 0; z < this.mod.game.state.cc_central_active.length; z++) {
+      cards.push(this.mod.popup(this.mod.game.state.cc_central_active[z]));
+    }
+    if (cards.length) {
+      note_bits.push(`Combat cards: ${cards.join(' ')}`);
+    }
+
+    notes_el.innerHTML = note_bits.length
+      ? `<div class="calc-context">${note_bits.map((b) => `<div>${b}</div>`).join('')}</div>`
+      : '';
+  }
+
+  unitLocationLabel(unit) {
+    let spacekey = unit.spacekey;
+    if (this.mod.game.spaces[spacekey] && this.mod.game.spaces[spacekey].name) {
+      return this.mod.game.spaces[spacekey].name;
+    }
+    return spacekey || '\u00a0';
+  }
+
+  isCorpsUnit(unit) {
+    if (!unit) {
+      return false;
+    }
+    // Prefer key — reliable for freshly cloned replacement corps after army loss
+    if (unit.key && unit.key.indexOf('army') > -1) {
+      return false;
+    }
+    if (unit.key && unit.key.indexOf('corps') > -1) {
+      return true;
+    }
+    if (unit.corps) {
+      return true;
+    }
+    if (unit.army) {
+      return false;
+    }
+    return false;
+  }
+
+  applyUnitTypeClass(el, unit) {
+    if (!el) {
+      return;
+    }
+    let corps = this.isCorpsUnit(unit);
+    el.classList.toggle('is-corps', corps);
+    el.classList.toggle('is-army', !corps);
+    if (unit && unit.key) {
+      el.dataset.key = unit.key;
+    }
+  }
+
+  unitTokenInnerHtml(unit, mouseout_first = false) {
+    let img = this.mod.returnUnitImageWithMouseoverOfStepwiseLoss(unit, false, mouseout_first);
+    let loc = this.unitLocationLabel(unit);
+    return `<div class="loss-overlay-unit-token">${img}</div><div class="loss-overlay-unit-spacekey">${loc}</div>`;
+  }
+
+  unitCardHtml(unit, idx, mouseout_first = false) {
+    let key = unit.key;
+    let spacekey = unit.spacekey;
+    let damaged = unit.damaged ? 1 : 0;
+    let type_class = this.isCorpsUnit(unit) ? 'is-corps' : 'is-army';
+    return `<div class="loss-overlay-unit ${type_class}" data-spacekey="${spacekey}" data-key="${key}" data-damaged="${damaged}" id="${idx}">${this.unitTokenInnerHtml(unit, mouseout_first)}</div>`;
+  }
+
 
   renderToAssignAdditionalStepwiseLoss(faction = '') {
-    let qs = '.loss-overlay .units';
-    let qs_attacker = '.loss-overlay .units.attacker';
     let qs_defender = '.loss-overlay .units.defender';
-    let my_qs = '.loss-overlay .units.defender';
     let defender_units = this.mod.returnDefenderUnits();
+    let attacker_units = this.mod.returnAttackerUnits();
     this.units = defender_units;
     let terrain = this.mod.game.spaces[this.mod.game.state.combat.key].terrain;
 
-    this.overlay.show(LossTemplate(terrain));
-    this.updateInstructions('Defender - Take Additional Hit to Cancel Retreat');
+    this.moves = [];
+    this.number_of_hits_assignable_defender_units = 0;
+    this.sole_defender_unit = null;
+    this.sole_defender_unit_id = null;
+    this.assignment_faction = 'defender';
+    this.i_am_assigning = true;
+    this.faction = 'defender';
 
     for (let i = 0; i < defender_units.length; i++) {
-      let dkey = defender_units[i].key;
-      let dskey = defender_units[i].spacekey;
-      let dd = 0;
-      if (defender_units[i].damaged) {
-        dd = 1;
+      if (!defender_units[i].destroyed) {
+        this.number_of_hits_assignable_defender_units++;
+        this.sole_defender_unit = defender_units[i];
+        this.sole_defender_unit_id = i;
       }
-      html = `<div class="loss-overlay-unit" data-spacekey="${dskey}" data-key="${dkey}" data-damaged="${dd}" id="${i}">${this.mod.returnUnitImageWithMouseoverOfStepwiseLoss(defender_units[i])}</div>`;
-      this.app.browser.addElementToSelector(html, qs_defender);
     }
 
-    this.attachEvents(
-      false,
-      '.loss-overlay .units.defender',
-      this.mod.game.state.combat.defender_power,
-      true
-    ); // true = 1 more hit!
-    this.loss_factor = 0; // this results in canTakeMoreLosses() to return NO after the first hit
+    // one eligible unit: apply the extra step without the picker overlay
+    // a reduced sole defender is the last step and cannot be eliminated to cancel the retreat
+    if (this.number_of_hits_assignable_defender_units == 1 && this.sole_defender_unit) {
+      if (this.sole_defender_unit.damaged) {
+        this.mod.playerHandleRetreat();
+        return;
+      }
+      this.loss_factor = 0;
+      this.assignHitToUnit(
+        this.sole_defender_unit,
+        this.sole_defender_unit.spacekey,
+        this.sole_defender_unit.key,
+        this.sole_defender_unit_id,
+        null,
+        false,
+        qs_defender,
+        'defender',
+        true
+      );
+      return;
+    }
+
+    this.overlay.show(LossTemplate(terrain));
+    this.fillPresentationChrome(attacker_units, defender_units);
+    this.fillCalculationDetails();
+    this.updateInstructions('Defender — Take Additional Hit to Cancel Retreat', 'action');
+
+    for (let i = 0; i < defender_units.length; i++) {
+      if (defender_units[i].destroyed) {
+        continue;
+      }
+      this.app.browser.addElementToSelector(this.unitCardHtml(defender_units[i], i), qs_defender);
+    }
+
+    this.loss_factor = 0;
+    this.attachEvents(false, qs_defender, 'defender', true);
   }
 
-  render(faction = '') {
+
+  render(faction = '', assign_hits = true) {
     this.faction = faction;
+    this.assignment_faction = faction;
 
     let am_i_the_attacker = false;
 
@@ -133,32 +827,18 @@ class LossOverlay {
     let terrain = space.terrain;
     let attacker_units;
     let defender_units;
-    let attacker_loss_factor;
-    let defender_loss_factor;
-    let fort_bonus = 0;
-    if (space.fort > 0) {
-      fort_bonus = space.fort;
-    }
     this.number_of_hits_assignable_attacker_units = 0;
     this.number_of_hits_assignable_defender_units = 0;
     this.my_hits_auto_assigned = 0;
     this.hits_already_assigned = 0;
 
-    //
-    //
-    //
-
-    let qs = '.loss-overlay .units';
     let qs_attacker = '.loss-overlay .units.attacker';
     let qs_defender = '.loss-overlay .units.defender';
     let my_qs = '.loss-overlay .units.defender';
 
     attacker_units = this.mod.returnAttackerUnits();
     defender_units = this.mod.returnDefenderUnits();
-
-    console.log(JSON.stringify(this.mod.game.state.combat));
-    console.log('DEFENDER UNITS: ' + JSON.stringify(defender_units));
-    console.log('ATTACKER UNITS: ' + JSON.stringify(attacker_units));
+    this.rememberCombatRoster(attacker_units, defender_units);
 
     this.units = defender_units;
 
@@ -178,9 +858,6 @@ class LossOverlay {
       this.loss_factor = this.starting_loss_factor;
     }
 
-    //
-    // have we already assigned hits
-    //
     for (let z = 0; z < this.units.length; z++) {
       if (this.units[z].damaged_this_combat) {
         this.hits_already_assigned = 1;
@@ -192,151 +869,26 @@ class LossOverlay {
     this.overlay.show(LossTemplate(terrain));
 
     for (let i = 0; i < attacker_units.length; i++) {
-      let html = '';
-      let akey = attacker_units[i].key;
-      let askey = attacker_units[i].spacekey;
-      let ad = 0;
-      if (attacker_units[i].damaged) {
-        ad = 1;
-      }
       if (!attacker_units[i].destroyed) {
-        html = `<div class="loss-overlay-unit" data-spacekey="${askey}" data-key="${akey}" data-damaged="${ad}" id="${i}">${this.mod.returnUnitImageWithMouseoverOfStepwiseLoss(attacker_units[i])}<div class="loss-overlay-unit-spacekey">${this.mod.game.spaces[askey].name}</div></div>`;
+        this.app.browser.addElementToSelector(this.unitCardHtml(attacker_units[i], i), qs_attacker);
         this.number_of_hits_assignable_attacker_units++;
         this.sole_attacker_unit = attacker_units[i];
         this.sole_attacker_unit_id = i;
       }
-      this.app.browser.addElementToSelector(html, qs_attacker);
     }
 
     for (let i = 0; i < defender_units.length; i++) {
-      let html = '';
-      let dkey = defender_units[i].key;
-      let dskey = defender_units[i].spacekey;
-      let dd = 0;
-      if (defender_units[i].damaged) {
-        dd = 1;
-      }
       if (!defender_units[i].destroyed) {
-        html = `<div class="loss-overlay-unit" data-spacekey="${dskey}" data-key="${dkey}" data-damaged="${dd}" id="${i}">${this.mod.returnUnitImageWithMouseoverOfStepwiseLoss(defender_units[i])}<div class="loss-overlay-unit-spacekey">${this.mod.game.spaces[dskey].name}</div></div>`;
+        this.app.browser.addElementToSelector(this.unitCardHtml(defender_units[i], i), qs_defender);
         this.number_of_hits_assignable_defender_units++;
         this.sole_defender_unit = defender_units[i];
         this.sole_defender_unit_id = i;
       }
-      this.app.browser.addElementToSelector(html, qs_defender);
     }
 
-    //
-    // add battle information
-    //
-    let lqs = '.loss-overlay .info .results_table ';
+    this.fillPresentationChrome(attacker_units, defender_units);
+    this.fillCalculationDetails();
 
-    document.querySelector(`${lqs} .row-1 .attacker_faction`).innerHTML =
-      this.mod.game.state.combat.attacker_power;
-    document.querySelector(`${lqs} .row-2 .defender_faction`).innerHTML =
-      this.mod.game.state.combat.defender_power;
-
-    if (this.mod.game.state.combat.attacker_power == 'central') {
-      document.querySelector(`${lqs} .row-1 .attacker_faction`).classList.add('red');
-      document.querySelector(`${lqs} .row-2 .defender_faction`).classList.add('blue');
-      document.querySelector(`${lqs} .row-2 .col-6`).innerHTML = fort_bonus;
-    } else {
-      document.querySelector(`${lqs} .row-1 .attacker_faction`).classList.add('blue');
-      document.querySelector(`${lqs} .row-2 .defender_faction`).classList.add('red');
-      document.querySelector(`${lqs} .row-2 .col-6`).innerHTML = fort_bonus;
-    }
-
-    document.querySelector(`${lqs} .row-1 .col-7 .attacker_roll_unmodified`).innerHTML =
-      this.mod.game.state.combat.attacker_roll;
-    document.querySelector(`${lqs} .row-2 .col-7 .defender_roll_unmodified`).innerHTML =
-      this.mod.game.state.combat.defender_roll;
-
-    document.querySelector(`${lqs} .row-1 .col-2 .attacker_roll`).innerHTML =
-      this.mod.game.state.combat.attacker_modified_roll;
-    document.querySelector(`${lqs} .row-2 .col-2 .defender_roll`).innerHTML =
-      this.mod.game.state.combat.defender_modified_roll;
-
-    document.querySelector(`${lqs} .row-1 .attacker_modifiers`).innerHTML =
-      this.mod.game.state.combat.attacker_drm;
-    document.querySelector(`${lqs} .row-2 .defender_modifiers`).innerHTML =
-      this.mod.game.state.combat.defender_drm;
-
-    document.querySelector(`${lqs} .row-1 .attacker_column_shift`).innerHTML =
-      this.mod.game.state.combat.attacker_column_shift;
-    document.querySelector(`${lqs} .row-2 .defender_column_shift`).innerHTML =
-      this.mod.game.state.combat.defender_column_shift;
-
-    document.querySelector(`${lqs} .row-1 .col-5 .attacker_damage`).innerHTML =
-      this.mod.game.state.combat.defender_loss_factor;
-    document.querySelector(`${lqs} .row-2 .col-5 .defender_damage`).innerHTML =
-      this.mod.game.state.combat.attacker_loss_factor;
-
-    //
-    // show terrain effects
-    //
-    document.querySelectorAll('.effects_table .row').forEach((el) => {
-      el.style.display = 'none';
-    });
-    document.querySelectorAll('.firing_table .row .col').forEach((el) => {
-      el.style.color = 'black';
-    });
-    document.querySelectorAll('.firing_table .row .col').forEach((el) => {
-      el.style.backgroundColor = 'transparent';
-    });
-
-    if (space.terrain == 'normal') {
-      document.querySelector('.effects_table .clear').style.display = 'contents';
-    }
-    if (space.terrain == 'mountain') {
-      document.querySelector('.effects_table .mountain').style.display = 'contents';
-    }
-    if (space.terrain == 'swamp') {
-      document.querySelector('.effects_table .swamp').style.display = 'contents';
-    }
-    if (space.terrain == 'forest') {
-      document.querySelector('.effects_table .forest').style.display = 'contents';
-    }
-    if (space.terrain == 'desert') {
-      document.querySelector('.effects_table .desert').style.display = 'contents';
-    }
-    if (space.trench == 1) {
-      document.querySelector('.effects_table .trench1').style.display = 'contents';
-    }
-    if (space.trench == 2) {
-      document.querySelector('.effects_table .trench2').style.display = 'contents';
-    }
-
-    //
-    // add active card effects
-    //
-    for (let z = 0; z < this.mod.game.state.cc_allies_active.length; z++) {
-      let cc = this.mod.game.state.cc_allies_active[z];
-      let html = this.mod.popup(cc) + ' ';
-      document.querySelector('.other_effects').innerHTML += html;
-    }
-    for (let z = 0; z < this.mod.game.state.cc_central_active.length; z++) {
-      let cc = this.mod.game.state.cc_central_active[z];
-      let html = this.mod.popup(cc) + ' ';
-      document.querySelector('.other_effects').innerHTML += html;
-    }
-
-    //
-    //
-    //
-    let column_number = 0;
-    let attacker_column_number = 0;
-    let defender_column_number = 0;
-    let attacker_table = this.mod.game.state.combat.attacker_table;
-    let defender_table = this.mod.game.state.combat.defender_table;
-    let attacker_power = this.mod.game.state.combat.attacker_power;
-    let defender_power = this.mod.game.state.combat.defender_power;
-    let attacker_strength = this.mod.game.state.combat.attacker_strength;
-    let defender_strength = this.mod.game.state.combat.defender_strength;
-    let attacker_modified_roll = this.mod.game.state.combat.attacker_modified_roll;
-    let defender_modified_roll = this.mod.game.state.combat.defender_modified_roll;
-
-    //
-    // determine my faction
-    //
     let am_iii_the_attacker = false;
     if (
       this.mod.game.player ==
@@ -345,281 +897,50 @@ class LossOverlay {
       am_iii_the_attacker = true;
     }
 
-    //
-    // show dice rolls
-    //
-    let red_color = '#f2dade'; // red
-    let red_color_lite = '#b6344a'; // lite-red
-    let blue_color = '#dadcf2'; // blue
-    let blue_color_lite = '#343ab6'; // lite-blue
+    this.i_am_assigning =
+      (am_iii_the_attacker && faction == 'attacker') ||
+      (!am_iii_the_attacker && faction == 'defender');
 
-    let attacker_color = red_color;
-    let attacker_color_highlight = red_color_lite;
-    let defender_color = blue_color;
-    let defender_color_highlight = blue_color_lite;
-
-    if (this.mod.game.state.combat.attacker_power === 'allies') {
-      attacker_color = blue_color;
-      attacker_color_highlight = blue_color_lite;
-      defender_color = red_color;
-      defender_color_highlight = red_color_lite;
+    let snap = this.fireSnapshot();
+    let assigning_power =
+      faction == 'attacker'
+        ? this.mod.game.state.combat.attacker_power
+        : this.mod.game.state.combat.defender_power;
+    let assigning_name =
+      assigning_power === 'central' ? 'Central Powers' : 'Allied Powers';
+    let live_hits =
+      faction == 'attacker'
+        ? this.mod.game.state.combat.attacker_loss_factor
+        : this.mod.game.state.combat.defender_loss_factor;
+    let at_fire_hits =
+      faction == 'attacker' ? snap.attacker_hits : snap.defender_hits;
+    let flank_note = '';
+    if (live_hits != at_fire_hits) {
+      flank_note = ` (flank-adjusted from ${at_fire_hits})`;
     }
 
-    if (attacker_table == 'army') {
-      attacker_column_number = this.mod.returnArmyColumnNumber(attacker_strength);
-      attacker_column_number += this.mod.game.state.combat.attacker_column_shift;
-      if (attacker_column_number < 0) {
-        attacker_column_number = 0;
-      }
-      if (attacker_column_number > 10) {
-        attacker_column_number = 10;
-      }
-      this.highlightFiringTable(
-        'army',
-        attacker_color,
-        attacker_color_highlight,
-        attacker_modified_roll,
-        attacker_column_number
+    if (this.i_am_assigning) {
+      this.updateInstructions(
+        `${assigning_name} — Assign ${this.loss_factor} Damage Now${flank_note}`,
+        'action'
       );
-    }
-    if (attacker_table == 'corps') {
-      attacker_column_number = this.mod.returnCorpsColumnNumber(attacker_strength);
-      attacker_column_number += this.mod.game.state.combat.attacker_column_shift;
-      if (attacker_column_number < 0) {
-        attacker_column_number = 0;
-      }
-      if (attacker_column_number > 9) {
-        attacker_column_number = 9;
-      }
-      this.highlightFiringTable(
-        'corps',
-        attacker_color,
-        attacker_color_highlight,
-        attacker_modified_roll,
-        attacker_column_number
-      );
-    }
-    let country_of_fort = this.mod.game.spaces[this.mod.game.state.combat.key].country;
-    if (defender_table == 'army') {
-      //
-      // forts lend their combat strength to the defense
-      //
-      if (this.mod.game.spaces[this.mod.game.state.combat.key].fort > 0) {
-        if (
-          defender_power == 'central' &&
-          ['germany', 'austria', 'bulgaria', 'turkey'].includes(country_of_fort)
-        ) {
-          defender_strength += this.mod.game.spaces[this.mod.game.state.combat.key].fort;
-          fort_bonus = this.mod.game.spaces[this.mod.game.state.combat.key].fort;
-        }
-        if (
-          defender_power == 'allies' &&
-          ['england', 'france', 'russia', 'serbia', 'greece', 'montenegro', 'romania'].includes(
-            country_of_fort
-          )
-        ) {
-          defender_strength += this.mod.game.spaces[this.mod.game.state.combat.key].fort;
-          fort_bonus = this.mod.game.spaces[this.mod.game.state.combat.key].fort;
-        }
-      }
-
-      defender_column_number = this.mod.returnArmyColumnNumber(defender_strength);
-      defender_column_number += this.mod.game.state.combat.defender_column_shift;
-      if (defender_column_number < 0) {
-        defender_column_number = 0;
-      }
-      if (defender_column_number > 10) {
-        defender_column_number = 10;
-      }
-      this.highlightFiringTable(
-        'army',
-        defender_color,
-        defender_color_highlight,
-        defender_modified_roll,
-        defender_column_number
-      );
-    }
-    if (defender_table == 'corps') {
-      //
-      // forts lend their combat strength to the defense
-      //
-      if (this.mod.game.spaces[this.mod.game.state.combat.key].fort > 0) {
-        if (
-          defender_power == 'central' &&
-          ['germany', 'austria', 'bulgaria', 'turkey'].includes(country_of_fort)
-        ) {
-          defender_strength += this.mod.game.spaces[this.mod.game.state.combat.key].fort;
-        }
-        if (
-          defender_power == 'allies' &&
-          ['england', 'france', 'russia', 'serbia', 'greece', 'montenegro', 'romania'].includes(
-            country_of_fort
-          )
-        ) {
-          defender_strength += this.mod.game.spaces[this.mod.game.state.combat.key].fort;
-        }
-      }
-
-      defender_column_number = this.mod.returnCorpsColumnNumber(defender_strength);
-      defender_column_number += this.mod.game.state.combat.defender_column_shift;
-      if (defender_column_number < 0) {
-        defender_column_number = 0;
-      }
-      if (defender_column_number > 9) {
-        defender_column_number = 9;
-      }
-      this.highlightFiringTable(
-        'corps',
-        defender_color,
-        defender_color_highlight,
-        defender_modified_roll,
-        defender_column_number
-      );
-    }
-
-    //
-    // Update Information Panel
-    //
-    if (faction == 'attacker') {
-      if (this.mod.game.state.combat.flank_attack == 'attacker') {
-        if (am_iii_the_attacker) {
-          this.updateInstructions(
-            `${this.mod.returnFactionName(this.mod.game.state.combat.attacker_power)} - Assign ${this.loss_factor} Damage Now`
-          );
-        } else {
-          if (this.my_hits_auto_assigned) {
-            this.updateInstructions(
-              `Your Hits Auto-Assigned - ${this.mod.returnFactionName(this.mod.game.state.combat.attacker_power)} assigning ${this.loss_factor} hits`
-            );
-          } else {
-            this.updateInstructions(
-              `${this.mod.returnFactionName(this.mod.game.state.combat.attacker_power)} assigning ${this.loss_factor} hits`
-            );
-          }
-        }
-      }
-      if (this.mod.game.state.combat.flank_attack == 'defender') {
-        if (am_iii_the_attacker) {
-          this.updateInstructions(
-            `${this.mod.returnFactionName(this.mod.game.state.combat.attacker_power)} - Assign ${this.loss_factor} Damage Now`
-          );
-        } else {
-          if (this.my_hits_auto_assigned) {
-            this.updateInstructions(
-              `Your Hits Auto-Assigned - ${this.mod.returnFactionName(this.mod.game.state.combat.attacker_power)} assigning ${this.loss_factor} hits`
-            );
-          } else {
-            this.updateInstructions(
-              `${this.mod.returnFactionName(this.mod.game.state.combat.attacker_power)} assigning ${this.loss_factor} hits`
-            );
-          }
-        }
-      }
-      if (!this.mod.game.state.combat.flank_attack) {
-        if (am_iii_the_attacker) {
-          this.updateInstructions(
-            `${this.mod.returnFactionName(this.mod.game.state.combat.attacker_power)} - Assign ${this.loss_factor} Damage Now`
-          );
-        } else {
-          if (this.my_hits_auto_assigned) {
-            this.updateInstructions(
-              `Your Hits Auto-Assigned - ${this.mod.returnFactionName(this.mod.game.state.combat.attacker_power)} assigning ${this.loss_factor} hits`
-            );
-          } else {
-            this.updateInstructions(
-              `${this.mod.returnFactionName(this.mod.game.state.combat.attacker_power)} assigning ${this.loss_factor} hits`
-            );
-          }
-        }
-      }
     } else {
-      if (this.mod.game.state.combat.flank_attack == 'attacker') {
-        if (am_iii_the_attacker) {
-          if (this.my_hits_auto_assigned) {
-            this.updateInstructions(
-              `Your Hits Auto-Assigned - ${this.mod.returnFactionName(this.mod.game.state.combat.attacker_power)} assigning ${this.loss_factor} hits`
-            );
-          } else {
-            this.updateInstructions(
-              `${this.mod.returnFactionName(this.mod.game.state.combat.defender_power)} assigning ${this.loss_factor} hits`
-            );
-          }
-        } else {
-          this.updateInstructions(
-            `${this.mod.returnFactionName(this.mod.game.state.combat.defender_power)} - Assign ${this.loss_factor} Damage Now`
-          );
-        }
-      }
-      if (this.mod.game.state.combat.flank_attack == 'defender') {
-        if (am_iii_the_attacker) {
-          if (this.my_hits_auto_assigned) {
-            this.updateInstructions(
-              `Your Hits Auto-Assigned - ${this.mod.returnFactionName(this.mod.game.state.combat.attacker_power)} assigning ${this.loss_factor} hits`
-            );
-          } else {
-            this.updateInstructions(
-              `${this.mod.returnFactionName(this.mod.game.state.combat.defender_power)} assigning ${this.loss_factor} hits`
-            );
-          }
-        } else {
-          this.updateInstructions(
-            `${this.mod.returnFactionName(this.mod.game.state.combat.defender_power)} - Assign ${this.loss_factor} Damage Now`
-          );
-        }
-      }
-      if (!this.mod.game.state.combat.flank_attack) {
-        if (am_iii_the_attacker) {
-          if (this.my_hits_auto_assigned) {
-            this.updateInstructions(
-              `Your Hits Auto-Assigned - ${this.mod.returnFactionName(this.mod.game.state.combat.attacker_power)} assigning ${this.loss_factor} hits`
-            );
-          } else {
-            this.updateInstructions(
-              `${this.mod.returnFactionName(this.mod.game.state.combat.defender_power)} assigning ${this.loss_factor} hits`
-            );
-          }
-        } else {
-          this.updateInstructions(
-            `${this.mod.returnFactionName(this.mod.game.state.combat.defender_power)} - Assign ${this.loss_factor} Damage Now`
-          );
-        }
-      }
+      this.updateInstructions(
+        `${assigning_name} assigning ${live_hits} hits${flank_note}`,
+        'waiting'
+      );
     }
 
-    if (am_iii_the_attacker == 1 && faction == 'attacker') {
+    if (assign_hits && am_iii_the_attacker == 1 && faction == 'attacker') {
       this.attachEvents(am_i_the_attacker, my_qs, faction);
     }
-    if (am_iii_the_attacker == 0 && faction == 'defender') {
+    if (assign_hits && am_iii_the_attacker == 0 && faction == 'defender') {
       this.attachEvents(am_i_the_attacker, my_qs, faction);
     }
   }
 
-  highlightFiringTable(
-    ftable = 'corps',
-    color = 'blue',
-    highlight_color = 'blue',
-    defender_modified_roll = 0,
-    defender_column_number = 0
-  ) {
-    let qs = `.${ftable}_firing_table .firing_table `;
-    for (let i = 0; i <= defender_column_number; i++) {
-      let obj = document.querySelector(`${qs} .row-${defender_modified_roll} .col-${i}`);
-      if (obj.style.color == 'black') {
-        obj.style.backgroundColor = color;
-      }
-    }
-    for (let i = 0; i < defender_modified_roll; i++) {
-      let obj = document.querySelector(`${qs} .row-${i} .col-${defender_column_number}`);
-      if (obj.style.color == 'black') {
-        obj.style.backgroundColor = color;
-      }
-    }
-    document.querySelector(
-      `${qs} .row-${defender_modified_roll} .col-${defender_column_number}`
-    ).style.backgroundColor = highlight_color;
-    document.querySelector(
-      `${qs} .row-${defender_modified_roll} .col-${defender_column_number}`
-    ).style.color = '#FFFFFF';
+  highlightFiringTable() {
+    // Legacy no-op: details highlighting is handled by fillCalculationDetails().
   }
 
   assignHitToUnit(
@@ -646,6 +967,7 @@ class LossOverlay {
 
     let didx = idx;
     let unit_idx = didx;
+    let space_idx = paths_self.game.spaces[unit_spacekey].units.indexOf(unit);
 
     //
     // withdrawal
@@ -670,7 +992,7 @@ class LossOverlay {
     if (unit.damaged && !unit.destroyed) {
       console.log('assigning hit to damaged unit...');
 
-      this.moves.push(`damage\t${unit_spacekey}\t${unit_key}\t1\t${paths_self.game.player}`);
+      this.moves.push(`damage\t${unit_spacekey}\t${unit_key}\t1\t${paths_self.game.player}\t${space_idx}`);
       this.loss_factor -= unit.rloss;
 
       unit.damaged = true;
@@ -686,39 +1008,79 @@ class LossOverlay {
       //
       // replace with corps if destroyed
       //
-      if (unit.key.indexOf('army') > 0) {
+      if (unit.key.indexOf('army') > 0 || unit.key == 'aoi_corps') {
         let corpsbox = 'arbox';
         if (paths_self.returnFactionOfPlayer() == 'central') {
           corpsbox = 'crbox';
         }
         let corpskey = unit.key.split('_')[0] + '_corps';
-        let corpsunit = paths_self.cloneUnit(corpskey);
-        corpsunit.attacked = 1; // we don't want to give this the op to attack
-        corpsunit.damaged_this_combat = true; // used to be an army...
-        corpsunit.spacekey = unit.spacekey;
+        if (unit.key == 'mef_army' || unit.key == 'ne_army') { corpskey = 'br_corps'; }
+        if (unit.key == 'cau_army') { corpskey = 'ru_corps'; }
+        if (unit.key == 'orient_army') { corpskey = 'fr_corps'; }
+        if (unit.key == 'yld_army01' || unit.key == 'aoi_corps') { corpskey = 'tu_corps'; }
 
-        if (paths_self.doesSpaceHaveUnit(corpsbox, corpskey)) {
+        let corps_idx = -1;
+        let corps_damaged = 0;
+        let box = paths_self.game.spaces[corpsbox];
+        if (box) {
+          for (let z = 0; z < box.units.length; z++) {
+            if (box.units[z].key == corpskey && !box.units[z].damaged) {
+              corps_idx = z;
+              corps_damaged = 0;
+              break;
+            }
+          }
+          if (corps_idx == -1) {
+            for (let z = 0; z < box.units.length; z++) {
+              if (box.units[z].key == corpskey && box.units[z].damaged) {
+                corps_idx = z;
+                corps_damaged = 1;
+                break;
+              }
+            }
+          }
+        }
+
+        if (corps_idx >= 0) {
           console.log('space has this unit: ' + corpskey);
+          let corpsunit = paths_self.cloneUnit(corpskey);
+          corpsunit.attacked = 1; // we don't want to give this the op to attack
+          corpsunit.damaged_this_combat = true; // used to be an army...
+          corpsunit.spacekey = unit.spacekey;
+          if (corps_damaged) { corpsunit.damaged = true; }
+          // Defender this.units is the combat space. Pushing both inserts the corps twice.
+          let space_units = paths_self.game.spaces[corpsunit.spacekey].units;
+          if (this.units !== space_units) {
+            space_units.push(corpsunit);
+          }
           this.units.push(corpsunit);
           if (am_i_the_attacker) {
-            paths_self.game.spaces[corpsunit.spacekey].units.push(corpsunit);
             paths_self.game.state.combat.attacker.push({
               key: paths_self.game.state.combat.key,
-              unit_idx: paths_self.game.spaces[corpsunit.spacekey].units.length - 1,
+              unit_idx: space_units.length - 1,
               unit_sourcekey: corpsunit.spacekey
             });
           }
-          this.moves.push(`add\t${unit.spacekey}\t${corpskey}\t${this.mod.game.player}\tattacked`);
-          this.moves.push(`remove\t${corpsbox}\t${corpskey}\t${this.mod.game.player}`);
-          this.mod.removeUnit(corpsbox, corpskey);
-          let html = `<div class="loss-overlay-unit" data-spacekey="${corpsunit.spacekey}" data-key="${corpskey}" data-damaged="0" id="${this.units.length - 1}">${this.mod.returnUnitImageWithMouseoverOfStepwiseLoss(this.units[this.units.length - 1], false, true)}</div>`;
-          this.app.browser.addElementToSelector(html, my_qs);
+          this.moves.push(`add\t${unit.spacekey}\t${corpskey}\t${this.mod.game.player}\tattacked\t${corps_damaged}`);
+          this.moves.push(`remove\t${corpsbox}\t${corpskey}\t${this.mod.game.player}\t${corps_damaged}`);
+          box.units.splice(corps_idx, 1);
+          this.app.browser.addElementToSelector(
+            this.unitCardHtml(this.units[this.units.length - 1], this.units.length - 1, true),
+            my_qs
+          );
           //
           // replace our specified element
           //
           if (el != null) {
             let container = document.querySelector(my_qs);
             el = container.querySelector('.loss-overlay-unit:last-child');
+            this.applyUnitTypeClass(el, this.units[this.units.length - 1]);
+          } else {
+            let container = document.querySelector(my_qs);
+            let new_el = container
+              ? container.querySelector('.loss-overlay-unit:last-child')
+              : null;
+            this.applyUnitTypeClass(new_el, this.units[this.units.length - 1]);
           }
         }
 
@@ -733,8 +1095,8 @@ class LossOverlay {
         if (faction == 'attacker') {
           for (let y = 0; y < attacker_units.length; y++) {
             if (!attacker_units[y].destroyed) {
-              this.sole_defender_unit_id = y;
-              this.sole_defender_unit = attacker_units[y];
+              this.sole_attacker_unit_id = y;
+              this.sole_attacker_unit = attacker_units[y];
             }
           }
         }
@@ -760,20 +1122,23 @@ class LossOverlay {
       //
       let f = this.mod.returnPowerOfUnit(unit);
       this.updateInstructions(
-        `${this.mod.returnFactionName(this.mod.returnFactionOfPlayer(this.mod.game.player))} - Assign ${this.loss_factor} More Damage`
+        `${this.mod.returnFactionName(this.mod.returnFactionOfPlayer(this.mod.game.player))} — Assign ${this.loss_factor} More Damage`,
+        'action'
       );
     } else {
       console.log('assigning hit to undamaged unit...');
 
-      this.moves.push(`damage\t${unit_spacekey}\t${unit_key}\t0\t${this.mod.game.player}`);
+      this.moves.push(`damage\t${unit_spacekey}\t${unit_key}\t0\t${this.mod.game.player}\t${space_idx}`);
       unit.damaged = true;
       unit.damaged_this_combat = true;
       this.loss_factor -= unit.loss;
       if (el != null) {
-        el.innerHTML = this.mod.returnUnitImageWithMouseoverOfStepwiseLoss(unit, false, true);
+        this.applyUnitTypeClass(el, unit);
+        el.innerHTML = this.unitTokenInnerHtml(unit, true);
       }
       this.updateInstructions(
-        `${this.mod.returnFactionName(this.mod.returnFactionOfPlayer(this.mod.game.player))} - Assign ${this.loss_factor} More Damage`
+        `${this.mod.returnFactionName(this.mod.returnFactionOfPlayer(this.mod.game.player))} — Assign ${this.loss_factor} More Damage`,
+        'action'
       );
       console.log('assigning hit to undamaged unit... 2');
     }
@@ -792,7 +1157,10 @@ class LossOverlay {
       for (let i = this.moves.length - 1; i >= 0; i--) {
         this.mod.addMove(this.moves[i]);
       }
-      this.mod.updateStatus('processing...'); // prevent re-rendering from options
+      this.mod.game.status = 'processing...';
+      this.mod.hud.updateStatus(this.mod.game.status);
+      this.mod.hud.updateMenu([]);
+      this.mod.hud.updateCards([]);
       this.mod.endTurn();
 
       this.mod.displaySpace(this.mod.game.state.combat.key);
@@ -806,6 +1174,9 @@ class LossOverlay {
       //
       if (el == null) {
         this.attachEvents(am_i_the_attacker, my_qs, faction, just_one_more_hit);
+      } else {
+        // Refresh red-X markers without waiting for the next click
+        this.updateAssignableUnits();
       }
     }
 
@@ -815,6 +1186,22 @@ class LossOverlay {
     if (this.loss_factor <= 0) {
       this.hide();
     }
+  }
+
+  shakeInvalidUnit(el) {
+    if (!el) {
+      return;
+    }
+    el.classList.remove('unassignable-shake');
+    void el.offsetWidth;
+    el.classList.add('unassignable-shake');
+    el.addEventListener(
+      'animationend',
+      () => {
+        el.classList.remove('unassignable-shake');
+      },
+      { once: true }
+    );
   }
 
   attachEvents(am_i_the_attacker, my_qs, faction, just_one_more_hit = false) {
@@ -827,7 +1214,10 @@ class LossOverlay {
       for (let i = this.moves.length - 1; i >= 0; i--) {
         paths_self.addMove(this.moves[i]);
       }
-      paths_self.updateStatus('processing...'); // prevent re-rendering from options
+      paths_self.game.status = 'processing...';
+      paths_self.hud.updateStatus(paths_self.game.status);
+      paths_self.hud.updateMenu([]);
+      paths_self.hud.updateCards([]);
       paths_self.endTurn();
       return;
     }
@@ -835,6 +1225,37 @@ class LossOverlay {
     console.log('assigning hits? ' + faction);
     console.log('hits assignable def? ' + this.number_of_hits_assignable_defender_units);
     console.log('hits assignable att? ' + this.number_of_hits_assignable_attacker_units);
+
+    // Corps leave no replacement. If the hits cover every remaining step, order does not matter.
+    let corps_only = true;
+    let hits_to_wipe = 0;
+    for (let z = 0; z < this.units.length; z++) {
+      let u = this.units[z];
+      if (u.destroyed) { continue; }
+      if (!u.corps || u.key == 'aoi_corps') { corps_only = false; break; }
+      if (u.damaged) { hits_to_wipe += u.rloss; }
+      else { hits_to_wipe += u.loss + u.rloss; }
+    }
+    if (corps_only && hits_to_wipe > 0 && this.loss_factor >= hits_to_wipe) {
+      for (let z = 0; z < this.units.length; z++) {
+        if (!this.units[z].destroyed) {
+          this.assignHitToUnit(
+            this.units[z],
+            this.units[z].spacekey,
+            this.units[z].key,
+            z,
+            null,
+            am_i_the_attacker,
+            my_qs,
+            faction,
+            just_one_more_hit
+          );
+          this.hits_already_assigned = 1;
+          this.updateInstructions('All losses have been assigned automatically.', 'resolved');
+          return;
+        }
+      }
+    }
 
     if (faction === 'defender' && this.number_of_hits_assignable_defender_units == 1) {
       let idx = this.sole_defender_unit_id;
@@ -854,7 +1275,7 @@ class LossOverlay {
         just_one_more_hit
       );
       this.hits_already_assigned = 1;
-      this.updateInstructions('Your Hits Automatically Assigned...');
+      this.updateInstructions('All losses have been assigned automatically.', 'resolved');
       return;
     }
 
@@ -876,7 +1297,7 @@ class LossOverlay {
         just_one_more_hit
       );
       this.hits_already_assigned = 1;
-      this.updateInstructions('Your Hits Automatically Assigned...');
+      this.updateInstructions('All losses have been assigned automatically.', 'resolved');
       return;
     }
 
@@ -889,18 +1310,24 @@ class LossOverlay {
         let idx = e.currentTarget.id;
         let unit = this.units[idx];
 
-        /*****
-				if (unit.unassignable == 1) {
-				  if (this.priority_hits_required == 1) {
-alert("Units exist which take priority damage... assign first hit to priority target...");
-return;
-				  } else {
-alert("This unit cannot be assigned hits without leaving unassignable damage... assign hits to damaged army first...");
-return;
-				  }
+        if (just_one_more_hit) {
+          if (unit.damaged) {
+            let others = 0;
+            for (let z = 0; z < this.units.length; z++) {
+              if (z != idx && this.units[z].destroyed == false) { others++; }
+            }
+            if (others == 0) {
+              this.shakeInvalidUnit(e.currentTarget);
+              return;
+            }
+          }
+        } else {
+          if (unit.unassignable == 1) {
+            this.shakeInvalidUnit(e.currentTarget);
+            return;
+          }
+        }
 
-				}
-******/
         let unit_key = e.currentTarget.dataset.key;
         let unit_spacekey = e.currentTarget.dataset.spacekey;
 
@@ -936,6 +1363,9 @@ return;
       let priority_found = 0;
       for (let z = 0; z < this.units.length; z++) {
         let u = this.units[z];
+        if (u.destroyed) { continue; }
+        let priority_step = u.damaged ? u.rloss : u.loss;
+        if (this.loss_factor > 0 && priority_step > this.loss_factor) { continue; }
         if (u.priority > 0 && u.priority > priority_found) {
           priority_found = u.priority;
           for (let zz = 0; zz < this.units.length; zz++) {
@@ -950,6 +1380,15 @@ return;
     }
 
     if (this.priority_hits_required == 1) {
+      for (let z = 0; z < this.units.length; z++) {
+        if (this.units[z].destroyed) { continue; }
+        let step = this.units[z].damaged ? this.units[z].rloss : this.units[z].loss;
+        if (this.loss_factor > 0 && step > this.loss_factor) {
+          this.units[z].unassignable = 1;
+          this.are_any_units_unassignable = 1;
+        }
+      }
+      this.syncUnassignableUI();
       return;
     }
 
@@ -1052,6 +1491,24 @@ return;
         }
       }
     }
+
+    for (let z = 0; z < this.units.length; z++) {
+      if (this.units[z].destroyed) { continue; }
+      let step = this.units[z].damaged ? this.units[z].rloss : this.units[z].loss;
+      if (this.loss_factor > 0 && step > this.loss_factor) {
+        this.units[z].unassignable = 1;
+        this.are_any_units_unassignable = 1;
+      }
+    }
+
+    this.syncUnassignableUI();
+  }
+
+  syncUnassignableUI() {
+    document.querySelectorAll('.loss-overlay-unit').forEach((el) => {
+      let unit = this.units[el.id];
+      el.classList.toggle('unassignable', !!(unit && unit.unassignable == 1));
+    });
   }
 }
 

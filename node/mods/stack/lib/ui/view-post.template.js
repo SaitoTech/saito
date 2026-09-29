@@ -94,6 +94,7 @@ module.exports = (app, mod, tx) => {
     tx.from && tx.from.length > 0 ? tx.from[0].publicKey || tx.from[0].address || '' : '';
 
   let authorLabel = 'Author';
+  let authorIsAddress = false;
   if (authorPublicKey) {
     if (authorPublicKey === mod.STACK_OFFICIAL_PUBLICKEY) {
       authorLabel = 'SaitoOfficial';
@@ -101,8 +102,12 @@ module.exports = (app, mod, tx) => {
       authorLabel = 'My Posts';
     } else if (app.keychain && typeof app.keychain.returnUsername === 'function') {
       authorLabel = app.keychain.returnUsername(authorPublicKey) || authorLabel;
+      authorIsAddress = true;
     }
   }
+  const authorCrumbHTML = authorIsAddress
+    ? `<span class="saito-address" data-id="${app.browser.escapeHTML(authorPublicKey)}" data-disable="true">${app.browser.escapeHTML(authorLabel)}</span>`
+    : app.browser.escapeHTML(authorLabel);
 
   const displayTitle = hasTitle ? title.trim() : 'Untitled post';
   const stackHomePath = mod.returnStackPath ? mod.returnStackPath() : `/${mod.slug}`;
@@ -118,7 +123,7 @@ module.exports = (app, mod, tx) => {
         <nav class="breadcrumb" aria-label="Breadcrumb">
           <a class="crumb" href="${app.browser.escapeHTML(stackHomePath)}">Saito Stack</a>
           <span class="sep" aria-hidden="true">&gt;</span>
-          <a class="crumb" href="${app.browser.escapeHTML(authorFeedPath)}">${app.browser.escapeHTML(authorLabel)}</a>
+          <a class="crumb" href="${app.browser.escapeHTML(authorFeedPath)}">${authorCrumbHTML}</a>
           <span class="sep" aria-hidden="true">&gt;</span>
           <span class="current">${app.browser.escapeHTML(displayTitle)}</span>
         </nav>

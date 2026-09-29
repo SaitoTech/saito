@@ -20,9 +20,9 @@ class AssaultOverlay {
     // pull GAME HUD over overlay
     //
     let overlay_zindex = parseInt(this.overlay.zIndex);
-    if (document.querySelector('.hud')) {
-      document.querySelector('.hud').style.zIndex = overlay_zindex + 1;
-      this.mod.hud.zIndex = overlay_zindex + 1;
+    let hud = document.getElementById('game-hud2');
+    if (hud) {
+      hud.style.zIndex = overlay_zindex + 1;
     }
   }
   pushHudUnderOverlay() {
@@ -30,9 +30,9 @@ class AssaultOverlay {
     // push GAME HUD under overlay
     //
     let overlay_zindex = parseInt(this.overlay.zIndex);
-    if (document.querySelector('.hud')) {
-      document.querySelector('.hud').style.zIndex = overlay_zindex - 2;
-      this.mod.hud.zIndex = overlay_zindex - 2;
+    let hud = document.getElementById('game-hud2');
+    if (hud) {
+      hud.style.zIndex = overlay_zindex - 2;
     }
   }
 
@@ -192,7 +192,7 @@ class AssaultOverlay {
     let his_self = this.mod;
 
     this.updateInstructions(`Assign <span class="hits_to_assign">${hits_to_assign}</span> Hits`);
-    this.mod.updateStatus(`Assign <span class="hits_to_assign">${hits_to_assign}</span> Hits`);
+    this.mod.hud.updateStatus(`Assign <span class="hits_to_assign">${hits_to_assign}</span> Hits`);
 
     document.querySelectorAll('.not-assignable').forEach((el) => {
       el.remove();
@@ -243,7 +243,7 @@ class AssaultOverlay {
     });
     if (faction != '') {
       if (this.mod.game.player == this.mod.returnPlayerOfFaction(faction)) {
-        this.mod.updateStatus(`Assign <span class="hits_to_assign">${hits_to_assign}</span> Hits`);
+        this.mod.hud.updateStatus(`Assign <span class="hits_to_assign">${hits_to_assign}</span> Hits`);
       } else {
         this.updateInstructions(this.mod.returnFactionName(faction) + ' Assigning Hits');
       }

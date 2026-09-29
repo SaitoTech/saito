@@ -11,6 +11,7 @@ class Spam extends ModTemplate {
     this.description = 'Tool to generate spam txs';
     this.categories = 'Core Utilities Messaging';
     this.class = 'utility';
+    this.status = 'beta';
     this.to = '';
     this.payment = 0;
     this.fee = 0;

@@ -28,17 +28,17 @@ class MovementOverlay {
 
   pullHudOverOverlay() {
     let overlay_zindex = parseInt(this.overlay.zIndex);
-    if (document.querySelector('.hud')) {
-      document.querySelector('.hud').style.zIndex = overlay_zindex + 1;
-      this.mod.hud.zIndex = overlay_zindex + 1;
+    let hud = document.getElementById('game-hud2');
+    if (hud) {
+      hud.style.zIndex = overlay_zindex + 1;
     }
   }
 
   pushHudUnderOverlay() {
     let overlay_zindex = parseInt(this.overlay.zIndex);
-    if (document.querySelector('.hud')) {
-      document.querySelector('.hud').style.zIndex = overlay_zindex - 2;
-      this.mod.hud.zIndex = overlay_zindex - 2;
+    let hud = document.getElementById('game-hud2');
+    if (hud) {
+      hud.style.zIndex = overlay_zindex - 2;
     }
   }
 

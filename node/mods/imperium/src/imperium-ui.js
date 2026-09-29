@@ -5,6 +5,30 @@
 /////////////////
 /// HUD MENUS ///
 /////////////////
+ensureHudChrome() {
+  this.hud.render();
+  return null;
+}
+
+hudMenuOptionFromEvent(x) {
+  if (!x) {
+    return null;
+  }
+  if (x.id) {
+    return { id: String(x.id), label: x.label };
+  }
+  if (x.html) {
+    let m = String(x.html).match(/id="([^"]+)"[^>]*>([\s\S]*?)<\/li>/i);
+    if (m) {
+      return { id: m[1], label: m[2].replace(/<[^>]+>/g, '').trim() };
+    }
+  }
+  if (x.event) {
+    return { id: x.event, label: x.event };
+  }
+  return null;
+}
+
 hideOverlays() {
   document.querySelectorAll('.overlay').forEach(el => {
     el.classList.add('hidden');

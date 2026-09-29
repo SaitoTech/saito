@@ -24,24 +24,17 @@ class SettlersPlayer {
       };
 
       if (thievingTargets.length > 1) {
-        let html =
-          '<div class="status-header"><span id="status-content">steal from which Player:</span></div>';
-        html += `<div class="status-text-menu"> <ul>`;
+        let menu = [];
         for (let i = 0; i < this.game.players.length; i++) {
           if (thievingTargets.includes(i + 1)) {
-            html += `<li class="textchoice steal-player-choice" id="${i + 1}">${
-              settlers_self.game.playerNames[i]
-            } (${settlers_self.game.state.players[i].resources.length} cards)</li>`;
+            menu.push({
+              id: `${i + 1}`,
+              label: `${settlers_self.game.playerNames[i]} (${settlers_self.game.state.players[i].resources.length} cards)`
+            });
           }
         }
-        html += '</ul></div>';
-        this.hud.updateStatus(html);
-
-        //Select a player to steal from
-        $('.textchoice').off();
-        $('.textchoice').on('click', function () {
-          $('.textchoice').off();
-          let victim = $(this).attr('id');
+        this.hud.updateStatus('steal from which Player:');
+        this.hud.updateMenu(menu, function (victim) {
           robPlayer(victim);
         });
       } else {
@@ -62,7 +55,7 @@ class SettlersPlayer {
     let xpos = 0;
     let ypos = 0;
 
-    this.updateStatus(`MOVE the <span class="to-upper">${this.b.name}</span>:`);
+        this.updateStatus(`MOVE the <span class="to-upper">${this.b.name}</span>:`);
     $('.option').css('visibility', 'hidden');
     let settlers_self = this;
     $('.sector-container').addClass('rhover');
@@ -170,9 +163,9 @@ class SettlersPlayer {
       this.startPlacementHintWave();
     } else {
       /* During game, must build roads to open up board for new settlements*/
-      this.updateStatus(`you may build a ${this.c1.name}...`);
+            this.updateStatus(`you may build a ${this.c1.name}...`);
       if (canBackUp) {
-        this.updateControls(`<i class="fa-solid fa-xmark"></i>`);
+        this.setToolbarState(`<i class="fa-solid fa-xmark"></i>`);
         document.getElementById('rolldice').onclick = (e) => {
           //Make sure the confirm popup goes away
           $('.action').off();
@@ -255,9 +248,9 @@ class SettlersPlayer {
         });
       });
     } else {
-      this.updateStatus(`you may build a ${this.r.name}...`);
+            this.updateStatus(`you may build a ${this.r.name}...`);
       if (canBackUp) {
-        this.updateControls(`<i class="fa-solid fa-xmark"></i>`);
+        this.setToolbarState(`<i class="fa-solid fa-xmark"></i>`);
         document.getElementById('rolldice').onclick = (e) => {
           //Make sure the confirm popup goes away
           $('.action').off();
@@ -305,9 +298,9 @@ class SettlersPlayer {
 
   playerBuildCity(player, canBackUp = 0) {
     this.halted = 1;
-    this.updateStatus(`click on a ${this.c1.name} to upgrade it to a ${this.c2.name}...`);
+        this.updateStatus(`click on a ${this.c1.name} to upgrade it to a ${this.c2.name}...`);
     if (canBackUp) {
-      this.updateControls(`<i class="fa-solid fa-xmark"></i>`);
+      this.setToolbarState(`<i class="fa-solid fa-xmark"></i>`);
       document.getElementById('rolldice').onclick = (e) => {
         //Make sure the confirm popup goes away
         $('.action').off();
@@ -391,7 +384,7 @@ class SettlersPlayer {
       $('#spend').removeClass('enabled');
     }
 
-    $('.controls .option').css('visibility', 'visible');
+    $('#settlers-hud-controls .option').css('visibility', 'visible');
 
     $('#rolldice').html(`<i class="fa-solid fa-forward"></i>`);
     $('#rolldice').addClass('enabled');
@@ -414,7 +407,7 @@ class SettlersPlayer {
     }
 
     let statushtml = 'YOUR TURN:';
-    this.updateStatus(`${statushtml}`);
+        this.updateStatus(`${statushtml}`);
 
     document.getElementById('rolldice').onclick = (e) => {
       e.currentTarget.onclick = null;

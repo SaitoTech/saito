@@ -1,0 +1,190 @@
+.splash {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  width: min(108rem, 100%);
+  margin-inline: auto;
+  padding: var(--saito-space-xl) var(--saito-space-xl) var(--saito-space-xxl);
+}
+
+.splash .workspace {
+  display: grid;
+  grid-template-columns: minmax(28rem, 0.9fr) minmax(0, 1.15fr);
+  grid-template-areas:
+    "intro intro"
+    "start steps"
+    "more more";
+  column-gap: var(--saito-space-xxl);
+  row-gap: var(--saito-space-lg);
+  align-items: stretch;
+}
+
+.splash .intro {
+  grid-area: intro;
+  display: flex;
+  flex-direction: column;
+  gap: var(--saito-space-xs);
+}
+
+.splash .start {
+  grid-area: start;
+  display: flex;
+  flex-direction: column;
+}
+
+.splash .steps {
+  grid-area: steps;
+  display: flex;
+  align-items: center;
+}
+
+.splash .more {
+  grid-area: more;
+}
+
+.splash h1,
+.splash .summary,
+.splash .prompt,
+.splash .hint,
+.splash .notice,
+.splash .steps p,
+.splash .more {
+  margin: 0;
+}
+
+.splash h1 {
+  color: var(--saito-foreground);
+  font-family: var(--saito-font-heavy);
+  font-size: 4.2rem;
+  line-height: 1.05;
+}
+
+.splash h1 .sign {
+  color: var(--saito-primary);
+}
+
+.splash .summary {
+  color: var(--saito-muted-foreground);
+  font-size: 1.7rem;
+  line-height: 1.35;
+  white-space: nowrap;
+}
+
+.splash .steps ol {
+  display: flex;
+  flex-direction: column;
+  gap: 3.2rem;
+  width: 100%;
+  max-width: 350px;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: step;
+}
+
+.splash .steps li {
+  display: grid;
+  grid-template-columns: 2.6rem 1fr;
+  column-gap: 0.4rem;
+  row-gap: 0.3rem;
+  counter-increment: step;
+}
+
+.splash .steps li::before {
+  content: counter(step) ".";
+  grid-column: 1;
+  grid-row: 1;
+  color: var(--saito-foreground);
+  font-family: var(--saito-font-medium);
+  font-size: 2.15rem;
+  line-height: 1.25;
+}
+
+.splash .steps .title {
+  grid-column: 2;
+  grid-row: 1;
+  color: var(--saito-foreground);
+  font-family: var(--saito-font-medium);
+  font-size: 2.15rem;
+  line-height: 1.25;
+}
+
+.splash .steps li > p:not(.title) {
+  display: block;
+  grid-column: 2;
+  grid-row: 2;
+  color: var(--saito-muted-foreground);
+  font-size: 1.65rem;
+  line-height: 1.4;
+}
+
+.splash .dropzone {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--saito-space-sm);
+  width: 100%;
+  min-height: 34rem;
+  padding: var(--saito-space-xl);
+  text-align: center;
+  cursor: pointer;
+  border: 2px dashed color-mix(in srgb, var(--saito-foreground) 42%, var(--saito-border));
+  border-radius: var(--saito-radius-lg);
+  background: var(--saito-card);
+}
+
+.splash .dropzone.over {
+  border-color: var(--saito-primary);
+  background: var(--saito-secondary);
+}
+
+.splash .mark {
+  font-size: 4.4rem;
+  color: var(--saito-muted-foreground);
+}
+
+.splash .prompt {
+  color: var(--saito-muted-foreground);
+  font-weight: 400;
+  font-size: 2.1rem;
+  line-height: 1.3;
+  white-space: nowrap;
+}
+
+.splash .hint,
+.splash .more {
+  color: var(--saito-muted-foreground);
+  font-size: 1.5rem;
+}
+
+.splash .notice {
+  color: var(--saito-destructive);
+}
+
+.splash .more button {
+  font: inherit;
+}
+
+@media (max-width: 800px) {
+  .splash {
+    padding: var(--saito-space-xl) var(--saito-space-md) var(--saito-space-xxl);
+  }
+
+  .splash .workspace {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--saito-space-xl);
+  }
+
+  .splash .summary {
+    white-space: normal;
+  }
+
+  .splash .prompt {
+    white-space: normal;
+  }
+}

@@ -1,13 +1,11 @@
 export default (app, mod) => {
   return `<div id="main" class="main" style="display: all">
                 <div class="gameboard" id="gameboard">
-                        <!--- COMBAT CARDS ---> 
 			<div class="combat_cards">
                         	<div class="central" id=""></div>
                         	<div class="allies" id=""></div>
 			</div>
 
-                        <!--- SPACES ---> 
                         <div class="space london" id="london"></div>
                         <div class="space calais" id="calais"></div>
                         <div class="space amiens" id="amiens"></div>
@@ -290,7 +288,6 @@ export default (app, mod) => {
                         <div class="space larisa" id="larisa"></div>
                         <div class="space athens" id="athens"></div>
 
-                        <!--- TURN TRACK --->
                         <div class="turn-track turn-track-1" id="turn-track-1"></div>
                         <div class="turn-track turn-track-2" id="turn-track-2"></div>
                         <div class="turn-track turn-track-3" id="turn-track-3"></div>
@@ -312,7 +309,6 @@ export default (app, mod) => {
                         <div class="turn-track turn-track-19" id="turn-track-19"></div>
                         <div class="turn-track turn-track-20" id="turn-track-20"></div>
 
-                        <!--- GENERAL RECORDS TRACK --->
                         <div
                                 class="general-records-track general-records-track-0"
                                 id="general-records-track-0"
@@ -480,7 +476,6 @@ export default (app, mod) => {
                                 id="general-records-track-40"
                         ></div>
 
-                        <!--- ACTION ROUND CHARTS --->
                         <div
                                 class="central-action-round-track central-action-round-track-1"
                                 id="central-action-round-track-1"
@@ -642,7 +637,6 @@ export default (app, mod) => {
                                 id="general-records-track-40"
                         ></div>
 
-                        <!--- ACTION ROUND CHARTS --->
                         <div
                                 class="central-action-round-track central-action-round-track-1"
                                 id="central-action-round-track-1"
@@ -733,7 +727,6 @@ export default (app, mod) => {
                                 id="central-action-round-track-12"
                         ></div>
 
-                        <!--- MANDATED OFFENSIVE TRACK --->
                         <div
                                 class="central-mandated-offensive-track central-mandated-offensive-track-1"
                                 id="central-mandated-offensive-track-1"
@@ -775,7 +768,6 @@ export default (app, mod) => {
                                 id="allies-mandated-offensive-track-5"
                         ></div>
 
-                        <!--- US COMMITMENT TRACK --->
                         <div
                                 class="us-commitment-track us-commitment-track-1"
                                 id="us-commitment-track-1"
@@ -793,7 +785,6 @@ export default (app, mod) => {
                                 id="us-commitment-track-4"
                         ></div>
 
-                        <!--- RUSSIAN CAPITULATION TRACK --->
                         <div
                                 class="russian-capitulation-track russian-capitulation-track-1"
                                 id="russian-capitulation-track-1"
@@ -827,7 +818,6 @@ export default (app, mod) => {
                                 id="russian-capitulation-track-8"
                         ></div>
 
-                        <!--- RESERVE BOXES --->
                         <div
                                 class="space arbox allies-reserve-box reserve-box"
                                 id="allies-reserve-box"

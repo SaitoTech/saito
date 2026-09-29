@@ -136,25 +136,24 @@
 		// if the player cannot move
 		//
 		if (!this.canPlayerPlayCard()) {
-			this.updateStatusAndListCards(
-			  	`you cannot place land or cast spells... <span id="end-turn" class="end-turn">[ click to pass ]</span>`,
-			    	this.game.deck[this.game.player-1].hand,
-				function(cardname) {
+						this.game.status = `you cannot place land or cast spells... <span id="end-turn" class="end-turn">[ click to pass ]</span>`;
+			this.hud.updateStatus(this.game.status);
+			this.hud.updateMenu([]);
+			this.hud.updateCards(this.game.deck[this.game.player-1].hand);
+			this.cardbox.bindCallback(function(cardname) {
 					alert("No moves possible, click to pass");
-				}
-			);	
+				});
+			this.cardbox.attachCardEvents();	
 		}
 
 		//
 		// show my hand
 		//
-		this.updateStatusAndListCards(
-
-		  	`play card(s) or click board to attack <span id="end-turn" class="end-turn">[ or pass ]</span>`,
-
-		    	this.game.deck[this.game.player-1].hand,
-
-			function(cardname) {
+				this.game.status = `play card(s) or click board to attack <span id="end-turn" class="end-turn">[ or pass ]</span>`;
+		this.hud.updateStatus(this.game.status);
+		this.hud.updateMenu([]);
+		this.hud.updateCards(this.game.deck[this.game.player-1].hand);
+		this.cardbox.bindCallback(function(cardname) {
 
 				let card = realms_self.deck[cardname];
 
@@ -194,8 +193,8 @@
 					this.endTurn();
 				}
 
-			}
-		);
+			});
+		this.cardbox.attachCardEvents();
 
 		//
 		// or end their turn

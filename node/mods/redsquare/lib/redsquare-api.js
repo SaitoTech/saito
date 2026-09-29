@@ -155,7 +155,7 @@ class RedSquareApi {
     const context = await this.resolveTweet({ root_tx_sig, source_tx_sig });
 
     if (this.mod.browser_active && this.mod.manager) {
-      await this.mod.manager.renderThread(context.source_tx_sig);
+      await this.mod.manager.openEntireThread(context.source_tx_sig);
       return context.source_tx_sig;
     }
 

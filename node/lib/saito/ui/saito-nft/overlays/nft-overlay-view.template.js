@@ -17,10 +17,11 @@ module.exports = (app, mod, nft_overlay) => {
   }
 
   const esc = (value) => app.browser.escapeHTML(String(value ?? ''));
-  const rawImageUrl = nft?.image || '/saito/img/dreamscape.png';
-  const imageUrl = app.browser.isSafeMediaUrl(rawImageUrl)
-    ? rawImageUrl
-    : '/saito/img/dreamscape.png';
+  const display = typeof nft?.returnMediaDisplay === 'function' ? nft.returnMediaDisplay() : {};
+  const isApp = nft?.returnType?.() === 'saito-app' || !!nft?.saito;
+  const fallback = isApp ? '/saito/img/application.png' : '/saito/img/dreamscape.png';
+  const rawImageUrl = nft?.image || display.backgroundImage || fallback;
+  const imageUrl = app.browser.isSafeMediaUrl(rawImageUrl) ? rawImageUrl : fallback;
   const textHtml = text ? `<div class="saito-nft-text">${esc(text)}</div>` : '';
   const capsHtml = capabilities ? capabilities.renderHtml() : '';
   const metaHtml = capabilities ? capabilities.footerMetaHtml(nft) : '';
