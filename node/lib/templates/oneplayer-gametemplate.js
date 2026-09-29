@@ -224,8 +224,8 @@ class OnePlayerGameTemplate extends GameTemplate {
     this.halted = 0;
     this.gaming_active = 0;
 
-    this.game.status = msg;
-    this.hud.updateStatus(msg);
+    this.game.status = '';
+    this.hud.updateStatus('');
     this.hud.updateCards([]);
     this.prependMove('EXITGAME');
     this.endTurn();
