@@ -1,23 +1,55 @@
 .game.imperium {
   .tokenbar {
-    display: block;
-    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 1.1rem;
     margin-right: var(--imp-space-md);
-    min-width: 10rem;
     font-family: var(--imp-font);
+    color: var(--imp-text);
   }
 
-  .tokenbar > div {
-    float: right;
-    color: var(--imp-text);
+  .tokenbar-item {
+    display: grid;
+    grid-template-columns: 1.7rem 1.6rem;
+    align-items: center;
+    column-gap: 0.35rem;
+  }
+
+  .tokenbar-icon {
+    width: 1.7rem;
+    height: 1.35rem;
+    justify-self: center;
+    background-color: currentColor;
+    -webkit-mask-repeat: no-repeat;
+    mask-repeat: no-repeat;
+    -webkit-mask-position: center;
+    mask-position: center;
+    -webkit-mask-size: contain;
+    mask-size: contain;
+  }
+
+  .tokenbar-icon.strategy {
+    color: #e6b422;
+    -webkit-mask-image: url('/imperium/img/icons/strategy-tokens.svg');
+    mask-image: url('/imperium/img/icons/strategy-tokens.svg');
+  }
+
+  .tokenbar-icon.command {
+    color: #e23d32;
+    -webkit-mask-image: url('/imperium/img/icons/command-tokens.svg');
+    mask-image: url('/imperium/img/icons/command-tokens.svg');
+  }
+
+  .tokenbar-icon.fleet {
+    color: #3cba54;
+    -webkit-mask-image: url('/imperium/img/icons/fleet-supply.svg');
+    mask-image: url('/imperium/img/icons/fleet-supply.svg');
+  }
+
+  .tokenbar-count {
     font-size: var(--imp-fs-lg);
-    padding-left: var(--imp-space-sm);
+    font-variant-numeric: tabular-nums;
+    text-align: right;
     text-shadow: 0 1px 2px #000;
-  }
-
-  .imperium-hud-chrome > .tokenbar > div {
-    font-size: var(--imp-fs);
-    color: var(--imp-text);
-    -webkit-text-stroke: 0;
   }
 }

@@ -19,8 +19,8 @@
     color: var(--imp-text);
     background: transparent;
     font-family: var(--imp-font);
-    width: 16.5rem;
-    max-width: 22vw;
+    width: 22.8rem;
+    max-width: 36vw;
     max-height: calc(100vh - 4.4rem);
     overflow-x: hidden;
     overflow-y: auto;
@@ -48,7 +48,7 @@
     background: var(--imp-surface);
     border: 1px solid var(--imp-border);
     border-radius: var(--imp-radius);
-    padding: 0 0 var(--imp-space-sm);
+    padding: 0;
     border-left-width: 0.35rem;
     overflow: hidden;
     container-type: inline-size;
@@ -82,6 +82,101 @@
     font-family: var(--imp-font);
     font-size: var(--imp-fs-title);
     letter-spacing: 0.04em;
+  }
+
+  .dash-faction-body {
+    display: flex;
+    flex-direction: row;
+    align-items: stretch;
+    min-width: 0;
+    min-height: 0;
+  }
+
+  .dash-faction-main {
+    flex: 1 1 auto;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    row-gap: var(--imp-space-sm);
+    padding: 0 0 var(--imp-space-sm);
+  }
+
+  .dash-resource-rail {
+    --dash-icon-w: 2.15rem;
+    --dash-icon-h: 1.65rem;
+    --dash-count-w: 2.4rem;
+    flex: 0 0 auto;
+    box-sizing: border-box;
+    width: calc(var(--dash-icon-w) + var(--dash-count-w) + 1.15rem);
+    display: flex;
+    flex-direction: column;
+    justify-content: stretch;
+    align-self: stretch;
+    border-left: 1px solid color-mix(in srgb, var(--imp-text) 16%, transparent);
+    background: color-mix(in srgb, #000 20%, transparent);
+    padding: 0.2rem 0;
+  }
+
+  .dash-resource {
+    flex: 1 1 0;
+    display: grid;
+    grid-template-columns: var(--dash-icon-w) var(--dash-count-w);
+    align-items: center;
+    justify-content: center;
+    column-gap: 0.3rem;
+    min-height: 1.9rem;
+    padding: 0 0.4rem;
+  }
+
+  .dash-resource-icon {
+    width: var(--dash-icon-w);
+    height: var(--dash-icon-h);
+    justify-self: center;
+    background-color: currentColor;
+    -webkit-mask-image: var(--dash-icon);
+    mask-image: var(--dash-icon);
+    -webkit-mask-repeat: no-repeat;
+    mask-repeat: no-repeat;
+    -webkit-mask-position: center;
+    mask-position: center;
+    -webkit-mask-size: contain;
+    mask-size: contain;
+  }
+
+  .dash-resource-icon.strategy {
+    color: #e6b422;
+    --dash-icon: url('/imperium/img/icons/strategy-tokens.svg');
+  }
+
+  .dash-resource-icon.command {
+    color: #e23d32;
+    --dash-icon: url('/imperium/img/icons/command-tokens.svg');
+  }
+
+  .dash-resource-icon.fleet {
+    color: #3cba54;
+    --dash-icon: url('/imperium/img/icons/fleet-supply.svg');
+  }
+
+  .dash-resource-count {
+    width: var(--dash-count-w);
+    min-width: var(--dash-count-w);
+    white-space: nowrap;
+    justify-self: end;
+    text-align: right;
+    font-family: var(--imp-font);
+    font-size: var(--imp-fs-lg);
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+    color: var(--imp-text);
+  }
+
+  .dash-resource-rule {
+    flex: 0 0 1px;
+    height: 1px;
+    margin: 0 0.4rem;
+    background: color-mix(in srgb, var(--imp-text) 20%, transparent);
   }
 
   .dash-faction-info {
@@ -311,8 +406,14 @@
 
   @media screen and (max-width: 1100px) {
     .dashboard {
-      width: 14rem;
-      max-width: 28vw;
+      width: 19.8rem;
+      max-width: 42vw;
+    }
+
+    .dash-resource-rail {
+      --dash-icon-w: 1.85rem;
+      --dash-icon-h: 1.4rem;
+      --dash-count-w: 2.1rem;
     }
 
     .dash-item.resources,
@@ -336,8 +437,14 @@
       left: 0.5rem;
       right: auto;
       max-height: 46vh;
-      width: 13rem;
-      max-width: 42vw;
+      width: 18.4rem;
+      max-width: 54vw;
+    }
+
+    .dash-resource-rail {
+      --dash-icon-w: 1.7rem;
+      --dash-icon-h: 1.25rem;
+      --dash-count-w: 1.9rem;
     }
 
     .dash-faction-speaker.speaker {

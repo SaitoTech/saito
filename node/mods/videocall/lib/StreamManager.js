@@ -48,6 +48,7 @@ class StreamManager {
             this.localStream.addTrack(videoTrack);
 
             // Add new track to the local stream
+            this.app.connection.emit('videocall-stream', 'local', this.localStream);
             this.app.connection.emit('add-local-stream-request', this.localStream);
 
             this.mod.stun.peers.forEach((peerConnection, key) => {
@@ -287,6 +288,7 @@ class StreamManager {
       );
 
       this.remoteStreams.set(id, remoteStream);
+      this.app.connection.emit('videocall-stream', id, remoteStream);
 
       if (!this.active) {
         console.warn('STUN/TALK: Receiving media tracks before in call state');
@@ -304,6 +306,7 @@ class StreamManager {
     //Launch the Stun call
     app.connection.on('start-stun-call', async () => {
       this.active = true;
+      this.leaving = false;
 
       this.app.browser.lockNavigation(this.visibilityChange.bind(this), true);
 
@@ -516,10 +519,12 @@ class StreamManager {
     });
 
     //Plug local stream into UI component
+    this.app.connection.emit('videocall-stream', 'local', this.localStream);
     this.app.connection.emit('add-local-stream-request', this.localStream);
   }
 
   removePeer(peer, message = 'left the meeting') {
+    this.app.connection.emit('videocall-peer-left', peer);
     this.remoteStreams.delete(peer);
 
     if (this.auto_disconnect) {
@@ -539,6 +544,13 @@ class StreamManager {
   }
 
   async leaveCall() {
+    if (this.leaving || !this.active) return;
+    this.leaving = true;
+    const completion = [];
+    this.app.connection.emit('videocall-ended', completion);
+    // Let transcript recognition drain and saving finish independently of hangup.
+    void Promise.allSettled(completion);
+
     this.app.browser.unlockNavigation(this.visibilityChange.bind(this));
 
     this.endPresentation();

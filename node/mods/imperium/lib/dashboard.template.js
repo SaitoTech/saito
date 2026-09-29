@@ -6,6 +6,8 @@ module.exports = (imperium_self, i = 0, agenda_phase = 0) => {
   html += `
     <div data-id="${i + 1}" class="dash-faction p${i + 1}${is_speaker ? ' is-speaker' : ''}">
      <div data-id="${i + 1}" class="dash-faction-name bk"></div>
+     <div class="dash-faction-body">
+     <div class="dash-faction-main">
   `;
 
   if (agenda_phase == 1) {
@@ -58,6 +60,24 @@ module.exports = (imperium_self, i = 0, agenda_phase = 0) => {
           <span data-id="${i + 1}" class="dash-item-vp">${pinfo.vp}</span>
         </div>
       </div>
+    </div>
+    <div class="dash-resource-rail" aria-label="tokens">
+      <div class="dash-resource">
+        <span class="dash-resource-icon strategy" title="strategy tokens"></span>
+        <span data-id="${i + 1}" class="dash-resource-count dash-item-strategy">${pinfo.strategy_tokens}</span>
+      </div>
+      <div class="dash-resource-rule"></div>
+      <div class="dash-resource">
+        <span class="dash-resource-icon command" title="command tokens"></span>
+        <span data-id="${i + 1}" class="dash-resource-count dash-item-command">${pinfo.command_tokens}</span>
+      </div>
+      <div class="dash-resource-rule"></div>
+      <div class="dash-resource">
+        <span class="dash-resource-icon fleet" title="fleet supply"></span>
+        <span data-id="${i + 1}" class="dash-resource-count dash-item-fleet">${pinfo.fleet_supply}</span>
+      </div>
+    </div>
+  </div>
     </div>
   `;
 

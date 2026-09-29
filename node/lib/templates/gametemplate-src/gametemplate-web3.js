@@ -58,15 +58,15 @@ class GameWeb3 {
       }
       html += '</div>';
 
-      let target = 'body';
-      if (document.querySelector('.main')) {
-        target = '.main';
-      } else if (document.querySelector('.gameboard')) {
-        target = '.gameboard';
+      if (document.querySelector('.crypto_logo')) {
+        return;
       }
-
-      if (!document.querySelector('.crypto_logo')) {
-        this.app.browser.prependElementToSelector(html, target);
+      if (document.querySelector('.main')) {
+        this.app.browser.prependElementToSelector(html, '.main');
+      } else if (this.getBoardElement && this.getBoardElement()) {
+        this.app.browser.prependElementToDom(html, this.getBoardElement());
+      } else {
+        this.app.browser.prependElementToSelector(html, 'body');
       }
     }
   }

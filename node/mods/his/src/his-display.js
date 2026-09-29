@@ -3064,12 +3064,12 @@ console.log("ERROR DISPLAYING NEW WORLD STUFF: " + JSON.stringify(err));
 
     if (!his_self.bound_gameboard_zoom) {
 
-      $('.gameboard').on('mousedown', function (e) {
+      $('.gameboard').not('.game-minimap-clone, .gameboard-clone').on('mousedown', function (e) {
         if (e.currentTarget.classList.contains("space")) { return; }
         xpos = e.clientX;
         ypos = e.clientY;
       });
-      $('.gameboard').on('mouseup', function (e) { 
+      $('.gameboard').not('.game-minimap-clone, .gameboard-clone').on('mouseup', function (e) { 
         if (Math.abs(xpos-e.clientX) > 4) { return; }
         if (Math.abs(ypos-e.clientY) > 4) { return; }
 	//

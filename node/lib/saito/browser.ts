@@ -3337,6 +3337,10 @@ class Browser {
   }
 
   async navigateWindow(target, delay = 0) {
+    const completion = [];
+    this.app.connection.emit('saito-before-navigate', completion);
+    if ((await Promise.all(completion)).some((allowed) => allowed === false)) return;
+
     if (this.navigation_locked) {
       let c = await sconfirm('Are you sure you want to leave this page?');
       if (!c) {

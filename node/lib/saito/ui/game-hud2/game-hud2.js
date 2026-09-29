@@ -179,6 +179,22 @@ class GameHUD2 {
       html += '</ul>';
     }
 
+    let consumed = false;
+    let choose = (id) => {
+      if (consumed) {
+        return;
+      }
+      consumed = true;
+      document
+        .querySelectorAll(
+          '.hud-menu .option, .zoom-overlay .controls .option, .saito-overlay .controls .option, #hud-visual-menu .hud-visual-option'
+        )
+        .forEach((item) => {
+          item.onclick = null;
+        });
+      callback(id);
+    };
+
     document
       .querySelectorAll('.hud-menu, .zoom-overlay .controls, .saito-overlay .controls')
       .forEach((el) => {
@@ -186,7 +202,8 @@ class GameHUD2 {
         if (typeof callback === 'function') {
           el.querySelectorAll('.option').forEach((item) => {
             item.onclick = (e) => {
-              callback(e.currentTarget.id);
+              e.stopPropagation();
+              choose(e.currentTarget.id);
             };
           });
         }
@@ -224,11 +241,12 @@ class GameHUD2 {
       if (typeof callback === 'function') {
         visual_menu.querySelectorAll('.hud-visual-option').forEach((item) => {
           item.onclick = (e) => {
+            e.stopPropagation();
             let id = e.currentTarget.id;
             if (id.indexOf('hud-visual-') === 0) {
               id = id.substring('hud-visual-'.length);
             }
-            callback(id);
+            choose(id);
           };
         });
       }

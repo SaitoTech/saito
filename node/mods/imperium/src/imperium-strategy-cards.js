@@ -35,10 +35,7 @@
 
           if (bonus > 0) {
             bonus_html =
-            `<div class="bonus">
-              <i class="fas fa-database white-stroke"></i>
-              <span>${bonus}</span>
-            </div>`;
+            `<div class="bonus" title="trade goods"><span class="bonus-cube"></span><span class="bonus-count">${bonus}</span></div>`;
           }
 
           for (let i = 0; i < this.game.state.players_info.length; i++) {

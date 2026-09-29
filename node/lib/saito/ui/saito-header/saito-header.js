@@ -637,8 +637,10 @@ class SaitoHeader extends UIModTemplate {
   returnModuleMenuIconPaths(text = '') {
     const key = text.toLowerCase().replace(/[^a-z0-9]/g, '');
     const icons = {
+      addapp: 'saito-add-app-icon',
       arcade: 'saito-arcade-icon',
       chat: 'saito-chat-icon',
+      extensions: 'saito-extensions-icon',
       filetransfer: 'saito-filetransfer-icon',
       fileshare: 'saito-filetransfer-icon',
       games: 'saito-games-icon',
