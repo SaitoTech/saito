@@ -144,7 +144,7 @@ jobs:
         run: npm install
         working-directory: rust/saito-js
 
-      - name: Update saito-wasm package
+      - name: Update saito-wasm package from local
         if: ${{ env.published_saito_js_version != env.current_saito_js_version }}
         run: npm install file:../saito-wasm
         working-directory: rust/saito-js      
