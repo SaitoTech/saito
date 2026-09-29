@@ -608,6 +608,15 @@ impl SyncManager {
             blockchain.blocks.is_empty()
         };
 
+	if is_spv_mode && is_local_chain_empty && cs.shared_ancestor_block_id > 0 {
+	    let mut wallet = self.wallet_lock.write().await;
+	    for slip in wallet.slips.values_mut() {
+	        if slip.block_id > cs.shared_ancestor_block_id {
+	            slip.lc = false;
+	        }
+	    }
+	}
+
         let mut should_add_block = true;
 
         for (i, block_reference) in cs.payload.iter().enumerate() {

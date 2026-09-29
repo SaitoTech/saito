@@ -643,10 +643,14 @@ impl Wallet {
     }
 
     pub fn add_slip(&mut self, slip: &Slip, lc: bool, network: Option<&Network>) {
-        if self.slips.contains_key(&slip.get_utxoset_key()) {
+        if let Some(existing) = self.slips.get_mut(&slip.get_utxoset_key()) {
+            if lc {
+                existing.lc = true;
+            }
             debug!("wallet already has slip : {}", slip);
             return;
         }
+
         let mut wallet_slip = WalletSlip::new();
         assert_ne!(slip.block_id, 0);
         wallet_slip.utxokey = slip.get_utxoset_key();
@@ -704,6 +708,9 @@ impl Wallet {
                 if ws.spent {
                     continue;
                 }
+		if !ws.lc {
+		    continue;
+		}
                 match ws.slip_type {
                     SlipType::Bound | SlipType::BlockStake => continue,
                     _ => {
@@ -800,6 +807,9 @@ impl Wallet {
                 if ws.spent {
                     continue;
                 }
+		if !ws.lc {
+		    continue;
+		}
                 match ws.slip_type {
                     SlipType::Bound | SlipType::BlockStake => continue,
                     _ => {
@@ -842,6 +852,10 @@ impl Wallet {
 
         for key in unspent_slips {
             let slip = self.slips.get_mut(key).expect("slip should be here");
+
+	    if !slip.lc {
+    		continue;
+	    }
 
             // Prevent using slips from blocks earlier than (latest_block_id - (genesis_period-1)
             if slip.block_id < self.minimum_block_id {
@@ -2345,6 +2359,9 @@ impl Wallet {
 
         for key in self.staking_slips.iter() {
             let slip = self.slips.get(key).unwrap();
+	    if !slip.lc {
+    		continue;
+	    }
             if !slip.is_staking_slip_unlocked(latest_unlocked_block_id) {
                 // slip cannot be used for staking yet
                 continue;
@@ -2381,6 +2398,9 @@ impl Wallet {
             });
             for key in unspent_slips {
                 let slip = self.slips.get(key).unwrap();
+    		if !slip.lc {
+    		    continue;
+    		}
                 if slip.block_id < last_valid_slips_in_block_id {
                     // slip is too old
                     continue;
