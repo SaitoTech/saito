@@ -141,15 +141,19 @@ handleObjectivesMenuItem() {
 
 }
 handleInfoMenuItem() {
-  if (document.querySelector('.gameboard').classList.contains('bi')) {
+  const board = this.boardEl();
+  if (!board) {
+    return;
+  }
+  if (board.classList.contains('bi')) {
     for (let i in this.game.sectors) {
       this.removeSectorHighlight(i);
-      document.querySelector('.gameboard').classList.remove('bi');
+      board.classList.remove('bi');
     }
   } else {
     for (let i in this.game.sectors) {
       this.addSectorHighlight(i);
-      document.querySelector('.gameboard').classList.add('bi');
+      board.classList.add('bi');
     }
   }
 }

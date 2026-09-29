@@ -27,10 +27,10 @@ class GameCards {
   //
   calculateBoardRatio() {
     try {
-      if (document.querySelector('.gameboard')) {
-        let gameWidth = document.querySelector('.gameboard').getBoundingClientRect().width;
+      const board = this.boardEl();
+      if (board && this.boardWidth) {
         //Only needed for gameTemplate.scale, for putting game pieces on a game board
-        this.boardRatio = gameWidth / this.boardWidth;
+        this.boardRatio = board.getBoundingClientRect().width / this.boardWidth;
       }
     } catch (err) {
       console.error(`GT [calculateBoardRatio] ERROR: `, err);
@@ -38,10 +38,11 @@ class GameCards {
   }
 
   boardEl() {
-    return (
-      document.getElementById('hexGrid') ||
-      document.querySelector('.gameboard:not(.game-minimap-clone):not(.gameboard-clone)')
-    );
+    const hex = document.getElementById('hexGrid');
+    if (hex && !hex.classList.contains('game-minimap-clone') && !hex.closest('.game-minimap')) {
+      return hex;
+    }
+    return document.querySelector('.gameboard:not(.game-minimap-clone):not(.gameboard-clone)');
   }
 
   prepareBoard(el) {

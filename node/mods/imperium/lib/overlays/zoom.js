@@ -19,7 +19,10 @@ class ZoomOverlay {
     this.overlay.show(ZoomTemplate());
 
     let dw = document.querySelector('.zoom-overlay');
-    let gb = document.querySelector('.gameboard');
+    let gb = this.mod.boardEl();
+    if (!gb) {
+      return;
+    }
     let gb2 = gb.cloneNode(true);
     gb2.removeAttribute('id');
     gb2.removeAttribute('style');
