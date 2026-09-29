@@ -17187,6 +17187,7 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
 	  //
 	  if (idx === "london") {
 	    alert("Select French/Belgian supporting army or corps first...");
+	    attackInterface(original_key, options, selected);
 	    return;
 	  }
 
@@ -17468,6 +17469,7 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
 	      if (is_the_destination_a_fort == true) {
 		if (!can_group_move_into_fort) {
 		  alert("Insufficient Forces to Besiege...");
+		  moveEverythingInterface(sourcekey, currentkey);
 		  return;
 		}
 	      }

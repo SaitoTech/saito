@@ -141,7 +141,7 @@ handleObjectivesMenuItem() {
 
 }
 handleInfoMenuItem() {
-  const board = this.boardEl();
+  const board = this.getBoardElement();
   if (!board) {
     return;
   }

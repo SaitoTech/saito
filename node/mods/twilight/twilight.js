@@ -456,7 +456,7 @@ class Twilight extends GameTemplate {
       this.minimap.render();
     }
 
-    const live_board = this.boardEl();
+    const live_board = this.getBoardElement();
     if (live_board) {
     live_board.addEventListener('click', (e) => {
 

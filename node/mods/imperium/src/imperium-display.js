@@ -516,7 +516,7 @@ frameHomeworld() {
   if (!info || !info.homeworld) {
     return;
   }
-  let el = this.boardEl();
+  let el = this.getBoardElement();
   let sector = document.getElementById(info.homeworld);
   if (!el || !sector || !el.offsetWidth || !sector.offsetWidth) {
     return;

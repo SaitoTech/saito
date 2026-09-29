@@ -19,7 +19,7 @@ class ThesesOverlay {
     this.overlay.show(ThesesTemplate());
 
     let dw = document.querySelector('.theses-overlay');
-    let gb = this.mod.boardEl();
+    let gb = this.mod.getBoardElement();
     if (!gb) {
       return;
     }

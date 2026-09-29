@@ -19,7 +19,7 @@ class ZoomOverlay {
     this.overlay.show(ZoomTemplate());
 
     let dw = document.querySelector('.zoom-overlay');
-    let gb = this.mod.boardEl();
+    let gb = this.mod.getBoardElement();
     if (!gb) {
       return;
     }

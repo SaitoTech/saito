@@ -13288,7 +13288,7 @@ handleObjectivesMenuItem() {
 
 }
 handleInfoMenuItem() {
-  const board = this.boardEl();
+  const board = this.getBoardElement();
   if (!board) {
     return;
   }
@@ -21514,6 +21514,7 @@ playerAcknowledgeNotice(msg, mycallback) {
           if (total_targetted_units > 0) {
             if (!targetted_units.includes(selected_unit.type)) {
               salert("You must first assign hits to the required unit types");
+              showAssign();
               return;
             } else {
               total_targetted_units--;
@@ -21724,6 +21725,7 @@ playerAcknowledgeNotice(msg, mycallback) {
           if (total_targetted_units > 0) {
             if (!targetted_units.includes(selected_unit.type)) {
               salert("You must first assign hits to the required unit types");
+              showAssign();
               return;
             } else {
               total_targetted_units--;
@@ -21857,6 +21859,7 @@ playerDestroyUnits(player, total, sector, capital = 0) {
       if (total_targetted_units > 0) {
         if (!targetted_units.includes(selected_unit.type)) {
           salert("You must first destroy the required unit types");
+          showDestroy();
           return;
         } else {
           total_targetted_units--;
@@ -21966,6 +21969,7 @@ playerDestroyShips(player, total, sector, capital = 0) {
       if (total_targetted_units > 0) {
         if (!targetted_units.includes(selected_unit.type)) {
           salert("You must first destroy the required unit types");
+          showDestroy();
           return;
         } else {
           total_targetted_units--;
@@ -22058,6 +22062,7 @@ playerDestroyOpponentShips(player, total, sector, capital = 0) {
       if (total_targetted_units > 0) {
         if (!targetted_units.includes(selected_unit.type)) {
           salert("You must first destroy the required unit types");
+          showDestroy();
           return;
         } else {
           total_targetted_units--;
@@ -26118,24 +26123,8 @@ playerSelectInfantryToLand(sector) {
 
   let space_infantry = [];
   let ground_infantry = [];
-  let click_open = 1;
-
-  let menu = [];
-  for (let i = 0; i < sys.s.units[this.game.player-1].length; i++) {
-    let unit = sys.s.units[this.game.player-1][i];
-    let n = imperium_self.returnInfantryInUnit(unit);
-    if (n > 0) {
-      menu.push({ id: 'addinfantry_s_' + i, label: 'remove infantry from ' + unit.name + ' - ' + n });
-    }
-  }
-  for (let p = 0; p < sys.p.length; p++) {
-    let planet = sys.p[p];
-    let n = imperium_self.returnInfantryOnPlanet(planet);
-    if (n > 0) {
-      menu.push({ id: 'addinfantry_p_' + p, label: 'remove infantry from ' + planet.name + ' - ' + n });
-    }
-  }
-  menu.push({ id: 'confirm', label: 'click here to move' });
+  let removed_from_ship = {};
+  let removed_from_planet = {};
 
   let menu_root = document.querySelector('#game-hud2 .hud-menu');
   if (menu_root && !menu_root.dataset.landClickBound) {
@@ -26147,36 +26136,79 @@ playerSelectInfantryToLand(sector) {
     });
   }
 
-  imperium_self.game.status = 'Unload Infantry (source):';
-  imperium_self.hud.preparePrompt(imperium_self.game.status);
-  imperium_self.hud.updateCards([]);
-  imperium_self.hud.updateMenu(menu, function (id) {
-
-    if (!click_open) { return; }
-    click_open = 0;
-    setTimeout(function () { click_open = 1; }, 0);
-
-    if (id == "confirm") {
-
-      let infantry_available_for_reassignment = 0;
-      for (let i = 0; i < space_infantry.length; i++) {
-	imperium_self.addMove("unload_infantry\t"+imperium_self.game.player+"\t"+1+"\t"+sector+"\t"+"ship"+"\t"+space_infantry[i].ship_idx);
-        infantry_available_for_reassignment++;
+  let showUnload = function () {
+    let menu = [];
+    for (let i = 0; i < sys.s.units[imperium_self.game.player - 1].length; i++) {
+      let unit = sys.s.units[imperium_self.game.player - 1][i];
+      let n = imperium_self.returnInfantryInUnit(unit) - (removed_from_ship[i] || 0);
+      if (n > 0) {
+        menu.push({ id: 'addinfantry_s_' + i, label: 'remove infantry from ' + unit.name + ' - ' + n });
       }
-      for (let i = 0; i < ground_infantry.length; i++) {
-	imperium_self.addMove("unload_infantry\t"+imperium_self.game.player+"\t"+1+"\t"+sector+"\t"+"planet"+"\t"+ground_infantry[i].planet_idx);
-        infantry_available_for_reassignment++;
+    }
+    for (let p = 0; p < sys.p.length; p++) {
+      let planet = sys.p[p];
+      let n = imperium_self.returnInfantryOnPlanet(planet) - (removed_from_planet[p] || 0);
+      if (n > 0) {
+        menu.push({ id: 'addinfantry_p_' + p, label: 'remove infantry from ' + planet.name + ' - ' + n });
+      }
+    }
+    menu.push({ id: 'confirm', label: 'click here to move' });
+
+    imperium_self.game.status = 'Unload Infantry (source):';
+    imperium_self.hud.preparePrompt(imperium_self.game.status);
+    imperium_self.hud.updateCards([]);
+    imperium_self.hud.updateMenu(menu, function (id) {
+      if (id == "confirm") {
+        showReassign();
+        return;
       }
 
+      let user_selected = id.split("_");
+      if (user_selected[1] === "p") {
+        let planet_idx = user_selected[2];
+        let left = imperium_self.returnInfantryOnPlanet(sys.p[planet_idx]) - (removed_from_planet[planet_idx] || 0);
+        if (left > 0) {
+          removed_from_planet[planet_idx] = (removed_from_planet[planet_idx] || 0) + 1;
+          ground_infantry.push({ planet_idx: planet_idx });
+        }
+      }
+      if (user_selected[1] === "s") {
+        let ship_idx = user_selected[2];
+        let unit = sys.s.units[imperium_self.game.player - 1][ship_idx];
+        let left = imperium_self.returnInfantryInUnit(unit) - (removed_from_ship[ship_idx] || 0);
+        if (left > 0) {
+          removed_from_ship[ship_idx] = (removed_from_ship[ship_idx] || 0) + 1;
+          space_infantry.push({ ship_idx: ship_idx });
+        }
+      }
+      showUnload();
+    });
+  };
+
+  let showReassign = function () {
+    let infantry_available_for_reassignment = 0;
+    for (let i = 0; i < space_infantry.length; i++) {
+      imperium_self.addMove("unload_infantry\t"+imperium_self.game.player+"\t"+1+"\t"+sector+"\t"+"ship"+"\t"+space_infantry[i].ship_idx);
+      infantry_available_for_reassignment++;
+    }
+    for (let i = 0; i < ground_infantry.length; i++) {
+      imperium_self.addMove("unload_infantry\t"+imperium_self.game.player+"\t"+1+"\t"+sector+"\t"+"planet"+"\t"+ground_infantry[i].planet_idx);
+      infantry_available_for_reassignment++;
+    }
+
+    let shown = [];
+    for (let i = 0; i < sys.p.length; i++) {
+      let infantry_remaining_on_planet = imperium_self.returnInfantryOnPlanet(sys.p[i]);
+      for (let ii = 0; ii < ground_infantry.length; ii++) {
+        if (ground_infantry[ii].planet_idx == i) { infantry_remaining_on_planet--; }
+      }
+      shown.push(infantry_remaining_on_planet);
+    }
+
+    let paint = function () {
       let reassign = [];
-      let shown = [];
       for (let i = 0; i < sys.p.length; i++) {
-	let infantry_remaining_on_planet = imperium_self.returnInfantryOnPlanet(sys.p[i]);
-	for (let ii = 0; ii < ground_infantry.length; ii++) {
-	  if (ground_infantry[ii].planet_idx == i) { infantry_remaining_on_planet--; }
-	}
-        shown.push(infantry_remaining_on_planet);
-        reassign.push({ id: String(i), label: sys.p[i].name + ' - ' + infantry_remaining_on_planet });
+        reassign.push({ id: String(i), label: sys.p[i].name + ' - ' + shown[i] });
       }
       reassign.push({ id: 'confirm', label: 'click here to move' });
 
@@ -26184,70 +26216,23 @@ playerSelectInfantryToLand(sector) {
       imperium_self.hud.preparePrompt(imperium_self.game.status);
       imperium_self.hud.updateCards([]);
       imperium_self.hud.updateMenu(reassign, function (id) {
-
-        if (!click_open) { return; }
-        click_open = 0;
-        setTimeout(function () { click_open = 1; }, 0);
-
         if (id == "confirm") {
-	  imperium_self.endTurn();
+          imperium_self.endTurn();
           return;
         }
-
         if (infantry_available_for_reassignment > 0) {
           infantry_available_for_reassignment--;
           let idx = parseInt(id, 10);
           shown[idx]++;
-          document.querySelectorAll('#game-hud2 .hud-menu .option').forEach(function (el) {
-            if (el.id === String(idx)) {
-              el.textContent = sys.p[idx].name + ' - ' + shown[idx];
-            }
-          });
-	  imperium_self.addMove("load_infantry\t"+imperium_self.game.player+"\t"+1+"\t"+sector+"\t"+"planet"+"\t"+id);
-	}
-
+          imperium_self.addMove("load_infantry\t"+imperium_self.game.player+"\t"+1+"\t"+sector+"\t"+"planet"+"\t"+id);
+        }
+        paint();
       });
+    };
+    paint();
+  };
 
-      return;
-    }
-
-    let user_selected = id.split("_");
-    if (user_selected[1] === "p") {
-      let planet_idx = user_selected[2];
-      let row_id = 'addinfantry_p_' + planet_idx;
-      let row = document.querySelector('#game-hud2 .hud-menu .option[id="' + row_id + '"]');
-      let v = 0;
-      if (row) {
-        let parts = row.textContent.split(' - ');
-        v = parseInt(parts[parts.length - 1], 10);
-      }
-      if (v > 0) {
-        ground_infantry.push({ planet_idx : planet_idx });
-        document.querySelectorAll('#game-hud2 .hud-menu .option[id="' + row_id + '"]').forEach(function (el) {
-          el.textContent = 'remove infantry from ' + sys.p[planet_idx].name + ' - ' + (v - 1);
-        });
-      }
-    }
-    if (user_selected[1] === "s") {
-      let ship_idx = user_selected[2];
-      let row_id = 'addinfantry_s_' + ship_idx;
-      let row = document.querySelector('#game-hud2 .hud-menu .option[id="' + row_id + '"]');
-      let v = 0;
-      if (row) {
-        let parts = row.textContent.split(' - ');
-        v = parseInt(parts[parts.length - 1], 10);
-      }
-      if (v > 0) {
-        space_infantry.push({ ship_idx : ship_idx });
-        let unit = sys.s.units[imperium_self.game.player - 1][ship_idx];
-        document.querySelectorAll('#game-hud2 .hud-menu .option[id="' + row_id + '"]').forEach(function (el) {
-          el.textContent = 'remove infantry from ' + unit.name + ' - ' + (v - 1);
-        });
-      }
-    }
-
-  });
-
+  showUnload();
   return;
 
 }
@@ -26389,7 +26374,7 @@ playerInvadePlanet(player, sector, auto_option=1) {
 
       if (total_landing_forces == 0) {
 	let sanity_check = confirm("Invade without landing forces? Are you sure -- the invasion will fail.");
-	if (!sanity_check) { return; }
+	if (!sanity_check) { renderInvasionMenu(); return; }
       }
 
       for (let i = 0; i < planets_invaded.length; i++) {
@@ -32330,7 +32315,7 @@ frameHomeworld() {
   if (!info || !info.homeworld) {
     return;
   }
-  let el = this.boardEl();
+  let el = this.getBoardElement();
   let sector = document.getElementById(info.homeworld);
   if (!el || !sector || !el.offsetWidth || !sector.offsetWidth) {
     return;

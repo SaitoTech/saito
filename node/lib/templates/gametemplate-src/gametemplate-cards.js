@@ -27,7 +27,7 @@ class GameCards {
   //
   calculateBoardRatio() {
     try {
-      const board = this.boardEl();
+      const board = this.getBoardElement();
       if (board && this.boardWidth) {
         //Only needed for gameTemplate.scale, for putting game pieces on a game board
         this.boardRatio = board.getBoundingClientRect().width / this.boardWidth;
@@ -37,7 +37,7 @@ class GameCards {
     }
   }
 
-  boardEl() {
+  getBoardElement() {
     const hex = document.getElementById('hexGrid');
     if (hex && !hex.classList.contains('game-minimap-clone') && !hex.closest('.game-minimap')) {
       return hex;
@@ -113,7 +113,7 @@ class GameCards {
 
   placeBoardInWindow(el) {
     if (!el) {
-      el = this.boardEl();
+      el = this.getBoardElement();
     }
     if (!el) {
       return;
@@ -129,7 +129,7 @@ class GameCards {
   }
 
   ensureBoardVisible() {
-    const el = this.boardEl();
+    const el = this.getBoardElement();
     if (!el || this.boardShowsSectors(el)) {
       return;
     }
@@ -143,7 +143,7 @@ class GameCards {
   }
 
   getBoardState() {
-    const el = this.boardEl();
+    const el = this.getBoardElement();
     if (!el) {
       return null;
     }
@@ -162,7 +162,7 @@ class GameCards {
   }
 
   setBoardPosition(x, y) {
-    const el = this.boardEl();
+    const el = this.getBoardElement();
     if (!el) {
       return;
     }
@@ -171,7 +171,7 @@ class GameCards {
   }
 
   setBoardScale(scale, save = true) {
-    const el = this.boardEl();
+    const el = this.getBoardElement();
     if (!el) {
       return;
     }
@@ -209,7 +209,7 @@ class GameCards {
   }
 
   centerBoard() {
-    const el = document.getElementById('hexGrid') || this.boardEl();
+    const el = document.getElementById('hexGrid') || this.getBoardElement();
     if (!el) {
       return;
     }

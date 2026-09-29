@@ -63,8 +63,8 @@ class GameWeb3 {
       }
       if (document.querySelector('.main')) {
         this.app.browser.prependElementToSelector(html, '.main');
-      } else if (this.boardEl && this.boardEl()) {
-        this.app.browser.prependElementToDom(html, this.boardEl());
+      } else if (this.getBoardElement && this.getBoardElement()) {
+        this.app.browser.prependElementToDom(html, this.getBoardElement());
       } else {
         this.app.browser.prependElementToSelector(html, 'body');
       }

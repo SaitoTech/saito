@@ -83,7 +83,7 @@ class ThesesOverlay {
 
     this.visible = true;
     this.rendering_at_coordinates = true;
-    let gb = this.mod.boardEl();
+    let gb = this.mod.getBoardElement();
     if (!gb) {
       return;
     }
@@ -158,7 +158,7 @@ class ThesesOverlay {
     this.overlay.show(ThesesTemplate());
 
     let dw = document.querySelector('.theses-overlay');
-    let gb = this.mod.boardEl();
+    let gb = this.mod.getBoardElement();
     if (!gb) {
       return;
     }

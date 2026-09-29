@@ -147,7 +147,7 @@ class GameMinimap {
       this.clone_el.removeAttribute('id');
       // Keep `gameboard` so module CSS still paints the clone (Twilight/Paths/HIS
       // map image, Imperium hex layout). `game-minimap-clone` marks it so live-board
-      // lookups (boardEl) never treat this copy as the board on the table.
+      // lookups (getBoardElement) never treat this copy as the board on the table.
       this.clone_el.classList.remove('gameboard-clone');
       this.clone_el.classList.add('game-minimap-clone');
       this.clone_el.querySelectorAll('[id]').forEach((el) => {
@@ -362,7 +362,7 @@ class GameMinimap {
       }
     });
 
-    const el = this.mod.boardEl();
+    const el = this.mod.getBoardElement();
     if (el) {
       if (typeof $ !== 'undefined') {
         $(el).on('drag dragstop', () => {
