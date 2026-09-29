@@ -1257,7 +1257,7 @@ class Thirteen extends GameTemplate {
                     thirteen_self.game.status = 'Pick a card to play for Command (+1 bonus)';
           thirteen_self.hud.updateStatus(thirteen_self.game.status);
           thirteen_self.hud.updateMenu([]);
-          thirteen_self.hud.updateCards(this.game.deck[1].hand);
+          thirteen_self.hud.updateCards(thirteen_self.game.deck[1].hand);
           thirteen_self.cardbox.attachCardEvents();
                     thirteen_self.cardbox.bindCallback(function (card) {
             thirteen_self.addMove(`discard\t${thirteen_self.game.player}\t2\t${card}`);

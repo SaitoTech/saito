@@ -87,7 +87,7 @@ console.log("respondant: " + respondant);
           }
           this.game.status = "Select card to give opponent:";
           this.hud.updateStatus(this.game.status);
-          this.hud.updateCards([]);
+          this.hud.updateCards(this.game.deck[0].hand);
           this.hud.updateMenu(options, function(action2) {
 
             //
@@ -102,7 +102,7 @@ console.log("respondant: " + respondant);
         this.game.status = `<div class='status-message' id='status-message'>${this.roles[respondant].toUpperCase()} is returning card for ${this.cardToText(card)}</div>`;
         this.hud.updateStatus(this.game.status);
         this.hud.updateMenu([]);
-        this.hud.updateCards([]);
+        this.hud.updateCards(this.game.deck[0].hand);
       }
       return 0;
     }

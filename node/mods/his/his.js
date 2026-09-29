@@ -43229,7 +43229,7 @@ if (this.game.state.events.society_of_jesus == 1) {
     this.hud.updateMenu([]);
     this.hud.updateCards(cards);
     this.cardbox.attachCardEvents();
-        this.cardbox.bindCallback(function(card) {
+        this.cardbox.bindCallback((card) => {
       if (card == "pass") {
 	this.cardbox.hide();
       }
@@ -44261,7 +44261,7 @@ if (relief_siege == 1) {
     this.hud.updateMenu([]);
     this.hud.updateCards(this.game.deck[1].hand);
     this.cardbox.attachCardEvents();
-        this.cardbox.bindCallback(function(card) {
+        this.cardbox.bindCallback((card) => {
 
             this.game.status = `Playing ${this.popup(card)}`, this.game.deck[1].hand;
       this.hud.updateStatus(this.game.status);
@@ -44587,7 +44587,7 @@ if (relief_siege == 1) {
             this.game.status = `Which Faction: ${ops_text}`;
       this.hud.updateStatus(this.game.status);
       this.hud.updateCards([]);
-      this.hud.updateMenu(html, function (selected_faction) {
+      this.hud.updateMenu(html, (selected_faction) => {
 
         menu = this.returnActionMenuOptions(this.game.player, selected_faction, limit);
 
@@ -47498,7 +47498,7 @@ does_units_to_move_have_unit = true; }
         this.game.status = `${his_self.returnFactionName(faction)} - Withdraw Units into Fortification?`;
     this.hud.updateStatus(this.game.status);
     this.hud.updateCards([]);
-    this.hud.updateMenu(html, function (user_choice) {
+    this.hud.updateMenu(html, (user_choice) => {
       this.hud.hideBackButton();
             this.game.status = "acknowledge...";
       this.hud.updateStatus(this.game.status);
@@ -52635,7 +52635,7 @@ does_units_to_move_have_unit = true; }
 		   //
 		   // spaces that belong to minor powers can only be traded to allies
 		   //
-  		   if (this.isAlliedMinorPower(space.home, target_faction)) {
+  		   if (his_self.isAlliedMinorPower(space.home, target_faction)) {
 
 		     return 1;
 		   } else {

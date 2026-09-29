@@ -281,8 +281,26 @@ class GameMinimap {
       viewport.addEventListener('mousedown', (e) => {
         e.preventDefault();
         e.stopPropagation();
-        this.dragging = true;
         this.dragged = false;
+
+        const board_box = board ? board.getBoundingClientRect() : null;
+        const view_box = viewport.getBoundingClientRect();
+        const covers_map =
+          board_box &&
+          view_box.width >= board_box.width - 1 &&
+          view_box.height >= board_box.height - 1;
+
+        if (covers_map && minimap) {
+          this.moving = true;
+          const box = minimap.getBoundingClientRect();
+          this.move_x = e.clientX - box.left;
+          this.move_y = e.clientY - box.top;
+          this.move_start_x = e.clientX;
+          this.move_start_y = e.clientY;
+          return;
+        }
+
+        this.dragging = true;
         const box = viewport.getBoundingClientRect();
         this.drag_x = e.clientX - box.left;
         this.drag_y = e.clientY - box.top;

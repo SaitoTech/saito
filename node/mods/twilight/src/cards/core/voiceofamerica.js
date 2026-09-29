@@ -19,7 +19,7 @@
         this.game.status = "Remove 4 USSR influence from non-European countries (max 2 per country)";
         this.hud.updateStatus(this.game.status);
         this.hud.updateMenu([]);
-        this.hud.updateCards([]);
+        this.hud.updateCards(this.game.deck[0].hand);
 
         var twilight_self = this;
         var ops_purged = {};

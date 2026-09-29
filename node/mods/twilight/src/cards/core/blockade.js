@@ -44,13 +44,13 @@
           this.game.status = `<div class='status-message' id='status-message'>${twilight_self.cardToText("blockade")} played: no cards available to discard.</div>`;
           this.hud.updateStatus(this.game.status);
           this.hud.updateMenu([]);
-          this.hud.updateCards([]);
+          this.hud.updateCards(this.game.deck[0].hand);
           return 0;
         }
 
         this.game.status = `${this.cardToText(card)}:`;
         this.hud.updateStatus(this.game.status);
-        this.hud.updateCards([]);
+        this.hud.updateCards(this.game.deck[0].hand);
         this.hud.updateMenu([ { id: 'discard', label: 'discard 3 OP card' }, { id: 'remove', label: 'remove all US influence in W. Germany' } ], function(action) {
 
           if (action == "discard") {
@@ -77,7 +77,7 @@
             twilight_self.game.status = `<div class='status-message' id='status-message'>${twilight_self.cardToText("blockade")}: lose all influence in West Germany.</div>`;
             twilight_self.hud.updateStatus(twilight_self.game.status);
             twilight_self.hud.updateMenu([]);
-            twilight_self.hud.updateCards([]);
+            twilight_self.hud.updateCards(twilight_self.game.deck[0].hand);
             return 0;
           }
 
@@ -87,7 +87,7 @@
         this.game.status = `<div class='status-message' id='status-message'>US is responding to ${this.cardToText(card)}</div>`;
         this.hud.updateStatus(this.game.status);
         this.hud.updateMenu([]);
-        this.hud.updateCards([]);
+        this.hud.updateCards(this.game.deck[0].hand);
       }
       return 0;
     }

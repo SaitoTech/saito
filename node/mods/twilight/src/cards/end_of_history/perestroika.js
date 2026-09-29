@@ -5,7 +5,7 @@
         this.game.status = "USSR is playing Perestroika";
         this.hud.updateStatus(this.game.status);
         this.hud.updateMenu([]);
-        this.hud.updateCards([]);
+        this.hud.updateCards(this.game.deck[0].hand);
         return 0;
       }
       if (this.game.player == 1) {
@@ -17,7 +17,7 @@
 
         twilight_self.game.status = 'Remove four USSR influence from existing countries. You will receive 1 VP per influence removed from battleground countries, and 1 VP for every 2 influence removed from non-battleground countries controlled by the USSR:';
         twilight_self.hud.updateStatus(twilight_self.game.status);
-        twilight_self.hud.updateCards([]);
+        twilight_self.hud.updateCards(twilight_self.game.deck[0].hand);
         twilight_self.hud.updateMenu([ { id: 'skip', label: 'or skip...' } ], function(action2) {
           twilight_self.playerFinishedPlacingInfluence();
           twilight_self.endTurn();

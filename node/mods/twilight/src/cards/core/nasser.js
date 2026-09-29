@@ -18,7 +18,7 @@
       this.game.status = "Nasser - Soviets add two influence in Egypt. US loses half (rounded-up) of all influence in Egypt.";
       this.hud.updateStatus(this.game.status);
       this.hud.updateMenu([]);
-      this.hud.updateCards([]);
+      this.hud.updateCards(this.game.deck[0].hand);
       
       if (!i_played_the_card){
         if (player == "ussr"){

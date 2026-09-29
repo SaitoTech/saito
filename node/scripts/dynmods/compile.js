@@ -111,6 +111,24 @@ function promptHidden(question) {
   });
 }
 
+function promptVisible(question) {
+  return new Promise((resolve) => {
+    if (!process.stdin.isTTY) {
+      resolve('');
+      return;
+    }
+    const rl = readline.createInterface({
+      input: process.stdin,
+      output: process.stdout,
+      terminal: true
+    });
+    rl.question(question, (answer) => {
+      rl.close();
+      resolve(answer);
+    });
+  });
+}
+
 async function promptForSigning() {
   printWelcome();
   const entered = await promptHidden(
@@ -127,7 +145,9 @@ async function promptForSigning() {
   }
   const publicKey = String(wasmModule.generate_public_key(privateKey));
   signingOpts = { privateKey, wasm: wasmModule };
-  console.log(`  Signing as ${publicKey}\n`);
+  console.log(`  Signing as ${publicKey}`);
+  await promptVisible('  Press Enter to compile: ');
+  console.log('');
 }
 const ZIP_DIR = path.join(PROJECT_ROOT, 'dist', 'mods', 'zip');
 const SAITO_DIR = path.join(PROJECT_ROOT, 'dist', 'mods', 'saito');

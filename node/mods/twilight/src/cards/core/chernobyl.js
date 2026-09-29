@@ -11,7 +11,7 @@
 
       this.game.status = "Chernobyl triggered. Designate region to prohibit USSR placement of influence from OPS:";
       this.hud.updateStatus(this.game.status);
-      this.hud.updateCards([]);
+      this.hud.updateCards(this.game.deck[0].hand);
       this.hud.updateMenu([
         { id: 'asia', label: 'Asia' },
         { id: 'europe', label: 'Europe' },

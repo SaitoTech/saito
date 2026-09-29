@@ -52,7 +52,7 @@ class GameAcknowledge {
       this.hud.hideBackButton();
       this.game.status = msg;
       this.hud.updateStatus(msg);
-      this.hud.updateCards([]);
+      this.hud.updateCards(this.game.deck?.[0]?.hand || []);
 
       this.lockInterface();
 

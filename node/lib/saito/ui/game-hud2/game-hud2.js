@@ -7,6 +7,7 @@ class GameHUD2 {
     this.drag_bound = false;
     this.esc_bound = false;
     this.back_button_callback = null;
+    this.show_cardbox_on_hover = 1;
   }
 
   render() {
@@ -273,6 +274,44 @@ class GameHUD2 {
           };
         });
       }
+    });
+
+    this.attachCardEvents();
+  }
+
+  attachCardEvents() {
+    if (!this.show_cardbox_on_hover) {
+      return;
+    }
+
+    let cardbox = this.mod.cardbox;
+    if (!cardbox) {
+      return;
+    }
+
+    cardbox.render();
+
+    document.querySelectorAll('.hud-cards .card').forEach((card) => {
+      card.onmouseover = (e) => {
+        try {
+          if (cardbox.cardbox_lock !== 1) {
+            let popup = document.querySelector('.game-cardbox');
+            if (popup) {
+              popup.style.pointerEvents = 'none';
+            }
+            cardbox.show(e.currentTarget.id);
+          }
+        } catch (err) {
+          console.error(err);
+        }
+      };
+      card.onmouseout = () => {
+        try {
+          cardbox.hide();
+        } catch (err) {
+          console.error(err);
+        }
+      };
     });
   }
 }

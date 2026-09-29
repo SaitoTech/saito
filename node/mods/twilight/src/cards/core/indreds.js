@@ -78,7 +78,7 @@ console.log("total countries: " + total_countries);
           let twilight_self = this;
           this.game.status = "Match USSR influence in which country?";
           this.hud.updateStatus(this.game.status);
-          this.hud.updateCards([]);
+          this.hud.updateCards(this.game.deck[0].hand);
           this.hud.updateMenu(options, function(myselect) {
             $('.card').off();
 

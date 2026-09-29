@@ -18,7 +18,7 @@
         twilight_self.game.status = '<div class="status-message" id="status-message">Remove four USSR influence from existing countries:</div>';
         twilight_self.hud.updateStatus(twilight_self.game.status);
         twilight_self.hud.updateMenu([]);
-        twilight_self.hud.updateCards([]);
+        twilight_self.hud.updateCards(twilight_self.game.deck[0].hand);
 
         let ops_to_purge = 4;
 
@@ -41,7 +41,7 @@
               twilight_self.game.status = '<div class="status-message" id="status-message">Add four USSR influence to any non-US controlled countries</div>';
               twilight_self.hud.updateStatus(twilight_self.game.status);
               twilight_self.hud.updateMenu([]);
-              twilight_self.hud.updateCards([]);
+              twilight_self.hud.updateCards(twilight_self.game.deck[0].hand);
               twilight_self.playerFinishedPlacingInfluence();
 
               var ops_to_place = 4;

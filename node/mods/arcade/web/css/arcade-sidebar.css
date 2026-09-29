@@ -22,6 +22,13 @@
   padding-inline: var(--saito-space-sm) var(--saito-space-md);
 }
 
+/* `.saito-sidebar.right` sets height: max-content and stretches the grid row. */
+body.arcade-body .saito-sidebar.right.arcade-sidebar {
+  height: 100%;
+  max-height: 100%;
+  align-self: stretch;
+}
+
 .arcade-sidebar .sidebar-stack,
 .arcade-sidebar .arcade-leaderboard,
 .arcade-sidebar .league-rankings {

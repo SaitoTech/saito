@@ -13,7 +13,7 @@
         this.game.status = `<div class='status-message' id='status-message'>Place ${ops_to_place} influence in Africa or Southeast Asia (1 per country)</div>`;
         this.hud.updateStatus(this.game.status);
         this.hud.updateMenu([]);
-        this.hud.updateCards([]);
+        this.hud.updateCards(this.game.deck[0].hand);
 
         for (var i in this.countries) {
           if (this.countries[i].region == "africa" || this.countries[i].region == "seasia"){
@@ -40,7 +40,7 @@
             twilight_self.game.status = `<div class='status-message' id='status-message'>Place ${ops_to_place} influence in Africa or Southeast Asia (1 per country)</div>`;
             twilight_self.hud.updateStatus(twilight_self.game.status);
             twilight_self.hud.updateMenu([]);
-            twilight_self.hud.updateCards([]);
+            twilight_self.hud.updateCards(twilight_self.game.deck[0].hand);
           } else {
             twilight_self.displayModal("you already placed there...");
           }

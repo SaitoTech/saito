@@ -21407,7 +21407,7 @@ playerPlayBombardment(attacker, sector, planet_idx) {
 
     if (action2 == "action") {
       imperium_self.playerSelectActionCard(function (card) {
-        imperium_self.game.state.players_info[this.game.player - 1].action_cards_played.push(card);
+        imperium_self.game.state.players_info[imperium_self.game.player - 1].action_cards_played.push(card);
         imperium_self.addMove("action_card_post\t" + imperium_self.game.player + "\t" + card);
         imperium_self.addMove("action_card\t" + imperium_self.game.player + "\t" + card);
         imperium_self.addMove("lose\t" + imperium_self.game.player + "\taction_cards\t1");

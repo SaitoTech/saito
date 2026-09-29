@@ -22,7 +22,7 @@
         twilight_self.game.status = "Add 3 influence to 3 non-battleground countries in Eastern Europe";
         twilight_self.hud.updateStatus(twilight_self.game.status);
         twilight_self.hud.updateMenu([]);
-        twilight_self.hud.updateCards([]);          
+        twilight_self.hud.updateCards(twilight_self.game.deck[0].hand);          
 
         for (let c of options_add) {
           $("#"+c).addClass("westerneurope");

@@ -60,7 +60,7 @@
         this.game.status = "Remove"+ops_to_purge+" US influence from the Middle East";
         this.hud.updateStatus(this.game.status);
         this.hud.updateMenu([]);
-        this.hud.updateCards([]);
+        this.hud.updateCards(this.game.deck[0].hand);
         
         $(".easterneurope").off();
         $(".easterneurope").on('click', function() {
@@ -81,7 +81,7 @@
           twilight_self.game.status = "Remove "+ops_to_purge+" US influence from the Middle East";
           twilight_self.hud.updateStatus(twilight_self.game.status);
           twilight_self.hud.updateMenu([]);
-          twilight_self.hud.updateCards([]);        
+          twilight_self.hud.updateCards(twilight_self.game.deck[0].hand);        
 
         });
 

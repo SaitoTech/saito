@@ -11,7 +11,7 @@
         this.game.status = "Place one influence two hops away from a country in which you have existing influence. You cannot break control with this influence.";
         this.hud.updateStatus(this.game.status);
         this.hud.updateMenu([]);
-        this.hud.updateCards([]);
+        this.hud.updateCards(this.game.deck[0].hand);
 
         for (var i in this.countries) {
 

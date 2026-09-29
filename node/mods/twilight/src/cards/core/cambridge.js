@@ -8,7 +8,7 @@
         this.game.status = "The Cambridge Five cannot be played as an event in Late War";
         this.hud.updateStatus(this.game.status);
         this.hud.updateMenu([]);
-        this.hud.updateCards([]);
+        this.hud.updateCards(this.game.deck[0].hand);
         return 1;
       }
 
@@ -59,7 +59,7 @@
           this.game.status = `USSR is placing influence for ${this.cardToText(card)}`;
           this.hud.updateStatus(this.game.status);
           this.hud.updateMenu([]);
-          this.hud.updateCards([]);
+          this.hud.updateCards(this.game.deck[0].hand);
         }
 
       }

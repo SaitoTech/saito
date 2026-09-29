@@ -17,7 +17,7 @@
         twilight_self.game.status = '<div class="status-message" id="status-message">Pick country to remove all US influence:</div>';
         twilight_self.hud.updateStatus(twilight_self.game.status);
         twilight_self.hud.updateMenu([]);
-        twilight_self.hud.updateCards([]);
+        twilight_self.hud.updateCards(twilight_self.game.deck[0].hand);
 
         for (var i in twilight_self.countries) {
 
@@ -37,7 +37,7 @@
             twilight_self.game.status = '<div class="status-message" id="status-message">Place '+us_influence+' in any country not controlled by the USSR:</div>';
             twilight_self.hud.updateStatus(twilight_self.game.status);
             twilight_self.hud.updateMenu([]);
-            twilight_self.hud.updateCards([]);
+            twilight_self.hud.updateCards(twilight_self.game.deck[0].hand);
             for (var i in twilight_self.countries) {
 
 	      if (twilight_self.isControlled("ussr", i) == 1) {} else {
