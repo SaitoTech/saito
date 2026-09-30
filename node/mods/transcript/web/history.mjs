@@ -1,5 +1,9 @@
 import { TranscriptRuntime } from './runtime.mjs';
+import { showModelManager } from './model-manager.mjs';
 const runtime = new TranscriptRuntime({});
+document.getElementById('manage-models').onclick = () => {
+  void showModelManager();
+};
 const status = document.getElementById('status');
 async function render() {
   try {
@@ -14,7 +18,14 @@ async function render() {
       const heading = document.createElement('h2');
       heading.textContent = new Date(session.startedAt).toLocaleString();
       const save = document.createElement('button');
-      save.textContent = 'Save transcript';
+      row.append(heading);
+      const pending = await runtime.store.audioStats(session.id);
+      save.textContent = pending.count ? 'Finish transcript' : 'Save transcript';
+      if (pending.count) {
+        const remaining = document.createElement('p');
+        remaining.textContent = `${Math.ceil(pending.bytes / 64000)} seconds of audio saved for transcription.`;
+        row.append(remaining);
+      }
       save.onclick = async () => {
         try {
           await runtime.showSave(session, await runtime.store.entries(session.id));
@@ -23,7 +34,7 @@ async function render() {
           status.textContent = 'Could not read this transcript.';
         }
       };
-      row.append(heading, save);
+      row.append(save);
       container.append(row);
     }
   } catch {

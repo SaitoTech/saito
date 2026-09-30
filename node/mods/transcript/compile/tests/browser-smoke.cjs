@@ -26,7 +26,12 @@ const path = require('node:path');
     const errors = [];
     page.on('pageerror', (error) => errors.push(error.message));
     await page.route('**/*', (route) => {
-      assert.equal(new URL(route.request().url()).hostname, '127.0.0.1');
+      const hostname = new URL(route.request().url()).hostname;
+      assert.ok(
+        hostname === '127.0.0.1' ||
+          (process.env.TRANSCRIPT_AUDIO_FIXTURE &&
+            (hostname === 'huggingface.co' || hostname.endsWith('.hf.co')))
+      );
       return route.continue();
     });
     const url = `http://127.0.0.1:${server.address().port}/transcript/`;
@@ -53,6 +58,8 @@ const path = require('node:path');
     });
     await page.evaluate(async (recognize) => {
       if (recognize) {
+        const { MODELS, downloadModel } = await import('/transcript/models.mjs');
+        await downloadModel(MODELS[0]);
         const context = new AudioContext({ sampleRate: 48000 });
         await context.resume();
         const local = context.createMediaStreamDestination();
@@ -92,6 +99,14 @@ const path = require('node:path');
     assert.match(await page.locator('.transcript-indicator').textContent(), /being captured/);
     assert.doesNotMatch(await page.locator('.transcript-indicator').textContent(), /Alice|Bob/);
     assert.equal(await page.locator('.transcript-recording-border').count(), 1);
+    // The call controls animate their colors; wait for the active style to settle.
+    await page.waitForFunction(() => {
+      const button = document.querySelector('.transcript-toggle-control');
+      return (
+        getComputedStyle(button).backgroundColor === 'rgb(255, 52, 52)' &&
+        getComputedStyle(button.querySelector('i')).color === 'rgb(255, 255, 255)'
+      );
+    });
     assert.equal(
       await page
         .locator('.transcript-toggle-control')
@@ -124,7 +139,7 @@ const path = require('node:path');
     await page.getByRole('button', { name: 'Save To File' }).waitFor();
     assert.equal(await page.locator('.transcript-recording-border').count(), 0);
     assert.equal(await page.locator('.screenrecord-recording-border').count(), 1);
-    // Exercise the ordinary-download branch and require explicit confirmation.
+    // Exercise the ordinary-download branch with automatic confirmation.
     await page.evaluate(() => {
       window.showSaveFilePicker = undefined;
     });
@@ -135,14 +150,23 @@ const path = require('node:path');
     assert.match(text, /Alice:/);
     assert.match(text, /Bob:/);
     assert.match(text, /Appended after recovery/);
-    assert.equal(
-      await page.evaluate(async () => (await runtime.store.sessions()).length),
-      1,
-      'Starting a download must not delete recovery'
-    );
-    await page.getByRole('button', { name: 'I saved the file' }).click();
     await page.evaluate(() => finished);
+    assert.equal(await page.getByRole('button', { name: 'I saved the file' }).count(), 0);
     assert.equal(await page.evaluate(async () => (await runtime.store.sessions()).length), 0);
+    // A successful save must also stay cleared after a real page reload.
+    await page.reload();
+    await mount();
+    await page.evaluate(() => runtime.recover());
+    assert.equal(await page.locator('.transcript-dialog').count(), 0);
+    assert.equal(await page.evaluate(async () => (await runtime.store.sessions()).length), 0);
+    assert.equal(
+      await page.evaluate(() => {
+        const event = new Event('beforeunload', { cancelable: true });
+        window.dispatchEvent(event);
+        return event.defaultPrevented;
+      }),
+      false
+    );
     // Older data must prompt for saving on open, without offering append.
     await page.evaluate(async () => {
       await runtime.store.append(

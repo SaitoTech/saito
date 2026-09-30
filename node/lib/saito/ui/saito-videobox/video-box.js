@@ -17,6 +17,11 @@ class SaitoVideoBox {
     //
     this.listeners = {};
 
+    this.addListener('peer-toggle-transcription-status', ({ public_key }) => {
+      const key = this.stream_id === 'local' ? this.mod.publicKey : this.stream_id;
+      if (public_key === key) this.renderTranscriptionStatus();
+    });
+
     this.addListener('peer-toggle-audio-status', ({ enabled, public_key }) => {
       if (public_key !== this.stream_id) return;
 
@@ -186,7 +191,15 @@ class SaitoVideoBox {
     }
 
     this.renderPeerList();
+    this.renderTranscriptionStatus();
     this.attachEvents();
+  }
+
+  renderTranscriptionStatus() {
+    const key = this.stream_id === 'local' ? this.mod.publicKey : this.stream_id;
+    const notice = document.getElementById(`stream_${this.stream_id}`)
+      ?.querySelector('.peer-transcription-status');
+    if (notice) notice.hidden = !this.mod.streams?.transcribingPeers?.has(key);
   }
 
   attachEvents() {

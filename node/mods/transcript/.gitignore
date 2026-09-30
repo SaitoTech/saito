@@ -1,3 +1,4 @@
-# Reproducibly downloaded by scripts/fetch-assets.mjs; deploy these with the module.
+# Browser runtime installed by compile/install-runtime.mjs; deploy with the module.
 web/vendor/
+# Ignore obsolete node model downloads left by older installations.
 web/models/
