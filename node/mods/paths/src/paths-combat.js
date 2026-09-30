@@ -26,7 +26,7 @@
     for (let i = 0; i < this.game.spaces[this.game.state.combat.key].units.length; i++) {
       let unit = this.game.spaces[this.game.state.combat.key].units[i];
       // units that have retreated this turn do not add their combat
-      if (!unit.moved) {
+      if (!unit.moved && !unit.destroyed) {
         if (unit.damaged) {
           x += unit.rcombat;
         } else {
@@ -41,7 +41,7 @@
     let x = 0;
     for (let i = 0; i < this.game.state.combat.attacker.length; i++) {
       let unit = this.game.spaces[this.game.state.combat.attacker[i].unit_sourcekey].units[this.game.state.combat.attacker[i].unit_idx];
-      if (unit) {
+      if (unit && !unit.destroyed) {
         if (unit.damaged) {
           x += unit.rcombat;
         } else {

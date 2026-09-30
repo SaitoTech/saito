@@ -710,7 +710,7 @@ deck['ap14'] = {
 	      	      paths_self.game.status = "Central Powers playing " + paths_self.popup("cp05");
 	      paths_self.hud.updateStatus(paths_self.game.status);
 	      paths_self.hud.updateMenu([]);
-	      paths_self.hud.updateCards([]);
+	      paths_self.showPlayerHand();
 	    }
             return 0;
           } 
@@ -1004,7 +1004,7 @@ deck['ap16'] = {
 	    	    paths_self.game.status = "Romania entering war...";
 	    paths_self.hud.updateStatus(paths_self.game.status);
 	    paths_self.hud.updateMenu([]);
-	    paths_self.hud.updateCards([]);
+	    paths_self.showPlayerHand();
 	  }
 
           paths_self.displayCustomOverlay({
@@ -1214,7 +1214,7 @@ deck['ap23'] = {
 	      	      paths_self.game.status = "opponent revealing hand...";
 	      paths_self.hud.updateStatus(paths_self.game.status);
 	      paths_self.hud.updateMenu([]);
-	      paths_self.hud.updateCards([]);
+	      paths_self.showPlayerHand();
 	    }
             return 0;
           } 
@@ -1376,7 +1376,7 @@ deck['ap29'] = {
 	    	    paths_self.game.status = "Russia placing unit...";
 	    paths_self.hud.updateStatus(paths_self.game.status);
 	    paths_self.hud.updateMenu([]);
-	    paths_self.hud.updateCards([]);
+	    paths_self.showPlayerHand();
 	  }       
 
 	  return 0;
@@ -1553,7 +1553,7 @@ deck['ap31'] = {
 	    	    paths_self.game.status = "Allies placing MEF...";
 	    paths_self.hud.updateStatus(paths_self.game.status);
 	    paths_self.hud.updateMenu([]);
-	    paths_self.hud.updateCards([]);
+	    paths_self.showPlayerHand();
 	  }	
 	  return 0;
 	},
@@ -1710,7 +1710,7 @@ deck['ap34'] = {
                             paths_self.game.status = "opponent revealing hand...";
               paths_self.hud.updateStatus(paths_self.game.status);
               paths_self.hud.updateMenu([]);
-              paths_self.hud.updateCards([]);
+              paths_self.showPlayerHand();
             }
             return 0;
           }
@@ -2135,7 +2135,7 @@ deck['cp32'] = {
 	    	    paths_self.game.status = "Allies playing War in Africa";
 	    paths_self.hud.updateStatus(paths_self.game.status);
 	    paths_self.hud.updateMenu([]);
-	    paths_self.hud.updateCards([]);
+	    paths_self.showPlayerHand();
 	  }
 
 	  return 0;
@@ -2186,7 +2186,7 @@ deck['cp33'] = {
 	    	    paths_self.game.status = "Bulgaria entering war...";
 	    paths_self.hud.updateStatus(paths_self.game.status);
 	    paths_self.hud.updateMenu([]);
-	    paths_self.hud.updateCards([]);
+	    paths_self.showPlayerHand();
 	  }
 
           paths_self.displayCustomOverlay({
@@ -2760,7 +2760,7 @@ deck['ap57'] = {
                             paths_self.game.status = "Russia placing unit...";
               paths_self.hud.updateStatus(paths_self.game.status);
               paths_self.hud.updateMenu([]);
-              paths_self.hud.updateCards([]);
+              paths_self.showPlayerHand();
             }
 
           return 0;

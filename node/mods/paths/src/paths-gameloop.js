@@ -1241,6 +1241,9 @@ if (this.game.state.turn == 1) {
 	//////////////
 	if (mv[0] == "play") {
 
+	  this.removeSignalMarkers();
+	  this.signals = { n: 0, marks: {} };
+
 	  //
 	  // auto-victory if allies take all supply sourcs 
 	  //
@@ -1717,7 +1720,7 @@ try {
 	      	      this.game.status = "Opponent Redeploying...";
 	      this.hud.updateStatus(this.game.status);
 	      this.hud.updateMenu([]);
-	      this.hud.updateCards([]);
+	      this.showPlayerHand();
 	    }
 	    return 0;
 	  } else {
@@ -1867,7 +1870,7 @@ try {
 	    	    this.game.status = this.returnFactionName(faction) + " executing combat";
 	    this.hud.updateStatus(this.game.status);
 	    this.hud.updateMenu([]);
-	    this.hud.updateCards([]);
+	    this.showPlayerHand();
 	  }
 
 	  return 0;
@@ -2302,7 +2305,7 @@ console.log("AT: " + this.returnPlayerOfFaction(this.game.state.combat.attacking
 	    	    this.game.status = "Attacker Selecting Combat Cards...";
 	    this.hud.updateStatus(this.game.status);
 	    this.hud.updateMenu([]);
-	    this.hud.updateCards([]);
+	    this.showPlayerHand();
 	  }
 
 	  return 0;
@@ -2770,7 +2773,7 @@ console.log("error updated attacker loss factor: " + JSON.stringify(err));
 	    	    this.game.status = "Opponent Assigning Losses";
 	    this.hud.updateStatus(this.game.status);
 	    this.hud.updateMenu([]);
-	    this.hud.updateCards([]);
+	    if (power == "attacker") { this.showPlayerHand(); } else { this.hud.updateCards([]); }
 	  }
 
 	  this.game.queue.splice(qe, 1);
@@ -2809,7 +2812,7 @@ console.log("error updated attacker loss factor: " + JSON.stringify(err));
 	    	    this.game.status = "Central Powers considering advance...";
 	    this.hud.updateStatus(this.game.status);
 	    this.hud.updateMenu([]);
-	    this.hud.updateCards([]);
+	    this.showPlayerHand();
           }
 
 	  this.game.queue.splice(qe, 1);
@@ -2996,7 +2999,7 @@ this.updateLog("Winner of the Combat: " + this.game.state.combat.winner);
 	      	      this.game.status = "Opponent deciding on advance...";
 	      this.hud.updateStatus(this.game.status);
 	      this.hud.updateMenu([]);
-	      this.hud.updateCards([]);
+	      this.showPlayerHand();
 	    }
 	    return 1;
 	  }
@@ -3025,7 +3028,7 @@ this.updateLog("Winner of the Combat: " + this.game.state.combat.winner);
 	    	    this.game.status = "Opponent deciding on advance...";
 	    this.hud.updateStatus(this.game.status);
 	    this.hud.updateMenu([]);
-	    this.hud.updateCards([]);
+	    this.showPlayerHand();
 	  }
 
 	  return 0;
@@ -3061,7 +3064,7 @@ this.updateLog("Winner of the Combat: " + this.game.state.combat.winner);
 	      	      this.game.status = "Opponent considering Flank Attack";
 	      this.hud.updateStatus(this.game.status);
 	      this.hud.updateMenu([]);
-	      this.hud.updateCards([]);
+	      this.showPlayerHand();
 	    }
 	    return 0;
           }
@@ -3246,6 +3249,14 @@ console.log("DAMAGE: " + JSON.stringify(tmpx));
 	  if (player_to_ignore != this.game.player) {
 	    let unit = null;
 	    let unit_idx = 0;
+	    if (mv[5] !== undefined && mv[5] !== "") {
+	      let z = parseInt(mv[5]);
+	      if (!isNaN(z) && this.game.spaces[spacekey].units[z] && this.game.spaces[spacekey].units[z].key === key && !this.game.spaces[spacekey].units[z].destroyed) {
+	        unit = this.game.spaces[spacekey].units[z];
+	        unit_idx = z;
+	      }
+	    }
+	    if (!unit) {
 	    for (let z = 0; z < this.game.spaces[spacekey].units.length; z++) {
 	      if (!this.game.spaces[spacekey].units[z].destroyed) {
 	        if (damaged == 1) {
@@ -3260,6 +3271,7 @@ console.log("DAMAGE: " + JSON.stringify(tmpx));
 	          }
 	        }
 	      }
+	    }
 	    }
 	    if (unit) {
 	      if (unit.damaged == false) {
@@ -3372,24 +3384,30 @@ console.log("moving unit: " + JSON.stringify(u));
 	      this.game.spaces[spacekey].units[this.game.spaces[spacekey].units.length-1].damaged_this_combat = true;
 	    }
 	    //
-	    // if this is a corps and it is in a spacekey under combat, update
+	    // A replacement corps for an attacking army is added to the source
+	    // space here. The assigning player records it on combat.attacker
+	    // locally and ignores this move, so the other client has to record
+	    // the same unit or its remaining-forces view omits the corps.
 	    //
-            if (unitkey.indexOf("corps") > -1) {
-	      if (this.game.state.combat) {
-	        if (this.game.state.combat.attacker) {
-	          for (let z = 0; z < this.game.state.combat.attacker.length; z++) {
-/****
-  	            if (this.game.state.combat.attacker[z].unit_sourcekey == spacekey) {
-console.log("pushing back attacker corps!");
-	              this.game.state.combat.attacker.push({ key : this.game.state.combat.key , unit_sourcekey : spacekey , unit_idx : this.game.spaces[spacekey].units.length-1 });
-		      z = this.game.state.combat.attacker.length + 2;
-	    	      if (attacked) {
-	    	        this.game.spaces[spacekey].units[this.game.spaces[spacekey].units.length-1].damaged_this_combat = true;
-	    	      }
-	            }
-****/
+            if (attacked && unitkey.indexOf("corps") > -1 && this.game.state.combat && this.game.state.combat.attacker) {
+	      let attackers = this.game.state.combat.attacker;
+	      let unit_idx = this.game.spaces[spacekey].units.length - 1;
+	      let replacing_attacker = false;
+	      for (let z = 0; z < attackers.length; z++) {
+	        if (attackers[z].unit_sourcekey == spacekey) {
+	          if (attackers[z].unit_idx == unit_idx) {
+	            replacing_attacker = false;
+	            break;
 	          }
+	          replacing_attacker = true;
 	        }
+	      }
+	      if (replacing_attacker) {
+	        attackers.push({
+	          key: this.game.state.combat.key,
+	          unit_sourcekey: spacekey,
+	          unit_idx: unit_idx
+	        });
 	      }
 	    }
 	  }
@@ -3448,7 +3466,8 @@ console.log("pushing back attacker corps!");
 	
 	if (mv[0] === "player_play_movement") {
 
-	  this.clearActivationSignals();
+	  this.removeSignalMarkers();
+	  this.signals = { n: 0, marks: {} };
 	  this.game.queue.splice(qe, 1);
 	  let faction = mv[1];
 
@@ -3468,7 +3487,8 @@ console.log("pushing back attacker corps!");
 	    	    this.game.status = this.returnFactionName(faction) + " executing movement";
 	    this.hud.updateStatus(this.game.status);
 	    this.hud.updateMenu([]);
-	    this.hud.updateCards([]);
+	    this.hud.updateCards(this.returnPlayerHand());
+	    this.cardbox.attachCardEvents();
 	  }
 
 	  return 0;
@@ -3490,11 +3510,10 @@ console.log("pushing back attacker corps!");
 	  if (this.game.player == player) {
 	    this.playerPlayOps(faction, card, cost, skipend);    
 	  } else {
-	    this.waiting_for_opponent_ops = 1;
 	    	    this.game.status = this.returnFactionName(faction) + " playing OPS";
 	    this.hud.updateStatus(this.game.status);
 	    this.hud.updateMenu([]);
-	    this.hud.updateCards([]);
+	    this.showPlayerHand();
 	  }
 
 	  return 0;

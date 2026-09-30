@@ -67,7 +67,25 @@ class PathsOfGlory extends GameTemplate {
     this.default_board_scale = 100;
     this.signal_n = 0;
     this.signals = { n: 0, marks: {} };
-    this.waiting_for_opponent_ops = 0;
+
+    let hud_update_menu = this.hud.updateMenu.bind(this.hud);
+    let hud_update_cards = this.hud.updateCards.bind(this.hud);
+    let set_cards_visible = (visible) => {
+      document.querySelectorAll('#game-hud2 .hud-cards').forEach((el) => {
+        el.style.display = visible ? '' : 'none';
+      });
+    };
+    this.hud.updateMenu = (options, callback) => {
+      hud_update_menu(options, callback);
+      set_cards_visible(!(options && options.length > 0));
+    };
+    this.hud.updateCards = (cards, callback) => {
+      hud_update_cards(cards, callback);
+      let menu = document.querySelector('#game-hud2 .hud-menu');
+      if (menu && menu.querySelector('.option')) {
+        set_cards_visible(false);
+      }
+    };
 
     //
     // this sets the ratio used for determining
