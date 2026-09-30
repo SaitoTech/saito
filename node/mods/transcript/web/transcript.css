@@ -83,6 +83,78 @@
 .transcript-dialog-actions {
   flex-wrap: wrap;
 }
+.transcript-model-manager {
+  height: max-content;
+  gap: 1.2rem;
+  background: var(--saito-popover, #20222b);
+  color: var(--saito-popover-foreground, white);
+  padding: var(--saito-space-xl, 24px);
+  max-height: 85dvh;
+  overflow-y: auto;
+  font-family: var(--saito-font);
+  font-size: 1.6rem;
+  line-height: 1.5;
+}
+.transcript-model-manager > * {
+  flex-shrink: 0;
+}
+.transcript-model-manager :is(h2, p) {
+  margin: 0;
+}
+.transcript-model-manager h2 {
+  font-size: 2.2rem;
+}
+.transcript-model-manager label {
+  display: block;
+  margin-top: 0;
+  font-weight: bold;
+}
+.transcript-model-manager select {
+  display: block;
+  width: 100%;
+  margin-top: 0.5rem;
+  padding: 0.7rem;
+  border: 1px solid var(--saito-border);
+  border-radius: var(--saito-radius);
+  background: var(--saito-background, #20222b);
+  color: var(--saito-foreground, white);
+  font: inherit;
+}
+.transcript-model-manager progress {
+  width: 100%;
+}
+.transcript-model-manager button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.transcript-model-manager button {
+  min-width: 0;
+}
+.transcript-action-menu {
+  min-width: 0;
+  width: min(36rem, 92vw);
+}
+.transcript-action-menu .saito-modal-menu-option {
+  width: 100%;
+  text-align: left;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease;
+}
+.transcript-action-menu .saito-modal-menu-option:is(:hover, :focus-visible) {
+  background-color: var(--saito-accent);
+  color: var(--saito-accent-foreground);
+}
+.transcript-action-menu .saito-modal-menu-option:focus-visible {
+  outline: 2px solid var(--saito-primary);
+  outline-offset: -2px;
+}
+@media (max-width: 768px) {
+  .saito-overlay > .transcript-model-manager {
+    max-height: none;
+    overflow: visible;
+  }
+}
 .transcript-history article > button {
   padding: 8px 14px;
   border: 1px solid #81899b;

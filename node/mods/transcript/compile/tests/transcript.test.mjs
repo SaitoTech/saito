@@ -4,6 +4,8 @@ import vm from 'node:vm';
 import { readFile } from 'node:fs/promises';
 import { Segmenter } from '../../web/segmenter.mjs';
 import { TranscriptEngine } from '../../web/engine.mjs';
+import { AudioBlocks, speechBatch } from '../../web/audio-buffer.mjs';
+import { browserLocks, AudioStore } from './buffer-fixtures.mjs';
 import { transcriptText, timestamp } from '../../web/store.mjs';
 
 const frame = (volume = 0.1) => new Float32Array(1600).fill(volume);
@@ -67,136 +69,208 @@ test('transcripts merge speakers chronologically with timestamps and gap notices
   assert.equal(timestamp(360000000), '100:00:00');
 });
 
-function engine(options = {}) {
-  return new TranscriptEngine({
-    context: { close: async () => {} },
-    onStatus: () => {},
-    onGap: () => {},
-    onText: () => {},
+function engine(t, options = {}) {
+  browserLocks(t);
+  const instance = new TranscriptEngine({
+    store: new AudioStore(),
+    session: { id: 'test', localPublicKey: 'alice' },
+    onStatus() {},
+    onGap() {},
+    onText() {},
     speaker: (peer) => peer,
-    shouldSave: () => true,
-    startedAt: 0,
+    startedAt: Date.now(),
     ...options
   });
+  instance.worker = {
+    postMessage: (message) => queueMicrotask(() => instance.resolve_inference('Recognized')),
+    terminate() {}
+  };
+  instance.ready = true;
+  t.after(() => instance.pause());
+  return instance;
 }
 
-test('queue keeps speaker identity and save choice; bounds overload without silently losing speech', () => {
-  const gaps = [];
-  let save = true;
-  const instance = engine({ onGap: (message) => gaps.push(message), shouldSave: () => save });
-  instance.current = { id: 0 }; // An inference is already running.
-  instance.enqueue('Alice', { audio: new Float32Array(16000 * 4), start: 5000 });
-  save = false;
-  instance.enqueue('Bob', { audio: new Float32Array(16000 * 4), start: 1000 });
-  assert.equal(instance.queue[0].speaker, 'Bob');
-  assert.equal(instance.queue[0].save, false);
-  assert.equal(instance.queue[1].save, true);
-  for (let i = 0; i < 20; i++)
-    instance.enqueue('Alice', { audio: new Float32Array(64000), start: 10000 });
-  assert.ok(instance.queue.length <= 7);
-  assert.ok(gaps.length > 0);
-  instance.dispose();
+const block = (start, streamId = 'alice', volume = 0.1) => ({
+  audio: new Float32Array(16000).fill(volume),
+  start,
+  end: start + 1000,
+  streamId
 });
 
-test('disconnect drains pending recognition before terminating the worker', async () => {
-  const instance = engine();
-  let terminated = false;
-  instance.worker = {
-    terminate: () => {
-      terminated = true;
+test('capture checkpoints every second and flushes a final partial second', () => {
+  const saved = [];
+  const blocks = new AudioBlocks((chunk) => saved.push(chunk));
+  for (let i = 0; i < 15; i++) blocks.push(frame(), i * 100);
+  assert.equal(saved.length, 1);
+  assert.equal(saved[0].audio.length, 16000);
+  blocks.flush(true);
+  assert.equal(saved[1].audio.length, 8000);
+  assert.equal(saved[1].final, true);
+  assert.equal(saved[1].start, 1000);
+});
+
+test('worklet flush acknowledges and retains its sub-frame tail', async () => {
+  let Processor;
+  const messages = [];
+  vm.runInNewContext(
+    await readFile(new URL('../../web/audio-worklet.js', import.meta.url), 'utf8'),
+    {
+      AudioWorkletProcessor: class {
+        port = { postMessage: (data) => messages.push(data) };
+      },
+      registerProcessor: (_, processor) => {
+        Processor = processor;
+      },
+      sampleRate: 48000,
+      Float32Array
     }
-  };
-  instance.current = { id: 1 };
-  const stopped = instance.stop();
-  assert.equal(terminated, false);
-  instance.current = null;
-  instance.pump();
-  await stopped;
-  assert.equal(terminated, true);
+  );
+  const processor = new Processor();
+  processor.process([[new Float32Array(600).fill(0.2)]]);
+  processor.port.onmessage({ data: { type: 'flush' } });
+  assert.equal(messages[0].length, 200);
+  assert.equal(messages[1].type, 'flushed');
+  processor.process([[new Float32Array(4800).fill(0.2)]]);
+  assert.equal(messages.length, 2);
+});
+
+test('persisted silence is gated while speech spanning checkpoints remains intact', () => {
+  assert.equal(speechBatch([block(0, 'alice', 0)]), null);
+  const result = speechBatch([block(0), block(1000)]);
+  assert.equal(result.audio.length, 32000);
+  assert.equal(result.start, 0);
+  assert.equal(result.end, 2000);
+});
+
+test('more than thirty seconds of pending audio is retained and drains on hangup', async (t) => {
+  const instance = engine(t);
+  instance.ready = false;
+  for (let i = 0; i < 45; i++) instance.enqueue('local', block(i * 1000));
+  await instance.writes;
+  assert.equal(instance.store.blocks.length, 45);
+  assert.equal(instance.pending_bytes, 0);
+  assert.equal(instance.store.blocks[0].publicKey, 'alice');
+  instance.ready = true;
+  await instance.stop();
+  assert.equal(instance.store.blocks.length, 0);
+  assert.equal(instance.store.text.length, 4);
   assert.equal(instance.closed, true);
 });
 
-test('cleanup disconnects processors without stopping call media tracks', () => {
-  const instance = engine();
-  const track = { stop: () => assert.fail('Must not stop the call microphone') };
-  let disconnected = 0;
-  instance.sources.set('local', {
-    stream: { removeEventListener: () => {}, getTracks: () => [track] },
-    source: { disconnect: () => disconnected++ },
-    node: { disconnect: () => disconnected++, port: { close: () => {} } },
-    silence: { disconnect: () => disconnected++ },
-    segmenter: { flush: () => {} }
-  });
-  instance.dispose();
-  assert.equal(disconnected, 3);
+test('audio survives worker failure and text commit failure', async (t) => {
+  const instance = engine(t, { recovery: true });
+  instance.ready = false;
+  instance.enqueue('alice', block(0));
+  await instance.writes;
+  instance.store.completeAudio = async () => {
+    throw new Error('disk full');
+  };
+  instance.ready = true;
+  await instance.stop();
+  assert.equal(instance.store.blocks.length, 1);
+  assert.equal(instance.failure.message, 'disk full');
+  assert.equal(instance.store.text.length, 0);
 });
 
-test('pending adjacent speech from one speaker is processed in one bounded batch', () => {
-  const instance = engine();
-  const messages = [];
-  instance.worker = { postMessage: (message) => messages.push(message), terminate() {} };
-  instance.current = { id: 0 };
-  for (let i = 0; i < 4; i++)
-    instance.enqueue('Alice', {
-      audio: new Float32Array(64000).fill(i + 1),
-      start: i * 4000,
-      end: (i + 1) * 4000
+test('finish later interrupts inference without deleting its source audio', async (t) => {
+  const instance = engine(t, { recovery: true });
+  instance.worker.postMessage = () => {};
+  instance.enqueue('alice', block(0));
+  await instance.writes;
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.ok(instance.current);
+  await instance.pause();
+  assert.equal(instance.store.blocks.length, 1);
+  assert.equal(instance.closed, true);
+  assert.equal(instance.failure, undefined);
+});
+
+test('successful empty recognition consumes audio without creating text', async (t) => {
+  const instance = engine(t, { recovery: true });
+  instance.worker.postMessage = () => queueMicrotask(() => instance.resolve_inference(''));
+  instance.enqueue('alice', block(0));
+  await instance.stop();
+  assert.equal(instance.store.blocks.length, 0);
+  assert.equal(instance.store.text.length, 0);
+});
+
+test('storage failure stops capture and reports an uncommitted-audio gap', async (t) => {
+  const notices = [];
+  const instance = engine(t, { onGap: (text) => notices.push(text) });
+  instance.store.appendAudio = async () => {
+    throw new Error('quota');
+  };
+  instance.enqueue('alice', block(0));
+  await instance.writes;
+  await instance.pause();
+  assert.match(notices.join(' '), /quota.*Uncommitted audio/);
+  assert.equal(instance.pending_bytes, 0);
+  assert.equal(instance.closed, true);
+});
+
+test('stalled storage has a bounded memory queue and stops capture visibly', async (t) => {
+  const instance = engine(t);
+  let release;
+  instance.store.appendAudio = () =>
+    new Promise((resolve) => {
+      release = resolve;
     });
-  instance.current = null;
-  instance.pump();
-  assert.equal(messages.length, 1);
-  assert.equal(messages[0].audio.length, 16000 * 12);
-  assert.equal(instance.current.start, 0);
-  assert.equal(instance.current.end, 12000);
-  assert.equal(instance.queue.length, 1);
-  assert.equal(messages[0].audio[0], 1);
-  assert.equal(messages[0].audio[64000], 2);
-  assert.equal(messages[0].audio[128000], 3);
-  instance.dispose();
+  instance.enqueue('alice', block(0));
+  await new Promise((resolve) => setImmediate(resolve));
+  // Fill the pending-write allowance without allocating an unbounded stream.
+  instance.enqueue('alice', { ...block(1000), audio: new Float32Array((8 * 1024 * 1024) / 4) });
+  assert.match(instance.failure.message, /cannot keep up/);
+  assert.equal(instance.pending_bytes, 64000);
+  release();
+  await instance.pause();
 });
 
-test('catch-up preserves short pauses and never mixes speakers', () => {
-  const instance = engine();
-  instance.worker = { postMessage() {}, terminate() {} };
-  instance.current = { id: 0 };
-  instance.enqueue('Alice', { audio: new Float32Array(16000).fill(1), start: 0, end: 1000 });
-  instance.enqueue('Alice', { audio: new Float32Array(16000).fill(2), start: 1500, end: 2500 });
-  instance.enqueue('Bob', { audio: new Float32Array(16000), start: 2500, end: 3500 });
-  instance.current = null;
-  instance.pump();
-  assert.equal(instance.current.audio.length, 40000);
-  assert.equal(instance.current.audio[16000], 0);
-  assert.equal(instance.current.audio[24000], 2);
-  assert.equal(instance.queue[0].peer, 'Bob');
-  instance.dispose();
-});
-
-test('recognition starts immediately when idle; batching adds no waiting period', () => {
-  const instance = engine();
-  let sent = 0;
-  instance.worker = {
+test('model startup failure reports the stop, retains audio, and releases the session lock', async (t) => {
+  const statuses = [];
+  const instance = engine(t, { onStatus: (text) => statuses.push(text), recovery: true });
+  instance.ready = false;
+  instance.enqueue('alice', block(0));
+  await instance.writes;
+  const previous = globalThis.Worker;
+  globalThis.Worker = class {
     postMessage() {
-      sent++;
-    },
+      queueMicrotask(() => this.onmessage({ data: { type: 'error', message: 'Model missing' } }));
+    }
     terminate() {}
   };
-  instance.enqueue('Alice', { audio: new Float32Array(16000), start: 0, end: 1000 });
-  assert.equal(sent, 1);
-  assert.equal(instance.queue.length, 0);
-  instance.dispose();
+  t.after(() => {
+    globalThis.Worker = previous;
+  });
+  await assert.rejects(instance.start(), /Model missing/);
+  assert.equal(instance.store.blocks.length, 1);
+  assert.equal(instance.closed, true);
+  assert.ok(statuses.some((text) => text.startsWith('Transcript stopped:')));
+  await navigator.locks.request('saito-transcript:test', { ifAvailable: true }, (lock) =>
+    assert.ok(lock)
+  );
 });
 
-test('catch-up tolerates audio delivery jitter without dropping samples', () => {
-  const instance = engine();
-  instance.worker = { postMessage() {}, terminate() {} };
-  instance.current = { id: 0 };
-  instance.enqueue('Alice', { audio: new Float32Array(64000).fill(1), start: 0, end: 4000 });
-  instance.enqueue('Alice', { audio: new Float32Array(64000).fill(2), start: 3995, end: 7995 });
-  instance.current = null;
-  instance.pump();
-  assert.equal(instance.current.audio.length, 128000);
-  assert.equal(instance.current.audio[63999], 1);
-  assert.equal(instance.current.audio[64000], 2);
-  assert.equal(instance.queue.length, 0);
-  instance.dispose();
+test('pausing during the initial storage write cannot start a late worker', async (t) => {
+  const instance = engine(t);
+  instance.ready = false;
+  let saved;
+  instance.store.saveSession = () =>
+    new Promise((resolve) => {
+      saved = resolve;
+    });
+  const previous = globalThis.Worker;
+  globalThis.Worker = class {
+    constructor() {
+      assert.fail('Capture was already paused');
+    }
+  };
+  t.after(() => {
+    globalThis.Worker = previous;
+  });
+  const starting = instance.start();
+  await new Promise((resolve) => setImmediate(resolve));
+  await instance.pause();
+  saved();
+  await starting;
+  assert.equal(instance.closed, true);
 });

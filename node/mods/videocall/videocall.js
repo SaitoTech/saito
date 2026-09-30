@@ -586,6 +586,15 @@ class Videocall extends ModTemplate {
             this.app.connection.emit(`peer-${txmsg.request}-status`, txmsg.data);
           }
 
+          if (
+            txmsg.request === 'toggle-transcription' &&
+            this.streams?.active &&
+            this.room_obj.call_peers.includes(from) &&
+            typeof txmsg.data?.enabled === 'boolean'
+          ) {
+            this.streams.updateTranscriptionStatus(from, txmsg.data.enabled);
+          }
+
           if (txmsg.request === 'screen-share-start') {
             if (this.screen_share !== tx.from[0].publicKey) {
               this.screen_share = tx.from[0].publicKey;

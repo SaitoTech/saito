@@ -1,4 +1,24 @@
 /* Shared videobox component */
+.video-call-identity {
+	display: flex;
+	align-items: center;
+	gap: 0.6rem;
+	min-width: 0;
+}
+
+.peer-transcription-status {
+	flex-shrink: 0;
+	font-size: 1.2rem;
+	padding: 0.45rem 0.65rem;
+	border-radius: 999px;
+	background: var(--saito-red);
+	color: var(--saito-white);
+}
+
+.peer-transcription-status[hidden] {
+	display: none;
+}
+
 .saito-videobox {
 	display: flex;
 	width: 100%;

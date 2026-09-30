@@ -10,6 +10,7 @@ class StreamManager {
     this.localStream = null; //My Video Feed
     this.presentationStream = null;
     this.remoteStreams = new Map(); //The video of the other parties
+    this.transcribingPeers = new Set();
 
     this.videoEnabled = true;
     this.audioEnabled = true;
@@ -204,6 +205,7 @@ class StreamManager {
         public_key: this.mod.publicKey,
         enabled: this.videoEnabled
       });
+      this.broadcastTranscriptionStatus();
 
       // Add connection quality monitoring....
       if (this.monitors[peerId]) {
@@ -523,7 +525,29 @@ class StreamManager {
     this.app.connection.emit('add-local-stream-request', this.localStream);
   }
 
+  setTranscribing(enabled) {
+    if (!this.active) return;
+    this.updateTranscriptionStatus(this.mod.publicKey, enabled);
+    this.broadcastTranscriptionStatus();
+  }
+
+  broadcastTranscriptionStatus() {
+    void this.mod.sendOffChainMessage('toggle-transcription', {
+      enabled: this.transcribingPeers.has(this.mod.publicKey)
+    }).catch((error) => console.error('TALK: Could not share transcription status', error));
+  }
+
+  updateTranscriptionStatus(peer, enabled) {
+    if (enabled) this.transcribingPeers.add(peer);
+    else this.transcribingPeers.delete(peer);
+    this.app.connection.emit('peer-toggle-transcription-status', {
+      public_key: peer,
+      enabled
+    });
+  }
+
   removePeer(peer, message = 'left the meeting') {
+    this.updateTranscriptionStatus(peer, false);
     this.app.connection.emit('videocall-peer-left', peer);
     this.remoteStreams.delete(peer);
 
@@ -574,6 +598,7 @@ class StreamManager {
     this.videoEnabled = true;
     this.audioEnabled = true;
     this.auto_disconnect = false;
+    this.transcribingPeers.clear();
     this.active = false;
 
     if (this.audioStreamAnalysis) {

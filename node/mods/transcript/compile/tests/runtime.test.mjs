@@ -3,8 +3,10 @@ import assert from 'node:assert/strict';
 import { JSDOM } from 'jsdom';
 import { TranscriptRuntime } from '../../web/runtime.mjs';
 import { saveTranscript } from '../../web/store.mjs';
+import { browserLocks } from './buffer-fixtures.mjs';
 
 function setup(t) {
+  browserLocks(t);
   const dom = new JSDOM(
     '<div id="stun-chatbox"><div class="video-container-large screenrecord-recording-border"></div><button class="transcript-toggle-control"><label>Transcript</label></button></div>'
   );
@@ -24,6 +26,7 @@ function setup(t) {
   const sessions = new Map();
   const entries = new Map();
   runtime.store = {
+    audioStats: async () => ({ count: 0, bytes: 0 }),
     sessions: async () => [...sessions.values()],
     entries: async (id) => structuredClone(entries.get(id) || []),
     saveSession: async (session) => sessions.set(session.id, { ...session }),
@@ -80,13 +83,17 @@ test('capture UI contains status only and its border coexists with recording', (
 
 test('turning off drains final speech, commits it, and prompts to save', async (t) => {
   const { runtime, call, sessions, entries } = setup(t);
+  const transcriptionStates = [];
+  call.streams.setTranscribing = (enabled) => transcriptionStates.push(enabled);
   runtime.run = async () => {};
   await runtime.toggle(call, context());
+  assert.deepEqual(transcriptionStates, [true]);
   const id = runtime.session.id;
   runtime.engine = {
     stop: async () => runtime.receive({ start: 1000, speaker: 'Alice', text: 'Last words' })
   };
   const stopping = runtime.toggle(call);
+  assert.deepEqual(transcriptionStates, [true, false]);
   await tick();
   assert.equal(entries.get(id)[0].text, 'Last words');
   assert.ok(sessions.get(id).endedAt);
@@ -202,6 +209,35 @@ test('failed writes never count as a successful file save', async (t) => {
     })
   });
   await assert.rejects(saveTranscript({ startedAt: 0 }, []), /disk full/);
+});
+
+test('download saves confirm automatically; failed dispatch keeps the transcript', async (t) => {
+  const { runtime, call, sessions, dom } = setup(t);
+  runtime.bind(call);
+  runtime.unsaved = true;
+  runtime.touch();
+  await runtime.writes;
+  const id = runtime.session.id;
+  let fail = true;
+  let downloads = 0;
+  dom.window.HTMLAnchorElement.prototype.click = function () {
+    if (fail) throw new Error('Download failed');
+    assert.match(this.download, /^saito-call-.*\.txt$/);
+    downloads++;
+  };
+  const saving = runtime.showSave(runtime.session, []);
+  assert.equal(button('I saved the file'), undefined);
+  await button('Save To File').onclick();
+  assert.ok(sessions.has(id));
+  assert.equal(runtime.unsaved, true);
+  assert.match(document.querySelector('.transcript-dialog-status').textContent, /Could not finish/);
+  fail = false;
+  await button('Save To File').onclick();
+  assert.equal(await saving, 'saved');
+  assert.equal(downloads, 1);
+  assert.equal(sessions.has(id), false);
+  assert.equal(runtime.unsaved, false);
+  assert.equal(document.querySelector('dialog'), null);
 });
 
 test('navigation stays on page when user keeps the unsaved transcript', async (t) => {
@@ -417,4 +453,159 @@ test('unregistered speakers do not trigger repeated lookups on every audio updat
   await runtime.lookupIdentifiers(['unknown']);
   await runtime.lookupIdentifiers(['unknown']);
   assert.equal(requests, 1);
+});
+
+test('finish later waits for capture storage and permits navigation with recoverable audio', async (t) => {
+  const { runtime, call } = setup(t);
+  runtime.bind(call);
+  runtime.capturing = runtime.unsaved = true;
+  let done;
+  const stopped = new Promise((resolve) => {
+    done = resolve;
+  });
+  runtime.engine = {
+    stop: () => stopped,
+    pause: () => {
+      done();
+      return stopped;
+    }
+  };
+  const leaving = runtime.beforeNavigate();
+  assert.ok(button('Finish later'));
+  button('Finish later').click();
+  assert.equal(await leaving, true);
+  assert.equal(runtime.unsaved, true);
+  assert.equal(document.querySelector('dialog'), null);
+});
+
+test('pending-audio storage failure stops capture without leaving an active indicator', async (t) => {
+  const { runtime, call } = setup(t);
+  runtime.store.audioStats = async () => {
+    throw new Error('database unavailable');
+  };
+  await runtime.toggle(call, context());
+  await tick();
+  assert.equal(runtime.capturing, false);
+  assert.equal(runtime.storageFailed, true);
+  assert.ok(button('Save To File'));
+  button('Resume Later').click();
+  await runtime.finishing;
+});
+
+test('saving a partial transcript clears its audio, text and resume state only', async (t) => {
+  const { runtime, call, sessions, entries } = setup(t);
+  runtime.bind(call);
+  runtime.receive({ id: 1, start: 0, speaker: 'Alice', text: 'Saved words' });
+  await runtime.writes;
+  const session = runtime.session;
+  runtime.pendingSession = { session, entries: runtime.entries };
+  runtime.deferred_audio = true;
+  runtime.heartbeat = setInterval(() => runtime.touch(), 10000);
+  sessions.set('other', { id: 'other', startedAt: 0 });
+  const audio = new Map([[session.id, { count: 2, bytes: 128000 }]]);
+  runtime.store.audioStats = async (id) => audio.get(id) || { count: 0, bytes: 0 };
+  const remove = runtime.store.remove;
+  runtime.store.remove = async (id) => {
+    await remove(id);
+    audio.delete(id);
+  };
+  let exported;
+  window.showSaveFilePicker = async () => ({
+    createWritable: async () => ({
+      write: async (text) => {
+        exported = text;
+      },
+      close: async () => {}
+    })
+  });
+  const saving = runtime.showSave(session, runtime.entries);
+  await tick();
+  assert.match(
+    document.querySelector('.saito-overlay-form-text').textContent,
+    /clears the remaining audio/
+  );
+  await button('Save partial transcript').onclick();
+  assert.equal(await saving, 'saved');
+  assert.match(exported, /Saved words/);
+  assert.match(exported, /Partial transcript/);
+  assert.equal(sessions.has(session.id), false);
+  assert.equal(entries.has(session.id), false);
+  assert.equal(audio.has(session.id), false);
+  assert.equal(sessions.has('other'), true);
+  assert.equal(runtime.unsaved, false);
+  assert.equal(runtime.deferred_audio, false);
+  assert.equal(runtime.session, null);
+  assert.equal(runtime.pendingSession, null);
+  assert.deepEqual(runtime.entries, []);
+});
+
+test('save drains outstanding writes and prevents late callbacks resurrecting recovery', async (t) => {
+  const { runtime, call, sessions } = setup(t);
+  runtime.bind(call);
+  runtime.receive({ start: 0, speaker: 'Alice', text: 'Saved' });
+  await runtime.writes;
+  const session = { ...runtime.session };
+  let releaseWrite;
+  let writing;
+  const beganWriting = new Promise((resolve) => {
+    writing = resolve;
+  });
+  window.showSaveFilePicker = async () => ({
+    createWritable: async () => ({
+      write: async () => {},
+      close: async () => {
+        runtime.persist(async () => {
+          writing();
+          await new Promise((resolve) => {
+            releaseWrite = resolve;
+          });
+          await runtime.store.saveSession(session);
+        }, session.id);
+      }
+    })
+  });
+  const saving = runtime.showSave(runtime.session, runtime.entries);
+  const click = button('Save To File').onclick();
+  await beganWriting;
+  await tick();
+  assert.equal(button('Resume Later').disabled, true);
+  assert.equal(sessions.has(session.id), true);
+  releaseWrite();
+  await click;
+  assert.equal(await saving, 'saved');
+  assert.equal(sessions.has(session.id), false);
+  await runtime.persist(() => runtime.store.saveSession(session), session.id);
+  await runtime.resolveSpeakers(
+    session,
+    [{ id: 1, peer: 'bob', speaker: 'Old name', text: 'Saved' }],
+    { lookup: false }
+  );
+  assert.equal(sessions.has(session.id), false);
+  assert.deepEqual(await runtime.store.entries(session.id), []);
+});
+
+test('a failed partial save retains both pending audio and recovery state', async (t) => {
+  const { runtime, call, sessions } = setup(t);
+  runtime.bind(call);
+  runtime.receive({ start: 0, text: 'Keep this' });
+  await runtime.writes;
+  const id = runtime.session.id;
+  runtime.store.audioStats = async () => ({ count: 1, bytes: 64000 });
+  window.showSaveFilePicker = async () => ({
+    createWritable: async () => ({
+      write: async () => {
+        throw new Error('disk full');
+      },
+      abort: async () => {}
+    })
+  });
+  const saving = runtime.showSave(runtime.session, runtime.entries);
+  await tick();
+  await button('Save partial transcript').onclick();
+  assert.equal(sessions.has(id), true);
+  assert.equal(runtime.unsaved, true);
+  assert.equal((await runtime.store.audioStats(id)).count, 1);
+  assert.equal(runtime.clearedSessions.has(id), false);
+  button('Resume Later').click();
+  await saving;
 });
