@@ -1,0 +1,604 @@
+RED IMPERIUM — SECTOR ART UPGRADE PROMPT
+
+TASK
+Upgrade the supplied Red Imperium sector/hex artwork into a polished, professional science-fiction board-game illustration.
+
+Use the supplied image as the authoritative source for the composition.
+
+The goal is to substantially improve the visual quality while preserving all gameplay-relevant geometry and layout.
+
+The result should look like a professionally illustrated space strategy board-game tile: restrained, coherent, atmospheric, readable, and designed to have ships, units, markers, tokens, and other game elements layered over it.
+
+This is GAME BOARD ART, not cinematic concept art.
+
+The artwork must prioritize gameplay visibility and visual consistency over drama, spectacle, contrast, or photographic realism.
+
+Do NOT redesign the composition.
+
+==================================================
+1. HARD GEOMETRY REQUIREMENTS
+==================================================
+
+These requirements are mandatory and take precedence over artistic changes.
+
+PRESERVE THE ORIGINAL CANVAS EXACTLY:
+
+908 × 800 pixels.
+
+Preserve the exact existing hexagonal silhouette.
+
+Preserve the exact dimensions, orientation, proportions, and position of the hex within the 908 × 800 canvas.
+
+The transparent regions outside the hex must remain transparent.
+
+Do not crop, expand, rotate, skew, or otherwise alter the canvas or hex geometry.
+
+PRESERVE PLANET GEOMETRY EXACTLY.
+
+For every planet in the supplied image:
+
+- Preserve its exact center position.
+- Preserve its exact diameter/size.
+- Preserve its circular silhouette.
+- Preserve its relative position to every other planet.
+- Do not move the planet.
+- Do not resize the planet.
+- Do not rotate or reposition the planet.
+- Do not merge planets.
+- Do not split planets.
+- Do not change the number of planets.
+
+Planet geometry is a GAMEPLAY AND LAYOUT CONSTRAINT, not an artistic suggestion.
+
+If explicit planet coordinates and dimensions are provided below, those values are authoritative.
+
+The AI must not reinterpret or rebalance the composition.
+
+Only the visual appearance of the existing objects should change.
+
+==================================================
+2. PLANET PRESERVATION AND IMPROVEMENT
+==================================================
+
+Preserve every existing planet as the same planet occupying exactly the same location and physical size.
+
+Improve the planets so that they appear like convincing astronomical bodies rather than flat graphical spheres.
+
+Planets should have:
+
+- believable surface texture
+- natural geological or atmospheric variation
+- subtle atmospheric effects where appropriate
+- coherent illumination
+- restrained depth
+- subtle curvature
+- visually interesting but believable surface features
+
+The planets must remain highly visible against the background.
+
+Do not make the planets excessively glossy, luminous, metallic, magical, or fantastical.
+
+Avoid exaggerated CGI rendering.
+
+Avoid dramatic cinematic lighting.
+
+Avoid strong 3D effects.
+
+These are board-game planets, not movie props.
+
+--------------------------------------------------
+PLANET LIGHTING — VERY IMPORTANT
+--------------------------------------------------
+
+Use SOFT, EVEN, RESTRAINED lighting.
+
+The purpose of lighting is to establish the spherical form of the planet without making large portions of the planet disappear into darkness.
+
+The planets should remain readable across almost their entire visible surface.
+
+DO NOT create a dark underside.
+
+DO NOT create a black hemisphere.
+
+DO NOT create a large dark crescent.
+
+DO NOT create a strong terminator line.
+
+DO NOT create extreme light-versus-shadow contrast.
+
+DO NOT use dramatic backlighting.
+
+DO NOT use strong cinematic rim lighting.
+
+DO NOT make 30%, 40%, or 50% of a planet disappear into shadow.
+
+Any shadowing must be SUBTLE.
+
+The darkest portion of the planet should still retain substantial visible surface color and detail.
+
+The planet should read primarily through:
+
+- surface texture
+- color variation
+- atmospheric detail
+- restrained shading
+- subtle highlights
+
+rather than through dramatic light/shadow contrast.
+
+Think:
+
+"illustrated planetary surface with gentle depth"
+
+NOT:
+
+"cinematic 3D-rendered sphere."
+
+GAMEPLAY VISIBILITY IS MORE IMPORTANT THAN PHYSICAL LIGHTING REALISM.
+
+==================================================
+3. DEFAULT SPACE BACKGROUND
+==================================================
+
+IMPORTANT:
+
+The DEFAULT Red Imperium space background contains NO NEBULA.
+
+Do not add nebulae, gas clouds, cosmic clouds, luminous red clouds, colorful dust formations, glowing space banners, or dramatic interstellar structures unless they are explicitly requested in the per-image instructions.
+
+The normal background should be:
+
+- deep blue-black
+- dark navy
+- very subtle blue-gray variation
+- sparse stars
+- extremely subtle astronomical dust if appropriate
+- gentle tonal variation
+
+The default visual language is a QUIET STARFIELD.
+
+The space should feel deep and vast without containing spectacular astronomical objects.
+
+The background should be intentionally boring compared with the planets.
+
+--------------------------------------------------
+DEFAULT BACKGROUND — ABSOLUTE RESTRICTIONS
+--------------------------------------------------
+
+Unless specifically requested otherwise, DO NOT include:
+
+- red nebulae
+- crimson nebulae
+- orange nebulae
+- blue nebulae
+- purple nebulae
+- glowing gas clouds
+- cosmic cloud formations
+- dramatic dust lanes
+- giant luminous clouds
+- colorful interstellar structures
+- enormous glowing backgrounds
+- bright galactic bands
+- large areas of glowing space
+- dramatic celestial phenomena
+
+DO NOT interpret "space" as "nebula."
+
+The default Red Imperium background is simply:
+
+DARK SPACE + SUBTLE STARFIELD.
+
+If a nebula is not explicitly requested, there must be NO NEBULA.
+
+==================================================
+4. STARS
+==================================================
+
+Stars should be subtle and subordinate to the planets.
+
+Use:
+
+- small stars
+- sparse to moderate density
+- mostly dim stars
+- subtle variation in brightness
+- occasional slightly brighter stars
+
+Avoid:
+
+- large glowing stars
+- starbursts
+- lens flares
+- giant white stars
+- clusters of extremely bright stars
+- dramatic stellar effects
+
+The stars should establish that the planets are in space without becoming an important visual feature themselves.
+
+A player should be able to place a ship directly over the starfield and still see the ship clearly.
+
+==================================================
+5. STANDARDIZED RED IMPERIUM VISUAL LANGUAGE
+==================================================
+
+These sector tiles form a large standardized collection.
+
+They will be rearranged into different board configurations from game to game.
+
+The individual tiles therefore MUST NOT compete for attention.
+
+The desired visual hierarchy is:
+
+1. GAME PIECES
+2. PLANETS
+3. SUBTLE SPACE BACKGROUND
+
+The background should NEVER compete with gameplay pieces.
+
+The planets should provide most of the visual character of each tile.
+
+Different tiles may have different planet colors, textures, and types.
+
+The background should remain broadly consistent between tiles.
+
+The tiles should look like parts of the same game.
+
+==================================================
+6. COLOR PALETTE
+==================================================
+
+DEFAULT BACKGROUND:
+
+- near-black
+- deep navy
+- blue-black
+- subtle blue-gray
+- extremely restrained warm stellar tones
+
+Do not make the background strongly red.
+
+Do not make the background strongly purple.
+
+Do not make the background strongly blue.
+
+The background should be predominantly DARK and NEUTRAL.
+
+Planet colors may be much stronger than background colors.
+
+Allow planets to provide the visual color variety across the game.
+
+The background should generally be:
+
+DARKER
+LESS SATURATED
+LESS CONTRASTY
+LESS COLORFUL
+
+than the planets.
+
+==================================================
+7. VISUAL DETAIL
+==================================================
+
+The background should contain enough detail to avoid appearing completely flat.
+
+Acceptable background detail includes:
+
+- subtle tonal gradients
+- very faint blue-gray space variation
+- extremely subtle dust
+- sparse stars
+- faint distant points of light
+
+However, background detail must remain low contrast.
+
+Do not use large visual structures to create interest.
+
+Do not use nebulae to create interest.
+
+Do not use dramatic lighting to create interest.
+
+The PLANETS should provide the visual interest.
+
+Think:
+
+"quiet and sophisticated"
+
+rather than:
+
+"epic and spectacular."
+
+==================================================
+8. GAMEPLAY READABILITY
+==================================================
+
+This is BOARD-GAME ART.
+
+The final image will have ships, units, markers, tokens, labels, and other interactive elements layered over the sector.
+
+Therefore:
+
+PRIORITIZE READABILITY OVER SPECTACLE.
+
+The background must be dark enough and quiet enough that game pieces remain immediately visible.
+
+Maintain relatively quiet areas around and between planets.
+
+Avoid high-contrast background elements behind likely gameplay locations.
+
+Avoid bright regions behind planets if they make the planet difficult to distinguish.
+
+Avoid strong background highlights.
+
+Avoid strong color contrast in the background.
+
+The planets should be clearly visible.
+
+Game pieces should be clearly visible.
+
+The background should recede.
+
+==================================================
+9. DO NOT ALTER GAMEPLAY CONTENT
+==================================================
+
+Do not add or remove planets.
+
+Do not change the number of planets.
+
+Do not change planet positions.
+
+Do not change planet sizes.
+
+Do not introduce moons unless they are already present in the source and can be preserved without changing the established geometry.
+
+Do not add spacecraft.
+
+Do not add stations.
+
+Do not add structures.
+
+Do not add text.
+
+Do not add symbols.
+
+Do not add UI.
+
+Do not add borders inside the hex.
+
+Do not add gameplay markers.
+
+Do not introduce new gameplay objects.
+
+Do not reinterpret the tile's gameplay identity.
+
+The source image determines WHAT is present.
+
+This prompt determines HOW that content should be visually improved.
+
+==================================================
+10. HEX TRANSPARENCY
+==================================================
+
+The supplied sector uses transparency outside the hexagonal tile.
+
+Preserve the exact original hex mask.
+
+The corners and exterior region of the 908 × 800 image MUST remain fully transparent.
+
+DO NOT replace the transparent exterior with:
+
+- green
+- black
+- white
+- a solid color
+- a background image
+- any other visible color
+
+Transparency is part of the Red Imperium asset format.
+
+Maintain clean, smooth, antialiased edges around the hex.
+
+The final output must contain no visible background outside the hex.
+
+==================================================
+11. ARTISTIC REFERENCE
+==================================================
+
+The desired aesthetic is:
+
+RESTRAINED
+PROFESSIONAL
+ASTRONOMICAL
+CLEAN
+COHERENT
+BOARD-GAME FRIENDLY
+
+The artwork should feel like premium strategy-game art.
+
+It should NOT feel like:
+
+- a movie poster
+- concept art
+- a science-fiction advertisement
+- an epic space battle
+- a fantasy illustration
+- a dramatic astronomical photograph
+
+Avoid spectacle.
+
+Avoid cinematic exaggeration.
+
+Avoid extreme contrast.
+
+Avoid excessive lighting effects.
+
+Avoid excessive atmospheric effects.
+
+Avoid excessive background detail.
+
+The planets should be attractive and detailed.
+
+The space should be quiet.
+
+==================================================
+12. SOURCE IMAGE FIDELITY
+==================================================
+
+Treat the supplied source image as a layout template.
+
+Preserve:
+
+- planet count
+- planet positions
+- planet sizes
+- planet relationships
+- overall composition
+- hex geometry
+- canvas dimensions
+- transparency
+
+The source image is NOT merely a loose reference.
+
+It is the authoritative layout.
+
+Improve the rendering and visual quality of the existing artwork without redesigning its composition.
+
+When uncertain whether an artistic change would alter gameplay/layout information, DO NOT make the change.
+
+Preserve the original geometry.
+
+==================================================
+13. OUTPUT REQUIREMENTS
+==================================================
+
+Return a single finished Red Imperium sector illustration.
+
+The final asset must be:
+
+908 × 800 pixels.
+
+It must preserve the original hexagonal geometry.
+
+It must preserve the original transparent exterior.
+
+It must preserve every planet's exact center position and dimensions.
+
+It must preserve the original number of planets.
+
+It must contain:
+
+- no text
+- no labels
+- no UI
+- no spacecraft
+- no additional gameplay objects
+- no visible background outside the hex
+- NO NEBULA unless explicitly requested
+
+The final result should be suitable for direct use as a Red Imperium game asset.
+
+==================================================
+14. PRIORITY ORDER
+==================================================
+
+When requirements conflict, follow this priority order:
+
+1. PRESERVE CANVAS AND HEX GEOMETRY.
+
+2. PRESERVE PLANET NUMBER, POSITION, AND DIMENSIONS.
+
+3. PRESERVE GAMEPLAY READABILITY.
+
+4. PRESERVE PLANET VISIBILITY.
+
+5. PRESERVE THE IDENTITY AND GENERAL APPEARANCE OF THE EXISTING PLANETS WHILE IMPROVING THEIR QUALITY.
+
+6. MAINTAIN THE STANDARDIZED RED IMPERIUM SPACE-BACKGROUND STYLE.
+
+7. ADD SUBTLE VISUAL DETAIL.
+
+8. ARTISTIC EMBELLISHMENT.
+
+Never sacrifice a higher-priority requirement to make the image more dramatic or visually impressive.
+
+==================================================
+15. PER-IMAGE SPECIFICATION
+==================================================
+
+The following information describes the specific sector being upgraded.
+
+SOURCE IMAGE:
+[ATTACHED IMAGE]
+
+CANVAS:
+908 × 800 pixels
+
+PLANETS:
+[NUMBER OF PLANETS]
+
+PLANET 1:
+Center: ([X], [Y])
+Diameter: [N] pixels
+
+PLANET 2:
+Center: ([X], [Y])
+Diameter: [N] pixels
+
+PLANET 3:
+Center: ([X], [Y])
+Diameter: [N] pixels
+
+[Add additional planets if necessary.]
+
+SPECIAL INSTRUCTIONS:
+[Optional instructions specific to this sector.]
+
+IMPORTANT:
+
+Unless explicitly stated in SPECIAL INSTRUCTIONS:
+
+NO NEBULA.
+NO COSMIC CLOUDS.
+NO LUMINOUS GAS.
+NO DRAMATIC SPACE EFFECTS.
+
+Planet shadows must remain subtle.
+
+The planets must remain visibly readable across their surfaces.
+
+==================================================
+16. FINAL INSTRUCTION
+==================================================
+
+Create the upgraded sector now.
+
+Preserve the source image's exact gameplay geometry.
+
+Preserve the exact planet positions and dimensions.
+
+Improve the planets while maintaining strong surface visibility.
+
+Use soft, restrained lighting.
+
+Do NOT create dark planetary undersides.
+
+Do NOT create dramatic terminators.
+
+Do NOT allow large portions of planets to disappear into shadow.
+
+Use a quiet, dark, neutral blue-black starfield.
+
+Do NOT add nebulae unless explicitly requested.
+
+Do NOT add red cloud formations.
+
+Do NOT add spectacular astronomical phenomena.
+
+Keep the background sufficiently subdued for ships, units, tokens, markers, and other game pieces to be layered over it.
+
+Preserve the exact 908 × 800 canvas and exact hex transparency.
+
+Do not invent or redesign gameplay content.
+
+The result should look like one tile from a large, professionally art-directed collection of Red Imperium sector tiles.

@@ -170,6 +170,7 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
     this.hud.updateStatus(this.game.status);
     this.hud.updateMenu([]);
     this.hud.updateCards(ccs);
+    this.hud.pullToFront();
     this.cardbox.bindCallback((card) => {
 
       if (cards[card]) {
@@ -273,7 +274,7 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
     // remove active card, if in list
     //
     for (let z = ccs.length-1; z >= 0; z--) {
-      ccs.splice(z, 1);
+      if (ccs[z] == this.game.state.active_card) { ccs.splice(z, 1); }
     }
 
     //
@@ -337,6 +338,7 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
     this.hud.updateStatus(this.game.status);
     this.hud.updateMenu([]);
     this.hud.updateCards(ccs);
+    this.hud.pullToFront();
     this.cardbox.bindCallback((card) => {
 
       if (cards[card]) {
@@ -3127,9 +3129,76 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
 
   }
 
+  broadcastActivationSignal(spacekey, type) {
+    this.signal_n++;
+    this.sendMetaMessage('paths-activation', {
+      n: this.signal_n,
+      spacekey: spacekey,
+      type: type
+    });
+  }
+
+  wipeSignalMarks() {
+    let keys = Object.keys(this.signals.marks);
+    this.signals.marks = {};
+    for (let i = 0; i < keys.length; i++) {
+      this.displaySpace(keys[i]);
+      if (this.minimap) { this.minimap.remove('signal-' + keys[i]); }
+    }
+  }
+
+  clearActivationSignals() {
+    this.waiting_for_opponent_ops = 0;
+    this.signals.n = 0;
+    this.wipeSignalMarks();
+  }
+
+  addSignalMarker(spacekey, type) {
+    if (!this.minimap) { return; }
+    let space = this.game.spaces[spacekey];
+    let board = this.getBoardState();
+    if (!space || !board) { return; }
+    this.minimap.add('signal-' + spacekey, {
+      x: (space.left + 45) / board.width,
+      y: (space.top + 45) / board.height,
+      type: 'circle',
+      color: type == 'combat' ? 'rgba(231, 76, 60, 0.45)' : 'rgba(232, 197, 71, 0.45)',
+      size: 14
+    });
+  }
+
+  receiveMetaMessage(tx) {
+    let txmsg = tx.returnMessage();
+    if (txmsg.request == 'paths-activation') {
+      this.receiveActivationSignal(txmsg);
+      return;
+    }
+    super.receiveMetaMessage(tx);
+  }
+
+  receiveActivationSignal(txmsg) {
+    if (!txmsg || txmsg.my_key == this.publicKey) { return; }
+    if (!this.waiting_for_opponent_ops) { return; }
+    let data = txmsg.data || {};
+    let n = parseInt(data.n);
+    if (isNaN(n)) { return; }
+    if (n < this.signals.n) {
+      this.wipeSignalMarks();
+    } else if (n == this.signals.n) {
+      return;
+    }
+    this.signals.n = n;
+    if (!data.spacekey) { return; }
+    if (data.type != 'movement' && data.type != 'combat') { return; }
+    this.signals.marks[data.spacekey] = data.type;
+    this.displaySpace(data.spacekey);
+    this.addSignalMarker(data.spacekey, data.type);
+  }
+
   playerPlayOps(faction, card, cost, skipend=0) {
 
     if (!skipend) {
+      this.signal_n = 0;
       this.addMove("player_play_combat\t"+faction);
       this.addMove("dig_trenches");
       this.addMove("player_play_movement\t"+faction);
@@ -3163,6 +3232,10 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
     this.hud.showBackButton(() => { 
       for (let key in this.game.spaces) { if (this.game.spaces[key].activated_for_movement == 1 || this.game.spaces[key].activated_for_combat == 1) { this.game.spaces[key].activated_for_movement = 0; this.game.spaces[key].activated_for_combat = 0; this.displaySpace(key)} } 
       this.moves = [];
+      if (this.signal_n > 0) {
+        this.signal_n = 0;
+        this.sendMetaMessage('paths-activation', { n: 0 });
+      }
       if (this.game.queue[this.game.queue.length-1].split("\t")[0] == "play") {
         this.addMove("resolve\tplay");
       }
@@ -3217,6 +3290,7 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
 	    this.hud.updateCards([]);
 	    this.activateSpaceForMovement(key);
             this.displaySpace(key);
+	    this.broadcastActivationSignal(key, "movement");
 	    let cost_paid = this.returnActivationCost(faction, key); 
 	    cost -= cost_paid;
 	    this.addMove(`activate_for_movement\t${faction}\t${key}`);
@@ -3319,6 +3393,7 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
 	    this.hud.updateMenu([]);
 	    this.hud.updateCards([]);
 	    this.activateSpaceForCombat(key);
+	    this.broadcastActivationSignal(key, "combat");
 	    let cost_paid = this.returnActivationCost(faction, key); 
 	    cost -= cost_paid;
 	    this.addMove(`activate_for_combat\t${faction}\t${key}`);

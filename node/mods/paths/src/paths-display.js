@@ -264,6 +264,10 @@
       if (space.activated_for_combat && space.units.length > 0) {
         html += `<img src="/paths/img/tiles/activate_attack.png" class="activation-tile" />`;
       }
+      if (!space.activated_for_movement && !space.activated_for_combat && this.signals && this.signals.marks[key]) {
+        let tile = this.signals.marks[key] == "combat" ? "activate_attack.png" : "activate_move.png";
+        html += `<img src="/paths/img/tiles/${tile}" class="activation-tile signal-tile" />`;
+      }
 
       //
       // add central control

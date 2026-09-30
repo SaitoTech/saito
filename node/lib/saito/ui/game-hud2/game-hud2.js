@@ -20,7 +20,30 @@ class GameHUD2 {
       this.drag_bound = false;
     }
 
+    let hud = document.getElementById('game-hud2');
+    if (hud) {
+      hud.style.zIndex = 50;
+    }
+
     this.attachEvents();
+  }
+
+  pullToFront() {
+    this.render();
+
+    let hud = document.getElementById('game-hud2');
+    if (!hud) {
+      return;
+    }
+
+    let max_z = 50;
+    document.querySelectorAll('.saito-overlay, .saito-overlay-backdrop').forEach((el) => {
+      let z = parseInt(el.style.zIndex, 10);
+      if (z > max_z) {
+        max_z = z;
+      }
+    });
+    hud.style.zIndex = max_z + 1;
   }
 
   attachEvents() {

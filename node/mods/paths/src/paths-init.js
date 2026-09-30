@@ -65,6 +65,9 @@ class PathsOfGlory extends GameTemplate {
     this.minimap = new GameMinimap(this.app, this);
     this.minimap.enable_zoom = 1;
     this.default_board_scale = 100;
+    this.signal_n = 0;
+    this.signals = { n: 0, marks: {} };
+    this.waiting_for_opponent_ops = 0;
 
     //
     // this sets the ratio used for determining

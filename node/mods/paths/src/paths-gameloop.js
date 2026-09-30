@@ -870,9 +870,10 @@ console.log("central_cards_post_deal: " + central_cards_post_deal);
 	  }
 
 	  //
-	  // empty-space control flip: separate pass so supply checks above
-	  // see a consistent board state (avoids desync from iteration order)
+	  // empty-space control flip: judge every space on the current board,
+	  // then flip, so one conversion cannot cut the next space's supply
 	  //
+	  let spaces_to_flip = [];
 	  for (let key in this.game.spaces) {
 	    if (this.game.spaces[key].units.length == 0 &&
 		this.game.spaces[key].fort <= 0 &&
@@ -892,34 +893,38 @@ console.log("central_cards_post_deal: " + central_cards_post_deal);
 	      if (this.game.state.events[country] == true || this.game.state.events[country] == 1) {
 
 		//
-		// does the current owner have supply access -- if not flip
+		// spaces trace to any friendly supply source (14.2.5)
 		//
-		if (!this.checkSupplyStatus(control, key)) {
-
-		  //
-		  // if our space is controlled by invader and out-of-supply, revert
-		  //
-		  if (spaces[key].control != this.game.spaces[key].control) {
-
-		    this.game.spaces[key].control = spaces[key].control;
-
-		  //
-		  // space is controlled by us, but out-of-supply
-		  //
-		  } else {
-		    if (this.game.spaces[key].control == "allies") {
-		      this.game.spaces[key].control = "central";
-		    } else {
-		      this.game.spaces[key].control = "allies";
-		    }
-		  }
-
-		  this.game.spaces[key].besieged = 0;
-		  this.displaySpace(key);
-
+		if (!this.checkSupplyStatus(control, key, true)) {
+		  spaces_to_flip.push(key);
 		}
 	      }
 	    }
+	  }
+
+	  for (let i = 0; i < spaces_to_flip.length; i++) {
+	    let key = spaces_to_flip[i];
+
+	    //
+	    // if our space is controlled by invader and out-of-supply, revert
+	    //
+	    if (spaces[key].control != this.game.spaces[key].control) {
+
+	      this.game.spaces[key].control = spaces[key].control;
+
+	    //
+	    // space is controlled by us, but out-of-supply
+	    //
+	    } else {
+	      if (this.game.spaces[key].control == "allies") {
+	        this.game.spaces[key].control = "central";
+	      } else {
+	        this.game.spaces[key].control = "allies";
+	      }
+	    }
+
+	    this.game.spaces[key].besieged = 0;
+	    this.displaySpace(key);
 	  }
 
 console.log("Units to Eliminate: " + JSON.stringify(units_to_eliminate));
@@ -3443,6 +3448,7 @@ console.log("pushing back attacker corps!");
 	
 	if (mv[0] === "player_play_movement") {
 
+	  this.clearActivationSignals();
 	  this.game.queue.splice(qe, 1);
 	  let faction = mv[1];
 
@@ -3484,6 +3490,7 @@ console.log("pushing back attacker corps!");
 	  if (this.game.player == player) {
 	    this.playerPlayOps(faction, card, cost, skipend);    
 	  } else {
+	    this.waiting_for_opponent_ops = 1;
 	    	    this.game.status = this.returnFactionName(faction) + " playing OPS";
 	    this.hud.updateStatus(this.game.status);
 	    this.hud.updateMenu([]);

@@ -418,7 +418,7 @@
 
 
 
-  checkSupplyStatus(faction="", spacekey="") {
+  checkSupplyStatus(faction="", spacekey="", for_space=false) {
 
     let toggle_constantinople_port = 0;
 
@@ -535,6 +535,11 @@ if (spacekey == "stanislau") {
     }
     if (sources.length == 0) {
       sources = ["london"];
+    }
+    // 14.2.5 - spaces, not units, may trace to any friendly supply source.
+    if (for_space && controlling_faction == "allies") {
+      sources.push("belgrade");
+      if (this.returnControlOfSpace("salonika") == "allies") { sources.push("salonika"); }
     }
     if (country == "albania") { if (this.game.spaces["taranto"].control != "central") { sources.push("taranto"); } }
     let ports = this.returnFriendlyControlledPorts(controlling_faction);
