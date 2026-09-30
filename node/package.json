@@ -78,7 +78,7 @@
     "nodemailer": "7.0.13",
     "react": "18.3.1",
     "react-dom": "18.3.1",
-    "saito-js": "0.3.3",
+    "saito-js": "^0.3.3",
     "sanitize-html": "2.17.1",
     "sanitizer": "0.1.3",
     "screenfull": "5.2.0",
@@ -129,5 +129,11 @@
     "ts-jest": {
       "typescript": "5.4.5"
     }
+  },
+  "allowScripts": {
+    "sqlite3@5.1.7": true,
+    "secp256k1": true,
+    "keccak": true,
+    "blake3": true
   }
 }
