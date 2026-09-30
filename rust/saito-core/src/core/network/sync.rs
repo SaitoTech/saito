@@ -2,8 +2,10 @@ use std::sync::Arc;
 
 use crate::core::consensus::blockchain::Blockchain;
 use crate::core::consensus::mempool::Mempool;
+use crate::core::consensus::slip::Slip;
 use crate::core::consensus::wallet::Wallet;
 use crate::core::defs::{BlockHash, BlockId, PrintForLog, SaitoHash, Timestamp};
+use crate::core::network::interface_io::InterfaceEvent;
 use crate::core::network::msg::block::BlockReference;
 use crate::core::network::msg::blockchain::{
     is_supported_sync_type, Blockchain as BlockchainPeerMessage, RequestBlockchain,
@@ -608,6 +610,7 @@ impl SyncManager {
             blockchain.blocks.is_empty()
         };
 
+        let mut removed_nfts = 0usize;
         if is_spv_mode && is_local_chain_empty && cs.shared_ancestor_block_id > 0 {
             let mut wallet = self.wallet_lock.write().await;
             for slip in wallet.slips.values_mut() {
@@ -615,6 +618,24 @@ impl SyncManager {
                     slip.lc = false;
                 }
             }
+            wallet
+                .nfts
+                .retain(|nft| match Slip::parse_slip_from_utxokey(&nft.slip2) {
+                    Ok(slip2) => {
+                        if slip2.block_id > cs.shared_ancestor_block_id {
+                            removed_nfts += 1;
+                            false
+                        } else {
+                            true
+                        }
+                    }
+                    Err(_) => true,
+                });
+        }
+        if removed_nfts > 0 {
+            network
+                .io_interface
+                .send_interface_event(InterfaceEvent::WalletUpdate());
         }
 
         let mut should_add_block = true;
