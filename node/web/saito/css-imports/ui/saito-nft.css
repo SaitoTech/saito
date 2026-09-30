@@ -1731,6 +1731,8 @@ html[data-theme='noir'] .saito-nft-panel-send .nft-advanced-toggle:active {
 }
 .send-nft-list:has(> .saito-nft-card) {
   display: grid;
+  /* Keep rows at card height when the scrollable list fills up. */
+  grid-auto-rows: max-content;
   grid-template-columns: repeat(
     auto-fill,
     minmax(min(100%, var(--saito-nft-image-size, 20rem)), max-content)
