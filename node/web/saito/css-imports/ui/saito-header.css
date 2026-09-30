@@ -325,8 +325,8 @@
 }
 
 #saito-header .wallet-nft-icon {
-  -webkit-mask: url('/saito/icons/buttons/saito-nfts-button-icon.svg') center / contain no-repeat;
-  mask: url('/saito/icons/buttons/saito-nfts-button-icon.svg') center / contain no-repeat;
+  -webkit-mask: url('/saito/icons/saito-nftstudio-icon-outline.svg') center / contain no-repeat;
+  mask: url('/saito/icons/saito-nftstudio-icon-outline.svg') center / contain no-repeat;
 }
 
 #saito-header .wallet-action-icon {
