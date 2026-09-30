@@ -1316,7 +1316,7 @@ class Manager {
         continue;
       }
 
-      const options = this.buildThreadRenderOptions(globalIndex, state.chain.length);
+      const options = this.buildThreadRenderOptions(globalIndex, state.chain);
       tweet.render(container, options);
     }
 
@@ -1331,19 +1331,46 @@ class Manager {
     return signatures.length;
   }
 
-  buildThreadRenderOptions(globalIndex, chainLength) {
+  buildThreadRenderOptions(globalIndex, chain = []) {
+    const signatures = Array.isArray(chain) ? chain : [];
+    const signature = signatures[globalIndex] || '';
+    const tweet = signature ? this.mod.getTweet(signature) : null;
+    const previousSignature = globalIndex > 0 ? signatures[globalIndex - 1] : '';
+    const nextSignature =
+      globalIndex < signatures.length - 1 ? signatures[globalIndex + 1] : '';
+    const next = nextSignature ? this.mod.getTweet(nextSignature) : null;
     const options = {};
+
+    const rootSignature = signatures[0] || '';
 
     if (globalIndex === 0) {
       options.focused = true;
       options.presentation = 'focused';
-    } else {
-      options.reply = true;
-      options.presentation = 'reply';
+      return options;
+    }
+
+    options.reply = true;
+    options.presentation = 'reply';
+
+    // The focused tweet is the page root. Its direct replies are separate
+    // responses, so they do not inherit a connector. A line is only for a
+    // reply that answers another reply.
+    const previous = previousSignature ? this.mod.getTweet(previousSignature) : null;
+    const nestedParent = (parentSignature) =>
+      Boolean(parentSignature) && parentSignature !== rootSignature;
+    const continuesParent =
+      nestedParent(tweet?.parent_id) && tweet.parent_id === previousSignature;
+    const continuesSibling =
+      nestedParent(tweet?.parent_id) && previous?.parent_id === tweet.parent_id;
+
+    if (continuesParent || continuesSibling) {
       options.chainPrev = true;
     }
 
-    if (globalIndex < chainLength - 1) {
+    const nextIsChild = nestedParent(signature) && next?.parent_id === signature;
+    const nextIsSibling = nestedParent(tweet?.parent_id) && next?.parent_id === tweet.parent_id;
+
+    if (nextIsChild || nextIsSibling) {
       options.chainNext = true;
       options.chainContinue = true;
     }
@@ -1381,7 +1408,7 @@ class Manager {
           continue;
         }
 
-        tweet.render(container, this.buildThreadRenderOptions(globalIndex, state.chain.length));
+        tweet.render(container, this.buildThreadRenderOptions(globalIndex, state.chain));
       }
 
       state.cursor += signatures.length;
@@ -1612,20 +1639,14 @@ class Manager {
       return;
     }
 
-    const options = { chainPrev: true, presentation: 'reply', reply: true };
-    const html = TweetTemplate(tweet, tweet.buildClassName(options), options);
     const focusedEl = panel.querySelector(`article.tweet[data-id="${this.active_signature}"]`);
     const replies = panel.querySelectorAll(
       `article.tweet:not([data-id="${this.active_signature}"])`
     );
     const lastReply = replies.length ? replies[replies.length - 1] : null;
     const anchor = lastReply || focusedEl;
-
-    if (lastReply) {
-      lastReply.classList.add('chain-next', 'chain-continue');
-    } else if (focusedEl) {
-      focusedEl.classList.add('chain-next', 'chain-continue');
-    }
+    const options = { presentation: 'reply', reply: true };
+    const html = TweetTemplate(tweet, tweet.buildClassName(options), options);
 
     if (anchor) {
       anchor.insertAdjacentHTML('afterend', html);

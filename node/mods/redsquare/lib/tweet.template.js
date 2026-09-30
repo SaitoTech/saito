@@ -137,7 +137,10 @@ const TweetTemplate = (tweet, className = 'tweet', options = {}) => {
         likes: tweet.likes
       });
 
-  const chain = embedded ? '' : '<div class="chain" aria-hidden="true"></div>';
+  const chain =
+    embedded || presentation === 'focused'
+      ? ''
+      : '<div class="chain" aria-hidden="true"></div>';
 
   const showMask =
     Boolean(tweet.flagged === 1) || Boolean(tweet.moderated && !tweet.moderated_revealed);

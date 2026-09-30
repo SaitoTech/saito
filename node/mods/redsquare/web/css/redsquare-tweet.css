@@ -83,18 +83,16 @@
 }
 
 /*
- * Detail identity owns its own grid:
- *   [ Username .............. Timestamp ]
- *   [ Public key                        ]
- * Time is a grid cell on row 1 — not a flex sibling that can wrap under content.
+ * Detail identity:
+ *   Username · time
+ *   Public key
  */
 .tweet .header.expanded {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  grid-template-rows: auto auto;
-  column-gap: var(--saito-space-sm);
-  row-gap: 0;
+  display: flex;
+  flex-wrap: wrap;
   align-items: baseline;
+  column-gap: var(--saito-space-xs);
+  row-gap: 0;
 }
 
 .tweet .header.compose {
@@ -113,8 +111,6 @@
 }
 
 .tweet .header.expanded .primary {
-  grid-column: 1;
-  grid-row: 1;
   min-width: 0;
 }
 
@@ -127,8 +123,7 @@
 }
 
 .tweet .header.expanded .handle {
-  grid-column: 1 / -1;
-  grid-row: 2;
+  flex: 1 0 100%;
   font-family: var(--saito-font);
   font-weight: normal;
   line-height: 1.2;
@@ -151,11 +146,6 @@
   color: var(--saito-muted-foreground);
 }
 
-.tweet .header.expanded .time {
-  grid-column: 2;
-  grid-row: 1;
-  justify-self: end;
-}
 
 /* Body starts immediately under the identity block */
 .tweet .header + .body {
@@ -375,6 +365,26 @@
   cursor: default;
 }
 
+.tweet.focused:hover {
+  background: transparent;
+}
+
+.tweet.focused .header.expanded .primary {
+  font-size: 1.6rem;
+  line-height: 1.25;
+}
+
+.tweet.focused .body {
+  margin-top: 0.8rem;
+  font-size: 1.7rem;
+  line-height: 2.4rem;
+}
+
+.tweet.focused .footer {
+  padding-top: var(--saito-space-sm);
+  border-top: 1px solid var(--saito-border);
+}
+
 .tweet .gallery {
   min-width: 0;
 }
@@ -484,6 +494,11 @@
 
   .tweet .body {
     line-height: 1.5;
+  }
+
+  .tweet.focused .body {
+    font-size: 1.8rem;
+    line-height: 2.5rem;
   }
 
   .tweet .embed > .tweet.embedded {
