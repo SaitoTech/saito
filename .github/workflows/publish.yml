@@ -139,13 +139,9 @@ jobs:
           echo "current saito-js version : ${{ env.current_saito_js_version }}"
           echo "published saito-js version : ${{ env.published_saito_js_version }}"
 
-      - name: Install npm packages for saito-js
+      - name: Install npm packages for saito-js using local saito-wasm
         if: ${{ env.published_saito_js_version != env.current_saito_js_version }}
-        run: npm install
-        working-directory: rust/saito-js
-
-      - name: Update saito-wasm package
-        if: ${{ env.published_saito_js_version != env.current_saito_js_version }}
+        # Build against this release without waiting for npm registry propagation.
         run: npm install file:../saito-wasm
         working-directory: rust/saito-js
 
@@ -154,13 +150,23 @@ jobs:
         run: npm run build
         working-directory: rust/saito-js
 
-      - name: copying saito-js
+      - name: Prepare saito-js package for publishing
         if: ${{ env.published_saito_js_version != env.current_saito_js_version }}
         run: |
           cp package.json dist
-          cp package-lock.json dist
           cp tsconfig.json dist
           cp .npmignore dist
+          # Consumers need the registry release, not the runner's local build path.
+          node <<'NODE'
+          const fs = require('node:fs');
+          const pkg = JSON.parse(fs.readFileSync('dist/package.json', 'utf8'));
+          const wasm = JSON.parse(fs.readFileSync('../saito-wasm/package.json', 'utf8'));
+          if (!/^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/.test(wasm.version)) {
+            throw new Error(`Invalid saito-wasm release version: ${wasm.version}`);
+          }
+          pkg.dependencies['saito-wasm'] = wasm.version;
+          fs.writeFileSync('dist/package.json', JSON.stringify(pkg, null, 2) + '\n');
+          NODE
         working-directory: rust/saito-js
 
       - name: Publish saito-js package
