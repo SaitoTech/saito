@@ -708,9 +708,9 @@ impl Wallet {
                 if ws.spent {
                     continue;
                 }
-		if !ws.lc {
-		    continue;
-		}
+                if !ws.lc {
+                    continue;
+                }
                 match ws.slip_type {
                     SlipType::Bound | SlipType::BlockStake => continue,
                     _ => {
@@ -807,9 +807,9 @@ impl Wallet {
                 if ws.spent {
                     continue;
                 }
-		if !ws.lc {
-		    continue;
-		}
+                if !ws.lc {
+                    continue;
+                }
                 match ws.slip_type {
                     SlipType::Bound | SlipType::BlockStake => continue,
                     _ => {
@@ -853,9 +853,9 @@ impl Wallet {
         for key in unspent_slips {
             let slip = self.slips.get_mut(key).expect("slip should be here");
 
-	    if !slip.lc {
-    		continue;
-	    }
+            if !slip.lc {
+                continue;
+            }
 
             // Prevent using slips from blocks earlier than (latest_block_id - (genesis_period-1)
             if slip.block_id < self.minimum_block_id {
@@ -2359,9 +2359,9 @@ impl Wallet {
 
         for key in self.staking_slips.iter() {
             let slip = self.slips.get(key).unwrap();
-	    if !slip.lc {
-    		continue;
-	    }
+            if !slip.lc {
+                continue;
+            }
             if !slip.is_staking_slip_unlocked(latest_unlocked_block_id) {
                 // slip cannot be used for staking yet
                 continue;
@@ -2398,9 +2398,9 @@ impl Wallet {
             });
             for key in unspent_slips {
                 let slip = self.slips.get(key).unwrap();
-    		if !slip.lc {
-    		    continue;
-    		}
+                if !slip.lc {
+                    continue;
+                }
                 if slip.block_id < last_valid_slips_in_block_id {
                     // slip is too old
                     continue;
