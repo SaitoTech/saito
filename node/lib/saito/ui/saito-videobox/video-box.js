@@ -197,7 +197,8 @@ class SaitoVideoBox {
 
   renderTranscriptionStatus() {
     const key = this.stream_id === 'local' ? this.mod.publicKey : this.stream_id;
-    const notice = document.getElementById(`stream_${this.stream_id}`)
+    const notice = document
+      .getElementById(`stream_${this.stream_id}`)
       ?.querySelector('.peer-transcription-status');
     if (notice) notice.hidden = !this.mod.streams?.transcribingPeers?.has(key);
   }
