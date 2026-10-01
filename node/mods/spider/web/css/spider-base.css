@@ -30,17 +30,24 @@
     display: grid;
   }
 
-  .score {
+  .spider-score {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 2;
+    width: fit-content;
+    padding: 5px 20px;
+    height: 40px;
+    font-size: 20px;
     color: #333;
+    background-color: var(--game-menu-background);
+    border: 1px solid #444;
+    border-radius: 5px;
+    box-shadow: 2px 2px 5px 0px rgba(0, 0, 0, 0.75);
   }
   .gameboard.selection * {
     /*cursor: none !important;*/
-  }
-
-  .game-scoreboard {
-    font-size: 20px;
-    height: 40px;
-    padding: 5px 20px;
   }
 
   /*arrange the cards in an array*/
@@ -254,12 +261,13 @@
       width: unset;
     }
 
-    .game-scoreboard {
+    .spider-score {
       font-size: 16px;
       height: 30px;
       padding: 5px 20px;
       top: unset;
       bottom: 0;
+      transform: translateX(-50%);
     }
     .card-stack-array {
       margin: 10px 0 0 80px;

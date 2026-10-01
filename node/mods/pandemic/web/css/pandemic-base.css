@@ -271,42 +271,6 @@
     z-index: 900009;
   }
 
-  .game-scoreboard .cube {
-    position: static;
-    height: 30px;
-    font-size: 24px;
-  }
-
-  .scoreboard_virus_group {
-    display: inline-flex;
-    flex-direction: row;
-    align-items: center;
-    justify-content: space-evenly;
-    margin-right: 6px;
-  }
-
-  .scoreboard_virus_group.i {
-    font-size: 20px;
-    width: 30px;
-  }
-
-  .virus-count {
-    margin-left: 2px;
-    text-shadow: 0 0 2px whitesmoke;
-    width: 2em;
-  }
-
-  .safe {
-    color: darkgreen;
-  }
-  .caution {
-    color: orange;
-    text-shadow: 0 0 2px black;
-  }
-  .danger {
-    color: darkred;
-  }
-
   .card {
     cursor: pointer;
     position: relative;

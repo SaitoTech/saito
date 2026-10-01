@@ -198,7 +198,8 @@ class ImperiumGameHUD extends GameHUD2 {
     if (this.isFlash(text)) {
       this.updateHeader('');
       this.updateMenu([]);
-      this.updateStatus(text, 4500);
+      this.updateStatus('');
+      this.updatePanel('<div class="status-message">' + this.escapeHtml(text) + '</div>');
       return;
     }
     if (raw.indexOf('textchoice') === -1 && raw.indexOf('buildchoice') === -1 && this.isBoardInstruction(text)) {

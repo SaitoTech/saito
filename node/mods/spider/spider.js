@@ -184,7 +184,10 @@ class Spider extends OnePlayerGameTemplate {
 
   updateScore(change = -1) {
     this.game.state.score += change;
-    this.scoreboard.update(`<div class="score">Score: ${this.game.state.score}</div>`);
+    let el = document.querySelector('.spider-score');
+    if (el) {
+      el.textContent = `Score: ${this.game.state.score}`;
+    }
     if (this.game.state.score <= 0) {
       this.displayModal('You Lose!', 'Too many moves');
       this.prependMove('lose');
@@ -1099,7 +1102,7 @@ class Spider extends OnePlayerGameTemplate {
   }
 
   returnBoard() {
-    let html = `<div class="card-stack-array">`;
+    let html = `<div class="spider-score"></div><div class="card-stack-array">`;
     for (let i = 0; i < 10; i++) {
       html += `<div id="cardstack_${i}"></div>`;
     }
