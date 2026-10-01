@@ -47,6 +47,12 @@
   margin-top: 0.833rem;
 }
 
+/* game-minimap.css makes .hamburger-container relative; anchor the drawer to
+   the viewport so the off-screen right/left offsets still fully hide it */
+#saito-header.game .saito-header-hamburger-contents {
+  position: fixed;
+}
+
 .saito-header-logo {
   width: 15rem;
   cursor: pointer;
