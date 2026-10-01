@@ -28,6 +28,43 @@
   -webkit-user-select: none;
 }
 
+/*
+  Docked: the game put the HUD inside its own layout (hud.container), so it
+  sits in normal flow and fills that box. The game's CSS sizes and places it.
+*/
+.game-hud2.docked {
+  position: relative;
+  left: auto;
+  right: auto;
+  bottom: auto;
+  top: auto;
+  margin: 0;
+  width: 100%;
+  max-width: 100%;
+  align-items: stretch;
+  gap: 0;
+  z-index: auto;
+  cursor: default;
+}
+
+.game-hud2.docked .hud-status-row {
+  cursor: default;
+}
+
+.game-hud2.docked .hud-status-row,
+.game-hud2.docked .hud-menu {
+  width: 100%;
+  max-width: 100%;
+}
+
+.game-hud2.docked .hud-menu:not(:empty) {
+  margin-top: 0.833rem;
+}
+
+.game-hud2.docked .hud-cards:empty {
+  display: none;
+}
+
 .hud-status-row {
   position: relative;
   flex: 0 0 auto;

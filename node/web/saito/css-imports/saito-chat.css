@@ -1190,6 +1190,8 @@
   align-items: center;
   gap: var(--saito-space-sm);
   width: 100%;
+  height: max-content;
+  min-height: max-content;
   padding: var(--saito-space-sm) var(--saito-space-md);
   border: 0;
   border-bottom: 1px solid color-mix(in srgb, var(--saito-border) 70%, transparent);

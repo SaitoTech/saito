@@ -97,8 +97,12 @@ class ZoomOverlay {
   }
 
   renderAtSpacekey(spacekey = '') {
-    this.visible = true;
     console.log('spacekey: ' + spacekey);
+
+    if (document.querySelector('.zoom-overlay')) {
+      this.overlay.show();
+    }
+    this.visible = true;
 
     let s = this.mod.game.spaces[spacekey];
     this.renderAtCoordinates(s.top, s.left);

@@ -128,7 +128,6 @@ class Thirteen extends GameTemplate {
       }
     }
 
-    this.scoreboard.render();
   }
 
   handleCardsMenu() {
@@ -2227,12 +2226,6 @@ class Thirteen extends GameTemplate {
       offset += 2;
     }
 
-    //Scoreboard
-    let html = `<div class="ussr_tokens">USSR: ${
-      17 - this.game.state.influence_on_board_ussr
-    }</div>`;
-    html += `<div class="us_tokens">US: ${17 - this.game.state.influence_on_board_us}</div>`;
-    this.scoreboard.update(html);
   }
 
   showInfluence(arena_id) {
