@@ -129,5 +129,13 @@
     "ts-jest": {
       "typescript": "5.4.5"
     }
+  },
+  "allowScripts": {
+    "blake3": true,
+    "core-js": true,
+    "keccak": true,
+    "protobufjs@7.6.6": true,
+    "secp256k1": true,
+    "sqlite3@5.1.7": true
   }
 }
