@@ -30,16 +30,13 @@
     display: grid;
   }
 
+  /* sits in the footer bar, between the completed stacks and the buttons */
   .spider-score {
-    position: absolute;
-    top: 0;
-    left: 50%;
-    transform: translateX(-50%);
-    z-index: 2;
     width: fit-content;
     padding: 5px 20px;
-    height: 40px;
     font-size: 20px;
+    line-height: 30px;
+    white-space: nowrap;
     color: #333;
     background-color: var(--game-menu-background);
     border: 1px solid #444;
@@ -94,7 +91,7 @@
     bottom: 3px;
     width: 100%;
     display: grid;
-    grid-template-columns: 1fr min-content min-content;
+    grid-template-columns: 1fr auto min-content min-content;
     grid-template-rows: min(12.24vw, 184px);
     grid-column-gap: 10px;
     align-items: center;
@@ -263,11 +260,8 @@
 
     .spider-score {
       font-size: 16px;
-      height: 30px;
-      padding: 5px 20px;
-      top: unset;
-      bottom: 0;
-      transform: translateX(-50%);
+      line-height: 20px;
+      padding: 5px 12px;
     }
     .card-stack-array {
       margin: 10px 0 0 80px;
@@ -285,6 +279,29 @@
     .gameboard {
       grid-template-columns: 1fr;
       grid-template-rows: 1fr 1fr;
+    }
+
+    .spider-score {
+      font-size: 14px;
+      line-height: 18px;
+      padding: 4px 8px;
+    }
+
+    /* the footer row is only ~12vw tall here, so put the buttons side by side */
+    .icon_container {
+      flex-direction: row;
+      gap: 6px;
+    }
+
+    /* drop the footer's 50px line box around the icons */
+    .icon_container > div {
+      display: flex;
+    }
+
+    .icon_container > div i {
+      height: 36px;
+      width: 36px;
+      font-size: 22px;
     }
   }
 }

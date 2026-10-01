@@ -8,6 +8,13 @@ class GameHUD2 {
     this.esc_bound = false;
     this.back_button_callback = null;
     this.show_cardbox_on_hover = 1;
+
+    //
+    // Selector for an element in the game's own layout. When set, the HUD is
+    // docked inside it (in normal flow, not draggable) instead of floating
+    // over the board, so the game's CSS controls where it sits on each screen.
+    //
+    this.container = null;
   }
 
   render() {
@@ -21,18 +28,35 @@ class GameHUD2 {
     }
 
     let hud = document.getElementById('game-hud2');
-    if (hud) {
+    if (!hud) {
+      return;
+    }
+
+    let dock = this.container ? document.querySelector(this.container) : null;
+    if (dock) {
+      if (hud.parentElement !== dock) {
+        dock.appendChild(hud);
+      }
+      hud.classList.add('docked');
+      hud.style.zIndex = '';
+    } else {
+      hud.classList.remove('docked');
       hud.style.zIndex = 50;
     }
 
     this.attachEvents();
   }
 
+  isDocked() {
+    let hud = document.getElementById('game-hud2');
+    return !!hud && hud.classList.contains('docked');
+  }
+
   pullToFront() {
     this.render();
 
     let hud = document.getElementById('game-hud2');
-    if (!hud) {
+    if (!hud || this.isDocked()) {
       return;
     }
 
@@ -59,7 +83,7 @@ class GameHUD2 {
     });
 
     hud.addEventListener('mousedown', (e) => {
-      if (e.button !== 0) {
+      if (e.button !== 0 || this.isDocked()) {
         return;
       }
       if (e.target.closest('.hud-back-button, a, input, textarea, button, select')) {

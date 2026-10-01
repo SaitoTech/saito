@@ -1102,13 +1102,14 @@ class Spider extends OnePlayerGameTemplate {
   }
 
   returnBoard() {
-    let html = `<div class="spider-score"></div><div class="card-stack-array">`;
+    let html = `<div class="card-stack-array">`;
     for (let i = 0; i < 10; i++) {
       html += `<div id="cardstack_${i}"></div>`;
     }
     html += '</div>';
     html += `<div class="spider-footer">
               <div class="completed_stack_box"></div>
+              <div class="spider-score"></div>
               <div class="icon_container">
                 <div id="hint" class="hint"><i class="fa-solid fa-question fa-border"></i></div>
                 <div class="undo"><i class="fas fa-undo fa-border"></i></div>
