@@ -1827,79 +1827,14 @@
     font-weight: heavy;
   }
 
-  /* double planet — undo .hex_bg's 30deg so both planets sit upright */
+  /* Every planet tile spins in. Empty space and hazards never get .spin-in. */
 
-  .bi:has(.two_planet) .hex_img,
-  .bi .sector1,
-  .bi .sector2,
-  .bi .sector3,
-  .bi .sector4,
-  .bi .sector5,
-  .bi .sector6,
-  .bi .sector7,
-  .bi .sector8,
-  .bi .sector11,
-  .bi .sector12,
-  .bi .sector14,
-  .bi .sector17,
-  .bi .sector25,
-  .bi .sector27,
-  .bi .sector28,
-  .bi .sector29,
-  .bi .sector30 {
+  .bi.spin-in .hex_img {
     transform: scale(2.6) rotate(-30deg);
   }
 
-  /* large single planet */
-
-  .bi .sector22,
-  .bi .sector23,
-  .bi .sector24,
-  .bi .sector26,
-  .bi .new-byzantium,
-  .bi .sector31,
-  .bi .sector32,
-  .bi .sector45,
-  .bi .sector52,
-  .bi .sector53,
-  .bi .sector73 {
+  .bi .new-byzantium {
     transform: scale(2.3) translate(0%, 25%) rotate(17deg);
-  }
-
-  /* small single planet */
-
-  .bi .sector58,
-  .bi .sector59,
-  .bi .sector60,
-  .bi .sector61,
-  .bi .sector62,
-  .bi .sector63,
-  .bi .sector64,
-  .bi .sector65,
-  .bi .sector66,
-  .bi .sector67,
-  .bi .sector62,
-  .bi .sector69,
-  .bi .sector70 {
-    transform: scale(3) translate(-5%, 16%);
-  }
-
-  /* planet and wormhole */
-
-  .bi .sector41,
-  .bi .sector42,
-  .bi .sector46,
-  .bi .sector47,
-  .bi .sector55,
-  .bi .sector57 {
-    transform: scale(3) translate(11%, 35%);
-  }
-
-  /* small planet bottom */
-
-  .bi .sector43,
-  .bi .sector44 {
-    transform: scale(3) translate(-10%, 6%);
   }
 
   .hexInfo {

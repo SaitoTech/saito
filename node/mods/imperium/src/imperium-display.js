@@ -498,6 +498,10 @@ addUIEvents() {
 
 
 
+getBoardBackdrop() {
+  return '/imperium/img/backgrounds/starscape_background3.jpg';
+}
+
 returnDefaultBoardScale() {
   let hex = 250;
   let target = window.innerWidth * 0.3;
@@ -664,10 +668,17 @@ updateLeaderboard() {
       info_tile.classList.add('two_planet');
     }
 
+    let hex_in = null;
     if (zoom_overlay == 0) {
-      document.querySelector("#hexIn_" + sys.s.tile).classList.add('bi');
+      hex_in = document.querySelector("#hexIn_" + sys.s.tile);
     } else {
-      document.querySelector(".gameboard-clone .sector_"+orig_sector+" .hexIn").classList.add('bi');
+      hex_in = document.querySelector(".gameboard-clone .sector_"+orig_sector+" .hexIn");
+    }
+    if (hex_in) {
+      hex_in.classList.add('bi');
+      if (sector !== 'new-byzantium') {
+        hex_in.classList.add('spin-in');
+      }
     }
     } catch (err) {}
   }
@@ -682,10 +693,15 @@ updateLeaderboard() {
     let divname = ".sector_graphics_space_" + sys.s.tile;
     $(divname).css('display', 'all');
 
+    let hex_in = null;
     if (zoom_overlay == 0) {
-      document.querySelector("#hexIn_" + sys.s.tile).classList.remove('bi');
+      hex_in = document.querySelector("#hexIn_" + sys.s.tile);
     } else {
-      document.querySelector(".gameboard-clone .sector_"+sector+" .hexIn").classList.remove('bi');
+      hex_in = document.querySelector(".gameboard-clone .sector_"+sector+" .hexIn");
+    }
+    if (hex_in) {
+      hex_in.classList.remove('bi');
+      hex_in.classList.remove('spin-in');
     }
     } catch (err) {}
   }

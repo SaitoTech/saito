@@ -142,6 +142,10 @@ class GameCards {
     }
   }
 
+  getBoardBackdrop() {
+    return '';
+  }
+
   getBoardState() {
     const el = this.getBoardElement();
     if (!el) {

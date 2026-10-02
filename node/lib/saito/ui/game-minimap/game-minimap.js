@@ -88,6 +88,7 @@ class GameMinimap {
     if (b.image && !this.board_el.style.backgroundImage) {
       this.board_el.style.backgroundImage = `url("${b.image}")`;
     }
+    this.applyBackdrop(b);
 
     const map = this.board_el.getBoundingClientRect();
     if (!b.image) {
@@ -201,6 +202,22 @@ class GameMinimap {
 
     this.board_el.style.backgroundImage = 'none';
     this.syncClone(b, map);
+    this.applyBackdrop(b);
+  }
+
+  applyBackdrop(b) {
+    if (!this.board_el || !b || b.image) {
+      return;
+    }
+    let backdrop = '';
+    if (typeof this.mod.getBoardBackdrop === 'function') {
+      backdrop = this.mod.getBoardBackdrop() || '';
+    }
+    if (!backdrop) {
+      return;
+    }
+    this.board_el.style.backgroundImage = `url("${backdrop}")`;
+    this.board_el.style.backgroundSize = 'cover';
   }
 
   attachEvents() {

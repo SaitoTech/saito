@@ -273,7 +273,8 @@ class GameHUD2 {
     if (options.length > 0) {
       html = '<ul>';
       for (let i = 0; i < options.length; i++) {
-        html += `<li class="option" id="${options[i].id}">${options[i].label}</li>`;
+        let extra = options[i].class ? ` ${options[i].class}` : '';
+        html += `<li class="option${extra}" id="${options[i].id}">${options[i].label}</li>`;
       }
       html += '</ul>';
     }
