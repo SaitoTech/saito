@@ -88,17 +88,17 @@
       var(--saito-card) 100%
     );
   --saito-canvas-wash:
-    radial-gradient(
-      70vw 50vw at 49.875vw calc(100% - 35.625vw),
-      color-mix(in srgb, var(--saito-primary) 14%, transparent),
-      transparent 62%
-    ),
-    radial-gradient(
-      45vw 35vw at 81% 19%,
-      color-mix(in srgb, var(--saito-chart-1) 8%, transparent),
-      transparent 68%
-    ),
-    var(--saito-background);
+  radial-gradient(
+        154% 135% at 0vw calc(80%),
+        color-mix(in srgb, var(--saito-primary) 5%, transparent),
+        transparent 45%
+      ),
+      radial-gradient(
+        173% 103% at 103% 0%,
+        color-mix(in srgb, var(--saito-chart-1) 5%, transparent),
+        transparent 37%
+      ),
+      var(--saito-background)
 
   --dreamscape:
     linear-gradient(125deg, #e8001e 30%, #0001 55%, #ff8235 80%),
