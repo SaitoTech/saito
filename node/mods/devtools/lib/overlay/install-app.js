@@ -33,6 +33,17 @@ class AddAppOverlay {
     try {
       let this_self = this;
 
+      const publisherHelp = document.querySelector('#saito-app-publisher-help');
+      publisherHelp.onclick = async () => {
+        await salert(
+          "<p>Saito apps are fun, helpful and powerful. Be careful installing apps from publishers you don't know and trust.</p>" +
+            "<p>We also recommend that you don't keep large amounts of Saito in your daily wallet, the same way you would not keep thousands of dollars in a real-life wallet.</p>"
+        );
+        if (publisherHelp.isConnected) {
+          publisherHelp.focus();
+        }
+      };
+
       document.querySelector('#saito-app-install-btn').onclick = async (e) => {
         let mod_data = await this_self.app.storage.loadLocalApplications(this_self.slug);
 
@@ -65,7 +76,10 @@ class AddAppOverlay {
 
   async installApp() {
     let this_self = this;
-    await this_self.app.storage.installLocalApplication(this_self.name.toLowerCase(), this_self.bin);
+    await this_self.app.storage.installLocalApplication(
+      this_self.name.toLowerCase(),
+      this_self.bin
+    );
 
     salert('Applicaton saved. Reloading page...');
     this_self.overlay.close();

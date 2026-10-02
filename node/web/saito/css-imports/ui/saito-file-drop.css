@@ -69,8 +69,9 @@
   min-width: 0;
 }
 
+.saito-app-overlay .saito-file-drop-footer,
 .saito-app-overlay .saito-file-drop-footer a {
-  font-size: 1.5rem;
+  font-size: 1.2rem;
   line-height: 1.4;
 }
 
