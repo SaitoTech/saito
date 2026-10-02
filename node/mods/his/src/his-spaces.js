@@ -1366,7 +1366,7 @@
 	for (let z = space.units[faction].length-1; z >= 0; z--) {
 	  let u = space.units[faction][z];
 	  space.units[faction].splice(z, 1);
-	  this.game.spaces[res[z].key].units[faction].push(u);
+	  this.game.spaces[res[0].key].units[faction].push(u);
 	}
 
     }

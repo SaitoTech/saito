@@ -65,8 +65,38 @@
   display: none;
 }
 
+.hud-notice {
+  display: none;
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 0.5rem);
+  z-index: -1;
+  box-sizing: border-box;
+  width: 500px;
+  max-width: 100%;
+  height: 12rem;
+  overflow: hidden;
+  border: 3px solid #424143;
+  background-color: #b79e76;
+  border-radius: 0.833rem 0.833rem 0 0;
+  transform: translateX(-50%) translateY(40%) scale(0.95);
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    transform 1.5s ease-in-out,
+    opacity 0.5s ease-in-out;
+}
+
+.hud-notice.show {
+  transform: translateX(-50%) translateY(0) scale(1);
+  opacity: 1;
+  pointer-events: auto;
+  cursor: pointer;
+}
+
 .hud-status-row {
   position: relative;
+  z-index: 1;
   flex: 0 0 auto;
   width: 500px;
   max-width: 100%;

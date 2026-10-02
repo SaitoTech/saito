@@ -12825,15 +12825,16 @@ console.log("POST_GOUT_QUEUE: " + JSON.stringify(his_self.game.queue));
 
 	  if (his_self.game.player != player) { return 0; }
 
-	  if (num == 1) { num = "1st"; }
-	  if (num == 2) { num = "2nd"; }
-	  if (num == 3) { num = "3rd"; }
-	  if (num == 3) { num = "4th"; }
-	  if (num == 3) { num = "5th"; }
+	  let removal_label = String(num);
+	  if (num == 1) { removal_label = "1st"; }
+	  if (num == 2) { removal_label = "2nd"; }
+	  if (num == 3) { removal_label = "3rd"; }
+	  if (num == 4) { removal_label = "4th"; }
+	  if (num == 5) { removal_label = "5th"; }
 
           his_self.playerSelectSpaceOrNavalSpaceWithFilter(
 
-            `Select Space to Remove ${num} Unit` ,
+            `Select Space to Remove ${removal_label} Unit` ,
 
             function(space) {
 	      if (space.key == "persia" || space.key == "egypt" || space.key == "ireland") { return 0; }
@@ -12893,15 +12894,7 @@ console.log("POST_GOUT_QUEUE: " + JSON.stringify(his_self.game.queue));
 		unit_destroyed = 1;
 
 		if (unittype === "skip") {
-//          	  his_self.endTurn();
-//		  return 0;
-		}
-
-          	his_self.removeUnit("ottoman", spacekey, unittype);
-
-		his_self.displaySpace(spacekey);
-
-		if (num === "5th") { 
+          	  his_self.endTurn();
 		  return 0;
 		}
 

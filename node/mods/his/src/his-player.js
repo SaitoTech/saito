@@ -2152,6 +2152,7 @@ if (relief_siege == 1) {
     let already_moved_leaders = false;
     let total_moved = 0;
     let spacekeys_to_rearrange_leaders = [];
+    let winter_unit_order = {};
 
     //
     // handle non-naval units
@@ -2208,6 +2209,12 @@ if (relief_siege == 1) {
         his_self.hud.updateMenu([]);
         his_self.hud.updateCards([]);
         his_self.theses_overlay.hide();
+	for (let spacekey in winter_unit_order) {
+	  for (let fac in winter_unit_order[spacekey]) {
+	    his_self.game.spaces[spacekey].units[fac] = winter_unit_order[spacekey][fac];
+	  }
+	  his_self.displaySpace(spacekey);
+	}
 	for (let z = units_to_remove_moves.length-1; z >= 0; z--) {
 	  his_self.addMove(units_to_remove_moves[z]);
 	}
@@ -2302,8 +2309,6 @@ if (relief_siege == 1) {
 		}
 	      }
 
-              his_self.addUnit(f, spacekey, unit_type);
-	      his_self.removeUnit(f, space.key, unit_type);
 	      units_to_remove_moves.push("move\t"+f+"\tland\t"+space.key+"\t"+spacekey+"\t"+unit_idx+"\t"+his_self.game.player);
 
 	      //
@@ -2348,8 +2353,12 @@ if (relief_siege == 1) {
       //
       for (let y = sources.length-1; y >= 0; y--) {
 	let spacekey = sources[y].spacekey;
-        for (let f in his_self.game.spaces[spacekey].units) {
-	  let arr = his_self.game.spaces[spacekey].units[f];
+	if (!winter_unit_order[spacekey]) { winter_unit_order[spacekey] = {}; }
+        for (let fac in his_self.game.spaces[spacekey].units) {
+	  let arr = his_self.game.spaces[spacekey].units[fac];
+	  if (!winter_unit_order[spacekey][fac]) {
+	    winter_unit_order[spacekey][fac] = arr.slice();
+	  }
 	  if (arr.length > 0) {
 	    let total_moved = 0;
 	    for (let yy = arr.length-1; yy >= 0; yy--) {

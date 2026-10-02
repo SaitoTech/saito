@@ -15,6 +15,8 @@ class GameHUD2 {
     // over the board, so the game's CSS controls where it sits on each screen.
     //
     this.container = null;
+    this.hud_popup_timeout = null;
+    this.hud_popup_hide_timeout = null;
   }
 
   render() {
@@ -86,7 +88,7 @@ class GameHUD2 {
       if (e.button !== 0 || this.isDocked()) {
         return;
       }
-      if (e.target.closest('.hud-back-button, a, input, textarea, button, select')) {
+      if (e.target.closest('.hud-back-button, .hud-notice, a, input, textarea, button, select')) {
         return;
       }
 
@@ -136,6 +138,13 @@ class GameHUD2 {
       document.addEventListener('mouseup', on_up);
     });
 
+    let hudnotice = hud.querySelector('.hud-notice');
+    if (hudnotice) {
+      hudnotice.onclick = () => {
+        this.hidePopup();
+      };
+    }
+
     if (!this.esc_bound) {
       this.esc_bound = true;
       document.addEventListener('keydown', (e) => {
@@ -159,6 +168,7 @@ class GameHUD2 {
   }
 
   hide() {
+    this.hidePopup();
     document.querySelectorAll('#game-hud2').forEach((el) => {
       el.style.display = 'none';
     });
@@ -168,6 +178,47 @@ class GameHUD2 {
       visual_menu.className = 'hud-visual-menu';
     }
     this.back_button_callback = null;
+  }
+
+  hidePopup() {
+    clearTimeout(this.hud_popup_timeout);
+    this.hud_popup_timeout = null;
+
+    let hudnotice = document.querySelector('#game-hud2 .hud-notice');
+    if (!hudnotice) {
+      return;
+    }
+
+    hudnotice.classList.remove('show');
+    clearTimeout(this.hud_popup_hide_timeout);
+    this.hud_popup_hide_timeout = setTimeout(() => {
+      if (!hudnotice.classList.contains('show')) {
+        hudnotice.style.display = 'none';
+      }
+    }, 550);
+  }
+
+  showPopup(html = '', timeout = 0) {
+    this.render();
+
+    let hudnotice = document.querySelector('#game-hud2 .hud-notice');
+    if (!hudnotice) {
+      return;
+    }
+
+    clearTimeout(this.hud_popup_timeout);
+    clearTimeout(this.hud_popup_hide_timeout);
+
+    hudnotice.innerHTML = html || '';
+    hudnotice.classList.remove('show');
+    hudnotice.style.display = 'block';
+
+    this.hud_popup_timeout = setTimeout(() => {
+      hudnotice.classList.add('show');
+      this.hud_popup_timeout = setTimeout(() => {
+        this.hidePopup();
+      }, timeout);
+    }, 50);
   }
 
   updateStatus(status) {

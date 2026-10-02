@@ -7118,7 +7118,7 @@ try {
 		number_of_targets = 1;
 	      }
 
-	      while (hits_to_assign >= number_of_targets && hits_to_assign > 0) {
+	      while (hits_to_assign >= number_of_targets && hits_to_assign > 0 && number_of_targets > 0) {
 
 		//
 		// assign hits to allies
@@ -7193,10 +7193,19 @@ try {
 	      while (hits_to_assign > 0) {
 
 		let targets = [];
-	        for (let f in faction_map) { targets.push(f); }
+	        for (let ff in faction_map) {
+		  if ((faction_map[ff] === faction || (ff == "independent" && faction == "independent")) && space.units[ff] && his_self.returnFactionLandUnitsInSpace(ff, space) > 0) {
+		    targets.push(ff);
+		  }
+		}
 		targets.sort();
+		if (targets.length == 0) {
+		  hits_to_assign = 0;
+		  break;
+		}
 
-		for (let i = hits_to_assign; i > 0; i--) {
+		let removed_any = false;
+		for (let i = hits_to_assign; i > 0 && targets.length > 0; i--) {
 		  let selected_target = his_self.rollDice(targets.length);
 		  let selected_faction = targets[selected_target-1];
 		  his_self.updateLog("Random Target: " + selected_faction);
@@ -7204,7 +7213,8 @@ try {
 		  //
 		  // again, survival of the fittest
 		  //
-		  for (let zzz = 0; zzz < 3; zzz++) {
+		  let removed = false;
+		  for (let zzz = 0; zzz < 3 && removed == false; zzz++) {
 
                     let cannon_fodder = "";
                     if (zzz == 0) { cannon_fodder = "mercenary"; }
@@ -7214,14 +7224,15 @@ try {
                     for (let ii = 0; ii < space.units[selected_faction].length; ii++) {
                       if (space.units[selected_faction][ii].type === cannon_fodder && space.units[selected_faction][ii].besieged == 0) {
 
-			his_self.updateLog(this.returnFactionName(f) + " " + space.units[selected_faction][ii].name + " killed");
+			his_self.updateLog(his_self.returnFactionName(selected_faction) + " " + space.units[selected_faction][ii].name + " killed");
                         space.units[selected_faction].splice(ii, 1);
 	  		his_self.game.state.field_battle.attacker_units_destroyed = [];
 	  		his_self.game.state.field_battle.defender_units_destroyed = [];
 
                         hits_to_assign--;
-                        zzz = 1000000;
-                        ii  = 1000000;
+			removed = true;
+			removed_any = true;
+                        break;
                       }
                     }
                   }
@@ -7230,6 +7241,10 @@ try {
 		  // remove other faction land unit next
 		  //
 		  targets.splice(selected_target-1, 1);
+		}
+
+		if (removed_any == false) {
+		  hits_to_assign = 0;
 		}
 	      }
 
@@ -7514,7 +7529,7 @@ try {
 		}
 	      }
 
-	      while (hits_to_assign >= number_of_targets && hits_to_assign > 0) {
+	      while (hits_to_assign >= number_of_targets && hits_to_assign > 0 && number_of_targets > 0) {
 
 		//
 		// assign hits to allies
@@ -7589,10 +7604,19 @@ try {
 	      while (hits_to_assign > 0) {
 
 		let targets = [];
-	        for (let f in faction_map) { targets.push(f); }
+	        for (let ff in faction_map) {
+		  if (faction_map[ff] == faction && space.units[ff] && his_self.returnFactionLandUnitsInSpace(ff, space) > 0) {
+		    targets.push(ff);
+		  }
+		}
 		targets.sort();
+		if (targets.length == 0) {
+		  hits_to_assign = 0;
+		  break;
+		}
 
-		for (let i = hits_to_assign; i > 0; i--) {
+		let removed_any = false;
+		for (let i = hits_to_assign; i > 0 && targets.length > 0; i--) {
 		  let selected_target = his_self.rollDice(targets.length);
 		  let selected_faction = targets[selected_target-1];
 		  his_self.updateLog("Random Target: " + selected_faction);
@@ -7600,7 +7624,8 @@ try {
 		  //
 		  // again, survival of the fittest
 		  //
-		  for (let zzz = 0; zzz < 3; zzz++) {
+		  let removed = false;
+		  for (let zzz = 0; zzz < 3 && removed == false; zzz++) {
 
                     let cannon_fodder = "";
                     if (zzz == 0) { cannon_fodder = "mercenary"; }
@@ -7610,14 +7635,15 @@ try {
                     for (let ii = 0; ii < space.units[selected_faction].length; ii++) {
                       if (space.units[selected_faction][ii].type == cannon_fodder) {
 
-			his_self.updateLog(this.returnFactionName(f) + " " + space.units[selected_faction][ii].name + " killed");
+			his_self.updateLog(his_self.returnFactionName(selected_faction) + " " + space.units[selected_faction][ii].name + " killed");
                         space.units[selected_faction].splice(ii, 1);
 	  		his_self.game.state.assault.attacker_units_destroyed = [];
 	  		his_self.game.state.assault.defender_units_destroyed = [];
 
                         hits_to_assign--;
-                        zzz = 1000000;
-                        ii  = 1000000;
+			removed = true;
+			removed_any = true;
+                        break;
                       }
                     }
                   }
@@ -7626,6 +7652,10 @@ try {
 		  // remove other faction land unit next
 		  //
 		  targets.splice(selected_target-1, 1);
+		}
+
+		if (removed_any == false) {
+		  hits_to_assign = 0;
 		}
 	      }
 
@@ -9547,7 +9577,7 @@ try {
 		}
 	      }
 
-	      while (hits_to_assign >= number_of_targets && hits_to_assign > 1) {
+	      while (hits_to_assign >= number_of_targets && hits_to_assign > 1 && number_of_targets > 0) {
 
 		//
 		// assign hits to allies
@@ -9594,10 +9624,19 @@ try {
 	      while (hits_to_assign > 1) {
 
 		let targets = [];
-	        for (let f in faction_map) { targets.push(f); }
+	        for (let ff in faction_map) {
+		  if (faction_map[ff] == faction && space.units[ff] && his_self.returnFactionSeaUnitsInSpace(ff, space) > 0) {
+		    targets.push(ff);
+		  }
+		}
 		targets.sort();
+		if (targets.length == 0) {
+		  hits_to_assign = 0;
+		  break;
+		}
 
-		for (let i = hits_to_assign; i > 0; i--) {
+		let removed_any = false;
+		for (let i = hits_to_assign; i > 1 && targets.length > 0; i--) {
 		  let selected_target = his_self.rollDice(targets.length);
 		  let selected_faction = targets[selected_target-1];
 		  his_self.updateLog("Random Target: " + selected_faction);
@@ -9605,7 +9644,8 @@ try {
 		  //
 		  // again, survival of the fittest
 		  //
-		  for (let zzz = 0; zzz < 2; zzz++) {
+		  let removed = false;
+		  for (let zzz = 0; zzz < 2 && removed == false; zzz++) {
 
                     let cannon_fodder = "";
                     if (zzz == 0) { cannon_fodder = "corsair"; }
@@ -9613,11 +9653,12 @@ try {
 
                     for (let ii = 0; ii < space.units[selected_faction].length; ii++) {
                       if (space.units[selected_faction][ii].type == cannon_fodder) {
-			his_self.updateLog(this.returnFactionName(f) + " " + space.units[selected_faction][ii].name + " sunk");
+			his_self.updateLog(his_self.returnFactionName(selected_faction) + " " + space.units[selected_faction][ii].name + " sunk");
                         space.units[selected_faction].splice(ii, 1);
                         hits_to_assign -= 2;
-                        zzz = 1000000;
-                        ii  = 1000000;
+			removed = true;
+			removed_any = true;
+                        break;
                       }
                     }
                   }
@@ -9626,6 +9667,10 @@ try {
 		  // remove other faction sea units next
 		  //
 		  targets.splice(selected_target-1, 1);
+		}
+
+		if (removed_any == false) {
+		  hits_to_assign = 0;
 		}
 	      }
 
@@ -10337,10 +10382,19 @@ try {
 	      while (hits_to_assign > 0) {
 
 		let targets = [];
-	        for (let f in faction_map) { targets.push(f); }
+	        for (let ff in faction_map) {
+		  if (faction_map[ff] == faction && space.units[ff] && his_self.returnFactionLandUnitsInSpace(ff, space) > 0) {
+		    targets.push(ff);
+		  }
+		}
 		targets.sort();
+		if (targets.length == 0) {
+		  hits_to_assign = 0;
+		  break;
+		}
 
-		for (let i = hits_to_assign; i > 0; i--) {
+		let removed_any = false;
+		for (let i = hits_to_assign; i > 0 && targets.length > 0; i--) {
 		  let selected_target = his_self.rollDice(targets.length);
 		  let selected_faction = targets[selected_target-1];
 		  his_self.updateLog("Random Target: " + selected_faction);
@@ -10348,7 +10402,8 @@ try {
 		  //
 		  // again, survival of the fittest
 		  //
-		  for (let zzz = 0; zzz < 3; zzz++) {
+		  let removed = false;
+		  for (let zzz = 0; zzz < 3 && removed == false; zzz++) {
 
                     let cannon_fodder = "";
                     if (zzz == 0) { cannon_fodder = "cavalry"; }
@@ -10357,11 +10412,12 @@ try {
 
                     for (let ii = 0; ii < space.units[selected_faction].length; ii++) {
                       if (space.units[selected_faction][ii].type == cannon_fodder) {
-			his_self.updateLog(this.returnFactionName(f) + " " + space.units[selected_faction][ii].name + " killed");
+			his_self.updateLog(his_self.returnFactionName(selected_faction) + " " + space.units[selected_faction][ii].name + " killed");
                         space.units[selected_faction].splice(ii, 1);
                         hits_to_assign--;
-                        zzz = 1000000;
-                        ii  = 1000000;
+			removed = true;
+			removed_any = true;
+                        break;
                       }
                     }
                   }
@@ -10369,7 +10425,11 @@ try {
 		  //
 		  // remove other faction land unit next
 		  //
-		  targets.splice(selected_target-1, 0);
+		  targets.splice(selected_target-1, 1);
+		}
+
+		if (removed_any == false) {
+		  hits_to_assign = 0;
 		}
 	      }
 
@@ -10409,7 +10469,6 @@ try {
 	    //
 	    his_self.game.state.assault.attacker_modified_rolls = modify_rolls(attacker_player, attacker_results);
 	    attacker_hits = calculate_hits(attacker_player, his_self.game.state.assault.attacker_modified_rolls);
-	    assign_hits(defender_player, attacker_hits);
 
 	    for (let i = 0; i < attacker_hits; i++) {
 	      if (defender_results.length > 0) {
@@ -10423,7 +10482,6 @@ try {
 	    //
 	    his_self.game.state.assault.defender_modified_rolls = modify_rolls(defender_player, defender_results);
 	    defender_hits = calculate_hits(defender_player, his_self.game.state.assault.defender_modified_rolls);
-	    assign_hits(attacker_player, defender_hits);
 
 	    his_self.game.state.assault.attacker_hits = attacker_hits;
 	    his_self.game.state.assault.defender_hits = defender_hits;
@@ -10438,7 +10496,6 @@ try {
 	    //
 	    his_self.game.state.assault.defender_modified_rolls = modify_rolls(defender_player, defender_results);
 	    defender_hits = calculate_hits(defender_player, his_self.game.state.assault.defender_modified_rolls);
-	    assign_hits(attacker_player, defender_hits);
 
 	    for (let i = 0; i < defender_hits; i++) {
 	      if (attacker_results.length > 0) {
@@ -10456,7 +10513,6 @@ try {
 	    //
 	    his_self.game.state.assault.attacker_modified_rolls = modify_rolls(attacker_player, attacker_results);
 	    attacker_hits = calculate_hits(attacker_player, his_self.game.state.assault.attacker_modified_rolls);
-	    assign_hits(defender_player, attacker_hits);
 
 	    his_self.game.state.assault.attacker_hits = attacker_hits;
 	    his_self.game.state.assault.defender_hits = defender_hits;
@@ -10470,8 +10526,6 @@ try {
 	    his_self.game.state.assault.defender_modified_rolls = modify_rolls(defender_player, defender_results);
 	    attacker_hits = calculate_hits(attacker_player, attacker_results);
 	    defender_hits = calculate_hits(defender_player, defender_results);
-	    assign_hits(defender_player, attacker_hits);
-	    assign_hits(attacker_player, defender_hits);
 	    his_self.game.state.assault.attacker_hits = attacker_hits;
 	    his_self.game.state.assault.defender_hits = defender_hits;
 
