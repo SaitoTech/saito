@@ -200,6 +200,8 @@
         }
         s.lastBattle.rounds=rounds;
       }
+      // Resolve automatic occupation in the same signed action, after blitz stops.
+      if(a.steamroll&&s.phase==='occupy')occupy(s,s.occupation.max);
     } else if(a.type==='occupy') { assert(s.phase==='occupy','There is no pending occupation'); occupy(s,a.count); }
     else if(a.type==='end_attack') { assert(s.phase==='attack','You cannot finish attacking yet'); endAttack(s,roll); }
     else if(a.type==='fortify') {

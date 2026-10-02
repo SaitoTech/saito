@@ -8,7 +8,7 @@ Classic world conquest for **2–6 players**, implemented from scratch as a Sait
 node tests/mods/conquest/serve.js
 ```
 
-Open **http://127.0.0.1:4173/conquest/demo**. Choose the player count and classic or automatic opening deployment. No Saito build, external CDN, account, or package installation is needed for this preview. It runs in memory; refreshing starts a new campaign. The pass-screen curtain provides courtesy privacy for hotseat hands.
+Open **http://127.0.0.1:4173/conquest/demo**. Choose the player count and game type: Classic placement or Random placement, which assigns territories and deploys every starting army automatically. No Saito build, external CDN, account, or package installation is needed for this preview. It runs in memory; refreshing starts a new campaign. The pass-screen curtain provides courtesy privacy for hotseat hands.
 
 For Saito Arcade, register `conquest/conquest.js` using this checkout's usual module configuration and rebuild the client. Module configuration and compiled bundles are managed by the application build. The module serves `/conquest` through GameTemplate and `/conquest/demo` as its local preview.
 
@@ -24,7 +24,7 @@ The baseline is Hasbro's [classic 2–6 player rulebook](https://www.hasbro.com/
 - Mandatory trades at five cards at the start of a turn; after elimination, six or more cards trigger trades down to four or fewer, followed by immediate deployment.
 - One **adjacent-territory** fortification. Two-player victory requires defeating the human opponent; neutral territory need not be conquered.
 
-Automation choices: defense always rolls the maximum legal dice; a single synchronized random draw chooses the starting player; a matching card-territory bonus defaults to the first eligible territory. Attackers choose their dice count. Optional blitz repeats attacks until conquest or only one attacking army remains. Optional quick setup assigns territories and places all opening armies. These conveniences are explicit departures from manual tabletop procedures. There are no missions, AI opponents, or house-rule connected-path fortifications.
+Automation choices: defense always rolls the maximum legal dice; a single synchronized random draw chooses the starting player; a matching card-territory bonus defaults to the first eligible territory. Attackers choose their dice count. Optional blitz repeats attacks until conquest or only one attacking army remains. Steamroll automatically advances all surviving attackers except the required one-army garrison after conquest, and can be enabled with or without blitz. Optional quick setup assigns territories and places all opening armies. These conveniences are explicit departures from manual tabletop procedures. There are no missions, AI opponents, or house-rule connected-path fortifications.
 
 ## Structure and restyling
 
@@ -38,7 +38,7 @@ Automation choices: defense always rolls the maximum legal dice; a single synchr
 
 Three.js **r159 / 0.159.0** is vendored for offline use under `web/js/vendor`; its MIT license is included. Map and cover artwork are locally authored SVGs. No external fonts or image assets are required.
 
-The board scales to the available viewport, reserving a bottom row for every player. The command panel scrolls independently, and the enlarged map supports dragging with a mouse or touch. The field guide lists continent bonuses and control progress. Cards reuse the board's territory silhouettes with infantry, cavalry or artillery icons. Deployment, occupation and fortification sliders start at the maximum legal army count.
+The board scales to the available viewport, reserving a bottom row for every player. The turn details scroll independently above fixed-size notice and action areas, with Your cards anchored at the bottom of the command panel. Sending a move preserves the controls and scroll position while disabling input. The enlarged map supports dragging with a mouse or touch. The field guide lists continent bonuses and control progress. Cards reuse the board's territory silhouettes with infantry, cavalry or artillery icons. All text is at least 12px, including scaled map labels. Small fitted maps initially show army counts without country labels to avoid overlap; enlarge the map or use Show labels to display names. Deployment, occupation and fortification sliders start at the maximum legal army count. For reinforcements, choose a count first and click a country to deploy; the count persists and is capped by the armies remaining. Attack and fortification phases highlight legal origins and reveal destinations when an origin is selected. Blitz and Steamroll stay selected independently for that player during the game until switched off. Click cards to select or deselect them; selecting a valid set of three trades it automatically.
 
 ## Multiplayer implementation notes
 
