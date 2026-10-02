@@ -38,6 +38,7 @@ const WinterOverlay = require('./lib/ui/overlays/winter');
 const DeckOverlay = require('./lib/ui/overlays/deck');
 const MenuOverlay = require('./lib/ui/overlays/menu');
 const LanguageZoneOverlay = require('./lib/ui/overlays/language-zone');
+const { bindHudAboveOverlay } = require('./lib/ui/hud-layer');
 
 // Tutorial Overlays
 const GameHelp = require('./lib/ui/game-help/game-help');
@@ -67,6 +68,9 @@ class HereIStand extends GameTemplate {
   constructor(app) {
 
     super(app);
+
+    this.hud_above_overlay = false;
+    bindHudAboveOverlay(this);
 
     this.app             = app;
 

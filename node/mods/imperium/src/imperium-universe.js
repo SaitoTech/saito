@@ -147,9 +147,9 @@
     sectors['sector5']         = { img : "/imperium/img/sectors/sector5.png" ,  name : "Olympia / Granton Mex" , type : 0 , hw : 0 , wormhole : 0, mr : 0 , planets : ['olympia','granton-mex'] }
     sectors['sector6']         = { img : "/imperium/img/sectors/sector6.png" ,  name : "New Illia / Siren's End" , type : 0 , hw : 0 , wormhole : 0, mr : 0 , planets : ['new-illia','sirens-end'] }
     sectors['sector7']         = { img : "/imperium/img/sectors/sector7.png" ,  name : "Lazak's Curse / Riftview" , type : 0 , hw : 0 , wormhole : 0, mr : 0 , planets : ['lazaks-curse','riftview'] }
-    sectors['sector8']         = { img : "/imperium/img/sectors/sector8.png" ,  name : "Broughton / Singharta" , type : 0 , hw : 0 , wormhole : 0, mr : 0 , planets : ['broughton','singharta'] }
+    sectors['sector8']         = { img : "/imperium/img/sectors/sector32.png" ,  name : "Broughton / Singharta" , type : 0 , hw : 0 , wormhole : 0, mr : 0 , planets : ['broughton','singharta'] }
     sectors['sector9']         = { img : "/imperium/img/sectors/sector9.png" ,  name : "Nova Klondike" , type : 0 , hw : 0 , wormhole : 0, mr : 0 , planets : ['nova-klondike'] }
-    sectors['sector10']        = { img : "/imperium/img/sectors/sector10.png" , name : "Grox Towers" , type : 0 , hw : 0 , wormhole : 0, mr : 0 , planets : ['grox-towers'] }
+    sectors['sector10']        = { img : "/imperium/img/sectors/sector8.png" , name : "Grox Towers" , type : 0 , hw : 0 , wormhole : 0, mr : 0 , planets : ['grox-towers'] }
     sectors['sector11']        = { img : "/imperium/img/sectors/sector11.png" , name : "Gravity's Edge / Vespar" , type : 0 , hw : 0 , wormhole : 0, mr : 0 , planets : ['gravitys-edge','vespar'] }
     sectors['sector12']        = { img : "/imperium/img/sectors/sector12.png" , name : "Craw Populi / Hope's Lure" , type : 0 , hw : 0 , wormhole : 0, mr : 0 , planets : ['craw-populi','hopes-lure'] }
     sectors['sector13']        = { img : "/imperium/img/sectors/sector13.png" , name : "Incarth" , type : 0 , hw : 0 , wormhole : 0, mr : 0 , planets : ['incarth'] }
@@ -157,7 +157,7 @@
     sectors['sector15']        = { img : "/imperium/img/sectors/sector15.png" , name : "Virgil" , type : 0 , hw : 0 , wormhole : 0, mr : 0 , planets : ['virgil'] }
     sectors['sector16']        = { img : "/imperium/img/sectors/sector16.png" , name : "Contouri" , type : 0 , hw : 0 , wormhole : 0, mr : 0 , planets : ['contouri-i'] }
     sectors['sector17']        = { img : "/imperium/img/sectors/sector17.png" , name : "Shriva / Vigor" , type : 0 , hw : 0 , wormhole : 0, mr : 0 , planets : ['shriva','vigor'] }
-    sectors['sector18']        = { img : "/imperium/img/sectors/sector18.png" , name : "Xerxes" , type : 0 , hw : 0 , wormhole : 0, mr : 0 , planets : ['xerxes'] }
+    sectors['sector18']        = { img : "/imperium/img/sectors/old/sector9.png" , name : "Xerxes" , type : 0 , hw : 0 , wormhole : 0, mr : 0 , planets : ['xerxes'] }
     sectors['sector19']        = { img : "/imperium/img/sectors/sector19.png" , name : "Unsulla" , type : 0 , hw : 0 , wormhole : 0, mr : 0 , planets : ['unsulla'] }
     sectors['sector20']        = { img : "/imperium/img/sectors/sector20.png" , name : "Panther" , type : 0 , hw : 0 , wormhole : 0, mr : 0 , planets : ['panther'] }
 
@@ -173,9 +173,9 @@
     sectors['sector30']        = { img : "/imperium/img/sectors/sector30.png" , name : "Hacan Homeworld" , type : 0 , hw : 1 , wormhole : 0, mr : 0 , planets : ['hiraeth','quartil','surriel'] }
 
     sectors['sector31']        = { img : "/imperium/img/sectors/sector31.png" ,	name : "Empty Space" , type : 0 , hw : 0 , wormhole : 0, mr : 0 , planets : [] }
-    sectors['sector32']        = { img : "/imperium/img/sectors/sector32.png" ,	name : "Empty Space" , type : 0 , hw : 0 , wormhole : 0, mr : 0 , planets : [] } 
+    sectors['sector32']        = { img : "/imperium/img/sectors/empty1.png" ,	name : "Empty Space" , type : 0 , hw : 0 , wormhole : 0, mr : 0 , planets : [] } 
     sectors['sector33']        = { img : "/imperium/img/sectors/sector33.png" ,	name : "Empty Space" , type : 0 , hw : 0 , wormhole : 0, mr : 0 , planets : [] }
-    sectors['sector34']        = { img : "/imperium/img/sectors/sector34.png" ,	name : "Empty Space" , type : 0 , hw : 0 , wormhole : 0, mr : 0 , planets : [] }
+    sectors['sector34']        = { img : "/imperium/img/sectors/empty2.png" ,	name : "Empty Space" , type : 0 , hw : 0 , wormhole : 0, mr : 0 , planets : [] }
     sectors['sector35']        = { img : "/imperium/img/sectors/sector35.png" ,	name : "Empty Space" , type : 0 , hw : 0 , wormhole : 0, mr : 0 , planets : [] }
     sectors['sector36']        = { img : "/imperium/img/sectors/sector36.png" ,	name : "Wormhole A" , type : 0 , hw : 0 , wormhole : 0, mr : 0 , planets : [] }
     sectors['sector37']        = { img : "/imperium/img/sectors/sector37.png" ,	name : "Wormhole B" , type : 0 , hw : 0 , wormhole : 0, mr : 0 , planets : [] } // black hole or rift

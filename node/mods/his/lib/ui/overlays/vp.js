@@ -1,3 +1,4 @@
+const HudLayer = require('../hud-layer');
 const VPTemplate = require('./vp.template');
 const SaitoOverlay = require('./../../../../../lib/saito/ui/saito-overlay/saito-overlay');
 
@@ -10,19 +11,11 @@ class VPOverlay {
   }
 
   pullHudOverOverlay() {
-    let overlay_zindex = parseInt(this.overlay.zIndex);
-    let hud = document.getElementById('game-hud2');
-    if (hud) {
-      hud.style.zIndex = overlay_zindex + 1;
-    }
+    HudLayer.pullHudOverOverlay.call(this);
   }
 
   pushHudUnderOverlay() {
-    let overlay_zindex = parseInt(this.overlay.zIndex);
-    let hud = document.getElementById('game-hud2');
-    if (hud) {
-      hud.style.zIndex = overlay_zindex - 2;
-    }
+    HudLayer.pushHudUnderOverlay.call(this);
   }
 
   hide() {
@@ -31,6 +24,7 @@ class VPOverlay {
       document.querySelector('.acknowledge').click();
     } catch (err) {}
     this.overlay.hide();
+    this.pushHudUnderOverlay();
   }
   render() {
     this.visible = true;
