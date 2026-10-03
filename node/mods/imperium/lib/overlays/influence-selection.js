@@ -39,7 +39,9 @@ class InfluenceSelectionOverlay {
           cards[i] +
           '" style="background-image: url(' +
           this.mod.game.planets[cards[i]].img +
-          ');"></div>',
+          ');">' +
+          this.mod.planetCardStats(this.mod.game.planets[cards[i]]) +
+          '</div>',
         '.influence-selection-cards'
       );
     }

@@ -3,14 +3,30 @@
     overflow: visible !important;
   }
 
+  .strategy-card-selection-overlay {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .strategy-card-selection-status {
+    font-family: 'orbitron-medium', helvetica, arial;
+    font-size: 2rem;
+    letter-spacing: 0.08em;
+    color: #f7f1e4;
+    text-align: center;
+    margin: 0 0 1vh;
+    text-shadow: 0 0.15rem 0.45rem #000;
+  }
+
   .strategy-card-selection-content {
     display: none;
   }
 
   .strategy-card-selection-controls {
-    --sc-old-h: min(40vh, calc(96vw * 2 / 9 * 1484 / 1060));
-    --sc-span: calc(var(--sc-old-h) * 2 + 6vh);
-    --sc-card-h: min(calc(var(--sc-span) / 1.55), calc(96vw / 4.5 * 1484 / 1060));
+    --sc-old-h: min(36vh, calc(88vw * 2 / 9 * 1484 / 1060));
+    --sc-span: calc(var(--sc-old-h) * 2 + 5vh);
+    --sc-card-h: min(calc(var(--sc-span) / 1.55), calc(88vw / 4.5 * 1484 / 1060));
     --sc-card-w: calc(var(--sc-card-h) * 1060 / 1484);
     position: relative;
     height: var(--sc-span);
@@ -53,7 +69,7 @@
   }
 
   .strategy-card-selection-controls .strategy-card .bonus-count {
-    font-size: 1.55rem;
+    font-size: 2.7rem;
   }
 
   .strategy-card-selection-controls .strat_slot_1,

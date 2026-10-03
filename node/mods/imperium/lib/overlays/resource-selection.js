@@ -39,7 +39,9 @@ class ResourceSelectionOverlay {
           cards[i] +
           '" style="background-image: url(' +
           this.mod.game.planets[cards[i]].img +
-          ');"></div>',
+          ');">' +
+          this.mod.planetCardStats(this.mod.game.planets[cards[i]]) +
+          '</div>',
         '.resource-selection-cards'
       );
     }

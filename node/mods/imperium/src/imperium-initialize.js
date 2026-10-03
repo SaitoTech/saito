@@ -78,17 +78,6 @@
 	game_mod.strategy_card_overlay.render();
       }
     });
-    this.menu.addSubMenuOption("game-cards", {
-      text : "Objectives",
-      id : "game-objectives",
-      class : "gams-objectives",
-      callback : function(app, game_mod) {
-        game_mod.menu.hideSubMenus();
-	game_mod.handleObjectivesMenuItem();
-      }
-    });
-
-
     //
     // agendas
     //
@@ -128,53 +117,6 @@
         game_mod.handleLawsMenuItem();
       }
     });
-
-    this.menu.addSubMenuOption("game-cards", {
-      text : "Tech",
-      id : "game-tech-dependencies",
-      class : "game-tech-dependencies",
-      callback : function(app, game_mod) {
-       game_mod.menu.showSubSubMenu("game-tech-dependencies");
-      }
-    });
-    this.menu.addSubMenuOption("game-tech-dependencies", {
-        text : "Basic",
-        id : "game-tech-dependencies-basic",
-        class : "game-tech-dependencies-basic",
-        callback : function(app, game_mod) {
-          game_mod.menu.hideSubMenus();
-          game_mod.faction_sheet_overlay.render(game_mod.game.player, 'technologies');
-        }
-    });
-    this.menu.addSubMenuOption("game-tech-dependencies", {
-        text : "Units",
-        id : "game-tech-dependencies-units",
-        class : "game-tech-dependencies-units",
-        callback : function(app, game_mod) {
-          game_mod.menu.hideSubMenus();
-          game_mod.units_overlay.render();
-        }
-    });
-    this.menu.addSubMenuOption("game-tech-dependencies", {
-        text : "Upgrades",
-        id : "game-tech-dependencies-upgrades",
-        class : "game-tech-dependencies-upgrades",
-        callback : function(app, game_mod) {
-          game_mod.menu.hideSubMenus();
-          game_mod.faction_sheet_overlay.render(game_mod.game.player, 'technologies');
-        }
-    });
-    for (let i = 0; i < this.game.players.length; i++) {
-      this.menu.addSubMenuOption("game-tech-dependencies", {
-        text : this.returnFactionNickname(i+1),
-        id : "game-faction-tech-"+(i+1),
-        class : "game-faction-tech-"+(i+1),
-        callback : function(app, game_mod) {
-          game_mod.menu.hideSubMenus();
-          game_mod.faction_sheet_overlay.render(i + 1, 'technologies');
-        }
-      });
-    }
 
     this.menu.addSubMenuOption("game-cards", {
       text : "Laws",
@@ -752,7 +694,7 @@ console.log("ABOUT TO DINISH INITIALIZATION!");
 			"img/influence/4.png",
 			"img/influence/3.png", 
 			"img/influence/6.png",
-			"img/agenda_card_template.png",
+			"img/cards/agenda_card.png",
 			"img/card_template.jpg",
 			"img/cards/secret_objective_ii_back.png",
 			"img/units/fighter.png",

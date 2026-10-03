@@ -462,6 +462,10 @@ class GameQueue {
       if (gmv[0] === 'SAVE') {
         game_self.game.queue.splice(game_self.game.queue.length - 1, 1);
 
+        if (game_self.name === 'PathsOfGlory') {
+          return 1;
+        }
+
         if (!game_self.app.options.saves) {
           game_self.app.options.saves = {};
         }

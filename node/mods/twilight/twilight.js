@@ -2734,7 +2734,7 @@ console.log("DESC: " + JSON.stringify(discarded_cards));
     if (mv[0] === "vp") {
       if (mv.length > 3) {
         if (parseInt(mv[3]) == 1) {
-          this.updateLog(mv[1].toUpperCase() + " receives " + mv[2] + " VP", 1);
+          this.updateLog(mv[1].toUpperCase() + " receives " + mv[2] + " VP");
           if (mv[1] === "us") {
             this.game.state.vp_outstanding += parseInt(mv[2]);
           } else {
@@ -6221,7 +6221,7 @@ async playerTurnHeadlineSelected(card, player) {
       this.countries[country].ussr = parseInt(this.countries[country].ussr) + parseInt(inf);
     }
 
-    this.updateLog(player.toUpperCase() + " places " + inf + " in " + this.countries[country].name, 1);
+    this.updateLog(player.toUpperCase() + " places " + inf + " in " + this.countries[country].name);
     this.showInfluence(country, player, mycallback);
 
   }

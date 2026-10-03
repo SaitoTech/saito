@@ -1833,6 +1833,11 @@
     transform: scale(2.6) rotate(-30deg);
   }
 
+  /* Single-planet tiles zoom half as far in. New Byzantium keeps its own rule. */
+  .bi.spin-in:has(.one_planet) .hex_img {
+    transform: scale(1.8) rotate(-30deg);
+  }
+
   .bi .new-byzantium {
     transform: scale(2.3) translate(0%, 25%) rotate(17deg);
   }
@@ -1998,5 +2003,42 @@
   }
   .how_to_play_resources_entry {
     padding-top: 20px;
+  }
+
+  .game-help-triangle {
+    position: fixed;
+    left: 0;
+    bottom: 0;
+    width: 20rem;
+    height: 13rem;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    transform: none;
+    background: #ff7700;
+    clip-path: polygon(0 0, 0 100%, 100% 100%);
+    z-index: 2000;
+  }
+
+  .game-help-triangle:hover {
+    background: #ee6600;
+  }
+
+  .game-help-text {
+    position: absolute;
+    left: 0.8rem;
+    bottom: 0.85rem;
+    margin: 0;
+    padding: 0;
+    transform: none;
+    width: auto;
+    min-width: 0;
+    font-family: 'orbitron-medium', helvetica, arial, sans-serif;
+    font-size: 1.35rem;
+    line-height: 1.2;
+    font-weight: bold;
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+    text-shadow: -1px 1px 2px #000;
   }
 }

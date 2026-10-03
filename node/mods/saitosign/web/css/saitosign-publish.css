@@ -52,7 +52,8 @@
   transition: transform 0.2s ease, opacity 0.2s ease;
 }
 
-.saitosign-publish .title {
+.saitosign-publish .title,
+.saitosign-publish .sign-requirement {
   margin: 0;
   padding-right: 4rem;
   color: var(--saito-foreground);
@@ -62,24 +63,26 @@
   line-height: 1.3;
 }
 
+.saitosign-publish .sign-requirement {
+  padding-right: 0;
+}
+
 .saitosign-publish .stage {
   flex: 1;
   min-height: 0;
 }
 
 .saitosign-publish .choice {
-  display: grid;
-  grid-template-columns: minmax(22rem, 1fr) minmax(0, 1.6fr);
+  display: flex;
+  flex-direction: column;
   gap: var(--saito-space-lg);
-  align-items: stretch;
-  min-height: 24rem;
+  min-width: 0;
 }
 
 .saitosign-publish .options {
   display: flex;
   flex-direction: column;
   gap: var(--saito-space-sm);
-  height: 100%;
 }
 
 .saitosign-publish .option {
@@ -87,7 +90,8 @@
   flex-direction: column;
   align-items: flex-start;
   gap: 0.4rem;
-  flex: 1;
+  flex: 0 0 auto;
+  width: 100%;
   margin: 0;
   padding: var(--saito-space-lg);
   border: 1px solid var(--saito-border);
@@ -123,6 +127,55 @@
   line-height: 1.35;
 }
 
+.saitosign-publish .option .features {
+  display: flex;
+  flex-direction: column;
+  gap: var(--saito-space-sm);
+  width: 100%;
+}
+
+.saitosign-publish .option .feature {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.saitosign-publish .share-config {
+  display: flex;
+  flex-direction: column;
+  gap: var(--saito-space-sm);
+}
+
+.saitosign-publish .share-config[hidden] {
+  display: none;
+}
+
+.saitosign-publish .share-flags {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: var(--saito-space-sm);
+}
+
+.saitosign-publish .share-flags label,
+.saitosign-publish .share-wide {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  margin: 0;
+  color: var(--saito-foreground);
+  font-size: var(--font-size-medium);
+  line-height: 1.4;
+}
+
+.saitosign-publish .share-flags input,
+.saitosign-publish .share-wide input {
+  flex: none;
+  width: 1.6rem;
+  height: 1.6rem;
+  margin: 0;
+  accent-color: var(--saito-primary);
+}
+
 .saitosign-publish .detail,
 .saitosign-publish .focus {
   display: flex;
@@ -142,6 +195,21 @@
 .saitosign-publish .heading,
 .saitosign-publish p {
   margin: 0;
+}
+
+.saitosign-publish .verified-photo {
+  display: block;
+  flex: 0 1 auto;
+  align-self: flex-start;
+  width: auto;
+  max-width: 100%;
+  height: auto;
+  max-height: 18rem;
+  min-height: 0;
+  object-fit: contain;
+  border: 1px solid var(--saito-border);
+  border-radius: var(--saito-radius);
+  background: #111;
 }
 
 .saitosign-publish .heading {
@@ -219,16 +287,13 @@
   color: var(--saito-status-success, var(--saito-foreground));
 }
 
-.saitosign-publish .person .who {
+.saitosign-publish .person .person-name {
+  margin: 0;
   color: var(--saito-foreground);
   font-family: var(--saito-font-medium);
 }
 
-.saitosign-publish .person .status {
-  color: inherit;
-}
-
-.saitosign-publish .person.done .who {
+.saitosign-publish .person.done .person-name {
   color: var(--saito-status-success, #10b981);
   font-size: var(--font-size-large);
   line-height: 1.2;
@@ -239,16 +304,76 @@
   color: var(--saito-status-success, #10b981);
 }
 
-.saitosign-publish .person.done .lines {
+.saitosign-publish .person .lines .complete {
   color: var(--saito-status-success, #10b981);
+}
+
+.saitosign-publish .person .lines .missing {
+  color: var(--saito-status-error, var(--saito-red));
 }
 
 .saitosign-publish .person.waiting .mark {
   color: var(--saito-primary);
 }
 
-.saitosign-publish .person.waiting .who {
-  color: var(--saito-muted-foreground);
+.saitosign-publish .step[data-step="share"] {
+  min-height: 0;
+}
+
+.saitosign-publish .step[data-step="share"] .stage {
+  flex: none;
+}
+
+.saitosign-publish .signer-list {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  gap: 1.2rem;
+  width: auto;
+  height: auto;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  background: none;
+  border: 0;
+}
+
+.saitosign-publish .signer {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 1rem;
+  width: auto;
+  height: auto;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  background: none;
+  border: 0;
+  color: var(--saito-foreground);
+  font-size: var(--font-size-medium);
+  line-height: 1.3;
+}
+
+.saitosign-publish .signer-mark {
+  width: 1.6rem;
+  flex: none;
+  text-align: center;
+}
+
+.saitosign-publish .signer-name {
+  font-family: var(--saito-font-medium);
+}
+
+.saitosign-publish .signer.signed .signer-mark,
+.saitosign-publish .signer.signed .signer-state {
+  color: var(--saito-status-success, #10b981);
+}
+
+.saitosign-publish .signer.unsigned .signer-mark,
+.saitosign-publish .signer.unsigned .signer-state {
+  color: var(--saito-status-error, var(--saito-red));
 }
 
 .saitosign-publish .share-instruction {
@@ -348,6 +473,10 @@
   flex-direction: column;
   gap: var(--saito-space-sm);
   margin-top: auto;
+}
+
+.saitosign-publish .sign-step .who {
+  margin-top: 0;
 }
 
 .saitosign-publish .who-row,
@@ -748,6 +877,10 @@
   .saitosign-publish .choice,
   .saitosign-publish .verify-flow {
     grid-template-columns: 1fr;
+  }
+
+  .saitosign-publish .share-flags {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .saitosign-publish .verify-methods {

@@ -1,17 +1,21 @@
 const SaitoOverlay = require('../../../../../lib/saito/ui/saito-overlay/saito-overlay');
 const PublishTemplate = require('./publish.template');
+const Photo = require('./photo');
 const flow = require('./publish.flow');
 const {
   verifyEmailSignature,
+  verifyPhoto,
   addSignature,
   addInitial,
   actionStatus,
   verifyActionSignature,
   rememberEmail,
-  verifiedMethods
+  verifiedMethods,
+  knownSigner
 } = require('../../auth');
-const { addUser, copy } = require('../../document');
+const { addUser, copy, resolveSigner } = require('../../document');
 const { saveDraft } = require('../../draft');
+const { shareMetadata } = require('../../transaction');
 
 class PublishOverlay {
   constructor(app, mod) {
@@ -25,9 +29,14 @@ class PublishOverlay {
 
   render() {
     this.state = flow.initialState();
+    if (this.mod.document?.metadata) {
+      this.state = flow.applyShareMetadata(this.state, this.mod.document.metadata);
+    }
+    this.writeShare();
     this.state.signers = readUsers(this.mod);
-    if (this.state.signers.length === 1) {
-      this.keepUser(this.state.signers[0]);
+    const known = knownSigner(this.app, this.state.signers);
+    if (known) {
+      this.keepUser(known);
     }
     this.overlay.show(PublishTemplate(this.state));
     this.attachEvents();
@@ -95,6 +104,12 @@ class PublishOverlay {
     root.dataset.bound = '1';
 
     root.addEventListener('change', (event) => {
+      const option = event.target.closest('[data-share-option]');
+      if (option && this.state.step === 'select') {
+        this.state = flow.setShareOption(this.state, option.dataset.shareOption, option.checked);
+        this.writeShare();
+        return;
+      }
       const select = event.target.closest('[data-you-signer]');
       if (!select) {
         return;
@@ -113,6 +128,7 @@ class PublishOverlay {
       const plan = event.target.closest('[data-plan]');
       if (plan && this.state.step === 'select') {
         this.state = flow.selectPlan(this.state, plan.dataset.plan);
+        this.writeShare();
         this.paintPlan();
         return;
       }
@@ -169,6 +185,11 @@ class PublishOverlay {
         return;
       }
 
+      if (action.dataset.publishAction === 'take-photo') {
+        this.takePhoto();
+        return;
+      }
+
       if (action.dataset.publishAction === 'review') {
         this.close();
         return;
@@ -199,6 +220,7 @@ class PublishOverlay {
           return;
         }
         this.state = this.withKnownVerifications(next);
+        this.writeShare();
         this.showStep('forward');
       }
     });
@@ -223,9 +245,18 @@ class PublishOverlay {
       button.classList.toggle('active', selected);
       button.setAttribute('aria-selected', selected ? 'true' : 'false');
     });
-    root.querySelectorAll('[data-detail]').forEach((panel) => {
-      panel.hidden = panel.dataset.detail !== this.state.plan;
-    });
+    const config = root.querySelector('[data-share-config]');
+    if (config) {
+      config.hidden = this.state.plan !== 'premium';
+    }
+  }
+
+  writeShare() {
+    const record = this.mod.document;
+    if (!record) {
+      return;
+    }
+    record.metadata = shareMetadata(this.state.plan, this.state.options);
   }
 
   confirmYou() {
@@ -240,7 +271,7 @@ class PublishOverlay {
       return;
     }
     this.keepUser(signer);
-    this.flashKey();
+    this.showIdentity();
   }
 
   addSigner() {
@@ -251,6 +282,24 @@ class PublishOverlay {
     }
     const email = isEmailAddress(value) ? value : '';
     const name = email ? nameFromEmail(email) : value;
+    const decision = resolveSigner(this.mod.document, value, email ? name : undefined);
+    if (decision.action === 'existing') {
+      if (decision.conflict) {
+        duplicateSignerNotice();
+        return;
+      }
+      this.state.signers = readUsers(this.mod);
+      const existing = this.state.signers.find((candidate) => candidate.index === decision.index);
+      if (!existing) {
+        return;
+      }
+      this.keepUser(existing);
+      this.showIdentity();
+      if (input) {
+        input.value = '';
+      }
+      return;
+    }
     const index = addUser(this.mod.document, name);
     if (email) {
       this.mod.document.users[index].email = email;
@@ -261,7 +310,7 @@ class PublishOverlay {
       return;
     }
     this.keepUser(added);
-    this.flashKey();
+    this.showIdentity();
   }
 
   keepUser(signer) {
@@ -298,41 +347,25 @@ class PublishOverlay {
     if (!known.length) {
       return state;
     }
+    const image = storedPhoto(live);
     const verificationMethods = state.verificationMethods.map((method) => {
-      if (!known.includes(method.id) || method.status === 'verified') {
+      if (!known.includes(method.id)) {
         return method;
       }
-      return { ...method, status: 'verified', selected: true };
+      const next = method.status === 'verified' ? method : { ...method, status: 'verified', selected: true };
+      if (method.id !== 'photo' || !image) {
+        return next;
+      }
+      return { ...next, photo: image };
     });
     return { ...state, verificationMethods };
   }
 
-  flashKey() {
-    const slot = document.querySelector('[data-you-slot]');
-    const you = this.state.you;
-    if (!slot || !you) {
+  showIdentity() {
+    if (this.state.step !== 'sign' || !this.state.identified) {
       return;
     }
-    const icon = you.identicon
-      ? `<div class="saito-identicon-box"><img class="saito-identicon" src="${escapeHTML(you.identicon)}" alt=""></div>`
-      : '';
-    slot.innerHTML = `
-      <p class="heading">You are signing with the following key:</p>
-      <div class="key-preview" data-key-preview>
-        <div class="saito-user">
-          ${icon}
-          <div class="saito-address" title="${escapeHTML(you.publicKey)}">${escapeHTML(you.publicKey)}</div>
-          <div class="saito-userline">${escapeHTML(you.email || you.name || '')}</div>
-        </div>
-      </div>
-    `;
-    const preview = slot.querySelector('.key-preview');
-    preview.classList.add('key-preview--enter');
-    requestAnimationFrame(() => {
-      preview.classList.add('key-preview--enter-active');
-      preview.classList.remove('key-preview--enter');
-    });
-    this.paintContinue();
+    this.paintSlide();
   }
 
   sendEmail() {
@@ -424,7 +457,7 @@ class PublishOverlay {
       if (!live.publickey) {
         live.publickey = publickey;
       }
-      live.verifications = [verification];
+      keepMethod(live, verification);
     }
 
     if (res.signature) {
@@ -491,14 +524,12 @@ class PublishOverlay {
     if (live) {
       live.email = email;
       live.publickey = publickey;
-      live.verifications = [
-        {
-          method: 'email',
-          publickey: this.serverkey,
-          message: `Request received for verification of email ${email} with publickey ${publickey}`,
-          signature
-        }
-      ];
+      keepMethod(live, {
+        method: 'email',
+        publickey: this.serverkey,
+        message: `Request received for verification of email ${email} with publickey ${publickey}`,
+        signature
+      });
     }
     saveDraft({ code: signature, document: copy(this.mod.document) }).catch(() => {});
     rememberEmail(this.app, publickey, email);
@@ -506,6 +537,52 @@ class PublishOverlay {
       { ...this.state, checking: false, pendingCode: '', verifyError: '' },
       'email'
     );
+    this.paintSlide();
+  }
+
+  takePhoto() {
+    const photo = new Photo(this.app, this.mod);
+    this.photo = photo;
+    photo.open({
+      onAccept: (image) => this.acceptPhoto(image)
+    });
+  }
+
+  async acceptPhoto(image) {
+    const you = this.state.you;
+    const publickey = you?.publicKey || '';
+    const live = you ? this.mod.document.users[you.index] : null;
+    if (!live || !publickey) {
+      photoNotice('That photo could not be saved.');
+      return;
+    }
+
+    let proof;
+    try {
+      proof = await verifyPhoto(this.app, publickey, image);
+    } catch (err) {
+      photoNotice('That photo could not be saved.');
+      return;
+    }
+
+    if (!live.publickey) {
+      live.publickey = publickey;
+    }
+    keepMethod(live, proof);
+    this.mod.document.edited = true;
+    const verified = flow.markMethodVerified(
+      { ...this.state, focus: 'photo', upsell: null, verifyError: '' },
+      'photo'
+    );
+    this.state = {
+      ...verified,
+      verificationMethods: verified.verificationMethods.map((method) => {
+        if (method.id !== 'photo') {
+          return method;
+        }
+        return { ...method, photo: proof.photo || image };
+      })
+    };
     this.paintSlide();
   }
 
@@ -626,7 +703,7 @@ class PublishOverlay {
   }
 
   canContinue() {
-    if (this.state.step === 'select') {
+    if (this.state.step === 'sign') {
       return Boolean(this.state.identified);
     }
     if (this.state.step === 'verify') {
@@ -672,6 +749,40 @@ function readUsers(mod) {
       publickey: user?.publickey || ''
     };
   });
+}
+
+function storedPhoto(user) {
+  const entries = Array.isArray(user?.verifications) ? user.verifications : [];
+  const entry = entries.find((item) => item?.method === 'photo' && typeof item.photo === 'string');
+  const image = String(entry?.photo || '').trim();
+  return image.startsWith('data:image/') ? image : '';
+}
+
+function photoNotice(message) {
+  if (typeof siteMessage === 'function') {
+    siteMessage(message, 3000);
+  }
+}
+
+function keepMethod(user, entry) {
+  const method = String(entry?.method || '');
+  const kept = (user.verifications || []).filter((item) => {
+    if (!item.method) {
+      return false;
+    }
+    if (!method) {
+      return item.method !== 'email';
+    }
+    return item.method !== method;
+  });
+  kept.push(entry);
+  user.verifications = kept;
+}
+
+function duplicateSignerNotice() {
+  if (typeof siteMessage === 'function') {
+    siteMessage('Adding multiple users with the same email address is not permitted.', 3000);
+  }
 }
 
 function isEmailAddress(value) {

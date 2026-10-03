@@ -47,7 +47,7 @@ class SectorOverlay {
 		        	    <br />
 		        	    ${this.mod.returnSpaceDocksOnPlanet(sys.p[i])} spacedocks
 		        	  </div>
-		        	  <div class="planet-card" style="background-image: url('${sys.p[i].img}');"></div>
+		        	  <div class="planet-card" style="background-image: url('${sys.p[i].img}');">${this.mod.planetCardStats(planet)}</div>
 			        </div>
 		      	`;
 

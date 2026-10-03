@@ -27,6 +27,10 @@
   gap: var(--saito-space-sm);
 }
 
+.workspace .signers-panel {
+  display: none;
+}
+
 .workspace p,
 .workspace .role,
 .workspace .file,
@@ -105,7 +109,8 @@
   text-align: center;
 }
 
-.workspace .row .open i.signed {
+.workspace .row .open i.signed,
+.workspace .field-list .row.signed .label {
   color: var(--saito-status-success, #3cba6e);
 }
 
@@ -252,7 +257,7 @@
   border-radius: var(--saito-radius);
   background: #111;
   color: #fff;
-  cursor: default;
+  cursor: pointer;
 }
 
 .workspace button.export.primary:not(:disabled) {

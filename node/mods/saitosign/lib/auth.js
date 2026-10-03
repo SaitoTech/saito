@@ -31,6 +31,24 @@ async function verifyEmail(app, email, publickey) {
   return { message, signature };
 }
 
+async function verifyPhoto(app, publickey, image) {
+  const photo = String(image || '').trim();
+  const key = String(publickey || '').trim();
+  if (!photo || !key) {
+    throw new Error('That photo could not be saved.');
+  }
+  const digest = app.crypto.hash(photo);
+  const message = `Photo received for verification of publickey ${key} with image ${digest}`;
+  const signature = app.crypto.signMessage(message, await app.wallet.getPrivateKey());
+  return {
+    method: 'photo',
+    publickey: key,
+    message,
+    signature,
+    photo
+  };
+}
+
 function verifyEmailSignature(app, email, publickey, signature, serverkey) {
   const message = `Request received for verification of email ${email} with publickey ${publickey}`;
   return app.crypto.verifyMessage(message, signature, serverkey);
@@ -175,6 +193,22 @@ function emailOnKey(stored) {
   return '';
 }
 
+function knownSigner(app, signers) {
+  const list = Array.isArray(signers) ? signers : [];
+  const keys = walletKeys(app);
+  const byKey = list.filter((signer) => {
+    const key = String(signer?.publickey || signer?.publicKey || '').trim();
+    return Boolean(key) && keys.includes(key);
+  });
+  if (byKey.length === 1) {
+    return byKey[0];
+  }
+  if (list.length === 1) {
+    return list[0];
+  }
+  return null;
+}
+
 function myKeychainEmail(app) {
   if (!app.keychain) {
     return null;
@@ -295,6 +329,7 @@ function rememberVerifiedEmails(app, record) {
 
 module.exports = {
   verifyEmail,
+  verifyPhoto,
   verifyEmailSignature,
   addSignature,
   addInitial,
@@ -305,7 +340,9 @@ module.exports = {
   allActionsSigned,
   actionStatus,
   myKeychainEmail,
+  knownSigner,
   rememberEmail,
   rememberVerifiedEmails,
-  verifiedMethods
+  verifiedMethods,
+  verifiedEmail
 };

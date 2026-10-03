@@ -1,46 +1,16 @@
-const { escapeHTML, keyPreviewHTML } = require('./publish.escape');
-
-function signerOptions(state) {
-  const options = state.signers
-    .map((signer) => {
-      const label = signer.email && signer.email !== signer.name
-        ? `${signer.name} - ${signer.email}`
-        : signer.name || signer.email;
-      return `<option value="${signer.index}">${escapeHTML(label)}</option>`;
-    })
-    .join('');
+function feature(title, text) {
   return `
-    <option value="">Select a signer</option>
-    ${options}
-    <option value="new">Add New Signer</option>
+    <div class="feature">
+      <p class="heading">${title}</p>
+      <p>${text}</p>
+    </div>
   `;
 }
 
-function identityHTML(state) {
-  if ((state.signers.length === 1 || state.identified) && state.you) {
-    return `
-      <div class="who" data-you-slot>
-        <p class="heading">You are signing with the following key:</p>
-        ${keyPreviewHTML(state.you)}
-      </div>
-    `;
-  }
-
-  return `
-    <div class="who" data-you-slot>
-      <p class="heading">Please tell us who you are</p>
-      <div class="who-row">
-        <select data-you-signer aria-label="Who you are">
-          ${signerOptions(state)}
-        </select>
-        <button type="button" class="saito-button-secondary" data-publish-action="confirm-you">Confirm</button>
-      </div>
-      <div class="new-signer" data-new-signer hidden>
-        <input data-new-signer-name type="text" placeholder="name or email" aria-label="Signer name" autocomplete="name" />
-        <button type="button" data-publish-action="add-signer">Add</button>
-      </div>
-    </div>
-  `;
+function optionBox(state, key, label, wide) {
+  const checked = state.options?.[key] === true ? ' checked' : '';
+  const klass = wide ? ' class="share-wide"' : '';
+  return `<label${klass}><input type="checkbox" data-share-option="${key}"${checked}> ${label}</label>`;
 }
 
 function selectSlide(state) {
@@ -51,24 +21,32 @@ function selectSlide(state) {
       <div class="choice">
         <div class="options" role="listbox" aria-label="How to share this document">
           <button type="button" class="option${free ? ' active' : ''}" data-plan="free" aria-selected="${free}">
-            <span class="kicker">Free</span>
-            <span class="label">Sign and share it yourself</span>
+            <span class="kicker">Freemium</span>
+            <div class="features">
+              ${feature('Basic Verification', 'Signers verify email addresses, can attach supporting photos')}
+              ${feature('Private File Sharing', 'You share the document with your peers, they import and sign manually.')}
+              ${feature('Update to Enable:', 'One-click links, advanced verification options, secure contract archiving')}
+            </div>
           </button>
           <button type="button" class="option${free ? '' : ' active'}" data-plan="premium" aria-selected="${!free}">
             <span class="kicker">Premium</span>
-            <span class="label">Let SaitoSign handle more of it</span>
+            <div class="features">
+              ${feature('Full Verification', 'Email, mobile, passport, photo and video verification options available')}
+              ${feature('Easy Signing', 'Share links with others. The server manages the entire signing process.')}
+              ${feature('Full Archive Support', 'All contracts saved in encrypted form.')}
+            </div>
           </button>
         </div>
-        <div class="detail">
-          <div class="copy" data-detail="free"${free ? '' : ' hidden'}>
-            <p class="heading">No storage or subscription.</p>
-            <p>You verify your email, sign, and send the document file to the other signers. The file is the document. It does not need to live on a server.</p>
+        <div class="share-config" data-share-config${free ? ' hidden' : ''}>
+          <div class="share-flags">
+            ${optionBox(state, 'email', 'Email')}
+            ${optionBox(state, 'phone', 'Phone')}
+            ${optionBox(state, 'photo', 'Photo')}
+            ${optionBox(state, 'passport', 'Passport')}
+            ${optionBox(state, 'legal_review', 'Legal Review')}
           </div>
-          <div class="copy" data-detail="premium"${free ? ' hidden' : ''}>
-            <p class="heading">Hosted storage and a managed signing process.</p>
-            <p>SaitoSign can keep the document online, remind signers, and carry more of the workflow. Free signing still works if you would rather pass the file yourself.</p>
-          </div>
-          ${identityHTML(state)}
+          ${optionBox(state, 'online_signing', 'Fully online document signing (no documents to download!)', true)}
+          ${optionBox(state, 'archive_contract', 'Archive copy of my contract after signing is complete', true)}
         </div>
       </div>
     `

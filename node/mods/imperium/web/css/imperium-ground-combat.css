@@ -77,7 +77,7 @@
 .ground-combat-defender-name , .ground-combat-attacker-name {
   font-size: 1.667rem;
   color: white;
-  font-family: 'bank-gothic';
+  font-family: 'orbitron-medium', helvetica, arial;
   text-align: center;
   background-color: #0005;
   padding: 0.833rem;

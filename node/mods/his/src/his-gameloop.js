@@ -556,7 +556,7 @@ if (this.game.options.scenario != "is_testing") {
 	  let spacekey = mv[4];
           let player_to_ignore = parseInt(mv[5]);
 
-	  this.updateLog(this.returnFactionName(faction) + " builds " + unit_type + " in " + this.returnSpaceName(spacekey), true);
+	  this.updateLog(this.returnFactionName(faction) + " builds " + unit_type + " in " + this.returnSpaceName(spacekey));
 
 	  //
 	  // winterrrr retreat sometimes builds army leaders

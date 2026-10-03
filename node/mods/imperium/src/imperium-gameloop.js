@@ -581,10 +581,10 @@
 
   	if (planet_idx != -1) {
           this.addPlanetaryUnit(player, sector, planet_idx, unitname);
-	  this.updateLog(this.returnFactionNickname(player) + " produces " + this.returnUnit(unitname, player).name + " on " + sys.p[planet_idx].name, 1);  // force message
+	  this.updateLog(this.returnFactionNickname(player) + " produces " + this.returnUnit(unitname, player).name + " on " + sys.p[planet_idx].name);
  	} else {
           this.addSpaceUnit(player, sector, unitname);
-	  this.updateLog(this.returnFactionNickname(player) + " produces " + this.returnUnit(unitname, player).name + " in " + sys.s.name, 1); // force message
+	  this.updateLog(this.returnFactionNickname(player) + " produces " + this.returnUnit(unitname, player).name + " in " + sys.s.name);
         }
 
 	//
@@ -1086,6 +1086,7 @@
 	//
 	this.game.queue.push("ACKNOWLEDGE\tThe Galactic Senate has settled on '"+this.returnNameFromIndex(winning_choice)+"'");
 
+	this.agenda_voting_overlay.hide();
 
 	//
 	// REMOVE strategy card invocation
@@ -1443,7 +1444,7 @@
 	  // if the player has a rider, we skip the interactive voting and submit an abstention
 	  //
 	  if (imperium_self.doesPlayerHaveRider(this.game.player)) {
-	    imperium_self.addMove("resolve\tagenda\t1\t"+imperium_self.getPublicKey());
+	    imperium_self.addMove("resolve\tsimultaneous_agenda\t1\t"+imperium_self.getPublicKey());
 	    imperium_self.addMove("vote\t"+agenda+"\t"+imperium_self.game.player+"\t"+"abstain"+"\t"+"0");
 	    imperium_self.endTurn();
 	    return 0;
@@ -1484,7 +1485,7 @@
 
 	    if (vote == "abstain") {
 
-	      imperium_self.addMove("resolve\tagenda\t1\t"+imperium_self.getPublicKey());
+	      imperium_self.addMove("resolve\tsimultaneous_agenda\t1\t"+imperium_self.getPublicKey());
 	      imperium_self.addMove("vote\t"+agenda+"\t"+imperium_self.game.player+"\t"+vote+"\t"+votes);
 	      imperium_self.endTurn();
 	      return 0;
@@ -1505,7 +1506,7 @@
 	    imperium_self.hud.updateCards([]);
 	    imperium_self.hud.updateMenu(vote_menu, function (votes) {
 
-  	      imperium_self.addMove("resolve\tagenda\t1\t"+imperium_self.getPublicKey());
+  	      imperium_self.addMove("resolve\tsimultaneous_agenda\t1\t"+imperium_self.getPublicKey());
 	      imperium_self.addMove("vote\t"+agenda+"\t"+imperium_self.game.player+"\t"+vote+"\t"+votes);
 	      imperium_self.endTurn();
 	      return 0;
@@ -1607,6 +1608,8 @@
 
       if (mv[0] === "newround") {
 
+	this.agenda_voting_overlay.hide();
+
 	//
 	// reset to turn 0
 	//
@@ -1668,8 +1671,6 @@
             z[k].onNewRound(this, (i+1));
   	  }
   	}
-
-        this.agenda_voting_overlay.hide();
 
       	this.game.queue.push("resolve\tnewround");
     	this.game.state.round++;
@@ -1873,7 +1874,13 @@ if (debugging == 0) {
 	  }
 	}
 
-        this.objectives_overlay.render(cards);
+        this.game_help.render({
+          line1: "new objectives",
+          line2: "revealed",
+          callback: () => {
+            game_mod.faction_sheet_overlay.render(game_mod.game.player, 'objectives');
+          }
+        });
 
 /*****
   	if (this.game.state.round > 1) {
@@ -2250,39 +2257,11 @@ if (debugging == 0) {
   	  }, selection);
   	  return 0;
   	} else {
-
-	  let html = '';
-	  html += '<div class="status-header-text">' + this.returnFaction(player) + " is picking a strategy card:</div>";
-
-          let scards = [];
-          let menu = [];
-          for (let z in this.strategy_cards) {
-            scards.push("");
-          }
-
-          for (let z = 0; z < this.game.state.strategy_cards.length; z++) {
-            let rank = parseInt(this.strategy_cards[this.game.state.strategy_cards[z]].rank);
-            while (scards[rank-1] != "") { rank++; }
-            scards[rank-1] = this.game.state.strategy_cards[z];
-          }
-
-          for (let z = 0; z < scards.length; z++) {
-            if (scards[z] != "") {
-              menu.push({ id: String(scards[z]), label: this.strategy_cards[scards[z]].name });
-            }
-          }
-
-  	    	  this.game.status = html;
-  	  this.hud.preparePrompt(this.game.status);
-  	  this.hud.updateCards([]);
-  	  this.hud.updateMenu(menu, function () {});
-    	  document.querySelectorAll('.hud-menu .option').forEach((el) => {
-    	    el.addEventListener('mouseenter', function() { imperium_self.showStrategyCard(el.id); });
-    	    el.addEventListener('mouseleave', function() { imperium_self.hideStrategyCard(el.id); });
-    	  });
-
+	  this.game.status = this.returnFaction(player) + " is choosing a strategy card.";
+	  this.hud.prepareIdle(this.game.status);
+	  this.hud.updateCards([]);
   	}
-  	return 0;
+	return 0;
       }
 
 
@@ -3374,6 +3353,14 @@ console.log("K: " + z[k].name);
   	this.game.queue.splice(qe, 1);
 
         this.updateLog("Agenda: " + this.agenda_cards[agenda].name + "<p></p><div style='width:80%;font-size:1.0em;margin-left:auto;margin-right:auto;margin-top:15px;margin-bottom:15px'>" + this.agenda_cards[agenda].text +'</div>');
+
+	//
+	// show this agenda before riders are placed
+	//
+	let card = this.agenda_cards[agenda];
+	if (card) {
+	  this.agenda_voting_overlay.render(card);
+	}
 
 	//
 	// clear all riders

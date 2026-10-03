@@ -258,7 +258,7 @@ returnSectorInformationHTML(sector) {
           <br />
           ${this.returnSpaceDocksOnPlanet(sys.p[i])} spacedocks
         </div>
-        <div class="system_summary_planet_card" style="background-image: url('${sys.p[i].img}');"></div>
+        <div class="system_summary_planet_card" style="background-image: url('${sys.p[i].img}');">${this.planetCardStats(sys.p[i])}</div>
       </div>
     `;
   }
@@ -752,13 +752,7 @@ updateLeaderboard() {
   }
   showAgendaCard(agenda) {
     let thiscard = this.agenda_cards[agenda];
-    let html = `
-      <div style="background-image: url('/imperium/img/agenda_card_template.png');" class="overlay_agendacard card option" id="${agenda}">
-        <div class="overlay_agendatitle">${thiscard.name}</div>
-        <div class="overlay_agendacontent">${thiscard.text}</div>
-      </div>
-    `;
-    this.cardbox.showCardboxHTML(thiscard, html);
+    this.cardbox.showCardboxHTML(thiscard, thiscard.returnCardImage());
   }
   hideAgendaCard(sector, pid) {
     this.cardbox.hide(1);

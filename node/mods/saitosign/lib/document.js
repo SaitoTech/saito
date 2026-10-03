@@ -48,6 +48,50 @@ function addUser(record, name) {
   return record.users.length - 1;
 }
 
+function isEmailAddress(value) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value || '').trim());
+}
+
+function sameLabel(a, b) {
+  return String(a || '').trim().toLowerCase().replace(/\s+/g, ' ') === String(b || '').trim().toLowerCase().replace(/\s+/g, ' ');
+}
+
+function signerEmail(user) {
+  const email = String(user?.email || '').trim();
+  if (isEmailAddress(email)) {
+    return email.toLowerCase();
+  }
+  const name = String(user?.name || '').trim();
+  if (isEmailAddress(name)) {
+    return name.toLowerCase();
+  }
+  return '';
+}
+
+function resolveSigner(record, value, explicitName, exceptIndex = -1) {
+  const raw = String(value || '').trim();
+  const providedName = String(explicitName == null ? raw : explicitName).trim();
+  if (!raw && !providedName) {
+    return { action: 'ignore' };
+  }
+
+  const emailKey = (isEmailAddress(raw) ? raw : isEmailAddress(providedName) ? providedName : '').toLowerCase();
+  if (!emailKey) {
+    return { action: 'create', name: providedName || raw };
+  }
+
+  const index = (record?.users || []).findIndex((user, i) => i !== exceptIndex && signerEmail(user) === emailKey);
+  if (index < 0) {
+    return { action: 'create', name: providedName || raw };
+  }
+
+  const existingName = String(record.users[index].name || '').trim();
+  const conflict = explicitName != null
+    && !sameLabel(providedName, existingName)
+    && !sameLabel(providedName, emailKey);
+  return { action: 'existing', index, conflict };
+}
+
 function renameUser(record, index, name) {
   const user = record.users[index];
   const next = String(name || '').trim();
@@ -115,8 +159,22 @@ function actionsOnPage(record, page) {
   return record.actions.filter((action) => action.page === page);
 }
 
+function copyVerification(entry) {
+  const next = {
+    method: entry.method || '',
+    publickey: entry.publickey || '',
+    message: entry.message || '',
+    signature: entry.signature || ''
+  };
+  const photo = typeof entry.photo === 'string' ? entry.photo : '';
+  if (photo) {
+    next.photo = photo;
+  }
+  return next;
+}
+
 function copy(record) {
-  return {
+  const next = {
     document: {
       name: record.document?.name || '',
       pdf: record.document?.pdf || '',
@@ -128,12 +186,7 @@ function copy(record) {
       name: user.name || '',
       email: user.email || '',
       publickey: user.publickey || '',
-      verifications: (user.verifications || []).map((entry) => ({
-        method: entry.method || '',
-        publickey: entry.publickey || '',
-        message: entry.message || '',
-        signature: entry.signature || ''
-      })),
+      verifications: (user.verifications || []).map((entry) => copyVerification(entry)),
       signatures: (user.signatures || []).map((entry) => ({
         id: entry.id,
         signature: entry.signature || ''
@@ -150,6 +203,10 @@ function copy(record) {
       height: action.height
     }))
   };
+  if (record?.metadata && typeof record.metadata === 'object') {
+    next.metadata = JSON.parse(JSON.stringify(record.metadata));
+  }
+  return next;
 }
 
 async function openPdf(file) {
@@ -165,6 +222,9 @@ async function hydrate(saved) {
   record.users = Array.isArray(saved.users) ? saved.users : [];
   record.actions = Array.isArray(saved.actions) ? saved.actions : [];
   record.edited = saved.edited === true || record.actions.length > 0;
+  if (saved.metadata && typeof saved.metadata === 'object') {
+    record.metadata = saved.metadata;
+  }
   const parsed = await readBase64(record.document.pdf, record.document.name);
   record.document = parsed;
   return record;
@@ -706,6 +766,7 @@ module.exports = {
   isPdf,
   revoke,
   addUser,
+  resolveSigner,
   renameUser,
   removeUser,
   addAction,

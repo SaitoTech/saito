@@ -2721,6 +2721,12 @@ console.log(JSON.stringify(ship));
   
   }
   
+  planetCardStats(planet) {
+    let resources = planet && planet.resources != null ? planet.resources : 0;
+    let influence = planet && planet.influence != null ? planet.influence : 0;
+    return `<div class="planet-card-stats"><div>resources : ${resources}</div><div>influence : ${influence}</div></div>`;
+  }
+
   returnPlanetCard(planetname="") {
   
     var c = this.game.planets[planetname];
@@ -2735,6 +2741,7 @@ console.log(JSON.stringify(ship));
   
     var html = `
       <div class="planetcard" style="background-image: url('${c.img}');">
+        ${this.planetCardStats(c)}
       </div>
     `;
     return html;

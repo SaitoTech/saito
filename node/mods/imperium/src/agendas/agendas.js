@@ -2,7 +2,7 @@
   this.importAgendaCard('homeland-defense-act', {
   	name : "Homeland Defense Act" ,
   	type : "Law" ,
-  	text : "FOR: there is no limit to the number of PDS units on a planet. AGAINST: each player must destroy one PDS unit" ,
+  	text : "FOR: unlimited PDS units per planet. AGAINST: each player destroys one PDS unit" ,
         returnAgendaOptions : function(imperium_self) { return ['for','against']; },
 	onPass : function(imperium_self, winning_choice) {
 	  imperium_self.game.state.homeland_defense_act = 1;
@@ -94,7 +94,7 @@
   	name : "Structures not Shackles" ,
   	type : "Law" ,
 	elect : "player" ,
-  	text : "Players play action cards in initiative order, not simultaneously" ,
+  	text : "Players play action cards in initiative order" ,
         returnAgendaOptions : function(imperium_self) { return ['for','against']; },
         onPass : function(imperium_self, winning_choice) {
           //
@@ -114,7 +114,7 @@
   this.importAgendaCard('new-constitution', {
   	name : "New Constitution" ,
   	type : "Directive" ,
-  	text : "FOR: remove all laws in play and exhaust all homeworlds at the start of the next round" ,
+  	text : "FOR: remove all laws but exhaust all homeworlds at the start of the next round" ,
         returnAgendaOptions : function(imperium_self) {
 	  return ["for","against"];
 	},
@@ -290,7 +290,7 @@
         name : "Minister of Policy" ,
         type : "Law" ,
 	elect : "player" ,
-        text : "Elect a player. They draw an extra action card at the start of each round" ,
+        text : "Elected player draws an extra action card each round" ,
         returnAgendaOptions : function(imperium_self) {
           let options = [];
           for (let i = 0; i < imperium_self.game.state.players_info.length; i++) {
@@ -341,7 +341,7 @@
   this.importAgendaCard('executive-sanctions', {
   	name : "Executive Sanctions" ,
   	type : "Law" ,
-  	text : "Players may have a maximum of 3 action cards in their hands at all times" ,
+  	text : "Players may have a maximum of 3 action cards at all times" ,
         returnAgendaOptions : function(imperium_self) { return ['support','oppose']; },
         onPass : function(imperium_self, winning_choice) {
 	  if (this.returnAgendaOptions(imperium_self)[winning_choice] == "support") {
@@ -385,7 +385,7 @@
   	name : "Fleet Limitations" ,
   	type : "Law" ,
   	text : "Players may have a maximum of four tokens in their fleet supply." ,
-  	img : "/imperium/img/agenda_card_template.png" ,
+  	img : "/imperium/img/cards/agenda_card.png" ,
         returnAgendaOptions : function(imperium_self) { return ['support','oppose']; },
         onPass : function(imperium_self, winning_choice) {
 	  if (this.returnAgendaOptions(imperium_self)[winning_choice] == "support") {
@@ -423,7 +423,7 @@
   	name : "Committee Formation" ,
   	type : "Law" ,
 	elect : "player" ,
-  	text : "Elect a player. They may form a committee to vote on which player is elected in a future agenda" ,
+  	text : "Elected player forms a committee to determine elected player in future agenda" ,
         returnAgendaOptions : function(imperium_self) { 
 	  let options = [];
 	  for (let i = 0; i < imperium_self.game.state.players_info.length; i++) {
@@ -519,7 +519,7 @@
   this.importAgendaCard('sequential-voting', {
   	name : "Sequential Voting" ,
   	type : "Law" ,
-  	text : "Players must vote on Agendas in Initiative Order, not Simultaneously" ,
+  	text : "Players must vote on agendas in initiative order" ,
         returnAgendaOptions : function(imperium_self) { return ['for','against']; },
         onPass : function(imperium_self, winning_choice) {
 
@@ -541,7 +541,7 @@
   	name : "Shard of the Throne" ,
   	type : "Law" ,
 	elect : "player" ,
-  	text : "Elect a Player to earn 1 VP. When this player loses a space combat to another player, they transfer the VP to that player" ,
+  	text : "Elected player gains 1 Throne VP until space combat loss, transferring the Throne to the winner" ,
         returnAgendaOptions : function(imperium_self) {
 	  let options = [];
 	  for (let i = 0; i < imperium_self.game.state.players_info.length; i++) {
@@ -611,98 +611,6 @@
 	  }
 	},
   });
-
-
-  this.importAgendaCard('homeland-defense-act', {
-  	name : "Homeland Defense Act" ,
-  	type : "Law" ,
-  	text : "FOR: there is no limit to the number of PDS units on a planet. AGAINST: each player must destroy one PDS unit" ,
-        returnAgendaOptions : function(imperium_self) { return ['for','against']; },
-	onPass : function(imperium_self, winning_choice) {
-	  imperium_self.game.state.homeland_defense_act = 1;
-	  let law_to_push = {};
-	      law_to_push.agenda = "homeland-defense-act";
-	      law_to_push.option = winning_choice;
-	  imperium_self.game.state.laws.push(law_to_push);
-
-          if (winning_choice === "for") {
-	    imperium_self.game.state.pds_limit_per_planet = 100;
-	  }
-
-          if (winning_choice === "against") {
-	    for (let i = 0; i < imperium_self.game.state.players_info.length; i++) {
-	      if (imperium_self.doesPlayerHaveUnitOnBoard((i+1), "pds")) {
-	        imperium_self.game.queue.push("destroy_a_pds\t"+(i+1));
-	      }
-	    }
-	  }
-
-	  imperium_self.game.state.laws.push({ agenda : "homeland-defense-act" , option : winning_choice });
-
-	},
-        repealAgenda(imperium_self) {
-
-          //
-          // remove from active play
-          //
-          for (let i = 0; i < imperium_self.game.state.laws.length; i++) {
-            if (imperium_self.game.state.laws[i].agenda === "homeland-defense-act") {
-              imperium_self.game.state.laws.splice(i, 1);
-              i--;
-            }
-          }
-
-          //
-          // unset the player
-          //
-          imperium_self.game.state.homeland_defense_act = 0;
-	  imperium_self.game.state.pds_limit_per_planet = 2; // limit back
-
-          return 1;
-
-        },
-        handleGameLoop : function(imperium_self, qe, mv) {
-
-          if (mv[0] == "destroy_a_pds") {
-
-            let player = parseInt(mv[1]);
-	    imperium_self.game.queue.splice(qe, 1);
-
-	    if (imperium_self.game.player == player) {
-              imperium_self.playerSelectUnitWithFilter(
-                    "Select a PDS unit to destroy: ",
-                    function(unit) {
-		      if (unit == undefined) { return 0; }
-                      if (unit.type == "pds") { return 1; }
-                      return 0;
-            	    },
-                    function(unit_identifier) {
-
-                      let sector        = unit_identifier.sector;
-                      let planet_idx    = unit_identifier.planet_idx;
-                      let unit_idx      = unit_identifier.unit_idx;
-                      let unit          = unit_identifier.unit;
-		      let sys = imperium_self.returnSectorAndPlanets(sector);
-
-		      if (unit == null) {
-                        imperium_self.addMove("NOTIFY\t"+imperium_self.returnFaction(imperium_self.game.player) + " has no PDS units to destroy");
-		        imperium_self.endTurn();
-			return 0;
-		      }
-                      imperium_self.addMove("destroy_unit\t"+imperium_self.game.player+"\t"+imperium_self.game.player+"\t"+"ground"+"\t"+sector+"\t"+planet_idx+"\t"+unit_idx+"\t"+"1");
-                      imperium_self.addMove("NOTIFY\t"+imperium_self.returnFaction(imperium_self.game.player) + " destroys a " + unit.name + " in " + sys.s.name);
-		      imperium_self.endTurn();
-
-                    }
-              );
-	    }
-
-            return 0;
-          }
-          return 1;
-        }
-  });
-
 
 
 
@@ -1415,7 +1323,7 @@
   	name : "Restricted Conscription" ,
   	type : "Law" ,
   	text : "Production cost for infantry and fighters is 1 rather than 0.5 resources" ,
-  	img : "/imperium/img/agenda_card_template.png" ,
+  	img : "/imperium/img/cards/agenda_card.png" ,
         returnAgendaOptions : function(imperium_self) { return ['support','oppose']; },
         onPass : function(imperium_self, winning_choice) {
 	  if (this.returnAgendaOptions(imperium_self)[winning_choice] == "support") {
@@ -1453,7 +1361,7 @@
   	name : "Wormhole Travel Ban" ,
   	type : "Law" ,
   	text : "All wormholes are closed." ,
-  	img : "/imperium/img/agenda_card_template.png" ,
+  	img : "/imperium/img/cards/agenda_card.png" ,
         returnAgendaOptions : function(imperium_self) { return ['support','oppose']; },
         onPass : function(imperium_self, winning_choice) {
 	  if (this.returnAgendaOptions(imperium_self)[winning_choice] == "support") {
@@ -2112,7 +2020,7 @@
         name : "Colonial Redistribution" ,
         type : "Directive" ,
         elect : "planet" ,
-        text : "Elect a cultural, industrial or hazardous planet. Destroy all units on the planet. Planet owner chooses a player with the fewest VP to gain control of the planet and gain 1 infantry on it. If no-one controls that planet, the Speaker chooses the recipient." ,
+        text : "Elect a cultural, industrial or hazardous planet. Destroy all units on the planet. Planet owner chooses player with lowest VP to gain planet and 1 infantry on it. If planet unowned, Speaker chooses recipient." ,
         returnAgendaOptions : function(imperium_self) {
           return imperium_self.returnPlanetsOnBoard(function(planet) {
             if (planet.type === "cultural") { return 1; }

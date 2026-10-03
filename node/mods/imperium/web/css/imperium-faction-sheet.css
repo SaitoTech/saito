@@ -136,6 +136,19 @@
     line-height: 1.45;
   }
 
+  .fs-action-cards .fs-entry-title,
+  .fs-promissory .fs-entry-title {
+    font-size: var(--imp-fs);
+    line-height: 1.3;
+  }
+
+  .fs-action-cards .fs-entry-text,
+  .fs-promissory .fs-entry-text {
+    font-size: var(--imp-fs-sm);
+    line-height: 1.5;
+    color: var(--imp-text);
+  }
+
   .fs-empty {
     color: var(--imp-text-muted);
     font-style: italic;
@@ -275,7 +288,7 @@
   .fs-planets {
     display: flex;
     flex-wrap: wrap;
-    justify-content: center;
+    justify-content: flex-start;
     align-content: flex-start;
     gap: var(--imp-space-lg);
     width: 100%;

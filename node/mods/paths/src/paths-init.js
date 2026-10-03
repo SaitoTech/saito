@@ -17,6 +17,7 @@ const PathsOptions = require('./lib/core/advanced-options.template');
 const PathsSingularOption = require('./lib/core/options.template');
 
 const GameHelp = require('./lib/ui/game-help/game-help');
+const PathsLog = require('./lib/paths-log');
 const GameMinimap = require('../../lib/saito/ui/game-minimap/game-minimap');
 const TutorialTemplate = require('./lib/ui/overlays/tutorials/tutorial.template');
 
@@ -62,6 +63,9 @@ class PathsOfGlory extends GameTemplate {
     this.menu_overlay = new MenuOverlay(this.app, this); 
     this.space_overlay = new SpaceOverlay(this.app, this); 
     this.game_help = new GameHelp(this.app, this);
+    this.paths_log = new PathsLog(this);
+    this.log.registerEventType('movement', (entries) => this.paths_log.renderMovement(entries));
+    this.log.registerEventType('combat', (entries) => this.paths_log.renderCombat(entries));
     this.minimap = new GameMinimap(this.app, this);
     this.minimap.enable_zoom = 1;
     this.default_board_scale = 100;

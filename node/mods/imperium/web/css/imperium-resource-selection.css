@@ -15,7 +15,7 @@
     margin-left: auto;
     margin-right: auto;
     text-align: center;
-    font-family: 'bank-gothic';
+    font-family: 'orbitron-medium', helvetica, arial;
   }
 
   .influence-selection-cards {
@@ -61,7 +61,7 @@
     margin-left: auto;
     margin-right: auto;
     text-align: center;
-    font-family: 'bank-gothic';
+    font-family: 'orbitron-medium', helvetica, arial;
   }
 
   .resource-selection-cards {

@@ -14,9 +14,10 @@ function fieldTemplate(view) {
     })
     .join('');
 
+  const chooseNew = Boolean(view.choose_new);
   const signers = view.signers
     .map((signer) => {
-      const selected = signer.index === view.signer_index ? ' selected' : '';
+      const selected = !chooseNew && signer.index === view.signer_index ? ' selected' : '';
       return `<option value="${signer.index}"${selected}>${escapeHTML(signer.name)}</option>`;
     })
     .join('');
@@ -24,6 +25,11 @@ function fieldTemplate(view) {
   const remove = view.existing
     ? '<button type="button" data-remove-field>Delete Action</button>'
     : '';
+  const primary = !view.existing ? 'Place' : view.can_sign ? 'Sign' : 'Update';
+  const mode = !view.existing ? 'place' : view.can_sign ? 'sign' : 'update';
+  const addSigner = view.defer_signer
+    ? ''
+    : '<button type="button" data-create-signer>Add</button>';
 
   return `
     <form class="saitosign-field">
@@ -31,12 +37,12 @@ function fieldTemplate(view) {
         Who
         <select data-field-signer>
           ${signers}
-          <option value="new">Add New Signer</option>
+          <option value="new"${chooseNew ? ' selected' : ''}>Add New Signer</option>
         </select>
       </label>
-      <div class="new-signer" hidden>
-        <input data-new-signer type="text" placeholder="name or email" aria-label="Signer name" autocomplete="name" />
-        <button type="button" data-create-signer>Add</button>
+      <div class="new-signer"${chooseNew ? '' : ' hidden'}>
+        <input data-new-signer type="text" placeholder="name or email" value="${escapeHTML(view.new_name || '')}" aria-label="Signer name" autocomplete="name" />
+        ${addSigner}
       </div>
       <label>
         What
@@ -44,7 +50,7 @@ function fieldTemplate(view) {
       </label>
       <div class="actions">
         ${remove}
-        <button type="submit" class="primary">${view.existing ? 'Update' : 'Place'}</button>
+        <button type="submit" class="primary" data-mode="${mode}">${primary}</button>
       </div>
     </form>
   `;

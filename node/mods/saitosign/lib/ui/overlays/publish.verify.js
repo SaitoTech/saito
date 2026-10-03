@@ -40,17 +40,48 @@ function emailPanel(state) {
   `;
 }
 
+function photoPanel(state) {
+  const photo = state.verificationMethods.find((method) => method.id === 'photo');
+  if (photo && photo.status === 'verified') {
+    const src = photoSource(photo.photo);
+    const image = src
+      ? `<img class="verified-photo" src="${escapeHTML(src)}" alt="Verification photograph">`
+      : '';
+    return `
+      <p class="heading">Your photo has been verified.</p>
+      ${image}
+    `;
+  }
+
+  const method = photo || { description: '' };
+  return `
+    <p class="heading">Take a photo.</p>
+    <p>${escapeHTML(method.description)}</p>
+    <div class="send-row">
+      <button type="button" class="verify-action" data-publish-action="take-photo">Take Photo</button>
+    </div>
+  `;
+}
+
+function photoSource(value) {
+  const src = String(value || '').trim();
+  return src.startsWith('data:image/') ? src : '';
+}
+
 function verifySlide(state) {
   const upsell = state.verificationMethods.find((method) => method.id === state.upsell);
+  const focus = state.focus || 'email';
   const panel = upsell
     ? `<p class="heading">${escapeHTML(upsell.description)}</p>`
-    : emailPanel(state);
+    : focus === 'photo'
+      ? photoPanel(state)
+      : emailPanel(state);
 
   return {
     title: 'Verify Identity',
     body: `
       <div class="verify-flow">
-        ${methodsTemplate(state.verificationMethods, state.upsell || 'email')}
+        ${methodsTemplate(state.verificationMethods, state.upsell || focus)}
         <div class="detail">
           ${panel}
         </div>

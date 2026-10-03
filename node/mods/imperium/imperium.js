@@ -52,8 +52,6 @@ class Imperium extends GameTemplate {
     this.slug		  = "imperium";
     this.description      = `Red Imperium is a multi-player space exploration and conquest simulator. Each player controls a unique faction vying for political control of a galaxy in the waning days of a dying Empire.`;
     this.categories	  = "Games Boardgame Strategy";
-    this.status = 'beta';
-    this.class = 'app';
     this.minPlayers       = 2;
     this.maxPlayers       = 6;
 
@@ -7496,7 +7494,7 @@ this.importStrategyCard("imperial", {
   	name : "Fleet Limitations" ,
   	type : "Law" ,
   	text : "Players may have a maximum of four tokens in their fleet supply." ,
-  	img : "/imperium/img/agenda_card_template.png" ,
+  	img : "/imperium/img/cards/agenda_card.png" ,
         returnAgendaOptions : function(imperium_self) { return ['support','oppose']; },
         onPass : function(imperium_self, winning_choice) {
 	  if (this.returnAgendaOptions(imperium_self)[winning_choice] == "support") {
@@ -8526,7 +8524,7 @@ this.importStrategyCard("imperial", {
   	name : "Restricted Conscription" ,
   	type : "Law" ,
   	text : "Production cost for infantry and fighters is 1 rather than 0.5 resources" ,
-  	img : "/imperium/img/agenda_card_template.png" ,
+  	img : "/imperium/img/cards/agenda_card.png" ,
         returnAgendaOptions : function(imperium_self) { return ['support','oppose']; },
         onPass : function(imperium_self, winning_choice) {
 	  if (this.returnAgendaOptions(imperium_self)[winning_choice] == "support") {
@@ -8564,7 +8562,7 @@ this.importStrategyCard("imperial", {
   	name : "Wormhole Travel Ban" ,
   	type : "Law" ,
   	text : "All wormholes are closed." ,
-  	img : "/imperium/img/agenda_card_template.png" ,
+  	img : "/imperium/img/cards/agenda_card.png" ,
         returnAgendaOptions : function(imperium_self) { return ['support','oppose']; },
         onPass : function(imperium_self, winning_choice) {
 	  if (this.returnAgendaOptions(imperium_self)[winning_choice] == "support") {
@@ -9223,7 +9221,7 @@ this.importStrategyCard("imperial", {
         name : "Colonial Redistribution" ,
         type : "Directive" ,
         elect : "planet" ,
-        text : "Elect a cultural, industrial or hazardous planet. Destroy all units on the planet. Planet owner chooses a player with the fewest VP to gain control of the planet and gain 1 infantry on it. If no-one controls that planet, the Speaker chooses the recipient." ,
+        text : "Elect a cultural, industrial or hazardous planet. Destroy all units on the planet. Planet owner chooses player with lowest VP to gain planet and 1 infantry on it. If planet unowned, Speaker chooses recipient." ,
         returnAgendaOptions : function(imperium_self) {
           return imperium_self.returnPlanetsOnBoard(function(planet) {
             if (planet.type === "cultural") { return 1; }
@@ -12145,17 +12143,6 @@ console.log("qe: " + qe);
 	game_mod.strategy_card_overlay.render();
       }
     });
-    this.menu.addSubMenuOption("game-cards", {
-      text : "Objectives",
-      id : "game-objectives",
-      class : "gams-objectives",
-      callback : function(app, game_mod) {
-        game_mod.menu.hideSubMenus();
-	game_mod.handleObjectivesMenuItem();
-      }
-    });
-
-
     //
     // agendas
     //
@@ -12195,53 +12182,6 @@ console.log("qe: " + qe);
         game_mod.handleLawsMenuItem();
       }
     });
-
-    this.menu.addSubMenuOption("game-cards", {
-      text : "Tech",
-      id : "game-tech-dependencies",
-      class : "game-tech-dependencies",
-      callback : function(app, game_mod) {
-       game_mod.menu.showSubSubMenu("game-tech-dependencies");
-      }
-    });
-    this.menu.addSubMenuOption("game-tech-dependencies", {
-        text : "Basic",
-        id : "game-tech-dependencies-basic",
-        class : "game-tech-dependencies-basic",
-        callback : function(app, game_mod) {
-          game_mod.menu.hideSubMenus();
-          game_mod.faction_sheet_overlay.render(game_mod.game.player, 'technologies');
-        }
-    });
-    this.menu.addSubMenuOption("game-tech-dependencies", {
-        text : "Units",
-        id : "game-tech-dependencies-units",
-        class : "game-tech-dependencies-units",
-        callback : function(app, game_mod) {
-          game_mod.menu.hideSubMenus();
-          game_mod.units_overlay.render();
-        }
-    });
-    this.menu.addSubMenuOption("game-tech-dependencies", {
-        text : "Upgrades",
-        id : "game-tech-dependencies-upgrades",
-        class : "game-tech-dependencies-upgrades",
-        callback : function(app, game_mod) {
-          game_mod.menu.hideSubMenus();
-          game_mod.faction_sheet_overlay.render(game_mod.game.player, 'technologies');
-        }
-    });
-    for (let i = 0; i < this.game.players.length; i++) {
-      this.menu.addSubMenuOption("game-tech-dependencies", {
-        text : this.returnFactionNickname(i+1),
-        id : "game-faction-tech-"+(i+1),
-        class : "game-faction-tech-"+(i+1),
-        callback : function(app, game_mod) {
-          game_mod.menu.hideSubMenus();
-          game_mod.faction_sheet_overlay.render(i + 1, 'technologies');
-        }
-      });
-    }
 
     this.menu.addSubMenuOption("game-cards", {
       text : "Laws",
@@ -12819,7 +12759,7 @@ console.log("ABOUT TO DINISH INITIALIZATION!");
 			"img/influence/4.png",
 			"img/influence/3.png", 
 			"img/influence/6.png",
-			"img/agenda_card_template.png",
+			"img/cards/agenda_card.png",
 			"img/card_template.jpg",
 			"img/cards/secret_objective_ii_back.png",
 			"img/units/fighter.png",
@@ -13242,51 +13182,6 @@ handleUnitsMenuItem() {
   });
 }
 
-handleObjectivesMenuItem() {
-
-  let cards = [];
-  let imperium_self = this;
-
-  //
-  // MY SECRET OBJECTIVES
-  //
-  for (let i = 0; i < imperium_self.game.deck[5].hand.length; i++) {
-    if (!imperium_self.game.state.players_info[imperium_self.game.player - 1].objectives_scored.includes(imperium_self.game.deck[5].hand[i])) {
-      let obj = imperium_self.secret_objectives[imperium_self.game.deck[5].hand[i]];
-      cards.push(obj);
-    }
-  }
-
-  //
-  // STAGE 1 OBJECTIVES
-  //
-  for (let i = 0; i < this.game.state.stage_i_objectives.length; i++) {
-    let obj = this.stage_i_objectives[this.game.state.stage_i_objectives[i]];
-    cards.push(obj);
-  }
-
-  //
-  // STAGE 2 OBJECTIVES
-  //
-  for (let i = 0; i < this.game.state.stage_ii_objectives.length; i++) {
-    let obj = this.stage_ii_objectives[this.game.state.stage_ii_objectives[i]];
-    cards.push(obj);
-  }
-
-  //
-  // OTHERS SECRET OBJECTIVES
-  //
-  for (let i = 0; i < this.game.state.players_info.length; i++) {
-    if (i > 0) { html += '<p></p>'; }
-    let objc = imperium_self.returnPlayerObjectivesScored((i+1), ["secret_objectives"]);
-    for (let o in objc) {
-      cards.push(objc[i]);
-    }
-  }
-
-  this.objectives_overlay.render(cards);
-
-}
 handleInfoMenuItem() {
   const board = this.getBoardElement();
   if (!board) {
@@ -14194,7 +14089,7 @@ console.log("#");
     if (obj.name == null) 	{ obj.name = "Unknown Agenda"; }
     if (obj.type == null)	{ obj.type = "Law"; }
     if (obj.text == null)	{ obj.text = "Unknown Document"; }
-    if (obj.img  == null)	{ obj.img = "/imperium/img/agenda_card_template.png"; }
+    if (obj.img  == null)	{ obj.img = "/imperium/img/cards/agenda_card.png"; }
     if (obj.key  == null)	{ obj.key = name; }
     if (obj.elect == null)	{ obj.elect = "other"; }
 
@@ -14839,10 +14734,10 @@ console.log("#");
 
   	if (planet_idx != -1) {
           this.addPlanetaryUnit(player, sector, planet_idx, unitname);
-	  this.updateLog(this.returnFactionNickname(player) + " produces " + this.returnUnit(unitname, player).name + " on " + sys.p[planet_idx].name, 1);  // force message
+	  this.updateLog(this.returnFactionNickname(player) + " produces " + this.returnUnit(unitname, player).name + " on " + sys.p[planet_idx].name);
  	} else {
           this.addSpaceUnit(player, sector, unitname);
-	  this.updateLog(this.returnFactionNickname(player) + " produces " + this.returnUnit(unitname, player).name + " in " + sys.s.name, 1); // force message
+	  this.updateLog(this.returnFactionNickname(player) + " produces " + this.returnUnit(unitname, player).name + " in " + sys.s.name);
         }
 
 	//
@@ -15344,6 +15239,7 @@ console.log("#");
 	//
 	this.game.queue.push("ACKNOWLEDGE\tThe Galactic Senate has settled on '"+this.returnNameFromIndex(winning_choice)+"'");
 
+	this.agenda_voting_overlay.hide();
 
 	//
 	// REMOVE strategy card invocation
@@ -15701,7 +15597,7 @@ console.log("#");
 	  // if the player has a rider, we skip the interactive voting and submit an abstention
 	  //
 	  if (imperium_self.doesPlayerHaveRider(this.game.player)) {
-	    imperium_self.addMove("resolve\tagenda\t1\t"+imperium_self.getPublicKey());
+	    imperium_self.addMove("resolve\tsimultaneous_agenda\t1\t"+imperium_self.getPublicKey());
 	    imperium_self.addMove("vote\t"+agenda+"\t"+imperium_self.game.player+"\t"+"abstain"+"\t"+"0");
 	    imperium_self.endTurn();
 	    return 0;
@@ -15742,7 +15638,7 @@ console.log("#");
 
 	    if (vote == "abstain") {
 
-	      imperium_self.addMove("resolve\tagenda\t1\t"+imperium_self.getPublicKey());
+	      imperium_self.addMove("resolve\tsimultaneous_agenda\t1\t"+imperium_self.getPublicKey());
 	      imperium_self.addMove("vote\t"+agenda+"\t"+imperium_self.game.player+"\t"+vote+"\t"+votes);
 	      imperium_self.endTurn();
 	      return 0;
@@ -15763,7 +15659,7 @@ console.log("#");
 	    imperium_self.hud.updateCards([]);
 	    imperium_self.hud.updateMenu(vote_menu, function (votes) {
 
-  	      imperium_self.addMove("resolve\tagenda\t1\t"+imperium_self.getPublicKey());
+  	      imperium_self.addMove("resolve\tsimultaneous_agenda\t1\t"+imperium_self.getPublicKey());
 	      imperium_self.addMove("vote\t"+agenda+"\t"+imperium_self.game.player+"\t"+vote+"\t"+votes);
 	      imperium_self.endTurn();
 	      return 0;
@@ -15865,6 +15761,8 @@ console.log("#");
 
       if (mv[0] === "newround") {
 
+	this.agenda_voting_overlay.hide();
+
 	//
 	// reset to turn 0
 	//
@@ -15926,8 +15824,6 @@ console.log("#");
             z[k].onNewRound(this, (i+1));
   	  }
   	}
-
-        this.agenda_voting_overlay.hide();
 
       	this.game.queue.push("resolve\tnewround");
     	this.game.state.round++;
@@ -16131,7 +16027,13 @@ if (debugging == 0) {
 	  }
 	}
 
-        this.objectives_overlay.render(cards);
+        this.game_help.render({
+          line1: "new objectives",
+          line2: "revealed",
+          callback: () => {
+            game_mod.faction_sheet_overlay.render(game_mod.game.player, 'objectives');
+          }
+        });
 
 /*****
   	if (this.game.state.round > 1) {
@@ -16508,37 +16410,9 @@ if (debugging == 0) {
   	  }, selection);
   	  return 0;
   	} else {
-
-	  let html = '';
-	  html += '<div class="status-header-text">' + this.returnFaction(player) + " is picking a strategy card:</div>";
-
-          let scards = [];
-          let menu = [];
-          for (let z in this.strategy_cards) {
-            scards.push("");
-          }
-
-          for (let z = 0; z < this.game.state.strategy_cards.length; z++) {
-            let rank = parseInt(this.strategy_cards[this.game.state.strategy_cards[z]].rank);
-            while (scards[rank-1] != "") { rank++; }
-            scards[rank-1] = this.game.state.strategy_cards[z];
-          }
-
-          for (let z = 0; z < scards.length; z++) {
-            if (scards[z] != "") {
-              menu.push({ id: String(scards[z]), label: this.strategy_cards[scards[z]].name });
-            }
-          }
-
-  	    	  this.game.status = html;
-  	  this.hud.preparePrompt(this.game.status);
-  	  this.hud.updateCards([]);
-  	  this.hud.updateMenu(menu, function () {});
-    	  document.querySelectorAll('.hud-menu .option').forEach((el) => {
-    	    el.addEventListener('mouseenter', function() { imperium_self.showStrategyCard(el.id); });
-    	    el.addEventListener('mouseleave', function() { imperium_self.hideStrategyCard(el.id); });
-    	  });
-
+	  this.game.status = this.returnFaction(player) + " is choosing a strategy card.";
+	  this.hud.prepareIdle(this.game.status);
+	  this.hud.updateCards([]);
   	}
   	return 0;
       }
@@ -17632,6 +17506,14 @@ console.log("K: " + z[k].name);
   	this.game.queue.splice(qe, 1);
 
         this.updateLog("Agenda: " + this.agenda_cards[agenda].name + "<p></p><div style='width:80%;font-size:1.0em;margin-left:auto;margin-right:auto;margin-top:15px;margin-bottom:15px'>" + this.agenda_cards[agenda].text +'</div>');
+
+	//
+	// show this agenda before riders are placed
+	//
+	let card = this.agenda_cards[agenda];
+	if (card) {
+	  this.agenda_voting_overlay.render(card);
+	}
 
 	//
 	// clear all riders
@@ -25406,6 +25288,7 @@ console.log("FIGHTERS AVAILABLE TO MOVE: " + fighters_available_to_move);
 
   menu.push({ id: 'manually', label: 'move manually' });
 
+
     this.game.status = html;
   this.hud.preparePrompt(this.game.status);
   this.hud.updateCards([]);
@@ -27558,9 +27441,9 @@ playerDiscardActionCards(num, mycallback=null) {
     sectors['sector5']         = { img : "/imperium/img/sectors/sector5.png" ,  name : "Olympia / Granton Mex" , type : 0 , hw : 0 , wormhole : 0, mr : 0 , planets : ['olympia','granton-mex'] }
     sectors['sector6']         = { img : "/imperium/img/sectors/sector6.png" ,  name : "New Illia / Siren's End" , type : 0 , hw : 0 , wormhole : 0, mr : 0 , planets : ['new-illia','sirens-end'] }
     sectors['sector7']         = { img : "/imperium/img/sectors/sector7.png" ,  name : "Lazak's Curse / Riftview" , type : 0 , hw : 0 , wormhole : 0, mr : 0 , planets : ['lazaks-curse','riftview'] }
-    sectors['sector8']         = { img : "/imperium/img/sectors/sector32.png" ,  name : "Broughton / Singharta" , type : 0 , hw : 0 , wormhole : 0, mr : 0 , planets : ['broughton','singharta'] }
+    sectors['sector8']         = { img : "/imperium/img/sectors/sector8.png" ,  name : "Broughton / Singharta" , type : 0 , hw : 0 , wormhole : 0, mr : 0 , planets : ['broughton','singharta'] }
     sectors['sector9']         = { img : "/imperium/img/sectors/sector9.png" ,  name : "Nova Klondike" , type : 0 , hw : 0 , wormhole : 0, mr : 0 , planets : ['nova-klondike'] }
-    sectors['sector10']        = { img : "/imperium/img/sectors/sector8.png" , name : "Grox Towers" , type : 0 , hw : 0 , wormhole : 0, mr : 0 , planets : ['grox-towers'] }
+    sectors['sector10']        = { img : "/imperium/img/sectors/sector10.png" , name : "Grox Towers" , type : 0 , hw : 0 , wormhole : 0, mr : 0 , planets : ['grox-towers'] }
     sectors['sector11']        = { img : "/imperium/img/sectors/sector11.png" , name : "Gravity's Edge / Vespar" , type : 0 , hw : 0 , wormhole : 0, mr : 0 , planets : ['gravitys-edge','vespar'] }
     sectors['sector12']        = { img : "/imperium/img/sectors/sector12.png" , name : "Craw Populi / Hope's Lure" , type : 0 , hw : 0 , wormhole : 0, mr : 0 , planets : ['craw-populi','hopes-lure'] }
     sectors['sector13']        = { img : "/imperium/img/sectors/sector13.png" , name : "Incarth" , type : 0 , hw : 0 , wormhole : 0, mr : 0 , planets : ['incarth'] }
@@ -27568,7 +27451,7 @@ playerDiscardActionCards(num, mycallback=null) {
     sectors['sector15']        = { img : "/imperium/img/sectors/sector15.png" , name : "Virgil" , type : 0 , hw : 0 , wormhole : 0, mr : 0 , planets : ['virgil'] }
     sectors['sector16']        = { img : "/imperium/img/sectors/sector16.png" , name : "Contouri" , type : 0 , hw : 0 , wormhole : 0, mr : 0 , planets : ['contouri-i'] }
     sectors['sector17']        = { img : "/imperium/img/sectors/sector17.png" , name : "Shriva / Vigor" , type : 0 , hw : 0 , wormhole : 0, mr : 0 , planets : ['shriva','vigor'] }
-    sectors['sector18']        = { img : "/imperium/img/sectors/old/sector9.png" , name : "Xerxes" , type : 0 , hw : 0 , wormhole : 0, mr : 0 , planets : ['xerxes'] }
+    sectors['sector18']        = { img : "/imperium/img/sectors/sector18.png" , name : "Xerxes" , type : 0 , hw : 0 , wormhole : 0, mr : 0 , planets : ['xerxes'] }
     sectors['sector19']        = { img : "/imperium/img/sectors/sector19.png" , name : "Unsulla" , type : 0 , hw : 0 , wormhole : 0, mr : 0 , planets : ['unsulla'] }
     sectors['sector20']        = { img : "/imperium/img/sectors/sector20.png" , name : "Panther" , type : 0 , hw : 0 , wormhole : 0, mr : 0 , planets : ['panther'] }
 
@@ -27584,9 +27467,9 @@ playerDiscardActionCards(num, mycallback=null) {
     sectors['sector30']        = { img : "/imperium/img/sectors/sector30.png" , name : "Hacan Homeworld" , type : 0 , hw : 1 , wormhole : 0, mr : 0 , planets : ['hiraeth','quartil','surriel'] }
 
     sectors['sector31']        = { img : "/imperium/img/sectors/sector31.png" ,	name : "Empty Space" , type : 0 , hw : 0 , wormhole : 0, mr : 0 , planets : [] }
-    sectors['sector32']        = { img : "/imperium/img/sectors/empty1.png" ,	name : "Empty Space" , type : 0 , hw : 0 , wormhole : 0, mr : 0 , planets : [] } 
+    sectors['sector32']        = { img : "/imperium/img/sectors/sector32.png" ,	name : "Empty Space" , type : 0 , hw : 0 , wormhole : 0, mr : 0 , planets : [] } 
     sectors['sector33']        = { img : "/imperium/img/sectors/sector33.png" ,	name : "Empty Space" , type : 0 , hw : 0 , wormhole : 0, mr : 0 , planets : [] }
-    sectors['sector34']        = { img : "/imperium/img/sectors/empty2.png" ,	name : "Empty Space" , type : 0 , hw : 0 , wormhole : 0, mr : 0 , planets : [] }
+    sectors['sector34']        = { img : "/imperium/img/sectors/sector34.png" ,	name : "Empty Space" , type : 0 , hw : 0 , wormhole : 0, mr : 0 , planets : [] }
     sectors['sector35']        = { img : "/imperium/img/sectors/sector35.png" ,	name : "Empty Space" , type : 0 , hw : 0 , wormhole : 0, mr : 0 , planets : [] }
     sectors['sector36']        = { img : "/imperium/img/sectors/sector36.png" ,	name : "Wormhole A" , type : 0 , hw : 0 , wormhole : 0, mr : 0 , planets : [] }
     sectors['sector37']        = { img : "/imperium/img/sectors/sector37.png" ,	name : "Wormhole B" , type : 0 , hw : 0 , wormhole : 0, mr : 0 , planets : [] } // black hole or rift
@@ -31103,6 +30986,12 @@ console.log(JSON.stringify(ship));
   
   }
   
+  planetCardStats(planet) {
+    let resources = planet && planet.resources != null ? planet.resources : 0;
+    let influence = planet && planet.influence != null ? planet.influence : 0;
+    return `<div class="planet-card-stats"><div>resources : ${resources}</div><div>influence : ${influence}</div></div>`;
+  }
+
   returnPlanetCard(planetname="") {
   
     var c = this.game.planets[planetname];
@@ -31117,6 +31006,7 @@ console.log(JSON.stringify(ship));
   
     var html = `
       <div class="planetcard" style="background-image: url('${c.img}');">
+        ${this.planetCardStats(c)}
       </div>
     `;
     return html;
@@ -32057,7 +31947,7 @@ returnSectorInformationHTML(sector) {
           <br />
           ${this.returnSpaceDocksOnPlanet(sys.p[i])} spacedocks
         </div>
-        <div class="system_summary_planet_card" style="background-image: url('${sys.p[i].img}');"></div>
+        <div class="system_summary_planet_card" style="background-image: url('${sys.p[i].img}');">${this.planetCardStats(sys.p[i])}</div>
       </div>
     `;
   }
@@ -32289,8 +32179,8 @@ addUIEvents() {
   document.documentElement.style.setProperty('--my-color', `var(--p${this.game.player})`);
   this.displayFactionDashboard();
 
-
 }
+
 
 
 
@@ -32373,8 +32263,6 @@ hideSector(pid) {
 
 
 updateTokenDisplay() {
-
-  let imperium_self = this;
 
 }
 
@@ -32553,13 +32441,7 @@ updateLeaderboard() {
   }
   showAgendaCard(agenda) {
     let thiscard = this.agenda_cards[agenda];
-    let html = `
-      <div style="background-image: url('/imperium/img/agenda_card_template.png');" class="overlay_agendacard card option" id="${agenda}">
-        <div class="overlay_agendatitle">${thiscard.name}</div>
-        <div class="overlay_agendacontent">${thiscard.text}</div>
-      </div>
-    `;
-    this.cardbox.showCardboxHTML(thiscard, html);
+    this.cardbox.showCardboxHTML(thiscard, thiscard.returnCardImage());
   }
   hideAgendaCard(sector, pid) {
     this.cardbox.hide(1);

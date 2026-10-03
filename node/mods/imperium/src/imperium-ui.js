@@ -95,51 +95,6 @@ handleUnitsMenuItem() {
   });
 }
 
-handleObjectivesMenuItem() {
-
-  let cards = [];
-  let imperium_self = this;
-
-  //
-  // MY SECRET OBJECTIVES
-  //
-  for (let i = 0; i < imperium_self.game.deck[5].hand.length; i++) {
-    if (!imperium_self.game.state.players_info[imperium_self.game.player - 1].objectives_scored.includes(imperium_self.game.deck[5].hand[i])) {
-      let obj = imperium_self.secret_objectives[imperium_self.game.deck[5].hand[i]];
-      cards.push(obj);
-    }
-  }
-
-  //
-  // STAGE 1 OBJECTIVES
-  //
-  for (let i = 0; i < this.game.state.stage_i_objectives.length; i++) {
-    let obj = this.stage_i_objectives[this.game.state.stage_i_objectives[i]];
-    cards.push(obj);
-  }
-
-  //
-  // STAGE 2 OBJECTIVES
-  //
-  for (let i = 0; i < this.game.state.stage_ii_objectives.length; i++) {
-    let obj = this.stage_ii_objectives[this.game.state.stage_ii_objectives[i]];
-    cards.push(obj);
-  }
-
-  //
-  // OTHERS SECRET OBJECTIVES
-  //
-  for (let i = 0; i < this.game.state.players_info.length; i++) {
-    if (i > 0) { html += '<p></p>'; }
-    let objc = imperium_self.returnPlayerObjectivesScored((i+1), ["secret_objectives"]);
-    for (let o in objc) {
-      cards.push(objc[i]);
-    }
-  }
-
-  this.objectives_overlay.render(cards);
-
-}
 handleInfoMenuItem() {
   const board = this.getBoardElement();
   if (!board) {

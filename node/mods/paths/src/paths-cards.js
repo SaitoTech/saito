@@ -1475,7 +1475,7 @@ deck['ap30'] = {
 	        just_stop = 1;
 	        return 1;
 	      } 
-	      paths_self.moveUnit(spacekey, unit_idx, "salonika");
+	      paths_self.paths_log.commitMove(faction, spacekey, unit_idx, "salonika");
 	      paths_self.prependMove(`move\t${faction}\t${spacekey}\t${unit_idx}\tsalonika\t${paths_self.game.player}`);
 	      paths_self.displaySpace(spacekey);
 	      paths_self.displaySpace("salonika");

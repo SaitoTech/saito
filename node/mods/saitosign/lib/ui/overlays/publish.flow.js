@@ -23,9 +23,9 @@ function createMethods() {
     {
       id: 'photo',
       title: 'Photo',
-      description: 'Upgrade to Premium to include photo or video verification.',
-      tier: 'premium',
-      available: false,
+      description: 'Take a photograph with your camera. You can review it before it is saved with your verification.',
+      tier: 'free',
+      available: true,
       required: false,
       selected: false,
       status: 'pending'
@@ -43,10 +43,23 @@ function createMethods() {
   ];
 }
 
+function defaultOptions() {
+  return {
+    email: false,
+    phone: false,
+    photo: false,
+    passport: false,
+    legal_review: false,
+    online_signing: false,
+    archive_contract: false
+  };
+}
+
 function initialState() {
   return {
     step: 'select',
     plan: 'free',
+    options: defaultOptions(),
     signers: [],
     you: null,
     identified: false,
@@ -55,6 +68,7 @@ function initialState() {
     signed: false,
     actionStatus: null,
     upsell: null,
+    focus: 'email',
     checking: false,
     verifyError: '',
     devCode: '',
@@ -88,6 +102,32 @@ function selectPlan(state, plan) {
   return { ...state, plan };
 }
 
+function setShareOption(state, key, checked) {
+  if (!state.options || !Object.prototype.hasOwnProperty.call(state.options, key)) {
+    return state;
+  }
+  return {
+    ...state,
+    options: { ...state.options, [key]: checked === true }
+  };
+}
+
+function applyShareMetadata(state, metadata) {
+  const options = defaultOptions();
+  const plan = metadata?.tier === 'premium' ? 'premium' : 'free';
+  if (plan === 'premium') {
+    const verification = metadata.verification || {};
+    options.email = verification.email === true;
+    options.phone = verification.phone === true;
+    options.photo = verification.photo === true;
+    options.passport = verification.passport === true;
+    options.legal_review = verification.legal_review === true;
+    options.online_signing = metadata.online_signing === true;
+    options.archive_contract = metadata.archive_contract === true;
+  }
+  return { ...state, plan, options };
+}
+
 function confirmYou(state, you) {
   const signers = state.signers.map((signer) => {
     if (signer.index !== you.index) {
@@ -105,8 +145,11 @@ function confirmYou(state, you) {
 
 function focusMethod(state, id) {
   const method = state.verificationMethods.find((item) => item.id === id);
-  if (!method || method.available) {
-    return { ...state, upsell: null };
+  if (!method) {
+    return state;
+  }
+  if (method.available) {
+    return { ...state, upsell: null, focus: method.id };
   }
   return { ...state, upsell: id };
 }
@@ -154,11 +197,11 @@ function requiredComplete(state) {
 function advance(state) {
   switch (state.step) {
     case 'select':
-      if (!state.identified) {
-        return state;
-      }
       return go(state, 'sign');
     case 'sign':
+      if (!state.identified || !state.you) {
+        return state;
+      }
       return go(state, 'verify');
     case 'premium':
       return go(state, 'sign', { plan: 'free' });
@@ -175,28 +218,17 @@ function learnPremium(state) {
 }
 
 function shareRows(state) {
-  const lines = state.verificationMethods
-    .filter((method) => method.status === 'verified')
-    .map((method) => {
-      if (method.id === 'email') {
-        return 'email verified';
-      }
-      if (method.id === 'thirdParty') {
-        return 'Third-party identity verified';
-      }
-      return `${method.title} verified`;
-    });
   const list = state.signers.slice();
   if (state.you && !list.some((signer) => signer.index === state.you.index)) {
     list.unshift(state.you);
   }
   return list.map((signer) => {
     const you = state.you && signer.index === state.you.index;
-    const name = signer.name || signer.email || 'Signer';
-    if (you && state.signed) {
-      return { name, detail: '', done: true, lines };
-    }
-    return { name, detail: 'Awaiting verification', done: false, lines: [] };
+    const signed = signer.signed === true || (you && state.signed === true);
+    return {
+      name: signer.name || signer.email || 'Signer',
+      signed
+    };
   });
 }
 
@@ -204,6 +236,8 @@ module.exports = {
   initialState,
   back,
   selectPlan,
+  setShareOption,
+  applyShareMetadata,
   confirmYou,
   focusMethod,
   toggleMethod,

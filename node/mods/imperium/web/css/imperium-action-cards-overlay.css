@@ -1,18 +1,42 @@
 .game.imperium {
+  .saito-overlay:has(> .action-cards-overlay),
+  .saito-overlay:has(> .new-action-cards-overlay),
+  .saito-overlay:has(.game-overlay-cardlist-container .action-card) {
+    display: flex;
+    width: min(96vw, 150rem);
+    max-width: 96vw;
+    height: 90vh;
+    max-height: 90vh;
+    overflow: hidden;
+    justify-content: center;
+  }
+
+  .saito-overlay:has(.game-overlay-cardlist-container .action-card) > div {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+    box-sizing: border-box;
+  }
+
   .action-cards-overlay {
     width: 100%;
-    height: min-content;
-    width: min-content;
-    max-width: 1000px;
-    max-height: 85vh;
-    padding: 3.333rem;
-    min-width: 80vw;
+    height: 100%;
+    max-width: none;
+    max-height: none;
+    min-width: 0;
+    padding: 1.25rem 1.5rem 1.5rem;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
   }
 
   .action-cards-overlay-title {
     color: var(--imp-text);
-    font-family: var(--imp-font-label);
-    letter-spacing: 0.3rem;
+    font-family: 'orbitron-medium', helvetica, arial;
+    letter-spacing: 0.08em;
     font-size: 2.5rem;
     font-weight: 600;
     margin-left: auto;
@@ -23,27 +47,26 @@
   .action-cards-overlay-content {
     display: flex;
     flex-direction: row;
-    gap: 1.667rem;
-    justify-content: space-evenly;
+    flex-wrap: wrap;
+    gap: 1.25rem;
+    justify-content: center;
+    align-items: flex-start;
+    align-content: flex-start;
     width: 100%;
-    max-width: 80vw;
-    max-height: 85vh;
-    height: min-content;
-    width: 100%;
-    padding: 1.667rem;
+    max-width: none;
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: auto;
+    padding: 1.25rem 0 0;
+    scrollbar-width: thin;
   }
 
   .action-cards_overlay_action-cards_card {
     position: relative;
-    width: calc(42vh * 0.7211);
-    height: 42vh;
+    width: calc(30vh * 1024 / 1536);
+    height: 30vh;
     margin: 10px;
     background-size: cover;
-    max-width: 300px;
-    max-height: 450px;
-    float: left;
-    font-size: 0.8em;
     z-index: 5;
-    border: 1px solid #fff;
   }
 }

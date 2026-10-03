@@ -11,7 +11,17 @@ class AgendaVotingOverlay {
 
   hide() {
     try {
+      let root = document.getElementById('saito-overlay' + this.overlay.ordinal);
+      if (root) {
+        let slot = root.querySelector('.agenda-voting-card');
+        if (slot) {
+          slot.innerHTML = '';
+        }
+      }
       this.overlay.hide();
+      if (this.mod && this.mod.cardbox) {
+        this.mod.cardbox.hide(1);
+      }
 
       //
       // return to smaller proportions
@@ -55,6 +65,12 @@ class AgendaVotingOverlay {
     //
     if (hud) {
       hud.classList.add('voting-hud');
+    }
+
+    let root = document.getElementById('saito-overlay' + this.overlay.ordinal);
+    let slot = root ? root.querySelector('.agenda-voting-card') : null;
+    if (slot && card && typeof card.returnCardImage === 'function') {
+      slot.innerHTML = card.returnCardImage();
     }
 
     this.attachEvents();

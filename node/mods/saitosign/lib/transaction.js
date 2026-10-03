@@ -14,10 +14,56 @@ function looksLikeWebTransaction(text) {
   }
 }
 
+function flag(value) {
+  return value === true;
+}
+
+function readShareMetadata(value) {
+  const tier = value?.tier === 'premium' ? 'premium' : 'free';
+  if (tier !== 'premium') {
+    return { tier: 'free' };
+  }
+  const verification = value?.verification || {};
+  return {
+    tier: 'premium',
+    verification: {
+      email: flag(verification.email),
+      phone: flag(verification.phone),
+      photo: flag(verification.photo),
+      passport: flag(verification.passport),
+      legal_review: flag(verification.legal_review)
+    },
+    online_signing: flag(value?.online_signing),
+    archive_contract: flag(value?.archive_contract)
+  };
+}
+
+function shareMetadata(plan, options) {
+  const selected = options || {};
+  if (plan !== 'premium') {
+    return { tier: 'free' };
+  }
+  return {
+    tier: 'premium',
+    verification: {
+      email: flag(selected.email),
+      phone: flag(selected.phone),
+      photo: flag(selected.photo),
+      passport: flag(selected.passport),
+      legal_review: flag(selected.legal_review)
+    },
+    online_signing: flag(selected.online_signing),
+    archive_contract: flag(selected.archive_contract)
+  };
+}
+
 async function createPrepareTransaction(app, record) {
   const tx = new Transaction();
   const data = copy(record);
   data.hash = documentHash(app, data);
+  if (record?.metadata) {
+    data.metadata = readShareMetadata(record.metadata);
+  }
   tx.timestamp = Date.now();
   tx.msg = {
     module: MODULE,
@@ -69,7 +115,7 @@ function readRecord(data) {
   if (!actions) {
     return null;
   }
-  return {
+  const record = {
     hash: String(data.hash || ''),
     document: {
       name,
@@ -81,6 +127,10 @@ function readRecord(data) {
     users,
     actions
   };
+  if (data.metadata && typeof data.metadata === 'object') {
+    record.metadata = readShareMetadata(data.metadata);
+  }
+  return record;
 }
 
 function readLegacy(data) {
@@ -115,12 +165,16 @@ function readLegacy(data) {
   if (actions.some((action) => !action) || (!users.length && actions.length)) {
     return null;
   }
-  return {
+  const record = {
     hash: String(data.hash || ''),
     document: { name: data.name.trim(), pdf: data.pdf, page_count: 0, page_width: 0, page_height: 0 },
     users,
     actions
   };
+  if (data.metadata && typeof data.metadata === 'object') {
+    record.metadata = readShareMetadata(data.metadata);
+  }
+  return record;
 }
 
 function readUsers(list) {
@@ -164,12 +218,19 @@ function readVerifications(list) {
   if (!Array.isArray(list)) {
     return [];
   }
-  return list.map((entry) => ({
-    method: String(entry?.method || ''),
-    publickey: String(entry?.publickey || ''),
-    message: String(entry?.message || ''),
-    signature: String(entry?.signature || '')
-  }));
+  return list.map((entry) => {
+    const next = {
+      method: String(entry?.method || ''),
+      publickey: String(entry?.publickey || ''),
+      message: String(entry?.message || ''),
+      signature: String(entry?.signature || '')
+    };
+    const photo = typeof entry?.photo === 'string' ? entry.photo : '';
+    if (photo) {
+      next.photo = photo;
+    }
+    return next;
+  });
 }
 
 function readActions(list, userCount) {
@@ -250,5 +311,7 @@ module.exports = {
   looksLikeWebTransaction,
   createPrepareTransaction,
   readPrepareTransaction,
-  downloadTransaction
+  downloadTransaction,
+  shareMetadata,
+  readShareMetadata
 };
