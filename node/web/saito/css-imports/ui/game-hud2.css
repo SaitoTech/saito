@@ -96,7 +96,6 @@
 
 .hud-status-row {
   position: relative;
-  z-index: 1;
   flex: 0 0 auto;
   width: 500px;
   max-width: 100%;

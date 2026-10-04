@@ -8,6 +8,7 @@ const premiumSlide = require('./publish.premium');
 
 const slides = {
   select: selectSlide,
+  identity: signSlide,
   sign: signSlide,
   verify: verifySlide,
   share: shareSlide,
@@ -18,6 +19,8 @@ function primary(state) {
   switch (state.step) {
     case 'select':
       return { label: 'Continue', action: 'advance' };
+    case 'identity':
+      return null;
     case 'sign':
       return { label: 'Sign', action: 'advance', disabled: !state.identified };
     case 'verify':

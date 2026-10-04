@@ -1,6 +1,7 @@
 const SaitoOverlay = require('../../../../../lib/saito/ui/saito-overlay/saito-overlay');
 const PublishTemplate = require('./publish.template');
 const Photo = require('./photo');
+const Passport = require('./passport');
 const flow = require('./publish.flow');
 const {
   verifyEmailSignature,
@@ -11,6 +12,9 @@ const {
   verifyActionSignature,
   rememberEmail,
   verifiedMethods,
+  verifyPassport,
+  validVerification,
+  verifyCreatorProof,
   knownSigner
 } = require('../../auth');
 const { addUser, copy, resolveSigner } = require('../../document');
@@ -25,18 +29,32 @@ class PublishOverlay {
     this.overlay.class = 'saito-overlay saitosign-publish-host';
     this.state = flow.initialState();
     this.sliding = false;
+    this.passport = new Passport();
   }
 
   render() {
     this.state = flow.initialState();
-    if (this.mod.document?.metadata) {
-      this.state = flow.applyShareMetadata(this.state, this.mod.document.metadata);
+    const metadata = this.mod.document?.metadata;
+    if (metadata) {
+      this.state = flow.applyShareMetadata(this.state, metadata);
     }
-    this.writeShare();
     this.state.signers = readUsers(this.mod);
+    const walletKey = this.currentPublicKey();
+    const owner = this.normalizePublicKey(this.mod.document?.creator);
+    this.state.tierOwner = owner;
+    this.state.canChooseTier = Boolean(
+      !this.mod.document?.finalized &&
+      this.mod.document?.creatorProof?.signature &&
+      verifyCreatorProof(this.app, this.mod.document) &&
+      walletKey && owner && walletKey === owner
+    );
     const known = knownSigner(this.app, this.state.signers);
     if (known) {
       this.keepUser(known);
+    }
+    this.state = flow.resolveInitial(this.state, this.workflowRequirements(this.state.canChooseTier));
+    if (this.state.step === 'share') {
+      this.state = this.summaryState(this.state);
     }
     this.overlay.show(PublishTemplate(this.state));
     this.attachEvents();
@@ -98,14 +116,23 @@ class PublishOverlay {
 
   attachEvents() {
     const root = document.querySelector('.saitosign-publish');
-    if (!root || root.dataset.bound === '1') {
+    if (!root) {
       return;
     }
+    this.passport.attach(root, {
+      onUpload: (image) => this.acceptPassport(image),
+      onRemove: () => this.removePassport(),
+      onError: (message) => {
+        this.state = { ...this.state, passportError: message };
+        this.paintSlide();
+      }
+    });
+    if (root.dataset.bound === '1') return;
     root.dataset.bound = '1';
 
     root.addEventListener('change', (event) => {
       const option = event.target.closest('[data-share-option]');
-      if (option && this.state.step === 'select') {
+      if (option && this.state.step === 'select' && this.state.canChooseTier) {
         this.state = flow.setShareOption(this.state, option.dataset.shareOption, option.checked);
         this.writeShare();
         return;
@@ -127,9 +154,11 @@ class PublishOverlay {
     root.addEventListener('click', (event) => {
       const plan = event.target.closest('[data-plan]');
       if (plan && this.state.step === 'select') {
+        if (!this.state.canChooseTier) {
+          return;
+        }
         this.state = flow.selectPlan(this.state, plan.dataset.plan);
-        this.writeShare();
-        this.paintPlan();
+        this.paintSlide();
         return;
       }
 
@@ -215,11 +244,18 @@ class PublishOverlay {
           this.continueAfterVerification();
           return;
         }
-        const next = flow.advance(this.state);
+        if (this.state.step === 'sign') {
+          this.continueAfterSigning();
+          return;
+        }
+        const next = flow.advance(this.state, this.workflowRequirements());
         if (next === this.state) {
           return;
         }
         this.state = this.withKnownVerifications(next);
+        if (this.state.step === 'share') {
+          this.state = this.summaryState(this.state);
+        }
         this.writeShare();
         this.showStep('forward');
       }
@@ -245,18 +281,39 @@ class PublishOverlay {
       button.classList.toggle('active', selected);
       button.setAttribute('aria-selected', selected ? 'true' : 'false');
     });
-    const config = root.querySelector('[data-share-config]');
-    if (config) {
-      config.hidden = this.state.plan !== 'premium';
-    }
+    root.querySelectorAll('[data-tier-feature]').forEach((feature) => {
+      const included = this.state.plan === 'premium' || feature.dataset.freeAvailable === 'true';
+      feature.classList.toggle('included', included);
+      feature.classList.toggle('unavailable', !included);
+      const indicator = feature.querySelector('.feature-indicator');
+      if (indicator) {
+        indicator.textContent = included ? '✓' : '×';
+        indicator.setAttribute('aria-label', included ? 'Included with this tier' : 'Premium feature');
+      }
+    });
   }
 
   writeShare() {
     const record = this.mod.document;
-    if (!record) {
+    if (!record || record.finalized) {
       return;
     }
-    record.metadata = shareMetadata(this.state.plan, this.state.options);
+    if (!this.state.canChooseTier && record.metadata) {
+      return;
+    }
+    record.metadata = shareMetadata(this.state.plan, this.state.options, this.state.tierOwner);
+  }
+
+  currentPublicKey() {
+    return this.normalizePublicKey(this.app.wallet?.publicKey);
+  }
+
+  normalizePublicKey(value) {
+    let publickey = String(value || '').trim();
+    if (/^[0-9a-fA-F]+$/.test(publickey) && publickey.length >= 64) {
+      publickey = this.app.crypto.compressPublicKey(publickey);
+    }
+    return publickey;
   }
 
   confirmYou() {
@@ -271,10 +328,13 @@ class PublishOverlay {
       return;
     }
     this.keepUser(signer);
-    this.showIdentity();
+    this.continueAfterIdentity();
   }
 
   addSigner() {
+    if (!this.state.canChooseTier || this.mod.document?.finalized) {
+      return;
+    }
     const input = document.querySelector('[data-new-signer-name]');
     const value = input?.value.trim();
     if (!value) {
@@ -294,13 +354,16 @@ class PublishOverlay {
         return;
       }
       this.keepUser(existing);
-      this.showIdentity();
+      this.continueAfterIdentity();
       if (input) {
         input.value = '';
       }
       return;
     }
-    const index = addUser(this.mod.document, name);
+    const index = addUser(this.mod.document, name, this.app.wallet?.publicKey);
+    if (index < 0) {
+      return;
+    }
     if (email) {
       this.mod.document.users[index].email = email;
     }
@@ -310,7 +373,7 @@ class PublishOverlay {
       return;
     }
     this.keepUser(added);
-    this.showIdentity();
+    this.continueAfterIdentity();
   }
 
   keepUser(signer) {
@@ -331,10 +394,35 @@ class PublishOverlay {
     };
     const live = this.mod.document.users[signer.index];
     if (live) {
+      const previousPublickey = String(live.publickey || '').trim();
       if (email) {
         live.email = email;
       }
       live.publickey = publickey;
+      const verifications = Array.isArray(live.verifications) ? live.verifications : [];
+      const stalePhoto = verifications.some((entry) => {
+        const method = String(entry?.method || '').trim();
+        return (method === 'photo' || (!method && String(entry?.message || '').startsWith('Photo received for verification of publickey ')))
+          && !validVerification(this.app, entry, live);
+      });
+      const stalePassport = verifications.some((entry) =>
+        String(entry?.method || '').trim() === 'passport' && !validVerification(this.app, entry, live)
+      );
+      const validVerifications = verifications.filter((entry) => validVerification(this.app, entry, live));
+      if (validVerifications.length !== verifications.length || previousPublickey !== publickey) {
+        live.verifications = validVerifications;
+        this.mod.document.edited = true;
+      }
+      if (stalePhoto || stalePassport) {
+        this.state = {
+          ...this.state,
+          verificationMethods: this.state.verificationMethods.map((method) =>
+            (method.id === 'photo' && stalePhoto) || (method.id === 'passport' && stalePassport)
+              ? { ...method, required: true, selected: true, status: 'pending' }
+              : method
+          )
+        };
+      }
     }
     this.state = flow.confirmYou(this.state, you);
     this.state.places = signaturePlaces(this.mod, you.index);
@@ -353,19 +441,78 @@ class PublishOverlay {
         return method;
       }
       const next = method.status === 'verified' ? method : { ...method, status: 'verified', selected: true };
-      if (method.id !== 'photo' || !image) {
-        return next;
+      if (method.id === 'photo' && image) {
+        return { ...next, photo: image };
       }
-      return { ...next, photo: image };
+      if (method.id === 'passport') {
+        const passport = storedPassport(live);
+        return passport ? { ...next, image: passport } : next;
+      }
+      return next;
     });
     return { ...state, verificationMethods };
   }
 
-  showIdentity() {
-    if (this.state.step !== 'sign' || !this.state.identified) {
+  workflowRequirements(newDocument = false) {
+    const identified = Boolean(this.state.identified && this.state.you);
+    const index = this.state.you?.index;
+    return {
+      newDocument,
+      identified,
+      outstandingSignatures: identified && signaturePlaces(this.mod, index) > 0,
+      verificationComplete: identified && flow.requiredComplete(this.state)
+    };
+  }
+
+  continueAfterIdentity() {
+    if (!this.state.identified || !this.state.you) {
       return;
     }
-    this.paintSlide();
+    this.state = flow.resolveAfter(this.state, 'identity', this.workflowRequirements());
+    if (this.state.step === 'share') {
+      this.state = this.summaryState(this.state);
+    }
+    this.writeShare();
+    this.showStep('forward');
+  }
+
+  async continueAfterSigning() {
+    if (!this.state.identified || !this.state.you || this.sliding) {
+      return;
+    }
+    try {
+      const signed = await this.signUserActions();
+      if (!signed) {
+        this.showSignError('Could not sign these actions with the current wallet key.');
+        return;
+      }
+    } catch (err) {
+      this.showSignError('Could not sign these actions. Please try again.');
+      return;
+    }
+    this.state.places = signaturePlaces(this.mod, this.state.you.index);
+    if (this.state.places > 0) {
+      this.showSignError('Some actions still need a valid signature.');
+      return;
+    }
+    this.refreshActions();
+    // Signing is followed by the verification stage in this flow, even when
+    // this signer already has every selected proof on file.
+    this.state = flow.go(this.state, 'verify', { places: 0, verifyError: '' });
+    this.showStep('forward');
+  }
+
+  showSignError(message) {
+    const root = document.querySelector('.saitosign-publish');
+    if (!root) return;
+    let note = root.querySelector('[data-sign-error]');
+    if (!note) {
+      note = document.createElement('p');
+      note.className = 'note fail';
+      note.dataset.signError = '1';
+      root.querySelector('.sign-step')?.appendChild(note);
+    }
+    if (note) note.textContent = message;
   }
 
   sendEmail() {
@@ -586,28 +733,88 @@ class PublishOverlay {
     this.paintSlide();
   }
 
+  async acceptPassport(image) {
+    const you = this.state.you;
+    const publickey = you?.publicKey || '';
+    const live = you ? this.mod.document.users[you.index] : null;
+    if (!live || !publickey) {
+      return;
+    }
+    try {
+      const proof = await verifyPassport(this.app, publickey, image);
+      keepMethod(live, proof);
+      this.mod.document.edited = true;
+      this.state = {
+        ...flow.markMethodVerified({ ...this.state, passportError: '', focus: 'passport' }, 'passport'),
+        verificationMethods: this.state.verificationMethods.map((method) =>
+          method.id === 'passport' ? { ...method, status: 'verified', selected: true, image: proof.image } : method
+        )
+      };
+      this.paintSlide();
+    } catch (err) {
+      this.state = { ...this.state, passportError: 'That passport image could not be verified.' };
+      this.paintSlide();
+    }
+  }
+
+  removePassport() {
+    const you = this.state.you;
+    const live = you ? this.mod.document.users[you.index] : null;
+    if (!live) {
+      return;
+    }
+    live.verifications = (live.verifications || []).filter((entry) => entry?.method !== 'passport');
+    this.mod.document.edited = true;
+    this.state = {
+      ...this.state,
+      passportError: '',
+      verificationMethods: this.state.verificationMethods.map((method) =>
+        method.id === 'passport' ? { ...method, status: 'pending', image: '', selected: true } : method
+      )
+    };
+    this.paintSlide();
+  }
+
   async continueAfterVerification() {
     if (!flow.requiredComplete(this.state) || this.sliding) {
       return;
     }
-    try {
-      await this.signUserActions();
-    } catch (err) {}
     const record = this.mod.document;
-    const status = actionStatus(this.app, record?.actions, record?.users, this.state.you?.index);
     const signature = record?.users?.[this.state.you?.index]?.verifications?.[0]?.signature || '';
     if (signature) {
       saveDraft({ code: signature, document: copy(record) }).catch(() => {});
     }
-    this.state = flow.go(this.state, 'share', { signed: status.userComplete, actionStatus: status });
-    try {
-      this.refreshActions();
-    } catch (err) {}
+    this.state = flow.resolveAfter(this.state, 'verify', this.workflowRequirements());
+    this.state = this.summaryState(this.state);
+    this.writeShare();
+    this.refreshActions();
     this.showStep('forward');
+  }
+
+  summaryState(state) {
+    const record = this.mod.document;
+    const userIndex = state.you?.index;
+    const status = actionStatus(this.app, record?.actions, record?.users, userIndex);
+    const signers = readUsers(this.mod).map((signer) => {
+      const signerStatus = actionStatus(this.app, record?.actions, record?.users, signer.index);
+      return {
+        ...signer,
+        signed: signerStatus.mine > 0 && signerStatus.userComplete
+      };
+    });
+    return {
+      ...state,
+      signers,
+      signed: status.mine > 0 && status.userComplete,
+      actionStatus: status
+    };
   }
 
   async signUserActions() {
     const record = this.mod.document;
+    if (!record) {
+      return false;
+    }
     const index = this.state.you?.index;
     if (!record || !Number.isInteger(index)) {
       return false;
@@ -616,9 +823,13 @@ class PublishOverlay {
     if (!user) {
       return false;
     }
+    const walletKey = this.currentPublicKey();
+    if (!walletKey || walletKey !== this.normalizePublicKey(user.publickey)) {
+      return false;
+    }
     const privateKey = await this.app.wallet.getPrivateKey();
-    user.signatures = record.actions
-      .filter((action) => action.user === index)
+    const additions = record.actions
+      .filter((action) => Number(action.user) === index && !verifyActionSignature(this.app, action, user))
       .map((action) => {
         if (action.type === 'signature') {
           return addSignature(this.app, action, privateKey);
@@ -629,7 +840,12 @@ class PublishOverlay {
         return null;
       })
       .filter(Boolean);
+    const addedIds = new Set(additions.map((entry) => Number(entry.id)));
+    user.signatures = (Array.isArray(user.signatures) ? user.signatures : [])
+      .filter((entry) => !addedIds.has(Number(entry?.id)))
+      .concat(additions);
     record.edited = true;
+    return true;
   }
 
   refreshActions() {
@@ -727,7 +943,7 @@ function mailServerReachable(app) {
 function signaturePlaces(mod, index) {
   const user = mod.document?.users?.[index];
   return (mod.document?.actions || []).filter((action) => {
-    if (action.user !== index) {
+    if (Number(action.user) !== index) {
       return false;
     }
     if (action.type !== 'signature' && action.type !== 'initial') {
@@ -755,6 +971,13 @@ function storedPhoto(user) {
   const entries = Array.isArray(user?.verifications) ? user.verifications : [];
   const entry = entries.find((item) => item?.method === 'photo' && typeof item.photo === 'string');
   const image = String(entry?.photo || '').trim();
+  return image.startsWith('data:image/') ? image : '';
+}
+
+function storedPassport(user) {
+  const entries = Array.isArray(user?.verifications) ? user.verifications : [];
+  const entry = entries.find((item) => item?.method === 'passport' && typeof item.image === 'string');
+  const image = String(entry?.image || '').trim();
   return image.startsWith('data:image/') ? image : '';
 }
 

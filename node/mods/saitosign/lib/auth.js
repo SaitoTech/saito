@@ -49,6 +49,18 @@ async function verifyPhoto(app, publickey, image) {
   };
 }
 
+async function verifyPassport(app, publickey, image) {
+  const documentImage = String(image || '').trim();
+  const key = String(publickey || '').trim();
+  if (!documentImage.startsWith('data:image/') || !key) {
+    throw new Error('That passport image could not be saved.');
+  }
+  const digest = app.crypto.hash(documentImage);
+  const message = `Passport image supplied for verification of publickey ${key} with image ${digest}`;
+  const signature = app.crypto.signMessage(message, await app.wallet.getPrivateKey());
+  return { method: 'passport', publickey: key, message, signature, image: documentImage };
+}
+
 function verifyEmailSignature(app, email, publickey, signature, serverkey) {
   const message = `Request received for verification of email ${email} with publickey ${publickey}`;
   return app.crypto.verifyMessage(message, signature, serverkey);
@@ -82,6 +94,95 @@ function actionPayload(action) {
     width: action.width,
     height: action.height
   };
+}
+
+function finalizationPayload(app, record, creator = record?.creator) {
+  return {
+    version: 1,
+    creator: String(creator || '').trim(),
+    document: {
+      name: record?.document?.name || '',
+      pdf_hash: app.crypto.hash(record?.document?.pdf || ''),
+      page_count: Number(record?.document?.page_count) || 0,
+      page_width: Number(record?.document?.page_width) || 0,
+      page_height: Number(record?.document?.page_height) || 0
+    },
+    users: (record?.users || []).map((user) => ({ name: String(user?.name || '').trim() })),
+    actions: (record?.actions || []).map(actionPayload),
+    metadata: record?.metadata || null
+  };
+}
+
+function creatorProofPayload(app, record, creator = record?.creator) {
+  const finalized = record?.finalized === true;
+  return {
+    version: 1,
+    creator: String(creator || '').trim(),
+    pdf_hash: app.crypto.hash(record?.document?.pdf || ''),
+    finalized,
+    contract_hash: finalized ? app.crypto.hash(canonicalJSON(finalizationPayload(app, record, creator))) : ''
+  };
+}
+
+async function createCreatorProof(app, record, creator = record?.creator) {
+  const publickey = String(creator || '').trim();
+  if (!publickey || !record?.document?.pdf) {
+    return false;
+  }
+  const privateKey = await app.wallet.getPrivateKey();
+  const payload = creatorProofPayload(app, record, publickey);
+  record.creatorProof = {
+    version: 1,
+    creator: publickey,
+    finalized: payload.finalized,
+    contract_hash: payload.contract_hash,
+    signature: app.crypto.signMessage(canonicalJSON(payload), privateKey)
+  };
+  return true;
+}
+
+function verifyCreatorProof(app, record) {
+  const proof = record?.creatorProof;
+  const creator = String(record?.creator || '').trim();
+  return Boolean(
+    creator && proof?.version === 1 &&
+    String(proof.creator || '').trim() === creator &&
+    // Earlier SaitoSign builds signed this payload but omitted these duplicated
+    // metadata fields from the proof object. Treat those legacy omissions as
+    // their signed payload values so editable creator drafts remain usable.
+    (proof.finalized === undefined || proof.finalized === (record.finalized === true)) &&
+    (proof.contract_hash === undefined || String(proof.contract_hash) === creatorProofPayload(app, record, creator).contract_hash) &&
+    proof.signature &&
+    app.crypto.verifyMessage(canonicalJSON(creatorProofPayload(app, record, creator)), proof.signature, creator)
+  );
+}
+
+async function finalizeDocument(app, record, creator) {
+  const publickey = String(creator || '').trim();
+  if (!publickey || !record || record.finalized) {
+    return false;
+  }
+  record.creator = publickey;
+  const privateKey = await app.wallet.getPrivateKey();
+  const signature = app.crypto.signMessage(canonicalJSON(finalizationPayload(app, record, publickey)), privateKey);
+  record.finalization = { version: 1, creator: publickey, signature };
+  record.finalized = true;
+  await createCreatorProof(app, record, publickey);
+  record.edited = true;
+  return true;
+}
+
+function verifyFinalization(app, record) {
+  const finalization = record?.finalization;
+  const creator = String(record?.creator || '').trim();
+  return Boolean(
+    record?.finalized === true &&
+    finalization?.version === 1 &&
+    creator &&
+    String(finalization.creator || '').trim() === creator &&
+    finalization.signature &&
+    app.crypto.verifyMessage(canonicalJSON(finalizationPayload(app, record, creator)), finalization.signature, creator)
+  );
 }
 
 function signAction(app, action, privateKey) {
@@ -203,9 +304,6 @@ function knownSigner(app, signers) {
   if (byKey.length === 1) {
     return byKey[0];
   }
-  if (list.length === 1) {
-    return list[0];
-  }
   return null;
 }
 
@@ -243,25 +341,66 @@ function rememberEmail(app, publickey, email) {
   app.keychain.addKey(key, data);
 }
 
-function verifiedMethods(app, user) {
+function emailVerificationMessage(email, publickey) {
+  return `Request received for verification of email ${email} with publickey ${publickey}`;
+}
+
+function verificationMethod(entry) {
+  const method = String(entry?.method || '').trim();
+  if (method) {
+    return method;
+  }
+  return String(entry?.message || '').startsWith('Request received for verification of email ')
+    ? 'email'
+    : '';
+}
+
+function validVerification(app, entry, user) {
   const email = String(user?.email || '').trim();
   const publickey = String(user?.publickey || '').trim();
+  const method = verificationMethod(entry);
+  if (!entry?.signature || !entry?.message || !entry?.publickey || !publickey) {
+    return false;
+  }
+
+  if (method === 'email') {
+    if (!isEmailAddress(email) || entry.message !== emailVerificationMessage(email, publickey)) {
+      return false;
+    }
+    return app.crypto.verifyMessage(entry.message, entry.signature, entry.publickey);
+  }
+
+  if (method === 'photo') {
+    const photo = String(entry.photo || '').trim();
+    if (!photo || entry.publickey !== publickey) {
+      return false;
+    }
+    const message = `Photo received for verification of publickey ${publickey} with image ${app.crypto.hash(photo)}`;
+    return entry.message === message && app.crypto.verifyMessage(message, entry.signature, publickey);
+  }
+
+  if (method === 'passport') {
+    const image = String(entry.image || '').trim();
+    if (!image.startsWith('data:image/') || entry.publickey !== publickey) {
+      return false;
+    }
+    const message = `Passport image supplied for verification of publickey ${publickey} with image ${app.crypto.hash(image)}`;
+    return entry.message === message && app.crypto.verifyMessage(message, entry.signature, publickey);
+  }
+
+  return false;
+}
+
+function verifiedMethods(app, user) {
   const entries = Array.isArray(user?.verifications) ? user.verifications : [];
   const found = [];
   entries.forEach((entry) => {
-    if (!entry?.signature || !entry?.message || !entry?.publickey) {
+    if (!validVerification(app, entry, user)) {
       return;
     }
-    if (!app.crypto.verifyMessage(entry.message, entry.signature, entry.publickey)) {
-      return;
-    }
-    const method = String(entry.method || '').trim();
+    const method = verificationMethod(entry);
     if (method) {
       found.push(method);
-      return;
-    }
-    if (email && publickey && entry.message.includes(email) && entry.message.includes(publickey)) {
-      found.push('email');
     }
   });
   return found;
@@ -278,10 +417,7 @@ function verifiedEmail(app, user) {
     if (!entry?.signature || !entry?.message || !entry?.publickey) {
       return false;
     }
-    if (!entry.message.includes(email) || !entry.message.includes(publickey)) {
-      return false;
-    }
-    return app.crypto.verifyMessage(entry.message, entry.signature, entry.publickey);
+    return validVerification(app, entry, user) && verificationMethod(entry) === 'email';
   });
   return holds ? email : '';
 }
@@ -330,10 +466,16 @@ function rememberVerifiedEmails(app, record) {
 module.exports = {
   verifyEmail,
   verifyPhoto,
+  verifyPassport,
   verifyEmailSignature,
   addSignature,
   addInitial,
   verifyActionSignature,
+  finalizationPayload,
+  createCreatorProof,
+  verifyCreatorProof,
+  finalizeDocument,
+  verifyFinalization,
   documentHash,
   documentUnchanged,
   userActionsSigned,
@@ -344,5 +486,6 @@ module.exports = {
   rememberEmail,
   rememberVerifiedEmails,
   verifiedMethods,
-  verifiedEmail
+  verifiedEmail,
+  validVerification
 };

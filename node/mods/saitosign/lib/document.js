@@ -16,6 +16,9 @@ function emptyDocument() {
     },
     users: [],
     actions: [],
+    creator: '',
+    finalized: false,
+    finalization: null,
     edited: false
   };
 }
@@ -36,7 +39,17 @@ function revoke(record) {
   }
 }
 
-function addUser(record, name) {
+function canEdit(record, actorKey) {
+  return Boolean(
+    record && !record.finalized && record.creator &&
+    String(actorKey || '').trim() === String(record.creator).trim()
+  );
+}
+
+function addUser(record, name, actorKey) {
+  if (!canEdit(record, actorKey)) {
+    return -1;
+  }
   record.users.push({
     name: String(name || '').trim(),
     email: '',
@@ -92,7 +105,10 @@ function resolveSigner(record, value, explicitName, exceptIndex = -1) {
   return { action: 'existing', index, conflict };
 }
 
-function renameUser(record, index, name) {
+function renameUser(record, index, name, actorKey) {
+  if (!canEdit(record, actorKey)) {
+    return;
+  }
   const user = record.users[index];
   const next = String(name || '').trim();
   if (!user || !next || user.name === next) {
@@ -102,7 +118,10 @@ function renameUser(record, index, name) {
   record.edited = true;
 }
 
-function removeUser(record, index) {
+function removeUser(record, index, actorKey) {
+  if (!canEdit(record, actorKey)) {
+    return;
+  }
   if (!record.users[index]) {
     return;
   }
@@ -117,7 +136,10 @@ function removeUser(record, index) {
   record.edited = true;
 }
 
-function addAction(record, action) {
+function addAction(record, action, actorKey) {
+  if (!canEdit(record, actorKey)) {
+    return null;
+  }
   const id = record.actions.reduce((max, item) => Math.max(max, Number(item.id) || 0), 0) + 1;
   const next = {
     id,
@@ -146,7 +168,10 @@ function actionById(record, id) {
   return record.actions.find((action) => action.id === wanted) || null;
 }
 
-function removeAction(record, id) {
+function removeAction(record, id, actorKey) {
+  if (!canEdit(record, actorKey)) {
+    return;
+  }
   const wanted = Number(id);
   const before = record.actions.length;
   record.actions = record.actions.filter((action) => action.id !== wanted);
@@ -169,6 +194,10 @@ function copyVerification(entry) {
   const photo = typeof entry.photo === 'string' ? entry.photo : '';
   if (photo) {
     next.photo = photo;
+  }
+  const image = typeof entry.image === 'string' ? entry.image : '';
+  if (image) {
+    next.image = image;
   }
   return next;
 }
@@ -203,6 +232,11 @@ function copy(record) {
       height: action.height
     }))
   };
+  next.creator = String(record.creator || '');
+  next.finalized = record.finalized === true;
+  next.finalization = record.finalization ? JSON.parse(JSON.stringify(record.finalization)) : null;
+  next.creatorProof = record.creatorProof ? JSON.parse(JSON.stringify(record.creatorProof)) : null;
+  next.hash = String(record.hash || '');
   if (record?.metadata && typeof record.metadata === 'object') {
     next.metadata = JSON.parse(JSON.stringify(record.metadata));
   }
@@ -221,6 +255,11 @@ async function hydrate(saved) {
   record.document.pdf = saved.document?.pdf || '';
   record.users = Array.isArray(saved.users) ? saved.users : [];
   record.actions = Array.isArray(saved.actions) ? saved.actions : [];
+  record.creator = String(saved.creator || '');
+  record.finalized = saved.finalized === true || Boolean(saved.finalization?.signature);
+  record.finalization = saved.finalization && typeof saved.finalization === 'object' ? saved.finalization : null;
+  record.creatorProof = saved.creatorProof && typeof saved.creatorProof === 'object' ? saved.creatorProof : null;
+  record.hash = String(saved.hash || '');
   record.edited = saved.edited === true || record.actions.length > 0;
   if (saved.metadata && typeof saved.metadata === 'object') {
     record.metadata = saved.metadata;

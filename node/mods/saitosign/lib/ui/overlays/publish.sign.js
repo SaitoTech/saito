@@ -6,18 +6,19 @@ function signerOptions(state) {
       const label = signer.email && signer.email !== signer.name
         ? `${signer.name} - ${signer.email}`
         : signer.name || signer.email;
-      return `<option value="${signer.index}">${escapeHTML(label)}</option>`;
+      const selected = signer.index === state.candidateIndex ? ' selected' : '';
+      return `<option value="${signer.index}"${selected}>${escapeHTML(label)}</option>`;
     })
     .join('');
   return `
-    <option value="">Select a signer</option>
+    <option value=""${state.candidateIndex === null ? ' selected' : ''}>Select a signer</option>
     ${options}
     <option value="new">Add New Signer</option>
   `;
 }
 
 function signSlide(state) {
-  if (!state.identified || !state.you) {
+  if (state.step === 'identity' || !state.identified || !state.you) {
     return {
       title: 'Tell us who you are',
       body: `

@@ -14,7 +14,7 @@ const {
   removeAction,
   actionsOnPage
 } = require('../document');
-const { addInitial, addSignature, verifiedEmail, verifyActionSignature } = require('../auth');
+const { addInitial, addSignature, verifiedEmail, verifiedMethods, verifyActionSignature } = require('../auth');
 
 function walletKeys(app) {
   const raw = String(app.wallet?.publicKey || '').trim();
@@ -29,6 +29,13 @@ function walletKeys(app) {
     }
   }
   return keys;
+}
+
+function canConfigure(app, record) {
+  if (!record || record.finalized || !record.creator || !record.creatorProof?.signature) {
+    return false;
+  }
+  return walletKeys(app).includes(String(record.creator).trim());
 }
 
 function canSignAction(app, action, user) {
@@ -187,6 +194,7 @@ class Workspace {
       }
 
       if (event.target.closest('[data-add-signer]')) {
+        if (!canConfigure(this.app, doc)) return;
         this.adding_signer = true;
         this.focus_name = true;
         this.placing = false;
@@ -207,6 +215,7 @@ class Workspace {
       }
 
       if (event.target.closest('[data-add-field]')) {
+        if (!canConfigure(this.app, doc)) return;
         this.openNewAction(root);
         return;
       }
@@ -259,6 +268,7 @@ class Workspace {
       }
       event.preventDefault();
       const doc = this.mod.document;
+      if (!canConfigure(this.app, doc)) return;
       const name = form.querySelector('[data-signer-name]')?.value.trim();
       if (!doc || !name) {
         return;
@@ -273,7 +283,7 @@ class Workspace {
         this.update(root);
         return;
       }
-      this.arrived = addUser(doc, decision.name);
+      this.arrived = addUser(doc, decision.name, this.app.wallet?.publicKey);
       this.adding_signer = false;
       this.update(root);
     });
@@ -381,6 +391,13 @@ class Workspace {
 
     const doc = this.mod.document;
     const intent = this.intent;
+    if (!canConfigure(this.app, doc)) {
+      this.draft = null;
+      this.placing = false;
+      this.intent = null;
+      this.update(root);
+      return;
+    }
     this.page = page;
 
     if (!doc || !intent) {
@@ -400,7 +417,7 @@ class Workspace {
         }
         user = decision.index;
       } else {
-        user = addUser(doc, decision.name);
+        user = addUser(doc, decision.name, this.app.wallet?.publicKey);
       }
       this.arrived = user;
     }
@@ -418,7 +435,7 @@ class Workspace {
       y: rect.y,
       width: rect.width,
       height: rect.height
-    });
+    }, this.app.wallet?.publicKey);
     this.intent = null;
     this.placing = false;
     this.draft = null;
@@ -439,13 +456,15 @@ class Workspace {
         name: identity.name,
         email: identity.email,
         publickey: user.publickey || '',
-        verified: user.verifications?.length > 0,
-        signed: user.signed === true
+        verified: verifiedMethods(this.app, user).length > 0,
+        signed: user.signed === true,
+        editable: canConfigure(this.app, this.mod.document)
       },
       {
         onUpdate: (fields) => this.saveUser(index, fields),
         onRemove: () => {
-          removeUser(this.mod.document, index);
+          if (!canConfigure(this.app, this.mod.document)) return;
+          removeUser(this.mod.document, index, this.app.wallet?.publicKey);
           overlay.close();
         },
         onClose: () => {
@@ -463,6 +482,7 @@ class Workspace {
 
   saveUser(index, fields) {
     const doc = this.mod.document;
+    if (!canConfigure(this.app, doc)) return;
     const user = doc.users[index];
     if (!fields || !user) {
       return;
@@ -480,7 +500,7 @@ class Workspace {
     }
 
     if (fields.name) {
-      renameUser(doc, index, fields.name);
+      renameUser(doc, index, fields.name, this.app.wallet?.publicKey);
     }
     if ((user.email || '') !== fields.email) {
       user.email = fields.email;
@@ -491,7 +511,7 @@ class Workspace {
 
   openNewAction(root) {
     const doc = this.mod.document;
-    if (!doc) {
+    if (!canConfigure(this.app, doc)) {
       return;
     }
     this.placing = false;
@@ -507,7 +527,7 @@ class Workspace {
   }
 
   openExisting(field, root) {
-    if (!field) {
+    if (!field || (!canConfigure(this.app, this.mod.document) && !this.mod.document?.finalized)) {
       return;
     }
     this.placing = false;
@@ -535,7 +555,7 @@ class Workspace {
     overlay.render(this.fieldView(), {
       onCreateSigner: (name) => {
         const doc = this.mod.document;
-        if (!doc || !name || !this.draft?.id) {
+        if (!canConfigure(this.app, doc) || !name || !this.draft?.id) {
           return null;
         }
         const decision = resolveSigner(doc, name);
@@ -552,7 +572,7 @@ class Workspace {
             name: doc.users[decision.index].name
           };
         }
-        const index = addUser(doc, decision.name);
+        const index = addUser(doc, decision.name, this.app.wallet?.publicKey);
         this.arrived = index;
         this.draft.user = index;
         this.update(root);
@@ -562,7 +582,8 @@ class Workspace {
         };
       },
       onRemove: () => {
-        removeAction(this.mod.document, this.draft.id);
+        if (!canConfigure(this.app, this.mod.document)) return;
+        removeAction(this.mod.document, this.draft.id, this.app.wallet?.publicKey);
         overlay.close();
       },
       onSave: (form) => {
@@ -593,7 +614,7 @@ class Workspace {
 
   armPlacement(form) {
     const doc = this.mod.document;
-    if (!doc) {
+    if (!canConfigure(this.app, doc)) {
       return false;
     }
 
@@ -644,7 +665,7 @@ class Workspace {
   saveField(form) {
     const doc = this.mod.document;
     const draft = this.draft;
-    if (!doc || !draft) {
+    if (!canConfigure(this.app, doc) || !draft) {
       return false;
     }
 
@@ -675,7 +696,7 @@ class Workspace {
         y: draft.y,
         width: draft.width,
         height: draft.height
-      });
+      }, this.app.wallet?.publicKey);
     }
 
     this.overlay.close();
@@ -685,7 +706,7 @@ class Workspace {
   async signField() {
     const doc = this.mod.document;
     const draft = this.draft;
-    if (!doc || !draft?.id) {
+    if (!doc?.finalized || !draft?.id) {
       return false;
     }
     const action = actionById(doc, draft.id);
@@ -695,7 +716,10 @@ class Workspace {
     }
     const form = document.querySelector('.saitosign-field');
     const type = form?.querySelector('[data-field-type]')?.value;
-    if (type === 'signature' || type === 'initial') {
+    if (doc.finalized && type !== action.type) {
+      return false;
+    }
+    if (!doc.finalized && (type === 'signature' || type === 'initial')) {
       action.type = type;
     }
     const privateKey = await this.app.wallet.getPrivateKey();
@@ -740,10 +764,11 @@ class Workspace {
 
     const signer = existing ? doc.users[signer_index] : null;
     const action = existing ? actionById(doc, draft.id) : null;
-    const can_sign = Boolean(action && signer && canSignAction(this.app, action, signer));
+    const can_sign = Boolean(doc.finalized && action && signer && canSignAction(this.app, action, signer));
 
     return {
       existing,
+      editable: canConfigure(this.app, doc),
       defer_signer: !existing,
       type,
       signer_index,
@@ -782,9 +807,10 @@ class Workspace {
 
     return {
       file_name: doc.document.name || 'Document',
+      can_edit: canConfigure(this.app, doc),
       page: this.page,
       page_count: doc.document.page_count,
-      notice: this.notice,
+      notice: this.notice || '',
       placing: this.placing,
       adding_signer: this.adding_signer,
       edited: doc.edited,
@@ -812,6 +838,14 @@ class Workspace {
         name: doc.users[action.user]?.name || '',
         signed: verifyActionSignature(this.app, action, doc.users[action.user])
       })),
+      all_signatures_provided: (() => {
+        const signatures = (doc.actions || []).filter((action) =>
+          action.type === 'signature' || action.type === 'initial'
+        );
+        return signatures.length > 0 && signatures.every((action) =>
+          verifyActionSignature(this.app, action, doc.users[action.user])
+        );
+      })(),
       pages: Array.from({ length: doc.document.page_count }, (_, index) => {
         const page = index + 1;
         return {

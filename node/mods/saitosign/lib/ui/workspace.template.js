@@ -41,7 +41,7 @@ function signersHTML(view) {
 }
 
 function signerAction(view) {
-  if (view.adding_signer) {
+  if (view.adding_signer || !view.can_edit) {
     return '';
   }
   return '<button type="button" class="plus" data-add-signer aria-label="Add signer">+</button>';
@@ -78,8 +78,8 @@ function fieldsSectionHTML(view) {
   return `
     <section class="fields-panel">
       <div class="section-head">
-        <p class="title">Actions</p>
-        <button type="button" class="plus" data-add-field aria-pressed="${view.placing ? 'true' : 'false'}" aria-label="Add field">+</button>
+        <p class="title">Signatures</p>
+        ${view.can_edit ? `<button type="button" class="plus" data-add-field aria-pressed="${view.placing ? 'true' : 'false'}" aria-label="Add field">+</button>` : ''}
       </div>
       ${hint}
       ${fieldListHTML(view)}
@@ -117,7 +117,7 @@ function railHTML(view) {
     ${fieldsSectionHTML(view)}
     ${notice}
 
-    <button type="button" class="export${exportable}" data-export>Next Step</button>
+    <button type="button" class="export${exportable}" data-export>${view.all_signatures_provided ? 'REVIEW' : 'Next Step'}</button>
   `;
 }
 
