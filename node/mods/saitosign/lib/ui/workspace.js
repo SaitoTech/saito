@@ -1,4 +1,3 @@
-const SaitoOverlay = require('../../../../lib/saito/ui/saito-overlay/saito-overlay');
 const WorkspaceTemplate = require('./workspace.template');
 const FieldOverlay = require('./overlays/field');
 const SignerOverlay = require('./overlays/signer');
@@ -105,34 +104,6 @@ class Workspace {
     this.reader_x = 16;
     this.reader_y = 16;
     this.render();
-  }
-
-  showNeedsAction() {
-    if (!this.guide) {
-      this.guide = new SaitoOverlay(this.app, this.mod, true);
-      this.guide.class = 'saito-overlay saitosign-overlay saitosign-guide-host';
-    }
-    if (this.guide.visible) {
-      return;
-    }
-    this.guide.show(`
-      <section class="saitosign-guide">
-        <div class="copy">
-          <p class="lead">Before you can share this document…</p>
-          <p>Add an action:</p>
-          <ul>
-            <li>Who needs to sign</li>
-            <li>Where they need to sign</li>
-          </ul>
-          <p>Then click Next Step to finalize the document.</p>
-          <button type="button" class="dismiss" data-guide-close>Close</button>
-        </div>
-      </section>
-    `);
-    const close = document.querySelector('.saitosign-guide [data-guide-close]');
-    if (close) {
-      close.onclick = () => this.guide.close();
-    }
   }
 
   render() {
@@ -254,7 +225,7 @@ class Workspace {
 
       if (event.target.closest('[data-export]')) {
         if (!(doc.actions || []).length) {
-          this.showNeedsAction();
+          this.openNewAction(root);
           return;
         }
         this.publish.render();
@@ -838,14 +809,6 @@ class Workspace {
         name: doc.users[action.user]?.name || '',
         signed: verifyActionSignature(this.app, action, doc.users[action.user])
       })),
-      all_signatures_provided: (() => {
-        const signatures = (doc.actions || []).filter((action) =>
-          action.type === 'signature' || action.type === 'initial'
-        );
-        return signatures.length > 0 && signatures.every((action) =>
-          verifyActionSignature(this.app, action, doc.users[action.user])
-        );
-      })(),
       pages: Array.from({ length: doc.document.page_count }, (_, index) => {
         const page = index + 1;
         return {

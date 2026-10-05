@@ -71,6 +71,10 @@ function fieldListHTML(view) {
 }
 
 function fieldsSectionHTML(view) {
+  if (!view.field_list.length) {
+    return '';
+  }
+
   const hint = view.placing
     ? '<p class="hint">Highlight the area of the document where this field belongs.</p>'
     : '';
@@ -117,7 +121,7 @@ function railHTML(view) {
     ${fieldsSectionHTML(view)}
     ${notice}
 
-    <button type="button" class="export${exportable}" data-export>${view.all_signatures_provided ? 'REVIEW' : 'Next Step'}</button>
+    <button type="button" class="export${exportable}" data-export>Next Step</button>
   `;
 }
 

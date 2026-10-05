@@ -51,6 +51,10 @@ class PublishOverlay {
     const known = knownSigner(this.app, this.state.signers);
     if (known) {
       this.keepUser(known);
+    } else {
+      this.state.signers = this.state.signers.filter((signer) =>
+        signaturePlaces(this.mod, signer.index) > 0
+      );
     }
     this.state = flow.resolveInitial(this.state, this.workflowRequirements(this.state.canChooseTier));
     if (this.state.step === 'share') {
