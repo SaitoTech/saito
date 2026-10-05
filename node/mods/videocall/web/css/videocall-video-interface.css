@@ -113,7 +113,7 @@
   width: 45rem;
   height: 40rem;
   min-width: 30rem;
-  min-height: 35rem;
+  min-height: min(35rem, 50dvh);
   overflow: auto;
   resize: both;
   cursor: grab;
