@@ -93,10 +93,10 @@
   display: block;
   width: 16rem;
   padding: var(--saito-space-sm) var(--saito-space-lg);
-  border: 1px solid var(--saito-border);
+  border: 1px solid var(--saito-primary);
   border-radius: var(--saito-radius-lg);
   margin: var(--saito-space-md) 0 0;
-  background: color-mix(in srgb, var(--saito-background) 33%, transparent);
+  background: color-mix(in srgb, var(--saito-background) 90%, transparent);
   color: var(--saito-foreground);
   text-align: center;
   cursor: pointer;
