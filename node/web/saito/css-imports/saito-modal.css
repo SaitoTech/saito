@@ -7,7 +7,7 @@
 .saito-contacts,
 .saito-share-link,
 .saito-user-menu {
-  min-width: 70rem;
+  min-width: min(70rem, 80vw);
   height: min-content;
   max-width: 80vw;
   max-height: 95vh;
@@ -21,7 +21,8 @@
   padding-bottom: var(--saito-space-sm, 0.5rem);
   overflow: hidden;
   text-overflow: ellipsis;
-  font-size: 2.5rem;
+  font-size: clamp(1.8rem, 6vw, 2.5rem);
+  overflow-wrap: anywhere;
   color: var(--saito-foreground);
 }
 
@@ -179,6 +180,12 @@
 @media only screen and (max-width: 768px) {
   .saito-modal-menu-option {
     margin: 0 1rem;
+  }
+
+  .saito-contacts,
+  .saito-share-link,
+  .saito-user-menu {
+    padding: clamp(var(--saito-space-md), 3vw, var(--border-padding-wide));
   }
 }
 

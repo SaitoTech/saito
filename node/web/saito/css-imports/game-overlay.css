@@ -264,7 +264,7 @@
     padding: 2px;
     width: auto;
     height: auto;
-    min-width: 600px;
+    min-width: min(600px, 95vw);
     max-height: 90vh;
     max-width: 95vh;
   }
@@ -303,10 +303,9 @@
 Useful declarations for game stats 
 **********************************/
 .solitaire-stats-overlay {
-  min-width: 600px;
-  max-width: 90vw;
+  min-width: min(600px, 90vw);
   background-color: #f5f5f5;
-  padding: 50px;
+  padding: clamp(1.667rem, 5vw, 50px);
   border-radius: 5px;
   border: 2px solid var(--saito-black-heavy);
   box-shadow: 4px 4px 6px 4px black;

@@ -210,7 +210,7 @@
 
 .saito-overlay-form-header-title {
   margin: 0;
-  font-size: 2rem;
+  font-size: clamp(1.6rem, 5vw, 2rem);
   font-family: var(--saito-font-medium);
   text-transform: uppercase;
   white-space: nowrap;
@@ -259,6 +259,19 @@
 }
 
 @media screen and (max-width: 600px) {
+  .saito-overlay-size,
+  .saito-overlay-form,
+  .saito-recovery,
+  .saito-backup {
+    padding: clamp(var(--saito-space-md), 4vw, var(--saito-space-xl));
+  }
+
+  .saito-overlay-form,
+  .saito-recovery,
+  .saito-backup {
+    gap: clamp(var(--saito-space-md), 3vw, var(--saito-space-lg));
+  }
+
   .maximized-overlay .saito-overlay-closebox {
     top: 0.5rem;
     right: 0.5rem;
@@ -320,6 +333,23 @@
     min-height: 100%;
     background: transparent;
     background-image: none;
+  }
+
+  /* Compact title bar; right padding keeps the title clear of the fixed closebox */
+  .saito-overlay-form-header {
+    height: auto;
+    min-height: 5rem;
+    padding: var(--saito-space-sm) calc(4.2rem + var(--saito-space-md)) var(--saito-space-sm)
+      var(--saito-space-md);
+  }
+
+  .saito-overlay-form-header-title:not(.loading) {
+    min-width: 0;
+    white-space: normal;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
   }
 
   .saito-overlay .saito-overlay-closebox {

@@ -562,7 +562,7 @@
   transform: translateX(-50%);
   width: 100%;
   max-width: 600px;
-  min-width: 400px;
+  min-width: min(400px, 100%);
   z-index: 10;
   display: flex;
   align-items: center;
