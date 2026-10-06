@@ -2697,7 +2697,7 @@ console.log("error updated attacker loss factor: " + JSON.stringify(err));
 	    for (this.game.spaces[this.game.state.combat.key].units.length-1; z >= 0 ; z--) {
 	      let u = this.game.spaces[this.game.state.combat.key].units[z];
 	      if (u.moved) {
-		this.paths_log.noteLoss(this.paths_log.label(u.name) + " eliminated (trapped)");
+		this.paths_log.noteLoss(this.paths_log.label(u.name) + " eliminated (trapped)", this.game.state.combat.defending_faction);
 		if (this.game.state.combat.attacking_faction == "allies") {
      	          this.game.spaces["ceubox"].units.push(u);
 		  this.game.spaces[this.game.state.combat.key].units.splice(z, 1);
@@ -3150,7 +3150,7 @@ console.log("moving unit in PCC 2: " + JSON.stringify(u));
 
 	  let unit = this.game.spaces[spacekey].units[idx];
 	  let faction = this.returnPowerOfUnit(unit);
-	  if (!this.paths_log.noteLoss(this.paths_log.label(unit.name) + " eliminated")) {
+	  if (!this.paths_log.noteLoss(this.paths_log.label(unit.name) + " eliminated", faction)) {
 	    this.updateLog(unit.name + " eliminated in " + this.returnSpaceNameForLog(spacekey));
 	  }
 
@@ -3214,7 +3214,7 @@ console.log("moving unit in PCC 2: " + JSON.stringify(u));
 	  if (damaged != 1 && this.game.spaces[spacekey]) {
 	    for (let z = 0; z < this.game.spaces[spacekey].units.length; z++) {
 	      if (this.game.spaces[spacekey].units[z].key === key) {
-	        this.paths_log.noteLoss(this.paths_log.label(this.game.spaces[spacekey].units[z].name) + " damaged");
+	        this.paths_log.noteLoss(this.paths_log.label(this.game.spaces[spacekey].units[z].name) + " damaged", this.returnPowerOfUnit(this.game.spaces[spacekey].units[z]));
 	        break;
 	      }
 	    }

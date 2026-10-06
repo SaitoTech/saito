@@ -234,7 +234,7 @@ console.log(JSON.stringify(unit));
     if (!this.game.spaces[destinationkey].units) { this.game.spaces[destinationkey].units = []; }
 
     if (destinationkey == "aeubox" || destinationkey == "ceubox") {
-      if (!this.paths_log.noteLoss(this.paths_log.label(unit.name) + " eliminated")) {
+      if (!this.paths_log.noteLoss(this.paths_log.label(unit.name) + " eliminated", this.returnPowerOfUnit(unit))) {
         this.updateLog(unit.name + " eliminated.");
       }
     } else {

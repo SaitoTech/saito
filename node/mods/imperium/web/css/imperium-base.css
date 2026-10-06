@@ -2047,4 +2047,92 @@
     white-space: normal;
     text-shadow: -1px 1px 2px #000;
   }
+
+  /* Expandable agenda, strategy, and combat rows. The shared log prints an
+     empty ">" caret. Collapse that glyph and hang a filled caret in its place. */
+  #log > div:has(> details.ri-log) {
+    font-size: 0;
+    line-height: 0;
+    padding-left: 21px;
+    text-indent: 0;
+  }
+
+  #log > div:has(> details.ri-log) > details.ri-log {
+    font-size: 16px;
+    line-height: normal;
+    display: block;
+    margin: 0 0 0 -20px;
+    color: #fff;
+    background: transparent;
+    user-select: text;
+  }
+
+  #log details.ri-log > summary {
+    display: block;
+    list-style: none;
+    cursor: pointer;
+    padding-left: 20px;
+    text-indent: -20px;
+    user-select: none;
+    outline: none;
+    background: transparent;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  #log details.ri-log > summary::-webkit-details-marker,
+  #log details.ri-log > summary::marker {
+    display: none;
+    content: '';
+  }
+
+  #log details.ri-log > summary::before {
+    content: '';
+    display: inline-block;
+    width: 20px;
+    height: 10px;
+    vertical-align: 0.05em;
+    background: currentColor;
+    clip-path: polygon(0 0, 0 100%, 55% 50%);
+  }
+
+  #log details.ri-log[open] > summary::before {
+    content: '';
+    height: 10px;
+    clip-path: polygon(0 15%, 55% 15%, 27.5% 85%);
+  }
+
+  #log details.ri-log > summary:focus,
+  #log details.ri-log > summary:focus-visible,
+  #log details.ri-log > summary:active {
+    outline: none;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  #log details.ri-log > div {
+    padding-left: calc(20px + 2ch);
+  }
+}
+
+@media screen and (max-width: 525px) {
+  .game.imperium #log > div:has(> details.ri-log) {
+    padding-left: 16px;
+  }
+
+  .game.imperium #log > div:has(> details.ri-log) > details.ri-log {
+    margin-left: -16px;
+  }
+
+  .game.imperium #log details.ri-log > summary {
+    padding-left: 16px;
+    text-indent: -16px;
+  }
+
+  .game.imperium #log details.ri-log > summary::before {
+    width: 16px;
+  }
+
+  .game.imperium #log details.ri-log > div {
+    padding-left: calc(16px + 2ch);
+  }
 }

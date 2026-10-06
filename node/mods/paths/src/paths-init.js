@@ -66,6 +66,13 @@ class PathsOfGlory extends GameTemplate {
     this.paths_log = new PathsLog(this);
     this.log.registerEventType('movement', (entries) => this.paths_log.renderMovement(entries));
     this.log.registerEventType('combat', (entries) => this.paths_log.renderCombat(entries));
+    let update_log = this.updateLog.bind(this);
+    this.updateLog = (str, eventType = '', data = null) => {
+      if (this.paths_log && this.paths_log.absorbLog(str)) {
+        return;
+      }
+      update_log(str, eventType, data);
+    };
     this.minimap = new GameMinimap(this.app, this);
     this.minimap.enable_zoom = 1;
     this.default_board_scale = 100;

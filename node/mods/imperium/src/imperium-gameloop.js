@@ -867,7 +867,15 @@
   	let strategy_card_player = parseInt(mv[3]);
         let z = this.returnEventObjects();
 
+        if (this.game_help) {
+          this.game_help.hide();
+        }
+
         this.game.queue.splice(qe, 1);
+
+        if (this.imperium_log) {
+          this.imperium_log.flush();
+        }
 
         let speaker_order = this.returnSpeakerOrder();
 
@@ -1072,10 +1080,29 @@
           //
           // resolve riders
           //
+          let rider_notices = [];
           for (let i = 0; i < this.game.state.riders.length; i++) {
             let x = this.game.state.riders[i];
-            if (x.choice === winning_choice || x.choice === this.game.state.choices[winning_choice]) {
+            let won = (x.choice === winning_choice || x.choice === this.game.state.choices[winning_choice]);
+            if (won) {
               this.game.queue.push("execute_rider\t"+x.player+"\t"+x.rider);
+            }
+            let card = this.action_cards[x.rider];
+            if (card && card.type === "rider") {
+              let faction = this.returnFaction(parseInt(x.player));
+              let outcome = this.returnNameFromIndex(String(x.choice));
+              rider_notices.push(faction + " " + (won ? "wins" : "loses") + " " + card.name + " placed on " + outcome);
+            }
+          }
+          if (rider_notices.length > 0 && typeof siteMessage === "function") {
+            let postRiderNotice = (notice) => {
+              siteMessage(notice, 4000);
+              let msg = document.getElementById("site-message-wrapper");
+              if (msg) { msg.style.zIndex = "5000"; }
+            };
+            postRiderNotice(rider_notices[0]);
+            for (let n = 1; n < rider_notices.length; n++) {
+              setTimeout(() => { postRiderNotice(rider_notices[n]); }, n * 4200);
             }
           }
 
@@ -1087,6 +1114,10 @@
 	this.game.queue.push("ACKNOWLEDGE\tThe Galactic Senate has settled on '"+this.returnNameFromIndex(winning_choice)+"'");
 
 	this.agenda_voting_overlay.hide();
+
+        if (this.imperium_log) {
+          this.imperium_log.flush();
+        }
 
 	//
 	// REMOVE strategy card invocation
@@ -2081,6 +2112,10 @@ if (debugging == 0) {
   	this.hud.prepareIdle(this.game.status);
   	this.hud.updateCards([]);
 
+        if (this.imperium_log) {
+          this.imperium_log.open("strategy", "all players select strategy cards");
+        }
+
 	let cards_issued = [];
 
 	for (let i = 0; i < this.game.state.players_info.length; i++) {
@@ -2222,18 +2257,22 @@ if (debugging == 0) {
 	  }
 	}
 	if (type == "homeworld") {
-	  for (let i in this.game.planets) {
-	    if (this.game.planets[i].type == "homeworld" && this.game.planets[i].owner == player) {
-	      this.game.planets[i].exhausted = 1;
+	  let home_planets = this.returnPlayerHomeworldPlanets(player);
+	  for (let z = 0; z < home_planets.length; z++) {
+	    let key = home_planets[z];
+	    if (this.game.planets[key] && this.game.planets[key].owner == player) {
+	      this.game.planets[key].exhausted = 1;
 	      exhausted = 1;
-	      this.updateSectorGraphics(i);
 	    }
+	  }
+	  if (exhausted == 1) {
+	    this.updateSectorGraphics(this.returnPlayerHomeworldSector(player));
 	  }
 	}
 
-	if (exhausted == 0) {
+	if (exhausted == 0 && this.game.planets[type]) {
 	  this.game.planets[type].exhausted = 1;
-	  this.updateSectorGraphics(i);
+	  this.updateSectorGraphics(this.game.planets[type].sector);
 	}
 
 	return 1;
@@ -3351,6 +3390,10 @@ console.log("K: " + z[k].name);
 	let agenda = mv[1];
 
   	this.game.queue.splice(qe, 1);
+
+        if (this.imperium_log) {
+          this.imperium_log.open("agenda", "Agenda: " + this.agenda_cards[agenda].name);
+        }
 
         this.updateLog("Agenda: " + this.agenda_cards[agenda].name + "<p></p><div style='width:80%;font-size:1.0em;margin-left:auto;margin-right:auto;margin-top:15px;margin-bottom:15px'>" + this.agenda_cards[agenda].text +'</div>');
 
@@ -5114,6 +5157,10 @@ console.log("MODIFIED ROLL: " + JSON.stringify(combat_info.modified_roll));
 	this.game.state.space_combat_ships_destroyed_attacker = 0;
 	this.game.state.space_combat_ships_destroyed_defender = 0;
 
+        if (this.imperium_log) {
+          this.imperium_log.open("combat", "space combat in " + this.imperium_log.place(sector));
+        }
+
 
   	if (player == this.game.player) {
 	  this.addMove("continue\t"+player+"\t"+sector);
@@ -5202,6 +5249,10 @@ console.log("MODIFIED ROLL: " + JSON.stringify(combat_info.modified_roll));
             for (let z_index in z) {
               z[z_index].spaceCombatRoundEnd(this, this.game.state.space_combat_attacker, this.game.state.space_combat_defender, sector);
             }
+          }
+
+          if (this.imperium_log) {
+            this.imperium_log.flush();
           }
 
 	  if (this.game.player == player) {
@@ -5649,6 +5700,10 @@ console.log("MODIFIED ROLL: " + JSON.stringify(combat_info.modified_roll));
 
   	this.game.queue.splice(qe, 1);
 
+        if (this.imperium_log) {
+          this.imperium_log.ensure("combat", "combat on " + this.imperium_log.place(sector, planet_idx));
+        }
+
         let speaker_order = this.returnSpeakerOrder();
 
   	for (let i = 0; i < speaker_order.length; i++) {
@@ -5784,6 +5839,10 @@ console.log("MODIFIED ROLL: " + JSON.stringify(combat_info.modified_roll));
         this.game.state.ground_combat_attacker = -1;
         this.game.state.ground_combat_defender = -1;
 
+        if (this.imperium_log) {
+          this.imperium_log.ensure("combat", "combat on " + this.imperium_log.place(sector, planet_idx));
+        }
+
   	return 1;
 
       }
@@ -5868,6 +5927,10 @@ console.log("MODIFIED ROLL: " + JSON.stringify(combat_info.modified_roll));
 	  } else {
             this.updateLog(sys.p[planet_idx].name + " defended by " + this.returnFactionNickname(this.game.state.ground_combat_defender) + " (" + defender_survivors + " infantry)");
 	  }
+
+          if (this.imperium_log) {
+            this.imperium_log.flush();
+          }
 
  	  this.game.queue.splice(qe, 1);
 	  return 1;

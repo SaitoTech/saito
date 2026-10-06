@@ -56,18 +56,27 @@ class GameLog {
   }
 
   /**
-   * Adds functionality to open/close log by clicking (with some tolerance for click-drag actions
+   * Adds functionality to open/close log by clicking (with some tolerance for click-drag actions).
+   * A disclosure summary only toggles its own entry. A drag that selects text does not close the log.
    */
   attachEvents() {
     let xpos = 0;
     let ypos = 0;
+    let log = document.querySelector('#log');
 
-    document.querySelector('#log').onmousedown = (e) => {
+    log.onmousedown = (e) => {
       xpos = e.clientX;
       ypos = e.clientY;
     };
-    document.querySelector('#log').onmouseup = (e) => {
+    log.onmouseup = (e) => {
+      if (e.target && e.target.closest && e.target.closest('summary')) {
+        return;
+      }
       if (Math.abs(xpos - e.clientX) > 4 || Math.abs(ypos - e.clientY) > 4) {
+        return;
+      }
+      let selection = window.getSelection ? window.getSelection() : null;
+      if (selection && !selection.isCollapsed && String(selection).length > 0) {
         return;
       }
       this.toggleLog();

@@ -26,7 +26,7 @@ class PathsLog {
   }
 
   // Record one committed hop. Later hops by the same unit keep the first origin.
-  note(faction, sourcekey, sourceidx, destinationkey) {
+  noteMove(faction, sourcekey, sourceidx, destinationkey) {
     if (destinationkey === 'aeubox' || destinationkey === 'ceubox') {
       return false;
     }
@@ -63,8 +63,70 @@ class PathsLog {
   }
 
   commitMove(faction, sourcekey, sourceidx, destinationkey) {
-    let tracked = this.note(faction, sourcekey, sourceidx, destinationkey);
+    let combat = this.mod.game.state && this.mod.game.state.combat;
+    if (
+      combat &&
+      combat.retreat_sourcekey === sourcekey &&
+      combat.retreat_destinationkey === destinationkey
+    ) {
+      this.attachRetreat(faction, destinationkey);
+      combat.retreat_sourcekey = '';
+      combat.retreat_destinationkey = '';
+      this.mod.moveUnit(sourcekey, sourceidx, destinationkey, false);
+      return;
+    }
+    let tracked = this.noteMove(faction, sourcekey, sourceidx, destinationkey);
     this.mod.moveUnit(sourcekey, sourceidx, destinationkey, !tracked);
+  }
+
+  attachRetreat(faction, destinationkey) {
+    let place = destinationkey;
+    if (this.mod.returnSpaceNameForLog && this.mod.game.spaces && this.mod.game.spaces[destinationkey]) {
+      place = this.mod.returnSpaceNameForLog(destinationkey);
+    }
+    let lists = [];
+    if (this.mod.log && this.mod.log.logs) {
+      lists.push(this.mod.log.logs);
+    }
+    if (this.mod.game && this.mod.game.log) {
+      lists.push(this.mod.game.log);
+    }
+    let seen = [];
+    for (let n = 0; n < lists.length; n++) {
+      let list = lists[n];
+      for (let i = 0; i < list.length; i++) {
+        let entry = list[i];
+        if (!entry || entry.type !== 'combat' || !entry.data) {
+          continue;
+        }
+        let already = false;
+        for (let s = 0; s < seen.length; s++) {
+          if (seen[s] === entry.data) {
+            already = true;
+          }
+        }
+        if (already) {
+          break;
+        }
+        seen.push(entry.data);
+        if (!Array.isArray(entry.data.retreats)) {
+          entry.data.retreats = [];
+        }
+        let found = false;
+        for (let j = 0; j < entry.data.retreats.length; j++) {
+          if (entry.data.retreats[j].place === place) {
+            found = true;
+          }
+        }
+        if (!found) {
+          entry.data.retreats.push({ faction: faction, place: place });
+        }
+        break;
+      }
+    }
+    if (this.mod.log && this.mod.log.rendered) {
+      this.mod.log.render();
+    }
   }
 
   flushIfBatchEnded() {
@@ -131,6 +193,8 @@ class PathsLog {
       modifiers: [],
       cards: [],
       losses: [],
+      retreats: [],
+      flankFrom: this.mod.game.state.pending_flank_launch || '',
       notes: [],
       attackers: [],
       defenders: [],
@@ -145,7 +209,37 @@ class PathsLog {
       flank: '',
       published: false
     };
+    this.mod.game.state.pending_flank_launch = '';
     return this.mod.game.state.pending_combat_log;
+  }
+
+  // The flank announcement is queued as its own log line. Keep it on the combat record instead.
+  absorbLog(str) {
+    if (typeof str !== 'string') {
+      return false;
+    }
+    let marker = 'Flank Attack launched from:';
+    if (str.indexOf(marker) !== 0) {
+      return false;
+    }
+    this.noteFlankLaunch(str.slice(marker.length).trim());
+    return true;
+  }
+
+  noteFlankLaunch(from) {
+    let name = from || '';
+    if (name && this.mod.game.spaces && this.mod.game.spaces[name] && this.mod.returnSpaceNameForLog) {
+      name = this.mod.returnSpaceNameForLog(name);
+    }
+    let rec = this.combat();
+    if (rec) {
+      rec.flankFrom = name;
+      return true;
+    }
+    if (this.mod.game && this.mod.game.state) {
+      this.mod.game.state.pending_flank_launch = name;
+    }
+    return true;
   }
 
   abandonCombat() {
@@ -179,12 +273,12 @@ class PathsLog {
   }
 
   // Casualties that currently become their own log lines, once fire has been recorded.
-  noteLoss(text) {
+  noteLoss(text, faction) {
     let rec = this.combat();
     if (!rec || !rec.attack || !text) {
       return false;
     }
-    rec.losses.push(text);
+    rec.losses.push({ text: text, faction: faction || '' });
     return true;
   }
 
@@ -300,16 +394,15 @@ class PathsLog {
     rec.attackers = [];
     for (let i = 0; i < attackers.length; i++) {
       let unit = attackers[i];
-      let line = this.unitLine(unit, unit.spacekey);
-      if (line) {
-        rec.attackers.push(line);
+      if (unit && !unit.destroyed) {
+        rec.attackers.push({ name: this.label(unit.name), cf: this.unitCF(unit) });
       }
     }
     rec.defenders = [];
     for (let i = 0; i < defenders.length; i++) {
-      let line = this.unitLine(defenders[i], '');
-      if (line) {
-        rec.defenders.push(line);
+      let unit = defenders[i];
+      if (unit && !unit.destroyed) {
+        rec.defenders.push({ name: this.label(unit.name), cf: this.unitCF(unit) });
       }
     }
     rec.attackerCF = combat.attacker_cp_at_fire;
@@ -412,10 +505,14 @@ class PathsLog {
       attack: rec.attack,
       defense: rec.defense,
       flank: rec.flank,
+      flankFrom: rec.flankFrom || '',
       losses: rec.losses,
+      retreats: rec.retreats || [],
       notes: rec.notes,
       winner: rec.winner,
-      result: result
+      result: result,
+      attackerHits: attackerHits,
+      defenderHits: defenderHits
     };
     this.mod.game.state.pending_combat_log = null;
     this.mod.updateLog(summary, 'combat', data);
@@ -431,69 +528,129 @@ class PathsLog {
       return entry.msg || '';
     }
     let html = '';
-    html += '<div>ATTACK</div>';
-    html +=
-      '<div>' +
-      this.sideName(combat.attackerFaction) +
-      ' — ' +
-      combat.attackerCF +
-      ' CF (' +
-      combat.attackerTable +
-      ')</div>';
-    for (let i = 0; i < combat.attackers.length; i++) {
-      html += '<div>' + combat.attackers[i] + '</div>';
+    if (combat.flankFrom) {
+      html += this.bullet('Flank Attack launched from ' + combat.flankFrom);
     }
-    html += '<div>DEFENSE</div>';
-    html +=
-      '<div>' +
-      this.sideName(combat.defenderFaction) +
-      ' — ' +
-      combat.defenderCF +
-      ' CF (' +
-      combat.defenderTable +
-      ')</div>';
-    for (let i = 0; i < combat.defenders.length; i++) {
-      html += '<div>' + combat.defenders[i] + '</div>';
-    }
-    if (combat.fortCF > 0) {
-      html += '<div>fort +' + combat.fortCF + '</div>';
-    }
-    if ((combat.modifiers && combat.modifiers.length) || (combat.cards && combat.cards.length) || combat.flank) {
-      html += '<div>MODIFIERS</div>';
+    if (combat.modifiers) {
       for (let i = 0; i < combat.modifiers.length; i++) {
-        html += '<div>' + combat.modifiers[i] + '</div>';
-      }
-      for (let i = 0; i < combat.cards.length; i++) {
-        let who = combat.cards[i].side === 'defender' ? 'Defender' : 'Attacker';
-        html += '<div>' + who + ' plays ' + combat.cards[i].html + '</div>';
-      }
-      if (combat.flank === 'attacker') {
-        html += '<div>flank attack: attacker fires first</div>';
-      } else if (combat.flank === 'defender') {
-        html += '<div>flank attack: defender fires first</div>';
+        if (String(combat.modifiers[i]).toLowerCase().indexOf('flank') === 0) {
+          html += this.bullet(combat.modifiers[i]);
+        }
       }
     }
-    html += '<div>FIRE</div>';
-    html += '<div>' + this.fireLine('Attack', combat.attack) + '</div>';
-    html += '<div>' + this.fireLine('Defense', combat.defense) + '</div>';
-    if (combat.losses && combat.losses.length) {
-      html += '<div>LOSSES</div>';
-      for (let i = 0; i < combat.losses.length; i++) {
-        html += '<div>' + combat.losses[i] + '</div>';
+    html += this.section('ATTACKING');
+    html += this.unitBullets(combat.attackers);
+    html += this.section('DEFENDING');
+    html += this.unitBullets(combat.defenders);
+    if (combat.fortCF > 0) {
+      html += this.bullet('fort - ' + combat.fortCF);
+    }
+    let attackerHits = typeof combat.attackerHits === 'number' ? combat.attackerHits : combat.attack.hits;
+    let defenderHits = typeof combat.defenderHits === 'number' ? combat.defenderHits : combat.defense ? combat.defense.hits : 0;
+    html += this.section('HITS');
+    html += this.bullet(this.sideName(combat.attackerFaction) + ' - ' + attackerHits);
+    html += this.bullet(this.sideName(combat.defenderFaction) + ' - ' + defenderHits);
+    html += this.lossSections(combat.losses);
+    html += this.section('RESULT');
+    html += this.bullet(this.winText(combat));
+    html += this.retreatBullets(combat);
+    return this.fold('pog-combat', entry.msg, html);
+  }
+
+  section(title) {
+    return '<div class="pog-section">' + title + '</div>';
+  }
+
+  bullet(text) {
+    return '<div>- ' + text + '</div>';
+  }
+
+  unitBullets(units) {
+    let html = '';
+    if (!units) {
+      return html;
+    }
+    for (let i = 0; i < units.length; i++) {
+      let unit = units[i];
+      if (unit && typeof unit === 'object') {
+        html += this.bullet(unit.name + ' - ' + unit.cf);
+      } else if (unit) {
+        html += this.bullet(unit);
       }
     }
-    html += '<div>RESULT</div>';
-    html += '<div>' + combat.result + '</div>';
-    for (let i = 0; i < combat.notes.length; i++) {
-      html += '<div>' + combat.notes[i] + '</div>';
+    return html;
+  }
+
+  lossSections(losses) {
+    let html = '';
+    if (!losses || !losses.length) {
+      return html;
     }
-    return (
-      '<details class="pog-combat" onclick="event.stopPropagation()" onmousedown="event.stopPropagation()" onmouseup="event.stopPropagation()"><summary>' +
-      entry.msg +
-      '</summary>' +
-      html +
-      '</details>'
-    );
+    let central = [];
+    let allies = [];
+    let other = [];
+    for (let i = 0; i < losses.length; i++) {
+      let loss = losses[i];
+      let text = loss && typeof loss === 'object' ? loss.text : loss;
+      let faction = loss && typeof loss === 'object' ? loss.faction : '';
+      if (!text) {
+        continue;
+      }
+      if (faction === 'central') {
+        central.push(text);
+      } else if (faction === 'allies') {
+        allies.push(text);
+      } else {
+        other.push(text);
+      }
+    }
+    html += this.lossBlock('LOSSES - CENTRAL', central);
+    html += this.lossBlock('LOSSES - ALLIES', allies);
+    html += this.lossBlock('LOSSES', other);
+    return html;
+  }
+
+  lossBlock(title, rows) {
+    if (!rows.length) {
+      return '';
+    }
+    let html = this.section(title);
+    for (let i = 0; i < rows.length; i++) {
+      html += this.bullet(rows[i]);
+    }
+    return html;
+  }
+
+  winText(combat) {
+    if (combat.winner === 'attacker') {
+      return this.sideName(combat.attackerFaction) + ' win';
+    }
+    if (combat.winner === 'defender') {
+      return this.sideName(combat.defenderFaction) + ' win';
+    }
+    return 'mutual loss';
+  }
+
+  retreatBullets(combat) {
+    let html = '';
+    let retreats = combat.retreats || [];
+    if (!retreats.length) {
+      return html;
+    }
+    let places = [];
+    let faction = combat.defenderFaction;
+    for (let i = 0; i < retreats.length; i++) {
+      if (retreats[i].faction) {
+        faction = retreats[i].faction;
+      }
+      if (retreats[i].place && places.indexOf(retreats[i].place) === -1) {
+        places.push(retreats[i].place);
+      }
+    }
+    if (!places.length) {
+      return html;
+    }
+    return this.bullet(this.sideName(faction) + ' retreat to ' + places.join(', '));
   }
 
   renderMovement(entries) {
@@ -509,11 +666,20 @@ class PathsLog {
     for (let i = 0; i < hops.length; i++) {
       rows += '<div>' + hops[i].unit + ' (' + hops[i].from + ' -> ' + hops[i].to + ')</div>';
     }
+    return this.fold('pog-movement', entry.msg, rows);
+  }
+
+  // The shared log prefixes every row with ">". A block-level disclosure then
+  // drops onto the next line, so the filled caret has to take that column itself.
+  // Clicks on the summary stay with the disclosure. Clicks on the body reach the log.
+  fold(kind, summary, body) {
     return (
-      '<details class="pog-movement" onclick="event.stopPropagation()" onmousedown="event.stopPropagation()" onmouseup="event.stopPropagation()"><summary>' +
-      entry.msg +
+      '<details class="pog-log ' +
+      kind +
+      '"><summary>' +
+      summary +
       '</summary>' +
-      rows +
+      body +
       '</details>'
     );
   }

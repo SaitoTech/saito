@@ -66,6 +66,13 @@ class PathsOfGlory extends GameTemplate {
     this.paths_log = new PathsLog(this);
     this.log.registerEventType('movement', (entries) => this.paths_log.renderMovement(entries));
     this.log.registerEventType('combat', (entries) => this.paths_log.renderCombat(entries));
+    let update_log = this.updateLog.bind(this);
+    this.updateLog = (str, eventType = '', data = null) => {
+      if (this.paths_log && this.paths_log.absorbLog(str)) {
+        return;
+      }
+      update_log(str, eventType, data);
+    };
     this.minimap = new GameMinimap(this.app, this);
     this.minimap.enable_zoom = 1;
     this.default_board_scale = 100;
@@ -14029,7 +14036,7 @@ console.log("error updated attacker loss factor: " + JSON.stringify(err));
 	    for (this.game.spaces[this.game.state.combat.key].units.length-1; z >= 0 ; z--) {
 	      let u = this.game.spaces[this.game.state.combat.key].units[z];
 	      if (u.moved) {
-		this.paths_log.noteLoss(this.paths_log.label(u.name) + " eliminated (trapped)");
+		this.paths_log.noteLoss(this.paths_log.label(u.name) + " eliminated (trapped)", this.game.state.combat.defending_faction);
 		if (this.game.state.combat.attacking_faction == "allies") {
      	          this.game.spaces["ceubox"].units.push(u);
 		  this.game.spaces[this.game.state.combat.key].units.splice(z, 1);
@@ -14482,7 +14489,7 @@ console.log("moving unit in PCC 2: " + JSON.stringify(u));
 
 	  let unit = this.game.spaces[spacekey].units[idx];
 	  let faction = this.returnPowerOfUnit(unit);
-	  if (!this.paths_log.noteLoss(this.paths_log.label(unit.name) + " eliminated")) {
+	  if (!this.paths_log.noteLoss(this.paths_log.label(unit.name) + " eliminated", faction)) {
 	    this.updateLog(unit.name + " eliminated in " + this.returnSpaceNameForLog(spacekey));
 	  }
 
@@ -14546,7 +14553,7 @@ console.log("moving unit in PCC 2: " + JSON.stringify(u));
 	  if (damaged != 1 && this.game.spaces[spacekey]) {
 	    for (let z = 0; z < this.game.spaces[spacekey].units.length; z++) {
 	      if (this.game.spaces[spacekey].units[z].key === key) {
-	        this.paths_log.noteLoss(this.paths_log.label(this.game.spaces[spacekey].units[z].name) + " damaged");
+	        this.paths_log.noteLoss(this.paths_log.label(this.game.spaces[spacekey].units[z].name) + " damaged", this.returnPowerOfUnit(this.game.spaces[spacekey].units[z]));
 	        break;
 	      }
 	    }
@@ -19852,7 +19859,7 @@ console.log(JSON.stringify(unit));
     if (!this.game.spaces[destinationkey].units) { this.game.spaces[destinationkey].units = []; }
 
     if (destinationkey == "aeubox" || destinationkey == "ceubox") {
-      if (!this.paths_log.noteLoss(this.paths_log.label(unit.name) + " eliminated")) {
+      if (!this.paths_log.noteLoss(this.paths_log.label(unit.name) + " eliminated", this.returnPowerOfUnit(unit))) {
         this.updateLog(unit.name + " eliminated.");
       }
     } else {

@@ -190,4 +190,112 @@
     width: 5100px;
     height: 3312px;
   }
+
+  /* Expandable combat and movement rows. The shared log always prints an
+     empty ">" caret. Collapse that glyph and hang a filled caret in its place. */
+  #log > div:has(> details.pog-combat),
+  #log > div:has(> details.pog-movement) {
+    font-size: 0;
+    line-height: 0;
+    padding-left: 21px;
+    text-indent: 0;
+  }
+
+  #log > div:has(> details.pog-combat) > details.pog-combat,
+  #log > div:has(> details.pog-movement) > details.pog-movement {
+    font-size: 16px;
+    line-height: normal;
+    display: block;
+    margin: 0 0 0 -20px;
+    color: #fff;
+    background: transparent;
+    user-select: text;
+  }
+
+  #log details.pog-combat > summary,
+  #log details.pog-movement > summary {
+    display: block;
+    list-style: none;
+    cursor: pointer;
+    padding-left: 20px;
+    text-indent: -20px;
+    user-select: none;
+    outline: none;
+    background: transparent;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  #log details.pog-combat > summary::-webkit-details-marker,
+  #log details.pog-movement > summary::-webkit-details-marker,
+  #log details.pog-combat > summary::marker,
+  #log details.pog-movement > summary::marker {
+    display: none;
+    content: '';
+  }
+
+  #log details.pog-combat > summary::before,
+  #log details.pog-movement > summary::before {
+    content: '';
+    display: inline-block;
+    width: 20px;
+    height: 10px;
+    vertical-align: 0.05em;
+    background: currentColor;
+    clip-path: polygon(0 0, 0 100%, 55% 50%);
+  }
+
+  #log details.pog-combat[open] > summary::before,
+  #log details.pog-movement[open] > summary::before {
+    content: '';
+    height: 10px;
+    clip-path: polygon(0 15%, 55% 15%, 27.5% 85%);
+  }
+
+  #log details.pog-combat > summary:focus,
+  #log details.pog-combat > summary:focus-visible,
+  #log details.pog-combat > summary:active,
+  #log details.pog-movement > summary:focus,
+  #log details.pog-movement > summary:focus-visible,
+  #log details.pog-movement > summary:active {
+    outline: none;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  #log details.pog-combat > div,
+  #log details.pog-movement > div {
+    padding-left: calc(20px + 2ch);
+  }
+
+  #log details.pog-combat > div.pog-section {
+    margin-top: 0.65em;
+  }
+}
+
+@media screen and (max-width: 525px) {
+  .game.paths #log > div:has(> details.pog-combat),
+  .game.paths #log > div:has(> details.pog-movement) {
+    padding-left: 16px;
+  }
+
+  .game.paths #log > div:has(> details.pog-combat) > details.pog-combat,
+  .game.paths #log > div:has(> details.pog-movement) > details.pog-movement {
+    margin-left: -16px;
+  }
+
+  .game.paths #log details.pog-combat > summary,
+  .game.paths #log details.pog-movement > summary {
+    padding-left: 16px;
+    text-indent: -16px;
+  }
+
+  .game.paths #log details.pog-combat > summary::before,
+  .game.paths #log details.pog-movement > summary::before {
+    width: 16px;
+  }
+
+  .game.paths #log details.pog-combat > div,
+  .game.paths #log details.pog-movement > div {
+    padding-left: calc(16px + 2ch);
+  }
 }
