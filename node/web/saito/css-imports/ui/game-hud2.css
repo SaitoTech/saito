@@ -249,7 +249,8 @@
   width: 95vw;
   max-width: none;
   height: 92.5vh;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
   background-color: transparent;
   gap: 1.667rem;
   pointer-events: none;
@@ -360,6 +361,7 @@
 .hud-visual-menu.m9 {
   grid-template-columns: 1fr 1fr 1fr;
   grid-template-rows: 1fr 1fr 1fr;
+  grid-auto-rows: minmax(200px, 1fr);
   width: 90vw;
   max-width: 1400px;
   height: 85vh;

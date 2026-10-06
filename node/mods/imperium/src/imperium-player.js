@@ -928,11 +928,6 @@ playerAcknowledgeNotice(msg, mycallback) {
   };
 
   this.hud.updateMenu([{ id: 'assign', label: 'continue' }], onAssignHits);
-  $('.space-combat-menu .option').off();
-  $('.space-combat-menu .option').on('click', function () {
-    onAssignHits($(this).attr('id'));
-  });
-
 }
 
 
@@ -999,7 +994,11 @@ playerAcknowledgeNotice(msg, mycallback) {
 
   let onAssignHitsMenu = function (action2) {
 
-    if (imperium_self.space_combat_overlay.visible) {
+    if (
+      imperium_self.space_combat_overlay.visible &&
+      action2 != "assign" &&
+      action2 != "action"
+    ) {
       imperium_self.space_combat_overlay.hide();
     }
 
@@ -1084,6 +1083,43 @@ playerAcknowledgeNotice(msg, mycallback) {
       }
 
       let showAssign = function () {
+        if (imperium_self.space_combat_overlay.visible) {
+          imperium_self.space_combat_overlay.beginHitAssignment(
+            total_hits,
+            targetted_units,
+            total_targetted_units,
+            function (ship_idx, selected_unit) {
+              imperium_self.addMove("assign_hit\t" + attacker + "\t" + defender + "\t" + imperium_self.game.player + "\tship\t" + sector + "\t" + ship_idx + "\t0");
+
+              total_hits--;
+              hits_assigned++;
+
+              if (selected_unit.strength > 1) {
+                selected_unit.strength--;
+              } else {
+                selected_unit.strength = 0;
+                selected_unit.destroyed = 0;
+              }
+
+              imperium_self.saveSystemAndPlanets(sys);
+
+              if (total_hits == 0 || hits_assigned >= maximum_assignable_hits) {
+                imperium_self.game.status = "Notifying players of hits assignment...";
+                imperium_self.hud.prepareIdle(imperium_self.game.status);
+                imperium_self.hud.updateCards([]);
+                imperium_self.endTurn();
+                imperium_self.game.status = "Hits taken...";
+                imperium_self.hud.prepareIdle(imperium_self.game.status);
+                imperium_self.hud.updateCards([]);
+                return false;
+              }
+
+              return true;
+            }
+          );
+          return;
+        }
+
         let prompt = 'Assign ' + total_hits + ' hits:';
         imperium_self.game.status = prompt;
         imperium_self.hud.preparePrompt(prompt);
@@ -1140,10 +1176,6 @@ playerAcknowledgeNotice(msg, mycallback) {
 
   };
   this.hud.updateMenu(menu, onAssignHitsMenu);
-  $('.space-combat-menu .option').off();
-  $('.space-combat-menu .option').on('click', function () {
-    onAssignHitsMenu($(this).attr('id'));
-  });
 }
 
 
@@ -1613,10 +1645,6 @@ playerPlaySpaceCombat(attacker, defender, sector) {
 
   };
   this.hud.updateMenu(menu, function (id) { onSpaceCombatChoice(id); });
-  $('.space-combat-menu .option').off();
-  $('.space-combat-menu .option').on('click', function () {
-    onSpaceCombatChoice($(this).attr("id"), this);
-  });
 }
 
 
@@ -1885,10 +1913,6 @@ playerPlaySpaceCombatOver(player, sector) {
   } else {
     this.hud.updateMenu(menu, function (id) { onSpaceCombatOver(id); });
   }
-  $('.space-combat-menu .option').off();
-  $('.space-combat-menu .option').on('click', function () {
-    onSpaceCombatOver($(this).attr("id"), this);
-  });
 }
 
 
@@ -1999,10 +2023,6 @@ playerPlayGroundCombat(attacker, defender, sector, planet_idx) {
 
   };
   this.hud.updateMenu(menu, function (id) { onGroundCombatChoice(id); });
-  $('.ground-combat-menu .option').off();
-  $('.ground-combat-menu .option').on('click', function () {
-    onGroundCombatChoice($(this).attr("id"), this);
-  });
 }
 
 
@@ -2085,6 +2105,8 @@ playerPlayPDSAttack(player, attacker, sector) {
       for (let i = 0; i < tech_attach_menu_triggers.length; i++) {
         if (action2 == tech_attach_menu_triggers[i]) {
           z[tech_attach_menu_index[i]].menuOptionActivated(imperium_self, "pds", imperium_self.game.player);
+          imperium_self.playerPlayPDSAttack(player, attacker, sector);
+          return 0;
         }
       }
     }
@@ -2174,6 +2196,8 @@ playerPlayPDSDefense(player, attacker, sector) {
       for (let i = 0; i < tech_attach_menu_triggers.length; i++) {
         if (action2 == tech_attach_menu_triggers[i]) {
           z[tech_attach_menu_index[i]].menuOptionActivated(imperium_self, "pds", imperium_self.game.player);
+          imperium_self.playerPlayPDSDefense(player, attacker, sector);
+          return 0;
         }
       }
     }
@@ -6782,7 +6806,3 @@ playerDiscardActionCards(num, mycallback=null) {
   showDiscard();
 
 }
-
-
-
-

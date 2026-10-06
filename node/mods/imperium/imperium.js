@@ -7111,7 +7111,7 @@ this.importStrategyCard("imperial", {
   this.importAgendaCard('homeland-defense-act', {
   	name : "Homeland Defense Act" ,
   	type : "Law" ,
-  	text : "FOR: there is no limit to the number of PDS units on a planet. AGAINST: each player must destroy one PDS unit" ,
+  	text : "FOR: unlimited PDS units per planet. AGAINST: each player destroys one PDS unit" ,
         returnAgendaOptions : function(imperium_self) { return ['for','against']; },
 	onPass : function(imperium_self, winning_choice) {
 	  imperium_self.game.state.homeland_defense_act = 1;
@@ -7203,7 +7203,7 @@ this.importStrategyCard("imperial", {
   	name : "Structures not Shackles" ,
   	type : "Law" ,
 	elect : "player" ,
-  	text : "Players play action cards in initiative order, not simultaneously" ,
+  	text : "Players play action cards in initiative order" ,
         returnAgendaOptions : function(imperium_self) { return ['for','against']; },
         onPass : function(imperium_self, winning_choice) {
           //
@@ -7223,7 +7223,7 @@ this.importStrategyCard("imperial", {
   this.importAgendaCard('new-constitution', {
   	name : "New Constitution" ,
   	type : "Directive" ,
-  	text : "FOR: remove all laws in play and exhaust all homeworlds at the start of the next round" ,
+  	text : "FOR: remove all laws but exhaust all homeworlds at the start of the next round" ,
         returnAgendaOptions : function(imperium_self) {
 	  return ["for","against"];
 	},
@@ -7399,7 +7399,7 @@ this.importStrategyCard("imperial", {
         name : "Minister of Policy" ,
         type : "Law" ,
 	elect : "player" ,
-        text : "Elect a player. They draw an extra action card at the start of each round" ,
+        text : "Elected player draws an extra action card each round" ,
         returnAgendaOptions : function(imperium_self) {
           let options = [];
           for (let i = 0; i < imperium_self.game.state.players_info.length; i++) {
@@ -7450,7 +7450,7 @@ this.importStrategyCard("imperial", {
   this.importAgendaCard('executive-sanctions', {
   	name : "Executive Sanctions" ,
   	type : "Law" ,
-  	text : "Players may have a maximum of 3 action cards in their hands at all times" ,
+  	text : "Players may have a maximum of 3 action cards at all times" ,
         returnAgendaOptions : function(imperium_self) { return ['support','oppose']; },
         onPass : function(imperium_self, winning_choice) {
 	  if (this.returnAgendaOptions(imperium_self)[winning_choice] == "support") {
@@ -7532,7 +7532,7 @@ this.importStrategyCard("imperial", {
   	name : "Committee Formation" ,
   	type : "Law" ,
 	elect : "player" ,
-  	text : "Elect a player. They may form a committee to vote on which player is elected in a future agenda" ,
+  	text : "Elected player forms a committee to determine elected player in future agenda" ,
         returnAgendaOptions : function(imperium_self) { 
 	  let options = [];
 	  for (let i = 0; i < imperium_self.game.state.players_info.length; i++) {
@@ -7628,7 +7628,7 @@ this.importStrategyCard("imperial", {
   this.importAgendaCard('sequential-voting', {
   	name : "Sequential Voting" ,
   	type : "Law" ,
-  	text : "Players must vote on Agendas in Initiative Order, not Simultaneously" ,
+  	text : "Players must vote on agendas in initiative order" ,
         returnAgendaOptions : function(imperium_self) { return ['for','against']; },
         onPass : function(imperium_self, winning_choice) {
 
@@ -7650,7 +7650,7 @@ this.importStrategyCard("imperial", {
   	name : "Shard of the Throne" ,
   	type : "Law" ,
 	elect : "player" ,
-  	text : "Elect a Player to earn 1 VP. When this player loses a space combat to another player, they transfer the VP to that player" ,
+  	text : "Elected player gains 1 Throne VP until space combat loss, transferring the Throne to the winner" ,
         returnAgendaOptions : function(imperium_self) {
 	  let options = [];
 	  for (let i = 0; i < imperium_self.game.state.players_info.length; i++) {
@@ -7720,98 +7720,6 @@ this.importStrategyCard("imperial", {
 	  }
 	},
   });
-
-
-  this.importAgendaCard('homeland-defense-act', {
-  	name : "Homeland Defense Act" ,
-  	type : "Law" ,
-  	text : "FOR: there is no limit to the number of PDS units on a planet. AGAINST: each player must destroy one PDS unit" ,
-        returnAgendaOptions : function(imperium_self) { return ['for','against']; },
-	onPass : function(imperium_self, winning_choice) {
-	  imperium_self.game.state.homeland_defense_act = 1;
-	  let law_to_push = {};
-	      law_to_push.agenda = "homeland-defense-act";
-	      law_to_push.option = winning_choice;
-	  imperium_self.game.state.laws.push(law_to_push);
-
-          if (winning_choice === "for") {
-	    imperium_self.game.state.pds_limit_per_planet = 100;
-	  }
-
-          if (winning_choice === "against") {
-	    for (let i = 0; i < imperium_self.game.state.players_info.length; i++) {
-	      if (imperium_self.doesPlayerHaveUnitOnBoard((i+1), "pds")) {
-	        imperium_self.game.queue.push("destroy_a_pds\t"+(i+1));
-	      }
-	    }
-	  }
-
-	  imperium_self.game.state.laws.push({ agenda : "homeland-defense-act" , option : winning_choice });
-
-	},
-        repealAgenda(imperium_self) {
-
-          //
-          // remove from active play
-          //
-          for (let i = 0; i < imperium_self.game.state.laws.length; i++) {
-            if (imperium_self.game.state.laws[i].agenda === "homeland-defense-act") {
-              imperium_self.game.state.laws.splice(i, 1);
-              i--;
-            }
-          }
-
-          //
-          // unset the player
-          //
-          imperium_self.game.state.homeland_defense_act = 0;
-	  imperium_self.game.state.pds_limit_per_planet = 2; // limit back
-
-          return 1;
-
-        },
-        handleGameLoop : function(imperium_self, qe, mv) {
-
-          if (mv[0] == "destroy_a_pds") {
-
-            let player = parseInt(mv[1]);
-	    imperium_self.game.queue.splice(qe, 1);
-
-	    if (imperium_self.game.player == player) {
-              imperium_self.playerSelectUnitWithFilter(
-                    "Select a PDS unit to destroy: ",
-                    function(unit) {
-		      if (unit == undefined) { return 0; }
-                      if (unit.type == "pds") { return 1; }
-                      return 0;
-            	    },
-                    function(unit_identifier) {
-
-                      let sector        = unit_identifier.sector;
-                      let planet_idx    = unit_identifier.planet_idx;
-                      let unit_idx      = unit_identifier.unit_idx;
-                      let unit          = unit_identifier.unit;
-		      let sys = imperium_self.returnSectorAndPlanets(sector);
-
-		      if (unit == null) {
-                        imperium_self.addMove("NOTIFY\t"+imperium_self.returnFaction(imperium_self.game.player) + " has no PDS units to destroy");
-		        imperium_self.endTurn();
-			return 0;
-		      }
-                      imperium_self.addMove("destroy_unit\t"+imperium_self.game.player+"\t"+imperium_self.game.player+"\t"+"ground"+"\t"+sector+"\t"+planet_idx+"\t"+unit_idx+"\t"+"1");
-                      imperium_self.addMove("NOTIFY\t"+imperium_self.returnFaction(imperium_self.game.player) + " destroys a " + unit.name + " in " + sys.s.name);
-		      imperium_self.endTurn();
-
-                    }
-              );
-	    }
-
-            return 0;
-          }
-          return 1;
-        }
-  });
-
 
 
 
@@ -16414,7 +16322,7 @@ if (debugging == 0) {
 	  this.hud.prepareIdle(this.game.status);
 	  this.hud.updateCards([]);
   	}
-  	return 0;
+	return 0;
       }
 
 
@@ -19684,9 +19592,8 @@ console.log("MODIFIED ROLL: " + JSON.stringify(combat_info.modified_roll));
 
 	  this.updateCombatLog(combat_info);
 
-	  this.anti_fighter_barrage_overlay.render(attacker, defender, sector, 'Anti-Fighter-Barrage');
-	  this.anti_fighter_barrage_overlay.updateHits(attacker, defender, sector, combat_info);
-	  this.anti_fighter_barrage_overlay.updateStatusAndAcknowledge('Anti-Fighter-Barrage');
+	  this.space_combat_overlay.updateHits(player, attacker === player ? defender : attacker, sector, combat_info, 'anti_fighter_barrage');
+	  this.space_combat_overlay.updateStatusAndAcknowledge('Anti-Fighter-Barrage');
 
 	  //
 	  // total hits to assign
@@ -19739,7 +19646,7 @@ console.log("MODIFIED ROLL: " + JSON.stringify(combat_info.modified_roll));
 	if (this.game.player == attacker) {
           this.playerPlaySpaceCombat(attacker, defender, sector);
 	} else {
-          this.space_combat_overlay.render(attacker, defender, sector, "Space Cobat");
+	          this.space_combat_overlay.render(attacker, defender, sector, "Space Combat");
 	}
 
         return 0;
@@ -20325,8 +20232,6 @@ console.log("HGL 1: " + z[i].name);
     return 1;
 
   }
-
-
 
 
   
@@ -21505,7 +21410,11 @@ playerAcknowledgeNotice(msg, mycallback) {
 
   let onAssignHitsMenu = function (action2) {
 
-    if (imperium_self.space_combat_overlay.visible) {
+    if (
+      imperium_self.space_combat_overlay.visible &&
+      action2 != "assign" &&
+      action2 != "action"
+    ) {
       imperium_self.space_combat_overlay.hide();
     }
 
@@ -21590,6 +21499,43 @@ playerAcknowledgeNotice(msg, mycallback) {
       }
 
       let showAssign = function () {
+        if (imperium_self.space_combat_overlay.visible) {
+          imperium_self.space_combat_overlay.beginHitAssignment(
+            total_hits,
+            targetted_units,
+            total_targetted_units,
+            function (ship_idx, selected_unit) {
+              imperium_self.addMove("assign_hit\t" + attacker + "\t" + defender + "\t" + imperium_self.game.player + "\tship\t" + sector + "\t" + ship_idx + "\t0");
+
+              total_hits--;
+              hits_assigned++;
+
+              if (selected_unit.strength > 1) {
+                selected_unit.strength--;
+              } else {
+                selected_unit.strength = 0;
+                selected_unit.destroyed = 0;
+              }
+
+              imperium_self.saveSystemAndPlanets(sys);
+
+              if (total_hits == 0 || hits_assigned >= maximum_assignable_hits) {
+                imperium_self.game.status = "Notifying players of hits assignment...";
+                imperium_self.hud.prepareIdle(imperium_self.game.status);
+                imperium_self.hud.updateCards([]);
+                imperium_self.endTurn();
+                imperium_self.game.status = "Hits taken...";
+                imperium_self.hud.prepareIdle(imperium_self.game.status);
+                imperium_self.hud.updateCards([]);
+                return false;
+              }
+
+              return true;
+            }
+          );
+          return;
+        }
+
         let prompt = 'Assign ' + total_hits + ' hits:';
         imperium_self.game.status = prompt;
         imperium_self.hud.preparePrompt(prompt);
@@ -22591,6 +22537,8 @@ playerPlayPDSAttack(player, attacker, sector) {
       for (let i = 0; i < tech_attach_menu_triggers.length; i++) {
         if (action2 == tech_attach_menu_triggers[i]) {
           z[tech_attach_menu_index[i]].menuOptionActivated(imperium_self, "pds", imperium_self.game.player);
+          imperium_self.playerPlayPDSAttack(player, attacker, sector);
+          return 0;
         }
       }
     }
@@ -22680,6 +22628,8 @@ playerPlayPDSDefense(player, attacker, sector) {
       for (let i = 0; i < tech_attach_menu_triggers.length; i++) {
         if (action2 == tech_attach_menu_triggers[i]) {
           z[tech_attach_menu_index[i]].menuOptionActivated(imperium_self, "pds", imperium_self.game.player);
+          imperium_self.playerPlayPDSDefense(player, attacker, sector);
+          return 0;
         }
       }
     }
@@ -27290,8 +27240,6 @@ playerDiscardActionCards(num, mycallback=null) {
 }
 
 
-
-
  
   ////////////////////
   // Return Planets //
@@ -27683,12 +27631,8 @@ playerDiscardActionCards(num, mycallback=null) {
   ///////////////////////////////
   returnHomeworldSectors(players = 4) {
     if (players <= 2) {
-      return ["1_1", "4_7"];
-//
-// for testing - place factions in fighting
-// position on start.
-//
-//      return ["1_1", "2_1"];
+      // For combat testing, start the two players in adjacent home systems.
+      return ["1_1", "2_1"];
     }
 
     if (players <= 3) {

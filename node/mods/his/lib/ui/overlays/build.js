@@ -16,6 +16,7 @@ class BuildOverlay {
   }
 
   hide() {
+    this.overlay.callback_on_close = null;
     this.overlay.hide();
     try {
       this.mod.available_units_overlay.hide();

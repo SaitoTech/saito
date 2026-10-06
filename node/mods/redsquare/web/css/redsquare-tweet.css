@@ -435,14 +435,18 @@
 }
 
 .tweet.focused .header.expanded .primary {
-  font-size: 1.6rem;
+  font-size: 1.5rem;
   line-height: 1.25;
+}
+
+.tweet.focused .header.expanded .handle {
+  font-size: 1.5rem;
 }
 
 .tweet.focused .body {
   margin-top: 0.8rem;
-  font-size: 1.7rem;
-  line-height: 2.4rem;
+  font-size: 1.5rem;
+  line-height: 2.2rem;
 }
 
 .tweet.focused .footer {
@@ -562,8 +566,8 @@
   }
 
   .tweet.focused .body {
-    font-size: 1.8rem;
-    line-height: 2.5rem;
+    font-size: 1.6rem;
+    line-height: 2.3rem;
   }
 
   .tweet .embed > .tweet.embedded {

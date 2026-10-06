@@ -5531,9 +5531,8 @@ console.log("MODIFIED ROLL: " + JSON.stringify(combat_info.modified_roll));
 
 	  this.updateCombatLog(combat_info);
 
-	  this.anti_fighter_barrage_overlay.render(attacker, defender, sector, 'Anti-Fighter-Barrage');
-	  this.anti_fighter_barrage_overlay.updateHits(attacker, defender, sector, combat_info);
-	  this.anti_fighter_barrage_overlay.updateStatusAndAcknowledge('Anti-Fighter-Barrage');
+	  this.space_combat_overlay.updateHits(player, attacker === player ? defender : attacker, sector, combat_info, 'anti_fighter_barrage');
+	  this.space_combat_overlay.updateStatusAndAcknowledge('Anti-Fighter-Barrage');
 
 	  //
 	  // total hits to assign
@@ -5586,7 +5585,7 @@ console.log("MODIFIED ROLL: " + JSON.stringify(combat_info.modified_roll));
 	if (this.game.player == attacker) {
           this.playerPlaySpaceCombat(attacker, defender, sector);
 	} else {
-          this.space_combat_overlay.render(attacker, defender, sector, "Space Cobat");
+	          this.space_combat_overlay.render(attacker, defender, sector, "Space Combat");
 	}
 
         return 0;
@@ -6172,7 +6171,5 @@ console.log("HGL 1: " + z[i].name);
     return 1;
 
   }
-
-
 
 

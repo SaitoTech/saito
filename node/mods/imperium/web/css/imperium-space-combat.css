@@ -1,86 +1,578 @@
 .game.imperium {
-.space-combat-overlay {
-  background: linear-gradient(rgba(0, 0, 0, 0.40), rgba(0, 0, 0, 0.40)), url(/imperium/img/backgrounds/space_battle.jpg);
-  background-size: cover;
-  width: 90vw;
-  height: 90vh;
-  padding: 1.667rem;
-  margin-top: auto;
-  overflow-y: scroll;
-}
+  .space-combat-overlay {
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    width: min(96vw, 1700px);
+    height: min(94vh, 1200px);
+    min-height: 0;
+    overflow: hidden;
+    padding: 0.5rem clamp(0.75rem, 1vw, 1.1rem) 1rem;
+    color: #f6f3ed;
+    font-family: var(--imp-font, 'orbitron-medium', sans-serif);
+    background: linear-gradient(135deg, rgba(8, 14, 26, 0.91), rgba(18, 10, 15, 0.88)), url('/imperium/img/backgrounds/space_battle.jpg') center / cover;
+    border: 1px solid rgba(232, 205, 157, 0.48);
+    border-radius: 0.9rem;
+    box-shadow: 0 1.25rem 4rem #000b;
+  }
 
-.space-combat-ui {
-  margin-top:5rem;
-  padding: 1.667rem;
-}
+  .space-combat-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    min-height: 0;
+    padding: 0.75rem;
+    border-bottom: 1px solid #ffffff38;
+  }
 
-.space-combat-units {
-  display: grid;
-  grid-template-columns: 26.667rem 1fr 26.667rem;
-}
+  .space-combat-header-tools {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    flex: 0 0 auto;
+  }
 
-.space-combat-title {
-  color: white;
-  text-align: center;
-  font-size: 3.333rem;
-  font-family: 'orbitron-medium';
-}
+  .space-combat-overlay .saito-overlay-closebox {
+    position: relative;
+    top: auto;
+    right: auto;
+    display: block;
+    flex: 0 0 auto;
+  }
 
-.space-combat-subtitle {
-  color: white;
-  text-align: center;
-  font-size: 1.667rem;
-  font-family: 'orbitron-medium';
-  border-bottom: 3px solid #0004
-  padding-bottom: 0.833rem;
-}
+  .space-combat-heading {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.7rem;
+    color: #edc779;
+    font-size: clamp(1.8rem, 2.8vw, 2.4rem);
+    font-weight: 700;
+    letter-spacing: 0.1em;
+  }
 
-.space-combat-menu div {
-  font-size: 1.667rem;
-  color: white;
-  text-align: center;
-  padding-top: 1.667rem;
-  font-style: italic;
-}
+  .space-combat-heading strong {
+    color: #fff;
+    font-size: inherit;
+    font-family: inherit;
+    font-weight: inherit;
+    letter-spacing: 0.025em;
+  }
 
-.space-combat-ui .space-combat-menu ul li {
-  width: 100%;
-  line-height: 2.917rem;
-  border-top: 1px solid var(--saito-gray-lighter);
-  cursor: pointer;
-  border-color: #555;
-  text-decoration: none;
-  color: #fffD;
-  text-align: center;
-  list-style: none;
-  padding-top: 1.667rem;
-  font-weight: bolder;
-  font-family: 'orbitron-medium';
-  font-size: 1.667rem;
-  letter-spacing: 0.167rem;
-}
+  .space-combat-round {
+    flex: 0 0 auto;
+    position: relative;
+    padding: 0.25rem 0 0.65rem;
+    color: #d8c7a5;
+    background: transparent;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+    cursor: default;
+    font: 600 clamp(0.95rem, 1.1vw, 1.15rem) Arial, sans-serif;
+    text-align: center;
+    pointer-events: none;
+  }
 
-.space-combat-ui .space-combat-menu ul li:hover {
-  background: #0005;
-}
+  .space-combat-round::after {
+    position: absolute;
+    right: 0;
+    bottom: 0.2rem;
+    left: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, #edc779aa, transparent);
+    content: '';
+  }
 
-.space-combat-defender .unit-table .unit-element .unit-box-ship {
-  transform: rotate(180deg);
-}
+  .space-combat-units {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(15rem, 0.48fr) minmax(0, 1fr);
+    gap: clamp(0.7rem, 1.2vw, 1.25rem);
+    flex: 1;
+    min-height: 0;
+    padding-top: 1rem;
+  }
 
-.space-combat-defender .unit-table.small .unit-element , .space-combat-attacker .unit-table.small .unit-element {
-  clear: both;
-  width: 26.667rem;
-  max-width: 26.667rem;
-}
+  .space-combat-fleet {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    min-height: 0;
+    padding: 0;
+    background: transparent;
+    border: 0;
+  }
 
-.space-combat-defender-name , .space-combat-attacker-name {
-  font-size: 1.667rem;
-  color: white;
-  font-family: 'orbitron-medium', helvetica, arial;
-  text-align: center;
-  background-color: #0005;
-  padding: 0.833rem;
-  border-radius: 0.833rem;
-}
+  .space-combat-fleet-title {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.5rem;
+    margin-bottom: 0.7rem;
+    color: #edc779;
+    font: 700 clamp(1rem, 1.1vw, 1.2rem) Arial, sans-serif;
+    letter-spacing: 0.08em;
+  }
+
+  .space-combat-fleet-title strong {
+    overflow: hidden;
+    color: #fff;
+    font-size: clamp(1.15rem, 1.4vw, 1.5rem);
+    letter-spacing: 0.015em;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .space-combat-fleet-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
+    padding: 0.12rem;
+    scrollbar-width: thin;
+  }
+
+  .battle-unit {
+    box-sizing: border-box;
+    display: grid;
+    align-items: center;
+    gap: clamp(0.4rem, 0.65vw, 0.8rem);
+    height: 6.15rem;
+    min-height: 0;
+    max-height: none;
+    flex: 0 0 6.15rem;
+    padding: 0.25rem 0.45rem;
+    color: #fff;
+    background: #060a12c9;
+    border: 2px solid #ffffff2a;
+    border-radius: 0.55rem;
+    font-family: Arial, sans-serif;
+    transition: background-color 120ms ease, border-color 120ms ease, box-shadow 120ms ease, transform 120ms ease;
+  }
+
+  .battle-unit.left {
+    grid-template-columns: 5.5rem minmax(0, 1fr) 5.5rem auto;
+  }
+
+  .battle-unit.right {
+    grid-template-columns: auto 5.5rem minmax(0, 1fr) 5.5rem;
+  }
+
+  .battle-unit-icon {
+    float: none;
+    width: 5.2rem !important;
+    height: 5.2rem !important;
+    margin: 0 auto;
+    padding: 0 !important;
+    background-position: center;
+    background-size: contain !important;
+    background-repeat: no-repeat;
+    transform: none;
+  }
+
+  .space-combat-right .battle-unit-icon {
+    transform: rotate(180deg);
+  }
+
+  .battle-unit-name {
+    overflow: hidden;
+    color: #fff;
+    font-size: clamp(1.5rem, 1.85vw, 2rem);
+    font-weight: 700;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .space-combat-right .battle-unit-name {
+    text-align: right;
+  }
+
+  .battle-unit-combat,
+  .battle-shot .dice-results {
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 5.5rem;
+    height: 5.5rem;
+    min-width: 5.5rem;
+    min-height: 5.5rem;
+    margin: 0;
+    padding: 0 0 0.45rem;
+    color: #f8e2b7;
+    background: transparent;
+    border: 0;
+    border-bottom: 2px solid #ffffff55;
+    border-radius: 0;
+    box-shadow: none;
+    text-align: center;
+  }
+
+  .battle-unit-combat-placeholder,
+  .battle-unit-rolls-placeholder {
+    visibility: hidden;
+  }
+
+  .battle-unit-combat strong {
+    font-size: clamp(2rem, 2.7vw, 2.8rem);
+    line-height: 1;
+  }
+
+  .battle-unit-combat span {
+    margin-top: 0.25rem;
+    color: #c5ccd6;
+    font-size: clamp(0.68rem, 0.8vw, 0.85rem);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+  }
+
+  .battle-unit-rolls {
+    display: flex;
+    justify-content: center;
+    gap: 0.35rem;
+    min-width: 0;
+  }
+
+  .battle-shot {
+    flex: 0 0 5.5rem;
+  }
+
+  .battle-shot .dice-results {
+    color: #fff;
+    font-family: Arial, sans-serif;
+  }
+
+  .battle-shot .dice-results::after {
+    content: '';
+    display: block;
+    height: 1.05rem;
+    margin-top: 0.25rem;
+  }
+
+  .battle-shot .unit-box-num {
+    display: block;
+    padding: 0;
+    font-size: clamp(2rem, 2.7vw, 2.8rem);
+    font-weight: 700;
+    line-height: 1;
+  }
+
+  .battle-shot .dice-results.is-hit,
+  .battle-shot .dice-results.is-hit .unit-box-num {
+    color: #57e58a;
+    background: transparent;
+    border-bottom-color: #57e58a;
+  }
+
+  .space-combat-overlay.is-assigning-hits .battle-unit.can-assign-hit {
+    cursor: pointer;
+    background: #07532b22;
+    border-color: #49d779bb;
+  }
+
+  .space-combat-overlay.is-assigning-hits .battle-unit.can-assign-hit:hover,
+  .space-combat-overlay.is-assigning-hits .battle-unit.can-assign-hit:focus-visible {
+    z-index: 1;
+    background: #12724155;
+    border-color: #6dffa0;
+    box-shadow: 0 0 1.2rem #31db7a55;
+    outline: none;
+    transform: scale(1.015);
+  }
+
+  .battle-unit.hit-assigned {
+    background: #07532b44;
+    border-color: #49d779;
+    box-shadow: inset 0 0 0 1px #49d77955;
+  }
+
+  .battle-unit.is-damaged .battle-unit-name {
+    color: #ffc36e;
+  }
+
+  .battle-unit.is-destroyed {
+    opacity: 0.55;
+    border-style: dashed;
+    cursor: default;
+    pointer-events: none;
+  }
+
+  .space-combat-center {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 0;
+    padding: 0.5rem;
+    text-align: center;
+  }
+
+  .space-combat-menu {
+    width: 100%;
+    color: #f6f3ed;
+    font-family: var(--imp-font, 'orbitron-medium', sans-serif);
+  }
+
+  .space-combat-hit-assignment {
+    padding: 1.25rem 1.1rem;
+    color: #f6f3ed;
+    background: #05070be8;
+    border: 1px solid #ffffff40;
+    border-radius: 0.65rem;
+    font-size: clamp(1.1rem, 1.4vw, 1.45rem);
+    line-height: 1.5;
+  }
+
+  .space-combat-status {
+    display: block;
+    padding: 0.35rem 0;
+    color: #edc779;
+    background: transparent;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+    font: 700 clamp(1.3rem, 1.8vw, 1.65rem) var(--imp-font, 'orbitron-medium', sans-serif);
+    letter-spacing: 0.08em;
+    line-height: 1.35;
+    text-transform: uppercase;
+  }
+
+  .space-combat-hit-assignment strong {
+    display: block;
+    margin-bottom: 0.6rem;
+    color: #ffd488;
+    font-size: clamp(1.5rem, 1.9vw, 2rem);
+  }
+
+  .space-combat-menu ul {
+    display: flex;
+    flex-direction: column;
+    gap: 0.7rem;
+    margin: 1rem 0 0;
+    padding: 0;
+  }
+
+  .space-combat-menu ul li {
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    min-height: 4.75rem;
+    padding: 1rem 1.1rem;
+    color: #fff;
+    background: #ffffff16;
+    border: 1px solid #ffffff40;
+    border-radius: 0.5rem;
+    cursor: pointer;
+    font: 700 clamp(1.3rem, 1.55vw, 1.65rem) Arial, sans-serif;
+    letter-spacing: 0.035em;
+    line-height: 1.2;
+    list-style: none;
+    text-align: center;
+    transition: background-color 120ms ease, border-color 120ms ease;
+  }
+
+  .space-combat-menu ul li:hover {
+    background: #ffffff30;
+    border-color: #edc779;
+  }
+
+  .space-combat-menu ul li.is-acknowledged,
+  .space-combat-menu ul li.is-acknowledged:hover {
+    color: #edc779;
+    background: #edc77920;
+    border-color: #edc779;
+    cursor: default;
+    opacity: 0.8;
+  }
+
+  .battle-empty-fleet {
+    padding: 1.5rem 0.5rem;
+    color: #c4cad4;
+    font: 1.1rem Arial, sans-serif;
+    text-align: center;
+  }
+
+  @media (max-width: 1300px) {
+    .space-combat-units {
+      grid-template-columns: minmax(0, 1fr) minmax(11rem, 0.35fr) minmax(0, 1fr);
+      gap: 0.45rem;
+    }
+
+    .battle-unit {
+      gap: 0.35rem;
+      padding-right: 0.25rem;
+      padding-left: 0.25rem;
+    }
+
+    .battle-unit.left {
+      grid-template-columns: 4.25rem minmax(0, 1fr) 4.5rem auto;
+    }
+
+    .battle-unit.right {
+      grid-template-columns: auto 4.5rem minmax(0, 1fr) 4.25rem;
+    }
+
+    .battle-unit-icon {
+      width: 4.2rem !important;
+      height: 4.2rem !important;
+    }
+
+    .battle-unit-name {
+      font-size: clamp(1.1rem, 1.4vw, 1.5rem);
+    }
+
+    .battle-unit-combat,
+    .battle-shot,
+    .battle-shot .dice-results {
+      width: 4.5rem;
+      min-width: 4.5rem;
+      height: 4.5rem;
+      min-height: 4.5rem;
+      flex-basis: 4.5rem;
+    }
+  }
+
+  @media (max-width: 820px) {
+    .space-combat-overlay {
+      height: 96vh;
+    }
+
+    .space-combat-units {
+      grid-template-columns: minmax(0, 1fr);
+      grid-template-rows: minmax(0, 1fr) auto minmax(0, 1fr);
+      overflow: auto;
+    }
+
+    .space-combat-left {
+      grid-row: 1;
+    }
+
+    .space-combat-center {
+      grid-row: 2;
+      padding: 0.3rem;
+    }
+
+    .space-combat-right {
+      grid-row: 3;
+    }
+
+    .space-combat-fleet-list {
+      max-height: 35vh;
+    }
+
+    .battle-unit.left {
+      grid-template-columns: 4.75rem minmax(0, 1fr) 4.75rem auto;
+    }
+
+    .battle-unit.right {
+      grid-template-columns: auto 4.75rem minmax(0, 1fr) 4.75rem;
+    }
+
+    .battle-unit {
+      height: 5.5rem;
+      flex-basis: 5.5rem;
+    }
+
+    .battle-unit-icon {
+      width: 4.7rem !important;
+      height: 4.7rem !important;
+    }
+
+    .battle-unit-combat,
+    .battle-shot,
+    .battle-shot .dice-results {
+      width: 4.75rem;
+      min-width: 4.75rem;
+      height: 4.75rem;
+      min-height: 4.75rem;
+      flex-basis: 4.75rem;
+    }
+  }
+
+  @media (max-width: 540px) {
+    .space-combat-overlay {
+      width: 98vw;
+      height: 96vh;
+      padding: 0.65rem;
+    }
+
+    .space-combat-header {
+      flex-wrap: wrap;
+      min-height: 0;
+      gap: 0.35rem;
+    }
+
+    .space-combat-heading {
+      gap: 0.4rem;
+      font-size: 1.25rem;
+      line-height: 1.2;
+    }
+
+    .space-combat-round {
+      padding: 0.2rem 0 0.55rem;
+      font-size: 0.9rem;
+    }
+
+    .space-combat-fleet-title strong {
+      font-size: 1rem;
+    }
+
+    .battle-unit {
+      height: 4.9rem;
+      min-height: 0;
+      flex-basis: 4.9rem;
+      padding: 0.12rem;
+    }
+
+    .battle-unit.left {
+      grid-template-columns: 3.8rem minmax(0, 1fr) 3.5rem auto;
+    }
+
+    .battle-unit.right {
+      grid-template-columns: auto 3.5rem minmax(0, 1fr) 3.8rem;
+    }
+
+    .battle-unit-icon {
+      width: 3.75rem !important;
+      height: 3.75rem !important;
+    }
+
+    .battle-unit-name {
+      font-size: 0.95rem;
+    }
+
+    .battle-unit-combat,
+    .battle-shot,
+    .battle-shot .dice-results {
+      width: 4.25rem;
+      min-width: 4.25rem;
+      height: 4.25rem;
+      min-height: 4.25rem;
+      flex-basis: 4.25rem;
+    }
+
+    .battle-unit-combat strong {
+      font-size: 1.1rem;
+    }
+
+    .battle-unit-combat span {
+      font-size: 0.46rem;
+    }
+
+    .battle-shot .unit-box-num {
+      font-size: 1.65rem;
+    }
+
+    .space-combat-menu ul li {
+      min-height: 3.75rem;
+      font-size: 1.2rem;
+    }
+  }
 }

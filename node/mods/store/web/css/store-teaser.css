@@ -137,10 +137,14 @@
   left: 0;
   bottom: 0;
   z-index: 2;
+  display: flex;
+  align-items: center;
+  box-sizing: border-box;
   width: 100%;
+  height: 3.4rem;
   margin: 0;
   padding: 0 1rem;
-  line-height: 3.4rem;
+  line-height: 1;
   font-size: var(--font-size-medium);
   font-family: var(--saito-font-medium);
   color: var(--saito-foreground);
@@ -201,6 +205,9 @@
   .teaser .title,
   .teaser .price {
     font-size: var(--font-size-tiny);
+  }
+
+  .teaser .title {
     line-height: 2.8rem;
   }
 

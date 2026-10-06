@@ -55,6 +55,8 @@
   }
 
   .dash-faction-name {
+    position: relative;
+    z-index: 1;
     text-align: left;
     color: var(--imp-text);
     cursor: pointer;
@@ -63,9 +65,46 @@
     font-size: 1.45rem;
     font-weight: 600;
     letter-spacing: 0.03em;
+    text-shadow: 0 1px 2px rgb(0 0 0 / 0.9), 0 0 0.7rem rgb(0 0 0 / 0.55);
+    background-image:
+      linear-gradient(90deg, rgb(0 0 0 / 0.78) 0%, rgb(0 0 0 / 0.42) 34%, rgb(0 0 0 / 0.08) 58%, transparent 76%),
+      linear-gradient(to top, rgb(0 0 0 / 0.5), transparent 46%),
+      url('/imperium/img/backgrounds/faction-dashboard.png');
+    background-repeat: no-repeat;
+    background-size: cover;
+    background-position: center, center, right center;
+    background-blend-mode: normal, normal, luminosity;
+  }
+
+  .dash-faction::before,
+  .dash-faction::after {
+    content: '';
+    position: absolute;
+    z-index: 2;
+    top: 0;
+    bottom: 0;
+    width: 0.85rem;
+    pointer-events: none;
+    background: linear-gradient(
+      to bottom,
+      color-mix(in srgb, currentColor 72%, transparent) 0%,
+      color-mix(in srgb, currentColor 34%, transparent) 22%,
+      color-mix(in srgb, currentColor 12%, transparent) 55%,
+      transparent 100%
+    );
+  }
+
+  .dash-faction::before {
+    left: 0;
+  }
+
+  .dash-faction::after {
+    right: 0;
   }
 
   .dash-faction-body {
+    position: relative;
+    z-index: 1;
     display: flex;
     flex-direction: column;
     min-width: 0;

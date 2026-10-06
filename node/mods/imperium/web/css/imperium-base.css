@@ -2009,8 +2009,8 @@
     position: fixed;
     left: 0;
     bottom: 0;
-    width: 20rem;
-    height: 13rem;
+    width: 15rem;
+    height: 10rem;
     margin: 0;
     padding: 0;
     overflow: hidden;
@@ -2024,21 +2024,27 @@
     background: #ee6600;
   }
 
+  .game-help-triangle.game-help-hidden {
+    visibility: hidden;
+    opacity: 0;
+    transition: none;
+  }
+
   .game-help-text {
     position: absolute;
     left: 0.8rem;
-    bottom: 0.85rem;
+    bottom: 0.8rem;
     margin: 0;
     padding: 0;
     transform: none;
-    width: auto;
+    width: 9rem;
     min-width: 0;
     font-family: 'orbitron-medium', helvetica, arial, sans-serif;
     font-size: 1.35rem;
     line-height: 1.2;
     font-weight: bold;
     letter-spacing: 0.02em;
-    white-space: nowrap;
+    white-space: normal;
     text-shadow: -1px 1px 2px #000;
   }
 }

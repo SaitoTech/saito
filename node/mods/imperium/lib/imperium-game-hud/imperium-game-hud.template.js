@@ -10,6 +10,7 @@ module.exports = () => {
           <div class="imperium-hud-heading">
             <span class="imperium-hud-faction"></span><span class="imperium-hud-colon">: </span><span class="imperium-hud-instruction"></span>
           </div>
+          <button type="button" class="imperium-hud-combat-toggle" hidden>show combat</button>
         </div>
         <div class="hud-menu"></div>
       </div>
