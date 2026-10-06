@@ -378,7 +378,7 @@ if (this.game.options.scenario != "is_testing") {
 	  if (mv[1] === "council_of_trent") { this.council_of_trent_overlay.render(); }
 	  if (mv[1] === "winter") { this.winter_overlay.render(); }
 	  if (mv[1] === "faction") { this.faction_overlay.render(mv[2]); }
-	  if (mv[1] === "vp") { this.vp_overlay.render(); }
+	  if (mv[1] === "vp" && this.game.state.round > 1) { this.vp_overlay.render(); }
 	  if (mv[1] === "zoom") {
 	    let lz = mv[2];
 	    this.theses_overlay.render(lz);

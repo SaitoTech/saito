@@ -38,7 +38,6 @@ const WinterOverlay = require('./lib/ui/overlays/winter');
 const DeckOverlay = require('./lib/ui/overlays/deck');
 const MenuOverlay = require('./lib/ui/overlays/menu');
 const LanguageZoneOverlay = require('./lib/ui/overlays/language-zone');
-const { bindHudAboveOverlay } = require('./lib/ui/hud-layer');
 
 // Tutorial Overlays
 const GameHelp = require('./lib/ui/game-help/game-help');
@@ -69,9 +68,6 @@ class HereIStand extends GameTemplate {
 
     super(app);
 
-    this.hud_above_overlay = false;
-    bindHudAboveOverlay(this);
-
     this.app             = app;
 
     this.name  		 = "HereIStand";
@@ -80,8 +76,6 @@ class HereIStand extends GameTemplate {
     this.description     = `Here I Stand is a boardgame based on the military, political and religious conflicts within Europe at the outbreak of the Protestant Reformation (1517-1555). Each player controls one or more major powers that dominated Europe: the Ottoman Empire, the Hapsburgs, England, France, the Papacy and the Protestant states.`;
     this.publisher_message = `Here I Stand is published by GMT Games. This module is made available under an open source license provided by GMT Games that permits usage provided that at least one player per game has purchased a copy of the game. Support GMT Games: <a href="https://www.gmtgames.com/p-917-here-i-stand-500th-anniversary-reprint-edition-2nd-printing.aspx">purchase</a>`;
     this.categories      = "Games Boardgame Strategy";
-    this.status = 'beta';
-    this.class = 'app';
 
     this.interface = 1; // graphical interface
 
@@ -133,9 +127,8 @@ class HereIStand extends GameTemplate {
     this.game_help = new GameHelp(this.app, this);
     this.minimap = new GameMinimap(this.app, this);
     this.minimap.enable_zoom = 1;
-    // Eastern England through Hungary, the startup minimap crop.
-    this.minimap.focus = { x: 1657, y: 307, width: 2136, height: 1107 };
-    this.default_board_scale = 100;
+    // Opening view: eastern England through Hungary, so the Reformation is on screen.
+    this.default_board_view = { x: 1657 / 4950, y: 307 / 3164, w: 2136 / 4950, h: 1107 / 3164 };
 
     //
     // this sets the ratio used for determining
@@ -3924,6 +3917,13 @@ if (this.game.players.length > 2) {
 
 
     this.minimap.render();
+    this.fitMinimapToMenu();
+    if (!this.bound_minimap_menu_size) {
+      this.bound_minimap_menu_size = 1;
+      window.addEventListener('resize', () => {
+        this.fitMinimapToMenu();
+      });
+    }
 
     this.factionbar.render();
 
@@ -3931,6 +3931,29 @@ if (this.game.players.length > 2) {
 
     this.displayBoard();
 
+  }
+
+  fitMinimapToMenu() {
+    let icon = document.getElementById('game-menu-fullscreen');
+    let info = document.getElementById('game-info');
+    let minimap = document.querySelector('.game-minimap');
+    if (!icon || !info || !minimap) {
+      return;
+    }
+    let a = icon.getBoundingClientRect();
+    let b = info.getBoundingClientRect();
+    let width = Math.round(b.right - a.left);
+    if (a.width < 1 || b.width < 1 || width < 40) {
+      return;
+    }
+    minimap.style.left = Math.round(a.left) + 'px';
+    minimap.style.right = 'auto';
+    minimap.style.bottom = 'auto';
+    minimap.style.width = width + 'px';
+    if (this.minimap) {
+      this.minimap.redraw_markers = true;
+      this.minimap.render();
+    }
   }
 
 
@@ -25352,10 +25375,6 @@ if (this.game.options.scenario != "is_testing") {
 
 	      } else {
 
-	        if (this.game.players.length == 2) {
-	          this.game.queue.push("show_overlay\tvp");
-	        }
-
 		this.game.state.sp = [];
 	        this.game.queue.push("hide_overlay\tdiet_of_worms");
 	        this.game.queue.push("resolve_diet_of_worms");
@@ -25571,7 +25590,7 @@ if (this.game.options.scenario != "is_testing") {
 	  if (mv[1] === "council_of_trent") { this.council_of_trent_overlay.render(); }
 	  if (mv[1] === "winter") { this.winter_overlay.render(); }
 	  if (mv[1] === "faction") { this.faction_overlay.render(mv[2]); }
-	  if (mv[1] === "vp") { this.vp_overlay.render(); }
+	  if (mv[1] === "vp" && this.game.state.round > 1) { this.vp_overlay.render(); }
 	  if (mv[1] === "zoom") {
 	    let lz = mv[2];
 	    this.theses_overlay.render(lz);
@@ -42888,15 +42907,6 @@ if (limit === "build") {
       });
     } else {
 
-    menu.push({
-      factions : ['hapsburg','england','france','papacy','ottoman','protestant'],
-      cost : [0,0,0,0,0,0],
-      name : "First Game / Need Help?",
-      check : this.canPlayerShowTutorial,
-      fnct : this.playerShowTutorial,
-      category : "move" ,
-      img : '/his/img/backgrounds/move/help.jpeg',
-    });
     menu.push({
       factions : ['ottoman','hapsburg','england','france','papacy','protestant', 'genoa', 'hungary', 'scotland', 'venice'],
       cost : [1,1,1,1,1,1,1,1,1,1],

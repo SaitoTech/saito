@@ -969,15 +969,6 @@ if (limit === "build") {
     } else {
 
     menu.push({
-      factions : ['hapsburg','england','france','papacy','ottoman','protestant'],
-      cost : [0,0,0,0,0,0],
-      name : "First Game / Need Help?",
-      check : this.canPlayerShowTutorial,
-      fnct : this.playerShowTutorial,
-      category : "move" ,
-      img : '/his/img/backgrounds/move/help.jpeg',
-    });
-    menu.push({
       factions : ['ottoman','hapsburg','england','france','papacy','protestant', 'genoa', 'hungary', 'scotland', 'venice'],
       cost : [1,1,1,1,1,1,1,1,1,1],
       name : "Move",
