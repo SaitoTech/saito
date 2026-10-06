@@ -172,12 +172,63 @@ class GameHUD2 {
     document.querySelectorAll('#game-hud2').forEach((el) => {
       el.style.display = 'none';
     });
+    this.hideVisualMenu();
+    this.back_button_callback = null;
+  }
+
+  hideVisualMenu() {
     let visual_menu = document.getElementById('hud-visual-menu');
     if (visual_menu) {
       visual_menu.innerHTML = '';
       visual_menu.className = 'hud-visual-menu';
+      visual_menu.onclick = null;
     }
-    this.back_button_callback = null;
+
+    let backdrop = document.getElementById('hud-visual-menu-backdrop');
+    if (backdrop) {
+      backdrop.remove();
+    }
+
+    let hud = document.getElementById('game-hud2');
+    if (hud && hud.dataset.visualMenuZSaved) {
+      hud.style.zIndex = hud.dataset.visualMenuZ || '';
+      delete hud.dataset.visualMenuZ;
+      delete hud.dataset.visualMenuZSaved;
+    }
+  }
+
+  showVisualMenuBackdrop() {
+    let hud = document.getElementById('game-hud2');
+    let visual_menu = document.getElementById('hud-visual-menu');
+    if (!hud || !visual_menu) {
+      return;
+    }
+
+    let backdrop = document.getElementById('hud-visual-menu-backdrop');
+    if (!backdrop) {
+      backdrop = document.createElement('div');
+      backdrop.id = 'hud-visual-menu-backdrop';
+      backdrop.className = 'hud-visual-menu-backdrop';
+      hud.insertBefore(backdrop, visual_menu);
+    }
+
+    if (!hud.dataset.visualMenuZSaved) {
+      hud.dataset.visualMenuZSaved = '1';
+      hud.dataset.visualMenuZ = hud.style.zIndex || '';
+    }
+    hud.style.zIndex = '80';
+
+    let swallow = (e) => {
+      e.stopPropagation();
+    };
+    backdrop.onmousedown = swallow;
+    backdrop.onpointerdown = swallow;
+    backdrop.onpointerup = swallow;
+    backdrop.onmouseup = (e) => {
+      swallow(e);
+      this.hideVisualMenu();
+    };
+    backdrop.onclick = swallow;
   }
 
   hidePopup() {
@@ -330,13 +381,14 @@ class GameHUD2 {
     visual_menu.onclick = null;
     if (visual_count > 0) {
       visual_menu.classList.add('m' + Math.min(visual_count, 9));
+      this.showVisualMenuBackdrop();
       visual_menu.onclick = (e) => {
         if (e.target.closest('.hud-visual-option')) {
           return;
         }
-        visual_menu.innerHTML = '';
-        visual_menu.className = 'hud-visual-menu';
-        visual_menu.onclick = null;
+        e.preventDefault();
+        e.stopPropagation();
+        this.hideVisualMenu();
       };
       if (typeof callback === 'function') {
         visual_menu.querySelectorAll('.hud-visual-option').forEach((item) => {
@@ -350,6 +402,8 @@ class GameHUD2 {
           };
         });
       }
+    } else {
+      this.hideVisualMenu();
     }
   }
 

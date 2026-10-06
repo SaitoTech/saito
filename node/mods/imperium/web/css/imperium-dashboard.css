@@ -76,6 +76,8 @@
     background-blend-mode: normal, normal, luminosity;
   }
 
+  /* Rim glow, clipped by the card. Left is a bright edge that softens
+     downward; right is only a hint. Both fade inward before the type. */
   .dash-faction::before,
   .dash-faction::after {
     content: '';
@@ -83,23 +85,45 @@
     z-index: 2;
     top: 0;
     bottom: 0;
-    width: 0.85rem;
     pointer-events: none;
-    background: linear-gradient(
-      to bottom,
-      color-mix(in srgb, currentColor 72%, transparent) 0%,
-      color-mix(in srgb, currentColor 34%, transparent) 22%,
-      color-mix(in srgb, currentColor 12%, transparent) 55%,
-      transparent 100%
-    );
   }
 
   .dash-faction::before {
     left: 0;
+    width: 0.95rem;
+    background: linear-gradient(
+      to right,
+      color-mix(in srgb, currentColor 96%, transparent) 0%,
+      color-mix(in srgb, currentColor 62%, transparent) 0.1rem,
+      color-mix(in srgb, currentColor 22%, transparent) 0.34rem,
+      transparent 0.7rem
+    );
+    -webkit-mask-image: linear-gradient(
+      to bottom,
+      #000 0%,
+      #000 2.4rem,
+      rgb(0 0 0 / 0.62) 62%,
+      rgb(0 0 0 / 0.28) 100%
+    );
+    mask-image: linear-gradient(
+      to bottom,
+      #000 0%,
+      #000 2.4rem,
+      rgb(0 0 0 / 0.62) 62%,
+      rgb(0 0 0 / 0.28) 100%
+    );
   }
 
   .dash-faction::after {
     right: 0;
+    width: 0.42rem;
+    background: linear-gradient(
+      to left,
+      color-mix(in srgb, currentColor 28%, transparent) 0%,
+      transparent 0.42rem
+    );
+    -webkit-mask-image: linear-gradient(to bottom, rgb(0 0 0 / 0.4) 0%, rgb(0 0 0 / 0.1) 100%);
+    mask-image: linear-gradient(to bottom, rgb(0 0 0 / 0.4) 0%, rgb(0 0 0 / 0.1) 100%);
   }
 
   .dash-faction-body {

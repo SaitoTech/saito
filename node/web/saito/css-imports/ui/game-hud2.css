@@ -238,6 +238,14 @@
   background-color: #e7e7e7;
 }
 
+.hud-visual-menu-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  background: transparent;
+  pointer-events: auto;
+}
+
 .hud-visual-menu {
   display: none;
   position: fixed;

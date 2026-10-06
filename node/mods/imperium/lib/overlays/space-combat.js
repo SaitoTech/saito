@@ -293,7 +293,18 @@ class SpaceCombatOverlay {
         acknowledgeButton.dataset.acknowledged = '1';
         acknowledgeButton.classList.add('is-acknowledged');
         acknowledgeButton.setAttribute('aria-disabled', 'true');
-        acknowledgeButton.textContent = 'Acknowledged — waiting…';
+        let status = root.querySelector('.space-combat-menu .space-combat-status');
+        if (!status) {
+          status = document.createElement('div');
+          status.className = 'space-combat-status';
+          let menu = root.querySelector('.space-combat-menu');
+          if (menu) {
+            menu.insertBefore(status, menu.firstChild);
+          }
+        }
+        if (status) {
+          status.textContent = 'waiting for opponent...';
+        }
 
         let interaction = this.mod.hud && this.mod.hud.interactionRegion();
         let acknowledge = interaction && interaction.querySelector('.imperium-hud-acknowledge-button');
@@ -386,7 +397,7 @@ class SpaceCombatOverlay {
           fleetRow.removeAttribute('tabindex');
           fleetRow.removeAttribute('aria-label');
         });
-        this.updateStatus('<div>Hits assigned. Waiting for combat to continue…</div>');
+        this.updateStatus('<div class="space-combat-status">waiting for opponent...</div>');
         return;
       }
 

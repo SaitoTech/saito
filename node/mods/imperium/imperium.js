@@ -14562,7 +14562,7 @@ console.log("#");
 	// hide combat overlays
 	//
 	if (this.space_combat_overlay.visible == 1) {
-	  this.space_combat_overlay.updateStatus('<div>space combat over</div><ul><li class="option" id="resume">acknowledge</li></ul>');
+	  this.space_combat_overlay.updateStatus('<div class="space-combat-status">space combat over</div><ul><li class="option" id="resume">acknowledge</li></ul>');
 	  $('#resume').on('click', () => {
   	    this.space_combat_overlay.hide();
 	    this.restartQueue();
@@ -18159,7 +18159,7 @@ console.log("K: " + z[k].name);
               this.hud.prepareIdle(this.game.status);
               this.hud.updateCards([]);
 	      if (this.space_combat_overlay.visible) {
-		this.space_combat_overlay.updateStatus("<div>opponent assigning hits</div>");
+		this.space_combat_overlay.updateStatus('<div class="space-combat-status">waiting for opponent...</div>');
 	      }
 	    }
 	    return 0;
@@ -19646,7 +19646,7 @@ console.log("MODIFIED ROLL: " + JSON.stringify(combat_info.modified_roll));
 	if (this.game.player == attacker) {
           this.playerPlaySpaceCombat(attacker, defender, sector);
 	} else {
-	          this.space_combat_overlay.render(attacker, defender, sector, "Space Combat");
+	          this.space_combat_overlay.render(attacker, defender, sector, '<div class="space-combat-status">waiting for opponent...</div>');
 	}
 
         return 0;
@@ -21250,7 +21250,7 @@ playerAcknowledgeNotice(msg, mycallback) {
   this.hud.updateCards([]);
 
   if (imperium_self.space_combat_overlay.visible) {
-    imperium_self.space_combat_overlay.updateStatus(`<div>You must assign ${total_hits} to your capital ships (if possible)</div><ul><li class="option" id="assign">continue</li></ul>`);
+    imperium_self.space_combat_overlay.updateStatus(`<div class="space-combat-status">You must assign ${total_hits} to your capital ships (if possible)</div><ul><li class="option" id="assign">continue</li></ul>`);
   }
 
   let onAssignHits = function (action2) {
@@ -21396,7 +21396,7 @@ playerAcknowledgeNotice(msg, mycallback) {
     overlay_lis += `<li class="option" id="${menu[i].id}">${menu[i].label}</li>`;
   }
   overlay_lis += '</ul>';
-  let overlay_html = `<div>assign ${total_hits} to your fleet</div>${overlay_lis}`;
+  let overlay_html = `<div class="space-combat-status">assign ${total_hits} to your fleet</div>${overlay_lis}`;
   html = '<div class="status-header-text">assign ' + total_hits + ' to your fleet:</div>';
 
 
@@ -21982,8 +21982,9 @@ playerPlaySpaceCombat(attacker, defender, sector) {
     }
   }
 
-  overlay_html = '<div>round '+ this.game.state.space_combat_round + '</div><ul>' + overlay_items + '</ul>';
-  html = '<div class="status-header-text"><b>Space Combat: round ' + this.game.state.space_combat_round + ':</b><div class="combat_attacker">' + this.returnFaction(attacker) + '</div><div class="combat_attacker_fleet">' + this.returnPlayerFleetInSector(attacker, sector) + '</div><div class="combat_defender">' + this.returnFaction(defender) + '</div><div class="combat_defender_fleet">' + this.returnPlayerFleetInSector(defender, sector) + '</div></div>';
+  let attack_line = this.returnFaction(attacker) + ' attack in ' + sys.s.name;
+  let overlay_html = '<div class="space-combat-status">' + attack_line + '</div><ul>' + overlay_items + '</ul>';
+  html = '<div class="status-header-text">' + attack_line + '</div>';
 
     this.game.status = html;
   this.hud.preparePrompt(this.game.status);
@@ -22027,7 +22028,7 @@ playerPlaySpaceCombat(attacker, defender, sector) {
       //
       // ships_fire needs to make sure it permits any opponents to fire...
       //
-      imperium_self.space_combat_overlay.render(attacker, defender, sector, "<div>waiting for opponent</div>");
+      imperium_self.space_combat_overlay.render(attacker, defender, sector, '<div class="space-combat-status">waiting for opponent...</div>');
       imperium_self.prependMove("ships_fire\t" + attacker + "\t" + defender + "\t" + sector);
       imperium_self.endTurn();
     }
@@ -22280,11 +22281,11 @@ playerPlaySpaceCombatOver(player, sector) {
   let overlay_lis = '<ul>' + overlay_items + '</ul>';
 
   if (this.doesPlayerHaveShipsInSector(player, sector)) {
-    overlay_html = '<div class="status-header-text">Space Combat is Over (you win): </div>' + overlay_lis; 
+    overlay_html = '<div class="space-combat-status">Space Combat is Over (you win)</div>' + overlay_lis; 
     html = '<div class="status-header-text">Space Combat is Over (you win): </div>'; 
     win = 1;
   } else {
-    overlay_html = '<div class="status-header-text">Space Combat is Over (you lose): </div>' + overlay_lis; 
+    overlay_html = '<div class="space-combat-status">Space Combat is Over (you lose)</div>' + overlay_lis; 
     html = '<div class="status-header-text">Space Combat is Over (you lose): </div>';
   }
 
@@ -22321,7 +22322,7 @@ playerPlaySpaceCombatOver(player, sector) {
     }
 
     if (action2 === "ok") {
-      imperium_self.space_combat_overlay.render(attacker, defender, sector, planet_idx, "<div>waiting for opponent</div>");
+      imperium_self.space_combat_overlay.updateStatus('<div class="space-combat-status">waiting for opponent...</div>');
       // prepend so it happens after the modifiers
       //
       // ships_fire needs to make sure it permits any opponents to fire...

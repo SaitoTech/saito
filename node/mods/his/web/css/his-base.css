@@ -359,6 +359,14 @@ img {
 	height: 3164px;
 }
 
+.game-minimap {
+	top: var(--saito-header-height);
+	left: 0;
+	right: auto;
+	bottom: auto;
+	width: 38.6vw;
+}
+
 .electorate_display {
 	position: absolute;
 	z-index: 10;

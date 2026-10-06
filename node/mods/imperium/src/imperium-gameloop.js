@@ -501,7 +501,7 @@
 	// hide combat overlays
 	//
 	if (this.space_combat_overlay.visible == 1) {
-	  this.space_combat_overlay.updateStatus('<div>space combat over</div><ul><li class="option" id="resume">acknowledge</li></ul>');
+	  this.space_combat_overlay.updateStatus('<div class="space-combat-status">space combat over</div><ul><li class="option" id="resume">acknowledge</li></ul>');
 	  $('#resume').on('click', () => {
   	    this.space_combat_overlay.hide();
 	    this.restartQueue();
@@ -4098,7 +4098,7 @@ console.log("K: " + z[k].name);
               this.hud.prepareIdle(this.game.status);
               this.hud.updateCards([]);
 	      if (this.space_combat_overlay.visible) {
-		this.space_combat_overlay.updateStatus("<div>opponent assigning hits</div>");
+		this.space_combat_overlay.updateStatus('<div class="space-combat-status">waiting for opponent...</div>');
 	      }
 	    }
 	    return 0;
@@ -5585,7 +5585,7 @@ console.log("MODIFIED ROLL: " + JSON.stringify(combat_info.modified_roll));
 	if (this.game.player == attacker) {
           this.playerPlaySpaceCombat(attacker, defender, sector);
 	} else {
-	          this.space_combat_overlay.render(attacker, defender, sector, "Space Combat");
+	          this.space_combat_overlay.render(attacker, defender, sector, '<div class="space-combat-status">waiting for opponent...</div>');
 	}
 
         return 0;

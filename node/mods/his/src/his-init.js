@@ -127,6 +127,8 @@ class HereIStand extends GameTemplate {
     this.game_help = new GameHelp(this.app, this);
     this.minimap = new GameMinimap(this.app, this);
     this.minimap.enable_zoom = 1;
+    // Eastern England through Hungary, the startup minimap crop.
+    this.minimap.focus = { x: 1657, y: 307, width: 2136, height: 1107 };
     this.default_board_scale = 100;
 
     //

@@ -80,7 +80,7 @@ module.exports = (
           <div class="space-combat-fleet-list">${renderFleet(leftPlayer, leftShips, 'left')}</div>
         </section>
         <section class="space-combat-center">
-          <div class="space-combat-menu">${overlay_html || '<div class="space-combat-awaiting">Combat resolution</div>'}</div>
+          <div class="space-combat-menu">${overlay_html || '<div class="space-combat-status">waiting for opponent...</div>'}</div>
         </section>
         <section class="space-combat-fleet space-combat-right" data-player="${rightPlayer}">
           <div class="space-combat-fleet-title"><span>${rightTitle}</span><strong>${mod.returnFactionName(mod, rightPlayer)}</strong></div>

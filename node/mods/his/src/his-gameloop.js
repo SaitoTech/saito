@@ -163,10 +163,6 @@ if (this.game.options.scenario != "is_testing") {
 
 	      } else {
 
-	        if (this.game.players.length == 2) {
-	          this.game.queue.push("show_overlay\tvp");
-	        }
-
 		this.game.state.sp = [];
 	        this.game.queue.push("hide_overlay\tdiet_of_worms");
 	        this.game.queue.push("resolve_diet_of_worms");
