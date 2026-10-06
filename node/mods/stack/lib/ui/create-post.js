@@ -3881,6 +3881,21 @@ class CreatePost {
     this.storedInsertionPoint = null; // Clear after use
     this.storedDropRange = null; // Clear legacy reference
 
+    // The indicator was in the editor while the index was captured. Recompute
+    // from the real block now that the indicator is gone, so a child-list
+    // index that included the line cannot shift the image by one block.
+    if (
+      storedInsertionPoint &&
+      storedInsertionPoint.element &&
+      storedInsertionPoint.element.isConnected
+    ) {
+      storedInsertionPoint.index = this.insertionIndexForElement(
+        storedInsertionPoint.position,
+        storedInsertionPoint.element,
+        storedInsertionPoint.index
+      );
+    }
+
     if (!storedInsertionPoint) {
       // Fallback: if no stored insertion point, use end of document
       console.warn('No stored insertion point, inserting at end');
@@ -3893,6 +3908,47 @@ class CreatePost {
   }
 
   /**
+   * Editor children that are real blocks. The insertion line is mounted in the
+   * editor while dragging; counting it shifts every later index by one.
+   */
+  editorContentChildren(editor) {
+    return Array.from(editor.children).filter(
+      (el) => !(el.classList && el.classList.contains('insertion-indicator'))
+    );
+  }
+
+  /**
+   * Next sibling that is not the insertion line.
+   */
+  nextContentSibling(node) {
+    let sib = node;
+    while (
+      sib &&
+      sib.nodeType === Node.ELEMENT_NODE &&
+      sib.classList.contains('insertion-indicator')
+    ) {
+      sib = sib.nextSibling;
+    }
+    return sib;
+  }
+
+  /**
+   * Index in the [data-block-id] list, which is what image insertion uses.
+   * `position: 'after'` is already the slot after the element.
+   * Falls back to siblingIndex when the element is not itself a block (a ul).
+   */
+  insertionIndexForElement(position, element, siblingIndex) {
+    if (!element) return siblingIndex;
+    const editor = document.querySelector('#stack-post-body-editor');
+    if (!editor) return siblingIndex;
+    const blocks = Array.from(editor.querySelectorAll('[data-block-id]'));
+    const idx = blocks.indexOf(element);
+    if (idx < 0) return siblingIndex;
+    if (position === 'after') return idx + 1;
+    return idx;
+  }
+
+  /**
    * Find insertion point based on Y coordinate
    * Handles both between blocks and within blocks (e.g., between <br> tags)
    */
@@ -3900,7 +3956,7 @@ class CreatePost {
     const editor = document.querySelector('#stack-post-body-editor');
     if (!editor) return null;
 
-    const blocks = Array.from(editor.children);
+    const blocks = this.editorContentChildren(editor);
     if (blocks.length === 0)
       return { position: 'before', element: null, index: 0, splitBlock: null };
 
@@ -3909,7 +3965,12 @@ class CreatePost {
       const firstBlock = blocks[0];
       const firstRect = firstBlock.getBoundingClientRect();
       if (clientY < firstRect.top) {
-        return { position: 'before', element: firstBlock, index: 0, splitBlock: null };
+        return {
+          position: 'before',
+          element: firstBlock,
+          index: this.insertionIndexForElement('before', firstBlock, 0),
+          splitBlock: null
+        };
       }
     }
 
@@ -3922,8 +3983,9 @@ class CreatePost {
       if (clientY >= rect.top && clientY <= rect.bottom) {
         const blockType = block.getAttribute('data-block-type');
 
-        // A2: Order derived from DOM position (loop index), not cached index
-        const blockIndex = i;
+        // A2: Order derived from DOM position (loop index), not cached index.
+        // Map onto the data-block list so the insertion line cannot inflate it.
+        const blockIndex = this.insertionIndexForElement('before', block, i);
 
         // For paragraph blocks, check if we're over a line break area
         if (blockType === 'paragraph') {
@@ -3944,7 +4006,12 @@ class CreatePost {
           return { position: 'before', element: block, index: blockIndex, splitBlock: null };
         } else {
           // In lower half, insert after
-          return { position: 'after', element: block, index: blockIndex + 1, splitBlock: null };
+          return {
+            position: 'after',
+            element: block,
+            index: this.insertionIndexForElement('after', block, i + 1),
+            splitBlock: null
+          };
         }
       }
 
@@ -3956,11 +4023,13 @@ class CreatePost {
 
         // If mouse is between current block bottom and next block top
         if (clientY > rect.bottom && clientY < nextRect.top) {
-          // A2: Order derived from DOM position (loop index)
-          const blockIndex = i;
-
-          // Insert after the current block (in the gap)
-          return { position: 'after', element: block, index: blockIndex + 1, splitBlock: null };
+          // Gap includes the insertion line, which is not a block.
+          return {
+            position: 'after',
+            element: block,
+            index: this.insertionIndexForElement('after', block, i + 1),
+            splitBlock: null
+          };
         }
       }
     }
@@ -3968,7 +4037,12 @@ class CreatePost {
     // After last block - use DOM position
     const lastBlock = blocks[blocks.length - 1];
     const lastIndex = blocks.length - 1;
-    return { position: 'after', element: lastBlock, index: lastIndex + 1, splitBlock: null };
+    return {
+      position: 'after',
+      element: lastBlock,
+      index: this.insertionIndexForElement('after', lastBlock, lastIndex + 1),
+      splitBlock: null
+    };
   }
 
   /**
@@ -4198,14 +4272,14 @@ class CreatePost {
     ) {
       // Show indicator after the block that will be split
       const block = insertionPoint.element;
-      targetSibling = block.nextSibling;
+      targetSibling = this.nextContentSibling(block.nextSibling);
     } else if (insertionPoint.position === 'before' && insertionPoint.element) {
       targetSibling = insertionPoint.element;
     } else if (insertionPoint.position === 'after' && insertionPoint.element) {
-      targetSibling = insertionPoint.element.nextSibling;
+      targetSibling = this.nextContentSibling(insertionPoint.element.nextSibling);
     } else if (insertionPoint.position === 'before' && !insertionPoint.element) {
       // First block (no element means before first)
-      targetSibling = editor.firstChild;
+      targetSibling = this.nextContentSibling(editor.firstChild);
     } else {
       // Fallback: append to end
       targetSibling = null;

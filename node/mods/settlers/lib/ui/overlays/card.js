@@ -1,11 +1,9 @@
 const CardTemplate = require('./card.template');
-const SaitoOverlay = require('./../../../../../lib/saito/ui/saito-overlay/saito-overlay');
 
 class CardOverlay {
   constructor(app, mod) {
     this.app = app;
     this.mod = mod;
-    this.overlay = new SaitoOverlay(this.app, this.mod, false);
   }
 
   //obj = {player, card: cardname}
@@ -40,10 +38,9 @@ class CardOverlay {
       card.cardtext = obj.cardtext;
     }
 
-    this.overlay.show(CardTemplate(card));
-    setTimeout(() => {
-      this.overlay.hide();
-    }, 3500);
+    // Sized by .hud-notice. A generic overlay shrinks to the text because the
+    // card is absolutely positioned and scaled out of the layout.
+    this.mod.hud.showPopup(CardTemplate(card), 3500);
 
     // this will clear any ACKNOWLEDGE
     this.attachEvents();

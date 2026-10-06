@@ -43,7 +43,14 @@ class GameHUD2 {
       hud.style.zIndex = '';
     } else {
       hud.classList.remove('docked');
-      hud.style.zIndex = 50;
+      // Overlays set hud_above_overlay so card selection stays above them.
+      // Later HUD updates all come through render(), which would otherwise
+      // put the HUD back at 50, under the overlay.
+      if (this.mod && this.mod.hud_above_overlay) {
+        this.raiseAboveOverlays(hud);
+      } else {
+        hud.style.zIndex = 50;
+      }
     }
 
     this.attachEvents();
@@ -62,6 +69,10 @@ class GameHUD2 {
       return;
     }
 
+    this.raiseAboveOverlays(hud);
+  }
+
+  raiseAboveOverlays(hud) {
     let max_z = 50;
     document.querySelectorAll('.saito-overlay, .saito-overlay-backdrop').forEach((el) => {
       let z = parseInt(el.style.zIndex, 10);
@@ -188,13 +199,6 @@ class GameHUD2 {
     if (backdrop) {
       backdrop.remove();
     }
-
-    let hud = document.getElementById('game-hud2');
-    if (hud && hud.dataset.visualMenuZSaved) {
-      hud.style.zIndex = hud.dataset.visualMenuZ || '';
-      delete hud.dataset.visualMenuZ;
-      delete hud.dataset.visualMenuZSaved;
-    }
   }
 
   showVisualMenuBackdrop() {
@@ -211,12 +215,6 @@ class GameHUD2 {
       backdrop.className = 'hud-visual-menu-backdrop';
       hud.insertBefore(backdrop, visual_menu);
     }
-
-    if (!hud.dataset.visualMenuZSaved) {
-      hud.dataset.visualMenuZSaved = '1';
-      hud.dataset.visualMenuZ = hud.style.zIndex || '';
-    }
-    hud.style.zIndex = '80';
 
     let swallow = (e) => {
       e.stopPropagation();

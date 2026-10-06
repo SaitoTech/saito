@@ -16870,6 +16870,8 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
 
       if (action === "event") {
 
+        acknowledgeNotice("for the Event");
+
 	//
 	// and trigger event
 	//
@@ -17656,7 +17658,7 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
 	      if (is_one_hop_move && active_unit_moves > 0) {
 	        moveEverythingInterface(sourcekey, key2);
 	      } else {
-	        mainInterface(options);
+	        mainInterface(options, true);
 	      }
 	    },
 	    null ,
@@ -17666,9 +17668,19 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
     };
 
 
-    let mainInterface = function(options) {
+    let cancelMovementScroll = function() {
+      if (paths_self.movement_scroll_timer) {
+        clearTimeout(paths_self.movement_scroll_timer);
+        paths_self.movement_scroll_timer = null;
+      }
+    };
+
+    // pause_before_scroll: the board has just been redrawn with the moved chit.
+    // Leave that view in place, then start the pan to the next unit.
+    let mainInterface = function(options, pause_before_scroll) {
 
       movement_snapshot_taken = 0;
+      cancelMovementScroll();
 
       //
       // sometimes this ends
@@ -17723,8 +17735,16 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
         }
         if (still) { rendered_at = options[i]; break; }
       }
-      if (paths_self.zoom_overlay.visible) {
-        paths_self.zoom_overlay.scrollTo(rendered_at);
+      let scrollToNextUnit = () => {
+        paths_self.movement_scroll_timer = null;
+        if (paths_self.zoom_overlay.visible) {
+          paths_self.zoom_overlay.scrollTo(rendered_at);
+        }
+      };
+      if (pause_before_scroll) {
+        paths_self.movement_scroll_timer = setTimeout(scrollToNextUnit, 500);
+      } else {
+        scrollToNextUnit();
       }
 
       paths_self.playerSelectSpaceWithFilter(
@@ -17769,6 +17789,7 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
             paths_self.game.state.does_movement_start_inside_near_east = 0;
 	  }
 
+	  cancelMovementScroll();
 	  paths_self.zoom_overlay.scrollTo(key);
 	  paths_self.removeSelectable();
 	  moveInterface(key, options);
@@ -18234,10 +18255,10 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
 	              }
 
 	              if (mint) {
-	                mainInterface(options);
+	                mainInterface(options, true);
 	                //moveInterface(sourcekey, options, 1); // move another
 	              } else {
-	                mainInterface(options);
+	                mainInterface(options, true);
 	              }
 
 		    }
@@ -18351,10 +18372,10 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
 	        continueMoveInterface(sourcekey, key2, idx, options);
 	      } else {
 	        if (mint) {
-	          mainInterface(options);
+	          mainInterface(options, true);
 	          //moveInterface(sourcekey, options);
 	        } else {
-	          mainInterface(options);
+	          mainInterface(options, true);
 	        }
 	      }
 	    },
