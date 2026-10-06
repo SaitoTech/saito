@@ -8737,7 +8737,7 @@ this.importStrategyCard("imperial", {
 		let destroy_this_infantry = 1;
 
 		for (let m = 0; m < imperium_self.game.planets[k].units[owner-1].length; m++) {
-		  if (imperium_self.game.planets[k].units[i][m].type == "infantry") {
+		  if (imperium_self.game.planets[k].units[owner-1][m].type == "infantry") {
 		    if (destroy_this_infantry == 1) {
 		      total_infantry_destroyed++;
 		      destroy_this_infantry = 0;
@@ -8747,9 +8747,9 @@ this.importStrategyCard("imperial", {
 		  }
 		}
 
-		for (let m = 0, n = 0; n < total_infantry_destroyed && m < imperium_self.game.planets[k].units[i].length; m++) {
-		  if (imperium_self.game.planets[k].units[i][m].type == "infantry") {
-		    imperium_self.game.planets[k].units[i].splice(m, 1);
+		for (let m = 0, n = 0; n < total_infantry_destroyed && m < imperium_self.game.planets[k].units[owner-1].length; m++) {
+		  if (imperium_self.game.planets[k].units[owner-1][m].type == "infantry") {
+		    imperium_self.game.planets[k].units[owner-1].splice(m, 1);
 		    m--;
 		    n++;
 		  }
@@ -8849,7 +8849,9 @@ this.importStrategyCard("imperial", {
           }
 
           if (winning_choice === "against") {
-	    imperium_self.game.state.players_info[i].fly_through_nebulas = 1;
+	    for (let i = 0; i < imperium_self.game.state.players_info.length; i++) {
+	      imperium_self.game.state.players_info[i].fly_through_nebulas = 1;
+	    }
 	  }
 
 	  return 1;

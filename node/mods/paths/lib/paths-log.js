@@ -478,17 +478,7 @@ class PathsLog {
       defenderHits = combat.attacker_loss_factor;
     }
     let result = this.resultText(rec.winner, rec.attackerFaction, rec.defenderFaction);
-    let summary =
-      this.sideName(rec.attackerFaction) +
-      ' attack ' +
-      rec.location +
-      ' — ' +
-      result +
-      ' (' +
-      attackerHits +
-      '-' +
-      defenderHits +
-      ')';
+    let summary = this.sideName(rec.attackerFaction) + ' attack ' + rec.location;
     let data = {
       location: rec.location,
       attackerFaction: rec.attackerFaction,
@@ -554,7 +544,25 @@ class PathsLog {
     html += this.section('RESULT');
     html += this.bullet(this.winText(combat));
     html += this.retreatBullets(combat);
-    return this.fold('pog-combat', entry.msg, html);
+    html = this.gap() + html + this.gap();
+    return this.fold('pog-combat', this.attackSummary(entry.msg), html);
+  }
+
+  // Older rows stored "Central Powers attack Sedan — Central Powers victory (5-3)".
+  attackSummary(msg) {
+    let text = msg || '';
+    let cut = text.indexOf(' — ');
+    if (cut === -1) {
+      cut = text.indexOf(' - ');
+    }
+    if (cut > 0) {
+      return text.slice(0, cut);
+    }
+    return text;
+  }
+
+  gap() {
+    return '<div class="pog-gap">&nbsp;</div>';
   }
 
   section(title) {

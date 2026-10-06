@@ -1933,10 +1933,30 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
 
       units.push({ key : "skip" , unit_idx : "skip" });
 
-      paths_self.playerSelectOptionWithFilter(
-	"Which Units Participate in Attack?",
-	units,
-	(idx) => {
+      let launchAttack = function(chosen) {
+	paths_self.zoom_overlay.hide();
+	paths_self.game.status = "attacking...";
+	paths_self.hud.updateStatus(paths_self.game.status);
+	paths_self.hud.updateMenu([]);
+	paths_self.hud.updateCards([]);
+	if (chosen.length > 0) {
+	  let s = [];
+	  for (let z = 0; z < chosen.length; z++) {
+	    s.push(JSON.parse(paths_self.app.crypto.base64ToString(chosen[z])));
+	  }
+	  paths_self.addMove("resolve\tplayer_play_combat");
+	  paths_self.addMove("player_play_combat\t"+paths_self.returnFactionOfPlayer());
+	  paths_self.addMove("post_combat_cleanup");
+	  paths_self.addMove(`combat\t${original_key}\t${JSON.stringify(s)}`);
+	  paths_self.endTurn();
+	} else {
+	  paths_self.addMove("resolve\tplayer_play_combat");
+	  paths_self.addMove("post_combat_cleanup");
+	  paths_self.endTurn();
+	}
+      };
+
+      let optionHtml = (idx) => {
 	  if (idx.key == "skip") {
 	    return `<li class="option" id="skip">start attack</li>`;
 	  }
@@ -1998,7 +2018,12 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
 	  } else {
 	    return null;
 	  }
-	},
+      };
+
+      paths_self.playerSelectOptionWithFilter(
+	"Which Units Participate in Attack?",
+	units,
+	optionHtml,
 	(idx) => {
 
 	  //
@@ -2011,30 +2036,27 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
 	  }
 
 	  //
+	  // every unit the menu is currently offering
+	  //
+	  if (idx === "all") {
+	    let chosen = [];
+	    for (let z = 0; z < units.length; z++) {
+	      if (units[z].key === "skip") { continue; }
+	      let html = optionHtml(units[z]);
+	      if (html == null || String(html).indexOf("noselect") !== -1) { continue; }
+	      let id_match = String(html).match(/\sid=['"]([^'"]+)['"]/i);
+	      if (!id_match || id_match[1] === "skip" || id_match[1] === "london") { continue; }
+	      chosen.push(id_match[1]);
+	    }
+	    launchAttack(chosen);
+	    return;
+	  }
+
+	  //
 	  // maybe we are done!
 	  //
 	  if (idx === "skip") {
-	    let finished = false;
-	    paths_self.zoom_overlay.hide();
-	    paths_self.game.status = "attacking...";
-	    paths_self.hud.updateStatus(paths_self.game.status);
-	    paths_self.hud.updateMenu([]);
-	    paths_self.hud.updateCards([]);
-	    if (selected.length > 0) {
-	      let s = [];
-	      for (let z = 0; z < selected.length; z++) {
-  		s.push(JSON.parse(paths_self.app.crypto.base64ToString(selected[z])));
-	      }
-	      paths_self.addMove("resolve\tplayer_play_combat");
-	      paths_self.addMove("player_play_combat\t"+paths_self.returnFactionOfPlayer());
-	      paths_self.addMove("post_combat_cleanup");
-	      paths_self.addMove(`combat\t${original_key}\t${JSON.stringify(s)}`);
-	      paths_self.endTurn();
-	    } else {
-	      paths_self.addMove("resolve\tplayer_play_combat");
-	      paths_self.addMove("post_combat_cleanup");
-	      paths_self.endTurn();
-	    }
+	    launchAttack(selected);
 	    return;
 	  }
 
@@ -2056,8 +2078,19 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
           attackInterface(original_key, options, selected);
 
 	},
-        false
+        null,
+        false,
+        [{ key : "all" , value : "attack with all" }]
       );
+
+      document.querySelectorAll('.zoom-overlay .controls ul').forEach((ul) => {
+        let attack_all = ul.querySelector(':scope > li[id="all"]');
+        if (!attack_all) { return; }
+        let row = document.createElement('div');
+        row.className = 'movement-actions';
+        row.appendChild(attack_all);
+        ul.parentElement.insertBefore(row, ul);
+      });
     }
 
     mainInterface(options);

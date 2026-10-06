@@ -270,6 +270,14 @@
   #log details.pog-combat > div.pog-section {
     margin-top: 0.65em;
   }
+
+  #log details.pog-combat > div.pog-gap {
+    padding-left: 0;
+  }
+
+  #log details.pog-combat > div.pog-gap + div.pog-section {
+    margin-top: 0;
+  }
 }
 
 @media screen and (max-width: 525px) {
