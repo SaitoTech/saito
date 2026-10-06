@@ -1,7 +1,24 @@
 /*
- * Settings appspace — layout / hierarchy only.
+ * Settings appspace — layout and borderless overlay presentation.
  * Panel chrome: .saito-overlay-panel. Controls: Saito buttons / inputs / checkbox.
  */
+
+/* Anchor the shell so expanding sections cannot move its close control. */
+@media only screen and (min-width: 769px) {
+  .saito-overlay:has(> .settings-appspace) {
+    top: 5vh;
+    transform: translateX(-50%);
+  }
+}
+
+.saito-overlay:has(> .settings-appspace) > .saito-overlay-closebox {
+  top: 1rem;
+  right: 1rem;
+}
+
+.settings-appspace.saito-overlay-panel {
+  border: 0;
+}
 
 .settings-appspace {
   display: flex;
@@ -12,6 +29,11 @@
   overflow: hidden;
   box-sizing: border-box;
   color: var(--saito-popover-foreground, inherit);
+}
+
+.settings-appspace > .saito-overlay-form-header {
+  flex-shrink: 0;
+  padding-right: 5.2rem;
 }
 
 /* Keep title casing from markup (global overlay header uppercases by default). */
@@ -424,6 +446,17 @@
 }
 
 @media only screen and (max-width: 768px) {
+  /* Paint the full mobile shell, leaving the inner panel borderless. */
+  .saito-overlay:has(> .settings-appspace) {
+    background-color: var(--saito-popover);
+    background-image: var(--saito-popover-wash);
+  }
+
+  .saito-overlay:has(> .settings-appspace) > .saito-overlay-closebox {
+    top: max(2.3rem, env(safe-area-inset-top));
+    right: max(1rem, env(safe-area-inset-right));
+  }
+
   .settings-appspace {
     max-height: none;
     width: 100%;

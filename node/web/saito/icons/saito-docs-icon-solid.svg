@@ -1,5 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 276.398 317.292" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="10">
   <title>Saito Docs Solid Icon</title>
-  <path fill="#fff" fill-rule="evenodd" d="M6 82.323 L6 234.969 L138.199 311.292 L270.398 234.969 L270.398 82.323 L138.199 6 Z M85.324 116.481 L85.324 93.24 L120.858 136.044 Z M151.429 138.446 L188.956 93.24 L188.956 118.12 Z M46.806 218.419 L46.806 105.548 L133.699 153.388 L133.699 263.974 Z M231.177 105.488 L231.177 222.307 L142.699 264.297 L142.699 153.409 Z"/>
+  <defs>
+    <mask id="pages" maskUnits="userSpaceOnUse" x="0" y="0" width="276.398" height="317.292">
+      <path fill="#fff" d="M138.199 97.282 L18.199 28 L18.199 208 L138.199 277.282 L258.199 208 L258.199 28 Z"/>
+      <path fill="none" stroke="#000" stroke-width="9" d="M138.199 97.282 V277.282 M44.199 101 L112.199 140.26 M164.199 140.26 L232.199 101 M44.199 143 L112.199 182.26 M164.199 182.26 L232.199 143"/>
+    </mask>
+  </defs>
+  <path fill="#fff" mask="url(#pages)" d="M138.199 97.282 L18.199 28 L18.199 208 L138.199 277.282 L258.199 208 L258.199 28 Z"/>
+  <path fill="none" stroke="#fff" stroke-width="9" d="M8.199 48 V222 L138.199 297.056 L268.199 222 V48"/>
 </svg>

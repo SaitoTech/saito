@@ -1,7 +1,7 @@
 module.exports = () => `
   <nav class="chat-manager-mobile-menu" aria-label="Chat navigation">
     <button class="item saito-large-square-button active" type="button" data-chat-action="chats">
-      <span class="icon saito-icon-button"><i class="fa-regular fa-comments"></i></span>
+      <span class="icon saito-icon-button"><i class="chat-menu-logo" aria-hidden="true"></i></span>
       <span class="label">Chats</span>
     </button>
     <button class="item saito-large-square-button" type="button" data-chat-action="add-contact">
