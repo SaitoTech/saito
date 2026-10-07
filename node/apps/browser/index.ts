@@ -106,6 +106,10 @@ async function init() {
     );
   } catch (e) {
     console.error(e);
+    if ((window as any).SaitoDynamicLoader) {
+      (window as any).SaitoDynamicLoader.fail();
+      return;
+    }
   }
 
   // enable it for ATR testing
@@ -125,9 +129,13 @@ async function init() {
   }
 
   try {
-    await saito.init();
+    if ((await saito.init()) === false) return;
   } catch (e) {
     console.error(e);
+    if ((window as any).SaitoDynamicLoader) {
+      (window as any).SaitoDynamicLoader.fail();
+      return;
+    }
   }
 
   S.getInstance().start();
@@ -139,5 +147,6 @@ window.onload = async function () {
     await init();
   } catch (error) {
     console.error(error);
+    (window as any).SaitoDynamicLoader?.fail();
   }
 };

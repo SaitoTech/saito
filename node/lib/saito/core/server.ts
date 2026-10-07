@@ -23,6 +23,7 @@ import { BlockType } from 'saito-js/lib/block';
 import NetworkPeer from 'saito-js/lib/network_peer';
 
 const JSON = require('json-bigint');
+const webFallback = require('./web-fallback');
 
 //
 // CORS -- uncomment for local CORS Cross-Origin Requests by Default
@@ -841,6 +842,7 @@ class Server {
 
     //
     // make root directory recursively servable
+    expressApp.get('/404.html', webFallback(this.web_dir, this.app.build_number));
     expressApp.use(express.static(this.web_dir));
     //
 
@@ -862,12 +864,7 @@ class Server {
       return;
     });
 
-    expressApp.get('*', (req, res) => {
-      if (!res.finished) {
-        return res.sendFile(`${this.web_dir}404.html`);
-      }
-      return;
-    });
+    expressApp.get('*', webFallback(this.web_dir, this.app.build_number));
 
     this.initializeWebSocketServer();
 
