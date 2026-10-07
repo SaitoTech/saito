@@ -451,7 +451,10 @@ The important architectural distinction is:
     subordinate components
         individual UI regions
 
-Saito's 404 handling can also provide the Saito page/container structure. New applications should follow the existing repository conventions rather than inventing a separate page bootstrapping architecture.
+For URLs without a server-side module route, Saito's dynamic-module loading page
+boots the browser runtime so a locally installed application can render. If no
+active module matches, it reloads into a script-free HTTP 404. New applications
+should follow this existing bootstrapping convention.
 
 
 ## 10. Render Is the Core UI Operation
