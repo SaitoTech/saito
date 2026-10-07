@@ -90,7 +90,11 @@
   top: -1rem;
   right: -1rem;
   background:
-    linear-gradient(180deg, color-mix(in srgb, var(--saito-foreground) 12%, transparent), transparent),
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--saito-foreground) 12%, transparent),
+      transparent
+    ),
     color-mix(in srgb, var(--saito-card) 84%, var(--saito-primary));
   border: 1px solid color-mix(in srgb, var(--saito-primary) 42%, var(--saito-border));
   box-shadow:
@@ -313,7 +317,7 @@
     overflow-y: auto;
     scrollbar-width: none;
     overscroll-behavior: contain;
-    background: var(--saito-canvas-wash);
+    background: var(--saito-popover-wash);
   }
 
   .saito-overlay::-webkit-scrollbar {
