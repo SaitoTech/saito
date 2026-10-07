@@ -45,14 +45,21 @@ async function getMetadataFromZip(zipPath) {
   };
 
   const directory = await unzipper.Open.file(zipPath);
+  let imagePriority = 0;
   const promises = directory.files.map(async (file) => {
     const filePath = file.path;
 
     //console.log('filePath:', filePath);
 
-    if (filePath.endsWith('arcade.jpg') || filePath.endsWith('saito_icon.jpg')) {
+    const image = filePath.match(/(?:^|\/)(?:arcade|saito_icon)\.(svg|jpg)$/);
+    if (image) {
       const content = await file.buffer();
-      metadata.image = 'data:image/jpeg;base64,' + content.toString('base64');
+      const priority = image[1] === 'svg' ? 2 : 1;
+      if (priority > imagePriority) {
+        imagePriority = priority;
+        const mime = image[1] === 'svg' ? 'image/svg+xml' : 'image/jpeg';
+        metadata.image = `data:${mime};base64,` + content.toString('base64');
+      }
       return;
     }
     if (filePath.substr(0, 3) === 'lib') return;

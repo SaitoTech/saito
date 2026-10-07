@@ -6,6 +6,7 @@ const RulesTemplate = require('./lib/ui/rules.template');
 const Art = require('./lib/art');
 const TeleportPayments = require('./lib/teleport-payments');
 const RobotsLeaderboard = require('./lib/leaderboard');
+const LevelSaves = require('./lib/level-saves');
 
 class Robots extends OnePlayerGameTemplate {
   constructor(app) {
@@ -21,13 +22,14 @@ class Robots extends OnePlayerGameTemplate {
       'An unofficial fan game with original SVG pixel art. Inspired by BSD robots and GNOME Robots.';
     this.status = 'beta';
     this.class = 'app';
-    this.version = '0.2.0';
+    this.version = '0.3.0';
     this.game_length = 10;
     this.statistical_unit = 'wave';
     this.styles = [];
     this.main = new RobotsUI(app, this);
     this.teleportPayments = new TeleportPayments(app, this);
     this.leaderboard = new RobotsLeaderboard(app, this);
+    this.levelSaves = new LevelSaves(app, this);
   }
 
   respondTo(type, obj = null) {
@@ -40,6 +42,12 @@ class Robots extends OnePlayerGameTemplate {
     await super.initialize(app);
     await this.leaderboard.configure();
     if (app.BROWSER) {
+      try {
+        await this.levelSaves.load();
+      } catch (error) {
+        console.warn('Robots checkpoint load failed:', error);
+      }
+      this.levelSaves.flush();
       app.connection.on('league-data-loaded', () => this.leaderboard.configure());
       app.connection.on('league-leaderboard-loaded', (game) => {
         if (game === this.name && this.browser_active) this.main.update();
@@ -79,6 +87,9 @@ class Robots extends OnePlayerGameTemplate {
   }
 
   async onConfirmation(blk, tx, conf) {
+    if (this.app.BROWSER && tx.returnMessage().checkpoint) {
+      await this.levelSaves.confirm(tx, conf);
+    }
     if (tx.returnMessage().request === TeleportPayments.REQUEST) {
       if (this.teleportPayments.confirm(tx, conf) && this.browser_active) {
         this.main.update();
@@ -86,6 +97,17 @@ class Robots extends OnePlayerGameTemplate {
       return;
     }
     return super.onConfirmation(blk, tx, conf);
+  }
+
+  async onPeerServiceUp(app, peer, service = {}) {
+    await super.onPeerServiceUp(app, peer, service);
+    if (app.BROWSER && service.service === 'archive') {
+      try {
+        await this.levelSaves.connect(peer);
+      } catch (error) {
+        console.warn('Robots checkpoint sync failed:', error);
+      }
+    }
   }
 
   async render(app) {
@@ -110,6 +132,22 @@ class Robots extends OnePlayerGameTemplate {
       }
     });
     this.menu.addChatMenu();
+    this.menu.addSubMenuOption('game-game', {
+      text: 'Resume Saved Level',
+      id: 'robots-resume',
+      callback: async () => {
+        this.menu.hideSubMenus();
+        await this.main.resumeLevel();
+      }
+    });
+    this.menu.addSubMenuOption('game-game', {
+      text: 'Retry Level Sync',
+      id: 'robots-sync',
+      callback: () => {
+        this.menu.hideSubMenus();
+        this.levelSaves.flush();
+      }
+    });
     this.menu.render();
     this.main.mount();
   }
@@ -145,7 +183,10 @@ class Robots extends OnePlayerGameTemplate {
       result = RobotsGame.act(state.run, action, random);
       if (result.accepted && state.run.status === 'dead') state.session.losses++;
     }
-    if (result.accepted && state.run.status === 'cleared') this.leaderboard.recordClear(state.run);
+    if (result.accepted && state.run.status === 'cleared') {
+      this.leaderboard.recordClear(state.run);
+      this.levelSaves.capture();
+    }
     const best = this.loadGamePreference('Robots_best') || 0;
     if (state.run.score > best) this.saveGamePreference('Robots_best', state.run.score);
     this.saveGame(this.game.id);
