@@ -401,7 +401,7 @@
         if (sys.p[planet_idx].units[defender-1][weakest_unit_idx].strength <= 0) {
           ground_forces_destroyed++;
           sys.p[planet_idx].units[defender-1][weakest_unit_idx].destroyed = 1;
-	  for (z_index in z) {
+	  for (let z_index in z) {
             sys.p[planet_idx].units[defender-1][weakest_unit_idx] = z[z_index].unitDestroyed(this, attacker, sys.p[planet_idx].units[defender-1][weakest_unit_idx]);
 	  }
         }
@@ -448,7 +448,7 @@
         if (sys.s.units[defender-1][weakest_unit_idx].strength <= 0) {
 	  ships_destroyed++;
           sys.s.units[defender-1][weakest_unit_idx].destroyed = 1;
-	  for (z_index in z) {
+	  for (let z_index in z) {
             sys.s.units[defender-1][weakest_unit_idx] = z[z_index].unitDestroyed(this, attacker, sys.s.units[defender-1][weakest_unit_idx]);
 	  }
         }

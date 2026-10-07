@@ -1871,7 +1871,7 @@ if (debugging == 0) {
     	  this.game.state.agendas = [];
     	  this.game.state.agendas_voting_information = [];
         }
-        for (i = 0; i < this.game.pool[0].hand.length; i++) {
+        for (let i = 0; i < this.game.pool[0].hand.length; i++) {
           this.game.state.agendas.push(this.game.pool[0].hand[i]);
           this.game.state.agendas_voting_information.push({});
   	}
@@ -1966,7 +1966,7 @@ if (debugging == 0) {
  	this.game.state.new_objectives = [];
 
 	if (this.game.deck.length > 5) {
-          for (i = 0; i < this.game.deck[5].hand.length; i++) {
+          for (let i = 0; i < this.game.deck[5].hand.length; i++) {
   	    if (!this.game.state.secret_objectives.includes(this.game.deck[5].hand[i])) {
               this.game.state.secret_objectives.push(this.game.deck[5].hand[i]);
 	      this.game.state.new_objectives.push({ type : "secret" , card : this.game.deck[5].hand[i] });
@@ -1974,7 +1974,7 @@ if (debugging == 0) {
   	  }
 	}
 	if (this.game.pool.length > 1) {
-          for (i = 0; i < this.game.pool[1].hand.length; i++) {
+          for (let i = 0; i < this.game.pool[1].hand.length; i++) {
   	    if (!this.game.state.stage_i_objectives.includes(this.game.pool[1].hand[i])) {
               this.game.state.stage_i_objectives.push(this.game.pool[1].hand[i]);
 	      this.game.state.new_objectives.push({ type : "stage1" , card : this.game.pool[1].hand[i]});
@@ -1982,7 +1982,7 @@ if (debugging == 0) {
   	  }
 	}
 	if (this.game.pool.length > 2) {
-          for (i = 0; i < this.game.pool[2].hand.length; i++) {
+          for (let i = 0; i < this.game.pool[2].hand.length; i++) {
 	    if (!this.game.state.stage_ii_objectives.includes(this.game.pool[2].hand[i])) {
               this.game.state.stage_ii_objectives.push(this.game.pool[2].hand[i]);
 	      this.game.state.new_objectives.push({ type : "stage2" , card : this.game.pool[2].hand[i]});
@@ -2887,7 +2887,7 @@ if (debugging == 0) {
 
 	this.game.state.activated_sector = sector;
 
-        sys = this.returnSectorAndPlanets(sector);
+        let sys = this.returnSectorAndPlanets(sector);
   	sys.s.activated[player-1] = 1;
 
   	this.saveSystemAndPlanets(sys);
@@ -2904,7 +2904,7 @@ if (debugging == 0) {
   	let player       = parseInt(mv[1]);
         let sector	 = mv[2];
 
-        sys = this.returnSectorAndPlanets(sector);
+        let sys = this.returnSectorAndPlanets(sector);
   	sys.s.activated[player-1] = 0;
         this.saveSystemAndPlanets(sys);
         this.updateSectorGraphics(sector);
@@ -3318,7 +3318,7 @@ if (debugging == 0) {
 	let player_to_continue = mv[3];
         let z = this.returnEventObjects();
 
-        sys = this.returnSectorAndPlanets(sector);
+        let sys = this.returnSectorAndPlanets(sector);
   	sys.s.activated[activating_player-1] = 1;
 	this.game.state.activated_sector = sector;
   	this.saveSystemAndPlanets(sys);
@@ -4562,7 +4562,7 @@ console.log("K: " + z[k].name);
 
 	        let roll = this.rollDice(10);
 console.log("1 roll: " + roll);
-      	        for (z_index in z) { roll = z[z_index].modifyCombatRoll(imperium_self, attacker, sys.p[planet_idx].owner, this.game.player, "bombardment", roll); }
+      	        for (let z_index in z) { roll = z[z_index].modifyCombatRoll(imperium_self, attacker, sys.p[planet_idx].owner, this.game.player, "bombardment", roll); }
 console.log("2 roll: " + roll);
 
   	        roll += this.game.state.players_info[attacker-1].bombardment_roll_modifier;
@@ -4604,7 +4604,7 @@ console.log("6 roll: " + roll);
 	  for (let i = hits_or_misses.length; i < hits_or_misses.length+bonus_shots; i++) {
 
 	    let roll = this.rollDice(10);
-      	    for (z_index in z) { roll = z[z_index].modifyCombatRoll(imperium_self, attacker, sys.p[planet_idx].owner, this.game.player, "bombardment", roll); }
+      	    for (let z_index in z) { roll = z[z_index].modifyCombatRoll(imperium_self, attacker, sys.p[planet_idx].owner, this.game.player, "bombardment", roll); }
 
   	    roll += this.game.state.players_info[attacker-1].bombardment_roll_modifier;
 	    roll += this.game.state.players_info[attacker-1].temporary_bombardment_roll_modifier;
@@ -4664,7 +4664,7 @@ console.log("6 roll: " + roll);
 	        imperium_self.game.state.players_info[defender-1].target_units = z[z_index].modifyTargets(this, attacker, defender, imperium_self.game.player, "space", imperium_self.game.state.players_info[defender-1].target_units);
 	      }
 
-      	      for (z_index in z) { roll = z[z_index].modifyCombatRoll(imperium_self, attacker, sys.p[planet_idx].owner, this.game.player, "bombardment", roll); }
+      	      for (let z_index in z) { roll = z[z_index].modifyCombatRoll(imperium_self, attacker, sys.p[planet_idx].owner, this.game.player, "bombardment", roll); }
   	      roll += this.game.state.players_info[attacker-1].bombardment_roll_modifier;
 	      roll += this.game.state.players_info[attacker-1].temporary_bombardment_roll_modifier;
 	      roll += this.game.state.players_info[attacker-1].combat_roll_modifier;

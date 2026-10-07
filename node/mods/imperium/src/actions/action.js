@@ -178,7 +178,7 @@ console.log("qe: " + qe);
 		  let roll = imperium_self.rollDice(10);
 		  if (roll > 6) {
 		    thisunit.destroyed = 1;
-		    for (z_index in z) {
+		    for (let z_index in z) {
 		      thisunit = z[z_index].unitDestroyed(this, attacker, thisunit);
 		    }
 	            total_units_destroyed++;
@@ -272,7 +272,7 @@ console.log("qe: " + qe);
             let html = '';
             html += 'Select one agenda to quash in the Galactic Senate.';
             let menu = [];
-            for (i = 0; i < 3; i++) {
+            for (let i = 0; i < 3; i++) {
               menu.push({ id: String(imperium_self.game.state.agendas[i]), label: imperium_self.agenda_cards[imperium_self.game.state.agendas[i]].name });
             }
 

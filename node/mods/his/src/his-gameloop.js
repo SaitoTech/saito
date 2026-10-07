@@ -12458,11 +12458,6 @@ defender_hits - attacker_hits;
 	  //
 	  if (factions_in_play.length > 0) {
 
-	    //
-	    // add save instruction!
-	    //
-	    this.game.queue.push("SAVE");
-
 	    let io = this.returnImpulseOrder();
 	    for (let i = io.length-1; i >= 0; i--) {
 	      for (let k = 0; k < factions_in_play.length; k++) {

@@ -1069,14 +1069,12 @@ console.log(JSON.stringify(ship));
       return 0; 
     }
 
-    if (attacker == -1) {
-      attacker_forces = 0;
-    } else {
+    let attacker_forces = 0;
+    let defender_forces = 0;
+    if (attacker != -1) {
       attacker_forces = this.returnNumberOfGroundForcesOnPlanet(attacker, sector, pid);
     }
-    if (defender == -1) {
-      defender_forces = 0;
-    } else {
+    if (defender != -1) {
       defender_forces = this.returnNumberOfGroundForcesOnPlanet(defender, sector, pid);
     }
 

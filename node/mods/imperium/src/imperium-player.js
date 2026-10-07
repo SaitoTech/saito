@@ -833,7 +833,7 @@ playerAcknowledgeNotice(msg, mycallback) {
 
   let targetted_units = ["destroyer","cruiser","carrier","dreadnaught","warsun","flagship"];
 
-  html = '<div class="status-header-text">You must assign ' + total_hits + ' to capital ships (if possible):</div>';
+  let html = '<div class="status-header-text">You must assign ' + total_hits + ' to capital ships (if possible):</div>';
     this.game.status = html;
   this.hud.preparePrompt(this.game.status);
   this.hud.updateCards([]);
@@ -943,7 +943,7 @@ playerAcknowledgeNotice(msg, mycallback) {
   let relevant_action_cards = ["assign_hits"];
   if (details == "pds") { relevant_action_cards = ["post_pds"]; }
 
-  html = '';
+  let html = '';
   let menu = [];
   let ac = this.returnPlayerActionCards(imperium_self.game.player, relevant_action_cards);
   if (ac.length > 0) {
@@ -3664,7 +3664,7 @@ playerHandleTradeOffer(faction_offering, their_offer, my_offer, offer_log) {
         for (let i = 0; i < imperium_self.game.state.players_info[imperium_self.game.player-1].promissary_notes.length; i++) {
 
 	  let pm = imperium_self.game.state.players_info[imperium_self.game.player-1].promissary_notes[i];
-	  tmpar = pm.split("-");
+	  let tmpar = pm.split("-");
 	  let tmpname = tmpar[1];
           for (let i = 2; i < tmpar.length; i++) {
 	    tmpname += "-";
@@ -5330,11 +5330,11 @@ console.log("DONE!");
         // add hover / mouseover to message
         //
         for (let i = 0; i < sys.p.length; i++) {
-          adddiv = "#addinfantry_p_" + i;
+          let adddiv = "#addinfantry_p_" + i;
           $(adddiv).on('mouseenter', function () { imperium_self.addPlanetHighlight(sector, i); });
           $(adddiv).on('mouseleave', function () { imperium_self.removePlanetHighlight(sector, i); });
         }
-        adddiv = "#addfighter_s_s";
+        let adddiv = "#addfighter_s_s";
         $(adddiv).on('mouseenter', function () { imperium_self.addSectorHighlight(sector); });
         $(adddiv).on('mouseleave', function () { imperium_self.removeSectorHighlight(sector); });
 
@@ -5684,7 +5684,7 @@ playerInvadePlanet(player, sector, auto_option=1) {
 
   if (exists_resistance == 0 && auto_option == 1 && tai >= sys.p.length) {
 
-    html  = '<div class="status-header-text">There is no resistance in this sector.<p></p>Do you want to auto-invade (1 infantry per planet)?: </div>';
+    let html = '<div class="status-header-text">There is no resistance in this sector.<p></p>Do you want to auto-invade (1 infantry per planet)?: </div>';
     let auto_menu = [
       { id: 'auto', label: 'automatic invasion' },
       { id: 'manual', label: 'manual invasion' }
@@ -5825,7 +5825,7 @@ playerInvadePlanet(player, sector, auto_option=1) {
       }
     }
 
-    html = '<div class="status-header-text">Select Ground Forces for Invasion of ' + sys.p[planet_idx].name + ': </div><ul>';
+    let html = '<div class="status-header-text">Select Ground Forces for Invasion of ' + sys.p[planet_idx].name + ': </div><ul>';
 
     //
     // other planets in system

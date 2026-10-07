@@ -489,6 +489,40 @@ class Database {
     return res?.[0] || null;
   }
 
+  /**
+   * Newest moderation decision for this seller and NFT.
+   * 1 = approved, 2 = pending review, -1 = rejected. 0 = none.
+   * A partial sale relists the remainder under a new signature; callers use
+   * this so that decision follows the NFT instead of the spent transaction.
+   */
+  async returnLatestNftModeration(nft_id, seller) {
+    const id = String(nft_id || '').trim();
+    const key = String(seller || '').trim();
+    if (!id || !key) {
+      return 0;
+    }
+
+    try {
+      const res = await this.app.storage.queryDatabase(
+        `SELECT approved FROM listings
+				 WHERE nft_id = $nft_id
+				   AND seller = $seller
+				   AND approved != 0
+				 ORDER BY block_id_listed DESC, id DESC
+				 LIMIT 1`,
+        { $nft_id: id, $seller: key },
+        this.dbname
+      );
+      const approved = Number(res?.[0]?.approved ?? 0);
+      if (approved === 1 || approved === 2 || approved === -1) {
+        return approved;
+      }
+    } catch (err) {
+      return 0;
+    }
+    return 0;
+  }
+
   /** Newest stored inclusion of a listing transaction, on the longest chain or not. */
   async returnLatestListingInclusion(signature) {
     const res = await this.app.storage.queryDatabase(

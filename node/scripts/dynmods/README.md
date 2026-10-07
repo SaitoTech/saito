@@ -11,12 +11,14 @@ It then compiles the modules into /dist/mods/saito/*.saito dynamic mods
 To zip and compile only one directory under `mods/`, run from the node project:
 
 ```bash
-npm run .saito -- limbo
+npm run .saito his
 ```
 
-This compiles only `mods/limbo/`, even if other ZIPs already exist in
-`dist/mods/zip/`. The output is `dist/mods/saito/<slug>.saito`, using the module's
-metadata slug. With no argument, `npm run .saito` compiles all modules as before.
+`his` is the directory name under `mods/`. This compiles only `mods/his/`, even if
+other ZIPs already exist in `dist/mods/zip/`. The output is
+`dist/mods/saito/<slug>.saito`, using the module's metadata slug. With no argument,
+`npm run .saito` compiles all modules as before. `npm run .saito -- his` is the
+same single-module compile.
 
 Package thumbnails can be `arcade.svg` or `saito_icon.svg` (embedded as
 `image/svg+xml`), or the existing JPEG names. SVG takes precedence when both

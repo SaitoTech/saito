@@ -14,14 +14,12 @@ class Storage {
   public timeout: any;
   currentBuildNumber: bigint = BigInt(0);
   public localDB: any = null;
-  public wallet_options_hash: any = '';
 
   constructor(app) {
     this.app = app || {};
     this.active_tab = 1; // TODO - only active tab saves, move to Browser class
     this.timeout = null;
     this.localDB = null;
-    this.wallet_options_hash = '';
   }
 
   async initialize() {
@@ -594,25 +592,72 @@ class Storage {
     }
   }
 
-  saveOptions() {
+  saveOptions(replacements: Array<{ path: Array<string | number>; json: string }> = []) {
     if (this.app.BROWSER == 1) {
       if (this.active_tab == 0) {
         return;
       }
     }
 
-    let new_wallet_json = JSON.stringify(this.app.options);
-    let new_wallet_hash = this.app.crypto.hash(new_wallet_json);
+    // A replacement is an already-serialized value somewhere in app.options.
+    // The live object is swapped for a token while stringify runs, then the
+    // token is replaced with that JSON so the subtree is not walked again.
+    const applied = [];
+    let new_wallet_json = '';
 
-    if (new_wallet_hash == this?.wallet_options_hash) {
-      return;
+    try {
+      for (let i = 0; i < replacements.length; i++) {
+        const item = replacements[i];
+        if (!item || !Array.isArray(item.path) || item.path.length === 0 || typeof item.json !== 'string') {
+          continue;
+        }
+
+        let parent = this.app.options;
+        for (let p = 0; p < item.path.length - 1; p++) {
+          parent = parent?.[item.path[p]];
+        }
+        if (parent == null) {
+          continue;
+        }
+
+        const key = item.path[item.path.length - 1];
+        const token = `__SAITO_SAVED_${i}_${Date.now()}_${Math.random().toString(36).slice(2)}__`;
+        applied.push({ parent, key, original: parent[key], token, json: item.json });
+        parent[key] = token;
+      }
+
+      console.log('GT [saveOptions] before stringify', new Date().toISOString(), Date.now());
+      new_wallet_json = JSON.stringify(this.app.options);
+      for (let i = 0; i < applied.length; i++) {
+        new_wallet_json = new_wallet_json.split(JSON.stringify(applied[i].token)).join(applied[i].json);
+      }
+    } finally {
+      for (let i = applied.length - 1; i >= 0; i--) {
+        applied[i].parent[applied[i].key] = applied[i].original;
+      }
     }
+
+    console.log(
+      'GT [saveOptions] after stringify, options size ' +
+        new_wallet_json.length +
+        ' bytes (' +
+        (new_wallet_json.length / 1024).toFixed(1) +
+        ' KB)',
+      new Date().toISOString(),
+      Date.now()
+    );
 
     try {
       localStorage.setItem('options', new_wallet_json);
-
-      //Update hash
-      this.wallet_options_hash = new_wallet_hash;
+      console.log(
+        'GT [saveOptions] after localStorage.setItem, options size ' +
+          new_wallet_json.length +
+          ' bytes (' +
+          (new_wallet_json.length / 1024).toFixed(1) +
+          ' KB)',
+        new Date().toISOString(),
+        Date.now()
+      );
     } catch (err) {
       for (let i = 0; i < localStorage.length; i++) {
         let item = localStorage.getItem(localStorage.key(i));

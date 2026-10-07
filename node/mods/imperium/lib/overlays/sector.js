@@ -37,7 +37,7 @@ class SectorOverlay {
         owner = this.mod.returnFactionNickname(sys.p[i].owner);
       }
 
-      html = `
+      let html = `
 		        	<div class="planet">
 		        	  ${owner}
 		        	  <div class="system_summary_content">
