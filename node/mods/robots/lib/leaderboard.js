@@ -38,10 +38,7 @@ class RobotsLeaderboard {
     if (run.leaderboardPoints > best) {
       this.mod.saveGamePreference('Robots_leaderboard_best', run.leaderboardPoints);
     }
-    // Use the same queue command and numeric high-score reason as Spider Solitaire.
-    this.mod.game.queue.push(
-      `ROUNDOVER\t${JSON.stringify([this.mod.publicKey])}\t${run.leaderboardPoints}\t[]`
-    );
+    // LevelSaves publishes the standard roundover result with its checkpoint.
   }
 
   rank() {

@@ -25,9 +25,21 @@ Defeating wave 1 earns **1 leaderboard point**, wave 2 earns **2**, wave 3 earns
 
 The status panel shows the current run, the locally saved best, and the rank from the available League player list. VIEW LEADERBOARD opens the standard Saito League overlay. Remote ranking updates after result transactions confirm and League refreshes its data.
 
-Each surviving wave clear queues the standard `ROUNDOVER` game-engine command with the cumulative numeric score. That command signs and broadcasts a result transaction using the wallet's usual fee handling. A wave cannot award twice, and loading an old saved game infers its cleared-wave total without replaying historical results. The League number format uses JavaScript numbers, so totals saturate at `Number.MAX_SAFE_INTEGER` after 53 cleared waves.
+Each surviving wave clear signs and broadcasts a standard `Robots` / `roundover` result transaction with the cumulative numeric score and a level checkpoint, using the wallet's default network fee. `lib/level-saves.js` retains the result for retry instead of queuing a second `ROUNDOVER` transaction. A wave cannot award twice, and loading an old saved game infers its cleared-wave total without replaying historical results. The League number format uses JavaScript numbers, so totals saturate at `Number.MAX_SAFE_INTEGER` after 53 cleared waves.
+
+**Server requirement:** installing a `.saito` NFT installs Robots in the browser only. The League service must also have a Robots league registered on its server to process `Robots` result transactions. A browser-only install cannot create or migrate that server league. Deploying Robots in the server module list and restarting registers its default league; verify that its game is `Robots`, its ID is the hash of `Terminator`, and its ranking algorithm is `HSC`. Payments and result transactions can reach the chain even when no server leaderboard processes them. Monitor transaction messages by module `Robots` (the displayed game name is Terminator), with requests `safe-teleport` and `roundover`.
 
 On module initialization, an existing default Terminator league is migrated from EXP to HSC while preserving player records. The code lives entirely in this module; because League's public metadata API cannot persist algorithm changes, the module performs one narrowly scoped update to its default league row through Saito storage on the server. Restart the server after deploying this version so existing league metadata is migrated. Private leagues are untouched. Scores remain client-reported, as with other local one-player games; this is not anti-cheat verification.
+
+## Level checkpoints and resume
+
+Every surviving level completion records the cleared board, wave, score, leaderboard points, session statistics and game dice seed in the result transaction's `checkpoint` field (version 1). The checkpoint is captured before advancing to the next wave. Ordinary turns still save locally through the game framework. No payment receipt is published or restored with a checkpoint, so restoring cannot resurrect a previously spent safe jump.
+
+Open **Game → Resume Saved Level** to resume from the latest available checkpoint, then select **Next Wave**. Restoring requires confirmation before replacing the current board and retains the active Arcade game ID and any currently unused paid jump. Loading a checkpoint neither republishes its result nor earns its level points again. Existing local saves continue to resume normally; an arriving remote checkpoint never overwrites active play automatically.
+
+Results are saved in wallet preferences before submission and retained until block confirmation. **Game → Retry Level Sync**, application startup, and Archive reconnection retry pending results. Once signed, retries use the identical transaction, including after reload. Creation or submission failure reports that the save is local and keeps the checkpoint for retry. Submission alone is not confirmation.
+
+Signed checkpoints are archived locally and sent to discovered Archive services using `app.storage`. The same wallet can recover an archived checkpoint after losing its local game save; retrieval checks both the wallet signature and checkpoint structure. Cross-device recovery needs the same wallet key and an Archive peer retaining the transaction. On-chain inclusion alone does not guarantee permanent Archive availability. Checkpoint state is public transaction data.
 
 ## Paid teleports and chain activity
 
@@ -58,7 +70,8 @@ This produces **`dist/mods/saito/robots.saito`**. Import that file with Saito's 
 For inclusion in a normal node/browser distribution, add `'robots/robots.js'` to the appropriate `core` and `lite` lists in your local `config/modules.config.js`, then run `npm run compile -- dev` and start/restart the development server. Launch a game from the Arcade before visiting `/robots`. This module does not change your local module selection or wallet/chain configuration.
 
 ```sh
-npm test -- --runInBand --runTestsByPath tests/mods/robots/robots-game.spec.js tests/mods/robots/metadata.spec.js tests/mods/robots/teleport-payments.spec.js tests/mods/robots/leaderboard.spec.js
+npm test -- --runInBand --runTestsByPath tests/mods/robots/robots-game.spec.js tests/mods/robots/metadata.spec.js tests/mods/robots/teleport-payments.spec.js tests/mods/robots/leaderboard.spec.js tests/mods/robots/level-saves.spec.js
+node --test tests/mods/robots/level-saves-transaction.cjs
 node tests/mods/robots/browser-smoke.cjs
 ```
 
@@ -69,13 +82,14 @@ The full application build scans module directories beyond the files explicitly 
 ## Saito integration
 
 - `robots.js`: `OnePlayerGameTemplate`, metadata, game initialization, queue commands, HTML shell and Arcade image hooks.
+- `lib/level-saves.js`: signed level-result checkpoints, retry, Archive retrieval, signature validation and explicit restore.
 - `lib/robots-game.js`: simultaneous pursuit/collisions and scoring; JSON-compatible state at `game.state.run`; randomness injected from `rollDice`.
 - `lib/ui/main.js` and `.template.js`: board rendering and input. Reuses `GameHUD2`, `GamePlayerbox`, `GameMenu` and `SaitoOverlay`.
 - `lib/ui/styles.js`: scoped CSS bundled as JavaScript to support server-independent installation.
 - `lib/art.js`: original SVG sprites, 5×7 lettering, cover, background and icon.
 - `lib/pixel-font.js`: embedded WOFF2 made from the same original glyphs.
 
-The inherited single-player `endTurn()` runs moves locally; every action is a `robots` queue command above the persistent `robots-play` input marker. No new transaction protocol, peer service, database or server asset route is needed.
+The inherited single-player `endTurn()` runs moves locally; every action is a `robots` queue command above the persistent `robots-play` input marker. Level checkpoints extend the standard `roundover` message; no new peer service, database or server asset route is needed.
 
 ## Artwork and asset delivery
 

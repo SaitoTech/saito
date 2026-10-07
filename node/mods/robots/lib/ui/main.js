@@ -179,6 +179,25 @@ class RobotsUI {
     if (action.type === 'safe') await this.resumePaidTeleport();
   }
 
+  async resumeLevel() {
+    if (this.busy || this.confirming) return;
+    this.confirming = true;
+    try {
+      const tx = this.mod.levelSaves.latest;
+      if (!tx) {
+        this.update('NO SAVED LEVEL FOUND — CONNECT TO THE ARCHIVE AND TRY AGAIN');
+        return;
+      }
+      const wave = tx.returnMessage().checkpoint.run.wave;
+      if (await sconfirm(`Resume after level ${wave}? This replaces your current board.`)) {
+        // Keep the chosen checkpoint stable if an Archive response arrives during the prompt.
+        if (this.mod.levelSaves.restore(tx)) this.update('LEVEL RESTORED — READY FOR NEXT WAVE');
+      }
+    } finally {
+      this.confirming = false;
+    }
+  }
+
   confirmTeleportPayment(message) {
     return new Promise((resolve) => {
       this.mod.overlay.show(PaymentTemplate(), () => resolve(false));
