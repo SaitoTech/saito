@@ -213,6 +213,7 @@ class ListingDetailOverlay {
       hasGallery: normalizedImages.length > 1,
       primaryLabel: this.escapeHtml(primaryLabel),
       primaryDisplay,
+      canShare: !!summary.listing_signature,
       nextBid,
       showNextBid: !!nextBid && !isRental,
       nextBidDisplay,
@@ -422,6 +423,24 @@ class ListingDetailOverlay {
             this.render(summary);
           }
         });
+      };
+    }
+
+    const shareBtn = root.querySelector('[data-action="share"]');
+    if (shareBtn) {
+      shareBtn.onclick = async () => {
+        const summary = this.summary;
+        const longUrl = `${window.location.origin}/${this.mod.slug}/listing/${encodeURIComponent(summary.listing_signature)}`;
+        shareBtn.disabled = true;
+        let url = longUrl;
+        try {
+          url = await this.mod.createShortLink(longUrl);
+        } catch (err) {
+          console.warn('Store: short link unavailable', err);
+        } finally {
+          shareBtn.disabled = false;
+        }
+        this.app.browser.handleShare({ title: summary.returnTitle(), url });
       };
     }
 

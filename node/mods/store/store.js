@@ -23,6 +23,14 @@ class Store extends ModTemplate {
     this.status = 'beta';
     this.class = 'utility';
     this.dbname = 'store';
+    this.shortlinks_enabled = 1;
+    this.social = this.buildSocial({
+      twitter: '@SaitoOfficial',
+      title: 'Saito Store',
+      description: this.description,
+      url: '/store',
+      image: '/store/img/store.png'
+    });
     this.styles = ['/store/style.css', '/saito/lib/jsonTree/jsonTree.css'];
 
     this.main = null;
@@ -31,6 +39,7 @@ class Store extends ModTemplate {
     this.image_cache = {};
     this.store_public_key = '';
     this.store_peer_index = null;
+    this.shared_listing_path = '';
     this.listings_to_moderate = 0;
     this.fee = 0;
     this.order_retry_limit = 10;
@@ -267,6 +276,32 @@ class Store extends ModTemplate {
 
     if (!this.browser_active || !this.main?.manager) {
       return;
+    }
+
+    const prefix = `/${this.slug}/listing/`;
+    const listingPath = window.location.pathname;
+    if (listingPath.startsWith(prefix) && this.shared_listing_path !== listingPath) {
+      this.shared_listing_path = listingPath;
+      app.network.sendRequestAsTransaction(
+        'load-listing',
+        { module: this.name, signature: decodeURIComponent(listingPath.slice(prefix.length)) },
+        async (response) => {
+          if (window.location.pathname !== listingPath) {
+            return;
+          }
+          if (!response?.listing) {
+            siteMessage(response?.err || 'Listing unavailable', 5000);
+            return;
+          }
+          const Summary = require('./lib/summary');
+          await this.main.openStorefront(response.listing.seller, { updateUrl: false });
+          if (window.location.pathname !== listingPath) {
+            return;
+          }
+          this.main.listing_detail.open(new Summary(app, this, response.listing));
+        },
+        peer.publicKey
+      );
     }
 
     // Peer readiness only enables fetch — do not change which Store context is active.
@@ -509,6 +544,25 @@ class Store extends ModTemplate {
           signature,
           approved: approved ? 1 : 0
         });
+        return 1;
+      }
+    }
+
+    if (txmsg?.request === 'load-listing' && txmsg?.data?.module === this.name) {
+      if (!this.app.BROWSER && mycallback != null) {
+        try {
+          const row = await this.warehouse.db.returnCanonicalListingBySignature(txmsg.data.signature);
+          const Listing = require('./lib/listing');
+          if (!row || !new Listing(row).isAvailable() || Number(row.quantity) <= 0) {
+            mycallback({ err: 'Listing unavailable' });
+            return 1;
+          }
+          const summary = await this.warehouse.summaryFromListingRow(row);
+          mycallback({ listing: summary.serialize() });
+        } catch (err) {
+          console.error('Store: shared listing lookup failed', err);
+          mycallback({ err: 'Unable to load listing' });
+        }
         return 1;
       }
     }
@@ -1140,13 +1194,64 @@ class Store extends ModTemplate {
     await this.warehouse.onChainReorganization(block_id, block_hash, lc);
   }
 
+  async returnShortLinkSocial(row, req) {
+    const origin = `${req.protocol}://${req.get('host')}`;
+    const target = new URL(row.link, origin);
+    const prefix = `/${this.returnSlug()}/listing/`;
+    if (target.origin !== origin || !target.pathname.startsWith(prefix)) {
+      return null;
+    }
+
+    const signature = decodeURIComponent(target.pathname.slice(prefix.length));
+    const listing = await this.warehouse.db.returnCanonicalListingBySignature(signature);
+    if (!listing) {
+      return null;
+    }
+    const summary = await this.warehouse.summaryFromListingRow(listing);
+    let image = '/store/img/store.png';
+    if (this.image_cache[summary.nft_id]?.startsWith('data:image/')) {
+      image = summary.returnCacheImageUrl();
+    } else if (/^(https?:\/\/|\/)/i.test(summary.image || '')) {
+      image = summary.image;
+    }
+    return {
+      ...this.social,
+      title: summary.returnTitle(),
+      description: [summary.returnPrice(), summary.returnDescription()].filter(Boolean).join(' — '),
+      url: `${origin}${prefix}${encodeURIComponent(signature)}`,
+      image: new URL(image, origin).href
+    };
+  }
+
   webServer(app, expressapp, express, alternative_slug = null) {
     const webdir = `${__dirname}/../../mods/${this.dirname}/web`;
     const uri = alternative_slug || '/' + encodeURI(this.returnSlug());
     const self = this;
 
-    const sendStoreHtml = (req, res) => {
-      const html = index(app, self, app.build_number);
+    const sendStoreHtml = async (req, res) => {
+      const origin = `${req.protocol}://${req.get('host')}`;
+      let social = {
+        ...self.social,
+        url: `${origin}${uri}`,
+        image: `${origin}${uri}/img/store.png`
+      };
+      if (req.params.signature) {
+        try {
+          const listingSocial = await self.returnShortLinkSocial(
+            { link: `/${self.returnSlug()}/listing/${encodeURIComponent(req.params.signature)}` },
+            req
+          );
+          if (listingSocial) {
+            social = listingSocial;
+          } else {
+            res.status(404);
+          }
+        } catch (err) {
+          console.error('Store: listing metadata lookup failed', err);
+          res.status(500);
+        }
+      }
+      const html = index(app, self, app.build_number, social);
       res.setHeader('Content-type', 'text/html');
       res.charset = 'UTF-8';
       return res.send(html);
@@ -1164,6 +1269,8 @@ class Store extends ModTemplate {
 
     // /store — main browse shell
     expressapp.get(uri, sendStoreHtml);
+
+    expressapp.get(`${uri}/listing/:signature`, sendStoreHtml);
 
     // /store/moderate — marketplace moderation (must precede /:publickey)
     expressapp.get(`${uri}/moderate`, sendStoreHtml);
