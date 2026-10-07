@@ -23,7 +23,7 @@ import { BlockType } from 'saito-js/lib/block';
 import NetworkPeer from 'saito-js/lib/network_peer';
 
 const JSON = require('json-bigint');
-const webFallback = require('./web-fallback');
+const DynamicModuleLoader = require('../../templates/dynamic-module-loader.template');
 
 //
 // CORS -- uncomment for local CORS Cross-Origin Requests by Default
@@ -33,6 +33,24 @@ const expressApp = express();
 expressApp.use(cors());
 
 const webserver = new Ser(expressApp);
+
+export function webFallback(webDir: string, buildNumber: number): express.RequestHandler {
+  return (req, res) => {
+    res.setHeader('Cache-Control', 'no-store');
+    const destination = req.get('Sec-Fetch-Dest');
+    const isPage =
+      req.method === 'GET' &&
+      !path.extname(req.path) &&
+      req.accepts('html') &&
+      (!destination || ['document', 'iframe'].includes(destination));
+
+    if (req.query.__saito_not_found === '1' || !isPage) {
+      return res.status(404).sendFile(path.join(webDir, '404.html'));
+    }
+
+    return res.type('html').send(DynamicModuleLoader(buildNumber));
+  };
+}
 
 /**
  * Constructor
