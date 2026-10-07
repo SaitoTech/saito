@@ -4,9 +4,10 @@
   display: grid;
   grid-template-columns: repeat(
     auto-fill,
-    minmax(min(100%, var(--saito-nft-image-size, 20rem)), max-content)
+    minmax(min(100%, var(--saito-nft-image-size, 20rem)), 1fr)
   );
   justify-content: start;
+  justify-items: start;
   align-content: start;
   align-items: start;
   gap: var(--saito-space-xl) var(--saito-space-lg);
@@ -15,10 +16,11 @@
 }
 
 .teaser {
+  --teaser-bar: 3.4rem;
   display: flex;
   flex-direction: column;
-  width: max-content;
-  max-width: 100%;
+  width: 100%;
+  max-width: var(--saito-nft-image-size, 20rem);
   min-width: 0;
   overflow: hidden;
   border-radius: var(--saito-radius);
@@ -48,8 +50,7 @@
 .teaser .media {
   position: relative;
   box-sizing: border-box;
-  width: var(--saito-nft-image-size, 20rem);
-  max-width: 100%;
+  width: 100%;
   aspect-ratio: 1 / 1;
   height: auto;
   flex: 0 0 auto;
@@ -67,11 +68,24 @@
   justify-content: center;
   overflow: hidden;
   padding: var(--saito-space-md);
+  min-width: 0;
+  min-height: 0;
+}
+
+.teaser .media-content img,
+.teaser .media-content video,
+.teaser .media-content svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: cover;
 }
 
 .teaser .badge {
   position: absolute;
-  top: calc(3.4rem + var(--saito-space-sm));
+  top: calc(var(--teaser-bar) + var(--saito-space-sm));
   left: var(--saito-space-sm);
   z-index: 3;
   max-width: calc(100% - 4rem);
@@ -91,7 +105,7 @@
 .teaser .saito-identicon {
   position: absolute;
   right: var(--saito-space-sm);
-  bottom: calc(3.4rem + var(--saito-space-sm));
+  bottom: calc(var(--teaser-bar) + var(--saito-space-sm));
   z-index: 3;
   width: 2.2rem;
   height: 2.2rem;
@@ -103,7 +117,7 @@
 .teaser .loader {
   position: absolute;
   right: var(--saito-space-sm);
-  top: calc(3.4rem + var(--saito-space-sm));
+  top: calc(var(--teaser-bar) + var(--saito-space-sm));
   font-size: var(--font-size-tiny);
   color: var(--saito-foreground);
   opacity: 0;
@@ -117,12 +131,14 @@
 .teaser .title {
   position: absolute;
   left: 0;
+  right: 0;
   top: 0;
   z-index: 2;
+  box-sizing: border-box;
   width: 100%;
   margin: 0;
   padding: 0 1rem;
-  line-height: 3.4rem;
+  line-height: var(--teaser-bar);
   font-size: var(--font-size-medium);
   font-family: var(--saito-font-medium);
   color: var(--saito-foreground);
@@ -135,13 +151,14 @@
 .teaser .price {
   position: absolute;
   left: 0;
+  right: 0;
   bottom: 0;
   z-index: 2;
   display: flex;
   align-items: center;
   box-sizing: border-box;
   width: 100%;
-  height: 3.4rem;
+  height: var(--teaser-bar);
   margin: 0;
   padding: 0 1rem;
   line-height: 1;
@@ -175,13 +192,6 @@
   white-space: nowrap;
 }
 
-@media (max-width: 900px) {
-  .teasers {
-    grid-template-columns: repeat(auto-fill, minmax(min(100%, var(--saito-nft-image-size, 20rem)), max-content));
-    gap: var(--saito-space-lg);
-  }
-}
-
 @media (max-width: 600px) {
   .teasers {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -190,11 +200,9 @@
   }
 
   .teaser {
-    width: auto;
-  }
-
-  .teaser .media {
+    --teaser-bar: 2.8rem;
     width: 100%;
+    max-width: none;
   }
 
   .teaser .info {
@@ -207,17 +215,8 @@
     font-size: var(--font-size-tiny);
   }
 
-  .teaser .title {
-    line-height: 2.8rem;
-  }
-
   .teaser .badge {
-    top: calc(2.8rem + var(--saito-space-sm));
     padding: 0.45rem 0.65rem;
     font-size: 1.05rem;
-  }
-
-  .teaser .saito-identicon {
-    bottom: calc(2.8rem + var(--saito-space-sm));
   }
 }

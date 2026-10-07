@@ -2245,6 +2245,32 @@ class CreatePost {
   }
 
   /**
+   * Remove a highlighted range inside the body editor and leave a collapsed caret
+   * where the highlight was. Enter prevents the browser default, so this is the
+   * only way a selection is removed before the block is split.
+   */
+  deleteExpandedSelection() {
+    const editor = document.querySelector('#stack-post-body-editor');
+    const selection = window.getSelection();
+    if (!editor || !selection || !selection.rangeCount) {
+      return;
+    }
+
+    const range = selection.getRangeAt(0);
+    if (range.collapsed) {
+      return;
+    }
+    if (!editor.contains(range.startContainer) || !editor.contains(range.endContainer)) {
+      return;
+    }
+
+    range.deleteContents();
+    range.collapse(true);
+    selection.removeAllRanges();
+    selection.addRange(range);
+  }
+
+  /**
    * Handle Enter key - split paragraph block
    * If text is selected, delete selection and insert newline
    * If in a block-formatted line and line is empty, exit the block
@@ -2283,6 +2309,10 @@ class CreatePost {
     // INVARIANT: Enter prevention is centralized here and must not be reintroduced conditionally.
     // No branch in this function "decides" whether Enter is prevented - it is always prevented.
     e.preventDefault();
+
+    // The browser will not delete a highlight after preventDefault. Remove it
+    // first so every Enter path below sees a collapsed caret at that point.
+    this.deleteExpandedSelection();
 
     // DOM repair: blockquote must never be a child of <ul> (ensures clean block boundaries before Enter)
     this._ensureBlockquoteNotInList();
@@ -3315,6 +3345,14 @@ class CreatePost {
     const selection = window.getSelection();
     if (!selection.rangeCount) return;
 
+    // A highlight is not a caret at the start of the block. Leave it to the
+    // browser so Backspace (the Mac Delete key) removes the selected text
+    // instead of merging or unformatting the whole block.
+    const range = selection.getRangeAt(0);
+    if (!range.collapsed) {
+      return;
+    }
+
     // Don't allow caret to enter image blocks - move to previous block
     if (blockType === 'image') {
       e.preventDefault();
@@ -3508,6 +3546,12 @@ class CreatePost {
     if (!focusedBlock) return;
 
     const blockType = focusedBlock.getAttribute('data-block-type');
+
+    // Highlighted text is removed by the browser. Structural merge/delete
+    // applies only to a collapsed caret.
+    if (!range.collapsed) {
+      return;
+    }
 
     // If cursor is at the end of a paragraph block
     if (blockType === 'paragraph' && range.collapsed) {
