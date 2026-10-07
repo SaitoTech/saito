@@ -1103,7 +1103,8 @@ class Database {
     }
   }
 
-  async returnActiveListingsForSeller(seller = '') {
+  // An NFT filter selects the cheapest available listing, oldest first on ties.
+  async returnActiveListingsForSeller(seller = '', nft_id = '') {
     const key = String(seller || '').trim();
     if (!key) {
       return [];
@@ -1113,8 +1114,9 @@ class Database {
         `SELECT * FROM listings
 				 WHERE seller = $seller
 				   AND ${this.availableListingWhere()}
-				 ORDER BY created_at DESC`,
-        { $seller: key },
+				   ${nft_id ? 'AND nft_id = $nft_id AND quantity > 0' : ''}
+				 ORDER BY ${nft_id ? 'price ASC, created_at ASC, id ASC LIMIT 1' : 'created_at DESC'}`,
+        nft_id ? { $seller: key, $nft_id: nft_id } : { $seller: key },
         this.dbname
       );
     } catch (err) {

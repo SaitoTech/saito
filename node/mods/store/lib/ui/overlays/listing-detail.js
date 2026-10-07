@@ -213,7 +213,7 @@ class ListingDetailOverlay {
       hasGallery: normalizedImages.length > 1,
       primaryLabel: this.escapeHtml(primaryLabel),
       primaryDisplay,
-      canShare: !!summary.listing_signature,
+      canShare: !!sellerKey && !!nftId,
       nextBid,
       showNextBid: !!nextBid && !isRental,
       nextBidDisplay,
@@ -430,7 +430,7 @@ class ListingDetailOverlay {
     if (shareBtn) {
       shareBtn.onclick = async () => {
         const summary = this.summary;
-        const longUrl = `${window.location.origin}/${this.mod.slug}/listing/${encodeURIComponent(summary.listing_signature)}`;
+        const longUrl = `${window.location.origin}/${this.mod.slug}/${encodeURIComponent(summary.returnSeller())}/${encodeURIComponent(summary.nft_id)}`;
         shareBtn.disabled = true;
         let url = longUrl;
         try {

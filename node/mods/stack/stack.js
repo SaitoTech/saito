@@ -2644,47 +2644,47 @@ class Stack extends ModTemplate {
     // initial HTML do not depend on JavaScript or transactionCache.
     // The browser still hydrates the page from saito.js / __STACK_INITIAL_POST.
     //
-    expressapp.get(`${uri}`, (req, res) => {
-      res.setHeader('Content-type', 'text/html');
-      res.charset = 'UTF-8';
-
+    expressapp.get(`${uri}`, async (req, res) => {
       if (req?.query?.og_img_sig) {
-        let sig = req.query.og_img_sig;
-        app.storage.loadTransactions(
-          { sig, field1: 'Stack' },
-          (txs) => {
-            if (txs?.length > 0) {
-              const tx = txs[0];
-              const txmsg = tx.returnMessage();
-              const img_uri = txmsg.data.image;
-              let img_type = img_uri.substring(img_uri.indexOf(':') + 1, img_uri.indexOf(';'));
-              let base64Data = img_uri.replace(/^data:image\/(png|jpeg|jpg);base64,/, '');
-              let img = Buffer.from(base64Data, 'base64');
+        try {
+          const tx = await stack_self.loadPost(req.query.og_img_sig, { peer: 'localhost' });
+          const image = tx?.returnMessage()?.data?.image;
+          if (typeof image !== 'string' || !image) {
+            return res.status(404).end();
+          }
 
-              if (img_type == 'image/svg+xml') {
-                img_type = 'image/svg';
-              }
-
-              if (!res.finished) {
-                res.writeHead(200, {
-                  'Content-Type': img_type,
-                  'Content-Length': img.length
-                });
-                return res.end(img);
-              }
-              return;
-            }
-
-            if (!res.finished) {
-              res.status(404).end();
-            }
-          },
-          'localhost'
-        );
-
-        return;
+          // The editor stores raw base64; older posts may include a data URI.
+          const dataUri = image.match(/^data:(image\/(?:png|jpeg|jpg|gif|webp|avif));base64,(.+)$/is);
+          const base64Data = dataUri ? dataUri[2] : image;
+          if (!/^[a-z\d+/\s]+={0,2}$/i.test(base64Data)) {
+            return res.status(404).end();
+          }
+          const img = Buffer.from(base64Data, 'base64');
+          if (!img.length) {
+            return res.status(404).end();
+          }
+          // resizeImg produces JPEG, while unresized uploads may retain their format.
+          let mime = 'image/png';
+          if (img.subarray(0, 3).equals(Buffer.from([0xff, 0xd8, 0xff]))) {
+            mime = 'image/jpeg';
+          } else if (img.toString('ascii', 0, 3) === 'GIF') {
+            mime = 'image/gif';
+          } else if (img.toString('ascii', 0, 4) === 'RIFF' && img.toString('ascii', 8, 12) === 'WEBP') {
+            mime = 'image/webp';
+          }
+          res.writeHead(200, {
+            'Content-Type': dataUri ? dataUri[1].toLowerCase().replace('image/jpg', 'image/jpeg') : mime,
+            'Content-Length': img.length
+          });
+          return res.end(img);
+        } catch (err) {
+          console.debug('Stack: Failed to load post image', err);
+          return res.status(404).end();
+        }
       }
 
+      res.setHeader('Content-type', 'text/html');
+      res.charset = 'UTF-8';
       return res.send(
         HomePage(app, stack_self, app.build_number, Object.assign({}, stack_self.social))
       );
@@ -2714,19 +2714,15 @@ class Stack extends ModTemplate {
           if (txmsg?.data?.title) {
             updateSocial.title = txmsg.data.title;
           }
-          if (txmsg?.data?.image) {
-            updateSocial.image = stack_self.resolveSocialUrl(`${uri}?og_img_sig=${txsig}`);
-          } else if (txmsg?.data?.imageUrl) {
+          if (txmsg?.data?.imageUrl) {
             updateSocial.image = stack_self.resolveSocialUrl(txmsg.data.imageUrl);
+          } else if (txmsg?.data?.image) {
+            updateSocial.image = stack_self.resolveSocialUrl(`${uri}?og_img_sig=${encodeURIComponent(txsig)}`);
           }
 
-          let summary = txmsg?.data?.summary || txmsg?.data?.excerpt || '';
-          if (summary) {
-            updateSocial.description = summary;
-          } else {
-            updateSocial.description =
-              app.keychain.returnUsername(publickey) + ' writes on Saito Stack...';
-          }
+          const author = articleTx.from?.[0]?.publicKey || publickey;
+          const identifier = app.keychain.returnIdentifierByPublicKey(author, true) || author;
+          updateSocial.description = `${identifier} posted on Saito Stack.`;
         } catch (err) {
           console.debug('Stack: Failed to serialize cached post for initial HTML', err);
         }

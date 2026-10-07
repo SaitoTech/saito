@@ -278,13 +278,13 @@ class Store extends ModTemplate {
       return;
     }
 
-    const prefix = `/${this.slug}/listing/`;
+    const route = this.returnStoreRouteFromPath();
     const listingPath = window.location.pathname;
-    if (listingPath.startsWith(prefix) && this.shared_listing_path !== listingPath) {
+    if ((route.signature || route.nft_id) && this.shared_listing_path !== listingPath) {
       this.shared_listing_path = listingPath;
       app.network.sendRequestAsTransaction(
         'load-listing',
-        { module: this.name, signature: decodeURIComponent(listingPath.slice(prefix.length)) },
+        { module: this.name, signature: route.signature, seller: route.publicKey, nft_id: route.nft_id },
         async (response) => {
           if (window.location.pathname !== listingPath) {
             return;
@@ -551,7 +551,11 @@ class Store extends ModTemplate {
     if (txmsg?.request === 'load-listing' && txmsg?.data?.module === this.name) {
       if (!this.app.BROWSER && mycallback != null) {
         try {
-          const row = await this.warehouse.db.returnCanonicalListingBySignature(txmsg.data.signature);
+          const row = txmsg.data.signature
+            ? await this.warehouse.db.returnCanonicalListingBySignature(txmsg.data.signature)
+            : txmsg.data.seller && txmsg.data.nft_id
+              ? (await this.warehouse.db.returnActiveListingsForSeller(txmsg.data.seller, txmsg.data.nft_id))[0]
+              : null;
           const Listing = require('./lib/listing');
           if (!row || !new Listing(row).isAvailable() || Number(row.quantity) <= 0) {
             mycallback({ err: 'Listing unavailable' });
@@ -1065,22 +1069,24 @@ class Store extends ModTemplate {
   }
 
   /**
-   * Parse /store/<publickey>, /store/<publickey>/admin, or /store/moderate.
+   * Parse storefront, admin, moderation, and current or legacy item URLs.
    * Optional ?type=<nft-type> is mapped to a marketplace/storefront category.
-   * @returns {{ publicKey: string, admin: boolean, moderate: boolean, category: string }}
+   * Item routes also include nft_id, or signature for legacy links.
    */
-  returnStoreRouteFromPath() {
+  returnStoreRouteFromPath(location = null) {
     const empty = { publicKey: '', admin: false, moderate: false, category: '' };
-    if (!this.app.BROWSER || typeof window === 'undefined') {
+    const currentLocation =
+      location || (this.app.BROWSER && typeof window !== 'undefined' ? window.location : null);
+    if (!currentLocation) {
       return empty;
     }
 
-    const type = new URLSearchParams(window.location.search || '').get('type') || '';
+    const type = new URLSearchParams(currentLocation.search || '').get('type') || '';
     const category = type ? mapNFTTypeToCategory(type) : '';
 
-    const pathname = window.location.pathname || '';
+    const pathname = currentLocation.pathname || '';
     const slug = '/' + this.slug;
-    if (!pathname.startsWith(slug)) {
+    if (pathname !== slug && !pathname.startsWith(`${slug}/`)) {
       return { ...empty, category };
     }
 
@@ -1102,11 +1108,24 @@ class Store extends ModTemplate {
       };
     }
 
+    if (segments.length === 2 && segments[0] === 'listing') {
+      return { ...empty, signature: decodeURIComponent(segments[1]), category };
+    }
+
     if (segments.length === 2 && segments[0] !== 'cache' && segments[1] === 'admin') {
       return {
         publicKey: decodeURIComponent(segments[0]),
         admin: true,
         moderate: false,
+        category
+      };
+    }
+
+    if (segments.length === 2 && !['cache', 's', 'moderate'].includes(segments[0])) {
+      return {
+        ...empty,
+        publicKey: decodeURIComponent(segments[0]),
+        nft_id: decodeURIComponent(segments[1]),
         category
       };
     }
@@ -1197,13 +1216,16 @@ class Store extends ModTemplate {
   async returnShortLinkSocial(row, req) {
     const origin = `${req.protocol}://${req.get('host')}`;
     const target = new URL(row.link, origin);
-    const prefix = `/${this.returnSlug()}/listing/`;
-    if (target.origin !== origin || !target.pathname.startsWith(prefix)) {
+    if (target.origin !== origin) {
       return null;
     }
 
-    const signature = decodeURIComponent(target.pathname.slice(prefix.length));
-    const listing = await this.warehouse.db.returnCanonicalListingBySignature(signature);
+    const route = this.returnStoreRouteFromPath(target);
+    const listing = route.signature
+      ? await this.warehouse.db.returnCanonicalListingBySignature(route.signature)
+      : route.publicKey && route.nft_id
+        ? (await this.warehouse.db.returnActiveListingsForSeller(route.publicKey, route.nft_id))[0]
+        : null;
     if (!listing) {
       return null;
     }
@@ -1218,7 +1240,7 @@ class Store extends ModTemplate {
       ...this.social,
       title: summary.returnTitle(),
       description: [summary.returnPrice(), summary.returnDescription()].filter(Boolean).join(' — '),
-      url: `${origin}${prefix}${encodeURIComponent(signature)}`,
+      url: `${origin}${target.pathname}`,
       image: new URL(image, origin).href
     };
   }
@@ -1235,10 +1257,14 @@ class Store extends ModTemplate {
         url: `${origin}${uri}`,
         image: `${origin}${uri}/img/store.png`
       };
-      if (req.params.signature) {
+      if (req.params.signature || req.params.nft_id) {
         try {
           const listingSocial = await self.returnShortLinkSocial(
-            { link: `/${self.returnSlug()}/listing/${encodeURIComponent(req.params.signature)}` },
+            {
+              link: req.params.signature
+                ? `/${self.returnSlug()}/listing/${encodeURIComponent(req.params.signature)}`
+                : `/${self.returnSlug()}/${encodeURIComponent(req.params.publickey)}/${encodeURIComponent(req.params.nft_id)}`
+            },
             req
           );
           if (listingSocial) {
@@ -1277,6 +1303,8 @@ class Store extends ModTemplate {
 
     // /store/<publickey>/admin — seller administration shell (client routes after load)
     expressapp.get(`${uri}/:publickey/admin`, sendStoreHtml);
+
+    expressapp.get(`${uri}/:publickey/:nft_id`, sendStoreHtml);
 
     // /store/<publickey> — public creator storefront shell (client routes after load)
     expressapp.get(`${uri}/:publickey`, sendStoreHtml);
