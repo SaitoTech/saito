@@ -1,66 +1,96 @@
-<html>
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
   <head>
     <meta charset="utf-8" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="description" content="404 - Saito" />
-    <meta name="author" content="" />
 
     <title>404 | Saito</title>
 
     <link rel="icon" media="all" type="image/x-icon" href="/favicon.ico?v=2" />
     <link rel="stylesheet" type="text/css" href="/saito/saito.css" />
-  </head>
-
-  <body>
     <style>
-      body {
-        color: #fefefe;
-        font-family: 'visuelt-light', 'Microsoft Yahei', 'Hiragino Sans GB', sans-serif;
+      body.saito-not-found {
+        position: relative;
+        height: auto;
+        min-height: 100svh;
+        max-height: none;
+        overflow-x: hidden;
+        overflow-y: auto;
+        color: #fff;
         text-align: center;
-      }
-
-      .logo {
-        width: 50vw;
-        margin: 10vh 0;
-        height: 16vh;
-        background-color: #fff;
-        mask: url('/saito/img/logo.svg') no-repeat center;
-        mask-size: contain;
-      }
-
-      a:hover {
-        color: #efefef;
-        text-shadow: 0 0 1px #fff;
-      }
-
-      a {
-        color: #fefefe;
-        text-decoration: none;
-      }
-
-      .fourohfour {
-        display: flex;
-        flex-direction: column;
-        justify-content: start;
-        height: 100%;
-        gap: 2rem;
         background:
-          linear-gradient(125deg, #e8001e 30%, #0001 55%, #ff8235 80%),
-          linear-gradient(40deg, #f7009b, #f7009b, #f71f3d, #f71f3d, #e98eaf, #0000),
-          linear-gradient(180deg, #e9ce93, #f71f3d);
+          radial-gradient(ellipse at 50% 40%, #170c12 0%, transparent 65%),
+          linear-gradient(160deg, #0b0b12 0%, #030305 65%, #080408 100%);
+      }
+
+      .saito-not-found main {
+        position: relative;
+        /* Keep the artwork and logo clear of each other on short screens. */
+        min-height: max(100svh, calc((16rem + max(300px, 100vw / 3)) / 0.75));
+        overflow: hidden;
+      }
+
+      .saito-not-found h1 {
+        position: absolute;
+        top: 10rem;
+        left: 0;
+        width: 100%;
+        margin: 0;
+        padding: 0 1rem;
+        color: #fff;
+        font-size: clamp(2.4rem, 3vw, 3.5rem);
+        font-weight: 400;
+        line-height: 1.15;
+        -webkit-text-stroke: 0.3px var(--saito-primary, #f54900);
+        paint-order: stroke fill;
+        text-shadow:
+          0 0 3px var(--saito-primary, #f54900),
+          0 0 14px color-mix(in srgb, var(--saito-primary, #f54900) 45%, transparent);
+      }
+
+      .saito-not-found-art {
+        position: absolute;
+        top: 14rem;
+        left: 0;
+        display: block;
+        width: 100%;
+        height: auto;
+        min-height: 300px;
+        aspect-ratio: 3 / 1;
+        object-fit: cover;
+        object-position: center;
+      }
+
+      .saito-not-found-home {
+        position: absolute;
+        top: 75%;
+        left: 50%;
+        width: min(20vw, 600px);
+        transform: translate(-50%, -50%);
+      }
+
+      .saito-not-found-home img {
+        display: block;
+        width: 100%;
+        height: auto;
+      }
+
+      .saito-not-found-home:focus-visible {
+        outline: 2px solid var(--saito-primary, #f54900);
+        outline-offset: 1rem;
       }
     </style>
-    <div class="fourohfour">
-      <a href="/">
-        <img class="logo" src="" />
-      </a>
-      <h1>404</h1>
-      <h2>
-        We don't know how you got here - but hope that Saito is just what you are looking for.
-      </h2>
-    </div>
+  </head>
 
-    <script id="saito" src="/saito/saito.js"></script>
+  <body class="saito-not-found">
+    <main>
+      <h1>404 not found</h1>
+      <img class="saito-not-found-art" src="/img/404.png" width="2172" height="724" alt="" />
+      <a class="saito-not-found-home" href="/" aria-label="Saito home">
+        <img src="/saito/icons/saito-saito-icon-outline-horizontal.svg" width="381" height="134" alt="Saito" />
+      </a>
+    </main>
   </body>
 </html>
