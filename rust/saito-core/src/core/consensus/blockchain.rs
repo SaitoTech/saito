@@ -741,11 +741,11 @@ impl Blockchain {
 
         let stored_confirmations = &configs.get_blockchain_configs().confirmations;
 
-	//
+        //
         // Walk the new longest chain. Stop at the first block that already
         // received on_confirmation (the shared ancestor, or a disk-loaded block
         // confirmed earlier in this process), or after 100 blocks.
-	//
+        //
         while let Some(block) = self.get_block_mut(&current_block_hash) {
             for (_, block_hash, confs) in stored_confirmations {
                 if *block_hash == block.hash && block.confirmations < *confs {
@@ -767,9 +767,9 @@ impl Blockchain {
                 .upgrade_block_to_block_type(BlockType::Full, storage, configs.is_spv_mode())
                 .await;
 
-	    //
+            //
             // First confirmation only. The notify loop below passes [0] and sets the count to 1.
-	    //
+            //
             confirmations.push((block.id, current_block_hash, 1));
             current_block_hash = block.previous_block_hash;
             block_depth += 1;

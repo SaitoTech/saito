@@ -710,7 +710,12 @@ class Storage {
     try {
       for (let i = 0; i < replacements.length; i++) {
         const item = replacements[i];
-        if (!item || !Array.isArray(item.path) || item.path.length === 0 || typeof item.json !== 'string') {
+        if (
+          !item ||
+          !Array.isArray(item.path) ||
+          item.path.length === 0 ||
+          typeof item.json !== 'string'
+        ) {
           continue;
         }
         if (externalize && item.path[0] === 'games') {
@@ -764,7 +769,9 @@ class Storage {
         new_wallet_json = JSON.stringify(this.app.options);
       }
       for (let i = 0; i < applied.length; i++) {
-        new_wallet_json = new_wallet_json.split(JSON.stringify(applied[i].token)).join(applied[i].json);
+        new_wallet_json = new_wallet_json
+          .split(JSON.stringify(applied[i].token))
+          .join(applied[i].json);
       }
     } finally {
       for (let i = applied.length - 1; i >= 0; i--) {
@@ -775,7 +782,9 @@ class Storage {
     if (externalize) {
       const games = Array.isArray(this.app.options.games) ? this.app.options.games : [];
       const saves =
-        this.app.options.saves && typeof this.app.options.saves === 'object' ? this.app.options.saves : {};
+        this.app.options.saves && typeof this.app.options.saves === 'object'
+          ? this.app.options.saves
+          : {};
       const currentGameIds = Array.isArray(this.app.options.external_game_ids)
         ? this.app.options.external_game_ids
         : [];

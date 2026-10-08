@@ -389,7 +389,9 @@ class Mods {
     }
 
     if (this.app.BROWSER && (window as any).SaitoDynamicLoader) {
-      const proceed = await (window as any).SaitoDynamicLoader.resolveModule(this.returnActiveModule());
+      const proceed = await (window as any).SaitoDynamicLoader.resolveModule(
+        this.returnActiveModule()
+      );
       if (!proceed) return false;
     }
 
