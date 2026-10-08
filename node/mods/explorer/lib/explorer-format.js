@@ -648,8 +648,9 @@ function formatBlockSummaryBadges(app, block) {
       active: Boolean(block.has_golden_ticket)
     },
     longestChain: {
-      label: esc(app, block.in_longest_chain === false ? 'Unconfirmed' : 'Longest Chain'),
-      active: block.in_longest_chain !== false
+      label: esc(app, block.in_longest_chain == null ? 'Chain status unknown'
+        : block.in_longest_chain ? 'Longest Chain' : 'Side branch'),
+      active: block.in_longest_chain === true
     }
   };
 }
@@ -664,7 +665,8 @@ function formatBlockSummaryDetail(app, block, txCount = 0) {
     });
   };
 
-  add('Status', esc(app, block.in_longest_chain === false ? 'Unconfirmed' : 'Finalized'));
+  add('Status', esc(app, block.in_longest_chain == null ? 'Unknown'
+    : block.in_longest_chain ? 'Longest chain' : 'Side branch'));
   add('Transactions', esc(app, String(txCount)), { numeric: true });
   add('Block type', esc(app, formatBlockType(block)));
   add('Burn fee', formatOptionalSaito(app, block.burnfee));
@@ -738,14 +740,17 @@ function formatBlockForPage(app, rawBlock, txFormatter = formatTransactionsForBl
   }
 
   const transactions = Array.isArray(block.transactions) ? block.transactions : [];
+  const transactionCount = block.tx_count ?? (block.body_available === false ? '—' : transactions.length);
 
   return {
     number: esc(app, String(block.id ?? '')),
+    bodyAvailable: block.body_available !== false,
+    transactionCount: esc(app, String(transactionCount)),
     hashDisplay: esc(app, block.hash || ''),
     hasSpvTransactions: transactions.some(isSpvTransaction),
     summaryPrimary: formatBlockSummaryPrimary(app, block),
     summaryBadges: formatBlockSummaryBadges(app, block),
-    summaryDetail: formatBlockSummaryDetail(app, block, transactions.length),
+    summaryDetail: formatBlockSummaryDetail(app, block, transactionCount),
     transactions: txFormatter(app, transactions, block)
   };
 }
