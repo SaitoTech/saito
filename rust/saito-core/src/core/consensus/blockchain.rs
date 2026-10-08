@@ -738,73 +738,44 @@ impl Blockchain {
         let mut confirmations = vec![];
         let mut block_depth: BlockId = 0;
         const MAX_BLOCK_DEPTH: BlockId = 100;
-        let stored_confirmations = &configs.get_blockchain_configs().confirmations;
-        let min_block_id = stored_confirmations
-            .iter()
-            .map(|(id, _, _)| *id)
-            .min()
-            .unwrap_or(0);
-        let confirmation_limit = self.block_confirmation_limit;
 
-        // since we don't know how far back the reorg happened, we go back until we find a block which has max confirmation count.
+        let stored_confirmations = &configs.get_blockchain_configs().confirmations;
+
+	//
+        // Walk the new longest chain. Stop at the first block that already
+        // received on_confirmation (the shared ancestor, or a disk-loaded block
+        // confirmed earlier in this process), or after 100 blocks.
+	//
         while let Some(block) = self.get_block_mut(&current_block_hash) {
-            if block.id < min_block_id {
-                // since we are updating the stored confirmations after each block addition, this won't break when reorgs happen since min_block_id will change to that forks min block id
+            for (_, block_hash, confs) in stored_confirmations {
+                if *block_hash == block.hash && block.confirmations < *confs {
+                    block.confirmations = *confs;
+                }
+            }
+
+            if block.confirmations > 0 {
                 debug!(
-                    "block {}-{} is older than the min confirmations block id : {} from config",
+                    "block {}-{} already has {} confirmations. stopping confirmation walk",
                     block.id,
                     block.hash.to_hex(),
-                    min_block_id
+                    block.confirmations
                 );
                 break;
             }
+
             block
                 .upgrade_block_to_block_type(BlockType::Full, storage, configs.is_spv_mode())
                 .await;
 
-            // first we check if some confirmations have already been called for this block. if so, we update confirmations count
-            for (_, block_hash, confs) in stored_confirmations {
-                if *block_hash == block.hash {
-                    if block.confirmations < *confs {
-                        block.confirmations = *confs;
-                    }
-                }
-            }
-            // adding 1 here since block.confirmations include 0th confirmation
-            if block.confirmations == confirmation_limit + 1 {
-                // this block has max confirmations. so don't have to check the parent block.
-                debug!(
-                    "block : {}-{} has required confirmations : {}. limit : {}. exiting the loop",
-                    block.id,
-                    block.hash.to_hex(),
-                    block.confirmations,
-                    confirmation_limit
-                );
-                break;
-            }
-            // if the required confirmation count is already set, we don't need to call except for the last block (block_depth=0)
-            if block.confirmations >= block_depth + 1 && block_depth > 0 {
-                debug!(
-                    "block : {}-{} has required confirmations : {}. limit : {}. exiting the loop",
-                    block.id,
-                    block.hash.to_hex(),
-                    block.confirmations,
-                    confirmation_limit
-                );
-                break;
-            }
-            let required_confirmation_count = std::cmp::min(block_depth + 1, confirmation_limit)
-                .saturating_sub(block.confirmations);
-
-            if required_confirmation_count == 0 {
-                break;
-            }
-            confirmations.push((block.id, current_block_hash, required_confirmation_count));
+	    //
+            // First confirmation only. The notify loop below passes [0] and sets the count to 1.
+	    //
+            confirmations.push((block.id, current_block_hash, 1));
             current_block_hash = block.previous_block_hash;
             block_depth += 1;
 
             if block_depth >= MAX_BLOCK_DEPTH {
-                info!("too many blocks in the new fork. only processing : {} blocks for notifying confirmations",MAX_BLOCK_DEPTH);
+                info!("too many blocks in the new fork. only processing : {} blocks for notifying confirmations", MAX_BLOCK_DEPTH);
                 break;
             }
         }

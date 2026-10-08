@@ -964,7 +964,8 @@ class Database {
 
   /**
    * Copy the canonical sale onto the listing snapshot when one exists.
-   * When none does, clear only longest_chain_sold and keep the last sale identity.
+   * When none does, keep the last sale identity, clear longest_chain_sold, and
+   * set longest_chain_listed = -1 so the spent inclusion is not offered again.
    */
   async refreshSaleSnapshots(db, params) {
     await db.run(
@@ -1046,6 +1047,7 @@ class Database {
     await db.run(
       `UPDATE listings
 			 SET longest_chain_sold = 0,
+			     longest_chain_listed = -1,
 			     updated_at = $updated_at
 			 WHERE EXISTS (
 			   SELECT 1 FROM listing_sales touched

@@ -165,6 +165,7 @@ class Warehouse {
       cached.block_hash_sold = fresh.block_hash_sold || '';
       cached.transaction_id_sold = Number(fresh.transaction_id_sold ?? 0);
       cached.longest_chain_sold = Number(fresh.longest_chain_sold ?? 0);
+      cached.longest_chain_listed = Number(fresh.longest_chain_listed ?? 0);
       cached.settlement_pending = Number(fresh.settlement_pending ?? 0) ? 1 : 0;
       cached.buyer = fresh.buyer || '';
       cached.quantity_sold = Number(fresh.quantity_sold ?? 0);

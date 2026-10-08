@@ -1834,7 +1834,7 @@ if (this.game.state.events.society_of_jesus == 1) {
         unmoved_units : unmoved_units ,
       }
 
-      his_self.fortification_overlay.render(mobj, [], selectUnitsInterface, finishAndFortify, 1); // 1 => "unfortifying"
+      his_self.fortification_overlay.render(mobj, units_to_move, selectUnitsInterface, finishAndFortify, 1); // 1 => "unfortifying"
             his_self.game.status = msg;
       his_self.hud.updateStatus(his_self.game.status);
       his_self.hud.updateCards([]);
@@ -1996,7 +1996,7 @@ if (relief_siege == 1) {
         unmoved_units : unmoved_units ,
       }
 
-      his_self.fortification_overlay.render(mobj, [], selectUnitsInterface, finishAndFortify); // no destination interface
+      his_self.fortification_overlay.render(mobj, units_to_move, selectUnitsInterface, finishAndFortify); // no destination interface
             his_self.game.status = msg;
       his_self.hud.updateStatus(his_self.game.status);
       his_self.hud.updateCards([]);

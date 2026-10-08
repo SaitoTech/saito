@@ -144,11 +144,119 @@ class MovementOverlay {
   }
 
   attachEvents(obj) {
-    document.querySelectorAll('.movement-unit.option').forEach((el) => {
+    let his_self = this.mod;
+    let units_to_move = obj.units_to_move || [];
+    let space = obj.space;
+
+    document.querySelectorAll('.movement-overlay .movement-unit.option').forEach((el) => {
       el.onclick = (e) => {
-        this.fade_out_available_units = true;
+        e.stopPropagation();
+
+        let parts = e.currentTarget.id.split('-');
+        let faction = parts[0];
+        let idx = parseInt(parts[1], 10);
+        if (!faction || Number.isNaN(idx)) {
+          return;
+        }
+
+        let selected = -1;
+        for (let z = 0; z < units_to_move.length; z++) {
+          if (units_to_move[z].faction === faction && parseInt(units_to_move[z].idx, 10) === idx) {
+            selected = z;
+            break;
+          }
+        }
+
+        if (this.factionIsOverCapacity(faction)) {
+          alert(
+            'This faction is over-capacity (no more free 1-UNIT tokens). Please move by clicking on the circular tokens you wish to move instead of shifting forces in 1-UNIT increments'
+          );
+          return;
+        }
+
+        if (selected >= 0) {
+          units_to_move.splice(selected, 1);
+          if (units_to_move.length == 0) {
+            his_self.available_units_overlay.faded_out = false;
+            this.fade_out_available_units = false;
+          }
+        } else {
+          let unitno = 0;
+          for (let i = 0; i < units_to_move.length; i++) {
+            let selected_unit =
+              space.units[units_to_move[i].faction] &&
+              space.units[units_to_move[i].faction][units_to_move[i].idx];
+            if (selected_unit && selected_unit.command_value == 0) {
+              unitno++;
+            }
+          }
+          let max_formation_size = obj.max_formation_size;
+          if (unitno >= max_formation_size) {
+            max_formation_size = his_self.returnMaxFormationSize(
+              units_to_move,
+              obj.faction,
+              space.key
+            );
+            if (unitno >= max_formation_size) {
+              alert('Maximum Formation Size: ' + max_formation_size);
+              return;
+            }
+          }
+
+          let entry = this.findColumnUnit(obj, faction, idx);
+          let unit = space.units[faction] && space.units[faction][idx];
+          units_to_move.push(
+            entry || {
+              faction: faction,
+              idx: idx,
+              type: unit ? unit.type : '',
+              spacekey: space.key
+            }
+          );
+        }
+
+        if (typeof this.selectUnitsInterface === 'function') {
+          this.selectUnitsInterface(
+            his_self,
+            units_to_move,
+            this.selectUnitsInterface,
+            this.selectDestinationInterface
+          );
+        }
       };
     });
+
+    let submit = document.querySelector('.movement-overlay .movement-submit-button');
+    if (submit) {
+      submit.onclick = (e) => {
+        e.stopPropagation();
+        this.hide();
+        if (typeof this.selectDestinationInterface === 'function') {
+          this.selectDestinationInterface(his_self, units_to_move);
+        }
+      };
+    }
+  }
+
+  factionIsOverCapacity(faction) {
+    try {
+      let on_board = this.mod.returnOnBoardUnits(faction);
+      return !!(on_board && on_board.overcapacity == 1);
+    } catch (err) {
+      return false;
+    }
+  }
+
+  findColumnUnit(obj, faction, idx) {
+    let lists = [obj.unmoved_units || [], obj.moved_units || []];
+    for (let i = 0; i < lists.length; i++) {
+      for (let z = 0; z < lists[i].length; z++) {
+        if (lists[i][z].faction === faction && parseInt(lists[i][z].idx, 10) === idx) {
+          return JSON.parse(JSON.stringify(lists[i][z]));
+        }
+      }
+    }
+    return null;
   }
 }
 
