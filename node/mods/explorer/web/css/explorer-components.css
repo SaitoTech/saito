@@ -5,8 +5,8 @@
  */
 
 .explorer-page {
-  color: var(--explorer-foreground);
-  font-family: var(--explorer-font-sans);
+  color: var(--saito-foreground);
+  font-family: var(--saito-font);
   font-size: var(--explorer-text-base);
   line-height: 1.5;
 }
@@ -23,7 +23,7 @@
   font-weight: var(--explorer-font-semibold);
   line-height: var(--explorer-leading-tight);
   letter-spacing: var(--explorer-tracking-tight);
-  color: var(--explorer-foreground);
+  color: var(--saito-foreground);
 }
 
 .explorer-subtitle {
@@ -31,7 +31,7 @@
   font-size: var(--explorer-text-sm);
   font-weight: var(--explorer-font-normal);
   line-height: var(--explorer-leading-normal);
-  color: var(--explorer-muted-foreground);
+  color: var(--saito-muted-foreground);
 }
 
 .explorer-heading {
@@ -40,7 +40,7 @@
   font-weight: var(--explorer-font-semibold);
   line-height: var(--explorer-leading-snug);
   letter-spacing: var(--explorer-tracking-normal);
-  color: var(--explorer-foreground);
+  color: var(--saito-foreground);
 }
 
 .explorer-label {
@@ -48,7 +48,7 @@
   font-size: var(--explorer-text-sm);
   font-weight: var(--explorer-font-medium);
   line-height: var(--explorer-leading-none);
-  color: var(--explorer-foreground);
+  color: var(--saito-foreground);
 }
 
 .explorer-caption {
@@ -57,15 +57,15 @@
   line-height: var(--explorer-leading-normal);
   letter-spacing: var(--explorer-tracking-wider);
   text-transform: uppercase;
-  color: var(--explorer-muted-foreground);
+  color: var(--saito-muted-foreground);
 }
 
 .explorer-muted {
-  color: var(--explorer-muted-foreground);
+  color: var(--saito-muted-foreground);
 }
 
 .explorer-mono {
-  font-family: var(--explorer-font-mono);
+  font-family: var(--saito-font-monospace);
   font-size: 0.875em;
   letter-spacing: -0.01em;
 }
@@ -77,11 +77,11 @@
 }
 
 .explorer-card {
-  background-color: var(--explorer-card);
-  color: var(--explorer-card-foreground);
-  border: 1px solid var(--explorer-border);
-  border-radius: var(--explorer-radius);
-  box-shadow: var(--explorer-shadow-xs);
+  background-color: var(--saito-card);
+  color: var(--saito-foreground);
+  border: 1px solid var(--saito-border);
+  border-radius: var(--saito-radius);
+  box-shadow: var(--saito-elevation-1);
 }
 
 .explorer-card-padded {
@@ -89,11 +89,11 @@
 }
 
 .explorer-panel {
-  background-color: var(--explorer-card);
-  color: var(--explorer-card-foreground);
-  border: 1px solid var(--explorer-border);
-  border-radius: var(--explorer-radius);
-  box-shadow: var(--explorer-shadow-xs);
+  background-color: var(--saito-card);
+  color: var(--saito-foreground);
+  border: 1px solid var(--saito-border);
+  border-radius: var(--saito-radius);
+  box-shadow: var(--saito-elevation-1);
   overflow: hidden;
 }
 
@@ -103,8 +103,8 @@
   justify-content: space-between;
   gap: var(--explorer-space-3);
   padding: var(--explorer-space-2) var(--explorer-space-4);
-  border-bottom: 1px solid var(--explorer-border);
-  background-color: var(--explorer-card);
+  border-bottom: 1px solid var(--saito-border);
+  background-color: var(--saito-card);
 }
 
 .explorer-panel-body {
@@ -113,9 +113,9 @@
 
 .explorer-panel-footer {
   padding: var(--explorer-space-2) var(--explorer-space-4);
-  border-top: 1px solid var(--explorer-border);
+  border-top: 1px solid var(--saito-border);
   text-align: center;
-  background-color: var(--explorer-card);
+  background-color: var(--saito-card);
 }
 
 .explorer-panel-footer .explorer-link {
@@ -131,7 +131,7 @@
 
 .explorer-divider {
   border: 0;
-  border-top: 1px solid var(--explorer-border);
+  border-top: 1px solid var(--saito-border);
   margin: var(--explorer-space-4) 0;
 }
 
@@ -155,7 +155,7 @@
 }
 
 .explorer-link-muted {
-  color: var(--explorer-muted-foreground);
+  color: var(--saito-muted-foreground);
   font-weight: var(--explorer-font-normal);
   text-decoration: none;
   font-size: var(--explorer-text-xs);
@@ -165,7 +165,7 @@
 
 .explorer-link-muted:hover {
   text-decoration: none;
-  color: var(--explorer-foreground);
+  color: var(--saito-foreground);
 }
 
 .explorer-stat {
@@ -181,21 +181,21 @@
   line-height: var(--explorer-leading-normal);
   letter-spacing: var(--explorer-tracking-wider);
   text-transform: uppercase;
-  color: var(--explorer-muted-foreground);
+  color: var(--saito-muted-foreground);
 }
 
 .explorer-stat-value {
   font-size: var(--explorer-text-sm);
   font-weight: var(--explorer-font-semibold);
   line-height: var(--explorer-leading-snug);
-  color: var(--explorer-foreground);
+  color: var(--saito-foreground);
   font-variant-numeric: tabular-nums;
 }
 
 .explorer-stat-sub {
   font-size: var(--explorer-text-xs);
   line-height: var(--explorer-leading-snug);
-  color: var(--explorer-muted-foreground);
+  color: var(--saito-muted-foreground);
 }
 
 .explorer-input {
@@ -203,14 +203,14 @@
   width: 100%;
   height: 4rem;
   padding-inline: var(--explorer-space-3);
-  font-family: var(--explorer-font-sans);
+  font-family: var(--saito-font);
   font-size: var(--explorer-text-sm);
   font-weight: var(--explorer-font-normal);
   line-height: var(--explorer-leading-normal);
-  color: var(--explorer-foreground);
-  background-color: var(--explorer-card);
-  border: 1px solid var(--explorer-border);
-  border-radius: var(--explorer-radius);
+  color: var(--saito-foreground);
+  background-color: var(--saito-card);
+  border: 1px solid var(--saito-border);
+  border-radius: var(--saito-radius);
   box-shadow: none;
   transition:
     border-color var(--explorer-transition),
@@ -218,17 +218,17 @@
 }
 
 .explorer-input::placeholder {
-  color: var(--explorer-muted-foreground);
+  color: var(--saito-muted-foreground);
   opacity: 1;
 }
 
 .explorer-input:hover {
-  border-color: color-mix(in oklch, var(--explorer-border) 75%, var(--explorer-foreground));
+  border-color: color-mix(in oklch, var(--saito-border) 75%, var(--saito-foreground));
 }
 
 .explorer-input:focus {
   outline: none;
-  border-color: color-mix(in oklch, var(--explorer-link) 60%, var(--explorer-border));
+  border-color: color-mix(in oklch, var(--explorer-link) 60%, var(--saito-border));
   box-shadow: 0 0 0 2px color-mix(in oklch, var(--explorer-link) 20%, transparent);
 }
 
@@ -257,17 +257,17 @@
   line-height: var(--explorer-leading-none);
   letter-spacing: var(--explorer-tracking-wider);
   text-transform: uppercase;
-  color: var(--explorer-muted-foreground);
-  background-color: var(--explorer-muted);
-  border-bottom: 1px solid var(--explorer-border);
+  color: var(--saito-muted-foreground);
+  background-color: var(--saito-muted);
+  border-bottom: 1px solid var(--saito-border);
   white-space: nowrap;
 }
 
 .explorer-table tbody td {
   padding: var(--explorer-space-3) var(--explorer-space-4);
-  border-bottom: 1px solid var(--explorer-border);
+  border-bottom: 1px solid var(--saito-border);
   vertical-align: middle;
-  color: var(--explorer-foreground);
+  color: var(--saito-foreground);
 }
 
 .explorer-table tbody tr:last-child td {
@@ -279,15 +279,15 @@
 }
 
 .explorer-table-row:hover {
-  background-color: color-mix(in oklch, var(--explorer-muted) 65%, var(--explorer-card));
+  background-color: color-mix(in oklch, var(--saito-muted) 65%, var(--saito-card));
 }
 
 .explorer-table-cell-muted {
-  color: var(--explorer-muted-foreground);
+  color: var(--saito-muted-foreground);
 }
 
 .explorer-table-cell-mono {
-  font-family: var(--explorer-font-mono);
+  font-family: var(--saito-font-monospace);
   font-size: 0.875em;
 }
 
@@ -307,10 +307,10 @@
   align-items: center;
   gap: var(--explorer-space-3);
   padding: var(--explorer-space-2) var(--explorer-space-4);
-  border-bottom: 1px solid var(--explorer-border);
+  border-bottom: 1px solid var(--saito-border);
   text-decoration: none;
   color: inherit;
-  background-color: var(--explorer-card);
+  background-color: var(--saito-card);
   transition: background-color var(--explorer-transition-fast);
 }
 
@@ -329,7 +329,7 @@
 }
 
 .explorer-feed-item:hover {
-  background-color: color-mix(in oklch, var(--explorer-muted) 65%, var(--explorer-card));
+  background-color: color-mix(in oklch, var(--saito-muted) 65%, var(--saito-card));
 }
 
 .explorer-feed-icon,
@@ -340,7 +340,7 @@
   justify-content: center;
   width: 3.5rem;
   height: 3.5rem;
-  border-radius: var(--explorer-radius-sm);
+  border-radius: var(--saito-radius-sm);
   flex-shrink: 0;
   align-self: center;
 }
@@ -353,8 +353,8 @@
 }
 
 .explorer-feed-icon {
-  background-color: var(--explorer-muted);
-  color: var(--explorer-muted-foreground);
+  background-color: var(--saito-muted);
+  color: var(--saito-muted-foreground);
   font-size: 1.65rem;
 }
 
@@ -364,9 +364,9 @@
   padding: var(--explorer-space-1) var(--explorer-space-2);
   font-size: var(--explorer-text-xs);
   font-weight: var(--explorer-font-medium);
-  color: var(--explorer-foreground);
-  background-color: var(--explorer-muted);
-  border: 1px solid var(--explorer-border);
+  color: var(--saito-foreground);
+  background-color: var(--saito-muted);
+  border: 1px solid var(--saito-border);
   font-variant-numeric: tabular-nums;
   text-align: right;
   line-height: 1.2;
@@ -380,8 +380,8 @@
 
 .explorer-feed-chevron {
   background-color: transparent;
-  border: 1px solid var(--explorer-border);
-  color: var(--explorer-muted-foreground);
+  border: 1px solid var(--saito-border);
+  color: var(--saito-muted-foreground);
   font-size: 0.95rem;
   cursor: pointer;
   transition: transform 180ms ease;
@@ -425,7 +425,7 @@
 
 .explorer-feed-time {
   font-size: var(--explorer-text-xs);
-  color: var(--explorer-muted-foreground);
+  color: var(--saito-muted-foreground);
   white-space: nowrap;
   line-height: var(--explorer-leading-snug);
 }
@@ -434,7 +434,7 @@
 .explorer-feed-detail {
   font-size: var(--explorer-text-xs);
   line-height: var(--explorer-leading-snug);
-  color: var(--explorer-muted-foreground);
+  color: var(--saito-muted-foreground);
 }
 
 .explorer-feed-meta .explorer-link {
@@ -481,12 +481,12 @@ body:has(.explorer-page) .explorer-page button.explorer-json-toggle {
   display: inline-flex;
   align-items: center;
   padding: 0.05rem 0.4rem;
-  border-radius: var(--explorer-radius-sm);
+  border-radius: var(--saito-radius-sm);
   background-color: transparent;
-  border: 1px solid var(--explorer-border);
+  border: 1px solid var(--saito-border);
   font-size: var(--explorer-text-xs);
   font-weight: var(--explorer-font-normal);
-  color: var(--explorer-muted-foreground);
+  color: var(--saito-muted-foreground);
   white-space: nowrap;
 }
 
@@ -495,7 +495,7 @@ body:has(.explorer-page) .explorer-page button.explorer-json-toggle {
   align-items: center;
   justify-content: center;
   padding: var(--explorer-space-3) var(--explorer-space-4);
-  border-top: 1px solid var(--explorer-border);
+  border-top: 1px solid var(--saito-border);
 }
 
 .explorer-load-more-btn {
@@ -503,9 +503,9 @@ body:has(.explorer-page) .explorer-page button.explorer-json-toggle {
   align-items: center;
   justify-content: center;
   padding: var(--explorer-space-1) var(--explorer-space-4);
-  border: 1px solid var(--explorer-border);
-  border-radius: var(--explorer-radius);
-  background-color: var(--explorer-card);
+  border: 1px solid var(--saito-border);
+  border-radius: var(--saito-radius);
+  background-color: var(--saito-card);
   color: var(--explorer-link);
   font-size: var(--explorer-text-sm);
   font-weight: var(--explorer-font-medium);
@@ -514,12 +514,12 @@ body:has(.explorer-page) .explorer-page button.explorer-json-toggle {
 }
 
 .explorer-load-more-btn:hover {
-  background-color: var(--explorer-muted);
+  background-color: var(--saito-muted);
 }
 
 .explorer-load-more-text {
   font-size: var(--explorer-text-sm);
-  color: var(--explorer-muted-foreground);
+  color: var(--saito-muted-foreground);
 }
 
 @media (max-width: 48rem) {

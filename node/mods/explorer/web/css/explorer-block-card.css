@@ -7,9 +7,9 @@
 .explorer-block-card {
   display: grid;
   grid-template-rows: 1fr;
-  border-bottom: 1px solid var(--explorer-border);
+  border-bottom: 1px solid var(--saito-border);
   color: inherit;
-  background-color: var(--explorer-card);
+  background-color: var(--saito-card);
   transition: background-color var(--explorer-transition-fast);
 }
 
@@ -32,7 +32,7 @@
 }
 
 .explorer-block-card:hover {
-  background-color: color-mix(in oklch, var(--explorer-muted) 65%, var(--explorer-card));
+  background-color: color-mix(in oklch, var(--saito-muted) 65%, var(--saito-card));
 }
 
 .explorer-block-card-icon-section {
@@ -41,7 +41,7 @@
   align-items: center;
   justify-content: flex-start;
   padding-right: var(--explorer-space-3);
-  border-right: 1px solid var(--explorer-border);
+  border-right: 1px solid var(--saito-border);
 }
 
 .explorer-block-card-icon {
@@ -51,9 +51,9 @@
   justify-content: center;
   width: 3.5rem;
   height: 3.5rem;
-  border-radius: var(--explorer-radius-sm);
-  background-color: var(--explorer-muted);
-  color: var(--explorer-muted-foreground);
+  border-radius: var(--saito-radius-sm);
+  background-color: var(--saito-muted);
+  color: var(--saito-muted-foreground);
   font-size: 1.65rem;
 }
 
@@ -94,7 +94,7 @@
 .explorer-block-card-miner {
   font-size: var(--explorer-text-xs);
   line-height: var(--explorer-leading-snug);
-  color: var(--explorer-muted-foreground);
+  color: var(--saito-muted-foreground);
 }
 
 .explorer-block-card-time,
@@ -123,14 +123,14 @@
   display: flex;
   align-items: baseline;
   gap: var(--explorer-space-1);
-  font-family: var(--explorer-font-mono);
+  font-family: var(--saito-font-monospace);
   font-size: var(--explorer-text-xs);
-  color: var(--explorer-muted-foreground);
+  color: var(--saito-muted-foreground);
 }
 
 .explorer-block-card-hash-label {
   flex: none;
-  font-family: var(--explorer-font-sans);
+  font-family: var(--saito-font);
 }
 
 .explorer-block-card-hash-value {

@@ -1,5 +1,6 @@
 const ModTemplate = require('../../lib/templates/modtemplate');
 const SaitoHeader = require('../../lib/saito/ui/saito-header/saito-header');
+const HeaderMenu = require('./lib/ui/header-menu');
 const Main = require('./lib/ui/main');
 const Block = require('./lib/ui/block');
 const Supply = require('./lib/ui/supply');
@@ -74,6 +75,7 @@ class Explorer extends ModTemplate {
     this.allTransactionsComponent = null;
     this.search = null;
     this.header = null;
+    this.headerMenu = null;
     this.shellRendered = false;
     this.activeView = 'home';
     this.blockHash = null;
@@ -213,6 +215,8 @@ class Explorer extends ModTemplate {
       this.search = new Search(this.app, this);
     }
     this.search.render('.explorer-search');
+    this.headerMenu ||= new HeaderMenu(this.app, this);
+    this.headerMenu.render();
     this.renderSimulationToolbar();
   }
 
@@ -301,19 +305,6 @@ class Explorer extends ModTemplate {
             ta.remove();
             done();
           }
-        }
-        return;
-      }
-
-      const link = event.target.closest('.explorer-footer-link');
-      if (link) {
-        const href = link.getAttribute('href') || '';
-        if (href.endsWith('/explorer/supply')) {
-          event.preventDefault();
-          this.renderSupply({ pushState: true, animate: true });
-        } else if (href.endsWith('/explorer/holders')) {
-          event.preventDefault();
-          this.renderHolders();
         }
         return;
       }
