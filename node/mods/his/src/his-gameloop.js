@@ -11821,6 +11821,9 @@ defender_hits - attacker_hits;
 
 	  this.game.queue.splice(qe, 1);
 
+	  let translation_from_new = this.game.state.translations['new'][zone];
+	  let translation_from_full = this.game.state.translations['full'][zone];
+
 	  for (let z = 0; z < ops; z++) {
 	    if (zone === "german") {
 	      if (this.game.state.translations['new']['german'] >= 6) {
@@ -11939,6 +11942,7 @@ defender_hits - attacker_hits;
 	  if (his_self.game.player == his_self.returnPlayerCommandingFaction("protestant")) {
 	    his_self.faction_overlay.render("protestant");
 	    his_self.faction_overlay.updateNotice("Protestants advance in Bible Translation");
+	    his_self.faction_overlay.slideTranslation(zone, translation_from_new, translation_from_full);
 	  } else {
 	    this.displayHudPopup("translate","Bible Translation"); // true = as hud popup
 	  }
@@ -11966,6 +11970,12 @@ defender_hits - attacker_hits;
 	  this.game.queue.splice(qe, 1);
 
 	  if (this.game.state.saint_peters_cathedral['vp'] < 5) {
+	    if (!his_self.faction_overlay.saintPetersFrom) {
+	      his_self.faction_overlay.saintPetersFrom = {
+	        state: this.game.state.saint_peters_cathedral['state'],
+	        vp: this.game.state.saint_peters_cathedral['vp'],
+	      };
+	    }
 	    this.updateLog("Papacy builds St. Peter's Basilica");
 	    this.game.state.saint_peters_cathedral['state'] += 1;
 	    if (this.game.state.saint_peters_cathedral['state'] >= 5) {
@@ -11975,9 +11985,22 @@ defender_hits - attacker_hits;
 	    }
 	  }
 
+	  let next_move = this.game.queue[this.game.queue.length - 1];
+	  let another_build = (typeof next_move === "string" && next_move.split("\t")[0] === "build_saint_peters");
+	  let saint_peters_from = null;
+	  if (!another_build) {
+	    saint_peters_from = his_self.faction_overlay.saintPetersFrom;
+	    his_self.faction_overlay.saintPetersFrom = null;
+	  }
+
 	  if (his_self.game.player == his_self.returnPlayerCommandingFaction("papacy")) {
-	    his_self.faction_overlay.render("papacy");
-	    his_self.faction_overlay.updateNotice("Papacy progresses with Saint Peter's Construction");
+	    if (!another_build) {
+	      his_self.faction_overlay.render("papacy");
+	      his_self.faction_overlay.updateNotice("Papacy progresses with Saint Peter's Construction");
+	      if (saint_peters_from) {
+	        his_self.faction_overlay.slideSaintPeters(saint_peters_from);
+	      }
+	    }
 	  } else {
 	    this.displayHudPopup("st_peters","Saint Peter's Basilica");
 	  }
