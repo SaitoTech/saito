@@ -17,7 +17,7 @@ const {
 } = require('./lib/transaction');
 const Main = require('./lib/ui/main');
 const HomePage = require('./index');
-const { verifyEmail, myKeychainEmail, rememberVerifiedEmails, documentUnchanged } = require('./lib/auth');
+const { verifyEmail, myKeychainEmail, rememberVerifiedEmails, documentUnchanged, createCreatorProof, verifyCreatorProof, finalizeDocument, verifyFinalization } = require('./lib/auth');
 const { loadDraft, clearDraft } = require('./lib/draft');
 
 class SaitoSign extends ModTemplate {
@@ -63,6 +63,12 @@ class SaitoSign extends ModTemplate {
 
     try {
       this.document = await hydrate(saved.document);
+      if (this.document.creator && !verifyCreatorProof(this.app, this.document)) {
+        throw new Error('Creator identity could not be verified.');
+      }
+      if (this.document.finalized && !verifyFinalization(this.app, this.document)) {
+        throw new Error('Finalized document signature is invalid.');
+      }
       rememberVerifiedEmails(this.app, this.document);
     } catch (err) {
       this.document = emptyDocument();
@@ -111,6 +117,9 @@ class SaitoSign extends ModTemplate {
     if (looksLikeWebTransaction(text)) {
       try {
         const data = readPrepareTransaction(this.app, text);
+        if (data.finalized && !verifyFinalization(this.app, data)) {
+          throw new Error('The creator signature for this finalized document is invalid.');
+        }
         const changed = !documentUnchanged(this.app, data);
         if (changed) {
           stripSignatures(data);
@@ -121,7 +130,8 @@ class SaitoSign extends ModTemplate {
         }
       } catch (err) {
         const known = err?.message === 'That file is not a SaitoSign transaction.';
-        this.main.fail(known ? err.message : 'That SaitoSign transaction could not be read.');
+        const integrityError = err?.message?.includes('creator signature') || err?.message?.includes('creator identity');
+        this.main.fail(known || integrityError ? err.message : 'That SaitoSign transaction could not be read.');
       }
       return;
     }
@@ -142,6 +152,8 @@ class SaitoSign extends ModTemplate {
     let next;
     try {
       next = await openPdf(file);
+      next.creator = String(this.app.wallet?.publicKey || '').trim();
+      await createCreatorProof(this.app, next, next.creator);
     } catch (err) {
       this.main.fail('That PDF could not be read.');
       return;
@@ -154,7 +166,7 @@ class SaitoSign extends ModTemplate {
     if (!next.users.length) {
       const mine = myKeychainEmail(this.app);
       if (mine) {
-        const index = addUser(next, mine.name);
+        const index = addUser(next, mine.name, next.creator);
         next.users[index].email = mine.email;
         next.users[index].publickey = mine.publickey;
       }
@@ -173,6 +185,21 @@ class SaitoSign extends ModTemplate {
     }
 
     try {
+      if (!options.draft && !document.finalized) {
+        const walletKey = String(this.app.wallet?.publicKey || '').trim();
+        if (!walletKey || !document.creator || walletKey !== document.creator || !verifyCreatorProof(this.app, document)) {
+          this.main.fail('Only the document creator can finalize and export this document.');
+          return;
+        }
+        if (!(document.actions || []).length) {
+          this.main.fail('Add at least one action before finalizing this document.');
+          return;
+        }
+        await finalizeDocument(this.app, document, walletKey);
+      } else if (!options.draft && (!verifyCreatorProof(this.app, document) || !verifyFinalization(this.app, document))) {
+        this.main.fail('The finalized document creator signature is invalid.');
+        return;
+      }
       const tx = await createPrepareTransaction(this.app, document);
       const base = String(document.document.name || 'document.pdf').replace(/\.pdf$/i, '');
       downloadTransaction(this.app, tx, `${base || 'document'}.saitosign`);

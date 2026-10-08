@@ -165,6 +165,7 @@ class Warehouse {
       cached.block_hash_sold = fresh.block_hash_sold || '';
       cached.transaction_id_sold = Number(fresh.transaction_id_sold ?? 0);
       cached.longest_chain_sold = Number(fresh.longest_chain_sold ?? 0);
+      cached.longest_chain_listed = Number(fresh.longest_chain_listed ?? 0);
       cached.settlement_pending = Number(fresh.settlement_pending ?? 0) ? 1 : 0;
       cached.buyer = fresh.buyer || '';
       cached.quantity_sold = Number(fresh.quantity_sold ?? 0);
@@ -1324,6 +1325,18 @@ class Warehouse {
     const prior_inclusion = await this.db.returnLatestListingInclusion(tx.signature);
     if (prior_inclusion) {
       observation.approved = Number(prior_inclusion.approved ?? 0) || 0;
+    } else if (observation.nft_id && observation.seller && Number(observation.quantity) > 0) {
+      // A partial sale spends the moderated listing and immediately creates a
+      // new list-asset for what is left. That transaction has a new signature,
+      // but the NFT id (slip 3) is unchanged. Keep the seller's decision —
+      // approved, pending, or rejected — so the remainder is not reviewed again.
+      const prior_decision = await this.db.returnLatestNftModeration(
+        observation.nft_id,
+        observation.seller
+      );
+      if (prior_decision) {
+        observation.approved = prior_decision;
+      }
     }
 
     const listing = await this.addListing(observation);

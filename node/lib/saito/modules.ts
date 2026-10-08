@@ -239,6 +239,9 @@ class Mods {
       }
     } catch (error) {
       console.error('failed loading dynamic mod');
+      if (this.app.BROWSER && (window as any).SaitoDynamicLoader) {
+        throw error;
+      }
       // console.error(error);
     }
 
@@ -383,6 +386,13 @@ class Mods {
         console.log('Adding UI Mod: ', this.uimods[i].name);
         this.mods.push(this.uimods[i]);
       }
+    }
+
+    if (this.app.BROWSER && (window as any).SaitoDynamicLoader) {
+      const proceed = await (window as any).SaitoDynamicLoader.resolveModule(
+        this.returnActiveModule()
+      );
+      if (!proceed) return false;
     }
 
     //

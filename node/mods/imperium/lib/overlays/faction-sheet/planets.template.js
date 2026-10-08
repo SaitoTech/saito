@@ -34,7 +34,7 @@ module.exports = (imperium_self, player, payment) => {
     }
     html += `
       <article class="fs-planet${is_exhausted ? ' exhausted' : ''}${payable ? ' is-payable' : ''}${is_committed ? ' is-committed' : ''}" data-planet="${cards[i]}" data-exhausted="${is_exhausted ? 1 : 0}">
-        <div class="fs-planet-card" style="background-image:url('${planet.img || ''}')" role="img" aria-label="${label}"></div>
+        <div class="fs-planet-card" style="background-image:url('${planet.img || ''}')" role="img" aria-label="${label}">${imperium_self.planetCardStats(planet)}</div>
         ${bonus ? `<div class="fs-planet-bonus ${bonus}">${bonus}</div>` : ''}
         ${is_exhausted ? '<div class="fs-planet-banner">Exhausted</div>' : ''}
         ${is_committed ? '<div class="fs-planet-banner is-committed">Selected</div>' : ''}

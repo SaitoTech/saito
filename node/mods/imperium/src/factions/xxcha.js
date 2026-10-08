@@ -230,7 +230,7 @@
           let html = '';
           html += 'Select one agenda to quash in the Galactic Senate.';
           let menu = [];
-          for (i = 0; i < imperium_self.game.state.agendas.length; i++) {
+          for (let i = 0; i < imperium_self.game.state.agendas.length; i++) {
 	    if (imperium_self.game.state.agendas[i] != "") {
               menu.push({ id: String(imperium_self.game.state.agendas[i]), label: imperium_self.agenda_cards[imperium_self.game.state.agendas[i]].name });
             }
@@ -434,7 +434,7 @@
           let html = '';
           html += 'Select one agenda to quash in the Galactic Senate.';
           let menu = [];
-          for (i = 0; i < imperium_self.game.state.agendas.length; i++) {
+          for (let i = 0; i < imperium_self.game.state.agendas.length; i++) {
             if (imperium_self.game.state.agendas[i] != "") {
               menu.push({ id: String(imperium_self.game.state.agendas[i]), label: imperium_self.agenda_cards[imperium_self.game.state.agendas[i]].name });
             }

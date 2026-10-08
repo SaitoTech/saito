@@ -134,7 +134,10 @@ const TweetTemplate = (tweet, className = 'tweet', options = {}) => {
     : TweetFooterTemplate({
         replies: tweet.replies,
         retweets: tweet.retweets,
-        likes: tweet.likes
+        likes: tweet.likes,
+        liked: Boolean(tweet.mod?.publicKey && tweet.likers?.includes(tweet.mod.publicKey)),
+        replied: tweet.hasReplied?.() || false,
+        retweeted: Boolean(tweet.mod?.publicKey && tweet.retweeters?.includes(tweet.mod.publicKey))
       });
 
   const chain =

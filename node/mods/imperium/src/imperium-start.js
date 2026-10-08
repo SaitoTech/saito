@@ -38,6 +38,7 @@ const Dashboard = require('./lib/dashboard-manager');
 const RoundBox = require('./lib/round');
 const Sector = require('./lib/sector');
 const ImperiumGameHUD = require('./lib/imperium-game-hud/imperium-game-hud');
+const ImperiumLog = require('./lib/imperium-log');
 
 
 class Imperium extends GameTemplate {
@@ -141,6 +142,25 @@ class Imperium extends GameTemplate {
     this.assigns = [];  // floating units needing assignment to ships
     this.game.tracker = {};  // track options in turn
     this.activated_systems_player = 0;
+
+    // Cluster agenda votes, strategy-card picks, and combat into one expandable
+    // log row each. Plain updateLog calls stay individual and keep the shared
+    // log's "> " prefix.
+    this.imperium_log = new ImperiumLog(this);
+    this.log.registerEventType('agenda', (entries) => this.imperium_log.render(entries));
+    this.log.registerEventType('strategy', (entries) => this.imperium_log.render(entries));
+    this.log.registerEventType('combat', (entries) => this.imperium_log.render(entries));
+    let update_log = this.updateLog.bind(this);
+    this.updateLog = (str, eventType = '', data = null) => {
+      if (eventType) {
+        update_log(str, eventType, data);
+        return;
+      }
+      if (this.imperium_log && this.imperium_log.absorb(str)) {
+        return;
+      }
+      update_log(str, eventType, data);
+    };
 
     return this;
   

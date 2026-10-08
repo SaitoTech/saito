@@ -187,20 +187,7 @@
       width: min(500px, 90vw);
     }
 
-    /* compact horizontal action bar -- the engine default is a stacked
-	   list of 8rem-tall items, which starves the board of height
-	   (the min-height override lives in solitrio-hud.css, which loads later) */
-    .controls ul {
-      flex-direction: row;
-      width: 100%;
-    }
-
-    .controls ul li {
-      height: 4rem;
-      font-size: 1.4rem;
-      border-top: unset;
-      white-space: nowrap;
-    }
+    /* the compact horizontal action bar lives in solitrio-hud.css */
 
     /*
 	  Transpose the board to fit the phone's aspect ratio: each game row

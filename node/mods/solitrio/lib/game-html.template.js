@@ -3,10 +3,6 @@ module.exports = (app, mod) => {
 			<div class="gameboard">
 			<div class="logobox">
 				<img src="/solitrio/img/logo_solitrio_small.png" />
-				<div id="status" class="status hidable">
-					Loading the game...
-				</div>
-				<div id="controls" class="controls"></div>
 			</div>
 			<div class="rowbox" id="rowbox">
 				<div class="slot" id="row1_slot1"></div>

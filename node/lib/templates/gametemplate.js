@@ -74,7 +74,6 @@ const GameBoardSizer = require('./../saito/ui/game-board-sizer/game-board-sizer'
 const GameHexGrid = require('./../saito/ui/game-hexgrid/game-hexgrid');
 const GameAcknowledgeOverlay = require('./../saito/ui/game-acknowledge-overlay/game-acknowledge-overlay');
 const GameHelp = require('./../saito/ui/game-help/game-help');
-const GameScoreBoard = require('./../saito/ui/game-scoreboard/game-scoreboard');
 const GameHammerMobile = require('./../saito/ui/game-hammer-mobile/game-hammer-mobile');
 const GameRaceTrack = require('./../saito/ui/game-racetrack/game-racetrack');
 const GameObserver = require('./../saito/ui/game-observer/game-observer');
@@ -184,7 +183,6 @@ class GameTemplate extends ModTemplate {
     this.menu = new GameMenu(app, this);
     this.hammer = new GameHammerMobile(app, this);
     this.sizer = new GameBoardSizer(app, this); //yes constructor
-    this.scoreboard = new GameScoreBoard(app, this);
     this.hexgrid = new GameHexGrid(app, this);
     this.overlay = new SaitoOverlay(app, this, false);
     this.acknowledge_overlay = new GameAcknowledgeOverlay(app, this);

@@ -1,3 +1,4 @@
+const HudLayer = require('../hud-layer');
 const DietOfWormsTemplate = require('./diet-of-worms.template');
 const SaitoOverlay = require('./../../../../../lib/saito/ui/saito-overlay/saito-overlay');
 
@@ -11,22 +12,22 @@ class DietOfWormsOverlay {
 
   hide() {
     this.visible = false;
+    this.pushHudUnderOverlay();
     this.overlay.hide();
+  }
+
+  pullHudOverOverlay() {
+    HudLayer.pullHudOverOverlay.call(this);
+  }
+
+  pushHudUnderOverlay() {
+    HudLayer.pushHudUnderOverlay.call(this);
   }
 
   render() {
     this.visible = true;
     this.overlay.show(DietOfWormsTemplate(this.mod, this.mod.game.players.length));
-
-    //
-    // pull GAME HUD over overlay
-    //
-    let overlay_zindex = parseInt(this.overlay.zIndex);
-    let hud = document.getElementById('game-hud2');
-    if (hud) {
-      hud.style.zIndex = overlay_zindex + 1;
-    }
-
+    this.pullHudOverOverlay();
     this.attachEvents();
   }
 
@@ -60,10 +61,6 @@ class DietOfWormsOverlay {
   showResults(obj) {
     let his_self = this.mod;
 
-    let hud = document.getElementById('game-hud2');
-    if (hud) {
-      hud.style.zIndex = 10;
-    }
     this.mod.hud.updateStatus('');
 
     if (!document.querySelector('.diet-overlay')) {

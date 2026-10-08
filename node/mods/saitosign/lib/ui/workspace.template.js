@@ -41,7 +41,7 @@ function signersHTML(view) {
 }
 
 function signerAction(view) {
-  if (view.adding_signer) {
+  if (view.adding_signer || !view.can_edit) {
     return '';
   }
   return '<button type="button" class="plus" data-add-signer aria-label="Add signer">+</button>';
@@ -57,7 +57,7 @@ function fieldListHTML(view) {
       ${view.field_list
         .map(
           (field) => `
-            <li class="row">
+            <li class="row${field.signed ? ' signed' : ''}">
               <button type="button" class="open" data-open-field="${field.id}">
                 <i class="fa-solid ${field.signed ? 'fa-check signed' : 'fa-pen'}" aria-hidden="true"></i>
                 <span class="label">${escapeHTML(field.type)} - ${escapeHTML(field.name)} - page ${field.page}</span>
@@ -71,7 +71,7 @@ function fieldListHTML(view) {
 }
 
 function fieldsSectionHTML(view) {
-  if (!view.signers.length) {
+  if (!view.field_list.length) {
     return '';
   }
 
@@ -82,8 +82,8 @@ function fieldsSectionHTML(view) {
   return `
     <section class="fields-panel">
       <div class="section-head">
-        <p class="title">Actions</p>
-        <button type="button" class="plus" data-add-field aria-pressed="${view.placing ? 'true' : 'false'}" aria-label="Add field">+</button>
+        <p class="title">Signatures</p>
+        ${view.can_edit ? `<button type="button" class="plus" data-add-field aria-pressed="${view.placing ? 'true' : 'false'}" aria-label="Add field">+</button>` : ''}
       </div>
       ${hint}
       ${fieldListHTML(view)}
@@ -91,17 +91,12 @@ function fieldsSectionHTML(view) {
   `;
 }
 
-function railHTML(view) {
-  const notice = view.notice ? `<p class="notice">${escapeHTML(view.notice)}</p>` : '';
-  const exportable = view.edited ? ' primary' : '';
-  const disabled = view.edited ? '' : ' disabled';
+function signersSectionHTML(view) {
+  if (!view.signers.length) {
+    return '';
+  }
 
   return `
-    <div class="identity">
-      <p class="name">SaitoSign</p>
-      <p class="file">${escapeHTML(view.file_name)}</p>
-    </div>
-
     <section class="signers-panel">
       <div class="section-head">
         <p class="title">Signers</p>
@@ -109,11 +104,24 @@ function railHTML(view) {
       </div>
       ${signersHTML(view)}
     </section>
+  `;
+}
 
+function railHTML(view) {
+  const notice = view.notice ? `<p class="notice">${escapeHTML(view.notice)}</p>` : '';
+  const exportable = view.edited ? ' primary' : '';
+
+  return `
+    <div class="identity">
+      <p class="name">SaitoSign</p>
+      <p class="file">${escapeHTML(view.file_name)}</p>
+    </div>
+
+    ${signersSectionHTML(view)}
     ${fieldsSectionHTML(view)}
     ${notice}
 
-    <button type="button" class="export${exportable}" data-export${disabled}>Next Step</button>
+    <button type="button" class="export${exportable}" data-export>Next Step</button>
   `;
 }
 

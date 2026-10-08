@@ -1827,79 +1827,19 @@
     font-weight: heavy;
   }
 
-  /* double planet — undo .hex_bg's 30deg so both planets sit upright */
+  /* Every planet tile spins in. Empty space and hazards never get .spin-in. */
 
-  .bi:has(.two_planet) .hex_img,
-  .bi .sector1,
-  .bi .sector2,
-  .bi .sector3,
-  .bi .sector4,
-  .bi .sector5,
-  .bi .sector6,
-  .bi .sector7,
-  .bi .sector8,
-  .bi .sector11,
-  .bi .sector12,
-  .bi .sector14,
-  .bi .sector17,
-  .bi .sector25,
-  .bi .sector27,
-  .bi .sector28,
-  .bi .sector29,
-  .bi .sector30 {
+  .bi.spin-in .hex_img {
     transform: scale(2.6) rotate(-30deg);
   }
 
-  /* large single planet */
+  /* Single-planet tiles zoom half as far in. New Byzantium keeps its own rule. */
+  .bi.spin-in:has(.one_planet) .hex_img {
+    transform: scale(1.8) rotate(-30deg);
+  }
 
-  .bi .sector22,
-  .bi .sector23,
-  .bi .sector24,
-  .bi .sector26,
-  .bi .new-byzantium,
-  .bi .sector31,
-  .bi .sector32,
-  .bi .sector45,
-  .bi .sector52,
-  .bi .sector53,
-  .bi .sector73 {
+  .bi .new-byzantium {
     transform: scale(2.3) translate(0%, 25%) rotate(17deg);
-  }
-
-  /* small single planet */
-
-  .bi .sector58,
-  .bi .sector59,
-  .bi .sector60,
-  .bi .sector61,
-  .bi .sector62,
-  .bi .sector63,
-  .bi .sector64,
-  .bi .sector65,
-  .bi .sector66,
-  .bi .sector67,
-  .bi .sector62,
-  .bi .sector69,
-  .bi .sector70 {
-    transform: scale(3) translate(-5%, 16%);
-  }
-
-  /* planet and wormhole */
-
-  .bi .sector41,
-  .bi .sector42,
-  .bi .sector46,
-  .bi .sector47,
-  .bi .sector55,
-  .bi .sector57 {
-    transform: scale(3) translate(11%, 35%);
-  }
-
-  /* small planet bottom */
-
-  .bi .sector43,
-  .bi .sector44 {
-    transform: scale(3) translate(-10%, 6%);
   }
 
   .hexInfo {
@@ -2063,5 +2003,136 @@
   }
   .how_to_play_resources_entry {
     padding-top: 20px;
+  }
+
+  .game-help-triangle {
+    position: fixed;
+    left: 0;
+    bottom: 0;
+    width: 15rem;
+    height: 10rem;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    transform: none;
+    background: #ff7700;
+    clip-path: polygon(0 0, 0 100%, 100% 100%);
+    z-index: 2000;
+  }
+
+  .game-help-triangle:hover {
+    background: #ee6600;
+  }
+
+  .game-help-triangle.game-help-hidden {
+    visibility: hidden;
+    opacity: 0;
+    transition: none;
+  }
+
+  .game-help-text {
+    position: absolute;
+    left: 0.8rem;
+    bottom: 0.8rem;
+    margin: 0;
+    padding: 0;
+    transform: none;
+    width: 9rem;
+    min-width: 0;
+    font-family: 'orbitron-medium', helvetica, arial, sans-serif;
+    font-size: 1.35rem;
+    line-height: 1.2;
+    font-weight: bold;
+    letter-spacing: 0.02em;
+    white-space: normal;
+    text-shadow: -1px 1px 2px #000;
+  }
+
+  /* Expandable agenda, strategy, and combat rows. The shared log prints an
+     empty ">" caret. Collapse that glyph and hang a filled caret in its place. */
+  #log > div:has(> details.ri-log) {
+    font-size: 0;
+    line-height: 0;
+    padding-left: 21px;
+    text-indent: 0;
+  }
+
+  #log > div:has(> details.ri-log) > details.ri-log {
+    font-size: 16px;
+    line-height: normal;
+    display: block;
+    margin: 0 0 0 -20px;
+    color: #fff;
+    background: transparent;
+    user-select: text;
+  }
+
+  #log details.ri-log > summary {
+    display: block;
+    list-style: none;
+    cursor: pointer;
+    padding-left: 20px;
+    text-indent: -20px;
+    user-select: none;
+    outline: none;
+    background: transparent;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  #log details.ri-log > summary::-webkit-details-marker,
+  #log details.ri-log > summary::marker {
+    display: none;
+    content: '';
+  }
+
+  #log details.ri-log > summary::before {
+    content: '';
+    display: inline-block;
+    width: 20px;
+    height: 10px;
+    vertical-align: 0.05em;
+    background: currentColor;
+    clip-path: polygon(0 0, 0 100%, 55% 50%);
+  }
+
+  #log details.ri-log[open] > summary::before {
+    content: '';
+    height: 10px;
+    clip-path: polygon(0 15%, 55% 15%, 27.5% 85%);
+  }
+
+  #log details.ri-log > summary:focus,
+  #log details.ri-log > summary:focus-visible,
+  #log details.ri-log > summary:active {
+    outline: none;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  #log details.ri-log > div {
+    padding-left: calc(20px + 2ch);
+  }
+}
+
+@media screen and (max-width: 525px) {
+  .game.imperium #log > div:has(> details.ri-log) {
+    padding-left: 16px;
+  }
+
+  .game.imperium #log > div:has(> details.ri-log) > details.ri-log {
+    margin-left: -16px;
+  }
+
+  .game.imperium #log details.ri-log > summary {
+    padding-left: 16px;
+    text-indent: -16px;
+  }
+
+  .game.imperium #log details.ri-log > summary::before {
+    width: 16px;
+  }
+
+  .game.imperium #log details.ri-log > div {
+    padding-left: calc(16px + 2ch);
   }
 }

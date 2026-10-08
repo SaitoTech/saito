@@ -1942,6 +1942,23 @@ class Manager {
         }
       }
 
+      const wasLiked = likeButton.classList.contains('liked');
+      const heart = likeButton.querySelector('.heart');
+      likeButton.classList.add('liked');
+
+      if (heart) {
+        heart.classList.remove('animating');
+        // Restart the animation for successive likes without moving the count.
+        void heart.offsetWidth;
+        heart.classList.add('animating');
+        heart.onanimationend = (event) => {
+          if (event.animationName === 'redsquare-heart-pulse') {
+            heart.classList.remove('animating');
+            heart.onanimationend = null;
+          }
+        };
+      }
+
       try {
         const unsigned = await this.mod.createLikeTweetTransaction(
           { signature: tweet.signature },
@@ -1951,6 +1968,9 @@ class Manager {
         await this.app.network.propagateTransaction(unsigned);
         await this.mod.receiveLikeTweetTransaction(unsigned);
       } catch (err) {
+        likeButton.classList.toggle('liked', wasLiked);
+        heart?.classList.remove('animating');
+        if (heart) heart.onanimationend = null;
         console.error('RedSquare like failed:', err);
         siteMessage('Unable to like tweet', 2500);
       }

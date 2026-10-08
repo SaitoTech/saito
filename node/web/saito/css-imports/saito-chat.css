@@ -75,6 +75,7 @@
 .chat-popup-img-enhanced {
   max-height: 80vh;
   max-width: 95vw;
+  object-fit: contain;
   border: 1px solid var(--saito-border);
   border-radius: var(--saito-radius);
 }
@@ -867,6 +868,14 @@
   border-color: var(--saito-primary);
 }
 
+.chat-manager-mobile-menu .chat-menu-logo {
+  width: 1em;
+  height: 1em;
+  background-color: currentColor;
+  -webkit-mask: url('/saito/icons/saito-chat-icon-solid.svg') center / contain no-repeat;
+  mask: url('/saito/icons/saito-chat-icon-solid.svg') center / contain no-repeat;
+}
+
 .floating-cm-overlay .chat-manager-header {
   cursor: grab;
 }
@@ -1012,6 +1021,62 @@
   .chat-container .chat-footer,
   .chat-container .chat-body {
     background-color: var(--saito-background);
+  }
+
+  /* Full-screen conversation chrome: 4rem bars, 2rem type, light weight */
+  .chat-container .chat-header {
+    height: 4rem;
+    min-height: 4rem;
+  }
+
+  .chat-container .chat-details {
+    margin-left: 0;
+  }
+
+  .chat-container .chat-header .chat-group {
+    min-height: 2rem;
+    font-family: var(--saito-font);
+    font-size: 2rem;
+    font-weight: 400;
+    line-height: 2rem;
+  }
+
+  .chat-container .chat-mobile-back,
+  .chat-container .chat-action-menu,
+  .chat-container .chat-action-item {
+    box-sizing: border-box;
+    flex: 0 0 auto;
+    width: auto;
+    min-width: 4rem;
+    height: 4rem;
+    padding: 0 2rem;
+    font-size: 2rem;
+    line-height: 1;
+  }
+
+  .chat-container .chat-footer {
+    min-height: 4rem;
+  }
+
+  .chat-container .chat-footer .saito-input .text-input:not(.post-tweet-textarea) {
+    min-height: 4rem;
+    padding: 1rem 6.5rem 1rem 1.25rem;
+    font-family: var(--saito-font);
+    font-size: 2rem;
+    font-weight: 400;
+    line-height: 2rem;
+  }
+
+  .chat-container .chat-footer > i,
+  .chat-container .chat-footer > .chat-input-submit.saito-button-mouse-over,
+  .chat-container .chat-footer .saito-emoji {
+    box-sizing: border-box;
+    width: auto;
+    min-width: 4rem;
+    height: 4rem;
+    padding: 0 2rem;
+    font-size: 2rem;
+    line-height: 1;
   }
 
   /* Full-screen chat: back + title + menu; hide window chrome */
@@ -1190,6 +1255,8 @@
   align-items: center;
   gap: var(--saito-space-sm);
   width: 100%;
+  height: max-content;
+  min-height: max-content;
   padding: var(--saito-space-sm) var(--saito-space-md);
   border: 0;
   border-bottom: 1px solid color-mix(in srgb, var(--saito-border) 70%, transparent);

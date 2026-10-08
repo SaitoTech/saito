@@ -353,6 +353,71 @@
   font-size: 1.2rem;
 }
 
+.tweet .heart {
+  position: relative;
+  flex: 0 0 1.2rem;
+  height: 1.2rem;
+}
+
+.tweet .heart svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.tweet .controls .tool:is(.liked, .replied, .retweeted) {
+  color: var(--saito-primary);
+}
+
+.tweet .heart .fill {
+  fill: currentColor;
+  clip-path: inset(100% 0 0);
+}
+
+.tweet .like.liked .fill {
+  clip-path: inset(0);
+}
+
+.tweet .heart .outline,
+.tweet .heart .pulse {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linejoin: round;
+}
+
+.tweet .heart .pulse {
+  opacity: 0;
+  transform-origin: center;
+  transform-box: view-box;
+}
+
+.tweet .heart.animating {
+  z-index: 1;
+}
+
+.tweet .heart.animating .fill {
+  animation: redsquare-heart-fill 450ms ease-out both;
+}
+
+.tweet .heart.animating .pulse {
+  animation: redsquare-heart-pulse 450ms ease-out both;
+}
+
+@keyframes redsquare-heart-fill {
+  from { clip-path: inset(100% 0 0); }
+  to { clip-path: inset(0); }
+}
+
+@keyframes redsquare-heart-pulse {
+  0% { opacity: 1; transform: scale(1); }
+  65% { opacity: 0.7; }
+  100% { opacity: 0; transform: scale(3); }
+}
+
 .tweet .controls .count {
   margin-right: var(--saito-space-xs);
 }
@@ -370,14 +435,18 @@
 }
 
 .tweet.focused .header.expanded .primary {
-  font-size: 1.6rem;
+  font-size: 1.5rem;
   line-height: 1.25;
+}
+
+.tweet.focused .header.expanded .handle {
+  font-size: 1.5rem;
 }
 
 .tweet.focused .body {
   margin-top: 0.8rem;
-  font-size: 1.7rem;
-  line-height: 2.4rem;
+  font-size: 1.5rem;
+  line-height: 2.2rem;
 }
 
 .tweet.focused .footer {
@@ -497,8 +566,8 @@
   }
 
   .tweet.focused .body {
-    font-size: 1.8rem;
-    line-height: 2.5rem;
+    font-size: 1.6rem;
+    line-height: 2.3rem;
   }
 
   .tweet .embed > .tweet.embedded {

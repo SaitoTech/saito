@@ -1,9 +1,14 @@
 .game.imperium {
   .new-action-cards-overlay {
-    width: 80vw;
-    max-width: 1200px;
-    min-width: 800px;
-    padding: 1.667rem;
+    width: 100%;
+    height: 100%;
+    max-width: none;
+    min-width: 0;
+    padding: 1.25rem 1.5rem 1.5rem;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
     text-align: center;
   }
 
@@ -23,76 +28,117 @@
 
   .new-action-cards {
     display: flex;
-    flex-direction: rows;
-    flex-wrap: auto;
-    justify-content: space-evenly;
-  }
-
-  .new-action-cards > .action-card {
-    height: 40vh;
-    width: calc(40vh * 0.7211);
-  }
-  .new-action-cards > .action-card > .title {
-    font-size: 1.667rem;
-    line-height: 2.333rem;
-  }
-  .new-action-cards > .action-card > .text {
-    font-family: 'orbitron-light', helvetica, arial;
-    font-weight: normal;
-    font-size: 1.35rem;
-    line-height: 1.5;
-  }
-  .new-action-cards > .action-card:hover {
-    transform: unset;
-    border: 1px solid white;
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: flex-start;
+    align-content: flex-start;
+    gap: 1rem;
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: auto;
+    scrollbar-width: thin;
   }
 
   .action-card {
-    background-image: url('/imperium/img/cards/action_card.png');
+    background-image: url('/imperium/img/cards/action_card_template.png');
+    background-repeat: no-repeat;
+    background-position: center;
     background-size: cover;
-    height: 26vh;
-    width: calc(26vh * 0.7211);
-    color: whitesmoke;
-    padding: 1.5vw;
-    transition: all 50ms;
-    border: 1px solid;
+    aspect-ratio: 1024 / 1536;
+    height: 46vh;
+    width: calc(46vh * 1024 / 1536);
+    flex: 0 0 auto;
+    min-width: 0;
+    min-height: 0;
+    color: #f4efe6;
+    margin: 0;
+    border: none;
+    border-radius: 1.2rem;
+    overflow: hidden;
+    box-sizing: border-box;
+    display: grid;
+    container-type: size;
+    grid-template-columns: 9% 1fr 9%;
+    grid-template-rows: 24% auto minmax(0, 1fr) 8%;
+    padding: 0;
     cursor: pointer;
+    transition: transform 120ms ease;
   }
 
   .action-card .title {
+    grid-column: 2;
+    grid-row: 2;
     font-family: 'orbitron-medium', helvetica, arial;
+    font-weight: normal;
     text-align: center;
-    font-size: 1.25rem;
-    line-height: 1.667rem;
-    margin-bottom: 0.833rem;
+    font-size: 1.9rem;
+    font-size: 6.6cqh;
+    line-height: 1.1;
+    margin: 0 0 0.35em;
+    color: #f0e2c0;
   }
 
   .action-card .text {
+    grid-column: 2;
+    grid-row: 3;
+    align-self: stretch;
     font-family: 'orbitron-light', helvetica, arial;
     font-weight: normal;
-    font-size: 1.05rem;
-    line-height: 1.45;
+    font-size: 1.55rem;
+    font-size: 5cqh;
+    line-height: 1.25;
     text-align: center;
+    min-height: 0;
+    overflow: auto;
+    color: #f4efe6;
+  }
+
+  .new-action-cards > .action-card {
+    height: 62vh;
+    width: calc(62vh * 1024 / 1536);
+  }
+
+  .action-cards-overlay-content .action-card,
+  .game-overlay-cardlist-container .action-card {
+    height: 30vh;
+    width: calc(30vh * 1024 / 1536);
+  }
+
+  .game-overlay-cardlist-container:has(.action-card) {
+    width: 100% !important;
+    max-width: 100% !important;
+    max-height: none !important;
+    height: auto !important;
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    scrollbar-width: thin;
   }
 
   .game-cardbox {
     width: calc(55vh * 0.7211);
   }
 
+  .game-cardbox:has(.action-card) {
+    width: calc(62vh * 1024 / 1536);
+  }
+
   .game-cardbox .action-card {
     box-sizing: border-box;
     width: 100%;
-    height: 55vh;
+    height: 62vh;
     cursor: default;
   }
 
-  .game-cardbox .action-card:hover {
+  .game-cardbox .action-card:hover,
+  .new-action-cards > .action-card:hover,
+  .action-cards-overlay-content .action-card:hover {
     transform: none;
   }
 
   .action-card:hover {
-    transform: scale(1.2);
+    transform: scale(1.04);
     z-index: 10;
-    border: 1px solid whitesmoke;
   }
 }

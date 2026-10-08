@@ -8,6 +8,15 @@ class GameHUD2 {
     this.esc_bound = false;
     this.back_button_callback = null;
     this.show_cardbox_on_hover = 1;
+
+    //
+    // Selector for an element in the game's own layout. When set, the HUD is
+    // docked inside it (in normal flow, not draggable) instead of floating
+    // over the board, so the game's CSS controls where it sits on each screen.
+    //
+    this.container = null;
+    this.hud_popup_timeout = null;
+    this.hud_popup_hide_timeout = null;
   }
 
   render() {
@@ -21,21 +30,49 @@ class GameHUD2 {
     }
 
     let hud = document.getElementById('game-hud2');
-    if (hud) {
-      hud.style.zIndex = 50;
+    if (!hud) {
+      return;
+    }
+
+    let dock = this.container ? document.querySelector(this.container) : null;
+    if (dock) {
+      if (hud.parentElement !== dock) {
+        dock.appendChild(hud);
+      }
+      hud.classList.add('docked');
+      hud.style.zIndex = '';
+    } else {
+      hud.classList.remove('docked');
+      // Overlays set hud_above_overlay so card selection stays above them.
+      // Later HUD updates all come through render(), which would otherwise
+      // put the HUD back at 50, under the overlay.
+      if (this.mod && this.mod.hud_above_overlay) {
+        this.raiseAboveOverlays(hud);
+      } else {
+        hud.style.zIndex = 50;
+      }
     }
 
     this.attachEvents();
+  }
+
+  isDocked() {
+    let hud = document.getElementById('game-hud2');
+    return !!hud && hud.classList.contains('docked');
   }
 
   pullToFront() {
     this.render();
 
     let hud = document.getElementById('game-hud2');
-    if (!hud) {
+    if (!hud || this.isDocked()) {
       return;
     }
 
+    this.raiseAboveOverlays(hud);
+  }
+
+  raiseAboveOverlays(hud) {
     let max_z = 50;
     document.querySelectorAll('.saito-overlay, .saito-overlay-backdrop').forEach((el) => {
       let z = parseInt(el.style.zIndex, 10);
@@ -59,10 +96,10 @@ class GameHUD2 {
     });
 
     hud.addEventListener('mousedown', (e) => {
-      if (e.button !== 0) {
+      if (e.button !== 0 || this.isDocked()) {
         return;
       }
-      if (e.target.closest('.hud-back-button, a, input, textarea, button, select')) {
+      if (e.target.closest('.hud-back-button, .hud-notice, a, input, textarea, button, select')) {
         return;
       }
 
@@ -112,6 +149,13 @@ class GameHUD2 {
       document.addEventListener('mouseup', on_up);
     });
 
+    let hudnotice = hud.querySelector('.hud-notice');
+    if (hudnotice) {
+      hudnotice.onclick = () => {
+        this.hidePopup();
+      };
+    }
+
     if (!this.esc_bound) {
       this.esc_bound = true;
       document.addEventListener('keydown', (e) => {
@@ -135,15 +179,95 @@ class GameHUD2 {
   }
 
   hide() {
+    this.hidePopup();
     document.querySelectorAll('#game-hud2').forEach((el) => {
       el.style.display = 'none';
     });
+    this.hideVisualMenu();
+    this.back_button_callback = null;
+  }
+
+  hideVisualMenu() {
     let visual_menu = document.getElementById('hud-visual-menu');
     if (visual_menu) {
       visual_menu.innerHTML = '';
       visual_menu.className = 'hud-visual-menu';
+      visual_menu.onclick = null;
     }
-    this.back_button_callback = null;
+
+    let backdrop = document.getElementById('hud-visual-menu-backdrop');
+    if (backdrop) {
+      backdrop.remove();
+    }
+  }
+
+  showVisualMenuBackdrop() {
+    let hud = document.getElementById('game-hud2');
+    let visual_menu = document.getElementById('hud-visual-menu');
+    if (!hud || !visual_menu) {
+      return;
+    }
+
+    let backdrop = document.getElementById('hud-visual-menu-backdrop');
+    if (!backdrop) {
+      backdrop = document.createElement('div');
+      backdrop.id = 'hud-visual-menu-backdrop';
+      backdrop.className = 'hud-visual-menu-backdrop';
+      hud.insertBefore(backdrop, visual_menu);
+    }
+
+    let swallow = (e) => {
+      e.stopPropagation();
+    };
+    backdrop.onmousedown = swallow;
+    backdrop.onpointerdown = swallow;
+    backdrop.onpointerup = swallow;
+    backdrop.onmouseup = (e) => {
+      swallow(e);
+      this.hideVisualMenu();
+    };
+    backdrop.onclick = swallow;
+  }
+
+  hidePopup() {
+    clearTimeout(this.hud_popup_timeout);
+    this.hud_popup_timeout = null;
+
+    let hudnotice = document.querySelector('#game-hud2 .hud-notice');
+    if (!hudnotice) {
+      return;
+    }
+
+    hudnotice.classList.remove('show');
+    clearTimeout(this.hud_popup_hide_timeout);
+    this.hud_popup_hide_timeout = setTimeout(() => {
+      if (!hudnotice.classList.contains('show')) {
+        hudnotice.style.display = 'none';
+      }
+    }, 550);
+  }
+
+  showPopup(html = '', timeout = 0) {
+    this.render();
+
+    let hudnotice = document.querySelector('#game-hud2 .hud-notice');
+    if (!hudnotice) {
+      return;
+    }
+
+    clearTimeout(this.hud_popup_timeout);
+    clearTimeout(this.hud_popup_hide_timeout);
+
+    hudnotice.innerHTML = html || '';
+    hudnotice.classList.remove('show');
+    hudnotice.style.display = 'block';
+
+    this.hud_popup_timeout = setTimeout(() => {
+      hudnotice.classList.add('show');
+      this.hud_popup_timeout = setTimeout(() => {
+        this.hidePopup();
+      }, timeout);
+    }, 50);
   }
 
   updateStatus(status) {
@@ -198,7 +322,8 @@ class GameHUD2 {
     if (options.length > 0) {
       html = '<ul>';
       for (let i = 0; i < options.length; i++) {
-        html += `<li class="option" id="${options[i].id}">${options[i].label}</li>`;
+        let extra = options[i].class ? ` ${options[i].class}` : '';
+        html += `<li class="option${extra}" id="${options[i].id}">${options[i].label}</li>`;
       }
       html += '</ul>';
     }
@@ -254,13 +379,14 @@ class GameHUD2 {
     visual_menu.onclick = null;
     if (visual_count > 0) {
       visual_menu.classList.add('m' + Math.min(visual_count, 9));
+      this.showVisualMenuBackdrop();
       visual_menu.onclick = (e) => {
         if (e.target.closest('.hud-visual-option')) {
           return;
         }
-        visual_menu.innerHTML = '';
-        visual_menu.className = 'hud-visual-menu';
-        visual_menu.onclick = null;
+        e.preventDefault();
+        e.stopPropagation();
+        this.hideVisualMenu();
       };
       if (typeof callback === 'function') {
         visual_menu.querySelectorAll('.hud-visual-option').forEach((item) => {
@@ -274,6 +400,8 @@ class GameHUD2 {
           };
         });
       }
+    } else {
+      this.hideVisualMenu();
     }
   }
 

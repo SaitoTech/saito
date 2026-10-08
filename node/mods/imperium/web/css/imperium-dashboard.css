@@ -37,6 +37,8 @@
   }
 
   .dash-faction {
+    --dash-bar-h: 3.05rem;
+    --dash-rule: color-mix(in srgb, var(--imp-text) 18%, transparent);
     display: flex;
     flex-direction: column;
     cursor: pointer;
@@ -44,139 +46,157 @@
     position: relative;
     width: 100%;
     box-sizing: border-box;
-    row-gap: var(--imp-space-sm);
     background: var(--imp-surface);
     border: 1px solid var(--imp-border);
     border-radius: var(--imp-radius);
     padding: 0;
-    border-left-width: 0.35rem;
     overflow: hidden;
     container-type: inline-size;
   }
 
-  .dash-faction.p1 {
-    border-left-color: var(--p1);
-  }
-  .dash-faction.p2 {
-    border-left-color: var(--p2);
-  }
-  .dash-faction.p3 {
-    border-left-color: var(--p3);
-  }
-  .dash-faction.p4 {
-    border-left-color: var(--p4);
-  }
-  .dash-faction.p5 {
-    border-left-color: var(--p5);
-  }
-  .dash-faction.p6 {
-    border-left-color: var(--p6);
-  }
-
   .dash-faction-name {
+    position: relative;
+    z-index: 1;
     text-align: left;
     color: var(--imp-text);
     cursor: pointer;
-    padding: var(--imp-space-sm) var(--imp-space-md);
-    border-top-right-radius: calc(var(--imp-radius) - 1px);
+    padding: 0.55rem var(--imp-space-md);
     font-family: var(--imp-font);
-    font-size: var(--imp-fs-title);
-    letter-spacing: 0.04em;
+    font-size: 1.45rem;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    text-shadow: 0 1px 2px rgb(0 0 0 / 0.9), 0 0 0.7rem rgb(0 0 0 / 0.55);
+    background-image:
+      linear-gradient(90deg, rgb(0 0 0 / 0.78) 0%, rgb(0 0 0 / 0.42) 34%, rgb(0 0 0 / 0.08) 58%, transparent 76%),
+      linear-gradient(to top, rgb(0 0 0 / 0.5), transparent 46%),
+      url('/imperium/img/backgrounds/faction-dashboard.png');
+    background-repeat: no-repeat;
+    background-size: cover;
+    background-position: center, center, right center;
+    background-blend-mode: normal, normal, luminosity;
+  }
+
+  /* Rim glow, clipped by the card. Left is a bright edge that softens
+     downward; right is only a hint. Both fade inward before the type. */
+  .dash-faction::before,
+  .dash-faction::after {
+    content: '';
+    position: absolute;
+    z-index: 2;
+    top: 0;
+    bottom: 0;
+    pointer-events: none;
+  }
+
+  .dash-faction::before {
+    left: 0;
+    width: 0.95rem;
+    background: linear-gradient(
+      to right,
+      color-mix(in srgb, currentColor 96%, transparent) 0%,
+      color-mix(in srgb, currentColor 62%, transparent) 0.1rem,
+      color-mix(in srgb, currentColor 22%, transparent) 0.34rem,
+      transparent 0.7rem
+    );
+    -webkit-mask-image: linear-gradient(
+      to bottom,
+      #000 0%,
+      #000 2.4rem,
+      rgb(0 0 0 / 0.62) 62%,
+      rgb(0 0 0 / 0.28) 100%
+    );
+    mask-image: linear-gradient(
+      to bottom,
+      #000 0%,
+      #000 2.4rem,
+      rgb(0 0 0 / 0.62) 62%,
+      rgb(0 0 0 / 0.28) 100%
+    );
+  }
+
+  .dash-faction::after {
+    right: 0;
+    width: 0.42rem;
+    background: linear-gradient(
+      to left,
+      color-mix(in srgb, currentColor 28%, transparent) 0%,
+      transparent 0.42rem
+    );
+    -webkit-mask-image: linear-gradient(to bottom, rgb(0 0 0 / 0.4) 0%, rgb(0 0 0 / 0.1) 100%);
+    mask-image: linear-gradient(to bottom, rgb(0 0 0 / 0.4) 0%, rgb(0 0 0 / 0.1) 100%);
   }
 
   .dash-faction-body {
+    position: relative;
+    z-index: 1;
     display: flex;
-    flex-direction: row;
-    align-items: stretch;
+    flex-direction: column;
     min-width: 0;
     min-height: 0;
   }
 
-  .dash-faction-main {
-    flex: 1 1 auto;
-    min-width: 0;
-    display: flex;
-    flex-direction: column;
-    row-gap: var(--imp-space-sm);
-    padding: 0 0 var(--imp-space-sm);
-  }
-
-  .dash-resource-rail {
-    --dash-icon-w: 2.15rem;
-    --dash-icon-h: 1.65rem;
-    --dash-count-w: 2.4rem;
-    flex: 0 0 auto;
+  .dash-token-row,
+  .dash-faction-footer {
     box-sizing: border-box;
-    width: calc(var(--dash-icon-w) + var(--dash-count-w) + 1.15rem);
-    display: flex;
-    flex-direction: column;
-    justify-content: stretch;
-    align-self: stretch;
-    border-left: 1px solid color-mix(in srgb, var(--imp-text) 16%, transparent);
-    background: color-mix(in srgb, #000 20%, transparent);
-    padding: 0.2rem 0;
+    height: var(--dash-bar-h);
+    min-height: var(--dash-bar-h);
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    align-items: stretch;
   }
 
-  .dash-resource {
-    flex: 1 1 0;
-    display: grid;
-    grid-template-columns: var(--dash-icon-w) var(--dash-count-w);
+  .dash-token-row {
+    border-bottom: 1px solid var(--dash-rule);
+  }
+
+  .dash-token,
+  .dash-footer-cell {
+    display: flex;
     align-items: center;
     justify-content: center;
-    column-gap: 0.3rem;
-    min-height: 1.9rem;
-    padding: 0 0.4rem;
+    min-width: 0;
+    height: 100%;
   }
 
-  .dash-resource-icon {
-    width: var(--dash-icon-w);
-    height: var(--dash-icon-h);
-    justify-self: center;
-    background-color: currentColor;
-    -webkit-mask-image: var(--dash-icon);
-    mask-image: var(--dash-icon);
-    -webkit-mask-repeat: no-repeat;
-    mask-repeat: no-repeat;
-    -webkit-mask-position: center;
-    mask-position: center;
-    -webkit-mask-size: contain;
-    mask-size: contain;
+  .dash-token + .dash-token,
+  .dash-footer-cell + .dash-footer-cell {
+    border-left: 1px solid var(--dash-rule);
   }
 
-  .dash-resource-icon.strategy {
-    color: #e6b422;
-    --dash-icon: url('/imperium/img/icons/strategy-tokens.svg');
+  .dash-token {
+    gap: 0.45rem;
+    flex-wrap: nowrap;
   }
 
-  .dash-resource-icon.command {
-    color: #e23d32;
-    --dash-icon: url('/imperium/img/icons/command-tokens.svg');
-  }
-
-  .dash-resource-icon.fleet {
-    color: #3cba54;
-    --dash-icon: url('/imperium/img/icons/fleet-supply.svg');
-  }
-
-  .dash-resource-count {
-    width: var(--dash-count-w);
-    min-width: var(--dash-count-w);
-    white-space: nowrap;
-    justify-self: end;
-    text-align: right;
+  .dash-token-label {
     font-family: var(--imp-font);
-    font-size: var(--imp-fs-lg);
+    font-size: 0.78rem;
+    font-weight: 600;
+    letter-spacing: 0.07em;
+    line-height: 1;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  .dash-token-label.strategy {
+    color: #e6b422;
+  }
+
+  .dash-token-label.command {
+    color: #e23d32;
+  }
+
+  .dash-token-label.fleet {
+    color: #3cba54;
+  }
+
+  .dash-token-count {
+    font-family: var(--imp-font);
+    font-size: 1.45rem;
     font-weight: 600;
     font-variant-numeric: tabular-nums;
     line-height: 1;
     color: var(--imp-text);
-  }
-
-  .dash-resource-rule {
-    flex: 0 0 1px;
-    height: 1px;
-    margin: 0 0.4rem;
-    background: color-mix(in srgb, var(--imp-text) 20%, transparent);
   }
 
   .dash-faction-info {
@@ -186,7 +206,8 @@
     justify-content: space-around;
     align-items: center;
     gap: var(--imp-space-xs);
-    margin: 0 var(--imp-space-sm);
+    margin: 0;
+    padding: 0.7rem var(--imp-space-sm);
   }
 
   .dash-item {
@@ -207,9 +228,9 @@
     background-size: contain;
     background-repeat: no-repeat;
     background-position: center;
-    height: 3.6rem;
-    width: 4.1rem;
-    font-size: 2.6rem;
+    height: 4.4rem;
+    width: 5rem;
+    font-size: 3rem;
     line-height: 1;
   }
 
@@ -225,9 +246,9 @@
   .dash-item.trade {
     display: flex;
     position: relative;
-    height: 3.6rem;
-    width: 4.1rem;
-    font-size: 2.6rem;
+    height: 4.4rem;
+    width: 5rem;
+    font-size: 3rem;
     line-height: 1;
     z-index: 1;
     align-items: center;
@@ -238,9 +259,9 @@
     position: absolute;
     left: 50%;
     top: 50%;
-    /* resource art fills the 3.6rem height; the rotated mask hex fills ~91% of its square */
-    width: calc(3.6rem * 167 / 148 / 0.9105);
-    height: calc(3.6rem * 167 / 148 / 0.9105);
+    /* resource art fills the 4.4rem height; the rotated mask hex fills ~91% of its square */
+    width: calc(4.4rem * 167 / 148 / 0.9105);
+    height: calc(4.4rem * 167 / 148 / 0.9105);
     background-color: currentColor;
     transform: translate(-50%, -50%) rotate(30deg);
     -webkit-mask: url('/imperium/img/icons/saito-impossible-cube-credits.svg') center / contain no-repeat;
@@ -274,18 +295,15 @@
     color: var(--imp-text);
   }
 
-  .dash-faction-rule {
-    height: 1px;
-    margin: 0 var(--imp-space-sm);
-    background: color-mix(in srgb, var(--imp-text) 18%, transparent);
+  .dash-faction-footer {
+    border-top: 1px solid var(--dash-rule);
   }
 
   .dash-faction-base,
   .dash-faction-speaker.speaker {
     box-sizing: border-box;
-    height: calc(var(--imp-fs-sm) + 0.4rem + 2px);
-    padding: 0.2rem 0.45rem;
-    border-radius: var(--imp-radius);
+    padding: 0.38rem 0.85rem;
+    border-radius: 0.45rem;
     border-width: 1px;
     border-style: solid;
   }
@@ -294,51 +312,31 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    justify-self: start;
     min-width: 0;
     margin: 0;
     background: color-mix(in srgb, #000 28%, transparent);
-    border-color: color-mix(in srgb, var(--imp-text) 16%, transparent);
-  }
-
-  .dash-faction-footer {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: var(--imp-space-xs);
-    margin: 0 var(--imp-space-sm);
-    min-height: 1.6rem;
-  }
-
-  .dash-faction.is-speaker .dash-faction-footer {
-    display: grid;
-    grid-template-columns: auto minmax(0, 1fr) auto;
-    align-items: center;
+    border-color: color-mix(in srgb, var(--imp-text) 22%, transparent);
   }
 
   .dash-faction-vp {
     display: flex;
     align-items: baseline;
-    justify-self: end;
     gap: 0.35rem;
-    margin-left: auto;
     color: var(--imp-text);
     font-family: var(--imp-font);
   }
 
-  .dash-faction.is-speaker .dash-faction-vp {
-    margin-left: 0;
-  }
-
   .dash-vp-label {
-    font-size: var(--imp-fs-sm);
+    font-size: 0.95rem;
     color: var(--imp-text-muted);
     letter-spacing: 0.08em;
+    text-transform: uppercase;
   }
 
   .dash-item-vp {
-    font-size: var(--imp-fs-lg);
+    font-size: 1.45rem;
     font-weight: 600;
+    line-height: 1;
   }
 
   .dash-faction-speaker {
@@ -349,17 +347,16 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    justify-self: center;
     position: static;
     z-index: 2;
-    background-color: color-mix(in srgb, #c43c32 88%, transparent);
+    background-color: #e23b32;
     color: var(--imp-text);
-    font-size: clamp(0.85rem, 7cqi, var(--imp-fs));
-    font-weight: 400;
-    font-family: var(--imp-font-label);
-    letter-spacing: 0.04em;
+    font-size: 1.05rem;
+    font-weight: 600;
+    font-family: var(--imp-font);
+    letter-spacing: 0.02em;
     line-height: 1;
-    border-color: color-mix(in srgb, #fff 22%, transparent);
+    border-color: color-mix(in srgb, #fff 18%, transparent);
     pointer-events: none;
     white-space: nowrap;
   }
@@ -373,14 +370,15 @@
     align-items: center;
     justify-content: center;
     flex: 0 0 auto;
-    gap: 0.3rem;
+    gap: 0.28rem;
     padding: 0;
     font-family: var(--imp-font);
-    font-weight: 400;
+    font-weight: 500;
     letter-spacing: 0.04rem;
-    font-size: var(--imp-fs-sm);
+    font-size: 1.05rem;
     line-height: 1;
-    color: var(--imp-text-muted);
+    color: var(--imp-text);
+    white-space: nowrap;
   }
 
   .dash-commodity-slash {
@@ -396,6 +394,8 @@
     background: var(--imp-surface-strong);
     text-align: center;
     border-radius: var(--imp-radius);
+    margin: 0.55rem var(--imp-space-sm);
+    padding: 0.35rem 0;
   }
 
   .dash-faction-action {
@@ -410,10 +410,18 @@
       max-width: 42vw;
     }
 
-    .dash-resource-rail {
-      --dash-icon-w: 1.85rem;
-      --dash-icon-h: 1.4rem;
-      --dash-count-w: 2.1rem;
+    .dash-faction {
+      --dash-bar-h: 2.55rem;
+    }
+
+    .dash-token-label {
+      font-size: 0.6rem;
+      letter-spacing: 0.04em;
+    }
+
+    .dash-token-count,
+    .dash-item-vp {
+      font-size: 1.1rem;
     }
 
     .dash-item.resources,
@@ -441,14 +449,22 @@
       max-width: 54vw;
     }
 
-    .dash-resource-rail {
-      --dash-icon-w: 1.7rem;
-      --dash-icon-h: 1.25rem;
-      --dash-count-w: 1.9rem;
+    .dash-faction {
+      --dash-bar-h: 2.4rem;
+    }
+
+    .dash-token {
+      gap: 0.25rem;
+    }
+
+    .dash-token-label {
+      font-size: 0.55rem;
+      letter-spacing: 0.03em;
     }
 
     .dash-faction-speaker.speaker {
-      letter-spacing: 0.04rem;
+      font-size: 0.8rem;
+      padding: 0.22rem 0.5rem;
     }
 
     .dash-faction-status-text {

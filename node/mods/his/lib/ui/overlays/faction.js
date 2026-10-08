@@ -7,6 +7,85 @@ class FactionOverlay {
     this.mod = mod;
     this.visible = false;
     this.overlay = new SaitoOverlay(app, mod);
+    this.slideGeneration = 0;
+    this.saintPetersFrom = null;
+  }
+
+  // Place markers on their previous squares, hold, then slide to the squares render() just drew.
+  slideTranslation(zone, fromNew, fromFull) {
+    let translations = this.mod.game.state.translations;
+    let toNew = translations['new'][zone];
+    let toFull = translations['full'][zone];
+    this.slideGeneration += 1;
+    if (fromNew !== toNew) {
+      let el = document.getElementById('new_testament_' + zone + '_tile');
+      let fromBox = document.getElementById('protestant_translation_status_keytile' + fromNew);
+      if (el && fromBox && el.parentElement) {
+        this.slideChit(el, fromBox.getBoundingClientRect(), el.parentElement.getBoundingClientRect());
+      }
+    }
+    if (fromFull !== toFull) {
+      let el = document.getElementById('bible_' + zone + '_tile');
+      let fromBox = document.getElementById('faction_sheet_keytile' + (fromFull + 1));
+      if (el && fromBox && el.parentElement) {
+        this.slideChit(el, fromBox.getBoundingClientRect(), el.parentElement.getBoundingClientRect());
+      }
+    }
+  }
+
+  slideSaintPeters(from) {
+    let cathedral = this.mod.game.state.saint_peters_cathedral;
+    this.slideGeneration += 1;
+    if (from.state !== cathedral['state']) {
+      let el = document.querySelector('.faction_sheet .saint_peters_tile');
+      this.slideByStatusClass(el, from.state + 1, cathedral['state'] + 1);
+    }
+    if (from.vp !== cathedral['vp']) {
+      let el = document.querySelector('.faction_sheet .papacy_vp_tile');
+      this.slideByStatusClass(el, 7 + from.vp, 7 + cathedral['vp']);
+    }
+  }
+
+  slideByStatusClass(el, fromStatus, toStatus) {
+    if (!el) {
+      return;
+    }
+    let sheet = el.closest('.faction_sheet');
+    if (!sheet) {
+      return;
+    }
+    let probe = document.createElement('div');
+    probe.className = 'faction_sheet_keytile papacy_construction_status' + fromStatus;
+    probe.style.visibility = 'hidden';
+    probe.style.pointerEvents = 'none';
+    let toRect = el.getBoundingClientRect();
+    sheet.appendChild(probe);
+    let fromRect = probe.getBoundingClientRect();
+    probe.remove();
+    this.slideChit(el, fromRect, toRect);
+  }
+
+  slideChit(el, fromRect, toRect) {
+    let dx = fromRect.left - toRect.left;
+    let dy = fromRect.top - toRect.top;
+    if (Math.abs(dx) < 0.5 && Math.abs(dy) < 0.5) {
+      return;
+    }
+    let generation = this.slideGeneration;
+    el.style.zIndex = '20';
+    el.style.transition = 'none';
+    el.style.transform = 'translate(' + dx + 'px, ' + dy + 'px)';
+    void el.offsetWidth;
+    setTimeout(() => {
+      if (generation !== this.slideGeneration) {
+        return;
+      }
+      if (!el.isConnected) {
+        return;
+      }
+      el.style.transition = 'transform 1s ease';
+      el.style.transform = 'translate(0px, 0px)';
+    }, 500);
   }
 
   hide() {

@@ -1,75 +1,66 @@
-const { escapeHTML, keyPreviewHTML } = require('./publish.escape');
-
-function signerOptions(state) {
-  const options = state.signers
-    .map((signer) => {
-      const label = signer.email && signer.email !== signer.name
-        ? `${signer.name} - ${signer.email}`
-        : signer.name || signer.email;
-      return `<option value="${signer.index}">${escapeHTML(label)}</option>`;
-    })
-    .join('');
+function feature(title, text) {
   return `
-    <option value="">Select a signer</option>
-    ${options}
-    <option value="new">Add New Signer</option>
+    <div class="feature">
+      <p class="heading">${title}</p>
+      <p>${text}</p>
+    </div>
   `;
 }
 
-function identityHTML(state) {
-  if ((state.signers.length === 1 || state.identified) && state.you) {
-    return `
-      <div class="who" data-you-slot>
-        <p class="heading">You are signing with the following key:</p>
-        ${keyPreviewHTML(state.you)}
-      </div>
-    `;
+function tierFeature(state, label, description, freeAvailable, wide, key) {
+  const included = state.plan === 'premium' || freeAvailable;
+  const classes = ['share-option', included ? 'included' : 'unavailable'];
+  if (wide) {
+    classes.push('share-wide');
   }
-
+  const selectable = Boolean(key && included && state.canChooseTier);
+  const checked = state.options?.[key] === true;
+  const indicator = selectable
+    ? `<input type="checkbox" data-share-option="${key}" aria-label="Require ${label}"${checked ? ' checked' : ''}>`
+    : `<span class="feature-indicator" role="img" aria-label="${included ? checked ? 'Required by this document' : 'Available with this tier' : 'Premium feature'}">${included ? checked ? '✓' : '○' : '×'}</span>`;
   return `
-    <div class="who" data-you-slot>
-      <p class="heading">Please tell us who you are</p>
-      <div class="who-row">
-        <select data-you-signer aria-label="Who you are">
-          ${signerOptions(state)}
-        </select>
-        <button type="button" class="saito-button-secondary" data-publish-action="confirm-you">Confirm</button>
-      </div>
-      <div class="new-signer" data-new-signer hidden>
-        <input data-new-signer-name type="text" placeholder="name or email" aria-label="Signer name" autocomplete="name" />
-        <button type="button" data-publish-action="add-signer">Add</button>
-      </div>
+    <div class="${classes.join(' ')}" data-tier-feature data-free-available="${freeAvailable}">
+      ${indicator}
+      <span class="share-option-copy">
+        <span class="share-option-title">${label}</span>
+        ${description ? `<span class="share-option-description">${description}</span>` : ''}
+      </span>
     </div>
   `;
 }
 
 function selectSlide(state) {
   const free = state.plan !== 'premium';
+  const disabled = state.canChooseTier ? '' : ' disabled';
   return {
     title: 'How do you want to share this document?',
     body: `
       <div class="choice">
-        <div class="options" role="listbox" aria-label="How to share this document">
-          <button type="button" class="option${free ? ' active' : ''}" data-plan="free" aria-selected="${free}">
-            <span class="kicker">Free</span>
-            <span class="label">Sign and share it yourself</span>
+        <div class="options" role="tablist" aria-label="Account level">
+          <button type="button" class="option${free ? ' active' : ''}" data-plan="free" role="tab" aria-selected="${free}"${disabled}>
+            <span class="kicker">Freemium</span>
+            <span class="label">Basic verification</span>
           </button>
-          <button type="button" class="option${free ? '' : ' active'}" data-plan="premium" aria-selected="${!free}">
+          <button type="button" class="option${free ? '' : ' active'}" data-plan="premium" role="tab" aria-selected="${!free}"${disabled}>
             <span class="kicker">Premium</span>
-            <span class="label">Let SaitoSign handle more of it</span>
+            <span class="label">Full verification and signing</span>
           </button>
         </div>
-        <div class="detail">
-          <div class="copy" data-detail="free"${free ? '' : ' hidden'}>
-            <p class="heading">No storage or subscription.</p>
-            <p>You verify your email, sign, and send the document file to the other signers. The file is the document. It does not need to live on a server.</p>
+        <section class="tier-details" role="tabpanel">
+          <div class="tier-features">
+            ${feature('Premium Verification Methods', '')}
+            <div class="share-flags" aria-label="Basic verification methods">
+              ${tierFeature(state, 'Email', 'Verify each signer by email.', true, false, 'email')}
+              ${tierFeature(state, 'Mobile', 'Verify a mobile number.', false, false, 'phone')}
+              ${tierFeature(state, 'Photo', 'Request a supporting photograph.', true, false, 'photo')}
+              ${tierFeature(state, 'Passport', 'Verify identity with a passport.', false, false, 'passport')}
+              ${tierFeature(state, 'Legal review', 'Request third-party identity review.', false, false, 'legal_review')}
+            </div>
+            ${feature('Extra Benefits', '')}
+            ${tierFeature(state, 'Automatic File-Sharing', 'Avoid the need for manual file-sharing completely.', false, true, 'online_signing')}
+            ${tierFeature(state, 'Archive completed contract', 'Save an encrypted copy after signing is complete.', false, true, 'archive_contract')}
           </div>
-          <div class="copy" data-detail="premium"${free ? ' hidden' : ''}>
-            <p class="heading">Hosted storage and a managed signing process.</p>
-            <p>SaitoSign can keep the document online, remind signers, and carry more of the workflow. Free signing still works if you would rather pass the file yourself.</p>
-          </div>
-          ${identityHTML(state)}
-        </div>
+        </section>
       </div>
     `
   };

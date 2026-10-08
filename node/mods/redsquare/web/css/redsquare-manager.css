@@ -30,13 +30,13 @@
 }
 
 /*
- * Desktop Option A — page title anchors the feed chrome.
- * Content-sized height (no empty min-height), title-weighted.
+ * Desktop — content-sized chrome. Equal vertical inset so the back
+ * control sits centered between the header rules.
  */
 @media (min-width: 601px) {
   .manager > .header {
     min-height: 0;
-    padding: 0.7rem var(--saito-space-md) 0.55rem;
+    padding: 0.625rem var(--saito-space-md);
   }
 }
 
@@ -93,10 +93,10 @@
   display: block;
   width: 16rem;
   padding: var(--saito-space-sm) var(--saito-space-lg);
-  border: 1px solid var(--saito-border);
+  border: 1px solid var(--saito-primary);
   border-radius: var(--saito-radius-lg);
   margin: var(--saito-space-md) 0 0;
-  background: color-mix(in srgb, var(--saito-background) 33%, transparent);
+  background: color-mix(in srgb, var(--saito-background) 90%, transparent);
   color: var(--saito-foreground);
   text-align: center;
   cursor: pointer;

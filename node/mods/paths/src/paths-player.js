@@ -8,6 +8,22 @@
     return this.game.deck[this.game.player-1].hand;
   }
 
+  showPlayerHand() {
+    if (!this.game || !this.game.player || !this.game.deck) { return; }
+    let deck = this.game.deck[this.game.player - 1];
+    if (!deck || !Array.isArray(deck.hand)) { return; }
+    this.hud.updateCards(deck.hand);
+    if (deck.hand.length > 0 && this.cardbox) {
+      this.cardbox.attachCardEvents();
+    }
+  }
+
+  playerAcknowledgeNotice(msg, mycallback) {
+    let result = GameTemplate.prototype.playerAcknowledgeNotice.call(this, msg, mycallback);
+    this.showPlayerHand();
+    return result;
+  }
+
   returnFactionName(faction="") { return this.returnPlayerName(faction); }
 
   returnPlayerName(faction="") {
@@ -664,7 +680,7 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
         let uidx = x.auidx;
         let unit = paths_self.game.spaces[skey].units[uidx];
         if (!unit.damaged && !unit.damaged_this_combat) {
-          paths_self.moveUnit(skey, uidx, key);
+          paths_self.paths_log.commitMove(faction, skey, uidx, key);
           paths_self.prependMove(`move\t${faction}\t${skey}\t${uidx}\t${key}\t${paths_self.game.player}`);
           j++;
         }
@@ -752,7 +768,7 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
         let ukey = x.key;
         let uidx = x.auidx;
         if (!x.damaged && !x.damaged_this_combat) {
-          paths_self.moveUnit(skey, uidx, key);
+          paths_self.paths_log.commitMove(faction, skey, uidx, key);
           if (key != paths_self.game.state.combat.key && paths_self.game.spaces[paths_self.game.state.combat.key].fort <= 0) {
             paths_self.prependMove(`control\t${faction}\t${paths_self.game.state.combat.key}`);
           }
@@ -798,7 +814,7 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
       	  let ukey = x.key;
       	  let uidx = x.auidx;
           if (!x.damaged && !x.damaged_this_combat) {
-            paths_self.moveUnit(skey, uidx, key);
+            paths_self.paths_log.commitMove(faction, skey, uidx, key);
 	    if (key != paths_self.game.state.combat.key && paths_self.game.spaces[paths_self.game.state.combat.key].fort <= 0) {
 	      paths_self.prependMove(`control\t${faction}\t${paths_self.game.state.combat.key}`);
 	    }
@@ -841,7 +857,7 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
         }
       }
       if (!attacker_units[i].damaged) {
-        paths_self.moveUnit(skey, uidx, key);
+        paths_self.paths_log.commitMove(faction, skey, uidx, key);
         paths_self.addMove(`move\t${faction}\t${skey}\t${uidx}\t${key}\t${paths_self.game.player}`);
       }
       paths_self.displaySpace(skey);
@@ -1627,6 +1643,8 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
 
       if (action === "event") {
 
+        acknowledgeNotice("for the Event");
+
 	//
 	// and trigger event
 	//
@@ -1766,9 +1784,7 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
       //
       // select space to attack
       //
-      paths_self.playerSelectSpaceWithFilter(
-	"Select Target to Attack: ",
-	(key) => {
+      let canAttackSpace = (key) => {
 
 	  //
 	  // cannot attack desert spaces in summer
@@ -1828,7 +1844,31 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
 	    }
             return 0;
 	  }
-	},
+      };
+
+      let rendered_at = "";
+      for (let key in paths_self.game.spaces) {
+        if (canAttackSpace(key) == 1) {
+          rendered_at = key;
+          break;
+        }
+      }
+      if (rendered_at) {
+        if (!paths_self.zoom_overlay.visible) {
+          if (document.querySelector('.zoom-overlay')) {
+            paths_self.zoom_overlay.overlay.show();
+            paths_self.zoom_overlay.visible = true;
+          } else {
+            paths_self.zoom_overlay.renderAtSpacekey(rendered_at);
+          }
+        }
+        paths_self.zoom_overlay.scrollTo(rendered_at);
+        paths_self.zoom_overlay.showControls();
+      }
+
+      paths_self.playerSelectSpaceWithFilter(
+	"Select Target to Attack: ",
+	canAttackSpace,
 	(key) => {
 
 	  if (key === "skip") {
@@ -1839,6 +1879,7 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
 	    return;
 	  }
 	
+	  paths_self.zoom_overlay.scrollTo(key);
 	  paths_self.removeSelectable();
 	  attackInterface(key, options, []);
 	},
@@ -1894,10 +1935,30 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
 
       units.push({ key : "skip" , unit_idx : "skip" });
 
-      paths_self.playerSelectOptionWithFilter(
-	"Which Units Participate in Attack?",
-	units,
-	(idx) => {
+      let launchAttack = function(chosen) {
+	paths_self.zoom_overlay.hide();
+	paths_self.game.status = "attacking...";
+	paths_self.hud.updateStatus(paths_self.game.status);
+	paths_self.hud.updateMenu([]);
+	paths_self.hud.updateCards([]);
+	if (chosen.length > 0) {
+	  let s = [];
+	  for (let z = 0; z < chosen.length; z++) {
+	    s.push(JSON.parse(paths_self.app.crypto.base64ToString(chosen[z])));
+	  }
+	  paths_self.addMove("resolve\tplayer_play_combat");
+	  paths_self.addMove("player_play_combat\t"+paths_self.returnFactionOfPlayer());
+	  paths_self.addMove("post_combat_cleanup");
+	  paths_self.addMove(`combat\t${original_key}\t${JSON.stringify(s)}`);
+	  paths_self.endTurn();
+	} else {
+	  paths_self.addMove("resolve\tplayer_play_combat");
+	  paths_self.addMove("post_combat_cleanup");
+	  paths_self.endTurn();
+	}
+      };
+
+      let optionHtml = (idx) => {
 	  if (idx.key == "skip") {
 	    return `<li class="option" id="skip">start attack</li>`;
 	  }
@@ -1959,7 +2020,12 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
 	  } else {
 	    return null;
 	  }
-	},
+      };
+
+      paths_self.playerSelectOptionWithFilter(
+	"Which Units Participate in Attack?",
+	units,
+	optionHtml,
 	(idx) => {
 
 	  //
@@ -1972,30 +2038,27 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
 	  }
 
 	  //
+	  // every unit the menu is currently offering
+	  //
+	  if (idx === "all") {
+	    let chosen = [];
+	    for (let z = 0; z < units.length; z++) {
+	      if (units[z].key === "skip") { continue; }
+	      let html = optionHtml(units[z]);
+	      if (html == null || String(html).indexOf("noselect") !== -1) { continue; }
+	      let id_match = String(html).match(/\sid=['"]([^'"]+)['"]/i);
+	      if (!id_match || id_match[1] === "skip" || id_match[1] === "london") { continue; }
+	      chosen.push(id_match[1]);
+	    }
+	    launchAttack(chosen);
+	    return;
+	  }
+
+	  //
 	  // maybe we are done!
 	  //
 	  if (idx === "skip") {
-	    let finished = false;
-	    paths_self.zoom_overlay.hide();
-	    paths_self.game.status = "attacking...";
-	    paths_self.hud.updateStatus(paths_self.game.status);
-	    paths_self.hud.updateMenu([]);
-	    paths_self.hud.updateCards([]);
-	    if (selected.length > 0) {
-	      let s = [];
-	      for (let z = 0; z < selected.length; z++) {
-  		s.push(JSON.parse(paths_self.app.crypto.base64ToString(selected[z])));
-	      }
-	      paths_self.addMove("resolve\tplayer_play_combat");
-	      paths_self.addMove("player_play_combat\t"+paths_self.returnFactionOfPlayer());
-	      paths_self.addMove("post_combat_cleanup");
-	      paths_self.addMove(`combat\t${original_key}\t${JSON.stringify(s)}`);
-	      paths_self.endTurn();
-	    } else {
-	      paths_self.addMove("resolve\tplayer_play_combat");
-	      paths_self.addMove("post_combat_cleanup");
-	      paths_self.endTurn();
-	    }
+	    launchAttack(selected);
 	    return;
 	  }
 
@@ -2017,8 +2080,19 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
           attackInterface(original_key, options, selected);
 
 	},
-        false
+        null,
+        false,
+        [{ key : "all" , value : "attack with all" }]
       );
+
+      document.querySelectorAll('.zoom-overlay .controls ul').forEach((ul) => {
+        let attack_all = ul.querySelector(':scope > li[id="all"]');
+        if (!attack_all) { return; }
+        let row = document.createElement('div');
+        row.className = 'movement-actions';
+        row.appendChild(attack_all);
+        ul.parentElement.insertBefore(row, ul);
+      });
     }
 
     mainInterface(options);
@@ -2305,7 +2379,7 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
                   paths_self.trackMovementIntoNearEast(faction, active_units[zz]);
 		}
 
-                paths_self.moveUnit(currentkey, active_units[zz].idx, key2);
+                paths_self.paths_log.commitMove(faction, currentkey, active_units[zz].idx, key2);
 	        paths_self.game.spaces[key2].units[paths_self.game.spaces[key2].units.length-1].moved = 1;
 	        paths_self.prependMove(`move\t${faction}\t${currentkey}\t${active_units[zz].idx}\t${key2}\t${paths_self.game.player}`);
 	      }
@@ -2357,7 +2431,7 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
 	      if (is_one_hop_move && active_unit_moves > 0) {
 	        moveEverythingInterface(sourcekey, key2);
 	      } else {
-	        mainInterface(options);
+	        mainInterface(options, true);
 	      }
 	    },
 	    null ,
@@ -2367,9 +2441,19 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
     };
 
 
-    let mainInterface = function(options) {
+    let cancelMovementScroll = function() {
+      if (paths_self.movement_scroll_timer) {
+        clearTimeout(paths_self.movement_scroll_timer);
+        paths_self.movement_scroll_timer = null;
+      }
+    };
+
+    // pause_before_scroll: the board has just been redrawn with the moved chit.
+    // Leave that view in place, then start the pan to the next unit.
+    let mainInterface = function(options, pause_before_scroll) {
 
       movement_snapshot_taken = 0;
+      cancelMovementScroll();
 
       //
       // sometimes this ends
@@ -2415,6 +2499,27 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
 
       paths_self.attachMovementSnapshotUndo();
 
+      let rendered_at = options[0];
+      for (let i = 0; i < options.length; i++) {
+        let still = false;
+        let space = paths_self.game.spaces[options[i]];
+        for (let z = 0; z < space.units.length; z++) {
+          if (space.units[z].moved != 1) { still = true; }
+        }
+        if (still) { rendered_at = options[i]; break; }
+      }
+      let scrollToNextUnit = () => {
+        paths_self.movement_scroll_timer = null;
+        if (paths_self.zoom_overlay.visible) {
+          paths_self.zoom_overlay.scrollTo(rendered_at);
+        }
+      };
+      if (pause_before_scroll) {
+        paths_self.movement_scroll_timer = setTimeout(scrollToNextUnit, 500);
+      } else {
+        scrollToNextUnit();
+      }
+
       paths_self.playerSelectSpaceWithFilter(
 	"Select Unit(s) to Move: ",
 	(key) => {
@@ -2457,6 +2562,7 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
             paths_self.game.state.does_movement_start_inside_near_east = 0;
 	  }
 
+	  cancelMovementScroll();
 	  paths_self.zoom_overlay.scrollTo(key);
 	  paths_self.removeSelectable();
 	  moveInterface(key, options);
@@ -2588,6 +2694,16 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
       if (faction == "central" && paths_self.game.state.events.race_to_the_sea != 1 && (currentkey == "amiens" || currentkey == "ostend" || currentkey == "calais")) {
 	stop_move_option = [];
       }
+      if (sourcekey == currentkey && paths_self.game.spaces[sourcekey].oos != 1 && paths_self.game.state.events.entrench == 1) {
+	let can_entrench_here = true;
+	for (let z = 0; z < paths_self.game.state.entrenchments.length; z++) {
+	  if (paths_self.game.state.entrenchments[z].spacekey == sourcekey) { can_entrench_here = false; }
+	}
+	if (can_entrench_here) {
+	  stop_move_option.push({ key : "entrench" , value : "entrench" });
+	  stop_move_option.push({ key : "standdown" , value : "stand down" });
+	}
+      }
 
       paths_self.attachMovementSnapshotUndo();
 
@@ -2671,6 +2787,23 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
 		// we finish the movement of one unit, and move on to the next 
 		//
 	        mainInterface(options);
+		return 1;
+	      }
+
+	      if (key2 === "entrench") {
+		let u = paths_self.game.spaces[sourcekey].units[idx];
+		let lf = u.loss; if (u.damaged) { lf = u.rloss; }
+		paths_self.addMove(`entrench\t${faction}\t${sourcekey}\t${idx}\t${lf}`);
+		paths_self.addMove(`player_play_movement\t${faction}`);
+		paths_self.game.state.entrenchments.push({ spacekey : sourcekey , loss_factor : lf , finished : 0 });
+		paths_self.hud.hideBackButton();
+		paths_self.endTurn();
+		return 1;
+	      }
+
+	      if (key2 === "standdown") {
+		paths_self.game.spaces[sourcekey].units[idx].moved = 1;
+		mainInterface(options);
 		return 1;
 	      }
 
@@ -2779,7 +2912,7 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
 		    if (unit.army) { units_remaining = 0; }
 		    if (unit.corps) { units_remaining--; }
 
-              	    paths_self.moveUnit(bspacekey, bunit_idx, key2);
+              	    paths_self.paths_log.commitMove(faction, bspacekey, bunit_idx, key2);
 	      	    bonus_moves.push(`move\t${faction}\t${bspacekey}\t${bunit_idx}\t${key2}\t${paths_self.game.player}`);
 
 		    //
@@ -2795,7 +2928,7 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
 
 		    } else {
 
-              	      paths_self.moveUnit(currentkey, idx, key2);
+              	      paths_self.paths_log.commitMove(faction, currentkey, idx, key2);
 	      	      paths_self.game.spaces[key2].units[paths_self.game.spaces[key2].units.length-1].moved = 1;
 
 		      //
@@ -2895,10 +3028,10 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
 	              }
 
 	              if (mint) {
-	                mainInterface(options);
+	                mainInterface(options, true);
 	                //moveInterface(sourcekey, options, 1); // move another
 	              } else {
-	                mainInterface(options);
+	                mainInterface(options, true);
 	              }
 
 		    }
@@ -2976,7 +3109,7 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
                   paths_self.trackMovementIntoNearEast(faction, paths_self.game.spaces[currentkey].units[idx]);
               }
 
-              paths_self.moveUnit(currentkey, idx, key2);
+              paths_self.paths_log.commitMove(faction, currentkey, idx, key2);
 	      paths_self.game.spaces[key2].units[paths_self.game.spaces[key2].units.length-1].moved = 1;
 	      paths_self.prependMove(`move\t${faction}\t${currentkey}\t${idx}\t${key2}\t${paths_self.game.player}`);
               paths_self.displaySpace(sourcekey);
@@ -3012,10 +3145,10 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
 	        continueMoveInterface(sourcekey, key2, idx, options);
 	      } else {
 	        if (mint) {
-	          mainInterface(options);
+	          mainInterface(options, true);
 	          //moveInterface(sourcekey, options);
 	        } else {
-	          mainInterface(options);
+	          mainInterface(options, true);
 	        }
 	      }
 	    },
@@ -3129,28 +3262,13 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
 
   }
 
-  broadcastActivationSignal(spacekey, type) {
-    this.signal_n++;
-    this.sendMetaMessage('paths-activation', {
-      n: this.signal_n,
-      spacekey: spacekey,
-      type: type
-    });
-  }
-
-  wipeSignalMarks() {
+  removeSignalMarkers() {
     let keys = Object.keys(this.signals.marks);
     this.signals.marks = {};
     for (let i = 0; i < keys.length; i++) {
       this.displaySpace(keys[i]);
       if (this.minimap) { this.minimap.remove('signal-' + keys[i]); }
     }
-  }
-
-  clearActivationSignals() {
-    this.waiting_for_opponent_ops = 0;
-    this.signals.n = 0;
-    this.wipeSignalMarks();
   }
 
   addSignalMarker(spacekey, type) {
@@ -3162,7 +3280,7 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
       x: (space.left + 45) / board.width,
       y: (space.top + 45) / board.height,
       type: 'circle',
-      color: type == 'combat' ? 'rgba(231, 76, 60, 0.45)' : 'rgba(232, 197, 71, 0.45)',
+      color: type == 'combat' ? '#e74c3c' : '#e8c547',
       size: 14
     });
   }
@@ -3177,19 +3295,34 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
   }
 
   receiveActivationSignal(txmsg) {
-    if (!txmsg || txmsg.my_key == this.publicKey) { return; }
-    if (!this.waiting_for_opponent_ops) { return; }
+    console.log('PATHS SIGNAL receive', txmsg);
+    if (!txmsg || txmsg.my_key == this.publicKey) {
+      console.log('PATHS SIGNAL receive ignored (own message)');
+      return;
+    }
     let data = txmsg.data || {};
     let n = parseInt(data.n);
-    if (isNaN(n)) { return; }
+    if (isNaN(n)) {
+      console.log('PATHS SIGNAL receive ignored (no n)', data);
+      return;
+    }
     if (n < this.signals.n) {
-      this.wipeSignalMarks();
+      console.log('PATHS SIGNAL receive lower n, wiping', n, this.signals.n);
+      this.removeSignalMarkers();
     } else if (n == this.signals.n) {
+      console.log('PATHS SIGNAL receive ignored (duplicate n)', n);
       return;
     }
     this.signals.n = n;
-    if (!data.spacekey) { return; }
-    if (data.type != 'movement' && data.type != 'combat') { return; }
+    if (!data.spacekey) {
+      console.log('PATHS SIGNAL receive clear', n);
+      return;
+    }
+    if (data.type != 'movement' && data.type != 'combat') {
+      console.log('PATHS SIGNAL receive ignored (type)', data.type);
+      return;
+    }
+    console.log('PATHS SIGNAL receive paint', n, data.spacekey, data.type);
     this.signals.marks[data.spacekey] = data.type;
     this.displaySpace(data.spacekey);
     this.addSignalMarker(data.spacekey, data.type);
@@ -3290,7 +3423,13 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
 	    this.hud.updateCards([]);
 	    this.activateSpaceForMovement(key);
             this.displaySpace(key);
-	    this.broadcastActivationSignal(key, "movement");
+	    this.signal_n++;
+	    console.log('PATHS SIGNAL send', this.signal_n, key, 'movement');
+	    this.sendMetaMessage('paths-activation', {
+	      n: this.signal_n,
+	      spacekey: key,
+	      type: 'movement'
+	    });
 	    let cost_paid = this.returnActivationCost(faction, key); 
 	    cost -= cost_paid;
 	    this.addMove(`activate_for_movement\t${faction}\t${key}`);
@@ -3393,7 +3532,13 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
 	    this.hud.updateMenu([]);
 	    this.hud.updateCards([]);
 	    this.activateSpaceForCombat(key);
-	    this.broadcastActivationSignal(key, "combat");
+	    this.signal_n++;
+	    console.log('PATHS SIGNAL send', this.signal_n, key, 'combat');
+	    this.sendMetaMessage('paths-activation', {
+	      n: this.signal_n,
+	      spacekey: key,
+	      type: 'combat'
+	    });
 	    let cost_paid = this.returnActivationCost(faction, key); 
 	    cost -= cost_paid;
 	    this.addMove(`activate_for_combat\t${faction}\t${key}`);
@@ -3720,6 +3865,19 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
 
     });
 
+    document.querySelectorAll('.zoom-overlay .controls ul').forEach((ul) => {
+      let entrench = ul.querySelector(':scope > li[id="entrench"]');
+      let standdown = ul.querySelector(':scope > li[id="standdown"]');
+      let skip = ul.querySelector(':scope > li[id="skip"]');
+      if (!entrench && !standdown && !skip) { return; }
+      let row = document.createElement('div');
+      row.className = 'movement-actions';
+      if (entrench) { row.appendChild(entrench); }
+      if (standdown) { row.appendChild(standdown); }
+      if (skip) { row.appendChild(skip); }
+      ul.parentElement.insertBefore(row, ul);
+    });
+
     this.attachMovementSnapshotUndo();
 
     if (at_least_one_option) { return 1; }
@@ -3738,7 +3896,13 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
     paths_self.game.state.does_movement_end_outside_near_east = 1;
     paths_self.game.state.does_movement_end_inside_near_east = 1;
 
-    paths_self.hud.showBackButton(() => { paths_self.playerPlayCard(faction, card); });
+    paths_self.hud.showBackButton(() => {
+      paths_self.moves = [];
+      if (paths_self.game.queue[paths_self.game.queue.length-1].split("\t")[0] == "play") {
+        paths_self.addMove("resolve\tplay");
+      }
+      paths_self.playerPlayCard(faction, card);
+    });
     if (deck[card].sr > value) { paths_self.hud.hideBackButton(); }
 
     let spaces = this.returnSpacesWithFilter((key) => {
@@ -4039,6 +4203,12 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
 
     let name = this.returnPlayerName(faction);
     let hand = this.returnPlayerHand();
+
+    //
+    // back from the card menu calls this again; drop any earlier resolve
+    // so a second resolve\tplay cannot clear the opponent's action
+    //
+    this.moves = [];
 
     //
     // you can pass once only 1 card left

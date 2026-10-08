@@ -12,6 +12,7 @@ class FieldOverlay {
 
   render(view, hooks = {}) {
     this.hooks = hooks;
+    this.view = view;
     this.overlay.show(FieldTemplate(view), () => {
       this.unbindKeys();
       if (this.hooks.onClose) {
@@ -44,8 +45,11 @@ class FieldOverlay {
       event.preventDefault();
       event.stopPropagation();
       if (target && target.closest && target.closest('[data-new-signer]')) {
-        form.querySelector('[data-create-signer]')?.click();
-        return;
+        const create = form.querySelector('[data-create-signer]');
+        if (create) {
+          create.click();
+          return;
+        }
       }
       if (typeof form.requestSubmit === 'function') {
         form.requestSubmit();
@@ -72,34 +76,65 @@ class FieldOverlay {
 
     const signer_select = form.querySelector('[data-field-signer]');
     const extra = form.querySelector('.new-signer');
+    const refreshMode = () => {
+      const button = form.querySelector('.actions button.primary');
+      const view = this.view;
+      if (!button || !view?.existing || view.sign_index == null) {
+        return;
+      }
+      const type = form.querySelector('[data-field-type]')?.value;
+      const chosen = signer_select.value;
+      const sign =
+        !view.already_signed &&
+        (type === 'signature' || type === 'initial') &&
+        chosen === String(view.sign_index);
+      button.textContent = sign ? 'Sign' : 'Update';
+      button.dataset.mode = sign ? 'sign' : 'update';
+    };
+
     signer_select.addEventListener('change', () => {
       extra.hidden = signer_select.value !== 'new';
+      refreshMode();
       if (!extra.hidden) {
         form.querySelector('[data-new-signer]')?.focus();
       }
     });
+    form.querySelector('[data-field-type]')?.addEventListener('change', refreshMode);
 
-    form.querySelector('[data-create-signer]').onclick = () => {
-      const name = form.querySelector('[data-new-signer]')?.value.trim();
-      if (!name || !this.hooks.onCreateSigner) {
-        return;
-      }
-      const added = this.hooks.onCreateSigner(name);
-      if (!added) {
-        return;
-      }
-      signer_select.insertAdjacentHTML(
-        'beforeend',
-        `<option value="${added.index}">${escapeHTML(added.name)}</option>`
-      );
-      const newest = signer_select.querySelector('option[value="new"]');
-      signer_select.value = String(added.index);
-      if (newest) {
-        signer_select.appendChild(newest);
-      }
-      extra.hidden = true;
-      form.querySelector('[data-new-signer]').value = '';
-    };
+    const create = form.querySelector('[data-create-signer]');
+    if (create) {
+      create.onclick = () => {
+        const name = form.querySelector('[data-new-signer]')?.value.trim();
+        if (!name || !this.hooks.onCreateSigner) {
+          return;
+        }
+        const added = this.hooks.onCreateSigner(name);
+        if (!added || added.pending) {
+          return;
+        }
+        if (added.existing) {
+          signer_select.value = String(added.index);
+          extra.hidden = true;
+          form.querySelector('[data-new-signer]').value = '';
+          return;
+        }
+        signer_select.insertAdjacentHTML(
+          'beforeend',
+          `<option value="${added.index}">${escapeHTML(added.name)}</option>`
+        );
+        const newest = signer_select.querySelector('option[value="new"]');
+        signer_select.value = String(added.index);
+        if (newest) {
+          signer_select.appendChild(newest);
+        }
+        extra.hidden = true;
+        form.querySelector('[data-new-signer]').value = '';
+      };
+    }
+
+    if (!extra.hidden) {
+      form.querySelector('[data-new-signer]')?.focus();
+    }
 
     const remove = form.querySelector('[data-remove-field]');
     if (remove) {
@@ -110,13 +145,23 @@ class FieldOverlay {
       };
     }
 
-    const commit = (event) => {
+    const commit = async (event) => {
       event.preventDefault();
       if (form.dataset.saving === '1') {
         return;
       }
       form.dataset.saving = '1';
-      const saved = this.hooks.onSave && this.hooks.onSave(form);
+      const mode = form.querySelector('.actions button.primary')?.dataset.mode;
+      let saved = false;
+      try {
+        if (mode === 'sign' && this.hooks.onSign) {
+          saved = await this.hooks.onSign();
+        } else if (this.hooks.onSave) {
+          saved = this.hooks.onSave(form);
+        }
+      } catch (err) {
+        saved = false;
+      }
       if (!saved) {
         form.dataset.saving = '';
       }

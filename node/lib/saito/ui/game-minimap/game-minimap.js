@@ -39,6 +39,25 @@ class GameMinimap {
     this.resize_start_x = 0;
     this.resize_start_y = 0;
     this.resize_start_width = 0;
+    this.focus = null;
+  }
+
+  viewFrame(b) {
+    if (!b) {
+      return { x: 0, y: 0, width: 1, height: 1 };
+    }
+    const focus = this.focus;
+    if (!focus || !(focus.width > 0) || !(focus.height > 0)) {
+      return { x: 0, y: 0, width: b.width, height: b.height };
+    }
+    const width = Math.min(focus.width, b.width);
+    const height = Math.min(focus.height, b.height);
+    return {
+      x: Math.max(0, Math.min(focus.x || 0, Math.max(0, b.width - width))),
+      y: Math.max(0, Math.min(focus.y || 0, Math.max(0, b.height - height))),
+      width,
+      height
+    };
   }
 
   render() {
@@ -82,31 +101,48 @@ class GameMinimap {
       return;
     }
 
-    if (!this.board_el.style.aspectRatio) {
-      this.board_el.style.aspectRatio = `${b.width} / ${b.height}`;
+    const frame = this.viewFrame(b);
+    const ratio = `${frame.width} / ${frame.height}`;
+    if (this.board_el.style.aspectRatio !== ratio) {
+      this.board_el.style.aspectRatio = ratio;
+      if (!this.aspect_wait) {
+        this.aspect_wait = true;
+        requestAnimationFrame(() => {
+          this.aspect_wait = false;
+          this.render();
+        });
+      }
+      return;
     }
     if (b.image && !this.board_el.style.backgroundImage) {
       this.board_el.style.backgroundImage = `url("${b.image}")`;
     }
+    this.applyBackdrop(b);
 
     const map = this.board_el.getBoundingClientRect();
+    if (this.focus && b.image && map.width) {
+      const bg_scale = (this.board_el.clientWidth || map.width) / frame.width;
+      this.board_el.style.backgroundRepeat = 'no-repeat';
+      this.board_el.style.backgroundSize = `${b.width * bg_scale}px ${b.height * bg_scale}px`;
+      this.board_el.style.backgroundPosition = `${-frame.x * bg_scale}px ${-frame.y * bg_scale}px`;
+    }
     if (!b.image) {
-      this.syncClone(b, map);
+      this.syncClone(b, map, frame);
     }
     let vis_x = -b.x / b.scale;
     let vis_y = -b.y / b.scale;
     let vis_right = vis_x + window.innerWidth / b.scale;
     let vis_bottom = vis_y + window.innerHeight / b.scale;
 
-    vis_x = Math.max(0, vis_x);
-    vis_y = Math.max(0, vis_y);
-    vis_right = Math.min(b.width, vis_right);
-    vis_bottom = Math.min(b.height, vis_bottom);
+    vis_x = Math.max(frame.x, Math.min(vis_x, frame.x + frame.width));
+    vis_y = Math.max(frame.y, Math.min(vis_y, frame.y + frame.height));
+    vis_right = Math.max(frame.x, Math.min(vis_right, frame.x + frame.width));
+    vis_bottom = Math.max(frame.y, Math.min(vis_bottom, frame.y + frame.height));
 
-    this.viewport_el.style.left = (vis_x / b.width) * map.width + 'px';
-    this.viewport_el.style.top = (vis_y / b.height) * map.height + 'px';
-    this.viewport_el.style.width = ((vis_right - vis_x) / b.width) * map.width + 'px';
-    this.viewport_el.style.height = ((vis_bottom - vis_y) / b.height) * map.height + 'px';
+    this.viewport_el.style.left = ((vis_x - frame.x) / frame.width) * map.width + 'px';
+    this.viewport_el.style.top = ((vis_y - frame.y) / frame.height) * map.height + 'px';
+    this.viewport_el.style.width = ((vis_right - vis_x) / frame.width) * map.width + 'px';
+    this.viewport_el.style.height = ((vis_bottom - vis_y) / frame.height) * map.height + 'px';
 
     if (this.redraw_markers) {
       if (!map.width) {
@@ -126,15 +162,17 @@ class GameMinimap {
         el.style.background = obj.color;
         el.style.width = obj.size + 'px';
         el.style.height = obj.size + 'px';
-        el.style.left = obj.x * map.width - obj.size / 2 + 'px';
-        el.style.top = obj.y * map.height - obj.size / 2 + 'px';
+        el.style.left =
+          ((obj.x * b.width - frame.x) / frame.width) * map.width - obj.size / 2 + 'px';
+        el.style.top =
+          ((obj.y * b.height - frame.y) / frame.height) * map.height - obj.size / 2 + 'px';
         this.markers_el.appendChild(el);
       }
       this.redraw_markers = false;
     }
   }
 
-  syncClone(b, map) {
+  syncClone(b, map, frame) {
     if (!b.el || !this.board_el || !map.width) {
       return;
     }
@@ -165,9 +203,11 @@ class GameMinimap {
     }
 
     if (this.clone_el && b.width) {
+      const view = frame || this.viewFrame(b);
+      const scale = map.width / view.width;
       this.clone_el.style.width = b.width + 'px';
       this.clone_el.style.height = b.height + 'px';
-      this.clone_el.style.transform = `scale(${map.width / b.width})`;
+      this.clone_el.style.transform = `scale(${scale}) translate(${-view.x}px, ${-view.y}px)`;
     }
   }
 
@@ -200,7 +240,23 @@ class GameMinimap {
     }
 
     this.board_el.style.backgroundImage = 'none';
-    this.syncClone(b, map);
+    this.syncClone(b, map, this.viewFrame(b));
+    this.applyBackdrop(b);
+  }
+
+  applyBackdrop(b) {
+    if (!this.board_el || !b || b.image) {
+      return;
+    }
+    let backdrop = '';
+    if (typeof this.mod.getBoardBackdrop === 'function') {
+      backdrop = this.mod.getBoardBackdrop() || '';
+    }
+    if (!backdrop) {
+      return;
+    }
+    this.board_el.style.backgroundImage = `url("${backdrop}")`;
+    this.board_el.style.backgroundSize = 'cover';
   }
 
   attachEvents() {
@@ -341,12 +397,13 @@ class GameMinimap {
       }
 
       const box = this.board_el.getBoundingClientRect();
+      const frame = this.viewFrame(b);
       const view_w = window.innerWidth / b.scale;
       const view_h = window.innerHeight / b.scale;
-      let vis_x = ((e.clientX - box.left - this.drag_x) / box.width) * b.width;
-      let vis_y = ((e.clientY - box.top - this.drag_y) / box.height) * b.height;
-      vis_x = Math.max(0, Math.min(vis_x, Math.max(0, b.width - view_w)));
-      vis_y = Math.max(0, Math.min(vis_y, Math.max(0, b.height - view_h)));
+      let vis_x = frame.x + ((e.clientX - box.left - this.drag_x) / box.width) * frame.width;
+      let vis_y = frame.y + ((e.clientY - box.top - this.drag_y) / box.height) * frame.height;
+      vis_x = Math.max(frame.x, Math.min(vis_x, frame.x + Math.max(0, frame.width - view_w)));
+      vis_y = Math.max(frame.y, Math.min(vis_y, frame.y + Math.max(0, frame.height - view_h)));
 
       this.mod.setBoardPosition(-vis_x * b.scale, -vis_y * b.scale);
       this.render();
@@ -500,8 +557,9 @@ class GameMinimap {
     }
 
     const box = this.board_el.getBoundingClientRect();
-    const board_x = ((e.clientX - box.left) / box.width) * b.width;
-    const board_y = ((e.clientY - box.top) / box.height) * b.height;
+    const frame = this.viewFrame(b);
+    const board_x = frame.x + ((e.clientX - box.left) / box.width) * frame.width;
+    const board_y = frame.y + ((e.clientY - box.top) / box.height) * frame.height;
     const view_w = window.innerWidth / b.scale;
     const view_h = window.innerHeight / b.scale;
     let vis_x = board_x - view_w / 2;

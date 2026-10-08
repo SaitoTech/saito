@@ -95,10 +95,16 @@ class GameHelp {
     let gh = document.querySelector('.game-help-triangle');
     gh.onclick = (e) => {
       this.hide();
-      this.renderCustomOverlay(targs);
+      let opensOverlay = !!(targs.title || targs.text || targs.img);
+      if (opensOverlay) {
+        this.renderCustomOverlay(targs);
+      }
 
-      if (targs?.callback) {
+      if (typeof targs.callback === 'function') {
         targs.callback();
+      }
+      if (!opensOverlay) {
+        return;
       }
 
       // Overlay events

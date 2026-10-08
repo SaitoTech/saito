@@ -359,6 +359,29 @@ img {
 	height: 3164px;
 }
 
+.game-minimap {
+	top: var(--saito-header-height);
+	right: auto;
+	bottom: auto;
+}
+
+.hud-visual-menu.m9:has(> .hud-visual-option:nth-child(10)) {
+	--hud-visual-row: calc((85vh - 3.334rem) / 3);
+	grid-template-rows: none;
+	grid-auto-rows: var(--hud-visual-row);
+	align-content: start;
+	height: 85vh;
+	max-height: 85vh;
+	overflow-x: hidden;
+	overflow-y: auto;
+	overscroll-behavior: contain;
+}
+
+.hud-visual-menu.m9:has(> .hud-visual-option:nth-child(10)) > .hud-visual-option {
+	height: var(--hud-visual-row);
+	min-height: var(--hud-visual-row);
+}
+
 .electorate_display {
 	position: absolute;
 	z-index: 10;

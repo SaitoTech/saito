@@ -389,12 +389,8 @@
   ///////////////////////////////
   returnHomeworldSectors(players = 4) {
     if (players <= 2) {
-      return ["1_1", "4_7"];
-//
-// for testing - place factions in fighting
-// position on start.
-//
-//      return ["1_1", "2_1"];
+      // For combat testing, start the two players in adjacent home systems.
+      return ["1_1", "2_1"];
     }
 
     if (players <= 3) {

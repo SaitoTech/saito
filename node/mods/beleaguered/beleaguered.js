@@ -11,6 +11,9 @@ class Beleaguered extends OnePlayerGameTemplate {
   constructor(app) {
     super(app);
 
+    // show status and options in the sidebar, not floating over the board
+    this.hud.container = '.logobox';
+
     this.name = 'Beleaguered';
     this.gamename = 'Beleaguered Castle';
     this.slug = 'beleaguered';

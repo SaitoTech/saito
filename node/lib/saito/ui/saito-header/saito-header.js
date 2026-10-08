@@ -621,7 +621,7 @@ class SaitoHeader extends UIModTemplate {
   }
 
   renderMenuItemIcon(item, keyword) {
-    if (keyword === 'module') {
+    if (keyword === 'module' || (keyword === 'utilities' && item.text === 'Nuke')) {
       const icon_paths = this.returnModuleMenuIconPaths(item.text);
       if (icon_paths) {
         return `<span class="saito-module-menu-icon-wrap" aria-hidden="true">
@@ -640,12 +640,15 @@ class SaitoHeader extends UIModTemplate {
       addapp: 'saito-add-app-icon',
       arcade: 'saito-arcade-icon',
       chat: 'saito-chat-icon',
+      docs: 'saito-docs-icon',
       extensions: 'saito-extensions-icon',
       filetransfer: 'saito-filetransfer-icon',
       fileshare: 'saito-filetransfer-icon',
       games: 'saito-games-icon',
+      nuke: 'saito-nuke-icon',
       redsquare: 'saito-redsquare-icon',
       saitotalk: 'saito-talk-icon',
+      saitodocs: 'saito-docs-icon',
       store: 'saito-store-icon',
       swarmcast: 'saito-swarmcast-icon',
       talk: 'saito-talk-icon',

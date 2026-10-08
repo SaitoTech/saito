@@ -2383,8 +2383,6 @@ class Chat extends ModTemplate {
     if (this.app.options.chat.groups?.length == 0) {
       this.createDefaultChatsFromKeys();
     }
-
-    this.app.storage.saveOptions();
   }
 
   saveOptions() {

@@ -207,7 +207,7 @@
     line-height: 1.35;
   }
 
-  .imperium-game-hud .imperium-hud-ack-button {
+  .imperium-game-hud .imperium-hud-acknowledge-button {
     box-sizing: border-box;
     display: flex;
     flex: 0 0 auto;
@@ -228,7 +228,36 @@
     cursor: pointer;
   }
 
-  .imperium-hud-ack-button:hover {
+  .imperium-hud-acknowledge-button:hover {
+    background: var(--imp-hover);
+  }
+
+  .imperium-hud-combat-toggle {
+    box-sizing: border-box;
+    display: flex;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: center;
+    height: 2.2rem;
+    margin: 0;
+    padding: 0 0.7rem;
+    border: 1px solid var(--imp-border);
+    border-radius: 0.35rem;
+    background: transparent;
+    color: var(--imp-text);
+    font-family: 'orbitron-light', Helvetica, sans-serif;
+    font-weight: 100;
+    font-size: 0.85rem;
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+    cursor: pointer;
+  }
+
+  .imperium-hud-combat-toggle[hidden] {
+    display: none;
+  }
+
+  .imperium-hud-combat-toggle:hover {
     background: var(--imp-hover);
   }
 }

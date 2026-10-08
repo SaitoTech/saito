@@ -1335,19 +1335,26 @@ class RedSquare extends ModTemplate {
           Number(parentTx.timestamp) ||
           0;
 
+        const repliers = Array.isArray(parentTx.optional.repliers)
+          ? parentTx.optional.repliers
+          : [];
+        const newReplier = Boolean(tweet.publicKey && !repliers.includes(tweet.publicKey));
+        if (newReplier) {
+          repliers.push(tweet.publicKey);
+        }
+        parentTx.optional.repliers = repliers;
+        parent.repliers = repliers.slice();
+
         if (interactionTs > parentTs) {
           parentTx.optional.num_replies = Number(parentTx.optional.num_replies) || 0;
           parentTx.optional.num_replies += 1;
-          parentTx.optional.updated_at = interactionTs;
           parent.replies = parentTx.optional.num_replies;
-          parent.updated_at = interactionTs;
+        }
 
-          await this.app.storage.updateTransaction(
-            parentTx,
-            { updated_at: interactionTs },
-            'localhost'
-          );
-
+        if (interactionTs > parentTs || newReplier) {
+          parent.updated_at = Math.max(parentTs + 1, interactionTs);
+          parentTx.optional.updated_at = parent.updated_at;
+          await this.saveTweet(parent);
           parent.refreshControls();
         }
       }

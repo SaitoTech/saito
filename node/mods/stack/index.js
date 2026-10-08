@@ -1,7 +1,9 @@
 const CtaLoader = require('../../lib/templates/saito-cta-loader.template');
 
 module.exports = (app, mod, build_number, og_card = {}, initialPostSerialized = null) => {
-  console.log(og_card);
+  const social = Object.fromEntries(
+    Object.entries(og_card).map(([key, value]) => [key, app.browser.escapeHTML(value)])
+  );
 
   let html = `
 
@@ -27,21 +29,21 @@ module.exports = (app, mod, build_number, og_card = {}, initialPostSerialized = 
   <meta name="msapplication-starturl" content="/index.html" />
 
   <meta name="twitter:card" content="summary" />
-  <meta name="twitter:site" content="${og_card.twitter}" />
-  <meta name="twitter:creator" content="${og_card.twitter}" />
-  <meta name="twitter:title" content="${og_card.title}" />
-  <meta name="twitter:url" content="${og_card.url}" />
-  <meta name="twitter:description" content="${og_card.description}" />
-  <meta name="twitter:image" content="${og_card.image}" />
+  <meta name="twitter:site" content="${social.twitter}" />
+  <meta name="twitter:creator" content="${social.twitter}" />
+  <meta name="twitter:title" content="${social.title}" />
+  <meta name="twitter:url" content="${social.url}" />
+  <meta name="twitter:description" content="${social.description}" />
+  <meta name="twitter:image" content="${social.image}" />
 
   <meta property="og:type" content="website" />
-  <meta property="og:title" content="${og_card.title}" />
-  <meta property="og:url" content="${og_card.url}" />
-  <meta property="og:description" content="${og_card.description}"/>
+  <meta property="og:title" content="${social.title}" />
+  <meta property="og:url" content="${social.url}" />
+  <meta property="og:description" content="${social.description}"/>
   <meta property="og:site_name" content="Saito" />
-  <meta property="og:image" content="${og_card.image}"/>
-  <meta property="og:image:url" content="${og_card.image}"/>
-  <meta property="og:image:secure_url" content="${og_card.image}"/>
+  <meta property="og:image" content="${social.image}"/>
+  <meta property="og:image:url" content="${social.image}"/>
+  <meta property="og:image:secure_url" content="${social.image}"/>
 
   <link rel="icon" sizes="192x192" href="/saito/img/touch/pwa-192x192.png" />
   <link rel="apple-touch-icon" sizes="192x192" href="/saito/img/touch/pwa-192x192.png" />

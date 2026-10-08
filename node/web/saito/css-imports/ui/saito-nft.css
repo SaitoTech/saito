@@ -562,7 +562,7 @@
   transform: translateX(-50%);
   width: 100%;
   max-width: 600px;
-  min-width: 400px;
+  min-width: min(400px, 100%);
   z-index: 10;
   display: flex;
   align-items: center;
@@ -1731,6 +1731,8 @@ html[data-theme='noir'] .saito-nft-panel-send .nft-advanced-toggle:active {
 }
 .send-nft-list:has(> .saito-nft-card) {
   display: grid;
+  /* Keep rows at card height when the scrollable list fills up. */
+  grid-auto-rows: max-content;
   grid-template-columns: repeat(
     auto-fill,
     minmax(min(100%, var(--saito-nft-image-size, 20rem)), max-content)

@@ -441,7 +441,9 @@ class GameMoves {
       `GT [processFutureMoves] -- Check ${this.game.future.length} moves for next one...`
     );
 
-    //Search all future moves for the next one
+    //Search all future moves for the next one. Only the stale-move branch
+    //changes the list without saving on the way out.
+    let future_changed = false;
     for (let i = 0; i < this.game.future.length; i++) {
       let ftx = new Transaction();
       ftx.deserialize_from_web(this.app, this.game.future[i]);
@@ -463,10 +465,13 @@ class GameMoves {
         //Old move, can ignore
         this.game.future.splice(i, 1);
         i--; // reduce index as deleted
+        future_changed = true;
       }
     }
 
-    this.saveFutureMoves(this.game.id);
+    if (future_changed) {
+      this.saveFutureMoves(this.game.id);
+    }
 
     if (this.game.future?.length > 0) {
       console.warn(
@@ -718,6 +723,11 @@ class GameMoves {
         (newtx.msg.request === 'game' && this.game.initializing == 0) ||
         this.initialize_game_offchain_if_possible == 1
       ) {
+        console.log(
+          'GT [sendGameMove] emit game relay gamemove',
+          new Date().toISOString(),
+          Date.now()
+        );
         this.app.connection.emit('relay-send-message', {
           recipient: this.game.accepted,
           request: 'game relay gamemove',
@@ -725,6 +735,11 @@ class GameMoves {
         });
 
         //An experiment to have game steps/ts update in arcade
+        console.log(
+          'GT [sendGameMove] emit arcade spv update',
+          new Date().toISOString(),
+          Date.now()
+        );
         this.app.connection.emit('relay-send-message', {
           recipient: 'PEERS',
           request: 'arcade spv update',

@@ -8,6 +8,9 @@ const htmlTemplate = require('./lib/game-html.template');
 class Mahjong extends OnePlayerGameTemplate {
   constructor(app) {
     super(app);
+
+    // show status and options in the sidebar, not floating over the board
+    this.hud.container = '.logobox';
     this.app = app;
 
     this.name = 'Mahjong';

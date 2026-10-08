@@ -214,7 +214,9 @@ function parseArgs() {
       return { zipPath: path.resolve(zipPath), slug };
     }
   }
-  throw new Error('Usage: npm run .saito -- [mod-directory | --deploy | --zip <path> --slug <slug>]');
+  throw new Error(
+    'Usage: npm run .saito [mod-directory] | npm run .saito -- [--deploy | --zip <path> --slug <slug>]'
+  );
 }
 
 async function compileOne(zipFileName) {
