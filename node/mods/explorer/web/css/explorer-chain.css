@@ -1,0 +1,128 @@
+.explorer-chain .explorer-chain-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+}
+.explorer-chain .explorer-chain-toolbar h1 {
+  margin-right: auto;
+}
+.explorer-chain form {
+  display: flex;
+  gap: 0.5rem;
+  min-width: 0;
+}
+.explorer-chain input {
+  width: min(28rem, 50vw);
+  min-width: 0;
+}
+.explorer-chain button,
+.explorer-chain input {
+  border: 1px solid var(--explorer-border);
+  border-radius: 0.5rem;
+  background: var(--explorer-card);
+  color: var(--explorer-foreground);
+  padding: 0.65rem 0.9rem;
+  font: inherit;
+}
+.explorer-chain button {
+  cursor: pointer;
+}
+.explorer-chain button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.explorer-chain button:focus-visible,
+.explorer-chain-stage:focus-visible {
+  outline: 2px solid var(--explorer-primary, #41bfac);
+  outline-offset: 2px;
+}
+.explorer-chain-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  font-size: 0.9em;
+}
+.explorer-chain-legend .canonical {
+  color: #41bfac;
+}
+.explorer-chain-legend .fork {
+  color: #f0ac55;
+}
+.explorer-chain-legend .unknown {
+  color: #8994ad;
+}
+.explorer-chain-stage {
+  position: relative;
+  height: clamp(300px, 55vh, 650px);
+  overflow: hidden;
+  touch-action: none;
+  cursor: grab;
+  border: 1px solid var(--explorer-border);
+  border-radius: 1rem;
+  background: var(--explorer-card);
+}
+.explorer-chain-stage:active {
+  cursor: grabbing;
+}
+.explorer-chain-stage canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+.explorer-chain-labels {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.explorer-chain-labels span {
+  position: absolute;
+  bottom: 0.8rem;
+  transform: translateX(-50%);
+  font-size: 0.8em;
+}
+.explorer-chain-tooltip {
+  position: absolute;
+  top: 1rem;
+  left: 1rem;
+  right: 1rem;
+  pointer-events: none;
+  overflow-wrap: anywhere;
+}
+.explorer-chain-detail {
+  padding: 1.25rem;
+  overflow-wrap: anywhere;
+}
+.explorer-chain-detail p {
+  margin: 0.6rem 0;
+}
+.explorer-chain-detail button {
+  margin-left: 1rem;
+}
+.explorer-chain [data-chain-status] {
+  flex: 1;
+  font-size: 0.9em;
+  min-width: 16rem;
+}
+.explorer-chain-list [data-chain-list] {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding-block: 1rem;
+}
+.explorer-chain-list button {
+  text-align: left;
+  overflow-wrap: anywhere;
+}
+.explorer-chain-stage.without-webgl {
+  height: 5rem;
+  min-height: 0;
+}
+@media (max-width: 48rem) {
+  .explorer-chain .explorer-chain-toolbar h1 {
+    width: 100%;
+  }
+  .explorer-chain-detail button {
+    margin: 0.5rem;
+  }
+}
