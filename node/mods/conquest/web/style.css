@@ -1,12 +1,13 @@
 /* FIELD ATLAS. Change these tokens to reskin the whole game. */
-.conquest-app{--conquest-paper:#f2eddf;--conquest-paper-deep:#e8e1d0;--conquest-ink:#303b35;--conquest-muted:#7c8174;--conquest-line:#d7d4c6;--conquest-accent:#bf543d;--conquest-player-1:#ba5844;--conquest-player-2:#66868a;--conquest-player-3:#c4a64e;--conquest-player-4:#84916d;--conquest-player-5:#90839a;--conquest-player-6:#d18d57;--conquest-unclaimed:#d5d2be;--conquest-heading:Georgia,'Times New Roman',serif;--conquest-body:'Trebuchet MS',Arial,sans-serif;color:var(--conquest-ink);background:var(--conquest-paper);font-family:var(--conquest-body);min-height:100vh;font-size:14px;line-height:1.45;isolation:isolate;position:relative;overflow-x:hidden}
+body:has(#conquest-root),.conquest-app{--conquest-paper:#f2eddf;--conquest-paper-deep:#e8e1d0;--conquest-ink:#303b35;--conquest-muted:#7c8174;--conquest-line:#d7d4c6;--conquest-accent:#bf543d;--conquest-player-1:#ba5844;--conquest-player-2:#66868a;--conquest-player-3:#c4a64e;--conquest-player-4:#84916d;--conquest-player-5:#90839a;--conquest-player-6:#d18d57;--conquest-unclaimed:#d5d2be;--conquest-heading:Georgia,'Times New Roman',serif;--conquest-body:'Trebuchet MS',Arial,sans-serif;--conquest-active:var(--conquest-player-1)}
+.conquest-app{color:var(--conquest-ink);background:var(--conquest-paper);font-family:var(--conquest-body);min-height:100vh;font-size:12px;line-height:1.45;isolation:isolate;position:relative;overflow-x:hidden}
 .conquest-app *{box-sizing:border-box}.conquest-app button,.conquest-app input,.conquest-app select{font:inherit}.conquest-app button{cursor:pointer}.conquest-app button:disabled{cursor:not-allowed;opacity:.45}.conquest-app button:focus-visible,.conquest-app a:focus-visible,.conquest-app input:focus-visible,.conquest-app select:focus-visible{outline:3px solid var(--conquest-accent);outline-offset:4px}.conquest-app [hidden]{display:none!important}.conquest-app:before{content:'';position:absolute;inset:0;pointer-events:none;z-index:4;opacity:.035;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Cpath fill='%23000' filter='url(%23n)' opacity='.8' d='M0 0h180v180H0z'/%3E%3C/svg%3E")}
-.conquest-header{height:105px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--conquest-line);margin:0 42px}.conquest-brand{display:flex;align-items:center;gap:24px;text-decoration:none!important;color:var(--conquest-ink)!important}.conquest-brand-word{font-family:var(--conquest-heading);font-size:58px;letter-spacing:-6px;line-height:1;font-weight:900;transform:scaleX(1.08);display:inline-block}.conquest-brand-dot{color:var(--conquest-accent)}.conquest-brand-sub{max-width:160px;font-size:12px;letter-spacing:2.4px;line-height:1.7;font-weight:700;border-left:1px solid var(--conquest-line);padding-left:25px}.conquest-header-right{display:flex;align-items:center;gap:37px}.conquest-edition{font-size:12px;letter-spacing:1.8px;color:var(--conquest-muted)}.conquest-text-button{border:0;background:none;padding:7px 0;color:var(--conquest-ink);font-size:12px;font-weight:700}.conquest-text-button span{margin-left:15px;color:var(--conquest-accent);font-size:17px}.conquest-main{display:grid;grid-template-columns:minmax(0,1fr) 307px;gap:32px;max-width:1800px;margin:0 auto;padding:0 42px}.conquest-board-column{min-width:0}.conquest-board-heading{display:flex;align-items:center;justify-content:space-between;padding:35px 0 14px}.conquest-eyebrow{font-size:12px;font-weight:700;letter-spacing:2px;color:var(--conquest-muted)}.conquest-board-heading h1{font-family:var(--conquest-heading);font-size:clamp(30px,3.2vw,49px);font-weight:400;letter-spacing:-1.9px;line-height:1.08;margin:10px 0 0}.conquest-round{display:flex;flex-direction:column;align-items:center;border-left:1px solid var(--conquest-line);padding-left:20px}.conquest-round span{font-size:12px;letter-spacing:2px;color:var(--conquest-muted)}.conquest-round b{font-size:29px;font-family:var(--conquest-heading);font-weight:400}.conquest-map-wrap{position:relative;margin:10px -10px 0}.conquest-map-caption{font-size:12px;color:var(--conquest-muted);letter-spacing:1.7px;padding:14px 10px 0}.conquest-map-caption span{padding:0 8px;color:var(--conquest-accent)}.conquest-map{display:block;width:100%;height:auto;min-height:350px;overflow:visible;touch-action:manipulation}.conquest-country{fill:var(--territory-color);stroke:var(--conquest-paper);stroke-width:2;stroke-linejoin:round;transition:fill .25s,filter .2s,stroke .15s;filter:url(#conquest-paper-grain)}.conquest-territory{cursor:pointer;outline:none}.conquest-territory:hover .conquest-country,.conquest-territory:focus-visible .conquest-country{stroke:var(--conquest-ink);stroke-width:3;filter:brightness(1.13)}.conquest-territory.selected .conquest-country{stroke:var(--conquest-ink);stroke-width:4}.conquest-territory.targeted .conquest-country{stroke:var(--conquest-accent);stroke-width:5;filter:brightness(1.2)}.conquest-territory.attackable .conquest-country{stroke:var(--conquest-accent);stroke-width:2.5;stroke-dasharray:7 4}.conquest-army{pointer-events:none}.conquest-army circle{fill:var(--conquest-paper);stroke:rgba(48,59,53,.45);stroke-width:1.2;filter:drop-shadow(0 2px 0 rgba(0,0,0,.08))}.conquest-army-count{font-size:17px;font-weight:700;text-anchor:middle;fill:var(--conquest-ink)}.conquest-army-selected{fill:none;stroke:var(--conquest-ink);stroke-width:2;opacity:0}.selected .conquest-army-selected,.targeted .conquest-army-selected{opacity:1}.conquest-country-label{font-size:12px;font-weight:700;letter-spacing:.2px;text-anchor:middle;fill:#2f3a34;paint-order:stroke;stroke:var(--conquest-paper);stroke-width:2.4px;stroke-linejoin:round;pointer-events:none}.conquest-hide-labels .conquest-country-label{display:none}.conquest-ocean-labels{font-family:var(--conquest-heading);font-size:12px;font-style:italic;letter-spacing:4px;fill:#8c9589;opacity:.7}.conquest-connections path{stroke:var(--conquest-ink);opacity:.25;stroke-width:1.5;stroke-dasharray:5 5;fill:none}.conquest-compass{stroke:var(--conquest-muted);stroke-width:1;opacity:.58}.conquest-compass circle{fill:none;stroke-dasharray:1 4}.conquest-compass path{fill:var(--conquest-ink)}.conquest-compass text{font-size:12px;letter-spacing:1px;text-anchor:middle;stroke:none;fill:var(--conquest-ink)}.conquest-map-footer{display:flex;justify-content:space-between;align-items:center;padding:0 10px 17px;border-bottom:1px solid var(--conquest-line);margin-top:-14px}.conquest-map-footer>span{font-size:12px;letter-spacing:1.4px;color:var(--conquest-muted)}.conquest-selection-key{display:inline-block;height:7px;width:7px;border:1px solid var(--conquest-accent);transform:rotate(45deg);margin-right:8px}.conquest-map-footer button{font-size:12px;color:var(--conquest-muted);text-decoration:underline;text-underline-offset:4px}.conquest-guide-continents{display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px;padding:18px 0}.conquest-guide-continents span{font-size:12px;white-space:nowrap;color:var(--conquest-muted)}.conquest-guide-continents i{width:5px;height:5px;margin-right:5px;display:inline-block;border-radius:50%}.conquest-guide-continents b{color:var(--conquest-ink);font-size:12px;margin-left:3px}.conquest-roster{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;padding:10px 0 25px}.conquest-player-card{border:1px solid var(--conquest-line);padding:13px 13px 12px;position:relative;background:#ffffff18}.conquest-player-card:before{content:'';position:absolute;left:-1px;top:-1px;bottom:-1px;width:3px;background:var(--player)}.conquest-player-card.active{background:#fffaf078;border-color:var(--player)}.conquest-player-card.eliminated{opacity:.4}.conquest-player-card-heading{display:flex;align-items:center;gap:7px;min-width:0}.conquest-player-card-heading>span{font-size:15px;color:var(--player)}.conquest-player-card-heading b{font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.conquest-player-card-heading i{margin-left:auto;font-style:normal;font-size:12px;letter-spacing:1px;color:var(--player)}.conquest-player-card-stats{display:flex;gap:15px;padding-top:7px;color:var(--conquest-muted);font-size:12px}.conquest-player-card-stats strong{font-size:15px;color:var(--conquest-ink);font-weight:400;margin-right:3px}.conquest-command{border-left:1px solid var(--conquest-line);padding:28px 0 22px 26px;min-width:0}.conquest-turn-owner{display:flex;gap:11px;align-items:center}.conquest-player-seal{color:var(--conquest-paper);background:var(--player);width:40px;height:40px;font-size:24px;text-align:center;line-height:40px;clip-path:polygon(4% 9%,94% 0,100% 92%,7% 100%,0 30%)}.conquest-turn-owner>div{display:flex;flex-direction:column;gap:4px}.conquest-turn-owner .conquest-eyebrow{font-size:12px;letter-spacing:1.5px}.conquest-turn-owner strong{font-size:14px}.conquest-live-dot{width:6px;height:6px;background:var(--conquest-active);border-radius:50%;margin-left:auto}.conquest-phase-track{display:flex;justify-content:space-between;border-bottom:1px solid var(--conquest-line);margin:23px 0 23px;gap:8px}.conquest-phase-track>span{font-size:12px;text-transform:uppercase;letter-spacing:.7px;color:var(--conquest-muted);padding-bottom:10px;position:relative}.conquest-phase-track b{font-size:12px;font-weight:400;margin-right:4px;opacity:.7}.conquest-phase-track .active{color:var(--conquest-accent);font-weight:700}.conquest-phase-track .active:after{content:'';height:3px;position:absolute;bottom:-2px;left:0;right:0;background:var(--conquest-accent);clip-path:polygon(0 40%,97% 0,100% 80%,3% 100%)}.conquest-phase-label{font-size:12px;letter-spacing:1.6px;color:var(--conquest-accent)}.conquest-command h2{font-family:var(--conquest-heading);font-size:32px;font-weight:400;letter-spacing:-.9px;line-height:1.05;margin:10px 0 12px}.conquest-instructions{color:var(--conquest-muted);font-size:12px;line-height:1.7;margin:0 0 18px}.conquest-reserve{display:grid;grid-template-columns:1fr 75px;grid-template-rows:1fr auto;position:relative;min-height:97px;border-top:1px solid var(--conquest-line);border-bottom:1px solid var(--conquest-line);padding:8px 0 15px;margin:10px 0 16px}.conquest-reserve strong{font-size:57px;line-height:1.05;font-family:var(--conquest-heading);font-weight:400;color:var(--conquest-accent)}.conquest-reserve span{font-size:12px;letter-spacing:1.2px;color:var(--conquest-muted);grid-row:2}.conquest-reserve svg{width:74px;fill:none;stroke:var(--conquest-ink);stroke-width:1.5;grid-column:2;grid-row:1/3;align-self:center;opacity:.6}.conquest-selection{background:var(--conquest-paper-deep);padding:12px 14px;border-left:2px solid var(--conquest-active);display:flex;flex-direction:column;margin-bottom:14px}.conquest-selection>span{font-size:12px;letter-spacing:1.5px;color:var(--conquest-muted)}.conquest-selection strong{font-size:12px;font-weight:400;padding-top:4px}.conquest-selection .conquest-selection-arrow{font-size:15px;line-height:1.3;margin:5px 0}.conquest-range-label{display:flex;flex-wrap:wrap;justify-content:space-between;font-size:12px;gap:7px;margin:15px 0 5px}.conquest-range-label b{font-family:var(--conquest-heading);font-size:22px;line-height:1}.conquest-range-label input{width:100%;accent-color:var(--conquest-accent);height:20px;cursor:pointer}.conquest-dice-stage{margin:1px -10px 13px;position:relative}.conquest-dice-stage canvas{display:block;width:100%;height:97px}.conquest-dice-caption{font-size:12px;letter-spacing:1.8px;text-align:center;color:var(--conquest-muted);margin-top:-3px}.conquest-command-actions{display:flex;flex-direction:column;gap:8px}.conquest-button{padding:12px 15px;border:0;text-align:center;font-size:12px!important;line-height:1.4;transition:background .18s,transform .18s}.conquest-button:hover:not(:disabled){transform:translateY(-1px)}.conquest-button.primary{background:var(--conquest-accent);color:#fff8e7;clip-path:polygon(0 4%,98% 0,100% 93%,2% 100%);font-weight:700;padding:15px}.conquest-button.primary:hover{background:#a64632}.conquest-button.secondary{background:transparent;color:var(--conquest-ink);border:1px solid var(--conquest-line)}.conquest-battle-comparison{display:flex;justify-content:space-around;align-items:center;border-bottom:1px solid var(--conquest-line);padding:0 0 12px;margin-bottom:12px}.conquest-battle-comparison span{font-size:12px;letter-spacing:.7px;display:flex;flex-direction:column;text-align:center;color:var(--conquest-muted)}.conquest-battle-comparison b{font-family:var(--conquest-heading);font-size:34px;font-weight:400;color:var(--conquest-ink)}.conquest-battle-comparison i{font-family:var(--conquest-heading);font-size:18px;color:var(--conquest-muted)}.conquest-check{display:flex;gap:7px;font-size:12px;align-items:center}.conquest-check input{accent-color:var(--conquest-accent)}.conquest-small-note{font-size:12px;color:var(--conquest-muted);line-height:1.6;margin:10px 0}.conquest-battle-result{display:flex;flex-wrap:wrap;gap:7px;justify-content:space-between;font-size:12px;color:var(--conquest-muted)}.conquest-battle-result small{width:100%;font-size:12px;margin-bottom:10px}.conquest-notice{font-size:12px;line-height:1.5;color:var(--conquest-accent);margin-bottom:12px}.conquest-notice:empty{display:none}.conquest-cards-button{background:none;width:100%;border:0;border-top:1px solid var(--conquest-line);border-bottom:1px solid var(--conquest-line);margin-top:18px;display:flex;justify-content:space-between;padding:14px 0;color:var(--conquest-ink);font-size:12px!important}.conquest-cards-button span{color:var(--conquest-muted)}.conquest-journal{padding-top:19px}.conquest-journal .conquest-eyebrow{font-size:12px;letter-spacing:1.3px}.conquest-journal ol{list-style:none;padding:0;margin:10px 0 0}.conquest-journal li{font-size:12px;line-height:1.6;color:var(--conquest-muted);border-left:1px solid var(--conquest-line);padding:0 0 11px 12px;position:relative}.conquest-journal li:before{content:'';position:absolute;left:-2.5px;top:5px;width:4px;height:4px;border-radius:50%;background:var(--conquest-line)}.conquest-journal li:first-child{color:var(--conquest-ink)}.conquest-journal li:first-child:before{background:var(--conquest-accent)}.conquest-footer{border-top:1px solid var(--conquest-line);margin:0 42px;padding:16px 0 20px;display:flex;justify-content:space-between;font-size:12px;letter-spacing:1.5px;color:var(--conquest-muted)}.conquest-modal-layer{position:fixed;inset:0;background:#26372bb3;backdrop-filter:blur(5px);z-index:200;display:flex;align-items:center;justify-content:center;padding:24px}.conquest-modal{position:relative;background:var(--conquest-paper);padding:38px;max-width:650px;width:100%;max-height:85vh;overflow-y:auto;box-shadow:0 20px 90px #142b2455}.conquest-modal h2{font-family:var(--conquest-heading);font-size:38px;font-weight:400;letter-spacing:-1px;margin:13px 0 20px;line-height:1.1}.conquest-modal p{font-size:12px;line-height:1.8;color:var(--conquest-muted)}.conquest-modal-close{position:absolute;right:18px;top:14px;border:0;background:none;color:var(--conquest-ink);font-size:25px!important}.conquest-rule{padding-top:14px;border-top:1px solid var(--conquest-line);margin-top:18px}.conquest-rule>b{font-size:12px;letter-spacing:1px;color:var(--conquest-accent)}.conquest-modal .conquest-button{width:100%;margin:5px 0}.conquest-card-hand{display:flex;flex-wrap:wrap;gap:10px;margin:24px 0}.conquest-card{width:110px;min-height:140px;border:1px solid var(--conquest-line);padding:15px 10px;text-align:center;background:#fff9ea}.conquest-card span{display:block;font-size:37px;color:var(--conquest-accent);margin-bottom:15px}.conquest-card b{font-size:12px;font-weight:400;text-transform:capitalize}.conquest-demo-controls{display:flex;gap:12px;flex-wrap:wrap;margin:24px 0}.conquest-demo-controls label{font-size:12px;color:var(--conquest-muted);display:flex;gap:7px;flex-direction:column;flex:1;min-width:130px}.conquest-demo-controls select{padding:10px;border:1px solid var(--conquest-line);background:var(--conquest-paper);color:var(--conquest-ink)}.conquest-start-art{display:block;font-family:var(--conquest-heading);font-size:82px;letter-spacing:-8px;color:var(--conquest-accent);line-height:1;margin-bottom:30px}.conquest-pass-screen{text-align:center}.conquest-pass-screen .conquest-player-seal{width:70px;height:70px;line-height:70px;font-size:44px;margin:20px auto;display:block}
-@media(min-width:1600px){.conquest-main{grid-template-columns:minmax(0,1fr) 345px;gap:45px}.conquest-command{padding-left:32px}.conquest-map{min-height:560px}.conquest-board-heading{padding-top:45px}.conquest-command h2{font-size:37px}.conquest-instructions{font-size:12px}.conquest-country-label{font-size:12px}}
-@media(max-width:1100px){.conquest-header{margin:0 24px}.conquest-main{padding:0 24px;gap:20px;grid-template-columns:minmax(0,1fr) 260px}.conquest-command{padding-left:18px}.conquest-edition{display:none}.conquest-brand-sub{font-size:12px;max-width:145px}.conquest-board-heading h1{font-size:33px}.conquest-roster{grid-template-columns:repeat(2,minmax(0,1fr))}.conquest-guide-continents{justify-content:flex-start;gap:10px 16px}.conquest-footer{margin:0 24px;font-size:12px}.conquest-country-label{font-size:12px}.conquest-map{min-height:320px}.conquest-command h2{font-size:29px}.conquest-round{padding-left:12px}.conquest-map-caption{font-size:12px;letter-spacing:1px}}
-@media(max-width:760px){.conquest-header{height:82px;margin:0 18px}.conquest-brand-word{font-size:45px}.conquest-brand-sub{display:none}.conquest-header-right{gap:12px}.conquest-main{display:flex;flex-direction:column;padding:0 18px;gap:0}.conquest-board-heading{padding-top:22px}.conquest-board-heading h1{font-size:35px}.conquest-board-heading .conquest-eyebrow{font-size:12px}.conquest-map{min-height:0}.conquest-map-caption{font-size:12px;padding-top:10px}.conquest-map-wrap{margin-top:0}.conquest-map-footer{margin-top:0;padding-bottom:10px}.conquest-map-footer>span{font-size:12px;letter-spacing:.9px}.conquest-map-footer button{font-size:12px}.conquest-guide-continents{padding:13px 0;gap:7px 12px}.conquest-guide-continents span{font-size:12px}.conquest-roster{grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;padding-bottom:18px}.conquest-player-card{padding:8px}.conquest-player-card-heading{gap:4px}.conquest-player-card-heading b{font-size:12px}.conquest-player-card-heading i{display:none}.conquest-player-card-stats{gap:7px;font-size:12px;flex-wrap:wrap}.conquest-player-card-stats strong{font-size:12px}.conquest-command{padding:20px 0;border-left:0;border-top:1px solid var(--conquest-line);display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);column-gap:20px}.conquest-turn-owner,.conquest-phase-track{grid-column:1/-1}.conquest-phase-track{margin-top:18px;margin-bottom:19px}.conquest-command-content{grid-row:3/8;grid-column:1}.conquest-command-content h2{font-size:29px}.conquest-instructions{font-size:12px}.conquest-dice-stage{grid-column:2;grid-row:3;margin-bottom:5px}.conquest-dice-stage canvas{height:80px}.conquest-dice-caption{font-size:12px;letter-spacing:.9px}.conquest-battle-result,.conquest-notice,.conquest-command-actions,.conquest-cards-button,.conquest-journal{grid-column:2}.conquest-cards-button{margin-top:12px}.conquest-journal{grid-column:1/-1;padding-top:10px}.conquest-journal ol{display:grid;grid-template-columns:1fr 1fr;gap:0 20px}.conquest-journal li{font-size:12px}.conquest-footer{margin:0 18px;font-size:12px;gap:30px;letter-spacing:.7px}.conquest-reserve strong{font-size:43px}.conquest-reserve svg{width:57px}.conquest-reserve{grid-template-columns:1fr 55px;min-height:78px}.conquest-selection{padding:10px}.conquest-selection strong{font-size:12px}.conquest-modal-layer{padding:15px}.conquest-modal{padding:30px 23px}.conquest-modal h2{font-size:32px}.conquest-card{width:90px;min-height:120px}.conquest-range-label{font-size:12px}}
+.conquest-header{height:105px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--conquest-line);margin:0 42px}.conquest-brand{display:flex;align-items:center;gap:24px;text-decoration:none!important;color:var(--conquest-ink)!important}.conquest-brand-word{font-family:var(--conquest-heading);font-size:46.63px;letter-spacing:-6px;line-height:1;font-weight:900;transform:scaleX(1.08);display:inline-block}.conquest-brand-dot{color:var(--conquest-accent)}.conquest-brand-sub{max-width:160px;font-size:16.08px;letter-spacing:2.4px;line-height:1.7;font-weight:700;border-left:1px solid var(--conquest-line);padding-left:25px}.conquest-header-right{display:flex;align-items:center;gap:37px}.conquest-edition{font-size:16.08px;letter-spacing:1.8px;color:var(--conquest-muted)}.conquest-text-button{border:0;background:none;padding:7px 0;color:var(--conquest-ink);font-size:16.08px;font-weight:700}.conquest-text-button span{margin-left:15px;color:var(--conquest-accent);font-size:13.67px}.conquest-main{display:grid;grid-template-columns:minmax(0,1fr) 307px;gap:32px;max-width:1800px;margin:0 auto;padding:0 42px}.conquest-board-column{min-width:0}.conquest-board-heading{display:flex;align-items:center;justify-content:space-between;padding:35px 0 14px}.conquest-eyebrow{font-size:16.08px;font-weight:700;letter-spacing:2px;color:var(--conquest-muted)}.conquest-board-heading h1{font-family:var(--conquest-heading);font-size:clamp(24.12px,3.2vw,39.4px);font-weight:400;letter-spacing:-1.9px;line-height:1.08;margin:10px 0 0}.conquest-round{display:flex;flex-direction:column;align-items:center;border-left:1px solid var(--conquest-line);padding-left:20px}.conquest-round span{font-size:16.08px;letter-spacing:2px;color:var(--conquest-muted)}.conquest-round b{font-size:23.32px;font-family:var(--conquest-heading);font-weight:400}.conquest-map-wrap{position:relative;margin:10px -10px 0}.conquest-map-caption{font-size:16.08px;color:var(--conquest-muted);letter-spacing:1.7px;padding:14px 10px 0}.conquest-map-caption span{padding:0 8px;color:var(--conquest-accent)}.conquest-map{display:block;width:100%;height:auto;min-height:350px;overflow:visible;touch-action:manipulation}.conquest-country{fill:var(--territory-color);stroke:var(--conquest-paper);stroke-width:2;stroke-linejoin:round;transition:fill .25s,filter .2s,stroke .15s;filter:url(#conquest-paper-grain)}.conquest-territory{cursor:pointer;outline:none}.conquest-territory:hover .conquest-country,.conquest-territory:focus-visible .conquest-country{stroke:var(--conquest-ink);stroke-width:3;filter:brightness(1.13)}.conquest-territory.selected .conquest-country{stroke:var(--conquest-ink);stroke-width:4}.conquest-territory.targeted .conquest-country{stroke:var(--conquest-accent);stroke-width:5;filter:brightness(1.2)}.conquest-territory.attackable .conquest-country{stroke:var(--conquest-accent);stroke-width:2.5;stroke-dasharray:7 4}.conquest-army{pointer-events:none}.conquest-army circle{fill:var(--conquest-paper);stroke:rgba(48,59,53,.45);stroke-width:1.2;filter:drop-shadow(0 2px 0 rgba(0,0,0,.08))}.conquest-army-count{font-size:17px;font-weight:700;text-anchor:middle;fill:var(--conquest-ink)}.conquest-army-selected{fill:none;stroke:var(--conquest-ink);stroke-width:2;opacity:0}.selected .conquest-army-selected,.targeted .conquest-army-selected{opacity:1}.conquest-country-label{font-size:12px;font-weight:700;letter-spacing:.2px;text-anchor:middle;fill:#2f3a34;paint-order:stroke;stroke:var(--conquest-paper);stroke-width:2.4px;stroke-linejoin:round;pointer-events:none}.conquest-hide-labels .conquest-country-label{display:none}.conquest-ocean-labels{font-family:var(--conquest-heading);font-size:12px;font-style:italic;letter-spacing:4px;fill:#8c9589;opacity:.7}.conquest-connections path{stroke:var(--conquest-ink);opacity:.25;stroke-width:1.5;stroke-dasharray:5 5;fill:none}.conquest-compass{stroke:var(--conquest-muted);stroke-width:1;opacity:.58}.conquest-compass circle{fill:none;stroke-dasharray:1 4}.conquest-compass path{fill:var(--conquest-ink)}.conquest-compass text{font-size:12px;letter-spacing:1px;text-anchor:middle;stroke:none;fill:var(--conquest-ink)}.conquest-map-footer{display:flex;justify-content:space-between;align-items:center;padding:0 10px 17px;border-bottom:1px solid var(--conquest-line);margin-top:-14px}.conquest-map-footer>span{font-size:12px;letter-spacing:1.4px;color:var(--conquest-muted)}.conquest-selection-key{display:inline-block;height:7px;width:7px;border:1px solid var(--conquest-accent);transform:rotate(45deg);margin-right:8px}.conquest-map-footer button{font-size:12px;color:var(--conquest-muted);text-decoration:underline;text-underline-offset:4px}.conquest-guide-continents{display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px;padding:18px 0}.conquest-guide-continents span{font-size:16.08px;white-space:nowrap;color:var(--conquest-muted)}.conquest-guide-continents i{width:5px;height:5px;margin-right:5px;display:inline-block;border-radius:50%}.conquest-guide-continents b{color:var(--conquest-ink);font-size:16.08px;margin-left:3px}.conquest-roster{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;padding:10px 0 25px}.conquest-player-card{border:1px solid var(--conquest-line);padding:13px 13px 12px;position:relative;background:#ffffff18}.conquest-player-card:before{content:'';position:absolute;left:-1px;top:-1px;bottom:-1px;width:3px;background:var(--player)}.conquest-player-card.active{background:#fffaf078;border-color:var(--player)}.conquest-player-card.eliminated{opacity:.4}.conquest-player-card-heading{display:flex;align-items:center;gap:7px;min-width:0}.conquest-player-card-heading>span{font-size:12.06px;color:var(--player)}.conquest-player-card-heading b{font-size:16.08px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.conquest-player-card-heading i{margin-left:auto;font-style:normal;font-size:16.08px;letter-spacing:1px;color:var(--player)}.conquest-player-card-stats{display:flex;gap:15px;padding-top:7px;color:var(--conquest-muted);font-size:16.08px}.conquest-player-card-stats strong{font-size:12.06px;color:var(--conquest-ink);font-weight:400;margin-right:3px}.conquest-command{border-left:1px solid var(--conquest-line);padding:28px 0 22px 26px;min-width:0}.conquest-turn-owner{display:flex;gap:11px;align-items:center}.conquest-player-seal{color:var(--conquest-paper);background:var(--player);width:40px;height:40px;font-size:19.3px;text-align:center;line-height:40px;clip-path:polygon(4% 9%,94% 0,100% 92%,7% 100%,0 30%)}.conquest-turn-owner>div{display:flex;flex-direction:column;gap:4px}.conquest-turn-owner .conquest-eyebrow{font-size:16.08px;letter-spacing:1.5px}.conquest-turn-owner strong{font-size:12px}.conquest-live-dot{width:6px;height:6px;background:var(--conquest-active);border-radius:50%;margin-left:auto}.conquest-phase-track{display:flex;justify-content:space-between;border-bottom:1px solid var(--conquest-line);margin:23px 0 23px;gap:8px}.conquest-phase-track>span{font-size:16.08px;text-transform:uppercase;letter-spacing:.7px;color:var(--conquest-muted);padding-bottom:10px;position:relative}.conquest-phase-track b{font-size:16.08px;font-weight:400;margin-right:4px;opacity:.7}.conquest-phase-track .active{color:var(--conquest-accent);font-weight:700}.conquest-phase-track .active:after{content:'';height:3px;position:absolute;bottom:-2px;left:0;right:0;background:var(--conquest-accent);clip-path:polygon(0 40%,97% 0,100% 80%,3% 100%)}.conquest-phase-label{font-size:16.08px;letter-spacing:1.6px;color:var(--conquest-accent)}.conquest-command h2{font-family:var(--conquest-heading);font-size:25.73px;font-weight:400;letter-spacing:-.9px;line-height:1.05;margin:10px 0 12px}.conquest-instructions{color:var(--conquest-muted);font-size:16.08px;line-height:1.7;margin:0 0 18px}.conquest-reserve{display:grid;grid-template-columns:1fr 75px;grid-template-rows:1fr auto;position:relative;min-height:97px;border-top:1px solid var(--conquest-line);border-bottom:1px solid var(--conquest-line);padding:8px 0 15px;margin:10px 0 16px}.conquest-reserve strong{font-size:45.83px;line-height:1.05;font-family:var(--conquest-heading);font-weight:400;color:var(--conquest-accent)}.conquest-reserve span{font-size:16.08px;letter-spacing:1.2px;color:var(--conquest-muted);grid-row:2}.conquest-reserve svg{width:74px;fill:none;stroke:var(--conquest-ink);stroke-width:1.5;grid-column:2;grid-row:1/3;align-self:center;opacity:.6}.conquest-selection{background:var(--conquest-paper-deep);padding:12px 14px;border-left:2px solid var(--conquest-active);display:flex;flex-direction:column;margin-bottom:14px}.conquest-selection>span{font-size:16.08px;letter-spacing:1.5px;color:var(--conquest-muted)}.conquest-selection strong{font-size:16.08px;font-weight:400;padding-top:4px}.conquest-selection .conquest-selection-arrow{font-size:12.06px;line-height:1.3;margin:5px 0}.conquest-range-label{display:flex;flex-wrap:wrap;justify-content:space-between;font-size:16.08px;gap:7px;margin:15px 0 5px}.conquest-range-label b{font-family:var(--conquest-heading);font-size:17.69px;line-height:1}.conquest-range-label input{width:100%;accent-color:var(--conquest-accent);height:20px;cursor:pointer}.conquest-dice-stage{margin:1px -10px 13px;position:relative}.conquest-dice-stage canvas{display:block;width:100%;height:97px}.conquest-dice-caption{font-size:16.08px;letter-spacing:1.8px;text-align:center;color:var(--conquest-muted);margin-top:-3px}.conquest-command-actions{display:flex;flex-direction:column;gap:8px}.conquest-button{padding:12px 15px;border:0;text-align:center;font-size:16.08px!important;line-height:1.4;transition:background .18s,transform .18s}.conquest-button:hover:not(:disabled){transform:translateY(-1px)}.conquest-button.primary{background:var(--conquest-accent);color:#fff8e7;clip-path:polygon(0 4%,98% 0,100% 93%,2% 100%);font-weight:700;padding:15px}.conquest-button.primary:hover{background:#a64632}.conquest-button.secondary{background:transparent;color:var(--conquest-ink);border:1px solid var(--conquest-line)}.conquest-battle-comparison{display:flex;justify-content:space-around;align-items:center;border-bottom:1px solid var(--conquest-line);padding:0 0 12px;margin-bottom:12px}.conquest-battle-comparison span{font-size:16.08px;letter-spacing:.7px;display:flex;flex-direction:column;text-align:center;color:var(--conquest-muted)}.conquest-battle-comparison b{font-family:var(--conquest-heading);font-size:27.34px;font-weight:400;color:var(--conquest-ink)}.conquest-battle-comparison i{font-family:var(--conquest-heading);font-size:14.47px;color:var(--conquest-muted)}.conquest-check{display:flex;gap:7px;font-size:16.08px;align-items:center}.conquest-check input{accent-color:var(--conquest-accent)}.conquest-small-note{font-size:16.08px;color:var(--conquest-muted);line-height:1.6;margin:10px 0}.conquest-battle-result{display:flex;flex-wrap:wrap;gap:7px;justify-content:space-between;font-size:16.08px;color:var(--conquest-muted)}.conquest-battle-result small{width:100%;font-size:16.08px;margin-bottom:10px}.conquest-notice{font-size:16.08px;line-height:1.5;color:var(--conquest-accent);margin-bottom:12px}.conquest-notice:empty{display:none}.conquest-cards-button{background:none;width:100%;border:0;border-top:1px solid var(--conquest-line);border-bottom:1px solid var(--conquest-line);margin-top:18px;display:flex;justify-content:space-between;padding:14px 0;color:var(--conquest-ink);font-size:16.08px!important}.conquest-cards-button span{color:var(--conquest-muted)}.conquest-journal{padding-top:19px}.conquest-journal .conquest-eyebrow{font-size:16.08px;letter-spacing:1.3px}.conquest-journal ol{list-style:none;padding:0;margin:10px 0 0}.conquest-journal li{font-size:16.08px;line-height:1.6;color:var(--conquest-muted);border-left:1px solid var(--conquest-line);padding:0 0 11px 12px;position:relative}.conquest-journal li:before{content:'';position:absolute;left:-2.5px;top:5px;width:4px;height:4px;border-radius:50%;background:var(--conquest-line)}.conquest-journal li:first-child{color:var(--conquest-ink)}.conquest-journal li:first-child:before{background:var(--conquest-accent)}.conquest-footer{border-top:1px solid var(--conquest-line);margin:0 42px;padding:16px 0 20px;display:flex;justify-content:space-between;font-size:16.08px;letter-spacing:1.5px;color:var(--conquest-muted)}.conquest-modal-layer{position:fixed;inset:0;background:#26372bb3;backdrop-filter:blur(5px);z-index:200;display:flex;align-items:center;justify-content:center;padding:24px}.conquest-modal{position:relative;background:var(--conquest-paper);padding:38px;max-width:650px;width:100%;max-height:85vh;overflow-y:auto;box-shadow:0 20px 90px #142b2455}.conquest-modal h2{font-family:var(--conquest-heading);font-size:30.55px;font-weight:400;letter-spacing:-1px;margin:13px 0 20px;line-height:1.1}.conquest-modal p{font-size:16.08px;line-height:1.8;color:var(--conquest-muted)}.conquest-modal-close{position:absolute;right:18px;top:14px;border:0;background:none;color:var(--conquest-ink);font-size:20.1px!important}.conquest-rule{padding-top:14px;border-top:1px solid var(--conquest-line);margin-top:18px}.conquest-rule>b{font-size:16.08px;letter-spacing:1px;color:var(--conquest-accent)}.conquest-modal .conquest-button{width:100%;margin:5px 0}.conquest-card-hand{display:flex;flex-wrap:wrap;gap:10px;margin:24px 0}.conquest-card{width:110px;min-height:140px;border:1px solid var(--conquest-line);padding:15px 10px;text-align:center;background:#fff9ea}.conquest-card span{display:block;font-size:29.75px;color:var(--conquest-accent);margin-bottom:15px}.conquest-card b{font-size:16.08px;font-weight:400;text-transform:capitalize}.conquest-demo-controls{display:flex;gap:12px;flex-wrap:wrap;margin:24px 0}.conquest-demo-controls label{font-size:16.08px;color:var(--conquest-muted);display:flex;gap:7px;flex-direction:column;flex:1;min-width:130px}.conquest-demo-controls select{padding:10px;border:1px solid var(--conquest-line);background:var(--conquest-paper);color:var(--conquest-ink)}.conquest-start-art{display:block;font-family:var(--conquest-heading);font-size:65.93px;letter-spacing:-8px;color:var(--conquest-accent);line-height:1;margin-bottom:30px}.conquest-pass-screen{text-align:center}.conquest-pass-screen .conquest-player-seal{width:70px;height:70px;line-height:70px;font-size:35.38px;margin:20px auto;display:block}
+@media(min-width:1600px){.conquest-main{grid-template-columns:minmax(0,1fr) 345px;gap:45px}.conquest-command{padding-left:32px}.conquest-map{min-height:560px}.conquest-board-heading{padding-top:45px}.conquest-command h2{font-size:29.75px}.conquest-instructions{font-size:16.08px}.conquest-country-label{font-size:12px}}
+@media(max-width:1100px){.conquest-header{margin:0 24px}.conquest-main{padding:0 24px;gap:20px;grid-template-columns:minmax(0,1fr) 260px}.conquest-command{padding-left:18px}.conquest-edition{display:none}.conquest-brand-sub{font-size:16.08px;max-width:145px}.conquest-board-heading h1{font-size:26.53px}.conquest-roster{grid-template-columns:repeat(2,minmax(0,1fr))}.conquest-guide-continents{justify-content:flex-start;gap:10px 16px}.conquest-footer{margin:0 24px;font-size:16.08px}.conquest-country-label{font-size:12px}.conquest-map{min-height:320px}.conquest-command h2{font-size:23.32px}.conquest-round{padding-left:12px}.conquest-map-caption{font-size:16.08px;letter-spacing:1px}}
+@media(max-width:760px){.conquest-header{height:82px;margin:0 18px}.conquest-brand-word{font-size:36.18px}.conquest-brand-sub{display:none}.conquest-header-right{gap:12px}.conquest-main{display:flex;flex-direction:column;padding:0 18px;gap:0}.conquest-board-heading{padding-top:22px}.conquest-board-heading h1{font-size:28.14px}.conquest-board-heading .conquest-eyebrow{font-size:16.08px}.conquest-map{min-height:0}.conquest-map-caption{font-size:16.08px;padding-top:10px}.conquest-map-wrap{margin-top:0}.conquest-map-footer{margin-top:0;padding-bottom:10px}.conquest-map-footer>span{font-size:12px;letter-spacing:.9px}.conquest-map-footer button{font-size:12px}.conquest-guide-continents{padding:13px 0;gap:7px 12px}.conquest-guide-continents span{font-size:16.08px}.conquest-roster{grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;padding-bottom:18px}.conquest-player-card{padding:8px}.conquest-player-card-heading{gap:4px}.conquest-player-card-heading b{font-size:16.08px}.conquest-player-card-heading i{display:none}.conquest-player-card-stats{gap:7px;font-size:16.08px;flex-wrap:wrap}.conquest-player-card-stats strong{font-size:16.08px}.conquest-command{padding:20px 0;border-left:0;border-top:1px solid var(--conquest-line);display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);column-gap:20px}.conquest-turn-owner,.conquest-phase-track{grid-column:1/-1}.conquest-phase-track{margin-top:18px;margin-bottom:19px}.conquest-command-content{grid-row:3/8;grid-column:1}.conquest-command-content h2{font-size:23.32px}.conquest-instructions{font-size:16.08px}.conquest-dice-stage{grid-column:2;grid-row:3;margin-bottom:5px}.conquest-dice-stage canvas{height:80px}.conquest-dice-caption{font-size:16.08px;letter-spacing:.9px}.conquest-battle-result,.conquest-notice,.conquest-command-actions,.conquest-cards-button,.conquest-journal{grid-column:2}.conquest-cards-button{margin-top:12px}.conquest-journal{grid-column:1/-1;padding-top:10px}.conquest-journal ol{display:grid;grid-template-columns:1fr 1fr;gap:0 20px}.conquest-journal li{font-size:16.08px}.conquest-footer{margin:0 18px;font-size:16.08px;gap:30px;letter-spacing:.7px}.conquest-reserve strong{font-size:34.57px}.conquest-reserve svg{width:57px}.conquest-reserve{grid-template-columns:1fr 55px;min-height:78px}.conquest-selection{padding:10px}.conquest-selection strong{font-size:16.08px}.conquest-modal-layer{padding:15px}.conquest-modal{padding:30px 23px}.conquest-modal h2{font-size:25.73px}.conquest-card{width:90px;min-height:120px}.conquest-range-label{font-size:16.08px}}
 @media(prefers-reduced-motion:reduce){.conquest-app *{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
-.conquest-dice-choice{display:flex;justify-content:space-between;align-items:center;font-size:12px;margin:7px 0 12px}.conquest-dice-choice select{border:1px solid var(--conquest-line);background:var(--conquest-paper);color:var(--conquest-ink);padding:3px 10px}
+.conquest-dice-choice{display:flex;justify-content:space-between;align-items:center;font-size:16.08px;margin:7px 0 12px}.conquest-dice-choice select{border:1px solid var(--conquest-line);background:var(--conquest-paper);color:var(--conquest-ink);padding:3px 10px}
 .conquest-map-viewport{overflow:auto;scrollbar-width:thin;scrollbar-color:var(--conquest-line) transparent}.conquest-map-viewport.zoomed{max-height:65vh;border:1px solid var(--conquest-line);margin-top:10px;margin-bottom:18px}.conquest-map-viewport.zoomed .conquest-map{width:180%;max-width:none;min-width:900px;touch-action:pan-x pan-y}.conquest-map-tools{display:flex;gap:16px}.conquest-map-tools button{white-space:nowrap}
 @media(max-width:760px){.conquest-map-tools{gap:10px}.conquest-map-footer>span{max-width:130px}.conquest-map-viewport.zoomed{max-height:55vh}}
 
@@ -34,11 +35,11 @@
 .conquest-header .conquest-turn-owner strong {overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .conquest-header .conquest-turn-owner .conquest-eyebrow {color:var(--conquest-ink);font-weight:700}
 .conquest-header .conquest-player-seal,.conquest-header .conquest-live-dot {flex-shrink:0}
-.conquest-brand-word {font-size:45px}
+.conquest-brand-word {font-size:36.18px}
 .conquest-main {flex:1;min-height:0;width:100%;padding:0 24px;gap:0 24px;grid-template-columns:minmax(0,1fr) 280px;grid-template-rows:minmax(0,1fr) auto}
 .conquest-board-column {min-height:0;display:flex;flex-direction:column}
 .conquest-round {flex-direction:row;gap:10px;border:0;padding:0}
-.conquest-round b {font-size:21px}
+.conquest-round b {font-size:16.88px}
 .conquest-map-wrap {min-height:0;flex:1;display:flex;flex-direction:column;margin:0}
 .conquest-map-viewport {min-height:0;flex:1;overflow:hidden}
 .conquest-map {height:100%;width:100%;min-height:0;overflow:hidden}
@@ -53,34 +54,34 @@
 .conquest-map-footer button {padding:4px 0}
 .conquest-guide-continents {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;padding:8px 0;flex:0 0 auto}
 .conquest-continent-bonus {display:flex;align-items:center;justify-content:space-between;gap:5px;border:1px solid var(--conquest-line);border-left:4px solid var(--continent);padding:6px 8px;background:#fffaf04d;min-width:0}
-.conquest-continent-bonus strong {display:block;font-size:12px;color:var(--continent)}
-.conquest-continent-bonus small {display:block;font-size:12px;color:var(--conquest-muted);font-weight:400;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.conquest-continent-bonus strong {display:block;font-size:16.08px;color:var(--continent)}
+.conquest-continent-bonus small {display:block;font-size:16.08px;color:var(--conquest-muted);font-weight:400;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .conquest-continent-bonus>div {min-width:0}
-.conquest-continent-bonus>b {font-size:24px;line-height:1;color:var(--continent);margin:0;text-align:right;flex:none}
-.conquest-continent-bonus>b small {font-size:12px;margin-top:3px}
+.conquest-continent-bonus>b {font-size:19.3px;line-height:1;color:var(--continent);margin:0;text-align:right;flex:none}
+.conquest-continent-bonus>b small {font-size:16.08px;margin-top:3px}
 .conquest-continent-bonus.controlled {background:#fffaf0;border-top-color:var(--continent)}
 .conquest-roster {grid-column:1/-1;grid-row:2;grid-template-columns:repeat(6,minmax(0,1fr));padding:10px 0 12px;gap:8px;background:var(--conquest-paper);border-top:1px solid var(--conquest-line)}
 .conquest-player-card {padding:8px 10px}
 .conquest-player-self {box-shadow:inset 0 0 0 2px var(--player)}
-.conquest-player-card-labels {min-height:17px;display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:var(--conquest-ink)}
+.conquest-player-card-labels {min-height:17px;display:flex;align-items:center;gap:6px;font-size:16.08px;font-weight:700;color:var(--conquest-ink)}
 .conquest-you-badge {padding:2px 5px;background:var(--conquest-ink);color:var(--conquest-paper);border-radius:2px}
 .conquest-player-card-stats {gap:5px 10px;flex-wrap:wrap;padding-top:3px}
 .conquest-player-card-heading i {display:none}
 .conquest-command {min-height:0;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:var(--conquest-line) transparent;padding:15px 8px 15px 20px}
-.conquest-turn-status {position:sticky;top:-15px;z-index:2;padding:12px;margin-bottom:14px;background:var(--conquest-paper);border:1px solid var(--conquest-line);border-left:4px solid var(--player);font-size:16px;font-weight:700;line-height:1.35;overflow-wrap:anywhere}
+.conquest-turn-status {position:sticky;top:-15px;z-index:2;padding:12px;margin-bottom:14px;background:var(--conquest-paper);border:1px solid var(--conquest-line);border-left:4px solid var(--player);font-size:12.86px;font-weight:700;line-height:1.35;overflow-wrap:anywhere}
 .conquest-turn-status[data-state="ready"] {background:var(--conquest-ink);color:var(--conquest-paper)}
 .conquest-turn-status[data-state="pending"] {border-left-color:var(--conquest-muted)}
 .conquest-phase-track {margin:0 0 16px}
-.conquest-command-content h2 {font-size:14px;line-height:1.3;letter-spacing:0}
-.conquest-instructions {font-size:16px;line-height:1.5;margin-bottom:12px}
+.conquest-command-content h2 {font-size:12px;line-height:1.3;letter-spacing:0}
+.conquest-instructions {font-size:12.86px;line-height:1.5;margin-bottom:12px}
 .conquest-card-hand {display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:10px}
 .conquest-card {width:auto;min-height:210px;max-width:180px;padding:10px;display:flex;flex-direction:column;align-items:center;border-top:4px solid var(--continent)}
 .conquest-card-shape {width:100%;height:90px;fill:var(--continent);stroke:var(--conquest-ink);stroke-width:1;stroke-linejoin:round}
-.conquest-card>b {font-size:12px;font-weight:700;line-height:1.25;margin:8px 0;flex:1}
+.conquest-card>b {font-size:16.08px;font-weight:700;line-height:1.25;margin:8px 0;flex:1}
 .conquest-card-unit {display:flex;justify-content:center;color:var(--conquest-ink)}
 .conquest-unit-icon {width:34px;height:34px;fill:currentColor}
-.conquest-card>small {text-transform:capitalize;font-size:12px;color:var(--conquest-muted)}
-.conquest-card-wild {height:90px;line-height:90px;font-size:65px;color:var(--conquest-accent)}
+.conquest-card>small {text-transform:capitalize;font-size:16.08px;color:var(--conquest-muted)}
+.conquest-card-wild {height:90px;line-height:90px;font-size:52.26px;color:var(--conquest-accent)}
 @media(min-width:1500px) {
   .conquest-continent-bonus {padding:7px 6px;flex-wrap:wrap}
 }
@@ -94,45 +95,45 @@
   .conquest-header {height:50px;flex-basis:50px;margin:0 12px;gap:12px}
   .conquest-header-right {gap:12px}
   .conquest-header .conquest-turn-owner {gap:6px}
-  .conquest-header .conquest-turn-owner .conquest-eyebrow {font-size:12px;letter-spacing:0;white-space:nowrap}
+  .conquest-header .conquest-turn-owner .conquest-eyebrow {font-size:16.08px;letter-spacing:0;white-space:nowrap}
   .conquest-header .conquest-live-dot,.conquest-guide-label {display:none}
   .conquest-round {flex-direction:column;gap:0}
-  .conquest-brand-word {font-size:36px}
+  .conquest-brand-word {font-size:28.94px}
   .conquest-main {display:grid;grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(0,1.15fr) minmax(130px,1fr) auto;padding:0 12px;gap:0}
   .conquest-board-column {grid-row:1}
-  .conquest-round b {font-size:16px}
-  .conquest-round span {font-size:12px}
+  .conquest-round b {font-size:12.86px}
+  .conquest-round span {font-size:16.08px}
   .conquest-map-footer button {font-size:12px}
   .conquest-guide-continents {gap:4px;padding:4px 0}
   .conquest-continent-bonus {padding:4px;gap:2px;border-left-width:3px}
-  .conquest-continent-bonus strong {font-size:12px}
-  .conquest-continent-bonus small {font-size:12px}
-  .conquest-continent-bonus>b {font-size:18px}
-  .conquest-continent-bonus>b small {font-size:12px;letter-spacing:-.15px}
+  .conquest-continent-bonus strong {font-size:16.08px}
+  .conquest-continent-bonus small {font-size:16.08px}
+  .conquest-continent-bonus>b {font-size:14.47px}
+  .conquest-continent-bonus>b small {font-size:16.08px;letter-spacing:-.15px}
   .conquest-command {grid-row:2;display:block;padding:8px 4px;border-top:1px solid var(--conquest-line);border-left:0}
   .conquest-turn-status {top:-8px;padding:8px;margin-bottom:10px}
-  .conquest-turn-owner .conquest-player-seal {width:28px;height:28px;line-height:28px;font-size:18px}
-  .conquest-turn-owner strong {font-size:12px}
+  .conquest-turn-owner .conquest-player-seal {width:28px;height:28px;line-height:28px;font-size:14.47px}
+  .conquest-turn-owner strong {font-size:16.08px}
   .conquest-phase-track {margin:0 0 10px}
-  .conquest-command-content h2 {font-size:14px;margin:6px 0}
+  .conquest-command-content h2 {font-size:12px;margin:6px 0}
   .conquest-reserve {min-height:0;margin:6px 0;padding:5px 0;grid-template-columns:1fr 50px}
-  .conquest-reserve strong {font-size:32px}
+  .conquest-reserve strong {font-size:25.73px}
   .conquest-reserve svg {width:45px;height:45px}
   .conquest-dice-stage {margin:0}
   .conquest-dice-stage canvas {height:70px}
   .conquest-roster {grid-row:3;grid-template-columns:repeat(3,minmax(0,1fr));padding:6px 0 max(6px,env(safe-area-inset-bottom));gap:5px}
   .conquest-player-card {padding:5px 6px}
-  .conquest-player-card-heading b {font-size:12px}
-  .conquest-player-card-heading>span {font-size:12px}
-  .conquest-player-card-stats {gap:2px 6px;font-size:12px}
-  .conquest-player-card-stats strong {font-size:12px}
+  .conquest-player-card-heading b {font-size:16.08px}
+  .conquest-player-card-heading>span {font-size:16.08px}
+  .conquest-player-card-stats {gap:2px 6px;font-size:16.08px}
+  .conquest-player-card-stats strong {font-size:16.08px}
 }
 @media(max-height:550px) and (min-width:761px) {
   .conquest-header {height:48px;flex-basis:48px}
-  .conquest-brand-word {font-size:34px}
+  .conquest-brand-word {font-size:27.34px}
   .conquest-guide-continents {padding:4px 0;gap:4px}
   .conquest-continent-bonus {padding:3px 6px}
-  .conquest-continent-bonus>b {font-size:18px}
+  .conquest-continent-bonus>b {font-size:14.47px}
   .conquest-roster {padding:5px 0}
 }
 
@@ -152,7 +153,7 @@
 @media(max-width:760px) {
   .conquest-header {display:grid;grid-template-columns:minmax(0,1fr) auto;grid-template-rows:36px 36px;height:84px;flex-basis:84px;gap:0 8px;padding-top:6px;padding-bottom:6px}
   .conquest-header .conquest-brand {grid-column:1;grid-row:1}
-  .conquest-header .conquest-brand-word {font-size:28px;letter-spacing:-2px}
+  .conquest-header .conquest-brand-word {font-size:22.51px;letter-spacing:-2px}
   .conquest-header-right {grid-column:2;grid-row:1;gap:8px}
   .conquest-header .conquest-round span {letter-spacing:0}
   .conquest-header .conquest-turn-owner {grid-column:1/-1;grid-row:2;width:100%;max-width:none;margin:0}
@@ -208,4 +209,290 @@
 }
 @media(max-height:550px) and (min-width:761px) {
   .conquest-roster {grid-template-columns:repeat(6,minmax(0,1fr))}
+}
+
+/* Player controls and battle presentation. */
+.conquest-identicon {width:28px;height:28px;flex:none;border-radius:4px}
+.conquest-app .conquest-button.primary,.conquest-app .conquest-turn-status[data-state="ready"] {background:var(--conquest-active);color:#fff;border-color:var(--conquest-active)}
+.conquest-app .conquest-button.secondary {background:color-mix(in srgb,var(--conquest-active) 20%,var(--conquest-paper));border-color:var(--conquest-active)}
+.conquest-app input[type="range"],.conquest-app input[type="checkbox"] {accent-color:var(--conquest-active)}
+.conquest-app input[type="range"] {background:var(--conquest-active)}
+.conquest-battle-dice {position:absolute;z-index:5;width:104px;pointer-events:none;text-align:center;transform:translateX(-50%);border-radius:6px;background:#f2eddfed;box-shadow:0 2px 8px #303b3533}
+.conquest-battle-dice canvas {display:block;width:104px;height:54px}
+.conquest-battle-dice span {display:block;font-size:12px;font-weight:700;white-space:nowrap;padding:0 3px 3px}
+.conquest-flat-dice {display:flex;justify-content:center;gap:4px;padding:10px 4px}
+.conquest-flat-dice b {background:var(--conquest-active);color:white;border-radius:4px;padding:2px 7px;font-size:16px}
+.conquest-flat-dice.rolling b {animation:conquest-die-spin .2s linear infinite}
+@keyframes conquest-die-spin {to {transform:rotate(360deg)}}
+.conquest-dispatches {position:absolute;right:0;top:0;bottom:0;width:min(360px,90%);z-index:10;background:var(--conquest-paper);padding:20px;box-shadow:-4px 0 20px #303b3533;overflow-y:auto;animation:conquest-dispatch-slide .2s ease-out}
+.conquest-dispatches>.conquest-text-button {display:block;margin-left:auto}
+@keyframes conquest-dispatch-slide {from {transform:translateX(100%)}to {transform:translateX(0)}}
+@media(prefers-reduced-motion:reduce) {.conquest-dispatches,.conquest-flat-dice.rolling b {animation:none}}
+@media(max-width:760px) {.conquest-identicon {width:20px;height:20px}.conquest-player-card-stats {gap:0 5px}.conquest-player-card-stats strong {margin-right:1px}}
+
+@media(max-width:760px) {.conquest-battle-dice {width:80px}.conquest-battle-dice canvas {width:80px;height:36px}}
+
+/* Share the existing menu row; keep the title beside the player boxes. */
+.conquest-app.conquest-saito {margin-top:0}
+.conquest-header {position:relative;display:flex;height:60px;flex:0 0 60px;padding:0 64px 0 0;margin:0 24px;gap:0}
+.conquest-header .conquest-round {position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);display:flex;flex-direction:row;gap:8px}
+.conquest-header .conquest-turn-owner {margin:0 0 0 auto;flex:0 1 240px;max-width:calc(50% - 130px)}
+.conquest-local-menu {position:relative;z-index:8;margin-right:auto}
+.conquest-local-menu summary {cursor:pointer;font-weight:700;padding:10px}
+.conquest-local-menu nav {position:absolute;top:100%;left:0;min-width:160px;padding:12px;background:var(--conquest-paper);box-shadow:0 3px 12px #303b3533;display:grid}
+.conquest-main {grid-template-columns:280px minmax(0,1fr)}
+.conquest-command {grid-column:1;grid-row:1;border-left:0;border-right:1px solid var(--conquest-line);padding-left:0;padding-right:16px}
+.conquest-board-column {grid-column:2;grid-row:1}
+.conquest-player-row {grid-column:1/-1;grid-row:2;display:grid;grid-template-columns:repeat(6,minmax(0,1fr)) auto;align-items:stretch;gap:8px;border-top:1px solid var(--conquest-line);padding:10px 0}
+.conquest-roster {display:contents}
+.conquest-player-row .conquest-brand {grid-column:7;align-self:end;justify-self:end;margin:0 0 6px 12px}
+.conquest-player-row .conquest-brand-word {font-size:19.3px;letter-spacing:-1px;transform:none}
+.conquest-you-badge {position:absolute;top:5px;right:5px;line-height:1}
+.conquest-player-self .conquest-player-card-heading {padding-right:30px}
+.conquest-battle-dice {transform:none;height:76px}
+.conquest-flat-dice {height:54px;align-items:center;gap:9px}
+.conquest-battle-overlays.docked {order:1;display:flex;justify-content:center;gap:16px;padding:4px 0;flex:none}
+.conquest-battle-overlays.docked .conquest-battle-dice {position:static;flex:none}
+.conquest-map-footer {order:2}
+.conquest-overlay-lines {position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:4;overflow:visible}
+.conquest-overlay-lines path {stroke:var(--conquest-active);stroke-width:1.5;stroke-dasharray:3 3;fill:none}
+.conquest-target-go {position:absolute;z-index:6;width:60px;height:36px;padding:4px!important;margin:0!important;transform:none!important;font-size:14px!important}
+@media(max-width:1100px) and (min-width:761px) {
+  .conquest-main {grid-template-columns:250px minmax(0,1fr)}
+  .conquest-player-row {grid-template-columns:repeat(4,minmax(0,1fr))}
+  .conquest-player-row .conquest-brand {grid-column:4}
+}
+@media(max-width:900px) {.conquest-header .conquest-turn-owner {display:none}}
+@media(max-width:760px) {
+  .conquest-header {height:52px;flex-basis:52px;display:flex;margin:0 12px;padding:0}
+  .conquest-main {grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(0,1.15fr) minmax(210px,1fr) auto}
+  .conquest-board-column {grid-column:1;grid-row:1}
+  .conquest-command {grid-column:1;grid-row:2;border-right:0;padding:8px 4px}
+  .conquest-player-row {grid-row:3;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px;padding:6px 0}
+  .conquest-player-row .conquest-brand {grid-column:4;margin:0 0 6px;justify-self:end}
+  .conquest-player-row .conquest-brand-word {font-size:16.08px;letter-spacing:-.5px}
+  .conquest-player-card-heading {padding-top:16px}
+  .conquest-player-self .conquest-player-card-heading {padding-right:0}
+  .conquest-player-card-heading {gap:3px}
+  .conquest-battle-dice {height:58px}
+  .conquest-flat-dice {height:36px;padding:3px;gap:8px}
+  .conquest-flat-dice b {font-size:12px;padding:2px 4px}
+}
+@media(max-height:550px) and (min-width:761px) {
+  .conquest-player-row {grid-template-columns:repeat(6,minmax(0,1fr)) auto}
+  .conquest-player-row .conquest-brand {grid-column:7}
+}
+.conquest-saito .conquest-header {height:var(--saito-header-height,60px);flex-basis:var(--saito-header-height,60px)}
+
+/* Framework menus and GameLog live outside the board; scope their atlas skin
+   to a mounted Conquest game so other applications retain their own themes. */
+body:has(#conquest-root) #saito-header.game {
+  --saito-foreground:var(--conquest-ink);
+  --saito-background:var(--conquest-paper);
+  --saito-popover:var(--conquest-paper);
+  --saito-card:var(--conquest-paper);
+  --saito-secondary:var(--conquest-paper-deep);
+  --saito-border:var(--conquest-line);
+  --saito-primary:var(--conquest-active);
+  font-family:var(--conquest-body);
+  color:var(--conquest-ink);
+}
+body:has(#conquest-root) #saito-header .game-menu {
+  --game-menu-background:var(--conquest-paper);
+  font-family:var(--conquest-body);
+  font-size:12px;
+  color:var(--conquest-ink);
+}
+body:has(#conquest-root) .game-menu ul {
+  color:var(--conquest-ink);
+  border-color:var(--conquest-line);
+  border-radius:2px;
+  box-shadow:0 4px 16px #303b3526;
+}
+body:has(#conquest-root) .game-menu .game-menu-sub-options,
+body:has(#conquest-root) .game-menu .game-menu-sub-sub-options {
+  border:1px solid var(--conquest-line);
+  border-top:3px solid var(--conquest-active);
+}
+body:has(#conquest-root) .game-menu ul.game-menu-sub-options li {border-bottom-color:var(--conquest-line)}
+body:has(#conquest-root) .game-menu .game-menu-option-label {color:var(--conquest-ink)}
+body:has(#conquest-root) .game-menu :is(.game-menu-icon,.game-menu-option,.game-menu-sub-option,.game-menu-sub-sub-option):hover,
+.conquest-local-menu summary:hover,.conquest-local-menu nav button:hover {
+  background:color-mix(in srgb,var(--conquest-active) 14%,var(--conquest-paper));
+  color:var(--conquest-ink);
+}
+body:has(#conquest-root) .game-menu :is(button,.game-menu-option-label):focus-visible,
+.conquest-local-menu summary:focus-visible {
+  outline:2px solid var(--conquest-active);
+  outline-offset:-3px;
+}
+body:has(#conquest-root) #saito-header.game .hamburger-container,
+body:has(#conquest-root) .game-menu .game-menu-mobile-toggle,
+body:has(#conquest-root) .game-menu .game-menu-mobile-header-button {
+  color:var(--conquest-ink);
+  background:var(--conquest-paper-deep);
+  border:1px solid var(--conquest-line);
+  border-radius:2px;
+  box-shadow:0 2px 6px #303b3514;
+}
+body:has(#conquest-root) #saito-header.game .saito-header-hamburger-contents {
+  color:var(--conquest-ink);
+  background:var(--conquest-paper);
+  border-color:var(--conquest-line);
+  box-shadow:-4px 0 20px #303b3526;
+}
+@media(min-width:601px) and (min-height:601px) {
+  body:has(#conquest-root) #saito-header .game-menu {min-width:0;margin-left:14px}
+  body:has(#conquest-root) .game-menu>ul {background:transparent;border:0;box-shadow:none}
+  body:has(#conquest-root) .game-menu>ul>li.game-menu-option {min-width:76px;max-width:none}
+  body:has(#conquest-root) .game-menu>ul>li>.game-menu-option-label {padding:0 14px;font-weight:700}
+}
+@media(max-width:600px),(orientation:landscape) and (max-height:600px) {
+  body:has(#conquest-root) .game-menu>ul {background:var(--conquest-paper)}
+  body:has(#conquest-root) .game-menu>ul>.game-menu-mobile-header {background:var(--conquest-paper-deep)}
+  body:has(#conquest-root) .game-menu .game-menu-sub-options,
+  body:has(#conquest-root) .game-menu .game-menu-sub-sub-options {border:0;border-left:3px solid var(--conquest-active);box-shadow:none}
+  body:has(#conquest-root) .game-menu.mobile-saito-visible>ul {background:transparent;box-shadow:none}
+}
+.conquest-local-menu nav {border:1px solid var(--conquest-line);border-top:3px solid var(--conquest-active);padding:4px 0;border-radius:2px}
+.conquest-local-menu nav button {padding:12px 16px;text-align:left}
+body:has(#conquest-root) #log-wrapper {
+  --ideal-game-log:min(420px,calc(100vw - 44px));
+  position:fixed;
+  top:var(--saito-header-height,60px);
+  height:calc(100dvh - var(--saito-header-height,60px));
+  width:var(--ideal-game-log);
+  right:calc(16px - var(--ideal-game-log));
+  display:flex;
+  flex-direction:column;
+  padding:0;
+  box-sizing:border-box;
+  color:var(--conquest-ink);
+  background:var(--conquest-paper);
+  border-left:1px solid var(--conquest-line);
+  box-shadow:-4px 0 20px #303b3526;
+  font:12px/1.6 var(--conquest-body);
+  z-index:80;
+  transition:right .3s ease;
+}
+body:has(#conquest-root) #log-wrapper::before {
+  content:'DISPATCHES FROM THE FRONT';
+  flex:none;
+  padding:18px 20px;
+  border-bottom:1px solid var(--conquest-line);
+  border-left:3px solid var(--conquest-active);
+  background:var(--conquest-paper-deep);
+  font-size:16.08px;
+  font-weight:700;
+  letter-spacing:1.6px;
+}
+body:has(#conquest-root) #log-wrapper.log-lock {right:0}
+body:has(#conquest-root) #log {
+  flex:1;
+  min-height:0;
+  height:auto;
+  box-sizing:border-box;
+  padding:0 20px 20px;
+  scrollbar-width:thin;
+  scrollbar-color:var(--conquest-line) transparent;
+  overflow-wrap:anywhere;
+}
+body:has(#conquest-root) #log>div {padding:14px 0;border-bottom:1px solid var(--conquest-line);text-indent:0}
+body:has(#conquest-root) #log>div::first-letter {color:var(--conquest-active)}
+body:has(#conquest-root) #log-wrapper .mobile-log-tab {
+  box-sizing:border-box;
+  width:44px;
+  height:44px;
+  padding:3px;
+  color:var(--conquest-ink);
+  background:var(--conquest-paper-deep);
+  border:1px solid var(--conquest-line);
+  border-radius:3px 0 0 3px;
+  box-shadow:-2px 2px 8px #303b3514;
+  font-size:20.9px;
+}
+body:has(#conquest-root) #log-wrapper.log-lock .mobile-log-tab i {transform:rotate(180deg)}
+@media(max-width:525px) {body:has(#conquest-root) #log-wrapper:not(.log-lock) {right:calc(-1 * var(--ideal-game-log))}}
+@media(prefers-reduced-motion:reduce) {body:has(#conquest-root) #log-wrapper {transition:none}}
+
+/* Right-hand controls, compact roster and readable card faces. */
+.conquest-main {grid-template-columns:minmax(0,1fr) 370px}
+.conquest-board-column {grid-column:1}
+.conquest-command {grid-column:2;border-right:0;border-left:1px solid var(--conquest-line);padding:16px 0 16px 20px;grid-template-rows:minmax(0,1fr) 76px 128px 60px}
+.conquest-command .conquest-command-actions {grid-template-rows:60px 60px}
+.conquest-command .conquest-turn-status {height:auto;min-height:68px}
+.conquest-command .conquest-instructions {height:auto;min-height:120px}
+.conquest-command-content h2 {font-size:19.3px}
+.conquest-player-row {grid-template-columns:minmax(0,1fr) auto;gap:10px;min-width:0}
+.conquest-roster {display:grid;grid-column:1;grid-row:1;grid-template-columns:none;grid-auto-flow:column;grid-auto-columns:180px;gap:6px;overflow-x:auto;scrollbar-width:thin;padding:2px 2px 6px;border:0;scroll-snap-type:x proximity}
+.conquest-player-card {padding:8px;min-height:112px;scroll-snap-align:start}
+.conquest-player-card-heading {padding-top:12px;gap:6px}
+.conquest-player-self .conquest-player-card-heading {padding-right:0}
+.conquest-player-card-heading b {white-space:nowrap;line-height:1.2;overflow:hidden;text-overflow:ellipsis}
+.conquest-player-card-labels {min-height:16px;line-height:1.1;font-size:12px}
+.conquest-player-card-stats {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px 6px;line-height:1.2;font-size:12px}
+.conquest-player-card-stats>span {white-space:nowrap}
+.conquest-player-card-stats strong {font-size:14px}
+.conquest-identicon {width:24px;height:24px}
+.conquest-player-row .conquest-brand {grid-column:2;grid-row:1;margin:0 0 10px;align-self:end}
+.conquest-you-badge {top:4px;right:4px}
+.conquest-map-tools {flex-wrap:wrap;gap:8px 20px}
+.conquest-target-go {width:72px;height:44px}
+.conquest-battle-dice {width:150px;height:auto;min-height:92px}
+.conquest-battle-dice canvas {width:150px;height:58px}
+.conquest-battle-dice span {white-space:normal;line-height:1.2;overflow-wrap:anywhere}
+.conquest-flat-dice {height:58px}
+.conquest-dispatches {position:fixed;top:60px;width:min(520px,90vw);z-index:80}
+.conquest-journal ol {display:block}
+.conquest-local-menu nav {min-width:230px}
+.conquest-modal {max-width:1000px}
+.conquest-modal:has(.conquest-statistics) {max-width:1200px}
+.conquest-card-hand {grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:20px}
+.conquest-card {min-height:330px;max-width:none;padding:18px;border-width:2px;border-top-width:6px;box-shadow:0 4px 12px #303b351a}
+.conquest-card-shape {height:140px}
+.conquest-card-wild {height:140px;line-height:140px}
+.conquest-unit-icon {width:48px;height:48px}
+.conquest-card>b {font-size:16.08px;margin:12px 0}
+.conquest-card.selected {transform:translateY(-5px);box-shadow:inset 0 0 0 4px var(--conquest-active),0 8px 18px #303b3533}
+.conquest-statistics-filter {display:flex;align-items:center;gap:16px;font-size:16.08px}
+.conquest-statistics-filter select {min-width:0;padding:10px;background:var(--conquest-paper-deep);color:var(--conquest-ink);border:1px solid var(--conquest-line)}
+.conquest-statistics-players {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:24px}
+.conquest-statistics-player {border:1px solid var(--conquest-line);border-top:5px solid var(--player);padding:20px;min-width:0}
+.conquest-statistics-player h3 {font:19.3px var(--conquest-heading);margin:0 0 20px;overflow-wrap:anywhere}
+.conquest-statistics-player dl {display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.conquest-statistics-player dt {font-size:16.08px}
+.conquest-statistics-player dd {margin:0;font-size:22.78px;color:var(--player);font-weight:bold}
+.conquest-histogram {display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px;margin-top:24px;font-size:16.08px;text-align:center}
+.conquest-histogram-bin {min-width:0}
+.conquest-histogram-bin b {font-size:13.4px;overflow-wrap:anywhere}
+.conquest-histogram-track {height:130px;display:flex;align-items:end;border-bottom:1px solid var(--conquest-ink)}
+.conquest-histogram-track i {display:block;width:100%;background:var(--player)}
+@media(max-width:1100px) and (min-width:761px) {
+  .conquest-main {grid-template-columns:minmax(0,1fr) 330px}
+  .conquest-player-row .conquest-brand {grid-column:2}
+}
+@media(max-width:760px) {
+  .conquest-app {height:auto;min-height:100dvh;overflow:visible}
+  .conquest-main {flex:none;grid-template-columns:minmax(0,1fr);grid-template-rows:auto auto auto}
+  .conquest-board-column {grid-column:1;grid-row:1;height:48dvh;min-height:320px}
+  .conquest-command {grid-column:1;grid-row:2;border-left:0;padding:16px 0;grid-template-rows:auto auto auto 60px;overflow:visible}
+  .conquest-command-scroll {max-height:360px}
+  .conquest-command .conquest-notice {min-height:0}
+  .conquest-command .conquest-notice:not(:empty) {position:fixed;bottom:8px;left:12px;right:12px;height:auto;max-height:120px;padding:12px;z-index:15;background:var(--conquest-paper);border:1px solid var(--conquest-line);box-shadow:0 2px 16px #303b3533}
+  .conquest-command .conquest-command-actions {grid-template-columns:minmax(0,1fr);grid-template-rows:none;grid-auto-rows:60px}
+  .conquest-command-actions .primary,.conquest-command-actions .secondary {grid-column:1;grid-row:auto}
+  .conquest-player-row {grid-row:3;grid-template-columns:minmax(0,1fr);padding:12px 0}
+  .conquest-roster {grid-auto-columns:180px}
+  .conquest-player-row .conquest-brand {grid-column:1;grid-row:2}
+  .conquest-player-row .conquest-brand-word {font-size:19.3px}
+  .conquest-card-hand {grid-template-columns:repeat(auto-fit,minmax(210px,1fr))}
+  .conquest-statistics-players {grid-template-columns:minmax(0,1fr)}
+  .conquest-statistics-player {padding:12px}
+  .conquest-statistics-player dt {font-size:16.08px}
+  .conquest-modal-layer {padding:10px}
+  .conquest-modal {padding:30px 18px}
+}
+@media(max-height:650px) and (min-width:761px) {
+  .conquest-app {height:auto;min-height:100dvh;overflow:visible}
+  .conquest-main {flex:none;grid-template-rows:minmax(560px,1fr) auto}
 }
