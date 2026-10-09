@@ -1,8 +1,8 @@
 
     this.importFaction('faction5', {
       id		:	"faction5" ,
-      name		: 	"Yin Brotherhood",
-      nickname		: 	"Yin",
+      name		: 	"The Devotion",
+      nickname		: 	"Devotion",
       homeworld		: 	"sector23",
       space_units	: 	["carrier","carrier","destroyer","fighter","fighter","fighter","fighter"],
       ground_units	: 	["infantry","infantry","infantry","infantry","spacedock"],
@@ -58,7 +58,7 @@
     // after each space battle round, sacrifice cruiser or destroyer to assign 1 hit to a unit
     //
     this.importTech('faction5-devotion', {
-      name        :       "Devotion" ,
+      name        :       "Unity of Purpose" ,
       faction     :       "faction5",
       type        :       "ability" ,
       text        :       "Sacrifice destroyer or cruiser to assign 1 enemy hit at combat end" ,
@@ -113,7 +113,7 @@
 
 
     this.importTech('faction5-yin-spinner', {
-      name        :       "Yin Spinner" ,
+      name        :       "Conversion" ,
       faction     :       "faction5",
       prereqs     :       ["green", "green"] ,
       color       :       "green" ,
@@ -144,7 +144,7 @@
 	if (imperium_self.game.player != player) { return 0; }
 
         imperium_self.playerSelectPlanetWithFilter(
-              "Yin Spinner Tech: place additional infantry on which planet?",
+              "Conversion: place additional infantry on which planet?",
               function(planet) {
                 planet = imperium_self.game.planets[planet];
                 if (planet.owner == imperium_self.game.player) { return 1; } return 0;
@@ -175,7 +175,7 @@
 
     
     this.importTech("faction5-flagship", {
-      name        	:       "Yin Flagship" ,
+      name        	:       "Devotion Flagship" ,
       faction     	:       "faction5",
       type      	:       "ability" ,
       text        	:       "Wipes out all ships in sector when destroyed" ,
@@ -202,7 +202,7 @@
 
               imperium_self.saveSystemAndPlanets(active_sector);
               imperium_self.updateSectorGraphics(active_sector);
-	      imperium_self.updateLog("The destruction of the Yin Flagship has caused a terrible calamity...");
+	      imperium_self.updateLog("The destruction of the Devotion Flagship has caused a terrible calamity...");
 
 	    }
 	  }

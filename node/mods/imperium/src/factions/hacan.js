@@ -1,7 +1,7 @@
 this.importFaction("faction8", {
   id: "faction8",
-  name: "Emirates of Hacan",
-  nickname: "Hacan",
+  name: "The Caravan League",
+  nickname: "Caravan",
   homeworld: "sector30",
   space_units: ["carrier", "carrier", "cruiser", "fighter", "fighter"],
   ground_units: ["infantry", "infantry", "infantry", "infantry", "spacedock"],
@@ -16,11 +16,11 @@ this.importFaction("faction8", {
   background: "faction8.jpg",
   promissary_notes: ["trade", "political", "ceasefire", "throne", "faction8-promissary"],
   commodity_limit: 6,
-  intro: `You are the Emirates of Hacan, a race of merchant traders who mask their political ambitions behind the facade of a ruthless guild system.`,
+  intro: `You are the Caravan League, a race of merchant traders who mask their political ambitions behind the facade of a ruthless guild system.`,
 });
 
 this.importTech("faction8-flagship", {
-  name: "Hacan Flagship",
+  name: "Caravan Flagship",
   faction: "faction8",
   type: "ability",
   text: "Spend 1 trade good to add +1 to any dice rolled in combat",
@@ -76,7 +76,7 @@ this.importTech("faction8-flagship", {
   },
   postShipsFireEvent: function (imperium_self, player, attacker, defender, sector, combat_info) {
     if (player != imperium_self.game.player) {
-            imperium_self.game.status = "Hacan considering using Flagship Ability to modify hits...";
+            imperium_self.game.status = "Caravan considering using Flagship Ability to modify hits...";
       imperium_self.hud.prepareIdle(imperium_self.game.status);
       imperium_self.hud.updateCards([]);
       return 0;
@@ -149,7 +149,7 @@ this.importTech("faction8-flagship", {
           cumulative_cost += costs_per_hit[i];
         }
         imperium_self.addMove(
-          "NOTIFY\tHacan Flagship: " +
+          "NOTIFY\tCaravan Flagship: " +
             (parseInt(id) + 1) * 2 +
             " trade goods buys " +
             (parseInt(id) + 1) +
@@ -164,7 +164,7 @@ this.importTech("faction8-flagship", {
 });
 
 this.importTech("faction8-merchant-class", {
-  name: "Mercantile",
+  name: "Trade Dominance",
   faction: "faction8",
   type: "ability",
   text: "May refresh commodities for free when Trade is played",
@@ -262,7 +262,7 @@ this.importTech("faction8-guild-ships", {
 });
 
 this.importTech("faction8-arbiters", {
-  name: "Arbitrage",
+  name: "Predictive Trades",
   faction: "faction8",
   type: "ability",
   text: "May trade in action cards",
@@ -274,7 +274,7 @@ this.importTech("faction8-arbiters", {
 });
 
 this.importTech("faction8-production-biomes", {
-  name: "Production Biomes",
+  name: "Industrial Biomes",
   faction: "faction8",
   type: "special",
   color: "green",
@@ -302,9 +302,9 @@ this.importTech("faction8-production-biomes", {
     if (menu === "main") {
       if (imperium_self.game.state.players_info[player - 1].production_biomes === 1) {
         x.event = "production_biomes";
-        x.html = '<li class="option" id="production_biomes">production biomes</li>';
+        x.html = '<li class="option" id="production_biomes">industrial biomes</li>';
         x.id = 'production_biomes';
-        x.label = 'production biomes';
+        x.label = 'industrial biomes';
       }
     }
     return x;
@@ -331,20 +331,17 @@ this.importTech("faction8-production-biomes", {
         },
         function (pnum) {
           // player = player number here
+          let notice = imperium_self.returnFaction(imperium_self.game.player) + " uses Industrial Biomes: gains 4 trade goods, and " + imperium_self.returnFaction(pnum) + " gains 2 trade goods";
           imperium_self.addMove("resolve\tplay");
           imperium_self.addMove("setvar\tstate\t0\tactive_player_moved\t" + "int" + "\t" + "0");
           imperium_self.addMove("player_end_turn\t" + imperium_self.game.player);
+          imperium_self.addMove("popup\t" + notice);
           imperium_self.addMove("purchase\t" + pnum + "\t" + "goods" + "\t" + "2");
           imperium_self.addMove(
             "purchase\t" + imperium_self.game.player + "\t" + "goods" + "\t" + "4"
           );
           imperium_self.addMove(
             "expend\t" + imperium_self.game.player + "\t" + "strategy" + "\t" + "1"
-          );
-          imperium_self.addMove(
-            "NOTIFY\t" +
-              imperium_self.returnFaction(imperium_self.game.player) +
-              " earns trade goods through production biomes"
           );
           imperium_self.endTurn();
           return 0;
@@ -357,7 +354,7 @@ this.importTech("faction8-production-biomes", {
 });
 
 this.importTech("faction8-quantum-datahub-node", {
-  name: "Quantum Datahub Node",
+  name: "Quantum Exchange",
   faction: "faction8",
   type: "special",
   color: "yellow",
@@ -387,9 +384,9 @@ this.importTech("faction8-quantum-datahub-node", {
     if (menu === "main") {
       if (imperium_self.game.state.players_info[player - 1].faction8_quantum_datahub_node === 1) {
         x.event = "quantum_datahub_node";
-        x.html = '<li class="option" id="quantum_datahub_node">quantum datahub node</li>';
+        x.html = '<li class="option" id="quantum_datahub_node">quantum exchange</li>';
         x.id = 'quantum_datahub_node';
-        x.label = 'quantum datahub node';
+        x.label = 'quantum exchange';
       }
     }
     return x;
@@ -443,7 +440,7 @@ this.importTech("faction8-quantum-datahub-node", {
 
           imperium_self.hud.updateMenu(menu, function (id) {
             if (id == "skip") {
-              imperium_self.updateLog("Hacan skips Quantum Datahub Node");
+              imperium_self.updateLog("Hacan skips Quantum Exchange");
               imperium_self.endTurn();
               return;
             }
@@ -474,11 +471,13 @@ this.importTech("faction8-quantum-datahub-node", {
                 imperium_self.game.state.players_info[imperium_self.game.player - 1].strategy[id];
 
               if (id == "skip") {
-                imperium_self.updateLog("Hacan skips Quantum Datahub Node");
+                imperium_self.updateLog("Hacan skips Quantum Exchange");
                 imperium_self.endTurn();
                 return;
               }
 
+              let notice = imperium_self.returnFaction(imperium_self.game.player) + " uses Quantum Exchange to swap " + strategy_cards[push_strategy_card].name + " for " + strategy_cards[pull_strategy_card].name;
+              imperium_self.addMove("popup\t" + notice);
               imperium_self.addMove(
                 "setvar\tplayers\t" +
                   imperium_self.game.player +
@@ -510,9 +509,6 @@ this.importTech("faction8-quantum-datahub-node", {
                   "strategy" +
                   "\t" +
                   push_strategy_card
-              );
-              imperium_self.addMove(
-                `NOTIFY\tPlayers swap ${push_strategy_card} and ${pull_strategy_card}`
               );
               imperium_self.endTurn();
             });

@@ -1,8 +1,8 @@
 
     this.importFaction('faction7', {
       id		:	"faction7" ,
-      name		: 	"Embers of Muaat",
-      nickname		: 	"Muaat",
+      name		: 	"The Cinder Host",
+      nickname		: 	"Cinder",
       homeworld		: 	"sector24",
       space_units	: 	["warsun","fighter","fighter"],
       ground_units	: 	["infantry","infantry","infantry","infantry","spacedock"],
@@ -11,7 +11,7 @@
       background	: 	'faction7.jpg' ,
       promissary_notes	:	["trade","political","ceasefire","throne","faction7-promissary"],
       commodity_limit	:	4,
-      intro             :       `You are the Embers of Muaat, a race with weapons forged in the living fire of the dying stars. At full strength -- unstoppable.`
+      intro             :       `You are the Cinder Host, a race with weapons forged in the living fire of the dying stars. At full strength -- unstoppable.`
     });
 
 
@@ -21,10 +21,10 @@
 
     this.importTech("faction7-star-forge", {
 
-      name        :       "Star Forge" ,
+      name        :       "Star Foundry" ,
       faction     :       "faction7",
       type      :         "ability" ,
-      text        :       "Spend 1 strategy token to place 2 fighters or a destroy in sector with your warsun" ,
+      text        :       "Spend 1 strategy token to place 2 fighters or a destroy in sector with your Titan" ,
       initialize : function(imperium_self, player) {
         if (imperium_self.game.state.players_info[player-1].star_forge == undefined) {
           imperium_self.game.state.players_info[player-1].star_forge = 0;
@@ -39,9 +39,9 @@
         let x = {};
         if (menu === "main") {
           x.event = 'starforge';
-          x.html = '<li class="option" id="starforge">star forge</li>';
+          x.html = '<li class="option" id="starforge">star foundry</li>';
           x.id = 'starforge';
-          x.label = 'star forge';
+          x.label = 'star foundry';
         }
         return x;
       },
@@ -59,14 +59,15 @@
 	  // star forge logic
 	  //
           imperium_self.playerSelectSectorWithFilter(
-            "Star Forge spends 1 strategy token to drop 2 fighters or 1 destroyer in a sector containing your War Sun: " ,
+            "Star Foundry spends 1 strategy token to drop 2 fighters or 1 destroyer in a sector containing your Titan: " ,
             function(sector) {
 	      return imperium_self.doesSectorContainPlayerUnit(imperium_self.game.player, sector, "warsun");
             },
             function(sector) {
 
+              let notice = imperium_self.returnFaction(imperium_self.game.player) + " uses Star Foundry to add a destroyer to " + imperium_self.game.sectors[sector].name;
+              imperium_self.addMove("popup\t"+notice);
               imperium_self.addMove("produce\t"+imperium_self.game.player+"\t1\t-1\tdestroyer\t"+sector);
-              imperium_self.addMove("NOTIFY\tStar Forge adds destroyer to "+sector);
               imperium_self.addMove("expend\t"+imperium_self.game.player+"\t"+"strategy"+"\t"+"1");
               imperium_self.endTurn();
               return 0;
@@ -94,7 +95,7 @@
 
     this.importTech("faction7-gashlai-physiology", {
 
-      name        :       "Gashlai Physiology" ,
+      name        :       "Cinder Pyrosis" ,
       faction     :       "faction7",
       type        :       "ability" ,
       text        :       "Player may move through supernovas" ,
@@ -120,12 +121,12 @@
 
     this.importTech("faction7-magmus-reactor", {
 
-      name        :       "Magmus Reactor" ,
+      name        :       "Magma Reactor" ,
       faction     :       "faction7",
       type        :       "special" ,
       color        :       "red" ,
       prereqs     :       ["red","red"],
-      text        :       "Player may move into supernovas. Gain 1 trade good producing with Warsun or adjacent to Supernova" ,
+      text        :       "Player may move into supernovas. Gain 1 trade good producing with a Titan or adjacent to Supernova" ,
       initialize : function(imperium_self, player) {
         if (imperium_self.game.state.players_info[player-1].magmus_reactor == undefined) {
           imperium_self.game.state.players_info[player-1].magmus_reactor = 0;
@@ -149,7 +150,7 @@
 	    }
 	  }
 	  if (give_bonus == 1) {
-	    imperium_self.updateLog("Muatt gains 1 trade good from Magmus Reactor - producing in a sector with a Warsun or adjacent to a Supernova");
+	    imperium_self.updateLog("Muatt gains 1 trade good from Magma Reactor - producing in a sector with a Titan or adjacent to a Supernova");
             imperium_self.game.state.players_info[player-1].goods += 1;
             imperium_self.updateTokenDisplay();
             imperium_self.displayFactionDashboard();
@@ -164,7 +165,7 @@
 
 
     this.importTech("faction7-flagship", {
-      name        	:       "Muaat Flagship" ,
+      name        	:       "Cinder Flagship" ,
       faction     	:       "faction7",
       type      	:       "ability" ,
       text        	:       "May spend 1 strategy token to place a cruiser in your flagship system" ,
@@ -173,12 +174,12 @@
 
     this.importTech("faction7-advanced-warsun-i", {
 
-      name        :       "Advanced Warsun I" ,
+      name        :       "Solar Titan I" ,
       faction     :       "faction7",
       replaces    :       "warsun",
       unit        :       1 ,
       type      :         "special",
-      text        :       "A more dangerous and mobile warsun" ,
+      text        :       "A more dangerous and mobile Titan" ,
       prereqs     :       [],
       initialize :       function(imperium_self, player) {
         if (imperium_self.game.state.players_info[player-1].faction7_advanced_warsun_i == undefined) {
@@ -211,12 +212,12 @@
 
     this.importTech("faction7-advanced-warsun-ii", {
 
-      name        :       "Advanced Warsun II" ,
+      name        :       "Solar Titan II" ,
       faction     :       "faction7",
       replaces    :       "warsun",
       unit        :       1 ,
       type      :         "special",
-      text        :       "A more dangerous and mobile warsun" ,
+      text        :       "A more dangerous and mobile Titan" ,
       prereqs     :       ["red","red","red","yellow"],
       initialize :       function(imperium_self, player) {
         if (imperium_self.game.state.players_info[player-1].faction7_advanced_warsun_ii == undefined) {
@@ -250,7 +251,7 @@
     this.importPromissary("faction7-promissary", {
       name        :       "Fires of the Gashlai" ,
       faction     :       -1,
-      text        :       "Muaat fleet supply falls by 1, player gains War Suns unit upgrade technology" ,
+      text        :       "Cinder fleet supply falls by 1, player gains Titan unit upgrade technology" ,
       menuOption  :       function(imperium_self, menu, player) {
         let x = {};
         if (menu == "main") {

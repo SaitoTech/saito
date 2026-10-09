@@ -1,8 +1,8 @@
 
     this.importFaction('faction3', {
       id		:	"faction3" ,
-      name		: 	"XXCha Kingdom",
-      nickname		: 	"XXCha",
+      name		: 	"Quorum Kingdom",
+      nickname		: 	"Quorum",
       homeworld		: 	"sector29",
       space_units	: 	["carrier","cruiser","cruiser","fighter","fighter","fighter"],
       ground_units	: 	["infantry","infantry","infantry","infantry","pds","spacedock"],
@@ -19,7 +19,7 @@
 
 
     this.importTech('faction3-flagship', {
-      name        :       "XXCha Flagship" ,
+      name        :       "Quorum Flagship" ,
       faction     :       "faction3",
       type        :       "ability" ,
       text	:	  "3 space cannons which target adjacent systems attached to flagship" ,
@@ -37,7 +37,7 @@
 	   if (imperium_self.doesSectorContainPlayerUnit(player, as[i], "flagship")) {
 
              let pds1 = {};
-                 pds1.name = "XXCha Flagship #1";
+                 pds1.name = "Quorum Flagship #1";
                  pds1.unit = JSON.parse(JSON.stringify(imperium_self.returnUnit("pds", player)));
                  pds1.unit.name = "Flagship";
                  pds1.range = 1;
@@ -46,7 +46,7 @@
                  pds1.sector = sector;
 
              let pds2 = {};
-                 pds2.name = "XXCha Flagship #2";
+                 pds2.name = "Quorum Flagship #2";
                  pds2.unit = JSON.parse(JSON.stringify(imperium_self.returnUnit("pds", player)));
                  pds2.unit.name = "Flagship";
                  pds2.range = 1;
@@ -55,7 +55,7 @@
                  pds2.sector = sector;
 
              let pds3 = {};
-                 pds3.name = "XXCha Flagship #3";
+                 pds3.name = "Quorum Flagship #3";
                  pds3.unit = JSON.parse(JSON.stringify(imperium_self.returnUnit("pds", player)));
                  pds3.unit.name = "Flagship";
                  pds3.range = 1;
@@ -82,7 +82,7 @@
 
     this.importTech('faction3-peace-accords', {
 
-      name        :       "Peace Accords" ,
+      name        :       "Concord of Worlds" ,
       faction     :       "faction3",
       type        :       "ability",
       text	:	  "Colonize adjacent unprotected planet when diplomacy secondary is played" ,
@@ -147,7 +147,7 @@
 	  //
 	  //
 	  if (seizable_planets.length < 0) { 
-	    imperium_self.updateLog("XXCha cannot annex any unguarded planets via Peace Accords")
+	    imperium_self.updateLog("XXCha cannot annex any unguarded planets via Concord of Worlds")
 	    return 1;
 	  }
 
@@ -155,19 +155,19 @@
 
 	  if (imperium_self.game.state.players_info[player-1].peace_accords == 1) {
 
-	    	    imperium_self.game.status = "XXCha selecting planet to annex with Peace Accords";
+	    	    imperium_self.game.status = "XXCha selecting planet to annex with Concord of Worlds";
 	    imperium_self.hud.prepareIdle(imperium_self.game.status);
 	    imperium_self.hud.updateCards([]);
 
 	    if (imperium_self.game.player == player) {
               imperium_self.playerSelectPlanetWithFilter(
-                "Select a planet to annex via Peace Accords: " ,
+                "Select a planet to annex via Concord of Worlds: " ,
                 function(planet) {
 	  	  if (seizable_planets.includes(planet)) { return 1; } return 0;
                 },
                 function(planet) {
                   imperium_self.addMove("annex\t"+imperium_self.game.player+"\t"+imperium_self.game.planets[planet].sector+"\t"+imperium_self.game.planets[planet].idx);
-                  imperium_self.addMove("NOTIFY\t" + imperium_self.returnFaction(imperium_self.game.player) + " annexes " + imperium_self.game.planets[planet].name + " via Peace Accords");
+                  imperium_self.addMove("NOTIFY\t" + imperium_self.returnFaction(imperium_self.game.player) + " annexes " + imperium_self.game.planets[planet].name + " via Concord of Worlds");
 	    	  imperium_self.endTurn();
                   return 0;
                 },
@@ -189,7 +189,7 @@
 
 
     this.importTech('faction3-quash', {
-      name        :       "Quash" ,
+      name        :       "Judicial Veto" ,
       faction     :       "faction3",
       type        :       "ability" ,
       text	:	  "Spend strategy token to quash upcoming agenda" ,
@@ -207,9 +207,9 @@
         let x = {};
 	if (menu === "main") {
           x.event = 'quash';
-          x.html = '<li class="option" id="quash">quash agenda</li>';
+          x.html = '<li class="option" id="quash">judicial veto</li>';
           x.id = 'quash';
-          x.label = 'quash agenda';
+          x.label = 'judicial veto';
         }
         return x;
       },
@@ -245,6 +245,10 @@
 	     imperium_self.hud.prepareIdle(imperium_self.game.status);
 	     imperium_self.hud.updateCards([]);
 
+             let agenda_card = imperium_self.agenda_cards[agenda_to_quash];
+             let agenda_name = agenda_card && agenda_card.name ? agenda_card.name : agenda_to_quash;
+             let notice = imperium_self.returnFaction(imperium_self.game.player) + " quashes " + agenda_name;
+             imperium_self.addMove("popup\t"+notice);
              imperium_self.addMove("expend\t"+imperium_self.game.player+"\t"+"strategy"+"\t"+"1");
              imperium_self.addMove("quash\t"+agenda_to_quash+"\t"+"1"); // 1 = re-deal
 	     imperium_self.endTurn();
@@ -261,7 +265,7 @@
 
 
     this.importTech('faction3-instinct-training', {
-      name        :       "Instinct Training" ,
+      name        :       "Preemptive Action" ,
       faction     :       "faction3",
       prereqs	:	["green"] ,
       color	:   "green" ,
@@ -285,7 +289,7 @@
 
         if (imperium_self.game.player == player) {
 
-          let html = "<div class='sf-readable'>Do you wish to spend a strategy token to cancel opponent action card with Instinct Training?</div>";
+          let html = "<div class='sf-readable'>Do you wish to spend a strategy token to cancel opponent action card with Preemptive Action?</div>";
           let menu = [
             { id: 'yes', label: 'yes' },
             { id: 'no', label: 'no' }
@@ -314,7 +318,7 @@
 
     this.importTech('faction3-field-nullification', {
 
-      name        :       "Nullification Fields" ,
+      name        :       "Nullification Grid" ,
       faction     :       "faction3",
       type        :       "special" ,
       color	  :	  "yellow" ,
@@ -351,7 +355,7 @@
 	  if (imperium_self.game.state.players_info[player-1].field_nullification_exhausted == 1) { return 1; }
 
 	  if (imperium_self.game.player != player) {
-	    	    imperium_self.game.status = imperium_self.returnFaction(player) + " is deciding whether to use Nullification Fields";
+	    	    imperium_self.game.status = imperium_self.returnFaction(player) + " is deciding whether to use Nullification Grid";
 	    imperium_self.hud.prepareIdle(imperium_self.game.status);
 	    imperium_self.hud.updateCards([]);
 	    return 0;
@@ -359,7 +363,7 @@
 
 	  let html = 'Do you wish to use Field Nullification to terminate this player\'s turn?';
 	  let menu = [
-	    { id: 'yes', label: 'activate nullification field' },
+	    { id: 'yes', label: 'activate nullification grid' },
 	    { id: 'no', label: 'do not activate' }
 	  ];
 
@@ -391,7 +395,7 @@
 	  let sector = mv[3];
           imperium_self.game.queue.splice(qe, 1);
 
-	  imperium_self.updateLog(imperium_self.returnFactionNickname(player) + " uses Nullification Fields to end " + imperium_self.returnFactionNickname(activating_player) + " turn");
+	  imperium_self.updateLog(imperium_self.returnFactionNickname(player) + " uses Nullification Grid to end " + imperium_self.returnFactionNickname(activating_player) + " turn");
 
           return 1;
 

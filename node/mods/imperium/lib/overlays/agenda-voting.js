@@ -37,6 +37,10 @@ class AgendaVotingOverlay {
       if (document.querySelector('.dashboard')) {
         document.querySelector('.dashboard').style.zIndex = 10;
       }
+
+      document.querySelectorAll('.chat-container').forEach((el) => {
+        el.style.zIndex = '';
+      });
     } catch (err) {}
   }
 
@@ -59,6 +63,10 @@ class AgendaVotingOverlay {
     if (document.querySelector('.dashboard')) {
       document.querySelector('.dashboard').style.zIndex = overlay_zindex + 1;
     }
+
+    document.querySelectorAll('.chat-container').forEach((el) => {
+      el.style.zIndex = overlay_zindex + 1;
+    });
 
     //
     // increase hud size

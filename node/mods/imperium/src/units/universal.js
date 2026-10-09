@@ -103,7 +103,7 @@
     });
 
     this.importUnit("warsun", {
-      name     		:       "War Sun",
+      name     		:       "Titan",
       type     		:       "warsun",
       cost 		:	12,
       shots 		:	3,

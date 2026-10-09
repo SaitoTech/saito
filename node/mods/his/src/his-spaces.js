@@ -176,6 +176,76 @@
     space.unrest = 0;
   }
 
+  applyPacify(faction, space) {
+    let religion = this.game.spaces[space].religion;
+
+    this.game.spaces[space].unrest = 0;
+
+    if (this.game.players.length == 2) {
+      if (space != "metz" && space != "liege" && this.game.spaces[space].language != "german" && this.game.spaces[space].language != "italian") {
+        this.updateLog("NOTE: only Metz, Liege and German and Italian spaces may change control in the 2P game");
+      } else {
+        this.updateLog(this.returnFactionName(this.returnControllingPower(faction)) + " controls " + this.returnSpaceName(space));
+        this.game.spaces[space].political = this.returnControllingPower(faction);
+      }
+    } else {
+      this.updateLog(this.returnFactionName(this.returnControllingPower(faction)) + " controls " + this.returnSpaceName(space));
+      this.game.spaces[space].political = this.returnControllingPower(faction);
+    }
+
+    for (let f in this.game.spaces[space].units) {
+      if (!this.areAllies(f, faction)) {
+        for (let z = 0; z < this.game.spaces[space].units[f].length; z++) {
+          this.captureLeader(faction, f, space, this.game.spaces[space].units[f][z]);
+          let u = this.game.spaces[space].units[f][z];
+          if (u.type == "squadron" || u.type == "corsair" || u.army_leader == true || u.navy_leader == true) {
+            this.game.spaces[space].units[f].splice(z, 1); z--;
+          }
+        }
+      }
+    }
+
+    if (faction === "protestant") {
+      if (space.home === "" && space.language == "german") { space.home = "protestant"; }
+      if (space === "augsburg" && religion === "protestant" && this.game.state.augsburg_electoral_bonus == 0 && this.game.state.events.schmalkaldic_league == 1) {
+        this.game.spaces['augsburg'].units['protestant'].push();
+        this.addRegular("protestant", "augsburg", 2);
+        this.game.state.augsburg_electoral_bonus = 1;
+      }
+      if (space === "mainz" && religion === "protestant" && this.game.state.mainz_electoral_bonus == 0 && this.game.state.events.schmalkaldic_league == 1) {
+        this.game.spaces['mainz'].units['protestant'].push();
+        this.addRegular("protestant", "mainz", 1);
+        this.game.state.mainz_electoral_bonus = 1;
+      }
+      if (space === "trier" && religion === "protestant" && this.game.state.trier_electoral_bonus == 0 && this.game.state.events.schmalkaldic_league == 1) {
+        this.game.spaces['trier'].units['protestant'].push();
+        this.addRegular("protestant", "trier", 1);
+        this.game.state.trier_electoral_bonus = 1;
+      }
+      if (space === "cologne" && religion === "protestant" && this.game.state.cologne_electoral_bonus == 0 && this.game.state.events.schmalkaldic_league == 1) {
+        this.game.spaces['cologne'].units['protestant'].push();
+        this.addRegular("protestant", "cologne", 1);
+        this.game.state.cologne_electoral_bonus = 1;
+      }
+      if (space === "wittenberg" && religion === "protestant" && this.game.state.wittenberg_electoral_bonus == 0 && this.game.state.events.schmalkaldic_league == 1) {
+        this.game.spaces['wittenberg'].units['protestant'].push();
+        this.addRegular("protestant", "wittenberg", 2);
+        this.game.state.wittenberg_electoral_bonus = 1;
+      }
+      if (space === "brandenburg" && religion === "protestant" && this.game.state.brandenburg_electoral_bonus == 0 && this.game.state.events.schmalkaldic_league == 1) {
+        this.game.spaces['brandenburg'].units['protestant'].push();
+        this.addRegular("protestant", "brandenburg", 1);
+        this.game.state.brandenburg_electoral_bonus = 1;
+      }
+    }
+
+    if (this.game.spaces[space].besieged != 0) {
+      this.game.spaces[space].besieged = 0;
+    }
+
+    this.displaySpace(space);
+  }
+
   hasProtestantReformer(space) {
     try { if (this.game.spaces[space]) { space = this.game.spaces[space]; } } catch (err) {}
     for (let i = 0; i < space.units["protestant"].length; i++) {

@@ -1,7 +1,7 @@
 this.importFaction("faction2", {
   id: "faction2",
-  name: "Universities of Jol Nar",
-  nickname: "Jol Nar",
+  name: "The Collegium",
+  nickname: "Collegium",
   homeworld: "sector27",
   space_units: ["carrier", "carrier", "dreadnaught", "fighter"],
   ground_units: ["infantry", "infantry", "pds", "spacedock"],
@@ -29,11 +29,11 @@ this.importFaction("faction2", {
   background: "faction2.jpg",
   promissary_notes: ["trade", "political", "ceasefire", "throne", "faction2-promissary"],
   commodity_limit: 4,
-  intro: `You are the Universities of Jol-Nar, an amphibious race whose mastery of science fuels a relentless pursuit for the power of the Imperial Throne.`,
+  intro: `You are the Collegium, an amphibious race whose mastery of science fuels a relentless pursuit for the power of the Imperial Throne.`,
 });
 
 this.importTech("faction2-flagship", {
-  name: "XXCha Flagship",
+  name: "Collegium Flagship",
   faction: "faction2",
   type: "ability",
   text: "Extra hit on every roll of 9 or 10 before modifications",
@@ -54,7 +54,7 @@ this.importTech("faction2-flagship", {
       if (rerolling_unit.type == "flagship") {
         if (roll > 8) {
           imperium_self.updateLog(
-            "Jol Nar flagship scores an additional hit through flagshup ability"
+            "Collegium Flagship scores an additional hit through flagship ability"
           );
           total_hits++;
           return total_hits;
@@ -66,7 +66,7 @@ this.importTech("faction2-flagship", {
 });
 
 this.importTech("faction2-analytic", {
-  name: "Analytic",
+  name: "Scientific",
   faction: "faction2",
   type: "ability",
   text: "Ignore 1 tech prerequisite on non-unit upgrades",
@@ -80,7 +80,7 @@ this.importTech("faction2-analytic", {
 });
 
 this.importTech("faction2-fragile", {
-  name: "Fragile",
+  name: "Unarmored",
   faction: "faction2",
   type: "ability",
   text: "-1 on all combat rolls",
@@ -94,7 +94,7 @@ this.importTech("faction2-fragile", {
   modifyCombatRoll: function (imperium_self, attacker, defender, player, combat_type, roll) {
     if (combat_type == "space" || combat_type == "ground") {
       if (imperium_self.doesPlayerHaveTech(attacker, "faction2-fragile")) {
-        imperium_self.updateLog("Jol Nar combat rolls -1 due to fragility");
+        imperium_self.updateLog("Collegium combat rolls -1 due to Unarmored");
         roll -= 1;
         if (roll < 1) {
           roll = 1;
@@ -106,7 +106,7 @@ this.importTech("faction2-fragile", {
   },
 });
 this.importTech("faction2-brilliant", {
-  name: "Brilliant",
+  name: "Cognition",
   faction: "faction2",
   type: "ability",
   text: "Tech primary is played when token spent to execute secondary",
@@ -225,7 +225,7 @@ this.importTech("faction2-brilliant", {
 });
 
 this.importTech("faction2-eres-siphons", {
-  name: "E-Res Siphons",
+  name: "Military Contractors",
   faction: "faction2",
   type: "special",
   color: "yellow",
@@ -267,7 +267,7 @@ this.importTech("faction2-eres-siphons", {
 });
 
 this.importTech("faction2-deep-space-conduits", {
-  name: "Space Conduits",
+  name: "Subspace Circuits",
   faction: "faction2",
   type: "special",
   color: "blue",
@@ -305,7 +305,7 @@ this.importTech("faction2-deep-space-conduits", {
     return 0;
   },
   activateSystemEvent: function (imperium_self, activating_player, player, sector) {
-    let html = "Do you wish to activate Deep Space Conduits: ";
+    let html = "Do you wish to activate Subspace Circuits: ";
     let menu = [
       { id: 'yes', label: 'activate' },
       { id: 'no', label: 'skip' }

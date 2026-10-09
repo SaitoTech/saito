@@ -253,6 +253,34 @@
     cursor: pointer;
   }
 
+  .imperium-game-hud .hud-notice {
+    width: 100%;
+    height: 14rem;
+    background-color: #000;
+    background-image: url('/imperium/img/backgrounds/hud-popup.png');
+    background-size: cover;
+    background-position: center center;
+    background-repeat: no-repeat;
+    color: #f3f0ea;
+  }
+
+  .imperium-game-hud .imperium-hud-popup-text {
+    box-sizing: border-box;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    padding: 1.25rem 1.5rem 1.4rem;
+    background: linear-gradient(to top, rgba(0, 0, 0, 0.72) 0%, rgba(0, 0, 0, 0.15) 55%, rgba(0, 0, 0, 0.25) 100%);
+    font-family: 'orbitron-light', Helvetica, sans-serif;
+    font-weight: 100;
+    font-size: var(--imp-fs);
+    line-height: 1.35;
+    text-align: center;
+  }
+
   .imperium-hud-combat-toggle[hidden] {
     display: none;
   }

@@ -1,6 +1,6 @@
 
     this.importTech("plasma-scoring", {
-      name        	:       "Plasma Scoring" ,
+      name        	:       "Precision Tracking" ,
       color       	:       "red" ,
       prereqs             :       [],
       text		:	"All PDS and bombardment fire gets +1 bonus shot" ,
@@ -18,7 +18,7 @@
       pdsSpaceAttackTriggers : function(imperium_self, attacker, player, sector) {
 	if (imperium_self.doesPlayerHaveTech(player, "plasma-scoring")) {
  	  if (imperium_self.doesPlayerHavePDSUnitsWithinRange(attacker, player, sector) == 1 && attacker != player) {
-	    imperium_self.updateLog(imperium_self.returnFaction(player) + " gets +1 shot from Plasma Scoring");
+	    imperium_self.updateLog(imperium_self.returnFaction(player) + " gets +1 shot from Precision Tracking");
 	  }
 	}
 	//
@@ -29,7 +29,7 @@
       pdsSpaceDefenseTriggers : function(imperium_self, attacker, player, sector) {
 	if (imperium_self.doesPlayerHaveTech(player, "plasma-scoring")) {
  	  if (imperium_self.doesPlayerHavePDSUnitsWithinRange(attacker, player, sector) == 1 && attacker != player) {
-	    imperium_self.updateLog(imperium_self.returnFaction(player) + " gets +1 shot from Plasma Scoring");
+	    imperium_self.updateLog(imperium_self.returnFaction(player) + " gets +1 shot from Precision Tracking");
 	  }
 	}
 	//
@@ -43,7 +43,7 @@
 
 
     this.importTech("magen-defense-grid", {
-      name                :       "Magen Defense Grid" ,
+      name                :       "Ground Shielding" ,
       color               :       "red" ,
       text		:	"When ground combat begins on a planet with PDS or Space Dock, destroy one opponent infantry" ,
       prereqs             :       ["red"],
@@ -110,7 +110,7 @@
 
 
     this.importTech("duranium-armor", {
-      name        	: 	"Duranium Armor" ,
+      name        	: 	"Reactive Plating" ,
       color       	: 	"red" ,
       prereqs     	:       ['red','red'],
       text		:	"Each round, you may repair any ship which has not taken damage this round" ,
@@ -136,7 +136,7 @@
 	    let this_unit = sys.s.units[attacker-1][i];
 	    if (this_unit.last_round_damaged < imperium_self.game.state.space_combat_round) {
 	      this_unit.strength = this_unit.max_strength;
-	      imperium_self.updateLog(imperium_self.returnFaction(attacker) + " repairs ships with Duranium Armor");
+	      imperium_self.updateLog(imperium_self.returnFaction(attacker) + " repairs ships with Reactive Plating");
 	    }
 	  }
         }
@@ -146,7 +146,7 @@
 	    let this_unit = sys.s.units[defender-1][i];
 	    if (this_unit.last_round_damaged < imperium_self.game.state.space_combat_round) {
 	      this_unit.strength = this_unit.max_strength;
-	      imperium_self.updateLog(imperium_self.returnFaction(defender) + " repairs ships with Duranium Armor");
+	      imperium_self.updateLog(imperium_self.returnFaction(defender) + " repairs ships with Reactive Plating");
 	    }
 	  }
         }
@@ -158,7 +158,7 @@
 
 
     this.importTech("assault-cannon", {
-      name        	:       "Assault Cannon" ,
+      name        	:       "Kinetic Killshot" ,
       color       	:       "red" ,
       prereqs     	:       ['red','red','red'],
       text		:	"If you have three or more capital ships in a sector, destroy one opponent capital ship" ,
@@ -211,7 +211,7 @@
       spaceCombatEvent : function(imperium_self, player, sector) {
 	imperium_self.game.state.players_info[player-1].target_units = ['carrier','destroyer','cruiser','dreadnaught','flagship','warsun'];
 	imperium_self.game.queue.push("destroy_ships\t"+player+"\t"+"1"+"\t"+imperium_self.game.state.activated_sector);
-	imperium_self.game.queue.push("ACKNOWLEDGE\t"+imperium_self.returnFaction(player)+" must destroy 1 ship from Assault Cannon");
+	imperium_self.game.queue.push("ACKNOWLEDGE\t"+imperium_self.returnFaction(player)+" must destroy 1 ship from Kinetic Killshot");
 	return 1;
       },
     });

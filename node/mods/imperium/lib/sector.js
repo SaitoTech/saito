@@ -428,6 +428,9 @@ class Sector {
         if (Math.abs(ypos - e.clientY) > 4) {
           return;
         }
+        if (imperium_self.planet_selection_active) {
+          return;
+        }
         // TEST / HACK
         imperium_self.zoom_overlay.render(sector);
         //				imperium_self.sector_overlay.render(sector);

@@ -1401,7 +1401,14 @@
           let faction = mv[1];
           let player = his_self.returnPlayerOfFaction(faction);
                     
-          if (his_self.game.player === player) { 
+          if (his_self.game.player === player) {
+
+            let placeSquadron = (owner, spacekey) => {
+              his_self.game.spaces[spacekey].units[owner].push(his_self.newUnit(owner, "squadron"));
+              his_self.game.state.board[owner] = his_self.returnOnBoardUnits(owner);
+              his_self.displaySpace(spacekey);
+              his_self.addMove("build\tland\t"+owner+"\tsquadron\t"+spacekey+"\t"+his_self.game.player);
+            };
     
             if (faction === "papacy") {
 
@@ -1423,7 +1430,7 @@
 
                   (spacekey) => {
 
-		    let firstspace = spacekey;
+		    placeSquadron("papacy", spacekey);
 
               	    //
               	    // pick port under Papal control
@@ -1447,9 +1454,7 @@
               		his_self.hud.updateStatus(his_self.game.status);
               		his_self.hud.updateMenu([]);
               		his_self.hud.updateCards([]);
-                        let secondspace = spacekey;
-                        his_self.addMove("build\tland\tpapacy\t"+"squadron"+"\t"+firstspace);
-                        his_self.addMove("build\tland\tpapacy\t"+"squadron"+"\t"+secondspace);
+                        placeSquadron("papacy", spacekey);
 		        his_self.endTurn();
 		      },
 
@@ -1498,13 +1503,13 @@
 		  }
 
 		  if (action === "hapsburg") {
-                    his_self.addMove("build\tland\thapsburg\t"+"squadron"+"\tnaples");
+                    placeSquadron("hapsburg", "naples");
 		    if (num == 2) { his_self.endTurn(); return; }
 		    squadron_placement_function(2);
 		  }
 
 		  if (action === "french") {
-                    his_self.addMove("build\tland\tfrance\t"+"squadron"+"\tmarseille");
+                    placeSquadron("france", "marseille");
 		    if (num == 2) { his_self.endTurn(); return; }
 		    squadron_placement_function(2);
 		  }
@@ -1531,8 +1536,7 @@
                         his_self.hud.updateStatus(his_self.game.status);
                         his_self.hud.updateMenu([]);
                         his_self.hud.updateCards([]);
-                        let space = his_self.game.spaces[spacekey];
-                        his_self.addMove("build\tland\tottoman\t"+"squadron"+"\t"+spacekey);
+                        placeSquadron("ottoman", spacekey);
 		        if (num == 2) { his_self.endTurn(); return; }
 		        squadron_placement_function(2);
 		      },
@@ -3137,8 +3141,8 @@
                       his_self.addUnrest(space2);
                       his_self.displaySpace(space2);
 
-                      his_self.addMove("unrest\t"+space1);
-                      his_self.addMove("unrest\t"+space2);
+                      his_self.addMove("unrest\t"+space1+"\t"+his_self.game.player);
+                      his_self.addMove("unrest\t"+space2+"\t"+his_self.game.player);
                       his_self.endTurn();
                     },
                     null,
@@ -8400,7 +8404,7 @@ console.log("POST_GOUT_QUEUE: " + JSON.stringify(his_self.game.queue));
 	        already_selected.push(spacekey);
 		his_self.game.spaces[spacekey].unrest = 1;
 		his_self.displaySpace(spacekey);
-		his_self.addMove("unrest\t"+spacekey);
+		his_self.addMove("unrest\t"+spacekey+"\t"+his_self.game.player);
 
 	    his_self.playerSelectSpaceWithFilter(
 	      "Select English Space to throw into Unrest" ,
@@ -8410,7 +8414,7 @@ console.log("POST_GOUT_QUEUE: " + JSON.stringify(his_self.game.queue));
 	        already_selected.push(spacekey);
 		his_self.game.spaces[spacekey].unrest = 1;
 		his_self.displaySpace(spacekey);
-		his_self.addMove("unrest\t"+spacekey);
+		his_self.addMove("unrest\t"+spacekey+"\t"+his_self.game.player);
 
 	    his_self.playerSelectSpaceWithFilter(
 	      "Select English Space to throw into Unrest" ,
@@ -8420,7 +8424,7 @@ console.log("POST_GOUT_QUEUE: " + JSON.stringify(his_self.game.queue));
 	        already_selected.push(spacekey);
 		his_self.game.spaces[spacekey].unrest = 1;
 		his_self.displaySpace(spacekey);
-		his_self.addMove("unrest\t"+spacekey);
+		his_self.addMove("unrest\t"+spacekey+"\t"+his_self.game.player);
 
 	    his_self.playerSelectSpaceWithFilter(
 	      "Select English Space to throw into Unrest" ,
@@ -8430,7 +8434,7 @@ console.log("POST_GOUT_QUEUE: " + JSON.stringify(his_self.game.queue));
 	        already_selected.push(spacekey);
 		his_self.game.spaces[spacekey].unrest = 1;
 		his_self.displaySpace(spacekey);
-		his_self.addMove("unrest\t"+spacekey);
+		his_self.addMove("unrest\t"+spacekey+"\t"+his_self.game.player);
 
 	    his_self.playerSelectSpaceWithFilter(
 	      "Select English Space to throw into Unrest" ,
@@ -8440,7 +8444,7 @@ console.log("POST_GOUT_QUEUE: " + JSON.stringify(his_self.game.queue));
 	        already_selected.push(spacekey);
 		his_self.game.spaces[spacekey].unrest = 1;
 		his_self.displaySpace(spacekey);
-		his_self.addMove("unrest\t"+spacekey);
+		his_self.addMove("unrest\t"+spacekey+"\t"+his_self.game.player);
 
 		his_self.endTurn();
 
@@ -8889,7 +8893,8 @@ console.log("POST_GOUT_QUEUE: " + JSON.stringify(his_self.game.queue));
 	      let space = his_self.game.spaces[spacekey];
 	      his_self.addMove("add_army_leader\t"+faction+"\t"+spacekey+"\t"+"renegade");
 	      if (spacekey === "avignon" || spacekey === "grenoble" || spacekey === "geneva" || spacekey === "dijon" || spacekey === "orleans" || spacekey === "limoges") {
-                his_self.addMove("control\t"+faction+"\t"+spacekey);
+                his_self.applyPacify(faction, spacekey);
+                his_self.addMove("control\t"+faction+"\t"+spacekey+"\t"+his_self.game.player);
 	      }
 	      if (faction != "ottoman") {
                 his_self.addMove("build\tland\t"+faction+"\t"+"mercenary"+"\t"+spacekey);
@@ -9265,7 +9270,9 @@ console.log("POST_GOUT_QUEUE: " + JSON.stringify(his_self.game.queue));
 	      return 0;
 	    },
 	    function(unrest_spacekey1) {
-              his_self.addMove("unrest\t"+unrest_spacekey1);
+              his_self.addUnrest(unrest_spacekey1);
+              his_self.displaySpace(unrest_spacekey1);
+              his_self.addMove("unrest\t"+unrest_spacekey1+"\t"+his_self.game.player);
               his_self.playerSelectSpaceWithFilter(
   	        "Add Unrest",
 	        function(space) {
@@ -9283,7 +9290,9 @@ console.log("POST_GOUT_QUEUE: " + JSON.stringify(his_self.game.queue));
 	          his_self.hud.updateStatus(his_self.game.status);
 	          his_self.hud.updateMenu([]);
 	          his_self.hud.updateCards([]);
-                  his_self.addMove("unrest\t"+unrest_spacekey2);
+                  his_self.addUnrest(unrest_spacekey2);
+                  his_self.displaySpace(unrest_spacekey2);
+                  his_self.addMove("unrest\t"+unrest_spacekey2+"\t"+his_self.game.player);
 	          his_self.endTurn();
 	        }
               );
@@ -9823,8 +9832,8 @@ console.log("POST_GOUT_QUEUE: " + JSON.stringify(his_self.game.queue));
 	          his_self.addUnrest(space2);
 	          his_self.displaySpace(space2);
 
-		  his_self.addMove("unrest\t"+space1);
-		  his_self.addMove("unrest\t"+space2);
+		  his_self.addMove("unrest\t"+space1+"\t"+his_self.game.player);
+		  his_self.addMove("unrest\t"+space2+"\t"+his_self.game.player);
 		  his_self.endTurn();
 		},
 		null,
@@ -9959,7 +9968,9 @@ console.log("POST_GOUT_QUEUE: " + JSON.stringify(his_self.game.queue));
 
 	      (spacekey) => {
 		his_self.game.state.janissaries_spaces.push(spacekey);
-      		his_self.addMove("unrest\t"+spacekey);
+      		his_self.addUnrest(spacekey);
+		his_self.displaySpace(spacekey);
+		his_self.addMove("unrest\t"+spacekey+"\t"+his_self.game.player);
 		his_self.endTurn();
 	      },
 
@@ -10412,7 +10423,9 @@ console.log("POST_GOUT_QUEUE: " + JSON.stringify(his_self.game.queue));
 
 	      (spacekey) => {
 	        his_self.game.state.peasants_war.push(spacekey);
-      		his_self.addMove("unrest\t"+spacekey);
+      		his_self.addUnrest(spacekey);
+		his_self.displaySpace(spacekey);
+		his_self.addMove("unrest\t"+spacekey+"\t"+his_self.game.player);
 		his_self.endTurn();
 	      },
 
@@ -11297,7 +11310,9 @@ console.log("POST_GOUT_QUEUE: " + JSON.stringify(his_self.game.queue));
 	      },
 
 	      (spacekey) => {
-      		his_self.addMove("unrest\t"+spacekey);
+      		his_self.addUnrest(spacekey);
+		his_self.displaySpace(spacekey);
+		his_self.addMove("unrest\t"+spacekey+"\t"+his_self.game.player);
 		his_self.endTurn();
 	      },
 

@@ -296,12 +296,11 @@
 
   .fs-planet {
     position: relative;
+    align-self: start;
     flex: 1 1 14rem;
     width: min(16rem, 100%);
     max-width: 16rem;
     min-width: 11rem;
-    border-radius: var(--imp-radius);
-    overflow: hidden;
     box-shadow: 0 0.45rem 1.2rem #000a;
   }
 
@@ -387,6 +386,11 @@
     overflow: auto;
     justify-content: flex-start;
     align-content: flex-start;
+    padding: 0.35rem;
+  }
+
+  .fs-planets-panel.is-paying .fs-planet:not(.is-payable):not(.is-committed) {
+    opacity: 0.4;
   }
 
   .fs-planet.is-payable,
@@ -394,14 +398,21 @@
     cursor: pointer;
   }
 
-  .fs-planet.is-payable {
-    outline: 2px solid #e0c056;
-    outline-offset: 2px;
-  }
-
-  .fs-planet.is-committed {
-    outline: 2px solid #fff;
-    outline-offset: 2px;
+  .fs-planet-flag {
+    position: absolute;
+    top: 22%;
+    right: 8%;
+    z-index: 2;
+    padding: 0.2rem 0.45rem;
+    background: #e0c056;
+    color: #1a1410;
+    font-family: var(--imp-font);
+    font-size: 0.85rem;
+    font-weight: 700;
+    line-height: 1.2;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    pointer-events: none;
   }
 
   .fs-planet-banner.is-committed {

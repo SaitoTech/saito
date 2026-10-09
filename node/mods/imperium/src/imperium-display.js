@@ -161,7 +161,7 @@ returnHowToPlayOverlay() {
 
 <h2>Your Goal:</h2>
 
-<img src="/imperium/img/planets/BROUGHTON.png" class="demo_planet_card" />
+<img src="/imperium/img/planets/broughton.png" class="demo_planet_card" />
 
 <p></p>
 

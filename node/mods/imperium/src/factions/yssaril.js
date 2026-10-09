@@ -1,8 +1,8 @@
 
     this.importFaction('faction6', {
       id		:	"faction6" ,
-      name		: 	"Yssaril Tribes",
-      nickname		: 	"Yssaril",
+      name		: 	"The Shade Clan",
+      nickname		: 	"Shade",
       homeworld		: 	"sector25",
       space_units	: 	["carrier","carrier","cruiser","fighter","fighter"],
       ground_units	: 	["infantry","infantry","infantry","infantry","infantry","pds","spacedock"],
@@ -22,7 +22,7 @@
 
     this.importTech("faction6-stall-tactics", {
 
-      name        :       "Stall Tactics" ,
+      name        :       "Target Delay" ,
       faction     :       "faction6",
       type      :         "ability" ,
       text        :       "Discard an Action Card to stall one turn" ,
@@ -59,10 +59,11 @@
 
         if (imperium_self.game.player == player) {
 	  imperium_self.playerDiscardActionCards(1, function() {
+            let notice = imperium_self.returnFactionNickname(imperium_self.game.player) + " stalls by discarding an action card";
             imperium_self.addMove("resolve\tplay");
             imperium_self.addMove("setvar\tstate\t0\tactive_player_moved\t" + "int" + "\t" + "0");
             imperium_self.addMove("player_end_turn\t" + imperium_self.game.player);
-            imperium_self.addMove("NOTIFY\t" + imperium_self.returnFactionNickname(imperium_self.game.player) + " stalls by discarding an action card");
+            imperium_self.addMove("popup\t" + notice);
             imperium_self.endTurn();
             return 0;
 	  });
@@ -78,7 +79,7 @@
 
     this.importTech("faction6-crafty", {
 
-      name        :       "Crafty" ,
+      name        :       "Unorthodox Tactics" ,
       faction     :       "faction6",
       type        :       "ability" ,
       text        :       "Unlimited action cards. Game effects cannot change." ,
@@ -96,7 +97,7 @@
 
     this.importTech("faction6-scheming", {
 
-      name        :       "Scheming" ,
+      name        :       "Den of Intrigue" ,
       faction     :       "faction6",
       type        :       "ability" ,
       text        :       "Receive bonus card when gaining action cards, then discard one" ,
@@ -152,7 +153,7 @@
     // players that have passed cannot play action cards during your turn
     //
     this.importTech('faction6-transparasteel-plating', {
-      name        :       "Transparasteel Plating" ,
+      name        :       "Rydar Plating" ,
       faction     :       "faction6",
       prereqs     :       ["green"] ,
       color       :       "green" ,
@@ -192,7 +193,7 @@
 
 
     this.importTech('faction6-mageon-implants', {
-      name        :       "Mageon Implants" ,
+      name        :       "Neural Implants" ,
       faction     :       "faction6",
       prereqs     :       ["green","green","green"] ,
       color       :       "green" ,
@@ -218,7 +219,7 @@
       },
       menuOption  :       function(imperium_self, menu, player) {
         if (menu == "main") {
-          return { event : 'mageonimplants', id: 'mageonimplants', label: 'exhaust mageon implants', html : '<li class="option" id="mageonimplants">exhaust mageon implants</li>' };
+          return { event : 'mageonimplants', id: 'mageonimplants', label: 'exhaust neural implants', html : '<li class="option" id="mageonimplants">exhaust neural implants</li>' };
         }
         return {};
       },
@@ -236,8 +237,9 @@
             if (p.player != imperium_self.game.player) { return 1; } return 0;
           },
           function(player) {
+            let notice = imperium_self.returnFaction(imperium_self.game.player) + " uses Neural Implants to take an action card from " + imperium_self.returnFaction(player);
             imperium_self.addMove("faction6_choose_card_triggered\t"+imperium_self.game.player+"\t"+player);
-            imperium_self.addMove("NOTIFY\t" + imperium_self.returnFaction(imperium_self.game.player) + " pulls a random action card from " + imperium_self.returnFaction(player));
+            imperium_self.addMove("popup\t" + notice);
             imperium_self.endTurn();
             return 0;
           },
@@ -313,7 +315,7 @@
 
     
     this.importTech("faction6-flagship", {
-      name        	:       "Yssaril Flagship" ,
+      name        	:       "Shade Flagship" ,
       faction     	:       "faction6",
       type      	:       "ability" ,
       text        	:       "May move through sectors containing other ships" ,

@@ -1,8 +1,8 @@
 
     this.importFaction('faction1', {
       id		:	"faction1" ,
-      name		: 	"Federation of Sol",
-      nickname		: 	"Sol",
+      name		: 	"Terran Federation",
+      nickname		: 	"Terran",
       homeworld		: 	"sector22",
       space_units	:	["carrier","carrier","destroyer","fighter","fighter","fighter"],
       ground_units	:	["infantry","infantry","infantry","infantry","infantry","spacedock"],
@@ -17,7 +17,7 @@
 
     this.importTech("faction1-flagship", {
 
-      name        :       "Sol Flagship" ,
+      name        :       "Terran Flagship" ,
       faction     :       "faction1",
       text	  :	  "Flagship gains 1 infantry when player selects a strategy card" ,
       type	  :	  "ability" ,
@@ -36,7 +36,7 @@
 	    for (let k = 0; k < sec.units[player-1].length; k++) {
 	      if (sec.units[player-1][k].type == "flagship") {
 		imperium_self.loadUnitOntoShip(player, i, k, "infantry");
-		imperium_self.updateLog("Faction Ability: infantry added to Sol Flagship...");
+		imperium_self.updateLog("Faction Ability: infantry added to Terran Flagship...");
 		return 1;
 	      }
 	    }
@@ -51,7 +51,7 @@
 
     this.importTech("faction1-orbital-drop", {
 
-      name        :       "Orbital Drop" ,
+      name        :       "Drop Assault" ,
       faction     :       "faction1",
       type	:	  "ability" ,
       text	  :	  "Drop two infantry onto any controlled planet" ,
@@ -69,9 +69,9 @@
         let x = {};
 	if (menu === "main") {
           x.event = 'orbitaldrop';
-          x.html = '<li class="option" id="orbitaldrop">orbital drop</li>';
+          x.html = '<li class="option" id="orbitaldrop">drop assault</li>';
           x.id = 'orbitaldrop';
-          x.label = 'orbital drop';
+          x.label = 'drop assault';
 	}
         return x;
       },
@@ -90,19 +90,20 @@
 	if (imperium_self.game.player == player) {
 	
           imperium_self.playerSelectPlanetWithFilter(
-            "Use Orbital Drop to reinforce which planet with two infantry: " ,
+            "Use Drop Assault to reinforce which planet with two infantry: " ,
             function(planet) {
 	      if (imperium_self.game.planets[planet].owner == imperium_self.game.player) { return 1; } return 0;
             },
             function(planet) {
               planet = imperium_self.game.planets[planet];
+              let notice = imperium_self.returnFaction(imperium_self.game.player) + " orbital drops 2 infantry onto " + planet.name;
               imperium_self.addMove("resolve\tplay");
               imperium_self.addMove("setvar\tstate\t0\tactive_player_moved\t" + "int" + "\t" + "0");
               imperium_self.addMove("player_end_turn\t" + imperium_self.game.player);
+              imperium_self.addMove("popup\t" + notice);
               imperium_self.addMove("produce\t"+imperium_self.game.player+"\t"+"1"+"\t"+planet.idx+"\t"+"infantry"+"\t"+planet.sector);
               imperium_self.addMove("produce\t"+imperium_self.game.player+"\t"+"1"+"\t"+planet.idx+"\t"+"infantry"+"\t"+planet.sector);
               imperium_self.addMove("expend\t"+imperium_self.game.player+"\t"+"strategy"+"\t"+"1");
-              imperium_self.addMove("NOTIFY\t" + imperium_self.returnFaction(imperium_self.game.player) + " orbital drops 2 infantry onto " + planet.name);
               imperium_self.endTurn();
               return 0;
             },
@@ -115,7 +116,7 @@
 
     this.importTech("faction1-versatile", {
 
-      name        :       "Versatile" ,
+      name        :       "Flexible Doctrine" ,
       faction     :       "faction1",
       type        :       "ability" ,
       text	  :	  "Gain an extra command token each round" ,

@@ -32,6 +32,13 @@
 
 
 
+      if (mv[0] === "popup") {
+        this.game.queue.splice(qe, 1);
+        this.updateLog(mv[1]);
+        this.hud.updatePopup(mv[1]);
+        return 1;
+      }
+
       if (mv[0] === "setvar") {
 
 	let type = mv[1]; // state or players

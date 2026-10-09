@@ -1954,7 +1954,7 @@
   this.importAgendaCard('publicize-weapons-schematics', {
         name : "Publicize Weapons Schematics" ,
         type : "Directive" ,
-        text : "FOR: all players now have War Suns technology, AGAINST: all players with War Suns technology discard all action cards" ,
+        text : "FOR: all players now have Titan technology, AGAINST: all players with Titan technology discard all action cards" ,
         returnAgendaOptions : function(imperium_self) {
 	  return ["for","against"];
         },

@@ -727,9 +727,9 @@ playerPlayBombardment(attacker, sector, planet_idx) {
   //
   if (this.doesPlanetHavePDS(sys.p[planet_idx])) {
     if (this.doesSectorContainPlayerUnit(attacker, sector, "warsun")) {
-      this.updateLog("Warsuns make bombardment possible against PDS-defended planets...");
+      this.updateLog("Titans make bombardment possible against PDS-defended planets...");
     } else {
-      this.acknowledge_overlay.render("Bombardment not possible against PDS-defended planets without War Sun. Skipping.", '/imperium/img/backgrounds/bombardment.jpg');
+      this.acknowledge_overlay.render("Bombardment not possible against PDS-defended planets without a Titan. Skipping.", '/imperium/img/backgrounds/bombardment.jpg');
       this.updateLog("Bombardment not possible against PDS-defended planets. Skipping.");
       imperium_self.endTurn();
       return 0;
@@ -2520,6 +2520,63 @@ playerContinueTurn(player, sector) {
     }
 
     if (action2 == "endturn") {
+      let invade_available = 0;
+      if (imperium_self.canPlayerInvadePlanet(player, sector) && imperium_self.game.tracker.invasion == 0) {
+        if (sector == "new-byzantium" || sector == "4_4") {
+          if ((imperium_self.game.planets['new-byzantium'].owner != -1) || (imperium_self.returnAvailableInfluence(imperium_self.game.player) + imperium_self.game.state.players_info[imperium_self.game.player - 1].goods) >= 6) {
+            invade_available = 1;
+          }
+        } else {
+          invade_available = 1;
+        }
+      }
+
+      if (invade_available) {
+        let sys = imperium_self.returnSectorAndPlanets(sector);
+        let place = sys && sys.s && sys.s.name ? sys.s.name : sector;
+        place = String(place).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        let user_message = '<div>Do you really want to end your turn without invading planets in ' + place + '?</div><ul>';
+        user_message += '<li class="option textchoice" id="peace">Yes, we are on a mission of peace</li>';
+        user_message += '<li class="option textchoice" id="invade">No, I would like to invade...</li>';
+        user_message += '</ul>';
+        imperium_self.hud.updateMenu([]);
+        imperium_self.hud.updateStatus(user_message);
+        let frame = document.querySelector('#game-hud2 .imperium-hud-frame');
+        if (frame) { frame.style.display = 'none'; }
+        let load_menu = $('#game-hud2 > .hud-status');
+        load_menu.find('.textchoice').off();
+        load_menu.find('.textchoice').on('click', function () {
+          let id = $(this).attr('id');
+          imperium_self.hud.updateStatus('');
+          if (frame) { frame.style.display = ''; }
+          if (id === 'peace') {
+            imperium_self.addMove("resolve\tplay");
+            imperium_self.addMove("setvar\tstate\t0\tactive_player_moved\t" + "int" + "\t" + "0");
+            imperium_self.endTurn();
+            return;
+          }
+
+          if (sector === "new-byzantium" || sector == "4_4") {
+            if (imperium_self.game.planets['new-byzantium'].owner == -1) {
+              if (imperium_self.returnAvailableInfluence(imperium_self.game.player) >= 6) {
+                imperium_self.playerSelectInfluence(6, function (success) {
+                  imperium_self.game.tracker.invasion = 1;
+                  imperium_self.playerInvadePlanet(player, sector);
+                });
+              } else {
+                salert("The first conquest of New Byzantium requires spending 6 influence, which you lack.");
+                imperium_self.playerContinueTurn(player, sector);
+              }
+              return;
+            }
+          }
+
+          imperium_self.game.tracker.invasion = 1;
+          imperium_self.playerInvadePlanet(player, sector);
+        });
+        return 0;
+      }
+
       imperium_self.addMove("resolve\tplay");
       imperium_self.addMove("setvar\tstate\t0\tactive_player_moved\t" + "int" + "\t" + "0");
       imperium_self.endTurn();
@@ -3256,7 +3313,7 @@ playerScoreVictoryPoints(imperium_self, mycallback, stage = 0) {
       return_to_zero = 1;
     }
     if (id == "warsun" && (player_build.warsuns + player_fleet.warsuns) > imperium_self.game.state.players_info[imperium_self.game.player - 1].warsun_limit) {
-      salert("You can only have " + imperium_self.game.state.players_info[imperium_self.game.player - 1].warsun_limit + " warsuns on the board");
+      salert("You can only have " + imperium_self.game.state.players_info[imperium_self.game.player - 1].warsun_limit + " Titans on the board");
       return_to_zero = 1;
     }
     if (calculated_total_cost > imperium_self.returnAvailableResources(imperium_self.game.player)) {
@@ -3370,7 +3427,7 @@ playerScoreVictoryPoints(imperium_self, mycallback, stage = 0) {
     cruiser: 'Cruiser',
     dreadnaught: 'Dreadnaught',
     flagship: 'Flagship',
-    warsun: 'War Sun'
+    warsun: 'Titan'
   };
 
   let showProduce = function () {
@@ -3987,93 +4044,27 @@ playerSelectStrategyAndCommandTokens(cost, mycallback) {
 
 
 playerSelectInfluence(cost, mycallback) {
-
-  if (cost == 0) { mycallback(1); return; }
-
-  let imperium_self = this;
-  let array_of_cards = this.returnPlayerUnexhaustedPlanetCards(this.game.player); // unexhausted
-  let array_of_cards_to_exhaust = [];
-  let selected_cost = 0;
-  let total_trade_goods = imperium_self.game.state.players_info[imperium_self.game.player - 1].goods;
-
-  let selectInfluence = (action2) => {
-
-    let y = '';
-    if (action2.indexOf('cardchoice_') === 0) {
-      y = action2.substring('cardchoice_'.length);
-    }
-    let idx = 0;
-    for (let i = 0; i < array_of_cards.length; i++) {
-      if (array_of_cards[i] === y) {
-        idx = i;
-      }
-    }
-
-    //
-    // handle spending trade goods
-    //
-    if (action2 == "trade_goods") {
-      if (total_trade_goods > 0) {
-        imperium_self.addMove("expend\t" + imperium_self.game.player + "\tgoods\t1");
-        total_trade_goods--;
-        selected_cost += 1;
-      }
-    } else {
-      imperium_self.addMove("expend\t" + imperium_self.game.player + "\tplanet\t" + array_of_cards[idx]);
-      array_of_cards_to_exhaust.push(array_of_cards[idx]);
-      selected_cost += imperium_self.game.planets[array_of_cards[idx]].influence;
-    }
-
-    if (cost <= selected_cost) {
-      mycallback(1);
-      return;
-    }
-    showInfluence();
-  }
-
-  let showInfluence = () => {
-    imperium_self.hud.updateHeader('Select ' + cost + ' influence');
-    imperium_self.hud.updateStatus('');
-    imperium_self.hud.updateCards([]);
-    let menu = [];
-    for (let z = 0; z < array_of_cards.length; z++) {
-      if (array_of_cards_to_exhaust.indexOf(array_of_cards[z]) >= 0) { continue; }
-      let planet = imperium_self.game.planets[array_of_cards[z]];
-      menu.push({ id: 'cardchoice_' + array_of_cards[z], label: planet.name + ' - ' + planet.influence });
-    }
-    let goods_label = total_trade_goods + (total_trade_goods == 1 ? ' trade good' : ' trade goods');
-    menu.push({ id: 'trade_goods', label: goods_label });
-    imperium_self.hud.updateMenu(menu, function (action2) {
-      selectInfluence(action2);
-    });
-  }
-
-  showInfluence();
-
-  //
-  // allow selection from dedicated overlay
-  //
-  this.influence_selection_overlay.render(cost, array_of_cards, total_trade_goods, (id) => {
-    selectInfluence(id);
-    if (cost <= selected_cost) { 
-      this.influence_selection_overlay.overlay.remove();
-    }
-  });
-
-  //
-  // process text choices
-  //
+  this.playerSelectPlanetPayment(cost, 'influence', 'Influence', mycallback);
 }
 
-
-
 playerSelectProductionResources(cost, mycallback) {
+  this.playerSelectPlanetPayment(cost, 'resources', 'Production cost', mycallback);
+}
+
+playerSelectResources(cost, mycallback) {
+  this.playerSelectPlanetPayment(cost, 'resources', 'Resources', mycallback);
+}
+
+playerSelectPlanetPayment(cost, currency, kicker, mycallback) {
 
   if (cost == 0) { mycallback(1); return; }
 
   let imperium_self = this;
+  let field = currency == 'influence' ? 'influence' : 'resources';
   let payment = {
     cost: cost,
+    currency: field,
+    kicker: kicker,
     paid: 0,
     goods_available: this.game.state.players_info[this.game.player - 1].goods,
     goods_spent: 0,
@@ -4104,8 +4095,9 @@ playerSelectProductionResources(cost, mycallback) {
         } else {
           let planet = imperium_self.game.planets[id];
           if (!planet || planet.exhausted == 1) { return; }
-          if ((parseInt(planet.resources) || 0) <= 0) { return; }
-          payment.spent[id] = parseInt(planet.resources);
+          let value = parseInt(planet[field]) || 0;
+          if (value <= 0) { return; }
+          payment.spent[id] = value;
         }
       }
       payment.paid = payment.goods_spent;
@@ -4117,82 +4109,6 @@ playerSelectProductionResources(cost, mycallback) {
   };
 
   this.faction_sheet_overlay.beginProductionPayment(this.game.player, payment);
-}
-
-playerSelectResources(cost, mycallback) {
-
-  if (cost == 0) { mycallback(1); return; }
-
-  let imperium_self = this;
-  let array_of_cards = this.returnPlayerUnexhaustedPlanetCards(this.game.player); // unexhausted
-  let array_of_cards_to_exhaust = [];
-  let selected_cost = 0;
-  let total_trade_goods = imperium_self.game.state.players_info[imperium_self.game.player - 1].goods;
-
-  let selectResource = (action2) => {
-
-    let y = '';
-    if (action2.indexOf('cardchoice_') === 0) {
-      y = action2.substring('cardchoice_'.length);
-    }
-    let idx = 0;
-    for (let i = 0; i < array_of_cards.length; i++) {
-      if (array_of_cards[i] === y) {
-        idx = i;
-      }
-    }
-
-    //
-    // handle spending trade goods
-    //
-    if (action2 == "trade_goods") {
-      if (total_trade_goods > 0) {
-        imperium_self.addMove("expend\t" + imperium_self.game.player + "\tgoods\t1");
-        total_trade_goods--;
-        selected_cost += 1;
-      }
-    } else {
-      imperium_self.addMove("expend\t" + imperium_self.game.player + "\tplanet\t" + array_of_cards[idx]);
-      array_of_cards_to_exhaust.push(array_of_cards[idx]);
-      selected_cost += parseInt(imperium_self.game.planets[array_of_cards[idx]].resources);
-    }
-
-    if (cost <= selected_cost) {
-      mycallback(1);
-      return;
-    }
-    showResources();
-  }
-
-  let showResources = () => {
-    imperium_self.hud.updateHeader('Select ' + cost + ' resources');
-    imperium_self.hud.updateStatus('');
-    imperium_self.hud.updateCards([]);
-    let menu = [];
-    for (let z = 0; z < array_of_cards.length; z++) {
-      if (array_of_cards_to_exhaust.indexOf(array_of_cards[z]) >= 0) { continue; }
-      let planet = imperium_self.game.planets[array_of_cards[z]];
-      menu.push({ id: 'cardchoice_' + array_of_cards[z], label: planet.name + ' - ' + planet.resources });
-    }
-    let goods_label = total_trade_goods + (total_trade_goods == 1 ? ' trade good' : ' trade goods');
-    menu.push({ id: 'trade_goods', label: goods_label });
-    imperium_self.hud.updateMenu(menu, function (action2) {
-      selectResource(action2);
-    });
-  }
-
-  showResources();
-
-  //
-  // allow selection from dedicated overlay
-  //
-  this.resource_selection_overlay.render(cost, array_of_cards, total_trade_goods, (id) => {
-    selectResource(id);
-    if (cost <= selected_cost) { 
-      this.resource_selection_overlay.overlay.remove();
-    }
-  });
-
 }
 
 
@@ -6389,7 +6305,12 @@ playerSelectChoice(msg, choices, elect = "other", mycallback = null) {
       }
     }
     if (elect == "planet") {
-      menu.push({ id: String(i), label: this.game.planets[choices[i]].name });
+      let planet = this.game.planets[choices[i]];
+      let label = planet.name;
+      if (planet.owner > 0) {
+        label += " (" + this.returnFactionNickname(planet.owner) + ")";
+      }
+      menu.push({ id: String(i), label: label });
     }
     if (elect == "sector") {
       menu.push({ id: String(i), label: this.game.sectors[this.game.board[choices[i]].tile].name });
@@ -6419,58 +6340,114 @@ playerSelectChoice(msg, choices, elect = "other", mycallback = null) {
 playerSelectPlanetWithFilter(msg, filter_func, mycallback = null, cancel_func = null) {
 
   let imperium_self = this;
-
   let html = '<div class="status-header-text">' + msg + '</div>';
-  let menu = [];
+  let sector_filter = null;
+  let xpos = 0;
+  let ypos = 0;
+  let closed = 0;
 
-  for (let i in this.game.planets) {
-    if (this.game.planets[i].tile != "") {
-      if (filter_func(i) == 1) {
-        menu.push({ id: String(i), label: this.game.planets[i].name });
+  let planetLabel = function (id) {
+    let planet = imperium_self.game.planets[id];
+    let label = planet.name;
+    if (planet.owner > 0) {
+      label += " (" + imperium_self.returnFactionNickname(planet.owner) + ")";
+    }
+    return label;
+  };
+
+  let closeSelection = function () {
+    if (closed) { return; }
+    closed = 1;
+    imperium_self.planet_selection_active = 0;
+    if (sector_filter) {
+      imperium_self.hideSectorHighlight(sector_filter);
+    }
+    $('.sector').off('mousedown.planetselect mouseup.planetselect');
+  };
+
+  let showMenu = function () {
+    let menu = [];
+    for (let i in imperium_self.game.planets) {
+      let planet = imperium_self.game.planets[i];
+      if (planet.tile != "") {
+        if (filter_func(i) == 1) {
+          if (sector_filter == null || planet.tile == sector_filter) {
+            menu.push({ id: String(i), label: planetLabel(i) });
+          }
+        }
       }
     }
-  }
-  if (cancel_func != null) {
-    menu.push({ id: 'cancel', label: 'cancel' });
-  }
-
-    this.game.status = html;
-  this.hud.preparePrompt(this.game.status);
-  this.hud.updateCards([]);
-  this.hud.updateMenu(menu, function (action) {
-
-    if (action != "cancel") {
-      imperium_self.hidePlanetCard(imperium_self.game.planets[action].tile, imperium_self.game.planets[action].idx);
-      imperium_self.hideSectorHighlight(imperium_self.game.planets[action].tile);
+    if (cancel_func != null) {
+      menu.push({ id: 'cancel', label: 'cancel' });
     }
 
-    if (action == "cancel") {
-      cancel_func();
-      imperium_self.hideSectorHighlight(action);
-      return 0;
-    }
-
-        imperium_self.game.status = "";
-    imperium_self.hud.prepareIdle(imperium_self.game.status);
+    imperium_self.game.status = html;
+    imperium_self.hud.preparePrompt(imperium_self.game.status);
     imperium_self.hud.updateCards([]);
-    imperium_self.hideSectorHighlight(action);
-    mycallback(action);
+    imperium_self.hud.updateMenu(menu, function (action) {
 
-  });
-  document.querySelectorAll('.hud-menu .option').forEach((el) => {
-    el.addEventListener('mouseenter', function () {
-      if (el.id != "cancel") {
-        imperium_self.showPlanetCard(imperium_self.game.planets[el.id].tile, imperium_self.game.planets[el.id].idx);
-        imperium_self.showSectorHighlight(imperium_self.game.planets[el.id].tile);
+      closeSelection();
+
+      if (action != "cancel") {
+        imperium_self.hidePlanetCard(imperium_self.game.planets[action].tile, imperium_self.game.planets[action].idx);
+        imperium_self.hideSectorHighlight(imperium_self.game.planets[action].tile);
       }
-    });
-    el.addEventListener('mouseleave', function () {
-      if (el.id != "cancel") {
-        imperium_self.hidePlanetCard(imperium_self.game.planets[el.id].tile, imperium_self.game.planets[el.id].idx);
-        imperium_self.hideSectorHighlight(imperium_self.game.planets[el.id].tile);
+
+      if (action == "cancel") {
+        cancel_func();
+        imperium_self.hideSectorHighlight(action);
+        return 0;
       }
+
+      imperium_self.game.status = "";
+      imperium_self.hud.prepareIdle(imperium_self.game.status);
+      imperium_self.hud.updateCards([]);
+      imperium_self.hideSectorHighlight(action);
+      mycallback(action);
+
     });
+    document.querySelectorAll('.hud-menu .option').forEach((el) => {
+      el.addEventListener('mouseenter', function () {
+        if (el.id != "cancel") {
+          imperium_self.showPlanetCard(imperium_self.game.planets[el.id].tile, imperium_self.game.planets[el.id].idx);
+          imperium_self.showSectorHighlight(imperium_self.game.planets[el.id].tile);
+        }
+      });
+      el.addEventListener('mouseleave', function () {
+        if (el.id != "cancel") {
+          imperium_self.hidePlanetCard(imperium_self.game.planets[el.id].tile, imperium_self.game.planets[el.id].idx);
+          imperium_self.hideSectorHighlight(imperium_self.game.planets[el.id].tile);
+        }
+        if (sector_filter) {
+          imperium_self.showSectorHighlight(sector_filter);
+        }
+      });
+    });
+  };
+
+  this.planet_selection_active = 1;
+  $('.sector').off('mousedown.planetselect mouseup.planetselect');
+  $('.sector').on('mousedown.planetselect', function (e) {
+    xpos = e.clientX;
+    ypos = e.clientY;
   });
+  $('.sector').on('mouseup.planetselect', function (e) {
+    if (Math.abs(xpos - e.clientX) > 4) { return; }
+    if (Math.abs(ypos - e.clientY) > 4) { return; }
+    let pid = $(this).attr("id");
+    if (sector_filter) {
+      imperium_self.hideSectorHighlight(sector_filter);
+    }
+    if (sector_filter == pid) {
+      sector_filter = null;
+    } else {
+      sector_filter = pid;
+      imperium_self.showSectorHighlight(sector_filter);
+    }
+    showMenu();
+  });
+
+  showMenu();
 }
 
 

@@ -3298,7 +3298,8 @@ return;
 		  },
 
       		  function(spacekey) {
-                    his_self.addMove(`control\tpapacy\t${spacekey}`);
+                    his_self.applyPacify("papacy", spacekey);
+                    his_self.addMove(`control\tpapacy\t${spacekey}\t${his_self.game.player}`);
                     his_self.addMove(`withdraw_to_nearest_fortified_space\t${enemy}\t${spacekey}`);
 	            his_self.addMove(`SETVAR\tstate\tprotestant_war_winner_vp\t${parseInt(his_self.game.state.protestant_war_winner_vp)+1}`);
 	            his_self.addMove(`NOTIFY\tProtestants +1 War Winner VP`);
@@ -3547,9 +3548,11 @@ return;
 	      }
 
               his_self.addMove("display_vp_track");
-              his_self.addMove(`control\t${loser}\t${spacekey2}`);
+              his_self.applyPacify(loser, spacekey2);
+              his_self.applyPacify(loser, spacekey1);
+              his_self.addMove(`control\t${loser}\t${spacekey2}\t${his_self.game.player}`);
               his_self.addMove(`withdraw_to_nearest_fortified_space\t${winner}\t${spacekey2}`);
-              his_self.addMove(`control\t${loser}\t${spacekey1}`);
+              his_self.addMove(`control\t${loser}\t${spacekey1}\t${his_self.game.player}`);
               his_self.addMove(`withdraw_to_nearest_fortified_space\t${winner}\t${spacekey1}`);
 
 	      if (prize == "vp") {
@@ -3630,11 +3633,13 @@ return;
 
             his_self.addMove("display_vp_track");
 
+            his_self.applyPacify(loser, spacekey);
 	    if (captured_keys > 1) {
-              his_self.addMove(`control\t${loser}\t${spacekey}`);
+              his_self.applyPacify(loser, spacekey);
+              his_self.addMove(`control\t${loser}\t${spacekey}\t${his_self.game.player}`);
 	    }
 
-            his_self.addMove(`control\t${loser}\t${spacekey}`);
+            his_self.addMove(`control\t${loser}\t${spacekey}\t${his_self.game.player}`);
             his_self.addMove(`withdraw_to_nearest_fortified_space\t${winner}\t${spacekey}`);
 
 	    let target_faction = winner;
@@ -3708,7 +3713,8 @@ return;
 
       	  function(spacekey) {
             his_self.addMove("display_vp_track");
-            his_self.addMove(`control\tpapacy\t${spacekey}`);
+            his_self.applyPacify("papacy", spacekey);
+            his_self.addMove(`control\tpapacy\t${spacekey}\t${his_self.game.player}`);
             his_self.addMove(`withdraw_to_nearest_fortified_space\t${faction}\t${spacekey}`);
 	    his_self.addMove(`SETVAR\tstate\tprotestant_war_winner_vp\t${parseInt(his_self.game.state.protestant_war_winner_vp)+1}`);
 	    his_self.addMove(`NOTIFY\tProtestants +1 War Winner VP`);
@@ -7633,7 +7639,9 @@ does_units_to_move_have_unit = true; }
 	his_self.hud.updateStatus(his_self.game.status);
 	his_self.hud.updateMenu([]);
 	his_self.hud.updateCards([]);
-	his_self.addMove("remove_unrest\t"+faction+"\t"+destination_spacekey);
+	his_self.removeUnrest(destination_spacekey);
+	his_self.displaySpace(destination_spacekey);
+	his_self.addMove("remove_unrest\t"+faction+"\t"+destination_spacekey+"\t"+his_self.game.player);
 	his_self.endTurn();
       },
 
@@ -7776,7 +7784,8 @@ does_units_to_move_have_unit = true; }
 	his_self.hud.updateStatus(his_self.game.status);
 	his_self.hud.updateMenu([]);
 	his_self.hud.updateCards([]);
-	his_self.addMove("pacify\t"+faction+"\t"+destination_spacekey);
+	his_self.applyPacify(faction, destination_spacekey);
+	his_self.addMove("pacify\t"+faction+"\t"+destination_spacekey+"\t"+his_self.game.player);
 	his_self.endTurn();
       },
 
@@ -9220,7 +9229,9 @@ does_units_to_move_have_unit = true; }
         if (space.language === zone && space.religion === religion) { return 1; }
       },
       function(spacekey) {
-        his_self.addMove(`unrest\t${spacekey}`);
+        his_self.addUnrest(spacekey);
+        his_self.displaySpace(spacekey);
+        his_self.addMove(`unrest\t${spacekey}\t${his_self.game.player}`);
         his_self.endTurn();
       },
       null,
@@ -9383,7 +9394,8 @@ does_units_to_move_have_unit = true; }
       for (let key in his_self.game.spaces) {
 	if (his_self.game.spaces[key].home === target_faction) {
 	  if (his_self.returnControllingPower(his_self.game.spaces[key].political) === faction) {
-            his_self.addMove(`control\t${target_faction}\t${key}`);
+            his_self.applyPacify(target_faction, key);
+            his_self.addMove(`control\t${target_faction}\t${key}\t${his_self.game.player}`);
 	    for (let f in his_self.game.spaces[key].units) {
 	      if (his_self.returnControllingPower(f) == faction) {
                 his_self.addMove(`withdraw_to_nearest_fortified_space\t${f}\t${key}`);

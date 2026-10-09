@@ -162,15 +162,15 @@
     sectors['sector20']        = { img : "/imperium/img/sectors/sector20.png" , name : "Panther" , type : 0 , hw : 0 , wormhole : 0, mr : 0 , planets : ['panther'] }
 
     sectors['new-byzantium']   = { img : "/imperium/img/sectors/sector21.png" , name : "New Byzantium" , type : 0 , hw : 0 , wormhole : 0, mr : 1 , planets : ['new-byzantium'] }
-    sectors['sector22']        = { img : "/imperium/img/sectors/sector22.png" , name : "Sol Homeworld" , type : 0 , hw : 1 , wormhole : 0 , mr : 0 , planets : ['terra'] }
-    sectors['sector23']        = { img : "/imperium/img/sectors/sector23.png" , name : "Yin Homeworld" , type : 0 , hw : 1 , wormhole : 0, mr : 0 , planets : ['sigurds-cradle'] }
-    sectors['sector24']        = { img : "/imperium/img/sectors/sector24.png" , name : "Muaat Homeworld" , type : 0 , hw : 1 , wormhole : 0, mr : 0 , planets : ['kroeber'] }
-    sectors['sector25']        = { img : "/imperium/img/sectors/sector25.png" , name : "Ysarril Homeworld" , type : 0 , hw : 1 , wormhole : 0, mr : 0 , planets : ['miranda','fischer'] }
+    sectors['sector22']        = { img : "/imperium/img/sectors/sector22.png" , name : "Terran Homeworld" , type : 0 , hw : 1 , wormhole : 0 , mr : 0 , planets : ['terra'] }
+    sectors['sector23']        = { img : "/imperium/img/sectors/sector23.png" , name : "Devotion Homeworld" , type : 0 , hw : 1 , wormhole : 0, mr : 0 , planets : ['sigurds-cradle'] }
+    sectors['sector24']        = { img : "/imperium/img/sectors/sector24.png" , name : "Cinder Homeworld" , type : 0 , hw : 1 , wormhole : 0, mr : 0 , planets : ['kroeber'] }
+    sectors['sector25']        = { img : "/imperium/img/sectors/sector25.png" , name : "Shade Homeworld" , type : 0 , hw : 1 , wormhole : 0, mr : 0 , planets : ['miranda','fischer'] }
     sectors['sector26']        = { img : "/imperium/img/sectors/sector26.png" , name : "Arborec" , type : 0 , hw : 1 , wormhole : 0, mr : 0 , planets : ['som'] }
-    sectors['sector27']        = { img : "/imperium/img/sectors/sector27.png" , name : "Jol Nar Homeworld" , type : 0 , hw : 1 , wormhole : 0 , mr : 0 , planets : ['startide','evenflow'] }
-    sectors['sector28']        = { img : "/imperium/img/sectors/sector28.png" , name : "Sardaak Homeworld" , type : 0 , hw : 1 , wormhole: 0 , mr : 0 , planets : ['aandor','brest'] } 
-    sectors['sector29']        = { img : "/imperium/img/sectors/sector29.png" , name : "XXCha Homeworld" , type : 0 , hw : 1 , wormhole : 0 , mr : 0 , planets : ['giants-drink','otho'] }
-    sectors['sector30']        = { img : "/imperium/img/sectors/sector30.png" , name : "Hacan Homeworld" , type : 0 , hw : 1 , wormhole : 0, mr : 0 , planets : ['hiraeth','quartil','surriel'] }
+    sectors['sector27']        = { img : "/imperium/img/sectors/sector27.png" , name : "Collegium Homeworld" , type : 0 , hw : 1 , wormhole : 0 , mr : 0 , planets : ['startide','evenflow'] }
+    sectors['sector28']        = { img : "/imperium/img/sectors/sector28.png" , name : "Carapace Homeworld" , type : 0 , hw : 1 , wormhole: 0 , mr : 0 , planets : ['aandor','brest'] } 
+    sectors['sector29']        = { img : "/imperium/img/sectors/sector29.png" , name : "Quorum Homeworld" , type : 0 , hw : 1 , wormhole : 0 , mr : 0 , planets : ['giants-drink','otho'] }
+    sectors['sector30']        = { img : "/imperium/img/sectors/sector30.png" , name : "Caravan Homeworld" , type : 0 , hw : 1 , wormhole : 0, mr : 0 , planets : ['hiraeth','quartil','surriel'] }
 
     sectors['sector31']        = { img : "/imperium/img/sectors/sector31.png" ,	name : "Empty Space" , type : 0 , hw : 0 , wormhole : 0, mr : 0 , planets : [] }
     sectors['sector32']        = { img : "/imperium/img/sectors/sector32.png" ,	name : "Empty Space" , type : 0 , hw : 0 , wormhole : 0, mr : 0 , planets : [] } 
@@ -389,7 +389,10 @@
   ///////////////////////////////
   returnHomeworldSectors(players = 4) {
     if (players <= 2) {
-      // For combat testing, start the two players in adjacent home systems.
+      // normal starting conditions
+      return ["1_1", "4_7"];
+      //
+      // combat testing - start players in adjacent home systems.
       return ["1_1", "2_1"];
     }
 
