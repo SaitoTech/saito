@@ -41,7 +41,7 @@ module.exports = () => `
             )
             .join('')}
         </div>
-        <div class="jump-controls"><button type="button" data-action="safe">SAFE JUMP <span>[F] 1 SAITO</span></button><button type="button" data-action="teleport">RISKY JUMP <span>[T/0] FREE</span></button></div>
+        <div class="jump-controls"><button type="button" data-action="safe">SAFE JUMP <span>[F / NUM DEL] 1 SAITO</span></button><button type="button" data-action="teleport">RISKY JUMP <span>[T/0] FREE</span></button></div>
         <p class="control-hint">ARROWS / QWE ASD ZXC / NUMPAD<br>SPACE OR 5 TO HOLD. TAP ONCE.</p>
       </div>
       <div class="leaderboard-status"><h2>LEADERBOARD</h2><div><span>THIS RUN</span><b data-stat="leaderboardPoints">0</b></div><div><span>BEST RUN</span><b data-stat="leaderboardBest">0</b></div><div><span>RANK</span><b data-leaderboard-rank>--</b></div><p>LEVEL REWARDS: 1 / 2 / 4 / 8...</p><button type="button" data-action="leaderboard">VIEW LEADERBOARD</button></div>

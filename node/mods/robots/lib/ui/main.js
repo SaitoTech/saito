@@ -98,7 +98,16 @@ class RobotsUI {
     board += `<rect x="${state.player.x * 24 + 1}" y="${state.player.y * 24 + 1}" width="22" height="22" fill="#183e39" stroke="#58d8c1"/>`;
     for (const cell of state.fires) board += Art.sprite('fire', cell.x * 24, cell.y * 24, 2);
     for (const cell of state.robots) board += Art.sprite('robot', cell.x * 24, cell.y * 24, 2);
-    board += Art.sprite('sarah', state.player.x * 24, state.player.y * 24, 2);
+    const sarah = Art.sprite('sarah', state.player.x * 24, state.player.y * 24, 2);
+    if (this.deathScene && !this.deathScene.ready) {
+      board += `<g class="robots-death-sarah">${sarah}</g>`;
+      board += `<g class="robots-flaming-death" transform="translate(${state.player.x * 24} ${state.player.y * 24})" aria-hidden="true">
+        <g class="robots-death-flames">${Art.sprite('fire', -6, -12, 3)}</g>
+        <g class="robots-death-embers" fill="#ffe0a0"><rect x="2" y="2" width="3" height="3"/><rect x="18" y="-4" width="2" height="2"/><rect x="11" y="-10" width="3" height="3"/></g>
+      </g>`;
+    } else {
+      board += sarah;
+    }
     const arena = root.querySelector('.arena');
     arena.innerHTML = Art.svg(600, 456, board);
     arena.querySelector('svg').setAttribute('role', 'img');
@@ -111,7 +120,7 @@ class RobotsUI {
     if (state.status !== 'playing' && (!this.deathScene || this.deathScene.ready)) {
       arena.insertAdjacentHTML(
         'beforeend',
-        `<div class="wave-result"><p>${state.status === 'dead' ? 'SIGNAL LOST' : 'SECTOR SECURED'}</p><h2>${state.status === 'dead' ? 'TERMINATED' : 'WAVE CLEAR'}</h2><p>${state.status === 'dead' ? `FINAL SCORE ${state.score}` : `${state.fires.length} FIRES / BONUS +${state.bonus}`}</p><button type="button" data-action="${state.status === 'dead' ? 'new' : 'next'}">${state.status === 'dead' ? 'TRY AGAIN' : 'NEXT WAVE'}</button>${state.status === 'cleared' ? '<p>ENTER / SPACE</p>' : ''}</div>`
+        `<div class="wave-result"><p>${state.status === 'dead' ? 'SIGNAL LOST' : 'SECTOR SECURED'}</p><h2>${state.status === 'dead' ? 'TERMINATED' : 'WAVE CLEAR'}</h2><p>${state.status === 'dead' ? `FINAL SCORE ${state.score}` : `${state.fires.length} FIRES / BONUS +${state.bonus}`}</p><button type="button" data-action="${state.status === 'dead' ? 'new' : 'next'}">${state.status === 'dead' ? 'TRY AGAIN' : 'NEXT WAVE'}</button><p>${state.status === 'dead' ? 'SPACE / 0 / INS' : 'ENTER / SPACE'}</p></div>`
       );
     }
     root
@@ -125,9 +134,9 @@ class RobotsUI {
       });
     root.querySelector('[data-action="safe"]').innerHTML = payment
       ? ['submitted', 'confirmed'].includes(payment.status)
-        ? 'USE PAID JUMP <span>[F]</span>'
-        : 'RETRY PAYMENT <span>[F]</span>'
-      : 'SAFE JUMP <span>[F] 1 SAITO</span>';
+        ? 'USE PAID JUMP <span>[F / NUM DEL]</span>'
+        : 'RETRY PAYMENT <span>[F / NUM DEL]</span>'
+      : 'SAFE JUMP <span>[F / NUM DEL] 1 SAITO</span>';
     if (!message && payment)
       message = ['submitted', 'confirmed'].includes(payment.status)
         ? 'PAID JUMP READY - PRESS F'
@@ -188,10 +197,11 @@ class RobotsUI {
         this.update('NO SAVED LEVEL FOUND — CONNECT TO THE ARCHIVE AND TRY AGAIN');
         return;
       }
-      const wave = tx.returnMessage().checkpoint.run.wave;
-      if (await sconfirm(`Resume after level ${wave}? This replaces your current board.`)) {
+      const run = tx.returnMessage().checkpoint.run;
+      const position = run.status === 'cleared' ? 'after' : 'at the start of';
+      if (await sconfirm(`Resume ${position} level ${run.wave}? This replaces your current board.`)) {
         // Keep the chosen checkpoint stable if an Archive response arrives during the prompt.
-        if (this.mod.levelSaves.restore(tx)) this.update('LEVEL RESTORED — READY FOR NEXT WAVE');
+        if (this.mod.levelSaves.restore(tx)) this.update('LEVEL RESTORED');
       }
     } finally {
       this.confirming = false;
@@ -314,7 +324,16 @@ class RobotsUI {
         )
           return;
         const key = event.key.toLowerCase();
-        if (this.mod.game.state?.run.status === 'cleared' && (key === 'enter' || key === ' ')) {
+        const state = this.mod.game.state?.run;
+        if (
+          state?.status === 'dead' &&
+          (key === ' ' || key === '0' || key === 'insert' || event.code === 'Numpad0')
+        ) {
+          event.preventDefault();
+          if (!event.repeat && this.deathScene?.ready) this.act({ type: 'new' });
+          return;
+        }
+        if (state?.status === 'cleared' && (key === 'enter' || key === ' ')) {
           event.preventDefault();
           if (!event.repeat) this.act({ type: 'next' });
           return;
@@ -325,10 +344,14 @@ class RobotsUI {
           return;
         }
         const riskyJump = key === 't' || key === '0' || event.code === 'Numpad0';
-        if (keys[key] || riskyJump || key === 'f') {
+        const safeJump =
+          key === 'f' || event.code === 'NumpadDecimal' ||
+          (event.location === 3 && (key === '.' || key === 'delete' || key === 'decimal'));
+        if (keys[key] || riskyJump || safeJump) {
           event.preventDefault();
           if (event.repeat) return;
-          if (keys[key]) this.act({ type: 'move', dx: keys[key][0], dy: keys[key][1] });
+          if (safeJump) handleAction('safe');
+          else if (keys[key]) this.act({ type: 'move', dx: keys[key][0], dy: keys[key][1] });
           else handleAction(riskyJump ? 'teleport' : 'safe');
         }
       },

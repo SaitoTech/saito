@@ -67,6 +67,7 @@ class Robots extends OnePlayerGameTemplate {
   }
 
   initializeGame() {
+    const newRun = !this.game.state;
     if (!this.game.state) {
       this.game.state = super.returnState();
       this.game.state.run = RobotsGame.newRun((n) => this.rollDice(n) - 1);
@@ -84,12 +85,14 @@ class Robots extends OnePlayerGameTemplate {
     // Existing saves now use the paid safe-teleport rule too.
     this.game.state.run.safeJumps = 0;
     this.saveGame(this.game.id);
+    if (newRun) this.levelSaves.capture();
   }
 
   async onConfirmation(blk, tx, conf) {
     if (this.app.BROWSER && tx.returnMessage().checkpoint) {
       await this.levelSaves.confirm(tx, conf);
     }
+    if (tx.returnMessage().request === 'level-save') return;
     if (tx.returnMessage().request === TeleportPayments.REQUEST) {
       if (this.teleportPayments.confirm(tx, conf) && this.browser_active) {
         this.main.update();
@@ -177,8 +180,10 @@ class Robots extends OnePlayerGameTemplate {
     } else if (action.type === 'new') {
       state.run = RobotsGame.newRun(random);
       state.session.round++;
+      this.levelSaves.capture();
     } else if (action.type === 'next' && state.run.status === 'cleared') {
       RobotsGame.nextWave(state.run, random);
+      this.levelSaves.capture();
     } else {
       result = RobotsGame.act(state.run, action, random);
       if (result.accepted && state.run.status === 'dead') state.session.losses++;

@@ -26,6 +26,15 @@ body:has(.robots-game) { margin: 0; background: #080e1b; overflow: auto; }
 .robots-game .arena { position: relative; border-top: 1px solid #2b4054; border-bottom: 1px solid #2b4054; touch-action: manipulation; }
 .robots-game .arena > svg { display: block; width: 100%; height: auto; image-rendering: pixelated; }
 .robots-game .arena:focus-visible { outline: 2px solid #58d8c1; outline-offset: 2px; }
+.robots-game .robots-death-sarah { animation: robots-death-fade 1.4s steps(5, end) forwards; }
+.robots-game .robots-death-flames { transform-box: fill-box; transform-origin: center bottom; animation: robots-death-burn .32s steps(2, end) infinite alternate; }
+.robots-game .robots-death-embers { animation: robots-death-embers .8s steps(4, end) infinite; }
+@keyframes robots-death-fade { to { opacity: .15; } }
+@keyframes robots-death-burn { from { transform: scale(.85, .8); opacity: .8; } to { transform: scale(1.1, 1.2); opacity: 1; } }
+@keyframes robots-death-embers { from { transform: translateY(4px); opacity: 1; } to { transform: translateY(-20px); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) {
+  .robots-game .robots-death-sarah, .robots-game .robots-death-flames, .robots-game .robots-death-embers { animation: none; }
+}
 .robots-game .legend { display: flex; justify-content: center; flex-wrap: wrap; gap: 22px; padding: 6px 10px 16px; font-size: 11px; color: #b0c3d0; }
 .robots-game .legend span { display: flex; align-items: center; gap: 8px; }
 .robots-game .legend svg { width: 24px; height: 24px; }
