@@ -1,0 +1,205 @@
+/* inline badge next to usernames, every app */
+.gm-badge-inline {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 0.3em;
+  vertical-align: middle;
+  line-height: 0;
+  cursor: pointer;
+}
+.gm-badge-inline svg {
+  width: 1.1em;
+  height: 1.1em;
+  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.25));
+}
+.gm-badge-inline.gm-tier-5 svg {
+  filter: drop-shadow(0 0 3px rgba(249, 115, 22, 0.8));
+}
+.gm-badge-inline.gm-cracked svg {
+  opacity: 0.8;
+}
+.gm-badge-card {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(circle at 50% 40%, #0f172a 0%, #020617 100%);
+}
+
+/* /gmbadge page */
+.gmbadge-page {
+  max-width: 920px;
+  margin: 0 auto;
+  padding: 24px 16px 64px;
+  font-family: var(--font-family, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif);
+  color: var(--saito-text, #e5e7eb);
+}
+.gmbadge-hero {
+  display: grid;
+  grid-template-columns: 180px 1fr;
+  gap: 24px;
+  align-items: center;
+  padding: 24px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, rgba(29, 185, 84, 0.16), rgba(2, 6, 23, 0.6));
+  border: 1px solid rgba(29, 185, 84, 0.35);
+}
+.gmbadge-hero-badge {
+  display: flex;
+  justify-content: center;
+}
+.gmbadge-hero-kicker {
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  font-size: 12px;
+  opacity: 0.7;
+}
+.gmbadge-hero-name {
+  margin: 4px 0 2px;
+  font-size: 28px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.gmbadge-hero-tier {
+  font-weight: 600;
+  color: #1db954;
+  margin-bottom: 14px;
+}
+.gmbadge-stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+.gmbadge-stat {
+  display: flex;
+  flex-direction: column;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.06);
+}
+.gmbadge-stat-n {
+  font-size: 22px;
+  font-weight: 700;
+}
+.gmbadge-stat-l {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  opacity: 0.65;
+}
+.gmbadge-status {
+  margin: 14px 0 6px;
+  font-size: 15px;
+}
+.gmbadge-notice {
+  margin: 0 0 8px;
+  font-size: 13px;
+  color: #fbbf24;
+}
+.gmbadge-actions {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  margin-top: 10px;
+}
+.gmbadge-say {
+  min-width: 140px;
+}
+.gmbadge-link {
+  font-size: 14px;
+  opacity: 0.8;
+}
+.gmbadge-rules,
+.gmbadge-board {
+  margin-top: 28px;
+}
+.gmbadge-rules ul {
+  padding-left: 20px;
+  line-height: 1.6;
+}
+.gmbadge-board-head,
+.gmbadge-row {
+  display: grid;
+  grid-template-columns: 36px 36px 1fr 80px 90px 80px;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+}
+.gmbadge-board-head {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  opacity: 0.6;
+}
+.gmbadge-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.gmbadge-row {
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  cursor: pointer;
+}
+.gmbadge-row:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+.gmbadge-row-self {
+  background: rgba(29, 185, 84, 0.12);
+}
+.gmbadge-row-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.gmbadge-row-streak {
+  font-weight: 700;
+}
+.gmbadge-row-serial,
+.gmbadge-row-lifetime {
+  opacity: 0.75;
+}
+.gmbadge-empty {
+  padding: 16px 10px;
+  opacity: 0.7;
+}
+@media (max-width: 640px) {
+  .gmbadge-hero {
+    grid-template-columns: 1fr;
+    text-align: center;
+  }
+  .gmbadge-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .gmbadge-actions {
+    justify-content: center;
+  }
+  .gmbadge-board-head,
+  .gmbadge-row {
+    grid-template-columns: 28px 32px 1fr 60px 70px;
+  }
+  .gmbadge-row-serial,
+  .gmbadge-board-head span:last-child {
+    display: none;
+  }
+}
+.gmbadge-verify {
+  margin: 2px 0 8px;
+  font-size: 13px;
+  opacity: 0.85;
+}
+.gmbadge-verify code {
+  font-size: 12px;
+  background: rgba(255, 255, 255, 0.08);
+  padding: 1px 5px;
+  border-radius: 5px;
+}
+.gmbadge-verify-ok {
+  color: #1db954;
+  font-weight: 600;
+  margin-right: 6px;
+}
+.gm-badge-card-fake {
+  outline: 2px solid #ef4444;
+}

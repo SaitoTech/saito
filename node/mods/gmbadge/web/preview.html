@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>gm badge tiers</title>
+    <style>
+      body { margin: 0; background: #0b0f14; color: #e5e7eb; font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; }
+      .wrap { max-width: 1100px; margin: 0 auto; padding: 32px 16px; }
+      h1 { font-weight: 600; margin: 0 0 6px; }
+      p.sub { margin: 0 0 24px; opacity: 0.7; }
+      .row { display: grid; grid-template-columns: repeat(8, 1fr); gap: 14px; }
+      .cell { background: #111827; border-radius: 14px; padding: 16px 8px; text-align: center; }
+      .cell .big { height: 150px; display: flex; align-items: center; justify-content: center; }
+      .cell .name { margin-top: 8px; font-weight: 600; }
+      .cell .day { font-size: 12px; opacity: 0.65; }
+      .inline { margin-top: 28px; background: #111827; border-radius: 14px; padding: 16px; }
+      .inline .user { display: flex; align-items: center; gap: 8px; padding: 6px 0; font-size: 16px; }
+      .inline .ident { width: 28px; height: 28px; border-radius: 50%; background: linear-gradient(135deg, #6366f1, #ec4899); }
+      .inline svg { width: 1.1em; height: 1.1em; vertical-align: middle; }
+      .light { background: #f8fafc; color: #0f172a; }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <h1>gm badge · plain to 3D</h1>
+      <p class="sub">Tiers 1 and 2 stay flat like the classic green check. Depth, metal, glass, and ember arrive with the streak. Every seal carries a Saito-cube micro matrix, a micro-text ring, and a micro-printed serial line.</p>
+      <div class="row" style="grid-template-columns: 1fr 1fr; margin-bottom: 14px" id="zoom"></div>
+      <div class="row" id="row"></div>
+      <div class="inline" id="inline-dark"></div>
+      <div class="inline light" id="inline-light"></div>
+    </div>
+    <script>
+      // standalone copy of the renderer for preview only
+      const src = document.createElement('script');
+      src.src = '/gmbadge/badge-svg.preview.js';
+      src.onload = () => {
+        const R = window.GMBadgeSVG;
+        const tiers = [
+          { tier: 1, streak: 1, name: 'Sprout', day: 'day 1' },
+          { tier: 2, streak: 7, name: 'Green Check', day: 'day 7' },
+          { tier: 3, streak: 30, name: 'Gold Ring', day: 'day 30' },
+          { tier: 4, streak: 100, name: 'Diamond', day: 'day 100' },
+          { tier: 5, streak: 365, name: 'Flame', day: 'day 365' },
+          { tier: 3, streak: 0, cracked: true, name: 'Cracked', day: 'missed a day' },
+          { tier: 0, streak: 0, dormant: true, name: 'Dormant', day: 'gone quiet' },
+          { tier: 2, streak: 0, counterfeit: true, name: 'Counterfeit', day: 'wrong issuer key' }
+        ];
+        const row = document.getElementById('row');
+        row.innerHTML = tiers.map((t) =>
+          `<div class="cell"><div class="big">${R.render({ ...t, serial: 1, issuer: 'wDwNGzgx1yn2N21gHiHs43USRiXPx9H9NAcef1UZjLRX', sig: 'b1308685eb0ce6fe', size: 140 })}</div><div class="name">${t.name}</div><div class="day">${t.day}</div></div>`
+        ).join('');
+        const line = (bg) => tiers.slice(0, 6).map((t) =>
+          `<div class="user"><span class="ident"></span><span>Anon-${t.name.replace(/\s/g, '')}</span>${R.render({ ...t, serial: 1, size: 18, label: false })}<span style="opacity:.5;font-size:13px">· ${t.day}</span></div>`
+        ).join('');
+        document.getElementById('zoom').innerHTML = `<div class="cell"><div class="big" style="height:420px">${R.render({ tier: 2, streak: 7, serial: 1, issuer: 'wDwNGzgx1yn2N21gHiHs43USRiXPx9H9NAcef1UZjLRX', sig: 'b1308685eb0ce6fe', size: 400 })}</div><div class="name">Green Check at 400px</div><div class="day">cube matrix · micro text ring · micro-printed serial</div></div><div class="cell"><div class="big" style="height:420px">${R.render({ tier: 5, streak: 365, serial: 1, issuer: 'wDwNGzgx1yn2N21gHiHs43USRiXPx9H9NAcef1UZjLRX', sig: 'b1308685eb0ce6fe', size: 400 })}</div><div class="name">Flame at 400px</div><div class="day">same security layer, embossed</div></div>`;
+        document.getElementById('inline-dark').innerHTML = line();
+        document.getElementById('inline-light').innerHTML = line();
+      };
+      document.body.appendChild(src);
+    </script>
+  </body>
+</html>
