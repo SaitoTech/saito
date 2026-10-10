@@ -11,7 +11,8 @@ const {
   addAction,
   actionById,
   removeAction,
-  actionsOnPage
+  actionsOnPage,
+  stripSignatures
 } = require('../document');
 const { addInitial, addSignature, verifiedEmail, verifiedMethods, verifyActionSignature } = require('../auth');
 
@@ -55,7 +56,12 @@ function canSignAction(app, action, user) {
 }
 
 const MIN_DRAG = 12;
+const CLICK_WIDTH = 0.26;
+const CLICK_HEIGHT = 0.05;
+const MIN_BOX_WIDTH = 0.08;
+const MIN_BOX_HEIGHT = 0.03;
 const ZOOM_MIN = 1;
+const SIGNER_COLORS = ['#e85d04', '#1d7874', '#315a9b', '#9b2226', '#6a4c93', '#0a7ea4', '#bc6c25', '#2d6a4f'];
 const ZOOM_MAX = 3;
 const ZOOM_STEP = 1.35;
 
@@ -72,6 +78,7 @@ class Workspace {
     this.intent = null;
     this.arming = false;
     this.drag = null;
+    this.resize = null;
     this.arrived = null;
     this.overlay = null;
     this.publish = new PublishOverlay(app, mod);
@@ -96,6 +103,7 @@ class Workspace {
     this.intent = null;
     this.arming = false;
     this.drag = null;
+    this.resize = null;
     this.arrived = null;
     this.pending_scroll = false;
     this.scroll_field = null;
@@ -135,6 +143,7 @@ class Workspace {
   update(root) {
     const view = this.view();
     root.querySelector('.rail').innerHTML = WorkspaceTemplate.rail(view);
+    this.paintActions(root, view);
     this.paintFields(root, view);
 
     if (this.focus_name) {
@@ -159,6 +168,11 @@ class Workspace {
 
   attachEvents(root) {
     root.addEventListener('click', (event) => {
+      if (this.suppress_click) {
+        this.suppress_click = false;
+        return;
+      }
+
       const doc = this.mod.document;
       if (!doc) {
         return;
@@ -224,10 +238,15 @@ class Workspace {
       }
 
       if (event.target.closest('[data-export]')) {
-        if (!(doc.actions || []).length) {
-          this.openNewAction(root);
+        const pending = (doc.actions || []).some((action) => !doc.users[action.user]);
+        if (!(doc.actions || []).length || pending) {
+          this.notice = pending
+            ? 'Confirm who signs each box before finalizing.'
+            : this.notice;
+          this.update(root);
           return;
         }
+        this.notice = '';
         this.publish.render();
       }
     });
@@ -289,7 +308,17 @@ class Workspace {
   }
 
   beginSelection(event) {
-    if (!this.placing || event.button !== 0) {
+    if (event.button !== 0) {
+      return;
+    }
+    if (event.target.closest('[data-resize]')) {
+      this.beginResize(event);
+      return;
+    }
+
+    const doc = this.mod.document;
+    const direct = Boolean(doc && !doc.finalized && canConfigure(this.app, doc));
+    if (!this.placing && !direct) {
       return;
     }
     if (event.target.closest('[data-field-id]')) {
@@ -320,6 +349,11 @@ class Workspace {
   }
 
   moveSelection(event, root) {
+    if (this.resize && this.resize.pointer === event.pointerId) {
+      this.applyResize(event);
+      return;
+    }
+
     if (!this.drag || this.drag.pointer !== event.pointerId) {
       return;
     }
@@ -341,18 +375,33 @@ class Workspace {
   }
 
   endSelection(event, root) {
+    if (this.resize && this.resize.pointer === event.pointerId) {
+      this.finishResize(event);
+      return;
+    }
+
     if (!this.drag || this.drag.pointer !== event.pointerId) {
       return;
     }
 
     const stage = this.drag.stage;
     const page = this.drag.page;
+    const drag = this.drag;
     if (stage?.hasPointerCapture(event.pointerId)) {
       stage.releasePointerCapture(event.pointerId);
     }
 
-    const rect = rectangle(this.drag, event.clientX, event.clientY);
+    const rect = rectangle(drag, event.clientX, event.clientY);
+    const direct = !this.placing;
     this.drag = null;
+
+    if (direct) {
+      const box = !rect || rect.pixels < MIN_DRAG
+        ? signatureBoxAt(drag, drag.x0, drag.y0)
+        : fitBox(rect);
+      this.placeSignature(page, box, root);
+      return;
+    }
 
     if (!rect || rect.pixels < MIN_DRAG) {
       this.draft = null;
@@ -411,6 +460,115 @@ class Workspace {
     this.placing = false;
     this.draft = null;
     this.update(root);
+  }
+
+  placeSignature(page, box, root) {
+    const doc = this.mod.document;
+    this.draft = null;
+    this.placing = false;
+    if (!doc || doc.finalized || !canConfigure(this.app, doc) || !box) {
+      this.update(root);
+      return;
+    }
+
+    const placed = addAction(doc, {
+      type: 'signature',
+      user: -1,
+      page,
+      x: box.x,
+      y: box.y,
+      width: box.width,
+      height: box.height
+    }, this.app.wallet?.publicKey);
+    if (!placed) {
+      this.update(root);
+      return;
+    }
+    this.page = page;
+    this.suppress_click = true;
+    setTimeout(() => {
+      this.suppress_click = false;
+    }, 0);
+    this.openExisting(placed, root);
+  }
+
+  beginResize(event) {
+    const handle = event.target.closest('[data-resize]');
+    const fieldEl = handle?.closest('[data-field-id]');
+    const stage = handle?.closest('.fields');
+    const doc = this.mod.document;
+    const action = fieldEl ? actionById(doc, fieldEl.dataset.fieldId) : null;
+    if (!handle || !stage || !action || !canConfigure(this.app, doc)) {
+      return;
+    }
+    const box = stage.getBoundingClientRect();
+    if (!box.width || !box.height) {
+      return;
+    }
+    this.resize = {
+      pointer: event.pointerId,
+      edge: handle.dataset.resize,
+      box,
+      stage,
+      action,
+      x: action.x,
+      y: action.y,
+      width: action.width,
+      height: action.height,
+      next: null
+    };
+    stage.setPointerCapture(event.pointerId);
+    event.preventDefault();
+  }
+
+  applyResize(event) {
+    const resize = this.resize;
+    const point = pointerFraction(resize.box, event.clientX, event.clientY);
+    const next = resizeBox(resize, resize.edge, point.x, point.y);
+    resize.next = next;
+    const el = resize.stage.querySelector(`[data-field-id="${CSS.escape(String(resize.action.id))}"]`);
+    if (!el) {
+      return;
+    }
+    el.style.left = `${(next.x * 100).toFixed(2)}%`;
+    el.style.top = `${(next.y * 100).toFixed(2)}%`;
+    el.style.width = `${(next.width * 100).toFixed(2)}%`;
+    el.style.height = `${(next.height * 100).toFixed(2)}%`;
+  }
+
+  finishResize(event) {
+    const resize = this.resize;
+    if (resize.stage?.hasPointerCapture(event.pointerId)) {
+      resize.stage.releasePointerCapture(event.pointerId);
+    }
+    const next = resize.next;
+    const doc = this.mod.document;
+    if (next && canConfigure(this.app, doc)) {
+      const action = resize.action;
+      const changed = action.x !== next.x || action.y !== next.y || action.width !== next.width || action.height !== next.height;
+      if (changed) {
+        action.x = next.x;
+        action.y = next.y;
+        action.width = next.width;
+        action.height = next.height;
+        stripSignatures(doc);
+        doc.edited = true;
+        if (this.draft && Number(this.draft.id) === Number(action.id)) {
+          this.draft.x = next.x;
+          this.draft.y = next.y;
+          this.draft.width = next.width;
+          this.draft.height = next.height;
+        }
+      }
+    }
+    this.resize = null;
+    const moved = Boolean(next);
+    if (moved) {
+      this.suppress_click = true;
+      setTimeout(() => {
+        this.suppress_click = false;
+      }, 0);
+    }
   }
 
   openSigner(index) {
@@ -521,37 +679,16 @@ class Workspace {
   }
 
   openField(root) {
+    if (this.overlay) {
+      this.replacing = true;
+      this.overlay.close();
+      this.replacing = false;
+    }
+
     const overlay = new FieldOverlay(this.app, this.mod);
     this.overlay = overlay;
     overlay.render(this.fieldView(), {
-      onCreateSigner: (name) => {
-        const doc = this.mod.document;
-        if (!canConfigure(this.app, doc) || !name || !this.draft?.id) {
-          return null;
-        }
-        const decision = resolveSigner(doc, name);
-        if (decision.action === 'existing') {
-          if (decision.conflict) {
-            duplicateSignerNotice();
-          }
-          this.arrived = decision.index;
-          this.draft.user = decision.index;
-          this.update(root);
-          return {
-            existing: true,
-            index: decision.index,
-            name: doc.users[decision.index].name
-          };
-        }
-        const index = addUser(doc, decision.name, this.app.wallet?.publicKey);
-        this.arrived = index;
-        this.draft.user = index;
-        this.update(root);
-        return {
-          index,
-          name: doc.users[index].name
-        };
-      },
+      onPreview: (form) => this.previewField(form),
       onRemove: () => {
         if (!canConfigure(this.app, this.mod.document)) return;
         removeAction(this.mod.document, this.draft.id, this.app.wallet?.publicKey);
@@ -565,6 +702,9 @@ class Workspace {
       },
       onSign: () => this.signField(),
       onClose: () => {
+        if (this.replacing) {
+          return;
+        }
         const started = this.arming;
         this.arming = false;
         if (!started) {
@@ -642,26 +782,53 @@ class Workspace {
 
     const type = form.querySelector('[data-field-type]').value;
     const chosen = form.querySelector('[data-field-signer]').value;
-    if (chosen === 'new') {
+    if (!ACTION_TYPES[type]) {
       return false;
     }
 
-    const user = doc.users[Number(chosen)];
-    if (!user || !ACTION_TYPES[type]) {
+    let userIndex = Number(chosen);
+    if (chosen === 'new') {
+      const name = form.querySelector('[data-signer-name]')?.value.trim() || '';
+      const email = form.querySelector('[data-signer-email]')?.value.trim() || '';
+      if (!name || !isEmailAddress(email)) {
+        return false;
+      }
+      const decision = resolveSigner(doc, email, name);
+      if (decision.action === 'existing') {
+        if (decision.conflict) {
+          duplicateSignerNotice();
+          return false;
+        }
+        userIndex = decision.index;
+      } else if (decision.action === 'create') {
+        userIndex = addUser(doc, decision.name, this.app.wallet?.publicKey);
+        if (!doc.users[userIndex]) {
+          return false;
+        }
+        doc.users[userIndex].email = email;
+        this.arrived = userIndex;
+      } else {
+        return false;
+      }
+    }
+
+    const user = doc.users[userIndex];
+    if (!user) {
       return false;
     }
 
     if (draft.id) {
       const action = actionById(doc, draft.id);
-      if (action && (action.type !== type || action.user !== Number(chosen))) {
+      if (action && (action.type !== type || action.user !== userIndex)) {
         action.type = type;
-        action.user = Number(chosen);
+        action.user = userIndex;
+        stripSignatures(doc);
         doc.edited = true;
       }
     } else {
       addAction(doc, {
         type,
-        user: Number(chosen),
+        user: userIndex,
         page: draft.page,
         x: draft.x,
         y: draft.y,
@@ -670,8 +837,32 @@ class Workspace {
       }, this.app.wallet?.publicKey);
     }
 
+    this.notice = '';
     this.overlay.close();
     return true;
+  }
+
+  previewField(form) {
+    const draft = this.draft;
+    const doc = this.mod.document;
+    if (!draft?.id || !doc) {
+      return;
+    }
+    const chosen = form.querySelector('[data-field-signer]')?.value;
+    const type = form.querySelector('[data-field-type]')?.value || 'signature';
+    const index = chosen === 'new' ? doc.users.length : Number(chosen);
+    const el = document.querySelector(`.workspace .field[data-field-id="${CSS.escape(String(draft.id))}"]`);
+    if (!el) {
+      return;
+    }
+    const color = signerColor(index);
+    el.style.background = color;
+    el.style.borderColor = color;
+    const name = chosen === 'new' ? '' : doc.users[index]?.name || '';
+    const text = el.querySelector('.text');
+    if (text) {
+      text.textContent = name ? `${typeLabel(type)} - ${name}` : typeLabel(type);
+    }
   }
 
   async signField() {
@@ -719,8 +910,9 @@ class Workspace {
 
     if (existing) {
       type = draft.type || 'signature';
-      signer_index = draft.user;
-      choose_new = false;
+      const known = Number.isInteger(draft.user) && Boolean(doc.users[draft.user]);
+      signer_index = known ? draft.user : null;
+      choose_new = !known;
     } else if (intent) {
       type = intent.type || 'signature';
       new_name = intent.newName || '';
@@ -802,26 +994,39 @@ class Workspace {
           complete
         };
       }),
-      field_list: doc.actions.map((action) => ({
-        id: action.id,
-        page: action.page,
-        type: action.type,
-        name: doc.users[action.user]?.name || '',
-        signed: verifyActionSignature(this.app, action, doc.users[action.user])
-      })),
+      field_list: doc.actions.map((action) => {
+        const name = doc.users[action.user]?.name || '';
+        const kind = typeLabel(action.type);
+        return {
+          id: action.id,
+          page: action.page,
+          type: action.type,
+          name,
+          color: signerColor(doc.users[action.user] ? action.user : doc.users.length),
+          label: name ? `${kind} - ${name} - page ${action.page}` : `${kind} - page ${action.page}`,
+          signed: verifyActionSignature(this.app, action, doc.users[action.user])
+        };
+      }),
       pages: Array.from({ length: doc.document.page_count }, (_, index) => {
         const page = index + 1;
         return {
           page,
-          fields: actionsOnPage(doc, page).map((action) => ({
-            id: action.id,
-            type: action.type,
-            name: doc.users[action.user]?.name || '',
-            x: action.x,
-            y: action.y,
-            width: action.width,
-            height: action.height
-          })),
+          editable: canConfigure(this.app, doc),
+          fields: actionsOnPage(doc, page).map((action) => {
+            const name = doc.users[action.user]?.name || '';
+            const kind = typeLabel(action.type);
+            return {
+              id: action.id,
+              type: action.type,
+              name,
+              label: name ? `${kind} - ${name}` : kind,
+              color: signerColor(doc.users[action.user] ? action.user : doc.users.length),
+              x: action.x,
+              y: action.y,
+              width: action.width,
+              height: action.height
+            };
+          }),
           draft: draft && draft.page === page ? draft : null
         };
       })
@@ -835,8 +1040,24 @@ class Workspace {
         return;
       }
       layer.classList.toggle('placing', view.placing);
+      layer.classList.toggle('marking', view.can_edit);
       layer.innerHTML = WorkspaceTemplate.fields(page);
     });
+  }
+
+  paintActions(root, view) {
+    const existing = root.querySelector(':scope > .actions-col');
+    if (!view.field_list.length) {
+      if (existing) {
+        existing.remove();
+      }
+      return;
+    }
+    if (!existing) {
+      root.insertAdjacentHTML('beforeend', WorkspaceTemplate.actions(view));
+      return;
+    }
+    existing.innerHTML = WorkspaceTemplate.actionsInner(view);
   }
 
   // Each page is its own sheet. The plugin is loaded once, after the sheet has
@@ -1105,6 +1326,86 @@ function duplicateSignerNotice() {
 function clampZoom(value, floor = ZOOM_MIN) {
   const zoom = Math.round(value * 100) / 100;
   return Math.min(ZOOM_MAX, Math.max(floor, zoom));
+}
+
+function signerColor(index) {
+  const n = Number(index);
+  if (!Number.isInteger(n) || n < 0) {
+    return '#6b625b';
+  }
+  return SIGNER_COLORS[n % SIGNER_COLORS.length];
+}
+
+function typeLabel(type) {
+  if (type === 'date') {
+    return 'date';
+  }
+  if (type === 'initial') {
+    return 'initial';
+  }
+  return 'date and signature';
+}
+
+function pointerFraction(box, clientX, clientY) {
+  return {
+    x: (clientX - box.left) / box.width,
+    y: (clientY - box.top) / box.height
+  };
+}
+
+function resizeBox(start, edge, px, py) {
+  let left = start.x;
+  let top = start.y;
+  let right = start.x + start.width;
+  let bottom = start.y + start.height;
+  const x = clamp01(px);
+  const y = clamp01(py);
+  if (String(edge).includes('w')) {
+    left = x;
+  }
+  if (String(edge).includes('e')) {
+    right = x;
+  }
+  if (String(edge).includes('n')) {
+    top = y;
+  }
+  if (String(edge).includes('s')) {
+    bottom = y;
+  }
+  return fitBox({
+    x: Math.min(left, right),
+    y: Math.min(top, bottom),
+    width: Math.abs(right - left),
+    height: Math.abs(bottom - top)
+  });
+}
+
+function signatureBoxAt(drag, clientX, clientY) {
+  const box = drag.box;
+  const cx = (clientX - box.left) / box.width;
+  const cy = (clientY - box.top) / box.height;
+  return fitBox({
+    x: cx - CLICK_WIDTH / 2,
+    y: cy - CLICK_HEIGHT / 2,
+    width: CLICK_WIDTH,
+    height: CLICK_HEIGHT
+  });
+}
+
+function fitBox(box) {
+  let x = box.x;
+  let y = box.y;
+  let width = Math.max(box.width, MIN_BOX_WIDTH);
+  let height = Math.max(box.height, MIN_BOX_HEIGHT);
+  if (width > 1) {
+    width = 1;
+  }
+  if (height > 1) {
+    height = 1;
+  }
+  x = Math.min(Math.max(0, x), 1 - width);
+  y = Math.min(Math.max(0, y), 1 - height);
+  return { x, y, width, height };
 }
 
 function rectangle(drag, clientX, clientY) {

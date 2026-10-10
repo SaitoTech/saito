@@ -18,7 +18,7 @@ const slides = {
 function primary(state) {
   switch (state.step) {
     case 'select':
-      return { label: 'Continue', action: 'advance' };
+      return { label: 'Next', action: 'advance' };
     case 'identity':
       return null;
     case 'sign':

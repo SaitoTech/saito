@@ -248,9 +248,9 @@ function resolveAfter(state, completedStage, requirements) {
   };
 }
 
-function advance(state, requirements) {
+function advance(state) {
   if (state.step === 'select') {
-    return resolveAfter(state, 'select', requirements);
+    return go(state, 'share');
   }
   if (state.step === 'premium') {
     return go(state, 'sign', { plan: 'free' });

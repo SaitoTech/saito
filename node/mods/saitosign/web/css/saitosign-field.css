@@ -30,7 +30,7 @@
 
 .saitosign-field .new-signer {
   display: flex;
-  align-items: stretch;
+  flex-direction: column;
   gap: var(--saito-space-sm);
 }
 
@@ -65,10 +65,13 @@
   font-size: var(--font-size-medium);
 }
 
-.saitosign-field .new-signer input {
-  flex: 1;
-  width: auto;
-  min-width: 0;
+.saitosign-field .form-error {
+  margin: 0;
+  color: var(--saito-destructive);
+}
+
+.saitosign-field .form-error[hidden] {
+  display: none;
 }
 
 .saitosign-field select {

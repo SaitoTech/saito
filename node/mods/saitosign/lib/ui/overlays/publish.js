@@ -803,9 +803,10 @@ class PublishOverlay {
       const signerStatus = actionStatus(this.app, record?.actions, record?.users, signer.index);
       return {
         ...signer,
+        places: signerStatus.mine,
         signed: signerStatus.mine > 0 && signerStatus.userComplete
       };
-    });
+    }).filter((signer) => signer.places > 0);
     return {
       ...state,
       signers,

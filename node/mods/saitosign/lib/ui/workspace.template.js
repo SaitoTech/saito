@@ -59,8 +59,8 @@ function fieldListHTML(view) {
           (field) => `
             <li class="row${field.signed ? ' signed' : ''}">
               <button type="button" class="open" data-open-field="${field.id}">
-                <i class="fa-solid ${field.signed ? 'fa-check signed' : 'fa-pen'}" aria-hidden="true"></i>
-                <span class="label">${escapeHTML(field.type)} - ${escapeHTML(field.name)} - page ${field.page}</span>
+                <i class="swatch" style="background:${field.color}" aria-hidden="true"></i>
+                <span class="label">${escapeHTML(field.label)}</span>
               </button>
             </li>
           `
@@ -109,7 +109,6 @@ function signersSectionHTML(view) {
 
 function railHTML(view) {
   const notice = view.notice ? `<p class="notice">${escapeHTML(view.notice)}</p>` : '';
-  const exportable = view.edited ? ' primary' : '';
 
   return `
     <div class="identity">
@@ -117,20 +116,42 @@ function railHTML(view) {
       <p class="file">${escapeHTML(view.file_name)}</p>
     </div>
 
-    ${signersSectionHTML(view)}
-    ${fieldsSectionHTML(view)}
+    <p class="guide">To create a SaitoSign document, identify the places on the document where you need signatures. Scroll to the page(s) where signatures are required and click or drag a box on the page where a signature is required.</p>
     ${notice}
-
-    <button type="button" class="export${exportable}" data-export>Next Step</button>
   `;
+}
+
+function actionsInner(view) {
+  return `
+    <p class="title">Actions</p>
+    ${fieldListHTML(view)}
+    <button type="button" class="export primary" data-export>Finalize Document</button>
+  `;
+}
+
+function actionsColumn(view) {
+  if (!view.field_list.length) {
+    return '';
+  }
+  return `<aside class="actions-col">${actionsInner(view)}</aside>`;
+}
+
+function handlesHTML(editable) {
+  if (!editable) {
+    return '';
+  }
+  return ['nw', 'ne', 'sw', 'se']
+    .map((edge) => `<span class="handle ${edge}" data-resize="${edge}"></span>`)
+    .join('');
 }
 
 function fieldsHTML(page) {
   const placed = page.fields
     .map(
       (field) => `
-        <button type="button" class="field" data-field-id="${field.id}" style="left:${pct(field.x)};top:${pct(field.y)};width:${pct(field.width)};height:${pct(field.height)}">
-          <span class="text">${escapeHTML(field.type)} - ${escapeHTML(field.name)}</span>
+        <button type="button" class="field" data-field-id="${field.id}" style="left:${pct(field.x)};top:${pct(field.y)};width:${pct(field.width)};height:${pct(field.height)};background:${field.color};border-color:${field.color}">
+          <span class="text">${escapeHTML(field.label)}</span>
+          ${handlesHTML(page.editable)}
         </button>
       `
     )
@@ -149,12 +170,13 @@ function fieldsHTML(page) {
 
 function pagesHTML(view) {
   const placing = view.placing ? ' placing' : '';
+  const marking = view.can_edit ? ' marking' : '';
   return view.pages
     .map(
       (page) => `
         <article class="pdf-page" data-page="${page.page}">
           <iframe class="page" title="${escapeHTML(view.file_name)}, page ${page.page}"></iframe>
-          <div class="fields${placing}">${fieldsHTML(page)}</div>
+          <div class="fields${placing}${marking}">${fieldsHTML(page)}</div>
         </article>
       `
     )
@@ -198,6 +220,7 @@ function workspaceTemplate(view) {
           ${readerHTML(view)}
         </div>
       </section>
+      ${actionsColumn(view)}
     </main>
   `;
 }
@@ -206,3 +229,5 @@ module.exports = workspaceTemplate;
 module.exports.rail = railHTML;
 module.exports.fields = fieldsHTML;
 module.exports.reader = readerHTML;
+module.exports.actions = actionsColumn;
+module.exports.actionsInner = actionsInner;
