@@ -2,23 +2,32 @@
 
 const ModTemplate = require('./../../lib/templates/modtemplate');
 const SaitoHeader = require('./../../lib/saito/ui/saito-header/saito-header');
+const SaitoOverlay = require('./../../lib/saito/ui/saito-overlay/saito-overlay');
 const PeerService = require('saito-js/lib/peer_service').default;
 const Streaks = require('./lib/streaks');
 const BadgeSVG = require('./lib/badge-svg');
+const P2PIndex = require('./lib/p2p-index');
 const BadgeDecorator = require('./lib/ui/badge-decorator');
 const GMBadgeMain = require('./lib/ui/gmbadge-main');
+const STYLES = require('./lib/ui/styles');
 
 //
 // GMBadge
 //
 // Say "gm" in Red Square once a day and earn a badge NFT that grows with
-// your streak. The node indexes every Red Square post, computes streaks,
-// mints the badge on a holder's first gm, and serves streak state to
-// browsers. The browser draws badges next to usernames everywhere.
+// your streak. Works in two modes:
 //
-// NFT type: "gm" (slip3 label). One badge per public key, quantity 1.
-// The streak is derived from on-chain Red Square posts, so the badge's
-// look is recomputable by anyone; the NFT is the credential and serial.
+//   p2p   (default, no server) every wallet reads gm history straight from
+//         the Archive of the node it is connected to, computes streaks with
+//         the same rules, and mints its own badge. Installable as a .saito
+//         app through the wallet's "Add App" menu.
+//
+//   index (optional) a node running this module advertises the `gmbadge`
+//         service, keeps a SQLite index, assigns serials, and mints badges
+//         from its own wallet as the issuer. Wallets prefer this when present.
+//
+// NFT type: "gm" (slip3 label). The streak is always derived from on-chain
+// Red Square posts, so the badge's tier is recomputable by anyone.
 //
 class GMBadge extends ModTemplate {
   constructor(app) {
@@ -26,29 +35,39 @@ class GMBadge extends ModTemplate {
 
     this.name = 'GMBadge';
     this.slug = 'gmbadge';
-    this.description = 'Say gm in Red Square every day. Earn a verifiable streak badge.';
+    this.description = 'Say gm in Red Square every day. Earn a verifiable streak badge NFT.';
     this.categories = 'Social Utilities';
+    this.icon_fa = 'fa-solid fa-circle-check';
+    this.publisher_message =
+      'gm fam. Say gm once a day in Red Square. Your badge grows with your streak and anyone can verify it from the chain.';
+    this.status = 'beta';
+    this.class = 'utility';
     this.nft_type = 'gm';
     this.styles = ['/gmbadge/style.css'];
 
-    // issuer settings (node side). Overridable via app.options.gmbadge
+    // node-side issuer settings. Overridable via app.options.gmbadge
     this.config = {
       mint: true,
       deposit_saito: 1, // SAITO locked in the badge so ATR keeps it alive
       fee_saito: 0, // mint tx fee; set > 0 on mainnet so routers include the mint
-      issuer: '', // optional pinned issuer public key (browser side); overrides what a node announces
+      issuer: '', // optional pinned issuer public key (browser side)
       max_states: 2000
     };
 
-    // browser-side cache of streak states keyed by public key
-    this.states = {};
+    this.mode = 'p2p';
+    this.states = {}; // publickey -> state (from index service or p2p)
     this.today = Streaks.dayIndex(Date.now());
     this.peer = null;
-    this.issuer = ''; // issuer public key announced by the gmbadge service
+    this.issuer = '';
+    this.p2p = null;
     this.decorator = null;
     this.main = null;
     this.header = null;
+    this.overlay = null;
     this.refresh_timer = null;
+    this.p2p_refresh_timer = null;
+    this.p2p_seen = new Set();
+    this.styles_injected = false;
   }
 
   async initialize(app) {
@@ -62,10 +81,27 @@ class GMBadge extends ModTemplate {
     }
 
     if (app.BROWSER) {
+      this.injectStyles();
+      this.p2p = new P2PIndex(app, this);
       this.decorator = new BadgeDecorator(app, this);
       this.decorator.start();
       this.refresh_timer = setInterval(() => this.refreshStates(), 5 * 60 * 1000);
     }
+  }
+
+  injectStyles() {
+    if (this.styles_injected || typeof document === 'undefined') {
+      return;
+    }
+    if (document.getElementById('gmbadge-styles')) {
+      this.styles_injected = true;
+      return;
+    }
+    const style = document.createElement('style');
+    style.id = 'gmbadge-styles';
+    style.textContent = STYLES;
+    document.head.appendChild(style);
+    this.styles_injected = true;
   }
 
   //////////////////
@@ -84,7 +120,11 @@ class GMBadge extends ModTemplate {
     if (!app.BROWSER || service.service !== 'gmbadge') {
       return;
     }
+    if (this.app.browser?.returnURLParameter?.('p2p')) {
+      return; // dev switch: force p2p mode even when an index service exists
+    }
     this.peer = peer;
+    this.mode = 'index';
     await this.refreshStates();
   }
 
@@ -126,7 +166,10 @@ class GMBadge extends ModTemplate {
       const day = Streaks.dayIndex(ts);
 
       if (this.app.BROWSER) {
-        if (publickey === this.publicKey) {
+        if (this.mode === 'p2p' && this.p2p) {
+          delete this.p2p.cache[publickey];
+          this.p2p.stateFor(publickey, true).then((st) => this.absorbP2P(publickey, st));
+        } else if (publickey === this.publicKey) {
           setTimeout(() => this.refreshStates(), 2000);
         }
         return;
@@ -137,7 +180,7 @@ class GMBadge extends ModTemplate {
     }
 
     //
-    // our own badge mint confirming
+    // a badge mint confirming (issuer mint or self mint)
     //
     if (txmsg.module === this.name && txmsg.request === 'mint badge') {
       const holder = txmsg.data?.publickey ? String(txmsg.data.publickey) : '';
@@ -146,7 +189,10 @@ class GMBadge extends ModTemplate {
           try {
             await this.app.wallet.updateNFTList();
           } catch (err) {}
-          setTimeout(() => this.refreshStates(), 2000);
+          setTimeout(() => {
+            this.refreshStates();
+            this.rerender();
+          }, 2000);
         }
         return;
       }
@@ -260,6 +306,24 @@ class GMBadge extends ModTemplate {
   // Issuer       //
   //////////////////
 
+  mintMessage(state, mode) {
+    return {
+      module: this.name,
+      request: 'mint badge',
+      title: state.serial != null ? `gm badge #${state.serial}` : 'gm badge',
+      description: `Earned by saying gm in Red Square on ${Streaks.dayString(state.first_day)}. The tier is recomputed from on-chain gm posts.`,
+      data: {
+        publickey: state.publickey,
+        serial: state.serial,
+        first_day: state.first_day,
+        first_date: Streaks.dayString(state.first_day),
+        issuer: this.publicKey,
+        mode,
+        image: BadgeSVG.renderDataUri({ tier: 1, streak: 1, serial: state.serial, size: 256 })
+      }
+    };
+  }
+
   async mintBadge(state) {
     if (!this.config.mint) {
       return;
@@ -271,38 +335,19 @@ class GMBadge extends ModTemplate {
       const fee = BigInt(this.app.wallet.convertSaitoToNolan(Number(this.config.fee_saito) || 0));
       const balance = BigInt(await this.app.wallet.getBalance());
       if (balance < deposit + fee) {
-        console.error(
-          `GMBadge: issuer balance too low to mint badge #${state.serial} (need ${deposit} nolan)`
-        );
+        console.error(`GMBadge: issuer balance too low to mint badge #${state.serial}`);
         return;
       }
-
-      const txmsg = {
-        module: this.name,
-        request: 'mint badge',
-        title: `gm badge #${state.serial}`,
-        description: `Earned by saying gm in Red Square on ${Streaks.dayString(state.first_day)}. Streak tier is recomputed from on-chain gm posts.`,
-        data: {
-          publickey: state.publickey,
-          serial: state.serial,
-          first_day: state.first_day,
-          first_date: Streaks.dayString(state.first_day),
-          issuer: this.publicKey,
-          image: BadgeSVG.renderDataUri({ tier: 1, streak: 1, serial: state.serial, size: 256 })
-        }
-      };
-
       const tx = await this.app.wallet.createMintNFTTransaction(
         BigInt(1),
         deposit,
-        txmsg,
-        BigInt(this.app.wallet.convertSaitoToNolan(Number(this.config.fee_saito) || 0)),
+        this.mintMessage(state, 'issuer'),
+        fee,
         state.publickey,
         this.nft_type
       );
       await tx.sign();
       await this.app.network.propagateTransaction(tx);
-
       await this.app.storage.runDatabase(
         'UPDATE streaks SET badge_sig = ?, updated = ? WHERE publickey = ?',
         [String(tx.signature), Date.now(), state.publickey],
@@ -312,6 +357,79 @@ class GMBadge extends ModTemplate {
     } catch (err) {
       console.error('GMBadge: mint failed', err);
     }
+  }
+
+  //
+  // p2p mode: the holder mints their own badge from their own wallet.
+  // Returns { ok, reason }.
+  //
+  async mintMyBadge() {
+    const me = this.publicKey;
+    if (!this.app.BROWSER || !me) {
+      return { ok: false, reason: 'no wallet' };
+    }
+    if (await this.ownBadge()) {
+      return { ok: false, reason: 'You already hold a gm badge.' };
+    }
+    const state = this.p2p ? await this.p2p.stateFor(me, true) : null;
+    if (!state || !state.lifetime) {
+      return {
+        ok: false,
+        reason: 'Say gm in Red Square first. Your badge needs at least one on-chain gm.'
+      };
+    }
+    this.absorbP2P(me, state);
+    try {
+      const balance = BigInt(await this.app.wallet.getBalance());
+      const oneSaito = BigInt(this.app.wallet.convertSaitoToNolan(1));
+      const deposit = balance >= oneSaito * BigInt(2) ? oneSaito : BigInt(0);
+      const tx = await this.app.wallet.createMintNFTTransaction(
+        BigInt(1),
+        deposit,
+        this.mintMessage(state, 'self'),
+        BigInt(0),
+        me,
+        this.nft_type
+      );
+      await tx.sign();
+      await this.app.network.propagateTransaction(tx);
+      return {
+        ok: true,
+        reason:
+          deposit > BigInt(0)
+            ? 'Minting your badge with a 1 SAITO deposit so it pays its own rent. It appears once the block confirms.'
+            : 'Minting your badge with no deposit (wallet below 2 SAITO). It will need a top-up before the next rent cycle.'
+      };
+    } catch (err) {
+      console.error('GMBadge: self mint failed', err);
+      return { ok: false, reason: 'Mint failed. Check that your wallet has a little SAITO.' };
+    }
+  }
+
+  async ownBadge() {
+    try {
+      await this.app.wallet.updateNFTList();
+    } catch (err) {}
+    const list = this.app.options?.wallet?.nfts || [];
+    for (const nft of list) {
+      const type = this.app.wallet.extractNFTType(nft?.slip3?.utxo_key || '');
+      if (type === this.nft_type) {
+        return nft;
+      }
+    }
+    return null;
+  }
+
+  //
+  // 33-byte NFT id = block_id(8) + tx_ordinal(8) + slip_index(1) + type(16).
+  // The block id doubles as a proof of when the badge was minted.
+  //
+  mintBlockOf(nft) {
+    const id = String(nft?.id || '');
+    if (/^[0-9a-fA-F]{66}$/.test(id)) {
+      return parseInt(id.slice(0, 16), 16);
+    }
+    return null;
   }
 
   //////////////////
@@ -340,16 +458,12 @@ class GMBadge extends ModTemplate {
       return 1;
     }
 
-    if (txmsg.request === 'gmbadge: states') {
-      const rows = await this.queryStates(this.config.max_states);
-      if (mycallback) {
-        mycallback({ today: Streaks.dayIndex(Date.now()), issuer: this.publicKey, states: rows });
-      }
-      return 1;
-    }
-
-    if (txmsg.request === 'gmbadge: leaderboard') {
-      const rows = await this.queryStates(Number(txmsg.data?.limit) || 100);
+    if (txmsg.request === 'gmbadge: states' || txmsg.request === 'gmbadge: leaderboard') {
+      const limit =
+        txmsg.request === 'gmbadge: states'
+          ? this.config.max_states
+          : Number(txmsg.data?.limit) || 100;
+      const rows = await this.queryStates(limit);
       if (mycallback) {
         mycallback({ today: Streaks.dayIndex(Date.now()), issuer: this.publicKey, states: rows });
       }
@@ -386,7 +500,8 @@ class GMBadge extends ModTemplate {
       first_day: row.first_day,
       last_day: row.last_day,
       minted: row.minted ? 1 : 0,
-      badge_sig: row.badge_sig || ''
+      badge_sig: row.badge_sig || '',
+      source: 'index'
     };
   }
 
@@ -418,9 +533,8 @@ class GMBadge extends ModTemplate {
     expressapp.get(`${uri}/api/leaderboard`, async (req, res) => {
       res.setHeader('Cache-Control', 'no-store');
       try {
-        const limit = Number(req.query.limit) || 100;
         const today = Streaks.dayIndex(Date.now());
-        const rows = await self.queryStates(limit);
+        const rows = await self.queryStates(Number(req.query.limit) || 100);
         return res.json({
           today,
           issuer: self.publicKey,
@@ -460,16 +574,45 @@ class GMBadge extends ModTemplate {
   // Browser      //
   //////////////////
 
+  //
+  // State lookup used by the decorator, the page and the NFT card.
+  // In p2p mode an unknown key triggers a background fetch; the decorator
+  // redraws when it lands.
+  //
   viewFor(publickey) {
     const state = this.states[publickey];
-    if (!state) {
-      return null;
+    if (state) {
+      return Streaks.view(state, this.today);
     }
-    return Streaks.view(state, this.today);
+    if (this.mode === 'p2p' && this.p2p && !this.p2p_seen.has(publickey)) {
+      this.p2p_seen.add(publickey);
+      this.p2p.stateFor(publickey).then((st) => this.absorbP2P(publickey, st));
+    }
+    return null;
+  }
+
+  absorbP2P(publickey, state) {
+    if (!state) {
+      return;
+    }
+    this.states[publickey] = state;
+    this.today = Streaks.dayIndex(Date.now());
+    clearTimeout(this.p2p_refresh_timer);
+    this.p2p_refresh_timer = setTimeout(() => {
+      this.decorator?.refresh();
+      this.rerender();
+    }, 400);
   }
 
   async refreshStates() {
-    if (!this.app.BROWSER || !this.peer) {
+    if (!this.app.BROWSER) {
+      return;
+    }
+    if (this.mode === 'p2p' || !this.peer) {
+      if (this.p2p && this.publicKey) {
+        const st = await this.p2p.stateFor(this.publicKey, true);
+        this.absorbP2P(this.publicKey, st);
+      }
       return;
     }
     try {
@@ -494,10 +637,7 @@ class GMBadge extends ModTemplate {
           }
           this.states = next;
           this.decorator?.refresh();
-          if (this.main && this.browser_active) {
-            this.main.leaderboard = res.states.slice(0, 100);
-            this.main.render();
-          }
+          this.rerender();
         },
         this.peer.publicKey
       );
@@ -506,43 +646,83 @@ class GMBadge extends ModTemplate {
     }
   }
 
+  leaderboard(limit = 100) {
+    return Object.values(this.states)
+      .filter((s) => s && s.lifetime > 0)
+      .sort((a, b) => {
+        const av = Streaks.view(a, this.today).streak;
+        const bv = Streaks.view(b, this.today).streak;
+        return bv - av || b.lifetime - a.lifetime || (a.serial || 1e9) - (b.serial || 1e9);
+      })
+      .slice(0, limit);
+  }
+
+  rerender() {
+    if (this.main && (this.browser_active || this.overlay)) {
+      this.main.render();
+    }
+  }
+
+  //
+  // /gmbadge page (node mode)
+  //
   async render() {
     if (!this.browser_active) {
       return;
     }
     if (!this.main) {
-      this.main = new GMBadgeMain(this.app, this);
+      this.main = new GMBadgeMain(this.app, this, '.gmbadge-page');
       this.header = new SaitoHeader(this.app, this);
       await this.header.initialize(this.app);
       this.addComponent(this.header);
     }
     await super.render();
-    this.main.leaderboard = Object.values(this.states)
-      .sort((a, b) => {
-        const av = Streaks.view(a, this.today).streak;
-        const bv = Streaks.view(b, this.today).streak;
-        return bv - av || b.lifetime - a.lifetime || (a.serial || 0) - (b.serial || 0);
-      })
-      .slice(0, 100);
     await this.main.render();
+    this.refreshStates();
   }
 
   //
-  // Authenticity. A real badge satisfies all of:
+  // Overlay (installed-app mode, works inside any Saito wallet)
+  //
+  async openOverlay() {
+    this.injectStyles();
+    if (!this.overlay) {
+      this.overlay = new SaitoOverlay(this.app, this, true, false);
+    }
+    this.overlay.show('<div class="gmbadge-page gmbadge-overlay"></div>');
+    this.main = new GMBadgeMain(this.app, this, '.gmbadge-overlay');
+    await this.main.render();
+    this.refreshStates();
+  }
+
+  //
+  // Authenticity. In index mode a real badge satisfies all of:
   //   1. slip1 creator == the issuer key announced by the gmbadge service
-  //   2. the serial in the mint message matches the indexer's serial for that holder
-  //   3. the holder in the mint message has an indexed gm history
-  // The inline decorator never consults NFTs at all; it draws from the indexer,
-  // so a counterfeit NFT can never put a badge next to a username.
+  //   2. the serial in the mint message matches the index's serial for that holder
+  // In p2p mode (no issuer) a badge is genuine when it is self-minted
+  // (creator == holder) and the holder has on-chain gm history.
+  // The inline decorator never consults NFTs at all; it draws from the index.
   //
   verifyBadge({ creator = '', serial = null, holder = '' } = {}) {
+    const state = this.states[holder];
     if (!this.issuer) {
-      return { ok: true, reason: 'issuer not yet known; unverified' };
+      if (creator && holder && creator !== holder) {
+        return { ok: false, reason: 'COUNTERFEIT: badge was not minted by its holder' };
+      }
+      if (state && !state.lifetime) {
+        return { ok: false, reason: 'COUNTERFEIT: holder has no on-chain gm history' };
+      }
+      return {
+        ok: true,
+        reason: state ? 'verified from on-chain gm history' : 'self-minted; history loading'
+      };
     }
     if (!creator || creator !== this.issuer) {
+      if (creator && creator === holder && state?.lifetime) {
+        return { ok: true, reason: 'self-minted, verified from on-chain gm history' };
+      }
       return { ok: false, reason: 'COUNTERFEIT: not minted by the gm badge issuer' };
     }
-    const state = this.states[holder];
     if (!state) {
       return { ok: true, reason: 'issuer verified; holder not in index yet' };
     }
@@ -555,10 +735,25 @@ class GMBadge extends ModTemplate {
     };
   }
 
-  //
-  // Let the generic wallet NFT card draw a live badge for type "gm"
-  //
   respondTo(type = '', obj = null) {
+    if (type === 'saito-header') {
+      const self = this;
+      if (this.browser_active) {
+        return [];
+      }
+      return [
+        {
+          text: 'gm badge',
+          icon: this.icon_fa,
+          rank: 60,
+          type: 'navigation',
+          callback: function (app, id) {
+            self.openOverlay();
+          }
+        }
+      ];
+    }
+
     if (type === 'saito-nft-media') {
       const self = this;
       return {
@@ -578,7 +773,7 @@ class GMBadge extends ModTemplate {
               tier: v.tier,
               streak: v.streak,
               serial: v.serial,
-              issuer: self.issuer,
+              issuer: self.issuer || creator,
               sig: self.states[holder]?.badge_sig || nft?.tx_sig || '',
               cracked: v.cracked,
               dormant: v.dormant,
@@ -589,7 +784,7 @@ class GMBadge extends ModTemplate {
               tier: 1,
               streak: 0,
               serial: data.serial,
-              issuer: self.issuer,
+              issuer: self.issuer || creator,
               sig: nft?.tx_sig || '',
               size: 220,
               label: false
@@ -602,6 +797,7 @@ class GMBadge extends ModTemplate {
         }
       };
     }
+
     return super.respondTo(type, obj);
   }
 }

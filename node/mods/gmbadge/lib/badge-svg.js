@@ -92,10 +92,10 @@ function checkGlyph(color, width = 9.5, opacity = 1, extra = '') {
 // Security microdetail. Clipped to the seal.
 //
 function microDetail(id, opts, ink) {
-  const serial = opts.serial != null ? String(opts.serial) : '0';
+  const serial = opts.serial != null ? String(opts.serial) : '';
   const issuer = String(opts.issuer || '').slice(0, 8) || 'unissued';
   const sig = String(opts.sig || '').slice(0, 8) || 'pending';
-  const ring = `GM BADGE · SAITO · #${serial} · ${issuer} · `;
+  const ring = `GM BADGE · SAITO · ${serial ? `#${serial} · ` : ''}${issuer} · `;
   const field = 'GM FAM SAITO GM FAM SAITO GM FAM SAITO GM FAM SAITO ';
   let lines = '';
   for (let i = 0; i < 9; i++) {
@@ -107,7 +107,7 @@ function microDetail(id, opts, ink) {
     `<path d="${CUBE(50, 50, 27)}" fill="none" stroke="${ink}" stroke-width="1.1" stroke-linejoin="round" opacity="0.13"/>` +
     `<g opacity="0.16" transform="rotate(-32 50 50)">${lines}</g>` +
     `<text font-size="3.1" letter-spacing="0.5" opacity="0.42"><textPath href="#${id}c">${esc(ring + ring + ring)}</textPath></text>` +
-    `<text x="50" y="89.5" text-anchor="middle" font-size="2.7" opacity="0.72" letter-spacing="0.2">${esc(`gm-${serial}-${issuer}-${sig}`)}</text>` +
+    `<text x="50" y="89.5" text-anchor="middle" font-size="2.7" opacity="0.72" letter-spacing="0.2">${esc(serial ? `gm-${serial}-${issuer}-${sig}` : `gm-${issuer}-${sig}`)}</text>` +
     `</g>`
   );
 }

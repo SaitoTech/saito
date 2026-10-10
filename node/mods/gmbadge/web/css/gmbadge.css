@@ -203,3 +203,9 @@
 .gm-badge-card-fake {
   outline: 2px solid #ef4444;
 }
+
+/* overlay mode (installed app inside any Saito wallet) */
+.gmbadge-overlay { max-height: 80vh; overflow-y: auto; min-width: min(920px, 92vw); }
+.gmbadge-overlay .gmbadge-hero { grid-template-columns: 150px 1fr; }
+.gmbadge-mint { min-width: 160px; }
+.gmbadge-mode { font-size: 12px; opacity: 0.6; margin-left: 8px; }
