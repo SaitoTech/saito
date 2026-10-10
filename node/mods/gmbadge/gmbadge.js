@@ -35,6 +35,8 @@ class GMBadge extends ModTemplate {
     this.config = {
       mint: true,
       deposit_saito: 1, // SAITO locked in the badge so ATR keeps it alive
+      fee_saito: 0, // mint tx fee; set > 0 on mainnet so routers include the mint
+      issuer: '', // optional pinned issuer public key (browser side); overrides what a node announces
       max_states: 2000
     };
 
@@ -54,6 +56,9 @@ class GMBadge extends ModTemplate {
 
     if (app.options?.gmbadge && typeof app.options.gmbadge === 'object') {
       Object.assign(this.config, app.options.gmbadge);
+    }
+    if (this.config.issuer) {
+      this.issuer = String(this.config.issuer);
     }
 
     if (app.BROWSER) {
@@ -263,8 +268,9 @@ class GMBadge extends ModTemplate {
       const deposit = BigInt(
         this.app.wallet.convertSaitoToNolan(Number(this.config.deposit_saito) || 0)
       );
+      const fee = BigInt(this.app.wallet.convertSaitoToNolan(Number(this.config.fee_saito) || 0));
       const balance = BigInt(await this.app.wallet.getBalance());
-      if (balance < deposit) {
+      if (balance < deposit + fee) {
         console.error(
           `GMBadge: issuer balance too low to mint badge #${state.serial} (need ${deposit} nolan)`
         );
@@ -290,7 +296,7 @@ class GMBadge extends ModTemplate {
         BigInt(1),
         deposit,
         txmsg,
-        BigInt(0),
+        BigInt(this.app.wallet.convertSaitoToNolan(Number(this.config.fee_saito) || 0)),
         state.publickey,
         this.nft_type
       );
@@ -475,7 +481,9 @@ class GMBadge extends ModTemplate {
             return;
           }
           this.today = Number(res.today) || Streaks.dayIndex(Date.now());
-          if (res.issuer) {
+          if (this.config.issuer) {
+            this.issuer = String(this.config.issuer); // pinned, ignore what the node says
+          } else if (res.issuer) {
             this.issuer = String(res.issuer);
           }
           const next = {};

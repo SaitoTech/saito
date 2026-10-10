@@ -33,10 +33,17 @@ the ATR deposit so the badge pays its own rent forever, plus fees. Back the key 
 future badges come from a different creator key and will not verify against earlier ones.
 
 ```json
-"gmbadge": { "mint": true, "deposit_saito": 1, "max_states": 2000 }
+"gmbadge": { "mint": true, "deposit_saito": 1, "fee_saito": 0.01, "max_states": 2000 }
 ```
 
 Set `"mint": false` to run an index-only node (badges show from the index, nothing is minted).
+
+`fee_saito` is the mint transaction fee. On mainnet set it above the going fee-per-byte so routing nodes
+include the mint; a zero-fee mint only confirms if your own node produces the block.
+
+Wallet builds that should trust exactly one issuer can pin it client-side with
+`"gmbadge": { "issuer": "<issuer public key>" }` in the browser options; the pin overrides whatever the
+connected node announces.
 
 ## 4. Start
 
