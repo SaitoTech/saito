@@ -109,10 +109,11 @@ class BadgeDecorator {
       this.scheduled = false;
       this.decorateAll();
     };
-    if (typeof requestAnimationFrame === 'function') {
+    // rAF never fires in a hidden tab, so fall back to a timer there
+    if (typeof requestAnimationFrame === 'function' && document.visibilityState !== 'hidden') {
       requestAnimationFrame(run);
     } else {
-      setTimeout(run, 16);
+      setTimeout(run, 32);
     }
   }
 
