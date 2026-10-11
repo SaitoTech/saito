@@ -17,7 +17,7 @@ const {
 } = require('./lib/transaction');
 const Main = require('./lib/ui/main');
 const HomePage = require('./index');
-const { verifyEmail, myKeychainEmail, rememberVerifiedEmails, documentUnchanged, createCreatorProof, verifyCreatorProof, finalizeDocument, verifyFinalization } = require('./lib/auth');
+const { verifyEmail, myKeychainEmail, rememberVerifiedEmails, documentUnchanged, createCreatorProof, verifyCreatorProof, finalizeDocument, verifyFinalization, signingConfigurationError } = require('./lib/auth');
 const { loadDraft, clearDraft } = require('./lib/draft');
 
 class SaitoSign extends ModTemplate {
@@ -181,7 +181,7 @@ class SaitoSign extends ModTemplate {
   async exportDocument(options = {}) {
     const document = this.document;
     if (!document.document.pdf || (!options.draft && !document.edited)) {
-      return;
+      return false;
     }
 
     try {
@@ -189,22 +189,33 @@ class SaitoSign extends ModTemplate {
         const walletKey = String(this.app.wallet?.publicKey || '').trim();
         if (!walletKey || !document.creator || walletKey !== document.creator || !verifyCreatorProof(this.app, document)) {
           this.main.fail('Only the document creator can finalize and export this document.');
-          return;
+          return false;
         }
         if (!(document.actions || []).length) {
           this.main.fail('Add at least one action before finalizing this document.');
-          return;
+          return false;
         }
-        await finalizeDocument(this.app, document, walletKey);
+        const problem = signingConfigurationError(document);
+        if (problem) {
+          this.main.fail(problem);
+          return false;
+        }
+        const finalized = await finalizeDocument(this.app, document, walletKey);
+        if (!finalized) {
+          this.main.fail('This document could not be finalized.');
+          return false;
+        }
       } else if (!options.draft && (!verifyCreatorProof(this.app, document) || !verifyFinalization(this.app, document))) {
         this.main.fail('The finalized document creator signature is invalid.');
-        return;
+        return false;
       }
       const tx = await createPrepareTransaction(this.app, document);
       const base = String(document.document.name || 'document.pdf').replace(/\.pdf$/i, '');
       downloadTransaction(this.app, tx, `${base || 'document'}.saitosign`);
+      return true;
     } catch (err) {
       this.main.fail('That document could not be exported.');
+      return false;
     }
   }
 

@@ -1,4 +1,6 @@
 .workspace {
+  --saitosign-signed-ink: #39ff14;
+  --saitosign-signed-ground: #0c2614;
   display: flex;
   flex: 1;
   min-height: 0;
@@ -12,7 +14,7 @@
   width: 30rem;
   flex: none;
   min-height: 0;
-  overflow: auto;
+  overflow: hidden;
   padding: var(--saito-space-lg);
   border-right: 1px solid var(--saito-border);
   background: var(--saito-secondary);
@@ -107,6 +109,26 @@
   border-color: color-mix(in srgb, var(--saito-primary) 50%, var(--saito-border));
 }
 
+.workspace .field-list .row.signed,
+.workspace .field-list .row.signed:hover {
+  background: var(--saitosign-signed-ground);
+  border-color: var(--saitosign-signed-ink);
+}
+
+.workspace .field-list .row.active,
+.workspace .field-list .row.active:hover {
+  border-color: var(--saito-foreground);
+  background: color-mix(in srgb, var(--saito-foreground) 10%, var(--saito-background));
+  box-shadow: inset 0.35rem 0 0 var(--saito-foreground);
+}
+
+.workspace .field-list .row.signed.active,
+.workspace .field-list .row.signed.active:hover {
+  background: var(--saitosign-signed-ground);
+  border-color: var(--saitosign-signed-ink);
+  box-shadow: inset 0.35rem 0 0 var(--saito-foreground), 0 0 0 1px var(--saito-foreground);
+}
+
 .workspace .row > i,
 .workspace .row .open i {
   flex: none;
@@ -118,7 +140,7 @@
 
 .workspace .row .open i.signed,
 .workspace .field-list .row.signed .label {
-  color: var(--saito-status-success, #3cba6e);
+  color: var(--saitosign-signed-ink);
 }
 
 .workspace .row .label {
@@ -274,6 +296,16 @@
   cursor: pointer;
 }
 
+.workspace .identity.verified .name {
+  color: var(--saitosign-signed-ink);
+}
+
+.workspace button.export.primary.verified:not(:disabled) {
+  border-color: var(--saitosign-signed-ink);
+  background: var(--saitosign-signed-ground);
+  color: var(--saitosign-signed-ink);
+}
+
 .workspace button.export:disabled {
   opacity: 1;
 }
@@ -349,9 +381,24 @@
   cursor: pointer;
 }
 
+.workspace .reader button:hover:not(:disabled),
+.workspace .reader button:focus-visible:not(:disabled) {
+  border-color: var(--saito-primary);
+  color: var(--saito-primary);
+  outline: none;
+}
+
 .workspace .reader button:disabled {
   opacity: 0.35;
   cursor: default;
+}
+
+.workspace .reader .zoom {
+  width: 100%;
+}
+
+.workspace .reader [data-close-document] {
+  margin-left: auto;
 }
 
 .workspace .reader input {
@@ -403,6 +450,15 @@
   cursor: crosshair;
 }
 
+.workspace .fields.marking .field {
+  cursor: grab;
+}
+
+.workspace .fields.dragging,
+.workspace .fields.dragging .field {
+  cursor: grabbing;
+}
+
 .workspace .fields.placing {
   box-shadow: inset 0 0 0 2px var(--saito-primary);
 }
@@ -442,41 +498,24 @@
   cursor: nwse-resize;
 }
 
-.workspace .actions-col {
-  display: flex;
-  flex-direction: column;
-  gap: var(--saito-space-lg);
-  width: 28rem;
-  flex: none;
-  min-height: 0;
-  overflow: hidden;
-  padding: var(--saito-space-lg);
-  border-left: 1px solid var(--saito-border);
-  background: var(--saito-secondary);
-}
-
-.workspace .actions-col .title {
-  font-family: var(--saito-font-heavy);
-  font-size: 2rem;
-  line-height: 1.1;
-}
-
-.workspace .actions-col .field-list {
+.workspace .rail .field-list {
   flex: 1;
   min-height: 0;
   overflow: auto;
 }
 
-.workspace .actions-col .swatch {
+.workspace .row .open i.swatch {
   width: 1.1rem;
   height: 1.1rem;
   border-radius: 50%;
 }
 
-.workspace .actions-col button.export {
+.workspace .field-list .row.signed .swatch {
+  box-shadow: 0 0 0.7rem var(--saitosign-signed-ink);
+}
+
+.workspace .rail button.export {
   width: 100%;
-  margin-top: auto;
-  flex: none;
 }
 
 .workspace .field {
@@ -512,9 +551,79 @@
   white-space: nowrap;
 }
 
-.workspace .field:hover {
-  background: color-mix(in srgb, var(--saito-primary) 86%, #000);
-  border-color: color-mix(in srgb, var(--saito-primary) 86%, #000);
+.workspace .field:hover,
+.workspace .field:focus-visible,
+.workspace .field.moving {
+  z-index: 3;
+  box-shadow: 0 0 0 2px var(--saito-foreground);
+}
+
+.workspace .field.signed,
+.workspace .field.signed:hover,
+.workspace .field.signed:focus-visible,
+.workspace .field.signed.moving {
+  background: var(--saitosign-signed-ground);
+  border-color: var(--saitosign-signed-ink);
+  color: var(--saitosign-signed-ink);
+  box-shadow: 0 0 1.2rem rgba(57, 255, 20, 0.35);
+}
+
+.workspace .field.signed:hover,
+.workspace .field.signed:focus-visible,
+.workspace .field.signed.moving {
+  box-shadow: 0 0 0 2px var(--saitosign-signed-ink), 0 0 1.2rem rgba(57, 255, 20, 0.45);
+}
+
+.workspace .field-list .row.signed.confirming,
+.workspace .field-list .row.signed.confirming:hover {
+  background: var(--saitosign-signed-ground);
+  border-color: var(--saitosign-signed-ink);
+  box-shadow: inset 0.35rem 0 0 var(--saitosign-signed-ink), 0 0 1.2rem rgba(57, 255, 20, 0.55);
+}
+
+.workspace .field.signed.confirming {
+  z-index: 6;
+  animation: saitosign-signed-flash 500ms ease-out;
+}
+
+@keyframes saitosign-signed-flash {
+  0%,
+  40% {
+    box-shadow: 0 0 0 3px var(--saitosign-signed-ink), 0 0 2.2rem rgba(57, 255, 20, 0.9);
+  }
+
+  100% {
+    box-shadow: 0 0 1.2rem rgba(57, 255, 20, 0.35);
+  }
+}
+
+.workspace .field.signed .text {
+  color: var(--saitosign-signed-ink);
+}
+
+.workspace .field.active,
+.workspace .field.active:hover,
+.workspace .field.active:focus-visible,
+.workspace .field.active.moving {
+  z-index: 5;
+  border-width: 2px;
+  box-shadow:
+    0 0 0 3px var(--saito-background),
+    0 0 0 6px var(--saito-foreground),
+    0 0 1.6rem color-mix(in srgb, var(--saito-foreground) 55%, transparent);
+}
+
+.workspace .field.signed.active,
+.workspace .field.signed.active:hover,
+.workspace .field.signed.active:focus-visible,
+.workspace .field.signed.active.moving {
+  background: var(--saitosign-signed-ground);
+  border-color: var(--saitosign-signed-ink);
+  color: var(--saitosign-signed-ink);
+  box-shadow:
+    0 0 0 3px var(--saitosign-signed-ground),
+    0 0 0 6px var(--saito-foreground),
+    0 0 1.6rem color-mix(in srgb, var(--saito-foreground) 40%, transparent);
 }
 
 .workspace .field.draft {
@@ -536,12 +645,10 @@
     flex-direction: column;
   }
 
-  .workspace .rail,
-  .workspace .actions-col {
+  .workspace .rail {
     width: auto;
     max-height: 42%;
     border-right: 0;
-    border-left: 0;
     border-bottom: 1px solid var(--saito-border);
   }
 }

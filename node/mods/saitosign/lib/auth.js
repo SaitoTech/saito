@@ -83,16 +83,61 @@ function canonicalJSON(value) {
   );
 }
 
+function signingConfigurationError(record) {
+  if (!String(record?.document?.pdf || '').trim()) {
+    return 'Add the PDF before finalizing this document.';
+  }
+  const actions = Array.isArray(record?.actions) ? record.actions : [];
+  const users = Array.isArray(record?.users) ? record.users : [];
+  const required = actions.filter((action) => action?.type === 'signature' || action?.type === 'initial');
+  if (!required.length) {
+    return 'Add at least one signature position before finalizing this document.';
+  }
+  for (const action of actions) {
+    if (action?.type !== 'signature' && action?.type !== 'initial' && action?.type !== 'date') {
+      return 'Each signing action needs a valid type.';
+    }
+    if (!Number.isInteger(Number(action.id)) || Number(action.id) < 1 || !placedAction(action)) {
+      return 'Each signing action needs a page and position.';
+    }
+    if (action.type !== 'signature' && action.type !== 'initial') {
+      continue;
+    }
+    const user = users[Number(action.user)];
+    if (!user) {
+      return 'Assign a signer to every signature position.';
+    }
+    if (!String(user.name || '').trim() || !isEmailAddress(user.email)) {
+      return 'Each signer needs a name and email address.';
+    }
+  }
+  if (!record?.metadata || typeof record.metadata !== 'object' || !record.metadata.verification) {
+    return 'Choose how signers verify their identity before finalizing this document.';
+  }
+  return '';
+}
+
+function placedAction(action) {
+  const page = Number(action?.page);
+  const x = Number(action?.x);
+  const y = Number(action?.y);
+  const width = Number(action?.width);
+  const height = Number(action?.height);
+  return Number.isInteger(page) && page >= 1
+    && [x, y, width, height].every((value) => Number.isFinite(value) && value >= 0 && value <= 1)
+    && width > 0 && height > 0;
+}
+
 function actionPayload(action) {
   return {
-    id: action.id,
+    id: Number(action.id),
     type: action.type,
-    user: action.user,
-    page: action.page,
-    x: action.x,
-    y: action.y,
-    width: action.width,
-    height: action.height
+    user: Number(action.user),
+    page: Number(action.page),
+    x: Number(action.x),
+    y: Number(action.y),
+    width: Number(action.width),
+    height: Number(action.height)
   };
 }
 
@@ -159,16 +204,54 @@ function verifyCreatorProof(app, record) {
 
 async function finalizeDocument(app, record, creator) {
   const publickey = String(creator || '').trim();
-  if (!publickey || !record || record.finalized) {
+  if (!publickey || !record || record.finalized || signingConfigurationError(record)) {
     return false;
   }
   record.creator = publickey;
+  record.hash = documentHash(app, record);
   const privateKey = await app.wallet.getPrivateKey();
   const signature = app.crypto.signMessage(canonicalJSON(finalizationPayload(app, record, publickey)), privateKey);
   record.finalization = { version: 1, creator: publickey, signature };
   record.finalized = true;
   await createCreatorProof(app, record, publickey);
   record.edited = true;
+  return true;
+}
+
+async function unfinalizeDocument(app, record) {
+  const creator = String(record?.creator || '').trim();
+  if (!record?.finalized || !creator || !walletKeys(app).includes(creator)) {
+    return false;
+  }
+  if (!verifyCreatorProof(app, record) || !verifyFinalization(app, record)) {
+    return false;
+  }
+
+  const previous = {
+    finalized: record.finalized,
+    finalization: record.finalization,
+    creatorProof: record.creatorProof ? JSON.parse(JSON.stringify(record.creatorProof)) : null,
+    hash: String(record.hash || ''),
+    signatures: (record.users || []).map((user) => (user.signatures || []).map((entry) => ({ ...entry })))
+  };
+  record.finalized = false;
+  record.finalization = null;
+  record.hash = '';
+  (record.users || []).forEach((user) => {
+    user.signatures = [];
+  });
+  record.edited = true;
+  const proved = await createCreatorProof(app, record, creator);
+  if (!proved || record.finalized || !verifyCreatorProof(app, record)) {
+    record.finalized = previous.finalized;
+    record.finalization = previous.finalization;
+    record.creatorProof = previous.creatorProof;
+    record.hash = previous.hash;
+    (record.users || []).forEach((user, index) => {
+      user.signatures = previous.signatures[index] || [];
+    });
+    return false;
+  }
   return true;
 }
 
@@ -185,64 +268,77 @@ function verifyFinalization(app, record) {
   );
 }
 
-function signAction(app, action, privateKey) {
-  const payload = actionPayload(action);
+function signAction(app, action, privateKey, documentHashValue) {
+  const commitment = String(documentHashValue || '').trim();
+  if (!commitment) {
+    return null;
+  }
+  const payload = { ...actionPayload(action), document_hash: commitment };
   const signature = app.crypto.signMessage(canonicalJSON(payload), privateKey);
-  return { id: payload.id, signature };
+  return { id: payload.id, signature, document_hash: commitment };
 }
 
 function actionSignature(user, action) {
-  const id = Number(action?.id);
-  const list = Array.isArray(user?.signatures) ? user.signatures : [];
-  const found = list.find((entry) => Number(entry?.id) === id);
+  const found = signatureEntry(user, action);
   return typeof found?.signature === 'string' ? found.signature : '';
 }
 
-function addSignature(app, action, privateKey) {
-  return signAction(app, { ...action, type: 'signature' }, privateKey);
+function signatureEntry(user, action) {
+  const id = Number(action?.id);
+  const list = Array.isArray(user?.signatures) ? user.signatures : [];
+  return list.find((entry) => Number(entry?.id) === id) || null;
 }
 
-function addInitial(app, action, privateKey) {
-  return signAction(app, { ...action, type: 'initial' }, privateKey);
+function addSignature(app, action, privateKey, documentHashValue) {
+  return signAction(app, { ...action, type: 'signature' }, privateKey, documentHashValue);
 }
 
-function verifyActionSignature(app, action, user) {
+function addInitial(app, action, privateKey, documentHashValue) {
+  return signAction(app, { ...action, type: 'initial' }, privateKey, documentHashValue);
+}
+
+function verifyActionSignature(app, action, user, record) {
   const publicKey = String(user?.publickey || '');
-  const signature = actionSignature(user, action);
-  if (!action || !signature || !publicKey) {
+  const entry = signatureEntry(user, action);
+  const expected = String(record?.hash || '').trim();
+  if (!action || !entry?.signature || !publicKey || !commitmentIntact(app, record)) {
     return false;
   }
   if (action.type !== 'signature' && action.type !== 'initial') {
     return false;
   }
-  return app.crypto.verifyMessage(canonicalJSON(actionPayload(action)), signature, publicKey);
+  if (String(entry.document_hash || '') !== expected) {
+    return false;
+  }
+  const payload = { ...actionPayload(action), document_hash: expected };
+  return app.crypto.verifyMessage(canonicalJSON(payload), entry.signature, publicKey);
 }
 
 function requiredActions(actions) {
   return (actions || []).filter((action) => action.type === 'signature' || action.type === 'initial');
 }
 
-function userActionsSigned(app, actions, users, userIndex) {
+function userActionsSigned(app, actions, users, userIndex, record) {
   const user = users?.[userIndex];
   return requiredActions(actions)
     .filter((action) => action.user === userIndex)
-    .every((action) => verifyActionSignature(app, action, user));
+    .every((action) => verifyActionSignature(app, action, user, record));
 }
 
-function allActionsSigned(app, actions, users) {
+function allActionsSigned(app, actions, users, record) {
   return requiredActions(actions).every((action) =>
-    verifyActionSignature(app, action, users?.[action.user])
+    verifyActionSignature(app, action, users?.[action.user], record)
   );
 }
 
-function actionStatus(app, actions, users, userIndex) {
+function actionStatus(app, actions, users, userIndex, record) {
   const required = requiredActions(actions);
   const signed = required.filter((action) =>
-    verifyActionSignature(app, action, users?.[action.user])
+    verifyActionSignature(app, action, users?.[action.user], record)
   ).length;
   const mine = required.filter((action) => action.user === userIndex);
   const mineSigned = mine.filter((action) =>
-    verifyActionSignature(app, action, users?.[userIndex])
+    verifyActionSignature(app, action, users?.[userIndex], record)
   ).length;
   return {
     required: required.length,
@@ -326,6 +422,17 @@ function myKeychainEmail(app) {
   return null;
 }
 
+function clearEmailIdentifier(app, publickey) {
+  const key = String(publickey || '').trim();
+  if (!app?.keychain || !key) {
+    return;
+  }
+  const identifier = String(app.keychain.returnKey(key, true)?.identifier || '').trim();
+  if (isEmailAddress(identifier)) {
+    app.keychain.addKey(key, { identifier: '' });
+  }
+}
+
 function rememberEmail(app, publickey, email) {
   const address = String(email || '').trim();
   const key = String(publickey || '').trim();
@@ -335,8 +442,8 @@ function rememberEmail(app, publickey, email) {
   const existing = app.keychain.returnKey(key, true);
   const data = { email: address };
   const identifier = String(existing?.identifier || '').trim();
-  if (!identifier || isEmailAddress(identifier)) {
-    data.identifier = address;
+  if (isEmailAddress(identifier)) {
+    data.identifier = '';
   }
   app.keychain.addKey(key, data);
 }
@@ -391,6 +498,34 @@ function validVerification(app, entry, user) {
   return false;
 }
 
+function requiredVerificationIds(record) {
+  const metadata = record?.metadata || {};
+  const tier = metadata.tier === 'premium' ? 'premium' : 'free';
+  const verification = metadata.verification || {};
+  const ids = [];
+  if (verification.email !== false) {
+    ids.push('email');
+  }
+  if (verification.photo === true) {
+    ids.push('photo');
+  }
+  if (tier === 'premium' && verification.passport === true) {
+    ids.push('passport');
+  }
+  if (tier === 'premium' && verification.phone === true) {
+    ids.push('mobile');
+  }
+  if (tier === 'premium' && verification.legal_review === true) {
+    ids.push('thirdParty');
+  }
+  return ids;
+}
+
+function verificationSatisfied(app, record, user) {
+  const known = verifiedMethods(app, user);
+  return requiredVerificationIds(record).every((id) => known.includes(id));
+}
+
 function verifiedMethods(app, user) {
   const entries = Array.isArray(user?.verifications) ? user.verifications : [];
   const found = [];
@@ -422,30 +557,68 @@ function verifiedEmail(app, user) {
   return holds ? email : '';
 }
 
-function signedMaterial(record) {
+function canonicalVerification(metadata) {
+  const tier = metadata?.tier === 'premium' ? 'premium' : 'free';
+  const verification = metadata?.verification || {};
+  const next = {
+    tier,
+    tier_owner: String(metadata?.tier_owner || '').trim(),
+    verification: {
+      email: verification.email !== false,
+      phone: tier === 'premium' && verification.phone === true,
+      photo: verification.photo === true,
+      passport: tier === 'premium' && verification.passport === true,
+      legal_review: tier === 'premium' && verification.legal_review === true
+    }
+  };
+  if (tier === 'premium') {
+    next.online_signing = metadata.online_signing === true;
+    next.archive_contract = metadata.archive_contract === true;
+  }
+  return next;
+}
+
+function documentCommitment(record) {
+  const signers = (record?.users || []).map((user, index) => ({
+    index,
+    name: String(user?.name || '').trim(),
+    email: String(user?.email || '').trim().toLowerCase()
+  }));
+  const actions = (record?.actions || []).map((action) => actionPayload(action))
+    .sort((left, right) => left.id - right.id);
   return {
+    version: 1,
+    creator: String(record?.creator || '').trim(),
     document: {
-      name: record.document?.name || '',
-      pdf: record.document?.pdf || '',
-      page_count: Number(record.document?.page_count) || 0,
-      page_width: Number(record.document?.page_width) || 0,
-      page_height: Number(record.document?.page_height) || 0
+      name: String(record?.document?.name || ''),
+      pdf: String(record?.document?.pdf || ''),
+      page_count: Number(record?.document?.page_count) || 0,
+      page_width: Number(record?.document?.page_width) || 0,
+      page_height: Number(record?.document?.page_height) || 0
     },
-    actions: (record.actions || []).map((action) => ({
-      id: action.id,
-      type: action.type,
-      user: action.user,
-      page: action.page,
-      x: action.x,
-      y: action.y,
-      width: action.width,
-      height: action.height
-    }))
+    signers,
+    actions,
+    verification: canonicalVerification(record?.metadata)
   };
 }
 
 function documentHash(app, record) {
-  return app.crypto.hash(canonicalJSON(signedMaterial(record)));
+  return app.crypto.hash(canonicalJSON(documentCommitment(record)));
+}
+
+function commitmentIntact(app, record) {
+  const stored = String(record?.hash || '').trim();
+  return Boolean(record?.finalized && stored && stored === documentHash(app, record));
+}
+
+function documentFullyVerified(app, record) {
+  const required = requiredActions(record?.actions);
+  return Boolean(
+    required.length > 0 &&
+    commitmentIntact(app, record) &&
+    verifyFinalization(app, record) &&
+    allActionsSigned(app, record.actions, record.users, record)
+  );
 }
 
 function documentUnchanged(app, record) {
@@ -475,17 +648,23 @@ module.exports = {
   createCreatorProof,
   verifyCreatorProof,
   finalizeDocument,
+  unfinalizeDocument,
   verifyFinalization,
   documentHash,
   documentUnchanged,
+  commitmentIntact,
+  documentFullyVerified,
+  signingConfigurationError,
   userActionsSigned,
   allActionsSigned,
   actionStatus,
   myKeychainEmail,
   knownSigner,
+  clearEmailIdentifier,
   rememberEmail,
   rememberVerifiedEmails,
   verifiedMethods,
   verifiedEmail,
+  verificationSatisfied,
   validVerification
 };

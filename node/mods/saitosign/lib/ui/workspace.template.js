@@ -57,9 +57,9 @@ function fieldListHTML(view) {
       ${view.field_list
         .map(
           (field) => `
-            <li class="row${field.signed ? ' signed' : ''}">
-              <button type="button" class="open" data-open-field="${field.id}">
-                <i class="swatch" style="background:${field.color}" aria-hidden="true"></i>
+            <li class="row${field.signed ? ' signed' : ''}${field.active ? ' active' : ''}${field.confirming ? ' confirming' : ''}">
+              <button type="button" class="open" data-open-field="${field.id}"${field.active ? ' aria-current="true"' : ''}>
+                <i class="swatch" style="background:${field.signed ? 'var(--saitosign-signed-ink)' : field.color}" aria-hidden="true"></i>
                 <span class="label">${escapeHTML(field.label)}</span>
               </button>
             </li>
@@ -109,31 +109,31 @@ function signersSectionHTML(view) {
 
 function railHTML(view) {
   const notice = view.notice ? `<p class="notice">${escapeHTML(view.notice)}</p>` : '';
+  const started = view.field_list.length > 0;
+  const guide = view.finalized
+    ? 'Review the document and provide your signature where needed.'
+    : started
+      ? 'Add further signature boxes, then click Ready to Sign when done.'
+      : 'Click on any page where a signature is required.';
+  const next = view.finalized
+    ? (view.verified
+      ? '<button type="button" class="export primary verified" data-export>Document Verified</button>'
+      : '<button type="button" class="export primary" data-export>Check Document Status</button>')
+    : started
+      ? '<button type="button" class="export primary" data-export>Ready to Sign</button>'
+      : '';
 
   return `
-    <div class="identity">
+    <div class="identity${view.verified ? ' verified' : ''}">
       <p class="name">SaitoSign</p>
       <p class="file">${escapeHTML(view.file_name)}</p>
     </div>
 
-    <p class="guide">To create a SaitoSign document, identify the places on the document where you need signatures. Scroll to the page(s) where signatures are required and click or drag a box on the page where a signature is required.</p>
+    <p class="guide">${guide}</p>
+    ${started ? fieldListHTML(view) : ''}
     ${notice}
+    ${next}
   `;
-}
-
-function actionsInner(view) {
-  return `
-    <p class="title">Actions</p>
-    ${fieldListHTML(view)}
-    <button type="button" class="export primary" data-export>Finalize Document</button>
-  `;
-}
-
-function actionsColumn(view) {
-  if (!view.field_list.length) {
-    return '';
-  }
-  return `<aside class="actions-col">${actionsInner(view)}</aside>`;
 }
 
 function handlesHTML(editable) {
@@ -149,7 +149,7 @@ function fieldsHTML(page) {
   const placed = page.fields
     .map(
       (field) => `
-        <button type="button" class="field" data-field-id="${field.id}" style="left:${pct(field.x)};top:${pct(field.y)};width:${pct(field.width)};height:${pct(field.height)};background:${field.color};border-color:${field.color}">
+        <button type="button" class="field${field.signed ? ' signed' : ''}${field.active ? ' active' : ''}${field.confirming ? ' confirming' : ''}" data-field-id="${field.id}" style="left:${pct(field.x)};top:${pct(field.y)};width:${pct(field.width)};height:${pct(field.height)}${field.signed ? '' : `;background:${field.color};border-color:${field.color}`}">
           <span class="text">${escapeHTML(field.label)}</span>
           ${handlesHTML(page.editable)}
         </button>
@@ -159,8 +159,8 @@ function fieldsHTML(page) {
 
   const draft = page.draft
     ? `
-      <div class="field draft" style="left:${pct(page.draft.x)};top:${pct(page.draft.y)};width:${pct(page.draft.width)};height:${pct(page.draft.height)}">
-        <span class="text">${escapeHTML(page.draft.type)} - ${escapeHTML(page.draft.name)}</span>
+      <div class="field draft active" style="left:${pct(page.draft.x)};top:${pct(page.draft.y)};width:${pct(page.draft.width)};height:${pct(page.draft.height)};background:${page.draft.color || ''};border-color:${page.draft.color || ''}">
+        <span class="text">${escapeHTML(page.draft.label || '')}</span>
       </div>
     `
     : '';
@@ -200,6 +200,7 @@ function readerHTML(view) {
     <div class="zoom">
       <button type="button" data-zoom="out" aria-label="Zoom out"${zoom_out}><i class="fa-solid fa-magnifying-glass-minus" aria-hidden="true"></i></button>
       <button type="button" data-zoom="in" aria-label="Zoom in"${zoom_in}><i class="fa-solid fa-magnifying-glass-plus" aria-hidden="true"></i></button>
+      <button type="button" data-close-document aria-label="Close document"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
     </div>
   `;
 }
@@ -220,7 +221,6 @@ function workspaceTemplate(view) {
           ${readerHTML(view)}
         </div>
       </section>
-      ${actionsColumn(view)}
     </main>
   `;
 }
@@ -229,5 +229,3 @@ module.exports = workspaceTemplate;
 module.exports.rail = railHTML;
 module.exports.fields = fieldsHTML;
 module.exports.reader = readerHTML;
-module.exports.actions = actionsColumn;
-module.exports.actionsInner = actionsInner;

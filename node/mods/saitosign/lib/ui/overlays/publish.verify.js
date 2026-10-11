@@ -9,7 +9,7 @@ function emailAddress(state) {
 function emailPanel(state) {
   const email = state.verificationMethods.find((method) => method.id === 'email');
   if (email && email.status === 'verified') {
-    return `<p class="heading">Your email has been verified.</p>`;
+    return `<p class="verify-confirmed">Your email has been verified.</p>`;
   }
 
   const error = state.verifyError ? `<p class="note fail">${escapeHTML(state.verifyError)}</p>` : '';
@@ -32,7 +32,7 @@ function emailPanel(state) {
   }
 
   return `
-    <p class="heading">We need to verify your email address.</p>
+    <p class="verify-lead">Please verify your email address</p>
     <div class="send-row">
       <input data-verify-email type="email" value="${escapeHTML(emailAddress(state))}" aria-label="Email address" autocomplete="email" />
       <button type="button" class="verify-action" data-publish-action="send-email">Send Email</button>
@@ -93,7 +93,7 @@ function verifySlide(state) {
           : `<p class="heading">${escapeHTML(method?.description || 'This verification method is not available.')}</p>`;
 
   return {
-    title: 'Verify Identity',
+    title: 'Before you sign this document, please verify your identity...',
     body: `
       <div class="verify-flow">
         ${methodsTemplate(state.verificationMethods, state.upsell || focus)}

@@ -73,9 +73,13 @@ async function createPrepareTransaction(app, record) {
   }
   const tx = new Transaction();
   const data = copy(record);
-  data.hash = documentHash(app, data);
+  const stored = String(data.hash || '').trim();
+  delete data.hash;
   if (record?.metadata) {
     data.metadata = readShareMetadata(record.metadata);
+  }
+  if (record?.finalized && (!stored || stored !== documentHash(app, data))) {
+    throw new Error('This document no longer matches its finalized Document Hash.');
   }
   tx.timestamp = Date.now();
   tx.msg = {
@@ -83,6 +87,9 @@ async function createPrepareTransaction(app, record) {
     request: REQUEST,
     data
   };
+  if (record?.finalized) {
+    tx.msg['Document Hash'] = stored;
+  }
   return tx;
 }
 
@@ -114,10 +121,19 @@ function prepareData(tx) {
   }
 
   const data = msg.data;
-  if (data.document && typeof data.document.pdf === 'string' && Array.isArray(data.actions)) {
-    return readRecord(data);
+  const record = data.document && typeof data.document.pdf === 'string' && Array.isArray(data.actions)
+    ? readRecord(data)
+    : readLegacy(data);
+  if (!record) {
+    return null;
   }
-  return readLegacy(data);
+  const named = String(msg['Document Hash'] || '').trim();
+  const embedded = String(record.hash || '').trim();
+  if (named && embedded && named !== embedded) {
+    return null;
+  }
+  record.hash = named || embedded;
+  return record;
 }
 
 function readRecord(data) {
@@ -241,10 +257,15 @@ function readSignatures(list) {
   for (const entry of list) {
     const id = Number(entry?.id);
     const signature = String(entry?.signature || '');
+    const documentHashValue = String(entry?.document_hash || '').trim();
     if (!Number.isInteger(id) || id < 1 || !signature) {
       continue;
     }
-    signatures.push({ id, signature });
+    const next = { id, signature };
+    if (documentHashValue) {
+      next.document_hash = documentHashValue;
+    }
+    signatures.push(next);
   }
   return signatures;
 }

@@ -27,7 +27,7 @@ function fieldTemplate(view) {
     .join('');
 
   const remove = view.existing && view.editable
-    ? '<button type="button" data-remove-field>Delete</button>'
+    ? '<button type="button" data-remove-field aria-label="Delete"><i class="fa-solid fa-trash" aria-hidden="true"></i></button>'
     : '';
   const primary = view.can_sign ? 'Sign' : 'Confirm';
   const mode = view.can_sign ? 'sign' : 'confirm';
@@ -41,8 +41,8 @@ function fieldTemplate(view) {
       <label>
         Who
         <select data-field-signer${disabled}>
-          <option value="new"${chooseNew ? ' selected' : ''}>Add New Signer</option>
           ${signers}
+          <option value="new"${chooseNew ? ' selected' : ''}>Add New Signer</option>
         </select>
       </label>
       <div class="new-signer"${chooseNew ? '' : ' hidden'}>
