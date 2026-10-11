@@ -146,10 +146,10 @@ class GMBadgeMain {
         <h2>How it works</h2>
         <ul>
           <li>Post <b>gm</b> in Red Square once per UTC day. ${p2p ? 'Your first gm lets you mint your badge from your own wallet.' : 'Your first gm mints a badge NFT to your wallet with a serial number. Earlier is lower.'}</li>
-          <li>Tiers: Sprout (day 1), <b>Green Check</b> (day 7), Gold Ring (day 30), Diamond (day 100), Flame (day 365).</li>
-          <li>Miss a day and the badge cracks for 24 hours, then restarts at day 1. Lifetime gms never reset.</li>
+          <li>Ranks: Common Genesis (day 1), Uncommon Timestamp (7), Rare Merkle (30), Epic Routing (100), Legendary Golden Ticket (365), Exotic Satoshi (1000).</li>
+          <li>Miss a day and the cube cracks for 24 hours, then restarts at day 1. Lifetime gms never reset.</li>
           <li>Every gm is an on-chain Red Square post, so anyone can recompute your streak. The badge cannot be bought.</li>
-          <li><b>Security.</b> ${p2p ? 'Your wallet reads gm history straight from the chain and draws the tier from that, never from the NFT image. A badge whose holder has no gm history, or that was not minted by its holder, renders as counterfeit.' : 'A real badge is minted only by the issuer key and carries your serial. Wallets check the creator key on the NFT itself and flag anything else as counterfeit.'} The art carries a Saito-cube micro matrix, micro text, and a micro-printed serial line like the classic green check.</li>
+          <li><b>Security.</b> ${p2p ? 'Your wallet reads gm history straight from the chain and draws the rank from that, never from the NFT image. A badge whose holder has no gm history, or that was not minted by its holder, renders as counterfeit.' : 'A real badge is minted only by the issuer key and carries your serial. Wallets check the creator key on the NFT itself and flag anything else as counterfeit.'} Zoom the art: one overlayed Saito cube, repeating <code>gm</code> / SAITO microtext, and a micro-printed serial on the bottom edge.</li>
         </ul>
       </section>
 

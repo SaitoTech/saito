@@ -10,15 +10,22 @@
 const DAY_MS = 86400000;
 
 const TIERS = [
-  { id: 0, name: 'none', label: 'No streak', min: 0 },
-  { id: 1, name: 'sprout', label: 'Sprout', min: 1 },
-  { id: 2, name: 'green', label: 'Green Check', min: 7 },
-  { id: 3, name: 'gold', label: 'Gold Ring', min: 30 },
-  { id: 4, name: 'diamond', label: 'Diamond', min: 100 },
-  { id: 5, name: 'flame', label: 'Flame', min: 365 }
+  { id: 0, name: 'none', label: 'No streak', rarity: '', min: 0 },
+  { id: 1, name: 'genesis', label: 'Common · Genesis', rarity: 'Common', min: 1 },
+  { id: 2, name: 'timestamp', label: 'Uncommon · Timestamp', rarity: 'Uncommon', min: 7 },
+  { id: 3, name: 'merkle', label: 'Rare · Merkle', rarity: 'Rare', min: 30 },
+  { id: 4, name: 'routing', label: 'Epic · Routing', rarity: 'Epic', min: 100 },
+  {
+    id: 5,
+    name: 'goldenticket',
+    label: 'Legendary · Golden Ticket',
+    rarity: 'Legendary',
+    min: 365
+  },
+  { id: 6, name: 'satoshi', label: 'Exotic · Satoshi', rarity: 'Exotic', min: 1000 }
 ];
 
-const MILESTONES = [7, 30, 100, 365];
+const MILESTONES = [7, 30, 100, 365, 1000];
 
 //
 // "gm", "GM", "gm fam", "gm ☀️", "☀️ gm", "gm!" all count.

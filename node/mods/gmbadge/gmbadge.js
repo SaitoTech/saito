@@ -37,7 +37,7 @@ class GMBadge extends ModTemplate {
     this.slug = 'gmbadge';
     this.description = 'Say gm in Red Square every day. Earn a verifiable streak badge NFT.';
     this.categories = 'Social Utilities';
-    this.icon_fa = 'fa-solid fa-circle-check';
+    this.icon_fa = 'fa-solid fa-cube';
     this.publisher_message =
       'gm fam. Say gm once a day in Red Square. Your badge grows with your streak and anyone can verify it from the chain.';
     this.status = 'beta';

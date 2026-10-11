@@ -7,7 +7,7 @@ Nobody can buy it. Anyone can verify it.
 
 - **Indexes** every Red Square post on-chain and records one gm per public key per UTC day.
 - **Mints** a `gm` NFT (quantity 1, 1 SAITO deposit so ATR keeps it alive) to a holder on their first gm. Serial numbers are sequential, so early is low.
-- **Computes** streaks: Sprout (1), Green Check (7), Gold Ring (30), Diamond (100), Flame (365). Miss a day and the badge cracks for 24h, then restarts. Lifetime gms never reset.
+- **Computes** streaks into ranks: Common Genesis (1), Uncommon Timestamp (7), Rare Merkle (30), Epic Routing (100), Legendary Golden Ticket (365), Exotic Satoshi (1000). Miss a day and the cube cracks for 24h, then restarts. Lifetime gms never reset.
 - **Decorates** every `.saito-user` username across Red Square, Chat, Arcade, and profiles with the holder's live badge.
 - **Serves** streak state to browsers over the `gmbadge` peer service and as JSON/SVG over HTTP.
 

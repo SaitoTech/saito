@@ -15,6 +15,9 @@
 .gm-badge-inline.gm-tier-5 svg {
   filter: drop-shadow(0 0 3px rgba(249, 115, 22, 0.8));
 }
+.gm-badge-inline.gm-tier-6 svg {
+  filter: drop-shadow(0 0 3px rgba(167, 139, 250, 0.9));
+}
 .gm-badge-inline.gm-cracked svg {
   opacity: 0.8;
 }
