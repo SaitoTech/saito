@@ -140,30 +140,48 @@ function serialStars(opts, ink) {
   return dots;
 }
 
-function livingRimDefs(id, kind) {
+function livingRimDefs(id, kind, still = false) {
+  const spin = (dur) =>
+    still
+      ? ''
+      : `<animateTransform attributeName="gradientTransform" type="rotate" from="0 0.5 0.5" to="360 0.5 0.5" dur="${dur}" repeatCount="indefinite"/>`;
+  const frozen = still ? ' gradientTransform="rotate(40 0.5 0.5)"' : '';
   if (kind === 'gold') {
     return (
-      `<linearGradient id="${id}rim" x1="0" y1="0" x2="1" y2="1" gradientUnits="objectBoundingBox">` +
+      `<linearGradient id="${id}rim" x1="0" y1="0" x2="1" y2="1" gradientUnits="objectBoundingBox"${frozen}>` +
       `<stop offset="0" stop-color="#5a3c08"/>` +
       `<stop offset="0.22" stop-color="#e8c547"/>` +
       `<stop offset="0.4" stop-color="#fff4c4"/>` +
       `<stop offset="0.55" stop-color="#c5a028"/>` +
       `<stop offset="0.78" stop-color="#7a5410"/>` +
       `<stop offset="1" stop-color="#e8c547"/>` +
-      `<animateTransform attributeName="gradientTransform" type="rotate" from="0 0.5 0.5" to="360 0.5 0.5" dur="3.6s" repeatCount="indefinite"/>` +
+      spin('3.6s') +
       `</linearGradient>`
     );
   }
   return (
-    `<linearGradient id="${id}rim" x1="0" y1="0" x2="1" y2="1" gradientUnits="objectBoundingBox">` +
+    `<linearGradient id="${id}rim" x1="0" y1="0" x2="1" y2="1" gradientUnits="objectBoundingBox"${frozen}>` +
     `<stop offset="0" stop-color="#52525b"/>` +
     `<stop offset="0.18" stop-color="#fafafa"/>` +
     `<stop offset="0.36" stop-color="#67e8f9"/>` +
     `<stop offset="0.52" stop-color="#e879f9"/>` +
     `<stop offset="0.7" stop-color="#fafafa"/>` +
     `<stop offset="1" stop-color="#27272a"/>` +
-    `<animateTransform attributeName="gradientTransform" type="rotate" from="0 0.5 0.5" to="360 0.5 0.5" dur="4.2s" repeatCount="indefinite"/>` +
+    spin('4.2s') +
     `</linearGradient>`
+  );
+}
+
+//
+// One animated gradient per rim kind for the whole document. Inline badges
+// reference these by id instead of carrying their own, so a feed with 400
+// living rims runs 2 SMIL animations instead of 400.
+//
+function sharedRimDefs() {
+  return (
+    `<svg class="gm-rim-defs" width="0" height="0" aria-hidden="true" style="position:absolute;width:0;height:0;overflow:hidden">` +
+    `<defs>${livingRimDefs('gmshared-gold', 'gold').replace('gmshared-goldrim', 'gm-rim-gold')}` +
+    `${livingRimDefs('gmshared-chrome', 'chrome').replace('gmshared-chromerim', 'gm-rim-chrome')}</defs></svg>`
   );
 }
 
@@ -214,6 +232,7 @@ function render(opts = {}) {
   const micro = opts.micro !== false && size >= 48;
   const id = `gm${++uid}`;
   const effective = dormant ? 0 : tierId;
+  const rim = opts.rim || 'smil';
 
   const title =
     opts.title ||
@@ -258,8 +277,18 @@ function render(opts = {}) {
   } else {
     const rank = RANKS[effective] || RANKS[1];
     const edge = size < 28 ? 2.6 : 1.35;
-    if (rank.alive) {
-      defs += livingRimDefs(id, rank.alive);
+    if (rank.alive && rim === 'shared') {
+      body =
+        `<polygon points="${BADGE_POLY}" fill="${rank.fill}"/>` +
+        livingRim(id, size).replace(`url(#${id}rim)`, `url(#gm-rim-${rank.alive})`);
+    } else if (rank.alive && rim === 'css') {
+      // rim is drawn by an HTML overlay (compositor-only transform animation); keep the dark base ring
+      const w = size < 28 ? 4.4 : 3.4;
+      body =
+        `<polygon points="${BADGE_POLY}" fill="${rank.fill}"/>` +
+        `<polygon points="${BADGE_POLY}" fill="none" stroke="#09090b" stroke-width="${w + 1.8}" stroke-linejoin="round"/>`;
+    } else if (rank.alive) {
+      defs += livingRimDefs(id, rank.alive, rim === 'still');
       body = `<polygon points="${BADGE_POLY}" fill="${rank.fill}"/>` + livingRim(id, size);
     } else {
       body =
@@ -286,7 +315,7 @@ function render(opts = {}) {
     : '';
 
   return (
-    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="4 4 92 92" width="${size}" height="${size}" class="gm-badge-svg gm-badge-tier-${effective}${cracked ? ' gm-badge-cracked' : ''}${counterfeit ? ' gm-badge-counterfeit' : ''}" role="img" aria-label="${esc(title)}">` +
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="4 4 92 92" width="${size}" height="${size}" data-rim="${(RANKS[effective] && RANKS[effective].alive) || ''}" class="gm-badge-svg gm-badge-tier-${effective}${cracked ? ' gm-badge-cracked' : ''}${counterfeit ? ' gm-badge-counterfeit' : ''}" role="img" aria-label="${esc(title)}">` +
     `<title>${esc(title)}</title>` +
     `<defs>${defs}</defs>` +
     body +
@@ -301,7 +330,7 @@ function renderDataUri(opts = {}) {
   return 'data:image/svg+xml;utf8,' + encodeURIComponent(render(opts));
 }
 
-const api = { render, renderDataUri, CUBE, BADGE_PATH, isoCube };
+const api = { render, renderDataUri, sharedRimDefs, CUBE, BADGE_PATH, isoCube, RANKS };
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = api;
 }

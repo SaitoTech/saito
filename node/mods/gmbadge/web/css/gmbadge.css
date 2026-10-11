@@ -212,3 +212,9 @@
 .gmbadge-overlay .gmbadge-hero { grid-template-columns: 150px 1fr; }
 .gmbadge-mint { min-width: 160px; }
 .gmbadge-mode { font-size: 12px; opacity: 0.6; margin-left: 8px; }
+
+/* live rims get their own compositor layer so repaints stay inside the badge */
+.gm-badge-inline.gm-live svg {
+  will-change: transform;
+  contain: paint;
+}

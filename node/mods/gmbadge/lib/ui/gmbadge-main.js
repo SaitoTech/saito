@@ -38,6 +38,28 @@ class GMBadgeMain {
     }
     el.innerHTML = this.template();
     this.attachEvents();
+    this.budgetAnimations(el);
+  }
+
+  //
+  // Same animation budget as the inline decorator: the hero badge always
+  // plays; leaderboard rims beyond the first 24 hold a still frame.
+  //
+  budgetAnimations(el) {
+    let live = 0;
+    el.querySelectorAll('.gmbadge-list svg[data-rim]').forEach((svg) => {
+      if (!svg.getAttribute('data-rim')) {
+        return;
+      }
+      try {
+        if (live < 24) {
+          live++;
+          svg.unpauseAnimations();
+        } else {
+          svg.pauseAnimations();
+        }
+      } catch (err) {}
+    });
   }
 
   template() {
