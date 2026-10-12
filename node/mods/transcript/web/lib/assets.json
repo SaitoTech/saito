@@ -1,0 +1,32 @@
+{
+  "transformersVersion": "3.8.1",
+  "files": [
+    {
+      "path": "transformers.min.js",
+      "url": "https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.8.1/dist/transformers.min.js",
+      "sha256": "aa5002b70e789798da263f5f99c62bd3e8fcd0c119258a493c40c180648365fa"
+    },
+    {
+      "path": "ort-wasm-simd-threaded.jsep.mjs",
+      "url": "https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.8.1/dist/ort-wasm-simd-threaded.jsep.mjs",
+      "sha256": "f218009d8a77bed3a4e11d39d8b4167bdf8f795c276e0b525617f4de52fdfb73",
+      "upstreamSha256": "08fb86ec433c78bfb032c5d84a68b8e8e5a8d81268fa39e24314179a5767a5b9",
+      "modifications": "Removed trailing whitespace from blank line 3."
+    },
+    {
+      "path": "ort-wasm-simd-threaded.jsep.wasm",
+      "url": "https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.8.1/dist/ort-wasm-simd-threaded.jsep.wasm",
+      "sha256": "c46655e8a94afc45338d4cb2b840475f88e5012d524509916e505079c00bfa39"
+    },
+    {
+      "path": "TRANSFORMERS-LICENSE",
+      "url": "https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.8.1/LICENSE",
+      "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+    },
+    {
+      "path": "ONNXRUNTIME-LICENSE",
+      "url": "https://raw.githubusercontent.com/microsoft/onnxruntime/89f8206ba4/LICENSE",
+      "sha256": "2f07c72751aed99790b8a4869cf2311df85a860b22ded05fa22803587a48922c"
+    }
+  ]
+}

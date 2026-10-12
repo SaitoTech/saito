@@ -2,6 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { EventEmitter } from 'node:events';
 import { createRequire } from 'node:module';
+import { createHash } from 'node:crypto';
+import { readFile } from 'node:fs/promises';
 import { JSDOM } from 'jsdom';
 
 const require = createRequire(import.meta.url);
@@ -191,11 +193,11 @@ test('inactive Transcript opens Start/Settings menu; active Transcript stops dir
   assert.equal(document.querySelector('.transcript-action-menu'), null);
 });
 
-test('server blocks legacy model routes while allowing the client model module', async (t) => {
+test('server serves packaged browser modules and runtime while blocking legacy model routes', async (t) => {
   const express = require('express');
   const serverApp = express();
   const mod = new Transcript({ BROWSER: 0 });
-  mod.webServer({}, serverApp, { static: () => (_req, res) => res.send('runtime asset') });
+  mod.webServer({}, serverApp, express);
   const server = serverApp.listen(0, '127.0.0.1');
   await new Promise((resolve) => server.once('listening', resolve));
   t.after(() => new Promise((resolve) => server.close(resolve)));
@@ -204,7 +206,40 @@ test('server blocks legacy model routes while allowing the client model module',
     (await fetch(`${base}/transcript/models/Xenova/whisper-tiny.en/config.json`)).status,
     404
   );
-  const module = await fetch(`${base}/transcript/models.mjs`);
-  assert.equal(module.status, 200);
-  assert.equal(await module.text(), 'runtime asset');
+  for (const name of [
+    'runtime.mjs',
+    'engine.mjs',
+    'audio-buffer.mjs',
+    'model-manager.mjs',
+    'models.mjs',
+    'model-catalog.mjs',
+    'worker.mjs',
+    'audio-worklet.js'
+  ]) {
+    const response = await fetch(`${base}/transcript/${name}`);
+    assert.equal(response.status, 200, name);
+    assert.match(response.headers.get('content-type'), /javascript/, name);
+    assert.equal(
+      await response.text(),
+      await readFile(new URL(`../../web/${name}`, import.meta.url), 'utf8'),
+      name
+    );
+  }
+  const manifest = JSON.parse(
+    await readFile(new URL('../../web/lib/assets.json', import.meta.url), 'utf8')
+  );
+  for (const asset of manifest.files) {
+    const response = await fetch(`${base}/transcript/lib/${asset.path}`);
+    assert.equal(response.status, 200, asset.path);
+    if (asset.path.endsWith('.wasm')) {
+      assert.match(response.headers.get('content-type'), /application\/wasm/);
+    } else if (/\.m?js$/.test(asset.path)) {
+      assert.match(response.headers.get('content-type'), /javascript/, asset.path);
+    }
+    assert.equal(
+      createHash('sha256').update(Buffer.from(await response.arrayBuffer())).digest('hex'),
+      asset.sha256,
+      asset.path
+    );
+  }
 });
