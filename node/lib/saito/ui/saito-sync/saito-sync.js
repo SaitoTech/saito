@@ -28,6 +28,7 @@ class SaitoSync {
     this.poll_in_flight = false;
     this.fast_forward_in_progress = false;
     this.ui_mode = 'idle';
+    this.minimized = null;
     this.initial_sync_completed = false;
     this.syncing_shown_at = null;
     this.ui_timer = null;
@@ -226,31 +227,149 @@ class SaitoSync {
       this.onOverlayClosed();
     });
 
-    const skip = document.getElementById('saito-sync-skip');
-    if (skip) {
-      skip.onclick = (event) => {
-        event.preventDefault();
-        this.skipSyncWait();
-      };
-    }
+    const minimize = document.getElementById('saito-sync-minimize');
+    minimize.onclick = (event) => {
+      event.stopPropagation();
+      this.setMinimized(true, true);
+    };
+
+    const startup = document.getElementById('saito-sync-minimize-on-startup');
+    startup.onchange = () => {
+      this.app.options.saito_sync ??= {};
+      this.app.options.saito_sync.minimize_on_startup = startup.checked;
+      this.app.storage.saveOptions();
+      if (startup.checked) {
+        this.setMinimized(true, true);
+      }
+    };
+
+    this.attachPillEvents(document.getElementById('saito-sync'));
+
+    this.setMinimized(
+      this.minimized ?? (this.app.options?.saito_sync?.minimize_on_startup === true)
+    );
 
     this.displayed_current_block_id = this.getDisplayCurrentBlockId();
     this.setTargetBlockText(this.toBigInt(this.payload?.target_block_id));
   }
 
-  skipSyncWait() {
-    if (this.ui_mode !== 'syncing' || !this.overlay.visible) {
-      return;
+  attachPillEvents(root) {
+    let drag = null;
+    let suppress_click = false;
+
+    root.onclick = (event) => {
+      if (suppress_click) {
+        suppress_click = false;
+        event.preventDefault();
+        event.stopPropagation();
+        return;
+      }
+      if (this.minimized && !event.target.closest('button, input, label')) {
+        this.setMinimized(false, true);
+      }
+    };
+    root.onkeydown = (event) => {
+      if (
+        this.minimized &&
+        event.target === root &&
+        (event.key === 'Enter' || event.key === ' ')
+      ) {
+        event.preventDefault();
+        this.setMinimized(false, true);
+      }
+    };
+
+    root.onpointerdown = (event) => {
+      if (
+        !this.minimized ||
+        window.innerWidth > 768 ||
+        event.button !== 0 ||
+        event.isPrimary === false ||
+        drag
+      ) {
+        return;
+      }
+      suppress_click = false;
+      const host = document.getElementById(`saito-overlay${this.overlay.ordinal}`);
+      drag = {
+        pointer_id: event.pointerId,
+        x: event.clientX,
+        y: event.clientY,
+        rect: host.getBoundingClientRect(),
+        host,
+        moved: false
+      };
+      root.setPointerCapture(event.pointerId);
+    };
+
+    root.onpointermove = (event) => {
+      if (!drag || event.pointerId !== drag.pointer_id || !this.minimized) return;
+      const dx = event.clientX - drag.x;
+      const dy = event.clientY - drag.y;
+      if (!drag.moved && Math.hypot(dx, dy) < 6) return;
+      drag.moved = true;
+      event.preventDefault();
+
+      const max_x = Math.max(0, window.innerWidth - drag.rect.width);
+      const max_y = Math.max(0, window.innerHeight - drag.rect.height);
+      const x = Math.max(0, Math.min(max_x, drag.rect.left + dx));
+      const y = Math.max(0, Math.min(max_y, drag.rect.top + dy));
+      // Store proportional positions so viewport changes keep the pill on screen.
+      drag.host.style.setProperty('--saito-sync-pill-drag-x', `${max_x ? (x / max_x) * 100 : 0}%`);
+      drag.host.style.setProperty('--saito-sync-pill-drag-y', `${max_y ? (y / max_y) * 100 : 0}%`);
+      drag.host.classList.add('saito-sync-pill-positioned');
+    };
+
+    const finish_drag = (event) => {
+      if (!drag || event.pointerId !== drag.pointer_id) return;
+      suppress_click = drag.moved;
+      drag = null;
+      if (root.hasPointerCapture(event.pointerId)) {
+        root.releasePointerCapture(event.pointerId);
+      }
+    };
+    root.onpointerup = finish_drag;
+    root.onpointercancel = finish_drag;
+    root.onlostpointercapture = finish_drag;
+    root.oncontextmenu = (event) => {
+      if (this.minimized && window.innerWidth <= 768) event.preventDefault();
+    };
+    root.ondragstart = (event) => {
+      if (this.minimized) event.preventDefault();
+    };
+  }
+
+  setMinimized(minimized, focus = false) {
+    this.minimized = minimized;
+    this.overlay.nonBlocking = minimized;
+    const root = document.getElementById('saito-sync');
+    const host = document.getElementById(`saito-overlay${this.overlay.ordinal}`);
+    const backdrop = document.getElementById(`saito-overlay-backdrop${this.overlay.ordinal}`);
+
+    host?.classList.toggle('saito-sync-minimized', minimized);
+    backdrop?.classList.toggle('saito-sync-minimized-backdrop', minimized);
+    root?.classList.toggle('saito-sync-pill', minimized);
+    root?.classList.toggle('retain-surface', minimized);
+
+    if (minimized) {
+      this.overlay.removeVisualViewportResizeHandler();
+      root?.setAttribute('role', 'button');
+      root?.setAttribute('tabindex', '0');
+      root?.setAttribute('aria-label', 'Expand blockchain sync progress');
+      if (focus) root?.focus();
+    } else {
+      this.overlay.attachVisualViewportResizeHandler(host);
+      root?.removeAttribute('role');
+      root?.removeAttribute('tabindex');
+      root?.removeAttribute('aria-label');
+      if (focus) document.getElementById('saito-sync-minimize')?.focus();
     }
-    this.sync_complete = true;
-    this.stopProgressPolling();
-    this.cancelPendingUi();
-    this.pending_transition = null;
-    this.fadeOutSyncing();
   }
 
   onOverlayClosed() {
     this.initial_sync_completed = true;
+    this.minimized = null;
+    this.overlay.nonBlocking = false;
     this.stopProgressPolling();
     this.cancelPendingUi();
     this.pending_transition = null;
@@ -393,6 +512,7 @@ class SaitoSync {
     this.stopProgressPolling();
     this.cancelPendingUi();
     this.clearOverlayFade();
+    this.setMinimized(false);
     this.ui_mode = 'fast_forward';
     this.overlay.show(SaitoSyncTemplate.tooFarBehind(this), () => {
       this.onOverlayClosed();

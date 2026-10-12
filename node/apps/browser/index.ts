@@ -18,6 +18,8 @@ async function init() {
 
   const saito = new Saito({ mod_paths: mods_config.lite });
   saito.saito_sync = new SaitoSync(saito, null);
+  // Temporary DevTools access for previewing the block sync overlay.
+  //(window as any).devSync = saito.saito_sync;
   await saito.storage.initialize();
 
   {

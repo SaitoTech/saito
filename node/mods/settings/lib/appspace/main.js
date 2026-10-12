@@ -303,15 +303,16 @@ class SettingsAppspace {
       let footerStorage = document.getElementById('settings-footer-storage');
       let footerStorageInfo = document.getElementById('settings-footer-storage-info');
       if (footerStorage) {
-        footerStorage.textContent = this.formatStorageBytes(usageBytes);
+        footerStorage.textContent = `${this.formatStorageBytes(localUsage)} | ${this.formatStorageBytes(usageBytes)}`;
+        footerStorage.title = 'Local Storage | IndexedDB';
       }
       if (footerStorageInfo && detailTitle) {
-        footerStorageInfo.title = detailTitle;
+        footerStorageInfo.title = `Local Storage usage ${this.formatStorageBytes(localUsage)} (${localPercent}%) | ${detailTitle}`;
       }
     };
 
     navigator.storage
-      .estimate()
+      ?.estimate?.()
       .then((estimate) => {
         if (estimate?.usage != null && estimate?.quota != null) {
           let percentage = (estimate.usage / estimate.quota) * 100;
@@ -361,10 +362,7 @@ class SettingsAppspace {
     document.querySelector('.settings-appspace-localstorage-info .percent').innerHTML =
       this.app.browser.formatNumberToLocale(localPercent);
 
-    let footerStorageInfo = document.getElementById('settings-footer-storage-info');
-    if (footerStorageInfo && !footerStorageInfo.title) {
-      footerStorageInfo.title = `Local Storage usage ${this.formatStorageBytes(localUsage)} (${localPercent}%)`;
-    }
+    updateFooter(undefined, 'IndexedDB usage unavailable');
 
     console.log(`LocalStorage is ${localPercent}% full.`);
   }
