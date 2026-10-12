@@ -9,23 +9,23 @@
  * .hex and .hexIn are visibility: hidden; .hexIn * restores visibility.
  */
 .game.imperium .planet-info {
-  --pi-title: 18px;
-  --pi-controller: 11px;
-  --pi-type: 10px;
-  --pi-military: 12px;
-  --pi-hex: 52px;
-  --pi-hex-nudge: 30px;
-  --pi-hex-num: 22px;
-  --pi-pad: 6px;
-  --pi-identity-left: 8px;
-  --pi-identity-right: 18px;
-  --pi-caret: 6px;
-  --pi-military-pad: 4px 8px;
-  --pi-row: 15px;
-  --pi-stack: 2px;
-  --pi-gap: 4px;
-  --pi-section: 4px;
-  --pi-bar: 14px;
+  --pi-title: 13px;
+  --pi-controller: 9px;
+  --pi-type: 8px;
+  --pi-military: 10px;
+  --pi-hex: 34px;
+  --pi-hex-nudge: 18px;
+  --pi-hex-num: 16px;
+  --pi-pad: 3px;
+  --pi-identity-left: 6px;
+  --pi-identity-right: 14px;
+  --pi-caret: 5px;
+  --pi-military-pad: 2px 6px;
+  --pi-row: 11px;
+  --pi-stack: 0px;
+  --pi-gap: 2px;
+  --pi-section: 2px;
+  --pi-bar: 12px;
   --pi-cultural: var(--planet-cultural);
   --pi-industrial: var(--planet-industrial);
   --pi-hazardous: var(--planet-hazardous);
@@ -95,23 +95,6 @@
 
 .game.imperium .top_planet > .planet-info,
 .game.imperium .bottom_planet > .planet-info {
-  --pi-title: 13px;
-  --pi-controller: 9px;
-  --pi-type: 8px;
-  --pi-military: 10px;
-  --pi-hex: 34px;
-  --pi-hex-nudge: 18px;
-  --pi-hex-num: 16px;
-  --pi-pad: 3px;
-  --pi-identity-left: 6px;
-  --pi-identity-right: 14px;
-  --pi-caret: 5px;
-  --pi-military-pad: 2px 6px;
-  --pi-row: 11px;
-  --pi-stack: 0px;
-  --pi-gap: 2px;
-  --pi-section: 2px;
-  --pi-bar: 12px;
   position: relative;
   top: auto;
   left: auto;
