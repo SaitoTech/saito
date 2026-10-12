@@ -21,6 +21,9 @@ let SaitoHeaderTemplate = (app, mod, headerClass) => {
                                <i class="fas fa-copy"></i>
                            </div>
                            <div class="pubkey-mobile-wrapper">
+                               <button type="button" class="wallet-mobile-action" id="toggle-qrcode" aria-label="Show QR code" aria-pressed="false" title="Show QR code">
+                                   <i class="fa-solid fa-qrcode" aria-hidden="true"></i>
+                               </button>
                                <button type="button" class="wallet-mobile-action" id="share-address" aria-label="Share wallet address" title="Share wallet address">
                                    <i class="fa-solid fa-share-nodes" aria-hidden="true"></i>
                                </button>

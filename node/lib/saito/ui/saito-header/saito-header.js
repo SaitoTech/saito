@@ -748,6 +748,16 @@ class SaitoHeader extends UIModTemplate {
       };
     }
 
+    //
+    // QR code is collapsed by default on phones (see saito-header.css)
+    //
+    if (document.getElementById('toggle-qrcode')) {
+      document.getElementById('toggle-qrcode').onclick = () => {
+        const wallet_info = document.querySelector('.wallet-info');
+        this.setQRCodeVisible(!wallet_info?.classList.contains('show-qrcode'));
+      };
+    }
+
     if (document.getElementById('share-address')) {
       const shareButton = document.getElementById('share-address');
       if (typeof navigator.share !== 'function') {
@@ -924,12 +934,27 @@ class SaitoHeader extends UIModTemplate {
     }
   }
 
+  setQRCodeVisible(visible) {
+    const wallet_info = document.querySelector('.wallet-info');
+    const toggle = document.getElementById('toggle-qrcode');
+    if (wallet_info) {
+      wallet_info.classList.toggle('show-qrcode', visible);
+    }
+    if (toggle) {
+      const label = visible ? 'Hide QR code' : 'Show QR code';
+      toggle.setAttribute('aria-pressed', String(visible));
+      toggle.setAttribute('aria-label', label);
+      toggle.setAttribute('title', label);
+    }
+  }
+
   hideMenu() {
     const sidebar = document.querySelector('.saito-header-hamburger-contents');
     if (!sidebar) {
       return;
     }
     sidebar.classList.remove('show-wallet');
+    this.setQRCodeVisible(false);
 
     const backdrop = document.querySelector('.saito-header-backdrop');
     if (sidebar.classList.contains('show-menu')) {

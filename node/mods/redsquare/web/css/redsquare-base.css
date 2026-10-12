@@ -52,12 +52,7 @@ html:has(body.redsquare-body) {
   }
 
   html:has(body.redsquare-body) .saito-header-hamburger-contents {
-    right: -33.35rem;
     width: 33.35rem;
-  }
-
-  html:has(body.redsquare-body) .saito-header-hamburger-contents.show-menu {
-    right: 0;
   }
 
   html:has(body.redsquare-body) #qrcode {
@@ -240,11 +235,6 @@ html:has(body.redsquare-body) {
 
   html:has(body.redsquare-body) .saito-header-hamburger-contents {
     width: 100vw;
-    right: -100vw;
-  }
-
-  html:has(body.redsquare-body) .saito-header-hamburger-contents.show-menu {
-    right: 0;
   }
 }
 
