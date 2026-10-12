@@ -1,0 +1,4 @@
+.game.paths .russia-overlay {
+  --paths-track-image: url('/paths/img/backgrounds/russian_capitulation.png');
+  --paths-marker: url('/paths/img/russian_capit.png');
+}

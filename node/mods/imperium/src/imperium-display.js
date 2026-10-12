@@ -5,6 +5,8 @@
 displayBoard() {
   for (let i in this.sectors) {
     this.sectors[i].render();
+    let planet_div = "#hex_img_" + i;
+    $(planet_div).attr("src", this.game.sectors[this.game.board[i].tile].img);
   }
   if (this.minimap) {
     this.minimap.render();
@@ -574,7 +576,8 @@ hideSector(pid) {
 
 
 updateTokenDisplay() {
-
+  if (this.browser_active == 0) { return; }
+  this.displayFactionDashboard();
 }
 
 

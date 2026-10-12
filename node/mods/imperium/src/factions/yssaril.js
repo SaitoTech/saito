@@ -132,7 +132,7 @@
 	      imperium_self.endTurn();
 	    });
 	  } else {
-	    	    imperium_self.game.status = "Yssaril are discarding an action card...";
+	    	    imperium_self.game.status = "The Shade Clan is discarding an action card...";
 	    imperium_self.hud.prepareIdle(imperium_self.game.status);
 	    imperium_self.hud.updateCards([]);
 	  }
@@ -339,14 +339,14 @@
     this.importPromissary("faction6-promissary", {
       name        :       "Nest of Spies" ,
       faction     :       -1,
-      text        :       "Redeemer may choose one action card from Yssaril hand" ,
+      text        :       "Redeemer may choose one action card from The Shade Clan hand" ,
       menuOption  :       function(imperium_self, menu, player) {
         let x = {};
         if (menu == "main") {
           x.event = 'faction6-promissary';
-          x.html = '<li class="option" id="faction6-promissary">Nest of Spies (Yssaril Promissary)</li>';
+          x.html = '<li class="option" id="faction6-promissary">Nest of Spies (Shade Clan Promissary)</li>';
           x.id = 'faction6-promissary';
-          x.label = 'Nest of Spies (Yssaril Promissary)';
+          x.label = 'Nest of Spies (Shade Clan Promissary)';
         }
         return x;
       },
@@ -363,7 +363,7 @@
         let yssaril_player = imperium_self.returnPlayerOfFaction("faction6");
         if (imperium_self.game.player == player) {
 
-          let html = 'Reveal Yssaril Action Cards and Take One?';
+          let html = 'Reveal Shade Clan Action Cards and Take One?';
           let menu = [];
               menu.push({ id: 'yes', label: 'yes' });
               menu.push({ id: 'no', label: 'no' });
@@ -375,7 +375,7 @@
           imperium_self.hud.updateMenu(menu, function(id) {
 	     if (id === "yes") {
 	       imperium_self.addMove("faction6_promissary_triggered"+"\t"+imperium_self.game.player+"\t"+yssaril_player);
-               imperium_self.addMove("NOTIFY\t" + imperium_self.returnFaction(imperium_self.game.player) + " redeems Yssaril promissary");
+               imperium_self.addMove("NOTIFY\t" + imperium_self.returnFaction(imperium_self.game.player) + " redeems Shade Clan promissary");
                imperium_self.addMove("give" + "\t" + player + "\t" + yssaril_player + "\t" + "promissary" + "\t"+"faction6-promissary");
 	       imperium_self.endTurn();
 	     }
@@ -414,7 +414,7 @@
           imperium_self.game.queue.splice(qe, 1);
 
 	  if (relevant_action_cards.length <= 0) {
-	    	    imperium_self.game.status = "Yssaril has no action cards to steal...";
+	    	    imperium_self.game.status = "The Shade Clan has no action cards to steal...";
 	    imperium_self.hud.prepareIdle(imperium_self.game.status);
 	    imperium_self.hud.updateCards([]);
 	    return 1;
@@ -430,7 +430,7 @@
 	      function (card) {
                 imperium_self.addMove("pull\t" + recipient + "\t" + sender + "\t" + "action" + "\t" + card);
                 imperium_self.addMove("give" + "\t" + recipient + "\t" + sender + "\t" + "promissary" + "\t"+"faction6-promissary");
-                imperium_self.addMove("NOTIFY\t"+imperium_self.returnFaction(imperium_self.game.player) + " redeems Yssaril Promissary");
+                imperium_self.addMove("NOTIFY\t"+imperium_self.returnFaction(imperium_self.game.player) + " redeems Shade Clan Promissary");
                 imperium_self.endTurn();
               },
  

@@ -382,7 +382,7 @@ this.playDevotionAssignHit = function(imperium_self, player, sector, mycallback,
 
 
     this.importPromissary("faction5-promissary", {
-      name        :       "Greyfire Mutagen" ,
+      name        :       "Greyscale Mutation" ,
       faction     :       -1,
       text        :       "Redeemer may replace 1 opponent infantry with their own if more than 1 invader" ,
       groundCombatTriggers : function(imperium_self, player, sector, planet_idx) {
@@ -396,7 +396,7 @@ this.playDevotionAssignHit = function(imperium_self, player, sector, mycallback,
       groundCombatEvent : function(imperium_self, player, sector, planet_idx) {
         if (imperium_self.game.player == player) {
 
-          let html = `<div class="status-message">Do you wish to return your Yin Promissary to convert 1 opponent infantry?</div>`;
+          let html = `<div class="status-message">Do you wish to return your Devotion Promissary to convert 1 opponent infantry?</div>`;
           let menu = [];
               menu.push({ id: 'yes', label: 'Yes' });
               menu.push({ id: 'no', label: 'No' });
@@ -417,10 +417,10 @@ this.playDevotionAssignHit = function(imperium_self, player, sector, mycallback,
 
               imperium_self.addMove("destroy_infantry_on_planet"+"\t"+player+"\t"+sector+"\t"+planet_idx+"\t"+1);
               imperium_self.addMove("add_infantry_to_planet"+"\t"+player+"\t"+planet.planet+"\t"+1);
-              imperium_self.addMove("NOTIFY\tGreyfire Mutagen converts opposing infantry");
+              imperium_self.addMove("NOTIFY\tGreyscale Mutation converts opposing infantry");
 
               imperium_self.addMove("give" + "\t" + player + "\t" + yin_player + "\t" + "promissary" + "\t"+"faction5-promissary");
-              imperium_self.addMove("NOTIFY" + "\t" + "Yin Promissary redeemed");
+              imperium_self.addMove("NOTIFY" + "\t" + "Devotion Promissary redeemed");
               imperium_self.endTurn();
 
             }

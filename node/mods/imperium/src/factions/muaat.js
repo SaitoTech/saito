@@ -150,7 +150,7 @@
 	    }
 	  }
 	  if (give_bonus == 1) {
-	    imperium_self.updateLog("Muatt gains 1 trade good from Magma Reactor - producing in a sector with a Titan or adjacent to a Supernova");
+	    imperium_self.updateLog("The Cinder Host gains 1 trade good from Magma Reactor - producing in a sector with a Titan or adjacent to a Supernova");
             imperium_self.game.state.players_info[player-1].goods += 1;
             imperium_self.updateTokenDisplay();
             imperium_self.displayFactionDashboard();
@@ -256,9 +256,9 @@
         let x = {};
         if (menu == "main") {
           x.event = 'faction7-promissary';
-          x.html = '<li class="option" id="faction7-promissary">Fires of the Gashlai (Muaat Promissary)</li>';
+          x.html = '<li class="option" id="faction7-promissary">Fires of the Gashlai (Cinder Promissary)</li>';
           x.id = 'faction7-promissary';
-          x.label = 'Fires of the Gashlai (Muaat Promissary)';
+          x.label = 'Fires of the Gashlai (Cinder Promissary)';
         }
         return x;
       },
@@ -277,7 +277,7 @@
           imperium_self.addMove("expend\t"+muaat_player+"\tfleet\t1");
 	  imperium_self.addMove("purchase" + "\t" + player + "\t" + "technology" + "\t"+"warsun");
 	  imperium_self.addMove("give" + "\t" + player + "\t" + muaat_player + "\t" + "promissary" + "\t"+"faction7-promissary");
-          imperium_self.addMove("NOTIFY\t"+imperium_self.returnFaction((i+1)) + " redeems Fires of the Gashlai (Muaat Promissary) from " + imperium_self.returnFaction(player));
+          imperium_self.addMove("NOTIFY\t"+imperium_self.returnFaction((i+1)) + " redeems Fires of the Gashlai (Cinder Promissary) from " + imperium_self.returnFaction(player));
           imperium_self.endTurn();
         }
         return 0;

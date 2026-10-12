@@ -197,7 +197,7 @@ this.importTech("faction8-merchant-class", {
             imperium_self.addPublickeyConfirm(imperium_self.getPublicKey(), 1);
             imperium_self.endTurn();
             imperium_self.updateLog(
-              "Hacan already refreshed, do not need to play faction ability."
+              "The Caravan League already refreshed, do not need to play faction ability."
             );
             return 0;
           }
@@ -440,7 +440,7 @@ this.importTech("faction8-quantum-datahub-node", {
 
           imperium_self.hud.updateMenu(menu, function (id) {
             if (id == "skip") {
-              imperium_self.updateLog("Hacan skips Quantum Exchange");
+              imperium_self.updateLog("The Caravan League skips Quantum Exchange");
               imperium_self.endTurn();
               return;
             }
@@ -471,7 +471,7 @@ this.importTech("faction8-quantum-datahub-node", {
                 imperium_self.game.state.players_info[imperium_self.game.player - 1].strategy[id];
 
               if (id == "skip") {
-                imperium_self.updateLog("Hacan skips Quantum Exchange");
+                imperium_self.updateLog("The Caravan League skips Quantum Exchange");
                 imperium_self.endTurn();
                 return;
               }
@@ -525,7 +525,7 @@ this.importTech("faction8-quantum-datahub-node", {
 this.importPromissary("faction8-promissary", {
   name: "Trade Convoys",
   faction: -1,
-  text: "Holder may negotiate transactions with non-neighbours. Return if player activates system with Hacan units",
+  text: "Holder may negotiate transactions with non-neighbours. Return if player activates system with Caravan League units",
   activateSystemTriggers: function (imperium_self, activating_player, player, sector) {
     let hacan_player = imperium_self.returnPlayerOfFaction("faction8");
     if (imperium_self.doesPlayerHavePromissary(player, "faction8-promissary")) {
@@ -555,7 +555,7 @@ this.importPromissary("faction8-promissary", {
         imperium_self.addMove(
           "NOTIFY\t" +
             imperium_self.returnFaction(player) +
-            " redeems Trade Convoys (Hacan Promissary)"
+            " redeems Trade Convoys (Caravan League Promissary)"
         );
         imperium_self.endTurn();
       }

@@ -272,7 +272,7 @@ this.importTech("faction2-deep-space-conduits", {
   type: "special",
   color: "blue",
   prereqs: ["blue", "blue"],
-  text: "Exhaust after activating sector and all Jol Nar ships one hex distance",
+  text: "Exhaust after activating sector and all Collegium ships one hex distance",
   initialize: function (imperium_self, player) {
     if (imperium_self.game.state.players_info[player - 1].deep_space_conduits == null) {
       imperium_self.game.state.players_info[player - 1].deep_space_conduits = 0;

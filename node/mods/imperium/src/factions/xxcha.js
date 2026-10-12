@@ -147,7 +147,7 @@
 	  //
 	  //
 	  if (seizable_planets.length < 0) { 
-	    imperium_self.updateLog("XXCha cannot annex any unguarded planets via Concord of Worlds")
+	    imperium_self.updateLog("Quorum Kingdom cannot annex any unguarded planets via Concord of Worlds")
 	    return 1;
 	  }
 
@@ -155,7 +155,7 @@
 
 	  if (imperium_self.game.state.players_info[player-1].peace_accords == 1) {
 
-	    	    imperium_self.game.status = "XXCha selecting planet to annex with Concord of Worlds";
+	    	    imperium_self.game.status = "Quorum Kingdom selecting planet to annex with Concord of Worlds";
 	    imperium_self.hud.prepareIdle(imperium_self.game.status);
 	    imperium_self.hud.updateCards([]);
 
@@ -409,14 +409,14 @@
     this.importPromissary("faction3-promissary", {
       name        :       "Political Favor" ,
       faction     :       -1,
-      text        :       "Redeemer discards an upcoming agenda, XXCha loses a strategy token." ,
+      text        :       "Redeemer discards an upcoming agenda, Quorum Kingdom loses a strategy token." ,
       menuOption  :       function(imperium_self, menu, player) {
         let x = {};
         if (menu == "main") {
           x.event = 'faction3-promissary';
-          x.html = '<li class="option" id="faction3-promissary">Political Favour (XXCha Promissary)</li>';
+          x.html = '<li class="option" id="faction3-promissary">Political Favour (Quorum Kingdom Promissary)</li>';
           x.id = 'faction3-promissary';
-          x.label = 'Political Favour (XXCha Promissary)';
+          x.label = 'Political Favour (Quorum Kingdom Promissary)';
         }
         return x;
       },
@@ -456,7 +456,7 @@
              imperium_self.addMove("quash\t"+agenda_to_quash+"\t"+"1"); // 1 = re-deal
              imperium_self.addMove("expend\t"+xxcha_player+"\t"+"strategy"+"\t"+"1");
              imperium_self.addMove("give" + "\t" + player + "\t" + xxcha_player + "\t" + "promissary" + "\t"+"faction3-promissary");
-             imperium_self.addMove("NOTIFY\t"+imperium_self.returnFaction(imperium_self.game.player) + " redeems XXCha Promissary");
+             imperium_self.addMove("NOTIFY\t"+imperium_self.returnFaction(imperium_self.game.player) + " redeems Quorum Kingdom Promissary");
              imperium_self.endTurn();
           });
           document.querySelectorAll('.hud-menu .option').forEach((el) => {

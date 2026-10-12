@@ -1479,8 +1479,8 @@ class Workspace {
       }),
       field_list: doc.actions.map((action) => {
         const name = doc.users[action.user]?.name || '';
-        const kind = typeLabel(action.type);
         const signed = verifyActionSignature(this.app, action, doc.users[action.user], doc);
+        const kind = typeLabel(action.type, signed);
         return {
           id: action.id,
           page: action.page,
@@ -1500,8 +1500,8 @@ class Workspace {
           editable: canConfigure(this.app, doc),
           fields: actionsOnPage(doc, page).map((action) => {
             const name = doc.users[action.user]?.name || '';
-            const kind = typeLabel(action.type);
             const signed = verifyActionSignature(this.app, action, doc.users[action.user], doc);
+            const kind = typeLabel(action.type, signed);
             return {
               id: action.id,
               type: action.type,
@@ -1884,14 +1884,14 @@ function signerColor(index) {
   return SIGNER_COLORS[n % SIGNER_COLORS.length];
 }
 
-function typeLabel(type) {
+function typeLabel(type, signed) {
   if (type === 'date') {
-    return 'date';
+    return signed ? 'dated' : 'date';
   }
   if (type === 'initial') {
-    return 'initial';
+    return signed ? 'initialed' : 'initial';
   }
-  return 'date and signature';
+  return signed ? 'dated and signed' : 'date and signature';
 }
 
 function placeBox(start, x, y) {

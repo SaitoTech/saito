@@ -393,6 +393,7 @@
 	      imperium_self.game.state.players_info[i].fleet_supply_limit = 4;
 	      if (imperium_self.game.state.players_info[i].fleet_supply >= 4) { imperium_self.game.state.players_info[i].fleet_supply = 4; }
 	    }
+	    imperium_self.displayFactionDashboard();
 	  }
 	  return 1;
 	},

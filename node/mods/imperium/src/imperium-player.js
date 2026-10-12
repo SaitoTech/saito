@@ -715,9 +715,6 @@ playerPlayBombardment(attacker, sector, planet_idx) {
   //
   // no bombardment of my own planets (i.e. if parlay ends invasion)
   //
-    let html = '<div class="action_card_instructions_hud">' + this.returnFaction(action_card_player) + ' has played an action card:</div>';
-    html += '<div class="action_card_name_hud">' + imperium_self.action_cards[card].name + '</div>';
-    html += '<div class="action_card_text_hud">';
   if (sys.p[planet_idx].owner == imperium_self.game.player) {
     imperium_self.endTurn();
     return 0;
@@ -736,7 +733,7 @@ playerPlayBombardment(attacker, sector, planet_idx) {
     }
   }
 
-  html = '<div class="status-header-text">Do you wish to bombard ' + sys.p[planet_idx].name + '? </div>';
+  let html = '<div class="status-header-text">Do you wish to bombard ' + sys.p[planet_idx].name + '? </div>';
 
   let menu = [];
 
@@ -787,9 +784,9 @@ playerPlayBombardment(attacker, sector, planet_idx) {
         imperium_self.addMove("action_card_post\t" + imperium_self.game.player + "\t" + card);
         imperium_self.addMove("action_card\t" + imperium_self.game.player + "\t" + card);
         imperium_self.addMove("lose\t" + imperium_self.game.player + "\taction_cards\t1");
-        imperium_self.playerPlayActionCardMenu(action_card_player, card);
+        imperium_self.playerPlayBombardment(attacker, sector, planet_idx);
       }, function () {
-        imperium_self.playerPlayActionCardMenu(action_card_player, card);
+        imperium_self.playerPlayBombardment(attacker, sector, planet_idx);
       }, ["pre_bombardment"]);
     }
 
@@ -980,8 +977,26 @@ playerAcknowledgeNotice(msg, mycallback) {
     overlay_lis += `<li class="option" id="${menu[i].id}">${menu[i].label}</li>`;
   }
   overlay_lis += '</ul>';
-  let overlay_html = `<div class="space-combat-status">assign ${total_hits} to your fleet</div>${overlay_lis}`;
-  html = '<div class="status-header-text">assign ' + total_hits + ' to your fleet:</div>';
+  let pds_note = '';
+  if (details == "pds" || source == "pds") {
+    let report = this.game.state.pds_fire_report || {};
+    let shooter_name = this.returnFaction(report.shooter || attacker);
+    let shots = (report.shots != null) ? report.shots : 0;
+    let adjacent = report.adjacent || 0;
+    let local = shots - adjacent;
+    if (local < 0) { local = 0; }
+    pds_note = shooter_name + ' fired ' + shots + ' PDS shot' + (shots == 1 ? '' : 's');
+    if (adjacent > 0 && local > 0) {
+      pds_note += ', ' + local + ' from this sector and ' + adjacent + ' from adjacent sectors (PDS II)';
+    } else if (adjacent > 0) {
+      pds_note += ' from adjacent sectors (PDS II)';
+    } else {
+      pds_note += ' from this sector';
+    }
+    pds_note += '. Assign ' + total_hits + ' hit' + (total_hits == 1 ? '' : 's') + ' to your ships.';
+  }
+  let overlay_html = `<div class="space-combat-status">${pds_note || ('assign ' + total_hits + ' to your fleet')}</div>${overlay_lis}`;
+  html = '<div class="status-header-text">' + (pds_note || ('assign ' + total_hits + ' to your fleet:')) + '</div>';
 
 
   if (imperium_self.space_combat_overlay.visible) {
@@ -991,6 +1006,9 @@ playerAcknowledgeNotice(msg, mycallback) {
     this.game.status = html;
   this.hud.preparePrompt(this.game.status);
   this.hud.updateCards([]);
+  if (pds_note) {
+    this.hud.updateStatus(pds_note);
+  }
 
   let onAssignHitsMenu = function (action2) {
 
@@ -1124,6 +1142,9 @@ playerAcknowledgeNotice(msg, mycallback) {
         imperium_self.game.status = prompt;
         imperium_self.hud.preparePrompt(prompt);
         imperium_self.hud.updateCards([]);
+        if (pds_note) {
+          imperium_self.hud.updateStatus(pds_note);
+        }
         let menu = [];
         for (let i = 0; i < sys.s.units[imperium_self.game.player - 1].length; i++) {
           let unit = sys.s.units[imperium_self.game.player - 1][i];
