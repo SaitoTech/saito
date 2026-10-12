@@ -20,6 +20,10 @@
   --imp-fs-title: 1.333rem;
   --imp-fs-num: 2.5rem;
   --background-color-shim-normal: color-mix(in srgb, #000 80%, transparent);
+  --planet-cultural: #3d8bfd;
+  --planet-industrial: #3cba54;
+  --planet-hazardous: #e23d32;
+  --planet-diplomatic: #e6b422;
 
   .saito-overlay {
     background: transparent;
@@ -1854,103 +1858,7 @@
     display: block;
   }
 
-  .sector_information_planetname {
-    font-size: 1.65em;
-    position: absolute;
-    padding: 5px 10px;
-    color: #fff;
-    text-shadow: 1px 1px darkorange;
-    background-color: #000a;
-  }
-
-  .one_planet .sector_information_planetname {
-    top: 165px;
-    left: 10px;
-    font-size: 1.2em;
-  }
-
-  .two_planet .sector_information_planetname {
-    font-size: 1.2em;
-  }
-
-  .top_planet .sector_information_planetname {
-    top: 40px;
-    left: 20px;
-  }
-
-  .bottom_planet .sector_information_planetname {
-    top: 190px;
-    left: 230px;
-    transform: translateX(-100%);
-  }
-
-  .sector_information_planetname::before {
-    content: '\2B24';
-    text-shadow: none;
-    font-size: 15px;
-    position: relative;
-    display: inline-block;
-    top: -2px;
-    left: -3px;
-  }
-
-  .sector_information_planetname.p1::before {
-    color: var(--p1);
-  }
-
-  .sector_information_planetname.p2::before {
-    color: var(--p2);
-  }
-
-  .sector_information_planetname.p3::before {
-    color: var(--p3);
-  }
-
-  .sector_information_planetname.p4::before {
-    color: var(--p4);
-  }
-
-  .sector_information_planetname.p5::before {
-    color: var(--p5);
-  }
-
-  .sector_information_planetname.p6::before {
-    color: var(--p6);
-  }
-
-  .sector_information_planetname.nowner::before {
-    display: none;
-  }
-
-  .sector_information_planet_content {
-    display: grid;
-    grid-gap: 3px;
-    grid-template-columns: auto auto;
-    position: absolute;
-    top: 60px;
-    left: 120px;
-    background: #000a;
-    padding: 1em;
-    transform: translateX(-50%);
-  }
-
-  .sector_information_planet_content div {
-    position: relative;
-    text-align: left;
-  }
-
-  .top_planet .sector_information_planet_content {
-    top: 90px;
-    left: 60px;
-    font-size: smaller;
-  }
-
-  .bottom_planet .sector_information_planet_content {
-    top: 90px;
-    left: 238px;
-    font-size: smaller;
-    transform: translateX(-100%);
-  }
+  /* Planet information styles live in imperium-planet-info.css. */
 
   .ship_selector b::before {
     content: ' \1F5F9   ';

@@ -235,11 +235,11 @@
   }
 
   .dash-item.resources {
-    background-image: url(/imperium/img/blank_resources_hex.png);
+    background-image: url(/imperium/img/icons/resources.png);
   }
 
   .dash-item.influence {
-    background-image: url('/imperium/img/blank_influence_hex.png');
+    background-image: url('/imperium/img/icons/influence.png');
     color: #c16400;
   }
 

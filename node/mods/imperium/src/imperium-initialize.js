@@ -66,9 +66,17 @@
     });
 
     //
-    // cards
+    // info
     //
-    this.menu.addMenuOption("game-cards", "Cards");
+    this.menu.addMenuOption("game-cards", "Info");
+    this.menu.addMenuOption("game-planets", "Planets");
+    let planets_menu = this.menu.returnMenuFromID("game-planets");
+    if (planets_menu) {
+      planets_menu.callback = function(app, game_mod) {
+        game_mod.menu.hideSubMenus();
+        game_mod.handleInfoMenuItem();
+      };
+    }
     this.menu.addSubMenuOption("game-cards", {
       text : "Strategy",
       id : "game-strategy-cardlist",
@@ -724,7 +732,7 @@ console.log("ABOUT TO DINISH INITIALIZATION!");
 			"img/planet_card_template.png",
 			"img/secret_objective.jpg",
 			"img/arcade_release.jpg",
-			"img/blank_influence_hex.png",
+			"img/icons/influence.png",
 			"img/spaceb2.jpg",
 			"img/frame/white_space_frame_1_5.png",
 			"img/frame/white_space_frame_4_1.png",
@@ -905,7 +913,7 @@ console.log("ABOUT TO DINISH INITIALIZATION!");
 "img/sectors/sector64.png",
 "img/sectors/sector45.png",
 "img/sectors/sector46.png",
-"img/blank_resources_hex.png",
+"img/icons/resources.png",
 "img/factions/faction2.jpg",
 "img/factions/faction1.jpg",
 "img/factions/faction3.jpg",
