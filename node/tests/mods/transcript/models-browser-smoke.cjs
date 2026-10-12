@@ -8,8 +8,8 @@ const os = require('node:os');
 
 (async () => {
   const app = express();
-  app.use('/transcript', express.static(path.resolve(__dirname, '../../web')));
-  app.use('/saito', express.static(path.resolve(__dirname, '../../../../web/saito')));
+  app.use('/transcript', express.static(path.resolve(__dirname, '../../../mods/transcript/web')));
+  app.use('/saito', express.static(path.resolve(__dirname, '../../../web/saito')));
   const server = app.listen(0, '127.0.0.1');
   await new Promise((resolve) => server.once('listening', resolve));
   const profile = await fs.mkdtemp(path.join(os.tmpdir(), 'transcript-model-cache-'));

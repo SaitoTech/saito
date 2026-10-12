@@ -10,7 +10,7 @@ npm run modules -- add transcript
 
 Enable `transcript/transcript.js` in both server (`core`) and browser (`lite`) module lists, alongside Videocall. Remove any old `captions/captions.js` entries. Rebuild and restart the server, then refresh the browser. Deploy all of `mods/transcript/web`. No transcript-specific install or server-side download is required: the browser JavaScript and WASM runtime are included in `web/lib`, and the node only serves static files. Speech recognition and model downloads run in the browser.
 
-`web/lib` contains the pinned Transformers.js 3.8.1 distribution, its ONNX JavaScript/WASM dependencies, and their licenses (about 22 MB total). These files must be committed with the module. `web/lib/assets.json` records their upstream URLs and SHA-256 checksums for maintenance; it is not an installation manifest. When updating the libraries, replace the files and update the manifest together. The `compile/tests/` directory contains development checks only.
+`web/lib` contains the pinned Transformers.js 3.8.1 distribution, its ONNX JavaScript/WASM dependencies, and their licenses (about 22 MB total). These files must be committed with the module. `web/lib/assets.json` records their upstream URLs and SHA-256 checksums for maintenance; it is not an installation manifest. When updating the libraries, replace the files and update the manifest together. Development tests live in `tests/mods/transcript/` under the Node project root.
 
 ## Model management
 
@@ -42,21 +42,23 @@ Storage failure is reported visibly; captured text remains in memory for saving.
 
 ## Checks
 
+Run these commands from `node/`. The unit tests use Node's test runner; they are not discovered by the Jest `npm test` command.
+
 ```sh
-node --test mods/transcript/compile/tests/*.test.mjs
+node --test tests/mods/transcript/*.test.mjs
 ```
 
 Browser integration requires Playwright with Chromium. It tests actual IndexedDB reload/recovery, append, independent borders, downloads, automatic confirmation and deletion. Optionally supply an English WAV to also download the English model directly and exercise local recognition, the audio worklet and two speakers:
 
 ```sh
-TRANSCRIPT_PLAYWRIGHT=/path/to/playwright node mods/transcript/compile/tests/browser-smoke.cjs
-TRANSCRIPT_PLAYWRIGHT=/path/to/playwright TRANSCRIPT_AUDIO_FIXTURE=/path/to/english.wav node mods/transcript/compile/tests/browser-smoke.cjs
+TRANSCRIPT_PLAYWRIGHT=/path/to/playwright node tests/mods/transcript/browser-smoke.cjs
+TRANSCRIPT_PLAYWRIGHT=/path/to/playwright TRANSCRIPT_AUDIO_FIXTURE=/path/to/english.wav node tests/mods/transcript/browser-smoke.cjs
 ```
 
 The buffering browser test uses real IndexedDB, Web Locks, an audio worklet, and a forced renderer crash. Recognition is stubbed to deterministically verify migration, transaction rollback, storage limits, speaker isolation, duplicate prevention, partial exports, and finish-later recovery:
 
 ```sh
-TRANSCRIPT_PLAYWRIGHT=/path/to/playwright node mods/transcript/compile/tests/buffer-browser-smoke.cjs
+TRANSCRIPT_PLAYWRIGHT=/path/to/playwright node tests/mods/transcript/buffer-browser-smoke.cjs
 ```
 
 `TRANSCRIPT_CHROMIUM` can select an existing Chromium executable.
@@ -64,11 +66,11 @@ TRANSCRIPT_PLAYWRIGHT=/path/to/playwright node mods/transcript/compile/tests/buf
 The WebRTC browser test sends real remote audio through Talk's stream events and verifies capture of both speakers, including peers joining after capture starts. It omits the call video player to check that remote capture starts independently; the engine uses a muted media element to activate Chromium's remote audio without duplicate sound. Recognition is stubbed after speech gating.
 
 ```sh
-TRANSCRIPT_PLAYWRIGHT=/path/to/playwright node mods/transcript/compile/tests/webrtc-browser-smoke.cjs
+TRANSCRIPT_PLAYWRIGHT=/path/to/playwright node tests/mods/transcript/webrtc-browser-smoke.cjs
 ```
 
 The model-manager browser test uses real upstream downloads, closes and restarts Chromium with the same disk profile, then verifies downloaded labels, cached offline inference, settings persistence and removal. By default it checks both Tiny variants; choose all four with:
 
 ```sh
-TRANSCRIPT_PLAYWRIGHT=/path/to/playwright TRANSCRIPT_TEST_MODELS=tiny.en,tiny,base.en,base node mods/transcript/compile/tests/models-browser-smoke.cjs
+TRANSCRIPT_PLAYWRIGHT=/path/to/playwright TRANSCRIPT_TEST_MODELS=tiny.en,tiny,base.en,base node tests/mods/transcript/models-browser-smoke.cjs
 ```

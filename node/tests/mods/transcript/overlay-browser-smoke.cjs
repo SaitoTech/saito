@@ -4,13 +4,13 @@ const express = require('express');
 const assert = require('node:assert/strict');
 const fs = require('node:fs/promises');
 const path = require('node:path');
-const template = require('../../../../lib/saito/ui/saito-overlay/saito-overlay.template');
-const Transcript = require('../../transcript');
+const template = require('../../../lib/saito/ui/saito-overlay/saito-overlay.template');
+const Transcript = require('../../../mods/transcript/transcript');
 
 (async () => {
   const app = express();
-  app.use('/transcript', express.static(path.resolve(__dirname, '../../web')));
-  app.use('/saito', express.static(path.resolve(__dirname, '../../../../web/saito')));
+  app.use('/transcript', express.static(path.resolve(__dirname, '../../../mods/transcript/web')));
+  app.use('/saito', express.static(path.resolve(__dirname, '../../../web/saito')));
   const server = app.listen(0, '127.0.0.1');
   await new Promise((resolve) => server.once('listening', resolve));
   let browser;
@@ -26,7 +26,7 @@ const Transcript = require('../../transcript');
     await page.goto(`http://127.0.0.1:${server.address().port}/transcript/`);
     const source = (
       await fs.readFile(
-        path.resolve(__dirname, '../../../../lib/saito/ui/saito-overlay/saito-overlay.js'),
+        path.resolve(__dirname, '../../../lib/saito/ui/saito-overlay/saito-overlay.js'),
         'utf8'
       )
     )

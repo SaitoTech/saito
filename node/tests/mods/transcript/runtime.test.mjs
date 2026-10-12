@@ -1,8 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { JSDOM } from 'jsdom';
-import { TranscriptRuntime } from '../../web/runtime.mjs';
-import { saveTranscript } from '../../web/store.mjs';
+import { TranscriptRuntime } from '../../../mods/transcript/web/runtime.mjs';
+import { saveTranscript } from '../../../mods/transcript/web/store.mjs';
 import { browserLocks } from './buffer-fixtures.mjs';
 
 function setup(t) {

@@ -7,10 +7,10 @@ import { readFile } from 'node:fs/promises';
 import { JSDOM } from 'jsdom';
 
 const require = createRequire(import.meta.url);
-const Transcript = require('../../transcript');
-const CallInterfaceVideo = require('../../../videocall/lib/components/call-interface-video');
-const StreamManager = require('../../../videocall/lib/StreamManager');
-const SaitoVideoBox = require('../../../../lib/saito/ui/saito-videobox/video-box');
+const Transcript = require('../../../mods/transcript/transcript');
+const CallInterfaceVideo = require('../../../mods/videocall/lib/components/call-interface-video');
+const StreamManager = require('../../../mods/videocall/lib/StreamManager');
+const SaitoVideoBox = require('../../../lib/saito/ui/saito-videobox/video-box');
 
 test('transcription status appears beside the name and survives video box recreation', (t) => {
   const dom = new JSDOM('<div class="videos"></div>');
@@ -221,12 +221,12 @@ test('server serves packaged browser modules and runtime while blocking legacy m
     assert.match(response.headers.get('content-type'), /javascript/, name);
     assert.equal(
       await response.text(),
-      await readFile(new URL(`../../web/${name}`, import.meta.url), 'utf8'),
+      await readFile(new URL(`../../../mods/transcript/web/${name}`, import.meta.url), 'utf8'),
       name
     );
   }
   const manifest = JSON.parse(
-    await readFile(new URL('../../web/lib/assets.json', import.meta.url), 'utf8')
+    await readFile(new URL('../../../mods/transcript/web/lib/assets.json', import.meta.url), 'utf8')
   );
   for (const asset of manifest.files) {
     const response = await fetch(`${base}/transcript/lib/${asset.path}`);

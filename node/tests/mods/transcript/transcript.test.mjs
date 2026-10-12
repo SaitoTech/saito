@@ -2,11 +2,11 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import vm from 'node:vm';
 import { readFile } from 'node:fs/promises';
-import { Segmenter } from '../../web/segmenter.mjs';
-import { TranscriptEngine } from '../../web/engine.mjs';
-import { AudioBlocks, speechBatch } from '../../web/audio-buffer.mjs';
+import { Segmenter } from '../../../mods/transcript/web/segmenter.mjs';
+import { TranscriptEngine } from '../../../mods/transcript/web/engine.mjs';
+import { AudioBlocks, speechBatch } from '../../../mods/transcript/web/audio-buffer.mjs';
 import { browserLocks, AudioStore } from './buffer-fixtures.mjs';
-import { transcriptText, timestamp } from '../../web/store.mjs';
+import { transcriptText, timestamp } from '../../../mods/transcript/web/store.mjs';
 
 const frame = (volume = 0.1) => new Float32Array(1600).fill(volume);
 
@@ -48,7 +48,7 @@ test('worklet downmixes and resamples 48 kHz stereo to 16 kHz mono', async () =>
     Float32Array
   };
   vm.runInNewContext(
-    await readFile(new URL('../../web/audio-worklet.js', import.meta.url), 'utf8'),
+    await readFile(new URL('../../../mods/transcript/web/audio-worklet.js', import.meta.url), 'utf8'),
     sandbox
   );
   const processor = new Processor();
@@ -113,7 +113,7 @@ test('worklet flush acknowledges and retains its sub-frame tail', async () => {
   let Processor;
   const messages = [];
   vm.runInNewContext(
-    await readFile(new URL('../../web/audio-worklet.js', import.meta.url), 'utf8'),
+    await readFile(new URL('../../../mods/transcript/web/audio-worklet.js', import.meta.url), 'utf8'),
     {
       AudioWorkletProcessor: class {
         port = { postMessage: (data) => messages.push(data) };

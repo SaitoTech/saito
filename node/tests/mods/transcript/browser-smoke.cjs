@@ -7,8 +7,8 @@ const path = require('node:path');
 
 (async () => {
   const app = express();
-  app.use('/transcript', express.static(path.resolve(__dirname, '../../web')));
-  app.use('/call-css', express.static(path.resolve(__dirname, '../../../videocall/web/css')));
+  app.use('/transcript', express.static(path.resolve(__dirname, '../../../mods/transcript/web')));
+  app.use('/call-css', express.static(path.resolve(__dirname, '../../../mods/videocall/web/css')));
   if (process.env.TRANSCRIPT_AUDIO_FIXTURE)
     app.get('/fixture.wav', (_, response) =>
       response.sendFile(path.resolve(process.env.TRANSCRIPT_AUDIO_FIXTURE))

@@ -10,7 +10,7 @@ const path = require('node:path');
   app.get('/test', (_, response) =>
     response.send('<!doctype html><title>Audio buffer test</title>')
   );
-  app.use('/transcript', express.static(path.resolve(__dirname, '../../web')));
+  app.use('/transcript', express.static(path.resolve(__dirname, '../../../mods/transcript/web')));
   const server = app.listen(0, '127.0.0.1');
   await new Promise((resolve) => server.once('listening', resolve));
   let browser;

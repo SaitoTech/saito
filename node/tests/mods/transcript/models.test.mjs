@@ -15,11 +15,11 @@ import {
   readSelection,
   startSelection,
   persistModels
-} from '../../web/models.mjs';
-import { showModelManager } from '../../web/model-manager.mjs';
-import { TranscriptRuntime } from '../../web/runtime.mjs';
+} from '../../../mods/transcript/web/models.mjs';
+import { showModelManager } from '../../../mods/transcript/web/model-manager.mjs';
+import { TranscriptRuntime } from '../../../mods/transcript/web/runtime.mjs';
 const require = createRequire(import.meta.url);
-const SaitoOverlay = require('../../../../lib/saito/ui/saito-overlay/saito-overlay');
+const SaitoOverlay = require('../../../lib/saito/ui/saito-overlay/saito-overlay');
 
 const tick = () => new Promise((resolve) => setImmediate(resolve));
 function setup(t, dom = false) {
