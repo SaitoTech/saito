@@ -217,15 +217,16 @@ class GameMenu {
       });
     }
 
-    const gameTitle = this.escapeHTML(this.game_mod?.name || 'Game');
+    const gameTitle = this.escapeHTML(this.game_mod?.returnName?.() || this.game_mod?.name || 'Game');
     let html = `<ul><li class="game-menu-mobile-header">
-      <button type="button" id="game-menu-close" class="game-menu-mobile-header-button">
-        <span class="game-menu-game-state"><i class="fa-solid fa-xmark" aria-hidden="true"></i><span>Close</span></span>
-        <span class="game-menu-saito-state"><i class="fa-solid fa-gamepad" aria-hidden="true"></i><span>${gameTitle}</span></span>
+      <button type="button" id="game-menu-game" class="game-menu-mobile-header-button" aria-pressed="true" title="${gameTitle}">
+        <span class="game-menu-mobile-header-label">${gameTitle}</span>
       </button>
-      <button type="button" id="game-menu-saito" class="game-menu-mobile-header-button">
-        <span class="game-menu-game-state"><img src="/saito/img/saito-cube.svg" alt=""><span>Saito</span></span>
-        <span class="game-menu-saito-state"><i class="fa-solid fa-xmark" aria-hidden="true"></i><span>Close</span></span>
+      <button type="button" id="game-menu-saito" class="game-menu-mobile-header-button" aria-pressed="false">
+        <span class="game-menu-saito-logo" aria-hidden="true"></span><span>Saito</span>
+      </button>
+      <button type="button" id="game-menu-close" class="game-menu-mobile-header-button" aria-label="Close menu">
+        <i class="fa-solid fa-xmark" aria-hidden="true"></i>
       </button>
     </li>`;
     for (let i = 0; i < this.icons.length; i++) {
@@ -269,7 +270,7 @@ class GameMenu {
         !gameMenu.contains(e.target) &&
         (!saitoMenu || !saitoMenu.contains(e.target))
       ) {
-        this.hideSubMenus(true);
+        this.hideAllMenus();
       }
     };
     document.body.addEventListener('click', this.mobile_body_click_handler);
@@ -470,12 +471,15 @@ class GameMenu {
     if (mobileClose) {
       mobileClose.onclick = (e) => {
         e.stopPropagation();
-        const menu = document.querySelector('.game-menu');
-        if (menu?.classList.contains('mobile-saito-visible')) {
-          this.closeMobileSaitoMenu();
-        } else {
-          this.hideSubMenus(true);
-        }
+        this.hideAllMenus();
+      };
+    }
+
+    const mobileGame = document.querySelector('#game-menu-game');
+    if (mobileGame) {
+      mobileGame.onclick = (e) => {
+        e.stopPropagation();
+        this.closeMobileSaitoMenu();
       };
     }
 
@@ -483,12 +487,7 @@ class GameMenu {
     if (mobileSaito) {
       mobileSaito.onclick = (e) => {
         e.stopPropagation();
-        const menu = document.querySelector('.game-menu');
-        if (menu?.classList.contains('mobile-saito-visible')) {
-          this.closeMobileSaitoMenu();
-        } else {
-          this.openMobileSaitoMenu();
-        }
+        this.openMobileSaitoMenu();
       };
     }
   }
@@ -513,6 +512,8 @@ class GameMenu {
     const menu = document.querySelector('.game-menu');
     if (menu && this.isMobileView()) {
       menu.classList.toggle('mobile-saito-visible', open);
+      menu.querySelector('#game-menu-game')?.setAttribute('aria-pressed', String(!open));
+      menu.querySelector('#game-menu-saito')?.setAttribute('aria-pressed', String(open));
     }
   }
 
