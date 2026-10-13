@@ -731,6 +731,28 @@
     position: absolute;
     height: 100px;
     width: 100px;
+    z-index: 8;
+    cursor: pointer;
+  }
+  .us-commitment-track-hit {
+    position: absolute;
+    top: 2250px;
+    left: 110px;
+    width: 450px;
+    height: 200px;
+    z-index: 7;
+    cursor: pointer;
+    border-radius: 8px;
+  }
+  .us-commitment-track:hover {
+    box-shadow: inset 0 0 0 3px rgba(26, 58, 120, 0.95);
+  }
+  .us-commitment-track-hit:hover,
+  .gameboard:has(.us-commitment-track:hover) .us-commitment-track-hit {
+    background: rgba(70, 120, 190, 0.18);
+    box-shadow:
+      inset 0 0 0 3px rgba(26, 58, 120, 0.95),
+      0 0 18px rgba(80, 140, 220, 0.45);
   }
   .us-commitment-track.active {
     background-image: url('/paths/img/us_entry.png');
@@ -757,6 +779,28 @@
     position: absolute;
     height: 100px;
     width: 100px;
+    z-index: 8;
+    cursor: pointer;
+  }
+  .russian-capitulation-track-hit {
+    position: absolute;
+    top: 2450px;
+    left: 128px;
+    width: 860px;
+    height: 190px;
+    z-index: 7;
+    cursor: pointer;
+    border-radius: 8px;
+  }
+  .russian-capitulation-track:hover {
+    box-shadow: inset 0 0 0 3px rgba(168, 116, 32, 0.95);
+  }
+  .russian-capitulation-track-hit:hover,
+  .gameboard:has(.russian-capitulation-track:hover) .russian-capitulation-track-hit {
+    background: rgba(255, 214, 90, 0.18);
+    box-shadow:
+      inset 0 0 0 3px rgba(168, 116, 32, 0.95),
+      0 0 18px rgba(255, 196, 64, 0.45);
   }
   .russian-capitulation-track.active {
     background-image: url('/paths/img/russian_capit.png');

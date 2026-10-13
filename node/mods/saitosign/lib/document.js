@@ -216,10 +216,16 @@ function copy(record) {
       email: user.email || '',
       publickey: user.publickey || '',
       verifications: (user.verifications || []).map((entry) => copyVerification(entry)),
-      signatures: (user.signatures || []).map((entry) => ({
-        id: entry.id,
-        signature: entry.signature || ''
-      }))
+      signatures: (user.signatures || []).map((entry) => {
+        const next = {
+          id: entry.id,
+          signature: entry.signature || ''
+        };
+        if (entry.document_hash) {
+          next.document_hash = String(entry.document_hash);
+        }
+        return next;
+      })
     })),
     actions: (record.actions || []).map((action) => ({
       id: action.id,

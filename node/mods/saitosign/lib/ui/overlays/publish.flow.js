@@ -2,7 +2,7 @@ function defaultOptions() {
   return {
     email: true,
     phone: false,
-    photo: false,
+    photo: true,
     passport: false,
     legal_review: false,
     online_signing: false,
@@ -188,9 +188,8 @@ function currentMethod(state) {
 }
 
 function requiredComplete(state) {
-  return state.verificationMethods
-    .filter((method) => method.required)
-    .every((method) => method.status === 'verified');
+  const required = (state.verificationMethods || []).filter((method) => method.required);
+  return required.every((method) => method.status === 'verified');
 }
 
 const workflowStages = ['select', 'identity', 'sign', 'verify', 'share'];
@@ -248,9 +247,9 @@ function resolveAfter(state, completedStage, requirements) {
   };
 }
 
-function advance(state, requirements) {
+function advance(state) {
   if (state.step === 'select') {
-    return resolveAfter(state, 'select', requirements);
+    return go(state, 'share');
   }
   if (state.step === 'premium') {
     return go(state, 'sign', { plan: 'free' });
@@ -266,16 +265,13 @@ function learnPremium(state) {
 }
 
 function shareRows(state) {
-  const list = state.signers.slice();
-  if (state.you && !list.some((signer) => signer.index === state.you.index)) {
-    list.unshift(state.you);
-  }
-  return list.map((signer) => {
+  return state.signers.filter((signer) => Number(signer.places) > 0).map((signer) => {
     const you = state.you && signer.index === state.you.index;
     const signed = signer.signed === true || (you && state.signed === true);
     return {
       name: signer.name || signer.email || 'Signer',
-      signed
+      signed,
+      creator: signer.creator === true
     };
   });
 }

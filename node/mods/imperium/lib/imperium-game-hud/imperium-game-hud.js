@@ -112,6 +112,25 @@ class ImperiumGameHUD extends GameHUD2 {
     }
   }
 
+  updatePopup(message, timeout = 5000) {
+    if (!this.mod.browser_active) {
+      return;
+    }
+    this.render();
+    let hudnotice = document.querySelector('#game-hud2 .hud-notice');
+    if (!hudnotice) {
+      return;
+    }
+    hudnotice.style.backgroundImage = "url('/imperium/img/backgrounds/hud-popup.png')";
+    hudnotice.style.backgroundSize = 'cover';
+    hudnotice.style.backgroundPosition = 'center center';
+    hudnotice.style.backgroundRepeat = 'no-repeat';
+    let text = document.createElement('div');
+    text.className = 'imperium-hud-popup-text';
+    text.textContent = message == null ? '' : String(message);
+    this.showPopup(text.outerHTML, timeout);
+  }
+
   updateStatus(message, fadeout_time) {
     let next = message == null ? '' : String(message);
     let same = next === this.status_message;

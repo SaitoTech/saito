@@ -174,7 +174,7 @@ module.exports = (app, mod, main) => {
           </button>
         </div>
         <div class="settings-footer-item">
-          <span class="settings-footer-label">Storage: <span id="settings-footer-storage">—</span></span>
+          <span class="settings-footer-label">Storage: <span id="settings-footer-storage" title="Local Storage | IndexedDB">— | —</span></span>
           <button
             type="button"
             class="settings-footer-info"

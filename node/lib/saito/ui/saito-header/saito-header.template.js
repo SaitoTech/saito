@@ -21,6 +21,9 @@ let SaitoHeaderTemplate = (app, mod, headerClass) => {
                                <i class="fas fa-copy"></i>
                            </div>
                            <div class="pubkey-mobile-wrapper">
+                               <button type="button" class="wallet-mobile-action" id="toggle-qrcode" aria-label="Show QR code" aria-pressed="false" title="Show QR code">
+                                   <i class="fa-solid fa-qrcode" aria-hidden="true"></i>
+                               </button>
                                <button type="button" class="wallet-mobile-action" id="share-address" aria-label="Share wallet address" title="Share wallet address">
                                    <i class="fa-solid fa-share-nodes" aria-hidden="true"></i>
                                </button>
@@ -44,25 +47,25 @@ let SaitoHeaderTemplate = (app, mod, headerClass) => {
                    <div class="wallet-btn-container">
                        <div class="saito-large-square-button" id="wallet-btn-withdraw">
                            <div class="saito-icon-button">
-                               <span class="wallet-action-icon wallet-send-icon" aria-hidden="true"></span>
+                               <i class="fa-solid fa-arrow-up" aria-hidden="true"></i>
                            </div>
                            <span>Send</span>
                        </div>
                        <div class="saito-large-square-button" id="wallet-btn-switch">
                            <div class="saito-icon-button">
-                               <span class="wallet-action-icon wallet-tokens-icon" aria-hidden="true"></span>
+                               <i class="fa-solid fa-wallet" aria-hidden="true"></i>
                            </div>
                            <span>Tokens</span>
                        </div>
                        <div class="saito-large-square-button" id="wallet-btn-nft">
                            <div class="saito-icon-button">
-                               <span class="wallet-nft-icon" aria-hidden="true"></span>
+                               <i class="fa-solid fa-shapes" aria-hidden="true"></i>
                            </div>
                            <span>NFTs</span>
                        </div>
                        <div class="saito-large-square-button" id="wallet-btn-settings">
                            <div class="saito-icon-button">
-                               <span class="wallet-action-icon wallet-settings-icon" aria-hidden="true"></span>
+                               <i class="fa-solid fa-gear" aria-hidden="true"></i>
                            </div>
                            <span>Admin</span>
                        </div>

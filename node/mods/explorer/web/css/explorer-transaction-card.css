@@ -8,9 +8,9 @@
   container-type: inline-size;
   display: flex;
   min-width: 0;
-  border-bottom: 1px solid var(--explorer-border);
+  border-bottom: 1px solid var(--saito-border);
   color: inherit;
-  background-color: var(--explorer-card);
+  background-color: var(--saito-card);
   transition: background-color var(--explorer-transition-fast);
 }
 
@@ -24,7 +24,7 @@
 }
 
 .explorer-transaction-card:hover {
-  background-color: color-mix(in oklch, var(--explorer-muted) 65%, var(--explorer-card));
+  background-color: color-mix(in oklch, var(--saito-muted) 65%, var(--saito-card));
 }
 
 .explorer-transaction-card-icon-section {
@@ -67,7 +67,7 @@
 .explorer-transaction-card-label {
   flex: 0 0 4rem;
   font-size: var(--explorer-text-xs);
-  color: var(--explorer-muted-foreground);
+  color: var(--saito-muted-foreground);
 }
 
 .explorer-transaction-card-value {
@@ -114,7 +114,7 @@
   text-overflow: ellipsis;
   white-space: nowrap;
   font-size: var(--explorer-text-xs);
-  color: var(--explorer-muted-foreground);
+  color: var(--saito-muted-foreground);
   text-align: right;
 }
 

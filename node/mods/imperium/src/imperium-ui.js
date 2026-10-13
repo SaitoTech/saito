@@ -96,21 +96,43 @@ handleUnitsMenuItem() {
 }
 
 handleInfoMenuItem() {
-  const board = this.getBoardElement();
-  if (!board) {
+  if (this.planet_info_mode) {
+    this.clearPlanetInfoMode();
     return;
   }
-  if (board.classList.contains('bi')) {
-    for (let i in this.game.sectors) {
-      this.removeSectorHighlight(i);
-      board.classList.remove('bi');
-    }
-  } else {
-    for (let i in this.game.sectors) {
-      this.addSectorHighlight(i);
-      board.classList.add('bi');
+  const board = this.getBoardElement();
+  if (!board || !this.game || !this.game.sectors) {
+    return;
+  }
+  for (let i in this.game.sectors) {
+    this.addSectorHighlight(i);
+  }
+  board.classList.add('bi');
+  this.planet_info_mode = 1;
+  if (!this.boundPlanetInfoBoardClick) {
+    this.boundPlanetInfoBoardClick = (e) => {
+      this.clearPlanetInfoMode();
+      e.preventDefault();
+      e.stopPropagation();
+    };
+  }
+  board.addEventListener('click', this.boundPlanetInfoBoardClick, true);
+}
+
+clearPlanetInfoMode() {
+  const board = this.getBoardElement();
+  if (board) {
+    board.classList.remove('bi');
+    if (this.boundPlanetInfoBoardClick) {
+      board.removeEventListener('click', this.boundPlanetInfoBoardClick, true);
     }
   }
+  if (this.game && this.game.sectors) {
+    for (let i in this.game.sectors) {
+      this.removeSectorHighlight(i);
+    }
+  }
+  this.planet_info_mode = 0;
 }
 handleSystemsMenuItem() {
 

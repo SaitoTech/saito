@@ -2823,6 +2823,23 @@ console.log("DESC: " + JSON.stringify(discarded_cards));
 
     if (mv[0] === "event") {
 
+      //
+      // Flower Power. Headlines enqueue the event directly and never reach
+      // playerTriggerEvent / playerTriggerOps. Camp David still cancels
+      // Arab-Israeli War, so that card does not award these VP.
+      //
+      if (this.game.state.headline == 1 && mv[1] === "us" && this.game.state.events.flowerpower == 1) {
+        let card = mv[2];
+        if ((card == "arabisraeli" && this.game.state.events.campdavid == 0) || card == "koreanwar" || card == "brushwar" || card == "indopaki" || card == "iraniraq") {
+          this.game.queue.splice(qe, 0,
+            "modal\t"+this.cardToText("flowerpower")+"\tUSSR gains 2 VP",
+            "NOTIFY\tFlower Power triggered by "+this.cardToText(card),
+            "vp\tussr\t2\t1"
+          );
+          qe += 3;
+        }
+      }
+
       if (this.game.deck[0].cards[mv[2]] != undefined) { 
         if (mv[1] === "us") {
 	  this.game.state.stats.us_events_ops += parseInt(this.game.deck[0].cards[mv[2]].ops);

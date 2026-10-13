@@ -1,4 +1,4 @@
-import { pipeline, env } from './vendor/transformers.min.js';
+import { pipeline, env } from './lib/transformers.min.js';
 import { MODELS, selection, modelCache, modelState } from './models.mjs';
 
 env.allowRemoteModels = true;
@@ -6,7 +6,7 @@ env.allowLocalModels = false;
 env.useBrowserCache = false;
 env.useFSCache = false;
 env.useCustomCache = true;
-env.backends.onnx.wasm.wasmPaths = new URL('./vendor/', import.meta.url).href;
+env.backends.onnx.wasm.wasmPaths = new URL('./lib/', import.meta.url).href;
 // Works without COOP/COEP headers (which would break existing call integrations).
 env.backends.onnx.wasm.numThreads = 1;
 env.backends.onnx.wasm.proxy = false;

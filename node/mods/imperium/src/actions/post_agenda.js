@@ -1,7 +1,7 @@
 
 /*****
     this.importActionCard('confusing-legal-text', {
-  	name : "Confusing Legal Text" ,
+  	name : "Open to Interpretation" ,
   	type : "post_agenda" ,
   	text : "After the speaker has cast his votes, pick another player to win if you are the leading candidate" ,
 	playActionCard : function(imperium_self, player, action_card_player, card) {

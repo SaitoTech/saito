@@ -26,7 +26,7 @@ function primary(state) {
     case 'verify':
       return { label: 'Continue', action: 'advance', disabled: !flow.requiredComplete(state) };
     case 'share':
-      return { label: 'Download SaitoSign Document', action: 'share' };
+      return null;
     case 'premium': {
       const from = state.history[state.history.length - 1];
       if (from && from !== 'select') {
@@ -45,14 +45,23 @@ function publishTemplate(state) {
   const heading = slide.title
     ? `<h3 class="title">${escapeHTML(slide.title)}</h3>`
     : '';
-  const back = state.history.length
-    ? `<button type="button" class="saito-button-square" data-publish-action="back" aria-label="Back"><i class="fa-solid fa-arrow-left" aria-hidden="true"></i></button>`
-    : state.step === 'select'
-      ? `<button type="button" class="saito-text-link draft-export" data-publish-action="export-draft">export draft</button>`
+  const subtitle = slide.subtitle
+    ? `<p class="subtitle">${escapeHTML(slide.subtitle)}</p>`
+    : '';
+  const back = state.step === 'share'
+    ? (state.allowUnfinalize
+      ? `<button type="button" class="saito-button-square" data-publish-action="back" aria-label="Back"><i class="fa-solid fa-arrow-left" aria-hidden="true"></i></button>`
+      : '<span class="spacer"></span>')
+    : state.history.length
+      ? `<button type="button" class="saito-button-square" data-publish-action="back" aria-label="Back"><i class="fa-solid fa-arrow-left" aria-hidden="true"></i></button>`
+      : state.step === 'select'
+        ? ''
+        : '<span class="spacer"></span>';
+  const forward = state.step === 'share'
+    ? '<span class="spacer"></span>'
+    : action
+      ? `<button type="button" class="${action.disabled ? 'saito-button-secondary' : 'saito-button-primary'}" data-publish-action="${action.action}"${action.disabled ? ' disabled' : ''}>${escapeHTML(action.label)}</button>`
       : '<span class="spacer"></span>';
-  const forward = action
-    ? `<button type="button" class="${action.disabled ? 'saito-button-secondary' : 'saito-button-primary'}" data-publish-action="${action.action}"${action.disabled ? ' disabled' : ''}>${escapeHTML(action.label)}</button>`
-    : '<span class="spacer"></span>';
 
   return `
     <div class="saitosign-publish">
@@ -60,6 +69,7 @@ function publishTemplate(state) {
         <div class="viewport">
           <div id="saitosign-publish-step" class="step" data-step="${escapeHTML(state.step)}">
             ${heading}
+            ${subtitle}
             <div class="stage">${slide.body}</div>
           </div>
         </div>

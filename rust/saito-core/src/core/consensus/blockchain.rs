@@ -2884,6 +2884,12 @@ impl Blockchain {
             timestamp: self.last_timestamp,
             slips: vec![],
         };
+        let floor = latest_block_id.saturating_sub(genesis_period);
+
+        // Local to this call. Keyed by (block_id, tx_ordinal, slip_index).
+        let mut bound_by_position: AHashMap<(BlockId, u64, u8), Slip> = AHashMap::new();
+        let mut matched: Vec<Slip> = Vec::new();
+
         // TODO : calling this will be a huge performance hit for the node. so need to refactor the design.
         self.utxoset
             .iter()
@@ -2892,16 +2898,21 @@ impl Blockchain {
                 let slip = Slip::parse_slip_from_utxokey(key).unwrap();
 
                 //
-                // Skip any Bound‐type slips
+                // Check if UTXO is valid (not from an off-chain block)
                 //
-                if slip.slip_type == SlipType::Bound {
+                if slip.block_id < floor {
                     return;
                 }
 
                 //
-                // Check if UTXO is valid (not from an off-chain block)
+                // Spendable Bound slips are indexed so an address snapshot can omit the
+                // Normal or ATR slip immediately after one. They are not returned.
                 //
-                if slip.block_id < latest_block_id.saturating_sub(genesis_period) {
+                if slip.slip_type == SlipType::Bound {
+                    if !keys.is_empty() {
+                        bound_by_position
+                            .insert((slip.block_id, slip.tx_ordinal, slip.slip_index), slip);
+                    }
                     return;
                 }
 
@@ -2909,10 +2920,31 @@ impl Blockchain {
                 // if no keys provided we get the full picture
                 //
                 if keys.is_empty() || keys.contains(&slip.public_key) {
-                    trace!("adding slip : {} to balance snapshot", slip);
-                    snapshot.slips.push(slip);
+                    matched.push(slip);
                 }
             });
+
+        for slip in matched {
+            let block_id = slip.block_id;
+            let tx_ordinal = slip.tx_ordinal;
+            let slip_index = slip.slip_index;
+            let slip_type = slip.slip_type;
+
+            // A Normal or ATR slip with a Bound slip immediately before it is the
+            // deposit inside an NFT. Leave it out of an address snapshot so the
+            // wallet does not treat it as spendable SAITO. The unfiltered snapshot
+            // still includes it for supply accounting.
+            if !keys.is_empty()
+                && (slip_type == SlipType::Normal || slip_type == SlipType::ATR)
+                && slip_index > 0
+                && bound_by_position.contains_key(&(block_id, tx_ordinal, slip_index - 1))
+            {
+                continue;
+            }
+
+            trace!("adding slip : {} to balance snapshot", slip);
+            snapshot.slips.push(slip);
+        }
 
         snapshot
     }

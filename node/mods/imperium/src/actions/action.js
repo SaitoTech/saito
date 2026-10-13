@@ -21,7 +21,7 @@ ACTION CARD - types
 
 
     this.importActionCard('infiltrate', {
-  	name : "Infiltrate" ,
+  	name : "Inside Man" ,
   	type : "instant" ,
   	text : "The next time you invade a planet, you may takeover any existing PDS units or Space Docks" ,
 	playActionCard : function(imperium_self, player, action_card_player, card) {
@@ -64,7 +64,7 @@ ACTION CARD - types
 
 
     this.importActionCard('political-stability', {
-  	name : "Political Stability" ,
+  	name : "Strategic Stability" ,
   	type : "instant" ,
   	text : "Pick a strategy card you have already played this round. You may keep this for next round" ,
 	playActionCard : function(imperium_self, player, action_card_player, card) {
@@ -123,7 +123,7 @@ console.log("qe: " + qe);
 
 
     this.importActionCard('lost-star-chart', {
-  	name : "Lost Star Chart" ,
+  	name : "Wormhole Flux" ,
   	type : "instant" ,
   	text : "During this turn, all wormholes are adjacent to each other" ,
 	playActionCard : function(imperium_self, player, action_card_player, card) {
@@ -134,7 +134,7 @@ console.log("qe: " + qe);
 
 
     this.importActionCard('plague', {
-  	name : "Plague" ,
+  	name : "Gain of Function" ,
   	type : "action" ,
   	text : "ACTION: Select a planet. Roll a dice for each infantry on planet and destroy number of rolls 6 or higher." ,
 	playActionCard : function(imperium_self, player, action_card_player, card) {
@@ -298,7 +298,7 @@ console.log("qe: " + qe);
 
 
     this.importActionCard('flank-speed1', {
-  	name : "Flank Speed" ,
+  	name : "Maximum Thrust" ,
   	type : "instant" ,
   	text : "Gain +1 movement on all ships moved this turn" ,
 	playActionCard : function(imperium_self, player, action_card_player, card) {
@@ -307,7 +307,7 @@ console.log("qe: " + qe);
 	}
     });
     this.importActionCard('flank-speed2', {
-  	name : "Flank Speed" ,
+  	name : "Maximum Thrust" ,
   	type : "instant" ,
   	text : "Gain +1 movement on all ships moved this turn" ,
 	playActionCard : function(imperium_self, player, action_card_player, card) {
@@ -316,7 +316,7 @@ console.log("qe: " + qe);
 	}
     });
     this.importActionCard('flank-speed3', {
-  	name : "Flank Speed" ,
+  	name : "Maximum Thrust" ,
   	type : "instant" ,
   	text : "Gain +1 movement on all ships moved this turn" ,
 	playActionCard : function(imperium_self, player, action_card_player, card) {
@@ -325,7 +325,7 @@ console.log("qe: " + qe);
 	}
     });
     this.importActionCard('flank-speed4', {
-  	name : "Flank Speed" ,
+  	name : "Maximum Thrust" ,
   	type : "instant" ,
   	text : "Gain +1 movement on all ships moved this turn" ,
 	playActionCard : function(imperium_self, player, action_card_player, card) {
@@ -457,7 +457,7 @@ console.log("qe: " + qe);
 
 
     this.importActionCard('lost-mission', {
-  	name : "Lost Mission" ,
+  	name : "Stranded Patrol" ,
   	type : "action" ,
   	text : "ACTION: Place 1 Destroyer in a system with no existing ships" ,
 	playActionCard : function(imperium_self, player, action_card_player, card) {
@@ -884,7 +884,7 @@ console.log("qe: " + qe);
 
 
     this.importActionCard('rise-of-a-messiah', {
-  	name : "Rise of a Messiah" ,
+  	name : "Rise of the Prophet" ,
   	type : "action" ,
   	text : "ACTION: Add one infantry to each planet player controls" ,
 	playActionCard : function(imperium_self, player, action_card_player, card) {
@@ -1109,7 +1109,7 @@ console.log("qe: " + qe);
 
 
     this.importActionCard('in-the-silence-of-space', {
-  	name : "In the Silence of Space" ,
+  	name : "Silent Passage" ,
   	type : "instant" ,
   	text : "Your ships may move through sectors with other player ships this turn: " ,
 	playActionCard : function(imperium_self, player, action_card_player, card) {

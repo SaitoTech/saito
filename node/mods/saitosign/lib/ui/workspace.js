@@ -1,5 +1,8 @@
 const WorkspaceTemplate = require('./workspace.template');
 const FieldOverlay = require('./overlays/field');
+const IdentityPrompt = require('./overlays/identity');
+const SignOverlay = require('./overlays/sign');
+const ClosePrompt = require('./overlays/close');
 const SignerOverlay = require('./overlays/signer');
 const PublishOverlay = require('./overlays/publish');
 const {
@@ -11,9 +14,12 @@ const {
   addAction,
   actionById,
   removeAction,
-  actionsOnPage
+  actionsOnPage,
+  stripSignatures,
+  emptyDocument,
+  revoke
 } = require('../document');
-const { addInitial, addSignature, verifiedEmail, verifiedMethods, verifyActionSignature } = require('../auth');
+const { addInitial, addSignature, verifiedMethods, verifyActionSignature, commitmentIntact, documentFullyVerified, verificationSatisfied } = require('../auth');
 
 function walletKeys(app) {
   const raw = String(app.wallet?.publicKey || '').trim();
@@ -37,27 +43,33 @@ function canConfigure(app, record) {
   return walletKeys(app).includes(String(record.creator).trim());
 }
 
-function canSignAction(app, action, user) {
+function canSignAction(app, action, user, record) {
   if (!action || !user) {
     return false;
   }
   if (action.type !== 'signature' && action.type !== 'initial') {
     return false;
   }
-  if (verifyActionSignature(app, action, user)) {
+  if (verifyActionSignature(app, action, user, record)) {
     return false;
   }
   const theirs = String(user.publickey || '').trim();
   if (!theirs || !walletKeys(app).includes(theirs)) {
     return false;
   }
-  return Boolean(verifiedEmail(app, user));
+  return verificationSatisfied(app, record, user);
 }
 
 const MIN_DRAG = 12;
+const CLICK_WIDTH = 0.26;
+const CLICK_HEIGHT = 0.05;
+const MIN_BOX_WIDTH = 0.08;
+const MIN_BOX_HEIGHT = 0.03;
 const ZOOM_MIN = 1;
+const SIGNER_COLORS = ['#e85d04', '#1d7874', '#315a9b', '#9b2226', '#6a4c93', '#0a7ea4', '#bc6c25', '#2d6a4f'];
 const ZOOM_MAX = 3;
 const ZOOM_STEP = 1.35;
+const SIGN_CONFIRM_MS = 500;
 
 class Workspace {
   constructor(app, mod) {
@@ -69,9 +81,17 @@ class Workspace {
     this.adding_signer = false;
     this.focus_name = false;
     this.draft = null;
+    this.focus_field = null;
+    this.confirming_field = null;
+    this.sign_step = 0;
+    this.sign_timer = null;
+    this.sign_wait = null;
+    this.sign_scroll_wait = null;
+    this.sign_lock = false;
     this.intent = null;
     this.arming = false;
     this.drag = null;
+    this.resize = null;
     this.arrived = null;
     this.overlay = null;
     this.publish = new PublishOverlay(app, mod);
@@ -93,9 +113,11 @@ class Workspace {
     this.adding_signer = false;
     this.focus_name = false;
     this.draft = null;
+    this.cancelSignSequence();
     this.intent = null;
     this.arming = false;
     this.drag = null;
+    this.resize = null;
     this.arrived = null;
     this.pending_scroll = false;
     this.scroll_field = null;
@@ -135,6 +157,7 @@ class Workspace {
   update(root) {
     const view = this.view();
     root.querySelector('.rail').innerHTML = WorkspaceTemplate.rail(view);
+    root.querySelector(':scope > .actions-col')?.remove();
     this.paintFields(root, view);
 
     if (this.focus_name) {
@@ -159,6 +182,11 @@ class Workspace {
 
   attachEvents(root) {
     root.addEventListener('click', (event) => {
+      if (this.suppress_click) {
+        this.suppress_click = false;
+        return;
+      }
+
       const doc = this.mod.document;
       if (!doc) {
         return;
@@ -193,17 +221,18 @@ class Workspace {
 
       const listed = event.target.closest('[data-open-field]');
       if (listed) {
-        this.openExisting(actionById(doc, listed.dataset.openField), root);
+        this.openFieldInteraction(actionById(doc, listed.dataset.openField), root);
         return;
       }
 
       const placed = event.target.closest('[data-field-id]');
       if (placed) {
-        this.openExisting(actionById(doc, placed.dataset.fieldId), root);
+        this.openFieldInteraction(actionById(doc, placed.dataset.fieldId), root);
         return;
       }
 
       if (event.target.closest('[data-page="prev"]')) {
+        this.cancelSignSequence();
         this.page = Math.max(1, this.page - 1);
         this.pending_scroll = true;
         this.update(root);
@@ -211,6 +240,7 @@ class Workspace {
       }
 
       if (event.target.closest('[data-page="next"]')) {
+        this.cancelSignSequence();
         this.page = Math.min(doc.document.page_count, this.page + 1);
         this.pending_scroll = true;
         this.update(root);
@@ -223,11 +253,28 @@ class Workspace {
         return;
       }
 
+      if (event.target.closest('[data-close-document]')) {
+        event.preventDefault();
+        this.cancelSignSequence();
+        this.openClosePrompt();
+        return;
+      }
+
       if (event.target.closest('[data-export]')) {
-        if (!(doc.actions || []).length) {
-          this.openNewAction(root);
+        if (doc.finalized) {
+          this.cancelSignSequence();
+          this.publish.openStatus();
           return;
         }
+        const pending = (doc.actions || []).some((action) => !doc.users[action.user]);
+        if (!(doc.actions || []).length || pending) {
+          this.notice = pending
+            ? 'Confirm who signs each box before finalizing.'
+            : this.notice;
+          this.update(root);
+          return;
+        }
+        this.notice = '';
         this.publish.render();
       }
     });
@@ -264,6 +311,7 @@ class Workspace {
       if (!page_input || !this.mod.document) {
         return;
       }
+      this.cancelSignSequence();
       this.page = clampPage(page_input.value, this.mod.document.document.page_count, this.page);
       this.pending_scroll = true;
       this.update(root);
@@ -286,10 +334,28 @@ class Workspace {
       () => this.onScroll(root),
       { passive: true }
     );
+    root.querySelector('.sheet-wrap').addEventListener(
+      'wheel',
+      () => this.interruptSigning(root),
+      { passive: true }
+    );
   }
 
   beginSelection(event) {
-    if (!this.placing || event.button !== 0) {
+    if (event.button !== 0) {
+      return;
+    }
+    if (event.target.closest('[data-resize]')) {
+      this.beginResize(event);
+      return;
+    }
+    if (this.beginMove(event)) {
+      return;
+    }
+
+    const doc = this.mod.document;
+    const direct = Boolean(doc && !doc.finalized && canConfigure(this.app, doc));
+    if (!this.placing && !direct) {
       return;
     }
     if (event.target.closest('[data-field-id]')) {
@@ -320,6 +386,15 @@ class Workspace {
   }
 
   moveSelection(event, root) {
+    if (this.resize && this.resize.pointer === event.pointerId) {
+      this.applyResize(event);
+      return;
+    }
+    if (this.move && this.move.pointer === event.pointerId) {
+      this.applyMove(event);
+      return;
+    }
+
     if (!this.drag || this.drag.pointer !== event.pointerId) {
       return;
     }
@@ -341,18 +416,37 @@ class Workspace {
   }
 
   endSelection(event, root) {
+    if (this.resize && this.resize.pointer === event.pointerId) {
+      this.finishResize(event);
+      return;
+    }
+    if (this.move && this.move.pointer === event.pointerId) {
+      this.finishMove(event, root);
+      return;
+    }
+
     if (!this.drag || this.drag.pointer !== event.pointerId) {
       return;
     }
 
     const stage = this.drag.stage;
     const page = this.drag.page;
+    const drag = this.drag;
     if (stage?.hasPointerCapture(event.pointerId)) {
       stage.releasePointerCapture(event.pointerId);
     }
 
-    const rect = rectangle(this.drag, event.clientX, event.clientY);
+    const rect = rectangle(drag, event.clientX, event.clientY);
+    const direct = !this.placing;
     this.drag = null;
+
+    if (direct) {
+      const box = !rect || rect.pixels < MIN_DRAG
+        ? signatureBoxAt(drag, drag.x0, drag.y0)
+        : fitBox(rect);
+      this.placeSignature(page, box, root);
+      return;
+    }
 
     if (!rect || rect.pixels < MIN_DRAG) {
       this.draft = null;
@@ -411,6 +505,252 @@ class Workspace {
     this.placing = false;
     this.draft = null;
     this.update(root);
+  }
+
+  placeSignature(page, box, root) {
+    const doc = this.mod.document;
+    this.draft = null;
+    this.placing = false;
+    if (!doc || doc.finalized || !canConfigure(this.app, doc) || !box) {
+      this.update(root);
+      return;
+    }
+
+    this.page = page;
+    this.intent = null;
+    this.focus_field = null;
+    this.draft = {
+      page,
+      type: 'signature',
+      user: doc.users.length ? 0 : -1,
+      x: box.x,
+      y: box.y,
+      width: box.width,
+      height: box.height
+    };
+    this.suppress_click = true;
+    setTimeout(() => {
+      this.suppress_click = false;
+    }, 0);
+    this.update(root);
+    this.openField(root);
+  }
+
+  beginMove(event) {
+    const fieldEl = event.target.closest('[data-field-id]');
+    const stage = fieldEl?.closest('.fields');
+    const doc = this.mod.document;
+    const action = fieldEl ? actionById(doc, fieldEl.dataset.fieldId) : null;
+    if (!fieldEl || !stage || !action || !canConfigure(this.app, doc)) {
+      return false;
+    }
+    const box = stage.getBoundingClientRect();
+    if (!box.width || !box.height) {
+      return false;
+    }
+    const point = pointerFraction(box, event.clientX, event.clientY);
+    this.move = {
+      pointer: event.pointerId,
+      stage,
+      fieldEl,
+      action,
+      x: action.x,
+      y: action.y,
+      width: action.width,
+      height: action.height,
+      offsetX: point.x - action.x,
+      offsetY: point.y - action.y,
+      x0: event.clientX,
+      y0: event.clientY,
+      next: null,
+      moved: false
+    };
+    stage.classList.add('dragging');
+    fieldEl.classList.add('moving');
+    stage.setPointerCapture(event.pointerId);
+    return true;
+  }
+
+  applyMove(event) {
+    const move = this.move;
+    const box = move.stage.getBoundingClientRect();
+    if (!box.width || !box.height) {
+      return;
+    }
+    const point = pointerFraction(box, event.clientX, event.clientY);
+    const next = placeBox(move, point.x - move.offsetX, point.y - move.offsetY);
+    move.next = next;
+    move.moved = move.moved || Math.hypot(event.clientX - move.x0, event.clientY - move.y0) >= MIN_DRAG;
+    move.fieldEl.style.left = `${(next.x * 100).toFixed(2)}%`;
+    move.fieldEl.style.top = `${(next.y * 100).toFixed(2)}%`;
+  }
+
+  finishMove(event, root) {
+    const move = this.move;
+    if (move.stage?.hasPointerCapture(event.pointerId)) {
+      move.stage.releasePointerCapture(event.pointerId);
+    }
+    move.stage.classList.remove('dragging');
+    move.fieldEl.classList.remove('moving');
+    const traveled = Math.hypot(event.clientX - move.x0, event.clientY - move.y0) >= MIN_DRAG;
+    const next = move.moved || traveled ? move.next : null;
+    const doc = this.mod.document;
+    const repositioned = Boolean(next && canConfigure(this.app, doc) && (move.action.x !== next.x || move.action.y !== next.y));
+    if (repositioned) {
+      move.action.x = next.x;
+      move.action.y = next.y;
+      stripSignatures(doc);
+      doc.edited = true;
+      if (this.draft && Number(this.draft.id) === Number(move.action.id)) {
+        this.draft.x = next.x;
+        this.draft.y = next.y;
+      }
+    } else {
+      move.fieldEl.style.left = `${(move.x * 100).toFixed(2)}%`;
+      move.fieldEl.style.top = `${(move.y * 100).toFixed(2)}%`;
+    }
+    const action = move.action;
+    this.move = null;
+    if (repositioned || next) {
+      this.suppress_click = true;
+      setTimeout(() => {
+        this.suppress_click = false;
+      }, 0);
+      return;
+    }
+    this.suppress_click = true;
+    setTimeout(() => {
+      this.suppress_click = false;
+    }, 0);
+    this.openFieldInteraction(action, root);
+  }
+
+  beginResize(event) {
+    const handle = event.target.closest('[data-resize]');
+    const fieldEl = handle?.closest('[data-field-id]');
+    const stage = handle?.closest('.fields');
+    const doc = this.mod.document;
+    const action = fieldEl ? actionById(doc, fieldEl.dataset.fieldId) : null;
+    if (!handle || !stage || !action || !canConfigure(this.app, doc)) {
+      return;
+    }
+    const box = stage.getBoundingClientRect();
+    if (!box.width || !box.height) {
+      return;
+    }
+    this.resize = {
+      pointer: event.pointerId,
+      edge: handle.dataset.resize,
+      box,
+      stage,
+      action,
+      x: action.x,
+      y: action.y,
+      width: action.width,
+      height: action.height,
+      next: null
+    };
+    stage.setPointerCapture(event.pointerId);
+    event.preventDefault();
+  }
+
+  applyResize(event) {
+    const resize = this.resize;
+    const point = pointerFraction(resize.box, event.clientX, event.clientY);
+    const next = resizeBox(resize, resize.edge, point.x, point.y);
+    resize.next = next;
+    const el = resize.stage.querySelector(`[data-field-id="${CSS.escape(String(resize.action.id))}"]`);
+    if (!el) {
+      return;
+    }
+    el.style.left = `${(next.x * 100).toFixed(2)}%`;
+    el.style.top = `${(next.y * 100).toFixed(2)}%`;
+    el.style.width = `${(next.width * 100).toFixed(2)}%`;
+    el.style.height = `${(next.height * 100).toFixed(2)}%`;
+  }
+
+  finishResize(event) {
+    const resize = this.resize;
+    if (resize.stage?.hasPointerCapture(event.pointerId)) {
+      resize.stage.releasePointerCapture(event.pointerId);
+    }
+    const next = resize.next;
+    const doc = this.mod.document;
+    if (next && canConfigure(this.app, doc)) {
+      const action = resize.action;
+      const changed = action.x !== next.x || action.y !== next.y || action.width !== next.width || action.height !== next.height;
+      if (changed) {
+        action.x = next.x;
+        action.y = next.y;
+        action.width = next.width;
+        action.height = next.height;
+        stripSignatures(doc);
+        doc.edited = true;
+        if (this.draft && Number(this.draft.id) === Number(action.id)) {
+          this.draft.x = next.x;
+          this.draft.y = next.y;
+          this.draft.width = next.width;
+          this.draft.height = next.height;
+        }
+      }
+    }
+    this.resize = null;
+    const moved = Boolean(next);
+    if (moved) {
+      this.suppress_click = true;
+      setTimeout(() => {
+        this.suppress_click = false;
+      }, 0);
+    }
+  }
+
+  openClosePrompt() {
+    if (this.close_prompt) {
+      return;
+    }
+    const prompt = new ClosePrompt(this.app, this.mod);
+    this.close_prompt = prompt;
+    prompt.render({
+      onDismiss: () => {
+        if (this.close_prompt === prompt) {
+          this.close_prompt = null;
+        }
+      },
+      onLeave: () => this.leaveDocument(),
+      onExport: () => this.exportWorkingCopy()
+    });
+  }
+
+  async exportWorkingCopy() {
+    const before = this.mod.document;
+    const finalized = before?.finalized === true;
+    const saved = await this.mod.exportDocument({ draft: true });
+    if (this.mod.document !== before || this.mod.document?.finalized !== finalized) {
+      return false;
+    }
+    return saved === true;
+  }
+
+  leaveDocument() {
+    this.cancelSignSequence();
+    if (this.overlay && this.overlay.close) {
+      this.overlay.close();
+      this.overlay = null;
+    }
+    if (this.sign_overlay) {
+      this.sign_closing = true;
+      this.sign_overlay.close();
+      this.sign_closing = false;
+      this.sign_overlay = null;
+    }
+    if (this.publish && this.publish.close) {
+      this.publish.close();
+    }
+    this.focus_field = null;
+    revoke(this.mod.document);
+    this.mod.document = emptyDocument();
+    this.close_prompt = null;
+    this.mod.main.showSplash();
   }
 
   openSigner(index) {
@@ -486,6 +826,7 @@ class Workspace {
       return;
     }
     this.placing = false;
+    this.focus_field = null;
     this.draft = null;
     if (!this.intent) {
       this.intent = {
@@ -494,15 +835,275 @@ class Workspace {
         newName: ''
       };
     }
+    const current = document.querySelector('.saito-container > .workspace') || root;
+    if (current) {
+      this.update(current);
+    }
     this.openField(root);
   }
 
+  openFieldInteraction(field, root) {
+    const doc = this.mod.document;
+    if (!field || !doc) {
+      return;
+    }
+    if (!doc.finalized) {
+      this.openExisting(field, root);
+      return;
+    }
+    if (field.type !== 'signature' && field.type !== 'initial') {
+      this.openExisting(field, root);
+      return;
+    }
+
+    const user = doc.users[field.user];
+    const relation = signerRelation(this.app, user, doc);
+    if (relation.recognized && relation.verified) {
+      this.openSignPrompt(field);
+      return;
+    }
+    if (relation.recognized) {
+      this.publish.beginVerification(field.user, field.id);
+      return;
+    }
+    if (relation.bound && !relation.recognized) {
+      this.openExisting(field, root);
+      return;
+    }
+
+    const prompt = new IdentityPrompt(this.app, this.mod);
+    const name = user?.name || user?.email || '';
+    prompt.render(name, {
+      onYes: () => this.publish.beginVerification(field.user, field.id)
+    });
+  }
+
+  continueSigning(actionId) {
+    const doc = this.mod.document;
+    const action = actionById(doc, actionId);
+    const user = action ? doc.users[action.user] : null;
+    if (!doc?.finalized || !action || !user) {
+      return;
+    }
+    if (!verificationSatisfied(this.app, doc, user)) {
+      this.publish.beginVerification(action.user, action.id);
+      return;
+    }
+    if (!canSignAction(this.app, action, user, doc)) {
+      return;
+    }
+    this.openSignPrompt(action);
+  }
+
+  openSignPrompt(field, options = {}) {
+    const doc = this.mod.document;
+    const root = document.querySelector('.saito-container > .workspace');
+    if (!options.sequence) {
+      this.cancelSignSequence();
+    }
+    if (!doc?.finalized || !field || !root) {
+      return;
+    }
+    const start = canSignAction(this.app, field, doc.users[field.user], doc)
+      ? field
+      : nextUnsignedAction(this.app, doc, field.user, field);
+    if (!start) {
+      this.publish.openStatus('You have added your signature everywhere required on the document.');
+      return;
+    }
+    const user = doc.users[start.user];
+    if (!verificationSatisfied(this.app, doc, user)) {
+      this.publish.beginVerification(start.user, start.id);
+      return;
+    }
+    this.focus_field = start.id;
+    this.page = start.page;
+    if (!options.sequence) {
+      this.pending_scroll = true;
+      this.scroll_field = start.id;
+    }
+    this.update(root);
+    this.dismissSignOverlay();
+    const overlay = new SignOverlay(this.app, this.mod);
+    this.sign_overlay = overlay;
+    overlay.render(
+      {
+        name: user?.name || '',
+        email: user?.email || ''
+      },
+      {
+        onSign: () => this.signThenAdvance(start),
+        onClose: () => {
+          if (this.sign_closing) {
+            return;
+          }
+          if (this.sign_overlay === overlay) {
+            this.sign_overlay = null;
+          }
+          this.cancelSignSequence();
+          if (Number(this.focus_field) === Number(start.id)) {
+            this.focus_field = null;
+          }
+          const current = document.querySelector('.saito-container > .workspace');
+          if (current) {
+            this.update(current);
+          }
+        }
+      }
+    );
+  }
+
+  async signThenAdvance(action) {
+    if (this.sign_lock) {
+      return false;
+    }
+    this.sign_lock = true;
+    this.cancelSignSequence();
+    const token = this.sign_step;
+    try {
+      const signed = await this.signAction(action);
+      const root = document.querySelector('.saito-container > .workspace');
+      if (!signed) {
+        return false;
+      }
+      if (this.sign_step !== token) {
+        if (root) {
+          this.update(root);
+        }
+        return true;
+      }
+      const next = nextUnsignedAction(this.app, this.mod.document, action.user, action);
+      this.dismissSignOverlay();
+      this.focus_field = null;
+      this.confirming_field = action.id;
+      if (root) {
+        this.update(root);
+      }
+      await this.waitForSignStep(SIGN_CONFIRM_MS);
+      if (this.sign_step !== token) {
+        return true;
+      }
+      this.confirming_field = null;
+      const current = document.querySelector('.saito-container > .workspace');
+      if (!next) {
+        this.focus_field = null;
+        if (current) {
+          this.update(current);
+        }
+        this.publish.openStatus('You have added your signature everywhere required on the document.');
+        return true;
+      }
+      this.focus_field = next.id;
+      this.page = next.page;
+      if (current) {
+        this.update(current);
+        await this.scrollToField(current, next.id, { smooth: true, preferTop: true });
+      }
+      if (this.sign_step !== token || !document.querySelector('.saito-container > .workspace')) {
+        return true;
+      }
+      this.openSignPrompt(next, { sequence: true });
+      return true;
+    } finally {
+      this.sign_lock = false;
+    }
+  }
+
+  dismissSignOverlay() {
+    if (!this.sign_overlay) {
+      return;
+    }
+    this.sign_closing = true;
+    this.sign_overlay.close();
+    this.sign_closing = false;
+    this.sign_overlay = null;
+  }
+
+  cancelSignSequence() {
+    this.sign_step = (this.sign_step || 0) + 1;
+    this.confirming_field = null;
+    if (this.sign_wait) {
+      const finish = this.sign_wait;
+      this.sign_wait = null;
+      finish();
+    } else if (this.sign_timer) {
+      clearTimeout(this.sign_timer);
+      this.sign_timer = null;
+    }
+    if (this.sign_scroll_wait) {
+      const finishScroll = this.sign_scroll_wait;
+      this.sign_scroll_wait = null;
+      finishScroll();
+    }
+    if (typeof document === 'undefined') {
+      return;
+    }
+    const wrap = document.querySelector('.saito-container > .workspace .sheet-wrap');
+    if (wrap?.scrollTo) {
+      wrap.scrollTo({ top: wrap.scrollTop, left: wrap.scrollLeft, behavior: 'auto' });
+    }
+  }
+
+  interruptSigning(root) {
+    if (!this.sign_timer && this.confirming_field == null && !this.sign_lock && !this.sign_scroll_wait) {
+      return;
+    }
+    this.cancelSignSequence();
+    if (root) {
+      this.update(root);
+    }
+  }
+
+  waitForSignStep(ms) {
+    return new Promise((resolve) => {
+      const finish = () => {
+        if (this.sign_timer) {
+          clearTimeout(this.sign_timer);
+          this.sign_timer = null;
+        }
+        if (this.sign_wait === finish) {
+          this.sign_wait = null;
+        }
+        resolve();
+      };
+      this.sign_wait = finish;
+      this.sign_timer = setTimeout(finish, ms);
+    });
+  }
+
+  async signAction(action) {
+    const doc = this.mod.document;
+    const user = action ? doc?.users?.[action.user] : null;
+    if (!doc?.finalized || !action || !user || !canSignAction(this.app, action, user, doc)) {
+      return false;
+    }
+    if (!commitmentIntact(this.app, doc)) {
+      return false;
+    }
+    const privateKey = await this.app.wallet.getPrivateKey();
+    const signed = action.type === 'initial'
+      ? addInitial(this.app, action, privateKey, doc.hash)
+      : addSignature(this.app, action, privateKey, doc.hash);
+    if (!signed?.signature) {
+      return false;
+    }
+    const kept = (Array.isArray(user.signatures) ? user.signatures : []).filter((entry) => {
+      return Number(entry?.id) !== Number(action.id);
+    });
+    kept.push(signed);
+    user.signatures = kept;
+    doc.edited = true;
+    return verifyActionSignature(this.app, action, user, doc);
+  }
+
   openExisting(field, root) {
+    this.cancelSignSequence();
     if (!field || (!canConfigure(this.app, this.mod.document) && !this.mod.document?.finalized)) {
       return;
     }
     this.placing = false;
     this.intent = null;
+    this.focus_field = field.id;
     this.page = field.page;
     this.pending_scroll = true;
     this.scroll_field = field.id;
@@ -521,55 +1122,40 @@ class Workspace {
   }
 
   openField(root) {
+    if (this.overlay) {
+      this.replacing = true;
+      this.overlay.close();
+      this.replacing = false;
+    }
+
     const overlay = new FieldOverlay(this.app, this.mod);
     this.overlay = overlay;
     overlay.render(this.fieldView(), {
-      onCreateSigner: (name) => {
-        const doc = this.mod.document;
-        if (!canConfigure(this.app, doc) || !name || !this.draft?.id) {
-          return null;
-        }
-        const decision = resolveSigner(doc, name);
-        if (decision.action === 'existing') {
-          if (decision.conflict) {
-            duplicateSignerNotice();
-          }
-          this.arrived = decision.index;
-          this.draft.user = decision.index;
-          this.update(root);
-          return {
-            existing: true,
-            index: decision.index,
-            name: doc.users[decision.index].name
-          };
-        }
-        const index = addUser(doc, decision.name, this.app.wallet?.publicKey);
-        this.arrived = index;
-        this.draft.user = index;
-        this.update(root);
-        return {
-          index,
-          name: doc.users[index].name
-        };
-      },
+      onPreview: (form) => this.previewField(form),
       onRemove: () => {
         if (!canConfigure(this.app, this.mod.document)) return;
         removeAction(this.mod.document, this.draft.id, this.app.wallet?.publicKey);
         overlay.close();
       },
       onSave: (form) => {
-        if (this.draft?.id) {
+        if (this.draft) {
           return this.saveField(form);
         }
         return this.armPlacement(form);
       },
       onSign: () => this.signField(),
       onClose: () => {
+        if (this.replacing) {
+          return;
+        }
         const started = this.arming;
         this.arming = false;
         if (!started) {
           this.intent = null;
           this.placing = false;
+        }
+        if (this.draft?.id != null && Number(this.focus_field) === Number(this.draft.id)) {
+          this.focus_field = null;
         }
         this.draft = null;
         if (this.overlay === overlay) {
@@ -628,6 +1214,7 @@ class Workspace {
 
     this.placing = true;
     this.draft = null;
+    this.focus_field = null;
     this.arming = true;
     this.overlay.close();
     return true;
@@ -642,36 +1229,92 @@ class Workspace {
 
     const type = form.querySelector('[data-field-type]').value;
     const chosen = form.querySelector('[data-field-signer]').value;
-    if (chosen === 'new') {
+    if (!ACTION_TYPES[type]) {
       return false;
     }
 
-    const user = doc.users[Number(chosen)];
-    if (!user || !ACTION_TYPES[type]) {
+    let userIndex = Number(chosen);
+    if (chosen === 'new') {
+      const name = form.querySelector('[data-signer-name]')?.value.trim() || '';
+      const email = form.querySelector('[data-signer-email]')?.value.trim() || '';
+      if (!name || !isEmailAddress(email)) {
+        return false;
+      }
+      const decision = resolveSigner(doc, email, name);
+      if (decision.action === 'existing') {
+        if (decision.conflict) {
+          duplicateSignerNotice();
+          return false;
+        }
+        userIndex = decision.index;
+      } else if (decision.action === 'create') {
+        userIndex = addUser(doc, decision.name, this.app.wallet?.publicKey);
+        if (!doc.users[userIndex]) {
+          return false;
+        }
+        doc.users[userIndex].email = email;
+        this.arrived = userIndex;
+      } else {
+        return false;
+      }
+    }
+
+    const user = doc.users[userIndex];
+    if (!user) {
       return false;
     }
 
     if (draft.id) {
       const action = actionById(doc, draft.id);
-      if (action && (action.type !== type || action.user !== Number(chosen))) {
+      if (action && (action.type !== type || action.user !== userIndex)) {
         action.type = type;
-        action.user = Number(chosen);
+        action.user = userIndex;
+        stripSignatures(doc);
         doc.edited = true;
       }
     } else {
-      addAction(doc, {
+      const placed = addAction(doc, {
         type,
-        user: Number(chosen),
+        user: userIndex,
         page: draft.page,
         x: draft.x,
         y: draft.y,
         width: draft.width,
         height: draft.height
       }, this.app.wallet?.publicKey);
+      if (!placed) {
+        return false;
+      }
     }
 
+    this.notice = '';
     this.overlay.close();
     return true;
+  }
+
+  previewField(form) {
+    const draft = this.draft;
+    const doc = this.mod.document;
+    if (!draft || !doc) {
+      return;
+    }
+    const chosen = form.querySelector('[data-field-signer]')?.value;
+    const type = form.querySelector('[data-field-type]')?.value || 'signature';
+    const index = chosen === 'new' ? doc.users.length : Number(chosen);
+    const el = draft.id
+      ? document.querySelector(`.workspace .field[data-field-id="${CSS.escape(String(draft.id))}"]`)
+      : document.querySelector('.workspace .field.draft');
+    if (!el) {
+      return;
+    }
+    const color = signerColor(index);
+    el.style.background = color;
+    el.style.borderColor = color;
+    const name = chosen === 'new' ? '' : doc.users[index]?.name || '';
+    const text = el.querySelector('.text');
+    if (text) {
+      text.textContent = name ? `${typeLabel(type)} - ${name}` : typeLabel(type);
+    }
   }
 
   async signField() {
@@ -682,7 +1325,7 @@ class Workspace {
     }
     const action = actionById(doc, draft.id);
     const user = action ? doc.users[action.user] : null;
-    if (!action || !user || !canSignAction(this.app, action, user)) {
+    if (!action || !user || !canSignAction(this.app, action, user, doc)) {
       return false;
     }
     const form = document.querySelector('.saitosign-field');
@@ -693,10 +1336,16 @@ class Workspace {
     if (!doc.finalized && (type === 'signature' || type === 'initial')) {
       action.type = type;
     }
+    if (!commitmentIntact(this.app, doc)) {
+      return false;
+    }
     const privateKey = await this.app.wallet.getPrivateKey();
     const signed = action.type === 'initial'
-      ? addInitial(this.app, action, privateKey)
-      : addSignature(this.app, action, privateKey);
+      ? addInitial(this.app, action, privateKey, doc.hash)
+      : addSignature(this.app, action, privateKey, doc.hash);
+    if (!signed?.signature) {
+      return false;
+    }
     const kept = (Array.isArray(user.signatures) ? user.signatures : []).filter((entry) => {
       return Number(entry?.id) !== Number(action.id);
     });
@@ -712,15 +1361,31 @@ class Workspace {
     const draft = this.draft;
     const intent = this.intent;
     const existing = Boolean(draft?.id);
+    const pending = Boolean(draft && !draft.id);
     let type = 'signature';
     let signer_index = doc.users.length ? 0 : null;
     let new_name = '';
     let choose_new = doc.users.length === 0;
 
-    if (existing) {
+    if (pending) {
       type = draft.type || 'signature';
-      signer_index = draft.user;
-      choose_new = false;
+      const known = Number.isInteger(draft.user) && draft.user >= 0 && Boolean(doc.users[draft.user]);
+      if (known) {
+        signer_index = draft.user;
+        choose_new = false;
+      } else if (doc.users.length) {
+        signer_index = 0;
+        choose_new = false;
+      } else {
+        signer_index = null;
+        choose_new = true;
+      }
+      new_name = draft.pendingName || '';
+    } else if (existing) {
+      type = draft.type || 'signature';
+      const known = Number.isInteger(draft.user) && Boolean(doc.users[draft.user]);
+      signer_index = known ? draft.user : null;
+      choose_new = !known;
     } else if (intent) {
       type = intent.type || 'signature';
       new_name = intent.newName || '';
@@ -735,7 +1400,7 @@ class Workspace {
 
     const signer = existing ? doc.users[signer_index] : null;
     const action = existing ? actionById(doc, draft.id) : null;
-    const can_sign = Boolean(doc.finalized && action && signer && canSignAction(this.app, action, signer));
+    const can_sign = Boolean(doc.finalized && action && signer && canSignAction(this.app, action, signer, doc));
 
     return {
       existing,
@@ -746,7 +1411,7 @@ class Workspace {
       choose_new,
       new_name,
       can_sign,
-      already_signed: Boolean(action && signer && verifyActionSignature(this.app, action, signer)),
+      already_signed: Boolean(action && signer && verifyActionSignature(this.app, action, signer, doc)),
       sign_index: can_sign ? signer_index : null,
       signers: doc.users.map((user, index) => ({
         index,
@@ -764,11 +1429,19 @@ class Workspace {
       this.page = 1;
     }
 
+    const focus = this.focus_field;
+    const confirming = this.confirming_field;
+    const selected = (id) => focus != null && Number(id) === Number(focus);
+    const marked = (id) => confirming != null && Number(id) === Number(confirming);
+    const pendingName = doc.users[this.draft?.user]?.name || this.draft?.pendingName || '';
+    const pendingType = this.draft?.type || 'signature';
     const draft = this.draft && !this.draft.id
       ? {
           page: this.draft.page,
-          type: this.draft.type || 'signature',
-          name: doc.users[this.draft.user]?.name || this.draft.pendingName || '',
+          type: pendingType,
+          name: pendingName,
+          label: pendingName ? `${typeLabel(pendingType)} - ${pendingName}` : typeLabel(pendingType),
+          color: signerColor(doc.users[this.draft.user] ? this.draft.user : doc.users.length),
           x: this.draft.x,
           y: this.draft.y,
           width: this.draft.width,
@@ -779,6 +1452,8 @@ class Workspace {
     return {
       file_name: doc.document.name || 'Document',
       can_edit: canConfigure(this.app, doc),
+      finalized: doc.finalized === true,
+      verified: documentFullyVerified(this.app, doc),
       page: this.page,
       page_count: doc.document.page_count,
       notice: this.notice || '',
@@ -794,7 +1469,7 @@ class Workspace {
         const mine = (doc.actions || []).filter((action) => {
           return action.user === index && (action.type === 'signature' || action.type === 'initial');
         });
-        const complete = mine.length > 0 && mine.every((action) => verifyActionSignature(this.app, action, user));
+        const complete = mine.length > 0 && mine.every((action) => verifyActionSignature(this.app, action, user, doc));
         return {
           index,
           name: user.name,
@@ -802,26 +1477,46 @@ class Workspace {
           complete
         };
       }),
-      field_list: doc.actions.map((action) => ({
-        id: action.id,
-        page: action.page,
-        type: action.type,
-        name: doc.users[action.user]?.name || '',
-        signed: verifyActionSignature(this.app, action, doc.users[action.user])
-      })),
+      field_list: doc.actions.map((action) => {
+        const name = doc.users[action.user]?.name || '';
+        const signed = verifyActionSignature(this.app, action, doc.users[action.user], doc);
+        const kind = typeLabel(action.type, signed);
+        return {
+          id: action.id,
+          page: action.page,
+          type: action.type,
+          name,
+          color: signerColor(doc.users[action.user] ? action.user : doc.users.length),
+          label: name ? `${kind} - ${name} - page ${action.page}` : `${kind} - page ${action.page}`,
+          signed,
+          active: selected(action.id),
+          confirming: marked(action.id)
+        };
+      }),
       pages: Array.from({ length: doc.document.page_count }, (_, index) => {
         const page = index + 1;
         return {
           page,
-          fields: actionsOnPage(doc, page).map((action) => ({
-            id: action.id,
-            type: action.type,
-            name: doc.users[action.user]?.name || '',
-            x: action.x,
-            y: action.y,
-            width: action.width,
-            height: action.height
-          })),
+          editable: canConfigure(this.app, doc),
+          fields: actionsOnPage(doc, page).map((action) => {
+            const name = doc.users[action.user]?.name || '';
+            const signed = verifyActionSignature(this.app, action, doc.users[action.user], doc);
+            const kind = typeLabel(action.type, signed);
+            return {
+              id: action.id,
+              type: action.type,
+              name,
+              label: name ? `${kind} - ${name}` : kind,
+              signed,
+              color: signerColor(doc.users[action.user] ? action.user : doc.users.length),
+              x: action.x,
+              y: action.y,
+              width: action.width,
+              height: action.height,
+              active: selected(action.id),
+              confirming: marked(action.id)
+            };
+          }),
           draft: draft && draft.page === page ? draft : null
         };
       })
@@ -835,6 +1530,7 @@ class Workspace {
         return;
       }
       layer.classList.toggle('placing', view.placing);
+      layer.classList.toggle('marking', view.can_edit);
       layer.innerHTML = WorkspaceTemplate.fields(page);
     });
   }
@@ -906,12 +1602,12 @@ class Workspace {
     root.querySelector('.reader').innerHTML = WorkspaceTemplate.reader(this.view());
   }
 
-  scrollToField(root, id) {
+  scrollToField(root, id, options = {}) {
     const wrap = root.querySelector('.sheet-wrap');
     const el = root.querySelector(`.pdf-page .field[data-field-id="${CSS.escape(String(id))}"]`);
     if (!wrap || !el) {
       this.scrollToPage(root, this.page);
-      return;
+      return Promise.resolve();
     }
 
     const wrapBox = wrap.getBoundingClientRect();
@@ -921,33 +1617,71 @@ class Workspace {
     const viewBottom = wrapBox.bottom - margin;
     const viewLeft = wrapBox.left + margin;
     const viewRight = wrapBox.right - margin;
+    const preferTop = options.preferTop === true;
 
     let deltaY = 0;
-    if (box.height >= viewBottom - viewTop) {
-      deltaY = box.top - viewTop;
-    } else if (box.top < viewTop) {
-      deltaY = box.top - viewTop;
-    } else if (box.bottom > viewBottom) {
-      deltaY = box.bottom - viewBottom;
-    }
-
     let deltaX = 0;
-    if (box.left < viewLeft) {
-      deltaX = box.left - viewLeft;
-    } else if (box.right > viewRight) {
-      deltaX = box.right - viewRight;
+    if (preferTop) {
+      const targetTop = wrapBox.top + Math.max(28, (viewBottom - viewTop) * 0.18);
+      deltaY = box.top - targetTop;
+      deltaX = (box.left + box.width / 2) - (wrapBox.left + wrapBox.width / 2);
+    } else {
+      if (box.height >= viewBottom - viewTop) {
+        deltaY = box.top - viewTop;
+      } else if (box.top < viewTop) {
+        deltaY = box.top - viewTop;
+      } else if (box.bottom > viewBottom) {
+        deltaY = box.bottom - viewBottom;
+      }
+      if (box.left < viewLeft) {
+        deltaX = box.left - viewLeft;
+      } else if (box.right > viewRight) {
+        deltaX = box.right - viewRight;
+      }
     }
 
-    if (!deltaX && !deltaY) {
-      return;
+    if (Math.abs(deltaX) < 2 && Math.abs(deltaY) < 2) {
+      return Promise.resolve();
     }
 
+    const top = wrap.scrollTop + deltaY;
+    const left = wrap.scrollLeft + deltaX;
+    const reduced = typeof window !== 'undefined'
+      && window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
+    const smooth = options.smooth === true && !reduced && typeof wrap.scrollTo === 'function';
     this.suspend_scroll = true;
-    wrap.scrollTop += deltaY;
-    wrap.scrollLeft += deltaX;
-    this.loadPages(root);
-    requestAnimationFrame(() => {
-      this.suspend_scroll = false;
+    if (!smooth) {
+      wrap.scrollTop = top;
+      wrap.scrollLeft = left;
+      this.loadPages(root);
+      return new Promise((resolve) => {
+        requestAnimationFrame(() => {
+          this.suspend_scroll = false;
+          resolve();
+        });
+      });
+    }
+
+    return new Promise((resolve) => {
+      let settled = false;
+      const finish = () => {
+        if (settled) {
+          return;
+        }
+        settled = true;
+        if (this.sign_scroll_wait === finish) {
+          this.sign_scroll_wait = null;
+        }
+        clearTimeout(fallback);
+        wrap.removeEventListener('scrollend', finish);
+        this.suspend_scroll = false;
+        this.loadPages(root);
+        resolve();
+      };
+      const fallback = setTimeout(finish, 800);
+      this.sign_scroll_wait = finish;
+      wrap.addEventListener('scrollend', finish);
+      wrap.scrollTo({ top, left, behavior: 'smooth' });
     });
   }
 
@@ -1096,6 +1830,41 @@ class Workspace {
   }
 }
 
+function nextUnsignedAction(app, doc, userIndex, after) {
+  const user = doc?.users?.[userIndex];
+  if (!user) {
+    return null;
+  }
+  const waiting = (doc.actions || [])
+    .filter((action) => {
+      return action.user === userIndex
+        && (action.type === 'signature' || action.type === 'initial')
+        && canSignAction(app, action, user, doc);
+    })
+    .sort((left, right) => left.page - right.page || left.y - right.y || left.x - right.x || left.id - right.id);
+  if (!waiting.length) {
+    return null;
+  }
+  if (!after) {
+    return waiting[0];
+  }
+  const later = waiting.find((action) => {
+    return action.page > after.page
+      || (action.page === after.page && (action.y > after.y || (action.y === after.y && action.x > after.x)));
+  });
+  return later || waiting[0];
+}
+
+function signerRelation(app, user, record) {
+  const theirs = String(user?.publickey || '').trim();
+  const recognized = Boolean(theirs && walletKeys(app).includes(theirs));
+  return {
+    bound: Boolean(theirs),
+    recognized,
+    verified: recognized && verificationSatisfied(app, record, user)
+  };
+}
+
 function duplicateSignerNotice() {
   if (typeof siteMessage === 'function') {
     siteMessage('Adding multiple users with the same email address is not permitted.', 3000);
@@ -1105,6 +1874,97 @@ function duplicateSignerNotice() {
 function clampZoom(value, floor = ZOOM_MIN) {
   const zoom = Math.round(value * 100) / 100;
   return Math.min(ZOOM_MAX, Math.max(floor, zoom));
+}
+
+function signerColor(index) {
+  const n = Number(index);
+  if (!Number.isInteger(n) || n < 0) {
+    return '#6b625b';
+  }
+  return SIGNER_COLORS[n % SIGNER_COLORS.length];
+}
+
+function typeLabel(type, signed) {
+  if (type === 'date') {
+    return signed ? 'dated' : 'date';
+  }
+  if (type === 'initial') {
+    return signed ? 'initialed' : 'initial';
+  }
+  return signed ? 'dated and signed' : 'date and signature';
+}
+
+function placeBox(start, x, y) {
+  const width = start.width;
+  const height = start.height;
+  return {
+    x: Math.min(Math.max(0, x), Math.max(0, 1 - width)),
+    y: Math.min(Math.max(0, y), Math.max(0, 1 - height)),
+    width,
+    height
+  };
+}
+
+function pointerFraction(box, clientX, clientY) {
+  return {
+    x: (clientX - box.left) / box.width,
+    y: (clientY - box.top) / box.height
+  };
+}
+
+function resizeBox(start, edge, px, py) {
+  let left = start.x;
+  let top = start.y;
+  let right = start.x + start.width;
+  let bottom = start.y + start.height;
+  const x = clamp01(px);
+  const y = clamp01(py);
+  if (String(edge).includes('w')) {
+    left = x;
+  }
+  if (String(edge).includes('e')) {
+    right = x;
+  }
+  if (String(edge).includes('n')) {
+    top = y;
+  }
+  if (String(edge).includes('s')) {
+    bottom = y;
+  }
+  return fitBox({
+    x: Math.min(left, right),
+    y: Math.min(top, bottom),
+    width: Math.abs(right - left),
+    height: Math.abs(bottom - top)
+  });
+}
+
+function signatureBoxAt(drag, clientX, clientY) {
+  const box = drag.box;
+  const cx = (clientX - box.left) / box.width;
+  const cy = (clientY - box.top) / box.height;
+  return fitBox({
+    x: cx - CLICK_WIDTH / 2,
+    y: cy - CLICK_HEIGHT / 2,
+    width: CLICK_WIDTH,
+    height: CLICK_HEIGHT
+  });
+}
+
+function fitBox(box) {
+  let x = box.x;
+  let y = box.y;
+  let width = Math.max(box.width, MIN_BOX_WIDTH);
+  let height = Math.max(box.height, MIN_BOX_HEIGHT);
+  if (width > 1) {
+    width = 1;
+  }
+  if (height > 1) {
+    height = 1;
+  }
+  x = Math.min(Math.max(0, x), 1 - width);
+  y = Math.min(Math.max(0, y), 1 - height);
+  return { x, y, width, height };
 }
 
 function rectangle(drag, clientX, clientY) {
@@ -1133,7 +1993,7 @@ function paintDraft(stage, draft) {
   let mark = stage.querySelector('.draft');
   if (!mark) {
     mark = document.createElement('div');
-    mark.className = 'field draft';
+    mark.className = 'field draft active';
     stage.appendChild(mark);
   }
   mark.style.left = `${(draft.x * 100).toFixed(2)}%`;

@@ -18,10 +18,10 @@
 }
 .explorer-chain button,
 .explorer-chain input {
-  border: 1px solid var(--explorer-border);
+  border: 1px solid var(--saito-border);
   border-radius: 0.5rem;
-  background: var(--explorer-card);
-  color: var(--explorer-foreground);
+  background: var(--saito-card);
+  color: var(--saito-foreground);
   padding: 0.65rem 0.9rem;
   font: inherit;
 }
@@ -34,7 +34,7 @@
 }
 .explorer-chain button:focus-visible,
 .explorer-chain-stage:focus-visible {
-  outline: 2px solid var(--explorer-primary, #41bfac);
+  outline: 2px solid var(--saito-primary);
   outline-offset: 2px;
 }
 .explorer-chain-legend {
@@ -58,9 +58,9 @@
   overflow: hidden;
   touch-action: none;
   cursor: grab;
-  border: 1px solid var(--explorer-border);
+  border: 1px solid var(--saito-border);
   border-radius: 1rem;
-  background: var(--explorer-card);
+  background: var(--saito-card);
 }
 .explorer-chain-stage:active {
   cursor: grabbing;

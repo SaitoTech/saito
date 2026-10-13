@@ -35,7 +35,7 @@ module.exports = (app, mod, league) => {
     html +=
       league.admin === mod.publicKey
         ? `<div id="players" class="league-page-tab"><i class="fas fa-users-cog"></i><div class="menu-text">Manage</div></div>`
-        : `<div id="contact" class="league-page-tab"><i class="fas fa-comment-alt"></i><div class="menu-text">Contact</div></div>`;
+        : `<div id="contact" class="league-page-tab"><i class="saito-chat-icon" aria-hidden="true"></i><div class="menu-text">Contact</div></div>`;
   }
 
   html += `   </div>

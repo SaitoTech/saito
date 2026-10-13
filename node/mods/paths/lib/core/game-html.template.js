@@ -769,6 +769,10 @@ export default (app, mod) => {
                         ></div>
 
                         <div
+                                class="us-commitment-track-hit"
+                                id="us-commitment-track-hit"
+                        ></div>
+                        <div
                                 class="us-commitment-track us-commitment-track-1"
                                 id="us-commitment-track-1"
                         ></div>
@@ -785,6 +789,10 @@ export default (app, mod) => {
                                 id="us-commitment-track-4"
                         ></div>
 
+                        <div
+                                class="russian-capitulation-track-hit"
+                                id="russian-capitulation-track-hit"
+                        ></div>
                         <div
                                 class="russian-capitulation-track russian-capitulation-track-1"
                                 id="russian-capitulation-track-1"

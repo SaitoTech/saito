@@ -152,14 +152,14 @@
             <label for="player${i}" class="game-players-options game-players-options-${i}p">Player ${i}:</label>
             <select name="player${i}" id="game-players-select-${i}p" class="saito-form-select game-players-options game-players-options-${i}p">
               <option value="random" default>random</option>
-              <option value="faction1" default>Sol Federation</option>
-              <option value="faction2">Universities of Jol Nar</option>
-              <option value="faction3">XXcha Kingdom</option>
-              <option value="faction4">Sardakk N'Orr</option>
-              <option value="faction5">Brotherhood of Yin</option>
-              <option value="faction6">Yssaril Tribes</option>
-              <option value="faction7">Embers of Muaat</option>
-              <option value="faction8">Emirates of Hacan</option>
+              <option value="faction1" default>Terran Federation</option>
+              <option value="faction2">The Collegium</option>
+              <option value="faction3">Quorum Kingdom</option>
+              <option value="faction4">Carapace Swarm</option>
+              <option value="faction5">The Devotion</option>
+              <option value="faction6">The Shade Clan</option>
+              <option value="faction7">The Cinder Host</option>
+              <option value="faction8">The Caravan League</option>
             </select>
       `;
     }

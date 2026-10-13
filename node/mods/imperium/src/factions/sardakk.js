@@ -1,8 +1,8 @@
 
     this.importFaction('faction4', {
       id		:	"faction4" ,
-      name		: 	"Sardakk N'Orr",
-      nickname		: 	"Sardakk",
+      name		: 	"Carapace Swarm",
+      nickname		: 	"Carapace",
       homeworld		: 	"sector28",
       space_units	: 	["carrier","carrier","cruiser"],
       ground_units	: 	["infantry","infantry","infantry","infantry","infantry","spacedock"],
@@ -10,7 +10,7 @@
       background	: 	'faction4.jpg' ,
       promissary_notes	:	["trade","political","ceasefire","throne","faction4-promissary"],
       commodity_limit	:	3,
-      intro             :       `You are the Sardakk N'orr, a race of spiny teeth and jaws whose raw strength and imperviousness to pain has earned a grim reputatation.`
+      intro             :       `You are the Carapace Swarm, a race of spiny teeth and jaws whose raw strength and imperviousness to pain has earned a grim reputatation.`
     });
 
 
@@ -18,7 +18,7 @@
 
     this.importTech('faction4-unrelenting', {
 
-      name        :       "Unrelenting" ,
+      name        :       "Unstoppable" ,
       faction     :       "faction4",
       type        :       "ability" ,
       text	  :	  "+1 on all combat rolls" ,
@@ -30,7 +30,7 @@
       modifyCombatRoll :	  function(imperium_self, attacker, defender, player, combat_type, roll) {
 	if (combat_type == "space" || combat_type == "ground") {
           if (imperium_self.doesPlayerHaveTech(attacker, "faction4-unrelenting")) {
-  	    imperium_self.updateLog("Sardakk combat rolls +1 due to Sardakk");
+  	    imperium_self.updateLog("Carapace Swarm combat rolls +1 due to Unstoppable");
 	    roll += 1;
 	    if (roll > 10) { roll = 10; }
 	  }
@@ -41,7 +41,7 @@
 
 
     this.importTech("faction4-flagship", {
-      name        	:       "Sardakk Flagship" ,
+      name        	:       "Carapace Flagship" ,
       faction     	:       "faction4",
       type      	:       "ability" ,
       text	  :	  "+1 on all combat rolls for ships in same sector" ,
@@ -49,7 +49,7 @@
 	if (combat_type == "space") {
 	  let flagship_bonus = 0;
 	  if (imperium_self.doesSectorContainPlayerUnit(attacker, imperium_self.game.state.activated_sector, "flagship")) {
-	    imperium_self.updateLog("Sardakk Flagship adds +1 to dice roll");
+	    imperium_self.updateLog("Carapace Flagship adds +1 to dice roll");
 	    roll += 1;
 	    if (roll > 10) { roll = 10; }
 	  } 
@@ -63,7 +63,7 @@
 
     this.importTech("faction4-exotrireme-i", {
 
-      name        :       "Exotrireme I" ,
+      name        :       "ExoSiege I" ,
       faction     :       "faction4",
       replaces    :       "dreadnaught",
       unit        :       1 ,
@@ -87,7 +87,7 @@
 	  unit.strength = 2;
 	  unit.bombardment_rolls = 2;
 	  unit.bombardment_combat = 4;
-	  unit.description = "The Exotrireme I is a more powerful dreadnaught not vulnerable to Direct Hit cards";
+	  unit.description = "The ExoSiege I is a more powerful dreadnaught not vulnerable to Kill Shot cards";
         }
 
         return unit;
@@ -99,7 +99,7 @@
 
     this.importTech("faction4-exotrireme-ii", {
 
-      name        :       "Exotrireme II" ,
+      name        :       "ExoSiege II" ,
       faction     :       "faction4",
       replaces    :       "dreadnaught",
       unit        :       1 ,
@@ -124,7 +124,7 @@
 	  unit.strength = 2;
 	  unit.bombardment_rolls = 2;
 	  unit.bombardment_combat = 4;
-	  unit.description = "The Exotrireme II is a more powerful dreadnaught not vulnerable to Direct Hit cards. It may be destroyed after a round of space combat to destroy up to two opponent ships.";
+	  unit.description = "The ExoSiege II is a more powerful dreadnaught not vulnerable to Kill Shot cards. It may be destroyed after a round of space combat to destroy up to two opponent ships.";
         }
         return unit;
       },
@@ -157,7 +157,7 @@
 	    if (opponent == -1) {
 	      imperium_self.addMove("resolve\tfaction4_exotrireme_ii_sacrifice");
 
-	      imperium_self.addMove("NOTIFY\tNo target ships for Sardakk Exotrireme II faction ability");
+	      imperium_self.addMove("NOTIFY\tNo target ships for Carapace Swarm ExoSiege II faction ability");
 	      imperium_self.endTurn();
 	      return 0;
 	    }
@@ -171,7 +171,7 @@
 
 	    if (anything_to_kill == 0) {
 	      imperium_self.addMove("resolve\tfaction4_exotrireme_ii_sacrifice");
-	      imperium_self.addMove("NOTIFY\tNo target ships for Sardakk Exotrireme II action ability");
+	      imperium_self.addMove("NOTIFY\tNo target ships for Carapace Swarm ExoSiege II action ability");
 	      imperium_self.endTurn();
 	      return 0;
 	    }
@@ -198,7 +198,7 @@
 
 	      imperium_self.addMove("resolve\tfaction4_exotrireme_ii_sacrifice");
  	      imperium_self.addMove("faction4_exotrireme_ii_picktwo\t"+imperium_self.game.player+"\t"+mv[2]);
- 	      imperium_self.addMove("NOTIFY\tSardakk sacrifies Exotritreme II to destroy opponent ships");
+ 	      imperium_self.addMove("NOTIFY\tCarapace Swarm sacrifices ExoSiege II to destroy opponent ships");
  	      imperium_self.addMove("destroy_unit\t"+imperium_self.game.player+"\t"+imperium_self.game.player+"\t"+"space"+"\t"+mv[2]+"\t"+"0"+"\t"+action2+"\t"+"1");
 	      imperium_self.endTurn();
 	      return 0;
@@ -218,7 +218,7 @@
 	    imperium_self.addMove("resolve\tfaction4_exotrireme_ii_picktwo");
 	    imperium_self.playerDestroyOpponentShips(player_to_go, 2, mv[2]);
 	  } else {
-	    	    imperium_self.game.status = "Exotrireme II engaging in suicide assault";
+	    	    imperium_self.game.status = "ExoSiege II engaging in suicide assault";
 	    imperium_self.hud.prepareIdle(imperium_self.game.status);
 	    imperium_self.hud.updateCards([]);
 	  }
@@ -233,7 +233,7 @@
 
 
     this.importTech('faction4-particle-weave', {
-      name        :       "Particle Weave" ,
+      name        :       "Particle Matrix" ,
       faction     :       "faction4",
       type        :       "special" ,
       prereqs	  :	["red","red"],
@@ -270,7 +270,7 @@
 	  let planet = sys.p[planet_idx];
 	  let current_forces = planet.units[attacker-1].length;
 	  if (current_forces < imperium_self.game.state.players_info[attacker-1].faction4_particle_weave_my_forces) {
-	    imperium_self.updateLog("Sardakk Particle Weave vaporizes 1 opponent infantry...");
+	    imperium_self.updateLog("Carapace Swarm Particle Matrix vaporizes 1 opponent infantry...");
 	    for (let z = 0; z < planet.units[defender-1].length; z++) {
 	      if (planet.units[defender-1][z].type == "infantry") {
 		planet.units[defender-1].splice(z, 1);
@@ -286,7 +286,7 @@
 	  let planet = sys.p[planet_idx];
 	  let current_forces = planet.units[defender-1].length;
 	  if (current_forces < imperium_self.game.state.players_info[defender-1].faction4_particle_weave_my_forces) {
-	    imperium_self.updateLog("Sardakk Particle Weave vaporizes 1 opponent infantry...");
+	    imperium_self.updateLog("Carapace Swarm Particle Matrix vaporizes 1 opponent infantry...");
 	    for (let z = 0; z < planet.units[attacker-1].length; z++) {
 	      if (planet.units[attacker-1][z].type == "infantry") {
 		planet.units[attacker-1].splice(z, 1);
@@ -359,7 +359,7 @@
 
 	  let sardaak_player = imperium_self.returnPlayerOfFaction("faction4");
 
-          let html = `<div class="status-message">Do you wish to return your Sardaak Promissary for +1 combat bonus?</div>`;
+          let html = `<div class="status-message">Do you wish to return your Carapace Swarm Promissary for +1 combat bonus?</div>`;
               let menu = [];
               menu.push({ id: 'yes', label: 'Yes' });
               menu.push({ id: 'no', label: 'No' });
@@ -378,7 +378,7 @@
 	      imperium_self.addMove("setvar\tplayers\t"+imperium_self.game.player+"\t"+"tekklar_legion_modifier"+"\t"+"int"+"\t"+"1");
 	      imperium_self.addMove("setvar\tplayers\t"+sardaak_player+"\t"      +"tekklar_legion_modifier"+"\t"+"int"+"\t"+"-1");
               imperium_self.addMove("give" + "\t" + player + "\t" + sardaak_player + "\t" + "promissary" + "\t"+"faction4-promissary");
-              imperium_self.addMove("NOTIFY" + "\t" + "Sardaak Promissary redeemed");
+              imperium_self.addMove("NOTIFY" + "\t" + "Carapace Swarm Promissary redeemed");
 	      imperium_self.endTurn();
 	    }
 	  });
@@ -399,7 +399,7 @@
       groundCombatEvent : function(imperium_self, player, sector, planet_idx) {
         if (imperium_self.game.player == player) {
 
-          let html = `<div class="status-message">Do you wish to return your Sardaak Promissary for +1 combat bonus?</div>`;
+          let html = `<div class="status-message">Do you wish to return your Carapace Swarm Promissary for +1 combat bonus?</div>`;
               let menu = [];
               menu.push({ id: 'yes', label: 'Yes' });
               menu.push({ id: 'no', label: 'No' });
@@ -418,7 +418,7 @@
 	      imperium_self.addMove("setvar\tplayers\t"+imperium_self.game.player+"\t"+"tekklar_legion_modifier"+"\t"+"int"+"\t"+"1");
 	      imperium_self.addMove("setvar\tplayers\t"+sardaak_player           +"\t"+"tekklar_legion_modifier"+"\t"+"int"+"\t"+"-1");
               imperium_self.addMove("give" + "\t" + player + "\t" + sardaak_player + "\t" + "promissary" + "\t"+"faction4-promissary");
-              imperium_self.addMove("NOTIFY" + "\t" + "Sardaak Promissary redeemed");
+              imperium_self.addMove("NOTIFY" + "\t" + "Carapace Swarm Promissary redeemed");
 	      imperium_self.endTurn();
 	    }
 	  });

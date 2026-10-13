@@ -45,30 +45,20 @@ async function getMetadataFromZip(zipPath) {
   };
 
   const directory = await unzipper.Open.file(zipPath);
-  // Prefer the vector cover deterministically when a package includes both formats.
-  const imageFile = directory.files.find((file) => /(?:^|\/)(?:arcade|saito_icon)\.svg$/.test(file.path)) ||
+  // PNG covers can also be used by the NFT thumbnail picker, which rejects SVG data URLs.
+  const imageFile = directory.files.find((file) => /(?:^|\/)(?:arcade|saito_icon)\.png$/.test(file.path)) ||
+    directory.files.find((file) => /(?:^|\/)(?:arcade|saito_icon)\.svg$/.test(file.path)) ||
     directory.files.find((file) => /(?:^|\/)(?:arcade|saito_icon)\.jpg$/.test(file.path));
   if (imageFile) {
-    const mime = imageFile.path.endsWith('.svg') ? 'image/svg+xml' : 'image/jpeg';
+    const mime = imageFile.path.endsWith('.png') ? 'image/png' :
+      imageFile.path.endsWith('.svg') ? 'image/svg+xml' : 'image/jpeg';
     metadata.image = `data:${mime};base64,` + (await imageFile.buffer()).toString('base64');
   }
-  let imagePriority = 0;
   const promises = directory.files.map(async (file) => {
     const filePath = file.path;
 
     //console.log('filePath:', filePath);
 
-    const image = filePath.match(/(?:^|\/)(?:arcade|saito_icon)\.(svg|jpg)$/);
-    if (image) {
-      const content = await file.buffer();
-      const priority = image[1] === 'svg' ? 2 : 1;
-      if (priority > imagePriority) {
-        imagePriority = priority;
-        const mime = image[1] === 'svg' ? 'image/svg+xml' : 'image/jpeg';
-        metadata.image = `data:${mime};base64,` + content.toString('base64');
-      }
-      return;
-    }
     if (filePath.substr(0, 3) === 'lib') return;
     if (filePath.substr(-2) !== 'js') return;
     if (filePath.indexOf('web/') > -1) return;

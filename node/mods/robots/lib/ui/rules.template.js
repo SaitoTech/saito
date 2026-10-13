@@ -5,5 +5,5 @@ module.exports = () => `<div class="robots-rules">
 <p>If they crash into each other, they die a fiery death.</p>
 <h2>CONTROLS</h2>
 <p>Move with QWE / ASD / ZXC, the numeric keypad, or the onscreen controls. Space or 5 stays still. One press = one turn.</p>
-<p>T or 0: risky jump. F: safe jump for 1 SAITO plus network fee. Enter or Space: start the next wave.</p>
+<p>T or 0: risky jump. F or numpad ./Del: safe jump for 1 SAITO plus network fee. Enter or Space: start the next wave. Space or 0/Ins: new run after capture.</p>
 </div>`;

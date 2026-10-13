@@ -8,7 +8,7 @@
       this.frame = null;
       this.reducedMotion = root.matchMedia && root.matchMedia('(prefers-reduced-motion: reduce)').matches;
       const theme = root.getComputedStyle(canvas.closest('.conquest-app') || canvas);
-      this.attackColor = theme.getPropertyValue('--conquest-accent').trim() || '#bf543d';
+      this.attackColor = theme.getPropertyValue('--conquest-player-1').trim() || '#bf543d';
       this.defenseColor = theme.getPropertyValue('--conquest-paper-deep').trim() || '#e9ddc1';
       this.inkColor = theme.getPropertyValue('--conquest-ink').trim() || '#353b37';
       const T = root.THREE;
@@ -18,6 +18,7 @@
         this.renderer.setPixelRatio(Math.min(root.devicePixelRatio || 1, 2));
         this.scene = new T.Scene();
         this.camera = new T.PerspectiveCamera(34, 2.8, 0.1, 100);
+        this.camera.zoom = 2;
         this.camera.position.set(0, 4, 10);
         this.camera.lookAt(0, 0, 0);
         this.scene.add(new T.AmbientLight(0xffffff, 1.7));
@@ -33,7 +34,7 @@
             return new T.MeshStandardMaterial({map: texture, roughness: 0.85});
           });
           const die = new T.Mesh(new T.BoxGeometry(1, 1, 1), mats);
-          die.position.set((i - 2) * 1.3, i % 2 ? 0.05 : -0.05, 0);
+          die.position.set((i - 2) * 2, i % 2 ? 0.05 : -0.05, 0);
           die.rotation.set(0.3 + i * 0.18, 0.35 + i * 0.4, -0.1);
           this.scene.add(die);
           this.dice.push(die);
@@ -63,15 +64,28 @@
       return new T.CanvasTexture(c);
     }
     roll(battle) {
-      if (!this.renderer || this.disposed) return;
-      if (this.frame) root.cancelAnimationFrame(this.frame);
+      if (this.disposed) return Promise.resolve();
+      root.clearTimeout(this.fallbackTimer);
+      this.finishRoll?.();
+      const finished=new Promise(resolve=>{this.finishRoll=resolve;});
       const values = (battle.attackerDice || []).concat(battle.defenderDice || []);
+      if (!this.renderer) {
+        const stage=this.canvas.parentElement;
+        let fallback=stage.querySelector('.conquest-flat-dice');
+        if(!fallback){fallback=document.createElement('div');fallback.className='conquest-flat-dice';stage.prepend(fallback);}
+        fallback.innerHTML=values.map(value=>`<b>${value}</b>`).join('');
+        fallback.classList.toggle('rolling',!this.reducedMotion);
+        this.fallbackTimer=root.setTimeout(()=>{fallback.classList.remove('rolling');this.finishRoll?.();this.finishRoll=null;},this.reducedMotion?0:820);
+        return finished;
+      }
+      this.resize();
+      if (this.frame) root.cancelAnimationFrame(this.frame);
       const attackCount = (battle.attackerDice || []).length;
       // Material order +x,-x,+y,-y,+z,-z. Rotate the rolled face toward the viewer.
       const faceRotation = {1:[0,-Math.PI/2,0],6:[0,Math.PI/2,0],2:[Math.PI/2,0,0],5:[-Math.PI/2,0,0],3:[0,0,0],4:[0,Math.PI,0]};
       this.dice.forEach((die,i)=>{
         die.visible = i < values.length;
-        die.position.x = (i - (values.length-1)/2) * 1.3;
+        die.position.x = (i - (values.length-1)/2) * 2;
         if (i < values.length) {
           die.material.forEach((mat,j)=> {
             const old = mat.map;
@@ -92,11 +106,14 @@
         });
         this.renderer.render(this.scene,this.camera);
         if (t<1) this.frame = root.requestAnimationFrame(tick);
+        else {this.finishRoll?.();this.finishRoll=null;}
       };
       this.frame = root.requestAnimationFrame(tick);
+      return finished;
     }
     destroy() {
       this.disposed = true;
+      root.clearTimeout(this.fallbackTimer);this.finishRoll?.();this.finishRoll=null;
       if (this.frame) root.cancelAnimationFrame(this.frame);
       if (this.observer) this.observer.disconnect();
       if (this.dice) this.dice.forEach(d=> {d.geometry.dispose(); d.material.forEach(m=>{m.map.dispose();m.dispose();});});

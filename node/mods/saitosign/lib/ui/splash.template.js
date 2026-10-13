@@ -14,7 +14,7 @@ module.exports = function splashTemplate(view = {}) {
       <div class="workspace">
         <header class="intro">
           <h1>Saito<span class="sign">Sign</span></h1>
-          <p class="summary">Share and sign documents with cryptographic proofs.</p>
+          <p class="summary">Share and sign documents with digital signatures.</p>
         </header>
 
         <section class="start" aria-label="Start with a PDF or a SaitoSign Doc">

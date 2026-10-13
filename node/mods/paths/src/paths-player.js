@@ -1528,8 +1528,6 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
     //
     this.removeSelectable();
 
-    this.game_help.hide();
-
     //
     // pass is pass!
     //
