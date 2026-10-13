@@ -63,6 +63,13 @@
 
 
     //
+    // wormhole sectors
+    //
+    planets['alyph']		= { type : "industrial" , img : "/imperium/img/planets/alyph.png" , name : "Alyph" , resources : 2 , influence : 1 , bonus : ""  }
+    planets['birch']		= { type : "industrial" , img : "/imperium/img/planets/birch.png" , name : "Birch" , resources : 3 , influence : 1 , bonus : "green"  }
+
+
+    //
     // homeworlds & diplomatic
     //
     //
@@ -160,6 +167,8 @@
     sectors['sector18']        = { img : "/imperium/img/sectors/sector18.png" , name : "Xerxes" , type : 0 , hw : 0 , wormhole : 0, mr : 0 , planets : ['xerxes'] }
     sectors['sector19']        = { img : "/imperium/img/sectors/sector19.png" , name : "Unsulla" , type : 0 , hw : 0 , wormhole : 0, mr : 0 , planets : ['unsulla'] }
     sectors['sector20']        = { img : "/imperium/img/sectors/sector20.png" , name : "Panther" , type : 0 , hw : 0 , wormhole : 0, mr : 0 , planets : ['panther'] }
+    sectors['sector46']        = { img : "/imperium/img/sectors/sector46.png" , name : "Alyph" , type : 0 , hw : 0 , wormhole : 1, mr : 0 , planets : ['alyph'] }
+    sectors['sector47']        = { img : "/imperium/img/sectors/sector47.png" , name : "Birch" , type : 0 , hw : 0 , wormhole : 2, mr : 0 , planets : ['birch'] }
 
     sectors['new-byzantium']   = { img : "/imperium/img/sectors/sector21.png" , name : "New Byzantium" , type : 0 , hw : 0 , wormhole : 0, mr : 1 , planets : ['new-byzantium'] }
     sectors['sector22']        = { img : "/imperium/img/sectors/sector22.png" , name : "Terran Homeworld" , type : 0 , hw : 1 , wormhole : 0 , mr : 0 , planets : ['terra'] }
@@ -177,8 +186,8 @@
     sectors['sector33']        = { img : "/imperium/img/sectors/sector33.png" ,	name : "Empty Space" , type : 0 , hw : 0 , wormhole : 0, mr : 0 , planets : [] }
     sectors['sector34']        = { img : "/imperium/img/sectors/sector34.png" ,	name : "Empty Space" , type : 0 , hw : 0 , wormhole : 0, mr : 0 , planets : [] }
     sectors['sector35']        = { img : "/imperium/img/sectors/sector35.png" ,	name : "Empty Space" , type : 0 , hw : 0 , wormhole : 0, mr : 0 , planets : [] }
-    sectors['sector36']        = { img : "/imperium/img/sectors/sector36.png" ,	name : "Wormhole A" , type : 0 , hw : 0 , wormhole : 0, mr : 0 , planets : [] }
-    sectors['sector37']        = { img : "/imperium/img/sectors/sector37.png" ,	name : "Wormhole B" , type : 0 , hw : 0 , wormhole : 0, mr : 0 , planets : [] } // black hole or rift
+    sectors['sector36']        = { img : "/imperium/img/sectors/sector48.png" ,	name : "Wormhole A" , type : 0 , hw : 0 , wormhole : 1, mr : 0 , planets : [] }
+    sectors['sector37']        = { img : "/imperium/img/sectors/sector49.png" ,	name : "Wormhole B" , type : 0 , hw : 0 , wormhole : 2, mr : 0 , planets : [] } // black hole or rift
     sectors['sector38']        = { img : "/imperium/img/sectors/sector38.png" ,	name : "Gravity Rift" , type : 1 , hw : 0 , wormhole : 0, mr : 0 , planets : [] }
     sectors['sector39']        = { img : "/imperium/img/sectors/sector39.png" ,	name : "Nebula" , type : 2 , hw : 0 , wormhole : 0, mr : 0 , planets : [] }
     sectors['sector40']        = { img : "/imperium/img/sectors/sector40.png" , name : "Asteroid Field" , type : 3 , hw : 0 , wormhole : 0, mr : 0 , planets : [] }
