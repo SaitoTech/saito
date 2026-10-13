@@ -2905,9 +2905,8 @@ impl Blockchain {
                 }
 
                 //
-                // Spendable Bound slips are indexed for neighbor lookup. They are not
-                // returned on their own; only as the slips immediately before and after
-                // an owned Normal or ATR slip.
+                // Spendable Bound slips are indexed so an address snapshot can omit the
+                // Normal or ATR slip immediately after one. They are not returned.
                 //
                 if slip.slip_type == SlipType::Bound {
                     if !keys.is_empty() {
@@ -2931,26 +2930,21 @@ impl Blockchain {
             let slip_index = slip.slip_index;
             let slip_type = slip.slip_type;
 
+            // A Normal or ATR slip with a Bound slip immediately before it is the
+            // deposit inside an NFT. Leave it out of an address snapshot so the
+            // wallet does not treat it as spendable SAITO. The unfiltered snapshot
+            // still includes it for supply accounting.
+            if !keys.is_empty()
+                && (slip_type == SlipType::Normal || slip_type == SlipType::ATR)
+                && slip_index > 0
+                && bound_by_position
+                    .contains_key(&(block_id, tx_ordinal, slip_index - 1))
+            {
+                continue;
+            }
+
             trace!("adding slip : {} to balance snapshot", slip);
             snapshot.slips.push(slip);
-
-            // Empty keys is the full supply snapshot. Bound amounts are NFT quantities.
-            if keys.is_empty() {
-                continue;
-            }
-            if slip_type != SlipType::Normal && slip_type != SlipType::ATR {
-                continue;
-            }
-            if slip_index == 0 {
-                continue;
-            }
-
-            let before = bound_by_position.get(&(block_id, tx_ordinal, slip_index - 1));
-            let after = bound_by_position.get(&(block_id, tx_ordinal, slip_index + 1));
-            if let (Some(before), Some(after)) = (before, after) {
-                snapshot.slips.push(before.clone());
-                snapshot.slips.push(after.clone());
-            }
         }
 
         snapshot
