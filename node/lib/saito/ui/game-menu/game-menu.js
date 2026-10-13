@@ -217,7 +217,9 @@ class GameMenu {
       });
     }
 
-    const gameTitle = this.escapeHTML(this.game_mod?.returnName?.() || this.game_mod?.name || 'Game');
+    const gameTitle = this.escapeHTML(
+      this.game_mod?.returnName?.() || this.game_mod?.name || 'Game'
+    );
     let html = `<ul><li class="game-menu-mobile-header">
       <button type="button" id="game-menu-game" class="game-menu-mobile-header-button" aria-pressed="true" title="${gameTitle}">
         <span class="game-menu-mobile-header-label">${gameTitle}</span>

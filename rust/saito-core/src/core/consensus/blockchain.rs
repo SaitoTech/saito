@@ -2937,8 +2937,7 @@ impl Blockchain {
             if !keys.is_empty()
                 && (slip_type == SlipType::Normal || slip_type == SlipType::ATR)
                 && slip_index > 0
-                && bound_by_position
-                    .contains_key(&(block_id, tx_ordinal, slip_index - 1))
+                && bound_by_position.contains_key(&(block_id, tx_ordinal, slip_index - 1))
             {
                 continue;
             }

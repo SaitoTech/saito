@@ -245,9 +245,7 @@ class SaitoSync {
 
     this.attachPillEvents(document.getElementById('saito-sync'));
 
-    this.setMinimized(
-      this.minimized ?? (this.app.options?.saito_sync?.minimize_on_startup === true)
-    );
+    this.setMinimized(this.minimized ?? this.app.options?.saito_sync?.minimize_on_startup === true);
 
     this.displayed_current_block_id = this.getDisplayCurrentBlockId();
     this.setTargetBlockText(this.toBigInt(this.payload?.target_block_id));
@@ -269,11 +267,7 @@ class SaitoSync {
       }
     };
     root.onkeydown = (event) => {
-      if (
-        this.minimized &&
-        event.target === root &&
-        (event.key === 'Enter' || event.key === ' ')
-      ) {
+      if (this.minimized && event.target === root && (event.key === 'Enter' || event.key === ' ')) {
         event.preventDefault();
         this.setMinimized(false, true);
       }
