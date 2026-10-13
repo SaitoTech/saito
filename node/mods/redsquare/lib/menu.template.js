@@ -9,7 +9,7 @@ module.exports = (menu) => {
     ? `
         <li class="item" data-nav="chat">
           <span class="icon">
-            <i class="fa-solid fa-comments"></i>
+            <span class="saito-menu-icon saito-menu-icon-chat" aria-hidden="true"></span>
           </span>
           <span class="label">Chat</span>
         </li>

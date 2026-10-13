@@ -47,6 +47,11 @@
   mask: center / contain no-repeat;
 }
 
+.saito-menu-icon-chat {
+  -webkit-mask-image: url('/saito/icons/saito-chat-icon-outline.svg');
+  mask-image: url('/saito/icons/saito-chat-icon-outline.svg');
+}
+
 .saito-menu-icon-home {
   -webkit-mask-image: url('/saito/icons/saito-home-icon-outline.svg');
   mask-image: url('/saito/icons/saito-home-icon-outline.svg');
@@ -75,6 +80,11 @@
 .saito-menu-select-subtle > :is(:hover, .active) .saito-menu-icon-settings {
   -webkit-mask-image: url('/saito/icons/saito-settings-icon-solid.svg');
   mask-image: url('/saito/icons/saito-settings-icon-solid.svg');
+}
+
+.saito-menu-select-subtle > :is(:hover, .active) .saito-menu-icon-chat {
+  -webkit-mask-image: url('/saito/icons/saito-chat-icon-solid.svg');
+  mask-image: url('/saito/icons/saito-chat-icon-solid.svg');
 }
 
 /* saito header menu */

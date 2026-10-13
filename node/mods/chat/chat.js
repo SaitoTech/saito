@@ -510,7 +510,7 @@ class Chat extends ModTemplate {
         return [
           {
             text: 'Chat',
-            icon: 'fas fa-comments',
+            icon: 'saito-chat-icon',
             callback: function (app, id) {
               // console.log('Render Chat manager overlay');
               chat_self.chat_manager_overlay.render();
@@ -555,7 +555,7 @@ class Chat extends ModTemplate {
           return [
             {
               text: 'Chat',
-              icon: 'fas fa-comments',
+              icon: 'saito-chat-icon',
               type: 'quicklaunch',
               callback: function (app, id) {
                 // console.log('Render Chat manager overlay');
@@ -584,7 +584,7 @@ class Chat extends ModTemplate {
           return [
             {
               text: 'Chat',
-              icon: 'fas fa-comments',
+              icon: 'saito-chat-icon',
               type: 'navigation',
               callback: function (app, id) {
                 navigateWindow('/chat');
@@ -599,7 +599,7 @@ class Chat extends ModTemplate {
 
           return {
             text: dynamic_text,
-            icon: 'far fa-comment-dots',
+            icon: 'saito-chat-icon',
             image: '/saito/icons/saito-chat-icon-solid.svg',
             callback: function (app, publicKey) {
               if (chat_self.chat_manager == null) {
@@ -634,7 +634,7 @@ class Chat extends ModTemplate {
           ) {
             return {
               text: 'Chat',
-              icon: 'far fa-comment-dots',
+              icon: 'saito-chat-icon',
               callback: function (app, publicKey) {
                 if (chat_self.chat_manager == null) {
                   chat_self.chat_manager = new ChatManager(chat_self.app, chat_self);
@@ -661,7 +661,7 @@ class Chat extends ModTemplate {
           return [
             {
               text: 'Chat',
-              icon: 'fa-regular fa-comments',
+              icon: 'saito-chat-icon',
               callback: function (app) {
                 app.connection.emit('open-chat-with', {
                   id: obj.call_id
@@ -693,7 +693,7 @@ class Chat extends ModTemplate {
           return [
             {
               text: 'Chat',
-              icon: 'fa-regular fa-comments',
+              icon: 'saito-chat-icon',
               callback: function (app) {
                 app.connection.emit('open-chat-with', {
                   id: obj.call_id

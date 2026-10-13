@@ -292,7 +292,7 @@ class ChatManagerMenu {
     optionRows.push({
       id: 'chat-settings-open-chat',
       text: 'Open Chat',
-      icon: 'fa-solid fa-comment',
+      image: '/saito/icons/saito-chat-icon-solid.svg',
       kind: 'open-chat'
     });
 
