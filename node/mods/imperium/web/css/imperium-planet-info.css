@@ -146,6 +146,21 @@
   white-space: nowrap;
 }
 
+.game.imperium .planet-info-name {
+  position: relative;
+}
+
+.game.imperium .planet-info .planet-info-title .planet-info-tech {
+  position: absolute;
+  z-index: 1;
+  left: 100%;
+  top: calc((1.05em - 1em) / 2);
+  height: 1em;
+  width: auto;
+  margin: 0 0 0 0.22em;
+  pointer-events: none;
+}
+
 .game.imperium .planet-info-controller {
   margin-top: var(--pi-stack);
   font-size: var(--pi-controller);
