@@ -2259,9 +2259,38 @@ impl Wallet {
         // need to reset balance and slips to avoid failing integrity from forks
         self.unspent_slips.clear();
         self.slips.clear();
+        self.nfts.clear();
 
-        snapshot.slips.iter().for_each(|slip| {
+        let mut i = 0;
+        while i < snapshot.slips.len() {
+            let slip = &snapshot.slips[i];
             assert_ne!(slip.utxoset_key, [0; UTXO_KEY_LENGTH]);
+
+            let is_middle = slip.slip_type == SlipType::Normal || slip.slip_type == SlipType::ATR;
+            if is_middle && slip.slip_index > 0 && i + 2 < snapshot.slips.len() {
+                let before = &snapshot.slips[i + 1];
+                let after = &snapshot.slips[i + 2];
+                if before.slip_type == SlipType::Bound
+                    && after.slip_type == SlipType::Bound
+                    && before.block_id == slip.block_id
+                    && after.block_id == slip.block_id
+                    && before.tx_ordinal == slip.tx_ordinal
+                    && after.tx_ordinal == slip.tx_ordinal
+                    && before.slip_index == slip.slip_index - 1
+                    && after.slip_index == slip.slip_index + 1
+                {
+                    assert_ne!(before.utxoset_key, [0; UTXO_KEY_LENGTH]);
+                    assert_ne!(after.utxoset_key, [0; UTXO_KEY_LENGTH]);
+                    let slip1 = before.utxoset_key;
+                    let slip2 = slip.utxoset_key;
+                    let slip3 = after.utxoset_key;
+                    let id = after.public_key.to_vec();
+                    self.add_nft(slip1, slip2, slip3, id, [0; 64], String::new());
+                    i += 3;
+                    continue;
+                }
+            }
+
             let wallet_slip = WalletSlip {
                 utxokey: slip.utxoset_key,
                 amount: slip.amount,
@@ -2272,11 +2301,13 @@ impl Wallet {
                 spent: false,
                 slip_type: slip.slip_type,
             };
-            let result = self.slips.insert(slip.utxoset_key, wallet_slip);
+            let utxokey = slip.utxoset_key;
+            let result = self.slips.insert(utxokey, wallet_slip);
             if result.is_none() {
-                self.unspent_slips.insert(slip.utxoset_key);
+                self.unspent_slips.insert(utxokey);
             }
-        });
+            i += 1;
+        }
 
         self.log_wallet_pending_balance_debug(
             "update_from_balance_snapshot after slip reload (pending_txs unchanged by this fn)",

@@ -23,7 +23,7 @@ module.exports = (imperium_self, player, payment) => {
     }
     let is_committed = payment && payment.spent && payment.spent[cards[i]];
     let is_exhausted = planet.exhausted == 1;
-    let payable = payment && !is_exhausted && !is_committed && (Number(planet.resources) || 0) > 0;
+    let payable = payment && !is_exhausted && !is_committed && paymentValue(planet, payment) > 0;
     let bonus = planet.bonus ? String(planet.bonus) : '';
     let label = planet.name + '. Resources ' + planet.resources + '. Influence ' + planet.influence + '.';
     if (bonus) {
@@ -36,6 +36,7 @@ module.exports = (imperium_self, player, payment) => {
       <article class="fs-planet${is_exhausted ? ' exhausted' : ''}${payable ? ' is-payable' : ''}${is_committed ? ' is-committed' : ''}" data-planet="${cards[i]}" data-exhausted="${is_exhausted ? 1 : 0}">
         <div class="fs-planet-card" style="background-image:url('${planet.img || ''}')" role="img" aria-label="${label}">${imperium_self.planetCardStats(planet)}</div>
         ${bonus ? `<div class="fs-planet-bonus ${bonus}">${bonus}</div>` : ''}
+        ${payable ? `<div class="fs-planet-flag">Spend ${paymentValue(planet, payment)}</div>` : ''}
         ${is_exhausted ? '<div class="fs-planet-banner">Exhausted</div>' : ''}
         ${is_committed ? '<div class="fs-planet-banner is-committed">Selected</div>' : ''}
       </article>
@@ -49,8 +50,19 @@ module.exports = (imperium_self, player, payment) => {
   return html;
 };
 
+function paymentValue(planet, payment) {
+  if (!planet || !payment) {
+    return 0;
+  }
+  if (payment.currency == 'influence') {
+    return Number(planet.influence) || 0;
+  }
+  return Number(planet.resources) || 0;
+}
+
 function paymentSidebar(imperium_self, payment) {
   let ready = payment.paid >= payment.cost;
+  let kicker = payment.kicker || 'Production cost';
   let rows = '';
   let spent = payment.spent || {};
   for (let id in spent) {
@@ -72,7 +84,7 @@ function paymentSidebar(imperium_self, payment) {
   return `
     <aside class="fs-pay-side">
       <div class="fs-pay-side-body">
-        <div class="fs-pay-kicker">Production cost</div>
+        <div class="fs-pay-kicker">${kicker}</div>
         <div class="fs-pay-cost">${payment.cost}</div>
         <div class="fs-pay-kicker">Paid</div>
         <div class="fs-pay-paid-line"><b class="fs-pay-paid">${payment.paid}</b> / ${payment.cost}</div>

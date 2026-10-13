@@ -1,13 +1,4 @@
-/***
- * 
- * We have some name space confusion ....
- * TODO: FIX !!!!
- * 
- * this css looks like it is for game invites in Arcade and the sidebar in RedSquare
- * 
- * maybe should change to saito-game...
- * 
- */
+/* Arcade / sidebar module card. The settings overlay begins at .saito-module-overlay. */
 
 .saito-module {
   display: flex;
@@ -42,41 +33,6 @@
   transform: none;
 }
 
-.saito-module-titlebar {
-  padding: var(--saito-space-xs);
-  max-width: 18rem;
-  min-width: 12rem;
-  width: 18rem;
-  text-overflow: ellipsis;
-  overflow: hidden;
-  white-space: nowrap;
-  overflow-wrap: break-word;
-  opacity: 0.8;
-  background: var(--saito-secondary);
-  border-radius: var(--saito-radius);
-}
-
-.saito-module-titlebar-title {
-  margin: 0.25rem;
-  color: var(--saito-secondary-foreground);
-  font-size: 2rem;
-}
-
-.saito-module-titlebar-details {
-  font-size: 1.4rem;
-  text-transform: uppercase;
-  color: var(--saito-secondary-foreground);
-}
-
-.saito-game-details {
-  display: flex;
-  flex-direction: row;
-  column-gap: 1rem;
-  align-items: center;
-  flex-grow: 1;
-  justify-content: flex-end;
-}
-
 .saito-module-identicon {
   border: none;
 }
@@ -88,34 +44,34 @@
   padding: var(--saito-space-xs);
 }
 
-.saito-sidebar .saito-module-titlebar {
-  width: unset;
-}
-
-.saito-sidebar .saito-module-titlebar-details {
-  font-size: 1.2rem;
-}
-
-/***
- * 
- * Here is fresh code for actual saito-module stuff, a new (19 Jan 2024) UI component
- * for handling generic module stuff. It should display basic metadata about the module
- * and have selectable options that we would save in the app.options[module] section.
- * The basic idea is to have a way to change module settings from outside of the module!
- * 
- * Maybe also useful when we resurrect the appstore
- * 
- */
+/* Module metadata overlay. Title, size, and padding come from .saito-overlay-form. */
 
 .saito-module-overlay {
-  display: flex;
-  flex-direction: column;
-  row-gap: var(--saito-space-md);
-  width: min(90vw, 80rem);
-  max-height: 70vh;
+  color: var(--saito-foreground);
+  max-height: min(80vh, 100%);
   overflow: auto;
-  padding: var(--saito-space-xl);
-  user-select: none;
+}
+
+.saito-module-overlay .details {
+  display: grid;
+  gap: var(--saito-space-md);
+  padding: var(--saito-space-md);
+  border: 1px solid var(--saito-border);
+  border-radius: var(--saito-radius);
+}
+
+.saito-module-overlay .field {
+  display: grid;
+  grid-template-columns: 10rem 1fr;
+  gap: var(--saito-space-md);
+}
+
+.saito-module-overlay .label {
+  color: var(--saito-muted-foreground);
+}
+
+.saito-module-overlay > .saito-module-settings {
+  padding: 0;
 }
 
 /* Lightweight shell used when modules inject settings into an overlay.
@@ -161,112 +117,77 @@
   }
 }
 
-.saito-module-header {
-  background: var(--saito-background);
-  background-size: cover;
-  background-position: center;
-  padding: var(--saito-space-xs);
-}
+/* Settings forms render inside this overlay, or inside a module's own .module-settings-overlay. */
 
-.saito-module-header .saito-module-titlebar {
-  max-width: 100%;
-  width: 100%;
-  padding: var(--saito-space-xs) var(--saito-space-md);
-}
-
-.saito-module-overlay .saito-module-titlebar {
-  background: var(--saito-background);
-  color: var(--saito-foreground);
-}
-
-.saito-module-details,
-fieldset.saito-grid {
-  padding: 1.25rem var(--saito-space-md);
-  border-radius: var(--saito-radius);
-  border: 1px solid var(--saito-border);
-}
-
-.saito-module-details {
-  display: grid;
-  grid-template-columns: 10rem 1fr;
-  gap: var(--saito-space-md);
-  margin: var(--saito-space-md);
-}
-
-.saito-module-overlay > h4 {
-  margin-left: 1rem;
-}
-
-.saito-module-settings {
-  padding: var(--saito-space-md);
-}
-
-fieldset.saito-grid {
+:is(.saito-module-overlay, .module-settings-overlay) .saito-grid {
   display: grid;
   grid-template-columns: 2rem 1fr;
   gap: var(--saito-space-md);
   align-items: center;
-  margin: var(--saito-space-md) 0;
   position: relative;
+  margin: var(--saito-space-md) 0;
+  padding: var(--saito-space-md);
+  color: var(--saito-foreground);
+  border: 1px solid var(--saito-border);
+  border-radius: var(--saito-radius);
 }
 
-fieldset.saito-grid > fieldset.saito-grid {
-  grid-column-start: 1;
-  grid-column-end: span 2;
+:is(.saito-module-overlay, .module-settings-overlay) .saito-grid > legend {
+  grid-column: 1 / -1;
+  color: var(--saito-foreground);
 }
 
-fieldset.saito-grid .note {
-  margin-left: 5px;
+:is(.saito-module-overlay, .module-settings-overlay) .saito-grid > .saito-grid {
+  grid-column: 1 / -1;
 }
 
-.saito-module-settings .note {
+:is(.saito-module-overlay, .module-settings-overlay) .saito-grid .note {
+  margin-left: var(--saito-space-xs);
   font-style: italic;
 }
 
-.saito-grid input,
-.saito-grid label {
+:is(.saito-module-overlay, .module-settings-overlay) .saito-grid :is(input, label) {
   cursor: pointer;
 }
 
-/* Same leading column for icons and checkboxes — drop form-control side margins. */
-fieldset.saito-grid > i,
-fieldset.saito-grid > .saito-checkbox,
-fieldset.saito-grid > input.saito-checkbox[type='checkbox'],
-fieldset.saito-grid > .saito-radio,
-fieldset.saito-grid > input.saito-radio[type='radio'] {
+.saito-module-overlay .archive-settings {
+  grid-template-columns: 6rem 1fr;
+}
+
+.saito-module-overlay .archive-settings > input {
+  width: 100%;
+  margin: 0;
+  padding: var(--saito-space-xs);
+  text-align: center;
+  cursor: text;
+}
+
+:is(.saito-module-overlay, .module-settings-overlay) .saito-grid > :is(i, .saito-checkbox, .saito-radio) {
   margin: 0;
   justify-self: start;
 }
 
-.saito-grid-extra-button {
+:is(.saito-module-overlay, .module-settings-overlay) .saito-grid-extra-button {
   position: absolute;
-  right: 1rem;
-  bottom: 0.25rem;
+  right: var(--saito-space-md);
+  bottom: var(--saito-space-xs);
   min-height: min(70%, 40px);
   max-width: 50%;
 }
 
-.saito-grid i {
+:is(.saito-module-overlay, .module-settings-overlay) .saito-grid i {
   margin: 0;
   font-size: var(--font-size-medium);
   cursor: pointer;
   color: var(--saito-muted-foreground);
 }
 
-.settings-link,
-.settings-link label {
+:is(.saito-module-overlay, .module-settings-overlay) .settings-link,
+:is(.saito-module-overlay, .module-settings-overlay) .settings-link label {
   cursor: pointer;
 }
 
-.settings-link:hover label {
+:is(.saito-module-overlay, .module-settings-overlay) .settings-link:hover label {
+  color: var(--saito-foreground);
   text-decoration: underline;
-  color: var(--font-color-hover-module-menu);
-}
-
-.saito-module-settings .flex-row {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  justify-content: flex-start;
-  gap: var(--saito-space-md);
 }

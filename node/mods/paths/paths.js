@@ -11,17 +11,15 @@ const ReservesOverlay = require('./lib/ui/overlays/reserves');
 const MandatesOverlay = require('./lib/ui/overlays/mandates');
 const WelcomeOverlay = require('./lib/ui/overlays/welcome');
 const MenuOverlay = require('./lib/ui/overlays/menu');
+const RussiaOverlay = require('./lib/ui/overlays/russia');
+const UsaOverlay = require('./lib/ui/overlays/usa');
 
 const PathsRules = require('./lib/core/rules.template');
 const PathsOptions = require('./lib/core/advanced-options.template');
 const PathsSingularOption = require('./lib/core/options.template');
 
-const GameHelp = require('./lib/ui/game-help/game-help');
 const PathsLog = require('./lib/paths-log');
 const GameMinimap = require('../../lib/saito/ui/game-minimap/game-minimap');
-const TutorialTemplate = require('./lib/ui/overlays/tutorials/tutorial.template');
-
-
 const htmlTemplate = require('./lib/core/game-html.template').default;
 const JSON = require('json-bigint');
 
@@ -61,8 +59,9 @@ class PathsOfGlory extends GameTemplate {
     this.vp_overlay = new VPOverlay(this.app, this); 
     this.welcome_overlay = new WelcomeOverlay(this.app, this); 
     this.menu_overlay = new MenuOverlay(this.app, this); 
-    this.space_overlay = new SpaceOverlay(this.app, this); 
-    this.game_help = new GameHelp(this.app, this);
+    this.space_overlay = new SpaceOverlay(this.app, this);
+    this.russia_overlay = new RussiaOverlay(this.app, this);
+    this.usa_overlay = new UsaOverlay(this.app, this); 
     this.paths_log = new PathsLog(this);
     this.log.registerEventType('movement', (entries) => this.paths_log.renderMovement(entries));
     this.log.registerEventType('combat', (entries) => this.paths_log.renderCombat(entries));
@@ -6049,6 +6048,13 @@ console.log("err: " + err);
         if (Math.abs(xpos-e.clientX) > 4) { return; }
         if (Math.abs(ypos-e.clientY) > 4) { return; }
 
+        if (e.target.closest && e.target.closest(".us-commitment-track, .us-commitment-track-hit, .russian-capitulation-track, .russian-capitulation-track-hit")) {
+          if (paths_self.zoom_overlay) {
+            paths_self.zoom_overlay.hide();
+          }
+          return;
+        }
+
         //
         // if this is a selectable space, let people select directly
         //
@@ -6413,6 +6419,26 @@ console.log("err: " + err);
         document.querySelector(".us-commitment-track-4").classList.add("active");
       }
 
+      let blockBoardZoom = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (this.zoom_overlay) {
+          this.zoom_overlay.hide();
+        }
+      };
+      let openUsEntry = (e) => {
+        blockBoardZoom(e);
+        if (this.usa_overlay) {
+          this.usa_overlay.render();
+        }
+      };
+      document.querySelectorAll(".us-commitment-track, .us-commitment-track-hit").forEach((el) => {
+        el.onmousedown = blockBoardZoom;
+        el.onmouseup = blockBoardZoom;
+        el.onclick = openUsEntry;
+        el.title = "US entry";
+      });
+
     } catch (err) {
 
     }
@@ -6449,6 +6475,26 @@ console.log("err: " + err);
       if (this.game.state.russian_capitulation_track == 8) { 
         document.querySelector(".russian-capitulation-track-8").classList.add("active");
       }
+
+      let blockBoardZoom = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (this.zoom_overlay) {
+          this.zoom_overlay.hide();
+        }
+      };
+      let openRussianCapitulation = (e) => {
+        blockBoardZoom(e);
+        if (this.russia_overlay) {
+          this.russia_overlay.render();
+        }
+      };
+      document.querySelectorAll(".russian-capitulation-track, .russian-capitulation-track-hit").forEach((el) => {
+        el.onmousedown = blockBoardZoom;
+        el.onmouseup = blockBoardZoom;
+        el.onclick = openRussianCapitulation;
+        el.title = "Russian capitulation";
+      });
 
     } catch (err) {
 
@@ -12344,31 +12390,6 @@ if (this.game.state.turn == 1) {
 	    this.game.queue.push("play\tcentral");
 	  }
 
-if (this.game.state.turn == 1) {
-	  if (this.game.player == 1) {
-            this.game_help.render({
-              title : "Central Powers Opening" ,
-              text : "Play GUNS OF AUGUST for the event, and attack Sedan in a FLANK ATTACK" ,
-              img : "/paths/img/backgrounds/help/tutorial_units.png" ,
-              color: "#d2242a" ,
-              line1 : "learn",
-              line2 : "to play?",
-              fontsize : "2.1rem" ,
-            });
-	  } else {
-            this.game_help.render({
-              title : "Allied Powers Opening" ,
-              text : "Bring Reinforcements into Play and try to play War Status cards (?) for the event. Once you have 4 war status points, you enter Mid-War with more cards..." ,
-              img : "/paths/img/backgrounds/help/tutorial_units.png" ,
-              color: "#d2242a" ,
-              line1 : "learn",
-              line2 : "to play?",
-              fontsize : "2.1rem" ,
-            });
-	  }
-} 
-
-
           //
           // TESTING
           //
@@ -16757,8 +16778,6 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
     // avoid back-button select
     //
     this.removeSelectable();
-
-    this.game_help.hide();
 
     //
     // pass is pass!

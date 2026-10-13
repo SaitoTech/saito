@@ -44,13 +44,6 @@ class FieldOverlay {
       }
       event.preventDefault();
       event.stopPropagation();
-      if (target && target.closest && target.closest('[data-new-signer]')) {
-        const create = form.querySelector('[data-create-signer]');
-        if (create) {
-          create.click();
-          return;
-        }
-      }
       if (typeof form.requestSubmit === 'function') {
         form.requestSubmit();
       } else {
@@ -79,7 +72,7 @@ class FieldOverlay {
     const refreshMode = () => {
       const button = form.querySelector('.actions button.primary');
       const view = this.view;
-      if (!button || !view?.existing || view.sign_index == null) {
+      if (!button || !view?.can_sign) {
         return;
       }
       const type = form.querySelector('[data-field-type]')?.value;
@@ -88,52 +81,32 @@ class FieldOverlay {
         !view.already_signed &&
         (type === 'signature' || type === 'initial') &&
         chosen === String(view.sign_index);
-      button.textContent = sign ? 'Sign' : 'Update';
-      button.dataset.mode = sign ? 'sign' : 'update';
+      button.textContent = sign ? 'Sign' : 'Confirm';
+      button.dataset.mode = sign ? 'sign' : 'confirm';
+    };
+
+    const preview = () => {
+      if (this.hooks.onPreview) {
+        this.hooks.onPreview(form);
+      }
     };
 
     signer_select.addEventListener('change', () => {
       extra.hidden = signer_select.value !== 'new';
+      showError(form, '');
       refreshMode();
+      preview();
       if (!extra.hidden) {
-        form.querySelector('[data-new-signer]')?.focus();
+        form.querySelector('[data-signer-name]')?.focus();
       }
     });
-    form.querySelector('[data-field-type]')?.addEventListener('change', refreshMode);
-
-    const create = form.querySelector('[data-create-signer]');
-    if (create) {
-      create.onclick = () => {
-        const name = form.querySelector('[data-new-signer]')?.value.trim();
-        if (!name || !this.hooks.onCreateSigner) {
-          return;
-        }
-        const added = this.hooks.onCreateSigner(name);
-        if (!added || added.pending) {
-          return;
-        }
-        if (added.existing) {
-          signer_select.value = String(added.index);
-          extra.hidden = true;
-          form.querySelector('[data-new-signer]').value = '';
-          return;
-        }
-        signer_select.insertAdjacentHTML(
-          'beforeend',
-          `<option value="${added.index}">${escapeHTML(added.name)}</option>`
-        );
-        const newest = signer_select.querySelector('option[value="new"]');
-        signer_select.value = String(added.index);
-        if (newest) {
-          signer_select.appendChild(newest);
-        }
-        extra.hidden = true;
-        form.querySelector('[data-new-signer]').value = '';
-      };
-    }
+    form.querySelector('[data-field-type]')?.addEventListener('change', () => {
+      refreshMode();
+      preview();
+    });
 
     if (!extra.hidden) {
-      form.querySelector('[data-new-signer]')?.focus();
+      form.querySelector('[data-signer-name]')?.focus();
     }
 
     const remove = form.querySelector('[data-remove-field]');
@@ -152,6 +125,21 @@ class FieldOverlay {
       }
       form.dataset.saving = '1';
       const mode = form.querySelector('.actions button.primary')?.dataset.mode;
+      if (mode !== 'sign' && signer_select.value === 'new') {
+        const name = form.querySelector('[data-signer-name]')?.value.trim();
+        const email = form.querySelector('[data-signer-email]')?.value.trim();
+        if (!name || !email) {
+          showError(form, 'Enter a name and email for the new signer.');
+          form.dataset.saving = '';
+          return;
+        }
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+          showError(form, 'Enter a valid email address.');
+          form.dataset.saving = '';
+          return;
+        }
+      }
+      showError(form, '');
       let saved = false;
       try {
         if (mode === 'sign' && this.hooks.onSign) {
@@ -173,6 +161,15 @@ class FieldOverlay {
       place.addEventListener('click', commit);
     }
   }
+}
+
+function showError(form, message) {
+  const slot = form.querySelector('[data-form-error]');
+  if (!slot) {
+    return;
+  }
+  slot.hidden = !message;
+  slot.textContent = message || '';
 }
 
 function escapeHTML(value) {

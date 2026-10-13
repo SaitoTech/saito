@@ -675,7 +675,6 @@ class GameTemplate extends ModTemplate {
 
       let x = {};
       x.image = this.returnImage();
-      x.banner = this.returnBanner();
       return x;
     }
 

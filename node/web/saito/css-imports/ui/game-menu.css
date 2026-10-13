@@ -141,8 +141,7 @@
 
 .game-menu-mobile-header,
 .game-menu-icon-label,
-.game-menu-accordion-icon,
-.game-menu-saito-state {
+.game-menu-accordion-icon {
   display: none;
 }
 
@@ -220,7 +219,7 @@
     top: 0;
     z-index: 2;
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr)) 4rem;
     gap: var(--saito-space-sm);
     width: 100%;
     height: var(--game-menu-mobile-header-height);
@@ -233,6 +232,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
+    gap: var(--saito-space-sm);
     min-width: 0;
     height: 4rem;
     padding: var(--saito-space-sm) var(--saito-space-md);
@@ -243,21 +243,26 @@
     border-radius: var(--saito-radius);
   }
 
-  .game-menu-mobile-header-button > span {
-    align-items: center;
-    justify-content: center;
-    gap: var(--saito-space-sm);
+  .game-menu-mobile-header-label {
     min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
-  .game-menu-mobile-header-button .game-menu-game-state {
-    display: flex;
+  .game-menu-saito-logo {
+    flex: 0 0 2rem;
+    width: 2rem;
+    height: 2rem;
+    background: currentColor;
+    mask: url('/saito/img/saito-cube.svg') center / contain no-repeat;
   }
 
-  .game-menu-mobile-header-button img {
-    width: 2.167rem;
-    height: 2.167rem;
-    object-fit: contain;
+  .game-menu-mobile-header-button[aria-pressed='true'] {
+    color: var(--saito-primary-foreground);
+    background: var(--saito-primary);
+    border-color: var(--saito-primary);
+    font-weight: bold;
   }
 
   .game-menu-mobile-header-button i {
@@ -381,14 +386,6 @@
 
   .game-menu.mobile-saito-visible .game-menu-mobile-header {
     pointer-events: auto;
-  }
-
-  .game-menu.mobile-saito-visible .game-menu-game-state {
-    display: none;
-  }
-
-  .game-menu.mobile-saito-visible .game-menu-saito-state {
-    display: flex;
   }
 
   .game-menu .notification::before {

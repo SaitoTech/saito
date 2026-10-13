@@ -7,10 +7,14 @@ function escapeHTML(value) {
 }
 
 function fieldTemplate(view) {
-  const types = ['signature', 'initial', 'date']
-    .map((type) => {
+  const types = [
+    ['signature', 'date and signature'],
+    ['date', 'date'],
+    ['initial', 'initial']
+  ]
+    .map(([type, label]) => {
       const selected = view.type === type ? ' selected' : '';
-      return `<option value="${type}"${selected}>${type}</option>`;
+      return `<option value="${type}"${selected}>${label}</option>`;
     })
     .join('');
 
@@ -23,13 +27,10 @@ function fieldTemplate(view) {
     .join('');
 
   const remove = view.existing && view.editable
-    ? '<button type="button" data-remove-field>Delete Action</button>'
+    ? '<button type="button" data-remove-field aria-label="Delete"><i class="fa-solid fa-trash" aria-hidden="true"></i></button>'
     : '';
-  const primary = !view.existing ? 'Place' : view.can_sign ? 'Sign' : 'Update';
-  const mode = !view.existing ? 'place' : view.can_sign ? 'sign' : 'update';
-  const addSigner = view.defer_signer || !view.editable
-    ? ''
-    : '<button type="button" data-create-signer>Add</button>';
+  const primary = view.can_sign ? 'Sign' : 'Confirm';
+  const mode = view.can_sign ? 'sign' : 'confirm';
   const disabled = view.editable ? '' : ' disabled';
   const submit = view.editable || view.can_sign
     ? `<button type="submit" class="primary" data-mode="${mode}">${primary}</button>`
@@ -45,13 +46,14 @@ function fieldTemplate(view) {
         </select>
       </label>
       <div class="new-signer"${chooseNew ? '' : ' hidden'}>
-        <input data-new-signer type="text" placeholder="name or email" value="${escapeHTML(view.new_name || '')}" aria-label="Signer name" autocomplete="name" />
-        ${addSigner}
+        <input data-signer-name type="text" placeholder="name" value="${escapeHTML(view.new_name || '')}" aria-label="Signer name" autocomplete="name" />
+        <input data-signer-email type="email" placeholder="email" value="${escapeHTML(view.new_email || '')}" aria-label="Signer email" autocomplete="email" />
       </div>
       <label>
         What
         <select data-field-type${disabled}>${types}</select>
       </label>
+      <p class="form-error" data-form-error hidden></p>
       <div class="actions">
         ${remove}
         ${submit}

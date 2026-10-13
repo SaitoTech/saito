@@ -5,15 +5,12 @@ Optional multilingual transcript capture for Saito Talk. The module adds one **T
 ## Installation
 
 ```sh
-node mods/transcript/compile/install-runtime.mjs
 npm run modules -- add transcript
 ```
 
-Enable `transcript/transcript.js` in both server (`core`) and browser (`lite`) module lists, alongside Videocall. Remove any old `captions/captions.js` entries. Rebuild and restart the server, then refresh the browser. Deploy all of `mods/transcript/web`, including the generated `vendor/` directory. The node only serves the runtime; it does not need model files. Runtime assets are ignored by Git, pinned and checksum verified:
+Enable `transcript/transcript.js` in both server (`core`) and browser (`lite`) module lists, alongside Videocall. Remove any old `captions/captions.js` entries. Rebuild and restart the server, then refresh the browser. Deploy all of `mods/transcript/web`. No transcript-specific install or server-side download is required: the browser JavaScript and WASM runtime are included in `web/lib`, and the node only serves static files. Speech recognition and model downloads run in the browser.
 
-```sh
-node mods/transcript/compile/install-runtime.mjs --check
-```
+`web/lib` contains the pinned Transformers.js 3.8.1 distribution, its ONNX JavaScript/WASM dependencies, and their licenses (about 22 MB total). These files must be committed with the module. `web/lib/assets.json` records their upstream URLs and SHA-256 checksums for maintenance; it is not an installation manifest. When updating the libraries, replace the files and update the manifest together. Development tests live in `tests/mods/transcript/` under the Node project root.
 
 ## Model management
 
@@ -26,7 +23,7 @@ When capture is off, select **Transcript** in a call to open a **Start / Setting
 - The dropdown marks every complete model with **(downloaded)**. The picker also reports partial downloads, remembers the selected model and language, and removes downloads individually. Models use a dedicated disk-backed Cache Storage cache and survive normal browser/device restarts on the same browser profile and site. Downloads request persistent storage to protect against automatic eviction; browsers may decline this request. Clearing site data, private browsing, or eviction can remove models. Browser storage needs HTTPS (or localhost).
 - Call audio stays on the device. Hugging Face receives model download requests, including the user's IP address, but no call audio or transcript. Cached inference works without contacting Hugging Face.
 
-Model files are defined in `web/model-catalog.mjs`; `runtime-assets.json` contains only the node-hosted runtime. The obsolete node model download directory has been removed, and `/transcript/models/` returns 404 even on old deployments that still contain weights. The runtime installer rejects model paths; the server never fetches model files. Model and language changes apply when starting capture. Sessions with pending audio keep their original model/language until that backlog is finished; recovery uses that saved selection.
+Model files are defined in `web/model-catalog.mjs`. The obsolete node model download directory has been removed, and `/transcript/models/` returns 404 even on old deployments that still contain weights. The server never fetches model files. Model and language changes apply when starting capture. Sessions with pending audio keep their original model/language until that backlog is finished; recovery uses that saved selection.
 
 ## Capture, save, and recovery
 
@@ -45,22 +42,23 @@ Storage failure is reported visibly; captured text remains in memory for saving.
 
 ## Checks
 
+Run these commands from `node/`. The unit tests use Node's test runner; they are not discovered by the Jest `npm test` command.
+
 ```sh
-node --test mods/transcript/compile/tests/*.test.mjs
-node mods/transcript/compile/install-runtime.mjs --check
+node --test tests/mods/transcript/*.test.mjs
 ```
 
 Browser integration requires Playwright with Chromium. It tests actual IndexedDB reload/recovery, append, independent borders, downloads, automatic confirmation and deletion. Optionally supply an English WAV to also download the English model directly and exercise local recognition, the audio worklet and two speakers:
 
 ```sh
-TRANSCRIPT_PLAYWRIGHT=/path/to/playwright node mods/transcript/compile/tests/browser-smoke.cjs
-TRANSCRIPT_PLAYWRIGHT=/path/to/playwright TRANSCRIPT_AUDIO_FIXTURE=/path/to/english.wav node mods/transcript/compile/tests/browser-smoke.cjs
+TRANSCRIPT_PLAYWRIGHT=/path/to/playwright node tests/mods/transcript/browser-smoke.cjs
+TRANSCRIPT_PLAYWRIGHT=/path/to/playwright TRANSCRIPT_AUDIO_FIXTURE=/path/to/english.wav node tests/mods/transcript/browser-smoke.cjs
 ```
 
 The buffering browser test uses real IndexedDB, Web Locks, an audio worklet, and a forced renderer crash. Recognition is stubbed to deterministically verify migration, transaction rollback, storage limits, speaker isolation, duplicate prevention, partial exports, and finish-later recovery:
 
 ```sh
-TRANSCRIPT_PLAYWRIGHT=/path/to/playwright node mods/transcript/compile/tests/buffer-browser-smoke.cjs
+TRANSCRIPT_PLAYWRIGHT=/path/to/playwright node tests/mods/transcript/buffer-browser-smoke.cjs
 ```
 
 `TRANSCRIPT_CHROMIUM` can select an existing Chromium executable.
@@ -68,11 +66,11 @@ TRANSCRIPT_PLAYWRIGHT=/path/to/playwright node mods/transcript/compile/tests/buf
 The WebRTC browser test sends real remote audio through Talk's stream events and verifies capture of both speakers, including peers joining after capture starts. It omits the call video player to check that remote capture starts independently; the engine uses a muted media element to activate Chromium's remote audio without duplicate sound. Recognition is stubbed after speech gating.
 
 ```sh
-TRANSCRIPT_PLAYWRIGHT=/path/to/playwright node mods/transcript/compile/tests/webrtc-browser-smoke.cjs
+TRANSCRIPT_PLAYWRIGHT=/path/to/playwright node tests/mods/transcript/webrtc-browser-smoke.cjs
 ```
 
 The model-manager browser test uses real upstream downloads, closes and restarts Chromium with the same disk profile, then verifies downloaded labels, cached offline inference, settings persistence and removal. By default it checks both Tiny variants; choose all four with:
 
 ```sh
-TRANSCRIPT_PLAYWRIGHT=/path/to/playwright TRANSCRIPT_TEST_MODELS=tiny.en,tiny,base.en,base node mods/transcript/compile/tests/models-browser-smoke.cjs
+TRANSCRIPT_PLAYWRIGHT=/path/to/playwright TRANSCRIPT_TEST_MODELS=tiny.en,tiny,base.en,base node tests/mods/transcript/models-browser-smoke.cjs
 ```

@@ -1738,6 +1738,30 @@ If an overlay needs to notify its parent, callbacks are often sufficient.
 
 Do not require the main module to contain every overlay's implementation merely because the overlay belongs to the module.
 
+### Block sync viewer
+
+`node/lib/saito/ui/saito-sync/saito-sync.js` owns the initial block sync viewer.
+Its **minimize** button collapses the overlay into a nonblocking pill while
+progress polling continues. Clicking the pill (or pressing Enter or Space while
+it is focused) restores the full viewer. Both presentations disappear when sync
+reaches the existing near-tip threshold.
+
+The **minimize on startup** checkbox saves
+`app.options.saito_sync.minimize_on_startup` through `app.storage.saveOptions()`.
+Selecting it also minimizes the current viewer. The preference is read when the
+viewer first renders, after options have loaded; it does not force the viewer to
+appear if sync is already complete or the active page inhibits it. The
+wallet fast-forward prompt still opens at full size when recovery is required.
+
+Pill layout lives in `node/web/saito/css-imports/saito-sync.css`. It shares the
+overlay surface and border, with a 3rem animation, a 2rem spinning logo, and 1rem padding. The
+`--saito-sync-pill-top`, `--saito-sync-pill-right`, `--saito-sync-pill-bottom`, and
+`--saito-sync-pill-left` properties control placement; the mobile media query
+provides independent offsets and accounts for safe areas. On mobile, holding and
+dragging the pill repositions it within the viewport; releasing a drag does not
+expand it, while a tap still does. Its dragged position is kept for the current
+viewer and adapts to viewport changes; it is not saved across page reloads.
+
 
 ## 48. Game UI Is a Special Case, Not a Different Philosophy
 

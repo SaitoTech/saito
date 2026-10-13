@@ -1,32 +1,42 @@
 let SaitoModuleTemplate = (app, mod) => {
-  let html = `
-	<div class="saito-module-overlay">
-		<header class="saito-module-header" style="background-image: url(${mod.returnBanner()});">
-			<h1 class="saito-module-titlebar">${mod.returnName()}</h1>
-		</header>
+  const esc = (value) => app.browser.escapeHTML(value == null ? '' : String(value));
 
-		<section class="saito-module-details">
-			<div class="detail-key">Version</div>
-			<div class="detail-value">${mod.version.toFixed(2)}</div>
-
-			<div class="detail-key">Publisher</div>
-			<div class="detail-value">${mod?.publisher ? mod.publisher : 'Saito'}</div>
-
-			<div class="detail-key">Categories</div>
-			<div class="detail-value">${mod.categories}</div>
-
-			<div class="detail-key">Description</div>
-			<div class="detail-value">${mod.description}</div>
-		</section>`;
-
-  if (mod.hasSettings()) {
-    html += `<h4>Settings</h4>
-		<section class="saito-module-settings">
-		</section>`;
+  let version = mod.version;
+  if (typeof version === 'number' && Number.isFinite(version)) {
+    version = version.toFixed(2);
   }
 
-  html += `</div>`;
-  return html;
+  let settings = '';
+  if (mod.hasSettings()) {
+    settings = `<section class="saito-module-settings"></section>`;
+  }
+
+  return `
+	<div class="saito-module-overlay saito-overlay-form">
+		<header class="saito-overlay-form-header">
+			<h2 class="saito-overlay-form-header-title">${esc(mod.returnName())}</h2>
+		</header>
+
+		<section class="details">
+			<div class="field">
+				<span class="label">Version</span>
+				<span class="value">${esc(version)}</span>
+			</div>
+			<div class="field">
+				<span class="label">Publisher</span>
+				<span class="value">${esc(mod.publisher ? mod.publisher : 'Saito')}</span>
+			</div>
+			<div class="field">
+				<span class="label">Categories</span>
+				<span class="value">${esc(mod.categories)}</span>
+			</div>
+			<div class="field">
+				<span class="label">Description</span>
+				<span class="value">${esc(mod.description)}</span>
+			</div>
+		</section>
+		${settings}
+	</div>`;
 };
 
 module.exports = SaitoModuleTemplate;

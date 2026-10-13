@@ -1,0 +1,303 @@
+.game.paths .paths-track-overlay.saito-overlay-panel,
+.game.paths .paths-track-overlay {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: min(90vw, 1240px);
+  height: auto;
+  max-width: 90vw;
+  max-height: 90vh;
+  overflow: auto;
+  box-sizing: border-box;
+  border-radius: 18px;
+  border: 1px solid rgba(198, 161, 90, 0.38);
+  background-color: #141311;
+  background-image: none;
+  color: #f3ecdf;
+  box-shadow: 0 28px 70px rgba(0, 0, 0, 0.5);
+}
+
+.game.paths .paths-track-bg,
+.game.paths .paths-track-shade {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.game.paths .paths-track-bg {
+  background-image: var(--paths-track-image);
+  background-size: cover;
+  background-position: center;
+  filter: grayscale(1) sepia(0.45) brightness(0.22) contrast(0.8);
+  opacity: 0.7;
+}
+
+.game.paths .paths-track-shade {
+  background:
+    radial-gradient(ellipse at center, rgba(28, 24, 20, 0.28) 0%, rgba(14, 12, 10, 0.78) 62%, rgba(8, 7, 6, 0.94) 100%),
+    linear-gradient(180deg, rgba(16, 14, 12, 0.78), rgba(10, 9, 8, 0.9));
+}
+
+.game.paths .paths-track-body {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  min-height: 0;
+  padding: 36px 48px 28px;
+  box-sizing: border-box;
+}
+
+.game.paths .paths-track-header {
+  flex: 0 0 auto;
+  text-align: center;
+}
+
+.game.paths .paths-track-title {
+  margin: 0;
+  font-family: Palatino, 'Palatino Linotype', 'Iowan Old Style', Georgia, serif;
+  font-size: 36px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  line-height: 1.15;
+  color: #f7f1e6;
+}
+
+.game.paths .paths-track-subtitle {
+  margin: 8px 0 0;
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 1.3;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: #e4dccf;
+}
+
+.game.paths .paths-track-rule {
+  height: 1px;
+  margin: 16px auto 0;
+  max-width: 100%;
+  background: linear-gradient(90deg, transparent, #c6a15a 8%, #c6a15a 92%, transparent);
+}
+
+.game.paths .paths-track-board {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  padding: 16px 16px 18px;
+  border: 1px solid rgba(198, 161, 90, 0.28);
+  border-radius: 12px;
+  background: rgba(8, 7, 6, 0.46);
+}
+
+.game.paths .paths-track-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  align-content: start;
+}
+
+.game.paths .paths-stage {
+  appearance: none;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  min-height: 112px;
+  margin: 0;
+  padding: 14px 16px 16px;
+  border: 1px solid #d7ccb8;
+  border-radius: 10px;
+  background: #f4eadc;
+  color: #2a241c;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  box-sizing: border-box;
+}
+
+.game.paths .paths-stage-index {
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: #6d6458;
+}
+
+.game.paths .paths-stage-name {
+  font-family: Palatino, 'Palatino Linotype', Georgia, serif;
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1.25;
+  color: #241f19;
+}
+
+.game.paths .paths-stage-note {
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.3;
+  color: #3d3428;
+}
+
+.game.paths .paths-stage-badge {
+  display: none;
+  align-items: center;
+  gap: 6px;
+  margin-top: auto;
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #6a4e16;
+}
+
+.game.paths .paths-stage.is-current .paths-stage-badge {
+  display: inline-flex;
+}
+
+.game.paths .paths-stage.is-current .paths-stage-badge::before {
+  content: '';
+  width: 16px;
+  height: 16px;
+  background: var(--paths-marker) center / contain no-repeat;
+}
+
+.game.paths .paths-stage.is-current {
+  background: #e8d5a4;
+  border-color: #b8893a;
+  box-shadow: inset 0 0 0 1px #b8893a;
+}
+
+.game.paths .paths-stage.is-focus {
+  box-shadow: inset 0 0 0 2px #2a241c;
+}
+
+.game.paths .paths-stage.is-current.is-focus {
+  box-shadow:
+    inset 0 0 0 2px #6a4e16,
+    0 0 0 2px #f3ecdf;
+}
+
+.game.paths .paths-track-explain {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.game.paths .paths-track-focus {
+  margin: 0;
+  height: 1.2em;
+  font-family: Palatino, 'Palatino Linotype', Georgia, serif;
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: #f7f1e6;
+}
+
+.game.paths .paths-track-panels {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+.game.paths .paths-track-panel {
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  min-height: 0;
+  padding: 20px 22px 22px;
+  border-radius: 12px;
+  background: #f4eadc;
+  color: #2a241c;
+}
+
+.game.paths .paths-track-panel h3 {
+  margin: 0 0 8px;
+  font-family: Palatino, 'Palatino Linotype', Georgia, serif;
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1.2;
+  color: #241f19;
+}
+
+.game.paths .paths-track-next,
+.game.paths .paths-track-stop {
+  margin: 0;
+  height: 4.5em;
+  overflow: auto;
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  font-size: 17px;
+  line-height: 1.5;
+  color: #2a241c;
+}
+
+.game.paths .paths-track-next strong,
+.game.paths .paths-track-stop strong {
+  font-weight: 700;
+}
+
+.game.paths .paths-track-footnote {
+  margin: 0;
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  font-size: 14px;
+  line-height: 1.4;
+  color: #d9d0c3;
+}
+
+.saito-overlay:has(.paths-track-overlay) .saito-overlay-closebox {
+  top: 14px;
+  right: 14px;
+  background: rgba(20, 18, 16, 0.72);
+  border-color: rgba(243, 236, 223, 0.7);
+}
+
+.saito-overlay:has(.paths-track-overlay) .saito-overlay-closebox::before,
+.saito-overlay:has(.paths-track-overlay) .saito-overlay-closebox::after {
+  background: #f7f1e6;
+}
+
+@media screen and (max-width: 900px) {
+  .game.paths .paths-track-overlay.saito-overlay-panel,
+  .game.paths .paths-track-overlay {
+    width: 100%;
+    height: auto;
+    max-height: none;
+    min-height: 100%;
+    border-radius: 0;
+  }
+
+  .game.paths .paths-track-body {
+    height: auto;
+    padding: 56px 16px 24px;
+  }
+
+  .game.paths .paths-track-title {
+    font-size: 28px;
+  }
+
+  .game.paths .paths-track-subtitle,
+  .game.paths .paths-track-next,
+  .game.paths .paths-track-stop {
+    font-size: 16px;
+  }
+
+  .game.paths .paths-track-grid,
+  .game.paths .paths-track-panels {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media screen and (min-width: 701px) and (max-width: 900px) {
+  .game.paths .paths-track-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}

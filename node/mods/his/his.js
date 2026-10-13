@@ -5362,7 +5362,14 @@ if (this.game.players.length > 2) {
           let faction = mv[1];
           let player = his_self.returnPlayerOfFaction(faction);
                     
-          if (his_self.game.player === player) { 
+          if (his_self.game.player === player) {
+
+            let placeSquadron = (owner, spacekey) => {
+              his_self.game.spaces[spacekey].units[owner].push(his_self.newUnit(owner, "squadron"));
+              his_self.game.state.board[owner] = his_self.returnOnBoardUnits(owner);
+              his_self.displaySpace(spacekey);
+              his_self.addMove("build\tland\t"+owner+"\tsquadron\t"+spacekey+"\t"+his_self.game.player);
+            };
     
             if (faction === "papacy") {
 
@@ -5384,7 +5391,7 @@ if (this.game.players.length > 2) {
 
                   (spacekey) => {
 
-		    let firstspace = spacekey;
+		    placeSquadron("papacy", spacekey);
 
               	    //
               	    // pick port under Papal control
@@ -5408,9 +5415,7 @@ if (this.game.players.length > 2) {
               		his_self.hud.updateStatus(his_self.game.status);
               		his_self.hud.updateMenu([]);
               		his_self.hud.updateCards([]);
-                        let secondspace = spacekey;
-                        his_self.addMove("build\tland\tpapacy\t"+"squadron"+"\t"+firstspace);
-                        his_self.addMove("build\tland\tpapacy\t"+"squadron"+"\t"+secondspace);
+                        placeSquadron("papacy", spacekey);
 		        his_self.endTurn();
 		      },
 
@@ -5459,13 +5464,13 @@ if (this.game.players.length > 2) {
 		  }
 
 		  if (action === "hapsburg") {
-                    his_self.addMove("build\tland\thapsburg\t"+"squadron"+"\tnaples");
+                    placeSquadron("hapsburg", "naples");
 		    if (num == 2) { his_self.endTurn(); return; }
 		    squadron_placement_function(2);
 		  }
 
 		  if (action === "french") {
-                    his_self.addMove("build\tland\tfrance\t"+"squadron"+"\tmarseille");
+                    placeSquadron("france", "marseille");
 		    if (num == 2) { his_self.endTurn(); return; }
 		    squadron_placement_function(2);
 		  }
@@ -5492,8 +5497,7 @@ if (this.game.players.length > 2) {
                         his_self.hud.updateStatus(his_self.game.status);
                         his_self.hud.updateMenu([]);
                         his_self.hud.updateCards([]);
-                        let space = his_self.game.spaces[spacekey];
-                        his_self.addMove("build\tland\tottoman\t"+"squadron"+"\t"+spacekey);
+                        placeSquadron("ottoman", spacekey);
 		        if (num == 2) { his_self.endTurn(); return; }
 		        squadron_placement_function(2);
 		      },
@@ -7098,8 +7102,8 @@ if (this.game.players.length > 2) {
                       his_self.addUnrest(space2);
                       his_self.displaySpace(space2);
 
-                      his_self.addMove("unrest\t"+space1);
-                      his_self.addMove("unrest\t"+space2);
+                      his_self.addMove("unrest\t"+space1+"\t"+his_self.game.player);
+                      his_self.addMove("unrest\t"+space2+"\t"+his_self.game.player);
                       his_self.endTurn();
                     },
                     null,
@@ -12361,7 +12365,7 @@ console.log("POST_GOUT_QUEUE: " + JSON.stringify(his_self.game.queue));
 	        already_selected.push(spacekey);
 		his_self.game.spaces[spacekey].unrest = 1;
 		his_self.displaySpace(spacekey);
-		his_self.addMove("unrest\t"+spacekey);
+		his_self.addMove("unrest\t"+spacekey+"\t"+his_self.game.player);
 
 	    his_self.playerSelectSpaceWithFilter(
 	      "Select English Space to throw into Unrest" ,
@@ -12371,7 +12375,7 @@ console.log("POST_GOUT_QUEUE: " + JSON.stringify(his_self.game.queue));
 	        already_selected.push(spacekey);
 		his_self.game.spaces[spacekey].unrest = 1;
 		his_self.displaySpace(spacekey);
-		his_self.addMove("unrest\t"+spacekey);
+		his_self.addMove("unrest\t"+spacekey+"\t"+his_self.game.player);
 
 	    his_self.playerSelectSpaceWithFilter(
 	      "Select English Space to throw into Unrest" ,
@@ -12381,7 +12385,7 @@ console.log("POST_GOUT_QUEUE: " + JSON.stringify(his_self.game.queue));
 	        already_selected.push(spacekey);
 		his_self.game.spaces[spacekey].unrest = 1;
 		his_self.displaySpace(spacekey);
-		his_self.addMove("unrest\t"+spacekey);
+		his_self.addMove("unrest\t"+spacekey+"\t"+his_self.game.player);
 
 	    his_self.playerSelectSpaceWithFilter(
 	      "Select English Space to throw into Unrest" ,
@@ -12391,7 +12395,7 @@ console.log("POST_GOUT_QUEUE: " + JSON.stringify(his_self.game.queue));
 	        already_selected.push(spacekey);
 		his_self.game.spaces[spacekey].unrest = 1;
 		his_self.displaySpace(spacekey);
-		his_self.addMove("unrest\t"+spacekey);
+		his_self.addMove("unrest\t"+spacekey+"\t"+his_self.game.player);
 
 	    his_self.playerSelectSpaceWithFilter(
 	      "Select English Space to throw into Unrest" ,
@@ -12401,7 +12405,7 @@ console.log("POST_GOUT_QUEUE: " + JSON.stringify(his_self.game.queue));
 	        already_selected.push(spacekey);
 		his_self.game.spaces[spacekey].unrest = 1;
 		his_self.displaySpace(spacekey);
-		his_self.addMove("unrest\t"+spacekey);
+		his_self.addMove("unrest\t"+spacekey+"\t"+his_self.game.player);
 
 		his_self.endTurn();
 
@@ -12850,7 +12854,8 @@ console.log("POST_GOUT_QUEUE: " + JSON.stringify(his_self.game.queue));
 	      let space = his_self.game.spaces[spacekey];
 	      his_self.addMove("add_army_leader\t"+faction+"\t"+spacekey+"\t"+"renegade");
 	      if (spacekey === "avignon" || spacekey === "grenoble" || spacekey === "geneva" || spacekey === "dijon" || spacekey === "orleans" || spacekey === "limoges") {
-                his_self.addMove("control\t"+faction+"\t"+spacekey);
+                his_self.applyPacify(faction, spacekey);
+                his_self.addMove("control\t"+faction+"\t"+spacekey+"\t"+his_self.game.player);
 	      }
 	      if (faction != "ottoman") {
                 his_self.addMove("build\tland\t"+faction+"\t"+"mercenary"+"\t"+spacekey);
@@ -13226,7 +13231,9 @@ console.log("POST_GOUT_QUEUE: " + JSON.stringify(his_self.game.queue));
 	      return 0;
 	    },
 	    function(unrest_spacekey1) {
-              his_self.addMove("unrest\t"+unrest_spacekey1);
+              his_self.addUnrest(unrest_spacekey1);
+              his_self.displaySpace(unrest_spacekey1);
+              his_self.addMove("unrest\t"+unrest_spacekey1+"\t"+his_self.game.player);
               his_self.playerSelectSpaceWithFilter(
   	        "Add Unrest",
 	        function(space) {
@@ -13244,7 +13251,9 @@ console.log("POST_GOUT_QUEUE: " + JSON.stringify(his_self.game.queue));
 	          his_self.hud.updateStatus(his_self.game.status);
 	          his_self.hud.updateMenu([]);
 	          his_self.hud.updateCards([]);
-                  his_self.addMove("unrest\t"+unrest_spacekey2);
+                  his_self.addUnrest(unrest_spacekey2);
+                  his_self.displaySpace(unrest_spacekey2);
+                  his_self.addMove("unrest\t"+unrest_spacekey2+"\t"+his_self.game.player);
 	          his_self.endTurn();
 	        }
               );
@@ -13784,8 +13793,8 @@ console.log("POST_GOUT_QUEUE: " + JSON.stringify(his_self.game.queue));
 	          his_self.addUnrest(space2);
 	          his_self.displaySpace(space2);
 
-		  his_self.addMove("unrest\t"+space1);
-		  his_self.addMove("unrest\t"+space2);
+		  his_self.addMove("unrest\t"+space1+"\t"+his_self.game.player);
+		  his_self.addMove("unrest\t"+space2+"\t"+his_self.game.player);
 		  his_self.endTurn();
 		},
 		null,
@@ -13920,7 +13929,9 @@ console.log("POST_GOUT_QUEUE: " + JSON.stringify(his_self.game.queue));
 
 	      (spacekey) => {
 		his_self.game.state.janissaries_spaces.push(spacekey);
-      		his_self.addMove("unrest\t"+spacekey);
+      		his_self.addUnrest(spacekey);
+		his_self.displaySpace(spacekey);
+		his_self.addMove("unrest\t"+spacekey+"\t"+his_self.game.player);
 		his_self.endTurn();
 	      },
 
@@ -14373,7 +14384,9 @@ console.log("POST_GOUT_QUEUE: " + JSON.stringify(his_self.game.queue));
 
 	      (spacekey) => {
 	        his_self.game.state.peasants_war.push(spacekey);
-      		his_self.addMove("unrest\t"+spacekey);
+      		his_self.addUnrest(spacekey);
+		his_self.displaySpace(spacekey);
+		his_self.addMove("unrest\t"+spacekey+"\t"+his_self.game.player);
 		his_self.endTurn();
 	      },
 
@@ -15258,7 +15271,9 @@ console.log("POST_GOUT_QUEUE: " + JSON.stringify(his_self.game.queue));
 	      },
 
 	      (spacekey) => {
-      		his_self.addMove("unrest\t"+spacekey);
+      		his_self.addUnrest(spacekey);
+		his_self.displaySpace(spacekey);
+		his_self.addMove("unrest\t"+spacekey+"\t"+his_self.game.player);
 		his_self.endTurn();
 	      },
 
@@ -17576,6 +17591,76 @@ console.log("DELETING Z: " + z);
   removeUnrest(space) {
     try { if (this.game.spaces[space]) { space = this.game.spaces[space]; } } catch (err) {}
     space.unrest = 0;
+  }
+
+  applyPacify(faction, space) {
+    let religion = this.game.spaces[space].religion;
+
+    this.game.spaces[space].unrest = 0;
+
+    if (this.game.players.length == 2) {
+      if (space != "metz" && space != "liege" && this.game.spaces[space].language != "german" && this.game.spaces[space].language != "italian") {
+        this.updateLog("NOTE: only Metz, Liege and German and Italian spaces may change control in the 2P game");
+      } else {
+        this.updateLog(this.returnFactionName(this.returnControllingPower(faction)) + " controls " + this.returnSpaceName(space));
+        this.game.spaces[space].political = this.returnControllingPower(faction);
+      }
+    } else {
+      this.updateLog(this.returnFactionName(this.returnControllingPower(faction)) + " controls " + this.returnSpaceName(space));
+      this.game.spaces[space].political = this.returnControllingPower(faction);
+    }
+
+    for (let f in this.game.spaces[space].units) {
+      if (!this.areAllies(f, faction)) {
+        for (let z = 0; z < this.game.spaces[space].units[f].length; z++) {
+          this.captureLeader(faction, f, space, this.game.spaces[space].units[f][z]);
+          let u = this.game.spaces[space].units[f][z];
+          if (u.type == "squadron" || u.type == "corsair" || u.army_leader == true || u.navy_leader == true) {
+            this.game.spaces[space].units[f].splice(z, 1); z--;
+          }
+        }
+      }
+    }
+
+    if (faction === "protestant") {
+      if (space.home === "" && space.language == "german") { space.home = "protestant"; }
+      if (space === "augsburg" && religion === "protestant" && this.game.state.augsburg_electoral_bonus == 0 && this.game.state.events.schmalkaldic_league == 1) {
+        this.game.spaces['augsburg'].units['protestant'].push();
+        this.addRegular("protestant", "augsburg", 2);
+        this.game.state.augsburg_electoral_bonus = 1;
+      }
+      if (space === "mainz" && religion === "protestant" && this.game.state.mainz_electoral_bonus == 0 && this.game.state.events.schmalkaldic_league == 1) {
+        this.game.spaces['mainz'].units['protestant'].push();
+        this.addRegular("protestant", "mainz", 1);
+        this.game.state.mainz_electoral_bonus = 1;
+      }
+      if (space === "trier" && religion === "protestant" && this.game.state.trier_electoral_bonus == 0 && this.game.state.events.schmalkaldic_league == 1) {
+        this.game.spaces['trier'].units['protestant'].push();
+        this.addRegular("protestant", "trier", 1);
+        this.game.state.trier_electoral_bonus = 1;
+      }
+      if (space === "cologne" && religion === "protestant" && this.game.state.cologne_electoral_bonus == 0 && this.game.state.events.schmalkaldic_league == 1) {
+        this.game.spaces['cologne'].units['protestant'].push();
+        this.addRegular("protestant", "cologne", 1);
+        this.game.state.cologne_electoral_bonus = 1;
+      }
+      if (space === "wittenberg" && religion === "protestant" && this.game.state.wittenberg_electoral_bonus == 0 && this.game.state.events.schmalkaldic_league == 1) {
+        this.game.spaces['wittenberg'].units['protestant'].push();
+        this.addRegular("protestant", "wittenberg", 2);
+        this.game.state.wittenberg_electoral_bonus = 1;
+      }
+      if (space === "brandenburg" && religion === "protestant" && this.game.state.brandenburg_electoral_bonus == 0 && this.game.state.events.schmalkaldic_league == 1) {
+        this.game.spaces['brandenburg'].units['protestant'].push();
+        this.addRegular("protestant", "brandenburg", 1);
+        this.game.state.brandenburg_electoral_bonus = 1;
+      }
+    }
+
+    if (this.game.spaces[space].besieged != 0) {
+      this.game.spaces[space].besieged = 0;
+    }
+
+    this.displaySpace(space);
   }
 
   hasProtestantReformer(space) {
@@ -39986,7 +40071,8 @@ console.log("RESHUFFLE CARDS: " + JSON.stringify(reshuffle_cards));
                             his_self.addMove("SETVAR\tstate\tplayer_last_move\tmove");
                             his_self.addMove("SETVAR\tstate\tplayer_last_spacekey\t"+player_last_spacekey);
 		          }
-                          his_self.addMove("pacify\t"+faction+"\t"+player_last_spacekey);
+                          his_self.applyPacify(faction, player_last_spacekey);
+                          his_self.addMove("pacify\t"+faction+"\t"+player_last_spacekey+"\t"+his_self.game.player);
                           his_self.endTurn();
 	 	        }});
 	              }
@@ -40275,9 +40361,12 @@ console.log("RESHUFFLE CARDS: " + JSON.stringify(reshuffle_cards));
  	if (mv[0] === "unrest") {
 
 	  let spacekey = mv[1];
-	  this.game.spaces[spacekey].unrest = 1;
+	  let player_to_ignore = parseInt(mv[2]);
+	  if (this.game.player != player_to_ignore) {
+	    this.addUnrest(spacekey);
+	    this.displaySpace(spacekey);
+	  }
 	  this.updateLog(this.returnSpaceName(spacekey) + " enters unrest");
-	  this.displaySpace(spacekey);
 
 	  this.game.queue.splice(qe, 1);
 	  return 1;
@@ -40288,9 +40377,12 @@ console.log("RESHUFFLE CARDS: " + JSON.stringify(reshuffle_cards));
 
 	  let faction = mv[1];
 	  let spacekey = mv[2];
-	  this.game.spaces[spacekey].unrest = 0;
+	  let player_to_ignore = parseInt(mv[3]);
+	  if (this.game.player != player_to_ignore) {
+	    this.removeUnrest(spacekey);
+	    this.displaySpace(spacekey);
+	  }
 	  this.updateLog(this.returnSpaceName(spacekey) + " out of unrest");
-	  this.displaySpace(spacekey);
 
 	  this.game.queue.splice(qe, 1);
 	  return 1;
@@ -40665,85 +40757,11 @@ try {
 	  this.game.queue.splice(qe, 1);
 	  let faction = mv[1];
 	  let space = mv[2];
-	  let religion = this.game.spaces[space].religion;
+	  let player_to_ignore = parseInt(mv[3]);
 
-	  this.game.spaces[space].unrest = 0;
-
-	  //
-	  // 2P restriction on which keys can 
-	  //
-	  if (this.game.players.length == 2) {
-	    if (space != "metz" && space != "liege" && this.game.spaces[space].language != "german" && this.game.spaces[space].language != "italian") { 
-	      this.updateLog("NOTE: only Metz, Liege and German and Italian spaces may change control in the 2P game");
-	    } else {
-	      this.updateLog(this.returnFactionName(this.returnControllingPower(faction)) + " controls " + this.returnSpaceName(space));
-	      this.game.spaces[space].political = this.returnControllingPower(faction);
-	    }
-	  } else {
-	    this.updateLog(this.returnFactionName(this.returnControllingPower(faction)) + " controls " + this.returnSpaceName(space));
-	    this.game.spaces[space].political = this.returnControllingPower(faction);
+	  if (this.game.player != player_to_ignore) {
+	    this.applyPacify(faction, space);
 	  }
-
-
-	  //
-	  // capture any leaders, remove any squadron
-	  //
-	  for (let f in this.game.spaces[space].units) {
-	    if (!this.areAllies(f, faction)) {
-	      for (let z = 0; z < this.game.spaces[space].units[f].length; z++) {
-	        his_self.captureLeader(faction, f, space, this.game.spaces[space].units[f][z]);
-		let u = his_self.game.spaces[space].units[f][z];
-		if (u.type == "squadron" || u.type == "corsair" || u.army_leader == true || u.navy_leader == true) {
-		  his_self.game.spaces[space].units[f].splice(z, 1); z--;
-		}
-	      };
-	    }
-	  }
-
-
-	  //
-	  // post schmalkaldic_league
-	  //
-	  if (faction === "protestant") {
-	    if (space.home === "" && space.language == "german") { space.home = "protestant"; }
-            if (space === "augsburg" && religion === "protestant" && this.game.state.augsburg_electoral_bonus == 0 && this.game.state.events.schmalkaldic_league == 1) {
-              this.game.spaces['augsburg'].units['protestant'].push();
-              this.addRegular("protestant", "augsburg", 2);
-              this.game.state.augsburg_electoral_bonus = 1;
-            }
-            if (space === "mainz" && religion === "protestant" && this.game.state.mainz_electoral_bonus == 0 && this.game.state.events.schmalkaldic_league == 1) {
-              this.game.spaces['mainz'].units['protestant'].push();
-              this.addRegular("protestant", "mainz", 1);
-              this.game.state.mainz_electoral_bonus = 1;
-            }
-            if (space === "trier" && religion === "protestant" && this.game.state.trier_electoral_bonus == 0 && this.game.state.events.schmalkaldic_league == 1) {
-              this.game.spaces['trier'].units['protestant'].push();
-              this.addRegular("protestant", "trier", 1);
-              this.game.state.trier_electoral_bonus = 1;
-            }
-            if (space === "cologne" && religion === "protestant" && this.game.state.cologne_electoral_bonus == 0 && this.game.state.events.schmalkaldic_league == 1) {
-              this.game.spaces['cologne'].units['protestant'].push();
-              this.addRegular("protestant", "cologne", 1);
-              this.game.state.cologne_electoral_bonus = 1;
-            }
-            if (space === "wittenberg" && religion === "protestant" && this.game.state.wittenberg_electoral_bonus == 0 && this.game.state.events.schmalkaldic_league == 1) {
-              this.game.spaces['wittenberg'].units['protestant'].push();
-              this.addRegular("protestant", "wittenberg", 2);
-              this.game.state.wittenberg_electoral_bonus = 1;
-            }
-            if (space === "brandenburg" && religion === "protestant" && this.game.state.brandenburg_electoral_bonus == 0 && this.game.state.events.schmalkaldic_league == 1) {
-              this.game.spaces['brandenburg'].units['protestant'].push();
-              this.addRegular("protestant", "brandenburg", 1);
-              this.game.state.brandenburg_electoral_bonus = 1;
-            }
-          }
-
-
-	  if (this.game.spaces[space].besieged != 0) {
-            this.game.spaces[space].besieged = 0;
-          }
-
-	  this.displaySpace(space);
 	  this.displayVictoryTrack();
 
 
@@ -45255,7 +45273,8 @@ return;
 		  },
 
       		  function(spacekey) {
-                    his_self.addMove(`control\tpapacy\t${spacekey}`);
+                    his_self.applyPacify("papacy", spacekey);
+                    his_self.addMove(`control\tpapacy\t${spacekey}\t${his_self.game.player}`);
                     his_self.addMove(`withdraw_to_nearest_fortified_space\t${enemy}\t${spacekey}`);
 	            his_self.addMove(`SETVAR\tstate\tprotestant_war_winner_vp\t${parseInt(his_self.game.state.protestant_war_winner_vp)+1}`);
 	            his_self.addMove(`NOTIFY\tProtestants +1 War Winner VP`);
@@ -45504,9 +45523,11 @@ return;
 	      }
 
               his_self.addMove("display_vp_track");
-              his_self.addMove(`control\t${loser}\t${spacekey2}`);
+              his_self.applyPacify(loser, spacekey2);
+              his_self.applyPacify(loser, spacekey1);
+              his_self.addMove(`control\t${loser}\t${spacekey2}\t${his_self.game.player}`);
               his_self.addMove(`withdraw_to_nearest_fortified_space\t${winner}\t${spacekey2}`);
-              his_self.addMove(`control\t${loser}\t${spacekey1}`);
+              his_self.addMove(`control\t${loser}\t${spacekey1}\t${his_self.game.player}`);
               his_self.addMove(`withdraw_to_nearest_fortified_space\t${winner}\t${spacekey1}`);
 
 	      if (prize == "vp") {
@@ -45587,11 +45608,13 @@ return;
 
             his_self.addMove("display_vp_track");
 
+            his_self.applyPacify(loser, spacekey);
 	    if (captured_keys > 1) {
-              his_self.addMove(`control\t${loser}\t${spacekey}`);
+              his_self.applyPacify(loser, spacekey);
+              his_self.addMove(`control\t${loser}\t${spacekey}\t${his_self.game.player}`);
 	    }
 
-            his_self.addMove(`control\t${loser}\t${spacekey}`);
+            his_self.addMove(`control\t${loser}\t${spacekey}\t${his_self.game.player}`);
             his_self.addMove(`withdraw_to_nearest_fortified_space\t${winner}\t${spacekey}`);
 
 	    let target_faction = winner;
@@ -45665,7 +45688,8 @@ return;
 
       	  function(spacekey) {
             his_self.addMove("display_vp_track");
-            his_self.addMove(`control\tpapacy\t${spacekey}`);
+            his_self.applyPacify("papacy", spacekey);
+            his_self.addMove(`control\tpapacy\t${spacekey}\t${his_self.game.player}`);
             his_self.addMove(`withdraw_to_nearest_fortified_space\t${faction}\t${spacekey}`);
 	    his_self.addMove(`SETVAR\tstate\tprotestant_war_winner_vp\t${parseInt(his_self.game.state.protestant_war_winner_vp)+1}`);
 	    his_self.addMove(`NOTIFY\tProtestants +1 War Winner VP`);
@@ -49590,7 +49614,9 @@ does_units_to_move_have_unit = true; }
 	his_self.hud.updateStatus(his_self.game.status);
 	his_self.hud.updateMenu([]);
 	his_self.hud.updateCards([]);
-	his_self.addMove("remove_unrest\t"+faction+"\t"+destination_spacekey);
+	his_self.removeUnrest(destination_spacekey);
+	his_self.displaySpace(destination_spacekey);
+	his_self.addMove("remove_unrest\t"+faction+"\t"+destination_spacekey+"\t"+his_self.game.player);
 	his_self.endTurn();
       },
 
@@ -49733,7 +49759,8 @@ does_units_to_move_have_unit = true; }
 	his_self.hud.updateStatus(his_self.game.status);
 	his_self.hud.updateMenu([]);
 	his_self.hud.updateCards([]);
-	his_self.addMove("pacify\t"+faction+"\t"+destination_spacekey);
+	his_self.applyPacify(faction, destination_spacekey);
+	his_self.addMove("pacify\t"+faction+"\t"+destination_spacekey+"\t"+his_self.game.player);
 	his_self.endTurn();
       },
 
@@ -51177,7 +51204,9 @@ does_units_to_move_have_unit = true; }
         if (space.language === zone && space.religion === religion) { return 1; }
       },
       function(spacekey) {
-        his_self.addMove(`unrest\t${spacekey}`);
+        his_self.addUnrest(spacekey);
+        his_self.displaySpace(spacekey);
+        his_self.addMove(`unrest\t${spacekey}\t${his_self.game.player}`);
         his_self.endTurn();
       },
       null,
@@ -51340,7 +51369,8 @@ does_units_to_move_have_unit = true; }
       for (let key in his_self.game.spaces) {
 	if (his_self.game.spaces[key].home === target_faction) {
 	  if (his_self.returnControllingPower(his_self.game.spaces[key].political) === faction) {
-            his_self.addMove(`control\t${target_faction}\t${key}`);
+            his_self.applyPacify(target_faction, key);
+            his_self.addMove(`control\t${target_faction}\t${key}\t${his_self.game.player}`);
 	    for (let f in his_self.game.spaces[key].units) {
 	      if (his_self.returnControllingPower(f) == faction) {
                 his_self.addMove(`withdraw_to_nearest_fortified_space\t${f}\t${key}`);

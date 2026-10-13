@@ -22,6 +22,7 @@
           imperium_self.game.state.players_info[action_card_player-1].strategy_tokens += 2;
           imperium_self.game.state.players_info[action_card_player-1].command_tokens += 1;
 	  imperium_self.updateLog(imperium_self.returnFaction(action_card_player) + " gains 2 strategy tokens and 1 command token");
+	  imperium_self.displayFactionDashboard();
 	  return 1;
 	}
     });

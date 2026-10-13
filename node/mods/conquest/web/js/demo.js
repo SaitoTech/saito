@@ -7,6 +7,8 @@
   const controller={getState:()=>state,getPlayer:()=>0,getPlayerName:id=>names[id-1]||'Neutral forces',dispatch:async action=>{
     const previous=state.currentPlayer;
     state=ConquestEngine.applyAction(state,action);
+    ui.render();
+    await ui.battlePlayback;
     if(previous!==state.currentPlayer&&state.phase!=='gameover'&&!['claim','setup'].includes(state.phase)) setTimeout(passHand,0);
   }};
   ui=new ConquestUI(element,controller);

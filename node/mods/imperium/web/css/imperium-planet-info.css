@@ -1,0 +1,282 @@
+/*
+ * Planet information component.
+ * The sector places the root. This file owns internal size and type.
+ * Ancestors that still apply, and are reset here:
+ *   .hexLink { text-align: center }
+ *   .hexInfo { white-space: nowrap }
+ *   #hexGrid { font-size: 15px }
+ *   body { font-family, line-height }
+ * .hex and .hexIn are visibility: hidden; .hexIn * restores visibility.
+ */
+.game.imperium .planet-info {
+  --pi-title: 13px;
+  --pi-controller: 9px;
+  --pi-type: 8px;
+  --pi-military: 10px;
+  --pi-hex: 34px;
+  --pi-hex-nudge: 18px;
+  --pi-hex-num: 16px;
+  --pi-pad: 3px;
+  --pi-identity-left: 6px;
+  --pi-identity-right: 14px;
+  --pi-caret: 5px;
+  --pi-military-pad: 2px 6px;
+  --pi-row: 11px;
+  --pi-stack: 0px;
+  --pi-gap: 2px;
+  --pi-section: 2px;
+  --pi-bar: 12px;
+  --pi-cultural: var(--planet-cultural);
+  --pi-industrial: var(--planet-industrial);
+  --pi-hazardous: var(--planet-hazardous);
+  --pi-diplomatic: var(--planet-diplomatic);
+  --pi-bg: rgba(4, 10, 22, 0.84);
+  --pi-border: rgba(176, 198, 230, 0.55);
+  --pi-title-color: #f7f4ee;
+  --pi-controller-color: #c9c4bb;
+  --pi-economy: calc(var(--pi-hex) + var(--pi-hex-nudge));
+
+  --pi-identity-height: calc(
+    var(--pi-pad) * 2 + (var(--pi-title) * 1.05) + var(--pi-stack) + (var(--pi-controller) * 1.15)
+  );
+
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  width: max-content;
+  background: transparent;
+  color: var(--pi-title-color);
+  font-family: var(--imp-font), Helvetica, sans-serif;
+  font-size: 12px;
+  line-height: 1.15;
+  text-align: left;
+  white-space: normal;
+  visibility: visible;
+}
+
+/*
+ * Beats .game.imperium .hexIn * { position: absolute }.
+ * That rule is required for sector art. Without this, the title, faction,
+ * and military rows share one origin and the table collapses.
+ */
+.game.imperium .hexIn .planet-info * {
+  position: relative;
+}
+
+.game.imperium .one_planet > .planet-info {
+  position: absolute;
+  top: 74px;
+  left: 10px;
+}
+
+/*
+ * .top_planet and .bottom_planet are the positioned boxes in a two-planet
+ * sector. The panel stays in flow so these wrappers take on its size.
+ */
+.game.imperium .top_planet,
+.game.imperium .bottom_planet {
+  position: absolute;
+  width: max-content;
+  height: max-content;
+}
+
+.game.imperium .top_planet {
+  top: 57px;
+  left: 40px;
+  z-index: 1;
+}
+
+.game.imperium .bottom_planet {
+  top: 148px;
+  left: 75px;
+  z-index: 2;
+}
+
+.game.imperium .top_planet > .planet-info,
+.game.imperium .bottom_planet > .planet-info {
+  position: relative;
+  top: auto;
+  left: auto;
+  transform: none;
+}
+
+.game.imperium .planet-info-header {
+  display: grid;
+  position: relative;
+  grid-template-columns: max-content var(--pi-economy);
+  align-items: start;
+  width: max-content;
+}
+
+.game.imperium .planet-info-header::before {
+  content: '';
+  position: absolute;
+  z-index: 0;
+  left: 0;
+  top: 0;
+  right: 0;
+  height: var(--pi-identity-height);
+  background: var(--pi-bg);
+  pointer-events: none;
+}
+
+.game.imperium .planet-info-identity {
+  grid-column: 1;
+  grid-row: 1;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  align-self: start;
+  justify-self: stretch;
+  box-sizing: border-box;
+  width: auto;
+  min-width: 0;
+  padding: var(--pi-pad) var(--pi-gap) var(--pi-pad) var(--pi-identity-left);
+  background: var(--pi-bg);
+}
+
+.game.imperium .planet-info-title {
+  font-size: var(--pi-title);
+  font-weight: 600;
+  line-height: 1.05;
+  color: var(--pi-title-color);
+  text-shadow: none;
+  white-space: nowrap;
+}
+
+.game.imperium .planet-info-controller {
+  margin-top: var(--pi-stack);
+  font-size: var(--pi-controller);
+  font-weight: 400;
+  line-height: 1.15;
+  color: var(--pi-controller-color);
+  text-shadow: none;
+  white-space: nowrap;
+}
+
+.game.imperium .planet-info-type {
+  --pi-type-color: var(--pi-cultural);
+  grid-column: 1;
+  grid-row: 2;
+  justify-self: stretch;
+  align-self: start;
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  box-sizing: border-box;
+  width: 80px;
+  height: var(--pi-bar);
+  margin-top: 0;
+  padding: 0 8px 0 var(--pi-identity-left);
+  font-size: var(--pi-type);
+  font-weight: 400;
+  line-height: 1;
+  letter-spacing: 0.01em;
+  text-transform: lowercase;
+  color: var(--pi-title-color);
+  text-shadow: none;
+  white-space: nowrap;
+  background: color-mix(in srgb, var(--pi-type-color) 34%, #10141c);
+}
+
+.game.imperium .planet-info-type-cultural { --pi-type-color: var(--pi-cultural); }
+.game.imperium .planet-info-type-industrial { --pi-type-color: var(--pi-industrial); }
+.game.imperium .planet-info-type-hazardous { --pi-type-color: var(--pi-hazardous); }
+.game.imperium .planet-info-type-diplomatic { --pi-type-color: var(--pi-diplomatic); }
+
+.game.imperium .planet-info .planet-info-header .planet-info-economy,
+.game.imperium .planet-info > .planet-info-header .planet-info-economy,
+.game.imperium .planet-info-economy {
+  display: grid;
+  grid-column: 2;
+  grid-row: 1;
+  grid-template-columns: var(--pi-hex-nudge) var(--pi-hex);
+  grid-template-rows: var(--pi-hex-nudge) var(--pi-hex);
+  position: absolute;
+  z-index: 2;
+  top: calc((var(--pi-identity-height) - var(--pi-economy)) / 2);
+  right: calc(var(--pi-hex-nudge) * -1.25);
+  width: var(--pi-economy);
+  height: var(--pi-economy);
+  margin: 0;
+}
+
+.game.imperium .planet-info-resource,
+.game.imperium .planet-info-influence {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  width: var(--pi-hex);
+  height: var(--pi-hex);
+  min-width: 0;
+  min-height: 0;
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: contain;
+  font-size: var(--pi-hex-num);
+  font-weight: 600;
+  line-height: 1;
+  color: var(--pi-title-color);
+}
+
+.game.imperium .planet-info-resource {
+  grid-column: 1;
+  grid-row: 1;
+  justify-self: start;
+  align-self: start;
+  z-index: 1;
+  background-image: url(/imperium/img/icons/resources.png);
+}
+
+.game.imperium .planet-info-influence {
+  grid-column: 2;
+  grid-row: 2;
+  justify-self: end;
+  align-self: end;
+  z-index: 2;
+  background-image: url(/imperium/img/icons/influence.png);
+}
+
+.game.imperium .planet-info-value {
+  color: var(--pi-title-color);
+  text-shadow: none;
+}
+
+.game.imperium .planet-info-military {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  box-sizing: border-box;
+  align-self: flex-start;
+  width: 80px;
+  min-width: 0;
+  margin-top: 0;
+  padding: var(--pi-military-pad);
+  background: var(--pi-bg);
+  font-size: 0.7rem;
+  font-weight: 400;
+  line-height: var(--pi-row);
+}
+
+.game.imperium .planet-info-unit-row {
+  display: grid;
+  grid-template-columns: auto auto;
+  column-gap: 18px;
+  align-items: center;
+  min-height: var(--pi-row);
+}
+
+.game.imperium .planet-info-unit-label {
+  text-align: left;
+  text-transform: lowercase;
+}
+
+.game.imperium .planet-info-unit-value {
+  text-align: right;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}

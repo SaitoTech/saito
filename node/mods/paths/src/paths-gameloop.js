@@ -1002,31 +1002,6 @@ if (this.game.state.turn == 1) {
 	    this.game.queue.push("play\tcentral");
 	  }
 
-if (this.game.state.turn == 1) {
-	  if (this.game.player == 1) {
-            this.game_help.render({
-              title : "Central Powers Opening" ,
-              text : "Play GUNS OF AUGUST for the event, and attack Sedan in a FLANK ATTACK" ,
-              img : "/paths/img/backgrounds/help/tutorial_units.png" ,
-              color: "#d2242a" ,
-              line1 : "learn",
-              line2 : "to play?",
-              fontsize : "2.1rem" ,
-            });
-	  } else {
-            this.game_help.render({
-              title : "Allied Powers Opening" ,
-              text : "Bring Reinforcements into Play and try to play War Status cards (?) for the event. Once you have 4 war status points, you enter Mid-War with more cards..." ,
-              img : "/paths/img/backgrounds/help/tutorial_units.png" ,
-              color: "#d2242a" ,
-              line1 : "learn",
-              line2 : "to play?",
-              fontsize : "2.1rem" ,
-            });
-	  }
-} 
-
-
           //
           // TESTING
           //

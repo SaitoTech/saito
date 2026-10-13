@@ -868,14 +868,6 @@
   border-color: var(--saito-primary);
 }
 
-.chat-manager-mobile-menu .chat-menu-logo {
-  width: 1em;
-  height: 1em;
-  background-color: currentColor;
-  -webkit-mask: url('/saito/icons/saito-chat-icon-solid.svg') center / contain no-repeat;
-  mask: url('/saito/icons/saito-chat-icon-solid.svg') center / contain no-repeat;
-}
-
 .floating-cm-overlay .chat-manager-header {
   cursor: grab;
 }

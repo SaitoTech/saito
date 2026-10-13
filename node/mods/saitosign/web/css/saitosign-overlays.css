@@ -1,3 +1,111 @@
 .saitosign-overlay {
   width: min(44rem, calc(100vw - 4rem));
 }
+
+.saitosign-identity {
+  display: flex;
+  flex-direction: column;
+  gap: var(--saito-space-md);
+  min-width: min(32rem, calc(100vw - 8rem));
+  padding: 2.8rem var(--saito-space-lg) var(--saito-space-lg);
+}
+
+.saitosign-identity .title,
+.saitosign-identity .who {
+  margin: 0;
+}
+
+.saitosign-identity .title {
+  color: var(--saito-foreground);
+  font-family: var(--saito-font-heavy);
+  font-size: 2rem;
+}
+
+.saitosign-identity .who {
+  color: var(--saito-muted-foreground);
+}
+
+.saitosign-identity .actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--saito-space-sm);
+}
+
+.saitosign-identity button {
+  min-width: 8rem;
+  padding: var(--saito-space-sm) var(--saito-space-md);
+  border: 1px solid var(--saito-border);
+  border-radius: var(--saito-radius);
+  background: transparent;
+  color: var(--saito-muted-foreground);
+  font: inherit;
+  cursor: pointer;
+}
+
+.saitosign-identity button.primary {
+  border-color: var(--saito-primary);
+  background: var(--saito-primary);
+  color: var(--saito-primary-foreground);
+  font-family: var(--saito-font-heavy);
+  font-weight: 700;
+}
+
+.saitosign-close {
+  display: flex;
+  flex-direction: column;
+  gap: var(--saito-space-md);
+  min-width: min(36rem, calc(100vw - 8rem));
+  padding: 2.8rem var(--saito-space-lg) var(--saito-space-lg);
+}
+
+.saitosign-close .title,
+.saitosign-close .note {
+  margin: 0;
+}
+
+.saitosign-close .title {
+  color: var(--saito-foreground);
+  font-family: var(--saito-font-heavy);
+  font-size: 2rem;
+}
+
+.saitosign-close .note {
+  color: var(--saito-muted-foreground);
+  line-height: 1.45;
+}
+
+.saitosign-close .note.fail {
+  color: var(--saito-status-error, var(--saito-red));
+}
+
+.saitosign-close .actions {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--saito-space-sm);
+  margin-top: var(--saito-space-sm);
+}
+
+.saitosign-close button {
+  min-height: 4.4rem;
+  padding: var(--saito-space-sm) var(--saito-space-md);
+  border: 1px solid var(--saito-border);
+  border-radius: var(--saito-radius);
+  background: transparent;
+  color: var(--saito-foreground);
+  font: inherit;
+  cursor: pointer;
+}
+
+.saitosign-close button.primary {
+  border-color: var(--saito-primary);
+  background: var(--saito-primary);
+  color: var(--saito-primary-foreground);
+  font-family: var(--saito-font-heavy);
+  font-weight: 700;
+}
+
+.saitosign-close button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}

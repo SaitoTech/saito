@@ -6,7 +6,7 @@ const secp256k1 = require('secp256k1');
 const PREFERENCE = 'Robots_level_saves';
 const clone = (value) => JSON.parse(JSON.stringify(value));
 
-// A level result is also a resumable checkpoint. Keep signed, unconfirmed results
+// Level starts and results are resumable checkpoints. Keep signed, unconfirmed saves
 // in the wallet so a failed submission can retry without creating another result.
 class LevelSaves {
   constructor(app, mod) {
@@ -24,13 +24,11 @@ class LevelSaves {
   capture() {
     const game = this.mod.game;
     const saved = this.saved;
+    const cleared = game.state.run.status === 'cleared';
     const msg = {
       module: this.mod.name,
-      request: 'roundover',
+      request: cleared ? 'roundover' : 'level-save',
       game_id: game.id,
-      winner: [this.mod.publicKey],
-      players: this.mod.publicKey,
-      reason: String(game.state.run.leaderboardPoints),
       step: game.step?.game,
       ts: Math.max(
         Date.now(),
@@ -44,7 +42,12 @@ class LevelSaves {
         session: clone(game.state.session)
       }
     };
-    if (game.options?.league_id) msg.league_id = game.options.league_id;
+    if (cleared) {
+      msg.winner = [this.mod.publicKey];
+      msg.players = this.mod.publicKey;
+      msg.reason = String(game.state.run.leaderboardPoints);
+      if (game.options?.league_id) msg.league_id = game.options.league_id;
+    }
     saved.pending.push({ msg });
     this.mod.saveGamePreference(PREFERENCE, saved);
     this.flush();
@@ -134,6 +137,8 @@ class LevelSaves {
       const msg = tx.returnMessage();
       const checkpoint = msg.checkpoint;
       const run = checkpoint?.run;
+      const cleared = msg.request === 'roundover' && run?.status === 'cleared';
+      const started = msg.request === 'level-save' && run?.status === 'playing';
       const cell = (p) =>
         p &&
         Number.isInteger(p.x) &&
@@ -144,27 +149,28 @@ class LevelSaves {
         p.y < 19;
       return (
         msg.module === this.mod.name &&
-        msg.request === 'roundover' &&
+        (cleared || started) &&
         tx.from[0]?.publicKey === this.mod.publicKey &&
         tx.isTo(this.mod.publicKey) &&
         checkpoint?.version === 1 &&
         typeof checkpoint.dice === 'string' &&
         checkpoint.dice.length > 0 &&
         Number.isSafeInteger(msg.ts) &&
-        run?.status === 'cleared' &&
         run.width === 25 &&
         run.height === 19 &&
         Number.isSafeInteger(run.wave) &&
         run.wave > 0 &&
-        run.clearedWaves === run.wave &&
-        run.leaderboardPoints === Game.leaderboardPoints(run.wave) &&
+        run.clearedWaves === run.wave - (started ? 1 : 0) &&
+        run.leaderboardPoints === Game.leaderboardPoints(run.clearedWaves) &&
         ['score', 'turns', 'kills', 'bonus'].every((key) => Number.isSafeInteger(run[key])) &&
         cell(run.player) &&
         Array.isArray(run.robots) &&
-        run.robots.length === 0 &&
+        run.robots.length === (started ? Math.min(10 + (run.wave - 1) * 5, 100) : 0) &&
+        run.robots.every(cell) &&
         Array.isArray(run.fires) &&
         run.fires.length <= 475 &&
         run.fires.every(cell) &&
+        (!started || (run.fires.length === 0 && run.bonus === 0)) &&
         ['round', 'wins', 'losses'].every(
           (key) => Number.isSafeInteger(checkpoint.session?.[key]) && checkpoint.session[key] >= 0
         ) &&

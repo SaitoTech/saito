@@ -5,6 +5,8 @@
 displayBoard() {
   for (let i in this.sectors) {
     this.sectors[i].render();
+    let planet_div = "#hex_img_" + i;
+    $(planet_div).attr("src", this.game.sectors[this.game.board[i].tile].img);
   }
   if (this.minimap) {
     this.minimap.render();
@@ -161,7 +163,7 @@ returnHowToPlayOverlay() {
 
 <h2>Your Goal:</h2>
 
-<img src="/imperium/img/planets/BROUGHTON.png" class="demo_planet_card" />
+<img src="/imperium/img/planets/broughton.png" class="demo_planet_card" />
 
 <p></p>
 
@@ -342,39 +344,59 @@ returnPlanetInformationHTML(planet) {
   let ionp = this.returnInfantryOnPlanet(p);
   let ponp = this.returnPDSOnPlanet(p);
   let sonp = this.returnSpaceDocksOnPlanet(p);
-  let powner = '';
 
-  if(this.game.planets[planet].owner > 0) {
-    powner = "p" + this.game.planets[planet].owner;
-  } else {
-    powner = "nowner";
+  let pds_label = "pds";
+  if (p.units) {
+    for (let i = 0; i < p.units.length; i++) {
+      for (let k = 0; k < p.units[i].length; k++) {
+        let unit = p.units[i][k];
+        if (unit && unit.type == "pds" && unit.name == "PDS II") { pds_label = "pds ii"; }
+      }
+    }
   }
 
-  let html = '';
-
-  if (ionp > 0) {
-    html += '<div class="planet_infantry_count_label">Infantry</div><div class="planet_infantry_count">'+ionp+'</div>';
+  let faction_label = "Uncontrolled";
+  if (p.owner > 0 && this.game.state.players_info[p.owner - 1]) {
+    faction_label = this.returnFaction(p.owner);
   }
 
-  if (ponp > 0) {
-    html += '<div class="planet_pds_count_label">PDS</div><div class="planet_pds_count">'+ponp+'</div>';
+  let type_key = "";
+  if (p.type == "cultural" || p.type == "industrial" || p.type == "hazardous" || p.type == "diplomatic") {
+    type_key = p.type;
   }
 
-  if (sonp > 0) {
-    html += '<div class="planet_spacedock_count_label">Spacedock</div><div class="planet_spacedock_count">'+sonp+'</div>';
+  let type_html = "";
+  if (type_key != "") {
+    type_html = `<div class="planet-info-type planet-info-type-${type_key}">${type_key} planet</div>`;
   }
 
-//  if (this.game.planets[planet].bonus != "") {
-//    html += '<div class="planet_tech_label tech_'+this.game.planets[planet].bonus+' bold">'+this.game.planets[planet].bonus+' TECH</div><div></div>';
-//  }
-
-  if (ponp+sonp+ionp > 0) {
-    html = `<div class="sector_information_planetname ${powner}">${p.name}</div><div class="sector_information_planet_content">` + html + `</div>`;
-  } else {
-    html = `<div class="sector_information_planetname ${powner}">${p.name}</div>`;
-  }
-
-  return html;
+  return `<div class="planet-info">
+      <div class="planet-info-header">
+        <div class="planet-info-identity">
+          <div class="planet-info-title">${p.name}</div>
+          <div class="planet-info-controller">${faction_label}</div>
+        </div>
+        <div class="planet-info-economy">
+          <div class="planet-info-resource"><span class="planet-info-value">${p.resources}</span></div>
+          <div class="planet-info-influence"><span class="planet-info-value">${p.influence}</span></div>
+        </div>
+        ${type_html}
+      </div>
+      <div class="planet-info-military">
+        <div class="planet-info-unit-row">
+          <span class="planet-info-unit-label">infantry</span>
+          <span class="planet-info-unit-value">${ionp}</span>
+        </div>
+        <div class="planet-info-unit-row">
+          <span class="planet-info-unit-label">spacedock</span>
+          <span class="planet-info-unit-value">${sonp}</span>
+        </div>
+        <div class="planet-info-unit-row">
+          <span class="planet-info-unit-label">${pds_label}</span>
+          <span class="planet-info-unit-value">${ponp}</span>
+        </div>
+      </div>
+    </div>`;
 
 }
 
@@ -574,7 +596,8 @@ hideSector(pid) {
 
 
 updateTokenDisplay() {
-
+  if (this.browser_active == 0) { return; }
+  this.displayFactionDashboard();
 }
 
 

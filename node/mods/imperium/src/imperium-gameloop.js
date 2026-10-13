@@ -32,6 +32,13 @@
 
 
 
+      if (mv[0] === "popup") {
+        this.game.queue.splice(qe, 1);
+        this.updateLog(mv[1]);
+        this.hud.updatePopup(mv[1]);
+        return 1;
+      }
+
       if (mv[0] === "setvar") {
 
 	let type = mv[1]; // state or players
@@ -318,6 +325,7 @@
 	this.game.state.players_info[player-1].fleet_supply = new_fs;
 
 	imperium_self.updateLog(this.returnFactionNickname(player) + " redistributes tokens: " + new_ct + "/" + new_st + "/" + new_fs);
+	this.displayFactionDashboard();
 
 	return 1;
 
@@ -560,6 +568,11 @@
           for (let k = 0; k < z.length; k++) {
             z[k].postProduction(imperium_self, player, sector, stuff);
           }
+        }
+
+        if (this.browser_active == 1) {
+          this.displayBoard();
+          this.flashSector(sector);
         }
 
 	return 1;
@@ -4357,9 +4370,11 @@ console.log("K: " + z[k].name);
           let battery = this.returnPDSWithinRangeOfSector(attacker, player, sector);
 
 	  let total_shots = 0;
+	  let adjacent_shots = 0;
 	  let hits_on = [];
 	  let hits_or_misses = [];
 	  let units_firing = [];
+	  let shot_sectors = [];
 
 	  let total_hits  = 0;
 	  let z = this.returnEventObjects();
@@ -4373,6 +4388,8 @@ console.log("K: " + z[k].name);
  	      total_shots++;
 	      hits_on.push(battery[i].combat);
 	      units_firing.push(battery[i].unit);
+	      shot_sectors.push(battery[i].sector);
+	      if (battery[i].sector != sector) { adjacent_shots++; }
 	    }
 	  }
 
@@ -4401,10 +4418,9 @@ console.log("K: " + z[k].name);
  	         total_shots++;
 	         hits_on.push(bs.combat);
 	         units_firing.push(bs.unit);
+	         shot_sectors.push(bs.sector);
+	         if (bs.sector != sector) { adjacent_shots++; }
 	  }
-
-          this.updateLog(this.returnFactionNickname(player) + " has " + total_shots + " PDS shots");
-
 
 	  for (let s = 0; s < total_shots; s++) {
 
@@ -4455,7 +4471,7 @@ console.log("K: " + z[k].name);
 	      let lowest_combat_hit = 11;
 	      let lowest_combat_idx = 11;
 
-	      for (let n = 0; n < hits_to_misses.length; n++) {
+	      for (let n = 0; n < hits_or_misses.length; n++) {
 	        if (hits_on[n] < lowest_combat_hit && hits_or_misses[n] == 0) {
 		  lowest_combat_idx = n;
 		  lowest_combat_hit = hits_on[n];
@@ -4508,6 +4524,27 @@ console.log("K: " + z[k].name);
 
           this.updateCombatLog(combat_info);
 
+	  let shot_note = this.returnFactionNickname(player) + " fires " + total_shots + " PDS shot" + (total_shots == 1 ? "" : "s");
+	  if (adjacent_shots > 0) {
+	    shot_note += " (" + adjacent_shots + " from adjacent sectors)";
+	  }
+	  this.updateLog(shot_note);
+	  for (let s = 0; s < total_shots; s++) {
+	    let fired_from = this.returnSectorAndPlanets(shot_sectors[s]);
+	    let place = (fired_from && fired_from.s && fired_from.s.name) ? fired_from.s.name : shot_sectors[s];
+	    let from_where = (shot_sectors[s] == sector) ? ("in " + place) : ("from adjacent " + place + " (PDS II)");
+	    let unit_name = (units_firing[s] && units_firing[s].name) ? units_firing[s].name : "PDS";
+	    let outcome = (hits_or_misses[s] == 1) ? "hit" : "miss";
+	    let roll_word = (reroll[s] == 1) ? "rerolls" : "rolls";
+	    this.updateLog(unit_name + " " + from_where + " " + roll_word + " " + modified_roll[s] + " against " + hits_on[s] + " — " + outcome);
+	  }
+
+	  this.game.state.pds_fire_report = {
+	    shooter : player,
+	    shots : total_shots,
+	    adjacent : adjacent_shots,
+	    hits : total_hits
+	  };
 
 	  if (total_hits == 1) {
 	    this.updateLog(this.returnFactionNickname(attacker) + " takes " + total_hits + " hit");

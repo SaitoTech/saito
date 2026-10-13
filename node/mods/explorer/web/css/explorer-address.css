@@ -26,7 +26,7 @@
 .explorer-address-key-raw {
   margin: 0;
   font-size: var(--explorer-text-sm);
-  color: var(--explorer-foreground);
+  color: var(--saito-foreground);
   word-break: break-all;
   line-height: var(--explorer-leading-snug);
 }
@@ -53,7 +53,7 @@
   margin: 0 0 0.2rem;
   font-size: var(--explorer-text-xl);
   font-weight: var(--explorer-font-bold);
-  color: var(--explorer-foreground);
+  color: var(--saito-foreground);
   font-variant-numeric: tabular-nums;
   line-height: var(--explorer-leading-tight);
 }
@@ -61,13 +61,13 @@
 .explorer-address-metric p {
   margin: 0;
   font-size: var(--explorer-text-sm);
-  color: var(--explorer-muted-foreground);
+  color: var(--saito-muted-foreground);
 }
 
 .explorer-address-status {
   margin: 0 0 var(--explorer-space-3);
   font-size: var(--explorer-text-sm);
-  color: var(--explorer-muted-foreground);
+  color: var(--saito-muted-foreground);
   line-height: var(--explorer-leading-relaxed);
 }
 
@@ -78,11 +78,11 @@
 }
 
 .explorer-address-delta-positive {
-  color: var(--explorer-positive, var(--explorer-foreground));
+  color: var(--explorer-positive, var(--saito-foreground));
 }
 
 .explorer-address-delta-negative {
-  color: var(--explorer-negative, var(--explorer-destructive));
+  color: var(--explorer-negative, var(--saito-destructive));
 }
 
 .explorer-address-balance {
@@ -145,9 +145,9 @@
   min-height: 6.5rem;
   margin: 0 0 var(--explorer-space-5);
   padding: var(--explorer-space-5) var(--explorer-space-4);
-  border: 1px solid var(--explorer-border);
-  border-radius: var(--explorer-radius);
-  background-color: var(--explorer-muted);
+  border: 1px solid var(--saito-border);
+  border-radius: var(--saito-radius);
+  background-color: var(--saito-muted);
 }
 
 .explorer-utxo-status-value {
@@ -161,29 +161,29 @@
 
 .explorer-utxo-status-panel.explorer-utxo-status-spendable {
   color: var(--explorer-positive);
-  background-color: color-mix(in oklch, var(--explorer-positive) 14%, var(--explorer-card));
-  border-color: color-mix(in oklch, var(--explorer-positive) 40%, var(--explorer-border));
+  background-color: color-mix(in oklch, var(--explorer-positive) 14%, var(--saito-card));
+  border-color: color-mix(in oklch, var(--explorer-positive) 40%, var(--saito-border));
 }
 
 .explorer-utxo-status-panel.explorer-utxo-status-spent {
-  color: var(--explorer-negative, var(--explorer-destructive));
+  color: var(--explorer-negative, var(--saito-destructive));
   background-color: color-mix(
     in oklch,
-    var(--explorer-negative, var(--explorer-destructive)) 14%,
-    var(--explorer-card)
+    var(--explorer-negative, var(--saito-destructive)) 14%,
+    var(--saito-card)
   );
   border-color: color-mix(
     in oklch,
-    var(--explorer-negative, var(--explorer-destructive)) 40%,
-    var(--explorer-border)
+    var(--explorer-negative, var(--saito-destructive)) 40%,
+    var(--saito-border)
   );
 }
 
 .explorer-utxo-status-panel.explorer-utxo-status-not-found,
 .explorer-utxo-status-panel.explorer-utxo-status-zero-fee {
-  color: var(--explorer-muted-foreground);
-  background-color: var(--explorer-muted);
-  border-color: var(--explorer-border);
+  color: var(--saito-muted-foreground);
+  background-color: var(--saito-muted);
+  border-color: var(--saito-border);
 }
 
 @media (min-width: 48rem) {

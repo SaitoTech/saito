@@ -155,7 +155,7 @@ class Transcript extends ModTemplate {
         } catch (error) {
           console.error('Transcript:', error);
           siteMessage(
-            'Transcript could not start. Check that the transcript assets are installed.',
+            'Transcript could not start. Check that the server has all transcript files.',
             5000
           );
         }
