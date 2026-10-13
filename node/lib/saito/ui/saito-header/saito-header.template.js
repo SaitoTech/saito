@@ -47,25 +47,25 @@ let SaitoHeaderTemplate = (app, mod, headerClass) => {
                    <div class="wallet-btn-container">
                        <div class="saito-large-square-button" id="wallet-btn-withdraw">
                            <div class="saito-icon-button">
-                               <span class="wallet-action-icon wallet-send-icon" aria-hidden="true"></span>
+                               <i class="fa-solid fa-arrow-up" aria-hidden="true"></i>
                            </div>
                            <span>Send</span>
                        </div>
                        <div class="saito-large-square-button" id="wallet-btn-switch">
                            <div class="saito-icon-button">
-                               <span class="wallet-action-icon wallet-tokens-icon" aria-hidden="true"></span>
+                               <i class="fa-solid fa-wallet" aria-hidden="true"></i>
                            </div>
                            <span>Tokens</span>
                        </div>
                        <div class="saito-large-square-button" id="wallet-btn-nft">
                            <div class="saito-icon-button">
-                               <span class="wallet-nft-icon" aria-hidden="true"></span>
+                               <i class="fa-solid fa-shapes" aria-hidden="true"></i>
                            </div>
                            <span>NFTs</span>
                        </div>
                        <div class="saito-large-square-button" id="wallet-btn-settings">
                            <div class="saito-icon-button">
-                               <span class="wallet-action-icon wallet-settings-icon" aria-hidden="true"></span>
+                               <i class="fa-solid fa-gear" aria-hidden="true"></i>
                            </div>
                            <span>Admin</span>
                        </div>

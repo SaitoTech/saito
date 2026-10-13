@@ -22,13 +22,13 @@ module.exports = (menu) => {
       <ul class="list saito-menu-select-subtle">
         <li class="item active" data-nav="home">
           <span class="icon">
-            <span class="saito-menu-icon saito-menu-icon-home" aria-hidden="true"></span>
+            <i class="fa-solid fa-house"></i>
           </span>
           <span class="label">Home</span>
         </li>
         <li class="item" data-nav="notifications">
           <span class="icon">
-            <span class="saito-menu-icon saito-menu-icon-notifications" aria-hidden="true"></span>
+            <i class="fa-solid fa-bell"></i>
             ${badge}
           </span>
           <span class="label">Notifications</span>
@@ -36,7 +36,7 @@ module.exports = (menu) => {
         ${chatItem}
         <li class="item" data-nav="settings">
           <span class="icon">
-            <span class="saito-menu-icon saito-menu-icon-settings" aria-hidden="true"></span>
+            <i class="fa-solid fa-gear"></i>
           </span>
           <span class="label">Settings</span>
         </li>

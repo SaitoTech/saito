@@ -25,20 +25,6 @@ class SettingsAppspace {
     this.clearSettingsWarningBar();
     this.runBrowserNodeBuildCheck();
 
-    /**
-     *  No modules are implementing this, but it is an idea to let modules render a component
-     *  into the Settings appspace overlay
-     */
-    let settings_appspace = document.querySelector('.settings-appspace');
-    if (settings_appspace) {
-      for (let i = 0; i < this.app.modules.mods.length; i++) {
-        if (this.app.modules.mods[i].respondTo('settings-appspace') != null) {
-          let mod_settings_obj = this.app.modules.mods[i].respondTo('settings-appspace');
-          mod_settings_obj.render(this.app, this.mod);
-        }
-      }
-    }
-
     this.renderDebugTree();
     this.renderStorageInfo();
     this.renderCryptoGameSettings();
@@ -413,16 +399,6 @@ class SettingsAppspace {
           1000
         );
       };
-
-      let settings_appspace = document.querySelector('.settings-appspace');
-      if (settings_appspace) {
-        for (let i = 0; i < app.modules.mods.length; i++) {
-          if (app.modules.mods[i].respondTo('settings-appspace') != null) {
-            let mod_settings_obj = app.modules.mods[i].respondTo('settings-appspace');
-            mod_settings_obj.attachEvents(app, mod);
-          }
-        }
-      }
 
       if (document.getElementById('register-identifier-btn')) {
         document.getElementById('register-identifier-btn').onclick = function (e) {

@@ -334,53 +334,6 @@
   display: flex;
 }
 
-#saito-header .wallet-nft-icon,
-#saito-header .wallet-action-icon {
-  width: 2.405rem;
-  height: 2.405rem;
-  background: currentColor;
-}
-
-#saito-header .wallet-nft-icon {
-  -webkit-mask: url('/saito/icons/saito-nftstudio-icon-outline.svg') center / contain no-repeat;
-  mask: url('/saito/icons/saito-nftstudio-icon-outline.svg') center / contain no-repeat;
-}
-
-#saito-header .wallet-action-icon {
-  -webkit-mask: center / contain no-repeat;
-  mask: center / contain no-repeat;
-}
-
-#saito-header .wallet-send-icon {
-  -webkit-mask-image: url('/saito/icons/saito-send-icon-outline.svg');
-  mask-image: url('/saito/icons/saito-send-icon-outline.svg');
-}
-
-#saito-header .wallet-tokens-icon {
-  -webkit-mask-image: url('/saito/icons/saito-tokens-icon-outline.svg');
-  mask-image: url('/saito/icons/saito-tokens-icon-outline.svg');
-}
-
-#saito-header .wallet-settings-icon {
-  -webkit-mask-image: url('/saito/icons/saito-settings-icon-outline.svg');
-  mask-image: url('/saito/icons/saito-settings-icon-outline.svg');
-}
-
-#saito-header .saito-large-square-button:hover .wallet-send-icon {
-  -webkit-mask-image: url('/saito/icons/saito-send-icon-solid.svg');
-  mask-image: url('/saito/icons/saito-send-icon-solid.svg');
-}
-
-#saito-header .saito-large-square-button:hover .wallet-tokens-icon {
-  -webkit-mask-image: url('/saito/icons/saito-tokens-icon-solid.svg');
-  mask-image: url('/saito/icons/saito-tokens-icon-solid.svg');
-}
-
-#saito-header .saito-large-square-button:hover .wallet-settings-icon {
-  -webkit-mask-image: url('/saito/icons/saito-settings-icon-solid.svg');
-  mask-image: url('/saito/icons/saito-settings-icon-solid.svg');
-}
-
 #saito-header .wallet-controls-separator {
   width: 95%;
   margin: 0 auto;
@@ -853,12 +806,6 @@
     font-size: 2.9rem;
   }
 
-  html:not(.game) #saito-header .wallet-nft-icon,
-  html:not(.game) #saito-header .wallet-action-icon {
-    width: 2.015rem;
-    height: 2.015rem;
-  }
-
   html:not(.game) #saito-header .wallet-identicon {
     width: 2.65rem;
     height: 2.65rem;
@@ -979,12 +926,6 @@ html.game #saito-header .balance-amount-segments--subunit .balance-amount-whole,
 html.game #saito-header .balance-amount-segments--subunit .balance-amount-separator,
 html.game #saito-header .balance-amount-segments--subunit .balance-amount-decimal {
   font-size: 2.9rem;
-}
-
-html.game #saito-header .wallet-nft-icon,
-html.game #saito-header .wallet-action-icon {
-  width: 2.015rem;
-  height: 2.015rem;
 }
 
 html.game #saito-header .wallet-identicon {

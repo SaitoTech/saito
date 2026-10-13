@@ -2884,6 +2884,12 @@ impl Blockchain {
             timestamp: self.last_timestamp,
             slips: vec![],
         };
+        let floor = latest_block_id.saturating_sub(genesis_period);
+
+        // Local to this call. Keyed by (block_id, tx_ordinal, slip_index).
+        let mut bound_by_position: AHashMap<(BlockId, u64, u8), Slip> = AHashMap::new();
+        let mut matched: Vec<Slip> = Vec::new();
+
         // TODO : calling this will be a huge performance hit for the node. so need to refactor the design.
         self.utxoset
             .iter()
@@ -2892,16 +2898,22 @@ impl Blockchain {
                 let slip = Slip::parse_slip_from_utxokey(key).unwrap();
 
                 //
-                // Skip any Bound‐type slips
+                // Check if UTXO is valid (not from an off-chain block)
                 //
-                if slip.slip_type == SlipType::Bound {
+                if slip.block_id < floor {
                     return;
                 }
 
                 //
-                // Check if UTXO is valid (not from an off-chain block)
+                // Spendable Bound slips are indexed for neighbor lookup. They are not
+                // returned on their own; only as the slips immediately before and after
+                // an owned Normal or ATR slip.
                 //
-                if slip.block_id < latest_block_id.saturating_sub(genesis_period) {
+                if slip.slip_type == SlipType::Bound {
+                    if !keys.is_empty() {
+                        bound_by_position
+                            .insert((slip.block_id, slip.tx_ordinal, slip.slip_index), slip);
+                    }
                     return;
                 }
 
@@ -2909,10 +2921,37 @@ impl Blockchain {
                 // if no keys provided we get the full picture
                 //
                 if keys.is_empty() || keys.contains(&slip.public_key) {
-                    trace!("adding slip : {} to balance snapshot", slip);
-                    snapshot.slips.push(slip);
+                    matched.push(slip);
                 }
             });
+
+        for slip in matched {
+            let block_id = slip.block_id;
+            let tx_ordinal = slip.tx_ordinal;
+            let slip_index = slip.slip_index;
+            let slip_type = slip.slip_type;
+
+            trace!("adding slip : {} to balance snapshot", slip);
+            snapshot.slips.push(slip);
+
+            // Empty keys is the full supply snapshot. Bound amounts are NFT quantities.
+            if keys.is_empty() {
+                continue;
+            }
+            if slip_type != SlipType::Normal && slip_type != SlipType::ATR {
+                continue;
+            }
+            if slip_index == 0 {
+                continue;
+            }
+
+            let before = bound_by_position.get(&(block_id, tx_ordinal, slip_index - 1));
+            let after = bound_by_position.get(&(block_id, tx_ordinal, slip_index + 1));
+            if let (Some(before), Some(after)) = (before, after) {
+                snapshot.slips.push(before.clone());
+                snapshot.slips.push(after.clone());
+            }
+        }
 
         snapshot
     }

@@ -89,11 +89,6 @@ html:has(body.redsquare-body) {
     font-size: 2.9rem;
   }
 
-  html:has(body.redsquare-body) #saito-header .wallet-nft-icon {
-    width: 1.55rem;
-    height: 1.55rem;
-  }
-
   html:has(body.redsquare-body) #saito-header .wallet-identicon {
     width: 2.65rem;
     height: 2.65rem;
