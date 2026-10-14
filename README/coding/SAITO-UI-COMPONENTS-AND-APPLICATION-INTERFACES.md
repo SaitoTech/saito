@@ -1754,7 +1754,10 @@ appear if sync is already complete or the active page inhibits it. The
 wallet fast-forward prompt still opens at full size when recovery is required.
 
 Pill layout lives in `node/web/saito/css-imports/saito-sync.css`. It shares the
-overlay surface and border, with a 3rem animation, a 2rem spinning logo, and 1rem padding. The
+overlay surface and border, with a 3rem animation, a 2rem spinning logo, and 1rem padding.
+The minimized rings rotate twice as fast and the logo turns once every 18 seconds
+to keep motion visible at this size. Both retain their existing rotation directions
+and respect the reduced-motion preference. The
 `--saito-sync-pill-top`, `--saito-sync-pill-right`, `--saito-sync-pill-bottom`, and
 `--saito-sync-pill-left` properties control placement; the mobile media query
 provides independent offsets and accounts for safe areas. On mobile, holding and
