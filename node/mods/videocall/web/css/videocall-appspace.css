@@ -431,14 +431,18 @@ input:checked + .slider:before {
 /* Moved from saito-components.css */
 .stun .online-status-indicator:after {
   display: block;
-  top: 3.9rem;
-  left: 3.75rem;
   border: 2px solid var(--saito-background);
 }
+/* Centered over the dot; z-index lifts it above the later-painted :after. */
 .stun .online-status-indicator i {
   display: block;
-  top: 2.9rem;
-  left: 2.75rem;
+  z-index: 1;
+  right: -0.75rem;
+  bottom: -0.75rem;
+  width: 1.5rem;
+  height: 1.5rem;
+  line-height: 1.5rem;
+  text-align: center;
   font-size: 8px;
 }
 
