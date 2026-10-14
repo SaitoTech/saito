@@ -27,7 +27,7 @@ Model files are defined in `web/model-catalog.mjs`. The obsolete node model down
 
 ## Capture, save, and recovery
 
-- Select **Transcript** to capture the local microphone and each remote participant separately. Other participants see **Transcribing** next to your name at the bottom of your video window, including when they join during capture. The notice disappears when capture stops. Names use cached identifiers and Registry lookup when available; the file includes timestamps and speaker names. Muted microphones and presentation streams are excluded.
+- Select **Transcript** to capture the local microphone and each remote participant separately, including a presenter's microphone when joining a call during screen sharing. Other participants see **Transcribing** next to your name at the bottom of your video window, including when they join during capture. The notice disappears when capture stops. Names use cached identifiers and Registry lookup when available; the file includes timestamps and speaker names. Muted microphones and presentation streams are excluded.
 - Select the toggle again or hang up to stop capture, flush the final audio frames, finish recognition, and open **Save call transcript**. The active button turns red and pulses like Record. **Preparing Transcription** shows processing status and a **Finish later** button: this pauses recognition after storing the remaining captured audio. There is no twenty-second backlog cutoff. Identifier lookup runs during the call and never delays saving.
 - Capture checkpoints raw 16 kHz mono audio into IndexedDB about once per second per participant. Recognition reads stored audio in batches, normally after four seconds, and combines up to twelve seconds from one stream when behind. The silence gate runs after storage. Slow recognition grows the local backlog instead of dropping audio after thirty seconds; the status reports pending audio duration.
 - Text and deletion of its source audio commit in a single IndexedDB transaction. A worker failure or page crash leaves unfinished audio available for retry, including the batch that was being recognized. Empty recognition results also consume their audio. Recovery activity is updated during capture; completed text survives independently of the audio queue.
@@ -39,6 +39,8 @@ Model files are defined in `web/model-catalog.mjs`. The obsolete node model down
 Pending audio is limited to **256 MiB across all sessions** by default (`bufferLimit` on `TranscriptEngine`). Raw Float32 audio costs 3.84 MB per minute summed across participant streams, including silence until processed; completed batches free space immediately. Uncommitted writes are separately limited to 8 MiB. Storage exhaustion or failed writes stop capture visibly and retain previously committed audio. The engine requests persistent browser storage where available; clearing site data, browser eviction, private browsing, and sudden power loss can still remove data. A crash can lose approximately the last second per participant plus pending writes. No unload handler is required to recover already committed blocks. HTTPS (or localhost), IndexedDB, and Web Locks are required.
 
 Storage failure is reported visibly; captured text remains in memory for saving. Each participant controls capture on their own device. Recognition speed and accuracy depend on the device, microphone, noise, and overlapping speech. Capture starts once browser storage and the audio worklet are ready, while the model initializes. Speech from before capture started cannot be recovered.
+
+Remote speech is gated from the captured audio samples. A remote WebRTC track's `muted` flag can remain true after negotiation even when Web Audio receives speech; treating that flag as silence can otherwise leave one participant's transcript with only their own voice. Local microphone mute checks remain in place.
 
 ## Checks
 
@@ -63,7 +65,7 @@ TRANSCRIPT_PLAYWRIGHT=/path/to/playwright node tests/mods/transcript/buffer-brow
 
 `TRANSCRIPT_CHROMIUM` can select an existing Chromium executable.
 
-The WebRTC browser test sends real remote audio through Talk's stream events and verifies capture of both speakers, including peers joining after capture starts. It omits the call video player to check that remote capture starts independently; the engine uses a muted media element to activate Chromium's remote audio without duplicate sound. Recognition is stubbed after speech gating.
+The WebRTC browser test sends real remote audio through Talk's stream events and verifies capture of both speakers, including peers joining after capture starts, stale remote mute flags, and microphone tracks arriving while a peer is presenting. It checks that shared presentation audio is excluded without excluding the presenter's microphone. It omits the call video player to check that remote capture starts independently; the engine uses a muted media element to activate Chromium's remote audio without duplicate sound. Recognition is stubbed after speech gating.
 
 ```sh
 TRANSCRIPT_PLAYWRIGHT=/path/to/playwright node tests/mods/transcript/webrtc-browser-smoke.cjs
