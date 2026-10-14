@@ -411,6 +411,14 @@ class Stun extends ModTemplate {
         await peerConnection.setRemoteDescription(description);
         peerConnection.answerPending = false;
 
+        // Relay delivery can put ICE candidates ahead of their SDP. WebRTC
+        // rejects them until a remote description exists, so apply them now.
+        const candidates = peerConnection.pendingCandidates || [];
+        delete peerConnection.pendingCandidates;
+        for (const candidate of candidates) {
+          await this.addIceCandidate(sender, peerConnection, candidate);
+        }
+
         if (description.type === 'offer') {
           await peerConnection.setLocalDescription();
           this.sendPeerDescriptionTransaction(sender, peerConnection.localDescription);
@@ -434,18 +442,27 @@ class Stun extends ModTemplate {
     }
 
     if (request === 'peer-candidate') {
-      try {
-        await peerConnection.addIceCandidate(data.iceCandidate);
-      } catch (err) {
-        if (!peerConnection?.ignoreOffer) {
-          console.error('STUN: Error adding remote candidate:', err, data.iceCandidate);
-          console.warn(sender, this.publicKey);
-        }
+      if (!peerConnection.remoteDescription) {
+        peerConnection.pendingCandidates ??= [];
+        peerConnection.pendingCandidates.push(data.iceCandidate);
+        return;
       }
+      await this.addIceCandidate(sender, peerConnection, data.iceCandidate);
       return;
     }
 
     console.warn('Unknown Stun Peer Transaction!', data);
+  }
+
+  async addIceCandidate(peerId, peerConnection, candidate) {
+    try {
+      await peerConnection.addIceCandidate(candidate);
+    } catch (err) {
+      if (!peerConnection.ignoreOffer) {
+        console.error('STUN: Error adding remote candidate:', err, candidate);
+        console.warn(peerId, this.publicKey);
+      }
+    }
   }
 
   //
@@ -565,9 +582,10 @@ class Stun extends ModTemplate {
         return;
       }
       if (pc.connectionState == 'new' || pc.connectionState == 'connecting') {
-        console.warn(
-          "STUN/TALK: Repeated attempts to create a peer connection... don't do anything else"
-        );
+        // Reuse negotiation already in progress, but allow a new call to attach
+        // media and notify its peer even if this began as a data-only connection.
+        this.app.connection.emit('stun-new-peer-connection', peerId, pc);
+        if (callback) callback(peerId);
         return;
       }
 
