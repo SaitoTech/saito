@@ -2568,13 +2568,19 @@ impl Wallet {
             ticker,
         };
 
+        // The three UTXO keys already contain block_id, tx_ordinal, and slip_index.
+        // Those coordinates identify the tuple, so the signature is not part of the
+        // match. A balance-snapshot insert stores a zero signature; a later chain
+        // insert of the same slips replaces that zero with the real signature.
         if let Some(existing) = self.nfts.iter_mut().find(|nft| {
             nft.slip1 == new_nft.slip1
                 && nft.slip2 == new_nft.slip2
                 && nft.slip3 == new_nft.slip3
                 && nft.id == new_nft.id
-                && nft.tx_sig == new_nft.tx_sig
         }) {
+            if existing.tx_sig == [0; 64] && new_nft.tx_sig != [0; 64] {
+                existing.tx_sig = new_nft.tx_sig;
+            }
             if existing.ticker.is_empty() && !new_nft.ticker.is_empty() {
                 existing.ticker = new_nft.ticker;
             }
