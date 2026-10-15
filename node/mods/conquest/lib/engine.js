@@ -60,25 +60,29 @@
   }
   function log(s,message) { s.log.push(message); if(s.log.length>60) s.log.shift(); }
   function campaignNumber(s) { return s.round||s.turn||1; }
-  function recordBattleStatistics(s,battle) {
+  function recordStatistics(s,id,values,dice=[]) {
     // Old saved games can start collecting here without inventing past results.
     if(!s.statistics)s.statistics={sinceCampaign:campaignNumber(s),partial:true,totals:{},campaigns:{}};
     const stats=s.statistics,campaign=campaignNumber(s);
+    if(stats.version!==2) { stats.version=2; stats.extendedPartial=true; }
     const current=stats.campaigns[campaign]||(stats.campaigns[campaign]={});
+    for(const group of [stats.totals,current]) {
+      const playerStats=group[id]||(group[id]={dice:[0,0,0,0,0,0],lost:0,defeated:0});
+      for(const die of dice)playerStats.dice[die-1]++;
+      for(const [key,value] of Object.entries(values))playerStats[key]=(playerStats[key]||0)+value;
+    }
+  }
+  function recordBattleStatistics(s,battle) {
     for(const [id,dice,lost,defeated] of [
       [battle.before.attackerOwner,battle.attackerDice,battle.attackerLosses,battle.defenderLosses],
       [battle.before.defenderOwner,battle.defenderDice,battle.defenderLosses,battle.attackerLosses]
-    ])for(const group of [stats.totals,current]) {
-      const playerStats=group[id]||(group[id]={dice:[0,0,0,0,0,0],lost:0,defeated:0});
-      for(const die of dice)playerStats.dice[die-1]++;
-      playerStats.lost+=lost;playerStats.defeated+=defeated;
-    }
+    ])recordStatistics(s,id,{lost,defeated},dice);
   }
   function beginTurn(s,p) {
     s.currentPlayer=p; s.phase='reinforce'; s.reinforcements=reinforcementFor(s,p);
     s.capturedThisTurn=false; s.cardBonusUsed=false; s.eliminationTrade=false; s.mustTrade=player(s,p).cardCount>=5;
     s.turn++; s.lastBattle=null;
-    if(s.statistics)s.statistics.campaigns[campaignNumber(s)]||={};
+    recordStatistics(s,p,{earned:s.reinforcements});
     log(s,`Player ${p} receives ${s.reinforcements} reinforcements.`);
   }
   function nextPlayer(s) {
@@ -100,7 +104,7 @@
       phase:'claim',turn:0,reinforcements:0,setupRemaining:{},setupPlacementsLeft:1,setupNeutral:false,
       tradedSets:0,cardBonusUsed:false,mustTrade:false,eliminationTrade:false,capturedThisTurn:false,
       externalCards:!!options.externalCards,deck:[],discard:[],cardDraw:null,cardTransfer:null,occupation:null,lastBattle:null,winner:null,log:[],
-      statistics:{sinceCampaign:1,partial:false,totals:{},campaigns:{}}};
+      statistics:{version:2,sinceCampaign:1,partial:false,totals:{},campaigns:{}}};
     const initial={2:40,3:35,4:30,5:25,6:20}[n];
     for(let p=1;p<=n;p++) { s.players.push({id:p,cards:[],cardCount:0,eliminated:false}); s.setupRemaining[p]=initial; }
     ids.forEach(id=>s.territories[id]={owner:null,armies:0});
@@ -160,6 +164,8 @@
     recordBattleStatistics(s,s.battleRolls[s.battleRolls.length-1]);
     if(to.armies===0) {
       const previousOwner=to.owner; to.owner=s.currentPlayer; s.capturedThisTurn=true;
+      recordStatistics(s,s.currentPlayer,{territoriesWon:1});
+      recordStatistics(s,previousOwner,{territoriesLost:1});
       let eliminated=false;
       if(previousOwner>0&&!ownedTerritories(s,previousOwner).length) {
         eliminated=true;
@@ -212,8 +218,10 @@
       const eligible=a.cards.map(id=>cards[id].territory).filter(id=>id&&s.territories[id].owner===p.id);
       const bonus=a.territory||eligible[0];
       if(a.territory) assert(eligible.includes(a.territory),'The territory bonus must match an owned traded card');
-      if(!s.cardBonusUsed&&bonus) { s.territories[bonus].armies+=2; s.cardBonusUsed=true; }
+      let territoryBonus=0;
+      if(!s.cardBonusUsed&&bonus) { s.territories[bonus].armies+=2; s.cardBonusUsed=true; territoryBonus=2; }
       const value=tradeValue(s.tradedSets++); s.reinforcements+=value;
+      recordStatistics(s,p.id,{earned:value+territoryBonus});
       p.cards=p.cards.filter(id=>!a.cards.includes(id)); p.cardCount-=3;
       if(!s.externalCards) s.discard.push(...a.cards);
       s.mustTrade=p.cardCount>=5;
@@ -231,6 +239,9 @@
         s.lastBattle.rounds=rounds;
       }
       const attacker=s.battleRolls[0].before.attackerOwner,defender=s.battleRolls[0].before.defenderOwner;
+      // One attack order (including all Blitz rolls): capture wins, otherwise defense holds.
+      recordStatistics(s,s.lastBattle.conquered?attacker:defender,{wins:1});
+      recordStatistics(s,s.lastBattle.conquered?defender:attacker,{losses:1});
       const lost=s.battleRolls.reduce((sum,b)=>sum+b.attackerLosses,0),defeated=s.battleRolls.reduce((sum,b)=>sum+b.defenderLosses,0);
       const defendingForce=defender===0?'Neutral forces':`Player ${defender}`;
       log(s,`Campaign ${campaignNumber(s)} · Player ${attacker} attacks ${Map.territories[a.to].name} from ${Map.territories[a.from].name} (${s.battleRolls.length} roll${s.battleRolls.length===1?'':'s'}).`);

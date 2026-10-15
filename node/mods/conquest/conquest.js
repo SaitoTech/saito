@@ -70,8 +70,11 @@ class Conquest extends GameTemplate {
     if (!root) return;
     if (!this.conquestUI || this.conquestUI.element !== root) {
       this.conquestUI?.destroy();
+      // Reuse the header control; Conquest binds it to its clipped map viewport.
+      this.sizer.render();
       this.conquestUI = new window.ConquestUI(root, {
         hasGameMenu: true,
+        boardSizer: document.getElementById('game_board_sizer'),
         getState: () => this.viewState(),
         getPlayer: () => this.game.player || -1,
         getPlayerName: id => this.playerName(id),
@@ -119,7 +122,7 @@ class Conquest extends GameTemplate {
       this.game.conquestKnownHands = {};
       this.game.state = Engine.createGame({
         players: this.game.players.length,
-        setup: this.game.options?.conquest_setup === 'quick' ? 'quick' : 'classic',
+        setup: this.game.options?.conquest_setup === 'classic' ? 'classic' : 'quick',
         externalCards: true
       }, sides => this.rollDice(sides));
       this.game.conquestInitialized = true;
