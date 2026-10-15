@@ -18,14 +18,17 @@ module.exports = (app, mod) => {
               class="saito-input chat-settings-search"
               id="chat-settings-search"
               placeholder="search contacts..."
+              aria-label="Search contacts by Saito address or username"
               autocomplete="off"
               spellcheck="false"
             />
           </div>
-          <button type="button" class="saito-button-secondary compact chat-settings-add-contact" id="chat-settings-add-contact">
-            Add Contact
+          <div class="chat-settings-search-preview hide-element" aria-live="polite"></div>
+          <button type="button" class="saito-button-secondary compact chat-settings-add-contact" id="chat-settings-add-contact" disabled>
+            Search
           </button>
         </div>
+        <div class="chat-settings-search-status" role="status"></div>
 
         <div class="chat-settings-list" id="chat-settings-list" role="list"></div>
 
