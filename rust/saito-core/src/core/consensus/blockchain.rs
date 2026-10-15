@@ -997,7 +997,6 @@ impl Blockchain {
             .transactions
             .retain(|_, tx| tx.validate_against_utxoset(&self.utxoset));
         let block = self.get_block(block_hash).unwrap();
-        // we call delete_tx after removing invalidated txs, to make sure routing work is calculated after removing all the txs
         mempool.delete_transactions(&block.transactions);
     }
 
@@ -2905,8 +2904,9 @@ impl Blockchain {
                 }
 
                 //
-                // Spendable Bound slips are indexed so an address snapshot can omit the
-                // Normal or ATR slip immediately after one. They are not returned.
+                // Spendable Bound slips are indexed so an address snapshot can return
+                // the two that wrap a Normal or ATR slip. They are not returned on
+                // their own.
                 //
                 if slip.slip_type == SlipType::Bound {
                     if !keys.is_empty() {
@@ -2930,16 +2930,29 @@ impl Blockchain {
             let slip_index = slip.slip_index;
             let slip_type = slip.slip_type;
 
-            // A Normal or ATR slip with a Bound slip immediately before it is the
-            // deposit inside an NFT. Leave it out of an address snapshot so the
-            // wallet does not treat it as spendable SAITO. The unfiltered snapshot
-            // still includes it for supply accounting.
+            // A Normal or ATR slip wrapped by Bound slips on both sides is the
+            // deposit inside an NFT tuple. An address snapshot returns that deposit
+            // followed by the Bound slip before it and the Bound slip after it, which
+            // is the order update_from_balance_snapshot stores as an NFT. A Bound slip
+            // on only one side is not a tuple. The unfiltered snapshot still includes
+            // the deposit alone for supply accounting.
             if !keys.is_empty()
                 && (slip_type == SlipType::Normal || slip_type == SlipType::ATR)
-                && slip_index > 0
-                && bound_by_position.contains_key(&(block_id, tx_ordinal, slip_index - 1))
             {
-                continue;
+                if let Some((before_index, after_index)) =
+                    slip_index.checked_sub(1).zip(slip_index.checked_add(1))
+                {
+                    if let (Some(before), Some(after)) = (
+                        bound_by_position.get(&(block_id, tx_ordinal, before_index)),
+                        bound_by_position.get(&(block_id, tx_ordinal, after_index)),
+                    ) {
+                        trace!("adding nft tuple to balance snapshot");
+                        snapshot.slips.push(slip);
+                        snapshot.slips.push(before.clone());
+                        snapshot.slips.push(after.clone());
+                        continue;
+                    }
+                }
             }
 
             trace!("adding slip : {} to balance snapshot", slip);
