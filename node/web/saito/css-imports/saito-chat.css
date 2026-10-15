@@ -1145,7 +1145,7 @@
   line-height: 1.2;
 }
 
-/* Home: search + Add Contact as one control row (canonical Saito 3.6rem height) */
+/* Home: search / confirmed contact and its action. */
 .chat-settings-toolbar {
   display: grid;
   flex: 0 0 auto;
@@ -1178,6 +1178,29 @@
   color: var(--saito-muted-foreground);
   pointer-events: none;
   font-size: 1.4rem;
+}
+
+.chat-settings-search-preview {
+  min-width: 0;
+}
+
+.chat-settings-search-preview .saito-user {
+  grid-template-columns: min-content minmax(0, 1fr) min-content;
+}
+
+.chat-settings-search-preview .saito-userline {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.chat-settings-search-edit {
+  grid-column: 3;
+  grid-row: 1 / span 2;
+  align-self: center;
+}
+
+.chat-settings-search-status:empty {
+  display: none;
 }
 
 .chat-settings-search-wrap > .chat-settings-search,
