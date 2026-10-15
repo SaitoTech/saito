@@ -25,6 +25,25 @@ module.exports = (app, mod, nft_overlay) => {
   const textHtml = text ? `<div class="saito-nft-text">${esc(text)}</div>` : '';
   const capsHtml = capabilities ? capabilities.renderHtml() : '';
   const metaHtml = capabilities ? capabilities.footerMetaHtml(nft) : '';
+  const actionsHtml = capsHtml
+    ? `<div class="saito-nft-capability-chrome">
+          <div class="saito-nft-capabilities" role="toolbar" aria-label="NFT actions">
+            <div class="saito-nft-recess" aria-hidden="true">
+              <svg class="saito-nft-recess-shoulder" viewBox="0 0 12 75" preserveAspectRatio="none" aria-hidden="true">
+                <path class="saito-nft-recess-fill" d="M0,0.75C2.2,0.75 8,74.25 12,74.25L12,0.75Z"></path>
+                <path class="saito-nft-recess-line" d="M0,0.75C2.2,0.75 8,74.25 12,74.25"></path>
+              </svg>
+              <div class="saito-nft-recess-span"></div>
+              <svg class="saito-nft-recess-shoulder is-right" viewBox="0 0 12 75" preserveAspectRatio="none" aria-hidden="true">
+                <path class="saito-nft-recess-fill" d="M0,0.75C2.2,0.75 8,74.25 12,74.25L12,0.75Z"></path>
+                <path class="saito-nft-recess-line" d="M0,0.75C2.2,0.75 8,74.25 12,74.25"></path>
+              </svg>
+            </div>
+            ${capsHtml}
+          </div>
+          <div class="saito-nft-capability-desc is-empty" aria-live="polite"></div>
+        </div>`
+    : '';
 
   return `
     <div class="saito-nft-panel saito-nft-panel-view active">
@@ -32,16 +51,15 @@ module.exports = (app, mod, nft_overlay) => {
         <div class="saito-nft-image" style="background-image:url('${esc(imageUrl)}')">
           ${textHtml}
           ${nft.expires_at != null && nft.expires_at !== '' ? `<div class="saito-nft-expires-clock">${nft.remainingExpiresLabel()}</div>` : ''}
-          <div class="saito-nft-capability-chrome">
-            <div class="saito-nft-capabilities" role="toolbar" aria-label="NFT capabilities">
-              ${capsHtml}
-            </div>
-            <div class="saito-nft-capability-desc is-empty" aria-live="polite"></div>
-          </div>
         </div>
+        <div class="saito-nft-boundary" aria-hidden="true"></div>
+        ${actionsHtml}
       </div>
       <footer class="saito-nft-panel-footer saito-nft-panel-footer-view">
         <div class="saito-nft-footer-meta">${metaHtml}</div>
+        <button type="button" class="saito-nft-footer-details" aria-label="Details">
+          <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
+        </button>
       </footer>
     </div>
   `;
