@@ -90,6 +90,32 @@
   cursor: default;
 }
 
+.saito-user-menu .saito-user-menu-copy {
+  display: flex;
+  align-items: center;
+  gap: var(--saito-space-sm, 0.5rem);
+  min-width: 0;
+  text-align: left;
+}
+
+.saito-user-menu .saito-user-menu-copy span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.saito-user-menu .saito-user-menu-copy i {
+  flex-shrink: 0;
+}
+
+.saito-user-menu .saito-user-menu-copy:hover {
+  color: var(--saito-primary);
+}
+
+.saito-user-menu .saito-user-menu-copy:focus-visible {
+  outline: 2px solid var(--saito-primary);
+  outline-offset: -2px;
+}
+
 /* Menu options — layout + touch density; type from design tokens */
 .saito-modal-menu-option {
   display: grid;

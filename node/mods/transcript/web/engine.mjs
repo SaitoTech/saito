@@ -155,7 +155,10 @@ export class TranscriptEngine {
         return;
       }
       if (this.closed || entry.finished) return;
-      const audible = tracks.some((track) => track.enabled && !track.muted);
+      // A remote WebRTC track can still report muted after negotiation while
+      // the worklet receives real audio. Gate remote speech from its samples;
+      // checking the transport flag here would replace that speech with zeros.
+      const audible = peer !== 'local' || tracks.some((track) => track.enabled && !track.muted);
       // Delivery can bunch up under load. Sample order, not message arrival time,
       // must define chunk order (especially for the final partial frame).
       entry.next_at ??= Math.max(0, Date.now() - this.startedAt - data.length / 16);

@@ -11105,6 +11105,7 @@ console.log("qe: " + qe);
             imperium_self.addMove("NOTIFY\tdealing two action cards to "+imperium_self.returnFactionNickname(imperium_self.game.player));
 
 	    // and change speaker
+	    let factions = imperium_self.returnFactions();
 	    let html = '<div class="status-message">Make which player the speaker?</div>';
 	    let menu = [];
             for (let i = 0; i < imperium_self.game.state.players_info.length; i++) {
@@ -11534,8 +11535,8 @@ console.log("qe: " + qe);
 
 	  if (imperium_self.game.state.ground_combat_sector) {
 	    if (imperium_self.game.state.ground_combat_planet_idx) {
-              let sys = imperium_self.returnSectorAndPlanets(imperium_self.game.state.space_combat_sector);
-	      for (let p = 0; i < sys.p.length; p++) {
+              let sys = imperium_self.returnSectorAndPlanets(imperium_self.game.state.ground_combat_sector);
+	      for (let p = 0; p < sys.p.length; p++) {
 	        for (let i = 0; i < sys.p[p].units[action_card_player-1].length; i++) {
                   let unit = sys.p[p].units[action_card_player-1][i];
 	          unit.temporary_combat_modifier += 1;
@@ -11595,19 +11596,19 @@ console.log("qe: " + qe);
 	playActionCard : function(imperium_self, player, action_card_player, card) {
 
 	  let z = imperium_self.returnEventObjects();
-          let sys = imperium_self.returnSectorAndPlanets(imperium_self.game.state.space_combat_sector);
+          let sector = imperium_self.game.state.space_combat_sector;
+          let sys = imperium_self.returnSectorAndPlanets(sector);
 	  for (let p = 0; p < sys.s.units.length; p++) {
 	    if (p != (action_card_player-1)) {
 
 	      for (let i = 0; i < sys.s.units[p].length; i++) {
 
-	        if (sys.s.units[p][i].strength < sys.s.units[action_card_player-1][i].max_strength) {
+	        if (sys.s.units[p][i].strength < sys.s.units[p][i].max_strength) {
 
-	          sys.s.units[p][i].strength = 0;
 	          sys.s.units[p][i].strength = 0;
 
                   for (let z_index in z) {
-                    z[z_index].unitDestroyed(imperium_self, attacker, sys.p.units[p][i]);
+                    z[z_index].unitDestroyed(imperium_self, action_card_player, sys.s.units[p][i]);
                   }
 
 	          imperium_self.eliminateDestroyedUnitsInSector((p+1), sector);
@@ -11633,19 +11634,19 @@ console.log("qe: " + qe);
 	playActionCard : function(imperium_self, player, action_card_player, card) {
 
 	  let z = imperium_self.returnEventObjects();
-          let sys = imperium_self.returnSectorAndPlanets(imperium_self.game.state.space_combat_sector);
+          let sector = imperium_self.game.state.space_combat_sector;
+          let sys = imperium_self.returnSectorAndPlanets(sector);
 	  for (let p = 0; p < sys.s.units.length; p++) {
 	    if (p != (action_card_player-1)) {
 
 	      for (let i = 0; i < sys.s.units[p].length; i++) {
 
-	        if (sys.s.units[p][i].strength < sys.s.units[action_card_player-1][i].max_strength) {
+	        if (sys.s.units[p][i].strength < sys.s.units[p][i].max_strength) {
 
-	          sys.s.units[p][i].strength = 0;
 	          sys.s.units[p][i].strength = 0;
 
                   for (let z_index in z) {
-                    z[z_index].unitDestroyed(imperium_self, attacker, sys.p.units[p][i]);
+                    z[z_index].unitDestroyed(imperium_self, action_card_player, sys.s.units[p][i]);
                   }
 
 	          imperium_self.eliminateDestroyedUnitsInSector((p+1), sector);
@@ -11671,19 +11672,19 @@ console.log("qe: " + qe);
 	playActionCard : function(imperium_self, player, action_card_player, card) {
 
 	  let z = imperium_self.returnEventObjects();
-          let sys = imperium_self.returnSectorAndPlanets(imperium_self.game.state.space_combat_sector);
+          let sector = imperium_self.game.state.space_combat_sector;
+          let sys = imperium_self.returnSectorAndPlanets(sector);
 	  for (let p = 0; p < sys.s.units.length; p++) {
 	    if (p != (action_card_player-1)) {
 
 	      for (let i = 0; i < sys.s.units[p].length; i++) {
 
-	        if (sys.s.units[p][i].strength < sys.s.units[action_card_player-1][i].max_strength) {
+	        if (sys.s.units[p][i].strength < sys.s.units[p][i].max_strength) {
 
-	          sys.s.units[p][i].strength = 0;
 	          sys.s.units[p][i].strength = 0;
 
                   for (let z_index in z) {
-                    z[z_index].unitDestroyed(imperium_self, attacker, sys.p.units[p][i]);
+                    z[z_index].unitDestroyed(imperium_self, action_card_player, sys.s.units[p][i]);
                   }
 
 	          imperium_self.eliminateDestroyedUnitsInSector((p+1), sector);
@@ -11709,19 +11710,19 @@ console.log("qe: " + qe);
 	playActionCard : function(imperium_self, player, action_card_player, card) {
 
 	  let z = imperium_self.returnEventObjects();
-          let sys = imperium_self.returnSectorAndPlanets(imperium_self.game.state.space_combat_sector);
+          let sector = imperium_self.game.state.space_combat_sector;
+          let sys = imperium_self.returnSectorAndPlanets(sector);
 	  for (let p = 0; p < sys.s.units.length; p++) {
 	    if (p != (action_card_player-1)) {
 
 	      for (let i = 0; i < sys.s.units[p].length; i++) {
 
-	        if (sys.s.units[p][i].strength < sys.s.units[action_card_player-1][i].max_strength) {
+	        if (sys.s.units[p][i].strength < sys.s.units[p][i].max_strength) {
 
-	          sys.s.units[p][i].strength = 0;
 	          sys.s.units[p][i].strength = 0;
 
                   for (let z_index in z) {
-                    z[z_index].unitDestroyed(imperium_self, attacker, sys.p.units[p][i]);
+                    z[z_index].unitDestroyed(imperium_self, action_card_player, sys.s.units[p][i]);
                   }
 
 	          imperium_self.eliminateDestroyedUnitsInSector((p+1), sector);
@@ -12072,14 +12073,15 @@ console.log("qe: " + qe);
     // info
     //
     this.menu.addMenuOption("game-cards", "Info");
-    this.menu.addMenuOption("game-planets", "Planets");
-    let planets_menu = this.menu.returnMenuFromID("game-planets");
-    if (planets_menu) {
-      planets_menu.callback = function(app, game_mod) {
+    this.menu.addSubMenuOption("game-cards", {
+      text : "Planets",
+      id : "game-planets",
+      class : "game-planets",
+      callback : function(app, game_mod) {
         game_mod.menu.hideSubMenus();
         game_mod.handleInfoMenuItem();
-      };
-    }
+      }
+    });
     this.menu.addSubMenuOption("game-cards", {
       text : "Strategy",
       id : "game-strategy-cardlist",
@@ -12687,27 +12689,7 @@ console.log("ABOUT TO DINISH INITIALIZATION!");
                      	"img/ships/pds_100x200.png", 
                      	"img/ships/spacedock_100x200.png", 
                      	"img/ships/cruiser_100x200.png", 
-                     	"img/strategy/BUILD.png", 
-                     	"img/strategy/DIPLOMACY.png", 
-                     	"img/strategy/EMPIRE.png", 
-                     	"img/strategy/INITIATIVE.png",
-                     	"img/strategy/MILITARY.png", 
-                     	"img/strategy/POLITICS.png", 
-                     	"img/strategy/TECH.png", 
-                     	"img/strategy/TRADE.png", 
-			"img/influence/5.png", 
-			"img/influence/8.png", 
-			"img/influence/2.png", 
-			"img/influence/1.png", 
-			"img/influence/7.png", 
-			"img/influence/0.png", 
-			"img/influence/9.png", 
-			"img/influence/4.png",
-			"img/influence/3.png", 
-			"img/influence/6.png",
 			"img/cards/agenda_card.png",
-			"img/card_template.jpg",
-			"img/cards/secret_objective_ii_back.png",
 			"img/units/fighter.png",
 			"img/units/flagship.png",
 			"img/units/spacedock.png",
@@ -12718,25 +12700,9 @@ console.log("ABOUT TO DINISH INITIALIZATION!");
 			"img/units/pds.png",
 			"img/units/carrier.png", 
 			"img/units/destroyer.png",
-			"img/action_card_back.jpg",
 			"img/arcade/arcade-banner-background.png",
-			"img/secret_objective2.jpg",
-			"img/cards/objective_card_1_template.png",
-			"img/techicons/Cyber D.png",
-			"img/techicons/Warfare D.png",
-			"img/techicons/Warfare L.png",
-			"img/techicons/Biotic D.png",
-			"img/techicons/Propultion Dark.png",
-			"img/techicons/Biotic L.png",
-			"img/techicons/Cybernetic D.png",
-			"img/techicons/Propultion Light.png",
-			"img/techicons/Cybernetic L.png",
-			"img/cards/secret_objective_back.png",
-			"img/planet_card_template.png",
-			"img/secret_objective.jpg",
 			"img/arcade_release.jpg",
 			"img/icons/influence.png",
-			"img/spaceb2.jpg",
 			"img/frame/white_space_frame_1_5.png",
 			"img/frame/white_space_frame_4_1.png",
 			"img/frame/white_planet_center_1_9.png",
@@ -12845,64 +12811,47 @@ console.log("ABOUT TO DINISH INITIALIZATION!");
 			"img/frame/white_space_fighter.png",
 			"img/frame/white_planet_center_1_5.png",
 "img/sectors/sector13.png",
-"img/sectors/sector71.png",
 "img/sectors/sector6.png",
 "img/sectors/sector35.png",
-"img/sectors/sector66.png",
 "img/sectors/sector9.png",
 "img/sectors/sector20.png",
 "img/sectors/sector25.png",
 "img/sectors/sector39.png",
 "img/sectors/sector23.png",
 "img/sectors/sector11.png",
-"img/sectors/sector69.png",
 "img/sectors/sector4.png",
-"img/sectors/sector53.png",
 "img/sectors/sector60.png",
 "img/sectors/empty1.png",
 "img/sectors/sector28.png",
 "img/sectors/sector2.png",
 "img/sectors/old/sector9.png",
 "img/sectors/sector27.png",
-"img/sectors/sector72.png",
 "img/sectors/sector55.png",
 "img/sectors/sector49.png",
-"img/sectors/sector50.png",
-"img/sectors/sector65.png",
 "img/sectors/sector58.png",
 "img/sectors/sector29.png",
 "img/sectors/sector44.png",
 "img/sectors/sector41.png",
 "img/sectors/sector19.png",
 "img/sectors/sector1.png",
-"img/sectors/sector73.png",
 "img/sectors/sector40.png",
-"img/sectors/sector52.png",
 "img/sectors/sector42.png",
 "img/sectors/sector59.png",
-"img/sectors/sector57.png",
 "img/sectors/sector3.png",
 "img/sectors/sector18.png",
 "img/sectors/sector32.png",
 "img/sectors/sector22.png",
-"img/sectors/sector63.png",
 "img/sectors/sector38.png",
-"img/sectors/sector70.png",
 "img/sectors/sector16.png",
 "img/sectors/sector14.png",
-"img/sectors/sector54.png",
-"img/sectors/sector62.png",
 "img/sectors/sector8.png",
 "img/sectors/sector36.png",
 "img/sectors/sector48.png",
 "img/sectors/sector17.png",
 "img/sectors/sector33.png",
 "img/sectors/sector26.png",
-"img/sectors/sector56.png",
-"img/sectors/sector61.png",
 "img/sectors/sector15.png",
 "img/sectors/empty2.png",
-"img/sectors/sector51.png",
 "img/sectors/sector12.png",
 "img/sectors/sector7.png",
 "img/sectors/sector5.png",
@@ -12911,42 +12860,21 @@ console.log("ABOUT TO DINISH INITIALIZATION!");
 "img/sectors/sector31.png",
 "img/sectors/sector24.png",
 "img/sectors/sector47.png",
-"img/sectors/sector68.png",
-"img/sectors/sector67.png",
-"img/sectors/sector64.png",
 "img/sectors/sector45.png",
 "img/sectors/sector46.png",
 "img/icons/resources.png",
 "img/factions/faction2.jpg",
 "img/factions/faction1.jpg",
 "img/factions/faction3.jpg",
-"img/spacebg.png",
-"img/resources/5.png",
-"img/resources/8.png",
-"img/resources/2.png",
-"img/resources/1.png",
-"img/resources/7.png",
-"img/resources/0.png",
-"img/resources/9.png",
-"img/resources/4.png",
-"img/resources/3.png",
-"img/resources/6.png",
-"img/planets/harkon-caledonia.png",
-"img/planets/klencory.png",
 "img/planets/startide.png",
 "img/planets/unsulla.png",
 "img/planets/gravitys_edge.png",
 "img/planets/olympia.png",
 "img/planets/otho.png",
-"img/planets/archion-rex.png",
 "img/planets/kroeber.png",
-"img/planets/cotillard.png",
 "img/planets/incarth.png",
-"img/planets/xerxes-iv.png",
-"img/planets/hearthslough.png",
 "img/planets/quartil.png",
 "img/planets/soundra_iv.png",
-"img/planets/industryl.png",
 "img/planets/vigor.png",
 "img/planets/calthrex.png",
 "img/planets/vespar.png",
@@ -12954,63 +12882,30 @@ console.log("ABOUT TO DINISH INITIALIZATION!");
 "img/planets/lazaks_curse.png",
 "img/planets/crystalis.png",
 "img/planets/singharta.png",
-"img/planets/jol.png",
 "img/planets/nova_klondike.png",
 "img/planets/quandam.png",
-"img/planets/old-moltour.png",
-"img/planets/firehole.png",
 "img/planets/contouri_i.png",
-"img/planets/contouri-ii.png",
 "img/planets/sirens_end.png",
-"img/planets/fjordra.png",
-"img/planets/lorstruck.png",
 "img/planets/shriva.png",
-"img/planets/earth.png",
-"img/planets/hoth.png",
-"img/planets/kromer.png",
-"img/planets/voluntra.png",
-"img/planets/eberbach.png",
 "img/planets/new_byzantium.png",
 "img/planets/troth.png",
-"img/planets/artizz.png",
-"img/planets/new-jylanx.png",
-"img/planets/xiao-zuor.png",
-"img/planets/nar.png",
 "img/planets/giants_drink.png",
 "img/planets/granton_mex.png",
 "img/planets/miranda.png",
 "img/planets/hopes_lure.png",
-"img/planets/outerant.png",
-"img/planets/belvedyr.png",
-"img/planets/yoderux.png",
-"img/planets/yssari-ii.png",
-"img/planets/quamdam.png",
-"img/planets/zondor.png",
-"img/planets/sigurd.png",
-"img/planets/mechanex.png",
 "img/planets/riftview.png",
-"img/planets/populax.png",
 "img/planets/grox_towers.png",
 "img/planets/brest.png",
-"img/planets/terra-core.png",
 "img/planets/quandor.png",
-"img/planets/dominic.png",
 "img/planets/londrak.png",
-"img/planets/pestulon.png",
 "img/planets/new_illia.png",
-"img/planets/leguin.png",
 "img/planets/udon_i.png",
 "img/planets/citadel.png",
 "img/planets/udon_ii.png",
-"img/planets/pertinax.png",
-"img/planets/archion-tao.png",
 "img/planets/craw_populi.png",
-"img/planets/rifview.png",
 "img/planets/broughton.png",
 "img/planets/aandor.png",
-"img/tech_tree.png",
-"img/action_card_template.png",
-"img/objective_card_2_template.png"];
+"img/tech_tree.png"];
 
     this.preloadImageArray(allImages, 0);
 
@@ -32149,10 +32044,26 @@ returnPlanetInformationHTML(planet) {
     type_html = `<div class="planet-info-type planet-info-type-${type_key}">${type_key} planet</div>`;
   }
 
+  let specialty = "";
+  if (p.bonus) {
+    let bonus_values = Array.isArray(p.bonus) ? p.bonus : String(p.bonus).split(/\s+/);
+    for (let b = 0; b < bonus_values.length; b++) {
+      let color = String(bonus_values[b]).toLowerCase();
+      if (color == "green" || color == "red" || color == "blue" || color == "yellow") {
+        specialty = color;
+        break;
+      }
+    }
+  }
+  let title_html = p.name;
+  if (specialty != "") {
+    title_html = `<span class="planet-info-name">${p.name}<img class="planet-info-tech" src="/imperium/img/techicons/${specialty}.png" alt=""></span>`;
+  }
+
   return `<div class="planet-info">
       <div class="planet-info-header">
         <div class="planet-info-identity">
-          <div class="planet-info-title">${p.name}</div>
+          <div class="planet-info-title">${title_html}</div>
           <div class="planet-info-controller">${faction_label}</div>
         </div>
         <div class="planet-info-economy">

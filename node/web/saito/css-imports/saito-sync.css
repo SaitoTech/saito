@@ -893,6 +893,15 @@
 
 .saito-sync-pill .saito-sync-band {
   --saito-sync-stroke: 1px;
+  animation-duration: calc(var(--saito-sync-duration) * 0.5), 4.8s;
+}
+
+.saito-sync-pill .saito-sync-carrier {
+  animation-duration: calc(var(--saito-sync-carrier-duration) * 0.5);
+}
+
+.saito-sync-pill .saito-sync-logo-wrap {
+  animation-duration: 18s;
 }
 
 .saito-sync-pill .saito-sync-graphic {
