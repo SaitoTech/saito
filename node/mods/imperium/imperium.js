@@ -11105,6 +11105,7 @@ console.log("qe: " + qe);
             imperium_self.addMove("NOTIFY\tdealing two action cards to "+imperium_self.returnFactionNickname(imperium_self.game.player));
 
 	    // and change speaker
+	    let factions = imperium_self.returnFactions();
 	    let html = '<div class="status-message">Make which player the speaker?</div>';
 	    let menu = [];
             for (let i = 0; i < imperium_self.game.state.players_info.length; i++) {
@@ -11534,8 +11535,8 @@ console.log("qe: " + qe);
 
 	  if (imperium_self.game.state.ground_combat_sector) {
 	    if (imperium_self.game.state.ground_combat_planet_idx) {
-              let sys = imperium_self.returnSectorAndPlanets(imperium_self.game.state.space_combat_sector);
-	      for (let p = 0; i < sys.p.length; p++) {
+              let sys = imperium_self.returnSectorAndPlanets(imperium_self.game.state.ground_combat_sector);
+	      for (let p = 0; p < sys.p.length; p++) {
 	        for (let i = 0; i < sys.p[p].units[action_card_player-1].length; i++) {
                   let unit = sys.p[p].units[action_card_player-1][i];
 	          unit.temporary_combat_modifier += 1;
@@ -11595,19 +11596,19 @@ console.log("qe: " + qe);
 	playActionCard : function(imperium_self, player, action_card_player, card) {
 
 	  let z = imperium_self.returnEventObjects();
-          let sys = imperium_self.returnSectorAndPlanets(imperium_self.game.state.space_combat_sector);
+          let sector = imperium_self.game.state.space_combat_sector;
+          let sys = imperium_self.returnSectorAndPlanets(sector);
 	  for (let p = 0; p < sys.s.units.length; p++) {
 	    if (p != (action_card_player-1)) {
 
 	      for (let i = 0; i < sys.s.units[p].length; i++) {
 
-	        if (sys.s.units[p][i].strength < sys.s.units[action_card_player-1][i].max_strength) {
+	        if (sys.s.units[p][i].strength < sys.s.units[p][i].max_strength) {
 
-	          sys.s.units[p][i].strength = 0;
 	          sys.s.units[p][i].strength = 0;
 
                   for (let z_index in z) {
-                    z[z_index].unitDestroyed(imperium_self, attacker, sys.p.units[p][i]);
+                    z[z_index].unitDestroyed(imperium_self, action_card_player, sys.s.units[p][i]);
                   }
 
 	          imperium_self.eliminateDestroyedUnitsInSector((p+1), sector);
@@ -11633,19 +11634,19 @@ console.log("qe: " + qe);
 	playActionCard : function(imperium_self, player, action_card_player, card) {
 
 	  let z = imperium_self.returnEventObjects();
-          let sys = imperium_self.returnSectorAndPlanets(imperium_self.game.state.space_combat_sector);
+          let sector = imperium_self.game.state.space_combat_sector;
+          let sys = imperium_self.returnSectorAndPlanets(sector);
 	  for (let p = 0; p < sys.s.units.length; p++) {
 	    if (p != (action_card_player-1)) {
 
 	      for (let i = 0; i < sys.s.units[p].length; i++) {
 
-	        if (sys.s.units[p][i].strength < sys.s.units[action_card_player-1][i].max_strength) {
+	        if (sys.s.units[p][i].strength < sys.s.units[p][i].max_strength) {
 
-	          sys.s.units[p][i].strength = 0;
 	          sys.s.units[p][i].strength = 0;
 
                   for (let z_index in z) {
-                    z[z_index].unitDestroyed(imperium_self, attacker, sys.p.units[p][i]);
+                    z[z_index].unitDestroyed(imperium_self, action_card_player, sys.s.units[p][i]);
                   }
 
 	          imperium_self.eliminateDestroyedUnitsInSector((p+1), sector);
@@ -11671,19 +11672,19 @@ console.log("qe: " + qe);
 	playActionCard : function(imperium_self, player, action_card_player, card) {
 
 	  let z = imperium_self.returnEventObjects();
-          let sys = imperium_self.returnSectorAndPlanets(imperium_self.game.state.space_combat_sector);
+          let sector = imperium_self.game.state.space_combat_sector;
+          let sys = imperium_self.returnSectorAndPlanets(sector);
 	  for (let p = 0; p < sys.s.units.length; p++) {
 	    if (p != (action_card_player-1)) {
 
 	      for (let i = 0; i < sys.s.units[p].length; i++) {
 
-	        if (sys.s.units[p][i].strength < sys.s.units[action_card_player-1][i].max_strength) {
+	        if (sys.s.units[p][i].strength < sys.s.units[p][i].max_strength) {
 
-	          sys.s.units[p][i].strength = 0;
 	          sys.s.units[p][i].strength = 0;
 
                   for (let z_index in z) {
-                    z[z_index].unitDestroyed(imperium_self, attacker, sys.p.units[p][i]);
+                    z[z_index].unitDestroyed(imperium_self, action_card_player, sys.s.units[p][i]);
                   }
 
 	          imperium_self.eliminateDestroyedUnitsInSector((p+1), sector);
@@ -11709,19 +11710,19 @@ console.log("qe: " + qe);
 	playActionCard : function(imperium_self, player, action_card_player, card) {
 
 	  let z = imperium_self.returnEventObjects();
-          let sys = imperium_self.returnSectorAndPlanets(imperium_self.game.state.space_combat_sector);
+          let sector = imperium_self.game.state.space_combat_sector;
+          let sys = imperium_self.returnSectorAndPlanets(sector);
 	  for (let p = 0; p < sys.s.units.length; p++) {
 	    if (p != (action_card_player-1)) {
 
 	      for (let i = 0; i < sys.s.units[p].length; i++) {
 
-	        if (sys.s.units[p][i].strength < sys.s.units[action_card_player-1][i].max_strength) {
+	        if (sys.s.units[p][i].strength < sys.s.units[p][i].max_strength) {
 
-	          sys.s.units[p][i].strength = 0;
 	          sys.s.units[p][i].strength = 0;
 
                   for (let z_index in z) {
-                    z[z_index].unitDestroyed(imperium_self, attacker, sys.p.units[p][i]);
+                    z[z_index].unitDestroyed(imperium_self, action_card_player, sys.s.units[p][i]);
                   }
 
 	          imperium_self.eliminateDestroyedUnitsInSector((p+1), sector);
