@@ -3293,9 +3293,29 @@ class CreatePost {
       const br = document.createElement('br');
       range.insertNode(br);
 
-      // Move cursor after the <br>
-      range.setStartAfter(br);
-      range.collapse(true);
+      // A <br> with nothing after it is not painted, so the first Shift+Enter
+      // at the end of typed text looks like a no-op. Anchor it. Serialization
+      // strips U+200B, so the saved break stays a single hard line break.
+      let caretNode = br.nextSibling;
+      const needsAnchor =
+        !caretNode || (caretNode.nodeType === Node.TEXT_NODE && caretNode.textContent === '');
+      if (needsAnchor) {
+        const anchor = document.createTextNode('\u200B');
+        if (caretNode && caretNode.nodeType === Node.TEXT_NODE) {
+          caretNode.parentNode.replaceChild(anchor, caretNode);
+        } else {
+          br.parentNode.insertBefore(anchor, caretNode);
+        }
+        caretNode = anchor;
+      }
+
+      if (caretNode && caretNode.nodeType === Node.TEXT_NODE) {
+        range.setStart(caretNode, 0);
+        range.collapse(true);
+      } else {
+        range.setStartAfter(br);
+        range.collapse(true);
+      }
       selection.removeAllRanges();
       selection.addRange(range);
 
