@@ -21,6 +21,15 @@
   top: 0.1rem;
   width: max-content;
 }
+/* Lives inside .saito-identicon-box; the dot is centered on the box's bottom-right corner. */
+.saito-identicon-box:has(> .online-status-indicator) {
+  position: relative;
+}
+.online-status-indicator {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
 .online-status-indicator:after {
   position: absolute;
   display: none;
@@ -28,12 +37,12 @@
   border-radius: 100%;
   width: 1.5rem;
   height: 1.5rem;
+  right: -0.75rem;
+  bottom: -0.75rem;
   background-color: var(--saito-notification-online-background);
 }
 .online .online-status-indicator:after {
   display: block;
-  top: 3.9rem;
-  left: 3.75rem;
   border: 2px solid var(--saito-background);
 }
 .online-status-indicator i {

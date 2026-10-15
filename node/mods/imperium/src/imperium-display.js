@@ -370,10 +370,26 @@ returnPlanetInformationHTML(planet) {
     type_html = `<div class="planet-info-type planet-info-type-${type_key}">${type_key} planet</div>`;
   }
 
+  let specialty = "";
+  if (p.bonus) {
+    let bonus_values = Array.isArray(p.bonus) ? p.bonus : String(p.bonus).split(/\s+/);
+    for (let b = 0; b < bonus_values.length; b++) {
+      let color = String(bonus_values[b]).toLowerCase();
+      if (color == "green" || color == "red" || color == "blue" || color == "yellow") {
+        specialty = color;
+        break;
+      }
+    }
+  }
+  let title_html = p.name;
+  if (specialty != "") {
+    title_html = `<span class="planet-info-name">${p.name}<img class="planet-info-tech" src="/imperium/img/techicons/${specialty}.png" alt=""></span>`;
+  }
+
   return `<div class="planet-info">
       <div class="planet-info-header">
         <div class="planet-info-identity">
-          <div class="planet-info-title">${p.name}</div>
+          <div class="planet-info-title">${title_html}</div>
           <div class="planet-info-controller">${faction_label}</div>
         </div>
         <div class="planet-info-economy">

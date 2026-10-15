@@ -58,6 +58,7 @@ module.exports = (app, mod, group, chat_open) => {
   <div class="${classes}" id="saito-user-${id}" data-id="${id}" data-disable="true">
     <div class="saito-identicon-box">
       <img class="saito-identicon" src="${imgsrc}" data-disable="true"/>
+      <div class="online-status-indicator"><i class="fa-solid fa-bolt-lightning"></i></div>
     </div>
     <div class="saito-address saito-address-long">
     	<div class="chat-group-name">${app.browser.escapeHTML(display_name)}</div>
@@ -74,7 +75,6 @@ module.exports = (app, mod, group, chat_open) => {
   }
 
   html += `</div>
-    <div class="online-status-indicator"><i class="fa-solid fa-bolt-lightning"></i></div>
   </div>`;
 
   return html;

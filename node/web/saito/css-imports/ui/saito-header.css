@@ -664,6 +664,12 @@
     flex: 1;
   }
 
+  /* Share button supersedes the copy icon; the address itself still copies on tap.
+     #share-address is removed by JS when navigator.share is unavailable. */
+  #saito-header .wallet-address-row:has(#share-address) .pubkey-container > i {
+    display: none;
+  }
+
   #saito-header .saito-header-hamburger-contents:not(.show-wallet) .wallet-info {
     height: auto;
     min-height: 0;
