@@ -2936,9 +2936,7 @@ impl Blockchain {
             // is the order update_from_balance_snapshot stores as an NFT. A Bound slip
             // on only one side is not a tuple. The unfiltered snapshot still includes
             // the deposit alone for supply accounting.
-            if !keys.is_empty()
-                && (slip_type == SlipType::Normal || slip_type == SlipType::ATR)
-            {
+            if !keys.is_empty() && (slip_type == SlipType::Normal || slip_type == SlipType::ATR) {
                 if let Some((before_index, after_index)) =
                     slip_index.checked_sub(1).zip(slip_index.checked_add(1))
                 {
