@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>gm badge · rim stress test</title>
+    <style>
+      body { margin: 0; background: #0a0a0a; color: #f5f5f4; font-family: ui-sans-serif, system-ui, sans-serif; }
+      .wrap { max-width: 900px; margin: 0 auto; padding: 24px 20px 80px; }
+      .meter { contain: strict; height: 44px; position: sticky; top: 0; background: #141414; border: 1px solid #262626; border-radius: 12px; padding: 12px 16px; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 13px; display: grid; gap: 4px; z-index: 2; }
+      .meter b { color: #e8c547; }
+      .controls { display: flex; gap: 8px; flex-wrap: wrap; margin: 12px 0; }
+      button { background: #262626; color: #f5f5f4; border: 1px solid #3f3f46; border-radius: 8px; padding: 6px 12px; font-size: 13px; cursor: pointer; }
+      .feed { margin-top: 12px; }
+      .user { display: flex; align-items: center; gap: 8px; padding: 9px 0; border-bottom: 1px solid #1f1f1f; font-size: 16px; }
+      .ident { width: 28px; height: 28px; border-radius: 50%; background: #292524; flex: none; }
+      .user svg { width: 1.15em; height: 1.15em; flex: none; }
+      .user .msg { color: #a8a29e; font-size: 14px; }
+      /* compositor rim: HTML overlay, transform-only animation, clipped to the hex */
+      .gm-rim-wrap { position: relative; display: inline-block; width: 1.15em; height: 1.15em; flex: none; }
+      .gm-rim-wrap svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+      .gm-rim { position: absolute; inset: 4.3%; clip-path: polygon(50% 0%, 93.3% 25%, 93.3% 75%, 50% 100%, 6.7% 75%, 6.7% 25%); overflow: hidden; pointer-events: none; }
+      .gm-rim::before { content: ''; position: absolute; inset: -40%; background: conic-gradient(from 0deg, #5a3c08, #e8c547 22%, #fff4c4 40%, #c5a028 55%, #7a5410 78%, #e8c547); animation: gm-spin 3.6s linear infinite; will-change: transform; }
+      .gm-rim.chrome::before { background: conic-gradient(from 0deg, #52525b, #fafafa 18%, #67e8f9 36%, #e879f9 52%, #fafafa 70%, #27272a); animation-duration: 4.2s; }
+      .gm-rim::after { content: ''; position: absolute; inset: 12.5%; clip-path: polygon(50% 0%, 93.3% 25%, 93.3% 75%, 50% 100%, 6.7% 75%, 6.7% 25%); background: #0a0a0a; }
+      .gm-rim.noclip, .gm-rim.noclip::after { clip-path: none; }
+      .gm-rim2 { position: absolute; inset: 4.3%; clip-path: polygon(50% 0%, 93.3% 25%, 93.3% 75%, 50% 100%, 6.7% 75%, 6.7% 25%); overflow: hidden; pointer-events: none; }
+      .gm-rim2 > i { position: absolute; inset: -40%; display: block; background: conic-gradient(from 0deg, #5a3c08, #e8c547 22%, #fff4c4 40%, #c5a028 55%, #7a5410 78%, #e8c547); animation: gm-spin 3.6s linear infinite; will-change: transform; }
+      .gm-rim2.chrome > i { background: conic-gradient(from 0deg, #52525b, #fafafa 18%, #67e8f9 36%, #e879f9 52%, #fafafa 70%, #27272a); animation-duration: 4.2s; }
+      .gm-rim2 > b { position: absolute; inset: 12.5%; clip-path: polygon(50% 0%, 93.3% 25%, 93.3% 75%, 50% 100%, 6.7% 75%, 6.7% 25%); background: #0a0a0a; }
+      .gm-rim-wrap.under svg { z-index: 0; } .gm-rim-wrap.under .gm-rim2 { z-index: 1; }
+      svg.gm-live { will-change: transform; contain: paint; }
+      .ctrl-sq { display: inline-block; width: 18px; height: 18px; background: #e8c547; will-change: transform; animation: gm-spin 3.6s linear infinite; }
+      .ctrl-sq.noanim { animation: none; will-change: auto; }
+      @keyframes gm-spin { to { transform: rotate(360deg); } }
+      @media (prefers-reduced-motion: reduce) { .gm-rim::before { animation: none; } }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <div class="meter" id="meter">measuring…</div>
+      <div class="controls">
+        <button data-n="30">30 badges</button>
+        <button data-n="120">120 badges</button>
+        <button data-n="400">400 badges</button>
+        <button data-mode="smil">SMIL (current)</button>
+        <button data-mode="paused">SMIL + pause offscreen</button>
+        <button data-mode="budget">SMIL + viewport + cap 24</button>
+        <button data-mode="budget-layer">SMIL + cap 24 + own layer for live rims</button>
+        <button data-mode="smil-layer">SMIL, every rim its own layer</button>
+        <button data-mode="budget-swap">still markup + swap in animation for 24 live</button>
+        <button data-mode="budget-swap-layer">still + swap + own layer for live (shipped)</button>
+        <button data-mode="static">static rims</button>
+        <button data-mode="shared">shared gradient (2 SMIL total)</button>
+        <button data-mode="css">CSS compositor rim</button>
+        <button data-mode="css-noclip">CSS rim, no clip (control)</button>
+        <button data-mode="ctrl">plain rotating squares (control)</button>
+        <button data-mode="css-el">CSS rim, real element</button>
+        <button data-mode="css-el-nosvg">CSS rim, real element, no SVG</button>
+        <button data-mode="css-el-under">CSS rim, real element, SVG underneath</button>
+        <button data-mode="ctrl-noanim">plain squares, no animation</button>
+      </div>
+      <div class="feed" id="feed"></div>
+    </div>
+    <script src="./badge-svg.preview.js"></script>
+    <script>
+      const R = window.GMBadgeSVG;
+      const NOMETER = /nometer/.test(location.search);
+      const issuer = 'wDwNGzgx1yn2N21gHiHs43USRiXPx9H9NAcef1UZjLRX';
+      let n = 120;
+      let mode = 'smil';
+      let io = null;
+
+      function build() {
+        const feed = document.getElementById('feed');
+        let html = '';
+        for (let i = 0; i < n; i++) {
+          const tier = i % 2 === 0 ? 5 : 6;
+          const rim = mode === 'shared' ? 'shared' : mode.startsWith('css') ? 'css' : mode.startsWith('budget-swap') ? 'still' : 'smil';
+          const svg = R.render({ tier, streak: tier === 5 ? 365 : 1000, serial: i + 1, issuer, sig: 'b1308685', size: 18, label: false, rim });
+          const rim2 = `<span class="gm-rim2 ${tier === 6 ? 'chrome' : 'gold'}"><i></i><b></b></span>`;
+          const tagged = svg.replace('<svg ', `<svg data-tier="${tier}" data-i="${i}" `);
+          const badge = mode === 'css-el'
+            ? `<span class="gm-rim-wrap">${rim2}${svg}</span>`
+            : mode === 'css-el-nosvg'
+            ? `<span class="gm-rim-wrap">${rim2}</span>`
+            : mode === 'css-el-under'
+            ? `<span class="gm-rim-wrap under">${svg}${rim2}</span>`
+            : mode.startsWith('ctrl')
+            ? `<span class="ctrl-sq${mode === 'ctrl-noanim' ? ' noanim' : ''}"></span>`
+            : mode.startsWith('budget-swap')
+            ? tagged
+            : rim === 'css'
+            ? `<span class="gm-rim-wrap"><span class="gm-rim ${tier === 6 ? 'chrome' : 'gold'}${mode === 'css-noclip' ? ' noclip' : ''}"></span>${svg}</span>`
+            : svg;
+          html += `<div class="user"><span class="ident"></span><span>Anon-${(i + 1).toString(36)}</span>${badge}<span class="msg">gm</span></div>`;
+        }
+        if (!document.querySelector('.gm-rim-defs')) document.body.insertAdjacentHTML('afterbegin', R.sharedRimDefs());
+        feed.innerHTML = html;
+        applyMode();
+      }
+
+      function applyMode() {
+        if (io) { io.disconnect(); io = null; }
+        const svgs = Array.from(document.querySelectorAll('#feed svg'));
+        if (mode === 'static') {
+          svgs.forEach((s) => { try { s.pauseAnimations(); } catch (e) {} });
+          return;
+        }
+        if (mode === 'smil' || mode === 'shared' || mode.startsWith('css') || mode.startsWith('ctrl')) {
+          svgs.forEach((s) => s.classList.remove('gm-live'));
+          svgs.forEach((s) => { try { s.unpauseAnimations(); } catch (e) {} });
+          return;
+        }
+        if (mode.startsWith('budget-swap')) {
+          const layer = mode === 'budget-swap-layer';
+          const visible = new Set(); const MAX = 24; let liveSet = new Set();
+          const swap = (svg, still) => {
+            const tier = Number(svg.getAttribute('data-tier')); const i = Number(svg.getAttribute('data-i'));
+            const html = R.render({ tier, streak: tier === 5 ? 365 : 1000, serial: i + 1, issuer, sig: 'b1308685', size: 18, label: false, rim: still ? 'still' : 'smil' });
+            const tmp = document.createElement('span'); tmp.innerHTML = html; const fresh = tmp.firstElementChild;
+            fresh.setAttribute('data-tier', tier); fresh.setAttribute('data-i', i);
+            if (layer && !still) fresh.classList.add('gm-live');
+            svg.replaceWith(fresh); return fresh;
+          };
+          const apply = () => {
+            const next = new Set(Array.from(visible).sort((a, b) => (a.compareDocumentPosition(b) & 4 ? -1 : 1)).slice(0, MAX));
+            liveSet.forEach((s) => { if (!next.has(s)) { visible.delete(s); io.unobserve(s); const f = swap(s, true); io.observe(f); } });
+            const promoted = new Set();
+            next.forEach((s) => { if (!liveSet.has(s)) { visible.delete(s); io.unobserve(s); const f = swap(s, false); visible.add(f); io.observe(f); promoted.add(f); } else promoted.add(s); });
+            liveSet = promoted;
+          };
+          io = new IntersectionObserver((entries) => { for (const e of entries) e.isIntersecting ? visible.add(e.target) : visible.delete(e.target); apply(); }, { rootMargin: '64px' });
+          svgs.forEach((s) => io.observe(s));
+          return;
+        }
+        if (mode === 'smil-layer') {
+          svgs.forEach((s) => { s.classList.add('gm-live'); try { s.unpauseAnimations(); } catch (e) {} });
+          return;
+        }
+        if (mode === 'budget' || mode === 'budget-layer') {
+          const layer = mode === 'budget-layer';
+          const visible = new Set();
+          const MAX = 24;
+          let liveSet = new Set();
+          const apply = () => {
+            const next = new Set(Array.from(visible).sort((a, b) => (a.compareDocumentPosition(b) & 4 ? -1 : 1)).slice(0, MAX));
+            liveSet.forEach((s) => { if (!next.has(s)) { if (layer) s.classList.remove('gm-live'); try { s.pauseAnimations(); } catch (e) {} } });
+            next.forEach((s) => { if (!liveSet.has(s)) { if (layer) s.classList.add('gm-live'); try { s.unpauseAnimations(); } catch (e) {} } });
+            liveSet = next;
+          };
+          svgs.forEach((s) => { try { s.pauseAnimations(); } catch (e) {} });
+          io = new IntersectionObserver((entries) => { for (const e of entries) e.isIntersecting ? visible.add(e.target) : visible.delete(e.target); apply(); }, { rootMargin: '64px' });
+          svgs.forEach((s) => io.observe(s));
+          return;
+        }
+        io = new IntersectionObserver((entries) => {
+          for (const e of entries) {
+            try { e.isIntersecting ? e.target.unpauseAnimations() : e.target.pauseAnimations(); } catch (err) {}
+          }
+        }, { rootMargin: '100px' });
+        svgs.forEach((s) => io.observe(s));
+      }
+
+      // frame-time meter: samples rAF deltas over rolling 2s windows
+      let frames = [];
+      let last = performance.now();
+      function tick(now) {
+        frames.push(now - last);
+        last = now;
+        const cutoff = now - 2000;
+        while (frames.length && frames.length > 300) frames.shift();
+        if (!NOMETER && frames.length > 10 && now % 500 < 17) {
+          const sorted = frames.slice().sort((a, b) => a - b);
+          const avg = frames.reduce((a, b) => a + b, 0) / frames.length;
+          const p95 = sorted[Math.floor(sorted.length * 0.95)];
+          const longest = sorted[sorted.length - 1];
+          document.getElementById('meter').innerHTML =
+            `badges <b>${n}</b> · mode <b>${mode}</b><br>` +
+            `avg frame <b>${avg.toFixed(1)} ms</b> (${(1000 / avg).toFixed(0)} fps) · p95 <b>${p95.toFixed(1)} ms</b> · worst <b>${longest.toFixed(1)} ms</b>`;
+          window.__gmStress = { n, mode, avg, p95, longest };
+        }
+        requestAnimationFrame(tick);
+      }
+      requestAnimationFrame(tick);
+
+      document.querySelectorAll('button[data-n]').forEach((b) => (b.onclick = () => { n = Number(b.dataset.n); frames = []; build(); }));
+      document.querySelectorAll('button[data-mode]').forEach((b) => (b.onclick = () => { mode = b.dataset.mode; frames = []; build(); }));
+      build();
+    </script>
+  </body>
+</html>

@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>gm badge · ranks</title>
+    <style>
+      body { margin: 0; background: #0a0a0a; color: #f5f5f4; font-family: ui-sans-serif, system-ui, -apple-system, sans-serif; }
+      .wrap { max-width: 1080px; margin: 0 auto; padding: 40px 20px 80px; }
+      h1 { font-weight: 560; letter-spacing: -0.03em; margin: 0 0 8px; font-size: 28px; }
+      p.sub { margin: 0 0 36px; color: #a8a29e; max-width: 52ch; line-height: 1.5; }
+      .hero { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+      .row { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 12px; }
+      .cell { background: #141414; border-radius: 16px; padding: 24px 12px 18px; text-align: center; }
+      .cell .stage { display: flex; align-items: center; justify-content: center; }
+      .cell .name { margin-top: 12px; font-weight: 600; font-size: 13px; }
+      .cell .day { margin-top: 4px; font-size: 11px; color: #78716c; }
+      .inline { margin-top: 16px; background: #141414; border-radius: 16px; padding: 18px 20px; }
+      .inline .user { display: flex; align-items: center; gap: 8px; padding: 8px 0; font-size: 16px; }
+      .inline .ident { width: 28px; height: 28px; border-radius: 50%; background: #292524; }
+      .inline svg { width: 1.15em; height: 1.15em; vertical-align: middle; }
+      .light { background: #f5f5f4; color: #0c0a09; }
+      .light .ident { background: #d6d3d1; }
+      .light .day { color: #78716c; }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <h1>Genesis through Satoshi</h1>
+      <p class="sub">Same hex and plant. Inner mark is a real cube. Golden Ticket and Satoshi get a living metal rim.</p>
+      <div class="hero">
+        <div class="cell">
+          <div class="stage" style="height: 380px" id="zoom-ticket"></div>
+          <div class="name">Legendary · Golden Ticket</div>
+          <div class="day">living gold rim · inner cube</div>
+        </div>
+        <div class="cell">
+          <div class="stage" style="height: 380px" id="zoom-satoshi"></div>
+          <div class="name">Exotic · Satoshi</div>
+          <div class="day">living chrome rim · inner cube</div>
+        </div>
+      </div>
+      <div class="row" id="row"></div>
+      <div class="inline" id="inline-dark"></div>
+      <div class="inline light" id="inline-light"></div>
+    </div>
+    <script>
+      const src = document.createElement('script');
+      src.src = './badge-svg.preview.js?v=saitocube3';
+      src.onload = () => {
+        const R = window.GMBadgeSVG;
+        const issuer = 'wDwNGzgx1yn2N21gHiHs43USRiXPx9H9NAcef1UZjLRX';
+        const sig = 'b1308685eb0ce6fe';
+        const ranks = [
+          { tier: 1, streak: 1, name: 'Common · Genesis', day: 'day 1' },
+          { tier: 2, streak: 7, name: 'Uncommon · Timestamp', day: 'day 7' },
+          { tier: 3, streak: 30, name: 'Rare · Merkle', day: 'day 30' },
+          { tier: 4, streak: 100, name: 'Epic · Routing', day: 'day 100' },
+          { tier: 5, streak: 365, name: 'Legendary · Golden Ticket', day: 'day 365' },
+          { tier: 6, streak: 1000, name: 'Exotic · Satoshi', day: 'day 1000' },
+          { tier: 3, streak: 0, cracked: true, name: 'Cracked', day: 'missed a day' },
+          { tier: 0, streak: 0, dormant: true, name: 'Dormant', day: 'gone quiet' },
+          { tier: 2, streak: 0, counterfeit: true, name: 'Counterfeit', day: 'wrong issuer' }
+        ];
+        document.getElementById('zoom-ticket').innerHTML = R.render({ tier: 5, streak: 365, serial: 1, issuer, sig, size: 360, label: false });
+        document.getElementById('zoom-satoshi').innerHTML = R.render({ tier: 6, streak: 1000, serial: 1, issuer, sig, size: 360, label: false });
+        document.getElementById('row').innerHTML = ranks.map((t) =>
+          `<div class="cell"><div class="stage" style="height:120px">${R.render({ ...t, serial: 1, issuer, sig, size: 96, label: false })}</div><div class="name">${t.name}</div><div class="day">${t.day}</div></div>`
+        ).join('');
+        const line = ranks.slice(0, 6).map((t) =>
+          `<div class="user"><span class="ident"></span><span>${t.name.split('·')[1].trim()}</span>${R.render({ ...t, serial: 1, size: 18, label: false })}<span style="opacity:.5;font-size:13px">· ${t.day}</span></div>`
+        ).join('');
+        document.getElementById('inline-dark').innerHTML = line;
+        document.getElementById('inline-light').innerHTML = line;
+      };
+      document.body.appendChild(src);
+    </script>
+  </body>
+</html>
