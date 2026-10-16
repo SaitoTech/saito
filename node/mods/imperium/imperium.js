@@ -24402,9 +24402,11 @@ playerSelectSector(mycallback, mode = 0) {
   //
   let imperium_self = this;
 
-  $('.sector').off();
-  $('.sector').on('click', function () {
-    $('.sector').off();
+  imperium_self.planet_selection_active = 1;
+  $('.sector').off('click.sectorselect');
+  $('.sector').on('click.sectorselect', function () {
+    imperium_self.planet_selection_active = 0;
+    $('.sector').off('click.sectorselect');
     let pid = $(this).attr("id");
     mycallback(pid);
   });
