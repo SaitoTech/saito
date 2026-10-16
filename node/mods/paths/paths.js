@@ -4799,9 +4799,12 @@ deck['ap65'] = {
         rp : { 'A' : 1 , 'BR' : 2 , 'FR' : 2 , 'IT' : 1 , 'RU' : 3 } ,        
         type : "normal" ,
         removeFromDeckAfterPlay : function(paths_self, faction) { return 1; } ,
-        canEvent : function(paths_self, faction) { return 0; } ,
+        canEvent : function(paths_self, faction) {
+	  if (paths_self.game.state.general_records_track.combined_war_status >= 30) { return 1; }
+	  return 0;
+	} ,
         onEvent : function(paths_self, faction) {
-	  paths_self.updateLog("Influenza Pandemic restricts playing OPS for Replacements...");
+	  paths_self.updateLog("Influenza: neither side may play Replacement Point actions for the rest of this turn");
 	  paths_self.game.state.events.influenza = 1;
 	  return 1;
 	} ,
@@ -5209,9 +5212,14 @@ deck['cp54'] = {
         rp : { 'AH' : 3 , 'BU' : 1 , 'GE' : 4 , 'TU' : 2 } ,        
         type : "normal" ,
         removeFromDeckAfterPlay : function(paths_self, faction) { return 1; } ,
-        canEvent : function(paths_self, faction) { return 0; } ,
+        canEvent : function(paths_self, faction) { return 1; } ,
         onEvent : function(paths_self, faction) {
 	  paths_self.game.state.events.hl_take_command = 1;
+	  if (paths_self.game.state.mandated_offensives && paths_self.game.state.mandated_offensives.central == "GE") {
+	    paths_self.game.state.mandated_offensives.central = "";
+	    paths_self.updateLog("H-L Take Command cancels the German Mandated Offensive");
+	    paths_self.displayMandatedOffensiveTracks();
+	  }
 	  return 1;
 	} ,
       }
@@ -5230,6 +5238,72 @@ deck['cp55'] = {
         onEvent : function(paths_self, faction) { return 1; } ,
       }
 
+deck['cp57'] = { 
+        key : 'kaisertreu',
+        img : "cards/card_cp57.png" ,
+        name : "Kaisertreu" ,
+        cc : true ,
+        ops : 3 ,
+        sr : 4 ,        
+        rp : { 'AH' : 1 , 'GE' : 2 , 'TU' : 1 } ,        
+        type : "normal" ,
+        removeFromDeckAfterPlay : function(paths_self, faction) { return 1; } ,
+        canEvent : function(paths_self, faction) {
+	  if (faction != "attacker" && faction != "defender") { return 0; }
+	  let units = (faction == "defender") ? paths_self.returnDefenderUnits() : paths_self.returnAttackerUnits();
+	  for (let i = 0; i < units.length; i++) {
+	    if (units[i].ckey == "AH") { return 1; }
+	  }
+	  return 0;
+	} ,
+        onEvent : function(paths_self, faction) {
+	  if (faction == "defender") { paths_self.game.state.combat.defender_drm++; }
+	  else { paths_self.game.state.combat.attacker_drm++; }
+	  return 1;
+	} ,
+      }
+
+deck['cp62'] = { 
+        key : 'achtung:panzer',
+        img : "cards/card_cp62.png" ,
+        name : "Achtung: Panzer" ,
+        cc : true ,
+        ops : 2 ,
+        sr : 2 ,        
+        rp : { 'GE' : 1 } ,        
+        type : "normal" ,
+        removeFromDeckAfterPlay : function(paths_self, faction) { return 1; } ,
+        canEvent : function(paths_self, faction) {
+	  if (faction != "attacker") { return 0; }
+	  let space = paths_self.game.spaces[paths_self.game.state.combat.key];
+	  if (!space || space.terrain != "normal") { return 0; }
+	  let units = paths_self.returnAttackerUnits();
+	  for (let i = 0; i < units.length; i++) {
+	    if (units[i].ckey == "GE") { return 1; }
+	  }
+	  return 0;
+	} ,
+        onEvent : function(paths_self, faction) {
+	  paths_self.game.state.combat.attacker_drm++;
+	  return 1;
+	} ,
+      }
+
+deck['cp65'] = { 
+        key : 'princemax',
+        img : "cards/card_cp65.png" ,
+        name : "Prince Max" ,
+        cc : false ,
+	ws : 3 ,
+        ops : 4 ,
+        sr : 4 ,        
+        rp : { 'AH' : 2 , 'BU' : 1 , 'GE' : 3 , 'TU' : 1 } ,        
+        type : "normal" ,
+        removeFromDeckAfterPlay : function(paths_self, faction) { return 1; } ,
+        canEvent : function(paths_self, faction) { if (paths_self.game.state.turn > 16) { return 0; } return 1; } ,
+        onEvent : function(paths_self, faction) { return 1; } ,
+      }
+
 /***** OPTIONAL ******
 deck['cp56'] = { 
         key : 'withdrawal',
@@ -5245,19 +5319,6 @@ deck['cp56'] = {
         onEvent : function(paths_self, faction) { return 1; } ,
       }
 
-deck['cp57'] = { 
-        key : 'kaisertreu',
-        img : "cards/card_cp57.png" ,
-        name : "Kaisertreu" ,
-        cc : true ,
-        ops : 3 ,
-        sr : 4 ,        
-        rp : { 'AH' : 1 , 'GE' : 2 , 'TU' : 1 } ,        
-        type : "normal" ,
-        removeFromDeckAfterPlay : function(paths_self, faction) { return 1; } ,
-        canEvent : function(paths_self, faction) { return 0; } ,
-        onEvent : function(paths_self, faction) { return 1; } ,
-      }
 deck['cp58'] = { 
         key : 'stavkatimidity',
         img : "cards/card_cp58.png" ,
@@ -5315,20 +5376,6 @@ deck['cp61'] = {
       }
 
 
-deck['cp62'] = { 
-        key : 'achtung:panzer',
-        img : "cards/card_cp62.png" ,
-        name : "Achtung: Panzer" ,
-        cc : true ,
-        ops : 2 ,
-        sr : 2 ,        
-        rp : { 'GE' : 1 } ,        
-        type : "normal" ,
-        removeFromDeckAfterPlay : function(paths_self, faction) { return 1; } ,
-        canEvent : function(paths_self, faction) { return 0; } ,
-        onEvent : function(paths_self, faction) { return 1; } ,
-      }
-
 deck['cp63'] = { 
         key : 'russiandesertions',
         img : "cards/card_cp63.png" ,
@@ -5358,20 +5405,6 @@ deck['cp64'] = {
       }
 
 
-deck['cp65'] = { 
-        key : 'princemax',
-        img : "cards/card_cp65.png" ,
-        name : "Prince Max" ,
-        cc : false ,
-	ws : 3 ,
-        ops : 4 ,
-        sr : 4 ,        
-        rp : { 'AH' : 2 , 'BU' : 1 , 'GE' : 3 , 'TU' : 1 } ,        
-        type : "normal" ,
-        removeFromDeckAfterPlay : function(paths_self, faction) { return 1; } ,
-        canEvent : function(paths_self, faction) { return 0; } ,
-        onEvent : function(paths_self, faction) { return 1; } ,
-      }
 ***** OPTIONAL ******/
     }
 
