@@ -586,6 +586,15 @@ class Videocall extends ModTemplate {
             this.app.connection.emit(`peer-${txmsg.request}-status`, txmsg.data);
           }
 
+          if (
+            txmsg.request === 'toggle-transcription' &&
+            this.streams?.active &&
+            this.room_obj.call_peers.includes(from) &&
+            typeof txmsg.data?.enabled === 'boolean'
+          ) {
+            this.streams.updateTranscriptionStatus(from, txmsg.data.enabled);
+          }
+
           if (txmsg.request === 'screen-share-start') {
             if (this.screen_share !== tx.from[0].publicKey) {
               this.screen_share = tx.from[0].publicKey;
@@ -830,7 +839,12 @@ class Videocall extends ModTemplate {
           console.debug('TALK [callListResponse]: add peer to room obj');
         }
 
-        if (!this.stun.hasConnection(peer, true)) {
+        // A pre-existing Saito data channel still needs the call join message
+        // and the media-attachment event supplied by createPeerConnection.
+        const pc = this.stun.peers.get(peer);
+        const localTracks = this.streams?.localStream?.getTracks() || [];
+        const hasCallMedia = pc?.getSenders().some((sender) => localTracks.includes(sender.track));
+        if (!this.stun.hasConnection(peer, true) || !hasCallMedia) {
           console.debug('TALK [callListResponse]: create connection with ', peer);
           this.stun.createPeerConnection(peer, (peerId) => {
             console.debug('TALK [callListResponse]: ready for STUN connection with ' + peerId);

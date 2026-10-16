@@ -28,6 +28,72 @@
   -webkit-user-select: none;
 }
 
+/*
+  Docked: the game put the HUD inside its own layout (hud.container), so it
+  sits in normal flow and fills that box. The game's CSS sizes and places it.
+*/
+.game-hud2.docked {
+  position: relative;
+  left: auto;
+  right: auto;
+  bottom: auto;
+  top: auto;
+  margin: 0;
+  width: 100%;
+  max-width: 100%;
+  align-items: stretch;
+  gap: 0;
+  z-index: auto;
+  cursor: default;
+}
+
+.game-hud2.docked .hud-status-row {
+  cursor: default;
+}
+
+.game-hud2.docked .hud-status-row,
+.game-hud2.docked .hud-menu {
+  width: 100%;
+  max-width: 100%;
+}
+
+.game-hud2.docked .hud-menu:not(:empty) {
+  margin-top: 0.833rem;
+}
+
+.game-hud2.docked .hud-cards:empty {
+  display: none;
+}
+
+.hud-notice {
+  display: none;
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 0.5rem);
+  z-index: -1;
+  box-sizing: border-box;
+  width: 500px;
+  max-width: 100%;
+  height: 12rem;
+  overflow: hidden;
+  border: 3px solid #424143;
+  background-color: #b79e76;
+  border-radius: 0.833rem 0.833rem 0 0;
+  transform: translateX(-50%) translateY(40%) scale(0.95);
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    transform 1.5s ease-in-out,
+    opacity 0.5s ease-in-out;
+}
+
+.hud-notice.show {
+  transform: translateX(-50%) translateY(0) scale(1);
+  opacity: 1;
+  pointer-events: auto;
+  cursor: pointer;
+}
+
 .hud-status-row {
   position: relative;
   flex: 0 0 auto;
@@ -172,6 +238,14 @@
   background-color: #e7e7e7;
 }
 
+.hud-visual-menu-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  background: transparent;
+  pointer-events: auto;
+}
+
 .hud-visual-menu {
   display: none;
   position: fixed;
@@ -183,7 +257,8 @@
   width: 95vw;
   max-width: none;
   height: 92.5vh;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
   background-color: transparent;
   gap: 1.667rem;
   pointer-events: none;
@@ -294,6 +369,7 @@
 .hud-visual-menu.m9 {
   grid-template-columns: 1fr 1fr 1fr;
   grid-template-rows: 1fr 1fr 1fr;
+  grid-auto-rows: minmax(200px, 1fr);
   width: 90vw;
   max-width: 1400px;
   height: 85vh;

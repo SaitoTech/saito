@@ -102,7 +102,7 @@
 
           twilight_self.game.status = `You win the ${twilight_self.cardToText(card)}:`;
           twilight_self.hud.updateStatus(twilight_self.game.status);
-          twilight_self.hud.updateCards([]);
+          twilight_self.hud.updateCards(twilight_self.game.deck[0].hand);
           twilight_self.hud.updateMenu([ { id: 'raise', label: 'raise DEFCON' }, { id: 'lower', label: 'lower DEFCON' }, { id: 'same', label: 'do not change' } ], function(action2) {
 
             if (action2 == "raise") {
@@ -126,12 +126,12 @@
             this.game.status = `${this.roles[winner].toUpperCase()} won the ${this.cardToText(card)}`;
             this.hud.updateStatus(this.game.status);
             this.hud.updateMenu([]);
-            this.hud.updateCards([]);
+            this.hud.updateCards(this.game.deck[0].hand);
           }else{
             this.game.status = `You lost the ${this.cardToText(card)}, waiting for opponent to change DEFCON`;
             this.hud.updateStatus(this.game.status);
             this.hud.updateMenu([]);
-            this.hud.updateCards([]);            
+            this.hud.updateCards(this.game.deck[0].hand);            
           }
 
         }

@@ -4,35 +4,50 @@ const { shareRows } = require('./publish.flow');
 function peopleHTML(state) {
   const rows = shareRows(state)
     .map((row) => {
-      const icon = row.done ? 'fa-check' : 'fa-xmark';
-      const lines = row.lines
-        .map((line) => `<li>${escapeHTML(line)}</li>`)
-        .join('');
-      const status = row.detail
-        ? ` <span class="status">${escapeHTML(row.detail)}</span>`
-        : '';
+      const icon = row.signed ? 'fa-check' : 'fa-xmark';
+      const label = row.signed ? 'signed' : 'not signed';
       return `
-        <li class="person${row.done ? ' done' : ' waiting'}">
-          <i class="fa-solid ${icon} mark" aria-hidden="true"></i>
-          <div class="person-copy">
-            <p class="person-line"><span class="who">${escapeHTML(row.name)}</span>${status}</p>
-            ${lines ? `<ul class="lines">${lines}</ul>` : ''}
-          </div>
+        <li class="signer${row.signed ? ' signed' : ' unsigned'}">
+          <i class="fa-solid ${icon} signer-mark" aria-hidden="true"></i>
+          <span class="signer-name">${escapeHTML(row.name)}${row.creator ? ' (creator)' : ''}</span>
+          <span class="signer-state">${label}</span>
         </li>
       `;
     })
     .join('');
-  return `<ul class="people">${rows}</ul>`;
+  return `<ul class="signer-list">${rows}</ul>`;
 }
 
 function shareSlide(state) {
+  const premium = state.plan === 'premium';
+  const status = state.actionStatus;
+  const fullySigned = Boolean(status) && status.required > 0 && status.remaining === 0;
+  const instruction = fullySigned
+    ? (premium
+      ? 'All required signatures have been completed. Export this document, or upload it to our server and generate a link, to share the completed copy.'
+      : 'All required signatures have been completed. Export this document to share the completed copy.')
+    : (premium
+      ? 'This document is ready to be signed. Please add your signature now as required. Once you have finished, come back here to export this document or upload it to our server and generate a link for sharing with any other parties who need to sign.'
+      : 'This document is ready to be signed. Please add your signature now as required. Once you have finished, come back here to export this document and share it with any other parties who need to sign.');
+  const sign = fullySigned
+    ? ''
+    : '<button type="button" class="status-choice" data-publish-action="sign-now">SIGN DOCUMENT</button>';
+  const upload = premium
+    ? '<button type="button" class="status-choice" data-publish-action="upload-share">UPLOAD AND SHARE</button>'
+    : '';
+  const count = Number(Boolean(sign)) + 1 + Number(Boolean(upload));
+  const layout = count === 1 ? ' single' : count === 3 ? ' premium' : '';
   return {
-    title: 'This document is ready to share',
+    title: 'Document Status',
     body: `
       <div class="share-step">
-        <p>You need to send this document to the other signers.</p>
         ${peopleHTML(state)}
-        <p class="share-instruction">Click the button below to download a completed SaitoSign file. Share this file with the other signers for them to sign and return.</p>
+        <p class="share-instruction">${escapeHTML(instruction)}</p>
+        <div class="status-choices${layout}">
+          ${sign}
+          <button type="button" class="status-choice" data-publish-action="share">EXPORT DOCUMENT</button>
+          ${upload}
+        </div>
       </div>
     `
   };

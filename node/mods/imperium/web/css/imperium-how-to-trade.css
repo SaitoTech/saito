@@ -20,8 +20,8 @@
   .how-to-trade-overlay > .title {
     margin-left: auto;
     margin-right: auto;
-    font-family: 'bank-gothic';
-    letter-spacing: 0.625rem;
+    font-family: 'orbitron-medium', helvetica, arial;
+    letter-spacing: 0.08em;
     font-size: 4.167rem;
     width: max-content;
     grid-column-start: 1;

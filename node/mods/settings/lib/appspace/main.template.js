@@ -110,19 +110,19 @@ module.exports = (app, mod, main) => {
           <div class="settings-actions-container">
             <button type="button" class="saito-button-secondary" id="backup-account-btn" title="Download json-file copy of wallet">
               <i class="fa-solid fa-download" aria-hidden="true"></i>
-              <span>Backup Wallet</span>
+              <span>backup</span>
             </button>
             <button type="button" class="saito-button-secondary" id="restore-account-btn" title="Restore account by uploading json-file of wallet">
               <i class="fa-solid fa-file-arrow-up" aria-hidden="true"></i>
-              <span>Restore Wallet</span>
+              <span>restore</span>
             </button>
             <button type="button" class="saito-button-secondary" id="restore-privatekey-btn" title="Wipe local data and restore account from private key or seed phrase">
               <i class="fa-solid fa-key" aria-hidden="true"></i>
-              <span>Import Key</span>
+              <span>import key</span>
             </button>
             <button type="button" class="saito-button-secondary" id="nuke-account-btn" title="Erase all local Saito data and reset this browser to a fresh installation">
               <i class="fa-solid fa-trash" aria-hidden="true"></i>
-              <span>Nuke</span>
+              <span>nuke</span>
             </button>
           </div>
         </div>
@@ -174,7 +174,7 @@ module.exports = (app, mod, main) => {
           </button>
         </div>
         <div class="settings-footer-item">
-          <span class="settings-footer-label">Storage: <span id="settings-footer-storage">—</span></span>
+          <span class="settings-footer-label">Storage: <span id="settings-footer-storage" title="Local Storage | IndexedDB">— | —</span></span>
           <button
             type="button"
             class="settings-footer-info"

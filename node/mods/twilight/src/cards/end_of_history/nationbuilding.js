@@ -10,7 +10,7 @@
         this.game.status = "Opponent is playing Nation Building";
         this.hud.updateStatus(this.game.status);
         this.hud.updateMenu([]);
-        this.hud.updateCards([]);
+        this.hud.updateCards(this.game.deck[0].hand);
         return 0;
 
       } else {
@@ -36,7 +36,7 @@
         this.game.status = "Select any country in Africa, Central America or South America that is not controlled by the opposing player and in which you have at least 1 influence:";
         this.hud.updateStatus(this.game.status);
         this.hud.updateMenu([]);
-        this.hud.updateCards([]);
+        this.hud.updateCards(this.game.deck[0].hand);
         for (var i in this.countries) {
 
           let divname      = '#'+i;

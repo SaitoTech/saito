@@ -186,7 +186,14 @@
     }
   }
 
-  moveUnit(sourcekey, sourceidx, destinationkey) {
+  async endTurn(nextTarget = 0) {
+    if (this.paths_log) {
+      this.paths_log.flush();
+    }
+    return super.endTurn(nextTarget);
+  }
+
+  moveUnit(sourcekey, sourceidx, destinationkey, logMove = true) {
 
 console.log(this.game.spaces[sourcekey].units.length + " ---- " + sourceidx);
 
@@ -227,11 +234,13 @@ console.log(JSON.stringify(unit));
     if (!this.game.spaces[destinationkey].units) { this.game.spaces[destinationkey].units = []; }
 
     if (destinationkey == "aeubox" || destinationkey == "ceubox") {
-      this.updateLog(unit.name + " eliminated.");
+      if (!this.paths_log.noteLoss(this.paths_log.label(unit.name) + " eliminated", this.returnPowerOfUnit(unit))) {
+        this.updateLog(unit.name + " eliminated.");
+      }
     } else {
       if (eliminate_rather_than_move) {
         this.updateLog(unit.name + " eliminated.");
-      } else {
+      } else if (logMove) {
 	this.updateLog(unit.name + " moves from " + this.returnSpaceNameForLog(sourcekey) + " to " + this.returnSpaceNameForLog(destinationkey));
       }
     }

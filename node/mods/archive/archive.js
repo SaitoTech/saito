@@ -6,6 +6,7 @@ const Transaction = require('../../lib/saito/transaction').default;
 const PeerService = require('saito-js/lib/peer_service').default;
 const ArchiveTemplate = require('./lib/archive.template');
 const ArchiveSummary = require('./lib/archive-summary.template');
+const ArchiveSettings = require('./lib/archive-settings');
 const SaitoOverlay = require('../../lib/saito/ui/saito-overlay/saito-overlay');
 const jsonTree = require('json-tree-viewer');
 
@@ -93,7 +94,7 @@ class Archive extends ModTemplate {
     //
     //
     //
-    this.prune_public_ts = 600000000; // about 1 week
+    this.prune_public_ts = 21 * 24 * 60 * 60 * 1000;
     this.prune_private_ts = 450000000; // about 5 days
 
     //
@@ -1315,20 +1316,17 @@ class Archive extends ModTemplate {
     let ts = now - this.prune_public_ts;
 
     //
-    // localDB
-    //
-    // in order to avoid data simply building-up for eternity, and especially for content
-    // saved such as likes, our pruning is turned off explicitly for anything where the
-    // preserve flag is set to 0.
+    // Browsers drop preserve=0 rows older than prune_public_ts.
     //
     if (this.app.BROWSER) {
-      where_obj = { updated_at: { '<': ts } };
-      where_obj['preserve'] = 0;
-      rows = await this.localDB.remove({
+      let removed = await this.localDB.remove({
         from: 'archives',
-        where: where_obj
+        where: {
+          preserve: 0,
+          updated_at: { '<': ts }
+        }
       });
-      console.log(rows, 'automatically pruned from local archive');
+      console.log(removed, 'automatically pruned from local archive');
     } else {
       //
       // Servers clean up SQL / file storage
@@ -1405,9 +1403,33 @@ class Archive extends ModTemplate {
   ///////////////
   // save/load //
   ///////////////
+  hasSettings() {
+    return true;
+  }
+
+  loadSettings(container = '.saito-module-settings') {
+    let settings = new ArchiveSettings(this.app, this, container);
+    settings.render();
+  }
+
+  returnPrunePublicDays() {
+    let days = Math.round(this.prune_public_ts / (24 * 60 * 60 * 1000));
+    return days > 0 ? days : 1;
+  }
+
+  setPrunePublicDays(days) {
+    let ms = days * 24 * 60 * 60 * 1000;
+    this.prune_public_ts = ms;
+    this.archive.prune_public_ts = ms;
+    this.save();
+  }
+
   load() {
     if (this.app.options.archive) {
       this.archive = this.app.options.archive;
+      if (Number.isFinite(this.archive.prune_public_ts) && this.archive.prune_public_ts > 0) {
+        this.prune_public_ts = this.archive.prune_public_ts;
+      }
     } else {
       this.archive = {};
       this.archive.index_blockchain = 0;

@@ -69,6 +69,7 @@ module.exports = {
 
         <div class="details">
           <section class="section price">
+            ${view.canShare ? '<button type="button" class="saito-icon-button share" data-action="share" aria-label="Share listing" title="Share listing"><i class="fas fa-share-nodes" aria-hidden="true"></i></button>' : ''}
             <p class="label">${view.primaryLabel}</p>
             <p class="amount">${view.primaryDisplay}</p>
             ${nextBid}

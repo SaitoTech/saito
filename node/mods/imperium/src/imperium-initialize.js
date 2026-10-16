@@ -66,9 +66,18 @@
     });
 
     //
-    // cards
+    // info
     //
-    this.menu.addMenuOption("game-cards", "Cards");
+    this.menu.addMenuOption("game-cards", "Info");
+    this.menu.addSubMenuOption("game-cards", {
+      text : "Planets",
+      id : "game-planets",
+      class : "game-planets",
+      callback : function(app, game_mod) {
+        game_mod.menu.hideSubMenus();
+        game_mod.handleInfoMenuItem();
+      }
+    });
     this.menu.addSubMenuOption("game-cards", {
       text : "Strategy",
       id : "game-strategy-cardlist",
@@ -78,17 +87,6 @@
 	game_mod.strategy_card_overlay.render();
       }
     });
-    this.menu.addSubMenuOption("game-cards", {
-      text : "Objectives",
-      id : "game-objectives",
-      class : "gams-objectives",
-      callback : function(app, game_mod) {
-        game_mod.menu.hideSubMenus();
-	game_mod.handleObjectivesMenuItem();
-      }
-    });
-
-
     //
     // agendas
     //
@@ -128,53 +126,6 @@
         game_mod.handleLawsMenuItem();
       }
     });
-
-    this.menu.addSubMenuOption("game-cards", {
-      text : "Tech",
-      id : "game-tech-dependencies",
-      class : "game-tech-dependencies",
-      callback : function(app, game_mod) {
-       game_mod.menu.showSubSubMenu("game-tech-dependencies");
-      }
-    });
-    this.menu.addSubMenuOption("game-tech-dependencies", {
-        text : "Basic",
-        id : "game-tech-dependencies-basic",
-        class : "game-tech-dependencies-basic",
-        callback : function(app, game_mod) {
-          game_mod.menu.hideSubMenus();
-          game_mod.faction_sheet_overlay.render(game_mod.game.player, 'technologies');
-        }
-    });
-    this.menu.addSubMenuOption("game-tech-dependencies", {
-        text : "Units",
-        id : "game-tech-dependencies-units",
-        class : "game-tech-dependencies-units",
-        callback : function(app, game_mod) {
-          game_mod.menu.hideSubMenus();
-          game_mod.units_overlay.render();
-        }
-    });
-    this.menu.addSubMenuOption("game-tech-dependencies", {
-        text : "Upgrades",
-        id : "game-tech-dependencies-upgrades",
-        class : "game-tech-dependencies-upgrades",
-        callback : function(app, game_mod) {
-          game_mod.menu.hideSubMenus();
-          game_mod.faction_sheet_overlay.render(game_mod.game.player, 'technologies');
-        }
-    });
-    for (let i = 0; i < this.game.players.length; i++) {
-      this.menu.addSubMenuOption("game-tech-dependencies", {
-        text : this.returnFactionNickname(i+1),
-        id : "game-faction-tech-"+(i+1),
-        class : "game-faction-tech-"+(i+1),
-        callback : function(app, game_mod) {
-          game_mod.menu.hideSubMenus();
-          game_mod.faction_sheet_overlay.render(i + 1, 'technologies');
-        }
-      });
-    }
 
     this.menu.addSubMenuOption("game-cards", {
       text : "Laws",
@@ -481,8 +432,8 @@
       //
       // player 1 owns NB -- FOR TESTING AGENDA VOTING
       //
-      let sys = this.returnSectorAndPlanets("4_4");
-      sys.p[0].owner = 1;
+      //let sys = this.returnSectorAndPlanets("4_4");
+      //sys.p[0].owner = 1;
 
 
       //
@@ -734,27 +685,7 @@ console.log("ABOUT TO DINISH INITIALIZATION!");
                      	"img/ships/pds_100x200.png", 
                      	"img/ships/spacedock_100x200.png", 
                      	"img/ships/cruiser_100x200.png", 
-                     	"img/strategy/BUILD.png", 
-                     	"img/strategy/DIPLOMACY.png", 
-                     	"img/strategy/EMPIRE.png", 
-                     	"img/strategy/INITIATIVE.png",
-                     	"img/strategy/MILITARY.png", 
-                     	"img/strategy/POLITICS.png", 
-                     	"img/strategy/TECH.png", 
-                     	"img/strategy/TRADE.png", 
-			"img/influence/5.png", 
-			"img/influence/8.png", 
-			"img/influence/2.png", 
-			"img/influence/1.png", 
-			"img/influence/7.png", 
-			"img/influence/0.png", 
-			"img/influence/9.png", 
-			"img/influence/4.png",
-			"img/influence/3.png", 
-			"img/influence/6.png",
-			"img/agenda_card_template.png",
-			"img/card_template.jpg",
-			"img/cards/secret_objective_ii_back.png",
+			"img/cards/agenda_card.png",
 			"img/units/fighter.png",
 			"img/units/flagship.png",
 			"img/units/spacedock.png",
@@ -765,25 +696,9 @@ console.log("ABOUT TO DINISH INITIALIZATION!");
 			"img/units/pds.png",
 			"img/units/carrier.png", 
 			"img/units/destroyer.png",
-			"img/action_card_back.jpg",
 			"img/arcade/arcade-banner-background.png",
-			"img/secret_objective2.jpg",
-			"img/cards/objective_card_1_template.png",
-			"img/techicons/Cyber D.png",
-			"img/techicons/Warfare D.png",
-			"img/techicons/Warfare L.png",
-			"img/techicons/Biotic D.png",
-			"img/techicons/Propultion Dark.png",
-			"img/techicons/Biotic L.png",
-			"img/techicons/Cybernetic D.png",
-			"img/techicons/Propultion Light.png",
-			"img/techicons/Cybernetic L.png",
-			"img/cards/secret_objective_back.png",
-			"img/planet_card_template.png",
-			"img/secret_objective.jpg",
 			"img/arcade_release.jpg",
-			"img/blank_influence_hex.png",
-			"img/spaceb2.jpg",
+			"img/icons/influence.png",
 			"img/frame/white_space_frame_1_5.png",
 			"img/frame/white_space_frame_4_1.png",
 			"img/frame/white_planet_center_1_9.png",
@@ -892,64 +807,47 @@ console.log("ABOUT TO DINISH INITIALIZATION!");
 			"img/frame/white_space_fighter.png",
 			"img/frame/white_planet_center_1_5.png",
 "img/sectors/sector13.png",
-"img/sectors/sector71.png",
 "img/sectors/sector6.png",
 "img/sectors/sector35.png",
-"img/sectors/sector66.png",
 "img/sectors/sector9.png",
 "img/sectors/sector20.png",
 "img/sectors/sector25.png",
 "img/sectors/sector39.png",
 "img/sectors/sector23.png",
 "img/sectors/sector11.png",
-"img/sectors/sector69.png",
 "img/sectors/sector4.png",
-"img/sectors/sector53.png",
 "img/sectors/sector60.png",
-"img/sectors/sector10.png",
+"img/sectors/empty1.png",
 "img/sectors/sector28.png",
 "img/sectors/sector2.png",
-"img/sectors/sector43.png",
+"img/sectors/old/sector9.png",
 "img/sectors/sector27.png",
-"img/sectors/sector72.png",
 "img/sectors/sector55.png",
 "img/sectors/sector49.png",
-"img/sectors/sector50.png",
-"img/sectors/sector65.png",
 "img/sectors/sector58.png",
 "img/sectors/sector29.png",
 "img/sectors/sector44.png",
 "img/sectors/sector41.png",
 "img/sectors/sector19.png",
 "img/sectors/sector1.png",
-"img/sectors/sector73.png",
 "img/sectors/sector40.png",
-"img/sectors/sector52.png",
 "img/sectors/sector42.png",
 "img/sectors/sector59.png",
-"img/sectors/sector57.png",
 "img/sectors/sector3.png",
 "img/sectors/sector18.png",
 "img/sectors/sector32.png",
 "img/sectors/sector22.png",
-"img/sectors/sector63.png",
 "img/sectors/sector38.png",
-"img/sectors/sector70.png",
 "img/sectors/sector16.png",
 "img/sectors/sector14.png",
-"img/sectors/sector54.png",
-"img/sectors/sector62.png",
 "img/sectors/sector8.png",
 "img/sectors/sector36.png",
 "img/sectors/sector48.png",
 "img/sectors/sector17.png",
 "img/sectors/sector33.png",
 "img/sectors/sector26.png",
-"img/sectors/sector56.png",
-"img/sectors/sector61.png",
 "img/sectors/sector15.png",
-"img/sectors/sector34.png",
-"img/sectors/sector51.png",
+"img/sectors/empty2.png",
 "img/sectors/sector12.png",
 "img/sectors/sector7.png",
 "img/sectors/sector5.png",
@@ -958,106 +856,52 @@ console.log("ABOUT TO DINISH INITIALIZATION!");
 "img/sectors/sector31.png",
 "img/sectors/sector24.png",
 "img/sectors/sector47.png",
-"img/sectors/sector68.png",
-"img/sectors/sector67.png",
-"img/sectors/sector64.png",
 "img/sectors/sector45.png",
 "img/sectors/sector46.png",
-"img/blank_resources_hex.png",
+"img/icons/resources.png",
 "img/factions/faction2.jpg",
 "img/factions/faction1.jpg",
 "img/factions/faction3.jpg",
-"img/spacebg.png",
-"img/resources/5.png",
-"img/resources/8.png",
-"img/resources/2.png",
-"img/resources/1.png",
-"img/resources/7.png",
-"img/resources/0.png",
-"img/resources/9.png",
-"img/resources/4.png",
-"img/resources/3.png",
-"img/resources/6.png",
-"img/planets/HARKON-CALEDONIA.png",
-"img/planets/KLENCORY.png",
-"img/planets/STARTIDE.png",
-"img/planets/UNSULLA.png",
-"img/planets/GRAVITYS-EDGE.png",
-"img/planets/OLYMPIA.png",
-"img/planets/OTHO.png",
-"img/planets/ARCHION-REX.png",
-"img/planets/KROEBER.png",
-"img/planets/COTILLARD.png",
-"img/planets/INCARTH.png",
-"img/planets/XERXES-IV.png",
-"img/planets/HEARTHSLOUGH.png",
-"img/planets/QUARTIL.png",
-"img/planets/SOUNDRA-IV.png",
-"img/planets/INDUSTRYL.png",
-"img/planets/VIGOR.png",
-"img/planets/CALTHREX.png",
-"img/planets/VESPAR.png",
-"img/planets/HIRAETH.png",
-"img/planets/LAZAKS-CURSE.png",
-"img/planets/CRYSTALIS.png",
-"img/planets/SINGHARTA.png",
-"img/planets/JOL.png",
-"img/planets/NOVA-KLONDIKE.png",
-"img/planets/QUANDAM.png",
-"img/planets/OLD-MOLTOUR.png",
-"img/planets/FIREHOLE.png",
-"img/planets/CONTOURI-I.png",
-"img/planets/CONTOURI-II.png",
-"img/planets/SIRENS-END.png",
-"img/planets/FJORDRA.png",
-"img/planets/LORSTRUCK.png",
-"img/planets/SHRIVA.png",
-"img/planets/EARTH.png",
-"img/planets/HOTH.png",
-"img/planets/KROMER.png",
-"img/planets/VOLUNTRA.png",
-"img/planets/EBERBACH.png",
-"img/planets/NEW-BYZANTIUM.png",
-"img/planets/TROTH.png",
-"img/planets/ARTIZZ.png",
-"img/planets/NEW-JYLANX.png",
-"img/planets/XIAO-ZUOR.png",
-"img/planets/NAR.png",
-"img/planets/GIANTS-DRINK.png",
-"img/planets/GRANTON-MEX.png",
-"img/planets/MIRANDA.png",
-"img/planets/HOPES-LURE.png",
-"img/planets/OUTERANT.png",
-"img/planets/BELVEDYR.png",
-"img/planets/YODERUX.png",
-"img/planets/YSSARI-II.png",
-"img/planets/QUAMDAM.png",
-"img/planets/ZONDOR.png",
-"img/planets/SIGURD.png",
-"img/planets/MECHANEX.png",
-"img/planets/RIFTVIEW.png",
-"img/planets/POPULAX.png",
-"img/planets/GROX-TOWERS.png",
-"img/planets/BREST.png",
-"img/planets/TERRA-CORE.png",
-"img/planets/QUANDOR.png",
-"img/planets/DOMINIC.png",
-"img/planets/LONDRAK.png",
-"img/planets/PESTULON.png",
-"img/planets/NEW-ILLIA.png",
-"img/planets/LEGUIN.png",
-"img/planets/UDON-I.png",
-"img/planets/CITADEL.png",
-"img/planets/UDON-II.png",
-"img/planets/PERTINAX.png",
-"img/planets/ARCHION-TAO.png",
-"img/planets/CRAW-POPULI.png",
-"img/planets/RIFVIEW.png",
-"img/planets/BROUGHTON.png",
-"img/planets/AANDOR.png",
-"img/tech_tree.png",
-"img/action_card_template.png",
-"img/objective_card_2_template.png"];
+"img/planets/startide.png",
+"img/planets/unsulla.png",
+"img/planets/gravitys_edge.png",
+"img/planets/olympia.png",
+"img/planets/otho.png",
+"img/planets/kroeber.png",
+"img/planets/incarth.png",
+"img/planets/quartil.png",
+"img/planets/soundra_iv.png",
+"img/planets/vigor.png",
+"img/planets/calthrex.png",
+"img/planets/vespar.png",
+"img/planets/hiraeth.png",
+"img/planets/lazaks_curse.png",
+"img/planets/crystalis.png",
+"img/planets/singharta.png",
+"img/planets/nova_klondike.png",
+"img/planets/quandam.png",
+"img/planets/contouri_i.png",
+"img/planets/sirens_end.png",
+"img/planets/shriva.png",
+"img/planets/new_byzantium.png",
+"img/planets/troth.png",
+"img/planets/giants_drink.png",
+"img/planets/granton_mex.png",
+"img/planets/miranda.png",
+"img/planets/hopes_lure.png",
+"img/planets/riftview.png",
+"img/planets/grox_towers.png",
+"img/planets/brest.png",
+"img/planets/quandor.png",
+"img/planets/londrak.png",
+"img/planets/new_illia.png",
+"img/planets/udon_i.png",
+"img/planets/citadel.png",
+"img/planets/udon_ii.png",
+"img/planets/craw_populi.png",
+"img/planets/broughton.png",
+"img/planets/aandor.png",
+"img/tech_tree.png"];
 
     this.preloadImageArray(allImages, 0);
 

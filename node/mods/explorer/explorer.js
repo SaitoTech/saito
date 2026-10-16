@@ -1,5 +1,6 @@
 const ModTemplate = require('../../lib/templates/modtemplate');
 const SaitoHeader = require('../../lib/saito/ui/saito-header/saito-header');
+const HeaderMenu = require('./lib/ui/header-menu');
 const Main = require('./lib/ui/main');
 const Block = require('./lib/ui/block');
 const Supply = require('./lib/ui/supply');
@@ -8,6 +9,8 @@ const Utxo = require('./lib/ui/utxo');
 const Holders = require('./lib/ui/holders');
 const { invalidateHolderSnapshots } = require('./lib/holders');
 const AllBlocks = require('./lib/ui/all-blocks');
+const ChainViewer = require('./lib/ui/chain-viewer');
+const { ChainIndex } = require('./lib/chain-index');
 const AllTransactions = require('./lib/ui/all-transactions');
 const Search = require('./lib/ui/search');
 const ShellTemplate = require('./lib/ui/shell.template');
@@ -59,6 +62,8 @@ class Explorer extends ModTemplate {
     this.INDEX_BLOCKS = 1;
     this.INDEX_PUBLICKEYS = 1;
 
+    this.chainViewer = null;
+    this.chainIndex = null;
     this.main = null;
     this.blockComponent = null;
     this.supplyComponent = null;
@@ -70,6 +75,7 @@ class Explorer extends ModTemplate {
     this.allTransactionsComponent = null;
     this.search = null;
     this.header = null;
+    this.headerMenu = null;
     this.shellRendered = false;
     this.activeView = 'home';
     this.blockHash = null;
@@ -153,6 +159,9 @@ class Explorer extends ModTemplate {
       };
     }
 
+    const chainMatch = path.match(new RegExp(`^${prefix}/chain(?:/([^/]+))?$`));
+    if (chainMatch) return { view: 'chain', input: chainMatch[1] ? decodeURIComponent(chainMatch[1]) : '' };
+
     if (blockMatch) {
       return {
         view: 'block',
@@ -206,6 +215,8 @@ class Explorer extends ModTemplate {
       this.search = new Search(this.app, this);
     }
     this.search.render('.explorer-search');
+    this.headerMenu ||= new HeaderMenu(this.app, this);
+    this.headerMenu.render();
     this.renderSimulationToolbar();
   }
 
@@ -218,6 +229,13 @@ class Explorer extends ModTemplate {
 
     document.addEventListener('click', (event) => {
       if (!this.browser_active) {
+        return;
+      }
+
+      const chainLink = event.target.closest('[data-explorer-chain]');
+      if (chainLink) {
+        event.preventDefault();
+        this.renderChain(chainLink.getAttribute('data-explorer-chain'));
         return;
       }
 
@@ -291,19 +309,6 @@ class Explorer extends ModTemplate {
         return;
       }
 
-      const link = event.target.closest('.explorer-footer-link');
-      if (link) {
-        const href = link.getAttribute('href') || '';
-        if (href.endsWith('/explorer/supply')) {
-          event.preventDefault();
-          this.renderSupply({ pushState: true, animate: true });
-        } else if (href.endsWith('/explorer/holders')) {
-          event.preventDefault();
-          this.renderHolders();
-        }
-        return;
-      }
-
       const viewAllLink = event.target.closest('[data-explorer-nav]');
       if (viewAllLink) {
         const nav = viewAllLink.getAttribute('data-explorer-nav');
@@ -324,6 +329,11 @@ class Explorer extends ModTemplate {
 
     window.addEventListener('popstate', (event) => {
       const state = event.state || this.parseRoute();
+
+      if (state.view === 'chain') {
+        this.renderChain(state.input || '', { pushState: false });
+        return;
+      }
 
       if (state.view === 'holders') {
         this.renderHolders({
@@ -378,6 +388,8 @@ class Explorer extends ModTemplate {
   }
 
   cleanupListViews() {
+    this.chainViewer?.cleanup();
+    this.chainViewer = null;
     this.holdersRenderToken++;
     if (this.holdersComponent) {
       this.holdersComponent.cleanup();
@@ -629,6 +641,20 @@ class Explorer extends ModTemplate {
     }
   }
 
+  async renderChain(input = '', options = {}) {
+    this.cleanupListViews();
+    this.activeView = 'chain';
+    if (this.blockComponent) this.blockComponent.fetchToken++;
+    this.blockComponent = null;
+    this.ensureShell();
+    if (options.pushState !== false) {
+      window.history.pushState({ view: 'chain', input }, '',
+        `/${this.slug}/chain${input ? '/' + encodeURIComponent(input) : ''}`);
+    }
+    this.chainViewer = new ChainViewer(this.app, this, input);
+    await this.chainViewer.render('.explorer-view');
+  }
+
   async renderAllBlocks(options = {}) {
     const { pushState = true, animate = true } = options;
 
@@ -725,6 +751,11 @@ class Explorer extends ModTemplate {
 
     this.explorerPeer = peer;
     this.resetExplorerData();
+
+    if (this.activeView === 'chain') {
+      this.chainViewer?.refresh();
+      return;
+    }
 
     if (this.activeView === 'holders') {
       await this.renderHolders({
@@ -1230,6 +1261,8 @@ class Explorer extends ModTemplate {
     if (app.BROWSER == 0) {
       this.database = new ExplorerDatabase(app, this);
       await this.database.ensureSchema();
+      this.chainIndex = new ChainIndex(app, this);
+      await this.chainIndex.initialize();
       setImmediate(() => {
         backfillSupplyStatistics(app, this).catch((err) => {
           console.error('Explorer: supply statistics backfill failed', err);
@@ -1258,6 +1291,11 @@ class Explorer extends ModTemplate {
     this.ensureShell();
 
     const route = this.parseRoute();
+
+    if (route.view === 'chain') {
+      await this.renderChain(route.input || '', { pushState: false });
+      return;
+    }
 
     if (route.view === 'holders') {
       await this.renderHolders({ page: route.page, pushState: false, animate: false });
@@ -1303,6 +1341,14 @@ class Explorer extends ModTemplate {
       return;
     }
 
+    if (block?.id && this.chainIndex) {
+      try {
+        await this.chainIndex.observe(block, Boolean(lc));
+      } catch (err) {
+        console.error('Explorer: chain metadata indexing failed', err);
+      }
+    }
+
     if (!block?.id || !this.database) {
       return;
     }
@@ -1346,6 +1392,10 @@ class Explorer extends ModTemplate {
   }
 
   async onChainReorganization(block_id, block_hash, lc) {
+    if (this.chainIndex) {
+      try { await this.chainIndex.reorganize(String(block_hash), Boolean(lc)); }
+      catch (err) { console.error('Explorer: chain metadata reorganization failed', err); }
+    }
     // Keep snapshots stable as the chain advances; discard them on an unwind.
     if (this.app.BROWSER === 0 && !lc) invalidateHolderSnapshots(this);
     if (this.app.BROWSER !== 0 || !this.database || !this.INDEX_PUBLICKEYS) {
@@ -1414,6 +1464,8 @@ class Explorer extends ModTemplate {
 
     expressapp.get(`${uri}/block/:input`, sendIndex);
     expressapp.get(`${uri}/blocks`, sendIndex);
+    expressapp.get(`${uri}/chain`, sendIndex);
+    expressapp.get(`${uri}/chain/:input`, sendIndex);
     expressapp.get(`${uri}/transactions`, sendIndex);
     expressapp.get(`${uri}/supply`, sendIndex);
     expressapp.get(`${uri}/holders`, sendIndex);

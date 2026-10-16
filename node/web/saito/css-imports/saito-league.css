@@ -87,7 +87,8 @@
 }
 
 .league-overlay-header-title-box-title {
-	font-size: 4rem;
+	font-size: clamp(2.6rem, 8vw, 4rem);
+	overflow-wrap: anywhere;
 }
 
 .league-overlay-header-title-box-desc {
@@ -407,6 +408,8 @@ span.attention {
 	.league-overlay-header-title-box {
 		position: absolute;
 		left: 1rem;
+		right: 1rem;
+		min-width: 0;
 		top: 1.4rem;
 		text-shadow:
 			1px 1px 2px var(--saito-background),
@@ -426,4 +429,10 @@ span.attention {
 	gap: 1rem;
 	font-size: 1.8rem;
 	border: 1px solid var(--saito-border);
+}
+
+@media screen and (max-width: 600px) {
+	.ranking-overlay {
+		padding: clamp(1.5rem, 5vw, 3rem);
+	}
 }

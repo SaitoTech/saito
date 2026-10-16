@@ -2,9 +2,15 @@
   color: var(--saito-foreground);
   padding: 3rem;
   line-height: 3rem;
-  min-width: 40rem;
+  min-width: min(40rem, calc(100vw - 2rem));
   /* compact radius vs default overlay-panel lg */
   border-radius: var(--saito-radius);
+}
+
+@media screen and (max-width: 600px) {
+  .stun-invite {
+    padding: clamp(1.5rem, 5vw, 3rem);
+  }
 }
 .stun-invite .saito-button-secondary {
   margin: 0px;

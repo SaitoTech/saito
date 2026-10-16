@@ -4,7 +4,7 @@
  * Modes (layout only — markup stays shared):
  *   compact  — timeline scan line: Username · time
  *   expanded — detail identity block:
- *                row 1: Username                    Timestamp
+ *                row 1: Username · time
  *                row 2: Public key
  *   compose  — stacked name + instructional secondary (compose overlay)
  *
@@ -59,12 +59,13 @@ module.exports = ({
   }
 
   if (resolvedMode === 'expanded') {
-    const timeHtml = time ? `<time class="time saito-userline">${escapeHtml(time)}</time>` : '';
     const handleHtml = handle
       ? `<span class="handle saito-userline saito-add-user-menu" data-id="${escapeHtml(publicKey)}">${escapeHtml(handle)}</span>`
       : '';
+    const timeHtml = time
+      ? `<span class="sep" aria-hidden="true">·</span><time class="time saito-userline">${escapeHtml(time)}</time>`
+      : '';
 
-    // Identity owns name, time, and key. Body is a sibling — never a time host.
     return `
     <header class="header expanded">
       <span class="primary saito-address" data-id="${escapeHtml(publicKey)}">${escapeHtml(name)}</span>

@@ -11,16 +11,15 @@ const ReservesOverlay = require('./lib/ui/overlays/reserves');
 const MandatesOverlay = require('./lib/ui/overlays/mandates');
 const WelcomeOverlay = require('./lib/ui/overlays/welcome');
 const MenuOverlay = require('./lib/ui/overlays/menu');
+const RussiaOverlay = require('./lib/ui/overlays/russia');
+const UsaOverlay = require('./lib/ui/overlays/usa');
 
 const PathsRules = require('./lib/core/rules.template');
 const PathsOptions = require('./lib/core/advanced-options.template');
 const PathsSingularOption = require('./lib/core/options.template');
 
-const GameHelp = require('./lib/ui/game-help/game-help');
+const PathsLog = require('./lib/paths-log');
 const GameMinimap = require('../../lib/saito/ui/game-minimap/game-minimap');
-const TutorialTemplate = require('./lib/ui/overlays/tutorials/tutorial.template');
-
-
 const htmlTemplate = require('./lib/core/game-html.template').default;
 const JSON = require('json-bigint');
 
@@ -60,11 +59,44 @@ class PathsOfGlory extends GameTemplate {
     this.vp_overlay = new VPOverlay(this.app, this); 
     this.welcome_overlay = new WelcomeOverlay(this.app, this); 
     this.menu_overlay = new MenuOverlay(this.app, this); 
-    this.space_overlay = new SpaceOverlay(this.app, this); 
-    this.game_help = new GameHelp(this.app, this);
+    this.space_overlay = new SpaceOverlay(this.app, this);
+    this.russia_overlay = new RussiaOverlay(this.app, this);
+    this.usa_overlay = new UsaOverlay(this.app, this); 
+    this.paths_log = new PathsLog(this);
+    this.log.registerEventType('movement', (entries) => this.paths_log.renderMovement(entries));
+    this.log.registerEventType('combat', (entries) => this.paths_log.renderCombat(entries));
+    let update_log = this.updateLog.bind(this);
+    this.updateLog = (str, eventType = '', data = null) => {
+      if (this.paths_log && this.paths_log.absorbLog(str)) {
+        return;
+      }
+      update_log(str, eventType, data);
+    };
     this.minimap = new GameMinimap(this.app, this);
     this.minimap.enable_zoom = 1;
     this.default_board_scale = 100;
+    this.default_board_view = { x: 437 / 5100, y: 450 / 3312, w: 2980 / 5100, h: 1573 / 3312 };
+    this.signal_n = 0;
+    this.signals = { n: 0, marks: {} };
+
+    let hud_update_menu = this.hud.updateMenu.bind(this.hud);
+    let hud_update_cards = this.hud.updateCards.bind(this.hud);
+    let set_cards_visible = (visible) => {
+      document.querySelectorAll('#game-hud2 .hud-cards').forEach((el) => {
+        el.style.display = visible ? '' : 'none';
+      });
+    };
+    this.hud.updateMenu = (options, callback) => {
+      hud_update_menu(options, callback);
+      set_cards_visible(!(options && options.length > 0));
+    };
+    this.hud.updateCards = (cards, callback) => {
+      hud_update_cards(cards, callback);
+      let menu = document.querySelector('#game-hud2 .hud-menu');
+      if (menu && menu.querySelector('.option')) {
+        set_cards_visible(false);
+      }
+    };
 
     //
     // this sets the ratio used for determining

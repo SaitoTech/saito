@@ -10,12 +10,17 @@ class NewActionCardsOverlay {
   }
 
   render(cards = []) {
-    this.overlay.show(ImperiumNewActionCardsOverlayTemplate());
-    this.overlay.setBackground('/imperium/img/backgrounds/action-cards-background.jpg', false); // background not dark
+    if (!this.overlay.visible) {
+      this.overlay.show(ImperiumNewActionCardsOverlayTemplate());
+      this.overlay.setBackground('/imperium/img/backgrounds/action-cards-background.jpg', false); // background not dark
+    }
 
     for (let i = 0; i < cards.length; i++) {
       let ac = this.mod.action_cards[cards[i]];
-      this.app.browser.addElementToSelector(ac.returnCardImage(), '.new-action-cards');
+      this.app.browser.addElementToSelector(
+        ac.returnCardImage(),
+        `#saito-overlay${this.overlay.ordinal} .new-action-cards`
+      );
     }
   }
 }

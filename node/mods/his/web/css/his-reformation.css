@@ -1,12 +1,25 @@
 .game.his {
   .reformation-overlay {
+    width: min(76rem, 64vw);
+    max-width: 64vw;
+    max-height: 78vh;
+    background-color: #0a0a0a;
     background-image: url(/his/img/backgrounds/reformation.jpg);
+    background-repeat: no-repeat;
+    background-position: center;
     background-size: cover;
-    max-width: 90vw;
-    max-height: 90vh;
-    width: 90vw;
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    border-radius: 0.4rem;
+    box-shadow:
+      0 0 0 0.8rem rgba(0, 0, 0, 0.72),
+      0 2rem 4.5rem rgba(0, 0, 0, 0.8);
     overflow-y: auto;
     overflow-x: hidden;
+  }
+
+  .saito-overlay:has(> .reformation-overlay) + .saito-overlay-backdrop {
+    background-color: rgba(0, 0, 0, 0.78) !important;
+    opacity: 1;
   }
 
   .reformation-overlay .title {
@@ -23,11 +36,12 @@
   .reformation-box {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    padding: 3.333rem;
+    padding: 2rem;
     justify-items: center;
     justify-content: space-evenly;
     width: inherit;
-    row-gap: 4.167rem;
+    column-gap: 2rem;
+    row-gap: 2rem;
   }
 
   .reformation-overlay .protestant,
@@ -102,7 +116,7 @@
 
   .protestant,
   .papacy {
-    width: 29.167rem;
-    max-width: 35vw;
+    width: 26rem;
+    max-width: 100%;
   }
 }

@@ -95,67 +95,44 @@ handleUnitsMenuItem() {
   });
 }
 
-handleObjectivesMenuItem() {
-
-  let cards = [];
-  let imperium_self = this;
-
-  //
-  // MY SECRET OBJECTIVES
-  //
-  for (let i = 0; i < imperium_self.game.deck[5].hand.length; i++) {
-    if (!imperium_self.game.state.players_info[imperium_self.game.player - 1].objectives_scored.includes(imperium_self.game.deck[5].hand[i])) {
-      let obj = imperium_self.secret_objectives[imperium_self.game.deck[5].hand[i]];
-      cards.push(obj);
-    }
-  }
-
-  //
-  // STAGE 1 OBJECTIVES
-  //
-  for (let i = 0; i < this.game.state.stage_i_objectives.length; i++) {
-    let obj = this.stage_i_objectives[this.game.state.stage_i_objectives[i]];
-    cards.push(obj);
-  }
-
-  //
-  // STAGE 2 OBJECTIVES
-  //
-  for (let i = 0; i < this.game.state.stage_ii_objectives.length; i++) {
-    let obj = this.stage_ii_objectives[this.game.state.stage_ii_objectives[i]];
-    cards.push(obj);
-  }
-
-  //
-  // OTHERS SECRET OBJECTIVES
-  //
-  for (let i = 0; i < this.game.state.players_info.length; i++) {
-    if (i > 0) { html += '<p></p>'; }
-    let objc = imperium_self.returnPlayerObjectivesScored((i+1), ["secret_objectives"]);
-    for (let o in objc) {
-      cards.push(objc[i]);
-    }
-  }
-
-  this.objectives_overlay.render(cards);
-
-}
 handleInfoMenuItem() {
-  const board = this.getBoardElement();
-  if (!board) {
+  if (this.planet_info_mode) {
+    this.clearPlanetInfoMode();
     return;
   }
-  if (board.classList.contains('bi')) {
-    for (let i in this.game.sectors) {
-      this.removeSectorHighlight(i);
-      board.classList.remove('bi');
-    }
-  } else {
-    for (let i in this.game.sectors) {
-      this.addSectorHighlight(i);
-      board.classList.add('bi');
+  const board = this.getBoardElement();
+  if (!board || !this.game || !this.game.sectors) {
+    return;
+  }
+  for (let i in this.game.sectors) {
+    this.addSectorHighlight(i);
+  }
+  board.classList.add('bi');
+  this.planet_info_mode = 1;
+  if (!this.boundPlanetInfoBoardClick) {
+    this.boundPlanetInfoBoardClick = (e) => {
+      this.clearPlanetInfoMode();
+      e.preventDefault();
+      e.stopPropagation();
+    };
+  }
+  board.addEventListener('click', this.boundPlanetInfoBoardClick, true);
+}
+
+clearPlanetInfoMode() {
+  const board = this.getBoardElement();
+  if (board) {
+    board.classList.remove('bi');
+    if (this.boundPlanetInfoBoardClick) {
+      board.removeEventListener('click', this.boundPlanetInfoBoardClick, true);
     }
   }
+  if (this.game && this.game.sectors) {
+    for (let i in this.game.sectors) {
+      this.removeSectorHighlight(i);
+    }
+  }
+  this.planet_info_mode = 0;
 }
 handleSystemsMenuItem() {
 

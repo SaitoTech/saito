@@ -489,6 +489,40 @@ class Database {
     return res?.[0] || null;
   }
 
+  /**
+   * Newest moderation decision for this seller and NFT.
+   * 1 = approved, 2 = pending review, -1 = rejected. 0 = none.
+   * A partial sale relists the remainder under a new signature; callers use
+   * this so that decision follows the NFT instead of the spent transaction.
+   */
+  async returnLatestNftModeration(nft_id, seller) {
+    const id = String(nft_id || '').trim();
+    const key = String(seller || '').trim();
+    if (!id || !key) {
+      return 0;
+    }
+
+    try {
+      const res = await this.app.storage.queryDatabase(
+        `SELECT approved FROM listings
+				 WHERE nft_id = $nft_id
+				   AND seller = $seller
+				   AND approved != 0
+				 ORDER BY block_id_listed DESC, id DESC
+				 LIMIT 1`,
+        { $nft_id: id, $seller: key },
+        this.dbname
+      );
+      const approved = Number(res?.[0]?.approved ?? 0);
+      if (approved === 1 || approved === 2 || approved === -1) {
+        return approved;
+      }
+    } catch (err) {
+      return 0;
+    }
+    return 0;
+  }
+
   /** Newest stored inclusion of a listing transaction, on the longest chain or not. */
   async returnLatestListingInclusion(signature) {
     const res = await this.app.storage.queryDatabase(
@@ -930,7 +964,8 @@ class Database {
 
   /**
    * Copy the canonical sale onto the listing snapshot when one exists.
-   * When none does, clear only longest_chain_sold and keep the last sale identity.
+   * When none does, keep the last sale identity, clear longest_chain_sold, and
+   * set longest_chain_listed = -1 so the spent inclusion is not offered again.
    */
   async refreshSaleSnapshots(db, params) {
     await db.run(
@@ -1012,6 +1047,7 @@ class Database {
     await db.run(
       `UPDATE listings
 			 SET longest_chain_sold = 0,
+			     longest_chain_listed = -1,
 			     updated_at = $updated_at
 			 WHERE EXISTS (
 			   SELECT 1 FROM listing_sales touched
@@ -1069,7 +1105,8 @@ class Database {
     }
   }
 
-  async returnActiveListingsForSeller(seller = '') {
+  // An NFT filter selects the cheapest available listing, oldest first on ties.
+  async returnActiveListingsForSeller(seller = '', nft_id = '') {
     const key = String(seller || '').trim();
     if (!key) {
       return [];
@@ -1079,8 +1116,9 @@ class Database {
         `SELECT * FROM listings
 				 WHERE seller = $seller
 				   AND ${this.availableListingWhere()}
-				 ORDER BY created_at DESC`,
-        { $seller: key },
+				   ${nft_id ? 'AND nft_id = $nft_id AND quantity > 0' : ''}
+				 ORDER BY ${nft_id ? 'price ASC, created_at ASC, id ASC LIMIT 1' : 'created_at DESC'}`,
+        nft_id ? { $seller: key, $nft_id: nft_id } : { $seller: key },
         this.dbname
       );
     } catch (err) {

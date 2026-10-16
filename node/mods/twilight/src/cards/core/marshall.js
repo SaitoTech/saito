@@ -29,7 +29,7 @@
         this.game.status = "Place 1 influence in each of "+ops_to_place+" non USSR-controlled countries in Western Europe";
         this.hud.updateStatus(this.game.status);
         this.hud.updateMenu([]);
-        this.hud.updateCards([]);
+        this.hud.updateCards(this.game.deck[0].hand);
 
         twilight_self.addMove("resolve\tmarshall");
         
@@ -45,7 +45,7 @@
             twilight_self.game.status = "Place 1 influence in each of "+ops_to_place+" non USSR-controlled countries in Western Europe";
             twilight_self.hud.updateStatus(twilight_self.game.status);
             twilight_self.hud.updateMenu([]);
-            twilight_self.hud.updateCards([]);
+            twilight_self.hud.updateCards(twilight_self.game.deck[0].hand);
             if (ops_to_place <= 0) {
               twilight_self.playerFinishedPlacingInfluence();
               twilight_self.endTurn();

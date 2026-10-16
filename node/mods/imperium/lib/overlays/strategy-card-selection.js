@@ -27,7 +27,7 @@ class StrategyCardSelectionOverlay {
     }
     for (let i = 0; i < unselect_cards.length; i++) {
       let s = '.strategy-card-' + unselect_cards[i].key;
-      el = document.querySelector(s);
+      let el = document.querySelector(s);
       el.classList.add('opaque');
     }
 

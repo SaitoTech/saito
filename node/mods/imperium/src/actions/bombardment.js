@@ -13,7 +13,7 @@
 
 
     this.importActionCard('thunder-from-the-heavens', {
-  	name : "Thunder from the Heavens" ,
+  	name : "Skyward Firestorm" ,
   	type : "bombardment_attacker" ,
   	text : "During this bombardment, attacker gets +2 applied to each bombardment roll." ,
 	playActionCard : function(imperium_self, player, action_card_player, card) {

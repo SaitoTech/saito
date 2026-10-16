@@ -11,7 +11,7 @@
 
         this.game.status = `${this.cardToText(card)}: do you want to trigger Final Scoring?`;
         this.hud.updateStatus(this.game.status);
-        this.hud.updateCards([]);
+        this.hud.updateCards(this.game.deck[0].hand);
         this.hud.updateMenu([ { id: 'endgame', label: 'end the game' }, { id: 'cont', label: 'continue playing' } ], function(action2) {
 
           if (action2 == "endgame") {
@@ -22,7 +22,7 @@
             twilight_self.game.status = "Not Triggering Final Scoring...";
             twilight_self.hud.updateStatus(twilight_self.game.status);
             twilight_self.hud.updateMenu([]);
-            twilight_self.hud.updateCards([]);
+            twilight_self.hud.updateCards(twilight_self.game.deck[0].hand);
             twilight_self.addMove("resolve\trevolutionsof1989");
             twilight_self.endTurn();
           }

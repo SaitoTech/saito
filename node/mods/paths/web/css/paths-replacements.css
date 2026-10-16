@@ -13,7 +13,6 @@
     --rp-title: 3.15rem;
     --rp-sub: 1.55rem;
     --rp-icon: calc(var(--rp-title) * 1.08 + 0.18rem + var(--rp-sub) * 1.25);
-    --rp-corps-scale: 0.82;
     --rp-action: 1.45rem;
     --rp-unit-name: 1.45rem;
     --rp-unit-loc: 1.25rem;
@@ -288,18 +287,12 @@
    */
   .replacements-overlay .rp-unit-chit {
     position: relative;
-    flex: 0 0 auto;
+    flex: 0 0 var(--rp-chit);
     width: var(--rp-chit);
     height: var(--rp-chit);
     display: block;
     overflow: hidden;
     border-radius: 0.35rem;
-  }
-
-  .replacements-overlay .rp-unit-row.is-corps .rp-unit-chit,
-  .replacements-overlay .rp-unit-row[data-key*='corps'] .rp-unit-chit {
-    width: calc(var(--rp-chit) * var(--rp-corps-scale));
-    height: calc(var(--rp-chit) * var(--rp-corps-scale));
   }
 
   .replacements-overlay .rp-unit-chit img,

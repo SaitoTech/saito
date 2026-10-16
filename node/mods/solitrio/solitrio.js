@@ -10,6 +10,9 @@ class Solitrio extends OnePlayerGameTemplate {
   constructor(app) {
     super(app);
 
+    // show status and options in the sidebar, not floating over the board
+    this.hud.container = '.logobox';
+
     this.name = 'Solitrio';
     this.slug = 'solitrio';
     this.game_length = 5; //Estimated number of minutes to complete a game

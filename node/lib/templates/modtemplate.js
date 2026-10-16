@@ -321,8 +321,11 @@ class ModTemplate {
   //
   async render() {
     if (this.browser_active && this.possibleHome) {
-      this.app.options.homeModule = this.returnName();
-      this.app.storage.saveOptions();
+      const homeModule = this.returnName();
+      if (this.app.options.homeModule !== homeModule) {
+        this.app.options.homeModule = homeModule;
+        this.app.storage.saveOptions();
+      }
     }
 
     if (this.includes_attached === 0) {

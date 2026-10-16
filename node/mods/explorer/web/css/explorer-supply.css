@@ -55,7 +55,7 @@
 }
 
 /*
- * Fee field: match back-link height and radius; white field on grey border.
+ * Fee field: match back-link height and radius with shared Saito colors.
  */
 .explorer-page .explorer-supply-admin-controls input.explorer-supply-fee-input[type='text'] {
   box-sizing: border-box;
@@ -65,14 +65,13 @@
   height: 3.5rem;
   margin: 0;
   padding: 0 0.65rem;
-  border: 1px solid var(--explorer-border);
-  border-radius: var(--explorer-radius-sm);
+  border: 1px solid var(--saito-border);
+  border-radius: var(--saito-radius-sm);
   appearance: none;
   -webkit-appearance: none;
-  color-scheme: light;
-  background-color: #fff;
-  color: #1a1b21;
-  font-family: var(--explorer-font-mono);
+  background-color: var(--saito-card);
+  color: var(--saito-foreground);
+  font-family: var(--saito-font-monospace);
   font-size: var(--explorer-text-xs);
   line-height: 3.5rem;
 }
@@ -80,7 +79,7 @@
 .explorer-page
   .explorer-supply-admin-controls
   input.explorer-supply-fee-input[type='text']::placeholder {
-  color: #6b7280;
+  color: var(--saito-muted-foreground);
   opacity: 1;
 }
 
@@ -89,10 +88,10 @@
   .explorer-supply-admin-controls
   input.explorer-supply-fee-input[type='text']:focus-visible {
   outline: none;
-  border-color: color-mix(in oklch, var(--explorer-muted-foreground) 28%, var(--explorer-border));
-  box-shadow: var(--explorer-focus-ring);
-  background-color: #fff;
-  color: #1a1b21;
+  border-color: color-mix(in oklch, var(--saito-muted-foreground) 28%, var(--saito-border));
+  box-shadow: var(--saito-focus-ring);
+  background-color: var(--saito-card);
+  color: var(--saito-foreground);
 }
 
 .explorer-page
@@ -100,20 +99,20 @@
   input.explorer-supply-fee-input[type='text']:disabled {
   opacity: 0.55;
   cursor: wait;
-  background-color: #fff;
+  background-color: var(--saito-card);
 }
 
 .explorer-page .explorer-supply-admin-controls input.explorer-supply-fee-input-error {
-  border-color: color-mix(in oklch, var(--explorer-destructive) 45%, var(--explorer-border));
+  border-color: color-mix(in oklch, var(--saito-destructive) 45%, var(--saito-border));
 }
 
 .explorer-supply-produce-error {
   margin: 0 0 var(--explorer-space-2);
   padding: var(--explorer-space-2) var(--explorer-space-3);
-  border: 1px solid color-mix(in oklch, var(--explorer-destructive) 35%, var(--explorer-border));
-  border-radius: var(--explorer-radius-sm);
-  background-color: color-mix(in oklch, var(--explorer-destructive) 8%, var(--explorer-card));
-  color: var(--explorer-foreground);
+  border: 1px solid color-mix(in oklch, var(--saito-destructive) 35%, var(--saito-border));
+  border-radius: var(--saito-radius-sm);
+  background-color: color-mix(in oklch, var(--saito-destructive) 8%, var(--saito-card));
+  color: var(--saito-foreground);
   font-size: var(--explorer-text-sm);
 }
 
@@ -126,12 +125,12 @@
   width: 100%;
   margin-top: var(--explorer-space-1);
   padding: 0.5rem 0.65rem;
-  border: 1px solid var(--explorer-border);
-  border-radius: var(--explorer-radius-sm);
-  background: color-mix(in oklch, var(--explorer-card) 92%, var(--explorer-secondary));
-  font-family: var(--explorer-font-mono);
+  border: 1px solid var(--saito-border);
+  border-radius: var(--saito-radius-sm);
+  background: color-mix(in oklch, var(--saito-card) 92%, var(--saito-secondary));
+  font-family: var(--saito-font-monospace);
   font-size: var(--explorer-text-xs);
-  color: var(--explorer-muted-foreground);
+  color: var(--saito-muted-foreground);
 }
 
 .explorer-supply-fee-diagnostics-list {
@@ -152,28 +151,28 @@
   display: inline-block;
   width: 1rem;
   text-align: center;
-  color: var(--explorer-muted-foreground);
+  color: var(--saito-muted-foreground);
 }
 
 .explorer-supply-fee-diagnostics-list li[data-state='pass'] {
-  color: var(--explorer-foreground);
+  color: var(--saito-foreground);
 }
 
 .explorer-supply-fee-diagnostics-list li[data-state='pass'] .explorer-supply-fee-step-icon {
-  color: var(--explorer-primary-text);
+  color: var(--explorer-supply-accent);
 }
 
 .explorer-supply-fee-diagnostics-list li[data-state='fail'] {
-  color: color-mix(in oklch, var(--explorer-destructive) 80%, var(--explorer-foreground));
+  color: color-mix(in oklch, var(--saito-destructive) 80%, var(--saito-foreground));
 }
 
 .explorer-supply-fee-diagnostics-list li[data-state='fail'] .explorer-supply-fee-step-icon {
-  color: var(--explorer-destructive);
+  color: var(--saito-destructive);
 }
 
 .explorer-supply-fee-success {
   margin: 0.45rem 0 0;
-  color: var(--explorer-foreground);
+  color: var(--saito-foreground);
   font-weight: var(--explorer-font-medium);
 }
 
@@ -206,11 +205,11 @@
   right: 1.75rem;
   min-height: 2rem;
   padding: 0.25rem 0.65rem;
-  border: 1px solid var(--explorer-border);
-  border-radius: var(--explorer-radius-sm);
-  background: var(--explorer-card);
-  color: var(--explorer-muted-foreground);
-  font-family: var(--explorer-font-mono);
+  border: 1px solid var(--saito-border);
+  border-radius: var(--saito-radius-sm);
+  background: var(--saito-card);
+  color: var(--saito-muted-foreground);
+  font-family: var(--saito-font-monospace);
   font-size: var(--explorer-text-xs);
   line-height: 1;
   cursor: pointer;
@@ -222,15 +221,15 @@
 
 .explorer-supply-exact-toggle:hover,
 .explorer-supply-exact-toggle:focus-visible {
-  color: var(--explorer-foreground);
-  border-color: var(--explorer-ring);
+  color: var(--saito-foreground);
+  border-color: var(--saito-ring);
   outline: none;
 }
 
 .explorer-supply-exact-toggle.is-active {
-  color: var(--explorer-primary-foreground);
-  border-color: var(--explorer-primary);
-  background: var(--explorer-primary);
+  color: var(--saito-primary-foreground);
+  border-color: var(--saito-primary);
+  background: var(--saito-primary);
 }
 
 .explorer-supply-width-toggle {
@@ -245,7 +244,7 @@
   padding: 0;
   border: 0;
   background: transparent;
-  color: var(--explorer-muted-foreground);
+  color: var(--saito-muted-foreground);
   cursor: pointer;
   transition:
     color var(--explorer-transition-fast),
@@ -254,13 +253,13 @@
 
 .explorer-supply-width-toggle:hover,
 .explorer-supply-width-toggle:focus-visible {
-  color: var(--explorer-foreground);
+  color: var(--saito-foreground);
   outline: none;
 }
 
 .explorer-supply-width-toggle:focus-visible {
-  box-shadow: 0 0 0 2px color-mix(in oklch, var(--explorer-ring) 35%, transparent);
-  border-radius: var(--explorer-radius-sm);
+  box-shadow: 0 0 0 2px color-mix(in oklch, var(--saito-ring) 35%, transparent);
+  border-radius: var(--saito-radius-sm);
 }
 
 .explorer-supply-width-toggle i {
@@ -283,7 +282,7 @@
 .explorer-supply-status {
   margin: 0 0 var(--explorer-space-3);
   font-size: var(--explorer-text-sm);
-  color: var(--explorer-muted-foreground);
+  color: var(--saito-muted-foreground);
   line-height: var(--explorer-leading-relaxed);
 }
 
@@ -305,14 +304,14 @@
   padding: var(--explorer-space-2) var(--explorer-space-2);
   text-align: left;
   vertical-align: middle;
-  border-bottom: 1px solid var(--explorer-border);
+  border-bottom: 1px solid var(--saito-border);
 }
 
 .explorer-supply-table thead th {
   font-size: var(--explorer-text-xs);
   font-weight: var(--explorer-font-semibold);
-  color: var(--explorer-muted-foreground);
-  background-color: var(--explorer-muted);
+  color: var(--saito-muted-foreground);
+  background-color: var(--saito-muted);
   white-space: nowrap;
 }
 
@@ -331,23 +330,23 @@
 .explorer-golden-ticket-icon {
   font-size: 0.65rem;
   line-height: 1;
-  color: var(--explorer-primary-text);
+  color: var(--explorer-supply-accent);
 }
 
 .explorer-supply-table th.explorer-column-golden-ticket,
 .explorer-supply-table td.explorer-column-golden-ticket {
-  box-shadow: inset 0 0 0 9999px color-mix(in oklch, var(--explorer-primary) 7%, transparent);
+  box-shadow: inset 0 0 0 9999px color-mix(in oklch, var(--saito-primary) 7%, transparent);
 }
 
 html[data-theme='dark'] .explorer-supply-table th.explorer-column-golden-ticket,
 html[data-theme='dark'] .explorer-supply-table td.explorer-column-golden-ticket {
-  box-shadow: inset 0 0 0 9999px color-mix(in oklch, var(--explorer-primary) 11%, transparent);
+  box-shadow: inset 0 0 0 9999px color-mix(in oklch, var(--saito-primary) 11%, transparent);
 }
 
 .explorer-supply-table .explorer-supply-row-label {
-  font-family: var(--explorer-font-mono);
+  font-family: var(--saito-font-monospace);
   font-size: var(--explorer-text-xs);
-  color: var(--explorer-foreground);
+  color: var(--saito-foreground);
   white-space: nowrap;
 }
 
@@ -384,28 +383,28 @@ html[data-theme='dark'] .explorer-supply-table td.explorer-column-golden-ticket 
 }
 
 .explorer-supply-table tr.explorer-payout-highlight {
-  background-color: color-mix(in oklch, var(--explorer-link) 12%, var(--explorer-card));
+  background-color: color-mix(in oklch, var(--explorer-link) 12%, var(--saito-card));
 }
 
 .explorer-supply-table tr.explorer-supply-delta-divider td {
   padding: 0;
   height: 0;
   border-bottom: 1px solid
-    color-mix(in oklch, var(--explorer-muted-foreground) 22%, var(--explorer-border));
+    color-mix(in oklch, var(--saito-muted-foreground) 22%, var(--saito-border));
   background-color: transparent;
 }
 
 .explorer-supply-table tr.explorer-supply-delta-divider:first-of-type td {
   border-top: 1px solid
-    color-mix(in oklch, var(--explorer-muted-foreground) 22%, var(--explorer-border));
+    color-mix(in oklch, var(--saito-muted-foreground) 22%, var(--saito-border));
 }
 
 .explorer-supply-table tr.explorer-supply-delta-section-row {
-  background-color: color-mix(in oklch, var(--explorer-muted-foreground) 7%, var(--explorer-card));
+  background-color: color-mix(in oklch, var(--saito-muted-foreground) 7%, var(--saito-card));
 }
 
 .explorer-supply-table tr.explorer-supply-delta-section-row td {
-  background-color: color-mix(in oklch, var(--explorer-muted-foreground) 7%, var(--explorer-card));
+  background-color: color-mix(in oklch, var(--saito-muted-foreground) 7%, var(--saito-card));
 }
 
 .explorer-supply-table tr.explorer-supply-delta-section-row .explorer-supply-row-label,
@@ -413,7 +412,7 @@ html[data-theme='dark'] .explorer-supply-table td.explorer-column-golden-ticket 
   font-size: var(--explorer-text-xs);
   font-weight: var(--explorer-font-normal);
   font-style: normal;
-  color: var(--explorer-muted-foreground);
+  color: var(--saito-muted-foreground);
 }
 
 .explorer-supply-table tr.explorer-supply-delta-section-row .explorer-supply-row-label {
@@ -427,76 +426,76 @@ html[data-theme='dark'] .explorer-supply-table td.explorer-column-golden-ticket 
   font-weight: var(--explorer-font-semibold);
   letter-spacing: var(--explorer-tracking-wide);
   text-transform: uppercase;
-  color: var(--explorer-muted-foreground);
-  background-color: color-mix(in oklch, var(--explorer-muted-foreground) 7%, var(--explorer-card));
+  color: var(--saito-muted-foreground);
+  background-color: color-mix(in oklch, var(--saito-muted-foreground) 7%, var(--saito-card));
 }
 
 .explorer-supply-table tr.explorer-supply-net-flow-row {
-  background-color: color-mix(in oklch, var(--explorer-muted-foreground) 7%, var(--explorer-card));
+  background-color: color-mix(in oklch, var(--saito-muted-foreground) 7%, var(--saito-card));
 }
 
 .explorer-supply-table tr.explorer-supply-net-flow-row td {
-  background-color: color-mix(in oklch, var(--explorer-muted-foreground) 7%, var(--explorer-card));
+  background-color: color-mix(in oklch, var(--saito-muted-foreground) 7%, var(--saito-card));
 }
 
 .explorer-supply-table tr.explorer-supply-net-flow-row .explorer-supply-row-label,
 .explorer-supply-table tr.explorer-supply-net-flow-row .explorer-supply-numeric {
   font-size: var(--explorer-text-xs);
   font-weight: var(--explorer-font-normal);
-  color: var(--explorer-muted-foreground);
+  color: var(--saito-muted-foreground);
 }
 
 .explorer-supply-table tr.explorer-supply-net-flow-total-row .explorer-supply-row-label,
 .explorer-supply-table tr.explorer-supply-net-flow-total-row .explorer-supply-numeric {
   font-weight: var(--explorer-font-semibold);
-  color: var(--explorer-foreground);
+  color: var(--saito-foreground);
 }
 
 .explorer-supply-net-flow-zero {
-  color: var(--explorer-muted-foreground);
+  color: var(--saito-muted-foreground);
 }
 
 .explorer-supply-net-flow-positive {
-  color: color-mix(in oklch, #3b6ea8 78%, var(--explorer-foreground));
+  color: color-mix(in oklch, #3b6ea8 78%, var(--saito-foreground));
 }
 
 .explorer-supply-net-flow-negative {
-  color: color-mix(in oklch, #9a6b2f 78%, var(--explorer-foreground));
+  color: color-mix(in oklch, #9a6b2f 78%, var(--saito-foreground));
 }
 
 .explorer-supply-net-flow-muted {
-  color: var(--explorer-muted-foreground);
+  color: var(--saito-muted-foreground);
 }
 
 .explorer-supply-net-flow-error {
-  color: var(--explorer-destructive);
+  color: var(--saito-destructive);
   font-weight: var(--explorer-font-semibold);
 }
 
 .explorer-supply-delta-zero {
-  color: var(--explorer-muted-foreground);
+  color: var(--saito-muted-foreground);
 }
 
 .explorer-supply-delta-positive {
-  color: color-mix(in oklch, #3b6ea8 78%, var(--explorer-foreground));
+  color: color-mix(in oklch, #3b6ea8 78%, var(--saito-foreground));
 }
 
 .explorer-supply-delta-negative {
-  color: color-mix(in oklch, #9a6b2f 78%, var(--explorer-foreground));
+  color: color-mix(in oklch, #9a6b2f 78%, var(--saito-foreground));
 }
 
 .explorer-supply-delta-muted {
-  color: var(--explorer-muted-foreground);
+  color: var(--saito-muted-foreground);
 }
 
 .explorer-supply-unknown {
-  color: var(--explorer-muted-foreground);
+  color: var(--saito-muted-foreground);
   font-weight: var(--explorer-font-semibold);
   letter-spacing: 0.08em;
 }
 
 html[data-theme='dark'] .explorer-supply-table tr.explorer-supply-highlight {
-  background-color: color-mix(in oklch, var(--explorer-primary) 18%, var(--explorer-card));
+  background-color: color-mix(in oklch, var(--saito-primary) 18%, var(--saito-card));
 }
 
 html[data-theme='dark'] .explorer-supply-table tr.explorer-supply-invariant-row,
@@ -518,7 +517,7 @@ html[data-theme='dark']
 }
 
 html[data-theme='dark'] .explorer-supply-table tr.explorer-payout-highlight {
-  background-color: color-mix(in oklch, var(--explorer-link) 16%, var(--explorer-card));
+  background-color: color-mix(in oklch, var(--explorer-link) 16%, var(--saito-card));
 }
 
 .explorer-supply-block-link {

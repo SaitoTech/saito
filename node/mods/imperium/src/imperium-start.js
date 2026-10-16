@@ -21,8 +21,6 @@ const AgendasOverlay = require('./lib/overlays/agenda');
 const AgendaSelectionOverlay = require('./lib/overlays/agenda-selection');
 const AgendaVotingOverlay = require('./lib/overlays/agenda-voting');
 const NewActionCardsOverlay = require('./lib/overlays/new-action-cards');
-const ResourceSelectionOverlay = require('./lib/overlays/resource-selection');
-const InfluenceSelectionOverlay = require('./lib/overlays/influence-selection');
 const SenateOverlay = require('./lib/overlays/senate');
 const SpaceCombatOverlay = require('./lib/overlays/space-combat');
 const GroundCombatOverlay = require('./lib/overlays/ground-combat');
@@ -38,6 +36,7 @@ const Dashboard = require('./lib/dashboard-manager');
 const RoundBox = require('./lib/round');
 const Sector = require('./lib/sector');
 const ImperiumGameHUD = require('./lib/imperium-game-hud/imperium-game-hud');
+const ImperiumLog = require('./lib/imperium-log');
 
 
 class Imperium extends GameTemplate {
@@ -89,8 +88,6 @@ class Imperium extends GameTemplate {
     this.sector_overlay = new SectorOverlay(this.app, this);
     this.tech_tree_overlay = new TechTreeOverlay(this.app, this);
     this.factions_overlay = new FactionsOverlay(this.app, this);
-    this.resource_selection_overlay = new ResourceSelectionOverlay(this.app, this);
-    this.influence_selection_overlay = new InfluenceSelectionOverlay(this.app, this);
     this.space_combat_overlay = new SpaceCombatOverlay(this.app, this);
     this.ground_combat_overlay = new GroundCombatOverlay(this.app, this);
     this.bombardment_overlay = new BombardmentOverlay(this.app, this);
@@ -141,6 +138,25 @@ class Imperium extends GameTemplate {
     this.assigns = [];  // floating units needing assignment to ships
     this.game.tracker = {};  // track options in turn
     this.activated_systems_player = 0;
+
+    // Cluster agenda votes, strategy-card picks, and combat into one expandable
+    // log row each. Plain updateLog calls stay individual and keep the shared
+    // log's "> " prefix.
+    this.imperium_log = new ImperiumLog(this);
+    this.log.registerEventType('agenda', (entries) => this.imperium_log.render(entries));
+    this.log.registerEventType('strategy', (entries) => this.imperium_log.render(entries));
+    this.log.registerEventType('combat', (entries) => this.imperium_log.render(entries));
+    let update_log = this.updateLog.bind(this);
+    this.updateLog = (str, eventType = '', data = null) => {
+      if (eventType) {
+        update_log(str, eventType, data);
+        return;
+      }
+      if (this.imperium_log && this.imperium_log.absorb(str)) {
+        return;
+      }
+      update_log(str, eventType, data);
+    };
 
     return this;
   

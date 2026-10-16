@@ -51,6 +51,23 @@ class ImperiumGameHUD extends GameHUD2 {
         }
       });
     }
+
+    let combatOverlay = this.mod.space_combat_overlay;
+    if (!combatOverlay || !combatOverlay.visible) {
+      combatOverlay = this.mod.ground_combat_overlay;
+    }
+    if (combatOverlay && combatOverlay.visible) {
+      let menuOptions = Array.isArray(options) ? options : [];
+      let prompt = this.status_message || this.header_message || this.plainHudText(this.mod.game.status);
+      combatOverlay.updateOptions(prompt, menuOptions, (id) => {
+        let choice = Array.from((region && region.querySelectorAll('.option')) || []).find(
+          (item) => item.id === String(id)
+        );
+        if (choice) {
+          choice.click();
+        }
+      });
+    }
   }
 
   updatePanel(html) {
@@ -74,9 +91,9 @@ class ImperiumGameHUD extends GameHUD2 {
       '<div class="imperium-hud-ack-body">' +
       (html == null ? '' : String(html)) +
       '</div>' +
-      '<button type="button" class="imperium-hud-ack-button">ACKNOWLEDGE</button>' +
+      '<button type="button" class="imperium-hud-acknowledge-button">ACKNOWLEDGE</button>' +
       '</div>';
-    let button = region.querySelector('.imperium-hud-ack-button');
+    let button = region.querySelector('.imperium-hud-acknowledge-button');
     if (button) {
       button.onclick = (e) => {
         e.stopPropagation();
@@ -85,6 +102,33 @@ class ImperiumGameHUD extends GameHUD2 {
         }
       };
     }
+
+    let combatOverlay = this.mod.space_combat_overlay;
+    if (!combatOverlay || !combatOverlay.visible) {
+      combatOverlay = this.mod.ground_combat_overlay;
+    }
+    if (combatOverlay && combatOverlay.visible) {
+      combatOverlay.updateStatusAndAcknowledge(this.plainHudText(html));
+    }
+  }
+
+  updatePopup(message, timeout = 5000) {
+    if (!this.mod.browser_active) {
+      return;
+    }
+    this.render();
+    let hudnotice = document.querySelector('#game-hud2 .hud-notice');
+    if (!hudnotice) {
+      return;
+    }
+    hudnotice.style.backgroundImage = "url('/imperium/img/backgrounds/hud-popup.png')";
+    hudnotice.style.backgroundSize = 'cover';
+    hudnotice.style.backgroundPosition = 'center center';
+    hudnotice.style.backgroundRepeat = 'no-repeat';
+    let text = document.createElement('div');
+    text.className = 'imperium-hud-popup-text';
+    text.textContent = message == null ? '' : String(message);
+    this.showPopup(text.outerHTML, timeout);
   }
 
   updateStatus(message, fadeout_time) {
@@ -163,6 +207,54 @@ class ImperiumGameHUD extends GameHUD2 {
     return document.querySelector('#game-hud2 .imperium-hud-frame .hud-menu');
   }
 
+  showCombatRestore(key, label, restore) {
+    this.combat_restore_key = key;
+    this.combat_restore = restore;
+    let button = this.combatToggle();
+    if (!button) {
+      return;
+    }
+    button.hidden = false;
+    button.textContent = label;
+    button.onclick = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (typeof this.combat_restore === 'function') {
+        this.combat_restore();
+      }
+    };
+  }
+
+  hideCombatRestore(key) {
+    if (key && this.combat_restore_key && key !== this.combat_restore_key) {
+      return;
+    }
+    this.combat_restore_key = '';
+    this.combat_restore = null;
+    let button = this.combatToggle();
+    if (!button) {
+      return;
+    }
+    button.hidden = true;
+    button.onclick = null;
+  }
+
+  combatToggle() {
+    let header = document.querySelector('#game-hud2 .imperium-hud-header');
+    if (!header) {
+      return null;
+    }
+    let button = header.querySelector('.imperium-hud-combat-toggle');
+    if (!button) {
+      button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'imperium-hud-combat-toggle';
+      button.hidden = true;
+      header.appendChild(button);
+    }
+    return button;
+  }
+
   clearStatusTimer() {
     if (this.status_timer) {
       clearTimeout(this.status_timer);
@@ -198,7 +290,8 @@ class ImperiumGameHUD extends GameHUD2 {
     if (this.isFlash(text)) {
       this.updateHeader('');
       this.updateMenu([]);
-      this.updateStatus(text, 4500);
+      this.updateStatus('');
+      this.updatePanel('<div class="status-message">' + this.escapeHtml(text) + '</div>');
       return;
     }
     if (raw.indexOf('textchoice') === -1 && raw.indexOf('buildchoice') === -1 && this.isBoardInstruction(text)) {

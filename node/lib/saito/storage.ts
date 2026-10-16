@@ -14,14 +14,12 @@ class Storage {
   public timeout: any;
   currentBuildNumber: bigint = BigInt(0);
   public localDB: any = null;
-  public wallet_options_hash: any = '';
 
   constructor(app) {
     this.app = app || {};
     this.active_tab = 1; // TODO - only active tab saves, move to Browser class
     this.timeout = null;
     this.localDB = null;
-    this.wallet_options_hash = '';
   }
 
   async initialize() {
@@ -97,12 +95,98 @@ class Storage {
           );
           this.app.options.peers = serverPeers;
         }
+        await this.readExternalRecords();
         logPeers('localStorage+merge');
         return;
       }
     }
     this.app.options = receivedOptions;
     logPeers('GET_/options_only');
+  }
+
+  async readExternalRecords() {
+    if (this.app.BROWSER != 1) {
+      return;
+    }
+    const publicKey = this.app.options?.wallet?.publicKey;
+    if (!publicKey) {
+      return;
+    }
+
+    const embeddedGames =
+      Array.isArray(this.app.options.games) &&
+      this.app.options.games.length > 0 &&
+      this.app.options.games[0] &&
+      typeof this.app.options.games[0] === 'object';
+    const embeddedSaves =
+      this.app.options.saves &&
+      typeof this.app.options.saves === 'object' &&
+      Object.keys(this.app.options.saves).length > 0;
+
+    if (!Array.isArray(this.app.options.external_game_ids) && (embeddedGames || embeddedSaves)) {
+      const gameIds = [];
+      const writes = [];
+      if (embeddedGames) {
+        for (let i = 0; i < this.app.options.games.length; i++) {
+          const game = this.app.options.games[i];
+          if (!game?.id) {
+            continue;
+          }
+          gameIds.push(game.id);
+          writes.push(localforage.setItem(`game:${publicKey}:${game.id}`, JSON.stringify(game)));
+        }
+      }
+      const saveIds = [];
+      if (embeddedSaves) {
+        const saveKeys = Object.keys(this.app.options.saves);
+        for (let i = 0; i < saveKeys.length; i++) {
+          saveIds.push(saveKeys[i]);
+          writes.push(
+            localforage.setItem(
+              `save:${publicKey}:${saveKeys[i]}`,
+              JSON.stringify(this.app.options.saves[saveKeys[i]])
+            )
+          );
+        }
+      }
+      await Promise.all(writes);
+      this.app.options.external_game_ids = gameIds;
+      this.app.options.external_save_ids = saveIds;
+      this.saveOptions();
+      return;
+    }
+
+    const gameIds = Array.isArray(this.app.options.external_game_ids)
+      ? this.app.options.external_game_ids
+      : [];
+    const games = [];
+    for (let i = 0; i < gameIds.length; i++) {
+      const raw = await localforage.getItem(`game:${publicKey}:${gameIds[i]}`);
+      if (typeof raw === 'string') {
+        try {
+          games.push(JSON.parse(raw));
+        } catch (err) {}
+      } else if (raw && typeof raw === 'object') {
+        games.push(raw);
+      }
+    }
+    this.app.options.games = games;
+
+    const saveIds = Array.isArray(this.app.options.external_save_ids)
+      ? this.app.options.external_save_ids
+      : [];
+    const saves = {};
+    for (let i = 0; i < saveIds.length; i++) {
+      const raw = await localforage.getItem(`save:${publicKey}:${saveIds[i]}`);
+      if (typeof raw === 'string') {
+        try {
+          saves[saveIds[i]] = JSON.parse(raw);
+        } catch (err) {}
+      } else if (raw && typeof raw === 'object') {
+        saves[saveIds[i]] = raw;
+      }
+    }
+    this.app.options.saves = saves;
   }
 
   returnClientOptions(): string {
@@ -524,6 +608,7 @@ class Storage {
         console.log(`Found wallet for ${publicKey} in IndexedDB`);
         //siteMessage(`Found wallet for ${publicKey} in IndexedDB`);
         this.app.options = wallet;
+        await this.readExternalRecords();
         this.app.storage.saveOptions();
       } else {
         console.log(`Creating fresh wallet for ${publicKey}`);
@@ -541,7 +626,10 @@ class Storage {
     if (this.app.BROWSER) {
       let key = await this.app.wallet.getPublicKey();
       if (key) {
-        localforage.setItem(key, this.app.options);
+        const shell = { ...this.app.options };
+        delete shell.games;
+        delete shell.saves;
+        localforage.setItem(key, shell);
       }
     }
   }
@@ -594,25 +682,170 @@ class Storage {
     }
   }
 
-  saveOptions() {
+  saveOptions(replacements: Array<{ path: Array<string | number>; json: string }> = []) {
     if (this.app.BROWSER == 1) {
       if (this.active_tab == 0) {
         return;
       }
     }
 
-    let new_wallet_json = JSON.stringify(this.app.options);
-    let new_wallet_hash = this.app.crypto.hash(new_wallet_json);
+    // A replacement is an already-serialized value somewhere in app.options.
+    // The live object is swapped for a token while stringify runs, then the
+    // token is replaced with that JSON so the subtree is not walked again.
+    // games and saves are not part of the localStorage wallet; they are written
+    // as one IndexedDB record each. A replacement whose path starts at games
+    // supplies the JSON for that record.
+    const publicKey = this.app.options?.wallet?.publicKey;
+    const externalize = this.app.BROWSER == 1 && !!publicKey;
+    const previousGameIds = Array.isArray(this.app.options?.external_game_ids)
+      ? this.app.options.external_game_ids.slice()
+      : [];
+    const previousSaveIds = Array.isArray(this.app.options?.external_save_ids)
+      ? this.app.options.external_save_ids.slice()
+      : [];
+    const gameJsonById = {};
+    const applied = [];
+    let new_wallet_json = '';
 
-    if (new_wallet_hash == this?.wallet_options_hash) {
-      return;
+    try {
+      for (let i = 0; i < replacements.length; i++) {
+        const item = replacements[i];
+        if (
+          !item ||
+          !Array.isArray(item.path) ||
+          item.path.length === 0 ||
+          typeof item.json !== 'string'
+        ) {
+          continue;
+        }
+        if (externalize && item.path[0] === 'games') {
+          const game = this.app.options.games?.[item.path[1]];
+          if (game?.id) {
+            gameJsonById[game.id] = item.json;
+          }
+          continue;
+        }
+        if (externalize && item.path[0] === 'saves') {
+          continue;
+        }
+
+        let parent = this.app.options;
+        for (let p = 0; p < item.path.length - 1; p++) {
+          parent = parent?.[item.path[p]];
+        }
+        if (parent == null) {
+          continue;
+        }
+
+        const key = item.path[item.path.length - 1];
+        const token = `__SAITO_SAVED_${i}_${Date.now()}_${Math.random().toString(36).slice(2)}__`;
+        applied.push({ parent, key, original: parent[key], token, json: item.json });
+        parent[key] = token;
+      }
+
+      if (externalize) {
+        const games = Array.isArray(this.app.options.games) ? this.app.options.games : [];
+        const saves =
+          this.app.options.saves && typeof this.app.options.saves === 'object'
+            ? this.app.options.saves
+            : {};
+        const currentGameIds = [];
+        for (let i = 0; i < games.length; i++) {
+          if (games[i]?.id) {
+            currentGameIds.push(games[i].id);
+          }
+        }
+        this.app.options.external_game_ids = currentGameIds;
+        this.app.options.external_save_ids = Object.keys(saves);
+      }
+
+      console.log('GT [saveOptions] before stringify', new Date().toISOString(), Date.now());
+      if (externalize) {
+        const shell = { ...this.app.options };
+        delete shell.games;
+        delete shell.saves;
+        new_wallet_json = JSON.stringify(shell);
+      } else {
+        new_wallet_json = JSON.stringify(this.app.options);
+      }
+      for (let i = 0; i < applied.length; i++) {
+        new_wallet_json = new_wallet_json
+          .split(JSON.stringify(applied[i].token))
+          .join(applied[i].json);
+      }
+    } finally {
+      for (let i = applied.length - 1; i >= 0; i--) {
+        applied[i].parent[applied[i].key] = applied[i].original;
+      }
     }
+
+    if (externalize) {
+      const games = Array.isArray(this.app.options.games) ? this.app.options.games : [];
+      const saves =
+        this.app.options.saves && typeof this.app.options.saves === 'object'
+          ? this.app.options.saves
+          : {};
+      const currentGameIds = Array.isArray(this.app.options.external_game_ids)
+        ? this.app.options.external_game_ids
+        : [];
+      const currentSaveIds = Array.isArray(this.app.options.external_save_ids)
+        ? this.app.options.external_save_ids
+        : [];
+
+      for (let i = 0; i < games.length; i++) {
+        const id = games[i]?.id;
+        if (!id) {
+          continue;
+        }
+        const body = gameJsonById[id] || JSON.stringify(games[i]);
+        localforage.setItem(`game:${publicKey}:${id}`, body).catch((err) => {
+          console.error(err);
+        });
+      }
+      for (let i = 0; i < previousGameIds.length; i++) {
+        if (currentGameIds.indexOf(previousGameIds[i]) === -1) {
+          localforage.removeItem(`game:${publicKey}:${previousGameIds[i]}`).catch((err) => {
+            console.error(err);
+          });
+        }
+      }
+
+      for (let i = 0; i < currentSaveIds.length; i++) {
+        const id = currentSaveIds[i];
+        localforage.setItem(`save:${publicKey}:${id}`, JSON.stringify(saves[id])).catch((err) => {
+          console.error(err);
+        });
+      }
+      for (let i = 0; i < previousSaveIds.length; i++) {
+        if (currentSaveIds.indexOf(previousSaveIds[i]) === -1) {
+          localforage.removeItem(`save:${publicKey}:${previousSaveIds[i]}`).catch((err) => {
+            console.error(err);
+          });
+        }
+      }
+    }
+
+    console.log(
+      'GT [saveOptions] after stringify, options size ' +
+        new_wallet_json.length +
+        ' bytes (' +
+        (new_wallet_json.length / 1024).toFixed(1) +
+        ' KB)',
+      new Date().toISOString(),
+      Date.now()
+    );
 
     try {
       localStorage.setItem('options', new_wallet_json);
-
-      //Update hash
-      this.wallet_options_hash = new_wallet_hash;
+      console.log(
+        'GT [saveOptions] after localStorage.setItem, options size ' +
+          new_wallet_json.length +
+          ' bytes (' +
+          (new_wallet_json.length / 1024).toFixed(1) +
+          ' KB)',
+        new Date().toISOString(),
+        Date.now()
+      );
     } catch (err) {
       for (let i = 0; i < localStorage.length; i++) {
         let item = localStorage.getItem(localStorage.key(i));

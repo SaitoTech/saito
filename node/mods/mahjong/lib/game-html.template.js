@@ -3,8 +3,6 @@ module.exports = (app, mod) => {
 		<div class="gameboard">
 			<div class="logobox">
 				<img src="/mahjong/img/arcade/arcade-banner-background.png" />
-				<div id="status" class="status hidable"></div>
-				<div id="controls" class="controls"></div>
 			</div>
 			<div id="tiles" class="tiles"></div>
 

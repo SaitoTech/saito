@@ -60,7 +60,7 @@
           this.game.status = "US place four influence in Asia (2 max per country)";
           this.hud.updateStatus(this.game.status);
           this.hud.updateMenu([]);
-          this.hud.updateCards([]);
+          this.hud.updateCards(this.game.deck[0].hand);
 
           for (var i in this.countries) {
 
@@ -99,7 +99,7 @@
           this.game.status = `<div class='status-message' id='status-message'>${this.cardToText(card)}: US is placing influence in Asia </div>`;
           this.hud.updateStatus(this.game.status);
           this.hud.updateMenu([]);
-          this.hud.updateCards([]);
+          this.hud.updateCards(this.game.deck[0].hand);
         }
         return 0;
   

@@ -39,7 +39,7 @@
     this.game.status = "Opponent is placing 1 influence in a European country in which they have a predominance of influence";
     this.hud.updateStatus(this.game.status);
     this.hud.updateMenu([]);
-    this.hud.updateCards([]);
+    this.hud.updateCards(this.game.deck[0].hand);
     return 0;
 
         }
@@ -48,7 +48,7 @@
         this.game.status = "Place 1 influence in a European country in which you have a predominance of influence";
         this.hud.updateStatus(this.game.status);
         this.hud.updateMenu([]);
-        this.hud.updateCards([]);
+        this.hud.updateCards(this.game.deck[0].hand);
 
         for (let i = 0; i < placeable.length; i++) {
 

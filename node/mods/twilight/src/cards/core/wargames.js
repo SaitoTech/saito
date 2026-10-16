@@ -13,7 +13,7 @@
 
         this.game.status = `${this.cardToText(card)}: Do you want to give your opponent 6 VP and End the Game? (VP ties will be won by opponent)`;
         this.hud.updateStatus(this.game.status);
-        this.hud.updateCards([]);
+        this.hud.updateCards(this.game.deck[0].hand);
         this.hud.updateMenu([ { id: 'endgame', label: 'end the game' }, { id: 'cont', label: 'continue playing' } ], function(action2) {
 
           if (action2 == "endgame") {

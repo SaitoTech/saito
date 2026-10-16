@@ -28,7 +28,10 @@ module.exports = (streamId, app, mod, externalClass = '') => {
       	<div class="call-icons">
 					<i id="audio-indicator" class="fa fa-microphone"></i>
       	</div>
-        <div class="saito-address" data-id="${key}">${name}</div>
+        <div class="video-call-identity">
+          <div class="saito-address" data-id="${key}">${name}</div>
+          <span class="peer-transcription-status" role="status" hidden>Transcribing</span>
+        </div>
       	<div class="peer-call-list"></div>`;
 
   if (volumeControl) {

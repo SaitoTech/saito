@@ -2,22 +2,22 @@
   .objectives-overlay {
     box-sizing: border-box;
     width: max-content;
-    max-width: min(92vw, 78rem);
-    max-height: 86vh;
+    max-width: min(96vw, 100rem);
+    max-height: 90vh;
     min-width: 0;
-    padding: 1.4rem 1.6rem 1.6rem;
+    padding: 2.2rem 2.4rem 2.6rem;
     overflow: auto;
-    background: color-mix(in srgb, #101218 90%, transparent);
+    background: color-mix(in srgb, #101218 92%, transparent);
   }
 
   .objectives-overlay-title {
-    margin: 0 0 1.1rem;
+    margin: 0 0 1.8rem;
     width: auto;
     color: var(--imp-text);
-    font-family: var(--imp-font-label);
-    font-size: 1.35rem;
+    font-family: 'orbitron-medium', helvetica, arial;
+    font-size: 2.2rem;
     font-weight: 400;
-    letter-spacing: 0.28em;
+    letter-spacing: 0.08em;
     line-height: 1.2;
     text-align: center;
     text-transform: uppercase;
@@ -28,7 +28,7 @@
     flex-flow: row wrap;
     align-items: stretch;
     justify-content: center;
-    gap: 1.1rem;
+    gap: 2.4rem;
     width: auto;
     max-width: none;
     height: auto;
@@ -41,8 +41,6 @@
   .fs-objectives .objective-card {
     display: flex;
     flex-direction: column;
-    width: 16.75rem;
-    max-width: calc(92vw - 3.2rem);
     margin: 0;
     overflow: hidden;
     background: #0c0e14;
@@ -50,39 +48,68 @@
     color: var(--imp-text);
   }
 
+  .fs-objectives .objective-card {
+    width: 19.5rem;
+    max-width: calc(92vw - 3.2rem);
+  }
+
+  .objectives-overlay .objective-card {
+    width: 44rem;
+    max-width: calc(94vw - 4.8rem);
+  }
+
   .objectives-overlay .objective-card-art,
   .fs-objectives .objective-card-art {
     position: relative;
     flex: 0 0 auto;
-    height: 9.25rem;
     margin: 0;
     background-color: #07080c;
     background-repeat: no-repeat;
     background-size: cover;
-    background-position: center 70%;
+    background-position: center;
+  }
+
+  .fs-objectives .objective-card-art {
+    height: 10.8rem;
+  }
+
+  .objectives-overlay .objective-card-art {
+    height: auto;
+    aspect-ratio: 2 / 1;
   }
 
   .objectives-overlay .objective-card-vp,
   .fs-objectives .objective-card-vp {
     position: absolute;
     left: 50%;
-    bottom: -1.2rem;
     z-index: 1;
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 2.7rem;
-    height: 2.7rem;
     margin: 0;
     padding: 0;
     transform: translateX(-50%);
     border-radius: 50%;
     background: #1a4eaa;
-    box-shadow: 0 0 0 0.28rem #0c0e14;
     color: #fff;
     font-family: var(--imp-font-label);
-    font-size: 1.4rem;
     line-height: 1;
+  }
+
+  .fs-objectives .objective-card-vp {
+    bottom: -1.35rem;
+    width: 3.1rem;
+    height: 3.1rem;
+    box-shadow: 0 0 0 0.3rem #0c0e14;
+    font-size: 1.6rem;
+  }
+
+  .objectives-overlay .objective-card-vp {
+    bottom: -2.15rem;
+    width: 4.8rem;
+    height: 4.8rem;
+    box-shadow: 0 0 0 0.42rem #0c0e14;
+    font-size: 2.5rem;
   }
 
   .objectives-overlay .objective-card.is-stage-ii .objective-card-vp,
@@ -100,9 +127,17 @@
     display: flex;
     flex: 1 1 auto;
     flex-direction: column;
-    gap: 0.45rem;
     margin: 0;
-    padding: 1.7rem 1rem 1.05rem;
+  }
+
+  .fs-objectives .objective-card-body {
+    gap: 0.5rem;
+    padding: 1.95rem 1.15rem 1.2rem;
+  }
+
+  .objectives-overlay .objective-card-body {
+    gap: 0.85rem;
+    padding: 3.2rem 2rem 2rem;
   }
 
   .objectives-overlay .objective-card-kind,
@@ -111,11 +146,19 @@
     padding: 0;
     color: var(--imp-text-muted);
     font-family: var(--imp-font);
-    font-size: 0.78rem;
-    letter-spacing: 0.16em;
     line-height: 1.2;
     text-align: center;
     text-transform: uppercase;
+  }
+
+  .fs-objectives .objective-card-kind {
+    font-size: 0.92rem;
+    letter-spacing: 0.16em;
+  }
+
+  .objectives-overlay .objective-card-kind {
+    font-size: 1.45rem;
+    letter-spacing: 0.22em;
   }
 
   .objectives-overlay .objective-card-name,
@@ -125,10 +168,17 @@
     background: transparent;
     color: var(--imp-text);
     font-family: var(--imp-font-label);
-    font-size: 1.2rem;
     font-weight: 400;
-    line-height: 1.25;
+    line-height: 1.2;
     text-align: center;
+  }
+
+  .fs-objectives .objective-card-name {
+    font-size: 1.45rem;
+  }
+
+  .objectives-overlay .objective-card-name {
+    font-size: 2.8rem;
   }
 
   .objectives-overlay .objective-card-text,
@@ -138,8 +188,16 @@
     background: transparent;
     color: var(--imp-text);
     font-family: var(--imp-font-body);
-    font-size: 1.05rem;
-    line-height: 1.4;
     text-align: center;
+  }
+
+  .fs-objectives .objective-card-text {
+    font-size: 1.22rem;
+    line-height: 1.4;
+  }
+
+  .objectives-overlay .objective-card-text {
+    font-size: 2.15rem;
+    line-height: 1.4;
   }
 }

@@ -39,10 +39,10 @@ module.exports = (app, mod) => {
             <option value="image">Image</option>
             <option value="token">Token</option>
             <option value="text">Text</option>
-            <option value="css">CSS</option>
+            <option value="css">Theme</option>
 	    <option value="saito-app">Saito Application</option>
             <option value="json">JSON</option>
-            <option value="js">Javascript</option>
+            <option value="js">Extension</option>
           </select>
         </div>
         <div class="field">

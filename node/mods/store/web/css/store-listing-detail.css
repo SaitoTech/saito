@@ -344,6 +344,21 @@
   color: var(--saito-muted-foreground);
 }
 
+.listing-detail.view .price {
+  position: relative;
+  padding-right: 4.4rem;
+}
+
+.listing-detail .price .share {
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 4.4rem;
+  height: 4.4rem;
+  font-size: 1.8rem;
+}
+
 .listing-detail .amount {
   margin: 0;
   font-size: 2.5rem;

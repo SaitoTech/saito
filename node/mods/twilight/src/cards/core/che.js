@@ -51,7 +51,7 @@
 
         twilight_self.game.status = user_message;
         twilight_self.hud.updateStatus(twilight_self.game.status);
-        twilight_self.hud.updateCards([]);
+        twilight_self.hud.updateCards(twilight_self.game.deck[0].hand);
         twilight_self.hud.updateMenu(options, function(action2) {
           if (action2 == "cancelcmc") {
 	    twilight_self.cancelCubanMissileCrisis();
@@ -63,7 +63,7 @@
             twilight_self.game.status = "Skipping Che coups...";
             twilight_self.hud.updateStatus(twilight_self.game.status);
             twilight_self.hud.updateMenu([]);
-            twilight_self.hud.updateCards([]);
+            twilight_self.hud.updateCards(twilight_self.game.deck[0].hand);
           }
         });
           

@@ -16,7 +16,7 @@ class HudPopup {
     }
     let text = '';
     if (obj.text) {
-      text = obj.title;
+      text = obj.text;
     }
     if (title === text) {
       text = '';
@@ -32,7 +32,8 @@ class HudPopup {
     let styles = '';
     if (obj.styles) {
       for (let z = 0; z < obj.styles.length; z++) {
-        styles += `${obj.styles[z].key}:${obj.styles[z].val} `;
+        let css_key = String(obj.styles[z].key).replace(/[A-Z]/g, (m) => '-' + m.toLowerCase());
+        styles += `${css_key}:${obj.styles[z].val};`;
       }
     }
 

@@ -12,7 +12,7 @@
         this.game.status = "USSR is playing Aldrich Ames<";
         this.hud.updateStatus(this.game.status);
         this.hud.updateMenu([]);
-        this.hud.updateCards([]);
+        this.hud.updateCards(this.game.deck[0].hand);
 
         this.addMove("resolve\taldrichames");
 

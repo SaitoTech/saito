@@ -16,7 +16,7 @@
 
         twilight_self.game.status = `${twilight_self.cardToText(card)}: `;
         twilight_self.hud.updateStatus(twilight_self.game.status);
-        twilight_self.hud.updateCards([]);
+        twilight_self.hud.updateCards(twilight_self.game.deck[0].hand);
         twilight_self.hud.updateMenu([ { id: 'anywhere', label: '2 Influence in Non-Battlegrounds' }, { id: 'african', label: '2 Influence in African Battlegrounds' } ], function(action2) {
 
           let bgs = twilight_self.returnBattlegroundCountries();
@@ -64,7 +64,7 @@
           twilight_self.game.status = "Remove "+ops_to_purge+" US influence";
           twilight_self.hud.updateStatus(twilight_self.game.status);
           twilight_self.hud.updateMenu([]);
-          twilight_self.hud.updateCards([]);
+          twilight_self.hud.updateCards(twilight_self.game.deck[0].hand);
 
           $(".easterneurope").off();
           $(".easterneurope").on('click', function() {
@@ -85,7 +85,7 @@
             twilight_self.game.status = "Remove "+ops_to_purge+" US influence";
             twilight_self.hud.updateStatus(twilight_self.game.status);
             twilight_self.hud.updateMenu([]);
-            twilight_self.hud.updateCards([]);
+            twilight_self.hud.updateCards(twilight_self.game.deck[0].hand);
           });
         });
       }

@@ -15,14 +15,15 @@
 let SaitoOverlay = require('./../../saito/ui/saito-overlay/saito-overlay');
 
 class GameUI {
-  updateLog(str, force = 0) {
+  updateLog(str, eventType = '', data = null) {
     try {
-      this.game.log.unshift(str);
+      let type = typeof eventType === 'string' ? eventType.trim() : '';
+      this.game.log.unshift(type ? { msg: str, type, data } : str);
       if (this.game.log.length > this.log_length) {
         this.game.log.splice(length);
       }
       if (this.gameBrowserActive() && this.log.rendered) {
-        this.log.updateLog(str, force);
+        this.log.updateLog(str, type, data);
         //
         // adds mouseover to cards in log
         //

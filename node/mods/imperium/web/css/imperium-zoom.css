@@ -32,8 +32,7 @@
   }
 
   .zoom-overlay .status {
-    height: auto;
-    line-height: 1.35;
+    display: none;
   }
 
   .zoom-overlay .controls {

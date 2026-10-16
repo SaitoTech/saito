@@ -23,6 +23,7 @@ body.arcade-body #saito-header.arcade {
  */
 body.arcade-body #saito-container.arcade-container {
   grid-template-columns: var(--arcade-sidebar-width) minmax(0, 1fr) var(--arcade-sidebar-width);
+  grid-template-rows: minmax(0, 1fr);
   padding: 0 var(--saito-space-lg);
   column-gap: var(--saito-space-md);
   overflow: hidden;

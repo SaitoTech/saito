@@ -887,36 +887,13 @@ class PandemicRetroSkin extends PandemicOriginalSkin {
             );
           }
         }
-        if (this.mod.isEradicated(v)) {
-          $(`#${v}-count`).remove();
-        }
       }
     }
   }
 
-  displayOutbreaks(outbreaks) {
-    let threat_level = 'safe';
-    if (outbreaks > 2) threat_level = 'caution';
-    if (outbreaks > 6) threat_level = 'danger';
-    let html = `<div class="scoreboard_virus_group tip">
-                    <i class="fas fa-skull"></i>
-                    <div class="virus-count ${threat_level}">: ${8 - outbreaks}</div>
-                    <div class="tiptext">The game will end after 8 outbreaks</div>
-                  </div>`;
-    this.mod.scoreboard.append(html);
-  }
+  displayOutbreaks(outbreaks) {}
 
-  displayDecks() {
-    let threat_level = 'safe';
-    if (this.mod.game.deck[1].crypt.length < 20) threat_level = 'caution';
-    if (this.mod.game.deck[1].crypt.length < 5) threat_level = 'danger';
-    let html = `<div class="scoreboard_virus_group tip">
-                    <i class="fas fa-layer-group"></i>
-                    <div class="virus-count ${threat_level}">: ${this.mod.game.deck[1].crypt.length}</div>
-                    <div class="tiptext">The game will end after all the player cards have been drawn</div>
-                  </div>`;
-    this.mod.scoreboard.append(html);
-  }
+  displayDecks() {}
 
   displayInfectionRate(infection_rate) {}
 

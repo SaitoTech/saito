@@ -1069,14 +1069,12 @@ console.log(JSON.stringify(ship));
       return 0; 
     }
 
-    if (attacker == -1) {
-      attacker_forces = 0;
-    } else {
+    let attacker_forces = 0;
+    let defender_forces = 0;
+    if (attacker != -1) {
       attacker_forces = this.returnNumberOfGroundForcesOnPlanet(attacker, sector, pid);
     }
-    if (defender == -1) {
-      defender_forces = 0;
-    } else {
+    if (defender != -1) {
       defender_forces = this.returnNumberOfGroundForcesOnPlanet(defender, sector, pid);
     }
 
@@ -2721,6 +2719,12 @@ console.log(JSON.stringify(ship));
   
   }
   
+  planetCardStats(planet) {
+    let resources = planet && planet.resources != null ? planet.resources : 0;
+    let influence = planet && planet.influence != null ? planet.influence : 0;
+    return `<div class="planet-card-stats"><div>resources : ${resources}</div><div>influence : ${influence}</div></div>`;
+  }
+
   returnPlanetCard(planetname="") {
   
     var c = this.game.planets[planetname];
@@ -2735,6 +2739,7 @@ console.log(JSON.stringify(ship));
   
     var html = `
       <div class="planetcard" style="background-image: url('${c.img}');">
+        ${this.planetCardStats(c)}
       </div>
     `;
     return html;

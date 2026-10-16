@@ -434,7 +434,16 @@ export default class Saito {
       publicKey?: string,
       signature_required?: boolean
     ) => {
-      console.info("sending request : " + message + ", peer = " + publicKey);
+      console.info(
+        "sending request : " +
+          message +
+          ", peer = " +
+          publicKey +
+          ", " +
+          new Date().toISOString() +
+          " " +
+          Date.now()
+      );
 
       const wallet = await self.getWallet();
       const myPublicKey = await wallet.getPublicKey();

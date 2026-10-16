@@ -5,7 +5,7 @@ module.exports = ({ placeholder = 'Search by Block Hash, Public Key, or UTXOKEY'
         <div class="explorer-search-box">
           <div class="explorer-search">
             <input
-              type="search"
+              type="text"
               class="saito-input explorer-search-input"
               placeholder="${placeholder}"
               aria-label="Search by block hash, public key, or UTXOKEY"

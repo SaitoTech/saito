@@ -1,6 +1,8 @@
 .game.his {
   .chat-container {
     z-index: 900;
+    /* HIS sets --saito-border to #ddd for the board UI. Chat uses that token, so restore the shared default on the window only. */
+    --saito-border: #45423e;
   }
   .chat-container.active {
     z-index: 900;

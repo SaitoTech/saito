@@ -128,7 +128,6 @@ class Thirteen extends GameTemplate {
       }
     }
 
-    this.scoreboard.render();
   }
 
   handleCardsMenu() {
@@ -1257,7 +1256,7 @@ class Thirteen extends GameTemplate {
                     thirteen_self.game.status = 'Pick a card to play for Command (+1 bonus)';
           thirteen_self.hud.updateStatus(thirteen_self.game.status);
           thirteen_self.hud.updateMenu([]);
-          thirteen_self.hud.updateCards(this.game.deck[1].hand);
+          thirteen_self.hud.updateCards(thirteen_self.game.deck[1].hand);
           thirteen_self.cardbox.attachCardEvents();
                     thirteen_self.cardbox.bindCallback(function (card) {
             thirteen_self.addMove(`discard\t${thirteen_self.game.player}\t2\t${card}`);
@@ -2227,12 +2226,6 @@ class Thirteen extends GameTemplate {
       offset += 2;
     }
 
-    //Scoreboard
-    let html = `<div class="ussr_tokens">USSR: ${
-      17 - this.game.state.influence_on_board_ussr
-    }</div>`;
-    html += `<div class="us_tokens">US: ${17 - this.game.state.influence_on_board_us}</div>`;
-    this.scoreboard.update(html);
   }
 
   showInfluence(arena_id) {

@@ -30,7 +30,7 @@
 
 .saitosign-field .new-signer {
   display: flex;
-  align-items: stretch;
+  flex-direction: column;
   gap: var(--saito-space-sm);
 }
 
@@ -65,10 +65,13 @@
   font-size: var(--font-size-medium);
 }
 
-.saitosign-field .new-signer input {
-  flex: 1;
-  width: auto;
-  min-width: 0;
+.saitosign-field .form-error {
+  margin: 0;
+  color: var(--saito-destructive);
+}
+
+.saitosign-field .form-error[hidden] {
+  display: none;
 }
 
 .saitosign-field select {
@@ -99,22 +102,81 @@
   min-width: 8rem;
 }
 
-.saitosign-field [data-remove-field],
+.saitosign-field .actions [data-remove-field],
 .saitosign-field [data-remove-signer-confirm] {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 4.4rem;
+  height: 4.4rem;
   margin-right: auto;
+  padding: 0;
   border-color: transparent;
   background: transparent;
   color: var(--saito-muted-foreground);
+  font-size: 1.6rem;
   cursor: pointer;
 }
 
-.saitosign-field [data-remove-field]:hover,
+.saitosign-field .actions [data-remove-field]:hover,
 .saitosign-field [data-remove-signer-confirm]:hover {
   color: var(--saito-foreground);
 }
 
 .saitosign-field button.primary {
   border-color: var(--saito-primary);
+  background: var(--saito-primary);
+  color: var(--saito-primary-foreground);
+  font-family: var(--saito-font-heavy);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.saitosign-sign {
+  display: flex;
+  flex-direction: column;
+  gap: var(--saito-space-sm);
+  min-width: min(36rem, calc(100vw - 8rem));
+  padding: 2.8rem var(--saito-space-lg) var(--saito-space-lg);
+}
+
+.saitosign-sign .title,
+.saitosign-sign .name,
+.saitosign-sign .email,
+.saitosign-sign .instruction {
+  margin: 0;
+}
+
+.saitosign-sign .title,
+.saitosign-sign .instruction {
+  color: var(--saito-muted-foreground);
+}
+
+.saitosign-sign .name,
+.saitosign-sign .email {
+  color: var(--saito-foreground);
+}
+
+.saitosign-sign .name {
+  margin-top: var(--saito-space-md);
+  font-family: var(--saito-font-heavy);
+}
+
+.saitosign-sign .instruction {
+  margin-top: var(--saito-space-md);
+}
+
+.saitosign-sign .actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: var(--saito-space-md);
+}
+
+.saitosign-sign button.primary {
+  min-width: 8rem;
+  padding: var(--saito-space-sm) var(--saito-space-md);
+  border: 1px solid var(--saito-primary);
+  border-radius: var(--saito-radius);
   background: var(--saito-primary);
   color: var(--saito-primary-foreground);
   font-family: var(--saito-font-heavy);

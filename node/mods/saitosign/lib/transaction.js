@@ -1,6 +1,6 @@
 const Transaction = require('../../../lib/saito/transaction').default;
 const { copy, ACTION_TYPES } = require('./document');
-const { documentHash } = require('./auth');
+const { documentHash, verifyFinalization, verifyCreatorProof } = require('./auth');
 
 const MODULE = 'SaitoSign';
 const REQUEST = 'saitosign document';
@@ -14,16 +14,82 @@ function looksLikeWebTransaction(text) {
   }
 }
 
+function flag(value) {
+  return value === true;
+}
+
+function readShareMetadata(value) {
+  const tier = value?.tier === 'premium' ? 'premium' : 'free';
+  const tierOwner = String(value?.tier_owner || '').trim();
+  const verification = value?.verification || {};
+  const selectedVerification = {
+    email: verification.email !== false,
+    phone: tier === 'premium' && flag(verification.phone),
+    photo: flag(verification.photo),
+    passport: tier === 'premium' && flag(verification.passport),
+    legal_review: tier === 'premium' && flag(verification.legal_review)
+  };
+  if (tier !== 'premium') {
+    return { tier: 'free', tier_owner: tierOwner, verification: selectedVerification };
+  }
+  return {
+    tier: 'premium',
+    tier_owner: tierOwner,
+    verification: selectedVerification,
+    online_signing: flag(value?.online_signing),
+    archive_contract: flag(value?.archive_contract)
+  };
+}
+
+function shareMetadata(plan, options, tierOwner = '') {
+  const selected = options || {};
+  const owner = String(tierOwner || '').trim();
+  const premium = plan === 'premium';
+  const metadata = {
+    tier: premium ? 'premium' : 'free',
+    tier_owner: owner,
+    verification: {
+      email: flag(selected.email),
+      phone: premium && flag(selected.phone),
+      photo: flag(selected.photo),
+      passport: premium && flag(selected.passport),
+      legal_review: premium && flag(selected.legal_review)
+    }
+  };
+  if (!premium) return metadata;
+  return {
+    ...metadata,
+    online_signing: flag(selected.online_signing),
+    archive_contract: flag(selected.archive_contract)
+  };
+}
+
 async function createPrepareTransaction(app, record) {
+  if (record?.creator && !verifyCreatorProof(app, record)) {
+    throw new Error('The creator identity for this document could not be verified.');
+  }
+  if (record?.finalized && !verifyFinalization(app, record)) {
+    throw new Error('The creator signature for this finalized document is invalid.');
+  }
   const tx = new Transaction();
   const data = copy(record);
-  data.hash = documentHash(app, data);
+  const stored = String(data.hash || '').trim();
+  delete data.hash;
+  if (record?.metadata) {
+    data.metadata = readShareMetadata(record.metadata);
+  }
+  if (record?.finalized && (!stored || stored !== documentHash(app, data))) {
+    throw new Error('This document no longer matches its finalized Document Hash.');
+  }
   tx.timestamp = Date.now();
   tx.msg = {
     module: MODULE,
     request: REQUEST,
     data
   };
+  if (record?.finalized) {
+    tx.msg['Document Hash'] = stored;
+  }
   return tx;
 }
 
@@ -39,6 +105,12 @@ function readPrepareTransaction(app, text) {
   if (!data) {
     throw new Error('That file is not a SaitoSign transaction.');
   }
+  if ((data.finalized || data.finalization?.signature) && !verifyFinalization(app, data)) {
+    throw new Error('The creator signature for this finalized document is invalid.');
+  }
+  if (data.creator && !verifyCreatorProof(app, data)) {
+    throw new Error('The creator identity for this document could not be verified.');
+  }
   return data;
 }
 
@@ -49,10 +121,19 @@ function prepareData(tx) {
   }
 
   const data = msg.data;
-  if (data.document && typeof data.document.pdf === 'string' && Array.isArray(data.actions)) {
-    return readRecord(data);
+  const record = data.document && typeof data.document.pdf === 'string' && Array.isArray(data.actions)
+    ? readRecord(data)
+    : readLegacy(data);
+  if (!record) {
+    return null;
   }
-  return readLegacy(data);
+  const named = String(msg['Document Hash'] || '').trim();
+  const embedded = String(record.hash || '').trim();
+  if (named && embedded && named !== embedded) {
+    return null;
+  }
+  record.hash = named || embedded;
+  return record;
 }
 
 function readRecord(data) {
@@ -69,8 +150,16 @@ function readRecord(data) {
   if (!actions) {
     return null;
   }
-  return {
+  const record = {
     hash: String(data.hash || ''),
+    creator: String(data.creator || ''),
+    creatorProof: data.creatorProof && typeof data.creatorProof === 'object'
+      ? JSON.parse(JSON.stringify(data.creatorProof))
+      : null,
+    finalized: data.finalized === true,
+    finalization: data.finalization && typeof data.finalization === 'object'
+      ? JSON.parse(JSON.stringify(data.finalization))
+      : null,
     document: {
       name,
       pdf,
@@ -81,6 +170,10 @@ function readRecord(data) {
     users,
     actions
   };
+  if (data.metadata && typeof data.metadata === 'object') {
+    record.metadata = readShareMetadata(data.metadata);
+  }
+  return record;
 }
 
 function readLegacy(data) {
@@ -115,12 +208,24 @@ function readLegacy(data) {
   if (actions.some((action) => !action) || (!users.length && actions.length)) {
     return null;
   }
-  return {
+  const record = {
     hash: String(data.hash || ''),
+    creator: String(data.creator || ''),
+    creatorProof: data.creatorProof && typeof data.creatorProof === 'object'
+      ? JSON.parse(JSON.stringify(data.creatorProof))
+      : null,
+    finalized: data.finalized === true,
+    finalization: data.finalization && typeof data.finalization === 'object'
+      ? JSON.parse(JSON.stringify(data.finalization))
+      : null,
     document: { name: data.name.trim(), pdf: data.pdf, page_count: 0, page_width: 0, page_height: 0 },
     users,
     actions
   };
+  if (data.metadata && typeof data.metadata === 'object') {
+    record.metadata = readShareMetadata(data.metadata);
+  }
+  return record;
 }
 
 function readUsers(list) {
@@ -152,10 +257,15 @@ function readSignatures(list) {
   for (const entry of list) {
     const id = Number(entry?.id);
     const signature = String(entry?.signature || '');
+    const documentHashValue = String(entry?.document_hash || '').trim();
     if (!Number.isInteger(id) || id < 1 || !signature) {
       continue;
     }
-    signatures.push({ id, signature });
+    const next = { id, signature };
+    if (documentHashValue) {
+      next.document_hash = documentHashValue;
+    }
+    signatures.push(next);
   }
   return signatures;
 }
@@ -164,12 +274,23 @@ function readVerifications(list) {
   if (!Array.isArray(list)) {
     return [];
   }
-  return list.map((entry) => ({
-    method: String(entry?.method || ''),
-    publickey: String(entry?.publickey || ''),
-    message: String(entry?.message || ''),
-    signature: String(entry?.signature || '')
-  }));
+  return list.map((entry) => {
+    const next = {
+      method: String(entry?.method || ''),
+      publickey: String(entry?.publickey || ''),
+      message: String(entry?.message || ''),
+      signature: String(entry?.signature || '')
+    };
+    const photo = typeof entry?.photo === 'string' ? entry.photo : '';
+    if (photo) {
+      next.photo = photo;
+    }
+    const image = typeof entry?.image === 'string' ? entry.image : '';
+    if (image) {
+      next.image = image;
+    }
+    return next;
+  });
 }
 
 function readActions(list, userCount) {
@@ -250,5 +371,7 @@ module.exports = {
   looksLikeWebTransaction,
   createPrepareTransaction,
   readPrepareTransaction,
-  downloadTransaction
+  downloadTransaction,
+  shareMetadata,
+  readShareMetadata
 };

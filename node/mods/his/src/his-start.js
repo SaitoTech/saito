@@ -625,6 +625,13 @@ if (this.game.players.length > 2) {
 
 
     this.minimap.render();
+    this.fitMinimapToMenu();
+    if (!this.bound_minimap_menu_size) {
+      this.bound_minimap_menu_size = 1;
+      window.addEventListener('resize', () => {
+        this.fitMinimapToMenu();
+      });
+    }
 
     this.factionbar.render();
 
@@ -632,6 +639,29 @@ if (this.game.players.length > 2) {
 
     this.displayBoard();
 
+  }
+
+  fitMinimapToMenu() {
+    let icon = document.getElementById('game-menu-fullscreen');
+    let info = document.getElementById('game-info');
+    let minimap = document.querySelector('.game-minimap');
+    if (!icon || !info || !minimap) {
+      return;
+    }
+    let a = icon.getBoundingClientRect();
+    let b = info.getBoundingClientRect();
+    let width = Math.round(b.right - a.left);
+    if (a.width < 1 || b.width < 1 || width < 40) {
+      return;
+    }
+    minimap.style.left = Math.round(a.left) + 'px';
+    minimap.style.right = 'auto';
+    minimap.style.bottom = 'auto';
+    minimap.style.width = width + 'px';
+    if (this.minimap) {
+      this.minimap.redraw_markers = true;
+      this.minimap.render();
+    }
   }
 
 

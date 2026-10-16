@@ -401,8 +401,6 @@ class Admin extends ModTemplate {
       } catch (err) {}
     }
     this.app.options.admin = admins;
-    // Let the next ordinary options save recompute its hash.
-    this.app.storage.wallet_options_hash = null;
   }
 
   /**

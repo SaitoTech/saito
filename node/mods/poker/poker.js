@@ -220,10 +220,6 @@ class Poker extends GameTableTemplate {
     this.introduceLog();
     this.displayButton();
     this.insertCryptoLogo(this.game?.options?.crypto);
-
-    if (document.querySelector('.game-scoreboard')) {
-      document.querySelector('.game-scoreboard').style.display = 'none';
-    }
   }
 
   async receiveStopGameTransaction(resigning_player, txmsg) {

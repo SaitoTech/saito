@@ -300,12 +300,14 @@ webpack(
     devtool: devtool
   },
   (err, stats) => {
-    if (err || stats.hasErrors()) {
-      console.log(err);
+    if (err || !stats || stats.hasErrors()) {
+      if (err) console.error(err);
       if (stats) {
         let info = stats.toJson();
-        console.log(info.errors);
+        console.error(info.errors);
       }
+      process.exitCode = 1;
+      return;
     }
     //
     // Done processing

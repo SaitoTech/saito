@@ -22215,9 +22215,8 @@ The apparent URL therefore does not necessarily tell you where the application's
 
 A particularly unusual Saito pattern can arise when a browser requests an application that the server does not have installed.
 
-The server may return its 404 page.
-
-That page can still contain Saito and allow the browser to initialize the Saito runtime.
+The server returns a CTA-style loading page saying "Checking for Dynamic Modules..."
+with HTTP 200. That page initializes the Saito browser runtime at the original URL.
 
 A dynamic module can then take over locally and render its own application.
 
@@ -22229,7 +22228,7 @@ Conceptually:
     server does not have module
             │
             ▼
-    404 / Saito bootstrap page
+    dynamic-module loading page
             │
             ▼
     Saito starts in browser
@@ -22239,6 +22238,12 @@ Conceptually:
             │
             ▼
     application renders locally
+
+After local applications have loaded and disabled modules have been filtered out,
+an unmatched URL reloads with `__saito_not_found=1`. That request returns the static
+404 page with HTTP 404 and no runtime script. Startup errors show a retry message
+instead of treating a slow or broken application as absent. See the module
+distribution chapter's section 18 for the fallback lifecycle and game styles.
 
 This is another example of why a Saito application cannot always be understood by looking at the traditional server/frontend boundary.
 
@@ -30041,7 +30046,10 @@ The important architectural distinction is:
     subordinate components
         individual UI regions
 
-Saito's 404 handling can also provide the Saito page/container structure. New applications should follow the existing repository conventions rather than inventing a separate page bootstrapping architecture.
+For URLs without a server-side module route, Saito's dynamic-module loading page
+boots the browser runtime so a locally installed application can render. If no
+active module matches, it reloads into a script-free HTTP 404. New applications
+should follow this existing bootstrapping convention.
 
 
 ## 10. Render Is the Core UI Operation

@@ -22,6 +22,7 @@ class GameLog {
     this.logs = [];
     this.log_length = 150;
     this.logs_last_msg = '';
+    this.event_listeners = {};
   }
 
   /**
@@ -35,7 +36,7 @@ class GameLog {
     } catch (err) {}
 
     if (this.logs_last_msg === '' && this.logs.length > 0) {
-      this.logs_last_msg = this.logs[0];
+      this.logs_last_msg = this.entryText(this.logs[0]);
     }
     if (!document.querySelector('#log')) {
       this.app.browser.addElementToDom(GameLogTemplate());
@@ -45,7 +46,7 @@ class GameLog {
     if (log) {
       log.innerHTML = this.logs
         .slice(0, this.log_length)
-        .map((line) => `<div>> ${line}</div>`)
+        .map((line) => `<div>> ${this.renderEntry(line)}</div>`)
         .join('');
     } else {
       console.error('Unable to render game log');
@@ -55,18 +56,27 @@ class GameLog {
   }
 
   /**
-   * Adds functionality to open/close log by clicking (with some tolerance for click-drag actions
+   * Adds functionality to open/close log by clicking (with some tolerance for click-drag actions).
+   * A disclosure summary only toggles its own entry. A drag that selects text does not close the log.
    */
   attachEvents() {
     let xpos = 0;
     let ypos = 0;
+    let log = document.querySelector('#log');
 
-    document.querySelector('#log').onmousedown = (e) => {
+    log.onmousedown = (e) => {
       xpos = e.clientX;
       ypos = e.clientY;
     };
-    document.querySelector('#log').onmouseup = (e) => {
+    log.onmouseup = (e) => {
+      if (e.target && e.target.closest && e.target.closest('summary')) {
+        return;
+      }
       if (Math.abs(xpos - e.clientX) > 4 || Math.abs(ypos - e.clientY) > 4) {
+        return;
+      }
+      let selection = window.getSelection ? window.getSelection() : null;
+      if (selection && !selection.isCollapsed && String(selection).length > 0) {
         return;
       }
       this.toggleLog();
@@ -85,20 +95,63 @@ class GameLog {
   }
 
   /**
-   * Add log_str to the log and run callback
-   * In a bit of Twilight specific coding, log_str will not be appended if it is identical to previous log message
-   * unless "force" is invoked or log_str contains either "removes" or "places" as a substring
+   * Prepend a log entry and re-render.
+   * An event type is stored with the entry. It changes rendering only when a listener is registered for that type.
    * @param log_str - the message to prepend to the log
-   * @param force - a flag to override checks to prevent duplicate messages being logged
-   *
+   * @param eventType - optional event type, ignored when no listener is registered
+   * @param data - optional structured payload stored with a typed entry
    */
-  updateLog(log_str, force = 0) {
-    let add_this_log_message = 1;
-    if (add_this_log_message == 1 || force == 1) {
-      this.logs_last_msg = log_str;
+  updateLog(log_str, eventType = '', data = null) {
+    this.logs_last_msg = log_str;
+    let type = typeof eventType === 'string' ? eventType.trim() : '';
+    if (type) {
+      this.logs.unshift({ msg: log_str, type, data });
+    } else {
       this.logs.unshift(log_str);
-      this.render(this.app, this.game_mod);
     }
+    this.render(this.app, this.game_mod);
+  }
+
+  /**
+   * Register a renderer for one event type.
+   * The listener is called from render with an array of the entries for that line.
+   * It should return the HTML string for the line. Any other return value leaves the plain message in place.
+   * @param type - event type passed to updateLog
+   * @param listener - function(entries) => string
+   */
+  registerEventType(type, listener) {
+    if (!type || typeof listener !== 'function') {
+      return;
+    }
+    this.event_listeners[type] = listener;
+    if (this.rendered) {
+      this.render();
+    }
+  }
+
+  entryText(entry) {
+    if (entry != null && typeof entry === 'object') {
+      return entry.msg != null ? entry.msg : '';
+    }
+    return entry != null ? entry : '';
+  }
+
+  renderEntry(entry) {
+    let text = this.entryText(entry);
+    if (entry == null || typeof entry !== 'object' || !entry.type) {
+      return text;
+    }
+    let listener = this.event_listeners[entry.type];
+    if (typeof listener !== 'function') {
+      return text;
+    }
+    try {
+      let interpreted = listener([entry]);
+      if (typeof interpreted === 'string') {
+        return interpreted;
+      }
+    } catch (err) {}
+    return text;
   }
 }
 

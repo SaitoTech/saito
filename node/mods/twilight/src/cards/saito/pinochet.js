@@ -12,7 +12,7 @@
 
         twilight_self.game.status = `${twilight_self.cardToText(card)}: `;
         twilight_self.hud.updateStatus(twilight_self.game.status);
-        twilight_self.hud.updateCards([]);
+        twilight_self.hud.updateCards(twilight_self.game.deck[0].hand);
         twilight_self.hud.updateMenu([ { id: 'chile', label: '2 Influence in Chile' }, { id: 'argentina', label: '2 Influence in Argentina' } ], function(action2) {
 
           twilight_self.addMove("resolve\tpinochet");

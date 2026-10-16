@@ -8,7 +8,7 @@
       this.game.status = '<div class="status-message" id="status-message">' + player.toUpperCase() + " <span>plays ABM Treaty</span></div>";
       this.hud.updateStatus(this.game.status);
       this.hud.updateMenu([]);
-      this.hud.updateCards([]);
+      this.hud.updateCards(this.game.deck[0].hand);
 
       this.updateLog("DEFCON increases by 1");
 

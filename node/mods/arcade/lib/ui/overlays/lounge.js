@@ -275,13 +275,13 @@ class LoungeOverlay {
         <div class="arcade-lounge-playerbox saito-table-row ${extraClass}" id="invite-user-${safeKey}">
           <div class="saito-identicon-box">
             <img class="saito-identicon" src="${this.app.keychain.returnIdenticon(pkey)}">
+            ${note ? '' : '<div class="online-status-indicator"></div>'}
           </div>
           <div class="arcade-lounge-player-identity">
             ${this.app.browser.returnAddressHTML(pkey)}
             <div class="arcade-lounge-player-key" title="${safeKey}">${safeKey}</div>
             ${note ? `<div class="arcade-lounge-player-note">${note}</div>` : ''}
           </div>
-          ${note ? '' : '<div class="online-status-indicator"></div>'}
         </div>`;
     };
 

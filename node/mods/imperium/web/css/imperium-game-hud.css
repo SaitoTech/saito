@@ -207,7 +207,7 @@
     line-height: 1.35;
   }
 
-  .imperium-game-hud .imperium-hud-ack-button {
+  .imperium-game-hud .imperium-hud-acknowledge-button {
     box-sizing: border-box;
     display: flex;
     flex: 0 0 auto;
@@ -228,7 +228,64 @@
     cursor: pointer;
   }
 
-  .imperium-hud-ack-button:hover {
+  .imperium-hud-acknowledge-button:hover {
+    background: var(--imp-hover);
+  }
+
+  .imperium-hud-combat-toggle {
+    box-sizing: border-box;
+    display: flex;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: center;
+    height: 2.2rem;
+    margin: 0;
+    padding: 0 0.7rem;
+    border: 1px solid var(--imp-border);
+    border-radius: 0.35rem;
+    background: transparent;
+    color: var(--imp-text);
+    font-family: 'orbitron-light', Helvetica, sans-serif;
+    font-weight: 100;
+    font-size: 0.85rem;
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+    cursor: pointer;
+  }
+
+  .imperium-game-hud .hud-notice {
+    width: 100%;
+    height: 14rem;
+    background-color: #000;
+    background-image: url('/imperium/img/backgrounds/hud-popup.png');
+    background-size: cover;
+    background-position: center center;
+    background-repeat: no-repeat;
+    color: #f3f0ea;
+  }
+
+  .imperium-game-hud .imperium-hud-popup-text {
+    box-sizing: border-box;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    padding: 1.25rem 1.5rem 1.4rem;
+    background: linear-gradient(to top, rgba(0, 0, 0, 0.72) 0%, rgba(0, 0, 0, 0.15) 55%, rgba(0, 0, 0, 0.25) 100%);
+    font-family: 'orbitron-light', Helvetica, sans-serif;
+    font-weight: 100;
+    font-size: var(--imp-fs);
+    line-height: 1.35;
+    text-align: center;
+  }
+
+  .imperium-hud-combat-toggle[hidden] {
+    display: none;
+  }
+
+  .imperium-hud-combat-toggle:hover {
     background: var(--imp-hover);
   }
 }

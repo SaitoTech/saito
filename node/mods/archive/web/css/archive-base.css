@@ -43,11 +43,17 @@
   background-color: var(--saito-white);
   padding: 3rem;
   font-size: 1.6rem;
-  min-width: 600px;
-  min-height: 400px;
+  min-width: min(600px, 100vw);
+  min-height: min(400px, 100vh);
   max-height: 100vh;
   max-width: 100vw;
   overflow: auto;
+}
+
+@media screen and (max-width: 600px) {
+  .tx_overlay {
+    padding: clamp(1rem, 4vw, 3rem);
+  }
 }
 
 .jsontree_node {

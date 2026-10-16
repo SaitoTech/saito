@@ -264,6 +264,10 @@
       if (space.activated_for_combat && space.units.length > 0) {
         html += `<img src="/paths/img/tiles/activate_attack.png" class="activation-tile" />`;
       }
+      if (!space.activated_for_movement && !space.activated_for_combat && this.signals && this.signals.marks[key]) {
+        let tile = this.signals.marks[key] == "combat" ? "activate_attack.png" : "activate_move.png";
+        html += `<img src="/paths/img/tiles/${tile}" class="activation-tile signal-tile" />`;
+      }
 
       //
       // add central control
@@ -379,6 +383,13 @@ console.log("err: " + err);
 	//
         if (Math.abs(xpos-e.clientX) > 4) { return; }
         if (Math.abs(ypos-e.clientY) > 4) { return; }
+
+        if (e.target.closest && e.target.closest(".us-commitment-track, .us-commitment-track-hit, .russian-capitulation-track, .russian-capitulation-track-hit")) {
+          if (paths_self.zoom_overlay) {
+            paths_self.zoom_overlay.hide();
+          }
+          return;
+        }
 
         //
         // if this is a selectable space, let people select directly
@@ -744,6 +755,26 @@ console.log("err: " + err);
         document.querySelector(".us-commitment-track-4").classList.add("active");
       }
 
+      let blockBoardZoom = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (this.zoom_overlay) {
+          this.zoom_overlay.hide();
+        }
+      };
+      let openUsEntry = (e) => {
+        blockBoardZoom(e);
+        if (this.usa_overlay) {
+          this.usa_overlay.render();
+        }
+      };
+      document.querySelectorAll(".us-commitment-track, .us-commitment-track-hit").forEach((el) => {
+        el.onmousedown = blockBoardZoom;
+        el.onmouseup = blockBoardZoom;
+        el.onclick = openUsEntry;
+        el.title = "US entry";
+      });
+
     } catch (err) {
 
     }
@@ -780,6 +811,26 @@ console.log("err: " + err);
       if (this.game.state.russian_capitulation_track == 8) { 
         document.querySelector(".russian-capitulation-track-8").classList.add("active");
       }
+
+      let blockBoardZoom = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (this.zoom_overlay) {
+          this.zoom_overlay.hide();
+        }
+      };
+      let openRussianCapitulation = (e) => {
+        blockBoardZoom(e);
+        if (this.russia_overlay) {
+          this.russia_overlay.render();
+        }
+      };
+      document.querySelectorAll(".russian-capitulation-track, .russian-capitulation-track-hit").forEach((el) => {
+        el.onmousedown = blockBoardZoom;
+        el.onmouseup = blockBoardZoom;
+        el.onclick = openRussianCapitulation;
+        el.title = "Russian capitulation";
+      });
 
     } catch (err) {
 

@@ -1,49 +1,96 @@
 .game.imperium {
   .agenda-card {
-    background-image: url(/imperium/img/cards/agenda.png);
+    background-image: url(/imperium/img/cards/agenda_card.png);
+    background-repeat: no-repeat;
+    background-position: center;
     background-size: cover;
-    height: 40vh;
-    width: calc(40vh * 0.7211);
-    color: white;
-    padding: 1.5vw;
-    background-size: cover;
+    aspect-ratio: 1057 / 1488;
+    height: 46vh;
+    width: calc(46vh * 1057 / 1488);
+    flex: 0 0 auto;
+    min-width: 0;
+    min-height: 0;
+    color: #f4efe6;
     margin: 5px 10px;
-    font-size: 0.833rem;
+    border-radius: 1.8rem;
+    overflow: hidden;
+    box-sizing: border-box;
+    display: grid;
+    container-type: size;
+    grid-template-columns: 10% 1fr 10%;
+    grid-template-rows: 46.5% auto minmax(0, 1fr) 8%;
+    padding: 0;
   }
 
   .agenda-card-title {
+    grid-column: 2;
+    grid-row: 2;
     font-family: 'orbitron-medium', helvetica, arial;
     font-weight: normal;
     text-align: center;
-    font-size: 1.5rem;
-    line-height: 1.25;
-    margin-bottom: 0.833rem;
+    font-size: 1.55rem;
+    font-size: 5.3cqh;
+    line-height: 1.12;
+    margin: 0 0 0.32em;
+    color: #f0e2c0;
   }
 
   .agenda-card-content {
+    grid-column: 2;
+    grid-row: 3;
+    align-self: stretch;
     font-family: 'orbitron-light', helvetica, arial;
     font-weight: normal;
     font-size: 1.15rem;
-    line-height: 1.45;
+    font-size: 3.7cqh;
+    line-height: 1.28;
     text-align: center;
+    min-height: 0;
+    overflow: auto;
+  }
+
+  .agenda-voting-overlay {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    padding-top: 4vh;
+  }
+
+  .agenda-voting-card .agenda-card {
+    height: min(68vh, 62rem);
+    width: calc(min(68vh, 62rem) * 1057 / 1488);
   }
 
   .saito-overlay:has(> .agenda-overlay) {
     z-index: 103;
     display: flex;
-    width: max-content;
+    width: min(96vw, 120rem);
+    max-width: 96vw;
     margin-left: auto;
     margin-right: auto;
     height: 85vh;
-    justify-content: space-between;
+    max-height: 85vh;
+    overflow: hidden;
+    justify-content: center;
   }
 
   .agenda-overlay {
     display: flex;
     flex-direction: row;
-    gap: 1.667rem;
-    justify-content: space-evenly;
-    width: 100%;
     flex-wrap: wrap;
+    align-content: flex-start;
+    justify-content: center;
+    gap: 1.667rem;
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
+    scrollbar-width: thin;
+  }
+
+  .agenda-overlay.hide-scrollbar::-webkit-scrollbar {
+    display: block;
+    width: 0.7rem;
   }
 }

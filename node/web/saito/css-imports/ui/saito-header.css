@@ -47,6 +47,12 @@
   margin-top: 0.833rem;
 }
 
+/* game-minimap.css makes .hamburger-container relative; anchor the drawer to
+   the viewport so the off-screen right/left offsets still fully hide it */
+#saito-header.game .saito-header-hamburger-contents {
+  position: fixed;
+}
+
 .saito-header-logo {
   width: 15rem;
   cursor: pointer;
@@ -119,24 +125,35 @@
   height: 4.9rem;
 }
 
+/* Drawer stays anchored at its open position and slides with transform
+   (compositor-only). Closed state is translated fully off-screen by its own
+   width, so width overrides never need a matching offset. Visibility flips
+   after the slide-out so the hidden drawer's shadow cannot peek in. */
 .saito-header-hamburger-contents {
   display: block;
   position: absolute;
-  right: -40rem;
+  right: 0;
   top: var(--saito-header-height);
   /* chrome from shared panel rule in saito-overlay.css */
+  transform: translateX(100%);
+  visibility: hidden;
   transition:
-    right 0.33s,
-    width 0.33s;
+    transform 0.33s,
+    visibility 0s linear 0.33s;
   z-index: 21;
   width: 40rem;
-  height: calc(100svh - var(--saito-header-height) + 3px);
+  height: calc(100dvh - var(--saito-header-height) + 3px);
   overflow: hidden auto;
+  overscroll-behavior: contain;
   color: var(--saito-foreground);
 }
 
 .saito-header-hamburger-contents.show-menu {
-  right: 0;
+  transform: none;
+  visibility: visible;
+  transition:
+    transform 0.33s,
+    visibility 0s;
 }
 
 /* Keep the open drawer above page controls; Saito overlays start above 100. */
@@ -160,7 +177,7 @@
   top: var(--saito-header-height);
   left: 0;
   width: 100vw;
-  height: calc(100vh - var(--saito-header-height));
+  height: calc(100dvh - var(--saito-header-height));
   overflow: hidden;
   z-index: 19;
   background: color-mix(in srgb, var(--saito-black) 70%, transparent);
@@ -315,53 +332,6 @@
 
 #saito-header .wallet-get-saito-row.show-get-saito {
   display: flex;
-}
-
-#saito-header .wallet-nft-icon,
-#saito-header .wallet-action-icon {
-  width: 2.405rem;
-  height: 2.405rem;
-  background: currentColor;
-}
-
-#saito-header .wallet-nft-icon {
-  -webkit-mask: url('/saito/icons/buttons/saito-nfts-button-icon.svg') center / contain no-repeat;
-  mask: url('/saito/icons/buttons/saito-nfts-button-icon.svg') center / contain no-repeat;
-}
-
-#saito-header .wallet-action-icon {
-  -webkit-mask: center / contain no-repeat;
-  mask: center / contain no-repeat;
-}
-
-#saito-header .wallet-send-icon {
-  -webkit-mask-image: url('/saito/icons/saito-send-icon-outline.svg');
-  mask-image: url('/saito/icons/saito-send-icon-outline.svg');
-}
-
-#saito-header .wallet-tokens-icon {
-  -webkit-mask-image: url('/saito/icons/saito-tokens-icon-outline.svg');
-  mask-image: url('/saito/icons/saito-tokens-icon-outline.svg');
-}
-
-#saito-header .wallet-settings-icon {
-  -webkit-mask-image: url('/saito/icons/saito-settings-icon-outline.svg');
-  mask-image: url('/saito/icons/saito-settings-icon-outline.svg');
-}
-
-#saito-header .saito-large-square-button:hover .wallet-send-icon {
-  -webkit-mask-image: url('/saito/icons/saito-send-icon-solid.svg');
-  mask-image: url('/saito/icons/saito-send-icon-solid.svg');
-}
-
-#saito-header .saito-large-square-button:hover .wallet-tokens-icon {
-  -webkit-mask-image: url('/saito/icons/saito-tokens-icon-solid.svg');
-  mask-image: url('/saito/icons/saito-tokens-icon-solid.svg');
-}
-
-#saito-header .saito-large-square-button:hover .wallet-settings-icon {
-  -webkit-mask-image: url('/saito/icons/saito-settings-icon-solid.svg');
-  mask-image: url('/saito/icons/saito-settings-icon-solid.svg');
 }
 
 #saito-header .wallet-controls-separator {
@@ -656,9 +626,13 @@
 @media screen and (max-width: 620px) {
   .saito-header-hamburger-contents {
     width: 100vw;
-    right: -100vw;
-    border-radius: unset;
-    border-left: unset;
+  }
+
+  /* Full-bleed drawer: drop panel corners/left edge. Needs ID specificity
+     because the shared panel rule in saito-overlay.css loads after this file. */
+  #saito-header:not(.game) .saito-header-hamburger-contents {
+    border-radius: 0;
+    border-left: 0;
   }
 
   #saito-header {
@@ -675,7 +649,12 @@
     height: auto;
     visibility: visible;
   }
+}
 
+/* Phones (portrait, or landscape with little height): the QR code is
+   collapsed behind #toggle-qrcode so the wallet block sizes to its content. */
+@media screen and (max-width: 620px),
+  screen and (orientation: landscape) and (max-height: 600px) {
   #saito-header .pubkey-mobile-wrapper {
     display: flex;
   }
@@ -683,6 +662,27 @@
   #saito-header .pubkey-container {
     width: auto;
     flex: 1;
+  }
+
+  /* Share button supersedes the copy icon; the address itself still copies on tap.
+     #share-address is removed by JS when navigator.share is unavailable. */
+  #saito-header .wallet-address-row:has(#share-address) .pubkey-container > i {
+    display: none;
+  }
+
+  #saito-header .saito-header-hamburger-contents:not(.show-wallet) .wallet-info {
+    height: auto;
+    min-height: 0;
+  }
+
+  #saito-header .wallet-info:not(.show-qrcode) #qrcode {
+    display: none;
+  }
+
+  #saito-header .wallet-info.show-qrcode #toggle-qrcode {
+    border-color: var(--saito-primary);
+    background: var(--saito-primary);
+    color: var(--saito-primary-foreground);
   }
 }
 
@@ -706,23 +706,20 @@
   #saito-header.game .saito-header-hamburger-contents {
     top: var(--game-menu-mobile-header-height);
     right: auto;
-    left: -33.333rem;
+    left: 0;
     width: min(33.333rem, 100vw);
-    height: calc(100svh - var(--game-menu-mobile-header-height));
+    height: calc(100dvh - var(--game-menu-mobile-header-height));
     border-radius: 0 0 var(--saito-radius-lg) 0;
-    transition:
-      left 0.33s,
-      width 0.33s;
+    transform: translateX(-100%);
   }
 
   #saito-header.game .saito-header-hamburger-contents.show-menu {
-    right: auto;
-    left: 0;
+    transform: none;
   }
 
   #saito-header.game .saito-header-backdrop {
     top: var(--game-menu-mobile-header-height);
-    height: calc(100svh - var(--game-menu-mobile-header-height));
+    height: calc(100dvh - var(--game-menu-mobile-header-height));
   }
 }
 
@@ -776,13 +773,7 @@
   }
 
   html:not(.game) .saito-header-hamburger-contents {
-    right: -33.35rem;
     width: 33.35rem;
-  }
-
-  /* Must match html:not(.game) specificity so show-menu can still win on `right` */
-  html:not(.game) .saito-header-hamburger-contents.show-menu {
-    right: 0;
   }
 
   /* #qrcode is header-only; leave .saito-crypto-deposit / .payment-box QR at 12px scale */
@@ -819,12 +810,6 @@
   html:not(.game) #saito-header .balance-amount-segments--subunit .balance-amount-separator,
   html:not(.game) #saito-header .balance-amount-segments--subunit .balance-amount-decimal {
     font-size: 2.9rem;
-  }
-
-  html:not(.game) #saito-header .wallet-nft-icon,
-  html:not(.game) #saito-header .wallet-action-icon {
-    width: 2.015rem;
-    height: 2.015rem;
   }
 
   html:not(.game) #saito-header .wallet-identicon {
@@ -912,12 +897,7 @@ html.game .saito-header-profile .saito-identicon-box .saito-identicon {
 }
 
 html.game .saito-header-hamburger-contents {
-  right: -33.35rem;
   width: 33.35rem;
-}
-
-html.game .saito-header-hamburger-contents.show-menu {
-  right: 0;
 }
 
 html.game #qrcode {
@@ -952,12 +932,6 @@ html.game #saito-header .balance-amount-segments--subunit .balance-amount-whole,
 html.game #saito-header .balance-amount-segments--subunit .balance-amount-separator,
 html.game #saito-header .balance-amount-segments--subunit .balance-amount-decimal {
   font-size: 2.9rem;
-}
-
-html.game #saito-header .wallet-nft-icon,
-html.game #saito-header .wallet-action-icon {
-  width: 2.015rem;
-  height: 2.015rem;
 }
 
 html.game #saito-header .wallet-identicon {
@@ -1019,17 +993,10 @@ html.game .saito-header-wallet-menu {
   gap: var(--saito-space-xs);
 }
 
-/* Mobile game drawer uses left, not right — keep that orientation */
+/* Mobile game drawer slides in from the left (see #saito-header.game rule above) */
 @media screen and (max-width: 600px),
   screen and (orientation: landscape) and (max-height: 600px) {
   html.game .saito-header-hamburger-contents {
-    right: auto;
-    left: -33.333rem;
     width: min(33.333rem, 100vw);
-  }
-
-  html.game .saito-header-hamburger-contents.show-menu {
-    right: auto;
-    left: 0;
   }
 }

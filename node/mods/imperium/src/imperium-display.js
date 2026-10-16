@@ -5,6 +5,8 @@
 displayBoard() {
   for (let i in this.sectors) {
     this.sectors[i].render();
+    let planet_div = "#hex_img_" + i;
+    $(planet_div).attr("src", this.game.sectors[this.game.board[i].tile].img);
   }
   if (this.minimap) {
     this.minimap.render();
@@ -161,7 +163,7 @@ returnHowToPlayOverlay() {
 
 <h2>Your Goal:</h2>
 
-<img src="/imperium/img/planets/BROUGHTON.png" class="demo_planet_card" />
+<img src="/imperium/img/planets/broughton.png" class="demo_planet_card" />
 
 <p></p>
 
@@ -258,7 +260,7 @@ returnSectorInformationHTML(sector) {
           <br />
           ${this.returnSpaceDocksOnPlanet(sys.p[i])} spacedocks
         </div>
-        <div class="system_summary_planet_card" style="background-image: url('${sys.p[i].img}');"></div>
+        <div class="system_summary_planet_card" style="background-image: url('${sys.p[i].img}');">${this.planetCardStats(sys.p[i])}</div>
       </div>
     `;
   }
@@ -342,39 +344,75 @@ returnPlanetInformationHTML(planet) {
   let ionp = this.returnInfantryOnPlanet(p);
   let ponp = this.returnPDSOnPlanet(p);
   let sonp = this.returnSpaceDocksOnPlanet(p);
-  let powner = '';
 
-  if(this.game.planets[planet].owner > 0) {
-    powner = "p" + this.game.planets[planet].owner;
-  } else {
-    powner = "nowner";
+  let pds_label = "pds";
+  if (p.units) {
+    for (let i = 0; i < p.units.length; i++) {
+      for (let k = 0; k < p.units[i].length; k++) {
+        let unit = p.units[i][k];
+        if (unit && unit.type == "pds" && unit.name == "PDS II") { pds_label = "pds ii"; }
+      }
+    }
   }
 
-  let html = '';
-
-  if (ionp > 0) {
-    html += '<div class="planet_infantry_count_label">Infantry</div><div class="planet_infantry_count">'+ionp+'</div>';
+  let faction_label = "Uncontrolled";
+  if (p.owner > 0 && this.game.state.players_info[p.owner - 1]) {
+    faction_label = this.returnFaction(p.owner);
   }
 
-  if (ponp > 0) {
-    html += '<div class="planet_pds_count_label">PDS</div><div class="planet_pds_count">'+ponp+'</div>';
+  let type_key = "";
+  if (p.type == "cultural" || p.type == "industrial" || p.type == "hazardous" || p.type == "diplomatic") {
+    type_key = p.type;
   }
 
-  if (sonp > 0) {
-    html += '<div class="planet_spacedock_count_label">Spacedock</div><div class="planet_spacedock_count">'+sonp+'</div>';
+  let type_html = "";
+  if (type_key != "") {
+    type_html = `<div class="planet-info-type planet-info-type-${type_key}">${type_key} planet</div>`;
   }
 
-//  if (this.game.planets[planet].bonus != "") {
-//    html += '<div class="planet_tech_label tech_'+this.game.planets[planet].bonus+' bold">'+this.game.planets[planet].bonus+' TECH</div><div></div>';
-//  }
-
-  if (ponp+sonp+ionp > 0) {
-    html = `<div class="sector_information_planetname ${powner}">${p.name}</div><div class="sector_information_planet_content">` + html + `</div>`;
-  } else {
-    html = `<div class="sector_information_planetname ${powner}">${p.name}</div>`;
+  let specialty = "";
+  if (p.bonus) {
+    let bonus_values = Array.isArray(p.bonus) ? p.bonus : String(p.bonus).split(/\s+/);
+    for (let b = 0; b < bonus_values.length; b++) {
+      let color = String(bonus_values[b]).toLowerCase();
+      if (color == "green" || color == "red" || color == "blue" || color == "yellow") {
+        specialty = color;
+        break;
+      }
+    }
+  }
+  let title_html = p.name;
+  if (specialty != "") {
+    title_html = `<span class="planet-info-name">${p.name}<img class="planet-info-tech" src="/imperium/img/techicons/${specialty}.png" alt=""></span>`;
   }
 
-  return html;
+  return `<div class="planet-info">
+      <div class="planet-info-header">
+        <div class="planet-info-identity">
+          <div class="planet-info-title">${title_html}</div>
+          <div class="planet-info-controller">${faction_label}</div>
+        </div>
+        <div class="planet-info-economy">
+          <div class="planet-info-resource"><span class="planet-info-value">${p.resources}</span></div>
+          <div class="planet-info-influence"><span class="planet-info-value">${p.influence}</span></div>
+        </div>
+        ${type_html}
+      </div>
+      <div class="planet-info-military">
+        <div class="planet-info-unit-row">
+          <span class="planet-info-unit-label">infantry</span>
+          <span class="planet-info-unit-value">${ionp}</span>
+        </div>
+        <div class="planet-info-unit-row">
+          <span class="planet-info-unit-label">spacedock</span>
+          <span class="planet-info-unit-value">${sonp}</span>
+        </div>
+        <div class="planet-info-unit-row">
+          <span class="planet-info-unit-label">${pds_label}</span>
+          <span class="planet-info-unit-value">${ponp}</span>
+        </div>
+      </div>
+    </div>`;
 
 }
 
@@ -498,6 +536,10 @@ addUIEvents() {
 
 
 
+getBoardBackdrop() {
+  return '/imperium/img/backgrounds/starscape_background3.jpg';
+}
+
 returnDefaultBoardScale() {
   let hex = 250;
   let target = window.innerWidth * 0.3;
@@ -570,7 +612,8 @@ hideSector(pid) {
 
 
 updateTokenDisplay() {
-
+  if (this.browser_active == 0) { return; }
+  this.displayFactionDashboard();
 }
 
 
@@ -664,10 +707,17 @@ updateLeaderboard() {
       info_tile.classList.add('two_planet');
     }
 
+    let hex_in = null;
     if (zoom_overlay == 0) {
-      document.querySelector("#hexIn_" + sys.s.tile).classList.add('bi');
+      hex_in = document.querySelector("#hexIn_" + sys.s.tile);
     } else {
-      document.querySelector(".gameboard-clone .sector_"+orig_sector+" .hexIn").classList.add('bi');
+      hex_in = document.querySelector(".gameboard-clone .sector_"+orig_sector+" .hexIn");
+    }
+    if (hex_in) {
+      hex_in.classList.add('bi');
+      if (sector !== 'new-byzantium') {
+        hex_in.classList.add('spin-in');
+      }
     }
     } catch (err) {}
   }
@@ -682,10 +732,15 @@ updateLeaderboard() {
     let divname = ".sector_graphics_space_" + sys.s.tile;
     $(divname).css('display', 'all');
 
+    let hex_in = null;
     if (zoom_overlay == 0) {
-      document.querySelector("#hexIn_" + sys.s.tile).classList.remove('bi');
+      hex_in = document.querySelector("#hexIn_" + sys.s.tile);
     } else {
-      document.querySelector(".gameboard-clone .sector_"+sector+" .hexIn").classList.remove('bi');
+      hex_in = document.querySelector(".gameboard-clone .sector_"+sector+" .hexIn");
+    }
+    if (hex_in) {
+      hex_in.classList.remove('bi');
+      hex_in.classList.remove('spin-in');
     }
     } catch (err) {}
   }
@@ -736,13 +791,7 @@ updateLeaderboard() {
   }
   showAgendaCard(agenda) {
     let thiscard = this.agenda_cards[agenda];
-    let html = `
-      <div style="background-image: url('/imperium/img/agenda_card_template.png');" class="overlay_agendacard card option" id="${agenda}">
-        <div class="overlay_agendatitle">${thiscard.name}</div>
-        <div class="overlay_agendacontent">${thiscard.text}</div>
-      </div>
-    `;
-    this.cardbox.showCardboxHTML(thiscard, html);
+    this.cardbox.showCardboxHTML(thiscard, thiscard.returnCardImage());
   }
   hideAgendaCard(sector, pid) {
     this.cardbox.hide(1);

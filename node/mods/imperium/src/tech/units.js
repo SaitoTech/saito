@@ -191,7 +191,7 @@
 
 
     this.importTech("warsun", {
-      name        :       "Warsun" ,
+      name        :       "Titan" ,
       unit        :       1 ,
       prereqs     :       ["red","red","red","yellow"],
       text	  : 	 "The Death Star: terrifying in combat, but fragile without supporting fleet" ,

@@ -1606,7 +1606,14 @@
   gap: 2.5rem;
   width: auto;
   padding: 3rem;
-  min-width: 55rem;
+  min-width: min(55rem, 95vw);
+}
+
+@media screen and (max-width: 600px) {
+  .saito-crypto-transfer {
+    padding: clamp(1.5rem, 5vw, 3rem);
+    gap: clamp(1.5rem, 4vw, 2.5rem);
+  }
 }
 
 .saito-overlay:has(.saito-crypto-transfer) {
@@ -2173,7 +2180,7 @@ input[type='checkbox'].ignore-checkbox {
 }
 
 .game-crypto-settings-overlay .saito-overlay-form-header-title {
-  font-size: 2.2rem;
+  font-size: clamp(1.6rem, 5vw, 2.2rem);
 }
 
 .game-crypto-settings-overlay__body {

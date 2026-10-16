@@ -1901,15 +1901,25 @@ class Browser {
       };
 
       d.body.onmouseup = () => {
+        d.body.onmouseup = null;
         d.body.onmousemove = null;
         target.style.transition = '';
         if (resized) {
+          resized = false;
+          const clearSuppression = () => {
+            d.removeEventListener('click', suppressClick, true);
+            d.removeEventListener('mousedown', clearSuppression, true);
+            clearTimeout(suppressionTimeout);
+          };
           const suppressClick = (clickEvent) => {
             clickEvent.preventDefault();
             clickEvent.stopPropagation();
-            document.removeEventListener('click', suppressClick, true);
+            clearSuppression();
           };
-          document.addEventListener('click', suppressClick, true);
+          // Only suppress the click from this release, never a later interaction.
+          const suppressionTimeout = setTimeout(clearSuppression, 0);
+          d.addEventListener('mousedown', clearSuppression, true);
+          d.addEventListener('click', suppressClick, true);
         }
       };
 

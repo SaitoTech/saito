@@ -41,7 +41,7 @@ function signersHTML(view) {
 }
 
 function signerAction(view) {
-  if (view.adding_signer) {
+  if (view.adding_signer || !view.can_edit) {
     return '';
   }
   return '<button type="button" class="plus" data-add-signer aria-label="Add signer">+</button>';
@@ -57,10 +57,10 @@ function fieldListHTML(view) {
       ${view.field_list
         .map(
           (field) => `
-            <li class="row">
-              <button type="button" class="open" data-open-field="${field.id}">
-                <i class="fa-solid ${field.signed ? 'fa-check signed' : 'fa-pen'}" aria-hidden="true"></i>
-                <span class="label">${escapeHTML(field.type)} - ${escapeHTML(field.name)} - page ${field.page}</span>
+            <li class="row${field.signed ? ' signed' : ''}${field.active ? ' active' : ''}${field.confirming ? ' confirming' : ''}">
+              <button type="button" class="open" data-open-field="${field.id}"${field.active ? ' aria-current="true"' : ''}>
+                <i class="swatch" style="background:${field.signed ? 'var(--saitosign-signed-ink)' : field.color}" aria-hidden="true"></i>
+                <span class="label">${escapeHTML(field.label)}</span>
               </button>
             </li>
           `
@@ -71,7 +71,7 @@ function fieldListHTML(view) {
 }
 
 function fieldsSectionHTML(view) {
-  if (!view.signers.length) {
+  if (!view.field_list.length) {
     return '';
   }
 
@@ -82,8 +82,8 @@ function fieldsSectionHTML(view) {
   return `
     <section class="fields-panel">
       <div class="section-head">
-        <p class="title">Actions</p>
-        <button type="button" class="plus" data-add-field aria-pressed="${view.placing ? 'true' : 'false'}" aria-label="Add field">+</button>
+        <p class="title">Signatures</p>
+        ${view.can_edit ? `<button type="button" class="plus" data-add-field aria-pressed="${view.placing ? 'true' : 'false'}" aria-label="Add field">+</button>` : ''}
       </div>
       ${hint}
       ${fieldListHTML(view)}
@@ -91,17 +91,12 @@ function fieldsSectionHTML(view) {
   `;
 }
 
-function railHTML(view) {
-  const notice = view.notice ? `<p class="notice">${escapeHTML(view.notice)}</p>` : '';
-  const exportable = view.edited ? ' primary' : '';
-  const disabled = view.edited ? '' : ' disabled';
+function signersSectionHTML(view) {
+  if (!view.signers.length) {
+    return '';
+  }
 
   return `
-    <div class="identity">
-      <p class="name">SaitoSign</p>
-      <p class="file">${escapeHTML(view.file_name)}</p>
-    </div>
-
     <section class="signers-panel">
       <div class="section-head">
         <p class="title">Signers</p>
@@ -109,20 +104,54 @@ function railHTML(view) {
       </div>
       ${signersHTML(view)}
     </section>
-
-    ${fieldsSectionHTML(view)}
-    ${notice}
-
-    <button type="button" class="export${exportable}" data-export${disabled}>Next Step</button>
   `;
+}
+
+function railHTML(view) {
+  const notice = view.notice ? `<p class="notice">${escapeHTML(view.notice)}</p>` : '';
+  const started = view.field_list.length > 0;
+  const guide = view.finalized
+    ? 'Review the document and provide your signature where needed.'
+    : started
+      ? 'Add further signature boxes, then click Ready to Sign when done.'
+      : 'Click on any page where a signature is required.';
+  const next = view.finalized
+    ? (view.verified
+      ? '<button type="button" class="export primary verified" data-export>Document Verified</button>'
+      : '<button type="button" class="export primary" data-export>Check Document Status</button>')
+    : started
+      ? '<button type="button" class="export primary" data-export>Ready to Sign</button>'
+      : '';
+
+  return `
+    <div class="identity${view.verified ? ' verified' : ''}">
+      <p class="name">SaitoSign</p>
+      <p class="file">${escapeHTML(view.file_name)}</p>
+    </div>
+
+    <p class="guide">${guide}</p>
+    ${started ? fieldListHTML(view) : ''}
+    ${notice}
+    ${next}
+  `;
+}
+
+function handlesHTML(editable) {
+  if (!editable) {
+    return '';
+  }
+  return ['nw', 'ne', 'sw', 'se']
+    .map((edge) => `<span class="handle ${edge}" data-resize="${edge}"></span>`)
+    .join('');
 }
 
 function fieldsHTML(page) {
   const placed = page.fields
     .map(
       (field) => `
-        <button type="button" class="field" data-field-id="${field.id}" style="left:${pct(field.x)};top:${pct(field.y)};width:${pct(field.width)};height:${pct(field.height)}">
-          <span class="text">${escapeHTML(field.type)} - ${escapeHTML(field.name)}</span>
+        <button type="button" class="field${field.signed ? ' signed' : ''}${field.active ? ' active' : ''}${field.confirming ? ' confirming' : ''}" data-field-id="${field.id}" style="left:${pct(field.x)};top:${pct(field.y)};width:${pct(field.width)};height:${pct(field.height)}${field.signed ? '' : `;background:${field.color};border-color:${field.color}`}">
+          <span class="text">${escapeHTML(field.label)}</span>
+          ${handlesHTML(page.editable)}
         </button>
       `
     )
@@ -130,8 +159,8 @@ function fieldsHTML(page) {
 
   const draft = page.draft
     ? `
-      <div class="field draft" style="left:${pct(page.draft.x)};top:${pct(page.draft.y)};width:${pct(page.draft.width)};height:${pct(page.draft.height)}">
-        <span class="text">${escapeHTML(page.draft.type)} - ${escapeHTML(page.draft.name)}</span>
+      <div class="field draft active" style="left:${pct(page.draft.x)};top:${pct(page.draft.y)};width:${pct(page.draft.width)};height:${pct(page.draft.height)};background:${page.draft.color || ''};border-color:${page.draft.color || ''}">
+        <span class="text">${escapeHTML(page.draft.label || '')}</span>
       </div>
     `
     : '';
@@ -141,12 +170,13 @@ function fieldsHTML(page) {
 
 function pagesHTML(view) {
   const placing = view.placing ? ' placing' : '';
+  const marking = view.can_edit ? ' marking' : '';
   return view.pages
     .map(
       (page) => `
         <article class="pdf-page" data-page="${page.page}">
           <iframe class="page" title="${escapeHTML(view.file_name)}, page ${page.page}"></iframe>
-          <div class="fields${placing}">${fieldsHTML(page)}</div>
+          <div class="fields${placing}${marking}">${fieldsHTML(page)}</div>
         </article>
       `
     )
@@ -170,6 +200,7 @@ function readerHTML(view) {
     <div class="zoom">
       <button type="button" data-zoom="out" aria-label="Zoom out"${zoom_out}><i class="fa-solid fa-magnifying-glass-minus" aria-hidden="true"></i></button>
       <button type="button" data-zoom="in" aria-label="Zoom in"${zoom_in}><i class="fa-solid fa-magnifying-glass-plus" aria-hidden="true"></i></button>
+      <button type="button" data-close-document aria-label="Close document"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
     </div>
   `;
 }

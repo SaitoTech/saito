@@ -7,14 +7,14 @@
         this.game.status = "US playing Kissinger:";
         this.hud.updateStatus(this.game.status);
         this.hud.updateMenu([]);
-        this.hud.updateCards([]);
+        this.hud.updateCards(this.game.deck[0].hand);
         return 0;
       }
 
       let user_message = "Designate a region to turn all 1-stability countries into battleground countries:";
       this.game.status = user_message;
       this.hud.updateStatus(this.game.status);
-      this.hud.updateCards([]);
+      this.hud.updateCards(this.game.deck[0].hand);
       this.hud.updateMenu([
         { id: 'asia', label: 'Asia' },
         { id: 'europe', label: 'Europe' },

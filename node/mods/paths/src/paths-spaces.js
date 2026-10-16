@@ -418,7 +418,7 @@
 
 
 
-  checkSupplyStatus(faction="", spacekey="") {
+  checkSupplyStatus(faction="", spacekey="", for_space=false) {
 
     let toggle_constantinople_port = 0;
 
@@ -531,10 +531,18 @@ if (spacekey == "stanislau") {
     if (faction == "ro" || faction == "romania") { sources.push(...["belgrade","moscow","petrograd","kharkov","caucasus"]); }
     if (faction == "sb" || faction == "serbia") { 
       sources.push(...["moscow","petrograd","kharkov","caucasus","london"]); 
+      // Belgrade is a supply source for Serbian units. Space-control checks
+      // already accept any friendly source (14.2.5); units must list it here.
+      if (this.returnControlOfSpace("belgrade") == "allies") { sources.push("belgrade"); }
       if (this.returnControlOfSpace("salonika") == "allies") { sources.push("salonika"); }
     }
     if (sources.length == 0) {
       sources = ["london"];
+    }
+    // 14.2.5 - spaces, not units, may trace to any friendly supply source.
+    if (for_space && controlling_faction == "allies") {
+      sources.push("belgrade");
+      if (this.returnControlOfSpace("salonika") == "allies") { sources.push("salonika"); }
     }
     if (country == "albania") { if (this.game.spaces["taranto"].control != "central") { sources.push("taranto"); } }
     let ports = this.returnFriendlyControlledPorts(controlling_faction);

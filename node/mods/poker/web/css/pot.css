@@ -84,7 +84,7 @@
 }
 
 .pot-details-overlay .saito-overlay-form-header-title {
-  font-size: 2.2rem;
+  font-size: clamp(1.6rem, 5vw, 2.2rem);
 }
 
 .pot-details-list {

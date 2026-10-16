@@ -19,8 +19,8 @@
 .review-overlay {
   background-color: white;
   padding: 2rem;
-  min-width: 850px;
-  min-height: 400px;
+  min-width: min(850px, calc(100vw - 2rem));
+  min-height: min(400px, calc(100dvh - 2rem));
   border-radius: 1.5rem;
 }
 
@@ -33,6 +33,7 @@
 
 .test_container {
   width: 850px;
+  max-width: 100%;
   margin-left: auto;
   margin-right: auto;
   height: min-content;
@@ -163,4 +164,38 @@
   text-align: center;
   width: 100%;
   color: #9c1010;
+}
+
+@media screen and (max-width: 600px) {
+  .start_popup_review {
+    margin-left: 0;
+  }
+
+  .review-overlay {
+    padding: clamp(1rem, 3vw, 2rem);
+  }
+
+  .test_container {
+    flex-flow: column;
+  }
+
+  .question_space,
+  .answer_space {
+    float: none;
+    width: 100%;
+  }
+
+  .question_space {
+    height: auto;
+    border-right: none;
+    border-bottom: 1px dashed #d7d7d7;
+  }
+
+  .question_text {
+    font-size: clamp(5rem, 20vw, 10rem);
+  }
+
+  .answer_space .option {
+    width: auto;
+  }
 }

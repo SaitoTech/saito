@@ -67,41 +67,4 @@
     margin-bottom: 0.5vh;
   }
 
-  @media screen and (orientation: portrait) and (max-width: 600px) {
-    .game-scoreboard {
-      top: unset;
-      left: unset;
-      transform: unset;
-      bottom: 0;
-      right: 0;
-      flex-direction: column;
-      padding: 4px;
-      max-width: 20vw;
-    }
-    .scoreitem {
-      width: calc(100% - 8px);
-      padding: unset;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-  }
-
-  @media screen and (orientation: landscape) and (max-height: 600px) {
-    .game-scoreboard {
-      top: unset;
-      left: unset;
-      transform: unset;
-      bottom: 0;
-      right: 0;
-      flex-direction: column;
-      padding: 4px;
-      max-width: 30vw;
-    }
-    .scoreitem {
-      width: calc(100% - 8px);
-      padding: unset;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-  }
 }

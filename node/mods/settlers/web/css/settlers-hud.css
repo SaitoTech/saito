@@ -18,7 +18,7 @@
   .hud-status {
     box-shadow: none;
     width: 100%;
-    min-height: 0;
+    min-height: 11.5rem;
     height: auto;
     display: flex;
     flex-direction: column;

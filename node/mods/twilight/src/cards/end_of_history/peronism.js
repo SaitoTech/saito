@@ -13,14 +13,14 @@
         this.game.status = "Opponent deciding to add influence to or coup or realign Argentina";
         this.hud.updateStatus(this.game.status);
         this.hud.updateMenu([]);
-        this.hud.updateCards([]);
+        this.hud.updateCards(this.game.deck[0].hand);
         return 0;
 
       } else {
 
         this.game.status = "Do you choose to:";
         this.hud.updateStatus(this.game.status);
-        this.hud.updateCards([]);
+        this.hud.updateCards(this.game.deck[0].hand);
         this.hud.updateMenu([
           { id: 'place', label: 'place 1 influence in Argentina' },
           { id: 'couporrealign', label: 'coup or realign Argentina' }
@@ -37,7 +37,7 @@
             let user_message = "Do you choose to:";
             twilight_self.game.status = user_message;
             twilight_self.hud.updateStatus(twilight_self.game.status);
-            twilight_self.hud.updateCards([]);
+            twilight_self.hud.updateCards(twilight_self.game.deck[0].hand);
             twilight_self.hud.updateMenu([
               { id: 'coup', label: 'coup in Argentina' },
               { id: 'realign', label: 'realign in Argentina' }

@@ -1,37 +1,59 @@
 .game.mahjong {
-  .status {
+  /* the HUD is docked in the .logobox sidebar (see hud.container in mahjong.js) */
+  .hud-status {
     background-color: whitesmoke;
     padding: 1rem;
+    border-radius: 5px;
   }
 
-  .controls {
-    overflow-y: none;
-    min-height: 140px;
-    width: 100%;
-  }
-  .controls ul {
+  .hud-menu ul {
     border-radius: 0.5rem;
+    overflow: hidden;
   }
 
-  .controls ul li,
-  .options {
+  .hud-menu li,
+  .hud-menu .option {
     height: 7rem;
   }
 
   @media screen and (orientation: landscape) and (max-height: 700px) {
-    .controls {
-      min-height: 120px;
-    }
-
-    .controls ul li,
-    .options {
+    .hud-menu li,
+    .hud-menu .option {
       height: 6rem;
     }
   }
 
+  /* small screens: options only, the instructions don't fit */
+  @media screen and (orientation: landscape) and (max-height: 600px) {
+    .hud-status-row {
+      display: none;
+    }
+
+    .game-hud2.docked .hud-menu:not(:empty) {
+      margin-top: 0;
+    }
+  }
+
   @media screen and (orientation: portrait) and (max-width: 600px) {
-    .controls ul {
+    .hud-status-row {
+      display: none;
+    }
+
+    .game-hud2.docked .hud-menu:not(:empty) {
+      margin-top: 0;
+    }
+
+    .hud-menu ul {
       flex-direction: row;
+    }
+
+    .hud-menu li,
+    .hud-menu .option {
+      height: 4rem;
+      font-size: 1.4rem;
+      border-top: 0;
+      white-space: nowrap;
+      flex: 1 1 0;
     }
   }
 }

@@ -621,7 +621,7 @@ class SaitoHeader extends UIModTemplate {
   }
 
   renderMenuItemIcon(item, keyword) {
-    if (keyword === 'module') {
+    if (keyword === 'module' || (keyword === 'utilities' && item.text === 'Nuke')) {
       const icon_paths = this.returnModuleMenuIconPaths(item.text);
       if (icon_paths) {
         return `<span class="saito-module-menu-icon-wrap" aria-hidden="true">
@@ -640,12 +640,15 @@ class SaitoHeader extends UIModTemplate {
       addapp: 'saito-add-app-icon',
       arcade: 'saito-arcade-icon',
       chat: 'saito-chat-icon',
+      docs: 'saito-docs-icon',
       extensions: 'saito-extensions-icon',
       filetransfer: 'saito-filetransfer-icon',
       fileshare: 'saito-filetransfer-icon',
       games: 'saito-games-icon',
+      nuke: 'saito-nuke-icon',
       redsquare: 'saito-redsquare-icon',
       saitotalk: 'saito-talk-icon',
+      saitodocs: 'saito-docs-icon',
       store: 'saito-store-icon',
       swarmcast: 'saito-swarmcast-icon',
       talk: 'saito-talk-icon',
@@ -742,6 +745,16 @@ class SaitoHeader extends UIModTemplate {
       document.getElementById('wallet-btn-get-saito').onclick = () => {
         this.app.connection.emit('saito-purchase-launch');
         this.hideMenu();
+      };
+    }
+
+    //
+    // QR code is collapsed by default on phones (see saito-header.css)
+    //
+    if (document.getElementById('toggle-qrcode')) {
+      document.getElementById('toggle-qrcode').onclick = () => {
+        const wallet_info = document.querySelector('.wallet-info');
+        this.setQRCodeVisible(!wallet_info?.classList.contains('show-qrcode'));
       };
     }
 
@@ -921,12 +934,27 @@ class SaitoHeader extends UIModTemplate {
     }
   }
 
+  setQRCodeVisible(visible) {
+    const wallet_info = document.querySelector('.wallet-info');
+    const toggle = document.getElementById('toggle-qrcode');
+    if (wallet_info) {
+      wallet_info.classList.toggle('show-qrcode', visible);
+    }
+    if (toggle) {
+      const label = visible ? 'Hide QR code' : 'Show QR code';
+      toggle.setAttribute('aria-pressed', String(visible));
+      toggle.setAttribute('aria-label', label);
+      toggle.setAttribute('title', label);
+    }
+  }
+
   hideMenu() {
     const sidebar = document.querySelector('.saito-header-hamburger-contents');
     if (!sidebar) {
       return;
     }
     sidebar.classList.remove('show-wallet');
+    this.setQRCodeVisible(false);
 
     const backdrop = document.querySelector('.saito-header-backdrop');
     if (sidebar.classList.contains('show-menu')) {

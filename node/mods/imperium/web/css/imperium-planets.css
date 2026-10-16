@@ -1,8 +1,37 @@
 .game.imperium {
+  .planet-card,
+  .fs-planet-card,
+  .planetcard,
+  .system_summary_planet_card {
+    position: relative;
+    container-type: size;
+  }
+
   .planet-card {
     width: 18.75rem;
     height: 26.25rem;
     background-size: contain;
+  }
+
+  .planet-card-stats {
+    position: absolute;
+    left: 8%;
+    right: 8%;
+    top: 68.5%;
+    height: 20%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    color: #f6f1e4;
+    font-family: 'orbitron-medium', helvetica, arial;
+    font-size: 1rem;
+    font-size: 5.4cqh;
+    line-height: 1.15;
+    letter-spacing: 0.03em;
+    text-align: center;
+    text-shadow: 0 0.08em 0.25em #000;
+    pointer-events: none;
   }
 
   .planet-card.exhausted {

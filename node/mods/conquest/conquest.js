@@ -40,11 +40,26 @@ class Conquest extends GameTemplate {
       await this.injectGameHTML('<main id="conquest-root" aria-label="Conquest game"></main>');
     }
     await super.render(app);
+    document.getElementById('conquest-root').classList.add('conquest-saito');
+    this.menu.addMenuOption('game-game', 'Game');
+    for (const [id, text, show] of [
+      ['conquest-rules', 'Field guide', () => this.conquestUI?.rules()],
+      ['conquest-cards', 'Your cards', () => this.conquestUI?.cards()],
+      ['conquest-stats', 'Stats', () => this.conquestUI?.statistics()],
+      ['conquest-dispatches', 'Dispatches', () => this.log.toggleLog()]
+    ]) {
+      this.menu.addSubMenuOption('game-game', {
+        id, text, callback: () => { this.menu.hideSubMenus(); show(); }
+      });
+    }
+    this.menu.addChatMenu();
+    this.menu.render();
     window.ConquestMap = Map;
     window.ConquestEngine = Engine;
     // The generic script loader does not guarantee dependency order.
     if (!window.THREE) await this.attachScript('/conquest/js/vendor/three.min.js');
     if (!window.ConquestScene) await this.attachScript('/conquest/js/scene.js');
+    if (!window.ConquestStatisticsTemplate) await this.attachScript('/conquest/js/statistics.template.js');
     if (!window.ConquestUI) await this.attachScript('/conquest/js/ui.js');
     this.mountConquest();
   }
@@ -55,15 +70,25 @@ class Conquest extends GameTemplate {
     if (!root) return;
     if (!this.conquestUI || this.conquestUI.element !== root) {
       this.conquestUI?.destroy();
+      // Reuse the header control; Conquest binds it to its clipped map viewport.
+      this.sizer.render();
       this.conquestUI = new window.ConquestUI(root, {
+        hasGameMenu: true,
+        boardSizer: document.getElementById('game_board_sizer'),
         getState: () => this.viewState(),
         getPlayer: () => this.game.player || -1,
         getPlayerName: id => this.playerName(id),
+        getPlayerIdenticon: id => this.app.keychain.returnIdenticon(this.game.players[id - 1]),
+        showDispatches: () => this.log.toggleLog(),
         getStatus: () => this.conquestStatus(),
         dispatch: action => this.submitAction(action)
       });
     }
     this.conquestUI.render();
+    document.body.style.setProperty('--conquest-active', `var(--conquest-player-${this.game.state.currentPlayer})`);
+    // The engine journal is public and chronological; GameLog displays newest first.
+    this.log.logs = [...(this.game.state.log || [])].reverse();
+    this.log.render();
   }
 
   playerName(id) {
@@ -97,7 +122,7 @@ class Conquest extends GameTemplate {
       this.game.conquestKnownHands = {};
       this.game.state = Engine.createGame({
         players: this.game.players.length,
-        setup: this.game.options?.conquest_setup === 'quick' ? 'quick' : 'classic',
+        setup: this.game.options?.conquest_setup === 'classic' ? 'classic' : 'quick',
         externalCards: true
       }, sides => this.rollDice(sides));
       this.game.conquestInitialized = true;
@@ -252,6 +277,9 @@ class Conquest extends GameTemplate {
     }
     this.saveGame(this.game.id);
     this.mountConquest();
+    // Every client (including defenders and observers) finishes playback before
+    // processing another queue action or opening the game-over overlay.
+    await this.conquestUI?.battlePlayback;
     if (next.winner && !this.game.over && !this.game.terminating) {
       await this.triggerGameOver([this.game.players[next.winner - 1]], 'world conquest');
     }

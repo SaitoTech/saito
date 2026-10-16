@@ -41,7 +41,7 @@
         this.game.status = "Remove 1 USSR influence from Central or South America";
         this.hud.updateStatus(this.game.status);
         this.hud.updateMenu([]);
-        this.hud.updateCards([]);
+        this.hud.updateCards(this.game.deck[0].hand);
         
         $(".easterneurope").off();
         $(".easterneurope").on('click', function() {

@@ -10,6 +10,7 @@ class StreamManager {
     this.localStream = null; //My Video Feed
     this.presentationStream = null;
     this.remoteStreams = new Map(); //The video of the other parties
+    this.transcribingPeers = new Set();
 
     this.videoEnabled = true;
     this.audioEnabled = true;
@@ -204,6 +205,7 @@ class StreamManager {
         public_key: this.mod.publicKey,
         enabled: this.videoEnabled
       });
+      this.broadcastTranscriptionStatus();
 
       // Add connection quality monitoring....
       if (this.monitors[peerId]) {
@@ -268,7 +270,13 @@ class StreamManager {
       //
       // Note: This happens twice because audio and video are added separately as mediaTracks...
       //
-      let id = peerId == this.mod.screen_share ? 'presentation' : peerId;
+      // Talk sends microphone/camera tracks without a stream association and
+      // screen-share tracks with their presentationStream. A presenter can
+      // still send new call tracks (e.g. when another participant joins).
+      const id =
+        peerId === this.mod.screen_share && event?.streams?.length
+          ? 'presentation'
+          : peerId;
 
       let remoteStream;
 
@@ -349,9 +357,15 @@ class StreamManager {
         await this.getLocalMedia();
 
         setTimeout(() => {
+          const currentConnection = () =>
+            this.active &&
+            this.mod.stun.peers.get(publicKey) === peerConnection &&
+            peerConnection.signalingState !== 'closed';
+          if (!currentConnection() || !this.localStream) return;
           try {
             this.localStream.getTracks().forEach((track) => {
-              // Fails here on reconnection in 3-way call <<<<<<<<<<
+              // Discovery and connection reuse can notify us more than once.
+              if (peerConnection.getSenders().some((sender) => sender.track === track)) return;
               console.info(
                 'TALK [stun-new-peer-connection] sending new track to ' + publicKey,
                 track
@@ -360,23 +374,16 @@ class StreamManager {
             });
           } catch (err) {
             console.error(err);
-            //Attempt to reset tracks
-            console.debug('TALK: Clearing media tracks for clean re-init...');
-            for (let s of peerConnection.senders) {
-              peerConnection.removeTrack(s);
-            }
-
-            this.localStream.getTracks().forEach((track) => {
-              console.info('TALK [stun-new-peer-connection] sharing local media track attempt 2');
-              peerConnection.addTrack(track);
-            });
           }
 
           if (this.presentationStream) {
             setTimeout(async () => {
+              if (!currentConnection() || !this.presentationStream) return;
               await this.mod.sendOffChainMessage('screen-share-start', {});
+              if (!currentConnection() || !this.presentationStream) return;
               this.presentationStream.getTracks().forEach((track) => {
-                peerConnection.addTrack(track);
+                if (peerConnection.getSenders().some((sender) => sender.track === track)) return;
+                peerConnection.addTrack(track, this.presentationStream);
               });
             }, 1500);
           }
@@ -523,7 +530,29 @@ class StreamManager {
     this.app.connection.emit('add-local-stream-request', this.localStream);
   }
 
+  setTranscribing(enabled) {
+    if (!this.active) return;
+    this.updateTranscriptionStatus(this.mod.publicKey, enabled);
+    this.broadcastTranscriptionStatus();
+  }
+
+  broadcastTranscriptionStatus() {
+    void this.mod.sendOffChainMessage('toggle-transcription', {
+      enabled: this.transcribingPeers.has(this.mod.publicKey)
+    }).catch((error) => console.error('TALK: Could not share transcription status', error));
+  }
+
+  updateTranscriptionStatus(peer, enabled) {
+    if (enabled) this.transcribingPeers.add(peer);
+    else this.transcribingPeers.delete(peer);
+    this.app.connection.emit('peer-toggle-transcription-status', {
+      public_key: peer,
+      enabled
+    });
+  }
+
   removePeer(peer, message = 'left the meeting') {
+    this.updateTranscriptionStatus(peer, false);
     this.app.connection.emit('videocall-peer-left', peer);
     this.remoteStreams.delete(peer);
 
@@ -574,6 +603,7 @@ class StreamManager {
     this.videoEnabled = true;
     this.audioEnabled = true;
     this.auto_disconnect = false;
+    this.transcribingPeers.clear();
     this.active = false;
 
     if (this.audioStreamAnalysis) {

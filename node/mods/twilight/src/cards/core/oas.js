@@ -19,7 +19,7 @@
         this.game.status = "US places two influence in Central or South America";
         this.hud.updateStatus(this.game.status);
         this.hud.updateMenu([]);
-        this.hud.updateCards([]);
+        this.hud.updateCards(this.game.deck[0].hand);
         for (var i in this.countries) {
           if (this.countries[i].region == "samerica" || this.countries[i].region == "camerica"){
             this.countries[i].place = 1;

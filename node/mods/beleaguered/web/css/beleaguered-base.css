@@ -5,13 +5,13 @@
   --beleaguered-selection-green: #67f28f;
   --beleaguered-selection-gold: #ffd166;
 
-  .logobox .status,
+  .logobox .hud-status,
   .logobox .status-header {
     background-color: #fffe;
     color: #333;
   }
 
-  .status {
+  .hud-status {
     border-radius: 5px;
     padding: 1rem;
   }
@@ -210,7 +210,7 @@
       max-width: 90vw;
     }
 
-    .status {
+    .hud-status {
       padding: 0.5rem;
     }
 

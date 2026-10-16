@@ -1,6 +1,6 @@
 
     this.importActionCard('intercept', {
-  	name : "Intercept" ,
+  	name : "Retreat Denied" ,
   	type : "retreat" ,
   	text : "After your opponent declares a retreat in space combat, they cannot retreat" ,
 	playActionCard : function(imperium_self, player, action_card_player, card) {
@@ -12,7 +12,7 @@
     });
 
     this.importActionCard('courageous-to-the-end', {
-  	name : "Courageous to the End" ,
+  	name : "Last Stand" ,
   	type : "space_combat_after" ,
   	text : "For one ship lost in last round of space combat, fire twice. With each hit your opponent must destroy a ship of their chosing" ,
 	playActionCard : function(imperium_self, player, action_card_player, card) {
@@ -58,7 +58,7 @@
 
 
     this.importActionCard('salvage', {
-  	name : "Salvage" ,
+  	name : "Spoils of War" ,
   	type : "space_combat_victory" ,
   	text : "If you win a space combat, opponent gives you all their commodities" ,
 	playActionCard : function(imperium_self, player, action_card_player, card) {
@@ -121,7 +121,7 @@
 
 
     this.importActionCard('maneuvering-jets1', {
-  	name : "Maneuvering Jets" ,
+  	name : "Evasive Maneuvers" ,
   	type : "post_pds" ,
   	text : "Cancel 1 hit from a PDS firing upon your ships" ,
 	playActionCard : function(imperium_self, player, action_card_player, card) {
@@ -130,7 +130,7 @@
 	}
     });
     this.importActionCard('maneuvering-jets2', {
-  	name : "Maneuvering Jets" ,
+  	name : "Evasive Maneuvers" ,
   	type : "post_pds" ,
   	text : "Cancel 1 hit from a PDS firing upon your ships" ,
 	playActionCard : function(imperium_self, player, action_card_player, card) {
@@ -139,7 +139,7 @@
 	}
     });
     this.importActionCard('maneuvering-jets3', {
-  	name : "Maneuvering Jets" ,
+  	name : "Evasive Maneuvers" ,
   	type : "post_pds" ,
   	text : "Cancel 1 hit from a PDS firing upon your ships" ,
 	playActionCard : function(imperium_self, player, action_card_player, card) {
@@ -148,7 +148,7 @@
 	}
     });
     this.importActionCard('maneuvering-jets4', {
-  	name : "Maneuvering Jets" ,
+  	name : "Evasive Maneuvers" ,
   	type : "post_pds" ,
   	text : "Cancel 1 hit from a PDS firing upon your ships" ,
 	playActionCard : function(imperium_self, player, action_card_player, card) {
@@ -158,7 +158,7 @@
     });
 
     this.importActionCard('emergency-repairs', {
-  	name : "Emergency Repairs" ,
+  	name : "Field Repairs" ,
   	type : "assign_hits" ,
   	text : "Repair all damaged ships not at full strength" ,
 	playActionCard : function(imperium_self, player, action_card_player, card) {
@@ -215,8 +215,8 @@
 
 	  if (imperium_self.game.state.ground_combat_sector) {
 	    if (imperium_self.game.state.ground_combat_planet_idx) {
-              let sys = imperium_self.returnSectorAndPlanets(imperium_self.game.state.space_combat_sector);
-	      for (let p = 0; i < sys.p.length; p++) {
+              let sys = imperium_self.returnSectorAndPlanets(imperium_self.game.state.ground_combat_sector);
+	      for (let p = 0; p < sys.p.length; p++) {
 	        for (let i = 0; i < sys.p[p].units[action_card_player-1].length; i++) {
                   let unit = sys.p[p].units[action_card_player-1][i];
 	          unit.temporary_combat_modifier += 1;
@@ -231,12 +231,12 @@
 
 
     this.importActionCard('experimental-battlestation', {
-  	name : "Experimental Battlestation" ,
+  	name : "AI Defense Grid" ,
   	type : "pre_pds" ,
   	text : "After a player moves ships into a sector, a space dock in that or an adjacent sector can fire 3 PDS shots" ,
 	playActionCard : function(imperium_self, player, action_card_player, card) {
 
-	  imperium_self.updateLog("Experimental Battlestation");
+	  imperium_self.updateLog("AI Defense Grid");
 
 	  let sector = imperium_self.game.state.activated_sector;
 	  let adjacent_sectors = imperium_self.returnAdjacentSectors(sector);
@@ -270,25 +270,25 @@
 
 
     this.importActionCard('direct-hit1', {
-  	name : "Direct Hit" ,
+  	name : "Kill Shot" ,
   	type : "space_combat_after" ,
   	text : "Destroy a ship that is damaged or not at full strength" ,
 	playActionCard : function(imperium_self, player, action_card_player, card) {
 
 	  let z = imperium_self.returnEventObjects();
-          let sys = imperium_self.returnSectorAndPlanets(imperium_self.game.state.space_combat_sector);
+          let sector = imperium_self.game.state.space_combat_sector;
+          let sys = imperium_self.returnSectorAndPlanets(sector);
 	  for (let p = 0; p < sys.s.units.length; p++) {
 	    if (p != (action_card_player-1)) {
 
 	      for (let i = 0; i < sys.s.units[p].length; i++) {
 
-	        if (sys.s.units[p][i].strength < sys.s.units[action_card_player-1][i].max_strength) {
+	        if (sys.s.units[p][i].strength < sys.s.units[p][i].max_strength) {
 
-	          sys.s.units[p][i].strength = 0;
 	          sys.s.units[p][i].strength = 0;
 
                   for (let z_index in z) {
-                    z[z_index].unitDestroyed(imperium_self, attacker, sys.p.units[p][i]);
+                    z[z_index].unitDestroyed(imperium_self, action_card_player, sys.s.units[p][i]);
                   }
 
 	          imperium_self.eliminateDestroyedUnitsInSector((p+1), sector);
@@ -308,25 +308,25 @@
     });
 
     this.importActionCard('direct-hit2', {
-  	name : "Direct Hit" ,
+  	name : "Kill Shot" ,
   	type : "space_combat_after" ,
   	text : "Destroy a ship that is damaged or not at full strength" ,
 	playActionCard : function(imperium_self, player, action_card_player, card) {
 
 	  let z = imperium_self.returnEventObjects();
-          let sys = imperium_self.returnSectorAndPlanets(imperium_self.game.state.space_combat_sector);
+          let sector = imperium_self.game.state.space_combat_sector;
+          let sys = imperium_self.returnSectorAndPlanets(sector);
 	  for (let p = 0; p < sys.s.units.length; p++) {
 	    if (p != (action_card_player-1)) {
 
 	      for (let i = 0; i < sys.s.units[p].length; i++) {
 
-	        if (sys.s.units[p][i].strength < sys.s.units[action_card_player-1][i].max_strength) {
+	        if (sys.s.units[p][i].strength < sys.s.units[p][i].max_strength) {
 
-	          sys.s.units[p][i].strength = 0;
 	          sys.s.units[p][i].strength = 0;
 
                   for (let z_index in z) {
-                    z[z_index].unitDestroyed(imperium_self, attacker, sys.p.units[p][i]);
+                    z[z_index].unitDestroyed(imperium_self, action_card_player, sys.s.units[p][i]);
                   }
 
 	          imperium_self.eliminateDestroyedUnitsInSector((p+1), sector);
@@ -346,25 +346,25 @@
     });
 
     this.importActionCard('direct-hit3', {
-  	name : "Direct Hit" ,
+  	name : "Kill Shot" ,
   	type : "space_combat_after" ,
   	text : "Destroy a ship that is damaged or not at full strength" ,
 	playActionCard : function(imperium_self, player, action_card_player, card) {
 
 	  let z = imperium_self.returnEventObjects();
-          let sys = imperium_self.returnSectorAndPlanets(imperium_self.game.state.space_combat_sector);
+          let sector = imperium_self.game.state.space_combat_sector;
+          let sys = imperium_self.returnSectorAndPlanets(sector);
 	  for (let p = 0; p < sys.s.units.length; p++) {
 	    if (p != (action_card_player-1)) {
 
 	      for (let i = 0; i < sys.s.units[p].length; i++) {
 
-	        if (sys.s.units[p][i].strength < sys.s.units[action_card_player-1][i].max_strength) {
+	        if (sys.s.units[p][i].strength < sys.s.units[p][i].max_strength) {
 
-	          sys.s.units[p][i].strength = 0;
 	          sys.s.units[p][i].strength = 0;
 
                   for (let z_index in z) {
-                    z[z_index].unitDestroyed(imperium_self, attacker, sys.p.units[p][i]);
+                    z[z_index].unitDestroyed(imperium_self, action_card_player, sys.s.units[p][i]);
                   }
 
 	          imperium_self.eliminateDestroyedUnitsInSector((p+1), sector);
@@ -384,25 +384,25 @@
     });
 
     this.importActionCard('direct-hit4', {
-  	name : "Direct Hit" ,
+  	name : "Kill Shot" ,
   	type : "space_combat_after" ,
   	text : "Destroy a ship that is damaged or not at full strength" ,
 	playActionCard : function(imperium_self, player, action_card_player, card) {
 
 	  let z = imperium_self.returnEventObjects();
-          let sys = imperium_self.returnSectorAndPlanets(imperium_self.game.state.space_combat_sector);
+          let sector = imperium_self.game.state.space_combat_sector;
+          let sys = imperium_self.returnSectorAndPlanets(sector);
 	  for (let p = 0; p < sys.s.units.length; p++) {
 	    if (p != (action_card_player-1)) {
 
 	      for (let i = 0; i < sys.s.units[p].length; i++) {
 
-	        if (sys.s.units[p][i].strength < sys.s.units[action_card_player-1][i].max_strength) {
+	        if (sys.s.units[p][i].strength < sys.s.units[p][i].max_strength) {
 
-	          sys.s.units[p][i].strength = 0;
 	          sys.s.units[p][i].strength = 0;
 
                   for (let z_index in z) {
-                    z[z_index].unitDestroyed(imperium_self, attacker, sys.p.units[p][i]);
+                    z[z_index].unitDestroyed(imperium_self, action_card_player, sys.s.units[p][i]);
                   }
 
 	          imperium_self.eliminateDestroyedUnitsInSector((p+1), sector);

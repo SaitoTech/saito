@@ -80,7 +80,7 @@ async function handleRequestBlocks(app, txmsg) {
   return success(blocks.map((block) => blockHeaderToJson(block)));
 }
 
-async function handleRequestBlock(app, txmsg) {
+async function handleRequestBlock(app, txmsg, mod) {
   const params = requestParams(txmsg);
   const includeTransactions = Boolean(params.include_transactions ?? false);
 
@@ -93,16 +93,37 @@ async function handleRequestBlock(app, txmsg) {
     return failure('hash or block_id required');
   }
 
-  const block = await app.core.blockchain.getBlock(identifier, includeTransactions);
+  let block;
+  try { block = await app.core.blockchain.getBlock(identifier, includeTransactions); } catch (_) {}
+  if (!block && mod?.chainIndex) {
+    const stored = await mod.chainIndex.loadStoredBlock(identifier, includeTransactions);
+    if (stored?.block) {
+      const obj = includeTransactions ? blockToJson(stored.block) : blockHeaderToJson(stored.block);
+      obj.in_longest_chain = stored.row.in_longest_chain == null ? null : Boolean(stored.row.in_longest_chain);
+      obj.block_size = stored.row.size_bytes;
+      obj.tx_count = stored.row.tx_count;
+      return success(obj);
+    }
+    if (stored?.row) {
+      const { file_path, height, size_bytes, ...metadata } = stored.row;
+      return success({ ...metadata, id: height, previous_block_hash: metadata.parent_hash,
+        in_longest_chain: metadata.in_longest_chain == null ? null : Boolean(metadata.in_longest_chain),
+        block_size: size_bytes, transactions: [], body_available: false });
+    }
+  }
   if (!block) {
     return failure('block not found');
   }
 
-  if (includeTransactions) {
-    return success(blockToJson(block));
+  const result = includeTransactions ? blockToJson(block) : blockHeaderToJson(block);
+  if (mod?.chainIndex) {
+    try {
+      const metadata = await mod.chainIndex.observe(block, block.inLongestChain);
+      result.tx_count = metadata.tx_count;
+      result.block_size = metadata.size_bytes;
+    } catch (err) { console.warn('Explorer: block metadata unavailable', err.message); }
   }
-
-  return success(blockHeaderToJson(block));
+  return success(result);
 }
 
 // Number of recent longest-chain blocks sampled for the dashboard's rolling
@@ -230,10 +251,16 @@ async function handleExplorerRequest(app, txmsg, mod = null) {
   }
 
   switch (txmsg.request) {
+    case 'request chain':
+      try {
+        if (!mod?.chainIndex) return failure('Chain index unavailable');
+        return success(await mod.chainIndex.range(requestParams(txmsg)));
+      } catch (err) { return failure(err.message || 'Chain request failed'); }
     case 'request blocks':
       return handleRequestBlocks(app, txmsg);
     case 'request block':
-      return handleRequestBlock(app, txmsg);
+      try { return await handleRequestBlock(app, txmsg, mod); }
+      catch (err) { return failure(err.message || 'Block request failed'); }
     case 'request info':
       return handleRequestInfo(app);
     case 'request transaction':

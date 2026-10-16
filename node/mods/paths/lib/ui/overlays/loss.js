@@ -73,9 +73,13 @@ class LossOverlay {
   }
 
   showRetreatNotice() {
-    // Refresh the resolved view only. Re-entering assignment here
-    // spends the loss factor again and hides the overlay.
-    this.render(this.faction || this.assignment_faction || 'defender', false);
+    // The assignment panel is already open. Rebuilding it here spends the
+    // loss factor again and hides the overlay before painting it a second time.
+    if (!document.querySelector('.loss-overlay')) {
+      this.render(this.faction || this.assignment_faction || 'defender', false);
+    } else {
+      this.show();
+    }
     try {
       this.updateInstructions(
         `<div class="continue_btn">All possible damage assigned — <span style="text-decoration:underline dashed;cursor:pointer">Close to Continue</span></div>`,
@@ -1181,9 +1185,10 @@ class LossOverlay {
     }
 
     //
-    // negative loss factor = we're cancelling hits
+    // A negative loss factor means hits were cancelled. Reaching exactly
+    // zero is a finished assignment; leave the panel up for the retreat notice.
     //
-    if (this.loss_factor <= 0) {
+    if (this.loss_factor < 0) {
       this.hide();
     }
   }

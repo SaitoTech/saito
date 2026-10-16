@@ -19,7 +19,7 @@
 
         twilight_self.game.status = "USSR establishes the Warsaw Pact:";
         twilight_self.hud.updateStatus(twilight_self.game.status);
-        twilight_self.hud.updateCards([]);
+        twilight_self.hud.updateCards(twilight_self.game.deck[0].hand);
         twilight_self.hud.updateMenu([
           { id: 'remove', label: 'remove all US influence in four countries in Eastern Europe' },
           { id: 'add', label: 'add five USSR influence in Eastern Europe (max 2 per country)' }
@@ -32,7 +32,7 @@
             twilight_self.game.status = '<div class="status-message" id="status-message">Remove all US influence from four countries in Eastern Europe</div>';
             twilight_self.hud.updateStatus(twilight_self.game.status);
             twilight_self.hud.updateMenu([]);
-            twilight_self.hud.updateCards([]);
+            twilight_self.hud.updateCards(twilight_self.game.deck[0].hand);
 
             var countries_to_purge = 4;
             var options_purge = [];
@@ -64,7 +64,7 @@
               twilight_self.game.status = `Only ${options_purge.length} countries in Eastern Europe with US influence...`;
               twilight_self.hud.updateStatus(twilight_self.game.status);
               twilight_self.hud.updateMenu([]);
-              twilight_self.hud.updateCards([]);
+              twilight_self.hud.updateCards(twilight_self.game.deck[0].hand);
 
             } else {
 
@@ -99,7 +99,7 @@
             twilight_self.game.status = '<div class="status-message" id="status-message">Add five influence in Eastern Europe (max 2 per country)</div>';
             twilight_self.hud.updateStatus(twilight_self.game.status);
             twilight_self.hud.updateMenu([]);
-            twilight_self.hud.updateCards([]);
+            twilight_self.hud.updateCards(twilight_self.game.deck[0].hand);
 
             var ops_to_place = 5;
             var ops_placed = {};

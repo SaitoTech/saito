@@ -71,7 +71,7 @@
         twilight_self.addMove("resolve\tindopaki");
         twilight_self.game.status = 'Indo-Pakistani War. Choose Target to invade:';
         twilight_self.hud.updateStatus(twilight_self.game.status);
-        twilight_self.hud.updateCards([]);
+        twilight_self.hud.updateCards(twilight_self.game.deck[0].hand);
         twilight_self.hud.updateMenu([ { id: 'pakistan', label: 'Pakistan' }, { id: 'india', label: 'India' } ], invasion_function);
 
           $("#india").addClass("westerneurope");

@@ -1,6 +1,7 @@
 module.exports = () => {
   return `
     <div id="game-hud2" class="game-hud2">
+      <div class="hud-notice"></div>
       <div id="hud-visual-menu" class="hud-visual-menu"></div>
       <div class="hud-status-row">
         <div class="hud-back-button"></div>

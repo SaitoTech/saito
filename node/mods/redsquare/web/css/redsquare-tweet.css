@@ -83,18 +83,16 @@
 }
 
 /*
- * Detail identity owns its own grid:
- *   [ Username .............. Timestamp ]
- *   [ Public key                        ]
- * Time is a grid cell on row 1 — not a flex sibling that can wrap under content.
+ * Detail identity:
+ *   Username · time
+ *   Public key
  */
 .tweet .header.expanded {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  grid-template-rows: auto auto;
-  column-gap: var(--saito-space-sm);
-  row-gap: 0;
+  display: flex;
+  flex-wrap: wrap;
   align-items: baseline;
+  column-gap: var(--saito-space-xs);
+  row-gap: 0;
 }
 
 .tweet .header.compose {
@@ -113,8 +111,6 @@
 }
 
 .tweet .header.expanded .primary {
-  grid-column: 1;
-  grid-row: 1;
   min-width: 0;
 }
 
@@ -127,8 +123,7 @@
 }
 
 .tweet .header.expanded .handle {
-  grid-column: 1 / -1;
-  grid-row: 2;
+  flex: 1 0 100%;
   font-family: var(--saito-font);
   font-weight: normal;
   line-height: 1.2;
@@ -151,11 +146,6 @@
   color: var(--saito-muted-foreground);
 }
 
-.tweet .header.expanded .time {
-  grid-column: 2;
-  grid-row: 1;
-  justify-self: end;
-}
 
 /* Body starts immediately under the identity block */
 .tweet .header + .body {
@@ -363,6 +353,71 @@
   font-size: 1.2rem;
 }
 
+.tweet .heart {
+  position: relative;
+  flex: 0 0 1.2rem;
+  height: 1.2rem;
+}
+
+.tweet .heart svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.tweet .controls .tool:is(.liked, .replied, .retweeted) {
+  color: var(--saito-primary);
+}
+
+.tweet .heart .fill {
+  fill: currentColor;
+  clip-path: inset(100% 0 0);
+}
+
+.tweet .like.liked .fill {
+  clip-path: inset(0);
+}
+
+.tweet .heart .outline,
+.tweet .heart .pulse {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linejoin: round;
+}
+
+.tweet .heart .pulse {
+  opacity: 0;
+  transform-origin: center;
+  transform-box: view-box;
+}
+
+.tweet .heart.animating {
+  z-index: 1;
+}
+
+.tweet .heart.animating .fill {
+  animation: redsquare-heart-fill 450ms ease-out both;
+}
+
+.tweet .heart.animating .pulse {
+  animation: redsquare-heart-pulse 450ms ease-out both;
+}
+
+@keyframes redsquare-heart-fill {
+  from { clip-path: inset(100% 0 0); }
+  to { clip-path: inset(0); }
+}
+
+@keyframes redsquare-heart-pulse {
+  0% { opacity: 1; transform: scale(1); }
+  65% { opacity: 0.7; }
+  100% { opacity: 0; transform: scale(3); }
+}
+
 .tweet .controls .count {
   margin-right: var(--saito-space-xs);
 }
@@ -373,6 +428,30 @@
 
 .tweet.focused {
   cursor: default;
+}
+
+.tweet.focused:hover {
+  background: transparent;
+}
+
+.tweet.focused .header.expanded .primary {
+  font-size: 1.5rem;
+  line-height: 1.25;
+}
+
+.tweet.focused .header.expanded .handle {
+  font-size: 1.4rem;
+}
+
+.tweet.focused .body {
+  margin-top: 0.8rem;
+  font-size: 1.5rem;
+  line-height: 2.2rem;
+}
+
+.tweet.focused .footer {
+  padding-top: var(--saito-space-sm);
+  border-top: 1px solid var(--saito-border);
 }
 
 .tweet .gallery {
@@ -484,6 +563,11 @@
 
   .tweet .body {
     line-height: 1.5;
+  }
+
+  .tweet.focused .body {
+    font-size: 1.6rem;
+    line-height: 2.3rem;
   }
 
   .tweet .embed > .tweet.embedded {

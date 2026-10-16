@@ -29,7 +29,7 @@
 
         this.game.status = `${this.cardToText(card)} discard:`;
         this.hud.updateStatus(this.game.status);
-        this.hud.updateCards([]);
+        this.hud.updateCards(this.game.deck[0].hand);
         this.hud.updateMenu(options, function(action2) {
 
 	  let discarded = false;
@@ -46,7 +46,7 @@
 
 	    if (twilight_self.game.deck[0].crypt.length == 0) {
 
-              let discarded_cards = this.returnDiscardedCards();
+              let discarded_cards = twilight_self.returnDiscardedCards();
 
               // shuffle in discarded cards
               twilight_self.addMove("SHUFFLE\t1");
@@ -71,7 +71,7 @@
         this.game.status = `<div class='status-message' id='status-message'>USSR responding to ${this.cardToText(card)}</div>`;
         this.hud.updateStatus(this.game.status);
         this.hud.updateMenu([]);
-        this.hud.updateCards([]);
+        this.hud.updateCards(this.game.deck[0].hand);
       }
 
       return 0;

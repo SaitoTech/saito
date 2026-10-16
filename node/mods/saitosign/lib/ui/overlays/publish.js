@@ -1,17 +1,32 @@
 const SaitoOverlay = require('../../../../../lib/saito/ui/saito-overlay/saito-overlay');
 const PublishTemplate = require('./publish.template');
+const Photo = require('./photo');
+const Passport = require('./passport');
 const flow = require('./publish.flow');
 const {
   verifyEmailSignature,
+  verifyPhoto,
   addSignature,
   addInitial,
   actionStatus,
   verifyActionSignature,
+  clearEmailIdentifier,
   rememberEmail,
-  verifiedMethods
+  verifiedMethods,
+  verifyPassport,
+  validVerification,
+  verifyCreatorProof,
+  finalizeDocument,
+  unfinalizeDocument,
+  verifyFinalization,
+  signingConfigurationError,
+  commitmentIntact,
+  verificationSatisfied,
+  knownSigner
 } = require('../../auth');
-const { addUser, copy } = require('../../document');
+const { addUser, copy, resolveSigner } = require('../../document');
 const { saveDraft } = require('../../draft');
+const { shareMetadata } = require('../../transaction');
 
 class PublishOverlay {
   constructor(app, mod) {
@@ -21,16 +36,174 @@ class PublishOverlay {
     this.overlay.class = 'saito-overlay saitosign-publish-host';
     this.state = flow.initialState();
     this.sliding = false;
+    this.passport = new Passport();
   }
 
   render() {
     this.state = flow.initialState();
+    const metadata = this.mod.document?.metadata;
+    if (metadata) {
+      this.state = flow.applyShareMetadata(this.state, metadata);
+    }
     this.state.signers = readUsers(this.mod);
-    if (this.state.signers.length === 1) {
-      this.keepUser(this.state.signers[0]);
+    const walletKey = this.currentPublicKey();
+    const owner = this.normalizePublicKey(this.mod.document?.creator);
+    this.state.tierOwner = owner;
+    this.state.canChooseTier = Boolean(
+      !this.mod.document?.finalized &&
+      this.mod.document?.creatorProof?.signature &&
+      verifyCreatorProof(this.app, this.mod.document) &&
+      walletKey && owner && walletKey === owner
+    );
+    const known = knownSigner(this.app, this.state.signers);
+    if (known) {
+      this.keepUser(known);
+    } else {
+      this.state.signers = this.state.signers.filter((signer) =>
+        signaturePlaces(this.mod, signer.index) > 0
+      );
+    }
+    this.state = flow.resolveInitial(this.state, this.workflowRequirements(this.state.canChooseTier));
+    if (this.state.step === 'share') {
+      this.state = this.summaryState(this.state);
     }
     this.overlay.show(PublishTemplate(this.state));
     this.attachEvents();
+  }
+
+  openStatus(completionNote = '') {
+    const record = this.mod.document;
+    if (!record?.finalized || !verifyFinalization(this.app, record)) {
+      this.mod.main?.fail('The finalized document creator signature is invalid.');
+      return;
+    }
+    this.state = flow.initialState();
+    if (record.metadata) {
+      this.state = flow.applyShareMetadata(this.state, record.metadata);
+    }
+    this.state.signers = readUsers(this.mod);
+    this.state = {
+      ...this.summaryState(this.state),
+      step: 'share',
+      history: [],
+      allowUnfinalize: false,
+      completionNote: String(completionNote || '')
+    };
+    this.overlay.show(PublishTemplate(this.state));
+    this.attachEvents();
+  }
+
+  beginVerification(signerIndex, actionId) {
+    const record = this.mod.document;
+    const signer = readUsers(this.mod).find((candidate) => candidate.index === signerIndex);
+    if (!record?.finalized || !signer || !Number.isInteger(Number(actionId))) {
+      return;
+    }
+    this.state = flow.initialState();
+    if (record.metadata) {
+      this.state = flow.applyShareMetadata(this.state, record.metadata);
+    }
+    this.state.signers = readUsers(this.mod);
+    this.keepUser(signer);
+    this.state = {
+      ...this.state,
+      step: 'verify',
+      history: [],
+      allowUnfinalize: false,
+      afterVerify: 'sign',
+      pendingActionId: Number(actionId)
+    };
+    this.overlay.show(PublishTemplate(this.state));
+    this.attachEvents();
+  }
+
+  async commitFinalization() {
+    if (this.sliding || this.state.step !== 'select') {
+      return;
+    }
+    this.sliding = true;
+    let ready = false;
+    try {
+      this.writeShare();
+      const record = this.mod.document;
+      const creator = String(record?.creator || '').trim();
+      if (!record || !creator) {
+        this.mod.main?.fail('This document could not be finalized.');
+        return;
+      }
+      if (!record.finalized) {
+        const problem = signingConfigurationError(record);
+        if (problem) {
+          this.mod.main?.fail(problem);
+          return;
+        }
+        const snapshot = {
+          finalized: record.finalized,
+          finalization: record.finalization ? JSON.parse(JSON.stringify(record.finalization)) : null,
+          creatorProof: record.creatorProof ? JSON.parse(JSON.stringify(record.creatorProof)) : null,
+          edited: record.edited,
+          hash: String(record.hash || '')
+        };
+        const finalized = await finalizeDocument(this.app, record, creator);
+        if (!finalized || !verifyFinalization(this.app, record) || !verifyCreatorProof(this.app, record)) {
+          record.finalized = snapshot.finalized;
+          record.finalization = snapshot.finalization;
+          record.creatorProof = snapshot.creatorProof;
+          record.edited = snapshot.edited;
+          record.hash = snapshot.hash;
+          this.mod.main?.fail('This document could not be finalized.');
+          return;
+        }
+      }
+      if (record.metadata) {
+        const saved = flow.applyShareMetadata(this.state, record.metadata);
+        this.state = { ...this.state, plan: saved.plan, options: saved.options };
+      }
+      this.state = flow.go(this.state, 'share', { allowUnfinalize: true });
+      this.state = this.summaryState(this.state);
+      this.refreshWorkspace();
+      ready = true;
+    } catch (err) {
+      this.mod.main?.fail('This document could not be finalized.');
+    } finally {
+      this.sliding = false;
+    }
+    if (ready) {
+      await this.showStep('forward');
+    }
+  }
+
+  async reopenTier() {
+    if (this.sliding || this.state.step !== 'share' || !this.state.allowUnfinalize) {
+      return;
+    }
+    this.sliding = true;
+    let ready = false;
+    try {
+      const reopened = await unfinalizeDocument(this.app, this.mod.document);
+      if (!reopened) {
+        this.mod.main?.fail('Only the document creator can change this finalized document.');
+        return;
+      }
+      this.state = { ...flow.back(this.state), allowUnfinalize: false };
+      this.refreshWorkspace();
+      ready = true;
+    } catch (err) {
+      this.mod.main?.fail('Only the document creator can change this finalized document.');
+    } finally {
+      this.sliding = false;
+    }
+    if (ready) {
+      await this.showStep('back');
+    }
+  }
+
+  refreshWorkspace() {
+    const workspace = this.mod.main?.workspace;
+    const root = document.querySelector('.saito-container > .workspace');
+    if (workspace && root) {
+      workspace.update(root);
+    }
   }
 
   close() {
@@ -89,12 +262,27 @@ class PublishOverlay {
 
   attachEvents() {
     const root = document.querySelector('.saitosign-publish');
-    if (!root || root.dataset.bound === '1') {
+    if (!root) {
       return;
     }
+    this.passport.attach(root, {
+      onUpload: (image) => this.acceptPassport(image),
+      onRemove: () => this.removePassport(),
+      onError: (message) => {
+        this.state = { ...this.state, passportError: message };
+        this.paintSlide();
+      }
+    });
+    if (root.dataset.bound === '1') return;
     root.dataset.bound = '1';
 
     root.addEventListener('change', (event) => {
+      const option = event.target.closest('[data-share-option]');
+      if (option && this.state.step === 'select' && this.state.canChooseTier) {
+        this.state = flow.setShareOption(this.state, option.dataset.shareOption, option.checked);
+        this.writeShare();
+        return;
+      }
       const select = event.target.closest('[data-you-signer]');
       if (!select) {
         return;
@@ -112,8 +300,11 @@ class PublishOverlay {
     root.addEventListener('click', (event) => {
       const plan = event.target.closest('[data-plan]');
       if (plan && this.state.step === 'select') {
+        if (!this.state.canChooseTier) {
+          return;
+        }
         this.state = flow.selectPlan(this.state, plan.dataset.plan);
-        this.paintPlan();
+        this.paintSlide();
         return;
       }
 
@@ -148,6 +339,10 @@ class PublishOverlay {
       }
 
       if (action.dataset.publishAction === 'back') {
+        if (this.state.step === 'share') {
+          this.reopenTier();
+          return;
+        }
         const next = flow.back(this.state);
         if (next === this.state) {
           return;
@@ -169,6 +364,11 @@ class PublishOverlay {
         return;
       }
 
+      if (action.dataset.publishAction === 'take-photo') {
+        this.takePhoto();
+        return;
+      }
+
       if (action.dataset.publishAction === 'review') {
         this.close();
         return;
@@ -176,6 +376,23 @@ class PublishOverlay {
 
       if (action.dataset.publishAction === 'share') {
         this.mod.exportDocument();
+        return;
+      }
+
+      if (action.dataset.publishAction === 'sign-now') {
+        this.state = { ...this.state, allowUnfinalize: false };
+        this.close();
+        this.refreshWorkspace();
+        return;
+      }
+
+      if (action.dataset.publishAction === 'upload-share') {
+        const notice = 'Upload and share is not implemented yet.';
+        if (typeof salert === 'function') {
+          salert(notice);
+        } else {
+          alert(notice);
+        }
         return;
       }
 
@@ -190,15 +407,27 @@ class PublishOverlay {
       }
 
       if (action.dataset.publishAction === 'advance') {
+        if (this.state.step === 'select') {
+          this.commitFinalization();
+          return;
+        }
         if (this.state.step === 'verify') {
           this.continueAfterVerification();
           return;
         }
-        const next = flow.advance(this.state);
+        if (this.state.step === 'sign') {
+          this.continueAfterSigning();
+          return;
+        }
+        const next = flow.advance(this.state, this.workflowRequirements());
         if (next === this.state) {
           return;
         }
         this.state = this.withKnownVerifications(next);
+        if (this.state.step === 'share') {
+          this.state = this.summaryState(this.state);
+        }
+        this.writeShare();
         this.showStep('forward');
       }
     });
@@ -223,9 +452,39 @@ class PublishOverlay {
       button.classList.toggle('active', selected);
       button.setAttribute('aria-selected', selected ? 'true' : 'false');
     });
-    root.querySelectorAll('[data-detail]').forEach((panel) => {
-      panel.hidden = panel.dataset.detail !== this.state.plan;
+    root.querySelectorAll('[data-tier-feature]').forEach((feature) => {
+      const included = this.state.plan === 'premium' || feature.dataset.freeAvailable === 'true';
+      feature.classList.toggle('included', included);
+      feature.classList.toggle('unavailable', !included);
+      const indicator = feature.querySelector('.feature-indicator');
+      if (indicator) {
+        indicator.textContent = '';
+        indicator.setAttribute('aria-label', included ? 'Included with this tier' : 'Not available on this tier');
+      }
     });
+  }
+
+  writeShare() {
+    const record = this.mod.document;
+    if (!record || record.finalized) {
+      return;
+    }
+    if (!this.state.canChooseTier && record.metadata) {
+      return;
+    }
+    record.metadata = shareMetadata(this.state.plan, this.state.options, this.state.tierOwner);
+  }
+
+  currentPublicKey() {
+    return this.normalizePublicKey(this.app.wallet?.publicKey);
+  }
+
+  normalizePublicKey(value) {
+    let publickey = String(value || '').trim();
+    if (/^[0-9a-fA-F]+$/.test(publickey) && publickey.length >= 64) {
+      publickey = this.app.crypto.compressPublicKey(publickey);
+    }
+    return publickey;
   }
 
   confirmYou() {
@@ -240,10 +499,13 @@ class PublishOverlay {
       return;
     }
     this.keepUser(signer);
-    this.flashKey();
+    this.continueAfterIdentity();
   }
 
   addSigner() {
+    if (!this.state.canChooseTier || this.mod.document?.finalized) {
+      return;
+    }
     const input = document.querySelector('[data-new-signer-name]');
     const value = input?.value.trim();
     if (!value) {
@@ -251,7 +513,28 @@ class PublishOverlay {
     }
     const email = isEmailAddress(value) ? value : '';
     const name = email ? nameFromEmail(email) : value;
-    const index = addUser(this.mod.document, name);
+    const decision = resolveSigner(this.mod.document, value, email ? name : undefined);
+    if (decision.action === 'existing') {
+      if (decision.conflict) {
+        duplicateSignerNotice();
+        return;
+      }
+      this.state.signers = readUsers(this.mod);
+      const existing = this.state.signers.find((candidate) => candidate.index === decision.index);
+      if (!existing) {
+        return;
+      }
+      this.keepUser(existing);
+      this.continueAfterIdentity();
+      if (input) {
+        input.value = '';
+      }
+      return;
+    }
+    const index = addUser(this.mod.document, name, this.app.wallet?.publicKey);
+    if (index < 0) {
+      return;
+    }
     if (email) {
       this.mod.document.users[index].email = email;
     }
@@ -261,7 +544,7 @@ class PublishOverlay {
       return;
     }
     this.keepUser(added);
-    this.flashKey();
+    this.continueAfterIdentity();
   }
 
   keepUser(signer) {
@@ -282,10 +565,35 @@ class PublishOverlay {
     };
     const live = this.mod.document.users[signer.index];
     if (live) {
+      const previousPublickey = String(live.publickey || '').trim();
       if (email) {
         live.email = email;
       }
       live.publickey = publickey;
+      const verifications = Array.isArray(live.verifications) ? live.verifications : [];
+      const stalePhoto = verifications.some((entry) => {
+        const method = String(entry?.method || '').trim();
+        return (method === 'photo' || (!method && String(entry?.message || '').startsWith('Photo received for verification of publickey ')))
+          && !validVerification(this.app, entry, live);
+      });
+      const stalePassport = verifications.some((entry) =>
+        String(entry?.method || '').trim() === 'passport' && !validVerification(this.app, entry, live)
+      );
+      const validVerifications = verifications.filter((entry) => validVerification(this.app, entry, live));
+      if (validVerifications.length !== verifications.length || previousPublickey !== publickey) {
+        live.verifications = validVerifications;
+        this.mod.document.edited = true;
+      }
+      if (stalePhoto || stalePassport) {
+        this.state = {
+          ...this.state,
+          verificationMethods: this.state.verificationMethods.map((method) =>
+            (method.id === 'photo' && stalePhoto) || (method.id === 'passport' && stalePassport)
+              ? { ...method, required: true, selected: true, status: 'pending' }
+              : method
+          )
+        };
+      }
     }
     this.state = flow.confirmYou(this.state, you);
     this.state.places = signaturePlaces(this.mod, you.index);
@@ -295,44 +603,97 @@ class PublishOverlay {
   withKnownVerifications(state) {
     const live = this.mod.document?.users?.[state.you?.index];
     const known = verifiedMethods(this.app, live);
-    if (!known.length) {
-      return state;
-    }
-    const verificationMethods = state.verificationMethods.map((method) => {
-      if (!known.includes(method.id) || method.status === 'verified') {
+    const image = storedPhoto(live);
+    const passport = storedPassport(live);
+    const verificationMethods = (state.verificationMethods || []).map((method) => {
+      if (!method.required) {
         return method;
       }
-      return { ...method, status: 'verified', selected: true };
+      if (!known.includes(method.id)) {
+        return method.status === 'verified'
+          ? { ...method, status: 'pending' }
+          : method;
+      }
+      const next = method.status === 'verified' ? method : { ...method, status: 'verified', selected: true };
+      if (method.id === 'photo' && image) {
+        return { ...next, photo: image };
+      }
+      if (method.id === 'passport' && passport) {
+        return { ...next, image: passport };
+      }
+      return next;
     });
     return { ...state, verificationMethods };
   }
 
-  flashKey() {
-    const slot = document.querySelector('[data-you-slot]');
-    const you = this.state.you;
-    if (!slot || !you) {
+  workflowRequirements(newDocument = false) {
+    const identified = Boolean(this.state.identified && this.state.you);
+    const index = this.state.you?.index;
+    return {
+      newDocument,
+      identified,
+      outstandingSignatures: identified && signaturePlaces(this.mod, index) > 0,
+      verificationComplete: identified && flow.requiredComplete(this.state)
+    };
+  }
+
+  continueAfterIdentity() {
+    if (!this.state.identified || !this.state.you) {
       return;
     }
-    const icon = you.identicon
-      ? `<div class="saito-identicon-box"><img class="saito-identicon" src="${escapeHTML(you.identicon)}" alt=""></div>`
-      : '';
-    slot.innerHTML = `
-      <p class="heading">You are signing with the following key:</p>
-      <div class="key-preview" data-key-preview>
-        <div class="saito-user">
-          ${icon}
-          <div class="saito-address" title="${escapeHTML(you.publicKey)}">${escapeHTML(you.publicKey)}</div>
-          <div class="saito-userline">${escapeHTML(you.email || you.name || '')}</div>
-        </div>
-      </div>
-    `;
-    const preview = slot.querySelector('.key-preview');
-    preview.classList.add('key-preview--enter');
-    requestAnimationFrame(() => {
-      preview.classList.add('key-preview--enter-active');
-      preview.classList.remove('key-preview--enter');
-    });
-    this.paintContinue();
+    this.state = flow.resolveAfter(this.state, 'identity', this.workflowRequirements());
+    if (this.state.step === 'share') {
+      this.state = this.summaryState(this.state);
+    }
+    this.writeShare();
+    this.showStep('forward');
+  }
+
+  async continueAfterSigning() {
+    if (!this.state.identified || !this.state.you || this.sliding) {
+      return;
+    }
+    const record = this.mod.document;
+    const user = record?.users?.[this.state.you.index];
+    if (user && !verificationSatisfied(this.app, record, user)) {
+      this.state = this.withKnownVerifications(this.state);
+      this.state = flow.go(this.state, 'verify', { verifyError: '' });
+      this.showStep('forward');
+      return;
+    }
+    try {
+      const signed = await this.signUserActions();
+      if (!signed) {
+        this.showSignError('Could not sign these actions with the current wallet key.');
+        return;
+      }
+    } catch (err) {
+      this.showSignError('Could not sign these actions. Please try again.');
+      return;
+    }
+    this.state.places = signaturePlaces(this.mod, this.state.you.index);
+    if (this.state.places > 0) {
+      this.showSignError('Some actions still need a valid signature.');
+      return;
+    }
+    this.refreshActions();
+    // Signing is followed by the verification stage in this flow, even when
+    // this signer already has every selected proof on file.
+    this.state = flow.go(this.state, 'verify', { places: 0, verifyError: '' });
+    this.showStep('forward');
+  }
+
+  showSignError(message) {
+    const root = document.querySelector('.saitosign-publish');
+    if (!root) return;
+    let note = root.querySelector('[data-sign-error]');
+    if (!note) {
+      note = document.createElement('p');
+      note.className = 'note fail';
+      note.dataset.signError = '1';
+      root.querySelector('.sign-step')?.appendChild(note);
+    }
+    if (note) note.textContent = message;
   }
 
   sendEmail() {
@@ -340,8 +701,12 @@ class PublishOverlay {
     const email = (input?.value || this.state.you?.email || '').trim();
     const publickey = this.state.you?.publicKey || '';
     if (!email || !publickey || !this.state.you) {
+      this.state = { ...this.state, verifyError: 'Enter an email address to verify.' };
+      this.paintSlide();
       return;
     }
+    clearEmailIdentifier(this.app, publickey);
+    clearEmailIdentifier(this.app, this.app.wallet?.publicKey);
     const live = this.mod.document.users[this.state.you.index];
     if (live) {
       live.email = email;
@@ -362,47 +727,58 @@ class PublishOverlay {
       this.showMailUnreachable();
     }, 8000);
 
+    const finish = (apply) => {
+      if (request.done) {
+        return;
+      }
+      request.done = true;
+      clearTimeout(timer);
+      apply();
+    };
+
+    let sent;
     try {
-      this.app.network.sendRequestAsTransaction(
+      sent = this.app.network.sendRequestAsTransaction(
         'saitosign verify email',
         { email, publickey },
         (res) => {
-          if (request.done) {
-            return;
-          }
-          request.done = true;
-          clearTimeout(timer);
-          if (res?.publickey) {
-            this.serverkey = res.publickey;
-          }
-          if (res?.success && res.publickey) {
-            this.keepVerification(res, email, publickey).then(() => {
+          finish(() => {
+            if (res?.publickey) {
+              this.serverkey = res.publickey;
+            }
+            if (res?.success && res.publickey) {
+              this.keepVerification(res, email, publickey).then(() => {
+                this.rememberDevCode(res);
+                this.paintSlide();
+              }).catch(() => {
+                this.state = { ...this.state, verifyError: 'This server cannot send a verification email.' };
+                this.paintSlide();
+              });
+              return;
+            }
+            if (res?.error && this.serverkey) {
+              this.state = flow.markMethodSent(this.state, 'email');
               this.rememberDevCode(res);
               this.paintSlide();
-            });
-            return;
-          }
-          if (res?.error && this.serverkey) {
-            this.state = flow.markMethodSent(this.state, 'email');
-            this.rememberDevCode(res);
+              return;
+            }
+            if (!res) {
+              this.showMailUnreachable();
+              return;
+            }
+            this.state = { ...this.state, verifyError: 'This server cannot send a verification email.' };
             this.paintSlide();
-            return;
-          }
-          if (!res) {
-            this.showMailUnreachable();
-            return;
-          }
-          this.state = { ...this.state, verifyError: 'This server cannot send a verification email.' };
-          this.paintSlide();
+          });
         }
       );
     } catch (err) {
-      if (!request.done) {
-        request.done = true;
-        clearTimeout(timer);
-        this.showMailUnreachable();
-      }
+      finish(() => this.showMailUnreachable());
+      return;
     }
+
+    Promise.resolve(sent).catch(() => {
+      finish(() => this.showMailUnreachable());
+    });
   }
 
   showMailUnreachable() {
@@ -424,7 +800,7 @@ class PublishOverlay {
       if (!live.publickey) {
         live.publickey = publickey;
       }
-      live.verifications = [verification];
+      keepMethod(live, verification);
     }
 
     if (res.signature) {
@@ -491,14 +867,12 @@ class PublishOverlay {
     if (live) {
       live.email = email;
       live.publickey = publickey;
-      live.verifications = [
-        {
-          method: 'email',
-          publickey: this.serverkey,
-          message: `Request received for verification of email ${email} with publickey ${publickey}`,
-          signature
-        }
-      ];
+      keepMethod(live, {
+        method: 'email',
+        publickey: this.serverkey,
+        message: `Request received for verification of email ${email} with publickey ${publickey}`,
+        signature
+      });
     }
     saveDraft({ code: signature, document: copy(this.mod.document) }).catch(() => {});
     rememberEmail(this.app, publickey, email);
@@ -509,28 +883,147 @@ class PublishOverlay {
     this.paintSlide();
   }
 
-  async continueAfterVerification() {
-    if (!flow.requiredComplete(this.state) || this.sliding) {
+  takePhoto() {
+    const photo = new Photo(this.app, this.mod);
+    this.photo = photo;
+    photo.open({
+      onAccept: (image) => this.acceptPhoto(image)
+    });
+  }
+
+  async acceptPhoto(image) {
+    const you = this.state.you;
+    const publickey = you?.publicKey || '';
+    const live = you ? this.mod.document.users[you.index] : null;
+    if (!live || !publickey) {
+      photoNotice('That photo could not be saved.');
+      return;
+    }
+
+    let proof;
+    try {
+      proof = await verifyPhoto(this.app, publickey, image);
+    } catch (err) {
+      photoNotice('That photo could not be saved.');
+      return;
+    }
+
+    if (!live.publickey) {
+      live.publickey = publickey;
+    }
+    keepMethod(live, proof);
+    this.mod.document.edited = true;
+    const verified = flow.markMethodVerified(
+      { ...this.state, focus: 'photo', upsell: null, verifyError: '' },
+      'photo'
+    );
+    this.state = {
+      ...verified,
+      verificationMethods: verified.verificationMethods.map((method) => {
+        if (method.id !== 'photo') {
+          return method;
+        }
+        return { ...method, photo: proof.photo || image };
+      })
+    };
+    this.paintSlide();
+  }
+
+  async acceptPassport(image) {
+    const you = this.state.you;
+    const publickey = you?.publicKey || '';
+    const live = you ? this.mod.document.users[you.index] : null;
+    if (!live || !publickey) {
       return;
     }
     try {
-      await this.signUserActions();
-    } catch (err) {}
+      const proof = await verifyPassport(this.app, publickey, image);
+      keepMethod(live, proof);
+      this.mod.document.edited = true;
+      this.state = {
+        ...flow.markMethodVerified({ ...this.state, passportError: '', focus: 'passport' }, 'passport'),
+        verificationMethods: this.state.verificationMethods.map((method) =>
+          method.id === 'passport' ? { ...method, status: 'verified', selected: true, image: proof.image } : method
+        )
+      };
+      this.paintSlide();
+    } catch (err) {
+      this.state = { ...this.state, passportError: 'That passport image could not be verified.' };
+      this.paintSlide();
+    }
+  }
+
+  removePassport() {
+    const you = this.state.you;
+    const live = you ? this.mod.document.users[you.index] : null;
+    if (!live) {
+      return;
+    }
+    live.verifications = (live.verifications || []).filter((entry) => entry?.method !== 'passport');
+    this.mod.document.edited = true;
+    this.state = {
+      ...this.state,
+      passportError: '',
+      verificationMethods: this.state.verificationMethods.map((method) =>
+        method.id === 'passport' ? { ...method, status: 'pending', image: '', selected: true } : method
+      )
+    };
+    this.paintSlide();
+  }
+
+  async continueAfterVerification() {
+    this.state = this.withKnownVerifications(this.state);
+    if (!flow.requiredComplete(this.state) || this.sliding) {
+      this.paintSlide();
+      return;
+    }
     const record = this.mod.document;
-    const status = actionStatus(this.app, record?.actions, record?.users, this.state.you?.index);
     const signature = record?.users?.[this.state.you?.index]?.verifications?.[0]?.signature || '';
     if (signature) {
       saveDraft({ code: signature, document: copy(record) }).catch(() => {});
     }
-    this.state = flow.go(this.state, 'share', { signed: status.userComplete, actionStatus: status });
-    try {
-      this.refreshActions();
-    } catch (err) {}
+    if (this.state.afterVerify === 'sign') {
+      const actionId = this.state.pendingActionId;
+      this.state = { ...this.state, afterVerify: '', pendingActionId: null };
+      this.close();
+      this.refreshWorkspace();
+      this.mod.main?.workspace?.continueSigning(actionId);
+      return;
+    }
+    this.state = flow.resolveAfter(this.state, 'verify', this.workflowRequirements());
+    this.state = this.summaryState(this.state);
+    this.writeShare();
+    this.refreshActions();
     this.showStep('forward');
+  }
+
+  summaryState(state) {
+    const record = this.mod.document;
+    const userIndex = state.you?.index;
+    const status = actionStatus(this.app, record?.actions, record?.users, userIndex, record);
+    const creatorKey = this.normalizePublicKey(record?.creator);
+    const signers = readUsers(this.mod).map((signer) => {
+      const signerStatus = actionStatus(this.app, record?.actions, record?.users, signer.index, record);
+      return {
+        ...signer,
+        places: signerStatus.mine,
+        signed: signerStatus.mine > 0 && signerStatus.userComplete,
+        creator: Boolean(creatorKey) && this.normalizePublicKey(signer.publickey) === creatorKey
+      };
+    }).filter((signer) => signer.places > 0);
+    return {
+      ...state,
+      signers,
+      signed: status.mine > 0 && status.userComplete,
+      actionStatus: status
+    };
   }
 
   async signUserActions() {
     const record = this.mod.document;
+    if (!record) {
+      return false;
+    }
     const index = this.state.you?.index;
     if (!record || !Number.isInteger(index)) {
       return false;
@@ -539,20 +1032,35 @@ class PublishOverlay {
     if (!user) {
       return false;
     }
+    const walletKey = this.currentPublicKey();
+    if (!walletKey || walletKey !== this.normalizePublicKey(user.publickey)) {
+      return false;
+    }
+    if (!verificationSatisfied(this.app, record, user)) {
+      return false;
+    }
+    if (!commitmentIntact(this.app, record)) {
+      return false;
+    }
     const privateKey = await this.app.wallet.getPrivateKey();
-    user.signatures = record.actions
-      .filter((action) => action.user === index)
+    const additions = record.actions
+      .filter((action) => Number(action.user) === index && !verifyActionSignature(this.app, action, user, record))
       .map((action) => {
         if (action.type === 'signature') {
-          return addSignature(this.app, action, privateKey);
+          return addSignature(this.app, action, privateKey, record.hash);
         }
         if (action.type === 'initial') {
-          return addInitial(this.app, action, privateKey);
+          return addInitial(this.app, action, privateKey, record.hash);
         }
         return null;
       })
-      .filter(Boolean);
+      .filter((entry) => entry?.signature);
+    const addedIds = new Set(additions.map((entry) => Number(entry.id)));
+    user.signatures = (Array.isArray(user.signatures) ? user.signatures : [])
+      .filter((entry) => !addedIds.has(Number(entry?.id)))
+      .concat(additions);
     record.edited = true;
+    return true;
   }
 
   refreshActions() {
@@ -563,6 +1071,9 @@ class PublishOverlay {
   }
 
   paintSlide() {
+    if (this.state.step === 'verify') {
+      this.state = this.withKnownVerifications(this.state);
+    }
     const previous = document.querySelector('.saitosign-publish .actions [data-publish-action="advance"]');
     const wasDisabled = !previous || previous.disabled;
     const panel = document.querySelector('#saitosign-publish-step');
@@ -626,7 +1137,7 @@ class PublishOverlay {
   }
 
   canContinue() {
-    if (this.state.step === 'select') {
+    if (this.state.step === 'sign') {
       return Boolean(this.state.identified);
     }
     if (this.state.step === 'verify') {
@@ -650,13 +1161,13 @@ function mailServerReachable(app) {
 function signaturePlaces(mod, index) {
   const user = mod.document?.users?.[index];
   return (mod.document?.actions || []).filter((action) => {
-    if (action.user !== index) {
+    if (Number(action.user) !== index) {
       return false;
     }
     if (action.type !== 'signature' && action.type !== 'initial') {
       return false;
     }
-    return !verifyActionSignature(mod.app, action, user);
+    return !verifyActionSignature(mod.app, action, user, mod.document);
   }).length;
 }
 
@@ -672,6 +1183,47 @@ function readUsers(mod) {
       publickey: user?.publickey || ''
     };
   });
+}
+
+function storedPhoto(user) {
+  const entries = Array.isArray(user?.verifications) ? user.verifications : [];
+  const entry = entries.find((item) => item?.method === 'photo' && typeof item.photo === 'string');
+  const image = String(entry?.photo || '').trim();
+  return image.startsWith('data:image/') ? image : '';
+}
+
+function storedPassport(user) {
+  const entries = Array.isArray(user?.verifications) ? user.verifications : [];
+  const entry = entries.find((item) => item?.method === 'passport' && typeof item.image === 'string');
+  const image = String(entry?.image || '').trim();
+  return image.startsWith('data:image/') ? image : '';
+}
+
+function photoNotice(message) {
+  if (typeof siteMessage === 'function') {
+    siteMessage(message, 3000);
+  }
+}
+
+function keepMethod(user, entry) {
+  const method = String(entry?.method || '');
+  const kept = (user.verifications || []).filter((item) => {
+    if (!item.method) {
+      return false;
+    }
+    if (!method) {
+      return item.method !== 'email';
+    }
+    return item.method !== method;
+  });
+  kept.push(entry);
+  user.verifications = kept;
+}
+
+function duplicateSignerNotice() {
+  if (typeof siteMessage === 'function') {
+    siteMessage('Adding multiple users with the same email address is not permitted.', 3000);
+  }
 }
 
 function isEmailAddress(value) {

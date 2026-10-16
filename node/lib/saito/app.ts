@@ -112,7 +112,7 @@ class Saito {
 
     // browser sets active module
     await this.browser.initialize(this);
-    await this.modules.initialize();
+    if ((await this.modules.initialize()) === false) return false;
 
     // blockchain after modules create dbs
     await this.blockchain.initialize();
