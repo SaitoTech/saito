@@ -173,7 +173,7 @@ impl Slip {
     }
 
     pub fn on_chain_reorganization(&self, utxoset: &mut UtxoSet, spendable: bool) {
-        if self.amount > 0 {
+        if self.amount > 0 || self.slip_type == SlipType::Bound {
             if spendable {
                 utxoset.insert(self.utxoset_key, spendable);
             } else {
@@ -221,7 +221,7 @@ impl Slip {
     }
 
     pub fn validate(&self, utxoset: &UtxoSet) -> bool {
-        if self.amount > 0 {
+        if self.amount > 0 || self.slip_type == SlipType::Bound {
             match utxoset.get(&self.utxoset_key) {
                 Some(value) => {
                     if *value {
