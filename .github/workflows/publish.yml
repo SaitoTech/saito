@@ -60,6 +60,11 @@ jobs:
           toolchain: stable
           target: "wasm32-unknown-unknown"
           override: true
+
+      - name: Install wasm-pack
+        uses: jetli/wasm-pack-action@v0.3.0
+        with:
+          version: 'v0.12.1'
       
       - name: Check Formatting (RUST)
         run: rustup component add rustfmt && cargo fmt --check --verbose
