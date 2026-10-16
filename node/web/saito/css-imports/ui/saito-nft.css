@@ -668,6 +668,9 @@
   width: 0.9rem;
   height: 100%;
   flex: 0 0 0.9rem;
+  overflow: visible;
+  position: relative;
+  z-index: 0;
 }
 
 .saito-nft-recess-shoulder.is-right {
@@ -678,16 +681,14 @@
   fill: var(--saito-popover);
 }
 
-.saito-nft-recess-line {
-  fill: none;
-  stroke: none;
-}
-
 .saito-nft-recess-span {
+  position: relative;
+  z-index: 1;
   flex: 1 1 auto;
   min-width: 0;
+  margin: 0 -1px;
   background-color: var(--saito-popover);
-  background-image: var(--saito-popover-wash);
+  background-image: none;
 }
 
 .saito-nft-panel-view .saito-nft-capability {

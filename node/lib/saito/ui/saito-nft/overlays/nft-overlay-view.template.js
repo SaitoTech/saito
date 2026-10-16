@@ -30,13 +30,11 @@ module.exports = (app, mod, nft_overlay) => {
           <div class="saito-nft-capabilities" role="toolbar" aria-label="NFT actions">
             <div class="saito-nft-recess" aria-hidden="true">
               <svg class="saito-nft-recess-shoulder" viewBox="0 0 12 75" preserveAspectRatio="none" aria-hidden="true">
-                <path class="saito-nft-recess-fill" d="M0,0.75C2.2,0.75 8,74.25 12,74.25L12,0.75Z"></path>
-                <path class="saito-nft-recess-line" d="M0,0.75C2.2,0.75 8,74.25 12,74.25"></path>
+                <path class="saito-nft-recess-fill" d="M0,0C2.2,0 8,75 12,75L12,0Z"></path>
               </svg>
               <div class="saito-nft-recess-span"></div>
               <svg class="saito-nft-recess-shoulder is-right" viewBox="0 0 12 75" preserveAspectRatio="none" aria-hidden="true">
-                <path class="saito-nft-recess-fill" d="M0,0.75C2.2,0.75 8,74.25 12,74.25L12,0.75Z"></path>
-                <path class="saito-nft-recess-line" d="M0,0.75C2.2,0.75 8,74.25 12,74.25"></path>
+                <path class="saito-nft-recess-fill" d="M0,0C2.2,0 8,75 12,75L12,0Z"></path>
               </svg>
             </div>
             ${capsHtml}
