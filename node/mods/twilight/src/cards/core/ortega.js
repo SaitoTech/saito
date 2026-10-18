@@ -32,7 +32,7 @@
 
         twilight_self.game.status = "Pick a country adjacent to Nicaragua to coup:";
         twilight_self.hud.updateStatus(twilight_self.game.status);
-        twilight_self.hud.updateCards(twilight_self.game.deck[0].hand);
+        twilight_self.hud.updateCards([]);
         twilight_self.hud.updateMenu([ { id: 'skiportega', label: 'or skip coup' } ], function(action2) {
           if (action2 == "skiportega") {
             twilight_self.game.status = "Skipping Ortega coup...";

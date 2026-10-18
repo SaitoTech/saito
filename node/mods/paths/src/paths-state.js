@@ -130,6 +130,9 @@
     this.game.state.events.withdrawal_bonus_used = 0;
     this.game.state.events.mine_attack = 0;
     this.game.state.events.influenza = 0;
+    this.game.state.events.lloyd_george = 0;
+    this.game.state.events.stavka_timidity = 0;
+    this.game.state.events.haig = 0;
 
   }
 
@@ -265,6 +268,14 @@
     if (this.game.state.events.italian_nonentry > 0) { vp += this.game.state.events.italian_nonentry; }
     if (this.game.state.events.zimmerman_telegram) { vp--; results.events.push("Zimmerman Telegram (-1)"); }
     if (this.game.state.events.blockade > 1) { vp -= (this.game.state.events.blockade-1); results.events.push("Blockade (-"+(this.game.state.events.blockade-1)+")"); }
+    if (this.game.state.events.polish_restoration) { vp--; results.events.push("Polish Restoration (-1)"); }
+    if (this.game.state.events.french_mutiny_vp > 0) { vp += this.game.state.events.french_mutiny_vp; results.events.push("French Mutiny (+"+this.game.state.events.french_mutiny_vp+")"); }
+    if (this.game.state.events.peace_offensive_vp > 0) { vp -= this.game.state.events.peace_offensive_vp; results.events.push("Peace Offensive (-"+this.game.state.events.peace_offensive_vp+")"); }
+    if (this.game.state.events.peace_terms_vp) {
+      vp += this.game.state.events.peace_terms_vp;
+      let n = this.game.state.events.peace_terms_vp;
+      results.events.push("Peace Terms ("+(n > 0 ? "+" : "")+n+")");
+    }
 
     if (this.game.state.mo.vp_bonus > 0) { vp += this.game.state.mo.vp_bonus; let mo = "Mandatory Offensives ("; if (this.game.state.mo.vp_bonus >= 0) { mo += "+"; }; mo += this.game.state.mo.vp_bonus; mo += ")"; results.events.push(mo); }
 

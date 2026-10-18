@@ -81,7 +81,7 @@
 
           twilight_self.game.status = "Select cards to discard:";
           twilight_self.hud.updateStatus(twilight_self.game.status);
-          twilight_self.hud.updateCards(twilight_self.game.deck[0].hand);
+          twilight_self.hud.updateCards([]);
           twilight_self.hud.updateMenu(options, function(card) {
 
             if (card == "finished") {

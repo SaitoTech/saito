@@ -87,7 +87,7 @@ console.log("respondant: " + respondant);
           }
           this.game.status = "Select card to give opponent:";
           this.hud.updateStatus(this.game.status);
-          this.hud.updateCards(this.game.deck[0].hand);
+          this.hud.updateCards([]);
           this.hud.updateMenu(options, function(action2) {
 
             //

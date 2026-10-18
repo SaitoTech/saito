@@ -441,6 +441,14 @@ console.log(JSON.stringify(unit));
     if (!unit) { return 0; }
     if (this.isIrreplaceableArmy(unit)) { return 0; }
 
+    if (unit.ckey == "RU" && this.game.state.events.bolshevik_revolution && this.game.state.events.bolshevik_ru_rp_turn == this.game.state.turn) {
+      return 0;
+    }
+
+    if (unit.key == "pol_corps" && this.game.spaces["warsaw"] && this.game.spaces["warsaw"].control == "allies") {
+      return 0;
+    }
+
     let faction = this.returnFactionOfUnit(unit);
     let rp = this.game.state.rp[faction];
 

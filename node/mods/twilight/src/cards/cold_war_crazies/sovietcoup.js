@@ -16,7 +16,7 @@ console.log("ROUND: " + this.game.state.round);
         twilight_self.addMove("resolve\tsovietcoup");
         twilight_self.game.status = 'Sacrifice any VP before rolling for +1 modifier:';
         twilight_self.hud.updateStatus(twilight_self.game.status);
-        twilight_self.hud.updateCards(twilight_self.game.deck[0].hand);
+        twilight_self.hud.updateCards([]);
         twilight_self.hud.updateMenu([ { id: 'zero', label: '0 VP' }, { id: 'one', label: '1 VP' }, { id: 'two', label: '2 VP' }, { id: 'three', label: '3 VP' } ], function(action) {
 
 	  let modifier = 0;

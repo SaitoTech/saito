@@ -3908,8 +3908,24 @@ deck['cp31'] = {
         rp : { 'AH' : 1 , 'GE' : 2 , 'TU' : 1 } ,        
         type : "normal" ,
         removeFromDeckAfterPlay : function(paths_self, faction) { return 0; } ,
-        canEvent : function(paths_self, faction) { return 0; } ,
-        onEvent : function(paths_self, faction) { return 1; } ,
+        canEvent : function(paths_self, faction) {
+	  if (faction != "defender") { return 0; }
+	  if (paths_self.game.state.events.kemal_turn == paths_self.game.state.turn) { return 0; }
+	  let defenders = paths_self.returnDefenderUnits();
+	  for (let i = 0; i < defenders.length; i++) {
+	    let unit = defenders[i];
+	    if (unit.ckey != "TU" || unit.destroyed) { continue; }
+	    let cf = unit.damaged ? unit.rcombat : unit.combat;
+	    if (cf >= 1) { return 1; }
+	  }
+	  return 0;
+	} ,
+        onEvent : function(paths_self, faction) {
+	  paths_self.game.state.events.kemal_turn = paths_self.game.state.turn;
+	  paths_self.game.state.combat.kemal = 1;
+	  paths_self.updateLog("Kemal: Turkish defender fires on the Army Table");
+	  return 1;
+	} ,
       }
 
 deck['cp32'] = { 
@@ -4718,8 +4734,49 @@ deck['ap60'] = {
         rp : { 'BR' : 1 , 'FR' : 1 , 'IT' : 1 , 'RU' : 2 } ,        
         type : "normal" ,
         removeFromDeckAfterPlay : function(paths_self, faction) { return 1; } ,
-        canEvent : function(paths_self, faction) { return 0; } ,
-        onEvent : function(paths_self, faction) { return 1; } ,
+        canEvent : function(paths_self, faction) {
+	  let box = paths_self.game.spaces["ceubox"];
+	  if (!box) { return 0; }
+	  for (let i = 0; i < box.units.length; i++) {
+	    if (box.units[i].corps && box.units[i].ckey == "AH") { return 1; }
+	  }
+	  return 0;
+	} ,
+        onEvent : function(paths_self, faction) {
+	  // Russian for movement, supply, and combat. Replacement still looks up ru_corps by unit key.
+	  paths_self.game.units["czl_corps"].ckey = "RU";
+
+	  if (paths_self.game.player != paths_self.returnPlayerOfFaction("allies")) {
+	    paths_self.game.status = "Allies playing Czech Legion";
+	    paths_self.hud.updateStatus(paths_self.game.status);
+	    paths_self.hud.updateMenu([]);
+	    paths_self.showPlayerHand();
+	    return 0;
+	  }
+
+	  let filter_fnct = (spacekey, unit) => {
+	    if (spacekey != "ceubox") { return 0; }
+	    if (unit.corps && unit.ckey == "AH") { return 1; }
+	    return 0;
+	  };
+
+	  paths_self.playerSelectUnitWithFilter(
+	    "Czech Legion: remove an Austro-Hungarian corps from the eliminated box" ,
+	    filter_fnct ,
+	    (spacekey, unit_idx) => {
+	      paths_self.removeSelectable();
+	      let unit = paths_self.game.spaces[spacekey].units[unit_idx];
+	      let step = unit.damaged ? 1 : 0;
+	      paths_self.addMove("add\tarbox\tczl_corps");
+	      paths_self.addMove(`remove\tceubox\t${unit.key}\t0\t${step}`);
+	      paths_self.addMove("NOTIFY\tCzech Legion removes an Austro-Hungarian corps and enters the Allied Reserve");
+	      paths_self.endTurn();
+	    } ,
+	    null ,
+	    true
+	  );
+	  return 0;
+	} ,
       }
 
 deck['ap61'] = { 
@@ -4732,8 +4789,48 @@ deck['ap61'] = {
         rp : { 'A' : 1 , 'BR' : 2 , 'FR' : 2 , 'IT' : 1 , 'RU' : 3 } ,        
         type : "normal" ,
         removeFromDeckAfterPlay : function(paths_self, faction) { return 1; } ,
-        canEvent : function(paths_self, faction) { return 0; } ,
-        onEvent : function(paths_self, faction) { return 1; } ,
+        canEvent : function(paths_self, faction) {
+	  if (faction != "attacker") { return 0; }
+	  let attackers = paths_self.game.state.combat.attacker || [];
+	  let tracesToBasra = (spacekey) => {
+	    let pending = [spacekey];
+	    let examined = {};
+	    let ports_added = false;
+	    let ports = paths_self.returnFriendlyControlledPorts("allies");
+	    while (pending.length > 0) {
+	      let current = pending.shift();
+	      if (examined[current]) { continue; }
+	      examined[current] = true;
+	      if (current == "basra" && paths_self.returnControlOfSpace("basra") == "allies") { return 1; }
+	      let space = paths_self.game.spaces[current];
+	      if (!space) { continue; }
+	      for (let n = 0; n < space.neighbours.length; n++) {
+	        let next = space.neighbours[n];
+	        if (!examined[next] && paths_self.returnControlOfSpace(next) == "allies") { pending.push(next); }
+	      }
+	      if (!ports_added && space.port == 1 && space.control == "allies") {
+	        for (let i = 0; i < ports.length; i++) {
+	          if (paths_self.game.spaces[ports[i]].control == "allies") { pending.push(ports[i]); }
+	        }
+	        ports_added = true;
+	      }
+	    }
+	    return 0;
+	  };
+	  for (let i = 0; i < attackers.length; i++) {
+	    let record = attackers[i];
+	    let unit = paths_self.game.spaces[record.unit_sourcekey].units[record.unit_idx];
+	    if (!unit) { continue; }
+	    if (unit.ckey != "BR" && unit.ckey != "BEF") { continue; }
+	    if (tracesToBasra(record.unit_sourcekey)) { return 1; }
+	  }
+	  return 0;
+	} ,
+        onEvent : function(paths_self, faction) {
+	  paths_self.game.state.combat.maude = 1;
+	  paths_self.updateLog("Maude: British attack fires on the Army Table");
+	  return 1;
+	} ,
       }
 
 deck['ap62'] = { 
@@ -4747,8 +4844,32 @@ deck['ap62'] = {
         rp : { 'BR' : 1 , 'FR' : 1 , 'RU' : 1 } ,        
         type : "normal" ,
         removeFromDeckAfterPlay : function(paths_self, faction) { return 1; } ,
-        canEvent : function(paths_self, faction) { return 0; } ,
-        onEvent : function(paths_self, faction) { return 1; } ,
+        canEvent : function(paths_self, faction) { return 1; } ,
+        onEvent : function(paths_self, faction) {
+
+	  //
+	  // sixtus
+	  // Allied 0-19 Peace Terms column only. Not an offer, so the result is applied immediately.
+	  // 1-3: -1 VP, 4-5: unchanged, 6: +1 VP
+	  //
+	  let roll = paths_self.rollDice(6);
+	  let delta = 0;
+	  if (roll <= 3) { delta = -1; }
+	  if (roll == 6) { delta = 1; }
+
+	  if (!paths_self.game.state.events.peace_terms_vp) { paths_self.game.state.events.peace_terms_vp = 0; }
+	  paths_self.game.state.events.peace_terms_vp += delta;
+
+	  let effect = "VP unchanged";
+	  if (delta > 0) { effect = "Central Powers +1 VP"; }
+	  if (delta < 0) { effect = "Allies +1 VP"; }
+	  let note = "The Sixtus Affair: roll " + roll + " (Allied 0-19): " + effect;
+	  paths_self.updateLog(note);
+	  paths_self.calculateVictoryPoints();
+	  paths_self.displayGeneralRecordsTrack();
+	  paths_self.game.queue.push("ACKNOWLEDGE\t" + note);
+	  return 1;
+	} ,
       }
 
 deck['ap63'] = { 
@@ -5097,8 +5218,12 @@ deck['ap65'] = {
         rp : { 'AH' : 2 , 'BU' : 1 , 'GE' : 3 , 'TU' : 1 } ,        
         type : "normal" ,
         removeFromDeckAfterPlay : function(paths_self, faction) { return 1; } ,
-        canEvent : function(paths_self, faction) { return 0; } ,
-        onEvent : function(paths_self, faction) { return 1; } ,
+        canEvent : function(paths_self, faction) { return 1; } ,
+        onEvent : function(paths_self, faction) {
+	  paths_self.game.state.events.french_mutiny = 1;
+	  paths_self.updateLog("French Mutiny: a French mandated offensive attack in France, Belgium, or Germany gives the Central Powers +1 VP");
+	  return 1;
+	} ,
       }
 
 deck['cp48'] = { 
@@ -5132,8 +5257,27 @@ deck['cp49'] = {
         rp : { 'AH' : 2 , 'BU' : 1 , 'GE' : 3 , 'TU' : 1 } ,        
         type : "normal" ,
         removeFromDeckAfterPlay : function(paths_self, faction) { return 1; } ,
-        canEvent : function(paths_self, faction) { if (paths_self.game.state.events.hl_take_command) { return 1; } return 0; } ,
-        onEvent : function(paths_self, faction) { return 1; } ,
+        canEvent : function(paths_self, faction) {
+	  if (faction == "attacker" || faction == "defender") { return 0; }
+	  if (!paths_self.game.state.events.hl_take_command) { return 0; }
+	  if (!paths_self.game.state.combat || !paths_self.game.state.combat.key) { return 0; }
+	  if (paths_self.game.state.combat.attacking_faction != "central") { return 0; }
+	  let attackers = paths_self.returnAttackerUnits();
+	  for (let i = 0; i < attackers.length; i++) {
+	    if (attackers[i].ckey == "GE") { return 1; }
+	  }
+	  return 0;
+	} ,
+        onEvent : function(paths_self, faction) {
+	  paths_self.game.state.events.michael = 1;
+	  paths_self.game.state.events.lloyd_george = 0;
+	  paths_self.game.state.events.haig = 0;
+	  paths_self.game.state.combat.cancel_trench_effects = 1;
+	  paths_self.game.state.combat.attacker_drm++;
+	  paths_self.updateLog("Michael: trench effects cancelled, attack DRM +1");
+	  paths_self.paths_log.addModifier("Michael: trench cancelled, attack DRM +1");
+	  return 1;
+	} ,
       }
 
 deck['cp50'] = { 
@@ -5146,8 +5290,26 @@ deck['cp50'] = {
         rp : { 'AH' : 2 , 'BU' : 1 , 'GE' : 3 , 'TU' : 1 } ,        
         type : "normal" ,
         removeFromDeckAfterPlay : function(paths_self, faction) { return 1; } ,
-        canEvent : function(paths_self, faction) { if (paths_self.game.state.events.hl_take_command) { return 1; } return 0; } ,
-        onEvent : function(paths_self, faction) { return 1; } ,
+        canEvent : function(paths_self, faction) {
+	  if (faction == "attacker" || faction == "defender") { return 0; }
+	  if (!paths_self.game.state.events.hl_take_command) { return 0; }
+	  if (!paths_self.game.state.combat || !paths_self.game.state.combat.key) { return 0; }
+	  if (paths_self.game.state.combat.attacking_faction != "central") { return 0; }
+	  let attackers = paths_self.returnAttackerUnits();
+	  for (let i = 0; i < attackers.length; i++) {
+	    if (attackers[i].ckey == "GE") { return 1; }
+	  }
+	  return 0;
+	} ,
+        onEvent : function(paths_self, faction) {
+	  paths_self.game.state.events.blucher = 1;
+	  paths_self.game.state.events.lloyd_george = 0;
+	  paths_self.game.state.events.haig = 0;
+	  paths_self.game.state.combat.cancel_trench_effects = 1;
+	  paths_self.updateLog("Blucher: trench effects cancelled");
+	  paths_self.paths_log.addModifier("Blucher: trench cancelled");
+	  return 1;
+	} ,
       }
 
 deck['cp51'] = { 
@@ -5160,8 +5322,27 @@ deck['cp51'] = {
         rp : { 'AH' : 2 , 'BU' : 1 , 'GE' : 3 , 'TU' : 1 } ,        
         type : "normal" ,
         removeFromDeckAfterPlay : function(paths_self, faction) { return 1; } ,
-        canEvent : function(paths_self, faction) { if (paths_self.game.state.events.hl_take_command) { return 1; } return 0; } ,
-        onEvent : function(paths_self, faction) { return 1; } ,
+        canEvent : function(paths_self, faction) {
+	  if (faction == "attacker" || faction == "defender") { return 0; }
+	  if (!paths_self.game.state.events.hl_take_command) { return 0; }
+	  if (!paths_self.game.state.combat || !paths_self.game.state.combat.key) { return 0; }
+	  if (paths_self.game.state.combat.attacking_faction != "central") { return 0; }
+	  let attackers = paths_self.returnAttackerUnits();
+	  for (let i = 0; i < attackers.length; i++) {
+	    if (attackers[i].ckey == "GE") { return 1; }
+	  }
+	  return 0;
+	} ,
+        onEvent : function(paths_self, faction) {
+	  paths_self.game.state.events.peace_offensive = 1;
+	  paths_self.game.state.events.lloyd_george = 0;
+	  paths_self.game.state.events.haig = 0;
+	  paths_self.game.state.combat.cancel_trench_effects = 1;
+	  paths_self.game.state.combat.peace_offensive = 1;
+	  paths_self.updateLog("Peace Offensive: trench effects cancelled");
+	  paths_self.paths_log.addModifier("Peace Offensive: trench cancelled");
+	  return 1;
+	} ,
       }
 
 deck['cp52'] = { 
@@ -5194,8 +5375,15 @@ deck['cp53'] = {
         rp : { 'AH' : 3 , 'BU' : 1 , 'GE' : 4 , 'TU' : 2 } ,        
         type : "normal" ,
         removeFromDeckAfterPlay : function(paths_self, faction) { return 1; } ,
-        canEvent : function(paths_self, faction) { return 0; } ,
-        onEvent : function(paths_self, faction) { 
+        canEvent : function(paths_self, faction) {
+	  paths_self.calculateRussianCapitulationTrack();
+	  if (paths_self.game.state.russian_capitulation_track == 6) { return 1; }
+	  return 0;
+	} ,
+        onEvent : function(paths_self, faction) {
+	  paths_self.game.state.events.bolshevik_revolution = 1;
+	  paths_self.calculateRussianCapitulationTrack();
+	  paths_self.updateLog("Bolshevik Revolution: Russian mandated offensives are cancelled and Russia may spend only 1 replacement point per turn");
  	  paths_self.game.queue.push("player_play_ops\tcentral\tcp53\t5");
 	  return 1;
 	} ,
@@ -5234,8 +5422,15 @@ deck['cp55'] = {
         rp : { 'AH' : 2 , 'BU' : 1 , 'GE' : 3 , 'TU' : 1 } ,        
         type : "normal" ,
         removeFromDeckAfterPlay : function(paths_self, faction) { return 1; } ,
-        canEvent : function(paths_self, faction) { return 0; } ,
-        onEvent : function(paths_self, faction) { return 1; } ,
+        canEvent : function(paths_self, faction) {
+	  if (paths_self.game.state.events.michael || paths_self.game.state.events.blucher || paths_self.game.state.events.peace_offensive) { return 0; }
+	  return 1;
+	} ,
+        onEvent : function(paths_self, faction) {
+	  paths_self.game.state.events.lloyd_george = 1;
+	  paths_self.updateLog("Lloyd George: British units cannot attack level-2 entrenched Germans this turn");
+	  return 1;
+	} ,
       }
 
 deck['cp57'] = { 
@@ -5301,22 +5496,172 @@ deck['cp65'] = {
         type : "normal" ,
         removeFromDeckAfterPlay : function(paths_self, faction) { return 1; } ,
         canEvent : function(paths_self, faction) { if (paths_self.game.state.turn > 16) { return 0; } return 1; } ,
-        onEvent : function(paths_self, faction) { return 1; } ,
+        onEvent : function(paths_self, faction) {
+	  paths_self.updateLog("Prince Max: Central Powers War Status +3");
+	  return 1;
+	} ,
       }
 
-/***** OPTIONAL ******
 deck['cp56'] = { 
         key : 'withdrawal',
         img : "cards/card_cp56.png" ,
-        name : "withdrawal" ,
+        name : "Withdrawal" ,
         cc : true ,
         ops : 2 ,
         sr : 2 ,        
         rp : { 'GE' : 1 } ,        
         type : "normal" ,
+        removeFromDeckAfterPlay : function(paths_self, faction) { return 0; } ,
+        canEvent : function(paths_self, faction) { if (faction == "attacker") { return 0; } return 1; } ,
+        onEvent : function(paths_self, faction) {
+	  paths_self.game.state.events.withdrawal = 1;
+	  paths_self.game.state.combat.withdrawal = 1;
+	  return 1;
+	} ,
+      }
+
+deck['cp63'] = { 
+        key : 'russiandesertions',
+        img : "cards/card_cp63.png" ,
+        name : "Russian Desertions" ,
+        cc : false ,
+        ops : 3 ,
+        sr : 4 ,        
+        rp : { 'AH' : 1 , 'GE' : 2 , 'TU' : 1 } ,        
+        type : "normal" ,
         removeFromDeckAfterPlay : function(paths_self, faction) { return 1; } ,
-        canEvent : function(paths_self, faction) { return 0; } ,
-        onEvent : function(paths_self, faction) { return 1; } ,
+        canEvent : function(paths_self, faction) { if (paths_self.game.state.events.fall_of_the_tsar == 1) { return 1; } return 0; } ,
+        onEvent : function(paths_self, faction) {
+
+	  if (paths_self.game.player != paths_self.returnPlayerOfFaction("central")) {
+	    paths_self.game.status = "Central Powers playing Russian Desertions";
+	    paths_self.hud.updateStatus(paths_self.game.status);
+	    paths_self.hud.updateMenu([]);
+	    paths_self.showPlayerHand();
+	    return 0;
+	  }
+
+	  let remaining = 4;
+	  let picked = {};
+
+	  let filter_fnct = (spacekey, unit) => {
+	    if (spacekey == "aeubox" || spacekey == "ceubox") { return 0; }
+	    if (unit.ckey != "RU" || unit.damaged || unit.destroyed) { return 0; }
+	    let idx = paths_self.game.spaces[spacekey].units.indexOf(unit);
+	    if (picked[spacekey + ":" + idx]) { return 0; }
+	    return 1;
+	  };
+
+	  let finish = () => {
+	    paths_self.removeSelectable();
+	    paths_self.endTurn();
+	  };
+
+	  let choose = () => {
+	    if (remaining <= 0 || paths_self.countUnitsWithFilter(filter_fnct) == 0) {
+	      finish();
+	      return;
+	    }
+	    paths_self.playerSelectUnitWithFilter(
+	      "Russian Desertions: reduce a full-strength Russian unit (" + remaining + " left)" ,
+	      filter_fnct ,
+	      (spacekey, unit_idx) => {
+		if (spacekey === "pass") {
+		  finish();
+		  return;
+		}
+		let unit = paths_self.game.spaces[spacekey].units[unit_idx];
+		picked[spacekey + ":" + unit_idx] = 1;
+		paths_self.addMove(`damage\t${spacekey}\t${unit.key}\t0\t0\t${unit_idx}`);
+		remaining--;
+		choose();
+	      } ,
+	      null ,
+	      true ,
+	      [{ key : "pass" , value : "pass" }]
+	    );
+	  };
+
+	  choose();
+	  return 0;
+	} ,
+      }
+
+deck['cp60'] = { 
+        key : 'turkdetermination',
+        img : "cards/card_cp60.png" ,
+        name : "Turk Determination" ,
+        cc : true ,
+        ops : 3 ,
+        sr : 4 ,        
+        rp : { 'AH' : 1 , 'GE' : 2 , 'TU' : 1 } ,        
+        type : "normal" ,
+        removeFromDeckAfterPlay : function(paths_self, faction) { return 1; } ,
+        canEvent : function(paths_self, faction) {
+	  if (faction != "defender") { return 0; }
+	  let key = paths_self.game.state.combat && paths_self.game.state.combat.key;
+	  if (!key || !paths_self.game.spaces[key]) { return 0; }
+	  if (paths_self.game.spaces[key].trench > 0) { return 0; }
+	  let defenders = paths_self.returnDefenderUnits();
+	  for (let i = 0; i < defenders.length; i++) {
+	    if (defenders[i].ckey == "TU" && !defenders[i].destroyed) { return 1; }
+	  }
+	  return 0;
+	} ,
+        onEvent : function(paths_self, faction) {
+	  if (faction != "defender") { return 1; }
+	  let key = paths_self.game.state.combat && paths_self.game.state.combat.key;
+	  let space = key && paths_self.game.spaces[key];
+	  if (!space || space.trench > 0) { return 1; }
+
+	  let turkish = false;
+	  let defenders = paths_self.returnDefenderUnits();
+	  for (let i = 0; i < defenders.length; i++) {
+	    if (defenders[i].ckey == "TU" && !defenders[i].destroyed) { turkish = true; }
+	  }
+	  if (!turkish) { return 1; }
+
+	  if (paths_self.game.state.events.brusilov_offensive == 1) {
+	    let attackers = paths_self.returnAttackerUnits();
+	    for (let i = 0; i < attackers.length; i++) {
+	      if (attackers[i].ckey == "RU") {
+		paths_self.updateLog("Brusilov Offensive negates Turk Determination");
+		paths_self.paths_log.addModifier("Brusilov Offensive negates Turk Determination");
+		return 1;
+	      }
+	    }
+	  }
+
+	  space.trench = 1;
+	  space.turk_determination = 1;
+	  paths_self.displaySpace(key);
+	  paths_self.updateLog("Turk Determination: " + paths_self.returnSpaceNameForLog(key) + " is trench level 1 for this combat");
+	  paths_self.paths_log.addModifier("Turk Determination: trench level 1");
+
+	  let q = paths_self.game.queue;
+	  let idx = -1;
+	  for (let i = q.length - 1; i >= 0; i--) {
+	    if (q[i].indexOf("combat_attacker_advance") === 0) { idx = i; break; }
+	  }
+	  if (idx >= 0) {
+	    q.splice(idx, 0, "turk_determination_clear\t" + key);
+	  } else {
+	    q.unshift("turk_determination_clear\t" + key);
+	  }
+	  return 1;
+	} ,
+        handleGameLoop : function(paths_self, qe, mv) {
+	  if (mv[0] !== "turk_determination_clear") { return 1; }
+	  paths_self.game.queue.splice(qe, 1);
+	  let key = mv[1];
+	  let space = paths_self.game.spaces[key];
+	  if (space && space.turk_determination) {
+	    space.turk_determination = 0;
+	    space.trench = 0;
+	    paths_self.displaySpace(key);
+	  }
+	  return 1;
+	} ,
       }
 
 deck['cp58'] = { 
@@ -5329,10 +5674,16 @@ deck['cp58'] = {
         rp : { 'GE' : 1 } ,        
         type : "normal" ,
         removeFromDeckAfterPlay : function(paths_self, faction) { return 0; } ,
-        canEvent : function(paths_self, faction) { return 0; } ,
-        onEvent : function(paths_self, faction) { return 1; } ,
+        canEvent : function(paths_self, faction) {
+	  if (paths_self.game.state.events.tsar_takes_command) { return 1; }
+	  return 0;
+	} ,
+        onEvent : function(paths_self, faction) {
+	  paths_self.game.state.events.stavka_timidity = 1;
+	  paths_self.updateLog("Stavka Timidity: Russian units cannot attack entrenched Germans this turn");
+	  return 1;
+	} ,
       }
-
 
 deck['cp59'] = { 
         key : 'polishrestoration',
@@ -5344,23 +5695,33 @@ deck['cp59'] = {
         rp : { 'AH' : 1 , 'GE' : 2 , 'TU' : 1 } ,        
         type : "normal" ,
         removeFromDeckAfterPlay : function(paths_self, faction) { return 1; } ,
-        canEvent : function(paths_self, faction) { return 0; } ,
-        onEvent : function(paths_self, faction) { return 1; } ,
+        canEvent : function(paths_self, faction) {
+	  if (paths_self.game.spaces["warsaw"] && paths_self.game.spaces["warsaw"].control == "central") { return 1; }
+	  return 0;
+	} ,
+        onEvent : function(paths_self, faction) {
+	  paths_self.game.units["pol_corps"].ckey = "GE";
+	  paths_self.game.state.events.polish_restoration = 1;
+	  paths_self.calculateVictoryPoints();
+	  paths_self.displayGeneralRecordsTrack();
+
+	  if (paths_self.game.player != paths_self.returnPlayerOfFaction("central")) {
+	    paths_self.game.status = "Central Powers playing Polish Restoration";
+	    paths_self.hud.updateStatus(paths_self.game.status);
+	    paths_self.hud.updateMenu([]);
+	    paths_self.showPlayerHand();
+	    return 0;
+	  }
+
+	  paths_self.addMove("add\tcrbox\tpol_corps");
+	  paths_self.addMove("add\tcrbox\tpol_corps");
+	  paths_self.addMove("add\tcrbox\tpol_corps");
+	  paths_self.addMove("NOTIFY\tPolish Restoration: three Polish corps enter the Central Reserve");
+	  paths_self.endTurn();
+	  return 0;
+	} ,
       }
 
-deck['cp60'] = { 
-        key : 'turkdetermination',
-        img : "cards/card_cp60.png" ,
-        name : "turk Determination" ,
-        cc : true ,
-        ops : 3 ,
-        sr : 4 ,        
-        rp : { 'AH' : 1 , 'GE' : 2 , 'TU' : 1 } ,        
-        type : "normal" ,
-        removeFromDeckAfterPlay : function(paths_self, faction) { return 1; } ,
-        canEvent : function(paths_self, faction) { return 0; } ,
-        onEvent : function(paths_self, faction) { return 1; } ,
-      }
 deck['cp61'] = { 
         key : 'haig',
         img : "cards/card_cp61.png" ,
@@ -5371,23 +5732,15 @@ deck['cp61'] = {
         rp : { 'AH' : 2 , 'BU' : 1 , 'GE' : 3 , 'TU' : 1 } ,        
         type : "normal" ,
         removeFromDeckAfterPlay : function(paths_self, faction) { return 1; } ,
-        canEvent : function(paths_self, faction) { return 0; } ,
-        onEvent : function(paths_self, faction) { return 1; } ,
-      }
-
-
-deck['cp63'] = { 
-        key : 'russiandesertions',
-        img : "cards/card_cp63.png" ,
-        name : "Russian Desertions" ,
-        cc : false ,
-        ops : 3 ,
-        sr : 4 ,        
-        rp : { 'AH' : 1 , 'GE' : 2 , 'TU' : 1 } ,        
-        type : "normal" ,
-        removeFromDeckAfterPlay : function(paths_self, faction) { return 1; } ,
-        canEvent : function(paths_self, faction) { return 0; } ,
-        onEvent : function(paths_self, faction) { return 1; } ,
+        canEvent : function(paths_self, faction) {
+	  if (paths_self.game.state.events.michael || paths_self.game.state.events.blucher || paths_self.game.state.events.peace_offensive) { return 0; }
+	  return 1;
+	} ,
+        onEvent : function(paths_self, faction) {
+	  paths_self.game.state.events.haig = 1;
+	  paths_self.updateLog("Haig: entrenched Germans in France, Belgium, and Germany ignore retreats against British attacks this turn");
+	  return 1;
+	} ,
       }
 
 deck['cp64'] = { 
@@ -5400,12 +5753,25 @@ deck['cp64'] = {
         rp : { 'AH' : 1 , 'GE' : 2 , 'TU' : 1 } ,        
         type : "normal" ,
         removeFromDeckAfterPlay : function(paths_self, faction) { return 1; } ,
-        canEvent : function(paths_self, faction) { return 0; } ,
-        onEvent : function(paths_self, faction) { return 1; } ,
+        canEvent : function(paths_self, faction) {
+	  if (faction != "defender") { return 0; }
+	  if (!paths_self.game.state.combat || !paths_self.game.state.combat.key) { return 0; }
+	  if (paths_self.game.state.combat.attacking_faction != "allies") { return 0; }
+	  if (paths_self.game.state.events.yanks_and_tanks) { return 0; }
+	  if (paths_self.game.state.cc_allies_active && paths_self.game.state.cc_allies_active.includes("ap48")) { return 0; }
+	  let space = paths_self.game.spaces[paths_self.game.state.combat.key];
+	  if (!space) { return 0; }
+	  if (space.country != "france" && space.country != "belgium") { return 0; }
+	  return 1;
+	} ,
+        onEvent : function(paths_self, faction) {
+	  paths_self.game.state.combat.alberich = 1;
+	  paths_self.updateLog("Alberich: Allied attack cancelled");
+	  paths_self.removeCardFromGame("cp64");
+	  return 1;
+	} ,
       }
 
-
-***** OPTIONAL ******/
     }
 
     return deck;
@@ -5683,7 +6049,7 @@ deck['cp64'] = {
     //
     if (space.terrain == "mountain") { is_geography_suitable = false; }
     if (space.terrain == "swamp")    { is_geography_suitable = false; }
-    if (space.trench > 0)            { is_geography_suitable = false; }
+    if (space.trench > 0 && this.game.state.combat.cancel_trench_effects != 1) { is_geography_suitable = false; }
     if (space.fort > 0)              { if (space.units.length == 0) { is_geography_suitable = false; } }
     if (attacker_spaces.length > 1)         { are_attacks_from_two_spaces = true; }
 
@@ -5693,6 +6059,24 @@ deck['cp64'] = {
 
     return is_flank_attack_possible;
 
+  }
+
+  notePeaceOffensiveNoAdvance() {
+    if (!this.game.state.combat || this.game.state.combat.peace_offensive != 1) { return; }
+    if (this.game.state.combat.peace_offensive_scored == 1) { return; }
+    this.game.state.combat.peace_offensive_scored = 1;
+    if (!this.game.state.events.peace_offensive_vp) { this.game.state.events.peace_offensive_vp = 0; }
+    this.game.state.events.peace_offensive_vp++;
+    this.updateLog("Peace Offensive: attacker did not advance (-1 VP)");
+  }
+
+  queuePeaceOffensiveNoAdvance() {
+    if (!this.game.state.combat || this.game.state.combat.peace_offensive != 1) { return; }
+    if (this.game.state.combat.peace_offensive_scored == 1) { return; }
+    let next = (this.game.state.events.peace_offensive_vp || 0) + 1;
+    this.addMove("NOTIFY\tPeace Offensive: attacker did not advance (-1 VP)");
+    this.addMove("SETVAR\tstate\tevents\tpeace_offensive_vp\t"+next);
+    this.addMove("SETVAR\tstate\tcombat\tpeace_offensive_scored\t1");
   }
 
 
@@ -11108,6 +11492,9 @@ spaces['crbox'] = {
     this.game.state.events.withdrawal_bonus_used = 0;
     this.game.state.events.mine_attack = 0;
     this.game.state.events.influenza = 0;
+    this.game.state.events.lloyd_george = 0;
+    this.game.state.events.stavka_timidity = 0;
+    this.game.state.events.haig = 0;
 
   }
 
@@ -11243,6 +11630,14 @@ spaces['crbox'] = {
     if (this.game.state.events.italian_nonentry > 0) { vp += this.game.state.events.italian_nonentry; }
     if (this.game.state.events.zimmerman_telegram) { vp--; results.events.push("Zimmerman Telegram (-1)"); }
     if (this.game.state.events.blockade > 1) { vp -= (this.game.state.events.blockade-1); results.events.push("Blockade (-"+(this.game.state.events.blockade-1)+")"); }
+    if (this.game.state.events.polish_restoration) { vp--; results.events.push("Polish Restoration (-1)"); }
+    if (this.game.state.events.french_mutiny_vp > 0) { vp += this.game.state.events.french_mutiny_vp; results.events.push("French Mutiny (+"+this.game.state.events.french_mutiny_vp+")"); }
+    if (this.game.state.events.peace_offensive_vp > 0) { vp -= this.game.state.events.peace_offensive_vp; results.events.push("Peace Offensive (-"+this.game.state.events.peace_offensive_vp+")"); }
+    if (this.game.state.events.peace_terms_vp) {
+      vp += this.game.state.events.peace_terms_vp;
+      let n = this.game.state.events.peace_terms_vp;
+      results.events.push("Peace Terms ("+(n > 0 ? "+" : "")+n+")");
+    }
 
     if (this.game.state.mo.vp_bonus > 0) { vp += this.game.state.mo.vp_bonus; let mo = "Mandatory Offensives ("; if (this.game.state.mo.vp_bonus >= 0) { mo += "+"; }; mo += this.game.state.mo.vp_bonus; mo += ")"; results.events.push(mo); }
 
@@ -11423,6 +11818,65 @@ spaces['crbox'] = {
   //
   // Core Game Logic
   //
+  async evaluatePeaceOffer(faction, decision) {
+
+    if (decision == "accept") {
+      this.updateLog(this.returnFactionName(faction) + " Peace Terms accepted: the game is a draw");
+      this.game.status = "Peace Terms accepted";
+      this.hud.updateStatus(this.game.status);
+      this.hud.updateMenu([]);
+      this.hud.updateCards([]);
+      this.displayCustomOverlay({
+        text : "Peace Terms are accepted. The war ends in a draw.",
+        title : "Draw",
+        img : "/paths/img/backgrounds/over.png",
+        msg : "Peace Terms accepted...",
+        styles : [{ key : "backgroundPosition" , val : "bottom" }],
+      });
+      await this.triggerGameOver(this.game.players, "peace");
+      return 0;
+    }
+
+    //
+    // peace terms
+    // rolled by the offering player after the offer is rejected.
+    // the column is combined war status. positive VP favors the Central Powers.
+    // central, 0-19: +1 +1 +1 0 0 -1
+    // central, 20+:  +1 +1  0 0 0 -1
+    // allied,  0-19: -1 -1 -1 0 0 +1
+    // allied,  20+:  -1 -1  0 0 0 +1
+    //
+    let roll = this.rollDice(6);
+    let combined = this.game.state.general_records_track.combined_war_status;
+    let high = combined >= 20;
+    let delta = 0;
+    if (faction == "central") {
+      if (roll == 6) { delta = -1; }
+      else if (high && roll <= 2) { delta = 1; }
+      else if (!high && roll <= 3) { delta = 1; }
+    } else {
+      if (roll == 6) { delta = 1; }
+      else if (high && roll <= 2) { delta = -1; }
+      else if (!high && roll <= 3) { delta = -1; }
+    }
+
+    if (!this.game.state.events.peace_terms_vp) { this.game.state.events.peace_terms_vp = 0; }
+    this.game.state.events.peace_terms_vp += delta;
+
+    let effect = "VP unchanged";
+    if (delta > 0) { effect = "Central Powers +1 VP"; }
+    if (delta < 0) { effect = "Allies +1 VP"; }
+    let note = "Peace Terms rejected. " + this.returnFactionName(faction) + " roll " + roll + " (Combined War Status " + combined + ", " + (high ? "20+" : "0-19") + "): " + effect;
+    this.updateLog(note);
+
+    this.calculateVictoryPoints();
+    this.displayGeneralRecordsTrack();
+
+    this.game.queue.push("ACKNOWLEDGE\t" + note);
+    return 1;
+
+  }
+
   async handleGameLoop() {
 
     let paths_self = this;
@@ -11877,6 +12331,35 @@ console.log("central_cards_post_deal: " + central_cards_post_deal);
 	  
           this.game.queue.splice(qe, 1);
 	  return 1;
+	}
+
+	if (mv[0] == "peace_offer") {
+
+	  let faction = mv[1];
+	  this.game.queue.splice(qe, 1);
+
+	  let opponent = "allies";
+	  if (faction == "allies") { opponent = "central"; }
+
+	  if (this.game.player == this.returnPlayerOfFaction(opponent)) {
+	    this.playerEvaluatePeaceOffer(faction);
+	  } else {
+	    this.game.status = "Opponent evaluating the peace offer";
+	    this.hud.updateStatus(this.game.status);
+	    this.hud.updateMenu([]);
+	    this.hud.updateCards([]);
+	  }
+	  return 0;
+
+	}
+
+	if (mv[0] == "peace_offer_resolve") {
+
+	  let faction = mv[1];
+	  let decision = mv[2];
+	  this.game.queue.splice(qe, 1);
+	  return await this.evaluatePeaceOffer(faction, decision);
+
 	}
 
  	if (mv[0] == "victory_determination_phase") {
@@ -12575,6 +13058,9 @@ if (this.game.state.turn == 1) {
 	  // on the MO Table.
 	  //
 	  if (this.game.state.mandated_offensives.allies == "IT" && !this.game.state.events.italy) {
+	    this.game.state.mandated_offensives.allies = "";
+	  }
+	  if (this.game.state.events.bolshevik_revolution == 1 && this.game.state.mandated_offensives.allies == "RU") {
 	    this.game.state.mandated_offensives.allies = "";
 	  }
 
@@ -13509,6 +13995,30 @@ try {
 	    }
 	  }
 
+	  if (this.game.state.events.french_mutiny && this.game.state.mandated_offensives.allies == "FR" && this.game.state.events.french_mutiny_vp_turn != this.game.state.turn) {
+	    let sp = this.game.spaces[this.game.state.combat.key];
+	    if (sp.country == "france" || sp.country == "belgium" || sp.country == "germany") {
+	      let qualifies = false;
+	      for (let i = 0; i < this.game.state.combat.attacker.length; i++) {
+	        let record = this.game.state.combat.attacker[i];
+	        let unit = this.game.spaces[record.unit_sourcekey].units[record.unit_idx];
+	        if (!unit || unit.ckey != "FR") { continue; }
+	        let stacked_with_us = false;
+	        let home = this.game.spaces[record.unit_sourcekey];
+	        for (let z = 0; z < home.units.length; z++) {
+	          if (home.units[z].ckey == "US") { stacked_with_us = true; }
+	        }
+	        if (!stacked_with_us) { qualifies = true; }
+	      }
+	      if (qualifies) {
+	        this.game.state.events.french_mutiny_vp_turn = this.game.state.turn;
+	        if (!this.game.state.events.french_mutiny_vp) { this.game.state.events.french_mutiny_vp = 0; }
+	        this.game.state.events.french_mutiny_vp++;
+	        this.updateLog("French Mutiny: +1 VP");
+	      }
+	    }
+	  }
+
 	  //
 	  // everything has cleared out, so attackers may advance 
 	  //
@@ -13626,6 +14136,43 @@ console.log("COMBAT CARDS:");
 console.log("#############");
 console.log(JSON.stringify(this.game.state.cc_central_active));
 console.log(JSON.stringify(this.game.state.cc_allies_active));
+
+	  //
+	  // handle Alberich
+	  // cards are already declared. the mandated offensive was recorded
+	  // when the attack was launched. skip fire, retreat, and advance.
+	  //
+	  if (this.game.state.cc_central_active.includes("cp64")) {
+	    this.paths_log.recordCard("defender", this.popup("cp64"));
+	    deck["cp64"].onEvent(this, "defender");
+
+	    let attackers = this.returnAttackerUnits();
+	    for (let i = 0; i < attackers.length; i++) { attackers[i].attacked = 1; }
+
+	    if (this.game.state.cc_allies_active.length > 0) {
+	      this.updateLog("Alberich: Allied combat cards are not played");
+	    }
+	    for (let i = 0; i < this.game.state.cc_allies_active.length; i++) {
+	      let card = this.game.state.cc_allies_active[i];
+	      if (!this.game.deck[1].hand.includes(card)) { this.game.deck[1].hand.push(card); }
+	      for (let list of ["cc_allies_on_table", "cc_allies_played_this_round"]) {
+	        let idx = this.game.state[list].indexOf(card);
+	        while (idx >= 0) {
+	          this.game.state[list].splice(idx, 1);
+	          idx = this.game.state[list].indexOf(card);
+	        }
+	      }
+	    }
+	    this.game.state.cc_allies_active = [];
+	    this.showPlayerHand();
+
+	    let skip = ["combat_determine_outcome", "combat_defender_retreat", "combat_attacker_advance"];
+	    for (let i = this.game.queue.length - 1; i >= 0; i--) {
+	      if (skip.includes(this.game.queue[i].split("\t")[0])) { this.game.queue.splice(i, 1); }
+	    }
+	    this.paths_log.abandonCombat();
+	    return 1;
+	  }
 
 	  //
 	  // brusilov offensive
@@ -13747,6 +14294,7 @@ console.log("AT: " + this.returnPlayerOfFaction(this.game.state.combat.attacking
 	  let defender_strength = 0;
 	  let attacker_table = "corps";
 	  let defender_table = "corps";
+	  let kemal_tu_remains = false;
 
 
           for (let i = 0; i < this.game.spaces[this.game.state.combat.key].units.length; i++) {
@@ -13802,6 +14350,21 @@ console.log("AT: " + this.returnPlayerOfFaction(this.game.state.combat.attacking
 	    }
           }
 
+	  //
+	  // kemal
+	  // the flank recalculation rebuilds the table from the survivors.
+	  // a TU unit still at CF 1 or more keeps the defender on the Army Table.
+	  //
+	  if (this.game.state.combat.kemal == 1) {
+	    for (let z = 0; z < this.game.spaces[this.game.state.combat.key].units.length; z++) {
+	      let u = this.game.spaces[this.game.state.combat.key].units[z];
+	      if (!u || u.destroyed || u.ckey != "TU") { continue; }
+	      let cf = u.damaged ? u.rcombat : u.combat;
+	      if (cf >= 1) { kemal_tu_remains = true; }
+	    }
+	    if (kemal_tu_remains) { defender_table = "army"; }
+	  }
+
           this.game.state.combat.attacker_table = attacker_table;
           this.game.state.combat.defender_table = defender_table;
           this.game.state.combat.attacker_strength = attacker_strength;
@@ -13814,7 +14377,52 @@ console.log("AT: " + this.returnPlayerOfFaction(this.game.state.combat.attacking
             try { 
               let qs1 = `.combat_${this.game.state.combat.step}.attacker_loss_factor`;
               let qs2 = `.combat_${this.game.state.combat.step}.defender_cp`;
-              this.game.state.combat.attacker_loss_factor = this.returnAttackerLossFactor();
+              let attacker_loss_factor = this.returnAttackerLossFactor();
+
+	      //
+	      // kemal
+	      // attacker fired first and the qualifying TU unit is gone.
+	      // remaining strength is found on the Corps table and read on the
+	      // Army column with the same number. Corps column 0 reads as Army column 1.
+	      // Corps 8+ reads as the Army 6-8 column. The trench shift applies after that.
+	      //
+	      if (this.game.state.combat.kemal == 1 && !kemal_tu_remains) {
+	        let cp = this.returnDefenderCombatPower();
+	        let space = this.game.spaces[this.game.state.combat.key];
+	        if (space.fort > 0) {
+	          let original_spaces = this.returnSpaces();
+	          if (space.control == original_spaces[this.game.state.combat.key].control) {
+	            if (!space.besieged) {
+	              if (space.units.length > 0) {
+	                if (this.returnPowerOfUnit(space.units[0]) == this.game.state.combat.defender_power) {
+	                  cp += space.fort;
+	                }
+	              } else {
+	                cp += space.fort;
+	              }
+	            }
+	          }
+	        }
+	        let corps = this.returnCorpsFireTable();
+	        let army = this.returnArmyFireTable();
+	        let corps_col = 0;
+	        for (let i = corps.length - 1; i >= 0; i--) {
+	          if (corps[i].max >= cp && corps[i].min <= cp) { corps_col = i; break; }
+	        }
+	        let column_number = corps[corps_col].min;
+	        if (column_number < 1) { column_number = 1; }
+	        let army_col = 0;
+	        for (let i = army.length - 1; i >= 0; i--) {
+	          if (army[i].max >= column_number && army[i].min <= column_number) { army_col = i; break; }
+	        }
+	        army_col += this.game.state.combat.defender_column_shift;
+	        if (army_col < 0) { army_col = 0; }
+	        if (army_col >= army.length) { army_col = army.length - 1; }
+	        attacker_loss_factor = army[army_col][this.game.state.combat.defender_modified_roll];
+	        this.updateLog("Kemal: remaining factors converted from the Corps Table to the Army Table");
+	      }
+
+              this.game.state.combat.attacker_loss_factor = attacker_loss_factor;
               this.game.state.combat.defender_cp = this.returnDefenderCombatPower();
 
 	      //
@@ -13825,7 +14433,7 @@ console.log("AT: " + this.returnPlayerOfFaction(this.game.state.combat.attacking
  		this.game.logs[z] = this.game.logs[z].replace(/<span class="combat_14 attacker_loss_factor">\?<\/span>/g, `<span class="combat_14 attacker_loss_factor">${this.game.state.combat.attacker_loss_factor}</span>`);
 	      }
               document.querySelectorAll(qs1).forEach((el) => { 
-		setTimeout(() => { el.innerHTML = this.returnAttackerLossFactor(); }, 500);
+		setTimeout(() => { el.innerHTML = attacker_loss_factor; }, 500);
 	      });
               document.querySelectorAll(qs2).forEach((el) => { 
 		setTimeout(() => { el.innerHTML = this.returnDefenderCombatPower(); }, 500);
@@ -13967,6 +14575,15 @@ console.log("error updated attacker loss factor: " + JSON.stringify(err));
 	  if (defender_modified_roll > 6) { defender_modified_roll = 6; }
 	  if (attacker_modified_roll < 1) { attacker_modified_roll = 1; }
 	  if (defender_modified_roll < 1) { defender_modified_roll = 1; }
+
+	  if (this.game.state.combat.maude == 1) {
+	    attacker_table = "army";
+	    this.paths_log.addModifier("Maude: Army Table");
+	  }
+	  if (this.game.state.combat.kemal == 1) {
+	    defender_table = "army";
+	    this.paths_log.addModifier("Kemal: Army Table");
+	  }
 
 	  this.game.state.combat.attacker_table = attacker_table;
 	  this.game.state.combat.defender_table = defender_table;
@@ -14220,6 +14837,25 @@ console.log("error updated attacker loss factor: " + JSON.stringify(err));
 	  }
 
 	  let attacker_units = this.returnAttackerUnits();
+
+	  if (this.game.state.events.haig) {
+	    let space = this.game.spaces[this.game.state.combat.key];
+	    let western = space.country == "france" || space.country == "belgium" || space.country == "germany";
+	    let has_german = false;
+	    for (let z = 0; z < space.units.length; z++) {
+	      if (space.units[z].ckey == "GE") { has_german = true; }
+	    }
+	    let british_attack = false;
+	    for (let z = 0; z < attacker_units.length; z++) {
+	      if (attacker_units[z].ckey == "BR" || attacker_units[z].ckey == "BEF") { british_attack = true; }
+	    }
+	    if (western && space.trench > 0 && has_german && british_attack) {
+	      this.paths_log.note("Haig: no retreat");
+	      this.paths_log.publishCombat();
+	      return 1;
+	    }
+	  }
+
 	  let does_defender_retreat = false;
 	  let can_defender_cancel = false;
 
@@ -14370,10 +15006,12 @@ console.log("error updated attacker loss factor: " + JSON.stringify(err));
 	  }
 
 	  if (this.game.state.combat.winner == "defender") {
+	    this.notePeaceOffensiveNoAdvance();
 	    return 1;
 	  }
 
 	  if (this.game.state.combat.winner == "none") {
+	    this.notePeaceOffensiveNoAdvance();
 	    return 1;
 	  }
 
@@ -14381,7 +15019,7 @@ console.log("error updated attacker loss factor: " + JSON.stringify(err));
 	  // retreat was cancelled for some reason...
 	  //
 	  if (this.game.spaces[this.game.state.combat.key].units.length > 0) { 
-	    //this.updateLog("Attacker unable to advance...");
+	    this.notePeaceOffensiveNoAdvance();
 	    return 1;
 	  }
 
@@ -14418,6 +15056,35 @@ console.log("error updated attacker loss factor: " + JSON.stringify(err));
 	    this.game.state.combat.flank_attack = "attacker";
 	    this.paths_log.addModifier("Von Hutier: attacker fires first");
 	    return 1;
+	  }
+
+	  //
+	  // Michael, Blucher, and Peace Offensive are played before the flank attempt.
+	  //
+	  if (this.game.state.combat.trench_cards_resolved != 1 && this.game.state.combat.attacking_faction == "central" && this.game.state.events.hl_take_command) {
+	    let german_attack = false;
+	    let attackers = this.returnAttackerUnits();
+	    for (let i = 0; i < attackers.length; i++) {
+	      if (attackers[i].ckey == "GE") { german_attack = true; }
+	    }
+	    let holding = false;
+	    if (german_attack) {
+	      let deck = this.returnDeck();
+	      for (let id of ["cp49", "cp50", "cp51"]) {
+	        if (this.game.deck[0].hand.includes(id) && deck[id].canEvent(this, "central")) { holding = true; }
+	      }
+	    }
+	    if (holding) {
+	      if (this.game.player == this.returnPlayerOfFaction("central")) {
+	        this.playerOfferTrenchCards();
+	      } else {
+	        this.game.status = "Central Powers considering a trench combat card";
+	        this.hud.updateStatus(this.game.status);
+	        this.hud.updateMenu([]);
+	        this.showPlayerHand();
+	      }
+	      return 0;
+	    }
 	  }
 
 	  //
@@ -15830,6 +16497,7 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
     // skip advance if not possible
     //
     if (can_player_advance == false) {
+      this.queuePeaceOffensiveNoAdvance();
       this.endTurn();
       return;
     }
@@ -15857,6 +16525,7 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
       }
 
       if (action === "refuse") {
+	this.queuePeaceOffensiveNoAdvance();
 	this.endTurn();
 	return;
       }
@@ -15865,6 +16534,52 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
 
   }
 
+
+  playerMakePeaceOffer(faction) {
+
+    let vp = this.calculateVictoryPoints().vp;
+
+    if (faction == "central" && this.game.state.events.fourteen_points) {
+      this.updateLog("14 Points: only the Allied Powers may offer Peace Terms");
+      return;
+    }
+    if (faction == "central" && vp < 11) {
+      this.updateLog("Central Powers may offer Peace Terms only at 11 VP or more");
+      return;
+    }
+    if (faction == "allies" && vp > 9) {
+      this.updateLog("Allied Powers may offer Peace Terms only at 9 VP or fewer");
+      return;
+    }
+
+    this.addMove("peace_offer\t"+faction);
+    this.game.status = "Opponent evaluating the peace offer";
+    this.hud.updateStatus(this.game.status);
+    this.hud.updateMenu([]);
+    this.hud.updateCards([]);
+    this.endTurn();
+
+  }
+
+
+  playerEvaluatePeaceOffer(faction) {
+
+    this.game.status = this.returnFactionName(faction) + " offers Peace Terms";
+    this.hud.updateStatus(this.game.status);
+    this.hud.updateCards([]);
+    this.hud.updateMenu([
+      { id: "accept", label: "accept" },
+      { id: "reject", label: "reject" },
+    ], (action) => {
+      this.hud.updateMenu([]);
+      this.hud.updateCards([]);
+      this.game.status = "submitting...";
+      this.hud.updateStatus(this.game.status);
+      this.addMove("peace_offer_resolve\t"+faction+"\t"+action);
+      this.endTurn();
+    });
+
+  }
 
 
   playerPlayGreatAdvance(spacekey="") {
@@ -16684,6 +17399,34 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
 
   }
 
+  playerOfferTrenchCards() {
+
+    let deck = this.returnDeck();
+    let options = [{ id: "continue", label: "continue" }];
+    for (let id of ["cp49", "cp50", "cp51"]) {
+      if (this.game.deck[0].hand.includes(id) && deck[id].canEvent(this, "central")) {
+        options.push({ id: id, label: deck[id].name });
+      }
+    }
+
+    this.game.status = "Play a trench combat card before the flank attempt?";
+    this.hud.updateStatus(this.game.status);
+    this.hud.updateCards([]);
+    this.hud.updateMenu(options, (action) => {
+      this.addMove("combat_evaluate_flank_attack");
+      this.addMove("SETVAR\tstate\tcombat\ttrench_cards_resolved\t1");
+      if (action !== "continue") {
+        let card = deck[action];
+        if (card && card.ws > 0) {
+          this.addMove("ws\t"+action+"\tcentral\t"+card.ws);
+        }
+        this.addMove("event\t"+action+"\tcentral");
+      }
+      this.endTurn();
+    });
+
+  }
+
   playerPlayFlankAttack() {
 
     //
@@ -16955,6 +17698,31 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
 
   }
 
+  eventBlocksAttacker(unit, targetkey) {
+
+    let space = this.game.spaces[targetkey];
+    if (!space || !unit) { return 0; }
+
+    if (this.game.state.events.lloyd_george) {
+      if ((unit.ckey == "BR" || unit.ckey == "BEF") && space.trench == 2) {
+        for (let i = 0; i < space.units.length; i++) {
+          if (space.units[i].ckey == "GE") { return 1; }
+        }
+      }
+    }
+
+    if (this.game.state.events.stavka_timidity && unit.ckey == "RU" && space.trench > 0 && space.units.length > 0) {
+      let only_german = true;
+      for (let i = 0; i < space.units.length; i++) {
+        if (space.units[i].ckey != "GE") { only_german = false; }
+      }
+      if (only_german) { return 1; }
+    }
+
+    return 0;
+
+  }
+
   playerPlayCombat(faction) {
 
     let paths_self = this;
@@ -17117,7 +17885,7 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
 	        let n = paths_self.game.spaces[key].neighbours[i];
 	        if (paths_self.game.spaces[n].oos != 1 && paths_self.game.spaces[n].activated_for_combat == 1) {
 		  for (let z = 0; z < paths_self.game.spaces[n].units.length; z++) {
-		    if (paths_self.game.spaces[n].units[z].attacked != 1) { return 1; }
+		    if (paths_self.game.spaces[n].units[z].attacked != 1 && !paths_self.eventBlocksAttacker(paths_self.game.spaces[n].units[z], key)) { return 1; }
 		  }
 		  paths_self.game.spaces[n].activated_for_combat = 0;
 		  paths_self.displaySpace(n);
@@ -17188,7 +17956,7 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
 	if (paths_self.game.spaces[n].activated_for_combat == 1) {
 	  for (let k = 0; k < paths_self.game.spaces[n].units.length; k++) {
 	    let u = paths_self.game.spaces[n].units[k];
-	    if (u.attacked != 1 && paths_self.game.spaces[n].oos != 1) {
+	    if (u.attacked != 1 && paths_self.game.spaces[n].oos != 1 && !paths_self.eventBlocksAttacker(u, key)) {
 	      if (!can_german_units_attack) {
 	        if (u.ckey != "GE") {
 		  units.push({ key : key , unit_sourcekey: n , unit_idx : k });
@@ -20174,6 +20942,14 @@ console.log(JSON.stringify(unit));
 
     if (!unit) { return 0; }
     if (this.isIrreplaceableArmy(unit)) { return 0; }
+
+    if (unit.ckey == "RU" && this.game.state.events.bolshevik_revolution && this.game.state.events.bolshevik_ru_rp_turn == this.game.state.turn) {
+      return 0;
+    }
+
+    if (unit.key == "pol_corps" && this.game.spaces["warsaw"] && this.game.spaces["warsaw"].control == "allies") {
+      return 0;
+    }
 
     let faction = this.returnFactionOfUnit(unit);
     let rp = this.game.state.rp[faction];

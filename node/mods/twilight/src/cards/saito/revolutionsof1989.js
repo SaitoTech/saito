@@ -11,7 +11,7 @@
 
         this.game.status = `${this.cardToText(card)}: do you want to trigger Final Scoring?`;
         this.hud.updateStatus(this.game.status);
-        this.hud.updateCards(this.game.deck[0].hand);
+        this.hud.updateCards([]);
         this.hud.updateMenu([ { id: 'endgame', label: 'end the game' }, { id: 'cont', label: 'continue playing' } ], function(action2) {
 
           if (action2 == "endgame") {

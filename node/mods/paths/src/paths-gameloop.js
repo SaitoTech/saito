@@ -2,6 +2,65 @@
   //
   // Core Game Logic
   //
+  async evaluatePeaceOffer(faction, decision) {
+
+    if (decision == "accept") {
+      this.updateLog(this.returnFactionName(faction) + " Peace Terms accepted: the game is a draw");
+      this.game.status = "Peace Terms accepted";
+      this.hud.updateStatus(this.game.status);
+      this.hud.updateMenu([]);
+      this.hud.updateCards([]);
+      this.displayCustomOverlay({
+        text : "Peace Terms are accepted. The war ends in a draw.",
+        title : "Draw",
+        img : "/paths/img/backgrounds/over.png",
+        msg : "Peace Terms accepted...",
+        styles : [{ key : "backgroundPosition" , val : "bottom" }],
+      });
+      await this.triggerGameOver(this.game.players, "peace");
+      return 0;
+    }
+
+    //
+    // peace terms
+    // rolled by the offering player after the offer is rejected.
+    // the column is combined war status. positive VP favors the Central Powers.
+    // central, 0-19: +1 +1 +1 0 0 -1
+    // central, 20+:  +1 +1  0 0 0 -1
+    // allied,  0-19: -1 -1 -1 0 0 +1
+    // allied,  20+:  -1 -1  0 0 0 +1
+    //
+    let roll = this.rollDice(6);
+    let combined = this.game.state.general_records_track.combined_war_status;
+    let high = combined >= 20;
+    let delta = 0;
+    if (faction == "central") {
+      if (roll == 6) { delta = -1; }
+      else if (high && roll <= 2) { delta = 1; }
+      else if (!high && roll <= 3) { delta = 1; }
+    } else {
+      if (roll == 6) { delta = 1; }
+      else if (high && roll <= 2) { delta = -1; }
+      else if (!high && roll <= 3) { delta = -1; }
+    }
+
+    if (!this.game.state.events.peace_terms_vp) { this.game.state.events.peace_terms_vp = 0; }
+    this.game.state.events.peace_terms_vp += delta;
+
+    let effect = "VP unchanged";
+    if (delta > 0) { effect = "Central Powers +1 VP"; }
+    if (delta < 0) { effect = "Allies +1 VP"; }
+    let note = "Peace Terms rejected. " + this.returnFactionName(faction) + " roll " + roll + " (Combined War Status " + combined + ", " + (high ? "20+" : "0-19") + "): " + effect;
+    this.updateLog(note);
+
+    this.calculateVictoryPoints();
+    this.displayGeneralRecordsTrack();
+
+    this.game.queue.push("ACKNOWLEDGE\t" + note);
+    return 1;
+
+  }
+
   async handleGameLoop() {
 
     let paths_self = this;
@@ -456,6 +515,35 @@ console.log("central_cards_post_deal: " + central_cards_post_deal);
 	  
           this.game.queue.splice(qe, 1);
 	  return 1;
+	}
+
+	if (mv[0] == "peace_offer") {
+
+	  let faction = mv[1];
+	  this.game.queue.splice(qe, 1);
+
+	  let opponent = "allies";
+	  if (faction == "allies") { opponent = "central"; }
+
+	  if (this.game.player == this.returnPlayerOfFaction(opponent)) {
+	    this.playerEvaluatePeaceOffer(faction);
+	  } else {
+	    this.game.status = "Opponent evaluating the peace offer";
+	    this.hud.updateStatus(this.game.status);
+	    this.hud.updateMenu([]);
+	    this.hud.updateCards([]);
+	  }
+	  return 0;
+
+	}
+
+	if (mv[0] == "peace_offer_resolve") {
+
+	  let faction = mv[1];
+	  let decision = mv[2];
+	  this.game.queue.splice(qe, 1);
+	  return await this.evaluatePeaceOffer(faction, decision);
+
 	}
 
  	if (mv[0] == "victory_determination_phase") {
@@ -1154,6 +1242,9 @@ if (this.game.state.turn == 1) {
 	  // on the MO Table.
 	  //
 	  if (this.game.state.mandated_offensives.allies == "IT" && !this.game.state.events.italy) {
+	    this.game.state.mandated_offensives.allies = "";
+	  }
+	  if (this.game.state.events.bolshevik_revolution == 1 && this.game.state.mandated_offensives.allies == "RU") {
 	    this.game.state.mandated_offensives.allies = "";
 	  }
 
@@ -2087,6 +2178,29 @@ try {
 
 	    }
 	  }
+	  if (this.game.state.events.french_mutiny && this.game.state.mandated_offensives.allies == "FR" && this.game.state.events.french_mutiny_vp_turn != this.game.state.turn) {
+	    let sp = this.game.spaces[this.game.state.combat.key];
+	    if (sp.country == "france" || sp.country == "belgium" || sp.country == "germany") {
+	      let qualifies = false;
+	      for (let i = 0; i < this.game.state.combat.attacker.length; i++) {
+	        let record = this.game.state.combat.attacker[i];
+	        let unit = this.game.spaces[record.unit_sourcekey].units[record.unit_idx];
+	        if (!unit || unit.ckey != "FR") { continue; }
+	        let stacked_with_us = false;
+	        let home = this.game.spaces[record.unit_sourcekey];
+	        for (let z = 0; z < home.units.length; z++) {
+	          if (home.units[z].ckey == "US") { stacked_with_us = true; }
+	        }
+	        if (!stacked_with_us) { qualifies = true; }
+	      }
+	      if (qualifies) {
+	        this.game.state.events.french_mutiny_vp_turn = this.game.state.turn;
+	        if (!this.game.state.events.french_mutiny_vp) { this.game.state.events.french_mutiny_vp = 0; }
+	        this.game.state.events.french_mutiny_vp++;
+	        this.updateLog("French Mutiny: +1 VP");
+	      }
+	    }
+	  }
 
 	  //
 	  // everything has cleared out, so attackers may advance 
@@ -2205,6 +2319,43 @@ console.log("COMBAT CARDS:");
 console.log("#############");
 console.log(JSON.stringify(this.game.state.cc_central_active));
 console.log(JSON.stringify(this.game.state.cc_allies_active));
+
+	  //
+	  // handle Alberich
+	  // cards are already declared. the mandated offensive was recorded
+	  // when the attack was launched. skip fire, retreat, and advance.
+	  //
+	  if (this.game.state.cc_central_active.includes("cp64")) {
+	    this.paths_log.recordCard("defender", this.popup("cp64"));
+	    deck["cp64"].onEvent(this, "defender");
+
+	    let attackers = this.returnAttackerUnits();
+	    for (let i = 0; i < attackers.length; i++) { attackers[i].attacked = 1; }
+
+	    if (this.game.state.cc_allies_active.length > 0) {
+	      this.updateLog("Alberich: Allied combat cards are not played");
+	    }
+	    for (let i = 0; i < this.game.state.cc_allies_active.length; i++) {
+	      let card = this.game.state.cc_allies_active[i];
+	      if (!this.game.deck[1].hand.includes(card)) { this.game.deck[1].hand.push(card); }
+	      for (let list of ["cc_allies_on_table", "cc_allies_played_this_round"]) {
+	        let idx = this.game.state[list].indexOf(card);
+	        while (idx >= 0) {
+	          this.game.state[list].splice(idx, 1);
+	          idx = this.game.state[list].indexOf(card);
+	        }
+	      }
+	    }
+	    this.game.state.cc_allies_active = [];
+	    this.showPlayerHand();
+
+	    let skip = ["combat_determine_outcome", "combat_defender_retreat", "combat_attacker_advance"];
+	    for (let i = this.game.queue.length - 1; i >= 0; i--) {
+	      if (skip.includes(this.game.queue[i].split("\t")[0])) { this.game.queue.splice(i, 1); }
+	    }
+	    this.paths_log.abandonCombat();
+	    return 1;
+	  }
 
 	  //
 	  // brusilov offensive
@@ -2326,6 +2477,7 @@ console.log("AT: " + this.returnPlayerOfFaction(this.game.state.combat.attacking
 	  let defender_strength = 0;
 	  let attacker_table = "corps";
 	  let defender_table = "corps";
+	  let kemal_tu_remains = false;
 
 
           for (let i = 0; i < this.game.spaces[this.game.state.combat.key].units.length; i++) {
@@ -2381,6 +2533,21 @@ console.log("AT: " + this.returnPlayerOfFaction(this.game.state.combat.attacking
 	    }
           }
 
+	  //
+	  // kemal
+	  // the flank recalculation rebuilds the table from the survivors.
+	  // a TU unit still at CF 1 or more keeps the defender on the Army Table.
+	  //
+	  if (this.game.state.combat.kemal == 1) {
+	    for (let z = 0; z < this.game.spaces[this.game.state.combat.key].units.length; z++) {
+	      let u = this.game.spaces[this.game.state.combat.key].units[z];
+	      if (!u || u.destroyed || u.ckey != "TU") { continue; }
+	      let cf = u.damaged ? u.rcombat : u.combat;
+	      if (cf >= 1) { kemal_tu_remains = true; }
+	    }
+	    if (kemal_tu_remains) { defender_table = "army"; }
+	  }
+
           this.game.state.combat.attacker_table = attacker_table;
           this.game.state.combat.defender_table = defender_table;
           this.game.state.combat.attacker_strength = attacker_strength;
@@ -2393,7 +2560,52 @@ console.log("AT: " + this.returnPlayerOfFaction(this.game.state.combat.attacking
             try { 
               let qs1 = `.combat_${this.game.state.combat.step}.attacker_loss_factor`;
               let qs2 = `.combat_${this.game.state.combat.step}.defender_cp`;
-              this.game.state.combat.attacker_loss_factor = this.returnAttackerLossFactor();
+              let attacker_loss_factor = this.returnAttackerLossFactor();
+
+	      //
+	      // kemal
+	      // attacker fired first and the qualifying TU unit is gone.
+	      // remaining strength is found on the Corps table and read on the
+	      // Army column with the same number. Corps column 0 reads as Army column 1.
+	      // Corps 8+ reads as the Army 6-8 column. The trench shift applies after that.
+	      //
+	      if (this.game.state.combat.kemal == 1 && !kemal_tu_remains) {
+	        let cp = this.returnDefenderCombatPower();
+	        let space = this.game.spaces[this.game.state.combat.key];
+	        if (space.fort > 0) {
+	          let original_spaces = this.returnSpaces();
+	          if (space.control == original_spaces[this.game.state.combat.key].control) {
+	            if (!space.besieged) {
+	              if (space.units.length > 0) {
+	                if (this.returnPowerOfUnit(space.units[0]) == this.game.state.combat.defender_power) {
+	                  cp += space.fort;
+	                }
+	              } else {
+	                cp += space.fort;
+	              }
+	            }
+	          }
+	        }
+	        let corps = this.returnCorpsFireTable();
+	        let army = this.returnArmyFireTable();
+	        let corps_col = 0;
+	        for (let i = corps.length - 1; i >= 0; i--) {
+	          if (corps[i].max >= cp && corps[i].min <= cp) { corps_col = i; break; }
+	        }
+	        let column_number = corps[corps_col].min;
+	        if (column_number < 1) { column_number = 1; }
+	        let army_col = 0;
+	        for (let i = army.length - 1; i >= 0; i--) {
+	          if (army[i].max >= column_number && army[i].min <= column_number) { army_col = i; break; }
+	        }
+	        army_col += this.game.state.combat.defender_column_shift;
+	        if (army_col < 0) { army_col = 0; }
+	        if (army_col >= army.length) { army_col = army.length - 1; }
+	        attacker_loss_factor = army[army_col][this.game.state.combat.defender_modified_roll];
+	        this.updateLog("Kemal: remaining factors converted from the Corps Table to the Army Table");
+	      }
+
+              this.game.state.combat.attacker_loss_factor = attacker_loss_factor;
               this.game.state.combat.defender_cp = this.returnDefenderCombatPower();
 
 	      //
@@ -2404,7 +2616,7 @@ console.log("AT: " + this.returnPlayerOfFaction(this.game.state.combat.attacking
  		this.game.logs[z] = this.game.logs[z].replace(/<span class="combat_14 attacker_loss_factor">\?<\/span>/g, `<span class="combat_14 attacker_loss_factor">${this.game.state.combat.attacker_loss_factor}</span>`);
 	      }
               document.querySelectorAll(qs1).forEach((el) => { 
-		setTimeout(() => { el.innerHTML = this.returnAttackerLossFactor(); }, 500);
+		setTimeout(() => { el.innerHTML = attacker_loss_factor; }, 500);
 	      });
               document.querySelectorAll(qs2).forEach((el) => { 
 		setTimeout(() => { el.innerHTML = this.returnDefenderCombatPower(); }, 500);
@@ -2546,6 +2758,15 @@ console.log("error updated attacker loss factor: " + JSON.stringify(err));
 	  if (defender_modified_roll > 6) { defender_modified_roll = 6; }
 	  if (attacker_modified_roll < 1) { attacker_modified_roll = 1; }
 	  if (defender_modified_roll < 1) { defender_modified_roll = 1; }
+
+	  if (this.game.state.combat.maude == 1) {
+	    attacker_table = "army";
+	    this.paths_log.addModifier("Maude: Army Table");
+	  }
+	  if (this.game.state.combat.kemal == 1) {
+	    defender_table = "army";
+	    this.paths_log.addModifier("Kemal: Army Table");
+	  }
 
 	  this.game.state.combat.attacker_table = attacker_table;
 	  this.game.state.combat.defender_table = defender_table;
@@ -2799,6 +3020,25 @@ console.log("error updated attacker loss factor: " + JSON.stringify(err));
 	  }
 
 	  let attacker_units = this.returnAttackerUnits();
+
+	  if (this.game.state.events.haig) {
+	    let space = this.game.spaces[this.game.state.combat.key];
+	    let western = space.country == "france" || space.country == "belgium" || space.country == "germany";
+	    let has_german = false;
+	    for (let z = 0; z < space.units.length; z++) {
+	      if (space.units[z].ckey == "GE") { has_german = true; }
+	    }
+	    let british_attack = false;
+	    for (let z = 0; z < attacker_units.length; z++) {
+	      if (attacker_units[z].ckey == "BR" || attacker_units[z].ckey == "BEF") { british_attack = true; }
+	    }
+	    if (western && space.trench > 0 && has_german && british_attack) {
+	      this.paths_log.note("Haig: no retreat");
+	      this.paths_log.publishCombat();
+	      return 1;
+	    }
+	  }
+
 	  let does_defender_retreat = false;
 	  let can_defender_cancel = false;
 
@@ -2949,10 +3189,12 @@ console.log("error updated attacker loss factor: " + JSON.stringify(err));
 	  }
 
 	  if (this.game.state.combat.winner == "defender") {
+	    this.notePeaceOffensiveNoAdvance();
 	    return 1;
 	  }
 
 	  if (this.game.state.combat.winner == "none") {
+	    this.notePeaceOffensiveNoAdvance();
 	    return 1;
 	  }
 
@@ -2960,7 +3202,7 @@ console.log("error updated attacker loss factor: " + JSON.stringify(err));
 	  // retreat was cancelled for some reason...
 	  //
 	  if (this.game.spaces[this.game.state.combat.key].units.length > 0) { 
-	    //this.updateLog("Attacker unable to advance...");
+	    this.notePeaceOffensiveNoAdvance();
 	    return 1;
 	  }
 
@@ -2997,6 +3239,35 @@ console.log("error updated attacker loss factor: " + JSON.stringify(err));
 	    this.game.state.combat.flank_attack = "attacker";
 	    this.paths_log.addModifier("Von Hutier: attacker fires first");
 	    return 1;
+	  }
+
+	  //
+	  // Michael, Blucher, and Peace Offensive are played before the flank attempt.
+	  //
+	  if (this.game.state.combat.trench_cards_resolved != 1 && this.game.state.combat.attacking_faction == "central" && this.game.state.events.hl_take_command) {
+	    let german_attack = false;
+	    let attackers = this.returnAttackerUnits();
+	    for (let i = 0; i < attackers.length; i++) {
+	      if (attackers[i].ckey == "GE") { german_attack = true; }
+	    }
+	    let holding = false;
+	    if (german_attack) {
+	      let deck = this.returnDeck();
+	      for (let id of ["cp49", "cp50", "cp51"]) {
+	        if (this.game.deck[0].hand.includes(id) && deck[id].canEvent(this, "central")) { holding = true; }
+	      }
+	    }
+	    if (holding) {
+	      if (this.game.player == this.returnPlayerOfFaction("central")) {
+	        this.playerOfferTrenchCards();
+	      } else {
+	        this.game.status = "Central Powers considering a trench combat card";
+	        this.hud.updateStatus(this.game.status);
+	        this.hud.updateMenu([]);
+	        this.showPlayerHand();
+	      }
+	      return 0;
+	    }
 	  }
 
 	  //

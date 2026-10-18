@@ -546,6 +546,7 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
     // skip advance if not possible
     //
     if (can_player_advance == false) {
+      this.queuePeaceOffensiveNoAdvance();
       this.endTurn();
       return;
     }
@@ -573,6 +574,7 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
       }
 
       if (action === "refuse") {
+	this.queuePeaceOffensiveNoAdvance();
 	this.endTurn();
 	return;
       }
@@ -581,6 +583,52 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
 
   }
 
+
+  playerMakePeaceOffer(faction) {
+
+    let vp = this.calculateVictoryPoints().vp;
+
+    if (faction == "central" && this.game.state.events.fourteen_points) {
+      this.updateLog("14 Points: only the Allied Powers may offer Peace Terms");
+      return;
+    }
+    if (faction == "central" && vp < 11) {
+      this.updateLog("Central Powers may offer Peace Terms only at 11 VP or more");
+      return;
+    }
+    if (faction == "allies" && vp > 9) {
+      this.updateLog("Allied Powers may offer Peace Terms only at 9 VP or fewer");
+      return;
+    }
+
+    this.addMove("peace_offer\t"+faction);
+    this.game.status = "Opponent evaluating the peace offer";
+    this.hud.updateStatus(this.game.status);
+    this.hud.updateMenu([]);
+    this.hud.updateCards([]);
+    this.endTurn();
+
+  }
+
+
+  playerEvaluatePeaceOffer(faction) {
+
+    this.game.status = this.returnFactionName(faction) + " offers Peace Terms";
+    this.hud.updateStatus(this.game.status);
+    this.hud.updateCards([]);
+    this.hud.updateMenu([
+      { id: "accept", label: "accept" },
+      { id: "reject", label: "reject" },
+    ], (action) => {
+      this.hud.updateMenu([]);
+      this.hud.updateCards([]);
+      this.game.status = "submitting...";
+      this.hud.updateStatus(this.game.status);
+      this.addMove("peace_offer_resolve\t"+faction+"\t"+action);
+      this.endTurn();
+    });
+
+  }
 
 
   playerPlayGreatAdvance(spacekey="") {
@@ -1400,6 +1448,34 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
 
   }
 
+  playerOfferTrenchCards() {
+
+    let deck = this.returnDeck();
+    let options = [{ id: "continue", label: "continue" }];
+    for (let id of ["cp49", "cp50", "cp51"]) {
+      if (this.game.deck[0].hand.includes(id) && deck[id].canEvent(this, "central")) {
+        options.push({ id: id, label: deck[id].name });
+      }
+    }
+
+    this.game.status = "Play a trench combat card before the flank attempt?";
+    this.hud.updateStatus(this.game.status);
+    this.hud.updateCards([]);
+    this.hud.updateMenu(options, (action) => {
+      this.addMove("combat_evaluate_flank_attack");
+      this.addMove("SETVAR\tstate\tcombat\ttrench_cards_resolved\t1");
+      if (action !== "continue") {
+        let card = deck[action];
+        if (card && card.ws > 0) {
+          this.addMove("ws\t"+action+"\tcentral\t"+card.ws);
+        }
+        this.addMove("event\t"+action+"\tcentral");
+      }
+      this.endTurn();
+    });
+
+  }
+
   playerPlayFlankAttack() {
 
     //
@@ -1671,6 +1747,31 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
 
   }
 
+  eventBlocksAttacker(unit, targetkey) {
+
+    let space = this.game.spaces[targetkey];
+    if (!space || !unit) { return 0; }
+
+    if (this.game.state.events.lloyd_george) {
+      if ((unit.ckey == "BR" || unit.ckey == "BEF") && space.trench == 2) {
+        for (let i = 0; i < space.units.length; i++) {
+          if (space.units[i].ckey == "GE") { return 1; }
+        }
+      }
+    }
+
+    if (this.game.state.events.stavka_timidity && unit.ckey == "RU" && space.trench > 0 && space.units.length > 0) {
+      let only_german = true;
+      for (let i = 0; i < space.units.length; i++) {
+        if (space.units[i].ckey != "GE") { only_german = false; }
+      }
+      if (only_german) { return 1; }
+    }
+
+    return 0;
+
+  }
+
   playerPlayCombat(faction) {
 
     let paths_self = this;
@@ -1833,7 +1934,7 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
 	        let n = paths_self.game.spaces[key].neighbours[i];
 	        if (paths_self.game.spaces[n].oos != 1 && paths_self.game.spaces[n].activated_for_combat == 1) {
 		  for (let z = 0; z < paths_self.game.spaces[n].units.length; z++) {
-		    if (paths_self.game.spaces[n].units[z].attacked != 1) { return 1; }
+		    if (paths_self.game.spaces[n].units[z].attacked != 1 && !paths_self.eventBlocksAttacker(paths_self.game.spaces[n].units[z], key)) { return 1; }
 		  }
 		  paths_self.game.spaces[n].activated_for_combat = 0;
 		  paths_self.displaySpace(n);
@@ -1904,7 +2005,7 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
 	if (paths_self.game.spaces[n].activated_for_combat == 1) {
 	  for (let k = 0; k < paths_self.game.spaces[n].units.length; k++) {
 	    let u = paths_self.game.spaces[n].units[k];
-	    if (u.attacked != 1 && paths_self.game.spaces[n].oos != 1) {
+	    if (u.attacked != 1 && paths_self.game.spaces[n].oos != 1 && !paths_self.eventBlocksAttacker(u, key)) {
 	      if (!can_german_units_attack) {
 	        if (u.ckey != "GE") {
 		  units.push({ key : key , unit_sourcekey: n , unit_idx : k });

@@ -1688,7 +1688,7 @@ console.log("LATEST MOVE: " + mv);
           options.push({ id: 'nope', label: 'return card' });
           this.game.status = user_message;
           this.hud.updateStatus(this.game.status);
-          this.hud.updateCards(this.game.deck[0].hand);
+          this.hud.updateCards([]);
           this.hud.updateMenu(options, function(action2) {
             if (action2 == "play") {
               // trigger play of selected card
@@ -1791,7 +1791,7 @@ console.log("LATEST MOVE: " + mv);
               let user_message = "Pick second target for coup:";
               twilight_self.game.status = user_message;
               twilight_self.hud.updateStatus(twilight_self.game.status);
-              twilight_self.hud.updateCards(twilight_self.game.deck[0].hand);
+              twilight_self.hud.updateCards([]);
               twilight_self.hud.updateMenu([ { id: 'skipche', label: 'or skip coup' } ], function(action2) {
                 if (action2 == "skipche") {
                   twilight_self.endTurn();
@@ -2136,7 +2136,7 @@ console.log("LATEST MOVE: " + mv);
         let user_message  = "Do you wish to take an extra turn?";
         this.game.status = user_message;
         this.hud.updateStatus(this.game.status);
-        this.hud.updateCards(this.game.deck[0].hand);
+        this.hud.updateCards([]);
         this.hud.updateMenu([ { id: 'play', label: 'yes' }, { id: 'nope', label: 'no' } ], function(action2) {
 
           if (action2 == "play") {
@@ -2297,7 +2297,7 @@ console.log("LATEST MOVE: " + mv);
         options.push({ id: 'hand', label: 'give to opponent' });
         twilight_self.game.status = user_message;
         twilight_self.hud.updateStatus(twilight_self.game.status);
-        twilight_self.hud.updateCards(twilight_self.game.deck[0].hand);
+        twilight_self.hud.updateCards([]);
         twilight_self.hud.updateMenu(options, function(action2) {
 	  if (action2 === "play") {
 	    twilight_self.addMove(`NOTIFY\tUS pulls and plays ${twilight_self.cardToText(card)}`);
@@ -2472,7 +2472,7 @@ console.log("LATEST MOVE: " + mv);
         let user_message = "Tear Down this Wall is played -- US may make 3 OP free Coup Attempt or Realignments in Europe.";
         twilight_self.game.status = user_message;
         twilight_self.hud.updateStatus(twilight_self.game.status);
-        twilight_self.hud.updateCards(twilight_self.game.deck[0].hand);
+        twilight_self.hud.updateCards([]);
         twilight_self.hud.updateMenu([ { id: 'taketear', label: 'make coup or realign' }, { id: 'skiptear', label: 'skip coup' } ], function(action2) {
 
           if (action2 == "skiptear") {
@@ -3438,7 +3438,7 @@ try {
           //
           this.game.status = `Do you want to take an extra turn? (Khruschev Thaw)`;
           this.hud.updateStatus(this.game.status);
-          this.hud.updateCards(this.game.deck[0].hand);
+          this.hud.updateCards([]);
           this.hud.updateMenu([ { id: 'play', label: 'play extra turn' }, { id: 'nope', label: 'do not play' } ], function(action2) {
 
             if (action2 == "play") {
@@ -3474,7 +3474,7 @@ try {
           //
           this.game.status = `Do you want to take an extra turn? (North Sea Oil)`;
           this.hud.updateStatus(this.game.status);
-          this.hud.updateCards(this.game.deck[0].hand);
+          this.hud.updateCards([]);
           this.hud.updateMenu([ { id: 'play', label: 'play extra turn' }, { id: 'nope', label: 'do not play' } ], function(action2) {
 
             if (action2 == "play") {
@@ -3539,7 +3539,7 @@ try {
 
           this.game.status = user_message;
           this.hud.updateStatus(this.game.status);
-          this.hud.updateCards(this.game.deck[0].hand);
+          this.hud.updateCards([]);
           this.hud.updateMenu(options, function(action2) {
 
             if (action2 == "nope") {
@@ -3588,7 +3588,7 @@ try {
         //
         this.game.status = "Do you want to take an extra turn: (Space Shuttle)";
         this.hud.updateStatus(this.game.status);
-        this.hud.updateCards(this.game.deck[0].hand);
+        this.hud.updateCards([]);
         this.hud.updateMenu([ { id: 'play', label: 'play extra turn' }, { id: 'nope', label: 'do not play' } ], function(action2) {
           if (action2 == "play") {
             twilight_self.addMove("play\t"+bonus_player);
@@ -4496,7 +4496,7 @@ async playerTurnHeadlineSelected(card, player) {
 
           this.game.status = user_message;
           this.hud.updateStatus(this.game.status);
-          this.hud.updateCards(this.game.deck[0].hand);
+          this.hud.updateCards([]);
           this.hud.updateMenu(options, function (action2) {
             if (action2 === "select") {
               twilight_self.game.status = '';
@@ -4641,7 +4641,7 @@ async playerTurnHeadlineSelected(card, player) {
             let user_message = `You only have the ${this.cardToText("china")} card remaining. Do you wish to play it this turn?`;
             this.game.status = user_message;
             this.hud.updateStatus(this.game.status);
-            this.hud.updateCards(this.game.deck[0].hand);
+            this.hud.updateCards([]);
             this.hud.updateMenu([ { id: 'play', label: 'play card' }, { id: 'skipturn', label: 'skip turn' } ], function(action) {
               if (action === "play") {
                 twilight_self.playerTurn("china"); //reload function, ignoring this logic tree
@@ -5058,7 +5058,7 @@ async playerTurnHeadlineSelected(card, player) {
 
       twilight_self.game.status = card_play_header;
       twilight_self.hud.updateStatus(twilight_self.game.status);
-      twilight_self.hud.updateCards(twilight_self.game.deck[0].hand);
+      twilight_self.hud.updateCards([]);
       twilight_self.hud.updateMenu(card_play_options, async function(action) {
 
         $('.card').off();
@@ -5094,7 +5094,7 @@ async playerTurnHeadlineSelected(card, player) {
             twilight_self.hud.showBackButton(()=>{ twilight_self.back_button_clicked = true; twilight_self.playerTurn(original_selected_card); });
             twilight_self.game.status = fr_header;
             twilight_self.hud.updateStatus(twilight_self.game.status);
-            twilight_self.hud.updateCards(twilight_self.game.deck[0].hand);
+            twilight_self.hud.updateCards([]);
             twilight_self.hud.updateMenu([ { id: 'playevent', label: 'play event' } ], function(action) {
               $('.card').off();
               if (action == "playevent") {
@@ -5115,7 +5115,7 @@ async playerTurnHeadlineSelected(card, player) {
             twilight_self.hud.showBackButton(()=>{ twilight_self.back_button_clicked = true; twilight_self.playerTurn(original_selected_card)} );
             twilight_self.game.status = fr_header;
             twilight_self.hud.updateStatus(twilight_self.game.status);
-            twilight_self.hud.updateCards(twilight_self.game.deck[0].hand);
+            twilight_self.hud.updateCards([]);
             twilight_self.hud.updateMenu([ { id: 'playevent', label: 'play event' }, { id: 'dontshowme', label: "don't confirm (expert mode)..." } ], function(action) {
               $('.card').off();
   	      if (action === "dontshowme") {
@@ -5151,7 +5151,7 @@ async playerTurnHeadlineSelected(card, player) {
              twilight_self.hud.showBackButton(()=>{ twilight_self.back_button_clicked = true; twilight_self.playerTurn(original_selected_card)} );
              twilight_self.game.status = fr_header;
              twilight_self.hud.updateStatus(twilight_self.game.status);
-             twilight_self.hud.updateCards(twilight_self.game.deck[0].hand);
+             twilight_self.hud.updateCards([]);
              twilight_self.hud.updateMenu([ { id: 'playevent', label: 'play for ops' }, { id: 'dontshowme', label: "don't confirm (expert mode)..." } ], function(action) {
               $('.card').off();
 
@@ -5183,7 +5183,7 @@ async playerTurnHeadlineSelected(card, player) {
             twilight_self.hud.showBackButton(()=>{ twilight_self.back_button_clicked = true; twilight_self.playerTurn(original_selected_card)});
             twilight_self.game.status = fr_header;
             twilight_self.hud.updateStatus(twilight_self.game.status);
-            twilight_self.hud.updateCards(twilight_self.game.deck[0].hand);
+            twilight_self.hud.updateCards([]);
             twilight_self.hud.updateMenu([ { id: 'spaceit', label: 'send into orbit' }, { id: 'dontshowme', label: "don't confirm (expert mode)..." } ], function(action) {
               $('.card').off();
 
@@ -5277,7 +5277,7 @@ async playerTurnHeadlineSelected(card, player) {
       }
       twilight_self.game.status = `${player.toUpperCase()} plays ${ops} OPS:`;
       twilight_self.hud.updateStatus(twilight_self.game.status);
-      twilight_self.hud.updateCards(twilight_self.game.deck[0].hand);
+      twilight_self.hud.updateCards([]);
       twilight_self.hud.updateMenu(options, async function(action2) {
 
         //
@@ -5314,7 +5314,7 @@ async playerTurnHeadlineSelected(card, player) {
               twilight_self.hud.showBackButton(()=>{ twilight_self.back_button_clicked = true; twilight_self.playerOps(player, ops, card)});
               twilight_self.game.status = fr_header;
               twilight_self.hud.updateStatus(twilight_self.game.status);
-              twilight_self.hud.updateCards(twilight_self.game.deck[0].hand);
+              twilight_self.hud.updateCards([]);
               twilight_self.hud.updateMenu([ { id: 'spaceit', label: 'send into orbit' }, { id: 'dontshowme', label: "don't confirm (expert mode)..." } ], function(action) {
                 $('.card').off();
 
@@ -5448,7 +5448,7 @@ async playerTurnHeadlineSelected(card, player) {
           let header_msg = `Pick a target to realign (${alignment_rolls} rolls), or:`;
           twilight_self.game.status = header_msg;
           twilight_self.hud.updateStatus(twilight_self.game.status);
-          twilight_self.hud.updateCards(twilight_self.game.deck[0].hand);
+          twilight_self.hud.updateCards([]);
           twilight_self.hud.updateMenu([ { id: 'cancelrealign', label: 'end turn without rolling' } ], function(action2) {
             if (action2 == "cancelrealign") {
               twilight_self.addMove("NOTIFY\t"+player.toUpperCase()+" opts to end realignments");
@@ -5535,7 +5535,7 @@ async playerTurnHeadlineSelected(card, player) {
 	      //
               twilight_self.game.status = `Pick a target to realign (${alignment_rolls} rolls), or:`;
               twilight_self.hud.updateStatus(twilight_self.game.status);
-              twilight_self.hud.updateCards(twilight_self.game.deck[0].hand);
+              twilight_self.hud.updateCards([]);
               twilight_self.hud.updateMenu([ { id: 'cancelrealign', label: 'end turn' } ], function(action2) {
                 if (action2 == "cancelrealign") { //Not a cancel, keeps realignment rolls so far...
                   twilight_self.reverseMoves("realign");
@@ -5632,7 +5632,7 @@ async playerTurnHeadlineSelected(card, player) {
       }
       twilight_self.game.status = 'Select country from which to remove influence:';
       twilight_self.hud.updateStatus(twilight_self.game.status);
-      twilight_self.hud.updateCards(twilight_self.game.deck[0].hand);
+      twilight_self.hud.updateCards([]);
       twilight_self.hud.updateMenu(options, function(action2) {
 
         if (card != "" && player != "") {
@@ -5775,7 +5775,7 @@ async playerTurnHeadlineSelected(card, player) {
         twilight_self.hud.showBackButton(() => { twilight_self.back_button_clicked = true; twilight_self.playerTurnCardSelected(card, player);  });
         twilight_self.game.status = 'Playing opponent card:';
         twilight_self.hud.updateStatus(twilight_self.game.status);
-        twilight_self.hud.updateCards(twilight_self.game.deck[0].hand);
+        twilight_self.hud.updateCards([]);
         twilight_self.hud.updateMenu([ { id: 'before_ops', label: 'event before ops' }, { id: 'after_ops', label: 'event after ops' } ], function(action2) {
 
           twilight_self.resolveWeWillBuryYouOnCommit(player, card, false);
@@ -11245,7 +11245,7 @@ console.log("added card to deck!");
 
         this.game.status = `${this.cardToText(card)}:`;
         this.hud.updateStatus(this.game.status);
-        this.hud.updateCards(this.game.deck[0].hand);
+        this.hud.updateCards([]);
         this.hud.updateMenu([ { id: 'discard', label: 'discard 3 OP card' }, { id: 'remove', label: 'remove all US influence in W. Germany' } ], function(action) {
 
           if (action == "discard") {
@@ -11605,7 +11605,7 @@ console.log("added card to deck!");
 
         twilight_self.game.status = user_message;
         twilight_self.hud.updateStatus(twilight_self.game.status);
-        twilight_self.hud.updateCards(twilight_self.game.deck[0].hand);
+        twilight_self.hud.updateCards([]);
         twilight_self.hud.updateMenu(options, function(action2) {
           if (action2 == "cancelcmc") {
 	    twilight_self.cancelCubanMissileCrisis();
@@ -11651,7 +11651,7 @@ console.log("added card to deck!");
 
       this.game.status = "Chernobyl triggered. Designate region to prohibit USSR placement of influence from OPS:";
       this.hud.updateStatus(this.game.status);
-      this.hud.updateCards(this.game.deck[0].hand);
+      this.hud.updateCards([]);
       this.hud.updateMenu([
         { id: 'asia', label: 'Asia' },
         { id: 'europe', label: 'Europe' },
@@ -12739,7 +12739,7 @@ if (card == "defectors") {
       	//
         twilight_self.game.status = 'Set DEFCON to:';
         twilight_self.hud.updateStatus(twilight_self.game.status);
-        twilight_self.hud.updateCards(twilight_self.game.deck[0].hand);
+        twilight_self.hud.updateCards([]);
         twilight_self.hud.updateMenu([ { id: '5', label: 'five' }, { id: '4', label: 'four' }, { id: '3', label: 'three' }, { id: '2', label: 'two' }, { id: '1', label: 'one' } ], function(action2) {
           adjustDefcon(parseInt(action2));
       	  $('.set_defcon_box').remove();
@@ -12824,7 +12824,7 @@ if (card == "defectors") {
         twilight_self.addMove("resolve\tindopaki");
         twilight_self.game.status = 'Indo-Pakistani War. Choose Target to invade:';
         twilight_self.hud.updateStatus(twilight_self.game.status);
-        twilight_self.hud.updateCards(twilight_self.game.deck[0].hand);
+        twilight_self.hud.updateCards([]);
         twilight_self.hud.updateMenu([ { id: 'pakistan', label: 'Pakistan' }, { id: 'india', label: 'India' } ], invasion_function);
 
           $("#india").addClass("westerneurope");
@@ -12927,7 +12927,7 @@ console.log("total countries: " + total_countries);
           let twilight_self = this;
           this.game.status = "Match USSR influence in which country?";
           this.hud.updateStatus(this.game.status);
-          this.hud.updateCards(this.game.deck[0].hand);
+          this.hud.updateCards([]);
           this.hud.updateMenu(options, function(myselect) {
             $('.card').off();
 
@@ -13090,7 +13090,7 @@ console.log("total countries: " + total_countries);
 
         twilight_self.game.status = 'Iran-Iraq War. Choose Target:';
         twilight_self.hud.updateStatus(twilight_self.game.status);
-        twilight_self.hud.updateCards(twilight_self.game.deck[0].hand);
+        twilight_self.hud.updateCards([]);
         twilight_self.hud.updateMenu([ { id: 'iraq', label: 'Iraq' }, { id: 'iran', label: 'Iran' } ], invasion_function);
 
       } else {
@@ -13202,7 +13202,7 @@ console.log("total countries: " + total_countries);
               
           twilight_self.game.status = "Do you wish to use 2 free OPS for a coup or realignment rolls in Central or South America?";
           twilight_self.hud.updateStatus(twilight_self.game.status);
-          twilight_self.hud.updateCards(twilight_self.game.deck[0].hand);
+          twilight_self.hud.updateCards([]);
           twilight_self.hud.updateMenu([ { id: 'conduct', label: 'coup or realign' }, { id: 'skip', label: 'skip' } ], function(action2) {
 
             if (action2 == "conduct") {
@@ -13793,7 +13793,7 @@ console.log("respondant: " + respondant);
           }
           this.game.status = "Select card to give opponent:";
           this.hud.updateStatus(this.game.status);
-          this.hud.updateCards(this.game.deck[0].hand);
+          this.hud.updateCards([]);
           this.hud.updateMenu(options, function(action2) {
 
             //
@@ -14214,7 +14214,7 @@ console.log("respondant: " + respondant);
 
         twilight_self.game.status = `${opponent.toUpperCase()} hosts the ${this.cardToText(card)}:`;
         twilight_self.hud.updateStatus(twilight_self.game.status);
-        twilight_self.hud.updateCards(twilight_self.game.deck[0].hand);
+        twilight_self.hud.updateCards([]);
         twilight_self.hud.updateMenu([ { id: 'boycott', label: 'boycott' }, { id: 'participate', label: 'participate' } ], function(action) {
 
           if (action == "boycott") {
@@ -14367,7 +14367,7 @@ console.log("respondant: " + respondant);
 
         twilight_self.game.status = "Pick a country adjacent to Nicaragua to coup:";
         twilight_self.hud.updateStatus(twilight_self.game.status);
-        twilight_self.hud.updateCards(twilight_self.game.deck[0].hand);
+        twilight_self.hud.updateCards([]);
         twilight_self.hud.updateMenu([ { id: 'skiportega', label: 'or skip coup' } ], function(action2) {
           if (action2 == "skiportega") {
             twilight_self.game.status = "Skipping Ortega coup...";
@@ -15030,7 +15030,7 @@ console.log("respondant: " + respondant);
 
         twilight_self.game.status = `${twilight_self.cardToText(card)}: `;
         twilight_self.hud.updateStatus(twilight_self.game.status);
-        twilight_self.hud.updateCards(twilight_self.game.deck[0].hand);
+        twilight_self.hud.updateCards([]);
         twilight_self.hud.updateMenu([ { id: 'southafrica', label: '2 Influence in South Africa' }, { id: 'adjacent', label: '1 Influence in South Africa and 2 Influence in an adjacent country' } ], function(action2) {
           twilight_self.addMove("resolve\tsouthafrican");
 
@@ -15431,7 +15431,7 @@ console.log("respondant: " + respondant);
 
           twilight_self.game.status = `You win the ${twilight_self.cardToText(card)}:`;
           twilight_self.hud.updateStatus(twilight_self.game.status);
-          twilight_self.hud.updateCards(twilight_self.game.deck[0].hand);
+          twilight_self.hud.updateCards([]);
           twilight_self.hud.updateMenu([ { id: 'raise', label: 'raise DEFCON' }, { id: 'lower', label: 'lower DEFCON' }, { id: 'same', label: 'do not change' } ], function(action2) {
 
             if (action2 == "raise") {
@@ -16002,7 +16002,7 @@ console.log("respondant: " + respondant);
 
         this.game.status = `${this.cardToText(card)}: Do you want to give your opponent 6 VP and End the Game? (VP ties will be won by opponent)`;
         this.hud.updateStatus(this.game.status);
-        this.hud.updateCards(this.game.deck[0].hand);
+        this.hud.updateCards([]);
         this.hud.updateMenu([ { id: 'endgame', label: 'end the game' }, { id: 'cont', label: 'continue playing' } ], function(action2) {
 
           if (action2 == "endgame") {
@@ -16050,7 +16050,7 @@ console.log("respondant: " + respondant);
 
         twilight_self.game.status = "USSR establishes the Warsaw Pact:";
         twilight_self.hud.updateStatus(twilight_self.game.status);
-        twilight_self.hud.updateCards(twilight_self.game.deck[0].hand);
+        twilight_self.hud.updateCards([]);
         twilight_self.hud.updateMenu([
           { id: 'remove', label: 'remove all US influence in four countries in Eastern Europe' },
           { id: 'add', label: 'add five USSR influence in Eastern Europe (max 2 per country)' }
@@ -16269,7 +16269,7 @@ console.log("respondant: " + respondant);
 
         twilight_self.game.status = `${twilight_self.cardToText(card)}: `;
         twilight_self.hud.updateStatus(twilight_self.game.status);
-        twilight_self.hud.updateCards(twilight_self.game.deck[0].hand);
+        twilight_self.hud.updateCards([]);
         twilight_self.hud.updateMenu([ { id: 'anywhere', label: '2 Influence in Non-Battlegrounds' }, { id: 'african', label: '2 Influence in African Battlegrounds' } ], function(action2) {
 
           let bgs = twilight_self.returnBattlegroundCountries();
@@ -16442,7 +16442,7 @@ console.log("respondant: " + respondant);
 
         this.game.status = `${this.cardToText(card)} discard:`;
         this.hud.updateStatus(this.game.status);
-        this.hud.updateCards(this.game.deck[0].hand);
+        this.hud.updateCards([]);
         this.hud.updateMenu(options, function(action2) {
 
 	  let discarded = false;
@@ -16572,7 +16572,7 @@ console.log("respondant: " + respondant);
 
         twilight_self.game.status = `${twilight_self.cardToText(card)}: `;
         twilight_self.hud.updateStatus(twilight_self.game.status);
-        twilight_self.hud.updateCards(twilight_self.game.deck[0].hand);
+        twilight_self.hud.updateCards([]);
         twilight_self.hud.updateMenu([ { id: 'givevp', label: 'give USSR 2 VP' }, { id: 'discard', label: 'discard US OPs' } ], function(action2) {
 
   	  if (action2 === "givevp") {
@@ -16736,7 +16736,7 @@ console.log("respondant: " + respondant);
 
       this.game.status = "Fischer-Spassky triggered. Designate region to downgrade Control and Dominance:";
       this.hud.updateStatus(this.game.status);
-      this.hud.updateCards(this.game.deck[0].hand);
+      this.hud.updateCards([]);
       this.hud.updateMenu([
         { id: 'asia', label: 'Asia' },
         { id: 'europe', label: 'Europe' },
@@ -16930,7 +16930,7 @@ console.log("respondant: " + respondant);
       let user_message = "Designate a region to turn all 1-stability countries into battleground countries:";
       this.game.status = user_message;
       this.hud.updateStatus(this.game.status);
-      this.hud.updateCards(this.game.deck[0].hand);
+      this.hud.updateCards([]);
       this.hud.updateMenu([
         { id: 'asia', label: 'Asia' },
         { id: 'europe', label: 'Europe' },
@@ -16988,7 +16988,7 @@ console.log("respondant: " + respondant);
 
         twilight_self.game.status = `${twilight_self.cardToText(card)}: `;
         twilight_self.hud.updateStatus(twilight_self.game.status);
-        twilight_self.hud.updateCards(twilight_self.game.deck[0].hand);
+        twilight_self.hud.updateCards([]);
         twilight_self.hud.updateMenu([ { id: 'draw', label: 'Drawl Additional Card from Deck' }, { id: 'skip', label: 'Skip' } ], function(action2) {
 
 	  if (action2 === "skip") {
@@ -17064,7 +17064,7 @@ console.log("respondant: " + respondant);
 
         twilight_self.game.status = `${twilight_self.cardToText(card)}: `;
         twilight_self.hud.updateStatus(twilight_self.game.status);
-        twilight_self.hud.updateCards(twilight_self.game.deck[0].hand);
+        twilight_self.hud.updateCards([]);
         twilight_self.hud.updateMenu([ { id: 'chile', label: '2 Influence in Chile' }, { id: 'argentina', label: '2 Influence in Argentina' } ], function(action2) {
 
           twilight_self.addMove("resolve\tpinochet");
@@ -17108,7 +17108,7 @@ console.log("respondant: " + respondant);
 
         this.game.status = `${this.cardToText(card)}: do you want to trigger Final Scoring?`;
         this.hud.updateStatus(this.game.status);
-        this.hud.updateCards(this.game.deck[0].hand);
+        this.hud.updateCards([]);
         this.hud.updateMenu([ { id: 'endgame', label: 'end the game' }, { id: 'cont', label: 'continue playing' } ], function(action2) {
 
           if (action2 == "endgame") {
@@ -17661,7 +17661,7 @@ console.log("respondant: " + respondant);
 
           twilight_self.game.status = "Select cards to discard:";
           twilight_self.hud.updateStatus(twilight_self.game.status);
-          twilight_self.hud.updateCards(twilight_self.game.deck[0].hand);
+          twilight_self.hud.updateCards([]);
           twilight_self.hud.updateMenu(options, function(card) {
 
             if (card == "finished") {
@@ -18034,7 +18034,7 @@ console.log("respondant: " + respondant);
 
         twilight_self.game.status = 'Remove four USSR influence from existing countries. You will receive 1 VP per influence removed from battleground countries, and 1 VP for every 2 influence removed from non-battleground countries controlled by the USSR:';
         twilight_self.hud.updateStatus(twilight_self.game.status);
-        twilight_self.hud.updateCards(twilight_self.game.deck[0].hand);
+        twilight_self.hud.updateCards([]);
         twilight_self.hud.updateMenu([ { id: 'skip', label: 'or skip...' } ], function(action2) {
           twilight_self.playerFinishedPlacingInfluence();
           twilight_self.endTurn();
@@ -18110,7 +18110,7 @@ console.log("respondant: " + respondant);
 
         this.game.status = "Do you choose to:";
         this.hud.updateStatus(this.game.status);
-        this.hud.updateCards(this.game.deck[0].hand);
+        this.hud.updateCards([]);
         this.hud.updateMenu([
           { id: 'place', label: 'place 1 influence in Argentina' },
           { id: 'couporrealign', label: 'coup or realign Argentina' }
@@ -18127,7 +18127,7 @@ console.log("respondant: " + respondant);
             let user_message = "Do you choose to:";
             twilight_self.game.status = user_message;
             twilight_self.hud.updateStatus(twilight_self.game.status);
-            twilight_self.hud.updateCards(twilight_self.game.deck[0].hand);
+            twilight_self.hud.updateCards([]);
             twilight_self.hud.updateMenu([
               { id: 'coup', label: 'coup in Argentina' },
               { id: 'realign', label: 'realign in Argentina' }
@@ -18409,7 +18409,7 @@ console.log("ROUND: " + this.game.state.round);
         twilight_self.addMove("resolve\tsovietcoup");
         twilight_self.game.status = 'Sacrifice any VP before rolling for +1 modifier:';
         twilight_self.hud.updateStatus(twilight_self.game.status);
-        twilight_self.hud.updateCards(twilight_self.game.deck[0].hand);
+        twilight_self.hud.updateCards([]);
         twilight_self.hud.updateMenu([ { id: 'zero', label: '0 VP' }, { id: 'one', label: '1 VP' }, { id: 'two', label: '2 VP' }, { id: 'three', label: '3 VP' } ], function(action) {
 
 	  let modifier = 0;

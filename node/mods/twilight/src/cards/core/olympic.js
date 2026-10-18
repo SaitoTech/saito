@@ -19,7 +19,7 @@
 
         twilight_self.game.status = `${opponent.toUpperCase()} hosts the ${this.cardToText(card)}:`;
         twilight_self.hud.updateStatus(twilight_self.game.status);
-        twilight_self.hud.updateCards(twilight_self.game.deck[0].hand);
+        twilight_self.hud.updateCards([]);
         twilight_self.hud.updateMenu([ { id: 'boycott', label: 'boycott' }, { id: 'participate', label: 'participate' } ], function(action) {
 
           if (action == "boycott") {

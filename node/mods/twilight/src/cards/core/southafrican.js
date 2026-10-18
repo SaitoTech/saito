@@ -10,7 +10,7 @@
 
         twilight_self.game.status = `${twilight_self.cardToText(card)}: `;
         twilight_self.hud.updateStatus(twilight_self.game.status);
-        twilight_self.hud.updateCards(twilight_self.game.deck[0].hand);
+        twilight_self.hud.updateCards([]);
         twilight_self.hud.updateMenu([ { id: 'southafrica', label: '2 Influence in South Africa' }, { id: 'adjacent', label: '1 Influence in South Africa and 2 Influence in an adjacent country' } ], function(action2) {
           twilight_self.addMove("resolve\tsouthafrican");
 
