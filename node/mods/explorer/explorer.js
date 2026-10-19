@@ -22,7 +22,12 @@ const { sendExplorerPeerRequest } = require('./lib/peer/client');
 const { success, failure } = require('./lib/peer/response');
 const ExplorerDatabase = require('./lib/database');
 const { backfillSupplyStatistics, ensureBlockSupplyIndexed } = require('./lib/supply-accounting');
-const { buildAddressRowsFromBlock, blockContainsAtrTransaction } = require('./lib/address-index');
+const {
+  buildAddressRowsFromBlock,
+  blockContainsAtrTransaction,
+  returnGenesisPeriod
+} = require('./lib/address-index');
+const { indexConfirmedBlock } = require('./lib/transaction-index');
 const { SUPPLY_BLOCK_COUNT } = require('./lib/supply-rows');
 const { extractTransactionsFromBlocks, mergeBlockByHash } = require('./lib/explorer-format');
 const {
@@ -61,6 +66,9 @@ class Explorer extends ModTemplate {
 
     this.INDEX_BLOCKS = 1;
     this.INDEX_PUBLICKEYS = 1;
+    this.INDEX_TRANSACTIONS = 1;
+    this.PRUNE_EVERY_N_BLOCKS = 100;
+    this.indexedTransactionBlocks = new Set();
 
     this.chainViewer = null;
     this.chainIndex = null;
@@ -1335,6 +1343,33 @@ class Explorer extends ModTemplate {
     await this.renderHome({ pushState: false, animate: false });
   }
 
+  shouldAffixCallbackToModule(modname, tx = null) {
+    if (this.app.BROWSER == 0 && this.INDEX_TRANSACTIONS) {
+      return 1;
+    }
+    if (modname === this.name) {
+      return 1;
+    }
+    return 0;
+  }
+
+  async onConfirmation(blk, tx, conf = 0) {
+    if (this.app.BROWSER != 0 || Number(conf) !== 0 || !this.INDEX_TRANSACTIONS || !this.database) {
+      return;
+    }
+
+    await indexConfirmedBlock(this, blk);
+  }
+
+  async pruneDatabase(blockId) {
+    const current = Number(blockId);
+    const cutoff = current - returnGenesisPeriod(this.app);
+    if (!Number.isFinite(cutoff) || cutoff <= 0 || !this.database) {
+      return;
+    }
+    await this.database.pruneBeforeBlockId(cutoff);
+  }
+
   async onNewBlock(block, lc) {
     if (this.app.BROWSER == 1) {
       this.allBlocksComponent?.onNewBlock(block, Boolean(lc));
@@ -1398,7 +1433,19 @@ class Explorer extends ModTemplate {
     }
     // Keep snapshots stable as the chain advances; discard them on an unwind.
     if (this.app.BROWSER === 0 && !lc) invalidateHolderSnapshots(this);
-    if (this.app.BROWSER !== 0 || !this.database || !this.INDEX_PUBLICKEYS) {
+    if (this.app.BROWSER !== 0 || !this.database) {
+      return;
+    }
+
+    if (this.INDEX_TRANSACTIONS) {
+      try {
+        await this.database.updateTransactionLongestChainState(block_id, block_hash, lc);
+      } catch (err) {
+        console.error('Explorer: failed to update transaction longest-chain state', err);
+      }
+    }
+
+    if (!this.INDEX_PUBLICKEYS) {
       return;
     }
 

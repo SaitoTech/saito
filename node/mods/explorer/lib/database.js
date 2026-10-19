@@ -1,3 +1,6 @@
+const fs = require('fs');
+const path = require('path');
+
 class ExplorerDatabase {
   constructor(app, mod) {
     this.app = app;
@@ -9,6 +12,8 @@ class ExplorerDatabase {
   }
 
   async ensureSchema() {
+    await this.ensureTransactionSchema();
+
     const columns = [
       ['calculated_total_supply', 'TEXT'],
       ['utxo_graveyard_treasury_total', 'TEXT']
@@ -26,6 +31,16 @@ class ExplorerDatabase {
           this.dbname
         );
       }
+    }
+  }
+
+  async ensureTransactionSchema() {
+    try {
+      const sqlPath = path.join(__dirname, '../sql/transactions.sql');
+      const sql = fs.readFileSync(sqlPath, 'utf8');
+      await this.app.storage.executeDatabase(sql, this.dbname);
+    } catch (err) {
+      console.error('Explorer Database: transaction schema failed', err);
     }
   }
 
@@ -289,6 +304,107 @@ class ExplorerDatabase {
       );
     } catch (err) {
       console.error('Explorer Database: pruneAddressesBeforeBlockId failed', err);
+      return null;
+    }
+  }
+
+  async insertTransactionRows(rows = []) {
+    if (!Array.isArray(rows) || !rows.length) {
+      return { inserted: 0, skipped: 0 };
+    }
+
+    const sql = `INSERT OR IGNORE INTO transactions (
+			block_id,
+			block_hash,
+			lc,
+			signature,
+			transaction_id,
+			created_at
+		) VALUES (
+			$block_id,
+			$block_hash,
+			$lc,
+			$signature,
+			$transaction_id,
+			$created_at
+		)`;
+
+    let inserted = 0;
+    let skipped = 0;
+
+    for (let i = 0; i < rows.length; i++) {
+      const row = rows[i];
+      const params = {
+        $block_id: row.block_id,
+        $block_hash: row.block_hash,
+        $lc: row.lc ? 1 : 0,
+        $signature: row.signature,
+        $transaction_id: row.transaction_id,
+        $created_at: row.created_at
+      };
+
+      try {
+        const res = await this.app.storage.runDatabase(sql, params, this.dbname);
+        if (res?.changes > 0) {
+          inserted += 1;
+        } else {
+          skipped += 1;
+        }
+      } catch (err) {
+        console.error('Explorer Database: insertTransactionRows failed', err);
+        skipped += 1;
+      }
+    }
+
+    return { inserted, skipped };
+  }
+
+  async updateTransactionLongestChainState(block_id, block_hash, longest_chain) {
+    const params = {
+      $block_id: Number(block_id) || 0,
+      $block_hash: String(block_hash || ''),
+      $lc: longest_chain ? 1 : 0
+    };
+
+    try {
+      return await this.app.storage.runDatabase(
+        `UPDATE transactions
+				 SET lc = $lc
+				 WHERE block_id = $block_id AND block_hash = $block_hash`,
+        params,
+        this.dbname
+      );
+    } catch (err) {
+      console.error('Explorer Database: updateTransactionLongestChainState failed', err);
+      return null;
+    }
+  }
+
+  async pruneBeforeBlockId(cutoff_block_id) {
+    const cutoff = Number(cutoff_block_id);
+    if (!Number.isFinite(cutoff) || cutoff <= 0) {
+      return { changes: 0 };
+    }
+
+    const params = { $cutoff_block_id: cutoff };
+    try {
+      await this.app.storage.runDatabase(
+        `DELETE FROM transactions WHERE block_id < $cutoff_block_id`,
+        params,
+        this.dbname
+      );
+      await this.app.storage.runDatabase(
+        `DELETE FROM addresses WHERE block_id < $cutoff_block_id`,
+        params,
+        this.dbname
+      );
+      return await this.app.storage.runDatabase(
+        `DELETE FROM blocks WHERE block_id < $cutoff_block_id`,
+        params,
+        this.dbname
+      );
+    } catch (err) {
+      console.error('Explorer Database: pruneBeforeBlockId failed', err);
       return null;
     }
   }

@@ -12,9 +12,9 @@
     }
     build() {
       this.element.classList.add('conquest-app');
-      this.element.innerHTML = `<header class="conquest-header"><details class="conquest-local-menu" ${this.controller.hasGameMenu?'hidden':''}><summary aria-label="Game menu" title="Game menu">☰</summary><nav><button class="conquest-text-button" data-do="stats">Stats</button><button class="conquest-text-button" data-do="rules">Field guide</button><button class="conquest-text-button" data-do="dispatches">Dispatches</button></nav></details><div class="conquest-round"><span>CAMPAIGN</span><b data-round>01</b></div></header>
+      this.element.innerHTML = `<header class="conquest-header"><details class="conquest-local-menu" ${this.controller.hasGameMenu?'hidden':''}><summary aria-label="Game menu" title="Game menu">☰</summary><nav><button class="conquest-text-button" data-do="stats">Stats</button><button class="conquest-text-button" data-do="rules">Field guide</button><button class="conquest-text-button" data-do="dispatches">Dispatches</button></nav></details><div class="conquest-round"><span class="conquest-brand-word">CONQUEST<span class="conquest-brand-dot">.</span></span></div></header>
       <main class="conquest-main"><section class="conquest-board-column"><div class="conquest-map-wrap"><div class="conquest-map-viewport"><svg class="conquest-map" viewBox="0 0 1200 700" aria-label="World map. Choose a territory to play." role="group"></svg><div class="conquest-battle-overlays" hidden><div class="conquest-battle-dice" data-side="attacker" role="group" hidden><canvas aria-label="Attacking dice"></canvas></div><div class="conquest-battle-dice" data-side="defender" role="group" hidden><canvas aria-label="Defending dice"></canvas></div><p class="conquest-battle-summary" data-battle-summary></p></div><div class="conquest-occupation" hidden><div class="conquest-distribution"><span><small data-occupy-from-name></small><b data-occupy-from-count></b></span><input type="range" data-occupy-range step="1" aria-label="Army distribution"><span><small data-occupy-to-name></small><b data-occupy-to-count></b></span></div><button type="button" class="conquest-button primary" data-do="occupy">Advance ↗</button></div><div class="conquest-fortify" hidden><div class="conquest-distribution"><span><small data-fortify-from-name></small><b data-fortify-from-count></b></span><input type="range" data-fortify-range min="0" step="1" value="0" aria-label="Army distribution"><span><small data-fortify-to-name></small><b data-fortify-to-count></b></span></div><div class="conquest-fortify-actions"><button type="button" class="conquest-button secondary" data-do="cancel-fortify">Cancel</button><button type="button" class="conquest-button primary" data-do="fortify">Fortify</button></div></div><div class="conquest-attack-menu" hidden><button type="button" class="conquest-button primary" data-do="attack" data-attack-mode="once">Attack ↗</button><button type="button" class="conquest-button primary" data-do="attack" data-attack-mode="blitz">Blitz ↗</button></div></div><div class="conquest-map-footer"><div class="conquest-map-tools"><button class="conquest-text-button" data-do="dispatches" aria-label="Dispatches from the front">Dispatches</button><button class="conquest-text-button" data-do="names" aria-pressed="false">Show labels</button></div></div><svg class="conquest-overlay-lines" aria-hidden="true"></svg><div class="conquest-tooltip" hidden></div></div></section>
-      <aside class="conquest-command"><div class="conquest-command-scroll" tabindex="0" role="region" aria-label="Turn details"><div class="conquest-turn-status"><span role="status" aria-live="polite" aria-atomic="true" data-turn-status></span><button type="button" class="conquest-stats-button" data-do="stats" aria-label="Show statistics" title="Statistics"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3v18h18M7 16v-4m5 4V6m5 10V9"/></svg></button></div><div class="conquest-command-content"></div><div class="conquest-battle-result" aria-live="polite"></div></div><div class="conquest-notice" role="status" aria-live="polite"></div><div class="conquest-command-actions"></div></aside><footer class="conquest-player-row"><div class="conquest-roster" aria-label="Players"></div><a class="conquest-brand" href="/arcade/" aria-label="Saito Arcade"><span class="conquest-brand-word">CONQUEST<span class="conquest-brand-dot">.</span></span></a></footer></main>
+      <aside class="conquest-command"><div class="conquest-command-scroll" tabindex="0" role="region" aria-label="Turn details"><div class="conquest-turn-status"><span role="status" aria-live="polite" aria-atomic="true" data-turn-status></span><button type="button" class="conquest-stats-button" data-do="stats" aria-label="Show statistics" title="Statistics"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3v18h18M7 16v-4m5 4V6m5 10V9"/></svg></button></div><div class="conquest-command-content"></div><div class="conquest-battle-result" aria-live="polite"></div></div><div class="conquest-notice" role="status" aria-live="polite"></div><div class="conquest-command-actions"></div></aside><footer class="conquest-player-row"><div class="conquest-roster" aria-label="Players"></div></footer></main>
       <aside class="conquest-dispatches" aria-label="Dispatches from the front" hidden><button class="conquest-text-button" data-do="close-dispatches" aria-label="Close dispatches">Close ×</button><div class="conquest-journal"><div class="conquest-eyebrow">DISPATCHES FROM THE FRONT</div><ol></ol></div></aside><div class="conquest-modal-layer" hidden></div>`;
       this.scenes = {};
       for(const side of ['attacker','defender'])this.scenes[side]=root.ConquestScene?new root.ConquestScene(this.element.querySelector(`[data-side="${side}"] canvas`)):null;
@@ -208,7 +208,6 @@
       this.element.style.setProperty('--conquest-active',`var(--conquest-player-${p})`);
       this.boardSizer.style.setProperty('--conquest-active',`var(--conquest-player-${p})`);
       this.element.style.setProperty('--conquest-accent',`var(--conquest-player-${p})`);
-      this.element.querySelector('[data-round]').textContent=String(root.ConquestEngine.campaignNumber(s)).padStart(2,'0');
       const status=this.element.querySelector('.conquest-turn-status');
       status.dataset.state=finished?'finished':pending?'pending':yours?'ready':'waiting';
       status.style.setProperty('--player',`var(--conquest-player-${p})`);
@@ -253,8 +252,10 @@
       this.element.querySelector('.conquest-notice').textContent=this.phaseSkip
         ?`${this.name(p)} cannot ${s.phase==='attack'?'attack. Moving on…':'move armies. Ending turn…'}`
         :this.message||this.controller.getStatus?.()||'';
-      const roster=s.players.length===2?[...s.players,{id:0,cardCount:0,eliminated:!Object.values(s.territories).some(t=>t.owner===0)}]:s.players;
-      this.element.querySelector('.conquest-roster').innerHTML=roster.map(pl=>{const owned=Object.values(s.territories).filter(t=>t.owner===pl.id);const count=pl.cardCount??pl.cards?.length??0;return `<div class="conquest-player-card ${pl.id===0?'conquest-player-neutral':''} ${pl.id===p?'active':''} ${pl.id===self?'conquest-player-self':''} ${pl.eliminated?'eliminated':''}" style="--player:var(--conquest-player-${pl.id})"><div class="conquest-player-card-heading">${this.identicon(pl.id)}<b title="${escape(this.name(pl.id))}">${escape(this.name(pl.id))}</b></div><div class="conquest-player-card-labels">${pl.id===self?'<span class="conquest-you-badge">YOU</span>':''}${pl.eliminated?'<span>ELIMINATED</span>':pl.id===p&&!finished?'<span>TURN</span>':''}</div><div class="conquest-player-card-stats"><span><strong>${owned.length}</strong> territories</span><span><strong>${owned.reduce((a,t)=>a+t.armies,0)}</strong> armies</span>${pl.id===self?'':`<span><strong>${count}</strong> cards</span>`}<span class="conquest-player-earn" title="${pl.id===0?'Neutral forces do not earn reinforcements':'Armies earned at the start of the next turn, excluding card trades'}"><strong>+${pl.id===0?0:root.ConquestEngine.reinforcementFor(s,pl.id)}</strong> earn</span></div>${pl.id===self?`<button type="button" class="conquest-cards-button ${playableSet?'can-trade':''}" data-do="cards" aria-label="Your cards: ${count}. Next set: +${nextBonus} armies. Open card hand" aria-haspopup="dialog" title="Your cards · next set: +${nextBonus} armies"><svg viewBox="0 0 32 32" aria-hidden="true"><rect x="5" y="4" width="18" height="24" rx="2" transform="rotate(-12 14 16)"/><rect x="11" y="5" width="18" height="24" rx="2"/><path d="m20 12 4 5-4 5-4-5Z"/></svg><span>${count}</span><small>Next +${nextBonus}</small></button>`:''}</div>`;}).join('');
+      const roster=s.players;
+      const rosterEl=this.element.querySelector('.conquest-roster');
+      rosterEl.dataset.count=String(roster.length);
+      rosterEl.innerHTML=roster.map(pl=>this.playerPanel(s,pl,p,self,finished)).join('');
       const logs=[...(s.log||[])].reverse();
       this.element.querySelector('.conquest-journal ol').innerHTML=logs.length?logs.map(l=>`<li>${escape(typeof l==='string'?l:l.text||l.message||'Campaign in progress.')}</li>`).join(''):'<li>The map is open. Your story begins here.</li>';
       this.element.querySelector('[data-range]')?.addEventListener('input',e=>{this.element.querySelector('[data-range-value]').textContent=e.target.value;if(s.phase==='reinforce')this.deployCount=Number(e.target.value);});
@@ -270,10 +271,34 @@
       this.maybeAutoOccupy();
       if(!this.playbackState)this.renderedState=JSON.parse(JSON.stringify(s));
     }
+    playerStatIcon(name){
+      const paths={
+        territories:'<path d="M4 8 9 4l5 3 6-2.5V17l-6 3-5-3-4 2.5Z"/>',
+        armies:'<path d="M12 3.5 19 7v5.2c0 4.2-2.8 7-7 8.8-4.2-1.8-7-4.6-7-8.8V7Z"/>',
+        income:'<path d="M12 5v14M5 12h14"/>',
+        cards:'<rect x="3.5" y="3" width="12" height="16" rx="1.4" transform="rotate(-12 9.5 11)"/><rect x="8" y="5" width="12" height="16" rx="1.4"/>'
+      };
+      return `<svg viewBox="0 0 24 24" aria-hidden="true">${paths[name]}</svg>`;
+    }
+    playerStat(label,value,icon){
+      return `<span class="conquest-player-stat" title="${escape(label)}" aria-label="${escape(label)}: ${escape(value)}">${this.playerStatIcon(icon)}<b>${escape(value)}</b></span>`;
+    }
+    playerPanel(s,pl,current,self,finished){
+      const owned=Object.values(s.territories).filter(t=>t.owner===pl.id);
+      const armies=owned.reduce((sum,t)=>sum+t.armies,0);
+      const cards=pl.cardCount??pl.cards?.length??0;
+      const income=pl.id===0?0:root.ConquestEngine.reinforcementFor(s,pl.id);
+      const active=pl.id===current&&!finished;
+      const name=this.name(pl.id);
+      const cardStat=pl.id===self&&pl.id!==0
+        ?`<button type="button" class="conquest-player-stat" data-do="cards" title="Cards held" aria-label="Cards held: ${cards}. Open your card hand" aria-haspopup="dialog">${this.playerStatIcon('cards')}<b>${cards}</b></button>`
+        :this.playerStat('Cards held',cards,'cards');
+      return `<div class="conquest-player-card ${pl.id===0?'conquest-player-neutral':''} ${active?'active':''} ${pl.eliminated?'eliminated':''}" style="--player:var(--conquest-player-${pl.id});--on-player:var(--conquest-on-player-${pl.id})" role="group" aria-label="${escape(name)}${active?', current turn':''}${pl.eliminated?', eliminated':''}"><div class="conquest-player-identity">${this.identicon(pl.id)}<b title="${escape(name)}">${escape(name)}</b></div><div class="conquest-player-stats">${this.playerStat('Territories controlled',owned.length,'territories')}${this.playerStat('Armies',armies,'armies')}${this.playerStat('Armies earned at the start of the next turn, excluding card trades',income,'income')}${cardStat}</div></div>`;
+    }
     identicon(id){
       if(id===0)return '<span class="conquest-identicon conquest-neutral-identicon" aria-hidden="true"></span>';
       const src=this.controller.getPlayerIdenticon?.(id);
-      return src?`<img class="conquest-identicon" src="${escape(src)}" alt="${escape(this.name(id))} identicon">`:`<span aria-hidden="true">${icons[id-1]}</span>`;
+      return src?`<img class="conquest-identicon" src="${escape(src)}" alt="${escape(this.name(id))} identicon">`:`<span class="conquest-identicon" aria-hidden="true">${icons[id-1]}</span>`;
     }
     openDispatches(){
       if(this.controller.showDispatches){this.controller.showDispatches();return;}
@@ -302,7 +327,7 @@
       const lines=this.element.querySelector('.conquest-overlay-lines');
       lines.innerHTML='';
       if(!canAttack)return;
-      this.placeNearTerritories(menu,[this.selected,destination]);
+      this.placeNearTerritories(menu,[destination],{anchor:destination,overflow:true});
       if(menu.hidden)return;
       const svg=this.element.querySelector('.conquest-map'),matrix=svg.getScreenCTM?.();
       const wrap=this.element.querySelector('.conquest-map-wrap')?.getBoundingClientRect();
@@ -494,35 +519,39 @@
       if(!panel||!view)return;
       this.placeNearTerritories(panel,[view.from,view.to]);
     }
-    placeNearTerritories(panel,ids){
+    placeNearTerritories(panel,ids,options={}){
       if(!panel||panel.hidden)return;
       const svg=this.element.querySelector('.conquest-map');
       const matrix=svg?.getScreenCTM?.();
-      const viewportEl=panel.closest('.conquest-map-viewport');
+      const viewportEl=panel.closest('.conquest-map-viewport')||this.element.querySelector('.conquest-map-viewport');
       if(!matrix||!viewportEl)return;
       const bounds=viewportEl.getBoundingClientRect();
       if(!bounds.width||!bounds.height)return;
       const point=svg.createSVGPoint();
-      const spots=ids.filter(id=>root.ConquestMap.territories[id]).map(id=>{
+      const locate=id=>{
         const territory=root.ConquestMap.territories[id];
+        if(!territory)return null;
         point.x=territory.x;point.y=territory.y;
         return point.matrixTransform(matrix);
-      });
-      if(!spots.length)return;
-      const anchor={x:spots.reduce((sum,spot)=>sum+spot.x,0)/spots.length,y:spots.reduce((sum,spot)=>sum+spot.y,0)/spots.length};
-      if(!spots.some(spot=>spot.x>=bounds.left&&spot.x<=bounds.right&&spot.y>=bounds.top&&spot.y<=bounds.bottom)){panel.hidden=true;return;}
+      };
+      const spots=ids.map(locate).filter(Boolean);
+      const anchors=(options.anchor?[options.anchor]:ids).map(locate).filter(Boolean);
+      if(!spots.length||!anchors.length)return;
+      const anchor={x:anchors.reduce((sum,spot)=>sum+spot.x,0)/anchors.length,y:anchors.reduce((sum,spot)=>sum+spot.y,0)/anchors.length};
+      if(!anchors.some(spot=>spot.x>=bounds.left&&spot.x<=bounds.right&&spot.y>=bounds.top&&spot.y<=bounds.bottom)){panel.hidden=true;return;}
       const reach=190;
       const blocked=[...svg.querySelectorAll('.conquest-army-count,.conquest-army circle,.conquest-country-label')]
         .map(el=>el.getBoundingClientRect())
         .filter(rect=>rect.width&&rect.height&&rect.right>anchor.x-reach&&rect.left<anchor.x+reach&&rect.bottom>anchor.y-reach&&rect.top<anchor.y+reach);
       const stage=this.element.querySelector('.conquest-battle-overlays');
       if(stage&&!stage.hidden)blocked.push(stage.getBoundingClientRect());
-      const rect=this.findBoardSpace(bounds,panel.offsetWidth,panel.offsetHeight,anchor,blocked);
+      const limits=options.overflow?{left:bounds.left,top:bounds.top,right:Math.max(bounds.right,Math.min(this.element.getBoundingClientRect().right,window.innerWidth)-8),bottom:bounds.bottom}:bounds;
+      const rect=this.findBoardSpace(limits,panel.offsetWidth,panel.offsetHeight,anchor,blocked);
       const width=panel.offsetWidth,height=panel.offsetHeight;
-      const left=rect?rect.left:Math.max(bounds.left+8,Math.min(anchor.x+16,bounds.right-width-8));
-      const top=rect?rect.top:Math.max(bounds.top+8,Math.min(anchor.y+16,bounds.bottom-height-8));
-      panel.style.left=`${left-bounds.left}px`;
-      panel.style.top=`${top-bounds.top}px`;
+      const left=rect?rect.left:Math.max(limits.left+8,Math.min(anchor.x+16,limits.right-width-8));
+      const top=rect?rect.top:Math.max(limits.top+8,Math.min(anchor.y+16,limits.bottom-height-8));
+      if(options.overflow){panel.style.position='fixed';panel.style.left=`${left}px`;panel.style.top=`${top}px`;}
+      else{panel.style.position='';panel.style.left=`${left-bounds.left}px`;panel.style.top=`${top-bounds.top}px`;}
     }
     positionBattleStage(){
       const stage=this.element.querySelector('.conquest-battle-overlays');
