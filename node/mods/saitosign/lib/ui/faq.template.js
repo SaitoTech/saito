@@ -36,6 +36,12 @@ module.exports = function faqTemplate() {
       </section>
 
       <section>
+        <p class="title">Sharing a PDF</p>
+        <p>Export downloads a PDF that opens in ordinary PDF viewers. A banner directs recipients to SaitoSign for signing and verification. Open that same PDF in SaitoSign to continue signing without the banner.</p>
+        <p>The PDF carries the original document and signing record inside it. Open it in SaitoSign to view signature status. Printing to PDF or removing attachments can discard that record.</p>
+      </section>
+
+      <section>
         <p class="title">The document stays with the people involved</p>
         <p>SaitoSign does not upload your PDF to a server while you prepare it. The file stays on your computer until you choose to share it.</p>
         <p>When a document is shared, it is meant to go directly from one person to another, along with cryptographic proof of who signed which part. There is no signing service holding the only copy.</p>

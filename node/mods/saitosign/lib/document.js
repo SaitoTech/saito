@@ -1,3 +1,5 @@
+const { createDisplayCopy } = require('./pdf-package');
+
 const ACTION_TYPES = {
   signature: 'signature',
   initial: 'initial',
@@ -290,7 +292,8 @@ async function describe(bytes, name) {
   if (!text.slice(0, 1024).includes('%PDF')) {
     throw new Error('not a pdf');
   }
-  const file = new File([bytes], name, { type: 'application/pdf' });
+  const display = await createDisplayCopy(bytes);
+  const file = new File([display], name, { type: 'application/pdf' });
   const [page_width, page_height] = pageSize(text);
   return {
     name,

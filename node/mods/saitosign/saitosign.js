@@ -12,9 +12,9 @@ const {
 const {
   looksLikeWebTransaction,
   createPrepareTransaction,
-  readPrepareTransaction,
-  downloadTransaction
+  readPrepareTransaction
 } = require('./lib/transaction');
+const { readPdfTransaction, exportPdf, downloadPdf } = require('./lib/pdf-package');
 const Main = require('./lib/ui/main');
 const HomePage = require('./index');
 const { verifyEmail, myKeychainEmail, rememberVerifiedEmails, documentUnchanged, createCreatorProof, verifyCreatorProof, finalizeDocument, verifyFinalization, signingConfigurationError } = require('./lib/auth');
@@ -107,6 +107,7 @@ class SaitoSign extends ModTemplate {
   }
 
   async importFile(file) {
+    if (isPdf(file)) return this.importPdf(file);
     let text = '';
     try {
       text = await file.text();
@@ -115,25 +116,7 @@ class SaitoSign extends ModTemplate {
     }
 
     if (looksLikeWebTransaction(text)) {
-      try {
-        const data = readPrepareTransaction(this.app, text);
-        if (data.finalized && !verifyFinalization(this.app, data)) {
-          throw new Error('The creator signature for this finalized document is invalid.');
-        }
-        const changed = !documentUnchanged(this.app, data);
-        if (changed) {
-          stripSignatures(data);
-        }
-        this.useDocument(await hydrate(data));
-        if (changed && typeof salert === 'function') {
-          salert('This document has changed. Signatures have been removed and signing must begin again.');
-        }
-      } catch (err) {
-        const known = err?.message === 'That file is not a SaitoSign transaction.';
-        const integrityError = err?.message?.includes('creator signature') || err?.message?.includes('creator identity');
-        this.main.fail(known || integrityError ? err.message : 'That SaitoSign transaction could not be read.');
-      }
-      return;
+      return this.importTransaction(text);
     }
 
     if (isPdf(file) || text.slice(0, 1024).includes('%PDF')) {
@@ -141,6 +124,24 @@ class SaitoSign extends ModTemplate {
     }
 
     this.main.fail('Choose a PDF or a SaitoSign transaction.');
+  }
+
+  async importTransaction(text) {
+    try {
+      const data = readPrepareTransaction(this.app, text);
+      const changed = !documentUnchanged(this.app, data);
+      if (changed) stripSignatures(data);
+      // Render the authenticated original, not the independently editable outer
+      // PDF preview. hydrate() also strips our banner from its display copy.
+      this.useDocument(await hydrate(data));
+      if (changed && typeof salert === 'function') {
+        salert('This document has changed. Signatures have been removed and signing must begin again.');
+      }
+    } catch (err) {
+      const known = err?.message === 'That file is not a SaitoSign transaction.';
+      const integrityError = err?.message?.includes('creator signature') || err?.message?.includes('creator identity');
+      this.main.fail(known || integrityError ? err.message : 'That SaitoSign transaction could not be read.');
+    }
   }
 
   async importPdf(file) {
@@ -151,11 +152,13 @@ class SaitoSign extends ModTemplate {
 
     let next;
     try {
+      const transaction = await readPdfTransaction(new Uint8Array(await file.arrayBuffer()));
+      if (transaction !== null) return this.importTransaction(transaction);
       next = await openPdf(file);
       next.creator = String(this.app.wallet?.publicKey || '').trim();
       await createCreatorProof(this.app, next, next.creator);
     } catch (err) {
-      this.main.fail('That PDF could not be read.');
+      this.main.fail('That PDF or its embedded SaitoSign record could not be read.');
       return;
     }
 
@@ -211,7 +214,11 @@ class SaitoSign extends ModTemplate {
       }
       const tx = await createPrepareTransaction(this.app, document);
       const base = String(document.document.name || 'document.pdf').replace(/\.pdf$/i, '');
-      downloadTransaction(this.app, tx, `${base || 'document'}.saitosign`);
+      const bytes = await exportPdf(
+        Uint8Array.from(Buffer.from(document.document.pdf, 'base64')),
+        tx.serialize_to_web(this.app)
+      );
+      downloadPdf(bytes, `${base || 'document'}.pdf`);
       return true;
     } catch (err) {
       this.main.fail('That document could not be exported.');

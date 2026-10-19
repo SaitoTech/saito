@@ -29,7 +29,7 @@ class Splash {
 
     const input = document.createElement('input');
     input.type = 'file';
-    input.accept = 'application/pdf,.pdf,.saito,.json,application/json';
+    input.accept = 'application/pdf,.pdf,.saitosign,.saito,.json,application/json';
     input.style.display = 'none';
     input.style.visibility = 'hidden';
     this.input = input;
