@@ -38,7 +38,8 @@ module.exports = function faqTemplate() {
       <section>
         <p class="title">Sharing a PDF</p>
         <p>Export downloads a PDF that opens in ordinary PDF viewers. A banner directs recipients to SaitoSign for signing and verification. Open that same PDF in SaitoSign to continue signing without the banner.</p>
-        <p>The PDF carries the original document and signing record inside it. Open it in SaitoSign to view signature status. Printing to PDF or removing attachments can discard that record.</p>
+        <p>Ordinary PDF viewers show signer names and signing status as an unverified copy over the document. Open the PDF in SaitoSign to verify signatures and continue signing.</p>
+        <p>The PDF carries the original document and signing record inside it. Printing to PDF or removing attachments can discard that record.</p>
       </section>
 
       <section>

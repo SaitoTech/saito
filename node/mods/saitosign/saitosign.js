@@ -15,6 +15,7 @@ const {
   readPrepareTransaction
 } = require('./lib/transaction');
 const { readPdfTransaction, exportPdf, downloadPdf } = require('./lib/pdf-package');
+const { signingFields } = require('./lib/pdf-signing');
 const Main = require('./lib/ui/main');
 const HomePage = require('./index');
 const { verifyEmail, myKeychainEmail, rememberVerifiedEmails, documentUnchanged, createCreatorProof, verifyCreatorProof, finalizeDocument, verifyFinalization, signingConfigurationError } = require('./lib/auth');
@@ -216,7 +217,9 @@ class SaitoSign extends ModTemplate {
       const base = String(document.document.name || 'document.pdf').replace(/\.pdf$/i, '');
       const bytes = await exportPdf(
         Uint8Array.from(Buffer.from(document.document.pdf, 'base64')),
-        tx.serialize_to_web(this.app)
+        tx.serialize_to_web(this.app),
+        window.location.origin,
+        signingFields(this.app, document)
       );
       downloadPdf(bytes, `${base || 'document'}.pdf`);
       return true;
