@@ -18,7 +18,7 @@ function nftTuple(owner, quantity = 1) {
   ];
 }
 
-test('indexes payments and nft transfers and skips fee-only and message transactions', () => {
+test('indexes SAITO transfers, including fees, and skips unchanged amounts', () => {
   const rows = buildTransactionIndexRows({
     id: 12,
     hash: 'ab'.repeat(32),
@@ -36,6 +36,11 @@ test('indexes payments and nft transfers and skips fee-only and message transact
         to: [slip('alice', 99, 0)]
       },
       {
+        signature: 'unchanged',
+        from: [slip('alice', 100, 0)],
+        to: [slip('alice', 100, 0)]
+      },
+      {
         signature: 'message',
         from: [],
         to: []
@@ -50,12 +55,13 @@ test('indexes payments and nft transfers and skips fee-only and message transact
 
   assert.deepEqual(
     rows.map((row) => row.signature),
-    ['payment', 'nft-transfer']
+    ['payment', 'fee-only', 'nft-transfer']
   );
   assert.equal(rows[0].transaction_id, 0);
   assert.equal(rows[0].lc, 1);
   assert.equal(rows[0].created_at, 1700000001000);
-  assert.equal(rows[1].transaction_id, 3);
+  assert.equal(rows[1].transaction_id, 1);
+  assert.equal(rows[2].transaction_id, 4);
   assert.equal(rows[1].block_id, 12);
 });
 

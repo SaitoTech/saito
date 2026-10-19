@@ -1,9 +1,8 @@
 CREATE TABLE IF NOT EXISTS transactions (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-
     block_id INTEGER NOT NULL,
     block_hash TEXT NOT NULL,
-    lc INTEGER NOT NULL DEFAULT 1, -- on longest chain
+    lc INTEGER NOT NULL DEFAULT 1,
     signature TEXT NOT NULL,
     transaction_id INTEGER NOT NULL,
     created_at INTEGER NOT NULL

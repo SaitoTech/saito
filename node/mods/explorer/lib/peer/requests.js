@@ -1,9 +1,9 @@
-const Saito = require('saito-js/saito').default;
 const { handleRequestSupply } = require('./supply');
 const { handleRequestAddress } = require('./address');
 const { handleRequestUtxo } = require('./utxo');
 const { handleRequestHolders } = require('./holders');
 const { requestParams, success, failure } = require('./response');
+const { lookupTransaction, normalizeTransactionSignature } = require('../transaction-lookup');
 
 function addBlockStatus(obj, block) {
   try {
@@ -216,33 +216,23 @@ async function handleRequestInfo(app) {
   });
 }
 
-async function findTransactionInMempool(transactionHash) {
-  const mempoolTxs = await Saito.getInstance().getMempoolTxs();
-  for (let i = 0; i < mempoolTxs.length; i++) {
-    const txjson = mempoolTxs[i];
-    if (txjson?.signature === transactionHash) {
-      return txjson;
-    }
-  }
-  return null;
-}
-
-async function handleRequestTransaction(app, txmsg) {
+async function handleRequestTransaction(app, txmsg, mod = null) {
   const params = requestParams(txmsg);
   const transactionHash = params.transaction_hash || params.hash || params.signature;
 
-  if (!transactionHash) {
-    return failure('transaction_hash required');
+  if (!normalizeTransactionSignature(transactionHash)) {
+    return failure('transaction signature required');
   }
 
-  const mempoolTx = await findTransactionInMempool(String(transactionHash));
-  if (mempoolTx) {
-    return success(mempoolTx);
+  try {
+    const found = await lookupTransaction(mod, transactionHash);
+    if (!found) {
+      return failure('transaction signature required');
+    }
+    return success(found);
+  } catch (err) {
+    return failure(err.message || 'Transaction lookup failed');
   }
-
-  // TODO: on-chain transaction lookup requires a block/transaction index in the Rust API.
-  // Scanning blocks is intentionally omitted here to avoid duplicating blockchain logic.
-  return failure('transaction not found');
 }
 
 async function handleExplorerRequest(app, txmsg, mod = null) {
@@ -264,7 +254,7 @@ async function handleExplorerRequest(app, txmsg, mod = null) {
     case 'request info':
       return handleRequestInfo(app);
     case 'request transaction':
-      return handleRequestTransaction(app, txmsg);
+      return handleRequestTransaction(app, txmsg, mod);
     case 'request supply':
       return handleRequestSupply(app, mod, txmsg);
     case 'request address':

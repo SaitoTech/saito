@@ -6,27 +6,27 @@ function slipPublicKey(slip) {
   return slip?.publicKey || slip?.public_key || '';
 }
 
-function saitoByKey(slips) {
-  const totals = new Map();
-  for (const slip of slips || []) {
+function addSaito(totals, slips, sign) {
+  for (let i = 0; i < (slips || []).length; i++) {
+    const slip = slips[i];
     if (!SAITO_SLIP_TYPES.has(slipTypeId(slip))) {
       continue;
     }
     const key = slipPublicKey(slip);
     const amount = slipAmount(slip);
-    if (!key || amount <= 0n) {
+    if (!key || amount === 0n) {
       continue;
     }
-    totals.set(key, (totals.get(key) || 0n) + amount);
+    totals.set(key, (totals.get(key) || 0n) + sign * amount);
   }
-  return totals;
 }
 
 function movesSaito(tx) {
-  const inputs = saitoByKey(tx?.from);
-  const outputs = saitoByKey(tx?.to);
-  for (const [key, received] of outputs) {
-    if (received > (inputs.get(key) || 0n)) {
+  const nets = new Map();
+  addSaito(nets, tx?.from, -1n);
+  addSaito(nets, tx?.to, 1n);
+  for (const net of nets.values()) {
+    if (net !== 0n) {
       return true;
     }
   }

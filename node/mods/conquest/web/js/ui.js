@@ -327,7 +327,9 @@
       const lines=this.element.querySelector('.conquest-overlay-lines');
       lines.innerHTML='';
       if(!canAttack)return;
-      this.placeNearTerritories(menu,[destination],{anchor:destination,overflow:true});
+      const sourceSpot=root.ConquestMap.territories[this.selected],targetSpot=root.ConquestMap.territories[destination];
+      const distant=Math.hypot(sourceSpot.x-targetSpot.x,sourceSpot.y-targetSpot.y)>280;
+      this.placeNearTerritories(menu,[distant?this.selected:destination],{anchor:distant?this.selected:destination,overflow:true});
       if(menu.hidden)return;
       const svg=this.element.querySelector('.conquest-map'),matrix=svg.getScreenCTM?.();
       const wrap=this.element.querySelector('.conquest-map-wrap')?.getBoundingClientRect();
@@ -545,11 +547,27 @@
         .filter(rect=>rect.width&&rect.height&&rect.right>anchor.x-reach&&rect.left<anchor.x+reach&&rect.bottom>anchor.y-reach&&rect.top<anchor.y+reach);
       const stage=this.element.querySelector('.conquest-battle-overlays');
       if(stage&&!stage.hidden)blocked.push(stage.getBoundingClientRect());
-      const limits=options.overflow?{left:bounds.left,top:bounds.top,right:Math.max(bounds.right,Math.min(this.element.getBoundingClientRect().right,window.innerWidth)-8),bottom:bounds.bottom}:bounds;
-      const rect=this.findBoardSpace(limits,panel.offsetWidth,panel.offsetHeight,anchor,blocked);
+      const app=this.element.getBoundingClientRect();
+      const limits=options.overflow?{left:Math.max(8,app.left),top:bounds.top,right:Math.min(app.right,window.innerWidth)-8,bottom:bounds.bottom}:bounds;
       const width=panel.offsetWidth,height=panel.offsetHeight;
-      const left=rect?rect.left:Math.max(limits.left+8,Math.min(anchor.x+16,limits.right-width-8));
-      const top=rect?rect.top:Math.max(limits.top+8,Math.min(anchor.y+16,limits.bottom-height-8));
+      const nearRight=options.overflow&&bounds.right-anchor.x<200;
+      const nearLeft=options.overflow&&anchor.x-bounds.left<200;
+      let left,top;
+      if(nearRight||nearLeft){
+        const pad=10;
+        const edge=nearRight?Math.max(anchor.x,...blocked.map(rect=>rect.right))+16:Math.min(anchor.x,...blocked.map(rect=>rect.left))-width-16;
+        left=Math.max(limits.left+pad,Math.min(edge,limits.right-width-pad));
+        top=Math.max(limits.top+pad,Math.min(anchor.y-height*.4,limits.bottom-height-pad));
+        const hits=(x,y)=>blocked.some(rect=>x<rect.right+pad&&x+width>rect.left-pad&&y<rect.bottom+pad&&y+height>rect.top-pad);
+        for(const candidate of [top,anchor.y+28,anchor.y-height-16]){
+          const y=Math.max(limits.top+pad,Math.min(candidate,limits.bottom-height-pad));
+          if(!hits(left,y)){top=y;break;}
+        }
+      }else{
+        const rect=this.findBoardSpace(limits,width,height,anchor,blocked);
+        left=rect?rect.left:Math.max(limits.left+8,Math.min(anchor.x+16,limits.right-width-8));
+        top=rect?rect.top:Math.max(limits.top+8,Math.min(anchor.y+16,limits.bottom-height-8));
+      }
       if(options.overflow){panel.style.position='fixed';panel.style.left=`${left}px`;panel.style.top=`${top}px`;}
       else{panel.style.position='';panel.style.left=`${left-bounds.left}px`;panel.style.top=`${top-bounds.top}px`;}
     }

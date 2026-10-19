@@ -68,6 +68,10 @@ function classifySearchQuery(app, raw = '') {
 
   const byteLength = decodedByteLength(app, query);
 
+  if (byteLength === 64) {
+    return { type: 'transaction', value: query.toLowerCase() };
+  }
+
   if (byteLength === 33) {
     return { type: 'address', value: query };
   }

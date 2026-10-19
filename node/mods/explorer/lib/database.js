@@ -359,6 +359,30 @@ class ExplorerDatabase {
     return { inserted, skipped };
   }
 
+  async getTransactionBySignature(signature) {
+    const normalized = String(signature || '').trim().toLowerCase();
+    if (!normalized) {
+      return null;
+    }
+
+    try {
+      const rows =
+        (await this.app.storage.queryDatabase(
+          `SELECT id, block_id, block_hash, lc, signature, transaction_id, created_at
+					 FROM transactions
+					 WHERE lower(signature) = $signature
+					 ORDER BY lc DESC, block_id DESC
+					 LIMIT 1`,
+          { $signature: normalized },
+          this.dbname
+        )) || [];
+      return rows[0] || null;
+    } catch (err) {
+      console.error('Explorer Database: getTransactionBySignature failed', err);
+      return null;
+    }
+  }
+
   async updateTransactionLongestChainState(block_id, block_hash, longest_chain) {
     const params = {
       $block_id: Number(block_id) || 0,
