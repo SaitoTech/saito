@@ -28,7 +28,8 @@
         this.renderer.setPixelRatio(Math.min(root.devicePixelRatio || 1, 2));
         this.scene = new T.Scene();
         this.camera = new T.PerspectiveCamera(34, 2.8, 0.1, 100);
-        this.camera.zoom = 2;
+        // Zoom 4 renders each cube at about twice the previous screen size.
+        this.camera.zoom = 4;
         this.camera.position.set(0, 4, 10);
         this.camera.lookAt(0, 0, 0);
         this.scene.add(new T.AmbientLight(0xffffff, 1.2));
@@ -112,9 +113,10 @@
           die.style.color = style.pips;
         });
       } else {
+        const spacing = 1.45;
         this.dice.forEach((die, i) => {
           die.visible = i < values.length;
-          die.position.set((i - (values.length - 1) / 2) * 2, 0, 0);
+          die.position.set((i - (values.length - 1) / 2) * spacing, 0, 0);
           die.rotation.set(0.3, 0.35, -0.1);
           die.material = this.materials[owners[i]] || this.materials[0];
         });
@@ -150,7 +152,7 @@
           const end = faceRotation[values[i]] || [0,0,0];
           const spin = Math.pow(1-t,2)*Math.PI*4;
           die.rotation.set(end[0]+spin, end[1]+spin*0.8, end[2]+spin*0.3);
-          die.position.y = Math.sin(t*Math.PI)*0.65;
+          die.position.y = Math.sin(t*Math.PI)*0.35;
         });
         this.renderer.render(this.scene,this.camera);
         if (t<1) this.frame = root.requestAnimationFrame(tick);
