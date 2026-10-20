@@ -1,9 +1,5 @@
 const SaitoOverlay = require('../../../../../lib/saito/ui/saito-overlay/saito-overlay');
 const Web3PaymentTemplate = require('./web3-payment.template');
-const {
-  requestStoreWeb3Tickers,
-  storeWeb3TickersAnswered
-} = require('./listing-field-edit');
 
 const INSTRUCTION_TIMEOUT_MS = 35000;
 
@@ -110,15 +106,7 @@ class Web3PaymentOverlay {
     this.render();
 
     try {
-      const currency = await this.resolveCurrency(session);
-      if (!this.active || this.session !== session) {
-        return;
-      }
-      if (!currency) {
-        this.fail('This crypto is not available for payment.');
-        return;
-      }
-      this.crypto_selected = currency;
+      this.crypto_selected = this.cachedCurrency() || { ticker };
       await this.checkForLocalCrypto(session);
       if (!this.active || this.session !== session) {
         return;
@@ -144,43 +132,14 @@ class Web3PaymentOverlay {
     }
   }
 
-  resolveCurrency(session) {
+  cachedCurrency() {
     const buysaito = this.app.modules?.returnModule?.('BuySaito');
-    if (!buysaito?.authorized_public_key) {
-      return Promise.resolve(null);
-    }
-
-    const find = () =>
-      (Array.isArray(buysaito.available_currencies) ? buysaito.available_currencies : []).find(
+    const currencies = Array.isArray(buysaito?.available_currencies) ? buysaito.available_currencies : [];
+    return (
+      currencies.find(
         (currency) => String(currency?.ticker || '').trim().toUpperCase() === this.ticker
-      ) || null;
-
-    const ready = find();
-    if (ready || storeWeb3TickersAnswered(this.app)) {
-      return Promise.resolve(ready);
-    }
-
-    requestStoreWeb3Tickers(this.app);
-
-    return new Promise((resolve) => {
-      const finish = (currency) => {
-        clearTimeout(timer);
-        this.app.connection.removeListener('saito-purchase-cryptos', onCryptos);
-        resolve(currency);
-      };
-      const onCryptos = () => {
-        if (!this.active || this.session !== session) {
-          finish(null);
-          return;
-        }
-        const currency = find();
-        if (currency) {
-          finish(currency);
-        }
-      };
-      const timer = setTimeout(() => finish(find()), 8000);
-      this.app.connection.on('saito-purchase-cryptos', onCryptos);
-    });
+      ) || null
+    );
   }
 
   async checkForLocalCrypto(session) {
