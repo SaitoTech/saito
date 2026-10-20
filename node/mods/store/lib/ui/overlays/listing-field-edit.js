@@ -61,13 +61,16 @@ function rememberStoreWeb3TickerResponse(app) {
   });
 }
 
-function requestStoreWeb3Tickers(app) {
+function requestStoreWeb3Tickers(app, { force = false } = {}) {
   const buysaito = app?.modules?.returnModule?.('BuySaito');
   if (!buysaito?.authorized_public_key) {
     return;
   }
   rememberStoreWeb3TickerResponse(app);
-  if (storeWeb3TickersAnswered(app) || requestStoreWeb3Tickers.pending) {
+  if (force) {
+    requestStoreWeb3Tickers.resolved = false;
+    requestStoreWeb3Tickers.pending = false;
+  } else if (storeWeb3TickersAnswered(app) || requestStoreWeb3Tickers.pending) {
     return;
   }
   requestStoreWeb3Tickers.pending = true;

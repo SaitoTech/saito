@@ -13,6 +13,7 @@ const SettingsOverlay = require('./overlays/settings');
 const PurchaseLifecycle = require('./purchase-lifecycle');
 const ListingLifecycle = require('./listing-lifecycle');
 const { normalizeListingMode, categoryViewKey } = require('../categories');
+const { requestStoreWeb3Tickers } = require('./overlays/listing-field-edit');
 
 class Main {
   constructor(app, mod, container = '.saito-container') {
@@ -396,6 +397,7 @@ class Main {
   }
 
   openSell(defaults = {}) {
+    requestStoreWeb3Tickers(this.app, { force: true });
     const next = {
       ...defaults,
       listing_mode: normalizeListingMode(defaults.listing_mode)
