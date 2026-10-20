@@ -233,65 +233,19 @@ describe('BuySaito automatic payment progress', () => {
     expect(overlay.saito_receipts.size).toBe(0);
   });
 
-  test.each([
-    ['43d61dcd-e413-450d-80b8-101d5e903357', 'https://etherscan.io/address/'],
-    ['1949e683-6a08-49e2-b087-d6b72398588f', 'https://bscscan.com/address/']
-  ])(
-    'uses the advertised chain %s for the address link, regardless of token ticker',
-    (chain_id, base) => {
-      const { mod, overlay, app } = setup();
-      const template = require('../../../mods/buysaito/lib/saito-purchase.template');
-      const destination = '0x1234567890123456789012345678901234567890';
-      overlay.crypto_selected = { ticker: 'USDC', chain_id };
-      overlay.destination = destination;
-      const html = template(app, mod, overlay);
-      expect(html).toContain(`id="profile-public-key">${destination}</div>`);
-      expect(html).toContain(`href="${base}${destination}"`);
-      expect(html).toContain('<details class="help">');
-      expect(html).toContain('<summary>Help</summary>');
-      expect(html).toContain('href="mailto:support@saito.io"');
-      expect(html).toContain('check transactions to payment address');
-    }
-  );
-
-  test('uses local chain metadata only when the advertised currency lacks it', () => {
-    const { mod, app } = setup();
-    app.wallet = {
-      returnCryptoModuleByTicker: () => ({ chain_id: '43d61dcd-e413-450d-80b8-101d5e903357' })
-    };
-    expect(mod.returnPaymentAddressExplorer({ ticker: 'USDC' }, 'address')).toBe(
-      'https://etherscan.io/address/address'
-    );
-    expect(
-      mod.returnPaymentAddressExplorer(
-        { ticker: 'USDC', chain_id: '1949e683-6a08-49e2-b087-d6b72398588f' },
-        'address'
-      )
-    ).toBe('https://bscscan.com/address/address');
-    expect(
-      mod.returnPaymentAddressExplorer({ ticker: 'USDC', chain_id: 'unknown' }, 'address')
-    ).toBe('');
-  });
-
-  test('handles EGLD separately and respects its configured explorer network', () => {
-    const { mod, app } = setup();
-    expect(mod.returnPaymentAddressExplorer({ ticker: 'EGLD' }, 'erd1address')).toBe(
-      'https://explorer.multiversx.com/accounts/erd1address'
-    );
-    app.wallet = {
-      returnCryptoModuleByTicker: () => ({
-        options: { explorer_url: 'https://testnet-explorer.multiversx.com/' }
-      })
-    };
-    expect(mod.returnPaymentAddressExplorer({ ticker: 'EGLD' }, 'erd1address')).toBe(
-      'https://testnet-explorer.multiversx.com/accounts/erd1address'
-    );
-    expect(
-      mod.returnPaymentAddressExplorer(
-        { ticker: 'EGLD', explorer_url: 'javascript:alert(1)' },
-        'erd1address'
-      )
-    ).toBe('');
+  test('shows the deposit address and support note without a help link', () => {
+    const { mod, overlay, app } = setup();
+    const template = require('../../../mods/buysaito/lib/saito-purchase.template');
+    const destination = '0x1234567890123456789012345678901234567890';
+    overlay.crypto_selected = { ticker: 'USDC', chain_id: '43d61dcd-e413-450d-80b8-101d5e903357' };
+    overlay.destination = destination;
+    const html = template(app, mod, overlay);
+    expect(html).toContain(`id="profile-public-key">${destination}</div>`);
+    expect(html).toContain('This screen will update when your payment is detected.');
+    expect(html).toContain('mailto:info@saito.io');
+    expect(html).toContain('Need support? Email');
+    expect(html).not.toContain('<details class="help">');
+    expect(html).not.toContain('check transactions to payment address');
   });
 
   test.each(['pending', 'confirmed', 'issuing'])(

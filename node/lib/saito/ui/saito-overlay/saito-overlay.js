@@ -164,6 +164,33 @@ class SaitoOverlay {
   }
 
   /**
+   * Show html with the standard top-right close control, then restore the
+   * overlay's usual close-box setting. Marks the root element retain-surface
+   * so the panel keeps an opaque background on small screens.
+   */
+  showClosable(html = '', mycallback = null) {
+    const previous = this.closebox;
+    this.closebox = true;
+    try {
+      this.show(SaitoOverlay.ensureRetainSurface(html), mycallback);
+    } finally {
+      this.closebox = previous;
+    }
+  }
+
+  static ensureRetainSurface(html) {
+    if (typeof html !== 'string' || html.includes('retain-surface')) {
+      return html;
+    }
+    return html.replace(/^(\s*)<([A-Za-z][\w:-]*)([^>]*)>/, (full, space, tag, attrs) => {
+      if (/\bclass\s*=\s*(["'])/.test(attrs)) {
+        return `${space}<${tag}${attrs.replace(/\bclass\s*=\s*(["'])/, 'class=$1retain-surface ')}>`;
+      }
+      return `${space}<${tag} class="retain-surface"${attrs}>`;
+    });
+  }
+
+  /**
    * Renders the Overlay with the given html and attaches events to close it
    * @param app - the Saito application
    * @param mod - the calling module

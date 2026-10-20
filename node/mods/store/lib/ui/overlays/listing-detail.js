@@ -1,6 +1,7 @@
 const SaitoOverlay = require('../../../../../lib/saito/ui/saito-overlay/saito-overlay');
 const ListingDetailTemplate = require('./listing-detail.template');
 const ListingFieldEdit = require('./listing-field-edit');
+const { returnStoreWeb3Tickers, requestStoreWeb3Tickers } = ListingFieldEdit;
 const Summary = require('../../summary');
 const { DREAMSCAPE_PLACEHOLDER } = require('../../summary');
 const { summaryBucketKey } = require('../summary-cache');
@@ -9,9 +10,7 @@ const { durationLabel, rightsLabel } = require('./rental-listing.template');
 const { yieldForPaint } = require('../purchase-service');
 const {
   isAutoSubmitListings,
-  isSubmitToMainStoreChecked,
-  attachSubmitToMainStoreCheckbox,
-  offerAutoSubmitOptInIfNeeded,
+  markStoreWeb3Active,
   scheduleSubmitAfterListingConfirmed
 } = require('../listing-approval');
 
@@ -251,12 +250,14 @@ class ListingDetailOverlay {
       nftIdenticon,
       mediaHtml: this.returnMediaHtml(nft),
       description: this.escapeHtml(this.listing.description),
-      priceDisplay: this.formatSaitoPriceDisplay(priceNum),
+      priceDisplay: this.formatSaitoPriceDisplay(
+        this.listing.price,
+        this.listing.web3_ticker || 'SAITO'
+      ),
       productType: this.escapeHtml(nft?.returnType?.() || 'NFT'),
       fileType: this.escapeHtml(this.returnFileTypeFromNft(nft)),
       createdDate: new Date().toLocaleDateString(),
-      supply: this.listing.quantity_total,
-      submitToMainStoreChecked: isAutoSubmitListings(this.app)
+      supply: this.listing.quantity_total
     };
   }
 
@@ -267,6 +268,8 @@ class ListingDetailOverlay {
       title: nft?.title || 'Untitled NFT',
       description: nft?.description || '',
       price: '1',
+      web3_ticker: 'SAITO',
+      web3_amount: '1',
       quantity_total: max_quantity_total,
       quantity_available: max_quantity_total
     };
@@ -475,7 +478,13 @@ class ListingDetailOverlay {
         }
         buyBtn.disabled = true;
 
+        const ticker = String(summary.web3_ticker || '').trim().toUpperCase();
+        const web3Payment = this.mod.main?.web3_payment;
         try {
+          if (ticker && ticker !== 'SAITO' && web3Payment?.isWeb3Summary(summary)) {
+            await web3Payment.start(summary, quantity, { note });
+            return;
+          }
           await this.mod.main?.purchase_flow?.startPurchase(summary, quantity, { note });
         } finally {
           buyBtn.disabled = false;
@@ -489,8 +498,6 @@ class ListingDetailOverlay {
     if (!root) {
       return;
     }
-
-    attachSubmitToMainStoreCheckbox(root, this.app);
 
     const openFieldEdit = (field) => {
       if (this.defaults?.locked?.includes(field.lockKey || field.name)) {
@@ -552,23 +559,34 @@ class ListingDetailOverlay {
 
     root.querySelector('[data-edit="price"]')?.addEventListener('click', (e) => {
       e.preventDefault();
-      openFieldEdit({
-        name: 'price',
-        lockKey: 'price',
+      if (this.defaults?.locked?.includes('price')) {
+        return;
+      }
+      requestStoreWeb3Tickers(this.app);
+      const ticker = String(this.listing.web3_ticker || 'SAITO').trim().toUpperCase() || 'SAITO';
+      this.field_edit.render({
         title: 'Edit Price',
         value: String(this.listing.price),
         inputType: 'text',
-        placeholder: 'Price in SAITO',
-        parse: (raw) => {
+        placeholder: 'Price',
+        tickers: returnStoreWeb3Tickers(this.app, ticker),
+        ticker,
+        onSave: (raw, selectedTicker) => {
           const cleaned = String(raw || '')
             .trim()
             .replace(/[^\d.]/g, '');
-          return cleaned || false;
-        },
-        apply: (cleaned) => {
+          if (!cleaned) {
+            return false;
+          }
+          const nextTicker = String(selectedTicker || 'SAITO').trim().toUpperCase() || 'SAITO';
           this.listing.price = cleaned;
-          root.querySelector('[data-field="price"]').textContent =
-            this.formatSaitoPriceDisplay(cleaned);
+          this.listing.web3_ticker = nextTicker;
+          this.listing.web3_amount = cleaned;
+          const priceEl = root.querySelector('[data-field="price"]');
+          if (priceEl) {
+            priceEl.textContent = this.formatSaitoPriceDisplay(cleaned, nextTicker);
+          }
+          return true;
         }
       });
       const input = document.getElementById('saito-overlay-form-input');
@@ -654,9 +672,13 @@ class ListingDetailOverlay {
 
     if (this.defaults?.price) {
       this.listing.price = String(this.defaults.price);
+      this.listing.web3_amount = String(this.defaults.price);
       const priceEl = root.querySelector('[data-field="price"]');
       if (priceEl) {
-        priceEl.textContent = this.formatSaitoPriceDisplay(this.listing.price);
+        priceEl.textContent = this.formatSaitoPriceDisplay(
+          this.listing.price,
+          this.listing.web3_ticker || 'SAITO'
+        );
       }
       if (this.defaults.locked?.includes('price')) {
         const affordance = root.querySelector('[data-edit="price"]');
@@ -725,10 +747,6 @@ class ListingDetailOverlay {
     };
 
     this.listing_busy = true;
-    const shouldSubmitToMainStore = isSubmitToMainStoreChecked(root);
-    if (shouldSubmitToMainStore) {
-      await offerAutoSubmitOptInIfNeeded(this.app);
-    }
     if (this.overlay && this.overlay.visible === false) {
       restore();
       return;
@@ -743,8 +761,14 @@ class ListingDetailOverlay {
     await yieldForPaint();
 
     try {
+      const ticker = String(this.listing.web3_ticker || 'SAITO').trim().toUpperCase() || 'SAITO';
+      this.listing.web3_ticker = ticker;
+      this.listing.web3_amount = String(this.listing.price || '').trim();
       const tx = await this.mod.createListAssetTransaction(this.selectedNft, this.listing);
       await this.app.network.propagateTransaction(tx);
+      if (ticker !== 'SAITO' && markStoreWeb3Active(this.app)) {
+        this.mod.main?.menu?.render?.();
+      }
 
       if (typeof this.defaults?.callback === 'function') {
         this.defaults.callback({
@@ -755,7 +779,7 @@ class ListingDetailOverlay {
       }
 
       this.beginListingProgress(tx);
-      if (shouldSubmitToMainStore) {
+      if (isAutoSubmitListings(this.app)) {
         scheduleSubmitAfterListingConfirmed(this.app, this.mod, tx.signature);
       }
     } catch (err) {

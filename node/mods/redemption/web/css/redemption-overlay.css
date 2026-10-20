@@ -1,0 +1,87 @@
+.redemption-create-fields {
+  display: grid;
+  gap: 0.35rem;
+  margin-bottom: 1rem;
+}
+
+.redemption-list,
+.redemption-request {
+  width: min(920px, 92vw);
+}
+
+.redemption-list h2,
+.redemption-request h2 {
+  margin: 0 0 0.5rem;
+}
+
+.redemption-list-note,
+.redemption-request-warning,
+.redemption-request-blocked,
+.redemption-request-reasons {
+  color: var(--saito-muted-foreground);
+  line-height: 1.4;
+}
+
+.redemption-nft-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.redemption-nft-card-claim {
+  display: grid;
+  gap: 0.25rem;
+  padding: 0.75rem 1rem 1rem;
+  font-size: 0.9rem;
+}
+
+.redemption-nft-card-status[data-status='eligible'] {
+  color: var(--saito-green, #3dd68c);
+}
+
+.redemption-nft-card-status[data-status='invalid'],
+.redemption-nft-card-status[data-status='unverified'] {
+  color: var(--saito-red, #e15b64);
+}
+
+.redemption-request dl {
+  display: grid;
+  gap: 0.5rem;
+  margin: 1rem 0;
+}
+
+.redemption-request dl div {
+  display: grid;
+  grid-template-columns: 9rem 1fr;
+  gap: 0.75rem;
+}
+
+.redemption-request dt {
+  color: var(--saito-muted-foreground);
+}
+
+.redemption-request dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.redemption-request-form {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.redemption-request-form label {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.redemption-request-form input,
+.redemption-request-form textarea {
+  width: 100%;
+  padding: 0.6rem 0.7rem;
+  border: 1px solid var(--saito-border);
+  border-radius: 4px;
+  background: transparent;
+  color: inherit;
+}

@@ -2,6 +2,7 @@ const ManagerTemplate = require('./manager.template');
 const BrowseView = require('./browse-view');
 const StorefrontView = require('./storefront-view');
 const SalesView = require('./sales-view');
+const WithdrawalsView = require('./withdrawals');
 const ModerateView = require('./moderate-view');
 
 class Manager {
@@ -24,6 +25,7 @@ class Manager {
       onViewChange
     });
     this.sales = new SalesView(app, mod, '');
+    this.withdrawals = new WithdrawalsView(app, mod, '');
     this.moderate = new ModerateView(app, mod, '');
   }
 
@@ -41,6 +43,7 @@ class Manager {
     this.browse.render(`${this.container} [data-panel="browse"]`);
     this.storefront.render(`${this.container} [data-panel="my-listings"]`);
     this.sales.render(`${this.container} [data-panel="sales"]`);
+    this.withdrawals.render(`${this.container} [data-panel="withdrawals"]`);
     this.moderate.render(`${this.container} [data-panel="moderate"]`);
 
     this.show(this.activePanel);
@@ -80,6 +83,11 @@ class Manager {
   showSales() {
     this.show('sales');
     return this.sales.show();
+  }
+
+  showWithdrawals() {
+    this.show('withdrawals');
+    return this.withdrawals.show();
   }
 
   showModerate() {

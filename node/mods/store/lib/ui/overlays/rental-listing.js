@@ -1,13 +1,12 @@
 const SaitoOverlay = require('../../../../../lib/saito/ui/saito-overlay/saito-overlay');
 const SaitoNFT = require('../../../../../lib/saito/ui/saito-nft/saito-nft');
 const ListingFieldEdit = require('./listing-field-edit');
+const { returnStoreWeb3Tickers, requestStoreWeb3Tickers } = ListingFieldEdit;
 const RentalListingTemplate = require('./rental-listing.template');
 const { yieldForPaint } = require('../purchase-service');
 const {
   isAutoSubmitListings,
-  isSubmitToMainStoreChecked,
-  attachSubmitToMainStoreCheckbox,
-  offerAutoSubmitOptInIfNeeded,
+  markStoreWeb3Active,
   scheduleSubmitAfterListingConfirmed
 } = require('../listing-approval');
 
@@ -35,6 +34,8 @@ class RentalListingOverlay {
 
     this.form = {
       price: '1',
+      web3_ticker: 'SAITO',
+      web3_amount: '1',
       duration_hours: 1,
       rights: 'all',
       amount: 1,
@@ -157,8 +158,9 @@ class RentalListingOverlay {
     return cleaned;
   }
 
-  formatPriceDisplay(price) {
-    return `${price} SAITO`;
+  formatPriceDisplay(price, ticker = this.form?.web3_ticker || 'SAITO') {
+    const currency = String(ticker || 'SAITO').trim().toUpperCase() || 'SAITO';
+    return `${price} ${currency}`;
   }
 
   async render({ source_nft = null, master_nft = null, defaults = {}, phase = null } = {}) {
@@ -248,8 +250,7 @@ class RentalListingOverlay {
       rights: this.form.rights || 'all',
       amount: this.form.amount,
       createdDate: new Date().toLocaleDateString(),
-      mediaHtml: this.returnMediaHtml(nft),
-      submitToMainStoreChecked: isAutoSubmitListings(this.app)
+      mediaHtml: this.returnMediaHtml(nft)
     };
 
     this.listing_busy = false;
@@ -317,8 +318,6 @@ class RentalListingOverlay {
       return;
     }
 
-    attachSubmitToMainStoreCheckbox(root, this.app);
-
     // Duration / rights / amount are fixed after mint — only presentation + listing price/title/desc.
 
     root.querySelector('[data-edit="title"]')?.addEventListener('click', (e) => {
@@ -363,21 +362,28 @@ class RentalListingOverlay {
 
     root.querySelector('[data-edit="price"]')?.addEventListener('click', (e) => {
       e.preventDefault();
+      requestStoreWeb3Tickers(this.app);
+      const ticker = String(this.form.web3_ticker || 'SAITO').trim().toUpperCase() || 'SAITO';
       this.field_edit.render({
         title: 'Edit Rental Price',
         value: String(this.form.price),
-        placeholder: 'Price in SAITO',
-        onSave: (raw) => {
+        placeholder: 'Price',
+        tickers: returnStoreWeb3Tickers(this.app, ticker),
+        ticker,
+        onSave: (raw, selectedTicker) => {
           const cleaned = String(raw || '')
             .trim()
             .replace(/[^\d.]/g, '');
           if (!cleaned) {
             return false;
           }
+          const nextTicker = String(selectedTicker || 'SAITO').trim().toUpperCase() || 'SAITO';
           this.form.price = cleaned;
+          this.form.web3_ticker = nextTicker;
+          this.form.web3_amount = cleaned;
           const el = root.querySelector('[data-field="price"]');
           if (el) {
-            el.textContent = `${cleaned} SAITO`;
+            el.textContent = this.formatPriceDisplay(cleaned, nextTicker);
           }
           return true;
         }
@@ -577,10 +583,6 @@ class RentalListingOverlay {
     };
 
     this.listing_busy = true;
-    const shouldSubmitToMainStore = isSubmitToMainStoreChecked(root);
-    if (shouldSubmitToMainStore) {
-      await offerAutoSubmitOptInIfNeeded(this.app);
-    }
     if (this.overlay && this.overlay.visible === false) {
       restore();
       return;
@@ -602,10 +604,13 @@ class RentalListingOverlay {
       this.form.amount = this.normalizeAmount(this.form.amount, max);
 
       const hours = this.form.duration_hours;
+      const ticker = String(this.form.web3_ticker || 'SAITO').trim().toUpperCase() || 'SAITO';
       const listing = {
         title: this.form.title || this.rental_nft.title || 'Rental NFT',
         description: this.form.description || this.rental_nft.description || '',
         price: this.form.price,
+        web3_ticker: ticker,
+        web3_amount: String(this.form.price || '').trim(),
         quantity_total: this.form.amount,
         quantity_available: this.form.amount,
         listing_mode: 'rent',
@@ -620,6 +625,9 @@ class RentalListingOverlay {
 
       const tx = await this.mod.createListAssetTransaction(this.rental_nft, listing);
       await this.app.network.propagateTransaction(tx);
+      if (ticker !== 'SAITO' && markStoreWeb3Active(this.app)) {
+        this.mod.main?.menu?.render?.();
+      }
 
       if (typeof this.defaults?.callback === 'function') {
         this.defaults.callback({ status: 'listed', tx });
@@ -627,7 +635,7 @@ class RentalListingOverlay {
       }
 
       this.beginListingProgress(tx, listing);
-      if (shouldSubmitToMainStore) {
+      if (isAutoSubmitListings(this.app)) {
         scheduleSubmitAfterListingConfirmed(this.app, this.mod, tx.signature);
       }
     } catch (err) {

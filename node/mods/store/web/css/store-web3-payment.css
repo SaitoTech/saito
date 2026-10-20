@@ -1,0 +1,150 @@
+/* Store web3 checkout. Opened directly on the deposit step. */
+
+.saito-overlay > .store-web3-payment {
+  width: min(60rem, 95vw);
+}
+
+.store-web3-payment {
+  position: relative;
+  padding: 2.5rem;
+  height: auto;
+  max-height: calc(100svh - 4rem);
+  overflow-y: auto;
+  border-radius: var(--saito-radius-lg);
+  box-shadow: var(--saito-elevation-3);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
+
+.store-web3-payment > .saito-overlay-form-header {
+  flex-shrink: 0;
+}
+
+.store-web3-payment .price {
+  font-weight: 700;
+  font-size: 3rem;
+}
+
+.store-web3-payment .product-desc {
+  font-size: 1.6rem;
+  font-weight: 600;
+  line-height: 1.4;
+  text-align: center;
+}
+
+.store-web3-payment .qrcode {
+  display: grid;
+  place-items: center;
+  width: min(22rem, 100%);
+  aspect-ratio: 1;
+}
+
+.store-web3-payment .qrcode img,
+.store-web3-payment .qrcode svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: 10px solid var(--saito-white);
+  background: var(--saito-white);
+}
+
+.store-web3-payment .address {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  text-align: center;
+  cursor: pointer;
+}
+
+.store-web3-payment .address .value {
+  display: inline;
+  overflow-wrap: anywhere;
+  text-align: center;
+}
+
+.store-web3-payment .address > i {
+  display: inline-block;
+  margin-left: 0.6rem;
+  vertical-align: middle;
+}
+
+.store-web3-payment .instructions,
+.store-web3-payment .payment-status {
+  width: 100%;
+  text-align: center;
+}
+
+.store-web3-payment .payment-status p {
+  margin: 0;
+  font-size: 1.25rem;
+  line-height: 1.4;
+}
+
+.store-web3-payment .payment-status p + p {
+  margin-top: 0.8rem;
+}
+
+.store-web3-payment .payment-status a {
+  color: inherit;
+}
+
+.store-web3-payment #store-web3-pay {
+  width: 100%;
+  margin: 0;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.store-web3-payment .details {
+  border: 1px solid var(--saito-border);
+  border-radius: var(--saito-radius-lg);
+  padding: 15px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.store-web3-payment.is-processing {
+  overflow: hidden;
+}
+
+.store-web3-payment.is-processing > :not(.payment-processing) {
+  filter: grayscale(1);
+  opacity: 0.45;
+}
+
+.store-web3-payment .payment-processing {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  padding: 2rem;
+  background: color-mix(in srgb, var(--saito-background) 55%, transparent);
+}
+
+.store-web3-payment .payment-processing-status {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5rem;
+  padding: 2rem;
+  border: 1px solid var(--saito-border);
+  border-radius: var(--saito-radius-lg);
+  background: var(--saito-background);
+  box-shadow: var(--saito-elevation-3);
+  text-align: center;
+}
+
+.store-web3-payment .payment-processing-status .saito-spinner {
+  width: 4.8rem;
+  min-width: 4.8rem;
+}
+
+.store-web3-payment .payment-processing-status p {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 600;
+}

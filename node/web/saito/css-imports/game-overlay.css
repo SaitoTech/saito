@@ -93,6 +93,21 @@
 
 /** For various common overlays**/
 
+/* Closable menu panels keep their own fill. retain-surface otherwise paints the popover. */
+.saito-overlay > .rules-overlay.retain-surface.saito-overlay-panel:not(.saitoa) {
+  background-color: var(--saito-background);
+  background-image: none;
+}
+
+.saito-overlay > .solitaire-stats-overlay.retain-surface.saito-overlay-panel {
+  background-color: #f5f5f5;
+  background-image: none;
+}
+
+.saito-overlay > .retain-surface.saito-overlay-panel > :is(h1, h2, h4):first-child {
+  padding-right: 4.8rem;
+}
+
 .rules-overlay {
   background-color: var(--saito-background);
   padding: 3.333rem;

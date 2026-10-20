@@ -294,7 +294,7 @@ class Settlers extends GameTemplate {
 
   loadSettings(container = null) {
     if (!container) {
-      this.overlay.show(
+      this.overlay.showClosable(
         `<div class="module-settings-overlay"><h2>${this.gamename} Settings</h2></div>`
       );
       container = '.module-settings-overlay';

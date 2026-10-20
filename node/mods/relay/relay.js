@@ -6,6 +6,10 @@ var ModTemplate = require('../../lib/templates/modtemplate');
 //var saito = require("../../lib/saito/saito");
 const JSON = require('json-bigint');
 
+// Same sender, recipients, and payload inside this window.
+const RELAY_REPEAT_WINDOW_MS = 150;
+const RELAY_REPEAT_ALLOWANCE = 2;
+
 /**
  *
  * Relay is a utility for sending offchain messages
@@ -36,6 +40,7 @@ class Relay extends ModTemplate {
     this.busy = false;
 
     this.stun = null;
+    this.repeated_relays = new Map();
 
     app.connection.on('relay-send-message', async (obj) => {
       this.sendRelayMessage(obj.recipient, obj.request, obj.data);
@@ -158,8 +163,63 @@ class Relay extends ModTemplate {
       console.warn('Invalid relay message:', recipients, message_request, message_data);
       return;
     }
+    if (
+      this.shouldDropRepeatedRelay(this.publicKey, recipients, message_request, message_data, 'out')
+    ) {
+      return;
+    }
     let newtx = await this.createRelayTransaction(recipients, message_request, message_data);
     await this.sendRelayTransaction(newtx);
+  }
+
+  // Allow two copies of a payload inside the window, then drop the rest.
+  shouldDropRepeatedRelay(fromKey, recipients, request, data, direction = 'in') {
+    if (!request) {
+      return false;
+    }
+
+    const to = (Array.isArray(recipients) ? recipients : [recipients])
+      .filter((key) => !!key)
+      .map((key) => String(key))
+      .sort()
+      .join(',');
+    let encoded = '';
+    try {
+      encoded = JSON.stringify(data ?? null);
+    } catch (err) {
+      return false;
+    }
+
+    const key = `${direction}|${fromKey || ''}|${to}|${request}|${encoded}`;
+    const now = Date.now();
+    if (this.repeated_relays.size > 200) {
+      for (const [entryKey, entry] of this.repeated_relays) {
+        entry.stamps = entry.stamps.filter((ts) => now - ts < RELAY_REPEAT_WINDOW_MS);
+        if (!entry.stamps.length) {
+          this.repeated_relays.delete(entryKey);
+        }
+      }
+    }
+
+    let entry = this.repeated_relays.get(key);
+    if (!entry) {
+      entry = { stamps: [], logged: false };
+      this.repeated_relays.set(key, entry);
+    }
+    entry.stamps = entry.stamps.filter((ts) => now - ts < RELAY_REPEAT_WINDOW_MS);
+    if (!entry.stamps.length) {
+      entry.logged = false;
+    }
+    if (entry.stamps.length >= RELAY_REPEAT_ALLOWANCE) {
+      if (!entry.logged) {
+        entry.logged = true;
+        console.warn(`Relay: dropping repeated "${request}" messages`);
+      }
+      return true;
+    }
+
+    entry.stamps.push(now);
+    return false;
   }
 
   async handlePeerTransaction(app, tx = null, peer, mycallback) {
@@ -220,6 +280,22 @@ class Relay extends ModTemplate {
           return 0;
         }
 
+        const recipients = relayed_tx.to.map((to) => to.publicKey);
+        if (
+          this.shouldDropRepeatedRelay(
+            relayed_tx.from?.[0]?.publicKey,
+            recipients,
+            txjson?.request,
+            txjson?.data,
+            'in'
+          )
+        ) {
+          if (mycallback != null) {
+            mycallback({ err: '', success: 1 });
+          }
+          return 1;
+        }
+
         //
         // if interior transaction is intended for me, I process regardless
         //
@@ -262,6 +338,7 @@ class Relay extends ModTemplate {
             }
           } else {
             console.info(`Relay ${txjson?.module} tx to ${peer_found} peers`);
+            return 1;
           }
         }
       }

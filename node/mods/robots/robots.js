@@ -123,7 +123,7 @@ class Robots extends OnePlayerGameTemplate {
       id: 'robots-rules',
       callback: () => {
         this.menu.hideSubMenus();
-        this.overlay.show(this.returnGameRulesHTML());
+        this.overlay.showClosable(this.returnGameRulesHTML());
       }
     });
     this.menu.addSubMenuOption('game-game', {

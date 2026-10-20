@@ -38,6 +38,8 @@ class Store extends ModTemplate {
     this.summaries = {};
     this.image_cache = {};
     this.store_public_key = '';
+    // Web3 purchases are accepted only from this key. Empty means none are authorized.
+    this.web3_payment_processor_publickey = 'cNACSaLdZQfbPkTTud4ezLWFYqRPUCMEt2dgLxJ9Axxx';
     this.store_peer_index = null;
     this.shared_listing_path = '';
     this.listings_to_moderate = 0;

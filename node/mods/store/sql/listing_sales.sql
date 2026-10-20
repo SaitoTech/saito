@@ -16,6 +16,19 @@ CREATE TABLE IF NOT EXISTS listing_sales (
   quantity_sold INTEGER NOT NULL DEFAULT 0,
   sold_at INTEGER NOT NULL DEFAULT 0,
 
+  -- Snapshot of this sale. Later listing edits do not change what was earned.
+  seller TEXT NOT NULL DEFAULT '',
+  web3_ticker TEXT NOT NULL DEFAULT '',
+  web3_amount TEXT NOT NULL DEFAULT '',
+
+  -- Filled together when this sale is included in a Mixin payout.
+  web3_payment_withdrawal_processed INTEGER NOT NULL DEFAULT 0,
+  web3_payment_withdrawal_address TEXT NOT NULL DEFAULT '',
+  web3_payment_withdrawal_publickey TEXT NOT NULL DEFAULT '',
+  web3_payment_withdrawal_request TEXT NOT NULL DEFAULT '',
+  web3_payment_withdrawal_created_at INTEGER NOT NULL DEFAULT 0,
+  web3_payment_withdrawal_mixin_uuid TEXT NOT NULL DEFAULT '',
+
   created_at INTEGER DEFAULT 0,
   updated_at INTEGER DEFAULT 0
 );

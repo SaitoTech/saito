@@ -1,12 +1,117 @@
 const SaitoOverlay = require('../../../../../lib/saito/ui/saito-overlay/saito-overlay');
 const ListingFieldEditTemplate = require('./listing-field-edit.template');
 
+const EXCLUDED_WEB3_TICKERS = new Set(['ERC-SAITO', 'BEP-SAITO']);
+
+function escapeHtml(value = '') {
+  return String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+function returnStoreWeb3Tickers(app, current = 'SAITO') {
+  const tickers = ['SAITO'];
+  const buysaito = app?.modules?.returnModule?.('BuySaito');
+  const currencies = Array.isArray(buysaito?.available_currencies) ? buysaito.available_currencies : [];
+  for (const currency of currencies) {
+    const ticker = String(currency?.ticker || '').trim().toUpperCase();
+    if (!ticker || ticker === 'SAITO' || EXCLUDED_WEB3_TICKERS.has(ticker)) {
+      continue;
+    }
+    if (!tickers.includes(ticker)) {
+      tickers.push(ticker);
+    }
+  }
+  const selected = String(current || '').trim().toUpperCase();
+  if (selected && !tickers.includes(selected)) {
+    tickers.push(selected);
+  }
+  return tickers;
+}
+
+function storeWeb3TickersAnswered(app) {
+  if (requestStoreWeb3Tickers.resolved) {
+    return true;
+  }
+  const buysaito = app?.modules?.returnModule?.('BuySaito');
+  const currencies = buysaito?.available_currencies;
+  // null is only assigned when a reply arrives without a currency list.
+  // [] is also the value before any reply, so it does not count as an answer.
+  if (currencies === null) {
+    requestStoreWeb3Tickers.resolved = true;
+    return true;
+  }
+  if (Array.isArray(currencies) && currencies.length) {
+    requestStoreWeb3Tickers.resolved = true;
+    return true;
+  }
+  return false;
+}
+
+function rememberStoreWeb3TickerResponse(app) {
+  if (requestStoreWeb3Tickers.listening || !app?.connection?.on) {
+    return;
+  }
+  requestStoreWeb3Tickers.listening = true;
+  app.connection.on('saito-purchase-cryptos', () => {
+    requestStoreWeb3Tickers.resolved = true;
+    requestStoreWeb3Tickers.pending = false;
+  });
+}
+
+function requestStoreWeb3Tickers(app) {
+  const buysaito = app?.modules?.returnModule?.('BuySaito');
+  if (!buysaito?.authorized_public_key) {
+    return;
+  }
+  rememberStoreWeb3TickerResponse(app);
+  if (storeWeb3TickersAnswered(app) || requestStoreWeb3Tickers.pending) {
+    return;
+  }
+  requestStoreWeb3Tickers.pending = true;
+  app.connection.emit('relay-send-message', {
+    recipient: buysaito.authorized_public_key,
+    request: 'buysaito available currencies',
+    data: null
+  });
+}
+
+requestStoreWeb3Tickers.resolved = false;
+requestStoreWeb3Tickers.pending = false;
+requestStoreWeb3Tickers.listening = false;
+requestStoreWeb3Tickers.reset = () => {
+  requestStoreWeb3Tickers.resolved = false;
+  requestStoreWeb3Tickers.pending = false;
+  requestStoreWeb3Tickers.listening = false;
+};
+
 class ListingFieldEdit {
   constructor(app, mod) {
     this.app = app;
     this.mod = mod;
     this.overlay = new SaitoOverlay(app, mod);
     this.onSave = null;
+
+    this.app.connection.on('saito-purchase-cryptos', () => {
+      this.refreshTickerSelect();
+    });
+  }
+
+  refreshTickerSelect() {
+    const select = document.getElementById('saito-overlay-form-ticker');
+    if (!select) {
+      return;
+    }
+    const current = select.value || 'SAITO';
+    const tickers = returnStoreWeb3Tickers(this.app, current);
+    select.innerHTML = tickers
+      .map(
+        (ticker) =>
+          `<option value="${escapeHtml(ticker)}"${ticker === current ? ' selected' : ''}>${escapeHtml(ticker)}</option>`
+      )
+      .join('');
   }
 
   /**
@@ -27,7 +132,9 @@ class ListingFieldEdit {
         value: options.value ?? '',
         multiline: !!options.multiline,
         inputType: options.inputType || 'text',
-        placeholder: options.placeholder || ''
+        placeholder: options.placeholder || '',
+        tickers: options.tickers || null,
+        ticker: options.ticker || 'SAITO'
       })
     );
 
@@ -54,8 +161,9 @@ class ListingFieldEdit {
     form.querySelector('.saito-overlay-form-submit')?.addEventListener('click', (e) => {
       e.preventDefault();
       const value = input.value ?? '';
+      const ticker = form.querySelector('[data-field="ticker"]')?.value || '';
       if (typeof this.onSave === 'function') {
-        const ok = this.onSave(value);
+        const ok = this.onSave(value, ticker);
         if (ok === false) {
           return;
         }
@@ -71,3 +179,6 @@ class ListingFieldEdit {
 }
 
 module.exports = ListingFieldEdit;
+module.exports.returnStoreWeb3Tickers = returnStoreWeb3Tickers;
+module.exports.requestStoreWeb3Tickers = requestStoreWeb3Tickers;
+module.exports.storeWeb3TickersAnswered = storeWeb3TickersAnswered;

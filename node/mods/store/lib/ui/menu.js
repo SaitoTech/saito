@@ -1,4 +1,5 @@
 const MenuTemplate = require('./menu.template');
+const { isStoreWeb3Active } = require('./listing-approval');
 
 class Menu {
   constructor(app, mod, container = '', callbacks = {}) {
@@ -62,7 +63,10 @@ class Menu {
 
     const html =
       this.mode === 'dashboard'
-        ? MenuTemplate.dashboard({ dashboardView: this.dashboardView })
+        ? MenuTemplate.dashboard({
+            dashboardView: this.dashboardView,
+            showWithdrawals: isStoreWeb3Active(this.app)
+          })
         : MenuTemplate.browse({ showMyStore: this.has_store });
 
     this.app.browser.replaceElementContentBySelector(html, this.container);
@@ -176,7 +180,7 @@ class Menu {
     } else if (storeMode === 'active') {
       this.dashboardView = dashboardView === 'active' ? 'active' : 'store-admin';
     } else if (dashboardView) {
-      this.dashboardView = ['store-admin', 'active', 'sold'].includes(dashboardView)
+      this.dashboardView = ['store-admin', 'active', 'sold', 'withdrawals'].includes(dashboardView)
         ? dashboardView
         : 'store-admin';
     }
@@ -184,7 +188,7 @@ class Menu {
   }
 
   setDashboardView(dashboardView = 'store-admin') {
-    this.dashboardView = ['store-admin', 'active', 'sold'].includes(dashboardView)
+    this.dashboardView = ['store-admin', 'active', 'sold', 'withdrawals'].includes(dashboardView)
       ? dashboardView
       : 'store-admin';
     if (this.mode !== 'dashboard' || !this.container) {
@@ -200,7 +204,7 @@ class Menu {
 
   setActive(view = '') {
     if (this.mode === 'dashboard') {
-      this.dashboardView = ['store-admin', 'active', 'sold'].includes(view)
+      this.dashboardView = ['store-admin', 'active', 'sold', 'withdrawals'].includes(view)
         ? view
         : this.dashboardView;
     } else {

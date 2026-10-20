@@ -34,8 +34,8 @@ function browseTemplate({ showMyStore = false } = {}) {
 }
 
 /** Seller admin sidebar — Admin Home with indented children + View Store. */
-function dashboardTemplate({ dashboardView = 'store-admin' } = {}) {
-  const view = ['store-admin', 'active', 'sold'].includes(dashboardView)
+function dashboardTemplate({ dashboardView = 'store-admin', showWithdrawals = false } = {}) {
+  const view = ['store-admin', 'active', 'sold', 'withdrawals'].includes(dashboardView)
     ? dashboardView
     : 'store-admin';
 
@@ -55,6 +55,7 @@ function dashboardTemplate({ dashboardView = 'store-admin' } = {}) {
       ${item('store-admin', 'Admin Home')}
       ${item('active', 'Listings', { child: true })}
       ${item('sold', 'Sales', { child: true })}
+      ${showWithdrawals ? item('withdrawals', 'Withdrawals', { child: true }) : ''}
       <li class="item child" role="button" tabindex="0" data-action="settings">
         <span class="caret" aria-hidden="true">&gt;</span>
         <span class="label">Settings</span>

@@ -232,7 +232,7 @@ class RobotsUI {
     const arena = root.querySelector('.arena');
     const handleAction = async (action) => {
       if (action === 'leaderboard') return this.mod.leaderboard.show();
-      if (action === 'rules') return this.mod.overlay.show(this.mod.returnGameRulesHTML());
+      if (action === 'rules') return this.mod.overlay.showClosable(this.mod.returnGameRulesHTML());
       if (action === 'restart') {
         this.confirming = true;
         try {

@@ -47,9 +47,15 @@ class Database {
       'ALTER TABLE listings ADD COLUMN quantity_sold INTEGER NOT NULL DEFAULT 0',
       'ALTER TABLE listings ADD COLUMN sold_at INTEGER NOT NULL DEFAULT 0',
       'ALTER TABLE listings ADD COLUMN approved INTEGER NOT NULL DEFAULT 0',
-      'ALTER TABLE listings ADD COLUMN risk TEXT NOT NULL DEFAULT ""'
+      'ALTER TABLE listings ADD COLUMN risk TEXT NOT NULL DEFAULT ""',
+      'ALTER TABLE listings ADD COLUMN web3_ticker TEXT NOT NULL DEFAULT ""',
+      'ALTER TABLE listings ADD COLUMN web3_amount TEXT NOT NULL DEFAULT ""'
     ];
-    const summary_columns = ['ALTER TABLE summary ADD COLUMN category TEXT DEFAULT "Other"'];
+    const summary_columns = [
+      'ALTER TABLE summary ADD COLUMN category TEXT DEFAULT "Other"',
+      'ALTER TABLE summary ADD COLUMN web3_ticker TEXT NOT NULL DEFAULT ""',
+      'ALTER TABLE summary ADD COLUMN web3_amount TEXT NOT NULL DEFAULT ""'
+    ];
     const order_columns = [
       'ALTER TABLE orders ADD COLUMN quantity INTEGER NOT NULL DEFAULT 1',
       'ALTER TABLE orders ADD COLUMN payment_utxo_slip TEXT NOT NULL DEFAULT ""',
@@ -97,6 +103,25 @@ class Database {
     const statements = this.returnSchemaStatements('listing_sales.sql');
     for (const sql of statements) {
       await db.exec(sql);
+    }
+
+    const sale_columns = [
+      'ALTER TABLE listing_sales ADD COLUMN seller TEXT NOT NULL DEFAULT ""',
+      'ALTER TABLE listing_sales ADD COLUMN web3_ticker TEXT NOT NULL DEFAULT ""',
+      'ALTER TABLE listing_sales ADD COLUMN web3_amount TEXT NOT NULL DEFAULT ""',
+      'ALTER TABLE listing_sales ADD COLUMN web3_payment_withdrawal_processed INTEGER NOT NULL DEFAULT 0',
+      'ALTER TABLE listing_sales ADD COLUMN web3_payment_withdrawal_address TEXT NOT NULL DEFAULT ""',
+      'ALTER TABLE listing_sales ADD COLUMN web3_payment_withdrawal_publickey TEXT NOT NULL DEFAULT ""',
+      'ALTER TABLE listing_sales ADD COLUMN web3_payment_withdrawal_request TEXT NOT NULL DEFAULT ""',
+      'ALTER TABLE listing_sales ADD COLUMN web3_payment_withdrawal_created_at INTEGER NOT NULL DEFAULT 0',
+      'ALTER TABLE listing_sales ADD COLUMN web3_payment_withdrawal_mixin_uuid TEXT NOT NULL DEFAULT ""'
+    ];
+    for (const sql of sale_columns) {
+      try {
+        await db.exec(sql);
+      } catch (err) {
+        // column already exists
+      }
     }
 
     await db.exec(
@@ -402,7 +427,7 @@ class Database {
         ? row.risk
         : '';
     const sql = `INSERT INTO listings (
-			  signature, nft_id, seller, category, quantity, price,
+			  signature, nft_id, seller, category, quantity, price, web3_ticker, web3_amount,
 			  access_hash, access_script, p2sh_address, slip_id,
 			  block_id_listed, block_hash_listed, transaction_id_listed, longest_chain_listed,
 			  block_id_sold, block_hash_sold, transaction_id_sold, longest_chain_sold,
@@ -410,7 +435,7 @@ class Database {
 			  utxo_slip1, utxo_slip2, utxo_slip3,
 			  created_at, updated_at, risk, approved
 			) VALUES (
-			  $signature, $nft_id, $seller, $category, $quantity, $price,
+			  $signature, $nft_id, $seller, $category, $quantity, $price, $web3_ticker, $web3_amount,
 			  $access_hash, $access_script, $p2sh_address, $slip_id,
 			  $block_id_listed, $block_hash_listed, $transaction_id_listed, $longest_chain_listed,
 			  $block_id_sold, $block_hash_sold, $transaction_id_sold, $longest_chain_sold,
@@ -425,6 +450,8 @@ class Database {
       $category: row.category || STORE_CATEGORIES.OTHER,
       $quantity: Number(row.quantity ?? 1),
       $price: Number(row.price ?? 0),
+      $web3_ticker: String(row.web3_ticker || '').trim().toUpperCase(),
+      $web3_amount: String(row.web3_amount || '').trim(),
       $access_hash: row.access_hash || '',
       $access_script: row.access_script || '',
       $p2sh_address: row.p2sh_address || '',
@@ -1492,15 +1519,17 @@ class Database {
 
   async insertSummary(summary) {
     const sql = `INSERT INTO summary (
-			  nft_id, price, category, title, description, image,
+			  nft_id, price, web3_ticker, web3_amount, category, title, description, image,
 			  quantity_available, updated_at
 			) VALUES (
-			  $nft_id, $price, $category, $title, $description, $image,
+			  $nft_id, $price, $web3_ticker, $web3_amount, $category, $title, $description, $image,
 			  $quantity_available, $updated_at
 			)`;
     const params = {
       $nft_id: summary.nft_id,
       $price: Number(summary.price ?? 0),
+      $web3_ticker: String(summary.web3_ticker || '').trim().toUpperCase(),
+      $web3_amount: String(summary.web3_amount || '').trim(),
       $category: summary.category || STORE_CATEGORIES.OTHER,
       $title: summary.title || '',
       $description: summary.description || '',
@@ -1515,6 +1544,21 @@ class Database {
       throw new Error('Store database unavailable');
     }
     await db.run(sql, params);
+  }
+
+  async updateSummaryWeb3(nft_id, price, { web3_ticker = '', web3_amount = '' } = {}) {
+    await this.app.storage.runDatabase(
+      `UPDATE summary
+			    SET web3_ticker = $web3_ticker, web3_amount = $web3_amount
+			  WHERE nft_id = $nft_id AND price = $price`,
+      {
+        $nft_id: nft_id,
+        $price: Number(price ?? 0),
+        $web3_ticker: String(web3_ticker || '').trim().toUpperCase(),
+        $web3_amount: String(web3_amount || '').trim()
+      },
+      this.dbname
+    );
   }
 
   async returnSummary(summary_id) {

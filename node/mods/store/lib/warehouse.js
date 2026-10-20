@@ -957,6 +957,8 @@ class Warehouse {
       description: String(meta.description ?? '').trim(),
       image,
       price,
+      web3_ticker: row.web3_ticker || meta.web3_ticker || '',
+      web3_amount: row.web3_amount || meta.web3_amount || '',
       quantity_available: sold ? 0 : qty,
       quantity_total: qty,
       listing_signature: row.signature || '',
@@ -1408,6 +1410,11 @@ class Warehouse {
       }
     }
 
+    await this.db.updateSummaryWeb3(nft_id, price, {
+      web3_ticker: listing.web3_ticker || '',
+      web3_amount: listing.web3_amount || ''
+    });
+
     const summary = new Summary(this.app, this.mod, {
       nft_id,
       seller: listing.seller || existing?.seller || '',
@@ -1416,6 +1423,8 @@ class Warehouse {
       description: description !== '' ? description : existing?.description || '',
       image: null,
       price,
+      web3_ticker: listing.web3_ticker || existing?.web3_ticker || '',
+      web3_amount: listing.web3_amount || existing?.web3_amount || '',
       quantity_available: available,
       quantity_total: available,
       listing_signature: listing.signature || '',
@@ -1518,7 +1527,12 @@ class Warehouse {
 
     const meta = txmsg.listing || {};
     const fulfill = txmsg.fulfill_sale || {};
-    const price_nolan = Number(this.app.wallet.convertSaitoToNolan(meta.price ?? 0) ?? 0);
+    const web3_ticker = String(meta.web3_ticker || '').trim().toUpperCase();
+    const web3_amount = String(meta.web3_amount || '').trim();
+    const web3_sale = web3_ticker !== '' && web3_ticker !== 'SAITO';
+    const price_nolan = web3_sale
+      ? 0
+      : Number(this.app.wallet.convertSaitoToNolan(meta.price ?? 0) ?? 0);
     const change_qty = inventory_triple[0]?.amount;
 
     // Bound from[0] is mint creator metadata; ownership is Normal/ATR from[1].
@@ -1540,6 +1554,8 @@ class Warehouse {
       category,
       quantity: Number(change_qty ?? nft.amount ?? inventory_triple[0]?.amount ?? 1) || 1,
       price: price_nolan,
+      web3_ticker: web3_sale ? web3_ticker : '',
+      web3_amount: web3_sale ? web3_amount || String(meta.price || '').trim() : '',
       access_hash: txmsg.access_hash || '',
       access_script: txmsg.access_script || '',
       p2sh_address: script_address,

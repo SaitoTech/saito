@@ -22,6 +22,8 @@ class Summary {
     this.description = data.description || '';
     this.image = data.image ?? null;
     this.price = data.price ?? 0;
+    this.web3_ticker = String(data.web3_ticker || '').trim().toUpperCase();
+    this.web3_amount = String(data.web3_amount || '').trim();
     this.quantity_available = data.quantity_available ?? data.quantity ?? 0;
     this.quantity_total = data.quantity_total ?? Number(this.quantity_available);
     this.status = data.status ?? SUMMARY_STATUS_ACTIVE;
@@ -147,6 +149,11 @@ class Summary {
 
   returnPrice() {
     this.hydrateFromListingTransaction();
+    const ticker = String(this.web3_ticker || '').trim().toUpperCase();
+    const amount = String(this.web3_amount || '').trim();
+    if (ticker && ticker !== 'SAITO' && amount) {
+      return `${amount} ${ticker}`;
+    }
     try {
       const nolan = BigInt(this.price ?? 0);
       if (nolan > 0n && this.app?.wallet?.convertNolanToSaito) {
@@ -233,6 +240,8 @@ class Summary {
       description: this.description,
       listing_signature: this.listing_signature || '',
       price: this.price,
+      web3_ticker: this.web3_ticker || '',
+      web3_amount: this.web3_amount || '',
       quantity_total: this.quantity_total,
       quantity_available: this.quantity_available,
       status: this.status,

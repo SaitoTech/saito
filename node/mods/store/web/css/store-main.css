@@ -265,6 +265,7 @@
 .store > .main-column > .manager > [data-panel='browse'].is-active,
 .store > .main-column > .manager > [data-panel='my-listings'].is-active,
 .store > .main-column > .manager > [data-panel='sales'].is-active,
+.store > .main-column > .manager > [data-panel='withdrawals'].is-active,
 .store > .main-column > .manager > [data-panel='moderate'].is-active {
   display: contents;
 }

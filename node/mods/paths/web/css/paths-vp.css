@@ -1,4 +1,9 @@
 .game.paths {
+  .saito-overlay > .vp-overlay.retain-surface {
+    background-color: #f4f4f4;
+    background-image: none;
+  }
+
   .vp-overlay {
     width: 90vw;
     height: auto;

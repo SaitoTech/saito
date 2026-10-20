@@ -455,6 +455,13 @@
     font-weight: bold;
     text-transform: uppercase;
   }
+  .bighand.retain-surface {
+    background-color: var(--saito-popover);
+    background-image: var(--saito-popover-wash);
+    color: var(--saito-popover-foreground);
+    padding: 2rem 4.8rem 2rem 2rem;
+  }
+
   .welcome_overlay {
     display: block;
     width: 70vw;

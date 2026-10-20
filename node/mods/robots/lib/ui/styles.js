@@ -74,6 +74,7 @@ body:has(.robots-game) { margin: 0; background: #080e1b; overflow: auto; }
 .robots-game .wave-result button { color: #58d8c1; padding: 14px 24px; }
 .robots-game footer { padding-top: 28px; display: flex; justify-content: space-between; gap: 12px; color: #6c879d; font-size: 10px; }
 .robots-rules { box-sizing: border-box; width: min(900px, calc(100vw - 32px)); max-height: calc(100dvh - 32px); overflow-y: auto; padding: 28px; background: #0a1421; border: 2px solid #456079; font-size: 12px; line-height: 2; }
+.saito-overlay > .robots-rules.retain-surface { background: #0a1421; }
 .robots-rules h1 { font-size: 24px; color: #ff4555; }
 .robots-rules h2 { margin-top: 20px; font-size: 14px; color: #58d8c1; }
 .robots-rules p { overflow-wrap: anywhere; margin: 12px 0; }
