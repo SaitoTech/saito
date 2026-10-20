@@ -34,8 +34,7 @@ module.exports = {
       ? `
               <div><dt>Duration</dt><dd>${view.rentalDuration || '—'}</dd></div>
               <div><dt>Rights</dt><dd>${view.rentalRights || 'All rights'}</dd></div>`
-      : `
-              <div><dt>File</dt><dd>${view.fileType}</dd></div>`;
+      : '';
 
     const note = view.isRental
       ? `<p class="rental-note">One rental NFT is transferred per rent. This grants temporary access to the protected file for the listed duration.</p>`

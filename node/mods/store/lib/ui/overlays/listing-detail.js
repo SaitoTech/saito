@@ -81,21 +81,6 @@ class ListingDetailOverlay {
     return ListingDetailTemplate.mediaText(this.escapeHtml(textContent));
   }
 
-  returnFileTypeFromImages(images = []) {
-    const sample = images[0] || '';
-    if (!sample) {
-      return 'unknown';
-    }
-    if (sample.startsWith('data:image/')) {
-      return 'image';
-    }
-    const ext = sample.split('?')[0].split('.').pop()?.toLowerCase() || '';
-    if (['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg', 'avif'].includes(ext)) {
-      return `image/${ext}`;
-    }
-    return ext || 'unknown';
-  }
-
   returnFileTypeFromNft(nft) {
     const type = nft?.returnType?.() || nft?.nft_type || 'unknown';
     if (type === 'image') {
@@ -222,7 +207,6 @@ class ListingDetailOverlay {
       description,
       hasDescription: !!description,
       productType: this.escapeHtml(this.returnProductType(summary)),
-      fileType: this.escapeHtml(this.returnFileTypeFromImages(rawImages)),
       createdDate: this.escapeHtml(this.returnCreatedDate(summary)),
       imageLoading: summary.isImageLoading?.() ?? false,
       isRental,
