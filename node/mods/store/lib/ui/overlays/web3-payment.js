@@ -1,5 +1,6 @@
 const SaitoOverlay = require('../../../../../lib/saito/ui/saito-overlay/saito-overlay');
 const Web3PaymentTemplate = require('./web3-payment.template');
+const { sendInsufficientFundsFollowup } = require('../../email');
 
 const INSTRUCTION_TIMEOUT_MS = 35000;
 
@@ -71,6 +72,10 @@ class Web3PaymentOverlay {
     this.internal_payment_pending = false;
     this.internal_payment_sending = false;
     this.statusLead = '';
+    this.fundsNotice = false;
+    this.followupSent = false;
+    this.followupEmail = '';
+    this.followupError = '';
     this.instruction_timer = null;
     this.reservation_timer = null;
   }
@@ -284,8 +289,44 @@ class Web3PaymentOverlay {
       return;
     }
     this.payment_detected = true;
+    this.fundsNotice = false;
     this.clearTimers();
     this.statusLead = 'Payment received. Completing your purchase...';
+    this.render();
+  }
+
+  showInsufficientFunds() {
+    this.clearTimers();
+    this.fundsNotice = true;
+    this.followupError = '';
+    this.render();
+  }
+
+  submitFollowupEmail(raw) {
+    const email = String(raw || '').trim();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      this.followupError = 'Enter an email address to be notified.';
+      this.render();
+      return;
+    }
+
+    const sent = sendInsufficientFundsFollowup(this.app, {
+      email,
+      title: this.title,
+      payment: this.amountLabel(),
+      nftId: this.summary?.nft_id,
+      publicKey: this.payer,
+      reservationId: this.reservation?.id
+    });
+    if (!sent) {
+      this.followupError = 'The notice could not be sent. Email info@saito.io for assistance.';
+      this.render();
+      return;
+    }
+
+    this.followupEmail = email;
+    this.followupSent = true;
+    this.followupError = '';
     this.render();
   }
 
@@ -302,8 +343,7 @@ class Web3PaymentOverlay {
       ) {
         return;
       }
-      this.clearTimers();
-      this.fail('The payment service does not have enough SAITO to complete this purchase yet.');
+      this.showInsufficientFunds();
       return;
     }
     if (!data?.message) {
@@ -432,14 +472,18 @@ class Web3PaymentOverlay {
           ? `${this.app.browser.formatDecimals(balance, true)} ${this.ticker}`
           : '',
         processing: this.internal_payment_pending,
-        statusLead: this.statusLead
+        statusLead: this.statusLead,
+        fundsNotice: this.fundsNotice,
+        followupSent: this.followupSent,
+        followupEmail: this.followupEmail,
+        followupError: this.followupError
       }),
       () => {
         this.active = false;
         this.clearTimers();
       }
     );
-    if (this.destination) {
+    if (this.destination && !this.fundsNotice) {
       this.overlay.blockClose();
       this.app.browser.generateQRCode(this.destination, 'store-web3-qrcode');
     }
@@ -454,6 +498,11 @@ class Web3PaymentOverlay {
     root.querySelector('#store-web3-pay')?.addEventListener('click', (e) => {
       e.preventDefault();
       this.payFromWallet();
+    });
+    root.querySelector('.funds-notice-form')?.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const input = root.querySelector('#store-web3-followup-email');
+      this.submitFollowupEmail(input?.value);
     });
     root.querySelector('.address')?.addEventListener('click', async () => {
       if (!this.destination) {

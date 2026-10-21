@@ -86,8 +86,54 @@
   margin-top: 0.8rem;
 }
 
-.store-web3-payment .payment-status a {
+.store-web3-payment .payment-status a,
+.store-web3-payment .funds-notice a {
   color: inherit;
+  text-decoration: underline dashed;
+  text-underline-offset: 0.18em;
+}
+
+.store-web3-payment .funds-notice {
+  width: 100%;
+  text-align: center;
+}
+
+.store-web3-payment .funds-notice h3 {
+  margin: 0 0 0.8rem;
+  font-size: 1.8rem;
+  line-height: 1.3;
+}
+
+.store-web3-payment .funds-notice p {
+  margin: 0;
+  font-size: 1.25rem;
+  line-height: 1.4;
+}
+
+.store-web3-payment .funds-notice-form {
+  display: flex;
+  gap: 0.8rem;
+  width: 100%;
+  margin: 1.2rem 0;
+}
+
+.store-web3-payment .funds-notice-form .saito-input {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.store-web3-payment .funds-notice-form .saito-button-primary {
+  flex: 0 0 auto;
+  margin: 0;
+}
+
+.store-web3-payment .funds-notice-sent,
+.store-web3-payment .funds-notice-error {
+  margin: 1.2rem 0;
+}
+
+.store-web3-payment .funds-notice-error {
+  color: var(--saito-destructive, #d45b5b);
 }
 
 .store-web3-payment #store-web3-pay {
