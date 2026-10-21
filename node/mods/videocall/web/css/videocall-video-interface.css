@@ -1159,67 +1159,113 @@ video#presentation {
 /* 10. In-call settings overlay                                        */
 /* ------------------------------------------------------------------ */
 
-.videocall-option-label {
-  display: grid;
-  grid-template-columns: 0.07fr 1fr 0.1fr;
-  gap: 1.5rem;
-  align-items: center;
-  cursor: pointer;
-  background: var(--stun-noir-surface-high);
-  border-radius: 0.9rem;
-  padding: 1rem 1.2rem;
-  font-size: 1.7rem;
-  border: 1px solid transparent;
-}
-
-.videocall-option-label.active,
-.videocall-option-label:hover {
-  border-color: var(--stun-noir-accent-glow);
-}
-
-.videocall-setting-grid-item {
-  display: grid;
-  background: var(--stun-noir-surface-low);
-  color: var(--stun-noir-text);
+.videocall-settings-modal {
+  width: min(58rem, calc(100vw - 3rem));
+  min-width: 0;
+  max-width: none;
+  grid-template-rows: min-content minmax(0, 1fr);
+  max-height: calc(100dvh - 4rem);
+  overflow-y: auto;
+  background: var(--saito-background);
+  color: var(--saito-foreground);
   padding: 2rem;
-  font-size: 1.75rem;
-  border-radius: 0.9rem;
-  border: 1px solid var(--stun-noir-outline) !important;
+  border-radius: var(--saito-radius);
+  border: 1px solid var(--saito-border);
 }
 
-.videocall-setting-grid-item .saito-modal-title {
-  font-family: 'Space Grotesk', Manrope, sans-serif;
+.videocall-settings-modal .saito-modal-title {
   font-size: 2.2rem;
-  letter-spacing: -0.02em;
+  margin-bottom: 1.5rem;
 }
 
-.videocall-settings-content {
-  display: grid;
-  align-content: start;
-  gap: 1.2rem;
-}
-
+.videocall-settings-content,
 .stun-settings-shell {
   display: grid;
-  gap: 1.2rem;
+  gap: 1.5rem;
+  min-width: 0;
 }
 
-.stun-settings-privacy {
-  background: var(--stun-noir-surface-low);
-  padding: 1.2rem;
-  border-radius: 0.9rem;
-  border: 1px solid var(--stun-noir-outline);
+.videocall-settings-group {
+  display: block;
+  min-width: 0;
+  margin: 0;
+  padding: 1rem;
+  border: 1px solid var(--saito-border);
+  border-radius: var(--saito-radius);
 }
 
-.stun-settings-privacy .settings-label {
-  color: var(--stun-noir-accent);
-  margin-bottom: 1rem;
+.videocall-settings-group[hidden],
+.videocall-settings-group [hidden] {
+  display: none;
 }
 
-.videocall-settings-content legend.videocall-settings-heading {
+.videocall-settings-group .videocall-settings-heading {
+  width: auto;
+  padding: 0 0.5rem;
   color: var(--saito-foreground);
+  font-size: 1.6rem;
+  font-weight: 600;
   letter-spacing: normal;
   text-transform: none;
+}
+
+.videocall-settings-group .videocall-settings-option {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  min-height: 4.4rem;
+  padding: 0.8rem 1rem;
+  margin: 0;
+  border: 1px solid transparent;
+  border-radius: var(--saito-radius);
+  font-size: 1.6rem;
+  line-height: 1.4;
+  cursor: pointer;
+}
+
+.videocall-settings-option:hover,
+.videocall-settings-option:has(input:checked) {
+  background: var(--saito-accent);
+}
+
+.videocall-settings-option:focus-within {
+  border-color: var(--saito-primary);
+}
+
+.videocall-settings-option input[type='radio'],
+.videocall-settings-option input[type='checkbox'] {
+  flex: 0 0 auto;
+  width: 1.8rem;
+  height: 1.8rem;
+  margin: 0;
+  accent-color: var(--saito-primary);
+}
+
+.videocall-settings-option i {
+  width: 2.2rem;
+  text-align: center;
+}
+
+.videocall-settings-help {
+  margin: 0.5rem 1rem;
+  color: var(--saito-muted-foreground);
+  font-size: 1.3rem;
+}
+
+.videocall-settings-group .videocall-device-option {
+  display: grid;
+  gap: 0.5rem;
+  margin: 0.5rem 0;
+  font-size: 1.4rem;
+}
+
+.videocall-settings-group .videocall-device-option[hidden] {
+  display: none;
+}
+
+.videocall-device-option select {
+  width: 100%;
+  min-width: 0;
 }
 
 /* ------------------------------------------------------------------ */
@@ -1246,23 +1292,6 @@ video#presentation {
     gap: 1rem;
     min-height: 0;
     overflow-y: auto;
-  }
-
-  .videocall-layout-options,
-  .stun-settings-privacy {
-    grid-template-columns: 2rem minmax(0, 1fr);
-    align-content: start;
-    gap: 0.8rem 1rem;
-    width: 100%;
-    margin: 0;
-    padding: 1.2rem;
-  }
-
-  .videocall-option-label {
-    grid-template-columns: 2.4rem minmax(0, 1fr);
-    gap: 1rem;
-    min-height: 4.4rem;
-    padding: 0.8rem 1rem;
   }
 
   .stun-settings-shell {
@@ -1432,4 +1461,58 @@ video#presentation {
   .stun-toolbar-shell .icon_click_area i {
     font-size: 16px;
   }
+}
+
+/* Opt-in diagnostics stay inside each media tile, including small video views. */
+.videocall-diagnostics {
+  position: absolute;
+  top: 0.5rem;
+  left: 0.5rem;
+  right: 0.5rem;
+  max-height: calc(100% - 5rem);
+  overflow: auto;
+  z-index: 5;
+  padding: 0.5rem 0.8rem;
+  background: var(--saito-background);
+  color: var(--saito-foreground);
+  border: 1px solid var(--saito-border);
+  border-radius: var(--saito-radius);
+  text-align: left;
+  user-select: text;
+  font-size: 1.2rem;
+}
+
+.videocall-diagnostics summary {
+  cursor: pointer;
+  padding: 0.4rem 0;
+  font-weight: 600;
+}
+
+.videocall-diagnostics pre {
+  margin: 0.5rem 0;
+  font: 1.1rem/1.5 monospace;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.videocall-diagnostics .videocall-diagnostics-log {
+  max-height: 16rem;
+  overflow-y: auto;
+}
+
+.audio-box:has(.videocall-diagnostics) {
+  position: relative;
+  min-width: 24rem;
+  min-height: 18rem;
+}
+
+.videocall-settings-group legend.videocall-settings-heading {
+  display: block;
+}
+
+.small-audio-chatbox:has(.videocall-diagnostics) {
+  max-width: calc(100vw - 2rem);
+  max-height: calc(100dvh - 2rem);
+  overflow: auto;
+  flex-wrap: wrap;
 }

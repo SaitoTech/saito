@@ -277,6 +277,9 @@ class CallInterfaceVideo {
       }
     }
 
+    // Keep a local tile available even when capture fails before a stream exists.
+    this.createVideoBox('local', this.local_container);
+    this.setDisplayContainers();
     this.rendered = true;
   }
 

@@ -69,6 +69,7 @@ class StreamManager {
               }
             });
           } catch (err) {
+            this.mod.diagnostics?.record('local', `Enable camera failed: ${err.name}`);
             console.error('TALK [stun-toggle-video] ERROR:', err);
           }
         } else {
@@ -167,6 +168,7 @@ class StreamManager {
 
         this.app.connection.emit('toggle-screen-share-label', true);
       } catch (err) {
+        this.mod.diagnostics?.record('local', `Screen capture failed: ${err.name}`);
         console.error('TALK [begin-screen-share]: Error:', err);
       }
     });
@@ -352,6 +354,10 @@ class StreamManager {
       console.debug(JSON.parse(JSON.stringify(this.mod.room_obj)));
 
       if (this.mod.room_obj.call_peers.includes(publicKey)) {
+        // Show status even if capture or signaling fails before media arrives.
+        if (!this.remoteStreams.has(publicKey)) {
+          this.app.connection.emit('add-remote-stream-request', publicKey, null);
+        }
         peerConnection.firstConnect = true;
 
         await this.getLocalMedia();
@@ -371,8 +377,10 @@ class StreamManager {
                 track
               );
               peerConnection.addTrack(track);
+              this.mod.diagnostics?.record(publicKey, `Attached local ${track.kind} track`);
             });
           } catch (err) {
+            this.mod.diagnostics?.record(publicKey, `Attach media failed: ${err.name}`);
             console.error(err);
           }
 
@@ -499,16 +507,23 @@ class StreamManager {
 
     console.debug('TALK [getLocalMedia]: ', this.videoSource, this.audioSource, c);
 
+    this.mod.diagnostics?.record('local', `Requesting media: video=${!!c.video}, audio=${!!c.audio}`);
     //Get my local media
     try {
       this.localStream = await navigator.mediaDevices.getUserMedia(c);
     } catch (err) {
       console.warn('TALK [getLocalMedia] Problem attempting to get User Media', err);
 
+      this.mod.diagnostics?.record('local', `Media capture failed: ${err.name}; retrying audio only`);
       this.videoEnabled = false;
       c.video = false;
 
-      this.localStream = await navigator.mediaDevices.getUserMedia(c);
+      try {
+        this.localStream = await navigator.mediaDevices.getUserMedia(c);
+      } catch (error) {
+        this.mod.diagnostics?.record('local', `Audio capture failed: ${error.name}`);
+        throw error;
+      }
     }
 
     if (this.videoEnabled) {
@@ -525,6 +540,7 @@ class StreamManager {
       track.enabled = this.audioEnabled;
     });
 
+    this.mod.diagnostics?.record('local', `Captured ${this.localStream.getAudioTracks().length} audio / ${this.localStream.getVideoTracks().length} video tracks`);
     //Plug local stream into UI component
     this.app.connection.emit('videocall-stream', 'local', this.localStream);
     this.app.connection.emit('add-local-stream-request', this.localStream);
