@@ -32,6 +32,9 @@ class Manager {
     this.pagination = this.createPaginationState();
     this.pending_newer_tweets = [];
     this._timeline_bootstrapping = false;
+    this._peer_history_pending = false;
+    this._peer_timeline_refreshes = 0;
+    this._load_more_timer = null;
     this._notifications_bootstrapping = false;
     this.pending_route_signature = '';
     this.permalink_state = null;
@@ -45,6 +48,9 @@ class Manager {
     this._read_observer_root = null;
     this._read_save_timer = null;
     this._last_scroll_top = 0;
+    this._scroll_container = null;
+    this._scroll_handler = null;
+    this.scroll_raf = null;
 
     // Per-view Manager chrome. Header is navigation only (back + title).
     // Home / notifications / user-content (posts/replies/likes) omit sticky chrome.
@@ -62,10 +68,10 @@ class Manager {
   createPaginationState() {
     return {
       timeline: {
-        cursor: 0,
         batchSize: 5,
         loading: false,
         exhausted: false,
+        error: null,
         mockPage: 0
       },
       notifications: {
@@ -87,19 +93,22 @@ class Manager {
         cursor: 0,
         batchSize: 20,
         loading: false,
-        exhausted: false
+        exhausted: false,
+        error: null
       },
       replies: {
         cursor: 0,
         batchSize: 20,
         loading: false,
-        exhausted: false
+        exhausted: false,
+        error: null
       },
       likes: {
         cursor: 0,
         batchSize: 20,
         loading: false,
-        exhausted: false
+        exhausted: false,
+        error: null
       }
     };
   }
@@ -228,18 +237,13 @@ class Manager {
       }
     }
 
-    if (!this.pagination[mode]) {
-      this.pagination[mode] = {
-        cursor: 0,
-        batchSize: 20,
-        loading: false,
-        exhausted: false
-      };
-    } else {
-      this.pagination[mode].cursor = 0;
-      this.pagination[mode].loading = false;
-      this.pagination[mode].exhausted = false;
-    }
+    this.pagination[mode] = {
+      cursor: 0,
+      batchSize: 20,
+      loading: false,
+      exhausted: false,
+      error: null
+    };
 
     this.mod.main?.showProfile?.(this.active_profile_key);
     this.clearPrimaryNavigation();
@@ -701,6 +705,7 @@ class Manager {
     const messages = {
       timeline: {
         loading: 'Loading tweets...',
+        error: 'All peer tweets displayed.',
         empty: 'No tweets yet.',
         end: 'No more tweets.'
       },
@@ -716,16 +721,19 @@ class Manager {
       },
       posts: {
         loading: 'Loading tweets...',
+        error: 'All peer tweets displayed.',
         empty: 'No tweets yet.',
         end: 'No more tweets.'
       },
       replies: {
         loading: 'Loading replies...',
+        error: 'All peer tweets displayed.',
         empty: 'No replies.',
         end: 'No more replies.'
       },
       likes: {
         loading: 'Loading likes...',
+        error: 'All peer tweets displayed.',
         empty: 'No liked tweets.',
         end: 'No more liked tweets.'
       }
@@ -738,14 +746,14 @@ class Manager {
     return this.mode === 'posts' || this.mode === 'replies' || this.mode === 'likes';
   }
 
-  getActivePanelElement() {
+  getActivePanelElement(mode = this.mode) {
     const root = document.querySelector(this.container);
 
     if (!root) {
       return null;
     }
 
-    switch (this.mode) {
+    switch (mode) {
       case 'thread':
         return root.querySelector('.list[data-panel="thread"]');
       case 'notifications':
@@ -760,8 +768,8 @@ class Manager {
     }
   }
 
-  getActivePanelSelector() {
-    switch (this.mode) {
+  getActivePanelSelector(mode = this.mode) {
+    switch (mode) {
       case 'thread':
         return `${this.container} .list[data-panel="thread"]`;
       case 'notifications':
@@ -799,31 +807,48 @@ class Manager {
     }
 
     this._timeline_bootstrapping = true;
+    const state = this.pagination.timeline;
     this.syncFeedStatus();
 
-    await this.requestTweetLoad('newer');
+    const result = await this.requestTweetLoad('newer');
 
+    if (this.pagination.timeline !== state) {
+      return;
+    }
     this.mod.resortTimeline();
-    this.clearPanel(this.getActivePanelSelector());
-    this.pagination.timeline.cursor = 0;
+    this.clearPanel(this.getActivePanelSelector('timeline'));
     this.pagination.timeline.exhausted = false;
+    this.pagination.timeline.error = result.failed ? { direction: 'newer' } : null;
     this.fillTimelineToViewport();
     this.timeline_rendered = true;
     this._timeline_bootstrapping = false;
 
     this.syncFeedStatus();
 
+    if (result.failed) {
+      this.resumePeerHistory();
+      return;
+    }
+
     const unhydratedRemote = (this.mod.peers || []).some(
       (peer_obj) => peer_obj.peer !== 'localhost' && !peer_obj.tweets_hydrated
     );
 
     if (unhydratedRemote) {
-      this.mod.loadTransactions('tweets', 'newer', (result) => {
-        this.onNewerContentLoaded(result, { announce: !this.isNearTop() });
-      });
+      this._peer_timeline_refreshes++;
+      try {
+        const followup = await this.requestTweetLoad('newer');
+        if (this.pagination.timeline !== state) {
+          return;
+        }
+        this.onNewerContentLoaded(followup, { announce: !this.isNearTop() });
+      } finally {
+        this._peer_timeline_refreshes--;
+      }
     }
 
-    if (this.isNearBottom()) {
+    this.resumePeerHistory();
+    if (this.mode === 'timeline' && this.isNearBottom()) {
       this.loadMoreIfNeeded();
     }
   }
@@ -878,6 +903,7 @@ class Manager {
     }
 
     this._notifications_bootstrapping = true;
+    const state = this.pagination.notifications;
     this.syncFeedStatus();
 
     this.renderModerateQueue();
@@ -885,16 +911,20 @@ class Manager {
 
     await this.loadNotificationDirection('newer');
 
-    if (this.getRenderedItemCount() === 0) {
+    if (this.pagination.notifications !== state) {
+      return;
+    }
+    if (this.getRenderedItemCount('notifications') === 0) {
       await this.loadNotificationDirection('older');
     }
 
+    if (this.pagination.notifications !== state) {
+      return;
+    }
     this.notifications_rendered = true;
     this._notifications_bootstrapping = false;
 
-    const state = this.pagination.notifications;
-
-    if (this.getRenderedItemCount() === 0) {
+    if (this.getRenderedItemCount('notifications') === 0) {
       state.loading = false;
       state.exhausted = true;
     }
@@ -903,6 +933,7 @@ class Manager {
   }
 
   loadNotificationDirection(direction) {
+    const state = this.pagination.notifications;
     return new Promise((resolve) => {
       let settled = false;
 
@@ -913,6 +944,10 @@ class Manager {
 
         settled = true;
 
+        if (this.pagination.notifications !== state) {
+          resolve();
+          return;
+        }
         if (direction === 'newer') {
           this.handleNewerNotifications(
             result || {
@@ -933,7 +968,8 @@ class Manager {
               updated: [],
               ignored: [],
               exhausted: true
-            }
+            },
+            'notifications'
           );
         }
 
@@ -991,6 +1027,7 @@ class Manager {
 
     const state = this.getPaginationState();
     const source = this.getActiveProfileSource();
+    state.error = source.error;
     state.exhausted = Boolean(
       source?.exhausted && state.cursor >= this.collectProfileTweets().length
     );
@@ -1005,6 +1042,7 @@ class Manager {
     return {
       loading: false,
       exhausted: false,
+      error: null,
       peers: {}
     };
   }
@@ -1090,8 +1128,11 @@ class Manager {
     const limit = 20;
     const peers = this.mod.returnTweetArchivePeers();
 
+    let failed = false;
+    const likedLookups = new Map();
+
     try {
-      const requests = peers.map(async (peer, index) => {
+      const counts = await Promise.all(peers.map(async (peer, index) => {
         const peerKey = this.returnProfilePeerKey(peer, index);
         const peerState = source.peers[peerKey] || {
           cursor: Date.now() + 1,
@@ -1100,88 +1141,100 @@ class Manager {
         source.peers[peerKey] = peerState;
 
         if (peerState.exhausted) {
-          return { peer, txs: [] };
+          return 0;
         }
 
-        const query = {
-          field1: mode === 'likes' ? 'RedSquareLike' : 'RedSquare',
-          field2: publicKey,
-          created_earlier_than: peerState.cursor,
-          limit
-        };
+        try {
+          const query = {
+            field1: mode === 'likes' ? 'RedSquareLike' : 'RedSquare',
+            field2: publicKey,
+            created_earlier_than: peerState.cursor,
+            limit
+          };
+          if (mode !== 'likes') {
+            query.flagged_ne = 1;
+          }
 
-        if (mode !== 'likes') {
-          query.flagged_ne = 1;
-        }
+          const result = await this.mod.loadArchiveTransactionsWithStatus(query, peer);
+          if (result.status !== 'loaded') {
+            failed = true;
+            return 0;
+          }
 
-        const txs = await this.mod.loadArchiveTransactions(query, peer);
-        const timestamps = txs.map((tx) => Number(tx?.timestamp) || 0).filter(Boolean);
-
-        if (timestamps.length) {
-          peerState.cursor = Math.min(...timestamps);
-        }
-        if (txs.length < limit) {
-          peerState.exhausted = true;
-        }
-
-        return { peer, txs };
-      });
-      const pages = await Promise.all(requests);
-      let added = 0;
-
-      if (mode === 'likes') {
-        const signatures = new Set();
-
-        for (const { txs } of pages) {
-          for (const tx of txs) {
-            if (typeof tx?.decryptMessage === 'function') {
-              await tx.decryptMessage(this.app);
+          const txs = result.transactions;
+          let tweetTransactions = txs;
+          let targetsFailed = false;
+          if (mode === 'likes') {
+            const signatures = new Set();
+            for (const tx of txs) {
+              if (typeof tx?.decryptMessage === 'function') {
+                await tx.decryptMessage(this.app);
+              }
+              if (this.app.modules?.moderate?.(tx, this.mod.name) === -1) {
+                continue;
+              }
+              const message = tx?.returnMessage?.() || tx?.msg || {};
+              const signature = message.data?.signature;
+              if (signature != null && String(signature)) {
+                signatures.add(String(signature));
+              }
             }
-            if (this.app.modules?.moderate?.(tx, this.mod.name) === -1) {
+
+            const targets = await Promise.all(Array.from(signatures, async (signature) => {
+              if (!likedLookups.has(signature)) {
+                likedLookups.set(signature, Promise.all(peers.map((targetPeer) =>
+                  this.mod.loadArchiveTransactionsWithStatus(
+                    { sig: signature, field1: 'RedSquare', flagged_ne: 1 },
+                    targetPeer
+                  )
+                )));
+              }
+              const results = await likedLookups.get(signature);
+              const transactions = results.flatMap((entry) =>
+                entry.status === 'loaded' ? entry.transactions : []
+              );
+              const found = transactions.some((tx) => String(tx?.signature || '') === signature);
+              if (!found && results.some((entry) => entry.status !== 'loaded')) {
+                targetsFailed = true;
+              }
+              return transactions;
+            }));
+            tweetTransactions = targets.flat();
+          }
+
+          const tweets = await this.mod.cacheProfileTweetTransactions(tweetTransactions);
+          let added = 0;
+          for (const tweet of tweets) {
+            if (mode !== 'likes' && tweet.publicKey !== publicKey) {
               continue;
             }
-            const message = tx?.returnMessage?.() || tx?.msg || {};
-            const signature = message.data?.signature;
-            if (signature != null && String(signature)) {
-              signatures.add(String(signature));
+            const targetMode = mode === 'likes' ? 'likes' : tweet.parent_id ? 'replies' : 'posts';
+            if (this.addTweetToProfileCache(cache, tweet, targetMode)) {
+              added++;
             }
           }
-        }
 
-        const targetPages = await Promise.all(
-          Array.from(signatures).flatMap((signature) =>
-            peers.map((peer) =>
-              this.mod.loadArchiveTransactions(
-                { sig: signature, field1: 'RedSquare', flagged_ne: 1 },
-                peer
-              )
-            )
-          )
-        );
-        const tweets = await this.mod.cacheProfileTweetTransactions(targetPages.flat());
-
-        for (const tweet of tweets) {
-          if (this.addTweetToProfileCache(cache, tweet, 'likes')) {
-            added++;
+          if (targetsFailed) {
+            // Keep this likes page available for retrying its missing targets.
+            failed = true;
+            return added;
           }
-        }
-      } else {
-        const tweets = await this.mod.cacheProfileTweetTransactions(
-          pages.flatMap(({ txs }) => txs)
-        );
 
-        for (const tweet of tweets) {
-          if (tweet.publicKey !== publicKey) {
-            continue;
+          const timestamps = txs.map((tx) => Number(tx?.timestamp) || 0).filter(Boolean);
+          if (timestamps.length) {
+            peerState.cursor = Math.min(...timestamps);
           }
-          if (this.addTweetToProfileCache(cache, tweet, tweet.parent_id ? 'replies' : 'posts')) {
-            added++;
-          }
+          peerState.exhausted = txs.length < limit;
+          return added;
+        } catch (err) {
+          failed = true;
+          return 0;
         }
-      }
+      }));
 
-      source.exhausted = Object.values(source.peers).every((peerState) => peerState.exhausted);
-      return added;
+      source.error = failed ? { direction: 'older' } : null;
+      source.exhausted = !failed && Object.values(source.peers).every((peerState) => peerState.exhausted);
+      return counts.reduce((total, count) => total + count, 0);
     } finally {
       source.loading = false;
     }
@@ -1213,10 +1266,21 @@ class Manager {
       .filter(Boolean);
   }
 
+  getUnrenderedTimelineSignatures() {
+    const rendered = this.getRenderedTimelineSignatures();
+    const pending = new Set(this.pending_newer_tweets);
+
+    return (this.mod.tweets_timeline || []).filter((signature) => {
+      const tweet = this.mod.getTweet(signature);
+      return tweet && !tweet.parent_id && !tweet.ephemeral &&
+        !rendered.has(signature) && !pending.has(signature);
+    });
+  }
+
   appendTimelineBatch() {
     const state = this.pagination.timeline;
-    const signatures = this.mod.tweets_timeline.slice(state.cursor, state.cursor + state.batchSize);
-    const container = this.getActivePanelSelector();
+    const signatures = this.getUnrenderedTimelineSignatures().slice(0, state.batchSize);
+    const container = this.getActivePanelSelector('timeline');
 
     if (signatures.length === 0) {
       this.syncFeedStatus();
@@ -1224,6 +1288,9 @@ class Manager {
     }
 
     const panel = document.querySelector(container);
+    if (!panel) {
+      return 0;
+    }
 
     for (const signature of signatures) {
       const tweet = this.mod.getTweet(signature);
@@ -1233,12 +1300,11 @@ class Manager {
       }
     }
 
-    state.cursor += signatures.length;
-
+    const rendered = this.getRenderedTimelineSignatures();
     this.syncFeedStatus();
     this.observeVisibleTweets();
 
-    return signatures.length;
+    return signatures.filter((signature) => rendered.has(signature)).length;
   }
 
   fillTimelineToViewport() {
@@ -1248,21 +1314,22 @@ class Manager {
     do {
       batch = this.appendTimelineBatch();
       painted += batch;
-    } while (batch > 0 && this.isNearBottom());
+    } while (batch > 0 && this.mode === 'timeline' && this.isNearBottom());
 
     return painted;
   }
 
   oldestRenderedTweetTs() {
-    const signatures = this.mod.tweets_timeline || [];
-    const cursor = this.pagination.timeline.cursor;
-
-    if (cursor <= 0 || signatures.length === 0) {
-      return Date.now();
+    let oldest = 0;
+    for (const signature of this.getRenderedTimelineSignatures()) {
+      const tweet = this.mod.getTweet(signature);
+      const timestamp = Number(tweet?.created_at) || 0;
+      if (tweet && !tweet.parent_id && !tweet.ephemeral && timestamp > 0 &&
+          (!oldest || timestamp < oldest)) {
+        oldest = timestamp;
+      }
     }
-
-    const tweet = this.mod.getTweet(signatures[Math.min(cursor, signatures.length) - 1]);
-    return Number(tweet?.created_at) || Date.now();
+    return oldest || Date.now();
   }
 
   appendNotificationsBatch() {
@@ -1271,7 +1338,7 @@ class Manager {
       state.cursor,
       state.cursor + state.batchSize
     );
-    const container = this.getActivePanelSelector();
+    const container = this.getActivePanelSelector('notifications');
 
     if (signatures.length === 0) {
       this.syncFeedStatus();
@@ -1378,12 +1445,12 @@ class Manager {
     return options;
   }
 
-  appendLoadedItems(result) {
-    const container = this.getActivePanelSelector();
-    const state = this.getPaginationState();
+  appendLoadedItems(result, mode = this.mode) {
+    const container = this.getActivePanelSelector(mode);
+    const state = this.pagination[mode];
     const signatures = result.added || [];
 
-    if (this.mode === 'notifications') {
+    if (mode === 'notifications') {
       for (const signature of signatures) {
         const notification = this.mod.getNotification(signature);
 
@@ -1396,7 +1463,7 @@ class Manager {
       return;
     }
 
-    if (this.mode === 'thread') {
+    if (mode === 'thread') {
       const startIndex = state.cursor;
 
       for (let i = 0; i < signatures.length; i++) {
@@ -1609,7 +1676,6 @@ class Manager {
     const html = TweetTemplate(tweet, tweet.buildClassName(options), options);
     this.app.browser.prependElementToSelector(html, container);
 
-    this.pagination.timeline.cursor += 1;
     this.timeline_rendered = true;
 
     if (child) {
@@ -1798,14 +1864,38 @@ class Manager {
     root.dataset.permalinkRetryBound = '1';
 
     root.addEventListener('click', (e) => {
-      const retry = e.target.closest('.feed-status .retry');
+      const retry = e.target.closest('.feed-status .retry, .feed-status .check-again');
 
-      if (!retry || !this.pending_route_signature) {
+      if (!retry || !root.contains(retry) || retry.hidden) {
         return;
       }
 
       e.preventDefault();
-      this.applyLocationRoute({ refresh: true });
+      if (this.mode === 'timeline') {
+        const state = this.pagination.timeline;
+        if (!state.error || state.loading || this._timeline_bootstrapping) {
+          return;
+        }
+        const direction = state.error.direction;
+        state.error = null;
+        if (direction === 'newer') {
+          this.timeline_rendered = false;
+          this.bootstrapTimeline();
+        } else {
+          this.loadMoreIfNeeded();
+        }
+      } else if (this.isProfileMode()) {
+        const state = this.getPaginationState();
+        const source = this.getActiveProfileSource();
+        if (!state.error || state.loading || source.loading) {
+          return;
+        }
+        state.error = null;
+        source.error = null;
+        this.loadMoreIfNeeded();
+      } else if (this.pending_route_signature) {
+        this.applyLocationRoute({ refresh: true });
+      }
     });
   }
 
@@ -2175,32 +2265,40 @@ class Manager {
   }
 
   attachScrollEvents() {
-    if (this.scroll_bound) {
+    const scroller = this.getScrollContainer();
+    if (scroller === this._scroll_container) {
       return;
     }
 
-    const scroller = this.getScrollContainer();
+    if (this._scroll_container && this._scroll_handler) {
+      this._scroll_container.removeEventListener('scroll', this._scroll_handler);
+    }
+    if (this.scroll_raf !== null) {
+      cancelAnimationFrame(this.scroll_raf);
+      this.scroll_raf = null;
+    }
 
+    this._scroll_container = scroller;
+    this._scroll_handler = null;
     if (!scroller) {
       return;
     }
 
-    this.scroll_bound = true;
-
-    scroller.addEventListener(
-      'scroll',
-      () => {
-        if (this.scroll_raf) {
+    this._scroll_handler = () => {
+      if (this.getScrollContainer() !== scroller || this.scroll_raf !== null) {
+        return;
+      }
+      this.scroll_raf = requestAnimationFrame(() => {
+        if (this._scroll_container !== scroller) {
           return;
         }
-
-        this.scroll_raf = requestAnimationFrame(() => {
-          this.scroll_raf = null;
+        this.scroll_raf = null;
+        if (this.getScrollContainer() === scroller) {
           this.onScroll();
-        });
-      },
-      { passive: true }
-    );
+        }
+      });
+    };
+    scroller.addEventListener('scroll', this._scroll_handler, { passive: true });
   }
 
   ensureReadObserver() {
@@ -2401,30 +2499,30 @@ class Manager {
             new_tweets: [],
             updated: [],
             ignored: [],
-            exhausted: true
+            failed: true,
+            exhausted: false
           }
         );
       };
-      const timer = setTimeout(() => finish(null), 12000);
 
       try {
         this.mod.loadTransactions(
           'tweets',
           direction,
           (result) => {
-            clearTimeout(timer);
             finish(result);
           },
           extra
         );
       } catch (err) {
-        clearTimeout(timer);
         finish(null);
       }
     });
   }
 
-  onPeersUpdated() {
+  async onPeersUpdated() {
+    this.pagination.timeline.exhausted = false;
+    this._peer_history_pending = true;
     if (this.pending_route_signature || this.mod.returnTweetSignatureFromLocation()) {
       this.applyLocationRoute({ refresh: true });
     }
@@ -2437,6 +2535,7 @@ class Manager {
     }
 
     if (this.mode !== 'timeline') {
+      this.resumePeerHistory();
       return;
     }
 
@@ -2449,9 +2548,23 @@ class Manager {
       return;
     }
 
-    this.mod.loadTransactions('tweets', 'newer', (result) => {
+    this._peer_timeline_refreshes++;
+    try {
+      const result = await this.requestTweetLoad('newer');
       this.onNewerContentLoaded(result, { announce: !this.isNearTop() });
-    });
+    } finally {
+      this._peer_timeline_refreshes--;
+      this.resumePeerHistory();
+    }
+  }
+
+  resumePeerHistory() {
+    if (!this._peer_history_pending || this._timeline_bootstrapping ||
+        this.pagination.timeline.loading || this._peer_timeline_refreshes) {
+      return;
+    }
+    this._peer_history_pending = false;
+    this.onTweetHistoryAvailable();
   }
 
   onNewerContentLoaded(result, { announce = false } = {}) {
@@ -2461,11 +2574,24 @@ class Manager {
 
     if (result.type === 'tweets') {
       this.handleNewerTweets(result, { announce });
+      if (result.history_reopened) {
+        this.onTweetHistoryAvailable();
+      }
       return;
     }
 
     if (result.type === 'notifications' && this.mode === 'notifications') {
       this.handleNewerNotifications(result);
+    }
+  }
+
+  onTweetHistoryAvailable() {
+    this.pagination.timeline.exhausted = false;
+    if (this.mode === 'timeline') {
+      this.syncFeedStatus();
+      if (this.isNearBottom() && !this._peer_timeline_refreshes) {
+        this.loadMoreIfNeeded();
+      }
     }
   }
 
@@ -2641,7 +2767,6 @@ class Manager {
       }
     }
 
-    this.pagination.timeline.cursor += signatures.length;
     this.timeline_rendered = true;
     this.observeVisibleTweets();
   }
@@ -2758,8 +2883,9 @@ class Manager {
     if (
       state.loading ||
       state.exhausted ||
-      this._notifications_bootstrapping ||
-      this._timeline_bootstrapping
+      state.error ||
+      (this.mode === 'notifications' && this._notifications_bootstrapping) ||
+      (this.mode === 'timeline' && this._timeline_bootstrapping)
     ) {
       return;
     }
@@ -2767,17 +2893,68 @@ class Manager {
     this.loadMore();
   }
 
+  getOlderLoadCursors(mode) {
+    if (mode === 'timeline') {
+      return new Map((this.mod.peers || []).map((source) =>
+        [source, Number(source.tweets_earliest_ts) || 0]
+      ));
+    }
+
+    if (this.isProfileViewMode(mode)) {
+      return new Map(Object.entries(this.getActiveProfileSource().peers).map(
+        ([key, source]) => [key, Number(source.cursor) || 0]
+      ));
+    }
+
+    if (mode === 'notifications') {
+      return new Map([
+        ['likes', Number(this.mod.notifications_earliest_like_ts) || 0],
+        ['retweets', Number(this.mod.notifications_earliest_retweet_ts) || 0],
+        ...Object.entries(this.mod.notifications_contact_earliest_ts || {}).map(
+          ([key, cursor]) => [`contact:${key}`, Number(cursor) || 0]
+        )
+      ]);
+    }
+
+    return new Map();
+  }
+
+  scheduleLoadMore(mode, state) {
+    if (this._load_more_timer !== null) {
+      clearTimeout(this._load_more_timer);
+    }
+    this._load_more_timer = setTimeout(() => {
+      this._load_more_timer = null;
+      if (this.mode !== mode || this.getPaginationState() !== state || !this.isNearBottom()) {
+        return;
+      }
+      // Recheck loading, exhaustion, bootstrap, and manual-retry guards.
+      this.loadMoreIfNeeded();
+    }, 0);
+  }
+
   async loadMore() {
+    const mode = this.mode;
     const state = this.getPaginationState();
 
     if (
       state.loading ||
       state.exhausted ||
-      this._notifications_bootstrapping ||
-      this._timeline_bootstrapping
+      state.error ||
+      (mode === 'notifications' && this._notifications_bootstrapping) ||
+      (mode === 'timeline' && this._timeline_bootstrapping)
     ) {
       return;
     }
+
+    // A scroll or peer-arrival load supersedes any queued continuation.
+    if (this._load_more_timer !== null) {
+      clearTimeout(this._load_more_timer);
+      this._load_more_timer = null;
+    }
+    const cursorsBefore = this.getOlderLoadCursors(mode);
+    const renderedBefore = this.getRenderedItemCount(mode);
+    const cursorBefore = state.cursor;
 
     state.loading = true;
     this.syncFeedStatus();
@@ -2786,20 +2963,23 @@ class Manager {
 
     try {
       if (this.isProfileMode()) {
+        const mode = this.mode;
+        const publicKey = this.active_profile_key;
+        const source = this.getActiveProfileSource();
         const rendered = this.appendProfileBatch();
 
         if (!rendered) {
           await this.loadProfileArchivePage();
+          if (this.mode !== mode || this.active_profile_key !== publicKey || this.getPaginationState() !== state) {
+            return;
+          }
           this.appendProfileBatch();
         }
 
-        const source = this.getActiveProfileSource();
         const available = this.collectProfileTweets().length;
+        state.error = source.error;
         state.exhausted = Boolean(source.exhausted && state.cursor >= available);
-        continueLoading = !state.exhausted && this.isNearBottom();
-        if (continueLoading) {
-          setTimeout(() => this.loadMoreIfNeeded(), 0);
-        }
+        continueLoading = !state.error && !state.exhausted && this.isNearBottom();
         return;
       }
 
@@ -2812,6 +2992,9 @@ class Manager {
           active_signature: this.active_signature
         });
 
+        if (this.mode !== mode || this.pagination.thread !== state) {
+          return;
+        }
         continueLoading = this.applyOlderLoadResult(result);
         return;
       }
@@ -2823,7 +3006,7 @@ class Manager {
           return;
         }
 
-        if (state.cursor < (this.mod.tweets_timeline || []).length) {
+        if (this.getUnrenderedTimelineSignatures().length > 0) {
           continueLoading = true;
           return;
         }
@@ -2832,10 +3015,20 @@ class Manager {
           demand_ts: this.oldestRenderedTweetTs()
         });
 
+        if (this.pagination.timeline !== state) {
+          return;
+        }
         this.mod.resortTimeline();
         const painted = this.fillTimelineToViewport();
 
-        if (!painted && result.exhausted && state.cursor >= (this.mod.tweets_timeline || []).length) {
+        if (result.failed) {
+          state.error = { direction: 'older' };
+          state.exhausted = false;
+          return;
+        }
+        state.error = null;
+
+        if (!painted && result.exhausted && this.getUnrenderedTimelineSignatures().length === 0) {
           state.exhausted = true;
         } else if (!result.exhausted) {
           state.exhausted = false;
@@ -2872,6 +3065,10 @@ class Manager {
           }
 
           settled = true;
+          if (this.pagination.notifications !== state) {
+            resolve();
+            return;
+          }
           continueLoading = this.applyOlderLoadResult(
             result || {
               type: 'notifications',
@@ -2880,7 +3077,8 @@ class Manager {
               updated: [],
               ignored: [],
               exhausted: true
-            }
+            },
+            'notifications'
           );
           resolve();
         };
@@ -2915,21 +3113,39 @@ class Manager {
       });
     } finally {
       state.loading = false;
+      // A request started before a peer arrived cannot close the reopened feed.
+      if (state === this.pagination.timeline && this._peer_history_pending) {
+        state.exhausted = false;
+      }
       this.syncFeedStatus();
-    }
+      this.resumePeerHistory();
 
-    if (continueLoading) {
-      this.loadMoreIfNeeded();
+      // Branches return from try; continuation must be scheduled from finally.
+      // Keep thread auto-loading disabled while its helper generates mock replies.
+      if (continueLoading && mode !== 'thread' && this.mode === mode &&
+          this.getPaginationState() === state && !state.loading &&
+          !state.exhausted && !state.error && this.isNearBottom()) {
+        const cursorAdvanced = Array.from(this.getOlderLoadCursors(mode)).some(
+          ([key, cursor]) => cursorsBefore.has(key)
+            ? cursor < cursorsBefore.get(key)
+            : cursor > 0
+        );
+        const renderedMore = this.getRenderedItemCount(mode) > renderedBefore;
+        const consumedCachedItems = mode !== 'timeline' && state.cursor > cursorBefore;
+        if (renderedMore || consumedCachedItems || cursorAdvanced) {
+          this.scheduleLoadMore(mode, state);
+        }
+      }
     }
   }
 
-  applyOlderLoadResult(result) {
-    const state = this.getPaginationState();
+  applyOlderLoadResult(result, mode = this.mode) {
+    const state = this.pagination[mode];
 
     if (result.added?.length) {
-      this.appendLoadedItems(result);
+      this.appendLoadedItems(result, mode);
       this.syncFeedStatus();
-      return this.isNearBottom();
+      return this.mode === mode && this.isNearBottom();
     }
 
     // A non-empty archive page may contain only transactions already cached
@@ -2937,7 +3153,7 @@ class Manager {
     // it is actually exhausted or a visible tweet is found.
     state.exhausted = Boolean(result.exhausted);
     this.syncFeedStatus();
-    return !state.exhausted && this.isNearBottom();
+    return this.mode === mode && !state.exhausted && this.isNearBottom();
   }
 
   ensureScrollFooter() {
@@ -2968,8 +3184,8 @@ class Manager {
     return footer;
   }
 
-  getRenderedItemCount() {
-    const panel = this.getActivePanelElement();
+  getRenderedItemCount(mode = this.mode) {
+    const panel = this.getActivePanelElement(mode);
 
     if (!panel) {
       return 0;
@@ -3002,7 +3218,7 @@ class Manager {
 
   /**
    * Mutually exclusive feed UI status:
-   * loading | content | empty | end
+   * loading | content | empty | end | error
    */
   resolveFeedStatus() {
     const state = this.getPaginationState();
@@ -3011,8 +3227,13 @@ class Manager {
       return this.permalink_state.status;
     }
 
-    if (state.loading || this._timeline_bootstrapping || this._notifications_bootstrapping) {
+    if (state.loading || (this.mode === 'timeline' && this._timeline_bootstrapping) ||
+        (this.mode === 'notifications' && this._notifications_bootstrapping)) {
       return 'loading';
+    }
+
+    if (state.error) {
+      return 'error';
     }
 
     const count = this.getRenderedItemCount();
@@ -3044,6 +3265,7 @@ class Manager {
 
     const message = footer.querySelector('.message');
     const retry = footer.querySelector('.retry');
+    const checkAgain = footer.querySelector('.check-again');
 
     if (message) {
       // Loading is spinner-only — never keep empty/end copy under the loader.
@@ -3052,7 +3274,10 @@ class Manager {
     }
 
     if (retry) {
-      retry.hidden = status !== 'unavailable' && status !== 'error';
+      retry.hidden = this.mode === 'timeline' || this.isProfileMode() || (status !== 'unavailable' && status !== 'error');
+    }
+    if (checkAgain) {
+      checkAgain.hidden = (this.mode !== 'timeline' && !this.isProfileMode()) || status !== 'error';
     }
   }
 
