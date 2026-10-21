@@ -3,14 +3,6 @@ const ListingFieldEditTemplate = require('./listing-field-edit.template');
 
 const EXCLUDED_WEB3_TICKERS = new Set(['ERC-SAITO', 'BEP-SAITO']);
 
-function escapeHtml(value = '') {
-  return String(value)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
-}
-
 function returnStoreWeb3Tickers(app, current = 'SAITO') {
   const tickers = ['SAITO'];
   const buysaito = app?.modules?.returnModule?.('BuySaito');
@@ -107,14 +99,8 @@ class ListingFieldEdit {
     if (!select) {
       return;
     }
-    const current = select.value || 'SAITO';
-    const tickers = returnStoreWeb3Tickers(this.app, current);
-    select.innerHTML = tickers
-      .map(
-        (ticker) =>
-          `<option value="${escapeHtml(ticker)}"${ticker === current ? ' selected' : ''}>${escapeHtml(ticker)}</option>`
-      )
-      .join('');
+    // Temporary: price edits only offer SAITO until web3 checkout is enabled again.
+    select.innerHTML = '<option value="SAITO" selected>SAITO</option>';
   }
 
   /**
@@ -136,8 +122,8 @@ class ListingFieldEdit {
         multiline: !!options.multiline,
         inputType: options.inputType || 'text',
         placeholder: options.placeholder || '',
-        tickers: options.tickers || null,
-        ticker: options.ticker || 'SAITO'
+        tickers: Array.isArray(options.tickers) ? ['SAITO'] : options.tickers || null,
+        ticker: Array.isArray(options.tickers) ? 'SAITO' : options.ticker || 'SAITO'
       })
     );
 
