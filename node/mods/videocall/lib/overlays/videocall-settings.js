@@ -16,17 +16,15 @@ class VideoCallSettings {
   }
 
   attachEvents() {
-    this_self = this;
+    const root = document.querySelector('.videocall-settings-modal');
 
-    Array.from(document.querySelectorAll('.videocall-option-input')).forEach((option) => {
+    Array.from(root.querySelectorAll('.videocall-option-input')).forEach((option) => {
       option.onchange = (e) => {
         let choice = e.currentTarget.getAttribute('value');
-        this_self.app.connection.emit('stun-switch-view', choice);
+        this.app.connection.emit('stun-switch-view', choice);
 
-        this_self.app.options.stun.settings.layout = choice;
-        this_self.app.storage.saveOptions();
-
-        this_self.saitoOverlay.remove();
+        this.app.options.stun.settings.layout = choice;
+        this.app.storage.saveOptions();
       };
     });
   }
