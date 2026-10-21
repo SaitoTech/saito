@@ -29,73 +29,8 @@ describe('Mixin migration payment matching', () => {
     );
   });
 
-  test('reconciles only an inbound snapshot matching hash, amount, asset, and sender', async () => {
-    const crypto = Object.create(MixinModule.prototype);
-    const createdAt = 1787665543032;
-    const hash = '21294832e2820aab42252f41eefe5bbff8c2b4bcdd58fd6469df103de4ce244a';
-    const sender =
-      '0x2B78ff377201AC617bC34821A619F67581E8926E|79797026-5fdb-3e46-8732-019ac109f17e|mixin';
-
-    crypto.asset_id = 'erc-saito-asset';
-    crypto.ticker = 'ERC-SAITO';
-    crypto.publicKey = 'migration-bot';
-    crypto.formatAddress = jest.fn(() => 'migration-mixin-address');
-    crypto.mixin = {
-      fetchSafeSnapshots: jest.fn(async () => [
-        {
-          asset_id: 'erc-saito-asset',
-          amount: '-777',
-          opponent_id: '79797026-5fdb-3e46-8732-019ac109f17e',
-          transaction_hash: hash,
-          created_at: '2026-08-25T13:45:45.226354Z'
-        },
-        {
-          asset_id: 'different-asset',
-          amount: '777',
-          opponent_id: '79797026-5fdb-3e46-8732-019ac109f17e',
-          transaction_hash: hash,
-          created_at: '2026-08-25T13:45:45.226354Z'
-        },
-        {
-          asset_id: 'erc-saito-asset',
-          amount: '778',
-          opponent_id: '79797026-5fdb-3e46-8732-019ac109f17e',
-          transaction_hash: hash,
-          created_at: '2026-08-25T13:45:45.226354Z'
-        },
-        {
-          asset_id: 'erc-saito-asset',
-          amount: '777',
-          opponent_id: '2a3083de-2480-3b90-a3d6-ea38a6b4a84f',
-          transaction_hash: hash,
-          created_at: '2026-08-25T13:45:45.226354Z'
-        },
-        {
-          asset_id: 'erc-saito-asset',
-          amount: '777',
-          opponent_id: '79797026-5fdb-3e46-8732-019ac109f17e',
-          transaction_hash: hash,
-          created_at: '2026-08-25T13:45:45.226354Z',
-          memo: 'exact-match'
-        }
-      ])
-    };
-
-    const payment = await crypto.findInboundPaymentBySignature(hash, '777', sender, createdAt);
-
-    expect(crypto.mixin.fetchSafeSnapshots).toHaveBeenCalledWith(
-      'erc-saito-asset',
-      createdAt - 300000
-    );
-    expect(payment).toEqual(
-      expect.objectContaining({
-        ticker: 'ERC-SAITO',
-        amount: '777',
-        sender_address: '79797026-5fdb-3e46-8732-019ac109f17e',
-        transaction_signature: hash,
-        memo: 'exact-match'
-      })
-    );
+  test('leaves inbound snapshot lookup to the caller', () => {
+    expect(MixinModule.prototype.findInboundPaymentBySignature).toBeUndefined();
   });
 
   test('moves a ledger-verified awaiting migration to pending without polling again', async () => {

@@ -388,16 +388,32 @@ describe('BuySaito automatic payment progress', () => {
   });
 
   test.each([
-    ['transaction hash', { status: 200, message: [{ transaction_hash: 'a'.repeat(64) }] }, true],
-    ['fallback identifier', { status: 200, message: [] }, true],
-    ['rejected transfer', { status: 400, message: 'Payment rejected' }, false]
+    ['transaction hash', { hash: 'a'.repeat(64) }, true],
+    ['fallback identifier', { hash: '' }, true],
+    ['rejected transfer', null, false]
   ])('handles the actual Mixin sendPayment result: %s', async (_, response, processing) => {
     const { app, mod, overlay, reservation, receive } = setup();
     mod.available_currencies[0].available_balance = 2;
+    const sendToUser = jest.fn(async () => {
+      if (!response) {
+        throw new Error('Payment rejected');
+      }
+      return response;
+    });
     const crypto = Object.assign(Object.create(MixinModule.prototype), {
       asset_id: 'usdt-asset',
+      balance: '2',
       processAddress: async (address) => address,
-      mixin: { sendInNetworkTransferRequest: jest.fn(async () => response) }
+      validateAddress: () => false,
+      mixin: {
+        accounts: { getCredentials: () => ({ user_id: 'payer' }) },
+        api: { sendToUser },
+        transfers: {
+          createTransfer: jest.fn(async () => 1),
+          completeTransfer: jest.fn(async () => {}),
+          failTransfer: jest.fn(async () => {})
+        }
+      }
     });
     app.wallet = { returnCryptoModuleByTicker: () => crypto };
     await receive('buysaito reserve address', reservation);
@@ -409,7 +425,7 @@ describe('BuySaito automatic payment progress', () => {
     expect(/id="pay-from-wallet-btn"[^>]*disabled/.test(html)).toBe(processing);
     if (processing) {
       await overlay.payFromWallet(overlay.reservation);
-      expect(crypto.mixin.sendInNetworkTransferRequest).toHaveBeenCalledTimes(1);
+      expect(sendToUser).toHaveBeenCalledTimes(1);
     }
   });
 
