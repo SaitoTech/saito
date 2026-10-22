@@ -706,36 +706,36 @@ class Manager {
       timeline: {
         loading: 'Loading tweets...',
         error: 'All peer tweets displayed.',
-        empty: 'No tweets yet.',
-        end: 'No more tweets.'
+        empty: 'Peers have not returned any tweets',
+        end: 'Peers have no more tweets.'
       },
       notifications: {
         loading: 'Loading notifications...',
         empty: "You're all caught up",
-        end: 'No more notifications.'
+        end: 'Peers have no more notifications.'
       },
       thread: {
         loading: 'Loading replies...',
         empty: 'No replies.',
-        end: 'No more replies.'
+        end: 'Peers have no more replies.'
       },
       posts: {
         loading: 'Loading tweets...',
         error: 'All peer tweets displayed.',
-        empty: 'No tweets yet.',
-        end: 'No more tweets.'
+        empty: 'Peers have not returned any tweets',
+        end: 'Peers have no more tweets.'
       },
       replies: {
         loading: 'Loading replies...',
         error: 'All peer tweets displayed.',
         empty: 'No replies.',
-        end: 'No more replies.'
+        end: 'Peers have no more replies.'
       },
       likes: {
         loading: 'Loading likes...',
         error: 'All peer tweets displayed.',
         empty: 'No liked tweets.',
-        end: 'No more liked tweets.'
+        end: 'Peers have no more liked tweets.'
       }
     };
 
@@ -793,9 +793,27 @@ class Manager {
   }
 
   paintTimeline() {
-    if (this.timeline_rendered || this._timeline_bootstrapping) {
+    if (this._timeline_bootstrapping) {
       this.syncFeedStatus();
       return;
+    }
+
+    if (this.timeline_rendered) {
+      // Home may have completed an empty local load before a permalink's
+      // remote peer arrived. Its first remote page is still needed on return.
+      const needsRemoteBootstrap = !this.pagination.timeline.error &&
+        this.getRenderedTimelineSignatures().size === 0 &&
+        (this.mod.peers || []).some(source =>
+          source.peer !== 'localhost' && !source.tweets_hydrated);
+
+      if (!needsRemoteBootstrap) {
+        // Thread/profile lookups can have populated the cache while away.
+        this.fillTimelineToViewport();
+        this.syncFeedStatus();
+        return;
+      }
+
+      this.timeline_rendered = false;
     }
 
     this.bootstrapTimeline();
