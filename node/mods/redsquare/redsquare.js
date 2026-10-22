@@ -399,9 +399,7 @@ class RedSquare extends ModTemplate {
       return;
     }
 
-    if (this.registerPeer(peer)) {
-      this.manager?.onPeersUpdated?.();
-    }
+    this.registerPeer(peer);
   }
 
   onConnectionUnstable(app, publicKey) {
@@ -469,14 +467,19 @@ class RedSquare extends ModTemplate {
         // Keep partial history progress, but invalidate the old connection's responses.
         existing.tweets_history_version = (existing.tweets_history_version || 0) + 1;
       }
-      return true;
+    } else {
+      this.peers.push({
+        ...Loader.createPeerState(peer, publicKey),
+        peer_connection_id: peer.id == null ? null : String(peer.id),
+        peer_disconnected: false
+      });
     }
 
-    this.peers.push({
-      ...Loader.createPeerState(peer, publicKey),
-      peer_connection_id: peer.id == null ? null : String(peer.id),
-      peer_disconnected: false
-    });
+    // API consumers can register the service before our own service callback.
+    // Notify here so whichever caller discovers the connection wakes the feed.
+    if (this.app.BROWSER && this.browser_active) {
+      this.manager?.onPeersUpdated?.();
+    }
     return true;
   }
 
