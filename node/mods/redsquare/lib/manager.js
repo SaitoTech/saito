@@ -2525,6 +2525,12 @@ class Manager {
   }
 
   async onPeersUpdated() {
+    // A service consumer may discover peers before Main mounts this manager.
+    // The first render will bootstrap from those registered sources.
+    if (!this.container) {
+      return;
+    }
+
     this.pagination.timeline.exhausted = false;
     this._peer_history_pending = true;
     if (this.pending_route_signature || this.mod.returnTweetSignatureFromLocation()) {
