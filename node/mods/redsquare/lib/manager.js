@@ -819,6 +819,10 @@ class Manager {
     this.clearPanel(this.getActivePanelSelector('timeline'));
     this.pagination.timeline.exhausted = false;
     this.pagination.timeline.error = result.failed ? { direction: 'newer' } : null;
+    // A coalesced poll can queue this same page before bootstrap resumes.
+    // All cached roots belong to the initial render, including those queued.
+    this.pending_newer_tweets = [];
+    this.hideNewPostsBanner();
     this.fillTimelineToViewport();
     this.timeline_rendered = true;
     this._timeline_bootstrapping = false;
@@ -2598,6 +2602,20 @@ class Manager {
   handleNewerTweets(result, { announce = false } = {}) {
     this.syncConfirmedTweetRenders(result);
 
+    const rendered = this.getRenderedTimelineSignatures();
+    if (this.mode === 'timeline' && !this._timeline_bootstrapping &&
+        this.timeline_rendered && rendered.size === 0) {
+      // An empty feed has no reading position to protect with a banner.
+      // Include historical roots as well as newly announced tweets.
+      this.pending_newer_tweets = [];
+      this.hideNewPostsBanner();
+      if (this.fillTimelineToViewport() > 0) {
+        this.pagination.timeline.exhausted = false;
+      }
+      this.syncFeedStatus();
+      return;
+    }
+
     const signatures = Array.from(
       new Set(
         announce
@@ -2609,7 +2627,6 @@ class Manager {
             : []
       )
     );
-    const rendered = this.getRenderedTimelineSignatures();
     const unrenderedRoots = signatures.filter((signature) => {
       const tweet = this.mod.getTweet(signature);
       return Boolean(tweet && !tweet.parent_id && !rendered.has(signature));
