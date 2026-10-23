@@ -364,50 +364,27 @@ class MixinModule extends CryptoModule {
   }
 
   async sendPayment(amount = '', recipient = '', uniqueHash = '', memo = '') {
-    const destination = await this.processAddress(recipient);
-    if (!destination) {
+    const address = await this.processAddress(recipient);
+    if (!address) {
       throw new Error(`MixinModule: invalid address for ${this.ticker} -- ${recipient}`);
     }
 
-    const parts = destination.split('|');
+    const parts = address.split('|');
     const credentials = this.mixin.accounts.getCredentials();
-    const transferId = await this.mixin.transfers.createTransfer({
-      mixinUserId: credentials.user_id,
-      assetId: this.asset_id,
-      destination,
-      amount,
-      memo
-    });
 
     let sent;
     try {
       if (parts.length >= 3 && parts[2] === 'mixin') {
         sent = await this.mixin.api.sendToUser(credentials, this.asset_id, parts[1], amount, memo);
-      } else if (this.validateAddress(destination)) {
-        sent = await this.mixin.api.sendToAddress(
-          credentials,
-          this.asset_id,
-          destination,
-          amount,
-          memo
-        );
+      } else if (this.validateAddress(address)) {
+        sent = await this.mixin.api.sendToAddress(credentials, this.asset_id, address, amount, memo);
       } else {
-        throw new Error(`invalid address for ${this.ticker} -- ${destination}`);
+        throw new Error(`invalid address for ${this.ticker} -- ${address}`);
       }
     } catch (err) {
-      if (transferId) {
-        await this.mixin.transfers.failTransfer(
-          transferId,
-          err instanceof Error ? err.message : String(err)
-        );
-      }
       throw new Error(
         'MixinModule: ' + (err instanceof Error ? err.message : err || 'payment failed')
       );
-    }
-
-    if (transferId) {
-      await this.mixin.transfers.completeTransfer(transferId, sent.hash);
     }
 
     if (Number.isFinite(sent.pendingBalance)) {
@@ -515,46 +492,47 @@ class MixinModule extends CryptoModule {
     }
   }
 
-  async processAddress(destination, remoteFallback = true) {
-    if (!destination) {
-      return destination;
+  async processAddress(recipient, remoteFallback = true) {
+    if (!recipient) {
+      return recipient;
     }
 
-    if (String(destination).includes('|mixin')) {
-      return destination;
+    let address = String(recipient);
+    if (address.includes('|mixin')) {
+      return address;
     }
 
-    if (this.app.crypto.isPublicKey(destination)) {
-      return await this.returnAddressFromPublicKey(destination);
+    if (this.app.crypto.isPublicKey(address)) {
+      return await this.returnAddressFromPublicKey(address);
     }
 
     for (const publicKey in this.cached_contacts) {
-      if (this.cached_contacts[publicKey].includes(destination)) {
+      if (this.cached_contacts[publicKey].includes(address)) {
         return this.cached_contacts[publicKey];
       }
     }
 
     for (const key of this.app.keychain.returnKeys()) {
-      if (key?.crypto_addresses?.[this.ticker]?.includes(destination)) {
+      if (key?.crypto_addresses?.[this.ticker]?.includes(address)) {
         return key.crypto_addresses[this.ticker];
       }
     }
 
     if (remoteFallback) {
       const row = await this.mixin.fetchMixinUser({
-        address: destination,
+        address,
         asset_id: this.asset_id
       });
       if (row?.publickey && row.user_id) {
-        destination += '|' + row.user_id + '|mixin';
-        this.cached_contacts[row.publickey] = destination;
+        address += '|' + row.user_id + '|mixin';
+        this.cached_contacts[row.publickey] = address;
         if (this.app.keychain.hasPublicKey(row.publickey)) {
-          this.app.keychain.addCryptoAddress(row.publickey, this.ticker, destination);
+          this.app.keychain.addCryptoAddress(row.publickey, this.ticker, address);
         }
       }
     }
 
-    return destination;
+    return address;
   }
 
   validateAddress(address) {

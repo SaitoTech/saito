@@ -165,14 +165,14 @@ class Api {
 
     try {
       const session = createUserSession(credentials);
-      const address = await session.safe.createDeposit(chainId);
-      const destination = address?.[0]?.destination;
-      if (!destination) {
+      const created = await session.safe.createDeposit(chainId);
+      const address = created?.[0]?.destination;
+      if (!address) {
         console.error('ERROR: Mixin error create deposit address: Deposit Address undefined!');
         return false;
       }
-      console.log('New MIXIN deposit address:', address);
-      return destination;
+      console.log('New MIXIN deposit address:', created);
+      return address;
     } catch (err) {
       console.error('ERROR: Mixin error create deposit address: ' + formatMixinError(err));
       return false;

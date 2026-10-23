@@ -1,3 +1,49 @@
+const fs = require('fs');
+const path = require('path');
+
+const TRANSFER_FIELDS = [
+  'purpose',
+  'payload',
+  'request_id',
+  'requester_publickey',
+  'recipient_publickey',
+  'status',
+  'inbound_ticker',
+  'inbound_asset_id',
+  'inbound_chain_id',
+  'inbound_amount',
+  'inbound_address',
+  'inbound_sender',
+  'inbound_mixin_user_id',
+  'inbound_confirmations',
+  'inbound_confirmations_required',
+  'inbound_tx',
+  'inbound_tx_sig',
+  'inbound_tx_hash',
+  'inbound_tx_id',
+  'inbound_received_at',
+  'inbound_confirmation_block_id',
+  'outbound_ticker',
+  'outbound_asset_id',
+  'outbound_chain_id',
+  'outbound_amount',
+  'outbound_address',
+  'outbound_sender',
+  'outbound_mixin_user_id',
+  'outbound_confirmations_required',
+  'outbound_tx',
+  'outbound_tx_sig',
+  'outbound_tx_hash',
+  'outbound_tx_id',
+  'outbound_sent_at',
+  'outbound_block_id',
+  'outbound_block_hash',
+  'outbound_confirmation_block_id',
+  'last_error',
+  'created_at',
+  'updated_at'
+];
+
 class Database {
   constructor(app, mod) {
     this.app = app;
@@ -16,11 +62,34 @@ class Database {
     return this.app.storage.runDatabase(sql, params, this.dbname());
   }
 
-  async saveCredentials(publicKey, ciphertext) {
+  async saveCredentials(publicKey, ciphertext, userId = null) {
+    if (userId) {
+      await this.run(
+        `INSERT INTO accounts (publickey, user_id, ciphertext, created_at)
+         VALUES ($publickey, $user_id, $ciphertext, $created_at)
+         ON CONFLICT(publickey, user_id) DO UPDATE SET ciphertext = excluded.ciphertext`,
+        {
+          $publickey: publicKey,
+          $user_id: userId,
+          $ciphertext: ciphertext,
+          $created_at: Date.now()
+        }
+      );
+      return;
+    }
+
+    const rows = await this.getCredentials(publicKey);
+    if (rows.length) {
+      await this.run(`UPDATE accounts SET ciphertext = $ciphertext WHERE id = $id`, {
+        $ciphertext: ciphertext,
+        $id: rows[0].id
+      });
+      return;
+    }
+
     await this.run(
-      `INSERT INTO accounts (publickey, ciphertext, created_at)
-       VALUES ($publickey, $ciphertext, $created_at)
-       ON CONFLICT(publickey) DO UPDATE SET ciphertext = excluded.ciphertext`,
+      `INSERT INTO accounts (publickey, user_id, ciphertext, created_at)
+       VALUES ($publickey, '', $ciphertext, $created_at)`,
       {
         $publickey: publicKey,
         $ciphertext: ciphertext,
@@ -29,11 +98,22 @@ class Database {
     );
   }
 
-  async getCredentials(publicKey) {
-    const rows = await this.query(`SELECT ciphertext FROM accounts WHERE publickey = $publickey`, {
-      $publickey: publicKey
-    });
-    return rows[0]?.ciphertext || null;
+  async getCredentials(publicKey, userId = null) {
+    if (userId) {
+      const rows = await this.query(
+        `SELECT ciphertext FROM accounts WHERE publickey = $publickey AND user_id = $user_id`,
+        { $publickey: publicKey, $user_id: userId }
+      );
+      return rows[0]?.ciphertext || null;
+    }
+
+    return this.query(
+      `SELECT id, user_id, ciphertext, created_at
+       FROM accounts
+       WHERE publickey = $publickey
+       ORDER BY created_at ASC, id ASC`,
+      { $publickey: publicKey }
+    );
   }
 
   async insertAddress({ mixinUserId, publicKey, assetId, address, createdAt }) {
@@ -94,65 +174,6 @@ class Database {
     };
   }
 
-  async insertTransfer({ mixinUserId, assetId, destination, amount, memo }) {
-    const now = Date.now();
-    await this.run(
-      `INSERT INTO transfers (
-         mixin_user_id, asset_id, destination, amount, memo, hash, status, error, created_at, updated_at
-       ) VALUES (
-         $mixin_user_id, $asset_id, $destination, $amount, $memo, '', 'sending', '', $created_at, $updated_at
-       )`,
-      {
-        $mixin_user_id: mixinUserId,
-        $asset_id: assetId,
-        $destination: destination,
-        $amount: String(amount),
-        $memo: memo || '',
-        $created_at: now,
-        $updated_at: now
-      }
-    );
-    const rows = await this.query(`SELECT last_insert_rowid() AS id`, {});
-    return rows[0]?.id || null;
-  }
-
-  async updateTransfer(id, { hash, status, error, updatedAt }) {
-    await this.run(
-      `UPDATE transfers
-       SET hash = $hash, status = $status, error = $error, updated_at = $updated_at
-       WHERE id = $id`,
-      {
-        $id: id,
-        $hash: hash || '',
-        $status: status,
-        $error: error || '',
-        $updated_at: updatedAt || Date.now()
-      }
-    );
-  }
-
-  async getTransfer(id) {
-    const rows = await this.query(`SELECT * FROM transfers WHERE id = $id`, { $id: id });
-    return rows[0] || null;
-  }
-
-  async findTransfers({ mixinUserId, status } = {}) {
-    const filters = [];
-    const params = {};
-
-    if (mixinUserId) {
-      filters.push('mixin_user_id = $mixin_user_id');
-      params.$mixin_user_id = mixinUserId;
-    }
-    if (status) {
-      filters.push('status = $status');
-      params.$status = status;
-    }
-
-    const where = filters.length ? `WHERE ${filters.join(' AND ')}` : '';
-    return this.query(`SELECT * FROM transfers ${where} ORDER BY created_at ASC`, params);
-  }
-
   async copyLegacyTables() {
     const accounts = await this.query(
       `SELECT publickey, account_hash
@@ -166,7 +187,7 @@ class Database {
         continue;
       }
       const existing = await this.getCredentials(row.publickey);
-      if (!existing) {
+      if (!existing?.length) {
         await this.saveCredentials(row.publickey, row.account_hash);
       }
     }
@@ -197,6 +218,217 @@ class Database {
         createdAt: row.created_at
       });
     }
+  }
+
+  async ensureAccountsSchema() {
+    const columns = await this.query(`PRAGMA table_info(accounts)`, {});
+    if (!columns?.length) {
+      return;
+    }
+    if (columns.some((column) => column.name === 'user_id')) {
+      await this.run(
+        `CREATE UNIQUE INDEX IF NOT EXISTS accounts_publickey_user_uidx
+         ON accounts (publickey, user_id)`,
+        {}
+      );
+      return;
+    }
+
+    await this.run(`ALTER TABLE accounts RENAME TO accounts_legacy`, {});
+    await this.run(
+      `CREATE TABLE accounts (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        publickey TEXT NOT NULL,
+        user_id TEXT NOT NULL DEFAULT '',
+        ciphertext TEXT NOT NULL,
+        created_at INTEGER NOT NULL DEFAULT 0
+      )`,
+      {}
+    );
+    await this.run(
+      `INSERT INTO accounts (id, publickey, user_id, ciphertext, created_at)
+       SELECT id, publickey, '', ciphertext, created_at FROM accounts_legacy`,
+      {}
+    );
+    await this.run(`DROP TABLE accounts_legacy`, {});
+    await this.run(
+      `CREATE UNIQUE INDEX IF NOT EXISTS accounts_publickey_user_uidx
+       ON accounts (publickey, user_id)`,
+      {}
+    );
+  }
+
+  async ensureTransfersSchema() {
+    const columns = await this.query(`PRAGMA table_info(transfers)`, {});
+    if (!columns?.length) {
+      return;
+    }
+
+    const defined = await this.query(
+      `SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'transfers'`,
+      {}
+    );
+    if (!String(defined[0]?.sql || '').includes("'inbound_awaiting'")) {
+      await this.run(`ALTER TABLE transfers RENAME TO transfers_legacy`, {});
+      const sql = fs.readFileSync(path.join(__dirname, '../sql/transfers.sql'), 'utf8');
+      if (this.app.storage.executeDatabase) {
+        await this.app.storage.executeDatabase(sql, this.dbname());
+      } else {
+        await this.run(sql, {});
+      }
+
+      const legacyColumns = new Set(
+        (await this.query(`PRAGMA table_info(transfers_legacy)`, {})).map((column) => column.name)
+      );
+      const freshColumns = (await this.query(`PRAGMA table_info(transfers)`, {})).map(
+        (column) => column.name
+      );
+      const shared = freshColumns.filter((name) => name !== 'status' && legacyColumns.has(name));
+      if (shared.length) {
+        await this.run(
+          `INSERT INTO transfers (status, ${shared.join(', ')})
+           SELECT CASE status
+             WHEN 'awaiting_inbound' THEN 'inbound_awaiting'
+             WHEN 'inbound_pending' THEN 'inbound_broadcast'
+             WHEN 'inbound_observed' THEN 'inbound_broadcast'
+             WHEN 'awaiting_outbound' THEN 'outbound_awaiting'
+             WHEN 'outbound_pending' THEN 'outbound_broadcast'
+             WHEN 'outbound_sent' THEN 'outbound_broadcast'
+             WHEN 'outbound_observed' THEN 'outbound_broadcast'
+             ELSE status
+           END, ${shared.join(', ')}
+           FROM transfers_legacy`,
+          {}
+        );
+      }
+      await this.run(`DROP TABLE transfers_legacy`, {});
+      return;
+    }
+
+    const present = new Set(columns.map((column) => column.name));
+    const additions = [
+      ['request_id', `TEXT NOT NULL DEFAULT ''`],
+      ['requester_publickey', `TEXT NOT NULL DEFAULT ''`],
+      ['recipient_publickey', `TEXT NOT NULL DEFAULT ''`],
+      ['inbound_confirmations', 'INTEGER NOT NULL DEFAULT 0'],
+      ['inbound_confirmations_required', 'INTEGER NOT NULL DEFAULT 0'],
+      ['outbound_confirmations_required', 'INTEGER NOT NULL DEFAULT 0'],
+      ['inbound_tx_id', `TEXT NOT NULL DEFAULT ''`],
+      ['outbound_tx_id', `TEXT NOT NULL DEFAULT ''`],
+      ['inbound_confirmation_block_id', 'INTEGER'],
+      ['outbound_confirmation_block_id', 'INTEGER']
+    ];
+    for (const [name, definition] of additions) {
+      if (!present.has(name)) {
+        await this.run(`ALTER TABLE transfers ADD COLUMN ${name} ${definition}`, {});
+      }
+    }
+  }
+
+  async insertTransfer(transfer) {
+    const columns = ['created_at', 'updated_at'];
+    const values = ['$created_at', '$updated_at'];
+    const now = Date.now();
+    const params = { $created_at: transfer.created_at || now, $updated_at: now };
+
+    for (const field of TRANSFER_FIELDS) {
+      if (field === 'created_at' || field === 'updated_at') {
+        continue;
+      }
+      if (transfer[field] === undefined) {
+        continue;
+      }
+      columns.push(field);
+      values.push(`$${field}`);
+      params[`$${field}`] = transfer[field];
+    }
+
+    const result = await this.run(
+      `INSERT INTO transfers (${columns.join(', ')}) VALUES (${values.join(', ')})`,
+      params
+    );
+    return result?.lastID || null;
+  }
+
+  async updateTransfer(id, fields) {
+    const assignments = ['updated_at = $updated_at'];
+    const params = { $id: id, $updated_at: Date.now() };
+    for (const field of TRANSFER_FIELDS) {
+      if (field === 'updated_at' || fields[field] === undefined) {
+        continue;
+      }
+      assignments.push(`${field} = $${field}`);
+      params[`$${field}`] = fields[field];
+    }
+    await this.run(`UPDATE transfers SET ${assignments.join(', ')} WHERE id = $id`, params);
+  }
+
+  async getTransfers(criteria = {}) {
+    const filters = [];
+    const params = {};
+    for (const field of [
+      'id',
+      'request_id',
+      'requester_publickey',
+      'recipient_publickey',
+      'inbound_ticker',
+      'inbound_address',
+      'status',
+      'purpose'
+    ]) {
+      if (criteria[field] !== undefined && criteria[field] !== null) {
+        filters.push(`${field} = $${field}`);
+        params[`$${field}`] = criteria[field];
+      }
+    }
+    if (!filters.length) {
+      return [];
+    }
+    return this.query(
+      `SELECT * FROM transfers WHERE ${filters.join(' AND ')} ORDER BY id ASC`,
+      params
+    );
+  }
+
+  async getTransfersPendingInboundBroadcast(cutoff) {
+    return this.query(
+      `SELECT * FROM transfers
+       WHERE status = 'inbound_awaiting' AND created_at >= $cutoff
+       ORDER BY id ASC`,
+      { $cutoff: cutoff }
+    );
+  }
+
+  async getTransfersPendingInboundConfirmed() {
+    return this.query(
+      `SELECT * FROM transfers
+       WHERE status = 'inbound_broadcast'
+         AND inbound_tx_hash <> ''
+         AND inbound_confirmations >= inbound_confirmations_required
+       ORDER BY id ASC`,
+      {}
+    );
+  }
+
+  async getTransfersPendingOutboundBroadcast() {
+    return this.query(
+      `SELECT * FROM transfers
+       WHERE status = 'outbound_awaiting' AND outbound_tx_sig <> ''
+       ORDER BY id ASC`,
+      {}
+    );
+  }
+
+  async getTransfersPendingOutboundConfirmed(currentBlockId) {
+    return this.query(
+      `SELECT * FROM transfers
+       WHERE status = 'outbound_broadcast'
+         AND outbound_block_hash <> ''
+         AND outbound_confirmation_block_id IS NOT NULL
+         AND outbound_confirmation_block_id <= $current_block_id
+       ORDER BY id ASC`,
+      { $current_block_id: currentBlockId }
+    );
   }
 }
 

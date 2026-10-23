@@ -160,8 +160,7 @@ class Faucet extends ModTemplate {
           this.server_faucet_free_use = res.free_use === true;
 
           try {
-            const buysaito = this.app.modules.returnModule('BuySaito');
-            const purchase = buysaito?.purchase_overlay;
+            const purchase = this.app.modules.returnModule('Mixin')?.purchase_overlay;
             if (
               purchase?.active &&
               typeof purchase.renderAcquisitionOptions === 'function' &&
@@ -856,7 +855,7 @@ class Faucet extends ModTemplate {
 
       if (data.already_issued) {
         try {
-          const purchase = this.app.modules.returnModule('BuySaito')?.purchase_overlay;
+          const purchase = this.app.modules.returnModule('Mixin')?.purchase_overlay;
           if (purchase && typeof purchase.showFaucetAlreadyIssuedNotice === 'function') {
             if (!document.querySelector('#purchase-container') && purchase.active) {
               purchase.render();
@@ -870,7 +869,7 @@ class Faucet extends ModTemplate {
       }
 
       try {
-        const purchase = this.app.modules.returnModule('BuySaito')?.purchase_overlay;
+        const purchase = this.app.modules.returnModule('Mixin')?.purchase_overlay;
         if (purchase) {
           purchase.acquisition_stage = 'default';
           purchase.stage1_html = null;

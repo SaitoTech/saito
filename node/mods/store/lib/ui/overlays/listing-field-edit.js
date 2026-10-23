@@ -13,8 +13,8 @@ function escapeHtml(value = '') {
 
 function returnStoreWeb3Tickers(app, current = 'SAITO') {
   const tickers = ['SAITO'];
-  const buysaito = app?.modules?.returnModule?.('BuySaito');
-  const currencies = Array.isArray(buysaito?.available_currencies) ? buysaito.available_currencies : [];
+  const mixin = app?.modules?.returnModule?.('Mixin');
+  const currencies = Array.isArray(mixin?.available_currencies) ? mixin.available_currencies : [];
   for (const currency of currencies) {
     const ticker = String(currency?.ticker || '').trim().toUpperCase();
     if (!ticker || ticker === 'SAITO' || EXCLUDED_WEB3_TICKERS.has(ticker)) {
@@ -35,8 +35,8 @@ function storeWeb3TickersAnswered(app) {
   if (requestStoreWeb3Tickers.resolved) {
     return true;
   }
-  const buysaito = app?.modules?.returnModule?.('BuySaito');
-  const currencies = buysaito?.available_currencies;
+  const mixin = app?.modules?.returnModule?.('Mixin');
+  const currencies = mixin?.available_currencies;
   // null is only assigned when a reply arrives without a currency list.
   // [] is also the value before any reply, so it does not count as an answer.
   if (currencies === null) {
@@ -62,8 +62,9 @@ function rememberStoreWeb3TickerResponse(app) {
 }
 
 function requestStoreWeb3Tickers(app, { force = false } = {}) {
-  const buysaito = app?.modules?.returnModule?.('BuySaito');
-  if (!buysaito?.authorized_public_key) {
+  const mixin = app?.modules?.returnModule?.('Mixin');
+  const peerKey = mixin?.buysaito_peer?.publicKey;
+  if (!peerKey) {
     return;
   }
   rememberStoreWeb3TickerResponse(app);
@@ -74,11 +75,7 @@ function requestStoreWeb3Tickers(app, { force = false } = {}) {
     return;
   }
   requestStoreWeb3Tickers.pending = true;
-  app.connection.emit('relay-send-message', {
-    recipient: buysaito.authorized_public_key,
-    request: 'buysaito available currencies',
-    data: null
-  });
+  app.network.sendRequestAsTransaction('buysaito available currencies', null, null, peerKey);
 }
 
 requestStoreWeb3Tickers.resolved = false;

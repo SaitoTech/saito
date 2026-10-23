@@ -90,6 +90,9 @@ class BuySaito extends ModTemplate {
 
       setTimeout(async () => {
         try {
+          if (this.mixin_mod?.transfers) {
+            return;
+          }
           if (this.mixin_mod && this.authorized_public_key === this.publicKey) {
             const account = await this.mixin_mod.createAccount();
             if (account?.err || !this.mixin_mod.account_created) {
@@ -113,7 +116,7 @@ class BuySaito extends ModTemplate {
 
   returnServices() {
     let services = [];
-    if (!this.app.BROWSER) {
+    if (!this.app.BROWSER && !this.app.modules?.returnModule?.('Mixin')?.transfers) {
       if (this.publicKey == this.authorized_public_key) {
         services.push(new PeerService(null, 'buysaito'));
       }
@@ -184,6 +187,12 @@ class BuySaito extends ModTemplate {
     }
 
     if (typeof txmsg?.request === 'string' && txmsg.request.includes('buysaito')) {
+      if (!this.app.BROWSER && this.app.modules?.returnModule?.('Mixin')?.transfers) {
+        return 0;
+      }
+      if (this.app.BROWSER && this.app.modules?.returnModule?.('Mixin')?.purchase_overlay) {
+        return 0;
+      }
       console.debug(txmsg);
 
       if (txmsg.request == 'buysaito available currencies') {
@@ -305,6 +314,9 @@ class BuySaito extends ModTemplate {
    * The independent timer keeps deposit detection running between blocks.
    */
   async onNewBlock(blk, lc) {
+    if (!this.app.BROWSER && this.app.modules?.returnModule?.('Mixin')?.transfers) {
+      return;
+    }
     if (this.service_ready && this.publicKey == this.authorized_public_key && !this.app.BROWSER) {
       await this.confirmIssuedPaymentsInBlock(blk, lc);
       await this.processPendingPayments();

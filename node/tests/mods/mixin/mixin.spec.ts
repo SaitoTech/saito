@@ -45,9 +45,9 @@ const Api = require('../../../mods/mixin/lib/api');
 const { createUserSession, getWithdrawalFeeQuote, createAppSession } = Api;
 const Accounts = require('../../../mods/mixin/lib/accounts');
 const Database = require('../../../mods/mixin/lib/database');
-const Transfers = require('../../../mods/mixin/lib/transfers');
 const Mixin = require('../../../mods/mixin/mixin');
 const MixinModule = require('../../../mods/mixin/lib/mixinmodule');
+const Transfers = require('../../../mods/mixin/lib/transfers');
 const CryptoModule = require('../../../lib/templates/cryptomodule');
 
 const credentials = {
@@ -202,7 +202,11 @@ describe('Mixin accounts and database', () => {
     const second = await accounts.createAccount('saito-key');
 
     expect(first.restored).toBe(false);
-    expect(second).toEqual({ ciphertext: first.ciphertext, restored: true });
+    expect(second).toEqual({
+      ciphertext: first.ciphertext,
+      restored: true,
+      user_id: 'user-1'
+    });
     expect(mod.api.createAccount).toHaveBeenCalledTimes(1);
     expect(accounts.decryptCredentials(first.ciphertext, 'private')).toMatchObject({
       user_id: 'user-1',
@@ -288,47 +292,8 @@ describe('Mixin accounts and database', () => {
     });
   });
 
-  test('an outbound transfer is recorded as sent or failed and startup does not resend it', async () => {
+  test('startup does not send a transfer', async () => {
     const db = await openMixinDatabase();
-    const database = databaseFor(db);
-    const mod = { database };
-    const transfers = new Transfers({}, mod);
-    const sentId = await transfers.createTransfer({
-      mixinUserId: 'user-1',
-      assetId: 'eth',
-      destination: '0xabc|user-2|mixin',
-      amount: '1.5',
-      memo: 'note'
-    });
-    await transfers.completeTransfer(sentId, 'tx-hash');
-
-    const failedId = await transfers.createTransfer({
-      mixinUserId: 'user-1',
-      assetId: 'eth',
-      destination: '0xdef',
-      amount: '2',
-      memo: ''
-    });
-    await transfers.failTransfer(failedId, 'rejected');
-
-    const openId = await transfers.createTransfer({
-      mixinUserId: 'user-1',
-      assetId: 'eth',
-      destination: '0xopen',
-      amount: '3',
-      memo: ''
-    });
-
-    expect(await transfers.getTransfer(sentId)).toMatchObject({ status: 'sent', hash: 'tx-hash' });
-    expect(await transfers.getTransfer(failedId)).toMatchObject({
-      status: 'failed',
-      error: 'rejected',
-      hash: ''
-    });
-    expect(await transfers.findIncompleteTransfers('user-1')).toEqual([
-      expect.objectContaining({ id: openId, status: 'sending' })
-    ]);
-
     const sendToUser = jest.spyOn(Api.prototype, 'sendToUser');
     const sendToAddress = jest.spyOn(Api.prototype, 'sendToAddress');
     const app = {
@@ -357,9 +322,209 @@ describe('Mixin accounts and database', () => {
 
     expect(sendToUser).not.toHaveBeenCalled();
     expect(sendToAddress).not.toHaveBeenCalled();
-    expect(await transfers.getTransfer(openId)).toMatchObject({ status: 'sending', hash: '' });
     sendToUser.mockRestore();
     sendToAddress.mockRestore();
+  });
+});
+
+describe('Mixin transfer queue', () => {
+  function credentialApp() {
+    return {
+      options: {},
+      storage: { saveOptions() {} },
+      wallet: { getPrivateKey: async () => 'private' },
+      crypto: {
+        encryptWithPublicKey(buf, publicKey) {
+          return Buffer.from(`enc:${publicKey}:${buf.toString('utf8')}`);
+        },
+        decryptWithPrivateKey(buf) {
+          const text = buf.toString('utf8');
+          return Buffer.from(text.slice(text.indexOf('{')));
+        }
+      }
+    };
+  }
+
+  test('an additional Mixin account can be stored for the same Saito key', async () => {
+    const db = await openMixinDatabase();
+    const database = databaseFor(db);
+    let count = 0;
+    const mod = {
+      publicKey: 'saito-key',
+      database,
+      api: {
+        createAccount: jest.fn(async () => {
+          count += 1;
+          return { ...credentials, user_id: `user-${count}` };
+        })
+      }
+    };
+    const accounts = new Accounts(credentialApp(), mod);
+
+    await accounts.createAccount('saito-key');
+    const extra = await accounts.createAccount('saito-key', { additional: true });
+    const ordinary = await accounts.createAccount('saito-key');
+
+    expect(extra).toMatchObject({ restored: false, user_id: 'user-2' });
+    expect(ordinary).toMatchObject({ restored: true, user_id: 'user-1' });
+    expect(mod.api.createAccount).toHaveBeenCalledTimes(2);
+    await expect(database.getCredentials('saito-key', 'user-2')).resolves.toBe(extra.ciphertext);
+    await expect(database.getCredentials('saito-key')).resolves.toHaveLength(2);
+  });
+
+  test('an existing one-key accounts table is migrated before a second Mixin user is saved', async () => {
+    const db = await open({ filename: ':memory:', driver: sqlite3.Database });
+    await db.exec(`CREATE TABLE accounts (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      publickey TEXT NOT NULL UNIQUE,
+      ciphertext TEXT NOT NULL,
+      created_at INTEGER NOT NULL DEFAULT 0
+    )`);
+    await db.run(
+      `INSERT INTO accounts (publickey, ciphertext, created_at) VALUES ('saito-key', 'old', 1)`
+    );
+    const database = databaseFor(db);
+
+    await database.ensureAccountsSchema();
+    await database.saveCredentials('saito-key', 'second', 'user-2');
+
+    const rows = await database.getCredentials('saito-key');
+    expect(rows.map((row) => row.user_id)).toEqual(['', 'user-2']);
+    expect(rows[0].ciphertext).toBe('old');
+  });
+
+  test('old transfer statuses are rewritten and a deposit observation advances the row', async () => {
+    const db = await open({ filename: ':memory:', driver: sqlite3.Database });
+    await db.exec(
+      fs.readFileSync(path.join(__dirname, '../../../mods/mixin/sql/accounts.sql'), 'utf8')
+    );
+    await db.exec(`CREATE TABLE transfers (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      status TEXT NOT NULL DEFAULT 'awaiting_inbound',
+      created_at INTEGER NOT NULL DEFAULT 0,
+      updated_at INTEGER NOT NULL DEFAULT 0
+    )`);
+    await db.run(
+      `INSERT INTO transfers (status, created_at, updated_at) VALUES ('inbound_pending', 5, 5)`
+    );
+    const database = databaseFor(db);
+    database.app.storage.executeDatabase = (sql) => db.exec(sql);
+
+    await database.ensureTransfersSchema();
+
+    const migrated = await database.getTransfers({ status: 'inbound_broadcast' });
+    expect(migrated).toHaveLength(1);
+
+    const id = await database.insertTransfer({
+      purpose: 'buysaito',
+      status: 'inbound_awaiting',
+      requester_publickey: 'payer',
+      inbound_ticker: 'ETH',
+      inbound_asset_id: 'asset',
+      inbound_amount: '1',
+      inbound_address: '0xabc',
+      inbound_mixin_user_id: 'user-1',
+      inbound_confirmations_required: 12,
+      created_at: Date.now()
+    });
+    const sent = jest.fn();
+    const transfers = new Transfers(
+      {
+        wallet: { getPrivateKey: async () => 'private' },
+        network: { sendRequestAsTransaction: sent },
+        connection: { emit: jest.fn() },
+        blockchain: { getLatestBlockId: async () => 3 }
+      },
+      {
+        publicKey: 'saito-key',
+        database,
+        accounts: {
+          getCredentials: () => credentials,
+          decryptCredentials: () => credentials
+        },
+        api: {
+          fetchDeposits: jest.fn(async () => [
+            { amount: '1', confirmations: 1, transaction_hash: 'hash-1', status: 'pending' }
+          ]),
+          fetchHistory: jest.fn(async () => [])
+        }
+      }
+    );
+
+    let release;
+    const gate = new Promise((resolve) => {
+      release = resolve;
+    });
+    const original = database.getTransfers.bind(database);
+    let calls = 0;
+    database.getTransfers = async (...args) => {
+      calls += 1;
+      if (calls === 1) {
+        await gate;
+      }
+      return original(...args);
+    };
+
+    const first = transfers.processTransferQueue();
+    await Promise.resolve();
+    const second = transfers.processTransferQueue();
+    await second;
+    expect(transfers.running).toBe(true);
+    release();
+    await first;
+
+    expect(transfers.running).toBe(false);
+    const row = (await original({ id }))[0];
+    expect(row.status).toBe('inbound_broadcast');
+    expect(row.inbound_tx_hash).toBe('hash-1');
+    expect(row.inbound_confirmations).toBe(1);
+    expect(sent).toHaveBeenCalledWith(
+      'buysaito payment detected',
+      expect.objectContaining({ id, status: 'pending', address: '0xabc' }),
+      null,
+      'payer'
+    );
+  });
+
+  test('a reorg returns the saved outbound transaction to outbound_awaiting', async () => {
+    const db = await openMixinDatabase();
+    const database = databaseFor(db);
+    await database.insertTransfer({
+      purpose: 'buysaito',
+      status: 'outbound_broadcast',
+      requester_publickey: 'payer',
+      outbound_tx: 'saved-tx',
+      outbound_tx_sig: 'saved-sig',
+      outbound_block_id: 4,
+      outbound_block_hash: 'block-hash',
+      outbound_confirmation_block_id: 4,
+      created_at: Date.now()
+    });
+    const transfers = new Transfers(
+      {
+        wallet: { getPrivateKey: async () => 'private', addTransactionToPending: jest.fn() },
+        network: { sendRequestAsTransaction: jest.fn(), propagateTransaction: jest.fn() },
+        connection: { emit: jest.fn() },
+        blockchain: {
+          getLatestBlockId: async () => 4,
+          getLongestChainHashAtId: async () => 'block-hash'
+        }
+      },
+      {
+        publicKey: 'saito-key',
+        database,
+        accounts: { getCredentials: () => ({}), decryptCredentials: () => ({}) },
+        api: { fetchDeposits: jest.fn(async () => []), fetchHistory: jest.fn(async () => []) }
+      }
+    );
+
+    await transfers.onChainReorganization(4, 'block-hash', false);
+
+    const row = (await database.getTransfers({ status: 'outbound_awaiting' }))[0];
+    expect(row.outbound_tx_sig).toBe('saved-sig');
+    expect(row.outbound_tx).toBe('saved-tx');
+    expect(row.outbound_block_hash).toBe('');
+    expect(transfers.app.network.propagateTransaction).not.toHaveBeenCalled();
   });
 });
 
