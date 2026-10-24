@@ -336,8 +336,9 @@ this.updateLog(`###############`);
 
 	  this.game.queue.splice(qe, 1);
 
-          let allies_cards_needed = 7;
-          let central_cards_needed = 7;
+          let hand_size = (this.game.options && this.game.options.deck === "optional") ? 8 : 7;
+          let allies_cards_needed = hand_size;
+          let central_cards_needed = hand_size;
 	  let allies_cards_available = 0;
 	  let central_cards_available = 0;
 	  if (parseInt(this.game.state.cards_left["allies"]) > 0) { allies_cards_available = parseInt(this.game.state.cards_left["allies"]); }
@@ -1566,6 +1567,8 @@ try {
           this.addUnitToSpace("ru_corps", "lutsk");
           this.addUnitToSpace("ru_corps", "riga");
           this.addUnitToSpace("ru_corps", "batum");
+          this.addUnitToSpace("ru_corps", "kars");
+          this.addUnitToSpace("ru_corps", "erivan");
 
 	  // austria
 	  this.addTrench("cracow", 1);
@@ -1758,11 +1761,12 @@ try {
 
 	  this.updateLog(unit.name + " redeploys to " + this.returnSpaceNameForLog(destination));
 
-	  if (this.minimap && this.returnPlayerOfFaction(faction) != this.game.player) {
+	  if (this.returnPlayerOfFaction(faction) != this.game.player) {
 	    if (destination != "aeubox" && destination != "ceubox" && destination != "arbox" && destination != "crbox") {
+	      this.noteOpponentBoardMark(destination, "move");
 	      let space = this.game.spaces[destination];
 	      let board = this.getBoardState();
-	      if (space && board) {
+	      if (this.minimap && space && board) {
 	        this.minimap.add("move-" + destination, {
 	          x: (space.left + 45) / board.width,
 	          y: (space.top + 45) / board.height,
@@ -1865,10 +1869,12 @@ try {
 	  if (cmd) {
 	    for (let i = this.game.queue.length - 1; i >= 0; i--) {
 	      if (this.game.queue[i].split("\t")[0] === cmd) {
-	        if (cmd === "play" && this.minimap) {
+	        if (cmd === "play") {
 	          let faction = this.game.queue[i].split("\t")[1];
 	          if (this.game.player == this.returnPlayerOfFaction(faction)) {
-	            this.minimap.clear();
+	            if (this.minimap) { this.minimap.clear(); }
+	          } else {
+	            this.showOpponentMarks();
 	          }
 	        }
 	        this.game.queue.splice(i, 1);
@@ -2033,10 +2039,11 @@ try {
 	  //
 	  this.paths_log.openCombat();
 
-	  if (this.minimap && this.returnPlayerOfFaction(this.game.state.combat.attacking_faction) != this.game.player) {
+	  if (this.returnPlayerOfFaction(this.game.state.combat.attacking_faction) != this.game.player) {
+	    this.noteOpponentBoardMark(key, "attack");
 	    let space = this.game.spaces[key];
 	    let board = this.getBoardState();
-	    if (space && board) {
+	    if (this.minimap && space && board) {
 	      this.minimap.add("attack-" + key, {
 	        x: (space.left + 45) / board.width,
 	        y: (space.top + 45) / board.height,
@@ -3758,10 +3765,11 @@ console.log("moving unit: " + JSON.stringify(u));
 	  }
 	  this.activateSpaceForCombat(key);
 
-	  if (this.minimap && this.returnPlayerOfFaction(faction) != this.game.player) {
+	  if (this.returnPlayerOfFaction(faction) != this.game.player) {
+	    this.noteOpponentBoardMark(key, "attack");
 	    let space = this.game.spaces[key];
 	    let board = this.getBoardState();
-	    if (space && board) {
+	    if (this.minimap && space && board) {
 	      this.minimap.add("attack-" + key, {
 	        x: (space.left + 45) / board.width,
 	        y: (space.top + 45) / board.height,
@@ -3790,10 +3798,11 @@ console.log("moving unit: " + JSON.stringify(u));
 	  }
 	  this.activateSpaceForMovement(key);
 
-	  if (this.minimap && this.returnPlayerOfFaction(faction) != this.game.player) {
+	  if (this.returnPlayerOfFaction(faction) != this.game.player) {
+	    this.noteOpponentBoardMark(key, "move");
 	    let space = this.game.spaces[key];
 	    let board = this.getBoardState();
-	    if (space && board) {
+	    if (this.minimap && space && board) {
 	      this.minimap.add("move-" + key, {
 	        x: (space.left + 45) / board.width,
 	        y: (space.top + 45) / board.height,
@@ -3977,11 +3986,12 @@ console.log("moving unit: " + JSON.stringify(u));
 	    this.paths_log.commitMove(faction, sourcekey, sourceidx, destinationkey);
 	  }
 
-	  if (this.minimap && this.returnPlayerOfFaction(faction) != this.game.player) {
+	  if (this.returnPlayerOfFaction(faction) != this.game.player) {
 	    if (destinationkey != "aeubox" && destinationkey != "ceubox" && destinationkey != "arbox" && destinationkey != "crbox") {
+	      this.noteOpponentBoardMark(destinationkey, "move");
 	      let space = this.game.spaces[destinationkey];
 	      let board = this.getBoardState();
-	      if (space && board) {
+	      if (this.minimap && space && board) {
 	        this.minimap.add("move-" + destinationkey, {
 	          x: (space.left + 45) / board.width,
 	          y: (space.top + 45) / board.height,

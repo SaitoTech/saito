@@ -119,7 +119,7 @@ class SaitoPurchaseOverlay {
           this.app.network.sendRequestAsTransaction(
             'buysaito available currencies',
             null,
-            null,
+            (response) => this.mod.receiveAvailableCurrencies(response),
             this.mod.buysaito_peer.publicKey
           );
 
@@ -636,8 +636,8 @@ class SaitoPurchaseOverlay {
     nextButton.onclick = async () => {
       if (nextButton.disabled) return;
       const currency = state.crypto_selected;
-      const amount = state.amount_input_source === 'saito' ? saitoInput.value : 0;
-      const deposit = state.amount_input_source === 'saito' ? 0 : cryptoInput.value;
+      const amount = saitoInput.value;
+      const deposit = cryptoInput.value;
       if (
         !currency ||
         !this.isValidAmount(cryptoInput.value) ||
@@ -786,11 +786,13 @@ class SaitoPurchaseOverlay {
       tx: this.tx
     };
 
-    if (this.amount) {
-      data.issue_amount = this.amount;
-    } else if (this.expected_deposit) {
-      data.expected_deposit = this.expected_deposit;
-    } else {
+    if (Number(this.amount) > 0) {
+      data.issue_amount = Number(this.amount);
+    }
+    if (Number(this.expected_deposit) > 0) {
+      data.expected_deposit = Number(this.expected_deposit);
+    }
+    if (!data.issue_amount && !data.expected_deposit) {
       console.error('No valid numeric input');
       this.app.connection.emit('saito-purchase-error-notification', {
         message: 'A valid payment amount is required before requesting instructions.'

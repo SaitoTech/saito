@@ -124,26 +124,27 @@
       }
       await this.waitForPaint();
     }
-    roll(battle) {
+    roll(battle, durationMs) {
       if (this.disposed) return Promise.resolve();
       root.clearTimeout(this.fallbackTimer);
       this.finishRoll?.();
       const finished = new Promise(resolve => { this.finishRoll = resolve; });
       const values = (battle.attackerDice || []).concat(battle.defenderDice || []);
+      const spin = this.reducedMotion ? 0 : (durationMs ?? 820);
       if (!this.renderer) {
         const fallback = this.canvas.parentElement.querySelector('.conquest-flat-dice');
         fallback.classList.toggle('rolling', !this.reducedMotion);
         this.fallbackTimer = root.setTimeout(() => {
           fallback.classList.remove('rolling');
           this.finishRoll?.(); this.finishRoll = null;
-        }, this.reducedMotion ? 0 : 820);
+        }, spin);
         return finished;
       }
       if (this.frame) root.cancelAnimationFrame(this.frame);
       // Material order +x,-x,+y,-y,+z,-z. Rotate the rolled face toward the viewer.
       const faceRotation = {1:[0,-Math.PI/2,0],6:[0,Math.PI/2,0],2:[Math.PI/2,0,0],5:[-Math.PI/2,0,0],3:[0,0,0],4:[0,Math.PI,0]};
       let started;
-      const duration = this.reducedMotion ? 0 : 820;
+      const duration = spin;
       const tick = now => {
         if (this.disposed) return;
         if (started === undefined) started = now;

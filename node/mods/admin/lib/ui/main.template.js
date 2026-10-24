@@ -1,6 +1,7 @@
 module.exports = (app, mod) => {
   const admin_configs = app.modules.getRespondTos?.('admin-config') || [];
   const faucet = admin_configs.find((config) => config.id === 'faucet');
+  const payments = admin_configs.find((config) => config.id === 'mixin');
 
   return `
     <div class="saito-admin-main">
@@ -15,6 +16,11 @@ module.exports = (app, mod) => {
         ${
           faucet
             ? `<div class="saito-admin-nav-item faucet" data-admin-view="faucet">Faucet</div>`
+            : ''
+        }
+        ${
+          payments
+            ? `<div class="saito-admin-nav-item payments" data-admin-view="payments">Payments</div>`
             : ''
         }
         <div class="saito-admin-nav-item options" data-admin-view="options">Config</div>
@@ -36,6 +42,8 @@ module.exports = (app, mod) => {
         <div class="admin-page admin-mempool"></div>
 
         ${faucet ? `<div class="admin-page admin-faucet"></div>` : ''}
+
+        ${payments ? `<div class="admin-page admin-payments"></div>` : ''}
 
         <div class="admin-page admin-options">
           <h1>Config</h1>

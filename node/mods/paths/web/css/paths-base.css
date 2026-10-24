@@ -67,7 +67,8 @@
     margin-left: 1.333rem;
     position: absolute;
   }
-  .selectable::before {
+  .selectable::before,
+  .move-cue::before {
     content: ' ';
     box-shadow:
       1.667rem 1.667rem 5.833rem 2.5rem #fffc,
@@ -144,6 +145,35 @@
   .space .army-tile:nth-child(6) {
     top: -150px;
     left: 150px;
+  }
+
+  /* Clicking a space with several units fans those chits into one column. */
+  .space.stack-open {
+    z-index: 80;
+    overflow: visible;
+  }
+
+  .space.stack-open::before {
+    content: '';
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    top: var(--stack-top, 0px);
+    width: var(--stack-width, 100%);
+    height: var(--stack-height, 100%);
+    background: rgba(0, 0, 0, 0.55);
+    border-radius: 6px;
+    z-index: 1;
+  }
+
+  .space.stack-open > .army-tile {
+    z-index: 2;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.45);
+  }
+
+  .space.stack-open > .activation-tile,
+  .space.stack-open > .trench-tile {
+    z-index: 0;
   }
 
   img {

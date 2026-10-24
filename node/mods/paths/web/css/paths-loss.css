@@ -392,17 +392,6 @@
     text-decoration: none;
   }
 
-  .destroyed_unit .loss-overlay-unit-token::after,
-  .loss-overlay-unit#destroyed_unit .loss-overlay-unit-token::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: url('/paths/img/cancel_x.png') no-repeat center;
-    background-size: contain;
-    pointer-events: none;
-    z-index: 2;
-  }
-
   .loss-overlay-unit.unassignable {
     cursor: not-allowed;
   }

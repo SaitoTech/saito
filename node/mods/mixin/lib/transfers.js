@@ -1,5 +1,9 @@
 const Transaction = require('../../../lib/saito/transaction').default;
 
+// A submitted amount may differ from the cached quote by this fraction.
+// One basis point of floating-point noise is inside this band; a different rate is not.
+const QUOTE_TOLERANCE = 0.01;
+
 const OPEN_STATUSES = [
   'inbound_awaiting',
   'inbound_broadcast',
@@ -15,6 +19,7 @@ class Transfers {
     this.running = false;
     this.inclusion_checked = false;
     this.reservation_ms = 25 * 60 * 1000;
+    this.quote_tolerance = QUOTE_TOLERANCE;
   }
 
   // outbound_confirmed is the completed SAITO inclusion. `succeeded` stays in the
@@ -449,17 +454,55 @@ class Transfers {
       return this.reservationInstructions(open);
     }
 
-    const saitoPrice = Math.max(0.001, erc ? 1.1 * Number(erc.price_usd) : 1);
+    if (
+      request.price_usd != null ||
+      request.usd_price != null ||
+      request.saito_price != null ||
+      request.rate != null ||
+      request.exchange_rate != null
+    ) {
+      throw new Error('BuySaito: the exchange rate is set by the server');
+    }
+    const ercPrice = Number(erc?.price_usd);
     const usdPrice = Number(crypto.price_usd);
-    if (!usdPrice) {
+    const priceFresh = (item) => item?.last_update && Date.now() - item.last_update <= 300000;
+    if (
+      !priceFresh(crypto) ||
+      !priceFresh(erc) ||
+      !Number.isFinite(usdPrice) ||
+      usdPrice <= 0 ||
+      !Number.isFinite(ercPrice) ||
+      ercPrice <= 0
+    ) {
       throw new Error(`No price is available for ${ticker}`);
     }
-    let issueAmount = Number(request.issue_amount);
-    let expectedDeposit = Number(request.expected_deposit);
-    if (request.issue_amount) {
-      expectedDeposit = Math.ceil(((issueAmount * saitoPrice) / usdPrice) * 1000000) / 1000000;
-    } else if (request.expected_deposit) {
-      issueAmount = Math.floor((expectedDeposit * usdPrice) / saitoPrice);
+    // The same spread and six-decimal deposit rounding used when the client quoted.
+    const saitoPrice = Math.max(0.001, 1.1 * ercPrice);
+    const submittedIssue = Number(request.issue_amount);
+    const submittedDeposit = Number(request.expected_deposit);
+    const hasIssue = Number.isFinite(submittedIssue) && submittedIssue > 0;
+    const hasDeposit = Number.isFinite(submittedDeposit) && submittedDeposit > 0;
+    if (!hasIssue && !hasDeposit) {
+      throw new Error('BuySaito: invalid payment amount');
+    }
+    const depositForIssue = (issue) =>
+      Math.ceil(((issue * saitoPrice) / usdPrice) * 1000000) / 1000000;
+    const issueForDeposit = (deposit) => Math.floor((deposit * usdPrice) / saitoPrice);
+    const closeEnough = (submitted, expected) =>
+      Number.isFinite(submitted) &&
+      Number.isFinite(expected) &&
+      expected > 0 &&
+      Math.abs(submitted - expected) <= expected * this.quote_tolerance;
+    let issueAmount = 0;
+    let expectedDeposit = 0;
+    if (hasIssue && closeEnough(hasDeposit ? submittedDeposit : depositForIssue(submittedIssue), depositForIssue(submittedIssue))) {
+      issueAmount = submittedIssue;
+      expectedDeposit = depositForIssue(submittedIssue);
+    } else if (hasDeposit && closeEnough(hasIssue ? submittedIssue : issueForDeposit(submittedDeposit), issueForDeposit(submittedDeposit))) {
+      expectedDeposit = submittedDeposit;
+      issueAmount = issueForDeposit(submittedDeposit);
+    } else {
+      throw new Error('BuySaito: the order does not match the current exchange rate');
     }
     if (
       !Number.isFinite(issueAmount) ||

@@ -37,8 +37,9 @@ console.log("\n\n\n\n");
       this.game.queue.push("READY");
       this.game.queue.push("init");
 
-      this.game.queue.push("DEAL\t2\t2\t7");
-      this.game.queue.push("DEAL\t1\t1\t6"); // player automatically gets Guns of August
+      let opening_hand = (this.game.options && this.game.options.deck === "optional") ? 8 : 7;
+      this.game.queue.push("DEAL\t2\t2\t" + opening_hand);
+      this.game.queue.push("DEAL\t1\t1\t" + (opening_hand - 1)); // player automatically gets Guns of August
       //this.game.queue.push("DEAL\t2\t2\t7");
       //this.game.queue.push("DEAL\t1\t1\t6"); // player chooses Guns of August or extra card 
 

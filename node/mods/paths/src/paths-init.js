@@ -13,6 +13,7 @@ const WelcomeOverlay = require('./lib/ui/overlays/welcome');
 const MenuOverlay = require('./lib/ui/overlays/menu');
 const RussiaOverlay = require('./lib/ui/overlays/russia');
 const UsaOverlay = require('./lib/ui/overlays/usa');
+const SettingsOverlay = require('./lib/ui/overlays/settings');
 
 const PathsRules = require('./lib/core/rules.template');
 const PathsOptions = require('./lib/core/advanced-options.template');
@@ -56,7 +57,8 @@ class PathsOfGlory extends GameTemplate {
     this.replacements_overlay = new ReplacementsOverlay(this.app, this); 
     this.reserves_overlay = new ReservesOverlay(this.app, this); 
     this.mandates_overlay = new MandatesOverlay(this.app, this); 
-    this.vp_overlay = new VPOverlay(this.app, this); 
+    this.vp_overlay = new VPOverlay(this.app, this);
+    this.settings_overlay = new SettingsOverlay(this.app, this); 
     this.welcome_overlay = new WelcomeOverlay(this.app, this); 
     this.menu_overlay = new MenuOverlay(this.app, this); 
     this.space_overlay = new SpaceOverlay(this.app, this);
@@ -78,6 +80,8 @@ class PathsOfGlory extends GameTemplate {
     this.default_board_view = { x: 437 / 5100, y: 450 / 3312, w: 2980 / 5100, h: 1573 / 3312 };
     this.signal_n = 0;
     this.signals = { n: 0, marks: {} };
+    this.opponent_marks = {};
+    this.opponent_marks_visible = false;
 
     let hud_update_menu = this.hud.updateMenu.bind(this.hud);
     let hud_update_cards = this.hud.updateCards.bind(this.hud);
@@ -174,30 +178,12 @@ class PathsOfGlory extends GameTemplate {
       }
     });
     this.menu.addSubMenuOption("game-game", {
-      text : "Combat",
-      id : "game-combat",
-      class : "game-combat",
+      text : "Settings",
+      id : "game-settings",
+      class : "game-settings",
       callback : function(app, game_mod) {
         game_mod.menu.hideSubMenus();
-        game_mod.combat_overlay.render();
-      }
-    });
-    this.menu.addSubMenuOption("game-game", {
-      text : "Central Reserves",
-      id : "game-reserves-central",
-      class : "game-reserves-central",
-      callback : function(app, game_mod) {
-        game_mod.menu.hideSubMenus();
-        game_mod.reserves_overlay.render("central");
-      }
-    });
-    this.menu.addSubMenuOption("game-game", {
-      text : "Allied Reserves",
-      id : "game-reserves-allies",
-      class : "game-reserves-allies",
-      callback : function(app, game_mod) {
-        game_mod.menu.hideSubMenus();
-        game_mod.reserves_overlay.render("allies");
+        game_mod.settings_overlay.render();
       }
     });
     this.menu.addSubMenuOption("game-game", {
@@ -207,15 +193,6 @@ class PathsOfGlory extends GameTemplate {
       callback : function(app, game_mod) {
         game_mod.menu.hideSubMenus();
         game_mod.log.toggleLog();
-      }
-    });
-    this.menu.addSubMenuOption("game-game", {
-      text : "Stats",
-      id : "game-stats",
-      class : "game-stats",
-      callback : function(app, game_mod) {
-	game_mod.menu.hideSubMenus();
-        game_mod.handleStatsMenu();
       }
     });
     this.menu.addSubMenuOption("game-game", {

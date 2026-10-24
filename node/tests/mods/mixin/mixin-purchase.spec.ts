@@ -184,12 +184,30 @@ describe('Mixin purchase UI', () => {
     expect(withBuySaito).toEqual(['/mixin']);
   });
 
-  test('currency conversion uses the quoted price and spread', () => {
+  test('currency conversion uses the server list and ignores local module prices', () => {
     const mixin = new Mixin(browserApp());
     mixin.erc_saito = { price_usd: 1 };
     mixin.available_currencies = [{ ticker: 'ETH', price_usd: 2 }];
+    mixin.crypto_mods = [{ ticker: 'ETH', price_usd: 99 }];
 
     expect(mixin.convertSaitoToOther(10, 'ETH')).toBe(5.5);
     expect(mixin.convertToSaito(5.5, 'ETH')).toBe(10);
+  });
+
+  test('missing or unusable server prices do not invent a conversion', () => {
+    const mixin = new Mixin(browserApp());
+    mixin.erc_saito = { price_usd: 1 };
+    mixin.available_currencies = [{ ticker: 'ETH', price_usd: 2 }];
+    mixin.crypto_mods = [{ ticker: 'ETH', price_usd: 99 }];
+
+    mixin.available_currencies = [{ ticker: 'ETH', price_usd: 0 }];
+    expect(mixin.convertToSaito(1, 'ETH')).toBeNaN();
+    mixin.available_currencies = [{ ticker: 'ETH', price_usd: -2 }];
+    expect(mixin.convertSaitoToOther(1, 'ETH')).toBeNaN();
+    mixin.available_currencies = [{ ticker: 'ETH' }];
+    expect(mixin.convertToSaito(1, 'ETH')).toBeNaN();
+    mixin.available_currencies = [{ ticker: 'ETH', price_usd: 2 }];
+    mixin.erc_saito = null;
+    expect(mixin.convertToSaito(1, 'ETH')).toBeNaN();
   });
 });

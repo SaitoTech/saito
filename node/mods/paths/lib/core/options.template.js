@@ -4,7 +4,7 @@ module.exports = () => {
         <div class="overlay-input">
           <select class="saito-form-select" name="deck" id="deckselect">
             <option value="original">original</option>
-            <option class="is_testing" value="is_testing">testing</option>
+            <option value="optional">optional</option>
           </select>
         </div>
           `;

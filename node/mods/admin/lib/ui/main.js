@@ -8,6 +8,7 @@ const AdminDatabaseUI = require('./database');
 const AdminBlocksUI = require('./blocks');
 const AdminMempoolUI = require('./mempool');
 const AdminFaucetUI = require('./faucet');
+const AdminPaymentsUI = require('./payments');
 const AdministratorsUI = require('./administrators');
 
 class AdminMain {
@@ -27,6 +28,7 @@ class AdminMain {
     this.blocks_ui = new AdminBlocksUI(app, mod);
     this.mempool_ui = new AdminMempoolUI(app, mod);
     this.faucet_ui = new AdminFaucetUI(app, mod);
+    this.payments_ui = new AdminPaymentsUI(app, mod);
     this.administrators_ui = new AdministratorsUI(app, mod);
   }
 
@@ -98,6 +100,10 @@ class AdminMain {
 
     if (view === 'faucet') {
       this.faucet_ui.render();
+    }
+
+    if (view === 'payments') {
+      this.payments_ui.render();
     }
 
     if (view === 'administrators') {

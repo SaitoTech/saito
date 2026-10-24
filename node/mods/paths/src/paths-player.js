@@ -1603,6 +1603,7 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
     // avoid back-button select
     //
     this.removeSelectable();
+    this.removeMovementCues();
 
     //
     // pass is pass!
@@ -3492,6 +3493,7 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
 	this.hud.updateStatus(this.game.status);
 	this.hud.updateMenu([]);
 	this.hud.updateCards([]);
+	this.clearOpponentMarks();
 	this.endTurn();
       }
 
@@ -3534,6 +3536,7 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
 	    this.addMove(`activate_for_movement\t${faction}\t${key}`);
 	    if (cost <= 0) {
 	      cost = 0;
+	      this.clearOpponentMarks();
 	      this.endTurn();
 	    }
 	    if (cost > 0) {
@@ -3643,6 +3646,7 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
 	    this.addMove(`activate_for_combat\t${faction}\t${key}`);
 	    if (cost <= 0) {
 	      cost = 0;
+	      this.clearOpponentMarks();
 	      this.endTurn();
 	    }
 	    if (cost > 0) {

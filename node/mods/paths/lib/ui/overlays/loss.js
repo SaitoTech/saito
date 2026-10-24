@@ -744,18 +744,32 @@ class LossOverlay {
     }
   }
 
-  unitTokenInnerHtml(unit, mouseout_first = false) {
-    let img = this.mod.returnUnitImageWithMouseoverOfStepwiseLoss(unit, false, mouseout_first);
+  unitTokenInnerHtml(unit) {
+    let img = this.mod.returnUnitImage(unit);
     let loc = this.unitLocationLabel(unit);
     return `<div class="loss-overlay-unit-token">${img}</div><div class="loss-overlay-unit-spacekey">${loc}</div>`;
   }
 
-  unitCardHtml(unit, idx, mouseout_first = false) {
+  unitCardHtml(unit, idx) {
     let key = unit.key;
     let spacekey = unit.spacekey;
     let damaged = unit.damaged ? 1 : 0;
     let type_class = this.isCorpsUnit(unit) ? 'is-corps' : 'is-army';
-    return `<div class="loss-overlay-unit ${type_class}" data-spacekey="${spacekey}" data-key="${key}" data-damaged="${damaged}" id="${idx}">${this.unitTokenInnerHtml(unit, mouseout_first)}</div>`;
+    return `<div class="loss-overlay-unit ${type_class}" data-spacekey="${spacekey}" data-key="${key}" data-damaged="${damaged}" id="${idx}">${this.unitTokenInnerHtml(unit)}</div>`;
+  }
+
+  overlayUnitCard(my_qs, idx, el = null) {
+    if (el) {
+      return el;
+    }
+    if (!my_qs) {
+      return null;
+    }
+    let container = document.querySelector(my_qs);
+    if (!container) {
+      return null;
+    }
+    return container.querySelector(`.loss-overlay-unit[id="${idx}"]`);
   }
 
 
@@ -1003,10 +1017,9 @@ class LossOverlay {
       unit.destroyed = true;
       unit.damaged_this_combat = true;
 
-      if (el != null) {
-        el.style.opacity = '0.3';
-        el.onclick = (e) => {};
-        el.id = 'destroyed_unit';
+      let destroyed_card = this.overlayUnitCard(my_qs, idx, el);
+      if (destroyed_card) {
+        destroyed_card.remove();
       }
 
       //
@@ -1069,7 +1082,7 @@ class LossOverlay {
           this.moves.push(`remove\t${corpsbox}\t${corpskey}\t${this.mod.game.player}\t${corps_damaged}`);
           box.units.splice(corps_idx, 1);
           this.app.browser.addElementToSelector(
-            this.unitCardHtml(this.units[this.units.length - 1], this.units.length - 1, true),
+            this.unitCardHtml(this.units[this.units.length - 1], this.units.length - 1),
             my_qs
           );
           //
@@ -1136,9 +1149,11 @@ class LossOverlay {
       unit.damaged = true;
       unit.damaged_this_combat = true;
       this.loss_factor -= unit.loss;
-      if (el != null) {
-        this.applyUnitTypeClass(el, unit);
-        el.innerHTML = this.unitTokenInnerHtml(unit, true);
+      let damaged_card = this.overlayUnitCard(my_qs, idx, el);
+      if (damaged_card) {
+        this.applyUnitTypeClass(damaged_card, unit);
+        damaged_card.dataset.damaged = '1';
+        damaged_card.innerHTML = this.unitTokenInnerHtml(unit);
       }
       this.updateInstructions(
         `${this.mod.returnFactionName(this.mod.returnFactionOfPlayer(this.mod.game.player))} — Assign ${this.loss_factor} More Damage`,

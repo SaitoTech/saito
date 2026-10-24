@@ -28,6 +28,14 @@ class GameCardbox {
     this.card_types = []; // associative array of css / text / callback
     this.current = null;
     this.callback = null;
+
+    // Hover popups close on mouseout. Replacing the card list removes that
+    // node without firing mouseout, so the popup can be left on screen.
+    this.hover_el = null;
+    this.hover_anchor = null;
+    this.last_pointer = null;
+    this.hover_dismiss_bound = false;
+    this.hover_dismiss_distance = 10;
   }
 
   /**
@@ -43,6 +51,8 @@ class GameCardbox {
       this.app.browser.addElementToDom(GameCardboxTemplate());
       document.getElementById('game-cardbox').style.zIndex = -10; //push behind
     }
+
+    this.bindHoverDismiss();
   }
 
   /**
@@ -215,6 +225,15 @@ class GameCardbox {
       document.getElementById('cardbox-exit').style.display = 'block';
       document.getElementById('cardbox-exit-background').style.display = 'block';
     }
+
+    // An unlocked popup is a hover preview. Remember the node that opened it
+    // so a later pointer move can close it if that node has been removed.
+    if (this.cardbox_lock !== 1) {
+      this.hover_el = typeof card === 'string' ? document.getElementById(card) : null;
+      this.hover_anchor = this.last_pointer
+        ? { x: this.last_pointer.x, y: this.last_pointer.y }
+        : null;
+    }
   }
 
   /**
@@ -262,9 +281,65 @@ class GameCardbox {
 
       this.cardbox_lock = 0;
       this.current = null;
+      this.hover_el = null;
+      this.hover_anchor = null;
     } catch (err) {
       console.error(err);
     }
+  }
+
+  /**
+   * Closes an unlocked hover popup if the card that opened it is gone and the
+   * pointer has moved more than hover_dismiss_distance pixels. A locked popup
+   * stays until its exit button or action runs.
+   */
+  bindHoverDismiss() {
+    if (this.hover_dismiss_bound) {
+      return;
+    }
+    this.hover_dismiss_bound = true;
+
+    document.addEventListener('mousemove', (e) => {
+      this.onHoverMouseMove(e);
+    });
+  }
+
+  onHoverMouseMove(e) {
+    this.last_pointer = { x: e.clientX, y: e.clientY };
+
+    if (this.cardbox_lock === 1) {
+      return;
+    }
+
+    let box = document.getElementById('game-cardbox');
+    if (!box || box.style.display === 'none') {
+      return;
+    }
+    if (!this.hover_el) {
+      return;
+    }
+
+    if (this.hover_el.isConnected && this.pointerInside(this.hover_el, e.clientX, e.clientY)) {
+      this.hover_anchor = { x: e.clientX, y: e.clientY };
+      return;
+    }
+
+    if (!this.hover_anchor) {
+      this.hover_anchor = { x: e.clientX, y: e.clientY };
+      return;
+    }
+
+    let dx = e.clientX - this.hover_anchor.x;
+    let dy = e.clientY - this.hover_anchor.y;
+    let distance = this.hover_dismiss_distance;
+    if (dx * dx + dy * dy > distance * distance) {
+      this.hide();
+    }
+  }
+
+  pointerInside(el, x, y) {
+    let rect = el.getBoundingClientRect();
+    return x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom;
   }
 
   /**

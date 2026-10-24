@@ -111,6 +111,15 @@ test('renders safe preview emphasis, escapes the display URL and keeps the full 
   assert.equal(root.querySelector('script'), null);
 });
 
+test('keeps the starting number of an ordered list', () => {
+  const html = browser.sanitize('2. comment', true);
+  const list = HTMLParser.parse(html).querySelector('ol');
+
+  assert.ok(list);
+  assert.equal(list.getAttribute('start'), '2');
+  assert.equal(list.querySelector('li').textContent, 'comment');
+});
+
 test('continues to reject dangerous post markup and href schemes', () => {
   const html = browser.sanitize(
     '<em>safe</em><img src=x onerror="alert(1)">' +
