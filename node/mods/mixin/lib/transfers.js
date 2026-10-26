@@ -1,4 +1,11 @@
-const Transaction = require('../../../lib/saito/transaction').default;
+const email = require('./email');
+const {
+  createMigrationPayoutTransaction,
+  receiveMigrationPayoutTransaction,
+  createBuySaitoPayoutTransaction,
+  receiveBuySaitoPayoutTransaction,
+  restoreSavedSignedTransaction
+} = require('./transactions');
 
 // A submitted amount may differ from the cached quote by this fraction.
 // One basis point of floating-point noise is inside this band; a different rate is not.
@@ -25,6 +32,18 @@ class Transfers {
   // outbound_confirmed is the completed SAITO inclusion. `succeeded` stays in the
   // schema for older rows and has no separate evidence, so this queue does not
   // write it.
+  //
+  // Automatic rows are eligible for deposit and issuance. A saved payout is
+  // retried for either mode so an approved manual migration can be rebroadcast.
+  async getEligibleTransfers(criteria = {}) {
+    if (criteria.saved_payout) {
+      const status = criteria.status;
+      const rows = await this.mod.database.getTransfers({ status });
+      return (rows || []).filter((row) => row.outbound_tx_sig);
+    }
+    return this.mod.database.getTransfers({ ...criteria, mode: 'automatic' });
+  }
+
   async processTransferQueue() {
     if (this.running) {
       return;
@@ -32,10 +51,13 @@ class Transfers {
     this.running = true;
     try {
       const now = Date.now();
-      const observations = await this.fetchMixinTransfers();
+      const observations = await this.fetchInboundMixinPayments();
       const observed = new Map(observations.map((item) => [item.transfer_id, item]));
 
-      for (const row of await this.mod.database.getTransfers({ status: 'inbound_awaiting' })) {
+      for (const row of await this.getEligibleTransfers({ status: 'inbound_awaiting' })) {
+        if (row.purpose === 'migration') {
+          continue;
+        }
         if (Number(row.created_at) < now - this.reservation_ms) {
           await this.mod.database.updateTransfer(row.id, { status: 'failed' });
         }
@@ -44,7 +66,7 @@ class Transfers {
       for (const row of await this.mod.database.getTransfersPendingInboundBroadcast(
         now - this.reservation_ms
       )) {
-        const match = this.matchObservation(row, observed.get(row.id));
+        const match = this.findMatchingInboundPayment(row, observed.get(row.id));
         if (!match) {
           continue;
         }
@@ -76,8 +98,11 @@ class Transfers {
         this.app.connection.emit('saito-purchase-payment-detected', detected);
       }
 
-      for (const row of await this.mod.database.getTransfers({ status: 'inbound_broadcast' })) {
-        const match = this.matchObservation(row, observed.get(row.id));
+      for (const row of await this.getEligibleTransfers({ status: 'inbound_broadcast' })) {
+        if (row.purpose === 'migration') {
+          continue;
+        }
+        const match = this.findMatchingInboundPayment(row, observed.get(row.id));
         if (!match) {
           continue;
         }
@@ -107,6 +132,12 @@ class Transfers {
         this.app.connection.emit('saito-purchase-payment-detected', detected);
       }
 
+      for (const status of ['inbound_awaiting', 'inbound_broadcast']) {
+        for (const row of await this.getEligibleTransfers({ status, purpose: 'migration' })) {
+          await this.processInboundMigrationPayment(row, observed.get(row.id));
+        }
+      }
+
       let currentBlockId = 0;
       try {
         currentBlockId = Number((await this.app.blockchain?.getLatestBlockId?.()) || 0);
@@ -117,7 +148,7 @@ class Transfers {
       if (!this.inclusion_checked) {
         const candidates = [];
         for (const status of ['outbound_awaiting', 'outbound_broadcast']) {
-          const rows = await this.mod.database.getTransfers({ status });
+          const rows = await this.getEligibleTransfers({ status, saved_payout: true });
           for (const row of rows) {
             if (row.outbound_tx_sig && !row.outbound_block_hash) {
               candidates.push(row);
@@ -171,8 +202,16 @@ class Transfers {
         }
       }
 
-      for (const row of await this.mod.database.getTransfers({ status: 'inbound_confirmed' })) {
+      for (const row of await this.getEligibleTransfers({ status: 'inbound_confirmed' })) {
         if (row.outbound_tx_sig) {
+          continue;
+        }
+        if (row.purpose === 'migration') {
+          try {
+            await this.recordMigrationPayout(row);
+          } catch (err) {
+            console.error(`Migration transfer ${row.id} issuance failed:`, err);
+          }
           continue;
         }
         let available;
@@ -214,39 +253,7 @@ class Transfers {
           continue;
         }
 
-        let recipient = row.recipient_publickey;
-        let txmsg = null;
-        if (row.payload) {
-          const userTx = new Transaction();
-          userTx.deserialize_from_web(this.app, row.payload);
-          txmsg = userTx.returnMessage();
-          if (txmsg?.p2sh_address) {
-            const address = txmsg.p2sh_address;
-            recipient =
-              address.length === 66 && address.startsWith('00')
-                ? this.app.crypto.toBase58(address)
-                : address;
-          }
-        }
-        const tx = await this.app.wallet.createUnsignedTransactionWithDefaultFee(recipient, required);
-        if (txmsg) {
-          tx.msg = txmsg;
-        } else {
-          tx.msg = {
-            module: 'BuySaito',
-            request: 'buysaito issuance',
-            data: {
-              id: row.id,
-              requester_publickey: row.requester_publickey,
-              recipient_publickey: row.recipient_publickey,
-              inbound_ticker: row.inbound_ticker,
-              inbound_amount: row.inbound_amount,
-              outbound_amount: row.outbound_amount
-            },
-            memo: `${row.inbound_amount} ${row.inbound_ticker}`
-          };
-        }
-        await tx.sign();
+        const { tx, recipient } = await createBuySaitoPayoutTransaction(this.app, row, required);
         await this.mod.database.updateTransfer(row.id, {
           status: 'outbound_awaiting',
           outbound_tx: tx.serialize_to_web(this.app),
@@ -279,6 +286,15 @@ class Transfers {
           continue;
         }
         await this.mod.database.updateTransfer(row.id, { status: 'outbound_confirmed' });
+        if (row.purpose === 'migration') {
+          email.sendStatusEmail(
+            this.app,
+            2,
+            row,
+            `TX Signature: ${row.outbound_tx_sig}</p><p>Block ID: ${row.outbound_block_id}`
+          );
+          continue;
+        }
         const issued = {
           id: row.id,
           address: row.inbound_address,
@@ -286,6 +302,7 @@ class Transfers {
           initiator_pubkey: row.requester_publickey,
           recipient_pubkey: row.recipient_publickey,
           issue_amount: row.outbound_amount,
+          paid: row.outbound_tx_sig,
           status: 'confirmed'
         };
         this.app.network.sendRequestAsTransaction(
@@ -297,42 +314,15 @@ class Transfers {
         this.app.connection.emit('saito-purchase-saito-issued', issued);
       }
 
-      for (const row of await this.mod.database.getTransfersPendingOutboundBroadcast()) {
-        if (row.outbound_block_hash) {
-          continue;
-        }
-        try {
-          const tx = new Transaction();
-          tx.deserialize_from_web(this.app, row.outbound_tx);
-          if (!tx.signature || tx.signature !== row.outbound_tx_sig) {
-            throw new Error(`Transfer ${row.id} has invalid saved issuance data`);
-          }
-          try {
-            await this.app.wallet.addTransactionToPending(tx);
-          } catch (err) {
-            console.error(`Mixin transfer ${row.id} was already pending:`, err);
-          }
-          await this.app.network.propagateTransaction(tx);
-          await this.mod.database.updateTransfer(row.id, {
-            status: 'outbound_broadcast',
-            outbound_sent_at: Date.now(),
-            last_error: ''
-          });
-        } catch (err) {
-          console.error(`Mixin transfer ${row.id} broadcast failed:`, err);
-          await this.mod.database.updateTransfer(row.id, {
-            last_error: String(err?.message || err)
-          });
-        }
-      }
+      await this.rebroadcastSavedOutboundTransfers();
     } finally {
       this.running = false;
     }
   }
 
-  async fetchMixinTransfers() {
-    const awaiting = await this.mod.database.getTransfers({ status: 'inbound_awaiting' });
-    const broadcast = await this.mod.database.getTransfers({ status: 'inbound_broadcast' });
+  async fetchInboundMixinPayments() {
+    const awaiting = await this.getEligibleTransfers({ status: 'inbound_awaiting' });
+    const broadcast = await this.getEligibleTransfers({ status: 'inbound_broadcast' });
     const rows = [...awaiting, ...broadcast];
     if (!rows.length) {
       return [];
@@ -394,11 +384,55 @@ class Transfers {
     return observations;
   }
 
-  matchObservation(row, observation) {
+  findMatchingInboundPayment(row, observation) {
     if (!observation) {
       return null;
     }
     const required = Number(row.inbound_confirmations_required || 0);
+    if (row.purpose === 'migration' && this.mod.migration) {
+      const expected = String(row.inbound_sender || '').trim().toLowerCase();
+      const sameSender = (value) => {
+        const actual = String(value || '').trim().toLowerCase();
+        return Boolean(expected && actual && actual === expected);
+      };
+      for (const snapshot of observation.snapshots || []) {
+        const destination = snapshot?.deposit?.destination || '';
+        if (!destination || destination !== row.inbound_address || !sameSender(snapshot?.deposit?.sender)) {
+          continue;
+        }
+        const amount = Number(snapshot.amount);
+        if (!(amount > 0)) {
+          continue;
+        }
+        return {
+          hash: snapshot.transaction_hash || '',
+          id: snapshot.snapshot_id || '',
+          sender: snapshot.deposit.sender,
+          amount,
+          confirmations: Number(snapshot.confirmations || 0)
+        };
+      }
+      for (const deposit of observation.deposits || []) {
+        if (deposit?.destination && deposit.destination !== row.inbound_address) {
+          continue;
+        }
+        if (!sameSender(deposit?.sender)) {
+          continue;
+        }
+        const amount = Number(deposit.amount);
+        if (!(amount > 0)) {
+          continue;
+        }
+        return {
+          hash: deposit.transaction_hash || '',
+          id: deposit.deposit_id || deposit.transaction_id || '',
+          sender: deposit.sender,
+          amount,
+          confirmations: Number(deposit.confirmations || 0)
+        };
+      }
+      return null;
+    }
     for (const snapshot of observation.snapshots) {
       const address = snapshot?.deposit?.destination || snapshot?.receiver || '';
       if (!address || address !== row.inbound_address) {
@@ -430,6 +464,112 @@ class Transfers {
     return null;
   }
 
+  async processInboundMigrationPayment(row, observation) {
+    if (!row || row.purpose !== 'migration' || row.mode !== 'automatic' || row.outbound_tx_sig) {
+      return null;
+    }
+    const match = this.findMatchingInboundPayment(row, observation);
+    if (!match?.hash) {
+      return null;
+    }
+    const duplicate = await this.mod.migration.findByInboundHash(match.hash);
+    if (duplicate && String(duplicate.id) !== String(row.id)) {
+      await this.mod.database.updateTransfer(row.id, {
+        last_error: 'Migration deposit was already recorded'
+      });
+      return null;
+    }
+    let allocated;
+    try {
+      allocated = this.mod.migration.allocationForDeposit(match.amount);
+    } catch (err) {
+      await this.mod.database.updateTransfer(row.id, {
+        status: 'failed',
+        last_error: err.message,
+        inbound_tx_hash: match.hash
+      });
+      email.sendStatusEmail(this.app, 0, { ...row, inbound_amount: match.amount }, err.message);
+      await email.sendFailureNotice(this.app, row.recipient_publickey || row.requester_publickey);
+      return null;
+    }
+    const confirmed = match.confirmations >= Number(row.inbound_confirmations_required || 0);
+    await this.mod.database.updateTransfer(row.id, {
+      status: confirmed ? 'inbound_confirmed' : 'inbound_broadcast',
+      inbound_amount: String(allocated),
+      outbound_amount: String(allocated),
+      outbound_ticker: 'SAITO',
+      inbound_tx_hash: match.hash,
+      inbound_tx_id: match.id || '',
+      inbound_sender: match.sender || row.inbound_sender,
+      inbound_confirmations: match.confirmations,
+      inbound_received_at: row.inbound_received_at || Date.now(),
+      last_error: ''
+    });
+    return (await this.mod.database.getTransfers({ id: row.id }))[0];
+  }
+
+  async recordMigrationPayout(row) {
+    if (!row || row.purpose !== 'migration') {
+      throw new Error(`Transfer ${row?.id} is not a migration`);
+    }
+    if (row.outbound_tx_sig) {
+      return row;
+    }
+    const amount = this.mod.migration.allocationForDeposit(row.outbound_amount);
+    const required = this.app.wallet.convertSaitoToNolan(amount);
+    const available = await this.app.wallet.getBalance();
+    if (typeof available !== 'bigint' || typeof required !== 'bigint' || available < required) {
+      if (row.last_error !== 'insufficient_funds') {
+        await this.mod.database.updateTransfer(row.id, { last_error: 'insufficient_funds' });
+        email.sendLowBalanceEmail(this.app, row.outbound_amount);
+      }
+      return (await this.mod.database.getTransfers({ id: row.id }))[0];
+    }
+    const tx = await createMigrationPayoutTransaction(this.app, row, amount);
+    const recipient = row.recipient_publickey;
+    await this.mod.database.updateTransfer(row.id, {
+      status: 'outbound_awaiting',
+      outbound_tx: tx.serialize_to_web(this.app),
+      outbound_tx_sig: tx.signature,
+      outbound_amount: String(amount),
+      outbound_address: recipient,
+      outbound_ticker: 'SAITO',
+      last_error: ''
+    });
+    email.sendStatusEmail(this.app, 1, { ...row, outbound_amount: String(amount) });
+    return (await this.mod.database.getTransfers({ id: row.id }))[0];
+  }
+
+  async rebroadcastSavedOutboundTransfers() {
+    for (const row of await this.mod.database.getTransfersPendingOutboundBroadcast()) {
+      if (row.outbound_block_hash) {
+        continue;
+      }
+      try {
+        const tx = restoreSavedSignedTransaction(this.app, row.outbound_tx, row.outbound_tx_sig);
+        if (!tx) {
+          throw new Error(`Transfer ${row.id} has invalid saved issuance data`);
+        }
+        try {
+          await this.app.wallet.addTransactionToPending(tx);
+        } catch (err) {
+          console.error(`Mixin transfer ${row.id} was already pending:`, err);
+        }
+        await this.app.network.propagateTransaction(tx);
+        await this.mod.database.updateTransfer(row.id, {
+          status: 'outbound_broadcast',
+          outbound_sent_at: Date.now(),
+          last_error: ''
+        });
+      } catch (err) {
+        console.error(`Mixin transfer ${row.id} broadcast failed:`, err);
+        await this.mod.database.updateTransfer(row.id, {
+          last_error: String(err?.message || err)
+        });
+      }
+    }
+  }
+
   async reserveAddress(requesterPublickey, request = {}) {
     const ticker = request.ticker;
     const crypto = this.mod.crypto_mods.find((item) => item.ticker === ticker);
@@ -451,7 +591,7 @@ class Transfers {
     });
     const open = existing.find((row) => OPEN_STATUSES.includes(row.status));
     if (open) {
-      return this.reservationInstructions(open);
+      return this.buildDepositReservationResponse(open);
     }
 
     if (
@@ -569,6 +709,7 @@ class Transfers {
     const now = Date.now();
     const id = await this.mod.database.insertTransfer({
       purpose: 'buysaito',
+      mode: 'automatic',
       payload: request.tx || '',
       request_id: request.request_id || '',
       requester_publickey: requesterPublickey,
@@ -588,7 +729,7 @@ class Transfers {
       created_at: now
     });
 
-    return this.reservationInstructions({
+    return this.buildDepositReservationResponse({
       id,
       status: 'inbound_awaiting',
       requester_publickey: requesterPublickey,
@@ -603,7 +744,7 @@ class Transfers {
     });
   }
 
-  reservationInstructions(row) {
+  buildDepositReservationResponse(row) {
     let status = 'new';
     if (row.status === 'inbound_broadcast') {
       status = 'pending';
@@ -651,8 +792,16 @@ class Transfers {
       }
     }
     for (const status of ['outbound_awaiting', 'outbound_broadcast']) {
-      for (const row of await this.mod.database.getTransfers({ status })) {
-        if (!row.outbound_tx_sig || row.outbound_block_hash || !signatures.has(row.outbound_tx_sig)) {
+      for (const row of await this.getEligibleTransfers({ status, saved_payout: true })) {
+        const included = signatures.get(row.outbound_tx_sig);
+        if (!row.outbound_tx_sig || row.outbound_block_hash || !included) {
+          continue;
+        }
+        const accepted =
+          row.purpose === 'migration'
+            ? receiveMigrationPayoutTransaction(included, row)
+            : receiveBuySaitoPayoutTransaction(included, row);
+        if (!accepted) {
           continue;
         }
         const blockId = Number(block.id);
@@ -672,7 +821,7 @@ class Transfers {
       return;
     }
     for (const status of ['outbound_broadcast', 'outbound_confirmed']) {
-      for (const row of await this.mod.database.getTransfers({ status })) {
+      for (const row of await this.getEligibleTransfers({ status, saved_payout: true })) {
         if (row.outbound_block_hash !== blockHash || Number(row.outbound_block_id) !== Number(blockId)) {
           continue;
         }

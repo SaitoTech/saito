@@ -60,6 +60,25 @@
   white-space: nowrap;
 }
 
+.admin-payments-label {
+  display: block;
+  margin: 20px 0 8px;
+  color: #374151;
+  font-weight: 600;
+}
+
+.admin-payments-backup {
+  margin-bottom: 12px;
+  min-height: 140px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.admin-payments-setup .admin-button {
+  margin-top: 0;
+}
+
 .admin-payments-waiting,
 .admin-payments-empty {
   color: #6b7280;

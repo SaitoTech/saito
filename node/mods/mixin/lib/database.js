@@ -3,7 +3,9 @@ const path = require('path');
 
 const TRANSFER_FIELDS = [
   'purpose',
+  'mode',
   'payload',
+  'email',
   'request_id',
   'requester_publickey',
   'recipient_publickey',
@@ -316,7 +318,8 @@ class Database {
       ['inbound_tx_id', `TEXT NOT NULL DEFAULT ''`],
       ['outbound_tx_id', `TEXT NOT NULL DEFAULT ''`],
       ['inbound_confirmation_block_id', 'INTEGER'],
-      ['outbound_confirmation_block_id', 'INTEGER']
+      ['outbound_confirmation_block_id', 'INTEGER'],
+      ['mode', `TEXT NOT NULL DEFAULT 'automatic' CHECK (mode IN ('automatic', 'manual'))`]
     ];
     for (const [name, definition] of additions) {
       if (!present.has(name)) {
@@ -374,7 +377,8 @@ class Database {
       'inbound_ticker',
       'inbound_address',
       'status',
-      'purpose'
+      'purpose',
+      'mode'
     ]) {
       if (criteria[field] !== undefined && criteria[field] !== null) {
         filters.push(`${field} = $${field}`);
@@ -393,7 +397,10 @@ class Database {
   async getTransfersPendingInboundBroadcast(cutoff) {
     return this.query(
       `SELECT * FROM transfers
-       WHERE status = 'inbound_awaiting' AND created_at >= $cutoff
+       WHERE mode = 'automatic'
+         AND purpose != 'migration'
+         AND status = 'inbound_awaiting'
+         AND created_at >= $cutoff
        ORDER BY id ASC`,
       { $cutoff: cutoff }
     );
@@ -402,7 +409,9 @@ class Database {
   async getTransfersPendingInboundConfirmed() {
     return this.query(
       `SELECT * FROM transfers
-       WHERE status = 'inbound_broadcast'
+       WHERE mode = 'automatic'
+         AND purpose != 'migration'
+         AND status = 'inbound_broadcast'
          AND inbound_tx_hash <> ''
          AND inbound_confirmations >= inbound_confirmations_required
        ORDER BY id ASC`,
@@ -413,7 +422,8 @@ class Database {
   async getTransfersPendingOutboundBroadcast() {
     return this.query(
       `SELECT * FROM transfers
-       WHERE status = 'outbound_awaiting' AND outbound_tx_sig <> ''
+       WHERE status = 'outbound_awaiting'
+         AND outbound_tx_sig <> ''
        ORDER BY id ASC`,
       {}
     );

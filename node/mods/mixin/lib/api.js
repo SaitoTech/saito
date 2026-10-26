@@ -223,12 +223,15 @@ class Api {
     }
   }
 
-  async fetchAsset(credentials, assetId) {
+  async fetchAsset(assetId) {
     try {
-      const session = createUserSession(credentials);
+      const session = createAppSession();
+      if (!session) {
+        throw new Error('Mixin application session is not configured');
+      }
       return await session.network.fetchAsset(assetId);
     } catch (err) {
-      console.error('ERROR: Mixin error check network fee: ' + err);
+      console.error('ERROR: Mixin error check network fee: ' + formatMixinError(err));
       return false;
     }
   }

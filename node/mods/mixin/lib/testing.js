@@ -33,6 +33,16 @@ class TransferTesting {
       const found = await this.mod.database.getTransfers({ status, purpose: 'buysaito' });
       rows.push(...(found || []));
     }
+    const manual = await this.mod.database.getTransfers({
+      purpose: 'migration',
+      mode: 'manual'
+    });
+    for (const row of manual || []) {
+      if (['failed', 'cancelled', 'outbound_confirmed', 'succeeded'].includes(row.status)) {
+        continue;
+      }
+      rows.push(row);
+    }
     rows.sort((left, right) => Number(left.id) - Number(right.id));
     return { transfers: rows.map((row) => this.snapshot(row)) };
   }
@@ -130,11 +140,19 @@ class TransferTesting {
       outbound_amount: transfer.outbound_amount || '',
       status: transfer.status,
       last_error: transfer.last_error || '',
+      purpose: transfer.purpose || '',
+      mode: transfer.mode || '',
+      inbound_tx_hash: transfer.inbound_tx_hash || '',
+      inbound_sender: transfer.inbound_sender || '',
+      outbound_tx_sig: transfer.outbound_tx_sig || '',
       action: this.nextAction(transfer)
     };
   }
 
   nextAction(transfer) {
+    if (transfer.purpose && transfer.purpose !== 'buysaito') {
+      return null;
+    }
     if (transfer.status === 'inbound_awaiting') {
       return { action: 'detect-inbound', label: 'Mark inbound payment detected' };
     }

@@ -6,16 +6,24 @@ class AdminPaymentsUI {
     this.mod = mod;
     this.container = container;
     this.transfers = [];
+    this.account = undefined;
     this.error = '';
     this.loading = false;
     this.advancing = false;
+    this.creating = false;
+    this.restoring = false;
+    this.restoreText = '';
   }
 
   render() {
     this.transfers = [];
+    this.account = undefined;
     this.error = '';
-    this.loading = false;
+    this.loading = true;
     this.advancing = false;
+    this.creating = false;
+    this.restoring = false;
+    this.restoreText = '';
 
     if (!this.mod.server_info) {
       this.app.browser.replaceElementContentBySelector(
@@ -33,9 +41,13 @@ class AdminPaymentsUI {
     this.app.browser.replaceElementContentBySelector(
       PaymentsTemplate({
         transfers: this.transfers,
+        account: this.account,
         error: this.error,
         loading: this.loading,
-        advancing: this.advancing
+        advancing: this.advancing,
+        creating: this.creating,
+        restoring: this.restoring,
+        restoreText: this.restoreText
       }),
       this.container
     );
@@ -48,6 +60,22 @@ class AdminPaymentsUI {
       refresh.onclick = (e) => {
         e.preventDefault();
         this.load();
+      };
+    }
+
+    const create = document.getElementById('admin-payments-create-account');
+    if (create) {
+      create.onclick = (e) => {
+        e.preventDefault();
+        this.createAccount();
+      };
+    }
+
+    const restore = document.getElementById('admin-payments-restore-account-button');
+    if (restore) {
+      restore.onclick = (e) => {
+        e.preventDefault();
+        this.restoreAccount();
       };
     }
 
@@ -87,12 +115,119 @@ class AdminPaymentsUI {
         this.transfers = [];
       } else {
         this.transfers = res.result?.transfers || [];
+        this.account = res.result?.account || null;
       }
       this.refresh();
     });
   }
 
+  async restoreAccount() {
+    const field = document.getElementById('admin-payments-restore-account');
+    this.restoreText = field?.value || '';
+    if (!this.restoreText.trim()) {
+      this.error = 'Paste the Mixin account JSON to restore it.';
+      this.refresh();
+      return;
+    }
+
+    this.restoring = true;
+    this.error = '';
+    this.refresh();
+
+    await this.sendAdminRequest(
+      'update-admin-config',
+      { module_id: 'mixin', data: { action: 'restore-account', account: this.restoreText } },
+      (res) => {
+        this.restoring = false;
+        if (res?.err) {
+          this.error = res.err;
+        } else {
+          this.restoreText = '';
+          this.transfers = res.result?.transfers || [];
+          this.account = res.result?.account || null;
+        }
+        this.refresh();
+      }
+    );
+  }
+
+  async createAccount() {
+    this.creating = true;
+    this.error = '';
+    this.refresh();
+
+    await this.sendAdminRequest(
+      'update-admin-config',
+      { module_id: 'mixin', data: { action: 'create-account' } },
+      (res) => {
+        this.creating = false;
+        if (res?.err) {
+          this.error = res.err;
+        } else {
+          this.transfers = res.result?.transfers || [];
+          this.account = res.result?.account || null;
+        }
+        this.refresh();
+      }
+    );
+  }
+
+  async approveMigration(id) {
+    return this.sendAdminRequest(
+      'update-admin-config',
+      { module_id: 'mixin', data: { id, action: 'approve-migration' } },
+      (res) => {
+        this.advancing = false;
+        if (res?.err) {
+          this.error = res.err;
+        } else {
+          this.transfers = res.result?.transfers || [];
+          if (res.result?.account !== undefined) {
+            this.account = res.result.account;
+          }
+        }
+        this.refresh();
+      }
+    );
+  }
+
+  async verifyMigration(id, amount, txHash) {
+    return this.sendAdminRequest(
+      'update-admin-config',
+      {
+        module_id: 'mixin',
+        data: { id, action: 'verify-migration', amount, tx_hash: txHash }
+      },
+      (res) => {
+        this.advancing = false;
+        if (res?.err) {
+          this.error = res.err;
+        } else {
+          this.transfers = res.result?.transfers || [];
+          if (res.result?.account !== undefined) {
+            this.account = res.result.account;
+          }
+        }
+        this.refresh();
+      }
+    );
+  }
+
   async advance(id, action) {
+    if (action === 'approve-migration') {
+      this.advancing = true;
+      this.error = '';
+      this.refresh();
+      return this.approveMigration(id);
+    }
+    if (action === 'verify-migration') {
+      const amount = document.querySelector(`[data-migration-amount="${id}"]`)?.value || '';
+      const hash = document.querySelector(`[data-migration-hash="${id}"]`)?.value || '';
+      this.advancing = true;
+      this.error = '';
+      this.refresh();
+      return this.verifyMigration(id, amount, hash);
+    }
     this.advancing = true;
     this.error = '';
     this.refresh();
@@ -106,6 +241,9 @@ class AdminPaymentsUI {
           this.error = res.err;
         } else {
           this.transfers = res.result?.transfers || [];
+          if (res.result?.account !== undefined) {
+            this.account = res.result.account;
+          }
         }
         this.refresh();
       }

@@ -1,5 +1,5 @@
-const MigrationMain = require('../main');
-const ApeBondMainTemplate = require('./main.template');
+const MigrationMain = require('./main');
+const ApeBondMainTemplate = require('./apebond.template');
 
 class ApeBondMain extends MigrationMain {
   constructor(app, mod) {

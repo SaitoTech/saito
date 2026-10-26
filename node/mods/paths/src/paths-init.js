@@ -18,6 +18,7 @@ const SettingsOverlay = require('./lib/ui/overlays/settings');
 const PathsRules = require('./lib/core/rules.template');
 const PathsOptions = require('./lib/core/advanced-options.template');
 const PathsSingularOption = require('./lib/core/options.template');
+const PathsScenarios = require('./lib/scenarios');
 
 const PathsLog = require('./lib/paths-log');
 const GameMinimap = require('../../lib/saito/ui/game-minimap/game-minimap');
@@ -279,6 +280,18 @@ class PathsOfGlory extends GameTemplate {
 
   returnSingularGameOption(){
     return PathsSingularOption();
+  }
+
+  returnScenario() {
+    let id = "original";
+    if (this.game && this.game.options && this.game.options.deck) {
+      id = this.game.options.deck;
+    }
+    return PathsScenarios.get(id);
+  }
+
+  includeOptionalCards() {
+    return !!this.returnScenario().optionalCards;
   }
 
   returnAdvancedOptions() {

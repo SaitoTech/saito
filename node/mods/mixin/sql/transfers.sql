@@ -2,6 +2,8 @@ CREATE TABLE IF NOT EXISTS transfers (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
 
   purpose TEXT NOT NULL DEFAULT '',
+  mode TEXT NOT NULL DEFAULT 'automatic'
+    CHECK (mode IN ('automatic', 'manual')),
   payload TEXT NOT NULL DEFAULT '',
   request_id TEXT NOT NULL DEFAULT '',
   requester_publickey TEXT NOT NULL DEFAULT '',

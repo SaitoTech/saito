@@ -823,7 +823,19 @@ class SaitoPurchaseOverlay {
     this.app.network.sendRequestAsTransaction(
       'buysaito reserve address',
       data,
-      null,
+      (response) => {
+        if (!response?.address || response.err) {
+          this.app.connection.emit('saito-purchase-error-notification', {
+            message:
+              response?.message ||
+              response?.err ||
+              'The payment service did not return instructions. Please check your connection and try again.'
+          });
+          return;
+        }
+        this.mod.pending_payments.push(response);
+        this.receivePaymentAddressFromServer(response);
+      },
       this.mod.buysaito_peer.publicKey
     );
   }

@@ -28,9 +28,9 @@ module.exports = (mod, treasury_error = '') => {
   }
 
   return `
-    <div class="main">
-      <div class="saito-overlay-form withdraw-container apebond-container">
-        <div class="saito-overlay-form-header apebond-header">
+    <div class="main migration-page">
+      <div class="saito-overlay-form saito-overlay-panel withdraw-container apebond-container">
+        <div class="saito-overlay-form-header">
           <div class="saito-overlay-form-header-title withdraw-title">
             SAITO MAINNET MIGRATION
           </div>
@@ -44,7 +44,7 @@ module.exports = (mod, treasury_error = '') => {
           ${migration_control}
         </div>
 
-        <div class="apebond-information">
+        <div class="saito-overlay-form-text apebond-information">
           <p>Enter an email address to get updated about the process.</p>
           <p>Your ERC20 Saito will be migrated immediately. The bonus will be paid once the origin of the ERC20 Saito is confirmed to be Ape Bond.</p>
           <p class="apebond-welcome"><a href="/redsquare">Welcome to the Saitoverse!</a></p>

@@ -410,10 +410,7 @@ class MixinModule extends CryptoModule {
   }
 
   async returnMixinNetworkInfo() {
-    const info = await this.mixin.api.fetchAsset(
-      this.mixin.accounts.getCredentials(),
-      this.asset_id
-    );
+    const info = await this.mixin.api.fetchAsset(this.asset_id);
     if (!info) {
       return false;
     }

@@ -491,7 +491,7 @@ deck['ap14'] = {
 	} ,
       }
     
-    if (this.game && this.game.options && this.game.options.deck === "optional") {
+    if (this.game && this.game.options && this.includeOptionalCards()) {
 deck['ap56'] = { 
         key : 'paristaxis',
         img : "cards/card_ap56.png" ,
@@ -1059,7 +1059,7 @@ deck['ap57'] = {
 
 
     
-    if (this.game && this.game.options && this.game.options.deck === "optional") {
+    if (this.game && this.game.options && this.includeOptionalCards()) {
 deck['cp56'] = { 
         key : 'withdrawal',
         img : "cards/card_cp56.png" ,
@@ -1780,7 +1780,7 @@ deck['ap34'] = {
         } ,
       }
     
-    if (this.game && this.game.options && this.game.options.deck === "optional") {
+    if (this.game && this.game.options && this.includeOptionalCards()) {
 deck['ap58'] = { 
         key : 'russianguards',
         img : "cards/card_ap58.png" ,
@@ -2561,7 +2561,7 @@ deck['cp33'] = {
 
 
     
-    if (this.game && this.game.options && this.game.options.deck === "optional") {
+    if (this.game && this.game.options && this.includeOptionalCards()) {
 deck['cp58'] = { 
         key : 'stavkatimidity',
         img : "cards/card_cp58.png" ,
@@ -3192,7 +3192,7 @@ deck['ap55'] = {
 
 
     
-    if (this.game && this.game.options && this.game.options.deck === "optional") {
+    if (this.game && this.game.options && this.includeOptionalCards()) {
 deck['ap62'] = { 
         key : 'Thesixtusaffair',
         img : "cards/card_ap62.png" ,
@@ -3814,7 +3814,7 @@ deck['cp55'] = {
 
 
     
-    if (this.game && this.game.options && this.game.options.deck === "optional") {
+    if (this.game && this.game.options && this.includeOptionalCards()) {
 deck['cp62'] = { 
         key : 'achtung:panzer',
         img : "cards/card_cp62.png" ,

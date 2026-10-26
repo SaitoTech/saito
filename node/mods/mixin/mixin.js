@@ -7,6 +7,8 @@ const { formatMixinError } = Api;
 const Accounts = require('./lib/accounts');
 const Transfers = require('./lib/transfers');
 const TransferTesting = require('./lib/testing');
+const MigrationService = require('./lib/migration');
+const migrationClient = require('./lib/ui/migration/client');
 class Mixin extends ModTemplate {
   constructor(app) {
     super(app);
@@ -36,13 +38,37 @@ class Mixin extends ModTemplate {
     this.crypto_mods = [];
     this.transfers = null;
     this.transfer_timer = null;
+    this.migration = null;
+    this.wrapped_saito_ticker = 'ERC-SAITO';
+    this.wrappedSaitoMod = null;
+    this.wrappedSaitoMods = {};
+    this.can_auto = false;
+    this.auto_migration_error = '';
+    this.migration_publickey = '';
+    this.migration_mixin_address = '';
+    this.max_deposit = 1000000;
+    this.balance = 0;
+    this.migration_page = null;
+    this.apebond = null;
+    this.migration_header = null;
+  }
+
+  isSlug(slug) {
+    return slug === this.returnSlug() || slug === 'migration';
+  }
+
+  shouldAffixCallbackToModule(modname) {
+    if (modname === this.name || modname === 'ERC-SAITO' || modname === 'BEP-SAITO') {
+      return 1;
+    }
+    return 0;
   }
 
   returnServices() {
     this.services = [];
     if (this.appSession) {
       this.services.push(new PeerService(null, 'mixin'));
-      if (this.fulfillsBuySaitoLocally()) {
+      if (this.isLocalBuySaitoProvider()) {
         this.services.push(new PeerService(null, 'buysaito'));
       }
     }
@@ -63,6 +89,9 @@ class Mixin extends ModTemplate {
     if (service.service === 'mixin') {
       console.info('Mixin Module: API online!');
       this.mixin_peer = peer;
+      if (this.app.BROWSER && peer?.publicKey) {
+        this.migration_publickey = peer.publicKey;
+      }
 
       if (this.credentials?.user_id && !this.credentials.backed_up) {
         console.info('Need to back up my mixin');
@@ -93,6 +122,7 @@ class Mixin extends ModTemplate {
       await this.database.ensureTransfersSchema();
       await this.database.copyLegacyTables();
       this.transfers = new Transfers(app, this);
+      this.migration = new MigrationService(app, this);
     }
 
     const stored = this.accounts.getCredentials();
@@ -122,12 +152,12 @@ class Mixin extends ModTemplate {
       console.log('Mixin buysaito service', {
         app_session: !!this.appSession,
         transfers: !!this.transfers,
-        fulfills_locally: this.fulfillsBuySaitoLocally(),
-        advertised: !!(this.appSession && this.fulfillsBuySaitoLocally())
+        fulfills_locally: this.isLocalBuySaitoProvider(),
+        advertised: !!(this.appSession && this.isLocalBuySaitoProvider())
       });
     }
 
-    if (!app.BROWSER && this.appSession && this.transfers && this.fulfillsBuySaitoLocally()) {
+    if (!app.BROWSER && this.appSession && this.transfers && this.isLocalBuySaitoProvider()) {
       this.transfers.processTransferQueue().catch((err) => {
         console.error('Mixin transfer queue failed:', err);
       });
@@ -149,16 +179,70 @@ class Mixin extends ModTemplate {
 
     if (
       this.app.BROWSER &&
-      tx.isTo(this.publicKey) &&
       typeof message.request === 'string' &&
       message.request.startsWith('buysaito ')
     ) {
+      // sendRequest addresses the slip to its sender and routes the message to
+      // the peer, so a service notice is not isTo(this.publicKey).
+      const serviceKey = this.buysaito_peer?.publicKey;
+      if (!serviceKey || peer?.publicKey !== serviceKey) {
+        return 0;
+      }
       return this.receiveBuySaitoReply(tx, message);
     }
 
     //
     // lite-client wants to create an account
     //
+    if (this.app.BROWSER && message.request === 'migration request') {
+      const serviceKey = this.mixin_peer?.publicKey;
+      if (!serviceKey || peer?.publicKey !== serviceKey) {
+        return 0;
+      }
+      this.receiveMigrationInstructions(message.data);
+      return 1;
+    }
+
+    if (this.app.BROWSER && message.request === 'migration failure') {
+      const serviceKey = this.mixin_peer?.publicKey;
+      if (tx.isTo(this.publicKey) || (serviceKey && peer?.publicKey === serviceKey)) {
+        salert(
+          'Uh oh, something went wrong with the automated migration. Please back up your wallet to ensure the security of your tokens and contact the team for a manual resolution.'
+        );
+        return 1;
+      }
+      return 0;
+    }
+
+    if (!this.app.BROWSER && message.request === 'migration request') {
+      const from = tx.from?.[0]?.publicKey;
+      const directPeer = !!from && peer?.publicKey === from;
+      if (!directPeer || !this.migration) {
+        return 0;
+      }
+      const data = message.data || {};
+      let result;
+      try {
+        if (data.publickey && data.publickey !== from) {
+          result = { error: 'The Saito address must be the key that signed this request' };
+        } else {
+          result = await this.migration.openRequest(
+            from,
+            data.ticker,
+            data.chain_address,
+            data.email
+          );
+        }
+      } catch (err) {
+        result = { error: err?.message || String(err), ticker: data.ticker };
+      }
+      this.app.network.sendRequestAsTransaction('migration request', result, null, from);
+      if (mycallback) {
+        mycallback(result);
+      }
+      return 1;
+    }
+
     if (message.request === 'mixin create account') {
       try {
         const created = await this.accounts.createAccount(tx.from[0].publicKey);
@@ -233,14 +317,14 @@ class Mixin extends ModTemplate {
       // Off-chain requests are routed to the peer, while the transaction's
       // recipient slip remains the buyer. direct_peer is the acceptance check.
       const accepted =
-        !!this.appSession && !!this.transfers && this.fulfillsBuySaitoLocally() && direct_peer;
+        !!this.appSession && !!this.transfers && this.isLocalBuySaitoProvider() && direct_peer;
       console.log('Mixin buysaito request', {
         request: message.request,
         app_session: !!this.appSession,
         transfers: !!this.transfers,
         server: this.publicKey,
         addressed_to_server: tx.isTo(this.publicKey),
-        fulfills_locally: this.fulfillsBuySaitoLocally(),
+        fulfills_locally: this.isLocalBuySaitoProvider(),
         buyer: from || '',
         connected_peer: peer?.publicKey || '',
         direct_peer,
@@ -365,14 +449,154 @@ class Mixin extends ModTemplate {
     return super.handlePeerTransaction(app, tx, peer, mycallback);
   }
 
+  recordMigrationBotWalletAddress(ticker, address) {
+    this.migration?.recordMigrationBotWalletAddress(ticker, address);
+  }
+
+  async migrationDepositClaimed(txmsg) {
+    if (!this.migration) {
+      return false;
+    }
+    return this.migration.claimsAnnouncement(txmsg);
+  }
+
+  async migrationHashOwned(hash) {
+    if (!this.migration || !hash) {
+      return false;
+    }
+    return Boolean(
+      (await this.migration.findByInboundHash(hash)) || (await this.migration.findByRequestId(hash))
+    );
+  }
+
+  async approveManualMigration(id) {
+    const rows = await this.database.getTransfers({ id: Number(id) });
+    const row = rows?.[0];
+    if (!row || row.purpose !== 'migration' || row.mode !== 'manual') {
+      throw new Error('No manual migration matches that id.');
+    }
+    if (row.outbound_tx_sig) {
+      return row;
+    }
+    if (row.status !== 'inbound_confirmed') {
+      throw new Error('Migration deposit is not confirmed.');
+    }
+    this.migration.allocationForDeposit(row.outbound_amount);
+    let payload = {};
+    try {
+      payload = row.payload ? JSON.parse(row.payload) : {};
+    } catch (err) {
+      payload = {};
+    }
+    payload.approved_by = this.publicKey || '';
+    payload.approved_at = Date.now();
+    await this.database.updateTransfer(row.id, { payload: JSON.stringify(payload) });
+    row.payload = JSON.stringify(payload);
+    const signed = await this.transfers.recordMigrationPayout(row);
+    await this.transfers.rebroadcastSavedOutboundTransfers();
+    return signed;
+  }
+
+  async onConfirmation() {
+    return;
+  }
+
+  accountSummary() {
+    const credentials = this.accounts?.getCredentials?.() || {};
+    if (!credentials.user_id) {
+      return null;
+    }
+    const backup = {
+      user_id: credentials.user_id,
+      full_name: credentials.full_name || '',
+      session_id: credentials.session_id || '',
+      tip_key_base64: credentials.tip_key_base64 || '',
+      session_seed: credentials.session_seed || '',
+      spend_private_key: credentials.spend_private_key || '',
+      spend_public_key: credentials.spend_public_key || ''
+    };
+    return {
+      user_id: backup.user_id,
+      full_name: backup.full_name,
+      backup: JSON.stringify(backup)
+    };
+  }
+
+  restoreAccount(raw) {
+    if (this.accountSummary()) {
+      throw new Error('A Mixin account is already configured on this server');
+    }
+
+    let parsed = raw;
+    if (typeof raw === 'string') {
+      try {
+        parsed = JSON.parse(raw.trim());
+      } catch (err) {
+        throw new Error('Mixin account backup is not valid JSON');
+      }
+    }
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+      throw new Error('Mixin account backup must be a JSON object');
+    }
+
+    const credentials = {
+      user_id: String(parsed.user_id || '').trim(),
+      full_name: String(parsed.full_name || ''),
+      session_id: String(parsed.session_id || '').trim(),
+      tip_key_base64: String(parsed.tip_key_base64 || '').trim(),
+      session_seed: String(parsed.session_seed || parsed.session_private_key || '').trim(),
+      spend_private_key: String(parsed.spend_private_key || '').trim(),
+      spend_public_key: String(parsed.spend_public_key || ''),
+      backed_up: true
+    };
+    const missing = ['user_id', 'session_id', 'tip_key_base64', 'session_seed', 'spend_private_key'].filter(
+      (name) => !credentials[name]
+    );
+    if (missing.length) {
+      throw new Error(`Mixin account backup is incomplete (missing: ${missing.join(', ')})`);
+    }
+
+    this.credentials = credentials;
+    this.account_created = 1;
+    this.accounts.saveCredentials(credentials);
+    return credentials;
+  }
+
+  async adminPaymentsConfig(testing) {
+    const listed = await testing.listOutstandingTransfers();
+    return { ...listed, account: this.accountSummary() };
+  }
+
   respondTo(type = '', obj) {
     if (type === 'admin-config') {
       const testing = new TransferTesting(this.app, this);
       return {
         id: this.returnSlug(),
         name: this.name,
-        getConfig: async () => testing.listOutstandingTransfers(),
-        updateConfig: async (config = {}) => testing.advanceTransfer(config.id, config.action)
+        getConfig: async () => this.adminPaymentsConfig(testing),
+        updateConfig: async (config = {}) => {
+          if (config.action === 'create-account') {
+            const created = await this.createAccount();
+            if (created?.err || !this.accountSummary()) {
+              throw new Error(created?.err || 'Mixin account was not created');
+            }
+            return this.adminPaymentsConfig(testing);
+          }
+          if (config.action === 'restore-account') {
+            this.restoreAccount(config.account);
+            return this.adminPaymentsConfig(testing);
+          }
+          if (config.action === 'verify-migration') {
+            await this.migration.verifyManualDeposit(config.id, config.amount, config.tx_hash);
+            return this.adminPaymentsConfig(testing);
+          }
+          if (config.action === 'approve-migration') {
+            await this.approveManualMigration(config.id);
+            return this.adminPaymentsConfig(testing);
+          }
+          await testing.advanceTransfer(config.id, config.action);
+          return this.adminPaymentsConfig(testing);
+        }
       };
     }
 
@@ -541,7 +765,14 @@ class Mixin extends ModTemplate {
   }
 
   render() {
-    if (this.browser_active && this.main) {
+    if (!this.browser_active) {
+      return;
+    }
+    if (this.isMigrationRoute()) {
+      this.renderMigrationPage();
+      return;
+    }
+    if (this.main) {
       this.main.render();
     }
   }
@@ -561,6 +792,13 @@ class Mixin extends ModTemplate {
       res.charset = 'UTF-8';
       res.send(MainTemplate(app, this, app.build_number, card));
     };
+
+    const migrationDocument = require('./lib/ui/migration/document.template');
+    expressapp.get(['/migration/apebond', '/migration/apebond/', '/migration', '/migration/'], (req, res) => {
+      res.setHeader('Content-type', 'text/html');
+      res.charset = 'UTF-8';
+      res.send(migrationDocument(app.build_number));
+    });
 
     expressapp.get('/' + encodeURI(this.returnSlug()), (req, res) => {
       sendPage(res);
@@ -685,19 +923,19 @@ class Mixin extends ModTemplate {
     return Math.floor((amount * usdPrice) / saitoPrice);
   }
 
-  fulfillsBuySaitoLocally() {
+  isLocalBuySaitoProvider() {
     const buysaito = this.app.modules?.returnModule?.('BuySaito');
     return !buysaito || buysaito.publicKey === buysaito.authorized_public_key;
   }
 
   async onNewBlock(block, longestChain) {
-    if (!this.app.BROWSER && this.transfers && this.fulfillsBuySaitoLocally()) {
+    if (!this.app.BROWSER && this.transfers && this.isLocalBuySaitoProvider()) {
       await this.transfers.onNewBlock(block, longestChain);
     }
   }
 
   async onChainReorganization(blockId, blockHash, longestChain) {
-    if (!this.app.BROWSER && this.transfers && this.fulfillsBuySaitoLocally()) {
+    if (!this.app.BROWSER && this.transfers && this.isLocalBuySaitoProvider()) {
       await this.transfers.onChainReorganization(blockId, blockHash, longestChain);
     }
   }
@@ -730,6 +968,8 @@ class Mixin extends ModTemplate {
     });
   }
 }
+
+Object.assign(Mixin.prototype, migrationClient);
 
 module.exports = Mixin;
 
