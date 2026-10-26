@@ -8,7 +8,6 @@ module.exports = (app, mod) => {
         <div class="library hide-scrollbar">
           <div class="intersection-anchor" id="top-of-game-list"></div>
           <div class="teasers"></div>
-          <div class="intersection-anchor" id="bottom-of-game-list"></div>
         </div>
       </div>
       <aside class="saito-sidebar right arcade-sidebar"></aside>
