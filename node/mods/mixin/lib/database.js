@@ -394,15 +394,13 @@ class Database {
     );
   }
 
-  async getTransfersPendingInboundBroadcast(cutoff) {
+  async getTransfersPendingInboundBroadcast() {
     return this.query(
       `SELECT * FROM transfers
        WHERE mode = 'automatic'
-         AND purpose != 'migration'
          AND status = 'inbound_awaiting'
-         AND created_at >= $cutoff
        ORDER BY id ASC`,
-      { $cutoff: cutoff }
+      {}
     );
   }
 
@@ -410,12 +408,24 @@ class Database {
     return this.query(
       `SELECT * FROM transfers
        WHERE mode = 'automatic'
-         AND purpose != 'migration'
          AND status = 'inbound_broadcast'
          AND inbound_tx_hash <> ''
          AND inbound_confirmations >= inbound_confirmations_required
        ORDER BY id ASC`,
       {}
+    );
+  }
+
+  async getTransfersPendingOutboundAwaiting(currentBlockId) {
+    return this.query(
+      `SELECT * FROM transfers
+       WHERE mode = 'automatic'
+         AND status = 'inbound_confirmed'
+         AND outbound_tx_sig = ''
+         AND inbound_confirmation_block_id IS NOT NULL
+         AND inbound_confirmation_block_id <= $current_block_id
+       ORDER BY id ASC`,
+      { $current_block_id: currentBlockId }
     );
   }
 

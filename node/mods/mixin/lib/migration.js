@@ -192,6 +192,20 @@ class MigrationService {
 
     const collection = await this.collectionAddress(ticker);
     const now = Date.now();
+    let inboundConfirmationBlockId;
+    try {
+      const raw = await this.app.blockchain.getLatestBlockId();
+      inboundConfirmationBlockId = typeof raw === 'bigint' ? Number(raw) : raw;
+    } catch (err) {
+      inboundConfirmationBlockId = null;
+    }
+    if (
+      !Number.isInteger(inboundConfirmationBlockId) ||
+      inboundConfirmationBlockId < 0 ||
+      !Number.isSafeInteger(inboundConfirmationBlockId)
+    ) {
+      return { error: 'Saito block height is unavailable', ticker };
+    }
     const id = await this.mod.database.insertTransfer({
       purpose: 'migration',
       mode: 'automatic',
@@ -206,6 +220,7 @@ class MigrationService {
       inbound_sender: sender,
       inbound_mixin_user_id: collection.user_id,
       inbound_confirmations_required: 0,
+      inbound_confirmation_block_id: inboundConfirmationBlockId,
       outbound_ticker: 'SAITO',
       outbound_address: publicKey,
       created_at: now
@@ -218,7 +233,7 @@ class MigrationService {
     };
   }
 
-  async recordManualRequest(tx) {
+  async recordManualMigration(tx) {
     const data = tx.returnMessage()?.data || {};
     const publicKey = data.pk || tx.from?.[0]?.publicKey || '';
     if (!publicKey) {
@@ -235,6 +250,20 @@ class MigrationService {
     if (open) {
       return open;
     }
+    let inboundConfirmationBlockId;
+    try {
+      const raw = await this.app.blockchain.getLatestBlockId();
+      inboundConfirmationBlockId = typeof raw === 'bigint' ? Number(raw) : raw;
+    } catch (err) {
+      inboundConfirmationBlockId = null;
+    }
+    if (
+      !Number.isInteger(inboundConfirmationBlockId) ||
+      inboundConfirmationBlockId < 0 ||
+      !Number.isSafeInteger(inboundConfirmationBlockId)
+    ) {
+      return null;
+    }
     const id = await this.mod.database.insertTransfer({
       purpose: 'migration',
       mode: 'manual',
@@ -248,6 +277,7 @@ class MigrationService {
         source: 'manual-request'
       }),
       inbound_sender: data.erc20 || '',
+      inbound_confirmation_block_id: inboundConfirmationBlockId,
       outbound_ticker: 'SAITO',
       created_at: tx.timestamp || Date.now()
     });

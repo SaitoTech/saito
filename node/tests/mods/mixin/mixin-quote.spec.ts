@@ -52,7 +52,13 @@ function service(prices = { eth: 2, erc: 1 }) {
       }
     }
   };
-  const transfers = new Transfers({ wallet: { getPrivateKey: async () => 'private' } }, mod);
+  const transfers = new Transfers(
+    {
+      wallet: { getPrivateKey: async () => 'private' },
+      blockchain: { getLatestBlockId: async () => 8 }
+    },
+    mod
+  );
   return { transfers, crypto, erc, saved };
 }
 
@@ -71,6 +77,9 @@ describe('BuySaito server quotes', () => {
     expect(instructions.expected_deposit).toBe('5.5');
     expect(saved[0].outbound_amount).toBe('10');
     expect(saved[0].inbound_amount).toBe('5.5');
+    expect(saved[0].mode).toBe('automatic');
+    expect(saved[0].purpose).toBe('buysaito');
+    expect(saved[0].inbound_confirmation_block_id).toBe(8);
     expect(instructions.ticker).toBe('ETH');
     expect(instructions.address).toBe('0xabc');
   });
@@ -123,6 +132,22 @@ describe('BuySaito server quotes', () => {
     await expect(transfers.reserveAddress('buyer', { ticker: 'ETH', expected_deposit: -1 })).rejects.toThrow(
       'invalid payment amount'
     );
+  });
+
+  test('does not insert a reservation when the Saito block id is missing or invalid', async () => {
+    const missing = service();
+    delete missing.transfers.app.blockchain;
+    await expect(
+      missing.transfers.reserveAddress('buyer', { ticker: 'ETH', issue_amount: 10, expected_deposit: 5.5 })
+    ).rejects.toThrow('Saito block height is unavailable');
+    expect(missing.saved).toHaveLength(0);
+
+    const invalid = service();
+    invalid.transfers.app.blockchain.getLatestBlockId = async () => null;
+    await expect(
+      invalid.transfers.reserveAddress('buyer', { ticker: 'ETH', issue_amount: 10, expected_deposit: 5.5 })
+    ).rejects.toThrow('Saito block height is unavailable');
+    expect(invalid.saved).toHaveLength(0);
   });
 
   test('rejects a missing or stale cached price', async () => {

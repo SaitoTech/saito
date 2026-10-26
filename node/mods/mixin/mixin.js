@@ -492,7 +492,7 @@ class Mixin extends ModTemplate {
     payload.approved_at = Date.now();
     await this.database.updateTransfer(row.id, { payload: JSON.stringify(payload) });
     row.payload = JSON.stringify(payload);
-    const signed = await this.transfers.recordMigrationPayout(row);
+    const signed = await this.transfers.issueOutboundTransfer(row);
     await this.transfers.rebroadcastSavedOutboundTransfers();
     return signed;
   }

@@ -66,14 +66,25 @@ function memoryDatabase(initial = []) {
       }
     },
     async getTransfersPendingInboundBroadcast() {
-      return select((row) => row.status === 'inbound_awaiting');
+      return select((row) => row.mode === 'automatic' && row.status === 'inbound_awaiting');
     },
     async getTransfersPendingInboundConfirmed() {
       return select(
         (row) =>
+          row.mode === 'automatic' &&
           row.status === 'inbound_broadcast' &&
           row.inbound_tx_hash &&
           Number(row.inbound_confirmations) >= Number(row.inbound_confirmations_required)
+      );
+    },
+    async getTransfersPendingOutboundAwaiting(currentBlockId) {
+      return select(
+        (row) =>
+          row.mode === 'automatic' &&
+          row.status === 'inbound_confirmed' &&
+          !row.outbound_tx_sig &&
+          row.inbound_confirmation_block_id != null &&
+          Number(row.inbound_confirmation_block_id) <= Number(currentBlockId)
       );
     },
     async getTransfersPendingOutboundBroadcast() {
@@ -95,6 +106,7 @@ function transfer(overrides = {}) {
   return {
     id: 7,
     purpose: 'buysaito',
+    mode: 'automatic',
     payload: '',
     requester_publickey: 'buyer',
     recipient_publickey: 'recipient',
@@ -114,6 +126,7 @@ function transfer(overrides = {}) {
     outbound_block_hash: '',
     outbound_block_id: null,
     outbound_confirmation_block_id: null,
+    inbound_confirmation_block_id: 4,
     last_error: '',
     created_at: Date.now(),
     ...overrides
@@ -323,7 +336,7 @@ describe('Mixin admin payment testing', () => {
       'buysaito payment detected',
       'buysaito saito issued'
     ]);
-    expect(sent[2].data.paid).toBeUndefined();
+    expect(sent[2].data.paid).toBe('payout-sig');
   });
 });
 

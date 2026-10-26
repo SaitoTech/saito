@@ -96,7 +96,7 @@ describe('Mixin purchase UI', () => {
     app.connection.on('saito-purchase-address-reserved', (data) => reserved.push(data));
 
     const tx = {
-      isTo: (key) => key === 'me',
+      isTo: () => false,
       isFrom: (key) => key === 'service-key',
       returnMessage: () => ({
         request: 'buysaito reserve address',
@@ -109,6 +109,10 @@ describe('Mixin purchase UI', () => {
         }
       })
     };
+
+    const ignored = await mixin.handlePeerTransaction(app, tx, { publicKey: 'other-peer' });
+    expect(ignored).toBe(0);
+    expect(reserved).toEqual([]);
 
     const handled = await mixin.handlePeerTransaction(app, tx, { publicKey: 'service-key' });
 
@@ -123,6 +127,93 @@ describe('Mixin purchase UI', () => {
       }
     ]);
     expect(mixin.pending_payments[0].address).toBe('0xabc');
+  });
+
+  test('payment detected and issuance notices arrive from the connected service', async () => {
+    const app = browserApp();
+    const mixin = new Mixin(app);
+    mixin.publicKey = 'me';
+    mixin.buysaito_peer = { publicKey: 'service-key' };
+    mixin.pending_payments = [{ id: 7, address: '0xabc', ticker: 'ETH', status: 'new' }];
+    const detected = [];
+    const issued = [];
+    app.connection.on('saito-purchase-payment-detected', (data) => detected.push(data));
+    app.connection.on('saito-purchase-saito-issued', (data) => issued.push(data));
+
+    const notice = (request, data) => ({
+      isTo: () => false,
+      isFrom: (key) => key === 'service-key',
+      returnMessage: () => ({ request, data })
+    });
+
+    await mixin.handlePeerTransaction(
+      app,
+      notice('buysaito payment detected', {
+        id: 7,
+        address: '0xabc',
+        ticker: 'ETH',
+        status: 'pending'
+      }),
+      { publicKey: 'service-key' }
+    );
+    await mixin.handlePeerTransaction(
+      app,
+      notice('buysaito saito issued', {
+        id: 7,
+        address: '0xabc',
+        ticker: 'ETH',
+        paid: 'payout-sig',
+        status: 'confirmed'
+      }),
+      { publicKey: 'service-key' }
+    );
+
+    expect(detected).toEqual([
+      { id: 7, address: '0xabc', ticker: 'ETH', status: 'pending' }
+    ]);
+    expect(issued[0].paid).toBe('payout-sig');
+    expect(mixin.pending_payments).toEqual([]);
+  });
+
+  test('the reserve callback supplies the deposit instructions', async () => {
+    const app = browserApp();
+    app.network.sendRequestAsTransaction = (request, data, callback, publicKey) => {
+      app.sent.push({ request, data, callback, publicKey });
+    };
+    const mod = {
+      publicKey: 'buyer',
+      buysaito_peer: { publicKey: 'service-key' },
+      pending_payments: [],
+      app
+    };
+    const overlay = new SaitoPurchaseOverlay(app, mod);
+    overlay.overlay.show = () => {};
+    overlay.active = true;
+    overlay.crypto_selected = { ticker: 'TRX' };
+    overlay.amount = 10;
+    overlay.expected_deposit = 1.5;
+    overlay.recipient = 'buyer';
+    overlay.render = () => {};
+
+    await overlay.requestPaymentAddressFromServer();
+    const sent = app.sent.find((message) => message.request === 'buysaito reserve address');
+    expect(typeof sent.callback).toBe('function');
+
+    sent.callback({
+      id: 4,
+      address: 'Taddr',
+      mixin_id: 'user-1',
+      ticker: 'TRX',
+      expected_deposit: '1.5',
+      issue_amount: '10',
+      status: 'new',
+      reserved_until: Date.now() + 60000
+    });
+
+    expect(overlay.address).toBe('Taddr');
+    expect(mod.pending_payments[0].address).toBe('Taddr');
+    clearTimeout(overlay.reservation_timer);
+    clearTimeout(overlay.payment_instruction_timer);
   });
 
   test('the overlay is created for a lite-client without BuySaito installed', async () => {
@@ -167,7 +258,11 @@ describe('Mixin purchase UI', () => {
     };
 
     mixin.webServer(app, expressapp, { static() {} });
-    expect(routes).toEqual(['/mixin', '/buy']);
+    expect(routes).toEqual([
+      ['/migration/apebond', '/migration/apebond/', '/migration', '/migration/'],
+      '/mixin',
+      '/buy'
+    ]);
 
     app.modules.returnModule = (name) => (name === 'BuySaito' ? { name } : null);
     const withBuySaito = [];
@@ -181,7 +276,10 @@ describe('Mixin purchase UI', () => {
       },
       { static() {} }
     );
-    expect(withBuySaito).toEqual(['/mixin']);
+    expect(withBuySaito).toEqual([
+      ['/migration/apebond', '/migration/apebond/', '/migration', '/migration/'],
+      '/mixin'
+    ]);
   });
 
   test('currency conversion uses the server list and ignores local module prices', () => {

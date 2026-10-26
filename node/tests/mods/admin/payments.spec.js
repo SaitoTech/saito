@@ -50,6 +50,52 @@ describe('Admin payments tab', () => {
     expect(present).toContain('admin-page admin-payments');
   });
 
+  test('a confirmed manual migration can be issued and an unverified one exposes its deposit', () => {
+    const html = PaymentsTemplate({
+      transfers: [
+        {
+          id: 3,
+          purpose: 'migration',
+          mode: 'manual',
+          requester_publickey: 'user',
+          recipient_publickey: 'user',
+          inbound_amount: '4',
+          inbound_ticker: 'ERC-SAITO',
+          inbound_tx_hash: 'erc-hash',
+          inbound_sender: '0xabc',
+          outbound_amount: '4',
+          outbound_ticker: 'SAITO',
+          outbound_tx_sig: '',
+          status: 'inbound_confirmed',
+          last_error: '',
+          action: null
+        },
+        {
+          id: 4,
+          purpose: 'migration',
+          mode: 'manual',
+          requester_publickey: 'user',
+          recipient_publickey: 'user',
+          inbound_amount: '',
+          inbound_ticker: '',
+          outbound_amount: '',
+          status: 'inbound_awaiting',
+          last_error: '',
+          action: { action: 'detect-inbound', label: 'Mark inbound payment detected' }
+        }
+      ],
+      account: { user_id: 'server-user', backup: '{}' }
+    });
+
+    expect(html).toContain('data-payment-action="approve-migration"');
+    expect(html).toContain('Issue SAITO');
+    expect(html).toContain('erc-hash');
+    expect(html).toContain('0xabc');
+    expect(html).toContain('data-payment-action="verify-migration"');
+    expect(html).toContain('data-migration-amount="4"');
+    expect(html).not.toContain('data-payment-action="detect-inbound"');
+  });
+
   test('the table offers the legal next action and escapes transfer fields', () => {
     const html = PaymentsTemplate({
       transfers: [
@@ -86,6 +132,36 @@ describe('Admin payments tab', () => {
     expect(html).toContain('Waiting for SAITO issuance');
     expect(html).toContain('insufficient_funds');
     expect(html).not.toContain('<buyer>');
+    expect(html).not.toContain('create account');
+  });
+
+  test('a missing mixin account is the first payments view', () => {
+    const html = PaymentsTemplate({ account: null, transfers: [{ id: 1 }] });
+    expect(html).toContain(
+      'In order to setup web3 payment processing with Saito, you must create a Mixin Account for your server.'
+    );
+    expect(html).toContain('id="admin-payments-create-account"');
+    expect(html).toContain('create account');
+    expect(html).toContain('id="admin-payments-restore-account"');
+    expect(html).toContain('restore account');
+    expect(html).not.toContain('admin-payments-table');
+    expect(html).not.toContain('Outstanding BuySaito transfers');
+  });
+
+  test('a configured mixin account is noted by its id', () => {
+    const html = PaymentsTemplate({
+      account: {
+        user_id: 'user-9',
+        full_name: 'Saito User <server>',
+        backup: '{"user_id":"user-9","spend_private_key":"secret"}'
+      },
+      transfers: []
+    });
+    expect(html).toContain('Mixin account user-9 (Saito User &lt;server&gt;) is configured on this server.');
+    expect(html).toContain('id="admin-payments-account-backup"');
+    expect(html).toContain('{&quot;user_id&quot;:&quot;user-9&quot;,&quot;spend_private_key&quot;:&quot;secret&quot;}');
+    expect(html).toContain('No outstanding BuySaito transfers.');
+    expect(html).not.toContain('id="admin-payments-create-account"');
   });
 
   test('the page loads and advances through the admin-config requests', async () => {
@@ -104,6 +180,7 @@ describe('Admin payments tab', () => {
           callback({
             returnMessage: () => ({
               result: {
+                account: { user_id: 'user-9', full_name: 'Saito User' },
                 transfers: [
                   {
                     id: 7,
@@ -143,6 +220,29 @@ describe('Admin payments tab', () => {
       data: { id: 7, action: 'confirm-inbound' }
     });
     expect(page.transfers[0].status).toBe('inbound_broadcast');
+    expect(page.account).toEqual({ user_id: 'user-9', full_name: 'Saito User' });
+
+    page.account = null;
+    await page.createAccount();
+    expect(messages[2]).toEqual({
+      module: 'Admin',
+      request: 'update-admin-config',
+      module_id: 'mixin',
+      data: { action: 'create-account' }
+    });
+    expect(page.account.user_id).toBe('user-9');
+
+    page.account = null;
+    global.document.getElementById = (id) =>
+      id === 'admin-payments-restore-account' ? { value: '{"user_id":"user-9"}' } : null;
+    await page.restoreAccount();
+    expect(messages[3]).toEqual({
+      module: 'Admin',
+      request: 'update-admin-config',
+      module_id: 'mixin',
+      data: { action: 'restore-account', account: '{"user_id":"user-9"}' }
+    });
+    expect(page.account.user_id).toBe('user-9');
     delete global.document;
   });
 
