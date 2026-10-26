@@ -1,9 +1,10 @@
+const Decimal = require('decimal.js');
 const MixinModule = require('./lib/mixinmodule');
 const ModTemplate = require('../../lib/templates/modtemplate');
 const PeerService = require('saito-js/lib/peer_service').default;
 const Database = require('./lib/database');
 const Api = require('./lib/api');
-const { formatMixinError } = Api;
+const { formatMixinError, MIXIN_APP_KEY_FIELDS, mixinAppKeystore, mixinAppKeystoreFromEnv } = Api;
 const Accounts = require('./lib/accounts');
 const Transfers = require('./lib/transfers');
 const TransferTesting = require('./lib/testing');
@@ -117,6 +118,7 @@ class Mixin extends ModTemplate {
     this.accounts = new Accounts(app, this);
 
     if (!app.BROWSER) {
+      this.api.appKeystore = app.options?.mixin?.api_key || null;
       this.appSession = this.api.createAppSession();
       await this.database.ensureAccountsSchema();
       await this.database.ensureTransfersSchema();
@@ -140,6 +142,10 @@ class Mixin extends ModTemplate {
     }
 
     this.installCryptos();
+
+    if (!app.BROWSER) {
+      await this.syncDepositAddresses();
+    }
 
     if (app.BROWSER) {
       const SaitoPurchaseOverlay = require('./lib/ui/overlays/buysaito-purchase');
@@ -475,6 +481,9 @@ class Mixin extends ModTemplate {
     if (!row || row.purpose !== 'migration' || row.mode !== 'manual') {
       throw new Error('No manual migration matches that id.');
     }
+    if (Number(row.excluded) === 1) {
+      throw new Error('That transfer is excluded from processing.');
+    }
     if (row.outbound_tx_sig) {
       return row;
     }
@@ -562,9 +571,210 @@ class Mixin extends ModTemplate {
     return credentials;
   }
 
-  async adminPaymentsConfig(testing) {
-    const listed = await testing.listOutstandingTransfers();
-    return { ...listed, account: this.accountSummary() };
+  depositAddresses() {
+    const stored = this.app?.options?.mixin?.deposit_addresses;
+    return Array.isArray(stored) ? stored : [];
+  }
+
+  ensureMixinOptions() {
+    const current = this.app.options?.mixin;
+    if (!current || typeof current !== 'object' || Array.isArray(current)) {
+      this.app.options.mixin = {};
+    }
+  }
+
+  rememberDepositAddress({ address, assetId = '', ticker = '', mixinUserId = '' } = {}) {
+    const value = String(address || '').trim();
+    if (!value) {
+      return;
+    }
+    this.ensureMixinOptions();
+    const list = this.depositAddresses().map((item) => ({ ...item }));
+    const asset = String(assetId || '');
+    const existing = list.find((item) => {
+      if (item.address !== value) {
+        return false;
+      }
+      return !asset || !item.asset_id || item.asset_id === asset;
+    });
+    if (existing) {
+      if (asset && !existing.asset_id) {
+        existing.asset_id = asset;
+      }
+      if (ticker && !existing.ticker) {
+        existing.ticker = ticker;
+      }
+      if (mixinUserId && existing.mixin_user_id !== mixinUserId) {
+        existing.mixin_user_id = mixinUserId;
+      }
+      existing.balance = existing.balance || '0';
+      existing.credited = Array.isArray(existing.credited) ? existing.credited : [];
+    } else {
+      list.push({
+        address: value,
+        asset_id: asset,
+        ticker: ticker || '',
+        mixin_user_id: mixinUserId || '',
+        balance: '0',
+        credited: []
+      });
+    }
+    if (JSON.stringify(list) === JSON.stringify(this.depositAddresses())) {
+      return;
+    }
+    this.app.options.mixin.deposit_addresses = list;
+    this.app.storage.saveOptions();
+  }
+
+  creditDepositAddress(address, amount, hash) {
+    const value = String(address || '').trim();
+    const id = String(hash || '').trim();
+    let credit;
+    try {
+      credit = new Decimal(amount);
+    } catch (err) {
+      return;
+    }
+    if (!value || !id || !credit.isFinite() || !credit.greaterThan(0)) {
+      return;
+    }
+    this.ensureMixinOptions();
+    const list = this.depositAddresses().map((item) => ({
+      ...item,
+      credited: Array.isArray(item.credited) ? item.credited.slice() : []
+    }));
+    let entry = list.find((item) => item.address === value);
+    if (!entry) {
+      entry = {
+        address: value,
+        asset_id: '',
+        ticker: '',
+        mixin_user_id: '',
+        balance: '0',
+        credited: []
+      };
+      list.push(entry);
+    }
+    if (entry.credited.includes(id)) {
+      return;
+    }
+    let balance;
+    try {
+      balance = new Decimal(entry.balance || 0);
+    } catch (err) {
+      balance = new Decimal(0);
+    }
+    entry.balance = balance.plus(credit).toFixed(8).replace(/\.?0+$/, '') || '0';
+    entry.credited.push(id);
+    this.app.options.mixin.deposit_addresses = list;
+    this.app.storage.saveOptions();
+  }
+
+  async syncDepositAddresses() {
+    if (typeof this.database?.listAddresses !== 'function' || !this.publicKey) {
+      return;
+    }
+    let rows = [];
+    try {
+      rows = await this.database.listAddresses(this.publicKey);
+    } catch (err) {
+      return;
+    }
+    for (const row of rows || []) {
+      if (!row?.address) {
+        continue;
+      }
+      const ticker = (this.crypto_mods || []).find((item) => item.asset_id === row.asset_id)?.ticker || '';
+      this.rememberDepositAddress({
+        address: row.address,
+        assetId: row.asset_id,
+        ticker,
+        mixinUserId: row.mixin_user_id
+      });
+    }
+  }
+
+  async depositAddressReport() {
+    await this.syncDepositAddresses();
+    let reserved = [];
+    if (typeof this.database?.listReservedInboundAddresses === 'function') {
+      reserved = (await this.database.listReservedInboundAddresses()) || [];
+    }
+    const held = new Set(reserved);
+    return this.depositAddresses().map((item) => ({
+      address: item.address,
+      asset_id: item.asset_id || '',
+      ticker: item.ticker || '',
+      mixin_user_id: item.mixin_user_id || '',
+      balance: item.balance || '0',
+      reservable: !held.has(item.address)
+    }));
+  }
+
+  mixinApiKeyConfigured() {
+    return !!(mixinAppKeystoreFromEnv() || mixinAppKeystore(this.app?.options?.mixin?.api_key));
+  }
+
+  saveMixinApiKey(raw) {
+    if (mixinAppKeystoreFromEnv()) {
+      throw new Error('The Mixin API key is already supplied by the server environment');
+    }
+
+    let parsed = raw;
+    if (typeof raw === 'string') {
+      try {
+        parsed = JSON.parse(raw.trim());
+      } catch (err) {
+        throw new Error('Mixin API key is not valid JSON');
+      }
+    }
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+      throw new Error('Mixin API key must be a JSON object');
+    }
+
+    const missing = MIXIN_APP_KEY_FIELDS.filter(
+      (field) => typeof parsed[field] !== 'string' || !parsed[field].trim()
+    );
+    if (missing.length) {
+      throw new Error(`Mixin API key is incomplete (missing: ${missing.join(', ')})`);
+    }
+
+    const keystore = mixinAppKeystore(parsed);
+    const current = this.app.options.mixin;
+    if (!current || typeof current !== 'object' || Array.isArray(current)) {
+      this.app.options.mixin = {};
+    }
+    this.app.options.mixin.api_key = keystore;
+    this.app.storage.saveOptions();
+    if (this.api) {
+      this.api.appKeystore = keystore;
+      this.appSession = this.api.createAppSession();
+    }
+  }
+
+  async adminPaymentsConfig(testing, request = {}) {
+    const api_key_configured = this.mixinApiKeyConfigured();
+    if (!api_key_configured) {
+      return {
+        transfers: [],
+        total: 0,
+        page: 1,
+        page_size: 20,
+        account: this.accountSummary(),
+        api_key_configured: false
+      };
+    }
+
+    const listed = await testing.listOutstandingTransfers({
+      search: request.search || '',
+      page: request.page || 1
+    });
+    return {
+      ...listed,
+      account: this.accountSummary(),
+      api_key_configured: true,
+      deposit_addresses: await this.depositAddressReport()
+    };
   }
 
   respondTo(type = '', obj) {
@@ -573,29 +783,37 @@ class Mixin extends ModTemplate {
       return {
         id: this.returnSlug(),
         name: this.name,
-        getConfig: async () => this.adminPaymentsConfig(testing),
+        getConfig: async (request = {}) => this.adminPaymentsConfig(testing, request),
         updateConfig: async (config = {}) => {
+          if (config.action === 'save-api-key') {
+            this.saveMixinApiKey(config.api_key);
+            return this.adminPaymentsConfig(testing, config);
+          }
           if (config.action === 'create-account') {
             const created = await this.createAccount();
             if (created?.err || !this.accountSummary()) {
               throw new Error(created?.err || 'Mixin account was not created');
             }
-            return this.adminPaymentsConfig(testing);
+            return this.adminPaymentsConfig(testing, config);
           }
           if (config.action === 'restore-account') {
             this.restoreAccount(config.account);
-            return this.adminPaymentsConfig(testing);
+            return this.adminPaymentsConfig(testing, config);
+          }
+          if (config.action === 'exclude-transfer') {
+            await testing.excludeTransfer(config.id);
+            return this.adminPaymentsConfig(testing, config);
           }
           if (config.action === 'verify-migration') {
             await this.migration.verifyManualDeposit(config.id, config.amount, config.tx_hash);
-            return this.adminPaymentsConfig(testing);
+            return this.adminPaymentsConfig(testing, config);
           }
           if (config.action === 'approve-migration') {
             await this.approveManualMigration(config.id);
-            return this.adminPaymentsConfig(testing);
+            return this.adminPaymentsConfig(testing, config);
           }
           await testing.advanceTransfer(config.id, config.action);
-          return this.adminPaymentsConfig(testing);
+          return this.adminPaymentsConfig(testing, config);
         }
       };
     }

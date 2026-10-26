@@ -73,6 +73,7 @@ CREATE TABLE IF NOT EXISTS transfers (
   locked_by TEXT NOT NULL DEFAULT '',
   locked_until INTEGER,
   last_error TEXT NOT NULL DEFAULT '',
+  excluded INTEGER NOT NULL DEFAULT 0,
 
   created_at INTEGER NOT NULL DEFAULT 0,
   updated_at INTEGER NOT NULL DEFAULT 0

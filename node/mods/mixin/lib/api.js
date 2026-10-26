@@ -13,30 +13,42 @@ const {
   blake3Hash
 } = require('@mixin.dev/mixin-node-sdk');
 
-function createAppSession() {
+const MIXIN_APP_KEY_FIELDS = ['app_id', 'session_id', 'server_public_key', 'session_private_key'];
+
+function mixinAppKeystore(value) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return null;
+  }
+
+  const keystore = {};
+  for (const field of MIXIN_APP_KEY_FIELDS) {
+    if (typeof value[field] !== 'string' || !value[field].trim()) {
+      return null;
+    }
+    keystore[field] = value[field].trim();
+  }
+  return keystore;
+}
+
+function mixinAppKeystoreFromEnv() {
   if (typeof process === 'undefined' || typeof process.env.MIXIN === 'undefined') {
     return null;
   }
 
-  let config = null;
   try {
-    config = JSON.parse(process.env.MIXIN);
+    return mixinAppKeystore(JSON.parse(process.env.MIXIN));
   } catch (err) {
     return null;
   }
+}
 
-  if (!config) {
+function createAppSession(fallback) {
+  const keystore = mixinAppKeystoreFromEnv() || mixinAppKeystore(fallback);
+  if (!keystore) {
     return null;
   }
 
-  return MixinApi({
-    keystore: {
-      app_id: config.app_id,
-      session_id: config.session_id,
-      server_public_key: config.server_public_key,
-      session_private_key: config.session_private_key
-    }
-  });
+  return MixinApi({ keystore });
 }
 
 function createUserSession(credentials = {}) {
@@ -110,12 +122,16 @@ function snapshotOffset(createdAt = 0) {
 }
 
 class Api {
+  constructor() {
+    this.appKeystore = null;
+  }
+
   createAppSession() {
-    return createAppSession();
+    return createAppSession(this.appKeystore);
   }
 
   async createAccount(displayName) {
-    const appSession = createAppSession();
+    const appSession = this.createAppSession();
     if (!appSession) {
       throw new Error('Cannot process Mixin account request for peer');
     }
@@ -225,7 +241,7 @@ class Api {
 
   async fetchAsset(assetId) {
     try {
-      const session = createAppSession();
+      const session = this.createAppSession();
       if (!session) {
         throw new Error('Mixin application session is not configured');
       }
@@ -463,6 +479,9 @@ class Api {
 }
 
 module.exports = Api;
+module.exports.MIXIN_APP_KEY_FIELDS = MIXIN_APP_KEY_FIELDS;
+module.exports.mixinAppKeystore = mixinAppKeystore;
+module.exports.mixinAppKeystoreFromEnv = mixinAppKeystoreFromEnv;
 module.exports.createAppSession = createAppSession;
 module.exports.createUserSession = createUserSession;
 module.exports.getWithdrawalFeeQuote = getWithdrawalFeeQuote;

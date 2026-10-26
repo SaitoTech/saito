@@ -9,7 +9,18 @@ class Accounts {
   }
 
   saveCredentials(credentials) {
-    this.app.options.mixin = credentials;
+    const apiKey = this.app.options?.mixin?.api_key;
+    const depositAddresses = this.app.options?.mixin?.deposit_addresses;
+    const next = credentials && typeof credentials === 'object' ? { ...credentials } : {};
+    delete next.api_key;
+    delete next.deposit_addresses;
+    if (apiKey && typeof apiKey === 'object' && !Array.isArray(apiKey)) {
+      next.api_key = apiKey;
+    }
+    if (Array.isArray(depositAddresses)) {
+      next.deposit_addresses = depositAddresses;
+    }
+    this.app.options.mixin = next;
     this.app.storage.saveOptions();
   }
 
@@ -61,6 +72,15 @@ class Accounts {
       address,
       createdAt: Date.now()
     });
+    if (!this.app.BROWSER && typeof this.mod.rememberDepositAddress === 'function') {
+      const ticker = (this.mod.crypto_mods || []).find((item) => item.asset_id === assetId)?.ticker || '';
+      this.mod.rememberDepositAddress({
+        address,
+        assetId,
+        ticker,
+        mixinUserId: selected.user_id
+      });
+    }
 
     if (this.app.BROWSER) {
       this.app.network.sendRequestAsTransaction(

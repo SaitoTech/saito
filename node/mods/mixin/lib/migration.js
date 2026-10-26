@@ -165,7 +165,9 @@ class MigrationService {
       mode: 'automatic',
       inbound_ticker: ticker
     });
-    const open = (existing || []).filter((row) => OPEN_STATUSES.includes(row.status));
+    const open = (existing || []).filter(
+      (row) => !Number(row.excluded) && OPEN_STATUSES.includes(row.status)
+    );
     const conflict = open.find(
       (row) => row.inbound_sender === sender && row.requester_publickey !== publicKey
     );
@@ -245,7 +247,8 @@ class MigrationService {
       mode: 'manual'
     });
     const open = (existing || []).find(
-      (row) => row.email === (data.email || '') && OPEN_STATUSES.includes(row.status)
+      (row) =>
+        !Number(row.excluded) && row.email === (data.email || '') && OPEN_STATUSES.includes(row.status)
     );
     if (open) {
       return open;
@@ -291,6 +294,9 @@ class MigrationService {
     if (!row || row.purpose !== 'migration' || row.mode !== 'manual') {
       throw new Error('No manual migration matches that id.');
     }
+    if (Number(row.excluded) === 1) {
+      throw new Error('That transfer is excluded from processing.');
+    }
     if (row.outbound_tx_sig) {
       return row;
     }
@@ -313,6 +319,7 @@ class MigrationService {
       inbound_confirmations: 1,
       inbound_confirmations_required: 1
     });
+    this.mod.creditDepositAddress?.(row.inbound_address, amount, txHash);
     return (await this.mod.database.getTransfers({ id: row.id }))[0];
   }
 }

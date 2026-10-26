@@ -84,6 +84,7 @@ class Transfers {
             });
             email.sendStatusEmail(this.app, 0, { ...row, inbound_amount: match.amount }, err.message);
             await email.sendFailureNotice(this.app, row.recipient_publickey || row.requester_publickey);
+            this.mod.creditDepositAddress?.(row.inbound_address, match.amount, match.hash);
             continue;
           }
           await this.mod.database.updateTransfer(row.id, {
@@ -98,6 +99,7 @@ class Transfers {
             inbound_received_at: row.inbound_received_at || now,
             last_error: ''
           });
+          this.mod.creditDepositAddress?.(row.inbound_address, match.amount, match.hash);
           continue;
         }
         // BuySaito only. The matched deposit is evidence for the quote already
@@ -127,12 +129,18 @@ class Transfers {
             row.requester_publickey
           );
           this.app.connection.emit('saito-purchase-payment-detected', detected);
+          this.mod.creditDepositAddress?.(
+            row.inbound_address,
+            match.amount || row.inbound_amount,
+            match.hash
+          );
         }
       }
 
       for (const row of await this.mod.database.getTransfers({
         status: 'inbound_broadcast',
-        mode: 'automatic'
+        mode: 'automatic',
+        excluded: 0
       })) {
         if (row.outbound_tx_sig) {
           continue;
@@ -345,11 +353,13 @@ class Transfers {
   async fetchInboundMixinPayments() {
     const awaiting = await this.mod.database.getTransfers({
       status: 'inbound_awaiting',
-      mode: 'automatic'
+      mode: 'automatic',
+      excluded: 0
     });
     const broadcast = await this.mod.database.getTransfers({
       status: 'inbound_broadcast',
-      mode: 'automatic'
+      mode: 'automatic',
+      excluded: 0
     });
     const rows = [...awaiting, ...broadcast];
     if (!rows.length) {
@@ -484,6 +494,7 @@ class Transfers {
         hash: snapshot.transaction_hash || '',
         id: snapshot.snapshot_id || '',
         sender: snapshot.deposit?.sender || '',
+        amount: Number(snapshot.amount),
         confirmations: Math.max(Number(snapshot.confirmations || 0), required)
       };
     }
@@ -497,6 +508,7 @@ class Transfers {
         hash: deposit.transaction_hash || '',
         id: deposit.deposit_id || deposit.transaction_id || '',
         sender: deposit.sender || '',
+        amount: Number(deposit.amount),
         confirmations: confirmed ? Math.max(confirmations, required) : confirmations
       };
     }
@@ -642,7 +654,7 @@ class Transfers {
       inbound_ticker: ticker,
       purpose: 'buysaito'
     });
-    const open = existing.find((row) => OPEN_STATUSES.includes(row.status));
+    const open = existing.find((row) => !Number(row.excluded) && OPEN_STATUSES.includes(row.status));
     if (open) {
       return this.buildDepositReservationResponse(open);
     }
@@ -742,7 +754,7 @@ class Transfers {
         found = { address: created, user_id: credentials.user_id };
       }
       const rows = await this.mod.database.getTransfers({ inbound_address: found.address });
-      if (rows.some((row) => OPEN_STATUSES.includes(row.status))) {
+      if (rows.some((row) => !Number(row.excluded) && OPEN_STATUSES.includes(row.status))) {
         continue;
       }
       selected = credentials;

@@ -231,7 +231,7 @@ class Admin extends ModTemplate {
           throw new Error(`No admin configuration is available for "${txmsg.module_id || ''}".`);
         }
         if (mycallback) {
-          mycallback({ result: await config.getConfig() });
+          mycallback({ result: await config.getConfig(txmsg) });
         }
       } catch (err) {
         if (mycallback) mycallback({ err: err.message || String(err) });

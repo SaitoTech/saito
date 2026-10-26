@@ -99,6 +99,27 @@ describe('Mixin api helpers', () => {
     expect(MixinApi).not.toHaveBeenCalled();
   });
 
+  test('createAppSession prefers the environment keystore and otherwise uses a saved keystore', () => {
+    delete process.env.MIXIN;
+    const saved = {
+      app_id: 'saved-app',
+      session_id: 'saved-session',
+      server_public_key: 'saved-pub',
+      session_private_key: 'saved-secret'
+    };
+
+    expect(createAppSession({ app_id: 'saved-app' })).toBeNull();
+    expect(createAppSession(saved).config.keystore).toEqual(saved);
+
+    process.env.MIXIN = JSON.stringify({
+      app_id: 'env-app',
+      session_id: 'env-session',
+      server_public_key: 'env-pub',
+      session_private_key: 'env-secret'
+    });
+    expect(createAppSession(saved).config.keystore.app_id).toBe('env-app');
+  });
+
   test('createUserSession translates credentials and rejects an incomplete bundle before the SDK', () => {
     const session = createUserSession(credentials);
     expect(session.config.keystore).toEqual({
@@ -894,6 +915,130 @@ describe('Mixin transfer queue', () => {
     expect(createUnsigned).toHaveBeenCalledTimes(1);
   });
 
+  test('admin transfer search is paged in the database and exclusion leaves signed rows reconcilable', async () => {
+    const db = await openMixinDatabase();
+    const database = databaseFor(db);
+    const chain = '0x' + 'ab'.repeat(20);
+    for (let index = 1; index <= 21; index += 1) {
+      await database.insertTransfer({
+        purpose: index % 2 === 0 ? 'migration' : 'buysaito',
+        mode: 'automatic',
+        status: 'inbound_awaiting',
+        requester_publickey: `owner-${index}`,
+        created_at: index
+      });
+    }
+    await database.insertTransfer({
+      purpose: 'migration',
+      mode: 'automatic',
+      status: 'failed',
+      requester_publickey: 'lookup-owner',
+      inbound_sender: chain.toUpperCase(),
+      outbound_address: chain.toLowerCase(),
+      created_at: 100
+    });
+    await database.insertTransfer({
+      purpose: 'buysaito',
+      mode: 'automatic',
+      status: 'outbound_confirmed',
+      recipient_publickey: 'lookup-owner',
+      outbound_sender: chain,
+      created_at: 101
+    });
+    const hiddenId = await database.insertTransfer({
+      purpose: 'buysaito',
+      mode: 'automatic',
+      status: 'inbound_confirmed',
+      requester_publickey: 'hidden-owner',
+      recipient_publickey: 'hidden-owner',
+      outbound_amount: '10',
+      inbound_tx_hash: 'hidden-hash',
+      outbound_tx_sig: '',
+      inbound_confirmation_block_id: 4,
+      created_at: 200
+    });
+    await database.updateTransfer(hiddenId, { excluded: 1 });
+    const signedId = await database.insertTransfer({
+      purpose: 'migration',
+      mode: 'automatic',
+      status: 'outbound_awaiting',
+      requester_publickey: 'signed-owner',
+      outbound_tx: 'saved-tx',
+      outbound_tx_sig: 'saved-sig',
+      inbound_tx_hash: 'kept-hash',
+      outbound_amount: '3',
+      created_at: 201
+    });
+    await database.updateTransfer(signedId, { excluded: 1 });
+
+    const first = await database.listAdminTransfers({ page: 1 });
+    const second = await database.listAdminTransfers({ page: 2 });
+    expect(first.page_size).toBe(20);
+    expect(first.total).toBe(21);
+    expect(first.rows).toHaveLength(20);
+    expect(first.rows.map((row) => row.created_at)).toEqual(
+      Array.from({ length: 20 }, (_value, index) => 21 - index)
+    );
+    expect(second.rows.map((row) => row.id)).toEqual([1]);
+    expect(first.rows.some((row) => row.requester_publickey === 'hidden-owner')).toBe(false);
+
+    const byKey = await database.listAdminTransfers({ search: 'lookup-owner' });
+    expect(byKey.total).toBe(2);
+    expect(new Set(byKey.rows.map((row) => row.id)).size).toBe(byKey.rows.length);
+    expect(byKey.rows.map((row) => row.purpose).sort()).toEqual(['buysaito', 'migration']);
+
+    const byAddress = await database.listAdminTransfers({ search: chain.toUpperCase() });
+    expect(byAddress.total).toBe(2);
+    expect(byAddress.rows.map((row) => row.id).sort()).toEqual(
+      byKey.rows.map((row) => row.id).sort()
+    );
+
+    const transfers = new Transfers(
+      {
+        wallet: {
+          getPrivateKey: async () => 'private',
+          getBalance: async () => 10000000000n,
+          convertSaitoToNolan: () => 1000000000n,
+          createUnsignedTransactionWithDefaultFee: jest.fn(async () => ({
+            async sign() {
+              this.signature = 'new-sig';
+            },
+            serialize_to_web() {
+              return 'new-tx';
+            }
+          })),
+          addTransactionToPending: jest.fn(async () => {})
+        },
+        network: { sendRequestAsTransaction: jest.fn(), propagateTransaction: jest.fn() },
+        connection: { emit: jest.fn() },
+        blockchain: { getLatestBlockId: async () => 4, getLongestChainHashAtId: async () => '' }
+      },
+      {
+        publicKey: 'saito-key',
+        database,
+        accounts: { getCredentials: () => ({}), decryptCredentials: () => ({}) },
+        api: { fetchDeposits: jest.fn(async () => []), fetchHistory: jest.fn(async () => []) }
+      }
+    );
+    await transfers.processTransferQueue();
+
+    const hidden = (await database.getTransfers({ id: hiddenId }))[0];
+    expect(hidden).toEqual(
+      expect.objectContaining({
+        excluded: 1,
+        status: 'inbound_confirmed',
+        outbound_tx_sig: '',
+        inbound_tx_hash: 'hidden-hash'
+      })
+    );
+    const signed = (await database.getTransfers({ id: signedId }))[0];
+    expect(signed.outbound_tx_sig).toBe('saved-sig');
+    expect(signed.inbound_tx_hash).toBe('kept-hash');
+    const reconcilable = await database.getTransfersPendingOutboundBroadcast();
+    expect(reconcilable.map((row) => row.id)).toContain(signedId);
+    expect(transfers.app.wallet.createUnsignedTransactionWithDefaultFee).not.toHaveBeenCalled();
+  });
+
   test('saved payouts are recovered and reorged for both transfer modes', async () => {
     const db = await openMixinDatabase();
     const database = databaseFor(db);
@@ -1093,7 +1238,10 @@ describe('Mixin admin payments account', () => {
     const mixin = new Mixin(app);
     mixin.app = app;
     mixin.publicKey = 'server-key';
-    mixin.database = { getTransfers: async () => [] };
+    mixin.database = {
+      getTransfers: async () => [],
+      listAdminTransfers: async () => ({ rows: [], total: 0, page: 1, page_size: 20 })
+    };
     mixin.accounts = new Accounts(app, mixin);
     mixin.createAccount = async () => {
       const keys = {
@@ -1112,7 +1260,14 @@ describe('Mixin admin payments account', () => {
     };
 
     const config = mixin.respondTo('admin-config');
-    await expect(config.getConfig()).resolves.toEqual({ transfers: [], account: null });
+    await expect(config.getConfig()).resolves.toEqual({
+      transfers: [],
+      total: 0,
+      page: 1,
+      page_size: 20,
+      account: null,
+      api_key_configured: false
+    });
 
     const updated = await config.updateConfig({ action: 'create-account' });
     expect(updated.account.user_id).toBe('user-9');
@@ -1137,7 +1292,10 @@ describe('Mixin admin payments account', () => {
     };
     const mixin = new Mixin(app);
     mixin.app = app;
-    mixin.database = { getTransfers: async () => [] };
+    mixin.database = {
+      getTransfers: async () => [],
+      listAdminTransfers: async () => ({ rows: [], total: 0, page: 1, page_size: 20 })
+    };
     mixin.accounts = new Accounts(app, mixin);
     const config = mixin.respondTo('admin-config');
     const backup = {
@@ -1178,5 +1336,138 @@ describe('Mixin admin payments account', () => {
     await expect(
       config.updateConfig({ action: 'restore-account', account: JSON.stringify(backup) })
     ).rejects.toThrow('A Mixin account is already configured on this server');
+  });
+
+  test('save-api-key stores a valid keystore and leaves an environment key untouched', async () => {
+    const originalMixin = process.env.MIXIN;
+    const app = {
+      options: { mixin: { user_id: 'user-9' } },
+      storage: { saveOptions: jest.fn() }
+    };
+    const mixin = new Mixin(app);
+    mixin.app = app;
+    mixin.api = { appKeystore: null, createAppSession: jest.fn(() => ({ session: true })) };
+    mixin.database = {
+      listAdminTransfers: async () => ({ rows: [], total: 0, page: 1, page_size: 20 })
+    };
+    mixin.accounts = new Accounts(app, mixin);
+    const config = mixin.respondTo('admin-config');
+    const keystore = {
+      app_id: ' app-1 ',
+      session_id: 'session-1',
+      server_public_key: 'server-pub',
+      session_private_key: 'app-session-key',
+      extra: 'drop-me'
+    };
+
+    delete process.env.MIXIN;
+    await expect(config.updateConfig({ action: 'save-api-key', api_key: '{' })).rejects.toThrow(
+      'Mixin API key is not valid JSON'
+    );
+    await expect(
+      config.updateConfig({ action: 'save-api-key', api_key: JSON.stringify({ app_id: 'app-1' }) })
+    ).rejects.toThrow(/incomplete \(missing: .*session_private_key/);
+    expect(app.options.mixin).toEqual({ user_id: 'user-9' });
+    expect(app.storage.saveOptions).not.toHaveBeenCalled();
+
+    const saved = await config.updateConfig({
+      action: 'save-api-key',
+      api_key: JSON.stringify(keystore)
+    });
+    expect(app.options.mixin.api_key).toEqual({
+      app_id: 'app-1',
+      session_id: 'session-1',
+      server_public_key: 'server-pub',
+      session_private_key: 'app-session-key'
+    });
+    expect(app.options.mixin.user_id).toBe('user-9');
+    expect(app.storage.saveOptions).toHaveBeenCalled();
+    expect(mixin.api.appKeystore.session_private_key).toBe('app-session-key');
+    expect(saved.api_key_configured).toBe(true);
+    expect(JSON.stringify(saved)).not.toContain('app-session-key');
+    mixin.accounts.saveCredentials({ user_id: 'user-9', session_id: 'session-9' });
+    expect(app.options.mixin.user_id).toBe('user-9');
+    expect(app.options.mixin.api_key.session_private_key).toBe('app-session-key');
+
+    process.env.MIXIN = JSON.stringify({
+      app_id: 'env-app',
+      session_id: 'env-session',
+      server_public_key: 'env-pub',
+      session_private_key: 'env-secret'
+    });
+    const before = app.options.mixin.api_key;
+    await expect(
+      config.updateConfig({ action: 'save-api-key', api_key: JSON.stringify(keystore) })
+    ).rejects.toThrow('already supplied by the server environment');
+    expect(app.options.mixin.api_key).toBe(before);
+    await expect(config.getConfig()).resolves.toMatchObject({ api_key_configured: true });
+
+    if (originalMixin === undefined) {
+      delete process.env.MIXIN;
+    } else {
+      process.env.MIXIN = originalMixin;
+    }
+  });
+
+  test('deposit address balances stay in the wallet and a repeated deposit is counted once', async () => {
+    const app = {
+      options: { mixin: {} },
+      storage: { saveOptions: jest.fn() }
+    };
+    const mixin = new Mixin(app);
+    mixin.app = app;
+    mixin.publicKey = 'server-key';
+    mixin.crypto_mods = [{ ticker: 'ETH', asset_id: 'eth-asset' }];
+    mixin.database = {
+      listAddresses: async () => [
+        {
+          address: '0xabc',
+          asset_id: 'eth-asset',
+          mixin_user_id: 'user-1',
+          publickey: 'server-key'
+        }
+      ],
+      listReservedInboundAddresses: async () => ['0xabc']
+    };
+    mixin.accounts = new Accounts(app, mixin);
+
+    mixin.rememberDepositAddress({
+      address: '0xdef',
+      assetId: 'eth-asset',
+      ticker: 'ETH',
+      mixinUserId: 'user-2'
+    });
+    mixin.creditDepositAddress('0xdef', '1.5', 'hash-1');
+    mixin.creditDepositAddress('0xdef', '9', 'hash-1');
+    mixin.creditDepositAddress('0xdef', '0.25', 'hash-2');
+
+    const cached = app.options.mixin.deposit_addresses.find((item) => item.address === '0xdef');
+    expect(cached.balance).toBe('1.75');
+    expect(cached.credited).toEqual(['hash-1', 'hash-2']);
+
+    const report = await mixin.depositAddressReport();
+    expect(report).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          address: '0xabc',
+          ticker: 'ETH',
+          balance: '0',
+          reservable: false
+        }),
+        expect.objectContaining({
+          address: '0xdef',
+          ticker: 'ETH',
+          balance: '1.75',
+          reservable: true
+        })
+      ])
+    );
+    expect(JSON.stringify(report)).not.toContain('hash-1');
+
+    mixin.accounts.saveCredentials({ user_id: 'user-9', session_id: 'session-9' });
+    expect(app.options.mixin.user_id).toBe('user-9');
+    expect(app.options.mixin.deposit_addresses.find((item) => item.address === '0xdef').balance).toBe(
+      '1.75'
+    );
   });
 });

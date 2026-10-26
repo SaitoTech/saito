@@ -55,6 +55,72 @@
   font-size: 12px;
 }
 
+.admin-payments-section h2 {
+  margin: 8px 0 12px;
+  font-size: 1.15rem;
+}
+
+.admin-payments-search {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.admin-payments-search .admin-input {
+  flex: 1 1 auto;
+  margin: 0;
+}
+
+.admin-payments-search .admin-button,
+.admin-payments-pagination .admin-button {
+  margin-top: 0;
+}
+
+.admin-payments-trash {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  padding: 4px 6px;
+  border: 0;
+  background: transparent;
+  color: #6b7280;
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.admin-payments-trash:hover {
+  color: #9b1c1c;
+}
+
+.admin-payments-trash:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.admin-payments-table-wrap {
+  overflow-x: auto;
+}
+
+.admin-payments-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.admin-payments-blocked {
+  color: #9b1c1c;
+}
+
+.admin-payments-pagination {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 16px;
+}
+
 .admin-payments-action {
   margin-top: 0;
   white-space: nowrap;
@@ -90,10 +156,4 @@
     flex-direction: column;
   }
 
-  .admin-payments-table th:nth-child(3),
-  .admin-payments-table td:nth-child(3),
-  .admin-payments-table th:nth-child(7),
-  .admin-payments-table td:nth-child(7) {
-    display: none;
-  }
 }

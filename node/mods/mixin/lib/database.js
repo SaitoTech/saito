@@ -42,6 +42,7 @@ const TRANSFER_FIELDS = [
   'outbound_block_hash',
   'outbound_confirmation_block_id',
   'last_error',
+  'excluded',
   'created_at',
   'updated_at'
 ];
@@ -133,6 +134,38 @@ class Database {
         $created_at: createdAt || Date.now()
       }
     );
+  }
+
+  async listAddresses(publicKey = '') {
+    const key = String(publicKey || '');
+    if (!key) {
+      return [];
+    }
+    return this.query(
+      `SELECT id, mixin_user_id, publickey, asset_id, address, created_at
+       FROM addresses
+       WHERE publickey = $publickey
+       ORDER BY created_at ASC, id ASC`,
+      { $publickey: key }
+    );
+  }
+
+  async listReservedInboundAddresses() {
+    const rows = await this.query(
+      `SELECT DISTINCT inbound_address
+       FROM transfers
+       WHERE excluded = 0
+         AND inbound_address <> ''
+         AND status IN (
+           'inbound_awaiting',
+           'inbound_broadcast',
+           'inbound_confirmed',
+           'outbound_awaiting',
+           'outbound_broadcast'
+         )`,
+      {}
+    );
+    return (rows || []).map((row) => row.inbound_address).filter(Boolean);
   }
 
   async findAddress({ assetId, mixinUserId, publicKey, address } = {}) {
@@ -319,7 +352,8 @@ class Database {
       ['outbound_tx_id', `TEXT NOT NULL DEFAULT ''`],
       ['inbound_confirmation_block_id', 'INTEGER'],
       ['outbound_confirmation_block_id', 'INTEGER'],
-      ['mode', `TEXT NOT NULL DEFAULT 'automatic' CHECK (mode IN ('automatic', 'manual'))`]
+      ['mode', `TEXT NOT NULL DEFAULT 'automatic' CHECK (mode IN ('automatic', 'manual'))`],
+      ['excluded', 'INTEGER NOT NULL DEFAULT 0']
     ];
     for (const [name, definition] of additions) {
       if (!present.has(name)) {
@@ -378,7 +412,8 @@ class Database {
       'inbound_address',
       'status',
       'purpose',
-      'mode'
+      'mode',
+      'excluded'
     ]) {
       if (criteria[field] !== undefined && criteria[field] !== null) {
         filters.push(`${field} = $${field}`);
@@ -398,6 +433,7 @@ class Database {
     return this.query(
       `SELECT * FROM transfers
        WHERE mode = 'automatic'
+         AND excluded = 0
          AND status = 'inbound_awaiting'
        ORDER BY id ASC`,
       {}
@@ -408,6 +444,7 @@ class Database {
     return this.query(
       `SELECT * FROM transfers
        WHERE mode = 'automatic'
+         AND excluded = 0
          AND status = 'inbound_broadcast'
          AND inbound_tx_hash <> ''
          AND inbound_confirmations >= inbound_confirmations_required
@@ -420,6 +457,7 @@ class Database {
     return this.query(
       `SELECT * FROM transfers
        WHERE mode = 'automatic'
+         AND excluded = 0
          AND status = 'inbound_confirmed'
          AND outbound_tx_sig = ''
          AND inbound_confirmation_block_id IS NOT NULL
@@ -427,6 +465,56 @@ class Database {
        ORDER BY id ASC`,
       { $current_block_id: currentBlockId }
     );
+  }
+
+  async listAdminTransfers({ search = '', page = 1 } = {}) {
+    const pageSize = 20;
+    const term = String(search || '').trim();
+    const params = {};
+    let where = 'excluded = 0';
+    if (!term) {
+      where += ` AND status IN (
+        'inbound_awaiting',
+        'inbound_broadcast',
+        'inbound_confirmed',
+        'outbound_awaiting',
+        'outbound_broadcast'
+      )`;
+    } else {
+      params.$q = term;
+      const clauses = [
+        'requester_publickey = $q',
+        'recipient_publickey = $q',
+        'publickey = $q',
+        'inbound_address = $q',
+        'inbound_sender = $q',
+        'outbound_address = $q',
+        'outbound_sender = $q'
+      ];
+      if (/^0x[a-fA-F0-9]{40}$/i.test(term)) {
+        params.$ql = term.toLowerCase();
+        clauses.push(
+          'lower(inbound_address) = $ql',
+          'lower(inbound_sender) = $ql',
+          'lower(outbound_address) = $ql',
+          'lower(outbound_sender) = $ql'
+        );
+      }
+      where += ` AND (${clauses.join(' OR ')})`;
+    }
+    const counted = await this.query(`SELECT COUNT(*) AS total FROM transfers WHERE ${where}`, params);
+    const total = Number(counted?.[0]?.total || 0);
+    const pageCount = Math.max(1, Math.ceil(total / pageSize));
+    const requested = Number(page);
+    const current = Number.isInteger(requested) && requested > 0 ? Math.min(requested, pageCount) : 1;
+    const rows = await this.query(
+      `SELECT * FROM transfers
+       WHERE ${where}
+       ORDER BY created_at DESC, id DESC
+       LIMIT $limit OFFSET $offset`,
+      { ...params, $limit: pageSize, $offset: (current - 1) * pageSize }
+    );
+    return { rows: rows || [], total, page: current, page_size: pageSize };
   }
 
   async getTransfersPendingOutboundBroadcast() {

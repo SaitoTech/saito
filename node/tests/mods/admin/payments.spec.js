@@ -87,13 +87,16 @@ describe('Admin payments tab', () => {
       account: { user_id: 'server-user', backup: '{}' }
     });
 
+    expect(html.indexOf('Account Information')).toBeLessThan(html.indexOf('Pending Transfers'));
     expect(html).toContain('data-payment-action="approve-migration"');
     expect(html).toContain('Issue SAITO');
     expect(html).toContain('erc-hash');
-    expect(html).toContain('0xabc');
+    expect(html).toContain('title="0xabc"');
     expect(html).toContain('data-payment-action="verify-migration"');
     expect(html).toContain('data-migration-amount="4"');
+    expect(html).toContain('data-payment-action="exclude-transfer"');
     expect(html).not.toContain('data-payment-action="detect-inbound"');
+    expect(html).not.toContain('Requester');
   });
 
   test('the table offers the legal next action and escapes transfer fields', () => {
@@ -101,6 +104,7 @@ describe('Admin payments tab', () => {
       transfers: [
         {
           id: 7,
+          purpose: 'buysaito',
           requester_publickey: '<buyer>',
           recipient_publickey: 'recipient',
           inbound_amount: '0.5',
@@ -113,6 +117,7 @@ describe('Admin payments tab', () => {
         },
         {
           id: 8,
+          purpose: 'migration',
           requester_publickey: 'buyer',
           recipient_publickey: 'recipient',
           inbound_amount: '1',
@@ -122,21 +127,67 @@ describe('Admin payments tab', () => {
           status: 'inbound_confirmed',
           last_error: 'insufficient_funds',
           action: null
+        },
+        {
+          id: 9,
+          requester_publickey: 'buyer',
+          recipient_publickey: 'recipient',
+          inbound_amount: '1',
+          inbound_ticker: 'ETH',
+          outbound_amount: '20',
+          outbound_ticker: 'SAITO',
+          status: 'outbound_broadcast',
+          last_error: '',
+          action: null
         }
       ]
     });
 
+    expect(html).toContain('>ID<');
+    expect(html).toContain('>Purpose<');
+    expect(html).toContain('>buysaito<');
+    expect(html).toContain('>migration<');
+    expect(html).toContain('>Owner<');
+    expect(html).toContain('>IN<');
+    expect(html).toContain('>OUT<');
+    expect(html).toContain('placeholder="search for transfers..."');
+    expect(html).toContain('fa-solid fa-trash');
+    expect(html).toContain('aria-label="Trash"');
+    expect(html).not.toContain('>Trash<');
     expect(html).toContain('Mark inbound payment detected');
     expect(html).toContain('data-payment-action="detect-inbound"');
-    expect(html).toContain('&lt;buyer&gt;');
-    expect(html).toContain('Waiting for SAITO issuance');
-    expect(html).toContain('insufficient_funds');
+    expect(html).toContain('title="&lt;buyer&gt;"');
+    expect(html).toContain('Waiting for chain inclusion');
+    expect(html).toContain('Blocked: not enough SAITO is available to issue this transfer.');
+    expect(html).not.toContain('Waiting for SAITO issuance');
     expect(html).not.toContain('<buyer>');
     expect(html).not.toContain('create account');
   });
 
-  test('a missing mixin account is the first payments view', () => {
-    const html = PaymentsTemplate({ account: null, transfers: [{ id: 1 }] });
+  test('a missing mixin api key is the first payments view', () => {
+    const html = PaymentsTemplate({
+      apiKeyConfigured: false,
+      account: { user_id: 'user-9', backup: '{"session_private_key":"secret"}' },
+      transfers: [{ id: 1, inbound_tx_hash: 'erc-hash' }],
+      error: 'Mixin API key is not valid JSON',
+      apiKeyText: '{"app_id":"kept"}'
+    });
+    expect(html).toContain('In order to enable web3 payments, please provide a Mixin Access Key:');
+    expect(html).toContain('id="admin-payments-api-key"');
+    expect(html).toContain('id="admin-payments-api-key-submit"');
+    expect(html).toContain('>Submit<');
+    expect(html).toContain('{&quot;app_id&quot;:&quot;kept&quot;}');
+    expect(html).toContain('Mixin API key is not valid JSON');
+    expect(html).not.toContain('admin-payments-table');
+    expect(html).not.toContain('id="admin-payments-create-account"');
+    expect(html).not.toContain('id="admin-payments-account-backup"');
+    expect(html).not.toContain('erc-hash');
+    expect(html).not.toContain('Pending Transfers');
+    expect(html).not.toContain('Deposit Addresses');
+  });
+
+  test('a missing mixin account is the payments view once an api key exists', () => {
+    const html = PaymentsTemplate({ apiKeyConfigured: true, account: null, transfers: [{ id: 1 }] });
     expect(html).toContain(
       'In order to setup web3 payment processing with Saito, you must create a Mixin Account for your server.'
     );
@@ -146,6 +197,7 @@ describe('Admin payments tab', () => {
     expect(html).toContain('restore account');
     expect(html).not.toContain('admin-payments-table');
     expect(html).not.toContain('Outstanding BuySaito transfers');
+    expect(html).not.toContain('Deposit Addresses');
   });
 
   test('a configured mixin account is noted by its id', () => {
@@ -157,11 +209,34 @@ describe('Admin payments tab', () => {
       },
       transfers: []
     });
-    expect(html).toContain('Mixin account user-9 (Saito User &lt;server&gt;) is configured on this server.');
+    expect(html).toContain('Account Information');
+    expect(html.indexOf('Account Information')).toBeLessThan(html.indexOf('Pending Transfers'));
     expect(html).toContain('id="admin-payments-account-backup"');
     expect(html).toContain('{&quot;user_id&quot;:&quot;user-9&quot;,&quot;spend_private_key&quot;:&quot;secret&quot;}');
-    expect(html).toContain('No outstanding BuySaito transfers.');
+    expect(html).toContain('No pending transfers.');
+    expect(html).not.toContain('Mixin account user-9');
+    expect(html).not.toContain('Outstanding BuySaito transfers');
     expect(html).not.toContain('id="admin-payments-create-account"');
+  });
+
+  test('deposit addresses show balance and whether they can be reserved', () => {
+    const html = PaymentsTemplate({
+      account: { user_id: 'user-9', backup: '{}' },
+      transfers: [],
+      depositAddresses: [
+        { address: '0xabc', ticker: 'ETH', balance: '1.5', reservable: true },
+        { address: '0xdef', ticker: 'BNB', asset_id: 'bnb-asset', balance: '0', reservable: false }
+      ]
+    });
+
+    expect(html).toContain('Deposit Addresses');
+    expect(html.indexOf('Deposit Addresses')).toBeLessThan(html.indexOf('Pending Transfers'));
+    expect(html).toContain('0xabc');
+    expect(html).toContain('>ETH<');
+    expect(html).toContain('>1.5<');
+    expect(html).toContain('>Available<');
+    expect(html).toContain('>BNB<');
+    expect(html).toContain('>Reserved<');
   });
 
   test('the page loads and advances through the admin-config requests', async () => {
@@ -209,7 +284,9 @@ describe('Admin payments tab', () => {
     expect(messages[0]).toEqual({
       module: 'Admin',
       request: 'get-admin-config',
-      module_id: 'mixin'
+      module_id: 'mixin',
+      search: '',
+      page: 1
     });
 
     await page.advance(7, 'confirm-inbound');
@@ -217,7 +294,7 @@ describe('Admin payments tab', () => {
       module: 'Admin',
       request: 'update-admin-config',
       module_id: 'mixin',
-      data: { id: 7, action: 'confirm-inbound' }
+      data: { id: 7, action: 'confirm-inbound', search: '', page: 1 }
     });
     expect(page.transfers[0].status).toBe('inbound_broadcast');
     expect(page.account).toEqual({ user_id: 'user-9', full_name: 'Saito User' });
@@ -228,7 +305,7 @@ describe('Admin payments tab', () => {
       module: 'Admin',
       request: 'update-admin-config',
       module_id: 'mixin',
-      data: { action: 'create-account' }
+      data: { action: 'create-account', search: '', page: 1 }
     });
     expect(page.account.user_id).toBe('user-9');
 
@@ -240,9 +317,130 @@ describe('Admin payments tab', () => {
       module: 'Admin',
       request: 'update-admin-config',
       module_id: 'mixin',
-      data: { action: 'restore-account', account: '{"user_id":"user-9"}' }
+      data: { action: 'restore-account', account: '{"user_id":"user-9"}', search: '', page: 1 }
     });
     expect(page.account.user_id).toBe('user-9');
+    delete global.document;
+  });
+
+  test('search resets to the first page and trashing asks before it updates the list', async () => {
+    const messages = [];
+    const app = {
+      browser: { replaceElementContentBySelector() {} },
+      wallet: {
+        createUnsignedTransactionWithDefaultFee: async () => ({
+          msg: null,
+          sign: async function sign() {}
+        })
+      },
+      network: {
+        sendTransactionWithCallback(tx, callback) {
+          messages.push(tx.msg);
+          callback({
+            returnMessage: () => ({
+              result: { account: { user_id: 'user-9' }, transfers: [], total: 0, page: tx.msg.page }
+            })
+          });
+        }
+      }
+    };
+    const page = new AdminPaymentsUI(app, { server_publickey: 'server', server_info: {} });
+    page.search = 'old';
+    page.page = 3;
+    const form = {};
+    const button = {
+      getAttribute(name) {
+        return name === 'data-payment-action' ? 'exclude-transfer' : '4';
+      }
+    };
+    global.document = {
+      getElementById(id) {
+        if (id === 'admin-payments-search-form') {
+          return form;
+        }
+        if (id === 'admin-payments-search') {
+          return { value: 'new-key' };
+        }
+        return null;
+      },
+      querySelectorAll(selector) {
+        return selector === '[data-payment-action]' ? [button] : [];
+      }
+    };
+    global.confirm = jest.fn(() => false);
+    page.attachEvents();
+    await form.onsubmit({ preventDefault() {} });
+    expect(page.page).toBe(1);
+    expect(messages.at(-1)).toEqual(
+      expect.objectContaining({ request: 'get-admin-config', search: 'new-key', page: 1 })
+    );
+
+    page.advance = jest.fn();
+    button.onclick({ preventDefault() {} });
+    expect(global.confirm).toHaveBeenCalled();
+    expect(page.advance).not.toHaveBeenCalled();
+    global.confirm.mockReturnValue(true);
+    button.onclick({ preventDefault() {} });
+    expect(page.advance).toHaveBeenCalledWith('4', 'exclude-transfer');
+    delete global.document;
+    delete global.confirm;
+  });
+
+  test('submitting an api key asks the server to save it and then shows the next stage', async () => {
+    const messages = [];
+    const responses = [
+      { err: 'Mixin API key is not valid JSON' },
+      {
+        result: {
+          api_key_configured: true,
+          account: null,
+          transfers: [],
+          total: 0,
+          page: 1
+        }
+      }
+    ];
+    const app = {
+      browser: { replaceElementContentBySelector() {} },
+      wallet: {
+        createUnsignedTransactionWithDefaultFee: async () => ({
+          msg: null,
+          sign: async function sign() {}
+        })
+      },
+      network: {
+        sendTransactionWithCallback(tx, callback) {
+          messages.push(tx.msg);
+          callback({ returnMessage: () => responses.shift() });
+        }
+      }
+    };
+    const page = new AdminPaymentsUI(app, { server_publickey: 'server', server_info: {} });
+    page.apiKeyConfigured = false;
+    global.document = {
+      getElementById(id) {
+        if (id === 'admin-payments-api-key') {
+          return { value: '{"app_id":"app-1"}' };
+        }
+        return null;
+      },
+      querySelectorAll() {
+        return [];
+      }
+    };
+
+    await page.saveApiKey();
+    expect(messages[0].data.action).toBe('save-api-key');
+    expect(messages[0].data.api_key).toBe('{"app_id":"app-1"}');
+    expect(page.apiKeyConfigured).toBe(false);
+    expect(page.error).toBe('Mixin API key is not valid JSON');
+    expect(page.apiKeyText).toBe('{"app_id":"app-1"}');
+
+    await page.saveApiKey();
+    expect(page.apiKeyConfigured).toBe(true);
+    expect(page.account).toBeNull();
+    expect(page.apiKeyText).toBe('');
+    expect(page.error).toBe('');
     delete global.document;
   });
 

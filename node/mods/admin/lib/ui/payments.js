@@ -13,6 +13,13 @@ class AdminPaymentsUI {
     this.creating = false;
     this.restoring = false;
     this.restoreText = '';
+    this.search = '';
+    this.page = 1;
+    this.total = 0;
+    this.apiKeyConfigured = undefined;
+    this.apiKeyText = '';
+    this.savingApiKey = false;
+    this.depositAddresses = [];
   }
 
   render() {
@@ -24,6 +31,13 @@ class AdminPaymentsUI {
     this.creating = false;
     this.restoring = false;
     this.restoreText = '';
+    this.search = '';
+    this.page = 1;
+    this.total = 0;
+    this.apiKeyConfigured = undefined;
+    this.apiKeyText = '';
+    this.savingApiKey = false;
+    this.depositAddresses = [];
 
     if (!this.mod.server_info) {
       this.app.browser.replaceElementContentBySelector(
@@ -47,7 +61,14 @@ class AdminPaymentsUI {
         advancing: this.advancing,
         creating: this.creating,
         restoring: this.restoring,
-        restoreText: this.restoreText
+        restoreText: this.restoreText,
+        search: this.search,
+        page: this.page,
+        total: this.total,
+        apiKeyConfigured: this.apiKeyConfigured,
+        apiKeyText: this.apiKeyText,
+        savingApiKey: this.savingApiKey,
+        depositAddresses: this.depositAddresses
       }),
       this.container
     );
@@ -60,6 +81,14 @@ class AdminPaymentsUI {
       refresh.onclick = (e) => {
         e.preventDefault();
         this.load();
+      };
+    }
+
+    const apiKey = document.getElementById('admin-payments-api-key-submit');
+    if (apiKey) {
+      apiKey.onclick = (e) => {
+        e.preventDefault();
+        this.saveApiKey();
       };
     }
 
@@ -79,10 +108,42 @@ class AdminPaymentsUI {
       };
     }
 
+    const search = document.getElementById('admin-payments-search-form');
+    if (search) {
+      search.onsubmit = (e) => {
+        e.preventDefault();
+        const next = document.getElementById('admin-payments-search')?.value?.trim() || '';
+        this.search = next;
+        this.page = 1;
+        return this.load();
+      };
+    }
+
+    document.querySelectorAll('[data-payments-page]').forEach((button) => {
+      button.onclick = (e) => {
+        e.preventDefault();
+        if (button.disabled) {
+          return;
+        }
+        this.page = Number(button.getAttribute('data-payments-page'));
+        this.load();
+      };
+    });
+
     document.querySelectorAll('[data-payment-action]').forEach((button) => {
       button.onclick = (e) => {
         e.preventDefault();
-        this.advance(button.getAttribute('data-payment-id'), button.getAttribute('data-payment-action'));
+        const action = button.getAttribute('data-payment-action');
+        const id = button.getAttribute('data-payment-id');
+        if (action === 'exclude-transfer') {
+          const confirmed = confirm(
+            `Hide transfer ${id} from Pending Transfers? It will be left out of new automatic processing. A signed transaction that was already broadcast will still be reconciled.`
+          );
+          if (!confirmed) {
+            return;
+          }
+        }
+        this.advance(id, action);
       };
     });
   }
@@ -108,17 +169,67 @@ class AdminPaymentsUI {
     this.error = '';
     this.refresh();
 
-    await this.sendAdminRequest('get-admin-config', { module_id: 'mixin' }, (res) => {
-      this.loading = false;
-      if (res?.err) {
-        this.error = res.err;
-        this.transfers = [];
-      } else {
-        this.transfers = res.result?.transfers || [];
-        this.account = res.result?.account || null;
+    await this.sendAdminRequest(
+      'get-admin-config',
+      { module_id: 'mixin', search: this.search, page: this.page },
+      (res) => {
+        this.loading = false;
+        if (res?.err) {
+          this.error = res.err;
+          this.transfers = [];
+        } else {
+          this.applyResult(res.result);
+        }
+        this.refresh();
       }
+    );
+  }
+
+  applyResult(result) {
+    this.transfers = result?.transfers || [];
+    this.total = Number(result?.total || 0);
+    this.page = Number(result?.page || this.page || 1);
+    if (result?.account !== undefined) {
+      this.account = result.account;
+    }
+    if (typeof result?.api_key_configured === 'boolean') {
+      this.apiKeyConfigured = result.api_key_configured;
+    }
+    if (Array.isArray(result?.deposit_addresses)) {
+      this.depositAddresses = result.deposit_addresses;
+    }
+  }
+
+  async saveApiKey() {
+    const field = document.getElementById('admin-payments-api-key');
+    this.apiKeyText = field?.value || '';
+    if (!this.apiKeyText.trim()) {
+      this.error = 'Enter the Mixin API key JSON.';
       this.refresh();
-    });
+      return;
+    }
+
+    this.savingApiKey = true;
+    this.error = '';
+    this.refresh();
+
+    await this.sendAdminRequest(
+      'update-admin-config',
+      {
+        module_id: 'mixin',
+        data: { action: 'save-api-key', api_key: this.apiKeyText, search: this.search, page: this.page }
+      },
+      (res) => {
+        this.savingApiKey = false;
+        if (res?.err) {
+          this.error = res.err;
+        } else {
+          this.apiKeyText = '';
+          this.applyResult(res.result);
+        }
+        this.refresh();
+      }
+    );
   }
 
   async restoreAccount() {
@@ -136,15 +247,17 @@ class AdminPaymentsUI {
 
     await this.sendAdminRequest(
       'update-admin-config',
-      { module_id: 'mixin', data: { action: 'restore-account', account: this.restoreText } },
+      {
+        module_id: 'mixin',
+        data: { action: 'restore-account', account: this.restoreText, search: this.search, page: this.page }
+      },
       (res) => {
         this.restoring = false;
         if (res?.err) {
           this.error = res.err;
         } else {
           this.restoreText = '';
-          this.transfers = res.result?.transfers || [];
-          this.account = res.result?.account || null;
+          this.applyResult(res.result);
         }
         this.refresh();
       }
@@ -158,14 +271,13 @@ class AdminPaymentsUI {
 
     await this.sendAdminRequest(
       'update-admin-config',
-      { module_id: 'mixin', data: { action: 'create-account' } },
+      { module_id: 'mixin', data: { action: 'create-account', search: this.search, page: this.page } },
       (res) => {
         this.creating = false;
         if (res?.err) {
           this.error = res.err;
         } else {
-          this.transfers = res.result?.transfers || [];
-          this.account = res.result?.account || null;
+          this.applyResult(res.result);
         }
         this.refresh();
       }
@@ -175,16 +287,13 @@ class AdminPaymentsUI {
   async approveMigration(id) {
     return this.sendAdminRequest(
       'update-admin-config',
-      { module_id: 'mixin', data: { id, action: 'approve-migration' } },
+      { module_id: 'mixin', data: { id, action: 'approve-migration', search: this.search, page: this.page } },
       (res) => {
         this.advancing = false;
         if (res?.err) {
           this.error = res.err;
         } else {
-          this.transfers = res.result?.transfers || [];
-          if (res.result?.account !== undefined) {
-            this.account = res.result.account;
-          }
+          this.applyResult(res.result);
         }
         this.refresh();
       }
@@ -196,17 +305,21 @@ class AdminPaymentsUI {
       'update-admin-config',
       {
         module_id: 'mixin',
-        data: { id, action: 'verify-migration', amount, tx_hash: txHash }
+        data: {
+          id,
+          action: 'verify-migration',
+          amount,
+          tx_hash: txHash,
+          search: this.search,
+          page: this.page
+        }
       },
       (res) => {
         this.advancing = false;
         if (res?.err) {
           this.error = res.err;
         } else {
-          this.transfers = res.result?.transfers || [];
-          if (res.result?.account !== undefined) {
-            this.account = res.result.account;
-          }
+          this.applyResult(res.result);
         }
         this.refresh();
       }
@@ -234,16 +347,13 @@ class AdminPaymentsUI {
 
     await this.sendAdminRequest(
       'update-admin-config',
-      { module_id: 'mixin', data: { id, action } },
+      { module_id: 'mixin', data: { id, action, search: this.search, page: this.page } },
       (res) => {
         this.advancing = false;
         if (res?.err) {
           this.error = res.err;
         } else {
-          this.transfers = res.result?.transfers || [];
-          if (res.result?.account !== undefined) {
-            this.account = res.result.account;
-          }
+          this.applyResult(res.result);
         }
         this.refresh();
       }

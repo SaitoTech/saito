@@ -23,11 +23,15 @@ class SettingsOverlay {
 
     let movement = root.querySelector('[data-setting="mouseover_for_movement"]');
     let combat = root.querySelector('[data-setting="show_combat_overlays"]');
+    let popups = root.querySelector('[data-setting="remove_card_popups"]');
     if (movement) {
       movement.checked = this.mod.movementMouseoverEnabled();
     }
     if (combat) {
       combat.checked = this.show_combat_overlays;
+    }
+    if (popups) {
+      popups.checked = this.mod.cardPopupsRemoved();
     }
 
     root.querySelectorAll('input[data-setting]').forEach((input) => {
@@ -41,6 +45,10 @@ class SettingsOverlay {
         }
         if (setting === 'show_combat_overlays') {
           this.show_combat_overlays = e.currentTarget.checked;
+        }
+        if (setting === 'remove_card_popups') {
+          this.mod.saveGamePreference('pathsofglory_remove_card_popups', e.currentTarget.checked ? 1 : 0);
+          this.mod.applyCardPopupPreference();
         }
       };
     });

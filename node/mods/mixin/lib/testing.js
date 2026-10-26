@@ -1,11 +1,3 @@
-const OPEN_STATUSES = [
-  'inbound_awaiting',
-  'inbound_broadcast',
-  'inbound_confirmed',
-  'outbound_awaiting',
-  'outbound_broadcast'
-];
-
 const TEST_SENDER = 'admin-test';
 const TEST_HASH = 'admin-test';
 
@@ -27,28 +19,32 @@ class TransferTesting {
     this.mod = mod;
   }
 
-  async listOutstandingTransfers() {
-    const rows = [];
-    for (const status of OPEN_STATUSES) {
-      const found = await this.mod.database.getTransfers({ status, purpose: 'buysaito' });
-      rows.push(...(found || []));
+  async listOutstandingTransfers({ search = '', page = 1 } = {}) {
+    const listed = await this.mod.database.listAdminTransfers({ search, page });
+    return {
+      transfers: (listed.rows || []).map((row) => this.snapshot(row)),
+      total: listed.total,
+      page: listed.page,
+      page_size: listed.page_size
+    };
+  }
+
+  async excludeTransfer(id) {
+    const transferIdValue = transferId(id);
+    const rows = transferIdValue ? await this.mod.database.getTransfers({ id: transferIdValue }) : [];
+    const transfer = rows?.[0];
+    if (!transfer) {
+      throw new Error('No transfer matches that id.');
     }
-    const manual = await this.mod.database.getTransfers({
-      purpose: 'migration',
-      mode: 'manual'
-    });
-    for (const row of manual || []) {
-      if (['failed', 'cancelled', 'outbound_confirmed', 'succeeded'].includes(row.status)) {
-        continue;
-      }
-      rows.push(row);
-    }
-    rows.sort((left, right) => Number(left.id) - Number(right.id));
-    return { transfers: rows.map((row) => this.snapshot(row)) };
+    await this.mod.database.updateTransfer(transfer.id, { excluded: 1 });
+    return this.listOutstandingTransfers();
   }
 
   async advanceTransfer(id, action) {
     const transfer = await this.returnBuySaitoTransfer(id);
+    if (Number(transfer.excluded) === 1) {
+      throw new Error('That transfer is excluded from processing.');
+    }
     if (action === 'detect-inbound') {
       await this.detectInbound(transfer);
     } else if (action === 'confirm-inbound') {
@@ -142,9 +138,13 @@ class TransferTesting {
       last_error: transfer.last_error || '',
       purpose: transfer.purpose || '',
       mode: transfer.mode || '',
+      inbound_address: transfer.inbound_address || '',
       inbound_tx_hash: transfer.inbound_tx_hash || '',
       inbound_sender: transfer.inbound_sender || '',
+      outbound_address: transfer.outbound_address || '',
+      outbound_sender: transfer.outbound_sender || '',
       outbound_tx_sig: transfer.outbound_tx_sig || '',
+      publickey: transfer.publickey || '',
       action: this.nextAction(transfer)
     };
   }

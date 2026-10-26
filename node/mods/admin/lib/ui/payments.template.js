@@ -25,10 +25,24 @@ function waitingLabel(transfer) {
     }
     return 'Waiting for deposit verification';
   }
-  return 'No test action';
+  return 'No administrative action for this status';
 }
 
-function actionCell(transfer, advancing) {
+function blockingExplanation(transfer) {
+  if (transfer.last_error === 'insufficient_funds') {
+    return 'Blocked: not enough SAITO is available to issue this transfer.';
+  }
+  if (transfer.last_error) {
+    return transfer.last_error;
+  }
+  return '';
+}
+
+function actionControl(transfer, advancing) {
+  const blocked = blockingExplanation(transfer);
+  if (blocked) {
+    return `<span class="admin-payments-blocked">${escapeHtml(blocked)}</span>`;
+  }
   const disabled = advancing ? 'disabled' : '';
   if (
     transfer.purpose === 'migration' &&
@@ -55,7 +69,6 @@ function actionCell(transfer, advancing) {
     )}" data-payment-action="verify-migration" ${disabled}>Verify deposit</button>`;
   }
   if (transfer.action?.action && transfer.action?.label) {
-    const disabled = advancing ? 'disabled' : '';
     return `<button type="button" class="admin-button admin-payments-action" data-payment-id="${escapeHtml(
       transfer.id
     )}" data-payment-action="${escapeHtml(transfer.action.action)}" ${disabled}>${escapeHtml(
@@ -65,16 +78,35 @@ function actionCell(transfer, advancing) {
   return `<span class="admin-payments-waiting">${escapeHtml(waitingLabel(transfer))}</span>`;
 }
 
-function accountNote(account) {
-  const name = account.full_name ? ` (${account.full_name})` : '';
+function identifierCell(value) {
+  const text = String(value || '');
+  if (!text) {
+    return '';
+  }
+  return `<div class="admin-payments-key" title="${escapeHtml(text)}">${escapeHtml(text)}</div>`;
+}
+
+function accountPanel(account) {
   return `
-    <p class="admin-payments-note">Mixin account ${escapeHtml(account.user_id)}${escapeHtml(
-      name
-    )} is configured on this server.</p>
-    <label class="admin-payments-label" for="admin-payments-account-backup">Account backup</label>
-    <textarea class="admin-input admin-payments-backup" id="admin-payments-account-backup" readonly rows="8">${escapeHtml(
-      account.backup || ''
-    )}</textarea>
+    <section class="admin-payments-section">
+      <h2>Account Information</h2>
+      <textarea class="admin-input admin-payments-backup" id="admin-payments-account-backup" readonly rows="8" aria-label="Account Information">${escapeHtml(
+        account.backup || ''
+      )}</textarea>
+    </section>
+  `;
+}
+
+function apiKeyPanel(apiKeyText, savingApiKey) {
+  const disabled = savingApiKey ? 'disabled' : '';
+  return `
+    <div class="admin-payments-setup">
+      <p class="admin-payments-note">In order to enable web3 payments, please provide a Mixin Access Key:</p>
+      <textarea class="admin-input admin-payments-backup" id="admin-payments-api-key" rows="8" ${disabled}>${escapeHtml(
+        apiKeyText || ''
+      )}</textarea>
+      <button type="button" class="admin-button" id="admin-payments-api-key-submit" ${disabled}>Submit</button>
+    </div>
   `;
 }
 
@@ -93,6 +125,99 @@ function setupPanel(creating, restoring, restoreText) {
   `;
 }
 
+function depositSection(addresses) {
+  const rows = Array.isArray(addresses) ? addresses : [];
+  const body = rows.length
+    ? `<div class="admin-payments-table-wrap"><table class="admin-payments-table">
+          <thead>
+            <tr>
+              <th>Address</th>
+              <th>Asset</th>
+              <th>Balance</th>
+              <th>Reservation</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${rows
+              .map((entry) => {
+                const asset = entry.ticker || entry.asset_id || '';
+                return `<tr>
+              <td>${identifierCell(entry.address)}</td>
+              <td>${escapeHtml(asset)}</td>
+              <td>${escapeHtml(entry.balance || '0')}</td>
+              <td>${entry.reservable ? 'Available' : 'Reserved'}</td>
+            </tr>`;
+              })
+              .join('')}
+          </tbody>
+        </table></div>`
+    : `<p class="admin-payments-empty">No deposit addresses.</p>`;
+  return `<section class="admin-payments-section">
+      <h2>Deposit Addresses</h2>
+      ${body}
+    </section>`;
+}
+
+function transferTable(rows, advancing) {
+  return `<div class="admin-payments-table-wrap"><table class="admin-payments-table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Purpose</th>
+              <th>Owner</th>
+              <th>IN</th>
+              <th>OUT</th>
+              <th>Status</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${rows
+              .map((transfer) => {
+                const owner =
+                  transfer.requester_publickey || transfer.recipient_publickey || transfer.publickey || '';
+                const remote = transfer.inbound_sender || transfer.inbound_address || '';
+                const inbound = `${transfer.inbound_amount || ''} ${transfer.inbound_ticker || ''}`.trim();
+                const outbound = `${transfer.outbound_amount || ''} ${transfer.outbound_ticker || ''}`.trim();
+                return `<tr>
+              <td>${escapeHtml(transfer.id)}</td>
+              <td>${escapeHtml(transfer.purpose || '')}</td>
+              <td>${identifierCell(owner)}</td>
+              <td>${escapeHtml(inbound)}${identifierCell(remote)}${identifierCell(transfer.inbound_tx_hash)}</td>
+              <td>${escapeHtml(outbound)}</td>
+              <td>${escapeHtml(transfer.status)}</td>
+              <td>
+                <div class="admin-payments-actions">
+                  ${actionControl(transfer, advancing)}
+                  <button type="button" class="admin-payments-trash" data-payment-id="${escapeHtml(
+                    transfer.id
+                  )}" data-payment-action="exclude-transfer" aria-label="Trash" title="Trash" ${
+                    advancing ? 'disabled' : ''
+                  }><i class="fa-solid fa-trash" aria-hidden="true"></i></button>
+                </div>
+              </td>
+            </tr>`;
+              })
+              .join('')}
+          </tbody>
+        </table></div>`;
+}
+
+function pagination(page, total) {
+  const pageSize = 20;
+  const pages = Math.max(1, Math.ceil(Number(total || 0) / pageSize));
+  const current = Number(page) || 1;
+  return `<div class="admin-payments-pagination">
+      <button type="button" class="admin-button" data-payments-page="${current - 1}" ${
+        current <= 1 ? 'disabled' : ''
+      }>Previous</button>
+      <span>Page ${current} of ${pages} (${Number(total || 0)} transfers)</span>
+      <button type="button" class="admin-button" data-payments-page="${current + 1}" ${
+        current >= pages ? 'disabled' : ''
+      }>Next</button>
+    </div>`;
+}
+
 module.exports = ({
   transfers = [],
   account = undefined,
@@ -101,76 +226,53 @@ module.exports = ({
   advancing = false,
   creating = false,
   restoring = false,
-  restoreText = ''
+  restoreText = '',
+  search = '',
+  page = 1,
+  total = 0,
+  apiKeyConfigured = undefined,
+  apiKeyText = '',
+  savingApiKey = false,
+  depositAddresses = []
 } = {}) => {
   const rows = Array.isArray(transfers) ? transfers : [];
-  const needsAccount = !loading && account === null;
+  const needsApiKey = !loading && apiKeyConfigured === false;
+  const needsAccount = !loading && !needsApiKey && account === null;
   const body = loading
-    ? `<p class="admin-payments-empty">Loading outstanding transfers…</p>`
-    : needsAccount
+    ? `<p class="admin-payments-empty">Loading pending transfers…</p>`
+    : needsApiKey
+      ? apiKeyPanel(apiKeyText, savingApiKey)
+      : needsAccount
       ? setupPanel(creating, restoring, restoreText)
-      : rows.length
-      ? `<table class="admin-payments-table">
-          <thead>
-            <tr>
-              <th>Transfer</th>
-              <th>Requester</th>
-              <th>Recipient</th>
-              <th>Sending</th>
-              <th>Expected SAITO</th>
-              <th>Status</th>
-              <th>Error</th>
-              <th>Action</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${rows
-              .map(
-                (transfer) => `<tr>
-              <td>${escapeHtml(transfer.id)}</td>
-              <td class="admin-payments-key" title="${escapeHtml(transfer.requester_publickey)}">${escapeHtml(
-                transfer.requester_publickey
-              )}</td>
-              <td class="admin-payments-key" title="${escapeHtml(transfer.recipient_publickey)}">${escapeHtml(
-                transfer.recipient_publickey
-              )}</td>
-              <td>${escapeHtml(transfer.inbound_amount)} ${escapeHtml(transfer.inbound_ticker)}${
-                transfer.inbound_tx_hash
-                  ? `<div class="admin-payments-key">${escapeHtml(transfer.inbound_tx_hash)}</div>`
-                  : ''
-              }${
-                transfer.inbound_sender
-                  ? `<div class="admin-payments-key">${escapeHtml(transfer.inbound_sender)}</div>`
-                  : ''
-              }</td>
-              <td>${escapeHtml(transfer.outbound_amount)} ${escapeHtml(transfer.outbound_ticker || 'SAITO')}</td>
-              <td>${escapeHtml(transfer.status)}</td>
-              <td>${escapeHtml(transfer.last_error || '')}</td>
-              <td>${actionCell(transfer, advancing)}</td>
-            </tr>`
-              )
-              .join('')}
-          </tbody>
-        </table>`
-      : `<p class="admin-payments-empty">No outstanding BuySaito transfers.</p>`;
+      : `${depositSection(depositAddresses)}
+        <section class="admin-payments-section">
+          <h2>Pending Transfers</h2>
+          <form id="admin-payments-search-form" class="admin-payments-search">
+            <input class="admin-input" id="admin-payments-search" type="search" value="${escapeHtml(
+              search
+            )}" placeholder="search for transfers..." />
+            <button type="submit" class="admin-button">Search</button>
+          </form>
+          ${
+            rows.length
+              ? transferTable(rows, advancing)
+              : `<p class="admin-payments-empty">No pending transfers.</p>`
+          }
+          ${pagination(page, total)}
+        </section>`;
 
-  const refreshDisabled = loading || advancing || creating || restoring ? 'disabled' : '';
+  const refreshDisabled = loading || advancing || creating || restoring || savingApiKey ? 'disabled' : '';
   return `
     <div class="admin-payments-page">
       <div class="admin-payments-header">
         <h1>Payments</h1>
         ${
-          needsAccount
+          needsAccount || needsApiKey
             ? ''
             : `<button type="button" class="admin-button" id="admin-payments-refresh" ${refreshDisabled}>Refresh</button>`
         }
       </div>
-      ${account?.user_id ? accountNote(account) : ''}
-      ${
-        needsAccount
-          ? ''
-          : `<p class="admin-payments-note">Outstanding BuySaito transfers. Detect and confirm an inbound payment here. SAITO issuance continues on the live transfer queue.</p>`
-      }
+      ${needsApiKey || !account?.user_id ? '' : accountPanel(account)}
       ${error ? `<div class="admin-payments-error">${escapeHtml(error)}</div>` : ''}
       ${body}
     </div>

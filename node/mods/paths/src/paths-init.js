@@ -239,6 +239,7 @@ class PathsOfGlory extends GameTemplate {
     this.menu.render();
     this.log.render();
     this.cardbox.render();
+    this.applyCardPopupPreference();
 
 
     //

@@ -454,6 +454,42 @@ console.log("err: " + err);
     return true;
   }
 
+  cardPopupsRemoved() {
+    let pref = this.loadGamePreference('pathsofglory_remove_card_popups');
+    return pref === 1 || pref === '1' || pref === true;
+  }
+
+  applyCardPopupPreference() {
+    let cardbox = this.cardbox;
+    if (!cardbox) { return; }
+
+    if (this.cardPopupsRemoved()) {
+      if (!cardbox.paths_render) {
+        cardbox.paths_render = cardbox.render.bind(cardbox);
+      }
+      cardbox.render = function() {};
+      if (!cardbox.paths_show) {
+        cardbox.paths_show = cardbox.show.bind(cardbox);
+      }
+      cardbox.show = async function(card, action = '', mycallback = null) {
+        if (mycallback != null) {
+          await mycallback(card);
+        }
+      };
+      cardbox.hide(1);
+      return;
+    }
+
+    if (cardbox.paths_render) {
+      cardbox.render = cardbox.paths_render;
+      cardbox.paths_render = null;
+    }
+    if (cardbox.paths_show) {
+      cardbox.show = cardbox.paths_show;
+      cardbox.paths_show = null;
+    }
+  }
+
   movementCuesSuspended() {
     if (!this.game || !this.game.player) { return false; }
     if (this.game.state && this.game.state.player_turn_card_select) { return false; }

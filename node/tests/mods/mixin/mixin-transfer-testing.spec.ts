@@ -66,12 +66,15 @@ function memoryDatabase(initial = []) {
       }
     },
     async getTransfersPendingInboundBroadcast() {
-      return select((row) => row.mode === 'automatic' && row.status === 'inbound_awaiting');
+      return select(
+        (row) => row.mode === 'automatic' && !Number(row.excluded) && row.status === 'inbound_awaiting'
+      );
     },
     async getTransfersPendingInboundConfirmed() {
       return select(
         (row) =>
           row.mode === 'automatic' &&
+          !Number(row.excluded) &&
           row.status === 'inbound_broadcast' &&
           row.inbound_tx_hash &&
           Number(row.inbound_confirmations) >= Number(row.inbound_confirmations_required)
@@ -81,11 +84,64 @@ function memoryDatabase(initial = []) {
       return select(
         (row) =>
           row.mode === 'automatic' &&
+          !Number(row.excluded) &&
           row.status === 'inbound_confirmed' &&
           !row.outbound_tx_sig &&
           row.inbound_confirmation_block_id != null &&
           Number(row.inbound_confirmation_block_id) <= Number(currentBlockId)
       );
+    },
+    async listAdminTransfers({ search = '', page = 1 } = {}) {
+      const pageSize = 20;
+      const term = String(search || '').trim();
+      const open = new Set([
+        'inbound_awaiting',
+        'inbound_broadcast',
+        'inbound_confirmed',
+        'outbound_awaiting',
+        'outbound_broadcast'
+      ]);
+      let matched = rows.filter((row) => !Number(row.excluded));
+      if (!term) {
+        matched = matched.filter((row) => open.has(row.status));
+      } else {
+        const address = /^0x[a-fA-F0-9]{40}$/i.test(term);
+        matched = matched.filter((row) => {
+          const identifiers = [
+            row.requester_publickey,
+            row.recipient_publickey,
+            row.publickey,
+            row.inbound_address,
+            row.inbound_sender,
+            row.outbound_address,
+            row.outbound_sender
+          ];
+          if (identifiers.some((value) => value === term)) {
+            return true;
+          }
+          if (!address) {
+            return false;
+          }
+          const lower = term.toLowerCase();
+          return [row.inbound_address, row.inbound_sender, row.outbound_address, row.outbound_sender].some(
+            (value) => String(value || '').toLowerCase() === lower
+          );
+        });
+      }
+      matched.sort(
+        (left, right) =>
+          Number(right.created_at) - Number(left.created_at) || Number(right.id) - Number(left.id)
+      );
+      const total = matched.length;
+      const pageCount = Math.max(1, Math.ceil(total / pageSize));
+      const requested = Number(page);
+      const current = Number.isInteger(requested) && requested > 0 ? Math.min(requested, pageCount) : 1;
+      return {
+        rows: matched.slice((current - 1) * pageSize, current * pageSize).map((row) => ({ ...row })),
+        total,
+        page: current,
+        page_size: pageSize
+      };
     },
     async getTransfersPendingOutboundBroadcast() {
       return select((row) => row.status === 'outbound_awaiting' && row.outbound_tx_sig);
@@ -127,6 +183,7 @@ function transfer(overrides = {}) {
     outbound_block_id: null,
     outbound_confirmation_block_id: null,
     inbound_confirmation_block_id: 4,
+    excluded: 0,
     last_error: '',
     created_at: Date.now(),
     ...overrides
@@ -137,7 +194,16 @@ function harness(rows = [transfer()]) {
   const sent = [];
   const app = {
     BROWSER: 0,
-    options: {},
+    options: {
+      mixin: {
+        api_key: {
+          app_id: 'app-1',
+          session_id: 'session-1',
+          server_public_key: 'server-pub',
+          session_private_key: 'app-session-key'
+        }
+      }
+    },
     connection: new EventEmitter(),
     network: {
       sendRequestAsTransaction(request, data, callback, publicKey) {
@@ -190,10 +256,10 @@ function harness(rows = [transfer()]) {
 describe('Mixin admin payment testing', () => {
   test('admin-config lists outstanding buysaito transfers and their legal action', async () => {
     const { mixin } = harness([
-      transfer(),
-      transfer({ id: 8, status: 'failed', purpose: 'buysaito' }),
-      transfer({ id: 9, purpose: 'other', status: 'inbound_awaiting' }),
-      transfer({ id: 4, status: 'outbound_confirmed' })
+      transfer({ created_at: 10 }),
+      transfer({ id: 8, status: 'failed', purpose: 'buysaito', created_at: 30 }),
+      transfer({ id: 9, purpose: 'other', status: 'inbound_awaiting', created_at: 20 }),
+      transfer({ id: 4, status: 'outbound_confirmed', created_at: 40 })
     ]);
 
     const config = mixin.respondTo('admin-config');
@@ -201,8 +267,10 @@ describe('Mixin admin payment testing', () => {
     expect(config.name).toBe('Mixin');
 
     const listed = await config.getConfig();
-    expect(listed.transfers.map((row) => row.id)).toEqual([7]);
-    expect(listed.transfers[0]).toEqual(
+    expect(listed.transfers.map((row) => row.id)).toEqual([9, 7]);
+    expect(listed.total).toBe(2);
+    expect(listed.page_size).toBe(20);
+    expect(listed.transfers.find((row) => row.id === 7)).toEqual(
       expect.objectContaining({
         requester_publickey: 'buyer',
         recipient_publickey: 'recipient',
