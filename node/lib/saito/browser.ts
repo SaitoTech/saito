@@ -1541,6 +1541,36 @@ class Browser {
     });
   }
 
+  /**
+   * Mark a scroll container with data-scroll-more="top" | "bottom" | "both"
+   * while content extends past that edge, so CSS (.scroll-hint in saito-base.css)
+   * can fade the edge. Safe to call again on the same element.
+   */
+  makeScrollHint(element: HTMLElement) {
+    if (!element || (element as any).__scrollHint) {
+      return;
+    }
+    (element as any).__scrollHint = true;
+
+    const update = () => {
+      const up = element.scrollTop > 1;
+      const down = element.scrollTop + element.clientHeight < element.scrollHeight - 1;
+      const more = up && down ? 'both' : up ? 'top' : down ? 'bottom' : '';
+      if (more) {
+        element.dataset.scrollMore = more;
+      } else {
+        delete element.dataset.scrollMore;
+      }
+    };
+
+    element.addEventListener('scroll', update, { passive: true });
+    if (typeof ResizeObserver !== 'undefined') {
+      new ResizeObserver(update).observe(element);
+    }
+    new MutationObserver(update).observe(element, { childList: true, subtree: true });
+    update();
+  }
+
   makeDraggable(id_to_move, id_to_drag = '', dockable = false, mycallback = null) {
     //console.debug("make draggable: " + id_to_drag);
     //console.debug(" and move? " + id_to_move);

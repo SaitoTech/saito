@@ -24,3 +24,10 @@
   width: 100%;
   pointer-events: none;
 }
+
+/* Scroll hint (see .scroll-hint in saito-base.css) — mobile only for now */
+@media (max-width: 600px) {
+  .arcade-main .library[data-scroll-more] {
+    mask-image: var(--scroll-hint-mask);
+  }
+}
