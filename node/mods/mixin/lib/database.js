@@ -467,11 +467,16 @@ class Database {
     );
   }
 
-  async listAdminTransfers({ search = '', page = 1 } = {}) {
+  async listAdminTransfers({ search = '', page = 1, purpose = '' } = {}) {
     const pageSize = 20;
     const term = String(search || '').trim();
+    const selected = ['migration', 'buysaito'].includes(purpose) ? purpose : '';
     const params = {};
     let where = 'excluded = 0';
+    if (selected) {
+      where += ' AND purpose = $purpose';
+      params.$purpose = selected;
+    }
     if (!term) {
       where += ` AND status IN (
         'inbound_awaiting',

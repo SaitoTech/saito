@@ -19,8 +19,8 @@ class TransferTesting {
     this.mod = mod;
   }
 
-  async listOutstandingTransfers({ search = '', page = 1 } = {}) {
-    const listed = await this.mod.database.listAdminTransfers({ search, page });
+  async listOutstandingTransfers({ search = '', page = 1, purpose = '' } = {}) {
+    const listed = await this.mod.database.listAdminTransfers({ search, page, purpose });
     return {
       transfers: (listed.rows || []).map((row) => this.snapshot(row)),
       total: listed.total,
@@ -41,6 +41,30 @@ class TransferTesting {
   }
 
   async advanceTransfer(id, action) {
+    const transferIdValue = transferId(id);
+    const rows = transferIdValue ? await this.mod.database.getTransfers({ id: transferIdValue }) : [];
+    const found = rows?.[0];
+    if (found?.purpose === 'store-purchase') {
+      if (Number(found.excluded) === 1) {
+        throw new Error('That transfer is excluded from processing.');
+      }
+      if (action !== 'detect-inbound') {
+        throw new Error(`Unknown payment test action: ${action || ''}`);
+      }
+      if (found.status !== 'inbound_awaiting') {
+        throw new Error(
+          `Transfer ${found.id} cannot be marked detected from status ${found.status}.`
+        );
+      }
+      await this.mod.transfers.recordStorePurchaseInboundPayment(found, {
+        hash: TEST_HASH,
+        id: testTransferId(found.id),
+        sender: TEST_SENDER,
+        amount: found.inbound_amount
+      });
+      return this.listOutstandingTransfers();
+    }
+
     const transfer = await this.returnBuySaitoTransfer(id);
     if (Number(transfer.excluded) === 1) {
       throw new Error('That transfer is excluded from processing.');
@@ -150,6 +174,12 @@ class TransferTesting {
   }
 
   nextAction(transfer) {
+    if (transfer.purpose === 'store-purchase') {
+      if (transfer.status === 'inbound_awaiting') {
+        return { action: 'detect-inbound', label: 'Mark inbound payment detected' };
+      }
+      return null;
+    }
     if (transfer.purpose && transfer.purpose !== 'buysaito') {
       return null;
     }

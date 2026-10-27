@@ -16,8 +16,20 @@ jest.mock('@mixin.dev/mixin-node-sdk', () => ({
 jest.mock('../../../lib/saito/transaction', () => ({
   default: class Transaction {
     signature = '';
-    deserialize_from_web() {
+    msg = null;
+    deserialize_from_web(app, raw) {
       this.signature = 'payout-sig';
+      try {
+        const parsed = JSON.parse(raw);
+        if (parsed?.module === 'Store' && parsed?.request === 'purchase-asset') {
+          this.msg = parsed;
+        }
+      } catch (err) {
+        this.msg = null;
+      }
+    }
+    returnMessage() {
+      return this.msg;
     }
   }
 }));
@@ -91,9 +103,10 @@ function memoryDatabase(initial = []) {
           Number(row.inbound_confirmation_block_id) <= Number(currentBlockId)
       );
     },
-    async listAdminTransfers({ search = '', page = 1 } = {}) {
+    async listAdminTransfers({ search = '', page = 1, purpose = '' } = {}) {
       const pageSize = 20;
       const term = String(search || '').trim();
+      const selected = ['migration', 'buysaito'].includes(purpose) ? purpose : '';
       const open = new Set([
         'inbound_awaiting',
         'inbound_broadcast',
@@ -102,6 +115,9 @@ function memoryDatabase(initial = []) {
         'outbound_broadcast'
       ]);
       let matched = rows.filter((row) => !Number(row.excluded));
+      if (selected) {
+        matched = matched.filter((row) => row.purpose === selected);
+      }
       if (!term) {
         matched = matched.filter((row) => open.has(row.status));
       } else {
@@ -283,6 +299,13 @@ describe('Mixin admin payment testing', () => {
       })
     );
     expect(listed.transfers[0].payload).toBeUndefined();
+
+    const buysaito = await config.getConfig({ purpose: 'buysaito' });
+    expect(buysaito.transfers.map((row) => row.id)).toEqual([7]);
+    const migration = await config.getConfig({ purpose: 'migration' });
+    expect(migration.transfers).toEqual([]);
+    const unknown = await config.getConfig({ purpose: 'other' });
+    expect(unknown.transfers.map((row) => row.id)).toEqual([9, 7]);
   });
 
   test('detect then confirm writes distinguishable evidence and buyer notices', async () => {
@@ -405,6 +428,182 @@ describe('Mixin admin payment testing', () => {
       'buysaito saito issued'
     ]);
     expect(sent[2].data.paid).toBe('payout-sig');
+  });
+
+  test('a store purchase is confirmed from one admin detection and keeps the purchase message', async () => {
+    const purchase = {
+      module: 'Store',
+      request: 'purchase-asset',
+      buyer: 'buyer-key',
+      refund: 'buyer-key',
+      nft_id: 'nft-1',
+      quantity: 1,
+      price: '0',
+      fee: '0',
+      web3_ticker: 'ETH',
+      web3_amount: '1.25'
+    };
+    const { app, mixin, database, sent } = harness([
+      transfer({
+        id: 11,
+        purpose: 'store-purchase',
+        inbound_amount: '1.25',
+        inbound_address: '0xstore',
+        inbound_mixin_user_id: 'user-1',
+        requester_publickey: 'buyer-key',
+        payload: JSON.stringify(purchase),
+        inbound_confirmation_block_id: 99,
+        created_at: Date.now()
+      })
+    ]);
+    app.crypto = { isPublicKey: (key) => key === 'buyer-key' };
+    mixin.creditDepositAddress = jest.fn();
+    mixin.accounts = { getCredentials: () => ({ user_id: 'user-1' }) };
+    mixin.api = {
+      fetchDeposits: jest.fn(async () => [
+        {
+          amount: '1.25',
+          transaction_hash: 'mix-hash',
+          deposit_id: 'dep-1',
+          sender: '0xsender',
+          destination: '0xstore',
+          confirmations: 0
+        }
+      ]),
+      fetchHistory: jest.fn(async () => [])
+    };
+    mixin.database.getCredentials = async () => [];
+    const transfers = new Transfers(app, mixin);
+    mixin.transfers = transfers;
+
+    const config = mixin.respondTo('admin-config');
+    const open = await config.getConfig();
+    expect(open.transfers.find((row) => row.id === 11).action).toEqual({
+      action: 'detect-inbound',
+      label: 'Mark inbound payment detected'
+    });
+
+    await transfers.processTransferQueue();
+    expect(database.rows[0]).toEqual(
+      expect.objectContaining({
+        status: 'inbound_confirmed',
+        inbound_tx_hash: 'mix-hash',
+        inbound_tx_id: 'dep-1',
+        inbound_sender: '0xsender',
+        inbound_confirmations_required: 0
+      })
+    );
+    expect(mixin.creditDepositAddress).toHaveBeenCalledTimes(1);
+
+    database.rows[0].status = 'inbound_awaiting';
+    database.rows[0].inbound_tx_hash = '';
+    database.rows[0].outbound_tx_sig = '';
+    mixin.creditDepositAddress.mockClear();
+    const detected = await config.updateConfig({ id: 11, action: 'detect-inbound' });
+    const row = detected.transfers.find((item) => item.id === 11);
+    expect(row.status).toBe('inbound_confirmed');
+    expect(row.inbound_tx_hash).toBe('admin-test');
+    expect(row.action).toBeNull();
+    await expect(config.updateConfig({ id: 11, action: 'confirm-inbound' })).rejects.toThrow(
+      /Unknown payment test action/
+    );
+    await transfers.recordStorePurchaseInboundPayment(database.rows[0], {
+      hash: 'admin-test',
+      id: 'admin-test:11',
+      sender: 'admin-test',
+      amount: '1.25'
+    });
+    expect(mixin.creditDepositAddress).toHaveBeenCalledTimes(1);
+
+    const issued = await transfers.issueOutboundTransfer(database.rows[0]);
+    expect(issued.outbound_tx_sig).toBe('payout-sig');
+    expect(issued.status).toBe('outbound_awaiting');
+    const signed = app.wallet.createUnsignedTransactionWithDefaultFee.mock.results.at(-1).value;
+    await expect(signed).resolves.toEqual(
+      expect.objectContaining({
+        msg: expect.objectContaining({
+          module: 'Store',
+          request: 'purchase-asset',
+          buyer: 'buyer-key',
+          refund: 'buyer-key',
+          nft_id: 'nft-1',
+          web3_ticker: 'ETH',
+          web3_amount: '1.25'
+        })
+      })
+    );
+    expect(sent.some((message) => message.request === 'buysaito report error')).toBe(false);
+  });
+
+  test('a Store purchase payload is reserved without extra inbound confirmations', async () => {
+    const saved = [];
+    const transfers = new Transfers(
+      {
+        wallet: { getPrivateKey: async () => 'private' },
+        blockchain: { getLatestBlockId: async () => 8 },
+        crypto: { isPublicKey: (key) => key === 'buyer-key' }
+      },
+      {
+        publicKey: 'server-key',
+        crypto_mods: [
+          {
+            ticker: 'ETH',
+            asset_id: 'eth-asset',
+            chain_id: 'eth-chain',
+            price_usd: 2,
+            last_update: Date.now(),
+            confirmations: 12,
+            returnMixinNetworkInfo: async () => false
+          },
+          {
+            ticker: 'ERC-SAITO',
+            asset_id: 'erc-asset',
+            chain_id: 'erc-chain',
+            price_usd: 1,
+            last_update: Date.now(),
+            confirmations: 12,
+            returnMixinNetworkInfo: async () => false
+          }
+        ],
+        accounts: {
+          getCredentials: () => ({ user_id: 'user-1' }),
+          decryptCredentials: () => ({ user_id: 'user-1' })
+        },
+        database: {
+          getTransfers: async () => [],
+          getCredentials: async () => [],
+          findAddress: async () => ({ address: '0xabc', user_id: 'user-1' }),
+          insertTransfer: async (row) => {
+            saved.push(row);
+            return 7;
+          }
+        }
+      }
+    );
+
+    await transfers.reserveAddress('buyer-key', {
+      ticker: 'ETH',
+      issue_amount: 10,
+      expected_deposit: 5.54,
+      tx: JSON.stringify({
+        module: 'Store',
+        request: 'purchase-asset',
+        buyer: 'issuer-key',
+        refund: 'buyer-key'
+      })
+    });
+
+    expect(saved[0].purpose).toBe('store-purchase');
+    expect(saved[0].inbound_confirmations_required).toBe(0);
+    expect(saved[0].inbound_confirmation_block_id).toBe(8);
+    await expect(
+      transfers.reserveAddress('buyer-key', {
+        ticker: 'ETH',
+        issue_amount: 10,
+        expected_deposit: 5.54,
+        tx: JSON.stringify({ module: 'Store', request: 'purchase-asset' })
+      })
+    ).rejects.toThrow('Store purchase refund recipient is missing');
   });
 });
 

@@ -228,6 +228,7 @@ module.exports = ({
   restoring = false,
   restoreText = '',
   search = '',
+  purpose = '',
   page = 1,
   total = 0,
   apiKeyConfigured = undefined,
@@ -252,6 +253,11 @@ module.exports = ({
               search
             )}" placeholder="search for transfers..." />
             <button type="submit" class="admin-button">Search</button>
+            <select class="admin-input admin-payments-purpose" id="admin-payments-purpose" aria-label="Transfer type">
+              <option value="" ${purpose ? '' : 'selected'}>all transfers</option>
+              <option value="migration" ${purpose === 'migration' ? 'selected' : ''}>migration</option>
+              <option value="buysaito" ${purpose === 'buysaito' ? 'selected' : ''}>buy saito</option>
+            </select>
           </form>
           ${
             rows.length

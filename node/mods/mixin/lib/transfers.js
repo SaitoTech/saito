@@ -1,4 +1,5 @@
 const email = require('./email');
+const Transaction = require('../../../lib/saito/transaction').default;
 const {
   createMigrationPayoutTransaction,
   receiveMigrationPayoutTransaction,
@@ -10,6 +11,74 @@ const {
 // A submitted amount may differ from the cached quote by this fraction.
 // One basis point of floating-point noise is inside this band; a different rate is not.
 const QUOTE_TOLERANCE = 0.01;
+
+function saitoPublicKey(app, value) {
+  const key = String(value || '').trim();
+  if (!key || typeof app?.crypto?.isPublicKey !== 'function' || !app.crypto.isPublicKey(key)) {
+    return '';
+  }
+  return key;
+}
+
+function storePurchaseMessage(app, raw) {
+  if (!raw) {
+    return null;
+  }
+  try {
+    const tx = new Transaction();
+    if (typeof tx.deserialize_from_web === 'function') {
+      tx.deserialize_from_web(app, raw);
+    }
+    const message = typeof tx.returnMessage === 'function' ? tx.returnMessage() : null;
+    if (message?.module === 'Store' && message?.request === 'purchase-asset') {
+      return message;
+    }
+  } catch (err) {
+    return null;
+  }
+  return null;
+}
+
+function storePurchaseRecipient(app, message) {
+  return saitoPublicKey(app, message?.refund) || saitoPublicKey(app, message?.buyer);
+}
+
+// Store purchases only. A Mixin deposit observation is evidence that the
+// reserved address was paid. It does not apply BuySaito's quote match or
+// migration's sender match, and it does not wait for additional confirmations.
+function storePurchaseDeposit(row, observation) {
+  if (!observation) {
+    return null;
+  }
+  const reserved = Number(row.inbound_amount);
+  const enough = (amount) =>
+    amount > 0 && (!Number.isFinite(reserved) || reserved <= 0 || amount + 1e-9 >= reserved);
+  const found = [];
+  for (const snapshot of observation.snapshots || []) {
+    const destination = snapshot?.deposit?.destination || snapshot?.receiver || '';
+    if (!destination || destination !== row.inbound_address) {
+      continue;
+    }
+    found.push({
+      hash: snapshot.transaction_hash || '',
+      id: snapshot.snapshot_id || '',
+      sender: snapshot.deposit?.sender || '',
+      amount: Number(snapshot.amount)
+    });
+  }
+  for (const deposit of observation.deposits || []) {
+    if (deposit?.destination && deposit.destination !== row.inbound_address) {
+      continue;
+    }
+    found.push({
+      hash: deposit.transaction_hash || '',
+      id: deposit.deposit_id || deposit.transaction_id || '',
+      sender: deposit.sender || '',
+      amount: Number(deposit.amount)
+    });
+  }
+  return found.find((item) => item.hash && enough(item.amount)) || null;
+}
 
 const OPEN_STATUSES = [
   'inbound_awaiting',
@@ -51,6 +120,23 @@ class Transfers {
         // deposits have no reservation and must not inherit this expiry.
         if (row.purpose === 'buysaito' && Number(row.created_at) < now - this.reservation_ms) {
           await this.mod.database.updateTransfer(row.id, { status: 'failed' });
+          continue;
+        }
+        // Store purchases only. A reservation older than reservation_ms (25 minutes)
+        // is failed because the quoted deposit was held for a limited time. This
+        // expiry is not a generic transfer rule and must not apply to migration.
+        if (row.purpose === 'store-purchase' && Number(row.created_at) < now - this.reservation_ms) {
+          await this.mod.database.updateTransfer(row.id, { status: 'failed' });
+          continue;
+        }
+        // Store purchases only. Mixin reports the deposit through this observation.
+        // The payment is recorded immediately, without BuySaito or migration matching
+        // and without additional inbound confirmations.
+        if (row.purpose === 'store-purchase') {
+          const evidence = storePurchaseDeposit(row, observed.get(row.id));
+          if (evidence) {
+            await this.recordStorePurchaseInboundPayment(row, evidence);
+          }
           continue;
         }
         const match = this.findMatchingInboundPayment(row, observed.get(row.id));
@@ -143,6 +229,11 @@ class Transfers {
         excluded: 0
       })) {
         if (row.outbound_tx_sig) {
+          continue;
+        }
+        // Store purchases only. They are confirmed by recordStorePurchaseInboundPayment
+        // and must not be refreshed by BuySaito or migration deposit matching.
+        if (row.purpose === 'store-purchase') {
           continue;
         }
         const match = this.findMatchingInboundPayment(row, observed.get(row.id));
@@ -426,6 +517,12 @@ class Transfers {
     if (!observation) {
       return null;
     }
+    // Store purchases only. Inbound evidence is recorded by
+    // recordStorePurchaseInboundPayment. BuySaito and migration matching
+    // must not accept or reject these rows.
+    if (row.purpose === 'store-purchase') {
+      return null;
+    }
     const required = Number(row.inbound_confirmations_required || 0);
     // Migration only. A deposit matches when its destination is this request's
     // collection address and its external sender is the declared chain address.
@@ -515,6 +612,70 @@ class Transfers {
     return null;
   }
 
+  async recordStorePurchaseInboundPayment(row, evidence = {}) {
+    if (!row || row.purpose !== 'store-purchase') {
+      throw new Error('That transfer is not a Store purchase.');
+    }
+    if (Number(row.excluded) === 1) {
+      throw new Error('That transfer is excluded from processing.');
+    }
+    if (row.outbound_tx_sig) {
+      return row;
+    }
+
+    const hash = String(evidence.hash || '').trim();
+    const inboundId = String(evidence.id || '').trim();
+    const sender = String(evidence.sender || '').trim();
+    const amount = Number(evidence.amount);
+    if (!hash || !(amount > 0)) {
+      throw new Error('Store purchase payment evidence is incomplete.');
+    }
+
+    const current = (await this.mod.database.getTransfers({ id: row.id }))?.[0] || row;
+    if (current.inbound_tx_hash && current.inbound_tx_hash !== hash) {
+      return current;
+    }
+    if (current.status !== 'inbound_awaiting' && current.inbound_tx_hash === hash) {
+      return current;
+    }
+    if (current.status !== 'inbound_awaiting') {
+      throw new Error(
+        `Store purchase ${current.id} cannot be confirmed from status ${current.status}.`
+      );
+    }
+
+    const now = Date.now();
+    await this.mod.database.updateTransfer(current.id, {
+      status: 'inbound_confirmed',
+      inbound_tx_hash: hash,
+      inbound_tx_id: inboundId,
+      inbound_sender: sender,
+      inbound_amount: String(amount),
+      inbound_confirmations: 0,
+      inbound_confirmations_required: 0,
+      inbound_received_at: current.inbound_received_at || now,
+      last_error: ''
+    });
+    this.mod.creditDepositAddress?.(current.inbound_address, amount, hash);
+
+    const updated = (await this.mod.database.getTransfers({ id: current.id }))[0];
+    const detected = {
+      id: updated.id,
+      address: updated.inbound_address,
+      ticker: updated.inbound_ticker,
+      status: 'confirmed',
+      initiator_pubkey: updated.requester_publickey
+    };
+    this.app.network?.sendRequestAsTransaction?.(
+      'buysaito payment detected',
+      detected,
+      null,
+      updated.requester_publickey
+    );
+    this.app.connection?.emit?.('saito-purchase-payment-detected', detected);
+    return updated;
+  }
+
   async issueOutboundTransfer(row) {
     if (!row || row.outbound_tx_sig) {
       return row;
@@ -597,7 +758,39 @@ class Transfers {
       });
       return (await this.mod.database.getTransfers({ id: row.id }))[0];
     }
-    // Any purpose other than migration or BuySaito. Neither payment constructor
+    // Store purchases only. The reserved SAITO amount is issued with the saved
+    // purchase message. Migration allocation and BuySaito pending-balance
+    // notices do not apply to this purpose.
+    if (row.purpose === 'store-purchase') {
+      const message = storePurchaseMessage(this.app, row.payload);
+      if (!storePurchaseRecipient(this.app, message)) {
+        if (row.last_error !== 'Store purchase refund recipient is missing') {
+          await this.mod.database.updateTransfer(row.id, {
+            last_error: 'Store purchase refund recipient is missing'
+          });
+        }
+        return (await this.mod.database.getTransfers({ id: row.id }))[0];
+      }
+      if (typeof available !== 'bigint' || typeof required !== 'bigint' || required <= 0n) {
+        throw new Error('Invalid payout balance or amount');
+      }
+      if (available < required) {
+        if (row.last_error !== 'insufficient_funds') {
+          await this.mod.database.updateTransfer(row.id, { last_error: 'insufficient_funds' });
+        }
+        return (await this.mod.database.getTransfers({ id: row.id }))[0];
+      }
+      const { tx, recipient } = await createBuySaitoPayoutTransaction(this.app, row, required);
+      await this.mod.database.updateTransfer(row.id, {
+        status: 'outbound_awaiting',
+        outbound_tx: tx.serialize_to_web(this.app),
+        outbound_tx_sig: tx.signature,
+        outbound_address: recipient,
+        last_error: ''
+      });
+      return (await this.mod.database.getTransfers({ id: row.id }))[0];
+    }
+    // Any purpose other than migration, BuySaito, or a Store purchase. Neither payment constructor
     // applies, so the transfer stays unsigned. This guard must not skip a
     // migration or BuySaito row, and it must not stand in for either purpose's
     // own amount, balance, or reservation rules.
@@ -789,8 +982,18 @@ class Transfers {
     ) {
       throw new Error('Saito block height is unavailable');
     }
+    const purchase = storePurchaseMessage(this.app, request.tx);
+    let purpose = 'buysaito';
+    let inboundConfirmationsRequired = Number(crypto.confirmations || 0);
+    if (purchase) {
+      if (!storePurchaseRecipient(this.app, purchase)) {
+        throw new Error('Store purchase refund recipient is missing');
+      }
+      purpose = 'store-purchase';
+      inboundConfirmationsRequired = 0;
+    }
     const id = await this.mod.database.insertTransfer({
-      purpose: 'buysaito',
+      purpose,
       mode: 'automatic',
       payload: request.tx || '',
       request_id: request.request_id || '',
@@ -803,7 +1006,7 @@ class Transfers {
       inbound_amount: String(expectedDeposit),
       inbound_address: address,
       inbound_mixin_user_id: selected.user_id,
-      inbound_confirmations_required: Number(crypto.confirmations || 0),
+      inbound_confirmations_required: inboundConfirmationsRequired,
       inbound_confirmation_block_id: inboundConfirmationBlockId,
       outbound_ticker: 'SAITO',
       outbound_amount: String(issueAmount),

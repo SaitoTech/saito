@@ -34,6 +34,16 @@ function isWeb3PurchaseMessage(txmsg = {}) {
   return ticker !== '' && ticker !== 'SAITO';
 }
 
+function web3RefundRecipient(app, txmsg = {}) {
+  for (const candidate of [txmsg.refund, txmsg.buyer]) {
+    const key = String(candidate || '').trim();
+    if (key && typeof app?.crypto?.isPublicKey === 'function' && app.crypto.isPublicKey(key)) {
+      return key;
+    }
+  }
+  return '';
+}
+
 function purchaseSenderPublicKey(tx) {
   const from = tx?.from || [];
   for (const slip of from) {
@@ -964,7 +974,13 @@ module.exports = {
     payment_utxo,
     { received_block_id = 0, received_block_hash = '', received_transaction_id = 0 } = {}
   ) {
-    const buyer = txmsg.buyer || tx.from?.[0]?.publicKey || '';
+    const web3_purchase = isWeb3PurchaseMessage(txmsg);
+    const buyer = web3_purchase
+      ? web3RefundRecipient(this.app, txmsg)
+      : txmsg.buyer || tx.from?.[0]?.publicKey || '';
+    if (web3_purchase && !buyer) {
+      throw new Error('Store purchase refund recipient is missing');
+    }
     const payment_slip = tx.to?.[payment_utxo.payment_output_index];
     return new Order({
       order_tx_sig: tx.signature,
@@ -1107,7 +1123,15 @@ module.exports = {
       return;
     }
 
-    const buyer = txmsg.buyer || tx.from?.[0]?.publicKey;
+    const web3_purchase = isWeb3PurchaseMessage(txmsg);
+    const web3_refund_recipient = web3_purchase ? web3RefundRecipient(this.app, txmsg) : '';
+    if (web3_purchase && !web3_refund_recipient) {
+      console.warn('Store: web3 purchase has no refund recipient');
+      return;
+    }
+    const buyer = web3_purchase
+      ? web3_refund_recipient
+      : txmsg.buyer || tx.from?.[0]?.publicKey;
     const nft_id = String(txmsg.nft_id || '').trim();
     const quantity = Number(txmsg.quantity) || 1;
     const unit_price = BigInt(this.app.wallet.convertSaitoToNolan(txmsg.price) ?? 0);
@@ -1116,14 +1140,13 @@ module.exports = {
     const received_block_id = Number(blk?.id ?? 0);
     const received_block_hash = String(blk?.hash ?? '');
     const received_transaction_id = transactionIndexInBlock(blk, tx);
-    const refund_public_key = txmsg.refund || buyer;
+    const refund_public_key = web3_purchase ? web3_refund_recipient : txmsg.refund || buyer;
 
     if (!buyer || !nft_id) {
       console.warn('Store: purchase missing buyer or nft_id');
       return;
     }
 
-    const web3_purchase = isWeb3PurchaseMessage(txmsg);
     if (!web3_purchase && unit_price <= 0n) {
       console.warn('Store: purchase invalid price');
       return;

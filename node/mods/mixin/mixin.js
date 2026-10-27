@@ -767,7 +767,8 @@ class Mixin extends ModTemplate {
 
     const listed = await testing.listOutstandingTransfers({
       search: request.search || '',
-      page: request.page || 1
+      page: request.page || 1,
+      purpose: request.purpose || ''
     });
     return {
       ...listed,

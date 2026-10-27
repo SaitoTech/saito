@@ -79,6 +79,7 @@ describe('BuySaito server quotes', () => {
     expect(saved[0].inbound_amount).toBe('5.5');
     expect(saved[0].mode).toBe('automatic');
     expect(saved[0].purpose).toBe('buysaito');
+    expect(saved[0].inbound_confirmations_required).toBe(12);
     expect(saved[0].inbound_confirmation_block_id).toBe(8);
     expect(instructions.ticker).toBe('ETH');
     expect(instructions.address).toBe('0xabc');

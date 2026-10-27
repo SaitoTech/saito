@@ -151,6 +151,11 @@ describe('Admin payments tab', () => {
     expect(html).toContain('>IN<');
     expect(html).toContain('>OUT<');
     expect(html).toContain('placeholder="search for transfers..."');
+    expect(html).toContain('id="admin-payments-purpose"');
+    expect(html).toContain('value="" selected');
+    expect(html).toContain('>all transfers<');
+    expect(html).toContain('>migration<');
+    expect(html).toContain('>buy saito<');
     expect(html).toContain('fa-solid fa-trash');
     expect(html).toContain('aria-label="Trash"');
     expect(html).not.toContain('>Trash<');
@@ -286,6 +291,7 @@ describe('Admin payments tab', () => {
       request: 'get-admin-config',
       module_id: 'mixin',
       search: '',
+      purpose: '',
       page: 1
     });
 
@@ -294,7 +300,7 @@ describe('Admin payments tab', () => {
       module: 'Admin',
       request: 'update-admin-config',
       module_id: 'mixin',
-      data: { id: 7, action: 'confirm-inbound', search: '', page: 1 }
+      data: { id: 7, action: 'confirm-inbound', search: '', purpose: '', page: 1 }
     });
     expect(page.transfers[0].status).toBe('inbound_broadcast');
     expect(page.account).toEqual({ user_id: 'user-9', full_name: 'Saito User' });
@@ -305,7 +311,7 @@ describe('Admin payments tab', () => {
       module: 'Admin',
       request: 'update-admin-config',
       module_id: 'mixin',
-      data: { action: 'create-account', search: '', page: 1 }
+      data: { action: 'create-account', search: '', purpose: '', page: 1 }
     });
     expect(page.account.user_id).toBe('user-9');
 
@@ -317,7 +323,7 @@ describe('Admin payments tab', () => {
       module: 'Admin',
       request: 'update-admin-config',
       module_id: 'mixin',
-      data: { action: 'restore-account', account: '{"user_id":"user-9"}', search: '', page: 1 }
+      data: { action: 'restore-account', account: '{"user_id":"user-9"}', search: '', purpose: '', page: 1 }
     });
     expect(page.account.user_id).toBe('user-9');
     delete global.document;
@@ -348,6 +354,7 @@ describe('Admin payments tab', () => {
     page.search = 'old';
     page.page = 3;
     const form = {};
+    const purpose = { value: 'migration' };
     const button = {
       getAttribute(name) {
         return name === 'data-payment-action' ? 'exclude-transfer' : '4';
@@ -361,6 +368,9 @@ describe('Admin payments tab', () => {
         if (id === 'admin-payments-search') {
           return { value: 'new-key' };
         }
+        if (id === 'admin-payments-purpose') {
+          return purpose;
+        }
         return null;
       },
       querySelectorAll(selector) {
@@ -372,7 +382,17 @@ describe('Admin payments tab', () => {
     await form.onsubmit({ preventDefault() {} });
     expect(page.page).toBe(1);
     expect(messages.at(-1)).toEqual(
-      expect.objectContaining({ request: 'get-admin-config', search: 'new-key', page: 1 })
+      expect.objectContaining({
+        request: 'get-admin-config',
+        search: 'new-key',
+        purpose: 'migration',
+        page: 1
+      })
+    );
+    purpose.value = 'buysaito';
+    await purpose.onchange();
+    expect(messages.at(-1)).toEqual(
+      expect.objectContaining({ request: 'get-admin-config', purpose: 'buysaito', page: 1 })
     );
 
     page.advance = jest.fn();

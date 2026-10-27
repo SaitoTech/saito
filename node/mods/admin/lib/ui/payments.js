@@ -14,6 +14,7 @@ class AdminPaymentsUI {
     this.restoring = false;
     this.restoreText = '';
     this.search = '';
+    this.purpose = '';
     this.page = 1;
     this.total = 0;
     this.apiKeyConfigured = undefined;
@@ -32,6 +33,7 @@ class AdminPaymentsUI {
     this.restoring = false;
     this.restoreText = '';
     this.search = '';
+    this.purpose = '';
     this.page = 1;
     this.total = 0;
     this.apiKeyConfigured = undefined;
@@ -63,6 +65,7 @@ class AdminPaymentsUI {
         restoring: this.restoring,
         restoreText: this.restoreText,
         search: this.search,
+        purpose: this.purpose,
         page: this.page,
         total: this.total,
         apiKeyConfigured: this.apiKeyConfigured,
@@ -114,6 +117,16 @@ class AdminPaymentsUI {
         e.preventDefault();
         const next = document.getElementById('admin-payments-search')?.value?.trim() || '';
         this.search = next;
+        this.purpose = document.getElementById('admin-payments-purpose')?.value || '';
+        this.page = 1;
+        return this.load();
+      };
+    }
+
+    const purpose = document.getElementById('admin-payments-purpose');
+    if (purpose) {
+      purpose.onchange = () => {
+        this.purpose = purpose.value || '';
         this.page = 1;
         return this.load();
       };
@@ -171,7 +184,7 @@ class AdminPaymentsUI {
 
     await this.sendAdminRequest(
       'get-admin-config',
-      { module_id: 'mixin', search: this.search, page: this.page },
+      { module_id: 'mixin', search: this.search, purpose: this.purpose, page: this.page },
       (res) => {
         this.loading = false;
         if (res?.err) {
@@ -217,7 +230,13 @@ class AdminPaymentsUI {
       'update-admin-config',
       {
         module_id: 'mixin',
-        data: { action: 'save-api-key', api_key: this.apiKeyText, search: this.search, page: this.page }
+        data: {
+          action: 'save-api-key',
+          api_key: this.apiKeyText,
+          search: this.search,
+          purpose: this.purpose,
+          page: this.page
+        }
       },
       (res) => {
         this.savingApiKey = false;
@@ -249,7 +268,13 @@ class AdminPaymentsUI {
       'update-admin-config',
       {
         module_id: 'mixin',
-        data: { action: 'restore-account', account: this.restoreText, search: this.search, page: this.page }
+        data: {
+          action: 'restore-account',
+          account: this.restoreText,
+          search: this.search,
+          purpose: this.purpose,
+          page: this.page
+        }
       },
       (res) => {
         this.restoring = false;
@@ -271,7 +296,10 @@ class AdminPaymentsUI {
 
     await this.sendAdminRequest(
       'update-admin-config',
-      { module_id: 'mixin', data: { action: 'create-account', search: this.search, page: this.page } },
+      {
+        module_id: 'mixin',
+        data: { action: 'create-account', search: this.search, purpose: this.purpose, page: this.page }
+      },
       (res) => {
         this.creating = false;
         if (res?.err) {
@@ -287,7 +315,10 @@ class AdminPaymentsUI {
   async approveMigration(id) {
     return this.sendAdminRequest(
       'update-admin-config',
-      { module_id: 'mixin', data: { id, action: 'approve-migration', search: this.search, page: this.page } },
+      {
+        module_id: 'mixin',
+        data: { id, action: 'approve-migration', search: this.search, purpose: this.purpose, page: this.page }
+      },
       (res) => {
         this.advancing = false;
         if (res?.err) {
@@ -311,6 +342,7 @@ class AdminPaymentsUI {
           amount,
           tx_hash: txHash,
           search: this.search,
+          purpose: this.purpose,
           page: this.page
         }
       },
@@ -347,7 +379,10 @@ class AdminPaymentsUI {
 
     await this.sendAdminRequest(
       'update-admin-config',
-      { module_id: 'mixin', data: { id, action, search: this.search, page: this.page } },
+      {
+        module_id: 'mixin',
+        data: { id, action, search: this.search, purpose: this.purpose, page: this.page }
+      },
       (res) => {
         this.advancing = false;
         if (res?.err) {
