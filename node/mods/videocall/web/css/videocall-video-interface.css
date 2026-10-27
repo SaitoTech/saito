@@ -110,10 +110,10 @@
 }
 
 .stun-overlay-container.minimize {
-  width: 45rem;
-  height: 40rem;
-  min-width: 30rem;
-  min-height: min(35rem, 50dvh);
+  width: 450px;
+  height: 400px;
+  min-width: min(300px, 100vw);
+  min-height: min(250px, 50dvh);
   overflow: auto;
   resize: both;
   cursor: grab;
@@ -123,7 +123,7 @@
 }
 
 .stun-overlay-container.minimize .stun-chatbox main {
-  grid-template-rows: calc(100% - 40px) 40px;
+  grid-template-rows: minmax(0, 1fr) 56px;
   grid-template-columns: minmax(5rem, 1fr);
 }
 
@@ -164,25 +164,49 @@
   flex-direction: row;
 }
 
+.minimize .stun-toolbar-shell {
+  width: 100%;
+  min-width: 0;
+  height: 100%;
+  box-sizing: border-box;
+  flex-direction: row;
+  gap: 8px;
+  padding: 6px;
+  border-radius: 0;
+}
+
 .minimize .stun-chatbox .timer {
-  min-width: unset;
-  margin: 0 10px;
-  width: fit-content;
+  min-width: 0;
+  flex: 1;
+  flex-wrap: nowrap;
+  justify-content: flex-start;
+  gap: 6px;
 }
 
 .minimize .stun-chatbox .timer .counter {
-  font-size: 18px;
+  font-size: 14px;
   min-width: unset;
+  flex-shrink: 0;
+}
+
+.minimize .stun-chatbox .users-on-call {
+  min-width: 0;
+  padding: 3px;
 }
 
 .minimize .stun-chatbox .stun-identicon-list {
-  gap: 6px;
-  margin-right: 6px;
+  min-width: 0;
+  gap: 4px;
+  margin: 0;
+  overflow-x: auto;
 }
 
 .minimize .stun-chatbox .stun-identicon-list img.saito-identicon {
-  width: 30px;
-  height: 30px;
+  width: 24px;
+  height: 24px;
+  flex: 0 0 24px;
+  box-sizing: border-box;
+  object-fit: cover;
 }
 
 .minimize .stun-chatbox .imported-actions,
@@ -193,23 +217,27 @@
 .minimize .stun-chatbox .users-on-call .invite-control {
   width: 30px;
   height: 30px;
+  flex: 0 0 30px;
 }
 
 .minimize .stun-chatbox .gallery {
+  resize: none;
   gap: 0.5rem;
   grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
 }
 
 .minimize .stun-chatbox .control-panel {
-  margin: 0 10px;
+  flex: 0 0 auto;
+  flex-wrap: nowrap;
   width: fit-content;
   gap: 5px;
 }
 
 .minimize .stun-chatbox .control-list {
-  width: 100%;
+  width: fit-content;
   justify-content: flex-end;
   gap: 1px;
+  padding: 3px;
 }
 
 .minimize .stun-chatbox .control-list .icon_click_area {
@@ -219,7 +247,33 @@
 }
 
 .minimize .stun-chatbox .icon_click_area i {
-  font-size: unset;
+  font-size: 16px;
+}
+
+.minimize .stun-chatbox .video-call-info {
+  grid-template-columns: min-content minmax(0, 1fr) min-content min-content;
+  gap: 6px;
+  padding: 6px;
+}
+
+.minimize .stun-chatbox .video-call-identity {
+  min-width: 0;
+}
+
+.minimize .stun-chatbox .video-call-info .saito-address {
+  font-size: 12px;
+  padding: 4px 6px;
+  white-space: nowrap;
+}
+
+.minimize .stun-chatbox .peer-call-list {
+  padding: 0;
+  gap: 3px;
+}
+
+.minimize .stun-chatbox .peer-call-list .saito-identicon {
+  width: 18px;
+  height: 18px;
 }
 
 /* ------------------------------------------------------------------ */

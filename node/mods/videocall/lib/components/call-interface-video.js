@@ -717,6 +717,7 @@ class CallInterfaceVideo {
     //
     for (const el of [primary, secondary]) {
       el.style.gridTemplateColumns = '';
+      el.style.gridAutoRows = '';
       el.style.justifyContent = '';
       el.style.alignContent = '';
       el.style.overflowY = '';
@@ -877,7 +878,12 @@ class CallInterfaceVideo {
     }
 
     const mobile = window.matchMedia('(max-width: 600px)').matches;
-    const aspect = mobile ? 3 / 4 : 4 / 3;
+    const compact = !!container.closest('.stun-overlay-container.minimize');
+    const [aspectWidth, aspectHeight] = window
+      .getComputedStyle(container.firstElementChild)
+      .aspectRatio.split('/')
+      .map(Number);
+    const aspect = aspectWidth / aspectHeight || (mobile ? 3 / 4 : 4 / 3);
 
     let best_cols = 1;
     let best_width = 0;
@@ -897,7 +903,7 @@ class CallInterfaceVideo {
     // Don't shrink tiles into postage stamps in a crowded call -- clamp
     // to a minimum size and let the container scroll vertically instead
     //
-    const min_width = mobile ? W * 0.42 : 220;
+    const min_width = Math.min(W, compact ? 150 : mobile ? W * 0.42 : 220);
     if (best_width < min_width) {
       best_cols = Math.max(1, Math.floor((W + gap) / (min_width + gap)));
       best_width = (W - gap * (best_cols - 1)) / best_cols;
@@ -907,6 +913,7 @@ class CallInterfaceVideo {
     const overflowing = rows * (best_width / aspect + gap) - gap > H;
 
     container.style.gridTemplateColumns = `repeat(${best_cols}, ${Math.floor(best_width)}px)`;
+    container.style.gridAutoRows = `${Math.floor(best_width) / aspect}px`;
     container.style.justifyContent = 'center';
     container.style.alignContent = overflowing ? 'start' : 'center';
     container.style.overflowY = overflowing ? 'auto' : 'hidden';
