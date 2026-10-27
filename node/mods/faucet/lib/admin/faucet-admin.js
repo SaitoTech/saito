@@ -1,6 +1,6 @@
-const FaucetTemplate = require('./faucet.template');
+const FaucetAdminTemplate = require('./faucet-admin.template');
 
-class AdminFaucetUI {
+class FaucetAdmin {
   constructor(app, mod, container = '.admin-faucet') {
     this.app = app;
     this.mod = mod;
@@ -16,6 +16,10 @@ class AdminFaucetUI {
     this.config_saved = false;
   }
 
+  admin() {
+    return this.app.modules.returnModule('Admin');
+  }
+
   render() {
     this.state = null;
     this.error = '';
@@ -27,7 +31,7 @@ class AdminFaucetUI {
     this.config_saving = false;
     this.config_saved = false;
 
-    if (!this.mod.server_info) {
+    if (!this.admin()?.server_info) {
       this.app.browser.replaceElementContentBySelector(
         `<p class="admin-faucet-empty">Waiting for the server to finish authenticating this administrator.</p>`,
         this.container
@@ -42,7 +46,7 @@ class AdminFaucetUI {
 
   refresh() {
     this.app.browser.replaceElementContentBySelector(
-      FaucetTemplate({
+      FaucetAdminTemplate({
         state: this.state,
         error: this.error,
         loading: this.loading,
@@ -113,9 +117,12 @@ class AdminFaucetUI {
   }
 
   async sendAdminRequest(request, data, callback) {
-    let tx = await this.app.wallet.createUnsignedTransactionWithDefaultFee(
-      this.mod.server_publickey
-    );
+    const admin = this.admin();
+    if (!admin?.server_publickey) {
+      return;
+    }
+
+    let tx = await this.app.wallet.createUnsignedTransactionWithDefaultFee(admin.server_publickey);
     tx.msg = {
       module: 'Admin',
       request,
@@ -126,7 +133,7 @@ class AdminFaucetUI {
     this.app.network.sendTransactionWithCallback(
       tx,
       (res_tx) => callback(res_tx.returnMessage()),
-      this.mod.server_publickey
+      admin.server_publickey
     );
   }
 
@@ -187,4 +194,4 @@ class AdminFaucetUI {
   }
 }
 
-module.exports = AdminFaucetUI;
+module.exports = FaucetAdmin;

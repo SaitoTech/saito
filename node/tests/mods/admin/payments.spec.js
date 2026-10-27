@@ -12,8 +12,8 @@ jest.mock('../../../lib/templates/modtemplate', () => {
 });
 
 const MainTemplate = require('../../../mods/admin/lib/ui/main.template');
-const PaymentsTemplate = require('../../../mods/admin/lib/ui/payments.template');
-const AdminPaymentsUI = require('../../../mods/admin/lib/ui/payments');
+const PaymentsTemplate = require('../../../mods/mixin/lib/admin/mixin-admin.template');
+const MixinAdmin = require('../../../mods/mixin/lib/admin/mixin-admin');
 const Admin = require('../../../mods/admin/admin');
 
 function adminApp() {
@@ -34,17 +34,28 @@ function adminApp() {
   };
 }
 
+function withAdminSession(app) {
+  app.modules = {
+    ...(app.modules || {}),
+    returnModule(name) {
+      return name === 'Admin' ? { server_publickey: 'server', server_info: {} } : null;
+    }
+  };
+  return app;
+}
+
 describe('Admin payments tab', () => {
-  test('the payments nav is present only when mixin exposes admin-config', () => {
+  test('the payments nav is present only when mixin exposes admin-sidebar', () => {
     const absent = MainTemplate(adminApp(), {});
     expect(absent).not.toContain('data-admin-view="payments"');
 
     const app = adminApp();
-    app.modules.returnModulesRespondingTo = () => [
-      {
-        respondTo: () => ({ id: 'mixin', name: 'Mixin' })
+    app.modules.getRespondTos = (type) => {
+      if (type !== 'admin-sidebar') {
+        return [];
       }
-    ];
+      return [{ id: 'payments', name: 'Payments', render() {} }];
+    };
     const present = MainTemplate(app, {});
     expect(present).toContain('data-admin-view="payments">Payments');
     expect(present).toContain('admin-page admin-payments');
@@ -274,7 +285,7 @@ describe('Admin payments tab', () => {
         }
       }
     };
-    const mod = { server_publickey: 'server', server_info: {} };
+    const page = new MixinAdmin(withAdminSession(app), {});
     global.document = {
       getElementById() {
         return null;
@@ -284,7 +295,6 @@ describe('Admin payments tab', () => {
       }
     };
 
-    const page = new AdminPaymentsUI(app, mod);
     await page.load();
     expect(messages[0]).toEqual({
       module: 'Admin',
@@ -350,7 +360,7 @@ describe('Admin payments tab', () => {
         }
       }
     };
-    const page = new AdminPaymentsUI(app, { server_publickey: 'server', server_info: {} });
+    const page = new MixinAdmin(withAdminSession(app), {});
     page.search = 'old';
     page.page = 3;
     const form = {};
@@ -435,7 +445,7 @@ describe('Admin payments tab', () => {
         }
       }
     };
-    const page = new AdminPaymentsUI(app, { server_publickey: 'server', server_info: {} });
+    const page = new MixinAdmin(withAdminSession(app), {});
     page.apiKeyConfigured = false;
     global.document = {
       getElementById(id) {

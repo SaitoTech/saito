@@ -1,5 +1,11 @@
 const ModTemplate = require('../../lib/templates/modtemplate');
 const PeerService = require('saito-js/lib/peer_service').default;
+const MailRelayAdmin = require('./lib/admin/mailrelay-admin');
+const {
+  parseSendgridConfig,
+  resolveSendgridTransport,
+  redactSendgridConfig
+} = require('./lib/config');
 
 class MailRelay extends ModTemplate {
   constructor(app) {
@@ -37,9 +43,7 @@ class MailRelay extends ModTemplate {
       return;
     }
 
-    if (process.env.SENDGRID) {
-      this.services.push(new PeerService(null, 'mailrelay', 'Mail Relay Service'));
-    }
+    this.ensureMailRelayService();
 
     if (this.services.length) {
       console.log('I am a mail relay :)');
@@ -160,10 +164,8 @@ class MailRelay extends ModTemplate {
     }
 
     try {
-      let credentials = {};
-      if (process.env.SENDGRID) {
-        credentials = JSON.parse(process.env.SENDGRID);
-      }
+      const transport = this.sendgridTransport();
+      const credentials = transport ? transport.config : {};
 
       const nodemailer = require('nodemailer');
 
@@ -183,6 +185,100 @@ class MailRelay extends ModTemplate {
 
   returnServices() {
     return this.services;
+  }
+
+  /**
+   * Prefer process.env.SENDGRID. When it is absent, use the transport stored
+   * at app.options.sendgrid.config.
+   */
+  sendgridTransport() {
+    return resolveSendgridTransport(process.env.SENDGRID, this.app?.options);
+  }
+
+  ensureMailRelayService() {
+    if (this.app.BROWSER || this.services.length > 0) {
+      return;
+    }
+    let transport = null;
+    try {
+      transport = this.sendgridTransport();
+    } catch (err) {
+      console.error('Error reading SendGrid configuration: ' + err);
+      return;
+    }
+    if (!transport) {
+      return;
+    }
+    this.services.push(new PeerService(null, 'mailrelay', 'Mail Relay Service'));
+  }
+
+  adminSnapshot() {
+    const transport = this.sendgridTransport();
+    if (!transport) {
+      return { configured: false, active: false, source: '', config: null };
+    }
+    this.ensureMailRelayService();
+    return {
+      configured: true,
+      active: this.services.length > 0,
+      source: transport.source,
+      config: redactSendgridConfig(transport.config)
+    };
+  }
+
+  saveSendgridConfig(raw) {
+    if (process.env.SENDGRID && String(process.env.SENDGRID).trim()) {
+      throw new Error('SendGrid is already supplied by the server environment');
+    }
+
+    const config = parseSendgridConfig(raw);
+    if (
+      !this.app.options.sendgrid ||
+      typeof this.app.options.sendgrid !== 'object' ||
+      Array.isArray(this.app.options.sendgrid)
+    ) {
+      this.app.options.sendgrid = {};
+    }
+    this.app.options.sendgrid.config = config;
+    if (this.app.storage?.saveOptions) {
+      this.app.storage.saveOptions();
+    }
+    this.ensureMailRelayService();
+    return this.adminSnapshot();
+  }
+
+  respondTo(type = '') {
+    if (type === 'admin-config') {
+      return {
+        id: this.returnSlug(),
+        name: this.name,
+        getConfig: async () => this.adminSnapshot(),
+        updateConfig: async (data = {}) => {
+          if (data.action === 'save-config') {
+            return this.saveSendgridConfig(data.config);
+          }
+          throw new Error('Unknown SendGrid configuration action');
+        }
+      };
+    }
+
+    if (type === 'admin-sidebar') {
+      if (!this.app.BROWSER) {
+        return null;
+      }
+      return {
+        id: 'sendgrid',
+        name: 'Sendgrid',
+        render: () => {
+          if (!this.admin_ui) {
+            this.admin_ui = new MailRelayAdmin(this.app, this);
+          }
+          this.admin_ui.render();
+        }
+      };
+    }
+
+    return super.respondTo(type);
   }
 }
 

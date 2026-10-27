@@ -13,6 +13,7 @@ const {
 } = require('./lib/categories');
 const index = require('./index');
 const StoreWithdrawals = require('./lib/withdrawal');
+const StoreAdmin = require('./lib/admin/store-admin');
 
 class Store extends ModTemplate {
   constructor(app) {
@@ -772,6 +773,22 @@ class Store extends ModTemplate {
   }
 
   respondTo(type = '', obj) {
+    if (type === 'admin-sidebar') {
+      if (!this.app.BROWSER) {
+        return null;
+      }
+      return {
+        id: this.returnSlug(),
+        name: this.name,
+        render: () => {
+          if (!this.admin_ui) {
+            this.admin_ui = new StoreAdmin(this.app, this);
+          }
+          this.admin_ui.render();
+        }
+      };
+    }
+
     if (type === 'redsquare-profile') {
       const publicKey = String(obj?.publicKey || '').trim();
       if (!publicKey) {

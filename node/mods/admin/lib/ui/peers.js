@@ -33,10 +33,8 @@ class AdminPeersUI {
   refresh() {
     this.app.browser.replaceElementContentBySelector(
       PeersTemplate({
-        endpoint: this.serverEndpoint(),
-        public_key: this.mod.server_publickey || '',
-        live: this.live,
-        offline: this.offlineConfigured(),
+        ...this.serverAddress(),
+        peers: this.peerRows(),
         error: this.error,
         notice: this.notice,
         loading_live: this.loading_live
@@ -55,27 +53,59 @@ class AdminPeersUI {
     }));
   }
 
-  serverEndpoint() {
+  serverAddress() {
     const server = this.mod.server_info?.options?.server || {};
     const endpoint = server.endpoint || server;
     const protocol = endpoint.protocol || server.protocol || '';
     const host = endpoint.host || server.host || '';
     const port = endpoint.port || server.port || '';
-    if (!protocol || !host || !port) {
-      return '';
-    }
-    return `${protocol}://${host}:${port}`;
+    const url = protocol && host && port ? `${protocol}://${host}:${port}` : '';
+    return {
+      url,
+      host: String(host || ''),
+      port: port === '' || port == null ? '' : String(port)
+    };
   }
 
   peerKey(peer) {
     return `${String(peer.host || '').toLowerCase()}|${String(peer.port || '')}`;
   }
 
-  offlineConfigured() {
-    const live_keys = new Set(this.live.map((p) => this.peerKey(p)));
-    return this.configured
-      .map((p, index) => ({ ...p, index }))
-      .filter((p) => !live_keys.has(this.peerKey(p)));
+  peerRows() {
+    const liveByKey = new Map(this.live.map((peer) => [this.peerKey(peer), peer]));
+    const rows = [];
+    const seen = new Set();
+
+    for (const peer of this.configured) {
+      const key = this.peerKey(peer);
+      seen.add(key);
+      const live = liveByKey.get(key);
+      rows.push({
+        key,
+        host: peer.host,
+        port: peer.port,
+        publicKey: live?.publicKey || '',
+        verified: !!live?.publicKey,
+        saved: true
+      });
+    }
+
+    for (const peer of this.live) {
+      const key = this.peerKey(peer);
+      if (seen.has(key) || !peer.host) {
+        continue;
+      }
+      rows.push({
+        key,
+        host: peer.host,
+        port: peer.port,
+        publicKey: peer.publicKey || '',
+        verified: !!peer.publicKey,
+        saved: false
+      });
+    }
+
+    return rows;
   }
 
   attachEvents() {
@@ -112,12 +142,39 @@ class AdminPeersUI {
       };
     }
 
-    document.querySelectorAll('.admin-peer-remove').forEach((btn) => {
-      btn.onclick = () => {
-        const idx = parseInt(btn.dataset.index, 10);
-        this.removePeer(idx);
+    document.querySelectorAll('[data-peer-type]').forEach((select) => {
+      select.onchange = () => {
+        this.setPeerSaved(select.getAttribute('data-peer-key'), select.value === 'saved');
       };
     });
+  }
+
+  setPeerSaved(key, saved) {
+    const index = this.configured.findIndex((peer) => this.peerKey(peer) === key);
+    if (saved && index >= 0) {
+      return;
+    }
+    if (!saved) {
+      this.removePeer(index);
+      return;
+    }
+
+    const live = this.live.find((peer) => this.peerKey(peer) === key);
+    if (!live?.host || !live?.port) {
+      this.error = 'That peer does not have a host and port to save.';
+      this.notice = '';
+      this.refresh();
+      return;
+    }
+
+    const protocol = live.protocol === 'http' ? 'http' : 'https';
+    this.configured.push({
+      host: live.host,
+      port: Number(live.port),
+      protocol,
+      synctype: live.synctype === 'lite' ? 'lite' : 'full'
+    });
+    this.savePeers('add');
   }
 
   addPeer() {

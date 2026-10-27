@@ -10,6 +10,8 @@ const Transfers = require('./lib/transfers');
 const TransferTesting = require('./lib/testing');
 const MigrationService = require('./lib/migration');
 const migrationClient = require('./lib/ui/migration/client');
+const MixinAdmin = require('./lib/admin/mixin-admin');
+
 class Mixin extends ModTemplate {
   constructor(app) {
     super(app);
@@ -839,6 +841,23 @@ class Mixin extends ModTemplate {
           }
           await testing.advanceTransfer(config.id, config.action);
           return this.adminPaymentsConfig(testing, config);
+        }
+      };
+    }
+
+    if (type === 'admin-sidebar') {
+      if (!this.app.BROWSER) {
+        return null;
+      }
+
+      return {
+        id: 'payments',
+        name: 'Payments',
+        render: () => {
+          if (!this.admin_ui) {
+            this.admin_ui = new MixinAdmin(this.app, this);
+          }
+          this.admin_ui.render();
         }
       };
     }

@@ -7,8 +7,6 @@ const AdminPeersUI = require('./peers');
 const AdminDatabaseUI = require('./database');
 const AdminBlocksUI = require('./blocks');
 const AdminMempoolUI = require('./mempool');
-const AdminFaucetUI = require('./faucet');
-const AdminPaymentsUI = require('./payments');
 const AdministratorsUI = require('./administrators');
 
 class AdminMain {
@@ -27,8 +25,6 @@ class AdminMain {
     this.database_ui = new AdminDatabaseUI(app, mod);
     this.blocks_ui = new AdminBlocksUI(app, mod);
     this.mempool_ui = new AdminMempoolUI(app, mod);
-    this.faucet_ui = new AdminFaucetUI(app, mod);
-    this.payments_ui = new AdminPaymentsUI(app, mod);
     this.administrators_ui = new AdministratorsUI(app, mod);
   }
 
@@ -98,12 +94,9 @@ class AdminMain {
       this.mempool_ui.render();
     }
 
-    if (view === 'faucet') {
-      this.faucet_ui.render();
-    }
-
-    if (view === 'payments') {
-      this.payments_ui.render();
+    const sidebar = this.sidebarPanel(view);
+    if (sidebar) {
+      sidebar.render();
     }
 
     if (view === 'administrators') {
@@ -141,6 +134,22 @@ class AdminMain {
     if (nav) {
       nav.classList.add('active');
     }
+  }
+
+  // Installed modules contribute a panel with respondTo('admin-sidebar'):
+  // { id, name, render }. Clicking the entry calls render().
+  sidebarPanels() {
+    return (this.app.modules.getRespondTos?.('admin-sidebar') || []).filter(
+      (panel) =>
+        panel &&
+        typeof panel.render === 'function' &&
+        panel.name &&
+        /^[a-z0-9_-]+$/i.test(String(panel.id || ''))
+    );
+  }
+
+  sidebarPanel(view) {
+    return this.sidebarPanels().find((panel) => panel.id === view) || null;
   }
 
   attachEvents() {

@@ -1,29 +1,43 @@
 module.exports = (app, mod) => {
-  const admin_configs = app.modules.getRespondTos?.('admin-config') || [];
-  const faucet = admin_configs.find((config) => config.id === 'faucet');
-  const payments = admin_configs.find((config) => config.id === 'mixin');
+  const sidebars = (app.modules.getRespondTos?.('admin-sidebar') || []).filter(
+    (panel) =>
+      panel &&
+      typeof panel.render === 'function' &&
+      panel.name &&
+      /^[a-z0-9_-]+$/i.test(String(panel.id || ''))
+  );
+
+  const escapeHtml = (value = '') =>
+    String(value)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+
+  const sidebarNav = sidebars
+    .map(
+      (panel) =>
+        `<div class="saito-admin-nav-item" data-admin-view="${escapeHtml(panel.id)}">${escapeHtml(
+          panel.name
+        )}</div>`
+    )
+    .join('');
+
+  const sidebarPages = sidebars
+    .map((panel) => `<div class="admin-page admin-${escapeHtml(panel.id)}"></div>`)
+    .join('');
 
   return `
     <div class="saito-admin-main">
       <div class="saito-admin-sidebar">
         <div class="saito-admin-nav-item overview active" data-admin-view="overview">Overview</div>
+        <div class="saito-admin-nav-item peers" data-admin-view="peers">Network</div>
         <div class="saito-admin-nav-item modules" data-admin-view="modules">Modules</div>
-        <div class="saito-admin-nav-item peers" data-admin-view="peers">Peers</div>
         <div class="saito-admin-nav-item administrators" data-admin-view="administrators">Administrators</div>
         <div class="saito-admin-nav-item database" data-admin-view="database">Database</div>
         <div class="saito-admin-nav-item blocks" data-admin-view="blocks">Blocks</div>
         <div class="saito-admin-nav-item mempool" data-admin-view="mempool">Mempool</div>
-        ${
-          faucet
-            ? `<div class="saito-admin-nav-item faucet" data-admin-view="faucet">Faucet</div>`
-            : ''
-        }
-        ${
-          payments
-            ? `<div class="saito-admin-nav-item payments" data-admin-view="payments">Payments</div>`
-            : ''
-        }
-        <div class="saito-admin-nav-item options" data-admin-view="options">Config</div>
+        ${sidebarNav}
       </div>
 
       <div class="saito-admin-content" id="saito-admin-content">
@@ -41,14 +55,7 @@ module.exports = (app, mod) => {
 
         <div class="admin-page admin-mempool"></div>
 
-        ${faucet ? `<div class="admin-page admin-faucet"></div>` : ''}
-
-        ${payments ? `<div class="admin-page admin-payments"></div>` : ''}
-
-        <div class="admin-page admin-options">
-          <h1>Config</h1>
-          <p>Visual configuration options will be available here.</p>
-        </div>
+        ${sidebarPages}
 
         <div class="admin-wiki">For manual setup instructions, please see our install instructions in the <a target="_blank" href="https://wiki.saito.io">Saito Wiki</a>.</div>
 

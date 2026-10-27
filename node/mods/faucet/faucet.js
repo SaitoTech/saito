@@ -9,6 +9,7 @@ const Auth = require('./lib/ui/auth');
 const Waiting = require('./lib/ui/waiting');
 const Success = require('./lib/ui/success');
 const Main = require('./lib/ui/main');
+const FaucetAdmin = require('./lib/admin/faucet-admin');
 const { readFaucetMode, saveFaucetMode } = require('./lib/mode');
 
 const FREE_USE_COOLDOWN_MS = 24 * 60 * 60 * 1000;
@@ -186,6 +187,23 @@ class Faucet extends ModTemplate {
         name: this.name,
         getConfig: async () => this.adminConfigSnapshot(),
         updateConfig: async (config = {}) => this.updateAdminConfig(config)
+      };
+    }
+
+    if (type === 'admin-sidebar') {
+      if (!this.app.BROWSER) {
+        return null;
+      }
+
+      return {
+        id: this.returnSlug(),
+        name: this.name,
+        render: () => {
+          if (!this.admin_ui) {
+            this.admin_ui = new FaucetAdmin(this.app, this);
+          }
+          this.admin_ui.render();
+        }
       };
     }
 

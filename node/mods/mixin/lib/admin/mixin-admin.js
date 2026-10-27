@@ -1,6 +1,6 @@
-const PaymentsTemplate = require('./payments.template');
+const PaymentsTemplate = require('./mixin-admin.template');
 
-class AdminPaymentsUI {
+class MixinAdmin {
   constructor(app, mod, container = '.admin-payments') {
     this.app = app;
     this.mod = mod;
@@ -23,6 +23,10 @@ class AdminPaymentsUI {
     this.depositAddresses = [];
   }
 
+  admin() {
+    return this.app.modules.returnModule('Admin');
+  }
+
   render() {
     this.transfers = [];
     this.account = undefined;
@@ -41,7 +45,7 @@ class AdminPaymentsUI {
     this.savingApiKey = false;
     this.depositAddresses = [];
 
-    if (!this.mod.server_info) {
+    if (!this.admin()?.server_info) {
       this.app.browser.replaceElementContentBySelector(
         `<p class="admin-payments-empty">Waiting for the server to finish authenticating this administrator.</p>`,
         this.container
@@ -162,7 +166,12 @@ class AdminPaymentsUI {
   }
 
   async sendAdminRequest(request, data, callback) {
-    const tx = await this.app.wallet.createUnsignedTransactionWithDefaultFee(this.mod.server_publickey);
+    const admin = this.admin();
+    if (!admin?.server_publickey) {
+      return;
+    }
+
+    const tx = await this.app.wallet.createUnsignedTransactionWithDefaultFee(admin.server_publickey);
     tx.msg = {
       module: 'Admin',
       request,
@@ -173,7 +182,7 @@ class AdminPaymentsUI {
     this.app.network.sendTransactionWithCallback(
       tx,
       (res_tx) => callback(res_tx.returnMessage()),
-      this.mod.server_publickey
+      admin.server_publickey
     );
   }
 
@@ -396,4 +405,4 @@ class AdminPaymentsUI {
   }
 }
 
-module.exports = AdminPaymentsUI;
+module.exports = MixinAdmin;
