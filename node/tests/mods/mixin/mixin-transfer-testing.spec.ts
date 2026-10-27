@@ -77,6 +77,27 @@ function memoryDatabase(initial = []) {
         Object.assign(row, fields);
       }
     },
+    async claimInboundPayment(id, fields) {
+      const hash = String(fields.inbound_tx_hash || '').trim();
+      const real = hash !== '' && hash !== 'admin-test';
+      if (real) {
+        const owner = rows.find(
+          (row) => String(row.id) !== String(id) && String(row.inbound_tx_hash || '') === hash
+        );
+        if (owner) {
+          console.error('Mixin inbound payment already claimed', {
+            inbound_tx_hash: hash,
+            owner_transfer_id: owner.id,
+            owner_purpose: owner.purpose || '',
+            attempted_transfer_id: id,
+            attempted_purpose: rows.find((row) => String(row.id) === String(id))?.purpose || ''
+          });
+          return { ok: false, conflict: { id: owner.id, purpose: owner.purpose || '' } };
+        }
+      }
+      await this.updateTransfer(id, { ...fields, inbound_tx_hash: hash });
+      return { ok: true, conflict: null };
+    },
     async getTransfersPendingInboundBroadcast() {
       return select(
         (row) => row.mode === 'automatic' && !Number(row.excluded) && row.status === 'inbound_awaiting'
@@ -528,7 +549,9 @@ describe('Mixin admin payment testing', () => {
           refund: 'buyer-key',
           nft_id: 'nft-1',
           web3_ticker: 'ETH',
-          web3_amount: '1.25'
+          web3_amount: '1.25',
+          inbound_payment_uuid: 'admin-test',
+          transfer_uuid: '11'
         })
       })
     );

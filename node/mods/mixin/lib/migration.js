@@ -307,11 +307,7 @@ class MigrationService {
     if (!txHash) {
       throw new Error('Migration deposit hash is required.');
     }
-    const duplicate = await this.findByInboundHash(txHash);
-    if (duplicate && String(duplicate.id) !== String(row.id)) {
-      throw new Error('Migration deposit was already recorded.');
-    }
-    await this.mod.database.updateTransfer(row.id, {
+    const claimed = await this.mod.database.claimInboundPayment(row.id, {
       status: 'inbound_confirmed',
       inbound_amount: String(allocated),
       outbound_amount: String(allocated),
@@ -319,6 +315,9 @@ class MigrationService {
       inbound_confirmations: 1,
       inbound_confirmations_required: 1
     });
+    if (!claimed?.ok) {
+      throw new Error('Migration deposit was already recorded.');
+    }
     this.mod.creditDepositAddress?.(row.inbound_address, amount, txHash);
     return (await this.mod.database.getTransfers({ id: row.id }))[0];
   }

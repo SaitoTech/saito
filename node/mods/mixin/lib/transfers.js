@@ -146,16 +146,6 @@ class Transfers {
         const confirmed = match.confirmations >= Number(row.inbound_confirmations_required || 0);
         const next = confirmed ? 'inbound_confirmed' : 'inbound_broadcast';
         if (row.purpose === 'migration') {
-          const duplicate = await this.mod.migration.findByInboundHash(match.hash);
-          // Migration only. The same external deposit hash cannot fund a second
-          // migration row. The open row keeps its status. This duplicate-deposit
-          // rule must not be applied to BuySaito or any other purpose.
-          if (duplicate && String(duplicate.id) !== String(row.id)) {
-            await this.mod.database.updateTransfer(row.id, {
-              last_error: 'Migration deposit was already recorded'
-            });
-            continue;
-          }
           let allocated;
           try {
             // Migration only. The payout is the received amount, and amounts above
@@ -163,17 +153,20 @@ class Transfers {
             // instead, so this cap must not be applied to other purposes.
             allocated = this.mod.migration.allocationForDeposit(match.amount);
           } catch (err) {
-            await this.mod.database.updateTransfer(row.id, {
+            const claimed = await this.claimObservedInboundPayment(row, {
               status: 'failed',
               last_error: err.message,
               inbound_tx_hash: match.hash
             });
+            if (!claimed) {
+              continue;
+            }
             email.sendStatusEmail(this.app, 0, { ...row, inbound_amount: match.amount }, err.message);
             await email.sendFailureNotice(this.app, row.recipient_publickey || row.requester_publickey);
             this.mod.creditDepositAddress?.(row.inbound_address, match.amount, match.hash);
             continue;
           }
-          await this.mod.database.updateTransfer(row.id, {
+          const claimed = await this.claimObservedInboundPayment(row, {
             status: next,
             inbound_amount: String(allocated),
             outbound_amount: String(allocated),
@@ -185,6 +178,9 @@ class Transfers {
             inbound_received_at: row.inbound_received_at || now,
             last_error: ''
           });
+          if (!claimed) {
+            continue;
+          }
           this.mod.creditDepositAddress?.(row.inbound_address, match.amount, match.hash);
           continue;
         }
@@ -193,7 +189,7 @@ class Transfers {
         // payment-detected notice is a BuySaito client message and must not be
         // sent for migration or any other purpose.
         if (row.purpose === 'buysaito') {
-          await this.mod.database.updateTransfer(row.id, {
+          const claimed = await this.claimObservedInboundPayment(row, {
             status: next,
             inbound_tx_hash: match.hash,
             inbound_tx_id: match.id,
@@ -201,6 +197,9 @@ class Transfers {
             inbound_confirmations: match.confirmations,
             inbound_received_at: row.inbound_received_at || now
           });
+          if (!claimed) {
+            continue;
+          }
           const detected = {
             id: row.id,
             address: row.inbound_address,
@@ -247,7 +246,7 @@ class Transfers {
           if (row.inbound_tx_hash && match.hash && match.hash !== row.inbound_tx_hash) {
             continue;
           }
-          await this.mod.database.updateTransfer(row.id, {
+          await this.claimObservedInboundPayment(row, {
             inbound_tx_hash: match.hash || row.inbound_tx_hash,
             inbound_tx_id: match.id || row.inbound_tx_id,
             inbound_sender: match.sender || row.inbound_sender,
@@ -259,7 +258,7 @@ class Transfers {
         // deposit. This refresh must not rewrite the reserved amounts or run
         // migration allocation.
         if (row.purpose === 'buysaito') {
-          await this.mod.database.updateTransfer(row.id, {
+          await this.claimObservedInboundPayment(row, {
             inbound_tx_hash: match.hash || row.inbound_tx_hash,
             inbound_tx_id: match.id || row.inbound_tx_id,
             inbound_sender: match.sender || row.inbound_sender,
@@ -513,6 +512,20 @@ class Transfers {
     return observations;
   }
 
+  async claimObservedInboundPayment(row, fields) {
+    const result = await this.mod.database.claimInboundPayment(row.id, fields);
+    if (result?.ok) {
+      return true;
+    }
+    const ownerId = result?.conflict?.id;
+    const message =
+      row.purpose === 'migration'
+        ? 'Migration deposit was already recorded'
+        : `Inbound payment ${fields.inbound_tx_hash} is already claimed by transfer ${ownerId}`;
+    await this.mod.database.updateTransfer(row.id, { last_error: message });
+    return false;
+  }
+
   findMatchingInboundPayment(row, observation) {
     if (!observation) {
       return null;
@@ -645,7 +658,7 @@ class Transfers {
     }
 
     const now = Date.now();
-    await this.mod.database.updateTransfer(current.id, {
+    const claimed = await this.claimObservedInboundPayment(current, {
       status: 'inbound_confirmed',
       inbound_tx_hash: hash,
       inbound_tx_id: inboundId,
@@ -656,6 +669,9 @@ class Transfers {
       inbound_received_at: current.inbound_received_at || now,
       last_error: ''
     });
+    if (!claimed) {
+      return (await this.mod.database.getTransfers({ id: current.id }))?.[0] || current;
+    }
     this.mod.creditDepositAddress?.(current.inbound_address, amount, hash);
 
     const updated = (await this.mod.database.getTransfers({ id: current.id }))[0];
@@ -678,6 +694,9 @@ class Transfers {
 
   async issueOutboundTransfer(row) {
     if (!row || row.outbound_tx_sig) {
+      return row;
+    }
+    if (row.purpose === 'store-withdrawal') {
       return row;
     }
     let amount = row.outbound_amount;
@@ -780,7 +799,19 @@ class Transfers {
         }
         return (await this.mod.database.getTransfers({ id: row.id }))[0];
       }
-      const { tx, recipient } = await createBuySaitoPayoutTransaction(this.app, row, required);
+      let issued;
+      try {
+        issued = await createBuySaitoPayoutTransaction(this.app, row, required);
+      } catch (err) {
+        if (err?.message === 'Store purchase is missing its inbound payment id or transfer id') {
+          if (row.last_error !== err.message) {
+            await this.mod.database.updateTransfer(row.id, { last_error: err.message });
+          }
+          return (await this.mod.database.getTransfers({ id: row.id }))[0];
+        }
+        throw err;
+      }
+      const { tx, recipient } = issued;
       await this.mod.database.updateTransfer(row.id, {
         status: 'outbound_awaiting',
         outbound_tx: tx.serialize_to_web(this.app),
@@ -1107,7 +1138,34 @@ class Transfers {
           outbound_confirmation_block_id: blockId + Number(row.outbound_confirmations_required || 0)
         });
     }
+    await this.observeStoreWithdrawalInclusions(signatures, block);
     await this.processTransferQueue();
+  }
+
+  async observeStoreWithdrawalInclusions(signatures, block) {
+    const rows = await this.mod.database.listStoreWithdrawalsAwaitingInclusion?.();
+    for (const row of rows || []) {
+      if (!row.inbound_tx_sig || !signatures.has(row.inbound_tx_sig)) {
+        continue;
+      }
+      const blockId = Number(block.id);
+      const required = Number(row.inbound_confirmations_required || 0);
+      try {
+        await this.mod.database.updateTransfer(row.id, {
+          inbound_block_id: blockId,
+          inbound_block_hash: block.hash || '',
+          inbound_confirmation_block_id: blockId + required,
+          inbound_longest_chain: 1,
+          inbound_confirmations: required === 0 ? 1 : 0
+        });
+      } catch (err) {
+        console.error('Mixin store withdrawal inclusion was not recorded', {
+          transfer_id: row.id,
+          inbound_tx_sig: row.inbound_tx_sig,
+          error: err?.message || String(err)
+        });
+      }
+    }
   }
 
   async onChainReorganization(blockId, blockHash, longestChain) {
@@ -1129,6 +1187,26 @@ class Transfers {
           outbound_block_hash: '',
           outbound_confirmation_block_id: null
         });
+      }
+    }
+    if (!longestChain) {
+      const withdrawals = await this.mod.database.listStoreWithdrawalsInBlock?.(blockId, blockHash);
+      for (const row of withdrawals || []) {
+        try {
+          await this.mod.database.updateTransfer(row.id, {
+            inbound_longest_chain: 0,
+            inbound_block_id: null,
+            inbound_block_hash: '',
+            inbound_confirmation_block_id: null,
+            inbound_confirmations: 0
+          });
+        } catch (err) {
+          console.error('Mixin store withdrawal reorganization was not recorded', {
+            transfer_id: row.id,
+            inbound_tx_sig: row.inbound_tx_sig,
+            error: err?.message || String(err)
+          });
+        }
       }
     }
     await this.processTransferQueue();

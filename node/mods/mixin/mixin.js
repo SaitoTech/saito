@@ -249,6 +249,30 @@ class Mixin extends ModTemplate {
       return 1;
     }
 
+    if (!this.app.BROWSER && message.request === 'store-withdrawal') {
+      const { receiveStoreWithdrawal } = require('./lib/store-withdrawal');
+      const embedded = message.data?.transaction ?? message.transaction;
+      let withdrawalTx = tx;
+      if (embedded && typeof embedded === 'object') {
+        withdrawalTx = embedded;
+      } else if (typeof embedded === 'string' && embedded) {
+        try {
+          const Transaction = require('../../lib/saito/transaction').default;
+          withdrawalTx = new Transaction();
+          withdrawalTx.deserialize_from_web(this.app, embedded);
+        } catch (err) {
+          withdrawalTx = null;
+        }
+      }
+      const result = withdrawalTx
+        ? await receiveStoreWithdrawal(this, withdrawalTx, peer)
+        : { err: 'The withdrawal transaction could not be read.' };
+      if (mycallback) {
+        mycallback(result);
+      }
+      return 1;
+    }
+
     if (message.request === 'mixin create account') {
       try {
         const created = await this.accounts.createAccount(tx.from[0].publicKey);

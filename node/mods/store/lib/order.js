@@ -17,6 +17,8 @@ class Order {
     this.payment_tx_sig = data.payment_tx_sig || data.order_tx_sig || data.signature || '';
     this.payment_output_index = Number(data.payment_output_index ?? 0);
     this.payment_amount = Number(data.payment_amount ?? 0);
+    this.inbound_payment_uuid = data.inbound_payment_uuid || '';
+    this.transfer_uuid = data.transfer_uuid || '';
     this.utxo_slip = data.utxo_slip || data.payment_utxo_slip || '';
     this.access_hash = data.access_hash || data.payment_access_hash || '';
     this.access_script = data.access_script || data.payment_access_script || '';
@@ -33,6 +35,8 @@ class Order {
     this.longest_chain_received = data.longest_chain_received ?? data.longest_chain_added ?? 1;
 
     this.settlement_tx_sig = data.settlement_tx_sig || '';
+    // Web serialization of the signed settlement. The signature alone cannot be rebroadcast.
+    this.settlement_tx = data.settlement_tx || '';
 
     this.block_id_fulfilled = Number(data.block_id_fulfilled ?? 0);
     this.block_hash_fulfilled = data.block_hash_fulfilled || '';
@@ -112,6 +116,8 @@ class Order {
       $payment_tx_sig: this.payment_tx_sig,
       $payment_output_index: Number(this.payment_output_index ?? 0),
       $payment_amount: Number(this.payment_amount ?? 0),
+      $inbound_payment_uuid: this.inbound_payment_uuid || '',
+      $transfer_uuid: this.transfer_uuid || '',
       $utxo_slip: this.utxo_slip || '',
       $access_hash: this.access_hash || '',
       $access_script: this.access_script || '',

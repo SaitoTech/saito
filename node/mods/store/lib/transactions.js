@@ -34,6 +34,25 @@ function isWeb3PurchaseMessage(txmsg = {}) {
   return ticker !== '' && ticker !== 'SAITO';
 }
 
+// inbound_payment_uuid is the external Mixin transaction hash.
+// transfer_uuid is the decimal transfers.id. Other shapes are not retained.
+function storePaymentIdentifiers(txmsg = {}) {
+  const inbound =
+    typeof txmsg.inbound_payment_uuid === 'string' ? txmsg.inbound_payment_uuid.trim() : '';
+  const rawTransfer = txmsg.transfer_uuid;
+  let transfer = '';
+  if (typeof rawTransfer === 'number' && Number.isSafeInteger(rawTransfer) && rawTransfer > 0) {
+    transfer = String(rawTransfer);
+  } else if (typeof rawTransfer === 'string' && /^[1-9]\d*$/.test(rawTransfer.trim())) {
+    const parsed = Number(rawTransfer.trim());
+    transfer = Number.isSafeInteger(parsed) ? rawTransfer.trim() : '';
+  }
+  return {
+    inbound_payment_uuid: inbound,
+    transfer_uuid: transfer
+  };
+}
+
 function web3RefundRecipient(app, txmsg = {}) {
   for (const candidate of [txmsg.refund, txmsg.buyer]) {
     const key = String(candidate || '').trim();
@@ -53,6 +72,19 @@ function purchaseSenderPublicKey(tx) {
     }
   }
   return '';
+}
+
+function web3PaymentProcessorKeys(mod) {
+  const configured = mod?.web3_payment_processor_publickey;
+  const listed = Array.isArray(configured) ? configured : configured ? [configured] : [];
+  const keys = [];
+  for (const candidate of [...listed, mod?.publicKey]) {
+    const key = String(candidate || '').trim();
+    if (key && !keys.includes(key)) {
+      keys.push(key);
+    }
+  }
+  return keys;
 }
 
 function p2shPaymentRecipient(app, p2sh_address, context) {
@@ -982,10 +1014,15 @@ module.exports = {
       throw new Error('Store purchase refund recipient is missing');
     }
     const payment_slip = tx.to?.[payment_utxo.payment_output_index];
+    const identifiers = web3_purchase
+      ? storePaymentIdentifiers(txmsg)
+      : { inbound_payment_uuid: '', transfer_uuid: '' };
     return new Order({
       order_tx_sig: tx.signature,
       buyer,
       note: String(txmsg.note || ''),
+      inbound_payment_uuid: identifiers.inbound_payment_uuid,
+      transfer_uuid: identifiers.transfer_uuid,
       payment_tx_sig: payment_utxo.payment_tx_sig,
       payment_output_index: payment_utxo.payment_output_index,
       payment_amount: Number(payment_utxo.payment_amount),
@@ -1097,19 +1134,7 @@ module.exports = {
     if (this.app.BROWSER) {
       return;
     }
-
-    const refund_tx = await this.createOrderRefundTransaction({
-      order_row: order,
-      refund_public_key,
-      reason
-    });
-    if (!refund_tx) {
-      return;
-    }
-
-    await refund_tx.sign();
-    this.app.network.propagateTransaction(refund_tx);
-    console.log('Store: propagating order refund', refund_tx.signature, reason);
+    return this.warehouse.refunds.issue(order, { refund_public_key, reason });
   },
 
   async receivePurchaseAssetTransaction(blk, tx) {
@@ -1164,7 +1189,11 @@ module.exports = {
 
     const refund = async (reason) => {
       if (!refund_order) {
-        console.warn('Store: cannot refund purchase without payment UTXO', reason);
+        console.error('Store: refund requires manual investigation because the purchase has no payment output', {
+          purchase_tx_sig: tx?.signature || '',
+          block_hash: received_block_hash,
+          reason
+        });
         return;
       }
       try {
@@ -1178,12 +1207,12 @@ module.exports = {
     };
 
     if (isWeb3PurchaseMessage(txmsg)) {
-      const processor = String(this.web3_payment_processor_publickey || '').trim();
+      const processors = web3PaymentProcessorKeys(this);
       const sender = purchaseSenderPublicKey(tx);
-      if (!processor || sender !== processor) {
+      if (!processors.includes(sender)) {
         console.warn('Store: web3 purchase is not from the authorized processor', {
           sender,
-          authorized: processor || '(none)'
+          authorized: processors
         });
         await refund('web3-purchase-unauthorized');
         return;
@@ -1264,6 +1293,12 @@ module.exports = {
       order.note = String(txmsg.note || '');
       order.created_at = now;
       order.updated_at = now;
+      if (web3_purchase && (!order.inbound_payment_uuid || !order.transfer_uuid)) {
+        console.warn('Store: web3 purchase is missing a valid inbound payment id or transfer id', {
+          inbound_payment_uuid: txmsg.inbound_payment_uuid,
+          transfer_uuid: txmsg.transfer_uuid
+        });
+      }
       // A different block hash is a new inclusion and gets its own row with its own
       // payment slip; the same block hash is a repeat delivery of one we already hold.
       if (!(await this.warehouse.addOrder(order))) {

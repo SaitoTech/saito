@@ -1,5 +1,7 @@
+const { SYNTHETIC_INBOUND_TX_HASH } = require('./database');
+
 const TEST_SENDER = 'admin-test';
-const TEST_HASH = 'admin-test';
+const TEST_HASH = SYNTHETIC_INBOUND_TX_HASH;
 
 function testTransferId(id) {
   return `${TEST_HASH}:${id}`;

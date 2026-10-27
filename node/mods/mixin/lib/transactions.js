@@ -43,6 +43,29 @@ function receiveMigrationPayoutTransaction(tx, row) {
   return message.module === 'Mixin' && message.request === 'migration issuance';
 }
 
+// inbound_tx_hash is the Mixin transaction hash recorded when the deposit was
+// claimed. It identifies that external payment. inbound_tx_id is only the
+// snapshot or deposit id from whichever observation was read, so it is not used.
+// transfers.id is the persisted primary key of the credited row.
+function storeIssuanceIdentifiers(row) {
+  const inbound =
+    typeof row?.inbound_tx_hash === 'string' ? row.inbound_tx_hash.trim() : '';
+  const rawId = row?.id;
+  const transferId =
+    typeof rawId === 'number'
+      ? rawId
+      : typeof rawId === 'string' && /^[1-9]\d*$/.test(rawId)
+        ? Number(rawId)
+        : NaN;
+  if (!inbound || !Number.isSafeInteger(transferId) || transferId <= 0) {
+    return null;
+  }
+  return {
+    inbound_payment_uuid: inbound,
+    transfer_uuid: String(transferId)
+  };
+}
+
 async function createBuySaitoPayoutTransaction(app, row, amountNolan) {
   let recipient = row.recipient_publickey;
   let preserved = null;
@@ -56,8 +79,15 @@ async function createBuySaitoPayoutTransaction(app, row, amountNolan) {
         address.length === 66 && address.startsWith('00') ? app.crypto.toBase58(address) : address;
     }
   }
+  const storePurchase = preserved?.module === 'Store' && preserved?.request === 'purchase-asset';
+  const identifiers = storePurchase ? storeIssuanceIdentifiers(row) : null;
+  if (storePurchase && !identifiers) {
+    throw new Error('Store purchase is missing its inbound payment id or transfer id');
+  }
   const tx = await app.wallet.createUnsignedTransactionWithDefaultFee(recipient, amountNolan);
-  if (preserved) {
+  if (storePurchase) {
+    tx.msg = { ...preserved, ...identifiers };
+  } else if (preserved) {
     tx.msg = preserved;
   } else {
     tx.msg = {
@@ -103,5 +133,6 @@ module.exports = {
   receiveMigrationPayoutTransaction,
   createBuySaitoPayoutTransaction,
   receiveBuySaitoPayoutTransaction,
-  restoreSavedSignedTransaction
+  restoreSavedSignedTransaction,
+  storeIssuanceIdentifiers
 };

@@ -26,7 +26,7 @@ module.exports = ({
   const amount = `<input id="saito-overlay-form-input" class="saito-input text-input" type="${inputType}" value="${safeValue}" placeholder="${safePlaceholder}" />`;
   const tickerSelect =
     tickerList && tickerList.length
-      ? `<select id="saito-overlay-form-ticker" class="saito-input ticker" data-field="ticker" aria-label="Price ticker">${tickerList
+      ? `<select id="saito-overlay-form-ticker" class="saito-form-select ticker" data-field="ticker" aria-label="Price ticker">${tickerList
           .map(
             (item) =>
               `<option value="${escapeHtml(item)}"${item === selected ? ' selected' : ''}>${escapeHtml(item)}</option>`

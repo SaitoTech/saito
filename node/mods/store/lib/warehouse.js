@@ -21,6 +21,7 @@ const {
   slipPublicKey
 } = require('./helpers');
 const { loadTransactionFromArchive } = require('./archive');
+const Refunds = require('./refunds');
 const { initializeImageCache } = require('./images');
 const { checkSecurityLevel } = require('../../../lib/helpers/security');
 const {
@@ -42,6 +43,7 @@ class Warehouse {
     this.app = app;
     this.mod = mod;
     this.db = new Database(app, mod);
+    this.refunds = new Refunds(mod);
     this.listings = {};
     this.summaries = {};
     // Wind of a block that has no spend rows yet. Drained on the next canonical
@@ -99,6 +101,8 @@ class Warehouse {
       return;
     }
     await this.finishDeferredSpendRecovery();
+    await this.reconcileUnrecordedFulfillments();
+    await this.refunds.resume();
     await this.processQueue();
   }
 
@@ -129,6 +133,15 @@ class Warehouse {
     );
     await this.db.updateOrdersReceivedChainState(block_id, block_hash, longest_chain);
     await this.db.updateOrdersFulfilledChainState(block_id, block_hash, longest_chain);
+    try {
+      await this.db.updateRefundChainState(block_id, block_hash, longest_chain);
+    } catch (err) {
+      console.error('Store: refund chain status update failed', {
+        block_id,
+        block_hash,
+        error: err?.message || String(err)
+      });
+    }
 
     for (const row of Object.values(this.listings)) {
       const listed =
@@ -339,7 +352,9 @@ class Warehouse {
     await this.recordFulfillmentSpends(blk, tx, {
       buyer: order?.buyer || fulfill.buyer || '',
       note: order?.note || '',
-      quantity: order ? Number(order.quantity) || 1 : null
+      quantity: order ? Number(order.quantity) || 1 : null,
+      inbound_payment_uuid: order?.inbound_payment_uuid || '',
+      transfer_uuid: order?.transfer_uuid || ''
     });
 
     if (!order) {
@@ -360,12 +375,32 @@ class Warehouse {
       return;
     }
 
-    await this.db.updateOrder(order.id, {
-      status: ORDER_STATUS_FULFILLED,
-      block_id_fulfilled: fulfilled_block_id,
-      block_hash_fulfilled: fulfilled_block_hash,
-      transaction_id_fulfilled: fulfilled_transaction_id,
-      longest_chain_fulfilled: 1
+    try {
+      await this.db.updateOrder(order.id, {
+        status: ORDER_STATUS_FULFILLED,
+        block_id_fulfilled: fulfilled_block_id,
+        block_hash_fulfilled: fulfilled_block_hash,
+        transaction_id_fulfilled: fulfilled_transaction_id,
+        longest_chain_fulfilled: 1
+      });
+    } catch (err) {
+      console.error('Store: order fulfillment update failed', {
+        order_id: order.id,
+        settlement_tx_sig: tx.signature,
+        block_id: fulfilled_block_id,
+        block_hash: fulfilled_block_hash,
+        transaction_id: fulfilled_transaction_id,
+        error: err?.message || String(err)
+      });
+      return;
+    }
+
+    console.log('Store: settlement included in a block', {
+      order_id: order.id,
+      settlement_tx_sig: tx.signature,
+      block_id: fulfilled_block_id,
+      block_hash: fulfilled_block_hash,
+      transaction_id: fulfilled_transaction_id
     });
   }
 
@@ -440,7 +475,9 @@ class Warehouse {
           note: sale.note || '',
           buyer: sale.buyer || '',
           quantity_sold,
-          sold_at: now
+          sold_at: now,
+          inbound_payment_uuid: sale.inbound_payment_uuid || '',
+          transfer_uuid: sale.transfer_uuid || ''
         },
         now
       );
@@ -555,6 +592,66 @@ class Warehouse {
     return true;
   }
 
+  async reconcileUnrecordedFulfillments() {
+    if (this.app.BROWSER) {
+      return;
+    }
+    const orders = await this.db.returnSettlingOrders();
+    for (const row of orders || []) {
+      if (Number(row.block_id_fulfilled) > 0 || !row.settlement_tx_sig) {
+        continue;
+      }
+      try {
+        const found = await this.findSettlementInclusion(row.settlement_tx_sig);
+        if (!found) {
+          continue;
+        }
+        await this.confirmSettlement(found.blk, found.tx);
+      } catch (err) {
+        console.error('Store: fulfillment reconciliation failed', {
+          order_id: row.id,
+          settlement_tx_sig: row.settlement_tx_sig,
+          error: err?.message || String(err)
+        });
+      }
+    }
+  }
+
+  async findSettlementInclusion(signature) {
+    const chain = this.app?.blockchain;
+    if (
+      typeof chain?.getLatestBlockId !== 'function' ||
+      typeof chain?.getLongestChainHashAtId !== 'function' ||
+      typeof chain?.getBlock !== 'function'
+    ) {
+      console.error(
+        'Store: fulfillment reconciliation is unavailable because block retrieval APIs are missing',
+        { settlement_tx_sig: signature }
+      );
+      return null;
+    }
+    const latest = Number(await chain.getLatestBlockId()) || 0;
+    const lookback = Math.max(1, Number(this.mod.fulfillment_reconcile_blocks ?? 512) || 512);
+    const start = Math.max(1, latest - lookback + 1);
+    for (let id = latest; id >= start; id--) {
+      const hash = await chain.getLongestChainHashAtId(id);
+      if (!hash) {
+        continue;
+      }
+      const blk = await chain.getBlock(hash, true);
+      const tx = (blk?.transactions || []).find((item) => item?.signature === signature);
+      if (tx) {
+        return { blk, tx };
+      }
+    }
+    console.warn('Store: settlement was not found in the recent longest chain', {
+      settlement_tx_sig: signature,
+      lookback,
+      latest_block_id: latest
+    });
+    return null;
+  }
+
   async processQueue() {
     if (this.app.BROWSER) {
       return;
@@ -576,8 +673,19 @@ class Warehouse {
 
       if (!order.isProcessable()) {
         if (order.isAwaitingSettlementConfirmation()) {
+          // The signed settlement may still be accepted. Rebroadcast that transaction.
+          // Do not build another one and do not refund while block_id_fulfilled is 0.
+          await this.rebroadcastUnconfirmedSettlement(order);
           continue;
         }
+        console.log('Store: settlement queue skipped order', {
+          order_id: order.id,
+          status: order.status,
+          settlement_tx_sig: order.settlement_tx_sig || '',
+          block_id_fulfilled: Number(order.block_id_fulfilled) || 0,
+          longest_chain_fulfilled: Number(order.longest_chain_fulfilled) || 0,
+          reason: 'order is not pending'
+        });
         continue;
       }
 
@@ -595,19 +703,34 @@ class Warehouse {
 
   async resetOrphanedSettlements() {
     const rows = await this.db.returnOrphanedSettlingOrders();
-    const now = Date.now();
 
     for (const row of rows || []) {
       const order = new Order(row);
-      await this.clearSettlementPendingForOrder(order);
-      await this.db.updateOrder(order.id, {
-        settlement_tx_sig: '',
-        status: ORDER_STATUS_PENDING,
-        block_id_fulfilled: 0,
-        block_hash_fulfilled: '',
-        transaction_id_fulfilled: 0,
-        longest_chain_fulfilled: 0
+      console.log('Store: resetting orphaned settlement', {
+        order_id: order.id,
+        settlement_tx_sig: order.settlement_tx_sig,
+        block_id_fulfilled: Number(order.block_id_fulfilled) || 0,
+        longest_chain_fulfilled: Number(order.longest_chain_fulfilled) || 0,
+        reason: 'settlement was included, then left the longest chain'
       });
+      try {
+        await this.db.updateOrder(order.id, {
+          settlement_tx_sig: '',
+          settlement_tx: '',
+          status: ORDER_STATUS_PENDING,
+          block_id_fulfilled: 0,
+          block_hash_fulfilled: '',
+          transaction_id_fulfilled: 0,
+          longest_chain_fulfilled: 0
+        });
+      } catch (err) {
+        console.error('Store: orphaned settlement reset failed', {
+          order_id: order.id,
+          error: err?.message || String(err)
+        });
+        continue;
+      }
+      await this.clearSettlementPendingForOrder(order);
       await this.syncSummaryForBucket(order.nft_id, order.price);
     }
   }
@@ -675,14 +798,28 @@ class Warehouse {
 
     for (const row of rows || []) {
       const order = new Order(row);
-      await this.db.updateOrder(order.id, {
-        settlement_tx_sig: '',
-        status: ORDER_STATUS_PENDING,
-        block_id_fulfilled: 0,
-        block_hash_fulfilled: '',
-        transaction_id_fulfilled: 0,
-        longest_chain_fulfilled: 0
+      console.log('Store: resetting fulfilled order that left the longest chain', {
+        order_id: order.id,
+        settlement_tx_sig: order.settlement_tx_sig,
+        block_id_fulfilled: Number(order.block_id_fulfilled) || 0,
+        longest_chain_fulfilled: Number(order.longest_chain_fulfilled) || 0
       });
+      try {
+        await this.db.updateOrder(order.id, {
+          settlement_tx_sig: '',
+          settlement_tx: '',
+          status: ORDER_STATUS_PENDING,
+          block_id_fulfilled: 0,
+          block_hash_fulfilled: '',
+          transaction_id_fulfilled: 0,
+          longest_chain_fulfilled: 0
+        });
+      } catch (err) {
+        console.error('Store: orphaned fulfillment reset failed', {
+          order_id: order.id,
+          error: err?.message || String(err)
+        });
+      }
     }
   }
 
@@ -694,10 +831,8 @@ class Warehouse {
   }
 
   async failOrder(order) {
-    await this.db.updateOrder(order.id, { status: ORDER_STATUS_UNFULFILLABLE });
-
     try {
-      await this.mod.propagateOrderRefund(order, {
+      await this.refunds.issue(order, {
         refund_public_key: order.buyer,
         reason: 'unable-to-fulfill'
       });
@@ -784,8 +919,93 @@ class Warehouse {
     return listing_rows;
   }
 
+  restoreSettlementTransaction(serialized) {
+    const Transaction = require('../../../lib/saito/transaction').default;
+    const tx = new Transaction();
+    if (typeof tx.deserialize_from_web === 'function') {
+      tx.deserialize_from_web(this.app, serialized);
+    }
+    return tx;
+  }
+
+  /**
+   * Submit the settlement already saved for this order.
+   * propagateTransaction queues the transaction for the local consensus thread.
+   * That call does not report which peers received it, whether they accepted it,
+   * or whether it entered the mempool. Inclusion is observed later, when the
+   * same signature arrives in a block and confirmSettlement runs.
+   */
+  async rebroadcastUnconfirmedSettlement(order) {
+    const signature = String(order?.settlement_tx_sig || '');
+    const serialized = String(order?.settlement_tx || '');
+    console.log('Store: settlement awaiting confirmation', {
+      order_id: order?.id,
+      settlement_tx_sig: signature,
+      block_id_fulfilled: Number(order?.block_id_fulfilled) || 0,
+      stored_transaction: Boolean(serialized),
+      reason: 'status is settling and the settlement has not been included'
+    });
+
+    if (!signature || !serialized) {
+      console.warn('Store: unconfirmed settlement cannot be rebroadcast', {
+        order_id: order?.id,
+        settlement_tx_sig: signature,
+        reason: 'the database has the signature and not the signed transaction'
+      });
+      return false;
+    }
+
+    let tx = null;
+    try {
+      tx = this.restoreSettlementTransaction(serialized);
+    } catch (err) {
+      console.warn('Store: unconfirmed settlement could not be restored', {
+        order_id: order?.id,
+        settlement_tx_sig: signature,
+        error: err?.message || String(err)
+      });
+      return false;
+    }
+
+    if (!tx?.signature || tx.signature !== signature) {
+      console.warn('Store: restored settlement signature does not match the order', {
+        order_id: order?.id,
+        settlement_tx_sig: signature,
+        restored_signature: tx?.signature || ''
+      });
+      return false;
+    }
+
+    try {
+      const result = await this.app.network.propagateTransaction(tx);
+      console.log('Store: rebroadcast unconfirmed settlement', {
+        order_id: order?.id,
+        settlement_tx_sig: signature,
+        api: 'network.propagateTransaction',
+        result: result ?? null,
+        peer_acknowledgement: false
+      });
+      return true;
+    } catch (err) {
+      console.warn('Store: rebroadcast of unconfirmed settlement failed', {
+        order_id: order?.id,
+        settlement_tx_sig: signature,
+        api: 'network.propagateTransaction',
+        error: err?.message || String(err)
+      });
+      return false;
+    }
+  }
+
   async fulfillOrder(order_row, listing_rows) {
     const order = new Order(order_row);
+    console.log('Store: settlement construction started', {
+      order_id: order.id,
+      order_tx_sig: order.order_tx_sig,
+      nft_id: order.nft_id,
+      quantity: Number(order.quantity) || 1,
+      listing_signatures: (listing_rows || []).map((row) => row.signature).filter(Boolean)
+    });
 
     let fulfillment_tx = null;
     let listing_tx = null;
@@ -800,7 +1020,37 @@ class Warehouse {
 
       fulfillment_tx = await this.mod.createFulfillmentTransaction(order, listing_rows, listing_tx);
     } catch (err) {
-      console.warn('Store: fulfillOrder settlement build failed', err?.message);
+      console.warn('Store: settlement construction failed', {
+        order_id: order.id,
+        error: err?.message || String(err)
+      });
+      return false;
+    }
+
+    const signature = String(fulfillment_tx?.signature || '');
+    let serialized = '';
+    try {
+      serialized =
+        signature && typeof fulfillment_tx.serialize_to_web === 'function'
+          ? fulfillment_tx.serialize_to_web(this.app) || ''
+          : '';
+    } catch (err) {
+      console.warn('Store: settlement serialization failed', {
+        order_id: order.id,
+        settlement_tx_sig: signature,
+        error: err?.message || String(err)
+      });
+    }
+    console.log('Store: settlement signed', {
+      order_id: order.id,
+      settlement_tx_sig: signature,
+      serialized_transaction: Boolean(serialized)
+    });
+    if (!signature || !serialized) {
+      console.warn('Store: settlement was not saved because it has no signature or serialized form', {
+        order_id: order.id,
+        settlement_tx_sig: signature
+      });
       return false;
     }
 
@@ -827,13 +1077,46 @@ class Warehouse {
       }
     }
 
-    await this.db.updateOrder(order.id, {
-      settlement_tx_sig: fulfillment_tx.signature,
+    try {
+      await this.db.updateOrder(order.id, {
+        settlement_tx_sig: signature,
+        settlement_tx: serialized,
+        status: ORDER_STATUS_SETTLING
+      });
+    } catch (err) {
+      console.error('Store: settlement was not propagated because its order update failed', {
+        order_id: order.id,
+        settlement_tx_sig: signature,
+        error: err?.message || String(err)
+      });
+      return false;
+    }
+    console.log('Store: settlement persisted', {
+      order_id: order.id,
+      settlement_tx_sig: signature,
+      fields: ['settlement_tx_sig', 'settlement_tx', 'status'],
       status: ORDER_STATUS_SETTLING
     });
 
-    console.log('Store: fulfillOrder propagating settlement', fulfillment_tx.signature);
-    this.app.network.propagateTransaction(fulfillment_tx);
+    // The network API queues the transaction locally. It does not identify peers
+    // or return an acceptance result. A thrown error is the only failure signal.
+    try {
+      const result = await this.app.network.propagateTransaction(fulfillment_tx);
+      console.log('Store: settlement submitted', {
+        order_id: order.id,
+        settlement_tx_sig: signature,
+        api: 'network.propagateTransaction',
+        result: result ?? null,
+        peer_acknowledgement: false
+      });
+    } catch (err) {
+      console.warn('Store: settlement submission failed', {
+        order_id: order.id,
+        settlement_tx_sig: signature,
+        api: 'network.propagateTransaction',
+        error: err?.message || String(err)
+      });
+    }
     return true;
   }
 

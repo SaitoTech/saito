@@ -11,17 +11,32 @@ function escapeHtml(value = '') {
     .replace(/"/g, '&quot;');
 }
 
+function addStoreWeb3Ticker(tickers, ticker) {
+  const value = String(ticker || '').trim().toUpperCase();
+  if (!value || value === 'SAITO' || EXCLUDED_WEB3_TICKERS.has(value) || tickers.includes(value)) {
+    return;
+  }
+  tickers.push(value);
+}
+
 function returnStoreWeb3Tickers(app, current = 'SAITO') {
   const tickers = ['SAITO'];
   const mixin = app?.modules?.returnModule?.('Mixin');
   const currencies = Array.isArray(mixin?.available_currencies) ? mixin.available_currencies : [];
   for (const currency of currencies) {
-    const ticker = String(currency?.ticker || '').trim().toUpperCase();
-    if (!ticker || ticker === 'SAITO' || EXCLUDED_WEB3_TICKERS.has(ticker)) {
-      continue;
-    }
-    if (!tickers.includes(ticker)) {
-      tickers.push(ticker);
+    addStoreWeb3Ticker(tickers, currency?.ticker);
+  }
+  // Installed Mixin payment cryptos stay selectable before a priced currency
+  // reply arrives, so a listing can be priced in third-party crypto.
+  const installed = Array.isArray(mixin?.crypto_mods) ? mixin.crypto_mods : [];
+  for (const crypto of installed) {
+    addStoreWeb3Ticker(tickers, crypto?.ticker);
+  }
+  if (tickers.length === 1 && typeof app?.modules?.respondTo === 'function') {
+    const offered = app.modules.respondTo('mixin-crypto');
+    const list = Array.isArray(offered) ? offered : offered ? [offered] : [];
+    for (const crypto of list) {
+      addStoreWeb3Ticker(tickers, crypto?.ticker);
     }
   }
   const selected = String(current || '').trim().toUpperCase();

@@ -78,3 +78,12 @@ CREATE TABLE IF NOT EXISTS transfers (
   created_at INTEGER NOT NULL DEFAULT 0,
   updated_at INTEGER NOT NULL DEFAULT 0
 );
+
+-- inbound-payment-uniqueness
+-- One real Mixin transaction hash belongs to one transfer. Empty hashes are
+-- still waiting for a payment. admin-test is the admin testing sentinel and
+-- is not a Mixin transaction hash; that exact value may be reused.
+CREATE UNIQUE INDEX IF NOT EXISTS transfers_inbound_tx_hash_uidx
+  ON transfers (inbound_tx_hash)
+  WHERE inbound_tx_hash <> ''
+    AND inbound_tx_hash <> 'admin-test';

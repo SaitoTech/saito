@@ -76,6 +76,7 @@ class Web3PaymentOverlay {
     this.followupSent = false;
     this.followupEmail = '';
     this.followupError = '';
+    this.addressRequestFailed = false;
     this.instruction_timer = null;
     this.reservation_timer = null;
   }
@@ -441,6 +442,7 @@ class Web3PaymentOverlay {
   }
 
   fail(message) {
+    this.addressRequestFailed = true;
     this.statusLead = message;
     this.destination = '';
     this.render();
@@ -477,7 +479,8 @@ class Web3PaymentOverlay {
         fundsNotice: this.fundsNotice,
         followupSent: this.followupSent,
         followupEmail: this.followupEmail,
-        followupError: this.followupError
+        followupError: this.followupError,
+        awaitingAddress: !this.destination && !this.fundsNotice && !this.addressRequestFailed
       }),
       () => {
         this.active = false;

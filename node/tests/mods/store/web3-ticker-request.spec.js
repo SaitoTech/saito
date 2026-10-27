@@ -1,4 +1,7 @@
-const { requestStoreWeb3Tickers } = require('../../../mods/store/lib/ui/overlays/listing-field-edit');
+const {
+  requestStoreWeb3Tickers,
+  returnStoreWeb3Tickers
+} = require('../../../mods/store/lib/ui/overlays/listing-field-edit');
 
 function makeApp(currencies = []) {
   const sent = [];
@@ -63,6 +66,24 @@ describe('store web3 ticker requests', () => {
     requestStoreWeb3Tickers(app);
 
     expect(sent).toHaveLength(0);
+  });
+
+  test('lists installed payment cryptos when the priced reply is empty', () => {
+    const app = {
+      modules: {
+        returnModule: () => ({
+          available_currencies: [],
+          crypto_mods: [
+            { ticker: 'ETH' },
+            { ticker: 'ERC-SAITO' },
+            { ticker: 'USDT' },
+            { ticker: 'ETH' }
+          ]
+        })
+      }
+    };
+
+    expect(returnStoreWeb3Tickers(app, 'SOL')).toEqual(['SAITO', 'ETH', 'USDT', 'SOL']);
   });
 
   test('does not ask when currencies are already available', () => {

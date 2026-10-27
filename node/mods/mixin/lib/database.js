@@ -1,6 +1,38 @@
 const fs = require('fs');
 const path = require('path');
 
+// The admin payment test writes this exact hash onto many transfers.
+// It is not a Mixin transaction hash. The unique index excludes only this value.
+const SYNTHETIC_INBOUND_TX_HASH = 'admin-test';
+const INBOUND_HASH_INDEX = 'transfers_inbound_tx_hash_uidx';
+const transactionTails = new WeakMap();
+
+function isRealInboundHash(hash) {
+  const value = String(hash || '').trim();
+  return value !== '' && value !== SYNTHETIC_INBOUND_TX_HASH;
+}
+
+function isInboundHashConflict(err) {
+  const message = String(err?.message || err || '');
+  return (
+    err?.code === 'SQLITE_CONSTRAINT' ||
+    /UNIQUE constraint failed/i.test(message) ||
+    message.includes(INBOUND_HASH_INDEX)
+  );
+}
+
+function splitTransfersSql(sql) {
+  const marker = '-- inbound-payment-uniqueness';
+  const at = String(sql || '').indexOf(marker);
+  if (at < 0) {
+    return { tableSql: sql, indexSql: '' };
+  }
+  return {
+    tableSql: sql.slice(0, at),
+    indexSql: sql.slice(at).replace(/^--.*$/gm, '').trim()
+  };
+}
+
 const TRANSFER_FIELDS = [
   'purpose',
   'mode',
@@ -24,6 +56,9 @@ const TRANSFER_FIELDS = [
   'inbound_tx_hash',
   'inbound_tx_id',
   'inbound_received_at',
+  'inbound_block_id',
+  'inbound_block_hash',
+  'inbound_longest_chain',
   'inbound_confirmation_block_id',
   'outbound_ticker',
   'outbound_asset_id',
@@ -306,10 +341,11 @@ class Database {
     if (!String(defined[0]?.sql || '').includes("'inbound_awaiting'")) {
       await this.run(`ALTER TABLE transfers RENAME TO transfers_legacy`, {});
       const sql = fs.readFileSync(path.join(__dirname, '../sql/transfers.sql'), 'utf8');
+      const tableSql = splitTransfersSql(sql).tableSql;
       if (this.app.storage.executeDatabase) {
-        await this.app.storage.executeDatabase(sql, this.dbname());
+        await this.app.storage.executeDatabase(tableSql, this.dbname());
       } else {
-        await this.run(sql, {});
+        await this.run(tableSql, {});
       }
 
       const legacyColumns = new Set(
@@ -337,8 +373,10 @@ class Database {
         );
       }
       await this.run(`DROP TABLE transfers_legacy`, {});
-      return;
-    }
+    await this.ensureInboundPaymentUniqueness();
+    await this.ensureStoreWithdrawalClaims();
+    return;
+  }
 
     const present = new Set(columns.map((column) => column.name));
     const additions = [
@@ -348,6 +386,7 @@ class Database {
       ['inbound_confirmations', 'INTEGER NOT NULL DEFAULT 0'],
       ['inbound_confirmations_required', 'INTEGER NOT NULL DEFAULT 0'],
       ['outbound_confirmations_required', 'INTEGER NOT NULL DEFAULT 0'],
+      ['inbound_tx_hash', `TEXT NOT NULL DEFAULT ''`],
       ['inbound_tx_id', `TEXT NOT NULL DEFAULT ''`],
       ['outbound_tx_id', `TEXT NOT NULL DEFAULT ''`],
       ['inbound_confirmation_block_id', 'INTEGER'],
@@ -360,6 +399,318 @@ class Database {
         await this.run(`ALTER TABLE transfers ADD COLUMN ${name} ${definition}`, {});
       }
     }
+    await this.ensureInboundPaymentUniqueness();
+    await this.ensureStoreWithdrawalClaims();
+  }
+
+  async ensureStoreWithdrawalClaims() {
+    const db = await this.app.storage.returnDatabaseByName(this.dbname());
+    if (!db) {
+      return;
+    }
+    await db.exec(`
+      CREATE TABLE IF NOT EXISTS store_withdrawal_claims (
+        transfer_uuid TEXT PRIMARY KEY,
+        payment_uuid TEXT NOT NULL UNIQUE,
+        request_id TEXT NOT NULL,
+        withdrawal_transfer_id INTEGER NOT NULL
+      );
+      CREATE UNIQUE INDEX IF NOT EXISTS store_withdrawal_request_uidx
+        ON transfers (request_id)
+        WHERE purpose = 'store-withdrawal' AND request_id <> '';
+    `);
+  }
+
+  async withImmediateTransaction(fn) {
+    const db = await this.app.storage.returnDatabaseByName(this.dbname());
+    if (!db) {
+      throw new Error('Mixin database unavailable');
+    }
+    const previous = transactionTails.get(db) || Promise.resolve();
+    const operation = previous.then(async () => {
+      await db.exec('BEGIN IMMEDIATE');
+      try {
+        const result = await fn(db);
+        await db.exec('COMMIT');
+        return result;
+      } catch (err) {
+        try {
+          await db.exec('ROLLBACK');
+        } catch (rollbackError) {
+          console.error('Mixin Database: rollback failed', rollbackError);
+        }
+        throw err;
+      }
+    });
+    transactionTails.set(
+      db,
+      operation.then(
+        () => undefined,
+        () => undefined
+      )
+    );
+    return operation;
+  }
+
+  async recordStoreWithdrawal(record) {
+    await this.ensureStoreWithdrawalClaims();
+    return this.withImmediateTransaction(async (db) => {
+      const existing = await db.all(
+        `SELECT id, purpose, mode, payload
+         FROM transfers
+         WHERE purpose = 'store-withdrawal' AND request_id = $request
+         LIMIT 1`,
+        { $request: record.request_id }
+      );
+      if (existing?.length) {
+        return { transfer_id: existing[0].id, replayed: true };
+      }
+
+      const { decimalUnits } = require('./store-withdrawal');
+      let backing = 0n;
+      const requested = decimalUnits(record.withdrawal_amount);
+      if (requested == null) {
+        throw new Error('The withdrawal amount is not valid.');
+      }
+      for (const pair of record.pairs) {
+        const source = await db.all(
+          `SELECT id, purpose, inbound_tx_hash, inbound_ticker, inbound_amount, inbound_asset_id
+           FROM transfers
+           WHERE id = $id`,
+          { $id: Number(pair.transfer) }
+        );
+        const row = source?.[0];
+        if (
+          !row ||
+          row.purpose !== 'store-purchase' ||
+          String(row.inbound_tx_hash || '') !== pair.payment
+        ) {
+          throw new Error('A referenced transfer or payment was not found.');
+        }
+        if (String(row.inbound_ticker || '').trim().toUpperCase() !== String(record.ticker || '').trim()) {
+          throw new Error('A referenced payment is for a different cryptocurrency.');
+        }
+        const units = decimalUnits(row.inbound_amount);
+        if (units == null) {
+          throw new Error('A referenced payment amount is not valid.');
+        }
+        backing += units;
+        const claimed = await db.all(
+          `SELECT request_id FROM store_withdrawal_claims
+           WHERE transfer_uuid = $transfer OR payment_uuid = $payment
+           LIMIT 1`,
+          { $transfer: pair.transfer, $payment: pair.payment }
+        );
+        if (claimed?.length) {
+          throw new Error('Those proceeds are already reserved for a withdrawal.');
+        }
+      }
+      if (backing !== requested) {
+        throw new Error('The withdrawal amount does not match the unspent proceeds.');
+      }
+
+      const now = Date.now();
+      const inserted = await db.run(
+        `INSERT INTO transfers (
+           purpose, mode, payload, request_id, requester_publickey, recipient_publickey,
+           status, inbound_ticker, inbound_amount, inbound_sender, inbound_tx, inbound_tx_sig,
+           outbound_ticker, outbound_amount, outbound_address, outbound_sender,
+           created_at, updated_at
+         ) VALUES (
+           'store-withdrawal', 'manual', $payload, $request_id, $requester, $requester,
+           'other', 'SAITO', $inbound_amount, $inbound_sender, $inbound_tx, $inbound_tx_sig,
+           $outbound_ticker, $outbound_amount, $outbound_address, $outbound_sender,
+           $now, $now
+         )`,
+        {
+          $payload: record.payload,
+          $request_id: record.request_id,
+          $requester: record.sender,
+          $inbound_amount: record.saito_amount,
+          $inbound_sender: record.sender,
+          $inbound_tx: record.saito_tx || '',
+          $inbound_tx_sig: record.saito_tx_sig || '',
+          $outbound_ticker: record.ticker,
+          $outbound_amount: record.withdrawal_amount,
+          $outbound_address: record.withdrawal_address,
+          $outbound_sender: record.outbound_sender || '',
+          $now: now
+        }
+      );
+      const transferId = inserted?.lastID;
+      if (!transferId) {
+        throw new Error('The withdrawal transfer was not recorded.');
+      }
+      for (const pair of record.pairs) {
+        await db.run(
+          `INSERT INTO store_withdrawal_claims (
+             transfer_uuid, payment_uuid, request_id, withdrawal_transfer_id
+           ) VALUES ($transfer, $payment, $request, $transfer_id)`,
+          {
+            $transfer: pair.transfer,
+            $payment: pair.payment,
+            $request: record.request_id,
+            $transfer_id: transferId
+          }
+        );
+      }
+      return { transfer_id: transferId, replayed: false };
+    });
+  }
+
+  async listStoreWithdrawalsAwaitingInclusion() {
+    return this.query(
+      `SELECT * FROM transfers
+       WHERE purpose = 'store-withdrawal'
+         AND excluded = 0
+         AND inbound_tx_sig <> ''
+         AND IFNULL(inbound_block_hash, '') = ''
+       ORDER BY id ASC`,
+      {}
+    );
+  }
+
+  async listStoreWithdrawalsInBlock(blockId, blockHash) {
+    return this.query(
+      `SELECT * FROM transfers
+       WHERE purpose = 'store-withdrawal'
+         AND excluded = 0
+         AND inbound_block_id = $block_id
+         AND inbound_block_hash = $block_hash
+       ORDER BY id ASC`,
+      { $block_id: Number(blockId) || 0, $block_hash: String(blockHash || '') }
+    );
+  }
+
+  async duplicateInboundPayments() {
+    const rows = await this.query(
+      `SELECT inbound_tx_hash, id, purpose
+       FROM transfers
+       WHERE inbound_tx_hash <> ''
+         AND inbound_tx_hash <> $synthetic
+         AND inbound_tx_hash IN (
+           SELECT inbound_tx_hash
+           FROM transfers
+           WHERE inbound_tx_hash <> ''
+             AND inbound_tx_hash <> $synthetic
+           GROUP BY inbound_tx_hash
+           HAVING COUNT(*) > 1
+         )
+       ORDER BY inbound_tx_hash ASC, id ASC`,
+      { $synthetic: SYNTHETIC_INBOUND_TX_HASH }
+    );
+    const grouped = new Map();
+    for (const row of rows || []) {
+      const hash = row.inbound_tx_hash;
+      if (!grouped.has(hash)) {
+        grouped.set(hash, { inbound_tx_hash: hash, transfers: [] });
+      }
+      grouped.get(hash).transfers.push({
+        id: row.id,
+        purpose: row.purpose || ''
+      });
+    }
+    return [...grouped.values()];
+  }
+
+  /**
+   * Create the real-hash unique index only when no existing row already shares
+   * one. Conflicting rows are left unchanged for deliberate recovery.
+   */
+  async ensureInboundPaymentUniqueness() {
+    const conflicts = await this.duplicateInboundPayments();
+    if (conflicts.length) {
+      for (const conflict of conflicts) {
+        console.error(
+          'Mixin inbound payment hash is already assigned to more than one transfer; uniqueness index was not created',
+          {
+            inbound_tx_hash: conflict.inbound_tx_hash,
+            transfers: conflict.transfers
+          }
+        );
+      }
+      return { enforced: false, conflicts };
+    }
+
+    const file = fs.readFileSync(path.join(__dirname, '../sql/transfers.sql'), 'utf8');
+    const indexSql = splitTransfersSql(file).indexSql;
+    if (indexSql) {
+      await this.run(indexSql, {});
+    }
+    const present = await this.query(
+      `SELECT name FROM sqlite_master WHERE type = 'index' AND name = $name`,
+      { $name: INBOUND_HASH_INDEX }
+    );
+    return { enforced: (present || []).length > 0, conflicts: [] };
+  }
+
+  async claimInboundPayment(id, fields = {}) {
+    const hash = String(fields.inbound_tx_hash ?? '').trim();
+    const next = { ...fields, inbound_tx_hash: hash };
+    if (!isRealInboundHash(hash)) {
+      await this.updateTransfer(id, next);
+      return { ok: true, conflict: null };
+    }
+
+    const assignments = ['updated_at = $updated_at'];
+    const params = { $id: id, $owner_id: id, $updated_at: Date.now(), $claim_hash: hash };
+    for (const field of TRANSFER_FIELDS) {
+      if (field === 'updated_at' || next[field] === undefined) {
+        continue;
+      }
+      assignments.push(`${field} = $${field}`);
+      params[`$${field}`] = next[field];
+    }
+    try {
+      await this.run(
+        `UPDATE transfers SET ${assignments.join(', ')}
+         WHERE id = $id
+           AND NOT EXISTS (
+             SELECT 1 FROM transfers AS claimed
+             WHERE claimed.inbound_tx_hash = $claim_hash
+               AND claimed.id <> $owner_id
+           )`,
+        params
+      );
+    } catch (err) {
+      if (!isInboundHashConflict(err)) {
+        throw err;
+      }
+    }
+
+    const owners = await this.query(
+      `SELECT id, purpose FROM transfers
+       WHERE inbound_tx_hash = $hash AND id <> $id
+       ORDER BY id ASC`,
+      { $hash: hash, $id: id }
+    );
+    if (owners?.length) {
+      const owner = owners[0];
+      const attempted = await this.query(
+        `SELECT id, purpose FROM transfers WHERE id = $id`,
+        { $id: id }
+      );
+      console.error('Mixin inbound payment already claimed', {
+        inbound_tx_hash: hash,
+        owner_transfer_id: owner.id,
+        owner_purpose: owner.purpose || '',
+        attempted_transfer_id: id,
+        attempted_purpose: attempted?.[0]?.purpose || ''
+      });
+      return {
+        ok: false,
+        conflict: { id: owner.id, purpose: owner.purpose || '' }
+      };
+    }
+
+    const current = await this.query(
+      `SELECT inbound_tx_hash FROM transfers WHERE id = $id`,
+      { $id: id }
+    );
+    if (current?.[0] && String(current[0].inbound_tx_hash) === hash) {
+      return { ok: true, conflict: null };
+    }
+    throw new Error(`Transfer ${id} could not record inbound payment ${hash}`);
   }
 
   async insertTransfer(transfer) {
@@ -546,3 +897,4 @@ class Database {
 }
 
 module.exports = Database;
+module.exports.SYNTHETIC_INBOUND_TX_HASH = SYNTHETIC_INBOUND_TX_HASH;
