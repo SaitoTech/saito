@@ -16,16 +16,6 @@ module.exports = (app, mod) => {
 
       <div class="admin-server-grid">
         <div class="server-stat">
-          <label>Public Key</label>
-          <div class="mono">${mod.server_publickey || '—'}</div>
-        </div>
-
-        <div class="server-stat">
-          <label>Root Module</label>
-          <div>${options.defaultModule || '—'}</div>
-        </div>
-
-        <div class="server-stat">
           <label>Host</label>
           <div>${host}</div>
         </div>
@@ -33,6 +23,16 @@ module.exports = (app, mod) => {
         <div class="server-stat">
           <label>Port</label>
           <div>${port}</div>
+        </div>
+
+        <div class="server-stat server-stat-wide">
+          <label>Public Key</label>
+          <div class="mono">${mod.server_publickey || '—'}</div>
+        </div>
+
+        <div class="server-stat server-stat-wide">
+          <label>Root Module</label>
+          <div>${options.defaultModule || '—'}</div>
         </div>
       </div>
     </div>
