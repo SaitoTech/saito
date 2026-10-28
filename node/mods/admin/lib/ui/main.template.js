@@ -5,9 +5,12 @@ module.exports = (app, mod) => {
   return `
     <div class="saito-admin-main">
       <div class="saito-admin-sidebar">
+        <a class="saito-admin-back" href="/" aria-label="Back to Saito" title="Back to Saito">
+          <i class="fa-solid fa-arrow-left" aria-hidden="true"></i>
+        </a>
         <div class="saito-admin-nav-item overview active" data-admin-view="overview">Overview</div>
+        <div class="saito-admin-nav-item peers" data-admin-view="peers">Network</div>
         <div class="saito-admin-nav-item modules" data-admin-view="modules">Modules</div>
-        <div class="saito-admin-nav-item peers" data-admin-view="peers">Peers</div>
         <div class="saito-admin-nav-item administrators" data-admin-view="administrators">Administrators</div>
         <div class="saito-admin-nav-item database" data-admin-view="database">Database</div>
         <div class="saito-admin-nav-item blocks" data-admin-view="blocks">Blocks</div>
@@ -39,7 +42,12 @@ module.exports = (app, mod) => {
 
         <div class="admin-page admin-options">
           <h1>Config</h1>
-          <p>Visual configuration options will be available here.</p>
+          <h2>Appearance</h2>
+          <label class="admin-theme-option" for="admin-dark-mode">
+            <input type="checkbox" id="admin-dark-mode" />
+            <span>Dark mode</span>
+          </label>
+          <p class="admin-theme-description">Save your appearance preference in this browser.</p>
         </div>
 
         <div class="admin-wiki">For manual setup instructions, please see our install instructions in the <a target="_blank" href="https://wiki.saito.io">Saito Wiki</a>.</div>

@@ -2,6 +2,8 @@ const saito = require('../../lib/saito/saito');
 const ModTemplate = require('../../lib/templates/modtemplate');
 const AdminMain = require('./lib/ui/main');
 const AdminHome = require('./index');
+const AdminServerConnection = require('./lib/server-connection');
+const { readModuleMetadata, serveModuleImage } = require('./lib/module-metadata');
 
 class Admin extends ModTemplate {
   constructor(app) {
@@ -15,22 +17,33 @@ class Admin extends ModTemplate {
 
     this.server_publickey = '';
     this.server_info = null;
+    this.server_connection = new AdminServerConnection(this);
   }
 
   async initialize(app) {
     await super.initialize(app);
     this.main = new AdminMain(app, this);
+    if (app.BROWSER && this.browser_active) {
+      this.server_publickey = server_publickey;
+    }
   }
 
   async render() {
     this.server_publickey = server_publickey;
     this.main.render();
+    this.server_connection.start();
+  }
+
+  onConnectionUnstable(app, publicKey) {
+    if (this.browser_active) this.server_connection.onDisconnect(publicKey);
   }
 
   async onPeerHandshakeComplete(app, peer) {
     if (!this.browser_active) {
       return;
     }
+
+    if (!this.server_connection.onHandshake(peer)) return;
 
     if (need_to_set_key) {
       return;
@@ -47,7 +60,8 @@ class Admin extends ModTemplate {
     this.app.network.sendTransactionWithCallback(
       tx,
       (res_tx) => {
-        let res = res_tx.returnMessage();
+        // Transport failures arrive as plain { err } objects, not transactions.
+        const res = typeof res_tx.returnMessage === 'function' ? res_tx.returnMessage() : res_tx;
         if (res?.err) {
           alert(res.err);
         } else {
@@ -436,6 +450,9 @@ class Admin extends ModTemplate {
       const modules_dir = path.normalize(`${__dirname}/../../mods`);
 
       node_info.available_modules = this.listAvailableModules(fs, path, modules_dir);
+      node_info.module_metadata = Object.fromEntries(
+        node_info.available_modules.map((name) => [name, readModuleMetadata(fs, path, modules_dir, name)])
+      );
 
       const modules_config = path.normalize(`${config_dir}/modules.config.js`);
       this.module_config = { core: [], lite: [] };
@@ -924,6 +941,11 @@ ${formatList(lite)}
     };
 
     expressapp.get(uri, serverFn);
+    expressapp.get(`${uri}/module-image/:module`, (req, res) => {
+      const fs = app.storage.returnFileSystem();
+      const path = app.storage.returnPath();
+      return serveModuleImage(fs, path, path.resolve(__dirname, '..'), req, res);
+    });
     expressapp.use(uri, express.static(webdir));
   }
 

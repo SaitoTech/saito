@@ -415,6 +415,13 @@ class Stun extends ModTemplate {
           return;
         }
 
+        if (description.type === 'offer') {
+          // An incoming offer can satisfy the deferred negotiation. The browser
+          // will emit negotiationneeded again if local changes remain after the answer.
+          clearTimeout(peerConnection.offerTimer);
+          peerConnection.offerTimer = null;
+        }
+
         peerConnection.answerPending = description.type == 'answer';
         await peerConnection.setRemoteDescription(description);
         this.diagnostic(sender, `Applied remote ${description.type}`);
@@ -770,13 +777,19 @@ class Stun extends ModTemplate {
     };
 
     //
-    // This handles the renegotiation for adding/dropping media streams (e.g. screen share).
-    // Bound unconditionally on both sides -- the polite/impolite (peerConnection.rude) and
-    // offer-collision handling in handleSignalingMessage's 'peer-description' branch already
-    // implements "perfect negotiation", so it's safe for both peers to originate an offer.
+    // Both peers may negotiate (including screen sharing after connection). During
+    // initial ICE setup, let the lower public key offer first to reduce collisions
+    // and rollback while gathering candidates. The other side still has a bounded
+    // fallback when it is the only peer that needs to negotiate.
     //
-    peerConnection.onnegotiationneeded = async () => {
-      this.diagnostic(peerId, 'Negotiation needed');
+    const negotiate = async () => {
+      peerConnection.offerTimer = null;
+      if (
+        this.peers.get(peerId) !== peerConnection ||
+        peerConnection.signalingState !== 'stable' ||
+        peerConnection.makingOffer
+      ) return;
+
       try {
         if (!peerConnection?.negotiation_counter) {
           peerConnection.negotiation_counter = 0;
@@ -801,6 +814,7 @@ class Stun extends ModTemplate {
 
         await peerConnection.setLocalDescription();
 
+        if (this.peers.get(peerId) !== peerConnection || peerConnection.signalingState === 'closed') return;
         await this.sendPeerDescriptionTransaction(peerId, peerConnection.localDescription);
       } catch (err) {
         this.diagnostic(peerId, `Negotiation failed: ${err.name}`);
@@ -808,6 +822,21 @@ class Stun extends ModTemplate {
       } finally {
         peerConnection.makingOffer = false;
       }
+    };
+
+    peerConnection.onnegotiationneeded = () => {
+      this.diagnostic(peerId, 'Negotiation needed');
+      if (this.peers.get(peerId) !== peerConnection || peerConnection.signalingState === 'closed') return;
+      if (peerConnection.rude && peerConnection.iceConnectionState === 'new') {
+        // Coalesce data-channel creation and media attachment without extending
+        // the deadline every time another track is added.
+        if (peerConnection.offerTimer != null) return;
+        this.diagnostic(peerId, 'Deferring initial offer for 1500ms');
+        peerConnection.offerTimer = setTimeout(() => void negotiate(), 1500);
+        return;
+      }
+      clearTimeout(peerConnection.offerTimer);
+      return negotiate();
     };
 
     if (callback) {
@@ -823,6 +852,9 @@ class Stun extends ModTemplate {
     if (peerConnection) {
       console.info('Stun remove peer connection! ' + peerConnection.connectionState);
       this.diagnostic(peerId, 'Closing peer connection');
+      clearTimeout(peerConnection.offerTimer);
+      clearTimeout(peerConnection.negotiation_timeout);
+      clearTimeout(peerConnection.timer);
       peerConnection.close();
       this.peers.delete(peerId);
     }

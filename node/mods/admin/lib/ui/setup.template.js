@@ -3,65 +3,55 @@ module.exports = (mod) => {
     <div class="admin-first-run">
       <div class="node-setup">
 
-        <h1>Configure Your Saito Server</h1>
-
-        <div class="node-setup-options node-setup-existing-option">
-          <div class="node-setup-card" data-choice="existing">
-            <h2>Existing Node</h2>
-            <p>Use this node's existing configuration without making any changes.</p>
-          </div>
-        </div>
-
-        <div class="node-setup-info">Or configure a new node:</div>
-
-        <div class="node-setup-info">1. Pick the module for your server root:</div>
-
-        <div class="splash-section">
-          <div class="splash-grid">
-            <div class="splash-card" data-app="redsquare">
-              <div class="splash-title">RedSquare</div>
-            </div>
-            <div class="splash-card" data-app="arcade">
-              <div class="splash-title">Arcade</div>
-            </div>
-            <div class="splash-card" data-app="store">
-              <div class="splash-title">Store</div>
-            </div>
-            <div class="splash-card" data-app="explorer">
-              <div class="splash-title">Explorer</div>
-            </div>
-            <div class="splash-card" data-app="other">
-              <div class="splash-title">Other</div>
-            </div>
-          </div>
-        </div>
-
-        <div class="node-setup-info">2. Pick the type of server you wish to operate:</div>
+        <h1 class="node-setup-type-heading">I want to run a:</h1>
 
         <div class="node-setup-options">
-          <div class="node-setup-card" data-choice="production">
-            <h2>I want to run a production machine</h2>
+          <div class="node-setup-option">
+            <button type="button" class="node-setup-card" data-choice="existing">
+              Existing Node
+            </button>
+            <p>Use this node's existing configuration without making any changes.</p>
           </div>
-          <div class="node-setup-card" data-choice="development">
-            <h2>I want to run a local dev machine</h2>
+          <div class="node-setup-option">
+            <button type="button" class="node-setup-card" data-choice="development" aria-pressed="false">
+              Local Dev Node
+            </button>
+            <p>Your machine will produce blocks and have tokens available for testing on a local network</p>
+          </div>
+          <div class="node-setup-option">
+            <button type="button" class="node-setup-card" data-choice="production" aria-pressed="false">
+              Full/Mainnet Node
+            </button>
+            <p>Add your node to an existing network or Saito Mainnet</p>
           </div>
         </div>
 
-        <div class="node-setup-explainer">
-          <p>
-            For local development, your machine will be customized to produce
-            blocks on demand and you will be provided with the private key needed
-            to spend or move funds around the network.
-            For production machines, we will configure your node to join the
-            network.
-          </p>
+        <div class="splash-section" hidden>
+          <div class="node-setup-info">Pick the module for your server root:</div>
+          <div class="splash-grid">
+            <button type="button" class="splash-card" data-app="redsquare">
+              <span class="splash-title">RedSquare</span>
+            </button>
+            <button type="button" class="splash-card" data-app="arcade">
+              <span class="splash-title">Arcade</span>
+            </button>
+            <button type="button" class="splash-card" data-app="store">
+              <span class="splash-title">Store</span>
+            </button>
+            <button type="button" class="splash-card" data-app="explorer">
+              <span class="splash-title">Explorer</span>
+            </button>
+            <button type="button" class="splash-card" data-app="other">
+              <span class="splash-title">Other</span>
+            </button>
+          </div>
         </div>
 
-        <div class="node-setup-working">
+        <div class="node-setup-working" hidden role="status" aria-label="Saving node setup">
           <div class="node-setup-spinner"></div>
         </div>
 
-        <div class="node-setup-result node-setup-dev-info">
+        <div class="node-setup-result node-setup-dev-info" hidden>
           Your configuration files have been updated for local development.
 
           <p></p>
@@ -82,7 +72,7 @@ module.exports = (mod) => {
           here to continue with module setup and configuration.
         </div>
 
-        <div class="node-setup-result node-setup-prod-info">
+        <div class="node-setup-result node-setup-prod-info" hidden>
           Your server is configured to connect to the network.
 
           <p></p>

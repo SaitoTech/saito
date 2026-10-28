@@ -29,6 +29,8 @@ class Database {
   }
 
   async ensureSchema() {
+    await this.ensureBaseTables();
+
     const listing_columns = [
       'ALTER TABLE listings ADD COLUMN in_flight INTEGER NOT NULL DEFAULT 0',
       'ALTER TABLE listings ADD COLUMN reserved_order_id INTEGER NOT NULL DEFAULT 0',
@@ -85,6 +87,23 @@ class Database {
     await this.migrateOrderChainFields();
     await this.migrateOrderCryptoFieldNames();
     await this.migrateOrderInclusionUniqueness();
+  }
+
+  async ensureBaseTables() {
+    const db = await this.app.storage.returnDatabaseByName(this.dbname);
+    const tables = await db.all("SELECT name FROM sqlite_master WHERE type = 'table'");
+    const existing = new Set(tables.map((table) => table.name));
+    const fs = this.app.storage.returnFileSystem();
+
+    // Installation metadata can survive a missing or incomplete database.
+    // Only create absent tables: existing tables need their column migrations
+    // before the current schema's indexes can safely reference those columns.
+    for (const table of ['listings', 'summary', 'orders']) {
+      if (!existing.has(table)) {
+        const sql = fs.readFileSync(`${__dirname}/../sql/${table}.sql`, 'utf8');
+        await db.exec(sql);
+      }
+    }
   }
 
   /**

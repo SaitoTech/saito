@@ -5,9 +5,25 @@ const MODE_LABELS = {
   client: 'Client'
 };
 
-module.exports = (modules, { dirty, saved, error, filter } = {}) => {
+const escape = (value) => String(value ?? '').replace(/[&<>"']/g, (char) => ({
+  '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+}[char]));
+
+module.exports = (modules, { dirty, saved, error, filter, filters = {} } = {}) => {
   const present = (modules || []).filter((m) => !m.missing);
   const missing = (modules || []).filter((m) => m.missing);
+  const select = (field, label, values) => {
+    const options = new Map();
+    values.forEach((value) => options.set(value.toLowerCase() || 'unspecified', value || 'Unspecified'));
+    return `<label>${label}
+      <select class="admin-input" data-module-filter="${field}">
+        <option value="">All</option>
+        ${[...options].sort((a, b) => a[1].localeCompare(b[1])).map(([value, text]) =>
+          `<option value="${escape(value)}" ${filters[field] === value ? 'selected' : ''}>${escape(text)}</option>`
+        ).join('')}
+      </select>
+    </label>`;
+  };
 
   const card = (m) => {
     const missing_class = m.missing ? ' missing' : '';
@@ -16,9 +32,12 @@ module.exports = (modules, { dirty, saved, error, filter } = {}) => {
         ? 'Admin stays available so you can keep using this page'
         : 'Click to change';
     return `
-      <button type="button" class="admin-module-card mode-${m.mode}${missing_class}" data-module="${m.name}" title="${title}">
-        <span class="admin-module-name">${m.name}</span>
+      <button type="button" class="admin-module-card mode-${m.mode}${missing_class}" data-module="${escape(m.name)}" title="${title}">
+        <span class="admin-module-name">${escape(m.name)}</span>
         <span class="admin-module-mode">${MODE_LABELS[m.mode] || m.mode}</span>
+        <span class="admin-module-thumbnail" aria-hidden="true">
+          ${m.image ? `<img src="${escape(m.image)}" alt="" loading="lazy" />` : ''}
+        </span>
       </button>
     `;
   };
@@ -38,7 +57,7 @@ module.exports = (modules, { dirty, saved, error, filter } = {}) => {
         <strong>Client</strong> is browsers only.
       </p>
 
-      ${error ? `<div class="admin-modules-error">${error}</div>` : ''}
+      ${error ? `<div class="admin-modules-error">${escape(error)}</div>` : ''}
 
       ${
         saved
@@ -54,16 +73,28 @@ module.exports = (modules, { dirty, saved, error, filter } = {}) => {
           : ''
       }
 
-      <input
-        type="search"
-        class="admin-input"
-        id="admin-modules-filter"
-        placeholder="Find a module"
-        value="${filter || ''}"
-      />
+      <div class="admin-modules-filters">
+        <label class="admin-modules-search">Search
+          <input type="search" class="admin-input" id="admin-modules-filter"
+            placeholder="Search modules" value="${escape(filter)}" />
+        </label>
+        ${select('category', 'Category', modules.flatMap((m) => m.categories || []))}
+        ${select('status', 'Status', modules.map((m) => m.status || ''))}
+        ${select('class', 'Class', modules.map((m) => m.class || ''))}
+        <label class="admin-modules-checkbox">
+          <input type="checkbox" data-module-filter="has_description" ${filters.has_description ? 'checked' : ''} />
+          Has description
+        </label>
+        <label class="admin-modules-checkbox">
+          <input type="checkbox" data-module-filter="has_image" ${filters.has_image ? 'checked' : ''} />
+          Has image
+        </label>
+      </div>
+      <p class="admin-modules-count" role="status"></p>
+      <p class="admin-modules-empty admin-modules-no-matches" hidden>No modules match these filters.</p>
 
       <div class="admin-modules-grid">
-        ${present.map(card).join('') || '<p class="admin-modules-empty">No modules found in the mods directory.</p>'}
+        ${present.map(card).join('')}
       </div>
 
       ${

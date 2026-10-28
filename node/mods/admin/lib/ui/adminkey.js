@@ -5,6 +5,7 @@ class AdminKeyUI {
     this.app = app;
     this.mod = mod;
     this.container = container;
+    this.submitting = false;
   }
 
   render() {
@@ -13,6 +14,23 @@ class AdminKeyUI {
       this.container
     );
     this.attachEvents();
+    this.updateConnection();
+  }
+
+  updateConnection() {
+    const btn = document.getElementById('submit-admin-key');
+    if (!btn) return;
+    const state = this.mod.server_connection.state;
+    btn.disabled = this.submitting || state !== 'connected';
+    const messages = {
+      idle: 'Connecting to the server…',
+      configured: 'Connecting to the configured server endpoint…',
+      fallback: 'Trying the server at this page’s address…',
+      connected: 'Connected to the server.',
+      failed: 'Server connection failed.'
+    };
+    document.getElementById('admin-connection-status').textContent = messages[state];
+    document.getElementById('admin-connection-help').hidden = state !== 'failed';
   }
 
   attachEvents() {
@@ -22,6 +40,7 @@ class AdminKeyUI {
     }
 
     btn.onclick = async () => {
+      if (this.submitting || this.mod.server_connection.state !== 'connected') return;
       let publicKey = document.getElementById('admin-public-key')?.value;
 
       if (!this.app.crypto.isPublicKey(publicKey)) {
@@ -29,36 +48,52 @@ class AdminKeyUI {
         return;
       }
 
-      btn.disabled = true;
+      this.submitting = true;
+      this.updateConnection();
       siteMessage('Registering Admin Key...');
 
-      let tx = await this.app.wallet.createUnsignedTransactionWithDefaultFee(
-        this.mod.server_publickey
-      );
-
-      tx.msg = {
-        module: 'Admin',
-        request: 'set-admin-key',
-        key: publicKey
+      const showError = (error) => {
+        siteMessage('Admin registration failed.', 5000);
+        salert(error);
+        this.submitting = false;
+        this.updateConnection();
       };
 
-      await tx.sign();
+      try {
+        let tx = await this.app.wallet.createUnsignedTransactionWithDefaultFee(
+          this.mod.server_publickey
+        );
 
-      this.app.network.sendTransactionWithCallback(
-        tx,
-        (res_tx) => {
-          let res = res_tx.returnMessage();
-          if (res?.err) {
-            salert(res.err);
-            btn.disabled = false;
-          } else {
-            this.app.wallet.backupWallet();
-            siteMessage('Admin key successfully set, downloaded copy! Reloading page...');
-            reloadWindow(1200);
-          }
-        },
-        this.mod.server_publickey
-      );
+        tx.msg = {
+          module: 'Admin',
+          request: 'set-admin-key',
+          key: publicKey
+        };
+
+        await tx.sign();
+
+        if (this.mod.server_connection.state !== 'connected') {
+          throw new Error('Server connection lost. Wait for reconnection before trying again.');
+        }
+
+        await this.app.network.sendTransactionWithCallback(
+          tx,
+          (res_tx) => {
+            // Transport failures arrive as plain { err } objects, not transactions.
+            const res = typeof res_tx.returnMessage === 'function' ? res_tx.returnMessage() : res_tx;
+            if (res?.err) {
+              showError(res.err);
+            } else {
+              this.app.wallet.backupWallet();
+              siteMessage('Admin key successfully set, downloaded copy! Reloading page...');
+              reloadWindow(1200);
+            }
+          },
+          this.mod.server_publickey
+        );
+      } catch (err) {
+        showError(err.message || String(err));
+      }
     };
   }
 }

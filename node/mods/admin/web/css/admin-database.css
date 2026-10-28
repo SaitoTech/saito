@@ -4,16 +4,16 @@
 
 .admin-db-intro {
   max-width: 760px;
-  color: #555;
+  color: var(--admin-muted, #555);
 }
 
 .admin-db-error {
   margin: 0 0 16px 0;
   padding: 14px 16px;
   border-radius: 10px;
-  border: 1px solid #f2c7c7;
-  background: #fff5f5;
-  color: #a52828;
+  border: 1px solid var(--admin-danger-border, #f2c7c7);
+  background: var(--admin-danger-bg, #fff5f5);
+  color: var(--admin-danger, #a52828);
   white-space: pre-wrap;
   word-break: break-word;
 }
@@ -31,15 +31,15 @@
   gap: 6px;
   font-size: 13px;
   font-weight: 500;
-  color: #6b7280;
+  color: var(--admin-muted, #6b7280);
 }
 
 .admin-db-current {
-  color: #444;
+  color: var(--admin-text, #444);
 }
 
 .admin-db-empty {
-  color: #666;
+  color: var(--admin-muted, #666);
 }
 
 .admin-db-schema-wrap,
@@ -67,9 +67,9 @@
 }
 
 .admin-db-status {
-  color: #1b5e20;
-  background: #f1f8f4;
-  border: 1px solid #cfe6da;
+  color: var(--admin-accent, #1b5e20);
+  background: var(--admin-accent-bg, #f1f8f4);
+  border: 1px solid var(--admin-accent-border, #cfe6da);
   border-radius: 8px;
   padding: 10px 12px;
 }
@@ -90,15 +90,15 @@
   text-align: left;
   font-size: 12px;
   font-weight: 600;
-  color: #6b7280;
+  color: var(--admin-muted, #6b7280);
   padding: 8px 10px;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid var(--admin-border, #e5e7eb);
   white-space: nowrap;
 }
 
 .admin-db-table td {
   padding: 8px 10px;
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid var(--admin-hover, #f0f0f0);
   vertical-align: top;
   max-width: 420px;
   word-break: break-word;
@@ -106,11 +106,11 @@
 }
 
 .admin-db-table tr:hover td {
-  background: #f9fafb;
+  background: var(--admin-subtle, #f9fafb);
 }
 
 .admin-db-null {
-  color: #9ca3af;
+  color: var(--admin-faint, #9ca3af);
   font-style: italic;
 }
 

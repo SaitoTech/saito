@@ -39,7 +39,7 @@ module.exports = ({ endpoint, public_key, live, offline, error, notice, loading_
   return `
     <div class="admin-peers-page">
       <div class="admin-peers-header">
-        <h1>Peers</h1>
+        <h1>Network</h1>
       </div>
 
       <div class="admin-peers-endpoint">

@@ -20,36 +20,36 @@
 
 .admin-blocks-intro {
   max-width: 760px;
-  color: #555;
+  color: var(--admin-muted, #555);
 }
 
 .admin-blocks-error {
   margin: 0 0 16px 0;
   padding: 14px 16px;
   border-radius: 10px;
-  border: 1px solid #f2c7c7;
-  background: #fff5f5;
-  color: #a52828;
+  border: 1px solid var(--admin-danger-border, #f2c7c7);
+  background: var(--admin-danger-bg, #fff5f5);
+  color: var(--admin-danger, #a52828);
 }
 
 .admin-blocks-current {
   margin: 0 0 24px 0;
   padding: 20px 22px;
-  border: 1px solid #e1e4e8;
+  border: 1px solid var(--admin-border, #e1e4e8);
   border-radius: 14px;
-  background: #f5fbf7;
+  background: var(--admin-accent-subtle, #f5fbf7);
 }
 
 .admin-blocks-current-label {
   font-size: 13px;
   font-weight: 500;
-  color: #6b7280;
+  color: var(--admin-muted, #6b7280);
 }
 
 .admin-blocks-current-id {
   font-size: 36px;
   font-weight: 600;
-  color: #2c3e50;
+  color: var(--admin-heading, #2c3e50);
   line-height: 1.2;
   margin: 4px 0;
 }
@@ -58,12 +58,12 @@
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   font-size: 13px;
   word-break: break-all;
-  color: #374151;
+  color: var(--admin-text, #374151);
 }
 
 .admin-blocks-current-meta {
   margin-top: 10px;
-  color: #555;
+  color: var(--admin-muted, #555);
   font-size: 14px;
 }
 
@@ -78,13 +78,13 @@
   display: block;
   font-size: 13px;
   font-weight: 500;
-  color: #6b7280;
+  color: var(--admin-muted, #6b7280);
   margin-bottom: 4px;
 }
 
 .admin-blocks-stat div {
   font-size: 15px;
-  color: #111827;
+  color: var(--admin-heading, #111827);
 }
 
 .admin-blocks-recent h2 {
@@ -102,14 +102,14 @@
   text-align: left;
   font-size: 12px;
   font-weight: 600;
-  color: #6b7280;
+  color: var(--admin-muted, #6b7280);
   padding: 8px 10px;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid var(--admin-border, #e5e7eb);
 }
 
 .admin-blocks-table td {
   padding: 10px;
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid var(--admin-hover, #f0f0f0);
   vertical-align: top;
 }
 
@@ -120,7 +120,7 @@
 }
 
 .admin-blocks-empty {
-  color: #666;
+  color: var(--admin-muted, #666);
 }
 
 @media (max-width: 720px) {
