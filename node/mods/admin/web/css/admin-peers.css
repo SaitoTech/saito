@@ -8,6 +8,10 @@
 
 .admin-peers-server {
   margin: 0 0 28px 0;
+  padding: 18px 20px;
+  border: 1px solid var(--admin-border, #e1e4e8);
+  border-radius: 14px;
+  background: var(--admin-surface, #ffffff);
 }
 
 .admin-peers-server h2 {
@@ -43,18 +47,18 @@
   margin: 0 0 16px 0;
   padding: 14px 16px;
   border-radius: 10px;
-  border: 1px solid #f2c7c7;
-  background: #fff5f5;
-  color: #a52828;
+  border: 1px solid var(--admin-danger-border, #f2c7c7);
+  background: var(--admin-danger-bg, #fff5f5);
+  color: var(--admin-danger, #a52828);
 }
 
 .admin-peers-notice {
   margin: 0 0 16px 0;
   padding: 14px 16px;
   border-radius: 10px;
-  border: 1px solid #cfe6da;
-  background: #f1f8f4;
-  color: #1b5e20;
+  border: 1px solid var(--admin-accent-border, #cfe6da);
+  background: var(--admin-accent-bg, #f1f8f4);
+  color: var(--admin-accent, #1b5e20);
 }
 
 .admin-peers-section-header {
@@ -73,7 +77,7 @@
 }
 
 .admin-peers-intro {
-  color: #555;
+  color: var(--admin-muted, #555);
   max-width: 760px;
 }
 
@@ -87,14 +91,14 @@
   text-align: left;
   font-size: 13px;
   font-weight: 600;
-  color: #6b7280;
+  color: var(--admin-muted, #6b7280);
   padding: 8px 12px;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid var(--admin-border, #e5e7eb);
 }
 
 .admin-peers-table td {
   padding: 12px;
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid var(--admin-hover, #f0f0f0);
   vertical-align: top;
   font-size: 14px;
 }
@@ -108,7 +112,7 @@
 
 .admin-peer-endpoint {
   font-weight: 600;
-  color: #2c3e50;
+  color: var(--admin-heading, #2c3e50);
   word-break: break-all;
 }
 
@@ -116,7 +120,7 @@
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   font-size: 12px;
   word-break: break-all;
-  color: #4b5563;
+  color: var(--admin-muted, #4b5563);
 }
 
 .admin-peer-badge {
@@ -126,12 +130,12 @@
   font-weight: 600;
   padding: 3px 8px;
   border-radius: 999px;
-  background: #e8f5e9;
-  color: #2e7d32;
+  background: var(--admin-accent-bg, #e8f5e9);
+  color: var(--admin-accent, #2e7d32);
 }
 
 .admin-peers-empty {
-  color: #666;
+  color: var(--admin-muted, #666);
   margin: 8px 0 28px 0;
 }
 
@@ -146,14 +150,14 @@
   gap: 16px;
   padding: 14px 16px;
   margin-bottom: 8px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--admin-border, #e5e7eb);
   border-radius: 10px;
-  background: #fafafa;
+  background: var(--admin-subtle, #fafafa);
 }
 
 .admin-peer-offline-note {
   font-size: 13px;
-  color: #6b7280;
+  color: var(--admin-muted, #6b7280);
 }
 
 .admin-peers-form {
@@ -176,17 +180,17 @@
   align-items: center;
   justify-content: center;
   padding: 8px 14px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--admin-border, #ddd);
   border-radius: 8px;
-  background: #ffffff;
-  color: #444;
+  background: var(--admin-surface, #ffffff);
+  color: var(--admin-text, #444);
   font-size: 14px;
   font-family: inherit;
   cursor: pointer;
 }
 
 .admin-button-quiet:hover {
-  background: #f5f5f5;
+  background: var(--admin-subtle, #f5f5f5);
 }
 
 .admin-button-quiet:disabled {

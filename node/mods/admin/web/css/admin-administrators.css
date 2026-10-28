@@ -29,7 +29,7 @@
 
 .admin-administrators-list li {
   padding: 16px 0;
-  border-bottom: 1px solid #ddd;
+  border-bottom: 1px solid var(--admin-border, #ddd);
 }
 
 .admin-administrator-identity,
@@ -45,8 +45,8 @@
 
 .admin-administrator-badge {
   font-size: 12px;
-  color: #2e7d32;
-  background: #e8f3ec;
+  color: var(--admin-accent, #2e7d32);
+  background: var(--admin-accent-bg, #e8f3ec);
   border-radius: 4px;
   padding: 2px 8px;
 }
@@ -60,11 +60,11 @@
 }
 
 .admin-administrators-error {
-  color: #a4262c;
+  color: var(--admin-danger, #a4262c);
 }
 
 .admin-administrators-notice {
-  color: #2e7d32;
+  color: var(--admin-accent, #2e7d32);
 }
 
 .admin-administrators-add {

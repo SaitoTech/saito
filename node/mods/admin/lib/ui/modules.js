@@ -17,13 +17,13 @@ class AdminModulesUI {
     this.saved = false;
     this.error = '';
     this.filter = '';
+    this.filters = { category: '', status: '', class: '', has_description: true, has_image: true };
   }
 
   render() {
     this.error = '';
     this.saved = false;
     this.dirty = false;
-    this.filter = '';
 
     if (!this.mod.server_info) {
       this.app.browser.replaceElementContentBySelector(
@@ -43,7 +43,8 @@ class AdminModulesUI {
         dirty: this.dirty,
         saved: this.saved,
         error: this.error,
-        filter: this.filter
+        filter: this.filter,
+        filters: this.filters
       }),
       this.container
     );
@@ -61,8 +62,15 @@ class AdminModulesUI {
 
     for (const name of available) {
       seen.add(name);
+      const metadata = this.mod.server_info?.module_metadata?.[name] || {};
       modules.push({
         name,
+        title: metadata.title || name,
+        description: metadata.description || '',
+        categories: metadata.categories || [],
+        status: metadata.status || '',
+        class: metadata.class || '',
+        image: metadata.image === `/admin/module-image/${encodeURIComponent(name)}` ? metadata.image : '',
         mode: this.modeFromLists(name, core, lite),
         missing: false
       });
@@ -75,6 +83,12 @@ class AdminModulesUI {
       }
       modules.push({
         name,
+        title: name,
+        description: '',
+        categories: [],
+        status: '',
+        class: '',
+        image: '',
         mode: this.modeFromLists(name, core, lite),
         missing: true
       });
@@ -115,11 +129,31 @@ class AdminModulesUI {
   }
 
   applyFilter() {
-    const q = this.filter.trim().toLowerCase();
-    document.querySelectorAll('.admin-module-card').forEach((card) => {
-      const name = card.dataset.module || '';
-      card.style.display = !q || name.toLowerCase().includes(q) ? '' : 'none';
+    const root = document.querySelector(this.container);
+    const terms = this.filter.trim().toLowerCase().split(/\s+/).filter(Boolean);
+    const items = new Map(this.modules.map((item) => [item.name, item]));
+    let visible = 0;
+    let missingVisible = 0;
+    root.querySelectorAll('.admin-module-card').forEach((card) => {
+      const item = items.get(card.dataset.module);
+      const search = [item.name, item.title, item.description, ...item.categories, item.status, item.class]
+        .join(' ').toLowerCase();
+      const matches = terms.every((term) => search.includes(term)) &&
+        (!this.filters.category || item.categories.some((category) => category.toLowerCase() === this.filters.category)) &&
+        (!this.filters.status || (item.status.toLowerCase() || 'unspecified') === this.filters.status) &&
+        (!this.filters.class || (item.class.toLowerCase() || 'unspecified') === this.filters.class) &&
+        (!this.filters.has_description || Boolean(item.description.trim())) &&
+        (!this.filters.has_image || Boolean(item.image));
+      card.hidden = !matches;
+      if (matches) {
+        visible++;
+        if (item.missing) missingVisible++;
+      }
     });
+    root.querySelector('.admin-modules-count').textContent = `Showing ${visible} of ${this.modules.length} modules`;
+    root.querySelector('.admin-modules-no-matches').hidden = visible !== 0;
+    const missing = root.querySelector('.admin-modules-missing');
+    if (missing) missing.hidden = missingVisible === 0;
   }
 
   attachEvents() {
@@ -130,6 +164,20 @@ class AdminModulesUI {
         this.applyFilter();
       };
     }
+
+    document.querySelectorAll('[data-module-filter]').forEach((control) => {
+      control.onchange = () => {
+        this.filters[control.dataset.moduleFilter] = control.type === 'checkbox'
+          ? control.checked : control.value;
+        this.applyFilter();
+      };
+    });
+
+    document.querySelectorAll('.admin-module-thumbnail img').forEach((img) => {
+      const showPlaceholder = () => img.remove();
+      img.onerror = showPlaceholder;
+      if (img.complete && !img.naturalWidth) showPlaceholder();
+    });
 
     document.querySelectorAll('.admin-module-card').forEach((card) => {
       card.onclick = () => {
@@ -222,7 +270,7 @@ class AdminModulesUI {
     this.app.network.sendTransactionWithCallback(
       tx,
       (res_tx) => {
-        let res = res_tx.returnMessage();
+        const res = typeof res_tx.returnMessage === 'function' ? res_tx.returnMessage() : res_tx;
         if (res?.err) {
           this.error = res.err;
           this.saved = false;

@@ -3,8 +3,8 @@
 }
 
 .admin-server {
-  background: #ffffff;
-  border: 1px solid #e1e4e8;
+  background: var(--admin-surface, #ffffff);
+  border: 1px solid var(--admin-border, #e1e4e8);
   border-radius: 14px;
   padding: 22px 24px;
   margin-bottom: 32px;
@@ -34,28 +34,28 @@
 .server-stat label {
   font-size: 13px;
   font-weight: 500;
-  color: #6b7280;
+  color: var(--admin-muted, #6b7280);
 }
 
 .server-stat div {
   font-size: 15px;
-  color: #111827;
+  color: var(--admin-heading, #111827);
   word-break: break-all;
 }
 
 .server-stat .mono {
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   font-size: 14px;
-  background: #f9fafb;
+  background: var(--admin-subtle, #f9fafb);
   padding: 8px 10px;
   border-radius: 6px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--admin-border, #e5e7eb);
 }
 
 .admin-keys-panel {
   padding: 28px 32px;
-  background: #ffffff;
-  border: 1px solid #e1e4e8;
+  background: var(--admin-surface, #ffffff);
+  border: 1px solid var(--admin-border, #e1e4e8);
   border-radius: 14px;
 }
 
@@ -67,10 +67,10 @@
 .keys-warning {
   margin-bottom: 22px;
   padding: 12px 16px;
-  background: #fff5f5;
-  border: 1px solid #f2c7c7;
+  background: var(--admin-danger-bg, #fff5f5);
+  border: 1px solid var(--admin-danger-border, #f2c7c7);
   border-radius: 10px;
-  color: #a52828;
+  color: var(--admin-danger, #a52828);
   font-size: 14px;
   font-weight: 500;
 }
@@ -87,8 +87,8 @@
   gap: 18px;
   padding: 14px 16px;
   border-radius: 10px;
-  background: #f9fafb;
-  border: 1px solid #e6e8eb;
+  background: var(--admin-subtle, #f9fafb);
+  border: 1px solid var(--admin-border, #e6e8eb);
 }
 
 .keys-row.header {
@@ -97,7 +97,7 @@
   padding: 0 4px 8px 4px;
   font-size: 13px;
   font-weight: 600;
-  color: #6b7280;
+  color: var(--admin-muted, #6b7280);
 }
 
 .keys-row code {
@@ -111,15 +111,15 @@
 }
 
 .keys-row code.private {
-  background: #fff1f1;
-  border: 1px solid #f0caca;
-  color: #b91c1c;
+  background: var(--admin-danger-bg, #fff1f1);
+  border: 1px solid var(--admin-danger-border, #f0caca);
+  color: var(--admin-danger, #b91c1c);
 }
 
 .keys-row code.public {
-  background: #f1f8f4;
-  border: 1px solid #cfe6da;
-  color: #1b5e20;
+  background: var(--admin-accent-bg, #f1f8f4);
+  border: 1px solid var(--admin-accent-border, #cfe6da);
+  color: var(--admin-accent, #1b5e20);
 }
 
 @media screen and (max-width: 900px) {

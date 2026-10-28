@@ -33,10 +33,10 @@ class AdminMain {
   }
 
   isSetupComplete() {
-    if (this.hasAdminKey()) {
+    if (this.mod.server_info?.options?.isSetupComplete === true) {
       return true;
     }
-    if (this.setup_ui.use_existing_config) {
+    if (typeof is_setup_complete !== 'undefined' && is_setup_complete === true) {
       return true;
     }
     if (this.mod.server_info?.options?.defaultModule) {
@@ -153,12 +153,69 @@ class AdminMain {
   }
 
   attachEvents() {
+    const darkMode = document.getElementById('admin-dark-mode');
+    if (darkMode) {
+      darkMode.checked = document.documentElement.getAttribute('data-admin-theme') === 'dark';
+      darkMode.onchange = () => {
+        const theme = darkMode.checked ? 'dark' : 'light';
+        document.documentElement.setAttribute('data-admin-theme', theme);
+        try {
+          window.localStorage.setItem('saito-admin-theme', theme);
+        } catch (err) {
+          // The appearance still changes when browser storage is unavailable.
+        }
+      };
+    }
+
+    const back = document.querySelector('.saito-admin-back');
+    if (back) {
+      const target = this.backTarget();
+      back.href = target.url;
+      back.onclick = (e) => {
+        if (e.button !== 0 || e.ctrlKey || e.metaKey || e.shiftKey || e.altKey) {
+          return;
+        }
+        // Recheck at click time in case the browser history has changed.
+        const currentTarget = this.backTarget();
+        back.href = currentTarget.url;
+        if (currentTarget.useHistory) {
+          e.preventDefault();
+          window.history.back();
+        }
+      };
+    }
+
     document.querySelectorAll('[data-admin-view]').forEach((el) => {
       el.onclick = (e) => {
         const view = e.currentTarget.getAttribute('data-admin-view');
         this.render(view);
       };
     });
+  }
+
+  backTarget() {
+    const fallback = { url: '/', useHistory: false };
+    const navigation = window.navigation;
+    const canInspectHistory = typeof navigation?.entries === 'function';
+    // Navigation entries identify the actual previous page, including after reload.
+    // Older browsers expose only the referrer: link there directly instead of
+    // traversing history whose destination we cannot verify.
+    const previous = canInspectHistory
+      ? navigation.entries()[navigation.currentEntry.index - 1]?.url
+      : document.referrer;
+
+    if (!previous) {
+      return fallback;
+    }
+    try {
+      const url = new URL(previous);
+      if (url.origin === window.location.origin && /^https?:$/.test(url.protocol)) {
+        return { url: url.href, useHistory: canInspectHistory };
+      }
+    } catch (err) {
+      // Missing or invalid destinations use the server homepage.
+    }
+    return fallback;
   }
 }
 
