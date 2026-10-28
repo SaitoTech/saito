@@ -1,0 +1,81 @@
+#site-message-wrapper {
+  position: fixed;
+  z-index: 2000;
+  bottom: max(24px, env(safe-area-inset-bottom));
+  left: 50%;
+  transform: translateX(-50%);
+  width: max-content;
+  max-width: calc(100% - 32px);
+  padding: 16px 24px;
+  border: 1px solid var(--admin-accent-border, #b8d9c0);
+  border-radius: 10px;
+  background: var(--admin-accent-bg, #e8f5e9);
+  color: var(--admin-text, #333);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 20%);
+  font-size: 16px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+  transition: opacity 0.5s;
+}
+
+#site-message-wrapper.fade-out {
+  opacity: 0;
+}
+
+#site-message-wrapper.site-message-clickable {
+  cursor: pointer;
+}
+
+.saito-alert {
+  position: fixed;
+  inset: 0;
+  z-index: 2147483100;
+}
+
+#saito-alert-shim {
+  position: absolute;
+  inset: 0;
+  padding: 16px;
+  overflow-y: auto;
+  background: rgb(0 0 0 / 50%);
+}
+
+#saito-alert-box {
+  position: relative;
+  width: 100%;
+  max-width: 600px;
+  margin: auto;
+  padding: 24px;
+  border: 1px solid var(--admin-border, #ddd);
+  border-radius: 10px;
+  background: var(--admin-surface, #fff);
+  color: var(--admin-text, #333);
+  box-shadow: 0 12px 30px rgb(0 0 0 / 30%);
+}
+
+.saito-alert-message {
+  margin-bottom: 20px;
+  font-size: 16px;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+
+#saito-alert-box .saito-button-row {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+#saito-alert-box button {
+  padding: 10px 20px;
+  border: 1px solid var(--admin-accent-border, #b8d9c0);
+  border-radius: 6px;
+  background: var(--admin-accent-bg, #e8f5e9);
+  color: var(--admin-accent, #2e7d32);
+  font: inherit;
+  cursor: pointer;
+}
+
+#saito-alert-box button:hover {
+  background: var(--admin-hover, #d5e8d8);
+}
