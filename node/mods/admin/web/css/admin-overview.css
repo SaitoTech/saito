@@ -21,8 +21,12 @@
 
 .admin-server-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  grid-template-columns: minmax(0, 1fr) auto;
   gap: 16px 24px;
+}
+
+.admin-server-grid .server-stat-wide {
+  grid-column: 1 / -1;
 }
 
 .server-stat {
