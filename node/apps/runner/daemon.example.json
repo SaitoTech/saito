@@ -1,0 +1,17 @@
+{
+  "peer": "wss://saito.io/wsopen",
+  "game": "Conquest",
+  "dataDir": "./runner-data/daemon",
+  "decisionProvider": { "type": "codex", "executable": "codex", "timeoutMs": 120000 },
+  "daemon": {
+    "games": ["Conquest", "Settlers", "Twilight"],
+    "mode": "ask",
+    "joinDelayMs": 60000,
+    "consentTimeoutMs": 600000,
+    "refreshMs": 30000,
+    "community": true
+  },
+  "pollMs": 250,
+  "idleTimeoutMs": 600000,
+  "maxDecisions": 10000
+}

@@ -3,6 +3,8 @@
   "version": "0.2.0",
   "description": "scalable blockchain with proper economics",
   "scripts": {
+    "runner": "ts-node --transpile-only --project config/build/tsconfig.json apps/runner/index.ts",
+    "test:runner": "node --test tests/apps/runner/*.test.cjs",
     "dev": "ts-node-dev --max_old_space_size=8144 --project config/build/tsconfig.json ./scripts/start.ts",
     "dev-server": "./scripts/compile nuke ts-node-dev && npm run dev ",
     "nukelocal": "node ./scripts/nukelocal.js",
@@ -63,6 +65,7 @@
     "html2canvas": "1.4.1",
     "identicon.js": "2.3.3",
     "jimp": "0.22.12",
+    "jsdom": "16.7.0",
     "json-bigint": "1.0.0",
     "json-tree-viewer": "0.0.2",
     "jsstore": "4.9.0",

@@ -937,7 +937,7 @@ class GameTemplate extends ModTemplate {
         return;
       }
 
-      if (!this.app.BROWSER) {
+      if (!this.app.BROWSER && !this.app.HEADLESS) {
         return;
       }
 
@@ -1078,7 +1078,7 @@ class GameTemplate extends ModTemplate {
       return 0;
     }
 
-    if (app.BROWSER == 0) {
+    if (app.BROWSER == 0 && !app.HEADLESS) {
       return 0;
     }
 

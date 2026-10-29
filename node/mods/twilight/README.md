@@ -32,3 +32,12 @@ CARDS ERRATA AND IMPLEMENTATION DETAILS:
 
 4. Flower Power & Camp David
    Camp David cancels the event Arab Israeli War, but playing the card will still cost the US 2 VP under Flower Power. The VP are issued if the card is played for OPs regardless of whether the event triggers (similar to Defectors).
+
+## Native automated player
+
+The [Node runner](../../apps/runner/README.md) can play two-player, unstaked
+Twilight games using the original deck and a local Codex or heuristic provider.
+Copy [twilight.example.json](../../apps/runner/twilight.example.json) and run the
+runner from the `node/` directory. `lib/runner.js` bridges the existing card and
+country callbacks through a local DOM while Saito networking stays native.
+Edit `src/` for game rules, then run `./compile` here to regenerate `twilight.js`.

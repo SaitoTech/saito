@@ -191,3 +191,18 @@ playerTurn() {
 This function will run ONLY on the machines of the players specified by the PLAY instruction. It is a convenience -- you do not need to use the PLAY instruction to hand control to a particular player. You can also pass control using game-specific lowercase commands. Usually a game should update the interface for the player who is taking their turn and add events to the DOM elements.
 
 If you are coding a card game there are a lot of functions in the GameHUD that will simplify displaying cards and allowing users to click on them to make moves.
+
+## Headless player runner
+
+The [Node.js game runner](../../../apps/runner/README.md) is a separate SPV player
+entry point for Conquest, Settlers and Twilight Struggle. It uses the same GameTemplate queue and
+signed game transactions as the browser. `app.HEADLESS` enables game intake and
+checkpoint saving with `BROWSER=0`, consumes presentation-only acknowledgements,
+and continues past READY without opening a game page. It does not enable this
+behavior on ordinary full nodes. Game-specific adapters provide filtered player
+observations and legal action candidates to a local Codex or heuristic provider.
+
+Twilight uses a local JSDOM event bridge for its existing card callbacks; the
+network player remains a native Node SPV client. Its runner supports the original
+deck and journals local decisions for restart recovery. See the runner guide for
+configuration, test commands and supported scope.

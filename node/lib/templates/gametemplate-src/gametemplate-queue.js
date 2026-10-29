@@ -525,6 +525,12 @@ class GameQueue {
     });
     this.commands.push(async (game_self, gmv) => {
       if (gmv[0] === 'ACKNOWLEDGE') {
+        // A headless player records notifications without a presentation pause.
+        if (game_self.app.HEADLESS) {
+          game_self.updateLog(gmv[1]);
+          game_self.game.queue.pop();
+          return 1;
+        }
         let notice = gmv[1];
         let player = gmv[2]; // optional = which player must acknowledge to continue, or array of players
 
@@ -609,7 +615,7 @@ class GameQueue {
         game_self.game.over = 1;
         game_self.game.last_block = game_self.app.blockchain.last_bid;
 
-        if (game_self.gameBrowserActive()) {
+        if (game_self.app.HEADLESS || game_self.gameBrowserActive()) {
           game_self.gameOverUserInterface();
         } else {
           if (game_self.game.reason !== 'cancellation') {
@@ -1004,7 +1010,7 @@ class GameQueue {
           game_self.game_state_pre_move = JSON.parse(JSON.stringify(game_self.game));
         }
 
-        if (game_self.gameBrowserActive()) {
+        if (game_self.app.HEADLESS || game_self.gameBrowserActive()) {
           return 1;
         } else {
           //Otherwise we want to pause game processing

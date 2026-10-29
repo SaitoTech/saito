@@ -583,7 +583,8 @@ class GameMoves {
     //
     // AWAIT on this causes issues -- delays UI update
     //
-    this.sendGameMoveTransaction('game', extra);
+    const sending = this.sendGameMoveTransaction('game', extra);
+    if (this.app.HEADLESS) await sending;
   }
 
   async sendGameMoveTransaction(type = 'game', extra = {}, mycallback = null) {
@@ -690,6 +691,7 @@ class GameMoves {
 
     let newtx = await this.app.wallet.createUnsignedTransactionWithDefaultFee();
     if (newtx == null) {
+      if (this.app.HEADLESS) throw Error('Unable to create game transaction');
       salert('ERROR: Difficulty Sending Transaction, please reload');
       return;
     }
@@ -706,7 +708,8 @@ class GameMoves {
     // if there is an issue with the network we don't lose the transaction when the network
     // comes back online. refreshing the browser will also try to auto-resend the tx this way.
     //
-    game_self.app.wallet.addTransactionToPending(newtx);
+    const pendingSave = game_self.app.wallet.addTransactionToPending(newtx);
+    if (this.app.HEADLESS) await pendingSave;
 
     game_self.saveGame(game_self.game.id);
 
@@ -748,7 +751,8 @@ class GameMoves {
       }
     }
 
-    game_self.app.network.propagateTransaction(newtx);
+    const delivery = game_self.app.network.propagateTransaction(newtx);
+    if (this.app.HEADLESS) await delivery;
   }
 }
 

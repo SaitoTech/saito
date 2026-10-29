@@ -34,14 +34,14 @@
           if (action == "participate") {
 
             let winner = 0;
+            let dice_burns = 0;
 
             while (winner == 0) {
 
               let usroll   = twilight_self.rollDice(6);
               let ussrroll = twilight_self.rollDice(6);
 
-              twilight_self.addMove("dice\tburn\t"+player);
-              twilight_self.addMove("dice\tburn\t"+player);
+              dice_burns += 2;
 
               if (opponent == "us") {
                 twilight_self.addMove(`NOTIFY\tOlympic Games: USSR rolls ${ussrroll} / US rolls ${usroll} (+2 hosting bonus)`);
@@ -54,12 +54,16 @@
               if (ussrroll > usroll) {
                 twilight_self.addMove("vp\tussr\t2");
                 twilight_self.addMove("modal\t USSR wins the Olympics");
+                // Burn before VP in the LIFO queue: victory may end processing.
+                for (let i = 0; i < dice_burns; i++) twilight_self.addMove("dice\tburn\t"+player);
                 twilight_self.endTurn();
                 winner = 1;
               }
               if (usroll > ussrroll) {
                 twilight_self.addMove("vp\tus\t2");
                 twilight_self.addMove("modal\t US wins the Olympics");
+                // Burn before VP in the LIFO queue: victory may end processing.
+                for (let i = 0; i < dice_burns; i++) twilight_self.addMove("dice\tburn\t"+player);
                 twilight_self.endTurn();
                 winner = 2;
               }

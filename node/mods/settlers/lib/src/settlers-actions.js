@@ -1,4 +1,40 @@
 class SettlersActions {
+  // Rules shared by browser and headless players. No renderer state is authoritative.
+  updateScore() {
+    const s = this.game.state;
+    const previousRobinhood = s.robinhood;
+    let increased = 0;
+    let winner = false;
+    for (let i = 0; i < s.players.length; i++) {
+      const score = s.cities.filter(c => c.player === i + 1).reduce((n, c) => n + c.level, 0)
+        + (s.longestRoad.player === i + 1 ? this.longest.value : 0)
+        + (s.largestArmy.player === i + 1 ? this.largest.value : 0) + s.players[i].vpc;
+      if (score > s.players[i].vp) increased = i + 1;
+      s.players[i].vp = score;
+      if (score >= this.game.options.game_length) {
+        const command = `winner\t${i}`;
+        if (!this.game.queue.includes(command)) this.game.queue.push(command);
+        winner = true;
+      }
+    }
+    if (!winner && s.players.length === 2 && increased) {
+      if (Math.abs(s.players[0].vp - s.players[1].vp) > 1) {
+        const leader = s.players[0].vp > s.players[1].vp ? 1 : 2;
+        if (leader === increased) {
+          if (!s.robinhood) {
+            s.robinhood = 3 - leader;
+            this.updateLog(`Robinhood will be friendly to ${this.formatPlayer(s.robinhood)}`);
+          }
+          if (s.threatened.includes(s.robinhood)) this.game.queue.push(`roll_bandit\t${leader}`);
+        }
+      } else {
+        if (s.robinhood) this.updateLog('The bandit is neutral again');
+        s.robinhood = 0;
+      }
+    }
+    return previousRobinhood !== s.robinhood;
+  }
+
   //
   // OVERRIDE THIS FUNCTION FROM THE PARENT GAME LIBRARY TO CHANGE THE ACKNOWLEDGE TEXT TO CONTINUE
   // and override the callback
@@ -141,6 +177,8 @@ class SettlersActions {
   }
 
   buildCity(player, slot) {
+    let blocks_me = false;
+    if (this.browser_active) {
     // remove adjacent slots
     let ad = this.returnAdjacentCitySlots(slot);
     for (let i = 0; i < ad.length; i++) {
@@ -158,7 +196,6 @@ class SettlersActions {
     $(this.c1.svg).hide().appendTo(divname).fadeIn(1200);
     $(divname).addClass(owner);
 
-    let blocks_me = false;
     let newRoads = this.hexgrid.edgesFromVertex(slot.replace('city_', ''));
     if (this.game.player == player) {
       //Enable player to put roads on adjacent edges
@@ -181,6 +218,8 @@ class SettlersActions {
           }
         }
       }
+    }
+
     }
 
     //Save City to Internal Game Logic
@@ -227,6 +266,7 @@ class SettlersActions {
   Update internal game logic to mark road as built and change class in DOM for display
   */
   buildRoad(player, slot) {
+    if (!this.browser_active) return;
     let divname = '#' + slot;
     let owner = 'p' + this.game.colors[player - 1];
 

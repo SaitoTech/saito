@@ -50,95 +50,26 @@ class SettlersDisplay {
   }
 
   displayScore() {
-    try {
-      let score_change = false;
-
-      for (let i = 0; i < this.game.state.players.length; i++) {
-        let score = 0;
-        //Count towns and cities
-        for (let j = 0; j < this.game.state.cities.length; j++) {
-          if (this.game.state.cities[j].player === i + 1) {
-            //Player Number, not array index
-            score += this.game.state.cities[j].level;
-          }
-        }
-
-        //Update Longest Road
-        if (this.game.state.longestRoad.player == i + 1) {
-          score += this.longest.value;
-        }
-        //Update Largest Army
-        if (this.game.state.largestArmy.player == i + 1) {
-          score += this.largest.value;
-        }
-        //Count (played) Victory Points
-        score += this.game.state.players[i].vpc;
-
-        //Save Score
-        this.game.state.players[i].vp = score;
-
-        //Check if there is a difference (and who went up)
-        if (this.game.state.players[i].vp !== this.racetrack.players[i].score) {
-          if (this.game.state.players[i].vp > this.racetrack.players[i].score) {
-            score_change = i + 1;
-          }
-          this.racetrack.players[i].score = this.game.state.players[i].vp;
-          this.racetrack.render();
-          this.racetrack.lock();
-        }
-
-        //Check for winner
-        if (this.game.state.players[i].vp >= this.game.options.game_length) {
-          this.game.queue.push(`winner\t${i}`);
-          score_change = false;
-        }
-      }
-
-      if (this.game.players.length == 2 && score_change) {
-        if (Math.abs(this.game.state.players[0].vp - this.game.state.players[1].vp) > 1) {
-          let player = this.game.state.players[0].vp > this.game.state.players[1].vp ? 1 : 2;
-
-          if (score_change == player) {
-            // Newly entering state
-            if (!this.game.state.robinhood) {
-              $('.main').addClass('robinhood');
-              this.game.state.robinhood = 3 - player;
-              this.updateLog(
-                `Robinhood will be friendly to ${this.formatPlayer(this.game.state.robinhood)}`
-              );
-            }
-
-            if (!this.game.state.robinhood_overlay) {
-              this.game.state.robinhood_overlay = 1;
-              this.game_help.render({
-                title: 'Robin Hood',
-                text: 'Robin Hood is a friendly bandit (in 1v1 games) that helps the losing player, who will be immune to Robin Hood raiding their hand or blocking their resource production',
-                img: '/settlers/img/robinhood_background.jpg',
-                line1: 'who is',
-                line2: 'robin hood?',
-                id: 'robinhood',
-                fontsize: '2.1rem',
-                color: '#1a7004',
-                duration: 5000
-              });
-            }
-
-            // Only move Robinhood if bandit is threatening losing player
-            if (this.game.state.threatened.includes(this.game.state.robinhood)) {
-              this.card_overlay.render({ player: this.game.state.robinhood, card: 'Robin Hood' });
-              this.game.queue.push(`roll_bandit\t${player}`);
-            }
-          }
-        } else {
-          if (this.game.state.robinhood) {
-            this.updateLog('The bandit is neutral again');
-          }
-          $('.main').removeClass('robinhood');
-          this.game.state.robinhood = 0;
-        }
-      }
-    } catch (err) {
-      console.error(err);
+    const queueLength = this.game.queue.length;
+    this.updateScore();
+    if (!this.browser_active) return;
+    for (let i = 0; i < this.game.state.players.length; i++) {
+      if (this.racetrack.players[i]) this.racetrack.players[i].score = this.game.state.players[i].vp;
+    }
+    this.racetrack.render();
+    this.racetrack.lock();
+    $('.main').toggleClass('robinhood', !!this.game.state.robinhood);
+    if (this.game.state.robinhood && !this.game.state.robinhood_overlay) {
+      this.game.state.robinhood_overlay = 1;
+      this.game_help.render({
+        title: 'Robin Hood',
+        text: 'Robin Hood is a friendly bandit (in 1v1 games) that helps the losing player, who will be immune to Robin Hood raiding their hand or blocking their resource production',
+        img: '/settlers/img/robinhood_background.jpg', line1: 'who is', line2: 'robin hood?',
+        id: 'robinhood', fontsize: '2.1rem', color: '#1a7004', duration: 5000
+      });
+    }
+    if (this.game.queue.length > queueLength && this.game.queue.at(-1).startsWith('roll_bandit')) {
+      this.card_overlay.render({ player: this.game.state.robinhood, card: 'Robin Hood' });
     }
   }
 
@@ -352,6 +283,7 @@ class SettlersDisplay {
    *
    ***********/
   animateHarvest(player, resource, tile = null) {
+    if (this.app.HEADLESS) return;
     let destination;
 
     if (player == this.game.player) {
@@ -387,6 +319,7 @@ class SettlersDisplay {
   }
 
   animateDevCard(player) {
+    if (this.app.HEADLESS) return;
     let destination = '#game-playerbox-' + player;
 
     if (player == this.game.player) {
@@ -422,6 +355,7 @@ class SettlersDisplay {
   Briefly animate the longest road and update log if there is a change in ownership
   */
   highlightRoad(player, road, msg) {
+    if (this.app.HEADLESS) return;
     this.updateLog(`${this.formatPlayer(player)} ${msg}`);
     for (let segment of road) {
       let selector = '#road_' + segment;
@@ -468,6 +402,7 @@ class SettlersDisplay {
   Flashes tiles activated by dice roll
   */
   animateDiceRoll(roll) {
+    if (this.app.HEADLESS) return;
     //console.log("Dice Animated: " + roll);
     $('.rolled').removeClass('rolled');
     $('.sector_value:not(.bandit)').attr('style', '');
