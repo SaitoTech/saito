@@ -7,10 +7,6 @@ module.exports = () => {
         <span>mouseover for movement</span>
       </label>
       <label class="settings-option">
-        <input type="checkbox" data-setting="show_combat_overlays">
-        <span>show combat overlays</span>
-      </label>
-      <label class="settings-option">
         <input type="checkbox" data-setting="remove_card_popups">
         <span>remove card popups</span>
       </label>

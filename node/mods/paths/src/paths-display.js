@@ -358,6 +358,10 @@
         this.layoutSpaceStack(key);
       }
 
+      if (this.loss_overlay && this.loss_overlay.board_mode) {
+        this.loss_overlay.onBoardSpaceRedrawn(key);
+      }
+
     } catch (err) {
 console.log("err: " + err);
     }
@@ -616,6 +620,13 @@ console.log("err: " + err);
               }
             }
           }
+        }
+
+        //
+        // loss assignment owns the board click target while board mode is active
+        //
+        if (paths_self.loss_overlay && paths_self.loss_overlay.board_mode) {
+          return;
         }
 
         //

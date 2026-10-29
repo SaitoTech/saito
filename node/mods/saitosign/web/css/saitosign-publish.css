@@ -681,7 +681,7 @@
 
 .saitosign-publish .signer-requirements {
   margin: 0 0 0 2.6rem;
-  padding: 0;
+  padding: 0 0 0 2rem;
   list-style: disc;
   color: var(--saito-muted-foreground);
   font-size: var(--font-size-small, 1.4rem);

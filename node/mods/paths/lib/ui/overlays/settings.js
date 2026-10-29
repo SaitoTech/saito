@@ -6,7 +6,6 @@ class SettingsOverlay {
     this.app = app;
     this.mod = mod;
     this.overlay = new SaitoOverlay(app, mod, false, true, false);
-    this.show_combat_overlays = false;
   }
 
   hide() {
@@ -22,13 +21,9 @@ class SettingsOverlay {
     }
 
     let movement = root.querySelector('[data-setting="mouseover_for_movement"]');
-    let combat = root.querySelector('[data-setting="show_combat_overlays"]');
     let popups = root.querySelector('[data-setting="remove_card_popups"]');
     if (movement) {
       movement.checked = this.mod.movementMouseoverEnabled();
-    }
-    if (combat) {
-      combat.checked = this.show_combat_overlays;
     }
     if (popups) {
       popups.checked = this.mod.cardPopupsRemoved();
@@ -42,9 +37,6 @@ class SettingsOverlay {
           if (!e.currentTarget.checked) {
             this.mod.removeMovementCues();
           }
-        }
-        if (setting === 'show_combat_overlays') {
-          this.show_combat_overlays = e.currentTarget.checked;
         }
         if (setting === 'remove_card_popups') {
           this.mod.saveGamePreference('pathsofglory_remove_card_popups', e.currentTarget.checked ? 1 : 0);

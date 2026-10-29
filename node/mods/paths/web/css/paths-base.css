@@ -176,6 +176,20 @@
     z-index: 0;
   }
 
+  .space.loss-assignment-open > .army-tile.loss-board-unit {
+    cursor: pointer;
+  }
+
+  .space.loss-assignment-open > .army-tile.loss-board-other {
+    opacity: 0.55;
+    pointer-events: none;
+  }
+
+  .space.loss-assignment-open > .army-tile.loss-board-unassignable {
+    opacity: 0.35;
+    cursor: not-allowed;
+  }
+
   img {
     width: unset;
   }

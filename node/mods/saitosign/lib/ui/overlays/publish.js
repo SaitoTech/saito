@@ -399,6 +399,12 @@ class PublishOverlay {
         return;
       }
 
+      if (action.dataset.publishAction === 'skip-sign') {
+        this.state = { ...this.state, distributeOnly: true };
+        this.paintSlide();
+        return;
+      }
+
       if (action.dataset.publishAction === 'upload-share') {
         const notice = 'Upload and share is not implemented yet.';
         if (typeof salert === 'function') {

@@ -620,7 +620,9 @@
     min-width: 0;
     justify-self: start;
     display: flex;
-    align-items: center;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.35rem;
   }
 
   .loss-overlay-footer .loss-overlay-title {
@@ -630,6 +632,30 @@
     letter-spacing: 0.01em;
     line-height: 1;
     color: rgba(255, 255, 255, 0.68);
+  }
+
+  .loss-overlay-board-pref {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin: 0;
+    font-family: Helvetica, Arial, sans-serif;
+    font-size: 1.15rem;
+    line-height: 1.2;
+    color: rgba(255, 255, 255, 0.55);
+    cursor: pointer;
+    user-select: none;
+  }
+
+  .loss-overlay-board-pref:hover {
+    color: rgba(255, 255, 255, 0.9);
+  }
+
+  .loss-overlay-board-pref input {
+    width: 1.05rem;
+    height: 1.05rem;
+    margin: 0;
+    cursor: pointer;
   }
 
   /* Centered pull-up affordance — small caret, large hit target */
