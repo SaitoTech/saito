@@ -69,6 +69,7 @@ class Web3PaymentOverlay {
     this.crypto_selected = null;
     this.purchase_tx = null;
     this.payment_detected = false;
+    this.fulfillment_monitor = false;
     this.internal_payment_pending = false;
     this.internal_payment_sending = false;
     this.statusLead = '';
@@ -273,11 +274,35 @@ class Web3PaymentOverlay {
     }
     this.payment_detected = true;
     this.clearReservationTimer();
-    this.statusLead =
-      data.status === 'pending'
-        ? 'Payment detected. Completing your purchase...'
-        : 'Payment received. Completing your purchase...';
-    this.render();
+    if (data.status === 'pending') {
+      this.statusLead = 'Payment detected. Completing your purchase...';
+      this.render();
+      return;
+    }
+    this.openFulfillmentMonitor();
+  }
+
+  openFulfillmentMonitor() {
+    if (this.fulfillment_monitor) {
+      return;
+    }
+    const nftId = String(this.summary?.nft_id || '').trim();
+    const monitor = this.mod?.transaction_monitor;
+    if (!monitor || !nftId) {
+      this.statusLead = 'Payment received. Completing your purchase...';
+      this.render();
+      return;
+    }
+    this.fulfillment_monitor = true;
+    this.active = false;
+    this.clearTimers();
+    this.overlay.close();
+    monitor.render({
+      nft_id: nftId,
+      title: 'Payment Confirmed',
+      lead: 'The Store is fulfilling your order…',
+      subtitle: ''
+    });
   }
 
   receiveIssued(data = {}) {
@@ -293,8 +318,7 @@ class Web3PaymentOverlay {
     this.payment_detected = true;
     this.fundsNotice = false;
     this.clearTimers();
-    this.statusLead = 'Payment received. Completing your purchase...';
-    this.render();
+    this.openFulfillmentMonitor();
   }
 
   showInsufficientFunds() {

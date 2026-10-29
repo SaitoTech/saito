@@ -1,5 +1,6 @@
 const SaitoOverlay = require('../saito-overlay/saito-overlay');
 const Template = require('./saito-transaction-monitor.template');
+const { TransactionType } = require('saito-js/lib/transaction');
 
 class SaitoTransactionMonitor {
   constructor(app, mod, container = '') {
@@ -11,6 +12,7 @@ class SaitoTransactionMonitor {
     this.overlay.clickBackdropToClose = false;
 
     this.tx = null;
+    this.nft_id = '';
     this.callback = null;
     this.options = {};
     this._countdown_timer = null;
@@ -50,6 +52,8 @@ class SaitoTransactionMonitor {
    *
    * options:
    *   tx                 - transaction to monitor
+   *   nft_id             - bound NFT to watch for. A matching bound transaction
+   *                        addressed to this browser closes the monitor.
    *   callback           - fired when the monitor finishes:
    *                        { status: 'confirmed' } after the user dismisses
    *                        the completion dialog, or { status: 'cancelled' }
@@ -65,6 +69,7 @@ class SaitoTransactionMonitor {
 
     this.options = options;
     this.tx = options.tx || null;
+    this.nft_id = String(options.nft_id || '').trim();
     this.callback = typeof options.callback === 'function' ? options.callback : null;
     this._completion_result = null;
 
@@ -110,6 +115,26 @@ class SaitoTransactionMonitor {
   }
 
   /**
+   * A bound transaction addressed to this browser whose third slip is the
+   * watched NFT. Slip 2 is the recipient. Slip 3 is the NFT id.
+   */
+  matchesWatchedNft(tx) {
+    const wanted = String(this.nft_id || '').trim();
+    if (!wanted || !tx) {
+      return false;
+    }
+    if (Number(tx.type) !== Number(TransactionType.Bound)) {
+      return false;
+    }
+    const me = String(this.app?.wallet?.publicKey || '').trim();
+    if (!me || typeof tx.isTo !== 'function' || tx.isTo(me) !== true) {
+      return false;
+    }
+    const nftId = this.app?.wallet?.computeNFTIdFromTx?.(tx);
+    return String(nftId || '') === wanted;
+  }
+
+  /**
    * Native SAITO: wallet maps WASM on-transaction-sent → on-payment-sent
    * with a `signature` field. Complete when it matches the watched tx.
    */
@@ -135,13 +160,12 @@ class SaitoTransactionMonitor {
    * reconciliation check. No-ops if this watch is no longer pending.
    */
   completeWith(blk, tx) {
-    if (!this.tx) {
-      return;
-    }
-    if (!tx || tx.signature !== this.tx.signature) {
-      return;
-    }
     if (this._completion_result) {
+      return;
+    }
+    const nftMatch = this.matchesWatchedNft(tx);
+    const signatureMatch = !!(this.tx?.signature && tx?.signature === this.tx.signature);
+    if (!nftMatch && !signatureMatch) {
       return;
     }
 
@@ -166,8 +190,12 @@ class SaitoTransactionMonitor {
       blk
     };
     this.tx = null;
+    if (nftMatch) {
+      this.nft_id = '';
+    }
 
-    if (this.options.auto_continue_on_confirm) {
+    // NFT arrival closes the monitor. The wallet already holds the NFT.
+    if (nftMatch || this.options.auto_continue_on_confirm) {
       const result = this._completion_result;
       this._completion_result = null;
       this.fireCallback(result);
@@ -209,6 +237,7 @@ class SaitoTransactionMonitor {
     }
 
     this.tx = null;
+    this.nft_id = '';
     this.callback = null;
     this.options = {};
     this._completion_result = null;
@@ -233,7 +262,7 @@ class SaitoTransactionMonitor {
     if (generation !== this._watch_generation) {
       return;
     }
-    if (!this.tx) {
+    if (!this.tx?.signature && !String(this.nft_id || '').trim()) {
       return;
     }
     if (this._reconcile_in_flight === generation) {
@@ -246,10 +275,13 @@ class SaitoTransactionMonitor {
       if (generation !== this._watch_generation) {
         return;
       }
-      if (!found || !this.tx) {
+      if (!found) {
         return;
       }
-      if (found.tx.signature !== this.tx.signature) {
+      if (this.tx?.signature && found.tx.signature !== this.tx.signature) {
+        return;
+      }
+      if (!this.tx?.signature && !this.matchesWatchedNft(found.tx)) {
         return;
       }
       this.completeWith(found.blk, found.tx);
@@ -268,8 +300,9 @@ class SaitoTransactionMonitor {
    * bodies are skipped so they cannot false-complete the monitor.
    */
   async findWatchedTransactionInRecentBlocks() {
-    const signature = this.tx?.signature;
-    if (!signature) {
+    const signature = this.tx?.signature || '';
+    const nftId = String(this.nft_id || '').trim();
+    if (!signature && !nftId) {
       return null;
     }
 
@@ -291,7 +324,11 @@ class SaitoTransactionMonitor {
     const startId = Math.max(1, latestId - this._recent_block_lookback + 1);
 
     for (let id = latestId; id >= startId; id--) {
-      if (!this.tx || this.tx.signature !== signature) {
+      if (signature) {
+        if (!this.tx || this.tx.signature !== signature) {
+          return null;
+        }
+      } else if (String(this.nft_id || '').trim() !== nftId) {
         return null;
       }
 
@@ -335,7 +372,9 @@ class SaitoTransactionMonitor {
         continue;
       }
 
-      const found = txs.find((candidate) => candidate?.signature === signature);
+      const found = signature
+        ? txs.find((candidate) => candidate?.signature === signature)
+        : txs.find((candidate) => this.matchesWatchedNft(candidate));
       if (found) {
         return { blk: block, tx: found };
       }
@@ -379,7 +418,7 @@ class SaitoTransactionMonitor {
       renderSeconds();
 
       ticks += 1;
-      if (this.tx && ticks % this._reconcile_every_ticks === 0) {
+      if ((this.tx || this.nft_id) && ticks % this._reconcile_every_ticks === 0) {
         void this.reconcileIfAlreadyConfirmed(generation);
       }
     }, 1000);
