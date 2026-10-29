@@ -65,6 +65,43 @@
   font-size: var(--font-size-medium);
 }
 
+.saitosign-field .what {
+  display: flex;
+  flex-direction: column;
+  gap: var(--saito-space-xs);
+}
+
+.saitosign-field .what[hidden],
+.saitosign-field .field-details[hidden] {
+  display: none;
+}
+
+.saitosign-field .field-details {
+  display: flex;
+  flex-direction: column;
+  gap: var(--saito-space-sm);
+  margin-top: var(--saito-space-xs);
+  padding: var(--saito-space-md);
+  border: 1px solid var(--saito-border);
+  border-radius: var(--saito-radius);
+  background: var(--saito-background);
+}
+
+.saitosign-field .field-details .check {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: var(--saito-space-sm);
+  color: var(--saito-foreground);
+  cursor: pointer;
+}
+
+.saitosign-field .field-details .check input {
+  width: auto;
+  margin: 0;
+  accent-color: var(--saito-primary);
+}
+
 .saitosign-field .form-error {
   margin: 0;
   color: var(--saito-destructive);

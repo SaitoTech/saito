@@ -30,15 +30,13 @@ module.exports = (app, mod) => {
   return `
     <div class="saito-admin-main">
       <div class="saito-admin-sidebar">
-        <a class="saito-admin-back" href="/" aria-label="Back to Saito" title="Back to Saito">
-          <i class="fa-solid fa-arrow-left" aria-hidden="true"></i>
-        </a>
         <div class="saito-admin-nav-item overview active" data-admin-view="overview">Overview</div>
         <div class="saito-admin-nav-item peers" data-admin-view="peers">Network</div>
+        <div class="saito-admin-nav-item tokens" data-admin-view="tokens" hidden>Tokens</div>
         <div class="saito-admin-nav-item modules" data-admin-view="modules">Modules</div>
         <div class="saito-admin-nav-item administrators" data-admin-view="administrators">Administrators</div>
         <div class="saito-admin-nav-item database" data-admin-view="database">Database</div>
-        <div class="saito-admin-nav-item blocks" data-admin-view="blocks">Blocks</div>
+        <div class="saito-admin-nav-item blocks" data-admin-view="blocks">Blockchain</div>
         <div class="saito-admin-nav-item mempool" data-admin-view="mempool">Mempool</div>
         ${sidebarNav}
         <label class="admin-theme-option" for="admin-dark-mode" title="Save your appearance preference in this browser.">
@@ -50,6 +48,8 @@ module.exports = (app, mod) => {
       <div class="saito-admin-content" id="saito-admin-content">
 
         <div class="admin-page admin-overview"></div>
+
+        <div class="admin-page admin-tokens"></div>
 
         <div class="admin-page admin-modules"></div>
 

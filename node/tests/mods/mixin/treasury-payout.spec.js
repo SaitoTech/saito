@@ -495,3 +495,174 @@ describe('remote treasury payouts', () => {
     sqlite.close();
   });
 });
+
+describe('mixin operation mode admin configuration', () => {
+  function configuredMixin(options = {}) {
+    const saved = { mixin: { ...(options.mixin || {}) } };
+    const crypto = {
+      isPublicKey(key) {
+        return [APP, TREASURY, BUYER, 'delegate-one', 'delegate-two'].includes(key);
+      }
+    };
+    const mixin = new Mixin({
+      options: saved,
+      modules: { returnModule: () => null },
+      storage: { saveOptions() {} },
+      crypto
+    });
+    mixin.publicKey = APP;
+    mixin.app.options = saved;
+    mixin.app.storage = { saveOptions() {} };
+    mixin.app.crypto = crypto;
+    mixin.loadTreasuryConfig();
+    return mixin;
+  }
+
+  test('defaults to local fulfillment without providers or delegates', () => {
+    const mixin = configuredMixin();
+    expect(mixin.operation_mode).toBe('local');
+    expect(mixin.execution_mode).toBe('local');
+    expect(mixin.payout_mode).toBe('local');
+    expect(mixin.treasury_provider_publickeys).toEqual([]);
+    expect(mixin.treasury_delegate_publickeys).toEqual([]);
+  });
+
+  test('saving local fulfillment clears provider and delegate keys', () => {
+    const mixin = configuredMixin({
+      mixin: {
+        operation_mode: 'local_remote',
+        execution_mode: 'local',
+        payout_mode: 'remote',
+        treasury_provider_publickeys: [TREASURY],
+        treasury_delegate_publickeys: ['delegate-one']
+      }
+    });
+    mixin.loadTreasuryConfig();
+    const saved = mixin.saveTreasuryAdminConfig({
+      operation_mode: 'local',
+      treasury_provider_publickeys: [TREASURY],
+      treasury_delegate_publickeys: ['delegate-one']
+    });
+    expect(saved).toMatchObject({
+      operation_mode: 'local',
+      execution_mode: 'local',
+      payout_mode: 'local',
+      treasury_provider_publickeys: [],
+      treasury_delegate_publickeys: []
+    });
+    expect(mixin.app.options.mixin.treasury_provider_publickeys).toEqual([]);
+    expect(mixin.app.options.mixin.treasury_delegate_publickeys).toEqual([]);
+    expect(mixin.execution_mode).toBe('local');
+    expect(mixin.payout_mode).toBe('local');
+  });
+
+  test('remote payout modes require a usable treasury provider key', () => {
+    const mixin = configuredMixin();
+    expect(() =>
+      mixin.saveTreasuryAdminConfig({
+        operation_mode: 'local_remote',
+        treasury_provider_publickeys: []
+      })
+    ).toThrow(/Treasury provider/);
+    expect(() =>
+      mixin.saveTreasuryAdminConfig({
+        operation_mode: 'remote_remote',
+        treasury_provider_publickeys: [APP]
+      })
+    ).toThrow(/not this server/);
+    expect(mixin.execution_mode).toBe('local');
+    expect(mixin.payout_mode).toBe('local');
+  });
+
+  test('valid remote payout and treasury modes persist and apply live', () => {
+    const mixin = configuredMixin();
+    mixin.transfers = { processTransferQueue: jest.fn(async () => {}) };
+
+    expect(() =>
+      mixin.saveTreasuryAdminConfig({
+        operation_mode: 'local_remote',
+        treasury_provider_publickeys: [TREASURY, TREASURY]
+      })
+    ).toThrow(/duplicate/);
+
+    const remote = mixin.saveTreasuryAdminConfig({
+      operation_mode: 'local_remote',
+      treasury_provider_publickeys: [TREASURY],
+      treasury_delegate_publickeys: ['delegate-one']
+    });
+    expect(remote.treasury_provider_publickeys).toEqual([TREASURY]);
+    expect(remote.treasury_delegate_publickeys).toEqual([]);
+    expect(mixin.execution_mode).toBe('local');
+    expect(mixin.payout_mode).toBe('remote');
+    expect(mixin.transfer_timer).toBeTruthy();
+
+    const fullyRemote = mixin.saveTreasuryAdminConfig({
+      operation_mode: 'remote_remote',
+      treasury_provider_publickeys: [TREASURY]
+    });
+    expect(fullyRemote.execution_mode).toBe('remote');
+    expect(fullyRemote.payout_mode).toBe('remote');
+    expect(mixin.transfer_timer).toBeNull();
+
+    const treasury = mixin.saveTreasuryAdminConfig({
+      operation_mode: 'treasury',
+      treasury_provider_publickeys: [TREASURY],
+      treasury_delegate_publickeys: []
+    });
+    expect(treasury).toMatchObject({
+      operation_mode: 'treasury',
+      execution_mode: 'local',
+      payout_mode: 'local',
+      treasury_provider_publickeys: [],
+      treasury_delegate_publickeys: []
+    });
+    expect(mixin.transfer_timer).toBeTruthy();
+
+    mixin.saveTreasuryAdminConfig({
+      operation_mode: 'treasury',
+      treasury_delegate_publickeys: ['delegate-one', 'delegate-two']
+    });
+    expect(mixin.treasury_delegate_publickeys).toEqual(['delegate-one', 'delegate-two']);
+    expect(mixin.app.options.mixin.api_key).toBeUndefined();
+  });
+
+  test('rejects malformed and duplicate keys without changing active config', () => {
+    const mixin = configuredMixin({
+      mixin: {
+        operation_mode: 'local',
+        execution_mode: 'local',
+        payout_mode: 'local'
+      }
+    });
+    mixin.loadTreasuryConfig();
+    expect(() =>
+      mixin.saveTreasuryAdminConfig({
+        operation_mode: 'local_remote',
+        treasury_provider_publickeys: ['not-a-key']
+      })
+    ).toThrow(/invalid Saito public key/);
+    expect(mixin.operation_mode).toBe('local');
+    expect(mixin.app.options.mixin.execution_mode || 'local').toBe('local');
+    expect(mixin.app.options.mixin.treasury_provider_publickeys || []).toEqual([]);
+  });
+
+  test('startup restores the saved operation mode', () => {
+    const mixin = configuredMixin({
+      mixin: {
+        operation_mode: 'treasury',
+        execution_mode: 'local',
+        payout_mode: 'local',
+        treasury_delegate_publickeys: ['delegate-one']
+      }
+    });
+    expect(mixin.operation_mode).toBe('treasury');
+    expect(mixin.treasury_delegate_publickeys).toEqual(['delegate-one']);
+    expect(mixin.treasuryAdminSnapshot()).toMatchObject({
+      operation_mode: 'treasury',
+      execution_mode: 'local',
+      payout_mode: 'local',
+      treasury_provider_publickeys: [],
+      treasury_delegate_publickeys: ['delegate-one']
+    });
+  });
+});

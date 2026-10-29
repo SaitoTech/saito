@@ -83,8 +83,22 @@ function canonicalJSON(value) {
   );
 }
 
+function pdfPayload(pdf) {
+  if (!Array.isArray(pdf)) {
+    return [];
+  }
+  return pdf.map((entry) => ({
+    name: String(entry?.name || ''),
+    pdf: String(entry?.pdf || '')
+  }));
+}
+
+function pdfHash(app, pdf) {
+  return app.crypto.hash(canonicalJSON(pdfPayload(pdf)));
+}
+
 function signingConfigurationError(record) {
-  if (!String(record?.document?.pdf || '').trim()) {
+  if (!pdfPayload(record?.document?.pdf).length) {
     return 'Add the PDF before finalizing this document.';
   }
   const actions = Array.isArray(record?.actions) ? record.actions : [];
@@ -129,7 +143,7 @@ function placedAction(action) {
 }
 
 function actionPayload(action) {
-  return {
+  const next = {
     id: Number(action.id),
     type: action.type,
     user: Number(action.user),
@@ -139,6 +153,11 @@ function actionPayload(action) {
     width: Number(action.width),
     height: Number(action.height)
   };
+  const group = String(action?.group || '').trim();
+  if (group) {
+    next.group = group;
+  }
+  return next;
 }
 
 function finalizationPayload(app, record, creator = record?.creator) {
@@ -147,7 +166,7 @@ function finalizationPayload(app, record, creator = record?.creator) {
     creator: String(creator || '').trim(),
     document: {
       name: record?.document?.name || '',
-      pdf_hash: app.crypto.hash(record?.document?.pdf || ''),
+      pdf_hash: pdfHash(app, record?.document?.pdf),
       page_count: Number(record?.document?.page_count) || 0,
       page_width: Number(record?.document?.page_width) || 0,
       page_height: Number(record?.document?.page_height) || 0
@@ -163,7 +182,7 @@ function creatorProofPayload(app, record, creator = record?.creator) {
   return {
     version: 1,
     creator: String(creator || '').trim(),
-    pdf_hash: app.crypto.hash(record?.document?.pdf || ''),
+    pdf_hash: pdfHash(app, record?.document?.pdf),
     finalized,
     contract_hash: finalized ? app.crypto.hash(canonicalJSON(finalizationPayload(app, record, creator))) : ''
   };
@@ -171,7 +190,7 @@ function creatorProofPayload(app, record, creator = record?.creator) {
 
 async function createCreatorProof(app, record, creator = record?.creator) {
   const publickey = String(creator || '').trim();
-  if (!publickey || !record?.document?.pdf) {
+  if (!publickey || !pdfPayload(record?.document?.pdf).length) {
     return false;
   }
   const privateKey = await app.wallet.getPrivateKey();
@@ -567,7 +586,7 @@ function canonicalVerification(metadata) {
       email: verification.email !== false,
       phone: tier === 'premium' && verification.phone === true,
       photo: verification.photo === true,
-      passport: tier === 'premium' && verification.passport === true,
+      passport: verification.passport === true,
       legal_review: tier === 'premium' && verification.legal_review === true
     }
   };
@@ -591,7 +610,7 @@ function documentCommitment(record) {
     creator: String(record?.creator || '').trim(),
     document: {
       name: String(record?.document?.name || ''),
-      pdf: String(record?.document?.pdf || ''),
+      pdf: pdfPayload(record?.document?.pdf),
       page_count: Number(record?.document?.page_count) || 0,
       page_width: Number(record?.document?.page_width) || 0,
       page_height: Number(record?.document?.page_height) || 0

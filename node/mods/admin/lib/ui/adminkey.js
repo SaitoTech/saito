@@ -26,7 +26,7 @@ class AdminKeyUI {
       idle: 'Connecting to the server…',
       configured: 'Connecting to the configured server endpoint…',
       fallback: 'Trying the server at this page’s address…',
-      connected: 'Connected to the server.',
+      connected: '',
       failed: 'Server connection failed.'
     };
     document.getElementById('admin-connection-status').textContent = messages[state];

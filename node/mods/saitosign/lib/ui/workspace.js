@@ -17,9 +17,14 @@ const {
   actionsOnPage,
   stripSignatures,
   emptyDocument,
-  revoke
+  revoke,
+  hasPdf,
+  pdfEntries,
+  pageSource,
+  isPdf,
+  openPdfs
 } = require('../document');
-const { addInitial, addSignature, verifiedMethods, verifyActionSignature, commitmentIntact, documentFullyVerified, verificationSatisfied } = require('../auth');
+const { addInitial, addSignature, verifiedMethods, verifyActionSignature, commitmentIntact, documentFullyVerified, verificationSatisfied, createCreatorProof } = require('../auth');
 
 function walletKeys(app) {
   const raw = String(app.wallet?.publicKey || '').trim();
@@ -61,10 +66,10 @@ function canSignAction(app, action, user, record) {
 }
 
 const MIN_DRAG = 12;
-const CLICK_WIDTH = 0.26;
-const CLICK_HEIGHT = 0.05;
-const MIN_BOX_WIDTH = 0.08;
-const MIN_BOX_HEIGHT = 0.03;
+const CLICK_WIDTH = 0.221;
+const CLICK_HEIGHT = 0.033;
+const MIN_BOX_WIDTH = 0.025;
+const MIN_BOX_HEIGHT = 0.025;
 const ZOOM_MIN = 1;
 const SIGNER_COLORS = ['#e85d04', '#1d7874', '#315a9b', '#9b2226', '#6a4c93', '#0a7ea4', '#bc6c25', '#2d6a4f'];
 const ZOOM_MAX = 3;
@@ -104,6 +109,8 @@ class Workspace {
     this.reader_x = 16;
     this.reader_y = 16;
     this.reader_drag = null;
+    this.reader_expanded = false;
+    this.field_type = '';
   }
 
   show() {
@@ -125,23 +132,26 @@ class Workspace {
     this.reader_moved = false;
     this.reader_x = 16;
     this.reader_y = 16;
+    this.reader_expanded = false;
+    this.field_type = '';
     this.render();
   }
 
   render() {
     const container = document.querySelector('.saito-container');
     const doc = this.mod.document;
-    if (!container || !doc.document.pdf) {
+    if (!container || !hasPdf(doc)) {
       return;
     }
 
     container.classList.add('saitosign');
 
+    const src = pdfEntries(doc).map((entry) => entry.url || '').join('|');
     let root = container.querySelector(':scope > .workspace');
-    if (!root || root.dataset.src !== doc.document.url) {
+    if (!root || root.dataset.src !== src) {
       container.innerHTML = WorkspaceTemplate(this.view());
       root = container.querySelector(':scope > .workspace');
-      root.dataset.src = doc.document.url;
+      root.dataset.src = src;
       this.attachEvents(root);
     } else {
       this.update(root);
@@ -250,6 +260,20 @@ class Workspace {
       const zoom = event.target.closest('[data-zoom]');
       if (zoom && !zoom.disabled) {
         this.changeZoom(zoom.dataset.zoom === 'in' ? ZOOM_STEP : 1 / ZOOM_STEP, root);
+        return;
+      }
+
+      if (event.target.closest('[data-reader-menu]')) {
+        event.preventDefault();
+        this.reader_expanded = !this.reader_expanded;
+        root.querySelector('.reader').innerHTML = WorkspaceTemplate.reader(this.view());
+        this.seatReader(root);
+        return;
+      }
+
+      if (event.target.closest('[data-add-pdf]')) {
+        event.preventDefault();
+        this.pickPdfToAppend();
         return;
       }
 
@@ -442,7 +466,7 @@ class Workspace {
 
     if (direct) {
       const box = !rect || rect.pixels < MIN_DRAG
-        ? signatureBoxAt(drag, drag.x0, drag.y0)
+        ? defaultFieldBox(drag, drag.x0, drag.y0, this.field_type)
         : fitBox(rect);
       this.placeSignature(page, box, root);
       return;
@@ -475,7 +499,7 @@ class Workspace {
 
     let user = intent.user;
     if (intent.newName) {
-      const decision = resolveSigner(doc, intent.newName);
+      const decision = resolveSigner(doc, intent.email || intent.newName, intent.email ? intent.newName : undefined);
       if (decision.action === 'existing') {
         if (decision.conflict) {
           duplicateSignerNotice();
@@ -483,6 +507,9 @@ class Workspace {
         user = decision.index;
       } else {
         user = addUser(doc, decision.name, this.app.wallet?.publicKey);
+        if (intent.email && doc.users[user]) {
+          doc.users[user].email = intent.email;
+        }
       }
       this.arrived = user;
     }
@@ -492,14 +519,15 @@ class Workspace {
       return;
     }
 
-    addAction(doc, {
+    placeConfiguredAction(doc, {
       type: intent.type,
       user,
       page,
       x: rect.x,
       y: rect.y,
       width: rect.width,
-      height: rect.height
+      height: rect.height,
+      everyPage: intent.everyPage === true
     }, this.app.wallet?.publicKey);
     this.intent = null;
     this.placing = false;
@@ -521,7 +549,7 @@ class Workspace {
     this.focus_field = null;
     this.draft = {
       page,
-      type: 'signature',
+      type: this.field_type || '',
       user: doc.users.length ? 0 : -1,
       x: box.x,
       y: box.y,
@@ -597,8 +625,12 @@ class Workspace {
     const doc = this.mod.document;
     const repositioned = Boolean(next && canConfigure(this.app, doc) && (move.action.x !== next.x || move.action.y !== next.y));
     if (repositioned) {
-      move.action.x = next.x;
-      move.action.y = next.y;
+      syncGroupGeometry(doc, move.action, {
+        x: next.x,
+        y: next.y,
+        width: move.action.width,
+        height: move.action.height
+      });
       stripSignatures(doc);
       doc.edited = true;
       if (this.draft && Number(this.draft.id) === Number(move.action.id)) {
@@ -616,6 +648,9 @@ class Workspace {
       setTimeout(() => {
         this.suppress_click = false;
       }, 0);
+      if (repositioned) {
+        this.update(root);
+      }
       return;
     }
     this.suppress_click = true;
@@ -680,10 +715,7 @@ class Workspace {
       const action = resize.action;
       const changed = action.x !== next.x || action.y !== next.y || action.width !== next.width || action.height !== next.height;
       if (changed) {
-        action.x = next.x;
-        action.y = next.y;
-        action.width = next.width;
-        action.height = next.height;
+        syncGroupGeometry(doc, action, next);
         stripSignatures(doc);
         doc.edited = true;
         if (this.draft && Number(this.draft.id) === Number(action.id)) {
@@ -691,6 +723,10 @@ class Workspace {
           this.draft.y = next.y;
           this.draft.width = next.width;
           this.draft.height = next.height;
+        }
+        const root = document.querySelector('.saito-container > .workspace');
+        if (root) {
+          this.update(root);
         }
       }
     }
@@ -719,6 +755,60 @@ class Workspace {
       onLeave: () => this.leaveDocument(),
       onExport: () => this.exportWorkingCopy()
     });
+  }
+
+  pickPdfToAppend() {
+    const doc = this.mod.document;
+    if (!doc || doc.finalized) {
+      return;
+    }
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'application/pdf,.pdf';
+    input.style.display = 'none';
+    input.onchange = () => {
+      const file = input.files && input.files[0];
+      if (file) {
+        this.appendPdf(file);
+      }
+    };
+    input.click();
+  }
+
+  async appendPdf(file) {
+    const doc = this.mod.document;
+    const root = document.querySelector('.saito-container > .workspace');
+    if (!doc || doc.finalized) {
+      return;
+    }
+    if (!isPdf(file)) {
+      this.notice = 'Choose a PDF or a SaitoSign transaction.';
+      if (root) {
+        this.update(root);
+      }
+      return;
+    }
+
+    let added;
+    try {
+      added = await openPdfs([file]);
+    } catch (err) {
+      this.notice = 'That PDF could not be read.';
+      if (root) {
+        this.update(root);
+      }
+      return;
+    }
+
+    doc.document.pdf = pdfEntries(doc).concat(pdfEntries(added));
+    doc.document.page_count = pdfEntries(doc).reduce((total, entry) => total + (Number(entry.page_count) || 0), 0);
+    doc.edited = true;
+    stripSignatures(doc);
+    if (doc.creator) {
+      await createCreatorProof(this.app, doc, doc.creator);
+    }
+    this.notice = '';
+    this.render();
   }
 
   async exportWorkingCopy() {
@@ -828,13 +918,7 @@ class Workspace {
     this.placing = false;
     this.focus_field = null;
     this.draft = null;
-    if (!this.intent) {
-      this.intent = {
-        type: 'signature',
-        user: doc.users.length ? 0 : null,
-        newName: ''
-      };
-    }
+    this.intent = null;
     const current = document.querySelector('.saito-container > .workspace') || root;
     if (current) {
       this.update(current);
@@ -1180,13 +1264,15 @@ class Workspace {
     if (!ACTION_TYPES[type]) {
       return false;
     }
+    const everyPage = everyPageChecked(form, type);
 
     if (chosen === 'new') {
-      const newName = form.querySelector('[data-new-signer]')?.value.trim() || '';
-      if (!newName) {
+      const name = form.querySelector('[data-signer-name]')?.value.trim() || '';
+      const email = form.querySelector('[data-signer-email]')?.value.trim() || '';
+      if (!name || !isEmailAddress(email)) {
         return false;
       }
-      const decision = resolveSigner(doc, newName);
+      const decision = resolveSigner(doc, email, name);
       if (decision.action === 'existing') {
         const select = form.querySelector('[data-field-signer]');
         if (select) {
@@ -1200,18 +1286,19 @@ class Workspace {
           duplicateSignerNotice();
           return false;
         }
-        this.intent = { type, user: decision.index, newName: '' };
+        this.intent = { type, user: decision.index, newName: '', everyPage };
       } else {
-        this.intent = { type, user: null, newName: decision.name };
+        this.intent = { type, user: null, newName: decision.name, email, everyPage };
       }
     } else {
       const user = Number(chosen);
       if (!doc.users[user]) {
         return false;
       }
-      this.intent = { type, user, newName: '' };
+      this.intent = { type, user, newName: '', everyPage };
     }
 
+    this.field_type = type;
     this.placing = true;
     this.draft = null;
     this.focus_field = null;
@@ -1267,26 +1354,28 @@ class Workspace {
     if (draft.id) {
       const action = actionById(doc, draft.id);
       if (action && (action.type !== type || action.user !== userIndex)) {
-        action.type = type;
-        action.user = userIndex;
+        syncGroupFields(doc, action, { type, user: userIndex });
         stripSignatures(doc);
         doc.edited = true;
       }
     } else {
-      const placed = addAction(doc, {
+      const box = geometryForNewField(type, draft);
+      const placed = placeConfiguredAction(doc, {
         type,
         user: userIndex,
         page: draft.page,
-        x: draft.x,
-        y: draft.y,
-        width: draft.width,
-        height: draft.height
+        x: box.x,
+        y: box.y,
+        width: box.width,
+        height: box.height,
+        everyPage: everyPageChecked(form, type)
       }, this.app.wallet?.publicKey);
       if (!placed) {
         return false;
       }
     }
 
+    this.field_type = type;
     this.notice = '';
     this.overlay.close();
     return true;
@@ -1362,13 +1451,14 @@ class Workspace {
     const intent = this.intent;
     const existing = Boolean(draft?.id);
     const pending = Boolean(draft && !draft.id);
-    let type = 'signature';
+    let type = '';
     let signer_index = doc.users.length ? 0 : null;
     let new_name = '';
+    let new_email = '';
     let choose_new = doc.users.length === 0;
 
     if (pending) {
-      type = draft.type || 'signature';
+      type = draft.type || this.field_type || '';
       const known = Number.isInteger(draft.user) && draft.user >= 0 && Boolean(doc.users[draft.user]);
       if (known) {
         signer_index = draft.user;
@@ -1387,8 +1477,9 @@ class Workspace {
       signer_index = known ? draft.user : null;
       choose_new = !known;
     } else if (intent) {
-      type = intent.type || 'signature';
+      type = intent.type || this.field_type || '';
       new_name = intent.newName || '';
+      new_email = intent.email || '';
       if (new_name) {
         choose_new = true;
         signer_index = null;
@@ -1396,11 +1487,14 @@ class Workspace {
         signer_index = intent.user;
         choose_new = false;
       }
+    } else {
+      type = this.field_type || '';
     }
 
     const signer = existing ? doc.users[signer_index] : null;
     const action = existing ? actionById(doc, draft.id) : null;
     const can_sign = Boolean(doc.finalized && action && signer && canSignAction(this.app, action, signer, doc));
+    const signer_ready = !choose_new && signer_index != null && Boolean(doc.users[signer_index]);
 
     return {
       existing,
@@ -1410,6 +1504,10 @@ class Workspace {
       signer_index,
       choose_new,
       new_name,
+      new_email,
+      signer_ready,
+      allow_every_page: !existing,
+      every_page: false,
       can_sign,
       already_signed: Boolean(action && signer && verifyActionSignature(this.app, action, signer, doc)),
       sign_index: can_sign ? signer_index : null,
@@ -1433,21 +1531,9 @@ class Workspace {
     const confirming = this.confirming_field;
     const selected = (id) => focus != null && Number(id) === Number(focus);
     const marked = (id) => confirming != null && Number(id) === Number(confirming);
-    const pendingName = doc.users[this.draft?.user]?.name || this.draft?.pendingName || '';
-    const pendingType = this.draft?.type || 'signature';
-    const draft = this.draft && !this.draft.id
-      ? {
-          page: this.draft.page,
-          type: pendingType,
-          name: pendingName,
-          label: pendingName ? `${typeLabel(pendingType)} - ${pendingName}` : typeLabel(pendingType),
-          color: signerColor(doc.users[this.draft.user] ? this.draft.user : doc.users.length),
-          x: this.draft.x,
-          y: this.draft.y,
-          width: this.draft.width,
-          height: this.draft.height
-        }
-      : null;
+    // Pending placements stay off the page until Confirm; drag-to-place paints
+    // temporary marks directly while the pointer is down.
+    const draft = null;
 
     return {
       file_name: doc.document.name || 'Document',
@@ -1465,6 +1551,7 @@ class Workspace {
       zoom_max: ZOOM_MAX,
       reader_x: this.reader_x,
       reader_y: this.reader_y,
+      reader_expanded: this.reader_expanded === true,
       signers: doc.users.map((user, index) => {
         const mine = (doc.actions || []).filter((action) => {
           return action.user === index && (action.type === 'signature' || action.type === 'initial');
@@ -1539,11 +1626,12 @@ class Workspace {
   // a size, and is never torn down to change pages. Reloading one iframe with
   // `#page=N&zoom=page-fit` left the newly opened page blank: Chrome ignores
   // `zoom=page-fit` and paints a fragment target only after a resize, which
-  // the old path never sent. Page numbers in the fragment are 1-based.
+  // the old path never sent. Page numbers in the fragment are 1-based within
+  // the source PDF that owns that continuous page.
   loadPages(root) {
     const doc = this.mod.document;
     const wrap = root.querySelector('.sheet-wrap');
-    if (!doc?.document?.url || !wrap) {
+    if (!hasPdf(doc) || !wrap) {
       return;
     }
 
@@ -1557,16 +1645,17 @@ class Workspace {
 
       const box = pageEl.getBoundingClientRect();
       const page = Number(pageEl.dataset.page);
+      const source = pageSource(doc, page);
       const near = box.bottom >= wrapBox.top - margin && box.top <= wrapBox.bottom + margin;
       if (!near && page !== this.page) {
         return;
       }
-      if (box.width < 40 || box.height < 40) {
+      if (box.width < 40 || box.height < 40 || !source?.entry?.url) {
         return;
       }
 
       frame.dataset.loaded = '1';
-      frame.src = `${doc.document.url}#page=${page}&view=FitH&toolbar=0&navpanes=0`;
+      frame.src = `${source.entry.url}#page=${source.localPage}&view=FitH&toolbar=0&navpanes=0`;
       frame.addEventListener(
         'load',
         () => {
@@ -1730,7 +1819,10 @@ class Workspace {
     const stage = root.querySelector('.stage');
     const sheet = root.querySelector('.sheet');
     const doc = this.mod.document;
-    if (!stage || !sheet || !doc?.document?.page_width || !doc?.document?.page_height) {
+    const first = pdfEntries(doc)[0];
+    const page_width = Number(first?.page_width) || Number(doc?.document?.page_width) || 0;
+    const page_height = Number(first?.page_height) || Number(doc?.document?.page_height) || 0;
+    if (!stage || !sheet || !page_width || !page_height) {
       return;
     }
 
@@ -1741,7 +1833,7 @@ class Workspace {
       return;
     }
 
-    const ratio = doc.document.page_width / doc.document.page_height;
+    const ratio = page_width / page_height;
     const available = Math.max(40, boundsW - 40);
     const widthFit = Math.min(available, 1280);
     const containWidth = Math.min(widthFit, Math.max(40, boundsH * ratio));
@@ -1750,11 +1842,14 @@ class Workspace {
       this.zoom = this.zoom_floor;
     }
 
-    const pageHeight = Math.floor((widthFit / ratio) * this.zoom);
     sheet.style.width = `${Math.floor(widthFit * this.zoom)}px`;
     sheet.style.height = 'auto';
     sheet.querySelectorAll('.pdf-page').forEach((page) => {
-      page.style.height = `${pageHeight}px`;
+      const source = pageSource(doc, Number(page.dataset.page));
+      const width = Number(source?.entry?.page_width) || page_width;
+      const height = Number(source?.entry?.page_height) || page_height;
+      const pageRatio = width / height;
+      page.style.height = `${Math.floor((widthFit / pageRatio) * this.zoom)}px`;
     });
     this.seatReader(root);
   }
@@ -1830,6 +1925,86 @@ class Workspace {
   }
 }
 
+function everyPageChecked(form, type) {
+  return (type === 'signature' || type === 'initial')
+    && Boolean(form?.querySelector('[data-every-page]')?.checked);
+}
+
+function newActionGroup() {
+  return `g${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
+}
+
+function placeConfiguredAction(doc, action, actorKey) {
+  const everyPage = action.everyPage === true
+    && (action.type === 'signature' || action.type === 'initial')
+    && Number(doc?.document?.page_count) > 1;
+  if (!everyPage) {
+    return addAction(doc, action, actorKey);
+  }
+
+  const group = newActionGroup();
+  const count = Number(doc.document.page_count) || 0;
+  let first = null;
+  for (let page = 1; page <= count; page += 1) {
+    const placed = addAction(doc, {
+      type: action.type,
+      user: action.user,
+      page,
+      x: action.x,
+      y: action.y,
+      width: action.width,
+      height: action.height,
+      group
+    }, actorKey);
+    if (!first) {
+      first = placed;
+    }
+  }
+  return first;
+}
+
+function syncGroupGeometry(doc, action, geometry) {
+  const group = String(action?.group || '').trim();
+  const targets = group
+    ? (doc.actions || []).filter((item) => String(item.group || '').trim() === group)
+    : [action];
+  targets.forEach((item) => {
+    if (!item) {
+      return;
+    }
+    if (geometry.x != null) {
+      item.x = geometry.x;
+    }
+    if (geometry.y != null) {
+      item.y = geometry.y;
+    }
+    if (geometry.width != null) {
+      item.width = geometry.width;
+    }
+    if (geometry.height != null) {
+      item.height = geometry.height;
+    }
+  });
+}
+
+function syncGroupFields(doc, action, fields) {
+  const group = String(action?.group || '').trim();
+  const targets = group
+    ? (doc.actions || []).filter((item) => String(item.group || '').trim() === group)
+    : [action];
+  targets.forEach((item) => {
+    if (!item) {
+      return;
+    }
+    if (fields.type != null) {
+      item.type = fields.type;
+    }
+    if (fields.user != null) {
+      item.user = fields.user;
+    }
+  });
+}
+
 function nextUnsignedAction(app, doc, userIndex, after) {
   const user = doc?.users?.[userIndex];
   if (!user) {
@@ -1886,12 +2061,54 @@ function signerColor(index) {
 
 function typeLabel(type, signed) {
   if (type === 'date') {
-    return signed ? 'dated' : 'date';
+    return signed ? 'dated' : 'date / time';
   }
   if (type === 'initial') {
     return signed ? 'initialed' : 'initial';
   }
-  return signed ? 'dated and signed' : 'date and signature';
+  return signed ? 'signed' : 'signature';
+}
+
+function nearSize(value, expected) {
+  return Math.abs(Number(value) - Number(expected)) < 0.001;
+}
+
+function isDefaultSignatureSize(box) {
+  return nearSize(box?.width, CLICK_WIDTH) && nearSize(box?.height, CLICK_HEIGHT);
+}
+
+function geometryForNewField(type, box) {
+  if (type !== 'initial' || !isDefaultSignatureSize(box)) {
+    return {
+      x: box.x,
+      y: box.y,
+      width: box.width,
+      height: box.height
+    };
+  }
+  const size = CLICK_HEIGHT;
+  const cx = box.x + box.width / 2;
+  const cy = box.y + box.height / 2;
+  return fitBox({
+    x: cx - size / 2,
+    y: cy - size / 2,
+    width: size,
+    height: size
+  });
+}
+
+function defaultFieldBox(drag, clientX, clientY, type) {
+  const box = drag.box;
+  const height = CLICK_HEIGHT;
+  const width = type === 'initial' ? CLICK_HEIGHT : CLICK_WIDTH;
+  const cx = (clientX - box.left) / box.width;
+  const cy = (clientY - box.top) / box.height;
+  return fitBox({
+    x: cx - width / 2,
+    y: cy - height / 2,
+    width,
+    height
+  });
 }
 
 function placeBox(start, x, y) {
@@ -1936,18 +2153,6 @@ function resizeBox(start, edge, px, py) {
     y: Math.min(top, bottom),
     width: Math.abs(right - left),
     height: Math.abs(bottom - top)
-  });
-}
-
-function signatureBoxAt(drag, clientX, clientY) {
-  const box = drag.box;
-  const cx = (clientX - box.left) / box.width;
-  const cy = (clientY - box.top) / box.height;
-  return fitBox({
-    x: cx - CLICK_WIDTH / 2,
-    y: cy - CLICK_HEIGHT / 2,
-    width: CLICK_WIDTH,
-    height: CLICK_HEIGHT
   });
 }
 

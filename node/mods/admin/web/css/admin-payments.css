@@ -26,6 +26,97 @@
   color: #9b1c1c;
 }
 
+.admin-payments-notice {
+  margin: 12px 0 0;
+  padding: 12px 14px;
+  border-radius: 8px;
+  border: 1px solid var(--admin-accent-border, #cfe6da);
+  background: var(--admin-accent-bg, #f1f8f4);
+  color: var(--admin-accent, #1b5e20);
+}
+
+.admin-payments-operation-controls {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.admin-payments-operation-controls #admin-payments-operation-mode {
+  flex: 1 1 280px;
+  max-width: 420px;
+  margin: 0;
+}
+
+.admin-payments-operation-controls .admin-button {
+  margin-top: 0;
+  flex: 0 0 auto;
+}
+
+.admin-payments-key-panel {
+  margin: 8px 0 0;
+  padding: 16px 18px;
+  border: 1px solid var(--admin-border, #e5e7eb);
+  border-radius: 10px;
+  background: var(--admin-subtle, #fafafa);
+}
+
+.admin-payments-key-panel h3 {
+  margin: 0 0 6px;
+  font-size: 15px;
+}
+
+.admin-payments-key-list {
+  list-style: none;
+  margin: 0 0 14px;
+  padding: 0;
+}
+
+.admin-payments-key-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--admin-border, #e5e7eb);
+}
+
+.admin-payments-key-item:last-child {
+  border-bottom: none;
+}
+
+.admin-payments-key-value {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 13px;
+  line-height: 1.4;
+  word-break: break-all;
+  color: var(--admin-heading, #111827);
+  user-select: text;
+}
+
+.admin-payments-key-item .admin-button-quiet {
+  margin: 0;
+  flex: 0 0 auto;
+}
+
+.admin-payments-key-add {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.admin-payments-key-add .admin-input {
+  margin: 0;
+  flex: 1 1 auto;
+}
+
+.admin-payments-key-add .admin-button {
+  margin-top: 0;
+  flex: 0 0 auto;
+}
+
 .admin-payments-table {
   width: 100%;
   border-collapse: collapse;

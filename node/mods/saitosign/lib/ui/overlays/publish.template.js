@@ -49,7 +49,7 @@ function publishTemplate(state) {
     ? `<p class="subtitle">${escapeHTML(slide.subtitle)}</p>`
     : '';
   const back = state.step === 'share'
-    ? (state.allowUnfinalize
+    ? (!state.finalized && state.history.length
       ? `<button type="button" class="saito-button-square" data-publish-action="back" aria-label="Back"><i class="fa-solid fa-arrow-left" aria-hidden="true"></i></button>`
       : '<span class="spacer"></span>')
     : state.history.length

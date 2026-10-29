@@ -1,6 +1,7 @@
 const Splash = require('./splash');
 const Faq = require('./faq');
 const Workspace = require('./workspace');
+const { hasPdf } = require('../document');
 
 class Main {
   constructor(app, mod) {
@@ -13,7 +14,7 @@ class Main {
   }
 
   render() {
-    if (this.mod.document.document.pdf) {
+    if (hasPdf(this.mod.document)) {
       this.screen = 'workspace';
     }
 
@@ -22,7 +23,7 @@ class Main {
       return;
     }
 
-    if (this.screen === 'workspace' && this.mod.document.document.pdf) {
+    if (this.screen === 'workspace' && hasPdf(this.mod.document)) {
       this.workspace.render();
       return;
     }
@@ -44,11 +45,12 @@ class Main {
   showWorkspace() {
     this.screen = 'workspace';
     this.splash.notice = '';
+    this.splash.clearStaged();
     this.workspace.show();
   }
 
   fail(message) {
-    if (this.mod.document.document.pdf && this.screen === 'workspace') {
+    if (hasPdf(this.mod.document) && this.screen === 'workspace') {
       this.workspace.notice = message;
       this.workspace.render();
       return;

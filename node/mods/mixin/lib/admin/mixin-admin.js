@@ -21,6 +21,13 @@ class MixinAdmin {
     this.apiKeyText = '';
     this.savingApiKey = false;
     this.depositAddresses = [];
+    this.operationMode = 'local';
+    this.providerKeys = [];
+    this.delegateKeys = [];
+    this.providerDraft = '';
+    this.delegateDraft = '';
+    this.savingOperation = false;
+    this.operationNotice = '';
   }
 
   admin() {
@@ -44,6 +51,13 @@ class MixinAdmin {
     this.apiKeyText = '';
     this.savingApiKey = false;
     this.depositAddresses = [];
+    this.operationMode = 'local';
+    this.providerKeys = [];
+    this.delegateKeys = [];
+    this.providerDraft = '';
+    this.delegateDraft = '';
+    this.savingOperation = false;
+    this.operationNotice = '';
 
     if (!this.admin()?.server_info) {
       this.app.browser.replaceElementContentBySelector(
@@ -75,7 +89,14 @@ class MixinAdmin {
         apiKeyConfigured: this.apiKeyConfigured,
         apiKeyText: this.apiKeyText,
         savingApiKey: this.savingApiKey,
-        depositAddresses: this.depositAddresses
+        depositAddresses: this.depositAddresses,
+        operationMode: this.operationMode,
+        providerKeys: this.providerKeys,
+        delegateKeys: this.delegateKeys,
+        providerDraft: this.providerDraft,
+        delegateDraft: this.delegateDraft,
+        savingOperation: this.savingOperation,
+        operationNotice: this.operationNotice
       }),
       this.container
     );
@@ -163,6 +184,41 @@ class MixinAdmin {
         this.advance(id, action);
       };
     });
+
+    const mode = document.getElementById('admin-payments-operation-mode');
+    if (mode) {
+      mode.onchange = () => {
+        this.operationMode = mode.value || 'local';
+        this.operationNotice = '';
+        this.error = '';
+        this.refresh();
+      };
+    }
+
+    document.querySelectorAll('[data-payments-add-key]').forEach((button) => {
+      button.onclick = (e) => {
+        e.preventDefault();
+        this.addKey(button.getAttribute('data-payments-add-key'));
+      };
+    });
+
+    document.querySelectorAll('[data-payments-remove-key]').forEach((button) => {
+      button.onclick = (e) => {
+        e.preventDefault();
+        this.removeKey(
+          button.getAttribute('data-payments-remove-key'),
+          button.getAttribute('data-payments-key')
+        );
+      };
+    });
+
+    const saveOperation = document.getElementById('admin-payments-operation-save');
+    if (saveOperation) {
+      saveOperation.onclick = (e) => {
+        e.preventDefault();
+        this.saveOperationMode();
+      };
+    }
   }
 
   async sendAdminRequest(request, data, callback) {
@@ -220,6 +276,116 @@ class MixinAdmin {
     if (Array.isArray(result?.deposit_addresses)) {
       this.depositAddresses = result.deposit_addresses;
     }
+    if (result?.operation_mode) {
+      this.operationMode = result.operation_mode;
+    }
+    if (Array.isArray(result?.treasury_provider_publickeys)) {
+      this.providerKeys = [...result.treasury_provider_publickeys];
+    }
+    if (Array.isArray(result?.treasury_delegate_publickeys)) {
+      this.delegateKeys = [...result.treasury_delegate_publickeys];
+    }
+  }
+
+  addKey(kind) {
+    const field = document.getElementById(`admin-payments-${kind}-key`);
+    const value = field?.value?.trim() || '';
+    if (!value) {
+      this.error = 'Enter a Saito public key before adding it.';
+      this.refresh();
+      return;
+    }
+    if (!this.app.crypto.isPublicKey(value)) {
+      this.error = 'That is not a valid Saito public key.';
+      if (kind === 'provider') {
+        this.providerDraft = value;
+      } else {
+        this.delegateDraft = value;
+      }
+      this.refresh();
+      return;
+    }
+    const list = kind === 'provider' ? this.providerKeys : this.delegateKeys;
+    if (list.includes(value)) {
+      this.error = 'That public key is already configured.';
+      this.refresh();
+      return;
+    }
+    list.push(value);
+    if (kind === 'provider') {
+      this.providerDraft = '';
+    } else {
+      this.delegateDraft = '';
+    }
+    this.error = '';
+    this.operationNotice = '';
+    this.refresh();
+  }
+
+  removeKey(kind, key) {
+    if (kind === 'provider') {
+      this.providerKeys = this.providerKeys.filter((entry) => entry !== key);
+    } else {
+      this.delegateKeys = this.delegateKeys.filter((entry) => entry !== key);
+    }
+    this.error = '';
+    this.operationNotice = '';
+    this.refresh();
+  }
+
+  async saveOperationMode() {
+    if (this.savingOperation) {
+      return;
+    }
+
+    if (
+      (this.operationMode === 'local_remote' || this.operationMode === 'remote_remote') &&
+      !this.providerKeys.length
+    ) {
+      this.error =
+        'This mode requires at least one valid Treasury provider public key before it can be saved.';
+      this.operationNotice = '';
+      this.refresh();
+      return;
+    }
+
+    this.savingOperation = true;
+    this.error = '';
+    this.operationNotice = '';
+    this.refresh();
+
+    await this.sendAdminRequest(
+      'update-admin-config',
+      {
+        module_id: 'mixin',
+        data: {
+          action: 'save-operation-mode',
+          operation_mode: this.operationMode,
+          treasury_provider_publickeys: this.providerKeys,
+          treasury_delegate_publickeys: this.delegateKeys,
+          search: this.search,
+          purpose: this.purpose,
+          page: this.page
+        }
+      },
+      (res) => {
+        this.savingOperation = false;
+        if (res?.err) {
+          this.error = res.err;
+          this.operationNotice = '';
+          this.refresh();
+          return;
+        }
+        this.providerDraft = '';
+        this.delegateDraft = '';
+        this.applyResult(res.result);
+        this.operationNotice = 'Operation mode saved.';
+        this.refresh();
+        if (typeof siteMessage === 'function') {
+          siteMessage('Operation mode saved.', 3000);
+        }
+      }
+    );
   }
 
   async saveApiKey() {

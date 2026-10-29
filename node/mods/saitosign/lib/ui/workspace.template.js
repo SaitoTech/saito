@@ -188,6 +188,17 @@ function readerHTML(view) {
   const at_end = view.page >= view.page_count ? ' disabled' : '';
   const zoom_out = view.zoom <= (view.zoom_min || 1) + 0.01 ? ' disabled' : '';
   const zoom_in = view.zoom >= view.zoom_max ? ' disabled' : '';
+  const expanded = view.reader_expanded === true;
+  const menu_icon = expanded ? 'fa-ellipsis-vertical' : 'fa-ellipsis';
+  const menu_label = expanded ? 'Hide tools' : 'More tools';
+  const extras = expanded
+    ? `
+      <div class="tools">
+        ${view.finalized ? '' : '<button type="button" class="tool" data-add-pdf>Add PDF</button>'}
+        <button type="button" class="tool" data-close-document>Close document</button>
+      </div>
+    `
+    : '';
   return `
     <div class="pages">
       <button type="button" data-page="prev" aria-label="Previous page"${at_start}><i class="fa-solid fa-chevron-left" aria-hidden="true"></i></button>
@@ -200,8 +211,9 @@ function readerHTML(view) {
     <div class="zoom">
       <button type="button" data-zoom="out" aria-label="Zoom out"${zoom_out}><i class="fa-solid fa-magnifying-glass-minus" aria-hidden="true"></i></button>
       <button type="button" data-zoom="in" aria-label="Zoom in"${zoom_in}><i class="fa-solid fa-magnifying-glass-plus" aria-hidden="true"></i></button>
-      <button type="button" data-close-document aria-label="Close document"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
+      <button type="button" data-reader-menu aria-label="${menu_label}" aria-expanded="${expanded ? 'true' : 'false'}"><i class="fa-solid ${menu_icon}" aria-hidden="true"></i></button>
     </div>
+    ${extras}
   `;
 }
 

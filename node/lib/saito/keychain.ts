@@ -679,23 +679,56 @@ class Keychain {
     if (!publicKey) {
       return;
     }
-    this.addKey(publicKey, {
+
+    let data: any = {
       aes_publicKey: aes_publicKey,
       aes_privatekey: aes_privatekey,
       aes_secret: shared_secret
-    });
+    };
+    if (shared_secret) {
+      data.aes_secret_ts = Date.now();
+    }
+
+    this.addKey(publicKey, data);
 
     //
     // remove the flag from broken encryption
     //
     let key = this.returnKey(publicKey, true);
     delete key.encryption_failure;
+    if (!shared_secret) {
+      delete key.aes_secret_ts;
+    }
 
     this.saveKeys();
 
     console.log('SAVED CRYPTO AES: ' + publicKey);
     // console.log(JSON.stringify(this.returnKey(publicKey)));
 
+    return true;
+  }
+
+  clearEncryptionByPublicKey(publicKey: string) {
+    if (!publicKey) {
+      return false;
+    }
+
+    let key = this.returnKey(publicKey, true);
+    if (!key) {
+      this.addKey(publicKey);
+      key = this.returnKey(publicKey, true);
+    }
+    if (!key) {
+      return false;
+    }
+
+    delete key.aes_publicKey;
+    delete key.aes_privatekey;
+    delete key.aes_secret;
+    delete key.aes_secret_ts;
+    delete key.encryption_failure;
+
+    this.saveKeys();
     return true;
   }
 }

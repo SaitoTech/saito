@@ -2,6 +2,7 @@ const MainTemplate = require('./main.template');
 const AdminKeyUI = require('./adminkey');
 const AdminSetup = require('./setup');
 const AdminOverviewUI = require('./overview');
+const AdminTokensUI = require('./tokens');
 const AdminModulesUI = require('./modules');
 const AdminPeersUI = require('./peers');
 const AdminDatabaseUI = require('./database');
@@ -20,6 +21,7 @@ class AdminMain {
     this.adminkey_ui = new AdminKeyUI(app, mod);
     this.setup_ui = new AdminSetup(app, mod);
     this.overview_ui = new AdminOverviewUI(app, mod);
+    this.tokens_ui = new AdminTokensUI(app, mod);
     this.modules_ui = new AdminModulesUI(app, mod);
     this.peers_ui = new AdminPeersUI(app, mod);
     this.database_ui = new AdminDatabaseUI(app, mod);
@@ -68,10 +70,21 @@ class AdminMain {
     this.mode = 'app';
     this.current_view = view;
     this.renderShell();
+    this.syncTokensNav();
+
+    if (view === 'tokens' && !this.isLocalDevelopment()) {
+      view = 'overview';
+      this.current_view = view;
+    }
+
     this.showPage(view);
 
     if (view === 'overview') {
       this.overview_ui.render();
+    }
+
+    if (view === 'tokens') {
+      this.tokens_ui.render();
     }
 
     if (view === 'modules') {
@@ -101,6 +114,17 @@ class AdminMain {
 
     if (view === 'administrators') {
       this.administrators_ui.render();
+    }
+  }
+
+  isLocalDevelopment() {
+    return this.mod.server_info?.options?.consensus?.disable_block_production === false;
+  }
+
+  syncTokensNav() {
+    const nav = document.querySelector('.saito-admin-nav-item[data-admin-view="tokens"]');
+    if (nav) {
+      nav.hidden = !this.isLocalDevelopment();
     }
   }
 
@@ -167,55 +191,12 @@ class AdminMain {
       };
     }
 
-    const back = document.querySelector('.saito-admin-back');
-    if (back) {
-      const target = this.backTarget();
-      back.href = target.url;
-      back.onclick = (e) => {
-        if (e.button !== 0 || e.ctrlKey || e.metaKey || e.shiftKey || e.altKey) {
-          return;
-        }
-        // Recheck at click time in case the browser history has changed.
-        const currentTarget = this.backTarget();
-        back.href = currentTarget.url;
-        if (currentTarget.useHistory) {
-          e.preventDefault();
-          window.history.back();
-        }
-      };
-    }
-
     document.querySelectorAll('[data-admin-view]').forEach((el) => {
       el.onclick = (e) => {
         const view = e.currentTarget.getAttribute('data-admin-view');
         this.render(view);
       };
     });
-  }
-
-  backTarget() {
-    const fallback = { url: '/', useHistory: false };
-    const navigation = window.navigation;
-    const canInspectHistory = typeof navigation?.entries === 'function';
-    // Navigation entries identify the actual previous page, including after reload.
-    // Older browsers expose only the referrer: link there directly instead of
-    // traversing history whose destination we cannot verify.
-    const previous = canInspectHistory
-      ? navigation.entries()[navigation.currentEntry.index - 1]?.url
-      : document.referrer;
-
-    if (!previous) {
-      return fallback;
-    }
-    try {
-      const url = new URL(previous);
-      if (url.origin === window.location.origin && /^https?:$/.test(url.protocol)) {
-        return { url: url.href, useHistory: canInspectHistory };
-      }
-    } catch (err) {
-      // Missing or invalid destinations use the server homepage.
-    }
-    return fallback;
   }
 }
 

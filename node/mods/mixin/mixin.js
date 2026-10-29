@@ -49,6 +49,7 @@ class Mixin extends ModTemplate {
     this.migration_header = null;
     this.execution_mode = 'local';
     this.payout_mode = 'local';
+    this.operation_mode = 'local';
     this.treasury_provider_publickeys = [];
     this.treasury_delegate_publickeys = [];
     this.loadTreasuryConfig();
@@ -75,6 +76,170 @@ class Mixin extends ModTemplate {
     } else {
       this.payout_mode = 'remote';
     }
+    this.operation_mode = this.normalizeOperationMode(options.operation_mode);
+  }
+
+  normalizeOperationMode(value) {
+    const mode = String(value || '').trim();
+    if (
+      mode === 'local' ||
+      mode === 'local_remote' ||
+      mode === 'remote_remote' ||
+      mode === 'treasury'
+    ) {
+      return mode;
+    }
+    return this.deriveOperationMode();
+  }
+
+  deriveOperationMode() {
+    if (this.execution_mode === 'remote') {
+      return 'remote_remote';
+    }
+    if (this.payout_mode === 'remote') {
+      return 'local_remote';
+    }
+    if ((this.treasury_delegate_publickeys || []).length) {
+      return 'treasury';
+    }
+    return 'local';
+  }
+
+  operationModeSettings(mode) {
+    switch (this.normalizeOperationMode(mode)) {
+      case 'local_remote':
+        return {
+          operation_mode: 'local_remote',
+          execution_mode: 'local',
+          payout_mode: 'remote',
+          require_providers: true,
+          clear_delegates: true
+        };
+      case 'remote_remote':
+        return {
+          operation_mode: 'remote_remote',
+          execution_mode: 'remote',
+          payout_mode: 'remote',
+          require_providers: true,
+          clear_delegates: true
+        };
+      case 'treasury':
+        return {
+          operation_mode: 'treasury',
+          execution_mode: 'local',
+          payout_mode: 'local',
+          require_providers: false,
+          clear_providers: true
+        };
+      case 'local':
+      default:
+        return {
+          operation_mode: 'local',
+          execution_mode: 'local',
+          payout_mode: 'local',
+          require_providers: false,
+          clear_providers: true,
+          clear_delegates: true
+        };
+    }
+  }
+
+  normalizePublicKeyList(value, label) {
+    const list = Array.isArray(value) ? value : [];
+    const seen = new Set();
+    const keys = [];
+    for (const entry of list) {
+      const key = String(entry || '').trim();
+      if (!key) {
+        continue;
+      }
+      if (typeof this.app?.crypto?.isPublicKey !== 'function' || !this.app.crypto.isPublicKey(key)) {
+        throw new Error(`${label} contains an invalid Saito public key.`);
+      }
+      if (seen.has(key)) {
+        throw new Error(`${label} contains a duplicate public key.`);
+      }
+      seen.add(key);
+      keys.push(key);
+    }
+    return keys;
+  }
+
+  validateTreasuryAdminConfig(config = {}) {
+    const settings = this.operationModeSettings(config.operation_mode);
+    const providers = settings.clear_providers
+      ? []
+      : this.normalizePublicKeyList(config.treasury_provider_publickeys, 'Treasury provider keys');
+    const delegates = settings.clear_delegates
+      ? []
+      : this.normalizePublicKeyList(config.treasury_delegate_publickeys, 'Treasury delegate keys');
+    const own = String(this.publicKey || '').trim();
+
+    if (settings.require_providers) {
+      const usable = providers.filter((key) => key !== own);
+      if (!usable.length) {
+        throw new Error(
+          'This mode requires at least one valid Treasury provider public key that is not this server.'
+        );
+      }
+    }
+
+    return {
+      operation_mode: settings.operation_mode,
+      execution_mode: settings.execution_mode,
+      payout_mode: settings.payout_mode,
+      treasury_provider_publickeys: providers,
+      treasury_delegate_publickeys: delegates
+    };
+  }
+
+  saveTreasuryAdminConfig(config = {}) {
+    const next = this.validateTreasuryAdminConfig(config);
+    const current = this.app.options.mixin;
+    if (!current || typeof current !== 'object' || Array.isArray(current)) {
+      this.app.options.mixin = {};
+    }
+    this.app.options.mixin.operation_mode = next.operation_mode;
+    this.app.options.mixin.execution_mode = next.execution_mode;
+    this.app.options.mixin.payout_mode = next.payout_mode;
+    this.app.options.mixin.treasury_provider_publickeys = [...next.treasury_provider_publickeys];
+    this.app.options.mixin.treasury_delegate_publickeys = [...next.treasury_delegate_publickeys];
+    this.app.storage.saveOptions();
+    this.loadTreasuryConfig();
+    this.syncTransferExecution();
+    return next;
+  }
+
+  syncTransferExecution() {
+    if (this.app?.BROWSER || !this.transfers) {
+      return;
+    }
+    if (this.execution_mode === 'local') {
+      if (!this.transfer_timer) {
+        this.transfers.processTransferQueue().catch((err) => {
+          console.error('Mixin transfer queue failed:', err);
+        });
+        this.transfer_timer = setInterval(() => {
+          this.transfers.processTransferQueue().catch((err) => {
+            console.error('Mixin transfer queue failed:', err);
+          });
+        }, 10000);
+        this.transfer_timer.unref?.();
+      }
+      return;
+    }
+    clearInterval(this.transfer_timer);
+    this.transfer_timer = null;
+  }
+
+  treasuryAdminSnapshot() {
+    return {
+      operation_mode: this.normalizeOperationMode(this.operation_mode || this.app?.options?.mixin?.operation_mode),
+      execution_mode: this.execution_mode,
+      payout_mode: this.payout_mode,
+      treasury_provider_publickeys: [...(this.treasury_provider_publickeys || [])],
+      treasury_delegate_publickeys: [...(this.treasury_delegate_publickeys || [])]
+    };
   }
 
   isSlug(slug) {
@@ -799,6 +964,7 @@ class Mixin extends ModTemplate {
   }
 
   async adminPaymentsConfig(testing, request = {}) {
+    const treasury = this.treasuryAdminSnapshot();
     const api_key_configured = this.mixinApiKeyConfigured();
     if (!api_key_configured) {
       return {
@@ -807,7 +973,8 @@ class Mixin extends ModTemplate {
         page: 1,
         page_size: 20,
         account: this.accountSummary(),
-        api_key_configured: false
+        api_key_configured: false,
+        ...treasury
       };
     }
 
@@ -820,7 +987,8 @@ class Mixin extends ModTemplate {
       ...listed,
       account: this.accountSummary(),
       api_key_configured: true,
-      deposit_addresses: await this.depositAddressReport()
+      deposit_addresses: await this.depositAddressReport(),
+      ...treasury
     };
   }
 
@@ -834,6 +1002,10 @@ class Mixin extends ModTemplate {
         updateConfig: async (config = {}) => {
           if (config.action === 'save-api-key') {
             this.saveMixinApiKey(config.api_key);
+            return this.adminPaymentsConfig(testing, config);
+          }
+          if (config.action === 'save-operation-mode') {
+            this.saveTreasuryAdminConfig(config);
             return this.adminPaymentsConfig(testing, config);
           }
           if (config.action === 'create-account') {

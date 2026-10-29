@@ -3,8 +3,9 @@ const SaitoHeader = require('../../lib/saito/ui/saito-header/saito-header');
 const {
   emptyDocument,
   isPdf,
+  hasPdf,
   revoke,
-  openPdf,
+  openPdfs,
   hydrate,
   addUser,
   stripSignatures
@@ -13,12 +14,15 @@ const {
   looksLikeWebTransaction,
   createPrepareTransaction,
   readPrepareTransaction,
-  downloadTransaction
+  downloadBytes
 } = require('./lib/transaction');
+const { createZip, readZip, looksLikeZip, isZipFile } = require('./lib/zip');
 const Main = require('./lib/ui/main');
 const HomePage = require('./index');
 const { verifyEmail, myKeychainEmail, rememberVerifiedEmails, documentUnchanged, createCreatorProof, verifyCreatorProof, finalizeDocument, verifyFinalization, signingConfigurationError } = require('./lib/auth');
 const { loadDraft, clearDraft } = require('./lib/draft');
+
+const ARCHIVE_README = 'This is a SaitoSign zip archive. To sign this document, visit sato.io/SaitoSign, and copy the zip file or the SaitoSign file into the UI and follow the instructions.\n';
 
 class SaitoSign extends ModTemplate {
   constructor(app) {
@@ -52,7 +56,7 @@ class SaitoSign extends ModTemplate {
 
   async openSavedDocument() {
     const code = this.app.browser.returnURLParameter('code');
-    if (!code || this.document.document.pdf) {
+    if (!code || hasPdf(this.document)) {
       return;
     }
 
@@ -107,6 +111,16 @@ class SaitoSign extends ModTemplate {
   }
 
   async importFile(file) {
+    let header = new Uint8Array();
+    try {
+      header = new Uint8Array(await file.slice(0, 4).arrayBuffer());
+    } catch (err) {
+      header = new Uint8Array();
+    }
+    if (isZipFile(file) || looksLikeZip(header)) {
+      return this.importZip(file);
+    }
+
     let text = '';
     try {
       text = await file.text();
@@ -115,43 +129,77 @@ class SaitoSign extends ModTemplate {
     }
 
     if (looksLikeWebTransaction(text)) {
-      try {
-        const data = readPrepareTransaction(this.app, text);
-        if (data.finalized && !verifyFinalization(this.app, data)) {
-          throw new Error('The creator signature for this finalized document is invalid.');
-        }
-        const changed = !documentUnchanged(this.app, data);
-        if (changed) {
-          stripSignatures(data);
-        }
-        this.useDocument(await hydrate(data));
-        if (changed && typeof salert === 'function') {
-          salert('This document has changed. Signatures have been removed and signing must begin again.');
-        }
-      } catch (err) {
-        const known = err?.message === 'That file is not a SaitoSign transaction.';
-        const integrityError = err?.message?.includes('creator signature') || err?.message?.includes('creator identity');
-        this.main.fail(known || integrityError ? err.message : 'That SaitoSign transaction could not be read.');
-      }
-      return;
+      return this.openSaitoSignText(text);
     }
 
     if (isPdf(file) || text.slice(0, 1024).includes('%PDF')) {
-      return this.importPdf(file);
+      return this.importPdfs([file]);
     }
 
     this.main.fail('Choose a PDF or a SaitoSign transaction.');
   }
 
+  async importZip(file) {
+    try {
+      const bytes = new Uint8Array(await file.arrayBuffer());
+      if (!looksLikeZip(bytes)) {
+        this.main.fail('That ZIP archive could not be read.');
+        return;
+      }
+      const entries = await readZip(bytes);
+      const text = saitosignTextFromZip(entries);
+      if (!text) {
+        this.main.fail('That ZIP archive does not contain a SaitoSign document.');
+        return;
+      }
+      return this.openSaitoSignText(text);
+    } catch (err) {
+      this.main.fail(err?.message || 'That ZIP archive could not be read.');
+    }
+  }
+
+  async openSaitoSignText(text) {
+    try {
+      const data = readPrepareTransaction(this.app, text);
+      if (data.finalized && !verifyFinalization(this.app, data)) {
+        throw new Error('The creator signature for this finalized document is invalid.');
+      }
+      const changed = !documentUnchanged(this.app, data);
+      if (changed) {
+        stripSignatures(data);
+      }
+      this.useDocument(await hydrate(data));
+      if (changed && typeof salert === 'function') {
+        salert('This document has changed. Signatures have been removed and signing must begin again.');
+      }
+    } catch (err) {
+      const known = err?.message === 'That file is not a SaitoSign transaction.';
+      const integrityError = err?.message?.includes('creator signature') || err?.message?.includes('creator identity');
+      this.main.fail(known || integrityError ? err.message : 'That SaitoSign transaction could not be read.');
+    }
+  }
+
   async importPdf(file) {
-    if (!isPdf(file) && !(await pdfBytes(file))) {
+    return this.importPdfs([file]);
+  }
+
+  async importPdfs(files) {
+    const list = Array.isArray(files) ? files.filter(Boolean) : [];
+    if (!list.length) {
       this.main.fail('Choose a PDF or a SaitoSign transaction.');
       return;
     }
 
+    for (const file of list) {
+      if (!isPdf(file) && !(await pdfBytes(file))) {
+        this.main.fail('Choose a PDF or a SaitoSign transaction.');
+        return;
+      }
+    }
+
     let next;
     try {
-      next = await openPdf(file);
+      next = await openPdfs(list);
       next.creator = String(this.app.wallet?.publicKey || '').trim();
       await createCreatorProof(this.app, next, next.creator);
     } catch (err) {
@@ -180,7 +228,7 @@ class SaitoSign extends ModTemplate {
 
   async exportDocument(options = {}) {
     const document = this.document;
-    if (!document.document.pdf || (!options.draft && !document.edited)) {
+    if (!hasPdf(document) || (!options.draft && !document.edited)) {
       return false;
     }
 
@@ -210,8 +258,15 @@ class SaitoSign extends ModTemplate {
         return false;
       }
       const tx = await createPrepareTransaction(this.app, document);
-      const base = String(document.document.name || 'document.pdf').replace(/\.pdf$/i, '');
-      downloadTransaction(this.app, tx, `${base || 'document'}.saitosign`);
+      const base = String(document.document.name || 'document.pdf').replace(/\.pdf$/i, '') || 'document';
+      const saitosignName = `${base}.saitosign`;
+      const saitosignBytes = new TextEncoder().encode(tx.serialize_to_web(this.app));
+      const files = [
+        { name: saitosignName, data: saitosignBytes },
+        { name: 'readme.txt', data: new TextEncoder().encode(ARCHIVE_README) },
+        ...pdfZipEntries(document)
+      ];
+      downloadBytes(createZip(files), `${base}.zip`, 'application/zip');
       return true;
     } catch (err) {
       this.main.fail('That document could not be exported.');
@@ -326,6 +381,92 @@ async function pdfBytes(file) {
   } catch (err) {
     return false;
   }
+}
+
+function pdfZipEntries(record) {
+  const used = new Set();
+  const list = Array.isArray(record?.document?.pdf) ? record.document.pdf : [];
+  return list.map((entry, index) => {
+    const data = Uint8Array.from(Buffer.from(String(entry?.pdf || ''), 'base64'));
+    return {
+      name: `PDFs/${safePdfFilename(entry?.name, index, used)}`,
+      data
+    };
+  });
+}
+
+function safePdfFilename(original, index, used) {
+  let base = String(original || '')
+    .replace(/\\/g, '/')
+    .split('/')
+    .pop()
+    .trim()
+    .replace(/[^\w.\- ()[\]]+/g, '_')
+    .replace(/^\.+/, '');
+  if (!base) {
+    base = `document-${index + 1}.pdf`;
+  }
+  if (!/\.pdf$/i.test(base)) {
+    base = `${base}.pdf`;
+  }
+  let name = base;
+  let suffix = 2;
+  while (used.has(name.toLowerCase())) {
+    name = `${base.replace(/\.pdf$/i, '')}-${suffix}.pdf`;
+    suffix += 1;
+  }
+  used.add(name.toLowerCase());
+  return name;
+}
+
+function saitosignTextFromZip(entries) {
+  const candidates = [];
+  const seen = new Set();
+
+  (entries || []).forEach((entry) => {
+    const path = zipEntryPath(entry?.name);
+    if (!path) {
+      return;
+    }
+    const parts = path.split('/');
+    if (parts[0].toLowerCase() === 'pdfs') {
+      return;
+    }
+    const base = parts[parts.length - 1] || '';
+    if (/^readme\.txt$/i.test(base)) {
+      return;
+    }
+
+    const text = new TextDecoder().decode(entry.data).trim();
+    if (!/\.saitosign$/i.test(base) && !looksLikeWebTransaction(text)) {
+      return;
+    }
+    const key = path.toLowerCase();
+    if (seen.has(key)) {
+      return;
+    }
+    seen.add(key);
+    candidates.push({ path, text });
+  });
+
+  if (candidates.length > 1) {
+    throw new Error('That ZIP archive contains more than one SaitoSign document.');
+  }
+  if (!candidates.length) {
+    return '';
+  }
+  return candidates[0].text;
+}
+
+function zipEntryPath(name) {
+  const parts = String(name || '')
+    .replace(/\\/g, '/')
+    .split('/')
+    .filter((part) => part && part !== '.');
+  if (!parts.length || parts.some((part) => part === '..')) {
+    return '';
+  }
+  return parts.join('/');
 }
 
 module.exports = SaitoSign;

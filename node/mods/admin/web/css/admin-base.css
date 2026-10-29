@@ -103,28 +103,6 @@ a {
   margin-top: auto;
 }
 
-.saito-admin-back {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  align-self: flex-start;
-  width: 44px;
-  height: 44px;
-  margin-bottom: 18px;
-  border-radius: 6px;
-  color: var(--admin-text, #333);
-  text-decoration: none;
-}
-
-.saito-admin-back:hover {
-  background: var(--admin-hover, #f0f0f0);
-}
-
-.saito-admin-back:focus-visible {
-  outline: 2px solid var(--admin-accent, #2e7d32);
-  outline-offset: 2px;
-}
-
 .saito-admin-nav-item {
   padding: 10px 12px;
   margin-bottom: 6px;
@@ -207,6 +185,10 @@ a {
   color: var(--admin-heading, #111827);
   font-size: 15px;
   font-family: inherit;
+}
+
+select.admin-input {
+  padding-right: 36px;
 }
 
 .admin-input:focus {
