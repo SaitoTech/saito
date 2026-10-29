@@ -259,7 +259,7 @@ describe('Mixin purchase UI', () => {
 
     mixin.webServer(app, expressapp, { static() {} });
     expect(routes).toEqual([
-      ['/migration/apebond', '/migration/apebond/', '/migration', '/migration/'],
+      ['/migration', '/migration/'],
       '/mixin',
       '/buy'
     ]);
@@ -277,7 +277,7 @@ describe('Mixin purchase UI', () => {
       { static() {} }
     );
     expect(withBuySaito).toEqual([
-      ['/migration/apebond', '/migration/apebond/', '/migration', '/migration/'],
+      ['/migration', '/migration/'],
       '/mixin'
     ]);
   });

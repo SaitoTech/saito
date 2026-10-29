@@ -75,11 +75,6 @@ class MigrationMain {
       }
     };
   }
-
-  // ApeBond still calls this. The standard flow no longer activates a user Mixin wallet.
-  startAutomatedMigration() {
-    salert('Ape Bond migration is not available from the simplified migration flow.');
-  }
 }
 
 module.exports = MigrationMain;

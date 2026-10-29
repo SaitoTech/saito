@@ -19,6 +19,15 @@ function waitingLabel(transfer) {
   if (transfer.status === 'outbound_broadcast') {
     return 'Waiting for chain inclusion';
   }
+  if (transfer.status === 'treasury_submitted') {
+    return 'Waiting for treasury acknowledgment';
+  }
+  if (transfer.status === 'treasury_accepted') {
+    return 'Accepted by treasury';
+  }
+  if (transfer.status === 'treasury_rejected') {
+    return 'Rejected by treasury';
+  }
   if (transfer.purpose === 'migration' && transfer.mode === 'manual') {
     if (transfer.status === 'inbound_confirmed') {
       return 'Waiting for administrator issuance';

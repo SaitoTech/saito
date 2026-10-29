@@ -6,8 +6,19 @@ class AdminServerConnection {
     this.tried_fallback = false;
   }
 
-  start() {
+  async start() {
     if (!this.mod.app?.BROWSER) {
+      return;
+    }
+    if (this.state === 'connected') {
+      return;
+    }
+    // The handshake often finishes while modules are still initializing,
+    // before this screen starts listening. Count that peer immediately.
+    if (await this.acceptExistingServer()) {
+      return;
+    }
+    if (this.state === 'connected') {
       return;
     }
     this.setState(this.configuredPeer() ? 'configured' : 'fallback');
@@ -15,6 +26,42 @@ class AdminServerConnection {
       this.connectFallback();
     }
     this.armTimeout();
+  }
+
+  async acceptExistingServer() {
+    const expected = this.mod.server_publickey;
+    const network = this.mod.app?.network;
+    if (!expected || !network) {
+      return false;
+    }
+    const peer = await this.existingPeer(network, expected);
+    if (!peer) {
+      return false;
+    }
+    return this.onHandshake(peer);
+  }
+
+  async existingPeer(network, expected) {
+    if (typeof network.getPeer === 'function') {
+      try {
+        const peer = await network.getPeer(expected);
+        if (peer?.publicKey === expected) {
+          return peer;
+        }
+      } catch (err) {
+        // A missing key throws. The peer list is checked next.
+      }
+    }
+    if (typeof network.getPeers !== 'function') {
+      return null;
+    }
+    try {
+      const peers = await network.getPeers();
+      const list = Array.isArray(peers) ? peers : [];
+      return list.find((peer) => peer?.publicKey === expected) || null;
+    } catch (err) {
+      return null;
+    }
   }
 
   configuredPeer() {

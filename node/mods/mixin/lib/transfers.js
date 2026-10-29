@@ -85,7 +85,9 @@ const OPEN_STATUSES = [
   'inbound_broadcast',
   'inbound_confirmed',
   'outbound_awaiting',
-  'outbound_broadcast'
+  'outbound_broadcast',
+  'treasury_submitted',
+  'treasury_accepted'
 ];
 
 class Transfers {
@@ -358,6 +360,17 @@ class Transfers {
             this.inclusion_checked = true;
           } catch (err) {
             console.error('Mixin transfer inclusion check failed:', err);
+          }
+        }
+      }
+
+      if (this.mod.payout_mode === 'remote') {
+        const { forwardTreasuryPayout } = require('./treasury');
+        for (const row of await this.mod.database.getTransfersPendingTreasurySubmission()) {
+          try {
+            await forwardTreasuryPayout(this.mod, row);
+          } catch (err) {
+            console.error(`Mixin transfer ${row.id} treasury submission failed:`, err);
           }
         }
       }
@@ -698,6 +711,17 @@ class Transfers {
     }
     if (row.purpose === 'store-withdrawal') {
       return row;
+    }
+    if (row.purpose === 'treasury-payout') {
+      if (this.mod.payout_mode === 'remote') {
+        return row;
+      }
+      const { issueQueuedTreasuryPayout } = require('./treasury');
+      return issueQueuedTreasuryPayout(this.mod, row);
+    }
+    if (this.mod.payout_mode === 'remote') {
+      const { forwardTreasuryPayout } = require('./treasury');
+      return forwardTreasuryPayout(this.mod, row);
     }
     let amount = row.outbound_amount;
     // Migration only. The stored allocation is checked against the migration cap
@@ -1122,6 +1146,8 @@ class Transfers {
         let accepted = false;
         if (row.purpose === 'migration') {
           accepted = receiveMigrationPayoutTransaction(included, row);
+        } else if (row.purpose === 'treasury-payout') {
+          accepted = !!restoreSavedSignedTransaction(this.app, row.outbound_tx, row.outbound_tx_sig);
         } else if (row.purpose === 'buysaito') {
           // BuySaito only. The included transaction must be the saved BuySaito
           // payout, or the preserved user payload signed for that purchase.

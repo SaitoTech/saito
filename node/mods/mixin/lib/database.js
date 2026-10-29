@@ -196,7 +196,9 @@ class Database {
            'inbound_broadcast',
            'inbound_confirmed',
            'outbound_awaiting',
-           'outbound_broadcast'
+           'outbound_broadcast',
+           'treasury_submitted',
+           'treasury_accepted'
          )`,
       {}
     );
@@ -338,7 +340,8 @@ class Database {
       `SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'transfers'`,
       {}
     );
-    if (!String(defined[0]?.sql || '').includes("'inbound_awaiting'")) {
+    const definedSql = String(defined[0]?.sql || '');
+    if (!definedSql.includes("'inbound_awaiting'") || !definedSql.includes("'treasury_submitted'")) {
       await this.run(`ALTER TABLE transfers RENAME TO transfers_legacy`, {});
       const sql = fs.readFileSync(path.join(__dirname, '../sql/transfers.sql'), 'utf8');
       const tableSql = splitTransfersSql(sql).tableSql;
@@ -373,10 +376,11 @@ class Database {
         );
       }
       await this.run(`DROP TABLE transfers_legacy`, {});
-    await this.ensureInboundPaymentUniqueness();
-    await this.ensureStoreWithdrawalClaims();
-    return;
-  }
+      await this.ensureInboundPaymentUniqueness();
+      await this.ensureStoreWithdrawalClaims();
+      await this.ensureTreasurySchema();
+      return;
+    }
 
     const present = new Set(columns.map((column) => column.name));
     const additions = [
@@ -401,6 +405,21 @@ class Database {
     }
     await this.ensureInboundPaymentUniqueness();
     await this.ensureStoreWithdrawalClaims();
+    await this.ensureTreasurySchema();
+  }
+
+  async ensureTreasurySchema() {
+    const db = await this.app.storage.returnDatabaseByName?.(this.dbname());
+    if (!db?.exec) {
+      return;
+    }
+    const sql = fs.readFileSync(path.join(__dirname, '../sql/treasury.sql'), 'utf8');
+    await db.exec(sql);
+    await db.exec(`
+      CREATE UNIQUE INDEX IF NOT EXISTS transfers_treasury_request_uidx
+        ON transfers (request_id)
+        WHERE purpose = 'treasury-payout' AND request_id <> '';
+    `);
   }
 
   async ensureStoreWithdrawalClaims() {
@@ -834,7 +853,10 @@ class Database {
         'inbound_broadcast',
         'inbound_confirmed',
         'outbound_awaiting',
-        'outbound_broadcast'
+        'outbound_broadcast',
+        'treasury_submitted',
+        'treasury_accepted',
+        'treasury_rejected'
       )`;
     } else {
       params.$q = term;
@@ -871,6 +893,184 @@ class Database {
       { ...params, $limit: pageSize, $offset: (current - 1) * pageSize }
     );
     return { rows: rows || [], total, page: current, page_size: pageSize };
+  }
+
+  async getTransfersPendingTreasurySubmission() {
+    return this.query(
+      `SELECT * FROM transfers
+       WHERE excluded = 0
+         AND status = 'treasury_submitted'
+       ORDER BY id ASC`,
+      {}
+    );
+  }
+
+  async findLocalTreasury(sourceTransferId) {
+    const rows = await this.query(
+      `SELECT * FROM treasury
+       WHERE origin = 'local' AND source_transfer_id = $source
+       LIMIT 1`,
+      { $source: Number(sourceTransferId) }
+    );
+    return rows?.[0] || null;
+  }
+
+  async findTreasuryByTransfer(transferId) {
+    const rows = await this.query(
+      `SELECT * FROM treasury
+       WHERE transfer_id = $id
+       ORDER BY id ASC
+       LIMIT 1`,
+      { $id: Number(transferId) }
+    );
+    return rows?.[0] || null;
+  }
+
+  async updateTreasury(id, fields) {
+    const assignments = ['updated_at = $updated_at'];
+    const params = { $id: id, $updated_at: Date.now() };
+    for (const field of [
+      'status',
+      'last_error',
+      'remote_transfer_id',
+      'transfer_id',
+      'request_tx',
+      'request_tx_sig',
+      'request_payload'
+    ]) {
+      if (fields[field] !== undefined) {
+        assignments.push(`${field} = $${field}`);
+        params[`$${field}`] = fields[field];
+      }
+    }
+    await this.run(`UPDATE treasury SET ${assignments.join(', ')} WHERE id = $id`, params);
+  }
+
+  async saveLocalTreasuryRequest(record) {
+    await this.ensureTreasurySchema();
+    return this.withImmediateTransaction(async (db) => {
+      const existing = await db.all(
+        `SELECT * FROM treasury
+         WHERE origin = 'local' AND source_transfer_id = $source
+         LIMIT 1`,
+        { $source: record.source_transfer_id }
+      );
+      if (existing?.length) {
+        return existing[0];
+      }
+      const now = Date.now();
+      const inserted = await db.run(
+        `INSERT INTO treasury (
+           origin, requester_publickey, source_transfer_id, request_tx, request_tx_sig,
+           request_payload, transfer_id, status, last_error, created_at, updated_at
+         ) VALUES (
+           'local', $requester, $source, $tx, $sig, $payload, $transfer, 'pending', '', $now, $now
+         )`,
+        {
+          $requester: record.requester_publickey,
+          $source: record.source_transfer_id,
+          $tx: record.request_tx,
+          $sig: record.request_tx_sig,
+          $payload: record.request_payload,
+          $transfer: record.transfer_id,
+          $now: now
+        }
+      );
+      if (!inserted?.lastID) {
+        throw new Error('The treasury request was not recorded.');
+      }
+      const saved = await db.all(`SELECT * FROM treasury WHERE id = $id`, { $id: inserted.lastID });
+      return saved[0];
+    });
+  }
+
+  async recordRemoteTreasuryPayout(record) {
+    await this.ensureTreasurySchema();
+    try {
+      return await this.withImmediateTransaction(async (db) => {
+        const existing = await db.all(
+          `SELECT * FROM treasury
+           WHERE origin = 'remote'
+             AND requester_publickey = $requester
+             AND source_transfer_id = $source
+           LIMIT 1`,
+          { $requester: record.requester_publickey, $source: record.source_transfer_id }
+        );
+        if (existing?.length) {
+          const audit = existing[0];
+          if (
+            audit.request_tx_sig !== record.request_tx_sig ||
+            audit.request_payload !== record.request_payload
+          ) {
+            return { conflict: true, treasury: audit };
+          }
+          const transfers = await db.all(`SELECT * FROM transfers WHERE id = $id`, {
+            $id: audit.transfer_id
+          });
+          return { replayed: true, treasury: audit, transfer: transfers?.[0] || null };
+        }
+
+        const now = Date.now();
+        const inserted = await db.run(
+          `INSERT INTO transfers (
+             purpose, mode, payload, request_id, requester_publickey, recipient_publickey,
+             status, inbound_ticker, inbound_amount, inbound_tx_hash, inbound_confirmation_block_id,
+             outbound_ticker, outbound_amount, outbound_address, excluded, created_at, updated_at
+           ) VALUES (
+             'treasury-payout', 'automatic', $payload, $request_id, $requester, $recipient,
+             'inbound_confirmed', $inbound_ticker, $inbound_amount, $inbound_hash, 0,
+             'SAITO', $outbound_amount, $outbound_address, 0, $now, $now
+           )`,
+          {
+            $payload: record.payload || '',
+            $request_id: record.request_id,
+            $requester: record.requester_publickey,
+            $recipient: record.recipient_publickey,
+            $inbound_ticker: record.inbound_ticker || '',
+            $inbound_amount: record.inbound_amount || '',
+            $inbound_hash: record.inbound_tx_hash || '',
+            $outbound_amount: record.outbound_amount,
+            $outbound_address: record.recipient_publickey,
+            $now: now
+          }
+        );
+        const transferId = inserted?.lastID;
+        if (!transferId) {
+          throw new Error('The treasury transfer was not recorded.');
+        }
+        const auditInsert = await db.run(
+          `INSERT INTO treasury (
+             origin, requester_publickey, source_transfer_id, request_tx, request_tx_sig,
+             request_payload, transfer_id, status, last_error, created_at, updated_at
+           ) VALUES (
+             'remote', $requester, $source, $tx, $sig, $payload, $transfer, 'accepted', '', $now, $now
+           )`,
+          {
+            $requester: record.requester_publickey,
+            $source: record.source_transfer_id,
+            $tx: record.request_tx,
+            $sig: record.request_tx_sig,
+            $payload: record.request_payload,
+            $transfer: transferId,
+            $now: now
+          }
+        );
+        if (!auditInsert?.lastID) {
+          throw new Error('The treasury audit row was not recorded.');
+        }
+        const transfers = await db.all(`SELECT * FROM transfers WHERE id = $id`, { $id: transferId });
+        const audits = await db.all(`SELECT * FROM treasury WHERE id = $id`, { $id: auditInsert.lastID });
+        return { replayed: false, treasury: audits[0], transfer: transfers[0] };
+      });
+    } catch (err) {
+      if (isInboundHashConflict(err)) {
+        return {
+          rejected: true,
+          reason: 'That inbound payment is already assigned to a transfer.'
+        };
+      }
+      throw err;
+    }
   }
 
   async getTransfersPendingOutboundBroadcast() {

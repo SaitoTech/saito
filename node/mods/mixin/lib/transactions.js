@@ -119,6 +119,36 @@ function receiveBuySaitoPayoutTransaction(tx, row) {
   return message.module === 'BuySaito' && message.request === 'buysaito issuance';
 }
 
+async function createTreasuryPayoutRequestTransaction(app, provider, row, requesterPublickey) {
+  const tx = await app.wallet.createUnsignedTransactionWithDefaultFee(provider);
+  const data = {
+    source_transfer_id: Number(row.id),
+    purpose: row.purpose,
+    outbound_amount: String(row.outbound_amount),
+    recipient_publickey: row.recipient_publickey,
+    requester_publickey: requesterPublickey
+  };
+  if (row.payload) {
+    data.payload = row.payload;
+  }
+  if (row.inbound_tx_hash) {
+    data.inbound_tx_hash = row.inbound_tx_hash;
+  }
+  if (row.inbound_ticker) {
+    data.inbound_ticker = row.inbound_ticker;
+  }
+  if (row.inbound_amount) {
+    data.inbound_amount = row.inbound_amount;
+  }
+  tx.msg = {
+    module: 'Mixin',
+    request: 'mixin-issue-treasury-payout',
+    data
+  };
+  await tx.sign();
+  return tx;
+}
+
 function restoreSavedSignedTransaction(app, serialized, expectedSignature) {
   const tx = new Transaction();
   tx.deserialize_from_web(app, serialized);
@@ -133,6 +163,7 @@ module.exports = {
   receiveMigrationPayoutTransaction,
   createBuySaitoPayoutTransaction,
   receiveBuySaitoPayoutTransaction,
+  createTreasuryPayoutRequestTransaction,
   restoreSavedSignedTransaction,
   storeIssuanceIdentifiers
 };

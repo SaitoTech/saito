@@ -45,15 +45,36 @@ class Mixin extends ModTemplate {
     this.wrapped_saito_ticker = 'ERC-SAITO';
     this.wrappedSaitoMod = null;
     this.wrappedSaitoMods = {};
-    this.can_auto = false;
-    this.auto_migration_error = '';
-    this.migration_publickey = '';
-    this.migration_mixin_address = '';
-    this.max_deposit = 1000000;
-    this.balance = 0;
     this.migration_page = null;
-    this.apebond = null;
     this.migration_header = null;
+    this.execution_mode = 'local';
+    this.payout_mode = 'local';
+    this.treasury_provider_publickeys = [];
+    this.treasury_delegate_publickeys = [];
+    this.loadTreasuryConfig();
+  }
+
+  loadTreasuryConfig() {
+    const options = this.app?.options?.mixin || {};
+    const keys = (value) =>
+      Array.isArray(value) ? value.map((key) => String(key || '').trim()).filter(Boolean) : [];
+    this.treasury_provider_publickeys = keys(options.treasury_provider_publickeys);
+    this.treasury_delegate_publickeys = keys(options.treasury_delegate_publickeys);
+    if (options.execution_mode === 'local' || options.execution_mode === 'remote') {
+      this.execution_mode = options.execution_mode;
+    } else if (this.execution_mode !== 'remote') {
+      this.execution_mode = 'local';
+    }
+    const own = String(this.publicKey || '').trim();
+    const providers = this.treasury_provider_publickeys;
+    const soleSelf = providers.length === 1 && !!own && providers[0] === own;
+    if (!providers.length) {
+      this.payout_mode = options.payout_mode === 'remote' ? 'remote' : 'local';
+    } else if (soleSelf) {
+      this.payout_mode = 'local';
+    } else {
+      this.payout_mode = 'remote';
+    }
   }
 
   isSlug(slug) {
@@ -71,7 +92,8 @@ class Mixin extends ModTemplate {
     this.services = [];
     if (this.appSession) {
       this.services.push(new PeerService(null, 'mixin'));
-      if (this.isLocalBuySaitoProvider()) {
+      const buysaito = this.app.modules?.returnModule?.('BuySaito');
+      if (!buysaito || buysaito.publicKey === buysaito.authorized_public_key) {
         this.services.push(new PeerService(null, 'buysaito'));
       }
     }
@@ -92,9 +114,6 @@ class Mixin extends ModTemplate {
     if (service.service === 'mixin') {
       console.info('Mixin Module: API online!');
       this.mixin_peer = peer;
-      if (this.app.BROWSER && peer?.publicKey) {
-        this.migration_publickey = peer.publicKey;
-      }
 
       if (this.credentials?.user_id && !this.credentials.backed_up) {
         console.info('Need to back up my mixin');
@@ -114,6 +133,7 @@ class Mixin extends ModTemplate {
 
   async initialize(app) {
     await super.initialize(app);
+    this.loadTreasuryConfig();
 
     this.database = new Database(app, this);
     this.api = new Api();
@@ -124,6 +144,7 @@ class Mixin extends ModTemplate {
       this.appSession = this.api.createAppSession();
       await this.database.ensureAccountsSchema();
       await this.database.ensureTransfersSchema();
+      await this.database.ensureTreasurySchema();
       await this.database.copyLegacyTables();
       this.transfers = new Transfers(app, this);
       this.migration = new MigrationService(app, this);
@@ -157,15 +178,19 @@ class Mixin extends ModTemplate {
     }
 
     if (!app.BROWSER) {
+      const buysaito = this.app.modules?.returnModule?.('BuySaito');
+      const buysaitoProvider = !buysaito || buysaito.publicKey === buysaito.authorized_public_key;
       console.log('Mixin buysaito service', {
         app_session: !!this.appSession,
         transfers: !!this.transfers,
-        fulfills_locally: this.isLocalBuySaitoProvider(),
-        advertised: !!(this.appSession && this.isLocalBuySaitoProvider())
+        execution_mode: this.execution_mode,
+        payout_mode: this.payout_mode,
+        buysaito_provider: buysaitoProvider,
+        advertised: !!(this.appSession && buysaitoProvider)
       });
     }
 
-    if (!app.BROWSER && this.appSession && this.transfers && this.isLocalBuySaitoProvider()) {
+    if (!app.BROWSER && this.transfers && this.execution_mode === 'local') {
       this.transfers.processTransferQueue().catch((err) => {
         console.error('Mixin transfer queue failed:', err);
       });
@@ -247,6 +272,20 @@ class Mixin extends ModTemplate {
       this.app.network.sendRequestAsTransaction('migration request', result, null, from);
       if (mycallback) {
         mycallback(result);
+      }
+      return 1;
+    }
+
+    if (!this.app.BROWSER && message.request === 'mixin-issue-treasury-payout') {
+      const { receiveTreasuryPayout } = require('./lib/treasury');
+      const result = await receiveTreasuryPayout(this, tx);
+      if (mycallback) {
+        mycallback(result);
+      }
+      if (result?.request_status === 'accepted' && this.transfers) {
+        this.transfers.processTransferQueue().catch((err) => {
+          console.error('Mixin transfer queue failed:', err);
+        });
       }
       return 1;
     }
@@ -348,15 +387,16 @@ class Mixin extends ModTemplate {
       const direct_peer = !!from && peer?.publicKey === from;
       // Off-chain requests are routed to the peer, while the transaction's
       // recipient slip remains the buyer. direct_peer is the acceptance check.
-      const accepted =
-        !!this.appSession && !!this.transfers && this.isLocalBuySaitoProvider() && direct_peer;
+      const buysaito = this.app.modules?.returnModule?.('BuySaito');
+      const buysaitoProvider = !buysaito || buysaito.publicKey === buysaito.authorized_public_key;
+      const accepted = !!this.appSession && !!this.transfers && buysaitoProvider && direct_peer;
       console.log('Mixin buysaito request', {
         request: message.request,
         app_session: !!this.appSession,
         transfers: !!this.transfers,
         server: this.publicKey,
         addressed_to_server: tx.isTo(this.publicKey),
-        fulfills_locally: this.isLocalBuySaitoProvider(),
+        buysaito_provider: buysaitoProvider,
         buyer: from || '',
         connected_peer: peer?.publicKey || '',
         direct_peer,
@@ -479,26 +519,6 @@ class Mixin extends ModTemplate {
     }
 
     return super.handlePeerTransaction(app, tx, peer, mycallback);
-  }
-
-  recordMigrationBotWalletAddress(ticker, address) {
-    this.migration?.recordMigrationBotWalletAddress(ticker, address);
-  }
-
-  async migrationDepositClaimed(txmsg) {
-    if (!this.migration) {
-      return false;
-    }
-    return this.migration.claimsAnnouncement(txmsg);
-  }
-
-  async migrationHashOwned(hash) {
-    if (!this.migration || !hash) {
-      return false;
-    }
-    return Boolean(
-      (await this.migration.findByInboundHash(hash)) || (await this.migration.findByRequestId(hash))
-    );
   }
 
   async approveManualMigration(id) {
@@ -1056,7 +1076,7 @@ class Mixin extends ModTemplate {
     };
 
     const migrationDocument = require('./lib/ui/migration/document.template');
-    expressapp.get(['/migration/apebond', '/migration/apebond/', '/migration', '/migration/'], (req, res) => {
+    expressapp.get(['/migration', '/migration/'], (req, res) => {
       res.setHeader('Content-type', 'text/html');
       res.charset = 'UTF-8';
       res.send(migrationDocument(app.build_number));
@@ -1185,19 +1205,14 @@ class Mixin extends ModTemplate {
     return Math.floor((amount * usdPrice) / saitoPrice);
   }
 
-  isLocalBuySaitoProvider() {
-    const buysaito = this.app.modules?.returnModule?.('BuySaito');
-    return !buysaito || buysaito.publicKey === buysaito.authorized_public_key;
-  }
-
   async onNewBlock(block, longestChain) {
-    if (!this.app.BROWSER && this.transfers && this.isLocalBuySaitoProvider()) {
+    if (!this.app.BROWSER && this.transfers && this.execution_mode === 'local') {
       await this.transfers.onNewBlock(block, longestChain);
     }
   }
 
   async onChainReorganization(blockId, blockHash, longestChain) {
-    if (!this.app.BROWSER && this.transfers && this.isLocalBuySaitoProvider()) {
+    if (!this.app.BROWSER && this.transfers && this.execution_mode === 'local') {
       await this.transfers.onChainReorganization(blockId, blockHash, longestChain);
     }
   }

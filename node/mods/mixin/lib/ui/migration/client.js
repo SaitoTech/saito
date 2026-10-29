@@ -1,19 +1,8 @@
 const MigrationMain = require('./main');
-const ApeBondMain = require('./apebond');
-
-const WRAPPED = ['ERC-SAITO', 'BEP-SAITO'];
 
 module.exports = {
   isMigrationRoute() {
     return this.urlpath?.[1]?.toLowerCase() === 'migration';
-  },
-
-  isWrappedSaitoTicker(ticker = '') {
-    return WRAPPED.includes(ticker);
-  },
-
-  returnWrappedSaitoLabel(ticker = this.wrapped_saito_ticker) {
-    return ticker === 'BEP-SAITO' ? 'BEP20 SAITO' : 'ERC20 SAITO';
   },
 
   async requestMigration(data) {
@@ -68,10 +57,7 @@ module.exports = {
   },
 
   async renderMigrationPage() {
-    if (!this.apebond) {
-      this.apebond = new ApeBondMain(this.app, this);
-    }
-    this.migration_page = this.apebond.isActive() ? this.apebond : new MigrationMain(this.app, this);
+    this.migration_page = new MigrationMain(this.app, this);
     if (!this.migration_header) {
       const SaitoHeader = require('../../../../../lib/saito/ui/saito-header/saito-header');
       this.migration_header = new SaitoHeader(this.app, this);

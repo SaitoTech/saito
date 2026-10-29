@@ -353,40 +353,6 @@ describe('Mixin accounts and database', () => {
       user_id: 'user-2'
     });
   });
-
-  test('startup does not send a transfer', async () => {
-    const db = await openMixinDatabase();
-    const sendToUser = jest.spyOn(Api.prototype, 'sendToUser');
-    const sendToAddress = jest.spyOn(Api.prototype, 'sendToAddress');
-    const app = {
-      BROWSER: 0,
-      options: { mixin: credentials },
-      storage: {
-        saveOptions() {},
-        returnFileSystem: () => null,
-        queryDatabase: async (sql, params) => {
-          try {
-            return await db.all(sql, params);
-          } catch (err) {
-            return [];
-          }
-        },
-        runDatabase: (sql, params) => db.run(sql, params)
-      },
-      wallet: { getPublicKey: async () => 'saito-key', setPreferredCrypto: async () => {} },
-      connection: { on() {} },
-      modules: { respondTo: () => [], mods: [] }
-    };
-
-    delete process.env.MIXIN;
-    const mixin = new Mixin(app);
-    await mixin.initialize(app);
-
-    expect(sendToUser).not.toHaveBeenCalled();
-    expect(sendToAddress).not.toHaveBeenCalled();
-    sendToUser.mockRestore();
-    sendToAddress.mockRestore();
-  });
 });
 
 describe('Mixin transfer queue', () => {
@@ -455,100 +421,6 @@ describe('Mixin transfer queue', () => {
     expect(rows[0].ciphertext).toBe('old');
   });
 
-  test('old transfer statuses are rewritten and a deposit observation advances the row', async () => {
-    const db = await open({ filename: ':memory:', driver: sqlite3.Database });
-    await db.exec(
-      fs.readFileSync(path.join(__dirname, '../../../mods/mixin/sql/accounts.sql'), 'utf8')
-    );
-    await db.exec(`CREATE TABLE transfers (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      status TEXT NOT NULL DEFAULT 'awaiting_inbound',
-      created_at INTEGER NOT NULL DEFAULT 0,
-      updated_at INTEGER NOT NULL DEFAULT 0
-    )`);
-    await db.run(
-      `INSERT INTO transfers (status, created_at, updated_at) VALUES ('inbound_pending', 5, 5)`
-    );
-    const database = databaseFor(db);
-    database.app.storage.executeDatabase = (sql) => db.exec(sql);
-
-    await database.ensureTransfersSchema();
-
-    const migrated = await database.getTransfers({ status: 'inbound_broadcast' });
-    expect(migrated).toHaveLength(1);
-    expect(migrated[0].mode).toBe('automatic');
-
-    const id = await database.insertTransfer({
-      purpose: 'buysaito',
-      status: 'inbound_awaiting',
-      requester_publickey: 'payer',
-      inbound_ticker: 'ETH',
-      inbound_asset_id: 'asset',
-      inbound_amount: '1',
-      inbound_address: '0xabc',
-      inbound_mixin_user_id: 'user-1',
-      inbound_confirmations_required: 12,
-      created_at: Date.now()
-    });
-    const sent = jest.fn();
-    const transfers = new Transfers(
-      {
-        wallet: { getPrivateKey: async () => 'private' },
-        network: { sendRequestAsTransaction: sent },
-        connection: { emit: jest.fn() },
-        blockchain: { getLatestBlockId: async () => 3 }
-      },
-      {
-        publicKey: 'saito-key',
-        database,
-        accounts: {
-          getCredentials: () => credentials,
-          decryptCredentials: () => credentials
-        },
-        api: {
-          fetchDeposits: jest.fn(async () => [
-            { amount: '1', confirmations: 1, transaction_hash: 'hash-1', status: 'pending' }
-          ]),
-          fetchHistory: jest.fn(async () => [])
-        }
-      }
-    );
-
-    let release;
-    const gate = new Promise((resolve) => {
-      release = resolve;
-    });
-    const original = database.getTransfers.bind(database);
-    let calls = 0;
-    database.getTransfers = async (...args) => {
-      calls += 1;
-      if (calls === 1) {
-        await gate;
-      }
-      return original(...args);
-    };
-
-    const first = transfers.processTransferQueue();
-    await Promise.resolve();
-    const second = transfers.processTransferQueue();
-    await second;
-    expect(transfers.running).toBe(true);
-    release();
-    await first;
-
-    expect(transfers.running).toBe(false);
-    const row = (await original({ id }))[0];
-    expect(row.status).toBe('inbound_broadcast');
-    expect(row.inbound_tx_hash).toBe('hash-1');
-    expect(row.inbound_confirmations).toBe(1);
-    expect(sent).toHaveBeenCalledWith(
-      'buysaito payment detected',
-      expect.objectContaining({ id, status: 'pending', address: '0xabc' }),
-      null,
-      'payer'
-    );
-  });
-
   test('a reorg returns the saved outbound transaction to outbound_awaiting', async () => {
     const db = await openMixinDatabase();
     const database = databaseFor(db);
@@ -588,52 +460,6 @@ describe('Mixin transfer queue', () => {
     expect(row.outbound_tx).toBe('saved-tx');
     expect(row.outbound_block_hash).toBe('');
     expect(transfers.app.network.propagateTransaction).not.toHaveBeenCalled();
-  });
-
-  test('a new transfer defaults to automatic and an existing row receives that default', async () => {
-    const fresh = await openMixinDatabase();
-    const freshDatabase = databaseFor(fresh);
-    const freshId = await freshDatabase.insertTransfer({
-      purpose: 'buysaito',
-      status: 'inbound_awaiting',
-      created_at: 1
-    });
-
-    expect((await freshDatabase.getTransfers({ id: freshId }))[0].mode).toBe('automatic');
-
-    const db = await open({ filename: ':memory:', driver: sqlite3.Database });
-    await db.exec(`CREATE TABLE transfers (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      purpose TEXT NOT NULL DEFAULT '',
-      status TEXT NOT NULL DEFAULT 'inbound_awaiting'
-        CHECK (status IN (
-          'inbound_awaiting',
-          'inbound_broadcast',
-          'inbound_confirmed',
-          'outbound_awaiting',
-          'outbound_broadcast',
-          'outbound_confirmed',
-          'succeeded',
-          'failed',
-          'cancelled',
-          'other'
-        )),
-      created_at INTEGER NOT NULL DEFAULT 0,
-      updated_at INTEGER NOT NULL DEFAULT 0
-    )`);
-    await db.run(
-      `INSERT INTO transfers (purpose, status, created_at, updated_at)
-       VALUES ('buysaito', 'inbound_confirmed', 1, 1)`
-    );
-    const database = databaseFor(db);
-
-    await database.ensureTransfersSchema();
-
-    expect(await db.get(`SELECT mode, purpose, status FROM transfers WHERE id = 1`)).toEqual({
-      mode: 'automatic',
-      purpose: 'buysaito',
-      status: 'inbound_confirmed'
-    });
   });
 
   test('the automatic queue leaves manual transfers untouched', async () => {

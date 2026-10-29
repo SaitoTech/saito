@@ -14,7 +14,6 @@ module.exports = (buildNumber = '') => {
     <title>Saito Mainnet: Token Transfers</title>
     <link rel="stylesheet" href="/saito/saito.css${version}" />
     <link rel="stylesheet" href="/mixin/css/migration.css${version}" />
-    <link rel="stylesheet" href="/mixin/css/apebond.css${version}" />
   </head>
   <body>
     <script type="text/javascript" src="/saito/saito.js${version}" id="saito"></script>

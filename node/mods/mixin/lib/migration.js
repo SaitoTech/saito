@@ -8,24 +8,19 @@ const OPEN_STATUSES = [
   'inbound_broadcast',
   'inbound_confirmed',
   'outbound_awaiting',
-  'outbound_broadcast'
+  'outbound_broadcast',
+  'treasury_submitted',
+  'treasury_accepted'
 ];
 
 class MigrationService {
   constructor(app, mod) {
     this.app = app;
     this.mod = mod;
-    this.bot_wallet = {};
   }
 
   supportedTicker(ticker = '') {
     return TICKERS.includes(ticker);
-  }
-
-  recordMigrationBotWalletAddress(ticker, address) {
-    if (ticker && address) {
-      this.bot_wallet[ticker] = address;
-    }
   }
 
   allocationForDeposit(amount) {
@@ -88,43 +83,6 @@ class MigrationService {
       asset_id: crypto.asset_id,
       chain_id: crypto.chain_id || ''
     };
-  }
-
-  async findByInboundHash(hash) {
-    if (!hash) {
-      return null;
-    }
-    const rows = await this.mod.database.query(
-      `SELECT * FROM transfers WHERE purpose = 'migration' AND inbound_tx_hash = $hash LIMIT 1`,
-      { $hash: hash }
-    );
-    return rows?.[0] || null;
-  }
-
-  async findByRequestId(hash) {
-    if (!hash) {
-      return null;
-    }
-    const rows = await this.mod.database.query(
-      `SELECT * FROM transfers WHERE purpose = 'migration' AND request_id = $hash LIMIT 1`,
-      { $hash: hash }
-    );
-    return rows?.[0] || null;
-  }
-
-  async claimsAnnouncement(txmsg) {
-    const credentials = this.mod.accounts.getCredentials();
-    const parts = String(txmsg?.to || '').split('|');
-    if (credentials?.user_id && parts.includes(credentials.user_id)) {
-      return true;
-    }
-    if (await this.findByInboundHash(txmsg?.hash)) {
-      return true;
-    }
-    if (await this.findByRequestId(txmsg?.hash)) {
-      return true;
-    }
-    return false;
   }
 
   normalizeChainAddress(address = '') {
