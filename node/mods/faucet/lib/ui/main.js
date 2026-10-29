@@ -8,7 +8,7 @@ class Main {
 
   hasGetSaito() {
     try {
-      return !!this.app.modules.returnModule('BuySaito')?.purchase_overlay;
+      return !!this.app.modules.returnModule('Mixin')?.purchase_overlay;
     } catch (err) {
       return false;
     }

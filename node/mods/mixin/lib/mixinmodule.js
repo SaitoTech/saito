@@ -1,59 +1,19 @@
-/*********************************************************************************
-
- WEB3 CRYPTO MODULE v.2 - Mixin
-
- Extends the generic web3 crypto module to add auto-support for cryptos that are
- supported by the Mixin module.
-
- returnPrivateKey()
- async sendPayment(amount="", recipient="", unique_hash="")
- async receivePayment(amount="", sender="", recipient="", timestamp=0, unique_hash="")
-
-
- Uses Mixin API:
- ----------------
- createAccount()
- createDepositAddress()
- fetchSafeUtxoBalance()
- fetchUtxo()
- fetchSafeSnapshots()
- fetchSnapshots()
- fetchPendingDeposits()
- sendInNetworkTransferRequest()
- sendExternalNetworkTransferRequest()
- returnMixinNetworkInfo()
- returnWithdrawalFee()
- deposit[]
- mixin.privatekey
- mixin.user_id
-
-
- **********************************************************************************/
 const CryptoModule = require('./../../../lib/templates/cryptomodule');
-const getUuid = require('uuid-by-string');
-//
-// TODO - this is old and deprecated and doesn't compile well with ().default bundled
-// code as we require. so we should be updating address validation if we need it, but
-// this should not be blocking us.
-//
 const WAValidator = require('@taasfi/multicoin-address-validator');
+const Decimal = require('decimal.js');
 
 class MixinModule extends CryptoModule {
-  constructor(app, mixin_mod, ticker, asset_id, chain_id) {
+  constructor(app, mixinMod, ticker, assetId, chainId) {
     super(app, ticker);
 
-    this.mixin = mixin_mod;
-
-    this.asset_id = asset_id;
-    this.chain_id = chain_id;
-
+    this.mixin = mixinMod;
+    this.asset_id = assetId;
+    this.chain_id = chainId;
     this.polling_active = 0;
     this.polling_timeout = 0;
     this.polling_intervals = [5000, 15000, 45000, 90000, 120000, 180000];
     this.polling_interval_current = 0;
-
     this.cached_contacts = [];
-
     this.confirmations = 100;
   }
 
@@ -62,7 +22,6 @@ class MixinModule extends CryptoModule {
       if (!this.mixin.account_created) {
         console.info('Create Mixin account');
         const result = await this.mixin.createAccount();
-
         if (result?.err || !this.mixin.account_created) {
           throw new Error(result?.err || 'Mixin account was not created');
         }
@@ -70,12 +29,12 @@ class MixinModule extends CryptoModule {
 
       if (!this.address) {
         console.info(`Create Mixin deposit address -- ${this.ticker}`);
-
-        const rv = await this.mixin.createDepositAddress(this.asset_id, this.chain_id);
-        if (!rv) {
+        const address = await this.mixin.accounts.createAddress(this.asset_id, this.chain_id);
+        if (!address) {
           throw new Error('Mixin deposit address was not created');
         }
-
+        this.address = address;
+        this.save();
         console.info(`Address for ${this.ticker}: ${this.address}`);
       }
 
@@ -93,39 +52,25 @@ class MixinModule extends CryptoModule {
 
   async loadHistory() {
     await super.loadHistory();
-    await this.checkForRecentTransactions();
+    await this.fetchHistory();
   }
 
-  //
-  // Balance state (see also getPendingBalance, sendPayment, checkForRecentTransactions):
-  //
-  // - balance: confirmed Safe UTXO from fetchSafeUtxoBalance; persisted via save()
-  // - pending_balance: ephemeral post-send expected balance until the API reflects the
-  //   transfer; also drives returnDisplayBalance() and header "pending" styling
-  // - last_balance: ephemeral pre-send snapshot for a synthetic pending row in the
-  //   recent transactions overlay until the snapshot lands in history
-  //
-  // pending_balance and last_balance are not persisted in save().
-  //
   async fetchBalance() {
     if (!this.address) {
       console.info('Mixin Error: no address - terminating fetch balance');
       return;
     }
 
-    let ts = Date.now();
-    //
-    // We are adding some throttling here because this was getting called > 10 times
-    // just on page load. The polling / checkForRecentTransactions will clear the flag
-    // if there is any activity that would update things
-    //
+    const ts = Date.now();
     if (!this.last_balance_fetch || ts - this.last_balance_fetch > 10000) {
       console.log('@@@ FetchBalance ' + this.ticker);
       this.last_balance_fetch = ts;
 
-      let balance = await this.mixin.fetchSafeUtxoBalance(this.asset_id);
+      const balance = await this.mixin.api.fetchBalance(
+        this.mixin.accounts.getCredentials(),
+        this.asset_id
+      );
       if (balance !== false) {
-        // API caught up to the post-send estimate; drop the optimistic override.
         if (balance == this.pending_balance) {
           delete this.pending_balance;
         }
@@ -143,72 +88,44 @@ class MixinModule extends CryptoModule {
     return this.fetchBalance();
   }
 
-  //
-  // queries the latest pending balance
-  //
   async getPendingBalance() {
-    let pending_balance = Number(await this.getAvailableBalance());
+    let pendingBalance = Number(await this.getAvailableBalance());
 
-    // Did we cache a pending balance because we just sent some tokens and cannot trust the safeUTXOBalance?
     if (this.pending_balance) {
-      if (pending_balance !== this.pending_balance) {
-        pending_balance = this.pending_balance;
+      if (pendingBalance !== this.pending_balance) {
+        pendingBalance = this.pending_balance;
       }
     }
 
-    // Do we have incoming deposits from outside the platform?
     this.pending_deposits = await this.fetchPendingDeposits();
 
-    for (let pd of this.pending_deposits) {
-      if (pd.state === 'pending' || Number(pd.confirmations) < Number(this.confirmations)) {
-        pending_balance += Number(pd.amount || 0);
+    for (const deposit of this.pending_deposits) {
+      if (
+        deposit.state === 'pending' ||
+        Number(deposit.confirmations) < Number(this.confirmations)
+      ) {
+        pendingBalance += Number(deposit.amount || 0);
       }
     }
 
-    return pending_balance.toString() || '0';
+    return pendingBalance.toString() || '0';
   }
 
-  /*
-   *
-   * PENDING DEPOSITS are returned from MIXIN in this fashion
-   *
-   * this.pending_deposits = [
-   *   {
-   *     deposit_id: "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
-   *     destination: "0xDepositAddressForThisAsset...",
-   *     tag: "",
-   *     chain_id: "b7938390-ff6d-4be9-aa99-1a7ede2b7276",
-   *     asset_id: "c6d0c728-2624-429b-8e0d-d563e5f5ee48",
-   *     asset_key: "ETH",
-   *     amount: "0.125",              // string; use Number() in UI
-   *     transaction_hash: "0xabc...",
-   *     output_index: 0,
-   *     block_hash: "0xdef...",
-   *     block_number: 19876543,
-   *     confirmations: 5,             // used by saito-header / deposit overlay
-   *     threshold: 100,             // network confirmation target (often matches module.confirmations)
-   *     state: "pending",             // e.g. "pending" | "confirmed"
-   *     created_at: "2024-02-12T16:31:44.123456789Z",
-   *     updated_at: "2024-02-12T16:32:01.987654321Z"
-   *   }
-   * ];
-   */
   async fetchPendingDeposits(callback = null) {
     if (!this.address) {
       this.pending_deposits = [];
-      if (callback) callback([]);
+      if (callback) {
+        callback([]);
+      }
       return [];
     }
 
-    this.pending_deposits = await new Promise((resolve) => {
-      this.mixin.fetchPendingDeposits(this.asset_id, this.address, (res) => {
-        if (res === false) {
-          resolve(this.pending_deposits || []);
-          return;
-        }
-        resolve(res || []);
-      });
-    });
+    const deposits = await this.mixin.api.fetchDeposits(
+      this.mixin.accounts.getCredentials(),
+      this.asset_id,
+      this.address
+    );
+    this.pending_deposits = deposits === false ? this.pending_deposits || [] : deposits || [];
 
     if (callback) {
       callback(this.pending_deposits);
@@ -217,19 +134,16 @@ class MixinModule extends CryptoModule {
     return this.pending_deposits;
   }
 
-  getSaitoPublicKey(user_id) {
-    //
-    // check if address exists in local db
-    //
-    for (let pk in this.cached_contacts) {
-      if (this.cached_contacts[pk].includes(user_id)) {
-        return pk;
+  getSaitoPublicKey(userId) {
+    for (const publicKey in this.cached_contacts) {
+      if (this.cached_contacts[publicKey].includes(userId)) {
+        return publicKey;
       }
     }
 
-    for (let k of this.app.keychain.returnKeys()) {
-      if (k?.crypto_addresses?.[this.ticker]?.includes(user_id)) {
-        return k.publicKey;
+    for (const key of this.app.keychain.returnKeys()) {
+      if (key?.crypto_addresses?.[this.ticker]?.includes(userId)) {
+        return key.publicKey;
       }
     }
 
@@ -239,204 +153,99 @@ class MixinModule extends CryptoModule {
   async validateHistory() {
     await super.validateHistory();
     for (let i = 0; i < this.history.length; i++) {
-      //
-      // Retroactively check for Saito publickeys to display user names
-      //
       if (this.history[i].counter_party.address && !this.history[i].counter_party.publicKey) {
-        // We will save an empty string so we don't repeatedly hit the external DB for non-Saito linked accounts
         if (this.history[i].counter_party.publicKey !== '') {
           this.history[i].counter_party.publicKey =
             this.getSaitoPublicKey(this.history[i].counter_party.address) ||
-            (await this.remoteUserFetch(this.history[i].counter_party.address));
+            (await this.lookupPublicKey(this.history[i].counter_party.address));
         }
       }
     }
   }
 
-  async remoteUserFetch(user_id) {
-    let user = null;
+  async lookupPublicKey(userId) {
+    const row = await this.mixin.fetchMixinUser({
+      asset_id: this.asset_id,
+      user_id: userId
+    });
+    if (!row) {
+      return '';
+    }
 
-    // It is very strange that we seem to be unable to pass values back from
-    // this asynchronous function, though I swear there are places in the code where
-    // we expect that behavior.
-    // This setting a variable through the callback, with an await (to make sure the callback gets called)
-    // seems to do the trick
-
-    await this.mixin.sendFetchUserTransaction(
-      {
-        asset_id: this.asset_id,
-        user_id
-      },
-      (res) => {
-        if (res?.length > 0) {
-          // Cache this results!
-          let address = res[0].address;
-          if (res[0]?.user_id) {
-            address += '|' + res[0].user_id + '|mixin';
-          }
-
-          if (res[0].publickey) {
-            let pk = res[0].publickey;
-            this.cached_contacts[pk] = address;
-            // save address to keychain if publickey exists in keychain
-            if (this.app.keychain.hasPublicKey(pk)) {
-              this.app.keychain.addCryptoAddress(pk, this.ticker, address);
-            }
-          }
-
-          user = res[0];
-        }
+    let address = row.address || '';
+    if (row.user_id) {
+      address += '|' + row.user_id + '|mixin';
+    }
+    if (row.publickey) {
+      this.cached_contacts[row.publickey] = address;
+      if (this.app.keychain.hasPublicKey(row.publickey)) {
+        this.app.keychain.addCryptoAddress(row.publickey, this.ticker, address);
       }
-    );
-    return user?.publickey || '';
+    }
+    return row.publickey || '';
   }
 
-  /**
-   * Mixin represents an internal account in two equivalent ways:
-   *
-   *   chain-address|mixin-user-uuid|mixin
-   *   mixin-user-uuid
-   *
-   * Expected payments are commonly registered with the first form while Safe
-   * snapshots report the second. Match on the Mixin user UUID when one side is
-   * packed, while CryptoModule keeps exact sender matching for other networks.
-   */
-  returnPaymentSenderIdentity(sender = '') {
-    const address = String(sender || '').trim();
-    const parts = address.split('|');
-
+  mixinUserId(address) {
+    const parts = String(address || '')
+      .trim()
+      .split('|');
     if (parts.length >= 3 && parts[parts.length - 1].toLowerCase() === 'mixin') {
-      return parts[parts.length - 2].toLowerCase();
+      return parts[parts.length - 2].toLowerCase() || null;
     }
-
-    return address.toLowerCase();
+    return null;
   }
 
-  paymentsHaveSameSender(expected_sender, actual_sender) {
-    if (super.paymentsHaveSameSender(expected_sender, actual_sender)) {
+  paymentsHaveSameSender(expectedSender, actualSender) {
+    if (super.paymentsHaveSameSender(expectedSender, actualSender)) {
       return true;
     }
 
-    const expected_identity = this.returnPaymentSenderIdentity(expected_sender);
-    const actual_identity = this.returnPaymentSenderIdentity(actual_sender);
-
-    return Boolean(expected_identity && actual_identity && expected_identity === actual_identity);
+    const expectedId =
+      this.mixinUserId(expectedSender) ||
+      String(expectedSender || '')
+        .trim()
+        .toLowerCase();
+    const actualId =
+      this.mixinUserId(actualSender) ||
+      String(actualSender || '')
+        .trim()
+        .toLowerCase();
+    return Boolean(expectedId && actualId && expectedId === actualId);
   }
 
-  /**
-   * Look up one inbound Safe transfer using the transaction signature supplied
-   * in its Saito announcement. This lets callers recover an expected payment
-   * after an in-memory polling cursor has already passed the snapshot.
-   */
-  async findInboundPaymentBySignature(
-    transaction_signature = '',
-    amount = '',
-    sender = '',
-    created_at = 0
-  ) {
-    if (!transaction_signature || !this.asset_id) {
-      return null;
-    }
-
-    const timestamp = Number(created_at) || 0;
-    const lookup_start = timestamp > 0 ? Math.max(timestamp - 300000, 0) : 0;
-    const snapshots = await this.mixin.fetchSafeSnapshots(this.asset_id, lookup_start);
-
-    if (!Array.isArray(snapshots)) {
-      return null;
-    }
-
-    const snapshot = snapshots.find((candidate) => {
-      return (
-        Number(candidate?.amount) > 0 &&
-        candidate?.transaction_hash === transaction_signature &&
-        (!candidate?.asset_id || candidate.asset_id === this.asset_id) &&
-        Number(candidate.amount) === Number(amount) &&
-        this.paymentsHaveSameSender(sender, candidate?.opponent_id || '')
-      );
-    });
-
-    if (!snapshot) {
-      return null;
-    }
-
-    return {
-      ticker: this.ticker,
-      amount: String(snapshot.amount),
-      receiver: this.publicKey,
-      receiver_address: this.formatAddress() || '',
-      sender_address: snapshot.opponent_id || '',
-      timestamp: new Date(snapshot.created_at).getTime(),
-      transaction_signature: snapshot.transaction_hash,
-      memo: snapshot.memo || ''
-    };
-  }
-
-  /**
-   * Incremental history / snapshot sync: fetch new Safe ledger events, append to history,
-   * emit semantic payment events, and advance history_update_ts.
-   */
-  async checkForRecentTransactions() {
-    // We should not be making API calls on Mixin if we haven't installed this crypto
-    // (let alone set up a mixin account)
+  async fetchHistory(since = null, callback = null) {
     if (!this.isActivated()) {
+      if (callback) {
+        callback(this.history);
+      }
       return [];
     }
 
-    console.log('@@@ checkForRecentTransactions -- ' + this.ticker);
-
-    let fetched_updates = [];
+    console.log('@@@ fetchHistory -- ' + this.ticker);
 
     if (!this.asset_id) {
+      if (callback) {
+        callback(this.history);
+      }
       return [];
     }
 
-    let snapshots = await new Promise((resolve) => {
-      this.mixin.fetchSafeSnapshots(this.asset_id, this.history_update_ts + 1, (d) => {
-        resolve(d === false || d == null ? [] : d);
-      });
-    });
+    const cursor = since > 0 ? since : this.history_update_ts + 1;
+    const snapshots = await this.mixin.api.fetchHistory(
+      this.mixin.accounts.getCredentials(),
+      this.asset_id,
+      cursor
+    );
+    const events = snapshots === false || snapshots == null ? [] : snapshots;
 
-    if (snapshots.length > 0) {
-      // Real ledger activity arrived; allow fetchBalance and drop the synthetic
-      // pending history row (details overlay uses last_balance until this point).
+    if (events.length > 0) {
       delete this.last_balance_fetch;
       delete this.last_balance;
     }
 
-    for (let snap of snapshots) {
-      //
-      // Snapshot object returned by Mixin Safe API (via mixin.js fetchSafeSnapshots):
-      //
-      // {
-      //   snapshot_id: "6049b6c2-3f9e-3627-b671-c81f4f6a88fa",
-      //   user_id: "95b8a0a4-1032-33e7-9154-5f48ebe00a14",
-      //   opponent_id: "dac46e33-fdd2-3453-b77a-73ffadba1ff1",
-      //   transaction_hash: "1db6dc53df33bfc7dd38afa86eb83454b5b71bc178da653431ddc9af025a7487",
-      //   asset_id: "43d61dcd-e413-450d-80b8-101d5e903357",
-      //   kernel_asset_id: "8dd50817c082cdcdd6f167514928767a4b52426997bd6d4930eca101c5ff8a27",
-      //   amount: "0.005",
-      //   memo: "746573742d6d656d6f",
-      //   request_id: "bfb05bb6-03e5-4b5c-a7ab-2ad5a4ed56a7",
-      //   created_at: "2025-08-25T03:23:17.657426Z",
-      //   level: 11,
-      //   type: "snapshot",
-      //   inscription_hash: "INSCRIPTION-HASH",
-      //   deposit: {
-      //     deposit_hash: "DEPOSIT-HASH",
-      //     deposit_index: 1,
-      //     sender: "SOME-STRING",
-      //     destination: "DEPOSIT-DESTINATION",
-      //     tag: "DEPOSIT-TAG"
-      //   },
-      //   withdrawal: {
-      //     withdrawal_hash: "WITHDRAWAL-HASH",
-      //     receiver: "SOME-STRING"
-      //   }
-      // }
-      //
-
-      const obj = {
+    const fetched = [];
+    for (const snap of events) {
+      const entry = {
         snapshot_id: snap.snapshot_id,
         counter_party: { address: '' },
         timestamp: new Date(snap.created_at).getTime(),
@@ -444,72 +253,72 @@ class MixinModule extends CryptoModule {
         trans_hash: snap.transaction_hash || ''
       };
 
-      if (obj.timestamp < this.history_update_ts) {
+      if (entry.timestamp < this.history_update_ts) {
         continue;
       }
 
       if (snap.deposit) {
-        //obj.type = 'deposit';
-        obj.type = 'receive';
-        obj.counter_party.address = snap.deposit.sender || '';
+        entry.type = 'receive';
+        entry.counter_party.address = snap.deposit.sender || '';
       } else if (snap.withdrawal) {
-        //obj.type = 'withdraw';
-        obj.type = 'send';
-        obj.counter_party.address = snap.withdrawal.receiver || '';
-      } else if (obj.amount > 0) {
-        obj.type = 'receive';
+        entry.type = 'send';
+        entry.counter_party.address = snap.withdrawal.receiver || '';
+      } else if (entry.amount > 0) {
+        entry.type = 'receive';
       } else {
-        obj.type = 'send';
+        entry.type = 'send';
       }
 
       if (snap?.opponent_id) {
-        let pk = this.getSaitoPublicKey(snap.opponent_id);
-        if (!pk) {
-          pk = await this.remoteUserFetch(snap.opponent_id);
+        let publicKey = this.getSaitoPublicKey(snap.opponent_id);
+        if (!publicKey) {
+          publicKey = await this.lookupPublicKey(snap.opponent_id);
         }
-        if (pk) {
-          obj.counter_party.publicKey = pk;
+        if (publicKey) {
+          entry.counter_party.publicKey = publicKey;
         }
-        obj.counter_party.address = await this.processAddress(snap.opponent_id, false);
+        entry.counter_party.address = await this.processAddress(snap.opponent_id, false);
       }
 
-      this.history.push(obj);
-      fetched_updates.push(obj);
+      this.history.push(entry);
+      fetched.push(entry);
 
-      if (obj.type === 'deposit' || obj.type === 'receive') {
+      if (entry.type === 'receive') {
         this.app.connection.emit('on-payment-received', {
           ticker: this.ticker || '',
-          amount: String(Math.abs(obj.amount)),
+          amount: String(Math.abs(entry.amount)),
           receiver: this.publicKey,
           receiver_address: this.formatAddress() || '',
-          sender_address: obj?.counter_party.address || 'unknown',
-          sender: obj?.counter_party.publicKey || 'unknown',
-          timestamp: obj.timestamp,
-          transaction_signature: obj.trans_hash
-          //memo: snap.memo || ''
+          sender_address: entry?.counter_party.address || 'unknown',
+          sender: entry?.counter_party.publicKey || 'unknown',
+          timestamp: entry.timestamp,
+          transaction_signature: entry.trans_hash
         });
-      } else if (obj.type === 'send' || obj.type === 'withdraw') {
+      } else if (entry.type === 'send') {
         this.app.connection.emit('on-payment-sent', {
           ticker: this.ticker || '',
-          amount: String(Math.abs(obj.amount)),
-          receiver_address: obj?.counter_party.address || 'unknown',
-          receiver: obj?.counter_party.publicKey || 'unknown',
+          amount: String(Math.abs(entry.amount)),
+          receiver_address: entry?.counter_party.address || 'unknown',
+          receiver: entry?.counter_party.publicKey || 'unknown',
           sender_address: this.formatAddress() || '',
           sender: this.publicKey,
-          timestamp: obj.timestamp,
-          transaction_signature: obj.trans_hash
-          //memo: snap.memo || ''
+          timestamp: entry.timestamp,
+          transaction_signature: entry.trans_hash
         });
       }
 
-      this.history_update_ts = Math.max(this.history_update_ts, obj.timestamp);
+      this.history_update_ts = Math.max(this.history_update_ts, entry.timestamp);
     }
 
-    if (snapshots.length > 0) {
+    if (events.length > 0) {
       this.save();
     }
 
-    return fetched_updates;
+    if (callback) {
+      callback(this.history);
+    }
+
+    return fetched;
   }
 
   stopPolling() {
@@ -521,9 +330,6 @@ class MixinModule extends CryptoModule {
   }
 
   startPolling() {
-    //
-    // if we are already polling, increase urgency by reducing interval index
-    //
     if (this.polling_active) {
       if (this.polling_interval_current > 0) {
         this.polling_interval_current--;
@@ -531,131 +337,83 @@ class MixinModule extends CryptoModule {
       return;
     }
 
-    //
-    // record that we are polling
-    //
     this.polling_active = 1;
     this.polling_interval_current = 0;
 
     const poll = async () => {
-      //
-      // polling stopped externally
-      //
       if (!this.polling_active) {
         return;
       }
 
-      let wallet_updates = await this.checkForRecentTransactions();
-
-      // We could also independently hit the API for pendingDeposits...
-
-      //
-      // if something has happened....
-      // or nothing is going to happen...
-      //
-      const still_waiting = Object.keys(this.transfers_inbound).length > 0;
+      const walletUpdates = await this.fetchHistory();
+      const stillWaiting = Object.keys(this.transfers_inbound).length > 0;
       if (
-        (wallet_updates?.length > 0 && !still_waiting) ||
+        (walletUpdates?.length > 0 && !stillWaiting) ||
         this.polling_interval_current >= this.polling_intervals.length
       ) {
         this.stopPolling();
         return;
       }
 
-      //
-      // schedule next poll
-      //
-      let delay = this.polling_intervals[this.polling_interval_current];
-
+      const delay = this.polling_intervals[this.polling_interval_current];
       this.polling_interval_current++;
-
       this.polling_timeout = setTimeout(poll, delay);
     };
 
-    //
-    // now start!
-    //
     poll();
-
-    return;
   }
 
-  /**
-   * Abstract method which should transfer tokens via the crypto endpoint
-   * @abstract
-   * @param {Number} howMuch - How much of the token to transfer
-   * @param {String} to - Pubkey/address to send to
-   * @abstract
-   * @return {Number}
-   */
-  async sendPayment(amount = '', recipient = '', unique_hash = '', memo = '') {
-    let internal_transfer = false;
-    let destination = await this.processAddress(recipient);
+  async sendPayment(amount = '', recipient = '', uniqueHash = '', memo = '') {
+    const address = await this.processAddress(recipient);
+    if (!address) {
+      throw new Error(`MixinModule: invalid address for ${this.ticker} -- ${recipient}`);
+    }
 
-    let r = destination.split('|');
+    const parts = address.split('|');
+    const credentials = this.mixin.accounts.getCredentials();
 
-    let res = {};
-
-    console.info('Mixin sendPayment to ' + destination);
-
-    //
-    // if address has |mixin| concat --> internal mixin transfer
-    //
-    if (r.length >= 2) {
-      if (r[2] === 'mixin') {
-        res = await this.mixin.sendInNetworkTransferRequest(this.asset_id, r[1], amount, memo);
+    let sent;
+    try {
+      if (parts.length >= 3 && parts[2] === 'mixin') {
+        sent = await this.mixin.api.sendToUser(credentials, this.asset_id, parts[1], amount, memo);
+      } else if (this.validateAddress(address)) {
+        sent = await this.mixin.api.sendToAddress(credentials, this.asset_id, address, amount, memo);
+      } else {
+        throw new Error(`invalid address for ${this.ticker} -- ${address}`);
       }
-    } else if (this.validateAddress(destination)) {
-      //
-      // address is external, send external withdrawl request
-      //
-      res = await this.mixin.sendExternalNetworkTransferRequest(
-        this.asset_id,
-        destination,
-        amount,
-        memo
+    } catch (err) {
+      throw new Error(
+        'MixinModule: ' + (err instanceof Error ? err.message : err || 'payment failed')
       );
-    } else {
-      throw new Error(`MixinModule: invalid address for ${this.ticker} -- `, destination);
     }
 
-    if (res?.status == 200) {
-      // Safe UTXO balance lags after send; cache expected post-send balance and
-      // pre-send snapshot until fetchBalance / checkForRecentTransactions confirm.
-      if (Number.isFinite(res.pending_balance)) {
-        this.pending_balance = res.pending_balance;
-      }
-      if (!this.last_balance) {
-        this.last_balance = this.balance;
-      }
-
-      if (res.message?.length) {
-        return res.message[0].transaction_hash || unique_hash;
-      }
-      return unique_hash;
-    } else {
-      throw new Error('MixinModule: ' + (res?.message || 'payment failed'));
+    if (Number.isFinite(sent.pendingBalance)) {
+      this.pending_balance = sent.pendingBalance;
+    } else if (this.balance != null && this.balance !== '') {
+      this.pending_balance = Number(new Decimal(this.balance).minus(amount).toFixed(8));
     }
+    if (!this.last_balance) {
+      this.last_balance = this.balance;
+    }
+
+    return sent.hash || uniqueHash;
   }
 
-  //
-  // Reference for how we used to package the mixin address bar...
-  //
   formatAddress() {
-    return this.address + '|' + this.mixin.mixin.user_id + '|' + 'mixin';
+    const userId =
+      this.mixin.credentials?.user_id || this.mixin.accounts.getCredentials().user_id || '';
+    return this.address + '|' + userId + '|' + 'mixin';
   }
 
-  /**
-   * Abstract method which should get private key
-   * @abstract
-   * @return {String} Private Key
-   */
   returnPrivateKey() {
-    return this.mixin.mixin.privatekey;
+    return this.mixin.accounts.getCredentials().spend_private_key;
   }
 
   async returnMixinNetworkInfo() {
-    let info = await this.mixin.returnMixinNetworkInfo(this.asset_id);
+    const info = await this.mixin.api.fetchAsset(this.asset_id);
+    if (!info) {
+      return false;
+    }
     this.confirmations = info.confirmations || 0;
     this.price_usd = Number(info.price_usd);
     this.last_update = Date.now();
@@ -663,180 +421,125 @@ class MixinModule extends CryptoModule {
     return info;
   }
 
-  //
-  // this function creates a Mixin address associated with the account in order to check
-  // if it can offer zero-fee in-network transfers or requires a network fee to be paid
-  // in order to process the payment.
-  //
-  async checkWithdrawalFeeForAddress(address = '', mycallback) {
+  async checkWithdrawalFeeForAddress(address = '', callback) {
     if (address == '') {
-      return mycallback(0);
+      return callback(0);
     }
 
     address = await this.processAddress(address);
+    const parts = String(address || '').split('|');
 
-    let r = address.split('|');
-    let ts = new Date().getTime();
-
-    //
-    // internal MIXIN transfer, 0 fee
-    //
-    if (r.length >= 2) {
-      if (r[2] === 'mixin') {
-        return mycallback(0);
-      }
-    } else {
-      let fee = await this.mixin.returnWithdrawalFee(this.asset_id, address);
-      if (fee !== false) {
-        const feeBalance = await this.mixin.fetchSafeUtxoBalance(fee.asset_id);
-        const feeModule = this.mixin.crypto_mods?.find(
-          (crypto_module) => crypto_module.asset_id === fee.asset_id
-        );
-        return mycallback(fee.amount, {
-          ...fee,
-          ticker: feeModule?.ticker || fee.ticker,
-          available_balance: feeBalance === false ? null : feeBalance
-        });
-      }
-
-      return mycallback(0);
+    if (parts.length >= 3 && parts[2] === 'mixin') {
+      return callback(0);
     }
-  }
 
-  /**
-   * Abstract method which returns snapshot of asset withdrawls, deposits
-   * @abstract
-   * @return {Function} Callback function
-   */
-  async fetchHistory(ts = null, mycallback = null) {
-    const newTransactions = await this.checkForRecentTransactions();
-
-    if (mycallback != null) {
-      mycallback(this.history);
+    const fee = await this.mixin.api.fetchWithdrawalFee(
+      this.mixin.accounts.getCredentials(),
+      this.asset_id,
+      address
+    );
+    if (fee !== false) {
+      const feeBalance = await this.mixin.api.fetchBalance(
+        this.mixin.accounts.getCredentials(),
+        fee.asset_id
+      );
+      const feeModule = this.mixin.crypto_mods?.find(
+        (cryptoModule) => cryptoModule.asset_id === fee.asset_id
+      );
+      return callback(fee.amount, {
+        ...fee,
+        ticker: feeModule?.ticker || fee.ticker,
+        available_balance: feeBalance === false ? null : feeBalance
+      });
     }
-  }
 
-  async returnUtxo(state = 'unspent', limit = 500, order = 'DESC', callback = null) {
-    return await this.mixin.fetchUtxo(state, limit, order, callback);
+    return callback(0);
   }
 
   async returnAddressFromPublicKey(publicKey) {
-    this_self = this;
     try {
-      //try local cache first
       if (this.cached_contacts[publicKey]) {
         return this.cached_contacts[publicKey];
       }
 
-      let key = this.app.keychain.returnKey(publicKey, true);
-
+      const key = this.app.keychain.returnKey(publicKey, true);
       if (key?.crypto_addresses) {
         return key.crypto_addresses[this.ticker];
       }
 
-      // if it doesnt exist fetch it from node db
-      let address = '';
-      await this.mixin.sendFetchUserTransaction(
-        {
-          publicKey: publicKey,
-          asset_id: this.asset_id
-        },
-        function (res) {
-          if (res.length > 0) {
-            for (let i = 0; i < res.length; i++) {
-              if (res[i].asset_id == this_self.asset_id) {
-                address = res[i].address;
-                if (res[i]?.user_id) {
-                  address += '|' + res[i].user_id + '|mixin';
-                }
+      const row = await this.mixin.fetchMixinUser({
+        publicKey,
+        asset_id: this.asset_id
+      });
+      if (!row || row.asset_id !== this.asset_id) {
+        return '';
+      }
 
-                this_self.cached_contacts[publicKey] = address;
-                // save address to keychain if publickey exists in keychain
-                if (this_self.app.keychain.hasPublicKey(publicKey)) {
-                  this_self.app.keychain.addCryptoAddress(publicKey, this_self.ticker, address);
-                }
-                return address;
-              }
-            }
-          }
-        }
-      );
-
+      let address = row.address;
+      if (row.user_id) {
+        address += '|' + row.user_id + '|mixin';
+      }
+      this.cached_contacts[publicKey] = address;
+      if (this.app.keychain.hasPublicKey(publicKey)) {
+        this.app.keychain.addCryptoAddress(publicKey, this.ticker, address);
+      }
       return address;
     } catch (err) {
-      // console.error('Error getMixinAddress: ', err);
       return null;
     }
   }
 
-  /**
-   * Mixin specific function to minimize the amount of table look ups
-   * @destination (string) the chain address for the token -- no validation (?)
-   * @remote_fallback (boolean) -- we are overloading this function to also function as a
-   * 								search through our cache and keychain to get the full formatted address from
-   * 								the mixin_id...
-   */
-  async processAddress(destination, remote_fallback = true) {
-    if (destination.includes('|mixin')) {
-      return destination;
+  async processAddress(recipient, remoteFallback = true) {
+    if (!recipient) {
+      return recipient;
     }
 
-    if (this.app.crypto.isPublicKey(destination)) {
-      return await this.returnAddressFromPublicKey(destination);
-    } else {
-      //
-      // check if address exists in local db
-      //
-      for (let pk in this.cached_contacts) {
-        if (this.cached_contacts[pk].includes(destination)) {
-          return this.cached_contacts[pk];
-        }
-      }
-
-      for (let k of this.app.keychain.returnKeys()) {
-        if (k?.crypto_addresses?.[this.ticker]?.includes(destination)) {
-          return k.crypto_addresses[this.ticker];
-        }
-      }
-
-      if (remote_fallback) {
-        //
-        // check if address exists in remote db
-        //
-        await this.mixin.sendFetchUserTransaction(
-          {
-            address: destination,
-            asset_id: this.asset_id
-          },
-          (res) => {
-            if (res?.length) {
-              let user_data = res[0];
-              if (user_data?.publickey && user_data.user_id) {
-                destination += '|' + user_data.user_id + '|mixin';
-                // Cache return values
-                this.cached_contacts[user_data.publickey] = destination;
-                if (this.app.keychain.hasPublicKey(user_data.publickey)) {
-                  this.app.keychain.addCryptoAddress(user_data.publickey, this.ticker, destination);
-                }
-              }
-            }
-          }
-        );
-      }
-
-      return destination;
+    let address = String(recipient);
+    if (address.includes('|mixin')) {
+      return address;
     }
+
+    if (this.app.crypto.isPublicKey(address)) {
+      return await this.returnAddressFromPublicKey(address);
+    }
+
+    for (const publicKey in this.cached_contacts) {
+      if (this.cached_contacts[publicKey].includes(address)) {
+        return this.cached_contacts[publicKey];
+      }
+    }
+
+    for (const key of this.app.keychain.returnKeys()) {
+      if (key?.crypto_addresses?.[this.ticker]?.includes(address)) {
+        return key.crypto_addresses[this.ticker];
+      }
+    }
+
+    if (remoteFallback) {
+      const row = await this.mixin.fetchMixinUser({
+        address,
+        asset_id: this.asset_id
+      });
+      if (row?.publickey && row.user_id) {
+        address += '|' + row.user_id + '|mixin';
+        this.cached_contacts[row.publickey] = address;
+        if (this.app.keychain.hasPublicKey(row.publickey)) {
+          this.app.keychain.addCryptoAddress(row.publickey, this.ticker, address);
+        }
+      }
+    }
+
+    return address;
   }
 
   validateAddress(address) {
-    if (address.includes('|')) {
-      let r = address.split('|');
-      address = r[0];
+    if (String(address).includes('|')) {
+      address = String(address).split('|')[0];
     }
 
     try {
       const chain = this.mixin?.crypto_mods?.find(
-        (crypto_module) => crypto_module.asset_id === this.chain_id
+        (cryptoModule) => cryptoModule.asset_id === this.chain_id
       );
       return WAValidator.validate(address, chain?.ticker || this.ticker);
     } catch (err) {

@@ -20,6 +20,8 @@ CREATE TABLE IF NOT EXISTS listing_sales (
   seller TEXT NOT NULL DEFAULT '',
   web3_ticker TEXT NOT NULL DEFAULT '',
   web3_amount TEXT NOT NULL DEFAULT '',
+  inbound_payment_uuid TEXT NOT NULL DEFAULT '',
+  transfer_uuid TEXT NOT NULL DEFAULT '',
 
   -- Filled together when this sale is included in a Mixin payout.
   web3_payment_withdrawal_processed INTEGER NOT NULL DEFAULT 0,

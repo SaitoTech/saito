@@ -80,7 +80,7 @@ function applyShareMetadata(state, metadata) {
   options.email = verification.email !== false;
   options.phone = plan === 'premium' && verification.phone === true;
   options.photo = verification.photo === true;
-  options.passport = plan === 'premium' && verification.passport === true;
+  options.passport = verification.passport === true;
   options.legal_review = plan === 'premium' && verification.legal_review === true;
   options.online_signing = plan === 'premium' && metadata?.online_signing === true;
   options.archive_contract = plan === 'premium' && metadata?.archive_contract === true;
@@ -155,7 +155,7 @@ function createMethods(options = {}) {
     id: method.id,
     title: method.title,
     description: method.description,
-    tier: method.key === 'email' || method.key === 'photo' ? 'free' : 'premium',
+    tier: method.key === 'email' || method.key === 'photo' || method.key === 'passport' ? 'free' : 'premium',
     available: true,
     required: true,
     selected: true,
@@ -270,8 +270,11 @@ function shareRows(state) {
     const signed = signer.signed === true || (you && state.signed === true);
     return {
       name: signer.name || signer.email || 'Signer',
+      email: signer.email || '',
       signed,
-      creator: signer.creator === true
+      creator: signer.creator === true,
+      index: signer.index,
+      requirements: Array.isArray(signer.requirements) ? signer.requirements : []
     };
   });
 }

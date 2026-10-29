@@ -32,10 +32,19 @@
   flex-direction: column;
 }
 
-.splash .steps {
+.splash .steps,
+.splash .staged {
   grid-area: steps;
   display: flex;
   align-items: center;
+}
+
+.splash .staged {
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: center;
+  gap: var(--saito-space-md);
+  max-width: 350px;
 }
 
 .splash .more {
@@ -48,8 +57,95 @@
 .splash .hint,
 .splash .notice,
 .splash .steps p,
+.splash .staged-copy,
 .splash .more {
   margin: 0;
+}
+
+.splash .staged-copy {
+  color: var(--saito-muted-foreground);
+  font-size: 1.65rem;
+  line-height: 1.4;
+}
+
+.splash .staged-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--saito-space-sm);
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.splash .staged-item {
+  display: grid;
+  grid-template-columns: 2.6rem minmax(0, 1fr) 2.4rem;
+  align-items: center;
+  column-gap: 0.4rem;
+  min-height: 3.6rem;
+  padding: 0.4rem 0.2rem;
+  cursor: grab;
+  border: 1px solid transparent;
+  border-radius: var(--saito-radius);
+}
+
+.splash .staged-item.dragging {
+  opacity: 0.55;
+}
+
+.splash .staged-item.over {
+  border-color: var(--saito-primary);
+  background: var(--saito-secondary);
+}
+
+.splash .staged-pos {
+  color: var(--saito-foreground);
+  font-family: var(--saito-font-medium);
+  font-size: 1.8rem;
+  line-height: 1.25;
+}
+
+.splash .staged-name {
+  overflow: hidden;
+  color: var(--saito-foreground);
+  font-size: 1.65rem;
+  line-height: 1.3;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.splash .staged-remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.4rem;
+  height: 2.4rem;
+  padding: 0;
+  border: 0;
+  border-radius: var(--saito-radius);
+  background: transparent;
+  color: var(--saito-muted-foreground);
+  font: inherit;
+  cursor: pointer;
+}
+
+.splash .staged-remove:hover,
+.splash .staged-remove:focus-visible {
+  color: var(--saito-foreground);
+}
+
+.splash .prepare {
+  min-height: 4.4rem;
+  padding: var(--saito-space-sm) var(--saito-space-md);
+  border: 1px solid var(--saito-primary);
+  border-radius: var(--saito-radius);
+  background: var(--saito-primary);
+  color: var(--saito-primary-foreground);
+  font: inherit;
+  font-family: var(--saito-font-heavy);
+  font-weight: 700;
+  cursor: pointer;
 }
 
 .splash h1 {

@@ -69,6 +69,7 @@ class Web3PaymentOverlay {
     this.crypto_selected = null;
     this.purchase_tx = null;
     this.payment_detected = false;
+    this.fulfillment_monitor = false;
     this.internal_payment_pending = false;
     this.internal_payment_sending = false;
     this.statusLead = '';
@@ -76,6 +77,7 @@ class Web3PaymentOverlay {
     this.followupSent = false;
     this.followupEmail = '';
     this.followupError = '';
+    this.addressRequestFailed = false;
     this.instruction_timer = null;
     this.reservation_timer = null;
   }
@@ -138,8 +140,8 @@ class Web3PaymentOverlay {
   }
 
   cachedCurrency() {
-    const buysaito = this.app.modules?.returnModule?.('BuySaito');
-    const currencies = Array.isArray(buysaito?.available_currencies) ? buysaito.available_currencies : [];
+    const mixin = this.app.modules?.returnModule?.('Mixin');
+    const currencies = Array.isArray(mixin?.available_currencies) ? mixin.available_currencies : [];
     return (
       currencies.find(
         (currency) => String(currency?.ticker || '').trim().toUpperCase() === this.ticker
@@ -180,12 +182,12 @@ class Web3PaymentOverlay {
   }
 
   async requestAddress() {
-    const buysaito = this.app.modules?.returnModule?.('BuySaito');
+    const peerKey = this.app.modules?.returnModule?.('Mixin')?.buysaito_peer?.publicKey;
     const deposit = Number(this.expected_deposit);
     const initiator = await this.app.wallet.getPublicKey();
     this.payer = initiator;
     if (
-      !buysaito?.authorized_public_key ||
+      !peerKey ||
       !initiator ||
       !this.purchase_tx ||
       !Number.isFinite(deposit) ||
@@ -206,17 +208,18 @@ class Web3PaymentOverlay {
       );
     }, INSTRUCTION_TIMEOUT_MS);
 
-    this.app.connection.emit('relay-send-message', {
-      recipient: buysaito.authorized_public_key,
-      request: 'buysaito reserve address',
-      data: {
+    this.app.network.sendRequestAsTransaction(
+      'buysaito reserve address',
+      {
         initiator_pubkey: initiator,
         recipient_pubkey: initiator,
         ticker: this.ticker,
         expected_deposit: deposit,
         tx: this.purchase_tx.serialize_to_web(this.app)
-      }
-    });
+      },
+      null,
+      peerKey
+    );
   }
 
   receiveAddress(data) {
@@ -227,7 +230,7 @@ class Web3PaymentOverlay {
       return;
     }
     this.clearInstructionTimer();
-    if (!data?.destination || !data?.mixin_id) {
+    if (!data?.address || !data?.mixin_id) {
       this.fail('The payment service returned incomplete deposit instructions.');
       return;
     }
@@ -235,14 +238,14 @@ class Web3PaymentOverlay {
     if (
       !this.reservation ||
       this.reservation.id !== data.id ||
-      this.reservation.destination !== data.destination
+      this.destination !== data.address
     ) {
       this.reservation = data;
       this.payment_detected = false;
       this.internal_payment_pending = false;
       this.internal_payment_sending = false;
     }
-    this.destination = data.destination;
+    this.destination = data.address;
     this.mixin_id = data.mixin_id;
     if (data.expected_deposit) {
       this.expected_deposit = data.expected_deposit;
@@ -263,7 +266,7 @@ class Web3PaymentOverlay {
       !this.active ||
       !this.reservation ||
       data?.id !== this.reservation.id ||
-      data?.destination !== this.destination ||
+      data?.address !== this.destination ||
       String(data?.ticker || '').trim().toUpperCase() !== this.ticker ||
       !['pending', 'confirmed', 'issuing'].includes(data.status)
     ) {
@@ -271,11 +274,35 @@ class Web3PaymentOverlay {
     }
     this.payment_detected = true;
     this.clearReservationTimer();
-    this.statusLead =
-      data.status === 'pending'
-        ? 'Payment detected. Completing your purchase...'
-        : 'Payment received. Completing your purchase...';
-    this.render();
+    if (data.status === 'pending') {
+      this.statusLead = 'Payment detected. Completing your purchase...';
+      this.render();
+      return;
+    }
+    this.openFulfillmentMonitor();
+  }
+
+  openFulfillmentMonitor() {
+    if (this.fulfillment_monitor) {
+      return;
+    }
+    const nftId = String(this.summary?.nft_id || '').trim();
+    const monitor = this.mod?.transaction_monitor;
+    if (!monitor || !nftId) {
+      this.statusLead = 'Payment received. Completing your purchase...';
+      this.render();
+      return;
+    }
+    this.fulfillment_monitor = true;
+    this.active = false;
+    this.clearTimers();
+    this.overlay.close();
+    monitor.render({
+      nft_id: nftId,
+      title: 'Payment Confirmed',
+      lead: 'The Store is fulfilling your order…',
+      subtitle: ''
+    });
   }
 
   receiveIssued(data = {}) {
@@ -283,7 +310,7 @@ class Web3PaymentOverlay {
       !this.active ||
       !this.reservation ||
       data.id !== this.reservation.id ||
-      data.destination !== this.reservation.destination ||
+      data.address !== this.destination ||
       String(data.ticker || '').trim().toUpperCase() !== this.ticker
     ) {
       return;
@@ -291,8 +318,7 @@ class Web3PaymentOverlay {
     this.payment_detected = true;
     this.fundsNotice = false;
     this.clearTimers();
-    this.statusLead = 'Payment received. Completing your purchase...';
-    this.render();
+    this.openFulfillmentMonitor();
   }
 
   showInsufficientFunds() {
@@ -339,7 +365,7 @@ class Web3PaymentOverlay {
         !this.reservation ||
         data.id !== this.reservation.id ||
         data.ticker !== this.ticker ||
-        data.destination !== this.destination
+        data.address !== this.destination
       ) {
         return;
       }
@@ -440,6 +466,7 @@ class Web3PaymentOverlay {
   }
 
   fail(message) {
+    this.addressRequestFailed = true;
     this.statusLead = message;
     this.destination = '';
     this.render();
@@ -476,7 +503,8 @@ class Web3PaymentOverlay {
         fundsNotice: this.fundsNotice,
         followupSent: this.followupSent,
         followupEmail: this.followupEmail,
-        followupError: this.followupError
+        followupError: this.followupError,
+        awaitingAddress: !this.destination && !this.fundsNotice && !this.addressRequestFailed
       }),
       () => {
         this.active = false;

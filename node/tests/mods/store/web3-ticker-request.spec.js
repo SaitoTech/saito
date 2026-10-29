@@ -1,15 +1,23 @@
-const { requestStoreWeb3Tickers } = require('../../../mods/store/lib/ui/overlays/listing-field-edit');
+const {
+  requestStoreWeb3Tickers,
+  returnStoreWeb3Tickers
+} = require('../../../mods/store/lib/ui/overlays/listing-field-edit');
 
 function makeApp(currencies = []) {
   const sent = [];
   const listeners = [];
-  const buysaito = {
-    authorized_public_key: 'buysaito-key',
+  const mixin = {
+    buysaito_peer: { publicKey: 'buysaito-key' },
     available_currencies: currencies
   };
   const app = {
     modules: {
-      returnModule: () => buysaito
+      returnModule: () => mixin
+    },
+    network: {
+      sendRequestAsTransaction(request, data, callback, publicKey) {
+        sent.push({ request, data, publicKey });
+      }
     },
     connection: {
       on(event, handler) {
@@ -17,17 +25,14 @@ function makeApp(currencies = []) {
           listeners.push(handler);
         }
       },
-      emit(event, payload) {
-        if (event === 'relay-send-message') {
-          sent.push(payload);
-        }
+      emit(event) {
         if (event === 'saito-purchase-cryptos') {
           listeners.forEach((handler) => handler());
         }
       }
     }
   };
-  return { app, buysaito, sent };
+  return { app, mixin, sent };
 }
 
 describe('store web3 ticker requests', () => {
@@ -36,18 +41,18 @@ describe('store web3 ticker requests', () => {
   });
 
   test('asks once and does not ask again after an empty reply', () => {
-    const { app, buysaito, sent } = makeApp([]);
+    const { app, mixin, sent } = makeApp([]);
 
     requestStoreWeb3Tickers(app);
     requestStoreWeb3Tickers(app);
     expect(sent).toHaveLength(1);
     expect(sent[0]).toEqual({
-      recipient: 'buysaito-key',
       request: 'buysaito available currencies',
-      data: null
+      data: null,
+      publicKey: 'buysaito-key'
     });
 
-    buysaito.available_currencies = [];
+    mixin.available_currencies = [];
     app.connection.emit('saito-purchase-cryptos');
     requestStoreWeb3Tickers(app);
     requestStoreWeb3Tickers(app);
@@ -61,6 +66,24 @@ describe('store web3 ticker requests', () => {
     requestStoreWeb3Tickers(app);
 
     expect(sent).toHaveLength(0);
+  });
+
+  test('lists installed payment cryptos when the priced reply is empty', () => {
+    const app = {
+      modules: {
+        returnModule: () => ({
+          available_currencies: [],
+          crypto_mods: [
+            { ticker: 'ETH' },
+            { ticker: 'ERC-SAITO' },
+            { ticker: 'USDT' },
+            { ticker: 'ETH' }
+          ]
+        })
+      }
+    };
+
+    expect(returnStoreWeb3Tickers(app, 'SOL')).toEqual(['SAITO', 'ETH', 'USDT', 'SOL']);
   });
 
   test('does not ask when currencies are already available', () => {

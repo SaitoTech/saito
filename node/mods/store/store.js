@@ -12,6 +12,8 @@ const {
   categoryViewKey
 } = require('./lib/categories');
 const index = require('./index');
+const StoreWithdrawals = require('./lib/withdrawal');
+const StoreAdmin = require('./lib/admin/store-admin');
 
 class Store extends ModTemplate {
   constructor(app) {
@@ -38,17 +40,26 @@ class Store extends ModTemplate {
     this.summaries = {};
     this.image_cache = {};
     this.store_public_key = '';
-    // Web3 purchases are accepted only from this key. Empty means none are authorized.
-    this.web3_payment_processor_publickey = 'cNACSaLdZQfbPkTTud4ezLWFYqRPUCMEt2dgLxJ9Axxx';
+    // Treasury keys that may issue a web3 purchase. The server's own public key
+    // is added when a purchase is checked, so this node can issue those payments.
+    this.web3_payment_processor_publickey = ['cNACSaLdZQfbPkTTud4ezLWFYqRPUCMEt2dgLxJ9Axxx'];
     this.store_peer_index = null;
     this.shared_listing_path = '';
     this.listings_to_moderate = 0;
     this.fee = 0;
     this.order_retry_limit = 10;
+    // How long the same saved refund may be rebroadcast. Expiry stops retries.
+    // It does not authorize another signed refund.
+    this.refund_retry_ms = 6 * 60 * 60 * 1000;
+    // Longest-chain blocks searched for a settlement whose order update was missed.
+    this.fulfillment_reconcile_blocks = 512;
+    // Saito blocks after a web3 sale's inclusion before those proceeds are eligible.
+    this.web3_withdrawal_blocks = 5;
     // User-store chrome is read-only; edits stay on Profile / Red Square hosts.
     this.enable_profile_edits = false;
 
     this.warehouse = new Warehouse(app, this);
+    this.withdrawals = new StoreWithdrawals(this);
     Object.assign(this, transactions);
   }
 
@@ -466,6 +477,49 @@ class Store extends ModTemplate {
       }
     }
 
+    if (txmsg?.request === 'load-web3-proceeds') {
+      if (!this.app.BROWSER && mycallback != null) {
+        const seller = String(tx.from?.[0]?.publicKey || '').trim();
+        let latestBlockId = null;
+        try {
+          latestBlockId = Number(await this.app.blockchain?.getLatestBlockId?.());
+        } catch (err) {
+          latestBlockId = null;
+        }
+        const balances = seller
+          ? await this.warehouse.db.returnWeb3WithdrawalBalances(
+              seller,
+              latestBlockId,
+              this.web3_withdrawal_blocks
+            )
+          : { pending: {}, eligible: {} };
+        mycallback(balances);
+        return 1;
+      }
+    }
+
+    if (txmsg?.request === 'store-withdrawal-quote') {
+      if (!this.app.BROWSER && mycallback != null) {
+        const seller = String(tx.from?.[0]?.publicKey || '').trim();
+        const data = txmsg.data && typeof txmsg.data === 'object' ? txmsg.data : {};
+        const quote = await this.withdrawals.createQuote({
+          seller,
+          ticker: data.ticker,
+          withdrawalAddress: data.withdrawal_address
+        });
+        mycallback(quote);
+        return 1;
+      }
+    }
+
+    if (txmsg?.request === 'store-withdrawal') {
+      if (!this.app.BROWSER && mycallback != null) {
+        const result = await this.withdrawals.acceptSubmittedTransaction(tx);
+        mycallback(result);
+        return 1;
+      }
+    }
+
     if (txmsg?.request === 'submit-listing') {
       if (!this.app.BROWSER && mycallback != null) {
         const data = txmsg.data && typeof txmsg.data === 'object' ? txmsg.data : {};
@@ -719,6 +773,22 @@ class Store extends ModTemplate {
   }
 
   respondTo(type = '', obj) {
+    if (type === 'admin-sidebar') {
+      if (!this.app.BROWSER) {
+        return null;
+      }
+      return {
+        id: this.returnSlug(),
+        name: this.name,
+        render: () => {
+          if (!this.admin_ui) {
+            this.admin_ui = new StoreAdmin(this.app, this);
+          }
+          this.admin_ui.render();
+        }
+      };
+    }
+
     if (type === 'redsquare-profile') {
       const publicKey = String(obj?.publicKey || '').trim();
       if (!publicKey) {
@@ -1188,6 +1258,16 @@ class Store extends ModTemplate {
       case 'order-refund':
         this.app.connection.emit('store-order-refund', { blk, tx, conf });
         console.log('Store: onConfirmation order-refund conf=0', tx.signature);
+        if (!this.app.BROWSER) {
+          try {
+            await this.warehouse.refunds.observeInclusion(blk, tx);
+          } catch (err) {
+            console.error('Store: refund inclusion was not recorded', {
+              refund_tx_sig: tx.signature,
+              error: err?.message || String(err)
+            });
+          }
+        }
         if (this.app.BROWSER && typeof siteMessage === 'function') {
           siteMessage('Refund Issued: order could not be processed.', 5000);
         }

@@ -7,7 +7,8 @@
   class ConquestUI {
     constructor(element, controller) {
       this.element = element; this.controller = controller; this.selected = null; this.target = null; this.message = ''; this.busy = false; this.showNames = false;
-      this.selectedCards = new Set(); this.blitz = {}; this.steamroll = {}; this.deployCount = null; this.namesPreference = null; this.mapZoom = 100;
+      this.selectedCards = new Set(); this.deployCount = null; this.namesPreference = null; this.mapZoom = 100;
+      this.steamroll = this.controller.loadPreference?.('conquest-steamroll') === true;
       this.build(); this.render();
     }
     build() {
@@ -198,13 +199,20 @@
       const playableSet=!observer&&this.canTradeCards()&&root.ConquestEngine.validTrades(s,self).length>0;
       const yours=localPlayer===0||localPlayer===p;
       const context=`${p}:${s.turn}:${s.phase}`;
-      if(this.renderedContext!==context){this.selected=null;this.target=null;this.message='';this.deployCount=null;this.selectedCards.clear();}
-      this.renderedContext=context;
-      if(s.phase==='reinforce')this.deployCount=Math.max(1,Math.min(this.deployCount??s.reinforcements,s.reinforcements));
+      // Playback snapshots change army counts. Keep the player's selection until the live result is shown.
+      if(!this.playbackState){
+        if(this.renderedContext!==context){this.selected=null;this.target=null;this.chainedSource=null;this.message='';this.deployCount=null;this.selectedCards.clear();}
+        this.renderedContext=context;
+        if(s.phase==='reinforce')this.deployCount=Math.max(1,Math.min(this.deployCount??s.reinforcements,s.reinforcements));
+        const legalMove=s.phase==='attack'?root.ConquestEngine.canAttack:s.phase==='fortify'?root.ConquestEngine.canFortify:null;
+        const chained=this.selected&&this.selected===this.chainedSource&&s.territories[this.selected]?.armies>1;
+        if(legalMove&&this.selected&&!chained&&!root.ConquestMap.territories[this.selected].neighbors.some(to=>legalMove(s,this.selected,to))){this.selected=null;this.target=null;}
+        if(legalMove&&this.target&&!legalMove(s,this.selected,this.target))this.target=null;
+        this.applyContinuedAttack(s);
+      }
+      if(s.phase==='reinforce'&&this.playbackState)this.deployCount=Math.max(1,Math.min(this.deployCount??s.reinforcements,s.reinforcements));
       const legalMove=s.phase==='attack'?root.ConquestEngine.canAttack:s.phase==='fortify'?root.ConquestEngine.canFortify:null;
       const origins=new Set(turn&&legalMove?Object.keys(s.territories).filter(id=>root.ConquestMap.territories[id].neighbors.some(to=>legalMove(s,id,to))):[]);
-      if(legalMove&&this.selected&&!root.ConquestMap.territories[this.selected].neighbors.some(to=>legalMove(s,this.selected,to))){this.selected=null;this.target=null;}
-      if(legalMove&&this.target&&!legalMove(s,this.selected,this.target))this.target=null;
       this.element.style.setProperty('--conquest-active',`var(--conquest-player-${p})`);
       this.boardSizer.style.setProperty('--conquest-active',`var(--conquest-player-${p})`);
       this.element.style.setProperty('--conquest-accent',`var(--conquest-player-${p})`);
@@ -236,11 +244,11 @@
         if(this.selected&&this.target&&root.ConquestEngine.canAttack(s,this.selected,this.target)) {
           const fromArmies=s.territories[this.selected].armies,toArmies=s.territories[this.target].armies,max=Math.min(3,fromArmies-1);
           attackLead=`<p class="conquest-attack-summary">Attacking from ${escape(this.territoryName(this.selected))} to ${escape(this.territoryName(this.target))}</p><hr class="conquest-attack-divider"><p class="conquest-attack-balance"><b>${fromArmies}</b> ${fromArmies===1?'army':'armies'} vs. <b>${toArmies}</b> defending</p>`;
-          body+=`<label class="conquest-dice-choice">Attack dice <select data-attack-dice aria-label="Number of attack dice">${Array.from({length:max},(_,i)=>`<option value="${i+1}" ${i+1===max?'selected':''}>${i+1}</option>`).join('')}</select></label><label class="conquest-check"><input type="checkbox" data-blitz> Blitz until victory or retreat</label><label class="conquest-check"><input type="checkbox" data-steamroll> Steamroll: advance all but one army</label><div class="conquest-small-note">Roll up to ${max} attack dice. Defender rolls up to 2.</div>`;
+          body+=`<label class="conquest-dice-choice">Attack dice <select data-attack-dice aria-label="Number of attack dice">${Array.from({length:max},(_,i)=>`<option value="${i+1}" ${i+1===max?'selected':''}>${i+1}</option>`).join('')}</select></label><label class="conquest-check"><input type="checkbox" data-steamroll> <span>Steamroll: auto-advance with all units and prepare for next attack (use SHIFT+CLICK)</span></label><div class="conquest-small-note">Roll up to ${max} attack dice. Defender rolls up to 2. Shift-click a target to blitz and steamroll once.</div>`;
         }
         actions+=this.button('end_attack','Finish attacking →','secondary');
       }
-      else if(s.phase==='fortify'){actions=this.button('skip_movement','Skip movement →','secondary');}
+      else if(s.phase==='fortify'){actions=this.button('skip_movement','Skip fortification','secondary');}
       else if(s.phase==='gameover'){body=this.reserve('✦','WORLD CONQUEROR');}
       if(!finished&&!turn&&(!pending||(localPlayer!==0&&localPlayer!==p)))body='';
       if(this.playbackState)body='';
@@ -259,9 +267,13 @@
       const logs=[...(s.log||[])].reverse();
       this.element.querySelector('.conquest-journal ol').innerHTML=logs.length?logs.map(l=>`<li>${escape(typeof l==='string'?l:l.text||l.message||'Campaign in progress.')}</li>`).join(''):'<li>The map is open. Your story begins here.</li>';
       this.element.querySelector('[data-range]')?.addEventListener('input',e=>{this.element.querySelector('[data-range-value]').textContent=e.target.value;if(s.phase==='reinforce')this.deployCount=Number(e.target.value);});
-      for(const mode of ['blitz','steamroll']){
-        const control=this.element.querySelector(`[data-${mode}]`);
-        if(control){control.checked=!!this[mode][p];control.addEventListener('change',()=>{this[mode][p]=control.checked;});}
+      const steamroll=this.element.querySelector('[data-steamroll]');
+      if(steamroll){
+        steamroll.checked=this.steamroll;
+        steamroll.addEventListener('change',()=>{
+          this.steamroll=steamroll.checked;
+          this.controller.savePreference?.('conquest-steamroll', this.steamroll);
+        });
       }
       this.updateCardSelection();
       this.updateStatistics();
@@ -269,6 +281,7 @@
       this.updateOccupation();
       this.updateFortify();
       this.maybeAutoOccupy();
+      this.maybeAutoFortify();
       if(!this.playbackState)this.renderedState=JSON.parse(JSON.stringify(s));
     }
     playerStatIcon(name){
@@ -449,12 +462,12 @@
       if(!legal){
         this.fortifyView=null;
         if(panel&&!this.playbackState)panel.hidden=true;
-        if(!this.playbackState){this.fortifyKey=null;this.fortifyMove=0;}
+        if(!this.playbackState){this.fortifyKey=null;this.fortifyMove=0;this.autoFortifyKey=null;this.failedAutoFortify=null;}
         return;
       }
       const max=live.territories[from].armies-1;
       const key=`${live.currentPlayer}:${live.turn}:${from}:${to}:${max}`;
-      if(this.fortifyKey!==key){this.fortifyKey=key;this.fortifyMove=0;}
+      if(this.fortifyKey!==key){this.fortifyKey=key;this.fortifyMove=max;this.failedAutoFortify=null;}
       this.fortifyMove=Math.max(0,Math.min(Number(this.fortifyMove)||0,max));
       this.fortifyView={state:live,from,to,max};
     }
@@ -500,7 +513,9 @@
       const view=this.fortifyView;
       if(!panel)return;
       if(!view){panel.hidden=true;return;}
-      panel.hidden=false;
+      const forced=view.max===1&&this.failedAutoFortify!==this.fortifyKey;
+      panel.hidden=forced;
+      if(forced)return;
       const input=panel.querySelector('[data-fortify-range]');
       if(document.activeElement!==input){
         input.min='0';
@@ -514,6 +529,14 @@
       panel.querySelector('[data-do="fortify"]').disabled=this.fortifyMove<1||!this.canAct();
       panel.querySelector('[data-do="cancel-fortify"]').disabled=!this.canAct();
       this.positionFortify();
+    }
+    maybeAutoFortify(){
+      if(this.playbackState||this.busy)return;
+      const view=this.fortifyView;
+      if(!view||view.max!==1||!this.canAct())return;
+      if(this.autoFortifyKey===this.fortifyKey||this.failedAutoFortify===this.fortifyKey)return;
+      this.autoFortifyKey=this.fortifyKey;
+      this.dispatch({type:'fortify',from:view.from,to:view.to,count:1});
     }
     positionFortify(){
       const panel=this.element.querySelector('.conquest-fortify');
@@ -642,6 +665,13 @@
       }
       return best;
     }
+    blitzPace(index, rolls){
+      if(rolls<=1)return {spin:820,pause:800};
+      return {
+        spin:Math.max(160,Math.round(820*Math.pow(0.62,index))),
+        pause:Math.max(90,Math.round(800*Math.pow(0.55,index)))
+      };
+    }
     battlePause(ms){
       return new Promise(resolve=>{
         const timer=root.setTimeout(()=>{this.cancelBattlePause=null;resolve();},ms);
@@ -683,9 +713,10 @@
             this.scenes[side].prepare({[side+'Dice']:roll[side+'Dice'],[side+'Owner']:roll.before[side+'Owner']}));
           if(preparations.length)await Promise.all(preparations);
           if(this.destroyed)return;
+          const pace=this.blitzPace(next.battleRolls.indexOf(roll), next.battleRolls.length);
           await Promise.all(['attacker','defender'].map(side=>{
             const battle=side==='attacker'?{attackerDice:roll.attackerDice}:{defenderDice:roll.defenderDice};
-            return this.scenes[side]?.roll(battle)||Promise.resolve();
+            return this.scenes[side]?.roll(battle, pace.spin)||Promise.resolve();
           }));
           if(this.destroyed)return;
           territories[roll.from].armies-=roll.attackerLosses;
@@ -694,7 +725,7 @@
           for(const side of ['attacker','defender'])losses[side]+=roll[side+'Losses'];
           this.positionBoardControls();
           this.showBattleLosses(losses.attacker,losses.defender,roll.conquered&&roll===finalRoll);
-          await this.battlePause(800);
+          await this.battlePause(pace.pause);
         }
         this.completedBattle=finalRoll;
       }finally{
@@ -713,7 +744,10 @@
       if(automatic?(!this.phaseSkip||!this.canAct()||root.ConquestEngine.automaticPhaseEnd(this.state)?.type!==action.type):!this.interactive())return;
       const phaseKey=this.phaseSkipKey(this.state);
       if(!automatic)this.failedAutoPhase=null;
-      if(action.type==='attack')this.clearBattleResult();
+      if(action.type==='attack'){
+        this.clearBattleResult();
+        this.continuedAttack=action.steamroll?{from:action.from,to:action.to,afterSequence:this.state.battleSequence||0}:null;
+      }
       this.busy=true;this.message='';this.render();
       try {
         if(action.type==='attack'){
@@ -722,10 +756,21 @@
           if(this.destroyed)return;
         }
         await this.controller.dispatch({...action,player:this.state.currentPlayer});this.render();await this.battlePlayback; if(!['attack','place'].includes(action.type)){this.selected=null;this.target=null;}if(action.type==='attack'&&this.state.phase==='occupy'){this.selected=null;this.target=null;}}
-      catch(e){this.message=e.message||'That move is not available.';if(automatic)this.failedAutoPhase=phaseKey;if(action.type==='occupy'&&this.controller.getState()?.phase==='occupy'){this.failedAutoOccupy=this.occupationKey(this.controller.getState());this.occupyPreview=false;}if(action.type==='fortify'&&this.controller.getState()?.phase==='fortify')this.fortifyMove=0;}
+      catch(e){this.message=e.message||'That move is not available.';if(action.type==='attack')this.continuedAttack=null;if(automatic)this.failedAutoPhase=phaseKey;if(action.type==='occupy'&&this.controller.getState()?.phase==='occupy'){this.failedAutoOccupy=this.occupationKey(this.controller.getState());this.occupyPreview=false;}if(action.type==='fortify'&&this.controller.getState()?.phase==='fortify'){this.failedAutoFortify=this.fortifyKey;const from=this.selected;const armies=from?this.controller.getState().territories[from]?.armies:0;this.fortifyMove=Math.max(0,(armies||1)-1);}}
       finally{this.busy=false;this.render();}
     }
-    select(id) {
+    applyContinuedAttack(s){
+      const pending=this.continuedAttack;
+      if(!pending||(s.battleSequence||0)<=pending.afterSequence)return;
+      const battle=s.lastBattle,arrived=s.territories[pending.to];
+      const conquered=battle?.from===pending.from&&battle?.to===pending.to&&battle.conquered&&s.phase==='attack';
+      if(conquered&&arrived?.owner===s.currentPlayer&&arrived.armies>1){this.selected=pending.to;this.target=null;this.chainedSource=pending.to;}
+      this.continuedAttack=null;
+    }
+    attackDice(){
+      return Number(this.element.querySelector('[data-attack-dice]')?.value||Math.min(3,this.state.territories[this.selected].armies-1));
+    }
+    select(id, event) {
       if(!this.interactive())return;
       const s=this.state,t=s.territories[id];this.message='';
       if(s.phase==='claim'){this.dispatch({type:'claim',territory:id});return;}
@@ -736,19 +781,29 @@
         else{const count=Number(this.element.querySelector('[data-range]')?.value||this.deployCount||s.reinforcements);this.dispatch({type:'place',territory:id,count});return;}
         this.render();return;
       }
-      if(s.phase==='attack'){if(t.owner===s.currentPlayer){this.selected=id;this.target=null;}else if(this.selected&&root.ConquestEngine.canAttack(s,this.selected,id)){this.target=id;}else{this.message=this.selected?'Choose an adjacent enemy territory.':'First choose one of your territories with two or more armies.';}}
+      if(s.phase==='attack'){
+        if(t.owner===s.currentPlayer){this.selected=id;this.target=null;if(id!==this.chainedSource)this.chainedSource=null;}
+        else if(this.selected&&root.ConquestEngine.canAttack(s,this.selected,id)){
+          this.target=id;
+          if(event?.shiftKey){
+            const dice=Math.min(3,s.territories[this.selected].armies-1);
+            this.dispatch({type:'attack',from:this.selected,to:id,dice,blitz:true,steamroll:true});
+            return;
+          }
+        }else{this.message=this.selected?'Choose an adjacent enemy territory.':'First choose one of your territories with two or more armies.';}
+      }
       if(s.phase==='fortify'){if(this.selected&&id!==this.selected&&root.ConquestEngine.canFortify(s,this.selected,id)){this.target=id;}else if(t.owner===s.currentPlayer){this.selected=id;this.target=null;}else{this.message='Choose two adjacent territories you control.';}}
       this.render();
     }
     click(e) {
-      const territory=e.target.closest('[data-territory]');if(territory){this.select(territory.dataset.territory);return;}
+      const territory=e.target.closest('[data-territory]');if(territory){if(e.shiftKey)e.preventDefault();this.select(territory.dataset.territory,e);return;}
       const el=e.target.closest('[data-do]');if(!el||el.disabled)return;
       const action=el.dataset.do==='target-go'?this.state.phase:el.dataset.do,count=Number(this.element.querySelector('[data-range]')?.value||1);
       if(action==='dispatches'){this.openDispatches();return;}if(action==='close-dispatches'){this.closeDispatches();return;}
       if(action==='stats'){this.element.querySelector('.conquest-local-menu').open=false;this.statistics();return;}
       if(action==='rules'){this.element.querySelector('.conquest-local-menu').open=false;this.rules();return;}if(action==='cards'){this.cards();return;}if(action==='close'){this.closeModal();return;}
       if(action==='names'){this.showNames=!this.showNames;this.namesPreference=this.showNames;this.updateMapLabels();this.positionBoardControls();return;}
-      if(action==='attack')this.dispatch({type:'attack',from:this.selected,to:this.target,dice:Number(this.element.querySelector('[data-attack-dice]')?.value||Math.min(3,this.state.territories[this.selected].armies-1)),blitz:el.dataset.attackMode==='blitz',steamroll:!!this.element.querySelector('[data-steamroll]')?.checked});
+      if(action==='attack')this.dispatch({type:'attack',from:this.selected,to:this.target,dice:this.attackDice(),blitz:el.dataset.attackMode==='blitz',steamroll:this.steamroll});
       if(action==='occupy'){
         const input=this.element.querySelector('[data-occupy-range]');
         const count=Number(input&&!input.hidden?input.value:this.occupyChoice);
@@ -785,7 +840,7 @@
         return `<div class="conquest-continent-bonus ${controlled?'controlled':''}" style="--continent:var(--conquest-continent-${c.id},${escape(c.color)})" title="Control all ${c.territories.length} territories for ${c.bonus} extra armies each turn"><div><strong>${escape(c.name)}</strong><small>${controlled?escape(this.name(owner)): `${held}/${c.territories.length} held`}</small></div><b>+${c.bonus}<small>armies / turn</small></b></div>`;
       }).join('');
     }
-    rules(){this.modal('A campaign in three acts.',`<p>Conquer all 42 territories to win with 3–6 players. In a two-player game, defeat your opponent; you do not need to conquer the neutral army.</p><div class="conquest-rule"><b>01 / REINFORCE</b><p>Receive one army per three territories (minimum three), plus continent bonuses. Trade three matching card symbols, one of each, or a valid set with a wild card. Set values rise: 4, 6, 8, 10, 12, 15, then +5. At five cards, trade before attacking. An owned territory in your set grants two extra armies on one such territory.</p><p>Control every territory in a continent to receive its bonus at the start of your turn. Progress below is for the current player.</p><div class="conquest-guide-continents">${this.continentBonuses()}</div></div><div class="conquest-rule"><b>02 / ATTACK</b><p>Attack an adjacent rival from a territory with at least two armies. Roll up to three dice; the defender rolls up to two. Compare highest dice, then second highest. Each comparison costs the loser one army; ties favour the defender. Leave one army behind. After victory, move at least as many armies as the dice you rolled. Blitz repeats combat automatically. Steamroll automatically advances all surviving armies from the attacking territory except the one that must stay behind. These options can be used together or separately.</p></div><div class="conquest-rule"><b>03 / FORTIFY</b><p>Make one transfer to an adjacent territory you control, leaving one army at the origin, or skip it. Conquer at least one territory to earn one card at the end of your turn. Eliminating a player gives you their cards; trade immediately when required.</p></div><p class="conquest-small-note">Fast setup assigns territories and initial armies automatically. Classic setup lets players choose and reinforce their positions. In two-player setup, place two of your armies, then one neutral army. Neutral defenders always use the maximum legal dice. This edition uses classic adjacent-territory fortification and automatic maximum defence.</p>`);}
+    rules(){this.modal('A campaign in three acts.',`<p>Conquer all 42 territories to win with 3–6 players. In a two-player game, defeat your opponent; you do not need to conquer the neutral army.</p><div class="conquest-rule"><b>01 / REINFORCE</b><p>Receive one army per three territories (minimum three), plus continent bonuses. Trade three matching card symbols, one of each, or a valid set with a wild card. Set values rise: 4, 6, 8, 10, 12, 15, then +5. At five cards, trade before attacking. An owned territory in your set grants two extra armies on one such territory.</p><p>Control every territory in a continent to receive its bonus at the start of your turn. Progress below is for the current player.</p><div class="conquest-guide-continents">${this.continentBonuses()}</div></div><div class="conquest-rule"><b>02 / ATTACK</b><p>Attack an adjacent rival from a territory with at least two armies. Roll up to three dice; the defender rolls up to two. Compare highest dice, then second highest. Each comparison costs the loser one army; ties favour the defender. Leave one army behind. After victory, move at least as many armies as the dice you rolled. Blitz, from the map button or Shift-click, repeats combat automatically and speeds up each following roll. Steamroll advances every surviving army except the one that must stay behind, then selects the conquered territory for the next attack. The Steamroll box is remembered. Shift-click blitzes and steamrolls that one attack without changing the box.</p></div><div class="conquest-rule"><b>03 / FORTIFY</b><p>Make one transfer to an adjacent territory you control, leaving one army at the origin, or skip it. Conquer at least one territory to earn one card at the end of your turn. Eliminating a player gives you their cards; trade immediately when required.</p></div><p class="conquest-small-note">Fast setup assigns territories and initial armies automatically. Classic setup lets players choose and reinforce their positions. In two-player setup, place two of your armies, then one neutral army. Neutral defenders always use the maximum legal dice. This edition uses classic adjacent-territory fortification and automatic maximum defence.</p>`);}
     unitIcon(type) {
       const drawings={
         infantry:'<circle cx="24" cy="9" r="5"/><path d="M18 17H29L32 33H26L29 51H23L21 36L17 51H11L16 31Z"/><path d="M30 13L40 43M28 26L37 28" fill="none" stroke="currentColor" stroke-width="4"/>',

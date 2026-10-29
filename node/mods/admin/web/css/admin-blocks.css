@@ -7,7 +7,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  margin-bottom: 8px;
+  margin-bottom: 16px;
 }
 
 .admin-blocks-header h1 {
@@ -18,11 +18,6 @@
   margin-top: 0;
 }
 
-.admin-blocks-intro {
-  max-width: 760px;
-  color: var(--admin-muted, #555);
-}
-
 .admin-blocks-error {
   margin: 0 0 16px 0;
   padding: 14px 16px;
@@ -30,41 +25,6 @@
   border: 1px solid var(--admin-danger-border, #f2c7c7);
   background: var(--admin-danger-bg, #fff5f5);
   color: var(--admin-danger, #a52828);
-}
-
-.admin-blocks-current {
-  margin: 0 0 24px 0;
-  padding: 20px 22px;
-  border: 1px solid var(--admin-border, #e1e4e8);
-  border-radius: 14px;
-  background: var(--admin-accent-subtle, #f5fbf7);
-}
-
-.admin-blocks-current-label {
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--admin-muted, #6b7280);
-}
-
-.admin-blocks-current-id {
-  font-size: 36px;
-  font-weight: 600;
-  color: var(--admin-heading, #2c3e50);
-  line-height: 1.2;
-  margin: 4px 0;
-}
-
-.admin-blocks-hash-full {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font-size: 13px;
-  word-break: break-all;
-  color: var(--admin-text, #374151);
-}
-
-.admin-blocks-current-meta {
-  margin-top: 10px;
-  color: var(--admin-muted, #555);
-  font-size: 14px;
 }
 
 .admin-blocks-grid {
@@ -96,6 +56,7 @@
   width: 100%;
   border-collapse: collapse;
   font-size: 13px;
+  table-layout: fixed;
 }
 
 .admin-blocks-table th {
@@ -113,10 +74,30 @@
   vertical-align: top;
 }
 
+.admin-blocks-table th:nth-child(1),
+.admin-blocks-table td:nth-child(1) {
+  width: 64px;
+}
+
+.admin-blocks-table th:nth-child(2),
+.admin-blocks-table td:nth-child(2),
+.admin-blocks-table th:nth-child(3),
+.admin-blocks-table td:nth-child(3) {
+  width: 22%;
+}
+
+.admin-blocks-table th:nth-child(4),
+.admin-blocks-table td:nth-child(4) {
+  width: 110px;
+  white-space: nowrap;
+}
+
 .admin-blocks-hash {
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   font-size: 12px;
-  word-break: break-all;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .admin-blocks-empty {
@@ -127,12 +108,5 @@
   .admin-blocks-header {
     flex-direction: column;
     align-items: flex-start;
-  }
-
-  .admin-blocks-table th:nth-child(4),
-  .admin-blocks-table td:nth-child(4),
-  .admin-blocks-table th:nth-child(6),
-  .admin-blocks-table td:nth-child(6) {
-    display: none;
   }
 }

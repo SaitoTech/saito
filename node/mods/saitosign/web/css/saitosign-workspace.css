@@ -397,8 +397,29 @@
   width: 100%;
 }
 
-.workspace .reader [data-close-document] {
+.workspace .reader [data-reader-menu] {
   margin-left: auto;
+}
+
+.workspace .reader .tools {
+  display: flex;
+  flex-direction: column;
+  gap: var(--saito-space-xs);
+  width: 100%;
+}
+
+.workspace .reader .tools .tool {
+  width: 100%;
+  height: auto;
+  min-height: 3.2rem;
+  padding: 0.4rem 0.8rem;
+  border: 1px solid var(--saito-border);
+  border-radius: var(--saito-radius);
+  background: transparent;
+  color: var(--saito-foreground);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
 }
 
 .workspace .reader input {
@@ -537,6 +558,7 @@
   font: inherit;
   font-size: 1.3rem;
   line-height: 1.2;
+  opacity: 0.4;
 }
 
 .workspace .field .text {

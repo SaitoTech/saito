@@ -41,7 +41,7 @@
   color: var(--saito-foreground);
 }
 
-.store-withdrawals .available,
+.store-withdrawals .eligible,
 .store-withdrawals .pending {
   display: grid;
   grid-template-columns: 6.5rem 6.5rem 1fr;
@@ -86,19 +86,55 @@
 }
 
 .saito-overlay > .store-withdrawal {
-  width: min(92vw, 32rem);
+  width: min(92vw, 42rem);
+  padding: var(--saito-space-lg);
+  box-sizing: border-box;
 }
 
-.store-withdrawal .available {
+.store-withdrawal .detail,
+.store-withdrawal .activation-prompt,
+.store-withdrawal .activation-error,
+.store-withdrawal .activation-status {
   margin: 0;
 }
 
-.store-withdrawal .address {
+.store-withdrawal .detail,
+.store-withdrawal .activation-status {
   display: flex;
   flex-direction: column;
   gap: var(--saito-space-sm);
 }
 
-.store-withdrawal .address span {
+.store-withdrawal .detail span,
+.store-withdrawal .activation-prompt {
   color: var(--saito-muted-foreground);
+}
+
+.store-withdrawal .activation-error {
+  color: var(--saito-error, #b42318);
+}
+
+.store-withdrawal .saito-button-row {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: var(--saito-space-md);
+}
+
+.store-withdrawal .activation-status {
+  align-items: center;
+  text-align: center;
+}
+
+.store-withdrawal .activation-status .saito-spinner {
+  width: 1.75rem;
+  height: 1.75rem;
+  margin: var(--saito-space-sm) 0;
+}
+
+.store-withdrawal input[readonly] {
+  cursor: default;
+}
+
+.store-withdrawal a {
+  color: inherit;
 }

@@ -3,6 +3,7 @@
  */
 // @ts-nocheck
 
+const { TransactionType } = require('saito-js/lib/transaction');
 const SaitoTransactionMonitor = require('../../../../../lib/saito/ui/saito-transaction-monitor/saito-transaction-monitor');
 
 function installOverlayStub(monitor) {
@@ -356,5 +357,107 @@ describe('SaitoTransactionMonitor', () => {
 
     expect(callback).not.toHaveBeenCalled();
     expect(monitor.tx).toBe(watched);
+  });
+
+  test('a bound transaction for the watched NFT closes the monitor', async () => {
+    const callback = jest.fn();
+    const app = makeApp([]);
+    app.wallet = {
+      publicKey: 'buyer',
+      computeNFTIdFromTx: (tx) => tx.nft_id
+    };
+    const { monitor, overlay } = makeMonitor(app);
+    await renderAndReconcile(monitor, {
+      nft_id: 'nft-1',
+      title: 'Payment Confirmed',
+      lead: 'The Store is fulfilling your order…',
+      subtitle: '',
+      callback
+    });
+
+    expect(overlay.show.mock.calls[0][0]).toContain('Payment Confirmed');
+    expect(overlay.show.mock.calls[0][0]).toContain('The Store is fulfilling your order…');
+    expect(callback).not.toHaveBeenCalled();
+
+    const arrived = {
+      type: TransactionType.Bound,
+      signature: 'fulfillment',
+      nft_id: 'nft-1',
+      isTo: (key) => key === 'buyer'
+    };
+    monitor.onConfirmation({ id: 9, hash: 'hash-9', transactions: [arrived] }, arrived, 0);
+
+    expect(callback).toHaveBeenCalledWith(expect.objectContaining({ status: 'confirmed', signature: 'fulfillment' }));
+    expect(overlay.close).toHaveBeenCalled();
+    expect(overlay.show).toHaveBeenCalledTimes(1);
+    expect(monitor.nft_id).toBe('');
+  });
+
+  test('a bound transaction for a different NFT does not close the monitor', async () => {
+    const callback = jest.fn();
+    const app = makeApp([]);
+    app.wallet = {
+      publicKey: 'buyer',
+      computeNFTIdFromTx: (tx) => tx.nft_id
+    };
+    const { monitor } = makeMonitor(app);
+    await renderAndReconcile(monitor, { nft_id: 'nft-1', callback });
+
+    monitor.onConfirmation(
+      { id: 9, hash: 'hash-9', transactions: [] },
+      {
+        type: TransactionType.Normal,
+        signature: 'other',
+        nft_id: 'nft-1',
+        isTo: (key) => key === 'buyer'
+      },
+      0
+    );
+    monitor.onConfirmation(
+      { id: 9, hash: 'hash-9', transactions: [] },
+      {
+        type: TransactionType.Bound,
+        signature: 'elsewhere',
+        nft_id: 'nft-1',
+        isTo: () => false
+      },
+      0
+    );
+    monitor.onConfirmation(
+      { id: 9, hash: 'hash-9', transactions: [] },
+      {
+        type: TransactionType.Bound,
+        signature: 'other-nft',
+        nft_id: 'nft-2',
+        isTo: (key) => key === 'buyer'
+      },
+      0
+    );
+
+    expect(callback).not.toHaveBeenCalled();
+    expect(monitor.nft_id).toBe('nft-1');
+  });
+
+  test('a watched NFT already in a recent block closes the monitor', async () => {
+    const arrived = {
+      type: TransactionType.Bound,
+      signature: 'fulfillment',
+      nft_id: 'nft-1',
+      isTo: (key) => key === 'buyer'
+    };
+    const blk = { id: 4, hash: 'hash-4', transactions: [arrived] };
+    const callback = jest.fn();
+    const app = makeApp([blk]);
+    app.wallet = {
+      publicKey: 'buyer',
+      computeNFTIdFromTx: (tx) => tx.nft_id
+    };
+    const { monitor, overlay } = makeMonitor(app);
+
+    await renderAndReconcile(monitor, { nft_id: 'nft-1', callback });
+
+    expect(callback).toHaveBeenCalledWith(expect.objectContaining({ status: 'confirmed', signature: 'fulfillment' }));
+    expect(overlay.close).toHaveBeenCalled();
+    expect(monitor.nft_id).toBe('');
   });
 });

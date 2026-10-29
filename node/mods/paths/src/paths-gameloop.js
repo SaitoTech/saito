@@ -61,6 +61,145 @@
 
   }
 
+  setup1914() {
+	  // britain
+	  this.addUnitToSpace("be_corps", "portsaid", false);
+	  this.addUnitToSpace("be_corps", "cairo", false);
+	  this.addUnitToSpace("be_corps", "basra", false);
+          this.addTrench("portsaid", 1);
+          this.addTrench("cairo", 1);
+          this.addTrench("basra", 1);
+
+	  // belgium
+          this.addUnitToSpace("be_army", "antwerp");
+          this.addUnitToSpace("bef_army", "brussels");
+          this.addTrench("brussels", 1);
+
+	  // france
+          this.addTrench("paris", 1);
+          this.addTrench("verdun", 1);
+          this.addTrench("nancy", 1);
+          this.addTrench("belfort", 1);
+          this.addUnitToSpace("fr_army05", "sedan");
+          this.addUnitToSpace("fr_army06", "paris", false);
+//          this.addUnitToSpace("fr_army03", "verdun");
+          this.addUnitToSpace("fr_army04", "verdun");
+          this.addUnitToSpace("fr_army01", "nancy");
+//          this.addUnitToSpace("fr_army02", "nancy");
+          this.addUnitToSpace("fr_army09", "barleduc", false);
+          this.addUnitToSpace("fr_corps", "belfort");
+          this.addUnitToSpace("fr_corps", "grenoble");
+
+	  // germany
+	  this.addTrench("trent", 1);
+	  this.addTrench("metz", 1);
+	  this.addTrench("konigsberg", 1);
+          this.addUnitToSpace("ge_army01", "aachen");
+//          this.addUnitToSpace("ge_army02", "koblenz");
+          this.addUnitToSpace("ge_army03", "koblenz");
+          this.addUnitToSpace("ge_army04", "metz");
+//          this.addUnitToSpace("ge_army05", "metz");
+          this.addUnitToSpace("ge_army06", "strasbourg");
+          this.addUnitToSpace("ge_army07", "mulhouse", false);
+          this.addUnitToSpace("ge_army08", "insterberg");
+          this.addUnitToSpace("ge_corps", "insterberg");
+          this.addUnitToSpace("ge_corps", "bremen", false);
+          this.addUnitToSpace("ge_corps", "oppeln", false);
+
+	  // russia
+	  this.addTrench("riga", 1);
+	  this.addTrench("odessa", 1);
+          this.addUnitToSpace("ru_army01", "kovno");
+          this.addUnitToSpace("ru_army02", "lomza");
+          this.addUnitToSpace("ru_army04", "ivangorod");
+          this.addUnitToSpace("ru_army05", "lublin");
+          this.addUnitToSpace("ru_army03", "dubno");
+          this.addUnitToSpace("ru_army08", "kamenetspodolski");
+          this.addUnitToSpace("ru_corps", "grodno");
+          this.addUnitToSpace("ru_corps", "riga");
+          this.addUnitToSpace("ru_corps", "szawli");
+          this.addUnitToSpace("ru_corps", "odessa");
+          this.addUnitToSpace("ru_corps", "lutsk");
+          this.addUnitToSpace("ru_corps", "riga");
+          this.addUnitToSpace("ru_corps", "batum");
+          this.addUnitToSpace("ru_corps", "kars");
+          this.addUnitToSpace("ru_corps", "erivan");
+
+	  // austria
+	  this.addTrench("cracow", 1);
+	  this.addTrench("trieste", 1);
+	  this.addTrench("villach", 1);
+          this.addUnitToSpace("ah_corps", "cracow");
+          this.addUnitToSpace("ah_corps", "villach");
+          this.addUnitToSpace("ah_corps", "timisvar");
+          this.addUnitToSpace("ah_corps", "czernowitz");
+          this.addUnitToSpace("ah_corps", "stanislau");
+          this.addUnitToSpace("ah_army06", "sarajevo");
+          this.addUnitToSpace("ah_army05", "novisad");
+          this.addUnitToSpace("ah_army02", "munkacs", false);
+          this.addUnitToSpace("ah_army01", "tarnow");
+          this.addUnitToSpace("ah_army04", "przemysl");
+          this.addUnitToSpace("ah_army03", "tarnopol");
+
+	  // montenegro
+          this.addUnitToSpace("mn_corps", "cetinje");
+
+	  // serbia
+          this.addUnitToSpace("sb_corps", "arbox");
+          this.addUnitToSpace("sb_corps", "arbox");
+          this.addUnitToSpace("sb_army01", "belgrade");
+          this.addUnitToSpace("sb_army02", "valjevo");
+
+	  // italy
+
+	  // reserves boxes
+    	  this.addUnitToSpace("ah_corps", "crbox");
+    	  this.addUnitToSpace("ah_corps", "crbox");
+    	  this.addUnitToSpace("ah_corps", "crbox");
+    	  this.addUnitToSpace("ah_corps", "crbox");
+
+    	  this.addUnitToSpace("ge_corps", "crbox");
+    	  this.addUnitToSpace("ge_corps", "crbox");
+    	  this.addUnitToSpace("ge_corps", "crbox");
+    	  this.addUnitToSpace("ge_corps", "crbox");
+    	  this.addUnitToSpace("ge_corps", "crbox");
+    	  this.addUnitToSpace("ge_corps", "crbox");
+    	  this.addUnitToSpace("ge_corps", "crbox");
+    	  this.addUnitToSpace("ge_corps", "crbox");
+
+    	  this.addUnitToSpace("be_corps", "arbox");
+
+    	  this.addUnitToSpace("sb_corps", "arbox");
+    	  this.addUnitToSpace("sb_corps", "arbox");
+
+    	  this.addUnitToSpace("ru_corps", "arbox");
+    	  this.addUnitToSpace("ru_corps", "arbox");
+    	  this.addUnitToSpace("ru_corps", "arbox");
+    	  this.addUnitToSpace("ru_corps", "arbox");
+    	  this.addUnitToSpace("ru_corps", "arbox");
+
+    	  this.addUnitToSpace("fr_corps", "arbox");
+    	  this.addUnitToSpace("fr_corps", "arbox");
+    	  this.addUnitToSpace("fr_corps", "arbox");
+    	  this.addUnitToSpace("fr_corps", "arbox");
+    	  this.addUnitToSpace("fr_corps", "arbox");
+    	  this.addUnitToSpace("fr_corps", "arbox");
+    	  this.addUnitToSpace("fr_corps", "arbox");
+
+    	  this.addUnitToSpace("br_corps", "arbox");
+    	  this.addUnitToSpace("bef_corps", "arbox");
+
+	  //
+	  // historical updates (s5.7 in manual)
+	  //
+	  this.addTrench("strasbourg", 1);
+	  this.game.spaces["brussels"].trench = 0;
+	  this.addTrench("asiago", 1);
+	  this.addTrench("verona", 1);
+	  this.addTrench("maggiore", 1);
+	  this.addTrench("udine", 1);
+  }
+
   async handleGameLoop() {
 
     let paths_self = this;
@@ -336,8 +475,9 @@ this.updateLog(`###############`);
 
 	  this.game.queue.splice(qe, 1);
 
-          let allies_cards_needed = 7;
-          let central_cards_needed = 7;
+          let hand_size = this.returnScenario().handSize || 7;
+          let allies_cards_needed = hand_size;
+          let central_cards_needed = hand_size;
 	  let allies_cards_available = 0;
 	  let central_cards_available = 0;
 	  if (parseInt(this.game.state.cards_left["allies"]) > 0) { allies_cards_available = parseInt(this.game.state.cards_left["allies"]); }
@@ -1503,143 +1643,18 @@ console.log("allies_passed: " + this.game.state.allies_passed);
 	}
 
 
+
+        if (mv[0] === "scenario_bury") {
+          PathsScenarios.bury(this, parseInt(mv[1]));
+          this.game.queue.splice(qe, 1);
+          return 1;
+        }
+
         if (mv[0] == "init") {
 try {
 
-	  // britain
-	  this.addUnitToSpace("be_corps", "portsaid", false);
-	  this.addUnitToSpace("be_corps", "cairo", false);
-	  this.addUnitToSpace("be_corps", "basra", false);
-          this.addTrench("portsaid", 1);
-          this.addTrench("cairo", 1);
-          this.addTrench("basra", 1);
+	  this.returnScenario().apply(this);
 
-	  // belgium
-          this.addUnitToSpace("be_army", "antwerp");
-          this.addUnitToSpace("bef_army", "brussels");
-          this.addTrench("brussels", 1);
-
-	  // france
-          this.addTrench("paris", 1);
-          this.addTrench("verdun", 1);
-          this.addTrench("nancy", 1);
-          this.addTrench("belfort", 1);
-          this.addUnitToSpace("fr_army05", "sedan");
-          this.addUnitToSpace("fr_army06", "paris", false);
-//          this.addUnitToSpace("fr_army03", "verdun");
-          this.addUnitToSpace("fr_army04", "verdun");
-          this.addUnitToSpace("fr_army01", "nancy");
-//          this.addUnitToSpace("fr_army02", "nancy");
-          this.addUnitToSpace("fr_army09", "barleduc", false);
-          this.addUnitToSpace("fr_corps", "belfort");
-          this.addUnitToSpace("fr_corps", "grenoble");
-
-	  // germany
-	  this.addTrench("trent", 1);
-	  this.addTrench("metz", 1);
-	  this.addTrench("konigsberg", 1);
-          this.addUnitToSpace("ge_army01", "aachen");
-//          this.addUnitToSpace("ge_army02", "koblenz");
-          this.addUnitToSpace("ge_army03", "koblenz");
-          this.addUnitToSpace("ge_army04", "metz");
-//          this.addUnitToSpace("ge_army05", "metz");
-          this.addUnitToSpace("ge_army06", "strasbourg");
-          this.addUnitToSpace("ge_army07", "mulhouse", false);
-          this.addUnitToSpace("ge_army08", "insterberg");
-          this.addUnitToSpace("ge_corps", "insterberg");
-          this.addUnitToSpace("ge_corps", "bremen", false);
-          this.addUnitToSpace("ge_corps", "oppeln", false);
-
-	  // russia
-	  this.addTrench("riga", 1);
-	  this.addTrench("odessa", 1);
-          this.addUnitToSpace("ru_army01", "kovno");
-          this.addUnitToSpace("ru_army02", "lomza");
-          this.addUnitToSpace("ru_army04", "ivangorod");
-          this.addUnitToSpace("ru_army05", "lublin");
-          this.addUnitToSpace("ru_army03", "dubno");
-          this.addUnitToSpace("ru_army08", "kamenetspodolski");
-          this.addUnitToSpace("ru_corps", "grodno");
-          this.addUnitToSpace("ru_corps", "riga");
-          this.addUnitToSpace("ru_corps", "szawli");
-          this.addUnitToSpace("ru_corps", "odessa");
-          this.addUnitToSpace("ru_corps", "lutsk");
-          this.addUnitToSpace("ru_corps", "riga");
-          this.addUnitToSpace("ru_corps", "batum");
-
-	  // austria
-	  this.addTrench("cracow", 1);
-	  this.addTrench("trieste", 1);
-	  this.addTrench("villach", 1);
-          this.addUnitToSpace("ah_corps", "cracow");
-          this.addUnitToSpace("ah_corps", "villach");
-          this.addUnitToSpace("ah_corps", "timisvar");
-          this.addUnitToSpace("ah_corps", "czernowitz");
-          this.addUnitToSpace("ah_corps", "stanislau");
-          this.addUnitToSpace("ah_army06", "sarajevo");
-          this.addUnitToSpace("ah_army05", "novisad");
-          this.addUnitToSpace("ah_army02", "munkacs", false);
-          this.addUnitToSpace("ah_army01", "tarnow");
-          this.addUnitToSpace("ah_army04", "przemysl");
-          this.addUnitToSpace("ah_army03", "tarnopol");
-
-	  // montenegro
-          this.addUnitToSpace("mn_corps", "cetinje");
-
-	  // serbia
-          this.addUnitToSpace("sb_corps", "arbox");
-          this.addUnitToSpace("sb_corps", "arbox");
-          this.addUnitToSpace("sb_army01", "belgrade");
-          this.addUnitToSpace("sb_army02", "valjevo");
-
-	  // italy
-
-	  // reserves boxes
-    	  this.addUnitToSpace("ah_corps", "crbox");
-    	  this.addUnitToSpace("ah_corps", "crbox");
-    	  this.addUnitToSpace("ah_corps", "crbox");
-    	  this.addUnitToSpace("ah_corps", "crbox");
-
-    	  this.addUnitToSpace("ge_corps", "crbox");
-    	  this.addUnitToSpace("ge_corps", "crbox");
-    	  this.addUnitToSpace("ge_corps", "crbox");
-    	  this.addUnitToSpace("ge_corps", "crbox");
-    	  this.addUnitToSpace("ge_corps", "crbox");
-    	  this.addUnitToSpace("ge_corps", "crbox");
-    	  this.addUnitToSpace("ge_corps", "crbox");
-    	  this.addUnitToSpace("ge_corps", "crbox");
-
-    	  this.addUnitToSpace("be_corps", "arbox");
-
-    	  this.addUnitToSpace("sb_corps", "arbox");
-    	  this.addUnitToSpace("sb_corps", "arbox");
-
-    	  this.addUnitToSpace("ru_corps", "arbox");
-    	  this.addUnitToSpace("ru_corps", "arbox");
-    	  this.addUnitToSpace("ru_corps", "arbox");
-    	  this.addUnitToSpace("ru_corps", "arbox");
-    	  this.addUnitToSpace("ru_corps", "arbox");
-
-    	  this.addUnitToSpace("fr_corps", "arbox");
-    	  this.addUnitToSpace("fr_corps", "arbox");
-    	  this.addUnitToSpace("fr_corps", "arbox");
-    	  this.addUnitToSpace("fr_corps", "arbox");
-    	  this.addUnitToSpace("fr_corps", "arbox");
-    	  this.addUnitToSpace("fr_corps", "arbox");
-    	  this.addUnitToSpace("fr_corps", "arbox");
-
-    	  this.addUnitToSpace("br_corps", "arbox");
-    	  this.addUnitToSpace("bef_corps", "arbox");
-
-	  //
-	  // historical updates (s5.7 in manual)
-	  //
-	  this.addTrench("strasbourg", 1);
-	  this.game.spaces["brussels"].trench = 0;
-	  this.addTrench("asiago", 1);
-	  this.addTrench("verona", 1);
-	  this.addTrench("maggiore", 1);
-	  this.addTrench("udine", 1);
 
 
 	  if (this.game.options.deck == "is_testing") {
@@ -1758,11 +1773,12 @@ try {
 
 	  this.updateLog(unit.name + " redeploys to " + this.returnSpaceNameForLog(destination));
 
-	  if (this.minimap && this.returnPlayerOfFaction(faction) != this.game.player) {
+	  if (this.returnPlayerOfFaction(faction) != this.game.player) {
 	    if (destination != "aeubox" && destination != "ceubox" && destination != "arbox" && destination != "crbox") {
+	      this.noteOpponentBoardMark(destination, "move");
 	      let space = this.game.spaces[destination];
 	      let board = this.getBoardState();
-	      if (space && board) {
+	      if (this.minimap && space && board) {
 	        this.minimap.add("move-" + destination, {
 	          x: (space.left + 45) / board.width,
 	          y: (space.top + 45) / board.height,
@@ -1865,10 +1881,12 @@ try {
 	  if (cmd) {
 	    for (let i = this.game.queue.length - 1; i >= 0; i--) {
 	      if (this.game.queue[i].split("\t")[0] === cmd) {
-	        if (cmd === "play" && this.minimap) {
+	        if (cmd === "play") {
 	          let faction = this.game.queue[i].split("\t")[1];
 	          if (this.game.player == this.returnPlayerOfFaction(faction)) {
-	            this.minimap.clear();
+	            if (this.minimap) { this.minimap.clear(); }
+	          } else {
+	            this.showOpponentMarks();
 	          }
 	        }
 	        this.game.queue.splice(i, 1);
@@ -2033,10 +2051,11 @@ try {
 	  //
 	  this.paths_log.openCombat();
 
-	  if (this.minimap && this.returnPlayerOfFaction(this.game.state.combat.attacking_faction) != this.game.player) {
+	  if (this.returnPlayerOfFaction(this.game.state.combat.attacking_faction) != this.game.player) {
+	    this.noteOpponentBoardMark(key, "attack");
 	    let space = this.game.spaces[key];
 	    let board = this.getBoardState();
-	    if (space && board) {
+	    if (this.minimap && space && board) {
 	      this.minimap.add("attack-" + key, {
 	        x: (space.left + 45) / board.width,
 	        y: (space.top + 45) / board.height,
@@ -3758,10 +3777,11 @@ console.log("moving unit: " + JSON.stringify(u));
 	  }
 	  this.activateSpaceForCombat(key);
 
-	  if (this.minimap && this.returnPlayerOfFaction(faction) != this.game.player) {
+	  if (this.returnPlayerOfFaction(faction) != this.game.player) {
+	    this.noteOpponentBoardMark(key, "attack");
 	    let space = this.game.spaces[key];
 	    let board = this.getBoardState();
-	    if (space && board) {
+	    if (this.minimap && space && board) {
 	      this.minimap.add("attack-" + key, {
 	        x: (space.left + 45) / board.width,
 	        y: (space.top + 45) / board.height,
@@ -3790,10 +3810,11 @@ console.log("moving unit: " + JSON.stringify(u));
 	  }
 	  this.activateSpaceForMovement(key);
 
-	  if (this.minimap && this.returnPlayerOfFaction(faction) != this.game.player) {
+	  if (this.returnPlayerOfFaction(faction) != this.game.player) {
+	    this.noteOpponentBoardMark(key, "move");
 	    let space = this.game.spaces[key];
 	    let board = this.getBoardState();
-	    if (space && board) {
+	    if (this.minimap && space && board) {
 	      this.minimap.add("move-" + key, {
 	        x: (space.left + 45) / board.width,
 	        y: (space.top + 45) / board.height,
@@ -3977,11 +3998,12 @@ console.log("moving unit: " + JSON.stringify(u));
 	    this.paths_log.commitMove(faction, sourcekey, sourceidx, destinationkey);
 	  }
 
-	  if (this.minimap && this.returnPlayerOfFaction(faction) != this.game.player) {
+	  if (this.returnPlayerOfFaction(faction) != this.game.player) {
 	    if (destinationkey != "aeubox" && destinationkey != "ceubox" && destinationkey != "arbox" && destinationkey != "crbox") {
+	      this.noteOpponentBoardMark(destinationkey, "move");
 	      let space = this.game.spaces[destinationkey];
 	      let board = this.getBoardState();
-	      if (space && board) {
+	      if (this.minimap && space && board) {
 	        this.minimap.add("move-" + destinationkey, {
 	          x: (space.left + 45) / board.width,
 	          y: (space.top + 45) / board.height,

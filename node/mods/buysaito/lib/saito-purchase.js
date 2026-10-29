@@ -99,6 +99,9 @@ class SaitoPurchaseOverlay {
     app.connection.on(
       'saito-purchase-launch',
       (amount, recipient = '', tx = null, description = '') => {
+        if (this.app.modules?.returnModule?.('Mixin')?.purchase_overlay) {
+          return;
+        }
         this.reset();
         this.active = true;
         this.app.connection.emit('saito-purchase-overlay-open', () => {

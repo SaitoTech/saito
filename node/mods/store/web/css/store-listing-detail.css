@@ -504,8 +504,8 @@
 }
 
 .store-listing-field-edit .price-row .ticker {
-  flex: 0 0 8.5rem;
-  width: 8.5rem;
+  flex: 0 0 11rem;
+  width: 11rem;
 }
 
 @media (max-width: 900px) {

@@ -3,17 +3,40 @@ const ListingFieldEditTemplate = require('./listing-field-edit.template');
 
 const EXCLUDED_WEB3_TICKERS = new Set(['ERC-SAITO', 'BEP-SAITO']);
 
+function escapeHtml(value = '') {
+  return String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+function addStoreWeb3Ticker(tickers, ticker) {
+  const value = String(ticker || '').trim().toUpperCase();
+  if (!value || value === 'SAITO' || EXCLUDED_WEB3_TICKERS.has(value) || tickers.includes(value)) {
+    return;
+  }
+  tickers.push(value);
+}
+
 function returnStoreWeb3Tickers(app, current = 'SAITO') {
   const tickers = ['SAITO'];
-  const buysaito = app?.modules?.returnModule?.('BuySaito');
-  const currencies = Array.isArray(buysaito?.available_currencies) ? buysaito.available_currencies : [];
+  const mixin = app?.modules?.returnModule?.('Mixin');
+  const currencies = Array.isArray(mixin?.available_currencies) ? mixin.available_currencies : [];
   for (const currency of currencies) {
-    const ticker = String(currency?.ticker || '').trim().toUpperCase();
-    if (!ticker || ticker === 'SAITO' || EXCLUDED_WEB3_TICKERS.has(ticker)) {
-      continue;
-    }
-    if (!tickers.includes(ticker)) {
-      tickers.push(ticker);
+    addStoreWeb3Ticker(tickers, currency?.ticker);
+  }
+  // Installed Mixin payment cryptos stay selectable before a priced currency
+  // reply arrives, so a listing can be priced in third-party crypto.
+  const installed = Array.isArray(mixin?.crypto_mods) ? mixin.crypto_mods : [];
+  for (const crypto of installed) {
+    addStoreWeb3Ticker(tickers, crypto?.ticker);
+  }
+  if (tickers.length === 1 && typeof app?.modules?.respondTo === 'function') {
+    const offered = app.modules.respondTo('mixin-crypto');
+    const list = Array.isArray(offered) ? offered : offered ? [offered] : [];
+    for (const crypto of list) {
+      addStoreWeb3Ticker(tickers, crypto?.ticker);
     }
   }
   const selected = String(current || '').trim().toUpperCase();
@@ -27,8 +50,8 @@ function storeWeb3TickersAnswered(app) {
   if (requestStoreWeb3Tickers.resolved) {
     return true;
   }
-  const buysaito = app?.modules?.returnModule?.('BuySaito');
-  const currencies = buysaito?.available_currencies;
+  const mixin = app?.modules?.returnModule?.('Mixin');
+  const currencies = mixin?.available_currencies;
   // null is only assigned when a reply arrives without a currency list.
   // [] is also the value before any reply, so it does not count as an answer.
   if (currencies === null) {
@@ -54,8 +77,9 @@ function rememberStoreWeb3TickerResponse(app) {
 }
 
 function requestStoreWeb3Tickers(app, { force = false } = {}) {
-  const buysaito = app?.modules?.returnModule?.('BuySaito');
-  if (!buysaito?.authorized_public_key) {
+  const mixin = app?.modules?.returnModule?.('Mixin');
+  const peerKey = mixin?.buysaito_peer?.publicKey;
+  if (!peerKey) {
     return;
   }
   rememberStoreWeb3TickerResponse(app);
@@ -66,11 +90,7 @@ function requestStoreWeb3Tickers(app, { force = false } = {}) {
     return;
   }
   requestStoreWeb3Tickers.pending = true;
-  app.connection.emit('relay-send-message', {
-    recipient: buysaito.authorized_public_key,
-    request: 'buysaito available currencies',
-    data: null
-  });
+  app.network.sendRequestAsTransaction('buysaito available currencies', null, null, peerKey);
 }
 
 requestStoreWeb3Tickers.resolved = false;
@@ -99,8 +119,14 @@ class ListingFieldEdit {
     if (!select) {
       return;
     }
-    // Temporary: price edits only offer SAITO until web3 checkout is enabled again.
-    select.innerHTML = '<option value="SAITO" selected>SAITO</option>';
+    const current = select.value || 'SAITO';
+    const tickers = returnStoreWeb3Tickers(this.app, current);
+    select.innerHTML = tickers
+      .map(
+        (ticker) =>
+          `<option value="${escapeHtml(ticker)}"${ticker === current ? ' selected' : ''}>${escapeHtml(ticker)}</option>`
+      )
+      .join('');
   }
 
   /**
@@ -122,8 +148,8 @@ class ListingFieldEdit {
         multiline: !!options.multiline,
         inputType: options.inputType || 'text',
         placeholder: options.placeholder || '',
-        tickers: Array.isArray(options.tickers) ? ['SAITO'] : options.tickers || null,
-        ticker: Array.isArray(options.tickers) ? 'SAITO' : options.ticker || 'SAITO'
+        tickers: options.tickers || null,
+        ticker: options.ticker || 'SAITO'
       })
     );
 

@@ -10,7 +10,7 @@
     ui.render();
     await ui.battlePlayback;
     if(previous!==state.currentPlayer&&state.phase!=='gameover'&&!['claim','setup'].includes(state.phase)) setTimeout(passHand,0);
-  }};
+  },loadPreference(key){try{return JSON.parse(localStorage.getItem(key));}catch{return null;}},savePreference(key,value){try{localStorage.setItem(key,JSON.stringify(value));}catch{/* private browsing */}}};
   ui=new ConquestUI(element,controller);
   function passHand(){
     ui.modal('A new chapter begins.',`<div class="conquest-pass-screen"><span class="conquest-player-seal" style="--player:var(--conquest-player-${state.currentPlayer})">${['▲','●','◆','■','✦','⬟'][state.currentPlayer-1]}</span><p>Pass the screen to <strong>${names[state.currentPlayer-1]}</strong>.</p><p class="conquest-small-note">Your hand is private. Continue when the next commander is ready.</p><button class="conquest-button primary" id="conquest-pass-ready">I am ready →</button></div>`);

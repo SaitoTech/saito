@@ -37,10 +37,14 @@ console.log("\n\n\n\n");
       this.game.queue.push("READY");
       this.game.queue.push("init");
 
-      this.game.queue.push("DEAL\t2\t2\t7");
-      this.game.queue.push("DEAL\t1\t1\t6"); // player automatically gets Guns of August
-      //this.game.queue.push("DEAL\t2\t2\t7");
-      //this.game.queue.push("DEAL\t1\t1\t6"); // player chooses Guns of August or extra card 
+      let scenario = this.returnScenario();
+      let opening_hand = scenario.handSize || 7;
+      this.game.queue.push("DEAL\t2\t2\t" + opening_hand);
+      if (scenario.gunsOfAugust) {
+        this.game.queue.push("DEAL\t1\t1\t" + (opening_hand - 1)); // player automatically gets Guns of August
+      } else {
+        this.game.queue.push("DEAL\t1\t1\t" + opening_hand);
+      }
 
       this.game.queue.push("DECKENCRYPT\t2\t2");
       this.game.queue.push("DECKENCRYPT\t2\t1");
@@ -52,10 +56,20 @@ console.log("\n\n\n\n");
       this.game.queue.push("DECKXOR\t1\t2");
       this.game.queue.push("DECKXOR\t1\t1");
 
-      let deck = this.returnMobilizationDeck("central");
-      delete deck["cp01"];
-      this.game.queue.push("DECK\t1\t"+JSON.stringify(deck));
-      this.game.queue.push("DECK\t2\t"+JSON.stringify(this.returnMobilizationDeck("allies")));
+      if (scenario.played) {
+        this.game.queue.push("scenario_bury\t2");
+        this.game.queue.push("scenario_bury\t1");
+      }
+
+      if (scenario.gunsOfAugust) {
+        let deck = this.returnMobilizationDeck("central");
+        delete deck["cp01"];
+        this.game.queue.push("DECK\t1\t"+JSON.stringify(deck));
+        this.game.queue.push("DECK\t2\t"+JSON.stringify(this.returnMobilizationDeck("allies")));
+      } else {
+        this.game.queue.push("DECK\t1\t"+JSON.stringify(this.returnDeck("central")));
+        this.game.queue.push("DECK\t2\t"+JSON.stringify(this.returnDeck("allies")));
+      }
 
       //
       // belgium joins the allies

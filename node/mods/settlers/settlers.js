@@ -761,20 +761,10 @@ class Settlers extends GameTemplate {
   }
 
   // Overwrite inherited function so we can play nice with the specialty HUD controls
-  updateStatusForGameOver(status, allowRematch) {
-    let target = this.app.options.homeModule || 'Arcade';
-    allowRematch = allowRematch && this.game.player !== 0;
-
-    let options = `<ul>
-                      <li class="textchoice" id="confirmit">Return to ${target}</li>
-                      ${allowRematch ? '<!--li class="textchoice" id="rematch">Rematch</li-->' : ''}
-                   </ul>`;
-
+  updateStatusForGameOver(status) {
     this.hud.hideBackButton();
 
-        this.updateStatus(status);
-
-    let settlers_self = this;
+    this.updateStatus(status);
 
     $('#settlers-hud-controls .option').css('visibility', 'hidden');
     $('#settlers-hud-controls .option').removeClass('enabled');
@@ -782,11 +772,6 @@ class Settlers extends GameTemplate {
     $('#score').addClass('enabled');
     $('#score').css('visibility', 'visible');
 
-    $('#spend').addClass('enabled');
-    $('#spend').html(`<i class="fa-solid fa-rotate-left"></i>`);
-    $('#spend').css('visibility', 'visible');
-
-    // --> return
     $('#rolldice').addClass('enabled');
     $('#rolldice').html(`<i class="fa-solid fa-door-open"></i>`);
     $('#rolldice').css('visibility', 'visible');
@@ -795,55 +780,6 @@ class Settlers extends GameTemplate {
       e.currentTarget.onclick = null;
       this.exitGame();
     };
-
-    if (document.getElementById('spend')) {
-      document.getElementById('spend').onclick = (e) => {
-        this.initialize_game_run = 0;
-        e.currentTarget.onclick = null;
-        $('#spend').removeClass('enabled');
-        $('#spend').css('visibility', 'hidden');
-        this.app.connection.emit('arcade-issue-challenge', {
-          game: this.name,
-          players: this.game.players,
-          options: this.game.options
-        });
-      };
-    }
-
-    ////////////////////////////////////////
-    // Attach Listeners for rematch actions
-    ////////////////////////////////////////
-    this.app.connection.on('arcade-challenge-issued', (tx) => {
-      let btn = document.getElementById('spend');
-      if (btn) {
-        if (tx.isFrom(this.publicKey)) {
-                    this.updateStatus('Rematch requested');
-        } else {
-                    this.updateStatus('Accept Rematch?');
-        }
-      }
-    });
-
-    this.app.connection.on('arcade-game-initialize-render-request', (game_id) => {
-            this.updateStatus('Preparing rematch...');
-      this.setToolbarState('WAIT');
-      this.browser_active = 0; //Hack to simulate not being in the game mod
-    });
-
-    this.app.connection.on('arcade-game-ready-render-request', (game_details) => {
-      let was_browser_active = this.browser_active;
-      this.browser_active = 1;
-      this.updateStatus('Set sail for a new island');
-      this.browser_active = was_browser_active;
-
-      $('#rolldice').addClass('enabled');
-      $('#rolldice').html(`<i class="fa-solid fa-anchor"></i>`);
-      $('#rolldice').css('visibility', 'visible');
-      document.getElementById('rolldice').onclick = (e) => {
-        e.currentTarget.onclick = null;
-        navigateWindow('/' + game_details.slug, 100);
-      };
-    });
   }
 }
 

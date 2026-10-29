@@ -10,12 +10,17 @@ class AdminPeersUI {
     this.error = '';
     this.notice = '';
     this.loading_live = false;
+    this.show_add_form = false;
+    this.saving_server = false;
+    this.detail = null;
   }
 
   render() {
     this.error = '';
     this.notice = '';
     this.live = [];
+    this.show_add_form = false;
+    this.detail = null;
 
     if (!this.mod.server_info) {
       this.app.browser.replaceElementContentBySelector(
@@ -33,13 +38,13 @@ class AdminPeersUI {
   refresh() {
     this.app.browser.replaceElementContentBySelector(
       PeersTemplate({
-        endpoint: this.serverEndpoint(),
-        public_key: this.mod.server_publickey || '',
-        live: this.live,
-        offline: this.offlineConfigured(),
+        ...this.serverAddress(),
+        peers: this.peerRows(),
         error: this.error,
         notice: this.notice,
-        loading_live: this.loading_live
+        loading_live: this.loading_live,
+        show_add_form: this.show_add_form,
+        detail: this.detail
       }),
       this.container
     );
@@ -55,47 +60,109 @@ class AdminPeersUI {
     }));
   }
 
-  serverEndpoint() {
+  serverAddress() {
     const server = this.mod.server_info?.options?.server || {};
     const endpoint = server.endpoint || server;
-    const protocol = endpoint.protocol || server.protocol || '';
+    const protocol = endpoint.protocol || server.protocol || 'http';
     const host = endpoint.host || server.host || '';
     const port = endpoint.port || server.port || '';
-    if (!protocol || !host || !port) {
-      return '';
-    }
-    return `${protocol}://${host}:${port}`;
+    return {
+      protocol: protocol === 'https' ? 'https' : 'http',
+      host: String(host || ''),
+      port: port === '' || port == null ? '' : String(port)
+    };
   }
 
   peerKey(peer) {
-    return `${String(peer.host || '').toLowerCase()}|${String(peer.port || '')}`;
+    const host = String(peer.host || '').toLowerCase();
+    if (host) {
+      return `${host}|${String(peer.port || '')}`;
+    }
+    return `pk|${peer.publicKey || ''}`;
   }
 
-  offlineConfigured() {
-    const live_keys = new Set(this.live.map((p) => this.peerKey(p)));
-    return this.configured
-      .map((p, index) => ({ ...p, index }))
-      .filter((p) => !live_keys.has(this.peerKey(p)));
+  peerRows() {
+    const liveByKey = new Map();
+    for (const peer of this.live) {
+      liveByKey.set(this.peerKey(peer), peer);
+      if (peer.publicKey) {
+        liveByKey.set(`pk|${peer.publicKey}`, peer);
+      }
+    }
+
+    const rows = [];
+    const seen = new Set();
+
+    for (const peer of this.configured) {
+      const key = this.peerKey(peer);
+      seen.add(key);
+      const live = liveByKey.get(key);
+      rows.push({
+        key,
+        host: peer.host || '',
+        port: peer.port || '',
+        publicKey: live?.publicKey || '',
+        verified: !!live?.publicKey,
+        saved: true,
+        detail: {
+          ...(live || {}),
+          host: peer.host || live?.host || '',
+          port: peer.port || live?.port || '',
+          protocol: peer.protocol || live?.protocol || '',
+          synctype: peer.synctype || live?.synctype || '',
+          publicKey: live?.publicKey || '',
+          status: live?.status || '',
+          saved: true
+        }
+      });
+    }
+
+    for (const peer of this.live) {
+      const key = this.peerKey(peer);
+      if (!peer.host && !peer.publicKey) {
+        continue;
+      }
+      if (peer.host && seen.has(key)) {
+        continue;
+      }
+      if (seen.has(key)) {
+        continue;
+      }
+      seen.add(key);
+      rows.push({
+        key,
+        host: peer.host || '',
+        port: peer.port || '',
+        publicKey: peer.publicKey || '',
+        verified: !!peer.publicKey,
+        saved: false,
+        detail: {
+          ...peer,
+          saved: false
+        }
+      });
+    }
+
+    return rows;
   }
 
   attachEvents() {
-    document.querySelectorAll('.admin-copy-cmd').forEach((btn) => {
-      btn.onclick = () => {
-        const cmd = btn.dataset.cmd;
-        if (!cmd) {
-          return;
-        }
-        navigator.clipboard.writeText(cmd).then(() => {
-          if (typeof siteMessage === 'function') {
-            siteMessage('copied to clipboard...', 2000);
-          }
-        });
-      };
-    });
-
     const refreshBtn = document.getElementById('admin-peers-refresh');
     if (refreshBtn) {
       refreshBtn.onclick = () => this.loadLivePeers();
+    }
+
+    const updateBtn = document.getElementById('admin-server-update');
+    if (updateBtn) {
+      updateBtn.onclick = () => this.updateServerAddress();
+    }
+
+    const toggleAdd = document.getElementById('admin-peer-add-toggle');
+    if (toggleAdd) {
+      toggleAdd.onclick = () => {
+        this.show_add_form = !this.show_add_form;
+        this.refresh();
+      };
     }
 
     const addBtn = document.getElementById('admin-peer-add');
@@ -112,12 +179,156 @@ class AdminPeersUI {
       };
     }
 
-    document.querySelectorAll('.admin-peer-remove').forEach((btn) => {
-      btn.onclick = () => {
-        const idx = parseInt(btn.dataset.index, 10);
-        this.removePeer(idx);
+    document.querySelectorAll('[data-peer-type]').forEach((select) => {
+      select.onclick = (e) => e.stopPropagation();
+      select.onchange = (e) => {
+        e.stopPropagation();
+        this.setPeerSaved(select.getAttribute('data-peer-key'), select.value === 'saved');
       };
     });
+
+    document.querySelectorAll('.admin-peer-row').forEach((row) => {
+      row.onclick = () => this.showPeerDetail(row.getAttribute('data-peer-key'));
+      row.onkeydown = (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          this.showPeerDetail(row.getAttribute('data-peer-key'));
+        }
+      };
+    });
+
+    const closeDetail = () => {
+      this.detail = null;
+      this.refresh();
+    };
+    const backdrop = document.getElementById('admin-peer-detail-close');
+    if (backdrop) {
+      backdrop.onclick = (e) => {
+        if (e.target === backdrop) {
+          closeDetail();
+        }
+      };
+    }
+    const dismiss = document.getElementById('admin-peer-detail-dismiss');
+    if (dismiss) {
+      dismiss.onclick = closeDetail;
+    }
+  }
+
+  showPeerDetail(key) {
+    const row = this.peerRows().find((peer) => peer.key === key);
+    if (!row?.detail) {
+      return;
+    }
+    this.detail = row.detail;
+    this.refresh();
+  }
+
+  async updateServerAddress() {
+    if (this.saving_server) return;
+
+    const protocol = (document.getElementById('admin-server-protocol')?.value || '').trim();
+    const host = (document.getElementById('admin-server-host')?.value || '').trim();
+    const port = (document.getElementById('admin-server-port')?.value || '').trim();
+
+    if (!host || !port || (protocol !== 'http' && protocol !== 'https')) {
+      this.error = 'A protocol, host, and port are needed to update the server address.';
+      this.notice = '';
+      this.refresh();
+      return;
+    }
+
+    this.saving_server = true;
+    this.error = '';
+    this.notice = '';
+
+    const current = this.mod.server_info?.options?.server || {};
+    const server = {
+      ...current,
+      host,
+      port: Number(port) || port,
+      protocol,
+      endpoint: {
+        ...(current.endpoint || {}),
+        host,
+        port: Number(port) || port,
+        protocol
+      }
+    };
+
+    try {
+      let tx = await this.app.wallet.createUnsignedTransactionWithDefaultFee(
+        this.mod.server_publickey
+      );
+      tx.msg = {
+        module: 'Admin',
+        request: 'update-options',
+        data: { server }
+      };
+      await tx.sign();
+
+      await this.app.network.sendTransactionWithCallback(
+        tx,
+        (res_tx) => {
+          const res =
+            typeof res_tx.returnMessage === 'function' ? res_tx.returnMessage() : res_tx;
+          if (res?.err) {
+            this.error = res.err;
+            this.notice = '';
+            this.refresh();
+            return;
+          }
+
+          if (this.mod.server_info?.options) {
+            this.mod.server_info.options.server = {
+              ...(this.mod.server_info.options.server || {}),
+              ...server
+            };
+          }
+          this.notice = 'Server address saved.';
+          this.error = '';
+          this.refresh();
+          if (typeof siteMessage === 'function') {
+            siteMessage('Server address saved');
+          }
+        },
+        this.mod.server_publickey
+      );
+    } catch (err) {
+      this.error = err.message || String(err);
+      this.notice = '';
+      this.refresh();
+    } finally {
+      this.saving_server = false;
+    }
+  }
+
+  setPeerSaved(key, saved) {
+    const index = this.configured.findIndex((peer) => this.peerKey(peer) === key);
+    if (saved && index >= 0) {
+      return;
+    }
+    if (!saved) {
+      this.removePeer(index);
+      return;
+    }
+
+    const live = this.live.find((peer) => this.peerKey(peer) === key);
+    if (!live?.host || !live?.port) {
+      this.error = 'That peer does not have a host and port to save.';
+      this.notice = '';
+      this.refresh();
+      return;
+    }
+
+    const protocol = live.protocol === 'http' ? 'http' : 'https';
+    this.configured.push({
+      host: live.host,
+      port: Number(live.port),
+      protocol,
+      synctype: live.synctype === 'lite' ? 'lite' : 'full'
+    });
+    this.savePeers('add');
   }
 
   addPeer() {
@@ -174,6 +385,7 @@ class AdminPeersUI {
     }
 
     this.configured.push(peer);
+    this.show_add_form = false;
     this.savePeers('add');
   }
 
@@ -183,6 +395,10 @@ class AdminPeersUI {
     }
     this.configured.splice(index, 1);
     this.savePeers('remove');
+  }
+
+  responseMessage(res_tx) {
+    return typeof res_tx?.returnMessage === 'function' ? res_tx.returnMessage() : res_tx;
   }
 
   async savePeers(action) {
@@ -203,7 +419,7 @@ class AdminPeersUI {
     this.app.network.sendTransactionWithCallback(
       tx,
       (res_tx) => {
-        let res = res_tx.returnMessage();
+        let res = this.responseMessage(res_tx);
         if (res?.err) {
           this.configured = this.copyPeers(this.mod.server_info?.options?.peers || []);
           this.error = res.err;
@@ -254,28 +470,22 @@ class AdminPeersUI {
       tx,
       (res_tx) => {
         this.loading_live = false;
-        let res = res_tx.returnMessage();
+        let res = this.responseMessage(res_tx);
         if (res?.err) {
           this.error = res.err;
           this.live = [];
           this.refresh();
           return;
         }
-        this.live = (res.result || []).map((p) => {
-          const configured_index = this.configured.findIndex(
-            (c) => this.peerKey(c) === this.peerKey(p)
-          );
-          return {
-            publicKey: p.publicKey || '',
-            host: p.host || '',
-            port: p.port || '',
-            protocol: p.protocol || '',
-            synctype: p.synctype || '',
-            status: p.status || '',
-            permanent: configured_index >= 0,
-            configured_index
-          };
-        });
+        this.live = (res?.result || []).map((p) => ({
+          publicKey: p.publicKey || '',
+          host: p.host || '',
+          port: p.port || '',
+          protocol: p.protocol || '',
+          synctype: p.synctype || '',
+          status: p.status || '',
+          id: p.id || ''
+        }));
         this.refresh();
       },
       this.mod.server_publickey

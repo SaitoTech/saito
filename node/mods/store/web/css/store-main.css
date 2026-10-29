@@ -647,32 +647,15 @@
   white-space: nowrap;
 }
 
+.store .listings-table:not(.sales-table):not(.moderation-table) th:first-child,
+.store .listings-table:not(.sales-table):not(.moderation-table) td:first-child {
+  width: 100%;
+}
+
 .store .listings-table td:nth-child(3),
 .store .listings-table td:nth-child(4),
-.store .listings-table td:nth-child(5),
-.store .listings-table td:nth-child(6) {
+.store .listings-table td:nth-child(5) {
   white-space: nowrap;
-}
-
-.store .listings-table .listing-approval {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 0.35rem;
-  white-space: normal;
-}
-
-.store .listings-table .listing-approval-status {
-  font-size: var(--font-size-small);
-  line-height: 1.3;
-  color: var(--saito-muted-foreground);
-}
-
-.store .listings-table .listing-submit-main {
-  padding: 0.25rem 0.65rem;
-  font-size: var(--font-size-small);
-  line-height: 1.2;
-  cursor: pointer;
 }
 
 .store .moderation-toolbar {
@@ -796,7 +779,6 @@
 
 .store .sales-table .sales-buyer-cell {
   min-width: 10rem;
-  max-width: 22rem;
 }
 
 .store .sales-table .sales-buyer {
@@ -807,8 +789,8 @@
 }
 
 .store .sales-table .sales-buyer-row {
-  display: inline-flex;
-  align-items: center;
+  display: flex;
+  align-items: flex-start;
   gap: 0.35rem;
   max-width: 100%;
 }
@@ -817,9 +799,9 @@
   font-family: var(--saito-font-monospace, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace);
   font-size: var(--font-size-small);
   color: var(--saito-foreground);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
+  word-break: break-all;
+  white-space: normal;
 }
 
 .store .sales-table .sales-buyer-copy {

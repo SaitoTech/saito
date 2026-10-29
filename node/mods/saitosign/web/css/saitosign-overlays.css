@@ -2,6 +2,59 @@
   width: min(44rem, calc(100vw - 4rem));
 }
 
+.saitosign-who {
+  display: flex;
+  flex-direction: column;
+  gap: var(--saito-space-md);
+  min-width: min(36rem, calc(100vw - 8rem));
+  padding: 2.8rem var(--saito-space-lg) var(--saito-space-lg);
+}
+
+.saitosign-who .title {
+  margin: 0;
+  color: var(--saito-foreground);
+  font-family: var(--saito-font-heavy);
+  font-size: 2rem;
+}
+
+.saitosign-who .who-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--saito-space-sm);
+}
+
+.saitosign-who .who-signer {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.2rem;
+  width: 100%;
+  margin: 0;
+  padding: var(--saito-space-md);
+  border: 1px solid var(--saito-border);
+  border-radius: var(--saito-radius);
+  background: var(--saito-secondary);
+  color: var(--saito-foreground);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.saitosign-who .who-signer:hover,
+.saitosign-who .who-signer:focus-visible {
+  border-color: color-mix(in srgb, var(--saito-foreground) 40%, var(--saito-border));
+  outline: none;
+}
+
+.saitosign-who .who-signer-name {
+  font-family: var(--saito-font-medium);
+}
+
+.saitosign-who .who-signer-email {
+  color: var(--saito-muted-foreground);
+  font-size: var(--font-size-small, 1.4rem);
+}
+
 .saitosign-identity {
   display: flex;
   flex-direction: column;

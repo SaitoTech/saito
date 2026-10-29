@@ -1,0 +1,86 @@
+.migration-page {
+  position: absolute;
+  top: var(--saito-header-height);
+  left: 0;
+  right: 0;
+  height: calc(100dvh - var(--saito-header-height));
+  overflow-x: hidden;
+  overflow-y: auto;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  box-sizing: border-box;
+  padding: var(--saito-space-xl) var(--saito-space-md);
+  background-color: var(--saito-background);
+  background-image: url(/saito/img/tiled-logo.svg);
+}
+
+.migration-page .withdraw-container {
+  width: min(60rem, 100%);
+  margin: 0;
+}
+
+.migration-page .withdraw-form-fields {
+  display: flex;
+  flex-direction: column;
+  gap: var(--saito-space-md);
+  width: 100%;
+}
+
+.migration-page .withdraw-form-fields .saito-button-row {
+  width: 100%;
+}
+
+.migration-page .withdraw-form-fields .saito-button-row > button {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+#automatic {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--saito-space-sm);
+}
+
+.migration-button-spinner {
+  width: 1.6rem;
+  height: 1.6rem;
+  flex: 0 0 1.6rem;
+  border: 2px solid currentColor;
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: migration-button-spin 0.8s linear infinite;
+}
+
+@keyframes migration-button-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.migration-page .migration-deposit-address {
+  width: 100%;
+  overflow-wrap: anywhere;
+  text-align: center;
+  color: var(--saito-foreground);
+}
+
+.migration-page .footer-note,
+.migration-page .withdraw-outtro {
+  text-align: center;
+}
+
+.migration-page .withdraw-outtro {
+  margin-top: var(--saito-space-sm);
+}
+
+@media screen and (max-width: 600px) {
+  .migration-page {
+    padding: var(--saito-space-lg) var(--saito-space-md);
+  }
+
+  .migration-page .withdraw-form-fields .saito-button-row {
+    flex-direction: column;
+  }
+}

@@ -14,7 +14,6 @@ module.exports = () => {
             <label for="scenario">Scenario:</label>
             <select class="saito-form-select" name="scenario" id="scenario">
               <option value="original">original</option>
-              <option value="is_testing">TESTING</option>
             </select>
 
         </div>

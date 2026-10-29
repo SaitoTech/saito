@@ -2,12 +2,13 @@ module.exports = (app, view = {}) => {
   const escape = (value) => app.browser.escapeHTML(String(value ?? ''));
   const processing = view.processing === true;
   const fundsNotice = view.fundsNotice === true;
+  const awaitingAddress = view.awaitingAddress === true;
   const destination = fundsNotice ? '' : String(view.destination || '');
   const lead = view.statusLead || 'this screen will update when your payment is detected';
   const support = `<a href="mailto:info@saito.io">info@saito.io</a>`;
 
   return `
-    <div class="store-web3-payment saito-overlay-panel saito-overlay-size${processing ? ' is-processing' : ''}">
+    <div class="store-web3-payment saito-overlay-panel saito-overlay-size${processing ? ' is-processing' : ''}"${awaitingAddress ? ' aria-busy="true"' : ''}>
       <header class="saito-overlay-form-header">
         <h2 class="saito-overlay-form-header-title">Make Payment</h2>
       </header>
@@ -34,7 +35,20 @@ module.exports = (app, view = {}) => {
           <i class="fas fa-copy"></i>
         </div>
       `
-          : ''
+          : awaitingAddress
+            ? `
+        <div class="deposit-pending">
+          <div class="qrcode" aria-hidden="true"></div>
+          <div class="address" aria-hidden="true">
+            <div class="value">&nbsp;</div>
+            <i class="fas fa-copy" aria-hidden="true"></i>
+          </div>
+          <div class="deposit-loader">
+            <div class="saito-spinner" aria-hidden="true"></div>
+          </div>
+        </div>
+      `
+            : ''
       }
 
       <div class="details">

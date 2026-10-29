@@ -189,14 +189,20 @@ class Admin extends ModTemplate {
     if (txmsg.request === 'list-peers') {
       try {
         const peers = await this.app.core.network.getPeers();
-        const snapshot = (peers || []).map((p) => ({
-          publicKey: p.publicKey || null,
-          host: p.host || '',
-          port: p.port || 0,
-          protocol: p.protocol || '',
-          synctype: p.synctype || '',
-          status: p.status || ''
-        }));
+        const snapshot = (peers || []).map((p) => {
+          const host = typeof p?.host === 'string' ? p.host : '';
+          const port = Number(p?.port) || 0;
+          return {
+            publicKey: p?.publicKey || '',
+            host,
+            // Keep empty ports empty so hostless browser peers are not collapsed as "|0".
+            port: port > 0 ? port : '',
+            protocol: typeof p?.protocol === 'string' ? p.protocol : '',
+            synctype: typeof p?.synctype === 'string' ? p.synctype : '',
+            status: typeof p?.status === 'string' ? p.status : '',
+            id: p?.id != null ? String(p.id) : ''
+          };
+        });
         if (mycallback) mycallback({ result: snapshot });
       } catch (err) {
         if (mycallback) mycallback({ err: err.message });
@@ -245,7 +251,7 @@ class Admin extends ModTemplate {
           throw new Error(`No admin configuration is available for "${txmsg.module_id || ''}".`);
         }
         if (mycallback) {
-          mycallback({ result: await config.getConfig() });
+          mycallback({ result: await config.getConfig(txmsg) });
         }
       } catch (err) {
         if (mycallback) mycallback({ err: err.message || String(err) });

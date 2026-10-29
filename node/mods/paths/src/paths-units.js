@@ -320,35 +320,6 @@ console.log(JSON.stringify(unit));
     if (just_link) { return `/paths/img/army/${key}_back.png`; }
     return `<img src="/paths/img/army/${key}_back.png" class="army-tile ${unit.key}" />`;
   }
-  returnUnitImageWithMouseoverOfStepwiseLoss(unit, just_link="", mouseout_first=false) {
-    let key = unit.key;
-    let face_img = "";
-    let back_img = "";
-
-    if (unit.destroyed) {
-     return this.returnDestroyedUnitImage(unit, just_link);
-    }
-
-    if (unit.damaged) {
-      face_img = `/paths/img/army/${key}_back.png`;
-      back_img = this.returnUnitImageWithStepwiseLoss(unit, true);
-    } else {
-      face_img = `/paths/img/army/${key}.png`;
-      back_img = `/paths/img/army/${key}_back.png`;
-    }
-
-    //
-    // the workaround below is part of our strategy to prevent tiles from insta-
-    // flipping once clicked on, so that mouseout is required in order to trigger
-    // tiles showing their reversed side on mouseover. see /lib/ui/overlays/loss.js
-    //
-    if (!mouseout_first) {
-      return `<img src="${face_img}" onmouseover="this.src='${back_img}'" onmouseout="this.src='${face_img}'" class="army-tile ${unit.key}" />`;
-    } else {
-      return `<img src="${face_img}" data-mouseover="false" onmouseover="if (this.dataset.mouseover === 'true') { this.src='${back_img}' }" onmouseout="this.dataset.mouseover = 'true'; this.src='${face_img}'" class="army-tile ${unit.key}" />`;
-    }
-
-  }
   returnUnitImageInSpaceWithIndex(spacekey, idx) {
     let unit = this.game.spaces[spacekey].units[idx];
     return this.returnUnitImage(unit);
@@ -360,39 +331,6 @@ console.log(JSON.stringify(unit));
       return `<img src="/paths/img/cancel_x.png" class="army-tile ${unit.key}" />`;
     }
 
-  }
-
-  returnUnitImageWithStepwiseLoss(unit, just_link=false) {
-
-    let key = unit.key;
-
-    if (unit.destroyed) {
-     return this.returnDestroyedUnitImage(unit, just_link);
-    }
-
-    if (!unit.damaged) {
-
-      if (just_link) { return `/paths/img/army/${key}_back.png`; }
-      return `<img src="/paths/img/army/${key}_back.png" class="army-tile ${unit.key}" />`;
-
-    } else {
-
-      //
-      // replace with corps if destroyed
-      //
-      if (unit.key.indexOf('army') >= 0) {
-        let corpskey = unit.key.split('_')[0] + '_corps';
-        let new_unit = this.cloneUnit(corpskey);
-        return this.returnUnitImage(new_unit, just_link);
-
-      } else {
-
-	return this.returnDestroyedUnitImage(unit, just_link);
-      }
-
-    }
-
-    return "";
   }
 
   cloneUnit(unitkey) {

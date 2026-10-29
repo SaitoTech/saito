@@ -81,7 +81,9 @@ class Conquest extends GameTemplate {
         getPlayerIdenticon: id => this.app.keychain.returnIdenticon(this.game.players[id - 1]),
         showDispatches: () => this.log.toggleLog(),
         getStatus: () => this.conquestStatus(),
-        dispatch: action => this.submitAction(action)
+        dispatch: action => this.submitAction(action),
+        loadPreference: key => this.loadGamePreference(key),
+        savePreference: (key, value) => this.saveGamePreference(key, value)
       });
     }
     this.conquestUI.render();

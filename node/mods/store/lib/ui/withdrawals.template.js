@@ -1,3 +1,5 @@
+const { decimalIsPositive } = require('../web3-amount');
+
 function escapeHtml(value = '') {
   return String(value)
     .replace(/&/g, '&amp;')
@@ -7,6 +9,16 @@ function escapeHtml(value = '') {
 }
 
 function formatAmount(value) {
+  const raw = String(value ?? '').trim();
+  if (/^\d+(\.\d+)?$/.test(raw)) {
+    const [whole, fraction = ''] = raw.split('.');
+    const head = whole.replace(/^0+(?=\d)/, '') || '0';
+    const tail = fraction.replace(/0+$/, '');
+    const normalized = tail ? `${head}.${tail}` : head;
+    const [shownWhole, shownFraction = ''] = normalized.split('.');
+    const grouped = shownWhole.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    return shownFraction ? `${grouped}.${shownFraction}` : grouped;
+  }
   const amount = Number(value);
   if (!Number.isFinite(amount)) {
     return '0';
@@ -14,46 +26,28 @@ function formatAmount(value) {
   return amount.toLocaleString('en-US', { maximumFractionDigits: 8 });
 }
 
-function formatPendingDate(value) {
-  if (!value) {
-    return '';
-  }
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return '';
-  }
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
-}
-
 module.exports = ({ rows = [] } = {}) => {
   const body = rows.length
     ? rows
         .map((row) => {
           const ticker = escapeHtml(row.ticker);
-          const available = Number(row.available);
-          const pending = Number(row.pending);
-          const canWithdraw = Number.isFinite(available) && available > 0;
-          const pendingDate = Number.isFinite(pending) && pending > 0 ? formatPendingDate(row.pending_on) : '';
-          const withdraw = canWithdraw
-            ? `<button type="button" class="withdraw-link" data-action="withdraw" data-ticker="${ticker}">withdraw</button>`
+          const eligible = row.eligible || 0;
+          const pending = row.pending || 0;
+          const withdraw = decimalIsPositive(eligible)
+            ? `<button type="button" class="withdraw-link" data-action="withdraw" data-ticker="${ticker}">You can withdraw this</button>`
             : '';
-          const date = pendingDate ? `<time datetime="${escapeHtml(pendingDate)}">${escapeHtml(pendingDate)}</time>` : '';
           return `
             <tr>
               <th scope="row">${ticker}</th>
               <td>
-                <div class="available">
-                  <span class="amount">${escapeHtml(formatAmount(available))}</span>
-                  <span class="label">available</span>
+                <div class="eligible">
+                  <span class="amount">${escapeHtml(formatAmount(eligible))}</span>
+                  <span class="label">eligible</span>
                   ${withdraw}
                 </div>
                 <div class="pending">
                   <span class="amount">${escapeHtml(formatAmount(pending))}</span>
                   <span class="label">pending</span>
-                  ${date}
                 </div>
               </td>
             </tr>`;

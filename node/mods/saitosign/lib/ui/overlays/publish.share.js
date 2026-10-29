@@ -1,16 +1,86 @@
 const { escapeHTML } = require('./publish.escape');
 const { shareRows } = require('./publish.flow');
 
+function pagesCoverAll(pages, pageCount) {
+  const count = Number(pageCount) || 0;
+  if (count < 1 || pages.length !== count) {
+    return false;
+  }
+  for (let page = 1; page <= count; page += 1) {
+    if (!pages.includes(page)) {
+      return false;
+    }
+  }
+  return true;
+}
+
+function requirementLines(actions, userIndex, pageCount) {
+  const mine = (actions || []).filter((action) =>
+    Number(action.user) === userIndex
+    && (action.type === 'signature' || action.type === 'initial')
+  );
+  const pagesByType = { initial: new Set(), signature: new Set() };
+  const seenGroups = { initial: new Set(), signature: new Set() };
+
+  mine.forEach((action) => {
+    const type = action.type;
+    const page = Number(action.page);
+    if (!Number.isInteger(page) || page < 1) {
+      return;
+    }
+    const group = String(action.group || '').trim();
+    if (group) {
+      if (seenGroups[type].has(group)) {
+        return;
+      }
+      seenGroups[type].add(group);
+      mine.forEach((item) => {
+        if (item.type !== type || String(item.group || '').trim() !== group) {
+          return;
+        }
+        const groupedPage = Number(item.page);
+        if (Number.isInteger(groupedPage) && groupedPage > 0) {
+          pagesByType[type].add(groupedPage);
+        }
+      });
+      return;
+    }
+    pagesByType[type].add(page);
+  });
+
+  const lines = [];
+  ['initial', 'signature'].forEach((type) => {
+    const pages = Array.from(pagesByType[type]).sort((left, right) => left - right);
+    if (!pages.length) {
+      return;
+    }
+    const kind = type === 'initial' ? 'Initials' : 'Signature';
+    const where = pagesCoverAll(pages, pageCount)
+      ? 'all pages'
+      : `pages ${pages.join(', ')}`;
+    lines.push(`${kind} required: ${where}`);
+  });
+  return lines;
+}
+
 function peopleHTML(state) {
   const rows = shareRows(state)
     .map((row) => {
       const icon = row.signed ? 'fa-check' : 'fa-xmark';
       const label = row.signed ? 'signed' : 'not signed';
+      const requirements = (row.requirements || [])
+        .map((line) => `<li>${escapeHTML(line)}</li>`)
+        .join('');
+      const list = requirements
+        ? `<ul class="signer-requirements">${requirements}</ul>`
+        : '';
       return `
         <li class="signer${row.signed ? ' signed' : ' unsigned'}">
-          <i class="fa-solid ${icon} signer-mark" aria-hidden="true"></i>
-          <span class="signer-name">${escapeHTML(row.name)}${row.creator ? ' (creator)' : ''}</span>
-          <span class="signer-state">${label}</span>
+          <div class="signer-heading">
+            <i class="fa-solid ${icon} signer-mark" aria-hidden="true"></i>
+            <span class="signer-name">${escapeHTML(row.name)}${row.creator ? ' (creator)' : ''} — ${label}</span>
+          </div>
+          ${list}
         </li>
       `;
     })
@@ -18,39 +88,80 @@ function peopleHTML(state) {
   return `<ul class="signer-list">${rows}</ul>`;
 }
 
+function finalizeActions() {
+  return `
+    <p class="share-instruction">This document is ready to be finalized. Click below and we'll prepare the document for users to sign.</p>
+    <div class="status-actions">
+      <button type="button" class="saito-button-primary" data-publish-action="finalize">Finalize Documents</button>
+    </div>
+  `;
+}
+
+function signedActions(premium) {
+  const instruction = premium
+    ? 'All required signatures have been completed. Export this document, or upload it to our server and generate a link, to share the completed copy.'
+    : 'All required signatures have been completed. Export this document to share the completed copy.';
+  const upload = premium
+    ? '<button type="button" class="status-choice" data-publish-action="upload-share">UPLOAD AND SHARE</button>'
+    : '';
+  const layout = upload ? ' premium' : ' single';
+  return `
+    <p class="share-instruction">${escapeHTML(instruction)}</p>
+    <div class="status-choices${layout}">
+      <button type="button" class="status-choice" data-publish-action="share">EXPORT DOCUMENT</button>
+      ${upload}
+    </div>
+  `;
+}
+
+function distributeActions(premium) {
+  const upload = premium
+    ? '<button type="button" class="status-choice" data-publish-action="upload-share">UPLOAD AND SHARE</button>'
+    : '';
+  const layout = upload ? ' premium' : ' single';
+  return `
+    <p class="share-instruction">Click below to export this document, distribute it to the signers.</p>
+    <div class="status-choices${layout}">
+      <button type="button" class="status-choice" data-publish-action="share">EXPORT DOCUMENT</button>
+      ${upload}
+    </div>
+  `;
+}
+
+function readyActions() {
+  return `
+    <p class="share-instruction">This document is now ready to be signed. Please select an option below.</p>
+    <div class="status-choices">
+      <button type="button" class="status-choice" data-publish-action="sign-now">I need to sign this document.</button>
+      <button type="button" class="status-choice" data-publish-action="skip-sign">I don't need to sign this document.</button>
+    </div>
+  `;
+}
+
 function shareSlide(state) {
   const premium = state.plan === 'premium';
   const status = state.actionStatus;
   const fullySigned = Boolean(status) && status.required > 0 && status.remaining === 0;
-  const instruction = fullySigned
-    ? (premium
-      ? 'All required signatures have been completed. Export this document, or upload it to our server and generate a link, to share the completed copy.'
-      : 'All required signatures have been completed. Export this document to share the completed copy.')
-    : (premium
-      ? 'This document is ready to be signed. Please add your signature now as required. Once you have finished, come back here to export this document or upload it to our server and generate a link for sharing with any other parties who need to sign.'
-      : 'This document is ready to be signed. Please add your signature now as required. Once you have finished, come back here to export this document and share it with any other parties who need to sign.');
-  const sign = fullySigned
-    ? ''
-    : '<button type="button" class="status-choice" data-publish-action="sign-now">SIGN DOCUMENT</button>';
-  const upload = premium
-    ? '<button type="button" class="status-choice" data-publish-action="upload-share">UPLOAD AND SHARE</button>'
-    : '';
-  const count = Number(Boolean(sign)) + 1 + Number(Boolean(upload));
-  const layout = count === 1 ? ' single' : count === 3 ? ' premium' : '';
+  let actions = finalizeActions();
+  if (state.finalized) {
+    if (fullySigned) {
+      actions = signedActions(premium);
+    } else if (state.distributeOnly) {
+      actions = distributeActions(premium);
+    } else {
+      actions = readyActions();
+    }
+  }
   return {
     title: 'Document Status',
     body: `
       <div class="share-step">
         ${peopleHTML(state)}
-        <p class="share-instruction">${escapeHTML(instruction)}</p>
-        <div class="status-choices${layout}">
-          ${sign}
-          <button type="button" class="status-choice" data-publish-action="share">EXPORT DOCUMENT</button>
-          ${upload}
-        </div>
+        ${actions}
       </div>
     `
   };
 }
 
 module.exports = shareSlide;
+module.exports.requirementLines = requirementLines;

@@ -7,18 +7,26 @@ function escapeHTML(value) {
 }
 
 function fieldTemplate(view) {
+  const chooseNew = Boolean(view.choose_new);
+  const signerReady = view.signer_ready !== false;
+  const type = String(view.type || '');
+  const allowEveryPage = Boolean(view.allow_every_page);
+  const showEveryPage = allowEveryPage && (type === 'signature' || type === 'initial');
+
   const types = [
-    ['signature', 'date and signature'],
-    ['date', 'date'],
-    ['initial', 'initial']
+    ['', 'What should this user do?'],
+    ['signature', 'Signature'],
+    ['initial', 'Initial'],
+    ['date', 'Date / Time']
   ]
-    .map(([type, label]) => {
-      const selected = view.type === type ? ' selected' : '';
-      return `<option value="${type}"${selected}>${label}</option>`;
+    .filter(([value]) => value !== '' || !view.existing)
+    .map(([value, label]) => {
+      const selected = type === value ? ' selected' : '';
+      const disabled = value === '' ? ' disabled' : '';
+      return `<option value="${value}"${selected}${disabled}>${label}</option>`;
     })
     .join('');
 
-  const chooseNew = Boolean(view.choose_new);
   const signers = view.signers
     .map((signer) => {
       const selected = !chooseNew && signer.index === view.signer_index ? ' selected' : '';
@@ -49,10 +57,17 @@ function fieldTemplate(view) {
         <input data-signer-name type="text" placeholder="name" value="${escapeHTML(view.new_name || '')}" aria-label="Signer name" autocomplete="name" />
         <input data-signer-email type="email" placeholder="email" value="${escapeHTML(view.new_email || '')}" aria-label="Signer email" autocomplete="email" />
       </div>
-      <label>
-        What
-        <select data-field-type${disabled}>${types}</select>
-      </label>
+      <div class="what"${signerReady ? '' : ' hidden'}>
+        <select data-field-type aria-label="What should this user do?"${disabled}>${types}</select>
+        <div class="field-details" data-field-details${showEveryPage ? '' : ' hidden'}>
+          ${allowEveryPage
+            ? `<label class="check">
+            <input type="checkbox" data-every-page${view.every_page ? ' checked' : ''}${disabled} />
+            <span>add to every page</span>
+          </label>`
+            : ''}
+        </div>
+      </div>
       <p class="form-error" data-form-error hidden></p>
       <div class="actions">
         ${remove}

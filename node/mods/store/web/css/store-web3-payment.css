@@ -34,6 +34,32 @@
   text-align: center;
 }
 
+.store-web3-payment .deposit-pending {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  width: 100%;
+}
+
+.store-web3-payment .deposit-pending .address {
+  visibility: hidden;
+}
+
+.store-web3-payment .deposit-loader {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+}
+
+.store-web3-payment .deposit-loader .saito-spinner {
+  width: 4.8rem;
+  min-width: 4.8rem;
+}
+
 .store-web3-payment .qrcode {
   display: grid;
   place-items: center;

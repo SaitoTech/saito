@@ -13,10 +13,12 @@ const WelcomeOverlay = require('./lib/ui/overlays/welcome');
 const MenuOverlay = require('./lib/ui/overlays/menu');
 const RussiaOverlay = require('./lib/ui/overlays/russia');
 const UsaOverlay = require('./lib/ui/overlays/usa');
+const SettingsOverlay = require('./lib/ui/overlays/settings');
 
 const PathsRules = require('./lib/core/rules.template');
 const PathsOptions = require('./lib/core/advanced-options.template');
 const PathsSingularOption = require('./lib/core/options.template');
+const PathsScenarios = require('./lib/scenarios');
 
 const PathsLog = require('./lib/paths-log');
 const GameMinimap = require('../../lib/saito/ui/game-minimap/game-minimap');
@@ -56,7 +58,8 @@ class PathsOfGlory extends GameTemplate {
     this.replacements_overlay = new ReplacementsOverlay(this.app, this); 
     this.reserves_overlay = new ReservesOverlay(this.app, this); 
     this.mandates_overlay = new MandatesOverlay(this.app, this); 
-    this.vp_overlay = new VPOverlay(this.app, this); 
+    this.vp_overlay = new VPOverlay(this.app, this);
+    this.settings_overlay = new SettingsOverlay(this.app, this); 
     this.welcome_overlay = new WelcomeOverlay(this.app, this); 
     this.menu_overlay = new MenuOverlay(this.app, this); 
     this.space_overlay = new SpaceOverlay(this.app, this);
@@ -78,6 +81,8 @@ class PathsOfGlory extends GameTemplate {
     this.default_board_view = { x: 437 / 5100, y: 450 / 3312, w: 2980 / 5100, h: 1573 / 3312 };
     this.signal_n = 0;
     this.signals = { n: 0, marks: {} };
+    this.opponent_marks = {};
+    this.opponent_marks_visible = false;
 
     let hud_update_menu = this.hud.updateMenu.bind(this.hud);
     let hud_update_cards = this.hud.updateCards.bind(this.hud);
@@ -174,30 +179,12 @@ class PathsOfGlory extends GameTemplate {
       }
     });
     this.menu.addSubMenuOption("game-game", {
-      text : "Combat",
-      id : "game-combat",
-      class : "game-combat",
+      text : "Settings",
+      id : "game-settings",
+      class : "game-settings",
       callback : function(app, game_mod) {
         game_mod.menu.hideSubMenus();
-        game_mod.combat_overlay.render();
-      }
-    });
-    this.menu.addSubMenuOption("game-game", {
-      text : "Central Reserves",
-      id : "game-reserves-central",
-      class : "game-reserves-central",
-      callback : function(app, game_mod) {
-        game_mod.menu.hideSubMenus();
-        game_mod.reserves_overlay.render("central");
-      }
-    });
-    this.menu.addSubMenuOption("game-game", {
-      text : "Allied Reserves",
-      id : "game-reserves-allies",
-      class : "game-reserves-allies",
-      callback : function(app, game_mod) {
-        game_mod.menu.hideSubMenus();
-        game_mod.reserves_overlay.render("allies");
+        game_mod.settings_overlay.render();
       }
     });
     this.menu.addSubMenuOption("game-game", {
@@ -207,15 +194,6 @@ class PathsOfGlory extends GameTemplate {
       callback : function(app, game_mod) {
         game_mod.menu.hideSubMenus();
         game_mod.log.toggleLog();
-      }
-    });
-    this.menu.addSubMenuOption("game-game", {
-      text : "Stats",
-      id : "game-stats",
-      class : "game-stats",
-      callback : function(app, game_mod) {
-	game_mod.menu.hideSubMenus();
-        game_mod.handleStatsMenu();
       }
     });
     this.menu.addSubMenuOption("game-game", {
@@ -261,6 +239,7 @@ class PathsOfGlory extends GameTemplate {
     this.menu.render();
     this.log.render();
     this.cardbox.render();
+    this.applyCardPopupPreference();
 
 
     //
@@ -302,6 +281,18 @@ class PathsOfGlory extends GameTemplate {
 
   returnSingularGameOption(){
     return PathsSingularOption();
+  }
+
+  returnScenario() {
+    let id = "original";
+    if (this.game && this.game.options && this.game.options.deck) {
+      id = this.game.options.deck;
+    }
+    return PathsScenarios.get(id);
+  }
+
+  includeOptionalCards() {
+    return !!this.returnScenario().optionalCards;
   }
 
   returnAdvancedOptions() {
@@ -1823,10 +1814,14 @@ console.log("\n\n\n\n");
       this.game.queue.push("READY");
       this.game.queue.push("init");
 
-      this.game.queue.push("DEAL\t2\t2\t7");
-      this.game.queue.push("DEAL\t1\t1\t6"); // player automatically gets Guns of August
-      //this.game.queue.push("DEAL\t2\t2\t7");
-      //this.game.queue.push("DEAL\t1\t1\t6"); // player chooses Guns of August or extra card 
+      let scenario = this.returnScenario();
+      let opening_hand = scenario.handSize || 7;
+      this.game.queue.push("DEAL\t2\t2\t" + opening_hand);
+      if (scenario.gunsOfAugust) {
+        this.game.queue.push("DEAL\t1\t1\t" + (opening_hand - 1)); // player automatically gets Guns of August
+      } else {
+        this.game.queue.push("DEAL\t1\t1\t" + opening_hand);
+      }
 
       this.game.queue.push("DECKENCRYPT\t2\t2");
       this.game.queue.push("DECKENCRYPT\t2\t1");
@@ -1838,10 +1833,20 @@ console.log("\n\n\n\n");
       this.game.queue.push("DECKXOR\t1\t2");
       this.game.queue.push("DECKXOR\t1\t1");
 
-      let deck = this.returnMobilizationDeck("central");
-      delete deck["cp01"];
-      this.game.queue.push("DECK\t1\t"+JSON.stringify(deck));
-      this.game.queue.push("DECK\t2\t"+JSON.stringify(this.returnMobilizationDeck("allies")));
+      if (scenario.played) {
+        this.game.queue.push("scenario_bury\t2");
+        this.game.queue.push("scenario_bury\t1");
+      }
+
+      if (scenario.gunsOfAugust) {
+        let deck = this.returnMobilizationDeck("central");
+        delete deck["cp01"];
+        this.game.queue.push("DECK\t1\t"+JSON.stringify(deck));
+        this.game.queue.push("DECK\t2\t"+JSON.stringify(this.returnMobilizationDeck("allies")));
+      } else {
+        this.game.queue.push("DECK\t1\t"+JSON.stringify(this.returnDeck("central")));
+        this.game.queue.push("DECK\t2\t"+JSON.stringify(this.returnDeck("allies")));
+      }
 
       //
       // belgium joins the allies
@@ -2359,6 +2364,122 @@ deck['ap14'] = {
 	  return 0;
 	} ,
       }
+    
+    if (this.game && this.game.options && this.includeOptionalCards()) {
+deck['ap56'] = { 
+        key : 'paristaxis',
+        img : "cards/card_ap56.png" ,
+        name : "Paris Taxis" ,
+        cc : false ,
+        ops : 2 ,
+        sr : 2 ,        
+        rp : { 'BR' : 1 , 'FR' : 1 , 'RU' : 1 } ,        
+        type : "normal" ,
+        removeFromDeckAfterPlay : function(paths_self, faction) { return 1; } ,
+        canEvent : function(paths_self, faction) { return 1; } ,
+        onEvent : function(paths_self, faction) { 
+	  paths_self.game.queue.push(`rp\tcentral\tap56`);
+	  paths_self.game.queue.push(`paris_taxis`);
+	  return 1;
+	} ,
+        handleGameLoop : function(paths_self, qe, mv) {
+      
+          if (mv[0] === "paris_taxis") {
+
+            paths_self.game.queue.splice(qe, 1);
+            let p1 = paths_self.returnPlayerOfFaction("allies");
+
+    	    let filter_fnct = (spacekey, unit) => {
+	       if (paths_self.returnPowerOfUnit(unit) == "central") { return 0; }
+               if (unit.damaged == 1 && unit.destroyed != 1 && unit.army) { return 1; }
+	       return 0;
+      	    }
+
+	    let execute_fnct = (spacekey, unit_idx) => {
+      		      		paths_self.game.status = "processing...";
+      		paths_self.hud.updateStatus(paths_self.game.status);
+      		paths_self.hud.updateMenu([]);
+      		paths_self.hud.updateCards([]);
+	        if (spacekey === "pass") {
+        	  paths_self.removeSelectable();
+        	  paths_self.endTurn();
+        	  return 1;
+      	        }
+        	paths_self.game.spaces[spacekey].units[unit_idx].damaged = 0;
+		paths_self.addMove(`NOTIFY\t${paths_self.game.spaces[spacekey].units[unit_idx].name} repaired in ${paths_self.returnSpaceNameForLog(spacekey)}`);
+        	paths_self.addMove(`repair\tcentral\t${spacekey}\t${unit_idx}\t${paths_self.game.player}`);
+        	paths_self.displaySpace(spacekey);
+		paths_self.removeSelectable();
+		paths_self.endTurn();
+        	paths_self.shakeSpacekey(spacekey);
+	    } 
+
+    	    //
+    	    // players can flip 1 damaged armies back to full strength
+    	    //
+            paths_self.playerSelectUnitWithFilter(
+              "Select Unit to Repair / Deploy" ,
+              filter_fnct ,
+              execute_fnct ,
+              null ,
+              true ,
+              [{ key : "pass" , value : "pass" }]
+            );
+
+            return 0;
+          } 
+          
+	  return 1;
+	}
+      }
+
+deck['ap57'] = { 
+        key : 'russiancavalry',
+        img : "cards/card_ap57.png" ,
+        name : "Russian Cavalry" ,
+        cc : false ,
+        ops : 3 ,
+        sr : 4 ,        
+        rp : { 'BR' : 1 , 'FR' : 1 , 'IT' : 1 , 'RU' : 2 } ,        
+        type : "normal" ,
+        removeFromDeckAfterPlay : function(paths_self, faction) { return 1; } ,
+        canEvent : function(paths_self, faction) { return 1; } ,
+        onEvent : function(paths_self, faction) {
+
+            //
+            // supplied Russian spaces
+            //
+            let russian_spaces = paths_self.returnSpacekeysByCountry("russia");
+            for (let z = russian_spaces.length-1; z >= 0; z--) {
+              if (paths_self.game.spaces[russian_spaces[z]].control != "allies") {
+                russian_spaces.splice(z, 1);
+              } else {
+                if (!paths_self.checkSupplyStatus("ru", russian_spaces[z])) {
+                  russian_spaces.splice(z, 1); 
+                }
+              }
+            }
+          
+            if (russian_spaces.length == 0) {
+              paths_self.updateLog("No in-supply Russian spaces...");
+              return 1;
+            }
+          
+            if (paths_self.game.player == paths_self.returnPlayerOfFaction("allies")) {
+              paths_self.playerPlaceAllUnitsInSpacekey(russian_spaces, ["ru_cav", "ru_cav"], () => {
+                paths_self.endTurn();
+              });
+            } else {
+                            paths_self.game.status = "Russia placing unit...";
+              paths_self.hud.updateStatus(paths_self.game.status);
+              paths_self.hud.updateMenu([]);
+              paths_self.showPlayerHand();
+            }
+
+          return 0;
+        } ,
+      }
+    }
     }
 	  
     if (type == "central" || type == "all") {
@@ -2811,6 +2932,51 @@ deck['ap14'] = {
       }
 
 
+    
+    if (this.game && this.game.options && this.includeOptionalCards()) {
+deck['cp56'] = { 
+        key : 'withdrawal',
+        img : "cards/card_cp56.png" ,
+        name : "Withdrawal" ,
+        cc : true ,
+        ops : 2 ,
+        sr : 2 ,        
+        rp : { 'GE' : 1 } ,        
+        type : "normal" ,
+        removeFromDeckAfterPlay : function(paths_self, faction) { return 0; } ,
+        canEvent : function(paths_self, faction) { if (faction == "attacker") { return 0; } return 1; } ,
+        onEvent : function(paths_self, faction) {
+	  paths_self.game.state.events.withdrawal = 1;
+	  paths_self.game.state.combat.withdrawal = 1;
+	  return 1;
+	} ,
+      }
+
+deck['cp57'] = { 
+        key : 'kaisertreu',
+        img : "cards/card_cp57.png" ,
+        name : "Kaisertreu" ,
+        cc : true ,
+        ops : 3 ,
+        sr : 4 ,        
+        rp : { 'AH' : 1 , 'GE' : 2 , 'TU' : 1 } ,        
+        type : "normal" ,
+        removeFromDeckAfterPlay : function(paths_self, faction) { return 1; } ,
+        canEvent : function(paths_self, faction) {
+	  if (faction != "attacker" && faction != "defender") { return 0; }
+	  let units = (faction == "defender") ? paths_self.returnDefenderUnits() : paths_self.returnAttackerUnits();
+	  for (let i = 0; i < units.length; i++) {
+	    if (units[i].ckey == "AH") { return 1; }
+	  }
+	  return 0;
+	} ,
+        onEvent : function(paths_self, faction) {
+	  if (faction == "defender") { paths_self.game.state.combat.defender_drm++; }
+	  else { paths_self.game.state.combat.attacker_drm++; }
+	  return 1;
+	} ,
+      }
+    }
     }
 
     for (let key in deck) {
@@ -3487,6 +3653,187 @@ deck['ap34'] = {
 	  return 0;
         } ,
       }
+    
+    if (this.game && this.game.options && this.includeOptionalCards()) {
+deck['ap58'] = { 
+        key : 'russianguards',
+        img : "cards/card_ap58.png" ,
+        name : "Russian Guards" ,
+        cc : true ,
+        ops : 2 ,
+        sr : 2 ,      
+        rp : { 'BR' : 1 , 'FR' : 1 , 'RU' : 1 } ,        
+        type : "normal" ,
+        removeFromDeckAfterPlay : function(paths_self, faction) { return 1; } ,
+        canEvent : function(paths_self, faction) {
+	  let attacker_units = paths_self.returnAttackerUnits();
+	  for (let i = 0; i < attacker_units.length; i++) {
+	    if (attacker_units[i].ckey === "RU") { return 1; }
+	  }
+	  return 0;
+        } ,
+        onEvent : function(paths_self, faction) {
+	  let attacker_units = paths_self.returnAttackerUnits();
+	  for (let i = 0; i < attacker_units.length; i++) {
+	    if (attacker_units[i].ckey === "RU") { paths_self.game.state.combat.attacker_drm++; return 1; }
+	  }
+          return 0;
+        } ,
+      }
+
+deck['ap59'] = { 
+        key : 'alpinetroops',
+        img : "cards/card_ap59.png" ,
+        name : "Alpine Troops" ,
+        cc : true ,
+        ops : 2 ,
+        sr : 2 ,        
+        rp : { 'BR' : 1 , 'FR' : 1 , 'IT' : 2 , 'RU' : 2 } ,        
+        type : "normal" ,
+        removeFromDeckAfterPlay : function(paths_self, faction) { return 0; } ,
+        canEvent : function(paths_self, faction) {
+	  let attacker_units = paths_self.returnAttackerUnits();
+	  let italian_troops = 0;
+	  let only_italian_troops = 1;
+	  for (let i = 0; i < attacker_units.length; i++) {
+	    if (attacker_units[i].ckey == "IT") { 
+	      italian_troops = 1;
+	    }
+	    if (attacker_units[i].ckey != "IT") {
+	      only_italian_tro0ps = 0;
+	    }
+	  }
+	  if (italian_troops == 1 && only_italian_troops == 1) { return 1; }
+	  return 0; 
+	} ,
+        onEvent : function(paths_self, faction) {
+	  let attacker_units = paths_self.returnAttackerUnits();
+	  let italian_troops = 0;
+	  let only_italian_troops = 1;
+	  for (let i = 0; i < attacker_units.length; i++) {
+	    if (attacker_units[i].ckey == "IT") { 
+	      italian_troops = 1;
+	    }
+	    if (attacker_units[i].ckey != "IT") {
+	      only_italian_tro0ps = 0;
+	    }
+	  }
+	  if (italian_troops == 1 && only_italian_troops == 1) {
+	    paths_self.game.state.combat.attacker_drm++; return 1;
+	  }
+	  return 0; 
+	}
+      }
+
+deck['ap60'] = { 
+        key : 'czechlegion',
+        img : "cards/card_ap60.png" ,
+        name : "Czech Legion" ,
+        cc : false ,
+        ops : 3 ,
+        sr : 4 ,        
+        rp : { 'BR' : 1 , 'FR' : 1 , 'IT' : 1 , 'RU' : 2 } ,        
+        type : "normal" ,
+        removeFromDeckAfterPlay : function(paths_self, faction) { return 1; } ,
+        canEvent : function(paths_self, faction) {
+	  let box = paths_self.game.spaces["ceubox"];
+	  if (!box) { return 0; }
+	  for (let i = 0; i < box.units.length; i++) {
+	    if (box.units[i].corps && box.units[i].ckey == "AH") { return 1; }
+	  }
+	  return 0;
+	} ,
+        onEvent : function(paths_self, faction) {
+	  // Russian for movement, supply, and combat. Replacement still looks up ru_corps by unit key.
+	  paths_self.game.units["czl_corps"].ckey = "RU";
+
+	  if (paths_self.game.player != paths_self.returnPlayerOfFaction("allies")) {
+	    paths_self.game.status = "Allies playing Czech Legion";
+	    paths_self.hud.updateStatus(paths_self.game.status);
+	    paths_self.hud.updateMenu([]);
+	    paths_self.showPlayerHand();
+	    return 0;
+	  }
+
+	  let filter_fnct = (spacekey, unit) => {
+	    if (spacekey != "ceubox") { return 0; }
+	    if (unit.corps && unit.ckey == "AH") { return 1; }
+	    return 0;
+	  };
+
+	  paths_self.playerSelectUnitWithFilter(
+	    "Czech Legion: remove an Austro-Hungarian corps from the eliminated box" ,
+	    filter_fnct ,
+	    (spacekey, unit_idx) => {
+	      paths_self.removeSelectable();
+	      let unit = paths_self.game.spaces[spacekey].units[unit_idx];
+	      let step = unit.damaged ? 1 : 0;
+	      paths_self.addMove("add\tarbox\tczl_corps");
+	      paths_self.addMove(`remove\tceubox\t${unit.key}\t0\t${step}`);
+	      paths_self.addMove("NOTIFY\tCzech Legion removes an Austro-Hungarian corps and enters the Allied Reserve");
+	      paths_self.endTurn();
+	    } ,
+	    null ,
+	    true
+	  );
+	  return 0;
+	} ,
+      }
+
+deck['ap61'] = { 
+        key : 'maude',
+        img : "cards/card_ap61.png" ,
+        name : "Maude" ,
+        cc : true ,
+        ops : 4 ,
+        sr : 4 ,        
+        rp : { 'A' : 1 , 'BR' : 2 , 'FR' : 2 , 'IT' : 1 , 'RU' : 3 } ,        
+        type : "normal" ,
+        removeFromDeckAfterPlay : function(paths_self, faction) { return 1; } ,
+        canEvent : function(paths_self, faction) {
+	  if (faction != "attacker") { return 0; }
+	  let attackers = paths_self.game.state.combat.attacker || [];
+	  let tracesToBasra = (spacekey) => {
+	    let pending = [spacekey];
+	    let examined = {};
+	    let ports_added = false;
+	    let ports = paths_self.returnFriendlyControlledPorts("allies");
+	    while (pending.length > 0) {
+	      let current = pending.shift();
+	      if (examined[current]) { continue; }
+	      examined[current] = true;
+	      if (current == "basra" && paths_self.returnControlOfSpace("basra") == "allies") { return 1; }
+	      let space = paths_self.game.spaces[current];
+	      if (!space) { continue; }
+	      for (let n = 0; n < space.neighbours.length; n++) {
+	        let next = space.neighbours[n];
+	        if (!examined[next] && paths_self.returnControlOfSpace(next) == "allies") { pending.push(next); }
+	      }
+	      if (!ports_added && space.port == 1 && space.control == "allies") {
+	        for (let i = 0; i < ports.length; i++) {
+	          if (paths_self.game.spaces[ports[i]].control == "allies") { pending.push(ports[i]); }
+	        }
+	        ports_added = true;
+	      }
+	    }
+	    return 0;
+	  };
+	  for (let i = 0; i < attackers.length; i++) {
+	    let record = attackers[i];
+	    let unit = paths_self.game.spaces[record.unit_sourcekey].units[record.unit_idx];
+	    if (!unit) { continue; }
+	    if (unit.ckey != "BR" && unit.ckey != "BEF") { continue; }
+	    if (tracesToBasra(record.unit_sourcekey)) { return 1; }
+	  }
+	  return 0;
+	} ,
+        onEvent : function(paths_self, faction) {
+	  paths_self.game.state.combat.maude = 1;
+	  paths_self.updateLog("Maude: British attack fires on the Army Table");
+	  return 1;
+	} ,
+      }
+    }
     }
 
     if (type == "central" || type == "all") {
@@ -4087,6 +4434,164 @@ deck['cp33'] = {
       }
 
 
+    
+    if (this.game && this.game.options && this.includeOptionalCards()) {
+deck['cp58'] = { 
+        key : 'stavkatimidity',
+        img : "cards/card_cp58.png" ,
+        name : "Stavka Timidity" ,
+        cc : false ,
+        ops : 2 ,
+        sr : 2 ,        
+        rp : { 'GE' : 1 } ,        
+        type : "normal" ,
+        removeFromDeckAfterPlay : function(paths_self, faction) { return 0; } ,
+        canEvent : function(paths_self, faction) {
+	  if (paths_self.game.state.events.tsar_takes_command) { return 1; }
+	  return 0;
+	} ,
+        onEvent : function(paths_self, faction) {
+	  paths_self.game.state.events.stavka_timidity = 1;
+	  paths_self.updateLog("Stavka Timidity: Russian units cannot attack entrenched Germans this turn");
+	  return 1;
+	} ,
+      }
+
+deck['cp59'] = { 
+        key : 'polishrestoration',
+        img : "cards/card_cp59.png" ,
+        name : "Polish Restoration" ,
+        cc : false ,
+        ops : 3 ,
+        sr : 4 ,        
+        rp : { 'AH' : 1 , 'GE' : 2 , 'TU' : 1 } ,        
+        type : "normal" ,
+        removeFromDeckAfterPlay : function(paths_self, faction) { return 1; } ,
+        canEvent : function(paths_self, faction) {
+	  if (paths_self.game.spaces["warsaw"] && paths_self.game.spaces["warsaw"].control == "central") { return 1; }
+	  return 0;
+	} ,
+        onEvent : function(paths_self, faction) {
+	  paths_self.game.units["pol_corps"].ckey = "GE";
+	  paths_self.game.state.events.polish_restoration = 1;
+	  paths_self.calculateVictoryPoints();
+	  paths_self.displayGeneralRecordsTrack();
+
+	  if (paths_self.game.player != paths_self.returnPlayerOfFaction("central")) {
+	    paths_self.game.status = "Central Powers playing Polish Restoration";
+	    paths_self.hud.updateStatus(paths_self.game.status);
+	    paths_self.hud.updateMenu([]);
+	    paths_self.showPlayerHand();
+	    return 0;
+	  }
+
+	  paths_self.addMove("add\tcrbox\tpol_corps");
+	  paths_self.addMove("add\tcrbox\tpol_corps");
+	  paths_self.addMove("add\tcrbox\tpol_corps");
+	  paths_self.addMove("NOTIFY\tPolish Restoration: three Polish corps enter the Central Reserve");
+	  paths_self.endTurn();
+	  return 0;
+	} ,
+      }
+
+deck['cp60'] = { 
+        key : 'turkdetermination',
+        img : "cards/card_cp60.png" ,
+        name : "Turk Determination" ,
+        cc : true ,
+        ops : 3 ,
+        sr : 4 ,        
+        rp : { 'AH' : 1 , 'GE' : 2 , 'TU' : 1 } ,        
+        type : "normal" ,
+        removeFromDeckAfterPlay : function(paths_self, faction) { return 1; } ,
+        canEvent : function(paths_self, faction) {
+	  if (faction != "defender") { return 0; }
+	  let key = paths_self.game.state.combat && paths_self.game.state.combat.key;
+	  if (!key || !paths_self.game.spaces[key]) { return 0; }
+	  if (paths_self.game.spaces[key].trench > 0) { return 0; }
+	  let defenders = paths_self.returnDefenderUnits();
+	  for (let i = 0; i < defenders.length; i++) {
+	    if (defenders[i].ckey == "TU" && !defenders[i].destroyed) { return 1; }
+	  }
+	  return 0;
+	} ,
+        onEvent : function(paths_self, faction) {
+	  if (faction != "defender") { return 1; }
+	  let key = paths_self.game.state.combat && paths_self.game.state.combat.key;
+	  let space = key && paths_self.game.spaces[key];
+	  if (!space || space.trench > 0) { return 1; }
+
+	  let turkish = false;
+	  let defenders = paths_self.returnDefenderUnits();
+	  for (let i = 0; i < defenders.length; i++) {
+	    if (defenders[i].ckey == "TU" && !defenders[i].destroyed) { turkish = true; }
+	  }
+	  if (!turkish) { return 1; }
+
+	  if (paths_self.game.state.events.brusilov_offensive == 1) {
+	    let attackers = paths_self.returnAttackerUnits();
+	    for (let i = 0; i < attackers.length; i++) {
+	      if (attackers[i].ckey == "RU") {
+		paths_self.updateLog("Brusilov Offensive negates Turk Determination");
+		paths_self.paths_log.addModifier("Brusilov Offensive negates Turk Determination");
+		return 1;
+	      }
+	    }
+	  }
+
+	  space.trench = 1;
+	  space.turk_determination = 1;
+	  paths_self.displaySpace(key);
+	  paths_self.updateLog("Turk Determination: " + paths_self.returnSpaceNameForLog(key) + " is trench level 1 for this combat");
+	  paths_self.paths_log.addModifier("Turk Determination: trench level 1");
+
+	  let q = paths_self.game.queue;
+	  let idx = -1;
+	  for (let i = q.length - 1; i >= 0; i--) {
+	    if (q[i].indexOf("combat_attacker_advance") === 0) { idx = i; break; }
+	  }
+	  if (idx >= 0) {
+	    q.splice(idx, 0, "turk_determination_clear\t" + key);
+	  } else {
+	    q.unshift("turk_determination_clear\t" + key);
+	  }
+	  return 1;
+	} ,
+        handleGameLoop : function(paths_self, qe, mv) {
+	  if (mv[0] !== "turk_determination_clear") { return 1; }
+	  paths_self.game.queue.splice(qe, 1);
+	  let key = mv[1];
+	  let space = paths_self.game.spaces[key];
+	  if (space && space.turk_determination) {
+	    space.turk_determination = 0;
+	    space.trench = 0;
+	    paths_self.displaySpace(key);
+	  }
+	  return 1;
+	} ,
+      }
+
+deck['cp61'] = { 
+        key : 'haig',
+        img : "cards/card_cp61.png" ,
+        name : "Haig" ,
+        cc : false ,
+        ops : 4 ,
+        sr : 4 ,        
+        rp : { 'AH' : 2 , 'BU' : 1 , 'GE' : 3 , 'TU' : 1 } ,        
+        type : "normal" ,
+        removeFromDeckAfterPlay : function(paths_self, faction) { return 1; } ,
+        canEvent : function(paths_self, faction) {
+	  if (paths_self.game.state.events.michael || paths_self.game.state.events.blucher || paths_self.game.state.events.peace_offensive) { return 0; }
+	  return 1;
+	} ,
+        onEvent : function(paths_self, faction) {
+	  paths_self.game.state.events.haig = 1;
+	  paths_self.updateLog("Haig: entrenched Germans in France, Belgium, and Germany ignore retreats against British attacks this turn");
+	  return 1;
+	} ,
+      }
+    }
     }
     return deck;
   }
@@ -4538,301 +5043,30 @@ deck['ap55'] = {
 	} ,
       }
 
-deck['ap56'] = { 
-        key : 'paristaxis',
-        img : "cards/card_ap56.png" ,
-        name : "Paris Taxis" ,
-        cc : false ,
-        ops : 2 ,
-        sr : 2 ,        
-        rp : { 'BR' : 1 , 'FR' : 1 , 'RU' : 1 } ,        
-        type : "normal" ,
-        removeFromDeckAfterPlay : function(paths_self, faction) { return 1; } ,
-        canEvent : function(paths_self, faction) { return 1; } ,
-        onEvent : function(paths_self, faction) { 
-	  paths_self.game.queue.push(`rp\tcentral\tap56`);
-	  paths_self.game.queue.push(`paris_taxis`);
-	  return 1;
-	} ,
-        handleGameLoop : function(paths_self, qe, mv) {
-      
-          if (mv[0] === "paris_taxis") {
-
-            paths_self.game.queue.splice(qe, 1);
-            let p1 = paths_self.returnPlayerOfFaction("allies");
-
-    	    let filter_fnct = (spacekey, unit) => {
-	       if (paths_self.returnPowerOfUnit(unit) == "central") { return 0; }
-               if (unit.damaged == 1 && unit.destroyed != 1 && unit.army) { return 1; }
-	       return 0;
-      	    }
-
-	    let execute_fnct = (spacekey, unit_idx) => {
-      		      		paths_self.game.status = "processing...";
-      		paths_self.hud.updateStatus(paths_self.game.status);
-      		paths_self.hud.updateMenu([]);
-      		paths_self.hud.updateCards([]);
-	        if (spacekey === "pass") {
-        	  paths_self.removeSelectable();
-        	  paths_self.endTurn();
-        	  return 1;
-      	        }
-        	paths_self.game.spaces[spacekey].units[unit_idx].damaged = 0;
-		paths_self.addMove(`NOTIFY\t${paths_self.game.spaces[spacekey].units[unit_idx].name} repaired in ${paths_self.returnSpaceNameForLog(spacekey)}`);
-        	paths_self.addMove(`repair\tcentral\t${spacekey}\t${unit_idx}\t${paths_self.game.player}`);
-        	paths_self.displaySpace(spacekey);
-		paths_self.removeSelectable();
-		paths_self.endTurn();
-        	paths_self.shakeSpacekey(spacekey);
-	    } 
-
-    	    //
-    	    // players can flip 1 damaged armies back to full strength
-    	    //
-            paths_self.playerSelectUnitWithFilter(
-              "Select Unit to Repair / Deploy" ,
-              filter_fnct ,
-              execute_fnct ,
-              null ,
-              true ,
-              [{ key : "pass" , value : "pass" }]
-            );
-
-            return 0;
-          } 
-          
-	  return 1;
-	}
-      }
-
-deck['ap57'] = { 
-        key : 'russiancavalry',
-        img : "cards/card_ap57.png" ,
-        name : "Russian Cavalry" ,
-        cc : false ,
-        ops : 3 ,
-        sr : 4 ,        
-        rp : { 'BR' : 1 , 'FR' : 1 , 'IT' : 1 , 'RU' : 2 } ,        
-        type : "normal" ,
-        removeFromDeckAfterPlay : function(paths_self, faction) { return 1; } ,
-        canEvent : function(paths_self, faction) { return 1; } ,
-        onEvent : function(paths_self, faction) {
-
-            //
-            // supplied Russian spaces
-            //
-            let russian_spaces = paths_self.returnSpacekeysByCountry("russia");
-            for (let z = russian_spaces.length-1; z >= 0; z--) {
-              if (paths_self.game.spaces[russian_spaces[z]].control != "allies") {
-                russian_spaces.splice(z, 1);
-              } else {
-                if (!paths_self.checkSupplyStatus("ru", russian_spaces[z])) {
-                  russian_spaces.splice(z, 1); 
-                }
-              }
-            }
-          
-            if (russian_spaces.length == 0) {
-              paths_self.updateLog("No in-supply Russian spaces...");
-              return 1;
-            }
-          
-            if (paths_self.game.player == paths_self.returnPlayerOfFaction("allies")) {
-              paths_self.playerPlaceAllUnitsInSpacekey(russian_spaces, ["ru_cav", "ru_cav"], () => {
-                paths_self.endTurn();
-              });
-            } else {
-                            paths_self.game.status = "Russia placing unit...";
-              paths_self.hud.updateStatus(paths_self.game.status);
-              paths_self.hud.updateMenu([]);
-              paths_self.showPlayerHand();
-            }
-
-          return 0;
-        } ,
-      }
-
-deck['ap58'] = { 
-        key : 'russianguards',
-        img : "cards/card_ap58.png" ,
-        name : "Russian Guards" ,
-        cc : true ,
-        ops : 2 ,
-        sr : 2 ,      
-        rp : { 'BR' : 1 , 'FR' : 1 , 'RU' : 1 } ,        
-        type : "normal" ,
-        removeFromDeckAfterPlay : function(paths_self, faction) { return 1; } ,
-        canEvent : function(paths_self, faction) {
-	  let attacker_units = paths_self.returnAttackerUnits();
-	  for (let i = 0; i < attacker_units.length; i++) {
-	    if (attacker_units[i].ckey === "RU") { return 1; }
-	  }
-	  return 0;
-        } ,
-        onEvent : function(paths_self, faction) {
-	  let attacker_units = paths_self.returnAttackerUnits();
-	  for (let i = 0; i < attacker_units.length; i++) {
-	    if (attacker_units[i].ckey === "RU") { paths_self.game.state.combat.attacker_drm++; return 1; }
-	  }
-          return 0;
-        } ,
-      }
 
 
-deck['ap59'] = { 
-        key : 'alpinetroops',
-        img : "cards/card_ap59.png" ,
-        name : "Alpine Troops" ,
-        cc : true ,
-        ops : 2 ,
-        sr : 2 ,        
-        rp : { 'BR' : 1 , 'FR' : 1 , 'IT' : 2 , 'RU' : 2 } ,        
-        type : "normal" ,
-        removeFromDeckAfterPlay : function(paths_self, faction) { return 0; } ,
-        canEvent : function(paths_self, faction) {
-	  let attacker_units = paths_self.returnAttackerUnits();
-	  let italian_troops = 0;
-	  let only_italian_troops = 1;
-	  for (let i = 0; i < attacker_units.length; i++) {
-	    if (attacker_units[i].ckey == "IT") { 
-	      italian_troops = 1;
-	    }
-	    if (attacker_units[i].ckey != "IT") {
-	      only_italian_tro0ps = 0;
-	    }
-	  }
-	  if (italian_troops == 1 && only_italian_troops == 1) { return 1; }
-	  return 0; 
-	} ,
-        onEvent : function(paths_self, faction) {
-	  let attacker_units = paths_self.returnAttackerUnits();
-	  let italian_troops = 0;
-	  let only_italian_troops = 1;
-	  for (let i = 0; i < attacker_units.length; i++) {
-	    if (attacker_units[i].ckey == "IT") { 
-	      italian_troops = 1;
-	    }
-	    if (attacker_units[i].ckey != "IT") {
-	      only_italian_tro0ps = 0;
-	    }
-	  }
-	  if (italian_troops == 1 && only_italian_troops == 1) {
-	    paths_self.game.state.combat.attacker_drm++; return 1;
-	  }
-	  return 0; 
-	}
-      }
 
 
-deck['ap60'] = { 
-        key : 'czechlegion',
-        img : "cards/card_ap60.png" ,
-        name : "Czech Legion" ,
-        cc : false ,
-        ops : 3 ,
-        sr : 4 ,        
-        rp : { 'BR' : 1 , 'FR' : 1 , 'IT' : 1 , 'RU' : 2 } ,        
-        type : "normal" ,
-        removeFromDeckAfterPlay : function(paths_self, faction) { return 1; } ,
-        canEvent : function(paths_self, faction) {
-	  let box = paths_self.game.spaces["ceubox"];
-	  if (!box) { return 0; }
-	  for (let i = 0; i < box.units.length; i++) {
-	    if (box.units[i].corps && box.units[i].ckey == "AH") { return 1; }
-	  }
-	  return 0;
-	} ,
-        onEvent : function(paths_self, faction) {
-	  // Russian for movement, supply, and combat. Replacement still looks up ru_corps by unit key.
-	  paths_self.game.units["czl_corps"].ckey = "RU";
 
-	  if (paths_self.game.player != paths_self.returnPlayerOfFaction("allies")) {
-	    paths_self.game.status = "Allies playing Czech Legion";
-	    paths_self.hud.updateStatus(paths_self.game.status);
-	    paths_self.hud.updateMenu([]);
-	    paths_self.showPlayerHand();
-	    return 0;
-	  }
 
-	  let filter_fnct = (spacekey, unit) => {
-	    if (spacekey != "ceubox") { return 0; }
-	    if (unit.corps && unit.ckey == "AH") { return 1; }
-	    return 0;
-	  };
 
-	  paths_self.playerSelectUnitWithFilter(
-	    "Czech Legion: remove an Austro-Hungarian corps from the eliminated box" ,
-	    filter_fnct ,
-	    (spacekey, unit_idx) => {
-	      paths_self.removeSelectable();
-	      let unit = paths_self.game.spaces[spacekey].units[unit_idx];
-	      let step = unit.damaged ? 1 : 0;
-	      paths_self.addMove("add\tarbox\tczl_corps");
-	      paths_self.addMove(`remove\tceubox\t${unit.key}\t0\t${step}`);
-	      paths_self.addMove("NOTIFY\tCzech Legion removes an Austro-Hungarian corps and enters the Allied Reserve");
-	      paths_self.endTurn();
-	    } ,
-	    null ,
-	    true
-	  );
-	  return 0;
-	} ,
-      }
 
-deck['ap61'] = { 
-        key : 'maude',
-        img : "cards/card_ap61.png" ,
-        name : "Maude" ,
-        cc : true ,
-        ops : 4 ,
-        sr : 4 ,        
-        rp : { 'A' : 1 , 'BR' : 2 , 'FR' : 2 , 'IT' : 1 , 'RU' : 3 } ,        
-        type : "normal" ,
-        removeFromDeckAfterPlay : function(paths_self, faction) { return 1; } ,
-        canEvent : function(paths_self, faction) {
-	  if (faction != "attacker") { return 0; }
-	  let attackers = paths_self.game.state.combat.attacker || [];
-	  let tracesToBasra = (spacekey) => {
-	    let pending = [spacekey];
-	    let examined = {};
-	    let ports_added = false;
-	    let ports = paths_self.returnFriendlyControlledPorts("allies");
-	    while (pending.length > 0) {
-	      let current = pending.shift();
-	      if (examined[current]) { continue; }
-	      examined[current] = true;
-	      if (current == "basra" && paths_self.returnControlOfSpace("basra") == "allies") { return 1; }
-	      let space = paths_self.game.spaces[current];
-	      if (!space) { continue; }
-	      for (let n = 0; n < space.neighbours.length; n++) {
-	        let next = space.neighbours[n];
-	        if (!examined[next] && paths_self.returnControlOfSpace(next) == "allies") { pending.push(next); }
-	      }
-	      if (!ports_added && space.port == 1 && space.control == "allies") {
-	        for (let i = 0; i < ports.length; i++) {
-	          if (paths_self.game.spaces[ports[i]].control == "allies") { pending.push(ports[i]); }
-	        }
-	        ports_added = true;
-	      }
-	    }
-	    return 0;
-	  };
-	  for (let i = 0; i < attackers.length; i++) {
-	    let record = attackers[i];
-	    let unit = paths_self.game.spaces[record.unit_sourcekey].units[record.unit_idx];
-	    if (!unit) { continue; }
-	    if (unit.ckey != "BR" && unit.ckey != "BEF") { continue; }
-	    if (tracesToBasra(record.unit_sourcekey)) { return 1; }
-	  }
-	  return 0;
-	} ,
-        onEvent : function(paths_self, faction) {
-	  paths_self.game.state.combat.maude = 1;
-	  paths_self.updateLog("Maude: British attack fires on the Army Table");
-	  return 1;
-	} ,
-      }
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+    
+    if (this.game && this.game.options && this.includeOptionalCards()) {
 deck['ap62'] = { 
         key : 'Thesixtusaffair',
         img : "cards/card_ap62.png" ,
@@ -4930,7 +5164,7 @@ deck['ap65'] = {
 	  return 1;
 	} ,
       }
-
+    }
     }
 
     if (type == "central" || type == "all") {
@@ -5433,31 +5667,28 @@ deck['cp55'] = {
 	} ,
       }
 
-deck['cp57'] = { 
-        key : 'kaisertreu',
-        img : "cards/card_cp57.png" ,
-        name : "Kaisertreu" ,
-        cc : true ,
-        ops : 3 ,
-        sr : 4 ,        
-        rp : { 'AH' : 1 , 'GE' : 2 , 'TU' : 1 } ,        
-        type : "normal" ,
-        removeFromDeckAfterPlay : function(paths_self, faction) { return 1; } ,
-        canEvent : function(paths_self, faction) {
-	  if (faction != "attacker" && faction != "defender") { return 0; }
-	  let units = (faction == "defender") ? paths_self.returnDefenderUnits() : paths_self.returnAttackerUnits();
-	  for (let i = 0; i < units.length; i++) {
-	    if (units[i].ckey == "AH") { return 1; }
-	  }
-	  return 0;
-	} ,
-        onEvent : function(paths_self, faction) {
-	  if (faction == "defender") { paths_self.game.state.combat.defender_drm++; }
-	  else { paths_self.game.state.combat.attacker_drm++; }
-	  return 1;
-	} ,
-      }
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    
+    if (this.game && this.game.options && this.includeOptionalCards()) {
 deck['cp62'] = { 
         key : 'achtung:panzer',
         img : "cards/card_cp62.png" ,
@@ -5480,42 +5711,6 @@ deck['cp62'] = {
 	} ,
         onEvent : function(paths_self, faction) {
 	  paths_self.game.state.combat.attacker_drm++;
-	  return 1;
-	} ,
-      }
-
-deck['cp65'] = { 
-        key : 'princemax',
-        img : "cards/card_cp65.png" ,
-        name : "Prince Max" ,
-        cc : false ,
-	ws : 3 ,
-        ops : 4 ,
-        sr : 4 ,        
-        rp : { 'AH' : 2 , 'BU' : 1 , 'GE' : 3 , 'TU' : 1 } ,        
-        type : "normal" ,
-        removeFromDeckAfterPlay : function(paths_self, faction) { return 1; } ,
-        canEvent : function(paths_self, faction) { if (paths_self.game.state.turn > 16) { return 0; } return 1; } ,
-        onEvent : function(paths_self, faction) {
-	  paths_self.updateLog("Prince Max: Central Powers War Status +3");
-	  return 1;
-	} ,
-      }
-
-deck['cp56'] = { 
-        key : 'withdrawal',
-        img : "cards/card_cp56.png" ,
-        name : "Withdrawal" ,
-        cc : true ,
-        ops : 2 ,
-        sr : 2 ,        
-        rp : { 'GE' : 1 } ,        
-        type : "normal" ,
-        removeFromDeckAfterPlay : function(paths_self, faction) { return 0; } ,
-        canEvent : function(paths_self, faction) { if (faction == "attacker") { return 0; } return 1; } ,
-        onEvent : function(paths_self, faction) {
-	  paths_self.game.state.events.withdrawal = 1;
-	  paths_self.game.state.combat.withdrawal = 1;
 	  return 1;
 	} ,
       }
@@ -5587,162 +5782,6 @@ deck['cp63'] = {
 	} ,
       }
 
-deck['cp60'] = { 
-        key : 'turkdetermination',
-        img : "cards/card_cp60.png" ,
-        name : "Turk Determination" ,
-        cc : true ,
-        ops : 3 ,
-        sr : 4 ,        
-        rp : { 'AH' : 1 , 'GE' : 2 , 'TU' : 1 } ,        
-        type : "normal" ,
-        removeFromDeckAfterPlay : function(paths_self, faction) { return 1; } ,
-        canEvent : function(paths_self, faction) {
-	  if (faction != "defender") { return 0; }
-	  let key = paths_self.game.state.combat && paths_self.game.state.combat.key;
-	  if (!key || !paths_self.game.spaces[key]) { return 0; }
-	  if (paths_self.game.spaces[key].trench > 0) { return 0; }
-	  let defenders = paths_self.returnDefenderUnits();
-	  for (let i = 0; i < defenders.length; i++) {
-	    if (defenders[i].ckey == "TU" && !defenders[i].destroyed) { return 1; }
-	  }
-	  return 0;
-	} ,
-        onEvent : function(paths_self, faction) {
-	  if (faction != "defender") { return 1; }
-	  let key = paths_self.game.state.combat && paths_self.game.state.combat.key;
-	  let space = key && paths_self.game.spaces[key];
-	  if (!space || space.trench > 0) { return 1; }
-
-	  let turkish = false;
-	  let defenders = paths_self.returnDefenderUnits();
-	  for (let i = 0; i < defenders.length; i++) {
-	    if (defenders[i].ckey == "TU" && !defenders[i].destroyed) { turkish = true; }
-	  }
-	  if (!turkish) { return 1; }
-
-	  if (paths_self.game.state.events.brusilov_offensive == 1) {
-	    let attackers = paths_self.returnAttackerUnits();
-	    for (let i = 0; i < attackers.length; i++) {
-	      if (attackers[i].ckey == "RU") {
-		paths_self.updateLog("Brusilov Offensive negates Turk Determination");
-		paths_self.paths_log.addModifier("Brusilov Offensive negates Turk Determination");
-		return 1;
-	      }
-	    }
-	  }
-
-	  space.trench = 1;
-	  space.turk_determination = 1;
-	  paths_self.displaySpace(key);
-	  paths_self.updateLog("Turk Determination: " + paths_self.returnSpaceNameForLog(key) + " is trench level 1 for this combat");
-	  paths_self.paths_log.addModifier("Turk Determination: trench level 1");
-
-	  let q = paths_self.game.queue;
-	  let idx = -1;
-	  for (let i = q.length - 1; i >= 0; i--) {
-	    if (q[i].indexOf("combat_attacker_advance") === 0) { idx = i; break; }
-	  }
-	  if (idx >= 0) {
-	    q.splice(idx, 0, "turk_determination_clear\t" + key);
-	  } else {
-	    q.unshift("turk_determination_clear\t" + key);
-	  }
-	  return 1;
-	} ,
-        handleGameLoop : function(paths_self, qe, mv) {
-	  if (mv[0] !== "turk_determination_clear") { return 1; }
-	  paths_self.game.queue.splice(qe, 1);
-	  let key = mv[1];
-	  let space = paths_self.game.spaces[key];
-	  if (space && space.turk_determination) {
-	    space.turk_determination = 0;
-	    space.trench = 0;
-	    paths_self.displaySpace(key);
-	  }
-	  return 1;
-	} ,
-      }
-
-deck['cp58'] = { 
-        key : 'stavkatimidity',
-        img : "cards/card_cp58.png" ,
-        name : "Stavka Timidity" ,
-        cc : false ,
-        ops : 2 ,
-        sr : 2 ,        
-        rp : { 'GE' : 1 } ,        
-        type : "normal" ,
-        removeFromDeckAfterPlay : function(paths_self, faction) { return 0; } ,
-        canEvent : function(paths_self, faction) {
-	  if (paths_self.game.state.events.tsar_takes_command) { return 1; }
-	  return 0;
-	} ,
-        onEvent : function(paths_self, faction) {
-	  paths_self.game.state.events.stavka_timidity = 1;
-	  paths_self.updateLog("Stavka Timidity: Russian units cannot attack entrenched Germans this turn");
-	  return 1;
-	} ,
-      }
-
-deck['cp59'] = { 
-        key : 'polishrestoration',
-        img : "cards/card_cp59.png" ,
-        name : "Polish Restoration" ,
-        cc : false ,
-        ops : 3 ,
-        sr : 4 ,        
-        rp : { 'AH' : 1 , 'GE' : 2 , 'TU' : 1 } ,        
-        type : "normal" ,
-        removeFromDeckAfterPlay : function(paths_self, faction) { return 1; } ,
-        canEvent : function(paths_self, faction) {
-	  if (paths_self.game.spaces["warsaw"] && paths_self.game.spaces["warsaw"].control == "central") { return 1; }
-	  return 0;
-	} ,
-        onEvent : function(paths_self, faction) {
-	  paths_self.game.units["pol_corps"].ckey = "GE";
-	  paths_self.game.state.events.polish_restoration = 1;
-	  paths_self.calculateVictoryPoints();
-	  paths_self.displayGeneralRecordsTrack();
-
-	  if (paths_self.game.player != paths_self.returnPlayerOfFaction("central")) {
-	    paths_self.game.status = "Central Powers playing Polish Restoration";
-	    paths_self.hud.updateStatus(paths_self.game.status);
-	    paths_self.hud.updateMenu([]);
-	    paths_self.showPlayerHand();
-	    return 0;
-	  }
-
-	  paths_self.addMove("add\tcrbox\tpol_corps");
-	  paths_self.addMove("add\tcrbox\tpol_corps");
-	  paths_self.addMove("add\tcrbox\tpol_corps");
-	  paths_self.addMove("NOTIFY\tPolish Restoration: three Polish corps enter the Central Reserve");
-	  paths_self.endTurn();
-	  return 0;
-	} ,
-      }
-
-deck['cp61'] = { 
-        key : 'haig',
-        img : "cards/card_cp61.png" ,
-        name : "Haig" ,
-        cc : false ,
-        ops : 4 ,
-        sr : 4 ,        
-        rp : { 'AH' : 2 , 'BU' : 1 , 'GE' : 3 , 'TU' : 1 } ,        
-        type : "normal" ,
-        removeFromDeckAfterPlay : function(paths_self, faction) { return 1; } ,
-        canEvent : function(paths_self, faction) {
-	  if (paths_self.game.state.events.michael || paths_self.game.state.events.blucher || paths_self.game.state.events.peace_offensive) { return 0; }
-	  return 1;
-	} ,
-        onEvent : function(paths_self, faction) {
-	  paths_self.game.state.events.haig = 1;
-	  paths_self.updateLog("Haig: entrenched Germans in France, Belgium, and Germany ignore retreats against British attacks this turn");
-	  return 1;
-	} ,
-      }
-
 deck['cp64'] = { 
         key : 'alberich',
         img : "cards/card_cp64.png" ,
@@ -5772,6 +5811,24 @@ deck['cp64'] = {
 	} ,
       }
 
+deck['cp65'] = { 
+        key : 'princemax',
+        img : "cards/card_cp65.png" ,
+        name : "Prince Max" ,
+        cc : false ,
+	ws : 3 ,
+        ops : 4 ,
+        sr : 4 ,        
+        rp : { 'AH' : 2 , 'BU' : 1 , 'GE' : 3 , 'TU' : 1 } ,        
+        type : "normal" ,
+        removeFromDeckAfterPlay : function(paths_self, faction) { return 1; } ,
+        canEvent : function(paths_self, faction) { if (paths_self.game.state.turn > 16) { return 0; } return 1; } ,
+        onEvent : function(paths_self, faction) {
+	  paths_self.updateLog("Prince Max: Central Powers War Status +3");
+	  return 1;
+	} ,
+      }
+    }
     }
 
     return deck;
@@ -6082,6 +6139,7 @@ deck['cp64'] = {
 
   hideOverlays() {
     this.zoom_overlay.hide();
+    this.hideSpaceStack();
   }
 
   pulseSpacekey(spacekey) {
@@ -6330,10 +6388,16 @@ deck['cp64'] = {
 
 
       //
-      // units / armies
+      // units / armies — largest current movement is drawn on top
       //
-      for (let i = 0; i < space.units.length; i++) {
-        html += this.returnUnitImageInSpaceWithIndex(key, i);
+      let draw_units = space.units.slice();
+      draw_units.sort((a, b) => {
+        let am = a.damaged ? a.rmovement : a.movement;
+        let bm = b.damaged ? b.rmovement : b.movement;
+        return (am || 0) - (bm || 0);
+      });
+      for (let i = 0; i < draw_units.length; i++) {
+        html += this.returnUnitImage(draw_units[i]);
       }
 
       //
@@ -6419,12 +6483,209 @@ deck['cp64'] = {
 //        if (control == "allies") { el.classList.add("allies-highlight"); }
 //        if (control == "central") { el.classList.add("central-highlight"); }
 //        if (control == "neutral") { el.classList.add("neutral-highlight"); }
-	el.innerHTML = html; 
+	el.innerHTML = html;
+	el.classList.remove("opponent-move", "opponent-attack");
+	if (this.opponent_marks_visible && this.opponent_marks && this.opponent_marks[key] == "attack") {
+	  el.classList.add("opponent-attack");
+	} else if (this.opponent_marks_visible && this.opponent_marks && this.opponent_marks[key] == "move") {
+	  el.classList.add("opponent-move");
+	}
       });
+
+      if (this.space_stack_key === key) {
+        this.layoutSpaceStack(key);
+      }
+
+      if (this.loss_overlay && this.loss_overlay.board_mode) {
+        this.loss_overlay.onBoardSpaceRedrawn(key);
+      }
 
     } catch (err) {
 console.log("err: " + err);
     }
+  }
+
+  spaceHasMultipleUnits(spacekey) {
+    let space = this.game.spaces && this.game.spaces[spacekey];
+    return !!(space && space.units && space.units.length > 1);
+  }
+
+  showSpaceStack(spacekey) {
+    if (!this.spaceHasMultipleUnits(spacekey)) { return; }
+    if (this.space_stack_key && this.space_stack_key !== spacekey) {
+      this.hideSpaceStack();
+    }
+    this.space_stack_key = spacekey;
+    this.layoutSpaceStack(spacekey);
+  }
+
+  hideSpaceStack() {
+    if (!this.space_stack_key) { return; }
+    let key = this.space_stack_key;
+    this.space_stack_key = "";
+    let el = document.getElementById(key);
+    if (!el) { return; }
+    el.classList.remove("stack-open");
+    el.style.zIndex = "";
+    el.style.removeProperty("--stack-top");
+    el.style.removeProperty("--stack-height");
+    el.style.removeProperty("--stack-width");
+    el.querySelectorAll(":scope > .army-tile").forEach((tile) => {
+      tile.style.top = "";
+      tile.style.left = "";
+      tile.style.width = "";
+      tile.style.height = "";
+      tile.style.zIndex = "";
+    });
+  }
+
+  layoutSpaceStack(spacekey) {
+    let el = document.getElementById(spacekey);
+    if (!el) { return; }
+    let tiles = el.querySelectorAll(":scope > .army-tile");
+    if (tiles.length < 2) { return; }
+
+    let size = el.offsetWidth || 90;
+    let gap = Math.round(size * 0.08);
+    let pad = Math.round(size * 0.16);
+    let total = tiles.length * size + (tiles.length - 1) * gap;
+    let start = (size - total) / 2;
+
+    el.classList.add("stack-open");
+    el.style.zIndex = "80";
+    el.style.setProperty("--stack-top", (start - pad) + "px");
+    el.style.setProperty("--stack-height", (total + pad * 2) + "px");
+    el.style.setProperty("--stack-width", (size + pad * 2) + "px");
+
+    tiles.forEach((tile, i) => {
+      tile.style.top = (start + i * (size + gap)) + "px";
+      tile.style.left = "0px";
+      tile.style.width = size + "px";
+      tile.style.height = size + "px";
+      tile.style.zIndex = String(20 + i);
+    });
+  }
+
+  noteOpponentBoardMark(spacekey, kind) {
+    if (!spacekey || !this.game.spaces[spacekey]) { return; }
+    if (!this.opponent_marks) { this.opponent_marks = {}; }
+    this.opponent_marks[spacekey] = kind;
+  }
+
+  showOpponentMarks() {
+    let keys = Object.keys(this.opponent_marks || {});
+    if (keys.length == 0) { return; }
+    this.opponent_marks_visible = true;
+    for (let i = 0; i < keys.length; i++) {
+      this.displaySpace(keys[i]);
+    }
+  }
+
+  clearOpponentMarks() {
+    let keys = Object.keys(this.opponent_marks || {});
+    this.opponent_marks = {};
+    this.opponent_marks_visible = false;
+    for (let i = 0; i < keys.length; i++) {
+      this.displaySpace(keys[i]);
+    }
+  }
+
+  movementMouseoverEnabled() {
+    let pref = this.loadGamePreference('pathsofglory_mouseover_for_movement');
+    if (pref === 0 || pref === '0' || pref === false) { return false; }
+    return true;
+  }
+
+  cardPopupsRemoved() {
+    let pref = this.loadGamePreference('pathsofglory_remove_card_popups');
+    return pref === 1 || pref === '1' || pref === true;
+  }
+
+  applyCardPopupPreference() {
+    let cardbox = this.cardbox;
+    if (!cardbox) { return; }
+
+    if (this.cardPopupsRemoved()) {
+      if (!cardbox.paths_render) {
+        cardbox.paths_render = cardbox.render.bind(cardbox);
+      }
+      cardbox.render = function() {};
+      if (!cardbox.paths_show) {
+        cardbox.paths_show = cardbox.show.bind(cardbox);
+      }
+      cardbox.show = async function(card, action = '', mycallback = null) {
+        if (mycallback != null) {
+          await mycallback(card);
+        }
+      };
+      cardbox.hide(1);
+      return;
+    }
+
+    if (cardbox.paths_render) {
+      cardbox.render = cardbox.paths_render;
+      cardbox.paths_render = null;
+    }
+    if (cardbox.paths_show) {
+      cardbox.show = cardbox.paths_show;
+      cardbox.paths_show = null;
+    }
+  }
+
+  movementCuesSuspended() {
+    if (!this.game || !this.game.player) { return false; }
+    if (this.game.state && this.game.state.player_turn_card_select) { return false; }
+    let faction = this.returnFactionOfPlayer();
+    let q = this.game.queue || [];
+    for (let i = q.length - 1; i >= 0; i--) {
+      if (q[i] === "play\t" + faction) { return true; }
+    }
+    return false;
+  }
+
+  addMovementCuesOnMouseover(spacekey) {
+    this.removeMovementCues();
+    if (!this.movementMouseoverEnabled()) { return; }
+    if (this.movementCuesSuspended()) { return; }
+    if (!spacekey || !this.game.spaces[spacekey]) { return; }
+    if (spacekey === 'aeubox' || spacekey === 'ceubox' || spacekey === 'arbox' || spacekey === 'crbox') { return; }
+
+    let space = this.game.spaces[spacekey];
+    let best = null;
+    let best_move = 0;
+    for (let i = 0; i < space.units.length; i++) {
+      let unit = space.units[i];
+      if (!unit || unit.destroyed) { continue; }
+      let distance = unit.damaged ? unit.rmovement : unit.movement;
+      distance = distance || 0;
+      if (distance > best_move) {
+        best_move = distance;
+        best = unit;
+      }
+    }
+    if (!best || best_move <= 0) { return; }
+
+    let power = this.returnPowerOfUnit(best);
+    let reached = this.returnSpacesWithinHops(spacekey, best_move, (dest) => {
+      if (dest === 'aeubox' || dest === 'ceubox' || dest === 'arbox' || dest === 'crbox') { return 0; }
+      let next = this.game.spaces[dest];
+      if (!next) { return 0; }
+      if (this.game.state.events[next.country] < 1) { return 0; }
+      if (next.units.length > 0 && this.returnPowerOfUnit(next.units[0]) != power) { return 0; }
+      return 1;
+    }, best);
+
+    for (let i = 0; i < reached.length; i++) {
+      document.querySelectorAll('.' + reached[i]).forEach((el) => {
+        el.classList.add('move-cue');
+      });
+    }
+  }
+
+  removeMovementCues() {
+    document.querySelectorAll('.move-cue').forEach((el) => {
+      el.classList.remove('move-cue');
+    });
   }
 
   displaySpaceDetailedView(key) {
@@ -6480,20 +6741,49 @@ console.log("err: " + err);
         // the selectable DIV, like a click on a unit in a key, etc.
         //
         if (e.target.classList.contains("selectable")) {
+          paths_self.hideSpaceStack();
           return;
         } else {
           let el = e.target;
           if (el.parentNode) {
             if (el.parentNode.classList.contains("selectable")) {
+              paths_self.hideSpaceStack();
               return;
             } else {
               if (el.parentNode.parentNode) {
                 if (el.parentNode.parentNode.classList.contains("selectable")) {
+                  paths_self.hideSpaceStack();
                   return;
                 }
               }
             }
           }
+        }
+
+        //
+        // loss assignment owns the board click target while board mode is active
+        //
+        if (paths_self.loss_overlay && paths_self.loss_overlay.board_mode) {
+          return;
+        }
+
+        //
+        // a space with several units opens an equal-size chit stack instead of zoom
+        //
+        let space_el = e.target.closest ? e.target.closest(".space") : null;
+        if (space_el && space_el.id && paths_self.spaceHasMultipleUnits(space_el.id)) {
+          if (paths_self.zoom_overlay && paths_self.zoom_overlay.visible) {
+            paths_self.zoom_overlay.hide();
+          }
+          if (paths_self.space_stack_key === space_el.id) {
+            paths_self.hideSpaceStack();
+          } else {
+            paths_self.showSpaceStack(space_el.id);
+          }
+          return;
+        }
+        if (paths_self.space_stack_key) {
+          paths_self.hideSpaceStack();
         }
 
   	const board = document.querySelector(".main .gameboard");
@@ -6522,6 +6812,19 @@ console.log("err: " + err);
           let spacekey = trigger.dataset.spacekey;
           this.pulseSpacekey(spacekey);
         }
+      });
+
+      document.addEventListener("mouseover", (e) => {
+        let space = e.target.closest ? e.target.closest(".space") : null;
+        if (!space || !space.id) { return; }
+        if (e.relatedTarget && space.contains(e.relatedTarget)) { return; }
+        paths_self.addMovementCuesOnMouseover(space.id);
+      });
+      document.addEventListener("mouseout", (e) => {
+        let space = e.target.closest ? e.target.closest(".space") : null;
+        if (!space) { return; }
+        if (e.relatedTarget && space.contains(e.relatedTarget)) { return; }
+        paths_self.removeMovementCues();
       });
 
 
@@ -11877,6 +12180,145 @@ spaces['crbox'] = {
 
   }
 
+  setup1914() {
+	  // britain
+	  this.addUnitToSpace("be_corps", "portsaid", false);
+	  this.addUnitToSpace("be_corps", "cairo", false);
+	  this.addUnitToSpace("be_corps", "basra", false);
+          this.addTrench("portsaid", 1);
+          this.addTrench("cairo", 1);
+          this.addTrench("basra", 1);
+
+	  // belgium
+          this.addUnitToSpace("be_army", "antwerp");
+          this.addUnitToSpace("bef_army", "brussels");
+          this.addTrench("brussels", 1);
+
+	  // france
+          this.addTrench("paris", 1);
+          this.addTrench("verdun", 1);
+          this.addTrench("nancy", 1);
+          this.addTrench("belfort", 1);
+          this.addUnitToSpace("fr_army05", "sedan");
+          this.addUnitToSpace("fr_army06", "paris", false);
+//          this.addUnitToSpace("fr_army03", "verdun");
+          this.addUnitToSpace("fr_army04", "verdun");
+          this.addUnitToSpace("fr_army01", "nancy");
+//          this.addUnitToSpace("fr_army02", "nancy");
+          this.addUnitToSpace("fr_army09", "barleduc", false);
+          this.addUnitToSpace("fr_corps", "belfort");
+          this.addUnitToSpace("fr_corps", "grenoble");
+
+	  // germany
+	  this.addTrench("trent", 1);
+	  this.addTrench("metz", 1);
+	  this.addTrench("konigsberg", 1);
+          this.addUnitToSpace("ge_army01", "aachen");
+//          this.addUnitToSpace("ge_army02", "koblenz");
+          this.addUnitToSpace("ge_army03", "koblenz");
+          this.addUnitToSpace("ge_army04", "metz");
+//          this.addUnitToSpace("ge_army05", "metz");
+          this.addUnitToSpace("ge_army06", "strasbourg");
+          this.addUnitToSpace("ge_army07", "mulhouse", false);
+          this.addUnitToSpace("ge_army08", "insterberg");
+          this.addUnitToSpace("ge_corps", "insterberg");
+          this.addUnitToSpace("ge_corps", "bremen", false);
+          this.addUnitToSpace("ge_corps", "oppeln", false);
+
+	  // russia
+	  this.addTrench("riga", 1);
+	  this.addTrench("odessa", 1);
+          this.addUnitToSpace("ru_army01", "kovno");
+          this.addUnitToSpace("ru_army02", "lomza");
+          this.addUnitToSpace("ru_army04", "ivangorod");
+          this.addUnitToSpace("ru_army05", "lublin");
+          this.addUnitToSpace("ru_army03", "dubno");
+          this.addUnitToSpace("ru_army08", "kamenetspodolski");
+          this.addUnitToSpace("ru_corps", "grodno");
+          this.addUnitToSpace("ru_corps", "riga");
+          this.addUnitToSpace("ru_corps", "szawli");
+          this.addUnitToSpace("ru_corps", "odessa");
+          this.addUnitToSpace("ru_corps", "lutsk");
+          this.addUnitToSpace("ru_corps", "riga");
+          this.addUnitToSpace("ru_corps", "batum");
+          this.addUnitToSpace("ru_corps", "kars");
+          this.addUnitToSpace("ru_corps", "erivan");
+
+	  // austria
+	  this.addTrench("cracow", 1);
+	  this.addTrench("trieste", 1);
+	  this.addTrench("villach", 1);
+          this.addUnitToSpace("ah_corps", "cracow");
+          this.addUnitToSpace("ah_corps", "villach");
+          this.addUnitToSpace("ah_corps", "timisvar");
+          this.addUnitToSpace("ah_corps", "czernowitz");
+          this.addUnitToSpace("ah_corps", "stanislau");
+          this.addUnitToSpace("ah_army06", "sarajevo");
+          this.addUnitToSpace("ah_army05", "novisad");
+          this.addUnitToSpace("ah_army02", "munkacs", false);
+          this.addUnitToSpace("ah_army01", "tarnow");
+          this.addUnitToSpace("ah_army04", "przemysl");
+          this.addUnitToSpace("ah_army03", "tarnopol");
+
+	  // montenegro
+          this.addUnitToSpace("mn_corps", "cetinje");
+
+	  // serbia
+          this.addUnitToSpace("sb_corps", "arbox");
+          this.addUnitToSpace("sb_corps", "arbox");
+          this.addUnitToSpace("sb_army01", "belgrade");
+          this.addUnitToSpace("sb_army02", "valjevo");
+
+	  // italy
+
+	  // reserves boxes
+    	  this.addUnitToSpace("ah_corps", "crbox");
+    	  this.addUnitToSpace("ah_corps", "crbox");
+    	  this.addUnitToSpace("ah_corps", "crbox");
+    	  this.addUnitToSpace("ah_corps", "crbox");
+
+    	  this.addUnitToSpace("ge_corps", "crbox");
+    	  this.addUnitToSpace("ge_corps", "crbox");
+    	  this.addUnitToSpace("ge_corps", "crbox");
+    	  this.addUnitToSpace("ge_corps", "crbox");
+    	  this.addUnitToSpace("ge_corps", "crbox");
+    	  this.addUnitToSpace("ge_corps", "crbox");
+    	  this.addUnitToSpace("ge_corps", "crbox");
+    	  this.addUnitToSpace("ge_corps", "crbox");
+
+    	  this.addUnitToSpace("be_corps", "arbox");
+
+    	  this.addUnitToSpace("sb_corps", "arbox");
+    	  this.addUnitToSpace("sb_corps", "arbox");
+
+    	  this.addUnitToSpace("ru_corps", "arbox");
+    	  this.addUnitToSpace("ru_corps", "arbox");
+    	  this.addUnitToSpace("ru_corps", "arbox");
+    	  this.addUnitToSpace("ru_corps", "arbox");
+    	  this.addUnitToSpace("ru_corps", "arbox");
+
+    	  this.addUnitToSpace("fr_corps", "arbox");
+    	  this.addUnitToSpace("fr_corps", "arbox");
+    	  this.addUnitToSpace("fr_corps", "arbox");
+    	  this.addUnitToSpace("fr_corps", "arbox");
+    	  this.addUnitToSpace("fr_corps", "arbox");
+    	  this.addUnitToSpace("fr_corps", "arbox");
+    	  this.addUnitToSpace("fr_corps", "arbox");
+
+    	  this.addUnitToSpace("br_corps", "arbox");
+    	  this.addUnitToSpace("bef_corps", "arbox");
+
+	  //
+	  // historical updates (s5.7 in manual)
+	  //
+	  this.addTrench("strasbourg", 1);
+	  this.game.spaces["brussels"].trench = 0;
+	  this.addTrench("asiago", 1);
+	  this.addTrench("verona", 1);
+	  this.addTrench("maggiore", 1);
+	  this.addTrench("udine", 1);
+  }
+
   async handleGameLoop() {
 
     let paths_self = this;
@@ -12152,8 +12594,9 @@ this.updateLog(`###############`);
 
 	  this.game.queue.splice(qe, 1);
 
-          let allies_cards_needed = 7;
-          let central_cards_needed = 7;
+          let hand_size = this.returnScenario().handSize || 7;
+          let allies_cards_needed = hand_size;
+          let central_cards_needed = hand_size;
 	  let allies_cards_available = 0;
 	  let central_cards_available = 0;
 	  if (parseInt(this.game.state.cards_left["allies"]) > 0) { allies_cards_available = parseInt(this.game.state.cards_left["allies"]); }
@@ -13319,143 +13762,18 @@ console.log("allies_passed: " + this.game.state.allies_passed);
 	}
 
 
+
+        if (mv[0] === "scenario_bury") {
+          PathsScenarios.bury(this, parseInt(mv[1]));
+          this.game.queue.splice(qe, 1);
+          return 1;
+        }
+
         if (mv[0] == "init") {
 try {
 
-	  // britain
-	  this.addUnitToSpace("be_corps", "portsaid", false);
-	  this.addUnitToSpace("be_corps", "cairo", false);
-	  this.addUnitToSpace("be_corps", "basra", false);
-          this.addTrench("portsaid", 1);
-          this.addTrench("cairo", 1);
-          this.addTrench("basra", 1);
+	  this.returnScenario().apply(this);
 
-	  // belgium
-          this.addUnitToSpace("be_army", "antwerp");
-          this.addUnitToSpace("bef_army", "brussels");
-          this.addTrench("brussels", 1);
-
-	  // france
-          this.addTrench("paris", 1);
-          this.addTrench("verdun", 1);
-          this.addTrench("nancy", 1);
-          this.addTrench("belfort", 1);
-          this.addUnitToSpace("fr_army05", "sedan");
-          this.addUnitToSpace("fr_army06", "paris", false);
-//          this.addUnitToSpace("fr_army03", "verdun");
-          this.addUnitToSpace("fr_army04", "verdun");
-          this.addUnitToSpace("fr_army01", "nancy");
-//          this.addUnitToSpace("fr_army02", "nancy");
-          this.addUnitToSpace("fr_army09", "barleduc", false);
-          this.addUnitToSpace("fr_corps", "belfort");
-          this.addUnitToSpace("fr_corps", "grenoble");
-
-	  // germany
-	  this.addTrench("trent", 1);
-	  this.addTrench("metz", 1);
-	  this.addTrench("konigsberg", 1);
-          this.addUnitToSpace("ge_army01", "aachen");
-//          this.addUnitToSpace("ge_army02", "koblenz");
-          this.addUnitToSpace("ge_army03", "koblenz");
-          this.addUnitToSpace("ge_army04", "metz");
-//          this.addUnitToSpace("ge_army05", "metz");
-          this.addUnitToSpace("ge_army06", "strasbourg");
-          this.addUnitToSpace("ge_army07", "mulhouse", false);
-          this.addUnitToSpace("ge_army08", "insterberg");
-          this.addUnitToSpace("ge_corps", "insterberg");
-          this.addUnitToSpace("ge_corps", "bremen", false);
-          this.addUnitToSpace("ge_corps", "oppeln", false);
-
-	  // russia
-	  this.addTrench("riga", 1);
-	  this.addTrench("odessa", 1);
-          this.addUnitToSpace("ru_army01", "kovno");
-          this.addUnitToSpace("ru_army02", "lomza");
-          this.addUnitToSpace("ru_army04", "ivangorod");
-          this.addUnitToSpace("ru_army05", "lublin");
-          this.addUnitToSpace("ru_army03", "dubno");
-          this.addUnitToSpace("ru_army08", "kamenetspodolski");
-          this.addUnitToSpace("ru_corps", "grodno");
-          this.addUnitToSpace("ru_corps", "riga");
-          this.addUnitToSpace("ru_corps", "szawli");
-          this.addUnitToSpace("ru_corps", "odessa");
-          this.addUnitToSpace("ru_corps", "lutsk");
-          this.addUnitToSpace("ru_corps", "riga");
-          this.addUnitToSpace("ru_corps", "batum");
-
-	  // austria
-	  this.addTrench("cracow", 1);
-	  this.addTrench("trieste", 1);
-	  this.addTrench("villach", 1);
-          this.addUnitToSpace("ah_corps", "cracow");
-          this.addUnitToSpace("ah_corps", "villach");
-          this.addUnitToSpace("ah_corps", "timisvar");
-          this.addUnitToSpace("ah_corps", "czernowitz");
-          this.addUnitToSpace("ah_corps", "stanislau");
-          this.addUnitToSpace("ah_army06", "sarajevo");
-          this.addUnitToSpace("ah_army05", "novisad");
-          this.addUnitToSpace("ah_army02", "munkacs", false);
-          this.addUnitToSpace("ah_army01", "tarnow");
-          this.addUnitToSpace("ah_army04", "przemysl");
-          this.addUnitToSpace("ah_army03", "tarnopol");
-
-	  // montenegro
-          this.addUnitToSpace("mn_corps", "cetinje");
-
-	  // serbia
-          this.addUnitToSpace("sb_corps", "arbox");
-          this.addUnitToSpace("sb_corps", "arbox");
-          this.addUnitToSpace("sb_army01", "belgrade");
-          this.addUnitToSpace("sb_army02", "valjevo");
-
-	  // italy
-
-	  // reserves boxes
-    	  this.addUnitToSpace("ah_corps", "crbox");
-    	  this.addUnitToSpace("ah_corps", "crbox");
-    	  this.addUnitToSpace("ah_corps", "crbox");
-    	  this.addUnitToSpace("ah_corps", "crbox");
-
-    	  this.addUnitToSpace("ge_corps", "crbox");
-    	  this.addUnitToSpace("ge_corps", "crbox");
-    	  this.addUnitToSpace("ge_corps", "crbox");
-    	  this.addUnitToSpace("ge_corps", "crbox");
-    	  this.addUnitToSpace("ge_corps", "crbox");
-    	  this.addUnitToSpace("ge_corps", "crbox");
-    	  this.addUnitToSpace("ge_corps", "crbox");
-    	  this.addUnitToSpace("ge_corps", "crbox");
-
-    	  this.addUnitToSpace("be_corps", "arbox");
-
-    	  this.addUnitToSpace("sb_corps", "arbox");
-    	  this.addUnitToSpace("sb_corps", "arbox");
-
-    	  this.addUnitToSpace("ru_corps", "arbox");
-    	  this.addUnitToSpace("ru_corps", "arbox");
-    	  this.addUnitToSpace("ru_corps", "arbox");
-    	  this.addUnitToSpace("ru_corps", "arbox");
-    	  this.addUnitToSpace("ru_corps", "arbox");
-
-    	  this.addUnitToSpace("fr_corps", "arbox");
-    	  this.addUnitToSpace("fr_corps", "arbox");
-    	  this.addUnitToSpace("fr_corps", "arbox");
-    	  this.addUnitToSpace("fr_corps", "arbox");
-    	  this.addUnitToSpace("fr_corps", "arbox");
-    	  this.addUnitToSpace("fr_corps", "arbox");
-    	  this.addUnitToSpace("fr_corps", "arbox");
-
-    	  this.addUnitToSpace("br_corps", "arbox");
-    	  this.addUnitToSpace("bef_corps", "arbox");
-
-	  //
-	  // historical updates (s5.7 in manual)
-	  //
-	  this.addTrench("strasbourg", 1);
-	  this.game.spaces["brussels"].trench = 0;
-	  this.addTrench("asiago", 1);
-	  this.addTrench("verona", 1);
-	  this.addTrench("maggiore", 1);
-	  this.addTrench("udine", 1);
 
 
 	  if (this.game.options.deck == "is_testing") {
@@ -13574,11 +13892,12 @@ try {
 
 	  this.updateLog(unit.name + " redeploys to " + this.returnSpaceNameForLog(destination));
 
-	  if (this.minimap && this.returnPlayerOfFaction(faction) != this.game.player) {
+	  if (this.returnPlayerOfFaction(faction) != this.game.player) {
 	    if (destination != "aeubox" && destination != "ceubox" && destination != "arbox" && destination != "crbox") {
+	      this.noteOpponentBoardMark(destination, "move");
 	      let space = this.game.spaces[destination];
 	      let board = this.getBoardState();
-	      if (space && board) {
+	      if (this.minimap && space && board) {
 	        this.minimap.add("move-" + destination, {
 	          x: (space.left + 45) / board.width,
 	          y: (space.top + 45) / board.height,
@@ -13681,10 +14000,12 @@ try {
 	  if (cmd) {
 	    for (let i = this.game.queue.length - 1; i >= 0; i--) {
 	      if (this.game.queue[i].split("\t")[0] === cmd) {
-	        if (cmd === "play" && this.minimap) {
+	        if (cmd === "play") {
 	          let faction = this.game.queue[i].split("\t")[1];
 	          if (this.game.player == this.returnPlayerOfFaction(faction)) {
-	            this.minimap.clear();
+	            if (this.minimap) { this.minimap.clear(); }
+	          } else {
+	            this.showOpponentMarks();
 	          }
 	        }
 	        this.game.queue.splice(i, 1);
@@ -13849,10 +14170,11 @@ try {
 	  //
 	  this.paths_log.openCombat();
 
-	  if (this.minimap && this.returnPlayerOfFaction(this.game.state.combat.attacking_faction) != this.game.player) {
+	  if (this.returnPlayerOfFaction(this.game.state.combat.attacking_faction) != this.game.player) {
+	    this.noteOpponentBoardMark(key, "attack");
 	    let space = this.game.spaces[key];
 	    let board = this.getBoardState();
-	    if (space && board) {
+	    if (this.minimap && space && board) {
 	      this.minimap.add("attack-" + key, {
 	        x: (space.left + 45) / board.width,
 	        y: (space.top + 45) / board.height,
@@ -13994,7 +14316,6 @@ try {
 
 	    }
 	  }
-
 	  if (this.game.state.events.french_mutiny && this.game.state.mandated_offensives.allies == "FR" && this.game.state.events.french_mutiny_vp_turn != this.game.state.turn) {
 	    let sp = this.game.spaces[this.game.state.combat.key];
 	    if (sp.country == "france" || sp.country == "belgium" || sp.country == "germany") {
@@ -15575,10 +15896,11 @@ console.log("moving unit: " + JSON.stringify(u));
 	  }
 	  this.activateSpaceForCombat(key);
 
-	  if (this.minimap && this.returnPlayerOfFaction(faction) != this.game.player) {
+	  if (this.returnPlayerOfFaction(faction) != this.game.player) {
+	    this.noteOpponentBoardMark(key, "attack");
 	    let space = this.game.spaces[key];
 	    let board = this.getBoardState();
-	    if (space && board) {
+	    if (this.minimap && space && board) {
 	      this.minimap.add("attack-" + key, {
 	        x: (space.left + 45) / board.width,
 	        y: (space.top + 45) / board.height,
@@ -15607,10 +15929,11 @@ console.log("moving unit: " + JSON.stringify(u));
 	  }
 	  this.activateSpaceForMovement(key);
 
-	  if (this.minimap && this.returnPlayerOfFaction(faction) != this.game.player) {
+	  if (this.returnPlayerOfFaction(faction) != this.game.player) {
+	    this.noteOpponentBoardMark(key, "move");
 	    let space = this.game.spaces[key];
 	    let board = this.getBoardState();
-	    if (space && board) {
+	    if (this.minimap && space && board) {
 	      this.minimap.add("move-" + key, {
 	        x: (space.left + 45) / board.width,
 	        y: (space.top + 45) / board.height,
@@ -15794,11 +16117,12 @@ console.log("moving unit: " + JSON.stringify(u));
 	    this.paths_log.commitMove(faction, sourcekey, sourceidx, destinationkey);
 	  }
 
-	  if (this.minimap && this.returnPlayerOfFaction(faction) != this.game.player) {
+	  if (this.returnPlayerOfFaction(faction) != this.game.player) {
 	    if (destinationkey != "aeubox" && destinationkey != "ceubox" && destinationkey != "arbox" && destinationkey != "crbox") {
+	      this.noteOpponentBoardMark(destinationkey, "move");
 	      let space = this.game.spaces[destinationkey];
 	      let board = this.getBoardState();
-	      if (space && board) {
+	      if (this.minimap && space && board) {
 	        this.minimap.add("move-" + destinationkey, {
 	          x: (space.left + 45) / board.width,
 	          y: (space.top + 45) / board.height,
@@ -17554,6 +17878,7 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
     // avoid back-button select
     //
     this.removeSelectable();
+    this.removeMovementCues();
 
     //
     // pass is pass!
@@ -19443,6 +19768,7 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
 	this.hud.updateStatus(this.game.status);
 	this.hud.updateMenu([]);
 	this.hud.updateCards([]);
+	this.clearOpponentMarks();
 	this.endTurn();
       }
 
@@ -19485,6 +19811,7 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
 	    this.addMove(`activate_for_movement\t${faction}\t${key}`);
 	    if (cost <= 0) {
 	      cost = 0;
+	      this.clearOpponentMarks();
 	      this.endTurn();
 	    }
 	    if (cost > 0) {
@@ -19594,6 +19921,7 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
 	    this.addMove(`activate_for_combat\t${faction}\t${key}`);
 	    if (cost <= 0) {
 	      cost = 0;
+	      this.clearOpponentMarks();
 	      this.endTurn();
 	    }
 	    if (cost > 0) {
@@ -20822,35 +21150,6 @@ console.log(JSON.stringify(unit));
     if (just_link) { return `/paths/img/army/${key}_back.png`; }
     return `<img src="/paths/img/army/${key}_back.png" class="army-tile ${unit.key}" />`;
   }
-  returnUnitImageWithMouseoverOfStepwiseLoss(unit, just_link="", mouseout_first=false) {
-    let key = unit.key;
-    let face_img = "";
-    let back_img = "";
-
-    if (unit.destroyed) {
-     return this.returnDestroyedUnitImage(unit, just_link);
-    }
-
-    if (unit.damaged) {
-      face_img = `/paths/img/army/${key}_back.png`;
-      back_img = this.returnUnitImageWithStepwiseLoss(unit, true);
-    } else {
-      face_img = `/paths/img/army/${key}.png`;
-      back_img = `/paths/img/army/${key}_back.png`;
-    }
-
-    //
-    // the workaround below is part of our strategy to prevent tiles from insta-
-    // flipping once clicked on, so that mouseout is required in order to trigger
-    // tiles showing their reversed side on mouseover. see /lib/ui/overlays/loss.js
-    //
-    if (!mouseout_first) {
-      return `<img src="${face_img}" onmouseover="this.src='${back_img}'" onmouseout="this.src='${face_img}'" class="army-tile ${unit.key}" />`;
-    } else {
-      return `<img src="${face_img}" data-mouseover="false" onmouseover="if (this.dataset.mouseover === 'true') { this.src='${back_img}' }" onmouseout="this.dataset.mouseover = 'true'; this.src='${face_img}'" class="army-tile ${unit.key}" />`;
-    }
-
-  }
   returnUnitImageInSpaceWithIndex(spacekey, idx) {
     let unit = this.game.spaces[spacekey].units[idx];
     return this.returnUnitImage(unit);
@@ -20862,39 +21161,6 @@ console.log(JSON.stringify(unit));
       return `<img src="/paths/img/cancel_x.png" class="army-tile ${unit.key}" />`;
     }
 
-  }
-
-  returnUnitImageWithStepwiseLoss(unit, just_link=false) {
-
-    let key = unit.key;
-
-    if (unit.destroyed) {
-     return this.returnDestroyedUnitImage(unit, just_link);
-    }
-
-    if (!unit.damaged) {
-
-      if (just_link) { return `/paths/img/army/${key}_back.png`; }
-      return `<img src="/paths/img/army/${key}_back.png" class="army-tile ${unit.key}" />`;
-
-    } else {
-
-      //
-      // replace with corps if destroyed
-      //
-      if (unit.key.indexOf('army') >= 0) {
-        let corpskey = unit.key.split('_')[0] + '_corps';
-        let new_unit = this.cloneUnit(corpskey);
-        return this.returnUnitImage(new_unit, just_link);
-
-      } else {
-
-	return this.returnDestroyedUnitImage(unit, just_link);
-      }
-
-    }
-
-    return "";
   }
 
   cloneUnit(unitkey) {

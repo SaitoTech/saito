@@ -2,7 +2,10 @@ const SaitoOverlay = require('../../../../../lib/saito/ui/saito-overlay/saito-ov
 const PublishTemplate = require('./publish.template');
 const Photo = require('./photo');
 const Passport = require('./passport');
+const IdentityPrompt = require('./identity');
+const WhoTemplate = require('./who.template');
 const flow = require('./publish.flow');
+const { requirementLines } = require('./publish.share');
 const {
   verifyEmailSignature,
   verifyPhoto,
@@ -37,6 +40,8 @@ class PublishOverlay {
     this.state = flow.initialState();
     this.sliding = false;
     this.passport = new Passport();
+    this.whoOverlay = new SaitoOverlay(app, mod, true);
+    this.whoOverlay.class = 'saito-overlay saitosign-overlay';
   }
 
   render() {
@@ -118,7 +123,7 @@ class PublishOverlay {
   }
 
   async commitFinalization() {
-    if (this.sliding || this.state.step !== 'select') {
+    if (this.sliding || this.state.step !== 'share' || this.mod.document?.finalized) {
       return;
     }
     this.sliding = true;
@@ -131,36 +136,33 @@ class PublishOverlay {
         this.mod.main?.fail('This document could not be finalized.');
         return;
       }
-      if (!record.finalized) {
-        const problem = signingConfigurationError(record);
-        if (problem) {
-          this.mod.main?.fail(problem);
-          return;
-        }
-        const snapshot = {
-          finalized: record.finalized,
-          finalization: record.finalization ? JSON.parse(JSON.stringify(record.finalization)) : null,
-          creatorProof: record.creatorProof ? JSON.parse(JSON.stringify(record.creatorProof)) : null,
-          edited: record.edited,
-          hash: String(record.hash || '')
-        };
-        const finalized = await finalizeDocument(this.app, record, creator);
-        if (!finalized || !verifyFinalization(this.app, record) || !verifyCreatorProof(this.app, record)) {
-          record.finalized = snapshot.finalized;
-          record.finalization = snapshot.finalization;
-          record.creatorProof = snapshot.creatorProof;
-          record.edited = snapshot.edited;
-          record.hash = snapshot.hash;
-          this.mod.main?.fail('This document could not be finalized.');
-          return;
-        }
+      const problem = signingConfigurationError(record);
+      if (problem) {
+        this.mod.main?.fail(problem);
+        return;
+      }
+      const snapshot = {
+        finalized: record.finalized,
+        finalization: record.finalization ? JSON.parse(JSON.stringify(record.finalization)) : null,
+        creatorProof: record.creatorProof ? JSON.parse(JSON.stringify(record.creatorProof)) : null,
+        edited: record.edited,
+        hash: String(record.hash || '')
+      };
+      const finalized = await finalizeDocument(this.app, record, creator);
+      if (!finalized || !verifyFinalization(this.app, record) || !verifyCreatorProof(this.app, record)) {
+        record.finalized = snapshot.finalized;
+        record.finalization = snapshot.finalization;
+        record.creatorProof = snapshot.creatorProof;
+        record.edited = snapshot.edited;
+        record.hash = snapshot.hash;
+        this.mod.main?.fail('This document could not be finalized.');
+        return;
       }
       if (record.metadata) {
         const saved = flow.applyShareMetadata(this.state, record.metadata);
         this.state = { ...this.state, plan: saved.plan, options: saved.options };
       }
-      this.state = flow.go(this.state, 'share', { allowUnfinalize: true });
-      this.state = this.summaryState(this.state);
+      this.state = this.summaryState({ ...this.state, allowUnfinalize: false });
       this.refreshWorkspace();
       ready = true;
     } catch (err) {
@@ -169,7 +171,7 @@ class PublishOverlay {
       this.sliding = false;
     }
     if (ready) {
-      await this.showStep('forward');
+      this.paintSlide();
     }
   }
 
@@ -340,7 +342,15 @@ class PublishOverlay {
 
       if (action.dataset.publishAction === 'back') {
         if (this.state.step === 'share') {
-          this.reopenTier();
+          if (this.state.finalized) {
+            return;
+          }
+          const previous = flow.back(this.state);
+          if (previous === this.state) {
+            return;
+          }
+          this.state = previous;
+          this.showStep('back');
           return;
         }
         const next = flow.back(this.state);
@@ -379,10 +389,19 @@ class PublishOverlay {
         return;
       }
 
+      if (action.dataset.publishAction === 'finalize') {
+        this.commitFinalization();
+        return;
+      }
+
       if (action.dataset.publishAction === 'sign-now') {
-        this.state = { ...this.state, allowUnfinalize: false };
-        this.close();
-        this.refreshWorkspace();
+        this.showWhoAreYou();
+        return;
+      }
+
+      if (action.dataset.publishAction === 'skip-sign') {
+        this.state = { ...this.state, distributeOnly: true };
+        this.paintSlide();
         return;
       }
 
@@ -408,7 +427,10 @@ class PublishOverlay {
 
       if (action.dataset.publishAction === 'advance') {
         if (this.state.step === 'select') {
-          this.commitFinalization();
+          this.writeShare();
+          this.state = flow.go(this.state, 'share', { allowUnfinalize: false });
+          this.state = this.summaryState(this.state);
+          this.showStep('forward');
           return;
         }
         if (this.state.step === 'verify') {
@@ -500,6 +522,54 @@ class PublishOverlay {
     }
     this.keepUser(signer);
     this.continueAfterIdentity();
+  }
+
+  showWhoAreYou() {
+    if (!this.state.finalized) {
+      return;
+    }
+    const signers = shareRowsForWho(this.state);
+    if (!signers.length) {
+      return;
+    }
+    this.whoOverlay.show(WhoTemplate(signers));
+    const root = document.querySelector('.saitosign-who');
+    if (!root) {
+      return;
+    }
+    root.addEventListener('click', (event) => {
+      const choice = event.target.closest('[data-who-signer]');
+      if (!choice) {
+        return;
+      }
+      event.preventDefault();
+      const index = Number(choice.dataset.whoSigner);
+      const signer = this.state.signers.find((candidate) => candidate.index === index);
+      if (!signer) {
+        return;
+      }
+      this.whoOverlay.close();
+      const prompt = new IdentityPrompt(this.app, this.mod);
+      prompt.render(signer.name || signer.email || '', {
+        onYes: () => this.beginSigningAs(signer)
+      });
+    });
+  }
+
+  beginSigningAs(signer) {
+    if (!signer || !this.state.finalized) {
+      return;
+    }
+    this.keepUser(signer);
+    const actionId = firstUnsignedActionId(this.app, this.mod.document, signer.index);
+    this.state = flow.go(this.state, 'verify', {
+      afterVerify: 'sign',
+      pendingActionId: actionId,
+      allowUnfinalize: false,
+      verifyError: ''
+    });
+    this.state = this.withKnownVerifications(this.state);
+    this.showStep('forward');
   }
 
   addSigner() {
@@ -1002,20 +1072,23 @@ class PublishOverlay {
     const userIndex = state.you?.index;
     const status = actionStatus(this.app, record?.actions, record?.users, userIndex, record);
     const creatorKey = this.normalizePublicKey(record?.creator);
+    const pageCount = Number(record?.document?.page_count) || 0;
     const signers = readUsers(this.mod).map((signer) => {
       const signerStatus = actionStatus(this.app, record?.actions, record?.users, signer.index, record);
       return {
         ...signer,
         places: signerStatus.mine,
         signed: signerStatus.mine > 0 && signerStatus.userComplete,
-        creator: Boolean(creatorKey) && this.normalizePublicKey(signer.publickey) === creatorKey
+        creator: Boolean(creatorKey) && this.normalizePublicKey(signer.publickey) === creatorKey,
+        requirements: requirementLines(record?.actions, signer.index, pageCount)
       };
     }).filter((signer) => signer.places > 0);
     return {
       ...state,
       signers,
       signed: status.mine > 0 && status.userComplete,
-      actionStatus: status
+      actionStatus: status,
+      finalized: Boolean(record?.finalized)
     };
   }
 
@@ -1169,6 +1242,26 @@ function signaturePlaces(mod, index) {
     }
     return !verifyActionSignature(mod.app, action, user, mod.document);
   }).length;
+}
+
+function firstUnsignedActionId(app, record, userIndex) {
+  const user = record?.users?.[userIndex];
+  const action = (record?.actions || []).find((item) =>
+    Number(item.user) === userIndex
+    && (item.type === 'signature' || item.type === 'initial')
+    && !verifyActionSignature(app, item, user, record)
+  );
+  return Number.isInteger(Number(action?.id)) ? Number(action.id) : null;
+}
+
+function shareRowsForWho(state) {
+  return (state.signers || [])
+    .filter((signer) => Number(signer.places) > 0)
+    .map((signer) => ({
+      index: signer.index,
+      name: signer.name || signer.email || 'Signer',
+      email: signer.email || ''
+    }));
 }
 
 function readUsers(mod) {

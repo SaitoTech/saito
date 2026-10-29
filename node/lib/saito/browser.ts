@@ -2278,7 +2278,8 @@ class Browser {
           div: ['class', 'id'],
           img: ['src', 'class', 'alt'],
           blockquote: ['href'],
-          code: ['class']
+          code: ['class'],
+          ol: ['start']
         },
         selfClosing: ['img', 'br', 'hr'],
         allowedSchemes: ['http', 'https', 'mailto'],

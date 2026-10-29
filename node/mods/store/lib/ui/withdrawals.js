@@ -1,5 +1,6 @@
 const WithdrawalsTemplate = require('./withdrawals.template');
 const WithdrawalOverlay = require('./overlays/withdrawal');
+const { decimalIsPositive } = require('../web3-amount');
 const {
   returnStoreWeb3Tickers,
   requestStoreWeb3Tickers
@@ -11,8 +12,6 @@ class WithdrawalsView {
     this.mod = mod;
     this.container = container;
     this.overlay = new WithdrawalOverlay(app, mod);
-    // Per-ticker balances. available > 0 shows the withdraw link.
-    // pending_on is the timestamp when that pending amount clears one genesis period.
     this.balances = {};
 
     this.app.connection.on('saito-purchase-cryptos', () => {
@@ -38,11 +37,61 @@ class WithdrawalsView {
         const balance = this.balances[ticker] || {};
         return {
           ticker,
-          available: Number(balance.available) || 0,
-          pending: Number(balance.pending) || 0,
-          pending_on: balance.pending_on || 0
+          eligible: balance.eligible || 0,
+          pending: balance.pending || 0
         };
       });
+  }
+
+  applyBalances(response = {}) {
+    const pending = response?.pending && typeof response.pending === 'object' ? response.pending : {};
+    const eligible =
+      response?.eligible && typeof response.eligible === 'object' ? response.eligible : {};
+    const balances = {};
+    for (const [ticker, amount] of Object.entries({ ...pending, ...eligible })) {
+      const symbol = String(ticker || '').trim().toUpperCase();
+      if (!symbol || symbol === 'SAITO') {
+        continue;
+      }
+      if (!balances[symbol]) {
+        balances[symbol] = { pending: 0, eligible: 0 };
+      }
+    }
+    for (const [ticker, amount] of Object.entries(pending)) {
+      const symbol = String(ticker || '').trim().toUpperCase();
+      if (!balances[symbol]) {
+        continue;
+      }
+      balances[symbol].pending = amount;
+    }
+    for (const [ticker, amount] of Object.entries(eligible)) {
+      const symbol = String(ticker || '').trim().toUpperCase();
+      if (!balances[symbol]) {
+        continue;
+      }
+      balances[symbol].eligible = amount;
+    }
+    this.balances = balances;
+  }
+
+  loadBalances() {
+    const peerKey = this.mod.store_public_key;
+    if (!peerKey || !this.app?.network?.sendRequestAsTransaction) {
+      this.balances = {};
+      return Promise.resolve();
+    }
+
+    return new Promise((resolve) => {
+      this.app.network.sendRequestAsTransaction(
+        'load-web3-proceeds',
+        { module: 'Store' },
+        (response) => {
+          this.applyBalances(response || {});
+          resolve();
+        },
+        peerKey
+      );
+    });
   }
 
   render(container = '', options = {}) {
@@ -63,7 +112,8 @@ class WithdrawalsView {
     this.attachEvents();
   }
 
-  show() {
+  async show() {
+    await this.loadBalances();
     this.render();
   }
 
@@ -73,17 +123,16 @@ class WithdrawalsView {
       return;
     }
     root.querySelectorAll('[data-action="withdraw"]').forEach((link) => {
-      link.addEventListener('click', (e) => {
+      link.addEventListener('click', async (e) => {
         e.preventDefault();
         const ticker = link.getAttribute('data-ticker') || '';
+        await this.loadBalances();
+        this.render(this.container, { requestTickers: false });
         const row = this.returnRows().find((item) => item.ticker === ticker);
-        if (!row || !(Number(row.available) > 0)) {
+        if (!row || !decimalIsPositive(row.eligible)) {
           return;
         }
-        this.overlay.render({
-          ticker,
-          available: String(row.available)
-        });
+        this.overlay.open(ticker);
       });
     });
   }
