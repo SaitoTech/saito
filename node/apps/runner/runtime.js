@@ -8,7 +8,7 @@ const Factory = require('../../lib/saito/factory').default;
 const Transaction = require('../../lib/saito/transaction').default;
 const RunnerStorage = require('./storage');
 const installPresentation = require('./presentation');
-const { GAMES } = require('./config');
+const { GAMES, supportsPlayers } = require('./config');
 
 class RunnerSharedMethods extends ServerSharedMethods {
   file(key) {
@@ -29,7 +29,7 @@ class RunnerSharedMethods extends ServerSharedMethods {
   saveBlockchain() { this.app.storage.saveOptions(); }
 }
 
-async function createRuntime(config, { offline = false, send, monitor = false, chat = false, discover = false } = {}) {
+async function createRuntime(config, { offline = false, send, monitor = false, chat = false, discover = false, coordinated = false } = {}) {
   if (S.getLibInstance()) throw Error('Use a separate process for each native player runtime');
   const app = new Saito({ mod_paths: [] });
   app.BROWSER = 0;
@@ -82,12 +82,17 @@ async function createRuntime(config, { offline = false, send, monitor = false, c
     const accept = mod.initializeGameFromAcceptTransaction.bind(mod);
     mod.initializeGameFromAcceptTransaction = async tx => {
       const message = tx.returnMessage();
-      if (message.game !== config.game || Number(message.players_needed) !== 2 || (message.options?.stake && Number(message.options.stake) !== 0) ||
+      if (coordinated && message.game_id !== app.options.runnerMulti?.id) throw Error('Acceptance does not match this seat’s assigned game');
+      if (message.game !== config.game || Number(message.players_needed) !== (config.players ?? 2) || !supportsPlayers(message.game, Number(message.players_needed)) || (message.options?.stake && Number(message.options.stake) !== 0) ||
           message.options?.async_dealing || Number(message.options?.turn_limit || 0) !== 0) {
         throw Error('Unsupported game invitation options');
       }
       if (config.game === 'Twilight' && message.options?.deck && message.options.deck !== 'original') {
         throw Error('Twilight runner currently supports the original deck');
+      }
+      if (config.game === 'PathsOfGlory' && ((message.options?.deck && message.options.deck !== 'original') ||
+          (message.options?.scenario && message.options.scenario !== 'original'))) {
+        throw Error('Paths of Glory runner supports the original campaign only');
       }
       return accept(tx);
     };
@@ -98,6 +103,20 @@ async function createRuntime(config, { offline = false, send, monitor = false, c
   const relay = new Relay(app);
   const Arcade = require('../../mods/arcade/arcade');
   const arcade = new Arcade(app);
+  if (coordinated) {
+    const receiveAccept = arcade.receiveAcceptTransaction.bind(arcade);
+    arcade.receiveAcceptTransaction = async tx => {
+      const id = tx.returnMessage().game_id, reservation = app.options.runnerMulti;
+      if (!id || id !== reservation?.id) return;
+      // A returning seat may discover an active table before it saved the accept.
+      // This wallet already authorized that invitation. Let the normal engine
+      // validate the players' invite signatures and initialize its missing state.
+      const record = arcade.returnGame(id);
+      if ((reservation.joined || reservation.role === 'host') && !app.options.games.some(g => g.id === id) &&
+        record?.tx.returnMessage().request === 'active') record.tx.msg.request = 'accepted';
+      return receiveAccept(tx);
+    };
+  }
   for (const method of ['render', 'renderInvites', 'notifyPeers', 'showShareLink', 'onConnectionUnstable', 'onPeerHandshakeComplete']) arcade[method] = () => {};
   arcade.receiveOpenTransaction = async tx => { arcade.addInviteRecord(tx); };
   const chatClient = chat ? new (require('./chat'))(app) : null;
@@ -165,6 +184,8 @@ async function createRuntime(config, { offline = false, send, monitor = false, c
       delete mod.game.runnerDraft;
       delete mod.game.runnerTwilight;
       if (config.game === 'Twilight') mod.game.runnerTwilightWait = true;
+      delete mod.game.runnerPaths;
+      if (config.game === 'PathsOfGlory') mod.game.runnerPathsWait = true;
       mod.saveGame(mod.game.id);
     }
     app.storage.saveOptions();

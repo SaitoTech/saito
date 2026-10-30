@@ -57,7 +57,7 @@ module.exports = async function run(config, task, { signal, report,
     } else if (!state.active?.joined) {
       const joined = await runtime.runExclusive(async () => {
         const record = arcade.returnGame(task.id);
-        if (!compatible(record, [task.game], app.options.wallet.publicKey)) return false;
+        if (!compatible(record, [task.game], app.options.wallet.publicKey, Date.now(), config.players ?? 2)) return false;
         // Persist the signed join through runtime's outbox before delivery.
         const tx = await arcade.createJoinTransaction(record.tx);
         state.active = { id: task.id, game: task.game, joined: true };

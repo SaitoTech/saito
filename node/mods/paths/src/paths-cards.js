@@ -662,7 +662,6 @@ deck['ap14'] = {
 	        if (spacekey === "pass") {
         	  paths_self.removeSelectable();
         	  paths_self.endTurn();
-        	  just_stop = 1;
 		  units_to_restore = 0;
         	  return 1;
       	        }
@@ -1448,6 +1447,9 @@ deck['ap30'] = {
     	    }
 
     	    let filter_fnct = (spacekey, unit) => {
+              // A corps already deployed here cannot redeploy to the same
+              // space. Offering it again lets the selection loop run forever.
+              if (spacekey == "salonika") { return 0; }
 	      if (spacekey == "arbox" || paths_self.game.spaces[spacekey].port > 0) {
 		if (unit.corps) {
 		  if (unit.ckey == "BR" || unit.ckey == "FR") { return 1; }
@@ -3371,7 +3373,7 @@ deck['cp48'] = {
         onEvent : function(paths_self, faction) {
 	  if (paths_self.game.player == paths_self.returnPlayerOfFaction(faction)) {
 	    paths_self.addMove("SETVAR\tstate\tcentral_reinforcements_tu\t"+paths_self.game.state.round);
-	    paths_self.playerAddReinforcements("central", ["aoi_army"], "turkey");
+	    paths_self.playerAddReinforcements("central", ["aoi_corps"], "turkey");
 	  }
 	  return 0;
 	} ,

@@ -165,15 +165,8 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
       }
     }
 
-    //
-    // Brusilov Offensive (ignore trench effects)
-    //
-    if (faction == "allies" && this.game.state.events.brusilov_offensive == 1) {
-      if (!ccs.includes("ap46")) {
-	num++;
-	ccs.push("ap46");
-      }
-    }
+    // Brusilov's combat modifier is applied by the combat queue. It is not
+    // another playable card: replaying its event would grant four more OPS.
 
     if (num == 0) {
       this.endTurn();
@@ -333,16 +326,6 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
     // combat cards...
     //
 
-    //
-    // Kerensky Offensive +2 bonus / one
-    //
-    if (faction == "allies" && this.game.state.events.kerensky_offensive == 1) {
-      if (!ccs.includes("ap45")) {
-	num++;
-	ccs.push("ap45"); 
-      }
-    }
-
     if (num == 0) {
       this.endTurn();
       return 0;
@@ -421,7 +404,9 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
       paths_self.hud.updateCards([]);
       paths_self.removeSelectable();
       paths_self.addUnitToSpace(unit.key, spacekey);
-      paths_self.addMove(`add\t${spacekey}\t${unit.key}\t${paths_self.game.player}`);    
+      // Moves execute from the end of the queue. Preserve local stack order
+      // so later unit indices refer to the same unit on every seat.
+      paths_self.prependMove(`add\t${spacekey}\t${unit.key}\t${paths_self.game.player}`);
       paths_self.displaySpace(spacekey);
       loop_func();
     };
@@ -2206,6 +2191,19 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
     });
   }
 
+  restoreSnapshot() {
+    const snap = this.snapshot && this.snapshot[this.snapshot.length - 1];
+    if (!snap) { return 0; }
+    const restore_ui = snap.restore_ui;
+    snap.restore_ui = () => {
+      // GameTemplate restores JSON state. Rebind the unit supply callbacks
+      // and card event functions before rebuilding movement controls.
+      this.initializeGame(this.game.id);
+      if (typeof restore_ui === "function") { restore_ui(); }
+    };
+    return super.restoreSnapshot();
+  }
+
   attachMovementSnapshotUndo() {
     this.removeMovementSnapshotUndo();
     if (!this.showing_movement_undo) { return; }
@@ -2493,11 +2491,7 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
      		if (paths_self.game.spaces[currentkey].units.length > 0) {
       		} else {
       		  paths_self.game.spaces[currentkey].besieged = 0;
-      		  //
-      		  // control switches back to original owner of fort
-      		  //
-      		  let spc = paths_self.returnSpaces();
-      		  paths_self.game.spaces[currentkey].control = spc[currentkey].control;
+                  // Keep current ownership: the scenario default may still be neutral.
 		  paths_self.displaySpace(currentkey);
 	        }
       	      }
@@ -3112,11 +3106,7 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
      		        if (paths_self.game.spaces[currentkey].units.length > 0) {
       		        } else {
       		          paths_self.game.spaces[currentkey].besieged = 0;
-      		            //
-      		            // control switches back to original owner of fort
-      		            //
-      		            let spc = paths_self.returnSpaces();
-      		            paths_self.game.spaces[currentkey].control = spc[currentkey].control;
+                          // Keep current ownership: the scenario default may still be neutral.
 			    paths_self.displaySpace(currentkey);
       		        }
       		      }
@@ -3137,8 +3127,7 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
 
 		  } ,
 		  () => {
-		    alert("reloading to restart move...");
-                    reloadWindow(1);
+		    paths_self.restoreSnapshot();
 		    return;
 		  }
 	        );
@@ -3226,11 +3215,7 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
      	        if (paths_self.game.spaces[currentkey].units.length > 0) {
       	        } else {
       	          paths_self.game.spaces[currentkey].besieged = 0;
-      	          //
-      	          // control switches back to original owner of fort
-      	          //
-      	          let spc = paths_self.returnSpaces();
-      	          paths_self.game.spaces[currentkey].control = spc[currentkey].control;
+                  // Keep current ownership: the scenario default may still be neutral.
 	          paths_self.displaySpace(currentkey);
       	        }
       	      }
@@ -4352,7 +4337,7 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
 
     let finish_fnct = (spacekey) => {
       this.addUnitToSpace(units[unit_idx], spacekey);
-      this.addMove(`add\t${spacekey}\t${this.game.units[units[unit_idx]].key}\t${this.game.player}`);
+      this.prependMove(`add\t${spacekey}\t${this.game.units[units[unit_idx]].key}\t${this.game.player}`);
       this.displaySpace(spacekey);
       unit_idx++;
       if (unit_idx >= units.length) {
@@ -4396,16 +4381,11 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
     let finish_fnct = (spacekey) => {
       for (let unit_idx = 0; unit_idx < units.length; unit_idx++) {
         this.addUnitToSpace(units[unit_idx], spacekey);
-        this.addMove(`add\t${spacekey}\t${this.game.units[units[unit_idx]].key}\t${this.game.player}`);
+        this.prependMove(`add\t${spacekey}\t${this.game.units[units[unit_idx]].key}\t${this.game.player}`);
       }
       this.displaySpace(spacekey);
-      unit_idx++;
-      if (unit_idx >= units.length) {
-	if (mycallback != null) { mycallback(); }
-	return 1;
-      } else {
-	place_unit_fnct();
-      }
+      if (mycallback != null) { mycallback(); }
+      return 1;
     }
 
     let place_unit_fnct = () => {
@@ -4512,7 +4492,7 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
       this.hud.updateMenu([]);
       this.hud.updateCards([]);
       this.addUnitToSpace(units[unit_idx], spacekey);
-      this.addMove(`add\t${spacekey}\t${this.game.units[units[unit_idx]].key}\t${this.game.player}`);
+      this.prependMove(`add\t${spacekey}\t${this.game.units[units[unit_idx]].key}\t${this.game.player}`);
       this.displaySpace(spacekey);
       unit_idx++;
       if (unit_idx >= units.length) {

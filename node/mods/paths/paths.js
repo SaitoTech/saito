@@ -2531,7 +2531,6 @@ deck['ap14'] = {
 	        if (spacekey === "pass") {
         	  paths_self.removeSelectable();
         	  paths_self.endTurn();
-        	  just_stop = 1;
 		  units_to_restore = 0;
         	  return 1;
       	        }
@@ -3317,6 +3316,9 @@ deck['ap30'] = {
     	    }
 
     	    let filter_fnct = (spacekey, unit) => {
+              // A corps already deployed here cannot redeploy to the same
+              // space. Offering it again lets the selection loop run forever.
+              if (spacekey == "salonika") { return 0; }
 	      if (spacekey == "arbox" || paths_self.game.spaces[spacekey].port > 0) {
 		if (unit.corps) {
 		  if (unit.ckey == "BR" || unit.ckey == "FR") { return 1; }
@@ -5240,7 +5242,7 @@ deck['cp48'] = {
         onEvent : function(paths_self, faction) {
 	  if (paths_self.game.player == paths_self.returnPlayerOfFaction(faction)) {
 	    paths_self.addMove("SETVAR\tstate\tcentral_reinforcements_tu\t"+paths_self.game.state.round);
-	    paths_self.playerAddReinforcements("central", ["aoi_army"], "turkey");
+	    paths_self.playerAddReinforcements("central", ["aoi_corps"], "turkey");
 	  }
 	  return 0;
 	} ,
@@ -11503,8 +11505,8 @@ spaces['crbox'] = {
     this.game.state.central_fulfills_mo = false;
     this.game.state.allies_fulfills_mo = false;
 
-    if (this.game.state.mandated_offensives.central == "") { central_fulfills = true; }
-    if (this.game.state.mandated_offensives.allies == "") { allies_fulfills = true; }
+    if (this.game.state.mandated_offensives.central == "") { this.game.state.central_fulfills_mo = true; }
+    if (this.game.state.mandated_offensives.allies == "") { this.game.state.allies_fulfills_mo = true; }
       
     for (let z = 0; z < this.game.state.mo["central"].length; z++) {
       if (this.game.state.mo["central"][z] == this.game.state.mandated_offensives.central) {
@@ -12381,6 +12383,7 @@ console.log("central_cards_post_deal: " + central_cards_post_deal);
             });
 	    document.querySelector(".welcome-title").style.backgroundColor = "#000C";
 	    document.querySelector(".welcome-text").style.backgroundColor = "#000C";
+	    await this.triggerGameOver([this.game.players[this.returnPlayerOfFaction("allies") - 1]], "victory points");
 	    return 0;
 	  }
 
@@ -12399,8 +12402,21 @@ console.log("central_cards_post_deal: " + central_cards_post_deal);
             });
 	    document.querySelector(".welcome-title").style.backgroundColor = "#000C";
 	    document.querySelector(".welcome-text").style.backgroundColor = "#000C";
+	    await this.triggerGameOver([this.game.players[this.returnPlayerOfFaction("central") - 1]], "victory points");
 	    return 0;
 	  }
+
+          // Standard campaign, rules 5.5.1–5.5.2 and 16.2.1. The old
+          // queue otherwise continued into turn 21 (or beyond an armistice).
+          if (this.game.state.turn >= 20 || this.game.state.general_records_track.combined_war_status >= 40) {
+            const centralThreshold = this.game.state.events.treaty_of_brest_litovsk ? 11 : 13;
+            const faction = vp.vp <= 9 ? "allies" : vp.vp >= centralThreshold ? "central" : "";
+            const winners = faction ? [this.game.players[this.returnPlayerOfFaction(faction) - 1]] : this.game.players;
+            const reason = this.game.state.general_records_track.combined_war_status >= 40 ? "armistice" : "campaign end";
+            this.updateLog(`${reason}: ${vp.vp} VP — ${faction ? this.returnFactionName(faction) + " win" : "draw"}`);
+            await this.triggerGameOver(winners, reason);
+            return 0;
+          }
 
           this.game.queue.splice(qe, 1);
 	  return 1;
@@ -13162,6 +13178,7 @@ if (this.game.state.turn == 1) {
               });
               document.querySelector(".welcome-title").style.backgroundColor = "#000C";
               document.querySelector(".welcome-text").style.backgroundColor = "#000C";
+	      await this.triggerGameOver([this.game.players[this.returnPlayerOfFaction("allies") - 1]], "supply sources captured");
 	      return 0;
 	    }
 	  }
@@ -13994,7 +14011,6 @@ try {
 
 	    }
 	  }
-
 	  if (this.game.state.events.french_mutiny && this.game.state.mandated_offensives.allies == "FR" && this.game.state.events.french_mutiny_vp_turn != this.game.state.turn) {
 	    let sp = this.game.spaces[this.game.state.combat.key];
 	    if (sp.country == "france" || sp.country == "belgium" || sp.country == "germany") {
@@ -14196,6 +14212,7 @@ console.log(JSON.stringify(this.game.state.cc_allies_active));
 	  }
 	  for (let i = 0; i < this.game.state.cc_allies_active.length; i++) {
 	    let card = this.game.state.cc_allies_active[i];
+	    if (card === "ap46") { continue; } // bonus already applied above
 	    if (this.game.state.combat.attacker_power == "allies") { 
 	      //
 	      // kerensky_offensive
@@ -14210,6 +14227,7 @@ console.log(JSON.stringify(this.game.state.cc_allies_active));
 	        deck[card].onEvent(this, "attacker");
 	      }
 	    } else {
+	      if (card === "ap45") { continue; } // Kerensky only modifies an attack
 	      this.paths_log.recordCard("defender", this.popup(card));
 	      deck[card].onEvent(this, "defender");
 	    }
@@ -14738,7 +14756,7 @@ console.log("error updated attacker loss factor: " + JSON.stringify(err));
 	    this.hud.updateStatus(this.game.status);
 	    this.hud.updateCards([]);
 	    this.hud.updateMenu(options, (action) => {
-	      reloadWindow(1);
+	      this.loss_overlay.show();
 	    });
 	    this.loss_overlay.render(power);
 
@@ -15877,13 +15895,7 @@ console.log("moving unit: " + JSON.stringify(u));
 	    if (this.game.spaces[sourcekey].units.length > 0) {
 	    } else {
 	      this.game.spaces[sourcekey].besieged = 0;
-	      if (this.game.spaces[sourcekey].fort > 0) {
-		//
-		// control switches back to original owner of fort
-		//
-		let spc = this.returnSpaces();
-		this.game.spaces[sourcekey].control = spc[sourcekey].control;
-	      }
+	      // Keep current ownership: the scenario default may still be neutral.
 	    }
 	  }
 
@@ -16116,15 +16128,8 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
       }
     }
 
-    //
-    // Brusilov Offensive (ignore trench effects)
-    //
-    if (faction == "allies" && this.game.state.events.brusilov_offensive == 1) {
-      if (!ccs.includes("ap46")) {
-	num++;
-	ccs.push("ap46");
-      }
-    }
+    // Brusilov's combat modifier is applied by the combat queue. It is not
+    // another playable card: replaying its event would grant four more OPS.
 
     if (num == 0) {
       this.endTurn();
@@ -16284,16 +16289,6 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
     // combat cards...
     //
 
-    //
-    // Kerensky Offensive +2 bonus / one
-    //
-    if (faction == "allies" && this.game.state.events.kerensky_offensive == 1) {
-      if (!ccs.includes("ap45")) {
-	num++;
-	ccs.push("ap45"); 
-      }
-    }
-
     if (num == 0) {
       this.endTurn();
       return 0;
@@ -16372,7 +16367,9 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
       paths_self.hud.updateCards([]);
       paths_self.removeSelectable();
       paths_self.addUnitToSpace(unit.key, spacekey);
-      paths_self.addMove(`add\t${spacekey}\t${unit.key}\t${paths_self.game.player}`);    
+      // Moves execute from the end of the queue. Preserve local stack order
+      // so later unit indices refer to the same unit on every seat.
+      paths_self.prependMove(`add\t${spacekey}\t${unit.key}\t${paths_self.game.player}`);
       paths_self.displaySpace(spacekey);
       loop_func();
     };
@@ -18157,6 +18154,19 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
     });
   }
 
+  restoreSnapshot() {
+    const snap = this.snapshot && this.snapshot[this.snapshot.length - 1];
+    if (!snap) { return 0; }
+    const restore_ui = snap.restore_ui;
+    snap.restore_ui = () => {
+      // GameTemplate restores JSON state. Rebind the unit supply callbacks
+      // and card event functions before rebuilding movement controls.
+      this.initializeGame(this.game.id);
+      if (typeof restore_ui === "function") { restore_ui(); }
+    };
+    return super.restoreSnapshot();
+  }
+
   attachMovementSnapshotUndo() {
     this.removeMovementSnapshotUndo();
     if (!this.showing_movement_undo) { return; }
@@ -18444,11 +18454,7 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
      		if (paths_self.game.spaces[currentkey].units.length > 0) {
       		} else {
       		  paths_self.game.spaces[currentkey].besieged = 0;
-      		  //
-      		  // control switches back to original owner of fort
-      		  //
-      		  let spc = paths_self.returnSpaces();
-      		  paths_self.game.spaces[currentkey].control = spc[currentkey].control;
+                  // Keep current ownership: the scenario default may still be neutral.
 		  paths_self.displaySpace(currentkey);
 	        }
       	      }
@@ -19063,11 +19069,7 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
      		        if (paths_self.game.spaces[currentkey].units.length > 0) {
       		        } else {
       		          paths_self.game.spaces[currentkey].besieged = 0;
-      		            //
-      		            // control switches back to original owner of fort
-      		            //
-      		            let spc = paths_self.returnSpaces();
-      		            paths_self.game.spaces[currentkey].control = spc[currentkey].control;
+                          // Keep current ownership: the scenario default may still be neutral.
 			    paths_self.displaySpace(currentkey);
       		        }
       		      }
@@ -19088,8 +19090,7 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
 
 		  } ,
 		  () => {
-		    alert("reloading to restart move...");
-                    reloadWindow(1);
+		    paths_self.restoreSnapshot();
 		    return;
 		  }
 	        );
@@ -19177,11 +19178,7 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
      	        if (paths_self.game.spaces[currentkey].units.length > 0) {
       	        } else {
       	          paths_self.game.spaces[currentkey].besieged = 0;
-      	          //
-      	          // control switches back to original owner of fort
-      	          //
-      	          let spc = paths_self.returnSpaces();
-      	          paths_self.game.spaces[currentkey].control = spc[currentkey].control;
+                  // Keep current ownership: the scenario default may still be neutral.
 	          paths_self.displaySpace(currentkey);
       	        }
       	      }
@@ -20303,7 +20300,7 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
 
     let finish_fnct = (spacekey) => {
       this.addUnitToSpace(units[unit_idx], spacekey);
-      this.addMove(`add\t${spacekey}\t${this.game.units[units[unit_idx]].key}\t${this.game.player}`);
+      this.prependMove(`add\t${spacekey}\t${this.game.units[units[unit_idx]].key}\t${this.game.player}`);
       this.displaySpace(spacekey);
       unit_idx++;
       if (unit_idx >= units.length) {
@@ -20347,16 +20344,11 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
     let finish_fnct = (spacekey) => {
       for (let unit_idx = 0; unit_idx < units.length; unit_idx++) {
         this.addUnitToSpace(units[unit_idx], spacekey);
-        this.addMove(`add\t${spacekey}\t${this.game.units[units[unit_idx]].key}\t${this.game.player}`);
+        this.prependMove(`add\t${spacekey}\t${this.game.units[units[unit_idx]].key}\t${this.game.player}`);
       }
       this.displaySpace(spacekey);
-      unit_idx++;
-      if (unit_idx >= units.length) {
-	if (mycallback != null) { mycallback(); }
-	return 1;
-      } else {
-	place_unit_fnct();
-      }
+      if (mycallback != null) { mycallback(); }
+      return 1;
     }
 
     let place_unit_fnct = () => {
@@ -20463,7 +20455,7 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
       this.hud.updateMenu([]);
       this.hud.updateCards([]);
       this.addUnitToSpace(units[unit_idx], spacekey);
-      this.addMove(`add\t${spacekey}\t${this.game.units[units[unit_idx]].key}\t${this.game.player}`);
+      this.prependMove(`add\t${spacekey}\t${this.game.units[units[unit_idx]].key}\t${this.game.player}`);
       this.displaySpace(spacekey);
       unit_idx++;
       if (unit_idx >= units.length) {
@@ -20632,6 +20624,12 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
     // avoid re-importing
     //
     if (this.game.units[key]) {
+      // Unit IDs are historical identifiers: aoi_corps is an army. Refresh
+      // the flags from the declared type when loading an older saved pool too.
+      if (obj.type) {
+        this.game.units[key].army = obj.type === "army" ? 1 : 0;
+        this.game.units[key].corps = obj.type === "army" ? 0 : 1;
+      }
       if (obj.checkSupplyStatus) {
 	this.game.units[key].checkSupplyStatus = obj.checkSupplyStatus;
       } else {
@@ -20663,7 +20661,9 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
     if (!obj.spacekey)  		{ obj.spacekey = ""; }
     if (!obj.checkSupplyStatus) 	{ obj.checkSupplyStatus = (paths_self, spacekey) => { return 0; } };
 
-    if (key.indexOf("army") > -1) { obj.army = 1; } else { obj.corps = 1; }
+    const isArmy = obj.type ? obj.type === "army" : key.indexOf("army") > -1;
+    obj.army = isArmy ? 1 : 0;
+    obj.corps = isArmy ? 0 : 1;
 
     this.game.units[key] = obj;
 
@@ -20790,13 +20790,7 @@ console.log(JSON.stringify(unit));
       if (this.game.spaces[sourcekey].units.length > 0) {
       } else {
         this.game.spaces[sourcekey].besieged = 0;
-        if (this.game.spaces[sourcekey].fort > 0) {
-          //
-          // control switches back to original owner of fort
-          //
-          let spc = this.returnSpaces();
-          this.game.spaces[sourcekey].control = spc[sourcekey].control;
-        }
+        // Keep current ownership: the scenario default may still be neutral.
       }
     }
 

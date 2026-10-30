@@ -1,5 +1,5 @@
 // Default presentation sinks for a player with no screen.
-// Twilight installs its own local DOM event bridge after these defaults.
+// Twilight and Paths install their local DOM event bridges after these defaults.
 // Game rules/decision methods are deliberately NOT intercepted here.
 module.exports = function installPresentation(mod) {
   const noop = () => {};

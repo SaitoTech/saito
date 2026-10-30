@@ -195,14 +195,19 @@ If you are coding a card game there are a lot of functions in the GameHUD that w
 ## Headless player runner
 
 The [Node.js game runner](../../../apps/runner/README.md) is a separate SPV player
-entry point for Conquest, Settlers and Twilight Struggle. It uses the same GameTemplate queue and
+entry point for Conquest, Settlers, Twilight Struggle and Paths of Glory. It uses the same GameTemplate queue and
 signed game transactions as the browser. `app.HEADLESS` enables game intake and
 checkpoint saving with `BROWSER=0`, consumes presentation-only acknowledgements,
 and continues past READY without opening a game page. It does not enable this
 behavior on ordinary full nodes. Game-specific adapters provide filtered player
 observations and legal action candidates to a local Codex or heuristic provider.
 
-Twilight uses a local JSDOM event bridge for its existing card callbacks; the
-network player remains a native Node SPV client. Its runner supports the original
-deck and journals local decisions for restart recovery. See the runner guide for
+Its multi-seat supervisor can control several players in the same game. Each seat
+has a separate wallet, native process and private observation; the supervisor only
+coordinates invitations, lifecycle and concurrent model-call capacity. See the
+runner guide's `multi-host`, `multi-join` and `multi-resume` commands.
+
+Twilight and Paths of Glory use local JSDOM event bridges for their existing callbacks; the
+network player remains a native Node SPV client. Both journal local decisions for
+restart recovery; Twilight supports its original deck and Paths its original campaign. See the runner guide for
 configuration, test commands and supported scope.

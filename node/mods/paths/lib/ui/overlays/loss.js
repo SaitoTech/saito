@@ -1309,11 +1309,20 @@ class LossOverlay {
     this.updateAssignableUnits(am_i_the_attacker);
 
     document.querySelectorAll(my_qs + ' .loss-overlay-unit').forEach((el) => {
+      // Replacing a destroyed army adds a corps and rebinds this panel. The
+      // old army token remains visible with id="destroyed_unit"; it is no
+      // longer an index into units and must not become clickable again.
+      const idx = Number(el.id);
+      if (!/^\d+$/.test(el.id) || !this.units[idx] || this.units[idx].destroyed) {
+        el.onclick = null;
+        return;
+      }
       el.onclick = (e) => {
         this.updateAssignableUnits();
 
         let idx = e.currentTarget.id;
         let unit = this.units[idx];
+        if (!unit || unit.destroyed) { return; }
 
         if (just_one_more_hit) {
           if (unit.damaged) {

@@ -38,6 +38,6 @@ CARDS ERRATA AND IMPLEMENTATION DETAILS:
 The [Node runner](../../apps/runner/README.md) can play two-player, unstaked
 Twilight games using the original deck and a local Codex or heuristic provider.
 Copy [twilight.example.json](../../apps/runner/twilight.example.json) and run the
-runner from the `node/` directory. `lib/runner.js` bridges the existing card and
+runner from the `node/` directory. Its [Twilight adapter](../../apps/runner/games/twilight.js) bridges the existing card and
 country callbacks through a local DOM while Saito networking stays native.
 Edit `src/` for game rules, then run `./compile` here to regenerate `twilight.js`.

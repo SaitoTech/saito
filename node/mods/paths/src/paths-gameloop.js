@@ -565,6 +565,7 @@ console.log("central_cards_post_deal: " + central_cards_post_deal);
             });
 	    document.querySelector(".welcome-title").style.backgroundColor = "#000C";
 	    document.querySelector(".welcome-text").style.backgroundColor = "#000C";
+	    await this.triggerGameOver([this.game.players[this.returnPlayerOfFaction("allies") - 1]], "victory points");
 	    return 0;
 	  }
 
@@ -583,8 +584,21 @@ console.log("central_cards_post_deal: " + central_cards_post_deal);
             });
 	    document.querySelector(".welcome-title").style.backgroundColor = "#000C";
 	    document.querySelector(".welcome-text").style.backgroundColor = "#000C";
+	    await this.triggerGameOver([this.game.players[this.returnPlayerOfFaction("central") - 1]], "victory points");
 	    return 0;
 	  }
+
+          // Standard campaign, rules 5.5.1–5.5.2 and 16.2.1. The old
+          // queue otherwise continued into turn 21 (or beyond an armistice).
+          if (this.game.state.turn >= 20 || this.game.state.general_records_track.combined_war_status >= 40) {
+            const centralThreshold = this.game.state.events.treaty_of_brest_litovsk ? 11 : 13;
+            const faction = vp.vp <= 9 ? "allies" : vp.vp >= centralThreshold ? "central" : "";
+            const winners = faction ? [this.game.players[this.returnPlayerOfFaction(faction) - 1]] : this.game.players;
+            const reason = this.game.state.general_records_track.combined_war_status >= 40 ? "armistice" : "campaign end";
+            this.updateLog(`${reason}: ${vp.vp} VP — ${faction ? this.returnFactionName(faction) + " win" : "draw"}`);
+            await this.triggerGameOver(winners, reason);
+            return 0;
+          }
 
           this.game.queue.splice(qe, 1);
 	  return 1;
@@ -1346,6 +1360,7 @@ if (this.game.state.turn == 1) {
               });
               document.querySelector(".welcome-title").style.backgroundColor = "#000C";
               document.querySelector(".welcome-text").style.backgroundColor = "#000C";
+	      await this.triggerGameOver([this.game.players[this.returnPlayerOfFaction("allies") - 1]], "supply sources captured");
 	      return 0;
 	    }
 	  }
@@ -2379,6 +2394,7 @@ console.log(JSON.stringify(this.game.state.cc_allies_active));
 	  }
 	  for (let i = 0; i < this.game.state.cc_allies_active.length; i++) {
 	    let card = this.game.state.cc_allies_active[i];
+	    if (card === "ap46") { continue; } // bonus already applied above
 	    if (this.game.state.combat.attacker_power == "allies") { 
 	      //
 	      // kerensky_offensive
@@ -2393,6 +2409,7 @@ console.log(JSON.stringify(this.game.state.cc_allies_active));
 	        deck[card].onEvent(this, "attacker");
 	      }
 	    } else {
+	      if (card === "ap45") { continue; } // Kerensky only modifies an attack
 	      this.paths_log.recordCard("defender", this.popup(card));
 	      deck[card].onEvent(this, "defender");
 	    }
@@ -2921,7 +2938,7 @@ console.log("error updated attacker loss factor: " + JSON.stringify(err));
 	    this.hud.updateStatus(this.game.status);
 	    this.hud.updateCards([]);
 	    this.hud.updateMenu(options, (action) => {
-	      reloadWindow(1);
+	      this.loss_overlay.show();
 	    });
 	    this.loss_overlay.render(power);
 
@@ -4060,13 +4077,7 @@ console.log("moving unit: " + JSON.stringify(u));
 	    if (this.game.spaces[sourcekey].units.length > 0) {
 	    } else {
 	      this.game.spaces[sourcekey].besieged = 0;
-	      if (this.game.spaces[sourcekey].fort > 0) {
-		//
-		// control switches back to original owner of fort
-		//
-		let spc = this.returnSpaces();
-		this.game.spaces[sourcekey].control = spc[sourcekey].control;
-	      }
+	      // Keep current ownership: the scenario default may still be neutral.
 	    }
 	  }
 

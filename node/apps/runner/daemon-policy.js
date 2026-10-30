@@ -1,12 +1,13 @@
 const { createHash } = require('node:crypto');
+const { supportsPlayers } = require('./config');
 const INVITE_LIFETIME = 2000000; // Arcade's open-invite lifetime.
 
-function compatible(record, games, publicKey, now = Date.now()) {
+function compatible(record, games, publicKey, now = Date.now(), players = 2) {
   const tx = record?.tx, m = tx?.returnMessage?.() || tx?.msg, o = m?.options || {};
   if (!tx?.signature || !m || !games.includes(m.game) || m.module !== 'Arcade') return false;
   if (record.is_sender_reachable === false) return false;
   if (!['open', 'private'].includes(m.request) || !['open', 'private', 'mine'].includes(record.status)) return false;
-  if (!Array.isArray(m.players) || m.players.length !== 1 || Number(m.players_needed) !== 2) return false;
+  if (!supportsPlayers(m.game, players) || !Array.isArray(m.players) || m.players.length < 1 || m.players.length >= players || Number(m.players_needed) !== players || m.players.includes(publicKey)) return false;
   const host = m.originator || m.players[0];
   if (host === publicKey || host !== m.players[0] || tx.from?.[0]?.publicKey !== host) return false;
   const timestamp = Number(m.timestamp || tx.timestamp);
@@ -15,6 +16,7 @@ function compatible(record, games, publicKey, now = Date.now()) {
   if (m.request === 'private' && o.desired_opponent_publickey !== publicKey && !tx.isTo?.(publicKey)) return false;
   if ((o.stake && Number(o.stake) !== 0) || o.async_dealing || o['open-table'] || Number(o.turn_limit || 0) !== 0) return false;
   if (m.game === 'Twilight' && o.deck && o.deck !== 'original') return false;
+  if (m.game === 'PathsOfGlory' && ((o.deck && o.deck !== 'original') || (o.scenario && o.scenario !== 'original'))) return false;
   if (m.game === 'Settlers') {
     const length = Number(o.game_length ?? 10);
     if (!Number.isInteger(length) || length < 5 || length > 20) return false;
@@ -36,6 +38,7 @@ function reply(text, code) {
 class DaemonPolicy {
   constructor(runtime, config, report = () => {}) {
     this.runtime = runtime; this.config = config.daemon; this.report = report;
+    this.players = config.players ?? 2;
     const { app } = runtime;
     this.state = app.options.runnerDaemon ||= { invites: {} };
     this.state.invites ||= {};
@@ -45,7 +48,7 @@ class DaemonPolicy {
   async tick(now = Date.now()) {
     const { app, arcade, chat } = this.runtime, cfg = this.config;
     const key = app.options.wallet.publicKey;
-    const available = Object.values(arcade.invites).filter(r => compatible(r, cfg.games, key, now));
+    const available = Object.values(arcade.invites).filter(r => compatible(r, cfg.games, key, now, this.players));
     for (const record of available) {
       const tx = record.tx, m = tx.returnMessage();
       if (!this.state.invites[tx.signature]) {

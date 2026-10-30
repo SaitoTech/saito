@@ -84,6 +84,6 @@ rm -rf tests/mods/conquest/.tools tests/mods/conquest/.cache tests/mods/conquest
 ## Automated player
 
 The optional [Node.js runner](../../apps/runner/README.md) can host or join an
-unstaked two-player campaign using local Codex or a heuristic policy. It executes
+unstaked two-to-six-player campaign using local Codex or a heuristic policy. It executes
 this module's signed action and encrypted-deck protocols without a browser; it
 is separate from the local hotseat interface.

@@ -8,8 +8,8 @@ const { play } = require('./loop');
 
 async function main() {
   const [command, filename, argument] = process.argv.slice(2);
-  if (!['doctor', 'list', 'host', 'join', 'resume', 'daemon'].includes(command) || !filename) {
-    process.stdout.write('Usage: npm run runner -- <doctor|list|host|join|resume|daemon> CONFIG [invite-id|game-id]\n');
+  if (!['doctor', 'list', 'host', 'join', 'resume', 'daemon', 'multi-host', 'multi-join', 'multi-resume'].includes(command) || !filename) {
+    process.stdout.write('Usage: npm run runner -- <doctor|list|host|join|resume|daemon|multi-host|multi-join|multi-resume> CONFIG [invite-id|game-id]\n');
     return;
   }
   process.umask(0o077);
@@ -21,6 +21,10 @@ async function main() {
   const controller = new AbortController();
   for (const event of ['SIGINT', 'SIGTERM']) process.once(event, () => controller.abort());
   try {
+    if (command.startsWith('multi-')) {
+      await require('./multi').multi(config, command.slice(6), argument, { signal: controller.signal, report });
+      return;
+    }
     if (command === 'daemon') {
       await require('./daemon').daemon(config, { signal: controller.signal, report });
       return;
@@ -52,7 +56,7 @@ async function main() {
     if (command === 'host') {
       const tx = await arcade.createOpenTransaction({ ts: Date.now(), name: config.game,
         options: { game_length: 10, turn_limit: 0, conquest_setup: 'quick', ...config.options },
-        players_needed: 2, invitation_type: 'open' });
+        players_needed: config.players, invitation_type: 'open' });
       await arcade.receiveOpenTransaction(tx);
       await app.network.propagateTransaction(tx);
       app.connection.emit('relay-send-message', { recipient: 'PEERS', request: 'arcade spv update', data: tx.toJson() });
@@ -62,9 +66,7 @@ async function main() {
       const deadline = Date.now() + 20000;
       while (!arcade.returnGame(argument) && Date.now() < deadline) await delay(250, undefined, { signal: controller.signal });
       const invite = arcade.returnGame(argument);
-      if (!invite || invite.tx.msg.game !== config.game || !arcade.isAvailableGame(invite.tx)) throw Error('Matching open invite not found');
-      if (Number(invite.tx.msg.players_needed) !== 2 || invite.tx.msg.players.includes(mod.publicKey)) throw Error('Join requires a two-player invitation from another wallet');
-      if (invite.tx.msg.options?.stake && Number(invite.tx.msg.options.stake) !== 0) throw Error('Staked games are unsupported');
+      if (!require('./daemon-policy').compatible(invite, [config.game], mod.publicKey, Date.now(), config.players)) throw Error('Matching compatible open invite not found; check game, players and invitation options');
       await arcade.sendJoinTransaction(invite);
     } else {
       await require('./resume')(runtime, argument);

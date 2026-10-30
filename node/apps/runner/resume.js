@@ -3,7 +3,7 @@ module.exports = async function resume(runtime, gameId) {
   const saved = app.options.games.filter(g => g.module === mod.name && !g.over && (!gameId || g.id === gameId));
   if (saved.length !== 1) throw Error('resume needs exactly one unfinished game; supply its game id');
   mod.loadGame(saved[0].id);
-  if (adapter.restore && (mod.game.runnerTwilight || mod.game.runnerTwilightWait || mod.game.runnerDraft)) {
+  if (adapter.restore && (mod.game.runnerTwilight || mod.game.runnerTwilightWait || mod.game.runnerPaths || mod.game.runnerPathsWait || mod.game.runnerDraft)) {
     await adapter.restore();
     await mod.processFutureMoves();
   } else if (mod.game.runnerDecision || mod.game.runnerDraft) {
