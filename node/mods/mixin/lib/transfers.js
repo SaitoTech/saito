@@ -14,6 +14,17 @@ function outboundConfirmationBlockId(blockId, required) {
   return Number(blockId) + Math.max(0, threshold - 1);
 }
 
+function asBlockId(value) {
+  if (typeof value === 'bigint') {
+    return Number(value);
+  }
+  const blockId = Number(value);
+  if (!Number.isInteger(blockId) || blockId < 0 || !Number.isSafeInteger(blockId)) {
+    return null;
+  }
+  return blockId;
+}
+
 // Store purchases only. A Mixin deposit observation is evidence that the
 // reserved address was paid. It does not apply BuySaito's quote match or
 // migration's positive-amount allocation, and it does not wait for additional
@@ -76,7 +87,25 @@ class Transfers {
   // outbound_confirmed is the completed SAITO inclusion. `succeeded` stays in the
   // schema for older rows and has no separate evidence, so this queue does not
   // write it.
-  async processTransferQueue() {
+  async longestChainHashAtId(blockId) {
+    const id = asBlockId(blockId);
+    if (id === null || typeof this.app.blockchain?.getLongestChainHashAtId !== 'function') {
+      return '';
+    }
+    try {
+      const hash = await this.app.blockchain.getLongestChainHashAtId(BigInt(id));
+      return hash == null ? '' : String(hash);
+    } catch (err) {
+      try {
+        const hash = await this.app.blockchain.getLongestChainHashAtId(id);
+        return hash == null ? '' : String(hash);
+      } catch (retryErr) {
+        return '';
+      }
+    }
+  }
+
+  async processTransferQueue(options = {}) {
     if (this.running) {
       return;
     }
@@ -266,14 +295,15 @@ class Transfers {
       let currentBlockId = null;
       if (typeof this.app.blockchain?.getLatestBlockId === 'function') {
         try {
-          const raw = await this.app.blockchain.getLatestBlockId();
-          const blockId = typeof raw === 'bigint' ? Number(raw) : raw;
-          if (Number.isInteger(blockId) && blockId >= 0 && Number.isSafeInteger(blockId)) {
-            currentBlockId = blockId;
-          }
+          currentBlockId = asBlockId(await this.app.blockchain.getLatestBlockId());
         } catch (err) {
           currentBlockId = null;
         }
+      }
+      const floorBlockId = asBlockId(options.floorBlockId);
+      if (floorBlockId !== null) {
+        currentBlockId =
+          currentBlockId === null ? floorBlockId : Math.max(currentBlockId, floorBlockId);
       }
 
       if (!this.inclusion_checked) {
@@ -290,12 +320,12 @@ class Transfers {
         } else {
           const wanted = new Map(candidates.map((row) => [row.outbound_tx_sig, row]));
           try {
-            const latestId = Number(await this.app.blockchain.getLatestBlockId());
+            const latestId = asBlockId(await this.app.blockchain.getLatestBlockId()) || 0;
             for (let id = latestId; id > 0 && wanted.size; id--) {
               let hash = '';
               let block = null;
               try {
-                hash = await this.app.blockchain.getLongestChainHashAtId(id);
+                hash = await this.longestChainHashAtId(id);
                 if (!hash) {
                   continue;
                 }
@@ -314,10 +344,13 @@ class Transfers {
                 if (!row) {
                   continue;
                 }
-                const blockId = Number(block.id);
+                const blockId = asBlockId(block.id);
+                if (blockId === null) {
+                  continue;
+                }
                 await this.mod.database.updateTransfer(row.id, {
                   outbound_block_id: blockId,
-                  outbound_block_hash: block.hash || hash,
+                  outbound_block_hash: String(block.hash || hash),
                   outbound_confirmation_block_id: outboundConfirmationBlockId(
                     blockId,
                     row.outbound_confirmations_required
@@ -363,19 +396,19 @@ class Transfers {
 
       if (currentBlockId !== null) {
         for (const row of await this.mod.database.getTransfersPendingOutboundConfirmed(currentBlockId)) {
-          let canonical = '';
-          try {
-            canonical = await this.app.blockchain.getLongestChainHashAtId(Number(row.outbound_block_id));
-          } catch (err) {
-            canonical = '';
-          }
-          if (!canonical || canonical !== row.outbound_block_hash) {
+          const canonical = await this.longestChainHashAtId(row.outbound_block_id);
+          // Empty lookup is not a reorg. Only a different non-empty hash clears inclusion.
+          // onNewBlock can trust the inclusion it just recorded on the longest chain.
+          if (canonical && canonical !== String(row.outbound_block_hash || '')) {
             await this.mod.database.updateTransfer(row.id, {
               status: 'outbound_awaiting',
               outbound_block_id: null,
               outbound_block_hash: '',
               outbound_confirmation_block_id: null
             });
+            continue;
+          }
+          if (!canonical && !options.trustInclusion) {
             continue;
           }
           await this.mod.database.updateTransfer(row.id, { status: 'outbound_confirmed' });
@@ -1045,32 +1078,29 @@ class Transfers {
   }
 
   async onNewBlock(block, longestChain) {
-    if (!longestChain || !Array.isArray(block?.transactions)) {
+    const blockId = asBlockId(block?.id);
+    if (!longestChain || blockId === null || !Array.isArray(block?.transactions)) {
       await this.processTransferQueue();
       return;
     }
     const signatures = new Map();
     for (const tx of block.transactions) {
       if (tx?.signature) {
-        signatures.set(tx.signature, tx);
+        signatures.set(String(tx.signature), tx);
       }
     }
     const awaitingSigned = await this.mod.database.getTransfersPendingOutboundBroadcast();
     const broadcastSigned = await this.mod.database.getTransfers({ status: 'outbound_broadcast' });
     for (const row of [...(awaitingSigned || []), ...(broadcastSigned || [])]) {
-        if (!row.outbound_tx_sig || row.outbound_block_hash || !signatures.has(row.outbound_tx_sig)) {
+        const outboundSig = String(row.outbound_tx_sig || '');
+        if (!outboundSig || row.outbound_block_hash || !signatures.has(outboundSig)) {
           continue;
         }
-        // Any outbound SAITO payout: the included signature must match the
-        // saved signed transaction. Purpose-specific message checks do not
-        // gate inclusion or confirmation.
-        if (!restoreSavedSignedTransaction(this.app, row.outbound_tx, row.outbound_tx_sig)) {
-          continue;
-        }
-        const blockId = Number(block.id);
+        // Any outbound SAITO payout: inclusion is recorded when the saved
+        // signature appears in a longest-chain block. Purpose does not gate this.
         await this.mod.database.updateTransfer(row.id, {
           outbound_block_id: blockId,
-          outbound_block_hash: block.hash || '',
+          outbound_block_hash: String(block.hash || ''),
           outbound_confirmation_block_id: outboundConfirmationBlockId(
             blockId,
             row.outbound_confirmations_required
@@ -1078,7 +1108,7 @@ class Transfers {
         });
     }
     await this.observeStoreWithdrawalInclusions(signatures, block);
-    await this.processTransferQueue();
+    await this.processTransferQueue({ floorBlockId: blockId, trustInclusion: true });
   }
 
   async observeStoreWithdrawalInclusions(signatures, block) {

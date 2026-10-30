@@ -920,10 +920,11 @@ describe('Mixin transfer queue', () => {
       true
     );
 
-    const awaiting = await database.getTransfers({ status: 'outbound_awaiting' });
-    expect(awaiting.map((row) => row.outbound_tx_sig)).toEqual(['manual-reorg-sig']);
-    const included = await database.getTransfers({ status: 'outbound_broadcast' });
-    expect(included).toEqual(
+    // An empty longest-chain hash lookup is not treated as a reorg. Inclusion
+    // recorded on this longest-chain block is trusted and confirmed at threshold 1.
+    expect(await database.getTransfers({ status: 'outbound_awaiting' })).toEqual([]);
+    const confirmed = await database.getTransfers({ status: 'outbound_confirmed' });
+    expect(confirmed).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
           mode: 'automatic',
@@ -934,6 +935,11 @@ describe('Mixin transfer queue', () => {
           mode: 'manual',
           outbound_tx_sig: 'shared-sig',
           outbound_block_hash: 'live-block'
+        }),
+        expect.objectContaining({
+          mode: 'manual',
+          outbound_tx_sig: 'manual-reorg-sig',
+          outbound_block_hash: 'block-hash'
         })
       ])
     );
@@ -951,7 +957,6 @@ describe('Mixin transfer queue', () => {
         outbound_block_id: null
       })
     );
-    expect(String(manualReorg.last_error)).toContain('Transaction.Type is not a constructor');
   });
 });
 

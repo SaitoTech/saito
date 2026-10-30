@@ -595,6 +595,65 @@ describe('Mixin admin payment testing', () => {
     );
   });
 
+  test('inclusion still confirms when the longest-chain hash lookup is empty', async () => {
+    const { app, database } = harness([
+      transfer({
+        id: 13,
+        purpose: 'buysaito',
+        status: 'outbound_broadcast',
+        outbound_tx_sig: 'payout-sig',
+        outbound_tx: 'serialized-payout',
+        outbound_confirmations_required: 1,
+        outbound_block_hash: '',
+        outbound_block_id: null,
+        outbound_confirmation_block_id: null
+      })
+    ]);
+    app.blockchain.getLongestChainHashAtId = async () => '';
+    const queue = new Transfers(app, { app, database, api: {}, accounts: {} });
+
+    await queue.onNewBlock(
+      { id: 4n, hash: 'block-hash', transactions: [{ signature: 'payout-sig' }] },
+      true
+    );
+
+    expect(database.rows[0]).toEqual(
+      expect.objectContaining({
+        status: 'outbound_confirmed',
+        outbound_block_id: 4,
+        outbound_block_hash: 'block-hash'
+      })
+    );
+  });
+
+  test('an empty longest-chain hash lookup does not clear recorded inclusion', async () => {
+    const { app, database } = harness([
+      transfer({
+        id: 14,
+        purpose: 'buysaito',
+        status: 'outbound_broadcast',
+        outbound_tx_sig: 'payout-sig',
+        outbound_block_id: 4,
+        outbound_block_hash: 'block-hash',
+        outbound_confirmation_block_id: 4,
+        outbound_confirmations_required: 1
+      })
+    ]);
+    app.blockchain.getLatestBlockId = async () => 4;
+    app.blockchain.getLongestChainHashAtId = async () => '';
+    const queue = new Transfers(app, { app, database, api: {}, accounts: {} });
+
+    await queue.processTransferQueue();
+
+    expect(database.rows[0]).toEqual(
+      expect.objectContaining({
+        status: 'outbound_broadcast',
+        outbound_block_id: 4,
+        outbound_block_hash: 'block-hash'
+      })
+    );
+  });
+
   test('a Store purchase payload is reserved without extra inbound confirmations', async () => {
     const saved = [];
     const BuySaitoService = require('../../../mods/mixin/lib/buysaito');
