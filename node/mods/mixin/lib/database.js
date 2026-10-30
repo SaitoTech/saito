@@ -389,7 +389,7 @@ class Database {
       ['recipient_publickey', `TEXT NOT NULL DEFAULT ''`],
       ['inbound_confirmations', 'INTEGER NOT NULL DEFAULT 0'],
       ['inbound_confirmations_required', 'INTEGER NOT NULL DEFAULT 0'],
-      ['outbound_confirmations_required', 'INTEGER NOT NULL DEFAULT 0'],
+      ['outbound_confirmations_required', 'INTEGER NOT NULL DEFAULT 1'],
       ['inbound_tx_hash', `TEXT NOT NULL DEFAULT ''`],
       ['inbound_tx_id', `TEXT NOT NULL DEFAULT ''`],
       ['outbound_tx_id', `TEXT NOT NULL DEFAULT ''`],

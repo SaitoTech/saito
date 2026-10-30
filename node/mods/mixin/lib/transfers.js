@@ -1,12 +1,18 @@
 const email = require('./email');
 const {
   createMigrationPayoutTransaction,
-  receiveMigrationPayoutTransaction,
   createBuySaitoPayoutTransaction,
-  receiveBuySaitoPayoutTransaction,
   restoreSavedSignedTransaction
 } = require('./transactions');
 const { storePurchaseMessage, storePurchaseRecipient } = require('./buysaito');
+
+// Outbound SAITO payouts complete after one included block by default.
+// Required N means the confirmation height is inclusion + (N - 1).
+function outboundConfirmationBlockId(blockId, required) {
+  const need = Number(required);
+  const threshold = Number.isFinite(need) && need > 0 ? need : 1;
+  return Number(blockId) + Math.max(0, threshold - 1);
+}
 
 // Store purchases only. A Mixin deposit observation is evidence that the
 // reserved address was paid. It does not apply BuySaito's quote match or
@@ -312,8 +318,10 @@ class Transfers {
                 await this.mod.database.updateTransfer(row.id, {
                   outbound_block_id: blockId,
                   outbound_block_hash: block.hash || hash,
-                  outbound_confirmation_block_id:
-                    blockId + Number(row.outbound_confirmations_required || 0),
+                  outbound_confirmation_block_id: outboundConfirmationBlockId(
+                    blockId,
+                    row.outbound_confirmations_required
+                  ),
                   status: 'outbound_broadcast'
                 });
                 wanted.delete(tx.signature);
@@ -982,7 +990,7 @@ class Transfers {
       outbound_ticker: reservation.outbound_ticker || 'SAITO',
       outbound_amount: reservation.outbound_amount != null ? String(reservation.outbound_amount) : '',
       outbound_address: outboundAddress,
-      outbound_confirmations_required: Number(reservation.outbound_confirmations_required || 0),
+      outbound_confirmations_required: Number(reservation.outbound_confirmations_required || 1),
       created_at: now
     });
 
@@ -1050,33 +1058,23 @@ class Transfers {
     const awaitingSigned = await this.mod.database.getTransfersPendingOutboundBroadcast();
     const broadcastSigned = await this.mod.database.getTransfers({ status: 'outbound_broadcast' });
     for (const row of [...(awaitingSigned || []), ...(broadcastSigned || [])]) {
-        const included = signatures.get(row.outbound_tx_sig);
-        if (!row.outbound_tx_sig || row.outbound_block_hash || !included) {
+        if (!row.outbound_tx_sig || row.outbound_block_hash || !signatures.has(row.outbound_tx_sig)) {
           continue;
         }
-        // Migration issuance is accepted only when the included transaction is
-        // the saved migration payout. BuySaito uses its own issuance message,
-        // including a preserved user payload, so this check must not accept a
-        // BuySaito payment and must not be reused for another purpose.
-        let accepted = false;
-        if (row.purpose === 'migration') {
-          accepted = receiveMigrationPayoutTransaction(included, row);
-        } else if (row.purpose === 'treasury-payout') {
-          accepted = !!restoreSavedSignedTransaction(this.app, row.outbound_tx, row.outbound_tx_sig);
-        } else if (row.purpose === 'buysaito') {
-          // BuySaito only. The included transaction must be the saved BuySaito
-          // payout, or the preserved user payload signed for that purchase.
-          // Migration validates `migration issuance` instead.
-          accepted = receiveBuySaitoPayoutTransaction(included, row);
-        }
-        if (!accepted) {
+        // Any outbound SAITO payout: the included signature must match the
+        // saved signed transaction. Purpose-specific message checks do not
+        // gate inclusion or confirmation.
+        if (!restoreSavedSignedTransaction(this.app, row.outbound_tx, row.outbound_tx_sig)) {
           continue;
         }
         const blockId = Number(block.id);
         await this.mod.database.updateTransfer(row.id, {
           outbound_block_id: blockId,
           outbound_block_hash: block.hash || '',
-          outbound_confirmation_block_id: blockId + Number(row.outbound_confirmations_required || 0)
+          outbound_confirmation_block_id: outboundConfirmationBlockId(
+            blockId,
+            row.outbound_confirmations_required
+          )
         });
     }
     await this.observeStoreWithdrawalInclusions(signatures, block);

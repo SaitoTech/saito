@@ -558,6 +558,43 @@ describe('Mixin admin payment testing', () => {
     expect(sent.some((message) => message.request === 'buysaito report error')).toBe(false);
   });
 
+  test('a store-purchase payout is confirmed on the inclusion block without a purpose gate', async () => {
+    const { app, database } = harness([
+      transfer({
+        id: 12,
+        purpose: 'store-purchase',
+        status: 'outbound_broadcast',
+        outbound_tx: 'serialized-payout',
+        outbound_tx_sig: 'payout-sig',
+        outbound_confirmations_required: 1,
+        outbound_block_hash: '',
+        outbound_block_id: null,
+        outbound_confirmation_block_id: null,
+        payload: JSON.stringify({
+          module: 'Store',
+          request: 'purchase-asset',
+          buyer: 'buyer-key',
+          refund: 'buyer-key'
+        })
+      })
+    ]);
+    const queue = new Transfers(app, { app, database, api: {}, accounts: {} });
+
+    await queue.onNewBlock(
+      { id: 4, hash: 'block-hash', transactions: [{ signature: 'payout-sig' }] },
+      true
+    );
+
+    expect(database.rows[0]).toEqual(
+      expect.objectContaining({
+        status: 'outbound_confirmed',
+        outbound_block_id: 4,
+        outbound_block_hash: 'block-hash',
+        outbound_confirmation_block_id: 4
+      })
+    );
+  });
+
   test('a Store purchase payload is reserved without extra inbound confirmations', async () => {
     const saved = [];
     const BuySaitoService = require('../../../mods/mixin/lib/buysaito');
@@ -620,6 +657,7 @@ describe('Mixin admin payment testing', () => {
 
     expect(saved[0].purpose).toBe('store-purchase');
     expect(saved[0].inbound_confirmations_required).toBe(0);
+    expect(saved[0].outbound_confirmations_required).toBe(1);
     expect(saved[0].inbound_confirmation_block_id).toBe(8);
     await expect(
       buysaito.startPurchase('buyer-key', {

@@ -57,7 +57,7 @@ CREATE TABLE IF NOT EXISTS transfers (
   outbound_address TEXT NOT NULL DEFAULT '',
   outbound_sender TEXT NOT NULL DEFAULT '',
   outbound_mixin_user_id TEXT NOT NULL DEFAULT '',
-  outbound_confirmations_required INTEGER NOT NULL DEFAULT 0,
+  outbound_confirmations_required INTEGER NOT NULL DEFAULT 1,
 
   outbound_tx TEXT NOT NULL DEFAULT '',
   outbound_tx_sig TEXT NOT NULL DEFAULT '',
