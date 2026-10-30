@@ -2271,11 +2271,22 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
 
       let spaces_within_hops = paths_self.returnSpacesWithinHops(currentkey, active_unit_moves, (spacekey) => {
 	if (paths_self.game.state.events[paths_self.game.spaces[spacekey].country] < 1) {
-	      return 0;
+	  return 0;
 	}
-	if (paths_self.game.spaces[spacekey].units.length > 0) {
-	  if (paths_self.returnPowerOfUnit(paths_self.game.spaces[spacekey].units[0]) != faction) { 
+	let sp = paths_self.game.spaces[spacekey];
+	if (sp.units.length > 0) {
+	  if (paths_self.returnPowerOfUnit(sp.units[0]) != faction) { 
 	    return 0; 
+	  }
+	}
+	// 15.1.1 / 11.1.8 — unbesieged enemy fort: enterable, not passable
+	if (sp.fort > 0 && sp.control != faction && sp.besieged != 1) {
+	  let friendly_here = false;
+	  if (sp.units.length > 0 && paths_self.returnPowerOfUnit(sp.units[0]) == faction) {
+	    friendly_here = true;
+	  }
+	  if (!friendly_here) {
+	    return 2;
 	  }
 	}
 	return 1;
@@ -2463,6 +2474,26 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
 	      }
 
 	      //
+	      // 15.1.1 — entering an unbesieged enemy fort ends movement this round.
+	      // Check before the move; arrival may set besieged=1 immediately.
+	      //
+	      let stop_for_fort = false;
+	      {
+	        let dest = paths_self.game.spaces[key2];
+	        if (dest.fort > 0 && dest.control != faction) {
+	          let already_besieged = (dest.besieged == 1);
+	          if (!already_besieged && dest.units.length > 0) {
+	            if (paths_self.returnPowerOfUnit(dest.units[0]) == faction) {
+	              already_besieged = true;
+	            }
+	          }
+	          if (!already_besieged) {
+	            stop_for_fort = true;
+	          }
+	        }
+	      }
+
+	      //
 	      // code mirrored below in regular move
 	      //
 	      if (active_units.length > 0) {
@@ -2506,7 +2537,11 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
 	      //
 	      // continue
 	      //
-	      active_unit_moves--;
+	      if (stop_for_fort) {
+	        active_unit_moves = 0;
+	      } else {
+	        active_unit_moves--;
+	      }
 
 	      //
 	      // update active_unit idxs
@@ -2770,12 +2805,23 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
 
       let spaces_within_hops = paths_self.returnSpacesWithinHops(currentkey, active_unit_moves, (spacekey) => {
 	if (paths_self.game.state.events[paths_self.game.spaces[spacekey].country] < 1) {
-	      // neutral country so movement not allowed 
-	      return 0;
+	  // neutral country so movement not allowed 
+	  return 0;
 	}
-	if (paths_self.game.spaces[spacekey].units.length > 0) {
-	  if (paths_self.returnPowerOfUnit(paths_self.game.spaces[spacekey].units[0]) != faction) { 
+	let sp = paths_self.game.spaces[spacekey];
+	if (sp.units.length > 0) {
+	  if (paths_self.returnPowerOfUnit(sp.units[0]) != faction) { 
 	    return 0; 
+	  }
+	}
+	// 15.1.1 / 11.1.8 — unbesieged enemy fort: enterable, not passable
+	if (sp.fort > 0 && sp.control != faction && sp.besieged != 1) {
+	  let friendly_here = false;
+	  if (sp.units.length > 0 && paths_self.returnPowerOfUnit(sp.units[0]) == faction) {
+	    friendly_here = true;
+	  }
+	  if (!friendly_here) {
+	    return 2;
 	  }
 	}
 	return 1;
@@ -3200,6 +3246,26 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
 	      }
 
 	      //
+	      // 15.1.1 — entering an unbesieged enemy fort ends movement this round.
+	      // Check before the move; arrival may set besieged=1 immediately.
+	      //
+	      let stop_for_fort = false;
+	      {
+	        let dest = paths_self.game.spaces[key2];
+	        if (dest.fort > 0 && dest.control != faction) {
+	          let already_besieged = (dest.besieged == 1);
+	          if (!already_besieged && dest.units.length > 0) {
+	            if (paths_self.returnPowerOfUnit(dest.units[0]) == faction) {
+	              already_besieged = true;
+	            }
+	          }
+	          if (!already_besieged) {
+	            stop_for_fort = true;
+	          }
+	        }
+	      }
+
+	      //
 	      // NEAR EAST tracking
 	      //
 	      if (paths_self.isSpaceOnNearEastMap(key2) && paths_self.game.state.does_movement_start_outside_near_east) {
@@ -3239,7 +3305,11 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
 	      //
 	      // continue
 	      //
-	      active_unit_moves--;
+	      if (stop_for_fort) {
+	        active_unit_moves = 0;
+	      } else {
+	        active_unit_moves--;
+	      }
 
 	      if (is_one_hop_move && active_unit_moves > 0) {
 	        continueMoveInterface(sourcekey, key2, idx, options);

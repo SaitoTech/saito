@@ -347,6 +347,16 @@
 //        if (control == "neutral") { el.classList.add("neutral-highlight"); }
 	el.innerHTML = html;
 	el.classList.remove("opponent-move", "opponent-attack");
+	// Normal renders must not keep leftover loss-assignment presentation.
+	if (!(this.loss_overlay && this.loss_overlay.board_mode) && el.classList.contains("loss-assignment-open")) {
+	  el.classList.remove("loss-assignment-open", "stack-open");
+	  el.style.zIndex = "";
+	  el.style.removeProperty("--stack-top");
+	  el.style.removeProperty("--stack-height");
+	  el.style.removeProperty("--stack-width");
+	  el.onmouseenter = null;
+	  el.onmouseleave = null;
+	}
 	if (this.opponent_marks_visible && this.opponent_marks && this.opponent_marks[key] == "attack") {
 	  el.classList.add("opponent-attack");
 	} else if (this.opponent_marks_visible && this.opponent_marks && this.opponent_marks[key] == "move") {
@@ -534,6 +544,16 @@ console.log("err: " + err);
       if (!next) { return 0; }
       if (this.game.state.events[next.country] < 1) { return 0; }
       if (next.units.length > 0 && this.returnPowerOfUnit(next.units[0]) != power) { return 0; }
+      // unbesieged enemy fort: show as reachable, do not cue spaces beyond it
+      if (next.fort > 0 && next.control != power && next.besieged != 1) {
+        let friendly_here = false;
+        if (next.units.length > 0 && this.returnPowerOfUnit(next.units[0]) == power) {
+          friendly_here = true;
+        }
+        if (!friendly_here) {
+          return 2;
+        }
+      }
       return 1;
     }, best);
 

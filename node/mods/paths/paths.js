@@ -6485,6 +6485,16 @@ deck['cp65'] = {
 //        if (control == "neutral") { el.classList.add("neutral-highlight"); }
 	el.innerHTML = html;
 	el.classList.remove("opponent-move", "opponent-attack");
+	// Normal renders must not keep leftover loss-assignment presentation.
+	if (!(this.loss_overlay && this.loss_overlay.board_mode) && el.classList.contains("loss-assignment-open")) {
+	  el.classList.remove("loss-assignment-open", "stack-open");
+	  el.style.zIndex = "";
+	  el.style.removeProperty("--stack-top");
+	  el.style.removeProperty("--stack-height");
+	  el.style.removeProperty("--stack-width");
+	  el.onmouseenter = null;
+	  el.onmouseleave = null;
+	}
 	if (this.opponent_marks_visible && this.opponent_marks && this.opponent_marks[key] == "attack") {
 	  el.classList.add("opponent-attack");
 	} else if (this.opponent_marks_visible && this.opponent_marks && this.opponent_marks[key] == "move") {
@@ -6672,6 +6682,16 @@ console.log("err: " + err);
       if (!next) { return 0; }
       if (this.game.state.events[next.country] < 1) { return 0; }
       if (next.units.length > 0 && this.returnPowerOfUnit(next.units[0]) != power) { return 0; }
+      // unbesieged enemy fort: show as reachable, do not cue spaces beyond it
+      if (next.fort > 0 && next.control != power && next.besieged != 1) {
+        let friendly_here = false;
+        if (next.units.length > 0 && this.returnPowerOfUnit(next.units[0]) == power) {
+          friendly_here = true;
+        }
+        if (!friendly_here) {
+          return 2;
+        }
+      }
       return 1;
     }, best);
 
@@ -8162,6 +8182,12 @@ if (spacekey == "stanislau") {
     let hop = 0;
     let old = [];
 
+    //
+    // passthrough_func return values:
+    //   0 / falsy = cannot enter
+    //   1 / truthy = enter and continue through
+    //   2 = enter as destination only (do not expand through)
+    //
     let addHop = function(news, hop) {     
 
       hop++;
@@ -8171,52 +8197,58 @@ if (spacekey == "stanislau") {
       //
       for (let i = 0; i < news.length; i++) {
 
-	let passthrough = true;
-	if (passthrough_func != null) { if (!passthrough_func(news[i])) { passthrough = false; } } 
-	if (news[i] == source.key) { passthrough = true; } // auto-exempt source 
+	let gate = 1;
+	if (passthrough_func != null) {
+	  let r = passthrough_func(news[i]);
+	  if (r === 2 || r === '2') { gate = 2; }
+	  else if (!r) { gate = 0; }
+	  else { gate = 1; }
+	}
+	if (news[i] == source.key) { gate = 1; } // auto-exempt source 
 
-	//
-	// don't add anything that isn't passthrough, and don't process any of its
-	// neighbours since we cannot route through it.
-	//
-	if (passthrough) {
-          for (let z = 0; z < paths_self.game.spaces[news[i]].neighbours.length; z++) {
-            let n = paths_self.game.spaces[news[i]].neighbours[z];
-
-	    //
-	    // we submit unit when calculating movement, so that we can 
-	    // determine if units can move between depots etc.
-	    //
-	    let restricted_movement = false;
-	    if (unit != null) {
-	      let lim = paths_self.game.spaces[news[i]].limits;
-	      if (lim) {
-	        for (let z = 0; z < lim.length; z++) {
-		  if (lim[z][n]) {
-		    restricted_movement = true;
-		    if (lim[z][n] == unit.ckey) { restricted_movement = false; }
-		  }
-		}
-	      }
-	    }
-
-	    if (restricted_movement == false) {
-              if (!old.includes(n)) {
-                if (!news.includes(n)) {
-                  if (!newer.includes(n)) {
-                    if (n !== source.key) {
-	              newer.push(n);
-	            }
-	          }
-	        }
-	      }
-	    }
-          }
-
+	if (gate) {
           if (hop != -1) {
 	    if (!old.includes(news[i])) {
 	      if (news[i] !== source.key) {
 	        old.push(news[i]);
+	      }
+            }
+          }
+
+	  //
+	  // gate 2 = enterable fort-style stop: reachable, but do not route through
+	  //
+	  if (gate === 1) {
+            for (let z = 0; z < paths_self.game.spaces[news[i]].neighbours.length; z++) {
+              let n = paths_self.game.spaces[news[i]].neighbours[z];
+
+	      //
+	      // we submit unit when calculating movement, so that we can 
+	      // determine if units can move between depots etc.
+	      //
+	      let restricted_movement = false;
+	      if (unit != null) {
+	        let lim = paths_self.game.spaces[news[i]].limits;
+	        if (lim) {
+	          for (let z = 0; z < lim.length; z++) {
+		    if (lim[z][n]) {
+		      restricted_movement = true;
+		      if (lim[z][n] == unit.ckey) { restricted_movement = false; }
+		    }
+		  }
+	        }
+	      }
+
+	      if (restricted_movement == false) {
+                if (!old.includes(n)) {
+                  if (!news.includes(n)) {
+                    if (!newer.includes(n)) {
+                      if (n !== source.key) {
+	                newer.push(n);
+	              }
+	            }
+	          }
+	        }
 	      }
             }
           }
@@ -8244,6 +8276,12 @@ if (spacekey == "stanislau") {
     let hop = 0;
     let old = [];
 
+    //
+    // passthrough_func return values:
+    //   0 / falsy = cannot enter
+    //   1 / truthy = enter and continue through
+    //   2 = enter as destination only (do not expand through)
+    //
     let addHop = function(news, hop) {     
 
       hop++;
@@ -8253,54 +8291,57 @@ if (spacekey == "stanislau") {
       //
       for (let i = 0; i < news.length; i++) {
 
-	let passthrough = true;
-	if (passthrough_func != null) { if (!passthrough_func(news[i])) { passthrough = false; } } 
-	if (news[i] == source.key) { passthrough = true; } // auto-exempt source 
+	let gate = 1;
+	if (passthrough_func != null) {
+	  let r = passthrough_func(news[i]);
+	  if (r === 2 || r === '2') { gate = 2; }
+	  else if (!r) { gate = 0; }
+	  else { gate = 1; }
+	}
+	if (news[i] == source.key) { gate = 1; } // auto-exempt source 
 
-	//
-	// don't add anything that isn't passthrough, and don't process any of its
-	// neighbours since we cannot route through it.
-	//
-	if (passthrough) {
-          for (let z = 0; z < paths_self.game.spaces[news[i]].neighbours.length; z++) {
-            let n = paths_self.game.spaces[news[i]].neighbours[z];
-
-	    //
-	    // we submit unit when calculating movement, so that we can 
-	    // determine if units can move between depots etc.
-	    //
-	    let restricted_movement = false;
-	    if (unit != null) {
-	      let lim = paths_self.game.spaces[news[i]].limits;
-	      if (lim) {
-	        for (let z = 0; z < lim.length; z++) {
-		  if (lim[z][n]) {
-		    restricted_movement = true;
-		    if (lim[z][n] == unit.ckey) { restricted_movement = false; }
-		  }
-		}
-	      }
-	    }
-
-	    if (restricted_movement == false) {
-              if (!old.includes(n)) {
-                if (!news.includes(n)) {
-                  if (!newer.includes(n)) {
-                    if (n !== source.key) {
-	              newer.push(n);
-	            }
-	          }
-	        }
-	      }
-	    }
-          }
-
+	if (gate) {
           if (hop != -1) {
 	    let does_old_include_spacekey = false;
 	    for (let z = 0; z < old.length; z++) { if (old[z].spacekey == news[i]) { does_old_include_spacekey = true; } }
 	    if (!does_old_include_spacekey) {
 	      if (news[i] !== source.key) {
 	        old.push({ spacekey : news[i] , hops : hop });
+	      }
+            }
+          }
+
+	  if (gate === 1) {
+            for (let z = 0; z < paths_self.game.spaces[news[i]].neighbours.length; z++) {
+              let n = paths_self.game.spaces[news[i]].neighbours[z];
+
+	      //
+	      // we submit unit when calculating movement, so that we can 
+	      // determine if units can move between depots etc.
+	      //
+	      let restricted_movement = false;
+	      if (unit != null) {
+	        let lim = paths_self.game.spaces[news[i]].limits;
+	        if (lim) {
+	          for (let z = 0; z < lim.length; z++) {
+		    if (lim[z][n]) {
+		      restricted_movement = true;
+		      if (lim[z][n] == unit.ckey) { restricted_movement = false; }
+		    }
+		  }
+	        }
+	      }
+
+	      if (restricted_movement == false) {
+                if (!old.includes(n)) {
+                  if (!news.includes(n)) {
+                    if (!newer.includes(n)) {
+                      if (n !== source.key) {
+	                newer.push(n);
+	              }
+	            }
+	          }
+	        }
 	      }
             }
           }
@@ -14171,18 +14212,30 @@ try {
 	  this.paths_log.openCombat();
 
 	  if (this.returnPlayerOfFaction(this.game.state.combat.attacking_faction) != this.game.player) {
-	    this.noteOpponentBoardMark(key, "attack");
-	    let space = this.game.spaces[key];
+	    // Destination and every attacker source space — spaces affected by this attack.
+	    let attack_spaces = {};
+	    attack_spaces[key] = 1;
+	    for (let z = 0; z < this.game.state.combat.attacker.length; z++) {
+	      let sk = this.game.state.combat.attacker[z].unit_sourcekey;
+	      if (sk) { attack_spaces[sk] = 1; }
+	    }
 	    let board = this.getBoardState();
-	    if (this.minimap && space && board) {
-	      this.minimap.add("attack-" + key, {
-	        x: (space.left + 45) / board.width,
-	        y: (space.top + 45) / board.height,
-	        type: "circle",
-	        color: "#e74c3c",
-	        size: 14,
-	        flash: true
-	      });
+	    for (let sk in attack_spaces) {
+	      this.noteOpponentBoardMark(sk, "attack");
+	      let space = this.game.spaces[sk];
+	      if (this.minimap && space && board) {
+	        this.minimap.add("attack-" + sk, {
+	          x: (space.left + 45) / board.width,
+	          y: (space.top + 45) / board.height,
+	          type: "circle",
+	          color: "#e74c3c",
+	          size: 14,
+	          flash: true
+	        });
+	      }
+	      if (this.opponent_marks_visible) {
+	        this.displaySpace(sk);
+	      }
 	    }
 	  }
 
@@ -15181,29 +15234,47 @@ console.log("error updated attacker loss factor: " + JSON.stringify(err));
 	  let can_defender_cancel = false;
 
 	  //
-	  // withdrawal might still need to restore a unit (flank attacks)
+	  // withdrawal might still need to restore a unit (flank attacks /
+	  // replacement corps that were never flagged at combat start)
 	  //
 	  if (this.game.state.events.withdrawal == 1 && this.game.state.events.withdrawal_bonus_used == 0) {
 	    let corps_restored = false;
-	    for (let z = 0; z < this.game.spaces[this.game.state.combat.key].units.length; z++) {
-	      let unit = this.game.spaces[this.game.state.combat.key].units[z];
-	      if (unit.damaged && unit.eligible_for_withdrawal_bonus) {
+	    let space_units = this.game.spaces[this.game.state.combat.key].units;
+	    for (let z = 0; z < space_units.length; z++) {
+	      let unit = space_units[z];
+	      if (unit.damaged && !unit.destroyed && unit.eligible_for_withdrawal_bonus) {
 		unit.damaged = 0;
 		this.paths_log.note(this.paths_log.label(unit.name) + " restored (Withdrawal)");
 		try { salert(unit.name + " restored with Withdrawal bonus..."); } catch (err) {}
                 this.game.state.events.withdrawal_bonus_used = 1;
 		corps_restored = true;
+		break;
 	      }
 	    }
-	    // 12.6.6 If no Corps step was lost, then one Army step loss may be negated.
+	    // Replacement corps may lack the eligibility flag — still negate one corps step.
 	    if (corps_restored == false) {
-	      for (let z = 0; z < this.game.spaces[this.game.state.combat.key].units.length; z++) {
-	        let unit = this.game.spaces[this.game.state.combat.key].units[z];
-		if (unit.damaged && unit.army) {
+	      for (let z = 0; z < space_units.length; z++) {
+	        let unit = space_units[z];
+	        if (unit.damaged && !unit.destroyed && unit.corps) {
 		  unit.damaged = 0;
 		  this.paths_log.note(this.paths_log.label(unit.name) + " restored (Withdrawal)");
 		  try { salert(unit.name + " restored with Withdrawal bonus..."); } catch (err) {}
 		  this.game.state.events.withdrawal_bonus_used = 1;
+		  corps_restored = true;
+		  break;
+	        }
+	      }
+	    }
+	    // 12.6.6 If no Corps step was lost, then one Army step loss may be negated.
+	    if (corps_restored == false) {
+	      for (let z = 0; z < space_units.length; z++) {
+	        let unit = space_units[z];
+		if (unit.damaged && !unit.destroyed && unit.army) {
+		  unit.damaged = 0;
+		  this.paths_log.note(this.paths_log.label(unit.name) + " restored (Withdrawal)");
+		  try { salert(unit.name + " restored with Withdrawal bonus..."); } catch (err) {}
+		  this.game.state.events.withdrawal_bonus_used = 1;
+		  break;
 		}	
 	      }
 	    } 
@@ -15220,8 +15291,8 @@ console.log("error updated attacker loss factor: " + JSON.stringify(err));
 	      }
 	    }
 	  }
-	  // withdrawal prevents
-	  if (this.game.state.withdrawal == 1) { this.game.state.combat.can_defender_cancel = false; }
+	  // Withdrawal forces retreat — defender may not cancel with an extra step.
+	  if (this.game.state.events.withdrawal == 1) { can_defender_cancel = false; }
 	  this.game.state.combat.can_defender_cancel = can_defender_cancel;
 
 	  //
@@ -15269,25 +15340,31 @@ console.log("error updated attacker loss factor: " + JSON.stringify(err));
 	    }
 	  }
 
-	  if (this.game.state.combat.winner == "defender") {
-	    this.paths_log.publishCombat();
-	    return 1;
-	  }
+	  // Withdrawal forces a retreat even without an undamaged attacking army
+	  // (and even if LF would otherwise be a tie / defender win).
+	  if (this.game.state.events.withdrawal == 1) {
+	    does_defender_retreat = true;
+	  } else {
+	    if (this.game.state.combat.winner == "defender") {
+	      this.paths_log.publishCombat();
+	      return 1;
+	    }
 
-	  if (this.game.state.combat.winner == "none") {
-	    this.paths_log.publishCombat();
-	    return 1;
-	  }
+	    if (this.game.state.combat.winner == "none") {
+	      this.paths_log.publishCombat();
+	      return 1;
+	    }
 
-	  this.paths_log.publishCombat();
-
-	  for (let i = 0; i < attacker_units.length; i++) {
-	    if (attacker_units[i]) {
-	      if (attacker_units[i].type == "army" && attacker_units[i].damaged == false) {
-	        does_defender_retreat = true;
+	    for (let i = 0; i < attacker_units.length; i++) {
+	      if (attacker_units[i]) {
+	        if (attacker_units[i].type == "army" && attacker_units[i].damaged == false) {
+	          does_defender_retreat = true;
+	        }
 	      }
 	    }
 	  }
+
+	  this.paths_log.publishCombat();
 
 	  if (does_defender_retreat) {
 	    let player = this.returnPlayerOfFaction(this.game.state.combat.defender_power);
@@ -15677,7 +15754,15 @@ console.log("moving unit: " + JSON.stringify(u));
 	  this.displaySpace("ceubox");
 	  this.displaySpace("aeubox");
 	  this.displaySpace(spacekey);
-          this.shakeSpacekey(spacekey);
+	  // Board loss-assignment: shake the specific damaged chit when the opponent assigns.
+	  // Assigner's own echo skips animation (they already refreshed locally).
+	  if (this.loss_overlay && this.loss_overlay.board_mode) {
+	    if (player_to_ignore != this.game.player) {
+	      this.loss_overlay.animateBoardHit(spacekey, key, mv[5]);
+	    }
+	  } else {
+            this.shakeSpacekey(spacekey);
+	  }
 
 	  return 1;
 
@@ -18546,11 +18631,22 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
 
       let spaces_within_hops = paths_self.returnSpacesWithinHops(currentkey, active_unit_moves, (spacekey) => {
 	if (paths_self.game.state.events[paths_self.game.spaces[spacekey].country] < 1) {
-	      return 0;
+	  return 0;
 	}
-	if (paths_self.game.spaces[spacekey].units.length > 0) {
-	  if (paths_self.returnPowerOfUnit(paths_self.game.spaces[spacekey].units[0]) != faction) { 
+	let sp = paths_self.game.spaces[spacekey];
+	if (sp.units.length > 0) {
+	  if (paths_self.returnPowerOfUnit(sp.units[0]) != faction) { 
 	    return 0; 
+	  }
+	}
+	// 15.1.1 / 11.1.8 — unbesieged enemy fort: enterable, not passable
+	if (sp.fort > 0 && sp.control != faction && sp.besieged != 1) {
+	  let friendly_here = false;
+	  if (sp.units.length > 0 && paths_self.returnPowerOfUnit(sp.units[0]) == faction) {
+	    friendly_here = true;
+	  }
+	  if (!friendly_here) {
+	    return 2;
 	  }
 	}
 	return 1;
@@ -18738,6 +18834,26 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
 	      }
 
 	      //
+	      // 15.1.1 — entering an unbesieged enemy fort ends movement this round.
+	      // Check before the move; arrival may set besieged=1 immediately.
+	      //
+	      let stop_for_fort = false;
+	      {
+	        let dest = paths_self.game.spaces[key2];
+	        if (dest.fort > 0 && dest.control != faction) {
+	          let already_besieged = (dest.besieged == 1);
+	          if (!already_besieged && dest.units.length > 0) {
+	            if (paths_self.returnPowerOfUnit(dest.units[0]) == faction) {
+	              already_besieged = true;
+	            }
+	          }
+	          if (!already_besieged) {
+	            stop_for_fort = true;
+	          }
+	        }
+	      }
+
+	      //
 	      // code mirrored below in regular move
 	      //
 	      if (active_units.length > 0) {
@@ -18781,7 +18897,11 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
 	      //
 	      // continue
 	      //
-	      active_unit_moves--;
+	      if (stop_for_fort) {
+	        active_unit_moves = 0;
+	      } else {
+	        active_unit_moves--;
+	      }
 
 	      //
 	      // update active_unit idxs
@@ -19045,12 +19165,23 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
 
       let spaces_within_hops = paths_self.returnSpacesWithinHops(currentkey, active_unit_moves, (spacekey) => {
 	if (paths_self.game.state.events[paths_self.game.spaces[spacekey].country] < 1) {
-	      // neutral country so movement not allowed 
-	      return 0;
+	  // neutral country so movement not allowed 
+	  return 0;
 	}
-	if (paths_self.game.spaces[spacekey].units.length > 0) {
-	  if (paths_self.returnPowerOfUnit(paths_self.game.spaces[spacekey].units[0]) != faction) { 
+	let sp = paths_self.game.spaces[spacekey];
+	if (sp.units.length > 0) {
+	  if (paths_self.returnPowerOfUnit(sp.units[0]) != faction) { 
 	    return 0; 
+	  }
+	}
+	// 15.1.1 / 11.1.8 — unbesieged enemy fort: enterable, not passable
+	if (sp.fort > 0 && sp.control != faction && sp.besieged != 1) {
+	  let friendly_here = false;
+	  if (sp.units.length > 0 && paths_self.returnPowerOfUnit(sp.units[0]) == faction) {
+	    friendly_here = true;
+	  }
+	  if (!friendly_here) {
+	    return 2;
 	  }
 	}
 	return 1;
@@ -19475,6 +19606,26 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
 	      }
 
 	      //
+	      // 15.1.1 — entering an unbesieged enemy fort ends movement this round.
+	      // Check before the move; arrival may set besieged=1 immediately.
+	      //
+	      let stop_for_fort = false;
+	      {
+	        let dest = paths_self.game.spaces[key2];
+	        if (dest.fort > 0 && dest.control != faction) {
+	          let already_besieged = (dest.besieged == 1);
+	          if (!already_besieged && dest.units.length > 0) {
+	            if (paths_self.returnPowerOfUnit(dest.units[0]) == faction) {
+	              already_besieged = true;
+	            }
+	          }
+	          if (!already_besieged) {
+	            stop_for_fort = true;
+	          }
+	        }
+	      }
+
+	      //
 	      // NEAR EAST tracking
 	      //
 	      if (paths_self.isSpaceOnNearEastMap(key2) && paths_self.game.state.does_movement_start_outside_near_east) {
@@ -19514,7 +19665,11 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
 	      //
 	      // continue
 	      //
-	      active_unit_moves--;
+	      if (stop_for_fort) {
+	        active_unit_moves = 0;
+	      } else {
+	        active_unit_moves--;
+	      }
 
 	      if (is_one_hop_move && active_unit_moves > 0) {
 	        continueMoveInterface(sourcekey, key2, idx, options);

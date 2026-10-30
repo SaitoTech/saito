@@ -180,13 +180,19 @@
     cursor: pointer;
   }
 
+  /* Combat participants not on the assigning side — full opacity, not clickable. */
+  .space.loss-assignment-open > .army-tile.loss-board-participant {
+    pointer-events: none;
+  }
+
+  /* Nonparticipating units that share an attacker source space. */
   .space.loss-assignment-open > .army-tile.loss-board-other {
     opacity: 0.55;
     pointer-events: none;
   }
 
+  /* Hit-ineligible for this step: keep full opacity; click still rejected. */
   .space.loss-assignment-open > .army-tile.loss-board-unassignable {
-    opacity: 0.35;
     cursor: not-allowed;
   }
 

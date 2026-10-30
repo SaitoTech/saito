@@ -10,6 +10,10 @@ module.exports = () => {
         <input type="checkbox" data-setting="remove_card_popups">
         <span>remove card popups</span>
       </label>
+      <label class="settings-option">
+        <input type="checkbox" data-setting="use_combat_overlays">
+        <span>use combat overlays</span>
+      </label>
     </div>
   `;
 };

@@ -28,6 +28,7 @@ class LossOverlay {
     this.are_any_units_unassignable = 0;
     this.board_mode = false;
     this.board_spaces = [];
+    this.board_opened_spaces = [];
     this.board_bind = null;
     this.board_hover_bound = false;
   }
@@ -142,6 +143,8 @@ class LossOverlay {
       return;
     }
 
+    this.rememberOpenedSpace(spacekey);
+
     let size = el.offsetWidth || 90;
     let gap = Math.round(size * 0.08);
     let pad = Math.round(size * 0.16);
@@ -176,6 +179,31 @@ class LossOverlay {
     };
   }
 
+  isCombatParticipant(unit) {
+    if (!unit || unit.destroyed) {
+      return false;
+    }
+    let attackers = this.mod.returnAttackerUnits();
+    if (attackers.indexOf(unit) >= 0) {
+      return true;
+    }
+    let defenders = this.mod.returnDefenderUnits();
+    return defenders.indexOf(unit) >= 0;
+  }
+
+  isAttackerSourceSpace(spacekey) {
+    let combat = this.mod.game.state && this.mod.game.state.combat;
+    if (!combat || !combat.attacker) {
+      return false;
+    }
+    for (let z = 0; z < combat.attacker.length; z++) {
+      if (combat.attacker[z].unit_sourcekey === spacekey) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   annotateBoardTiles(spacekey) {
     let el = document.getElementById(spacekey);
     if (!el) {
@@ -183,8 +211,14 @@ class LossOverlay {
     }
     let draw_units = this.drawOrderForSpace(spacekey);
     let tiles = el.querySelectorAll(':scope > .army-tile');
+    let attacker_source = this.isAttackerSourceSpace(spacekey);
     tiles.forEach((tile, i) => {
-      tile.classList.remove('loss-board-unit', 'loss-board-unassignable', 'loss-board-other');
+      tile.classList.remove(
+        'loss-board-unit',
+        'loss-board-unassignable',
+        'loss-board-other',
+        'loss-board-participant'
+      );
       delete tile.dataset.lossIdx;
       tile.onclick = null;
       let unit = draw_units[i];
@@ -192,13 +226,79 @@ class LossOverlay {
         return;
       }
       let idx = this.units ? this.units.indexOf(unit) : -1;
+      let participating = this.isCombatParticipant(unit);
+      // Assignable side this step — clickable; opacity stays full even if unassignable.
       if (idx >= 0 && !unit.destroyed) {
         tile.dataset.lossIdx = String(idx);
         tile.classList.add('loss-board-unit');
-      } else {
+        return;
+      }
+      // Other combat participants (e.g. opponent) stay fully visible.
+      if (participating) {
+        tile.classList.add('loss-board-participant');
+        return;
+      }
+      // Only nonparticipating units in attacker source spaces are subdued.
+      if (attacker_source) {
         tile.classList.add('loss-board-other');
       }
     });
+  }
+
+  shakeBoardTile(tile) {
+    if (!tile || tile.classList.contains('shake')) {
+      return;
+    }
+    tile.classList.add('shake');
+    setTimeout(() => {
+      tile.classList.remove('shake');
+    }, 1500);
+  }
+
+  // Opponent-assigned hit: shake the specific chit after the space has been redrawn.
+  animateBoardHit(spacekey, unitkey, unit_idx) {
+    if (!this.board_mode || !spacekey || !unitkey) {
+      return;
+    }
+    let el = document.getElementById(spacekey);
+    if (!el) {
+      return;
+    }
+    let space = this.mod.game.spaces[spacekey];
+    if (!space) {
+      return;
+    }
+    let unit = null;
+    let z = parseInt(unit_idx);
+    if (!isNaN(z) && space.units[z] && space.units[z].key === unitkey) {
+      unit = space.units[z];
+    }
+    if (!unit) {
+      for (let i = 0; i < space.units.length; i++) {
+        let u = space.units[i];
+        if (u && u.key === unitkey && u.damaged_this_combat) {
+          unit = u;
+          break;
+        }
+      }
+    }
+    if (!unit) {
+      for (let i = 0; i < space.units.length; i++) {
+        if (space.units[i] && space.units[i].key === unitkey) {
+          unit = space.units[i];
+          break;
+        }
+      }
+    }
+    if (!unit) {
+      return;
+    }
+    let draw_units = this.drawOrderForSpace(spacekey);
+    let di = draw_units.indexOf(unit);
+    let tiles = el.querySelectorAll(':scope > .army-tile');
+    if (di >= 0 && tiles[di]) {
+      this.shakeBoardTile(tiles[di]);
+    }
   }
 
   clearBoardStack(spacekey) {
@@ -219,21 +319,70 @@ class LossOverlay {
       tile.style.width = '';
       tile.style.height = '';
       tile.style.zIndex = '';
-      tile.classList.remove('loss-board-unit', 'loss-board-unassignable', 'loss-board-other');
+      tile.classList.remove(
+        'loss-board-unit',
+        'loss-board-unassignable',
+        'loss-board-other',
+        'loss-board-participant'
+      );
       delete tile.dataset.lossIdx;
       tile.onclick = null;
     });
   }
 
+  rememberOpenedSpace(spacekey) {
+    if (!spacekey) {
+      return;
+    }
+    if (!this.board_opened_spaces) {
+      this.board_opened_spaces = [];
+    }
+    if (this.board_opened_spaces.indexOf(spacekey) === -1) {
+      this.board_opened_spaces.push(spacekey);
+    }
+  }
+
+  collectBoardCleanupSpaces() {
+    let keys = {};
+    let add = (spacekey) => {
+      if (spacekey) {
+        keys[spacekey] = 1;
+      }
+    };
+    for (let i = 0; i < this.board_spaces.length; i++) {
+      add(this.board_spaces[i]);
+    }
+    let opened = this.board_opened_spaces || [];
+    for (let i = 0; i < opened.length; i++) {
+      add(opened[i]);
+    }
+    try {
+      document.querySelectorAll('.space.loss-assignment-open').forEach((el) => {
+        add(el.id);
+      });
+    } catch (err) {}
+    return Object.keys(keys);
+  }
+
+  // Tear down temporary board presentation before any normal re-render.
+  // Idempotent: safe if completion, retreat, or a later render all call it.
   exitBoardMode() {
-    let spaces = this.board_spaces.slice();
+    let spaces = this.collectBoardCleanupSpaces();
     this.board_mode = false;
     this.board_spaces = [];
+    this.board_opened_spaces = [];
     this.board_bind = null;
+
     for (let i = 0; i < spaces.length; i++) {
       this.clearBoardStack(spaces[i]);
+    }
+    for (let i = 0; i < spaces.length; i++) {
       this.mod.displaySpace(spaces[i]);
     }
+    this.mod.displaySpace('aeubox');
+    this.mod.displaySpace('arbox');
+    this.mod.displaySpace('ceubox');
+    this.mod.displaySpace('crbox');
   }
 
   enterBoardMode() {
@@ -247,6 +396,7 @@ class LossOverlay {
     } catch (err) {}
 
     this.board_mode = true;
+    this.board_opened_spaces = [];
     this.board_spaces = this.participatingSpaces();
     this.refreshBoardAssignmentUI();
     this.updateBoardHud();
@@ -256,9 +406,26 @@ class LossOverlay {
     if (!this.board_mode) {
       return;
     }
-    this.board_spaces = this.participatingSpaces();
-    for (let i = 0; i < this.board_spaces.length; i++) {
-      let key = this.board_spaces[i];
+    let previous = this.board_spaces.slice();
+    let next = this.participatingSpaces();
+    this.board_spaces = next;
+
+    for (let i = 0; i < next.length; i++) {
+      this.rememberOpenedSpace(next[i]);
+    }
+
+    // Spaces whose last assignable units were destroyed must not keep
+    // the expanded loss-assignment presentation after they drop out.
+    for (let i = 0; i < previous.length; i++) {
+      let key = previous[i];
+      if (next.indexOf(key) === -1) {
+        this.clearBoardStack(key);
+        this.mod.displaySpace(key);
+      }
+    }
+
+    for (let i = 0; i < next.length; i++) {
+      let key = next[i];
       this.mod.displaySpace(key);
       this.layoutBoardStack(key);
       this.annotateBoardTiles(key);
@@ -1117,9 +1284,10 @@ class LossOverlay {
     }
 
     // one eligible unit: apply the extra step without the picker overlay
-    // a reduced sole defender is the last step and cannot be eliminated to cancel the retreat
+    // a reduced sole corps is the last step and cannot be eliminated to cancel the retreat;
+    // a reduced army still has a step (replace with corps) and may take the hit
     if (this.number_of_hits_assignable_defender_units == 1 && this.sole_defender_unit) {
-      if (this.sole_defender_unit.damaged) {
+      if (this.sole_defender_unit.damaged && this.sole_defender_unit.corps) {
         this.mod.playerHandleRetreat();
         return;
       }
@@ -1347,8 +1515,9 @@ class LossOverlay {
     let space_idx = paths_self.game.spaces[unit_spacekey].units.indexOf(unit);
 
     //
-    // withdrawal
+    // withdrawal — absorb one corps step without applying damage
     //
+    let withdrawal_absorbed = false;
     if (
       unit.corps &&
       unit.eligible_for_withdrawal_bonus &&
@@ -1364,9 +1533,16 @@ class LossOverlay {
         this.loss_factor -= unit.loss;
       }
       paths_self.game.state.events.withdrawal_bonus_used = 1;
+      withdrawal_absorbed = true;
+      this.updateInstructions(
+        `${this.mod.returnFactionName(this.mod.returnFactionOfPlayer(this.mod.game.player))} — Assign ${this.loss_factor} More Damage`,
+        'action'
+      );
     }
 
-    if (unit.damaged && !unit.destroyed) {
+    if (withdrawal_absorbed) {
+      // skip damage application; fall through to remaining-LF handling below
+    } else if (unit.damaged && !unit.destroyed) {
       console.log('assigning hit to damaged unit...');
 
       this.moves.push(`damage\t${unit_spacekey}\t${unit_key}\t1\t${paths_self.game.player}\t${space_idx}`);
@@ -1426,6 +1602,13 @@ class LossOverlay {
           corpsunit.damaged_this_combat = true; // used to be an army...
           corpsunit.spacekey = unit.spacekey;
           if (corps_damaged) { corpsunit.damaged = true; }
+          // Replacement corps can still receive the Withdrawal step-ignore.
+          if (
+            paths_self.game.state.events.withdrawal == 1 &&
+            paths_self.game.state.events.withdrawal_bonus_used != 1
+          ) {
+            corpsunit.eligible_for_withdrawal_bonus = 1;
+          }
           // Defender this.units is the combat space. Pushing both inserts the corps twice.
           let space_units = paths_self.game.spaces[corpsunit.spacekey].units;
           if (this.units !== space_units) {
@@ -1527,19 +1710,6 @@ class LossOverlay {
       console.log('assigning hit to undamaged unit... 2');
     }
 
-    //
-    // redisplay affected spaces
-    //
-    if (this.board_mode) {
-      this.refreshBoardAssignmentUI();
-      this.updateBoardHud();
-    } else {
-      this.mod.displaySpace(unit_spacekey);
-      if (this.mod.game.state.combat.key !== unit_spacekey) {
-        this.mod.displaySpace(this.mod.game.state.combat.key);
-      }
-    }
-
     console.log('can we take more losses? ' + this.canTakeMoreLosses());
 
     if (!this.canTakeMoreLosses()) {
@@ -1554,22 +1724,36 @@ class LossOverlay {
       this.mod.hud.updateMenu([]);
       this.mod.hud.updateCards([]);
 
-      let spaces = this.board_spaces.slice();
+      // Clear temporary board presentation before any normal re-render so
+      // displaySpace cannot reopen loss-assignment stacks via board_mode.
       if (this.board_mode) {
         this.exitBoardMode();
+      } else {
+        this.mod.displaySpace(unit_spacekey);
+        if (this.mod.game.state.combat.key !== unit_spacekey) {
+          this.mod.displaySpace(this.mod.game.state.combat.key);
+        }
+        this.mod.displaySpace('aeubox');
+        this.mod.displaySpace('arbox');
+        this.mod.displaySpace('ceubox');
+        this.mod.displaySpace('crbox');
       }
 
       this.mod.endTurn();
-
-      this.mod.displaySpace(this.mod.game.state.combat.key);
-      for (let i = 0; i < spaces.length; i++) {
-        this.mod.displaySpace(spaces[i]);
-      }
-      this.mod.displaySpace('aeubox');
-      this.mod.displaySpace('arbox');
-      this.mod.displaySpace('ceubox');
-      this.mod.displaySpace('crbox');
     } else {
+      //
+      // redisplay affected spaces while assignment continues
+      //
+      if (this.board_mode) {
+        this.refreshBoardAssignmentUI();
+        this.updateBoardHud();
+      } else {
+        this.mod.displaySpace(unit_spacekey);
+        if (this.mod.game.state.combat.key !== unit_spacekey) {
+          this.mod.displaySpace(this.mod.game.state.combat.key);
+        }
+      }
+
       //
       // automatic hits assignment
       //

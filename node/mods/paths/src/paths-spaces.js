@@ -827,6 +827,12 @@ if (spacekey == "stanislau") {
     let hop = 0;
     let old = [];
 
+    //
+    // passthrough_func return values:
+    //   0 / falsy = cannot enter
+    //   1 / truthy = enter and continue through
+    //   2 = enter as destination only (do not expand through)
+    //
     let addHop = function(news, hop) {     
 
       hop++;
@@ -836,52 +842,58 @@ if (spacekey == "stanislau") {
       //
       for (let i = 0; i < news.length; i++) {
 
-	let passthrough = true;
-	if (passthrough_func != null) { if (!passthrough_func(news[i])) { passthrough = false; } } 
-	if (news[i] == source.key) { passthrough = true; } // auto-exempt source 
+	let gate = 1;
+	if (passthrough_func != null) {
+	  let r = passthrough_func(news[i]);
+	  if (r === 2 || r === '2') { gate = 2; }
+	  else if (!r) { gate = 0; }
+	  else { gate = 1; }
+	}
+	if (news[i] == source.key) { gate = 1; } // auto-exempt source 
 
-	//
-	// don't add anything that isn't passthrough, and don't process any of its
-	// neighbours since we cannot route through it.
-	//
-	if (passthrough) {
-          for (let z = 0; z < paths_self.game.spaces[news[i]].neighbours.length; z++) {
-            let n = paths_self.game.spaces[news[i]].neighbours[z];
-
-	    //
-	    // we submit unit when calculating movement, so that we can 
-	    // determine if units can move between depots etc.
-	    //
-	    let restricted_movement = false;
-	    if (unit != null) {
-	      let lim = paths_self.game.spaces[news[i]].limits;
-	      if (lim) {
-	        for (let z = 0; z < lim.length; z++) {
-		  if (lim[z][n]) {
-		    restricted_movement = true;
-		    if (lim[z][n] == unit.ckey) { restricted_movement = false; }
-		  }
-		}
-	      }
-	    }
-
-	    if (restricted_movement == false) {
-              if (!old.includes(n)) {
-                if (!news.includes(n)) {
-                  if (!newer.includes(n)) {
-                    if (n !== source.key) {
-	              newer.push(n);
-	            }
-	          }
-	        }
-	      }
-	    }
-          }
-
+	if (gate) {
           if (hop != -1) {
 	    if (!old.includes(news[i])) {
 	      if (news[i] !== source.key) {
 	        old.push(news[i]);
+	      }
+            }
+          }
+
+	  //
+	  // gate 2 = enterable fort-style stop: reachable, but do not route through
+	  //
+	  if (gate === 1) {
+            for (let z = 0; z < paths_self.game.spaces[news[i]].neighbours.length; z++) {
+              let n = paths_self.game.spaces[news[i]].neighbours[z];
+
+	      //
+	      // we submit unit when calculating movement, so that we can 
+	      // determine if units can move between depots etc.
+	      //
+	      let restricted_movement = false;
+	      if (unit != null) {
+	        let lim = paths_self.game.spaces[news[i]].limits;
+	        if (lim) {
+	          for (let z = 0; z < lim.length; z++) {
+		    if (lim[z][n]) {
+		      restricted_movement = true;
+		      if (lim[z][n] == unit.ckey) { restricted_movement = false; }
+		    }
+		  }
+	        }
+	      }
+
+	      if (restricted_movement == false) {
+                if (!old.includes(n)) {
+                  if (!news.includes(n)) {
+                    if (!newer.includes(n)) {
+                      if (n !== source.key) {
+	                newer.push(n);
+	              }
+	            }
+	          }
+	        }
 	      }
             }
           }
@@ -909,6 +921,12 @@ if (spacekey == "stanislau") {
     let hop = 0;
     let old = [];
 
+    //
+    // passthrough_func return values:
+    //   0 / falsy = cannot enter
+    //   1 / truthy = enter and continue through
+    //   2 = enter as destination only (do not expand through)
+    //
     let addHop = function(news, hop) {     
 
       hop++;
@@ -918,54 +936,57 @@ if (spacekey == "stanislau") {
       //
       for (let i = 0; i < news.length; i++) {
 
-	let passthrough = true;
-	if (passthrough_func != null) { if (!passthrough_func(news[i])) { passthrough = false; } } 
-	if (news[i] == source.key) { passthrough = true; } // auto-exempt source 
+	let gate = 1;
+	if (passthrough_func != null) {
+	  let r = passthrough_func(news[i]);
+	  if (r === 2 || r === '2') { gate = 2; }
+	  else if (!r) { gate = 0; }
+	  else { gate = 1; }
+	}
+	if (news[i] == source.key) { gate = 1; } // auto-exempt source 
 
-	//
-	// don't add anything that isn't passthrough, and don't process any of its
-	// neighbours since we cannot route through it.
-	//
-	if (passthrough) {
-          for (let z = 0; z < paths_self.game.spaces[news[i]].neighbours.length; z++) {
-            let n = paths_self.game.spaces[news[i]].neighbours[z];
-
-	    //
-	    // we submit unit when calculating movement, so that we can 
-	    // determine if units can move between depots etc.
-	    //
-	    let restricted_movement = false;
-	    if (unit != null) {
-	      let lim = paths_self.game.spaces[news[i]].limits;
-	      if (lim) {
-	        for (let z = 0; z < lim.length; z++) {
-		  if (lim[z][n]) {
-		    restricted_movement = true;
-		    if (lim[z][n] == unit.ckey) { restricted_movement = false; }
-		  }
-		}
-	      }
-	    }
-
-	    if (restricted_movement == false) {
-              if (!old.includes(n)) {
-                if (!news.includes(n)) {
-                  if (!newer.includes(n)) {
-                    if (n !== source.key) {
-	              newer.push(n);
-	            }
-	          }
-	        }
-	      }
-	    }
-          }
-
+	if (gate) {
           if (hop != -1) {
 	    let does_old_include_spacekey = false;
 	    for (let z = 0; z < old.length; z++) { if (old[z].spacekey == news[i]) { does_old_include_spacekey = true; } }
 	    if (!does_old_include_spacekey) {
 	      if (news[i] !== source.key) {
 	        old.push({ spacekey : news[i] , hops : hop });
+	      }
+            }
+          }
+
+	  if (gate === 1) {
+            for (let z = 0; z < paths_self.game.spaces[news[i]].neighbours.length; z++) {
+              let n = paths_self.game.spaces[news[i]].neighbours[z];
+
+	      //
+	      // we submit unit when calculating movement, so that we can 
+	      // determine if units can move between depots etc.
+	      //
+	      let restricted_movement = false;
+	      if (unit != null) {
+	        let lim = paths_self.game.spaces[news[i]].limits;
+	        if (lim) {
+	          for (let z = 0; z < lim.length; z++) {
+		    if (lim[z][n]) {
+		      restricted_movement = true;
+		      if (lim[z][n] == unit.ckey) { restricted_movement = false; }
+		    }
+		  }
+	        }
+	      }
+
+	      if (restricted_movement == false) {
+                if (!old.includes(n)) {
+                  if (!news.includes(n)) {
+                    if (!newer.includes(n)) {
+                      if (n !== source.key) {
+	                newer.push(n);
+	              }
+	            }
+	          }
+	        }
 	      }
             }
           }

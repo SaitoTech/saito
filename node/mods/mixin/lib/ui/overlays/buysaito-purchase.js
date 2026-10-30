@@ -44,6 +44,9 @@ class SaitoPurchaseOverlay {
 
     this.reservation_timer = null;
     this.payment_instruction_timer = null;
+    this.saito_arrival_timer = null;
+    this.saito_arrival_baseline = null;
+    this.saito_arrival_expected = null;
 
     this.ui_msg = '';
 
@@ -91,6 +94,7 @@ class SaitoPurchaseOverlay {
       if (!data?.message) return;
       this.clearPaymentInstructionTimer();
       this.clearReservationTimer();
+      this.stopSaitoArrivalWatch();
       this.reservation = null;
       this.overlay.close();
       this.showOverlay(SaitoPurchaseErrorTemplate(data?.message));
@@ -906,11 +910,93 @@ class SaitoPurchaseOverlay {
         ? 'Payment detected. Waiting for SAITO issuance...'
         : 'Payment received. Waiting for SAITO issuance...';
     this.render();
+    // The issued notice can arrive after the wallet already holds the SAITO.
+    // Watch the wallet so this waiting overlay does not stay open.
+    this.saito_arrival_expected = this.expectedSaitoNolan();
+    void this.startSaitoArrivalWatch();
   }
 
   clearReservationTimer() {
     clearTimeout(this.reservation_timer);
     this.reservation_timer = null;
+  }
+
+  expectedSaitoNolan() {
+    const amount = Number(this.reservation?.issue_amount || this.amount || 0);
+    if (!Number.isFinite(amount) || amount <= 0) {
+      return 0n;
+    }
+    try {
+      return this.app.wallet.convertSaitoToNolan(amount);
+    } catch (err) {
+      return 0n;
+    }
+  }
+
+  async startSaitoArrivalWatch() {
+    if (this.saito_arrival_timer || !this.active || !this.payment_detected) {
+      return;
+    }
+    const expected = this.saito_arrival_expected ?? this.expectedSaitoNolan();
+    if (expected <= 0n) {
+      return;
+    }
+    this.saito_arrival_expected = expected;
+    const session = this.session;
+    let baseline = 0n;
+    try {
+      baseline = await this.app.wallet.getBalance('SAITO');
+    } catch (err) {
+      console.error('BuySaito: unable to read SAITO balance for arrival watch', err);
+      return;
+    }
+    if (session !== this.session || !this.active || !this.payment_detected || this.saito_arrival_timer) {
+      return;
+    }
+    this.saito_arrival_baseline = baseline;
+    this.saito_arrival_timer = setInterval(() => {
+      void this.checkSaitoArrival();
+    }, 1500);
+    this.saito_arrival_timer.unref?.();
+    void this.checkSaitoArrival();
+  }
+
+  stopSaitoArrivalWatch() {
+    if (this.saito_arrival_timer) {
+      clearInterval(this.saito_arrival_timer);
+      this.saito_arrival_timer = null;
+    }
+    this.saito_arrival_baseline = null;
+    this.saito_arrival_expected = null;
+  }
+
+  async checkSaitoArrival() {
+    if (
+      !this.active ||
+      !this.payment_detected ||
+      this.saito_issuance ||
+      this.saito_arrival_baseline == null ||
+      this.saito_arrival_expected == null
+    ) {
+      return;
+    }
+    let balance = 0n;
+    try {
+      balance = await this.app.wallet.getBalance('SAITO');
+    } catch (err) {
+      return;
+    }
+    if (balance - this.saito_arrival_baseline >= this.saito_arrival_expected) {
+      this.onSaitoArrived();
+    }
+  }
+
+  onSaitoArrived() {
+    if (!this.active || this.saito_issuance) {
+      return;
+    }
+    this.stopSaitoArrivalWatch();
+    this.close();
   }
 
   startReservationTimeout(expiryMs) {
@@ -937,6 +1023,7 @@ class SaitoPurchaseOverlay {
     ) {
       return;
     }
+    this.stopSaitoArrivalWatch();
     this.active = false;
     clearTimeout(this.timer);
     this.clearReservationTimer();
@@ -950,11 +1037,35 @@ class SaitoPurchaseOverlay {
       !this.overlay.visible ||
       !this.reservation ||
       data?.ticker !== 'SAITO' ||
-      data.sender !== this.mod.buysaito_peer?.publicKey ||
       data.receiver !== this.mod.publicKey ||
-      !data.signature ||
       !Number.isFinite(Number(data.amount)) ||
       Number(data.amount) <= 0
+    ) {
+      return;
+    }
+
+    const peer = this.mod.buysaito_peer?.publicKey;
+    if (peer && data.sender && data.sender !== peer) {
+      return;
+    }
+
+    // While waiting for issuance, wallet arrival is enough to dismiss the overlay.
+    if (this.active && this.payment_detected && !this.saito_issuance) {
+      try {
+        const expected = this.saito_arrival_expected ?? this.expectedSaitoNolan();
+        const received = this.app.wallet.convertSaitoToNolan(data.amount);
+        if (expected > 0n && received >= expected) {
+          this.onSaitoArrived();
+          return;
+        }
+      } catch (err) {
+        // Fall through to the signature receipt path below.
+      }
+    }
+
+    if (
+      data.sender !== this.mod.buysaito_peer?.publicKey ||
+      !data.signature
     ) {
       return;
     }
@@ -1032,7 +1143,7 @@ class SaitoPurchaseOverlay {
     clearTimeout(this.timer);
     this.timer = null;
     this.clearPaymentInstructionTimer();
-
+    this.stopSaitoArrivalWatch();
     this.clearReservationTimer();
   }
 }
