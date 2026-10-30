@@ -560,51 +560,53 @@ describe('Mixin admin payment testing', () => {
 
   test('a Store purchase payload is reserved without extra inbound confirmations', async () => {
     const saved = [];
-    const transfers = new Transfers(
-      {
-        wallet: { getPrivateKey: async () => 'private' },
-        blockchain: { getLatestBlockId: async () => 8 },
-        crypto: { isPublicKey: (key) => key === 'buyer-key' }
-      },
-      {
-        publicKey: 'server-key',
-        crypto_mods: [
-          {
-            ticker: 'ETH',
-            asset_id: 'eth-asset',
-            chain_id: 'eth-chain',
-            price_usd: 2,
-            last_update: Date.now(),
-            confirmations: 12,
-            returnMixinNetworkInfo: async () => false
-          },
-          {
-            ticker: 'ERC-SAITO',
-            asset_id: 'erc-asset',
-            chain_id: 'erc-chain',
-            price_usd: 1,
-            last_update: Date.now(),
-            confirmations: 12,
-            returnMixinNetworkInfo: async () => false
-          }
-        ],
-        accounts: {
-          getCredentials: () => ({ user_id: 'user-1' }),
-          decryptCredentials: () => ({ user_id: 'user-1' })
+    const BuySaitoService = require('../../../mods/mixin/lib/buysaito');
+    const app = {
+      wallet: { getPrivateKey: async () => 'private' },
+      blockchain: { getLatestBlockId: async () => 8 },
+      crypto: { isPublicKey: (key) => key === 'buyer-key' }
+    };
+    const mod = {
+      publicKey: 'server-key',
+      crypto_mods: [
+        {
+          ticker: 'ETH',
+          asset_id: 'eth-asset',
+          chain_id: 'eth-chain',
+          price_usd: 2,
+          last_update: Date.now(),
+          confirmations: 12,
+          returnMixinNetworkInfo: async () => false
         },
-        database: {
-          getTransfers: async () => [],
-          getCredentials: async () => [],
-          findAddress: async () => ({ address: '0xabc', user_id: 'user-1' }),
-          insertTransfer: async (row) => {
-            saved.push(row);
-            return 7;
-          }
+        {
+          ticker: 'ERC-SAITO',
+          asset_id: 'erc-asset',
+          chain_id: 'erc-chain',
+          price_usd: 1,
+          last_update: Date.now(),
+          confirmations: 12,
+          returnMixinNetworkInfo: async () => false
+        }
+      ],
+      accounts: {
+        getCredentials: () => ({ user_id: 'user-1' }),
+        decryptCredentials: () => ({ user_id: 'user-1' })
+      },
+      database: {
+        getTransfers: async () => [],
+        getCredentials: async () => [],
+        findAddress: async () => ({ address: '0xabc', user_id: 'user-1' }),
+        insertTransfer: async (row) => {
+          saved.push(row);
+          return 7;
         }
       }
-    );
+    };
+    const transfers = new Transfers(app, mod);
+    mod.transfers = transfers;
+    const buysaito = new BuySaitoService(app, mod);
 
-    await transfers.reserveAddress('buyer-key', {
+    await buysaito.startPurchase('buyer-key', {
       ticker: 'ETH',
       issue_amount: 10,
       expected_deposit: 5.54,
@@ -620,7 +622,7 @@ describe('Mixin admin payment testing', () => {
     expect(saved[0].inbound_confirmations_required).toBe(0);
     expect(saved[0].inbound_confirmation_block_id).toBe(8);
     await expect(
-      transfers.reserveAddress('buyer-key', {
+      buysaito.startPurchase('buyer-key', {
         ticker: 'ETH',
         issue_amount: 10,
         expected_deposit: 5.54,

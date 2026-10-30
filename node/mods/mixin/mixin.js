@@ -9,6 +9,7 @@ const Accounts = require('./lib/accounts');
 const Transfers = require('./lib/transfers');
 const TransferTesting = require('./lib/testing');
 const MigrationService = require('./lib/migration');
+const BuySaitoService = require('./lib/buysaito');
 const migrationClient = require('./lib/ui/migration/client');
 const MixinAdmin = require('./lib/admin/mixin-admin');
 
@@ -42,9 +43,9 @@ class Mixin extends ModTemplate {
     this.transfers = null;
     this.transfer_timer = null;
     this.migration = null;
+    this.buysaito = null;
+    this.ADDRESS_RESERVATION_PERIOD_IN_MINUTES = 40;
     this.wrapped_saito_ticker = 'ERC-SAITO';
-    this.wrappedSaitoMod = null;
-    this.wrappedSaitoMods = {};
     this.migration_page = null;
     this.migration_header = null;
     this.execution_mode = 'local';
@@ -313,6 +314,7 @@ class Mixin extends ModTemplate {
       await this.database.copyLegacyTables();
       this.transfers = new Transfers(app, this);
       this.migration = new MigrationService(app, this);
+      this.buysaito = new BuySaitoService(app, this);
     }
 
     const stored = this.accounts.getCredentials();
@@ -424,12 +426,7 @@ class Mixin extends ModTemplate {
         if (data.publickey && data.publickey !== from) {
           result = { error: 'The Saito address must be the key that signed this request' };
         } else {
-          result = await this.migration.openRequest(
-            from,
-            data.ticker,
-            data.chain_address,
-            data.email
-          );
+          result = await this.migration.startMigration(from, data.ticker);
         }
       } catch (err) {
         result = { error: err?.message || String(err), ticker: data.ticker };
@@ -438,6 +435,30 @@ class Mixin extends ModTemplate {
       if (mycallback) {
         mycallback(result);
       }
+      return 1;
+    }
+
+    if (!this.app.BROWSER && message.request === 'migration status') {
+      const from = tx.from?.[0]?.publicKey;
+      const directPeer = !!from && peer?.publicKey === from;
+      if (!directPeer || !this.migration) {
+        return 0;
+      }
+      let result;
+      try {
+        result = await this.migration.getMigrationStatus(from, message.data?.id);
+      } catch (err) {
+        result = { error: err?.message || String(err) };
+      }
+      this.app.network.sendRequestAsTransaction('migration status', result, null, from);
+      if (mycallback) {
+        mycallback(result);
+      }
+      return 1;
+    }
+
+    if (this.app.BROWSER && message.request === 'migration status') {
+      this.receiveMigrationStatusUpdate(message.data);
       return 1;
     }
 
@@ -637,7 +658,7 @@ class Mixin extends ModTemplate {
           return 1;
         }
         try {
-          const instructions = await this.transfers.reserveAddress(from, data);
+          const instructions = await this.buysaito.startPurchase(from, data);
           this.app.network.sendRequestAsTransaction(
             'buysaito reserve address',
             instructions,
@@ -663,7 +684,7 @@ class Mixin extends ModTemplate {
 
       if (message.request === 'buysaito release address') {
         if (from && data.ticker) {
-          await this.transfers.releaseAddress(from, data.ticker);
+          await this.buysaito.releasePurchaseReservation(from, data.ticker);
         }
         if (mycallback) {
           mycallback(true);
@@ -1024,7 +1045,11 @@ class Mixin extends ModTemplate {
             return this.adminPaymentsConfig(testing, config);
           }
           if (config.action === 'verify-migration') {
-            await this.migration.verifyManualDeposit(config.id, config.amount, config.tx_hash);
+            await this.migration.confirmManualMigrationDeposit(
+              config.id,
+              config.amount,
+              config.tx_hash
+            );
             return this.adminPaymentsConfig(testing, config);
           }
           if (config.action === 'approve-migration') {

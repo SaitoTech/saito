@@ -83,11 +83,11 @@ module.exports = (modules, { dirty, saved, error, filter, filters = {} } = {}) =
         ${select('class', 'Class', modules.map((m) => m.class || ''))}
         <label class="admin-modules-checkbox">
           <input type="checkbox" data-module-filter="has_description" ${filters.has_description ? 'checked' : ''} />
-          Has description
+          has description
         </label>
         <label class="admin-modules-checkbox">
           <input type="checkbox" data-module-filter="has_image" ${filters.has_image ? 'checked' : ''} />
-          Has image
+          has image
         </label>
       </div>
       <p class="admin-modules-count" role="status"></p>

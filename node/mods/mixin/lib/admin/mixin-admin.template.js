@@ -326,6 +326,61 @@ function pagination(page, total) {
     </div>`;
 }
 
+function paymentsTabs(active) {
+  const tabs = [
+    { id: 'transfers', label: 'Transfers' },
+    { id: 'addresses', label: 'Addresses' },
+    { id: 'config', label: 'Config' }
+  ];
+  return `<nav class="admin-payments-tabs" aria-label="Payments sections">
+      ${tabs
+        .map(
+          (tab) => `<button type="button" class="admin-payments-tab${
+            tab.id === active ? ' active' : ''
+          }" data-payments-tab="${tab.id}" ${tab.id === active ? 'aria-current="page"' : ''}>${
+            tab.label
+          }</button>`
+        )
+        .join('')}
+    </nav>`;
+}
+
+function transfersTab({ rows, search, purpose, advancing, page, total }) {
+  return `<section class="admin-payments-section">
+      <form id="admin-payments-search-form" class="admin-payments-search">
+        <input class="admin-input" id="admin-payments-search" type="search" value="${escapeHtml(
+          search
+        )}" placeholder="search for transfers..." />
+        <button type="submit" class="admin-button">Search</button>
+        <select class="admin-input admin-payments-purpose" id="admin-payments-purpose" aria-label="Transfer type">
+          <option value="" ${purpose ? '' : 'selected'}>all transfers</option>
+          <option value="migration" ${purpose === 'migration' ? 'selected' : ''}>migration</option>
+          <option value="buysaito" ${purpose === 'buysaito' ? 'selected' : ''}>buy saito</option>
+        </select>
+      </form>
+      ${
+        rows.length
+          ? transferTable(rows, advancing)
+          : `<p class="admin-payments-empty">No pending transfers.</p>`
+      }
+      ${pagination(page, total)}
+    </section>`;
+}
+
+function configTab(opts) {
+  const account = opts.account?.user_id ? accountPanel(opts.account) : '';
+  return `${account}
+    ${operationModeSection({
+      operationMode: opts.operationMode,
+      providerKeys: opts.providerKeys,
+      delegateKeys: opts.delegateKeys,
+      providerDraft: opts.providerDraft,
+      delegateDraft: opts.delegateDraft,
+      savingOperation: opts.savingOperation,
+      notice: opts.operationNotice
+    })}`;
+}
+
 module.exports = ({
   transfers = [],
   account = undefined,
@@ -349,61 +404,54 @@ module.exports = ({
   providerDraft = '',
   delegateDraft = '',
   savingOperation = false,
-  operationNotice = ''
+  operationNotice = '',
+  tab = 'transfers'
 } = {}) => {
   const rows = Array.isArray(transfers) ? transfers : [];
+  const activeTab = ['transfers', 'addresses', 'config'].includes(tab) ? tab : 'transfers';
   const needsApiKey = !loading && apiKeyConfigured === false;
   const needsAccount = !loading && !needsApiKey && account === null;
-  const body = loading
-    ? `<p class="admin-payments-empty">Loading pending transfers…</p>`
-    : needsApiKey
-      ? apiKeyPanel(apiKeyText, savingApiKey)
-      : needsAccount
-      ? setupPanel(creating, restoring, restoreText)
-      : `${operationModeSection({
-          operationMode,
-          providerKeys,
-          delegateKeys,
-          providerDraft,
-          delegateDraft,
-          savingOperation,
-          notice: operationNotice
-        })}
-        ${depositSection(depositAddresses)}
-        <section class="admin-payments-section">
-          <h2>Pending Transfers</h2>
-          <form id="admin-payments-search-form" class="admin-payments-search">
-            <input class="admin-input" id="admin-payments-search" type="search" value="${escapeHtml(
-              search
-            )}" placeholder="search for transfers..." />
-            <button type="submit" class="admin-button">Search</button>
-            <select class="admin-input admin-payments-purpose" id="admin-payments-purpose" aria-label="Transfer type">
-              <option value="" ${purpose ? '' : 'selected'}>all transfers</option>
-              <option value="migration" ${purpose === 'migration' ? 'selected' : ''}>migration</option>
-              <option value="buysaito" ${purpose === 'buysaito' ? 'selected' : ''}>buy saito</option>
-            </select>
-          </form>
-          ${
-            rows.length
-              ? transferTable(rows, advancing)
-              : `<p class="admin-payments-empty">No pending transfers.</p>`
-          }
-          ${pagination(page, total)}
-        </section>`;
+  const ready = !needsApiKey && !needsAccount && !loading;
+
+  let body = '';
+  if (loading) {
+    body = `<p class="admin-payments-empty">Loading pending transfers…</p>`;
+  } else if (needsApiKey) {
+    body = apiKeyPanel(apiKeyText, savingApiKey);
+  } else if (needsAccount) {
+    body = setupPanel(creating, restoring, restoreText);
+  } else if (activeTab === 'addresses') {
+    body = depositSection(depositAddresses);
+  } else if (activeTab === 'config') {
+    body = configTab({
+      account,
+      operationMode,
+      providerKeys,
+      delegateKeys,
+      providerDraft,
+      delegateDraft,
+      savingOperation,
+      operationNotice
+    });
+  } else {
+    body = transfersTab({ rows, search, purpose, advancing, page, total });
+  }
 
   const refreshDisabled =
     loading || advancing || creating || restoring || savingApiKey || savingOperation ? 'disabled' : '';
   return `
     <div class="admin-payments-page">
       <div class="admin-payments-header">
-        <h1>Payments</h1>
+        <div class="admin-payments-heading">
+          <h1>Payments</h1>
+          ${ready ? paymentsTabs(activeTab) : ''}
+        </div>
         ${
-          needsAccount || needsApiKey
-            ? ''
-            : `<button type="button" class="admin-button" id="admin-payments-refresh" ${refreshDisabled}>Refresh</button>`
+          ready
+            ? `<button type="button" class="admin-button" id="admin-payments-refresh" ${refreshDisabled}>Refresh</button>`
+            : ''
         }
       </div>
-      ${needsApiKey || !account?.user_id ? '' : accountPanel(account)}
       ${error ? `<div class="admin-payments-error">${escapeHtml(error)}</div>` : ''}
       ${body}
     </div>

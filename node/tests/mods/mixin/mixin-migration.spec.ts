@@ -69,6 +69,7 @@ function wallet() {
   return {
     createUnsigned,
     getBalance: async () => 500000000000n,
+    getPrivateKey: async () => 'private',
     convertNolanToSaito: (value) => Number(value) / 100000000,
     convertSaitoToNolan: (value) => BigInt(Math.round(Number(value) * 100000000)),
     addTransactionToPending: jest.fn(async () => {}),
@@ -76,13 +77,26 @@ function wallet() {
   };
 }
 
+function cryptoHelpers() {
+  return {
+    encryptWithPublicKey(buf) {
+      return Buffer.from(`enc:${buf.toString('utf8')}`);
+    },
+    decryptWithPrivateKey(buf) {
+      return Buffer.from(buf.toString('utf8').replace(/^enc:/, ''));
+    }
+  };
+}
+
 async function service() {
   const db = await openDatabase();
   const database = databaseFor(db);
-  const sent = [];
+  let addressCount = 0;
+  let accountCount = 0;
   const app = {
     options: { mixin: credentials },
     wallet: wallet(),
+    crypto: cryptoHelpers(),
     connection: { emit: jest.fn() },
     network: {
       propagateTransaction: jest.fn(async () => {}),
@@ -101,7 +115,23 @@ async function service() {
     database,
     accounts: null,
     api: {
-      createAddress: jest.fn(async (_asset, chain) => (chain === 'bep-chain' ? 'bep-dest' : 'erc-dest')),
+      createAccount: jest.fn(async () => {
+        accountCount += 1;
+        return {
+          user_id: `extra-user-${accountCount}`,
+          session_id: 'session',
+          tip_key_base64: 'tip',
+          session_seed: 'seed',
+          spend_private_key: 'spend'
+        };
+      }),
+      createAddress: jest.fn(async (_credentials, chain) => {
+        addressCount += 1;
+        if (chain === 'bep-chain') {
+          return `bep-dest-${addressCount}`;
+        }
+        return addressCount === 1 ? 'erc-dest' : `erc-dest-${addressCount}`;
+      }),
       fetchDeposits: jest.fn(async () => []),
       fetchHistory: jest.fn(async () => [])
     }
@@ -110,13 +140,10 @@ async function service() {
   mod.migration = new MigrationService(app, mod);
   const transfers = new Transfers(app, mod);
   mod.transfers = transfers;
-  return { app, mod, transfers, database, sent };
+  return { app, mod, transfers, database };
 }
 
-const CHAIN = '0x' + 'ab'.repeat(20);
-const OTHER_CHAIN = '0x' + 'cd'.repeat(20);
-
-function deposit(sender, hash, amount, destination = 'erc-dest') {
+function deposit(hash, amount, destination = 'erc-dest', sender = '') {
   return {
     amount: String(amount),
     transaction_hash: hash,
@@ -125,17 +152,34 @@ function deposit(sender, hash, amount, destination = 'erc-dest') {
   };
 }
 
-describe('Mixin migration transfers', () => {
-  test('a request is created before the amount is known and returns the deposit destination', async () => {
-    const { app, mod } = await service();
+describe('Mixin migration reserved-address transfers', () => {
+  test('shared reservation period follows Mixin.ADDRESS_RESERVATION_PERIOD_IN_MINUTES', () => {
+    const transfers = new Transfers({}, { ADDRESS_RESERVATION_PERIOD_IN_MINUTES: 40 });
+    expect(transfers.reservation_ms).toBe(40 * 60 * 1000);
+  });
 
-    const opened = await mod.migration.openRequest('saito-user', 'ERC-SAITO', CHAIN, 'person@example.com');
-    const again = await mod.migration.openRequest('saito-user', 'ERC-SAITO', CHAIN, 'person@example.com');
-    const bep = await mod.migration.openRequest('saito-user', 'BEP-SAITO', OTHER_CHAIN, 'person@example.com');
+  test('a request reserves an exclusive deposit address without sender or email', async () => {
+    const { app, mod, transfers } = await service();
 
-    expect(opened).toEqual(expect.objectContaining({ address: 'erc-dest', ticker: 'ERC-SAITO', error: null }));
+    const opened = await mod.migration.startMigration('saito-user', 'ERC-SAITO');
+    const again = await mod.migration.startMigration('saito-user', 'ERC-SAITO');
+    const bep = await mod.migration.startMigration('saito-user', 'BEP-SAITO');
+
+    expect(opened).toEqual(
+      expect.objectContaining({
+        address: 'erc-dest',
+        ticker: 'ERC-SAITO',
+        error: null,
+        reserved_until: expect.any(Number)
+      })
+    );
+    expect(opened.reserved_until - Date.now()).toBeGreaterThan(39 * 60 * 1000);
+    expect(opened.reserved_until - Date.now()).toBeLessThanOrEqual(40 * 60 * 1000);
     expect(again.id).toBe(opened.id);
-    expect(bep.address).toBe('bep-dest');
+    expect(again.address).toBe(opened.address);
+    expect(bep.address).toMatch(/^bep-dest/);
+    expect(bep.address).not.toBe(opened.address);
+
     const row = (await mod.database.getTransfers({ id: opened.id }))[0];
     expect(row).toEqual(
       expect.objectContaining({
@@ -145,28 +189,52 @@ describe('Mixin migration transfers', () => {
         inbound_amount: '',
         outbound_amount: '',
         inbound_address: 'erc-dest',
-        inbound_sender: CHAIN,
-        email: 'person@example.com',
+        inbound_sender: '',
+        email: '',
         recipient_publickey: 'saito-user',
         inbound_confirmation_block_id: 10
       })
     );
     expect(app.connection.emit.mock.calls.some((call) => call[0] === 'relay-transaction')).toBe(false);
+    expect(transfers.reservation_ms).toBe(40 * 60 * 1000);
   });
 
-  test('a second Saito key cannot register the same chain address', async () => {
+  test('a second Saito key receives a different reserved address', async () => {
     const { mod } = await service();
-    await mod.migration.openRequest('saito-user', 'ERC-SAITO', CHAIN, 'person@example.com');
-    const conflict = await mod.migration.openRequest('other-user', 'ERC-SAITO', CHAIN.toUpperCase(), 'other@example.com');
-    expect(conflict.error).toMatch(/open migration request/);
+    const first = await mod.migration.startMigration('saito-user', 'ERC-SAITO');
+    const second = await mod.migration.startMigration('other-user', 'ERC-SAITO');
+
+    expect(first.error).toBeNull();
+    expect(second.error).toBeNull();
+    expect(second.address).toBeTruthy();
+    expect(second.address).not.toBe(first.address);
+
     const rows = await mod.database.getTransfers({ purpose: 'migration', mode: 'automatic' });
-    expect(rows).toHaveLength(1);
+    expect(rows).toHaveLength(2);
+    expect(new Set(rows.map((row) => row.inbound_address)).size).toBe(2);
   });
 
-  test('an external deposit issues the received amount once and a restart reuses the signature', async () => {
+  test('selectAvailableDepositAddress skips busy addresses and preserves primary-first order', async () => {
+    const { mod, transfers, database } = await service();
+    await database.insertTransfer({
+      purpose: 'buysaito',
+      mode: 'automatic',
+      status: 'inbound_awaiting',
+      inbound_address: 'erc-dest',
+      inbound_ticker: 'ERC-SAITO',
+      created_at: Date.now()
+    });
+
+    const selected = await transfers.selectAvailableDepositAddress(mod.crypto_mods[0]);
+    expect(selected.address).not.toBe('erc-dest');
+    expect(selected.credentials.user_id).toMatch(/^extra-user-/);
+    expect(mod.api.createAccount).toHaveBeenCalled();
+  });
+
+  test('an external deposit issues the received amount 1:1 without requiring a sender', async () => {
     const { app, mod, transfers } = await service();
-    await mod.migration.openRequest('saito-user', 'ERC-SAITO', CHAIN, 'person@example.com');
-    mod.api.fetchHistory.mockResolvedValue([deposit(CHAIN.toUpperCase(), 'mix-hash', '12.5')]);
+    await mod.migration.startMigration('saito-user', 'ERC-SAITO');
+    mod.api.fetchHistory.mockResolvedValue([deposit('mix-hash', '12.5', 'erc-dest', '0xsomeoneelse')]);
 
     await transfers.processTransferQueue();
     await transfers.processTransferQueue();
@@ -187,12 +255,11 @@ describe('Mixin migration transfers', () => {
     expect(signed.msg.module).toBe('Mixin');
   });
 
-  test('an internal Mixin transfer or a different sender does not match', async () => {
+  test('an internal Mixin transfer without a destination does not match', async () => {
     const { mod, transfers } = await service();
-    await mod.migration.openRequest('saito-user', 'ERC-SAITO', CHAIN, 'person@example.com');
+    await mod.migration.startMigration('saito-user', 'ERC-SAITO');
     mod.api.fetchHistory.mockResolvedValue([
-      { opponent_id: 'user-mixin', amount: '4', transaction_hash: 'internal', snapshot_id: 'snap-internal' },
-      deposit(OTHER_CHAIN, 'other-hash', '4')
+      { opponent_id: 'user-mixin', amount: '4', transaction_hash: 'internal', snapshot_id: 'snap-internal' }
     ]);
 
     await transfers.processTransferQueue();
@@ -203,13 +270,25 @@ describe('Mixin migration transfers', () => {
     expect(row.outbound_tx_sig).toBe('');
   });
 
+  test('a deposit to a different reserved address does not match', async () => {
+    const { mod, transfers } = await service();
+    await mod.migration.startMigration('saito-user', 'ERC-SAITO');
+    mod.api.fetchHistory.mockResolvedValue([deposit('other-hash', '4', 'someone-elses-address')]);
+
+    await transfers.processTransferQueue();
+
+    const row = (await mod.database.getTransfers({ purpose: 'migration' }))[0];
+    expect(row.status).toBe('inbound_awaiting');
+    expect(row.inbound_tx_hash).toBe('');
+  });
+
   test('the same deposit hash cannot fill a second request', async () => {
     const { mod, transfers } = await service();
-    await mod.migration.openRequest('saito-user', 'ERC-SAITO', CHAIN, 'person@example.com');
-    await mod.migration.openRequest('other-user', 'ERC-SAITO', OTHER_CHAIN, 'other@example.com');
+    const first = await mod.migration.startMigration('saito-user', 'ERC-SAITO');
+    const second = await mod.migration.startMigration('other-user', 'ERC-SAITO');
     mod.api.fetchHistory.mockResolvedValue([
-      deposit(CHAIN, 'same-hash', '3'),
-      deposit(OTHER_CHAIN, 'same-hash', '3')
+      deposit('same-hash', '3', first.address),
+      deposit('same-hash', '3', second.address)
     ]);
 
     await transfers.processTransferQueue();
@@ -217,13 +296,13 @@ describe('Mixin migration transfers', () => {
     const rows = await mod.database.getTransfers({ purpose: 'migration' });
     const issued = rows.filter((row) => row.outbound_tx_sig === 'issued-sig');
     expect(issued).toHaveLength(1);
-    expect(rows.some((row) => row.last_error === 'Migration deposit was already recorded')).toBe(true);
+    expect(rows.some((row) => String(row.last_error || '').includes('already recorded'))).toBe(true);
   });
 
   test('a deposit above the cap is refused and the user is notified without Relay', async () => {
     const { app, mod, transfers } = await service();
-    await mod.migration.openRequest('saito-user', 'ERC-SAITO', CHAIN, 'person@example.com');
-    mod.api.fetchHistory.mockResolvedValue([deposit(CHAIN, 'too-large', '1000001')]);
+    await mod.migration.startMigration('saito-user', 'ERC-SAITO');
+    mod.api.fetchHistory.mockResolvedValue([deposit('too-large', '1000001')]);
 
     await transfers.processTransferQueue();
 
@@ -240,7 +319,7 @@ describe('Mixin migration transfers', () => {
     expect(app.connection.emit.mock.calls.some((call) => call[0] === 'relay-transaction')).toBe(false);
   });
 
-  test('a private migration request from another peer is ignored', async () => {
+  test('a private migration request from another peer is ignored and no longer requires chain address or email', async () => {
     const { app, mod } = await service();
     const Mixin = require('../../../mods/mixin/mixin');
     const mixin = { app, migration: mod.migration };
@@ -250,8 +329,6 @@ describe('Mixin migration transfers', () => {
         request: 'migration request',
         data: {
           publickey: 'saito-user',
-          chain_address: CHAIN,
-          email: 'person@example.com',
           ticker: 'ERC-SAITO'
         }
       })
@@ -274,7 +351,9 @@ describe('Mixin migration transfers', () => {
     );
 
     expect(accepted).toBe(1);
-    expect(callback).toHaveBeenCalledWith(expect.objectContaining({ address: 'erc-dest', error: null }));
+    expect(callback).toHaveBeenCalledWith(
+      expect.objectContaining({ address: 'erc-dest', error: null, reserved_until: expect.any(Number) })
+    );
     expect(app.network.sendRequestAsTransaction).toHaveBeenCalledWith(
       'migration request',
       expect.objectContaining({ address: 'erc-dest' }),
@@ -284,12 +363,14 @@ describe('Mixin migration transfers', () => {
     expect(rejected).toBe(0);
     const rows = await mod.database.getTransfers({ purpose: 'migration' });
     expect(rows).toHaveLength(1);
+    expect(rows[0].inbound_sender).toBe('');
+    expect(rows[0].email).toBe('');
   });
 
   test('a migration request is not stored when the Saito block id is unavailable', async () => {
     const { app, mod } = await service();
     app.blockchain.getLatestBlockId = async () => null;
-    const opened = await mod.migration.openRequest('saito-user', 'ERC-SAITO', CHAIN, 'person@example.com');
+    const opened = await mod.migration.startMigration('saito-user', 'ERC-SAITO');
     expect(opened.error).toMatch(/Saito block height is unavailable/);
     expect(await mod.database.getTransfers({ purpose: 'migration' })).toHaveLength(0);
   });
@@ -297,9 +378,81 @@ describe('Mixin migration transfers', () => {
   test('the treasury minimum rejects a request before a row is created', async () => {
     const { app, mod } = await service();
     app.wallet.getBalance = async () => 100n;
-    const opened = await mod.migration.openRequest('saito-user', 'ERC-SAITO', CHAIN, 'person@example.com');
+    const opened = await mod.migration.startMigration('saito-user', 'ERC-SAITO');
     expect(opened.error).toMatch(/Insufficient balance/);
     expect(await mod.database.getTransfers({ purpose: 'migration' })).toHaveLength(0);
+  });
+
+  test('unpaid BuySaito, Store, and Migration reservations expire after 40 minutes', async () => {
+    const { transfers, database } = await service();
+    const stale = Date.now() - transfers.reservation_ms - 1000;
+    await database.insertTransfer({
+      purpose: 'buysaito',
+      mode: 'automatic',
+      status: 'inbound_awaiting',
+      created_at: stale
+    });
+    await database.insertTransfer({
+      purpose: 'store-purchase',
+      mode: 'automatic',
+      status: 'inbound_awaiting',
+      created_at: stale
+    });
+    await database.insertTransfer({
+      purpose: 'migration',
+      mode: 'automatic',
+      status: 'inbound_awaiting',
+      requester_publickey: 'saito-user',
+      inbound_ticker: 'ERC-SAITO',
+      inbound_address: 'erc-dest',
+      created_at: stale
+    });
+
+    await transfers.processTransferQueue();
+
+    expect(await database.getTransfers({ purpose: 'buysaito', status: 'failed' })).toHaveLength(1);
+    expect(await database.getTransfers({ purpose: 'store-purchase', status: 'failed' })).toHaveLength(1);
+    expect(await database.getTransfers({ purpose: 'migration', status: 'failed' })).toHaveLength(1);
+  });
+
+  test('expiry does not affect already-claimed migration deposits', async () => {
+    const { transfers, database } = await service();
+    await database.insertTransfer({
+      purpose: 'migration',
+      mode: 'automatic',
+      status: 'inbound_confirmed',
+      requester_publickey: 'saito-user',
+      recipient_publickey: 'saito-user',
+      inbound_amount: '4',
+      outbound_amount: '4',
+      inbound_tx_hash: 'stored-hash',
+      inbound_confirmation_block_id: 10,
+      created_at: 1
+    });
+
+    await transfers.processTransferQueue();
+
+    const migration = await database.getTransfers({ purpose: 'migration' });
+    expect(migration[0]).toEqual(
+      expect.objectContaining({
+        status: 'outbound_broadcast',
+        outbound_amount: '4',
+        outbound_tx_sig: 'issued-sig'
+      })
+    );
+  });
+
+  test('an expired address becomes available for a later reservation', async () => {
+    const { mod, transfers, database } = await service();
+    const first = await mod.migration.startMigration('saito-user', 'ERC-SAITO');
+    await database.updateTransfer(first.id, {
+      created_at: Date.now() - transfers.reservation_ms - 1000
+    });
+    await transfers.processTransferQueue();
+
+    const reused = await mod.migration.startMigration('other-user', 'ERC-SAITO');
+    expect(reused.address).toBe(first.address);
+    expect(reused.id).not.toBe(first.id);
   });
 
   test('a migration payout proceeds while BuySaito expiry and a higher threshold do not', async () => {
@@ -355,31 +508,6 @@ describe('Mixin migration transfers', () => {
     );
   });
 
-  test('migration rows are not expired by the BuySaito reservation timeout', async () => {
-    const { transfers, database } = await service();
-    await database.insertTransfer({
-      purpose: 'buysaito',
-      mode: 'automatic',
-      status: 'inbound_awaiting',
-      created_at: 1
-    });
-    await database.insertTransfer({
-      purpose: 'migration',
-      mode: 'automatic',
-      status: 'inbound_awaiting',
-      requester_publickey: 'saito-user',
-      inbound_ticker: 'ERC-SAITO',
-      created_at: 1
-    });
-
-    await transfers.processTransferQueue();
-
-    const failed = await database.getTransfers({ purpose: 'buysaito', status: 'failed' });
-    const migration = await database.getTransfers({ purpose: 'migration', status: 'inbound_awaiting' });
-    expect(failed).toHaveLength(1);
-    expect(migration).toHaveLength(1);
-  });
-
   test('manual migration is not issued until an administrator approves it once', async () => {
     const { app, mod, transfers } = await service();
     await mod.migration.recordManualMigration({
@@ -396,7 +524,7 @@ describe('Mixin migration transfers', () => {
     expect(row.status).toBe('inbound_awaiting');
     expect(row.outbound_tx_sig).toBe('');
 
-    await mod.migration.verifyManualDeposit(row.id, '4', 'erc-hash');
+    await mod.migration.confirmManualMigrationDeposit(row.id, '4', 'erc-hash');
     const mixin = {
       database: mod.database,
       migration: mod.migration,
@@ -424,7 +552,7 @@ describe('Mixin migration transfers', () => {
     expect(app.wallet.createUnsignedTransactionWithDefaultFee).toHaveBeenCalledTimes(1);
   });
 
-  test('the migration page is served by Mixin without the manual confirmation link', () => {
+  test('the migration page is served without external address or email fields', () => {
     const Mixin = require('../../../mods/mixin/mixin');
     const mod = Object.create(Mixin.prototype);
     mod.slug = 'mixin';
@@ -445,12 +573,30 @@ describe('Mixin migration transfers', () => {
       wrapped_saito_ticker: 'ERC-SAITO'
     });
     expect(page).toContain('id="migrate"');
-    expect(page).toContain('id="email"');
-    expect(page).toContain('id="erc20"');
+    expect(page).not.toContain('id="email"');
+    expect(page).not.toContain('id="erc20"');
     expect(page).toContain('id="publickey"');
+    expect(page).toContain('id="wrapped-saito-ticker"');
     expect(source).not.toContain('0x24F10EA2827717770270e3cc97F015Ba58fcB9b6');
-    expect(source).not.toContain('http://saito.io/migration?publickey=');
+    expect(source).not.toContain('chain_address');
+    expect(source).not.toContain('email');
+    expect(client).not.toContain('chain_address');
     expect(client).not.toContain('relay-transaction');
     expect(fs.existsSync(path.join(__dirname, '../../../mods/migration/migration.js'))).toBe(false);
+
+    const reserved = require('../../../mods/mixin/lib/ui/migration/main.template')({
+      publicKey: 'user-key',
+      wrapped_saito_ticker: 'ERC-SAITO',
+      migration_instructions: {
+        address: '0xreserved',
+        ticker: 'ERC-SAITO',
+        id: 9,
+        reserved_until: Date.now() + 40 * 60 * 1000,
+        ui_status: 'Waiting for your deposit...'
+      }
+    });
+    expect(reserved).toContain('0xreserved');
+    expect(reserved).toContain('migration-reservation-expiry');
+    expect(reserved).toContain('Waiting for your deposit...');
   });
 });

@@ -19,10 +19,10 @@ class MigrationService {
     this.mod = mod;
   }
 
-  supportedTicker(ticker = '') {
-    return TICKERS.includes(ticker);
-  }
-
+  /**
+   * Shared 1:1 issuance policy used by automatic matching, manual confirmation,
+   * treasury payout signing, and admin approval.
+   */
   allocationForDeposit(amount) {
     const value = Number(amount);
     if (!Number.isFinite(value) || value <= 0) {
@@ -34,7 +34,23 @@ class MigrationService {
     return value;
   }
 
-  async treasury() {
+  /**
+   * Start an automatic migration for the Migrate button: validate the request,
+   * gate on treasury funds, reserve a Mixin deposit address, and return the
+   * instructions the client displays.
+   */
+  async startMigration(publicKey, ticker) {
+    if (!publicKey) {
+      return { error: 'A Saito address is required', ticker };
+    }
+    if (!TICKERS.includes(ticker)) {
+      return { error: `Unsupported wrapped SAITO ticker: ${ticker}`, ticker };
+    }
+    const crypto = (this.mod.crypto_mods || []).find((item) => item.ticker === ticker) || null;
+    if (!crypto?.asset_id) {
+      return { error: `${ticker} is not installed`, ticker };
+    }
+
     const nolan = await this.app.wallet.getBalance('SAITO');
     let available = Number(this.app.wallet.convertNolanToSaito(nolan));
     if (!Number.isFinite(available) || available < 0) {
@@ -45,152 +61,47 @@ class MigrationService {
     } else {
       email.sendLowBalanceEmail(this.app, available);
     }
-    return { max_deposit: available, accepted: available >= MIN_TREASURY };
-  }
-
-  assetFor(ticker) {
-    return (this.mod.crypto_mods || []).find((item) => item.ticker === ticker) || null;
-  }
-
-  async collectionAddress(ticker) {
-    const crypto = this.assetFor(ticker);
-    if (!crypto?.asset_id) {
-      throw new Error(`${ticker} is not installed`);
-    }
-    const credentials = this.mod.accounts.getCredentials();
-    if (!credentials?.user_id) {
-      throw new Error('Server Mixin account is not configured');
-    }
-    let found = await this.mod.database.findAddress({
-      assetId: crypto.asset_id,
-      mixinUserId: credentials.user_id
-    });
-    if (!found?.address) {
-      const created = await this.mod.accounts.createAddress(
-        crypto.asset_id,
-        crypto.chain_id,
-        credentials
-      );
-      if (!created) {
-        throw new Error(`Unable to create a ${ticker} deposit address`);
-      }
-      found = { address: created, user_id: credentials.user_id };
-    }
-    return {
-      address: found.address,
-      user_id: credentials.user_id,
-      packed: `${found.address}|${credentials.user_id}|mixin`,
-      asset_id: crypto.asset_id,
-      chain_id: crypto.chain_id || ''
-    };
-  }
-
-  normalizeChainAddress(address = '') {
-    const value = String(address || '').trim();
-    if (!/^0x[a-fA-F0-9]{40}$/i.test(value)) {
-      throw new Error('A valid ERC20/BEP20 address is required');
-    }
-    return value.toLowerCase();
-  }
-
-  async openRequest(publicKey, ticker, chainAddress, email) {
-    if (!publicKey) {
-      return { error: 'A Saito address is required', ticker };
-    }
-    if (!this.supportedTicker(ticker)) {
-      return { error: `Unsupported wrapped SAITO ticker: ${ticker}`, ticker };
-    }
-    const normalizedEmail = String(email || '').trim();
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail) || normalizedEmail.length > 254) {
-      return { error: 'A valid email address is required', ticker };
-    }
-    let sender = '';
-    try {
-      sender = this.normalizeChainAddress(chainAddress);
-    } catch (err) {
-      return { error: err.message, ticker };
-    }
-    const treasury = await this.treasury();
-    if (!treasury.accepted) {
+    if (available < MIN_TREASURY) {
       return {
         error: 'Insufficient balance in the Migration bot',
         ticker
       };
     }
 
-    const existing = await this.mod.database.getTransfers({
-      purpose: 'migration',
-      mode: 'automatic',
-      inbound_ticker: ticker
-    });
-    const open = (existing || []).filter(
-      (row) => !Number(row.excluded) && OPEN_STATUSES.includes(row.status)
-    );
-    const conflict = open.find(
-      (row) => row.inbound_sender === sender && row.requester_publickey !== publicKey
-    );
-    if (conflict) {
-      return { error: 'That chain address already has an open migration request', ticker };
-    }
-    const mine = open.find((row) => row.requester_publickey === publicKey);
-    if (mine) {
-      if (!mine.inbound_tx_hash && (mine.inbound_sender !== sender || mine.email !== normalizedEmail)) {
-        await this.mod.database.updateTransfer(mine.id, {
-          inbound_sender: sender,
-          email: normalizedEmail,
-          recipient_publickey: publicKey,
-          outbound_address: publicKey
-        });
-      }
-      return {
-        address: mine.inbound_address,
-        ticker,
-        id: mine.id,
-        error: null
-      };
-    }
-
-    const collection = await this.collectionAddress(ticker);
-    const now = Date.now();
-    let inboundConfirmationBlockId;
+    let reserved;
     try {
-      const raw = await this.app.blockchain.getLatestBlockId();
-      inboundConfirmationBlockId = typeof raw === 'bigint' ? Number(raw) : raw;
+      reserved = await this.mod.transfers.reserveAddress(publicKey, {
+        purpose: 'migration',
+        ticker,
+        recipient_publickey: publicKey,
+        inbound_amount: '',
+        outbound_amount: '',
+        inbound_confirmations_required: 0,
+        payload: '',
+        request_id: '',
+        outbound_address: publicKey
+      });
     } catch (err) {
-      inboundConfirmationBlockId = null;
+      return { error: err?.message || String(err), ticker };
     }
-    if (
-      !Number.isInteger(inboundConfirmationBlockId) ||
-      inboundConfirmationBlockId < 0 ||
-      !Number.isSafeInteger(inboundConfirmationBlockId)
-    ) {
-      return { error: 'Saito block height is unavailable', ticker };
+    return this.clientReservation(reserved);
+  }
+
+  async getMigrationStatus(publicKey, id) {
+    if (!publicKey || !id) {
+      return { error: 'Migration status requires an id' };
     }
-    const id = await this.mod.database.insertTransfer({
+    const rows = await this.mod.database.getTransfers({
+      id: Number(id),
       purpose: 'migration',
       mode: 'automatic',
-      requester_publickey: publicKey,
-      recipient_publickey: publicKey,
-      status: 'inbound_awaiting',
-      email: normalizedEmail,
-      inbound_ticker: ticker,
-      inbound_asset_id: collection.asset_id,
-      inbound_chain_id: collection.chain_id,
-      inbound_address: collection.address,
-      inbound_sender: sender,
-      inbound_mixin_user_id: collection.user_id,
-      inbound_confirmations_required: 0,
-      inbound_confirmation_block_id: inboundConfirmationBlockId,
-      outbound_ticker: 'SAITO',
-      outbound_address: publicKey,
-      created_at: now
+      requester_publickey: publicKey
     });
-    return {
-      address: collection.address,
-      ticker,
-      id,
-      error: null
-    };
+    const row = rows?.[0];
+    if (!row) {
+      return { error: 'Migration request not found' };
+    }
+    return this.clientReservation(row);
   }
 
   async recordManualMigration(tx) {
@@ -246,7 +157,7 @@ class MigrationService {
     return rows[0];
   }
 
-  async verifyManualDeposit(id, amount, txHash) {
+  async confirmManualMigrationDeposit(id, amount, txHash) {
     const rows = await this.mod.database.getTransfers({ id: Number(id) });
     const row = rows?.[0];
     if (!row || row.purpose !== 'migration' || row.mode !== 'manual') {
@@ -278,6 +189,23 @@ class MigrationService {
     }
     this.mod.creditDepositAddress?.(row.inbound_address, amount, txHash);
     return (await this.mod.database.getTransfers({ id: row.id }))[0];
+  }
+
+  clientReservation(row) {
+    return {
+      address: row.inbound_address || row.address,
+      ticker: row.inbound_ticker || row.ticker,
+      id: row.id,
+      status: row.status,
+      mixin_id: row.inbound_mixin_user_id || row.mixin_id,
+      inbound_amount: row.inbound_amount || '',
+      outbound_amount: row.outbound_amount || '',
+      reserved_until:
+        row.reserved_until != null
+          ? Number(row.reserved_until)
+          : Number(row.created_at) + this.mod.transfers.reservation_ms,
+      error: null
+    };
   }
 }
 

@@ -28,6 +28,7 @@ class MixinAdmin {
     this.delegateDraft = '';
     this.savingOperation = false;
     this.operationNotice = '';
+    this.tab = 'transfers';
   }
 
   admin() {
@@ -58,6 +59,7 @@ class MixinAdmin {
     this.delegateDraft = '';
     this.savingOperation = false;
     this.operationNotice = '';
+    this.tab = 'transfers';
 
     if (!this.admin()?.server_info) {
       this.app.browser.replaceElementContentBySelector(
@@ -96,7 +98,8 @@ class MixinAdmin {
         providerDraft: this.providerDraft,
         delegateDraft: this.delegateDraft,
         savingOperation: this.savingOperation,
-        operationNotice: this.operationNotice
+        operationNotice: this.operationNotice,
+        tab: this.tab
       }),
       this.container
     );
@@ -104,6 +107,18 @@ class MixinAdmin {
   }
 
   attachEvents() {
+    document.querySelectorAll('[data-payments-tab]').forEach((button) => {
+      button.onclick = (e) => {
+        e.preventDefault();
+        const next = button.getAttribute('data-payments-tab');
+        if (!next || next === this.tab) {
+          return;
+        }
+        this.tab = next;
+        this.refresh();
+      };
+    });
+
     const refresh = document.getElementById('admin-payments-refresh');
     if (refresh) {
       refresh.onclick = (e) => {

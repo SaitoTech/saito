@@ -17,7 +17,7 @@ class AdminModulesUI {
     this.saved = false;
     this.error = '';
     this.filter = '';
-    this.filters = { category: '', status: '', class: '', has_description: true, has_image: true };
+    this.filters = { category: '', status: '', class: '', has_description: false, has_image: false };
   }
 
   render() {

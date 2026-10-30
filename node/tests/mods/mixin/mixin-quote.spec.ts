@@ -14,6 +14,7 @@ jest.mock('@mixin.dev/mixin-node-sdk', () => ({
 }));
 
 const Transfers = require('../../../mods/mixin/lib/transfers');
+const BuySaitoService = require('../../../mods/mixin/lib/buysaito');
 
 function service(prices = { eth: 2, erc: 1 }) {
   const saved = [];
@@ -59,15 +60,24 @@ function service(prices = { eth: 2, erc: 1 }) {
     },
     mod
   );
-  return { transfers, crypto, erc, saved };
+  mod.transfers = transfers;
+  const buysaito = new BuySaitoService(
+    {
+      wallet: { getPrivateKey: async () => 'private' },
+      blockchain: { getLatestBlockId: async () => 8 }
+    },
+    mod
+  );
+  mod.buysaito = buysaito;
+  return { transfers, buysaito, crypto, erc, saved, mod };
 }
 
 describe('BuySaito server quotes', () => {
   test('accepts an order inside the 1% tolerance and stores the server amounts', async () => {
-    const { transfers, saved } = service();
-    expect(transfers.quote_tolerance).toBe(0.01);
+    const { buysaito, transfers, saved } = service();
+    expect(buysaito.quote_tolerance).toBe(0.01);
 
-    const instructions = await transfers.reserveAddress('buyer', {
+    const instructions = await buysaito.startPurchase('buyer', {
       ticker: 'ETH',
       issue_amount: 10,
       expected_deposit: 5.54
@@ -83,11 +93,13 @@ describe('BuySaito server quotes', () => {
     expect(saved[0].inbound_confirmation_block_id).toBe(8);
     expect(instructions.ticker).toBe('ETH');
     expect(instructions.address).toBe('0xabc');
+    expect(transfers.reservation_ms).toBe(40 * 60 * 1000);
+    expect(instructions.reserved_until).toBe(saved[0].created_at + transfers.reservation_ms);
   });
 
   test('accepts the inverse rounding of a crypto-denominated order', async () => {
-    const { transfers } = service();
-    const instructions = await transfers.reserveAddress('buyer', {
+    const { buysaito } = service();
+    const instructions = await buysaito.startPurchase('buyer', {
       ticker: 'ETH',
       expected_deposit: 5.49,
       issue_amount: 9
@@ -98,9 +110,9 @@ describe('BuySaito server quotes', () => {
   });
 
   test('rejects an order outside the 1% tolerance', async () => {
-    const { transfers, saved } = service();
+    const { buysaito, saved } = service();
     await expect(
-      transfers.reserveAddress('buyer', {
+      buysaito.startPurchase('buyer', {
         ticker: 'ETH',
         issue_amount: 10,
         expected_deposit: 1
@@ -110,9 +122,9 @@ describe('BuySaito server quotes', () => {
   });
 
   test('a client-supplied price cannot change the calculation', async () => {
-    const { transfers, saved } = service();
+    const { buysaito, saved } = service();
     await expect(
-      transfers.reserveAddress('buyer', {
+      buysaito.startPurchase('buyer', {
         ticker: 'ETH',
         issue_amount: 10,
         expected_deposit: 5.5,
@@ -123,14 +135,14 @@ describe('BuySaito server quotes', () => {
   });
 
   test('rejects an unsupported currency and an invalid amount', async () => {
-    const { transfers } = service();
-    await expect(transfers.reserveAddress('buyer', { ticker: 'DOGE', issue_amount: 10 })).rejects.toThrow(
+    const { buysaito } = service();
+    await expect(buysaito.startPurchase('buyer', { ticker: 'DOGE', issue_amount: 10 })).rejects.toThrow(
       'Unsupported payment ticker'
     );
-    await expect(transfers.reserveAddress('buyer', { ticker: 'ETH', issue_amount: 0 })).rejects.toThrow(
+    await expect(buysaito.startPurchase('buyer', { ticker: 'ETH', issue_amount: 0 })).rejects.toThrow(
       'invalid payment amount'
     );
-    await expect(transfers.reserveAddress('buyer', { ticker: 'ETH', expected_deposit: -1 })).rejects.toThrow(
+    await expect(buysaito.startPurchase('buyer', { ticker: 'ETH', expected_deposit: -1 })).rejects.toThrow(
       'invalid payment amount'
     );
   });
@@ -139,21 +151,21 @@ describe('BuySaito server quotes', () => {
     const missing = service();
     delete missing.transfers.app.blockchain;
     await expect(
-      missing.transfers.reserveAddress('buyer', { ticker: 'ETH', issue_amount: 10, expected_deposit: 5.5 })
+      missing.buysaito.startPurchase('buyer', { ticker: 'ETH', issue_amount: 10, expected_deposit: 5.5 })
     ).rejects.toThrow('Saito block height is unavailable');
     expect(missing.saved).toHaveLength(0);
 
     const invalid = service();
     invalid.transfers.app.blockchain.getLatestBlockId = async () => null;
     await expect(
-      invalid.transfers.reserveAddress('buyer', { ticker: 'ETH', issue_amount: 10, expected_deposit: 5.5 })
+      invalid.buysaito.startPurchase('buyer', { ticker: 'ETH', issue_amount: 10, expected_deposit: 5.5 })
     ).rejects.toThrow('Saito block height is unavailable');
     expect(invalid.saved).toHaveLength(0);
   });
 
   test('rejects a missing or stale cached price', async () => {
     const missing = service({ eth: 0, erc: 1 });
-    await expect(missing.transfers.reserveAddress('buyer', { ticker: 'ETH', issue_amount: 10 })).rejects.toThrow(
+    await expect(missing.buysaito.startPurchase('buyer', { ticker: 'ETH', issue_amount: 10 })).rejects.toThrow(
       'No price is available'
     );
 
@@ -163,7 +175,7 @@ describe('BuySaito server quotes', () => {
     stale.crypto.returnMixinNetworkInfo.mockImplementation(async () => {
       stale.crypto.price_usd = null;
     });
-    await expect(stale.transfers.reserveAddress('buyer', { ticker: 'ETH', issue_amount: 10 })).rejects.toThrow(
+    await expect(stale.buysaito.startPurchase('buyer', { ticker: 'ETH', issue_amount: 10 })).rejects.toThrow(
       'No price is available'
     );
     expect(stale.crypto.returnMixinNetworkInfo).toHaveBeenCalled();

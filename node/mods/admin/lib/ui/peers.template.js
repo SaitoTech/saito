@@ -124,8 +124,10 @@ module.exports = ({
               <i class="fa-solid fa-rotate${loading_live ? ' fa-spin' : ''}" aria-hidden="true"></i>
             </button>
           </div>
-          <button type="button" class="admin-button" id="admin-peer-add-toggle">
-            ${show_add_form ? 'Cancel' : 'Add Peer'}
+          <button type="button" class="admin-button-icon" id="admin-peer-add-toggle"
+            title="${show_add_form ? 'Cancel' : 'Add Peer'}"
+            aria-label="${show_add_form ? 'Cancel' : 'Add Peer'}">
+            <i class="fa-solid ${show_add_form ? 'fa-xmark' : 'fa-plus'}" aria-hidden="true"></i>
           </button>
         </div>
 
