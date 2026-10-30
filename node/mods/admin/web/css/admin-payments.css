@@ -18,8 +18,10 @@
   margin-bottom: 0;
 }
 
-.admin-payments-header .admin-button {
+.admin-payments-header .admin-button,
+.admin-payments-header .admin-button-icon {
   margin-top: 0;
+  flex: 0 0 auto;
 }
 
 .admin-payments-tabs {
@@ -167,7 +169,9 @@
   padding: 10px 12px;
   border-bottom: 1px solid #e5e7eb;
   text-align: left;
-  vertical-align: top;
+  vertical-align: middle;
+  font-size: 14px;
+  line-height: 1.4;
 }
 
 .admin-payments-table th {
@@ -177,12 +181,15 @@
 }
 
 .admin-payments-key {
-  max-width: 180px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  display: block;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  word-break: break-all;
+  white-space: normal;
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font-size: 12px;
+  font-size: inherit;
+  line-height: inherit;
+  color: inherit;
 }
 
 .admin-payments-section h2 {
@@ -210,7 +217,8 @@
 }
 
 .admin-payments-search .admin-button,
-.admin-payments-pagination .admin-button {
+.admin-payments-pagination .admin-button,
+.admin-payments-pagination .admin-button-icon {
   margin-top: 0;
 }
 
@@ -286,6 +294,10 @@
 .admin-payments-waiting,
 .admin-payments-empty {
   color: #6b7280;
+}
+
+.admin-payments-reservation {
+  color: inherit;
 }
 
 @media (max-width: 900px) {

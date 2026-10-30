@@ -233,6 +233,19 @@ function operationModeSection({
     </section>`;
 }
 
+function reservationStatus(entry) {
+  if (entry.reservable) {
+    return 'Available';
+  }
+  const until = Number(entry.reserved_until);
+  if (!Number.isFinite(until) || until <= 0) {
+    return 'Reserved';
+  }
+  return `<span class="admin-payments-reservation" data-reserved-until="${escapeHtml(
+    String(until)
+  )}">Reserved</span>`;
+}
+
 function depositSection(addresses) {
   const rows = Array.isArray(addresses) ? addresses : [];
   const body = rows.length
@@ -253,7 +266,7 @@ function depositSection(addresses) {
               <td>${identifierCell(entry.address)}</td>
               <td>${escapeHtml(asset)}</td>
               <td>${escapeHtml(entry.balance || '0')}</td>
-              <td>${entry.reservable ? 'Available' : 'Reserved'}</td>
+              <td>${reservationStatus(entry)}</td>
             </tr>`;
               })
               .join('')}
@@ -316,13 +329,17 @@ function pagination(page, total) {
   const pages = Math.max(1, Math.ceil(Number(total || 0) / pageSize));
   const current = Number(page) || 1;
   return `<div class="admin-payments-pagination">
-      <button type="button" class="admin-button" data-payments-page="${current - 1}" ${
+      <button type="button" class="admin-button-icon" data-payments-page="${current - 1}" ${
         current <= 1 ? 'disabled' : ''
-      }>Previous</button>
-      <span>Page ${current} of ${pages} (${Number(total || 0)} transfers)</span>
-      <button type="button" class="admin-button" data-payments-page="${current + 1}" ${
+      } title="Previous page" aria-label="Previous page">
+        <i class="fa-solid fa-angles-left" aria-hidden="true"></i>
+      </button>
+      <span>Page ${current} of ${pages}</span>
+      <button type="button" class="admin-button-icon" data-payments-page="${current + 1}" ${
         current >= pages ? 'disabled' : ''
-      }>Next</button>
+      } title="Next page" aria-label="Next page">
+        <i class="fa-solid fa-angles-right" aria-hidden="true"></i>
+      </button>
     </div>`;
 }
 
@@ -448,7 +465,9 @@ module.exports = ({
         </div>
         ${
           ready
-            ? `<button type="button" class="admin-button" id="admin-payments-refresh" ${refreshDisabled}>Refresh</button>`
+            ? `<button type="button" class="admin-button-icon" id="admin-payments-refresh" ${refreshDisabled} title="Refresh payments" aria-label="Refresh payments">
+                <i class="fa-solid fa-rotate${loading ? ' fa-spin' : ''}" aria-hidden="true"></i>
+              </button>`
             : ''
         }
       </div>

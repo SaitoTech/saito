@@ -187,7 +187,7 @@ class Database {
 
   async listReservedInboundAddresses() {
     const rows = await this.query(
-      `SELECT DISTINCT inbound_address
+      `SELECT inbound_address, MIN(created_at) AS created_at
        FROM transfers
        WHERE excluded = 0
          AND inbound_address <> ''
@@ -199,10 +199,16 @@ class Database {
            'outbound_broadcast',
            'treasury_submitted',
            'treasury_accepted'
-         )`,
+         )
+       GROUP BY inbound_address`,
       {}
     );
-    return (rows || []).map((row) => row.inbound_address).filter(Boolean);
+    return (rows || [])
+      .map((row) => ({
+        inbound_address: row.inbound_address,
+        created_at: row.created_at
+      }))
+      .filter((row) => row.inbound_address);
   }
 
   async findAddress({ assetId, mixinUserId, publicKey, address } = {}) {

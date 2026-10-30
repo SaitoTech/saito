@@ -932,14 +932,35 @@ class Mixin extends ModTemplate {
     if (typeof this.database?.listReservedInboundAddresses === 'function') {
       reserved = (await this.database.listReservedInboundAddresses()) || [];
     }
-    const held = new Set(reserved);
+    const reservationMs = Number(
+      this.transfers?.reservation_ms ||
+        Number(this.ADDRESS_RESERVATION_PERIOD_IN_MINUTES || 40) * 60 * 1000
+    );
+    const held = new Map();
+    for (const row of reserved) {
+      if (typeof row === 'string') {
+        held.set(row, null);
+        continue;
+      }
+      const address = row?.inbound_address || row?.address;
+      if (!address) {
+        continue;
+      }
+      const created = Number(row.created_at);
+      const reservedUntil =
+        Number.isFinite(created) && created > 0 && reservationMs > 0
+          ? created + reservationMs
+          : null;
+      held.set(address, reservedUntil);
+    }
     return this.depositAddresses().map((item) => ({
       address: item.address,
       asset_id: item.asset_id || '',
       ticker: item.ticker || '',
       mixin_user_id: item.mixin_user_id || '',
       balance: item.balance || '0',
-      reservable: !held.has(item.address)
+      reservable: !held.has(item.address),
+      reserved_until: held.has(item.address) ? held.get(item.address) : null
     }));
   }
 

@@ -1,5 +1,19 @@
 const PaymentsTemplate = require('./mixin-admin.template');
 
+function formatReservationRemaining(ms) {
+  const totalSeconds = Math.max(0, Math.ceil(ms / 1000));
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+  if (hours > 0) {
+    return `${hours}h ${minutes}m remaining`;
+  }
+  if (minutes > 0) {
+    return `${minutes}m ${seconds}s remaining`;
+  }
+  return `${seconds}s remaining`;
+}
+
 class MixinAdmin {
   constructor(app, mod, container = '.admin-payments') {
     this.app = app;
@@ -29,6 +43,7 @@ class MixinAdmin {
     this.savingOperation = false;
     this.operationNotice = '';
     this.tab = 'transfers';
+    this.reservation_timer = null;
   }
 
   admin() {
@@ -74,6 +89,7 @@ class MixinAdmin {
   }
 
   refresh() {
+    this.stopReservationCountdown();
     this.app.browser.replaceElementContentBySelector(
       PaymentsTemplate({
         transfers: this.transfers,
@@ -104,6 +120,48 @@ class MixinAdmin {
       this.container
     );
     this.attachEvents();
+    this.startReservationCountdown();
+  }
+
+  stopReservationCountdown() {
+    if (this.reservation_timer) {
+      clearInterval(this.reservation_timer);
+      this.reservation_timer = null;
+    }
+  }
+
+  updateReservationCountdowns() {
+    const cells = document.querySelectorAll(`${this.container} [data-reserved-until]`);
+    if (!cells.length) {
+      this.stopReservationCountdown();
+      return;
+    }
+    const now = Date.now();
+    cells.forEach((el) => {
+      const until = Number(el.getAttribute('data-reserved-until'));
+      if (!Number.isFinite(until) || until <= 0) {
+        el.textContent = 'Reserved';
+        return;
+      }
+      const remaining = until - now;
+      if (remaining <= 0) {
+        el.textContent = 'Reserved';
+        return;
+      }
+      el.textContent = `Reserved · ${formatReservationRemaining(remaining)}`;
+    });
+  }
+
+  startReservationCountdown() {
+    this.stopReservationCountdown();
+    if (this.tab !== 'addresses') {
+      return;
+    }
+    if (!document.querySelector(`${this.container} [data-reserved-until]`)) {
+      return;
+    }
+    this.updateReservationCountdowns();
+    this.reservation_timer = setInterval(() => this.updateReservationCountdowns(), 1000);
   }
 
   attachEvents() {
