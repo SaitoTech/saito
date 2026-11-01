@@ -29,7 +29,7 @@ class RunnerSharedMethods extends ServerSharedMethods {
   saveBlockchain() { this.app.storage.saveOptions(); }
 }
 
-async function createRuntime(config, { offline = false, send, monitor = false, chat = false, discover = false, coordinated = false } = {}) {
+async function createRuntime(config, { offline = false, send, monitor = false, chat = true, discover = false, coordinated = false } = {}) {
   if (S.getLibInstance()) throw Error('Use a separate process for each native player runtime');
   const app = new Saito({ mod_paths: [] });
   app.BROWSER = 0;
@@ -42,7 +42,10 @@ async function createRuntime(config, { offline = false, send, monitor = false, c
   const origin = `${url.protocol === 'wss:' ? 'https:' : 'http:'}//${url.host}`;
   let remote = {};
   if (!offline) {
-    const response = await fetch(origin + '/options', { signal: AbortSignal.timeout(20000) });
+    let response;
+    try { response = await fetch(origin + '/options', { signal: AbortSignal.timeout(20000) }); }
+    catch (error) { throw Object.assign(Error('Saito bootstrap unavailable: ' + error.message), { code: 'SAITO_UNAVAILABLE' }); }
+    if (response.status >= 500) throw Object.assign(Error(`Bootstrap /options: HTTP ${response.status}`), { code: 'SAITO_UNAVAILABLE' });
     if (!response.ok) throw Error(`Bootstrap /options: HTTP ${response.status}`);
     remote = await response.json();
   }
@@ -206,30 +209,9 @@ async function createRuntime(config, { offline = false, send, monitor = false, c
     outer.msg = { request: msg.module === 'Chat' ? 'chat relay' : msg.request === 'game' ? 'game relay gamemove' : 'game relay update', data: tx.toJson() };
     return app.modules.handlePeerTransaction(outer, { publicKey: tx.from[0].publicKey });
   };
-  const retransmit = async () => {
-    for (const [signature, json] of Object.entries(app.options.runnerOutbox || {})) {
-      const tx = new Transaction(undefined, json), msg = tx.returnMessage();
-      const finished = app.options.games.find(g => g.over &&
-        (g.id === msg.game_id || (msg.module === 'Arcade' && g.id === tx.signature)));
-      if (finished) { delete app.options.runnerOutbox[signature]; continue; }
-      if (msg.module === 'Arcade' && mod?.game?.players_set && mod.game.step.game > 2) {
-        delete app.options.runnerOutbox[signature];
-        continue;
-      }
-      if (msg.module === config.game && mod?.game?.id === msg.game_id &&
-          (mod.game.step?.players?.[mod.publicKey] >= msg.step?.game || mod.game.over)) {
-        delete app.options.runnerOutbox[signature];
-        continue;
-      }
-      await propagate(tx);
-      if (!offline) app.connection.emit('relay-send-message', {
-        recipient: msg.module === 'Arcade' ? 'PEERS' : mod.game.accepted,
-        request: msg.module === 'Arcade' ? 'arcade spv update' : 'game relay gamemove', data: tx.toJson()
-      });
-    }
-    app.storage.saveOptions();
-  };
+  const retransmit = () => require('./outbox')({ app, mod, propagate, offline, Transaction });
   const runtime = { app, mod, adapter, arcade, chat: chatClient, receive, retransmit, runExclusive, core: S.getInstance() };
+  runtime.isSaitoReachable = offline ? async () => true : require('./connectivity')(app);
   if (discover) runtime.discovery = require('./discovery')(runtime);
   if (!offline) S.getInstance().start();
   return runtime;

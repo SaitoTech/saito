@@ -19,7 +19,15 @@ async function main() {
   const version = command === 'list' ? null : await require('./providers/check')(config.decisionProvider);
   const unlock = lock(config.dataDir);
   const controller = new AbortController();
-  for (const event of ['SIGINT', 'SIGTERM']) process.once(event, () => controller.abort());
+  // A terminal Ctrl-C reaches the process group, and npm may forward SIGINT
+  // again. Keep handlers installed until every worker exits and locks release.
+  // A once-handler lets that second signal terminate us before finally runs.
+  const stop = () => {
+    if (controller.signal.aborted) return;
+    report({ event: 'stopping' });
+    controller.abort();
+  };
+  for (const event of ['SIGINT', 'SIGTERM']) process.on(event, stop);
   try {
     if (command.startsWith('multi-')) {
       await require('./multi').multi(config, command.slice(6), argument, { signal: controller.signal, report });
@@ -73,7 +81,10 @@ async function main() {
     }
     await play(runtime, config, { signal: controller.signal, report });
     app.storage.saveOptions();
-  } finally { unlock(); }
+  } finally {
+    unlock();
+    if (controller.signal.aborted) report({ event: 'stopped' });
+  }
 }
 main().then(() => process.exit(0)).catch(error => {
   console.error(error.name === 'AbortError' ? 'Runner stopped; state saved.' : error.stack);

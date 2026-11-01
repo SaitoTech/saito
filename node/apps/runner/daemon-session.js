@@ -7,7 +7,7 @@ module.exports = async function run(config, task, { signal, report,
   resumeGame = require('./resume')
 }) {
   const runtime = await boot({ ...config, game: task.game || config.game },
-    { monitor: task.mode === 'watch', chat: config.daemon.mode === 'ask', discover: true });
+    { monitor: task.mode === 'watch', chat: task.mode === 'play' || config.daemon.mode === 'ask', discover: true });
   const { app, arcade } = runtime;
   const save = () => app.storage.saveOptions();
   const state = app.options.runnerDaemon ||= { invites: {} };
@@ -32,20 +32,21 @@ module.exports = async function run(config, task, { signal, report,
   const began = Date.now();
   while (!discovery.lastRefresh) {
     if (app.runnerFailure) throw app.runnerFailure;
-    if (Date.now() - began > 30000) throw Error('Arcade discovery timed out; daemon state saved');
+    if (Date.now() - began > 30000) throw Object.assign(Error('Arcade discovery timed out; daemon state saved'), { code: 'SAITO_UNAVAILABLE' });
     await delay(250, undefined, { signal });
   }
   if (task.mode === 'watch') {
     const policy = new DaemonPolicy(runtime, config, report);
     report({ event: 'watching', games: config.daemon.games, mode: config.daemon.mode });
-    let chatRefresh = 0;
+    let chatRefresh = 0, resendAt = 0;
     while (!signal.aborted) {
       if (app.runnerFailure) throw app.runnerFailure;
       await discovery.refresh(config.daemon.refreshMs);
+      if (Date.now() >= resendAt) { await runtime.retransmit(); resendAt = Date.now() + 20000; }
       if (runtime.chat && Date.now() > chatRefresh) {
         runtime.chat.refreshHistory(); chatRefresh = Date.now() + config.daemon.refreshMs;
       }
-      if (Date.now() - discovery.lastRefresh < config.daemon.refreshMs * 2) {
+      if (Date.now() >= (app.options.runnerEngineRetryAt || 0) && Date.now() - discovery.lastRefresh < config.daemon.refreshMs * 2) {
         const selected = await runtime.runExclusive(() => policy.tick());
         if (selected) return { mode: 'play', ...selected };
       }

@@ -136,6 +136,9 @@ class MultiSeat {
         if (adapter.current()?.id !== decision.id) return decision.choices[0].id;
         return await base.choose(decision, signal);
       } finally { release(); }
+    }, reply: async (conversation, signal) => {
+      const release = await this.permit(signal);
+      try { return await base.reply(conversation, signal); } finally { release(); }
     } };
     this.running = play(this.runtime, this.config, { signal: this.signal, report: this.report, provider, waitForOpponent: true })
       .catch(error => {

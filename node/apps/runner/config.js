@@ -11,7 +11,7 @@ function loadConfig(filename) {
     peer: input.peer, game: input.game || 'Conquest', players: input.players ?? 2,
     dataDir: path.resolve(path.dirname(absolute), input.dataDir || './runner-data'),
     options: input.options || {},
-    decisionProvider: { type: 'codex', executable: 'codex', timeoutMs: 120000, ...input.decisionProvider },
+    decisionProvider: { type: 'codex', executable: 'codex', timeoutMs: 120000, maxAttempts: 3, retryDelayMs: 30000, ...input.decisionProvider },
     pollMs: input.pollMs ?? 250, idleTimeoutMs: input.idleTimeoutMs ?? 600000,
     maxDecisions: input.maxDecisions ?? 10000,
     daemon: { games: [input.game || 'Conquest'], mode: 'delay', joinDelayMs: 60000,
@@ -41,6 +41,9 @@ function loadConfig(filename) {
     if (!Number.isSafeInteger(config[key]) || config[key] <= 0) throw Error(`Invalid ${key}`);
   }
   if (!Number.isSafeInteger(config.decisionProvider.timeoutMs) || config.decisionProvider.timeoutMs < 100) throw Error('Invalid provider timeout');
+  for (const key of ['maxAttempts', 'retryDelayMs']) {
+    if (!Number.isSafeInteger(config.decisionProvider[key]) || config.decisionProvider[key] < 1) throw Error(`Invalid decisionProvider.${key}`);
+  }
   if (typeof config.decisionProvider.executable !== 'string' || !config.decisionProvider.executable) throw Error('Invalid Codex executable');
   if (config.decisionProvider.executable.includes('/') && !path.isAbsolute(config.decisionProvider.executable)) {
     config.decisionProvider.executable = path.resolve(path.dirname(absolute), config.decisionProvider.executable);

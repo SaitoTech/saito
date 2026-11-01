@@ -1,6 +1,7 @@
 const ModTemplate = require('../../lib/templates/modtemplate');
 const Chat = require('../../mods/chat/chat');
 const Transaction = require('../../lib/saito/transaction').default;
+const AUTO_MARKER = '<!--saito-runner-auto-->';
 const secp256k1 = require('secp256k1');
 
 // A Chat client in a native SPV process. Reuse Chat's group IDs, encryption and
@@ -66,7 +67,8 @@ class RunnerChat extends ModTemplate {
       this.seen.add(tx.signature);
       if (this.seen.size > 2000) this.seen.delete(this.seen.values().next().value);
       this.messages.push({ sender, channel: community ? 'community' : 'direct',
-        text: m.message, timestamp: tx.timestamp, signature: tx.signature });
+        automated: m.message.startsWith(AUTO_MARKER),
+        text: m.message.startsWith(AUTO_MARKER) ? m.message.slice(AUTO_MARKER.length) : m.message, timestamp: tx.timestamp, receivedAt: Date.now(), signature: tx.signature });
       if (this.messages.length > 1000) this.messages.shift();
     } catch (_) { /* Malformed or undecryptable remote messages are not consent. */ }
   }
@@ -76,12 +78,12 @@ class RunnerChat extends ModTemplate {
       this.messages.some(m => m.channel === 'community' && m.sender === host && m.timestamp >= timestamp);
   }
 
-  async send(host, channel, text) {
+  async send(host, channel, text, { automated = true } = {}) {
     const group = channel === 'community' ? this.communityGroup :
       this.returnOrCreateChatGroupFromMembers([this.publicKey, host]);
     if (!group) return false;
-    const tx = await this.createChatTransaction(group.id, text, channel === 'community' ? [host] : []);
-    if (!tx) throw Error('Chat could not create invitation message');
+    const tx = await this.createChatTransaction(group.id, (automated ? AUTO_MARKER : '') + text, channel === 'community' ? [host] : []);
+    if (!tx) throw Error('Chat could not create message');
     return true;
   }
 }

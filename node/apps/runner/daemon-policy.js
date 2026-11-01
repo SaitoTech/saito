@@ -95,7 +95,7 @@ class DaemonPolicy {
       }
       for (const message of chat.messages) {
         const askedAt = message.channel === 'community' ? entry.communityAsked : entry.askedAt;
-        if (entry.status !== 'asked' || message.sender !== entry.host || message.timestamp < askedAt ||
+        if (message.automated || entry.status !== 'asked' || message.sender !== entry.host || message.timestamp < askedAt ||
           message.timestamp > now + 30000 || (message.channel === 'community' && (!cfg.community || !entry.communityAsked))) continue;
         const answer = reply(message.text, entry.code);
         if (answer === null) continue;

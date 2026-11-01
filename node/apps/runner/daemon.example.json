@@ -2,7 +2,7 @@
   "peer": "wss://saito.io/wsopen",
   "game": "Conquest",
   "dataDir": "./runner-data/daemon",
-  "decisionProvider": { "type": "codex", "executable": "codex", "timeoutMs": 120000 },
+  "decisionProvider": { "type": "codex", "executable": "codex", "timeoutMs": 120000, "maxAttempts": 3, "retryDelayMs": 30000 },
   "daemon": {
     "games": ["Conquest", "Settlers", "Twilight"],
     "mode": "ask",

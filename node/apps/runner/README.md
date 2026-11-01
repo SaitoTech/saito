@@ -51,9 +51,10 @@ connecting or joining. This checks availability, not login or model access.
 absolute path and rerun `daemon` with the same `dataDir` to resume the saved game.
 
 To use the fast test policy, set `decisionProvider.type` to `heuristic`.
-`timeoutMs` limits a model call; `idleTimeoutMs` stops a game that is not progressing;
-`maxDecisions` bounds a run. Provider failures stop visibly without substituting a
-heuristic move. No wagering, async dealing, observer play or timed play is supported.
+`timeoutMs` limits a model call; `idleTimeoutMs` bounds standalone waits before a game has opponents;
+`maxDecisions` bounds successful decision attempts. Engine availability failures
+use the recovery policy below; invalid output and other errors still stop visibly.
+The runner never substitutes a heuristic move for a failed model call. No wagering, async dealing, observer play or timed play is supported.
 
 ## Multiple bot seats in one game
 
@@ -91,8 +92,8 @@ Model calls are independent; bots do not collaborate or share hidden hands.
 starting a model call for every simultaneous discard. Network intake continues
 while a seat waits for capacity, and stale choices are discarded.
 `multi.joinTimeoutMs` bounds discovery and acknowledgement waits (default 60 seconds).
-Once joined, an idle opponent causes a progress report instead of abandoning the
-game. `maxDecisions` applies separately to each worker run.
+Once joined, the inactivity warning and cancellation policy below applies.
+`maxDecisions` applies separately to each worker run.
 
 Invites and signed joins are saved before sending; restarting reuses them.
 `multi-resume` also works after only some bots joined. Repeating `multi-host` or
@@ -101,8 +102,9 @@ starts a replacement game. Keep the same peer, game, player count, seat count an
 data directory when resuming; model settings may change. A completed session can
 be followed by a new `multi-host`/`multi-join` using the same wallets.
 
-Ctrl-C stops all managed workers and releases their locks. A worker/provider
+Ctrl-C stops all managed workers and releases their locks. An unrecoverable worker
 failure stops the other managed seats too and preserves their state for resume.
+Engine availability failures follow the retry/forfeit policy below.
 Already-signed joins cannot be rolled back locally. The supervisor checks for
 duplicate/replaced wallets and refuses to occupy a seat belonging to a different
 unfinished game. Back up the entire `dataDir`, including all seat directories.
@@ -129,7 +131,7 @@ Choose either behavior in the config:
 
 | Setting | Behavior |
 | --- | --- |
-| `daemon.mode: "delay"` | Join after `joinDelayMs` from first seeing an eligible invite. Default delay: 60 seconds. Sends no chat messages. |
+| `daemon.mode: "delay"` | Join after `joinDelayMs` from first seeing an eligible invite. Default delay: 60 seconds. Sends no invitation-consent messages. |
 | `daemon.mode: "ask"` | Send the host `I am a bot. Should I take your Conquest invite? Reply yes or no.` (using the invited game's name). Join only on approval. |
 | `daemon.consentTimeoutMs` | Stop waiting for permission after this interval; default 10 minutes. Silence never authorizes a join. |
 | `daemon.community` | In ask mode, also ask in Saito Community Chat if the host has spoken there since creating the invite. Default `true`. |
@@ -141,19 +143,19 @@ Replies are acknowledged in the same channel. Only signed messages from that
 host sent after the question in that channel count. Chat history establishes
 presence only, since the server returns summaries rather than original signed
 transactions. The daemon checks both history and new messages for host activity.
-Set `community: false` for direct messages only. These are fixed invitation
-responses, not a general chat assistant; waiting and consent parsing use no AI
-model calls. Direct messages use Saito Chat's normal encryption and relay APIs.
+Set `community: false` for direct messages only. Invitation responses are fixed; waiting and consent parsing use no AI
+model calls. In-game conversation is described below. Direct messages use Saito Chat's normal encryption and relay APIs.
 
 Timers, declines, expired requests and the current match persist in the wallet's
 options. Restarting with `daemon` resumes an unfinished supported game before
 looking for another. Requests are marked before sending to avoid repeating a
 question after a crash; a crash exactly during delivery can leave an unanswered
 request which will expire. Community history availability depends on the peer's
-Chat service. Games remain reserved while an opponent is idle: `idleTimeoutMs`
-reports `waiting-for-opponent` instead of abandoning the match. A signed join
-awaiting acceptance also stays reserved. Provider errors and decision limits
-stop the daemon visibly with state saved; restart it after resolving the cause.
+Chat service. An idle match follows the inactivity policy below. A signed join
+awaiting acceptance stays reserved and reports `waiting-for-opponent` at each
+`idleTimeoutMs` interval. Invalid model output, game errors and decision limits
+stop the daemon visibly with state saved; engine availability failures recover as
+described below.
 
 The command stays in the foreground; Ctrl-C stops its child and releases the
 wallet lock. Use a process manager on a VPS if it should survive terminal logout.
@@ -161,6 +163,95 @@ The supervisor runs one native child at a time: an Arcade/Chat monitor, then a
 fresh game process, then another monitor. They use the same wallet sequentially.
 This resets each game's globals and callbacks without two clients sharing a
 wallet connection. No browser is needed for monitoring or playing.
+
+## Engine and connection recovery
+
+A model-call timeout, failed engine process startup, or nonzero engine exit is
+reported as `engine-unavailable` and retried. `decisionProvider.maxAttempts`
+defaults to **3** (including the initial attempt); `decisionProvider.retryDelayMs`
+defaults to **30000**. The existing `timeoutMs` still limits each individual call.
+Retries do not spend the move decision limit, and each retry uses the current
+decision rather than applying an answer to an obsolete game position.
+
+After a failure the runner probes Saito with a fresh Arcade RPC (up to ten
+seconds). If Saito does not answer, it reports `waiting-for-network`, pauses
+engine attempts, and checks again after the retry delay. A general connection
+outage resets the engine failure budget: losing laptop/VM networking alone does
+not cause a forfeit. Incoming transactions continue to be processed while waiting.
+Ctrl-C interrupts these waits. Daemon bootstrap connection failures, HTTP 5xx
+responses and initial Arcade discovery timeouts also retry in a fresh worker.
+
+If Saito is reachable but the engine fails all three attempts, the runner sends
+each opponent a fixed direct message explaining that its engine is unavailable
+and it cannot continue, then sends a signed **forfeit** awarding the other
+players the win. This notice needs no model call. A failed notice is retried;
+previously sent notices are recorded to avoid repeating them. The terminal
+transaction remains in the outbox for retransmission for 24 hours. The daemon
+waits five minutes before accepting another invitation after an engine forfeit.
+This is distinct from inactivity cancellation, which awards no winner.
+
+Malformed model output, game-rule errors and invalid configuration still stop
+visibly. The startup executable check still runs before opening/joining a game.
+Future engine providers should set error code `ENGINE_UNAVAILABLE` for
+availability failures to use this same recovery policy. Chat-only model failures
+remain nonfatal and do not by themselves forfeit a game.
+
+## In-game chat
+
+Once the player roster is accepted, each runner sends every opponent a direct
+message: `GLHF! I'm a Saito runner bot. Have fun!` Greetings are recorded per game
+and opponent, so restarting the daemon or resuming the match does not repeat them.
+An existing saved match receives a greeting the first time it runs with this feature.
+
+During the match, the runner answers new signed direct messages from opponents.
+It uses the configured Codex executable/model for short, friendly replies (at
+most 500 characters), with the game name and up to eight recent messages from
+that opponent. It does not send the wallet, private cards, game state or other
+opponents' conversations to the chat prompt. The heuristic test provider uses a
+fixed friendly acknowledgement instead.
+
+Chat replies run in the background, with one request at a time per runner and
+at least ten seconds between requests. Multi-seat chat uses the same model
+capacity limit as moves. Messages arriving while a move is being chosen are
+processed on the next play-loop iteration. Public Community Chat and nonplayer
+messages are ignored during games. Automated runner messages are marked and do
+not trigger replies, invitation consent or inactivity extensions.
+
+Handled message signatures and a short conversation history persist with the
+wallet. Greetings and replies are claimed before sending/model work to avoid
+repeat messages after a crash; interruption during delivery can lose that message.
+Chat failures are reported as `chat-error` and do not stop gameplay. Pending chat
+is cancelled on shutdown, and late answers are discarded after game completion.
+Chat cannot submit moves or change the game; only the explicit inactivity reply
+policy below grants extra time. Its extension acknowledgement suppresses a second
+conversational reply to the same message.
+
+## Inactive opponents
+
+All playing modes send a direct Chat warning after five minutes without game
+progress while the runner has no decision to make. Chat is enabled for playing
+even when the daemon uses delayed joining rather than asking for consent.
+
+- Without a reply or move, the game is cancelled one minute after the warning.
+- A signed direct reply from an opponent received within that minute grants one
+  five-minute extension, measured from receipt. The runner acknowledges it.
+- Further chat does not extend that deadline. A move/game progress resets the
+  inactivity cycle; the runner's own decisions also clear a pending warning.
+- At a table with several opponents, each receives the warning; any opponent's
+  timely direct reply grants the single extension for the table.
+
+Warnings, deadlines and extensions persist across restarts. Old messages, public
+Chat messages and messages from nonplayers do not count as replies. This does not
+use AI calls. Cancellation uses a signed gameover with reason `cancellation` and
+no winner. The daemon then returns to matchmaking; standalone play finishes.
+Cancellation and forfeit transactions remain available for retransmission for 24 hours while
+the runner is running, including during daemon matchmaking, so an opponent who
+reconnects can receive the result. Delivery still depends on the network. Retries use the original signed recipients,
+even in watch mode with no game module loaded. Worker failures report their original
+stack trace through the supervisor.
+
+These timers replace `idleTimeoutMs` for established games. Before an opponent
+joins, the existing standalone timeout / daemon reservation behavior still applies.
 
 ## How it works
 
@@ -257,8 +348,16 @@ Restart preserves the original wallet and battle secrets. Recovery still depends
 on peers or the chain delivering missing moves; a general historical replay API
 is not included.
 
-Use Ctrl-C for a clean stop. If a machine crash leaves `runner.lock`, verify that
-the old process is gone before removing that lock and resuming. Back up the entire
+Use Ctrl-C for a clean stop. The CLI reports `stopping`, waits for its workers,
+releases the wallet lock, then reports `stopped`. Allow up to ten seconds if an
+operation is stuck. Repeated Ctrl-C and signals forwarded by npm do not bypass
+this cleanup; a normal Ctrl-C restart does not require deleting a lock.
+Daemon workers also exit within ten seconds of losing
+their supervisor. If a crash leaves `runner.lock`, the error reports the owner PID
+and whether it is still running. A lock does not stop a process: deleting a live
+runner's lock can allow two processes to write the same wallet. Verify that the
+owner and any orphan `daemon-worker.js` / `multi-worker.js` processes for that
+runner have exited before removing a stale lock and resuming. Back up the entire
 private directory; losing a wallet or encrypted deck can prevent a game finishing.
 The runner never reads the full node's `config/options` or chain directory.
 Framework debug logging is suppressed by the CLI because it can contain deck
@@ -269,6 +368,9 @@ material. stdout contains structured progress events, not prompts or private han
 ```sh
 npm run test:runner
 node tests/apps/runner/match.cjs Conquest --restart
+# Verify cancellation also completes when the runner is the guest:
+node tests/apps/runner/match.cjs Conquest --cancel-guest
+node tests/apps/runner/match.cjs Twilight --forfeit-guest
 node tests/apps/runner/match.cjs Settlers --restart
 node tests/apps/runner/match.cjs Twilight --restart
 # Three coordinated bots plus a separate fourth native player:
