@@ -457,8 +457,32 @@ class Mixin extends ModTemplate {
       return 1;
     }
 
+    if (!this.app.BROWSER && message.request === 'migration extend') {
+      const from = tx.from?.[0]?.publicKey;
+      const directPeer = !!from && peer?.publicKey === from;
+      if (!directPeer || !this.migration) {
+        return 0;
+      }
+      let result;
+      try {
+        result = await this.migration.extendReservation(from, message.data?.id);
+      } catch (err) {
+        result = { error: err?.message || String(err) };
+      }
+      this.app.network.sendRequestAsTransaction('migration extend', result, null, from);
+      if (mycallback) {
+        mycallback(result);
+      }
+      return 1;
+    }
+
     if (this.app.BROWSER && message.request === 'migration status') {
       this.receiveMigrationStatusUpdate(message.data);
+      return 1;
+    }
+
+    if (this.app.BROWSER && message.request === 'migration extend') {
+      this.receiveMigrationInstructions(message.data);
       return 1;
     }
 

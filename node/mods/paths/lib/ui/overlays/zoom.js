@@ -230,6 +230,18 @@ class ZoomOverlay {
         document.querySelector(qs).onclick = (e) => {
           let space_id = e.currentTarget.id;
           //
+          // loss board-mode: assignment clicks on the cloned board are handled by
+          // re-bound tile handlers; do not open the space detail for those targets
+          //
+          if (this.mod.loss_overlay && this.mod.loss_overlay.board_mode) {
+            if (e.target.closest && e.target.closest('.army-tile.loss-board-unit')) {
+              return;
+            }
+            if (e.currentTarget.classList.contains('loss-assignment-open')) {
+              return;
+            }
+          }
+          //
           // we have clicked on a space. if there is a callback attached to the
           // zoom overlay, we are going to execute that callback. this is used
           // when we want people to use the zoom overlay to select something.
@@ -260,6 +272,19 @@ class ZoomOverlay {
           }
         };
       }
+    }
+
+    //
+    // cloneNode drops listeners — rebind loss board assignment onto the zoom clone
+    //
+    if (this.mod.loss_overlay && this.mod.loss_overlay.board_mode && this.mod.loss_overlay.board_bind) {
+      let b = this.mod.loss_overlay.board_bind;
+      this.mod.loss_overlay.bindBoardClicks(
+        b.am_i_the_attacker,
+        b.my_qs,
+        b.faction,
+        b.just_one_more_hit
+      );
     }
   }
 }

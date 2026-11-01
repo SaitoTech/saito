@@ -1692,8 +1692,7 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
       let acknowledgeNotice = (line) => {
         this.prependMove(
           "ACKNOWLEDGE\t" +
-          this.returnFactionName(faction) + " plays " + c.name +
-          "<br>" + line + "\t" +
+          this.returnFactionName(faction) + " plays " + this.popup(card) + " " + line + "\t" +
           otherPlayer
         );
       };

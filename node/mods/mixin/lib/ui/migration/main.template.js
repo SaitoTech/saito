@@ -1,10 +1,17 @@
+function migrationTitle(ticker) {
+  return ticker === 'BEP-SAITO' ? 'Migrate BEP20 SAITO' : 'Migrate ERC20 SAITO';
+}
+
+function wrappedLabel(ticker) {
+  return ticker === 'BEP-SAITO' ? 'BEP-20' : 'ERC-20';
+}
+
 module.exports = (mod) => {
   const instructions = mod.migration_instructions;
-  const ticker = mod.wrapped_saito_ticker === 'BEP-SAITO' ? 'BEP-SAITO' : 'ERC-SAITO';
-  const networkLabel =
-    instructions?.ticker === 'BEP-SAITO' || ticker === 'BEP-SAITO'
-      ? 'BEP20 SAITO (BNB Smart Chain)'
-      : 'ERC20 SAITO (Ethereum)';
+  const ticker =
+    instructions?.ticker === 'BEP-SAITO' || mod.wrapped_saito_ticker === 'BEP-SAITO'
+      ? 'BEP-SAITO'
+      : 'ERC-SAITO';
   const status = instructions?.ui_status || '';
   const reservedUntil = Number(instructions?.reserved_until || 0);
   const reservedLabel =
@@ -14,20 +21,24 @@ module.exports = (mod) => {
           timeStyle: 'short'
         })
       : '';
+  const canExtend = instructions?.address && String(instructions?.status || '') === 'inbound_awaiting';
 
   let body;
   if (instructions?.address) {
     body = `
-				<div class="saito-overlay-form-text withdraw-intro">
-					Send any amount of ${instructions.ticker || ticker} to the reserved deposit address below. The amount you send is issued 1:1 as native SAITO.
+				<div class="migration-qrcode qrcode" id="migration-qrcode"></div>
+				<div class="saito-overlay-form-text migration-instructions" id="migration-instructions">
+					Send any amount of ${wrappedLabel(ticker)} SAITO to the address below.${
+            reservedLabel
+              ? ` Deposit address reserved until ${reservedLabel}.${
+                  canExtend
+                    ? ` <a href="#" id="migration-extend-reservation">Click here</a> to extend if you need more time.`
+                    : ''
+                }`
+              : ''
+          }
 				</div>
-				<div class="migration-network" id="migration-network">${networkLabel}</div>
 				<div class="migration-deposit-address" id="migration-deposit-address">${instructions.address}</div>
-				${
-          reservedLabel
-            ? `<div class="migration-reservation-expiry" id="migration-reservation-expiry">Address reserved until ${reservedLabel}</div>`
-            : ''
-        }
 				<div class="migration-status" id="migration-status" role="status">${status || 'Waiting for your deposit...'}</div>
 			`;
   } else {
@@ -51,13 +62,13 @@ module.exports = (mod) => {
   return `		<div class="main migration-page">
 			<div class="saito-overlay-form saito-overlay-panel withdraw-container">
 				<div class="saito-overlay-form-header">
-					<div class="saito-overlay-form-header-title withdraw-title">
-						Migrate wrapped SAITO
+					<div class="saito-overlay-form-header-title withdraw-title" id="migration-title">
+						${migrationTitle(ticker)}
 					</div>
 				</div>
 				${body}
 				<div class="saito-overlay-form-text footer-note"><a href="/buy">or purchase SAITO online</a></div>
-				<div class="saito-overlay-form-text withdraw-outtro">Any problems? Write us any time at <a target="_blank" href="mailto:migration@saito.io" >migration@saito.io</a>. </div>
+				<div class="saito-overlay-form-text withdraw-outtro"><a target="_blank" href="mailto:migration@saito.io">email migration@saito.io for support</a></div>
 			</div>
 		</div>
 	`;

@@ -1,6 +1,18 @@
 const MigrationMain = require('./main');
 
 const STATUS_POLL_MS = 5000;
+const SAITO_ARRIVAL_POLL_MS = 1500;
+
+const WAITING_FOR_ISSUANCE = new Set([
+  'inbound_broadcast',
+  'inbound_confirmed',
+  'outbound_awaiting',
+  'outbound_broadcast',
+  'treasury_submitted',
+  'treasury_accepted'
+]);
+
+const TERMINAL_STATUSES = new Set(['outbound_confirmed', 'succeeded', 'failed', 'cancelled']);
 
 function statusMessage(data = {}) {
   const status = String(data.status || '');
@@ -105,6 +117,42 @@ module.exports = {
     });
   },
 
+  async requestMigrationExtend(id) {
+    const peer = this.mixin_peer?.publicKey;
+    if (!peer) {
+      throw new Error('Migration service is not available');
+    }
+    if (!id) {
+      throw new Error('Migration extension requires an id');
+    }
+    return new Promise((resolve, reject) => {
+      let settled = false;
+      const finish = (response) => {
+        if (settled) {
+          return;
+        }
+        settled = true;
+        clearTimeout(timer);
+        if (!response?.address || response.error || response.err) {
+          reject(new Error(response?.error || response?.err || 'Unable to extend the reservation'));
+          return;
+        }
+        resolve(response);
+      };
+      const timer = setTimeout(() => finish({ error: 'Migration service timed out' }), 30000);
+      try {
+        this.app.network.sendRequestAsTransaction(
+          'migration extend',
+          { id },
+          finish,
+          peer
+        );
+      } catch (err) {
+        finish({ error: err?.message || String(err) });
+      }
+    });
+  },
+
   clearMigrationStatusPoll() {
     clearInterval(this.migration_status_timer);
     this.migration_status_timer = null;
@@ -134,6 +182,106 @@ module.exports = {
     this.applyMigrationStatus(response);
   },
 
+  expectedMigrationSaitoNolan(instructions = this.migration_instructions) {
+    const amount = Number(instructions?.outbound_amount || instructions?.inbound_amount || 0);
+    if (!Number.isFinite(amount) || amount <= 0) {
+      return 0n;
+    }
+    try {
+      return this.app.wallet.convertSaitoToNolan(amount);
+    } catch (err) {
+      return 0n;
+    }
+  },
+
+  stopMigrationSaitoArrivalWatch() {
+    if (this.migration_saito_arrival_timer) {
+      clearInterval(this.migration_saito_arrival_timer);
+      this.migration_saito_arrival_timer = null;
+    }
+    this.migration_saito_arrival_baseline = null;
+    this.migration_saito_arrival_expected = null;
+    this.migration_saito_arrival_id = null;
+  },
+
+  async startMigrationSaitoArrivalWatch() {
+    const instructions = this.migration_instructions;
+    const id = instructions?.id;
+    const status = String(instructions?.status || '');
+    if (!id || !WAITING_FOR_ISSUANCE.has(status) || this.migration_saito_arrival_timer) {
+      return;
+    }
+    const expected = this.expectedMigrationSaitoNolan(instructions);
+    if (expected <= 0n) {
+      return;
+    }
+    this.migration_saito_arrival_expected = expected;
+    this.migration_saito_arrival_id = id;
+    let baseline = 0n;
+    try {
+      baseline = await this.app.wallet.getBalance('SAITO');
+    } catch (err) {
+      console.error('Migration: unable to read SAITO balance for arrival watch', err);
+      this.migration_saito_arrival_expected = null;
+      this.migration_saito_arrival_id = null;
+      return;
+    }
+    if (
+      this.migration_saito_arrival_timer ||
+      this.migration_saito_arrival_id !== id ||
+      !WAITING_FOR_ISSUANCE.has(String(this.migration_instructions?.status || ''))
+    ) {
+      return;
+    }
+    this.migration_saito_arrival_baseline = baseline;
+    this.migration_saito_arrival_timer = setInterval(() => {
+      void this.checkMigrationSaitoArrival();
+    }, SAITO_ARRIVAL_POLL_MS);
+    this.migration_saito_arrival_timer.unref?.();
+    void this.checkMigrationSaitoArrival();
+  },
+
+  async checkMigrationSaitoArrival() {
+    const instructions = this.migration_instructions;
+    if (
+      !instructions?.id ||
+      this.migration_saito_arrival_id !== instructions.id ||
+      this.migration_saito_arrival_baseline == null ||
+      this.migration_saito_arrival_expected == null ||
+      TERMINAL_STATUSES.has(String(instructions.status || ''))
+    ) {
+      return;
+    }
+    let balance = 0n;
+    try {
+      balance = await this.app.wallet.getBalance('SAITO');
+    } catch (err) {
+      return;
+    }
+    if (balance - this.migration_saito_arrival_baseline >= this.migration_saito_arrival_expected) {
+      this.onMigrationSaitoArrived();
+    }
+  },
+
+  onMigrationSaitoArrived() {
+    const instructions = this.migration_instructions;
+    if (!instructions?.id || TERMINAL_STATUSES.has(String(instructions.status || ''))) {
+      this.stopMigrationSaitoArrivalWatch();
+      return;
+    }
+    const amount = instructions.outbound_amount || instructions.inbound_amount || '';
+    this.stopMigrationSaitoArrivalWatch();
+    this.clearMigrationStatusPoll();
+    this.migration_instructions = {
+      ...instructions,
+      status: 'outbound_confirmed',
+      ui_status: amount
+        ? `Migration complete. ${amount} SAITO issued.`
+        : 'Migration complete.'
+    };
+    this.migration_page?.render();
+  },
+
   applyMigrationStatus(data = {}) {
     if (!this.migration_instructions?.id || Number(data.id) !== Number(this.migration_instructions.id)) {
       return;
@@ -149,8 +297,12 @@ module.exports = {
       ui_status: statusMessage(data)
     };
     this.migration_instructions = next;
-    if (['outbound_confirmed', 'succeeded', 'failed', 'cancelled'].includes(String(data.status || ''))) {
+    const status = String(next.status || '');
+    if (TERMINAL_STATUSES.has(status)) {
       this.clearMigrationStatusPoll();
+      this.stopMigrationSaitoArrivalWatch();
+    } else if (WAITING_FOR_ISSUANCE.has(status)) {
+      void this.startMigrationSaitoArrivalWatch();
     }
     this.migration_page?.render();
   },
@@ -159,6 +311,7 @@ module.exports = {
     if (!data?.address || !data?.id) {
       return;
     }
+    this.stopMigrationSaitoArrivalWatch();
     this.migration_instructions = {
       address: data.address,
       ticker: data.ticker,
@@ -190,6 +343,9 @@ module.exports = {
     await this.migration_page.render();
     if (this.migration_instructions?.id) {
       this.startMigrationStatusPoll();
+      if (WAITING_FOR_ISSUANCE.has(String(this.migration_instructions.status || ''))) {
+        void this.startMigrationSaitoArrivalWatch();
+      }
     }
   }
 };

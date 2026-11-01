@@ -691,7 +691,7 @@
     left: 1.667rem;
     right: auto;
     bottom: auto;
-    width: 24vw;
+    width: 13.2vw;
   }
 
   @media screen and (orientation: portrait) and (max-width: 600px) {

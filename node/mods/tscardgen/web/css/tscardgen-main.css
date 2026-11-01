@@ -1,0 +1,41 @@
+.tscardgen {
+  --ts-ink: #211d1e;
+  --ts-frost: #e3f5ff;
+  --ts-signal: #de1c37;
+  --ts-panel: color-mix(in srgb, var(--saito-card, #18222c) 88%, #0b1218);
+  width: min(1180px, calc(100% - 2rem));
+  margin: 0 auto;
+  padding: calc(var(--saito-header-height, 4rem) + 1.5rem) 0 2rem;
+}
+
+.tscardgen-shell {
+  display: grid;
+  grid-template-columns: minmax(280px, 1fr) minmax(320px, 420px);
+  gap: var(--saito-space-lg, 1.5rem);
+  align-items: start;
+}
+
+.tscardgen-controls,
+.tscardgen-preview {
+  min-width: 0;
+}
+
+.tscardgen-credit {
+  margin: var(--saito-space-lg, 1.5rem) 0 0;
+  color: color-mix(in srgb, var(--saito-foreground, #f2f5f7) 55%, transparent);
+  font-size: 0.85rem;
+  text-align: center;
+}
+
+@media (max-width: 900px) {
+  .tscardgen-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .tscardgen-preview {
+    order: -1;
+    position: sticky;
+    top: calc(var(--saito-header-height, 4rem) + 0.75rem);
+    z-index: 2;
+  }
+}

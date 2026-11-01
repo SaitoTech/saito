@@ -479,13 +479,13 @@ class LossOverlay {
               }
             }
             if (others == 0) {
-              this.shakeInvalidUnit(e.currentTarget);
+              this.rejectInvalidHitAssignment(e.currentTarget);
               return;
             }
           }
         } else {
           if (unit.unassignable == 1) {
-            this.shakeInvalidUnit(e.currentTarget);
+            this.rejectInvalidHitAssignment(e.currentTarget);
             return;
           }
         }
@@ -1797,6 +1797,24 @@ class LossOverlay {
     );
   }
 
+  // Visual + status feedback when stepwise rules forbid assigning to the clicked unit.
+  rejectInvalidHitAssignment(el) {
+    if (!el) {
+      return;
+    }
+    let msg = "That unit can't take this hit — choose another.";
+    if (this.board_mode || el.classList.contains('army-tile')) {
+      this.shakeBoardTile(el);
+      this.mod.game.status = msg;
+      this.mod.hud.updateStatus(msg);
+      this.mod.hud.updateMenu([]);
+      this.mod.hud.updateCards([]);
+      return;
+    }
+    this.shakeInvalidUnit(el);
+    this.updateInstructions(msg, 'action');
+  }
+
   attachEvents(am_i_the_attacker, my_qs, faction, just_one_more_hit = false) {
     let paths_self = this.mod;
 
@@ -1927,13 +1945,13 @@ class LossOverlay {
               if (z != idx && this.units[z].destroyed == false) { others++; }
             }
             if (others == 0) {
-              this.shakeInvalidUnit(e.currentTarget);
+              this.rejectInvalidHitAssignment(e.currentTarget);
               return;
             }
           }
         } else {
           if (unit.unassignable == 1) {
-            this.shakeInvalidUnit(e.currentTarget);
+            this.rejectInvalidHitAssignment(e.currentTarget);
             return;
           }
         }

@@ -13,9 +13,52 @@ class MigrationMain {
       this.app.browser.addElementToDom(MigrationMainTemplate(this.mod));
     }
     this.attachEvents();
+    this.renderDepositQrCode();
+  }
+
+  renderDepositQrCode() {
+    const address = this.mod.migration_instructions?.address;
+    if (!address || !document.getElementById('migration-qrcode')) {
+      return;
+    }
+    if (typeof this.app.browser.generateQRCode === 'function') {
+      this.app.browser.generateQRCode(address, 'migration-qrcode');
+    }
   }
 
   attachEvents() {
+    const title = document.querySelector('#migration-title');
+    const tickerSelect = document.querySelector('#wrapped-saito-ticker');
+    tickerSelect?.addEventListener('change', () => {
+      if (title) {
+        title.textContent =
+          tickerSelect.value === 'BEP-SAITO' ? 'Migrate BEP20 SAITO' : 'Migrate ERC20 SAITO';
+      }
+    });
+
+    const extend = document.querySelector('#migration-extend-reservation');
+    if (extend) {
+      extend.onclick = async (event) => {
+        event.preventDefault();
+        if (extend.dataset.busy === '1') {
+          return;
+        }
+        extend.dataset.busy = '1';
+        try {
+          const response = await this.mod.requestMigrationExtend(
+            this.mod.migration_instructions?.id
+          );
+          if (response?.error) {
+            throw new Error(response.error);
+          }
+          this.mod.receiveMigrationInstructions(response);
+        } catch (err) {
+          salert(err?.message || 'Unable to extend the reservation');
+          extend.dataset.busy = '0';
+        }
+      };
+    }
+
     const button = document.querySelector('#migrate');
     if (!button) {
       return;
@@ -42,6 +85,10 @@ class MigrationMain {
 
       button.disabled = true;
       try {
+        const backup = await sconfirm('Migration will move assets into your wallet. Backup wallet?');
+        if (backup) {
+          await this.app.wallet.backupWallet();
+        }
         const response = await this.mod.requestMigration({
           publickey,
           ticker

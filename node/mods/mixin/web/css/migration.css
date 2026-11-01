@@ -36,8 +36,20 @@
   min-width: 0;
 }
 
-.migration-page .migration-network,
-.migration-page .migration-reservation-expiry,
+.migration-page .migration-qrcode {
+  display: flex;
+  justify-content: center;
+  margin: var(--saito-space-md) auto;
+}
+
+.migration-page .migration-qrcode canvas,
+.migration-page .migration-qrcode img,
+.migration-page .migration-qrcode svg {
+  max-width: 100%;
+  height: auto;
+}
+
+.migration-page .migration-instructions,
 .migration-page .migration-status {
   width: 100%;
   text-align: center;

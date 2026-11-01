@@ -260,7 +260,21 @@ class GameZoom {
           event.preventDefault();
           const b = zoom_self.mod.getBoardState();
           let scale = b ? Math.round(b.scale * 100) : 100;
-          zoom_self.setZoom(scale + (event.deltaY < 0 ? 1 : -1) * zoom_self.step);
+          let next = scale + (event.deltaY < 0 ? 1 : -1) * zoom_self.step;
+          // Gesture safeguard: stop short of postage-stamp shrink / runaway zoom-in.
+          // Slider and +/- keep the full min/max range for intentional adjustment.
+          let floor = zoom_self.min;
+          if (b && b.width > 0) {
+            floor = Math.max(
+              zoom_self.min,
+              Math.round((100 * window.innerWidth) / b.width) - zoom_self.step
+            );
+          }
+          next = Math.max(floor, Math.min(zoom_self.max, 150, next));
+          if (next === scale) {
+            return;
+          }
+          zoom_self.setZoom(next);
         },
         { passive: false }
       );

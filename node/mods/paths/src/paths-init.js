@@ -92,6 +92,13 @@ class PathsOfGlory extends GameTemplate {
       });
     };
     this.hud.updateMenu = (options, callback) => {
+      if (!this.visualMenuEnabled() && options && options.length > 0) {
+        options = options.map((o) => {
+          let x = Object.assign({}, o);
+          delete x.img;
+          return x;
+        });
+      }
       hud_update_menu(options, callback);
       set_cards_visible(!(options && options.length > 0));
     };

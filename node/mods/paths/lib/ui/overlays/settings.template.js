@@ -14,6 +14,10 @@ module.exports = () => {
         <input type="checkbox" data-setting="use_combat_overlays">
         <span>use combat overlays</span>
       </label>
+      <label class="settings-option">
+        <input type="checkbox" data-setting="use_visual_menu">
+        <span>use visual menu</span>
+      </label>
     </div>
   `;
 };

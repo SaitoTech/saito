@@ -1,4 +1,9 @@
 .game.paths {
+  .showcard {
+    border-bottom: 2px dashed;
+    cursor: pointer;
+  }
+
   .space {
     width: 90px;
     height: 90px;
@@ -79,6 +84,11 @@
     margin-top: 1.333rem;
     margin-left: 1.333rem;
     position: absolute;
+  }
+  .move-cue::before {
+    box-shadow:
+      1.667rem 1.667rem 5.833rem 2.5rem #fffa,
+      -1.667rem -1.667rem 5.833rem 2.5rem #fffa;
   }
 
   .control-tile {

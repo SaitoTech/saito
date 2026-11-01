@@ -1,0 +1,148 @@
+.ts-form {
+  background: var(--ts-panel, var(--saito-card));
+  border: 1px solid var(--saito-border, rgba(255, 255, 255, 0.12));
+  border-radius: calc(var(--saito-radius, 0.75rem) + 0.25rem);
+  padding: var(--saito-space-lg, 1.5rem);
+  color: var(--saito-foreground, #f2f5f7);
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.28);
+}
+
+.ts-form-header {
+  margin-bottom: var(--saito-space-lg, 1.5rem);
+  padding-bottom: var(--saito-space-md, 1rem);
+  border-bottom: 1px solid color-mix(in srgb, var(--ts-signal, #de1c37) 70%, transparent);
+}
+
+.ts-form-kicker {
+  margin: 0 0 0.35rem;
+  color: var(--ts-frost, #e3f5ff);
+  font-size: 0.78rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.ts-form-title {
+  margin: 0;
+  font-family: ts-caslon-bold, "Libre Caslon Text", "Palatino Linotype", Palatino, serif;
+  font-size: clamp(1.8rem, 3vw, 2.4rem);
+  line-height: 1.1;
+  color: var(--saito-foreground, #f2f5f7);
+}
+
+.ts-form-copy {
+  margin: 0.65rem 0 0;
+  max-width: 36ch;
+  color: color-mix(in srgb, var(--saito-foreground, #f2f5f7) 72%, transparent);
+}
+
+.ts-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--saito-space-md, 1rem);
+}
+
+.ts-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  min-width: 0;
+}
+
+.ts-field-span {
+  grid-column: 1 / -1;
+}
+
+.ts-label {
+  font-size: 0.78rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--saito-foreground, #f2f5f7) 68%, transparent);
+}
+
+.ts-input,
+.ts-textarea,
+.ts-file {
+  width: 100%;
+  border: 1px solid var(--saito-border, rgba(255, 255, 255, 0.16));
+  border-radius: var(--saito-radius, 0.5rem);
+  background: color-mix(in srgb, #0b1218 70%, transparent);
+  color: var(--saito-foreground, #f2f5f7);
+  padding: 0.65rem 0.75rem;
+  font: inherit;
+}
+
+/* Native select carets ignore padding; replace with an inset custom arrow. */
+select.ts-input {
+  appearance: none;
+  -webkit-appearance: none;
+  cursor: pointer;
+  background-color: color-mix(in srgb, #0b1218 70%, transparent);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%23a6a09b' d='M1.4 0.6L6 5.2 10.6 0.6 12 2 6 8 0 2z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  background-size: 1.2rem 0.8rem;
+  padding-right: 2.5rem;
+}
+
+.ts-input:focus,
+.ts-textarea:focus,
+.ts-file:focus {
+  outline: 2px solid color-mix(in srgb, var(--ts-frost, #e3f5ff) 70%, transparent);
+  outline-offset: 1px;
+}
+
+.ts-input-narrow {
+  max-width: 4.5rem;
+}
+
+.ts-textarea {
+  resize: vertical;
+  min-height: 4.5rem;
+}
+
+.ts-fieldset {
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.ts-radio-row,
+.ts-checks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1rem;
+}
+
+.ts-radio,
+.ts-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  cursor: pointer;
+}
+
+.ts-hint {
+  margin: 0.25rem 0 0;
+  font-size: 0.8rem;
+  color: color-mix(in srgb, var(--saito-foreground, #f2f5f7) 55%, transparent);
+}
+
+.ts-form-footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--saito-space-md, 1rem);
+  margin-top: var(--saito-space-lg, 1.5rem);
+}
+
+.ts-reference {
+  color: var(--ts-frost, #e3f5ff);
+  text-decoration: underline;
+  text-underline-offset: 0.18em;
+}
+
+@media (max-width: 620px) {
+  .ts-form-grid {
+    grid-template-columns: 1fr;
+  }
+}

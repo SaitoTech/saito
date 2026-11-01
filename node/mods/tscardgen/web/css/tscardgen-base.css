@@ -1,0 +1,40 @@
+@font-face {
+  font-family: ts-caslon-regular;
+  src: url(/tscardgen/fonts/LibreCaslonText-Regular.otf) format('opentype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: ts-caslon-bold;
+  src: url(/tscardgen/fonts/LibreCaslonText-Bold.otf) format('opentype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: ts-caslon-italic;
+  src: url(/tscardgen/fonts/LibreCaslonText-Italic.otf) format('opentype');
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
+
+.saito-container.tscardgen-page {
+  display: block;
+  padding: 0;
+  grid-template-columns: unset;
+  column-gap: unset;
+  min-height: 100vh;
+  overflow: auto;
+  background:
+    radial-gradient(circle at 12% 18%, rgba(222, 28, 55, 0.18), transparent 38%),
+    radial-gradient(circle at 88% 12%, rgba(227, 245, 255, 0.12), transparent 32%),
+    linear-gradient(160deg, #101820 0%, #1a2733 42%, #0d141c 100%);
+}
+
+body:has(.saito-container.tscardgen-page) #saito-header {
+  background: transparent;
+}

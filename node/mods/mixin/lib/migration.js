@@ -104,6 +104,35 @@ class MigrationService {
     return this.clientReservation(row);
   }
 
+  /**
+   * Extend an unpaid automatic migration reservation by resetting created_at,
+   * which moves reserved_until forward by the shared reservation period.
+   */
+  async extendReservation(publicKey, id) {
+    if (!publicKey || !id) {
+      return { error: 'Migration extension requires an id' };
+    }
+    const rows = await this.mod.database.getTransfers({
+      id: Number(id),
+      purpose: 'migration',
+      mode: 'automatic',
+      requester_publickey: publicKey
+    });
+    const row = rows?.[0];
+    if (!row) {
+      return { error: 'Migration request not found' };
+    }
+    if (Number(row.excluded) === 1) {
+      return { error: 'That migration reservation is no longer active' };
+    }
+    if (row.status !== 'inbound_awaiting') {
+      return { error: 'Only unpaid migration reservations can be extended' };
+    }
+    const now = Date.now();
+    await this.mod.database.updateTransfer(row.id, { created_at: now });
+    return this.clientReservation({ ...row, created_at: now });
+  }
+
   async recordManualMigration(tx) {
     const data = tx.returnMessage()?.data || {};
     const publicKey = data.pk || tx.from?.[0]?.publicKey || '';

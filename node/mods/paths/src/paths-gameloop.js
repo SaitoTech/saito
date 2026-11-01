@@ -62,18 +62,18 @@
   }
 
   setup1914() {
-	  // britain
-	  this.addUnitToSpace("be_corps", "portsaid", false);
-	  this.addUnitToSpace("be_corps", "cairo", false);
-	  this.addUnitToSpace("be_corps", "basra", false);
+	  // britain (Living Rules Aug 2022 p.34 Unit Setup)
+	  this.addUnitToSpace("br_corps", "portsaid", false);
+	  this.addUnitToSpace("br_corps", "cairo", false);
+	  this.addUnitToSpace("br_corps", "basra", false);
           this.addTrench("portsaid", 1);
           this.addTrench("cairo", 1);
           this.addTrench("basra", 1);
+          this.addUnitToSpace("bef_army", "brussels");
+          this.addTrench("brussels", 1);
 
 	  // belgium
           this.addUnitToSpace("be_army", "antwerp");
-          this.addUnitToSpace("bef_army", "brussels");
-          this.addTrench("brussels", 1);
 
 	  // france
           this.addTrench("paris", 1);
@@ -82,23 +82,25 @@
           this.addTrench("belfort", 1);
           this.addUnitToSpace("fr_army05", "sedan");
           this.addUnitToSpace("fr_army06", "paris", false);
-//          this.addUnitToSpace("fr_army03", "verdun");
+          this.addUnitToSpace("fr_army03", "verdun");
           this.addUnitToSpace("fr_army04", "verdun");
           this.addUnitToSpace("fr_army01", "nancy");
-//          this.addUnitToSpace("fr_army02", "nancy");
+          this.addUnitToSpace("fr_army02", "nancy");
           this.addUnitToSpace("fr_army09", "barleduc", false);
+          this.addUnitToSpace("fr_corps", "belfort");
           this.addUnitToSpace("fr_corps", "belfort");
           this.addUnitToSpace("fr_corps", "grenoble");
 
 	  // germany
 	  this.addTrench("trent", 1);
 	  this.addTrench("metz", 1);
+	  this.addTrench("mulhouse", 1);
 	  this.addTrench("konigsberg", 1);
           this.addUnitToSpace("ge_army01", "aachen");
-//          this.addUnitToSpace("ge_army02", "koblenz");
+          this.addUnitToSpace("ge_army02", "koblenz");
           this.addUnitToSpace("ge_army03", "koblenz");
           this.addUnitToSpace("ge_army04", "metz");
-//          this.addUnitToSpace("ge_army05", "metz");
+          this.addUnitToSpace("ge_army05", "metz");
           this.addUnitToSpace("ge_army06", "strasbourg");
           this.addUnitToSpace("ge_army07", "mulhouse", false);
           this.addUnitToSpace("ge_army08", "insterberg");
@@ -120,7 +122,6 @@
           this.addUnitToSpace("ru_corps", "szawli");
           this.addUnitToSpace("ru_corps", "odessa");
           this.addUnitToSpace("ru_corps", "lutsk");
-          this.addUnitToSpace("ru_corps", "riga");
           this.addUnitToSpace("ru_corps", "batum");
           this.addUnitToSpace("ru_corps", "kars");
           this.addUnitToSpace("ru_corps", "erivan");
@@ -145,14 +146,12 @@
           this.addUnitToSpace("mn_corps", "cetinje");
 
 	  // serbia
-          this.addUnitToSpace("sb_corps", "arbox");
-          this.addUnitToSpace("sb_corps", "arbox");
           this.addUnitToSpace("sb_army01", "belgrade");
           this.addUnitToSpace("sb_army02", "valjevo");
 
 	  // italy
 
-	  // reserves boxes
+	  // reserves boxes (Living Rules Aug 2022 p.34)
     	  this.addUnitToSpace("ah_corps", "crbox");
     	  this.addUnitToSpace("ah_corps", "crbox");
     	  this.addUnitToSpace("ah_corps", "crbox");

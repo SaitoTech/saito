@@ -92,6 +92,13 @@ class PathsOfGlory extends GameTemplate {
       });
     };
     this.hud.updateMenu = (options, callback) => {
+      if (!this.visualMenuEnabled() && options && options.length > 0) {
+        options = options.map((o) => {
+          let x = Object.assign({}, o);
+          delete x.img;
+          return x;
+        });
+      }
       hud_update_menu(options, callback);
       set_cards_visible(!(options && options.length > 0));
     };
@@ -6606,6 +6613,12 @@ console.log("err: " + err);
     return true;
   }
 
+  visualMenuEnabled() {
+    let pref = this.loadGamePreference('pathsofglory_use_visual_menu');
+    if (pref === 0 || pref === '0' || pref === false) { return false; }
+    return true;
+  }
+
   cardPopupsRemoved() {
     let pref = this.loadGamePreference('pathsofglory_remove_card_popups');
     return pref === 1 || pref === '1' || pref === true;
@@ -6643,13 +6656,11 @@ console.log("err: " + err);
   }
 
   movementCuesSuspended() {
-    if (!this.game || !this.game.player) { return false; }
-    if (this.game.state && this.game.state.player_turn_card_select) { return false; }
-    let faction = this.returnFactionOfPlayer();
-    let q = this.game.queue || [];
-    for (let i = q.length - 1; i >= 0; i--) {
-      if (q[i] === "play\t" + faction) { return true; }
-    }
+    // Only suppress default move-range cues when the board is already in a
+    // selection mode where those highlights would conflict with .selectable.
+    try {
+      if (document.querySelector(".space.selectable")) { return true; }
+    } catch (err) {}
     return false;
   }
 
@@ -6781,16 +6792,22 @@ console.log("err: " + err);
         }
 
         //
-        // loss assignment owns the board click target while board mode is active
-        //
-        if (paths_self.loss_overlay && paths_self.loss_overlay.board_mode) {
-          return;
-        }
-
-        //
         // a space with several units opens an equal-size chit stack instead of zoom
         //
         let space_el = e.target.closest ? e.target.closest(".space") : null;
+
+        //
+        // loss board-mode: do not open zoom only when the click is on a unit/space
+        // that is waiting for hits-assignment (assignment owns that target)
+        //
+        if (paths_self.loss_overlay && paths_self.loss_overlay.board_mode) {
+          if (e.target.closest && e.target.closest(".army-tile.loss-board-unit")) {
+            return;
+          }
+          if (space_el && space_el.classList.contains("loss-assignment-open")) {
+            return;
+          }
+        }
         if (space_el && space_el.id && paths_self.spaceHasMultipleUnits(space_el.id)) {
           if (paths_self.zoom_overlay && paths_self.zoom_overlay.visible) {
             paths_self.zoom_overlay.hide();
@@ -12222,18 +12239,18 @@ spaces['crbox'] = {
   }
 
   setup1914() {
-	  // britain
-	  this.addUnitToSpace("be_corps", "portsaid", false);
-	  this.addUnitToSpace("be_corps", "cairo", false);
-	  this.addUnitToSpace("be_corps", "basra", false);
+	  // britain (Living Rules Aug 2022 p.34 Unit Setup)
+	  this.addUnitToSpace("br_corps", "portsaid", false);
+	  this.addUnitToSpace("br_corps", "cairo", false);
+	  this.addUnitToSpace("br_corps", "basra", false);
           this.addTrench("portsaid", 1);
           this.addTrench("cairo", 1);
           this.addTrench("basra", 1);
+          this.addUnitToSpace("bef_army", "brussels");
+          this.addTrench("brussels", 1);
 
 	  // belgium
           this.addUnitToSpace("be_army", "antwerp");
-          this.addUnitToSpace("bef_army", "brussels");
-          this.addTrench("brussels", 1);
 
 	  // france
           this.addTrench("paris", 1);
@@ -12242,23 +12259,25 @@ spaces['crbox'] = {
           this.addTrench("belfort", 1);
           this.addUnitToSpace("fr_army05", "sedan");
           this.addUnitToSpace("fr_army06", "paris", false);
-//          this.addUnitToSpace("fr_army03", "verdun");
+          this.addUnitToSpace("fr_army03", "verdun");
           this.addUnitToSpace("fr_army04", "verdun");
           this.addUnitToSpace("fr_army01", "nancy");
-//          this.addUnitToSpace("fr_army02", "nancy");
+          this.addUnitToSpace("fr_army02", "nancy");
           this.addUnitToSpace("fr_army09", "barleduc", false);
+          this.addUnitToSpace("fr_corps", "belfort");
           this.addUnitToSpace("fr_corps", "belfort");
           this.addUnitToSpace("fr_corps", "grenoble");
 
 	  // germany
 	  this.addTrench("trent", 1);
 	  this.addTrench("metz", 1);
+	  this.addTrench("mulhouse", 1);
 	  this.addTrench("konigsberg", 1);
           this.addUnitToSpace("ge_army01", "aachen");
-//          this.addUnitToSpace("ge_army02", "koblenz");
+          this.addUnitToSpace("ge_army02", "koblenz");
           this.addUnitToSpace("ge_army03", "koblenz");
           this.addUnitToSpace("ge_army04", "metz");
-//          this.addUnitToSpace("ge_army05", "metz");
+          this.addUnitToSpace("ge_army05", "metz");
           this.addUnitToSpace("ge_army06", "strasbourg");
           this.addUnitToSpace("ge_army07", "mulhouse", false);
           this.addUnitToSpace("ge_army08", "insterberg");
@@ -12280,7 +12299,6 @@ spaces['crbox'] = {
           this.addUnitToSpace("ru_corps", "szawli");
           this.addUnitToSpace("ru_corps", "odessa");
           this.addUnitToSpace("ru_corps", "lutsk");
-          this.addUnitToSpace("ru_corps", "riga");
           this.addUnitToSpace("ru_corps", "batum");
           this.addUnitToSpace("ru_corps", "kars");
           this.addUnitToSpace("ru_corps", "erivan");
@@ -12305,14 +12323,12 @@ spaces['crbox'] = {
           this.addUnitToSpace("mn_corps", "cetinje");
 
 	  // serbia
-          this.addUnitToSpace("sb_corps", "arbox");
-          this.addUnitToSpace("sb_corps", "arbox");
           this.addUnitToSpace("sb_army01", "belgrade");
           this.addUnitToSpace("sb_army02", "valjevo");
 
 	  // italy
 
-	  // reserves boxes
+	  // reserves boxes (Living Rules Aug 2022 p.34)
     	  this.addUnitToSpace("ah_corps", "crbox");
     	  this.addUnitToSpace("ah_corps", "crbox");
     	  this.addUnitToSpace("ah_corps", "crbox");
@@ -18052,8 +18068,7 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
       let acknowledgeNotice = (line) => {
         this.prependMove(
           "ACKNOWLEDGE\t" +
-          this.returnFactionName(faction) + " plays " + c.name +
-          "<br>" + line + "\t" +
+          this.returnFactionName(faction) + " plays " + this.popup(card) + " " + line + "\t" +
           otherPlayer
         );
       };

@@ -577,13 +577,18 @@ describe('Mixin migration reserved-address transfers', () => {
     expect(page).not.toContain('id="erc20"');
     expect(page).toContain('id="publickey"');
     expect(page).toContain('id="wrapped-saito-ticker"');
+    expect(page).toContain('Migrate ERC20 SAITO');
     expect(source).not.toContain('0x24F10EA2827717770270e3cc97F015Ba58fcB9b6');
     expect(source).not.toContain('chain_address');
     expect(source).not.toContain('email');
+    expect(source).toContain('sconfirm');
+    expect(source).toContain('Migration will move assets into your wallet. Backup wallet?');
+    expect(source).toContain('backupWallet');
     expect(client).not.toContain('chain_address');
     expect(client).not.toContain('relay-transaction');
     expect(fs.existsSync(path.join(__dirname, '../../../mods/migration/migration.js'))).toBe(false);
 
+    const reservedUntil = Date.now() + 40 * 60 * 1000;
     const reserved = require('../../../mods/mixin/lib/ui/migration/main.template')({
       publicKey: 'user-key',
       wrapped_saito_ticker: 'ERC-SAITO',
@@ -591,12 +596,78 @@ describe('Mixin migration reserved-address transfers', () => {
         address: '0xreserved',
         ticker: 'ERC-SAITO',
         id: 9,
-        reserved_until: Date.now() + 40 * 60 * 1000,
+        status: 'inbound_awaiting',
+        reserved_until: reservedUntil,
         ui_status: 'Waiting for your deposit...'
       }
     });
     expect(reserved).toContain('0xreserved');
-    expect(reserved).toContain('migration-reservation-expiry');
+    expect(reserved).toContain('Migrate ERC20 SAITO');
+    expect(reserved).toContain('id="migration-qrcode"');
+    expect(reserved).toContain('Send any amount of ERC-20 SAITO');
+    expect(reserved).toContain('id="migration-extend-reservation"');
+    expect(reserved).toContain('Click here');
+    expect(reserved).toContain('email migration@saito.io for support');
     expect(reserved).toContain('Waiting for your deposit...');
+    expect(client).toContain('startMigrationSaitoArrivalWatch');
+    expect(client).toContain('onMigrationSaitoArrived');
+    expect(client).toContain('requestMigrationExtend');
+  });
+
+  test('extendReservation refreshes the unpaid reservation deadline', async () => {
+    const { mod, transfers } = await service();
+    const opened = await mod.migration.startMigration('saito-user', 'ERC-SAITO');
+    const originalUntil = opened.reserved_until;
+    await mod.database.updateTransfer(opened.id, {
+      created_at: Date.now() - transfers.reservation_ms + 60 * 1000
+    });
+
+    const extended = await mod.migration.extendReservation('saito-user', opened.id);
+    expect(extended.error).toBeNull();
+    expect(extended.id).toBe(opened.id);
+    expect(extended.address).toBe(opened.address);
+    expect(extended.reserved_until).toBeGreaterThan(originalUntil - transfers.reservation_ms);
+    expect(extended.reserved_until - Date.now()).toBeGreaterThan(39 * 60 * 1000);
+  });
+
+  test('wallet SAITO arrival marks migration complete without waiting for status poll', async () => {
+    jest.useFakeTimers();
+    const migrationClient = require('../../../mods/mixin/lib/ui/migration/client');
+    let balance = 100n;
+    const mod = Object.assign(Object.create(migrationClient), {
+      app: {
+        BROWSER: 1,
+        wallet: {
+          getBalance: jest.fn(async () => balance),
+          convertSaitoToNolan: (value) => BigInt(Math.round(Number(value) * 100000000))
+        }
+      },
+      migration_page: { render: jest.fn() },
+      requestMigrationStatus: jest.fn(async () => null)
+    });
+
+    mod.migration_instructions = {
+      id: 11,
+      address: '0xreserved',
+      ticker: 'ERC-SAITO',
+      status: 'inbound_confirmed',
+      inbound_amount: '4',
+      outbound_amount: '4',
+      ui_status: 'Deposit of 4 detected. Waiting for SAITO issuance...'
+    };
+
+    await mod.startMigrationSaitoArrivalWatch();
+    expect(mod.migration_saito_arrival_timer).toBeTruthy();
+    expect(mod.migration_saito_arrival_baseline).toBe(100n);
+    expect(mod.migration_saito_arrival_expected).toBe(400000000n);
+
+    balance = 100n + 400000000n;
+    await mod.checkMigrationSaitoArrival();
+
+    expect(mod.migration_instructions.status).toBe('outbound_confirmed');
+    expect(mod.migration_instructions.ui_status).toBe('Migration complete. 4 SAITO issued.');
+    expect(mod.migration_saito_arrival_timer).toBeNull();
+    expect(mod.migration_page.render).toHaveBeenCalled();
+    jest.useRealTimers();
   });
 });
