@@ -17,7 +17,23 @@ a user with sudo access. The script works without an existing checkout: it clone
 `SaitoTech/saito` branch `2610/game-runner` into `/opt/saito`, then installs Node 22,
 build dependencies, Codex CLI, PM2 and locked npm dependencies in `/opt/saito/node`.
 Reruns update a matching checkout with a fast-forward-only pull. It prints the
-manual login and runner startup commands after installation.
+manual login and runner startup commands after installation. Active runner configs
+live in `config/` (for example, `/opt/saito/node/config/daemon.json` on the VM).
+
+To migrate existing configs without reinstalling dependencies:
+
+```sh
+node apps/runner/configure.js
+```
+
+This creates `config/daemon.json` or moves an existing root-level `daemon.json`
+there, preserving settings and the exact wallet directory. Existing root-level
+Conquest, Settlers, Twilight, Paths and multi-seat configs are migrated too.
+An old config path becomes a link to its new location so existing PM2 commands
+continue working. Edit the file under `config/` thereafter. Existing destination
+files are never overwritten; conflicting old/new files require choosing one.
+Templates remain in `apps/runner/`; generated configs and links are Git-ignored.
+New configs keep wallet data under `node/runner-data/`, outside `config/`.
 
 ## Run
 
@@ -26,16 +42,16 @@ Use an installed checkout with its existing npm dependencies and compatible
 Run these commands from `node/`:
 
 ```sh
-cp apps/runner/config.example.json /path/to/conquest.json
-# Or copy settlers.example.json, twilight.example.json or paths.example.json from apps/runner/.
+node apps/runner/configure.js conquest
+# Or use: node apps/runner/configure.js settlers twilight paths
 # Edit peer, dataDir and decisionProvider.executable for this machine.
-npm run runner -- doctor /path/to/conquest.json
-npm run runner -- list /path/to/conquest.json
-npm run runner -- host /path/to/conquest.json
+npm run runner -- doctor ./config/conquest.json
+npm run runner -- list ./config/conquest.json
+npm run runner -- host ./config/conquest.json
 # On another player machine, with a different config/dataDir:
-npm run runner -- join /path/to/opponent.json INVITE_ID
+npm run runner -- join ./config/opponent.json INVITE_ID
 # After stopping or restarting:
-npm run runner -- resume /path/to/conquest.json GAME_ID
+npm run runner -- resume ./config/conquest.json GAME_ID
 ```
 
 `host` publishes an Arcade invitation, prints its ID and waits for an opponent.
@@ -68,14 +84,14 @@ The runner never substitutes a heuristic move for a failed model call. No wageri
 ## Multiple bot seats in one game
 
 ```sh
-cp apps/runner/multi.example.json /path/to/multi.json
+node apps/runner/configure.js multi
 # Edit peer, dataDir and decisionProvider.executable.
 # Host a four-player Settlers game: three bots, one open seat for you.
-npm run runner -- multi-host /path/to/multi.json
+npm run runner -- multi-host ./config/multi.json
 # Alternatively, put those three bots into an existing four-player invite:
-npm run runner -- multi-join /path/to/multi.json INVITE_ID
+npm run runner -- multi-join ./config/multi.json INVITE_ID
 # After stopping, a provider error, or a restart:
-npm run runner -- multi-resume /path/to/multi.json
+npm run runner -- multi-resume ./config/multi.json
 ```
 
 `players` is the total table size; `multi.seats` is how many wallets the runner
@@ -123,9 +139,9 @@ reports `multi-complete`. Logs include a `seat` field to distinguish bot activit
 ## Daemon: watch, join, play, repeat
 
 ```sh
-cp apps/runner/daemon.example.json /path/to/daemon.json
+node apps/runner/configure.js daemon
 # Edit peer, dataDir and the local Codex executable.
-npm run runner -- daemon /path/to/daemon.json
+npm run runner -- daemon ./config/daemon.json
 ```
 
 The daemon checks the current Arcade invite list at startup and after finishing
@@ -312,10 +328,10 @@ paused and surfaced as yes/no choices. Unknown or stale targets fail visibly.
 To run both sides with the local Codex CLI:
 
 ```sh
-cp apps/runner/paths.example.json ./paths.json
+node apps/runner/configure.js paths
 # Set decisionProvider.executable to your installed Codex binary.
-npm run runner -- multi-host ./paths.json
-npm run runner -- multi-resume ./paths.json
+npm run runner -- multi-host ./config/paths.json
+npm run runner -- multi-resume ./config/paths.json
 ```
 
 Use `host`, `join` or `daemon` with the same game name for a single bot against a

@@ -54,10 +54,8 @@ if [[ ! -f dist/build.json ]]; then
   node -e 'require("fs").writeFileSync("dist/build.json", JSON.stringify({build_number: Date.now()}), {flag: "wx"})'
 fi
 
-# Preserve existing configuration.
-if [[ ! -f daemon.json ]]; then
-  cp apps/runner/daemon.example.json daemon.json
-fi
+# Create configs under config/, preserving existing settings and wallet paths.
+node apps/runner/configure.js
 
 cat <<'NEXT'
 
@@ -65,9 +63,9 @@ Installed in /opt/saito. Run these commands:
 
   cd /opt/saito/node
   codex login --device-auth
-  # Review daemon.json, then:
-  npm run runner -- doctor ./daemon.json
-  pm2 start apps/runner/index.ts --name saito-runner --interpreter ./node_modules/.bin/ts-node --interpreter-args="--transpile-only --project config/build/tsconfig.json" --kill-timeout 30000 --restart-delay 30000 -- daemon ./daemon.json
+  # Review config/daemon.json, then:
+  npm run runner -- doctor ./config/daemon.json
+  pm2 start apps/runner/index.ts --name saito-runner --interpreter ./node_modules/.bin/ts-node --interpreter-args="--transpile-only --project config/build/tsconfig.json" --kill-timeout 30000 --restart-delay 30000 -- daemon ./config/daemon.json
   pm2 save
   pm2 startup
 
