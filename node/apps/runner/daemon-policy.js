@@ -57,6 +57,15 @@ class DaemonPolicy {
           code: createHash('sha256').update(tx.signature).digest('hex').slice(0, 12) };
         this.report({ event: 'invite-seen', id: tx.signature, game: m.game });
         this.save();
+      } else {
+        const entry = this.state.invites[tx.signature];
+        // A host disconnect or an incomplete snapshot can temporarily hide an
+        // invite. Reconsider it when it returns, unless we already asked its host.
+        if (entry.status === 'unavailable' && !entry.askedAt) {
+          entry.status = 'waiting';
+          this.report({ event: 'invite-available', id: tx.signature, game: m.game });
+          this.save();
+        }
       }
     }
     const ids = new Set(available.map(r => r.tx.signature));

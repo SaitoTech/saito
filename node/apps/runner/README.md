@@ -128,7 +128,12 @@ cp apps/runner/daemon.example.json /path/to/daemon.json
 npm run runner -- daemon /path/to/daemon.json
 ```
 
-The daemon watches live Arcade updates and refreshes the invite list periodically.
+The daemon checks the current Arcade invite list at startup and after finishing
+each game, as well as watching live updates and refreshing periodically. In ask
+mode it offers to take existing eligible invites, one host at a time, and waits
+for a `yes` before joining. Invites that temporarily disappeared are reconsidered
+when they return if their host has not already been asked. Declined, unanswered
+expired requests and completed invites are not asked again.
 It plays one match at a time, then returns to watching. `daemon.games` is its
 allowlist (`Conquest`, `Settlers`, `Twilight`, `PathsOfGlory`); the top-level `game` is still used
 by the other CLI commands. Invitations must match `players`, be unstaked, without
