@@ -10,6 +10,15 @@ each support two. Games must be unstaked and have no turn clock. Set `players` t
 The decision provider can use a locally installed and authenticated Codex
 CLI, or the included deterministic heuristic for fast test runs.
 
+## Install dependencies on Ubuntu/Debian
+
+Copy `apps/runner/install-vm.sh` to the VM and run `bash install-vm.sh` as root or
+a user with sudo access. The script works without an existing checkout: it clones
+`SaitoTech/saito` branch `2610/game-runner` into `/opt/saito`, then installs Node 22,
+build dependencies, Codex CLI, PM2 and locked npm dependencies in `/opt/saito/node`.
+Reruns update a matching checkout with a fast-forward-only pull. It prints the
+manual login and runner startup commands after installation.
+
 ## Run
 
 Use an installed checkout with its existing npm dependencies and compatible
