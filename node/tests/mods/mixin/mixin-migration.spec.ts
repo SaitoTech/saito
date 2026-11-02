@@ -108,6 +108,25 @@ async function service() {
   const mod = {
     app,
     publicKey: 'server-key',
+    credentials: { ...credentials },
+    deposit_addresses: [],
+    api_key: null,
+    operation_mode: 'local',
+    execution_mode: 'local',
+    payout_mode: 'local',
+    treasury_provider_publickeys: [],
+    treasury_delegate_publickeys: [],
+    save() {
+      app.options.mixin = {
+        ...this.credentials,
+        deposit_addresses: this.deposit_addresses || [],
+        operation_mode: this.operation_mode,
+        execution_mode: this.execution_mode,
+        payout_mode: this.payout_mode,
+        treasury_provider_publickeys: this.treasury_provider_publickeys || [],
+        treasury_delegate_publickeys: this.treasury_delegate_publickeys || []
+      };
+    },
     crypto_mods: [
       { ticker: 'ERC-SAITO', asset_id: 'erc-asset', chain_id: 'erc-chain' },
       { ticker: 'BEP-SAITO', asset_id: 'bep-asset', chain_id: 'bep-chain' }

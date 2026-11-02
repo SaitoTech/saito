@@ -2,6 +2,17 @@ jest.mock('@mixin.dev/mixin-node-sdk', () => ({
   MixinApi: jest.fn()
 }));
 
+jest.mock('saito-js/lib/peer_service', () => ({
+  default: class PeerService {
+    constructor(data, service, name, domain) {
+      this.data = data;
+      this.service = service;
+      this.name = name;
+      this.domain = domain;
+    }
+  }
+}));
+
 const fs = require('fs');
 const path = require('path');
 const sqlite3 = require('sqlite3');
@@ -249,7 +260,7 @@ describe('remote treasury payouts', () => {
 
     mixin.publicKey = TREASURY;
     mixin.app.options.mixin.treasury_provider_publickeys = [TREASURY];
-    mixin.loadTreasuryConfig();
+    mixin.load();
     expect(mixin.payout_mode).toBe('local');
     expect(mixin.execution_mode).toBe('local');
   });
@@ -514,7 +525,7 @@ describe('mixin operation mode admin configuration', () => {
     mixin.app.options = saved;
     mixin.app.storage = { saveOptions() {} };
     mixin.app.crypto = crypto;
-    mixin.loadTreasuryConfig();
+    mixin.load();
     return mixin;
   }
 
@@ -537,7 +548,7 @@ describe('mixin operation mode admin configuration', () => {
         treasury_delegate_publickeys: ['delegate-one']
       }
     });
-    mixin.loadTreasuryConfig();
+    mixin.load();
     const saved = mixin.saveTreasuryAdminConfig({
       operation_mode: 'local',
       treasury_provider_publickeys: [TREASURY],
@@ -644,7 +655,7 @@ describe('mixin operation mode admin configuration', () => {
         payout_mode: 'local'
       }
     });
-    mixin.loadTreasuryConfig();
+    mixin.load();
     expect(() =>
       mixin.saveTreasuryAdminConfig({
         operation_mode: 'local_remote',
@@ -674,5 +685,549 @@ describe('mixin operation mode admin configuration', () => {
       treasury_provider_publickeys: [],
       treasury_delegate_publickeys: ['delegate-one']
     });
+  });
+});
+
+describe('mixin load/save configuration persistence', () => {
+  function persistentMixin(options = {}) {
+    const saved = { mixin: { ...(options.mixin || {}) } };
+    const crypto = {
+      isPublicKey(key) {
+        return [APP, TREASURY, BUYER, 'delegate-one', 'delegate-two'].includes(key);
+      }
+    };
+    const mixin = new Mixin({
+      options: saved,
+      modules: { returnModule: () => null },
+      storage: {
+        saveOptions() {
+          saved.mixin = { ...mixin.app.options.mixin };
+        }
+      },
+      crypto
+    });
+    mixin.publicKey = APP;
+    mixin.app.options = saved;
+    mixin.app.crypto = crypto;
+    mixin.app.storage = {
+      saveOptions() {
+        saved.mixin = { ...(mixin.app.options.mixin || {}) };
+      }
+    };
+    mixin.accounts = new (require('../../../mods/mixin/lib/accounts'))(mixin.app, mixin);
+    mixin.load();
+    return { mixin, saved };
+  }
+
+  test('treasury settings survive credential saves, restore, backup, and reload', () => {
+    const { mixin, saved } = persistentMixin();
+    mixin.saveTreasuryAdminConfig({
+      operation_mode: 'remote_remote',
+      treasury_provider_publickeys: [TREASURY]
+    });
+    mixin.api_key = {
+      app_id: 'app-1',
+      session_id: 'session-1',
+      server_public_key: 'server-pub',
+      session_private_key: 'app-session-key'
+    };
+    mixin.deposit_addresses = [{ address: '0xabc', asset_id: 'eth', balance: '1' }];
+    mixin.save();
+
+    mixin.accounts.saveCredentials({
+      user_id: 'user-9',
+      session_id: 'session-9',
+      tip_key_base64: 'tip',
+      session_seed: 'seed',
+      spend_private_key: 'spend'
+    });
+    expect(saved.mixin).toMatchObject({
+      user_id: 'user-9',
+      operation_mode: 'remote_remote',
+      execution_mode: 'remote',
+      payout_mode: 'remote',
+      treasury_provider_publickeys: [TREASURY],
+      treasury_delegate_publickeys: [],
+      api_key: expect.objectContaining({ session_private_key: 'app-session-key' }),
+      deposit_addresses: [expect.objectContaining({ address: '0xabc' })]
+    });
+
+    mixin.credentials.backed_up = true;
+    mixin.accounts.saveCredentials(mixin.credentials);
+    expect(saved.mixin.treasury_provider_publickeys).toEqual([TREASURY]);
+    expect(saved.mixin.backed_up).toBe(true);
+
+    const reloaded = new Mixin({
+      options: { mixin: { ...saved.mixin } },
+      modules: { returnModule: () => null },
+      storage: { saveOptions() {} },
+      crypto: mixin.app.crypto
+    });
+    reloaded.publicKey = APP;
+    reloaded.load();
+    expect(reloaded.operation_mode).toBe('remote_remote');
+    expect(reloaded.execution_mode).toBe('remote');
+    expect(reloaded.treasury_provider_publickeys).toEqual([TREASURY]);
+    expect(reloaded.credentials.user_id).toBe('user-9');
+    expect(reloaded.api_key.session_private_key).toBe('app-session-key');
+    expect(reloaded.deposit_addresses[0].address).toBe('0xabc');
+  });
+
+  test('treasury mode delegate survives account restore and create-style credential replace', () => {
+    const { mixin, saved } = persistentMixin();
+    mixin.saveTreasuryAdminConfig({
+      operation_mode: 'treasury',
+      treasury_delegate_publickeys: ['delegate-one']
+    });
+
+    mixin.credentials = {};
+    mixin.account_created = 0;
+    mixin.restoreAccount({
+      user_id: 'user-9',
+      full_name: 'Restored',
+      session_id: 'session-9',
+      tip_key_base64: 'tip',
+      session_seed: 'seed',
+      spend_private_key: 'spend',
+      spend_public_key: 'spend-pub'
+    });
+
+    expect(saved.mixin).toMatchObject({
+      user_id: 'user-9',
+      operation_mode: 'treasury',
+      treasury_delegate_publickeys: ['delegate-one'],
+      treasury_provider_publickeys: []
+    });
+  });
+});
+
+describe('treasury-backed Buy Saito service advertisement and tunneling', () => {
+  const UNAVAILABLE =
+    "Sorry, payment provider isn't available right now — try again later.";
+
+  function verifiedPeer(publicKey) {
+    return {
+      publicKey,
+      get: () => ({ is_verified: true })
+    };
+  }
+
+  function unverifiedPeer(publicKey) {
+    return {
+      publicKey,
+      get: () => ({ is_verified: false })
+    };
+  }
+
+  function servicesNode() {
+    const crypto = {
+      isPublicKey(key) {
+        return [APP, TREASURY, BUYER, 'delegate-one'].includes(key);
+      }
+    };
+    const mixin = new Mixin({
+      options: {
+        mixin: {
+          operation_mode: 'remote_remote',
+          execution_mode: 'remote',
+          payout_mode: 'remote',
+          treasury_provider_publickeys: [TREASURY]
+        }
+      },
+      modules: { returnModule: () => null },
+      storage: { saveOptions() {} },
+      crypto,
+      network: {
+        getPeer: jest.fn(),
+        sendTransactionWithCallback: jest.fn()
+      }
+    });
+    mixin.publicKey = APP;
+    mixin.appSession = null;
+    mixin.transfers = null;
+    mixin.load();
+    return mixin;
+  }
+
+  function treasuryNode() {
+    const crypto = {
+      isPublicKey(key) {
+        return [APP, TREASURY, BUYER, 'delegate-one'].includes(key);
+      }
+    };
+    const mixin = new Mixin({
+      options: {
+        mixin: {
+          operation_mode: 'treasury',
+          execution_mode: 'local',
+          payout_mode: 'local',
+          treasury_delegate_publickeys: [APP]
+        }
+      },
+      modules: { returnModule: () => null },
+      storage: { saveOptions() {} },
+      crypto,
+      network: {
+        sendRequestAsTransaction: jest.fn()
+      }
+    });
+    mixin.publicKey = TREASURY;
+    mixin.appSession = { ok: true };
+    mixin.transfers = {};
+    mixin.crypto_mods = [
+      {
+        ticker: 'ETH',
+        chain_id: 'eth-chain',
+        price_usd: 2000,
+        last_update: Date.now(),
+        icon_url: '',
+        returnMixinNetworkInfo: jest.fn(async () => {})
+      }
+    ];
+    mixin.load();
+    return mixin;
+  }
+
+  test('a remote services node without appSession advertises mixin and buysaito', () => {
+    const mixin = servicesNode();
+    const services = mixin.returnServices().map((service) => service.service);
+    expect(services).toEqual(expect.arrayContaining(['mixin', 'buysaito']));
+  });
+
+  test('local mode without appSession does not advertise services', () => {
+    const mixin = servicesNode();
+    mixin.saveTreasuryAdminConfig({
+      operation_mode: 'local',
+      treasury_provider_publickeys: [],
+      treasury_delegate_publickeys: []
+    });
+    mixin.appSession = null;
+    expect(mixin.returnServices()).toEqual([]);
+  });
+
+  test('services node tunnels buysaito available currencies and does not fall through locally', async () => {
+    const mixin = servicesNode();
+    const peer = verifiedPeer(TREASURY);
+    mixin.app.network.getPeer.mockResolvedValue(peer);
+    mixin.app.network.sendTransactionWithCallback.mockImplementation(async (tx, callback) => {
+      callback({ msg: { ac: [{ ticker: 'ETH', price_usd: 2000 }], erc: 0.01 } });
+    });
+
+    const replies = [];
+    const tx = {
+      from: [{ publicKey: BUYER }],
+      isTo: () => true,
+      returnMessage: () => ({ request: 'buysaito available currencies', data: null })
+    };
+
+    const handled = await mixin.handlePeerTransaction(
+      mixin.app,
+      tx,
+      verifiedPeer(BUYER),
+      (response) => replies.push(response)
+    );
+
+    expect(handled).toBe(1);
+    expect(mixin.app.network.sendTransactionWithCallback).toHaveBeenCalledWith(
+      tx,
+      expect.any(Function),
+      TREASURY
+    );
+    expect(replies).toEqual([{ ac: [{ ticker: 'ETH', price_usd: 2000 }], erc: 0.01 }]);
+  });
+
+  test('unavailable treasury returns the provider-unavailable error without local execution', async () => {
+    const mixin = servicesNode();
+    mixin.app.network.getPeer.mockResolvedValue(null);
+
+    const replies = [];
+    const handled = await mixin.handlePeerTransaction(
+      mixin.app,
+      {
+        from: [{ publicKey: BUYER }],
+        isTo: () => true,
+        returnMessage: () => ({ request: 'buysaito available currencies', data: null })
+      },
+      verifiedPeer(BUYER),
+      (response) => replies.push(response)
+    );
+
+    expect(handled).toBe(1);
+    expect(mixin.app.network.sendTransactionWithCallback).not.toHaveBeenCalled();
+    expect(replies).toEqual([{ message: UNAVAILABLE, err: UNAVAILABLE }]);
+  });
+
+  test('treasury accepts a verified configured delegate and rejects an unverified claim', async () => {
+    const treasury = treasuryNode();
+    const replies = [];
+    const tx = {
+      from: [{ publicKey: BUYER }],
+      isTo: () => true,
+      returnMessage: () => ({ request: 'buysaito available currencies', data: null })
+    };
+
+    const accepted = await treasury.handlePeerTransaction(
+      treasury.app,
+      tx,
+      verifiedPeer(APP),
+      (response) => replies.push(response)
+    );
+    expect(accepted).toBe(1);
+    expect(replies[0].ac).toEqual([
+      expect.objectContaining({ ticker: 'ETH', price_usd: 2000 })
+    ]);
+
+    const rejected = [];
+    const denied = await treasury.handlePeerTransaction(
+      treasury.app,
+      tx,
+      unverifiedPeer(APP),
+      (response) => rejected.push(response)
+    );
+    expect(denied).toBe(0);
+    expect(rejected).toEqual([]);
+  });
+
+  test('every browser-facing Mixin request tunnels to the configured treasury', async () => {
+    const mixin = servicesNode();
+    const peer = verifiedPeer(TREASURY);
+    mixin.app.network.getPeer.mockResolvedValue(peer);
+    const forwarded = [];
+    mixin.app.network.sendTransactionWithCallback.mockImplementation(async (tx, callback) => {
+      forwarded.push(tx.returnMessage().request);
+      callback({ msg: { ok: true, request: tx.returnMessage().request } });
+    });
+
+    const requests = [
+      'buysaito available currencies',
+      'buysaito reserve address',
+      'buysaito release address',
+      'migration request',
+      'migration status',
+      'migration extend',
+      'mixin create account',
+      'mixin save new deposit address',
+      'mixin fetch user',
+      'mixin account backup',
+      'store-withdrawal'
+    ];
+
+    for (const request of requests) {
+      const replies = [];
+      const tx = {
+        from: [{ publicKey: BUYER }],
+        isTo: () => true,
+        returnMessage: () => ({ request, data: { ticker: 'ETH', id: 1 } })
+      };
+      const handled = await mixin.handlePeerTransaction(
+        mixin.app,
+        tx,
+        verifiedPeer(BUYER),
+        (response) => replies.push(response)
+      );
+      expect(handled).toBe(1);
+      expect(replies[0]).toEqual({ ok: true, request });
+      expect(mixin.app.network.sendTransactionWithCallback).toHaveBeenLastCalledWith(
+        tx,
+        expect.any(Function),
+        TREASURY
+      );
+    }
+
+    expect(forwarded).toEqual(requests);
+  });
+
+  test('tunneled buysaito reserve preserves the original buyer-signed transaction', async () => {
+    const mixin = servicesNode();
+    mixin.app.network.getPeer.mockResolvedValue(verifiedPeer(TREASURY));
+    let forwarded = null;
+    mixin.app.network.sendTransactionWithCallback.mockImplementation(async (tx, callback) => {
+      forwarded = tx;
+      callback({ msg: { address: '0xabc' } });
+    });
+
+    const original = {
+      from: [{ publicKey: BUYER }],
+      signature: 'buyer-sig',
+      isTo: () => true,
+      returnMessage: () => ({
+        request: 'buysaito reserve address',
+        data: { initiator_pubkey: BUYER, ticker: 'ETH' }
+      })
+    };
+    const replies = [];
+    await mixin.handlePeerTransaction(mixin.app, original, verifiedPeer(BUYER), (response) =>
+      replies.push(response)
+    );
+
+    expect(forwarded).toBe(original);
+    expect(forwarded.from[0].publicKey).toBe(BUYER);
+    expect(forwarded.signature).toBe('buyer-sig');
+    expect(replies).toEqual([{ address: '0xabc' }]);
+  });
+
+  test('treasury rejects an unauthorized peer for account and migration requests', async () => {
+    const treasury = treasuryNode();
+    treasury.migration = {
+      startMigration: jest.fn(async () => ({ address: '0xmig' }))
+    };
+    treasury.accounts = {
+      createAccount: jest.fn(async () => ({ ciphertext: 'cipher', restored: false }))
+    };
+    treasury.database = {
+      insertAddress: jest.fn(async () => {}),
+      saveCredentials: jest.fn(async () => {}),
+      findAddress: jest.fn(async () => null)
+    };
+
+    for (const request of [
+      'migration request',
+      'mixin create account',
+      'mixin save new deposit address',
+      'mixin fetch user',
+      'mixin account backup'
+    ]) {
+      const replies = [];
+      const denied = await treasury.handlePeerTransaction(
+        treasury.app,
+        {
+          from: [{ publicKey: BUYER }],
+          timestamp: Date.now(),
+          isTo: () => true,
+          returnMessage: () => ({
+            request,
+            data: { ticker: 'ETH', user_id: 'u1', publickey: BUYER, asset_id: 'a1', address: '0x1' }
+          })
+        },
+        verifiedPeer(BUYER),
+        (response) => replies.push(response)
+      );
+      // buyer connecting directly is allowed
+      expect(denied).toBe(1);
+
+      const rejected = [];
+      const stranger = await treasury.handlePeerTransaction(
+        treasury.app,
+        {
+          from: [{ publicKey: BUYER }],
+          timestamp: Date.now(),
+          isTo: () => true,
+          returnMessage: () => ({
+            request,
+            data: { ticker: 'ETH', user_id: 'u1', publickey: BUYER, asset_id: 'a1', address: '0x1' }
+          })
+        },
+        verifiedPeer('delegate-one'),
+        (response) => rejected.push(response)
+      );
+      expect(stranger).toBe(0);
+      expect(rejected).toEqual([]);
+    }
+  });
+
+  test('services node relays treasury browser notifications to the destination', async () => {
+    const mixin = servicesNode();
+    mixin.app.network.sendRequestAsTransaction = jest.fn();
+    const replies = [];
+    const handled = await mixin.handlePeerTransaction(
+      mixin.app,
+      {
+        from: [{ publicKey: TREASURY }],
+        isTo: () => true,
+        returnMessage: () => ({
+          request: 'mixin treasury forwarding request',
+          data: {
+            destination_publickey: BUYER,
+            notification_request: 'buysaito payment detected',
+            notification_data: { id: 7, status: 'pending' }
+          }
+        })
+      },
+      verifiedPeer(TREASURY),
+      (response) => replies.push(response)
+    );
+
+    expect(handled).toBe(1);
+    expect(replies).toEqual([{ ok: true }]);
+    expect(mixin.app.network.sendRequestAsTransaction).toHaveBeenCalledWith(
+      'buysaito payment detected',
+      { id: 7, status: 'pending' },
+      null,
+      BUYER
+    );
+
+    const denied = [];
+    const rejected = await mixin.handlePeerTransaction(
+      mixin.app,
+      {
+        from: [{ publicKey: TREASURY }],
+        isTo: () => true,
+        returnMessage: () => ({
+          request: 'mixin treasury forwarding request',
+          data: {
+            destination_publickey: BUYER,
+            notification_request: 'buysaito payment detected',
+            notification_data: { id: 7 }
+          }
+        })
+      },
+      unverifiedPeer(TREASURY),
+      (response) => denied.push(response)
+    );
+    expect(rejected).toBe(1);
+    expect(denied).toEqual([{ err: 'Unauthorized treasury forwarding request.' }]);
+  });
+
+  test('treasury notifyBrowser relays through the configured delegate', () => {
+    const treasury = treasuryNode();
+    treasury.operation_mode = 'treasury';
+    treasury.treasury_delegate_publickeys = [APP];
+    treasury.notifyBrowser('buysaito saito issued', { paid: 'sig-1' }, BUYER);
+    expect(treasury.app.network.sendRequestAsTransaction).toHaveBeenCalledWith(
+      'mixin treasury forwarding request',
+      {
+        destination_publickey: BUYER,
+        notification_request: 'buysaito saito issued',
+        notification_data: { paid: 'sig-1' }
+      },
+      null,
+      APP
+    );
+  });
+
+  test('local_remote does not tunnel buysaito requests', async () => {
+    const mixin = servicesNode();
+    mixin.saveTreasuryAdminConfig({
+      operation_mode: 'local_remote',
+      treasury_provider_publickeys: [TREASURY]
+    });
+    mixin.appSession = { ok: true };
+    mixin.transfers = {};
+    mixin.crypto_mods = [
+      {
+        ticker: 'ETH',
+        chain_id: 'eth',
+        price_usd: 1,
+        last_update: Date.now(),
+        returnMixinNetworkInfo: jest.fn(async () => {})
+      }
+    ];
+    mixin.app.network.getPeer.mockResolvedValue(verifiedPeer(TREASURY));
+    mixin.app.network.sendRequestAsTransaction = jest.fn();
+
+    const replies = [];
+    await mixin.handlePeerTransaction(
+      mixin.app,
+      {
+        from: [{ publicKey: BUYER }],
+        isTo: () => true,
+        returnMessage: () => ({ request: 'buysaito available currencies', data: null })
+      },
+      verifiedPeer(BUYER),
+      (response) => replies.push(response)
+    );
+
+    expect(mixin.app.network.sendTransactionWithCallback).not.toHaveBeenCalled();
+    expect(replies[0].ac).toEqual([expect.objectContaining({ ticker: 'ETH' })]);
   });
 });

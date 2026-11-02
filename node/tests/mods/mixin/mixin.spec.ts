@@ -307,7 +307,15 @@ describe('Mixin accounts and database', () => {
 
     expect(mixin.credentials).toEqual({});
     expect(mixin.account_created).toBe(0);
-    expect(app.options.mixin).toEqual({});
+    expect(app.options.mixin).toMatchObject({
+      operation_mode: 'local',
+      execution_mode: 'local',
+      payout_mode: 'local',
+      treasury_provider_publickeys: [],
+      treasury_delegate_publickeys: [],
+      deposit_addresses: []
+    });
+    expect(app.options.mixin.user_id).toBeUndefined();
     expect(app.options.mixin_legacy.pin_token_base64).toBe('legacy-pin');
     expect(setPreferredCrypto).toHaveBeenCalledWith('SAITO', 1);
   });
@@ -1217,6 +1225,7 @@ describe('Mixin admin payments account', () => {
       session_private_key: 'app-session-key'
     });
     expect(app.options.mixin.user_id).toBe('user-9');
+    expect(app.options.mixin.operation_mode).toBe('local');
     expect(app.storage.saveOptions).toHaveBeenCalled();
     expect(mixin.api.appKeystore.session_private_key).toBe('app-session-key');
     expect(saved.api_key_configured).toBe(true);
@@ -1224,6 +1233,8 @@ describe('Mixin admin payments account', () => {
     mixin.accounts.saveCredentials({ user_id: 'user-9', session_id: 'session-9' });
     expect(app.options.mixin.user_id).toBe('user-9');
     expect(app.options.mixin.api_key.session_private_key).toBe('app-session-key');
+    expect(app.options.mixin.operation_mode).toBe('local');
+    expect(app.options.mixin.treasury_provider_publickeys).toEqual([]);
 
     process.env.MIXIN = JSON.stringify({
       app_id: 'env-app',

@@ -5,23 +5,23 @@ class Accounts {
   }
 
   getCredentials() {
-    return this.app?.options?.mixin || {};
+    return this.mod?.credentials && typeof this.mod.credentials === 'object'
+      ? this.mod.credentials
+      : {};
   }
 
   saveCredentials(credentials) {
-    const apiKey = this.app.options?.mixin?.api_key;
-    const depositAddresses = this.app.options?.mixin?.deposit_addresses;
     const next = credentials && typeof credentials === 'object' ? { ...credentials } : {};
     delete next.api_key;
     delete next.deposit_addresses;
-    if (apiKey && typeof apiKey === 'object' && !Array.isArray(apiKey)) {
-      next.api_key = apiKey;
-    }
-    if (Array.isArray(depositAddresses)) {
-      next.deposit_addresses = depositAddresses;
-    }
-    this.app.options.mixin = next;
-    this.app.storage.saveOptions();
+    delete next.operation_mode;
+    delete next.execution_mode;
+    delete next.payout_mode;
+    delete next.treasury_provider_publickeys;
+    delete next.treasury_delegate_publickeys;
+    this.mod.credentials = next;
+    this.mod.account_created = next.user_id ? 1 : 0;
+    this.mod.save();
   }
 
   areCredentialsDeprecated(credentials) {

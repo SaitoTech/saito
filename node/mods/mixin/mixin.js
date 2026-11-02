@@ -13,6 +13,22 @@ const BuySaitoService = require('./lib/buysaito');
 const migrationClient = require('./lib/ui/migration/client');
 const MixinAdmin = require('./lib/admin/mixin-admin');
 
+const MIXIN_CREDENTIAL_FIELDS = [
+  'user_id',
+  'full_name',
+  'session_id',
+  'tip_key_base64',
+  'pin_token_base64',
+  'session_seed',
+  'session_private_key',
+  'spend_private_key',
+  'spend_public_key',
+  'backed_up'
+];
+
+const PROVIDER_UNAVAILABLE =
+  "Sorry, payment provider isn't available right now — try again later.";
+
 class Mixin extends ModTemplate {
   constructor(app) {
     super(app);
@@ -28,6 +44,8 @@ class Mixin extends ModTemplate {
 
     this.MixinModule = MixinModule;
     this.credentials = {};
+    this.api_key = null;
+    this.deposit_addresses = [];
     this.mixin_peer = null;
     this.buysaito_peer = null;
     this.available_currencies = [];
@@ -54,20 +72,46 @@ class Mixin extends ModTemplate {
     this.treasury_provider_publickeys = [];
     this.treasury_delegate_publickeys = [];
     this.cached_treasury_provider_publickey = '';
-    this.loadTreasuryConfig();
+    this.load();
   }
 
-  loadTreasuryConfig() {
-    const options = this.app?.options?.mixin || {};
+  /**
+   * Load the complete Mixin configuration from app.options.mixin into runtime state.
+   * This is the only Mixin-module function that reads configuration from options.
+   */
+  load() {
+    const stored = this.app?.options?.mixin;
+    const options =
+      stored && typeof stored === 'object' && !Array.isArray(stored) ? stored : {};
+
+    const credentials = {};
+    for (const field of MIXIN_CREDENTIAL_FIELDS) {
+      if (options[field] !== undefined) {
+        credentials[field] = options[field];
+      }
+    }
+    this.credentials = credentials;
+    this.account_created = credentials.user_id ? 1 : 0;
+
+    const keystore = mixinAppKeystore(options.api_key);
+    this.api_key =
+      keystore ||
+      (options.api_key && typeof options.api_key === 'object' && !Array.isArray(options.api_key)
+        ? options.api_key
+        : null);
+
+    this.deposit_addresses = Array.isArray(options.deposit_addresses)
+      ? options.deposit_addresses.map((item) => ({ ...item }))
+      : [];
+
     const keys = (value) =>
       Array.isArray(value) ? value.map((key) => String(key || '').trim()).filter(Boolean) : [];
     this.treasury_provider_publickeys = keys(options.treasury_provider_publickeys);
     this.treasury_delegate_publickeys = keys(options.treasury_delegate_publickeys);
-    if (options.execution_mode === 'local' || options.execution_mode === 'remote') {
-      this.execution_mode = options.execution_mode;
-    } else if (this.execution_mode !== 'remote') {
-      this.execution_mode = 'local';
-    }
+
+    // Prefer values persisted on disk. Do not keep stale runtime mode across reload.
+    this.execution_mode = options.execution_mode === 'remote' ? 'remote' : 'local';
+
     const own = String(this.publicKey || '').trim();
     const providers = this.treasury_provider_publickeys;
     const soleSelf = providers.length === 1 && !!own && providers[0] === own;
@@ -78,7 +122,44 @@ class Mixin extends ModTemplate {
     } else {
       this.payout_mode = 'remote';
     }
+
     this.operation_mode = this.normalizeOperationMode(options.operation_mode);
+  }
+
+  /**
+   * Persist the complete Mixin runtime configuration to app.options.mixin.
+   * This is the only Mixin-module function that writes Mixin options and saveOptions().
+   */
+  save() {
+    if (!this.app) {
+      return;
+    }
+    if (!this.app.options || typeof this.app.options !== 'object' || Array.isArray(this.app.options)) {
+      this.app.options = {};
+    }
+
+    const next = {};
+    for (const field of MIXIN_CREDENTIAL_FIELDS) {
+      if (this.credentials && this.credentials[field] !== undefined) {
+        next[field] = this.credentials[field];
+      }
+    }
+
+    if (this.api_key && typeof this.api_key === 'object' && !Array.isArray(this.api_key)) {
+      next.api_key = this.api_key;
+    }
+
+    next.deposit_addresses = Array.isArray(this.deposit_addresses)
+      ? this.deposit_addresses.map((item) => ({ ...item }))
+      : [];
+    next.operation_mode = this.normalizeOperationMode(this.operation_mode);
+    next.execution_mode = this.execution_mode === 'remote' ? 'remote' : 'local';
+    next.payout_mode = this.payout_mode === 'remote' ? 'remote' : 'local';
+    next.treasury_provider_publickeys = [...(this.treasury_provider_publickeys || [])];
+    next.treasury_delegate_publickeys = [...(this.treasury_delegate_publickeys || [])];
+
+    this.app.options.mixin = next;
+    this.app.storage?.saveOptions?.();
   }
 
   normalizeOperationMode(value) {
@@ -207,17 +288,12 @@ class Mixin extends ModTemplate {
 
   saveTreasuryAdminConfig(config = {}) {
     const next = this.validateTreasuryAdminConfig(config);
-    const current = this.app.options.mixin;
-    if (!current || typeof current !== 'object' || Array.isArray(current)) {
-      this.app.options.mixin = {};
-    }
-    this.app.options.mixin.operation_mode = next.operation_mode;
-    this.app.options.mixin.execution_mode = next.execution_mode;
-    this.app.options.mixin.payout_mode = next.payout_mode;
-    this.app.options.mixin.treasury_provider_publickeys = [...next.treasury_provider_publickeys];
-    this.app.options.mixin.treasury_delegate_publickeys = [...next.treasury_delegate_publickeys];
-    this.app.storage.saveOptions();
-    this.loadTreasuryConfig();
+    this.operation_mode = next.operation_mode;
+    this.execution_mode = next.execution_mode;
+    this.payout_mode = next.payout_mode;
+    this.treasury_provider_publickeys = [...next.treasury_provider_publickeys];
+    this.treasury_delegate_publickeys = [...next.treasury_delegate_publickeys];
+    this.save();
     this.syncTransferExecution();
     return next;
   }
@@ -290,16 +366,18 @@ class Mixin extends ModTemplate {
    * Returns 0 when this node should handle the request locally.
    * Returns 1 when the helper has taken responsibility (including unreachable errors).
    */
+  offersTreasuryBackedServices() {
+    return this.execution_mode === 'remote' && !!this.configuredTreasuryProviderPublickey();
+  }
+
   async tunnelRequestToTreasury(tx, mycallback) {
     if (this.execution_mode !== 'remote') {
       return 0;
     }
 
-    const unavailable =
-      "Sorry, payment provider isn't available right now — try again later.";
     const reportUnavailable = () => {
       if (typeof mycallback === 'function') {
-        mycallback({ message: unavailable, err: unavailable });
+        mycallback({ message: PROVIDER_UNAVAILABLE, err: PROVIDER_UNAVAILABLE });
       }
     };
 
@@ -406,7 +484,8 @@ class Mixin extends ModTemplate {
 
   returnServices() {
     this.services = [];
-    if (this.appSession) {
+    const canServe = !!this.appSession || this.offersTreasuryBackedServices();
+    if (canServe) {
       this.services.push(new PeerService(null, 'mixin'));
       const buysaito = this.app.modules?.returnModule?.('BuySaito');
       if (!buysaito || buysaito.publicKey === buysaito.authorized_public_key) {
@@ -449,14 +528,14 @@ class Mixin extends ModTemplate {
 
   async initialize(app) {
     await super.initialize(app);
-    this.loadTreasuryConfig();
+    this.load();
 
     this.database = new Database(app, this);
     this.api = new Api();
     this.accounts = new Accounts(app, this);
 
     if (!app.BROWSER) {
-      this.api.appKeystore = app.options?.mixin?.api_key || null;
+      this.api.appKeystore = this.api_key || null;
       this.appSession = this.api.createAppSession();
       await this.database.ensureAccountsSchema();
       await this.database.ensureTransfersSchema();
@@ -467,18 +546,12 @@ class Mixin extends ModTemplate {
       this.buysaito = new BuySaitoService(app, this);
     }
 
-    const stored = this.accounts.getCredentials();
-    if (stored?.user_id && this.accounts.areCredentialsDeprecated(stored)) {
-      app.options.mixin_legacy = stored;
+    if (this.credentials?.user_id && this.accounts.areCredentialsDeprecated(this.credentials)) {
+      app.options.mixin_legacy = { ...(app.options.mixin || {}) };
       this.credentials = {};
       this.account_created = 0;
-      this.accounts.saveCredentials({});
+      this.save();
       await app.wallet.setPreferredCrypto('SAITO', 1);
-    } else if (stored?.user_id) {
-      this.credentials = stored;
-      this.account_created = 1;
-    } else {
-      this.credentials = {};
     }
 
     this.installCryptos();
@@ -503,7 +576,7 @@ class Mixin extends ModTemplate {
         execution_mode: this.execution_mode,
         payout_mode: this.payout_mode,
         buysaito_provider: buysaitoProvider,
-        advertised: !!(this.appSession && buysaitoProvider)
+        advertised: !!(buysaitoProvider && (!!this.appSession || this.offersTreasuryBackedServices()))
       });
     }
 
@@ -752,8 +825,18 @@ class Mixin extends ModTemplate {
       if (await this.tunnelRequestToTreasury(tx, mycallback)) {
         return 1;
       }
+      const from = tx.from?.[0]?.publicKey;
+      const directPeer =
+        !!from && peer?.publicKey === from && this.isHandshakeVerifiedPeer(peer);
+      const delegatedPeer = this.isAuthorizedForwardingPeer(
+        peer,
+        this.configuredTreasuryDelegatePublickey()
+      );
+      if (!directPeer && !delegatedPeer) {
+        return 0;
+      }
       try {
-        const created = await this.accounts.createAccount(tx.from[0].publicKey);
+        const created = await this.accounts.createAccount(from);
         if (mycallback) {
           mycallback({ res: created.ciphertext, restored: created.restored });
         }
@@ -772,6 +855,16 @@ class Mixin extends ModTemplate {
     if (message.request === 'mixin save new deposit address') {
       if (await this.tunnelRequestToTreasury(tx, mycallback)) {
         return 1;
+      }
+      const from = tx.from?.[0]?.publicKey;
+      const directPeer =
+        !!from && peer?.publicKey === from && this.isHandshakeVerifiedPeer(peer);
+      const delegatedPeer = this.isAuthorizedForwardingPeer(
+        peer,
+        this.configuredTreasuryDelegatePublickey()
+      );
+      if (!directPeer && !delegatedPeer) {
+        return 0;
       }
       const data = message.data || {};
       await this.database.insertAddress({
@@ -793,6 +886,16 @@ class Mixin extends ModTemplate {
     if (message.request === 'mixin fetch user') {
       if (await this.tunnelRequestToTreasury(tx, mycallback)) {
         return 1;
+      }
+      const from = tx.from?.[0]?.publicKey;
+      const directPeer =
+        !!from && peer?.publicKey === from && this.isHandshakeVerifiedPeer(peer);
+      const delegatedPeer = this.isAuthorizedForwardingPeer(
+        peer,
+        this.configuredTreasuryDelegatePublickey()
+      );
+      if (!directPeer && !delegatedPeer) {
+        return 0;
       }
       const data = message.data || {};
       if (!data.asset_id || (!data.address && !data.publicKey && !data.user_id)) {
@@ -847,11 +950,9 @@ class Mixin extends ModTemplate {
       // recipient slip remains the buyer. Buyer identity stays tx.from.
       const buysaito = this.app.modules?.returnModule?.('BuySaito');
       const buysaitoProvider = !buysaito || buysaito.publicKey === buysaito.authorized_public_key;
-      const accepted =
-        !!this.appSession &&
-        !!this.transfers &&
-        buysaitoProvider &&
-        (direct_peer || delegated_peer);
+      const authorized_peer = direct_peer || delegated_peer;
+      const can_fulfill = !!this.appSession && !!this.transfers && buysaitoProvider;
+      const accepted = can_fulfill && authorized_peer;
       console.log('Mixin buysaito request', {
         request: message.request,
         app_session: !!this.appSession,
@@ -865,8 +966,14 @@ class Mixin extends ModTemplate {
         delegated_peer,
         accepted
       });
-      if (!accepted) {
+      if (!authorized_peer) {
         return 0;
+      }
+      if (!accepted) {
+        if (mycallback) {
+          mycallback({ message: PROVIDER_UNAVAILABLE, err: PROVIDER_UNAVAILABLE });
+        }
+        return 1;
       }
       const data = message.data || {};
 
@@ -897,7 +1004,10 @@ class Mixin extends ModTemplate {
           }
         } catch (err) {
           console.log('Mixin buysaito available currencies failed', err);
-          return 0;
+          if (mycallback) {
+            mycallback({ message: PROVIDER_UNAVAILABLE, err: PROVIDER_UNAVAILABLE });
+          }
+          return 1;
         }
         const response = {
           ac: currencies,
@@ -986,6 +1096,15 @@ class Mixin extends ModTemplate {
         return 1;
       }
       const owner = tx.from?.[0]?.publicKey || '';
+      const directPeer =
+        !!owner && peer?.publicKey === owner && this.isHandshakeVerifiedPeer(peer);
+      const delegatedPeer = this.isAuthorizedForwardingPeer(
+        peer,
+        this.configuredTreasuryDelegatePublickey()
+      );
+      if (!directPeer && !delegatedPeer) {
+        return 0;
+      }
       if (!owner) {
         if (mycallback) {
           mycallback({ err: 'Missing account owner public key.' });
@@ -1099,15 +1218,7 @@ class Mixin extends ModTemplate {
   }
 
   depositAddresses() {
-    const stored = this.app?.options?.mixin?.deposit_addresses;
-    return Array.isArray(stored) ? stored : [];
-  }
-
-  ensureMixinOptions() {
-    const current = this.app.options?.mixin;
-    if (!current || typeof current !== 'object' || Array.isArray(current)) {
-      this.app.options.mixin = {};
-    }
+    return Array.isArray(this.deposit_addresses) ? this.deposit_addresses : [];
   }
 
   rememberDepositAddress({ address, assetId = '', ticker = '', mixinUserId = '' } = {}) {
@@ -1115,7 +1226,6 @@ class Mixin extends ModTemplate {
     if (!value) {
       return;
     }
-    this.ensureMixinOptions();
     const list = this.depositAddresses().map((item) => ({ ...item }));
     const asset = String(assetId || '');
     const existing = list.find((item) => {
@@ -1149,8 +1259,8 @@ class Mixin extends ModTemplate {
     if (JSON.stringify(list) === JSON.stringify(this.depositAddresses())) {
       return;
     }
-    this.app.options.mixin.deposit_addresses = list;
-    this.app.storage.saveOptions();
+    this.deposit_addresses = list;
+    this.save();
   }
 
   creditDepositAddress(address, amount, hash) {
@@ -1165,7 +1275,6 @@ class Mixin extends ModTemplate {
     if (!value || !id || !credit.isFinite() || !credit.greaterThan(0)) {
       return;
     }
-    this.ensureMixinOptions();
     const list = this.depositAddresses().map((item) => ({
       ...item,
       credited: Array.isArray(item.credited) ? item.credited.slice() : []
@@ -1193,8 +1302,8 @@ class Mixin extends ModTemplate {
     }
     entry.balance = balance.plus(credit).toFixed(8).replace(/\.?0+$/, '') || '0';
     entry.credited.push(id);
-    this.app.options.mixin.deposit_addresses = list;
-    this.app.storage.saveOptions();
+    this.deposit_addresses = list;
+    this.save();
   }
 
   async syncDepositAddresses() {
@@ -1260,7 +1369,7 @@ class Mixin extends ModTemplate {
   }
 
   mixinApiKeyConfigured() {
-    return !!(mixinAppKeystoreFromEnv() || mixinAppKeystore(this.app?.options?.mixin?.api_key));
+    return !!(mixinAppKeystoreFromEnv() || mixinAppKeystore(this.api_key));
   }
 
   saveMixinApiKey(raw) {
@@ -1288,12 +1397,8 @@ class Mixin extends ModTemplate {
     }
 
     const keystore = mixinAppKeystore(parsed);
-    const current = this.app.options.mixin;
-    if (!current || typeof current !== 'object' || Array.isArray(current)) {
-      this.app.options.mixin = {};
-    }
-    this.app.options.mixin.api_key = keystore;
-    this.app.storage.saveOptions();
+    this.api_key = keystore;
+    this.save();
     if (this.api) {
       this.api.appKeystore = keystore;
       this.appSession = this.api.createAppSession();
@@ -1613,8 +1718,14 @@ class Mixin extends ModTemplate {
   receiveAvailableCurrencies(response) {
     const data = response?.request ? response.data : response;
     if (!data || data.err) {
-      console.log('Mixin buysaito available currencies error', data?.err || 'empty reply');
+      const message = data?.message || data?.err || 'empty reply';
+      console.log('Mixin buysaito available currencies error', message);
       this.available_currencies = null;
+      if (data?.message || data?.err) {
+        this.app.connection.emit('saito-purchase-error-notification', {
+          message: data.message || data.err
+        });
+      }
       this.app.connection.emit('saito-purchase-cryptos');
       return;
     }
