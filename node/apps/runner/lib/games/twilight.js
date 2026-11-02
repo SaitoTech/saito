@@ -43,7 +43,14 @@ const PUBLIC_EVENTS = [
   'reformer',
   'evilempire',
   'yuri',
-  'chernobyl'
+  'chernobyl',
+  'ourmanintehran', 'defectors_pulled_in_headline', 'che', 'fidel',
+  'iranianultimatum', 'unitedfruit', 'berlinagreement', 'pinochet',
+  'tsarbomba', 'carterdoctrine', 'energycrisis', 'nixonshock', 'samotlor',
+  'antiapartheid', 'argo', 'khruschev_thaw', 'sudanese_civil_war',
+  'revolutionsof1989', 'double_quagmire', 'double_beartrap',
+  'greatsociety', 'manwhosavedtheworld', 'inftreaty',
+  'communistrevolution', 'berlinairlift'
 ];
 
 // Reuse Twilight's card and country callbacks in an isolated, local DOM.
@@ -55,15 +62,16 @@ class TwilightRunner {
     this.cards = [];
     this.revision = 0;
     this.rejected = new Set();
-    const html = require('../../../mods/twilight/lib/core/game-html.template').default;
+    const html = require('../../../../mods/twilight/lib/core/game-html.template').default;
     this.dom = new JSDOM(
-      html(mod.app, mod) + '<div id="runner-menu"></div><div class="saito-overlay"></div>',
+      '<div id="runner-cards"></div>' + html(mod.app, mod) +
+        '<div id="runner-menu"></div><div class="saito-overlay"></div>',
       { runScripts: 'outside-only', url: 'https://runner.invalid/' }
     );
     const window = this.dom.window;
     window.eval(
       fs.readFileSync(
-        path.resolve(__dirname, '../../../web/saito/lib/jquery/jquery-3.2.1.min.js'),
+        path.resolve(__dirname, '../../../../web/saito/lib/jquery/jquery-3.2.1.min.js'),
         'utf8'
       )
     );
@@ -88,6 +96,20 @@ class TwilightRunner {
     };
     mod.hud.updateCards = (cards) => {
       this.cards = [...(cards || [])];
+      const root = window.document.getElementById('runner-cards');
+      root.replaceChildren();
+      for (const card of this.cards) {
+        // Scoring-track decorations reuse card IDs. jQuery's #id.card fast
+        // path otherwise finds a decoration and fails to hide a chosen card.
+        for (const node of window.document.querySelectorAll('.gameboard [id]')) {
+          if (node.id === card && !node.classList.contains('card') &&
+              !node.classList.contains('country')) node.removeAttribute('id');
+        }
+        const el = window.document.createElement('div');
+        el.className = 'card';
+        el.id = card;
+        root.append(el);
+      }
     };
     mod.hud.updateMenu = (items, callback) => {
       this.menu = items || [];
@@ -114,6 +136,11 @@ class TwilightRunner {
     };
     mod.overlay.hide = mod.overlay.close = () => {
       window.document.querySelector('.saito-overlay').replaceChildren();
+    };
+    // This overlay owns a decision, unlike the presentation-only overlays below.
+    if (mod.choosecard_overlay) mod.choosecard_overlay.overlay = mod.overlay;
+    mod.showCardOverlay = (cards, title) => {
+      mod.game.runnerRevealedCards = { title: this.plain(title), cards: [...cards], step: mod.game.step?.game };
     };
     for (const name of [
       'scoring_overlay',
@@ -175,6 +202,17 @@ class TwilightRunner {
       return this.sending;
     };
   }
+  card(id) {
+    const m = this.mod, d = m.game.deck?.[0];
+    const active = d?.cards?.[id] || d?.discards?.[id] || d?.removed?.[id];
+    if (active) return active;
+    // returnAllCards forces Saito metadata even for standard/optional games.
+    if (m.returnEarlyWarCards) {
+      return { ...m.returnEarlyWarCards(true), ...m.returnMidWarCards(true),
+        ...m.returnLateWarCards(true), china: m.returnChinaCard() }[id];
+    }
+    return m.returnAllCards(true)[id];
+  }
   plain(value) {
     return String(value || '')
       .replace(/<[^>]*>/g, '')
@@ -216,7 +254,8 @@ class TwilightRunner {
     const actions = [];
     const add = (kind, value, label, score = 0) => {
       const action = { kind, value };
-      if (!this.rejected.has(JSON.stringify(action)))
+      if (!this.rejected.has(JSON.stringify(action)) &&
+          !actions.some((item) => item.action.kind === kind && item.action.value === value))
         actions.push({ action, label: this.plain(label || value), score });
     };
     if (this.confirm) {
@@ -228,7 +267,9 @@ class TwilightRunner {
       if (this.cardCallback)
         for (const card of this.cards) {
           if (/headline/i.test(this.status) && ['china', 'unintervention'].includes(card)) continue;
-          add('card', card, m.returnAllCards(true)[card]?.name, this.cardScore(card));
+          const el = this.dom.window.document.getElementById('runner-cards')?.children;
+          if (el && ![...el].some((node) => node.id === card && this.visible(node))) continue;
+          add('card', card, this.card(card)?.name, this.cardScore(card));
         }
       for (const el of this.dom.window.document.querySelectorAll(
         '.country, .option, .saito-overlay .card'
@@ -257,6 +298,7 @@ class TwilightRunner {
     // Public board + own hand only: no dice, deck keys, blind picks or wallet.
     const observation = {
       game: 'Twilight Struggle',
+      deck: g.options?.deck ?? 'optional',
       seat: g.player,
       faction: m.roles[g.player],
       phase: this.confirm?.message || this.status,
@@ -287,7 +329,15 @@ class TwilightRunner {
           }
         ])
       ),
-      hand: g.deck[0].hand.map((id) => ({ id, ...m.returnAllCards(true)[id] })),
+      hand: g.deck[0].hand.map((id) => ({ id, ...this.card(id) })),
+      offeredCards: [...new Set(actions.filter(({ action }) =>
+        action.kind === 'card' || (action.kind === 'element' && this.card(action.value)))
+        .map(({ action }) => action.value))].map((id) => ({ id, ...this.card(id) })),
+      revealedCards: g.runnerRevealedCards,
+      deckChanges: { added: g.saito_cards_added || [], removed: g.saito_cards_removed || [] },
+      optionalEvents: Object.fromEntries(['berlinagreement', 'gouzenkoaffair']
+        .filter((key) => s.events?.optional?.[key] !== undefined)
+        .map((key) => [key, s.events.optional[key]])),
       notice: this.notice || ''
     };
     return decision(g.id, this.revision, observation, actions);
@@ -338,7 +388,7 @@ class TwilightRunner {
   }
   cardScore(id) {
     const m = this.mod,
-      c = m.returnAllCards(true)[id];
+      c = this.card(id);
     if (!c) return 0;
     const own = c.player === m.roles[m.game.player] || c.player === 'both';
     return c.scoring ? 100 : (own ? 20 : 0) + (c.ops || 0) - (id === 'china' ? 100 : 0);

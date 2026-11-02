@@ -1,6 +1,6 @@
 const fs = require('node:fs');
 const path = require('node:path');
-const { loadConfig } = require('./config');
+const { loadConfig } = require('../lib/config');
 
 const templates = { daemon: 'daemon', conquest: 'config', settlers: 'settlers',
   twilight: 'twilight', paths: 'paths', multi: 'multi' };
@@ -23,7 +23,7 @@ function configure(root, names) {
     }
     const migrate = fs.existsSync(source);
     if (migrate && fs.lstatSync(source).isSymbolicLink()) throw Error(`Refusing to replace config symlink: ${source}`);
-    const input = migrate ? source : path.join(__dirname, templates[name] + '.example.json');
+    const input = migrate ? source : path.join(__dirname, '../config', templates[name] + '.example.json');
     const config = JSON.parse(fs.readFileSync(input, 'utf8'));
     if (migrate) {
       const resolved = loadConfig(source);
@@ -44,7 +44,7 @@ function configure(root, names) {
 
 if (require.main === module) {
   try {
-    for (const file of configure(path.resolve(__dirname, '../..'), process.argv.slice(2))) console.log(file);
+    for (const file of configure(path.resolve(__dirname, '../../..'), process.argv.slice(2))) console.log(file);
   } catch (error) { console.error(error.message); process.exitCode = 1; }
 }
 module.exports = { configure };

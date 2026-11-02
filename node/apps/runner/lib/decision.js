@@ -15,7 +15,7 @@ function hasPending(mod) {
   return Object.values(mod.app?.options?.runnerOutbox || {}).some(json => {
     const msg = typeof json.msg === 'object' ? json.msg : null;
     // toJson uses a base64 message buffer; inspect via the framework transaction.
-    const body = msg || new (require('../../lib/saito/transaction').default)(undefined, json).returnMessage();
+    const body = msg || new (require('../../../lib/saito/transaction').default)(undefined, json).returnMessage();
     return body.module === mod.name && body.game_id === mod.game.id &&
       body.step?.game > (mod.game.step?.players?.[mod.publicKey] || 0);
   });

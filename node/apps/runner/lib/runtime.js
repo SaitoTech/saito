@@ -1,11 +1,11 @@
 const fs = require('node:fs');
 const path = require('node:path');
-const { Saito } = require('../../lib/saito/app');
+const { Saito } = require('../../../lib/saito/app');
 const { default: S, initialize } = require('saito-js/index.node');
 const { LogLevel } = require('saito-js/saito');
 const { ServerSharedMethods } = require('saito-js/shared_methods.server');
-const Factory = require('../../lib/saito/factory').default;
-const Transaction = require('../../lib/saito/transaction').default;
+const Factory = require('../../../lib/saito/factory').default;
+const Transaction = require('../../../lib/saito/transaction').default;
 const RunnerStorage = require('./storage');
 const installPresentation = require('./presentation');
 const { GAMES, supportsPlayers } = require('./config');
@@ -79,7 +79,7 @@ async function createRuntime(config, { offline = false, send, monitor = false, c
   app.browser.returnURLParameter = () => null;
   let mod, adapter;
   if (!monitor) {
-    const Game = require('../../mods/' + GAMES[config.game]);
+    const Game = require('../../../mods/' + GAMES[config.game]);
     mod = new Game(app);
     installPresentation(mod);
     const accept = mod.initializeGameFromAcceptTransaction.bind(mod);
@@ -90,9 +90,7 @@ async function createRuntime(config, { offline = false, send, monitor = false, c
           message.options?.async_dealing || Number(message.options?.turn_limit || 0) !== 0) {
         throw Error('Unsupported game invitation options');
       }
-      if (config.game === 'Twilight' && message.options?.deck && message.options.deck !== 'original') {
-        throw Error('Twilight runner currently supports the original deck');
-      }
+      if (config.game === 'Twilight') require('./games/twilight-options').validate(message.options);
       if (config.game === 'PathsOfGlory' && ((message.options?.deck && message.options.deck !== 'original') ||
           (message.options?.scenario && message.options.scenario !== 'original'))) {
         throw Error('Paths of Glory runner supports the original campaign only');
@@ -102,9 +100,9 @@ async function createRuntime(config, { offline = false, send, monitor = false, c
     const Adapter = require('./games/' + config.game.toLowerCase());
     adapter = new Adapter(mod);
   }
-  const Relay = require('../../mods/relay/relay');
+  const Relay = require('../../../mods/relay/relay');
   const relay = new Relay(app);
-  const Arcade = require('../../mods/arcade/arcade');
+  const Arcade = require('../../../mods/arcade/arcade');
   const arcade = new Arcade(app);
   if (coordinated) {
     const receiveAccept = arcade.receiveAcceptTransaction.bind(arcade);

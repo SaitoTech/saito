@@ -1,5 +1,6 @@
 const { createHash } = require('node:crypto');
-const { supportsPlayers } = require('./config');
+const { supportsPlayers } = require('../config');
+const OFFER_DELAY_MS = 5000;
 const INVITE_LIFETIME = 2000000; // Arcade's open-invite lifetime.
 
 function compatible(record, games, publicKey, now = Date.now(), players = 2) {
@@ -15,7 +16,7 @@ function compatible(record, games, publicKey, now = Date.now(), players = 2) {
   if (o.desired_opponent_publickey && o.desired_opponent_publickey !== publicKey) return false;
   if (m.request === 'private' && o.desired_opponent_publickey !== publicKey && !tx.isTo?.(publicKey)) return false;
   if ((o.stake && Number(o.stake) !== 0) || o.async_dealing || o['open-table'] || Number(o.turn_limit || 0) !== 0) return false;
-  if (m.game === 'Twilight' && o.deck && o.deck !== 'original') return false;
+  if (m.game === 'Twilight' && !require('../games/twilight-options').supported(o)) return false;
   if (m.game === 'PathsOfGlory' && ((o.deck && o.deck !== 'original') || (o.scenario && o.scenario !== 'original'))) return false;
   if (m.game === 'Settlers') {
     const length = Number(o.game_length ?? 10);
@@ -87,6 +88,7 @@ class DaemonPolicy {
       if (now < entry.firstSeen + cfg.joinDelayMs) return null;
     } else {
       if (entry.status === 'waiting') {
+        if (now < entry.firstSeen + OFFER_DELAY_MS) return null;
         entry.status = 'asked'; entry.askedAt = now;
         // Persist before sending: a crash must not repeat a question to a person.
         this.save();

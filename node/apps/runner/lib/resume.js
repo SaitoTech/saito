@@ -2,6 +2,7 @@ module.exports = async function resume(runtime, gameId) {
   const { app, mod, adapter } = runtime;
   const saved = app.options.games.filter(g => g.module === mod.name && !g.over && (!gameId || g.id === gameId));
   if (saved.length !== 1) throw Error('resume needs exactly one unfinished game; supply its game id');
+  if (mod.name === 'Twilight') require('./games/twilight-options').validate(saved[0].options);
   mod.loadGame(saved[0].id);
   if (adapter.restore && (mod.game.runnerTwilight || mod.game.runnerTwilightWait || mod.game.runnerPaths || mod.game.runnerPathsWait || mod.game.runnerDraft)) {
     await adapter.restore();

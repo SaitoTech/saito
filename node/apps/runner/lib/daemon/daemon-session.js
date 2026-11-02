@@ -2,9 +2,9 @@ const { setTimeout: delay } = require('node:timers/promises');
 const { DaemonPolicy, compatible } = require('./daemon-policy');
 
 module.exports = async function run(config, task, { signal, report,
-  boot = (...args) => require('./runtime').createRuntime(...args),
-  playGame = require('./loop').play,
-  resumeGame = require('./resume')
+  boot = (...args) => require('../runtime').createRuntime(...args),
+  playGame = require('../loop').play,
+  resumeGame = require('../resume')
 }) {
   const runtime = await boot({ ...config, game: task.game || config.game },
     { monitor: task.mode === 'watch', chat: task.mode === 'play' || config.daemon.mode === 'ask', discover: true });

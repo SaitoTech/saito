@@ -2,9 +2,9 @@
 const report = event => process.stdout.write(JSON.stringify(event) + '\n');
 for (const method of ['log', 'debug', 'info', 'warn', 'trace']) console[method] = () => {};
 const { setTimeout: delay } = require('node:timers/promises');
-const { loadConfig } = require('./config');
-const lock = require('./lock');
-const { play } = require('./loop');
+const { loadConfig } = require('./lib/config');
+const lock = require('./lib/lock');
+const { play } = require('./lib/loop');
 
 async function main() {
   const [command, filename, argument] = process.argv.slice(2);
@@ -16,7 +16,7 @@ async function main() {
   const config = loadConfig(filename);
   // Fail before opening a wallet or accepting an invitation if the local provider
   // cannot start. Listing invites does not require a decision provider.
-  const version = command === 'list' ? null : await require('./providers/check')(config.decisionProvider);
+  const version = command === 'list' ? null : await require('./lib/providers/check')(config.decisionProvider);
   const unlock = lock(config.dataDir);
   const controller = new AbortController();
   // A terminal Ctrl-C reaches the process group, and npm may forward SIGINT
@@ -30,14 +30,14 @@ async function main() {
   for (const event of ['SIGINT', 'SIGTERM']) process.on(event, stop);
   try {
     if (command.startsWith('multi-')) {
-      await require('./multi').multi(config, command.slice(6), argument, { signal: controller.signal, report });
+      await require('./lib/multi/multi').multi(config, command.slice(6), argument, { signal: controller.signal, report });
       return;
     }
     if (command === 'daemon') {
-      await require('./daemon').daemon(config, { signal: controller.signal, report });
+      await require('./lib/daemon/daemon').daemon(config, { signal: controller.signal, report });
       return;
     }
-    const runtime = await require('./runtime').createRuntime(config, { offline: command === 'doctor' });
+    const runtime = await require('./lib/runtime').createRuntime(config, { offline: command === 'doctor' });
     const { app, arcade, mod, adapter } = runtime;
 
     report({ event: 'wallet', publicKey: mod.publicKey, game: config.game });
@@ -74,10 +74,10 @@ async function main() {
       const deadline = Date.now() + 20000;
       while (!arcade.returnGame(argument) && Date.now() < deadline) await delay(250, undefined, { signal: controller.signal });
       const invite = arcade.returnGame(argument);
-      if (!require('./daemon-policy').compatible(invite, [config.game], mod.publicKey, Date.now(), config.players)) throw Error('Matching compatible open invite not found; check game, players and invitation options');
+      if (!require('./lib/daemon/daemon-policy').compatible(invite, [config.game], mod.publicKey, Date.now(), config.players)) throw Error('Matching compatible open invite not found; check game, players and invitation options');
       await arcade.sendJoinTransaction(invite);
     } else {
-      await require('./resume')(runtime, argument);
+      await require('./lib/resume')(runtime, argument);
     }
     await play(runtime, config, { signal: controller.signal, report });
     app.storage.saveOptions();

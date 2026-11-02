@@ -50,8 +50,8 @@ function loadConfig(filename) {
   }
   if (config.decisionProvider.model !== undefined && typeof config.decisionProvider.model !== 'string') throw Error('Invalid model');
   if (config.game === 'Twilight') {
-    config.options.deck ||= 'original';
-    if (config.options.deck !== 'original') throw Error('Twilight runner currently supports the original deck');
+    if (config.options.deck === undefined) config.options.deck = 'original';
+    require('./games/twilight-options').validate(config.options);
   }
   if (config.game === 'PathsOfGlory') {
     config.options.deck ||= 'original';

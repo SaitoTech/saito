@@ -1,7 +1,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const JSONbig = require('json-bigint');
-const Storage = require('../../lib/saito/storage').default;
+const Storage = require('../../../lib/saito/storage').default;
 
 // One directory and one writer per player. Never reads the node's config/options.
 class RunnerStorage extends Storage {

@@ -1,13 +1,13 @@
 const { setTimeout: delay } = require('node:timers/promises');
-const { compatible } = require('./daemon-policy');
-const { play, providerFor } = require('./loop');
+const { compatible } = require('../daemon/daemon-policy');
+const { play, providerFor } = require('../loop');
 
 // One instance in one native process. Only public identity, roster and progress
 // leave this boundary; observations and model prompts stay with their wallet.
 class MultiSeat {
   constructor(config, { signal, report, permit, boot, offline = false }) {
     Object.assign(this, { config, signal, report, permit, offline });
-    this.bootRuntime = boot || ((c, options) => require('./runtime').createRuntime(c, options));
+    this.bootRuntime = boot || ((c, options) => require('../runtime').createRuntime(c, options));
   }
   async boot() {
     this.runtime = await this.bootRuntime(this.config, { discover: true, coordinated: true });
@@ -70,7 +70,7 @@ class MultiSeat {
     const { app, arcade } = this.runtime, saved = app.options.runnerMulti;
     if (saved.role !== 'host' || !saved.invite) throw Error('No prepared host invitation');
     if (app.options.games.some(g => g.id === saved.id)) return;
-    const Transaction = require('../../lib/saito/transaction').default;
+    const Transaction = require('../../../../lib/saito/transaction').default;
     const tx = new Transaction(undefined, saved.invite);
     await this.runtime.runExclusive(async () => {
       await arcade.receiveOpenTransaction(tx);
@@ -126,7 +126,7 @@ class MultiSeat {
       this.running = Promise.resolve(); return;
     }
     if (saved && (mod.game?.id !== id || !mod.initialize_game_run)) {
-      await this.runtime.runExclusive(() => require('./resume')(this.runtime, id));
+      await this.runtime.runExclusive(() => require('../resume')(this.runtime, id));
     }
     const base = providerFor(this.config.decisionProvider);
     const provider = { choose: async (decision, signal) => {

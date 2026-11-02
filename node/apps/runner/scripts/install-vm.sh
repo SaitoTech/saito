@@ -55,7 +55,7 @@ if [[ ! -f dist/build.json ]]; then
 fi
 
 # Create configs under config/, preserving existing settings and wallet paths.
-node apps/runner/configure.js
+node apps/runner/scripts/configure.js
 
 cat <<'NEXT'
 

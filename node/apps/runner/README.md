@@ -12,7 +12,7 @@ CLI, or the included deterministic heuristic for fast test runs.
 
 ## Install dependencies on Ubuntu/Debian
 
-Copy `apps/runner/install-vm.sh` to the VM and run `bash install-vm.sh` as root or
+Copy `apps/runner/scripts/install-vm.sh` to the VM and run `bash install-vm.sh` as root or
 a user with sudo access. The script works without an existing checkout: it clones
 `SaitoTech/saito` branch `2610/game-runner` into `/opt/saito`, then installs Node 22,
 build dependencies, Codex CLI, PM2 and locked npm dependencies in `/opt/saito/node`.
@@ -23,7 +23,7 @@ live in `config/` (for example, `/opt/saito/node/config/daemon.json` on the VM).
 To migrate existing configs without reinstalling dependencies:
 
 ```sh
-node apps/runner/configure.js
+node apps/runner/scripts/configure.js
 ```
 
 This creates `config/daemon.json` or moves an existing root-level `daemon.json`
@@ -32,7 +32,7 @@ Conquest, Settlers, Twilight, Paths and multi-seat configs are migrated too.
 An old config path becomes a link to its new location so existing PM2 commands
 continue working. Edit the file under `config/` thereafter. Existing destination
 files are never overwritten; conflicting old/new files require choosing one.
-Templates remain in `apps/runner/`; generated configs and links are Git-ignored.
+Templates live in `apps/runner/config/`; generated configs and links are Git-ignored.
 New configs keep wallet data under `node/runner-data/`, outside `config/`.
 
 ## Run
@@ -42,8 +42,8 @@ Use an installed checkout with its existing npm dependencies and compatible
 Run these commands from `node/`:
 
 ```sh
-node apps/runner/configure.js conquest
-# Or use: node apps/runner/configure.js settlers twilight paths
+node apps/runner/scripts/configure.js conquest
+# Or use: node apps/runner/scripts/configure.js settlers twilight paths
 # Edit peer, dataDir and decisionProvider.executable for this machine.
 npm run runner -- doctor ./config/conquest.json
 npm run runner -- list ./config/conquest.json
@@ -84,7 +84,7 @@ The runner never substitutes a heuristic move for a failed model call. No wageri
 ## Multiple bot seats in one game
 
 ```sh
-node apps/runner/configure.js multi
+node apps/runner/scripts/configure.js multi
 # Edit peer, dataDir and decisionProvider.executable.
 # Host a four-player Settlers game: three bots, one open seat for you.
 npm run runner -- multi-host ./config/multi.json
@@ -139,21 +139,22 @@ reports `multi-complete`. Logs include a `seat` field to distinguish bot activit
 ## Daemon: watch, join, play, repeat
 
 ```sh
-node apps/runner/configure.js daemon
+node apps/runner/scripts/configure.js daemon
 # Edit peer, dataDir and the local Codex executable.
 npm run runner -- daemon ./config/daemon.json
 ```
 
 The daemon checks the current Arcade invite list at startup and after finishing
 each game, as well as watching live updates and refreshing periodically. In ask
-mode it offers to take existing eligible invites, one host at a time, and waits
+mode it waits five seconds after first seeing an eligible invite before offering
+to take it, one host at a time, and waits
 for a `yes` before joining. Invites that temporarily disappeared are reconsidered
 when they return if their host has not already been asked. Declined, unanswered
 expired requests and completed invites are not asked again.
 It plays one match at a time, then returns to watching. `daemon.games` is its
 allowlist (`Conquest`, `Settlers`, `Twilight`, `PathsOfGlory`); the top-level `game` is still used
 by the other CLI commands. Invitations must match `players`, be unstaked, without
-a turn clock or async dealing. Twilight requires the original deck. Invites from
+a turn clock or async dealing. Twilight accepts original, optional, late-war and saito decks. Invites from
 the bot itself, full/expired/cancelled invites, and invites directed to another
 wallet are skipped. Availability is checked again before signing a join.
 
@@ -162,7 +163,7 @@ Choose either behavior in the config:
 | Setting | Behavior |
 | --- | --- |
 | `daemon.mode: "delay"` | Join after `joinDelayMs` from first seeing an eligible invite. Default delay: 60 seconds. Sends no invitation-consent messages. |
-| `daemon.mode: "ask"` | Send the host `I am a bot. Should I take your Conquest invite? Reply yes or no.` (using the invited game's name). Join only on approval. |
+| `daemon.mode: "ask"` | Wait five seconds from first seeing the invite, then send the host `I am a bot. Should I take your Conquest invite? Reply yes or no.` (using the invited game's name). Join only on approval. |
 | `daemon.consentTimeoutMs` | Stop waiting for permission after this interval; default 10 minutes. Silence never authorizes a join. |
 | `daemon.community` | In ask mode, also ask in Saito Community Chat if the host has spoken there since creating the invite. Default `true`. |
 | `daemon.refreshMs` | Refresh Arcade and available Community Chat history; default 30 seconds. |
@@ -283,18 +284,39 @@ stack trace through the supervisor.
 These timers replace `idleTimeoutMs` for established games. Before an opponent
 joins, the existing standalone timeout / daemon reservation behavior still applies.
 
+## Source layout
+
+```text
+apps/runner/
+  index.ts              CLI entry point and command coordination
+  config/               Example JSON configurations
+  lib/                  Runtime, storage, play loop, chat and recovery
+    daemon/             Invitation policy, supervisor and worker
+    multi/              Multi-seat coordinator, processes and workers
+    games/              Game-specific adapters
+    providers/          Decision engines and executable checks
+  scripts/              Configuration setup and VM installation
+  README.md
+```
+
+`npm run runner` still starts `index.ts`. Setup scripts live under `scripts/`:
+use `node apps/runner/scripts/configure.js` from `node/`. The templates in
+`apps/runner/config/` are inputs to that script; machine-specific configurations
+remain in `node/config/`, and wallets remain in their configured data directories.
+Runner tests and native match harnesses live in `tests/apps/runner/`.
+
 ## How it works
 
-- `index.ts` is the CLI. `runtime.js` boots native SPV networking, Relay, Arcade and
+- `index.ts` is the CLI. `lib/runtime.js` boots native SPV networking, Relay, Arcade and
   the chosen module. Normal Arcade open/join/accept transactions establish a game.
-- `games/conquest.js`, `games/settlers.js` and `games/twilight.js` contain the
+- `lib/games/conquest.js`, `lib/games/settlers.js` and `lib/games/twilight.js` contain the
   runner's adapters, exposing observations and enumerated legal action candidates.
   They call the real game modules under `mods/` and their move methods
   and queue, including encrypted decks and Conquest's battle commitment protocol.
-- `loop.js` gives an observation to a provider, checks its revision again and
+- `lib/loop.js` gives an observation to a provider, checks its revision again and
   submits an allowed choice. Network intake continues while the model thinks.
   Stale answers are discarded. A model cannot supply arbitrary queue commands.
-- `providers/codex.js` invokes `codex exec` with a JSON output schema, an isolated
+- `lib/providers/codex.js` invokes `codex exec` with a JSON output schema, an isolated
   working directory, a read-only sandbox, a timeout and bounded output. It passes
   the player's hand and public board information, excluding wallet keys, deck
   encryption keys, RNG state and opponents' private card identities. Opponent
@@ -309,13 +331,30 @@ browser. Conquest offers blitz attacks and minimal/maximal deployments/occupatio
 Settlers supports initial placement, building/upgrading, bank trades, development
 cards, discards, robber movement and theft. It does not propose or accept trades
 between players. Discard candidates are capped at 1,024 for unusually large hands.
-Twilight currently supports the original deck. Its adapter uses JSDOM and the
+Twilight supports `options.deck` values `original`, `optional`, `late-war` and
+`saito`. Hosting defaults to `original`; an invitation without a deck field uses
+the game engine’s optional-card behavior. Joining and resuming use the invitation
+or saved game options, independently of the hosting default. Its adapter uses JSDOM and the
 repository's jQuery to invoke the existing country, card and menu callbacks inside
 Node. It loads no remote scripts or assets and still uses native SPV networking.
 This compatibility bridge is necessary because Twilight's card rules and click
 handlers are intertwined. Offered targets are checked by those same handlers;
 rejected targets are suppressed until the position changes. Confirmations are
-explicit choices. Community decks and variants have not been enabled.
+explicit choices. Saito Edition includes dynamic deck changes and mid/late-war
+card selections; Late War uses the module's scenario setup and victory rules.
+The provider sees public variant event markers, its own hand, and cards revealed
+or offered to that seat by the game. A reveal is labelled with its game step;
+it is historical information, not a claim about the opponent's current hand.
+
+Individual card additions/removals can be supplied in `options`, using the game
+wizard's card IDs (for example, `"peronism": 1`). The engine checks key presence,
+so omit a card option to leave it unchanged; setting it to `0` does not disable
+it. Custom combinations use the same callbacks but are not exhaustively tested.
+`endofhistory` and `coldwarcrazies` are not supported named presets; their cards
+can be selected individually, except `berlinairlift` and `titostalin`, whose
+existing event handlers are incomplete and are explicitly rejected.
+Timed, staked and async-dealing games remain
+unsupported.
 
 Paths of Glory uses `game: "PathsOfGlory"` and the original campaign. Its local
 DOM bridge invokes the existing card, operations, movement, combat, retreat,
@@ -328,7 +367,7 @@ paused and surfaced as yes/no choices. Unknown or stale targets fail visibly.
 To run both sides with the local Codex CLI:
 
 ```sh
-node apps/runner/configure.js paths
+node apps/runner/scripts/configure.js paths
 # Set decisionProvider.executable to your installed Codex binary.
 npm run runner -- multi-host ./config/paths.json
 npm run runner -- multi-resume ./config/paths.json
@@ -403,6 +442,11 @@ node tests/apps/runner/match.cjs Conquest --cancel-guest
 node tests/apps/runner/match.cjs Twilight --forfeit-guest
 node tests/apps/runner/match.cjs Settlers --restart
 node tests/apps/runner/match.cjs Twilight --restart
+node tests/apps/runner/match.cjs Twilight --deck optional --restart
+node tests/apps/runner/match.cjs Twilight --deck late-war --restart
+node tests/apps/runner/match.cjs Twilight --deck saito --restart-often
+# Custom card options, using the same option keys as the browser wizard:
+node tests/apps/runner/match.cjs Twilight --deck optional --options '{"peronism":1}' --restart
 # Three coordinated bots plus a separate fourth native player:
 node tests/apps/runner/multi-match.cjs Settlers --restart
 node tests/apps/runner/multi-match.cjs Settlers --join

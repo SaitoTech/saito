@@ -1,6 +1,6 @@
-const ModTemplate = require('../../lib/templates/modtemplate');
-const Chat = require('../../mods/chat/chat');
-const Transaction = require('../../lib/saito/transaction').default;
+const ModTemplate = require('../../../lib/templates/modtemplate');
+const Chat = require('../../../mods/chat/chat');
+const Transaction = require('../../../lib/saito/transaction').default;
 const AUTO_MARKER = '<!--saito-runner-auto-->';
 const secp256k1 = require('secp256k1');
 

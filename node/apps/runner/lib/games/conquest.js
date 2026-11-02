@@ -1,5 +1,5 @@
-const Engine = require('../../../mods/conquest/lib/engine');
-const Map = require('../../../mods/conquest/lib/map');
+const Engine = require('../../../../mods/conquest/lib/engine');
+const Map = require('../../../../mods/conquest/lib/map');
 const { decision, selected, hasPending } = require('../decision');
 
 class ConquestRunner {

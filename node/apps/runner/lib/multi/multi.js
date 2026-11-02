@@ -1,6 +1,6 @@
 const fs = require('node:fs');
 const path = require('node:path');
-const lock = require('./lock');
+const lock = require('../lock');
 const { PermitPool, spawnSeat } = require('./multi-process');
 
 function save(filename, value) {

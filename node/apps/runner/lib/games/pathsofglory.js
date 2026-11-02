@@ -110,7 +110,7 @@ class PathsRunner {
     this.revision = 0;
     this.rejected = new Set();
     this.visits = new Map();
-    const html = require('../../../mods/paths/lib/core/game-html.template').default;
+    const html = require('../../../../mods/paths/lib/core/game-html.template').default;
     this.dom = new JSDOM(
       html(mod.app, mod) + '<div id="runner-menu"></div><div id="game-hud2"></div>',
       { runScripts: 'outside-only', url: 'https://runner.invalid/' }
@@ -118,7 +118,7 @@ class PathsRunner {
     const window = this.dom.window;
     window.eval(
       fs.readFileSync(
-        path.resolve(__dirname, '../../../web/saito/lib/jquery/jquery-3.2.1.min.js'),
+        path.resolve(__dirname, '../../../../web/saito/lib/jquery/jquery-3.2.1.min.js'),
         'utf8'
       )
     );

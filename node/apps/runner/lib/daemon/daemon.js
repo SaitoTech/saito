@@ -23,7 +23,7 @@ function child(config, task, { signal, report }) {
   return new Promise((resolve, reject) => {
     const worker = fork(path.join(__dirname, 'daemon-worker.js'), [], {
       execArgv: ['-r', 'ts-node/register'],
-      env: { ...process.env, TS_NODE_PROJECT: path.resolve(__dirname, '../../config/build/tsconfig.json'), TS_NODE_TRANSPILE_ONLY: '1' },
+      env: { ...process.env, TS_NODE_PROJECT: path.resolve(__dirname, '../../../../config/build/tsconfig.json'), TS_NODE_TRANSPILE_ONLY: '1' },
       stdio: ['ignore', 'inherit', 'inherit', 'ipc']
     });
     let next, failure, killTimer;
