@@ -16,6 +16,7 @@ class Accounts {
     delete next.deposit_addresses;
     delete next.operation_mode;
     delete next.execution_mode;
+    delete next.admin_choice;
     delete next.fulfillment_mode;
     delete next.payout_mode;
     delete next.treasury_provider_publickeys;

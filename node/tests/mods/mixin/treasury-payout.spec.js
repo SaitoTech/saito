@@ -533,41 +533,43 @@ describe('mixin fulfillment_mode and payout_mode admin configuration', () => {
     return mixin;
   }
 
+  async function saveConfig(mixin, data) {
+    return mixin.respondTo('admin-config').updateConfig({
+      action: 'save-config',
+      ...data
+    });
+  }
+
   test('defaults to local fulfillment and local payouts without providers or delegates', () => {
     const mixin = configuredMixin();
     expect(mixin.fulfillment_mode).toBe('local');
     expect(mixin.payout_mode).toBe('local');
-    expect(mixin.adminChoiceFromModes(mixin.fulfillment_mode, mixin.payout_mode)).toBe('local');
     expect(mixin.treasury_provider_publickeys).toEqual([]);
     expect(mixin.treasury_delegate_publickeys).toEqual([]);
   });
 
-  test('all four Admin choices save and reload the exact two-variable combinations', () => {
+  test('all four Admin selections save and reload the exact two-variable combinations', async () => {
     const mixin = configuredMixin();
     const cases = [
       {
-        admin_choice: 'local',
         fulfillment_mode: 'local',
         payout_mode: 'local',
         providers: [],
         delegates: []
       },
       {
-        admin_choice: 'local_remote',
         fulfillment_mode: 'local',
         payout_mode: 'remote',
         providers: [TREASURY],
         delegates: []
       },
       {
-        admin_choice: 'remote_remote',
         fulfillment_mode: 'remote',
         payout_mode: 'remote',
         providers: [TREASURY],
         delegates: []
       },
       {
-        admin_choice: 'treasury',
         fulfillment_mode: 'treasury',
         payout_mode: 'local',
         providers: [],
@@ -576,42 +578,37 @@ describe('mixin fulfillment_mode and payout_mode admin configuration', () => {
     ];
 
     for (const entry of cases) {
-      const saved = mixin.saveTreasuryAdminConfig({
-        admin_choice: entry.admin_choice,
+      const saved = await saveConfig(mixin, {
+        fulfillment_mode: entry.fulfillment_mode,
+        payout_mode: entry.payout_mode,
         treasury_provider_publickeys: entry.providers.length ? entry.providers : [TREASURY],
         treasury_delegate_publickeys: entry.delegates.length
           ? entry.delegates
           : ['delegate-one']
       });
       expect(saved).toMatchObject({
-        admin_choice: entry.admin_choice,
         fulfillment_mode: entry.fulfillment_mode,
         payout_mode: entry.payout_mode,
         treasury_provider_publickeys: entry.providers,
         treasury_delegate_publickeys: entry.delegates
       });
+      expect(saved.unsupported_mode_combination).toBeUndefined();
+      expect(saved.admin_choice).toBeUndefined();
+      expect(saved.operation_mode).toBeUndefined();
       expect(mixin.app.options.mixin).toMatchObject({
         fulfillment_mode: entry.fulfillment_mode,
         payout_mode: entry.payout_mode
       });
       expect(mixin.app.options.mixin.operation_mode).toBeUndefined();
       expect(mixin.app.options.mixin.execution_mode).toBeUndefined();
-      expect(mixin.treasuryAdminSnapshot()).toMatchObject({
-        admin_choice: entry.admin_choice,
-        fulfillment_mode: entry.fulfillment_mode,
-        payout_mode: entry.payout_mode,
-        unsupported_mode_combination: false
-      });
+      expect(mixin.app.options.mixin.admin_choice).toBeUndefined();
       mixin.load();
       expect(mixin.fulfillment_mode).toBe(entry.fulfillment_mode);
       expect(mixin.payout_mode).toBe(entry.payout_mode);
-      expect(mixin.adminChoiceFromModes(mixin.fulfillment_mode, mixin.payout_mode)).toBe(
-        entry.admin_choice
-      );
     }
   });
 
-  test('invalid mode combinations are reported explicitly', () => {
+  test('invalid mode combinations are rejected by the server save path', async () => {
     const mixin = configuredMixin({
       mixin: {
         fulfillment_mode: 'remote',
@@ -619,16 +616,41 @@ describe('mixin fulfillment_mode and payout_mode admin configuration', () => {
         treasury_provider_publickeys: [TREASURY]
       }
     });
-    expect(mixin.adminChoiceFromModes(mixin.fulfillment_mode, mixin.payout_mode)).toBeNull();
-    expect(mixin.treasuryAdminSnapshot()).toMatchObject({
-      admin_choice: null,
-      unsupported_mode_combination: true,
+    expect(mixin.fulfillment_mode).toBe('remote');
+    expect(mixin.payout_mode).toBe('local');
+    await expect(
+      saveConfig(mixin, {
+        fulfillment_mode: 'remote',
+        payout_mode: 'local',
+        treasury_provider_publickeys: [TREASURY]
+      })
+    ).rejects.toThrow(/Unsupported fulfillment_mode/);
+    const snapshot = await mixin.respondTo('admin-config').getConfig();
+    expect(snapshot).toMatchObject({
       fulfillment_mode: 'remote',
       payout_mode: 'local'
     });
+    expect(snapshot.unsupported_mode_combination).toBeUndefined();
+    expect(snapshot.admin_choice).toBeUndefined();
   });
 
-  test('saving local fulfillment clears provider and delegate keys', () => {
+  test('invalid fulfillment_mode values are preserved on load and rejected on save', async () => {
+    const mixin = configuredMixin({
+      mixin: {
+        fulfillment_mode: 'broken',
+        payout_mode: 'local'
+      }
+    });
+    expect(mixin.fulfillment_mode).toBe('broken');
+    await expect(
+      saveConfig(mixin, {
+        fulfillment_mode: 'broken',
+        payout_mode: 'local'
+      })
+    ).rejects.toThrow(/Unsupported fulfillment_mode/);
+  });
+
+  test('saving local fulfillment clears provider and delegate keys', async () => {
     const mixin = configuredMixin({
       mixin: {
         fulfillment_mode: 'local',
@@ -638,13 +660,13 @@ describe('mixin fulfillment_mode and payout_mode admin configuration', () => {
       }
     });
     mixin.load();
-    const saved = mixin.saveTreasuryAdminConfig({
-      admin_choice: 'local',
+    const saved = await saveConfig(mixin, {
+      fulfillment_mode: 'local',
+      payout_mode: 'local',
       treasury_provider_publickeys: [TREASURY],
       treasury_delegate_publickeys: ['delegate-one']
     });
     expect(saved).toMatchObject({
-      admin_choice: 'local',
       fulfillment_mode: 'local',
       payout_mode: 'local',
       treasury_provider_publickeys: [],
@@ -656,37 +678,41 @@ describe('mixin fulfillment_mode and payout_mode admin configuration', () => {
     expect(mixin.payout_mode).toBe('local');
   });
 
-  test('remote payout modes require a usable treasury provider key', () => {
+  test('remote payout modes require a usable treasury provider key', async () => {
     const mixin = configuredMixin();
-    expect(() =>
-      mixin.saveTreasuryAdminConfig({
-        admin_choice: 'local_remote',
+    await expect(
+      saveConfig(mixin, {
+        fulfillment_mode: 'local',
+        payout_mode: 'remote',
         treasury_provider_publickeys: []
       })
-    ).toThrow(/Treasury provider/);
-    expect(() =>
-      mixin.saveTreasuryAdminConfig({
-        admin_choice: 'remote_remote',
+    ).rejects.toThrow(/Treasury provider/);
+    await expect(
+      saveConfig(mixin, {
+        fulfillment_mode: 'remote',
+        payout_mode: 'remote',
         treasury_provider_publickeys: [APP]
       })
-    ).toThrow(/not this server/);
+    ).rejects.toThrow(/not this server/);
     expect(mixin.fulfillment_mode).toBe('local');
     expect(mixin.payout_mode).toBe('local');
   });
 
-  test('valid remote payout and treasury modes persist and apply live', () => {
+  test('valid remote payout and treasury modes persist and apply live', async () => {
     const mixin = configuredMixin();
     mixin.transfers = { processTransferQueue: jest.fn(async () => {}) };
 
-    expect(() =>
-      mixin.saveTreasuryAdminConfig({
-        admin_choice: 'local_remote',
+    await expect(
+      saveConfig(mixin, {
+        fulfillment_mode: 'local',
+        payout_mode: 'remote',
         treasury_provider_publickeys: [TREASURY, TREASURY]
       })
-    ).toThrow(/duplicate/);
+    ).rejects.toThrow(/duplicate/);
 
-    const remote = mixin.saveTreasuryAdminConfig({
-      admin_choice: 'local_remote',
+    const remote = await saveConfig(mixin, {
+      fulfillment_mode: 'local',
+      payout_mode: 'remote',
       treasury_provider_publickeys: [TREASURY],
       treasury_delegate_publickeys: ['delegate-one']
     });
@@ -696,29 +722,31 @@ describe('mixin fulfillment_mode and payout_mode admin configuration', () => {
     expect(mixin.payout_mode).toBe('remote');
     expect(mixin.transfer_timer).toBeTruthy();
 
-    const fullyRemote = mixin.saveTreasuryAdminConfig({
-      admin_choice: 'remote_remote',
+    const fullyRemote = await saveConfig(mixin, {
+      fulfillment_mode: 'remote',
+      payout_mode: 'remote',
       treasury_provider_publickeys: [TREASURY]
     });
     expect(fullyRemote.fulfillment_mode).toBe('remote');
     expect(fullyRemote.payout_mode).toBe('remote');
     expect(mixin.transfer_timer).toBeNull();
 
-    expect(() =>
-      mixin.saveTreasuryAdminConfig({
-        admin_choice: 'treasury',
+    await expect(
+      saveConfig(mixin, {
+        fulfillment_mode: 'treasury',
+        payout_mode: 'local',
         treasury_provider_publickeys: [TREASURY],
         treasury_delegate_publickeys: []
       })
-    ).toThrow(/exactly one authorized delegate/);
+    ).rejects.toThrow(/exactly one authorized delegate/);
 
-    const treasury = mixin.saveTreasuryAdminConfig({
-      admin_choice: 'treasury',
+    const treasury = await saveConfig(mixin, {
+      fulfillment_mode: 'treasury',
+      payout_mode: 'local',
       treasury_provider_publickeys: [TREASURY],
       treasury_delegate_publickeys: ['delegate-one']
     });
     expect(treasury).toMatchObject({
-      admin_choice: 'treasury',
       fulfillment_mode: 'treasury',
       payout_mode: 'local',
       treasury_provider_publickeys: [],
@@ -726,17 +754,18 @@ describe('mixin fulfillment_mode and payout_mode admin configuration', () => {
     });
     expect(mixin.transfer_timer).toBeTruthy();
 
-    expect(() =>
-      mixin.saveTreasuryAdminConfig({
-        admin_choice: 'treasury',
+    await expect(
+      saveConfig(mixin, {
+        fulfillment_mode: 'treasury',
+        payout_mode: 'local',
         treasury_delegate_publickeys: ['delegate-one', 'delegate-two']
       })
-    ).toThrow(/exactly one authorized delegate/);
+    ).rejects.toThrow(/exactly one authorized delegate/);
     expect(mixin.treasury_delegate_publickeys).toEqual(['delegate-one']);
     expect(mixin.app.options.mixin.api_key).toBeUndefined();
   });
 
-  test('rejects malformed and duplicate keys without changing active config', () => {
+  test('rejects malformed and duplicate keys without changing active config', async () => {
     const mixin = configuredMixin({
       mixin: {
         fulfillment_mode: 'local',
@@ -744,18 +773,19 @@ describe('mixin fulfillment_mode and payout_mode admin configuration', () => {
       }
     });
     mixin.load();
-    expect(() =>
-      mixin.saveTreasuryAdminConfig({
-        admin_choice: 'local_remote',
+    await expect(
+      saveConfig(mixin, {
+        fulfillment_mode: 'local',
+        payout_mode: 'remote',
         treasury_provider_publickeys: ['not-a-key']
       })
-    ).toThrow(/invalid Saito public key/);
+    ).rejects.toThrow(/invalid Saito public key/);
     expect(mixin.fulfillment_mode).toBe('local');
     expect(mixin.app.options.mixin.fulfillment_mode).toBe('local');
     expect(mixin.app.options.mixin.treasury_provider_publickeys || []).toEqual([]);
   });
 
-  test('startup restores the saved modes from the new configuration fields', () => {
+  test('startup restores the saved modes from the configuration fields', async () => {
     const mixin = configuredMixin({
       mixin: {
         fulfillment_mode: 'treasury',
@@ -765,16 +795,17 @@ describe('mixin fulfillment_mode and payout_mode admin configuration', () => {
     });
     expect(mixin.fulfillment_mode).toBe('treasury');
     expect(mixin.treasury_delegate_publickeys).toEqual(['delegate-one']);
-    expect(mixin.treasuryAdminSnapshot()).toMatchObject({
-      admin_choice: 'treasury',
+    const snapshot = await mixin.respondTo('admin-config').getConfig();
+    expect(snapshot).toMatchObject({
       fulfillment_mode: 'treasury',
       payout_mode: 'local',
       treasury_provider_publickeys: [],
       treasury_delegate_publickeys: ['delegate-one']
     });
+    expect(snapshot.admin_choice).toBeUndefined();
   });
 
-  test('legacy configs without operation_mode are handled safely and saves drop old keys', () => {
+  test('legacy operation_mode configs migrate and saves drop old keys', () => {
     const mixin = configuredMixin({
       mixin: {
         operation_mode: 'remote_remote',
@@ -788,6 +819,7 @@ describe('mixin fulfillment_mode and payout_mode admin configuration', () => {
     mixin.save();
     expect(mixin.app.options.mixin.operation_mode).toBeUndefined();
     expect(mixin.app.options.mixin.execution_mode).toBeUndefined();
+    expect(mixin.app.options.mixin.admin_choice).toBeUndefined();
     expect(mixin.app.options.mixin).toMatchObject({
       fulfillment_mode: 'remote',
       payout_mode: 'remote',
@@ -827,10 +859,12 @@ describe('mixin load/save configuration persistence', () => {
     return { mixin, saved };
   }
 
-  test('treasury settings survive credential saves, restore, backup, and reload', () => {
+  test('treasury settings survive credential saves, restore, backup, and reload', async () => {
     const { mixin, saved } = persistentMixin();
-    mixin.saveTreasuryAdminConfig({
-      admin_choice: 'remote_remote',
+    await mixin.respondTo('admin-config').updateConfig({
+      action: 'save-config',
+      fulfillment_mode: 'remote',
+      payout_mode: 'remote',
       treasury_provider_publickeys: [TREASURY]
     });
     mixin.api_key = {
@@ -882,10 +916,12 @@ describe('mixin load/save configuration persistence', () => {
     expect(reloaded.deposit_addresses[0].address).toBe('0xabc');
   });
 
-  test('treasury mode delegate survives account restore and create-style credential replace', () => {
+  test('treasury mode delegate survives account restore and create-style credential replace', async () => {
     const { mixin, saved } = persistentMixin();
-    mixin.saveTreasuryAdminConfig({
-      admin_choice: 'treasury',
+    await mixin.respondTo('admin-config').updateConfig({
+      action: 'save-config',
+      fulfillment_mode: 'treasury',
+      payout_mode: 'local',
       treasury_delegate_publickeys: ['delegate-one']
     });
 
@@ -1004,10 +1040,12 @@ describe('treasury-backed Buy Saito service advertisement and tunneling', () => 
     expect(services).toEqual(expect.arrayContaining(['mixin', 'buysaito']));
   });
 
-  test('local mode without appSession does not advertise services', () => {
+  test('local mode without appSession does not advertise services', async () => {
     const mixin = servicesNode();
-    mixin.saveTreasuryAdminConfig({
-      admin_choice: 'local',
+    await mixin.respondTo('admin-config').updateConfig({
+      action: 'save-config',
+      fulfillment_mode: 'local',
+      payout_mode: 'local',
       treasury_provider_publickeys: [],
       treasury_delegate_publickeys: []
     });
@@ -1323,10 +1361,12 @@ describe('treasury-backed Buy Saito service advertisement and tunneling', () => 
     );
   });
 
-  test('local_remote does not tunnel buysaito requests', async () => {
+  test('local fulfillment with remote payouts does not tunnel buysaito requests', async () => {
     const mixin = servicesNode();
-    mixin.saveTreasuryAdminConfig({
-      admin_choice: 'local_remote',
+    await mixin.respondTo('admin-config').updateConfig({
+      action: 'save-config',
+      fulfillment_mode: 'local',
+      payout_mode: 'remote',
       treasury_provider_publickeys: [TREASURY]
     });
     mixin.appSession = { ok: true };

@@ -140,7 +140,7 @@ class Mixin extends ModTemplate {
     next.deposit_addresses = Array.isArray(this.deposit_addresses)
       ? this.deposit_addresses.map((item) => ({ ...item }))
       : [];
-    next.fulfillment_mode = this.normalizeFulfillmentMode(this.fulfillment_mode);
+    next.fulfillment_mode = this.fulfillment_mode;
     next.payout_mode = this.payout_mode === 'remote' ? 'remote' : 'local';
     next.treasury_provider_publickeys = [...(this.treasury_provider_publickeys || [])];
     next.treasury_delegate_publickeys = [...(this.treasury_delegate_publickeys || [])];
@@ -149,95 +149,18 @@ class Mixin extends ModTemplate {
     this.app.storage?.saveOptions?.();
   }
 
-  normalizeFulfillmentMode(value) {
-    const mode = String(value || '').trim();
-    if (mode === 'local' || mode === 'remote' || mode === 'treasury') {
-      return mode;
-    }
-    return 'local';
-  }
-
   /**
-   * Map a supported Admin panel choice id to fulfillment_mode + payout_mode.
-   * Choice ids are UI-only (local | local_remote | remote_remote | treasury).
-   */
-  adminChoiceSettings(choice) {
-    switch (String(choice || '').trim()) {
-      case 'local_remote':
-        return {
-          admin_choice: 'local_remote',
-          fulfillment_mode: 'local',
-          payout_mode: 'remote',
-          require_providers: true,
-          clear_delegates: true
-        };
-      case 'remote_remote':
-        return {
-          admin_choice: 'remote_remote',
-          fulfillment_mode: 'remote',
-          payout_mode: 'remote',
-          require_providers: true,
-          clear_delegates: true
-        };
-      case 'treasury':
-        return {
-          admin_choice: 'treasury',
-          fulfillment_mode: 'treasury',
-          payout_mode: 'local',
-          require_providers: false,
-          clear_providers: true,
-          require_exactly_one_delegate: true
-        };
-      case 'local':
-        return {
-          admin_choice: 'local',
-          fulfillment_mode: 'local',
-          payout_mode: 'local',
-          require_providers: false,
-          clear_providers: true,
-          clear_delegates: true
-        };
-      default:
-        throw new Error(`Unsupported Mixin admin operation choice: ${choice}`);
-    }
-  }
-
-  /**
-   * Reconstruct the Admin choice id from saved fulfillment_mode + payout_mode.
-   * Returns null for combinations the Admin panel does not support.
-   */
-  adminChoiceFromModes(fulfillment_mode, payout_mode) {
-    const fulfillment = this.normalizeFulfillmentMode(fulfillment_mode);
-    const payout = payout_mode === 'remote' ? 'remote' : 'local';
-    if (fulfillment === 'local' && payout === 'local') {
-      return 'local';
-    }
-    if (fulfillment === 'local' && payout === 'remote') {
-      return 'local_remote';
-    }
-    if (fulfillment === 'remote' && payout === 'remote') {
-      return 'remote_remote';
-    }
-    if (fulfillment === 'treasury' && payout === 'local') {
-      return 'treasury';
-    }
-    return null;
-  }
-
-  /**
-   * Read new fields when present; otherwise map ignored legacy keys once at load.
+   * Map known legacy operation_mode values, or keep an explicit fulfillment_mode as stored.
+   * Does not infer modes from execution_mode or delegate key presence.
    */
   migrateLegacyModes(options = {}) {
-    const fulfillment = this.normalizeFulfillmentMode(options.fulfillment_mode);
+    const payout_mode = options.payout_mode === 'remote' ? 'remote' : 'local';
     if (
       options.fulfillment_mode === 'local' ||
       options.fulfillment_mode === 'remote' ||
       options.fulfillment_mode === 'treasury'
     ) {
-      return {
-        fulfillment_mode: fulfillment,
-        payout_mode: options.payout_mode === 'remote' ? 'remote' : 'local'
-      };
+      return { fulfillment_mode: options.fulfillment_mode, payout_mode };
     }
 
     const legacy = String(options.operation_mode || '').trim();
@@ -254,27 +177,14 @@ class Mixin extends ModTemplate {
       return { fulfillment_mode: 'treasury', payout_mode: 'local' };
     }
 
-    if (options.execution_mode === 'remote') {
+    if (options.fulfillment_mode != null && String(options.fulfillment_mode).trim() !== '') {
       return {
-        fulfillment_mode: 'remote',
-        payout_mode: options.payout_mode === 'local' ? 'local' : 'remote'
+        fulfillment_mode: String(options.fulfillment_mode).trim(),
+        payout_mode
       };
     }
 
-    const delegates = Array.isArray(options.treasury_delegate_publickeys)
-      ? options.treasury_delegate_publickeys.filter(Boolean)
-      : [];
-    if (delegates.length) {
-      return {
-        fulfillment_mode: 'treasury',
-        payout_mode: options.payout_mode === 'remote' ? 'remote' : 'local'
-      };
-    }
-
-    return {
-      fulfillment_mode: 'local',
-      payout_mode: options.payout_mode === 'remote' ? 'remote' : 'local'
-    };
+    return { fulfillment_mode: 'local', payout_mode };
   }
 
   performsLocalFulfillment() {
@@ -302,59 +212,7 @@ class Mixin extends ModTemplate {
     return keys;
   }
 
-  validateTreasuryAdminConfig(config = {}) {
-    const choice = config.admin_choice;
-    if (!choice) {
-      throw new Error('Mixin admin configuration requires an explicit Admin panel choice.');
-    }
-    const settings = this.adminChoiceSettings(choice);
-    const providers = settings.clear_providers
-      ? []
-      : this.normalizePublicKeyList(config.treasury_provider_publickeys, 'Treasury provider keys');
-    const delegates = settings.clear_delegates
-      ? []
-      : this.normalizePublicKeyList(config.treasury_delegate_publickeys, 'Treasury delegate keys');
-    const own = String(this.publicKey || '').trim();
-
-    if (settings.require_providers) {
-      const usable = providers.filter((key) => key !== own);
-      if (!usable.length) {
-        throw new Error(
-          'This mode requires at least one valid Treasury provider public key that is not this server.'
-        );
-      }
-    }
-
-    if (settings.require_exactly_one_delegate) {
-      if (delegates.length !== 1) {
-        throw new Error('Treasury mode requires exactly one authorized delegate public key.');
-      }
-      if (own && delegates[0] === own) {
-        throw new Error('The treasury delegate public key must not be this server.');
-      }
-    }
-
-    return {
-      admin_choice: settings.admin_choice,
-      fulfillment_mode: settings.fulfillment_mode,
-      payout_mode: settings.payout_mode,
-      treasury_provider_publickeys: providers,
-      treasury_delegate_publickeys: delegates
-    };
-  }
-
-  saveTreasuryAdminConfig(config = {}) {
-    const next = this.validateTreasuryAdminConfig(config);
-    this.fulfillment_mode = next.fulfillment_mode;
-    this.payout_mode = next.payout_mode;
-    this.treasury_provider_publickeys = [...next.treasury_provider_publickeys];
-    this.treasury_delegate_publickeys = [...next.treasury_delegate_publickeys];
-    this.save();
-    this.syncTransferExecution();
-    return next;
-  }
-
-  syncTransferExecution() {
+  syncFulfillmentQueue() {
     if (this.app?.BROWSER || !this.transfers) {
       return;
     }
@@ -374,18 +232,6 @@ class Mixin extends ModTemplate {
     }
     clearInterval(this.transfer_timer);
     this.transfer_timer = null;
-  }
-
-  treasuryAdminSnapshot() {
-    const admin_choice = this.adminChoiceFromModes(this.fulfillment_mode, this.payout_mode);
-    return {
-      admin_choice,
-      fulfillment_mode: this.normalizeFulfillmentMode(this.fulfillment_mode),
-      payout_mode: this.payout_mode === 'remote' ? 'remote' : 'local',
-      treasury_provider_publickeys: [...(this.treasury_provider_publickeys || [])],
-      treasury_delegate_publickeys: [...(this.treasury_delegate_publickeys || [])],
-      unsupported_mode_combination: !admin_choice
-    };
   }
 
   isHandshakeVerifiedPeer(peer) {
@@ -1444,65 +1290,123 @@ class Mixin extends ModTemplate {
     }
   }
 
-  async adminPaymentsConfig(testing, request = {}) {
-    const treasury = this.treasuryAdminSnapshot();
-    const api_key_configured = this.mixinApiKeyConfigured();
-    if (!api_key_configured) {
-      return {
-        transfers: [],
-        total: 0,
-        page: 1,
-        page_size: 20,
-        account: this.accountSummary(),
-        api_key_configured: false,
-        ...treasury
-      };
-    }
-
-    const listed = await testing.listOutstandingTransfers({
-      search: request.search || '',
-      page: request.page || 1,
-      purpose: request.purpose || ''
-    });
-    return {
-      ...listed,
-      account: this.accountSummary(),
-      api_key_configured: true,
-      deposit_addresses: await this.depositAddressReport(),
-      ...treasury
-    };
-  }
-
   respondTo(type = '', obj) {
     if (type === 'admin-config') {
       const testing = new TransferTesting(this.app, this);
+      const getConfig = async (request = {}) => {
+        const fulfillment_mode = this.fulfillment_mode;
+        const payout_mode = this.payout_mode === 'remote' ? 'remote' : 'local';
+        const treasury_provider_publickeys = [...(this.treasury_provider_publickeys || [])];
+        const treasury_delegate_publickeys = [...(this.treasury_delegate_publickeys || [])];
+        const api_key_configured = this.mixinApiKeyConfigured();
+        if (!api_key_configured) {
+          return {
+            transfers: [],
+            total: 0,
+            page: 1,
+            page_size: 20,
+            account: this.accountSummary(),
+            api_key_configured: false,
+            fulfillment_mode,
+            payout_mode,
+            treasury_provider_publickeys,
+            treasury_delegate_publickeys
+          };
+        }
+
+        const listed = await testing.listOutstandingTransfers({
+          search: request.search || '',
+          page: request.page || 1,
+          purpose: request.purpose || ''
+        });
+        return {
+          ...listed,
+          account: this.accountSummary(),
+          api_key_configured: true,
+          deposit_addresses: await this.depositAddressReport(),
+          fulfillment_mode,
+          payout_mode,
+          treasury_provider_publickeys,
+          treasury_delegate_publickeys
+        };
+      };
+
       return {
         id: this.returnSlug(),
         name: this.name,
-        getConfig: async (request = {}) => this.adminPaymentsConfig(testing, request),
+        getConfig,
         updateConfig: async (config = {}) => {
           if (config.action === 'save-api-key') {
             this.saveMixinApiKey(config.api_key);
-            return this.adminPaymentsConfig(testing, config);
+            return getConfig(config);
           }
-          if (config.action === 'save-operation-mode') {
-            this.saveTreasuryAdminConfig(config);
-            return this.adminPaymentsConfig(testing, config);
+          if (config.action === 'save-config') {
+            const fulfillment_mode = String(config.fulfillment_mode || '').trim();
+            const payout_mode = config.payout_mode === 'remote' ? 'remote' : 'local';
+            const supported =
+              (fulfillment_mode === 'local' &&
+                (payout_mode === 'local' || payout_mode === 'remote')) ||
+              (fulfillment_mode === 'remote' && payout_mode === 'remote') ||
+              (fulfillment_mode === 'treasury' && payout_mode === 'local');
+            if (!supported) {
+              throw new Error('Unsupported fulfillment_mode and payout_mode combination.');
+            }
+
+            let providers = [];
+            let delegates = [];
+            const own = String(this.publicKey || '').trim();
+
+            if (fulfillment_mode === 'local' && payout_mode === 'local') {
+              providers = [];
+              delegates = [];
+            } else if (fulfillment_mode === 'treasury' && payout_mode === 'local') {
+              providers = [];
+              delegates = this.normalizePublicKeyList(
+                config.treasury_delegate_publickeys,
+                'Treasury delegate keys'
+              );
+              if (delegates.length !== 1) {
+                throw new Error('Treasury mode requires exactly one authorized delegate public key.');
+              }
+              if (own && delegates[0] === own) {
+                throw new Error('The treasury delegate public key must not be this server.');
+              }
+            } else {
+              providers = this.normalizePublicKeyList(
+                config.treasury_provider_publickeys,
+                'Treasury provider keys'
+              );
+              delegates = [];
+              const usable = providers.filter((key) => key !== own);
+              if (!usable.length) {
+                throw new Error(
+                  'This mode requires at least one valid Treasury provider public key that is not this server.'
+                );
+              }
+            }
+
+            this.fulfillment_mode = fulfillment_mode;
+            this.payout_mode = payout_mode;
+            this.treasury_provider_publickeys = providers;
+            this.treasury_delegate_publickeys = delegates;
+            this.save();
+            this.syncFulfillmentQueue();
+            return getConfig(config);
           }
           if (config.action === 'create-account') {
             const created = await this.createAccount();
             if (created?.err || !this.accountSummary()) {
               throw new Error(created?.err || 'Mixin account was not created');
             }
-            return this.adminPaymentsConfig(testing, config);
+            return getConfig(config);
           }
           if (config.action === 'restore-account') {
             this.restoreAccount(config.account);
-            return this.adminPaymentsConfig(testing, config);
+            return getConfig(config);
           }
           if (config.action === 'exclude-transfer') {
             await testing.excludeTransfer(config.id);
-            return this.adminPaymentsConfig(testing, config);
+            return getConfig(config);
           }
           if (config.action === 'verify-migration') {
             await this.migration.confirmManualMigrationDeposit(
@@ -1510,14 +1414,14 @@ class Mixin extends ModTemplate {
               config.amount,
               config.tx_hash
             );
-            return this.adminPaymentsConfig(testing, config);
+            return getConfig(config);
           }
           if (config.action === 'approve-migration') {
             await this.approveManualMigration(config.id);
-            return this.adminPaymentsConfig(testing, config);
+            return getConfig(config);
           }
           await testing.advanceTransfer(config.id, config.action);
-          return this.adminPaymentsConfig(testing, config);
+          return getConfig(config);
         }
       };
     }

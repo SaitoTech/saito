@@ -14,9 +14,17 @@ function formatReservationRemaining(ms) {
   return `${seconds}s remaining`;
 }
 
+function parseModePair(value) {
+  const [fulfillment_mode, payout_mode] = String(value || '').split(':');
+  return { fulfillment_mode, payout_mode };
+}
+
 class MixinAdmin {
   constructor(app, mod, container = '.admin-payments') {
     this.app = app;
+    // Browser Mixin instance that constructed this sidebar panel. Server-owned
+    // payment configuration is loaded/saved through Admin get/update-admin-config,
+    // not through this.mod.save() (browser options.mixin holds wallet credentials).
     this.mod = mod;
     this.container = container;
     this.transfers = [];
@@ -35,13 +43,14 @@ class MixinAdmin {
     this.apiKeyText = '';
     this.savingApiKey = false;
     this.depositAddresses = [];
-    this.operationMode = 'local';
-    this.providerKeys = [];
-    this.delegateKeys = [];
-    this.providerDraft = '';
-    this.delegateDraft = '';
-    this.savingOperation = false;
-    this.operationNotice = '';
+    this.fulfillment_mode = 'local';
+    this.payout_mode = 'local';
+    this.treasury_provider_publickeys = [];
+    this.treasury_delegate_publickeys = [];
+    this.treasury_provider_draft = '';
+    this.treasury_delegate_draft = '';
+    this.savingConfig = false;
+    this.configNotice = '';
     this.tab = 'transfers';
     this.reservation_timer = null;
   }
@@ -67,13 +76,14 @@ class MixinAdmin {
     this.apiKeyText = '';
     this.savingApiKey = false;
     this.depositAddresses = [];
-    this.operationMode = 'local';
-    this.providerKeys = [];
-    this.delegateKeys = [];
-    this.providerDraft = '';
-    this.delegateDraft = '';
-    this.savingOperation = false;
-    this.operationNotice = '';
+    this.fulfillment_mode = 'local';
+    this.payout_mode = 'local';
+    this.treasury_provider_publickeys = [];
+    this.treasury_delegate_publickeys = [];
+    this.treasury_provider_draft = '';
+    this.treasury_delegate_draft = '';
+    this.savingConfig = false;
+    this.configNotice = '';
     this.tab = 'transfers';
 
     if (!this.admin()?.server_info) {
@@ -108,13 +118,14 @@ class MixinAdmin {
         apiKeyText: this.apiKeyText,
         savingApiKey: this.savingApiKey,
         depositAddresses: this.depositAddresses,
-        operationMode: this.operationMode,
-        providerKeys: this.providerKeys,
-        delegateKeys: this.delegateKeys,
-        providerDraft: this.providerDraft,
-        delegateDraft: this.delegateDraft,
-        savingOperation: this.savingOperation,
-        operationNotice: this.operationNotice,
+        fulfillment_mode: this.fulfillment_mode,
+        payout_mode: this.payout_mode,
+        treasury_provider_publickeys: this.treasury_provider_publickeys,
+        treasury_delegate_publickeys: this.treasury_delegate_publickeys,
+        treasury_provider_draft: this.treasury_provider_draft,
+        treasury_delegate_draft: this.treasury_delegate_draft,
+        savingConfig: this.savingConfig,
+        configNotice: this.configNotice,
         tab: this.tab
       }),
       this.container
@@ -258,11 +269,13 @@ class MixinAdmin {
       };
     });
 
-    const mode = document.getElementById('admin-payments-operation-mode');
+    const mode = document.getElementById('admin-payments-mode');
     if (mode) {
       mode.onchange = () => {
-        this.operationMode = mode.value || 'local';
-        this.operationNotice = '';
+        const next = parseModePair(mode.value);
+        this.fulfillment_mode = next.fulfillment_mode;
+        this.payout_mode = next.payout_mode;
+        this.configNotice = '';
         this.error = '';
         this.refresh();
       };
@@ -285,11 +298,11 @@ class MixinAdmin {
       };
     });
 
-    const saveOperation = document.getElementById('admin-payments-operation-save');
-    if (saveOperation) {
-      saveOperation.onclick = (e) => {
+    const saveConfig = document.getElementById('admin-payments-mode-save');
+    if (saveConfig) {
+      saveConfig.onclick = (e) => {
         e.preventDefault();
-        this.saveOperationMode();
+        this.saveConfig();
       };
     }
   }
@@ -349,20 +362,17 @@ class MixinAdmin {
     if (Array.isArray(result?.deposit_addresses)) {
       this.depositAddresses = result.deposit_addresses;
     }
-    if (result?.unsupported_mode_combination) {
-      this.operationMode = '';
-      this.error =
-        'Saved fulfillment_mode and payout_mode do not match a supported Admin configuration. Choose one of the four supported options and save again.';
-    } else if (result?.admin_choice) {
-      this.operationMode = result.admin_choice;
-    } else if (result?.operation_mode) {
-      this.operationMode = result.operation_mode;
+    if (result?.fulfillment_mode !== undefined) {
+      this.fulfillment_mode = result.fulfillment_mode;
+    }
+    if (result?.payout_mode !== undefined) {
+      this.payout_mode = result.payout_mode;
     }
     if (Array.isArray(result?.treasury_provider_publickeys)) {
-      this.providerKeys = [...result.treasury_provider_publickeys];
+      this.treasury_provider_publickeys = [...result.treasury_provider_publickeys];
     }
     if (Array.isArray(result?.treasury_delegate_publickeys)) {
-      this.delegateKeys = [...result.treasury_delegate_publickeys];
+      this.treasury_delegate_publickeys = [...result.treasury_delegate_publickeys];
     }
   }
 
@@ -377,104 +387,95 @@ class MixinAdmin {
     if (!this.app.crypto.isPublicKey(value)) {
       this.error = 'That is not a valid Saito public key.';
       if (kind === 'provider') {
-        this.providerDraft = value;
+        this.treasury_provider_draft = value;
       } else {
-        this.delegateDraft = value;
+        this.treasury_delegate_draft = value;
       }
       this.refresh();
       return;
     }
-    const list = kind === 'provider' ? this.providerKeys : this.delegateKeys;
+    const list = kind === 'provider' ? this.treasury_provider_publickeys : this.treasury_delegate_publickeys;
     if (list.includes(value)) {
       this.error = 'That public key is already configured.';
       this.refresh();
       return;
     }
-    if (kind === 'delegate' && this.operationMode === 'treasury' && list.length >= 1) {
+    if (
+      kind === 'delegate' &&
+      this.fulfillment_mode === 'treasury' &&
+      this.payout_mode === 'local' &&
+      list.length >= 1
+    ) {
       this.error = 'Treasury mode allows exactly one authorized delegate.';
-      this.delegateDraft = value;
+      this.treasury_delegate_draft = value;
       this.refresh();
       return;
     }
     list.push(value);
     if (kind === 'provider') {
-      this.providerDraft = '';
+      this.treasury_provider_draft = '';
     } else {
-      this.delegateDraft = '';
+      this.treasury_delegate_draft = '';
     }
     this.error = '';
-    this.operationNotice = '';
+    this.configNotice = '';
     this.refresh();
   }
 
   removeKey(kind, key) {
     if (kind === 'provider') {
-      this.providerKeys = this.providerKeys.filter((entry) => entry !== key);
+      this.treasury_provider_publickeys = this.treasury_provider_publickeys.filter((entry) => entry !== key);
     } else {
-      this.delegateKeys = this.delegateKeys.filter((entry) => entry !== key);
+      this.treasury_delegate_publickeys = this.treasury_delegate_publickeys.filter((entry) => entry !== key);
     }
     this.error = '';
-    this.operationNotice = '';
+    this.configNotice = '';
     this.refresh();
   }
 
-  async saveOperationMode() {
-    if (this.savingOperation) {
+  async saveConfig() {
+    if (this.savingConfig) {
       return;
     }
 
-    if (
-      (this.operationMode === 'local_remote' || this.operationMode === 'remote_remote') &&
-      !this.providerKeys.length
-    ) {
-      this.error =
-        'This mode requires at least one valid Treasury provider public key before it can be saved.';
-      this.operationNotice = '';
-      this.refresh();
-      return;
-    }
-
-    if (this.operationMode === 'treasury' && this.delegateKeys.length !== 1) {
-      this.error = 'Treasury mode requires exactly one authorized delegate public key before it can be saved.';
-      this.operationNotice = '';
-      this.refresh();
-      return;
-    }
-
-    this.savingOperation = true;
+    this.savingConfig = true;
     this.error = '';
-    this.operationNotice = '';
+    this.configNotice = '';
     this.refresh();
 
+    // Server-owned Mixin options are persisted by the server Mixin module's save()
+    // through Admin update-admin-config. Browser this.mod.save() would write the
+    // lite client's wallet credentials, not the payment server configuration.
     await this.sendAdminRequest(
       'update-admin-config',
       {
         module_id: 'mixin',
         data: {
-          action: 'save-operation-mode',
-          admin_choice: this.operationMode,
-          treasury_provider_publickeys: this.providerKeys,
-          treasury_delegate_publickeys: this.delegateKeys,
+          action: 'save-config',
+          fulfillment_mode: this.fulfillment_mode,
+          payout_mode: this.payout_mode,
+          treasury_provider_publickeys: this.treasury_provider_publickeys,
+          treasury_delegate_publickeys: this.treasury_delegate_publickeys,
           search: this.search,
           purpose: this.purpose,
           page: this.page
         }
       },
       (res) => {
-        this.savingOperation = false;
+        this.savingConfig = false;
         if (res?.err) {
           this.error = res.err;
-          this.operationNotice = '';
+          this.configNotice = '';
           this.refresh();
           return;
         }
-        this.providerDraft = '';
-        this.delegateDraft = '';
+        this.treasury_provider_draft = '';
+        this.treasury_delegate_draft = '';
         this.applyResult(res.result);
-        this.operationNotice = 'Operation mode saved.';
+        this.configNotice = 'Configuration saved.';
         this.refresh();
         if (typeof siteMessage === 'function') {
-          siteMessage('Operation mode saved.', 3000);
+          siteMessage('Configuration saved.', 3000);
         }
       }
     );

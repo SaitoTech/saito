@@ -1107,12 +1107,14 @@ describe('Mixin admin payments account', () => {
       page_size: 20,
       account: null,
       api_key_configured: false,
-      admin_choice: 'local',
       fulfillment_mode: 'local',
       payout_mode: 'local',
       treasury_provider_publickeys: [],
       treasury_delegate_publickeys: []
     });
+    const snapshot = await config.getConfig();
+    expect(snapshot.admin_choice).toBeUndefined();
+    expect(snapshot.operation_mode).toBeUndefined();
 
     const updated = await config.updateConfig({ action: 'create-account' });
     expect(updated.account.user_id).toBe('user-9');

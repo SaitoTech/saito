@@ -134,12 +134,16 @@ function setupPanel(creating, restoring, restoreText) {
   `;
 }
 
-const OPERATION_MODE_OPTIONS = [
-  { value: 'local', label: 'Local Fulfillment - Local Payouts' },
-  { value: 'local_remote', label: 'Local Fulfillment - Remote Payouts' },
-  { value: 'remote_remote', label: 'Remote Fulfillment - Remote Payouts' },
-  { value: 'treasury', label: 'Local Fulfillment - Treasury Node' }
+const MODE_OPTIONS = [
+  { fulfillment_mode: 'local', payout_mode: 'local', label: 'Local Fulfillment - Local Payouts' },
+  { fulfillment_mode: 'local', payout_mode: 'remote', label: 'Local Fulfillment - Remote Payouts' },
+  { fulfillment_mode: 'remote', payout_mode: 'remote', label: 'Remote Fulfillment - Remote Payouts' },
+  { fulfillment_mode: 'treasury', payout_mode: 'local', label: 'Local Fulfillment - Treasury Node' }
 ];
+
+function modeOptionValue(fulfillment_mode, payout_mode) {
+  return `${fulfillment_mode}:${payout_mode}`;
+}
 
 function keyListPanel({ title, description, keys, draft, kind, saving }) {
   const rows = Array.isArray(keys) ? keys : [];
@@ -174,59 +178,65 @@ function keyListPanel({ title, description, keys, draft, kind, saving }) {
     </div>`;
 }
 
-function operationModeSection({
-  operationMode = 'local',
-  providerKeys = [],
-  delegateKeys = [],
-  providerDraft = '',
-  delegateDraft = '',
-  savingOperation = false,
+function modeSection({
+  fulfillment_mode = 'local',
+  payout_mode = 'local',
+  treasury_provider_publickeys = [],
+  treasury_delegate_publickeys = [],
+  treasury_provider_draft = '',
+  treasury_delegate_draft = '',
+  savingConfig = false,
   notice = ''
 }) {
-  const mode = OPERATION_MODE_OPTIONS.some((option) => option.value === operationMode)
-    ? operationMode
-    : 'local';
-  const disabled = savingOperation ? 'disabled' : '';
-  const options = OPERATION_MODE_OPTIONS.map(
+  const selected = modeOptionValue(fulfillment_mode, payout_mode);
+  const supported = MODE_OPTIONS.some(
     (option) =>
-      `<option value="${escapeHtml(option.value)}" ${
-        option.value === mode ? 'selected' : ''
-      }>${escapeHtml(option.label)}</option>`
-  ).join('');
+      option.fulfillment_mode === fulfillment_mode && option.payout_mode === payout_mode
+  );
+  const disabled = savingConfig ? 'disabled' : '';
+  const options = MODE_OPTIONS.map((option) => {
+    const value = modeOptionValue(option.fulfillment_mode, option.payout_mode);
+    return `<option value="${escapeHtml(value)}" ${
+      supported && value === selected ? 'selected' : ''
+    }>${escapeHtml(option.label)}</option>`;
+  }).join('');
 
   let keys = '';
-  if (mode === 'local_remote' || mode === 'remote_remote') {
+  if (
+    (fulfillment_mode === 'local' && payout_mode === 'remote') ||
+    (fulfillment_mode === 'remote' && payout_mode === 'remote')
+  ) {
     keys = keyListPanel({
       title: 'Treasury Provider Keys',
       description:
-        mode === 'remote_remote'
+        fulfillment_mode === 'remote'
           ? 'Add at least one Treasury node public key. This server will tunnel all requests directly to a configured provider.'
           : 'Add at least one Treasury node public key. This server will send payout requests to a configured provider.',
-      keys: providerKeys,
-      draft: providerDraft,
+      keys: treasury_provider_publickeys,
+      draft: treasury_provider_draft,
       kind: 'provider',
-      saving: savingOperation
+      saving: savingConfig
     });
-  } else if (mode === 'treasury') {
+  } else if (fulfillment_mode === 'treasury' && payout_mode === 'local') {
     keys = keyListPanel({
       title: 'Authorized Delegate Keys',
       description:
         'Configure exactly one services delegate. That node may forward fulfillment requests and relay browser payment notifications for this treasury.',
-      keys: delegateKeys,
-      draft: delegateDraft,
+      keys: treasury_delegate_publickeys,
+      draft: treasury_delegate_draft,
       kind: 'delegate',
-      saving: savingOperation
+      saving: savingConfig
     });
   }
 
   return `<section class="admin-payments-section admin-payments-operation">
-      <h2>Operation Mode</h2>
+      <h2>Fulfillment and Payout</h2>
       <div class="admin-payments-operation-controls">
-        <select class="admin-input" id="admin-payments-operation-mode" aria-label="Operation mode" ${disabled}>
+        <select class="admin-input" id="admin-payments-mode" aria-label="Fulfillment and payout configuration" ${disabled}>
           ${options}
         </select>
-        <button type="button" class="admin-button" id="admin-payments-operation-save" ${disabled}>
-          ${savingOperation ? 'Saving…' : 'Save'}
+        <button type="button" class="admin-button" id="admin-payments-mode-save" ${disabled}>
+          ${savingConfig ? 'Saving…' : 'Save'}
         </button>
       </div>
       ${keys}
@@ -388,14 +398,15 @@ function transfersTab({ rows, search, purpose, advancing, page, total }) {
 function configTab(opts) {
   const account = opts.account?.user_id ? accountPanel(opts.account) : '';
   return `${account}
-    ${operationModeSection({
-      operationMode: opts.operationMode,
-      providerKeys: opts.providerKeys,
-      delegateKeys: opts.delegateKeys,
-      providerDraft: opts.providerDraft,
-      delegateDraft: opts.delegateDraft,
-      savingOperation: opts.savingOperation,
-      notice: opts.operationNotice
+    ${modeSection({
+      fulfillment_mode: opts.fulfillment_mode,
+      payout_mode: opts.payout_mode,
+      treasury_provider_publickeys: opts.treasury_provider_publickeys,
+      treasury_delegate_publickeys: opts.treasury_delegate_publickeys,
+      treasury_provider_draft: opts.treasury_provider_draft,
+      treasury_delegate_draft: opts.treasury_delegate_draft,
+      savingConfig: opts.savingConfig,
+      notice: opts.configNotice
     })}`;
 }
 
@@ -416,13 +427,14 @@ module.exports = ({
   apiKeyText = '',
   savingApiKey = false,
   depositAddresses = [],
-  operationMode = 'local',
-  providerKeys = [],
-  delegateKeys = [],
-  providerDraft = '',
-  delegateDraft = '',
-  savingOperation = false,
-  operationNotice = '',
+  fulfillment_mode = 'local',
+  payout_mode = 'local',
+  treasury_provider_publickeys = [],
+  treasury_delegate_publickeys = [],
+  treasury_provider_draft = '',
+  treasury_delegate_draft = '',
+  savingConfig = false,
+  configNotice = '',
   tab = 'transfers'
 } = {}) => {
   const rows = Array.isArray(transfers) ? transfers : [];
@@ -443,20 +455,21 @@ module.exports = ({
   } else if (activeTab === 'config') {
     body = configTab({
       account,
-      operationMode,
-      providerKeys,
-      delegateKeys,
-      providerDraft,
-      delegateDraft,
-      savingOperation,
-      operationNotice
+      fulfillment_mode,
+      payout_mode,
+      treasury_provider_publickeys,
+      treasury_delegate_publickeys,
+      treasury_provider_draft,
+      treasury_delegate_draft,
+      savingConfig,
+      configNotice
     });
   } else {
     body = transfersTab({ rows, search, purpose, advancing, page, total });
   }
 
   const refreshDisabled =
-    loading || advancing || creating || restoring || savingApiKey || savingOperation ? 'disabled' : '';
+    loading || advancing || creating || restoring || savingApiKey || savingConfig ? 'disabled' : '';
   return `
     <div class="admin-payments-page">
       <div class="admin-payments-header">
