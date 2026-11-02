@@ -111,8 +111,7 @@ async function service() {
     credentials: { ...credentials },
     deposit_addresses: [],
     api_key: null,
-    operation_mode: 'local',
-    execution_mode: 'local',
+    fulfillment_mode: 'local',
     payout_mode: 'local',
     treasury_provider_publickeys: [],
     treasury_delegate_publickeys: [],
@@ -120,8 +119,7 @@ async function service() {
       app.options.mixin = {
         ...this.credentials,
         deposit_addresses: this.deposit_addresses || [],
-        operation_mode: this.operation_mode,
-        execution_mode: this.execution_mode,
+        fulfillment_mode: this.fulfillment_mode,
         payout_mode: this.payout_mode,
         treasury_provider_publickeys: this.treasury_provider_publickeys || [],
         treasury_delegate_publickeys: this.treasury_delegate_publickeys || []
@@ -344,8 +342,8 @@ describe('Mixin migration reserved-address transfers', () => {
     const mixin = Object.assign(Object.create(Mixin.prototype), {
       app,
       migration: mod.migration,
-      execution_mode: 'local',
-      operation_mode: 'local',
+      fulfillment_mode: 'local',
+      payout_mode: 'local',
       treasury_provider_publickeys: [],
       treasury_delegate_publickeys: []
     });

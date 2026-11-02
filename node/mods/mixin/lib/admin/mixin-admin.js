@@ -349,7 +349,13 @@ class MixinAdmin {
     if (Array.isArray(result?.deposit_addresses)) {
       this.depositAddresses = result.deposit_addresses;
     }
-    if (result?.operation_mode) {
+    if (result?.unsupported_mode_combination) {
+      this.operationMode = '';
+      this.error =
+        'Saved fulfillment_mode and payout_mode do not match a supported Admin configuration. Choose one of the four supported options and save again.';
+    } else if (result?.admin_choice) {
+      this.operationMode = result.admin_choice;
+    } else if (result?.operation_mode) {
       this.operationMode = result.operation_mode;
     }
     if (Array.isArray(result?.treasury_provider_publickeys)) {
@@ -446,7 +452,7 @@ class MixinAdmin {
         module_id: 'mixin',
         data: {
           action: 'save-operation-mode',
-          operation_mode: this.operationMode,
+          admin_choice: this.operationMode,
           treasury_provider_publickeys: this.providerKeys,
           treasury_delegate_publickeys: this.delegateKeys,
           search: this.search,

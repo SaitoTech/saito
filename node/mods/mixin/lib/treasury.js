@@ -118,7 +118,11 @@ async function receiveTreasuryPayout(mod, tx) {
   if (purpose === 'store-purchase' && (!String(data.inbound_tx_hash || '').trim() || !data.payload)) {
     return reject('The store purchase request is missing its payment evidence.');
   }
-  if (mod.payout_mode !== 'local' || mod.execution_mode !== 'local') {
+  const fulfillsLocally =
+    typeof mod.performsLocalFulfillment === 'function'
+      ? mod.performsLocalFulfillment()
+      : mod.fulfillment_mode === 'local' || mod.fulfillment_mode === 'treasury';
+  if (mod.payout_mode !== 'local' || !fulfillsLocally) {
     return {
       request_status: 'error',
       reason: 'This node is not accepting treasury payout requests.',
