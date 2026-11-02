@@ -604,11 +604,16 @@ describe('Mixin migration reserved-address transfers', () => {
     expect(reserved).toContain('0xreserved');
     expect(reserved).toContain('Migrate ERC20 SAITO');
     expect(reserved).toContain('id="migration-qrcode"');
+    expect(reserved).toContain('fa-copy');
+    expect(reserved).toContain('to the address above');
     expect(reserved).toContain('Send any amount of ERC-20 SAITO');
     expect(reserved).toContain('id="migration-extend-reservation"');
     expect(reserved).toContain('Click here');
-    expect(reserved).toContain('email migration@saito.io for support');
-    expect(reserved).toContain('Waiting for your deposit...');
+    expect(reserved).toContain('mailto:migration@saito.io');
+    expect(reserved).toContain('>migration@saito.io</a> for support');
+    expect(reserved).not.toContain('Waiting for your deposit...');
+    expect(reserved).not.toContain('or purchase SAITO online');
+    expect(reserved).not.toContain('to the address below');
     expect(client).toContain('startMigrationSaitoArrivalWatch');
     expect(client).toContain('onMigrationSaitoArrived');
     expect(client).toContain('requestMigrationExtend');

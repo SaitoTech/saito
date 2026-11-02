@@ -36,6 +36,27 @@ class MigrationMain {
       }
     });
 
+    const depositAddress = document.querySelector('#migration-deposit-address');
+    if (depositAddress) {
+      depositAddress.onclick = () => {
+        const address = this.mod.migration_instructions?.address || '';
+        if (!address || typeof navigator?.clipboard?.writeText !== 'function') {
+          return;
+        }
+        navigator.clipboard.writeText(address);
+        const icon = depositAddress.querySelector('i');
+        if (!icon) {
+          return;
+        }
+        icon.classList.toggle('fa-copy');
+        icon.classList.toggle('fa-check');
+        setTimeout(() => {
+          icon.classList.toggle('fa-copy');
+          icon.classList.toggle('fa-check');
+        }, 800);
+      };
+    }
+
     const extend = document.querySelector('#migration-extend-reservation');
     if (extend) {
       extend.onclick = async (event) => {

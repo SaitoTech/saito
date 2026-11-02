@@ -49,6 +49,34 @@
   height: auto;
 }
 
+.migration-page .migration-deposit-address {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  margin-top: var(--saito-space-sm);
+  text-align: center;
+  color: var(--saito-foreground);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.migration-page .migration-deposit-address .profile-public-key {
+  display: inline;
+  min-width: 0;
+  overflow: visible;
+  text-align: center;
+  text-overflow: clip;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.migration-page .migration-deposit-address > i {
+  display: inline-block;
+  margin-left: 0.6rem;
+  vertical-align: middle;
+}
+
 .migration-page .migration-instructions,
 .migration-page .migration-status {
   width: 100%;
@@ -57,22 +85,10 @@
   margin-top: var(--saito-space-sm);
 }
 
-.migration-page .migration-deposit-address {
-  width: 100%;
-  overflow-wrap: anywhere;
+.migration-page .withdraw-outtro {
   text-align: center;
+  margin-top: var(--saito-space-sm);
   color: var(--saito-foreground);
-  margin-top: var(--saito-space-sm);
-  font-weight: 600;
-}
-
-.migration-page .footer-note,
-.migration-page .withdraw-outtro {
-  text-align: center;
-}
-
-.migration-page .withdraw-outtro {
-  margin-top: var(--saito-space-sm);
 }
 
 @media screen and (max-width: 600px) {

@@ -12,7 +12,9 @@ module.exports = (mod) => {
     instructions?.ticker === 'BEP-SAITO' || mod.wrapped_saito_ticker === 'BEP-SAITO'
       ? 'BEP-SAITO'
       : 'ERC-SAITO';
-  const status = instructions?.ui_status || '';
+  const status = String(instructions?.status || '');
+  const uiStatus = instructions?.ui_status || '';
+  const showStatus = Boolean(uiStatus) && status !== 'inbound_awaiting';
   const reservedUntil = Number(instructions?.reserved_until || 0);
   const reservedLabel =
     reservedUntil > 0
@@ -21,14 +23,18 @@ module.exports = (mod) => {
           timeStyle: 'short'
         })
       : '';
-  const canExtend = instructions?.address && String(instructions?.status || '') === 'inbound_awaiting';
+  const canExtend = instructions?.address && status === 'inbound_awaiting';
 
   let body;
   if (instructions?.address) {
     body = `
 				<div class="migration-qrcode qrcode" id="migration-qrcode"></div>
+				<div class="migration-deposit-address pubkey-container" id="migration-deposit-address" title="${instructions.address}">
+					<span class="profile-public-key">${instructions.address}</span>
+					<i class="fas fa-copy" aria-hidden="true"></i>
+				</div>
 				<div class="saito-overlay-form-text migration-instructions" id="migration-instructions">
-					Send any amount of ${wrappedLabel(ticker)} SAITO to the address below.${
+					Send any amount of ${wrappedLabel(ticker)} SAITO to the address above.${
             reservedLabel
               ? ` Deposit address reserved until ${reservedLabel}.${
                   canExtend
@@ -38,8 +44,11 @@ module.exports = (mod) => {
               : ''
           }
 				</div>
-				<div class="migration-deposit-address" id="migration-deposit-address">${instructions.address}</div>
-				<div class="migration-status" id="migration-status" role="status">${status || 'Waiting for your deposit...'}</div>
+				${
+          showStatus
+            ? `<div class="migration-status" id="migration-status" role="status">${uiStatus}</div>`
+            : ''
+        }
 			`;
   } else {
     body = `
@@ -67,8 +76,7 @@ module.exports = (mod) => {
 					</div>
 				</div>
 				${body}
-				<div class="saito-overlay-form-text footer-note"><a href="/buy">or purchase SAITO online</a></div>
-				<div class="saito-overlay-form-text withdraw-outtro"><a target="_blank" href="mailto:migration@saito.io">email migration@saito.io for support</a></div>
+				<div class="saito-overlay-form-text withdraw-outtro">email <a target="_blank" href="mailto:migration@saito.io">migration@saito.io</a> for support</div>
 			</div>
 		</div>
 	`;
