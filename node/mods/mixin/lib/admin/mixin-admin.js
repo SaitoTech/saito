@@ -384,6 +384,12 @@ class MixinAdmin {
       this.refresh();
       return;
     }
+    if (kind === 'delegate' && this.operationMode === 'treasury' && list.length >= 1) {
+      this.error = 'Treasury mode allows exactly one authorized delegate.';
+      this.delegateDraft = value;
+      this.refresh();
+      return;
+    }
     list.push(value);
     if (kind === 'provider') {
       this.providerDraft = '';
@@ -417,6 +423,13 @@ class MixinAdmin {
     ) {
       this.error =
         'This mode requires at least one valid Treasury provider public key before it can be saved.';
+      this.operationNotice = '';
+      this.refresh();
+      return;
+    }
+
+    if (this.operationMode === 'treasury' && this.delegateKeys.length !== 1) {
+      this.error = 'Treasury mode requires exactly one authorized delegate public key before it can be saved.';
       this.operationNotice = '';
       this.refresh();
       return;

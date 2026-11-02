@@ -61,8 +61,15 @@ function sendStatusEmail(app, result, payment, detail = '') {
   send(app, { subject, html });
 }
 
-async function sendFailureNotice(app, publicKey) {
-  if (!publicKey || !app?.network?.sendRequestAsTransaction) {
+function sendFailureNotice(app, publicKey, mod = null) {
+  if (!publicKey) {
+    return;
+  }
+  if (mod && typeof mod.notifyBrowser === 'function') {
+    mod.notifyBrowser('migration failure', { data: null }, publicKey);
+    return;
+  }
+  if (!app?.network?.sendRequestAsTransaction) {
     return;
   }
   app.network.sendRequestAsTransaction('migration failure', { data: null }, null, publicKey);

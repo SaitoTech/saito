@@ -604,25 +604,35 @@ describe('mixin operation mode admin configuration', () => {
     expect(fullyRemote.payout_mode).toBe('remote');
     expect(mixin.transfer_timer).toBeNull();
 
+    expect(() =>
+      mixin.saveTreasuryAdminConfig({
+        operation_mode: 'treasury',
+        treasury_provider_publickeys: [TREASURY],
+        treasury_delegate_publickeys: []
+      })
+    ).toThrow(/exactly one authorized delegate/);
+
     const treasury = mixin.saveTreasuryAdminConfig({
       operation_mode: 'treasury',
       treasury_provider_publickeys: [TREASURY],
-      treasury_delegate_publickeys: []
+      treasury_delegate_publickeys: ['delegate-one']
     });
     expect(treasury).toMatchObject({
       operation_mode: 'treasury',
       execution_mode: 'local',
       payout_mode: 'local',
       treasury_provider_publickeys: [],
-      treasury_delegate_publickeys: []
+      treasury_delegate_publickeys: ['delegate-one']
     });
     expect(mixin.transfer_timer).toBeTruthy();
 
-    mixin.saveTreasuryAdminConfig({
-      operation_mode: 'treasury',
-      treasury_delegate_publickeys: ['delegate-one', 'delegate-two']
-    });
-    expect(mixin.treasury_delegate_publickeys).toEqual(['delegate-one', 'delegate-two']);
+    expect(() =>
+      mixin.saveTreasuryAdminConfig({
+        operation_mode: 'treasury',
+        treasury_delegate_publickeys: ['delegate-one', 'delegate-two']
+      })
+    ).toThrow(/exactly one authorized delegate/);
+    expect(mixin.treasury_delegate_publickeys).toEqual(['delegate-one']);
     expect(mixin.app.options.mixin.api_key).toBeUndefined();
   });
 

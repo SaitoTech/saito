@@ -26,6 +26,33 @@ class Admin extends ModTemplate {
     if (app.BROWSER && this.browser_active) {
       this.server_publickey = server_publickey;
     }
+
+
+if (this.app.BROWSER) {
+  const run = async (label, source, context, policy = {}) => {
+    console.log('[SAITO-SANDBOX-TEST] before execution:', label);
+    console.log('[SAITO-SANDBOX-TEST] instruction:', source);
+    try {
+      const result = await this.app.browser.executeJS(source, context, policy);
+      console.log('[SAITO-SANDBOX-TEST] returned data:', result);
+      console.log('[SAITO-SANDBOX-TEST] succeeded:', label);
+      return result;
+    } catch (err) {
+      console.log('[SAITO-SANDBOX-TEST] returned data:', null);
+      console.log('[SAITO-SANDBOX-TEST] failed:', label, err.message || err);
+      throw err;
+    }
+  };
+
+  (async () => {
+    await run('arithmetic-1', 'return left + right;', { data: { left: 2, right: 2 } }, { allowAsync: true });
+    await run('arithmetic-2-reuse-sandbox', 'return left * right;', { data: { left: 3, right: 5 } }, { allowAsync: true });
+    try {
+      await run('rejected-window', 'return window;', { data: {} }, {});
+    } catch (_err) {}
+  })();
+}
+
   }
 
   async render() {

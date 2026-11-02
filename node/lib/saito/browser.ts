@@ -11,6 +11,7 @@ const UserMenu = require('./ui/modals/user-menu/user-menu');
 const SaitoCrypto = require('./ui/saito-crypto/saito-crypto');
 const debounce = require('lodash/debounce');
 const SaitoMentions = require('./ui/saito-mentions/saito-mentions');
+const sanitizeHelper = require('../helpers/sanitize');
 
 //
 // references for modules
@@ -2422,6 +2423,37 @@ class Browser {
   //
   escapeHTML(text) {
     return sanitizer.escapeAttrib(text == null ? '' : String(text));
+  }
+
+  /**
+   * Validate untrusted JavaScript against a restrictive whitelist policy.
+   *
+   * Parses source with Acorn and walks the AST. Does not execute, evaluate,
+   * modify, or repair the source. Callers supply the policy (allowed objects,
+   * methods, syntax features). Successful validation is not a complete sandbox;
+   * pair with isolated execution (e.g. a Web Worker) and capability messaging.
+   *
+   * @param {string} source
+   * @param {object} [policy]
+   * @returns {{ safe: boolean, errors: Array, warnings: Array }}
+   */
+  sanitizeJS(source, policy = {}) {
+    return sanitizeHelper.sanitizeJS(source, policy);
+  }
+
+  /**
+   * Execute untrusted JavaScript in the persistent sandbox (iframe + Worker).
+   *
+   * Always runs sanitizeJS() first. Creates the sandbox on first use and reuses
+   * it for later calls. Does not evaluate source in the host page context.
+   *
+   * @param {string} source
+   * @param {{ capabilities?: object, data?: object }} [context]
+   * @param {object} [policy]
+   * @returns {Promise<any>}
+   */
+  executeJS(source, context = {}, policy = {}) {
+    return sanitizeHelper.executeJS(source, context, policy);
   }
 
   /**

@@ -322,7 +322,18 @@ describe('Mixin migration reserved-address transfers', () => {
   test('a private migration request from another peer is ignored and no longer requires chain address or email', async () => {
     const { app, mod } = await service();
     const Mixin = require('../../../mods/mixin/mixin');
-    const mixin = { app, migration: mod.migration };
+    const mixin = Object.assign(Object.create(Mixin.prototype), {
+      app,
+      migration: mod.migration,
+      execution_mode: 'local',
+      operation_mode: 'local',
+      treasury_provider_publickeys: [],
+      treasury_delegate_publickeys: []
+    });
+    const verifiedPeer = (publicKey) => ({
+      publicKey,
+      get: () => ({ is_verified: true })
+    });
     const tx = {
       from: [{ publicKey: 'saito-user' }],
       returnMessage: () => ({
@@ -339,14 +350,14 @@ describe('Mixin migration reserved-address transfers', () => {
       mixin,
       app,
       tx,
-      { publicKey: 'saito-user' },
+      verifiedPeer('saito-user'),
       callback
     );
     const rejected = await Mixin.prototype.handlePeerTransaction.call(
       mixin,
       app,
       tx,
-      { publicKey: 'someone-else' },
+      verifiedPeer('someone-else'),
       jest.fn()
     );
 

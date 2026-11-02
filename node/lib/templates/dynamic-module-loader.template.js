@@ -1,5 +1,5 @@
 const CtaLoader = require('./saito-cta-loader.template');
-const initializeLoader = require('../saito/dynamic-module-loader');
+const initializeLoader = require('../helpers/dynamic-module-loader');
 
 module.exports = (buildNumber) => `<!DOCTYPE html>
 <html lang="en" data-theme="dark">

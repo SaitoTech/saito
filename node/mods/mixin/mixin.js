@@ -53,6 +53,7 @@ class Mixin extends ModTemplate {
     this.operation_mode = 'local';
     this.treasury_provider_publickeys = [];
     this.treasury_delegate_publickeys = [];
+    this.cached_treasury_provider_publickey = '';
     this.loadTreasuryConfig();
   }
 
@@ -130,7 +131,8 @@ class Mixin extends ModTemplate {
           execution_mode: 'local',
           payout_mode: 'local',
           require_providers: false,
-          clear_providers: true
+          clear_providers: true,
+          require_exactly_one_delegate: true
         };
       case 'local':
       default:
@@ -182,6 +184,15 @@ class Mixin extends ModTemplate {
         throw new Error(
           'This mode requires at least one valid Treasury provider public key that is not this server.'
         );
+      }
+    }
+
+    if (settings.require_exactly_one_delegate) {
+      if (delegates.length !== 1) {
+        throw new Error('Treasury mode requires exactly one authorized delegate public key.');
+      }
+      if (own && delegates[0] === own) {
+        throw new Error('The treasury delegate public key must not be this server.');
       }
     }
 
@@ -241,6 +252,145 @@ class Mixin extends ModTemplate {
       treasury_provider_publickeys: [...(this.treasury_provider_publickeys || [])],
       treasury_delegate_publickeys: [...(this.treasury_delegate_publickeys || [])]
     };
+  }
+
+  isHandshakeVerifiedPeer(peer) {
+    if (!peer) {
+      return false;
+    }
+    try {
+      const snapshot = typeof peer.get === 'function' ? peer.get() : null;
+      return snapshot?.is_verified === true;
+    } catch (err) {
+      return false;
+    }
+  }
+
+  configuredTreasuryProviderPublickey() {
+    const own = String(this.publicKey || '').trim();
+    return (
+      (this.treasury_provider_publickeys || [])
+        .map((key) => String(key || '').trim())
+        .find((key) => key && key !== own) || ''
+    );
+  }
+
+  configuredTreasuryDelegatePublickey() {
+    return String(this.treasury_delegate_publickeys?.[0] || '').trim();
+  }
+
+  isAuthorizedForwardingPeer(peer, expectedPublickey) {
+    const expected = String(expectedPublickey || '').trim();
+    const key = String(peer?.publicKey || '').trim();
+    return !!expected && !!key && key === expected && this.isHandshakeVerifiedPeer(peer);
+  }
+
+  /**
+   * Remote fulfillment: forward the original request tx to the configured treasury.
+   * Returns 0 when this node should handle the request locally.
+   * Returns 1 when the helper has taken responsibility (including unreachable errors).
+   */
+  async tunnelRequestToTreasury(tx, mycallback) {
+    if (this.execution_mode !== 'remote') {
+      return 0;
+    }
+
+    const unavailable =
+      "Sorry, payment provider isn't available right now — try again later.";
+    const reportUnavailable = () => {
+      if (typeof mycallback === 'function') {
+        mycallback({ message: unavailable, err: unavailable });
+      }
+    };
+
+    const configured = this.configuredTreasuryProviderPublickey();
+    let provider = String(this.cached_treasury_provider_publickey || '').trim();
+    if (!provider || provider !== configured) {
+      provider = configured;
+    }
+
+    if (!provider) {
+      this.cached_treasury_provider_publickey = '';
+      reportUnavailable();
+      return 1;
+    }
+
+    let live = null;
+    try {
+      live = await this.app.network.getPeer(provider);
+    } catch (err) {
+      live = null;
+    }
+    if (!live || !this.isHandshakeVerifiedPeer(live)) {
+      this.cached_treasury_provider_publickey = '';
+      reportUnavailable();
+      return 1;
+    }
+
+    this.cached_treasury_provider_publickey = provider;
+
+    try {
+      await this.app.network.sendTransactionWithCallback(
+        tx,
+        (response) => {
+          const result =
+            response && typeof response === 'object' && response.err && response.msg == null
+              ? response
+              : response?.msg ?? response;
+          if (typeof mycallback === 'function') {
+            mycallback(result);
+          }
+        },
+        provider
+      );
+    } catch (err) {
+      reportUnavailable();
+    }
+    return 1;
+  }
+
+  /**
+   * Deliver a server→browser payment notice.
+   * In treasury mode, relay through the sole configured delegate; otherwise send directly.
+   * Kept synchronous so queue processing does not race past the send.
+   */
+  notifyBrowser(notification_request, notification_data, destination_publickey) {
+    const destination = String(destination_publickey || '').trim();
+    if (!destination || this.app?.BROWSER) {
+      return;
+    }
+
+    if (this.operation_mode === 'treasury') {
+      const delegate = this.configuredTreasuryDelegatePublickey();
+      if (
+        delegate &&
+        (typeof this.app?.crypto?.isPublicKey !== 'function' ||
+          this.app.crypto.isPublicKey(destination))
+      ) {
+        try {
+          this.app.network.sendRequestAsTransaction(
+            'mixin treasury forwarding request',
+            {
+              destination_publickey: destination,
+              notification_request,
+              notification_data
+            },
+            null,
+            delegate
+          );
+          return;
+        } catch (err) {
+          console.error('Mixin treasury notification relay failed:', err);
+        }
+      }
+    }
+
+    this.app.network?.sendRequestAsTransaction?.(
+      notification_request,
+      notification_data,
+      null,
+      destination
+    );
   }
 
   isSlug(slug) {
@@ -414,10 +564,59 @@ class Mixin extends ModTemplate {
       return 0;
     }
 
+    // Services: treasury → browser notification relay
+    if (!this.app.BROWSER && message.request === 'mixin treasury forwarding request') {
+      const provider = this.configuredTreasuryProviderPublickey();
+      if (!this.isAuthorizedForwardingPeer(peer, provider)) {
+        if (mycallback) {
+          mycallback({ err: 'Unauthorized treasury forwarding request.' });
+        }
+        return 1;
+      }
+      const data = message.data || {};
+      const destination = String(data.destination_publickey || '').trim();
+      const notification_request = String(data.notification_request || '').trim();
+      const allowed = new Set([
+        'buysaito payment detected',
+        'buysaito saito issued',
+        'buysaito report error',
+        'migration failure'
+      ]);
+      if (
+        !destination ||
+        !allowed.has(notification_request) ||
+        (typeof this.app?.crypto?.isPublicKey === 'function' &&
+          !this.app.crypto.isPublicKey(destination))
+      ) {
+        if (mycallback) {
+          mycallback({ err: 'Invalid treasury forwarding request.' });
+        }
+        return 1;
+      }
+      this.app.network.sendRequestAsTransaction(
+        notification_request,
+        data.notification_data,
+        null,
+        destination
+      );
+      if (mycallback) {
+        mycallback({ ok: true });
+      }
+      return 1;
+    }
+
     if (!this.app.BROWSER && message.request === 'migration request') {
+      if (await this.tunnelRequestToTreasury(tx, mycallback)) {
+        return 1;
+      }
       const from = tx.from?.[0]?.publicKey;
-      const directPeer = !!from && peer?.publicKey === from;
-      if (!directPeer || !this.migration) {
+      const directPeer =
+        !!from && peer?.publicKey === from && this.isHandshakeVerifiedPeer(peer);
+      const delegatedPeer = this.isAuthorizedForwardingPeer(
+        peer,
+        this.configuredTreasuryDelegatePublickey()
+      );
+      if ((!directPeer && !delegatedPeer) || !this.migration) {
         return 0;
       }
       const data = message.data || {};
@@ -431,7 +630,9 @@ class Mixin extends ModTemplate {
       } catch (err) {
         result = { error: err?.message || String(err), ticker: data.ticker };
       }
-      this.app.network.sendRequestAsTransaction('migration request', result, null, from);
+      if (directPeer) {
+        this.app.network.sendRequestAsTransaction('migration request', result, null, from);
+      }
       if (mycallback) {
         mycallback(result);
       }
@@ -439,9 +640,17 @@ class Mixin extends ModTemplate {
     }
 
     if (!this.app.BROWSER && message.request === 'migration status') {
+      if (await this.tunnelRequestToTreasury(tx, mycallback)) {
+        return 1;
+      }
       const from = tx.from?.[0]?.publicKey;
-      const directPeer = !!from && peer?.publicKey === from;
-      if (!directPeer || !this.migration) {
+      const directPeer =
+        !!from && peer?.publicKey === from && this.isHandshakeVerifiedPeer(peer);
+      const delegatedPeer = this.isAuthorizedForwardingPeer(
+        peer,
+        this.configuredTreasuryDelegatePublickey()
+      );
+      if ((!directPeer && !delegatedPeer) || !this.migration) {
         return 0;
       }
       let result;
@@ -450,7 +659,9 @@ class Mixin extends ModTemplate {
       } catch (err) {
         result = { error: err?.message || String(err) };
       }
-      this.app.network.sendRequestAsTransaction('migration status', result, null, from);
+      if (directPeer) {
+        this.app.network.sendRequestAsTransaction('migration status', result, null, from);
+      }
       if (mycallback) {
         mycallback(result);
       }
@@ -458,9 +669,17 @@ class Mixin extends ModTemplate {
     }
 
     if (!this.app.BROWSER && message.request === 'migration extend') {
+      if (await this.tunnelRequestToTreasury(tx, mycallback)) {
+        return 1;
+      }
       const from = tx.from?.[0]?.publicKey;
-      const directPeer = !!from && peer?.publicKey === from;
-      if (!directPeer || !this.migration) {
+      const directPeer =
+        !!from && peer?.publicKey === from && this.isHandshakeVerifiedPeer(peer);
+      const delegatedPeer = this.isAuthorizedForwardingPeer(
+        peer,
+        this.configuredTreasuryDelegatePublickey()
+      );
+      if ((!directPeer && !delegatedPeer) || !this.migration) {
         return 0;
       }
       let result;
@@ -469,7 +688,9 @@ class Mixin extends ModTemplate {
       } catch (err) {
         result = { error: err?.message || String(err) };
       }
-      this.app.network.sendRequestAsTransaction('migration extend', result, null, from);
+      if (directPeer) {
+        this.app.network.sendRequestAsTransaction('migration extend', result, null, from);
+      }
       if (mycallback) {
         mycallback(result);
       }
@@ -501,6 +722,9 @@ class Mixin extends ModTemplate {
     }
 
     if (!this.app.BROWSER && message.request === 'store-withdrawal') {
+      if (await this.tunnelRequestToTreasury(tx, mycallback)) {
+        return 1;
+      }
       const { receiveStoreWithdrawal } = require('./lib/store-withdrawal');
       const embedded = message.data?.transaction ?? message.transaction;
       let withdrawalTx = tx;
@@ -525,6 +749,9 @@ class Mixin extends ModTemplate {
     }
 
     if (message.request === 'mixin create account') {
+      if (await this.tunnelRequestToTreasury(tx, mycallback)) {
+        return 1;
+      }
       try {
         const created = await this.accounts.createAccount(tx.from[0].publicKey);
         if (mycallback) {
@@ -543,6 +770,9 @@ class Mixin extends ModTemplate {
     // lite-client wants to create new web3 crypto address
     //
     if (message.request === 'mixin save new deposit address') {
+      if (await this.tunnelRequestToTreasury(tx, mycallback)) {
+        return 1;
+      }
       const data = message.data || {};
       await this.database.insertAddress({
         mixinUserId: data.user_id,
@@ -561,6 +791,9 @@ class Mixin extends ModTemplate {
     // asking for payment info for another user
     //
     if (message.request === 'mixin fetch user') {
+      if (await this.tunnelRequestToTreasury(tx, mycallback)) {
+        return 1;
+      }
       const data = message.data || {};
       if (!data.asset_id || (!data.address && !data.publicKey && !data.user_id)) {
         if (mycallback) {
@@ -593,13 +826,32 @@ class Mixin extends ModTemplate {
       typeof message.request === 'string' &&
       message.request.startsWith('buysaito ')
     ) {
+      if (
+        message.request === 'buysaito available currencies' ||
+        message.request === 'buysaito reserve address' ||
+        message.request === 'buysaito release address'
+      ) {
+        if (await this.tunnelRequestToTreasury(tx, mycallback)) {
+          return 1;
+        }
+      }
+
       const from = tx.from?.[0]?.publicKey;
-      const direct_peer = !!from && peer?.publicKey === from;
+      const direct_peer =
+        !!from && peer?.publicKey === from && this.isHandshakeVerifiedPeer(peer);
+      const delegated_peer = this.isAuthorizedForwardingPeer(
+        peer,
+        this.configuredTreasuryDelegatePublickey()
+      );
       // Off-chain requests are routed to the peer, while the transaction's
-      // recipient slip remains the buyer. direct_peer is the acceptance check.
+      // recipient slip remains the buyer. Buyer identity stays tx.from.
       const buysaito = this.app.modules?.returnModule?.('BuySaito');
       const buysaitoProvider = !buysaito || buysaito.publicKey === buysaito.authorized_public_key;
-      const accepted = !!this.appSession && !!this.transfers && buysaitoProvider && direct_peer;
+      const accepted =
+        !!this.appSession &&
+        !!this.transfers &&
+        buysaitoProvider &&
+        (direct_peer || delegated_peer);
       console.log('Mixin buysaito request', {
         request: message.request,
         app_session: !!this.appSession,
@@ -610,6 +862,7 @@ class Mixin extends ModTemplate {
         buyer: from || '',
         connected_peer: peer?.publicKey || '',
         direct_peer,
+        delegated_peer,
         accepted
       });
       if (!accepted) {
@@ -657,12 +910,14 @@ class Mixin extends ModTemplate {
           callback: typeof mycallback === 'function',
           buyer: from
         });
-        this.app.network.sendRequestAsTransaction(
-          'buysaito available currencies',
-          response,
-          null,
-          from
-        );
+        if (direct_peer) {
+          this.app.network.sendRequestAsTransaction(
+            'buysaito available currencies',
+            response,
+            null,
+            from
+          );
+        }
         if (mycallback) {
           mycallback(response);
         }
@@ -675,7 +930,9 @@ class Mixin extends ModTemplate {
             message:
               'The payment service could not generate a deposit address. Please try again shortly.'
           };
-          this.app.network.sendRequestAsTransaction('buysaito report error', response, null, from);
+          if (direct_peer) {
+            this.app.network.sendRequestAsTransaction('buysaito report error', response, null, from);
+          }
           if (mycallback) {
             mycallback(response);
           }
@@ -683,12 +940,14 @@ class Mixin extends ModTemplate {
         }
         try {
           const instructions = await this.buysaito.startPurchase(from, data);
-          this.app.network.sendRequestAsTransaction(
-            'buysaito reserve address',
-            instructions,
-            null,
-            from
-          );
+          if (direct_peer) {
+            this.app.network.sendRequestAsTransaction(
+              'buysaito reserve address',
+              instructions,
+              null,
+              from
+            );
+          }
           if (mycallback) {
             mycallback(instructions);
           }
@@ -698,7 +957,9 @@ class Mixin extends ModTemplate {
             message:
               'The payment service could not generate a deposit address. Please try again shortly.'
           };
-          this.app.network.sendRequestAsTransaction('buysaito report error', response, null, from);
+          if (direct_peer) {
+            this.app.network.sendRequestAsTransaction('buysaito report error', response, null, from);
+          }
           if (mycallback) {
             mycallback({ err: err.message });
           }
@@ -721,7 +982,17 @@ class Mixin extends ModTemplate {
     // requesting storage of encrypted account information
     //
     if (message.request === 'mixin account backup') {
-      await this.database.saveCredentials(peer.publicKey, message.data.account_hash);
+      if (await this.tunnelRequestToTreasury(tx, mycallback)) {
+        return 1;
+      }
+      const owner = tx.from?.[0]?.publicKey || '';
+      if (!owner) {
+        if (mycallback) {
+          mycallback({ err: 'Missing account owner public key.' });
+        }
+        return 1;
+      }
+      await this.database.saveCredentials(owner, message.data.account_hash);
       if (mycallback) {
         mycallback();
       }

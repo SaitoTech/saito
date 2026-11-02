@@ -420,7 +420,7 @@ describe('Mixin admin payment testing', () => {
     await config.updateConfig({ id: 7, action: 'confirm-inbound' });
     expect(database.rows[0].outbound_tx_sig).toBe('');
 
-    const queue = new Transfers(app, { app, database, api: {}, accounts: {} });
+    const queue = new Transfers(app, mixin);
     await queue.processTransferQueue();
 
     expect(app.wallet.createUnsignedTransactionWithDefaultFee).toHaveBeenCalledWith(

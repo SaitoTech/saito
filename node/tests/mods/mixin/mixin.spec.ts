@@ -1091,13 +1091,18 @@ describe('Mixin admin payments account', () => {
     };
 
     const config = mixin.respondTo('admin-config');
-    await expect(config.getConfig()).resolves.toEqual({
+    await expect(config.getConfig()).resolves.toMatchObject({
       transfers: [],
       total: 0,
       page: 1,
       page_size: 20,
       account: null,
-      api_key_configured: false
+      api_key_configured: false,
+      operation_mode: 'local',
+      execution_mode: 'local',
+      payout_mode: 'local',
+      treasury_provider_publickeys: [],
+      treasury_delegate_publickeys: []
     });
 
     const updated = await config.updateConfig({ action: 'create-account' });

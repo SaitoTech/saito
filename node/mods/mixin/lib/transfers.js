@@ -161,7 +161,11 @@ class Transfers {
               continue;
             }
             email.sendStatusEmail(this.app, 0, { ...row, inbound_amount: match.amount }, err.message);
-            await email.sendFailureNotice(this.app, row.recipient_publickey || row.requester_publickey);
+            await email.sendFailureNotice(
+              this.app,
+              row.recipient_publickey || row.requester_publickey,
+              this.mod
+            );
             this.mod.creditDepositAddress?.(row.inbound_address, match.amount, match.hash);
             continue;
           }
@@ -206,10 +210,9 @@ class Transfers {
             status: next === 'inbound_confirmed' ? 'confirmed' : 'pending',
             initiator_pubkey: row.requester_publickey
           };
-          this.app.network.sendRequestAsTransaction(
+          this.mod.notifyBrowser?.(
             'buysaito payment detected',
             detected,
-            null,
             row.requester_publickey
           );
           this.app.connection.emit('saito-purchase-payment-detected', detected);
@@ -281,10 +284,9 @@ class Transfers {
           status: 'confirmed',
           initiator_pubkey: row.requester_publickey
         };
-        this.app.network.sendRequestAsTransaction(
+        this.mod.notifyBrowser?.(
           'buysaito payment detected',
           detected,
-          null,
           row.requester_publickey
         );
         this.app.connection.emit('saito-purchase-payment-detected', detected);
@@ -440,10 +442,9 @@ class Transfers {
             paid: row.outbound_tx_sig,
             status: 'confirmed'
           };
-          this.app.network.sendRequestAsTransaction(
+          this.mod.notifyBrowser?.(
             'buysaito saito issued',
             issued,
-            null,
             row.requester_publickey
           );
           this.app.connection.emit('saito-purchase-saito-issued', issued);
@@ -688,10 +689,9 @@ class Transfers {
       status: 'confirmed',
       initiator_pubkey: updated.requester_publickey
     };
-    this.app.network?.sendRequestAsTransaction?.(
+    this.mod.notifyBrowser?.(
       'buysaito payment detected',
       detected,
-      null,
       updated.requester_publickey
     );
     this.app.connection?.emit?.('saito-purchase-payment-detected', detected);
@@ -770,7 +770,7 @@ class Transfers {
         }
         if (row.last_error !== 'insufficient_funds') {
           await this.mod.database.updateTransfer(row.id, { last_error: 'insufficient_funds' });
-          this.app.network.sendRequestAsTransaction(
+          this.mod.notifyBrowser?.(
             'buysaito report error',
             {
               code: 'insufficient_funds',
@@ -778,7 +778,6 @@ class Transfers {
               ticker: row.inbound_ticker,
               address: row.inbound_address
             },
-            null,
             row.requester_publickey
           );
         }

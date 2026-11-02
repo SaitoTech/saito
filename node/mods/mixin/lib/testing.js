@@ -142,10 +142,9 @@ class TransferTesting {
       status,
       initiator_pubkey: transfer.requester_publickey
     };
-    this.app.network.sendRequestAsTransaction(
+    this.mod.notifyBrowser?.(
       'buysaito payment detected',
       detected,
-      null,
       transfer.requester_publickey
     );
     this.app.connection.emit('saito-purchase-payment-detected', detected);

@@ -210,7 +210,8 @@ function operationModeSection({
   } else if (mode === 'treasury') {
     keys = keyListPanel({
       title: 'Authorized Delegate Keys',
-      description: 'Approved delegates may submit payout requests to this node.',
+      description:
+        'Configure exactly one services delegate. That node may forward fulfillment requests and relay browser payment notifications for this treasury.',
       keys: delegateKeys,
       draft: delegateDraft,
       kind: 'delegate',
