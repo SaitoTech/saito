@@ -1,7 +1,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { DaemonPolicy } = require('../../../apps/runner/daemon-policy');
-const run = require('../../../apps/runner/daemon-session');
+const { DaemonPolicy } = require('../../../apps/runner/lib/daemon/daemon-policy');
+const run = require('../../../apps/runner/lib/daemon/daemon-session');
 
 function fixture() {
   const sent = [], joined = [];
@@ -52,6 +52,7 @@ test('startup and game completion offer existing snapshot invites without a new 
 test('a never-asked invite that vanished is offered when available after restart', async () => {
   const f = fixture(), now = Date.now();
   // First host is being asked; second invite is queued, then disappears.
+  await new DaemonPolicy(f.runtime, f.config).tick(now - 5000);
   await new DaemonPolicy(f.runtime, f.config).tick(now);
   const second = f.runtime.arcade.invites.second;
   delete f.runtime.arcade.invites.second;
@@ -68,6 +69,7 @@ test('returning invites do not repeat declined, expired, completed or interrupte
   for (const status of ['declined', 'expired', 'complete', 'unavailable']) {
     const f = fixture(), now = Date.now();
     delete f.runtime.arcade.invites.second;
+    await new DaemonPolicy(f.runtime, f.config).tick(now - 5000);
     await new DaemonPolicy(f.runtime, f.config).tick(now);
     f.runtime.app.options.runnerDaemon.invites.first.status = status;
     assert.equal(await new DaemonPolicy(f.runtime, f.config).tick(now + 1), null);

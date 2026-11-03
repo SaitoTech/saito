@@ -3,8 +3,8 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
-const { configure } = require('../../../apps/runner/configure');
-const { loadConfig } = require('../../../apps/runner/config');
+const { configure } = require('../../../apps/runner/scripts/configure');
+const { loadConfig } = require('../../../apps/runner/lib/config');
 
 function fixture(t) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'runner-config-'));

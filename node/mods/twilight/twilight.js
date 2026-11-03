@@ -3703,7 +3703,9 @@ try {
         }
 
 
-        if (this.game.state.round == 8) {
+        // Late War starts with all eras already in its scenario deck.
+        // Reinserting these cards creates duplicate copies in players' hands.
+        if (this.game.state.round == 8 && this.game.options.deck !== "late-war") {
 
           this.game.queue.push("SHUFFLE\t1");
           this.game.queue.push("DECKRESTORE\t1");
@@ -10381,7 +10383,7 @@ console.log("DISPLAY ERROR: " + JSON.stringify(err));
       //
       // dynamic cards removed, so refresh cardlist
       //
-      mid_war_cards = this.returnMidWarCards();
+      let mid_war_cards = this.returnMidWarCards();
 
       //
       // then add 
@@ -10432,7 +10434,7 @@ console.log("DISPLAY ERROR: " + JSON.stringify(err));
       //
       // dynamic cards removed, so refresh cardlist
       //
-      late_war_cards = this.returnLateWarCards();
+      let late_war_cards = this.returnLateWarCards();
 
       //
       // remove if needed
@@ -10684,7 +10686,7 @@ console.log("added card to deck!");
     if (this.game.deck.length > 0) {
       if (this.game.deck[0].hand.includes(key)) {
         for (let z = this.game.deck[0].hand.length-1; z >= 0; z--) {
-          if (this.game.deck[0].hand[z] === i) {
+          if (this.game.deck[0].hand[z] === key) {
             this.game.deck[0].hand.splice(z, 1);
   	  }
         }

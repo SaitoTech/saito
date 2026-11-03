@@ -16,8 +16,8 @@ NATIVE PLAYER RUNNER
 Paths of Glory is available to the Node.js runner as `PathsOfGlory`, using the
 original campaign and separate wallets for the Central Powers and Allies. See
 [the runner guide](../../apps/runner/README.md) and
-[example configuration](../../apps/runner/paths.example.json). Runner-specific
-code lives in `apps/runner/games/pathsofglory.js`; game rules remain in this module.
+[example configuration](../../apps/runner/config/paths.example.json). Runner-specific
+code lives in `apps/runner/lib/games/pathsofglory.js`; game rules remain in this module.
 
 Victory-point wins, the existing supply-source victory, campaign turn 20 and
 armistice now enter the standard GameTemplate terminal protocol. Campaign victory

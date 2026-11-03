@@ -36,8 +36,11 @@ CARDS ERRATA AND IMPLEMENTATION DETAILS:
 ## Native automated player
 
 The [Node runner](../../apps/runner/README.md) can play two-player, unstaked
-Twilight games using the original deck and a local Codex or heuristic provider.
-Copy [twilight.example.json](../../apps/runner/twilight.example.json) and run the
-runner from the `node/` directory. Its [Twilight adapter](../../apps/runner/games/twilight.js) bridges the existing card and
+Twilight games using the original, optional, late-war or saito deck and a local
+Codex or heuristic provider. Set `options.deck` to select the preset; the runner
+defaults to original when hosting. Individual card options are also passed to
+the game engine; see the runner guide for custom-card limitations.
+Copy [twilight.example.json](../../apps/runner/config/twilight.example.json) and run the
+runner from the `node/` directory. Its [Twilight adapter](../../apps/runner/lib/games/twilight.js) bridges the existing card and
 country callbacks through a local DOM while Saito networking stays native.
 Edit `src/` for game rules, then run `./compile` here to regenerate `twilight.js`.

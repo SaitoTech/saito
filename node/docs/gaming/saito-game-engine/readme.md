@@ -209,5 +209,6 @@ runner guide's `multi-host`, `multi-join` and `multi-resume` commands.
 
 Twilight and Paths of Glory use local JSDOM event bridges for their existing callbacks; the
 network player remains a native Node SPV client. Both journal local decisions for
-restart recovery; Twilight supports its original deck and Paths its original campaign. See the runner guide for
+restart recovery; Twilight supports original, optional, late-war and saito decks
+(including dynamic card choices), and Paths supports its original campaign. See the runner guide for
 configuration, test commands and supported scope.
