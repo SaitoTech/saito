@@ -448,7 +448,7 @@ class GameCards {
 
   removeCardFromHand(card, moveToDiscard = false) {
     for (let z = 0; z < this.game.deck.length; z++) {
-      for (i = 0; i < this.game.deck[z].hand.length; i++) {
+      for (let i = 0; i < this.game.deck[z].hand.length; i++) {
         if (this.game.deck[z].hand[i] === card) {
           if (moveToDiscard) {
             this.game.deck[z].discards[card] = this.game.deck[z].cards[card];

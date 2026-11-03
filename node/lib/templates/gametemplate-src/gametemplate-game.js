@@ -169,7 +169,7 @@ class GameGame {
   }
 
   saveGame(game_id) {
-    if (!this.app.BROWSER) {
+    if (!this.app.BROWSER && !this.app.HEADLESS) {
       return;
     }
 
@@ -506,7 +506,6 @@ class GameGame {
       console.log('My PublicKey: ' + this.publicKey);
       console.log('My Player Number: ' + this.game.player);
       console.log('ALL KEYS: ' + JSON.stringify(this.game.players));
-      console.log('My Share Key: ' + this.game.sharekey);
       console.log('!!!!!!!!!!!!!!!!!!!!\n', '!!!!!!!!!!!!!!!!!!!!\n', '!!!!!!!!!!!!!!!!!!!!\n');
 
       this.game.players_set = 1;
@@ -760,7 +759,7 @@ class GameGame {
     const game_id = this.game.id;
     const slug = typeof this.returnSlug === 'function' ? this.returnSlug() : this.name;
     let link =
-      window.location.origin +
+      (this.app.HEADLESS || typeof window === 'undefined' ? (this.app.options.runnerOrigin || '') : window.location.origin) +
       `/arcade/?game=${encodeURIComponent(slug)}&game_id=${encodeURIComponent(game_id)}`;
 
     newtx.msg = {

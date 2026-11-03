@@ -1,0 +1,10 @@
+{
+  "peer": "wss://saito.io/wsopen",
+  "game": "Twilight",
+  "dataDir": "./runner-data/twilight",
+  "options": { "deck": "original", "usbonus": 0 },
+  "decisionProvider": { "type": "codex", "executable": "codex", "timeoutMs": 120000 },
+  "pollMs": 250,
+  "idleTimeoutMs": 600000,
+  "maxDecisions": 10000
+}

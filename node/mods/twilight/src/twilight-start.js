@@ -2335,13 +2335,13 @@ console.log("LATEST MOVE: " + mv);
     if (mv[0] == "dice") {
       if (mv[1] == "burn") {
         if (this.game.player == 1 && mv[2] == "ussr") {
-          roll = this.rollDice(6);
+          this.rollDice(6);
         }
         if (this.game.player == 2 && mv[2] == "us")   {
-          roll = this.rollDice(6);
+          this.rollDice(6);
         }
         if (this.game.player == 0) {
-          roll = this.rollDice(6);
+          this.rollDice(6);
         }
       }
       this.game.queue.splice(qe, 1);
@@ -3613,7 +3613,9 @@ try {
       }
 
       //Increment state.round and resets state variables for next round
-      if (!this.endRound()) { return 0; }
+      // Military-operations penalties can end the game here. Do not bury
+      // the terminal protocol under a fresh round of dealing commands.
+      if (!this.endRound() || this.game.terminating || this.game.over) { return 0; }
 
 
       //
@@ -3702,7 +3704,9 @@ try {
         }
 
 
-        if (this.game.state.round == 8) {
+        // Late War starts with all eras already in its scenario deck.
+        // Reinserting these cards creates duplicate copies in players' hands.
+        if (this.game.state.round == 8 && this.game.options.deck !== "late-war") {
 
           this.game.queue.push("SHUFFLE\t1");
           this.game.queue.push("DECKRESTORE\t1");
@@ -4293,7 +4297,7 @@ try {
   playerPickHeadlineCard() {
 
     let twilight_self = this;
-    if (this.browser_active == 0) { return; }
+    if (this.browser_active == 0 && !this.app.HEADLESS) { return; }
 
     let player = this.roles[this.game.player];
     let x = "";
@@ -4417,7 +4421,7 @@ async playerTurnHeadlineSelected(card, player) {
 
     //
     let scoring_cards_available = 0;
-    for (i = 0; i < this.game.deck[0].hand.length; i++) {
+    for (let i = 0; i < this.game.deck[0].hand.length; i++) {
       if (this.game.deck[0].cards[this.game.deck[0].hand[i]]?.scoring == 1) {
           scoring_cards_available++;
       }
@@ -4573,7 +4577,7 @@ async playerTurnHeadlineSelected(card, player) {
   playerTurn(selected_card=null) {
 
 
-    if (this.browser_active == 0) { return; }
+    if (this.browser_active == 0 && !this.app.HEADLESS) { return; }
 
     try {
       $(".easterneurope").removeClass("easterneurope");
@@ -4698,7 +4702,7 @@ async playerTurnHeadlineSelected(card, player) {
     /* Open play, choose a card from card list*/
     if (selected_card == null) {
       user_message = player.toUpperCase() + " pick a card: ";
-      for (i = 0; i < this.game.deck[0].hand.length; i++) {
+      for (let i = 0; i < this.game.deck[0].hand.length; i++) {
 
         // when UN Intervention is eventing, we can only select opponent cards
         if (this.game.state.events.unintervention == 1) {
@@ -4713,7 +4717,7 @@ async playerTurnHeadlineSelected(card, player) {
 
       if (selected_card === "scoringcard") {
         user_message = 'Scoring card must be played: <ul>';
-        for (i = 0; i < this.game.deck[0].hand.length; i++) {
+        for (let i = 0; i < this.game.deck[0].hand.length; i++) {
           if (this.game.deck[0].cards[this.game.deck[0].hand[i]]?.scoring == 1) {
             selected_card = this.game.deck[0].hand[i];
             playable_cards.push(this.game.deck[0].hand[i]);
@@ -4756,7 +4760,7 @@ async playerTurnHeadlineSelected(card, player) {
 
       user_message = `Select a card for ${(this.game.player == 1)? this.cardToText("beartrap"): this.cardToText("quagmire")}: `;
 
-      for (i = 0; i < this.game.deck[0].hand.length; i++) {
+      for (let i = 0; i < this.game.deck[0].hand.length; i++) {
         if (this.modifyOps(this.game.deck[0].cards[this.game.deck[0].hand[i]].ops, this.game.deck[0].hand[i], player, 0) >= 2 && this.game.deck[0].hand[i] != "china") {
           playable_cards.push(this.game.deck[0].hand[i]);
           cards_available++;
@@ -4797,7 +4801,7 @@ async playerTurnHeadlineSelected(card, player) {
         //
         if (cards_available > 0 && scoring_cards_available <= moves_remaining) {
           playable_cards = [];
-          for (i = 0; i < this.game.deck[0].hand.length; i++) {
+          for (let i = 0; i < this.game.deck[0].hand.length; i++) {
             if (this.game.deck[0].cards[this.game.deck[0].hand[i]] != undefined) {
               if (this.modifyOps(this.game.deck[0].cards[this.game.deck[0].hand[i]].ops, this.game.deck[0].hand[i], player, 0) >= 2 && this.game.deck[0].hand[i] != "china") {
                 playable_cards.push(this.game.deck[0].hand[i]);
@@ -4812,7 +4816,7 @@ async playerTurnHeadlineSelected(card, player) {
               user_message = "Quagmire restricts you to Scoring Cards: ";
             }
             playable_cards = [];
-            for (i = 0; i < this.game.deck[0].hand.length; i++) {
+            for (let i = 0; i < this.game.deck[0].hand.length; i++) {
               if (this.game.deck[0].cards[this.game.deck[0].hand[i]]?.scoring == 1) {
                 playable_cards.push(this.game.deck[0].hand[i]);
               }
@@ -4914,7 +4918,7 @@ async playerTurnHeadlineSelected(card, player) {
       if (twilight_self.game.state.round > 3) { rounds_in_turn = 7; }
       let moves_remaining = rounds_in_turn - twilight_self.game.state.turn_in_round;
 
-      for (i = 0; i < twilight_self.game.deck[0].hand.length; i++) {
+      for (let i = 0; i < twilight_self.game.deck[0].hand.length; i++) {
         if (ac[twilight_self.game.deck[0].hand[i]]?.scoring == 1) { 
           scoring_cards_available++; 
         }
@@ -6965,7 +6969,7 @@ async playerTurnHeadlineSelected(card, player) {
     let extra = {};
     this.game.turn = this.moves;
     this.moves = [];
-    this.sendGameMoveTransaction("game", extra);
+    return this.sendGameMoveTransaction("game", extra);
 
   }
 
@@ -7269,7 +7273,7 @@ console.log("DISPLAY ERROR: " + JSON.stringify(err));
   }
   removeTwilightCardFromHand(card) {
     if (this.game.player == 0) { return; }
-    for (i = 0; i < this.game.deck[0].hand.length; i++) {
+    for (let i = 0; i < this.game.deck[0].hand.length; i++) {
       if (this.game.deck[0].hand[i] == card) {
         this.game.deck[0].hand.splice(i, 1);
       }
@@ -9805,7 +9809,7 @@ console.log("DISPLAY ERROR: " + JSON.stringify(err));
     // if VP are outstanding, do not update VP and trigger end
     //
     if (this.game.state.vp_outstanding != 0) { return; }
-    if (!this.browser_active) { return; }
+    if (!this.browser_active && !this.app.HEADLESS) { return; }
 
     let dt = 0;
     let dl = 0;
@@ -10380,7 +10384,7 @@ console.log("DISPLAY ERROR: " + JSON.stringify(err));
       //
       // dynamic cards removed, so refresh cardlist
       //
-      mid_war_cards = this.returnMidWarCards();
+      let mid_war_cards = this.returnMidWarCards();
 
       //
       // then add 
@@ -10431,7 +10435,7 @@ console.log("DISPLAY ERROR: " + JSON.stringify(err));
       //
       // dynamic cards removed, so refresh cardlist
       //
-      late_war_cards = this.returnLateWarCards();
+      let late_war_cards = this.returnLateWarCards();
 
       //
       // remove if needed
@@ -10683,7 +10687,7 @@ console.log("added card to deck!");
     if (this.game.deck.length > 0) {
       if (this.game.deck[0].hand.includes(key)) {
         for (let z = this.game.deck[0].hand.length-1; z >= 0; z--) {
-          if (this.game.deck[0].hand[z] === i) {
+          if (this.game.deck[0].hand[z] === key) {
             this.game.deck[0].hand.splice(z, 1);
   	  }
         }

@@ -29,7 +29,7 @@ class ChoiceOverlay {
 
     let msg = 'Choose Card for Mid-War';
     if (stage == 'latewar') {
-      msg = 'Choose Card for Mid-War';
+      msg = 'Choose Card for Late-War';
     }
 
     let options = [];

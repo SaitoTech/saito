@@ -130,6 +130,12 @@
     // avoid re-importing
     //
     if (this.game.units[key]) {
+      // Unit IDs are historical identifiers: aoi_corps is an army. Refresh
+      // the flags from the declared type when loading an older saved pool too.
+      if (obj.type) {
+        this.game.units[key].army = obj.type === "army" ? 1 : 0;
+        this.game.units[key].corps = obj.type === "army" ? 0 : 1;
+      }
       if (obj.checkSupplyStatus) {
 	this.game.units[key].checkSupplyStatus = obj.checkSupplyStatus;
       } else {
@@ -161,7 +167,9 @@
     if (!obj.spacekey)  		{ obj.spacekey = ""; }
     if (!obj.checkSupplyStatus) 	{ obj.checkSupplyStatus = (paths_self, spacekey) => { return 0; } };
 
-    if (key.indexOf("army") > -1) { obj.army = 1; } else { obj.corps = 1; }
+    const isArmy = obj.type ? obj.type === "army" : key.indexOf("army") > -1;
+    obj.army = isArmy ? 1 : 0;
+    obj.corps = isArmy ? 0 : 1;
 
     this.game.units[key] = obj;
 
@@ -288,13 +296,7 @@ console.log(JSON.stringify(unit));
       if (this.game.spaces[sourcekey].units.length > 0) {
       } else {
         this.game.spaces[sourcekey].besieged = 0;
-        if (this.game.spaces[sourcekey].fort > 0) {
-          //
-          // control switches back to original owner of fort
-          //
-          let spc = this.returnSpaces();
-          this.game.spaces[sourcekey].control = spc[sourcekey].control;
-        }
+        // Keep current ownership: the scenario default may still be neutral.
       }
     }
 

@@ -1,0 +1,10 @@
+{
+  "peer": "wss://saito.io/wsopen",
+  "game": "Settlers",
+  "dataDir": "./runner-data/settlers",
+  "options": { "game_length": 10, "turn_limit": 0 },
+  "decisionProvider": { "type": "codex", "executable": "codex", "timeoutMs": 120000 },
+  "pollMs": 250,
+  "idleTimeoutMs": 600000,
+  "maxDecisions": 10000
+}
