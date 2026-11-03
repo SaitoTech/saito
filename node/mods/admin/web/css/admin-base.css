@@ -132,29 +132,53 @@ a {
   min-height: 100vh;
 }
 
-.saito-admin-sidebar .admin-theme-option {
+.saito-admin-sidebar .admin-sidebar-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   margin-top: auto;
   padding-top: 18px;
 }
 
-.admin-theme-option {
-  display: flex;
+.admin-sidebar-toolbar .admin-toolbar-button {
+  display: inline-flex;
   align-items: center;
-  gap: 12px;
-  width: fit-content;
-  min-height: 44px;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 1px solid var(--admin-border, #ddd);
+  border-radius: 6px;
+  background: var(--admin-accent-subtle, #f0f6f2);
+  color: var(--admin-text, #333);
+  font-size: 20px;
+  text-decoration: none;
   cursor: pointer;
 }
 
-.admin-theme-option input {
-  width: 20px;
-  height: 20px;
-  margin: 0;
-  accent-color: var(--admin-accent, #2e7d32);
+.admin-sidebar-toolbar .saito-admin-back {
+  background: var(--admin-surface, #fff);
 }
 
-.admin-theme-description {
-  color: var(--admin-muted, #666);
+.admin-sidebar-toolbar .saito-admin-back img {
+  filter: brightness(0);
+}
+
+:root[data-admin-theme="dark"] .admin-sidebar-toolbar .saito-admin-back img {
+  filter: brightness(0) invert(1);
+}
+
+.admin-sidebar-toolbar .admin-toolbar-button:hover {
+  background: var(--admin-hover, #f0f0f0);
+}
+
+.admin-sidebar-toolbar .admin-toolbar-button:focus-visible {
+  outline: 2px solid var(--admin-accent, #2e7d32);
+  outline-offset: 2px;
+}
+
+.admin-sidebar-toolbar [hidden] {
+  display: none;
 }
 
 .admin-page {

@@ -17,9 +17,10 @@
 }
 
 .server-stat {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
+  display: grid;
+  grid-template-columns: min(35%, 140px) minmax(0, 1fr);
+  align-items: center;
+  gap: 16px;
 }
 
 .server-stat label {
@@ -30,6 +31,7 @@
 
 .server-stat div,
 .server-stat .admin-input {
+  min-width: 0;
   font-size: 15px;
   color: var(--admin-heading, #111827);
   word-break: break-all;
@@ -38,12 +40,24 @@
 .server-stat .mono {
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   font-size: 14px;
-  background: var(--admin-subtle, #f9fafb);
-  padding: 8px 10px;
-  border-radius: 6px;
-  border: 1px solid var(--admin-border, #e5e7eb);
   word-break: break-all;
 }
+
+.admin-server-key {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.admin-server-key .mono { min-width: 0; }
+.admin-server-key .mono,
+.admin-network .admin-network-key {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.admin-server-key .admin-copy-cmd { flex-shrink: 0; }
+.admin-key-copy-status { font-size: 12px; color: var(--admin-muted, #6b7280); }
+.admin-key-copy-status:empty { display: none; }
 
 .admin-overview-blurb {
   margin: 0 0 24px 0;
@@ -127,4 +141,61 @@
   flex: 0 0 auto;
   margin-left: auto;
   align-self: center;
+}
+
+.admin-overview .admin-network {
+  position: relative;
+  overflow: hidden;
+  margin-bottom: 24px;
+  border: 1px solid var(--admin-border, #e1e4e8);
+  border-radius: 14px;
+  background: var(--admin-surface, #fff);
+}
+
+.admin-network .admin-network-controls {
+  position: absolute;
+  inset: 20px 20px auto;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.admin-network .admin-network-controls button {
+  pointer-events: auto;
+}
+
+.admin-network .admin-network-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.admin-network h2 { margin: 0; font-size: 20px; }
+.admin-network p { color: var(--admin-muted, #6b7280); font-size: 13px; }
+.admin-network .admin-network-viewport {
+  height: var(--admin-network-height, max(600px, 100dvh));
+  min-height: 600px;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+.admin-network .admin-network-size { position: relative; margin: auto; overflow: hidden; }
+.admin-network .admin-network-stage { position: relative; }
+.admin-network canvas { position: absolute; width: 100%; height: 100%; inset: 0; }
+.admin-network .admin-network-label {
+  position: absolute;
+  width: 180px;
+  box-sizing: border-box;
+  padding: 5px;
+  text-align: left;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--admin-heading, #111827);
+  background: var(--admin-surface, #fff);
+  border-radius: 6px;
+  overflow-wrap: anywhere;
+}
+.admin-network .admin-network-label span { display: block; }
+.admin-network .admin-network-key { font-family: monospace; }
+@media (max-width: 600px) {
+  .admin-network .admin-network-controls { inset: 12px 12px auto; }
 }

@@ -51,6 +51,7 @@ class AdminMain {
   }
 
   render(view = this.current_view) {
+    this.overview_ui.network_ui.destroy();
     if (!this.hasAdminKey()) {
       this.mode = 'adminkey';
       this.shell_rendered = false;
@@ -176,13 +177,73 @@ class AdminMain {
     return this.sidebarPanels().find((panel) => panel.id === view) || null;
   }
 
+  backTarget() {
+    // Referrers do not reliably describe the preceding history entry (e.g. after Back).
+    try {
+      const navigation = window.navigation;
+      const previous = navigation?.entries()[navigation.currentEntry.index - 1];
+      if (previous?.url) {
+        const url = new URL(previous.url);
+        if (url.host === window.location.host && /^https?:$/.test(url.protocol)) {
+          return { url: url.href, useHistory: true };
+        }
+      }
+    } catch (err) {
+      // Older browsers cannot expose the previous history URL.
+    }
+    return { url: '/', useHistory: false };
+  }
+
+  syncToolbar() {
+    const link = document.querySelector('.saito-admin-back');
+    if (link) {
+      const target = this.backTarget();
+      const label = target.useHistory ? 'Go back' : 'Go to site home';
+      link.setAttribute('href', target.url);
+      link.setAttribute('aria-label', label);
+      link.title = label;
+      link.querySelector('i').hidden = !target.useHistory;
+      link.querySelector('img').hidden = target.useHistory;
+    }
+    const toggle = document.getElementById('admin-dark-mode');
+    if (toggle) {
+      const dark = document.documentElement.getAttribute('data-admin-theme') === 'dark';
+      const label = dark ? 'Switch to light mode' : 'Switch to dark mode';
+      toggle.setAttribute('aria-pressed', String(dark));
+      toggle.setAttribute('aria-label', label);
+      toggle.title = label;
+      toggle.querySelector('i').className = `fa-solid ${dark ? 'fa-sun' : 'fa-moon'}`;
+    }
+  }
+
   attachEvents() {
+    this.syncToolbar();
+    if (!this.toolbar_history_handler) {
+      this.toolbar_history_handler = () => this.syncToolbar();
+      window.navigation?.addEventListener?.('currententrychange', this.toolbar_history_handler);
+      window.addEventListener('pageshow', this.toolbar_history_handler);
+      window.addEventListener('popstate', this.toolbar_history_handler);
+    }
+    const link = document.querySelector('.saito-admin-back');
+    if (link) {
+      link.onclick = (event) => {
+        this.syncToolbar();
+        if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
+          return;
+        }
+        if (this.backTarget().useHistory) {
+          event.preventDefault();
+          window.history.back();
+        }
+      };
+    }
     const darkMode = document.getElementById('admin-dark-mode');
     if (darkMode) {
-      darkMode.checked = document.documentElement.getAttribute('data-admin-theme') === 'dark';
-      darkMode.onchange = () => {
-        const theme = darkMode.checked ? 'dark' : 'light';
+      darkMode.onclick = () => {
+        const theme = document.documentElement.getAttribute('data-admin-theme') === 'dark'
+          ? 'light' : 'dark';
         document.documentElement.setAttribute('data-admin-theme', theme);
+        this.syncToolbar();
         try {
           window.localStorage.setItem('saito-admin-theme', theme);
         } catch (err) {

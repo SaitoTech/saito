@@ -1,25 +1,61 @@
+/** @jest-environment jsdom */
+
 const PeersTemplate = require('../../../mods/admin/lib/ui/peers.template');
 const AdminPeersUI = require('../../../mods/admin/lib/ui/peers');
 
 describe('Admin network server address', () => {
-  test('shows the current address and leaves update inactive', () => {
-    const html = PeersTemplate({
-      url: 'https://saito.tech:443',
-      host: 'saito.tech',
-      port: '443',
-      live: [],
-      offline: []
-    });
+  test('shows read-only local config above the editable public endpoint', () => {
+    const page = new AdminPeersUI({ browser: {
+      replaceElementContentBySelector: (html) => { document.body.innerHTML = html; }
+    } }, { server_info: { options: { server: {
+      host: '0.0.0.0', port: 12101, protocol: 'http',
+      endpoint: { host: 'public.example', port: 443, protocol: 'https' }
+    } } } });
+    page.refresh();
 
-    expect(html).toContain('Your Server');
-    expect(html).toContain('value="https://saito.tech:443"');
-    expect(html).toContain('value="saito.tech"');
-    expect(html).toContain('value="443"');
-    expect(html).toContain('id="admin-server-update" disabled');
-    expect(html).not.toContain('This server');
+    const local = document.querySelector('.admin-peers-local-address');
+    expect([...local.querySelectorAll('dd')].map((el) => el.textContent)).toEqual(['0.0.0.0', '12101']);
+    expect(local.querySelector('input, select, textarea, [contenteditable]')).toBeNull();
+    expect(local.nextElementSibling.className).toBe('admin-peers-server');
+    expect(document.getElementById('admin-server-host').value).toBe('public.example');
+    expect(document.getElementById('admin-server-port').value).toBe('443');
+    expect(document.getElementById('admin-server-protocol').value).toBe('https');
   });
 
-  test('lists saved peers before other peers and offers SAVED or N/A', () => {
+  test('missing local values never fall back to the public endpoint', () => {
+    document.body.innerHTML = PeersTemplate({ host: 'public.example', port: 443 });
+    expect([...document.querySelectorAll('.admin-peers-local-address dd')].map((el) => el.textContent)).toEqual(['—', '—']);
+    document.body.innerHTML = PeersTemplate({ local_host: '<img src=x onerror=alert(1)>', local_port: 0 });
+    expect(document.querySelector('.admin-peers-local-address img')).toBeNull();
+    expect(document.querySelector('.admin-peers-local-address dd').textContent).toBe('<img src=x onerror=alert(1)>');
+  });
+
+  test('saving the public endpoint preserves the local bind settings', async () => {
+    const server = {
+      host: '127.0.0.1', port: 12101, protocol: 'http',
+      endpoint: { host: 'old.example', port: 443, protocol: 'https', extra: 'keep' }
+    };
+    const tx = { sign: jest.fn() };
+    const app = {
+      browser: { replaceElementContentBySelector: (html) => { document.body.innerHTML = html; } },
+      wallet: { createUnsignedTransactionWithDefaultFee: jest.fn(async () => tx) },
+      network: { sendTransactionWithCallback: jest.fn(async (tx, callback) => callback({ result: 1 })) }
+    };
+    const mod = { server_info: { options: { server } }, server_publickey: 'server-key' };
+    const page = new AdminPeersUI(app, mod);
+    page.refresh();
+    document.getElementById('admin-server-host').value = 'new.example';
+    document.getElementById('admin-server-port').value = '8443';
+    await page.updateServerAddress();
+    expect(tx.msg.data.server).toEqual({
+      ...server,
+      endpoint: { host: 'new.example', port: 8443, protocol: 'https', extra: 'keep' }
+    });
+    expect(mod.server_info.options.server).toEqual(tx.msg.data.server);
+    expect([...document.querySelectorAll('.admin-peers-local-address dd')].map((el) => el.textContent)).toEqual(['127.0.0.1', '12101']);
+  });
+
+  test('lists saved peers before other peers and offers Saved or N/A', () => {
     const html = PeersTemplate({
       peers: [
         { key: 'saved.example|443', host: 'saved.example', port: 443, publicKey: 'abc', verified: true, saved: true },
@@ -28,7 +64,7 @@ describe('Admin network server address', () => {
     });
 
     expect(html.indexOf('saved.example')).toBeLessThan(html.indexOf('live.example'));
-    expect(html).toContain('>SAVED<');
+    expect(html).toContain('>Saved<');
     expect(html).toContain('>N/A<');
     expect(html).toContain('>Yes<');
     expect(html).toContain('>No<');

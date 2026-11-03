@@ -53,6 +53,8 @@ module.exports = ({
   protocol,
   host,
   port,
+  local_host,
+  local_port,
   peers,
   error,
   notice,
@@ -85,7 +87,19 @@ module.exports = ({
         <h1>Your Server</h1>
       </div>
 
+      <dl class="admin-peers-local-address" aria-label="Local server address">
+        <div>
+          <dt>Local IP</dt>
+          <dd>${escapeHtml(local_host === '' || local_host == null ? '—' : local_host)}</dd>
+        </div>
+        <div>
+          <dt>Local port</dt>
+          <dd>${escapeHtml(local_port === '' || local_port == null ? '—' : local_port)}</dd>
+        </div>
+      </dl>
+
       <div class="admin-peers-server">
+        <h2>Public address</h2>
         <div class="admin-peers-server-form">
           <div class="admin-peers-field">
             <label for="admin-server-protocol">Protocol</label>

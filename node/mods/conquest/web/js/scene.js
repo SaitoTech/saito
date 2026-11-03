@@ -104,7 +104,7 @@
         if (!fallback) {
           fallback = document.createElement('div');
           fallback.className = 'conquest-flat-dice';
-          stage.prepend(fallback);
+          stage.insertBefore(fallback, this.canvas);
         }
         fallback.innerHTML = values.map(value => `<b>${value}</b>`).join('');
         [...fallback.children].forEach((die, i) => {

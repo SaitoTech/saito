@@ -39,6 +39,8 @@ class AdminPeersUI {
     this.app.browser.replaceElementContentBySelector(
       PeersTemplate({
         ...this.serverAddress(),
+        local_host: this.mod.server_info?.options?.server?.host,
+        local_port: this.mod.server_info?.options?.server?.port,
         peers: this.peerRows(),
         error: this.error,
         notice: this.notice,
@@ -245,9 +247,6 @@ class AdminPeersUI {
     const current = this.mod.server_info?.options?.server || {};
     const server = {
       ...current,
-      host,
-      port: Number(port) || port,
-      protocol,
       endpoint: {
         ...(current.endpoint || {}),
         host,

@@ -39,10 +39,15 @@ module.exports = (app, mod) => {
         <div class="saito-admin-nav-item blocks" data-admin-view="blocks">Blockchain</div>
         <div class="saito-admin-nav-item mempool" data-admin-view="mempool">Mempool</div>
         ${sidebarNav}
-        <label class="admin-theme-option" for="admin-dark-mode" title="Save your appearance preference in this browser.">
-          <input type="checkbox" id="admin-dark-mode" />
-          <span>Dark mode</span>
-        </label>
+        <div class="admin-sidebar-toolbar" role="group" aria-label="Navigation and appearance">
+          <a class="admin-toolbar-button saito-admin-back" href="/" aria-label="Go to site home" title="Go to site home">
+            <i class="fa-solid fa-arrow-left" aria-hidden="true" hidden></i>
+            <img src="/saito/icons/saito-saito-icon-outline-cube.svg" alt="" width="24" height="24" />
+          </a>
+          <button class="admin-toolbar-button" id="admin-dark-mode" type="button" aria-label="Switch to dark mode" title="Switch to dark mode" aria-pressed="false">
+            <i class="fa-solid fa-moon" aria-hidden="true"></i>
+          </button>
+        </div>
       </div>
 
       <div class="saito-admin-content" id="saito-admin-content">

@@ -189,11 +189,15 @@ class Admin extends ModTemplate {
     if (txmsg.request === 'list-peers') {
       try {
         const peers = await this.app.core.network.getPeers();
+        const Saito = require('saito-js/saito').default;
+        const transport = Saito.getInstance();
         const snapshot = (peers || []).map((p) => {
           const host = typeof p?.host === 'string' ? p.host : '';
           const port = Number(p?.port) || 0;
           return {
             publicKey: p?.publicKey || '',
+            // Transport address may be a reverse proxy; do not trust forwarded headers.
+            ip: transport.getSocketByPeerId(p.id)?._socket?.remoteAddress || '',
             host,
             // Keep empty ports empty so hostless browser peers are not collapsed as "|0".
             port: port > 0 ? port : '',

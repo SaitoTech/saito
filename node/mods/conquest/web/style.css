@@ -595,6 +595,7 @@ button.conquest-player-stat:hover {background:color-mix(in srgb,var(--player) 18
   width:100%;
   height:72px;
   flex:none;
+  transform:scale(.85);
 }
 .conquest-battle-overlays .conquest-battle-dice span,
 .conquest-battle-summary {
@@ -613,8 +614,9 @@ button.conquest-player-stat:hover {background:color-mix(in srgb,var(--player) 18
 }
 .conquest-battle-summary {text-align:center}
 .conquest-battle-overlays .conquest-flat-dice {
-  flex:1 1 auto;
-  height:100%;
+  transform:scale(.85);
+  flex:none;
+  height:var(--conquest-dice-height,72px);
   min-height:0;
   align-items:center;
   gap:8px;
@@ -660,8 +662,16 @@ button.conquest-player-stat:hover {background:color-mix(in srgb,var(--player) 18
 .conquest-attack-divider {border:0;border-top:1px solid var(--conquest-line);margin:0 0 12px}
 .conquest-attack-balance {margin:0 0 12px;font-size:16.08px}
 .conquest-attack-balance b {font-family:var(--conquest-heading);font-size:22px;font-weight:400}
+.conquest-steamroll {display:grid;grid-template-columns:22px minmax(0,1fr);gap:4px 10px;align-items:center}
+.conquest-steamroll-description,.conquest-steamroll small {grid-column:1/-1}
+.conquest-steamroll small {font-size:12px;color:var(--conquest-muted)}
 .conquest-statistics-help summary {cursor:pointer;text-decoration:underline;text-underline-offset:3px}
 .conquest-statistics-player h3 {margin-bottom:12px}
 .conquest-statistics-player dl {gap:12px;margin-bottom:0}
 .conquest-statistics-player dl>div:last-child {grid-column:1/-1}
 .conquest-histogram {margin-top:12px}
+
+/* One-click continuation targets after a Steamroll conquest. */
+.conquest-steamroll-targets {position:absolute;inset:0;pointer-events:none;z-index:29}
+.conquest-steamroll-targets .conquest-button {position:absolute;pointer-events:auto;width:84px;min-height:44px;margin:0!important;padding:8px!important;font-size:14px!important;line-height:1.15}
+.conquest-steamroll-targets .conquest-button[hidden] {display:none!important}

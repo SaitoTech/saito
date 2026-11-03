@@ -6,6 +6,29 @@
   margin-bottom: 16px;
 }
 
+.admin-peers-local-address {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px 32px;
+  margin: 0 0 24px;
+}
+
+.admin-peers-local-address dt {
+  color: var(--admin-muted, #6b7280);
+  font-size: 13px;
+}
+
+.admin-peers-local-address dd {
+  margin: 6px 0 0;
+  color: var(--admin-text, #333);
+  overflow-wrap: anywhere;
+}
+
+.admin-peers-server h2 {
+  margin: 0 0 16px;
+  font-size: 16px;
+}
+
 .admin-peers-server {
   margin: 0 0 28px 0;
   padding: 18px 20px;

@@ -144,7 +144,7 @@ class LoungeOverlay {
 
     if (titleEl) titleEl.textContent = gameName;
     if (heroEl && image) heroEl.src = image;
-    descEl.classList.remove('arcade-lounge-header-desc--loading');
+    root.querySelector('.arcade-lounge-loader')?.remove();
     descEl.textContent = stateLabel;
     detailsEl.innerHTML = detailsHtml;
     playersEl.innerHTML = playersHtml;
@@ -216,10 +216,10 @@ class LoungeOverlay {
 
         <section class="arcade-lounge-info" aria-labelledby="arcade-lounge-title">
           <h1 id="arcade-lounge-title" class="arcade-lounge-header-title">${safeGameName}</h1>
-          <h3 class="arcade-lounge-header-desc${stateIndicator ? ' arcade-lounge-header-desc--loading' : ''}">
+          <h3 class="arcade-lounge-header-desc">
             <span>${safeStateLabel}</span>
-            ${stateIndicator || ''}
           </h3>
+          ${stateIndicator || ''}
           <div class="arcade-lounge-details saito-table">
             <div class="saito-table-body">${detailsHtml}</div>
           </div>

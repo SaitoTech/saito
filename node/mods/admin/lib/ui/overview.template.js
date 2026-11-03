@@ -40,7 +40,16 @@ module.exports = (app, mod, ui = {}) => {
       <div class="admin-server-fields">
         <div class="server-stat server-stat-wide">
           <label>Server Public Key</label>
-          <div class="mono">${escapeHtml(public_key)}</div>
+          <div>
+            <div class="admin-server-key">
+              <span class="mono" title="${escapeHtml(public_key)}">${escapeHtml(public_key)}</span>
+              <button type="button" class="admin-copy-cmd" id="admin-copy-server-key"
+                title="Copy public key" aria-label="Copy server public key" ${mod.server_publickey ? '' : 'disabled'}>
+                <i class="fa-solid fa-copy" aria-hidden="true"></i>
+              </button>
+            </div>
+            <span class="admin-key-copy-status" aria-live="polite"></span>
+          </div>
         </div>
 
         <div class="server-stat">
@@ -56,6 +65,21 @@ module.exports = (app, mod, ui = {}) => {
         </div>
       </div>
     </div>
+
+    <section class="admin-network" aria-label="Connected network">
+      <div class="admin-network-controls">
+        <div class="admin-network-heading">
+          <h2>Connected network</h2>
+          <button type="button" class="admin-button">Refresh</button>
+        </div>
+        <p class="admin-network-legend">⇄ Full node · two lines &nbsp; — Browser · one line</p>
+        <p role="status">Loading connected nodes…</p>
+        <p class="admin-network-fallback" hidden>WebGL is unavailable. Node labels are shown below.</p>
+      </div>
+      <div class="admin-network-viewport" tabindex="0" aria-label="Network diagram. Scroll to explore all nodes.">
+        <div class="admin-network-size"><div class="admin-network-stage"></div></div>
+      </div>
+    </section>
 
     <p class="admin-overview-blurb">
       This is the Saito Admin module, where you can configure your server and setup applications.

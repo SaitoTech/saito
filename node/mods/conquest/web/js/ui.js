@@ -14,7 +14,7 @@
     build() {
       this.element.classList.add('conquest-app');
       this.element.innerHTML = `<header class="conquest-header"><details class="conquest-local-menu" ${this.controller.hasGameMenu?'hidden':''}><summary aria-label="Game menu" title="Game menu">☰</summary><nav><button class="conquest-text-button" data-do="stats">Stats</button><button class="conquest-text-button" data-do="rules">Field guide</button><button class="conquest-text-button" data-do="dispatches">Dispatches</button></nav></details><div class="conquest-round"><span class="conquest-brand-word">CONQUEST<span class="conquest-brand-dot">.</span></span></div></header>
-      <main class="conquest-main"><section class="conquest-board-column"><div class="conquest-map-wrap"><div class="conquest-map-viewport"><svg class="conquest-map" viewBox="0 0 1200 700" aria-label="World map. Choose a territory to play." role="group"></svg><div class="conquest-battle-overlays" hidden><div class="conquest-battle-dice" data-side="attacker" role="group" hidden><canvas aria-label="Attacking dice"></canvas></div><div class="conquest-battle-dice" data-side="defender" role="group" hidden><canvas aria-label="Defending dice"></canvas></div><p class="conquest-battle-summary" data-battle-summary></p></div><div class="conquest-occupation" hidden><div class="conquest-distribution"><span><small data-occupy-from-name></small><b data-occupy-from-count></b></span><input type="range" data-occupy-range step="1" aria-label="Army distribution"><span><small data-occupy-to-name></small><b data-occupy-to-count></b></span></div><button type="button" class="conquest-button primary" data-do="occupy">Advance ↗</button></div><div class="conquest-fortify" hidden><div class="conquest-distribution"><span><small data-fortify-from-name></small><b data-fortify-from-count></b></span><input type="range" data-fortify-range min="0" step="1" value="0" aria-label="Army distribution"><span><small data-fortify-to-name></small><b data-fortify-to-count></b></span></div><div class="conquest-fortify-actions"><button type="button" class="conquest-button secondary" data-do="cancel-fortify">Cancel</button><button type="button" class="conquest-button primary" data-do="fortify">Fortify</button></div></div><div class="conquest-attack-menu" hidden><button type="button" class="conquest-button primary" data-do="attack" data-attack-mode="once">Attack ↗</button><button type="button" class="conquest-button primary" data-do="attack" data-attack-mode="blitz">Blitz ↗</button></div></div><div class="conquest-map-footer"><div class="conquest-map-tools"><button class="conquest-text-button" data-do="dispatches" aria-label="Dispatches from the front">Dispatches</button><button class="conquest-text-button" data-do="names" aria-pressed="false">Show labels</button></div></div><svg class="conquest-overlay-lines" aria-hidden="true"></svg><div class="conquest-tooltip" hidden></div></div></section>
+      <main class="conquest-main"><section class="conquest-board-column"><div class="conquest-map-wrap"><div class="conquest-map-viewport"><svg class="conquest-map" viewBox="0 0 1200 700" aria-label="World map. Choose a territory to play." role="group"></svg><div class="conquest-battle-overlays" hidden><div class="conquest-battle-dice" data-side="attacker" role="group" hidden><span data-battle-region></span><canvas aria-label="Attacking dice"></canvas></div><div class="conquest-battle-dice" data-side="defender" role="group" hidden><canvas aria-label="Defending dice"></canvas><span data-battle-region></span></div><p class="conquest-battle-summary" data-battle-summary></p></div><div class="conquest-occupation" hidden><div class="conquest-distribution"><span><small data-occupy-from-name></small><b data-occupy-from-count></b></span><input type="range" data-occupy-range step="1" aria-label="Army distribution"><span><small data-occupy-to-name></small><b data-occupy-to-count></b></span></div><button type="button" class="conquest-button primary" data-do="occupy">Advance ↗</button></div><div class="conquest-fortify" hidden><div class="conquest-distribution"><span><small data-fortify-from-name></small><b data-fortify-from-count></b></span><input type="range" data-fortify-range min="0" step="1" value="0" aria-label="Army distribution"><span><small data-fortify-to-name></small><b data-fortify-to-count></b></span></div><div class="conquest-fortify-actions"><button type="button" class="conquest-button secondary" data-do="cancel-fortify">Cancel</button><button type="button" class="conquest-button primary" data-do="fortify">Fortify</button></div></div><div class="conquest-steamroll-targets"></div><div class="conquest-attack-menu" hidden><button type="button" class="conquest-button primary" data-do="attack" data-attack-mode="once">Attack ↗</button><button type="button" class="conquest-button primary" data-do="attack" data-attack-mode="blitz">Blitz ↗</button></div></div><div class="conquest-map-footer"><div class="conquest-map-tools"><button class="conquest-text-button" data-do="dispatches" aria-label="Dispatches from the front">Dispatches</button><button class="conquest-text-button" data-do="names" aria-pressed="false">Show labels</button></div></div><svg class="conquest-overlay-lines" aria-hidden="true"></svg><div class="conquest-tooltip" hidden></div></div></section>
       <aside class="conquest-command"><div class="conquest-command-scroll" tabindex="0" role="region" aria-label="Turn details"><div class="conquest-turn-status"><span role="status" aria-live="polite" aria-atomic="true" data-turn-status></span><button type="button" class="conquest-stats-button" data-do="stats" aria-label="Show statistics" title="Statistics"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3v18h18M7 16v-4m5 4V6m5 10V9"/></svg></button></div><div class="conquest-command-content"></div><div class="conquest-battle-result" aria-live="polite"></div></div><div class="conquest-notice" role="status" aria-live="polite"></div><div class="conquest-command-actions"></div></aside><footer class="conquest-player-row"><div class="conquest-roster" aria-label="Players"></div></footer></main>
       <aside class="conquest-dispatches" aria-label="Dispatches from the front" hidden><button class="conquest-text-button" data-do="close-dispatches" aria-label="Close dispatches">Close ×</button><div class="conquest-journal"><div class="conquest-eyebrow">DISPATCHES FROM THE FRONT</div><ol></ol></div></aside><div class="conquest-modal-layer" hidden></div>`;
       this.scenes = {};
@@ -99,7 +99,7 @@
       const viewport=this.element.querySelector('.conquest-map-viewport');
       let drag=null, suppressClick=false;
       viewport.addEventListener('pointerdown', e=>{
-        if((viewport.scrollWidth<=viewport.clientWidth&&viewport.scrollHeight<=viewport.clientHeight)||!e.isPrimary||e.button!==0||e.target.closest('.conquest-occupation,.conquest-fortify,.conquest-attack-menu'))return;
+        if((viewport.scrollWidth<=viewport.clientWidth&&viewport.scrollHeight<=viewport.clientHeight)||!e.isPrimary||e.button!==0||e.target.closest('.conquest-occupation,.conquest-fortify,.conquest-attack-menu,.conquest-steamroll-targets'))return;
         suppressClick=false;
         drag={id:e.pointerId,x:e.clientX,y:e.clientY,left:viewport.scrollLeft,top:viewport.scrollTop,moved:false};
       });
@@ -222,10 +222,13 @@
       status.querySelector('[data-turn-status]').textContent=this.turnStatus(s,yours,finished);
       this.prepareOccupation();
       this.prepareFortify();
+      // Remote viewers have no local selection; show the countries in the current roll.
+      const highlightedSource=this.activeRoll?this.activeRoll.from:this.selected;
+      const highlightedTarget=this.activeRoll?this.activeRoll.to:this.target;
       this.element.querySelectorAll('[data-territory]').forEach(el=>{
         const id=el.dataset.territory,t=s.territories[id];if(!t)return;
         el.style.setProperty('--territory-color',t.owner===0?'url(#conquest-neutral)':t.owner?`var(--conquest-player-${t.owner})`:'var(--conquest-unclaimed)');
-        el.classList.toggle('selected',id===this.selected);el.classList.toggle('targeted',id===this.target);
+        el.classList.toggle('selected',id===highlightedSource);el.classList.toggle('targeted',id===highlightedTarget);
         const destination=!!(turn&&this.selected&&legalMove&&legalMove(s,this.selected,id));
         el.classList.toggle('available-origin',origins.has(id));
         el.classList.toggle('attackable',destination&&s.phase==='attack');
@@ -233,7 +236,7 @@
         const armies=this.occupationArmies(s,id)??this.fortifyArmies(s,id)??t.armies;
         el.querySelector('.conquest-army-count').textContent=t.owner===null?'–':armies;
         el.setAttribute('aria-label',`${this.territoryName(id)}, ${t.owner===null?'unclaimed':this.name(t.owner)}, ${armies} armies${destination?', available destination':origins.has(id)?s.phase==='attack'?', can attack from here':', can move from here':''}`);
-        el.setAttribute('aria-pressed',String(id===this.selected||id===this.target));
+        el.setAttribute('aria-pressed',String(id===highlightedSource||id===highlightedTarget));
       });
       const content=this.element.querySelector('.conquest-command-content');
       let body='',actions='',attackLead='';
@@ -244,7 +247,7 @@
         if(this.selected&&this.target&&root.ConquestEngine.canAttack(s,this.selected,this.target)) {
           const fromArmies=s.territories[this.selected].armies,toArmies=s.territories[this.target].armies,max=Math.min(3,fromArmies-1);
           attackLead=`<p class="conquest-attack-summary">Attacking from ${escape(this.territoryName(this.selected))} to ${escape(this.territoryName(this.target))}</p><hr class="conquest-attack-divider"><p class="conquest-attack-balance"><b>${fromArmies}</b> ${fromArmies===1?'army':'armies'} vs. <b>${toArmies}</b> defending</p>`;
-          body+=`<label class="conquest-dice-choice">Attack dice <select data-attack-dice aria-label="Number of attack dice">${Array.from({length:max},(_,i)=>`<option value="${i+1}" ${i+1===max?'selected':''}>${i+1}</option>`).join('')}</select></label><label class="conquest-check"><input type="checkbox" data-steamroll> <span>Steamroll: auto-advance with all units and prepare for next attack (use SHIFT+CLICK)</span></label><div class="conquest-small-note">Roll up to ${max} attack dice. Defender rolls up to 2. Shift-click a target to blitz and steamroll once.</div>`;
+          body+=`<label class="conquest-dice-choice">Attack dice <select data-attack-dice aria-label="Number of attack dice">${Array.from({length:max},(_,i)=>`<option value="${i+1}" ${i+1===max?'selected':''}>${i+1}</option>`).join('')}</select></label><label class="conquest-check conquest-steamroll"><input type="checkbox" data-steamroll> <span>Steamroll</span><span class="conquest-steamroll-description">Auto-advance all armies</span><small>(SHIFT+Click)</small></label><div class="conquest-small-note">Roll up to ${max} attack dice. Defender rolls up to 2. Shift-click a target to blitz and steamroll once.</div>`;
         }
         actions+=this.button('end_attack','Finish attacking →','secondary');
       }
@@ -273,6 +276,8 @@
         steamroll.addEventListener('change',()=>{
           this.steamroll=steamroll.checked;
           this.controller.savePreference?.('conquest-steamroll', this.steamroll);
+          if(!this.steamroll)this.chainedSource=null;
+          this.positionBoardControls();
         });
       }
       this.updateCardSelection();
@@ -324,10 +329,35 @@
       this.element.querySelector('.conquest-dispatches').hidden=true;
       if(restoreFocus)this.dispatchesFocus?.focus();
     }
+    positionSteamrollTargets(){
+      const layer=this.element.querySelector('.conquest-steamroll-targets');
+      const s=this.state,from=this.chainedSource;
+      const active=from&&this.selected===from&&s?.phase==='attack'&&this.interactive();
+      // A selected target already has its Blitz button in the normal attack menu.
+      const targets=active?root.ConquestMap.territories[from].neighbors.filter(to=>to!==this.target&&root.ConquestEngine.canAttack(s,from,to)):[];
+      for(const button of layer.children){button.hidden=true;button.disabled=true;}
+      const blocked=[];
+      for(const to of targets){
+        let button=layer.querySelector(`[data-blitz-target="${to}"]`);
+        if(!button){
+          button=document.createElement('button');
+          button.type='button';button.className='conquest-button primary';
+          button.dataset.do='steamroll-blitz';button.dataset.blitzTarget=to;
+          button.textContent='Blitz ↗';
+          button.setAttribute('aria-label',`Blitz ${this.territoryName(to)}`);
+          button.title=`Blitz ${this.territoryName(to)}`;
+          layer.appendChild(button);
+        }
+        button.hidden=false;button.disabled=false;
+        this.placeNearTerritories(button,[to],{blocked});
+        if(!button.hidden)blocked.push(button.getBoundingClientRect());
+      }
+    }
     positionBoardControls(){
       this.positionBattleStage();
       this.positionOccupation();
       this.positionFortify();
+      this.positionSteamrollTargets();
       const menu=this.element.querySelector('.conquest-attack-menu');
       if(!menu||!this.state)return;
       const destination=this.target;
@@ -570,6 +600,10 @@
         .filter(rect=>rect.width&&rect.height&&rect.right>anchor.x-reach&&rect.left<anchor.x+reach&&rect.bottom>anchor.y-reach&&rect.top<anchor.y+reach);
       const stage=this.element.querySelector('.conquest-battle-overlays');
       if(stage&&!stage.hidden)blocked.push(stage.getBoundingClientRect());
+      blocked.push(...(options.blocked||[]));
+      if(panel.classList.contains('conquest-attack-menu')){
+        blocked.push(...[...this.element.querySelectorAll('[data-blitz-target]:not([hidden])')].map(button=>button.getBoundingClientRect()));
+      }
       const app=this.element.getBoundingClientRect();
       const limits=options.overflow?{left:Math.max(8,app.left),top:bounds.top,right:Math.min(app.right,window.innerWidth)-8,bottom:bounds.bottom}:bounds;
       const width=panel.offsetWidth,height=panel.offsetHeight;
@@ -613,8 +647,9 @@
       stage.style.top=`${origin.y-bounds.top}px`;
       stage.style.width=`${width}px`;
       stage.style.height=`${height}px`;
-      // Two groups, their labels and the casualty line share the pocket. Cap each canvas near its previous size.
+      // Reserve room for the region names around the two dice groups.
       const canvasHeight=Math.max(28,Math.min(116,(height-48)/2));
+      stage.style.setProperty('--conquest-dice-height',`${canvasHeight}px`);
       stage.querySelectorAll('canvas').forEach(canvas=>{canvas.style.height=`${canvasHeight}px`;});
       for(const side of ['attacker','defender'])this.scenes[side]?.resize?.();
     }
@@ -706,6 +741,7 @@
           for(const side of ['attacker','defender']){
             const el=this.element.querySelector(`[data-side="${side}"]`);
             el.hidden=false;
+            el.querySelector('[data-battle-region]').textContent=this.territoryName(side==='attacker'?roll.from:roll.to);
             el.querySelector('canvas').setAttribute('aria-label',`${side==='attacker'?'Attacking':'Defending'} dice: ${roll[side+'Dice'].join(', ')}`);
           }
           this.positionBoardControls();
@@ -803,6 +839,13 @@
       if(action==='stats'){this.element.querySelector('.conquest-local-menu').open=false;this.statistics();return;}
       if(action==='rules'){this.element.querySelector('.conquest-local-menu').open=false;this.rules();return;}if(action==='cards'){this.cards();return;}if(action==='close'){this.closeModal();return;}
       if(action==='names'){this.showNames=!this.showNames;this.namesPreference=this.showNames;this.updateMapLabels();this.positionBoardControls();return;}
+      if(action==='steamroll-blitz'){
+        const from=this.chainedSource,to=el.dataset.blitzTarget;
+        if(this.interactive()&&this.selected===from&&this.state.phase==='attack'&&root.ConquestEngine.canAttack(this.state,from,to)){
+          this.dispatch({type:'attack',from,to,dice:Math.min(3,this.state.territories[from].armies-1),blitz:true,steamroll:true});
+        }
+        return;
+      }
       if(action==='attack')this.dispatch({type:'attack',from:this.selected,to:this.target,dice:this.attackDice(),blitz:el.dataset.attackMode==='blitz',steamroll:this.steamroll});
       if(action==='occupy'){
         const input=this.element.querySelector('[data-occupy-range]');

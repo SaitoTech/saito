@@ -1,4 +1,5 @@
 const OverviewTemplate = require('./overview.template');
+const AdminNetworkUI = require('./network');
 
 class AdminOverviewUI {
   constructor(app, mod, container = '.admin-overview') {
@@ -8,6 +9,7 @@ class AdminOverviewUI {
     this.balance = '—';
     this.balance_loading = false;
     this.saving = false;
+    this.network_ui = new AdminNetworkUI(app, mod);
   }
 
   render() {
@@ -23,12 +25,57 @@ class AdminOverviewUI {
       this.container
     );
     this.attachEvents();
+    this.network_ui.render();
   }
 
   attachEvents() {
+    const copy = document.getElementById('admin-copy-server-key');
+    if (copy) copy.onclick = () => this.copyServerKey(copy);
     const home = document.getElementById('admin-server-home');
     if (home) {
       home.onchange = () => this.saveHome(home.value);
+    }
+  }
+
+  async copyServerKey(button) {
+    const key = this.mod.server_publickey;
+    if (!key || button.disabled) return;
+    const status = document.querySelector(`${this.container} .admin-key-copy-status`);
+    const focused = document.activeElement;
+    let usedSelection = false;
+    button.disabled = true;
+    let copied = false;
+    try {
+      if (navigator.clipboard?.writeText) {
+        try {
+          await navigator.clipboard.writeText(key);
+          copied = true;
+        } catch (err) {
+          // HTTP nodes and browsers denying clipboard access can use selection copying.
+        }
+      }
+      if (!copied) {
+        usedSelection = true;
+        const textarea = document.createElement('textarea');
+        textarea.value = key;
+        textarea.readOnly = true;
+        textarea.style.position = 'fixed';
+        textarea.style.left = '-9999px';
+        document.body.append(textarea);
+        try {
+          textarea.select();
+          copied = document.execCommand('copy');
+        } finally {
+          textarea.remove();
+        }
+      }
+    } catch (err) {
+      copied = false;
+    } finally {
+      button.disabled = false;
+      if (usedSelection) focused?.focus();
+      button.querySelector('i').className = copied ? 'fa-solid fa-check' : 'fa-solid fa-copy';
+      if (status) status.textContent = copied ? 'Public key copied.' : 'Copy failed. Select the public key and copy it manually.';
     }
   }
 
