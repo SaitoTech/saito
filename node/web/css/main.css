@@ -1,0 +1,110 @@
+.game.poker {
+  --poker-chrome-inset: 0.8rem;
+  /*
+    YOUR MOVE backdrop — independent overlay, NOT parent opacity.
+    Strength restored toward the former table.is-acting veil (~52%).
+  */
+  --poker-your-move-veil: color-mix(in srgb, #041008 56%, transparent);
+  --poker-your-move-duration: 0.35s;
+}
+
+body.game.poker {
+  background-color: #1a5a32;
+  background-image: url(/poker/img/greenfelt.jpg);
+  background-size: cover;
+  background-position: center;
+}
+
+.game.poker .poker-main {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  grid-template-columns: minmax(28rem, 26vw) minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
+  grid-template-areas: 'rail table';
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  isolation: isolate;
+  background-color: #1a5a32;
+  background-image: url(/poker/img/greenfelt.jpg);
+  background-size: cover;
+  background-position: center;
+}
+
+/*
+  Backdrop layer only. Sits under sidebar/table so cards & controls stay crisp.
+  Opacity transition preserves the existing fade in/out.
+*/
+.game.poker .poker-main::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background: var(--poker-your-move-veil);
+  opacity: 0;
+  transition: opacity var(--poker-your-move-duration) ease;
+}
+
+.game.poker .poker-main.is-your-move::before {
+  opacity: 1;
+}
+
+.game.poker .poker-sidebar,
+.game.poker .poker-table {
+  position: relative;
+  z-index: 1;
+}
+
+/*
+  Playerboxes are normally translucent. With a strong veil under the rail,
+  that transparency shows darkened felt through them → washed-out haze.
+  In YOUR MOVE only: solid opaque surfaces (same green family, not brighter).
+*/
+.game.poker .poker-main.is-your-move .poker-playerbox {
+  background: #0d2818;
+  border-color: color-mix(in srgb, var(--saito-foreground) 40%, transparent);
+  box-shadow: 0 1px 0 color-mix(in srgb, #000 28%, transparent);
+}
+
+.game.poker .poker-main.is-your-move .playerbox-character {
+  border-color: color-mix(in srgb, var(--saito-foreground) 58%, transparent);
+}
+
+.game.poker .poker-main.is-your-move .poker-pot {
+  background: #f3ead2;
+}
+
+.game.poker .game-menu {
+  top: var(--poker-chrome-inset);
+  left: var(--poker-chrome-inset);
+  margin: 0;
+}
+
+.game.poker #saito-header.game .hamburger-container {
+  margin-top: var(--poker-chrome-inset);
+  margin-right: var(--poker-chrome-inset);
+}
+
+.game.poker .poker-sidebar {
+  grid-area: rail;
+}
+
+.game.poker .poker-table {
+  grid-area: table;
+}
+
+.game.poker #game-share {
+  display: none;
+}
+
+@media (max-width: 900px), (max-height: 500px) {
+  .game.poker .poker-main {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr) auto;
+    grid-template-areas:
+      'table'
+      'rail';
+  }
+}

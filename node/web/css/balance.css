@@ -1,0 +1,74 @@
+/* Shared CHIP ↔ crypto balance flip (player boxes, pot, pot-details overlay) */
+
+.chip-crypto-balance {
+  display: inline-grid;
+  align-items: baseline;
+  justify-items: start;
+  max-width: 100%;
+}
+
+.chip-crypto-balance-face {
+  grid-area: 1 / 1;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.4rem;
+  max-width: 100%;
+  white-space: nowrap;
+  transition:
+    opacity 0.22s ease,
+    transform 0.22s ease;
+}
+
+.chip-crypto-balance-num {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.chip-crypto-balance-unit {
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.chip-crypto-balance--toggle {
+  cursor: pointer;
+  outline: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.chip-crypto-balance--toggle .chip-crypto-balance-face--crypto {
+  opacity: 0;
+  transform: translateY(0.35rem);
+  pointer-events: none;
+}
+
+.chip-crypto-balance--toggle .chip-crypto-balance-face--chips {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .chip-crypto-balance--toggle:hover .chip-crypto-balance-face--chips {
+    opacity: 0;
+    transform: translateY(-0.35rem);
+  }
+
+  .chip-crypto-balance--toggle:hover .chip-crypto-balance-face--crypto {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.chip-crypto-balance--toggle.is-showing-crypto .chip-crypto-balance-face--chips {
+  opacity: 0;
+  transform: translateY(-0.35rem);
+}
+
+.chip-crypto-balance--toggle.is-showing-crypto .chip-crypto-balance-face--crypto {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.chip-crypto-balance--toggle:focus-visible {
+  box-shadow: 0 0 0 2px color-mix(in srgb, #efe2c0 55%, transparent);
+  border-radius: 0.3rem;
+}
