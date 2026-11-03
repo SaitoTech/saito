@@ -29,6 +29,8 @@ const LAYOUT = {
 };
 
 const DECK_KEYS = ['ew', 'mw', 'lw'];
+const DECK_NAMES = ['early', 'mid', 'late'];
+const PLAYER_KEYS = ['ussr', 'us', 'both'];
 const ASSOCIATION_KEYS = ['USSR', 'USA', 'Neutral'];
 
 const FONT_STACK = {
@@ -47,7 +49,7 @@ class Card {
   reset(data = {}) {
     this.card_id = data.card_id ?? '100';
     this.deck = Number(data.deck ?? 0);
-    this.association = Number(data.association ?? 0);
+    this.player = this.normalizePlayer(data.player ?? data.association);
     this.ops = data.ops ?? '4';
     this.title = data.title ?? 'Wargames';
     this.font_size = Number(data.font_size ?? 20);
@@ -56,17 +58,49 @@ class Card {
     this.event3 = data.event3 ?? '';
     this.pre_text = data.pre_text ?? '';
     this.post_text = data.post_text ?? '';
-    this.optional = Boolean(data.optional);
+    this.scoring = Boolean(data.scoring);
     this.removed = Boolean(data.removed);
     this.permanent = Boolean(data.permanent);
+    this.code = typeof data.code === 'string' ? data.code : '';
+    this.img = typeof data.img === 'string' ? data.img : '';
     this.image_style = data.image_style === 'logo' ? 'logo' : 'photo';
     this.image = data.image || null;
     this.image_url = data.image_url || '';
   }
 
+  normalizePlayer(value) {
+    if (value === 'ussr' || value === 'us' || value === 'both') {
+      return value;
+    }
+    const index = Number(value);
+    if (index === 0) {
+      return 'ussr';
+    }
+    if (index === 1) {
+      return 'us';
+    }
+    return 'both';
+  }
+
+  associationIndex() {
+    const index = PLAYER_KEYS.indexOf(this.player);
+    return index >= 0 ? index : 2;
+  }
+
+  deckName() {
+    return DECK_NAMES[this.deck] || 'early';
+  }
+
+  assembledText() {
+    return [this.pre_text, this.event, this.event2, this.event3, this.post_text]
+      .map((part) => String(part || '').trim())
+      .filter((part) => part.length > 0)
+      .join('\n\n');
+  }
+
   headerTemplateUrl() {
     const deck = DECK_KEYS[this.deck];
-    const association = ASSOCIATION_KEYS[this.association];
+    const association = ASSOCIATION_KEYS[this.associationIndex()];
     if (!deck || !association) {
       return '/tscardgen/img/templates/error.png';
     }
@@ -188,7 +222,7 @@ class Card {
     const x = (CARD_WIDTH - header.width) / 2;
     ctx.drawImage(header, x - LAYOUT.xHeaderAdjustment, LAYOUT.yHeader);
 
-    ctx.fillStyle = this.association === 0 ? LAYOUT.opsUssr : LAYOUT.ink;
+    ctx.fillStyle = this.player === 'ussr' ? LAYOUT.opsUssr : LAYOUT.ink;
     ctx.font = `bold 32px sans-serif`;
     ctx.fillText(String(this.ops ?? ''), LAYOUT.xOps, LAYOUT.yOps);
   }
@@ -243,10 +277,8 @@ class Card {
       previousLines = this.wrapText(ctx, this.event3, x, y, LAYOUT.maxTextWidth, lineHeight, false);
     }
 
-    let cardId = String(this.card_id || '');
-    if (this.optional) {
-      cardId = `${cardId} - OPTIONAL`;
-    }
+    // All TS-CARD-GEN cards are optional; always mark artwork.
+    let cardId = `${String(this.card_id || '')} - OPTIONAL`;
     ctx.font = `14px ${FONT_STACK.regular}`;
     ctx.fillStyle = LAYOUT.ink;
     ctx.fillText(cardId, x, LAYOUT.yCardId);
@@ -316,9 +348,31 @@ class Card {
     }
     return canvas.toDataURL('image/png');
   }
+
+  /**
+   * Immutable plain object for Create NFT create_data / createData.
+   * Does not retain Image / live form references.
+   */
+  buildSnapshot(image_data_url = '') {
+    return {
+      name: String(this.title || '').trim(),
+      scoring: this.scoring ? 1 : 0,
+      player: this.normalizePlayer(this.player),
+      ops: Number(this.ops) || 0,
+      recurring: this.removed ? 0 : 1,
+      permanent: this.permanent ? 1 : 0,
+      deck: this.deckName(),
+      text: this.assembledText(),
+      // Tabs break game-move queue parsing (\t-delimited); keep code tab-free.
+      code: typeof this.code === 'string' ? this.code.replace(/\t/g, ' ') : '',
+      img: typeof this.img === 'string' ? this.img : '',
+      image: image_data_url || this.image_url || ''
+    };
+  }
 }
 
 Card.WIDTH = CARD_WIDTH;
 Card.HEIGHT = CARD_HEIGHT;
+Card.NFT_TYPE = 'twilight-nft';
 
 module.exports = Card;

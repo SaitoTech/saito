@@ -43,6 +43,17 @@ class Form {
       this.syncFromForm();
     });
 
+    form.querySelector('.ts-back-home')?.addEventListener('click', () => {
+      this.syncFromForm();
+      this.mod.main?.showHome?.();
+    });
+
+    form.querySelector('.ts-create-nft')?.addEventListener('click', async () => {
+      this.syncFromForm();
+      await this.card_ui.draw();
+      await this.mod.openCreateNft();
+    });
+
     const file = form.querySelector('input[name="image"]');
     if (file) {
       file.onchange = () => this.onImageSelected(file);
@@ -60,7 +71,7 @@ class Form {
 
     card.card_id = String(data.get('card_id') ?? '');
     card.deck = Number(data.get('deck') ?? 0);
-    card.association = Number(data.get('association') ?? 0);
+    card.player = card.normalizePlayer(data.get('player') ?? 'both');
     card.ops = String(data.get('ops') ?? '');
     card.title = String(data.get('title') ?? '');
     card.font_size = Number(data.get('font_size') ?? 20);
@@ -69,7 +80,8 @@ class Form {
     card.event3 = String(data.get('event3') ?? '');
     card.pre_text = String(data.get('pre_text') ?? '');
     card.post_text = String(data.get('post_text') ?? '');
-    card.optional = form.querySelector('input[name="optional"]')?.checked === true;
+    card.code = String(data.get('code') ?? '');
+    card.scoring = form.querySelector('input[name="scoring"]')?.checked === true;
     card.removed = form.querySelector('input[name="removed"]')?.checked === true;
     card.permanent = form.querySelector('input[name="permanent"]')?.checked === true;
     card.image_style = data.get('image_style') === 'logo' ? 'logo' : 'photo';

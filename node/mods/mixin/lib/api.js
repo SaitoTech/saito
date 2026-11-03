@@ -240,11 +240,13 @@ class Api {
   }
 
   async fetchAsset(assetId) {
+    const session = this.createAppSession();
+    // Missing application session is an expected unconfigured state, not an
+    // API failure. Callers treat false as "no asset info".
+    if (!session) {
+      return false;
+    }
     try {
-      const session = this.createAppSession();
-      if (!session) {
-        throw new Error('Mixin application session is not configured');
-      }
       return await session.network.fetchAsset(assetId);
     } catch (err) {
       console.error('ERROR: Mixin error check network fee: ' + formatMixinError(err));

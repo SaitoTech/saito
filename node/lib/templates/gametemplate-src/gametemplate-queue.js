@@ -116,6 +116,20 @@ class GameQueue {
         }
       }
 
+      //
+      // Players one-by-one share Archive payloads for contributed invite NFTs.
+      // Expands game.options.nfts[i].data in place (no parallel NFT store).
+      //
+      if (
+        Array.isArray(this.game.options?.nfts) &&
+        this.game.options.nfts.length > 0 &&
+        this.game.options.nfts.some((n) => !n?.data)
+      ) {
+        for (let i = 0; i < this.game.players.length; i++) {
+          this.game.queue.push('REQUEST_AVAILABLE_NFTS\t' + (i + 1));
+        }
+      }
+
       this.saveGame(this.game.id);
     }
 
@@ -2617,19 +2631,44 @@ class GameQueue {
     });
 
     //
-    // NFTs are handled in the same way
+    // NFTs are handled in the same way as AVAILABLE_CRYPTOS:
+    // one REQUEST per player, one AVAILABLE response packing that player's NFTs.
+    // Payload data is merged into game.options.nfts[].data (invite metadata expanded).
     //
     this.commands.push(async (game_self, gmv) => {
       if (gmv[0] === 'AVAILABLE_NFTS') {
         let playerkey = gmv[1];
-        let nfts = JSON.parse(gmv[2]);
+        let payload = JSON.parse(gmv[2]);
 
-        if (!this.game.cryptos) {
-          this.game.nfts = {};
+        game_self.game.queue.splice(game_self.game.queue.length - 1, 1);
+
+        if (payload && payload.error) {
+          salert('Game not Loaded: player could not load required NFT.');
+          return 0;
         }
 
-        this.game.nfts[playerkey] = nfts;
-        game_self.game.queue.splice(game_self.game.queue.length - 1, 1);
+        const updates = Array.isArray(payload) ? payload : [];
+        const listed = Array.isArray(game_self.game.options?.nfts)
+          ? game_self.game.options.nfts
+          : [];
+
+        for (const update of updates) {
+          if (!update?.id) {
+            continue;
+          }
+          const entry = listed.find((n) => String(n.id) === String(update.id));
+          if (!entry) {
+            continue;
+          }
+          let data =
+            update.data && typeof update.data === 'object' ? update.data : {};
+          if (typeof data.code === 'string' && data.code.indexOf('\t') >= 0) {
+            data = Object.assign({}, data, {
+              code: data.code.replace(/\t/g, ' ')
+            });
+          }
+          entry.data = data;
+        }
 
         return 1;
       }
@@ -2637,15 +2676,66 @@ class GameQueue {
     });
 
     //
-    //
-    // players can share game-available cryptos + balances
+    // contributing player loads each required NFT from Archive and shares txmsg.data
     //
     this.commands.push(async (game_self, gmv) => {
       if (gmv[0] === 'REQUEST_AVAILABLE_NFTS') {
         let playerkey = parseInt(gmv[1]);
         game_self.game.queue.splice(game_self.game.queue.length - 1, 1);
+
         if (game_self.game.player == playerkey) {
           let an = [];
+          const listed = Array.isArray(game_self.game.options?.nfts)
+            ? game_self.game.options.nfts
+            : [];
+          const wallet_nfts = game_self.app.options?.wallet?.nfts || [];
+
+          const mine = listed.filter((rec) => {
+            if (!rec?.id || rec.data) {
+              return false;
+            }
+            if (String(rec.owner) === String(game_self.publicKey)) {
+              return true;
+            }
+            return wallet_nfts.some((n) => String(n.id) === String(rec.id));
+          });
+
+          for (const rec of mine) {
+            const nft_id = String(rec.id);
+            let txs = null;
+            try {
+              txs = await game_self.app.storage.loadNFTTransactions(nft_id);
+            } catch (err) {
+              console.error('REQUEST_AVAILABLE_NFTS: Archive load error', nft_id, err);
+              txs = null;
+            }
+
+            if (!Array.isArray(txs) || txs.length === 0) {
+              salert('Game not Loaded: player could not load required NFT.');
+              game_self.addMove(
+                `AVAILABLE_NFTS\t${playerkey}\t${JSON.stringify({ error: 1, nft_id })}`
+              );
+              game_self.game.turn = game_self.moves;
+              game_self.moves = [];
+              game_self.sendGameMoveTransaction('game', {});
+              return 0;
+            }
+
+            const txmsg = txs[0].returnMessage() || {};
+            let data =
+              txmsg.data && typeof txmsg.data === 'object' ? txmsg.data : {};
+            if (typeof data.code === 'string' && data.code.indexOf('\t') >= 0) {
+              data = Object.assign({}, data, {
+                code: data.code.replace(/\t/g, ' ')
+              });
+            }
+
+            an.push({
+              id: nft_id,
+              data
+            });
+          }
+
           game_self.addMove(`AVAILABLE_NFTS\t${playerkey}\t${JSON.stringify(an)}`);
           game_self.game.turn = game_self.moves;
           game_self.moves = [];

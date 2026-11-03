@@ -8,6 +8,77 @@
   padding: calc(var(--saito-header-height, 4rem) + 1.5rem) 0 2rem;
 }
 
+.tscardgen-home {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--saito-space-lg, 1.5rem);
+}
+
+.tscardgen-cta {
+  width: min(42rem, 100%);
+  margin: 2rem auto 0;
+  padding: var(--saito-space-xl, 2rem);
+  border: 1px solid var(--saito-border, rgba(255, 255, 255, 0.12));
+  border-radius: calc(var(--saito-radius, 0.75rem) + 0.25rem);
+  background: var(--ts-panel, var(--saito-card));
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.28);
+  text-align: center;
+}
+
+.tscardgen-cta-kicker {
+  margin: 0 0 0.5rem;
+  color: var(--ts-frost, #e3f5ff);
+  font-size: 0.78rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.tscardgen-cta-title {
+  margin: 0;
+  font-family: ts-caslon-bold, "Libre Caslon Text", "Palatino Linotype", Palatino, serif;
+  font-size: clamp(2rem, 4vw, 2.8rem);
+  line-height: 1.1;
+  color: var(--saito-foreground, #f2f5f7);
+}
+
+.tscardgen-cta-copy {
+  margin: 0.85rem auto 1.5rem;
+  max-width: 34ch;
+  color: color-mix(in srgb, var(--saito-foreground, #f2f5f7) 72%, transparent);
+}
+
+.tscardgen-cta .saito-button-row {
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.tscardgen-my-cards {
+  display: flex;
+  flex-direction: column;
+  gap: var(--saito-space-lg);
+  width: min(72rem, 95vw);
+  max-width: 95vw;
+  max-height: min(90vh, 100dvh);
+  min-height: 0;
+  overflow: hidden;
+}
+
+.tscardgen-my-cards-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+}
+
+.tscardgen-my-cards .send-nft-list {
+  max-height: none;
+}
+
+.tscardgen-my-cards .nft-list-instructions .instructions {
+  opacity: 0.8;
+  line-height: 1.5;
+}
+
 .tscardgen-shell {
   display: grid;
   grid-template-columns: minmax(280px, 1fr) minmax(320px, 420px);

@@ -41,6 +41,7 @@ class Twilight extends GameTemplate {
 
     this.app             = app;
 
+    this.supported_nft_types = ["twilight-nft"];
     this.name  		 = "Twilight";
     this.gamename        = "Twilight Struggle";
     this.slug		 = "twilight";

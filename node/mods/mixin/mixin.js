@@ -1478,6 +1478,9 @@ class Mixin extends ModTemplate {
   installCryptos() {
     const mixinSelf = this;
     const modules = this.app.modules.respondTo('mixin-crypto');
+    // Public asset metadata requires the Mixin application session. Skip the
+    // scheduled lookup when unconfigured so browser/Admin startup stays quiet.
+    const hasAppSession = !!this.api?.createAppSession?.();
 
     for (let i = 0; i < modules.length; i++) {
       const cryptoModule = new MixinModule(
@@ -1505,7 +1508,10 @@ class Mixin extends ModTemplate {
       this.app.modules.mods.push(cryptoModule);
 
       setTimeout(async () => {
-        if (typeof cryptoModule?.returnMixinNetworkInfo === 'function') {
+        if (
+          hasAppSession &&
+          typeof cryptoModule?.returnMixinNetworkInfo === 'function'
+        ) {
           await cryptoModule.returnMixinNetworkInfo();
         }
 

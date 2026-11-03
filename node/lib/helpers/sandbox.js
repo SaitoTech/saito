@@ -11,9 +11,19 @@
  * so Webpack can bundle it for the browser. Node unit tests use sandbox-node.js.
  */
 
-const SANDBOX_CSP = [
+/**
+ * Base CSP for the opaque sandbox document.
+ * script-src is completed per init with a nonce that authorizes only the
+ * trusted iframe bootstrap. Untrusted user code never runs as a document
+ * script; it runs only inside the Blob Worker created after handshake.
+ *
+ * 'unsafe-eval' is required for the existing persistent Worker bootstrap,
+ * which compiles validated user source with AsyncFunction. It is not used
+ * to deliver or authorize the iframe bootstrap (that is nonce-only). There
+ * is still no 'unsafe-inline'.
+ */
+const SANDBOX_CSP_BASE = [
   "default-src 'none'",
-  "script-src blob:",
   "worker-src blob:",
   "connect-src 'none'",
   "object-src 'none'",
@@ -21,7 +31,31 @@ const SANDBOX_CSP = [
   "form-action 'none'",
   "frame-src 'none'",
   "child-src blob:"
-].join('; ');
+];
+
+function buildSandboxCsp(nonce) {
+  return [...SANDBOX_CSP_BASE, `script-src 'nonce-${nonce}' 'unsafe-eval' blob:`].join('; ');
+}
+
+/** Exported for tests; production inits always build CSP with a fresh nonce. */
+const SANDBOX_CSP = buildSandboxCsp('saito-sandbox');
+
+function createBootstrapNonce() {
+  // Prefer Web Crypto on globalThis (browsers and modern Node). Avoid the
+  // Node `crypto` module binding — this file must stay Webpack-safe.
+  const webCrypto = typeof globalThis !== 'undefined' ? globalThis.crypto : null;
+  if (webCrypto && typeof webCrypto.getRandomValues === 'function') {
+    const bytes = new Uint8Array(16);
+    webCrypto.getRandomValues(bytes);
+    return Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');
+  }
+  throw new Error('Sandbox bootstrap nonce requires Web Crypto getRandomValues');
+}
+
+function escapeInlineScript(source) {
+  // Prevent early </script> termination if the trusted source ever contains it.
+  return String(source).replace(/<\/(script)/gi, '<\\/$1');
+}
 
 function jsonSafeClone(value, label) {
   try {
@@ -176,21 +210,49 @@ function getIframeBootstrapSource() {
 'use strict';
 (function () {
   var worker = null;
+  var workerBlobUrl = null;
   var parentOrigin = '*';
+  var waitingForWorkerReady = false;
 
   function postToParent(msg) {
     parent.postMessage(msg, parentOrigin);
   }
 
+  function revokeWorkerBlob() {
+    if (workerBlobUrl) {
+      try {
+        URL.revokeObjectURL(workerBlobUrl);
+      } catch (e) {}
+      workerBlobUrl = null;
+    }
+  }
+
   function createWorker(bootstrapSource) {
     var blob = new Blob([bootstrapSource], { type: 'application/javascript' });
-    var url = URL.createObjectURL(blob);
-    worker = new Worker(url);
-    URL.revokeObjectURL(url);
+    // Do not revoke immediately: Chromium can fail to fetch the Worker script
+    // if the Blob URL is revoked before the worker finishes loading.
+    workerBlobUrl = URL.createObjectURL(blob);
+    worker = new Worker(workerBlobUrl);
+    waitingForWorkerReady = true;
     worker.onmessage = function (ev) {
-      postToParent({ channel: 'saito-sandbox', from: 'worker', payload: ev.data });
+      var msg = ev.data;
+      if (
+        waitingForWorkerReady &&
+        msg &&
+        typeof msg === 'object' &&
+        msg.type === 'WORKER_READY'
+      ) {
+        waitingForWorkerReady = false;
+        postToParent({
+          channel: 'saito-sandbox',
+          from: 'iframe',
+          payload: { type: 'SANDBOX_READY' }
+        });
+      }
+      postToParent({ channel: 'saito-sandbox', from: 'worker', payload: msg });
     };
     worker.onerror = function (err) {
+      waitingForWorkerReady = false;
       postToParent({
         channel: 'saito-sandbox',
         from: 'iframe',
@@ -214,8 +276,9 @@ function getIframeBootstrapSource() {
     if (payload.type === 'BOOTSTRAP') {
       try {
         createWorker(payload.workerBootstrap);
-        postToParent({ channel: 'saito-sandbox', from: 'iframe', payload: { type: 'SANDBOX_READY' } });
+        // SANDBOX_READY is posted only after the Worker emits WORKER_READY.
       } catch (err) {
+        waitingForWorkerReady = false;
         postToParent({
           channel: 'saito-sandbox',
           from: 'iframe',
@@ -236,6 +299,8 @@ function getIframeBootstrapSource() {
         worker.terminate();
       } catch (e) {}
       worker = null;
+      waitingForWorkerReady = false;
+      revokeWorkerBlob();
       return;
     }
     worker.postMessage(payload);
@@ -264,7 +329,6 @@ function createSandbox() {
     initialized: false,
     iframe: null,
     iframeUrl: null,
-    scriptUrl: null,
     nextRequestId: 1,
     pending: new Map(),
     currentHandlers: null,
@@ -433,18 +497,23 @@ function createSandbox() {
   }
 
   async function initializeBrowser() {
-    const scriptSource = getIframeBootstrapSource();
-    const scriptBlob = new Blob([scriptSource], { type: 'application/javascript' });
-    state.scriptUrl = URL.createObjectURL(scriptBlob);
-
+    // Opaque-origin iframes (sandbox without allow-same-origin) cannot load
+    // parent-created Blob script URLs. Deliver the trusted bootstrap as an
+    // inline script authorized only by a per-init CSP nonce. Saito parent
+    // pages currently ship no CSP; the iframe meta policy is therefore the
+    // effective document policy. A later parent CSP cannot be loosened by
+    // this meta tag — if one is added that blocks this bootstrap, init must
+    // fail closed rather than weaken sandbox flags.
+    const nonce = createBootstrapNonce();
+    const bootstrap = escapeInlineScript(getIframeBootstrapSource());
     const html = `<!DOCTYPE html>
 <html>
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="${SANDBOX_CSP}">
+<meta http-equiv="Content-Security-Policy" content="${buildSandboxCsp(nonce)}">
 </head>
 <body>
-<script src="${state.scriptUrl}"></script>
+<script nonce="${nonce}">${bootstrap}</script>
 </body>
 </html>`;
 
@@ -628,13 +697,7 @@ function createSandbox() {
         } catch (_err) {
           // ignore
         }
-      }
-      if (state.scriptUrl) {
-        try {
-          URL.revokeObjectURL(state.scriptUrl);
-        } catch (_err) {
-          // ignore
-        }
+        state.iframeUrl = null;
       }
 
       state.kind = null;
@@ -646,5 +709,10 @@ function createSandbox() {
 
 module.exports = {
   createSandbox,
-  SANDBOX_CSP
+  SANDBOX_CSP,
+  buildSandboxCsp,
+  createBootstrapNonce,
+  escapeInlineScript,
+  getIframeBootstrapSource,
+  getWorkerBootstrapSource
 };

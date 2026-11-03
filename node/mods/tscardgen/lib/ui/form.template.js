@@ -1,5 +1,5 @@
 function selected(current, value) {
-  return Number(current) === Number(value) ? ' selected' : '';
+  return String(current) === String(value) ? ' selected' : '';
 }
 
 function checked(condition) {
@@ -8,6 +8,7 @@ function checked(condition) {
 
 module.exports = (card) => {
   const font_sizes = [20, 19, 18, 17, 16, 15, 14];
+  const player = card.player || 'both';
 
   return `
     <form class="ts-form" autocomplete="off">
@@ -38,11 +39,11 @@ module.exports = (card) => {
         </label>
 
         <label class="ts-field">
-          <span class="ts-label">Association</span>
-          <select class="ts-input" name="association">
-            <option value="0"${selected(card.association, 0)}>USSR</option>
-            <option value="1"${selected(card.association, 1)}>USA</option>
-            <option value="2"${selected(card.association, 2)}>Neutral</option>
+          <span class="ts-label">Player</span>
+          <select class="ts-input" name="player">
+            <option value="ussr"${selected(player, 'ussr')}>USSR</option>
+            <option value="us"${selected(player, 'us')}>US</option>
+            <option value="both"${selected(player, 'both')}>Both (Neutral)</option>
           </select>
         </label>
 
@@ -64,7 +65,7 @@ module.exports = (card) => {
               <span>Logo</span>
             </label>
           </div>
-          <p class="ts-hint">Images larger than 298×150 are scaled to fit.</p>
+          <p class="ts-hint">Images larger than 298×150 are scaled to fit. All cards are marked OPTIONAL.</p>
         </fieldset>
 
         <label class="ts-field">
@@ -78,7 +79,7 @@ module.exports = (card) => {
 
         <div class="ts-field ts-checks">
           <span class="ts-label">Flags</span>
-          <label class="ts-check"><input type="checkbox" name="optional"${checked(card.optional)} /> Optional</label>
+          <label class="ts-check"><input type="checkbox" name="scoring"${checked(card.scoring)} /> Scoring</label>
           <label class="ts-check"><input type="checkbox" name="removed"${checked(card.removed)} /> Removed</label>
           <label class="ts-check"><input type="checkbox" name="permanent"${checked(card.permanent)} /> Permanent</label>
         </div>
@@ -107,10 +108,18 @@ module.exports = (card) => {
           <span class="ts-label">Post-Event Text</span>
           <input class="ts-input" name="post_text" type="text" value="${escapeAttr(card.post_text)}" placeholder="Optional italic text" />
         </label>
+
+        <label class="ts-field ts-field-span">
+          <span class="ts-label">Card Code</span>
+          <textarea class="ts-input ts-textarea ts-code" name="code" rows="6" placeholder="JavaScript executed when this card is evented (optional)">${escapeText(card.code)}</textarea>
+          <p class="ts-hint">Stored as text in the NFT. Not executed during minting or wallet receipt.</p>
+        </label>
       </div>
 
       <footer class="ts-form-footer">
+        <button type="button" class="saito-button-secondary small ts-back-home">Back</button>
         <button type="button" class="saito-button-primary small ts-redraw">Redraw</button>
+        <button type="button" class="saito-button-primary small ts-create-nft">Create NFT</button>
         <a class="ts-reference" href="https://twilightstrategy.com/card-list/" target="_blank" rel="noopener noreferrer">Card list reference</a>
       </footer>
     </form>

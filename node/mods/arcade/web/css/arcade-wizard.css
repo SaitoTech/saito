@@ -135,44 +135,35 @@
 .arcade-wizard #arcade-advance-opt {
   display: flex;
   flex-wrap: nowrap;
-  align-items: center;
-  justify-content: space-between;
+  align-items: stretch;
+  justify-content: flex-start;
   gap: var(--saito-space-sm);
   min-height: 3.2rem;
+  width: 100%;
 }
 
-.arcade-wizard
-  #arcade-advance-opt:has(.game-wizard-crypto-hook)
-  > :is(.advanced-btn, .game-wizard-crypto-hook) {
-  flex: 1 1 0;
-  min-width: 0;
-  margin: 0;
-}
-
-.arcade-wizard .advanced-btn {
+/*
+ * Override global .saito-button-secondary (min-width: 20rem, fit-content)
+ * so these controls can sit together in the settings row.
+ */
+.arcade-wizard #arcade-advance-opt > :is(.nfts-btn, .advanced-btn, .game-wizard-crypto-hook) {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 0.45rem;
+  box-sizing: border-box;
   flex: 0 1 auto;
-  border: 1px solid var(--saito-border);
-  border-radius: var(--saito-radius);
-  background: var(--saito-secondary);
-  color: var(--saito-foreground);
-  cursor: pointer;
-}
-
-.arcade-wizard .advanced-btn:hover,
-.arcade-wizard .advanced-btn:focus-visible {
-  border-color: var(--saito-primary);
-  color: var(--saito-foreground);
-  outline: none;
-}
-
-.arcade-wizard .game-wizard-crypto-hook {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  flex: 0 0 auto;
+  width: auto;
+  min-width: 0;
+  max-width: 100%;
+  min-height: 3.2rem;
+  height: auto;
+  margin: 0;
+  padding: 0.45rem 0.6rem;
+  font-size: 1.15rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   border: 1px solid var(--saito-border);
   border-radius: var(--saito-radius);
   background: var(--saito-secondary);
@@ -181,17 +172,46 @@
   user-select: none;
 }
 
-.arcade-wizard .game-wizard-crypto-hook::after {
-  content: 'crypto';
-  font-family: var(--saito-font-medium);
-  text-transform: none;
+.arcade-wizard #arcade-advance-opt > .nfts-btn[hidden] {
+  display: none !important;
+  flex: 0 0 0;
+  width: 0;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
 }
 
+/* When NFTs is shown, force equal widths with advanced / crypto. */
+.arcade-wizard
+  #arcade-advance-opt:has(.nfts-btn:not([hidden]))
+  > :is(.nfts-btn:not([hidden]), .advanced-btn, .game-wizard-crypto-hook) {
+  flex: 1 1 0;
+  width: 0;
+  min-width: 0;
+}
+
+.arcade-wizard .advanced-btn:hover,
+.arcade-wizard .advanced-btn:focus-visible,
+.arcade-wizard .nfts-btn:hover,
+.arcade-wizard .nfts-btn:focus-visible,
 .arcade-wizard .game-wizard-crypto-hook:hover,
 .arcade-wizard .game-wizard-crypto-hook:focus-visible {
   border-color: var(--saito-primary);
   color: var(--saito-foreground);
   outline: none;
+}
+
+.arcade-wizard .nfts-btn.has-selection {
+  border-color: var(--saito-primary);
+  background: color-mix(in srgb, var(--saito-primary) 14%, transparent);
+  color: var(--saito-foreground);
+}
+
+.arcade-wizard .game-wizard-crypto-hook::after {
+  content: 'crypto';
+  font-family: var(--saito-font-medium);
+  text-transform: none;
 }
 
 .arcade-wizard .game-wizard-crypto-hook[data-amount] {
@@ -315,24 +335,99 @@
   outline: none;
 }
 
+/* Advanced Options: shared Arcade shell.
+   Short forms size to content; long forms scroll the body; header/footer stay fixed. */
 #advanced-options-overlay-container {
   display: flex;
   flex-direction: column;
-  gap: var(--saito-space-md);
-  min-width: min(50rem, 95vw);
-  min-height: min(40rem, 95vh);
+  gap: var(--saito-space-lg);
+  width: min(60rem, 95vw);
   max-width: 95vw;
-  max-height: 95vh;
-  padding: var(--saito-space-xl);
-  overflow: auto;
-  border: 1px solid var(--saito-border);
-  border-radius: var(--saito-radius);
-  background: var(--saito-card);
+  max-height: min(90vh, 100dvh);
+  min-height: 0;
+  overflow: hidden;
   color: var(--saito-foreground);
 }
 
-#advanced-options-overlay-container > * {
+#advanced-options-overlay-container .advanced-options-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--saito-space-md);
   max-width: 100%;
+}
+
+#advanced-options-overlay-container .advanced-options-body > * {
+  max-width: 100%;
+}
+
+#advanced-options-overlay-container .saito-overlay-form-header,
+#advanced-options-overlay-container .saito-button-row {
+  flex: 0 0 auto;
+}
+
+#advanced-options-overlay-container .saito-button-row {
+  margin-top: 0;
+}
+
+#advanced-options-overlay-container .overlay-input {
+  display: flex;
+  flex-direction: column;
+  gap: var(--saito-space-sm);
+}
+
+#advanced-options-overlay-container .overlay-input > label {
+  display: flex;
+  align-items: center;
+  gap: var(--saito-space-sm);
+  margin: 0;
+}
+
+#advanced-options-overlay-container .overlay-input > label:has(select),
+#advanced-options-overlay-container .overlay-input > label[for] {
+  display: block;
+}
+
+#advanced-options-overlay-container .advanced-options-columns {
+  display: grid;
+  grid-template-columns: minmax(12rem, 18rem) minmax(0, 1fr);
+  gap: var(--saito-space-lg);
+  align-items: start;
+}
+
+#advanced-options-overlay-container .advanced-options-checklist {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(22rem, 1fr));
+  gap: var(--saito-space-sm) var(--saito-space-md);
+}
+
+#advanced-options-overlay-container .advanced-options-checklist .overlay-input {
+  margin: 0;
+}
+
+#advanced-options-overlay-container .advanced-options-checklist label {
+  display: flex;
+  align-items: center;
+  gap: var(--saito-space-sm);
+  margin: 0;
+}
+
+@media (max-width: 600px) {
+  #advanced-options-overlay-container {
+    width: min(96vw, 60rem);
+    max-height: min(92vh, 100dvh);
+    padding: var(--saito-space-lg);
+  }
+
+  #advanced-options-overlay-container .advanced-options-columns {
+    grid-template-columns: 1fr;
+  }
+
+  #advanced-options-overlay-container .advanced-options-checklist {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 600px) {
@@ -353,4 +448,50 @@
   .arcade-wizard .hero {
     min-height: 10rem;
   }
+}
+
+/* NFT selection: shared Arcade shell (header / scroll body / confirm). */
+#arcade-nft-selection-overlay {
+  display: flex;
+  flex-direction: column;
+  gap: var(--saito-space-lg);
+  width: min(72rem, 95vw);
+  max-width: 95vw;
+  max-height: min(90vh, 100dvh);
+  min-height: 0;
+  overflow: hidden;
+  color: var(--saito-foreground);
+}
+
+#arcade-nft-selection-overlay .arcade-nft-selection-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--saito-space-md);
+  max-width: 100%;
+}
+
+#arcade-nft-selection-overlay .saito-overlay-form-header,
+#arcade-nft-selection-overlay .saito-button-row {
+  flex: 0 0 auto;
+}
+
+#arcade-nft-selection-overlay .saito-button-row {
+  margin-top: 0;
+}
+
+#arcade-nft-selection-overlay .send-nft-list {
+  max-height: none;
+}
+
+#arcade-nft-selection-overlay .saito-nft-card.selected {
+  outline: 0.2rem solid var(--saito-primary);
+  outline-offset: 0.2rem;
+}
+
+#arcade-nft-selection-overlay .nft-list-instructions .instructions {
+  opacity: 0.8;
+  line-height: 1.5;
 }

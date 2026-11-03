@@ -223,9 +223,32 @@ describe('Mixin api helpers', () => {
     await expect(api.fetchAsset('asset-id')).resolves.toBe(false);
 
     expect(MixinApi).not.toHaveBeenCalled();
+    expect(error).not.toHaveBeenCalled();
+    error.mockRestore();
+  });
+
+  test('fetchAsset logs when a configured session fails the network call', async () => {
+    process.env.MIXIN = JSON.stringify({
+      app_id: 'app-1',
+      session_id: '7ca007b2-e237-4bcb-89b1-8ff89fc24fc3',
+      server_public_key: 'server-pub',
+      session_private_key: 'app-session-key'
+    });
+    const api = new Api();
+    const error = jest.spyOn(console, 'error').mockImplementation(() => {});
+    MixinApi.mockImplementationOnce(() => ({
+      network: {
+        fetchAsset: jest.fn(async () => {
+          throw new Error('upstream unavailable');
+        })
+      }
+    }));
+
+    await expect(api.fetchAsset('asset-id')).resolves.toBe(false);
     expect(error).toHaveBeenCalledWith(
-      expect.stringContaining('Mixin application session is not configured')
+      expect.stringContaining('ERROR: Mixin error check network fee:')
     );
+    expect(error).toHaveBeenCalledWith(expect.stringContaining('upstream unavailable'));
     error.mockRestore();
   });
 });
@@ -993,6 +1016,47 @@ describe('Mixin ticker module', () => {
     expect(crypto.confirmations).toBe(3);
     expect(crypto.icon_url).toBe('icon');
     expect(crypto.last_update).toEqual(expect.any(Number));
+  });
+
+  test('installCryptos skips network-info lookup when the application session is absent', async () => {
+    delete process.env.MIXIN;
+    const installed = [];
+    const app = {
+      BROWSER: true,
+      connection: { on: jest.fn(), emit: jest.fn() },
+      modules: {
+        respondTo: (type) =>
+          type === 'mixin-crypto'
+            ? [{ ticker: 'ETH', asset_id: 'asset-eth', chain_id: 'chain-eth', name: 'ETH' }]
+            : [],
+        mods: []
+      },
+      browser: { returnURLParameter: () => null },
+      wallet: { getPreferredCrypto: () => 'SAITO' },
+      options: {}
+    };
+    const mixin = new Mixin(app);
+    mixin.app = app;
+    mixin.api = new Api();
+    mixin.crypto_mods = [];
+    const networkInfo = jest
+      .spyOn(MixinModule.prototype, 'returnMixinNetworkInfo')
+      .mockResolvedValue(false);
+    jest.spyOn(MixinModule.prototype, 'installModule').mockImplementation(async function () {
+      installed.push(this.ticker);
+    });
+    jest.spyOn(MixinModule.prototype, 'isActivated').mockReturnValue(false);
+
+    mixin.installCryptos();
+    await new Promise((resolve) => setTimeout(resolve, 300));
+
+    expect(networkInfo).not.toHaveBeenCalled();
+    expect(installed).toEqual(['ETH']);
+    expect(mixin.crypto_mods).toHaveLength(1);
+
+    networkInfo.mockRestore();
+    MixinModule.prototype.installModule.mockRestore();
+    MixinModule.prototype.isActivated.mockRestore();
   });
 
   test('fetchHistory appends a ledger event and emits the payment', async () => {

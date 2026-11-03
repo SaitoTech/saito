@@ -97,6 +97,9 @@ class GameTemplate extends ModTemplate {
     this.commands = [];
     this.game_state_pre_move = '';
 
+    // NFT type strings (slip3 trailing 16 bytes via Wallet.extractNFTType) offered in Arcade wizard
+    this.supported_nft_types = [];
+
     this.social = this.buildSocial({
       creator: 'Saito Team',
       twitter: '@SaitoOfficial',
