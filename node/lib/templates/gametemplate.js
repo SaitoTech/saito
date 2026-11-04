@@ -57,6 +57,11 @@ const GameQueue = require('./gametemplate-src/gametemplate-queue');
 const GameGame = require('./gametemplate-src/gametemplate-game');
 const GameUI = require('./gametemplate-src/gametemplate-ui');
 const GameWeb3 = require('./gametemplate-src/gametemplate-web3');
+const {
+  createEngineNftQueuePolicy,
+  addToQueue: enqueueValidatedNftInstruction,
+  HARD_BLOCKED_COMMANDS
+} = require('./gametemplate-src/gametemplate-nft-queue');
 
 const HomePage = require('./gametemplate-src/index');
 
@@ -416,6 +421,75 @@ class GameTemplate extends ModTemplate {
     } catch (err) {
       console.error(err);
     }
+  }
+
+
+  /**
+   * Flat map of NFT-callable methods. Exposed to scripts as `api.*`.
+   * Modules spread super.returnApi() and add their own methods.
+   *
+   * Queue writes go through addToQueue() only (host-side policy validation).
+   * Scripts never receive game.queue, app, or wallet handles.
+   */
+  returnApi() {
+    const api = super.returnApi();
+    const self = this;
+
+    return {
+      ...api,
+      addToQueue: function (instruction) {
+        return enqueueValidatedNftInstruction(self, instruction);
+      },
+      endTurn: async function () {
+        return await self.endTurn();
+      }
+    };
+  }
+
+  /**
+   * Restrictive NFT instruction policy. Each key is a permitted command name;
+   * each value provides validate(parts, mod) and optional applyLocal(parts, mod).
+   * Games extend via merge with super.returnNftQueuePolicy(); hard-blocked
+   * payment/wallet commands cannot be enabled.
+   */
+  returnNftQueuePolicy() {
+    return createEngineNftQueuePolicy();
+  }
+
+  /**
+   * Names of instructions permitted for api.addToQueue / context.commands.
+   * Derived from returnNftQueuePolicy() so games cannot advertise blocked cmds.
+   */
+  returnPermittedQueueCommands() {
+    const policy =
+      typeof this.returnNftQueuePolicy === 'function' ? this.returnNftQueuePolicy() : {};
+    return Object.keys(policy || {}).filter((name) => !HARD_BLOCKED_COMMANDS.has(name));
+  }
+
+  /**
+   * Read-only NFT / script context. Every game module inherits a deep snapshot
+   * of `this.game` under `context.game`. Modules extend via super.returnContext()
+   * and add only module-specific fields (never replace `game`).
+   */
+  returnContext() {
+    const ctx = super.returnContext();
+    let game = {};
+
+    // JSON clone: plain data only, no live references, functions, or host objects.
+    // serializeTransferable later rejects non-JSON types; this also drops `undefined`.
+    try {
+      game = JSON.parse(JSON.stringify(this.game || {}));
+    } catch (err) {
+      throw new Error(
+        `Unable to snapshot game for NFT context: ${err && err.message ? err.message : err}`
+      );
+    }
+
+    return {
+      ...ctx,
+      game,
+      commands: this.returnPermittedQueueCommands()
+    };
   }
 
   returnImage() {

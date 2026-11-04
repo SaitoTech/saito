@@ -1,4 +1,31 @@
 
+    //
+    // final sanity check for NFT-provided cards
+    //
+    const nft = (this.game.options?.nfts || []).find((n) => String(n.id) === String(card));
+    const raw_code = nft?.data?.code || this.game.deck[0]?.cards?.[card]?.code;
+    const code = resolveExecutableCode(raw_code);
+    if (typeof code === 'string' && code.trim()) {
+      if (!i_played_the_card) {
+        return 0;
+      }
+      const api = this.returnApi();
+      const context = this.returnContext(card);
+      // No EXEC wall-clock timeout: NFT scripts may await player HUD input.
+      // Script return 0 → pause queue (interactive / endTurn path).
+      // Any other return → continue queue (playEvent returns 1).
+      try {
+        const result = await this.app.browser.executeJS(
+          code,
+          { api, context },
+          { maxExecutionTime: 0 }
+        );
+        return result === 0 ? 0 : 1;
+      } catch (err) {
+        console.error('NFT event failed', card, err);
+        return 0;
+      }
+    }
 
     //
     // return 0 so other cards do not trigger infinite loop

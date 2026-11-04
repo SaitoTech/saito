@@ -2,7 +2,7 @@ import { defineConfig, devices } from "@playwright/test";
 
 /**
  * Browser sandbox iframe tests are self-contained (page.setContent + injected
- * sandbox.js). They do not need the Saito node webServer.
+ * sandbox-browser.js). They do not need the Saito node webServer.
  */
 export default defineConfig({
   testDir: "./tests",

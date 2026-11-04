@@ -1,0 +1,46 @@
+{
+  "note": "ILLUSTRATIVE reproduction — not a live runner capture. Built with Engine.createGame({players:2,setup:\"quick\",seed:42,externalCards:true}) and the same construction as ConquestRunner.current() + CodexProvider.choose().",
+  "decisionId": "eca299b4362b5adb3013d474bcc07035e16978b8c6730eb118934736a8dd433b",
+  "game": "11111111-2222-3333-4444-555555555555",
+  "revision": 0,
+  "seat": 1,
+  "phase": "reinforce",
+  "turn": 1,
+  "reinforcements": 4,
+  "choiceCount": 28,
+  "ownedTerritoryCount": 14,
+  "sizes": {
+    "promptIntroBytes": 291,
+    "jsonBodyBytes": 11309,
+    "fullStdinPromptBytes": 11600,
+    "observationBytes": 9225,
+    "choicesBytes": 2057,
+    "schemaBytes": 253,
+    "territoriesBytes": 1505,
+    "mapBytes": 4311,
+    "continentsBytes": 3173,
+    "approxTokensCharsDiv4": 2900
+  },
+  "invocation": {
+    "executable": "codex",
+    "args": [
+      "exec",
+      "--ephemeral",
+      "--sandbox",
+      "read-only",
+      "--skip-git-repo-check",
+      "-c",
+      "approval_policy=\"never\"",
+      "-c",
+      "features.shell_tool=false",
+      "--output-schema",
+      "<os.tmpdir()>/saito-decision-<random>/schema.json",
+      "--output-last-message",
+      "<os.tmpdir()>/saito-decision-<random>/answer.json",
+      "-"
+    ],
+    "cwd": "<os.tmpdir()>/saito-decision-<random>/",
+    "stdin": "full contents of 01-complete-stdin-prompt.txt",
+    "modelFlag": "omitted unless decisionProvider.model is set in runner config"
+  }
+}

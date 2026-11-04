@@ -52,7 +52,6 @@ class GameWeb3 {
 
   }
 
-
   insertCryptoLogo(ticker) {
     let results = this.app.modules.getRespondTos('crypto-logo', { ticker });
 

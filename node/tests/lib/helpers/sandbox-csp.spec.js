@@ -9,7 +9,7 @@ const {
   buildSandboxCsp,
   createBootstrapNonce,
   escapeInlineScript
-} = require('../../../lib/helpers/sandbox');
+} = require('../../../lib/helpers/sandbox-browser');
 
 describe('sandbox CSP helpers', () => {
   test('buildSandboxCsp authorizes only a nonce plus blob workers/scripts', () => {

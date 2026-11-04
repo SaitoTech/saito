@@ -1,11 +1,16 @@
 const FormTemplate = require('./form.template');
+const ImageUploadOverlay = require('./overlays/image-upload');
+const NonCardConfirm = require('./overlays/non-card-confirm');
 
 class Form {
-  constructor(app, mod, card_ui, container = '.tscardgen-controls') {
+  constructor(app, mod, main, container = '.tscardgen-controls') {
     this.app = app;
     this.mod = mod;
-    this.card_ui = card_ui;
+    this.main = main;
+    this.card_ui = main.card_ui;
     this.container = container;
+    this.image_upload = new ImageUploadOverlay(app, mod);
+    this.non_card_confirm = new NonCardConfirm(app, mod);
   }
 
   render() {
@@ -14,15 +19,8 @@ class Form {
       return;
     }
 
-    const existing = host.querySelector('.ts-form');
-    const html = FormTemplate(this.mod.card);
-
-    if (existing) {
-      this.app.browser.replaceElementBySelector(html, `${this.container} .ts-form`);
-    } else {
-      this.app.browser.addElementToSelector(html, this.container);
-    }
-
+    host.innerHTML = '';
+    this.app.browser.addElementToSelector(FormTemplate(this.mod.card), this.container);
     this.attachEvents();
   }
 
@@ -37,27 +35,106 @@ class Form {
     }
 
     form.oninput = () => this.syncFromForm();
-    form.onchange = () => this.syncFromForm();
-
-    form.querySelector('.ts-redraw')?.addEventListener('click', () => {
+    form.onchange = (event) => {
+      const target = event?.target;
+      if (target?.name === 'card_type' && target.value === 'programmable') {
+        const previous = this.currentCardType();
+        target.value = previous;
+        this.askProgrammableConfirm(target);
+        return;
+      }
       this.syncFromForm();
+    };
+
+    form.querySelector('.ts-add-image')?.addEventListener('click', (event) => {
+      event.preventDefault();
+      this.openImageUpload();
     });
 
-    form.querySelector('.ts-back-home')?.addEventListener('click', () => {
-      this.syncFromForm();
-      this.mod.main?.showHome?.();
+    form.querySelector('.ts-download-png')?.addEventListener('click', async (event) => {
+      event.preventDefault();
+      await this.main.downloadPng();
     });
 
     form.querySelector('.ts-create-nft')?.addEventListener('click', async () => {
       this.syncFromForm();
-      await this.card_ui.draw();
-      await this.mod.openCreateNft();
+      await this.main.requestCreateNft();
     });
+  }
 
-    const file = form.querySelector('input[name="image"]');
-    if (file) {
-      file.onchange = () => this.onImageSelected(file);
+  currentCardType() {
+    if (this.mod.card.non_card) {
+      return 'programmable';
     }
+    if (this.mod.card.scoring) {
+      return 'scoring';
+    }
+    return 'normal';
+  }
+
+  askProgrammableConfirm(select) {
+    this.non_card_confirm.on_confirm = () => {
+      select.value = 'programmable';
+      this.syncFromForm();
+    };
+    this.non_card_confirm.on_cancel = () => {
+      select.value = this.currentCardType();
+      this.syncFromForm();
+    };
+    this.non_card_confirm.render();
+  }
+
+  openImageUpload() {
+    this.image_upload.callbackAfterConfirm = (data_url) => {
+      this.applyImageDataUrl(data_url);
+    };
+    this.image_upload.render(this.mod.card.image_url || null);
+  }
+
+  applyImageDataUrl(data_url) {
+    if (!data_url) {
+      this.mod.card.image = null;
+      this.mod.card.image_url = '';
+      this.syncFromForm();
+      this.updateImageButtonLabel();
+      return;
+    }
+
+    const image = new Image();
+    image.onload = () => {
+      this.mod.card.image = image;
+      this.mod.card.image_url = String(data_url);
+      this.syncFromForm();
+      this.updateImageButtonLabel();
+    };
+    image.onerror = () => {
+      console.error('TSCardGen: failed to load confirmed image');
+    };
+    image.src = String(data_url);
+  }
+
+  updateImageButtonLabel() {
+    const button = this.form()?.querySelector('.ts-add-image');
+    if (!button) {
+      return;
+    }
+    const has_image = Boolean(this.mod.card.image_url || this.mod.card.image);
+    button.textContent = has_image ? 'Change Image' : 'Add Image';
+  }
+
+  applyCardType(type) {
+    if (type === 'scoring') {
+      this.mod.card.scoring = true;
+      this.mod.card.non_card = false;
+      return;
+    }
+    if (type === 'programmable') {
+      this.mod.card.scoring = false;
+      this.mod.card.non_card = true;
+      return;
+    }
+    this.mod.card.scoring = false;
+    this.mod.card.non_card = false;
   }
 
   syncFromForm() {
@@ -80,35 +157,13 @@ class Form {
     card.event3 = String(data.get('event3') ?? '');
     card.pre_text = String(data.get('pre_text') ?? '');
     card.post_text = String(data.get('post_text') ?? '');
-    card.code = String(data.get('code') ?? '');
-    card.scoring = form.querySelector('input[name="scoring"]')?.checked === true;
     card.removed = form.querySelector('input[name="removed"]')?.checked === true;
     card.permanent = form.querySelector('input[name="permanent"]')?.checked === true;
-    card.image_style = data.get('image_style') === 'logo' ? 'logo' : 'photo';
+    this.applyCardType(String(data.get('card_type') ?? 'normal'));
+    card.image_style =
+      form.querySelector('input[name="photo_border"]')?.checked === true ? 'photo' : 'logo';
 
     this.card_ui.draw();
-  }
-
-  onImageSelected(input) {
-    const file = input.files && input.files[0];
-    if (!file || !file.type.match(/^image\//)) {
-      this.mod.card.image = null;
-      this.mod.card.image_url = '';
-      this.syncFromForm();
-      return;
-    }
-
-    const reader = new FileReader();
-    reader.onload = () => {
-      const image = new Image();
-      image.onload = () => {
-        this.mod.card.image = image;
-        this.mod.card.image_url = String(reader.result || '');
-        this.syncFromForm();
-      };
-      image.src = String(reader.result || '');
-    };
-    reader.readAsDataURL(file);
   }
 }
 

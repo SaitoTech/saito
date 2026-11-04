@@ -71,7 +71,11 @@ function createUserSession(credentials = {}) {
     throw new Error(`Mixin account configuration is incomplete (missing: ${missing.join(', ')})`);
   }
 
-  return MixinApi({ keystore });
+  return MixinApi({
+    keystore,
+    // Browser balance/history polls must fail fast; default retry: 5 ≈ 20s per call.
+    requestConfig: { timeout: 3000, retry: 0 }
+  });
 }
 
 function getWithdrawalFeeQuote(quotes, assetId, chainAssetId) {

@@ -3,17 +3,17 @@ import fs from "fs";
 import path from "path";
 
 /**
- * Exercises the real browser sandbox.js path:
+ * Exercises the real sandbox-browser.js path:
  * opaque iframe (allow-scripts, no allow-same-origin) → inline nonce bootstrap → Blob Worker.
  * Self-contained: does not require the Saito node webServer for assertions.
  */
 
-const sandboxPath = path.resolve(__dirname, "../../node/lib/helpers/sandbox.js");
+const sandboxPath = path.resolve(__dirname, "../../node/lib/helpers/sandbox-browser.js");
 
 function loadSandboxBrowserSource(): string {
   const source = fs.readFileSync(sandboxPath, "utf8");
   if (source.includes("require(")) {
-    throw new Error("sandbox.js must stay free of require() for browser injection");
+    throw new Error("sandbox-browser.js must stay free of require() for browser injection");
   }
   return source.replace(/module\.exports\s*=\s*/, "window.__saitoSandboxExports = ");
 }

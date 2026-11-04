@@ -128,6 +128,7 @@ describe('Mixin api helpers', () => {
       pin_token_base64: 'tip',
       session_private_key: 'seed'
     });
+    expect(session.config.requestConfig).toEqual({ timeout: 3000, retry: 0 });
 
     MixinApi.mockClear();
     expect(() => createUserSession({ user_id: 'user-1' })).toThrow(

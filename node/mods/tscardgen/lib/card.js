@@ -3,6 +3,17 @@
  * Ports the drawing logic from the original TS Card Generator.
  */
 
+const {
+  normalizeEvents,
+  serializeCode,
+  hasExecutableCode,
+  addEvent,
+  renameEvent,
+  removeEvent,
+  buildNftEventInstruction,
+  sanitizeCode
+} = require('./code-events');
+
 const CARD_WIDTH = 375;
 const CARD_HEIGHT = 525;
 
@@ -61,11 +72,75 @@ class Card {
     this.scoring = Boolean(data.scoring);
     this.removed = Boolean(data.removed);
     this.permanent = Boolean(data.permanent);
-    this.code = typeof data.code === 'string' ? data.code : '';
+    this.non_card = Boolean(data.non_card);
+    // Defer default event creation until the Code workspace opens so the
+    // first tab can use the current title. Existing payloads still load here.
+    this.events = hasCodePayload(data) ? normalizeEvents(data) : [];
+    this.active_event_index = 0;
     this.img = typeof data.img === 'string' ? data.img : '';
     this.image_style = data.image_style === 'logo' ? 'logo' : 'photo';
     this.image = data.image || null;
     this.image_url = data.image_url || '';
+  }
+
+  ensureCodeEvents() {
+    if (!Array.isArray(this.events) || !this.events.length) {
+      this.events = normalizeEvents({ title: this.title, code: '' });
+      this.active_event_index = 0;
+    }
+    if (this.active_event_index < 0 || this.active_event_index >= this.events.length) {
+      this.active_event_index = 0;
+    }
+    return this.events;
+  }
+
+  activeEvent() {
+    this.ensureCodeEvents();
+    return this.events[this.active_event_index];
+  }
+
+  getActiveCode() {
+    return this.activeEvent()?.code || '';
+  }
+
+  setActiveCode(code) {
+    const event = this.activeEvent();
+    if (!event) {
+      return;
+    }
+    event.code = sanitizeCode(code);
+  }
+
+  addCodeEvent() {
+    const result = addEvent(this.events, this.title);
+    this.events = result.events;
+    this.active_event_index = result.index;
+    return result.event;
+  }
+
+  renameCodeEvent(index, label) {
+    const result = renameEvent(this.events, index, label);
+    this.events = result.events;
+    return result.event;
+  }
+
+  removeCodeEvent(index) {
+    const result = removeEvent(this.events, index);
+    this.events = result.events;
+    this.active_event_index = result.index;
+    return result.removed;
+  }
+
+  nftEventInstruction(event_index = this.active_event_index) {
+    return buildNftEventInstruction(this, event_index);
+  }
+
+  serializedCode() {
+    return serializeCode(this.events);
+  }
+
+  hasExecutableCode() {
+    return hasExecutableCode(this.events);
   }
 
   normalizePlayer(value) {
@@ -361,14 +436,26 @@ class Card {
       ops: Number(this.ops) || 0,
       recurring: this.removed ? 0 : 1,
       permanent: this.permanent ? 1 : 0,
+      non_card: this.non_card ? 1 : 0,
       deck: this.deckName(),
       text: this.assembledText(),
       // Tabs break game-move queue parsing (\t-delimited); keep code tab-free.
-      code: typeof this.code === 'string' ? this.code.replace(/\t/g, ' ') : '',
+      // One event → string (legacy). Multiple → [{ name, code }, ...].
+      code: this.serializedCode(),
       img: typeof this.img === 'string' ? this.img : '',
       image: image_data_url || this.image_url || ''
     };
   }
+}
+
+function hasCodePayload(data = {}) {
+  if (Array.isArray(data.events) && data.events.length) {
+    return true;
+  }
+  if (typeof data.code === 'string') {
+    return data.code.length > 0;
+  }
+  return Array.isArray(data.code) && data.code.length > 0;
 }
 
 Card.WIDTH = CARD_WIDTH;

@@ -207,15 +207,15 @@ class GameCardbox {
       console.log('Error resizing cardbox');
     }
 
-    //Create a single option menu for users to click to confirm playing "action"
-    if (action) {
+    // Create confirm menu only when an action label and a live callback both exist.
+    // Games register action text (e.g. "select") with a null type-callback and bind
+    // the real handler via bindCallback() only while the player must pick a card.
+    if (action && mycallback != null) {
       this.cardbox_lock = 1;
       document.getElementById('cardbox-menu').style.display = 'block';
       document.getElementById('cardbox-menu').innerHTML = action;
       document.getElementById('cardbox-menu').onclick = async (e) => {
-        if (mycallback != null) {
-          await mycallback(card);
-        }
+        await mycallback(card);
         this.hide(1);
       };
     }

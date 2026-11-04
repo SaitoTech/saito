@@ -24,6 +24,7 @@
 **********************************************************************************/
 let saito = require('./../../saito/saito');
 const Transaction = require('./../../saito/transaction').default;
+const { runNftEvent } = require('./gametemplate-nft-queue');
 
 class GameQueue {
   //
@@ -2393,10 +2394,10 @@ class GameQueue {
         if (game_self.game.deck[deckidx - 1].to_add) {
           for (let c in game_self.game.deck[deckidx - 1].to_add) {
             if (!game_self.game.deck[deckidx - 1].to_remove[c]) {
-              cards[c] = game_self.game.deck[deckidx - 1].cards[c];
+              cards[c] = game_self.game.deck[deckidx - 1].to_add[c];
             } else {
               delete game_self.game.deck[deckidx - 1].to_remove[c];
-              cards[c] = game_self.game.deck[deckidx - 1].cards[c];
+              cards[c] = game_self.game.deck[deckidx - 1].to_add[c];
             }
           }
         }
@@ -2751,6 +2752,21 @@ class GameQueue {
         return 0;
       }
       return 1;
+    });
+
+    //
+    // NFT_EVENT\t<id>\t<index>\t<arg0>\t<arg1>\t...
+    // Locates game.options.nfts by application-level id, selects code by index,
+    // sets a fresh nft.args array, and runs the script in the NFT sandbox on
+    // every client. No player routing or network NFT ownership checks.
+    //
+    this.commands.push(async (game_self, gmv) => {
+      if (gmv[0] !== 'NFT_EVENT') {
+        return 1;
+      }
+
+      game_self.game.queue.splice(game_self.game.queue.length - 1, 1);
+      return await runNftEvent(game_self, gmv);
     });
 
     //

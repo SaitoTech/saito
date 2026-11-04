@@ -66,6 +66,10 @@ class SaitoPhotoCropper {
     }
   }
   getAspectRatio() {
+    // NaN = free-form crop (Cropper.js default for unconstrained aspect).
+    if (this.type === 'free' || this.type === 'image') {
+      return NaN;
+    }
     if (this.type === 'banner') {
       return 3;
     }

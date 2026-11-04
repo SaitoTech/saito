@@ -2452,8 +2452,8 @@ class Browser {
    * @param {object} [policy]
    * @returns {Promise<any>}
    */
-  executeJS(source, context = {}, policy = {}) {
-    return sanitizeHelper.executeJS(source, context, policy);
+  executeJS(source, options = {}, policy = {}) {
+    return sanitizeHelper.executeJS(source, options, policy);
   }
 
   /**

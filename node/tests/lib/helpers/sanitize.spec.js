@@ -1,21 +1,21 @@
 const { sanitizeJS } = require('../../../lib/helpers/sanitize');
 const Browser = require('../../../lib/saito/browser').default;
 
-const gamePolicy = {
-  allowedObjects: ['game'],
+const apiPolicy = {
+  allowedObjects: ['api'],
   allowedMethods: {
-    game: ['addInfluence', 'removeInfluence', 'moveRobber']
+    api: ['addInfluence', 'removeInfluence', 'moveRobber']
   }
 };
 
-function expectSafe(source, policy = gamePolicy) {
+function expectSafe(source, policy = apiPolicy) {
   const result = sanitizeJS(source, policy);
   expect(result.errors).toEqual([]);
   expect(result.safe).toBe(true);
   return result;
 }
 
-function expectUnsafe(source, policy = gamePolicy, errorType = null) {
+function expectUnsafe(source, policy = apiPolicy, errorType = null) {
   const result = sanitizeJS(source, policy);
   expect(result.safe).toBe(false);
   expect(result.errors.length).toBeGreaterThan(0);
@@ -77,19 +77,19 @@ describe('sanitizeJS', () => {
       `);
     });
 
-    test('allows authorized game method calls', () => {
+    test('allows authorized api method calls', () => {
       expectSafe(`
-        game.addInfluence("ussr", "poland", 1);
-        game.removeInfluence("usa", "iran", 1);
+        api.addInfluence("ussr", "poland", 1);
+        api.removeInfluence("usa", "iran", 1);
       `);
     });
 
-    test('allows functions containing multiple authorized game operations', () => {
+    test('allows functions containing multiple authorized api operations', () => {
       expectSafe(`
         function playCard() {
-          game.addInfluence("ussr", "poland", 1);
-          game.removeInfluence("usa", "wgermany", 1);
-          game.moveRobber("italy");
+          api.addInfluence("ussr", "poland", 1);
+          api.removeInfluence("usa", "wgermany", 1);
+          api.moveRobber("italy");
         }
         playCard();
       `);
@@ -97,21 +97,21 @@ describe('sanitizeJS', () => {
 
     test('allows aliasing an authorized object and calling methods on the alias', () => {
       expectSafe(`
-        const g = game;
+        const g = api;
         g.addInfluence("ussr", "poland", 1);
       `);
     });
 
     test('allows static string bracket access for authorized methods', () => {
       expectSafe(`
-        game["addInfluence"]("ussr", "poland", 1);
+        api["addInfluence"]("ussr", "poland", 1);
       `);
     });
 
     test('allows arrow functions that call authorized methods', () => {
       expectSafe(`
         const run = () => {
-          game.addInfluence("ussr", "poland", 1);
+          api.addInfluence("ussr", "poland", 1);
         };
         run();
       `);
@@ -120,113 +120,113 @@ describe('sanitizeJS', () => {
 
   describe('rejected code', () => {
     test('rejects window', () => {
-      expectUnsafe('window.alert(1)', gamePolicy, 'unauthorized_access');
+      expectUnsafe('window.alert(1)', apiPolicy, 'unauthorized_access');
     });
 
     test('rejects globalThis', () => {
-      expectUnsafe('globalThis.game', gamePolicy, 'unauthorized_access');
+      expectUnsafe('globalThis.api', apiPolicy, 'unauthorized_access');
     });
 
     test('rejects document', () => {
-      expectUnsafe('document.body', gamePolicy, 'unauthorized_access');
+      expectUnsafe('document.body', apiPolicy, 'unauthorized_access');
     });
 
     test('rejects localStorage', () => {
-      expectUnsafe('localStorage.setItem("a", "b")', gamePolicy, 'unauthorized_access');
+      expectUnsafe('localStorage.setItem("a", "b")', apiPolicy, 'unauthorized_access');
     });
 
     test('rejects sessionStorage and indexedDB', () => {
-      expectUnsafe('sessionStorage.clear()', gamePolicy, 'unauthorized_access');
-      expectUnsafe('indexedDB.open("db")', gamePolicy, 'unauthorized_access');
+      expectUnsafe('sessionStorage.clear()', apiPolicy, 'unauthorized_access');
+      expectUnsafe('indexedDB.open("db")', apiPolicy, 'unauthorized_access');
     });
 
     test('rejects app.wallet and other unauthorized objects', () => {
-      expectUnsafe('app.wallet', gamePolicy, 'unauthorized_access');
+      expectUnsafe('app.wallet', apiPolicy, 'unauthorized_access');
     });
 
-    test('rejects game.constructor and prototype access', () => {
-      expectUnsafe('game.constructor', gamePolicy, 'unauthorized_access');
-      expectUnsafe('game.prototype', gamePolicy, 'unauthorized_access');
-      expectUnsafe('game.__proto__', gamePolicy, 'unauthorized_access');
+    test('rejects api.constructor and prototype access', () => {
+      expectUnsafe('api.constructor', apiPolicy, 'unauthorized_access');
+      expectUnsafe('api.prototype', apiPolicy, 'unauthorized_access');
+      expectUnsafe('api.__proto__', apiPolicy, 'unauthorized_access');
     });
 
-    test('rejects game["constructor"] bracket access', () => {
-      expectUnsafe('game["constructor"]', gamePolicy, 'unauthorized_access');
+    test('rejects api["constructor"] bracket access', () => {
+      expectUnsafe('api["constructor"]', apiPolicy, 'unauthorized_access');
     });
 
     test('rejects chaining through authorized methods', () => {
-      expectUnsafe('game.addInfluence.constructor', gamePolicy, 'unauthorized_access');
+      expectUnsafe('api.addInfluence.constructor', apiPolicy, 'unauthorized_access');
     });
 
     test('rejects eval and Function', () => {
-      expectUnsafe('eval("1+1")', gamePolicy, 'dynamic_execution');
-      expectUnsafe('Function("return 1")()', gamePolicy, 'dynamic_execution');
+      expectUnsafe('eval("1+1")', apiPolicy, 'dynamic_execution');
+      expectUnsafe('Function("return 1")()', apiPolicy, 'dynamic_execution');
     });
 
     test('rejects dynamic import', () => {
-      expectUnsafe('import("fs")', gamePolicy, 'unauthorized_import');
+      expectUnsafe('import("fs")', apiPolicy, 'unauthorized_import');
     });
 
     test('rejects prototype manipulation patterns', () => {
-      expectUnsafe('const o = {}; o.__proto__.x = 1', gamePolicy, 'unauthorized_access');
+      expectUnsafe('const o = {}; o.__proto__.x = 1', apiPolicy, 'unauthorized_access');
     });
 
     test('rejects unauthorized method calls', () => {
-      expectUnsafe('game.launchNukes()', gamePolicy, 'unauthorized_access');
+      expectUnsafe('api.launchNukes()', apiPolicy, 'unauthorized_access');
     });
 
     test('rejects unauthorized global references', () => {
-      expectUnsafe('process.exit(1)', gamePolicy, 'unauthorized_access');
-      expectUnsafe('require("fs")', gamePolicy, 'unauthorized_access');
-      expectUnsafe('fetch("https://example.com")', gamePolicy, 'unauthorized_access');
+      expectUnsafe('process.exit(1)', apiPolicy, 'unauthorized_access');
+      expectUnsafe('require("fs")', apiPolicy, 'unauthorized_access');
+      expectUnsafe('fetch("https://example.com")', apiPolicy, 'unauthorized_access');
     });
 
     test('rejects computed property access via expressions', () => {
       expectUnsafe(`
         const key = "addInfluence";
-        game[key]("ussr", "poland", 1);
-      `, gamePolicy, 'unauthorized_access');
+        api[key]("ussr", "poland", 1);
+      `, apiPolicy, 'unauthorized_access');
     });
 
     test('rejects dynamically constructed prohibited property names', () => {
       expectUnsafe(`
         const a = "con";
         const b = "structor";
-        game[a + b];
-      `, gamePolicy, 'unauthorized_access');
+        api[a + b];
+      `, apiPolicy, 'unauthorized_access');
     });
 
     test('rejects destructuring authorized methods', () => {
       expectUnsafe(`
-        const { addInfluence } = game;
+        const { addInfluence } = api;
         addInfluence("ussr", "poland", 1);
-      `, gamePolicy, 'unauthorized_access');
+      `, apiPolicy, 'unauthorized_access');
     });
 
     test('rejects aliasing then accessing constructor', () => {
       expectUnsafe(`
-        const g = game;
+        const g = api;
         g.constructor;
-      `, gamePolicy, 'unauthorized_access');
+      `, apiPolicy, 'unauthorized_access');
     });
 
     test('rejects storing authorized method references', () => {
       expectUnsafe(`
-        const fn = game.addInfluence;
+        const fn = api.addInfluence;
         fn("ussr", "poland", 1);
-      `, gamePolicy, 'unauthorized_access');
+      `, apiPolicy, 'unauthorized_access');
     });
 
     test('rejects network and event APIs', () => {
-      expectUnsafe('new XMLHttpRequest()', gamePolicy);
-      expectUnsafe('WebSocket', gamePolicy, 'unauthorized_access');
-      expectUnsafe('game.addEventListener("click", () => {})', gamePolicy, 'unauthorized_access');
+      expectUnsafe('new XMLHttpRequest()', apiPolicy);
+      expectUnsafe('WebSocket', apiPolicy, 'unauthorized_access');
+      expectUnsafe('api.addEventListener("click", () => {})', apiPolicy, 'unauthorized_access');
     });
 
     test('rejects unsupported syntax such as classes and new', () => {
       expectUnsafe('class Foo {}', {}, 'unsupported_syntax');
-      expectUnsafe('const x = new Date()', gamePolicy, 'unsupported_syntax');
-      expectUnsafe('async function f() { await 1; }', gamePolicy);
+      expectUnsafe('const x = new Date()', apiPolicy, 'unsupported_syntax');
+      expectUnsafe('async function f() { await 1; }', apiPolicy);
     });
 
     test('rejects invalid JavaScript', () => {
@@ -244,7 +244,7 @@ describe('sanitizeJS', () => {
     });
 
     test('never returns safe true when errors exist', () => {
-      const result = sanitizeJS('window', gamePolicy);
+      const result = sanitizeJS('window', apiPolicy);
       expect(result.safe).toBe(false);
       expect(result.errors.length).toBeGreaterThan(0);
     });
@@ -253,9 +253,136 @@ describe('sanitizeJS', () => {
   describe('Browser.sanitizeJS integration', () => {
     test('exposes sanitizeJS on Browser', () => {
       const browser = new Browser({});
-      const result = browser.sanitizeJS('const x = 1;', gamePolicy);
+      const result = browser.sanitizeJS('const x = 1;', apiPolicy);
       expect(result.safe).toBe(true);
-      expect(browser.sanitizeJS('eval(1)', gamePolicy).safe).toBe(false);
+      expect(browser.sanitizeJS('eval(1)', apiPolicy).safe).toBe(false);
+    });
+  });
+
+  describe('read-only context data', () => {
+    const nftPolicy = {
+      allowedObjects: ['api'],
+      allowedMethods: {
+        api: [
+          'playerSelectOption',
+          'playerSelectCountry',
+          'isControlled',
+          'whoControls',
+          'isEventActive',
+          'addToQueue',
+          'endTurn'
+        ]
+      },
+      contextData: ['context'],
+      allowAsync: true
+    };
+
+    test('allows top-level context data reads', () => {
+      expectSafe(`const c = context; const g = context.game;`, nftPolicy);
+    });
+
+    test('allows nested object and array property reads', () => {
+      expectSafe(
+        `
+        const id = context.game.options.nfts[0].id;
+        const player = context.game.player;
+        const round = context.game.state.round;
+        const defcon = context.game.state.defcon;
+        const canada = context.game.countries.canada.us;
+        const first = context.game.queue[0];
+        `,
+        nftPolicy
+      );
+    });
+
+    test('allows reading context.game fields in expressions', () => {
+      expectSafe(
+        `
+        api.addToQueue("resolve\\t" + context.game.options.nfts[0].id);
+        const x = context.game.state.round + context.game.state.defcon;
+        `,
+        nftPolicy
+      );
+    });
+
+    test('allows the Test NFT move sequence with context.game', () => {
+      // executeJS wraps user source in an async function before sanitizeJS;
+      // mirror that so top-level await is valid under allowAsync.
+      expectSafe(
+        `async function __saito_exec__() {
+        api.addToQueue("place\\tus\\tus\\tegypt\\t2");
+        api.addToQueue("resolve\\tnft-test-title-105");
+        await api.endTurn();
+        }`,
+        nftPolicy
+      );
+    });
+
+    test('allows awaited player selection helpers', () => {
+      expectSafe(
+        `async function __saito_exec__() {
+        const opt = await api.playerSelectOption([{ id: "a", label: "A" }]);
+        const country = await api.playerSelectCountry(["canada", "uk"]);
+        api.addToQueue("NOTIFY\\t" + opt + " " + country);
+        await api.endTurn();
+        }`,
+        nftPolicy
+      );
+    });
+
+    test('rejects assignment to top-level context data', () => {
+      expectUnsafe(`context = {};`, nftPolicy, 'unauthorized_access');
+    });
+
+    test('rejects assignment to nested context data properties', () => {
+      expectUnsafe(`context.game = {};`, nftPolicy, 'unauthorized_access');
+      expectUnsafe(`context.game.player = 9;`, nftPolicy, 'unauthorized_access');
+      expectUnsafe(`context.game.state.round = 9;`, nftPolicy, 'unauthorized_access');
+      expectUnsafe(`context.game.countries.canada.us = 5;`, nftPolicy, 'unauthorized_access');
+    });
+
+    test('rejects update expressions on context data', () => {
+      expectUnsafe(`context.game.state.round++;`, nftPolicy, 'unauthorized_access');
+      expectUnsafe(`++context.game.state.defcon;`, nftPolicy, 'unauthorized_access');
+    });
+
+    test('rejects array mutation and other calls through context data', () => {
+      expectUnsafe(`context.game.queue.push("x");`, nftPolicy, 'unauthorized_access');
+      expectUnsafe(`context.game.queue.splice(0, 1);`, nftPolicy, 'unauthorized_access');
+      expectUnsafe(`context.game.player.toString();`, nftPolicy, 'unauthorized_access');
+    });
+
+    test('rejects dangerous property access on context data', () => {
+      expectUnsafe(`context.constructor;`, nftPolicy, 'unauthorized_access');
+      expectUnsafe(`context.game.__proto__;`, nftPolicy, 'unauthorized_access');
+    });
+
+    test('still rejects unauthorized capability property access', () => {
+      expectUnsafe(`api.launchNukes();`, nftPolicy, 'unauthorized_access');
+      expectUnsafe(`api.secret;`, nftPolicy, 'unauthorized_access');
+      expectUnsafe(`api.constructor;`, nftPolicy, 'unauthorized_access');
+    });
+
+    test('still allows authorized capability calls', () => {
+      expectSafe(
+        `async function __saito_exec__() {
+        api.addToQueue("resolve\\tcia");
+        await api.endTurn();
+        }`,
+        nftPolicy
+      );
+    });
+
+    test('plain allowedGlobals still cannot be property-accessed', () => {
+      expectUnsafe(
+        `phase.detail;`,
+        {
+          allowedGlobals: ['phase'],
+          allowedObjects: ['api'],
+          allowedMethods: { api: ['addMove'] }
+        },
+        'unauthorized_access'
+      );
     });
   });
 });

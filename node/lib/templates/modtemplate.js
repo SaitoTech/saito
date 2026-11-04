@@ -68,6 +68,12 @@ class ModTemplate {
     // this.darkModeToggler = new Toggler(app);
   }
 
+
+  returnApi() { return {}; }
+  returnContext() { return {}; } 
+    
+
+
   returnServerOrigin() {
     const endpoint = this.app?.options?.server?.endpoint;
 

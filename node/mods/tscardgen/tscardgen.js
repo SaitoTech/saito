@@ -91,8 +91,33 @@ class TSCardGen extends ModTemplate {
 
           const player = ['us', 'ussr', 'both'].includes(card.player) ? card.player : 'both';
           const deck = ['early', 'mid', 'late'].includes(card.deck) ? card.deck : 'early';
-          const code =
-            typeof card.code === 'string' ? card.code.replace(/\t/g, ' ') : '';
+          // Preserve legacy string or multi-event [{ name, code }, ...] payloads.
+          let code = '';
+          if (typeof card.code === 'string') {
+            code = card.code.replace(/\t/g, ' ');
+          } else if (Array.isArray(card.code)) {
+            code = card.code
+              .map((entry) => {
+                if (typeof entry === 'string') {
+                  return entry.replace(/\t/g, ' ');
+                }
+                if (!entry || typeof entry !== 'object') {
+                  return null;
+                }
+                const name = String(entry.name || '').trim();
+                const body = String(entry.code || '').replace(/\t/g, ' ');
+                if (!name || !body.trim()) {
+                  return null;
+                }
+                return { name, code: body };
+              })
+              .filter(Boolean);
+            if (code.length === 1) {
+              code = code[0].code;
+            } else if (!code.length) {
+              code = '';
+            }
+          }
 
           return {
             module: 'TSCardGen',
@@ -103,6 +128,7 @@ class TSCardGen extends ModTemplate {
             ops: Number(card.ops) || 0,
             recurring: Number(card.recurring) ? 1 : 0,
             permanent: Number(card.permanent) ? 1 : 0,
+            non_card: Number(card.non_card) ? 1 : 0,
             deck,
             text,
             code,
@@ -117,13 +143,18 @@ class TSCardGen extends ModTemplate {
   }
 
   async openCreateNft() {
-    const canvas = this.main?.card_ui?.canvas?.();
-    if (!canvas) {
-      salert('Card preview is not ready');
-      return;
+    // Paint to a capture canvas so minting works in Code workspace
+    // (sidebar shows reference docs, not the live preview).
+    let canvas = this.main?.card_ui?.canvas?.();
+    if (canvas) {
+      await this.main.card_ui.draw();
+    } else if (this.main?.paintCaptureCanvas) {
+      canvas = await this.main.paintCaptureCanvas();
+    } else {
+      canvas = document.createElement('canvas');
+      await this.card.paint(canvas);
     }
 
-    await this.main.card_ui.draw();
     let image = this.card.toDataURL(canvas);
     if (!image) {
       salert('Unable to capture the card image');

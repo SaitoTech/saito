@@ -1,10 +1,10 @@
 /**
- * Node.js test-only sandbox using worker_threads.
+ * Server/Node sandbox using worker_threads.
  *
  * Not imported by browser code or Lite Client bundles. Jest tests mock
- * ./sandbox with this module so executeJS can run without a DOM.
+ * ./sandbox-browser with this module so executeJS can run without a DOM.
  *
- * Same public surface as createSandbox() in sandbox.js:
+ * Same public surface as createSandbox() in sandbox-browser.js:
  *   initialize() / execute(...) / terminate()
  */
 
@@ -41,12 +41,12 @@ function getNodeWorkerBootstrapSource() {
     parentPort.postMessage(msg);
   }
 
-  function capabilityCall(namespace, method, args) {
+  function apiCall(namespace, method, args) {
     var requestId = nextCapId++;
     return new Promise(function (resolve, reject) {
       pendingCaps[requestId] = { resolve: resolve, reject: reject };
       parentPort.postMessage({
-        type: 'CAPABILITY_REQUEST',
+        type: 'API_REQUEST',
         requestId: requestId,
         namespace: namespace,
         method: method,
@@ -55,7 +55,7 @@ function getNodeWorkerBootstrapSource() {
     });
   }
 
-  function buildCapabilities(descriptors) {
+  function buildApi(descriptors) {
     var iface = Object.create(null);
     var namespaces = Object.keys(descriptors || {});
     for (var i = 0; i < namespaces.length; i++) {
@@ -66,7 +66,7 @@ function getNodeWorkerBootstrapSource() {
         (function (namespace, method) {
           obj[method] = function () {
             var args = Array.prototype.slice.call(arguments);
-            return capabilityCall(namespace, method, args);
+            return apiCall(namespace, method, args);
           };
         })(ns, methods[j]);
       }
@@ -87,7 +87,7 @@ function getNodeWorkerBootstrapSource() {
       return;
     }
 
-    if (msg.type === 'CAPABILITY_RESULT') {
+    if (msg.type === 'API_RESULT') {
       var waiter = pendingCaps[msg.requestId];
       if (!waiter) {
         return;
@@ -96,7 +96,7 @@ function getNodeWorkerBootstrapSource() {
       if (msg.ok) {
         waiter.resolve(msg.value);
       } else {
-        waiter.reject(new Error(msg.error || 'Capability request failed'));
+        waiter.reject(new Error(msg.error || 'Api request failed'));
       }
       return;
     }
@@ -113,20 +113,12 @@ function getNodeWorkerBootstrapSource() {
 
     if (msg.type === 'EXEC') {
       try {
-        var caps = buildCapabilities(msg.capabilities || {});
-        var data = msg.data || {};
-        var paramNames = [];
-        var paramValues = [];
-        var nsNames = Object.keys(caps);
-        for (var n = 0; n < nsNames.length; n++) {
-          paramNames.push(nsNames[n]);
-          paramValues.push(caps[nsNames[n]]);
-        }
-        var dataKeys = Object.keys(data);
-        for (var d = 0; d < dataKeys.length; d++) {
-          paramNames.push(dataKeys[d]);
-          paramValues.push(data[dataKeys[d]]);
-        }
+        var built = buildApi(msg.api || {});
+        var api = built.api || Object.create(null);
+        var context = msg.context || {};
+        var args = Array.isArray(msg.args) ? msg.args : [];
+        var paramNames = ['api', 'context', 'args'];
+        var paramValues = [api, context, args];
         var result = await runUserSource(msg.source || '', paramNames, paramValues);
         reply('EXEC_RESULT', msg.requestId, true, result === undefined ? null : result);
       } catch (err) {
@@ -150,7 +142,7 @@ function createSandbox() {
     currentHandlers: null,
     messageCount: 0,
     maxMessages: 1000,
-    maxMessageSize: 65536,
+    maxMessageSize: 2 * 1024 * 1024,
     queue: Promise.resolve()
   };
 
@@ -168,38 +160,38 @@ function createSandbox() {
     state.worker.postMessage(payload);
   }
 
-  async function handleCapabilityRequest(msg) {
+  async function handleApiRequest(msg) {
     const requestId = msg.requestId;
     const handlers = state.currentHandlers;
     try {
       if (!handlers || typeof msg.namespace !== 'string' || typeof msg.method !== 'string') {
-        throw new Error('Malformed capability request');
+        throw new Error('Malformed api request');
       }
       if (!handlers[msg.namespace] || !handlers[msg.namespace][msg.method]) {
-        throw new Error(`Unauthorized capability: ${msg.namespace}.${msg.method}`);
+        throw new Error(`Unauthorized api: ${msg.namespace}.${msg.method}`);
       }
-      const args = jsonSafeClone(msg.args || [], 'capability args');
+      const args = jsonSafeClone(msg.args || [], 'api args');
       const entry = handlers[msg.namespace][msg.method];
       if (entry.validateArgs) {
         entry.validateArgs(args);
       }
       const result = await entry.fn(...args);
-      const value = jsonSafeClone(result === undefined ? null : result, 'capability result');
-      const response = { type: 'CAPABILITY_RESULT', requestId, ok: true, value };
+      const value = jsonSafeClone(result === undefined ? null : result, 'api result');
+      const response = { type: 'API_RESULT', requestId, ok: true, value };
       if (measureMessageSize(response) > state.maxMessageSize) {
-        throw new Error('Capability result exceeds maxMessageSize');
+        throw new Error('Api result exceeds maxMessageSize');
       }
       postToIsolate(response);
     } catch (err) {
       try {
         postToIsolate({
-          type: 'CAPABILITY_RESULT',
+          type: 'API_RESULT',
           requestId,
           ok: false,
           error: err && err.message ? err.message : String(err)
         });
       } catch (_err) {
-        rejectAll(new Error('Failed to deliver capability error'));
+        rejectAll(new Error('Failed to deliver api error'));
       }
     }
   }
@@ -209,13 +201,13 @@ function createSandbox() {
       return;
     }
 
-    if (payload.type === 'CAPABILITY_REQUEST') {
+    if (payload.type === 'API_REQUEST') {
       state.messageCount += 1;
       if (state.messageCount > state.maxMessages) {
         rejectAll(new Error('Worker exceeded maxMessages'));
         return;
       }
-      handleCapabilityRequest(payload);
+      handleApiRequest(payload);
       return;
     }
 
@@ -342,11 +334,15 @@ function createSandbox() {
         }
 
         const limits = job.limits || {};
+        // 0 / negative disables the EXEC watchdog (NFT cards may await player input).
+        // undefined/null keeps the historical 5s default for ordinary executeJS callers.
         const maxExecutionTime =
-          Number(limits.maxExecutionTime) > 0 ? Number(limits.maxExecutionTime) : 5000;
+          limits.maxExecutionTime === undefined || limits.maxExecutionTime === null
+            ? 5000
+            : Number(limits.maxExecutionTime);
         state.maxMessages = Number(limits.maxMessages) > 0 ? Number(limits.maxMessages) : 1000;
         state.maxMessageSize =
-          Number(limits.maxMessageSize) > 0 ? Number(limits.maxMessageSize) : 65536;
+          Number(limits.maxMessageSize) > 0 ? Number(limits.maxMessageSize) : 2 * 1024 * 1024;
 
         state.currentHandlers = job.handlers || null;
         try {
@@ -354,8 +350,9 @@ function createSandbox() {
             'EXEC',
             {
               source: job.source,
-              data: job.data || {},
-              capabilities: job.capabilities || {}
+              context: job.context || {},
+              args: Array.isArray(job.args) ? job.args : [],
+              api: job.api || {}
             },
             'EXEC_RESULT',
             maxExecutionTime

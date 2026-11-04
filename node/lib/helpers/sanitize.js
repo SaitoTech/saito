@@ -221,6 +221,9 @@ function mergePolicy(policy = {}) {
 
   return {
     allowedGlobals: new Set(policy.allowedGlobals || []),
+    // Read-only execution context (executeJS `context`). Nested property reads are
+    // allowed; assignments, updates, and calls through these bindings are not.
+    contextData: new Set(policy.contextData || []),
     allowedObjects: new Set(policy.allowedObjects || []),
     allowedMethods: normalizeAllowedMethods(policy.allowedMethods),
     allowedProperties: normalizeAllowedProperties(policy.allowedProperties),
@@ -320,8 +323,21 @@ function createSanitizeJS() {
     for (const name of cfg.allowedObjects) {
       rootScope.declare(name, bindingKind('allowed_object', { objectName: name }));
     }
+    for (const name of cfg.contextData) {
+      if (
+        !ALWAYS_BANNED_GLOBALS.has(name) &&
+        !cfg.allowedObjects.has(name) &&
+        !isDangerousPropertyName(name)
+      ) {
+        rootScope.declare(name, bindingKind('context_data', { contextName: name }));
+      }
+    }
     for (const name of cfg.allowedGlobals) {
-      if (!ALWAYS_BANNED_GLOBALS.has(name) && !cfg.allowedObjects.has(name)) {
+      if (
+        !ALWAYS_BANNED_GLOBALS.has(name) &&
+        !cfg.allowedObjects.has(name) &&
+        !cfg.contextData.has(name)
+      ) {
         rootScope.declare(name, bindingKind('allowed_global', { globalName: name }));
       }
     }
@@ -395,6 +411,9 @@ function createSanitizeJS() {
       }
       if (cfg.allowedObjects.has(name)) {
         return bindingKind('allowed_object', { objectName: name });
+      }
+      if (cfg.contextData.has(name) && !isBannedGlobalName(name) && !isDangerousPropertyName(name)) {
+        return bindingKind('context_data', { contextName: name });
       }
       if (cfg.allowedGlobals.has(name) && !isBannedGlobalName(name)) {
         return bindingKind('allowed_global', { globalName: name });
@@ -556,6 +575,14 @@ function createSanitizeJS() {
         return bindingKind('local');
       }
 
+      // Read-only execution context: allow nested reads at arbitrary depth.
+      // Writes/calls through these bindings are rejected elsewhere.
+      if (objectInfo.kind === 'context_data') {
+        return bindingKind('context_data', {
+          contextName: objectInfo.contextName || null
+        });
+      }
+
       if (objectInfo.kind === 'allowed_global') {
         reject(
           'unauthorized_access',
@@ -590,6 +617,16 @@ function createSanitizeJS() {
 
       if (calleeInfo.kind === 'local_function') {
         return bindingKind('local');
+      }
+
+      // Context data is read-only: no method calls (blocks push/splice/etc.).
+      if (calleeInfo.kind === 'context_data') {
+        reject(
+          'unauthorized_access',
+          'Calls through context data are not permitted',
+          node
+        );
+        return bindingKind('forbidden');
       }
 
       // Local object/array member calls are allowed only when the property name has
@@ -652,6 +689,14 @@ function createSanitizeJS() {
               declarePattern(prop.value, scope, bindingKind('local'), prop);
             } else if (info.kind === 'local' || info.kind === 'primitive') {
               declarePattern(prop.value, scope, bindingKind('local'), prop);
+            } else if (info.kind === 'context_data') {
+              // Keep extracted bindings tagged as context data so nested writes stay forbidden.
+              declarePattern(
+                prop.value,
+                scope,
+                bindingKind('context_data', { contextName: info.contextName || null }),
+                prop
+              );
             } else {
               reject('unauthorized_access', 'Unauthorized destructuring source', nodeForError || pattern);
             }
@@ -1137,14 +1182,36 @@ function createSanitizeJS() {
             const existing = scope.lookup(node.left.name);
             if (!existing) {
               reject('unauthorized_access', `Assignment to undeclared identifier: ${node.left.name}`, node.left);
+            } else if (existing.kind === 'context_data') {
+              reject(
+                'unauthorized_access',
+                'Assignment to context data is not permitted',
+                node
+              );
             } else if (rightInfo.kind === 'allowed_method') {
               reject('unauthorized_access', 'Storing authorized method references is not permitted', node);
-            } else if (rightInfo.kind === 'allowed_object' || rightInfo.kind === 'allowed_property' || rightInfo.kind === 'local' || rightInfo.kind === 'primitive' || rightInfo.kind === 'local_function' || rightInfo.kind === 'allowed_global') {
+            } else if (
+              rightInfo.kind === 'allowed_object' ||
+              rightInfo.kind === 'allowed_property' ||
+              rightInfo.kind === 'local' ||
+              rightInfo.kind === 'primitive' ||
+              rightInfo.kind === 'local_function' ||
+              rightInfo.kind === 'allowed_global' ||
+              rightInfo.kind === 'context_data'
+            ) {
               scope.declare(node.left.name, rightInfo.kind === 'forbidden' ? bindingKind('forbidden') : rightInfo);
             } else {
               scope.declare(node.left.name, bindingKind('forbidden'));
             }
           } else if (node.left.type === 'MemberExpression') {
+            const objectInfo = classify(node.left.object, scope);
+            if (objectInfo.kind === 'context_data') {
+              reject(
+                'unauthorized_access',
+                'Assignment to context data is not permitted',
+                node
+              );
+            }
             classifyMember(node.left, scope);
             walk(node.left.object, scope);
             if (node.left.computed) {
@@ -1160,6 +1227,16 @@ function createSanitizeJS() {
           if (!syntaxAllowed('arithmetic') && !syntaxAllowed('variables')) {
             reject('unsupported_syntax', 'Update expressions are not permitted', node);
             break;
+          }
+          {
+            const argInfo = classify(node.argument, scope);
+            if (argInfo.kind === 'context_data') {
+              reject(
+                'unauthorized_access',
+                'Mutation of context data is not permitted',
+                node
+              );
+            }
           }
           walk(node.argument, scope);
           break;
@@ -1231,7 +1308,7 @@ function createSanitizeJS() {
 }
 
 const sanitizeJSImpl = createSanitizeJS();
-const { createSandbox } = require('./sandbox');
+const { createSandbox } = require('./sandbox-browser');
 
 // ---------------------------------------------------------------------------
 // Isolated execution (persistent sandbox + capability messaging)
@@ -1244,9 +1321,11 @@ const DEFAULT_EXECUTION_POLICY = {
   allowImports: false,
   allowDynamicExecution: false,
   allowAsync: true,
+  // Default EXEC watchdog. Pass policy.maxExecutionTime: 0 to disable (NFT cards).
   maxExecutionTime: 5000,
   maxMessages: 1000,
-  maxMessageSize: 65536
+  // Full game snapshots (context.game) routinely exceed 64KiB.
+  maxMessageSize: 2 * 1024 * 1024
 };
 
 function isPlainObject(value) {
@@ -1308,49 +1387,55 @@ function serializeTransferable(value, label = 'value', seen = new WeakSet()) {
   return out;
 }
 
-function normalizeCapabilities(capabilities = {}) {
-  if (!capabilities || typeof capabilities !== 'object' || Array.isArray(capabilities)) {
-    throw new Error('context.capabilities must be a plain object');
+/**
+ * Normalize executeJS `options.api`: a flat map of method name → function.
+ * Internally stored under the single sandbox namespace `api` so NFT scripts call
+ * `api.addToQueue(...)` (not `game.addMove(...)`).
+ */
+function normalizeApi(api = {}) {
+  if (!api || typeof api !== 'object' || Array.isArray(api)) {
+    throw new Error('options.api must be a plain object');
   }
-  const handlers = {};
-  const descriptors = {};
-  for (const [namespace, methods] of Object.entries(capabilities)) {
-    if (!namespace || typeof namespace !== 'string') {
-      throw new Error('Invalid capability namespace');
+  const handlers = { api: {} };
+  const descriptors = { api: [] };
+  for (const [method, impl] of Object.entries(api)) {
+    if (!method || typeof method !== 'string') {
+      throw new Error('Invalid api method name');
     }
-    if (isDangerousPropertyName(namespace)) {
-      throw new Error(`Unauthorized capability namespace: ${namespace}`);
+    if (isDangerousPropertyName(method)) {
+      throw new Error(`Unauthorized api method: ${method}`);
     }
-    if (!methods || typeof methods !== 'object' || Array.isArray(methods)) {
-      throw new Error(`Capability namespace '${namespace}' must map to an object of methods`);
+    const fn =
+      typeof impl === 'function'
+        ? impl
+        : impl && typeof impl.handler === 'function'
+          ? impl.handler
+          : null;
+    if (!fn) {
+      throw new Error(
+        `Api method '${method}' must be a function (nested API namespaces are not supported)`
+      );
     }
-    handlers[namespace] = {};
-    descriptors[namespace] = [];
-    for (const [method, impl] of Object.entries(methods)) {
-      if (!method || typeof method !== 'string' || isDangerousPropertyName(method)) {
-        throw new Error(`Invalid capability method: ${namespace}.${method}`);
-      }
-      const fn = typeof impl === 'function' ? impl : impl && typeof impl.handler === 'function' ? impl.handler : null;
-      if (!fn) {
-        throw new Error(`Capability ${namespace}.${method} must be a function`);
-      }
-      handlers[namespace][method] = {
-        fn,
-        validateArgs: typeof impl === 'object' && typeof impl.validateArgs === 'function' ? impl.validateArgs : null
-      };
-      descriptors[namespace].push(method);
-    }
+    handlers.api[method] = {
+      fn,
+      validateArgs:
+        typeof impl === 'object' && typeof impl.validateArgs === 'function'
+          ? impl.validateArgs
+          : null
+    };
+    descriptors.api.push(method);
   }
   return { handlers, descriptors };
 }
 
-function buildValidationPolicy(policy, capabilityDescriptors, dataKeys = []) {
+function buildValidationPolicy(policy, apiDescriptors, contextKeys = []) {
   const merged = { ...DEFAULT_EXECUTION_POLICY, ...(policy || {}) };
   const allowedObjects = new Set(merged.allowedObjects || []);
   const allowedMethods = { ...(merged.allowedMethods || {}) };
   const allowedGlobals = new Set(merged.allowedGlobals || []);
+  const contextData = new Set(merged.contextData || []);
 
-  for (const [namespace, methods] of Object.entries(capabilityDescriptors)) {
+  for (const [namespace, methods] of Object.entries(apiDescriptors)) {
     allowedObjects.add(namespace);
     const existing = new Set(allowedMethods[namespace] || []);
     for (const method of methods) {
@@ -1359,12 +1444,17 @@ function buildValidationPolicy(policy, capabilityDescriptors, dataKeys = []) {
     allowedMethods[namespace] = Array.from(existing);
   }
 
-  // Data bindings are injected as function parameters in the Worker, so treat
-  // their names as authorized identifiers during validation of the wrapped body.
-  for (const key of dataKeys) {
-    if (typeof key === 'string' && key && !isDangerousPropertyName(key)) {
-      allowedGlobals.add(key);
+  // executeJS injects options.api as `api` and options.context as `context`.
+  for (const key of contextKeys) {
+    if (typeof key === 'string' && key && !isDangerousPropertyName(key) && key !== 'context') {
+      contextData.add(key);
     }
+  }
+  contextData.add('context');
+  // Ensure `api` is always an allowed object binding, even with zero methods.
+  allowedObjects.add('api');
+  if (!allowedMethods.api) {
+    allowedMethods.api = [];
   }
 
   return {
@@ -1372,6 +1462,7 @@ function buildValidationPolicy(policy, capabilityDescriptors, dataKeys = []) {
     allowedObjects: Array.from(allowedObjects),
     allowedMethods,
     allowedGlobals: Array.from(allowedGlobals),
+    contextData: Array.from(contextData),
     // Capability stubs are async; awaiting them is the supported call style.
     allowAsync: true,
     allowNetwork: merged.allowNetwork === true,
@@ -1405,26 +1496,40 @@ const sanitizeHelper = {
   /**
    * Validate and execute untrusted JavaScript in the persistent sandbox.
    * Creates and initializes the sandbox on first use; reuses it afterward.
+   *
+   * @param {string} source
+   * @param {{ api?: object, context?: object, args?: array }} [options]
+   * @param {object} [policy]
    */
-  async executeJS(source, context = {}, policy = {}) {
+  async executeJS(source, options = {}, policy = {}) {
     if (typeof source !== 'string') {
       throw new Error('JavaScript source must be a string');
     }
 
     const execPolicy = { ...DEFAULT_EXECUTION_POLICY, ...(policy || {}) };
-    const capabilities = context && context.capabilities ? context.capabilities : {};
-    const rawData = context && context.data ? context.data : {};
+    const api = options && options.api ? options.api : {};
+    const rawContext = options && options.context ? options.context : {};
+    const rawArgs = options && options.args != null ? options.args : [];
 
-    const { handlers, descriptors } = normalizeCapabilities(capabilities);
+    const { handlers, descriptors } = normalizeApi(api);
 
-    let data;
+    let context;
+    let args;
     try {
-      data = serializeTransferable(rawData, 'context.data');
+      context = serializeTransferable(rawContext, 'options.context');
+      args = serializeTransferable(rawArgs, 'options.args');
     } catch (err) {
-      throw new Error(`Invalid execution data: ${err.message}`);
+      throw new Error(`Invalid execution context: ${err.message}`);
+    }
+    if (!Array.isArray(args)) {
+      throw new Error('Invalid execution context: options.args must be an array');
     }
 
-    const validationPolicy = buildValidationPolicy(execPolicy, descriptors, Object.keys(data));
+    // `args` is a free identifier bound beside api/context (NFT_EVENT invocation args).
+    const validationPolicy = buildValidationPolicy(execPolicy, descriptors, [
+      'context',
+      'args'
+    ]);
     const validation = this.sanitizeJS(wrapSourceForExecutionValidation(source), validationPolicy);
     if (!validation.safe) {
       const detail = validation.errors.map((e) => e.message).join('; ');
@@ -1447,8 +1552,9 @@ const sanitizeHelper = {
 
     return this.sandbox.execute({
       source,
-      data,
-      capabilities: descriptors,
+      context,
+      args,
+      api: descriptors,
       handlers,
       limits: {
         maxExecutionTime: execPolicy.maxExecutionTime,
