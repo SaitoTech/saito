@@ -9,10 +9,6 @@ const {
   buildNftEventInstruction,
   resolveExecutableCode
 } = require('../../../mods/tscardgen/lib/code-events');
-const {
-  resolveExecutableCode: twilightResolve,
-  normalizeStoredCode
-} = require('../../../mods/twilight/lib/nft/resolve-code');
 
 describe('TSCardGen multi-event code model', () => {
   test('legacy string remains a string when serializing one event', () => {
@@ -112,41 +108,3 @@ describe('TSCardGen multi-event code model', () => {
   });
 });
 
-describe('NFT code resolution compatibility', () => {
-  test('legacy string still resolves for card play', () => {
-    expect(resolveExecutableCode('await api.endTurn();')).toBe('await api.endTurn();');
-    expect(twilightResolve('await api.endTurn();')).toBe('await api.endTurn();');
-  });
-
-  test('multi-event array resolves default and named selectors', () => {
-    const code = [
-      { name: 'wargames', code: 'one();' },
-      { name: 'wargames_2', code: 'two();' }
-    ];
-    expect(twilightResolve(code)).toBe('one();');
-    expect(twilightResolve(code, 'wargames_2')).toBe('two();');
-    expect(twilightResolve(code, '1')).toBe('two();');
-    expect(twilightResolve(code, 'missing')).toBeNull();
-  });
-
-  test('array of plain strings still resolves by index', () => {
-    const code = ['first();', 'second();'];
-    expect(twilightResolve(code)).toBe('first();');
-    expect(twilightResolve(code, '1')).toBe('second();');
-  });
-
-  test('normalizeStoredCode preserves multi-event arrays and collapses singles', () => {
-    expect(normalizeStoredCode('a();')).toBe('a();');
-    expect(
-      normalizeStoredCode([
-        { name: 'one', code: 'a();' },
-        { name: 'two', code: 'b();' }
-      ])
-    ).toEqual([
-      { name: 'one', code: 'a();' },
-      { name: 'two', code: 'b();' }
-    ]);
-    expect(normalizeStoredCode([{ name: 'one', code: 'a();' }])).toBe('a();');
-    expect(normalizeStoredCode([{ name: 'one', code: '   ' }, { name: 'two', code: '' }])).toBe('');
-  });
-});

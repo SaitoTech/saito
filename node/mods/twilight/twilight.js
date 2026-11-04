@@ -13,14 +13,10 @@ const htmlTemplate = require('./lib/core/game-html.template').default;
 const GameHelp = require('./lib/overlays/game-help');
 const GameMinimap = require('../../lib/saito/ui/game-minimap/game-minimap');
 const nftApi = require('./lib/core/api');
-const nftContext = require('./lib/core/context');
-const twilightNftQueuePolicy = require('./lib/core/queue-policy');
-const { resolveExecutableCode, normalizeStoredCode } = require('./lib/nft/resolve-code');
 const {
-  mergeNftQueuePolicies,
-  assertValidNftCardId,
-  HARD_BLOCKED_COMMANDS
-} = require('../../lib/templates/gametemplate-src/gametemplate-nft-queue');
+  TWILIGHT_QUEUE_COMMANDS,
+  isSandboxInstructionPermitted
+} = nftApi;
 
 const JSON = require('json-bigint');
 
@@ -125,36 +121,53 @@ class Twilight extends GameTemplate {
     this.overlay.show(html, ()=> { this.overlay.clickToClose = cc_status;});
   }
 
-  returnApi() {
-    const api = super.returnApi();
+  returnApiQueue() {
+    const base = super.returnApiQueue();
+    const engineCommands = base.commands;
+    const twilightCommands = TWILIGHT_QUEUE_COMMANDS;
+    const commands = engineCommands.concat(twilightCommands);
+
+    const gate = (fn) => {
+      return (instruction) => {
+        if (!isSandboxInstructionPermitted(instruction, engineCommands, twilightCommands)) {
+          const cmd =
+            typeof instruction === 'string' ? instruction.split('\t')[0] : '';
+          throw new Error(`command not permitted: ${cmd || '(empty)'}`);
+        }
+        return fn(instruction);
+      };
+    };
 
     return {
-      ...api,
-      ...Object.fromEntries(
-        Object.entries(nftApi).map(([name, fn]) => [
-          name,
-          fn.bind(this)
-        ])
-      )
+      commands,
+      addToQueue: gate(base.addToQueue),
+      addMove: gate(base.addMove),
+      prependMove: gate(base.prependMove),
+      addEndMove: gate(base.addEndMove),
+      endTurn: base.endTurn
     };
   }
 
-  returnNftQueuePolicy() {
-    return mergeNftQueuePolicies(super.returnNftQueuePolicy(), twilightNftQueuePolicy);
+  returnApi() {
+    const queue = this.returnApiQueue();
+    return {
+      addToQueue: queue.addToQueue,
+      addMove: queue.addMove,
+      prependMove: queue.prependMove,
+      addEndMove: queue.addEndMove,
+      endTurn: queue.endTurn,
+      returnEventingPlayer: nftApi.returnEventingPlayer.bind(this),
+      isPlayer: nftApi.isPlayer.bind(this),
+      playerSelectOption: nftApi.playerSelectOption.bind(this),
+      playerSelectCountry: nftApi.playerSelectCountry.bind(this),
+      isControlled: nftApi.isControlled.bind(this),
+      whoControls: nftApi.whoControls.bind(this),
+      isEventActive: nftApi.isEventActive.bind(this)
+    };
   }
 
   returnContext(cardId) {
-    const context = super.returnContext();
-
-    return {
-      ...context,
-      ...Object.fromEntries(
-        Object.entries(nftContext).map(([name, fn]) => [
-          name,
-          fn.call(this, cardId)
-        ])
-      )
-    };
+    return super.returnContext();
   }
 
   //
@@ -1143,8 +1156,8 @@ console.log("error here 222");
         this.game.options.nfts = [];
       }
 
-      // Hard-coded test card — Nasser-style influence placement via addToQueue.
-      // Inline data so Archive / REQUEST_AVAILABLE_NFTS is not required.
+      // Hard-coded test card — script runs on both clients; only the eventing
+      // faction broadcasts moves.
       if (!this.game.options.nfts.some((n) => String(n.id) === 'nft-test-title-105')) {
         this.game.options.nfts.push({
           title: "NFT TEST TITLE",
@@ -1159,8 +1172,11 @@ console.log("error here 222");
             ops: 2,
             img: 'TNRnTS-04',
             code: `
-		api.addToQueue("place\\tus\\tus\\tegypt\\t2");
-		api.addToQueue("resolve\\tnft-test-title-105");
+		if (!api.isPlayer(api.returnEventingPlayer())) {
+			return 0;
+		}
+		api.addMove("place\\tus\\tus\\tegypt\\t2");
+		api.addMove("resolve\\tnft-test-title-105");
 		await api.endTurn();
 		return 0;
 	    `.trim()
@@ -1168,37 +1184,59 @@ console.log("error here 222");
         });
       }
 
-      const reserved = new Set([
-        ...HARD_BLOCKED_COMMANDS,
-        ...this.returnPermittedQueueCommands()
-      ]);
+      // Deduplicate card ids before dealing into the deck.
       const seenIds = new Set();
 
       for (const nft of this.game.options.nfts) {
-        const d = nft?.data || {};
-        if (!nft?.id) { continue; }
+        if (!nft || nft.id == null) { continue; }
         const id = String(nft.id);
-        try {
-          assertValidNftCardId(id, reserved);
-        } catch (err) {
-          console.error('initializeNFTs: rejecting NFT card id:', id, err.message);
-          continue;
-        }
-        if (seenIds.has(id)) {
-          console.error('initializeNFTs: duplicate NFT card id:', id);
+        if (!id || /[\t\n\r ]/.test(id) || seenIds.has(id)) {
+          console.error('initializeNFTs: rejecting NFT card id:', id);
           continue;
         }
         seenIds.add(id);
-        // Non-cards stay available via options.nfts for code calls, but are not dealt.
-        if (Number(d.non_card)) { continue; }
+
+        const data = nft.data || {};
+        // Non-cards stay in options.nfts for code calls, but are not dealt.
+        if (Number(data.non_card)) { continue; }
+
+        let code = data.code;
+        if (typeof code === 'string') {
+          code = code.replace(/\t/g, ' ');
+        } else if (Array.isArray(code)) {
+          const entries = [];
+          for (let i = 0; i < code.length; i++) {
+            const entry = code[i];
+            if (typeof entry === 'string') {
+              const body = entry.replace(/\t/g, ' ');
+              if (body.trim()) { entries.push(body); }
+            } else if (entry && typeof entry === 'object') {
+              const name = String(entry.name || '').trim();
+              const body = String(entry.code || '').replace(/\t/g, ' ');
+              if (name && body.trim()) { entries.push({ name, code: body }); }
+            }
+          }
+          if (!entries.length) {
+            code = '';
+          } else if (entries.length === 1 && typeof entries[0] === 'string') {
+            code = entries[0];
+          } else if (entries.length === 1) {
+            code = entries[0].code;
+          } else {
+            code = entries;
+          }
+        } else {
+          code = '';
+        }
+
         this.addCardToDeck(1, id, {
-          name: d.name || nft.title || 'Optional Card',
-          scoring: Number(d.scoring) || 0,
-          player: d.player || 'both',
-          recurring: Number(d.recurring) ? 1 : 0,
-          ops: Number(d.ops) || 0,
-          img: d.image || d.img || '',
-          code: normalizeStoredCode(d.code)
+          name: data.name || nft.title || 'Optional Card',
+          scoring: Number(data.scoring) || 0,
+          player: data.player || 'both',
+          recurring: Number(data.recurring) ? 1 : 0,
+          ops: Number(data.ops) || 0,
+          img: data.image || data.img || '',
+          code
         });
       }
     }
@@ -7801,15 +7839,21 @@ console.log("DISPLAY ERROR: " + JSON.stringify(err));
 
     for (const nft of this.game.options?.nfts || []) {
       if (!nft?.id) { continue; }
-      const d = nft.data || {};
+      const data = nft.data || {};
+      let code = data.code;
+      if (typeof code === 'string') {
+        code = code.replace(/\t/g, ' ');
+      } else if (!Array.isArray(code)) {
+        code = '';
+      }
       b[String(nft.id)] = {
-        name: d.name || nft.title || 'Optional Card',
-        scoring: Number(d.scoring) || 0,
-        player: d.player || 'both',
-        recurring: Number(d.recurring) ? 1 : 0,
-        ops: Number(d.ops) || 0,
-        img: d.image || d.img || '',
-        code: normalizeStoredCode(d.code)
+        name: data.name || nft.title || 'Optional Card',
+        scoring: Number(data.scoring) || 0,
+        player: data.player || 'both',
+        recurring: Number(data.recurring) ? 1 : 0,
+        ops: Number(data.ops) || 0,
+        img: data.image || data.img || '',
+        code
       };
     }
 
@@ -10878,6 +10922,13 @@ console.log("added card to deck!");
   // queued up to go.
   //
   async playEvent(player, card) {
+
+    // Who triggered this event ("us" / "ussr"). Exposed to NFT scripts via
+    // api.returnEventingPlayer() so cards like Junta can place for the eventing
+    // faction rather than guessing from local seat alone.
+    if (this.game && this.game.state && (player === 'us' || player === 'ussr')) {
+      this.game.state.eventing_player = player;
+    }
 
     if (this.game.deck[0].cards[card] != undefined) {
       this.game.status = `${player.toUpperCase()} triggers ${this.cardToText(card)}`;
@@ -18666,14 +18717,23 @@ console.log("ROUND: " + this.game.state.round);
     //
     const nft = (this.game.options?.nfts || []).find((n) => String(n.id) === String(card));
     const raw_code = nft?.data?.code || this.game.deck[0]?.cards?.[card]?.code;
-    const code = resolveExecutableCode(raw_code);
-    if (typeof code === 'string' && code.trim()) {
-      if (!i_played_the_card) {
-        return 0;
+    let code = null;
+    if (typeof raw_code === 'string') {
+      code = raw_code.trim() ? raw_code : null;
+    } else if (Array.isArray(raw_code)) {
+      for (let i = 0; i < raw_code.length; i++) {
+        const entry = raw_code[i];
+        const value = typeof entry === 'string' ? entry : entry && entry.code;
+        if (typeof value === 'string' && value.trim()) {
+          code = value;
+          break;
+        }
       }
+    }
+    if (typeof code === 'string' && code.trim()) {
       const api = this.returnApi();
       const context = this.returnContext(card);
-      // No EXEC wall-clock timeout: NFT scripts may await player HUD input.
+      // Runs on every client; the script decides any player-specific work.
       // Script return 0 → pause queue (interactive / endTurn path).
       // Any other return → continue queue (playEvent returns 1).
       try {

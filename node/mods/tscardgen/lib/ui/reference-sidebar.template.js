@@ -8,12 +8,6 @@ module.exports = () => `
       <button type="button" class="ts-reference-link" data-ref="howto">
         How to Program a Card
       </button>
-      <button type="button" class="ts-reference-link" data-ref="advanced">
-        Advanced Programming
-      </button>
-      <button type="button" class="ts-reference-link" data-ref="examples">
-        Example Cards
-      </button>
     </nav>
     <p class="ts-reference-note">
       Full documentation will live on the Saito Wiki. These entries open temporary reference material for now.

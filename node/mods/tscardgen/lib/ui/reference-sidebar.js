@@ -1,9 +1,5 @@
 const ReferenceSidebarTemplate = require('./reference-sidebar.template');
 const DocsClient = require('../docs/docs-client');
-const EXAMPLES = require('../examples');
-const ExampleViewer = require('./overlays/example-viewer');
-const SaitoOverlay = require('../../../../lib/saito/ui/saito-overlay/saito-overlay');
-const advancedProgrammingMarkdown = require('../docs/advanced-programming.md.js');
 
 class ReferenceSidebar {
   constructor(app, mod, container = '.tscardgen-sidebar') {
@@ -11,8 +7,6 @@ class ReferenceSidebar {
     this.mod = mod;
     this.container = container;
     this.docs = new DocsClient();
-    this.example_viewer = new ExampleViewer(app, mod);
-    this.picker_overlay = new SaitoOverlay(app, mod);
   }
 
   async render() {
@@ -42,14 +36,6 @@ class ReferenceSidebar {
         }
         if (ref === 'howto') {
           await this.openHowTo();
-          return;
-        }
-        if (ref === 'advanced') {
-          this.openAdvancedProgramming();
-          return;
-        }
-        if (ref === 'examples') {
-          this.openExamplePicker();
         }
       });
     });
@@ -86,15 +72,6 @@ class ReferenceSidebar {
     });
   }
 
-  openAdvancedProgramming() {
-    this.openStubDocument({
-      title: 'Advanced Programming Techniques',
-      summary:
-        'Multi-code cards, staged execution, variables, event flags, and GameEngine queue patterns. Source: lib/docs/advanced-programming.md',
-      body: `<pre class="ts-advanced-doc">${escapeHtml(advancedProgrammingMarkdown)}</pre>`
-    });
-  }
-
   openStubDocument({ title, summary, body }) {
     const html = `<!DOCTYPE html><html><head><meta charset="utf-8" /><title>${escapeHtml(
       title
@@ -115,53 +92,6 @@ class ReferenceSidebar {
     const url = URL.createObjectURL(blob);
     window.open(url, '_blank', 'noopener,noreferrer');
     setTimeout(() => URL.revokeObjectURL(url), 60_000);
-  }
-
-  openExamplePicker() {
-    this.picker_overlay.show(`
-      <div class="ts-example-picker saito-overlay-form retain-surface">
-        <div class="saito-overlay-form-header">
-          <div class="saito-overlay-form-header-title">Example Cards</div>
-        </div>
-        <p class="ts-reference-note">Temporary examples. Selecting one opens a copyable reference view and does not change your editor.</p>
-        <div class="ts-example-picker-list">
-          ${EXAMPLES.map(
-            (example) => `
-              <button type="button" class="ts-example-picker-item" data-example-id="${example.id}">
-                <span class="ts-example-picker-label">${escapeHtml(example.label)}</span>
-                <span class="ts-example-picker-summary">${escapeHtml(example.summary || '')}</span>
-              </button>
-            `
-          ).join('')}
-        </div>
-      </div>
-    `);
-
-    document.querySelectorAll('.ts-example-picker [data-example-id]').forEach((button) => {
-      button.addEventListener('click', (event) => {
-        event.preventDefault();
-        const example = EXAMPLES.find((item) => item.id === button.getAttribute('data-example-id'));
-        if (!example) {
-          return;
-        }
-        this.picker_overlay.remove();
-        this.openExample(example);
-      });
-    });
-  }
-
-  openExample(example) {
-    this.example_viewer.on_copy = async (code) => {
-      try {
-        await navigator.clipboard.writeText(code);
-        if (typeof salert === 'function') {
-          salert('Example copied to clipboard');
-        }
-      } catch (err) {
-        console.warn('TSCardGen: clipboard copy failed', err);
-      }
-    };
-    this.example_viewer.render(example);
   }
 }
 

@@ -333,7 +333,6 @@
 
 .tscardgen-image-upload-actions,
 .tscardgen-modal-actions,
-.tscardgen-example-actions,
 .tscardgen-empty-code-actions {
   display: flex;
   flex-wrap: wrap;
@@ -342,7 +341,6 @@
 }
 
 .tscardgen-empty-code,
-.tscardgen-example-viewer,
 .tscardgen-non-card-confirm {
   width: min(42rem, 94vw);
   display: flex;
@@ -355,27 +353,11 @@
 
 .tscardgen-modal-copy,
 .tscardgen-empty-code-lead,
-.tscardgen-empty-code-copy,
-.tscardgen-example-summary {
+.tscardgen-empty-code-copy {
   margin: 0;
   font-size: var(--ts-font-body);
   line-height: 1.5;
   color: color-mix(in srgb, var(--saito-foreground, #f2f5f7) 86%, transparent);
-}
-
-.tscardgen-example-code {
-  margin: 0;
-  max-height: min(28rem, 55vh);
-  overflow: auto;
-  padding: 1.25rem 1.35rem;
-  border: 1px solid var(--saito-border, rgba(255, 255, 255, 0.16));
-  border-radius: var(--saito-radius, 0.5rem);
-  background: color-mix(in srgb, #0b1218 82%, transparent);
-  color: var(--saito-foreground, #f2f5f7);
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font-size: var(--ts-font-body);
-  line-height: 1.55;
-  white-space: pre-wrap;
 }
 
 @media (max-width: 900px) {

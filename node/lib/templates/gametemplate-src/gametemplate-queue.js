@@ -24,7 +24,133 @@
 **********************************************************************************/
 let saito = require('./../../saito/saito');
 const Transaction = require('./../../saito/transaction').default;
-const { runNftEvent } = require('./gametemplate-nft-queue');
+
+function findNftByAppId(nfts, id) {
+  if (!Array.isArray(nfts) || id == null || String(id) === '') {
+    return null;
+  }
+  const key = String(id);
+  return nfts.find((n) => n && String(n.id) === key) || null;
+}
+
+function resolveNftEventCode(raw, index) {
+  if (!Number.isInteger(index) || index < 0) {
+    return { ok: false, error: `invalid code index ${index}` };
+  }
+
+  if (typeof raw === 'string') {
+    if (index !== 0) {
+      return { ok: false, error: `string code only valid at index 0 (got ${index})` };
+    }
+    if (!raw.trim()) {
+      return { ok: false, error: 'string code is empty' };
+    }
+    return { ok: true, code: raw };
+  }
+
+  if (!Array.isArray(raw)) {
+    return { ok: false, error: 'nft has no executable code' };
+  }
+
+  if (index >= raw.length) {
+    return { ok: false, error: `invalid code index ${index}` };
+  }
+
+  const entry = raw[index];
+  if (typeof entry === 'string') {
+    if (!entry.trim()) {
+      return { ok: false, error: `code at index ${index} is empty` };
+    }
+    return { ok: true, code: entry };
+  }
+
+  if (entry && typeof entry === 'object' && typeof entry.code === 'string') {
+    if (!entry.code.trim()) {
+      return { ok: false, error: `code at index ${index} is empty` };
+    }
+    return { ok: true, code: entry.code };
+  }
+
+  return { ok: false, error: `invalid code entry at index ${index}` };
+}
+
+function applyNftEventArgs(nft, argFields = []) {
+  const fields = Array.isArray(argFields) ? argFields.map(String) : [];
+  nft.args = [];
+  for (const a of fields) {
+    nft.args.push(a);
+  }
+  return nft.args;
+}
+
+function parseNftEventFields(gmv) {
+  const id = String(gmv[1] || '');
+  const indexRaw = gmv[2];
+  const index = Number(indexRaw);
+  const argFields = gmv.slice(3).map((a) => String(a));
+
+  if (!id) {
+    return { ok: false, error: 'missing nft id' };
+  }
+  if (!Number.isInteger(index) || String(index) !== String(indexRaw)) {
+    return { ok: false, error: `invalid code index ${indexRaw}` };
+  }
+
+  return { ok: true, id, index, argFields };
+}
+
+/**
+ * Run NFT_EVENT against game.options.nfts using the existing sandbox.
+ * Caller must already have spliced the instruction from the queue.
+ * Returns 0 to pause the GameTemplate queue, otherwise 1.
+ */
+async function runNftEvent(game_self, gmv) {
+  const parsed = parseNftEventFields(gmv);
+  if (!parsed.ok) {
+    console.error('NFT_EVENT:', parsed.error);
+    return 1;
+  }
+
+  const { id, index, argFields } = parsed;
+  const listed = game_self?.game?.options?.nfts;
+  if (!Array.isArray(listed)) {
+    console.error('NFT_EVENT: game.options.nfts missing');
+    return 1;
+  }
+
+  const nft = findNftByAppId(listed, id);
+  if (!nft) {
+    console.error('NFT_EVENT: nft not found', id);
+    return 1;
+  }
+
+  const resolved = resolveNftEventCode(nft.data?.code, index);
+  if (!resolved.ok) {
+    console.error('NFT_EVENT:', resolved.error, id);
+    return 1;
+  }
+
+  applyNftEventArgs(nft, argFields);
+
+  if (!game_self.app?.BROWSER || typeof game_self.app?.browser?.executeJS !== 'function') {
+    console.error('NFT_EVENT: no browser execution environment', id);
+    return 1;
+  }
+
+  try {
+    const api = game_self.returnApi();
+    const context = game_self.returnContext();
+    const result = await game_self.app.browser.executeJS(
+      resolved.code,
+      { api, context, args: nft.args },
+      { maxExecutionTime: 0 }
+    );
+    return result === 0 ? 0 : 1;
+  } catch (err) {
+    console.error('NFT_EVENT: execution failed', id, err);
+    return 1;
+  }
+}
 
 class GameQueue {
   //
@@ -2965,3 +3091,8 @@ class GameQueue {
 }
 
 module.exports = GameQueue;
+module.exports.findNftByAppId = findNftByAppId;
+module.exports.resolveNftEventCode = resolveNftEventCode;
+module.exports.applyNftEventArgs = applyNftEventArgs;
+module.exports.parseNftEventFields = parseNftEventFields;
+module.exports.runNftEvent = runNftEvent;

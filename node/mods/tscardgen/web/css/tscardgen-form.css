@@ -332,50 +332,6 @@ select.ts-input {
   color: color-mix(in srgb, var(--saito-foreground, #f2f5f7) 62%, transparent);
 }
 
-.ts-example-picker {
-  width: min(36rem, 94vw);
-  display: flex;
-  flex-direction: column;
-  gap: 0.85rem;
-  padding: 1.5rem;
-  color: var(--saito-foreground, #f2f5f7);
-  font-size: var(--ts-font-body, 1.4rem);
-}
-
-.ts-example-picker-list {
-  display: flex;
-  flex-direction: column;
-  gap: 0.55rem;
-}
-
-.ts-example-picker-item {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-  width: 100%;
-  text-align: left;
-  border: 1px solid var(--saito-border, rgba(255, 255, 255, 0.12));
-  border-radius: var(--saito-radius, 0.5rem);
-  background: color-mix(in srgb, #0b1218 45%, transparent);
-  color: inherit;
-  padding: 0.85rem 1rem;
-  font: inherit;
-  font-size: var(--ts-font-body, 1.4rem);
-  cursor: pointer;
-}
-
-.ts-example-picker-item:hover {
-  background: color-mix(in srgb, #0b1218 70%, transparent);
-}
-
-.ts-example-picker-label {
-  font-weight: 600;
-}
-
-.ts-example-picker-summary {
-  color: color-mix(in srgb, var(--saito-foreground, #f2f5f7) 72%, transparent);
-}
-
 @media (max-width: 720px) {
   .ts-form-grid,
   .ts-row-three {

@@ -57,11 +57,6 @@ const GameQueue = require('./gametemplate-src/gametemplate-queue');
 const GameGame = require('./gametemplate-src/gametemplate-game');
 const GameUI = require('./gametemplate-src/gametemplate-ui');
 const GameWeb3 = require('./gametemplate-src/gametemplate-web3');
-const {
-  createEngineNftQueuePolicy,
-  addToQueue: enqueueValidatedNftInstruction,
-  HARD_BLOCKED_COMMANDS
-} = require('./gametemplate-src/gametemplate-nft-queue');
 
 const HomePage = require('./gametemplate-src/index');
 
@@ -425,45 +420,88 @@ class GameTemplate extends ModTemplate {
 
 
   /**
-   * Flat map of NFT-callable methods. Exposed to scripts as `api.*`.
-   * Modules spread super.returnApi() and add their own methods.
-   *
-   * Queue writes go through addToQueue() only (host-side policy validation).
-   * Scripts never receive game.queue, app, or wallet handles.
+   * General sandbox API. Games spread super.returnApi() and add module methods.
+   * Queue / move insertion lives in returnApiQueue().
    */
   returnApi() {
-    const api = super.returnApi();
-    const self = this;
+    return super.returnApi();
+  }
 
+  /**
+   * Engine queue / move API for sandbox scripts, plus the engine permitted
+   * command list (`commands`). Games extend via super.returnApiQueue().
+   * Permission checks belong in the game module, not here.
+   */
+  returnApiQueue() {
+    const self = this;
     return {
-      ...api,
+      commands: [
+        'SETVAR',
+        'SALERT',
+        'salert',
+        'NOTIFY',
+        'notify',
+        'STATUS',
+        'status',
+        'LOAD',
+        'SAVE',
+        'HALTED',
+        'ACKNOWLEDGE',
+        'OBSERVER',
+        'PLAY',
+        'RESETCONFIRMSNEEDED',
+        'RESOLVE',
+        'PRERESOLVE',
+        'SHUFFLE',
+        'SHUFFLEDISCARDS',
+        'LOGDECK',
+        'LOGHAND',
+        'LOGPOOL',
+        'RESOLVEDEAL',
+        'SIMPLEDEAL',
+        'DEAL',
+        'SAFEDEAL',
+        'PUSHONDECK',
+        'REQUESTKEYS',
+        'ISSUEKEYS',
+        'SECUREROLL',
+        'SECUREROLL_END',
+        'SIMULTANEOUS_PICK',
+        'DECKBACKUP',
+        'HANDBACKUP',
+        'DECKRESTORE',
+        'DECKADDCARDS',
+        'CARDS',
+        'POOL',
+        'SAFEPOOLDEAL',
+        'POOLDEAL',
+        'FLIPRESET',
+        'FLIPCARD',
+        'RESOLVEFLIP',
+        'OBSERVER_CHECKPOINT',
+        'DECKANDENCRYPT',
+        'DECK',
+        'DECKXOR',
+        'DECKFLUSH',
+        'DECKENCRYPT',
+        'NFT_EVENT'
+      ],
       addToQueue: function (instruction) {
-        return enqueueValidatedNftInstruction(self, instruction);
+        self.game.queue.push(instruction);
       },
-      endTurn: async function () {
-        return await self.endTurn();
+      addMove: function (instruction) {
+        self.addMove(instruction);
+      },
+      prependMove: function (instruction) {
+        self.prependMove(instruction);
+      },
+      addEndMove: function (instruction) {
+        self.addEndMove(instruction);
+      },
+      endTurn: async function (...args) {
+        return await self.endTurn(...args);
       }
     };
-  }
-
-  /**
-   * Restrictive NFT instruction policy. Each key is a permitted command name;
-   * each value provides validate(parts, mod) and optional applyLocal(parts, mod).
-   * Games extend via merge with super.returnNftQueuePolicy(); hard-blocked
-   * payment/wallet commands cannot be enabled.
-   */
-  returnNftQueuePolicy() {
-    return createEngineNftQueuePolicy();
-  }
-
-  /**
-   * Names of instructions permitted for api.addToQueue / context.commands.
-   * Derived from returnNftQueuePolicy() so games cannot advertise blocked cmds.
-   */
-  returnPermittedQueueCommands() {
-    const policy =
-      typeof this.returnNftQueuePolicy === 'function' ? this.returnNftQueuePolicy() : {};
-    return Object.keys(policy || {}).filter((name) => !HARD_BLOCKED_COMMANDS.has(name));
   }
 
   /**
@@ -487,8 +525,7 @@ class GameTemplate extends ModTemplate {
 
     return {
       ...ctx,
-      game,
-      commands: this.returnPermittedQueueCommands()
+      game
     };
   }
 

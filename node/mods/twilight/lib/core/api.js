@@ -1,9 +1,94 @@
 /**
- * Twilight NFT sandbox API methods.
- * Bound onto the Twilight instance via returnApi() (.bind(this)).
- * Queue writes use GameTemplate api.addToQueue / api.endTurn.
- * This module adds Twilight-specific queries and GameHUD selection helpers.
+ * Twilight sandbox API helpers and instruction permission check.
+ *
+ * Queue / move methods come from returnApiQueue() in twilight-start.js.
+ * Those wrappers call isSandboxInstructionPermitted() before forwarding.
  */
+
+/** Twilight-specific queue commands permitted for sandbox inserts. */
+const TWILIGHT_QUEUE_COMMANDS = [
+  'place',
+  'remove',
+  'resolve',
+  'vp',
+  'defcon',
+  'milops',
+  'ops',
+  'coup',
+  'realign',
+  'limit',
+  'unlimit',
+  'setvar',
+  'stability',
+  'dice',
+  'discard',
+  'undiscard',
+  'hand',
+  'showhand',
+  'space',
+  'event',
+  'move',
+  'play',
+  'round',
+  'turn',
+  'card',
+  'war',
+  'placement',
+  'placement_bonus',
+  'headline',
+  'clear',
+  'flush',
+  'deal',
+  'deckaddcards',
+  'sharehandsize',
+  'modal',
+  'wargames',
+  'pinochet',
+  'checoup',
+  'clearcheclicktargets',
+  'missileenvy',
+  'quagmire',
+  'tehran',
+  'grainsales',
+  'aldrich',
+  'aldrichreveal',
+  'cambridge',
+  'chernobyl',
+  'northsea',
+  'latinamericandebtcrisis',
+  'teardownthiswall',
+  'stage',
+  'purge',
+  'bgs',
+  'observer_cards_update',
+  'update_observers',
+  'dynamic_deck_management',
+  'display_new_optional_cards',
+  'reshuffle_and_insert_discards',
+  'fyp_discard',
+  'nixon_shock_play_card_or_hand_to_opponent'
+];
+
+/**
+ * True if the instruction's command (first tab field) is in the combined
+ * permitted lists from GameTemplate.returnApiQueue() and Twilight.returnApiQueue().
+ */
+function isSandboxInstructionPermitted(instruction, engineCommands, twilightCommands) {
+  if (typeof instruction !== 'string' || !instruction) {
+    return false;
+  }
+  const cmd = instruction.split('\t')[0];
+  if (!cmd) {
+    return false;
+  }
+  if (Array.isArray(engineCommands) && engineCommands.indexOf(cmd) !== -1) {
+    return true;
+  }
+  if (Array.isArray(twilightCommands) && twilightCommands.indexOf(cmd) !== -1) {
+    return true;
+  }
+  return false;
+}
 
 function normalizeMenuOptions(options, label) {
   if (!Array.isArray(options) || options.length === 0) {
@@ -75,22 +160,54 @@ function clearCountryHighlights(ids) {
 }
 
 module.exports = {
-  // --- Player interaction (async; no queue / state mutation) ---
+  TWILIGHT_QUEUE_COMMANDS,
+  isSandboxInstructionPermitted,
 
-  isPlayer: (faction) => {
-    if (faction !== "us" && faction !== "ussr") {
+  /**
+   * Faction that triggered the current event: "us" or "ussr".
+   * Prefer this over context.game.player when a card (e.g. Junta) needs to know
+   * who evented, not merely which seat is running local UI code.
+   * Set from playEvent(); falls back to game.target, then local seat.
+   */
+  returnEventingPlayer: function () {
+    const fromEvent = this.game && this.game.state ? this.game.state.eventing_player : null;
+    if (fromEvent === 'us' || fromEvent === 'ussr') {
+      return fromEvent;
+    }
+
+    const roles = this.roles;
+    const target = this.game ? this.game.target : null;
+    if (roles && Number.isInteger(target) && target > 0) {
+      const byTarget = roles[target];
+      if (byTarget === 'us' || byTarget === 'ussr') {
+        return byTarget;
+      }
+    }
+
+    const seat = this.game ? this.game.player : null;
+    if (roles && Number.isInteger(seat) && seat > 0) {
+      const bySeat = roles[seat];
+      if (bySeat === 'us' || bySeat === 'ussr') {
+        return bySeat;
+      }
+    }
+
+    throw new Error('returnEventingPlayer: unable to determine eventing player');
+  },
+
+  isPlayer: function (faction) {
+    if (faction !== 'us' && faction !== 'ussr') {
       throw new Error(`Invalid faction: ${faction}`);
     }
 
     const executingPlayer = this.game.player;
 
-    if (faction === "us") {
-      return executingPlayer === 1;
+    if (faction === 'us') {
+      return executingPlayer === 2;
     }
 
-    return executingPlayer === 2;
+    return executingPlayer === 1;
   },
-
 
   playerSelectOption: async function (options) {
     const menu = normalizeMenuOptions(options, 'playerSelectOption');
@@ -104,7 +221,6 @@ module.exports = {
     });
   },
 
-  // HUD menu plus optional board highlights (same pattern as native cards).
   playerSelectCountry: async function (countries) {
     if (!Array.isArray(countries) || countries.length === 0) {
       throw new Error('playerSelectCountry: expected a non-empty array');
@@ -170,8 +286,6 @@ module.exports = {
     });
   },
 
-  // --- Read-only queries (native Twilight logic; no queue mutation) ---
-
   isControlled: function (faction, country) {
     return this.isControlled(faction, country);
   },
@@ -180,8 +294,6 @@ module.exports = {
     return this.whoControls(country);
   },
 
-  // Ongoing-effect check used throughout Twilight: game.state.events[name] == 1.
-  // Not a native method name; mirrors the engine's dominant event-active test.
   isEventActive: function (event) {
     if (typeof event !== 'string' || !event) {
       return 0;

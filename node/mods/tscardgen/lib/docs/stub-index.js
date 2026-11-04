@@ -66,6 +66,17 @@ module.exports = {
       `
     },
     {
+      id: 'api-returnActivePlayer',
+      title: 'api.returnActivePlayer',
+      summary: 'Faction that triggered the current event: "us" or "ussr".',
+      externalUrl: null,
+      body: `
+        <p><code>api.returnActivePlayer()</code> — <code>"us"</code> or <code>"ussr"</code>.</p>
+        <p>Use this when a card needs to know <strong>who played / evented</strong> the card (for example Junta placing influence for that faction).</p>
+        <p>Prefer this over <code>context.game.player</code> seat checks when the question is “who triggered the event?”, not “which seat is this client?”.</p>
+      `
+    },
+    {
       id: 'api-isControlled',
       title: 'api.isControlled',
       summary: 'Whether a faction controls a country.',
@@ -108,24 +119,6 @@ module.exports = {
       externalUrl: null,
       body: `
         <p>Lists instruction names allowed by the NFT queue policy. Payment and wallet commands are never included.</p>
-      `
-    },
-    {
-      id: 'advanced',
-      title: 'Advanced Programming Techniques',
-      summary:
-        'Multi-code cards, NFT_EVENT staging, variables, event flags, conditionals, and GameEngine queue patterns.',
-      externalUrl: null,
-      body: `
-        <p>Full guide: <code>node/mods/tscardgen/lib/docs/advanced-programming.md</code></p>
-        <p>Also available from the Programming Reference sidebar as <strong>Advanced Programming</strong>.</p>
-        <p>Key verified constraints:</p>
-        <ul>
-          <li><code>NFT_EVENT</code> format is <code>NFT_EVENT\\t{player}\\t{nft_id}\\t{code_box}</code> (not title-slug/card-number).</li>
-          <li>NFT scripts may only enqueue policy-permitted commands: <code>NOTIFY</code>, <code>RESOLVE</code>, <code>ACKNOWLEDGE</code>, <code>place</code>, <code>resolve</code>.</li>
-          <li><code>api.isEventActive</code> exists; <code>api.addEvent</code> / <code>api.removeEvent</code> do not.</li>
-          <li><code>SETVAR</code> / <code>setvar</code> / <code>NFT_EVENT</code> are not currently permitted via <code>api.addToQueue</code>.</li>
-        </ul>
       `
     }
   ]
