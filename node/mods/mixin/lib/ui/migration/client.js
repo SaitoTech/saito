@@ -286,6 +286,10 @@ module.exports = {
     if (!this.migration_instructions?.id || Number(data.id) !== Number(this.migration_instructions.id)) {
       return;
     }
+    // A status request already in flight may return after the payout arrives.
+    if (['outbound_confirmed', 'succeeded'].includes(this.migration_instructions.status)) {
+      return;
+    }
     const next = {
       ...this.migration_instructions,
       address: data.address || this.migration_instructions.address,
