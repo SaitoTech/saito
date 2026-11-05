@@ -220,6 +220,13 @@
   background: transparent;
 }
 
+.saitosign-publish .coming-soon {
+  margin: 0;
+  padding: 0.55rem 0;
+  color: var(--saito-muted-foreground);
+  line-height: 1.45;
+}
+
 .saitosign-publish .verify-row {
   display: grid;
   grid-template-columns: 1.8rem minmax(0, 1fr);
@@ -630,76 +637,32 @@
   flex: none;
 }
 
-.saitosign-publish .signer-list {
-  display: flex;
-  flex: none;
-  flex-direction: column;
-  gap: 1.2rem;
-  width: auto;
-  height: auto;
-  min-height: 0;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-  background: none;
-  border: 0;
-}
-
-.saitosign-publish .signer {
-  display: flex;
-  flex: none;
-  flex-direction: column;
-  align-items: stretch;
-  gap: 0.6rem;
-  width: auto;
-  height: auto;
-  min-height: 0;
-  margin: 0;
-  padding: 0;
-  background: none;
-  border: 0;
+.saitosign-publish .signing-table {
+  width: 100%;
+  border-collapse: collapse;
   color: var(--saito-foreground);
   font-size: var(--font-size-medium);
-  line-height: 1.3;
+  line-height: 1.4;
 }
 
-.saitosign-publish .signer-heading {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
+.saitosign-publish .signing-table th,
+.saitosign-publish .signing-table td {
+  padding: 0.9rem 1.2rem;
+  border-bottom: 1px solid var(--saito-border);
+  text-align: left;
+  vertical-align: top;
 }
 
-.saitosign-publish .signer-mark {
-  width: 1.6rem;
-  flex: none;
-  text-align: center;
-}
-
-.saitosign-publish .signer-name {
-  font-family: var(--saito-font-medium);
-}
-
-.saitosign-publish .signer-requirements {
-  margin: 0 0 0 2.6rem;
-  padding: 0 0 0 2rem;
-  list-style: disc;
+.saitosign-publish .signing-table th {
   color: var(--saito-muted-foreground);
-  font-size: var(--font-size-small, 1.4rem);
-  line-height: 1.45;
+  font-family: var(--saito-font-medium);
+  font-size: 1.3rem;
+  font-weight: 500;
+  letter-spacing: 0.04em;
 }
 
-.saitosign-publish .signer-requirements li {
-  margin: 0.2rem 0;
-}
-
-.saitosign-publish .signer.signed .signer-mark,
-.saitosign-publish .signer.signed .signer-name {
-  color: var(--saito-status-success, #10b981);
-}
-
-.saitosign-publish .signer.unsigned .signer-mark,
-.saitosign-publish .signer.unsigned .signer-name {
-  color: var(--saito-status-error, var(--saito-red));
+.saitosign-publish .signing-table td {
+  color: var(--saito-foreground);
 }
 
 .saitosign-publish .share-step {

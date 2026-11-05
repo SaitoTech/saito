@@ -66,33 +66,40 @@ function requirementLines(actions, userIndex, pageCount) {
 function peopleHTML(state) {
   const rows = shareRows(state)
     .map((row) => {
-      const icon = row.signed ? 'fa-check' : 'fa-xmark';
-      const label = row.signed ? 'signed' : 'not signed';
       const requirements = (row.requirements || [])
-        .map((line) => `<li>${escapeHTML(line)}</li>`)
-        .join('');
-      const list = requirements
-        ? `<ul class="signer-requirements">${requirements}</ul>`
-        : '';
+        .map((line) => escapeHTML(line))
+        .join('<br>');
+      const status = row.signed ? 'Signed' : 'Not signed';
       return `
-        <li class="signer${row.signed ? ' signed' : ' unsigned'}">
-          <div class="signer-heading">
-            <i class="fa-solid ${icon} signer-mark" aria-hidden="true"></i>
-            <span class="signer-name">${escapeHTML(row.name)}${row.creator ? ' (creator)' : ''} — ${label}</span>
-          </div>
-          ${list}
-        </li>
+        <tr>
+          <td>${escapeHTML(row.name)}${row.creator ? ' (creator)' : ''}</td>
+          <td>${requirements}</td>
+          <td>${status}</td>
+        </tr>
       `;
     })
     .join('');
-  return `<ul class="signer-list">${rows}</ul>`;
+  return `
+    <table class="signing-table">
+      <thead>
+        <tr>
+          <th>Signer</th>
+          <th>Requirement</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${rows}
+      </tbody>
+    </table>
+  `;
 }
 
 function finalizeActions() {
   return `
-    <p class="share-instruction">This document is ready to be finalized. Click below and we'll prepare the document for users to sign.</p>
+    <p class="share-instruction">Click below to prepare the document for users to sign.</p>
     <div class="status-actions">
-      <button type="button" class="saito-button-primary" data-publish-action="finalize">Finalize Documents</button>
+      <button type="button" class="saito-button-primary" data-publish-action="finalize">Prepare for Signing</button>
     </div>
   `;
 }
@@ -130,10 +137,10 @@ function distributeActions(premium) {
 
 function readyActions() {
   return `
-    <p class="share-instruction">This document is now ready to be signed. Please select an option below.</p>
+    <p class="share-instruction">This document is now ready to be signed.</p>
     <div class="status-choices">
-      <button type="button" class="status-choice" data-publish-action="sign-now">I need to sign this document.</button>
-      <button type="button" class="status-choice" data-publish-action="skip-sign">I don't need to sign this document.</button>
+      <button type="button" class="status-choice" data-publish-action="sign-now">I'm signing this document.</button>
+      <button type="button" class="status-choice" data-publish-action="skip-sign">I'm preparing this document for someone else.</button>
     </div>
   `;
 }

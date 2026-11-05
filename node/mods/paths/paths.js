@@ -18435,44 +18435,43 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
 	  if (idx.key == "skip") {
 	    return `<li class="option" id="skip">start attack</li>`;
 	  }
-	  let ns = [];
-	  if (selected.length > 0) {
-	    let obj = JSON.parse(paths_self.app.crypto.base64ToString(selected[0]));
-	    for (let z = 0; z < paths_self.game.spaces[obj.unit_sourcekey].units.length; z++) {
-	      let u = paths_self.game.spaces[obj.unit_sourcekey].units[z];
-	      let ckey = u.ckey;
-	      if (!ns.includes(ckey)) { ns.push(ckey); }
-	      if (ckey == "ANA") { if (!ns.includes("BR")) { ns.push("BR"); ns.push("AUS"); ns.push("CDN"); ns.push("PT"); } }
-	      if (ckey == "AUS") { if (!ns.includes("BR")) { ns.push("BR"); ns.push("ANA"); ns.push("CDN"); ns.push("PT"); } }
-	      if (ckey == "CDN") { if (!ns.includes("BR")) { ns.push("BR"); ns.push("AUS"); ns.push("ANA"); ns.push("PT"); } }
-	      if (ckey == "PT") { if (!ns.includes("BR")) { ns.push("BR"); ns.push("AUS"); ns.push("CDN"); ns.push("ANA"); } }
-	      if (ckey == "SN") { if (!ns.includes("BR")) { ns.push("TU"); } }
-	      if (ckey == "MN") { if (!ns.includes("BR")) { ns.push("SB"); } }
+	  let unit = paths_self.game.spaces[idx.unit_sourcekey].units[idx.unit_idx];
+	  let group = [];
+	  for (let z = 0; z < selected.length; z++) {
+	    group.push(JSON.parse(paths_self.app.crypto.base64ToString(selected[z])));
+	  }
+	  let already_selected = false;
+	  for (let z = 0; z < group.length; z++) {
+	    if (group[z].unit_sourcekey == idx.unit_sourcekey && group[z].unit_idx == idx.unit_idx) {
+	      already_selected = true;
 	    }
 	  }
+	  if (!already_selected) { group.push(idx); }
 
-	  let unit = paths_self.game.spaces[idx.unit_sourcekey].units[idx.unit_idx];
-	  let already_selected = false;
+	  let nations = [];
+	  let by_space = {};
+	  for (let z = 0; z < group.length; z++) {
+	    let u = paths_self.game.spaces[group[z].unit_sourcekey].units[group[z].unit_idx];
+	    let n = u.ckey;
+	    if (n == "ANA" || n == "AUS" || n == "CND" || n == "PT") { n = "BR"; }
+	    if (n == "SN") { n = "TU"; }
+	    if (n == "MN") { n = "SB"; }
+	    if (!nations.includes(n)) { nations.push(n); }
+	    if (!by_space[group[z].unit_sourcekey]) { by_space[group[z].unit_sourcekey] = []; }
+	    if (!by_space[group[z].unit_sourcekey].includes(n)) { by_space[group[z].unit_sourcekey].push(n); }
+	  }
+
 	  let can_select = true;
-	  if (selected.length > 0) {
-
-	    //
-	    // units can only be selected if the space they are in contains the same
-	    //
-	    let this_unit_spacekey = idx.unit_sourcekey;
+	  let spaces = Object.keys(by_space);
+	  if (nations.length > 1 && spaces.length > 1) {
 	    can_select = false;
-	    for (let i = 0; i < paths_self.game.spaces[this_unit_spacekey].units.length; i++) {
-	      let u2 = paths_self.game.spaces[this_unit_spacekey].units[i];
-              if (ns.includes(u2.ckey)) { can_select = true; }
+	    for (let s = 0; s < spaces.length; s++) {
+	      let has_all = true;
+	      for (let k = 0; k < nations.length; k++) {
+	        if (!by_space[spaces[s]].includes(nations[k])) { has_all = false; }
+	      }
+	      if (has_all) { can_select = true; }
 	    }
-
-	    //
-	    // if already selected, permit de-selection
-	    //
-	    for (let z = 0; z < selected.length; z++) {
-	       if (paths_self.app.crypto.stringToBase64(JSON.stringify(idx)) === selected[z]) { already_selected = true; }
-	    }
-
 	  }
 
 
@@ -18514,16 +18513,30 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
 	  // every unit the menu is currently offering
 	  //
 	  if (idx === "all") {
-	    let chosen = [];
+	    let pool = [];
 	    for (let z = 0; z < units.length; z++) {
-	      if (units[z].key === "skip") { continue; }
-	      let html = optionHtml(units[z]);
-	      if (html == null || String(html).indexOf("noselect") !== -1) { continue; }
-	      let id_match = String(html).match(/\sid=['"]([^'"]+)['"]/i);
-	      if (!id_match || id_match[1] === "skip" || id_match[1] === "london") { continue; }
-	      chosen.push(id_match[1]);
+	      if (units[z].key === "skip" || units[z].unit_sourcekey == "london") { continue; }
+	      pool.push(paths_self.app.crypto.stringToBase64(JSON.stringify(units[z])));
 	    }
-	    launchAttack(chosen);
+	    let held = selected;
+	    let best = selected.slice();
+	    let seeds = selected.length ? [selected.slice()] : pool.map((id) => [id]);
+	    for (let s = 0; s < seeds.length; s++) {
+	      let chosen = seeds[s].slice();
+	      for (let pass = 0; pass < pool.length; pass++) {
+	        for (let z = 0; z < units.length; z++) {
+	          if (units[z].key === "skip" || units[z].unit_sourcekey == "london") { continue; }
+	          let id = paths_self.app.crypto.stringToBase64(JSON.stringify(units[z]));
+	          if (chosen.includes(id)) { continue; }
+	          selected = chosen;
+	          let html = optionHtml(units[z]);
+	          if (html != null && String(html).indexOf("noselect") === -1) { chosen.push(id); }
+	        }
+	      }
+	      if (chosen.length > best.length) { best = chosen; }
+	    }
+	    selected = held;
+	    launchAttack(best);
 	    return;
 	  }
 

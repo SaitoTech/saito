@@ -165,6 +165,7 @@ class Twilight extends GameTemplate {
       isControlled: nftApi.isControlled.bind(this),
       whoControls: nftApi.whoControls.bind(this),
       isEventActive: nftApi.isEventActive.bind(this),
+      setEvent: nftApi.setEvent.bind(this),
       advanceSpaceRace: nftApi.advanceSpaceRace.bind(this)
     };
   }

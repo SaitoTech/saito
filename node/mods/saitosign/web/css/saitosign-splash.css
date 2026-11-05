@@ -42,9 +42,11 @@
 .splash .staged {
   flex-direction: column;
   align-items: stretch;
-  justify-content: center;
-  gap: var(--saito-space-md);
-  max-width: 350px;
+  justify-content: flex-start;
+  gap: var(--saito-space-lg);
+  width: 100%;
+  min-height: 34rem;
+  max-height: 34rem;
 }
 
 .splash .more {
@@ -57,86 +59,108 @@
 .splash .hint,
 .splash .notice,
 .splash .steps p,
-.splash .staged-copy,
 .splash .more {
   margin: 0;
 }
 
-.splash .staged-copy {
-  color: var(--saito-muted-foreground);
-  font-size: 1.65rem;
-  line-height: 1.4;
-}
-
 .splash .staged-list {
   display: flex;
-  flex-direction: column;
-  gap: var(--saito-space-sm);
+  flex: 1 1 auto;
+  flex-wrap: wrap;
+  align-content: flex-start;
+  gap: var(--saito-space-lg);
   width: 100%;
+  min-height: 0;
   margin: 0;
-  padding: 0;
+  padding: 0.2rem;
+  overflow-x: hidden;
+  overflow-y: auto;
   list-style: none;
 }
 
-.splash .staged-item {
-  display: grid;
-  grid-template-columns: 2.6rem minmax(0, 1fr) 2.4rem;
+.splash .doc-tile {
+  position: relative;
+  display: flex;
+  flex-direction: column;
   align-items: center;
-  column-gap: 0.4rem;
-  min-height: 3.6rem;
-  padding: 0.4rem 0.2rem;
+  justify-content: flex-start;
+  gap: 0.6rem;
+  width: 13.6rem;
+  height: 12.8rem;
+  padding: 1.2rem 0.8rem 0.8rem;
   cursor: grab;
-  border: 1px solid transparent;
-  border-radius: var(--saito-radius);
+  border: 1px solid var(--saito-border);
+  border-radius: var(--saito-radius-lg);
+  background: var(--saito-card);
 }
 
-.splash .staged-item.dragging {
+.splash .doc-tile.dragging {
   opacity: 0.55;
 }
 
-.splash .staged-item.over {
+.splash .doc-tile.over {
   border-color: var(--saito-primary);
   background: var(--saito-secondary);
 }
 
-.splash .staged-pos {
-  color: var(--saito-foreground);
-  font-family: var(--saito-font-medium);
-  font-size: 1.8rem;
-  line-height: 1.25;
+.splash .doc-tile.just-added {
+  animation: splash-tile-in 0.7s cubic-bezier(0.2, 0.8, 0.2, 1) both;
 }
 
-.splash .staged-name {
+.splash .tile-icon {
+  font-size: 6.4rem;
+  line-height: 1;
+  color: var(--saito-primary);
+}
+
+.splash .doc-tile .staged-name {
+  display: -webkit-box;
+  width: 100%;
   overflow: hidden;
   color: var(--saito-foreground);
-  font-size: 1.65rem;
+  font-size: 1.35rem;
   line-height: 1.3;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  text-align: center;
+  overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
 }
 
-.splash .staged-remove {
+.splash .doc-tile .staged-remove {
+  position: absolute;
+  top: 0.4rem;
+  right: 0.4rem;
+  z-index: 1;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 2.4rem;
-  height: 2.4rem;
+  width: 2.8rem;
+  height: 2.8rem;
   padding: 0;
   border: 0;
-  border-radius: var(--saito-radius);
-  background: transparent;
+  border-radius: var(--saito-radius-full);
+  background: color-mix(in srgb, var(--saito-background) 88%, transparent);
   color: var(--saito-muted-foreground);
   font: inherit;
   cursor: pointer;
 }
 
-.splash .staged-remove:hover,
-.splash .staged-remove:focus-visible {
+.splash .doc-tile .staged-remove:hover,
+.splash .doc-tile .staged-remove:focus-visible {
   color: var(--saito-foreground);
+  background: var(--saito-secondary);
+}
+
+.splash .doc-tile .staged-remove i {
+  font-size: 1.4rem;
+  line-height: 1;
 }
 
 .splash .prepare {
+  flex: 0 0 auto;
+  width: 100%;
   min-height: 4.4rem;
+  margin-top: auto;
   padding: var(--saito-space-sm) var(--saito-space-md);
   border: 1px solid var(--saito-primary);
   border-radius: var(--saito-radius);
@@ -146,6 +170,63 @@
   font-family: var(--saito-font-heavy);
   font-weight: 700;
   cursor: pointer;
+}
+
+.splash .heading-stage {
+  position: relative;
+  height: 4.6rem;
+  perspective: 90rem;
+}
+
+.splash .heading-flip {
+  position: relative;
+  height: 100%;
+  transform-style: preserve-3d;
+  animation: splash-heading-flip 0.72s cubic-bezier(0.2, 0.75, 0.2, 1) forwards;
+}
+
+.splash .heading-flip .face {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  transform-style: preserve-3d;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+.splash .heading-flip .front {
+  transform: rotateX(0deg);
+}
+
+.splash .heading-flip .back {
+  transform: rotateX(180deg);
+}
+
+.splash .heading-sheen {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 42%;
+  pointer-events: none;
+  background: linear-gradient(
+    100deg,
+    transparent,
+    color-mix(in srgb, white 78%, var(--saito-primary)) 48%,
+    transparent
+  );
+  mix-blend-mode: screen;
+  opacity: 0;
+  animation: splash-sheen 0.7s 0.62s ease forwards;
+}
+
+.splash .intro.confirmed .summary,
+.splash .intro.confirming .summary {
+  max-width: 76rem;
+  white-space: normal;
+}
+
+.splash .summary.arriving {
+  animation: splash-summary-in 0.45s 0.38s ease both;
 }
 
 .splash h1 {
@@ -264,6 +345,67 @@
   font: inherit;
 }
 
+@keyframes splash-heading-flip {
+  from {
+    transform: rotateX(0deg);
+  }
+
+  to {
+    transform: rotateX(180deg);
+  }
+}
+
+@keyframes splash-sheen {
+  0% {
+    opacity: 0;
+    transform: translateX(-20%);
+  }
+
+  25% {
+    opacity: 0.9;
+  }
+
+  100% {
+    opacity: 0;
+    transform: translateX(230%);
+  }
+}
+
+@keyframes splash-summary-in {
+  from {
+    opacity: 0;
+    transform: translateY(0.7rem);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes splash-tile-in {
+  0% {
+    opacity: 0;
+    transform: translateY(1rem) scale(0.94);
+    border-color: var(--saito-primary);
+    box-shadow: 0 0 1.8rem color-mix(in srgb, var(--saito-primary) 65%, transparent);
+  }
+
+  55% {
+    opacity: 1;
+    transform: none;
+    border-color: var(--saito-primary);
+    box-shadow: 0 0 1.2rem color-mix(in srgb, var(--saito-primary) 40%, transparent);
+  }
+
+  100% {
+    opacity: 1;
+    transform: none;
+    border-color: var(--saito-border);
+    box-shadow: none;
+  }
+}
+
 @media (max-width: 800px) {
   .splash {
     padding: var(--saito-space-xl) var(--saito-space-md) var(--saito-space-xxl);
@@ -282,5 +424,41 @@
 
   .splash .prompt {
     white-space: normal;
+  }
+
+  .splash .heading-stage {
+    height: 5.2rem;
+  }
+
+  .splash .staged {
+    min-height: 0;
+    max-height: none;
+  }
+
+  .splash .staged-list {
+    flex: 0 1 auto;
+    max-height: 36rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .splash .heading-flip {
+    animation: none;
+    transform: rotateX(180deg);
+  }
+
+  .splash .heading-sheen,
+  .splash .summary.arriving,
+  .splash .doc-tile.just-added {
+    animation: none;
+  }
+
+  .splash .heading-sheen {
+    display: none;
+  }
+
+  .splash .summary.arriving {
+    opacity: 1;
+    transform: none;
   }
 }

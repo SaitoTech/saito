@@ -18,7 +18,7 @@ class Splash {
     this.drag_index = -1;
   }
 
-  render() {
+  render(options = {}) {
     const container = document.querySelector('.saito-container');
     if (!container) {
       return;
@@ -28,7 +28,9 @@ class Splash {
     this.app.browser.replaceElementContentBySelector(
       SplashTemplate({
         notice: this.notice,
-        files: this.staged.map((file) => ({ name: file.name || 'document.pdf' }))
+        files: this.staged.map((file) => ({ name: file.name || 'document.pdf' })),
+        celebrate: Boolean(options.celebrate),
+        freshIndex: Number.isInteger(options.freshIndex) ? options.freshIndex : -1
       }),
       '.saito-container'
     );
@@ -203,9 +205,10 @@ class Splash {
   }
 
   stagePdf(file) {
+    const celebrate = this.staged.length === 0;
     this.notice = '';
     this.staged.push(file);
-    this.render();
+    this.render({ celebrate, freshIndex: this.staged.length - 1 });
   }
 
   removeStaged(index) {

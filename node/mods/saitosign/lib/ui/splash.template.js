@@ -27,28 +27,74 @@ function stepsHTML() {
   `;
 }
 
-function stagedHTML(files) {
-  const rows = files
-    .map(
-      (file, index) => `
-        <li class="staged-item" draggable="true" data-staged-index="${index}">
-          <span class="staged-pos" aria-hidden="true">${index + 1}.</span>
-          <span class="staged-name">${escapeHTML(file.name)}</span>
-          <button type="button" class="staged-remove" data-remove-staged="${index}" aria-label="Remove ${escapeHTML(file.name)}">
+function uploadedSummary(count) {
+  if (count === 1) {
+    return 'Your document has been uploaded. Add another document or click Continue.';
+  }
+  return `${count} documents uploaded. Add another document or click Continue.`;
+}
+
+function emptyHeader() {
+  return `
+    <header class="intro">
+      <h1>Saito<span class="sign">Sign</span></h1>
+      <p class="summary">Share and sign documents with digital signatures.</p>
+    </header>
+  `;
+}
+
+function confirmedHeader(count, celebrate) {
+  const summary = uploadedSummary(count);
+  if (!celebrate) {
+    return `
+      <header class="intro confirmed">
+        <h1>Upload <span class="sign">Complete</span></h1>
+        <p class="summary">${summary}</p>
+      </header>
+    `;
+  }
+
+  return `
+    <header class="intro confirming">
+      <div class="heading-stage">
+        <div class="heading-flip">
+          <div class="face front" aria-hidden="true">
+            <h1>Saito<span class="sign">Sign</span></h1>
+          </div>
+          <div class="face back">
+            <h1>Upload <span class="sign">Complete</span></h1>
+          </div>
+        </div>
+        <span class="heading-sheen" aria-hidden="true"></span>
+      </div>
+      <p class="summary arriving">${summary}</p>
+    </header>
+  `;
+}
+
+function stagedHTML(files, freshIndex) {
+  const tiles = files
+    .map((file, index) => {
+      const name = escapeHTML(file.name);
+      const arrived = index === freshIndex ? ' just-added' : '';
+      return `
+        <li class="staged-item doc-tile${arrived}" draggable="true" data-staged-index="${index}">
+          <button type="button" class="staged-remove" data-remove-staged="${index}" aria-label="Remove ${name}">
             <i class="fa-solid fa-xmark" aria-hidden="true"></i>
           </button>
+          <i class="fa-solid fa-file-pdf tile-icon" aria-hidden="true"></i>
+          <span class="staged-name" title="${name}">${name}</span>
         </li>
-      `
-    )
+      `;
+    })
     .join('');
 
   return `
     <section class="staged" aria-label="Uploaded documents">
-      <p class="staged-copy">You've added a document. Continue to add extra PDFs if required, or prepare your documents for signing below.</p>
-      <ol class="staged-list">
-        ${rows}
-      </ol>
-      <button type="button" class="prepare primary" data-prepare>Prepare for signing</button>
+      <ul class="staged-list">
+        ${tiles}
+      </ul>
+      <button type="button" class="prepare primary" data-prepare>Continue</button>
     </section>
   `;
 }
@@ -56,15 +102,16 @@ function stagedHTML(files) {
 module.exports = function splashTemplate(view = {}) {
   const notice = view.notice ? `<p class="notice">${escapeHTML(view.notice)}</p>` : '';
   const files = Array.isArray(view.files) ? view.files : [];
-  const right = files.length ? stagedHTML(files) : stepsHTML();
+  const confirmed = files.length > 0;
+  const celebrate = confirmed && Boolean(view.celebrate);
+  const freshIndex = Number.isInteger(view.freshIndex) ? view.freshIndex : -1;
+  const header = confirmed ? confirmedHeader(files.length, celebrate) : emptyHeader();
+  const right = confirmed ? stagedHTML(files, freshIndex) : stepsHTML();
 
   return `
     <main class="splash">
       <div class="workspace">
-        <header class="intro">
-          <h1>Saito<span class="sign">Sign</span></h1>
-          <p class="summary">Share and sign documents with digital signatures.</p>
-        </header>
+        ${header}
 
         <section class="start" aria-label="Start with a PDF or a SaitoSign Doc">
           <div class="dropzone" role="button" tabindex="0">

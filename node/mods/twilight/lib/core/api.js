@@ -305,6 +305,17 @@ module.exports = {
     return events[event] == 1 ? 1 : 0;
   },
 
+  setEvent: function (name, active) {
+    if (typeof name !== 'string' || !name) {
+      return;
+    }
+    const events = this.game && this.game.state ? this.game.state.events : null;
+    if (!events) {
+      return;
+    }
+    events[name] = active == 1 ? 1 : 0;
+  },
+
   /**
    * Advance one box on the space race for faction "us" or "ussr".
    * Delegates to Twilight.advanceSpaceRace(): updates track, VP, markers, and UI.

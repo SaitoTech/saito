@@ -16,22 +16,24 @@ function optionRow(state, label, freeAvailable, key) {
 function selectSlide(state) {
   const free = state.plan !== 'premium';
   const disabled = state.canChooseTier ? '' : ' disabled';
-  const benefits = free
-    ? ''
+  const panel = free
+    ? `
+          <div class="verify-group">
+            <p class="section-label">Verification Options</p>
+            <div class="verify-box" aria-label="Verification options">
+              ${optionRow(state, 'email', true, 'email')}
+              ${optionRow(state, 'supporting photo', true, 'photo')}
+              ${optionRow(state, 'passport photo', true, 'passport')}
+            </div>
+          </div>
+    `
     : `
-      <section class="upgrade-for">
-        <p class="section-label">Additional Benefits</p>
-        <div class="benefit-box">
-          <div class="benefit">
-            <p class="benefit-label">Easier Document Sharing</p>
-            <p class="benefit-copy">Avoid exporting and importing documents; share a link instead.</p>
+          <div class="verify-group">
+            <p class="section-label">Additional benefits</p>
+            <div class="verify-box" aria-label="Additional benefits">
+              <p class="coming-soon">More coming soon.</p>
+            </div>
           </div>
-          <div class="benefit">
-            <p class="benefit-label">Archive</p>
-            <p class="benefit-copy">Avoid manual archiving. SaitoSign will store documents for five years.</p>
-          </div>
-        </div>
-      </section>
     `;
   return {
     title: 'How should users verify their identity before signing this document?',
@@ -48,15 +50,7 @@ function selectSlide(state) {
           </button>
         </div>
         <section class="tier-details" role="tabpanel">
-          <div class="verify-group">
-            <p class="section-label">Verification Options</p>
-            <div class="verify-box" aria-label="Verification options">
-              ${optionRow(state, 'email', true, 'email')}
-              ${optionRow(state, 'supporting photo', true, 'photo')}
-              ${optionRow(state, 'passport photo', true, 'passport')}
-            </div>
-          </div>
-          ${benefits}
+          ${panel}
         </section>
       </div>
     `

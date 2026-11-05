@@ -350,7 +350,9 @@ select.ts-input {
 .ts-reference-link {
   display: block;
   width: 100%;
+  box-sizing: border-box;
   text-align: left;
+  text-decoration: none;
   border: 1px solid var(--saito-border, rgba(255, 255, 255, 0.12));
   border-radius: var(--saito-radius, 0.5rem);
   background: color-mix(in srgb, #0b1218 45%, transparent);

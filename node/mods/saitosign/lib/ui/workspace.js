@@ -1216,9 +1216,9 @@ class Workspace {
     this.overlay = overlay;
     overlay.render(this.fieldView(), {
       onPreview: (form) => this.previewField(form),
-      onRemove: () => {
+      onRemove: (scope) => {
         if (!canConfigure(this.app, this.mod.document)) return;
-        removeAction(this.mod.document, this.draft.id, this.app.wallet?.publicKey);
+        removeAction(this.mod.document, this.draft.id, this.app.wallet?.publicKey, scope);
         overlay.close();
       },
       onSave: (form) => {
@@ -1495,6 +1495,7 @@ class Workspace {
     const action = existing ? actionById(doc, draft.id) : null;
     const can_sign = Boolean(doc.finalized && action && signer && canSignAction(this.app, action, signer, doc));
     const signer_ready = !choose_new && signer_index != null && Boolean(doc.users[signer_index]);
+    const source = action ? pageSource(doc, action.page) : null;
 
     return {
       existing,
@@ -1506,6 +1507,9 @@ class Workspace {
       new_name,
       new_email,
       signer_ready,
+      replicated: isReplicated(doc, action),
+      item_label: itemLabel(action, signer),
+      document_name: source?.entry?.name || '',
       allow_every_page: !existing,
       every_page: false,
       can_sign,
@@ -1928,6 +1932,29 @@ class Workspace {
 function everyPageChecked(form, type) {
   return (type === 'signature' || type === 'initial')
     && Boolean(form?.querySelector('[data-every-page]')?.checked);
+}
+
+function isReplicated(doc, action) {
+  const group = String(action?.group || '').trim();
+  if (!group) {
+    return false;
+  }
+  const matches = (doc?.actions || []).filter((item) => String(item.group || '').trim() === group);
+  return matches.length > 1;
+}
+
+function itemLabel(action, signer) {
+  if (!action) {
+    return '';
+  }
+  const kinds = {
+    signature: 'Signature',
+    initial: 'Initials',
+    date: 'Date'
+  };
+  const kind = kinds[action.type] || 'Item';
+  const name = String(signer?.name || '').trim();
+  return name ? `${kind} for ${name}` : kind;
 }
 
 function newActionGroup() {

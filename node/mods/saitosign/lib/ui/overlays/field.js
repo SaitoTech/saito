@@ -1,5 +1,6 @@
 const SaitoOverlay = require('../../../../../lib/saito/ui/saito-overlay/saito-overlay');
 const FieldTemplate = require('./field.template');
+const DeletePrompt = require('./delete');
 
 class FieldOverlay {
   constructor(app, mod) {
@@ -8,6 +9,7 @@ class FieldOverlay {
     this.overlay = new SaitoOverlay(app, mod, true);
     this.overlay.class = 'saito-overlay saitosign-overlay';
     this.hooks = {};
+    this.deletePrompt = null;
   }
 
   render(view, hooks = {}) {
@@ -25,7 +27,37 @@ class FieldOverlay {
 
   close() {
     this.unbindKeys();
+    if (this.deletePrompt) {
+      const prompt = this.deletePrompt;
+      this.deletePrompt = null;
+      prompt.close();
+    }
     this.overlay.close();
+  }
+
+  askDelete() {
+    if (this.deletePrompt || !this.view?.replicated) {
+      return;
+    }
+    const prompt = new DeletePrompt(this.app, this.mod);
+    this.deletePrompt = prompt;
+    prompt.render(
+      {
+        label: this.view.item_label || '',
+        documentName: this.view.document_name || ''
+      },
+      {
+        onChoose: (scope) => {
+          this.deletePrompt = null;
+          if (this.hooks.onRemove) {
+            this.hooks.onRemove(scope);
+          }
+        },
+        onDismiss: () => {
+          this.deletePrompt = null;
+        }
+      }
+    );
   }
 
   bindKeys() {
@@ -33,6 +65,9 @@ class FieldOverlay {
     this.onKeyDown = (event) => {
       const form = document.querySelector('.saitosign-field');
       if (!form || !form.isConnected || event.isComposing) {
+        return;
+      }
+      if (document.querySelector('.saitosign-delete')) {
         return;
       }
       const target = event.target;
@@ -49,6 +84,10 @@ class FieldOverlay {
         }
         event.preventDefault();
         event.stopPropagation();
+        if (this.view?.replicated) {
+          this.askDelete();
+          return;
+        }
         form.dataset.deleting = '1';
         Promise.resolve(
           typeof sconfirm === 'function' ? sconfirm('Delete this?') : window.confirm('Delete this?')
@@ -162,7 +201,12 @@ class FieldOverlay {
 
     const remove = form.querySelector('[data-remove-field]');
     if (remove) {
-      remove.onclick = () => {
+      remove.onclick = (event) => {
+        event.preventDefault();
+        if (this.view?.replicated) {
+          this.askDelete();
+          return;
+        }
         if (this.hooks.onRemove) {
           this.hooks.onRemove();
         }

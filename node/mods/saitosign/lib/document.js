@@ -208,7 +208,24 @@ function actionById(record, id) {
   return record.actions.find((action) => action.id === wanted) || null;
 }
 
-function removeAction(record, id, actorKey) {
+function documentPageSpan(record, page) {
+  const source = pageSource(record, page);
+  if (!source) {
+    return null;
+  }
+  const list = pdfEntries(record);
+  let start = 1;
+  for (let index = 0; index < source.index; index += 1) {
+    start += Number(list[index]?.page_count) || 0;
+  }
+  const count = Number(source.entry?.page_count) || 0;
+  if (count < 1) {
+    return null;
+  }
+  return { index: source.index, start, end: start + count - 1 };
+}
+
+function removeAction(record, id, actorKey, scope) {
   if (!canEdit(record, actorKey)) {
     return;
   }
@@ -217,11 +234,32 @@ function removeAction(record, id, actorKey) {
   if (!target) {
     return;
   }
+  if (scope != null && scope !== 'all' && scope !== 'document' && scope !== 'instance') {
+    return;
+  }
   const group = String(target.group || '').trim();
+  const mode = scope || (group ? 'all' : 'instance');
   const before = record.actions.length;
-  record.actions = group
-    ? record.actions.filter((action) => String(action.group || '').trim() !== group)
-    : record.actions.filter((action) => action.id !== wanted);
+
+  if (mode === 'instance' || !group) {
+    record.actions = record.actions.filter((action) => action.id !== wanted);
+  } else if (mode === 'document') {
+    const span = documentPageSpan(record, target.page);
+    if (!span) {
+      record.actions = record.actions.filter((action) => action.id !== wanted);
+    } else {
+      record.actions = record.actions.filter((action) => {
+        if (String(action.group || '').trim() !== group) {
+          return true;
+        }
+        const page = Number(action.page);
+        return page < span.start || page > span.end;
+      });
+    }
+  } else {
+    record.actions = record.actions.filter((action) => String(action.group || '').trim() !== group);
+  }
+
   if (record.actions.length !== before) {
     record.edited = true;
   }

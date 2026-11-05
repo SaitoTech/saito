@@ -19,15 +19,25 @@ module.exports = (card = {}) => {
     </section>
     <h2 class="ts-reference-title">Programming Reference</h2>
     <nav class="ts-reference-nav" aria-label="Reference topics">
-      <button type="button" class="ts-reference-link" data-ref="api">
+      <a
+        class="ts-reference-link"
+        href="https://wiki.saito.io/application/twilight/api"
+        target="_blank"
+        rel="noopener noreferrer"
+      >
         Programming API
-      </button>
-      <button type="button" class="ts-reference-link" data-ref="howto">
-        How to Program a Card
-      </button>
+      </a>
+      <a
+        class="ts-reference-link"
+        href="https://wiki.saito.io/application/twilight/api/queue"
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        Queue Commands
+      </a>
     </nav>
     <p class="ts-reference-note">
-      Full documentation will live on the Saito Wiki. These entries open temporary reference material for now.
+      Documentation lives on the Saito Wiki.
     </p>
   </aside>
 `;

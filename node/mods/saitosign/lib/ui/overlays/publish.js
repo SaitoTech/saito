@@ -341,6 +341,10 @@ class PublishOverlay {
       }
 
       if (action.dataset.publishAction === 'back') {
+        if (this.state.step === 'select' && !this.state.history.length) {
+          this.close();
+          return;
+        }
         if (this.state.step === 'share') {
           if (this.state.finalized) {
             return;

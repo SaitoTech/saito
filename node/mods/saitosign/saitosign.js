@@ -21,6 +21,7 @@ const Main = require('./lib/ui/main');
 const HomePage = require('./index');
 const { verifyEmail, myKeychainEmail, rememberVerifiedEmails, documentUnchanged, createCreatorProof, verifyCreatorProof, finalizeDocument, verifyFinalization, signingConfigurationError } = require('./lib/auth');
 const { loadDraft, clearDraft } = require('./lib/draft');
+const SaitoSignDatabase = require('./lib/database');
 
 const ARCHIVE_README = 'This is a SaitoSign zip archive. To sign this document, visit sato.io/SaitoSign, and copy the zip file or the SaitoSign file into the UI and follow the instructions.\n';
 
@@ -40,12 +41,18 @@ class SaitoSign extends ModTemplate {
 
     this.dev = 1;
     this.document = emptyDocument();
+    this.database = null;
     this.header = null;
     this.main = new Main(app, this);
   }
 
   async initialize(app) {
     await super.initialize(app);
+
+    if (!app.BROWSER) {
+      this.database = new SaitoSignDatabase(app, this);
+      await this.database.ensureSchema();
+    }
 
     if (this.browser_active) {
       this.header = new SaitoHeader(app, this);

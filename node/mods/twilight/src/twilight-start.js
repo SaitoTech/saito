@@ -165,6 +165,7 @@ class Twilight extends GameTemplate {
       isControlled: nftApi.isControlled.bind(this),
       whoControls: nftApi.whoControls.bind(this),
       isEventActive: nftApi.isEventActive.bind(this),
+      setEvent: nftApi.setEvent.bind(this),
       advanceSpaceRace: nftApi.advanceSpaceRace.bind(this)
     };
   }
@@ -1157,34 +1158,6 @@ console.log("error here 222");
       }
       if (!Array.isArray(this.game.options.nfts)) {
         this.game.options.nfts = [];
-      }
-
-      // Hard-coded test card — script runs on both clients; only the eventing
-      // faction broadcasts moves.
-      if (!this.game.options.nfts.some((n) => String(n.id) === 'nft-test-title-105')) {
-        this.game.options.nfts.push({
-          title: "NFT TEST TITLE",
-          id: "nft-test-title-105",
-          owner: this.publicKey || '',
-          nft_type: 'twilight-nft',
-          data: {
-            name: "NFT TEST TITLE",
-            scoring: 0,
-            player: 'both',
-            recurring: 1,
-            ops: 2,
-            img: 'TNRnTS-04',
-            code: `
-		if (!api.isPlayer(api.returnEventingPlayer())) {
-			return 0;
-		}
-		api.addMove("place\\tus\\tus\\tegypt\\t2");
-		api.addMove("resolve\\tnft-test-title-105");
-		await api.endTurn();
-		return 0;
-	    `.trim()
-          }
-        });
       }
 
       // Deduplicate card ids before dealing into the deck.

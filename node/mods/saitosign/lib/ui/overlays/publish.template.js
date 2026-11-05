@@ -52,11 +52,9 @@ function publishTemplate(state) {
     ? (!state.finalized && state.history.length
       ? `<button type="button" class="saito-button-square" data-publish-action="back" aria-label="Back"><i class="fa-solid fa-arrow-left" aria-hidden="true"></i></button>`
       : '<span class="spacer"></span>')
-    : state.history.length
+    : state.history.length || state.step === 'select'
       ? `<button type="button" class="saito-button-square" data-publish-action="back" aria-label="Back"><i class="fa-solid fa-arrow-left" aria-hidden="true"></i></button>`
-      : state.step === 'select'
-        ? ''
-        : '<span class="spacer"></span>';
+      : '<span class="spacer"></span>';
   const forward = state.step === 'share'
     ? '<span class="spacer"></span>'
     : action
