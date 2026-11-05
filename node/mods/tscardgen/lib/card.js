@@ -10,7 +10,6 @@ const {
   addEvent,
   renameEvent,
   removeEvent,
-  buildNftEventInstruction,
   sanitizeCode
 } = require('./code-events');
 
@@ -76,11 +75,48 @@ class Card {
     // Defer default event creation until the Code workspace opens so the
     // first tab can use the current title. Existing payloads still load here.
     this.events = hasCodePayload(data) ? normalizeEvents(data) : [];
-    this.active_event_index = 0;
+    const active_index = Number(data.active_event_index);
+    this.active_event_index =
+      Number.isInteger(active_index) && active_index >= 0 ? active_index : 0;
+    if (this.events.length && this.active_event_index >= this.events.length) {
+      this.active_event_index = 0;
+    }
     this.img = typeof data.img === 'string' ? data.img : '';
     this.image_style = data.image_style === 'logo' ? 'logo' : 'photo';
     this.image = data.image || null;
     this.image_url = data.image_url || '';
+  }
+
+  /**
+   * Plain object for local draft persistence (not NFT create_data).
+   */
+  toDraftData() {
+    return {
+      card_id: this.card_id,
+      deck: this.deck,
+      player: this.player,
+      ops: this.ops,
+      title: this.title,
+      font_size: this.font_size,
+      event: this.event,
+      event2: this.event2,
+      event3: this.event3,
+      pre_text: this.pre_text,
+      post_text: this.post_text,
+      scoring: this.scoring,
+      removed: this.removed,
+      permanent: this.permanent,
+      non_card: this.non_card,
+      events: (this.events || []).map((event) => ({
+        id: event.id,
+        label: event.label,
+        code: event.code
+      })),
+      active_event_index: this.active_event_index || 0,
+      img: typeof this.img === 'string' ? this.img : '',
+      image_style: this.image_style,
+      image_url: this.image_url || ''
+    };
   }
 
   ensureCodeEvents() {
@@ -131,10 +167,6 @@ class Card {
     return result.removed;
   }
 
-  nftEventInstruction(event_index = this.active_event_index) {
-    return buildNftEventInstruction(this, event_index);
-  }
-
   serializedCode() {
     return serializeCode(this.events);
   }
@@ -182,13 +214,22 @@ class Card {
     return `/tscardgen/img/templates/${deck}${association}.png`;
   }
 
-  downloadName() {
+  titleSlug() {
     const title = String(this.title || 'card')
       .trim()
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/^-+|-+$/g, '');
-    return `${title || 'card'}.png`;
+    return title || 'card';
+  }
+
+  generatedId() {
+    const number = String(this.card_id || '').trim();
+    return number ? `${this.titleSlug()}-${number}` : this.titleSlug();
+  }
+
+  downloadName() {
+    return `${this.titleSlug()}.png`;
   }
 
   async ensureFonts() {

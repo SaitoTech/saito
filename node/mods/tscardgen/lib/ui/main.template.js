@@ -17,14 +17,25 @@ module.exports = (view = 'home', workspace = 'image') => {
             <p class="ts-form-kicker">Twilight Struggle</p>
             <h1 class="ts-form-title">Card Generator</h1>
           </div>
-          <nav class="tscardgen-workspace-nav" aria-label="Workspace">
-            <button type="button" class="tscardgen-workspace-btn${image_active}" data-workspace="image">
-              Image
+          <div class="tscardgen-header-tools">
+            <div
+              class="tscardgen-save-status"
+              data-role="save-status"
+              aria-live="polite"
+              aria-atomic="true"
+            ></div>
+            <button type="button" class="tscardgen-new-card-btn" data-action="new-card">
+              New Card
             </button>
-            <button type="button" class="tscardgen-workspace-btn${code_active}" data-workspace="code">
-              Code
-            </button>
-          </nav>
+            <nav class="tscardgen-workspace-nav" aria-label="Workspace">
+              <button type="button" class="tscardgen-workspace-btn${image_active}" data-workspace="image">
+                Image
+              </button>
+              <button type="button" class="tscardgen-workspace-btn${code_active}" data-workspace="code">
+                Code
+              </button>
+            </nav>
+          </div>
           <div class="tscardgen-rule" role="presentation"></div>
           <aside class="tscardgen-controls" aria-label="Card controls"></aside>
           <aside class="tscardgen-sidebar" aria-label="Card sidebar"></aside>

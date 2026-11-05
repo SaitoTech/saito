@@ -6,7 +6,6 @@ const {
   addEvent,
   renameEvent,
   removeEvent,
-  buildNftEventInstruction,
   resolveExecutableCode
 } = require('../../../mods/tscardgen/lib/code-events');
 
@@ -95,16 +94,15 @@ describe('TSCardGen multi-event code model', () => {
     expect(card.getActiveCode()).toBe('three();');
   });
 
-  test('NFT_EVENT instruction uses application id placeholder and code index', () => {
-    const card = new Card({}, {}, { title: 'Wargames', card_id: '105', code: 'one();' });
-    card.addCodeEvent();
-    const info = buildNftEventInstruction(card, 1);
-    expect(info.card_slug).toBe('wargames');
-    expect(info.card_number).toBe('105');
-    expect(info.code_index).toBe(1);
-    expect(info.panel_index).toBe(1);
-    expect(info.instruction).toBe('NFT_EVENT\tCARD_ID\t1');
-    expect(info.instruction.split('\t')).toHaveLength(3);
+  test('generated card id uses title slug and card number', () => {
+    const card = new Card({}, {}, { title: 'War Games', card_id: '123' });
+    expect(card.titleSlug()).toBe('war-games');
+    expect(card.generatedId()).toBe('war-games-123');
+    expect(card.downloadName()).toBe('war-games.png');
+
+    card.title = 'Bear Trap';
+    card.card_id = '42';
+    expect(card.generatedId()).toBe('bear-trap-42');
   });
 });
 

@@ -95,8 +95,9 @@ class Form {
     if (!data_url) {
       this.mod.card.image = null;
       this.mod.card.image_url = '';
-      this.syncFromForm();
+      this.syncFromForm({ skip_autosave: true });
       this.updateImageButtonLabel();
+      this.main.scheduleCardSave({ immediate: true });
       return;
     }
 
@@ -104,8 +105,9 @@ class Form {
     image.onload = () => {
       this.mod.card.image = image;
       this.mod.card.image_url = String(data_url);
-      this.syncFromForm();
+      this.syncFromForm({ skip_autosave: true });
       this.updateImageButtonLabel();
+      this.main.scheduleCardSave({ immediate: true });
     };
     image.onerror = () => {
       console.error('TSCardGen: failed to load confirmed image');
@@ -137,7 +139,7 @@ class Form {
     this.mod.card.non_card = false;
   }
 
-  syncFromForm() {
+  syncFromForm(options = {}) {
     const form = this.form();
     if (!form) {
       return;
@@ -164,6 +166,10 @@ class Form {
       form.querySelector('input[name="photo_border"]')?.checked === true ? 'photo' : 'logo';
 
     this.card_ui.draw();
+
+    if (!options.skip_autosave) {
+      this.main.scheduleCardSave();
+    }
   }
 }
 

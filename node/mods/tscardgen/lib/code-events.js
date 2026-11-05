@@ -189,36 +189,6 @@ function removeEvent(events = [], index = 0) {
 }
 
 /**
- * Build the queue instruction that invokes a code entry on an options.nfts object.
- * Engine format: NFT_EVENT\t<id>\t<index>\t[arg0\t...]
- * index is zero-based into nft.data.code (string at 0, or array entry).
- */
-function buildNftEventInstruction(card = {}, event_index = 0) {
-  const events = Array.isArray(card.events) ? card.events : [];
-  const event = events[event_index] || null;
-  const card_slug = slugify(card.title || card.name || 'card', 'card');
-  const card_number = String(card.card_id ?? '').trim();
-  const code_index = Number.isInteger(event_index) ? event_index : 0;
-  const code_label =
-    event?.label ||
-    (event ? String(event.id || slugify(event.label || 'event')) : `Code ${code_index}`);
-  const instruction = ['NFT_EVENT', 'CARD_ID', String(code_index)].join('\t');
-
-  return {
-    instruction,
-    card_id_token: 'CARD_ID',
-    code_index,
-    code_label,
-    // Backward-compatible aliases used by the help overlay / callers.
-    panel_index: code_index,
-    panel_label: code_label,
-    panel_name: code_label,
-    card_slug,
-    card_number
-  };
-}
-
-/**
  * Resolve executable source from NFT/deck code field.
  * selector may be a numeric index or event name for multi-event arrays.
  */
@@ -268,6 +238,5 @@ module.exports = {
   addEvent,
   renameEvent,
   removeEvent,
-  buildNftEventInstruction,
   resolveExecutableCode
 };

@@ -303,5 +303,14 @@ module.exports = {
       return 0;
     }
     return events[event] == 1 ? 1 : 0;
+  },
+
+  /**
+   * Advance one box on the space race for faction "us" or "ussr".
+   * Delegates to Twilight.advanceSpaceRace(): updates track, VP, markers, and UI.
+   * Pass withOSS=true to skip VP for an intermediate step (One Small Step).
+   */
+  advanceSpaceRace: function (player, withOSS = false) {
+    return this.advanceSpaceRace(player, withOSS);
   }
 };

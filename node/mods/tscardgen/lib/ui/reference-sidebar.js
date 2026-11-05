@@ -16,7 +16,7 @@ class ReferenceSidebar {
     }
 
     host.innerHTML = '';
-    this.app.browser.addElementToSelector(ReferenceSidebarTemplate(), this.container);
+    this.app.browser.addElementToSelector(ReferenceSidebarTemplate(this.mod.card), this.container);
     this.attachEvents();
   }
 

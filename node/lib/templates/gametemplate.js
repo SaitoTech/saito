@@ -424,7 +424,14 @@ class GameTemplate extends ModTemplate {
    * Queue / move insertion lives in returnApiQueue().
    */
   returnApi() {
-    return super.returnApi();
+    const api = super.returnApi();
+    const self = this;
+    return {
+      ...api,
+      rollDice: function (sides = 6, mycallback = null) {
+        return self.rollDice(sides, mycallback);
+      }
+    };
   }
 
   /**

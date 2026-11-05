@@ -127,11 +127,65 @@
   align-self: end;
 }
 
-.tscardgen-workspace-nav {
+.tscardgen-header-tools {
   grid-area: nav;
   justify-self: end;
   align-self: end;
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.tscardgen-save-status {
+  flex: 1 1 auto;
+  min-width: 4.5rem;
+  text-align: right;
+  font-size: var(--ts-font-small, 1.15rem);
+  line-height: 1.2;
+  color: color-mix(in srgb, var(--saito-foreground, #f2f5f7) 62%, transparent);
+  opacity: 0;
+  transform: translateY(0.1rem);
+  transition: opacity 0.35s ease, transform 0.35s ease, color 0.2s ease;
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+.tscardgen-save-status.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.tscardgen-save-status.is-saved {
+  color: color-mix(in srgb, var(--ts-frost, #e3f5ff) 88%, transparent);
+}
+
+.tscardgen-save-status.is-error {
+  color: var(--ts-signal, #de1c37);
+}
+
+.tscardgen-new-card-btn {
+  flex: 0 0 auto;
+  border: 1px solid var(--saito-border, rgba(255, 255, 255, 0.16));
+  border-radius: var(--saito-radius, 0.5rem);
+  background: color-mix(in srgb, #0b1218 55%, transparent);
+  color: color-mix(in srgb, var(--saito-foreground, #f2f5f7) 82%, transparent);
+  padding: 0.75rem 1.1rem;
+  font: inherit;
+  font-size: var(--ts-font-body);
+  line-height: 1.2;
+  cursor: pointer;
+}
+
+.tscardgen-new-card-btn:hover {
+  border-color: var(--ts-frost, #e3f5ff);
+  color: var(--saito-foreground, #f2f5f7);
+}
+
+.tscardgen-workspace-nav {
   display: inline-flex;
+  flex: 0 0 auto;
   gap: 0.4rem;
   padding: 0.3rem;
   border: 1px solid var(--saito-border, rgba(255, 255, 255, 0.16));
@@ -195,63 +249,6 @@
 .tscardgen-credit a:hover {
   color: var(--ts-frost, #e3f5ff);
   text-decoration-color: color-mix(in srgb, var(--ts-frost, #e3f5ff) 70%, transparent);
-}
-
-.tscardgen-nft-event-help {
-  width: min(42rem, 94vw);
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-  padding: 1.5rem;
-  color: var(--saito-foreground, #f2f5f7);
-  font-size: var(--ts-font-body, 1.4rem);
-}
-
-.tscardgen-nft-event-meta {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
-  gap: 0.55rem 1rem;
-  font-size: var(--ts-font-body, 1.4rem);
-}
-
-.tscardgen-nft-event-meta-label {
-  display: inline-block;
-  min-width: 7.5rem;
-  color: color-mix(in srgb, var(--saito-foreground, #f2f5f7) 62%, transparent);
-  font-size: var(--ts-font-small, 1.15rem);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  margin-right: 0.45rem;
-}
-
-.tscardgen-nft-event-meta-note {
-  color: color-mix(in srgb, var(--saito-foreground, #f2f5f7) 58%, transparent);
-  font-size: var(--ts-font-small, 1.15rem);
-}
-
-.tscardgen-nft-event-instruction {
-  margin: 0;
-  padding: 1rem 1.15rem;
-  border: 1px solid var(--saito-border, rgba(255, 255, 255, 0.16));
-  border-radius: var(--saito-radius, 0.5rem);
-  background: color-mix(in srgb, #0b1218 82%, transparent);
-  color: var(--saito-foreground, #f2f5f7);
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font-size: var(--ts-font-body, 1.4rem);
-  line-height: 1.5;
-  white-space: pre-wrap;
-  overflow-x: auto;
-}
-
-.tscardgen-nft-event-legend {
-  margin: 0;
-  font-size: var(--ts-font-small, 1.15rem);
-  line-height: 1.5;
-  color: color-mix(in srgb, var(--saito-foreground, #f2f5f7) 68%, transparent);
-}
-
-.tscardgen-nft-event-legend code {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 }
 
 .tscardgen-image-upload {
@@ -371,7 +368,14 @@
       "main";
   }
 
-  .tscardgen-workspace-nav {
-    justify-self: start;
+  .tscardgen-header-tools {
+    justify-self: stretch;
+    flex-wrap: wrap;
+  }
+
+  .tscardgen-save-status {
+    flex-basis: 100%;
+    text-align: left;
+    order: 3;
   }
 }

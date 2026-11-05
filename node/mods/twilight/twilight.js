@@ -149,8 +149,10 @@ class Twilight extends GameTemplate {
   }
 
   returnApi() {
+    const api = super.returnApi();
     const queue = this.returnApiQueue();
     return {
+      ...api,
       addToQueue: queue.addToQueue,
       addMove: queue.addMove,
       prependMove: queue.prependMove,
@@ -162,7 +164,8 @@ class Twilight extends GameTemplate {
       playerSelectCountry: nftApi.playerSelectCountry.bind(this),
       isControlled: nftApi.isControlled.bind(this),
       whoControls: nftApi.whoControls.bind(this),
-      isEventActive: nftApi.isEventActive.bind(this)
+      isEventActive: nftApi.isEventActive.bind(this),
+      advanceSpaceRace: nftApi.advanceSpaceRace.bind(this)
     };
   }
 

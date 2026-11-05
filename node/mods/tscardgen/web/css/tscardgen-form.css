@@ -292,12 +292,53 @@ select.ts-input {
   align-self: start;
 }
 
+.ts-card-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  padding-bottom: 0.85rem;
+  border-bottom: 1px solid var(--saito-border, rgba(255, 255, 255, 0.12));
+}
+
+.ts-card-info-title,
 .ts-reference-title {
   margin: 0;
   font-size: var(--ts-font-heading, 1.55rem);
   font-weight: 600;
   letter-spacing: 0;
   text-transform: none;
+}
+
+.ts-card-info-list {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.ts-card-info-row {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.45rem 0.75rem;
+  align-items: baseline;
+  font-size: var(--ts-font-body, 1.4rem);
+}
+
+.ts-card-info-row dt {
+  margin: 0;
+  font-weight: 600;
+  color: color-mix(in srgb, var(--saito-foreground, #f2f5f7) 72%, transparent);
+}
+
+.ts-card-info-row dd {
+  margin: 0;
+  min-width: 0;
+  word-break: break-word;
+}
+
+.ts-card-info-row code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.95em;
 }
 
 .ts-reference-nav {

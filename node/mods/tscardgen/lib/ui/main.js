@@ -6,6 +6,11 @@ const ReferenceSidebar = require('./reference-sidebar');
 const MyCardsOverlay = require('./overlays/my-cards');
 const EmptyCodeConfirm = require('./overlays/empty-code-confirm');
 const Card = require('../card');
+const { loadDraft, saveDraft, clearDraft } = require('../draft-store');
+
+const SAVE_DEBOUNCE_MS = 750;
+const SAVE_INDICATOR_HOLD_MS = 1600;
+const SAVE_INDICATOR_MIN_MS = 400;
 
 class Main {
   constructor(app, mod) {
@@ -19,6 +24,14 @@ class Main {
     this.reference_sidebar = new ReferenceSidebar(app, mod);
     this.my_cards = new MyCardsOverlay(app, mod);
     this.empty_code_confirm = new EmptyCodeConfirm(app, mod);
+
+    this.autosave_enabled = false;
+    this.save_timer = null;
+    this.save_status = 'idle';
+    this.save_status_text = '';
+    this.save_hide_timer = null;
+    this.save_started_at = 0;
+    this.last_saved_json = null;
   }
 
   render(view = this.view) {
@@ -36,6 +49,8 @@ class Main {
 
     if (this.view === 'generator') {
       this.attachWorkspaceNav();
+      this.attachNewCardControl();
+      this.renderSaveStatus();
       this.renderWorkspace();
       return;
     }
@@ -92,6 +107,13 @@ class Main {
     });
   }
 
+  attachNewCardControl() {
+    document.querySelector('[data-action="new-card"]')?.addEventListener('click', (event) => {
+      event.preventDefault();
+      this.startNewCard();
+    });
+  }
+
   attachHomeEvents() {
     const createBtn = document.getElementById('tscardgen-create-btn');
     if (createBtn) {
@@ -108,6 +130,183 @@ class Main {
         this.my_cards.render();
       };
     }
+  }
+
+  /**
+   * Restore a locally cached card before the editor becomes interactive.
+   * Must run before autosave is enabled so defaults cannot overwrite a draft.
+   */
+  restoreLocalDraft() {
+    this.autosave_enabled = false;
+    const draft = loadDraft(this.storage());
+    if (!draft?.card) {
+      this.last_saved_json = null;
+      this.autosave_enabled = true;
+      return false;
+    }
+
+    this.mod.card.reset(draft.card);
+    this.last_saved_json = JSON.stringify(draft.card);
+    this.loadCardImage(this.mod.card.image_url);
+    this.autosave_enabled = true;
+    return true;
+  }
+
+  startNewCard() {
+    this.cancelPendingSave();
+    clearDraft(this.storage());
+    this.last_saved_json = null;
+    this.mod.card.reset();
+    this.mod.card.image = null;
+    this.mod.card.image_url = '';
+    this.workspace = 'image';
+    this.setSaveStatus('idle', '');
+    this.autosave_enabled = true;
+    this.render('generator');
+  }
+
+  storage() {
+    try {
+      return typeof window !== 'undefined' ? window.localStorage : null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  loadCardImage(image_url) {
+    const url = String(image_url || '');
+    if (!url) {
+      this.mod.card.image = null;
+      this.mod.card.image_url = '';
+      return;
+    }
+
+    this.mod.card.image_url = url;
+    if (typeof Image === 'undefined') {
+      return;
+    }
+
+    const image = new Image();
+    image.onload = () => {
+      if (this.mod.card.image_url !== url) {
+        return;
+      }
+      this.mod.card.image = image;
+      if (this.view === 'generator' && this.workspace === 'image') {
+        this.card_ui.draw();
+      }
+    };
+    image.onerror = () => {
+      console.warn('TSCardGen: failed to restore cached card image');
+    };
+    image.src = url;
+  }
+
+  scheduleCardSave({ immediate = false } = {}) {
+    if (!this.autosave_enabled) {
+      return;
+    }
+
+    if (this.save_timer) {
+      clearTimeout(this.save_timer);
+      this.save_timer = null;
+    }
+
+    if (immediate) {
+      this.saveCardDraft();
+      return;
+    }
+
+    this.save_timer = setTimeout(() => {
+      this.save_timer = null;
+      this.saveCardDraft();
+    }, SAVE_DEBOUNCE_MS);
+  }
+
+  cancelPendingSave() {
+    if (this.save_timer) {
+      clearTimeout(this.save_timer);
+      this.save_timer = null;
+    }
+    if (this.save_hide_timer) {
+      clearTimeout(this.save_hide_timer);
+      this.save_hide_timer = null;
+    }
+  }
+
+  /**
+   * Central local autosave. Flushes the active editor into the card first.
+   */
+  saveCardDraft() {
+    if (!this.autosave_enabled) {
+      return false;
+    }
+
+    if (this.view === 'generator') {
+      if (this.workspace === 'code') {
+        this.code_workspace.syncToCard();
+      } else {
+        this.form.syncFromForm({ skip_autosave: true });
+      }
+    }
+
+    const card_data = this.mod.card.toDraftData();
+    // Compare card payload only; savedAt always changes.
+    const card_json = JSON.stringify(card_data);
+    if (this.last_saved_json && this.last_saved_json === card_json) {
+      return true;
+    }
+
+    this.save_started_at = Date.now();
+    this.setSaveStatus('saving', 'Saving...');
+
+    try {
+      const { draft } = saveDraft(this.storage(), card_data);
+      this.last_saved_json = JSON.stringify(draft.card);
+      const elapsed = Date.now() - this.save_started_at;
+      const wait = Math.max(0, SAVE_INDICATOR_MIN_MS - elapsed);
+      if (this.save_hide_timer) {
+        clearTimeout(this.save_hide_timer);
+      }
+      this.save_hide_timer = setTimeout(() => {
+        this.setSaveStatus('saved', 'Saved');
+        this.save_hide_timer = setTimeout(() => {
+          this.setSaveStatus('idle', '');
+          this.save_hide_timer = null;
+        }, SAVE_INDICATOR_HOLD_MS);
+      }, wait);
+      return true;
+    } catch (err) {
+      console.error('TSCardGen: local draft save failed', err);
+      this.setSaveStatus('error', 'Save failed');
+      if (this.save_hide_timer) {
+        clearTimeout(this.save_hide_timer);
+      }
+      this.save_hide_timer = setTimeout(() => {
+        this.setSaveStatus('idle', '');
+        this.save_hide_timer = null;
+      }, SAVE_INDICATOR_HOLD_MS * 1.5);
+      return false;
+    }
+  }
+
+  setSaveStatus(status, text) {
+    this.save_status = status;
+    this.save_status_text = text || '';
+    this.renderSaveStatus();
+  }
+
+  renderSaveStatus() {
+    const el = document.querySelector('[data-role="save-status"]');
+    if (!el) {
+      return;
+    }
+
+    el.textContent = this.save_status_text;
+    el.classList.toggle('is-visible', Boolean(this.save_status_text));
+    el.classList.toggle('is-saving', this.save_status === 'saving');
+    el.classList.toggle('is-saved', this.save_status === 'saved');
+    el.classList.toggle('is-error', this.save_status === 'error');
   }
 
   async paintCaptureCanvas() {

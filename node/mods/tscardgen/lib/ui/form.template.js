@@ -84,11 +84,11 @@ module.exports = (card) => {
           <div class="ts-flag-stack">
             <label class="ts-check ts-check-plain">
               <input type="checkbox" name="removed"${checked(card.removed)} />
-              <span>Remove after play</span>
+              <span>remove card after play</span>
             </label>
             <label class="ts-check ts-check-plain">
               <input type="checkbox" name="permanent"${checked(card.permanent)} />
-              <span>Permanent event</span>
+              <span>This card is a permanent event.</span>
             </label>
           </div>
         </div>

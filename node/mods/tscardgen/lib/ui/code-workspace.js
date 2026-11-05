@@ -1,5 +1,4 @@
 const CodeWorkspaceTemplate = require('./code-workspace.template');
-const NftEventHelp = require('./overlays/nft-event-help');
 
 class CodeWorkspace {
   constructor(app, mod, main, container = '.tscardgen-controls') {
@@ -8,7 +7,6 @@ class CodeWorkspace {
     this.main = main;
     this.container = container;
     this.editor = null;
-    this.nft_event_help = new NftEventHelp(app, mod);
   }
 
   render() {
@@ -48,11 +46,12 @@ class CodeWorkspace {
     const events = this.mod.card.events || [];
     const active = this.mod.card.active_event_index || 0;
     const can_close = events.length > 1;
+    const title = String(this.mod.card.title || '').trim() || 'Event';
 
     host.innerHTML =
       events
         .map((event, index) => {
-          const label = escapeHtml(event.label || event.id || `Event ${index + 1}`);
+          const label = `${escapeHtml(title)} [${index}]`;
           const close = can_close
             ? `<span class="ts-event-tab-close" data-close-index="${index}" title="Close panel" aria-label="Close ${label}">×</span>`
             : '';
@@ -110,6 +109,7 @@ class CodeWorkspace {
     this.mod.card.active_event_index = index;
     this.renderTabs();
     this.loadActiveCodeIntoEditor();
+    this.main.scheduleCardSave({ immediate: true });
   }
 
   addEvent() {
@@ -117,7 +117,7 @@ class CodeWorkspace {
     this.mod.card.addCodeEvent();
     this.renderTabs();
     this.loadActiveCodeIntoEditor();
-    this.showNftEventHelp(this.mod.card.active_event_index);
+    this.main.scheduleCardSave({ immediate: true });
   }
 
   removeEvent(index) {
@@ -131,6 +131,7 @@ class CodeWorkspace {
     this.mod.card.removeCodeEvent(index);
     this.renderTabs();
     this.loadActiveCodeIntoEditor();
+    this.main.scheduleCardSave({ immediate: true });
   }
 
   renameEvent(index) {
@@ -149,11 +150,7 @@ class CodeWorkspace {
     this.syncToCard();
     this.mod.card.renameCodeEvent(index, trimmed);
     this.renderTabs();
-  }
-
-  showNftEventHelp(event_index) {
-    const info = this.mod.card.nftEventInstruction(event_index);
-    this.nft_event_help.render(info);
+    this.main.scheduleCardSave({ immediate: true });
   }
 
   renderEditor() {
@@ -173,6 +170,7 @@ class CodeWorkspace {
       const fallback = parent.querySelector('[data-role="fallback-editor"]');
       fallback?.addEventListener('input', () => {
         this.mod.card.setActiveCode(fallback.value);
+        this.main.scheduleCardSave();
       });
       return;
     }
@@ -189,6 +187,7 @@ class CodeWorkspace {
 
     this.editor.on('change', () => {
       this.mod.card.setActiveCode(this.editor.getValue());
+      this.main.scheduleCardSave();
     });
 
     setTimeout(() => this.editor?.refresh(), 0);

@@ -39,6 +39,24 @@ class TSCardGen extends ModTemplate {
     }
   }
 
+  /**
+   * Restore any locally cached working card before the UI renders.
+   * Runs once; Main.autosave stays disabled until restore finishes.
+   */
+  prepareLocalDraft() {
+    if (!this.app.BROWSER) {
+      return;
+    }
+    if (!this.main) {
+      this.main = new Main(this.app, this);
+    }
+    if (this._draft_prepared) {
+      return;
+    }
+    this.main.restoreLocalDraft();
+    this._draft_prepared = true;
+  }
+
   shouldAffixCallbackToModule(modname, tx = null) {
     if (modname === this.name) {
       return 1;
@@ -256,9 +274,8 @@ class TSCardGen extends ModTemplate {
       await this.header.initialize(this.app);
     }
 
-    if (!this.main) {
-      this.main = new Main(this.app, this);
-    }
+    // Restore the cached card before any generator UI can write defaults back.
+    this.prepareLocalDraft();
 
     this.addComponent(this.header);
     await super.render();
