@@ -4,6 +4,7 @@ class MigrationMain {
   constructor(app, mod) {
     this.app = app;
     this.mod = mod;
+    this.reservationTimer = null;
   }
 
   async render() {
@@ -14,6 +15,7 @@ class MigrationMain {
     }
     this.attachEvents();
     this.renderDepositQrCode();
+    this.startReservationCountdown();
   }
 
   renderDepositQrCode() {
@@ -23,7 +25,44 @@ class MigrationMain {
     }
     if (typeof this.app.browser.generateQRCode === 'function') {
       this.app.browser.generateQRCode(address, 'migration-qrcode');
+      const svg = document.querySelector('.migration-qrcode svg');
+      svg?.classList.add('saito-qr-border');
+      const modules = Number(svg?.getAttribute('viewBox')?.split(/\s+/)[2]);
+      if (modules > 0) {
+        // Include one white module on each side in the border-box size.
+        svg.style.setProperty('--migration-qr-total-modules', modules + 2);
+      }
     }
+  }
+
+  startReservationCountdown() {
+    clearInterval(this.reservationTimer);
+    this.reservationTimer = null;
+    const countdown = document.getElementById('migration-time-left');
+    const reservedUntil = Number(this.mod.migration_instructions?.reserved_until || 0);
+    if (!countdown || !Number.isFinite(reservedUntil) || reservedUntil <= 0) {
+      return;
+    }
+
+    const update = () => {
+      if (!countdown.isConnected) {
+        clearInterval(this.reservationTimer);
+        this.reservationTimer = null;
+        return;
+      }
+      const seconds = Math.max(0, Math.ceil((reservedUntil - Date.now()) / 1000));
+      countdown.textContent = [
+        Math.floor(seconds / 3600),
+        Math.floor((seconds % 3600) / 60),
+        seconds % 60
+      ].map((value) => String(value).padStart(2, '0')).join(':');
+      if (seconds === 0) {
+        clearInterval(this.reservationTimer);
+        this.reservationTimer = null;
+      }
+    };
+    this.reservationTimer = setInterval(update, 1000);
+    update();
   }
 
   attachEvents() {

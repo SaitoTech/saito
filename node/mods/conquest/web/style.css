@@ -253,7 +253,6 @@ body:has(#conquest-root),.conquest-app{--conquest-paper:#f2eddf;--conquest-paper
 .conquest-overlay-lines path {stroke:var(--conquest-active);stroke-width:1.5;stroke-dasharray:3 3;fill:none}
 .conquest-attack-menu {position:absolute;z-index:30;display:flex;flex-direction:column;gap:8px;width:max-content;margin:0;padding:12px;isolation:isolate}
 .conquest-attack-menu[hidden] {display:none!important}
-.conquest-attack-menu::before {content:'';position:absolute;inset:0;z-index:-1;background:var(--conquest-paper);clip-path:polygon(0 8%,97% 0,100% 91%,3% 100%);filter:drop-shadow(1px 0 0 var(--conquest-line)) drop-shadow(-1px 0 0 var(--conquest-line)) drop-shadow(0 1px 0 var(--conquest-line)) drop-shadow(0 -1px 0 var(--conquest-line))}
 .conquest-attack-menu .conquest-button {width:118px;min-height:42px;height:auto;padding:10px 8px!important;margin:0!important;font-size:15px!important;line-height:1.15;clip-path:polygon(0 12%,94% 0,100% 84%,6% 100%)}
 @media(max-width:1100px) and (min-width:761px) {
   .conquest-main {grid-template-columns:250px minmax(0,1fr)}
@@ -675,3 +674,5 @@ button.conquest-player-stat:hover {background:color-mix(in srgb,var(--player) 18
 .conquest-steamroll-targets {position:absolute;inset:0;pointer-events:none;z-index:29}
 .conquest-steamroll-targets .conquest-button {position:absolute;pointer-events:auto;width:84px;min-height:44px;margin:0!important;padding:8px!important;font-size:14px!important;line-height:1.15}
 .conquest-steamroll-targets .conquest-button[hidden] {display:none!important}
+
+.conquest-app .conquest-attack-menu .conquest-button.primary,.conquest-app .conquest-steamroll-targets .conquest-button.primary {border:3px solid #fff;clip-path:none}
