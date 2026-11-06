@@ -10,6 +10,7 @@ class CallInterfaceFloat {
 
     this.app.connection.on('show-call-interface', (videoEnabled, audioEnabled) => {
       this.render();
+      this.addStream('local', null);
       this.attachEvents();
     });
 

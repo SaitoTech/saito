@@ -13,12 +13,16 @@
   box-shadow: var(--stun-noir-shadow-audio);
   color: var(--stun-noir-text);
   font-size: 16px;
+  max-width: 100vw;
+  box-sizing: border-box;
 }
 
-.audio-box {
+.small-audio-chatbox .audio-box {
   width: 35px;
   height: 35px;
+  flex: 0 0 35px;
   position: relative;
+  box-sizing: border-box;
 }
 
 .audio-box.muted {
@@ -35,8 +39,18 @@
 }
 
 .small-audio-chatbox .stun-identicon-list img {
+  display: block;
   height: 100%;
   width: 100%;
+  object-fit: cover;
+  box-sizing: border-box;
+}
+
+.small-audio-chatbox .stun-identicon-list {
+  display: flex;
+  gap: 6px;
+  max-width: 100%;
+  overflow-x: auto;
 }
 
 .paused-timer {
@@ -44,11 +58,11 @@
 }
 
 .small-audio-chatbox .control-panel .timer {
-  min-width: 140px;
-  height: 70px;
+  min-width: 0;
+  flex: 1 1 auto;
   display: flex;
   flex-direction: column;
-  justify-content: space-around;
+  gap: 6px;
   align-items: center;
 }
 
@@ -57,7 +71,43 @@
 }
 
 .small-audio-chatbox .control-panel {
+  display: flex;
+  align-items: center;
+  min-width: 0;
   gap: 15px;
+  padding: 10px;
+}
+
+.small-audio-chatbox .control-list {
+  display: flex;
+  align-items: center;
+  flex: 0 0 auto;
+  gap: 8px;
+}
+
+.small-audio-chatbox .icon_click_area {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--stun-noir-surface-high);
+  cursor: pointer;
+}
+
+.small-audio-chatbox .icon_click_area i {
+  font-size: 20px;
+  line-height: 1;
+}
+
+.small-audio-chatbox .audio-control.disabled {
+  background: var(--stun-noir-outline);
+}
+
+.small-audio-chatbox .disconnect-control {
+  background: var(--stun-noir-danger);
+  color: var(--stun-noir-danger-text);
 }
 
 .audio-box.speaking {
@@ -77,31 +127,12 @@
   }
 }
 
-@media screen and (max-width: 900px) {
-  .small-audio-chatbox .control-panel {
-    padding-bottom: unset;
-    padding: 15px;
-  }
-
-  .small-audio-chatbox .control-panel .control-list {
-    margin-bottom: unset;
-    gap: unset;
-    width: 100%;
-    justify-content: space-evenly;
-  }
-}
-
 @media screen and (max-width: 600px) {
-  .small-audio-chatbox .control-panel {
+  .small-audio-chatbox {
     width: 100vw;
   }
 
-  .small-audio-chatbox .control-panel .timer {
-    min-width: unset;
-  }
-
-  .small-audio-chatbox .control-panel .control-list {
-    gap: 10px;
-    justify-content: flex-end;
+  .small-audio-chatbox .control-panel {
+    width: 100%;
   }
 }

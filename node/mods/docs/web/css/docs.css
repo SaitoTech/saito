@@ -84,12 +84,12 @@ body.docs #header-msg {
 /* ---- Hamburger slide-out panel: anchor to smaller header ---- */
 body.docs .saito-header-hamburger-contents {
   top: var(--docs-expanded);
-  height: calc(100svh - var(--docs-expanded) + 3px);
+  height: calc(100dvh - var(--docs-expanded) + 3px);
 }
 
 body.docs .saito-header-backdrop {
   top: var(--docs-expanded);
-  height: calc(100vh - var(--docs-expanded));
+  height: calc(100dvh - var(--docs-expanded));
 }
 
 /* ==========================================================================

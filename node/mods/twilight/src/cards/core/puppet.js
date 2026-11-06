@@ -15,7 +15,7 @@
         this.game.status = "US place three influence in countries without any influence";
         this.hud.updateStatus(this.game.status);
         this.hud.updateMenu([]);
-        this.hud.updateCards([]);
+        this.hud.updateCards(this.game.deck[0].hand);
 
         for (var i in this.countries) {
 

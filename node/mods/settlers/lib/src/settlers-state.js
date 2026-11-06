@@ -196,8 +196,7 @@ class SettlersState {
         // Filter for available slots
         let existing_adjacent = [];
         for (let vertex of adjacentVertices) {
-            let city = document.querySelector("#city_" + vertex);
-            if (city && city.classList.contains("empty")) {
+            if (!this.isCityAt(vertex) && !this.hexgrid.adjacentVertices(vertex).some(v => this.isCityAt(v))) {
                 existing_adjacent.push("city_" + vertex);
             }
         }

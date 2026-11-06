@@ -1,8 +1,8 @@
 
     this.importFaction('faction6', {
       id		:	"faction6" ,
-      name		: 	"Yssaril Tribes",
-      nickname		: 	"Yssaril",
+      name		: 	"The Shade Clan",
+      nickname		: 	"Shade",
       homeworld		: 	"sector25",
       space_units	: 	["carrier","carrier","cruiser","fighter","fighter"],
       ground_units	: 	["infantry","infantry","infantry","infantry","infantry","pds","spacedock"],
@@ -22,7 +22,7 @@
 
     this.importTech("faction6-stall-tactics", {
 
-      name        :       "Stall Tactics" ,
+      name        :       "Target Delay" ,
       faction     :       "faction6",
       type      :         "ability" ,
       text        :       "Discard an Action Card to stall one turn" ,
@@ -59,10 +59,11 @@
 
         if (imperium_self.game.player == player) {
 	  imperium_self.playerDiscardActionCards(1, function() {
+            let notice = imperium_self.returnFactionNickname(imperium_self.game.player) + " stalls by discarding an action card";
             imperium_self.addMove("resolve\tplay");
             imperium_self.addMove("setvar\tstate\t0\tactive_player_moved\t" + "int" + "\t" + "0");
             imperium_self.addMove("player_end_turn\t" + imperium_self.game.player);
-            imperium_self.addMove("NOTIFY\t" + imperium_self.returnFactionNickname(imperium_self.game.player) + " stalls by discarding an action card");
+            imperium_self.addMove("popup\t" + notice);
             imperium_self.endTurn();
             return 0;
 	  });
@@ -78,7 +79,7 @@
 
     this.importTech("faction6-crafty", {
 
-      name        :       "Crafty" ,
+      name        :       "Unorthodox Tactics" ,
       faction     :       "faction6",
       type        :       "ability" ,
       text        :       "Unlimited action cards. Game effects cannot change." ,
@@ -96,7 +97,7 @@
 
     this.importTech("faction6-scheming", {
 
-      name        :       "Scheming" ,
+      name        :       "Den of Intrigue" ,
       faction     :       "faction6",
       type        :       "ability" ,
       text        :       "Receive bonus card when gaining action cards, then discard one" ,
@@ -131,7 +132,7 @@
 	      imperium_self.endTurn();
 	    });
 	  } else {
-	    	    imperium_self.game.status = "Yssaril are discarding an action card...";
+	    	    imperium_self.game.status = "The Shade Clan is discarding an action card...";
 	    imperium_self.hud.prepareIdle(imperium_self.game.status);
 	    imperium_self.hud.updateCards([]);
 	  }
@@ -152,7 +153,7 @@
     // players that have passed cannot play action cards during your turn
     //
     this.importTech('faction6-transparasteel-plating', {
-      name        :       "Transparasteel Plating" ,
+      name        :       "Rydar Plating" ,
       faction     :       "faction6",
       prereqs     :       ["green"] ,
       color       :       "green" ,
@@ -192,7 +193,7 @@
 
 
     this.importTech('faction6-mageon-implants', {
-      name        :       "Mageon Implants" ,
+      name        :       "Neural Implants" ,
       faction     :       "faction6",
       prereqs     :       ["green","green","green"] ,
       color       :       "green" ,
@@ -218,7 +219,7 @@
       },
       menuOption  :       function(imperium_self, menu, player) {
         if (menu == "main") {
-          return { event : 'mageonimplants', id: 'mageonimplants', label: 'exhaust mageon implants', html : '<li class="option" id="mageonimplants">exhaust mageon implants</li>' };
+          return { event : 'mageonimplants', id: 'mageonimplants', label: 'exhaust neural implants', html : '<li class="option" id="mageonimplants">exhaust neural implants</li>' };
         }
         return {};
       },
@@ -236,8 +237,9 @@
             if (p.player != imperium_self.game.player) { return 1; } return 0;
           },
           function(player) {
+            let notice = imperium_self.returnFaction(imperium_self.game.player) + " uses Neural Implants to take an action card from " + imperium_self.returnFaction(player);
             imperium_self.addMove("faction6_choose_card_triggered\t"+imperium_self.game.player+"\t"+player);
-            imperium_self.addMove("NOTIFY\t" + imperium_self.returnFaction(imperium_self.game.player) + " pulls a random action card from " + imperium_self.returnFaction(player));
+            imperium_self.addMove("popup\t" + notice);
             imperium_self.endTurn();
             return 0;
           },
@@ -313,7 +315,7 @@
 
     
     this.importTech("faction6-flagship", {
-      name        	:       "Yssaril Flagship" ,
+      name        	:       "Shade Flagship" ,
       faction     	:       "faction6",
       type      	:       "ability" ,
       text        	:       "May move through sectors containing other ships" ,
@@ -337,14 +339,14 @@
     this.importPromissary("faction6-promissary", {
       name        :       "Nest of Spies" ,
       faction     :       -1,
-      text        :       "Redeemer may choose one action card from Yssaril hand" ,
+      text        :       "Redeemer may choose one action card from The Shade Clan hand" ,
       menuOption  :       function(imperium_self, menu, player) {
         let x = {};
         if (menu == "main") {
           x.event = 'faction6-promissary';
-          x.html = '<li class="option" id="faction6-promissary">Nest of Spies (Yssaril Promissary)</li>';
+          x.html = '<li class="option" id="faction6-promissary">Nest of Spies (Shade Clan Promissary)</li>';
           x.id = 'faction6-promissary';
-          x.label = 'Nest of Spies (Yssaril Promissary)';
+          x.label = 'Nest of Spies (Shade Clan Promissary)';
         }
         return x;
       },
@@ -361,7 +363,7 @@
         let yssaril_player = imperium_self.returnPlayerOfFaction("faction6");
         if (imperium_self.game.player == player) {
 
-          let html = 'Reveal Yssaril Action Cards and Take One?';
+          let html = 'Reveal Shade Clan Action Cards and Take One?';
           let menu = [];
               menu.push({ id: 'yes', label: 'yes' });
               menu.push({ id: 'no', label: 'no' });
@@ -373,7 +375,7 @@
           imperium_self.hud.updateMenu(menu, function(id) {
 	     if (id === "yes") {
 	       imperium_self.addMove("faction6_promissary_triggered"+"\t"+imperium_self.game.player+"\t"+yssaril_player);
-               imperium_self.addMove("NOTIFY\t" + imperium_self.returnFaction(imperium_self.game.player) + " redeems Yssaril promissary");
+               imperium_self.addMove("NOTIFY\t" + imperium_self.returnFaction(imperium_self.game.player) + " redeems Shade Clan promissary");
                imperium_self.addMove("give" + "\t" + player + "\t" + yssaril_player + "\t" + "promissary" + "\t"+"faction6-promissary");
 	       imperium_self.endTurn();
 	     }
@@ -412,7 +414,7 @@
           imperium_self.game.queue.splice(qe, 1);
 
 	  if (relevant_action_cards.length <= 0) {
-	    	    imperium_self.game.status = "Yssaril has no action cards to steal...";
+	    	    imperium_self.game.status = "The Shade Clan has no action cards to steal...";
 	    imperium_self.hud.prepareIdle(imperium_self.game.status);
 	    imperium_self.hud.updateCards([]);
 	    return 1;
@@ -428,7 +430,7 @@
 	      function (card) {
                 imperium_self.addMove("pull\t" + recipient + "\t" + sender + "\t" + "action" + "\t" + card);
                 imperium_self.addMove("give" + "\t" + recipient + "\t" + sender + "\t" + "promissary" + "\t"+"faction6-promissary");
-                imperium_self.addMove("NOTIFY\t"+imperium_self.returnFaction(imperium_self.game.player) + " redeems Yssaril Promissary");
+                imperium_self.addMove("NOTIFY\t"+imperium_self.returnFaction(imperium_self.game.player) + " redeems Shade Clan Promissary");
                 imperium_self.endTurn();
               },
  

@@ -22,7 +22,7 @@
         twilight_self.game.status = '<div class="status-message" id="status-message">Pick target for Brush War</div>';
         twilight_self.hud.updateStatus(twilight_self.game.status);
         twilight_self.hud.updateMenu([]);
-        twilight_self.hud.updateCards([]);
+        twilight_self.hud.updateCards(twilight_self.game.deck[0].hand);
 
 
         for (var i in twilight_self.countries) {

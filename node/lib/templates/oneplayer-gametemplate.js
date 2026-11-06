@@ -219,6 +219,46 @@ class OnePlayerGameTemplate extends GameTemplate {
     return this.game.id;
   }
 
+  /**
+   * Apply the turn locally. A one-player game has no opponent to confirm
+   * the move, so this does not publish a game transaction or wait for one
+   * to be delivered back.
+   *
+   * Commands are pushed in the same order addNextMove() uses: the oldest
+   * command ends up on top of the queue and is played first.
+   */
+  async endTurn() {
+    if (!this.game.queue) {
+      this.game.queue = [];
+    }
+
+    let turn = Array.isArray(this.moves) ? this.moves.slice() : [];
+    if (Array.isArray(this.endmoves)) {
+      for (let i = 0; i < this.endmoves.length; i++) {
+        turn.push(this.endmoves[i]);
+      }
+    }
+
+    this.moves = [];
+    this.endmoves = [];
+    this.clearSnapshots();
+    this.game.turn = [];
+    this.game.target = 0;
+
+    for (let i = 0; i < turn.length; i++) {
+      this.game.queue.push(turn[i]);
+    }
+
+    this.saveGame(this.game.id);
+
+    // The queue is already walking this list and will play what we just appended.
+    if (this.gaming_active && !this.halted) {
+      return;
+    }
+
+    await this.restartQueue();
+  }
+
   exitGame() {
     //Force these
     this.halted = 0;

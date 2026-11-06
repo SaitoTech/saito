@@ -1,0 +1,9 @@
+{
+  "peer": "wss://saito.io/wsopen",
+  "game": "PathsOfGlory",
+  "players": 2,
+  "dataDir": "./runner-data/paths",
+  "options": { "deck": "original" },
+  "decisionProvider": { "type": "codex", "executable": "codex", "timeoutMs": 120000 },
+  "multi": { "seats": 2, "maxConcurrentDecisions": 1, "joinTimeoutMs": 60000 }
+}

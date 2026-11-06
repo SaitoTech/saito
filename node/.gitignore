@@ -31,6 +31,21 @@ config/mixin-credentials.js
 config/build/build.json
 config/.temp.*
 
+# Runner settings and compatibility links are local to each installation.
+/config/daemon.json
+/config/conquest.json
+/config/settlers.json
+/config/twilight.json
+/config/paths.json
+/config/multi.json
+/daemon.json
+/conquest.json
+/settlers.json
+/twilight.json
+/paths.json
+/multi.json
+/runner-data/
+
 scripts/mods
 scripts/mods/*
 

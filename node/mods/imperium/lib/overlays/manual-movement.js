@@ -22,6 +22,7 @@ class ManualMovementOverlay {
     this.selected = {};
     this.cargo = {};
     this.note = '';
+    this.skip_infantry_check = 0;
     this.gather();
     this.paint();
   }
@@ -356,6 +357,76 @@ class ManualMovementOverlay {
     let mod = this.mod;
     let player = mod.game.player;
     let loads = [];
+
+    if (!this.skip_infantry_check) {
+      let dest = mod.returnSectorAndPlanets(this.destination);
+      let ripe = 0;
+      if (dest && dest.p) {
+        for (let i = 0; i < dest.p.length; i++) {
+          if (dest.p[i].locked == 0 && dest.p[i].owner != player) {
+            ripe = 1;
+          }
+        }
+      }
+
+      let infantry_going = 0;
+      let could_load = 0;
+      for (let i = 0; i < chosen.length; i++) {
+        let item = chosen[i];
+        let storage = item.ship.ship.storage || [];
+        for (let k = 0; k < storage.length; k++) {
+          if (storage[k].type === 'infantry') {
+            infantry_going++;
+          }
+        }
+        let cargo = this.cargo[item.key] || { infantry: {} };
+        let assigned = cargo.infantry || {};
+        for (let planet in assigned) {
+          infantry_going += assigned[planet] || 0;
+        }
+        if (this.capacityLeft(item.key) >= this.infantry_cost) {
+          let parts = item.key.split('_');
+          let group_index = parseInt(parts[0], 10);
+          let group = this.groups[group_index];
+          for (let p = 0; p < group.planets.length; p++) {
+            if (this.infantryLeft(group_index, p) > 0) {
+              could_load = 1;
+            }
+          }
+        }
+      }
+
+      if (ripe && infantry_going == 0 && could_load) {
+        this.overlay.hide();
+        mod.hud.updateMenu([]);
+        let place = this.destination_name || this.destination;
+        place = String(place).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        let user_message = '<div>Do you really want to move into ' + place + ' without infantry to invade and control planets?</div><ul>';
+        user_message += '<li class="option textchoice" id="yes">Yes, I know what I\'m doing</li>';
+        user_message += '<li class="option textchoice" id="no">No, let me bring an invasion force</li>';
+        user_message += '</ul>';
+        mod.hud.updateStatus(user_message);
+        let load_menu = document.querySelector('#game-hud2 > .hud-status');
+        let overlay_self = this;
+        if (load_menu) {
+          load_menu.querySelectorAll('.textchoice').forEach((el) => {
+            el.onclick = (e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              mod.hud.updateStatus('');
+              if (el.id === 'yes') {
+                overlay_self.skip_infantry_check = 1;
+                overlay_self.submit();
+                return;
+              }
+              overlay_self.paint();
+            };
+          });
+          return;
+        }
+      }
+    }
+    this.skip_infantry_check = 0;
 
     for (let i = 0; i < chosen.length; i++) {
       let item = chosen[i];

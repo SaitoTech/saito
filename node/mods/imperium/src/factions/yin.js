@@ -1,8 +1,8 @@
 
     this.importFaction('faction5', {
       id		:	"faction5" ,
-      name		: 	"Yin Brotherhood",
-      nickname		: 	"Yin",
+      name		: 	"The Devotion",
+      nickname		: 	"Devotion",
       homeworld		: 	"sector23",
       space_units	: 	["carrier","carrier","destroyer","fighter","fighter","fighter","fighter"],
       ground_units	: 	["infantry","infantry","infantry","infantry","spacedock"],
@@ -58,7 +58,7 @@
     // after each space battle round, sacrifice cruiser or destroyer to assign 1 hit to a unit
     //
     this.importTech('faction5-devotion', {
-      name        :       "Devotion" ,
+      name        :       "Unity of Purpose" ,
       faction     :       "faction5",
       type        :       "ability" ,
       text        :       "Sacrifice destroyer or cruiser to assign 1 enemy hit at combat end" ,
@@ -113,7 +113,7 @@
 
 
     this.importTech('faction5-yin-spinner', {
-      name        :       "Yin Spinner" ,
+      name        :       "Conversion" ,
       faction     :       "faction5",
       prereqs     :       ["green", "green"] ,
       color       :       "green" ,
@@ -144,7 +144,7 @@
 	if (imperium_self.game.player != player) { return 0; }
 
         imperium_self.playerSelectPlanetWithFilter(
-              "Yin Spinner Tech: place additional infantry on which planet?",
+              "Conversion: place additional infantry on which planet?",
               function(planet) {
                 planet = imperium_self.game.planets[planet];
                 if (planet.owner == imperium_self.game.player) { return 1; } return 0;
@@ -175,7 +175,7 @@
 
     
     this.importTech("faction5-flagship", {
-      name        	:       "Yin Flagship" ,
+      name        	:       "Devotion Flagship" ,
       faction     	:       "faction5",
       type      	:       "ability" ,
       text        	:       "Wipes out all ships in sector when destroyed" ,
@@ -202,7 +202,7 @@
 
               imperium_self.saveSystemAndPlanets(active_sector);
               imperium_self.updateSectorGraphics(active_sector);
-	      imperium_self.updateLog("The destruction of the Yin Flagship has caused a terrible calamity...");
+	      imperium_self.updateLog("The destruction of the Devotion Flagship has caused a terrible calamity...");
 
 	    }
 	  }
@@ -382,7 +382,7 @@ this.playDevotionAssignHit = function(imperium_self, player, sector, mycallback,
 
 
     this.importPromissary("faction5-promissary", {
-      name        :       "Greyfire Mutagen" ,
+      name        :       "Greyscale Mutation" ,
       faction     :       -1,
       text        :       "Redeemer may replace 1 opponent infantry with their own if more than 1 invader" ,
       groundCombatTriggers : function(imperium_self, player, sector, planet_idx) {
@@ -396,7 +396,7 @@ this.playDevotionAssignHit = function(imperium_self, player, sector, mycallback,
       groundCombatEvent : function(imperium_self, player, sector, planet_idx) {
         if (imperium_self.game.player == player) {
 
-          let html = `<div class="status-message">Do you wish to return your Yin Promissary to convert 1 opponent infantry?</div>`;
+          let html = `<div class="status-message">Do you wish to return your Devotion Promissary to convert 1 opponent infantry?</div>`;
           let menu = [];
               menu.push({ id: 'yes', label: 'Yes' });
               menu.push({ id: 'no', label: 'No' });
@@ -417,10 +417,10 @@ this.playDevotionAssignHit = function(imperium_self, player, sector, mycallback,
 
               imperium_self.addMove("destroy_infantry_on_planet"+"\t"+player+"\t"+sector+"\t"+planet_idx+"\t"+1);
               imperium_self.addMove("add_infantry_to_planet"+"\t"+player+"\t"+planet.planet+"\t"+1);
-              imperium_self.addMove("NOTIFY\tGreyfire Mutagen converts opposing infantry");
+              imperium_self.addMove("NOTIFY\tGreyscale Mutation converts opposing infantry");
 
               imperium_self.addMove("give" + "\t" + player + "\t" + yin_player + "\t" + "promissary" + "\t"+"faction5-promissary");
-              imperium_self.addMove("NOTIFY" + "\t" + "Yin Promissary redeemed");
+              imperium_self.addMove("NOTIFY" + "\t" + "Devotion Promissary redeemed");
               imperium_self.endTurn();
 
             }

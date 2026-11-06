@@ -398,7 +398,9 @@
 
 @media (max-width: 768px) {
   .view-post {
-    padding: 1.5rem 1rem 3rem;
+    /* Chrome's mobile toolbar sits over the bottom of the scrollport.
+       Extra end padding lets the last lines scroll clear of it. */
+    padding: 1.5rem 1rem calc(8rem + env(safe-area-inset-bottom, 0px));
   }
 
   .view-post .feature {

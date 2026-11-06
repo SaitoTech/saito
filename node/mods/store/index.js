@@ -1,6 +1,10 @@
 const CtaLoader = require('../../lib/templates/saito-cta-loader.template');
 
-module.exports = (app, mod, build_number) => {
+module.exports = (app, mod, build_number, social = mod.social) => {
+  const card = {};
+  for (const [key, value] of Object.entries(social)) {
+    card[key] = app.browser.escapeHTML(String(value || ''));
+  }
   return `
     <!DOCTYPE html>
     <html data-theme="dark">
@@ -9,7 +13,20 @@ module.exports = (app, mod, build_number) => {
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta http-equiv="X-UA-Compatible" content="IE=edge" />
 
-  <meta name="description" content="${app.browser.escapeHTML(mod.description)}" />
+  <title>${card.title}</title>
+  <meta name="description" content="${card.description}" />
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="Saito Store" />
+  <meta property="og:title" content="${card.title}" />
+  <meta property="og:description" content="${card.description}" />
+  <meta property="og:url" content="${card.url}" />
+  <meta property="og:image" content="${card.image}" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:site" content="${card.twitter}" />
+  <meta name="twitter:title" content="${card.title}" />
+  <meta name="twitter:description" content="${card.description}" />
+  <meta name="twitter:url" content="${card.url}" />
+  <meta name="twitter:image" content="${card.image}" />
   <meta name="keywords" content="${mod.categories}"/>
   <meta name="author" content="Saito 🟥"/>
   <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=yes" />

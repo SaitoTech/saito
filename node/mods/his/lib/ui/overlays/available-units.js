@@ -368,16 +368,6 @@ class AvailableUnitsOverlay {
           this.mod.movement_overlay.selectUnitsInterface,
           this.mod.movement_overlay.selectDestinationInterface
         );
-        //
-        // disable manual
-        //
-        document.querySelectorAll('.movement-unit .option').forEach((el) => {
-          el.onclick = (e) => {
-            alert(
-              'Once you have started to move units by tokens, please continue doing so. This avoids problems with auto-breaking up units and exceeding faction capacity...'
-            );
-          };
-        });
       };
     });
   }

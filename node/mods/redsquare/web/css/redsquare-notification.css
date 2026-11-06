@@ -9,8 +9,13 @@
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
   column-gap: var(--saito-space-sm);
-  align-items: start;
-  padding: var(--saito-space-md) var(--saito-space-lg) var(--saito-space-xs);
+  align-items: center;
+  padding: var(--saito-space-md) var(--saito-space-lg);
+}
+
+/* Summary sits closer to a nested tweet than to the rule above it. */
+.notification:has(.slot > .tweet) .meta {
+  padding-bottom: var(--saito-space-xs);
 }
 
 .notification .icon {
@@ -40,12 +45,13 @@
 }
 
 .notification .slot {
-  padding: 0 var(--saito-space-lg) var(--saito-space-md);
+  padding: 0 var(--saito-space-lg);
 }
 
-/* Nested tweet is content, not a second chrome panel */
+/* Nested tweet is content, not a second chrome panel.
+   Bottom inset lives on the tweet so an empty slot does not open a gap. */
 .notification .slot > .tweet {
-  padding: var(--saito-space-sm) 0 0;
+  padding: var(--saito-space-sm) 0 var(--saito-space-md);
   border-bottom: none;
   cursor: inherit;
 }

@@ -101,6 +101,20 @@ class UserMenu {
   attachEvents() {
     let thisobj = this;
     let pk = this.user_publickey;
+    const copyAddress = document.querySelector('#saito-user-menu .saito-user-menu-copy');
+    if (copyAddress) {
+      copyAddress.onclick = async (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        try {
+          await navigator.clipboard.writeText(pk);
+          siteMessage('Address copied', 1500);
+        } catch (err) {
+          siteMessage('Unable to copy address. Please copy it manually.', 3000);
+        }
+      };
+    }
+
     document.querySelectorAll('#saito-user-menu .saito-modal-menu-option').forEach((menu) => {
       let id = menu.getAttribute('id');
       let callback = thisobj.callbacks[id];

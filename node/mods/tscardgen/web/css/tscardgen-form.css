@@ -1,0 +1,383 @@
+.ts-form,
+.ts-code-workspace,
+.ts-reference-sidebar {
+  background: var(--ts-panel, var(--saito-card));
+  border: 1px solid var(--saito-border, rgba(255, 255, 255, 0.12));
+  border-radius: calc(var(--saito-radius, 0.75rem) + 0.25rem);
+  padding: 1.5rem;
+  color: var(--saito-foreground, #f2f5f7);
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.28);
+  font-size: var(--ts-font-body, 1.4rem);
+}
+
+.ts-form-kicker {
+  margin: 0 0 0.35rem;
+  color: var(--ts-frost, #e3f5ff);
+  font-size: var(--ts-font-heading, 1.55rem);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.ts-form-title {
+  margin: 0;
+  font-family: ts-caslon-bold, "Libre Caslon Text", "Palatino Linotype", Palatino, serif;
+  font-size: var(--ts-font-title, clamp(2.2rem, 3.6vw, 2.8rem));
+  line-height: 1.1;
+  color: var(--saito-foreground, #f2f5f7);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.ts-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--ts-space, 1.25rem);
+}
+
+.ts-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.ts-field-span {
+  grid-column: 1 / -1;
+}
+
+.ts-label {
+  font-size: var(--ts-font-small, 1.15rem);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--saito-foreground, #f2f5f7) 82%, transparent);
+}
+
+.ts-input,
+.ts-textarea,
+.ts-input option {
+  width: 100%;
+  border: 1px solid var(--saito-border, rgba(255, 255, 255, 0.16));
+  border-radius: var(--saito-radius, 0.5rem);
+  background: color-mix(in srgb, #0b1218 70%, transparent);
+  color: var(--saito-foreground, #f2f5f7);
+  padding: 0.8rem 0.9rem;
+  font: inherit;
+  font-size: var(--ts-font-body, 1.4rem);
+  text-transform: none;
+}
+
+select.ts-input {
+  appearance: none;
+  -webkit-appearance: none;
+  cursor: pointer;
+  background-color: color-mix(in srgb, #0b1218 70%, transparent);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%23a6a09b' d='M1.4 0.6L6 5.2 10.6 0.6 12 2 6 8 0 2z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.85rem center;
+  background-size: 1.2rem 0.8rem;
+  padding-right: 2.6rem;
+}
+
+.ts-input:focus,
+.ts-textarea:focus {
+  outline: 2px solid color-mix(in srgb, var(--ts-frost, #e3f5ff) 70%, transparent);
+  outline-offset: 1px;
+}
+
+.ts-input-compact {
+  width: 5.5rem;
+  max-width: 5.5rem;
+  text-align: center;
+  padding-left: 0.4rem;
+  padding-right: 0.4rem;
+}
+
+.ts-textarea {
+  resize: vertical;
+  min-height: 5rem;
+}
+
+.ts-row-three {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--ts-space, 1.25rem);
+}
+
+.ts-row-controls {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: var(--ts-space, 1.25rem);
+}
+
+.ts-field-compact {
+  flex: 0 0 auto;
+}
+
+.ts-image-action {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.85rem 1.1rem;
+  align-self: end;
+  margin-bottom: 0.15rem;
+}
+
+.ts-flag-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  align-self: end;
+  margin-bottom: 0.35rem;
+}
+
+.ts-add-image {
+  padding: 0.85rem 1.35rem !important;
+  font-size: var(--ts-font-body, 1.4rem) !important;
+}
+
+.ts-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  cursor: pointer;
+  font-size: var(--ts-font-body, 1.4rem);
+}
+
+.ts-check-plain span {
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: var(--ts-font-body, 1.4rem);
+  color: color-mix(in srgb, var(--saito-foreground, #f2f5f7) 88%, transparent);
+}
+
+.ts-form-footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1rem;
+  margin-top: var(--ts-space, 1.25rem);
+}
+
+.ts-form-footer .saito-button-primary,
+.ts-form-footer .saito-button-secondary {
+  padding: 0.85rem 1.35rem !important;
+  font-size: var(--ts-font-body, 1.4rem) !important;
+}
+
+.ts-code-workspace {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ts-space, 1.25rem);
+  min-height: 38rem;
+}
+
+.ts-event-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.ts-event-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  border: 1px solid var(--saito-border, rgba(255, 255, 255, 0.16));
+  border-radius: var(--saito-radius, 0.5rem);
+  background: color-mix(in srgb, #0b1218 55%, transparent);
+  color: color-mix(in srgb, var(--saito-foreground, #f2f5f7) 82%, transparent);
+  padding: 0.45rem 0.55rem 0.45rem 0.9rem;
+  font: inherit;
+  font-size: var(--ts-font-body, 1.4rem);
+  cursor: pointer;
+  max-width: 18rem;
+  white-space: nowrap;
+}
+
+.ts-event-tab-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ts-event-tab-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.55rem;
+  height: 1.55rem;
+  border-radius: 0.3rem;
+  font-size: 1.25rem;
+  line-height: 1;
+  color: inherit;
+  opacity: 0.72;
+}
+
+.ts-event-tab-close:hover {
+  background: color-mix(in srgb, #000 28%, transparent);
+  opacity: 1;
+}
+
+.ts-event-tab.active {
+  background: color-mix(in srgb, var(--ts-signal, #de1c37) 88%, #101820);
+  border-color: transparent;
+  color: #fff;
+}
+
+.ts-event-tab.active .ts-event-tab-close:hover {
+  background: color-mix(in srgb, #000 35%, transparent);
+}
+
+.ts-event-tab-add {
+  border: 1px dashed var(--saito-border, rgba(255, 255, 255, 0.28));
+  border-radius: var(--saito-radius, 0.5rem);
+  background: transparent;
+  color: color-mix(in srgb, var(--saito-foreground, #f2f5f7) 78%, transparent);
+  width: 2.5rem;
+  height: 2.5rem;
+  font: inherit;
+  font-size: 1.6rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.ts-event-tab-add:hover,
+.ts-event-tab:hover {
+  border-color: var(--ts-frost, #e3f5ff);
+}
+
+.ts-code-editor {
+  flex: 1 1 auto;
+  min-height: 30rem;
+  border: 1px solid var(--saito-border, rgba(255, 255, 255, 0.16));
+  border-radius: var(--saito-radius, 0.5rem);
+  overflow: hidden;
+  background: color-mix(in srgb, #0b1218 78%, transparent);
+  padding: 0.35rem 0;
+}
+
+.ts-code-editor .CodeMirror {
+  height: 100%;
+  min-height: 30rem;
+  background: transparent;
+  color: var(--saito-foreground, #f2f5f7);
+  font-size: var(--ts-font-body, 1.4rem);
+  line-height: 1.5;
+  padding: 0.85rem 1.15rem;
+}
+
+.ts-code-editor .CodeMirror-gutters {
+  display: none;
+}
+
+.ts-code-editor .ts-code {
+  min-height: 30rem;
+  border: 0;
+  border-radius: 0;
+  padding: 1.1rem 1.25rem;
+}
+
+.ts-code-editor .CodeMirror-cursor {
+  border-left: 2px solid var(--saito-foreground, #f2f5f7);
+}
+
+.ts-reference-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  min-height: 0;
+  height: fit-content;
+  align-self: start;
+}
+
+.ts-card-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  padding-bottom: 0.85rem;
+  border-bottom: 1px solid var(--saito-border, rgba(255, 255, 255, 0.12));
+}
+
+.ts-card-info-title,
+.ts-reference-title {
+  margin: 0;
+  font-size: var(--ts-font-heading, 1.55rem);
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.ts-card-info-list {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.ts-card-info-row {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.45rem 0.75rem;
+  align-items: baseline;
+  font-size: var(--ts-font-body, 1.4rem);
+}
+
+.ts-card-info-row dt {
+  margin: 0;
+  font-weight: 600;
+  color: color-mix(in srgb, var(--saito-foreground, #f2f5f7) 72%, transparent);
+}
+
+.ts-card-info-row dd {
+  margin: 0;
+  min-width: 0;
+  word-break: break-word;
+}
+
+.ts-card-info-row code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.95em;
+}
+
+.ts-reference-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.ts-reference-link {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  text-align: left;
+  text-decoration: none;
+  border: 1px solid var(--saito-border, rgba(255, 255, 255, 0.12));
+  border-radius: var(--saito-radius, 0.5rem);
+  background: color-mix(in srgb, #0b1218 45%, transparent);
+  color: var(--saito-foreground, #f2f5f7);
+  padding: 0.95rem 1.1rem;
+  font: inherit;
+  font-size: var(--ts-font-body, 1.4rem);
+  cursor: pointer;
+}
+
+.ts-reference-link:hover {
+  border-color: var(--ts-frost, #e3f5ff);
+  background: color-mix(in srgb, #0b1218 70%, transparent);
+}
+
+.ts-reference-note {
+  margin: 0;
+  font-size: var(--ts-font-small, 1.15rem);
+  line-height: 1.45;
+  color: color-mix(in srgb, var(--saito-foreground, #f2f5f7) 62%, transparent);
+}
+
+@media (max-width: 720px) {
+  .ts-form-grid,
+  .ts-row-three {
+    grid-template-columns: 1fr;
+  }
+}

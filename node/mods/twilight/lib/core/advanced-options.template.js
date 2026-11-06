@@ -1,205 +1,228 @@
-module.exports = () => {
-  let html = `
+const checkboxRow = ({ name, label, className = '' }) => {
+  let classes = ['saito-checkbox', 'remove_card'];
+  if (className) {
+    classes = classes.concat(className.trim().split(/\s+/).filter(Boolean));
+  }
+  return `
+    <div class="overlay-input">
+      <label>
+        <input class="${classes.join(' ')}" type="checkbox" name="${name}" />
+        ${label}
+      </label>
+    </div>
+  `;
+};
 
-      <div class="twilight-advanced-options-container">
-
-  <div style="top:0;left:0;">
-
-            <label for="player1">Play As: </label>
-            <select class="saito-form-select" name="player1">
-              <option value="random" selected>random sides</option>
-              <option value="ussr">play as USSR</option>
-              <option value="us">play as US</option>
-            </select>
-
-            <label for="usbonus">US bonus influence: </label>
-            <select class="saito-form-select usbonus" name="usbonus">
-              <option value="0">0</option>
-              <option value="1">1</option>
-              <option value="2" selected>2</option>
-              <option value="3">3</option>
-              <option value="4">4</option>
-              <option value="5">5</option>
-              <option value="6">6</option>
-              <option value="7">7</option>
-              <option value="8">8</option>
-              <option value="9">9</option>
-              <option value="10">10</option>
-            </select>
-
-            <label for="clock">Player Time Limit:</label>
-            <select class="saito-form-select" name="clock">
-              <option value="0" default>no limit</option>
-              <option value="10">10 minutes</option>
-              <option value="20">20 minutes</option>
-              <option value="30">30 minutes</option>
-              <option value="60">60 minutes</option>
-              <option value="90">90 minutes</option>
-              <option value="120">120 minutes</option>
-            </select>
-
-            <div id="game-wizard-advanced-return-btn" class="game-wizard-advanced-return-btn button saito-button-primary">Accept</div>
-  </div>
-
-            <div id="game-wizard-advanced-box" class="game-wizard-advanced-box" >
-
-        <style type="text/css">li { list-style: none; } .saito-select { margin-bottom: 10px; margin-top:5px; } label { text-transform: uppercase; } .removecards { grid-gap: 0.1em; } .list-header { font-weight: bold; font-size:1.5em; margin-top:0px; margin-bottom:10px; margin-left: 15px; text-transform: uppercase; } </style>
-              <div class="list-header">remove cards:</div>
-              <ul id="removecards" class="removecards">
-              <li><input class="saito-checkbox remove_card" type="checkbox" name="asia" /> <span> Asia Scoring</span></li>
-              <li><input class="saito-checkbox remove_card" type="checkbox" name="europe" /> <span> Europe Scoring</span></li>
-              <li><input class="saito-checkbox remove_card" type="checkbox" name="mideast" /> <span> Middle-East Scoring</span></li>
-              <li><input class="saito-checkbox remove_card" type="checkbox" name="duckandcover" /> <span> Duck and Cover</span></li>
-              <li><input class="saito-checkbox remove_card" type="checkbox" name="fiveyearplan" /> <span> Five Year Plan</span></li>
-              <li><input class="saito-checkbox remove_card" type="checkbox" name="socgov" /> <span> Socialist Governments</span></li>
-              <li><input class="saito-checkbox remove_card" type="checkbox" name="fidel" /> <span> Fidel</span></li>
-              <li><input class="saito-checkbox remove_card" type="checkbox" name="vietnamrevolts" /> <span> Vietnam Revolts</span></li>
-              <li><input class="saito-checkbox remove_card" type="checkbox" name="blockade" /> <span> Blockade</span></li>
-              <li><input class="saito-checkbox remove_card" type="checkbox" name="koreanwar" /> <span> Korean War</span></li>
-              <li><input class="saito-checkbox remove_card" type="checkbox" name="romanianab" /> <span> Romanian Abdication</span></li>
-              <li><input class="saito-checkbox remove_card" type="checkbox" name="arabisraeli" /> <span> Arab Israeli War</span></li>
-              <li><input class="saito-checkbox remove_card" type="checkbox" name="comecon" /> <span> Comecon</span></li>
-              <li><input class="saito-checkbox remove_card" type="checkbox" name="nasser" /> <span> Nasser</span></li>
-              <li><input class="saito-checkbox remove_card" type="checkbox" name="warsawpact" /> <span> Warsaw Pact</span></li>
-              <li><input class="saito-checkbox remove_card" type="checkbox" name="degaulle" /> <span> De Gaulle Leads France</span></li>
-              <li><input class="saito-checkbox remove_card" type="checkbox" name="naziscientist" /> <span> Nazi Scientists Captured</span></li>
-              <li><input class="saito-checkbox remove_card" type="checkbox" name="truman" /> <span> Truman</span></li>
-              <li><input class="saito-checkbox remove_card" type="checkbox" name="olympic" /> <span> Olympic Games</span></li>
-              <li><input class="saito-checkbox remove_card" type="checkbox" name="nato" /> <span> NATO</span></li>
-              <li><input class="saito-checkbox remove_card" type="checkbox" name="indreds" /> <span> Independent Reds</span></li>
-              <li><input class="saito-checkbox remove_card" type="checkbox" name="marshall" /> <span> Marshall Plan</span></li>
-              <li><input class="saito-checkbox remove_card" type="checkbox" name="indopaki" /> <span> Indo-Pakistani War</span></li>
-              <li><input class="saito-checkbox remove_card" type="checkbox" name="containment" /> <span> Containment</span></li>
-              <li><input class="saito-checkbox remove_card" type="checkbox" name="cia" /> <span> CIA Created</span></li>
-              <li><input class="saito-checkbox remove_card" type="checkbox" name="usjapan" /> <span> US/Japan Defense Pact</span></li>
-              <li><input class="saito-checkbox remove_card" type="checkbox" name="suezcrisis" /> <span> Suez Crisis</span></li>
-              <li><input class="saito-checkbox remove_card" type="checkbox" name="easteuropean" /> <span> East European Unrest</span></li>
-              <li><input class="saito-checkbox remove_card" type="checkbox" name="decolonization" /> <span> Decolonization</span></li>
-              <li><input class="saito-checkbox remove_card" type="checkbox" name="redscare" /> <span> Red Scare</span></li>
-              <li><input class="saito-checkbox remove_card" type="checkbox" name="unintervention" /> <span> UN Intervention</span></li>
-              <li><input class="saito-checkbox remove_card" type="checkbox" name="destalinization" /> <span> Destalinization</span></li>
-              <li><input class="saito-checkbox remove_card" type="checkbox" name="nucleartestban" /> <span> Nuclear Test Ban Treaty</span></li>
-              <li><input class="saito-checkbox remove_card" type="checkbox" name="formosan" /> <span> Formosan Resolution</span></li>
-              <li><input class="saito-checkbox remove_card optional_edition" type="checkbox" name="defectors" /> <span> Defectors</span></li>
-              <li><input class="saito-checkbox remove_card optional_edition " type="checkbox" name="specialrelation" /> <span> Special Relationship</span></li>
-              <li><input class="saito-checkbox remove_card optional_edition" type="checkbox" name="cambridge" /> <span> The Cambridge Five</span></li>
-              <li><input class="saito-checkbox remove_card optional_edition" type="checkbox" name="norad" /> <span> NORAD</span></li>
-            </ul>
-            <ul class="removecards" style="clear:both;margin-top:13px">
-              <li><input class="saito-checkbox remove_card" type="checkbox" name="brushwar" /> <span> Brush War</span></li>
-              <li><input class="saito-checkbox remove_card" type="checkbox" name="camerica" /> <span> Central America Scoring</span></li>
-              <li><input class="saito-checkbox remove_card" type="checkbox" name="seasia" /> <span> Southeast Asia Scoring</span></li>
-              <li><input class="saito-checkbox remove_card" type="checkbox" name="armsrace" /> <span> Arms Race</span></li>
-              <li><input class="saito-checkbox remove_card" type="checkbox" name="cubanmissile" /> <span> Cuban Missile Crisis</span></li>
-              <li><input class="saito-checkbox remove_card" type="checkbox" name="nuclearsubs" /> <span> Nuclear Subs</span></li>
-              <li><input class="saito-checkbox remove_card" type="checkbox" name="quagmire" /> <span> Quagmire</span></li>
-              <li><input class="saito-checkbox remove_card" type="checkbox" name="saltnegotiations" /> <span> Salt Negotiations</span></li>
-              <li><input class="saito-checkbox remove_card" type="checkbox" name="beartrap" /> <span> Bear Trap</span></li>
-              <li><input class="saito-checkbox remove_card" type="checkbox" name="summit" /> <span> Summit</span></li>
-              <li><input class="saito-checkbox remove_card" type="checkbox" name="howilearned" /> <span> How I Learned to Stop Worrying</span></li>
-              <li><input class="saito-checkbox remove_card" type="checkbox" name="junta" /> <span> Junta</span></li>
-              <li><input class="saito-checkbox remove_card" type="checkbox" name="kitchendebates" /> <span> Kitchen Debates</span></li>
-              <li><input class="saito-checkbox remove_card" type="checkbox" name="missileenvy" /> <span> Missile Envy</span></li>
-              <li><input class="saito-checkbox remove_card" type="checkbox" name="wwby" /> <span> We Will Bury You</span></li>
-              <li><input class="saito-checkbox remove_card" type="checkbox" name="brezhnev" /> <span> Brezhnev Doctrine</span></li>
-              <li><input class="saito-checkbox remove_card" type="checkbox" name="portuguese" /> <span> Portuguese Empire Crumbles</span></li>
-              <li><input class="saito-checkbox remove_card" type="checkbox" name="southafrican" /> <span> South African Unrest</span></li>
-              <li><input class="saito-checkbox remove_card" type="checkbox" name="allende" /> <span> Allende</span></li>
-              <li><input class="saito-checkbox remove_card" type="checkbox" name="willybrandt" /> <span> Willy Brandt</span></li>
-              <li><input class="saito-checkbox remove_card" type="checkbox" name="muslimrevolution" /> <span> Muslim Revolution</span></li>
-              <li><input class="saito-checkbox remove_card" type="checkbox" name="abmtreaty" /> <span> ABM Treaty</span></li>
-              <li><input class="saito-checkbox remove_card" type="checkbox" name="culturalrev" /> <span> Cultural Revolution</span></li>
-              <li><input class="saito-checkbox remove_card" type="checkbox" name="flowerpower" /> <span> Flower Power</span></li>
-              <li><input class="saito-checkbox remove_card" type="checkbox" name="u2" /> <span> U-2 Incident</span></li>
-              <li><input class="saito-checkbox remove_card" type="checkbox" name="opec" /> <span> OPEC</span></li>
-              <li><input class="saito-checkbox remove_card" type="checkbox" name="lonegunman" /> <span> Lone Gunman</span></li>
-              <li><input class="saito-checkbox remove_card" type="checkbox" name="colonial" /> <span> Colonial</span></li>
-              <li><input class="saito-checkbox remove_card" type="checkbox" name="panamacanal" /> <span> Panama Canal</span></li>
-              <li><input class="saito-checkbox remove_card" type="checkbox" name="campdavid" /> <span> Camp David Accords</span></li>
-              <li><input class="saito-checkbox remove_card" type="checkbox" name="puppet" /> <span> Puppet Governments</span></li>
-              <li><input class="saito-checkbox remove_card" type="checkbox" name="grainsales" /> <span> Grain Sales to Soviets</span></li>
-              <li><input class="saito-checkbox remove_card" type="checkbox" name="johnpaul" /> <span> John Paul</span></li>
-              <li><input class="saito-checkbox remove_card" type="checkbox" name="deathsquads" /> <span> Death Squads</span></li>
-              <li><input class="saito-checkbox remove_card" type="checkbox" name="oas" /> <span> OAS Founded</span></li>
-              <li><input class="saito-checkbox remove_card" type="checkbox" name="nixon" /> <span> Nixon Plays the China Card</span></li>
-              <li><input class="saito-checkbox remove_card" type="checkbox" name="sadat" /> <span> Sadat Expels Soviets</span></li>
-              <li><input class="saito-checkbox remove_card" type="checkbox" name="shuttle" /> <span> Shuttle Diplomacy</span></li>
-              <li><input class="saito-checkbox remove_card" type="checkbox" name="voiceofamerica" /> <span> Voice of America</span></li>
-              <li><input class="saito-checkbox remove_card" type="checkbox" name="liberation" /> <span> Liberation Theology</span></li>
-              <li><input class="saito-checkbox remove_card" type="checkbox" name="ussuri" /> <span> Ussuri River Skirmish</span></li>
-              <li><input class="saito-checkbox remove_card" type="checkbox" name="asknot" /> <span> Ask Not What Your Country Can Do For You</span></li>
-              <li><input class="saito-checkbox remove_card" type="checkbox" name="alliance" /> <span> Alliance for Progress</span></li>
-              <li><input class="saito-checkbox remove_card" type="checkbox" name="africa" /> <span> Africa Scoring</span></li>
-              <li><input class="saito-checkbox remove_card" type="checkbox" name="onesmallstep" /> <span> One Small Step</span></li>
-              <li><input class="saito-checkbox remove_card" type="checkbox" name="samerica" /> <span> South America</span></li>
-              <li><input class="saito-checkbox remove_card optional_edition" type="checkbox" name="che" /> <span> Che</span></li>
-              <li><input class="saito-checkbox remove_card optional_edition" type="checkbox" name="tehran" /> <span> Our Man in Tehran</span></li>
-            </ul>
-            <ul class="removecards" style="clear:both;margin-top:13px">
-              <li><input class="saito-checkbox remove_card" type="checkbox" name="iranianhostage" /> <span> Iranian Hostage Crisis</span></li>
-              <li><input class="saito-checkbox remove_card" type="checkbox" name="ironlady" /> <span> The Iron Lady</span></li>
-              <li><input class="saito-checkbox remove_card" type="checkbox" name="reagan" /> <span> Reagan Bombs Libya</span></li>
-              <li><input class="saito-checkbox remove_card" type="checkbox" name="starwars" /> <span> Star Wars</span></li>
-              <li><input class="saito-checkbox remove_card" type="checkbox" name="northseaoil" /> <span> North Sea Oil</span></li>
-              <li><input class="saito-checkbox remove_card" type="checkbox" name="reformer" /> <span> The Reformer</span></li>
-              <li><input class="saito-checkbox remove_card" type="checkbox" name="marine" /> <span> Marine Barracks Bombing</span></li>
-              <li><input class="saito-checkbox remove_card" type="checkbox" name="KAL007" /> <span> Soviets Shoot Down KAL-007</span></li>
-              <li><input class="saito-checkbox remove_card" type="checkbox" name="glasnost" /> <span> Glasnost</span></li>
-              <li><input class="saito-checkbox remove_card" type="checkbox" name="ortega" /> <span> Ortega Elected in Nicaragua</span></li>
-              <li><input class="saito-checkbox remove_card" type="checkbox" name="terrorism" /> <span> Terrorism</span></li>
-              <li><input class="saito-checkbox remove_card" type="checkbox" name="ironcontra" /> <span> Iran Contra Scandal</span></li>
-              <li><input class="saito-checkbox remove_card" type="checkbox" name="chernobyl" /> <span> Chernobyl</span></li>
-              <li><input class="saito-checkbox remove_card" type="checkbox" name="debtcrisis" /> <span> Latin American Debt Crisis</span></li>
-              <li><input class="saito-checkbox remove_card" type="checkbox" name="teardown" /> <span> Tear Down this Wall</span></li>
-              <li><input class="saito-checkbox remove_card" type="checkbox" name="evilempire" /> <span> An Evil Empire</span></li>
-              <li><input class="saito-checkbox remove_card" type="checkbox" name="aldrichames" /> <span> Aldrich Ames Remix</span></li>
-              <li><input class="saito-checkbox remove_card" type="checkbox" name="pershing" /> <span> Pershing II Deployed</span></li>
-              <li><input class="saito-checkbox remove_card" type="checkbox" name="wargames" /> <span> Wargames</span></li>
-              <li><input class="saito-checkbox remove_card" type="checkbox" name="solidarity" /> <span> Solidarity</span></li>
-              <li><input class="saito-checkbox remove_card optional_edition" type="checkbox" name="iraniraq" /> <span> Iran-Iraq War</span></li>
-              <li><input class="saito-checkbox remove_card optional_edition" type="checkbox" name="yuri" /> <span> Yuri and Samantha</span></li>
-              <li><input class="saito-checkbox remove_card optional_edition" type="checkbox" name="awacs" /> <span> AWACS Sale to Saudis</span></li>
-            </ul>
-
-            <div class="list-header">add cards:</div>
-            <ul id="removecards" class="removecards">
-              <li><input class="saito-checkbox remove_card" type="checkbox" name="iranianultimatum" /> <span> Iranian Ultimatum (Early-War)</span></li>
-              <li><input class="saito-checkbox remove_card" type="checkbox" name="tsarbomba" /> <span> Tsar Bomba (Early-War)</span></li>
-              <li><input class="saito-checkbox remove_card" type="checkbox" name="unitedfruit" /> <span> United Fruit Company (Early-War)</span></li>
-              <li><input class="saito-checkbox remove_card" type="checkbox" name="berlinagreement" /> <span> Berlin Agreement (Mid-War)</span></li>
-              <li><input class="saito-checkbox remove_card" type="checkbox" name="carterdoctrine" /> <span> Carter Doctrine (Mid-War)</span></li>
-              <li><input class="saito-checkbox remove_card" type="checkbox" name="energycrisis" /> <span> Energy Crisis (Mid-War)</span></li>
-              <li><input class="saito-checkbox remove_card" type="checkbox" name="nixonshock" /> <span> Nixon Shock (Mid-War)</span></li>
-              <li><input class="saito-checkbox remove_card" type="checkbox" name="kissinger" /> <span> Kissinger Bombs Cambodia (Mid-War)</span></li>
-              <!--<li><input class="saito-checkbox remove_card" type="checkbox" name="handshake" /> <span> Handshake in Space (Mid-War)</span></li>-->
-              <li><input class="saito-checkbox remove_card" type="checkbox" name="khruschevthaw" /> <span> Khruschev Thaw (Mid-War)</span></li>
-              <li><input class="saito-checkbox remove_card" type="checkbox" name="bayofpigs" /> <span> Bay of Pigs (Mid-War)</span></li>
-              <li><input class="saito-checkbox remove_card" type="checkbox" name="fallofsaigon" /> <span> Fall of Saigon (Mid-War)</span></li>
-              <li><input class="saito-checkbox remove_card" type="checkbox" name="fischerspassky" /> <span> Fischer-Spassky (Mid-War)</span></li>
-              <li><input class="saito-checkbox remove_card" type="checkbox" name="sudan" /> <span> Sudanese Civil War (Mid-War)</span></li>
-              <li><input class="saito-checkbox remove_card" type="checkbox" name="revolutionsof1989" /> <span> Revolutions of 1989 (Late-War)</span></li>
-              <li><input class="saito-checkbox remove_card" type="checkbox" name="samotlor" /> <span> Samotlor Oil Fields (Late-War)</span></li>
-              <li><input class="saito-checkbox remove_card" type="checkbox" name="antiapartheid" /> <span> Anti-Apartheid Movement (Late-War)</span></li>
-              <li><input class="saito-checkbox remove_card" type="checkbox" name="rustinredsquare" /> <span> Rust Lands in Red Square (Late-War)</span></li>
-              <li><input class="saito-checkbox remove_card" type="checkbox" name="august1968" /> <span> August Protests (Late-War)</span></li>
-              <li><input class="saito-checkbox remove_card" type="checkbox" name="argo" /> <span> Argo (Late-War)</span></li>
-              <li><input class="saito-checkbox remove_card" type="checkbox" name="culturaldiplomacy" /> <span> Cultural Diplomacy (Early-War)</span></li>
-              <li><input class="saito-checkbox remove_card" type="checkbox" name="gouzenkoaffair" /> <span> Gouzenko Affair (Early-War)</span></li>
-              <li><input class="saito-checkbox remove_card" type="checkbox" name="poliovaccine" /> <span> Polio Vaccine (Early-War)</span></li>
-              <li><input class="saito-checkbox remove_card endofhistory_edition" type="checkbox" name="peronism" /> <span> Peronism (Early-War)</span></li>
-              <li><input class="saito-checkbox remove_card endofhistory_edition" type="checkbox" name="manwhosavedtheworld" /> <span> The Man Who Saved the World (Mid-War)</span></li>
-              <li><input class="saito-checkbox remove_card endofhistory_edition" type="checkbox" name="breakthroughatlopnor" /> <span> Breakthrough at Lop Nor (Mid-War)</span></li>
-              <li><input class="saito-checkbox remove_card endofhistory_edition" type="checkbox" name="nationbuilding" /> <span> Nation Building (Mid-War)</span></li>
-              <li><input class="saito-checkbox remove_card endofhistory_edition" type="checkbox" name="greatsociety" /> <span> Great Society (Mid-War)</span></li>
-              <li><input class="saito-checkbox remove_card endofhistory_edition" type="checkbox" name="perestroika"  /> <span> Perestroika (Late-War)</span></li>
-              <li><input class="saito-checkbox remove_card endofhistory_edition" type="checkbox" name="eurocommunism" /> <span> Eurocommunism (Mid-War)</span></li>
-              <li><input class="saito-checkbox remove_card endofhistory_edition" type="checkbox" name="inftreaty" /> <span> INF Treaty (Late-War)</span></li>
-              <li><input class="saito-checkbox remove_card coldwarcrazies_edition" type="checkbox" name="communistrevolution" /> <span> Communist Revolution (Early-War)</span></li>
-            </div>
-
+const checklistSection = (title, cards) => {
+  return `
+    <div class="overlay-input">
+      <div class="saito-overlay-form-text">
+        <p>${title}</p>
+      </div>
+      <div class="advanced-options-checklist">
+        ${cards.map(checkboxRow).join('')}
       </div>
     </div>
-          `;
+  `;
+};
 
-  return html;
+module.exports = () => {
+  const remove_cards = [
+    { name: 'asia', label: 'Asia Scoring' },
+    { name: 'europe', label: 'Europe Scoring' },
+    { name: 'mideast', label: 'Middle-East Scoring' },
+    { name: 'duckandcover', label: 'Duck and Cover' },
+    { name: 'fiveyearplan', label: 'Five Year Plan' },
+    { name: 'socgov', label: 'Socialist Governments' },
+    { name: 'fidel', label: 'Fidel' },
+    { name: 'vietnamrevolts', label: 'Vietnam Revolts' },
+    { name: 'blockade', label: 'Blockade' },
+    { name: 'koreanwar', label: 'Korean War' },
+    { name: 'romanianab', label: 'Romanian Abdication' },
+    { name: 'arabisraeli', label: 'Arab Israeli War' },
+    { name: 'comecon', label: 'Comecon' },
+    { name: 'nasser', label: 'Nasser' },
+    { name: 'warsawpact', label: 'Warsaw Pact' },
+    { name: 'degaulle', label: 'De Gaulle Leads France' },
+    { name: 'naziscientist', label: 'Nazi Scientists Captured' },
+    { name: 'truman', label: 'Truman' },
+    { name: 'olympic', label: 'Olympic Games' },
+    { name: 'nato', label: 'NATO' },
+    { name: 'indreds', label: 'Independent Reds' },
+    { name: 'marshall', label: 'Marshall Plan' },
+    { name: 'indopaki', label: 'Indo-Pakistani War' },
+    { name: 'containment', label: 'Containment' },
+    { name: 'cia', label: 'CIA Created' },
+    { name: 'usjapan', label: 'US/Japan Defense Pact' },
+    { name: 'suezcrisis', label: 'Suez Crisis' },
+    { name: 'easteuropean', label: 'East European Unrest' },
+    { name: 'decolonization', label: 'Decolonization' },
+    { name: 'redscare', label: 'Red Scare' },
+    { name: 'unintervention', label: 'UN Intervention' },
+    { name: 'destalinization', label: 'Destalinization' },
+    { name: 'nucleartestban', label: 'Nuclear Test Ban Treaty' },
+    { name: 'formosan', label: 'Formosan Resolution' },
+    { name: 'defectors', label: 'Defectors', className: 'optional_edition' },
+    { name: 'specialrelation', label: 'Special Relationship', className: 'optional_edition' },
+    { name: 'cambridge', label: 'The Cambridge Five', className: 'optional_edition' },
+    { name: 'norad', label: 'NORAD', className: 'optional_edition' },
+    { name: 'brushwar', label: 'Brush War' },
+    { name: 'camerica', label: 'Central America Scoring' },
+    { name: 'seasia', label: 'Southeast Asia Scoring' },
+    { name: 'armsrace', label: 'Arms Race' },
+    { name: 'cubanmissile', label: 'Cuban Missile Crisis' },
+    { name: 'nuclearsubs', label: 'Nuclear Subs' },
+    { name: 'quagmire', label: 'Quagmire' },
+    { name: 'saltnegotiations', label: 'Salt Negotiations' },
+    { name: 'beartrap', label: 'Bear Trap' },
+    { name: 'summit', label: 'Summit' },
+    { name: 'howilearned', label: 'How I Learned to Stop Worrying' },
+    { name: 'junta', label: 'Junta' },
+    { name: 'kitchendebates', label: 'Kitchen Debates' },
+    { name: 'missileenvy', label: 'Missile Envy' },
+    { name: 'wwby', label: 'We Will Bury You' },
+    { name: 'brezhnev', label: 'Brezhnev Doctrine' },
+    { name: 'portuguese', label: 'Portuguese Empire Crumbles' },
+    { name: 'southafrican', label: 'South African Unrest' },
+    { name: 'allende', label: 'Allende' },
+    { name: 'willybrandt', label: 'Willy Brandt' },
+    { name: 'muslimrevolution', label: 'Muslim Revolution' },
+    { name: 'abmtreaty', label: 'ABM Treaty' },
+    { name: 'culturalrev', label: 'Cultural Revolution' },
+    { name: 'flowerpower', label: 'Flower Power' },
+    { name: 'u2', label: 'U-2 Incident' },
+    { name: 'opec', label: 'OPEC' },
+    { name: 'lonegunman', label: 'Lone Gunman' },
+    { name: 'colonial', label: 'Colonial' },
+    { name: 'panamacanal', label: 'Panama Canal' },
+    { name: 'campdavid', label: 'Camp David Accords' },
+    { name: 'puppet', label: 'Puppet Governments' },
+    { name: 'grainsales', label: 'Grain Sales to Soviets' },
+    { name: 'johnpaul', label: 'John Paul' },
+    { name: 'deathsquads', label: 'Death Squads' },
+    { name: 'oas', label: 'OAS Founded' },
+    { name: 'nixon', label: 'Nixon Plays the China Card' },
+    { name: 'sadat', label: 'Sadat Expels Soviets' },
+    { name: 'shuttle', label: 'Shuttle Diplomacy' },
+    { name: 'voiceofamerica', label: 'Voice of America' },
+    { name: 'liberation', label: 'Liberation Theology' },
+    { name: 'ussuri', label: 'Ussuri River Skirmish' },
+    { name: 'asknot', label: 'Ask Not What Your Country Can Do For You' },
+    { name: 'alliance', label: 'Alliance for Progress' },
+    { name: 'africa', label: 'Africa Scoring' },
+    { name: 'onesmallstep', label: 'One Small Step' },
+    { name: 'samerica', label: 'South America' },
+    { name: 'che', label: 'Che', className: 'optional_edition' },
+    { name: 'tehran', label: 'Our Man in Tehran', className: 'optional_edition' },
+    { name: 'iranianhostage', label: 'Iranian Hostage Crisis' },
+    { name: 'ironlady', label: 'The Iron Lady' },
+    { name: 'reagan', label: 'Reagan Bombs Libya' },
+    { name: 'starwars', label: 'Star Wars' },
+    { name: 'northseaoil', label: 'North Sea Oil' },
+    { name: 'reformer', label: 'The Reformer' },
+    { name: 'marine', label: 'Marine Barracks Bombing' },
+    { name: 'KAL007', label: 'Soviets Shoot Down KAL-007' },
+    { name: 'glasnost', label: 'Glasnost' },
+    { name: 'ortega', label: 'Ortega Elected in Nicaragua' },
+    { name: 'terrorism', label: 'Terrorism' },
+    { name: 'ironcontra', label: 'Iran Contra Scandal' },
+    { name: 'chernobyl', label: 'Chernobyl' },
+    { name: 'debtcrisis', label: 'Latin American Debt Crisis' },
+    { name: 'teardown', label: 'Tear Down this Wall' },
+    { name: 'evilempire', label: 'An Evil Empire' },
+    { name: 'aldrichames', label: 'Aldrich Ames Remix' },
+    { name: 'pershing', label: 'Pershing II Deployed' },
+    { name: 'wargames', label: 'Wargames' },
+    { name: 'solidarity', label: 'Solidarity' },
+    { name: 'iraniraq', label: 'Iran-Iraq War', className: 'optional_edition' },
+    { name: 'yuri', label: 'Yuri and Samantha', className: 'optional_edition' },
+    { name: 'awacs', label: 'AWACS Sale to Saudis', className: 'optional_edition' }
+  ];
+
+  const add_cards = [
+    { name: 'iranianultimatum', label: 'Iranian Ultimatum (Early-War)' },
+    { name: 'tsarbomba', label: 'Tsar Bomba (Early-War)' },
+    { name: 'unitedfruit', label: 'United Fruit Company (Early-War)' },
+    { name: 'berlinagreement', label: 'Berlin Agreement (Mid-War)' },
+    { name: 'carterdoctrine', label: 'Carter Doctrine (Mid-War)' },
+    { name: 'energycrisis', label: 'Energy Crisis (Mid-War)' },
+    { name: 'nixonshock', label: 'Nixon Shock (Mid-War)' },
+    { name: 'kissinger', label: 'Kissinger Bombs Cambodia (Mid-War)' },
+    { name: 'khruschevthaw', label: 'Khruschev Thaw (Mid-War)' },
+    { name: 'bayofpigs', label: 'Bay of Pigs (Mid-War)' },
+    { name: 'fallofsaigon', label: 'Fall of Saigon (Mid-War)' },
+    { name: 'fischerspassky', label: 'Fischer-Spassky (Mid-War)' },
+    { name: 'sudan', label: 'Sudanese Civil War (Mid-War)' },
+    { name: 'revolutionsof1989', label: 'Revolutions of 1989 (Late-War)' },
+    { name: 'samotlor', label: 'Samotlor Oil Fields (Late-War)' },
+    { name: 'antiapartheid', label: 'Anti-Apartheid Movement (Late-War)' },
+    { name: 'rustinredsquare', label: 'Rust Lands in Red Square (Late-War)' },
+    { name: 'august1968', label: 'August Protests (Late-War)' },
+    { name: 'argo', label: 'Argo (Late-War)' },
+    { name: 'culturaldiplomacy', label: 'Cultural Diplomacy (Early-War)' },
+    { name: 'gouzenkoaffair', label: 'Gouzenko Affair (Early-War)' },
+    { name: 'poliovaccine', label: 'Polio Vaccine (Early-War)' },
+    { name: 'peronism', label: 'Peronism (Early-War)', className: 'endofhistory_edition' },
+    {
+      name: 'manwhosavedtheworld',
+      label: 'The Man Who Saved the World (Mid-War)',
+      className: 'endofhistory_edition'
+    },
+    {
+      name: 'breakthroughatlopnor',
+      label: 'Breakthrough at Lop Nor (Mid-War)',
+      className: 'endofhistory_edition'
+    },
+    { name: 'nationbuilding', label: 'Nation Building (Mid-War)', className: 'endofhistory_edition' },
+    { name: 'greatsociety', label: 'Great Society (Mid-War)', className: 'endofhistory_edition' },
+    { name: 'perestroika', label: 'Perestroika (Late-War)', className: 'endofhistory_edition' },
+    { name: 'eurocommunism', label: 'Eurocommunism (Mid-War)', className: 'endofhistory_edition' },
+    { name: 'inftreaty', label: 'INF Treaty (Late-War)', className: 'endofhistory_edition' },
+    {
+      name: 'communistrevolution',
+      label: 'Communist Revolution (Early-War)',
+      className: 'coldwarcrazies_edition'
+    }
+  ];
+
+  return `
+    <div class="overlay-input">
+      <label for="player1">Play As:</label>
+      <select class="saito-form-select" id="player1" name="player1">
+        <option value="random" selected>random sides</option>
+        <option value="ussr">play as USSR</option>
+        <option value="us">play as US</option>
+      </select>
+    </div>
+    <div class="overlay-input">
+      <label for="usbonus">US bonus influence:</label>
+      <select class="saito-form-select usbonus" id="usbonus" name="usbonus">
+        <option value="0">0</option>
+        <option value="1">1</option>
+        <option value="2" selected>2</option>
+        <option value="3">3</option>
+        <option value="4">4</option>
+        <option value="5">5</option>
+        <option value="6">6</option>
+        <option value="7">7</option>
+        <option value="8">8</option>
+        <option value="9">9</option>
+        <option value="10">10</option>
+      </select>
+    </div>
+    <div class="overlay-input">
+      <label for="clock">Player Time Limit:</label>
+      <select class="saito-form-select" id="clock" name="clock">
+        <option value="0" default>no limit</option>
+        <option value="10">10 minutes</option>
+        <option value="20">20 minutes</option>
+        <option value="30">30 minutes</option>
+        <option value="60">60 minutes</option>
+        <option value="90">90 minutes</option>
+        <option value="120">120 minutes</option>
+      </select>
+    </div>
+    ${checklistSection('Remove cards', remove_cards)}
+    ${checklistSection('Add cards', add_cards)}
+  `;
 };

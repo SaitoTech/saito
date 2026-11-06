@@ -6,9 +6,10 @@
  *   - or respondTo('saito-nft-capabilities') with one capability object, or
  *     { capabilities: [ ... ] } for several
  *
- * Each capability renders as `.saito-nft-capability[data-capability="<id>"]`
- * inside `.saito-nft-capabilities`. Action hooks keep legacy class names
- * (send-nft, sell-nft, …) for wiring.
+ * Toolbar capabilities render as `.saito-nft-capability[data-capability="<id>"]`
+ * inside `.saito-nft-capabilities`. Details stays in the registry but is not
+ * drawn in that collection; the metadata footer chevron calls its onActivate.
+ * Action hooks keep legacy class names (send-nft, sell-nft, …) for wiring.
  *
  * DOWNLOAD asks respondTo('saito-nft-download') first; otherwise falls back to
  * nft.image or the serialized NFT transaction.
@@ -174,8 +175,15 @@ class NFTCapabilities {
     return merged;
   }
 
+  /**
+   * Toolbar actions. Details is opened from the metadata footer.
+   */
+  toolbarList() {
+    return this.list().filter((cap) => cap.id !== 'details');
+  }
+
   renderHtml() {
-    return this.list()
+    return this.toolbarList()
       .map((cap) => {
         const actionClass = cap.className ? ` ${cap.className}` : '';
         return `
@@ -252,7 +260,29 @@ class NFTCapabilities {
     }
   }
 
+  openDetails() {
+    const cap = this.list().find((entry) => entry.id === 'details');
+    if (typeof cap?.onActivate === 'function') {
+      cap.onActivate(this.context());
+    }
+  }
+
+  attachDetailsNav() {
+    const button = document.querySelector('.saito-nft-panel-view .saito-nft-footer-details');
+    if (!button || button.dataset.detailsBound === '1') {
+      return;
+    }
+
+    button.dataset.detailsBound = '1';
+    button.addEventListener('click', (e) => {
+      e.preventDefault();
+      this.openDetails();
+    });
+  }
+
   attachEvents() {
+    this.attachDetailsNav();
+
     const root = document.querySelector('.saito-nft-panel-view .saito-nft-capabilities');
     if (!root || root.dataset.capabilitiesBound === '1') {
       return;

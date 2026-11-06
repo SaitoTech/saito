@@ -9,6 +9,7 @@ const Auth = require('./lib/ui/auth');
 const Waiting = require('./lib/ui/waiting');
 const Success = require('./lib/ui/success');
 const Main = require('./lib/ui/main');
+const FaucetAdmin = require('./lib/admin/faucet-admin');
 const { readFaucetMode, saveFaucetMode } = require('./lib/mode');
 
 const FREE_USE_COOLDOWN_MS = 24 * 60 * 60 * 1000;
@@ -160,8 +161,7 @@ class Faucet extends ModTemplate {
           this.server_faucet_free_use = res.free_use === true;
 
           try {
-            const buysaito = this.app.modules.returnModule('BuySaito');
-            const purchase = buysaito?.purchase_overlay;
+            const purchase = this.app.modules.returnModule('Mixin')?.purchase_overlay;
             if (
               purchase?.active &&
               typeof purchase.renderAcquisitionOptions === 'function' &&
@@ -187,6 +187,23 @@ class Faucet extends ModTemplate {
         name: this.name,
         getConfig: async () => this.adminConfigSnapshot(),
         updateConfig: async (config = {}) => this.updateAdminConfig(config)
+      };
+    }
+
+    if (type === 'admin-sidebar') {
+      if (!this.app.BROWSER) {
+        return null;
+      }
+
+      return {
+        id: this.returnSlug(),
+        name: this.name,
+        render: () => {
+          if (!this.admin_ui) {
+            this.admin_ui = new FaucetAdmin(this.app, this);
+          }
+          this.admin_ui.render();
+        }
       };
     }
 
@@ -856,7 +873,7 @@ class Faucet extends ModTemplate {
 
       if (data.already_issued) {
         try {
-          const purchase = this.app.modules.returnModule('BuySaito')?.purchase_overlay;
+          const purchase = this.app.modules.returnModule('Mixin')?.purchase_overlay;
           if (purchase && typeof purchase.showFaucetAlreadyIssuedNotice === 'function') {
             if (!document.querySelector('#purchase-container') && purchase.active) {
               purchase.render();
@@ -870,7 +887,7 @@ class Faucet extends ModTemplate {
       }
 
       try {
-        const purchase = this.app.modules.returnModule('BuySaito')?.purchase_overlay;
+        const purchase = this.app.modules.returnModule('Mixin')?.purchase_overlay;
         if (purchase) {
           purchase.acquisition_stage = 'default';
           purchase.stage1_html = null;

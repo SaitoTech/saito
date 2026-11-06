@@ -20,7 +20,7 @@
         this.game.status = "Opponent playing INF Treaty";
         this.hud.updateStatus(this.game.status);
         this.hud.updateMenu([]);
-        this.hud.updateCards([]);
+        this.hud.updateCards(this.game.deck[0].hand);
         return 0;
       }
 

@@ -2,6 +2,9 @@ import { defineConfig, devices } from "@playwright/test";
 
 export default defineConfig({
   testDir: "./tests",
+  // Opaque-origin sandbox coverage lives in playwright.sandbox.config.ts
+  // (no Saito webServer required). Run via: npm run test:sandbox
+  testIgnore: ["**/sandbox-iframe.spec.ts"],
   fullyParallel: false,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,

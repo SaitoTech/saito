@@ -64,7 +64,7 @@
               //
               // shuttle diplomacy
               //
-              if (this.game.state.events.shuttlediplomacy == 1) {
+              if (twilight_self.game.state.events.shuttlediplomacy == 1) {
                 if (discarded_cards['shuttle'] != undefined) {
                   delete discarded_cards['shuttle'];
                 }
@@ -95,7 +95,7 @@
             twilight_self.endTurn();
 
           } else {
-            if (this.game.deck[0].hand.includes(action2)){
+            if (twilight_self.game.deck[0].hand.includes(action2)){
               cards_discarded++;
               $(`#${action2}.card`).hide();
               twilight_self.removeCardFromHand(action2);

@@ -20,14 +20,13 @@ module.exports = (compose) => {
     const tweet = compose.reply_to;
     const className =
       typeof tweet.buildClassName === 'function'
-        ? tweet.buildClassName({ presentation: 'focused', focused: true })
-        : 'tweet focused';
+        ? tweet.buildClassName({ presentation: 'timeline' })
+        : 'tweet';
 
     replyPreview = `
       <div class="reply-preview">
         ${TweetTemplate(tweet, className, {
-          presentation: 'focused',
-          focused: true
+          presentation: 'timeline'
         })}
       </div>
     `;

@@ -528,9 +528,23 @@ It can operate as its own application, communicate with services provided by the
 
 For example, a dynamic module may use a slug that does not exist on the connected server.
 
-If the browser requests that application's normal URL, the server may return the default Saito 404 page.
+If the browser requests that application's normal URL, the server returns a CTA-style
+loading page saying "Checking for Dynamic Modules...". This initial document returns
+HTTP 200 and loads the Saito browser runtime at the original URL.
 
-The dynamic module can potentially use that page as the canvas into which it installs its own interface.
+After loading local dynamic applications and filtering disabled modules, the browser
+checks for an active module matching the URL. A matching module renders normally.
+Dynamic games receive the shared game stylesheet and game document classes; the
+loading document also includes Font Awesome for menu icons. The loader remains until
+the normal `saito-render-complete` notification, including when a previously packaged
+game replaces the body.
+
+If no active module matches, the browser replaces the current navigation with the
+same URL plus `__saito_not_found=1`. The server then returns the static `web/404.html`
+with HTTP 404 and no Saito script, preventing another bootstrap attempt. Direct
+requests to `/404.html`, missing assets, and non-page requests also receive HTTP 404.
+Startup failures show a retry message instead of declaring the application absent;
+there is no timeout that turns a slow application into a 404.
 
 This allows a dynamically installed application to have a user-facing entry point even when the server itself has no server-side module corresponding to that application.
 

@@ -20,10 +20,10 @@
   min-height: 0;
   padding-block: 0;
   padding-inline: var(--explorer-space-3);
-  font-family: var(--explorer-font-sans);
+  font-family: var(--saito-font);
   font-size: var(--explorer-text-sm);
   line-height: var(--explorer-leading-snug);
-  color: var(--explorer-foreground);
+  color: var(--saito-foreground);
   background-color: transparent;
   border: none;
   border-radius: 0;
@@ -31,7 +31,7 @@
 }
 
 .explorer-search-input::placeholder {
-  color: var(--explorer-muted-foreground);
+  color: var(--saito-muted-foreground);
   opacity: 1;
 }
 
@@ -56,9 +56,9 @@
   align-items: center;
   width: 100%;
   height: 3.2rem;
-  background-color: var(--explorer-muted);
-  border: 1px solid var(--explorer-border);
-  border-radius: var(--explorer-radius);
+  background-color: var(--saito-muted);
+  border: 1px solid var(--saito-border);
+  border-radius: var(--saito-radius);
   overflow: hidden;
   box-shadow: none;
 }
@@ -68,7 +68,7 @@
    component's height without changing the bar's overall height. */
 .explorer-utility-bar .explorer-search-box {
   height: 5.1rem;
-  box-shadow: var(--explorer-shadow-xs);
+  box-shadow: var(--saito-elevation-1);
 }
 
 .explorer-utility-bar .explorer-search-input {
@@ -89,8 +89,8 @@
   margin: 0;
   border: none;
   border-radius: 0;
-  background-color: var(--explorer-primary);
-  color: var(--explorer-primary-foreground);
+  background-color: var(--saito-primary);
+  color: var(--saito-primary-foreground);
   font-size: 1.3rem;
   line-height: 1;
   cursor: default;
@@ -104,7 +104,7 @@
 }
 
 .explorer-search-submit:hover {
-  background-color: color-mix(in oklch, var(--explorer-primary) 90%, var(--explorer-foreground));
+  background-color: color-mix(in oklch, var(--saito-primary) 90%, var(--saito-foreground));
 }
 
 /* Match the taller box (5.1rem) and widen by 40% (3.6rem * 1.4) so the button

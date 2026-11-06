@@ -1,6 +1,6 @@
 
     this.importTech("antimass-deflectors", {
-      name        	:       "Antimass Deflectors" ,
+      name        	:       "Gravity Shields" ,
       color       	:       "blue" ,
       prereqs             :       [],
       text		: 	"Move through asteroid fields and gain -1 when receiving PDS fire",
@@ -19,7 +19,7 @@
 
 
     this.importTech("gravity-drive", {
-      name                :       "Gravity Drive" ,
+      name                :       "Ion Propulsion" ,
       color               :       "blue" ,
       prereqs             :       ["blue"],
       text		: 	"One ship gains +1 movement when you activate a system" ,
@@ -40,7 +40,7 @@
 
 
     this.importTech("fleet-logistics", {
-      name        	: 	"Fleet Logistics" ,
+      name        	: 	"Relay Command" ,
       color       	: 	"blue" ,
       prereqs     	:       ['blue','blue'],
       text		: 	"You may perform two actions in any turn" ,
@@ -93,13 +93,13 @@
       menuOptionActivated:  function(imperium_self, menu, player) {
 	if (menu == "main") {
   	  imperium_self.game.state.players_info[player-1].fleet_logistics_exhausted = 1;
-          imperium_self.updateLog(imperium_self.returnFaction(player) + " exhausts Fleet Logistics");
+          imperium_self.updateLog(imperium_self.returnFaction(player) + " exhausts Relay Command");
           imperium_self.addMove("setvar\tplayers\t"+player+"\t"+"fleet_logistics_exhausted"+"\t"+"int"+"\t"+"1");
 	  imperium_self.addMove("play\t"+player);
 	  imperium_self.addMove("play\t"+player);
           imperium_self.addMove("NOTIFY\t"+player+" activates fleet logistics");
 	  imperium_self.endTurn();
-	  	  imperium_self.game.status = "Activating Fleet Logistics";
+	  	  imperium_self.game.status = "Activating Relay Command";
 	  imperium_self.hud.prepareIdle(imperium_self.game.status);
 	  imperium_self.hud.updateCards([]);
         }
@@ -110,7 +110,7 @@
 
 
     this.importTech("lightwave-deflector", {
-      name        	:       "Light/Wave Deflector" ,
+      name        	:       "Stealth Plating" ,
       color       	:       "blue" ,
       prereqs     	:       ['blue','blue','blue'],
       text		:	"Your fleet may move through sectors with opponent ships" ,

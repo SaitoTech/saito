@@ -26,7 +26,7 @@
     for (let i = 0; i < this.game.spaces[this.game.state.combat.key].units.length; i++) {
       let unit = this.game.spaces[this.game.state.combat.key].units[i];
       // units that have retreated this turn do not add their combat
-      if (!unit.moved) {
+      if (!unit.moved && !unit.destroyed) {
         if (unit.damaged) {
           x += unit.rcombat;
         } else {
@@ -41,7 +41,7 @@
     let x = 0;
     for (let i = 0; i < this.game.state.combat.attacker.length; i++) {
       let unit = this.game.spaces[this.game.state.combat.attacker[i].unit_sourcekey].units[this.game.state.combat.attacker[i].unit_idx];
-      if (unit) {
+      if (unit && !unit.destroyed) {
         if (unit.damaged) {
           x += unit.rcombat;
         } else {
@@ -235,7 +235,7 @@
     //
     if (space.terrain == "mountain") { is_geography_suitable = false; }
     if (space.terrain == "swamp")    { is_geography_suitable = false; }
-    if (space.trench > 0)            { is_geography_suitable = false; }
+    if (space.trench > 0 && this.game.state.combat.cancel_trench_effects != 1) { is_geography_suitable = false; }
     if (space.fort > 0)              { if (space.units.length == 0) { is_geography_suitable = false; } }
     if (attacker_spaces.length > 1)         { are_attacks_from_two_spaces = true; }
 
@@ -245,5 +245,23 @@
 
     return is_flank_attack_possible;
 
+  }
+
+  notePeaceOffensiveNoAdvance() {
+    if (!this.game.state.combat || this.game.state.combat.peace_offensive != 1) { return; }
+    if (this.game.state.combat.peace_offensive_scored == 1) { return; }
+    this.game.state.combat.peace_offensive_scored = 1;
+    if (!this.game.state.events.peace_offensive_vp) { this.game.state.events.peace_offensive_vp = 0; }
+    this.game.state.events.peace_offensive_vp++;
+    this.updateLog("Peace Offensive: attacker did not advance (-1 VP)");
+  }
+
+  queuePeaceOffensiveNoAdvance() {
+    if (!this.game.state.combat || this.game.state.combat.peace_offensive != 1) { return; }
+    if (this.game.state.combat.peace_offensive_scored == 1) { return; }
+    let next = (this.game.state.events.peace_offensive_vp || 0) + 1;
+    this.addMove("NOTIFY\tPeace Offensive: attacker did not advance (-1 VP)");
+    this.addMove("SETVAR\tstate\tevents\tpeace_offensive_vp\t"+next);
+    this.addMove("SETVAR\tstate\tcombat\tpeace_offensive_scored\t1");
   }
 

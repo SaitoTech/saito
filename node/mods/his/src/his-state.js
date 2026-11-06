@@ -584,10 +584,9 @@
     //
     for (let key in this.game.state.newworld) {
       if (this.game.state.newworld[key].vp > 0) {
-	if (this.game.state.newworld[key].faction) {	  
-	  if (this.factions[this.game.state.newworld[key].faction]) {
-	    factions[this.game.state.newworld[key].faction].vp += parseInt(this.game.state.newworld[key].vp);
-	  }
+	let owner = this.game.state.newworld[key].faction;
+	if (owner && factions[owner]) {
+	  factions[owner].vp += parseInt(this.game.state.newworld[key].vp);
 	}
       }
     }

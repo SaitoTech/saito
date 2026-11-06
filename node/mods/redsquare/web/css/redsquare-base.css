@@ -52,12 +52,7 @@ html:has(body.redsquare-body) {
   }
 
   html:has(body.redsquare-body) .saito-header-hamburger-contents {
-    right: -33.35rem;
     width: 33.35rem;
-  }
-
-  html:has(body.redsquare-body) .saito-header-hamburger-contents.show-menu {
-    right: 0;
   }
 
   html:has(body.redsquare-body) #qrcode {
@@ -92,11 +87,6 @@ html:has(body.redsquare-body) {
   html:has(body.redsquare-body) #saito-header .balance-amount-segments--subunit .balance-amount-separator,
   html:has(body.redsquare-body) #saito-header .balance-amount-segments--subunit .balance-amount-decimal {
     font-size: 2.9rem;
-  }
-
-  html:has(body.redsquare-body) #saito-header .wallet-nft-icon {
-    width: 1.55rem;
-    height: 1.55rem;
   }
 
   html:has(body.redsquare-body) #saito-header .wallet-identicon {
@@ -240,11 +230,6 @@ html:has(body.redsquare-body) {
 
   html:has(body.redsquare-body) .saito-header-hamburger-contents {
     width: 100vw;
-    right: -100vw;
-  }
-
-  html:has(body.redsquare-body) .saito-header-hamburger-contents.show-menu {
-    right: 0;
   }
 }
 

@@ -13,7 +13,7 @@
         twilight_self.game.status = "Remove four influence from Israel, UK or France";
         twilight_self.hud.updateStatus(twilight_self.game.status);
         twilight_self.hud.updateMenu([]);
-        twilight_self.hud.updateCards([]);
+        twilight_self.hud.updateCards(twilight_self.game.deck[0].hand);
 
         let ops_to_purge = 4;
         let options_purge = [];

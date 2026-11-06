@@ -35,7 +35,7 @@ function whoScored(mod, key) {
 }
 
 function publicCards(mod) {
-  let html = '';
+  let cards = [];
   let state = mod.game.state || {};
   let groups = [
     { keys: state.stage_i_objectives || [], deck: mod.stage_i_objectives || {} },
@@ -51,8 +51,15 @@ function publicCards(mod) {
       }
       let names = whoScored(mod, keys[i]);
       let note = names.length ? 'Scored by ' + names.join(', ') : '';
-      html += cardHtml(obj, note);
+      cards.push({ obj: obj, note: note, vp: obj.vp || 0 });
     }
+  }
+  cards.sort(function (a, b) {
+    return a.vp - b.vp;
+  });
+  let html = '';
+  for (let i = 0; i < cards.length; i++) {
+    html += cardHtml(cards[i].obj, cards[i].note);
   }
   return html;
 }
@@ -104,29 +111,14 @@ function privateCards(mod, player) {
 }
 
 module.exports = (imperium_self, player) => {
-  let publicHtml = publicCards(imperium_self);
-  let privateHtml = privateCards(imperium_self, player);
-  let mine = player == imperium_self.game.player;
-
-  if (!publicHtml) {
-    publicHtml = '<div class="fs-empty">No public objectives.</div>';
-  }
-  if (!privateHtml) {
-    privateHtml = mine
-      ? '<div class="fs-empty">No private objectives.</div>'
-      : '<div class="fs-empty">No scored private objectives.</div>';
+  let html = publicCards(imperium_self) + privateCards(imperium_self, player);
+  if (!html) {
+    html = '<div class="fs-empty">No objectives.</div>';
   }
 
   return `
     <div class="fs-objectives">
-      <section class="fs-section">
-        <h3>Public</h3>
-        <div class="fs-objective-grid">${publicHtml}</div>
-      </section>
-      <section class="fs-section">
-        <h3>Private</h3>
-        <div class="fs-objective-grid">${privateHtml}</div>
-      </section>
+      <div class="fs-objective-grid">${html}</div>
     </div>
   `;
 };

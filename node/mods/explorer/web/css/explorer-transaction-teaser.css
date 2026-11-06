@@ -7,7 +7,7 @@
 .transaction-teaser .explorer-heading {
   font-size: var(--explorer-text-sm);
   font-weight: var(--explorer-font-medium);
-  color: var(--explorer-muted-foreground);
+  color: var(--saito-muted-foreground);
   letter-spacing: var(--explorer-tracking-wide);
   text-transform: uppercase;
 }

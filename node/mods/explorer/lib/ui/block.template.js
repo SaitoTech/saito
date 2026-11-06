@@ -91,14 +91,16 @@ module.exports = ({
       </div>
       <section class="explorer-block-transactions" aria-label="Block transactions">
         <div class="explorer-panel-header">
-          <h2 class="explorer-heading explorer-m-0">Transactions <span class="explorer-panel-count">${block.transactions?.length ?? 0}</span></h2>
+          <h2 class="explorer-heading explorer-m-0">Transactions <span class="explorer-panel-count">${block.transactionCount ?? block.transactions?.length ?? 0}</span></h2>
         </div>
         ${spvNotice}
         <div class="explorer-tx-list explorer-feed">
           ${
             txRows.length
               ? txRows.join('')
-              : '<div class="explorer-teaser-loading"><p class="explorer-teaser-loading-message">No transactions in this block.</p></div>'
+              : `<div class="explorer-teaser-loading"><p class="explorer-teaser-loading-message">${block.bodyAvailable === false
+                  ? 'Block metadata is retained, but its transaction data is unavailable on this node.'
+                  : 'No transactions in this block.'}</p></div>`
           }
         </div>
       </section>
@@ -116,6 +118,8 @@ module.exports = ({
             <h1 class="explorer-page-title explorer-block-page-title">${title}</h1>
           </div>
         </div>
+        <a class="explorer-link" data-explorer-chain="${encodeURIComponent(blockHash)}"
+          href="/explorer/chain/${encodeURIComponent(blockHash)}">View chain and forks</a>
         <section class="explorer-block explorer-panel">
           ${body}
         </section>

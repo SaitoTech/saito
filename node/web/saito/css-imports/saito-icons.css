@@ -1,3 +1,15 @@
+/* Shared Chat action icon, including module-provided menu and call controls. */
+.saito-chat-icon {
+  display: inline-block;
+  width: 1em;
+  height: 1em;
+  flex-shrink: 0;
+  vertical-align: -0.125em;
+  background-color: currentColor;
+  -webkit-mask: url('/saito/icons/saito-chat-icon-solid.svg') center / contain no-repeat;
+  mask: url('/saito/icons/saito-chat-icon-solid.svg') center / contain no-repeat;
+}
+
 .gif-icon svg {
   max-width: 2.8rem;
   max-height: 2.8rem;

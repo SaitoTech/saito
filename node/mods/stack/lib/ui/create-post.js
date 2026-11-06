@@ -2126,6 +2126,137 @@ class CreatePost {
   }
 
   /**
+   * Move every node after a collapsed caret out of a block.
+   * <br> and other elements move intact. The paragraph is not flattened to text,
+   * because textContent drops soft breaks and joins the lines.
+   */
+  _extractContentAfterCaret(block, range) {
+    const fragment = document.createDocumentFragment();
+    if (!block) {
+      return fragment;
+    }
+
+    // An unresolved caret matches the previous string split, which used offset 0.
+    if (!range || (range.startContainer !== block && !block.contains(range.startContainer))) {
+      while (block.firstChild) {
+        fragment.appendChild(block.firstChild);
+      }
+      return fragment;
+    }
+
+    let container = range.startContainer;
+    let offset = range.startOffset;
+
+    if (container.nodeType === Node.TEXT_NODE) {
+      const parent = container.parentNode;
+      const index = Array.prototype.indexOf.call(parent.childNodes, container);
+      if (offset <= 0) {
+        container = parent;
+        offset = index;
+      } else if (offset >= container.length) {
+        container = parent;
+        offset = index + 1;
+      } else {
+        const afterNode = container.splitText(offset);
+        container = afterNode.parentNode;
+        offset = Array.prototype.indexOf.call(container.childNodes, afterNode);
+      }
+    }
+
+    while (container && container !== block) {
+      const parent = container.parentNode;
+      if (!parent) {
+        break;
+      }
+      const index = Array.prototype.indexOf.call(parent.childNodes, container);
+      const afterClone = container.cloneNode(false);
+      while (container.childNodes.length > offset) {
+        afterClone.appendChild(container.childNodes[offset]);
+      }
+      if (!afterClone.childNodes.length) {
+        container = parent;
+        offset = index + 1;
+        continue;
+      }
+      if (container.nextSibling) {
+        parent.insertBefore(afterClone, container.nextSibling);
+      } else {
+        parent.appendChild(afterClone);
+      }
+      container = parent;
+      offset = index + 1;
+    }
+
+    if (container === block) {
+      while (block.childNodes.length > offset) {
+        fragment.appendChild(block.childNodes[offset]);
+      }
+    }
+    return fragment;
+  }
+
+  /**
+   * Drop inline elements left empty by a split. <br> is a real soft break and stays.
+   */
+  _pruneEmptyInlines(block) {
+    if (!block) return;
+    const elements = Array.from(block.querySelectorAll('*'));
+    for (let i = elements.length - 1; i >= 0; i--) {
+      const el = elements[i];
+      if (!el.parentNode || el.tagName === 'BR') continue;
+      if (!el.childNodes.length) {
+        el.remove();
+      }
+    }
+  }
+
+  /**
+   * Rewrite bare URLs inside each text node. Code stays opaque.
+   * Working per text node leaves sibling <br> elements in place.
+   */
+  _linkifyTextNodes(block) {
+    if (!block) return;
+    const textNodes = [];
+    const walker = document.createTreeWalker(block, NodeFilter.SHOW_TEXT, {
+      acceptNode(node) {
+        let parent = node.parentNode;
+        while (parent && parent !== block) {
+          const tag = parent.tagName;
+          if (tag === 'CODE' || tag === 'PRE') {
+            return NodeFilter.FILTER_REJECT;
+          }
+          parent = parent.parentNode;
+        }
+        return NodeFilter.FILTER_ACCEPT;
+      }
+    });
+    let node = walker.nextNode();
+    while (node) {
+      textNodes.push(node);
+      node = walker.nextNode();
+    }
+    for (const textNode of textNodes) {
+      const original = textNode.textContent;
+      const transformed = this._convertBareUrlsToMarkdownLinks(original);
+      if (transformed !== original) {
+        textNode.textContent = transformed;
+      }
+    }
+  }
+
+  /**
+   * Append source's children onto target. Returns the first moved node so the
+   * caret can stay at the join without concatenating textContent.
+   */
+  _moveChildNodes(target, source) {
+    const firstMoved = source.firstChild;
+    while (source.firstChild) {
+      target.appendChild(source.firstChild);
+    }
+    return firstMoved;
+  }
+
+  /**
    * Convert bare http/https URLs to Markdown link syntax [url](url).
    * Pure text rewrite only. Does not create DOM nodes.
    * Skips URLs already inside [text](url). Strips trailing punctuation in post-processing.
@@ -2245,6 +2376,32 @@ class CreatePost {
   }
 
   /**
+   * Remove a highlighted range inside the body editor and leave a collapsed caret
+   * where the highlight was. Enter prevents the browser default, so this is the
+   * only way a selection is removed before the block is split.
+   */
+  deleteExpandedSelection() {
+    const editor = document.querySelector('#stack-post-body-editor');
+    const selection = window.getSelection();
+    if (!editor || !selection || !selection.rangeCount) {
+      return;
+    }
+
+    const range = selection.getRangeAt(0);
+    if (range.collapsed) {
+      return;
+    }
+    if (!editor.contains(range.startContainer) || !editor.contains(range.endContainer)) {
+      return;
+    }
+
+    range.deleteContents();
+    range.collapse(true);
+    selection.removeAllRanges();
+    selection.addRange(range);
+  }
+
+  /**
    * Handle Enter key - split paragraph block
    * If text is selected, delete selection and insert newline
    * If in a block-formatted line and line is empty, exit the block
@@ -2283,6 +2440,10 @@ class CreatePost {
     // INVARIANT: Enter prevention is centralized here and must not be reintroduced conditionally.
     // No branch in this function "decides" whether Enter is prevented - it is always prevented.
     e.preventDefault();
+
+    // The browser will not delete a highlight after preventDefault. Remove it
+    // first so every Enter path below sees a collapsed caret at that point.
+    this.deleteExpandedSelection();
 
     // DOM repair: blockquote must never be a child of <ul> (ensures clean block boundaries before Enter)
     this._ensureBlockquoteNotInList();
@@ -3088,38 +3249,28 @@ class CreatePost {
     }
 
     // ========================================================================
-    // PARAGRAPH ENTER: Split text (requires cursor offset logic)
+    // PARAGRAPH ENTER: Split the block at the caret
     // ========================================================================
-    // Paragraph Enter splits text and requires cursor offset logic.
-    // This is the ONLY Enter path that uses cursor offset calculations.
+    // Paragraph Enter splits the live child nodes at the caret.
+    // This is the ONLY Enter path that divides a block's contents.
     // MANDATORY FALLBACK: This is the mandatory fallback for normal paragraph splitting.
     // If this code does not run, Enter is broken.
     // This ensures that EVERY Enter keypress in a paragraph results in exactly one structural action.
     // e.preventDefault() already called at function start
 
-    // Use serialized content (code as backticks) so URLs inside <code> are never linkified.
+    // Split the live children at the caret. Soft breaks are <br> nodes; assigning
+    // textContent drops them and concatenates the lines. Linkification rewrites
+    // each text node, so a URL inside <code> stays opaque and sibling <br>s stay.
     const currentSelection = window.getSelection();
-    const { text: currentText, splitOffset: cursorOffset } = this.getBlockContentForLinkification(
-      focusedBlock,
-      currentSelection
-    );
+    const splitRange = currentSelection.rangeCount ? currentSelection.getRangeAt(0) : null;
+    const afterFragment = this._extractContentAfterCaret(focusedBlock, splitRange);
 
-    // Clamp cursor offset; if getBlockContentForLinkification failed to set it, fall back to end
-    let safeCursorOffset = cursorOffset;
-    if (safeCursorOffset < 0) safeCursorOffset = 0;
-    if (safeCursorOffset > currentText.length) safeCursorOffset = currentText.length;
-
-    // Split text into before and after cursor
-    const beforeText = currentText.substring(0, safeCursorOffset);
-    const afterText = currentText.substring(safeCursorOffset);
-
-    // Auto-link bare URLs: text-only rewrite before DOM write. Safe per invariants:
-    // no new blocks, no <a> elements, no cursor/selection changes—only textContent content.
-    const beforeTextTransformed = this._convertBareUrlsToMarkdownLinks(beforeText);
-    const afterTextTransformed = this._convertBareUrlsToMarkdownLinks(afterText);
-
-    // Update current block text in DOM
-    focusedBlock.textContent = beforeTextTransformed;
+    this._pruneEmptyInlines(focusedBlock);
+    focusedBlock.normalize();
+    if (!focusedBlock.firstChild) {
+      focusedBlock.appendChild(document.createTextNode('\u200B'));
+    }
+    this._linkifyTextNodes(focusedBlock);
 
     // Create new paragraph block in DOM
     // ILLEGAL: Enter completion MUST create a new block. If no block is created here, this is a bug.
@@ -3129,14 +3280,15 @@ class CreatePost {
     newBlockElement.setAttribute('data-block-id', newBlockId);
     newBlockElement.setAttribute('data-block-type', 'paragraph');
     newBlockElement.contentEditable = 'true';
-    // ILLEGAL: Blocks MUST have a text node. textContent creates one. If missing, this is a bug.
+    newBlockElement.appendChild(afterFragment);
+    this._pruneEmptyInlines(newBlockElement);
+    newBlockElement.normalize();
+    this._linkifyTextNodes(newBlockElement);
+    // ILLEGAL: Blocks MUST have a text node. A trailing split can start on a <br>.
     // ENTER completion must ensure new blocks contain a caret anchor for stable cursor placement.
-    if (afterText.length === 0) {
-      // Empty block: ensure caret anchor exists for cursor placement
+    if (!newBlockElement.firstChild || newBlockElement.firstChild.nodeType !== Node.TEXT_NODE) {
       const caretAnchor = document.createTextNode('\u200B');
-      newBlockElement.appendChild(caretAnchor);
-    } else {
-      newBlockElement.textContent = afterTextTransformed;
+      newBlockElement.insertBefore(caretAnchor, newBlockElement.firstChild);
     }
 
     // Insert after current block
@@ -3263,9 +3415,29 @@ class CreatePost {
       const br = document.createElement('br');
       range.insertNode(br);
 
-      // Move cursor after the <br>
-      range.setStartAfter(br);
-      range.collapse(true);
+      // A <br> with nothing after it is not painted, so the first Shift+Enter
+      // at the end of typed text looks like a no-op. Anchor it. Serialization
+      // strips U+200B, so the saved break stays a single hard line break.
+      let caretNode = br.nextSibling;
+      const needsAnchor =
+        !caretNode || (caretNode.nodeType === Node.TEXT_NODE && caretNode.textContent === '');
+      if (needsAnchor) {
+        const anchor = document.createTextNode('\u200B');
+        if (caretNode && caretNode.nodeType === Node.TEXT_NODE) {
+          caretNode.parentNode.replaceChild(anchor, caretNode);
+        } else {
+          br.parentNode.insertBefore(anchor, caretNode);
+        }
+        caretNode = anchor;
+      }
+
+      if (caretNode && caretNode.nodeType === Node.TEXT_NODE) {
+        range.setStart(caretNode, 0);
+        range.collapse(true);
+      } else {
+        range.setStartAfter(br);
+        range.collapse(true);
+      }
       selection.removeAllRanges();
       selection.addRange(range);
 
@@ -3314,6 +3486,14 @@ class CreatePost {
     const blockType = focusedBlock.getAttribute('data-block-type');
     const selection = window.getSelection();
     if (!selection.rangeCount) return;
+
+    // A highlight is not a caret at the start of the block. Leave it to the
+    // browser so Backspace (the Mac Delete key) removes the selected text
+    // instead of merging or unformatting the whole block.
+    const range = selection.getRangeAt(0);
+    if (!range.collapsed) {
+      return;
+    }
 
     // Don't allow caret to enter image blocks - move to previous block
     if (blockType === 'image') {
@@ -3456,28 +3636,34 @@ class CreatePost {
         if (prevBlockEl && prevBlockEl.getAttribute('data-block-type') === 'paragraph') {
           e.preventDefault();
 
-          const prevText = (prevBlockEl.textContent || '').replace(/\u200B/g, '');
-          const currText = (focusedBlock.textContent || '').replace(/\u200B/g, '');
-
-          // Merge in DOM
-          prevBlockEl.textContent = prevText + currText;
+          // Move nodes so <br> soft breaks survive the merge.
+          const firstMoved = this._moveChildNodes(prevBlockEl, focusedBlock);
           focusedBlock.remove();
 
-          // Restore cursor synchronously
+          // Restore cursor synchronously at the join, then normalize so the
+          // browser keeps that caret when adjacent text nodes merge.
           this.updatePlaceholderVisibility();
 
           const newRange = document.createRange();
           const newSelection = window.getSelection();
-          const textNode = prevBlockEl.firstChild;
-          if (textNode && textNode.nodeType === Node.TEXT_NODE) {
-            newRange.setStart(textNode, prevText.length);
-            newRange.setEnd(textNode, prevText.length);
+          if (firstMoved && firstMoved.parentNode === prevBlockEl) {
+            if (firstMoved.nodeType === Node.TEXT_NODE) {
+              newRange.setStart(firstMoved, 0);
+            } else {
+              newRange.setStartBefore(firstMoved);
+            }
+          } else if (prevBlockEl.lastChild && prevBlockEl.lastChild.nodeType === Node.TEXT_NODE) {
+            const end = prevBlockEl.lastChild.textContent.length;
+            newRange.setStart(prevBlockEl.lastChild, end);
           } else {
-            newRange.setStart(prevBlockEl, 0);
-            newRange.setEnd(prevBlockEl, 0);
+            const caretAnchor = document.createTextNode('\u200B');
+            prevBlockEl.appendChild(caretAnchor);
+            newRange.setStart(caretAnchor, 0);
           }
+          newRange.collapse(true);
           newSelection.removeAllRanges();
           newSelection.addRange(newRange);
+          prevBlockEl.normalize();
           prevBlockEl.focus();
           return;
         }
@@ -3508,6 +3694,12 @@ class CreatePost {
     if (!focusedBlock) return;
 
     const blockType = focusedBlock.getAttribute('data-block-type');
+
+    // Highlighted text is removed by the browser. Structural merge/delete
+    // applies only to a collapsed caret.
+    if (!range.collapsed) {
+      return;
+    }
 
     // If cursor is at the end of a paragraph block
     if (blockType === 'paragraph' && range.collapsed) {
@@ -3552,27 +3744,32 @@ class CreatePost {
           focusedBlock.focus();
           return;
         } else if (nextBlockType === 'paragraph' || nextBlockType === 'heading') {
-          // A3: DOM-authoritative - merge next block into current in DOM
-          const currText = (focusedBlock.textContent || '').replace(/\u200B/g, '');
-          const nextText = (nextBlockEl.textContent || '').replace(/\u200B/g, '');
-
-          focusedBlock.textContent = currText + nextText;
+          // Move nodes so <br> soft breaks survive the merge.
+          const firstMoved = this._moveChildNodes(focusedBlock, nextBlockEl);
           nextBlockEl.remove();
           this.updatePlaceholderVisibility();
 
-          // Keep cursor at the merge point synchronously
+          // Keep cursor at the join. normalize() preserves that caret.
           const newRange = document.createRange();
           const newSelection = window.getSelection();
-          const textNode = focusedBlock.firstChild;
-          if (textNode && textNode.nodeType === Node.TEXT_NODE) {
-            newRange.setStart(textNode, currText.length);
-            newRange.setEnd(textNode, currText.length);
+          if (firstMoved && firstMoved.parentNode === focusedBlock) {
+            if (firstMoved.nodeType === Node.TEXT_NODE) {
+              newRange.setStart(firstMoved, 0);
+            } else {
+              newRange.setStartBefore(firstMoved);
+            }
+          } else if (focusedBlock.lastChild && focusedBlock.lastChild.nodeType === Node.TEXT_NODE) {
+            const end = focusedBlock.lastChild.textContent.length;
+            newRange.setStart(focusedBlock.lastChild, end);
           } else {
-            newRange.setStart(focusedBlock, 0);
-            newRange.setEnd(focusedBlock, 0);
+            const caretAnchor = document.createTextNode('\u200B');
+            focusedBlock.appendChild(caretAnchor);
+            newRange.setStart(caretAnchor, 0);
           }
+          newRange.collapse(true);
           newSelection.removeAllRanges();
           newSelection.addRange(newRange);
+          focusedBlock.normalize();
           focusedBlock.focus();
           return;
         }
@@ -3881,6 +4078,21 @@ class CreatePost {
     this.storedInsertionPoint = null; // Clear after use
     this.storedDropRange = null; // Clear legacy reference
 
+    // The indicator was in the editor while the index was captured. Recompute
+    // from the real block now that the indicator is gone, so a child-list
+    // index that included the line cannot shift the image by one block.
+    if (
+      storedInsertionPoint &&
+      storedInsertionPoint.element &&
+      storedInsertionPoint.element.isConnected
+    ) {
+      storedInsertionPoint.index = this.insertionIndexForElement(
+        storedInsertionPoint.position,
+        storedInsertionPoint.element,
+        storedInsertionPoint.index
+      );
+    }
+
     if (!storedInsertionPoint) {
       // Fallback: if no stored insertion point, use end of document
       console.warn('No stored insertion point, inserting at end');
@@ -3893,6 +4105,47 @@ class CreatePost {
   }
 
   /**
+   * Editor children that are real blocks. The insertion line is mounted in the
+   * editor while dragging; counting it shifts every later index by one.
+   */
+  editorContentChildren(editor) {
+    return Array.from(editor.children).filter(
+      (el) => !(el.classList && el.classList.contains('insertion-indicator'))
+    );
+  }
+
+  /**
+   * Next sibling that is not the insertion line.
+   */
+  nextContentSibling(node) {
+    let sib = node;
+    while (
+      sib &&
+      sib.nodeType === Node.ELEMENT_NODE &&
+      sib.classList.contains('insertion-indicator')
+    ) {
+      sib = sib.nextSibling;
+    }
+    return sib;
+  }
+
+  /**
+   * Index in the [data-block-id] list, which is what image insertion uses.
+   * `position: 'after'` is already the slot after the element.
+   * Falls back to siblingIndex when the element is not itself a block (a ul).
+   */
+  insertionIndexForElement(position, element, siblingIndex) {
+    if (!element) return siblingIndex;
+    const editor = document.querySelector('#stack-post-body-editor');
+    if (!editor) return siblingIndex;
+    const blocks = Array.from(editor.querySelectorAll('[data-block-id]'));
+    const idx = blocks.indexOf(element);
+    if (idx < 0) return siblingIndex;
+    if (position === 'after') return idx + 1;
+    return idx;
+  }
+
+  /**
    * Find insertion point based on Y coordinate
    * Handles both between blocks and within blocks (e.g., between <br> tags)
    */
@@ -3900,7 +4153,7 @@ class CreatePost {
     const editor = document.querySelector('#stack-post-body-editor');
     if (!editor) return null;
 
-    const blocks = Array.from(editor.children);
+    const blocks = this.editorContentChildren(editor);
     if (blocks.length === 0)
       return { position: 'before', element: null, index: 0, splitBlock: null };
 
@@ -3909,7 +4162,12 @@ class CreatePost {
       const firstBlock = blocks[0];
       const firstRect = firstBlock.getBoundingClientRect();
       if (clientY < firstRect.top) {
-        return { position: 'before', element: firstBlock, index: 0, splitBlock: null };
+        return {
+          position: 'before',
+          element: firstBlock,
+          index: this.insertionIndexForElement('before', firstBlock, 0),
+          splitBlock: null
+        };
       }
     }
 
@@ -3922,8 +4180,9 @@ class CreatePost {
       if (clientY >= rect.top && clientY <= rect.bottom) {
         const blockType = block.getAttribute('data-block-type');
 
-        // A2: Order derived from DOM position (loop index), not cached index
-        const blockIndex = i;
+        // A2: Order derived from DOM position (loop index), not cached index.
+        // Map onto the data-block list so the insertion line cannot inflate it.
+        const blockIndex = this.insertionIndexForElement('before', block, i);
 
         // For paragraph blocks, check if we're over a line break area
         if (blockType === 'paragraph') {
@@ -3944,7 +4203,12 @@ class CreatePost {
           return { position: 'before', element: block, index: blockIndex, splitBlock: null };
         } else {
           // In lower half, insert after
-          return { position: 'after', element: block, index: blockIndex + 1, splitBlock: null };
+          return {
+            position: 'after',
+            element: block,
+            index: this.insertionIndexForElement('after', block, i + 1),
+            splitBlock: null
+          };
         }
       }
 
@@ -3956,11 +4220,13 @@ class CreatePost {
 
         // If mouse is between current block bottom and next block top
         if (clientY > rect.bottom && clientY < nextRect.top) {
-          // A2: Order derived from DOM position (loop index)
-          const blockIndex = i;
-
-          // Insert after the current block (in the gap)
-          return { position: 'after', element: block, index: blockIndex + 1, splitBlock: null };
+          // Gap includes the insertion line, which is not a block.
+          return {
+            position: 'after',
+            element: block,
+            index: this.insertionIndexForElement('after', block, i + 1),
+            splitBlock: null
+          };
         }
       }
     }
@@ -3968,7 +4234,12 @@ class CreatePost {
     // After last block - use DOM position
     const lastBlock = blocks[blocks.length - 1];
     const lastIndex = blocks.length - 1;
-    return { position: 'after', element: lastBlock, index: lastIndex + 1, splitBlock: null };
+    return {
+      position: 'after',
+      element: lastBlock,
+      index: this.insertionIndexForElement('after', lastBlock, lastIndex + 1),
+      splitBlock: null
+    };
   }
 
   /**
@@ -4198,14 +4469,14 @@ class CreatePost {
     ) {
       // Show indicator after the block that will be split
       const block = insertionPoint.element;
-      targetSibling = block.nextSibling;
+      targetSibling = this.nextContentSibling(block.nextSibling);
     } else if (insertionPoint.position === 'before' && insertionPoint.element) {
       targetSibling = insertionPoint.element;
     } else if (insertionPoint.position === 'after' && insertionPoint.element) {
-      targetSibling = insertionPoint.element.nextSibling;
+      targetSibling = this.nextContentSibling(insertionPoint.element.nextSibling);
     } else if (insertionPoint.position === 'before' && !insertionPoint.element) {
       // First block (no element means before first)
-      targetSibling = editor.firstChild;
+      targetSibling = this.nextContentSibling(editor.firstChild);
     } else {
       // Fallback: append to end
       targetSibling = null;

@@ -293,13 +293,6 @@
     background-size: cover;
   }
 
-  .removecards li {
-    float: left;
-    min-width: 300px;
-    font-size: 15px;
-    list-style-type: none;
-  }
-
   .game_details_select {
     max-width: 300px;
   }
@@ -691,7 +684,7 @@
     left: 1.667rem;
     right: auto;
     bottom: auto;
-    width: 24vw;
+    width: 13.2vw;
   }
 
   @media screen and (orientation: portrait) and (max-width: 600px) {

@@ -5,6 +5,7 @@ const LISTINGS_MIGRATION_TABLE = 'listings_inclusion_migration';
 const ORDERS_INCLUSION_INDEX = 'orders_order_tx_sig_block_hash_uidx';
 const ORDERS_PAYMENT_INCLUSION_INDEX = 'orders_payment_utxo_block_hash_uidx';
 const { STORE_CATEGORIES } = require('./categories');
+const { classifyWeb3Proceeds, web3SaleTicker } = require('./web3-amount');
 
 // Shared across Database instances using the same SQLite connection.
 const transactionTails = new WeakMap();
@@ -29,6 +30,8 @@ class Database {
   }
 
   async ensureSchema() {
+    await this.ensureBaseTables();
+
     const listing_columns = [
       'ALTER TABLE listings ADD COLUMN in_flight INTEGER NOT NULL DEFAULT 0',
       'ALTER TABLE listings ADD COLUMN reserved_order_id INTEGER NOT NULL DEFAULT 0',
@@ -47,9 +50,15 @@ class Database {
       'ALTER TABLE listings ADD COLUMN quantity_sold INTEGER NOT NULL DEFAULT 0',
       'ALTER TABLE listings ADD COLUMN sold_at INTEGER NOT NULL DEFAULT 0',
       'ALTER TABLE listings ADD COLUMN approved INTEGER NOT NULL DEFAULT 0',
-      'ALTER TABLE listings ADD COLUMN risk TEXT NOT NULL DEFAULT ""'
+      'ALTER TABLE listings ADD COLUMN risk TEXT NOT NULL DEFAULT ""',
+      'ALTER TABLE listings ADD COLUMN web3_ticker TEXT NOT NULL DEFAULT ""',
+      'ALTER TABLE listings ADD COLUMN web3_amount TEXT NOT NULL DEFAULT ""'
     ];
-    const summary_columns = ['ALTER TABLE summary ADD COLUMN category TEXT DEFAULT "Other"'];
+    const summary_columns = [
+      'ALTER TABLE summary ADD COLUMN category TEXT DEFAULT "Other"',
+      'ALTER TABLE summary ADD COLUMN web3_ticker TEXT NOT NULL DEFAULT ""',
+      'ALTER TABLE summary ADD COLUMN web3_amount TEXT NOT NULL DEFAULT ""'
+    ];
     const order_columns = [
       'ALTER TABLE orders ADD COLUMN quantity INTEGER NOT NULL DEFAULT 1',
       'ALTER TABLE orders ADD COLUMN payment_utxo_slip TEXT NOT NULL DEFAULT ""',
@@ -62,7 +71,10 @@ class Database {
       'ALTER TABLE orders ADD COLUMN block_hash_received TEXT NOT NULL DEFAULT ""',
       'ALTER TABLE orders ADD COLUMN transaction_id_received INTEGER NOT NULL DEFAULT 0',
       'ALTER TABLE orders ADD COLUMN longest_chain_received INTEGER NOT NULL DEFAULT 1',
-      'ALTER TABLE orders ADD COLUMN note TEXT NOT NULL DEFAULT ""'
+      'ALTER TABLE orders ADD COLUMN note TEXT NOT NULL DEFAULT ""',
+      'ALTER TABLE orders ADD COLUMN settlement_tx TEXT NOT NULL DEFAULT ""',
+      'ALTER TABLE orders ADD COLUMN inbound_payment_uuid TEXT NOT NULL DEFAULT ""',
+      'ALTER TABLE orders ADD COLUMN transfer_uuid TEXT NOT NULL DEFAULT ""'
     ];
 
     for (const sql of [...listing_columns, ...summary_columns, ...order_columns]) {
@@ -76,9 +88,50 @@ class Database {
     await this.migrateListingChainFields();
     await this.migrateListingInclusionUniqueness();
     await this.ensureListingSales();
+    await this.ensureStoreWithdrawals();
+    await this.ensureOrderRefunds();
     await this.migrateOrderChainFields();
     await this.migrateOrderCryptoFieldNames();
     await this.migrateOrderInclusionUniqueness();
+  }
+
+  async ensureOrderRefunds() {
+    const db = await this.app.storage.returnDatabaseByName(this.dbname);
+    if (!db) {
+      return;
+    }
+    const statements = this.returnSchemaStatements('order_refunds.sql');
+    for (const sql of statements) {
+      await db.exec(sql);
+    }
+  }
+
+  async ensureStoreWithdrawals() {
+    const db = await this.app.storage.returnDatabaseByName(this.dbname);
+    if (!db) {
+      return;
+    }
+    const statements = this.returnSchemaStatements('withdrawals.sql');
+    for (const sql of statements) {
+      await db.exec(sql);
+    }
+  }
+
+  async ensureBaseTables() {
+    const db = await this.app.storage.returnDatabaseByName(this.dbname);
+    const tables = await db.all("SELECT name FROM sqlite_master WHERE type = 'table'");
+    const existing = new Set(tables.map((table) => table.name));
+    const fs = this.app.storage.returnFileSystem();
+
+    // Installation metadata can survive a missing or incomplete database.
+    // Only create absent tables: existing tables need their column migrations
+    // before the current schema's indexes can safely reference those columns.
+    for (const table of ['listings', 'summary', 'orders']) {
+      if (!existing.has(table)) {
+        const sql = fs.readFileSync(`${__dirname}/../sql/${table}.sql`, 'utf8');
+        await db.exec(sql);
+      }
+    }
   }
 
   /**
@@ -99,6 +152,27 @@ class Database {
       await db.exec(sql);
     }
 
+    const sale_columns = [
+      'ALTER TABLE listing_sales ADD COLUMN seller TEXT NOT NULL DEFAULT ""',
+      'ALTER TABLE listing_sales ADD COLUMN web3_ticker TEXT NOT NULL DEFAULT ""',
+      'ALTER TABLE listing_sales ADD COLUMN web3_amount TEXT NOT NULL DEFAULT ""',
+      'ALTER TABLE listing_sales ADD COLUMN web3_payment_withdrawal_processed INTEGER NOT NULL DEFAULT 0',
+      'ALTER TABLE listing_sales ADD COLUMN web3_payment_withdrawal_address TEXT NOT NULL DEFAULT ""',
+      'ALTER TABLE listing_sales ADD COLUMN web3_payment_withdrawal_publickey TEXT NOT NULL DEFAULT ""',
+      'ALTER TABLE listing_sales ADD COLUMN web3_payment_withdrawal_request TEXT NOT NULL DEFAULT ""',
+      'ALTER TABLE listing_sales ADD COLUMN web3_payment_withdrawal_created_at INTEGER NOT NULL DEFAULT 0',
+      'ALTER TABLE listing_sales ADD COLUMN web3_payment_withdrawal_mixin_uuid TEXT NOT NULL DEFAULT ""',
+      'ALTER TABLE listing_sales ADD COLUMN inbound_payment_uuid TEXT NOT NULL DEFAULT ""',
+      'ALTER TABLE listing_sales ADD COLUMN transfer_uuid TEXT NOT NULL DEFAULT ""'
+    ];
+    for (const sql of sale_columns) {
+      try {
+        await db.exec(sql);
+      } catch (err) {
+        // column already exists
+      }
+    }
+
     await db.exec(
       `INSERT OR IGNORE INTO listing_sales (
 				  signature, block_hash_listed,
@@ -110,6 +184,43 @@ class Database {
 				       buyer, note, quantity_sold, sold_at, created_at, updated_at
 				  FROM listings
 				 WHERE block_id_sold > 0 AND block_hash_sold != ''`
+    );
+
+    // Sale rows created before the web3 snapshot existed still point at a listing.
+    // Copy that listing's seller and, only when it has a web3 ticker, its price.
+    await db.run(
+      `UPDATE listing_sales
+			 SET seller = CASE
+			       WHEN listing_sales.seller = '' THEN IFNULL((
+			         SELECT listings.seller FROM listings
+			          WHERE listings.signature = listing_sales.signature
+			            AND listings.block_hash_listed = listing_sales.block_hash_listed
+			          LIMIT 1
+			       ), '')
+			       ELSE listing_sales.seller
+			     END,
+			     web3_ticker = CASE
+			       WHEN listing_sales.web3_ticker = '' THEN IFNULL((
+			         SELECT UPPER(TRIM(listings.web3_ticker)) FROM listings
+			          WHERE listings.signature = listing_sales.signature
+			            AND listings.block_hash_listed = listing_sales.block_hash_listed
+			            AND TRIM(listings.web3_ticker) != ''
+			            AND UPPER(TRIM(listings.web3_ticker)) != 'SAITO'
+			          LIMIT 1
+			       ), '')
+			       ELSE listing_sales.web3_ticker
+			     END,
+			     web3_amount = CASE
+			       WHEN listing_sales.web3_amount = '' THEN IFNULL((
+			         SELECT TRIM(listings.web3_amount) FROM listings
+			          WHERE listings.signature = listing_sales.signature
+			            AND listings.block_hash_listed = listing_sales.block_hash_listed
+			            AND TRIM(listings.web3_ticker) != ''
+			            AND UPPER(TRIM(listings.web3_ticker)) != 'SAITO'
+			          LIMIT 1
+			       ), '')
+			       ELSE listing_sales.web3_amount
+			     END`
     );
 
     await db.run(
@@ -402,7 +513,7 @@ class Database {
         ? row.risk
         : '';
     const sql = `INSERT INTO listings (
-			  signature, nft_id, seller, category, quantity, price,
+			  signature, nft_id, seller, category, quantity, price, web3_ticker, web3_amount,
 			  access_hash, access_script, p2sh_address, slip_id,
 			  block_id_listed, block_hash_listed, transaction_id_listed, longest_chain_listed,
 			  block_id_sold, block_hash_sold, transaction_id_sold, longest_chain_sold,
@@ -410,7 +521,7 @@ class Database {
 			  utxo_slip1, utxo_slip2, utxo_slip3,
 			  created_at, updated_at, risk, approved
 			) VALUES (
-			  $signature, $nft_id, $seller, $category, $quantity, $price,
+			  $signature, $nft_id, $seller, $category, $quantity, $price, $web3_ticker, $web3_amount,
 			  $access_hash, $access_script, $p2sh_address, $slip_id,
 			  $block_id_listed, $block_hash_listed, $transaction_id_listed, $longest_chain_listed,
 			  $block_id_sold, $block_hash_sold, $transaction_id_sold, $longest_chain_sold,
@@ -425,6 +536,8 @@ class Database {
       $category: row.category || STORE_CATEGORIES.OTHER,
       $quantity: Number(row.quantity ?? 1),
       $price: Number(row.price ?? 0),
+      $web3_ticker: String(row.web3_ticker || '').trim().toUpperCase(),
+      $web3_amount: String(row.web3_amount || '').trim(),
       $access_hash: row.access_hash || '',
       $access_script: row.access_script || '',
       $p2sh_address: row.p2sh_address || '',
@@ -487,6 +600,40 @@ class Database {
       this.dbname
     );
     return res?.[0] || null;
+  }
+
+  /**
+   * Newest moderation decision for this seller and NFT.
+   * 1 = approved, 2 = pending review, -1 = rejected. 0 = none.
+   * A partial sale relists the remainder under a new signature; callers use
+   * this so that decision follows the NFT instead of the spent transaction.
+   */
+  async returnLatestNftModeration(nft_id, seller) {
+    const id = String(nft_id || '').trim();
+    const key = String(seller || '').trim();
+    if (!id || !key) {
+      return 0;
+    }
+
+    try {
+      const res = await this.app.storage.queryDatabase(
+        `SELECT approved FROM listings
+				 WHERE nft_id = $nft_id
+				   AND seller = $seller
+				   AND approved != 0
+				 ORDER BY block_id_listed DESC, id DESC
+				 LIMIT 1`,
+        { $nft_id: id, $seller: key },
+        this.dbname
+      );
+      const approved = Number(res?.[0]?.approved ?? 0);
+      if (approved === 1 || approved === 2 || approved === -1) {
+        return approved;
+      }
+    } catch (err) {
+      return 0;
+    }
+    return 0;
   }
 
   /** Newest stored inclusion of a listing transaction, on the longest chain or not. */
@@ -702,7 +849,9 @@ class Database {
       note = '',
       buyer = '',
       quantity_sold = 0,
-      sold_at = 0
+      sold_at = 0,
+      inbound_payment_uuid = '',
+      transfer_uuid = ''
     } = {},
     now = Date.now()
   ) {
@@ -724,6 +873,7 @@ class Database {
       return;
     }
 
+    const sale_ticker = web3SaleTicker(inclusion.web3_ticker);
     const params = {
       $signature: String(signature || ''),
       $block_hash_listed: String(inclusion.block_hash_listed || ''),
@@ -734,19 +884,29 @@ class Database {
       $buyer: String(buyer || ''),
       $quantity_sold: Math.max(0, Number(quantity_sold ?? 0) || 0),
       $sold_at: Number(sold_at || now) || now,
-      $updated_at: now
+      $created_at: now,
+      $updated_at: now,
+      $seller: String(inclusion.seller || ''),
+      $web3_ticker: sale_ticker,
+      $web3_amount: sale_ticker ? String(inclusion.web3_amount || '').trim() : '',
+      $inbound_payment_uuid: String(inbound_payment_uuid || '').trim(),
+      $transfer_uuid: String(transfer_uuid || '').trim()
     };
 
+    // The confirmed sale is committed before the listing snapshot is updated.
+    // A failure in that snapshot must not erase the sale record.
     await this.withImmediateTransaction(async (db) => {
       await db.run(
         `INSERT INTO listing_sales (
 					  signature, block_hash_listed,
 					  block_id_sold, block_hash_sold, transaction_id_sold, longest_chain_sold,
-					  buyer, note, quantity_sold, sold_at, created_at, updated_at
+					  buyer, note, quantity_sold, sold_at, created_at, updated_at,
+					  seller, web3_ticker, web3_amount, inbound_payment_uuid, transfer_uuid
 					) VALUES (
 					  $signature, $block_hash_listed,
 					  $block_id_sold, $block_hash_sold, $transaction_id_sold, 1,
-					  $buyer, $note, $quantity_sold, $sold_at, $updated_at, $updated_at
+					  $buyer, $note, $quantity_sold, $sold_at, $created_at, $updated_at,
+					  $seller, $web3_ticker, $web3_amount, $inbound_payment_uuid, $transfer_uuid
 					)
 					ON CONFLICT(signature, block_hash_listed, block_hash_sold) DO UPDATE SET
 					  block_id_sold = excluded.block_id_sold,
@@ -756,9 +916,36 @@ class Database {
 					  note = excluded.note,
 					  quantity_sold = excluded.quantity_sold,
 					  sold_at = excluded.sold_at,
-					  updated_at = excluded.updated_at`,
+					  updated_at = excluded.updated_at,
+					  seller = excluded.seller,
+					  web3_ticker = excluded.web3_ticker,
+					  web3_amount = excluded.web3_amount,
+					  inbound_payment_uuid = CASE
+					    WHEN listing_sales.inbound_payment_uuid = '' THEN excluded.inbound_payment_uuid
+					    ELSE listing_sales.inbound_payment_uuid
+					  END,
+					  transfer_uuid = CASE
+					    WHEN listing_sales.transfer_uuid = '' THEN excluded.transfer_uuid
+					    ELSE listing_sales.transfer_uuid
+					  END`,
         params
       );
+    });
+
+    const listingParams = {
+      $block_id_sold: params.$block_id_sold,
+      $block_hash_sold: params.$block_hash_sold,
+      $transaction_id_sold: params.$transaction_id_sold,
+      $note: params.$note,
+      $buyer: params.$buyer,
+      $quantity_sold: params.$quantity_sold,
+      $sold_at: params.$sold_at,
+      $updated_at: params.$updated_at,
+      $signature: params.$signature,
+      $block_hash_listed: params.$block_hash_listed
+    };
+    try {
+      const db = await this.app.storage.returnDatabaseByName(this.dbname);
       await db.run(
         `UPDATE listings
 				 SET block_id_sold = $block_id_sold,
@@ -772,9 +959,49 @@ class Database {
 				     sold_at = $sold_at,
 				     updated_at = $updated_at
 				 WHERE signature = $signature AND block_hash_listed = $block_hash_listed`,
-        params
+        listingParams
       );
-    });
+    } catch (err) {
+      console.error('Store: listing update failed after the sale was recorded', {
+        signature: params.$signature,
+        block_hash_listed: params.$block_hash_listed,
+        block_hash_sold: params.$block_hash_sold,
+        transaction_id_sold: params.$transaction_id_sold,
+        error: err?.message || String(err)
+      });
+      return { sale_recorded: true, listing_updated: false, listing_error: err };
+    }
+    return { sale_recorded: true, listing_updated: true };
+  }
+
+  /**
+   * Unprocessed web3 sales for one seller, split by the withdrawal wait.
+   * Eligible sales are on the longest chain and at least waitBlocks after
+   * block_id_sold. Every other unprocessed sale stays pending. A sale already
+   * reserved by a withdrawal request is omitted from both buckets.
+   */
+  async returnWeb3WithdrawalBalances(seller = '', latestBlockId = null, waitBlocks = 0) {
+    const key = String(seller || '').trim();
+    if (!key) {
+      return { pending: {}, eligible: {} };
+    }
+    let rows = [];
+    try {
+      rows = await this.app.storage.queryDatabase(
+        `SELECT web3_ticker, web3_amount, quantity_sold, block_id_sold, longest_chain_sold
+				 FROM listing_sales
+				 WHERE seller = $seller
+				   AND web3_payment_withdrawal_processed = 0
+				   AND IFNULL(web3_payment_withdrawal_request, '') = ''
+				   AND TRIM(web3_ticker) != ''
+				   AND UPPER(TRIM(web3_ticker)) != 'SAITO'`,
+        { $seller: key },
+        this.dbname
+      );
+    } catch (err) {
+      return { pending: {}, eligible: {} };
+    }
+    return classifyWeb3Proceeds(rows, latestBlockId, waitBlocks);
   }
 
   /**
@@ -930,7 +1157,8 @@ class Database {
 
   /**
    * Copy the canonical sale onto the listing snapshot when one exists.
-   * When none does, clear only longest_chain_sold and keep the last sale identity.
+   * When none does, keep the last sale identity, clear longest_chain_sold, and
+   * set longest_chain_listed = -1 so the spent inclusion is not offered again.
    */
   async refreshSaleSnapshots(db, params) {
     await db.run(
@@ -1012,6 +1240,7 @@ class Database {
     await db.run(
       `UPDATE listings
 			 SET longest_chain_sold = 0,
+			     longest_chain_listed = -1,
 			     updated_at = $updated_at
 			 WHERE EXISTS (
 			   SELECT 1 FROM listing_sales touched
@@ -1069,7 +1298,8 @@ class Database {
     }
   }
 
-  async returnActiveListingsForSeller(seller = '') {
+  // An NFT filter selects the cheapest available listing, oldest first on ties.
+  async returnActiveListingsForSeller(seller = '', nft_id = '') {
     const key = String(seller || '').trim();
     if (!key) {
       return [];
@@ -1079,8 +1309,9 @@ class Database {
         `SELECT * FROM listings
 				 WHERE seller = $seller
 				   AND ${this.availableListingWhere()}
-				 ORDER BY created_at DESC`,
-        { $seller: key },
+				   ${nft_id ? 'AND nft_id = $nft_id AND quantity > 0' : ''}
+				 ORDER BY ${nft_id ? 'price ASC, created_at ASC, id ASC LIMIT 1' : 'created_at DESC'}`,
+        nft_id ? { $seller: key, $nft_id: nft_id } : { $seller: key },
         this.dbname
       );
     } catch (err) {
@@ -1454,15 +1685,17 @@ class Database {
 
   async insertSummary(summary) {
     const sql = `INSERT INTO summary (
-			  nft_id, price, category, title, description, image,
+			  nft_id, price, web3_ticker, web3_amount, category, title, description, image,
 			  quantity_available, updated_at
 			) VALUES (
-			  $nft_id, $price, $category, $title, $description, $image,
+			  $nft_id, $price, $web3_ticker, $web3_amount, $category, $title, $description, $image,
 			  $quantity_available, $updated_at
 			)`;
     const params = {
       $nft_id: summary.nft_id,
       $price: Number(summary.price ?? 0),
+      $web3_ticker: String(summary.web3_ticker || '').trim().toUpperCase(),
+      $web3_amount: String(summary.web3_amount || '').trim(),
       $category: summary.category || STORE_CATEGORIES.OTHER,
       $title: summary.title || '',
       $description: summary.description || '',
@@ -1477,6 +1710,21 @@ class Database {
       throw new Error('Store database unavailable');
     }
     await db.run(sql, params);
+  }
+
+  async updateSummaryWeb3(nft_id, price, { web3_ticker = '', web3_amount = '' } = {}) {
+    await this.app.storage.runDatabase(
+      `UPDATE summary
+			    SET web3_ticker = $web3_ticker, web3_amount = $web3_amount
+			  WHERE nft_id = $nft_id AND price = $price`,
+      {
+        $nft_id: nft_id,
+        $price: Number(price ?? 0),
+        $web3_ticker: String(web3_ticker || '').trim().toUpperCase(),
+        $web3_amount: String(web3_amount || '').trim()
+      },
+      this.dbname
+    );
   }
 
   async returnSummary(summary_id) {
@@ -1622,6 +1870,7 @@ class Database {
       `INSERT OR IGNORE INTO orders (
 			  order_tx_sig, buyer, nft_id, price, quantity, note,
 			  payment_tx_sig, payment_output_index, payment_amount, utxo_slip,
+			  inbound_payment_uuid, transfer_uuid,
 			  access_hash, access_script, p2sh_address,
 			  block_id_received, block_hash_received, transaction_id_received, longest_chain_received,
 			  settlement_tx_sig,
@@ -1631,6 +1880,7 @@ class Database {
 			) VALUES (
 			  $order_tx_sig, $buyer, $nft_id, $price, $quantity, $note,
 			  $payment_tx_sig, $payment_output_index, $payment_amount, $utxo_slip,
+			  $inbound_payment_uuid, $transfer_uuid,
 			  $access_hash, $access_script, $p2sh_address,
 			  $block_id_received, $block_hash_received, $transaction_id_received, $longest_chain_received,
 			  $settlement_tx_sig,
@@ -1647,6 +1897,7 @@ class Database {
   async updateOrder(order_id, fields = {}, now = Date.now()) {
     const allowed = [
       'settlement_tx_sig',
+      'settlement_tx',
       'block_id_fulfilled',
       'block_hash_fulfilled',
       'transaction_id_fulfilled',
@@ -1656,7 +1907,8 @@ class Database {
       'status'
     ];
     const sets = [];
-    const params = { $id: Number(order_id), $updated_at: now };
+    const id = Number(order_id);
+    const params = { $id: id, $updated_at: now };
 
     for (const key of allowed) {
       if (fields[key] === undefined) {
@@ -1667,15 +1919,33 @@ class Database {
     }
 
     if (!sets.length) {
-      return;
+      return { changes: 0 };
     }
 
     sets.push('updated_at = $updated_at');
-    await this.app.storage.runDatabase(
-      `UPDATE orders SET ${sets.join(', ')} WHERE id = $id`,
-      params,
-      this.dbname
-    );
+    const db = await this.app.storage.returnDatabaseByName(this.dbname);
+    if (!db) {
+      throw new OrderUpdateError('Store database unavailable', { orderId: id, kind: 'driver' });
+    }
+    let result;
+    try {
+      result = await db.run(`UPDATE orders SET ${sets.join(', ')} WHERE id = $id`, params);
+    } catch (err) {
+      throw new OrderUpdateError(`Order ${id} update failed`, {
+        orderId: id,
+        kind: 'driver',
+        cause: err
+      });
+    }
+    const changes = Number(result?.changes ?? 0);
+    if (changes !== 1) {
+      throw new OrderUpdateError(`Order ${id} update affected ${changes} rows`, {
+        orderId: id,
+        kind: 'row_count',
+        changes
+      });
+    }
+    return { changes };
   }
 
   async incrementOrderAttempts(order_id, now = Date.now()) {
@@ -1837,6 +2107,201 @@ class Database {
       this.dbname
     );
   }
+
+  async claimRefundIntent(intent = {}) {
+    const now = Date.now();
+    const paymentSig = String(intent.payment_tx_sig || '').trim();
+    const blockHash = String(intent.block_hash_received || '');
+    const output = Number(intent.payment_output_index ?? 0);
+    if (!paymentSig) {
+      throw new Error('Refund intent is missing its payment transaction');
+    }
+    const orderId = Number(intent.order_id) || 0;
+    await this.withImmediateTransaction(async (db) => {
+      if (orderId) {
+        const existing = await db.all(`SELECT status FROM orders WHERE id = $id`, { $id: orderId });
+        if (existing?.[0]?.status === 'fulfilled') {
+          throw new Error(`Order ${orderId} is fulfilled and is not refunded automatically`);
+        }
+        await db.run(
+          `UPDATE orders
+           SET status = 'unfulfillable', updated_at = $updated_at
+           WHERE id = $id AND status IN ('pending', 'settling', 'unfulfillable')`,
+          { $id: orderId, $updated_at: now }
+        );
+      }
+      await db.run(
+        `INSERT OR IGNORE INTO order_refunds (
+           payment_tx_sig, payment_output_index, block_hash_received, block_id_received,
+           order_tx_sig, order_id, buyer, refund_publickey, reason,
+           utxo_slip, access_script, payment_amount, created_at, updated_at
+         ) VALUES (
+           $payment_tx_sig, $payment_output_index, $block_hash_received, $block_id_received,
+           $order_tx_sig, $order_id, $buyer, $refund_publickey, $reason,
+           $utxo_slip, $access_script, $payment_amount, $created_at, $updated_at
+         )`,
+        {
+          $payment_tx_sig: paymentSig,
+          $payment_output_index: output,
+          $block_hash_received: blockHash,
+          $block_id_received: Number(intent.block_id_received) || 0,
+          $order_tx_sig: String(intent.order_tx_sig || ''),
+          $order_id: orderId || null,
+          $buyer: String(intent.buyer || ''),
+          $refund_publickey: String(intent.refund_publickey || ''),
+          $reason: String(intent.reason || ''),
+          $utxo_slip: String(intent.utxo_slip || ''),
+          $access_script: String(intent.access_script || ''),
+          $payment_amount: Number(intent.payment_amount) || 0,
+          $created_at: now,
+          $updated_at: now
+        }
+      );
+    });
+    return this.returnRefundByPayment(paymentSig, output, blockHash);
+  }
+
+  async returnRefundByPayment(paymentSig, outputIndex, blockHash) {
+    const db = await this.app.storage.returnDatabaseByName(this.dbname);
+    const rows = await db.all(
+      `SELECT * FROM order_refunds
+       WHERE payment_tx_sig = $payment_tx_sig
+         AND payment_output_index = $payment_output_index
+         AND block_hash_received = $block_hash_received
+       LIMIT 1`,
+      {
+        $payment_tx_sig: paymentSig,
+        $payment_output_index: Number(outputIndex) || 0,
+        $block_hash_received: String(blockHash || '')
+      }
+    );
+    return rows?.[0] || null;
+  }
+
+  async returnRefundBySignature(signature) {
+    const db = await this.app.storage.returnDatabaseByName(this.dbname);
+    const rows = await db.all(
+      `SELECT * FROM order_refunds WHERE refund_tx_sig = $signature LIMIT 1`,
+      { $signature: String(signature || '') }
+    );
+    return rows?.[0] || null;
+  }
+
+  async returnRefundsNeedingAttention() {
+    const db = await this.app.storage.returnDatabaseByName(this.dbname);
+    return db.all(
+      `SELECT * FROM order_refunds
+       WHERE refund_status IN ('', 'prepared', 'submitted', 'uncertain')
+          OR (refund_status = 'confirmed' AND longest_chain_refunded = 0)
+       ORDER BY id ASC`,
+      {}
+    );
+  }
+
+  async saveRefundTransactionIfEmpty(id, { signature, serialized, preparedAt }) {
+    const db = await this.app.storage.returnDatabaseByName(this.dbname);
+    const result = await db.run(
+      `UPDATE order_refunds
+       SET refund_tx_sig = $signature,
+           refund_tx = $serialized,
+           refund_status = 'prepared',
+           refund_prepared_at = $prepared_at,
+           updated_at = $prepared_at
+       WHERE id = $id AND refund_tx_sig = '' AND refund_status = ''`,
+      {
+        $id: Number(id),
+        $signature: signature,
+        $serialized: serialized,
+        $prepared_at: preparedAt
+      }
+    );
+    return Number(result?.changes || 0) === 1;
+  }
+
+  async markRefundStatus(id, status, { error = '', attempts = null } = {}) {
+    const db = await this.app.storage.returnDatabaseByName(this.dbname);
+    const sets = ['refund_status = $status', 'last_error = $error', 'updated_at = $updated_at'];
+    const params = {
+      $id: Number(id),
+      $status: status,
+      $error: String(error || ''),
+      $updated_at: Date.now()
+    };
+    if (attempts != null) {
+      sets.push('refund_broadcast_attempts = $attempts');
+      params.$attempts = Number(attempts);
+    }
+    await db.run(`UPDATE order_refunds SET ${sets.join(', ')} WHERE id = $id`, params);
+  }
+
+  async recordRefundInclusion(signature, inclusion) {
+    const db = await this.app.storage.returnDatabaseByName(this.dbname);
+    const result = await db.run(
+      `UPDATE order_refunds
+       SET refund_status = 'confirmed',
+           block_id_refunded = $block_id,
+           block_hash_refunded = $block_hash,
+           transaction_id_refunded = $transaction_id,
+           longest_chain_refunded = 1,
+           last_error = '',
+           updated_at = $updated_at
+       WHERE refund_tx_sig = $signature`,
+      {
+        $signature: signature,
+        $block_id: Number(inclusion.block_id) || 0,
+        $block_hash: String(inclusion.block_hash || ''),
+        $transaction_id: Number(inclusion.transaction_id) || 0,
+        $updated_at: Date.now()
+      }
+    );
+    return Number(result?.changes || 0);
+  }
+
+  async updateRefundChainState(block_id, block_hash, longest_chain) {
+    const db = await this.app.storage.returnDatabaseByName(this.dbname);
+    if (!db) {
+      return;
+    }
+    if (longest_chain) {
+      await db.run(
+        `UPDATE order_refunds
+         SET longest_chain_refunded = 1, updated_at = $updated_at
+         WHERE block_id_refunded = $block_id AND block_hash_refunded = $block_hash
+           AND refund_tx_sig != ''`,
+        {
+          $block_id: Number(block_id) || 0,
+          $block_hash: String(block_hash || ''),
+          $updated_at: Date.now()
+        }
+      );
+      return;
+    }
+    await db.run(
+      `UPDATE order_refunds
+       SET longest_chain_refunded = 0,
+           refund_status = CASE WHEN refund_status = 'confirmed' THEN 'uncertain' ELSE refund_status END,
+           updated_at = $updated_at
+       WHERE block_id_refunded = $block_id AND block_hash_refunded = $block_hash
+         AND refund_tx_sig != ''`,
+      {
+        $block_id: Number(block_id) || 0,
+        $block_hash: String(block_hash || ''),
+        $updated_at: Date.now()
+      }
+    );
+  }
+}
+
+class OrderUpdateError extends Error {
+  constructor(message, { orderId = 0, kind = 'driver', cause = null, changes = null } = {}) {
+    super(message);
+    this.name = 'OrderUpdateError';
+    this.orderId = orderId;
+    this.kind = kind;
+    this.cause = cause;
+    this.changes = changes;
+  }
 }
 
 module.exports = Database;
+module.exports.OrderUpdateError = OrderUpdateError;

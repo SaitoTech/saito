@@ -9,7 +9,7 @@
         this.game.status = "Socialist Governments prevented by Iron Lady";
         this.hud.updateStatus(this.game.status);
         this.hud.updateMenu([]);
-        this.hud.updateCards([]);
+        this.hud.updateCards(this.game.deck[0].hand);
         return 1;
       }
       
@@ -48,7 +48,7 @@
         this.game.status = "Remove "+ops_to_purge+" US influence from Western Europe (max 2 per country)";
         this.hud.updateStatus(this.game.status);
         this.hud.updateMenu([]);
-        this.hud.updateCards([]);        
+        this.hud.updateCards(this.game.deck[0].hand);        
 
         $(".easterneurope").off();
         $(".easterneurope").on('click', function() {

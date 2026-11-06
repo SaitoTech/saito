@@ -359,34 +359,43 @@
 
       if (loop == 1) {
 
+	let italian_limit = this.game.state.rules.italian_movement && !this.game.state.allies_total_war_cards_added && unit && unit.ckey != "AH" && unit.ckey != "IT";
+	let blocked_italy = italian_limit && this.game.spaces[current].country == "italy" && current != spacekey;
+	let german_end = italian_limit && unit.ckey == "GE" && (current == "trent" || current == "villach" || current == "trieste");
+
 	//
 	// this is a possible destination! but Russian units can only move 1 unit to the near east
 	//
-	if (unit.ckey == "RU") {
-	  if (this.game.spaces[current].country == "russia") {
-            spaces.push(current);
-	  } else {
-    	    if (this.isSpaceOnNearEastMap(current)) {
-	      if (this.canPlayerMoveUnitIntoNearEast("allies", unit)) {
-                spaces.push(current);
+	if (!blocked_italy && !german_end) {
+	  if (unit.ckey == "RU") {
+	    if (this.game.spaces[current].country == "russia") {
+              spaces.push(current);
+	    } else {
+    	      if (this.isSpaceOnNearEastMap(current)) {
+	        if (this.canPlayerMoveUnitIntoNearEast("allies", unit)) {
+                  spaces.push(current);
+	        }
 	      }
 	    }
+	  } else {
+            spaces.push(current);
 	  }
-	} else {
-          spaces.push(current);
 	}
 
         //
         // add neighbours to pending if...
+        // Italian territory is not a route for other nationalities.
         //
-        for (let n in this.game.spaces[current].neighbours) {
-          let s = this.game.spaces[current].neighbours[n];
-          if (!examined[s]) {
-            if (this.returnControlOfSpace(s) == faction) {
-              pending.push(s);
+	if (!blocked_italy) {
+          for (let n in this.game.spaces[current].neighbours) {
+            let s = this.game.spaces[current].neighbours[n];
+            if (!examined[s]) {
+              if (this.returnControlOfSpace(s) == faction) {
+                pending.push(s);
+              }
             }
           }
-        }
+	}
       }
     }
 
@@ -402,7 +411,9 @@
   	    if (this.game.spaces[key].port == this.game.spaces[spacekey].port) {
 	      if (this.game.spaces[key].control == faction) {
 	        if (spacekey != key && !spaces.includes(key)) {
-	          spaces.push(key);
+		  if (!(this.game.state.rules.italian_movement && !this.game.state.allies_total_war_cards_added && this.game.spaces[key].country == "italy" && unit.ckey != "AH" && unit.ckey != "IT")) {
+	            spaces.push(key);
+		  }
 	        }
 	      }
 	    }
@@ -418,7 +429,7 @@
 
 
 
-  checkSupplyStatus(faction="", spacekey="") {
+  checkSupplyStatus(faction="", spacekey="", for_space=false) {
 
     let toggle_constantinople_port = 0;
 
@@ -531,10 +542,18 @@ if (spacekey == "stanislau") {
     if (faction == "ro" || faction == "romania") { sources.push(...["belgrade","moscow","petrograd","kharkov","caucasus"]); }
     if (faction == "sb" || faction == "serbia") { 
       sources.push(...["moscow","petrograd","kharkov","caucasus","london"]); 
+      // Belgrade is a supply source for Serbian units. Space-control checks
+      // already accept any friendly source (14.2.5); units must list it here.
+      if (this.returnControlOfSpace("belgrade") == "allies") { sources.push("belgrade"); }
       if (this.returnControlOfSpace("salonika") == "allies") { sources.push("salonika"); }
     }
     if (sources.length == 0) {
       sources = ["london"];
+    }
+    // 14.2.5 - spaces, not units, may trace to any friendly supply source.
+    if (for_space && controlling_faction == "allies") {
+      sources.push("belgrade");
+      if (this.returnControlOfSpace("salonika") == "allies") { sources.push("salonika"); }
     }
     if (country == "albania") { if (this.game.spaces["taranto"].control != "central") { sources.push("taranto"); } }
     let ports = this.returnFriendlyControlledPorts(controlling_faction);
@@ -819,6 +838,12 @@ if (spacekey == "stanislau") {
     let hop = 0;
     let old = [];
 
+    //
+    // passthrough_func return values:
+    //   0 / falsy = cannot enter
+    //   1 / truthy = enter and continue through
+    //   2 = enter as destination only (do not expand through)
+    //
     let addHop = function(news, hop) {     
 
       hop++;
@@ -828,52 +853,58 @@ if (spacekey == "stanislau") {
       //
       for (let i = 0; i < news.length; i++) {
 
-	let passthrough = true;
-	if (passthrough_func != null) { if (!passthrough_func(news[i])) { passthrough = false; } } 
-	if (news[i] == source.key) { passthrough = true; } // auto-exempt source 
+	let gate = 1;
+	if (passthrough_func != null) {
+	  let r = passthrough_func(news[i]);
+	  if (r === 2 || r === '2') { gate = 2; }
+	  else if (!r) { gate = 0; }
+	  else { gate = 1; }
+	}
+	if (news[i] == source.key) { gate = 1; } // auto-exempt source 
 
-	//
-	// don't add anything that isn't passthrough, and don't process any of its
-	// neighbours since we cannot route through it.
-	//
-	if (passthrough) {
-          for (let z = 0; z < paths_self.game.spaces[news[i]].neighbours.length; z++) {
-            let n = paths_self.game.spaces[news[i]].neighbours[z];
-
-	    //
-	    // we submit unit when calculating movement, so that we can 
-	    // determine if units can move between depots etc.
-	    //
-	    let restricted_movement = false;
-	    if (unit != null) {
-	      let lim = paths_self.game.spaces[news[i]].limits;
-	      if (lim) {
-	        for (let z = 0; z < lim.length; z++) {
-		  if (lim[z][n]) {
-		    restricted_movement = true;
-		    if (lim[z][n] == unit.ckey) { restricted_movement = false; }
-		  }
-		}
-	      }
-	    }
-
-	    if (restricted_movement == false) {
-              if (!old.includes(n)) {
-                if (!news.includes(n)) {
-                  if (!newer.includes(n)) {
-                    if (n !== source.key) {
-	              newer.push(n);
-	            }
-	          }
-	        }
-	      }
-	    }
-          }
-
+	if (gate) {
           if (hop != -1) {
 	    if (!old.includes(news[i])) {
 	      if (news[i] !== source.key) {
 	        old.push(news[i]);
+	      }
+            }
+          }
+
+	  //
+	  // gate 2 = enterable fort-style stop: reachable, but do not route through
+	  //
+	  if (gate === 1) {
+            for (let z = 0; z < paths_self.game.spaces[news[i]].neighbours.length; z++) {
+              let n = paths_self.game.spaces[news[i]].neighbours[z];
+
+	      //
+	      // we submit unit when calculating movement, so that we can 
+	      // determine if units can move between depots etc.
+	      //
+	      let restricted_movement = false;
+	      if (unit != null) {
+	        let lim = paths_self.game.spaces[news[i]].limits;
+	        if (lim) {
+	          for (let z = 0; z < lim.length; z++) {
+		    if (lim[z][n]) {
+		      restricted_movement = true;
+		      if (lim[z][n] == unit.ckey) { restricted_movement = false; }
+		    }
+		  }
+	        }
+	      }
+
+	      if (restricted_movement == false) {
+                if (!old.includes(n)) {
+                  if (!news.includes(n)) {
+                    if (!newer.includes(n)) {
+                      if (n !== source.key) {
+	                newer.push(n);
+	              }
+	            }
+	          }
+	        }
 	      }
             }
           }
@@ -901,6 +932,12 @@ if (spacekey == "stanislau") {
     let hop = 0;
     let old = [];
 
+    //
+    // passthrough_func return values:
+    //   0 / falsy = cannot enter
+    //   1 / truthy = enter and continue through
+    //   2 = enter as destination only (do not expand through)
+    //
     let addHop = function(news, hop) {     
 
       hop++;
@@ -910,54 +947,57 @@ if (spacekey == "stanislau") {
       //
       for (let i = 0; i < news.length; i++) {
 
-	let passthrough = true;
-	if (passthrough_func != null) { if (!passthrough_func(news[i])) { passthrough = false; } } 
-	if (news[i] == source.key) { passthrough = true; } // auto-exempt source 
+	let gate = 1;
+	if (passthrough_func != null) {
+	  let r = passthrough_func(news[i]);
+	  if (r === 2 || r === '2') { gate = 2; }
+	  else if (!r) { gate = 0; }
+	  else { gate = 1; }
+	}
+	if (news[i] == source.key) { gate = 1; } // auto-exempt source 
 
-	//
-	// don't add anything that isn't passthrough, and don't process any of its
-	// neighbours since we cannot route through it.
-	//
-	if (passthrough) {
-          for (let z = 0; z < paths_self.game.spaces[news[i]].neighbours.length; z++) {
-            let n = paths_self.game.spaces[news[i]].neighbours[z];
-
-	    //
-	    // we submit unit when calculating movement, so that we can 
-	    // determine if units can move between depots etc.
-	    //
-	    let restricted_movement = false;
-	    if (unit != null) {
-	      let lim = paths_self.game.spaces[news[i]].limits;
-	      if (lim) {
-	        for (let z = 0; z < lim.length; z++) {
-		  if (lim[z][n]) {
-		    restricted_movement = true;
-		    if (lim[z][n] == unit.ckey) { restricted_movement = false; }
-		  }
-		}
-	      }
-	    }
-
-	    if (restricted_movement == false) {
-              if (!old.includes(n)) {
-                if (!news.includes(n)) {
-                  if (!newer.includes(n)) {
-                    if (n !== source.key) {
-	              newer.push(n);
-	            }
-	          }
-	        }
-	      }
-	    }
-          }
-
+	if (gate) {
           if (hop != -1) {
 	    let does_old_include_spacekey = false;
 	    for (let z = 0; z < old.length; z++) { if (old[z].spacekey == news[i]) { does_old_include_spacekey = true; } }
 	    if (!does_old_include_spacekey) {
 	      if (news[i] !== source.key) {
 	        old.push({ spacekey : news[i] , hops : hop });
+	      }
+            }
+          }
+
+	  if (gate === 1) {
+            for (let z = 0; z < paths_self.game.spaces[news[i]].neighbours.length; z++) {
+              let n = paths_self.game.spaces[news[i]].neighbours[z];
+
+	      //
+	      // we submit unit when calculating movement, so that we can 
+	      // determine if units can move between depots etc.
+	      //
+	      let restricted_movement = false;
+	      if (unit != null) {
+	        let lim = paths_self.game.spaces[news[i]].limits;
+	        if (lim) {
+	          for (let z = 0; z < lim.length; z++) {
+		    if (lim[z][n]) {
+		      restricted_movement = true;
+		      if (lim[z][n] == unit.ckey) { restricted_movement = false; }
+		    }
+		  }
+	        }
+	      }
+
+	      if (restricted_movement == false) {
+                if (!old.includes(n)) {
+                  if (!news.includes(n)) {
+                    if (!newer.includes(n)) {
+                      if (n !== source.key) {
+	                newer.push(n);
+	              }
+	            }
+	          }
+	        }
 	      }
             }
           }
@@ -1094,7 +1134,7 @@ spaces['amiens'] = {
     left: 575 , 
     neighbours: ["calais", "cambrai", "paris", "rouen"] ,
     terrain : "normal" ,
-    vp : true ,
+    vp : false ,
     port : 0 ,
     country : "france" ,
    }
@@ -1118,7 +1158,7 @@ spaces['sedan'] = {
     left: 843 , 
     neighbours: ["cambrai", "koblenz", "brussels", "liege", "chateauthierry", "verdun", "metz"] ,
     terrain : "forest" ,
-    vp : true , 
+    vp : false , 
     port : 0 ,
     country : "france" ,
    }
@@ -1521,7 +1561,7 @@ spaces['aachen'] = {
     left: 1018 , 
     neighbours: ["liege", "essen", "koblenz"] ,
     terrain : "normal" ,
-    vp : true , 
+    vp : false , 
     country : "germany" ,
    }
 
@@ -1532,7 +1572,7 @@ spaces['koblenz'] = {
     left: 1101 , 
     neighbours: ["liege", "aachen", "frankfurt", "sedan", "metz"] ,
     terrain : "normal" ,
-    vp : true , 
+    vp : false , 
     country : "germany" ,
    }
 
@@ -2002,7 +2042,7 @@ spaces['venice'] = {
     left: 1649 , 
     neighbours: ["bologna", "verona", "asiago", "udine", "ravenna"] ,
     terrain : "normal" ,
-    vp : false , 
+    vp : true , 
     country : "italy" ,
    }
 
@@ -2661,7 +2701,7 @@ spaces['kovno'] = {
       left: 2807 ,
       neighbours: ["szawli", "vilna", "grodno", "insterberg"] ,
       terrain : "normal" ,
-      vp : true ,
+      vp : false ,
       country : "russia" ,
 }
 
@@ -2739,7 +2779,7 @@ spaces['minsk'] = {
       left: 3314 ,
       neighbours: ["orsha", "slutsk", "baranovichi", "moldechno"] ,
       terrain : "normal" ,
-      vp : false ,
+      vp : true ,
       country : "russia" ,
 }
 
@@ -3318,7 +3358,7 @@ spaces['ahwaz'] = {
       left: 4872 ,
       neighbours: ["basra", "qurna", "khorramabad"] ,
       terrain : "normal" ,
-      vp : false ,
+      vp : true ,
       country : "persia" ,
 }
 
@@ -3512,7 +3552,7 @@ spaces['kharput'] = {
       left: 4210 ,
       neighbours: ["urfa", "kayseri", "erzingan", "diyarbakir"] ,
       terrain : "normal" ,
-      vp : false ,
+      vp : true ,
       country : "turkey" ,
 }
 
@@ -3702,7 +3742,7 @@ spaces['jerusalem'] = {
       neighbours: ["nablus", "amman", "beersheba", "arabia"] ,
       limits : [ { "arabia" : ["ANA"] } ] ,
       terrain : "normal" ,
-      vp : false ,
+      vp : true ,
       country : "turkey" ,
 }
 

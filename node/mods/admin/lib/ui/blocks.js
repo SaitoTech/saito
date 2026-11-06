@@ -30,6 +30,7 @@ class AdminBlocksUI {
   refresh() {
     this.app.browser.replaceElementContentBySelector(
       BlocksTemplate({
+        app: this.app,
         state: this.state,
         error: this.error,
         loading: this.loading

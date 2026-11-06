@@ -13,8 +13,6 @@ module.exports = () => {
       <footer class="explorer-footer">
         <div class="explorer-container explorer-footer-inner">
           <span>Explorer — Saito Blockchain Explorer</span>
-          <a href="/explorer/supply" class="explorer-link explorer-footer-link">Token Supply</a>
-          <a href="/explorer/holders" class="explorer-link explorer-footer-link">Holders &amp; UTXO Set</a>
         </div>
       </footer>
     </div>

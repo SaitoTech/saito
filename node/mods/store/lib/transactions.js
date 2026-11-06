@@ -29,6 +29,64 @@ function partitionCustodyDeposit(row_custody, take_qty, row_qty) {
   return { buyer, remaining: row_custody - buyer };
 }
 
+function isWeb3PurchaseMessage(txmsg = {}) {
+  const ticker = String(txmsg.web3_ticker || '').trim().toUpperCase();
+  return ticker !== '' && ticker !== 'SAITO';
+}
+
+// inbound_payment_uuid is the external Mixin transaction hash.
+// transfer_uuid is the decimal transfers.id. Other shapes are not retained.
+function storePaymentIdentifiers(txmsg = {}) {
+  const inbound =
+    typeof txmsg.inbound_payment_uuid === 'string' ? txmsg.inbound_payment_uuid.trim() : '';
+  const rawTransfer = txmsg.transfer_uuid;
+  let transfer = '';
+  if (typeof rawTransfer === 'number' && Number.isSafeInteger(rawTransfer) && rawTransfer > 0) {
+    transfer = String(rawTransfer);
+  } else if (typeof rawTransfer === 'string' && /^[1-9]\d*$/.test(rawTransfer.trim())) {
+    const parsed = Number(rawTransfer.trim());
+    transfer = Number.isSafeInteger(parsed) ? rawTransfer.trim() : '';
+  }
+  return {
+    inbound_payment_uuid: inbound,
+    transfer_uuid: transfer
+  };
+}
+
+function web3RefundRecipient(app, txmsg = {}) {
+  for (const candidate of [txmsg.refund, txmsg.buyer]) {
+    const key = String(candidate || '').trim();
+    if (key && typeof app?.crypto?.isPublicKey === 'function' && app.crypto.isPublicKey(key)) {
+      return key;
+    }
+  }
+  return '';
+}
+
+function purchaseSenderPublicKey(tx) {
+  const from = tx?.from || [];
+  for (const slip of from) {
+    const key = String(slip?.publicKey || '').trim();
+    if (key) {
+      return key;
+    }
+  }
+  return '';
+}
+
+function web3PaymentProcessorKeys(mod) {
+  const configured = mod?.web3_payment_processor_publickey;
+  const listed = Array.isArray(configured) ? configured : configured ? [configured] : [];
+  const keys = [];
+  for (const candidate of [...listed, mod?.publicKey]) {
+    const key = String(candidate || '').trim();
+    if (key && !keys.includes(key)) {
+      keys.push(key);
+    }
+  }
+  return keys;
+}
+
 function p2shPaymentRecipient(app, p2sh_address, context) {
   const recipient = slipPublicKey(app, p2sh_address) || p2sh_address;
   if (
@@ -523,15 +581,44 @@ module.exports = {
     }
 
     const unit_price = BigInt(order_row.price ?? primary_listing_row.price ?? 0);
+    const web3_ticker = String(primary_listing_row.web3_ticker || '').trim().toUpperCase();
+    const web3_sale = web3_ticker !== '' && web3_ticker !== 'SAITO';
     const seller_amounts = new Map();
-    for (const listing_row of listing_rows) {
-      const seller = listing_row.seller || '';
-      if (!seller) {
-        continue;
+    if (web3_sale) {
+      const paid = BigInt(order_row.payment_amount ?? 0);
+      const fee_nolan = BigInt(this.app.wallet.convertSaitoToNolan(this.fee || 0) ?? 0);
+      const net = paid > fee_nolan ? paid - fee_nolan : 0n;
+      const shares = [];
+      let total_take = 0;
+      for (const listing_row of listing_rows) {
+        const seller = listing_row.seller || '';
+        const take_qty = Number(listing_row.take_qty ?? listing_row.quantity ?? 0);
+        if (!seller || take_qty <= 0) {
+          continue;
+        }
+        shares.push({ seller, take_qty });
+        total_take += take_qty;
       }
-      const take_qty = Number(listing_row.take_qty ?? listing_row.quantity ?? 0);
-      const prior = seller_amounts.get(seller) || 0n;
-      seller_amounts.set(seller, prior + unit_price * BigInt(take_qty));
+      let assigned = 0n;
+      shares.forEach((share, index) => {
+        const amount =
+          index === shares.length - 1 || total_take <= 0
+            ? net - assigned
+            : (net * BigInt(share.take_qty)) / BigInt(total_take);
+        assigned += amount;
+        const prior = seller_amounts.get(share.seller) || 0n;
+        seller_amounts.set(share.seller, prior + amount);
+      });
+    } else {
+      for (const listing_row of listing_rows) {
+        const seller = listing_row.seller || '';
+        if (!seller) {
+          continue;
+        }
+        const take_qty = Number(listing_row.take_qty ?? listing_row.quantity ?? 0);
+        const prior = seller_amounts.get(seller) || 0n;
+        seller_amounts.set(seller, prior + unit_price * BigInt(take_qty));
+      }
     }
     for (const [seller, amount] of seller_amounts.entries()) {
       if (amount <= 0n) {
@@ -835,8 +922,15 @@ module.exports = {
       throw new Error('Summary nft_id is required for purchase');
     }
 
+    const web3_ticker = String(summary.web3_ticker || '').trim().toUpperCase();
+    const web3_amount = String(summary.web3_amount || '').trim();
+    const web3_sale = web3_ticker !== '' && web3_ticker !== 'SAITO';
     const bucket_price = Number(summary.price ?? 0);
-    if (!Number.isFinite(bucket_price) || bucket_price <= 0) {
+    if (web3_sale) {
+      if (!(Number(web3_amount) > 0)) {
+        throw new Error('Web3 price is required for purchase');
+      }
+    } else if (!Number.isFinite(bucket_price) || bucket_price <= 0) {
       throw new Error('Summary price is required for purchase');
     }
 
@@ -854,7 +948,8 @@ module.exports = {
 
     // A buyer without spendable SAITO still needs this purchase message. BuySaito
     // copies it onto its own payment, so the carrier itself sends nothing.
-    const unfunded = sale.unfunded === true;
+    // A web3 sale is the same kind of carrier: the crypto deposit is what gets paid.
+    const unfunded = web3_sale || sale.unfunded === true;
     const newtx = unfunded
       ? await this.app.wallet.createUnsignedTransactionWithDefaultFee(payment_recipient, 0n, 0n)
       : await this.app.wallet.createUnsignedTransactionWithDefaultFee(
@@ -869,12 +964,16 @@ module.exports = {
       refund: buyer_publickey,
       nft_id: summary.nft_id,
       quantity: Number(sale.quantity) || 1,
-      price: String(sale.price),
+      price: web3_sale ? '0' : String(sale.price),
       fee: String(sale.fee),
       access_script: script_info.access_script,
       access_hash: script_info.access_hash,
       p2sh_address: script_info.p2sh_address
     };
+    if (web3_sale) {
+      newtx.msg.web3_ticker = web3_ticker;
+      newtx.msg.web3_amount = web3_amount;
+    }
 
     const note = String(sale.note || '').trim();
     if (note) {
@@ -907,12 +1006,23 @@ module.exports = {
     payment_utxo,
     { received_block_id = 0, received_block_hash = '', received_transaction_id = 0 } = {}
   ) {
-    const buyer = txmsg.buyer || tx.from?.[0]?.publicKey || '';
+    const web3_purchase = isWeb3PurchaseMessage(txmsg);
+    const buyer = web3_purchase
+      ? web3RefundRecipient(this.app, txmsg)
+      : txmsg.buyer || tx.from?.[0]?.publicKey || '';
+    if (web3_purchase && !buyer) {
+      throw new Error('Store purchase refund recipient is missing');
+    }
     const payment_slip = tx.to?.[payment_utxo.payment_output_index];
+    const identifiers = web3_purchase
+      ? storePaymentIdentifiers(txmsg)
+      : { inbound_payment_uuid: '', transfer_uuid: '' };
     return new Order({
       order_tx_sig: tx.signature,
       buyer,
       note: String(txmsg.note || ''),
+      inbound_payment_uuid: identifiers.inbound_payment_uuid,
+      transfer_uuid: identifiers.transfer_uuid,
       payment_tx_sig: payment_utxo.payment_tx_sig,
       payment_output_index: payment_utxo.payment_output_index,
       payment_amount: Number(payment_utxo.payment_amount),
@@ -1024,19 +1134,7 @@ module.exports = {
     if (this.app.BROWSER) {
       return;
     }
-
-    const refund_tx = await this.createOrderRefundTransaction({
-      order_row: order,
-      refund_public_key,
-      reason
-    });
-    if (!refund_tx) {
-      return;
-    }
-
-    await refund_tx.sign();
-    this.app.network.propagateTransaction(refund_tx);
-    console.log('Store: propagating order refund', refund_tx.signature, reason);
+    return this.warehouse.refunds.issue(order, { refund_public_key, reason });
   },
 
   async receivePurchaseAssetTransaction(blk, tx) {
@@ -1050,7 +1148,15 @@ module.exports = {
       return;
     }
 
-    const buyer = txmsg.buyer || tx.from?.[0]?.publicKey;
+    const web3_purchase = isWeb3PurchaseMessage(txmsg);
+    const web3_refund_recipient = web3_purchase ? web3RefundRecipient(this.app, txmsg) : '';
+    if (web3_purchase && !web3_refund_recipient) {
+      console.warn('Store: web3 purchase has no refund recipient');
+      return;
+    }
+    const buyer = web3_purchase
+      ? web3_refund_recipient
+      : txmsg.buyer || tx.from?.[0]?.publicKey;
     const nft_id = String(txmsg.nft_id || '').trim();
     const quantity = Number(txmsg.quantity) || 1;
     const unit_price = BigInt(this.app.wallet.convertSaitoToNolan(txmsg.price) ?? 0);
@@ -1059,14 +1165,14 @@ module.exports = {
     const received_block_id = Number(blk?.id ?? 0);
     const received_block_hash = String(blk?.hash ?? '');
     const received_transaction_id = transactionIndexInBlock(blk, tx);
-    const refund_public_key = txmsg.refund || buyer;
+    const refund_public_key = web3_purchase ? web3_refund_recipient : txmsg.refund || buyer;
 
     if (!buyer || !nft_id) {
       console.warn('Store: purchase missing buyer or nft_id');
       return;
     }
 
-    if (unit_price <= 0n) {
+    if (!web3_purchase && unit_price <= 0n) {
       console.warn('Store: purchase invalid price');
       return;
     }
@@ -1083,7 +1189,11 @@ module.exports = {
 
     const refund = async (reason) => {
       if (!refund_order) {
-        console.warn('Store: cannot refund purchase without payment UTXO', reason);
+        console.error('Store: refund requires manual investigation because the purchase has no payment output', {
+          purchase_tx_sig: tx?.signature || '',
+          block_hash: received_block_hash,
+          reason
+        });
         return;
       }
       try {
@@ -1096,7 +1206,26 @@ module.exports = {
       }
     };
 
-    if (amount_paid < total) {
+    if (isWeb3PurchaseMessage(txmsg)) {
+      const processors = web3PaymentProcessorKeys(this);
+      const sender = purchaseSenderPublicKey(tx);
+      if (!processors.includes(sender)) {
+        console.warn('Store: web3 purchase is not from the authorized processor', {
+          sender,
+          authorized: processors
+        });
+        await refund('web3-purchase-unauthorized');
+        return;
+      }
+    }
+
+    if (web3_purchase) {
+      if (amount_paid <= 0n || amount_paid < fee) {
+        console.warn(`Store: web3 purchase underpaid. got=${amount_paid} fee=${fee}`);
+        await refund('underpaid');
+        return;
+      }
+    } else if (amount_paid < total) {
       console.warn(`Store: purchase underpaid. got=${amount_paid} need=${total}`);
       await refund('underpaid');
       return;
@@ -1116,6 +1245,28 @@ module.exports = {
       console.warn('Store: purchase summary inactive or missing', nft_id, unit_price.toString());
       await refund('listing-inactive');
       return;
+    }
+
+    if (web3_purchase) {
+      const listing_ticker = String(summary.web3_ticker || '').trim().toUpperCase();
+      const listing_amount = Number(summary.web3_amount);
+      const message_amount = Number(txmsg.web3_amount);
+      const message_ticker = String(txmsg.web3_ticker || '').trim().toUpperCase();
+      if (
+        listing_ticker !== message_ticker ||
+        !Number.isFinite(listing_amount) ||
+        !Number.isFinite(message_amount) ||
+        listing_amount !== message_amount
+      ) {
+        console.warn('Store: web3 purchase does not match the listing', {
+          listing_ticker,
+          message_ticker,
+          listing_amount,
+          message_amount
+        });
+        await refund('web3-listing-mismatch');
+        return;
+      }
     }
 
     if (available < quantity) {
@@ -1142,6 +1293,12 @@ module.exports = {
       order.note = String(txmsg.note || '');
       order.created_at = now;
       order.updated_at = now;
+      if (web3_purchase && (!order.inbound_payment_uuid || !order.transfer_uuid)) {
+        console.warn('Store: web3 purchase is missing a valid inbound payment id or transfer id', {
+          inbound_payment_uuid: txmsg.inbound_payment_uuid,
+          transfer_uuid: txmsg.transfer_uuid
+        });
+      }
       // A different block hash is a new inclusion and gets its own row with its own
       // payment slip; the same block hash is a repeat delivery of one we already hold.
       if (!(await this.warehouse.addOrder(order))) {

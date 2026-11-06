@@ -127,7 +127,8 @@ class HereIStand extends GameTemplate {
     this.game_help = new GameHelp(this.app, this);
     this.minimap = new GameMinimap(this.app, this);
     this.minimap.enable_zoom = 1;
-    this.default_board_scale = 100;
+    // Opening view: eastern England through Hungary, so the Reformation is on screen.
+    this.default_board_view = { x: 1657 / 4950, y: 307 / 3164, w: 2136 / 4950, h: 1107 / 3164 };
 
     //
     // this sets the ratio used for determining

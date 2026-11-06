@@ -1,6 +1,7 @@
 const SaitoOverlay = require('../../../../../lib/saito/ui/saito-overlay/saito-overlay');
 const ListingDetailTemplate = require('./listing-detail.template');
 const ListingFieldEdit = require('./listing-field-edit');
+const { returnStoreWeb3Tickers, requestStoreWeb3Tickers } = ListingFieldEdit;
 const Summary = require('../../summary');
 const { DREAMSCAPE_PLACEHOLDER } = require('../../summary');
 const { summaryBucketKey } = require('../summary-cache');
@@ -9,9 +10,7 @@ const { durationLabel, rightsLabel } = require('./rental-listing.template');
 const { yieldForPaint } = require('../purchase-service');
 const {
   isAutoSubmitListings,
-  isSubmitToMainStoreChecked,
-  attachSubmitToMainStoreCheckbox,
-  offerAutoSubmitOptInIfNeeded,
+  markStoreWeb3Active,
   scheduleSubmitAfterListingConfirmed
 } = require('../listing-approval');
 
@@ -80,21 +79,6 @@ class ListingDetailOverlay {
     const textContent =
       nft.text || nft.json || nft.js || nft.css || nft.description || 'NFT content';
     return ListingDetailTemplate.mediaText(this.escapeHtml(textContent));
-  }
-
-  returnFileTypeFromImages(images = []) {
-    const sample = images[0] || '';
-    if (!sample) {
-      return 'unknown';
-    }
-    if (sample.startsWith('data:image/')) {
-      return 'image';
-    }
-    const ext = sample.split('?')[0].split('.').pop()?.toLowerCase() || '';
-    if (['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg', 'avif'].includes(ext)) {
-      return `image/${ext}`;
-    }
-    return ext || 'unknown';
   }
 
   returnFileTypeFromNft(nft) {
@@ -213,6 +197,7 @@ class ListingDetailOverlay {
       hasGallery: normalizedImages.length > 1,
       primaryLabel: this.escapeHtml(primaryLabel),
       primaryDisplay,
+      canShare: !!sellerKey && !!nftId,
       nextBid,
       showNextBid: !!nextBid && !isRental,
       nextBidDisplay,
@@ -222,7 +207,6 @@ class ListingDetailOverlay {
       description,
       hasDescription: !!description,
       productType: this.escapeHtml(this.returnProductType(summary)),
-      fileType: this.escapeHtml(this.returnFileTypeFromImages(rawImages)),
       createdDate: this.escapeHtml(this.returnCreatedDate(summary)),
       imageLoading: summary.isImageLoading?.() ?? false,
       isRental,
@@ -250,12 +234,14 @@ class ListingDetailOverlay {
       nftIdenticon,
       mediaHtml: this.returnMediaHtml(nft),
       description: this.escapeHtml(this.listing.description),
-      priceDisplay: this.formatSaitoPriceDisplay(priceNum),
+      priceDisplay: this.formatSaitoPriceDisplay(
+        this.listing.price,
+        this.listing.web3_ticker || 'SAITO'
+      ),
       productType: this.escapeHtml(nft?.returnType?.() || 'NFT'),
       fileType: this.escapeHtml(this.returnFileTypeFromNft(nft)),
       createdDate: new Date().toLocaleDateString(),
-      supply: this.listing.quantity_total,
-      submitToMainStoreChecked: isAutoSubmitListings(this.app)
+      supply: this.listing.quantity_total
     };
   }
 
@@ -266,6 +252,8 @@ class ListingDetailOverlay {
       title: nft?.title || 'Untitled NFT',
       description: nft?.description || '',
       price: '1',
+      web3_ticker: 'SAITO',
+      web3_amount: '1',
       quantity_total: max_quantity_total,
       quantity_available: max_quantity_total
     };
@@ -425,6 +413,24 @@ class ListingDetailOverlay {
       };
     }
 
+    const shareBtn = root.querySelector('[data-action="share"]');
+    if (shareBtn) {
+      shareBtn.onclick = async () => {
+        const summary = this.summary;
+        const longUrl = `${window.location.origin}/${this.mod.slug}/${encodeURIComponent(summary.returnSeller())}/${encodeURIComponent(summary.nft_id)}`;
+        shareBtn.disabled = true;
+        let url = longUrl;
+        try {
+          url = await this.mod.createShortLink(longUrl);
+        } catch (err) {
+          console.warn('Store: short link unavailable', err);
+        } finally {
+          shareBtn.disabled = false;
+        }
+        this.app.browser.handleShare({ title: summary.returnTitle(), url });
+      };
+    }
+
     const buyBtn = root.querySelector('[data-action="buy"]');
     if (this.preview) {
       const checkout = root.querySelector('.checkout');
@@ -456,7 +462,13 @@ class ListingDetailOverlay {
         }
         buyBtn.disabled = true;
 
+        const ticker = String(summary.web3_ticker || '').trim().toUpperCase();
+        const web3Payment = this.mod.main?.web3_payment;
         try {
+          if (ticker && ticker !== 'SAITO' && web3Payment?.isWeb3Summary(summary)) {
+            await web3Payment.start(summary, quantity, { note });
+            return;
+          }
           await this.mod.main?.purchase_flow?.startPurchase(summary, quantity, { note });
         } finally {
           buyBtn.disabled = false;
@@ -470,8 +482,6 @@ class ListingDetailOverlay {
     if (!root) {
       return;
     }
-
-    attachSubmitToMainStoreCheckbox(root, this.app);
 
     const openFieldEdit = (field) => {
       if (this.defaults?.locked?.includes(field.lockKey || field.name)) {
@@ -533,23 +543,34 @@ class ListingDetailOverlay {
 
     root.querySelector('[data-edit="price"]')?.addEventListener('click', (e) => {
       e.preventDefault();
-      openFieldEdit({
-        name: 'price',
-        lockKey: 'price',
+      if (this.defaults?.locked?.includes('price')) {
+        return;
+      }
+      requestStoreWeb3Tickers(this.app);
+      const ticker = String(this.listing.web3_ticker || 'SAITO').trim().toUpperCase() || 'SAITO';
+      this.field_edit.render({
         title: 'Edit Price',
         value: String(this.listing.price),
         inputType: 'text',
-        placeholder: 'Price in SAITO',
-        parse: (raw) => {
+        placeholder: 'Price',
+        tickers: returnStoreWeb3Tickers(this.app, ticker),
+        ticker,
+        onSave: (raw, selectedTicker) => {
           const cleaned = String(raw || '')
             .trim()
             .replace(/[^\d.]/g, '');
-          return cleaned || false;
-        },
-        apply: (cleaned) => {
+          if (!cleaned) {
+            return false;
+          }
+          const nextTicker = String(selectedTicker || 'SAITO').trim().toUpperCase() || 'SAITO';
           this.listing.price = cleaned;
-          root.querySelector('[data-field="price"]').textContent =
-            this.formatSaitoPriceDisplay(cleaned);
+          this.listing.web3_ticker = nextTicker;
+          this.listing.web3_amount = cleaned;
+          const priceEl = root.querySelector('[data-field="price"]');
+          if (priceEl) {
+            priceEl.textContent = this.formatSaitoPriceDisplay(cleaned, nextTicker);
+          }
+          return true;
         }
       });
       const input = document.getElementById('saito-overlay-form-input');
@@ -635,9 +656,13 @@ class ListingDetailOverlay {
 
     if (this.defaults?.price) {
       this.listing.price = String(this.defaults.price);
+      this.listing.web3_amount = String(this.defaults.price);
       const priceEl = root.querySelector('[data-field="price"]');
       if (priceEl) {
-        priceEl.textContent = this.formatSaitoPriceDisplay(this.listing.price);
+        priceEl.textContent = this.formatSaitoPriceDisplay(
+          this.listing.price,
+          this.listing.web3_ticker || 'SAITO'
+        );
       }
       if (this.defaults.locked?.includes('price')) {
         const affordance = root.querySelector('[data-edit="price"]');
@@ -706,10 +731,6 @@ class ListingDetailOverlay {
     };
 
     this.listing_busy = true;
-    const shouldSubmitToMainStore = isSubmitToMainStoreChecked(root);
-    if (shouldSubmitToMainStore) {
-      await offerAutoSubmitOptInIfNeeded(this.app);
-    }
     if (this.overlay && this.overlay.visible === false) {
       restore();
       return;
@@ -724,8 +745,14 @@ class ListingDetailOverlay {
     await yieldForPaint();
 
     try {
+      const ticker = String(this.listing.web3_ticker || 'SAITO').trim().toUpperCase() || 'SAITO';
+      this.listing.web3_ticker = ticker;
+      this.listing.web3_amount = String(this.listing.price || '').trim();
       const tx = await this.mod.createListAssetTransaction(this.selectedNft, this.listing);
       await this.app.network.propagateTransaction(tx);
+      if (ticker !== 'SAITO' && markStoreWeb3Active(this.app)) {
+        this.mod.main?.menu?.render?.();
+      }
 
       if (typeof this.defaults?.callback === 'function') {
         this.defaults.callback({
@@ -736,7 +763,7 @@ class ListingDetailOverlay {
       }
 
       this.beginListingProgress(tx);
-      if (shouldSubmitToMainStore) {
+      if (isAutoSubmitListings(this.app)) {
         scheduleSubmitAfterListingConfirmed(this.app, this.mod, tx.signature);
       }
     } catch (err) {

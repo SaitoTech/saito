@@ -1,26 +1,25 @@
 module.exports = () => {
-  let html = `
-
-      <div style="padding:40px;width:100vw;height:100vh;overflow-y:scroll;display:grid;grid-template-columns: 200px auto">
-        <div style="top:0;left:0;">
-
-            <label for="player1">Play as:</label>
-            <select class="saito-form-select" name="player1">
-              <option value="random" selected>random</option>
-              <option value="ussr">Protestants</option>
-              <option value="us">Papacy</option>
-            </select>
-
-            <label for="scenario">Scenario:</label>
-            <select class="saito-form-select" name="scenario" id="scenario">
-              <option value="original">original</option>
-              <option value="is_testing">TESTING</option>
-            </select>
-
-        </div>
+  return `
+    <div class="overlay-input">
+      <label for="hand_size">Hand size:</label>
+      <select class="saito-form-select" id="hand_size" name="hand_size">
+        <option value="7" selected>7</option>
+        <option value="8">8</option>
+      </select>
     </div>
-
-          `;
-
-  return html;
+    <div class="overlay-input">
+      <label for="trench_rolls">Modified trench rolls:</label>
+      <select class="saito-form-select" id="trench_rolls" name="trench_rolls">
+        <option value="no" selected>no</option>
+        <option value="yes">yes</option>
+      </select>
+    </div>
+    <div class="overlay-input">
+      <label for="guns_event">Guns of August must be played as an event:</label>
+      <select class="saito-form-select" id="guns_event" name="guns_event">
+        <option value="no" selected>no</option>
+        <option value="yes">yes</option>
+      </select>
+    </div>
+  `;
 };

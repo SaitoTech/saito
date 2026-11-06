@@ -118,6 +118,12 @@ documentation or reach out to the Saito community.
 
 # Building and Linking WASM libs
 
+The publish workflow installs `wasm-pack` v0.12.1 before building the production
+WASM packages. `scripts/bootstrap_for_ci.sh` reuses an installed `wasm-pack`, or
+installs version 0.12.1 with Cargo's `--locked` option when it is missing. The
+bootstrap script stops on setup errors and checks that `wasm-pack` can run, so a
+failed installation is reported before the package build starts.
+
 You can run "[build_link_npms.sh](scripts/build_link_npms.sh)" inside the workspace directory to automatically build and
 link saito npm packages.
 

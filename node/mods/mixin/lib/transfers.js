@@ -1,0 +1,1184 @@
+const email = require('./email');
+const {
+  createMigrationPayoutTransaction,
+  createBuySaitoPayoutTransaction,
+  restoreSavedSignedTransaction
+} = require('./transactions');
+const { storePurchaseMessage, storePurchaseRecipient } = require('./buysaito');
+
+// Outbound SAITO payouts complete after one included block by default.
+// Required N means the confirmation height is inclusion + (N - 1).
+function outboundConfirmationBlockId(blockId, required) {
+  const need = Number(required);
+  const threshold = Number.isFinite(need) && need > 0 ? need : 1;
+  return Number(blockId) + Math.max(0, threshold - 1);
+}
+
+function asBlockId(value) {
+  if (typeof value === 'bigint') {
+    return Number(value);
+  }
+  const blockId = Number(value);
+  if (!Number.isInteger(blockId) || blockId < 0 || !Number.isSafeInteger(blockId)) {
+    return null;
+  }
+  return blockId;
+}
+
+// Store purchases only. A Mixin deposit observation is evidence that the
+// reserved address was paid. It does not apply BuySaito's quote match or
+// migration's positive-amount allocation, and it does not wait for additional
+// confirmations.
+function storePurchaseDeposit(row, observation) {
+  if (!observation) {
+    return null;
+  }
+  const reserved = Number(row.inbound_amount);
+  const enough = (amount) =>
+    amount > 0 && (!Number.isFinite(reserved) || reserved <= 0 || amount + 1e-9 >= reserved);
+  const found = [];
+  for (const snapshot of observation.snapshots || []) {
+    const destination = snapshot?.deposit?.destination || snapshot?.receiver || '';
+    if (!destination || destination !== row.inbound_address) {
+      continue;
+    }
+    found.push({
+      hash: snapshot.transaction_hash || '',
+      id: snapshot.snapshot_id || '',
+      sender: snapshot.deposit?.sender || '',
+      amount: Number(snapshot.amount)
+    });
+  }
+  for (const deposit of observation.deposits || []) {
+    if (deposit?.destination && deposit.destination !== row.inbound_address) {
+      continue;
+    }
+    found.push({
+      hash: deposit.transaction_hash || '',
+      id: deposit.deposit_id || deposit.transaction_id || '',
+      sender: deposit.sender || '',
+      amount: Number(deposit.amount)
+    });
+  }
+  return found.find((item) => item.hash && enough(item.amount)) || null;
+}
+
+const OPEN_STATUSES = [
+  'inbound_awaiting',
+  'inbound_broadcast',
+  'inbound_confirmed',
+  'outbound_awaiting',
+  'outbound_broadcast',
+  'treasury_submitted',
+  'treasury_accepted'
+];
+
+class Transfers {
+  constructor(app, mod) {
+    this.app = app;
+    this.mod = mod;
+    this.running = false;
+    this.inclusion_checked = false;
+    // Shared unpaid reservation window for BuySaito, Store purchases, and Migration.
+    // Duration comes from Mixin.ADDRESS_RESERVATION_PERIOD_IN_MINUTES.
+    this.reservation_ms = Number(this.mod?.ADDRESS_RESERVATION_PERIOD_IN_MINUTES || 40) * 60 * 1000;
+  }
+
+  // outbound_confirmed is the completed SAITO inclusion. `succeeded` stays in the
+  // schema for older rows and has no separate evidence, so this queue does not
+  // write it.
+  async longestChainHashAtId(blockId) {
+    const id = asBlockId(blockId);
+    if (id === null || typeof this.app.blockchain?.getLongestChainHashAtId !== 'function') {
+      return '';
+    }
+    try {
+      const hash = await this.app.blockchain.getLongestChainHashAtId(BigInt(id));
+      return hash == null ? '' : String(hash);
+    } catch (err) {
+      try {
+        const hash = await this.app.blockchain.getLongestChainHashAtId(id);
+        return hash == null ? '' : String(hash);
+      } catch (retryErr) {
+        return '';
+      }
+    }
+  }
+
+  async processTransferQueue(options = {}) {
+    if (this.running) {
+      return;
+    }
+    this.running = true;
+    try {
+      const now = Date.now();
+      const observations = await this.fetchInboundMixinPayments();
+      const observed = new Map(observations.map((item) => [item.transfer_id, item]));
+
+      for (const row of await this.mod.database.getTransfersPendingInboundBroadcast()) {
+        if (row.outbound_tx_sig) {
+          continue;
+        }
+        // Unpaid reserved deposits expire after reservation_ms.
+        // Claimed deposits (inbound_broadcast and later) are not expired here.
+        if (
+          ['buysaito', 'store-purchase', 'migration'].includes(row.purpose) &&
+          Number(row.created_at) < now - this.reservation_ms
+        ) {
+          await this.mod.database.updateTransfer(row.id, { status: 'failed' });
+          continue;
+        }
+        // Store purchases only. Mixin reports the deposit through this observation.
+        // The payment is recorded immediately, without BuySaito or migration matching
+        // and without additional inbound confirmations.
+        if (row.purpose === 'store-purchase') {
+          const evidence = storePurchaseDeposit(row, observed.get(row.id));
+          if (evidence) {
+            await this.recordStorePurchaseInboundPayment(row, evidence);
+          }
+          continue;
+        }
+        const match = this.findMatchingInboundPayment(row, observed.get(row.id));
+        if (!match?.hash) {
+          continue;
+        }
+        const confirmed = match.confirmations >= Number(row.inbound_confirmations_required || 0);
+        const next = confirmed ? 'inbound_confirmed' : 'inbound_broadcast';
+        if (row.purpose === 'migration') {
+          let allocated;
+          try {
+            // Migration only. The payout is the received amount, and amounts above
+            // the migration cap are refused. BuySaito uses its reservation quote
+            // instead, so this cap must not be applied to other purposes.
+            allocated = this.mod.migration.allocationForDeposit(match.amount);
+          } catch (err) {
+            const claimed = await this.claimObservedInboundPayment(row, {
+              status: 'failed',
+              last_error: err.message,
+              inbound_tx_hash: match.hash
+            });
+            if (!claimed) {
+              continue;
+            }
+            email.sendStatusEmail(this.app, 0, { ...row, inbound_amount: match.amount }, err.message);
+            await email.sendFailureNotice(
+              this.app,
+              row.recipient_publickey || row.requester_publickey,
+              this.mod
+            );
+            this.mod.creditDepositAddress?.(row.inbound_address, match.amount, match.hash);
+            continue;
+          }
+          const claimed = await this.claimObservedInboundPayment(row, {
+            status: next,
+            inbound_amount: String(allocated),
+            outbound_amount: String(allocated),
+            outbound_ticker: 'SAITO',
+            inbound_tx_hash: match.hash,
+            inbound_tx_id: match.id || '',
+            inbound_sender: match.sender || row.inbound_sender,
+            inbound_confirmations: match.confirmations,
+            inbound_received_at: row.inbound_received_at || now,
+            last_error: ''
+          });
+          if (!claimed) {
+            continue;
+          }
+          this.mod.creditDepositAddress?.(row.inbound_address, match.amount, match.hash);
+          continue;
+        }
+        // BuySaito only. The matched deposit is evidence for the quote already
+        // stored on the row; this update does not change those amounts. The
+        // payment-detected notice is a BuySaito client message and must not be
+        // sent for migration or any other purpose.
+        if (row.purpose === 'buysaito') {
+          const claimed = await this.claimObservedInboundPayment(row, {
+            status: next,
+            inbound_tx_hash: match.hash,
+            inbound_tx_id: match.id,
+            inbound_sender: match.sender,
+            inbound_confirmations: match.confirmations,
+            inbound_received_at: row.inbound_received_at || now
+          });
+          if (!claimed) {
+            continue;
+          }
+          const detected = {
+            id: row.id,
+            address: row.inbound_address,
+            ticker: row.inbound_ticker,
+            status: next === 'inbound_confirmed' ? 'confirmed' : 'pending',
+            initiator_pubkey: row.requester_publickey
+          };
+          this.mod.notifyBrowser?.(
+            'buysaito payment detected',
+            detected,
+            row.requester_publickey
+          );
+          this.app.connection.emit('saito-purchase-payment-detected', detected);
+          this.mod.creditDepositAddress?.(
+            row.inbound_address,
+            match.amount || row.inbound_amount,
+            match.hash
+          );
+        }
+      }
+
+      for (const row of await this.mod.database.getTransfers({
+        status: 'inbound_broadcast',
+        mode: 'automatic',
+        excluded: 0
+      })) {
+        if (row.outbound_tx_sig) {
+          continue;
+        }
+        // Store purchases only. They are confirmed by recordStorePurchaseInboundPayment
+        // and must not be refreshed by BuySaito or migration deposit matching.
+        if (row.purpose === 'store-purchase') {
+          continue;
+        }
+        const match = this.findMatchingInboundPayment(row, observed.get(row.id));
+        if (!match) {
+          continue;
+        }
+        // Migration only. An accepted allocation stays at the stored amount.
+        // A later observation can refresh confirmations for that same deposit,
+        // and must not replace the amount or satisfy a BuySaito quote rule.
+        if (row.purpose === 'migration') {
+          if (row.inbound_tx_hash && match.hash && match.hash !== row.inbound_tx_hash) {
+            continue;
+          }
+          await this.claimObservedInboundPayment(row, {
+            inbound_tx_hash: match.hash || row.inbound_tx_hash,
+            inbound_tx_id: match.id || row.inbound_tx_id,
+            inbound_sender: match.sender || row.inbound_sender,
+            inbound_confirmations: match.confirmations
+          });
+          continue;
+        }
+        // BuySaito only. Confirmation progress is updated from the quoted
+        // deposit. This refresh must not rewrite the reserved amounts or run
+        // migration allocation.
+        if (row.purpose === 'buysaito') {
+          await this.claimObservedInboundPayment(row, {
+            inbound_tx_hash: match.hash || row.inbound_tx_hash,
+            inbound_tx_id: match.id || row.inbound_tx_id,
+            inbound_sender: match.sender || row.inbound_sender,
+            inbound_confirmations: match.confirmations
+          });
+        }
+      }
+
+      for (const row of await this.mod.database.getTransfersPendingInboundConfirmed()) {
+        await this.mod.database.updateTransfer(row.id, { status: 'inbound_confirmed' });
+        // BuySaito only. The confirmed payment notice tells the purchase client
+        // that the quoted deposit has enough confirmations. Migration does not
+        // use this notice, and the status change above is not BuySaito-specific.
+        if (row.purpose !== 'buysaito') {
+          continue;
+        }
+        const detected = {
+          id: row.id,
+          address: row.inbound_address,
+          ticker: row.inbound_ticker,
+          status: 'confirmed',
+          initiator_pubkey: row.requester_publickey
+        };
+        this.mod.notifyBrowser?.(
+          'buysaito payment detected',
+          detected,
+          row.requester_publickey
+        );
+        this.app.connection.emit('saito-purchase-payment-detected', detected);
+      }
+
+      // A missing or unusable block id skips issuance and outbound confirmation.
+      // It is not replaced with block 0, which would authorize a threshold of 0.
+      let currentBlockId = null;
+      if (typeof this.app.blockchain?.getLatestBlockId === 'function') {
+        try {
+          currentBlockId = asBlockId(await this.app.blockchain.getLatestBlockId());
+        } catch (err) {
+          currentBlockId = null;
+        }
+      }
+      const floorBlockId = asBlockId(options.floorBlockId);
+      if (floorBlockId !== null) {
+        currentBlockId =
+          currentBlockId === null ? floorBlockId : Math.max(currentBlockId, floorBlockId);
+      }
+
+      if (!this.inclusion_checked) {
+        const candidates = [];
+        const awaitingSigned = await this.mod.database.getTransfersPendingOutboundBroadcast();
+        const broadcastSigned = await this.mod.database.getTransfers({ status: 'outbound_broadcast' });
+        for (const row of [...(awaitingSigned || []), ...(broadcastSigned || [])]) {
+          if (row.outbound_tx_sig && !row.outbound_block_hash) {
+            candidates.push(row);
+          }
+        }
+        if (!this.app.blockchain?.getLatestBlockId || !candidates.length) {
+          this.inclusion_checked = true;
+        } else {
+          const wanted = new Map(candidates.map((row) => [row.outbound_tx_sig, row]));
+          try {
+            const latestId = asBlockId(await this.app.blockchain.getLatestBlockId()) || 0;
+            for (let id = latestId; id > 0 && wanted.size; id--) {
+              let hash = '';
+              let block = null;
+              try {
+                hash = await this.longestChainHashAtId(id);
+                if (!hash) {
+                  continue;
+                }
+                block = await this.app.blockchain.loadBlockAsync(String(hash));
+                if (!block && this.app.blockchain.getBlock) {
+                  block = await this.app.blockchain.getBlock(String(hash), true);
+                }
+              } catch (err) {
+                continue;
+              }
+              if (!block) {
+                continue;
+              }
+              for (const tx of block.transactions || []) {
+                const row = wanted.get(tx?.signature);
+                if (!row) {
+                  continue;
+                }
+                const blockId = asBlockId(block.id);
+                if (blockId === null) {
+                  continue;
+                }
+                await this.mod.database.updateTransfer(row.id, {
+                  outbound_block_id: blockId,
+                  outbound_block_hash: String(block.hash || hash),
+                  outbound_confirmation_block_id: outboundConfirmationBlockId(
+                    blockId,
+                    row.outbound_confirmations_required
+                  ),
+                  status: 'outbound_broadcast'
+                });
+                wanted.delete(tx.signature);
+              }
+            }
+            this.inclusion_checked = true;
+          } catch (err) {
+            console.error('Mixin transfer inclusion check failed:', err);
+          }
+        }
+      }
+
+      if (this.mod.payout_mode === 'remote') {
+        const { forwardTreasuryPayout } = require('./treasury');
+        for (const row of await this.mod.database.getTransfersPendingTreasurySubmission()) {
+          try {
+            await forwardTreasuryPayout(this.mod, row);
+          } catch (err) {
+            console.error(`Mixin transfer ${row.id} treasury submission failed:`, err);
+          }
+        }
+      }
+
+      if (currentBlockId !== null) {
+        for (const row of await this.mod.database.getTransfersPendingOutboundAwaiting(currentBlockId)) {
+          try {
+            await this.issueOutboundTransfer(row);
+          } catch (err) {
+            console.error(`Mixin transfer ${row.id} issuance failed:`, err);
+          }
+        }
+      }
+
+      for (const row of await this.mod.database.getTransfersPendingOutboundBroadcast()) {
+        if (row.outbound_block_hash) {
+          await this.mod.database.updateTransfer(row.id, { status: 'outbound_broadcast' });
+        }
+      }
+
+      if (currentBlockId !== null) {
+        for (const row of await this.mod.database.getTransfersPendingOutboundConfirmed(currentBlockId)) {
+          const canonical = await this.longestChainHashAtId(row.outbound_block_id);
+          // Empty lookup is not a reorg. Only a different non-empty hash clears inclusion.
+          // onNewBlock can trust the inclusion it just recorded on the longest chain.
+          if (canonical && canonical !== String(row.outbound_block_hash || '')) {
+            await this.mod.database.updateTransfer(row.id, {
+              status: 'outbound_awaiting',
+              outbound_block_id: null,
+              outbound_block_hash: '',
+              outbound_confirmation_block_id: null
+            });
+            continue;
+          }
+          if (!canonical && !options.trustInclusion) {
+            continue;
+          }
+          await this.mod.database.updateTransfer(row.id, { status: 'outbound_confirmed' });
+          // Migration only. The team completion email is sent when a migration
+          // payout is canonically confirmed. BuySaito uses its own issued notice,
+          // and this email must not be sent for another purpose.
+          if (row.purpose === 'migration') {
+            email.sendStatusEmail(
+              this.app,
+              2,
+              row,
+              `TX Signature: ${row.outbound_tx_sig}</p><p>Block ID: ${row.outbound_block_id}`
+            );
+            continue;
+          }
+          // BuySaito only. `buysaito saito issued` tells the purchase client that
+          // the quoted payout is in the canonical chain. Migration has its own
+          // completion email, so this notice must not be sent for another purpose.
+          if (row.purpose !== 'buysaito') {
+            continue;
+          }
+          const issued = {
+            id: row.id,
+            address: row.inbound_address,
+            ticker: row.inbound_ticker,
+            initiator_pubkey: row.requester_publickey,
+            recipient_pubkey: row.recipient_publickey,
+            issue_amount: row.outbound_amount,
+            paid: row.outbound_tx_sig,
+            status: 'confirmed'
+          };
+          this.mod.notifyBrowser?.(
+            'buysaito saito issued',
+            issued,
+            row.requester_publickey
+          );
+          this.app.connection.emit('saito-purchase-saito-issued', issued);
+        }
+      }
+
+      await this.rebroadcastSavedOutboundTransfers();
+    } finally {
+      this.running = false;
+    }
+  }
+
+  async fetchInboundMixinPayments() {
+    const awaiting = await this.mod.database.getTransfers({
+      status: 'inbound_awaiting',
+      mode: 'automatic',
+      excluded: 0
+    });
+    const broadcast = await this.mod.database.getTransfers({
+      status: 'inbound_broadcast',
+      mode: 'automatic',
+      excluded: 0
+    });
+    const rows = [...awaiting, ...broadcast];
+    if (!rows.length) {
+      return [];
+    }
+
+    const bundles = new Map();
+    const memory = this.mod.accounts.getCredentials();
+    if (memory?.user_id) {
+      bundles.set(memory.user_id, memory);
+    }
+    let privateKey = '';
+    try {
+      privateKey = await this.app.wallet.getPrivateKey();
+    } catch (err) {
+      privateKey = '';
+    }
+    const stored = await this.mod.database.getCredentials(this.mod.publicKey);
+    for (const saved of stored || []) {
+      if (!saved.user_id || bundles.has(saved.user_id) || !privateKey) {
+        continue;
+      }
+      try {
+        bundles.set(
+          saved.user_id,
+          this.mod.accounts.decryptCredentials(saved.ciphertext, privateKey)
+        );
+      } catch (err) {
+        console.error(`Mixin credentials for ${saved.user_id} could not be decrypted:`, err);
+      }
+    }
+
+    const cache = new Map();
+    const observations = [];
+    for (const row of rows) {
+      const credentials = bundles.get(row.inbound_mixin_user_id);
+      if (!credentials) {
+        observations.push({ transfer_id: row.id, deposits: [], snapshots: [] });
+        continue;
+      }
+      const key = `${row.inbound_mixin_user_id}:${row.inbound_asset_id}:${row.inbound_address}`;
+      if (!cache.has(key)) {
+        const deposits = await this.mod.api.fetchDeposits(
+          credentials,
+          row.inbound_asset_id,
+          row.inbound_address
+        );
+        const snapshots = await this.mod.api.fetchHistory(
+          credentials,
+          row.inbound_asset_id,
+          row.created_at
+        );
+        cache.set(key, {
+          deposits: deposits === false ? [] : deposits || [],
+          snapshots: snapshots === false ? [] : snapshots || []
+        });
+      }
+      observations.push({ transfer_id: row.id, ...cache.get(key) });
+    }
+    return observations;
+  }
+
+  async claimObservedInboundPayment(row, fields) {
+    const result = await this.mod.database.claimInboundPayment(row.id, fields);
+    if (result?.ok) {
+      return true;
+    }
+    const ownerId = result?.conflict?.id;
+    const message =
+      row.purpose === 'migration'
+        ? 'Migration deposit was already recorded'
+        : `Inbound payment ${fields.inbound_tx_hash} is already claimed by transfer ${ownerId}`;
+    await this.mod.database.updateTransfer(row.id, { last_error: message });
+    return false;
+  }
+
+  findMatchingInboundPayment(row, observation) {
+    if (!observation) {
+      return null;
+    }
+    // Store purchases only. Inbound evidence is recorded by
+    // recordStorePurchaseInboundPayment. BuySaito and migration matching
+    // must not accept or reject these rows.
+    if (row.purpose === 'store-purchase') {
+      return null;
+    }
+    const required = Number(row.inbound_confirmations_required || 0);
+    // Migration only. A deposit matches the reserved destination address. The
+    // received amount is allocated 1:1. BuySaito matches a quoted amount instead,
+    // so this positive-amount rule must not be applied to another purpose.
+    if (row.purpose === 'migration' && this.mod.migration) {
+      for (const snapshot of observation.snapshots || []) {
+        const destination = snapshot?.deposit?.destination || snapshot?.receiver || '';
+        if (!destination || destination !== row.inbound_address) {
+          continue;
+        }
+        const amount = Number(snapshot.amount);
+        if (!(amount > 0)) {
+          continue;
+        }
+        return {
+          hash: snapshot.transaction_hash || '',
+          id: snapshot.snapshot_id || '',
+          sender: snapshot.deposit?.sender || '',
+          amount,
+          confirmations: Number(snapshot.confirmations || 0)
+        };
+      }
+      for (const deposit of observation.deposits || []) {
+        if (deposit?.destination && deposit.destination !== row.inbound_address) {
+          continue;
+        }
+        const amount = Number(deposit.amount);
+        if (!(amount > 0)) {
+          continue;
+        }
+        return {
+          hash: deposit.transaction_hash || '',
+          id: deposit.deposit_id || deposit.transaction_id || '',
+          sender: deposit.sender || '',
+          amount,
+          confirmations: Number(deposit.confirmations || 0)
+        };
+      }
+      return null;
+    }
+    // BuySaito only. The observed deposit must reach the quoted inbound_amount
+    // reserved for this transfer. Migration accepts the received amount, so
+    // this minimum must not be applied to migration or another purpose.
+    if (row.purpose !== 'buysaito') {
+      return null;
+    }
+    for (const snapshot of observation.snapshots) {
+      const address = snapshot?.deposit?.destination || snapshot?.receiver || '';
+      if (!address || address !== row.inbound_address) {
+        continue;
+      }
+      if (Number(snapshot?.amount) < Number(row.inbound_amount)) {
+        continue;
+      }
+      return {
+        hash: snapshot.transaction_hash || '',
+        id: snapshot.snapshot_id || '',
+        sender: snapshot.deposit?.sender || '',
+        amount: Number(snapshot.amount),
+        confirmations: Math.max(Number(snapshot.confirmations || 0), required)
+      };
+    }
+    for (const deposit of observation.deposits) {
+      if (Number(deposit?.amount) < Number(row.inbound_amount)) {
+        continue;
+      }
+      const confirmations = Number(deposit.confirmations || 0);
+      const confirmed = deposit.status === 'confirmed' || confirmations >= required;
+      return {
+        hash: deposit.transaction_hash || '',
+        id: deposit.deposit_id || deposit.transaction_id || '',
+        sender: deposit.sender || '',
+        amount: Number(deposit.amount),
+        confirmations: confirmed ? Math.max(confirmations, required) : confirmations
+      };
+    }
+    return null;
+  }
+
+  async recordStorePurchaseInboundPayment(row, evidence = {}) {
+    if (!row || row.purpose !== 'store-purchase') {
+      throw new Error('That transfer is not a Store purchase.');
+    }
+    if (Number(row.excluded) === 1) {
+      throw new Error('That transfer is excluded from processing.');
+    }
+    if (row.outbound_tx_sig) {
+      return row;
+    }
+
+    const hash = String(evidence.hash || '').trim();
+    const inboundId = String(evidence.id || '').trim();
+    const sender = String(evidence.sender || '').trim();
+    const amount = Number(evidence.amount);
+    if (!hash || !(amount > 0)) {
+      throw new Error('Store purchase payment evidence is incomplete.');
+    }
+
+    const current = (await this.mod.database.getTransfers({ id: row.id }))?.[0] || row;
+    if (current.inbound_tx_hash && current.inbound_tx_hash !== hash) {
+      return current;
+    }
+    if (current.status !== 'inbound_awaiting' && current.inbound_tx_hash === hash) {
+      return current;
+    }
+    if (current.status !== 'inbound_awaiting') {
+      throw new Error(
+        `Store purchase ${current.id} cannot be confirmed from status ${current.status}.`
+      );
+    }
+
+    const now = Date.now();
+    const claimed = await this.claimObservedInboundPayment(current, {
+      status: 'inbound_confirmed',
+      inbound_tx_hash: hash,
+      inbound_tx_id: inboundId,
+      inbound_sender: sender,
+      inbound_amount: String(amount),
+      inbound_confirmations: 0,
+      inbound_confirmations_required: 0,
+      inbound_received_at: current.inbound_received_at || now,
+      last_error: ''
+    });
+    if (!claimed) {
+      return (await this.mod.database.getTransfers({ id: current.id }))?.[0] || current;
+    }
+    this.mod.creditDepositAddress?.(current.inbound_address, amount, hash);
+
+    const updated = (await this.mod.database.getTransfers({ id: current.id }))[0];
+    const detected = {
+      id: updated.id,
+      address: updated.inbound_address,
+      ticker: updated.inbound_ticker,
+      status: 'confirmed',
+      initiator_pubkey: updated.requester_publickey
+    };
+    this.mod.notifyBrowser?.(
+      'buysaito payment detected',
+      detected,
+      updated.requester_publickey
+    );
+    this.app.connection?.emit?.('saito-purchase-payment-detected', detected);
+    return updated;
+  }
+
+  async issueOutboundTransfer(row) {
+    if (!row || row.outbound_tx_sig) {
+      return row;
+    }
+    if (row.purpose === 'store-withdrawal') {
+      return row;
+    }
+    if (row.purpose === 'treasury-payout') {
+      if (this.mod.payout_mode === 'remote') {
+        return row;
+      }
+      const { issueQueuedTreasuryPayout } = require('./treasury');
+      return issueQueuedTreasuryPayout(this.mod, row);
+    }
+    if (this.mod.payout_mode === 'remote') {
+      const { forwardTreasuryPayout } = require('./treasury');
+      return forwardTreasuryPayout(this.mod, row);
+    }
+    let amount = row.outbound_amount;
+    // Migration only. The stored allocation is checked against the migration cap
+    // again before signing. This does not read a new deposit or change the
+    // accepted amount. BuySaito signs its reserved quote, so this cap must not
+    // be applied to another purpose.
+    if (row.purpose === 'migration') {
+      amount = this.mod.migration.allocationForDeposit(row.outbound_amount);
+    }
+    const required = this.app.wallet.convertSaitoToNolan(amount);
+    const available = await this.app.wallet.getBalance();
+    // Migration only. A short treasury records insufficient_funds and emails
+    // the operators. It does not wait on pending wallet balance. BuySaito has
+    // its own pending-balance wait, and that wait must not be applied here.
+    if (row.purpose === 'migration') {
+      if (typeof available !== 'bigint' || typeof required !== 'bigint' || available < required) {
+        if (row.last_error !== 'insufficient_funds') {
+          await this.mod.database.updateTransfer(row.id, { last_error: 'insufficient_funds' });
+          email.sendLowBalanceEmail(this.app, row.outbound_amount);
+        }
+        return (await this.mod.database.getTransfers({ id: row.id }))[0];
+      }
+      const tx = await createMigrationPayoutTransaction(this.app, row, amount);
+      await this.mod.database.updateTransfer(row.id, {
+        status: 'outbound_awaiting',
+        outbound_tx: tx.serialize_to_web(this.app),
+        outbound_tx_sig: tx.signature,
+        outbound_amount: String(amount),
+        outbound_address: row.recipient_publickey,
+        outbound_ticker: 'SAITO',
+        last_error: ''
+      });
+      email.sendStatusEmail(this.app, 1, { ...row, outbound_amount: String(amount) });
+      return (await this.mod.database.getTransfers({ id: row.id }))[0];
+    }
+    // BuySaito only. Issuance uses the reserved outbound amount. A pending
+    // balance that already covers it waits rather than failing the purchase.
+    // A confirmed shortfall sends buysaito report error. Migration uses the
+    // treasury email instead, so this wait and notice must not be generalized.
+    if (row.purpose === 'buysaito') {
+      if (typeof available !== 'bigint' || typeof required !== 'bigint' || required <= 0n) {
+        throw new Error('Invalid payout balance or amount');
+      }
+      if (available < required) {
+        try {
+          const pending = await this.app.core?.wallet?.getPendingBalance?.();
+          if (typeof pending === 'bigint' && pending >= required) {
+            return row;
+          }
+        } catch (err) {
+          console.error(`Mixin transfer ${row.id} pending balance check failed:`, err);
+          return row;
+        }
+        if (row.last_error !== 'insufficient_funds') {
+          await this.mod.database.updateTransfer(row.id, { last_error: 'insufficient_funds' });
+          this.mod.notifyBrowser?.(
+            'buysaito report error',
+            {
+              code: 'insufficient_funds',
+              id: row.id,
+              ticker: row.inbound_ticker,
+              address: row.inbound_address
+            },
+            row.requester_publickey
+          );
+        }
+        return (await this.mod.database.getTransfers({ id: row.id }))[0];
+      }
+      const { tx, recipient } = await createBuySaitoPayoutTransaction(this.app, row, required);
+      await this.mod.database.updateTransfer(row.id, {
+        status: 'outbound_awaiting',
+        outbound_tx: tx.serialize_to_web(this.app),
+        outbound_tx_sig: tx.signature,
+        outbound_address: recipient,
+        last_error: ''
+      });
+      return (await this.mod.database.getTransfers({ id: row.id }))[0];
+    }
+    // Store purchases only. The reserved SAITO amount is issued with the saved
+    // purchase message. Migration allocation and BuySaito pending-balance
+    // notices do not apply to this purpose.
+    if (row.purpose === 'store-purchase') {
+      const message = storePurchaseMessage(this.app, row.payload);
+      if (!storePurchaseRecipient(this.app, message)) {
+        if (row.last_error !== 'Store purchase refund recipient is missing') {
+          await this.mod.database.updateTransfer(row.id, {
+            last_error: 'Store purchase refund recipient is missing'
+          });
+        }
+        return (await this.mod.database.getTransfers({ id: row.id }))[0];
+      }
+      if (typeof available !== 'bigint' || typeof required !== 'bigint' || required <= 0n) {
+        throw new Error('Invalid payout balance or amount');
+      }
+      if (available < required) {
+        if (row.last_error !== 'insufficient_funds') {
+          await this.mod.database.updateTransfer(row.id, { last_error: 'insufficient_funds' });
+        }
+        return (await this.mod.database.getTransfers({ id: row.id }))[0];
+      }
+      let issued;
+      try {
+        issued = await createBuySaitoPayoutTransaction(this.app, row, required);
+      } catch (err) {
+        if (err?.message === 'Store purchase is missing its inbound payment id or transfer id') {
+          if (row.last_error !== err.message) {
+            await this.mod.database.updateTransfer(row.id, { last_error: err.message });
+          }
+          return (await this.mod.database.getTransfers({ id: row.id }))[0];
+        }
+        throw err;
+      }
+      const { tx, recipient } = issued;
+      await this.mod.database.updateTransfer(row.id, {
+        status: 'outbound_awaiting',
+        outbound_tx: tx.serialize_to_web(this.app),
+        outbound_tx_sig: tx.signature,
+        outbound_address: recipient,
+        last_error: ''
+      });
+      return (await this.mod.database.getTransfers({ id: row.id }))[0];
+    }
+    // Any purpose other than migration, BuySaito, or a Store purchase. Neither payment constructor
+    // applies, so the transfer stays unsigned. This guard must not skip a
+    // migration or BuySaito row, and it must not stand in for either purpose's
+    // own amount, balance, or reservation rules.
+    console.error(`Mixin transfer ${row.id} has no outbound payment for purpose ${row.purpose}`);
+    return row;
+  }
+
+  async rebroadcastSavedOutboundTransfers() {
+    for (const row of await this.mod.database.getTransfersPendingOutboundBroadcast()) {
+      if (row.outbound_block_hash) {
+        continue;
+      }
+      try {
+        const tx = restoreSavedSignedTransaction(this.app, row.outbound_tx, row.outbound_tx_sig);
+        if (!tx) {
+          throw new Error(`Transfer ${row.id} has invalid saved issuance data`);
+        }
+        try {
+          await this.app.wallet.addTransactionToPending(tx);
+        } catch (err) {
+          console.error(`Mixin transfer ${row.id} was already pending:`, err);
+        }
+        await this.app.network.propagateTransaction(tx);
+        await this.mod.database.updateTransfer(row.id, {
+          status: 'outbound_broadcast',
+          outbound_sent_at: Date.now(),
+          last_error: ''
+        });
+      } catch (err) {
+        console.error(`Mixin transfer ${row.id} broadcast failed:`, err);
+        await this.mod.database.updateTransfer(row.id, {
+          last_error: String(err?.message || err)
+        });
+      }
+    }
+  }
+
+  /**
+   * Select an exclusive Mixin deposit address for the given crypto asset.
+   * Shared by BuySaito, Store purchases, and Migration. Checks the primary
+   * Mixin credentials first, then other decryptable server-owned accounts,
+   * skips addresses held by any non-excluded open transfer, and creates an
+   * additional Mixin account when none is available.
+   */
+  async selectAvailableDepositAddress(crypto) {
+    if (!crypto?.asset_id) {
+      throw new Error('Deposit asset is not installed');
+    }
+    const privateKey = await this.app.wallet.getPrivateKey();
+    const candidates = [];
+    const memory = this.mod.accounts.getCredentials();
+    if (memory?.user_id) {
+      candidates.push(memory);
+    }
+    for (const saved of await this.mod.database.getCredentials(this.mod.publicKey)) {
+      if (candidates.some((item) => item.user_id === saved.user_id)) {
+        continue;
+      }
+      try {
+        candidates.push(this.mod.accounts.decryptCredentials(saved.ciphertext, privateKey));
+      } catch (err) {
+        console.error(`Mixin credentials for ${saved.user_id} could not be decrypted:`, err);
+      }
+    }
+
+    let selected = null;
+    let address = '';
+    for (const credentials of candidates) {
+      let found = await this.mod.database.findAddress({
+        assetId: crypto.asset_id,
+        mixinUserId: credentials.user_id
+      });
+      if (!found?.address) {
+        const created = await this.mod.accounts.createAddress(
+          crypto.asset_id,
+          crypto.chain_id,
+          credentials
+        );
+        if (!created) {
+          continue;
+        }
+        found = { address: created, user_id: credentials.user_id };
+      }
+      const rows = await this.mod.database.getTransfers({ inbound_address: found.address });
+      if (rows.some((row) => !Number(row.excluded) && OPEN_STATUSES.includes(row.status))) {
+        continue;
+      }
+      selected = credentials;
+      address = found.address;
+      break;
+    }
+
+    if (!selected) {
+      const created = await this.mod.accounts.createAccount(this.mod.publicKey, { additional: true });
+      selected = this.mod.accounts.decryptCredentials(created.ciphertext, privateKey);
+      address = await this.mod.accounts.createAddress(crypto.asset_id, crypto.chain_id, selected);
+      if (!address) {
+        throw new Error(`Unable to create a ${crypto.ticker || 'deposit'} address`);
+      }
+    }
+
+    return { credentials: selected, address };
+  }
+
+  /**
+   * Create or return an inbound Mixin deposit-address reservation.
+   * Callers supply purpose and all business-specific transfer fields.
+   *
+   * Note: selectAvailableDepositAddress and insertTransfer are not wrapped in a
+   * single DB transaction, and open inbound_address is not uniquely constrained.
+   * Concurrent reservations can therefore select the same free address before
+   * either insert lands. Hardening that race is deferred.
+   */
+  async reserveAddress(requesterPublickey, reservation = {}) {
+    const purpose = reservation.purpose;
+    if (!purpose) {
+      throw new Error('Transfer purpose is required');
+    }
+    const ticker = reservation.ticker;
+    const crypto = this.mod.crypto_mods.find((item) => item.ticker === ticker);
+    if (!crypto) {
+      throw new Error(`Unsupported payment ticker: ${ticker}`);
+    }
+    if (
+      typeof crypto.returnMixinNetworkInfo === 'function' &&
+      (!crypto.last_update || Date.now() - crypto.last_update > 300000)
+    ) {
+      await crypto.returnMixinNetworkInfo();
+    }
+
+    const existing = await this.mod.database.getTransfers({
+      requester_publickey: requesterPublickey,
+      inbound_ticker: ticker,
+      purpose
+    });
+    const open = (existing || []).find(
+      (row) => !Number(row.excluded) && OPEN_STATUSES.includes(row.status)
+    );
+    if (open) {
+      return this.reservationRecord(open);
+    }
+
+    const { credentials: selected, address } = await this.selectAvailableDepositAddress(crypto);
+
+    const now = Date.now();
+    if (typeof this.app.blockchain?.getLatestBlockId !== 'function') {
+      throw new Error('Saito block height is unavailable');
+    }
+    let inboundConfirmationBlockId;
+    try {
+      const raw = await this.app.blockchain.getLatestBlockId();
+      inboundConfirmationBlockId = typeof raw === 'bigint' ? Number(raw) : raw;
+    } catch (err) {
+      throw new Error('Saito block height is unavailable');
+    }
+    if (
+      !Number.isInteger(inboundConfirmationBlockId) ||
+      inboundConfirmationBlockId < 0 ||
+      !Number.isSafeInteger(inboundConfirmationBlockId)
+    ) {
+      throw new Error('Saito block height is unavailable');
+    }
+
+    const recipient = reservation.recipient_publickey || requesterPublickey;
+    const outboundAddress = reservation.outbound_address || recipient;
+    const id = await this.mod.database.insertTransfer({
+      purpose,
+      mode: 'automatic',
+      payload: reservation.payload || '',
+      request_id: reservation.request_id || '',
+      requester_publickey: requesterPublickey,
+      recipient_publickey: recipient,
+      status: 'inbound_awaiting',
+      inbound_ticker: ticker,
+      inbound_asset_id: crypto.asset_id,
+      inbound_chain_id: crypto.chain_id || '',
+      inbound_amount: reservation.inbound_amount != null ? String(reservation.inbound_amount) : '',
+      inbound_address: address,
+      inbound_mixin_user_id: selected.user_id,
+      inbound_confirmations_required: Number(reservation.inbound_confirmations_required || 0),
+      inbound_confirmation_block_id: inboundConfirmationBlockId,
+      outbound_ticker: reservation.outbound_ticker || 'SAITO',
+      outbound_amount: reservation.outbound_amount != null ? String(reservation.outbound_amount) : '',
+      outbound_address: outboundAddress,
+      outbound_confirmations_required: Number(reservation.outbound_confirmations_required || 1),
+      created_at: now
+    });
+
+    return this.reservationRecord({
+      id,
+      purpose,
+      status: 'inbound_awaiting',
+      requester_publickey: requesterPublickey,
+      recipient_publickey: recipient,
+      inbound_ticker: ticker,
+      inbound_address: address,
+      inbound_mixin_user_id: selected.user_id,
+      inbound_amount: reservation.inbound_amount != null ? String(reservation.inbound_amount) : '',
+      outbound_amount: reservation.outbound_amount != null ? String(reservation.outbound_amount) : '',
+      outbound_tx_sig: '',
+      created_at: now
+    });
+  }
+
+  reservationRecord(row) {
+    return {
+      id: row.id,
+      purpose: row.purpose,
+      status: row.status,
+      requester_publickey: row.requester_publickey,
+      recipient_publickey: row.recipient_publickey,
+      ticker: row.inbound_ticker,
+      address: row.inbound_address,
+      mixin_id: row.inbound_mixin_user_id,
+      inbound_ticker: row.inbound_ticker,
+      inbound_address: row.inbound_address,
+      inbound_mixin_user_id: row.inbound_mixin_user_id,
+      inbound_amount: row.inbound_amount || '',
+      outbound_amount: row.outbound_amount || '',
+      outbound_tx_sig: row.outbound_tx_sig || '',
+      created_at: Number(row.created_at),
+      reserved_until: Number(row.created_at) + this.reservation_ms
+    };
+  }
+
+  async releaseAddress(requesterPublickey, ticker, purpose = 'buysaito') {
+    const rows = await this.mod.database.getTransfers({
+      requester_publickey: requesterPublickey,
+      inbound_ticker: ticker,
+      purpose
+    });
+    for (const row of rows) {
+      if (row.status === 'inbound_awaiting') {
+        await this.mod.database.updateTransfer(row.id, { status: 'cancelled' });
+      }
+    }
+  }
+
+  async onNewBlock(block, longestChain) {
+    const blockId = asBlockId(block?.id);
+    if (!longestChain || blockId === null || !Array.isArray(block?.transactions)) {
+      await this.processTransferQueue();
+      return;
+    }
+    const signatures = new Map();
+    for (const tx of block.transactions) {
+      if (tx?.signature) {
+        signatures.set(String(tx.signature), tx);
+      }
+    }
+    const awaitingSigned = await this.mod.database.getTransfersPendingOutboundBroadcast();
+    const broadcastSigned = await this.mod.database.getTransfers({ status: 'outbound_broadcast' });
+    for (const row of [...(awaitingSigned || []), ...(broadcastSigned || [])]) {
+        const outboundSig = String(row.outbound_tx_sig || '');
+        if (!outboundSig || row.outbound_block_hash || !signatures.has(outboundSig)) {
+          continue;
+        }
+        // Any outbound SAITO payout: inclusion is recorded when the saved
+        // signature appears in a longest-chain block. Purpose does not gate this.
+        await this.mod.database.updateTransfer(row.id, {
+          outbound_block_id: blockId,
+          outbound_block_hash: String(block.hash || ''),
+          outbound_confirmation_block_id: outboundConfirmationBlockId(
+            blockId,
+            row.outbound_confirmations_required
+          )
+        });
+    }
+    await this.observeStoreWithdrawalInclusions(signatures, block);
+    await this.processTransferQueue({ floorBlockId: blockId, trustInclusion: true });
+  }
+
+  async observeStoreWithdrawalInclusions(signatures, block) {
+    const rows = await this.mod.database.listStoreWithdrawalsAwaitingInclusion?.();
+    for (const row of rows || []) {
+      if (!row.inbound_tx_sig || !signatures.has(row.inbound_tx_sig)) {
+        continue;
+      }
+      const blockId = Number(block.id);
+      const required = Number(row.inbound_confirmations_required || 0);
+      try {
+        await this.mod.database.updateTransfer(row.id, {
+          inbound_block_id: blockId,
+          inbound_block_hash: block.hash || '',
+          inbound_confirmation_block_id: blockId + required,
+          inbound_longest_chain: 1,
+          inbound_confirmations: required === 0 ? 1 : 0
+        });
+      } catch (err) {
+        console.error('Mixin store withdrawal inclusion was not recorded', {
+          transfer_id: row.id,
+          inbound_tx_sig: row.inbound_tx_sig,
+          error: err?.message || String(err)
+        });
+      }
+    }
+  }
+
+  async onChainReorganization(blockId, blockHash, longestChain) {
+    if (longestChain) {
+      await this.processTransferQueue();
+      return;
+    }
+    for (const status of ['outbound_broadcast', 'outbound_confirmed']) {
+      for (const row of await this.mod.database.getTransfers({ status })) {
+        if (!row.outbound_tx_sig) {
+          continue;
+        }
+        if (row.outbound_block_hash !== blockHash || Number(row.outbound_block_id) !== Number(blockId)) {
+          continue;
+        }
+        await this.mod.database.updateTransfer(row.id, {
+          status: 'outbound_awaiting',
+          outbound_block_id: null,
+          outbound_block_hash: '',
+          outbound_confirmation_block_id: null
+        });
+      }
+    }
+    if (!longestChain) {
+      const withdrawals = await this.mod.database.listStoreWithdrawalsInBlock?.(blockId, blockHash);
+      for (const row of withdrawals || []) {
+        try {
+          await this.mod.database.updateTransfer(row.id, {
+            inbound_longest_chain: 0,
+            inbound_block_id: null,
+            inbound_block_hash: '',
+            inbound_confirmation_block_id: null,
+            inbound_confirmations: 0
+          });
+        } catch (err) {
+          console.error('Mixin store withdrawal reorganization was not recorded', {
+            transfer_id: row.id,
+            inbound_tx_sig: row.inbound_tx_sig,
+            error: err?.message || String(err)
+          });
+        }
+      }
+    }
+    await this.processTransferQueue();
+  }
+}
+
+module.exports = Transfers;

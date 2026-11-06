@@ -1,3 +1,21 @@
+.saito-app-overlay .saito-app-url-form {
+  display: flex;
+  gap: var(--saito-space-md);
+  margin-top: var(--saito-space-md);
+  min-width: 0;
+}
+
+.saito-app-overlay .saito-app-url-form input {
+  flex: 1;
+  min-width: 0;
+}
+
+.saito-app-overlay .saito-app-url-form button {
+  flex: 0 0 auto;
+  min-width: 0;
+  margin: 0;
+}
+
 /*
  * Install Module confirmation — after a .saito file is parsed.
  * Scoped to this overlay only; drop-zone and shared overlay shells unchanged.
@@ -58,6 +76,41 @@
   background-color: var(--saito-secondary);
 }
 
+.saito-app-install-overlay .saito-app-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  aspect-ratio: 4 / 3;
+  padding: var(--saito-space-lg);
+  box-sizing: border-box;
+  background-image: url('/saito/img/dreamscape.png');
+  background-position: center;
+  background-size: cover;
+  color: #fff;
+  font-family: 'visuelt-regular', sans-serif;
+  font-weight: 400;
+  text-align: center;
+}
+
+.saito-app-install-overlay .saito-app-placeholder-logo {
+  width: auto;
+  height: clamp(3.2rem, 7vw, 6rem);
+  margin-bottom: var(--saito-space-sm);
+}
+
+.saito-app-install-overlay .saito-app-placeholder-name {
+  font-size: 2.4rem;
+  font-weight: 400;
+  line-height: 1.2;
+}
+
+.saito-app-install-overlay .saito-app-placeholder-type {
+  font-size: 1.6rem;
+  font-weight: 400;
+  line-height: 1.4;
+}
+
 .saito-app-install-overlay .description {
   margin: 0;
   font-size: var(--font-size-medium);
@@ -100,8 +153,29 @@
   color: var(--saito-muted-foreground);
 }
 
+.saito-app-install-overlay .publisher-label {
+  font-size: calc(var(--font-size-tiny) * 0.9);
+  white-space: nowrap;
+}
+
+.saito-app-install-overlay .publisher-help {
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+.saito-app-install-overlay .publisher-help:hover {
+  color: var(--saito-foreground);
+}
+
+.saito-app-install-overlay .publisher-help:focus-visible {
+  outline: 2px solid var(--saito-primary);
+  outline-offset: 2px;
+}
+
 .saito-app-install-overlay .value {
-  font-size: var(--font-size-medium);
+  font-family: monospace;
+  font-size: smaller;
   line-height: 1.3;
   color: var(--saito-foreground);
   overflow-wrap: anywhere;
@@ -138,6 +212,10 @@
     width: auto;
     max-width: 100%;
     margin-inline: auto;
+  }
+
+  .saito-app-install-overlay .saito-app-placeholder {
+    width: min(100%, 32rem);
   }
 
   .saito-app-install-overlay .footer {

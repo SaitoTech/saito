@@ -1,6 +1,6 @@
 
     this.importTech("sarween-tools", {
-      name        	: 	"Sarween Tools" ,
+      name        	: 	"Industrial Tanks" ,
       color       	: 	"yellow" ,
       text		:	"Reduce cost of units produced by -1 when using production",
       prereqs     	:       [],
@@ -21,7 +21,7 @@
 
 
     this.importTech("graviton-laser-system", {
-      name        	:       "Graviton Laser System" ,
+      name        	:       "Orbital Trackers" ,
       color       	:       "yellow" ,
       text		:	"Exhaust card once per round to target capital ships with PDS fire" ,
       prereqs             :       ["yellow"],
@@ -74,12 +74,12 @@
       },
       menuOptionActivated:  function(imperium_self, menu, player) {
         if (menu == "pds") {
-	  imperium_self.updateLog(imperium_self.returnFaction(player) + " exhausts Graviton Laser System");
+	  imperium_self.updateLog(imperium_self.returnFaction(player) + " exhausts Orbital Trackers");
           imperium_self.game.state.players_info[player-1].graviton_laser_system_exhausted = 1;
           imperium_self.game.state.players_info[player-1].graviton_laser_system_active = 1;
           imperium_self.addMove("setvar\tplayers\t"+player+"\t"+"graviton_laser_system_exhausted"+"\t"+"int"+"\t"+"1");
           imperium_self.addMove("setvar\tplayers\t"+player+"\t"+"graviton_laser_system_active"+"\t"+"int"+"\t"+"1");
-          imperium_self.addMove("NOTIFY\t"+imperium_self.returnFactionNickname(player)+" activates Graviton Laser System");
+          imperium_self.addMove("NOTIFY\t"+imperium_self.returnFactionNickname(player)+" activates Orbital Trackers");
 	}
 	return 0;
       }
@@ -91,7 +91,7 @@
 
 
     this.importTech("transit-diodes", {
-      name                :       "Transit Diodes" ,
+      name                :       "Transit Portals" ,
       color               :       "yellow" ,
       prereqs             :       ["yellow", "yellow"],
       text		:	"Exhaust to reallocate 4 infantry between planets your control" ,
@@ -138,7 +138,7 @@
 
 
     this.importTech("integrated-economy", {
-      name        	:       "Integrated Economy" ,
+      name        	:       "Forward Production" ,
       color       	:       "yellow" ,
       prereqs     	:       ['yellow','yellow','yellow'],
       text		:	"You may produce on a planet after capturing it, up to cost (resource) limit of planet." ,

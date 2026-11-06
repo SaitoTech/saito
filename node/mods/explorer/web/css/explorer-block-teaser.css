@@ -7,7 +7,7 @@
 .block-teaser .explorer-heading {
   font-size: var(--explorer-text-sm);
   font-weight: var(--explorer-font-medium);
-  color: var(--explorer-muted-foreground);
+  color: var(--saito-muted-foreground);
   letter-spacing: var(--explorer-tracking-wide);
   text-transform: uppercase;
 }
@@ -15,14 +15,14 @@
 .explorer-teaser-loading {
   padding: var(--explorer-space-5) var(--explorer-space-4);
   text-align: center;
-  color: var(--explorer-muted-foreground);
+  color: var(--saito-muted-foreground);
 }
 
 .explorer-teaser-loading-title {
   margin: 0 0 var(--explorer-space-2);
   font-size: var(--explorer-text-sm);
   font-weight: var(--explorer-font-semibold);
-  color: var(--explorer-foreground);
+  color: var(--saito-foreground);
 }
 
 .explorer-teaser-loading-message {
@@ -32,5 +32,5 @@
 }
 
 .explorer-teaser-error .explorer-teaser-loading-title {
-  color: var(--explorer-destructive);
+  color: var(--saito-destructive);
 }

@@ -7,6 +7,7 @@ const DialingInterface = require('./lib/components/dialer');
 const SaitoOverlay = require('../../lib/saito/ui/saito-overlay/saito-overlay');
 const StreamManager = require('./lib/StreamManager');
 const AppSettings = require('./lib/stun-settings');
+const CallDiagnostics = require('./lib/components/call-diagnostics');
 const HomePage = require('./index');
 const SaitoHeader = require('./../../lib/saito/ui/saito-header/saito-header');
 
@@ -37,6 +38,7 @@ class Videocall extends ModTemplate {
 
     this.stun = null; //The stun API
     this.streams = null;
+    this.diagnostics = new CallDiagnostics(app, this);
     this.dialer = new DialingInterface(app, this);
 
     this.layout = 'focus';
@@ -531,6 +533,9 @@ class Videocall extends ModTemplate {
             return;
           }
 
+          if (txmsg.request !== 'call-list-response') {
+            this.diagnostics?.record(from, `Received: ${txmsg.request}`);
+          }
           console.debug('TALK [HPT]: ' + txmsg.request);
 
           if (txmsg.request === 'call-list-response') {
@@ -584,6 +589,15 @@ class Videocall extends ModTemplate {
 
           if (txmsg.request === 'toggle-audio' || txmsg.request == 'toggle-video') {
             this.app.connection.emit(`peer-${txmsg.request}-status`, txmsg.data);
+          }
+
+          if (
+            txmsg.request === 'toggle-transcription' &&
+            this.streams?.active &&
+            this.room_obj.call_peers.includes(from) &&
+            typeof txmsg.data?.enabled === 'boolean'
+          ) {
+            this.streams.updateTranscriptionStatus(from, txmsg.data.enabled);
           }
 
           if (txmsg.request === 'screen-share-start') {
@@ -678,6 +692,8 @@ class Videocall extends ModTemplate {
       newtx.addTo(this.room_obj.host_public_key);
     }
 
+    this.diagnostics?.record('local', 'Requesting participant list from room / host');
+
     // Fallback for saved calls when blocks aren't forming correctly
     let event = this.app.keychain.returnKey(this.room_obj.call_id, true);
     if (event?.profile?.participants) {
@@ -719,6 +735,7 @@ class Videocall extends ModTemplate {
 
     //We are getting a tx for the call we are in
     if (this?.room_obj?.call_id === txmsg.call_id) {
+      this.diagnostics?.record(from, 'Received: call-list-request');
       let call_list = [];
 
       if (this.room_obj.call_peers) {
@@ -807,6 +824,7 @@ class Videocall extends ModTemplate {
       console.warn(`TALK received callListResponse for ${txmsg.public_key}`);
     }
 
+    this.diagnostics?.record(tx.from[0].publicKey, 'Received: call-list-response');
     let call_list = txmsg.call_list;
     // remove my own key
     call_list = call_list.filter((key) => this.publicKey !== key);
@@ -830,7 +848,12 @@ class Videocall extends ModTemplate {
           console.debug('TALK [callListResponse]: add peer to room obj');
         }
 
-        if (!this.stun.hasConnection(peer, true)) {
+        // A pre-existing Saito data channel still needs the call join message
+        // and the media-attachment event supplied by createPeerConnection.
+        const pc = this.stun.peers.get(peer);
+        const localTracks = this.streams?.localStream?.getTracks() || [];
+        const hasCallMedia = pc?.getSenders().some((sender) => localTracks.includes(sender.track));
+        if (!this.stun.hasConnection(peer, true) || !hasCallMedia) {
           console.debug('TALK [callListResponse]: create connection with ', peer);
           this.stun.createPeerConnection(peer, (peerId) => {
             console.debug('TALK [callListResponse]: ready for STUN connection with ' + peerId);
@@ -852,6 +875,7 @@ class Videocall extends ModTemplate {
   // someone else establising a stun connection for other purposes)
   //
   async sendCallJoinTransaction(publicKey) {
+    this.diagnostics?.record(publicKey, 'Preparing call join message');
     let newtx = await this.app.wallet.createUnsignedTransactionWithDefaultFee(publicKey);
 
     newtx.msg = {

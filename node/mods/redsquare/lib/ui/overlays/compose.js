@@ -25,6 +25,7 @@ class ComposeOverlay {
     this.edit_tweet = null;
     this.images = [];
     this.posting = false;
+    this.confirming_close = false;
     this.drag_drop_bound = false;
     this.gif_picker_rendered = false;
     this.visualViewport = null;
@@ -121,6 +122,29 @@ class ComposeOverlay {
     callback?.(result);
   }
 
+  hasDraft() {
+    return this.getText().length > 0 || this.images.length > 0;
+  }
+
+  async requestClose() {
+    if (this.posting || this.confirming_close) {
+      return;
+    }
+
+    if (this.hasDraft()) {
+      this.confirming_close = true;
+      try {
+        if (!(await sconfirm('Close and discard your draft?'))) {
+          return;
+        }
+      } finally {
+        this.confirming_close = false;
+      }
+    }
+
+    this.close();
+  }
+
   getRoot() {
     return document.querySelector('.saito-overlay .compose');
   }
@@ -170,6 +194,21 @@ class ComposeOverlay {
 
     if (!root) {
       return;
+    }
+
+    const closeBox = document.getElementById(`saito-overlay-closebox${this.overlay.ordinal}`);
+    const backdrop = document.getElementById(`saito-overlay-backdrop${this.overlay.ordinal}`);
+
+    if (closeBox) {
+      closeBox.onclick = () => this.requestClose();
+    }
+
+    if (backdrop) {
+      backdrop.onclick = () => {
+        if (!this.hasDraft() && !this.posting && !this.confirming_close) {
+          this.close();
+        }
+      };
     }
 
     this.mountPickersForViewport();

@@ -19,7 +19,7 @@
         this.game.status = "USSR is under Cuban Missile Crisis and cannot coup. Skipping Ortega coup.";
         this.hud.updateStatus(this.game.status);
         this.hud.updateMenu([]);
-        this.hud.updateCards([]);
+        this.hud.updateCards(this.game.deck[0].hand);
         this.updateLog("USSR is under Cuban Missile Crisis and cannot coup. Skipping Ortega coup.");
         return 1;
       }
@@ -38,7 +38,7 @@
             twilight_self.game.status = "Skipping Ortega coup...";
             twilight_self.hud.updateStatus(twilight_self.game.status);
             twilight_self.hud.updateMenu([]);
-            twilight_self.hud.updateCards([]);
+            twilight_self.hud.updateCards(twilight_self.game.deck[0].hand);
             twilight_self.addMove("resolve\tortega");
             twilight_self.endTurn();
           }

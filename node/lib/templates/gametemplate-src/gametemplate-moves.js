@@ -441,7 +441,9 @@ class GameMoves {
       `GT [processFutureMoves] -- Check ${this.game.future.length} moves for next one...`
     );
 
-    //Search all future moves for the next one
+    //Search all future moves for the next one. Only the stale-move branch
+    //changes the list without saving on the way out.
+    let future_changed = false;
     for (let i = 0; i < this.game.future.length; i++) {
       let ftx = new Transaction();
       ftx.deserialize_from_web(this.app, this.game.future[i]);
@@ -463,10 +465,13 @@ class GameMoves {
         //Old move, can ignore
         this.game.future.splice(i, 1);
         i--; // reduce index as deleted
+        future_changed = true;
       }
     }
 
-    this.saveFutureMoves(this.game.id);
+    if (future_changed) {
+      this.saveFutureMoves(this.game.id);
+    }
 
     if (this.game.future?.length > 0) {
       console.warn(
@@ -578,7 +583,8 @@ class GameMoves {
     //
     // AWAIT on this causes issues -- delays UI update
     //
-    this.sendGameMoveTransaction('game', extra);
+    const sending = this.sendGameMoveTransaction('game', extra);
+    if (this.app.HEADLESS) await sending;
   }
 
   async sendGameMoveTransaction(type = 'game', extra = {}, mycallback = null) {
@@ -685,6 +691,7 @@ class GameMoves {
 
     let newtx = await this.app.wallet.createUnsignedTransactionWithDefaultFee();
     if (newtx == null) {
+      if (this.app.HEADLESS) throw Error('Unable to create game transaction');
       salert('ERROR: Difficulty Sending Transaction, please reload');
       return;
     }
@@ -701,7 +708,8 @@ class GameMoves {
     // if there is an issue with the network we don't lose the transaction when the network
     // comes back online. refreshing the browser will also try to auto-resend the tx this way.
     //
-    game_self.app.wallet.addTransactionToPending(newtx);
+    const pendingSave = game_self.app.wallet.addTransactionToPending(newtx);
+    if (this.app.HEADLESS) await pendingSave;
 
     game_self.saveGame(game_self.game.id);
 
@@ -718,6 +726,11 @@ class GameMoves {
         (newtx.msg.request === 'game' && this.game.initializing == 0) ||
         this.initialize_game_offchain_if_possible == 1
       ) {
+        console.log(
+          'GT [sendGameMove] emit game relay gamemove',
+          new Date().toISOString(),
+          Date.now()
+        );
         this.app.connection.emit('relay-send-message', {
           recipient: this.game.accepted,
           request: 'game relay gamemove',
@@ -725,6 +738,11 @@ class GameMoves {
         });
 
         //An experiment to have game steps/ts update in arcade
+        console.log(
+          'GT [sendGameMove] emit arcade spv update',
+          new Date().toISOString(),
+          Date.now()
+        );
         this.app.connection.emit('relay-send-message', {
           recipient: 'PEERS',
           request: 'arcade spv update',
@@ -733,7 +751,8 @@ class GameMoves {
       }
     }
 
-    game_self.app.network.propagateTransaction(newtx);
+    const delivery = game_self.app.network.propagateTransaction(newtx);
+    if (this.app.HEADLESS) await delivery;
   }
 }
 

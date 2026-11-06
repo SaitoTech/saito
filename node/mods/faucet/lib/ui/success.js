@@ -61,7 +61,7 @@ class Success {
         this.mod.auth_overlay.close();
 
         try {
-          const purchase = this.app.modules.returnModule('BuySaito')?.purchase_overlay;
+          const purchase = this.app.modules.returnModule('Mixin')?.purchase_overlay;
           if (purchase && typeof purchase.close === 'function') {
             purchase.close();
           }

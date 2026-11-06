@@ -85,7 +85,7 @@
 
 .game-help-overlay-title {
     top: 2.5rem;
-    font-size: 3.833rem;
+    font-size: clamp(2.2rem, 6vw, 3.833rem);
     letter-spacing: 0.083rem;
     font-weight: bold;
     text-transform: uppercase;

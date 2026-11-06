@@ -92,7 +92,7 @@ this.importStrategyCard("politics", {
       }
 
       let menu = [];
-      for (i = 0; i < 3 && i < imperium_self.game.state.agendas.length; i++) {
+      for (let i = 0; i < 3 && i < imperium_self.game.state.agendas.length; i++) {
         menu.push({
           id: String(imperium_self.game.state.agendas[i]),
           label: laws[imperium_self.game.state.agendas[i]].name,
@@ -122,7 +122,7 @@ this.importStrategyCard("politics", {
           imperium_self.hideAgendaCard(selected_agendas[selected_agendas.length - 1]);
           imperium_self.agenda_selection_overlay.hide();
 
-          for (i = 1; i >= 0; i--) {
+          for (let i = 1; i >= 0; i--) {
             if (imperium_self.game.state.agenda_voting_order === "simultaneous") {
               imperium_self.addMove("resolve_agenda\t" + selected_agendas[i]);
               imperium_self.addMove("post_agenda_stage_post\t" + selected_agendas[i]);

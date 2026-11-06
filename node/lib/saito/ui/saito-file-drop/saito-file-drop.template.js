@@ -3,6 +3,7 @@
  * Parents configure title / prompt / dropzone id; this owns markup structure.
  *
  * Optional `extraBodyHtml` is injected above the dropzone (e.g. Vault key step).
+ * Optional `afterDropzoneHtml` is injected below the dropzone.
  * Optional `footerHtml` is placed under the dropzone.
  */
 function saitoFileDropOverlay({
@@ -11,6 +12,7 @@ function saitoFileDropOverlay({
   dropzoneId = 'saito-file-drop',
   rootClass = '',
   extraBodyHtml = '',
+  afterDropzoneHtml = '',
   footerHtml = ''
 } = {}) {
   const footer = footerHtml ? `<div class="saito-file-drop-footer">${footerHtml}</div>` : '';
@@ -27,6 +29,7 @@ function saitoFileDropOverlay({
         <div class="saito-file-dropzone-text">${prompt}</div>
       </div>
     </div>
+    ${afterDropzoneHtml}
   </div>
   ${footer}
 </div>`;

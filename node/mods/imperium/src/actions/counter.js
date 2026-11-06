@@ -1,6 +1,6 @@
 
     this.importActionCard('sabotage1', {
-  	name : "Sabotage" ,
+  	name : "Saboteur" ,
   	type : "counter" , 
  	text : "When another player plays an action card, you may cancel that action card" ,
 	playActionCard : function(imperium_self, player, action_card_player, card) {
@@ -18,7 +18,7 @@
 	      }
 	      if (removed_previous == 1) { 
 	        imperium_self.removeConfirmsNeeded();
-	        imperium_self.updateLog(imperium_self.returnFaction(action_card_player) + " plays Sabotage!");
+	        imperium_self.updateLog(imperium_self.returnFaction(action_card_player) + " plays Saboteur!");
 		return 1;
 	      }
 	    }
@@ -28,7 +28,7 @@
 	}
     });
     this.importActionCard('sabotage2', {
-  	name : "Sabotage" ,
+  	name : "Saboteur" ,
   	type : "counter" , 
  	text : "When another player plays an action card, you may cancel that action card" ,
 	playActionCard : function(imperium_self, player, action_card_player, card) {
@@ -46,7 +46,7 @@
 	      }
 	      if (removed_previous == 1) { 
 	        imperium_self.removeConfirmsNeeded();
-	        imperium_self.updateLog(imperium_self.returnFaction(action_card_player) + " plays Sabotage!");
+	        imperium_self.updateLog(imperium_self.returnFaction(action_card_player) + " plays Saboteur!");
 		return 1;
 	      }
 	    }
@@ -56,7 +56,7 @@
 	}
     });
     this.importActionCard('sabotage3', {
-  	name : "Sabotage" ,
+  	name : "Saboteur" ,
   	type : "counter" , 
  	text : "When another player plays an action card, you may cancel that action card" ,
 	playActionCard : function(imperium_self, player, action_card_player, card) {
@@ -74,7 +74,7 @@
 	      }
 	      if (removed_previous == 1) { 
 	        imperium_self.removeConfirmsNeeded();
-	        imperium_self.updateLog(imperium_self.returnFaction(action_card_player) + " plays Sabotage!");
+	        imperium_self.updateLog(imperium_self.returnFaction(action_card_player) + " plays Saboteur!");
 		return 1;
 	      }
 	    }
@@ -84,7 +84,7 @@
 	}
     });
     this.importActionCard('sabotage4', {
-  	name : "Sabotage" ,
+  	name : "Saboteur" ,
   	type : "counter" , 
  	text : "When another player plays an action card, you may cancel that action card" ,
 	playActionCard : function(imperium_self, player, action_card_player, card) {
@@ -102,7 +102,7 @@
 	      }
 	      if (removed_previous == 1) { 
 	        imperium_self.removeConfirmsNeeded();
-	        imperium_self.updateLog(imperium_self.returnFaction(action_card_player) + " plays Sabotage!");
+	        imperium_self.updateLog(imperium_self.returnFaction(action_card_player) + " plays Saboteur!");
 		return 1;
 	      }
 	    }

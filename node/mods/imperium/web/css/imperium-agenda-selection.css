@@ -20,8 +20,8 @@
   .agenda-selection-title {
     margin-left: auto;
     margin-right: auto;
-    font-family: 'bank-gothic';
-    letter-spacing: 0.625rem;
+    font-family: 'orbitron-medium', helvetica, arial;
+    letter-spacing: 0.08em;
     font-size: 4.167rem;
     width: max-content;
   }
@@ -29,11 +29,19 @@
   .agenda-selection-cards {
     display: flex;
     flex-direction: row;
-    justify-content: space-evenly;
+    justify-content: center;
+    align-items: flex-start;
     margin-top: 1.667rem;
     width: max-content;
     max-width: 80vw;
-    min-width: 1000px;
+    min-width: 0;
+    gap: 0.4rem;
+  }
+
+  .agenda-selection-cards .agenda-card {
+    --agenda-card-h: min(64vh, calc((min(74vw, 1080px) - 6rem) / 3 * 1488 / 1057));
+    height: var(--agenda-card-h);
+    width: calc(var(--agenda-card-h) * 1057 / 1488);
   }
 
   .agenda-selection-cards .overlay_agendacard:hover {

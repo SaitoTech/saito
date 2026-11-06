@@ -285,9 +285,9 @@ class CryptoModule extends ModTemplate {
       console.log('Initializing/Activating ' + this.ticker);
 
       this.activated = true;
-      await this.fetchBalance();
       this.options.isActivated = true;
-      //async but not awaiting...
+      // async but not awaiting — network must not block startup / splash
+      this.fetchBalance();
       this.loadHistory();
       this.save();
     }

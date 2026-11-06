@@ -26,7 +26,7 @@
         twilight_self.game.status = "Place "+ops_to_place+" influence in non-US controlled countries in Eastern Europe (1 per country)";
         twilight_self.hud.updateStatus(twilight_self.game.status);
         twilight_self.hud.updateMenu([]);
-        twilight_self.hud.updateCards([]);
+        twilight_self.hud.updateCards(twilight_self.game.deck[0].hand);
 
         twilight_self.addMove("resolve\tcomecon");
 
@@ -41,7 +41,7 @@
             twilight_self.game.status = "Place "+ops_to_place+" influence in non-US controlled countries in Eastern Europe (1 per country)";
             twilight_self.hud.updateStatus(twilight_self.game.status);
             twilight_self.hud.updateMenu([]);
-            twilight_self.hud.updateCards([]);
+            twilight_self.hud.updateCards(twilight_self.game.deck[0].hand);
             if (ops_to_place == 0) {
               twilight_self.playerFinishedPlacingInfluence();
               twilight_self.endTurn();

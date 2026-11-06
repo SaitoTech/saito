@@ -11,6 +11,9 @@ class Beleaguered extends OnePlayerGameTemplate {
   constructor(app) {
     super(app);
 
+    // show status and options in the sidebar, not floating over the board
+    this.hud.container = '.logobox';
+
     this.name = 'Beleaguered';
     this.gamename = 'Beleaguered Castle';
     this.slug = 'beleaguered';
@@ -99,7 +102,7 @@ class Beleaguered extends OnePlayerGameTemplate {
       class: 'game-intro',
       callback: function (app, game_mod) {
         game_mod.menu.hideSubMenus();
-        game_mod.overlay.show(game_mod.returnGameRulesHTML());
+        game_mod.overlay.showClosable(game_mod.returnGameRulesHTML());
       }
     });
 
@@ -109,7 +112,7 @@ class Beleaguered extends OnePlayerGameTemplate {
       class: 'game-stats',
       callback: function (app, game_mod) {
         game_mod.menu.hideSubMenus();
-        game_mod.overlay.show(game_mod.returnStatsHTML());
+        game_mod.overlay.showClosable(game_mod.returnStatsHTML());
       }
     });
 

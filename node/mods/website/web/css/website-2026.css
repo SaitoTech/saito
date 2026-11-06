@@ -500,12 +500,11 @@ body.websitex #saito-header-menu-toggle {
 body.websitex .saito-header-hamburger-contents,
 body.websitex .saito-header-backdrop {
   top: var(--websitex-site-header-height);
-  height: calc(100svh - var(--websitex-site-header-height));
+  height: calc(100dvh - var(--websitex-site-header-height));
 }
 
 body.websitex .saito-header-hamburger-contents {
   position: fixed;
-  right: -28rem;
   width: min(28rem, 100vw);
   -ms-overflow-style: none;
   scrollbar-width: none;
@@ -516,14 +515,10 @@ body.websitex .saito-header-hamburger-contents::-webkit-scrollbar {
   height: 0;
 }
 
-body.websitex .saito-header-hamburger-contents.show-menu {
-  right: 0;
-}
-
 body.websitex .site-header.is-scrolled + #saito-header .saito-header-hamburger-contents,
 body.websitex .site-header.is-scrolled + #saito-header .saito-header-backdrop {
   top: 4.75rem;
-  height: calc(100svh - 4.75rem);
+  height: calc(100dvh - 4.75rem);
 }
 
 .hero {

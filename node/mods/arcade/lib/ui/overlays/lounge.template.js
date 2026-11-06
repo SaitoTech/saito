@@ -134,13 +134,13 @@ const playerBox = (app, pkey, extraClass = '', note = '', winner = false) => `
   <div class="arcade-lounge-playerbox saito-table-row ${extraClass}" id="invite-user-${pkey}">
     <div class="saito-identicon-box${winner ? ' winner' : ''}">
       <img class="saito-identicon" src="${app.keychain.returnIdenticon(pkey)}">
+      ${note ? '' : '<div class="online-status-indicator"></div>'}
     </div>
     <div class="arcade-lounge-player-identity">
       ${app.browser.returnAddressHTML(pkey)}
       <div class="arcade-lounge-player-key" title="${app.browser.escapeHTML(pkey)}">${app.browser.escapeHTML(pkey)}</div>
       ${note ? `<div class="arcade-lounge-player-note">${note}</div>` : ''}
     </div>
-    ${note ? '' : '<div class="online-status-indicator"></div>'}
   </div>`;
 
 const renderControls = (mod, invite) => {

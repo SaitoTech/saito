@@ -169,7 +169,7 @@ class GameGame {
   }
 
   saveGame(game_id) {
-    if (!this.app.BROWSER) {
+    if (!this.app.BROWSER && !this.app.HEADLESS) {
       return;
     }
 
@@ -227,8 +227,12 @@ class GameGame {
               }
             }
 
-            this.app.options.games[i] = JSON.parse(JSON.stringify(this.game)); //create new object
-            this.app.storage.saveOptions();
+            console.log('GT [saveGame] before game clone', new Date().toISOString(), Date.now());
+            const gameJson = JSON.stringify(this.game);
+            this.app.options.games[i] = JSON.parse(gameJson);
+            console.log('GT [saveGame] after game clone', new Date().toISOString(), Date.now());
+            this.app.storage.saveOptions([{ path: ['games', i], json: gameJson }]);
+            console.log('GT [saveGame] after saveOptions', new Date().toISOString(), Date.now());
             return;
           }
         }
@@ -239,8 +243,11 @@ class GameGame {
     // If we didn't find the game (by id) in our wallet
     // add it and save the options
 
-    this.app.options.games.push(JSON.parse(JSON.stringify(this.game)));
-    this.app.storage.saveOptions();
+    const gameJson = JSON.stringify(this.game);
+    this.app.options.games.push(JSON.parse(gameJson));
+    this.app.storage.saveOptions([
+      { path: ['games', this.app.options.games.length - 1], json: gameJson }
+    ]);
   }
 
   /**
@@ -499,7 +506,6 @@ class GameGame {
       console.log('My PublicKey: ' + this.publicKey);
       console.log('My Player Number: ' + this.game.player);
       console.log('ALL KEYS: ' + JSON.stringify(this.game.players));
-      console.log('My Share Key: ' + this.game.sharekey);
       console.log('!!!!!!!!!!!!!!!!!!!!\n', '!!!!!!!!!!!!!!!!!!!!\n', '!!!!!!!!!!!!!!!!!!!!\n');
 
       this.game.players_set = 1;
@@ -753,7 +759,7 @@ class GameGame {
     const game_id = this.game.id;
     const slug = typeof this.returnSlug === 'function' ? this.returnSlug() : this.name;
     let link =
-      window.location.origin +
+      (this.app.HEADLESS || typeof window === 'undefined' ? (this.app.options.runnerOrigin || '') : window.location.origin) +
       `/arcade/?game=${encodeURIComponent(slug)}&game_id=${encodeURIComponent(game_id)}`;
 
     newtx.msg = {

@@ -58,6 +58,10 @@ module.exports = (terrain = '') => {
         <div class="loss-overlay-footer">
           <div class="loss-overlay-footer-copy">
             <div class="loss-overlay-title">Combat</div>
+            <label class="loss-overlay-board-pref" title="Assign hits on the map instead of this overlay">
+              <input type="checkbox" class="loss-overlay-use-board">
+              <span>Assign on board</span>
+            </label>
           </div>
           <button type="button" class="loss-overlay-see-details" aria-label="Show combat details">
             <span class="loss-overlay-details-caret" aria-hidden="true">

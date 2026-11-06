@@ -1004,7 +1004,7 @@
 		   //
 		   // spaces that belong to minor powers can only be traded to allies
 		   //
-  		   if (this.isAlliedMinorPower(space.home, target_faction)) {
+  		   if (his_self.isAlliedMinorPower(space.home, target_faction)) {
 
 		     return 1;
 		   } else {

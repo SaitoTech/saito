@@ -2,7 +2,7 @@ module.exports = async (app, mod, build_number, server_publickey = '') => {
   let html = `
 
   <!DOCTYPE html>
-  <html lang="en">
+  <html lang="en" data-admin-theme="light">
   
   <head>
     <meta charset="utf-8" />
@@ -16,6 +16,15 @@ module.exports = async (app, mod, build_number, server_publickey = '') => {
     <meta name="mobile-web-app-capable" content="no" />
     <meta name="apple-mobile-web-app-capable" content="no" />
       
+    <script>
+      try {
+        if (localStorage.getItem('saito-admin-theme') === 'dark') {
+          document.documentElement.setAttribute('data-admin-theme', 'dark');
+        }
+      } catch (err) {
+        // Storage may be unavailable; keep the default light appearance.
+      }
+    </script>
     <link rel="stylesheet" type="text/css" href="/admin/style.css?v=${build_number}" />
     <link rel="stylesheet" type="text/css" href="/saito/lib/font-awesome-6/css/fontawesome.min.css" />
     <link rel="stylesheet" type="text/css" href="/saito/lib/font-awesome-6/css/all.css" />
@@ -33,6 +42,7 @@ module.exports = async (app, mod, build_number, server_publickey = '') => {
   <script type="text/javascript">
     var server_publickey = "${server_publickey}";
     var need_to_set_key = ${!app.options.admin?.length};
+    var is_setup_complete = ${app.options.isSetupComplete === true};
     var default_module = "${app.options.defaultModule || ''}";
     var active_module = '${mod.returnSlug()}';
   </script>

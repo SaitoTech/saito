@@ -77,46 +77,38 @@ class Menu {
 
     root.dataset.menuBound = '1';
 
-    const homeItem = root.querySelector('[data-nav="home"]');
-    const notificationsItem = root.querySelector('[data-nav="notifications"]');
-    const chatItem = root.querySelector('[data-nav="chat"]');
-    const settingsItem = root.querySelector('[data-nav="settings"]');
+    // The container survives menu renders; delegate to its current buttons.
+    root.addEventListener('click', (event) => {
+      const item = event.target.closest('.menu .item[data-nav]');
+      if (!item || !root.contains(item)) {
+        return;
+      }
 
-    if (homeItem) {
-      homeItem.addEventListener('click', () => {
-        this.mod.main?.showMobileView('feed');
-        this.mod.manager?.renderHome();
-        this.setActiveMenuItem(homeItem);
-      });
-    }
-
-    if (notificationsItem) {
-      notificationsItem.addEventListener('click', () => {
-        this.mod.main?.showMobileView('feed');
-        this.mod.manager?.renderNotifications();
-        this.setActiveMenuItem(notificationsItem);
-      });
-    }
-
-    if (chatItem) {
-      chatItem.addEventListener('click', () => {
-        if (this.mod.main?.showMobileView('chat')) {
-          this.setActiveMenuItem(chatItem);
-        }
-      });
-    }
-
-    if (settingsItem) {
-      settingsItem.addEventListener('click', () => {
-        if (this.mod.main?.showMobileView('settings')) {
-          this.setActiveMenuItem(settingsItem);
-          return;
-        }
-
-        // Desktop keeps the existing RedSquare settings overlay.
-        this.mod.settings_overlay?.open();
-      });
-    }
+      switch (item.dataset.nav) {
+        case 'home':
+          this.mod.main?.showMobileView('feed');
+          this.mod.manager?.renderHome();
+          this.setActiveMenuItem(item);
+          break;
+        case 'notifications':
+          this.mod.main?.showMobileView('feed');
+          this.mod.manager?.renderNotifications();
+          this.setActiveMenuItem(item);
+          break;
+        case 'chat':
+          if (this.mod.main?.showMobileView('chat')) {
+            this.setActiveMenuItem(item);
+          }
+          break;
+        case 'settings':
+          if (this.mod.main?.showMobileView('settings')) {
+            this.setActiveMenuItem(item);
+          } else {
+            this.mod.settings_overlay?.open();
+          }
+          break;
+      }
+    });
   }
 
   setActiveMenuItem(activeItem) {

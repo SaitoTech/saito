@@ -10,7 +10,7 @@ class StatsOverlay {
   }
 
   render(winner = '') {
-    this.overlay.show(SettlersStatsOverlayTemplate(this, winner));
+    this.overlay.showClosable(SettlersStatsOverlayTemplate(this, winner));
     this.attachEvents();
   }
 

@@ -510,7 +510,7 @@ class Chat extends ModTemplate {
         return [
           {
             text: 'Chat',
-            icon: 'fas fa-comments',
+            icon: 'saito-chat-icon',
             callback: function (app, id) {
               // console.log('Render Chat manager overlay');
               chat_self.chat_manager_overlay.render();
@@ -555,7 +555,7 @@ class Chat extends ModTemplate {
           return [
             {
               text: 'Chat',
-              icon: 'fas fa-comments',
+              icon: 'saito-chat-icon',
               type: 'quicklaunch',
               callback: function (app, id) {
                 // console.log('Render Chat manager overlay');
@@ -584,7 +584,7 @@ class Chat extends ModTemplate {
           return [
             {
               text: 'Chat',
-              icon: 'fas fa-comments',
+              icon: 'saito-chat-icon',
               type: 'navigation',
               callback: function (app, id) {
                 navigateWindow('/chat');
@@ -599,7 +599,7 @@ class Chat extends ModTemplate {
 
           return {
             text: dynamic_text,
-            icon: 'far fa-comment-dots',
+            icon: 'saito-chat-icon',
             image: '/saito/icons/saito-chat-icon-solid.svg',
             callback: function (app, publicKey) {
               if (chat_self.chat_manager == null) {
@@ -634,7 +634,7 @@ class Chat extends ModTemplate {
           ) {
             return {
               text: 'Chat',
-              icon: 'far fa-comment-dots',
+              icon: 'saito-chat-icon',
               callback: function (app, publicKey) {
                 if (chat_self.chat_manager == null) {
                   chat_self.chat_manager = new ChatManager(chat_self.app, chat_self);
@@ -661,7 +661,7 @@ class Chat extends ModTemplate {
           return [
             {
               text: 'Chat',
-              icon: 'fa-regular fa-comments',
+              icon: 'saito-chat-icon',
               callback: function (app) {
                 app.connection.emit('open-chat-with', {
                   id: obj.call_id
@@ -693,7 +693,7 @@ class Chat extends ModTemplate {
           return [
             {
               text: 'Chat',
-              icon: 'fa-regular fa-comments',
+              icon: 'saito-chat-icon',
               callback: function (app) {
                 app.connection.emit('open-chat-with', {
                   id: obj.call_id
@@ -1564,8 +1564,16 @@ class Chat extends ModTemplate {
     }
 
     let txmsg = '';
+    let was_encrypted = false;
 
     try {
+      let pre_msg = tx.returnMessage ? tx.returnMessage() : tx.msg;
+      if (typeof pre_msg === 'string') {
+        was_encrypted = this.app.crypto.isAesEncrypted(pre_msg);
+      } else if (pre_msg && typeof pre_msg === 'object' && pre_msg.ct) {
+        was_encrypted = true;
+      }
+
       if (tx.decryptMessage) {
         await tx.decryptMessage(this.app);
       }
@@ -1576,6 +1584,38 @@ class Chat extends ModTemplate {
       }
     } catch (err) {
       console.log('ERROR: ' + JSON.stringify(err));
+    }
+
+    //
+    // Auto-recovery: encrypted DM could not be decrypted and we have no
+    // custom AES secret with the sender (typical after private-key reimport).
+    //
+    if (
+      this.app.BROWSER &&
+      was_encrypted &&
+      !tx.dmsg &&
+      tx.isTo(this.publicKey) &&
+      !tx.isFrom(this.publicKey)
+    ) {
+      let sender = tx.from[0]?.publicKey;
+      if (sender && !this.app.keychain.hasSharedSecret(sender)) {
+        let key = this.app.keychain.returnKey(sender, true);
+        let cooldown = 90000;
+        let recovering =
+          key?.aes_recovery_ts && Date.now() - key.aes_recovery_ts < cooldown;
+        let mid_exchange =
+          (key?.aes_privatekey || key?.aes_publicKey) && !key?.aes_secret;
+
+        if (!recovering && !mid_exchange) {
+          siteMessage(
+            `Requesting updated encryption key with ${this.app.keychain.returnUsername(sender)}....`,
+            5000
+          );
+          this.app.connection.emit('encrypt-regenerate-key-exchange', sender);
+        }
+      }
+
+      return;
     }
 
     if (this.debug) {
@@ -2383,8 +2423,6 @@ class Chat extends ModTemplate {
     if (this.app.options.chat.groups?.length == 0) {
       this.createDefaultChatsFromKeys();
     }
-
-    this.app.storage.saveOptions();
   }
 
   saveOptions() {

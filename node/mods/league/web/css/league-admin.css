@@ -100,7 +100,7 @@
 }
 
 .league_options_overlay {
-  min-width: 550px;
+  min-width: min(550px, 95vw);
   max-width: 95vw;
   font-size: 1.6rem;
 }
@@ -110,7 +110,7 @@
 }
 
 .league_options_overlay .overlay-title {
-  font-size: 4rem;
+  font-size: clamp(2.6rem, 8vw, 4rem);
   font-weight: bold;
   margin-bottom: 0.5rem;
 }
@@ -430,7 +430,7 @@ i.link_icon.private {
   max-height: 90vh;
   overflow-y: scroll;
   font-size: 2rem;
-  min-width: 400px;
+  min-width: min(400px, calc(100vw - 2rem));
   padding: 1.5rem;
 }
 
@@ -474,7 +474,7 @@ i.link_icon.private {
 }
 
 .game-selection-list-overlay .overlay-title {
-  font-size: 3rem;
+  font-size: clamp(2.2rem, 6vw, 3rem);
   margin-bottom: 0.5rem;
   color: var(--saito-primary);
 }

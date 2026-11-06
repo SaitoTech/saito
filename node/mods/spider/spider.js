@@ -2,6 +2,7 @@ const OnePlayerGameTemplate = require('../../lib/templates/oneplayer-gametemplat
 const SpiderGameRulesTemplate = require('./lib/spider-game-rules.template');
 const AppSettings = require('./lib/spider-settings');
 const GameCardStack = require('../../lib/saito/ui/game-cardstack/game-cardstack');
+const SaitoOverlay = require('../../lib/saito/ui/saito-overlay/saito-overlay');
 const htmlTemplate = require('./lib/game-html.template');
 
 //////////////////
@@ -113,7 +114,7 @@ class Spider extends OnePlayerGameTemplate {
       class: 'game-intro',
       callback: function (app, game_mod) {
         game_mod.menu.hideSubMenus();
-        game_mod.overlay.show(game_mod.returnGameRulesHTML());
+        game_mod.overlay.showClosable(game_mod.returnGameRulesHTML());
       }
     });
 
@@ -123,7 +124,7 @@ class Spider extends OnePlayerGameTemplate {
       class: 'game-stats',
       callback: function (app, game_mod) {
         game_mod.menu.hideSubMenus();
-        game_mod.overlay.show(game_mod.returnStatsHTML());
+        game_mod.overlay.showClosable(game_mod.returnStatsHTML());
       }
     });
 
@@ -184,7 +185,10 @@ class Spider extends OnePlayerGameTemplate {
 
   updateScore(change = -1) {
     this.game.state.score += change;
-    this.scoreboard.update(`<div class="score">Score: ${this.game.state.score}</div>`);
+    let el = document.querySelector('.spider-score');
+    if (el) {
+      el.textContent = `Score: ${this.game.state.score}`;
+    }
     if (this.game.state.score <= 0) {
       this.displayModal('You Lose!', 'Too many moves');
       this.prependMove('lose');
@@ -953,7 +957,7 @@ class Spider extends OnePlayerGameTemplate {
         this.animateFinalVictory();
         let final_score = this.game.state.score + 400;
         this.game.state.scores.push(final_score);
-        this.overlay.show(this.returnStatsHTML('Winner!'), () => {
+        this.overlay.showClosable(this.returnStatsHTML('Winner!'), () => {
           this.newRound();
           this.game.queue.push(
             `ROUNDOVER\t${JSON.stringify([this.publicKey])}\t${final_score}\t${JSON.stringify([])}`
@@ -1106,6 +1110,7 @@ class Spider extends OnePlayerGameTemplate {
     html += '</div>';
     html += `<div class="spider-footer">
               <div class="completed_stack_box"></div>
+              <div class="spider-score"></div>
               <div class="icon_container">
                 <div id="hint" class="hint"><i class="fa-solid fa-question fa-border"></i></div>
                 <div class="undo"><i class="fas fa-undo fa-border"></i></div>
@@ -1267,8 +1272,15 @@ class Spider extends OnePlayerGameTemplate {
 
   loadSettings(container = null) {
     if (!container) {
-      this.overlay.show(
-        `<div class="module-settings-overlay"><h2>Spider Solitaire Settings</h2></div>`
+      // The shared game overlay is created without a close box. Settings needs
+      // its own overlay so the standard top-right close control is present,
+      // including when the panel fills the screen on mobile.
+      if (!this.settings_overlay) {
+        this.settings_overlay = new SaitoOverlay(this.app, this);
+      }
+      this.menu.hideSubMenus();
+      this.settings_overlay.show(
+        `<div class="module-settings-overlay retain-surface"><h2>Spider Solitaire Settings</h2></div>`
       );
       container = '.module-settings-overlay';
     }

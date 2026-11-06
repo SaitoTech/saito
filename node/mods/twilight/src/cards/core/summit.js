@@ -126,12 +126,12 @@
             this.game.status = `${this.roles[winner].toUpperCase()} won the ${this.cardToText(card)}`;
             this.hud.updateStatus(this.game.status);
             this.hud.updateMenu([]);
-            this.hud.updateCards([]);
+            this.hud.updateCards(this.game.deck[0].hand);
           }else{
             this.game.status = `You lost the ${this.cardToText(card)}, waiting for opponent to change DEFCON`;
             this.hud.updateStatus(this.game.status);
             this.hud.updateMenu([]);
-            this.hud.updateCards([]);            
+            this.hud.updateCards(this.game.deck[0].hand);            
           }
 
         }

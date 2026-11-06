@@ -1,0 +1,226 @@
+[
+  {
+    "id": "0",
+    "action": {
+      "type": "place",
+      "territory": "northwest_territory",
+      "count": 1
+    }
+  },
+  {
+    "id": "1",
+    "action": {
+      "type": "place",
+      "territory": "northwest_territory",
+      "count": 4
+    }
+  },
+  {
+    "id": "2",
+    "action": {
+      "type": "place",
+      "territory": "greenland",
+      "count": 1
+    }
+  },
+  {
+    "id": "3",
+    "action": {
+      "type": "place",
+      "territory": "greenland",
+      "count": 4
+    }
+  },
+  {
+    "id": "4",
+    "action": {
+      "type": "place",
+      "territory": "central_america",
+      "count": 1
+    }
+  },
+  {
+    "id": "5",
+    "action": {
+      "type": "place",
+      "territory": "central_america",
+      "count": 4
+    }
+  },
+  {
+    "id": "6",
+    "action": {
+      "type": "place",
+      "territory": "iceland",
+      "count": 1
+    }
+  },
+  {
+    "id": "7",
+    "action": {
+      "type": "place",
+      "territory": "iceland",
+      "count": 4
+    }
+  },
+  {
+    "id": "8",
+    "action": {
+      "type": "place",
+      "territory": "northern_europe",
+      "count": 1
+    }
+  },
+  {
+    "id": "9",
+    "action": {
+      "type": "place",
+      "territory": "northern_europe",
+      "count": 4
+    }
+  },
+  {
+    "id": "10",
+    "action": {
+      "type": "place",
+      "territory": "southern_europe",
+      "count": 1
+    }
+  },
+  {
+    "id": "11",
+    "action": {
+      "type": "place",
+      "territory": "southern_europe",
+      "count": 4
+    }
+  },
+  {
+    "id": "12",
+    "action": {
+      "type": "place",
+      "territory": "ural",
+      "count": 1
+    }
+  },
+  {
+    "id": "13",
+    "action": {
+      "type": "place",
+      "territory": "ural",
+      "count": 4
+    }
+  },
+  {
+    "id": "14",
+    "action": {
+      "type": "place",
+      "territory": "mongolia",
+      "count": 1
+    }
+  },
+  {
+    "id": "15",
+    "action": {
+      "type": "place",
+      "territory": "mongolia",
+      "count": 4
+    }
+  },
+  {
+    "id": "16",
+    "action": {
+      "type": "place",
+      "territory": "japan",
+      "count": 1
+    }
+  },
+  {
+    "id": "17",
+    "action": {
+      "type": "place",
+      "territory": "japan",
+      "count": 4
+    }
+  },
+  {
+    "id": "18",
+    "action": {
+      "type": "place",
+      "territory": "afghanistan",
+      "count": 1
+    }
+  },
+  {
+    "id": "19",
+    "action": {
+      "type": "place",
+      "territory": "afghanistan",
+      "count": 4
+    }
+  },
+  {
+    "id": "20",
+    "action": {
+      "type": "place",
+      "territory": "middle_east",
+      "count": 1
+    }
+  },
+  {
+    "id": "21",
+    "action": {
+      "type": "place",
+      "territory": "middle_east",
+      "count": 4
+    }
+  },
+  {
+    "id": "22",
+    "action": {
+      "type": "place",
+      "territory": "india",
+      "count": 1
+    }
+  },
+  {
+    "id": "23",
+    "action": {
+      "type": "place",
+      "territory": "india",
+      "count": 4
+    }
+  },
+  {
+    "id": "24",
+    "action": {
+      "type": "place",
+      "territory": "new_guinea",
+      "count": 1
+    }
+  },
+  {
+    "id": "25",
+    "action": {
+      "type": "place",
+      "territory": "new_guinea",
+      "count": 4
+    }
+  },
+  {
+    "id": "26",
+    "action": {
+      "type": "place",
+      "territory": "western_australia",
+      "count": 1
+    }
+  },
+  {
+    "id": "27",
+    "action": {
+      "type": "place",
+      "territory": "western_australia",
+      "count": 4
+    }
+  }
+]

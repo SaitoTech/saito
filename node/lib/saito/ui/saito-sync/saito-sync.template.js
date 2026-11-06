@@ -31,7 +31,7 @@ const SaitoSyncTemplate = (sync) => {
         <div class="saito-sync-copy">
           <div class="saito-sync-meter">
             <p class="saito-sync-progress-label">
-              Currently <span id="saito-sync-current-block" class="saito-sync-num">${current_block_id}</span>
+              <span class="saito-sync-currently">Currently </span><span id="saito-sync-current-block" class="saito-sync-num">${current_block_id}</span>
               of <span id="saito-sync-target-block" class="saito-sync-num">${target_block_id}</span>
             </p>
             <div
@@ -44,14 +44,18 @@ const SaitoSyncTemplate = (sync) => {
             >
               <div class="saito-sync-progress-fill" id="saito-sync-progress-fill"></div>
             </div>
-            <p class="saito-sync-wait">wait for blockchain to sync, or...</p>
             <button
               type="button"
-              class="saito-button-primary saito-sync-skip"
-              id="saito-sync-skip"
+              class="saito-button-primary saito-sync-minimize"
+              id="saito-sync-minimize"
             >
-              skip the wait...
+              minimize
             </button>
+            <label class="saito-sync-startup">
+              <input type="checkbox" id="saito-sync-minimize-on-startup"
+                ${sync.app.options?.saito_sync?.minimize_on_startup === true ? 'checked' : ''} />
+              <span>minimize on startup</span>
+            </label>
           </div>
         </div>
       </div>

@@ -153,7 +153,7 @@
 		this.hud.updateStatus(this.game.status);
 		this.hud.updateMenu([]);
 		this.hud.updateCards(this.game.deck[this.game.player-1].hand);
-		this.cardbox.bindCallback(function(cardname) {
+		this.cardbox.bindCallback((cardname) => {
 
 				let card = realms_self.deck[cardname];
 

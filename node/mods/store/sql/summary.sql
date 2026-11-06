@@ -3,6 +3,8 @@ CREATE TABLE IF NOT EXISTS summary (
 
   nft_id TEXT NOT NULL,
   price INTEGER NOT NULL DEFAULT 0,
+  web3_ticker TEXT NOT NULL DEFAULT '',
+  web3_amount TEXT NOT NULL DEFAULT '',
   category TEXT DEFAULT 'Other',
 
   title TEXT DEFAULT '',

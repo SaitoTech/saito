@@ -59,10 +59,10 @@ class GameAcknowledge {
       let menu = [];
       if (options) {
         for (let z = 0; z < options.length; z++) {
-          menu.push({ id: String(z), label: options[z].text });
+          menu.push({ id: String(z), label: options[z].text, class: 'acknowledge' });
         }
       } else {
-        menu.push({ id: 'confirmit', label: this.acknowledge_text });
+        menu.push({ id: 'confirmit', label: this.acknowledge_text, class: 'acknowledge' });
       }
 
       let done = false;

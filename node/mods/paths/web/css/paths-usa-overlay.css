@@ -1,0 +1,4 @@
+.game.paths .usa-overlay {
+  --paths-track-image: url('/paths/img/backgrounds/usa-war-entry.png');
+  --paths-marker: url('/paths/img/us_entry.png');
+}

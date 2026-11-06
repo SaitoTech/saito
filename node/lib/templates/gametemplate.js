@@ -74,7 +74,6 @@ const GameBoardSizer = require('./../saito/ui/game-board-sizer/game-board-sizer'
 const GameHexGrid = require('./../saito/ui/game-hexgrid/game-hexgrid');
 const GameAcknowledgeOverlay = require('./../saito/ui/game-acknowledge-overlay/game-acknowledge-overlay');
 const GameHelp = require('./../saito/ui/game-help/game-help');
-const GameScoreBoard = require('./../saito/ui/game-scoreboard/game-scoreboard');
 const GameHammerMobile = require('./../saito/ui/game-hammer-mobile/game-hammer-mobile');
 const GameRaceTrack = require('./../saito/ui/game-racetrack/game-racetrack');
 const GameObserver = require('./../saito/ui/game-observer/game-observer');
@@ -97,6 +96,9 @@ class GameTemplate extends ModTemplate {
     this.endmoves = [];
     this.commands = [];
     this.game_state_pre_move = '';
+
+    // NFT type strings (slip3 trailing 16 bytes via Wallet.extractNFTType) offered in Arcade wizard
+    this.supported_nft_types = [];
 
     this.social = this.buildSocial({
       creator: 'Saito Team',
@@ -184,7 +186,6 @@ class GameTemplate extends ModTemplate {
     this.menu = new GameMenu(app, this);
     this.hammer = new GameHammerMobile(app, this);
     this.sizer = new GameBoardSizer(app, this); //yes constructor
-    this.scoreboard = new GameScoreBoard(app, this);
     this.hexgrid = new GameHexGrid(app, this);
     this.overlay = new SaitoOverlay(app, this, false);
     this.acknowledge_overlay = new GameAcknowledgeOverlay(app, this);
@@ -415,6 +416,124 @@ class GameTemplate extends ModTemplate {
     } catch (err) {
       console.error(err);
     }
+  }
+
+
+  /**
+   * General sandbox API. Games spread super.returnApi() and add module methods.
+   * Queue / move insertion lives in returnApiQueue().
+   */
+  returnApi() {
+    const api = super.returnApi();
+    const self = this;
+    return {
+      ...api,
+      rollDice: function (sides = 6, mycallback = null) {
+        return self.rollDice(sides, mycallback);
+      }
+    };
+  }
+
+  /**
+   * Engine queue / move API for sandbox scripts, plus the engine permitted
+   * command list (`commands`). Games extend via super.returnApiQueue().
+   * Permission checks belong in the game module, not here.
+   */
+  returnApiQueue() {
+    const self = this;
+    return {
+      commands: [
+        'SETVAR',
+        'SALERT',
+        'salert',
+        'NOTIFY',
+        'notify',
+        'STATUS',
+        'status',
+        'LOAD',
+        'SAVE',
+        'HALTED',
+        'ACKNOWLEDGE',
+        'OBSERVER',
+        'PLAY',
+        'RESETCONFIRMSNEEDED',
+        'RESOLVE',
+        'PRERESOLVE',
+        'SHUFFLE',
+        'SHUFFLEDISCARDS',
+        'LOGDECK',
+        'LOGHAND',
+        'LOGPOOL',
+        'RESOLVEDEAL',
+        'SIMPLEDEAL',
+        'DEAL',
+        'SAFEDEAL',
+        'PUSHONDECK',
+        'REQUESTKEYS',
+        'ISSUEKEYS',
+        'SECUREROLL',
+        'SECUREROLL_END',
+        'SIMULTANEOUS_PICK',
+        'DECKBACKUP',
+        'HANDBACKUP',
+        'DECKRESTORE',
+        'DECKADDCARDS',
+        'CARDS',
+        'POOL',
+        'SAFEPOOLDEAL',
+        'POOLDEAL',
+        'FLIPRESET',
+        'FLIPCARD',
+        'RESOLVEFLIP',
+        'OBSERVER_CHECKPOINT',
+        'DECKANDENCRYPT',
+        'DECK',
+        'DECKXOR',
+        'DECKFLUSH',
+        'DECKENCRYPT',
+        'NFT_EVENT'
+      ],
+      addToQueue: function (instruction) {
+        self.game.queue.push(instruction);
+      },
+      addMove: function (instruction) {
+        self.addMove(instruction);
+      },
+      prependMove: function (instruction) {
+        self.prependMove(instruction);
+      },
+      addEndMove: function (instruction) {
+        self.addEndMove(instruction);
+      },
+      endTurn: async function (...args) {
+        return await self.endTurn(...args);
+      }
+    };
+  }
+
+  /**
+   * Read-only NFT / script context. Every game module inherits a deep snapshot
+   * of `this.game` under `context.game`. Modules extend via super.returnContext()
+   * and add only module-specific fields (never replace `game`).
+   */
+  returnContext() {
+    const ctx = super.returnContext();
+    let game = {};
+
+    // JSON clone: plain data only, no live references, functions, or host objects.
+    // serializeTransferable later rejects non-JSON types; this also drops `undefined`.
+    try {
+      game = JSON.parse(JSON.stringify(this.game || {}));
+    } catch (err) {
+      throw new Error(
+        `Unable to snapshot game for NFT context: ${err && err.message ? err.message : err}`
+      );
+    }
+
+    return {
+      ...ctx,
+      game
+    };
   }
 
   returnImage() {
@@ -677,7 +796,6 @@ class GameTemplate extends ModTemplate {
 
       let x = {};
       x.image = this.returnImage();
-      x.banner = this.returnBanner();
       return x;
     }
 
@@ -940,7 +1058,7 @@ class GameTemplate extends ModTemplate {
         return;
       }
 
-      if (!this.app.BROWSER) {
+      if (!this.app.BROWSER && !this.app.HEADLESS) {
         return;
       }
 
@@ -1081,7 +1199,7 @@ class GameTemplate extends ModTemplate {
       return 0;
     }
 
-    if (app.BROWSER == 0) {
+    if (app.BROWSER == 0 && !app.HEADLESS) {
       return 0;
     }
 

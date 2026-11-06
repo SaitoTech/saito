@@ -17,10 +17,10 @@
 
 .explorer-holders-pagination button {
   padding: var(--explorer-space-1) var(--explorer-space-2);
-  color: var(--explorer-foreground);
-  background: var(--explorer-card);
-  border: 1px solid var(--explorer-border);
-  border-radius: var(--explorer-radius-sm);
+  color: var(--saito-foreground);
+  background: var(--saito-card);
+  border: 1px solid var(--saito-border);
+  border-radius: var(--saito-radius-sm);
   cursor: pointer;
 }
 
@@ -31,6 +31,6 @@
 
 .explorer-holders-pagination button[aria-current='page'] {
   font-weight: bold;
-  background: var(--explorer-muted);
+  background: var(--saito-muted);
   opacity: 1;
 }

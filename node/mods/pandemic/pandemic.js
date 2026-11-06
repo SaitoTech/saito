@@ -269,7 +269,7 @@ class Pandemic extends GameTemplate {
         callback: function (app, game_mod) {
           game_mod.menu.hideSubMenus();
           let html = game_mod.returnPlayerCardHTML(i + 1);
-          game_mod.overlay.show(`<div class=" bighand">${html}</div>`);
+          game_mod.overlay.showClosable(`<div class="bighand">${html}</div>`);
                     game_mod.cardbox.attachCardEvents(); //Don't do anything on click
         }
       });
@@ -2584,23 +2584,13 @@ class Pandemic extends GameTemplate {
         console.log(divname);
       }
     }
-    let html = '';
     for (let v in this.game.state.active) {
       if (this.game.state.active[v] !== cubeCounts[v]) {
         salert('--Mismatch in active virus and cubes---' + v + '--');
         console.log('--Mismatch in active virus and cubes---' + v + '--');
         console.log(`${cubeCounts[v]} cubes on board, ${this.game.state.active[v]} in game logic`);
       }
-      let threat_level = 'safe';
-      if (cubeCounts[v] > 9) threat_level = 'caution';
-      if (cubeCounts[v] > 16) threat_level = 'danger';
-      html += `<div id="${v}-count" class="scoreboard_virus_group tip">
-                <img class="cube" src="${this.skin.returnDiseaseImg(v)}">
-                <div class="virus-count ${threat_level}">: ${24 - cubeCounts[v]}</div>
-                <div class="tiptext">Don't let this number reach zero!</div>
-              </div>`;
     }
-    this.scoreboard.update(html);
   }
 
   definePlayersPawns() {

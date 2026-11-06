@@ -344,6 +344,21 @@
   color: var(--saito-muted-foreground);
 }
 
+.listing-detail.view .price {
+  position: relative;
+  padding-right: 4.4rem;
+}
+
+.listing-detail .price .share {
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 4.4rem;
+  height: 4.4rem;
+  font-size: 1.8rem;
+}
+
 .listing-detail .amount {
   margin: 0;
   font-size: 2.5rem;
@@ -431,26 +446,6 @@
   padding-top: var(--saito-space-md);
 }
 
-.listing-detail .submit-main-store {
-  display: flex;
-  align-items: center;
-  gap: var(--saito-space-sm);
-  margin: 0;
-  font-size: var(--font-size-small);
-  line-height: 1.4;
-  color: var(--saito-muted-foreground);
-  cursor: pointer;
-  user-select: none;
-}
-
-.listing-detail .submit-main-store input {
-  width: 1.15rem;
-  height: 1.15rem;
-  margin: 0;
-  flex: 0 0 auto;
-  cursor: pointer;
-}
-
 .listing-detail .quantity {
   display: flex;
   flex-wrap: wrap;
@@ -495,6 +490,22 @@
 
 .store-listing-field-edit .saito-button-row {
   margin-top: var(--saito-space-sm);
+}
+
+.store-listing-field-edit .price-row {
+  display: flex;
+  align-items: stretch;
+  gap: var(--saito-space-sm);
+}
+
+.store-listing-field-edit .price-row .text-input {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.store-listing-field-edit .price-row .ticker {
+  flex: 0 0 11rem;
+  width: 11rem;
 }
 
 @media (max-width: 900px) {

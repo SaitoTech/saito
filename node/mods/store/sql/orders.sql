@@ -11,6 +11,11 @@ CREATE TABLE IF NOT EXISTS orders (
 
   payment_tx_sig TEXT NOT NULL,
   payment_output_index INTEGER NOT NULL DEFAULT 0,
+  -- Mixin transaction hash of the external inbound payment, and the transfers.id
+  -- that was credited. Empty for SAITO purchases and for web3 payments that did
+  -- not carry a valid identifier.
+  inbound_payment_uuid TEXT NOT NULL DEFAULT '',
+  transfer_uuid TEXT NOT NULL DEFAULT '',
   payment_amount INTEGER NOT NULL DEFAULT 0,
   utxo_slip TEXT NOT NULL DEFAULT '',
   access_hash TEXT NOT NULL DEFAULT '',

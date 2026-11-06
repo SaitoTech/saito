@@ -359,7 +359,13 @@ class Stun extends ModTemplate {
     return super.handlePeerTransaction(app, tx, peer, mycallback);
   }
 
+  // Observational local event for call diagnostics; no wire payloads are retained.
+  diagnostic(peer, message) {
+    this.app?.connection.emit('stun-diagnostic', peer, message);
+  }
+
   async handleSignalingMessage(sender, request, data) {
+    this.diagnostic(sender, `Received ${request}${data.description?.type ? ` (${data.description.type})` : ''}`);
     //
     // Stun metadata messages
     //
@@ -383,6 +389,7 @@ class Stun extends ModTemplate {
     let peerConnection = this.peers.get(sender);
 
     if (!peerConnection) {
+      this.diagnostic(sender, 'Signal ignored: no peer connection');
       console.warn(
         `Stun: Receiving signalling messages for a non-peer connection [${sender}], peers: `,
         this.peers.keys()
@@ -403,13 +410,30 @@ class Stun extends ModTemplate {
         peerConnection.ignoreOffer = offerCollision && peerConnection?.rude;
 
         if (peerConnection.ignoreOffer) {
+          this.diagnostic(sender, 'Ignored colliding offer (impolite peer)');
           console.debug('STUN: Impolite peer ignores offer collision');
           return;
         }
 
+        if (description.type === 'offer') {
+          // An incoming offer can satisfy the deferred negotiation. The browser
+          // will emit negotiationneeded again if local changes remain after the answer.
+          clearTimeout(peerConnection.offerTimer);
+          peerConnection.offerTimer = null;
+        }
+
         peerConnection.answerPending = description.type == 'answer';
         await peerConnection.setRemoteDescription(description);
+        this.diagnostic(sender, `Applied remote ${description.type}`);
         peerConnection.answerPending = false;
+
+        // Relay delivery can put ICE candidates ahead of their SDP. WebRTC
+        // rejects them until a remote description exists, so apply them now.
+        const candidates = peerConnection.pendingCandidates || [];
+        delete peerConnection.pendingCandidates;
+        for (const candidate of candidates) {
+          await this.addIceCandidate(sender, peerConnection, candidate);
+        }
 
         if (description.type === 'offer') {
           await peerConnection.setLocalDescription();
@@ -418,6 +442,7 @@ class Stun extends ModTemplate {
 
         this.peers.set(sender, peerConnection);
       } catch (err) {
+        this.diagnostic(sender, `Apply description failed: ${err.name}`);
         console.error('STUN: failure in peer-offer --- ', err);
         console.debug(
           'STUN: impolite? ',
@@ -434,18 +459,30 @@ class Stun extends ModTemplate {
     }
 
     if (request === 'peer-candidate') {
-      try {
-        await peerConnection.addIceCandidate(data.iceCandidate);
-      } catch (err) {
-        if (!peerConnection?.ignoreOffer) {
-          console.error('STUN: Error adding remote candidate:', err, data.iceCandidate);
-          console.warn(sender, this.publicKey);
-        }
+      if (!peerConnection.remoteDescription) {
+        peerConnection.pendingCandidates ??= [];
+        peerConnection.pendingCandidates.push(data.iceCandidate);
+        this.diagnostic(sender, 'Queued remote ICE candidate until SDP arrives');
+        return;
       }
+      await this.addIceCandidate(sender, peerConnection, data.iceCandidate);
       return;
     }
 
     console.warn('Unknown Stun Peer Transaction!', data);
+  }
+
+  async addIceCandidate(peerId, peerConnection, candidate) {
+    try {
+      await peerConnection.addIceCandidate(candidate);
+      this.diagnostic(peerId, 'Applied remote ICE candidate');
+    } catch (err) {
+      this.diagnostic(peerId, `ICE candidate rejected: ${err.name}${peerConnection.ignoreOffer ? ' (ignored offer)' : ''}`);
+      if (!peerConnection.ignoreOffer) {
+        console.error('STUN: Error adding remote candidate:', err, candidate);
+        console.warn(peerId, this.publicKey);
+      }
+    }
   }
 
   //
@@ -459,55 +496,77 @@ class Stun extends ModTemplate {
   }
 
   async sendJoinTransaction(peer) {
-    let newtx = await this.app.wallet.createUnsignedTransactionWithDefaultFee(peer);
+    this.diagnostic(peer, 'Submitting peer-joined');
+    try {
+      let newtx = await this.app.wallet.createUnsignedTransactionWithDefaultFee(peer);
 
-    newtx.msg = {
-      module: 'Stun',
-      request: 'peer-joined'
-    };
+      newtx.msg = {
+        module: 'Stun',
+        request: 'peer-joined'
+      };
 
-    await newtx.sign();
+      await newtx.sign();
 
-    this.app.connection.emit('relay-transaction', newtx);
-    this.app.network.propagateTransaction(newtx);
+      this.app.connection.emit('relay-transaction', newtx);
+      this.app.network.propagateTransaction(newtx);
+      this.diagnostic(peer, 'Submitted peer-joined to relay / network');
+    } catch (error) {
+      this.diagnostic(peer, `Failed to submit peer-joined: ${error.name}`);
+      throw error;
+    }
   }
 
   async sendPeerDescriptionTransaction(peer, description) {
-    let newtx = await this.app.wallet.createUnsignedTransactionWithDefaultFee(peer);
+    this.diagnostic(peer, `Submitting SDP (${description.type})`);
+    try {
+      let newtx = await this.app.wallet.createUnsignedTransactionWithDefaultFee(peer);
 
-    console.info(
-      `STUN: sending offer to ${peer} with peer connection ` + this.peers.get(peer).signalingState,
-      description.type
-    );
+      console.info(
+        `STUN: sending offer to ${peer} with peer connection ` + this.peers.get(peer).signalingState,
+        description.type
+      );
 
-    newtx.msg = {
-      module: 'Stun',
-      request: 'peer-description',
-      description
-    };
+      newtx.msg = {
+        module: 'Stun',
+        request: 'peer-description',
+        description
+      };
 
-    await newtx.sign();
+      await newtx.sign();
 
-    this.app.connection.emit('relay-transaction', newtx);
-    this.app.network.propagateTransaction(newtx);
+      this.app.connection.emit('relay-transaction', newtx);
+      this.app.network.propagateTransaction(newtx);
+      this.diagnostic(peer, 'Submitted SDP to relay / network');
+    } catch (error) {
+      this.diagnostic(peer, `Failed to submit SDP: ${error.name}`);
+      throw error;
+    }
   }
 
   async sendIceCandidateTransaction(peer, candidate) {
-    let newtx = await this.app.wallet.createUnsignedTransactionWithDefaultFee(peer);
+    this.diagnostic(peer, 'Submitting ICE candidate');
+    try {
+      let newtx = await this.app.wallet.createUnsignedTransactionWithDefaultFee(peer);
 
-    newtx.msg = {
-      module: 'Stun',
-      request: 'peer-candidate',
-      iceCandidate: candidate
-    };
+      newtx.msg = {
+        module: 'Stun',
+        request: 'peer-candidate',
+        iceCandidate: candidate
+      };
 
-    await newtx.sign();
+      await newtx.sign();
 
-    this.app.connection.emit('relay-transaction', newtx);
-    this.app.network.propagateTransaction(newtx);
+      this.app.connection.emit('relay-transaction', newtx);
+      this.app.network.propagateTransaction(newtx);
+      this.diagnostic(peer, 'Submitted ICE candidate to relay / network');
+    } catch (error) {
+      this.diagnostic(peer, `Failed to submit ICE candidate: ${error.name}`);
+      throw error;
+    }
   }
 
   restoreConnection(peerId, pathway, callback) {
+    this.diagnostic(peerId, 'Attempting connection recovery');
     this.removePeerConnection(peerId);
     if (!this.noloop.includes(peerId)) {
       if (callback) {
@@ -518,6 +577,7 @@ class Stun extends ModTemplate {
         this.noloop.push(peerId);
       }
     } else {
+      this.diagnostic(peerId, 'Recovery exhausted after two attempts');
       console.warn('STUN reconnection attempt failed after two tries, give up!');
       this.app.connection.emit(pathway, peerId, callback);
 
@@ -531,6 +591,7 @@ class Stun extends ModTemplate {
   }
 
   createPeerConnection(peerId, callback = null) {
+    this.diagnostic(peerId, 'Requested peer connection');
     console.info(
       'STUN/TALK: Create Peer Connection with ' + peerId + ` and ${callback ? 'a' : 'no'} callback`,
       this.noloop
@@ -544,6 +605,7 @@ class Stun extends ModTemplate {
 
     if (this.peers.get(peerId)) {
       let pc = this.peers.get(peerId);
+      this.diagnostic(peerId, `Existing connection: ${pc.connectionState}`);
 
       console.debug(
         `STUN/TALK: ${peerId} already in stun peer list`,
@@ -565,9 +627,10 @@ class Stun extends ModTemplate {
         return;
       }
       if (pc.connectionState == 'new' || pc.connectionState == 'connecting') {
-        console.warn(
-          "STUN/TALK: Repeated attempts to create a peer connection... don't do anything else"
-        );
+        // Reuse negotiation already in progress, but allow a new call to attach
+        // media and notify its peer even if this began as a data-only connection.
+        this.app.connection.emit('stun-new-peer-connection', peerId, pc);
+        if (callback) callback(peerId);
         return;
       }
 
@@ -610,6 +673,7 @@ class Stun extends ModTemplate {
       }
 
       this.peers.set(peerId, pc);
+      this.diagnostic(peerId, `Created peer connection (${pc.rude ? 'impolite' : 'polite'})`);
 
       this.app.connection.emit('stun-new-peer-connection', peerId, pc);
     }
@@ -626,11 +690,16 @@ class Stun extends ModTemplate {
 
     //Receive Remote media
     peerConnection.addEventListener('track', (event) => {
+      this.diagnostic(peerId, `Received ${event.track.kind} track (${event.track.readyState})`);
+      for (const state of ['mute', 'unmute', 'ended']) {
+        event.track.addEventListener(state, () => this.diagnostic(peerId, `${event.track.kind} track: ${state}`));
+      }
       console.debug('STUN: new track', peerId, event);
       this.app.connection.emit('stun-track-event', peerId, event);
     });
 
     peerConnection.onconnectionstatechange = () => {
+      this.diagnostic(peerId, `Connection: ${peerConnection.connectionState}`);
       console.info(`STUN: ${peerId} connectionstatechange -- ` + peerConnection.connectionState);
 
       //cancel timer if any activity on connectionstate
@@ -644,11 +713,13 @@ class Stun extends ModTemplate {
       ) {
         console.debug('STUN: set reconnection timer...');
         let timerAmt = callback ? 9000 : 5000;
+        this.diagnostic(peerId, `Waiting ${timerAmt / 1000}s for connection recovery`);
         peerConnection.timer = setTimeout(() => {
           if (
             peerConnection.connectionState === 'failed' ||
             peerConnection.connectionState === 'disconnected'
           ) {
+            this.diagnostic(peerId, 'Recovery wait expired; connection still failed/disconnected');
             siteMessage(`Stun connection failed with ${peerId}`);
             console.debug(`STUN: connection not restored after ${timerAmt / 1000} seconds...`);
             //this.restoreConnection(peerId, 'stun-connection-failed', callback);
@@ -671,9 +742,21 @@ class Stun extends ModTemplate {
     };
 
     peerConnection.oniceconnectionstatechange = () => {
+      this.diagnostic(peerId, `ICE: ${peerConnection.iceConnectionState}`);
       if (peerConnection.iceConnectionState === 'failed') {
+        this.diagnostic(peerId, 'Attempting ICE restart');
         peerConnection.restartIce();
       }
+    };
+
+    peerConnection.onicegatheringstatechange = () => {
+      this.diagnostic(peerId, `ICE gathering: ${peerConnection.iceGatheringState}`);
+    };
+    peerConnection.onsignalingstatechange = () => {
+      this.diagnostic(peerId, `Signaling: ${peerConnection.signalingState}`);
+    };
+    peerConnection.onicecandidateerror = (event) => {
+      this.diagnostic(peerId, `ICE server error: ${event.errorCode}`);
     };
 
     const dc = peerConnection.createDataChannel('data-channel', { negotiated: true, id: 42 });
@@ -694,12 +777,19 @@ class Stun extends ModTemplate {
     };
 
     //
-    // This handles the renegotiation for adding/dropping media streams (e.g. screen share).
-    // Bound unconditionally on both sides -- the polite/impolite (peerConnection.rude) and
-    // offer-collision handling in handleSignalingMessage's 'peer-description' branch already
-    // implements "perfect negotiation", so it's safe for both peers to originate an offer.
+    // Both peers may negotiate (including screen sharing after connection). During
+    // initial ICE setup, let the lower public key offer first to reduce collisions
+    // and rollback while gathering candidates. The other side still has a bounded
+    // fallback when it is the only peer that needs to negotiate.
     //
-    peerConnection.onnegotiationneeded = async () => {
+    const negotiate = async () => {
+      peerConnection.offerTimer = null;
+      if (
+        this.peers.get(peerId) !== peerConnection ||
+        peerConnection.signalingState !== 'stable' ||
+        peerConnection.makingOffer
+      ) return;
+
       try {
         if (!peerConnection?.negotiation_counter) {
           peerConnection.negotiation_counter = 0;
@@ -708,6 +798,7 @@ class Stun extends ModTemplate {
 
         if (peerConnection.negotiation_counter > 10) {
           console.warn(`STUN: Negotation needed, but going to cool off instead`);
+          this.diagnostic(peerId, 'Negotiation throttled for 12s');
           peerConnection.negotiation_timeout = setTimeout(() => {
             peerConnection.negotiation_counter = 0;
           }, 12000);
@@ -723,12 +814,29 @@ class Stun extends ModTemplate {
 
         await peerConnection.setLocalDescription();
 
+        if (this.peers.get(peerId) !== peerConnection || peerConnection.signalingState === 'closed') return;
         await this.sendPeerDescriptionTransaction(peerId, peerConnection.localDescription);
       } catch (err) {
+        this.diagnostic(peerId, `Negotiation failed: ${err.name}`);
         console.error('STUN offer ERROR:', err);
       } finally {
         peerConnection.makingOffer = false;
       }
+    };
+
+    peerConnection.onnegotiationneeded = () => {
+      this.diagnostic(peerId, 'Negotiation needed');
+      if (this.peers.get(peerId) !== peerConnection || peerConnection.signalingState === 'closed') return;
+      if (peerConnection.rude && peerConnection.iceConnectionState === 'new') {
+        // Coalesce data-channel creation and media attachment without extending
+        // the deadline every time another track is added.
+        if (peerConnection.offerTimer != null) return;
+        this.diagnostic(peerId, 'Deferring initial offer for 1500ms');
+        peerConnection.offerTimer = setTimeout(() => void negotiate(), 1500);
+        return;
+      }
+      clearTimeout(peerConnection.offerTimer);
+      return negotiate();
     };
 
     if (callback) {
@@ -743,6 +851,10 @@ class Stun extends ModTemplate {
     const peerConnection = this.peers.get(peerId);
     if (peerConnection) {
       console.info('Stun remove peer connection! ' + peerConnection.connectionState);
+      this.diagnostic(peerId, 'Closing peer connection');
+      clearTimeout(peerConnection.offerTimer);
+      clearTimeout(peerConnection.negotiation_timeout);
+      clearTimeout(peerConnection.timer);
       peerConnection.close();
       this.peers.delete(peerId);
     }

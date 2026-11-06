@@ -23,7 +23,7 @@
         let player = -1;
         let bonus = 0;
         let bonus_html = "";
-        card_html = '';
+        let card_html = '';
 
         if (mode == 1) {
 

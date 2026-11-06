@@ -403,6 +403,10 @@ class Registry extends ModTemplate {
   // A finished registry username is a name plus this.domain, e.g. omskian@saito.
   // Partial input such as "omskian@sai" is not a lookup.
   //
+  identifierUsesKnownDomain(identifier) {
+    return typeof identifier === 'string' && Boolean(this.domain) && identifier.endsWith(this.domain) && identifier.split('@').length === 2;
+  }
+
   isRegistryIdentifier(identifier) {
     if (typeof identifier !== 'string' || !this.domain || !identifier.endsWith(this.domain)) {
       return false;
@@ -535,11 +539,12 @@ class Registry extends ModTemplate {
       }
 
       let myKey = app.keychain.returnKey(this.publicKey, true);
-      if (myKey?.identifier) {
+      const walletKey = String(app.wallet?.publicKey || '').trim();
+      const alreadyInWallet = Boolean(walletKey) && walletKey === String(this.publicKey || '').trim();
+      if (!alreadyInWallet && myKey?.identifier && this.identifierUsesKnownDomain(myKey.identifier)) {
         let registry_self = this;
 
         this.queryKeys(peer, [this.publicKey], function (identifiers) {
-          //console.log(`REGISTRY lookup ${myKey.identifier}: ${registry_self.publicKey} in ${peer.publicKey}, found: `, identifiers);
           for (let key in identifiers) {
             if (key == myKey.publicKey) {
               if (identifiers[key] !== myKey.identifier) {
@@ -547,29 +552,16 @@ class Registry extends ModTemplate {
                 console.log(
                   `REGISTRY: Expecting ${myKey.identifier}, but Registry has ${identifiers[key]}`
                 );
-                //Maybe we do an update here???
-              } else {
-                //console.log("REGISTRY: Identifier checks out");
-                //Identifier checks out!
               }
               return;
             }
           }
 
-          //
-          //Make sure that we actually checked the right source
-          //
-          //if (peer.publicKey == registry_self.registry_publickey) {
-          let identifier = myKey.identifier.split('@');
-          if (identifier.length !== 2) {
-            console.log('REGISTRY: Invalid identifier', myKey.identifier);
-            return;
-          }
-          registry_self.tryRegisterIdentifier(identifier[0], '@' + identifier[1]);
+          const name = myKey.identifier.slice(0, -registry_self.domain.length);
+          registry_self.tryRegisterIdentifier(name, registry_self.domain);
           console.log('REGISTRY: Attempting to register our name again');
-          //}
         });
-      } else if (myKey?.has_registered_username) {
+      } else if (!myKey?.identifier && myKey?.has_registered_username) {
         console.log('REGISTRY: unset registering... status');
         this.app.keychain.addKey(this.publicKey, {
           has_registered_username: false

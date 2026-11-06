@@ -1,45 +1,47 @@
 module.exports = (app, mod) => {
-  let privacy = app.options.stun?.settings?.privacy || 'all';
-  let html = `
-			<div class="stun-settings-shell">
-			<fieldset class="saito-grid stun-settings-privacy">
-			<legend class="settings-label videocall-settings-heading">Enable Direct Calls on Saito Talk From:</legend>
-			<input class="saito-radio" type="radio" id="all" name="stun-privacy" value="all" ${
-        privacy == 'all' ? 'checked' : ''
-      }/>
-			<label for="all">Anyone</label>
-			<input class="saito-radio" type="radio" id="key" name="stun-privacy" value="key" ${
-        privacy == 'key' ? 'checked' : ''
-      }/>
-			<label for="key">Acquaintances</label>
-			<input class="saito-radio" type="radio" id="dh" name="stun-privacy" value="dh" ${
-        privacy == 'dh' ? 'checked' : ''
-      }/>
-			<label for="dh">Friends</label>
-			<input class="saito-radio" type="radio" id="none" name="stun-privacy" value="none" ${
-        privacy == 'none' ? 'checked' : ''
-      }/>
-			<label for="none">No one</label>
-			</fieldset>
-			`;
-
-  if (mod?.streams?.active) {
-    html += `<fieldset class="stun-input-settings cinematic-inputs">
-			<legend class="stun-input-settings-label videocall-settings-heading">Adjust Inputs</legend>
-            <select style="display:none" class="saito-form-select" id="video-input"></select>
-            <select style="display:none" class="saito-form-select" id="audio-input"></select>
-            <button style="display:none" id="test-mic" class="chat-settings-test-mic">Test Microphone</button>
-            <div style="display:none" class="chat-settings-audio-controls">
-            <i id="toggle-playback" class="fas fa-play chat-settings-toggle-icon"></i>
-                <span id="audio-progress">00:00 / 00:00</span>
-            </div>
-            <div style="display:none" class="chat-settings-audio-progress-bar">
-              <div id="progress" class="chat-settings-progress"></div>
-            </div>
-        </fieldset>`;
-  }
-
-  html += `</div>`;
-
-  return html;
+  const privacy = app.options.stun?.settings?.privacy || 'all';
+  return `
+    <div class="stun-settings-shell">
+      <fieldset class="videocall-settings-group stun-settings-privacy">
+        <legend class="videocall-settings-heading">Allow direct calls from</legend>
+        ${[
+          ['all', 'Anyone'],
+          ['key', 'Acquaintances'],
+          ['dh', 'Friends'],
+          ['none', 'No one']
+        ]
+          .map(
+            ([value, label]) => `
+            <label class="videocall-settings-option">
+              <input class="saito-radio" type="radio" name="stun-privacy"
+                value="${value}" ${privacy === value ? 'checked' : ''}>
+              <span>${label}</span>
+            </label>`
+          )
+          .join('')}
+      </fieldset>
+      <fieldset class="videocall-settings-group">
+        <legend class="videocall-settings-heading">Call diagnostics</legend>
+        <label class="videocall-settings-option">
+          <input class="saito-checkbox" type="checkbox" name="videocall-diagnostics"
+            ${app.options.stun?.settings?.diagnostics ? 'checked' : ''}>
+          <span>Show connection status and log in each call window</span>
+        </label>
+        <p class="videocall-settings-help">Includes signaling, connection attempts, media traffic and playback status.</p>
+      </fieldset>
+      ${
+        mod?.streams?.active
+          ? `
+        <fieldset class="videocall-settings-group stun-input-settings" hidden>
+          <legend class="videocall-settings-heading">Adjust inputs</legend>
+          <label class="videocall-device-option" hidden>Camera
+            <select class="saito-form-select" id="video-input" aria-label="Camera"></select>
+          </label>
+          <label class="videocall-device-option" hidden>Microphone
+            <select class="saito-form-select" id="audio-input" aria-label="Microphone"></select>
+          </label>
+        </fieldset>`
+          : ''
+      }
+    </div>`;
 };

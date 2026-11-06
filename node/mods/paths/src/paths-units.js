@@ -130,6 +130,12 @@
     // avoid re-importing
     //
     if (this.game.units[key]) {
+      // Unit IDs are historical identifiers: aoi_corps is an army. Refresh
+      // the flags from the declared type when loading an older saved pool too.
+      if (obj.type) {
+        this.game.units[key].army = obj.type === "army" ? 1 : 0;
+        this.game.units[key].corps = obj.type === "army" ? 0 : 1;
+      }
       if (obj.checkSupplyStatus) {
 	this.game.units[key].checkSupplyStatus = obj.checkSupplyStatus;
       } else {
@@ -161,7 +167,9 @@
     if (!obj.spacekey)  		{ obj.spacekey = ""; }
     if (!obj.checkSupplyStatus) 	{ obj.checkSupplyStatus = (paths_self, spacekey) => { return 0; } };
 
-    if (key.indexOf("army") > -1) { obj.army = 1; } else { obj.corps = 1; }
+    const isArmy = obj.type ? obj.type === "army" : key.indexOf("army") > -1;
+    obj.army = isArmy ? 1 : 0;
+    obj.corps = isArmy ? 0 : 1;
 
     this.game.units[key] = obj;
 
@@ -186,7 +194,14 @@
     }
   }
 
-  moveUnit(sourcekey, sourceidx, destinationkey) {
+  async endTurn(nextTarget = 0) {
+    if (this.paths_log) {
+      this.paths_log.flush();
+    }
+    return super.endTurn(nextTarget);
+  }
+
+  moveUnit(sourcekey, sourceidx, destinationkey, logMove = true) {
 
 console.log(this.game.spaces[sourcekey].units.length + " ---- " + sourceidx);
 
@@ -227,11 +242,13 @@ console.log(JSON.stringify(unit));
     if (!this.game.spaces[destinationkey].units) { this.game.spaces[destinationkey].units = []; }
 
     if (destinationkey == "aeubox" || destinationkey == "ceubox") {
-      this.updateLog(unit.name + " eliminated.");
+      if (!this.paths_log.noteLoss(this.paths_log.label(unit.name) + " eliminated", this.returnPowerOfUnit(unit))) {
+        this.updateLog(unit.name + " eliminated.");
+      }
     } else {
       if (eliminate_rather_than_move) {
         this.updateLog(unit.name + " eliminated.");
-      } else {
+      } else if (logMove) {
 	this.updateLog(unit.name + " moves from " + this.returnSpaceNameForLog(sourcekey) + " to " + this.returnSpaceNameForLog(destinationkey));
       }
     }
@@ -279,13 +296,7 @@ console.log(JSON.stringify(unit));
       if (this.game.spaces[sourcekey].units.length > 0) {
       } else {
         this.game.spaces[sourcekey].besieged = 0;
-        if (this.game.spaces[sourcekey].fort > 0) {
-          //
-          // control switches back to original owner of fort
-          //
-          let spc = this.returnSpaces();
-          this.game.spaces[sourcekey].control = spc[sourcekey].control;
-        }
+        // Keep current ownership: the scenario default may still be neutral.
       }
     }
 
@@ -311,35 +322,6 @@ console.log(JSON.stringify(unit));
     if (just_link) { return `/paths/img/army/${key}_back.png`; }
     return `<img src="/paths/img/army/${key}_back.png" class="army-tile ${unit.key}" />`;
   }
-  returnUnitImageWithMouseoverOfStepwiseLoss(unit, just_link="", mouseout_first=false) {
-    let key = unit.key;
-    let face_img = "";
-    let back_img = "";
-
-    if (unit.destroyed) {
-     return this.returnDestroyedUnitImage(unit, just_link);
-    }
-
-    if (unit.damaged) {
-      face_img = `/paths/img/army/${key}_back.png`;
-      back_img = this.returnUnitImageWithStepwiseLoss(unit, true);
-    } else {
-      face_img = `/paths/img/army/${key}.png`;
-      back_img = `/paths/img/army/${key}_back.png`;
-    }
-
-    //
-    // the workaround below is part of our strategy to prevent tiles from insta-
-    // flipping once clicked on, so that mouseout is required in order to trigger
-    // tiles showing their reversed side on mouseover. see /lib/ui/overlays/loss.js
-    //
-    if (!mouseout_first) {
-      return `<img src="${face_img}" onmouseover="this.src='${back_img}'" onmouseout="this.src='${face_img}'" class="army-tile ${unit.key}" />`;
-    } else {
-      return `<img src="${face_img}" data-mouseover="false" onmouseover="if (this.dataset.mouseover === 'true') { this.src='${back_img}' }" onmouseout="this.dataset.mouseover = 'true'; this.src='${face_img}'" class="army-tile ${unit.key}" />`;
-    }
-
-  }
   returnUnitImageInSpaceWithIndex(spacekey, idx) {
     let unit = this.game.spaces[spacekey].units[idx];
     return this.returnUnitImage(unit);
@@ -351,39 +333,6 @@ console.log(JSON.stringify(unit));
       return `<img src="/paths/img/cancel_x.png" class="army-tile ${unit.key}" />`;
     }
 
-  }
-
-  returnUnitImageWithStepwiseLoss(unit, just_link=false) {
-
-    let key = unit.key;
-
-    if (unit.destroyed) {
-     return this.returnDestroyedUnitImage(unit, just_link);
-    }
-
-    if (!unit.damaged) {
-
-      if (just_link) { return `/paths/img/army/${key}_back.png`; }
-      return `<img src="/paths/img/army/${key}_back.png" class="army-tile ${unit.key}" />`;
-
-    } else {
-
-      //
-      // replace with corps if destroyed
-      //
-      if (unit.key.indexOf('army') >= 0) {
-        let corpskey = unit.key.split('_')[0] + '_corps';
-        let new_unit = this.cloneUnit(corpskey);
-        return this.returnUnitImage(new_unit, just_link);
-
-      } else {
-
-	return this.returnDestroyedUnitImage(unit, just_link);
-      }
-
-    }
-
-    return "";
   }
 
   cloneUnit(unitkey) {
@@ -431,6 +380,14 @@ console.log(JSON.stringify(unit));
 
     if (!unit) { return 0; }
     if (this.isIrreplaceableArmy(unit)) { return 0; }
+
+    if (unit.ckey == "RU" && this.game.state.events.bolshevik_revolution && this.game.state.events.bolshevik_ru_rp_turn == this.game.state.turn) {
+      return 0;
+    }
+
+    if (unit.key == "pol_corps" && this.game.spaces["warsaw"] && this.game.spaces["warsaw"].control == "allies") {
+      return 0;
+    }
 
     let faction = this.returnFactionOfUnit(unit);
     let rp = this.game.state.rp[faction];

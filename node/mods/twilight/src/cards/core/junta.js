@@ -17,7 +17,7 @@
         twilight_self.game.status = '<div class="status-message" id="status-message">' + player.toUpperCase() + ' to place 2 Influence in Central or South America</div>';
         twilight_self.hud.updateStatus(twilight_self.game.status);
         twilight_self.hud.updateMenu([]);
-        twilight_self.hud.updateCards([]);
+        twilight_self.hud.updateCards(twilight_self.game.deck[0].hand);
 
         for (var i in this.countries) {
           if (this.countries[i].region === "samerica" || this.countries[i].region === "camerica") {

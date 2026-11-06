@@ -22,7 +22,7 @@
             twilight_self.game.status = "Not Triggering Final Scoring...";
             twilight_self.hud.updateStatus(twilight_self.game.status);
             twilight_self.hud.updateMenu([]);
-            twilight_self.hud.updateCards([]);
+            twilight_self.hud.updateCards(twilight_self.game.deck[0].hand);
             twilight_self.addMove("resolve\trevolutionsof1989");
             twilight_self.endTurn();
           }

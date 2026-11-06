@@ -2,31 +2,31 @@ module.exports = InstallAppOverlayTemplate = (app, mod, this_self) => {
   console.log('template mod details:', this_self.mod_details);
 
   return `
-  <div class="saito-module-overlay saito-app-install-overlay">
-    <div class="saito-module-header" style="background-image: url(${this_self.mod_details.image});">
-      <h1 class="saito-module-titlebar">${this_self.mod_details.name}</h1>
-    </div>
+  <div class="saito-module-overlay saito-overlay-form">
+    <header class="saito-overlay-form-header">
+      <h2 class="saito-overlay-form-header-title">${this_self.mod_details.name}</h2>
+    </header>
 
-      <div class="saito-module-details">
-        <div class="detail-key">Version</div>
-        <div class="detail-value">${this_self.mod_details.version}</div>
-
-        <div class="detail-key">Publisher</div>
-        <div class="detail-value" id="publisher">
-          <div>${this_self.mod_details.publisher}</div>
-        </div>
-
-        <div class="detail-key">Categories</div>
-        <div class="detail-value">${this_self.mod_details.categories}</div>
-
-        <div class="detail-key">Description</div>
-        <div class="detail-value">${this_self.mod_details.description}</div>
+    <section class="details">
+      <div class="field">
+        <span class="label">Version</span>
+        <span class="value">${this_self.mod_details.version}</span>
       </div>
+      <div class="field">
+        <span class="label">Publisher</span>
+        <span class="value" id="publisher">${this_self.mod_details.publisher}</span>
+      </div>
+      <div class="field">
+        <span class="label">Categories</span>
+        <span class="value">${this_self.mod_details.categories}</span>
+      </div>
+      <div class="field">
+        <span class="label">Description</span>
+        <span class="value">${this_self.mod_details.description}</span>
+      </div>
+    </section>
 
-      <button type="submit" class="withdraw-submit saito-button-primary fat saito-overlay-form-submit" id="saito-app-generate-btn">Generate App</button>
-    </div>
-
-
-    
+    <button type="submit" class="withdraw-submit saito-button-primary fat saito-overlay-form-submit" id="saito-app-generate-btn">Generate App</button>
+  </div>
   `;
 };

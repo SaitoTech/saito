@@ -1,6 +1,6 @@
 
     this.importTech("neural-motivator", {
-      name        	:       "Neural Motivator" ,
+      name        	:       "Synapse Control" ,
       color       	:       "green" ,
       prereqs             :       [],
       text		:	"Gain an extra action card each turn" ,
@@ -19,7 +19,7 @@
 
 
     this.importTech("dacxive-animators", {
-      name                :       "Dacxive Animators" ,
+      name                :       "Mobile Recussitators" ,
       color               :       "green" ,
       prereqs             :       ["green"],
       text		:	"Place an extra infantry on any planet after winning a defensive ground combat tbere" ,
@@ -39,13 +39,13 @@
 	//if (imperium_self.doesPlayerHaveTech(attacker, "dacxive-animators")) {
 	//  if (attacker_forces > defender_forces && defender_forces == 0) {
 	//    imperium_self.addPlanetaryUnit(attacker, sector, planet_idx, "infantry");
-	//    imperium_self.updateLog(imperium_self.returnFaction(attacker) + " reinforces infantry with Dacxive Animators");
+	//    imperium_self.updateLog(imperium_self.returnFaction(attacker) + " reinforces infantry with Mobile Recussitators");
 	//  }
 	//}
 	if (imperium_self.doesPlayerHaveTech(defender, "dacxive-animators")) {
 	  if (attacker_forces < defender_forces && attacker_forces == 0) {
 	    imperium_self.addPlanetaryUnit(defender, sector, planet_idx, "infantry");
-	    imperium_self.updateLog(imperium_self.returnFaction(defender) + " reinforces infantry with Dacxive Animators");
+	    imperium_self.updateLog(imperium_self.returnFaction(defender) + " reinforces infantry with Mobile Recussitators");
 	  }
 	}
       },
@@ -53,7 +53,7 @@
 
 
     this.importTech("hyper-metabolism", {
-      name        	: 	"Hyper Metabolism" ,
+      name        	: 	"AI Extensions" ,
       color       	: 	"green" ,
       prereqs     	:       ['green','green'],
       text		:	"Gain an extra command token each round" ,
@@ -74,7 +74,7 @@
 
 
     this.importTech("x89-bacterial-weapon", {
-      name        	:       "X-89 Bacterial Weapon" ,
+      name        	:       "Serial Passage" ,
       color       	:       "green" ,
       prereqs     	:       ['green','green','green'],
       text		:	"Bombardment destroys all infantry on planet" ,
@@ -111,7 +111,7 @@
         let planet = sys.p[planet_idx];
 	let html = '';
 
-        html = '<p>Do you wish to use Bacterial Weapons during Bombardment?</p>';
+        html = '<p>Do you wish to use Serial Passage during Bombardment?</p>';
         let menu = [];
         menu.push({ id: 'attack', label: 'use bacterial weapons?' });
         menu.push({ id: 'skip', label: 'skip' });
@@ -126,11 +126,11 @@
 	    // destroy 100 == destroy them all :)
 	    imperium_self.addMove("destroy_infantry_on_planet\t"+player+"\t"+sector+"\t"+planet_idx+"\t"+"100");
             imperium_self.addMove("setvar\tplayers\t"+player+"\t"+"x89_bacterial_weapon_exhausted"+"\t"+"int"+"\t"+"1");
-	    imperium_self.addMove("NOTIFY\t" + imperium_self.returnFaction(player) + " uses X89 Bacterial Weapons");
+	    imperium_self.addMove("NOTIFY\t" + imperium_self.returnFaction(player) + " uses Serial Passage");
 	    imperium_self.endTurn();
 	  }
 	  if (action2 == "skip") {
-	    imperium_self.addMove("NOTIFY\t" + imperium_self.returnFaction(player) + " refrains from using X89 Bacterial Weapons");
+	    imperium_self.addMove("NOTIFY\t" + imperium_self.returnFaction(player) + " refrains from using Serial Passage");
 	    imperium_self.endTurn();
 	  }
         });

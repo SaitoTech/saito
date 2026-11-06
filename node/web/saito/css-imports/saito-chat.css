@@ -75,6 +75,7 @@
 .chat-popup-img-enhanced {
   max-height: 80vh;
   max-width: 95vw;
+  object-fit: contain;
   border: 1px solid var(--saito-border);
   border-radius: var(--saito-radius);
 }
@@ -593,12 +594,8 @@
   flex-direction: row;
   flex-wrap: nowrap;
   align-items: center;
-  top: 50%;
-  left: 100%;
-  right: auto;
-  bottom: auto;
-  margin-left: 0.35rem;
-  transform: translateY(-50%);
+  right: 0;
+  bottom: 0;
   width: max-content;
   white-space: nowrap;
   z-index: 9;
@@ -648,13 +645,6 @@
 .chat-likes .chat-like-number {
   margin-left: 0.2rem;
 }
-.saito-user-self .chat-message-line .saito-userline-reply {
-  left: auto;
-  right: 100%;
-  margin-left: 0;
-  margin-right: 0.35rem;
-}
-
 .saito-user-self .chat-message-line .saito-userline-reply .chat-message-action {
   display: none;
 }
@@ -1014,6 +1004,62 @@
     background-color: var(--saito-background);
   }
 
+  /* Full-screen conversation chrome: 4rem bars, 2rem type, light weight */
+  .chat-container .chat-header {
+    height: 4rem;
+    min-height: 4rem;
+  }
+
+  .chat-container .chat-details {
+    margin-left: 0;
+  }
+
+  .chat-container .chat-header .chat-group {
+    min-height: 2rem;
+    font-family: var(--saito-font);
+    font-size: 2rem;
+    font-weight: 400;
+    line-height: 2rem;
+  }
+
+  .chat-container .chat-mobile-back,
+  .chat-container .chat-action-menu,
+  .chat-container .chat-action-item {
+    box-sizing: border-box;
+    flex: 0 0 auto;
+    width: auto;
+    min-width: 4rem;
+    height: 4rem;
+    padding: 0 2rem;
+    font-size: 2rem;
+    line-height: 1;
+  }
+
+  .chat-container .chat-footer {
+    min-height: 4rem;
+  }
+
+  .chat-container .chat-footer .saito-input .text-input:not(.post-tweet-textarea) {
+    min-height: 4rem;
+    padding: 1rem 6.5rem 1rem 1.25rem;
+    font-family: var(--saito-font);
+    font-size: 2rem;
+    font-weight: 400;
+    line-height: 2rem;
+  }
+
+  .chat-container .chat-footer > i,
+  .chat-container .chat-footer > .chat-input-submit.saito-button-mouse-over,
+  .chat-container .chat-footer .saito-emoji {
+    box-sizing: border-box;
+    width: auto;
+    min-width: 4rem;
+    height: 4rem;
+    padding: 0 2rem;
+    font-size: 2rem;
+    line-height: 1;
+  }
+
   /* Full-screen chat: back + title + menu; hide window chrome */
   .chat-header-nav {
     display: none;
@@ -1088,7 +1134,7 @@
   line-height: 1.2;
 }
 
-/* Home: search + Add Contact as one control row (canonical Saito 3.6rem height) */
+/* Home: search / confirmed contact and its action. */
 .chat-settings-toolbar {
   display: grid;
   flex: 0 0 auto;
@@ -1121,6 +1167,29 @@
   color: var(--saito-muted-foreground);
   pointer-events: none;
   font-size: 1.4rem;
+}
+
+.chat-settings-search-preview {
+  min-width: 0;
+}
+
+.chat-settings-search-preview .saito-user {
+  grid-template-columns: min-content minmax(0, 1fr) min-content;
+}
+
+.chat-settings-search-preview .saito-userline {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.chat-settings-search-edit {
+  grid-column: 3;
+  grid-row: 1 / span 2;
+  align-self: center;
+}
+
+.chat-settings-search-status:empty {
+  display: none;
 }
 
 .chat-settings-search-wrap > .chat-settings-search,
@@ -1190,6 +1259,8 @@
   align-items: center;
   gap: var(--saito-space-sm);
   width: 100%;
+  height: max-content;
+  min-height: max-content;
   padding: var(--saito-space-sm) var(--saito-space-md);
   border: 0;
   border-bottom: 1px solid color-mix(in srgb, var(--saito-border) 70%, transparent);

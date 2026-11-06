@@ -83,8 +83,8 @@ function styles() {
     body.saito-cta-loader-active {
       background: var(
         --saito-canvas-wash,
-        radial-gradient(70vw 50vw at 50% 8%, rgba(245, 73, 0, 0.14), transparent 62%),
-        radial-gradient(45vw 35vw at 47% 46%, rgba(255, 184, 106, 0.08), transparent 68%),
+        radial-gradient(70vw 50vw at 49.875vw calc(100% - 35.625vw), rgba(245, 73, 0, 0.14), transparent 62%),
+        radial-gradient(45vw 35vw at 81% 19%, rgba(255, 184, 106, 0.08), transparent 68%),
         #0c0a09
       );
     }
@@ -136,8 +136,8 @@ function styles() {
       color: var(--saito-cta-loader-text);
       background: var(
         --saito-canvas-wash,
-        radial-gradient(70vw 50vw at 50% 8%, rgba(245, 73, 0, 0.14), transparent 62%),
-        radial-gradient(45vw 35vw at 47% 46%, rgba(255, 184, 106, 0.08), transparent 68%),
+        radial-gradient(70vw 50vw at 49.875vw calc(100% - 35.625vw), rgba(245, 73, 0, 0.14), transparent 62%),
+        radial-gradient(45vw 35vw at 81% 19%, rgba(255, 184, 106, 0.08), transparent 68%),
         #0c0a09
       );
       opacity: 1;

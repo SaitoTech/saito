@@ -1,13 +1,17 @@
 const ModTemplate = require('../../lib/templates/modtemplate');
 const SaitoHeader = require('../../lib/saito/ui/saito-header/saito-header');
+const HeaderMenu = require('./lib/ui/header-menu');
 const Main = require('./lib/ui/main');
 const Block = require('./lib/ui/block');
 const Supply = require('./lib/ui/supply');
 const Address = require('./lib/ui/address');
 const Utxo = require('./lib/ui/utxo');
+const TxSignature = require('./lib/ui/tx-signature');
 const Holders = require('./lib/ui/holders');
 const { invalidateHolderSnapshots } = require('./lib/holders');
 const AllBlocks = require('./lib/ui/all-blocks');
+const ChainViewer = require('./lib/ui/chain-viewer');
+const { ChainIndex } = require('./lib/chain-index');
 const AllTransactions = require('./lib/ui/all-transactions');
 const Search = require('./lib/ui/search');
 const ShellTemplate = require('./lib/ui/shell.template');
@@ -19,7 +23,12 @@ const { sendExplorerPeerRequest } = require('./lib/peer/client');
 const { success, failure } = require('./lib/peer/response');
 const ExplorerDatabase = require('./lib/database');
 const { backfillSupplyStatistics, ensureBlockSupplyIndexed } = require('./lib/supply-accounting');
-const { buildAddressRowsFromBlock, blockContainsAtrTransaction } = require('./lib/address-index');
+const {
+  buildAddressRowsFromBlock,
+  blockContainsAtrTransaction,
+  returnGenesisPeriod
+} = require('./lib/address-index');
+const { indexConfirmedBlock } = require('./lib/transaction-index');
 const { SUPPLY_BLOCK_COUNT } = require('./lib/supply-rows');
 const { extractTransactionsFromBlocks, mergeBlockByHash } = require('./lib/explorer-format');
 const {
@@ -58,7 +67,12 @@ class Explorer extends ModTemplate {
 
     this.INDEX_BLOCKS = 1;
     this.INDEX_PUBLICKEYS = 1;
+    this.INDEX_TRANSACTIONS = 1;
+    this.PRUNE_EVERY_N_BLOCKS = 100;
+    this.indexedTransactionBlocks = new Set();
 
+    this.chainViewer = null;
+    this.chainIndex = null;
     this.main = null;
     this.blockComponent = null;
     this.supplyComponent = null;
@@ -70,6 +84,7 @@ class Explorer extends ModTemplate {
     this.allTransactionsComponent = null;
     this.search = null;
     this.header = null;
+    this.headerMenu = null;
     this.shellRendered = false;
     this.activeView = 'home';
     this.blockHash = null;
@@ -101,6 +116,12 @@ class Explorer extends ModTemplate {
     this.utxoResult = null;
     this.utxoReady = false;
     this.utxoError = null;
+
+    this.txSignature = null;
+    this.txSignatureResult = null;
+    this.txSignatureReady = false;
+    this.txSignatureError = null;
+    this.txSignatureComponent = null;
 
     this.test_mode = false;
     this.enable_manual_testing = true;
@@ -143,6 +164,7 @@ class Explorer extends ModTemplate {
     const supplyMatch = path.match(new RegExp(`^${prefix}/supply$`));
     const addressMatch = path.match(new RegExp(`^${prefix}/address/([^/]+)$`));
     const utxoMatch = path.match(new RegExp(`^${prefix}/utxo/([^/]+)$`));
+    const txMatch = path.match(new RegExp(`^${prefix}/tx/([^/]+)$`));
     const allBlocksMatch = path.match(new RegExp(`^${prefix}/blocks$`));
     const allTransactionsMatch = path.match(new RegExp(`^${prefix}/transactions$`));
 
@@ -152,6 +174,9 @@ class Explorer extends ModTemplate {
         page: Holders.normalizePage(new URLSearchParams(window.location.search).get('page'))
       };
     }
+
+    const chainMatch = path.match(new RegExp(`^${prefix}/chain(?:/([^/]+))?$`));
+    if (chainMatch) return { view: 'chain', input: chainMatch[1] ? decodeURIComponent(chainMatch[1]) : '' };
 
     if (blockMatch) {
       return {
@@ -175,6 +200,13 @@ class Explorer extends ModTemplate {
       return {
         view: 'utxo',
         utxokey: decodeURIComponent(utxoMatch[1])
+      };
+    }
+
+    if (txMatch) {
+      return {
+        view: 'transaction',
+        signature: decodeURIComponent(txMatch[1])
       };
     }
 
@@ -206,6 +238,8 @@ class Explorer extends ModTemplate {
       this.search = new Search(this.app, this);
     }
     this.search.render('.explorer-search');
+    this.headerMenu ||= new HeaderMenu(this.app, this);
+    this.headerMenu.render();
     this.renderSimulationToolbar();
   }
 
@@ -218,6 +252,13 @@ class Explorer extends ModTemplate {
 
     document.addEventListener('click', (event) => {
       if (!this.browser_active) {
+        return;
+      }
+
+      const chainLink = event.target.closest('[data-explorer-chain]');
+      if (chainLink) {
+        event.preventDefault();
+        this.renderChain(chainLink.getAttribute('data-explorer-chain'));
         return;
       }
 
@@ -291,19 +332,6 @@ class Explorer extends ModTemplate {
         return;
       }
 
-      const link = event.target.closest('.explorer-footer-link');
-      if (link) {
-        const href = link.getAttribute('href') || '';
-        if (href.endsWith('/explorer/supply')) {
-          event.preventDefault();
-          this.renderSupply({ pushState: true, animate: true });
-        } else if (href.endsWith('/explorer/holders')) {
-          event.preventDefault();
-          this.renderHolders();
-        }
-        return;
-      }
-
       const viewAllLink = event.target.closest('[data-explorer-nav]');
       if (viewAllLink) {
         const nav = viewAllLink.getAttribute('data-explorer-nav');
@@ -324,6 +352,11 @@ class Explorer extends ModTemplate {
 
     window.addEventListener('popstate', (event) => {
       const state = event.state || this.parseRoute();
+
+      if (state.view === 'chain') {
+        this.renderChain(state.input || '', { pushState: false });
+        return;
+      }
 
       if (state.view === 'holders') {
         this.renderHolders({
@@ -359,6 +392,11 @@ class Explorer extends ModTemplate {
         return;
       }
 
+      if (state.view === 'transaction' && state.signature) {
+        this.renderTransactionSignature(state.signature, { pushState: false, animate: true });
+        return;
+      }
+
       if (state.view === 'allBlocks') {
         this.renderAllBlocks({ pushState: false, animate: true });
         return;
@@ -378,6 +416,8 @@ class Explorer extends ModTemplate {
   }
 
   cleanupListViews() {
+    this.chainViewer?.cleanup();
+    this.chainViewer = null;
     this.holdersRenderToken++;
     if (this.holdersComponent) {
       this.holdersComponent.cleanup();
@@ -404,6 +444,8 @@ class Explorer extends ModTemplate {
     this.addressPublicKey = null;
     this.utxoComponent = null;
     this.utxoKey = null;
+    this.txSignature = null;
+    this.txSignatureComponent = null;
     this.cleanupListViews();
 
     if (pushState) {
@@ -438,6 +480,8 @@ class Explorer extends ModTemplate {
     this.addressPublicKey = null;
     this.utxoComponent = null;
     this.utxoKey = null;
+    this.txSignature = null;
+    this.txSignatureComponent = null;
     this.cleanupListViews();
     const renderToken = this.holdersRenderToken;
 
@@ -475,6 +519,8 @@ class Explorer extends ModTemplate {
     this.addressPublicKey = null;
     this.utxoComponent = null;
     this.utxoKey = null;
+    this.txSignature = null;
+    this.txSignatureComponent = null;
     this.cleanupListViews();
 
     if (pushState) {
@@ -515,6 +561,8 @@ class Explorer extends ModTemplate {
     this.addressError = null;
     this.utxoComponent = null;
     this.utxoKey = null;
+    this.txSignature = null;
+    this.txSignatureComponent = null;
     this.cleanupListViews();
 
     if (pushState) {
@@ -547,6 +595,8 @@ class Explorer extends ModTemplate {
     }
 
     this.activeView = 'utxo';
+    this.txSignature = null;
+    this.txSignatureComponent = null;
     this.utxoKey = utxokey;
     this.utxoResult = null;
     this.utxoReady = false;
@@ -572,6 +622,56 @@ class Explorer extends ModTemplate {
     const renderContent = () => {
       this.utxoComponent = new Utxo(this.app, this, utxokey);
       this.utxoComponent.render('.explorer-view');
+    };
+
+    if (animate) {
+      await transitionView(this.getViewElement(), renderContent);
+    } else {
+      renderContent();
+    }
+  }
+
+  async renderTransactionSignature(signature, options = {}) {
+    const { pushState = true, animate = true } = options;
+
+    if (!signature) {
+      return;
+    }
+
+    this.activeView = 'transaction';
+    this.txSignature = signature;
+    this.txSignatureResult = null;
+    this.txSignatureReady = false;
+    this.txSignatureError = null;
+    this.txSignaturePending = false;
+    if (this.txLookupTimer) {
+      clearTimeout(this.txLookupTimer);
+      this.txLookupTimer = null;
+    }
+    this.blockHash = null;
+    this.blockComponent = null;
+    this.main = null;
+    this.supplyComponent = null;
+    this.addressComponent = null;
+    this.addressPublicKey = null;
+    this.utxoComponent = null;
+    this.utxoKey = null;
+    this.cleanupListViews();
+
+    if (pushState) {
+      window.history.pushState(
+        { view: 'transaction', signature },
+        '',
+        `/${this.slug}/tx/${encodeURIComponent(signature)}`
+      );
+    }
+
+    this.ensureShell();
+
+    const renderContent = () => {
+      this.txSignatureComponent = new TxSignature(this.app, this, signature);
+      this.txSignatureComponent.render('.explorer-view');
+      this.scheduleTransactionLookup();
     };
 
     if (animate) {
@@ -608,6 +708,8 @@ class Explorer extends ModTemplate {
     this.addressPublicKey = null;
     this.utxoComponent = null;
     this.utxoKey = null;
+    this.txSignature = null;
+    this.txSignatureComponent = null;
     this.cleanupListViews();
 
     if (pushState) {
@@ -629,6 +731,20 @@ class Explorer extends ModTemplate {
     }
   }
 
+  async renderChain(input = '', options = {}) {
+    this.cleanupListViews();
+    this.activeView = 'chain';
+    if (this.blockComponent) this.blockComponent.fetchToken++;
+    this.blockComponent = null;
+    this.ensureShell();
+    if (options.pushState !== false) {
+      window.history.pushState({ view: 'chain', input }, '',
+        `/${this.slug}/chain${input ? '/' + encodeURIComponent(input) : ''}`);
+    }
+    this.chainViewer = new ChainViewer(this.app, this, input);
+    await this.chainViewer.render('.explorer-view');
+  }
+
   async renderAllBlocks(options = {}) {
     const { pushState = true, animate = true } = options;
 
@@ -641,6 +757,8 @@ class Explorer extends ModTemplate {
     this.addressPublicKey = null;
     this.utxoComponent = null;
     this.utxoKey = null;
+    this.txSignature = null;
+    this.txSignatureComponent = null;
     this.cleanupListViews();
 
     if (pushState) {
@@ -673,6 +791,8 @@ class Explorer extends ModTemplate {
     this.addressPublicKey = null;
     this.utxoComponent = null;
     this.utxoKey = null;
+    this.txSignature = null;
+    this.txSignatureComponent = null;
     this.cleanupListViews();
 
     if (pushState) {
@@ -726,6 +846,11 @@ class Explorer extends ModTemplate {
     this.explorerPeer = peer;
     this.resetExplorerData();
 
+    if (this.activeView === 'chain') {
+      this.chainViewer?.refresh();
+      return;
+    }
+
     if (this.activeView === 'holders') {
       await this.renderHolders({
         page: this.holdersComponent?.page,
@@ -749,7 +874,40 @@ class Explorer extends ModTemplate {
       return;
     }
 
+    if (this.activeView === 'transaction' && this.txSignature) {
+      this.scheduleTransactionLookup();
+    }
+
     await this.requestExplorerOverview(app, peer);
+  }
+
+  scheduleTransactionLookup() {
+    if (this.txLookupTimer || this.txSignaturePending || this.txSignatureReady) {
+      return;
+    }
+    if (this.activeView !== 'transaction' || !this.txSignature || !this.explorerPeer) {
+      return;
+    }
+
+    const signature = this.txSignature;
+    this.txLookupTimer = setTimeout(() => {
+      this.txLookupTimer = null;
+      if (
+        this.txSignaturePending ||
+        this.txSignatureReady ||
+        this.activeView !== 'transaction' ||
+        this.txSignature !== signature ||
+        !this.explorerPeer
+      ) {
+        return;
+      }
+      this.txSignaturePending = true;
+      Promise.resolve(this.fetchTransactionSignature(this.app, this.explorerPeer, signature)).finally(
+        () => {
+          this.txSignaturePending = false;
+        }
+      );
+    }, 0);
   }
 
   async refreshHomeData() {
@@ -970,6 +1128,55 @@ class Explorer extends ModTemplate {
     });
   }
 
+  fetchTransactionSignature(app, peer, signature) {
+    this.txSignatureReady = false;
+    this.txSignatureError = null;
+    this.txSignatureResult = null;
+
+    return new Promise((resolve) => {
+      sendExplorerPeerRequest(app, 'request transaction', {
+        data: {
+          request: 'request transaction',
+          signature: String(signature)
+        },
+        callback: async (response) => {
+          if (response?.err) {
+            console.error('Explorer: transaction lookup failed (network)', {
+              peer: peer?.publicKey,
+              error: response.err,
+              response
+            });
+            this.txSignatureError = 'Network error while looking up transaction.';
+            this.txSignatureReady = true;
+            await this.refreshActiveView();
+            resolve();
+            return;
+          }
+
+          if (!response?.success) {
+            console.error('Explorer: transaction lookup failed', {
+              peer: peer?.publicKey,
+              error: response?.error || 'unknown error',
+              response
+            });
+            this.txSignatureError =
+              response?.error || 'Failed to look up transaction from Explorer peer.';
+            this.txSignatureReady = true;
+            await this.refreshActiveView();
+            resolve();
+            return;
+          }
+
+          this.txSignatureResult = response.data || null;
+          this.txSignatureReady = true;
+          await this.refreshActiveView();
+          resolve();
+        },
+        peer
+      });
+    });
+  }
+
   requestBlockFromPeerPromise(app, peer, identifier, includeTransactions = true) {
     const data = {
       request: 'request block',
@@ -1098,6 +1305,11 @@ class Explorer extends ModTemplate {
 
     if (this.activeView === 'utxo' && this.utxoComponent) {
       this.utxoComponent.paint();
+      return;
+    }
+
+    if (this.activeView === 'transaction' && this.txSignatureComponent) {
+      this.txSignatureComponent.paint();
     }
   }
 
@@ -1230,6 +1442,8 @@ class Explorer extends ModTemplate {
     if (app.BROWSER == 0) {
       this.database = new ExplorerDatabase(app, this);
       await this.database.ensureSchema();
+      this.chainIndex = new ChainIndex(app, this);
+      await this.chainIndex.initialize();
       setImmediate(() => {
         backfillSupplyStatistics(app, this).catch((err) => {
           console.error('Explorer: supply statistics backfill failed', err);
@@ -1259,6 +1473,11 @@ class Explorer extends ModTemplate {
 
     const route = this.parseRoute();
 
+    if (route.view === 'chain') {
+      await this.renderChain(route.input || '', { pushState: false });
+      return;
+    }
+
     if (route.view === 'holders') {
       await this.renderHolders({ page: route.page, pushState: false, animate: false });
       return;
@@ -1284,6 +1503,11 @@ class Explorer extends ModTemplate {
       return;
     }
 
+    if (route.view === 'transaction' && route.signature) {
+      await this.renderTransactionSignature(route.signature, { pushState: false, animate: false });
+      return;
+    }
+
     if (route.view === 'allBlocks') {
       await this.renderAllBlocks({ pushState: false, animate: false });
       return;
@@ -1297,10 +1521,45 @@ class Explorer extends ModTemplate {
     await this.renderHome({ pushState: false, animate: false });
   }
 
+  shouldAffixCallbackToModule(modname, tx = null) {
+    if (this.app.BROWSER == 0 && this.INDEX_TRANSACTIONS) {
+      return 1;
+    }
+    if (modname === this.name) {
+      return 1;
+    }
+    return 0;
+  }
+
+  async onConfirmation(blk, tx, conf = 0) {
+    if (this.app.BROWSER != 0 || Number(conf) !== 0 || !this.INDEX_TRANSACTIONS || !this.database) {
+      return;
+    }
+
+    await indexConfirmedBlock(this, blk);
+  }
+
+  async pruneDatabase(blockId) {
+    const current = Number(blockId);
+    const cutoff = current - returnGenesisPeriod(this.app);
+    if (!Number.isFinite(cutoff) || cutoff <= 0 || !this.database) {
+      return;
+    }
+    await this.database.pruneBeforeBlockId(cutoff);
+  }
+
   async onNewBlock(block, lc) {
     if (this.app.BROWSER == 1) {
       this.allBlocksComponent?.onNewBlock(block, Boolean(lc));
       return;
+    }
+
+    if (block?.id && this.chainIndex) {
+      try {
+        await this.chainIndex.observe(block, Boolean(lc));
+      } catch (err) {
+        console.error('Explorer: chain metadata indexing failed', err);
+      }
     }
 
     if (!block?.id || !this.database) {
@@ -1346,9 +1605,25 @@ class Explorer extends ModTemplate {
   }
 
   async onChainReorganization(block_id, block_hash, lc) {
+    if (this.chainIndex) {
+      try { await this.chainIndex.reorganize(String(block_hash), Boolean(lc)); }
+      catch (err) { console.error('Explorer: chain metadata reorganization failed', err); }
+    }
     // Keep snapshots stable as the chain advances; discard them on an unwind.
     if (this.app.BROWSER === 0 && !lc) invalidateHolderSnapshots(this);
-    if (this.app.BROWSER !== 0 || !this.database || !this.INDEX_PUBLICKEYS) {
+    if (this.app.BROWSER !== 0 || !this.database) {
+      return;
+    }
+
+    if (this.INDEX_TRANSACTIONS) {
+      try {
+        await this.database.updateTransactionLongestChainState(block_id, block_hash, lc);
+      } catch (err) {
+        console.error('Explorer: failed to update transaction longest-chain state', err);
+      }
+    }
+
+    if (!this.INDEX_PUBLICKEYS) {
       return;
     }
 
@@ -1414,11 +1689,14 @@ class Explorer extends ModTemplate {
 
     expressapp.get(`${uri}/block/:input`, sendIndex);
     expressapp.get(`${uri}/blocks`, sendIndex);
+    expressapp.get(`${uri}/chain`, sendIndex);
+    expressapp.get(`${uri}/chain/:input`, sendIndex);
     expressapp.get(`${uri}/transactions`, sendIndex);
     expressapp.get(`${uri}/supply`, sendIndex);
     expressapp.get(`${uri}/holders`, sendIndex);
     expressapp.get(`${uri}/address/:publickey`, sendIndex);
     expressapp.get(`${uri}/utxo/:utxokey`, sendIndex);
+    expressapp.get(`${uri}/tx/:signature`, sendIndex);
     expressapp.get(uri, sendIndex);
   }
 }

@@ -472,25 +472,6 @@ class StorageCore extends Storage {
    * Save the options file
    */
   saveOptions() {
-    // this.app.options = Object.assign({}, this.app.options);
-
-    let new_wallet_json, new_wallet_hash;
-
-    try {
-      // Check hash so we aren't taxing the FS with multiple calls to save options
-      new_wallet_json = JSON.stringify(this.app.options);
-      new_wallet_hash = this.app.crypto.hash(new_wallet_json);
-      if (new_wallet_hash == this?.wallet_options_hash) {
-        return;
-      }
-    } catch (err) {
-      // console.error('Problem hashing app.options: ', err);
-    }
-
-    if (typeof new_wallet_json !== 'string') {
-      return;
-    }
-
     try {
       // the file stays readable json either way -- only the private key is ever ciphertext
       const options_to_save = this.returnOptionsForSaving();
@@ -500,11 +481,7 @@ class StorageCore extends Storage {
         JSON.stringify(options_to_save, null, 4),
         null
       );
-
-      //Update hash
-      this.wallet_options_hash = new_wallet_hash;
     } catch (err) {
-      this.wallet_options_hash = null;
       // this.app.logger.logError("Error thrown in storage.saveOptions", {message: "", stack: err});
       // console.error(err);
       return;

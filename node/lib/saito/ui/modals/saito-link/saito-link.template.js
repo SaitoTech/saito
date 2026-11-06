@@ -12,7 +12,7 @@ module.exports = (app, link_self) => {
   if (link_self.share_to_chat) {
     let chat_mod = app.modules.returnModuleBySlug('chat');
     if (chat_mod?.communityGroupName) {
-      html += `<div id="chat-invite-link" class="saito-modal-menu-option"><i class="fas fa-comments"></i><div class="saito-modal-menu-option-label">Share Link in ${chat_mod.communityGroupName}</div></div>`;
+      html += `<div id="chat-invite-link" class="saito-modal-menu-option"><i class="saito-chat-icon" aria-hidden="true"></i><div class="saito-modal-menu-option-label">Share Link in ${chat_mod.communityGroupName}</div></div>`;
     }
   }
 

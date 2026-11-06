@@ -15,14 +15,15 @@
 let SaitoOverlay = require('./../../saito/ui/saito-overlay/saito-overlay');
 
 class GameUI {
-  updateLog(str, force = 0) {
+  updateLog(str, eventType = '', data = null) {
     try {
-      this.game.log.unshift(str);
+      let type = typeof eventType === 'string' ? eventType.trim() : '';
+      this.game.log.unshift(type ? { msg: str, type, data } : str);
       if (this.game.log.length > this.log_length) {
         this.game.log.splice(length);
       }
       if (this.gameBrowserActive() && this.log.rendered) {
-        this.log.updateLog(str, force);
+        this.log.updateLog(str, type, data);
         //
         // adds mouseover to cards in log
         //
@@ -243,15 +244,14 @@ class GameUI {
 
       this.updateLog(readable);
 
-      this.updateStatusForGameOver(readable, reason !== 'cancellation' && !this.opengame);
+      this.updateStatusForGameOver(readable);
     } catch (err) {
       console.error('GT [gameoverUserInterface] Error: ', err);
     }
   }
 
-  updateStatusForGameOver(status, allowRematch) {
+  updateStatusForGameOver(status) {
     let target = this.app.options.homeModule || 'Arcade';
-    allowRematch = allowRematch && this.game.player !== 0 && this.game.players.length == 2;
 
     this.hud.hideBackButton();
 
@@ -259,65 +259,9 @@ class GameUI {
     this.hud.updateStatus(status);
     this.hud.updateCards([]);
 
-    let menu = [{ id: 'confirmit', label: `Return to ${target}` }];
-    if (allowRematch) {
-      menu.push({ id: 'rematch', label: 'Rematch' });
-    }
-
-    this.hud.updateMenu(menu, (id) => {
-      if (id === 'rematch') {
-        this.initialize_game_run = 0;
-        this.app.connection.emit('arcade-issue-challenge', {
-          game: this.name,
-          players: this.game.players,
-          options: this.game.options
-        });
-        return;
-      }
+    this.hud.updateMenu([{ id: 'confirmit', label: `Return to ${target}` }], (id) => {
       if (id === 'confirmit') {
         this.exitGame();
-      }
-    });
-
-    ////////////////////////////////////////
-    // Attach Listeners for rematch actions
-    ////////////////////////////////////////
-    this.app.connection.on('arcade-challenge-issued', (tx) => {
-      let btn = document.getElementById('rematch');
-      if (btn) {
-        if (tx.isFrom(this.publicKey)) {
-          btn.innerHTML = 'Rematch requested';
-        } else {
-          btn.innerHTML = 'Accept Rematch';
-          // We could change the functionality here... but... should work
-        }
-      }
-    });
-
-    this.app.connection.on('arcade-game-initialize-render-request', (game_id) => {
-      this.game.status = 'Preparing rematch...';
-      this.hud.updateStatus('Preparing rematch...');
-      this.hud.updateMenu([]);
-      this.browser_active = 0; //Hack to simulate not being in the game mod
-    });
-
-    this.app.connection.on('arcade-game-ready-render-request', (game_details) => {
-      let status = document.getElementById('status') || document.querySelector('.status');
-      let controls = document.getElementById('controls') || document.querySelector('.controls');
-
-      if (controls) {
-        controls.innerHTML = `<ul><li class="textchoice" id="go">start game</li></ul>`;
-        status.innerHTML = 'game ready';
-      } else {
-        status.innerHTML = `game ready<ul><li class="textchoice" id="go">start game</li></ul>`;
-      }
-
-      if (document.getElementById('go')) {
-        document.getElementById('go').onclick = (e) => {
-          this.app.browser.unlockNavigation();
-          e.currentTarget.onclick = null;
-          navigateWindow(`/${game_details.slug}`, 100);
-        };
       }
     });
   }

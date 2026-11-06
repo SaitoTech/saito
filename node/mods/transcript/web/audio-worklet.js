@@ -7,9 +7,21 @@ class TranscriptAudioProcessor extends AudioWorkletProcessor {
     this.sum = 0;
     this.count = 0;
     this.phase = 0;
+    this.stopped = false;
+    this.port.onmessage = ({ data }) => {
+      if (data.type !== 'flush' || this.stopped) return;
+      this.stopped = true;
+      if (this.offset) {
+        const tail = this.buffer.slice(0, this.offset);
+        this.port.postMessage(tail, [tail.buffer]);
+        this.offset = 0;
+      }
+      this.port.postMessage({ type: 'flushed' });
+    };
   }
 
   process(inputs) {
+    if (this.stopped) return true;
     const channels = inputs[0];
     if (!channels?.length) return true;
     for (let i = 0; i < channels[0].length; i++) {

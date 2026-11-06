@@ -3,6 +3,7 @@ const ContactsList = require('./../../../../lib/saito/ui/modals/saito-contacts/s
 const SaitoOverlay = require('./../../../../lib/saito/ui/saito-overlay/saito-overlay');
 const ChatList = require('./chat-list');
 const ChatUserMenu = require('./chat-user-menu');
+const SaitoUser = require('./../../../../lib/saito/ui/saito-user/saito-user');
 
 const EXCLUDED_KEY_TYPES = new Set(['group', 'event', 'scheduled_call']);
 
@@ -25,11 +26,18 @@ class ChatManagerMenu {
 
     this.selectedPublicKey = null;
     this.searchQuery = '';
+    this.contactPublicKey = '';
+    this.contactSearchPending = false;
+    this.contactSearchError = '';
+    this.contactLookupId = 0;
     this._onKeychainUpdated = null;
     this._detailOptionCallbacks = {};
   }
 
   async render() {
+    // A response for an earlier rendering must not replace the current field.
+    this.contactLookupId++;
+    this.contactSearchPending = false;
     if (!this.container) {
       // Title lives inside each sliding stage — not a stationary overlay > h2.
       this.overlay.show(`<div class="module-settings-overlay"></div>`);
@@ -137,6 +145,114 @@ class ChatManagerMenu {
 
   rootEl() {
     return document.querySelector(`${this.container} .chat-settings`);
+  }
+
+  updateContactSearchUi() {
+    const root = this.rootEl();
+    if (!root) {
+      return;
+    }
+    const confirmed = Boolean(this.contactPublicKey);
+    root.querySelector('.chat-settings-search-wrap').classList.toggle('hide-element', confirmed);
+    const preview = root.querySelector('.chat-settings-search-preview');
+    preview.classList.toggle('hide-element', !confirmed);
+    preview.innerHTML = '';
+    if (confirmed) {
+      const user = new SaitoUser(
+        this.app,
+        this.mod,
+        `${this.container} .chat-settings-search-preview`,
+        this.contactPublicKey,
+        this.escapeHtml(this.contactPublicKey),
+        `<button type="button" class="saito-icon-button chat-settings-search-edit" title="Edit contact search" aria-label="Edit contact search"><i class="fa-solid fa-pen" aria-hidden="true"></i></button>`
+      );
+      user.data_disable = true;
+      user.render();
+      preview.querySelector('.chat-settings-search-edit').onclick = () => {
+        this.contactLookupId++;
+        this.contactPublicKey = '';
+        this.updateContactSearchUi();
+        const input = root.querySelector('#chat-settings-search');
+        input.focus();
+        input.select();
+      };
+    }
+    const button = root.querySelector('#chat-settings-add-contact');
+    button.textContent = confirmed ? 'Add contact' : this.contactSearchPending ? 'Searching…' : 'Search';
+    button.disabled = this.contactSearchPending || (!confirmed && !this.searchQuery);
+    button.setAttribute('aria-busy', String(this.contactSearchPending));
+    root.querySelector('.chat-settings-search-status').textContent = this.contactSearchError;
+  }
+
+  updateContactSearchFromInput() {
+    const input = this.rootEl()?.querySelector('#chat-settings-search');
+    if (!input) {
+      return;
+    }
+    this.contactLookupId++;
+    this.searchQuery = input.value.trim();
+    this.contactPublicKey = '';
+    this.contactSearchPending = false;
+    this.contactSearchError = '';
+    // Length only gates validation; use the same public-key validator as Send.
+    if (this.searchQuery.length >= 44 && this.searchQuery.length <= 45 &&
+        this.app.crypto.isPublicKey(this.searchQuery)) {
+      this.contactPublicKey = this.searchQuery;
+    }
+    this.renderContactList();
+    this.updateContactSearchUi();
+  }
+
+  async searchContact() {
+    if (this.contactSearchPending || !this.searchQuery) {
+      return;
+    }
+    if (this.contactPublicKey) {
+      await this.addContact(this.contactPublicKey);
+      const input = this.rootEl()?.querySelector('#chat-settings-search');
+      if (input) {
+        input.value = '';
+        this.updateContactSearchFromInput();
+      }
+      return;
+    }
+
+    // Search also reconfirms an unchanged address after using the edit button.
+    if (this.app.crypto.isPublicKey(this.searchQuery)) {
+      this.contactPublicKey = this.searchQuery;
+      this.updateContactSearchUi();
+      return;
+    }
+
+    const registry = this.app.modules.returnModule('Registry');
+    const identifier = this.searchQuery.includes('@') ? this.searchQuery : `${this.searchQuery}@saito`;
+    if (!registry?.isRegistryIdentifier?.(identifier)) {
+      this.contactSearchError = registry ? 'Enter a valid Saito address or username.' : 'Registry search is unavailable.';
+      this.updateContactSearchUi();
+      return;
+    }
+
+    const lookupId = ++this.contactLookupId;
+    const root = this.rootEl();
+    this.contactSearchPending = true;
+    this.contactSearchError = '';
+    this.updateContactSearchUi();
+    let publicKey;
+    try {
+      publicKey = await registry.resolveIdentifier(identifier);
+    } catch (err) {
+      console.warn('Chat: unable to resolve username', err);
+    }
+    if (lookupId !== this.contactLookupId || root !== this.rootEl()) {
+      return;
+    }
+    this.contactSearchPending = false;
+    if (publicKey && this.app.crypto.isPublicKey(publicKey)) {
+      this.contactPublicKey = publicKey;
+    } else {
+      this.contactSearchError = 'No matching username found or registry unavailable.';
+    }
+    this.updateContactSearchUi();
   }
 
   setStage(stage, animate = true) {
@@ -292,7 +408,7 @@ class ChatManagerMenu {
     optionRows.push({
       id: 'chat-settings-open-chat',
       text: 'Open Chat',
-      icon: 'fa-solid fa-comment',
+      image: '/saito/icons/saito-chat-icon-solid.svg',
       kind: 'open-chat'
     });
 
@@ -370,7 +486,13 @@ class ChatManagerMenu {
         ${
           hasDh
             ? `<h3 class="chat-settings-section-heading">Advanced Encryption</h3>
-        <div class="chat-settings-encryption-note">Encryption uses a Diffie-Hellman shared secret on a separate key pair. Transactions to this public key are encrypted by default.</div>`
+        <div class="chat-settings-encryption-note">Encryption uses a Diffie-Hellman shared secret on a separate key pair. Transactions to this public key are encrypted by default.</div>
+        <button type="button" class="saito-button-secondary compact" id="chat-settings-regenerate-dh" data-publickey="${this.escapeHtml(publicKey)}">
+          Regenerate Encryption
+        </button>
+        <button type="button" class="saito-button-secondary compact" id="chat-settings-delete-dh" data-publickey="${this.escapeHtml(publicKey)}">
+          Delete Encryption
+        </button>`
             : `<h3 class="chat-settings-section-heading">Standard Encryption</h3>
         <div class="chat-settings-encryption-note">Shared secrets are generated from the normal Saito key pairs. On-chain messages are only encrypted when applications specifically opt in.</div>
         <button type="button" class="saito-button-secondary compact" id="chat-settings-generate-dh" data-publickey="${this.escapeHtml(publicKey)}">
@@ -450,12 +572,21 @@ class ChatManagerMenu {
     };
     this.app.connection.on('keychain-updated', this._onKeychainUpdated);
 
-    const search = document.getElementById('chat-settings-search');
+    const search = this.rootEl()?.querySelector('#chat-settings-search');
     if (search) {
       search.value = this.searchQuery;
-      search.oninput = (e) => {
-        this.searchQuery = String(e.currentTarget.value || '').trim();
-        this.renderContactList();
+      search.oninput = () => this.updateContactSearchFromInput();
+      search.onchange = () => {
+        // Hiding a focused field can fire change after its input event or lookup.
+        if (search.value.trim() !== this.searchQuery) {
+          this.updateContactSearchFromInput();
+        }
+      };
+      search.onkeydown = (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          void this.searchContact();
+        }
       };
     }
 
@@ -473,13 +604,15 @@ class ChatManagerMenu {
       };
     }
 
-    const addContact = document.getElementById('chat-settings-add-contact');
+    const addContact = this.rootEl()?.querySelector('#chat-settings-add-contact');
     if (addContact) {
       addContact.onclick = (e) => {
         e.preventDefault();
-        this.addContact();
+        void this.searchContact();
       };
     }
+
+    this.updateContactSearchUi();
 
     const audioToggle = document.getElementById('audio-notifications');
     if (audioToggle) {
@@ -538,6 +671,28 @@ class ChatManagerMenu {
       };
     }
 
+    const regenerateDh = document.getElementById('chat-settings-regenerate-dh');
+    if (regenerateDh) {
+      regenerateDh.onclick = () => {
+        const publicKey = regenerateDh.dataset.publickey;
+        this.app.connection.emit('encrypt-regenerate-key-exchange', publicKey);
+        siteMessage('Requesting updated encryption key....', 2000);
+        this.renderDetailBody(publicKey);
+        this.attachDetailEvents();
+      };
+    }
+
+    const deleteDh = document.getElementById('chat-settings-delete-dh');
+    if (deleteDh) {
+      deleteDh.onclick = () => {
+        const publicKey = deleteDh.dataset.publickey;
+        this.app.connection.emit('encrypt-delete-key-exchange', publicKey);
+        siteMessage('Reverted to unencrypted communications', 2000);
+        this.renderDetailBody(publicKey);
+        this.attachDetailEvents();
+      };
+    }
+
     document.querySelectorAll('.chat-settings-option').forEach((row) => {
       row.onclick = async () => {
         const publicKey = row.dataset.publickey;
@@ -587,8 +742,10 @@ class ChatManagerMenu {
     });
   }
 
-  async addContact() {
-    const address = await sprompt('Enter Address of Contact to Add:');
+  async addContact(address = null) {
+    if (!address) {
+      address = await sprompt('Enter Address of Contact to Add:');
+    }
     if (!address) {
       return;
     }

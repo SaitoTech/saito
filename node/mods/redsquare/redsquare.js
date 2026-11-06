@@ -400,7 +400,13 @@ class RedSquare extends ModTemplate {
     }
 
     this.registerPeer(peer);
-    this.manager?.onPeersUpdated?.();
+  }
+
+  onConnectionUnstable(app, publicKey) {
+    const source = this.peers.find((p) => p.publicKey === publicKey && p.peer !== 'localhost');
+    if (source) {
+      source.peer_disconnected = true;
+    }
   }
 
   onNewBlock(blk, lc) {
@@ -438,17 +444,43 @@ class RedSquare extends ModTemplate {
     const publicKey = peer?.publicKey || '';
 
     if (!publicKey) {
-      return;
+      return false;
     }
 
     const existing = this.peers.find((p) => p.publicKey === publicKey);
 
     if (existing) {
+      const connectionId = peer.id == null ? null : String(peer.id);
+      const sameConnection = !existing.peer_disconnected &&
+        (connectionId !== null && existing.peer_connection_id != null
+          ? connectionId === existing.peer_connection_id
+          : existing.peer === peer);
       existing.peer = peer;
-      return;
+      existing.peer_connection_id = connectionId;
+      existing.peer_disconnected = false;
+      if (sameConnection) {
+        return false;
+      }
+      if (existing.tweets_exhausted) {
+        Loader.reopenTweetSource(existing);
+      } else {
+        // Keep partial history progress, but invalidate the old connection's responses.
+        existing.tweets_history_version = (existing.tweets_history_version || 0) + 1;
+      }
+    } else {
+      this.peers.push({
+        ...Loader.createPeerState(peer, publicKey),
+        peer_connection_id: peer.id == null ? null : String(peer.id),
+        peer_disconnected: false
+      });
     }
 
-    this.peers.push(Loader.createPeerState(peer, publicKey));
+    // API consumers can register the service before our own service callback.
+    // Notify here so whichever caller discovers the connection wakes the feed.
+    if (this.app.BROWSER && this.browser_active) {
+      this.manager?.onPeersUpdated?.();
+    }
+    return true;
   }
 
   //
@@ -1150,7 +1182,7 @@ class RedSquare extends ModTemplate {
     this.tweet_archive_saves[signature] = archiveSave;
 
     try {
-      await archiveSave;
+      return await archiveSave;
     } finally {
       if (this.tweet_archive_saves[signature] === archiveSave) {
         delete this.tweet_archive_saves[signature];
@@ -1191,10 +1223,21 @@ class RedSquare extends ModTemplate {
 
     if (archivedTweets?.length) {
       await this.app.storage.updateTransaction(tweet.tx, archiveOptions, 'localhost', 1);
-      return;
+      return false;
     }
 
-    await this.app.storage.saveTransaction(tweet.tx, archiveOptions, 'localhost', blk);
+    const result = await this.app.storage.saveTransaction(tweet.tx, archiveOptions, 'localhost', blk);
+    if (result?.err) {
+      return false;
+    }
+    // Archive saves do not report inserted-row counts. Confirm availability
+    // before using this write as a signal to reopen historical feed loading.
+    const savedTweets = await this.app.storage.loadTransactions(
+      { field1: 'RedSquare', sig: signature },
+      (txs) => txs || [],
+      'localhost'
+    );
+    return Boolean(savedTweets?.length);
   }
 
   async saveLike(tx, blk = null) {
@@ -1305,8 +1348,21 @@ class RedSquare extends ModTemplate {
       await tweet.analyseTweetLinks(true);
     }
 
-    await this.saveTweet(tweet, blk);
+    const inserted = await this.saveTweet(tweet, blk);
     Loader.noteLocalSyncedTweet(this, tweet?.created_at, blk);
+
+    const createdAt = Number(tweet?.created_at) || 0;
+    if (
+      this.app.BROWSER && inserted && blk && !tweet?.parent_id &&
+      !tweet?.ephemeral && createdAt > 0 &&
+      Date.now() - createdAt >= Loader.LIVE_TWEET_WINDOW_MS
+    ) {
+      const local = Loader.localPeer(this);
+      if (local) {
+        Loader.reopenTweetSource(local);
+        this.manager?.onTweetHistoryAvailable?.();
+      }
+    }
 
     if (this.app.BROWSER) {
       this.addNotification(tx);
@@ -1335,19 +1391,26 @@ class RedSquare extends ModTemplate {
           Number(parentTx.timestamp) ||
           0;
 
+        const repliers = Array.isArray(parentTx.optional.repliers)
+          ? parentTx.optional.repliers
+          : [];
+        const newReplier = Boolean(tweet.publicKey && !repliers.includes(tweet.publicKey));
+        if (newReplier) {
+          repliers.push(tweet.publicKey);
+        }
+        parentTx.optional.repliers = repliers;
+        parent.repliers = repliers.slice();
+
         if (interactionTs > parentTs) {
           parentTx.optional.num_replies = Number(parentTx.optional.num_replies) || 0;
           parentTx.optional.num_replies += 1;
-          parentTx.optional.updated_at = interactionTs;
           parent.replies = parentTx.optional.num_replies;
-          parent.updated_at = interactionTs;
+        }
 
-          await this.app.storage.updateTransaction(
-            parentTx,
-            { updated_at: interactionTs },
-            'localhost'
-          );
-
+        if (interactionTs > parentTs || newReplier) {
+          parent.updated_at = Math.max(parentTs + 1, interactionTs);
+          parentTx.optional.updated_at = parent.updated_at;
+          await this.saveTweet(parent);
           parent.refreshControls();
         }
       }

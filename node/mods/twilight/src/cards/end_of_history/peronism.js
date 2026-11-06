@@ -13,7 +13,7 @@
         this.game.status = "Opponent deciding to add influence to or coup or realign Argentina";
         this.hud.updateStatus(this.game.status);
         this.hud.updateMenu([]);
-        this.hud.updateCards([]);
+        this.hud.updateCards(this.game.deck[0].hand);
         return 0;
 
       } else {

@@ -11,7 +11,17 @@ class AgendaVotingOverlay {
 
   hide() {
     try {
+      let root = document.getElementById('saito-overlay' + this.overlay.ordinal);
+      if (root) {
+        let slot = root.querySelector('.agenda-voting-card');
+        if (slot) {
+          slot.innerHTML = '';
+        }
+      }
       this.overlay.hide();
+      if (this.mod && this.mod.cardbox) {
+        this.mod.cardbox.hide(1);
+      }
 
       //
       // return to smaller proportions
@@ -27,6 +37,10 @@ class AgendaVotingOverlay {
       if (document.querySelector('.dashboard')) {
         document.querySelector('.dashboard').style.zIndex = 10;
       }
+
+      document.querySelectorAll('.chat-container').forEach((el) => {
+        el.style.zIndex = '';
+      });
     } catch (err) {}
   }
 
@@ -50,11 +64,21 @@ class AgendaVotingOverlay {
       document.querySelector('.dashboard').style.zIndex = overlay_zindex + 1;
     }
 
+    document.querySelectorAll('.chat-container').forEach((el) => {
+      el.style.zIndex = overlay_zindex + 1;
+    });
+
     //
     // increase hud size
     //
     if (hud) {
       hud.classList.add('voting-hud');
+    }
+
+    let root = document.getElementById('saito-overlay' + this.overlay.ordinal);
+    let slot = root ? root.querySelector('.agenda-voting-card') : null;
+    if (slot && card && typeof card.returnCardImage === 'function') {
+      slot.innerHTML = card.returnCardImage();
     }
 
     this.attachEvents();

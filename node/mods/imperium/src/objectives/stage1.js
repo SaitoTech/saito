@@ -147,12 +147,15 @@
         let diplomatic = 0;
 
         let planetcards = imperium_self.returnPlayerPlanetCards(player);
+        let home_sector = imperium_self.game.board[imperium_self.game.state.players_info[player-1].homeworld].tile;
 
         for (let i = 0; i < planetcards.length; i++) {
-          if (imperium_self.game.planets[planetcards[i]].type === "hazardous")  { hazardous++; }
-          if (imperium_self.game.planets[planetcards[i]].type === "industrial") { industrial++; }
-          if (imperium_self.game.planets[planetcards[i]].type === "cultural")   { cultural++; }
-          if (imperium_self.game.planets[planetcards[i]].type === "diplomatic") { diplomatic++; }
+          let planet = imperium_self.game.planets[planetcards[i]];
+          if (planet.sector == home_sector) { continue; }
+          if (planet.type === "hazardous")  { hazardous++; }
+          if (planet.type === "industrial") { industrial++; }
+          if (planet.type === "cultural")   { cultural++; }
+          if (planet.type === "diplomatic") { diplomatic++; }
         }
 
         if ((cultural+hazardous+industrial+diplomatic) >= 6) { return 1; }

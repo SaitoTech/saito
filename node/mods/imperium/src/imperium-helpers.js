@@ -127,13 +127,10 @@
     } catch (err) {}
 
     let html = `
-
-      <div style="padding:40px;width:85vw;max-height:90vh;overflow-y:scroll;display:grid;grid-template-columns: 200px auto">
-
-        <div style="top:0;left:0;margin-right: 20px;">
-
-            <label for="game_length ">Game Length:</label>
-            <select class="saito-form-select" name="game_length">
+      <div class="advanced-options-columns">
+        <div class="overlay-input">
+            <label for="game_length">Game Length:</label>
+            <select class="saito-form-select" id="game_length" name="game_length">
               <option value="4">4 VP</option>
               <option value="6">6 VP</option>
               <option value="8" selected>8 VP</option>
@@ -141,26 +138,26 @@
               <option value="12">12 VP</option>
               <option value="14">14 VP</option>
             </select>
-
         </div>
         <div>
-
     `;
 
     for (let i = 1; i <= player_upper_limit; i++) {
       html += `
-            <label for="player${i}" class="game-players-options game-players-options-${i}p">Player ${i}:</label>
+          <div class="overlay-input">
+            <label for="game-players-select-${i}p" class="game-players-options game-players-options-${i}p">Player ${i}:</label>
             <select name="player${i}" id="game-players-select-${i}p" class="saito-form-select game-players-options game-players-options-${i}p">
               <option value="random" default>random</option>
-              <option value="faction1" default>Sol Federation</option>
-              <option value="faction2">Universities of Jol Nar</option>
-              <option value="faction3">XXcha Kingdom</option>
-              <option value="faction4">Sardakk N'Orr</option>
-              <option value="faction5">Brotherhood of Yin</option>
-              <option value="faction6">Yssaril Tribes</option>
-              <option value="faction7">Embers of Muaat</option>
-              <option value="faction8">Emirates of Hacan</option>
+              <option value="faction1" default>Terran Federation</option>
+              <option value="faction2">The Collegium</option>
+              <option value="faction3">Quorum Kingdom</option>
+              <option value="faction4">Carapace Swarm</option>
+              <option value="faction5">The Devotion</option>
+              <option value="faction6">The Shade Clan</option>
+              <option value="faction7">The Cinder Host</option>
+              <option value="faction8">The Caravan League</option>
             </select>
+          </div>
       `;
     }
 

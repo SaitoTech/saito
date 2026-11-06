@@ -81,7 +81,7 @@ body:not(.nwasm-playing) #saito-header.game #saito-header-menu-toggle {
 
 body:not(.nwasm-playing) #saito-header.game .saito-header-hamburger-contents {
   top: 0;
-  height: 100svh;
+  height: 100dvh;
   pointer-events: none;
 }
 
@@ -91,7 +91,7 @@ body:not(.nwasm-playing) #saito-header.game .saito-header-hamburger-contents.sho
 
 body:not(.nwasm-playing) #saito-header.game .saito-header-backdrop {
   top: 0;
-  height: 100vh;
+  height: 100dvh;
   /* Closed state must remain non-interactive (Saito default). */
   pointer-events: none;
 }
@@ -147,7 +147,7 @@ body.nwasm-playing #saito-header.game .saito-header-hamburger-contents {
   width: max(23.333rem, var(--nwasm-side-gutter));
   max-width: min(33.333rem, 100vw);
   top: 0;
-  height: 100svh;
+  height: 100dvh;
   pointer-events: none;
 }
 
@@ -157,7 +157,7 @@ body.nwasm-playing #saito-header.game .saito-header-hamburger-contents.show-menu
 
 body.nwasm-playing #saito-header.game .saito-header-backdrop {
   top: 0;
-  height: 100vh;
+  height: 100dvh;
 }
 
 /*

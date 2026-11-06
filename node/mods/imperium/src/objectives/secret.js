@@ -81,7 +81,7 @@
 	for (let i = 0; i < planet.units.length; i++) {
 	  if (planet.units[i].length > 0) {
 	    if ((i+1) != bombarding_player) {
-	      defender = i+1;
+	      let defender = i+1;
 	      imperium_self.game.state.secret_objective_nuke_from_orbit_how_many_got_nuked = infantry_on_planet;
 	    }
 	  }

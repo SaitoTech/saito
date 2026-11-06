@@ -1,5 +1,7 @@
 import { TranscriptEngine } from './engine.mjs';
-import { TranscriptStore, saveTranscript } from './store.mjs';
+import { TranscriptStore, saveTranscript, withTranscriptLock } from './store.mjs';
+import { showModelManager } from './model-manager.mjs';
+import { startSelection, readSelection, saveSelection, persistModels } from './models.mjs';
 
 const RECOVERY_WINDOW = 15 * 60 * 1000;
 function element(tag, text, className) {
@@ -10,16 +12,18 @@ function element(tag, text, className) {
 }
 
 export class TranscriptRuntime {
-  constructor(app) {
+  constructor(app, { createOverlay } = {}) {
     this.app = app;
+    this.createOverlay = createOverlay;
     this.store = new TranscriptStore();
     this.writes = Promise.resolve();
+    this.clearedSessions = new Set();
     this.entries = [];
     this.identifiers = new Map();
     this.identifierAttempts = new Map();
     this.capturing = false;
     this.beforeUnload = (event) => {
-      if (!this.capturing && !this.unsaved) return;
+      if (!this.capturing && !this.unsaved && !this.recovering_audio) return;
       event.preventDefault();
       event.returnValue = '';
       // Browsers only allow their native warning during unload. If the user stays,
@@ -43,6 +47,66 @@ export class TranscriptRuntime {
         : new AudioContext();
     context.resume().catch(() => {});
     return context;
+  }
+
+  async configureAndToggle(call, context) {
+    if (this.capturing || this.finishing) return this.toggle(call, context);
+    if (this.configuring) {
+      if (context) void context.close();
+      return;
+    }
+    const generation = this.callGeneration || 0;
+    const callId = call.room_obj.call_id;
+    this.configuring = true;
+    this.modelSetup = new AbortController();
+    let handedOff = false;
+    try {
+      const { chosen, downloaded } = await startSelection();
+      if (
+        this.modelSetup.signal.aborted ||
+        !call.streams.active ||
+        generation !== (this.callGeneration || 0) ||
+        callId !== call.room_obj.call_id
+      ) {
+        return;
+      }
+      if (downloaded) {
+        void persistModels();
+        saveSelection(chosen);
+        this.modelSelection = chosen;
+        handedOff = true;
+        return await this.toggle(call, context);
+      }
+      const result = await showModelManager({
+        overlay: this.createOverlay?.(),
+        start: true,
+        initialSelection: chosen,
+        autoStart: true,
+        signal: this.modelSetup.signal,
+        onUse: () => context || this.prepareAudio()
+      });
+      if (!result) return;
+      if (
+        this.modelSetup.signal.aborted ||
+        !call.streams.active ||
+        generation !== (this.callGeneration || 0) ||
+        callId !== call.room_obj.call_id
+      ) {
+        if (result.context !== context) void result.context.close();
+        return;
+      }
+      this.modelSelection = result.selection;
+      handedOff = true;
+      return await this.toggle(call, result.context);
+    } finally {
+      if (!handedOff && context) void context.close();
+      this.modelSetup = null;
+      this.configuring = false;
+    }
+  }
+
+  openSettings() {
+    return showModelManager({ overlay: this.createOverlay?.() });
   }
 
   // Read recovery data without downloading the speech model or opening a mic.
@@ -92,7 +156,7 @@ export class TranscriptRuntime {
       startedAt: Date.now()
     };
     this.entries = recovered?.entries || [];
-    this.entryId = Math.max(0, ...this.entries.map((entry) => entry.id));
+    this.entryId = Math.max(0, ...this.entries.map((entry) => entry.id).filter(Number.isFinite));
     this.unsaved = !!recovered;
     this.ended = false;
     this.status = 'Transcription off';
@@ -134,8 +198,10 @@ export class TranscriptRuntime {
       return;
     }
     this.bind(call);
+    this.deferred_audio = false;
     delete this.session.endedAt;
     this.capturing = this.unsaved = true;
+    this.call.streams.setTranscribing?.(true);
     this.touch();
     this.heartbeat = setInterval(() => {
       this.touch();
@@ -155,12 +221,31 @@ export class TranscriptRuntime {
       return;
     }
     this.setStatus('Loading transcription…');
+    // Keep the original model/language while this session still has pending audio.
+    let pending;
+    try {
+      pending = await this.store.audioStats(this.session.id);
+    } catch (error) {
+      this.storageFailed = true;
+      this.notice(`Audio storage is unavailable: ${error.message}`);
+      void context.close();
+      void this.finish('Transcription unavailable — save transcript');
+      return;
+    }
+    if (!pending.count || !this.session.selection)
+      this.session.selection = this.modelSelection || readSelection();
+    if (!this.capturing || this.ended) {
+      void context.close();
+      return;
+    }
     const engine = new TranscriptEngine({
       context,
+      selection: this.session.selection,
+      store: this.store,
+      session: this.session,
       startedAt: this.session.startedAt,
       speaker: (peer) => this.speakerName(peer === 'local' ? this.call.publicKey : peer),
-      shouldSave: () => true,
-      onText: (entry) => this.receive(entry),
+      onText: (entry) => this.receive(entry, true),
       onStatus: (status) => {
         this.setStatus(status === 'Listening…' ? 'Transcript is being captured' : status);
         if (status.startsWith('Transcript stopped:'))
@@ -262,17 +347,22 @@ export class TranscriptRuntime {
       }
     }
     // One transaction, even if an identifier arrived after a long conversation.
-    if (changed.length) this.persist(() => this.store.updateEntries(session.id, changed));
+    if (changed.length)
+      this.persist(() => this.store.updateEntries(session.id, changed), session.id);
     await this.writes;
   }
 
-  persist(operation) {
-    this.writes = this.writes.then(operation).catch(() => {
-      if (!this.storageFailed)
-        globalThis.siteMessage?.('Transcript storage failed. Save before leaving.', 5000);
-      this.storageFailed = true;
-      this.setStatus('Transcript storage is unavailable. Save the transcript before leaving.');
-    });
+  persist(operation, sessionId = this.session?.id) {
+    this.writes = this.writes
+      .then(() => {
+        if (!this.clearedSessions.has(sessionId)) return operation();
+      })
+      .catch(() => {
+        if (!this.storageFailed)
+          globalThis.siteMessage?.('Transcript storage failed. Save before leaving.', 5000);
+        this.storageFailed = true;
+        this.setStatus('Transcript storage is unavailable. Save the transcript before leaving.');
+      });
     return this.writes;
   }
 
@@ -293,16 +383,18 @@ export class TranscriptRuntime {
     this.setStatus(message);
   }
 
-  receive(result) {
+  receive(result, persisted = false) {
+    if (!this.session || this.clearedSessions.has(this.session.id)) return;
     const entry = {
-      id: ++this.entryId,
+      id: persisted ? result.id : ++this.entryId,
       start: result.start,
       end: result.end,
       speaker: this.speakerName(
-        result.peer === 'local' ? this.call?.publicKey : result.peer,
+        result.publicKey || (result.peer === 'local' ? this.session?.localPublicKey : result.peer),
         result.speaker
       ),
-      publicKey: result.peer === 'local' ? this.call?.publicKey : result.peer,
+      publicKey:
+        result.publicKey || (result.peer === 'local' ? this.session?.localPublicKey : result.peer),
       peer: result.peer,
       text: result.text
     };
@@ -311,12 +403,15 @@ export class TranscriptRuntime {
     this.session.updatedAt = Date.now();
     const session = { ...this.session };
     // Commit the text and recovery timestamp atomically.
-    this.persist(() => this.store.append(session, entry));
+    if (!persisted) this.persist(() => this.store.append(session, entry));
+    else if (entry.speaker !== result.speaker)
+      this.persist(() => this.store.updateEntries(session.id, [entry]));
   }
 
   setStatus(status) {
     this.status = status;
     if (this.statusNode) this.statusNode.textContent = status;
+    if (this.finishing_status) this.finishing_status.textContent = status;
   }
 
   render() {
@@ -351,6 +446,7 @@ export class TranscriptRuntime {
     if (this.finishing) return this.finishing;
     if (!this.session || (!this.capturing && !this.unsaved)) return Promise.resolve();
     this.capturing = false;
+    this.call?.streams.setTranscribing?.(false);
     clearInterval(this.heartbeat);
     this.render();
     const preparing = element(
@@ -360,38 +456,59 @@ export class TranscriptRuntime {
     );
     preparing.setAttribute('aria-label', 'Preparing Transcription');
     preparing.setAttribute('aria-busy', 'true');
-    preparing.append(element('p', 'Preparing Transcription'));
+    this.finishing_status = element('p', 'Preparing Transcription');
+    preparing.append(this.finishing_status);
+    let deferred = false;
+    if (this.engine?.pause) {
+      const later = element('button', 'Finish later', 'saito-button-secondary');
+      later.onclick = () => {
+        deferred = true;
+        later.disabled = true;
+        this.finishing_status.textContent = 'Saving remaining audio…';
+        void this.engine?.pause();
+      };
+      preparing.append(later);
+    }
     preparing.addEventListener('cancel', (event) => event.preventDefault());
     document.body.append(preparing);
     preparing.showModal();
+    this.session.endedAt = Date.now();
     this.finishing = (async () => {
       await this.engine?.stop();
       this.engine = null;
-      this.session.endedAt = Date.now();
       this.touch();
       await this.resolveSpeakers(this.session, this.entries, { lookup: false });
       this.setStatus('Transcription off');
       preparing.close();
       preparing.remove();
-      await this.showSave(this.session, this.entries, { title });
+      if (deferred) {
+        this.deferred_audio = true;
+        this.setStatus('Audio saved in this browser. Finish it from Transcripts.');
+      } else {
+        await this.showSave(this.session, this.entries, { title });
+      }
     })().finally(() => {
       preparing.close();
       preparing.remove();
       this.finishing = null;
+      this.finishing_status = null;
     });
     return this.finishing;
   }
 
   endCall() {
+    this.modelSetup?.abort();
     this.callGeneration = (this.callGeneration || 0) + 1;
     this.ended = true;
     return this.finish();
   }
 
   async beforeNavigate() {
-    if (!this.capturing && !this.unsaved) return true;
+    this.modelSetup?.abort();
+    if (!this.capturing && (!this.unsaved || (this.deferred_audio && !this.storageFailed)))
+      return true;
     await this.finish('Save your transcript before leaving');
-    return !this.unsaved;
+    return !this.unsaved || !!(this.deferred_audio && !this.storageFailed);
   }
 
   showSave(session, entries, { title = 'Save transcript', append = false } = {}) {
@@ -402,14 +519,11 @@ export class TranscriptRuntime {
     );
     const header = element('div', undefined, 'saito-overlay-form-header');
     const heading = element('h2', title, 'saito-overlay-form-header-title');
-    header.append(heading);
-    const content = element('div', undefined, 'saito-overlay-form-text');
     heading.id = `transcript-dialog-${session.id}`;
     dialog.setAttribute('aria-labelledby', heading.id);
-    const message = element(
-      'p',
-      `${entries.length} text segments captured. A recovery copy stays in this browser until you confirm the file is saved.`
-    );
+    header.append(heading);
+    const content = element('div', undefined, 'saito-overlay-form-text');
+    const message = element('p');
     const status = element(
       'p',
       this.storageFailed ? 'Browser storage failed. Save before leaving this page.' : '',
@@ -418,68 +532,180 @@ export class TranscriptRuntime {
     status.setAttribute('role', 'status');
     const actions = element('div', undefined, 'saito-button-row transcript-dialog-actions');
     const save = element('button', 'Save To File', 'saito-button-primary');
-    const confirm = element('button', 'I saved the file', 'saito-button-primary');
-    confirm.hidden = true;
+    const finish = element('button', 'Finish transcription', 'saito-button-primary');
     const later = element('button', 'Resume Later', 'saito-button-secondary');
+    const discard = element('button', 'Discard', 'saito-button-secondary');
+    finish.hidden = discard.hidden = true;
     let outcome = 'later';
-    const clear = async () => {
-      await this.store.remove(session.id);
+    let processor;
+    let busy = false;
+    const refresh = async () => {
+      const stats = await this.store.audioStats(session.id);
+      if (busy) return;
+      message.textContent =
+        `${entries.length} text segments captured. ` +
+        (stats.count
+          ? `${Math.ceil(stats.bytes / 64000)} seconds of audio remain unprocessed. Finish transcription to include them. Saving a partial transcript clears the remaining audio and recovery copy from this browser.`
+          : 'A recovery copy stays in this browser until saving succeeds.');
+      finish.hidden = discard.hidden = !stats.count;
+      save.textContent = stats.count ? 'Save partial transcript' : 'Save To File';
+    };
+    const clearMemory = () => {
+      if (this.pendingSession?.session.id === session.id) this.pendingSession = null;
       if (this.session?.id === session.id) {
+        clearInterval(this.heartbeat);
         this.unsaved = false;
+        this.deferred_audio = false;
         this.entries = [];
+        this.entryId = 0;
         this.session = null;
       }
-      outcome = 'saved';
-      dialog.close();
+      entries.length = 0;
+    };
+    const clearRecovery = async () => {
+      // Stop queued/late callbacks from recreating a session after deletion.
+      this.clearedSessions.add(session.id);
+      try {
+        await this.writes;
+        await this.store.remove(session.id);
+        clearMemory();
+      } catch (error) {
+        this.clearedSessions.delete(session.id);
+        throw error;
+      }
     };
     save.onclick = async () => {
+      if (busy) return;
+      busy = true;
       save.disabled = true;
+      finish.disabled = discard.disabled = later.disabled = true;
       try {
-        const confirmed = await saveTranscript(session, entries);
-        if (confirmed) await clear();
-        else {
-          confirm.hidden = false;
-          status.textContent =
-            'Confirm after the download has successfully saved. If you cancelled it, try Save To File again.';
-        }
+        await withTranscriptLock(session.id, async () => {
+          await this.writes;
+          const stats = await this.store.audioStats(session.id);
+          const stored = await this.store.entries(session.id);
+          const merged = [
+            ...new Map([...stored, ...entries].map((entry) => [entry.id, entry])).values()
+          ];
+          const exportSession = stats.count
+            ? {
+                ...session,
+                notice: [
+                  session.notice,
+                  `Partial transcript: ${Math.ceil(stats.bytes / 64000)} seconds of audio remain unprocessed.`
+                ]
+                  .filter(Boolean)
+                  .join('\n')
+              }
+            : session;
+          await saveTranscript(exportSession, merged);
+          try {
+            await clearRecovery();
+            outcome = 'saved';
+            dialog.close();
+            globalThis.siteMessage?.('Transcript saved', 3000);
+          } catch {
+            status.textContent =
+              'File saved, but the browser recovery copy could not be cleared. Try saving again.';
+          }
+        });
       } catch (error) {
         status.textContent =
           error.name === 'AbortError'
             ? 'Save cancelled. Your transcript has been kept.'
-            : 'Could not finish saving. Your transcript has been kept; try again.';
+            : `Could not finish saving. Your transcript has been kept; try again. ${error.message}`;
       } finally {
+        busy = false;
         save.disabled = false;
+        finish.disabled = discard.disabled = later.disabled = false;
       }
     };
-    confirm.onclick = async () => {
+    finish.onclick = async () => {
+      if (busy) return;
+      busy = true;
+      save.disabled = finish.disabled = discard.disabled = true;
+      later.textContent = 'Finish later';
+      processor = new TranscriptEngine({
+        store: this.store,
+        session,
+        recovery: true,
+        startedAt: session.startedAt,
+        selection: session.selection || readSelection(),
+        onText: (entry) => {
+          entries.push(entry);
+          if (this.session?.id === session.id) this.entries = entries;
+        },
+        onStatus: (text) => {
+          status.textContent = text;
+        },
+        onGap: (text) => {
+          status.textContent = text;
+        }
+      });
+      this.recovering_audio = processor;
       try {
-        await clear();
-      } catch {
-        status.textContent = 'File saved, but the browser recovery copy could not be cleared.';
+        await processor.start();
+        await processor.stop();
+      } catch (error) {
+        status.textContent = `Could not finish transcription. Saved audio is retained. ${error.message}`;
+      } finally {
+        await processor.pause();
+        processor = null;
+        this.recovering_audio = null;
+        busy = false;
+        save.disabled = finish.disabled = discard.disabled = false;
+        later.textContent = 'Resume Later';
+        await refresh().catch((error) => {
+          status.textContent = error.message;
+        });
       }
     };
-    later.onclick = () => dialog.close();
-    actions.append(save, confirm);
+    later.onclick = async () => {
+      if (busy && !processor) return;
+      later.disabled = true;
+      await processor?.pause();
+      dialog.close();
+    };
+    discard.onclick = async () => {
+      if (discard.textContent !== 'Confirm discard') {
+        discard.textContent = 'Confirm discard';
+        status.textContent = 'This deletes the saved audio and transcript from this browser.';
+        return;
+      }
+      try {
+        await withTranscriptLock(session.id, clearRecovery);
+        outcome = 'discarded';
+        dialog.close();
+      } catch (error) {
+        status.textContent = error.message;
+      }
+    };
+    actions.append(finish, save);
     if (append) {
       const resume = element('button', 'Append to transcript', 'saito-button-secondary');
       resume.onclick = () => {
+        if (busy) return;
         outcome = 'append';
         dialog.close();
       };
       actions.append(resume);
-      message.append(
-        document.createTextNode(
-          ' This capture was active less than 15 minutes ago. Append when you next turn on Transcript.'
-        )
-      );
     }
-    actions.append(later);
+    actions.append(later, discard);
     content.append(message);
     if (session.notice) content.append(element('p', session.notice));
     content.append(status);
     dialog.append(header, content, actions);
+    dialog.addEventListener('cancel', (event) => {
+      if (busy) {
+        event.preventDefault();
+        void later.onclick();
+      }
+    });
     document.body.append(dialog);
     dialog.showModal();
+    void refresh().catch((error) => {
+      status.textContent = error.message;
+    });
     return new Promise((resolve) =>
       dialog.addEventListener(
         'close',

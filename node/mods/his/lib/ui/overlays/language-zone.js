@@ -1,3 +1,4 @@
+const HudLayer = require('../hud-layer');
 const LanguageZoneTemplate = require('./language-zone.template');
 const SaitoOverlay = require('./../../../../../lib/saito/ui/saito-overlay/saito-overlay');
 
@@ -15,24 +16,10 @@ class LanguageZoneOverlay {
   }
 
   pullHudOverOverlay() {
-    //
-    // pull GAME HUD over overlay
-    //
-    let overlay_zindex = parseInt(this.overlay.zIndex);
-    let hud = document.getElementById('game-hud2');
-    if (hud) {
-      hud.style.zIndex = overlay_zindex + 1;
-    }
+    HudLayer.pullHudOverOverlay.call(this);
   }
   pushHudUnderOverlay() {
-    //
-    // push GAME HUD under overlay
-    //
-    let overlay_zindex = parseInt(this.overlay.zIndex);
-    let hud = document.getElementById('game-hud2');
-    if (hud) {
-      hud.style.zIndex = overlay_zindex - 2;
-    }
+    HudLayer.pushHudUnderOverlay.call(this);
   }
 
   render(mycallback = null) {

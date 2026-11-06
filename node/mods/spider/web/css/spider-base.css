@@ -19,6 +19,19 @@
 
   .module-settings-overlay {
     color: var(--saito-popover-foreground);
+    background-color: var(--saito-popover);
+    background-image: var(--saito-popover-wash);
+  }
+
+  /* Keep the title clear of the fixed top-right close control. */
+  .module-settings-overlay > h2 {
+    padding-right: 4.8rem;
+  }
+
+  /* Mobile overlay CSS clears panel backgrounds. This panel stays opaque. */
+  .saito-overlay > .module-settings-overlay.saito-overlay-panel {
+    background-color: var(--saito-popover);
+    background-image: var(--saito-popover-wash);
   }
 
   .gameboard {
@@ -30,17 +43,21 @@
     display: grid;
   }
 
-  .score {
+  /* sits in the footer bar, between the completed stacks and the buttons */
+  .spider-score {
+    width: fit-content;
+    padding: 5px 20px;
+    font-size: 20px;
+    line-height: 30px;
+    white-space: nowrap;
     color: #333;
+    background-color: var(--game-menu-background);
+    border: 1px solid #444;
+    border-radius: 5px;
+    box-shadow: 2px 2px 5px 0px rgba(0, 0, 0, 0.75);
   }
   .gameboard.selection * {
     /*cursor: none !important;*/
-  }
-
-  .game-scoreboard {
-    font-size: 20px;
-    height: 40px;
-    padding: 5px 20px;
   }
 
   /*arrange the cards in an array*/
@@ -87,7 +104,7 @@
     bottom: 3px;
     width: 100%;
     display: grid;
-    grid-template-columns: 1fr min-content min-content;
+    grid-template-columns: 1fr auto min-content min-content;
     grid-template-rows: min(12.24vw, 184px);
     grid-column-gap: 10px;
     align-items: center;
@@ -254,12 +271,10 @@
       width: unset;
     }
 
-    .game-scoreboard {
+    .spider-score {
       font-size: 16px;
-      height: 30px;
-      padding: 5px 20px;
-      top: unset;
-      bottom: 0;
+      line-height: 20px;
+      padding: 5px 12px;
     }
     .card-stack-array {
       margin: 10px 0 0 80px;
@@ -277,6 +292,29 @@
     .gameboard {
       grid-template-columns: 1fr;
       grid-template-rows: 1fr 1fr;
+    }
+
+    .spider-score {
+      font-size: 14px;
+      line-height: 18px;
+      padding: 4px 8px;
+    }
+
+    /* the footer row is only ~12vw tall here, so put the buttons side by side */
+    .icon_container {
+      flex-direction: row;
+      gap: 6px;
+    }
+
+    /* drop the footer's 50px line box around the icons */
+    .icon_container > div {
+      display: flex;
+    }
+
+    .icon_container > div i {
+      height: 36px;
+      width: 36px;
+      font-size: 22px;
     }
   }
 }

@@ -12,6 +12,8 @@ const {
   categoryViewKey
 } = require('./lib/categories');
 const index = require('./index');
+const StoreWithdrawals = require('./lib/withdrawal');
+const StoreAdmin = require('./lib/admin/store-admin');
 
 class Store extends ModTemplate {
   constructor(app) {
@@ -23,6 +25,14 @@ class Store extends ModTemplate {
     this.status = 'beta';
     this.class = 'utility';
     this.dbname = 'store';
+    this.shortlinks_enabled = 1;
+    this.social = this.buildSocial({
+      twitter: '@SaitoOfficial',
+      title: 'Saito Store',
+      description: this.description,
+      url: '/store',
+      image: '/store/img/store.png'
+    });
     this.styles = ['/store/style.css', '/saito/lib/jsonTree/jsonTree.css'];
 
     this.main = null;
@@ -30,14 +40,26 @@ class Store extends ModTemplate {
     this.summaries = {};
     this.image_cache = {};
     this.store_public_key = '';
+    // Treasury keys that may issue a web3 purchase. The server's own public key
+    // is added when a purchase is checked, so this node can issue those payments.
+    this.web3_payment_processor_publickey = ['cNACSaLdZQfbPkTTud4ezLWFYqRPUCMEt2dgLxJ9Axxx'];
     this.store_peer_index = null;
+    this.shared_listing_path = '';
     this.listings_to_moderate = 0;
     this.fee = 0;
     this.order_retry_limit = 10;
+    // How long the same saved refund may be rebroadcast. Expiry stops retries.
+    // It does not authorize another signed refund.
+    this.refund_retry_ms = 6 * 60 * 60 * 1000;
+    // Longest-chain blocks searched for a settlement whose order update was missed.
+    this.fulfillment_reconcile_blocks = 512;
+    // Saito blocks after a web3 sale's inclusion before those proceeds are eligible.
+    this.web3_withdrawal_blocks = 5;
     // User-store chrome is read-only; edits stay on Profile / Red Square hosts.
     this.enable_profile_edits = false;
 
     this.warehouse = new Warehouse(app, this);
+    this.withdrawals = new StoreWithdrawals(this);
     Object.assign(this, transactions);
   }
 
@@ -269,6 +291,32 @@ class Store extends ModTemplate {
       return;
     }
 
+    const route = this.returnStoreRouteFromPath();
+    const listingPath = window.location.pathname;
+    if ((route.signature || route.nft_id) && this.shared_listing_path !== listingPath) {
+      this.shared_listing_path = listingPath;
+      app.network.sendRequestAsTransaction(
+        'load-listing',
+        { module: this.name, signature: route.signature, seller: route.publicKey, nft_id: route.nft_id },
+        async (response) => {
+          if (window.location.pathname !== listingPath) {
+            return;
+          }
+          if (!response?.listing) {
+            siteMessage(response?.err || 'Listing unavailable', 5000);
+            return;
+          }
+          const Summary = require('./lib/summary');
+          await this.main.openStorefront(response.listing.seller, { updateUrl: false });
+          if (window.location.pathname !== listingPath) {
+            return;
+          }
+          this.main.listing_detail.open(new Summary(app, this, response.listing));
+        },
+        peer.publicKey
+      );
+    }
+
     // Peer readiness only enables fetch — do not change which Store context is active.
     const manager = this.main.manager;
     if (manager.activePanel === 'my-listings') {
@@ -429,6 +477,49 @@ class Store extends ModTemplate {
       }
     }
 
+    if (txmsg?.request === 'load-web3-proceeds') {
+      if (!this.app.BROWSER && mycallback != null) {
+        const seller = String(tx.from?.[0]?.publicKey || '').trim();
+        let latestBlockId = null;
+        try {
+          latestBlockId = Number(await this.app.blockchain?.getLatestBlockId?.());
+        } catch (err) {
+          latestBlockId = null;
+        }
+        const balances = seller
+          ? await this.warehouse.db.returnWeb3WithdrawalBalances(
+              seller,
+              latestBlockId,
+              this.web3_withdrawal_blocks
+            )
+          : { pending: {}, eligible: {} };
+        mycallback(balances);
+        return 1;
+      }
+    }
+
+    if (txmsg?.request === 'store-withdrawal-quote') {
+      if (!this.app.BROWSER && mycallback != null) {
+        const seller = String(tx.from?.[0]?.publicKey || '').trim();
+        const data = txmsg.data && typeof txmsg.data === 'object' ? txmsg.data : {};
+        const quote = await this.withdrawals.createQuote({
+          seller,
+          ticker: data.ticker,
+          withdrawalAddress: data.withdrawal_address
+        });
+        mycallback(quote);
+        return 1;
+      }
+    }
+
+    if (txmsg?.request === 'store-withdrawal') {
+      if (!this.app.BROWSER && mycallback != null) {
+        const result = await this.withdrawals.acceptSubmittedTransaction(tx);
+        mycallback(result);
+        return 1;
+      }
+    }
+
     if (txmsg?.request === 'submit-listing') {
       if (!this.app.BROWSER && mycallback != null) {
         const data = txmsg.data && typeof txmsg.data === 'object' ? txmsg.data : {};
@@ -509,6 +600,29 @@ class Store extends ModTemplate {
           signature,
           approved: approved ? 1 : 0
         });
+        return 1;
+      }
+    }
+
+    if (txmsg?.request === 'load-listing' && txmsg?.data?.module === this.name) {
+      if (!this.app.BROWSER && mycallback != null) {
+        try {
+          const row = txmsg.data.signature
+            ? await this.warehouse.db.returnCanonicalListingBySignature(txmsg.data.signature)
+            : txmsg.data.seller && txmsg.data.nft_id
+              ? (await this.warehouse.db.returnActiveListingsForSeller(txmsg.data.seller, txmsg.data.nft_id))[0]
+              : null;
+          const Listing = require('./lib/listing');
+          if (!row || !new Listing(row).isAvailable() || Number(row.quantity) <= 0) {
+            mycallback({ err: 'Listing unavailable' });
+            return 1;
+          }
+          const summary = await this.warehouse.summaryFromListingRow(row);
+          mycallback({ listing: summary.serialize() });
+        } catch (err) {
+          console.error('Store: shared listing lookup failed', err);
+          mycallback({ err: 'Unable to load listing' });
+        }
         return 1;
       }
     }
@@ -659,6 +773,22 @@ class Store extends ModTemplate {
   }
 
   respondTo(type = '', obj) {
+    if (type === 'admin-sidebar') {
+      if (!this.app.BROWSER) {
+        return null;
+      }
+      return {
+        id: this.returnSlug(),
+        name: this.name,
+        render: () => {
+          if (!this.admin_ui) {
+            this.admin_ui = new StoreAdmin(this.app, this);
+          }
+          this.admin_ui.render();
+        }
+      };
+    }
+
     if (type === 'redsquare-profile') {
       const publicKey = String(obj?.publicKey || '').trim();
       if (!publicKey) {
@@ -1011,22 +1141,24 @@ class Store extends ModTemplate {
   }
 
   /**
-   * Parse /store/<publickey>, /store/<publickey>/admin, or /store/moderate.
+   * Parse storefront, admin, moderation, and current or legacy item URLs.
    * Optional ?type=<nft-type> is mapped to a marketplace/storefront category.
-   * @returns {{ publicKey: string, admin: boolean, moderate: boolean, category: string }}
+   * Item routes also include nft_id, or signature for legacy links.
    */
-  returnStoreRouteFromPath() {
+  returnStoreRouteFromPath(location = null) {
     const empty = { publicKey: '', admin: false, moderate: false, category: '' };
-    if (!this.app.BROWSER || typeof window === 'undefined') {
+    const currentLocation =
+      location || (this.app.BROWSER && typeof window !== 'undefined' ? window.location : null);
+    if (!currentLocation) {
       return empty;
     }
 
-    const type = new URLSearchParams(window.location.search || '').get('type') || '';
+    const type = new URLSearchParams(currentLocation.search || '').get('type') || '';
     const category = type ? mapNFTTypeToCategory(type) : '';
 
-    const pathname = window.location.pathname || '';
+    const pathname = currentLocation.pathname || '';
     const slug = '/' + this.slug;
-    if (!pathname.startsWith(slug)) {
+    if (pathname !== slug && !pathname.startsWith(`${slug}/`)) {
       return { ...empty, category };
     }
 
@@ -1048,11 +1180,24 @@ class Store extends ModTemplate {
       };
     }
 
+    if (segments.length === 2 && segments[0] === 'listing') {
+      return { ...empty, signature: decodeURIComponent(segments[1]), category };
+    }
+
     if (segments.length === 2 && segments[0] !== 'cache' && segments[1] === 'admin') {
       return {
         publicKey: decodeURIComponent(segments[0]),
         admin: true,
         moderate: false,
+        category
+      };
+    }
+
+    if (segments.length === 2 && !['cache', 's', 'moderate'].includes(segments[0])) {
+      return {
+        ...empty,
+        publicKey: decodeURIComponent(segments[0]),
+        nft_id: decodeURIComponent(segments[1]),
         category
       };
     }
@@ -1113,6 +1258,16 @@ class Store extends ModTemplate {
       case 'order-refund':
         this.app.connection.emit('store-order-refund', { blk, tx, conf });
         console.log('Store: onConfirmation order-refund conf=0', tx.signature);
+        if (!this.app.BROWSER) {
+          try {
+            await this.warehouse.refunds.observeInclusion(blk, tx);
+          } catch (err) {
+            console.error('Store: refund inclusion was not recorded', {
+              refund_tx_sig: tx.signature,
+              error: err?.message || String(err)
+            });
+          }
+        }
         if (this.app.BROWSER && typeof siteMessage === 'function') {
           siteMessage('Refund Issued: order could not be processed.', 5000);
         }
@@ -1140,13 +1295,71 @@ class Store extends ModTemplate {
     await this.warehouse.onChainReorganization(block_id, block_hash, lc);
   }
 
+  async returnShortLinkSocial(row, req) {
+    const origin = `${req.protocol}://${req.get('host')}`;
+    const target = new URL(row.link, origin);
+    if (target.origin !== origin) {
+      return null;
+    }
+
+    const route = this.returnStoreRouteFromPath(target);
+    const listing = route.signature
+      ? await this.warehouse.db.returnCanonicalListingBySignature(route.signature)
+      : route.publicKey && route.nft_id
+        ? (await this.warehouse.db.returnActiveListingsForSeller(route.publicKey, route.nft_id))[0]
+        : null;
+    if (!listing) {
+      return null;
+    }
+    const summary = await this.warehouse.summaryFromListingRow(listing);
+    let image = '/store/img/store.png';
+    if (this.image_cache[summary.nft_id]?.startsWith('data:image/')) {
+      image = summary.returnCacheImageUrl();
+    } else if (/^(https?:\/\/|\/)/i.test(summary.image || '')) {
+      image = summary.image;
+    }
+    return {
+      ...this.social,
+      title: summary.returnTitle(),
+      description: [summary.returnPrice(), summary.returnDescription()].filter(Boolean).join(' — '),
+      url: `${origin}${target.pathname}`,
+      image: new URL(image, origin).href
+    };
+  }
+
   webServer(app, expressapp, express, alternative_slug = null) {
     const webdir = `${__dirname}/../../mods/${this.dirname}/web`;
     const uri = alternative_slug || '/' + encodeURI(this.returnSlug());
     const self = this;
 
-    const sendStoreHtml = (req, res) => {
-      const html = index(app, self, app.build_number);
+    const sendStoreHtml = async (req, res) => {
+      const origin = `${req.protocol}://${req.get('host')}`;
+      let social = {
+        ...self.social,
+        url: `${origin}${uri}`,
+        image: `${origin}${uri}/img/store.png`
+      };
+      if (req.params.signature || req.params.nft_id) {
+        try {
+          const listingSocial = await self.returnShortLinkSocial(
+            {
+              link: req.params.signature
+                ? `/${self.returnSlug()}/listing/${encodeURIComponent(req.params.signature)}`
+                : `/${self.returnSlug()}/${encodeURIComponent(req.params.publickey)}/${encodeURIComponent(req.params.nft_id)}`
+            },
+            req
+          );
+          if (listingSocial) {
+            social = listingSocial;
+          } else {
+            res.status(404);
+          }
+        } catch (err) {
+          console.error('Store: listing metadata lookup failed', err);
+          res.status(500);
+        }
+      }
+      const html = index(app, self, app.build_number, social);
       res.setHeader('Content-type', 'text/html');
       res.charset = 'UTF-8';
       return res.send(html);
@@ -1165,11 +1378,15 @@ class Store extends ModTemplate {
     // /store — main browse shell
     expressapp.get(uri, sendStoreHtml);
 
+    expressapp.get(`${uri}/listing/:signature`, sendStoreHtml);
+
     // /store/moderate — marketplace moderation (must precede /:publickey)
     expressapp.get(`${uri}/moderate`, sendStoreHtml);
 
     // /store/<publickey>/admin — seller administration shell (client routes after load)
     expressapp.get(`${uri}/:publickey/admin`, sendStoreHtml);
+
+    expressapp.get(`${uri}/:publickey/:nft_id`, sendStoreHtml);
 
     // /store/<publickey> — public creator storefront shell (client routes after load)
     expressapp.get(`${uri}/:publickey`, sendStoreHtml);

@@ -61,6 +61,7 @@ class Tweet {
     this.critical_child = null;
     this.time = '';
     this.likers = [];
+    this.repliers = [];
     this.retweeters = [];
     this.ephemeral = false;
     this.href = '';
@@ -76,6 +77,7 @@ class Tweet {
     const previousLikes = Number(this.likes) || Number(previousOptional.num_likes) || 0;
     const previousReplies = Number(this.replies) || Number(previousOptional.num_replies) || 0;
     const previousRetweets = Number(this.retweets) || Number(previousOptional.num_retweets) || 0;
+    const previousRepliers = this.repliers.slice();
     const previousLikers = Array.isArray(previousOptional.likers)
       ? previousOptional.likers.slice()
       : Array.isArray(this.likers)
@@ -103,6 +105,8 @@ class Tweet {
     const incomingOptional = this.tx.optional;
     const incomingLikers = Array.isArray(incomingOptional.likers) ? incomingOptional.likers : [];
     this.tx.optional.likers = Array.from(new Set([...incomingLikers, ...previousLikers]));
+    const incomingRepliers = Array.isArray(incomingOptional.repliers) ? incomingOptional.repliers : [];
+    this.tx.optional.repliers = Array.from(new Set([...incomingRepliers, ...previousRepliers]));
 
     this.tx.optional.num_replies = Math.max(
       previousReplies,
@@ -122,6 +126,7 @@ class Tweet {
     this.likes = this.tx.optional.num_likes;
     this.retweets = this.tx.optional.num_retweets;
     this.likers = this.tx.optional.likers.slice();
+    this.repliers = this.tx.optional.repliers.slice();
 
     if (Number(incomingOptional.num_retweets) > previousRetweets) {
       if (Array.isArray(incomingOptional.retweeters)) {
@@ -169,7 +174,10 @@ class Tweet {
     const statsChanged =
       this.likes !== previousLikes ||
       this.replies !== previousReplies ||
-      this.retweets !== previousRetweets;
+      this.retweets !== previousRetweets ||
+      this.repliers.includes(this.mod.publicKey) !== previousRepliers.includes(this.mod.publicKey) ||
+      this.likers.includes(this.mod.publicKey) !== previousLikers.includes(this.mod.publicKey) ||
+      this.retweeters.includes(this.mod.publicKey) !== previousRetweeters.includes(this.mod.publicKey);
 
     if (statsChanged) {
       this.refreshControls();
@@ -213,6 +221,7 @@ class Tweet {
     this.replies = Number(optional.num_replies) || 0;
     this.retweets = Number(optional.num_retweets) || 0;
     this.likers = Array.isArray(optional.likers) ? optional.likers.slice() : [];
+    this.repliers = Array.isArray(optional.repliers) ? optional.repliers.slice() : [];
     this.retweeters = Array.isArray(optional.retweeters) ? optional.retweeters.slice() : [];
 
     this.flagged = Number(optional.flagged) || 0;
@@ -570,24 +579,50 @@ class Tweet {
     return this;
   }
 
+  hasReplied() {
+    const publicKey = this.mod.publicKey;
+    if (!publicKey) {
+      return false;
+    }
+
+    // Older tweets may have loaded replies but no archived replier list yet.
+    return (
+      this.repliers.includes(publicKey) ||
+      (this.mod.tweets_children?.[this.signature] || []).some(
+        (signature) => this.mod.getTweet(signature)?.publicKey === publicKey
+      )
+    );
+  }
+
   refreshControls() {
     if (!this.app.BROWSER || !this.signature) {
       return;
     }
 
     const selectors = [
-      ['comment', this.replies],
-      ['like', this.likes],
-      ['retweet', this.retweets]
+      ['comment', this.replies, 'replied', this.hasReplied()],
+      [
+        'like',
+        this.likes,
+        'liked',
+        Boolean(this.mod.publicKey && this.likers.includes(this.mod.publicKey))
+      ],
+      [
+        'retweet',
+        this.retweets,
+        'retweeted',
+        Boolean(this.mod.publicKey && this.retweeters.includes(this.mod.publicKey))
+      ]
     ];
 
-    for (const [tool, count] of selectors) {
+    for (const [tool, count, state, active] of selectors) {
       const nodes = document.querySelectorAll(
         `article.tweet[data-id="${this.signature}"] .tool.${tool} .count`
       );
 
       for (const node of nodes) {
         node.textContent = String(count);
+        node.closest('.tool').classList.toggle(state, active);
       }
     }
   }

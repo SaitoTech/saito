@@ -6,23 +6,65 @@ class AdminSetup {
     this.mod = mod;
     this.container = container;
     this.selected_app = '';
+    this.selected_choice = '';
+    this.submitting = false;
     this.showing_recompile = false;
-    this.use_existing_config = false;
   }
 
   render() {
     this.app.browser.replaceElementContentBySelector(NodeSetupTemplate(this.mod), this.container);
     this.attachEvents();
+    this.updateView();
+  }
+
+  updateView() {
+    const root = document.querySelector(`${this.container} .node-setup`);
+    if (!root) return;
+    const busy = this.submitting || this.showing_recompile;
+    root.querySelector('.node-setup-options').hidden = busy;
+    root.querySelector('.splash-section').hidden = busy || !this.selected_choice;
+    root.querySelector('.node-setup-working').hidden = !this.submitting;
+    root.querySelector('.node-setup-dev-info').hidden =
+      !this.showing_recompile || this.selected_choice !== 'development';
+    root.querySelector('.node-setup-prod-info').hidden =
+      !this.showing_recompile || this.selected_choice !== 'production';
+    root.querySelector('h1').textContent = this.showing_recompile
+      ? 'Ready for Command-Line Recompile'
+      : 'I want to run a:';
+    root.querySelectorAll('[data-choice]').forEach((button) => {
+      button.disabled = busy;
+      if (button.dataset.choice !== 'existing') {
+        button.setAttribute('aria-pressed', String(button.dataset.choice === this.selected_choice));
+      }
+    });
+    root.querySelectorAll('[data-app]').forEach((button) => {
+      button.disabled = busy || !this.selected_choice;
+      button.classList.toggle('selected', button.dataset.app === this.selected_app);
+    });
+  }
+
+  showError(error) {
+    this.submitting = false;
+    this.updateView();
+    siteMessage('Node setup could not be saved.', 5000);
+    salert(error);
   }
 
   attachEvents() {
     document.querySelectorAll('.splash-card').forEach((card) => {
-      card.onclick = () => {
-        document.querySelectorAll('.splash-card').forEach((el) => {
-          el.classList.remove('selected');
-        });
-        card.classList.add('selected');
+      card.onclick = async () => {
+        if (!this.selected_choice || this.submitting || this.showing_recompile) return;
         this.selected_app = card.dataset.app;
+        this.submitting = true;
+        this.updateView();
+        siteMessage('Customizing your Node Setup...');
+        try {
+          const currentOptions = JSON.parse(JSON.stringify(this.mod.server_info?.options || {}));
+          const updatedOptions = this.configureOptionsForChoice(currentOptions, this.selected_choice);
+          await this.submitOptions(updatedOptions);
+        } catch (err) {
+          this.showError(err.message || String(err));
+        }
       };
     });
 
@@ -46,39 +88,30 @@ class AdminSetup {
 
     document.querySelectorAll('.node-setup-card').forEach((card) => {
       card.onclick = async () => {
+        if (this.submitting || this.showing_recompile) return;
         const choice = card.dataset.choice;
 
         if (choice === 'existing') {
-          this.use_existing_config = true;
-          this.mod.main.render('overview');
+          this.submitting = true;
+          this.updateView();
+          siteMessage('Saving node setup...');
+          try {
+            await this.submitOptions({ isSetupComplete: true }, false);
+          } catch (err) {
+            this.showError(err.message || String(err));
+          }
           return;
         }
 
-        if (!this.selected_app) {
-          salert('Please pick the module for your server root first.');
-          return;
-        }
-
-        document.querySelectorAll('.node-setup-options').forEach((el) => {
-          el.style.display = 'none';
-        });
-        document.querySelector('.splash-section').style.display = 'none';
-        document.querySelector('.node-setup-explainer').style.display = 'none';
-        document.querySelectorAll('.node-setup-info').forEach((el) => {
-          el.style.display = 'none';
-        });
-        document.querySelector('.node-setup-working').style.display = 'flex';
-
-        siteMessage('Customizing your Node Setup...');
-
-        const currentOptions = JSON.parse(JSON.stringify(this.mod.server_info?.options || {}));
-        const updatedOptions = this.configureOptionsForChoice(currentOptions, choice);
-        await this.submitOptions(updatedOptions, choice);
+        this.selected_choice = choice;
+        this.selected_app = '';
+        this.updateView();
       };
     });
   }
 
   configureOptionsForChoice(options, choice) {
+    options.isSetupComplete = true;
     options.defaultModule = this.selected_app;
 
     if (choice === 'development') {
@@ -104,7 +137,7 @@ class AdminSetup {
     return options;
   }
 
-  async submitOptions(options, choice) {
+  async submitOptions(options, showRecompile = true) {
     let tx = await this.app.wallet.createUnsignedTransactionWithDefaultFee(
       this.mod.server_publickey
     );
@@ -117,32 +150,26 @@ class AdminSetup {
 
     await tx.sign();
 
-    this.app.network.sendTransactionWithCallback(
+    await this.app.network.sendTransactionWithCallback(
       tx,
       (res_tx) => {
-        let res = res_tx.returnMessage();
-        document.querySelector('.node-setup-working').style.display = 'none';
-
+        // Transport failures arrive as plain { err } objects, not transactions.
+        const res = typeof res_tx.returnMessage === 'function' ? res_tx.returnMessage() : res_tx;
         if (res?.err) {
-          salert(res.err);
-          document.querySelectorAll('.node-setup-options').forEach((el) => {
-            el.style.display = '';
-          });
-          document.querySelector('.splash-section').style.display = '';
-          document.querySelector('.node-setup-explainer').style.display = '';
-          document.querySelectorAll('.node-setup-info').forEach((el) => {
-            el.style.display = '';
-          });
+          this.showError(res.err);
           return;
         }
 
-        this.showing_recompile = true;
-        document.querySelector('.node-setup h1').innerText = 'Ready for Command-Line Recompile';
-        if (choice === 'production') {
-          document.querySelector('.node-setup-prod-info').style.display = 'block';
+        this.submitting = false;
+        this.mod.server_info = this.mod.server_info || {};
+        this.mod.server_info.options = { ...this.mod.server_info.options, ...options };
+        this.showing_recompile = showRecompile;
+        if (showRecompile) {
+          this.updateView();
         } else {
-          document.querySelector('.node-setup-dev-info').style.display = 'block';
+          this.mod.main.render('overview');
         }
+        siteMessage('Node setup saved.', 5000);
       },
       this.mod.server_publickey
     );

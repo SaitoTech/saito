@@ -50,7 +50,11 @@ class ProductionOverlay {
   }
 
   update(stuff_to_build, calculated_total_cost) {
-    document.querySelector('.production-description .required').innerHTML =
+    let required = document.querySelector('.production-description .required');
+    if (!required) {
+      return;
+    }
+    required.innerHTML =
       calculated_total_cost + (calculated_total_cost == 1 ? ' resource' : ' resources');
     let limit = document.querySelector('.production-description .production_limit');
     if (limit) {
@@ -66,7 +70,11 @@ class ProductionOverlay {
       desc.innerHTML = name;
       desc.classList.remove('highlight');
     });
-    document.querySelector('.production-description .required').innerHTML = '0 resources';
+    let required = document.querySelector('.production-description .required');
+    if (!required) {
+      return;
+    }
+    required.innerHTML = '0 resources';
     let limit = document.querySelector('.production-description .production_limit');
     if (limit) {
       limit.innerHTML = this.limitLabel(0);

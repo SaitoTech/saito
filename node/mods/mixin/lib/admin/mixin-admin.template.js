@@ -1,0 +1,492 @@
+function escapeHtml(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+function waitingLabel(transfer) {
+  if (transfer.status === 'inbound_broadcast') {
+    return 'Waiting for provider confirmation';
+  }
+  if (transfer.status === 'inbound_confirmed') {
+    return 'Waiting for SAITO issuance';
+  }
+  if (transfer.status === 'outbound_awaiting') {
+    return 'Waiting for issuance broadcast';
+  }
+  if (transfer.status === 'outbound_broadcast') {
+    return 'Waiting for chain inclusion';
+  }
+  if (transfer.status === 'treasury_submitted') {
+    return 'Waiting for treasury acknowledgment';
+  }
+  if (transfer.status === 'treasury_accepted') {
+    return 'Accepted by treasury';
+  }
+  if (transfer.status === 'treasury_rejected') {
+    return 'Rejected by treasury';
+  }
+  if (transfer.purpose === 'migration' && transfer.mode === 'manual') {
+    if (transfer.status === 'inbound_confirmed') {
+      return 'Waiting for administrator issuance';
+    }
+    return 'Waiting for deposit verification';
+  }
+  return 'No administrative action for this status';
+}
+
+function blockingExplanation(transfer) {
+  if (transfer.last_error === 'insufficient_funds') {
+    return 'Blocked: not enough SAITO is available to issue this transfer.';
+  }
+  if (transfer.last_error) {
+    return transfer.last_error;
+  }
+  return '';
+}
+
+function actionControl(transfer, advancing) {
+  const blocked = blockingExplanation(transfer);
+  if (blocked) {
+    return `<span class="admin-payments-blocked">${escapeHtml(blocked)}</span>`;
+  }
+  const disabled = advancing ? 'disabled' : '';
+  if (
+    transfer.purpose === 'migration' &&
+    transfer.mode === 'manual' &&
+    transfer.status === 'inbound_confirmed' &&
+    transfer.outbound_amount &&
+    !transfer.outbound_tx_sig
+  ) {
+    return `<button type="button" class="admin-button admin-payments-action" data-payment-id="${escapeHtml(
+      transfer.id
+    )}" data-payment-action="approve-migration" ${disabled}>Issue SAITO</button>`;
+  }
+  if (
+    transfer.purpose === 'migration' &&
+    transfer.mode === 'manual' &&
+    (transfer.status === 'inbound_awaiting' || transfer.status === 'inbound_broadcast')
+  ) {
+    return `<input class="admin-input" data-migration-amount="${escapeHtml(
+      transfer.id
+    )}" placeholder="Verified amount" ${disabled} /><input class="admin-input" data-migration-hash="${escapeHtml(
+      transfer.id
+    )}" placeholder="Deposit hash" ${disabled} /><button type="button" class="admin-button admin-payments-action" data-payment-id="${escapeHtml(
+      transfer.id
+    )}" data-payment-action="verify-migration" ${disabled}>Verify deposit</button>`;
+  }
+  if (transfer.action?.action && transfer.action?.label) {
+    return `<button type="button" class="admin-button admin-payments-action" data-payment-id="${escapeHtml(
+      transfer.id
+    )}" data-payment-action="${escapeHtml(transfer.action.action)}" ${disabled}>${escapeHtml(
+      transfer.action.label
+    )}</button>`;
+  }
+  return `<span class="admin-payments-waiting">${escapeHtml(waitingLabel(transfer))}</span>`;
+}
+
+function identifierCell(value) {
+  const text = String(value || '');
+  if (!text) {
+    return '';
+  }
+  return `<div class="admin-payments-key" title="${escapeHtml(text)}">${escapeHtml(text)}</div>`;
+}
+
+function accountPanel(account) {
+  return `
+    <section class="admin-payments-section">
+      <h2>Account Information</h2>
+      <textarea class="admin-input admin-payments-backup" id="admin-payments-account-backup" readonly rows="8" aria-label="Account Information">${escapeHtml(
+        account.backup || ''
+      )}</textarea>
+    </section>
+  `;
+}
+
+function apiKeyPanel(apiKeyText, savingApiKey) {
+  const disabled = savingApiKey ? 'disabled' : '';
+  return `
+    <div class="admin-payments-setup">
+      <p class="admin-payments-note">In order to enable web3 payments, please provide a Mixin Access Key:</p>
+      <textarea class="admin-input admin-payments-backup" id="admin-payments-api-key" rows="8" ${disabled}>${escapeHtml(
+        apiKeyText || ''
+      )}</textarea>
+      <button type="button" class="admin-button" id="admin-payments-api-key-submit" ${disabled}>Submit</button>
+    </div>
+  `;
+}
+
+function setupPanel(creating, restoring, restoreText) {
+  const disabled = creating || restoring ? 'disabled' : '';
+  return `
+    <div class="admin-payments-setup">
+      <p class="admin-payments-note">In order to setup web3 payment processing with Saito, you must create a Mixin Account for your server. This account will be used to fetch real-time price information and the status of cryptocurrency transfers on other networks:</p>
+      <button type="button" class="admin-button" id="admin-payments-create-account" ${disabled}>create account</button>
+      <label class="admin-payments-label" for="admin-payments-restore-account">Or restore a saved account</label>
+      <textarea class="admin-input admin-payments-backup" id="admin-payments-restore-account" rows="8" ${disabled}>${escapeHtml(
+        restoreText || ''
+      )}</textarea>
+      <button type="button" class="admin-button" id="admin-payments-restore-account-button" ${disabled}>restore account</button>
+    </div>
+  `;
+}
+
+const MODE_OPTIONS = [
+  { fulfillment_mode: 'local', payout_mode: 'local', label: 'Local Fulfillment - Local Payouts' },
+  { fulfillment_mode: 'local', payout_mode: 'remote', label: 'Local Fulfillment - Remote Payouts' },
+  { fulfillment_mode: 'remote', payout_mode: 'remote', label: 'Remote Fulfillment - Remote Payouts' },
+  { fulfillment_mode: 'treasury', payout_mode: 'local', label: 'Local Fulfillment - Treasury Node' }
+];
+
+function modeOptionValue(fulfillment_mode, payout_mode) {
+  return `${fulfillment_mode}:${payout_mode}`;
+}
+
+function keyListPanel({ title, description, keys, draft, kind, saving }) {
+  const rows = Array.isArray(keys) ? keys : [];
+  const disabled = saving ? 'disabled' : '';
+  const body = rows.length
+    ? `<ul class="admin-payments-key-list">
+        ${rows
+          .map(
+            (key) => `<li class="admin-payments-key-item">
+              <code class="admin-payments-key-value">${escapeHtml(key)}</code>
+              <button type="button" class="admin-button-quiet" data-payments-remove-key="${escapeHtml(
+                kind
+              )}" data-payments-key="${escapeHtml(key)}" ${disabled}>Remove</button>
+            </li>`
+          )
+          .join('')}
+      </ul>`
+    : `<p class="admin-payments-empty">No public keys configured.</p>`;
+
+  return `<div class="admin-payments-key-panel" data-payments-key-kind="${escapeHtml(kind)}">
+      <h3>${escapeHtml(title)}</h3>
+      <p class="admin-payments-note">${escapeHtml(description)}</p>
+      ${body}
+      <div class="admin-payments-key-add">
+        <input class="admin-input" id="admin-payments-${escapeHtml(
+          kind
+        )}-key" type="text" value="${escapeHtml(draft || '')}" placeholder="Saito public key" ${disabled} />
+        <button type="button" class="admin-button" data-payments-add-key="${escapeHtml(
+          kind
+        )}" ${disabled}>Add</button>
+      </div>
+    </div>`;
+}
+
+function modeSection({
+  fulfillment_mode = 'local',
+  payout_mode = 'local',
+  treasury_provider_publickeys = [],
+  treasury_delegate_publickeys = [],
+  treasury_provider_draft = '',
+  treasury_delegate_draft = '',
+  savingConfig = false,
+  notice = ''
+}) {
+  const selected = modeOptionValue(fulfillment_mode, payout_mode);
+  const supported = MODE_OPTIONS.some(
+    (option) =>
+      option.fulfillment_mode === fulfillment_mode && option.payout_mode === payout_mode
+  );
+  const disabled = savingConfig ? 'disabled' : '';
+  const options = MODE_OPTIONS.map((option) => {
+    const value = modeOptionValue(option.fulfillment_mode, option.payout_mode);
+    return `<option value="${escapeHtml(value)}" ${
+      supported && value === selected ? 'selected' : ''
+    }>${escapeHtml(option.label)}</option>`;
+  }).join('');
+
+  let keys = '';
+  if (
+    (fulfillment_mode === 'local' && payout_mode === 'remote') ||
+    (fulfillment_mode === 'remote' && payout_mode === 'remote')
+  ) {
+    keys = keyListPanel({
+      title: 'Treasury Provider Keys',
+      description:
+        fulfillment_mode === 'remote'
+          ? 'Add at least one Treasury node public key. This server will tunnel all requests directly to a configured provider.'
+          : 'Add at least one Treasury node public key. This server will send payout requests to a configured provider.',
+      keys: treasury_provider_publickeys,
+      draft: treasury_provider_draft,
+      kind: 'provider',
+      saving: savingConfig
+    });
+  } else if (fulfillment_mode === 'treasury' && payout_mode === 'local') {
+    keys = keyListPanel({
+      title: 'Authorized Delegate Keys',
+      description:
+        'Configure exactly one services delegate. That node may forward fulfillment requests and relay browser payment notifications for this treasury.',
+      keys: treasury_delegate_publickeys,
+      draft: treasury_delegate_draft,
+      kind: 'delegate',
+      saving: savingConfig
+    });
+  }
+
+  return `<section class="admin-payments-section admin-payments-operation">
+      <h2>Fulfillment and Payout</h2>
+      <div class="admin-payments-operation-controls">
+        <select class="admin-input" id="admin-payments-mode" aria-label="Fulfillment and payout configuration" ${disabled}>
+          ${options}
+        </select>
+        <button type="button" class="admin-button" id="admin-payments-mode-save" ${disabled}>
+          ${savingConfig ? 'Saving…' : 'Save'}
+        </button>
+      </div>
+      ${keys}
+      ${notice ? `<div class="admin-payments-notice">${escapeHtml(notice)}</div>` : ''}
+    </section>`;
+}
+
+function reservationStatus(entry) {
+  if (entry.reservable) {
+    return 'Available';
+  }
+  const until = Number(entry.reserved_until);
+  if (!Number.isFinite(until) || until <= 0) {
+    return 'Reserved';
+  }
+  return `<span class="admin-payments-reservation" data-reserved-until="${escapeHtml(
+    String(until)
+  )}">Reserved</span>`;
+}
+
+function depositSection(addresses) {
+  const rows = Array.isArray(addresses) ? addresses : [];
+  const body = rows.length
+    ? `<div class="admin-payments-table-wrap"><table class="admin-payments-table">
+          <thead>
+            <tr>
+              <th>Address</th>
+              <th>Asset</th>
+              <th>Balance</th>
+              <th>Reservation</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${rows
+              .map((entry) => {
+                const asset = entry.ticker || entry.asset_id || '';
+                return `<tr>
+              <td>${identifierCell(entry.address)}</td>
+              <td>${escapeHtml(asset)}</td>
+              <td>${escapeHtml(entry.balance || '0')}</td>
+              <td>${reservationStatus(entry)}</td>
+            </tr>`;
+              })
+              .join('')}
+          </tbody>
+        </table></div>`
+    : `<p class="admin-payments-empty">No deposit addresses.</p>`;
+  return `<section class="admin-payments-section">
+      <h2>Deposit Addresses</h2>
+      ${body}
+    </section>`;
+}
+
+function transferTable(rows, advancing) {
+  return `<div class="admin-payments-table-wrap"><table class="admin-payments-table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Purpose</th>
+              <th>Owner</th>
+              <th>IN</th>
+              <th>OUT</th>
+              <th>Status</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${rows
+              .map((transfer) => {
+                const owner =
+                  transfer.requester_publickey || transfer.recipient_publickey || transfer.publickey || '';
+                const remote = transfer.inbound_sender || transfer.inbound_address || '';
+                const inbound = `${transfer.inbound_amount || ''} ${transfer.inbound_ticker || ''}`.trim();
+                const outbound = `${transfer.outbound_amount || ''} ${transfer.outbound_ticker || ''}`.trim();
+                return `<tr>
+              <td>${escapeHtml(transfer.id)}</td>
+              <td>${escapeHtml(transfer.purpose || '')}</td>
+              <td>${identifierCell(owner)}</td>
+              <td>${escapeHtml(inbound)}${identifierCell(remote)}${identifierCell(transfer.inbound_tx_hash)}</td>
+              <td>${escapeHtml(outbound)}</td>
+              <td>${escapeHtml(transfer.status)}</td>
+              <td>
+                <div class="admin-payments-actions">
+                  ${actionControl(transfer, advancing)}
+                  <button type="button" class="admin-payments-trash" data-payment-id="${escapeHtml(
+                    transfer.id
+                  )}" data-payment-action="exclude-transfer" aria-label="Trash" title="Trash" ${
+                    advancing ? 'disabled' : ''
+                  }><i class="fa-solid fa-trash" aria-hidden="true"></i></button>
+                </div>
+              </td>
+            </tr>`;
+              })
+              .join('')}
+          </tbody>
+        </table></div>`;
+}
+
+function pagination(page, total) {
+  const pageSize = 20;
+  const pages = Math.max(1, Math.ceil(Number(total || 0) / pageSize));
+  const current = Number(page) || 1;
+  return `<div class="admin-payments-pagination">
+      <button type="button" class="admin-button-icon" data-payments-page="${current - 1}" ${
+        current <= 1 ? 'disabled' : ''
+      } title="Previous page" aria-label="Previous page">
+        <i class="fa-solid fa-angles-left" aria-hidden="true"></i>
+      </button>
+      <span>Page ${current} of ${pages}</span>
+      <button type="button" class="admin-button-icon" data-payments-page="${current + 1}" ${
+        current >= pages ? 'disabled' : ''
+      } title="Next page" aria-label="Next page">
+        <i class="fa-solid fa-angles-right" aria-hidden="true"></i>
+      </button>
+    </div>`;
+}
+
+function paymentsTabs(active) {
+  const tabs = [
+    { id: 'transfers', label: 'Transfers' },
+    { id: 'addresses', label: 'Addresses' },
+    { id: 'config', label: 'Config' }
+  ];
+  return `<nav class="admin-payments-tabs" aria-label="Payments sections">
+      ${tabs
+        .map(
+          (tab) => `<button type="button" class="admin-payments-tab${
+            tab.id === active ? ' active' : ''
+          }" data-payments-tab="${tab.id}" ${tab.id === active ? 'aria-current="page"' : ''}>${
+            tab.label
+          }</button>`
+        )
+        .join('')}
+    </nav>`;
+}
+
+function transfersTab({ rows, search, purpose, advancing, page, total }) {
+  return `<section class="admin-payments-section">
+      <form id="admin-payments-search-form" class="admin-payments-search">
+        <input class="admin-input" id="admin-payments-search" type="search" value="${escapeHtml(
+          search
+        )}" placeholder="search for transfers..." />
+        <button type="submit" class="admin-button">Search</button>
+        <select class="admin-input admin-payments-purpose" id="admin-payments-purpose" aria-label="Transfer type">
+          <option value="" ${purpose ? '' : 'selected'}>all transfers</option>
+          <option value="migration" ${purpose === 'migration' ? 'selected' : ''}>migration</option>
+          <option value="buysaito" ${purpose === 'buysaito' ? 'selected' : ''}>buy saito</option>
+        </select>
+      </form>
+      ${
+        rows.length
+          ? transferTable(rows, advancing)
+          : `<p class="admin-payments-empty">No pending transfers.</p>`
+      }
+      ${pagination(page, total)}
+    </section>`;
+}
+
+function configTab(opts) {
+  const account = opts.account?.user_id ? accountPanel(opts.account) : '';
+  return `${account}
+    ${modeSection({
+      fulfillment_mode: opts.fulfillment_mode,
+      payout_mode: opts.payout_mode,
+      treasury_provider_publickeys: opts.treasury_provider_publickeys,
+      treasury_delegate_publickeys: opts.treasury_delegate_publickeys,
+      treasury_provider_draft: opts.treasury_provider_draft,
+      treasury_delegate_draft: opts.treasury_delegate_draft,
+      savingConfig: opts.savingConfig,
+      notice: opts.configNotice
+    })}`;
+}
+
+module.exports = ({
+  transfers = [],
+  account = undefined,
+  error = '',
+  loading = false,
+  advancing = false,
+  creating = false,
+  restoring = false,
+  restoreText = '',
+  search = '',
+  purpose = '',
+  page = 1,
+  total = 0,
+  apiKeyConfigured = undefined,
+  apiKeyText = '',
+  savingApiKey = false,
+  depositAddresses = [],
+  fulfillment_mode = 'local',
+  payout_mode = 'local',
+  treasury_provider_publickeys = [],
+  treasury_delegate_publickeys = [],
+  treasury_provider_draft = '',
+  treasury_delegate_draft = '',
+  savingConfig = false,
+  configNotice = '',
+  tab = 'transfers'
+} = {}) => {
+  const rows = Array.isArray(transfers) ? transfers : [];
+  const activeTab = ['transfers', 'addresses', 'config'].includes(tab) ? tab : 'transfers';
+  const needsApiKey = !loading && apiKeyConfigured === false;
+  const needsAccount = !loading && !needsApiKey && account === null;
+  const ready = !needsApiKey && !needsAccount && !loading;
+
+  let body = '';
+  if (loading) {
+    body = `<p class="admin-payments-empty">Loading pending transfers…</p>`;
+  } else if (needsApiKey) {
+    body = apiKeyPanel(apiKeyText, savingApiKey);
+  } else if (needsAccount) {
+    body = setupPanel(creating, restoring, restoreText);
+  } else if (activeTab === 'addresses') {
+    body = depositSection(depositAddresses);
+  } else if (activeTab === 'config') {
+    body = configTab({
+      account,
+      fulfillment_mode,
+      payout_mode,
+      treasury_provider_publickeys,
+      treasury_delegate_publickeys,
+      treasury_provider_draft,
+      treasury_delegate_draft,
+      savingConfig,
+      configNotice
+    });
+  } else {
+    body = transfersTab({ rows, search, purpose, advancing, page, total });
+  }
+
+  const refreshDisabled =
+    loading || advancing || creating || restoring || savingApiKey || savingConfig ? 'disabled' : '';
+  return `
+    <div class="admin-payments-page">
+      <div class="admin-payments-header">
+        <div class="admin-payments-heading">
+          <h1>Payments</h1>
+          ${ready ? paymentsTabs(activeTab) : ''}
+        </div>
+        ${
+          ready
+            ? `<button type="button" class="admin-button-icon" id="admin-payments-refresh" ${refreshDisabled} title="Refresh payments" aria-label="Refresh payments">
+                <i class="fa-solid fa-rotate${loading ? ' fa-spin' : ''}" aria-hidden="true"></i>
+              </button>`
+            : ''
+        }
+      </div>
+      ${error ? `<div class="admin-payments-error">${escapeHtml(error)}</div>` : ''}
+      ${body}
+    </div>
+  `;
+};

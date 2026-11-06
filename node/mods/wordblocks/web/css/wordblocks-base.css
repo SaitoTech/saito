@@ -600,3 +600,7 @@ Resize board on smaller screens
 	}
 }
 }
+
+.game.wordblocks .stats-overlay.retain-surface {
+	color: var(--saito-popover-foreground);
+}

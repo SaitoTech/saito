@@ -44,7 +44,7 @@
             //
             // shuttle diplomacy
             //
-            if (this.game.state.events.shuttlediplomacy == 1) {
+            if (twilight_self.game.state.events.shuttlediplomacy == 1) {
               if (discarded_cards['shuttle'] != undefined) {
                 delete discarded_cards['shuttle'];
               }
