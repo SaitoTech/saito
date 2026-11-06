@@ -516,6 +516,7 @@ console.log("err: " + err);
     try {
       if (document.querySelector(".space.selectable")) { return true; }
     } catch (err) {}
+    if (this.loss_overlay && this.loss_overlay.board_mode) { return true; }
     return false;
   }
 

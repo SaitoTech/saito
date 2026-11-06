@@ -386,6 +386,7 @@ class LossOverlay {
   }
 
   enterBoardMode() {
+    this.mod.removeMovementCues();
     if (this.mod.zoom_overlay) {
       try {
         this.mod.zoom_overlay.hide();
@@ -546,9 +547,7 @@ class LossOverlay {
   showRetreatNotice() {
     if (this.board_mode || !this.overlayEnabled()) {
       this.exitBoardMode();
-      this.mod.game.status = 'Combat resolved';
-      this.mod.hud.updateStatus(this.mod.game.status);
-      this.mod.hud.updateMenu([]);
+      this.hide();
       return;
     }
     // The assignment panel is already open. Rebuilding it here spends the
