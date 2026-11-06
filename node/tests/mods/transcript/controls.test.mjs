@@ -9,7 +9,7 @@ import { JSDOM } from 'jsdom';
 const require = createRequire(import.meta.url);
 const Transcript = require('../../../mods/transcript/transcript');
 const CallInterfaceVideo = require('../../../mods/videocall/lib/components/call-interface-video');
-const StreamManager = require('../../../mods/videocall/lib/StreamManager');
+const StreamManager = require('../../../mods/videocall/lib/stream_manager');
 const SaitoVideoBox = require('../../../lib/saito/ui/saito-videobox/video-box');
 
 test('transcription status appears beside the name and survives video box recreation', (t) => {
