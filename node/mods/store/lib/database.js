@@ -977,7 +977,8 @@ class Database {
   /**
    * Unprocessed web3 sales for one seller, split by the withdrawal wait.
    * Eligible sales are on the longest chain and at least waitBlocks after
-   * block_id_sold. Every other unprocessed sale stays pending.
+   * block_id_sold. Every other unprocessed sale stays pending. A sale already
+   * reserved by a withdrawal request is omitted from both buckets.
    */
   async returnWeb3WithdrawalBalances(seller = '', latestBlockId = null, waitBlocks = 0) {
     const key = String(seller || '').trim();
@@ -991,6 +992,7 @@ class Database {
 				 FROM listing_sales
 				 WHERE seller = $seller
 				   AND web3_payment_withdrawal_processed = 0
+				   AND IFNULL(web3_payment_withdrawal_request, '') = ''
 				   AND TRIM(web3_ticker) != ''
 				   AND UPPER(TRIM(web3_ticker)) != 'SAITO'`,
         { $seller: key },

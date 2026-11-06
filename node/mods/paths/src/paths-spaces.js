@@ -359,34 +359,43 @@
 
       if (loop == 1) {
 
+	let italian_limit = this.game.state.rules.italian_movement && !this.game.state.allies_total_war_cards_added && unit && unit.ckey != "AH" && unit.ckey != "IT";
+	let blocked_italy = italian_limit && this.game.spaces[current].country == "italy" && current != spacekey;
+	let german_end = italian_limit && unit.ckey == "GE" && (current == "trent" || current == "villach" || current == "trieste");
+
 	//
 	// this is a possible destination! but Russian units can only move 1 unit to the near east
 	//
-	if (unit.ckey == "RU") {
-	  if (this.game.spaces[current].country == "russia") {
-            spaces.push(current);
-	  } else {
-    	    if (this.isSpaceOnNearEastMap(current)) {
-	      if (this.canPlayerMoveUnitIntoNearEast("allies", unit)) {
-                spaces.push(current);
+	if (!blocked_italy && !german_end) {
+	  if (unit.ckey == "RU") {
+	    if (this.game.spaces[current].country == "russia") {
+              spaces.push(current);
+	    } else {
+    	      if (this.isSpaceOnNearEastMap(current)) {
+	        if (this.canPlayerMoveUnitIntoNearEast("allies", unit)) {
+                  spaces.push(current);
+	        }
 	      }
 	    }
+	  } else {
+            spaces.push(current);
 	  }
-	} else {
-          spaces.push(current);
 	}
 
         //
         // add neighbours to pending if...
+        // Italian territory is not a route for other nationalities.
         //
-        for (let n in this.game.spaces[current].neighbours) {
-          let s = this.game.spaces[current].neighbours[n];
-          if (!examined[s]) {
-            if (this.returnControlOfSpace(s) == faction) {
-              pending.push(s);
+	if (!blocked_italy) {
+          for (let n in this.game.spaces[current].neighbours) {
+            let s = this.game.spaces[current].neighbours[n];
+            if (!examined[s]) {
+              if (this.returnControlOfSpace(s) == faction) {
+                pending.push(s);
+              }
             }
           }
-        }
+	}
       }
     }
 
@@ -402,7 +411,9 @@
   	    if (this.game.spaces[key].port == this.game.spaces[spacekey].port) {
 	      if (this.game.spaces[key].control == faction) {
 	        if (spacekey != key && !spaces.includes(key)) {
-	          spaces.push(key);
+		  if (!(this.game.state.rules.italian_movement && !this.game.state.allies_total_war_cards_added && this.game.spaces[key].country == "italy" && unit.ckey != "AH" && unit.ckey != "IT")) {
+	            spaces.push(key);
+		  }
 	        }
 	      }
 	    }
@@ -1123,7 +1134,7 @@ spaces['amiens'] = {
     left: 575 , 
     neighbours: ["calais", "cambrai", "paris", "rouen"] ,
     terrain : "normal" ,
-    vp : true ,
+    vp : false ,
     port : 0 ,
     country : "france" ,
    }
@@ -1147,7 +1158,7 @@ spaces['sedan'] = {
     left: 843 , 
     neighbours: ["cambrai", "koblenz", "brussels", "liege", "chateauthierry", "verdun", "metz"] ,
     terrain : "forest" ,
-    vp : true , 
+    vp : false , 
     port : 0 ,
     country : "france" ,
    }
@@ -1550,7 +1561,7 @@ spaces['aachen'] = {
     left: 1018 , 
     neighbours: ["liege", "essen", "koblenz"] ,
     terrain : "normal" ,
-    vp : true , 
+    vp : false , 
     country : "germany" ,
    }
 
@@ -1561,7 +1572,7 @@ spaces['koblenz'] = {
     left: 1101 , 
     neighbours: ["liege", "aachen", "frankfurt", "sedan", "metz"] ,
     terrain : "normal" ,
-    vp : true , 
+    vp : false , 
     country : "germany" ,
    }
 
@@ -2031,7 +2042,7 @@ spaces['venice'] = {
     left: 1649 , 
     neighbours: ["bologna", "verona", "asiago", "udine", "ravenna"] ,
     terrain : "normal" ,
-    vp : false , 
+    vp : true , 
     country : "italy" ,
    }
 
@@ -2690,7 +2701,7 @@ spaces['kovno'] = {
       left: 2807 ,
       neighbours: ["szawli", "vilna", "grodno", "insterberg"] ,
       terrain : "normal" ,
-      vp : true ,
+      vp : false ,
       country : "russia" ,
 }
 
@@ -2768,7 +2779,7 @@ spaces['minsk'] = {
       left: 3314 ,
       neighbours: ["orsha", "slutsk", "baranovichi", "moldechno"] ,
       terrain : "normal" ,
-      vp : false ,
+      vp : true ,
       country : "russia" ,
 }
 
@@ -3347,7 +3358,7 @@ spaces['ahwaz'] = {
       left: 4872 ,
       neighbours: ["basra", "qurna", "khorramabad"] ,
       terrain : "normal" ,
-      vp : false ,
+      vp : true ,
       country : "persia" ,
 }
 
@@ -3541,7 +3552,7 @@ spaces['kharput'] = {
       left: 4210 ,
       neighbours: ["urfa", "kayseri", "erzingan", "diyarbakir"] ,
       terrain : "normal" ,
-      vp : false ,
+      vp : true ,
       country : "turkey" ,
 }
 
@@ -3731,7 +3742,7 @@ spaces['jerusalem'] = {
       neighbours: ["nablus", "amman", "beersheba", "arabia"] ,
       limits : [ { "arabia" : ["ANA"] } ] ,
       terrain : "normal" ,
-      vp : false ,
+      vp : true ,
       country : "turkey" ,
 }
 

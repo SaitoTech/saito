@@ -840,6 +840,7 @@
 .saitosign-publish .status-actions .saito-button-primary,
 .saitosign-publish .status-actions .saito-button-secondary {
   min-width: 24rem;
+  margin: 0;
 }
 
 .saitosign-publish .actions .saito-button-primary.continue-activate {

@@ -6,6 +6,14 @@ scenarios.original = {
   handSize: 7,
   optionalCards: false,
   gunsOfAugust: true,
+  modifiedTrenchRolls: false,
+  gunsMustEvent: false,
+  apWinsDraws: false,
+  germanRpBonus: false,
+  peaceTerms: true,
+  britishMoToFrench: false,
+  historicalEndgameVp: false,
+  italianMovement: false,
   startTurn: 1,
   apply: function(mod) { mod.setup1914(); }
 };
@@ -16,8 +24,34 @@ scenarios.optional = {
   handSize: 8,
   optionalCards: true,
   gunsOfAugust: true,
+  modifiedTrenchRolls: false,
+  gunsMustEvent: false,
+  apWinsDraws: false,
+  germanRpBonus: false,
+  peaceTerms: true,
+  britishMoToFrench: false,
+  historicalEndgameVp: false,
+  italianMovement: false,
   startTurn: 1,
   apply: function(mod) { mod.setup1914(); }
+};
+
+scenarios.historical = {
+  id: "historical",
+  label: "historical",
+  handSize: 8,
+  optionalCards: false,
+  gunsOfAugust: true,
+  modifiedTrenchRolls: true,
+  gunsMustEvent: true,
+  apWinsDraws: true,
+  germanRpBonus: true,
+  peaceTerms: false,
+  britishMoToFrench: true,
+  historicalEndgameVp: true,
+  italianMovement: true,
+  startTurn: 1,
+  apply: function(mod) { mod.setupHistorical(); }
 };
 
 scenarios["1917"] = {
@@ -26,6 +60,14 @@ scenarios["1917"] = {
   handSize: 7,
   optionalCards: false,
   gunsOfAugust: false,
+  modifiedTrenchRolls: true,
+  gunsMustEvent: false,
+  apWinsDraws: false,
+  germanRpBonus: false,
+  peaceTerms: true,
+  britishMoToFrench: false,
+  historicalEndgameVp: false,
+  italianMovement: false,
   startTurn: 14,
   played: {
     central: ["cp01","cp02","cp05","cp06","cp07","cp08","cp09","cp10","cp11","cp12","cp13","cp14","cp15","cp17","cp19","cp20","cp21","cp22","cp23","cp24","cp25","cp26","cp27","cp28","cp29","cp32","cp33","cp34","cp35","cp36","cp37","cp38","cp39","cp47","cp52","cp54"],
@@ -35,7 +77,7 @@ scenarios["1917"] = {
 };
 
 function list() {
-  return [scenarios.original, scenarios.optional, scenarios["1917"]];
+  return [scenarios.original, scenarios.optional, scenarios.historical, scenarios["1917"]];
 }
 
 function get(id) {
@@ -282,6 +324,17 @@ function apply1917(mod) {
     ["gr_corps", "larisa"],
     ["gr_corps", "athens"]
   ]);
+
+  mod.game.spaces["ahwaz"].vp = false;
+  mod.game.spaces["venice"].vp = false;
+  mod.game.spaces["minsk"].vp = false;
+  mod.game.spaces["jerusalem"].vp = false;
+  mod.game.spaces["kharput"].vp = false;
+  mod.game.spaces["kovno"].vp = true;
+  mod.game.spaces["sedan"].vp = true;
+  mod.game.spaces["amiens"].vp = true;
+  mod.game.spaces["koblenz"].vp = true;
+  mod.game.spaces["aachen"].vp = true;
 
   let boxes = { arbox: 1, crbox: 1, aeubox: 1, ceubox: 1 };
   for (let key in mod.game.spaces) {

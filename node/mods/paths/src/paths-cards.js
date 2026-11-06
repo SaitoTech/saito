@@ -2915,6 +2915,7 @@ deck['ap43'] = {
         removeFromDeckAfterPlay : function(paths_self, faction) { return 1; } ,
         canEvent : function(paths_self, faction) { if (paths_self.game.state.events.over_there == 1) { return 1; } return false; } ,
         onEvent : function(paths_self, faction) {
+	  paths_self.game.state.events.us_army_ap43 = 1;
 	  if (paths_self.game.player == paths_self.returnPlayerOfFaction(faction)) {
 	    paths_self.addMove("SETVAR\tstate\tallies_reinforcements_us\t"+paths_self.game.state.round);
 	    paths_self.playerAddReinforcements("allies", ["us_army01","us_corps", "us_corps"], "usa");
@@ -3000,6 +3001,7 @@ deck['ap47'] = {
         removeFromDeckAfterPlay : function(paths_self, faction) { return 1; } ,
         canEvent : function(paths_self, faction) { if (paths_self.game.state.events.over_there == 1) { return 1; } return false; } ,
         onEvent : function(paths_self, faction) {
+	  paths_self.game.state.events.us_army_ap47 = 1;
 	  if (paths_self.game.player == paths_self.returnPlayerOfFaction(faction)) {
 	    paths_self.addMove("SETVAR\tstate\tallies_reinforcements_us\t"+paths_self.game.state.round);
 	    paths_self.playerAddReinforcements("allies", ["us_army02","us_corps"], "usa");
@@ -3717,13 +3719,34 @@ deck['cp52'] = {
         rp : { 'AH' : 3 , 'BU' : 1 , 'GE' : 4 , 'TU' : 2 } ,        
         type : "normal" ,
         removeFromDeckAfterPlay : function(paths_self, faction) { return 1; } ,
-        canEvent : function(paths_self, faction) { if (paths_self.game.state.events.fall_of_the_tsar == 1 && paths_self.game.state.events.bolshevik_revolution != 1) { return 1; } return 0; } ,
+        canEvent : function(paths_self, faction) {
+	  if (!paths_self.game.state.events.tsar_takes_command) { return 0; }
+	  if (paths_self.game.state.events.bolshevik_revolution == 1) { return 0; }
+	  let count = 0;
+	  for (let key in paths_self.game.spaces) {
+	    let space = paths_self.game.spaces[key];
+	    if (space.country == "russia" && space.control == "central" && space.vp == 1) {
+	      count++;
+	    }
+	  }
+	  if ((paths_self.game.state.general_records_track.combined_war_status + count) < 33) { return 0; }
+	  return 1;
+	} ,
         onEvent : function(paths_self, faction) { 
  	  paths_self.game.queue.push("player_play_ops\tcentral\tcp52\t5");
+	  let count = 0;
+	  for (let key in paths_self.game.spaces) {
+	    let space = paths_self.game.spaces[key];
+	    if (space.country == "russia" && space.control == "central" && space.vp == 1) {
+	      count++;
+	    }
+	  }
+	  paths_self.game.state.events.fall_of_the_tsar_russian_vp = count;
 	  paths_self.game.state.events.fall_of_the_tsar = 1;
 	  if (!paths_self.game.state.events.romania) {
 	    paths_self.game.state.events.fall_of_the_tsar_romania_bonus = 1;
 	  }
+	  paths_self.calculateRussianCapitulationTrack();
 	return 1; } ,
       }
 

@@ -188,15 +188,36 @@
     	  this.addUnitToSpace("br_corps", "arbox");
     	  this.addUnitToSpace("bef_corps", "arbox");
 
-	  //
-	  // historical updates (s5.7 in manual)
-	  //
+	  this.game.spaces["ahwaz"].vp = true;
+	  this.game.spaces["venice"].vp = true;
+	  this.game.spaces["minsk"].vp = true;
+	  this.game.spaces["jerusalem"].vp = true;
+	  this.game.spaces["kharput"].vp = true;
+	  this.game.spaces["kovno"].vp = false;
+	  this.game.spaces["sedan"].vp = false;
+	  this.game.spaces["amiens"].vp = false;
+	  this.game.spaces["koblenz"].vp = false;
+	  this.game.spaces["aachen"].vp = false;
+  }
+
+  setupHistorical() {
+	  this.setup1914();
 	  this.addTrench("strasbourg", 1);
 	  this.game.spaces["brussels"].trench = 0;
 	  this.addTrench("asiago", 1);
 	  this.addTrench("verona", 1);
 	  this.addTrench("maggiore", 1);
 	  this.addTrench("udine", 1);
+	  this.game.spaces["ahwaz"].vp = false;
+	  this.game.spaces["venice"].vp = false;
+	  this.game.spaces["minsk"].vp = false;
+	  this.game.spaces["jerusalem"].vp = false;
+	  this.game.spaces["kharput"].vp = false;
+	  this.game.spaces["kovno"].vp = true;
+	  this.game.spaces["sedan"].vp = true;
+	  this.game.spaces["amiens"].vp = true;
+	  this.game.spaces["koblenz"].vp = true;
+	  this.game.spaces["aachen"].vp = true;
   }
 
   async handleGameLoop() {
@@ -474,7 +495,7 @@ this.updateLog(`###############`);
 
 	  this.game.queue.splice(qe, 1);
 
-          let hand_size = this.returnScenario().handSize || 7;
+          let hand_size = this.game.state.rules.hand_size;
           let allies_cards_needed = hand_size;
           let central_cards_needed = hand_size;
 	  let allies_cards_available = 0;
@@ -579,7 +600,7 @@ console.log("central_cards_post_deal: " + central_cards_post_deal);
 	  // (i.e., after it has drawn TW cards) if it controls Sedan and two additional French or 
 	  // Belgian spaces during the RP interphase. 
 	  //
-	  if (this.game.state.events.central_total_war_cards_added) {
+	  if (this.game.state.rules.german_rp_bonus && this.game.state.central_total_war_cards_added) {
 	    if (this.game.spaces["sedan"].control == "central") {
 	      let total_spaces = 0;
 	      for (let key in this.game.spaces) {
@@ -730,11 +751,18 @@ console.log("central_cards_post_deal: " + central_cards_post_deal);
           // Standard campaign, rules 5.5.1–5.5.2 and 16.2.1. The old
           // queue otherwise continued into turn 21 (or beyond an armistice).
           if (this.game.state.turn >= 20 || this.game.state.general_records_track.combined_war_status >= 40) {
+            let final_vp = vp.vp;
+            if (this.game.state.rules.historical_endgame_vp) {
+              if (!this.game.state.events.us_army_ap43) { final_vp++; }
+              if (!this.game.state.events.us_army_ap47) { final_vp++; }
+              if (!this.game.state.events.fall_of_the_tsar) { final_vp += 2; }
+            }
             const centralThreshold = this.game.state.events.treaty_of_brest_litovsk ? 11 : 13;
-            const faction = vp.vp <= 9 ? "allies" : vp.vp >= centralThreshold ? "central" : "";
+            let faction = final_vp <= 9 ? "allies" : final_vp >= centralThreshold ? "central" : "";
+            if (faction === "" && this.game.state.rules.ap_wins_draws) { faction = "allies"; }
             const winners = faction ? [this.game.players[this.returnPlayerOfFaction(faction) - 1]] : this.game.players;
             const reason = this.game.state.general_records_track.combined_war_status >= 40 ? "armistice" : "campaign end";
-            this.updateLog(`${reason}: ${vp.vp} VP — ${faction ? this.returnFactionName(faction) + " win" : "draw"}`);
+            this.updateLog(`${reason}: ${final_vp} VP — ${faction ? this.returnFactionName(faction) + " win" : "draw"}`);
             await this.triggerGameOver(winners, reason);
             return 0;
           }
@@ -1383,7 +1411,7 @@ if (this.game.state.turn == 1) {
 	  //
 	  // British Offensive T1 becomes French
 	  //
-	  if (this.game.state.turn == 1) {
+	  if (this.game.state.turn == 1 && this.game.state.rules.british_mo_to_french) {
 	    if (this.game.state.mandated_offensives.allies == "BR") { this.game.state.mandated_offensives.allies = "FR"; }
 	  }
 
@@ -1774,6 +1802,14 @@ try {
 	  let card = mv[6];
 
 	  let unit = this.game.spaces[source].units[unit_idx];
+	  if (this.game.state.rules.italian_movement && !this.game.state.allies_total_war_cards_added && unit && destination != "aeubox" && destination != "ceubox" && destination != "arbox" && destination != "crbox" && this.game.spaces[destination]) {
+	    if (this.game.spaces[destination].country == "italy" && unit.ckey != "AH" && unit.ckey != "IT") { return 1; }
+	    if (unit.ckey == "GE" && (destination == "trent" || destination == "villach" || destination == "trieste")) { return 1; }
+	    if (unit.ckey != "AH" && unit.ckey != "IT") {
+	      let connected = this.returnSpacesConnectedToSpaceForStrategicRedeployment(faction, source, unit);
+	      if (!connected.includes(destination)) { return 1; }
+	    }
+	  }
 	  unit.redeployed = 1;
 
 	  this.game.spaces[source].units.splice(unit_idx, 1);
@@ -1989,6 +2025,22 @@ try {
 
 	  let key = mv[1];
 	  let selected = JSON.parse(mv[2]);
+
+	  if (this.game.state.rules.italian_movement && !this.game.state.allies_total_war_cards_added && this.game.spaces[key].country == "italy") {
+	    let legal_attackers = [];
+	    for (let z = 0; z < selected.length; z++) {
+	      let rec = selected[z];
+	      let home = this.game.spaces[rec.unit_sourcekey];
+	      if (!home || !home.units[rec.unit_idx]) { continue; }
+	      let uk = home.units[rec.unit_idx].ckey;
+	      if (uk == "AH" || uk == "IT") { legal_attackers.push(rec); }
+	    }
+	    selected = legal_attackers;
+	    if (selected.length == 0) {
+	      this.game.queue.splice(qe, 1);
+	      return 1;
+	    }
+	  }
 
 	  //
 	  // we have an edge-case where destroyed units might be lingering
@@ -3972,7 +4024,7 @@ console.log("moving unit: " + JSON.stringify(u));
 	      if (e.finished != 1) {
 	        let roll = this.rollDice(6);
 	        let roll_modified = false;
-		if (this.game.spaces[e.spacekey].trench_roll_modifier < 0) {
+		if (this.game.state.rules.modified_trench_rolls && this.game.spaces[e.spacekey].trench_roll_modifier < 0) {
 		  roll -= 1;
 		  roll_modified = true;
 		}
@@ -3989,10 +4041,12 @@ console.log("moving unit: " + JSON.stringify(u));
 		  } else {
 	            this.updateLog(this.returnFactionName(this.game.spaces[e.spacekey].control) + " fails to entrench in " + this.returnSpaceNameForLog(e.spacekey) + " ("+roll+")");
 		  }
-		  for (let i = 0; i < this.game.spaces[e.spacekey].units.length; i++) {
-		    let ckey = this.game.spaces[e.spacekey].units[i].ckey;
-		    if (ckey == "GE" || ckey == "IT" || ckey == "BR" || ckey == "FR") {
-		      this.game.spaces[e.spacekey].trench_roll_modifier = -2;
+		  if (this.game.state.rules.modified_trench_rolls) {
+		    for (let i = 0; i < this.game.spaces[e.spacekey].units.length; i++) {
+		      let ckey = this.game.spaces[e.spacekey].units[i].ckey;
+		      if (ckey == "GE" || ckey == "IT" || ckey == "BR" || ckey == "FR") {
+		        this.game.spaces[e.spacekey].trench_roll_modifier = -2;
+		      }
 		    }
 		  }
 	        }
@@ -4053,6 +4107,27 @@ console.log("moving unit: " + JSON.stringify(u));
 	  let destinationkey = mv[4];
 	  let player_to_ignore = 0;
 	  if (mv[5]) { player_to_ignore = parseInt(mv[5]); }
+
+	  if (this.game.state.rules.italian_movement && !this.game.state.allies_total_war_cards_added && this.game.spaces[sourcekey] && this.game.spaces[destinationkey] && destinationkey != "aeubox" && destinationkey != "ceubox" && destinationkey != "arbox" && destinationkey != "crbox") {
+	    let moving = this.game.spaces[sourcekey].units[sourceidx];
+	    if (moving) {
+	      let illegal = false;
+	      if (this.game.spaces[destinationkey].country == "italy" && moving.ckey != "AH" && moving.ckey != "IT") { illegal = true; }
+	      if (moving.ckey == "GE" && (destinationkey == "trent" || destinationkey == "villach" || destinationkey == "trieste")) { illegal = true; }
+	      if (!illegal && moving.ckey != "AH" && moving.ckey != "IT") {
+		let reachable = this.returnSpacesWithinHops(sourcekey, 30, (spacekey) => {
+		  if (spacekey == sourcekey) { return 1; }
+		  if (this.game.spaces[spacekey].country == "italy") { return 0; }
+		  return 1;
+		}, moving);
+		if (!reachable.includes(destinationkey)) { illegal = true; }
+	      }
+	      if (illegal) {
+		this.game.queue.splice(qe, 1);
+		return 1;
+	      }
+	    }
+	  }
 
 	  if (this.game.player != player_to_ignore) {
 	    this.paths_log.commitMove(faction, sourcekey, sourceidx, destinationkey);

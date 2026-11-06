@@ -34,7 +34,7 @@ module.exports = ({ rows = [] } = {}) => {
           const eligible = row.eligible || 0;
           const pending = row.pending || 0;
           const withdraw = decimalIsPositive(eligible)
-            ? `<button type="button" class="withdraw-link" data-action="withdraw" data-ticker="${ticker}">You can withdraw this</button>`
+            ? `<button type="button" class="withdraw-link" data-action="withdraw" data-ticker="${ticker}">Withdraw</button>`
             : '';
           return `
             <tr>

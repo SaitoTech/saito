@@ -1,5 +1,8 @@
-require('pdfjs-dist/legacy/build/pdf.worker.entry');
-const pdfjs = require('pdfjs-dist/legacy/build/pdf');
+let pdfjs = null;
+if (typeof window !== 'undefined') {
+  require('pdfjs-dist/legacy/build/pdf.worker.entry');
+  pdfjs = require('pdfjs-dist/legacy/build/pdf');
+}
 
 const documents = new Map();
 const jobs = new WeakMap();

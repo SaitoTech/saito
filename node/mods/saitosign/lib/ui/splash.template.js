@@ -82,8 +82,10 @@ function stagedHTML(files, freshIndex) {
           <button type="button" class="staged-remove" data-remove-staged="${index}" aria-label="Remove ${name}">
             <i class="fa-solid fa-xmark" aria-hidden="true"></i>
           </button>
-          <i class="fa-solid fa-file-pdf tile-icon" aria-hidden="true"></i>
-          <span class="staged-name" title="${name}">${name}</span>
+          <div class="tile-body">
+            <i class="fa-solid fa-file-pdf tile-icon" aria-hidden="true"></i>
+            <span class="staged-name" title="${name}">${name}</span>
+          </div>
         </li>
       `;
     })

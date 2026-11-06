@@ -84,17 +84,15 @@
   box-sizing: border-box;
   display: flex;
   flex: 0 1 var(--splash-tile-width);
-  flex-direction: column;
   align-items: center;
-  justify-content: flex-start;
-  gap: 0.6rem;
+  justify-content: center;
   width: var(--splash-tile-width);
   max-width: 100%;
   min-width: 0;
-  height: 14.4rem;
-  padding: 1.2rem;
+  height: 16.4rem;
+  padding: 3.2rem 1.6rem;
   cursor: grab;
-  border: 1px solid var(--saito-border);
+  border: 0;
   border-radius: var(--saito-radius-lg);
   background: var(--saito-card);
 }
@@ -104,16 +102,27 @@
 }
 
 .splash .doc-tile.over {
-  border-color: var(--saito-primary);
   background: var(--saito-secondary);
+  box-shadow: inset 0 0 0 1px var(--saito-primary);
 }
 
 .splash .doc-tile.just-added {
   animation: splash-tile-in 0.7s cubic-bezier(0.2, 0.8, 0.2, 1) both;
 }
 
+.splash .tile-body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.8rem;
+  width: 100%;
+  min-width: 0;
+}
+
 .splash .tile-icon {
-  font-size: 6.4rem;
+  flex: 0 0 auto;
+  font-size: 5.6rem;
   line-height: 1;
   color: var(--saito-primary);
 }
@@ -122,12 +131,13 @@
   display: -webkit-box;
   flex: 0 0 auto;
   width: 100%;
-  max-height: calc(1.3em * 2);
+  height: calc(1.3em * 2);
   overflow: hidden;
   color: var(--saito-foreground);
   font-size: 1.35rem;
   line-height: 1.3;
   text-align: center;
+  text-overflow: ellipsis;
   overflow-wrap: anywhere;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
@@ -398,21 +408,18 @@
   0% {
     opacity: 0;
     transform: translateY(1rem) scale(0.94);
-    border-color: var(--saito-primary);
     box-shadow: 0 0 1.8rem color-mix(in srgb, var(--saito-primary) 65%, transparent);
   }
 
   55% {
     opacity: 1;
     transform: none;
-    border-color: var(--saito-primary);
     box-shadow: 0 0 1.2rem color-mix(in srgb, var(--saito-primary) 40%, transparent);
   }
 
   100% {
     opacity: 1;
     transform: none;
-    border-color: var(--saito-border);
     box-shadow: none;
   }
 }
@@ -447,8 +454,9 @@
   }
 
   .splash .staged-list {
-    flex: 0 1 auto;
-    max-height: 36rem;
+    flex: 0 0 auto;
+    max-height: none;
+    overflow: visible;
   }
 }
 

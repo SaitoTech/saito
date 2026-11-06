@@ -45,6 +45,7 @@ function openMemory() {
 
 function appFor(sqlite, { peers = [], mixin = null } = {}) {
   const sent = [];
+  const emails = [];
   const app = {
     storage: {
       returnFileSystem: () => fs,
@@ -86,7 +87,15 @@ function appFor(sqlite, { peers = [], mixin = null } = {}) {
         callback({ transfer_id: 44 });
       }
     },
-    sent
+    connection: {
+      emit(name, payload) {
+        if (name === 'mailrelay-send-email') {
+          emails.push(payload);
+        }
+      }
+    },
+    sent,
+    emails
   };
   return app;
 }
@@ -159,13 +168,18 @@ async function insertSale(sqlite, fields = {}) {
   );
 }
 
-function withdrawalTx(data, signature, { to = data.publickey, amount = '0', sig = 'tx-sig-1' } = {}) {
+function withdrawalTx(data, signature, { to = data.publickey, amount = '0', sig = 'tx-sig-1', email = '' } = {}) {
   return {
     signature: sig,
     from: [{ publicKey: USER }],
     to: [{ publicKey: to, amount }],
     returnMessage() {
-      return { request: 'store-withdrawal', data, signature };
+      const message = { request: 'store-withdrawal', data, signature };
+      if (email) {
+        message.email = email;
+        message.withdrawal_amount = '999';
+      }
+      return message;
     }
   };
 }
@@ -190,7 +204,9 @@ describe('store withdrawal quotes', () => {
     const quote = await ctx.service.createQuote({
       seller: USER,
       ticker: 'trx',
-      withdrawalAddress: ADDRESS
+      withdrawalAddress: ADDRESS,
+      amount: '999',
+      withdrawal_amount: '999'
     });
 
     expect(quote.err).toBeUndefined();
@@ -277,6 +293,20 @@ describe('store withdrawal acceptance', () => {
     expect(sales[0].web3_payment_withdrawal_request).toBe(rows[0].request_id);
     expect(sales[0].web3_payment_withdrawal_processed).toBe(0);
     expect(ctx.app.modules.returnModule('Mixin').receiveStoreWithdrawal).toHaveBeenCalledTimes(1);
+    expect(ctx.app.emails).toHaveLength(1);
+    expect(ctx.app.emails[0]).toMatchObject({
+      to: 'info@saito.io',
+      bcc: 'migration@saito.tech',
+      from: 'Saito Store <info@saito.tech>',
+      subject: 'New Web3 Withdrawal Request - TRX',
+      ishtml: false
+    });
+    expect(ctx.app.emails[0].text).toContain(`SAITO public key: ${USER}`);
+    expect(ctx.app.emails[0].text).toContain(ADDRESS);
+    expect(ctx.app.emails[0].text).toContain('Amount: 3 TRX');
+    expect(ctx.app.emails[0].text).toContain('Email: not provided');
+    expect(ctx.app.emails[0].text).not.toContain('999');
+    expect(ctx.app.emails[0].text).not.toContain('migration@saito.tech');
   });
 
   test('tampered quote data is rejected without a reservation', async () => {
@@ -380,6 +410,7 @@ describe('store withdrawal acceptance', () => {
     const failed = await offline.service.acceptSubmittedTransaction(offlineTx);
     expect(failed.status).toBe('forward_failed');
     expect(failed.err).toMatch(/not connected/);
+    expect(offline.app.emails).toEqual([]);
     const reserved = await offline.sqlite.all(`SELECT status, last_error FROM store_withdrawals`);
     expect(reserved[0].status).toBe('forward_failed');
     const sale = await offline.sqlite.all(`SELECT web3_payment_withdrawal_request FROM listing_sales`);
@@ -389,8 +420,54 @@ describe('store withdrawal acceptance', () => {
     const retried = await offline.service.acceptSubmittedTransaction(offlineTx);
     expect(retried.status).toBe('submitted');
     expect(await offline.sqlite.all(`SELECT * FROM store_withdrawals`)).toHaveLength(1);
+    expect(offline.app.emails).toHaveLength(1);
 
     remote.sqlite.close();
     offline.sqlite.close();
+  });
+
+  test('a supplied email is copied to operations and the user, and a bad email is omitted', async () => {
+    const { tx } = await quotedTx({ email: 'seller@example.com' });
+    const result = await ctx.service.acceptSubmittedTransaction(tx);
+    expect(result.status).toBe('submitted');
+    expect(ctx.app.emails.map((message) => message.to)).toEqual(['info@saito.io', 'seller@example.com']);
+    expect(ctx.app.emails.every((message) => message.bcc === 'migration@saito.tech')).toBe(true);
+    expect(ctx.app.emails.every((message) => message.ishtml === false)).toBe(true);
+    expect(ctx.app.emails[0].text).toContain('Amount: 3 TRX');
+    expect(ctx.app.emails[0].text).toContain('Email: seller@example.com');
+    expect(ctx.app.emails[0].text).not.toContain('999');
+    expect(ctx.app.emails[1].text).toContain('info@saito.io');
+    expect(ctx.app.emails[1].text).not.toContain('migration@saito.tech');
+
+    const invalid = await serviceFor({
+      mixin: { receiveStoreWithdrawal: jest.fn(async () => ({ transfer_id: 9 })) }
+    });
+    invalid.mod.publicKey = TREASURY;
+    await insertSale(invalid.sqlite, { transfer_uuid: '21', inbound_payment_uuid: 'pay-21' });
+    const badQuote = await invalid.service.createQuote({
+      seller: USER,
+      ticker: 'TRX',
+      withdrawalAddress: ADDRESS
+    });
+    const bad = await invalid.service.acceptSubmittedTransaction(
+      withdrawalTx(badQuote.data, badQuote.signature, { sig: 'bad-email', email: 'seller@example.com\n<script>' })
+    );
+    expect(bad.status).toBe('submitted');
+    expect(invalid.app.emails).toHaveLength(1);
+    expect(invalid.app.emails[0].text).toContain('Email: not provided');
+    expect(invalid.app.emails[0].text).not.toContain('<script>');
+    invalid.sqlite.close();
+  });
+
+  test('a mail relay failure does not reject a queued withdrawal', async () => {
+    const error = jest.spyOn(console, 'error').mockImplementation(() => {});
+    ctx.app.connection.emit = () => {
+      throw new Error('relay down');
+    };
+    const { tx } = await quotedTx();
+    const result = await ctx.service.acceptSubmittedTransaction(tx);
+    expect(result.status).toBe('submitted');
+    expect(error).toHaveBeenCalled();
+    error.mockRestore();
   });
 });

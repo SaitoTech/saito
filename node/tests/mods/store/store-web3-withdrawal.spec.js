@@ -4,6 +4,7 @@ const { classifyWeb3Proceeds } = require('../../../mods/store/lib/web3-amount');
 const WithdrawalTemplate = require('../../../mods/store/lib/ui/overlays/withdrawal.template');
 
 let shown = '';
+let emailField = null;
 const clicks = {};
 
 jest.mock('../../../lib/saito/ui/saito-overlay/saito-overlay', () => {
@@ -19,7 +20,10 @@ const WithdrawalOverlay = require('../../../mods/store/lib/ui/overlays/withdrawa
 
 function installDocument() {
   global.document = {
-    querySelector() {
+    querySelector(selector) {
+      if (String(selector).includes('name="email"')) {
+        return emailField;
+      }
       return {
         querySelector(selector) {
           const action = String(selector).match(/data-action="([^"]+)"/)?.[1];
@@ -96,6 +100,7 @@ describe('web3 withdrawal eligibility', () => {
 describe('withdrawal overlay', () => {
   beforeEach(() => {
     shown = '';
+    emailField = null;
     for (const key of Object.keys(clicks)) {
       delete clicks[key];
     }
@@ -103,21 +108,24 @@ describe('withdrawal overlay', () => {
     global.alert = jest.fn();
   });
 
-  test('an activated account shows its address and the full read-only amount', async () => {
+  test('an activated account shows the withdrawal form without an amount', async () => {
     const crypto = { address: 'TLocalAddress', isActivated: () => true, activate: jest.fn() };
     const { overlay } = overlayFor(crypto, '3');
     await overlay.open('trx');
 
     expect(crypto.activate).not.toHaveBeenCalled();
-    expect(shown).toContain('Withdraw TRX');
+    expect(shown).toContain('WITHDRAW TRX');
+    expect(shown).toContain('Your account is ready for withdrawal.');
     expect(shown).not.toContain('name="ticker"');
     expect(shown).not.toContain('Cryptocurrency');
     expect(shown).not.toContain('data-action="cancel"');
-    expect(shown).toContain('>Address<');
-    expect(shown).toContain('>Amount<');
+    expect(shown).not.toContain('name="amount"');
+    expect(shown).not.toContain('migration@saito.tech');
+    expect(shown).toContain('>Email (optional)<');
+    expect(shown).toContain('>TRX withdrawal address<');
     expect(shown).toContain('value="TLocalAddress"');
-    expect(shown).toContain('value="3"');
     expect(shown).toContain('readonly');
+    expect(shown).toContain('mailto:info@saito.io');
     expect(shown).toContain('data-action="confirm-withdraw"');
   });
 
@@ -132,13 +140,15 @@ describe('withdrawal overlay', () => {
     };
     const { overlay } = overlayFor(crypto, '3');
     await overlay.open('TRX');
-    expect(shown).toContain('You need a TRX withdrawal address to receive your crypto.');
+    expect(shown).toContain('you must first enable TRX support in your SAITO Wallet');
+    expect(shown).toContain('Enable TRX');
     expect(shown).not.toContain('data-action="cancel"');
 
     await clicks['activate-account']({ preventDefault() {} });
     expect(crypto.activate).toHaveBeenCalled();
     expect(shown).toContain('value="TNewAddress"');
-    expect(shown).toContain('value="3"');
+    expect(shown).toContain('Your account is ready for withdrawal.');
+    expect(shown).not.toContain('name="amount"');
   });
 
   test('activation failure keeps the create button and an error', async () => {
@@ -161,7 +171,10 @@ describe('withdrawal overlay', () => {
     await clicks['confirm-withdraw']({ preventDefault() {} });
     expect(global.alert).not.toHaveBeenCalled();
     expect(requests).toEqual(['load-web3-proceeds', 'store-withdrawal-quote']);
-    expect(shown).toContain('The Store could not prepare a withdrawal quote.');
+    expect(shown).toContain('We are having a problem processing this payment.');
+    expect(shown).toContain('mailto:info@saito.io');
+    expect(shown).not.toContain('could not prepare');
+    expect(shown).not.toContain('migration@saito.tech');
   });
 
   test('an insufficient SAITO balance stops before a transaction is created', async () => {
@@ -259,7 +272,9 @@ describe('withdrawal overlay', () => {
     await clicks['confirm-withdraw']({ preventDefault() {} });
     expect(sign).toHaveBeenCalledTimes(1);
     expect(requests).toEqual(['load-web3-proceeds', 'store-withdrawal-quote', 'store-withdrawal']);
-    expect(shown).toContain('submitted to the treasury');
+    expect(shown).toContain('Your withdrawal request is now queued for withdrawal.');
+    expect(shown).toContain('data-action="open-wallet"');
+    expect(shown).not.toContain('submitted to the treasury');
     expect(shown).not.toContain('data-action="sign-withdrawal"');
     expect(shown).not.toContain('data-action="cancel"');
   });
@@ -302,7 +317,8 @@ describe('withdrawal overlay', () => {
     const overlay = new WithdrawalOverlay(app, { store_public_key: 'server' });
     await overlay.open('TRX');
     await clicks['confirm-withdraw']({ preventDefault() {} });
-    expect(shown).toContain('was not submitted again');
+    expect(shown).toContain('We are having a problem processing this payment.');
+    expect(shown).not.toContain('was not submitted again');
     expect(submissions).toBe(1);
     expect(app.wallet.createUnsignedTransactionWithDefaultFee).toHaveBeenCalledTimes(1);
   });
@@ -317,19 +333,141 @@ describe('withdrawal overlay', () => {
     expect(html).toContain('Retrieving withdrawal details...');
     expect(html).not.toContain('data-action="cancel"');
     expect(css).toContain('text-align: center');
-    expect(css).toContain('width: 1.75rem');
+    expect(css).toContain('width: 4.8rem');
+    expect(css).toContain('underline dashed');
     expect(css).toContain('justify-content: flex-end');
     expect(css).toContain('min(92vw, 42rem)');
   });
 
-  test('the confirmation template keeps the amount read-only', () => {
-    const html = WithdrawalTemplate({
+  test('the TRX form has no amount and another ticker keeps its read-only amount', () => {
+    const trx = WithdrawalTemplate({
       state: 'ready',
       ticker: 'TRX',
       eligible: '3',
-      address: 'TLocalAddress'
+      address: 'TLocalAddress',
+      email: 'stored@example.com'
     });
-    expect(html).toContain('name="amount" value="3" readonly');
-    expect(html).toContain('name="address" value="TLocalAddress" readonly');
+    expect(trx).not.toContain('name="amount"');
+    expect(trx).toContain('name="email" value="stored@example.com"');
+    expect(trx).toContain('name="address" value="TLocalAddress" readonly');
+    expect(trx).not.toContain('migration@saito.tech');
+
+    const eth = WithdrawalTemplate({
+      state: 'ready',
+      ticker: 'ETH',
+      eligible: '3',
+      address: '0xabc'
+    });
+    expect(eth).toContain('name="amount" value="3" readonly');
+    expect(eth).toContain('Withdraw ETH');
+  });
+
+  test('a stored wallet email is prefilled and an edited address is the one submitted', async () => {
+    const crypto = { address: 'TLocalAddress', isActivated: () => true };
+    const keychain = { returnKey: () => ({ email: 'stored@example.com' }), addKey: jest.fn() };
+    const prepared = {
+      to: [{ publicKey: 'treasury', amount: 0n }],
+      sign: jest.fn(async () => {}),
+      serialize_to_web: () => 'serialized-withdrawal'
+    };
+    const quotePayloads = [];
+    const app = {
+      keychain,
+      connection: { emit: jest.fn() },
+      wallet: {
+        publicKey: 'user-key',
+        returnCryptoModuleByTicker: () => crypto,
+        getBalance: async () => 0n,
+        convertSaitoToNolan: () => 0,
+        setPreferredCrypto: jest.fn(async () => {}),
+        createUnsignedTransactionWithDefaultFee: jest.fn(async () => prepared)
+      },
+      network: {
+        sendRequestAsTransaction(request, data, callback) {
+          if (request === 'store-withdrawal-quote') {
+            quotePayloads.push(data);
+          }
+          if (request === 'load-web3-proceeds') {
+            callback({ eligible: { TRX: '15' } });
+            return;
+          }
+          if (request === 'store-withdrawal') {
+            callback({ status: 'submitted' });
+            return;
+          }
+          callback({
+            data: {
+              amount: '0',
+              publickey: 'treasury',
+              ticker: 'TRX',
+              withdrawal_amount: '15',
+              timestamp: '1-1'
+            },
+            signature: 'sig'
+          });
+        }
+      }
+    };
+    const overlay = new WithdrawalOverlay(app, { store_public_key: 'server' });
+    await overlay.open('TRX');
+    expect(shown).toContain('value="stored@example.com"');
+    emailField = { value: 'changed@example.com' };
+    await clicks['confirm-withdraw']({ preventDefault() {} });
+
+    expect(quotePayloads[0]).toEqual({
+      module: 'Store',
+      ticker: 'TRX',
+      withdrawal_address: 'TLocalAddress'
+    });
+    expect(quotePayloads[0].amount).toBeUndefined();
+    expect(prepared.msg.email).toBe('changed@example.com');
+    expect(prepared.msg.withdrawal_amount).toBeUndefined();
+    expect(prepared.msg.data.withdrawal_amount).toBe('15');
+    expect(keychain.addKey).not.toHaveBeenCalled();
+
+    await clicks['open-wallet']({ preventDefault() {} });
+    expect(app.wallet.setPreferredCrypto).toHaveBeenCalledWith('TRX');
+    expect(app.connection.emit).toHaveBeenCalledWith('saito-crypto-wallet-history-render-request', {
+      ticker: 'TRX'
+    });
+  });
+
+  test('a withdrawal without an email still submits', async () => {
+    const crypto = { address: 'TLocalAddress', isActivated: () => true };
+    const prepared = {
+      to: [{ publicKey: 'treasury', amount: 0n }],
+      sign: jest.fn(async () => {}),
+      serialize_to_web: () => 'serialized-withdrawal'
+    };
+    const app = {
+      wallet: {
+        returnCryptoModuleByTicker: () => crypto,
+        getBalance: async () => 0n,
+        convertSaitoToNolan: () => 0,
+        createUnsignedTransactionWithDefaultFee: jest.fn(async () => prepared)
+      },
+      network: {
+        sendRequestAsTransaction(request, _data, callback) {
+          if (request === 'load-web3-proceeds') {
+            callback({ eligible: { TRX: '1' } });
+            return;
+          }
+          if (request === 'store-withdrawal') {
+            callback({ status: 'submitted' });
+            return;
+          }
+          callback({
+            data: { amount: '0', publickey: 'treasury', ticker: 'TRX', withdrawal_amount: '1', timestamp: '1-1' },
+            signature: 'sig'
+          });
+        }
+      }
+    };
+    const overlay = new WithdrawalOverlay(app, { store_public_key: 'server' });
+    await overlay.open('TRX');
+    expect(shown).toContain('name="email" value=""');
+    await clicks['confirm-withdraw']({ preventDefault() {} });
+    expect(prepared.msg.email).toBeUndefined();
+    expect(shown).toContain('Your withdrawal request is now queued for withdrawal.');
   });
 });

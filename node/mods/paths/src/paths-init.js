@@ -306,6 +306,46 @@ class PathsOfGlory extends GameTemplate {
     return PathsOptions();
   }
 
+  attachAdvancedOptionsEventListeners() {
+    super.attachAdvancedOptionsEventListeners();
+
+    let deck = document.getElementById("deckselect");
+    let hand = document.getElementById("hand_size");
+    let trench = document.getElementById("trench_rolls");
+    let guns = document.getElementById("guns_event");
+    if (!deck || !hand || !trench || !guns) { return; }
+
+    let applyScenarioDefaults = () => {
+      let scenario = PathsScenarios.get(deck.value);
+      if (!hand.dataset.customized) { hand.value = String(scenario.handSize); }
+      if (!trench.dataset.customized) { trench.value = scenario.modifiedTrenchRolls ? "yes" : "no"; }
+      if (!scenario.gunsOfAugust) {
+        guns.value = "no";
+        guns.disabled = true;
+      } else {
+        guns.disabled = false;
+        if (guns.dataset.customized && guns.dataset.customValue) {
+          guns.value = guns.dataset.customValue;
+        } else if (!guns.dataset.customized) {
+          guns.value = scenario.gunsMustEvent ? "yes" : "no";
+        }
+      }
+    };
+
+    if (!deck.dataset.pathsRulesBound) {
+      deck.dataset.pathsRulesBound = "1";
+      deck.addEventListener("change", applyScenarioDefaults);
+      hand.addEventListener("change", () => { hand.dataset.customized = "1"; });
+      trench.addEventListener("change", () => { trench.dataset.customized = "1"; });
+      guns.addEventListener("change", () => {
+        guns.dataset.customized = "1";
+        guns.dataset.customValue = guns.value;
+      });
+    }
+
+    applyScenarioDefaults();
+  }
+
   returnGameRulesHTML(){
     return PathsRules();
   }

@@ -439,6 +439,18 @@ describe('Store web3 sale proceeds', () => {
     expect(ready.pending).toEqual({ TRX: '6', ETH: '0.5' });
     expect(ready.eligible).toEqual({ TRX: '3' });
 
+    await sqlite.run(
+      `INSERT INTO listing_sales (
+         signature, block_hash_listed, block_hash_sold, block_id_sold, seller, web3_ticker, web3_amount,
+         quantity_sold, longest_chain_sold, web3_payment_withdrawal_processed, web3_payment_withdrawal_request
+       ) VALUES
+       ('reserved', 'listed-reserved', 'sold-reserved', 10, $seller, 'TRX', '8', 1, 1, 0, 'queued')`,
+      { $seller: SELLER }
+    );
+    const afterRequest = await db.returnWeb3WithdrawalBalances(SELLER, 15, 5);
+    expect(afterRequest.pending).toEqual({ TRX: '6', ETH: '0.5' });
+    expect(afterRequest.eligible).toEqual({ TRX: '3' });
+
     const html = WithdrawalsTemplate({
       rows: [
         { ticker: 'TRX', eligible: ready.eligible.TRX, pending: ready.pending.TRX },
@@ -449,7 +461,8 @@ describe('Store web3 sale proceeds', () => {
     expect(html).toContain('>3<');
     expect(html).toContain('>6<');
     expect(html).toContain('>0.5<');
-    expect(html).toContain('You can withdraw this');
+    expect(html).toContain('>Withdraw<');
+    expect(html).not.toContain('You can withdraw this');
     expect(html.match(/data-action="withdraw"/g).length).toBe(1);
     expect(html.match(/<span class="label">eligible<\/span>/g).length).toBe(3);
     expect(html.match(/<span class="label">pending<\/span>/g).length).toBe(3);

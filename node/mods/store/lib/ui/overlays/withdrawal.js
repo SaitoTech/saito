@@ -2,6 +2,7 @@ const SaitoOverlay = require('../../../../../lib/saito/ui/saito-overlay/saito-ov
 const WithdrawalTemplate = require('./withdrawal.template');
 const { decimalIsPositive } = require('../../web3-amount');
 const { SUPPORT_EMAIL, SUPPORT_URL } = require('../../withdrawal');
+const { normalizeWithdrawalEmail } = require('../../email');
 
 class WithdrawalOverlay {
   constructor(app, mod) {
@@ -16,6 +17,24 @@ class WithdrawalOverlay {
     this.prepared = null;
     this.statusText = 'Preparing your TRX withdrawal request.';
     this.submitting = false;
+    this.email = '';
+  }
+
+  walletEmail() {
+    try {
+      const key = this.app.keychain?.returnKey?.(this.app.wallet?.publicKey);
+      return String(key?.email || '').trim();
+    } catch (err) {
+      return '';
+    }
+  }
+
+  readSubmittedEmail() {
+    const input = document.querySelector('.store-withdrawal input[name="email"]');
+    if (input && typeof input.value === 'string') {
+      return input.value;
+    }
+    return String(this.email || '');
   }
 
   localAccount(ticker = this.ticker) {
@@ -60,6 +79,7 @@ class WithdrawalOverlay {
         statusText: this.statusText,
         supportEmail: SUPPORT_EMAIL,
         supportUrl: SUPPORT_URL,
+        email: this.email,
         ...extra
       })
     );
@@ -72,6 +92,7 @@ class WithdrawalOverlay {
     this.eligible = '0';
     this.statusText = `Preparing your ${this.ticker} withdrawal request.`;
     this.submitting = false;
+    this.email = this.walletEmail();
     this.show('loading');
     await this.refresh();
   }
@@ -139,6 +160,7 @@ class WithdrawalOverlay {
 
   async prepareAndSubmit() {
     const account = this.localAccount();
+    this.email = this.readSubmittedEmail();
     this.error = '';
     this.message = '';
     this.quote = null;
@@ -191,11 +213,13 @@ class WithdrawalOverlay {
       this.show('insufficient');
       return;
     }
+    const email = normalizeWithdrawalEmail(this.email);
     prepared.msg = {
       module: 'Store',
       request: 'store-withdrawal',
       data: quote.data,
-      signature: quote.signature
+      signature: quote.signature,
+      ...(email ? { email } : {})
     };
     this.quote = quote;
     this.prepared = prepared;
@@ -259,6 +283,15 @@ class WithdrawalOverlay {
     root.querySelector('[data-action="confirm-withdraw"]')?.addEventListener('click', (e) => {
       e.preventDefault();
       return this.requestQuote();
+    });
+    root.querySelector('[data-action="open-wallet"]')?.addEventListener('click', async (e) => {
+      e.preventDefault();
+      if (typeof this.app.wallet?.setPreferredCrypto === 'function') {
+        await this.app.wallet.setPreferredCrypto(this.ticker);
+      }
+      this.app.connection?.emit?.('saito-crypto-wallet-history-render-request', {
+        ticker: this.ticker
+      });
     });
     root.addEventListener('submit', (e) => {
       e.preventDefault();

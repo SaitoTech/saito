@@ -1,4 +1,5 @@
 const { addDecimalAmounts, multiplyDecimalAmount } = require('./web3-amount');
+const { normalizeWithdrawalEmail, sendWithdrawalNotices } = require('./email');
 const {
   canonicalJson,
   quoteTimestamp,
@@ -150,6 +151,7 @@ class StoreWithdrawals {
   }
 
   async createQuote({ seller, ticker, withdrawalAddress } = {}) {
+    // The withdrawal amount is the sum of eligible sales. A client-supplied amount is not read.
     const symbol = String(ticker || '').trim().toUpperCase();
     const address = String(withdrawalAddress || '').trim();
     const treasury = treasuryPublicKey(this.mod);
@@ -467,12 +469,23 @@ class StoreWithdrawals {
         id
       };
     }
-    await this.run(
+    const updated = await this.run(
       `UPDATE store_withdrawals
        SET status = 'submitted', last_error = '', mixin_transfer_id = $transfer, updated_at = $now
-       WHERE id = $id`,
+       WHERE id = $id AND status <> 'submitted'`,
       { $transfer: result.transfer_id, $now: now, $id: id }
     );
+    if (Number(updated?.changes || 0) === 1) {
+      const message = tx?.returnMessage?.() || {};
+      sendWithdrawalNotices(this.app, {
+        ticker: row.ticker,
+        publicKey: row.requester_publickey,
+        address: row.withdrawal_address,
+        amount: row.withdrawal_amount,
+        email: normalizeWithdrawalEmail(message.email),
+        requestedAt: row.created_at || now
+      });
+    }
     return {
       status: 'submitted',
       message: 'Withdrawal request submitted to the treasury. The external cryptocurrency has not been sent.',

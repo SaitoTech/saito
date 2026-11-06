@@ -102,6 +102,11 @@ class GameWizard {
       this.meta_overlay = new SaitoOverlay(this.app, this.mod, true, false);
       this.meta_overlay.show(AdvancedOptionsTemplate(advancedOptionsHtml));
       this.meta_overlay.hide();
+      // Bind while the controls are in the DOM, before the player opens the overlay,
+      // so scenario defaults are submitted even if Advanced is never opened.
+      if (typeof this.game_mod.attachAdvancedOptionsEventListeners === 'function') {
+        this.game_mod.attachAdvancedOptionsEventListeners();
+      }
     }
 
     //Hook for Crypto module (if installed) to add button to attach functionality

@@ -77,7 +77,8 @@
   background: none;
   color: var(--saito-foreground);
   font: inherit;
-  text-decoration: underline;
+  text-decoration: underline dashed;
+  text-underline-offset: 0.18em;
   cursor: pointer;
 }
 
@@ -126,8 +127,9 @@
 }
 
 .store-withdrawal .activation-status .saito-spinner {
-  width: 1.75rem;
-  height: 1.75rem;
+  width: 4.8rem;
+  min-width: 4.8rem;
+  height: 4.8rem;
   margin: var(--saito-space-sm) 0;
 }
 

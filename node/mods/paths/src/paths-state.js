@@ -121,7 +121,9 @@
     this.game.state.events.zeppelin_raids = 0;
     this.game.state.events.great_retreat = 0;
     this.game.state.events.great_retreat_used = 0;
-    this.game.state.events.fall_of_the_tsar_russian_vp = 0;
+    if (!this.game.state.events.fall_of_the_tsar) {
+      this.game.state.events.fall_of_the_tsar_russian_vp = 0;
+    }
     this.game.state.events.they_shall_not_pass = 0;
     this.game.state.events.wireless_intercepts = 0;
     this.game.state.events.everyone_into_battle = 0;
@@ -177,12 +179,14 @@
   calculateRussianCapitulationTrack() {
 
     let count = 0;
+    let russian_vp_without_baku = 0;
     let position = 1;
 
     for (let key in this.game.spaces) {
       let space = this.game.spaces[key];
       if (space.country == "russia" && space.control == "central" && space.vp == 1) {
 	count++;
+	if (key != "baku") { russian_vp_without_baku++; }
       }
     }
     if (count >= 3) { position++; }
@@ -195,7 +199,7 @@
 
     if (this.game.state.events.fall_of_the_tsar) { position++; }
 
-    if (count == 7 || count > this.game.state.events.fall_of_the_tsar_russian_vp && this.game.state.events.fall_of_the_tsar_russian_vp != -1) {
+    if (this.game.state.events.fall_of_the_tsar && (russian_vp_without_baku == 7 || count > this.game.state.events.fall_of_the_tsar_russian_vp)) {
       position++;
     }
 
