@@ -1,5 +1,5 @@
-const CallSettingTemplate = require('./call-setting.template');
-const SaitoOverlay = require('../../../../lib/saito/ui/saito-overlay/saito-overlay.js');
+const CallSettingTemplate = require('./media_preview.template');
+const SaitoOverlay = require('../../../../../lib/saito/ui/saito-overlay/saito-overlay.js');
 
 /**
  *

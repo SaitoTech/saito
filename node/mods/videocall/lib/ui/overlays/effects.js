@@ -1,5 +1,5 @@
 const EffectsTemplate = require('./effects.template');
-const SaitoOverlay = require('../../../../lib/saito/ui/saito-overlay/saito-overlay');
+const SaitoOverlay = require('../../../../../lib/saito/ui/saito-overlay/saito-overlay');
 
 class Effects {
   constructor(app, mod) {

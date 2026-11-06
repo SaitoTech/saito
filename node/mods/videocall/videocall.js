@@ -1,13 +1,13 @@
 const saito = require('../../lib/saito/saito');
 const ModTemplate = require('../../lib/templates/modtemplate');
-const CallLauncher = require('./lib/components/call-launch');
-const CallInterfaceVideo = require('./lib/components/call-interface-video');
-const CallInterfaceFloat = require('./lib/components/call-interface-float');
-const DialingInterface = require('./lib/components/dialer');
+const CallLauncher = require('./lib/ui/main');
+const CallInterfaceFullScreen = require('./lib/ui/full_screen_interface');
+const CallInterfaceEmbedded = require('./lib/ui/embedded_interface');
+const DialingInterface = require('./lib/ui/dialer');
 const SaitoOverlay = require('../../lib/saito/ui/saito-overlay/saito-overlay');
-const StreamManager = require('./lib/StreamManager');
-const AppSettings = require('./lib/stun-settings');
-const CallDiagnostics = require('./lib/components/call-diagnostics');
+const StreamManager = require('./lib/stream_manager');
+const AppSettings = require('./lib/ui/settings');
+const CallDiagnostics = require('./lib/diagnostics');
 const HomePage = require('./index');
 const SaitoHeader = require('./../../lib/saito/ui/saito-header/saito-header');
 
@@ -60,7 +60,7 @@ class Videocall extends ModTemplate {
         return;
       }
 
-      if (!this.streams) {
+      if (!this.streams || this.streams.detached) {
         console.debug('TALK: Instantiate StreamManager');
         this.streams = new StreamManager(this.app, this, settings);
       } else {
@@ -70,12 +70,14 @@ class Videocall extends ModTemplate {
 
       console.debug('TALK [stun-init-call-interface]: UI settings ', settings);
 
-      if (settings.ui === 'large') {
-        this.CallInterface = new CallInterfaceVideo(app, this, true);
-      } else if (settings.ui === 'video') {
-        this.CallInterface = new CallInterfaceVideo(app, this, false);
+      // browser_active is 1 only when this page was loaded as /videocall.
+      // Opening the Talk launcher over another app does not change it.
+      // room_obj.ui remains video versus voice and is not a presentation choice.
+      if (this.browser_active) {
+        this.CallInterface = new CallInterfaceFullScreen(app, this, true);
       } else {
-        this.CallInterface = new CallInterfaceFloat(app, this);
+        this.attachStyleSheets();
+        this.CallInterface = new CallInterfaceEmbedded(app, this, settings?.container);
       }
 
       this.saveCallToKeychain();
@@ -89,7 +91,10 @@ class Videocall extends ModTemplate {
         this.CallInterface = null;
       }
 
-      this.streams = null;
+      if (this.streams) {
+        this.streams.detach();
+        this.streams = null;
+      }
       this.have_joined_room = 0;
 
       this.app.storage.saveOptions();
@@ -195,6 +200,9 @@ class Videocall extends ModTemplate {
             callback: async (app, public_key) => {
               console.info('TALK: kicking user: ', public_key);
               app.connection.emit('remove-peer-box', public_key);
+              if (this.CallInterface?.drop) {
+                this.CallInterface.drop(public_key);
+              }
               await this.sendKickTransaction(public_key);
               this.streams.removePeer(public_key, 'was kicked out');
             }

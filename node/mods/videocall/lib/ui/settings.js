@@ -1,4 +1,4 @@
-const SettingsTemplate = require('./stun-settings.template');
+const SettingsTemplate = require('./settings.template');
 
 class Settings {
   constructor(app, mod, container = '.saito-module-settings') {

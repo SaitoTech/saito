@@ -1,12 +1,11 @@
 const SaitoVideoBox = require('../../../../lib/saito/ui/saito-videobox/video-box');
 
-const CallInterfaceVideoTemplate = require('./call-interface-video.template');
+const CallInterfaceFullScreenTemplate = require('./full_screen_interface.template');
 
-const Effects = require('../overlays/effects');
-const VideocallSettings = require('../overlays/videocall-settings');
-const StreamMirror = require('./stream-mirror');
+const Effects = require('./overlays/effects');
+const VideocallSettings = require('./overlays/layout');
 
-class CallInterfaceVideo {
+class CallInterfaceFullScreen {
   constructor(app, mod, fullScreen = true) {
     this.app = app;
     this.mod = mod;
@@ -29,8 +28,9 @@ class CallInterfaceVideo {
     //
     this.peer_order = [];
     this.expanded_peer = null;
+    this.listeners = {};
 
-    this.app.connection.on('show-call-interface', async (videoEnabled, audioEnabled) => {
+    this.listen('show-call-interface', async (videoEnabled, audioEnabled) => {
       console.info('TALK [show-call-interface]', videoEnabled, audioEnabled);
 
       //This will render the (full-screen) component
@@ -50,7 +50,7 @@ class CallInterfaceVideo {
       }
     });
 
-    this.app.connection.on('stun-update-link', () => {
+    this.listen('stun-update-link', () => {
       let room_link = this.mod.generateCallLink();
 
       if (this.full_screen) {
@@ -59,11 +59,11 @@ class CallInterfaceVideo {
       }
     });
 
-    this.app.connection.on('add-local-stream-request', (localStream) => {
+    this.listen('add-local-stream-request', (localStream) => {
       this.addLocalStream(localStream);
     });
 
-    this.app.connection.on('add-remote-stream-request', (peer, remoteStream) => {
+    this.listen('add-remote-stream-request', (peer, remoteStream) => {
       this.remote_streams.set(peer, remoteStream);
       this.addRemoteStream(peer, remoteStream);
 
@@ -73,11 +73,11 @@ class CallInterfaceVideo {
       }
     });
 
-    this.app.connection.on('add-waiting-video-box', () => {
+    this.listen('add-waiting-video-box', () => {
       this.addRemoteStream('connecting', null);
     });
 
-    this.app.connection.on('remove-waiting-video-box', () => {
+    this.listen('remove-waiting-video-box', () => {
       let peer_id = 'connecting';
       if (this.video_boxes[peer_id]?.video_box) {
         this.video_boxes[peer_id].video_box.destroy();
@@ -85,7 +85,7 @@ class CallInterfaceVideo {
       }
     });
 
-    this.app.connection.on('remove-peer-box', (peer_id) => {
+    this.listen('remove-peer-box', (peer_id) => {
       this.remote_streams.delete(peer_id);
 
       if (this.video_boxes[peer_id]?.video_box) {
@@ -105,7 +105,7 @@ class CallInterfaceVideo {
     });
 
     // Change arrangement of video boxes (emitted from SwitchDisplay overlay)
-    app.connection.on('stun-switch-view', (newView = '', noMessage = false) => {
+    this.listen('stun-switch-view', (newView = '', noMessage = false) => {
       if (newView && !noMessage) {
         siteMessage(`Switched to ${newView} display`, 2000);
       }
@@ -130,7 +130,7 @@ class CallInterfaceVideo {
       }
     });
 
-    app.connection.on('stun-new-speaker', (peer) => {
+    this.listen('stun-new-speaker', (peer) => {
       if (!this.full_screen) {
         return;
       }
@@ -156,11 +156,11 @@ class CallInterfaceVideo {
       });
     });
 
-    app.connection.on('videocall-show-settings', () => {
+    this.listen('videocall-show-settings', () => {
       this.videocall_settings.render();
     });
 
-    app.connection.on('videocall-connection-strength', (peer, mos) => {
+    this.listen('videocall-connection-strength', (peer, mos) => {
       mos = Math.floor(mos);
       if (this.video_boxes[peer]) {
         if (this.video_boxes[peer].connection_strength == mos) {
@@ -171,11 +171,16 @@ class CallInterfaceVideo {
       }
     });
 
-    app.connection.on('stun-data-channel-open', (pkey) => {
+    this.listen('stun-data-channel-open', (pkey) => {
       if (this.rendered) {
         //this.insertActions(this.mod.room_obj.call_peers);
       }
     });
+  }
+
+  listen(event, handler) {
+    this.listeners[event] = handler;
+    this.app.connection.on(event, handler);
   }
 
   close() {
@@ -213,20 +218,15 @@ class CallInterfaceVideo {
   }
 
   destroy() {
+    if (this.destroyed) {
+      return;
+    }
+    this.destroyed = true;
     console.debug('TALK.destroy');
-    this.app.connection.removeAllListeners('show-call-interface');
-    this.app.connection.removeAllListeners('stun-update-link');
-    this.app.connection.removeAllListeners('add-local-stream-request');
-    this.app.connection.removeAllListeners('add-remote-stream-request');
-    this.app.connection.removeAllListeners('add-waiting-video-box');
-    this.app.connection.removeAllListeners('remove-waiting-video-box');
-    this.app.connection.removeAllListeners('remove-peer-box');
-    this.app.connection.removeAllListeners('stun-switch-view');
-    this.app.connection.removeAllListeners('stun-new-speaker');
-    this.app.connection.removeAllListeners('videocall-show-settings');
-    this.app.connection.removeAllListeners('videocall-connection-strength');
-    this.app.connection.removeAllListeners('stun-data-channel-open');
-    this.app.connection.removeAllListeners('toggle-screen-share-label');
+    for (const event in this.listeners) {
+      this.app.connection.removeListener(event, this.listeners[event]);
+    }
+    this.listeners = {};
 
     this.stopTimer();
 
@@ -242,25 +242,18 @@ class CallInterfaceVideo {
     }
 
     this.rendered = false;
-    this?.streamMirror?.destroy();
   }
 
   render(videoEnabled, audioEnabled) {
     if (!document.querySelector('#stun-chatbox')) {
       this.app.browser.addElementToDom(
-        CallInterfaceVideoTemplate(this.mod, videoEnabled, audioEnabled)
+        CallInterfaceFullScreenTemplate(this.mod, videoEnabled, audioEnabled)
       );
 
       //stun-overlay-container make
 
       this.insertActions();
       this.attachEvents();
-    }
-
-    if (document.querySelector('.game-video-container')) {
-      if (!this?.streamMirror) {
-        this.streamMirror = new StreamMirror(this.app, this.mod);
-      }
     }
 
     if (!this.mod.browser_active) {
@@ -986,4 +979,4 @@ class CallInterfaceVideo {
   }
 }
 
-module.exports = CallInterfaceVideo;
+module.exports = CallInterfaceFullScreen;

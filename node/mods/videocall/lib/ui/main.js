@@ -1,8 +1,8 @@
 const SaitoOverlay = require('../../../../lib/saito/ui/saito-overlay/saito-overlay.js');
-const StunLaunchTemplate = require('./call-launch.template.js');
-const CallSetting = require('../components/call-setting.js');
+const StunLaunchTemplate = require('./main.template.js');
+const CallSetting = require('./overlays/media_preview.js');
 const SaitoLoader = require('../../../../lib/saito/ui/saito-loader/saito-loader.js');
-const CallScheduleJoin = require('./call-schedule-join.js');
+const CallScheduleJoin = require('./overlays/schedule_list.js');
 const SaitoScheduleWizard = require('../../../../lib/saito/ui/saito-calendar/saito-schedule-wizard.js');
 
 /**

@@ -67,6 +67,8 @@ class Stun extends ModTemplate {
     ];
 
     this.peers = new Map();
+    // SDP and ICE can arrive before peer-joined has created the RTCPeerConnection.
+    this.earlySignals = new Map();
 
     this.noloop = []; // array of failed/timedout peer publickeys, so we don't repeat ad infinitum
 
@@ -389,6 +391,15 @@ class Stun extends ModTemplate {
     let peerConnection = this.peers.get(sender);
 
     if (!peerConnection) {
+      if (request === 'peer-description' || request === 'peer-candidate') {
+        const queued = this.earlySignals.get(sender) || [];
+        if (queued.length < 64) {
+          queued.push({ request, data });
+          this.earlySignals.set(sender, queued);
+        }
+        this.diagnostic(sender, `Queued ${request} until the peer connection exists`);
+        return;
+      }
       this.diagnostic(sender, 'Signal ignored: no peer connection');
       console.warn(
         `Stun: Receiving signalling messages for a non-peer connection [${sender}], peers: `,
@@ -690,7 +701,10 @@ class Stun extends ModTemplate {
 
     //Receive Remote media
     peerConnection.addEventListener('track', (event) => {
-      this.diagnostic(peerId, `Received ${event.track.kind} track (${event.track.readyState})`);
+      this.diagnostic(
+        peerId,
+        `Received ${event.track.kind} track id=${event.track.id} ready=${event.track.readyState} muted=${event.track.muted} enabled=${event.track.enabled} streams=${event.streams?.length || 0}`
+      );
       for (const state of ['mute', 'unmute', 'ended']) {
         event.track.addEventListener(state, () => this.diagnostic(peerId, `${event.track.kind} track: ${state}`));
       }
@@ -752,28 +766,8 @@ class Stun extends ModTemplate {
     peerConnection.onicegatheringstatechange = () => {
       this.diagnostic(peerId, `ICE gathering: ${peerConnection.iceGatheringState}`);
     };
-    peerConnection.onsignalingstatechange = () => {
-      this.diagnostic(peerId, `Signaling: ${peerConnection.signalingState}`);
-    };
     peerConnection.onicecandidateerror = (event) => {
       this.diagnostic(peerId, `ICE server error: ${event.errorCode}`);
-    };
-
-    const dc = peerConnection.createDataChannel('data-channel', { negotiated: true, id: 42 });
-    peerConnection.dc = dc;
-
-    dc.onmessage = (event) => {
-      this.handleDataChannelMessage(event.data, peerId);
-    };
-
-    dc.onopen = (event) => {
-      console.info('STUN: Data channel is open');
-      this.app.connection.emit('stun-data-channel-open', peerId);
-    };
-
-    dc.onclose = (event) => {
-      console.info('STUN: Data channel is closed with ' + peerId);
-      this.app.connection.emit('stun-data-channel-close', peerId);
     };
 
     //
@@ -784,11 +778,17 @@ class Stun extends ModTemplate {
     //
     const negotiate = async () => {
       peerConnection.offerTimer = null;
-      if (
-        this.peers.get(peerId) !== peerConnection ||
-        peerConnection.signalingState !== 'stable' ||
-        peerConnection.makingOffer
-      ) return;
+      if (this.peers.get(peerId) !== peerConnection || peerConnection.signalingState === 'closed') {
+        return;
+      }
+      if (peerConnection.signalingState !== 'stable' || peerConnection.makingOffer) {
+        peerConnection.negotiateAgain = true;
+        this.diagnostic(
+          peerId,
+          `Negotiation deferred until signaling is stable (${peerConnection.signalingState})`
+        );
+        return;
+      }
 
       try {
         if (!peerConnection?.negotiation_counter) {
@@ -824,9 +824,17 @@ class Stun extends ModTemplate {
       }
     };
 
-    peerConnection.onnegotiationneeded = () => {
+    const requestNegotiation = () => {
       this.diagnostic(peerId, 'Negotiation needed');
       if (this.peers.get(peerId) !== peerConnection || peerConnection.signalingState === 'closed') return;
+      if (peerConnection.signalingState !== 'stable' || peerConnection.makingOffer) {
+        peerConnection.negotiateAgain = true;
+        this.diagnostic(
+          peerId,
+          `Negotiation deferred until signaling is stable (${peerConnection.signalingState})`
+        );
+        return;
+      }
       if (peerConnection.rude && peerConnection.iceConnectionState === 'new') {
         // Coalesce data-channel creation and media attachment without extending
         // the deadline every time another track is added.
@@ -838,10 +846,49 @@ class Stun extends ModTemplate {
       clearTimeout(peerConnection.offerTimer);
       return negotiate();
     };
+    peerConnection.onnegotiationneeded = requestNegotiation;
+    peerConnection.onsignalingstatechange = () => {
+      this.diagnostic(peerId, `Signaling: ${peerConnection.signalingState}`);
+      this.app.connection.emit('stun-signaling-state', peerId, peerConnection.signalingState);
+      if (peerConnection.signalingState === 'stable' && peerConnection.negotiateAgain) {
+        peerConnection.negotiateAgain = false;
+        requestNegotiation();
+      }
+    };
+
+    const dc = peerConnection.createDataChannel('data-channel', { negotiated: true, id: 42 });
+    peerConnection.dc = dc;
+
+    dc.onmessage = (event) => {
+      this.handleDataChannelMessage(event.data, peerId);
+    };
+
+    dc.onopen = (event) => {
+      console.info('STUN: Data channel is open');
+      this.app.connection.emit('stun-data-channel-open', peerId);
+    };
+
+    dc.onclose = (event) => {
+      console.info('STUN: Data channel is closed with ' + peerId);
+      this.app.connection.emit('stun-data-channel-close', peerId);
+    };
 
     if (callback) {
       this.callback = callback;
       callback(peerId);
+    }
+
+    void this.flushEarlySignals(peerId);
+  }
+
+  async flushEarlySignals(peerId) {
+    const queued = this.earlySignals.get(peerId);
+    if (!queued?.length || !this.peers.get(peerId)) {
+      return;
+    }
+    this.earlySignals.delete(peerId);
+    for (const item of queued) {
+      await this.handleSignalingMessage(peerId, item.request, item.data);
     }
   }
 

@@ -1,5 +1,5 @@
-const SaitoOverlay = require('../../../../lib/saito/ui/saito-overlay/saito-overlay.js');
-const CallScheduleJoinTemplate = require('./call-schedule-join.template.js');
+const SaitoOverlay = require('../../../../../lib/saito/ui/saito-overlay/saito-overlay.js');
+const CallScheduleJoinTemplate = require('./schedule_list.template.js');
 
 class CallScheduleJoin {
   constructor(app, mod, keys) {

@@ -1,5 +1,5 @@
-const SaitoOverlay = require('../../../../lib/saito/ui/saito-overlay/saito-overlay');
-const VideoCallSettingsTemplate = require('./videocall-settings.template');
+const SaitoOverlay = require('../../../../../lib/saito/ui/saito-overlay/saito-overlay');
+const VideoCallSettingsTemplate = require('./layout.template');
 
 class VideoCallSettings {
   constructor(app, mod) {
