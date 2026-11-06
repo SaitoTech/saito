@@ -2989,7 +2989,7 @@ console.log("error updated attacker loss factor: " + JSON.stringify(err));
 	    // defender immediately suffers losses of "moved" units if they
 	    // suffer a loss_factor of >= 1. 
 	    //
-	    for (this.game.spaces[this.game.state.combat.key].units.length-1; z >= 0 ; z--) {
+	    for (let z = this.game.spaces[this.game.state.combat.key].units.length-1; z >= 0; z--) {
 	      let u = this.game.spaces[this.game.state.combat.key].units[z];
 	      if (u.moved) {
 		this.paths_log.noteLoss(this.paths_log.label(u.name) + " eliminated (trapped)", this.game.state.combat.defending_faction);
