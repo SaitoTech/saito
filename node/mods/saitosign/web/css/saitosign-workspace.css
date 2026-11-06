@@ -460,6 +460,12 @@
   height: 100%;
 }
 
+.workspace canvas.page {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
 .workspace .page {
   border: 0;
   pointer-events: none;

@@ -316,6 +316,8 @@ function addInitial(app, action, privateKey, documentHashValue) {
   return signAction(app, { ...action, type: 'initial' }, privateKey, documentHashValue);
 }
 
+const verificationCache = new WeakMap();
+
 function verifyActionSignature(app, action, user, record) {
   const publicKey = String(user?.publickey || '');
   const entry = signatureEntry(user, action);
@@ -329,8 +331,21 @@ function verifyActionSignature(app, action, user, record) {
   if (String(entry.document_hash || '') !== expected) {
     return false;
   }
-  const payload = { ...actionPayload(action), document_hash: expected };
-  return app.crypto.verifyMessage(canonicalJSON(payload), entry.signature, publicKey);
+  const payload = canonicalJSON({ ...actionPayload(action), document_hash: expected });
+  let bucket = verificationCache.get(record);
+  if (!bucket) {
+    bucket = new Map();
+    verificationCache.set(record, bucket);
+  }
+  const key = `${expected}\0${publicKey}\0${entry.signature}\0${payload}`;
+  if (bucket.get(key) === true) {
+    return true;
+  }
+  const valid = app.crypto.verifyMessage(payload, entry.signature, publicKey) === true;
+  if (valid) {
+    bucket.set(key, true);
+  }
+  return valid;
 }
 
 function requiredActions(actions) {
@@ -622,12 +637,96 @@ function documentCommitment(record) {
 }
 
 function documentHash(app, record) {
-  return app.crypto.hash(canonicalJSON(documentCommitment(record)));
+  const hash = app.crypto.hash(canonicalJSON(documentCommitment(record)));
+  commitmentCache.set(record, {
+    stamp: commitmentStamp(record),
+    refs: pdfRefs(record),
+    hash
+  });
+  return hash;
+}
+
+const commitmentCache = new WeakMap();
+
+function commitmentStamp(record) {
+  const actions = Array.isArray(record?.actions) ? record.actions : [];
+  const users = Array.isArray(record?.users) ? record.users : [];
+  const verification = record?.metadata?.verification || {};
+  const parts = [
+    String(record?.creator || ''),
+    String(record?.document?.name || ''),
+    String(Number(record?.document?.page_count) || 0),
+    String(Number(record?.document?.page_width) || 0),
+    String(Number(record?.document?.page_height) || 0)
+  ];
+  for (let index = 0; index < actions.length; index += 1) {
+    const action = actions[index];
+    parts.push(
+      action?.id,
+      action?.type,
+      action?.user,
+      action?.page,
+      action?.x,
+      action?.y,
+      action?.width,
+      action?.height,
+      action?.group || ''
+    );
+  }
+  for (let index = 0; index < users.length; index += 1) {
+    const user = users[index];
+    parts.push(user?.name || '', user?.email || '', user?.publickey || '');
+  }
+  parts.push(
+    verification.email,
+    verification.phone,
+    verification.photo,
+    verification.passport,
+    verification.legal_review,
+    record?.metadata?.tier,
+    record?.metadata?.tier_owner,
+    record?.metadata?.online_signing,
+    record?.metadata?.archive_contract
+  );
+  return parts.join('\0');
+}
+
+function pdfRefs(record) {
+  const pdf = record?.document?.pdf;
+  if (!Array.isArray(pdf)) {
+    return [];
+  }
+  return pdf.map((entry) => entry?.pdf);
+}
+
+function sameRefs(left, right) {
+  if (left.length !== right.length) {
+    return false;
+  }
+  for (let index = 0; index < left.length; index += 1) {
+    if (left[index] !== right[index]) {
+      return false;
+    }
+  }
+  return true;
+}
+
+function cachedDocumentHash(app, record) {
+  const stamp = commitmentStamp(record);
+  const refs = pdfRefs(record);
+  const cached = commitmentCache.get(record);
+  if (cached && cached.stamp === stamp && sameRefs(cached.refs, refs)) {
+    return cached.hash;
+  }
+  return documentHash(app, record);
 }
 
 function commitmentIntact(app, record) {
   const stored = String(record?.hash || '').trim();
-  return Boolean(record?.finalized && stored && stored === documentHash(app, record));
+  if (!record?.finalized || !stored) {
+    return false;
+  }
+  return stored === cachedDocumentHash(app, record);
 }
 
 function documentFullyVerified(app, record) {
@@ -642,7 +741,7 @@ function documentFullyVerified(app, record) {
 
 function documentUnchanged(app, record) {
   const hash = String(record?.hash || '');
-  return Boolean(hash) && hash === documentHash(app, record);
+  return Boolean(hash) && hash === cachedDocumentHash(app, record);
 }
 
 function rememberVerifiedEmails(app, record) {

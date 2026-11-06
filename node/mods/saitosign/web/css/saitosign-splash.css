@@ -40,6 +40,7 @@
 }
 
 .splash .staged {
+  --splash-tile-width: 13.6rem;
   flex-direction: column;
   align-items: stretch;
   justify-content: flex-start;
@@ -80,14 +81,18 @@
 
 .splash .doc-tile {
   position: relative;
+  box-sizing: border-box;
   display: flex;
+  flex: 0 1 var(--splash-tile-width);
   flex-direction: column;
   align-items: center;
   justify-content: flex-start;
   gap: 0.6rem;
-  width: 13.6rem;
-  height: 12.8rem;
-  padding: 1.2rem 0.8rem 0.8rem;
+  width: var(--splash-tile-width);
+  max-width: 100%;
+  min-width: 0;
+  height: 14.4rem;
+  padding: 1.2rem;
   cursor: grab;
   border: 1px solid var(--saito-border);
   border-radius: var(--saito-radius-lg);
@@ -115,7 +120,9 @@
 
 .splash .doc-tile .staged-name {
   display: -webkit-box;
+  flex: 0 0 auto;
   width: 100%;
+  max-height: calc(1.3em * 2);
   overflow: hidden;
   color: var(--saito-foreground);
   font-size: 1.35rem;
@@ -157,10 +164,14 @@
 }
 
 .splash .prepare {
+  box-sizing: border-box;
   flex: 0 0 auto;
-  width: 100%;
+  align-self: flex-start;
+  width: var(--splash-tile-width);
+  max-width: calc(100% - 0.4rem);
   min-height: 4.4rem;
   margin-top: auto;
+  margin-left: 0.2rem;
   padding: var(--saito-space-sm) var(--saito-space-md);
   border: 1px solid var(--saito-primary);
   border-radius: var(--saito-radius);

@@ -205,18 +205,84 @@
 
 .saitosign-sign .actions {
   display: flex;
+  align-items: center;
   justify-content: flex-end;
-  margin-top: var(--saito-space-md);
+  gap: 1.6rem;
+  margin-top: auto;
+  padding-top: var(--saito-space-md);
+}
+
+.saitosign-sign .actions.split {
+  justify-content: space-between;
+}
+
+.saitosign-sign button.primary,
+.saitosign-sign button.secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.7rem;
+  box-sizing: border-box;
+  min-height: 4.2rem;
+  padding: var(--saito-space-sm) var(--saito-space-md);
+  border-radius: var(--saito-radius);
+  font-family: var(--saito-font-heavy);
+  font-weight: 700;
+  line-height: 1.2;
+  white-space: nowrap;
+  cursor: pointer;
 }
 
 .saitosign-sign button.primary {
   min-width: 8rem;
-  padding: var(--saito-space-sm) var(--saito-space-md);
   border: 1px solid var(--saito-primary);
-  border-radius: var(--saito-radius);
   background: var(--saito-primary);
   color: var(--saito-primary-foreground);
-  font-family: var(--saito-font-heavy);
-  font-weight: 700;
-  cursor: pointer;
+}
+
+.saitosign-sign button.secondary {
+  border: 1px solid #111;
+  background: #111;
+  color: #fff;
+}
+
+.saitosign-sign .sign-error {
+  margin: 0;
+  color: var(--saito-foreground);
+  font-size: 1.4rem;
+  line-height: 1.4;
+}
+
+.saitosign-sign .sign-error:empty {
+  display: none;
+}
+
+.saitosign-sign button.primary .spinner,
+.saitosign-sign button.secondary .spinner {
+  width: 1.1em;
+  height: 1.1em;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: saitosign-sign-spin 0.7s linear infinite;
+}
+
+.saitosign-sign button.primary:disabled,
+.saitosign-sign button.secondary:disabled {
+  cursor: progress;
+}
+
+@keyframes saitosign-sign-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .saitosign-sign button.primary .spinner,
+  .saitosign-sign button.secondary .spinner {
+    animation: none;
+    border-right-color: currentColor;
+    opacity: 0.7;
+  }
 }

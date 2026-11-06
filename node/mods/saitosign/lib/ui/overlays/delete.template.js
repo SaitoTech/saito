@@ -13,6 +13,21 @@ function deleteTemplate(view = {}) {
   const documentCopy = documentName
     ? `Remove this item from every page of ${documentName} only.`
     : 'Remove this item from every page of the current PDF only.';
+  const singleDocument = Number(view.documentCount) === 1;
+  const everyCopy = singleDocument
+    ? 'Remove this item from every page across the uploaded document.'
+    : 'Remove this item from every page across all uploaded documents.';
+  const documentChoice = singleDocument
+    ? ''
+    : `
+        <button type="button" class="choice" data-delete-scope="document">
+          <i class="fa-solid fa-file-pdf" aria-hidden="true"></i>
+          <span class="choice-text">
+            <span class="choice-title">Every page in this document</span>
+            <span class="choice-copy">${escapeHTML(documentCopy)}</span>
+          </span>
+        </button>
+      `;
 
   return `
     <form class="saitosign-delete">
@@ -24,16 +39,10 @@ function deleteTemplate(view = {}) {
           <i class="fa-solid fa-layer-group" aria-hidden="true"></i>
           <span class="choice-text">
             <span class="choice-title">Every page</span>
-            <span class="choice-copy">Remove this item from every page across all uploaded documents.</span>
+            <span class="choice-copy">${everyCopy}</span>
           </span>
         </button>
-        <button type="button" class="choice" data-delete-scope="document">
-          <i class="fa-solid fa-file-pdf" aria-hidden="true"></i>
-          <span class="choice-text">
-            <span class="choice-title">Every page in this document</span>
-            <span class="choice-copy">${escapeHTML(documentCopy)}</span>
-          </span>
-        </button>
+        ${documentChoice}
         <button type="button" class="choice" data-delete-scope="instance">
           <i class="fa-solid fa-location-dot" aria-hidden="true"></i>
           <span class="choice-text">

@@ -1,6 +1,7 @@
 const SaitoOverlay = require('../../../../../lib/saito/ui/saito-overlay/saito-overlay');
 const FieldTemplate = require('./field.template');
 const DeletePrompt = require('./delete');
+const { pdfEntries } = require('../../document');
 
 class FieldOverlay {
   constructor(app, mod) {
@@ -44,7 +45,8 @@ class FieldOverlay {
     prompt.render(
       {
         label: this.view.item_label || '',
-        documentName: this.view.document_name || ''
+        documentName: this.view.document_name || '',
+        documentCount: pdfEntries(this.mod.document).length
       },
       {
         onChoose: (scope) => {

@@ -99,7 +99,7 @@ function finalizeActions() {
   return `
     <p class="share-instruction">Click below to prepare the document for users to sign.</p>
     <div class="status-actions">
-      <button type="button" class="saito-button-primary" data-publish-action="finalize">Prepare for Signing</button>
+      <button type="button" class="saito-button-primary" data-publish-action="finalize">Continue</button>
     </div>
   `;
 }
@@ -159,8 +159,9 @@ function shareSlide(state) {
       actions = readyActions();
     }
   }
+  const confirming = !state.finalized;
   return {
-    title: 'Document Status',
+    title: confirming ? 'Ready to Sign Document?' : 'Document Status',
     body: `
       <div class="share-step">
         ${peopleHTML(state)}

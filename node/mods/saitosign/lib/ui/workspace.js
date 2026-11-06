@@ -1,4 +1,5 @@
 const WorkspaceTemplate = require('./workspace.template');
+const { paintPage, releasePage, releaseDocuments } = require('./pdf-document');
 const FieldOverlay = require('./overlays/field');
 const IdentityPrompt = require('./overlays/identity');
 const SignOverlay = require('./overlays/sign');
@@ -149,6 +150,8 @@ class Workspace {
     const src = pdfEntries(doc).map((entry) => entry.url || '').join('|');
     let root = container.querySelector(':scope > .workspace');
     if (!root || root.dataset.src !== src) {
+      this.disconnectPages();
+      releaseDocuments();
       container.innerHTML = WorkspaceTemplate(this.view());
       root = container.querySelector(':scope > .workspace');
       root.dataset.src = src;
@@ -160,13 +163,20 @@ class Workspace {
 
     this.fitSheet(root);
     root.querySelector('.reader').innerHTML = WorkspaceTemplate.reader(this.view());
-    this.loadPages(root);
+    this.watchPages(root);
     this.listen();
   }
 
   update(root) {
     const view = this.view();
-    root.querySelector('.rail').innerHTML = WorkspaceTemplate.rail(view);
+    if (!this.patchRail(root, view)) {
+      const list = root.querySelector('.rail .field-list');
+      const listScroll = list ? list.scrollTop : 0;
+      root.querySelector('.rail').innerHTML = WorkspaceTemplate.rail(view);
+      this.keepListPosition(root, listScroll);
+    } else {
+      this.keepListPosition(root, root.querySelector('.rail .field-list')?.scrollTop || 0);
+    }
     root.querySelector(':scope > .actions-col')?.remove();
     this.paintFields(root, view);
 
@@ -176,8 +186,8 @@ class Workspace {
     }
 
     this.fitSheet(root);
-    root.querySelector('.reader').innerHTML = WorkspaceTemplate.reader(this.view());
-    this.loadPages(root);
+    root.querySelector('.reader').innerHTML = WorkspaceTemplate.reader(view);
+    this.refreshPages(root);
     if (this.pending_scroll) {
       this.pending_scroll = false;
       const fieldId = this.scroll_field;
@@ -1013,10 +1023,12 @@ class Workspace {
     overlay.render(
       {
         name: user?.name || '',
-        email: user?.email || ''
+        email: user?.email || '',
+        signAll: signerCoversAllPages(doc, start.user)
       },
       {
         onSign: () => this.signThenAdvance(start),
+        onSignAll: () => this.signAllPages(start),
         onClose: () => {
           if (this.sign_closing) {
             return;
@@ -1042,6 +1054,7 @@ class Workspace {
       return false;
     }
     this.sign_lock = true;
+    this.sign_error = '';
     this.cancelSignSequence();
     const token = this.sign_step;
     try {
@@ -1155,20 +1168,160 @@ class Workspace {
     });
   }
 
-  async signAction(action) {
+  async signAllPages(action) {
+    if (this.sign_lock) {
+      return false;
+    }
+    this.sign_lock = true;
+    this.sign_error = '';
+    const token = this.sign_step;
+    const userIndex = action?.user;
+    try {
+      const doc = this.mod.document;
+      const pending = unsignedPlacements(this.app, doc, userIndex);
+      const pageCount = Number(doc?.document?.page_count) || pending.length;
+      if (!pending.length) {
+        this.finishSigning(userIndex);
+        return true;
+      }
+      let privateKey = null;
+      for (let index = 0; index < pending.length; index += 1) {
+        if (this.sign_step !== token || this.sign_overlay == null) {
+          return true;
+        }
+        const current = pending[index];
+        const root = document.querySelector('.saito-container > .workspace');
+        if (!root) {
+          return true;
+        }
+        this.sign_overlay.setProgress(`Signing page ${current.page} of ${pageCount}`);
+        this.focusSigningTarget(root, current);
+        const scrolled = this.scrollToField(root, current.id, { smooth: true, preferTop: true });
+        if (!privateKey) {
+          privateKey = await this.app.wallet.getPrivateKey();
+        }
+        await scrolled;
+        if (this.sign_step !== token || this.sign_overlay == null) {
+          return true;
+        }
+        const signed = await this.signAction(current, privateKey);
+        if (!signed) {
+          const reason = this.sign_error || 'This signature could not be created.';
+          this.sign_error = `Signing stopped on page ${current.page}. ${reason} Signatures already added are saved.`;
+          this.focus_field = current.id;
+          this.page = current.page;
+          return false;
+        }
+        this.markFieldSigned(root, current);
+        await waitForPaint();
+        await new Promise((resolve) => setTimeout(resolve, 280));
+      }
+      if (this.sign_step !== token || this.sign_overlay == null) {
+        return true;
+      }
+      this.finishSigning(userIndex);
+      return true;
+    } catch (err) {
+      this.sign_error = err?.message || 'Could not sign the remaining pages. Signatures already added are saved.';
+      return false;
+    } finally {
+      this.sign_lock = false;
+    }
+  }
+
+  finishSigning() {
+    this.dismissSignOverlay();
+    this.focus_field = null;
+    this.confirming_field = null;
+    const root = document.querySelector('.saito-container > .workspace');
+    if (root) {
+      this.update(root);
+    }
+    this.publish.openStatus('You have added your signature everywhere required on the document.');
+  }
+
+  focusSigningTarget(root, action) {
+    this.page = action.page;
+    this.focus_field = action.id;
+    const input = root.querySelector('[data-page-input]');
+    if (input && document.activeElement !== input) {
+      input.value = String(action.page);
+    }
+    root.querySelectorAll('.rail .row.active, .pdf-page .field.active').forEach((el) => {
+      el.classList.remove('active');
+    });
+    root.querySelectorAll('.rail [data-open-field][aria-current]').forEach((button) => {
+      button.removeAttribute('aria-current');
+    });
+    const rowButton = root.querySelector(`.rail [data-open-field="${CSS.escape(String(action.id))}"]`);
+    const row = rowButton?.closest('.row');
+    if (row) {
+      row.classList.add('active');
+    }
+    if (rowButton) {
+      rowButton.setAttribute('aria-current', 'true');
+    }
+    const field = root.querySelector(`.pdf-page .field[data-field-id="${CSS.escape(String(action.id))}"]`);
+    if (field) {
+      field.classList.add('active');
+    }
+    const list = root.querySelector('.rail .field-list');
+    this.keepListPosition(root, list ? list.scrollTop : 0);
+  }
+
+  markFieldSigned(root, action) {
+    const user = this.mod.document?.users?.[action.user];
+    const name = String(user?.name || '').trim();
+    const kind = typeLabel(action.type, true);
+    const listLabel = name ? `${kind} - ${name} - page ${action.page}` : `${kind} - page ${action.page}`;
+    const pageLabel = name ? `${kind} - ${name}` : kind;
+    const button = root.querySelector(`.rail [data-open-field="${CSS.escape(String(action.id))}"]`);
+    const row = button?.closest('.row');
+    if (row) {
+      row.classList.add('signed');
+    }
+    const label = button?.querySelector('.label');
+    if (label) {
+      label.textContent = listLabel;
+    }
+    const swatch = button?.querySelector('.swatch');
+    if (swatch) {
+      swatch.style.background = 'var(--saitosign-signed-ink)';
+    }
+    const field = root.querySelector(`.pdf-page .field[data-field-id="${CSS.escape(String(action.id))}"]`);
+    if (!field) {
+      return;
+    }
+    field.classList.add('signed');
+    field.style.background = '';
+    field.style.borderColor = '';
+    const text = field.querySelector('.text');
+    if (text) {
+      text.textContent = pageLabel;
+    }
+    const layer = field.closest('.fields');
+    if (layer) {
+      delete layer.dataset.markup;
+    }
+  }
+
+  async signAction(action, privateKey) {
     const doc = this.mod.document;
     const user = action ? doc?.users?.[action.user] : null;
     if (!doc?.finalized || !action || !user || !canSignAction(this.app, action, user, doc)) {
+      this.sign_error = 'This signature is no longer available to sign.';
       return false;
     }
     if (!commitmentIntact(this.app, doc)) {
+      this.sign_error = 'This document has changed since it was prepared, so it cannot be signed.';
       return false;
     }
-    const privateKey = await this.app.wallet.getPrivateKey();
+    const key = privateKey || await this.app.wallet.getPrivateKey();
     const signed = action.type === 'initial'
-      ? addInitial(this.app, action, privateKey, doc.hash)
-      : addSignature(this.app, action, privateKey, doc.hash);
+      ? addInitial(this.app, action, key, doc.hash)
+      : addSignature(this.app, action, key, doc.hash);
     if (!signed?.signature) {
+      this.sign_error = 'The signature could not be created. Please try again.';
       return false;
     }
     const kept = (Array.isArray(user.signatures) ? user.signatures : []).filter((entry) => {
@@ -1622,77 +1775,187 @@ class Workspace {
       }
       layer.classList.toggle('placing', view.placing);
       layer.classList.toggle('marking', view.can_edit);
-      layer.innerHTML = WorkspaceTemplate.fields(page);
+      const html = WorkspaceTemplate.fields(page);
+      if (layer.dataset.markup === html) {
+        return;
+      }
+      layer.dataset.markup = html;
+      layer.innerHTML = html;
     });
   }
 
-  // Each page is its own sheet. The plugin is loaded once, after the sheet has
-  // a size, and is never torn down to change pages. Reloading one iframe with
-  // `#page=N&zoom=page-fit` left the newly opened page blank: Chrome ignores
-  // `zoom=page-fit` and paints a fragment target only after a resize, which
-  // the old path never sent. Page numbers in the fragment are 1-based within
-  // the source PDF that owns that continuous page.
-  loadPages(root) {
-    const doc = this.mod.document;
-    const wrap = root.querySelector('.sheet-wrap');
-    if (!hasPdf(doc) || !wrap) {
+  keepListPosition(root, scrollTop) {
+    const list = root.querySelector('.rail .field-list');
+    if (!list) {
       return;
     }
+    list.scrollTop = scrollTop;
+    const active = list.querySelector('.row.active');
+    if (!active) {
+      return;
+    }
+    const listBox = list.getBoundingClientRect();
+    const box = active.getBoundingClientRect();
+    if (box.top < listBox.top) {
+      list.scrollTop += box.top - listBox.top;
+    } else if (box.bottom > listBox.bottom) {
+      list.scrollTop += box.bottom - listBox.bottom;
+    }
+  }
 
-    const wrapBox = wrap.getBoundingClientRect();
-    const margin = wrapBox.height || 400;
-    root.querySelectorAll('.pdf-page').forEach((pageEl) => {
-      const frame = pageEl.querySelector('.page');
-      if (!frame || frame.dataset.loaded) {
-        return;
+  patchRail(root, view) {
+    const rail = root.querySelector('.rail');
+    if (!rail) {
+      return false;
+    }
+    const started = view.field_list.length > 0;
+    const buttons = [...rail.querySelectorAll('.field-list [data-open-field]')];
+    if (buttons.length !== view.field_list.length) {
+      return false;
+    }
+    for (let index = 0; index < buttons.length; index += 1) {
+      if (Number(buttons[index].dataset.openField) !== Number(view.field_list[index].id)) {
+        return false;
       }
+    }
+    const guideText = view.finalized
+      ? 'Review the document and provide your signature where needed.'
+      : started
+        ? 'Add further signature boxes, then click Ready to Sign when done.'
+        : 'Click on any page where a signature is required.';
+    const guide = rail.querySelector('.guide');
+    if (!guide) {
+      return false;
+    }
+    if (guide.textContent !== guideText) {
+      guide.textContent = guideText;
+    }
+    const notice = rail.querySelector('.notice');
+    const noticeText = view.notice || '';
+    if (noticeText) {
+      if (!notice) {
+        return false;
+      }
+      if (notice.textContent !== noticeText) {
+        notice.textContent = noticeText;
+      }
+    } else if (notice) {
+      return false;
+    }
+    const exportLabel = view.finalized
+      ? (view.verified ? 'Document Verified' : 'Check Document Status')
+      : (started ? 'Ready to Sign' : '');
+    const exportButton = rail.querySelector('[data-export]');
+    if (exportLabel) {
+      if (!exportButton) {
+        return false;
+      }
+      if (exportButton.textContent !== exportLabel) {
+        exportButton.textContent = exportLabel;
+      }
+      exportButton.classList.toggle('verified', view.verified === true);
+    } else if (exportButton) {
+      return false;
+    }
+    view.field_list.forEach((field, index) => {
+      const button = buttons[index];
+      const row = button.closest('.row');
+      row.classList.toggle('signed', field.signed === true);
+      row.classList.toggle('active', field.active === true);
+      row.classList.toggle('confirming', field.confirming === true);
+      if (field.active) {
+        button.setAttribute('aria-current', 'true');
+      } else {
+        button.removeAttribute('aria-current');
+      }
+      const label = button.querySelector('.label');
+      if (label && label.textContent !== field.label) {
+        label.textContent = field.label;
+      }
+      const swatch = button.querySelector('.swatch');
+      if (swatch) {
+        swatch.style.background = field.signed ? 'var(--saitosign-signed-ink)' : field.color;
+      }
+    });
+    const file = rail.querySelector('.file');
+    if (file && file.textContent !== view.file_name) {
+      file.textContent = view.file_name;
+    }
+    return true;
+  }
 
-      const box = pageEl.getBoundingClientRect();
-      const page = Number(pageEl.dataset.page);
-      const source = pageSource(doc, page);
-      const near = box.bottom >= wrapBox.top - margin && box.top <= wrapBox.bottom + margin;
-      if (!near && page !== this.page) {
-        return;
-      }
-      if (box.width < 40 || box.height < 40 || !source?.entry?.url) {
-        return;
-      }
+  disconnectPages() {
+    if (this.pageObserver) {
+      this.pageObserver.disconnect();
+      this.pageObserver = null;
+    }
+  }
 
-      frame.dataset.loaded = '1';
-      frame.src = `${source.entry.url}#page=${source.localPage}&view=FitH&toolbar=0&navpanes=0`;
-      frame.addEventListener(
-        'load',
-        () => {
-          const width = frame.getBoundingClientRect().width;
-          if (!width) {
-            return;
-          }
-          frame.style.width = `${Math.floor(width) - 1}px`;
-          requestAnimationFrame(() => {
-            frame.style.width = '';
-          });
-        },
-        { once: true }
-      );
+  watchPages(root) {
+    this.disconnectPages();
+    const wrap = root.querySelector('.sheet-wrap');
+    if (!wrap || typeof IntersectionObserver !== 'function') {
+      root.querySelectorAll('.pdf-page').forEach((page) => {
+        page.dataset.near = '1';
+      });
+      this.refreshPages(root);
+      return;
+    }
+    this.pageObserver = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          entry.target.dataset.near = '1';
+          this.paintPdfPage(entry.target);
+        } else {
+          entry.target.dataset.near = '0';
+          releasePage(entry.target);
+        }
+      });
+    }, { root: wrap, rootMargin: '100% 0px', threshold: 0 });
+    root.querySelectorAll('.pdf-page').forEach((page) => this.pageObserver.observe(page));
+  }
+
+  refreshPages(root) {
+    root.querySelectorAll('.pdf-page[data-near="1"]').forEach((page) => this.paintPdfPage(page));
+  }
+
+  paintPdfPage(pageEl) {
+    const source = pageSource(this.mod.document, Number(pageEl.dataset.page));
+    if (!source?.entry) {
+      return;
+    }
+    paintPage(pageEl, source.entry, source.localPage).catch((err) => {
+      console.error('SaitoSign could not render a PDF page.', err);
     });
   }
 
   onScroll(root) {
-    this.loadPages(root);
-    if (this.suspend_scroll) {
+    if (this.scroll_frame) {
       return;
     }
+    this.scroll_frame = requestAnimationFrame(() => {
+      this.scroll_frame = 0;
+      if (this.suspend_scroll) {
+        return;
+      }
 
-    const page = visiblePage(root);
-    if (!page || page === this.page) {
-      return;
-    }
+      const page = visiblePage(root);
+      if (!page || page === this.page) {
+        return;
+      }
 
-    this.page = page;
-    if (document.activeElement?.matches('[data-page-input]')) {
-      return;
-    }
-    root.querySelector('.reader').innerHTML = WorkspaceTemplate.reader(this.view());
+      this.page = page;
+      if (document.activeElement?.matches('[data-page-input]')) {
+        return;
+      }
+      const input = root.querySelector('[data-page-input]');
+      if (input) {
+        input.value = String(page);
+      }
+      const count = this.mod.document?.document?.page_count || page;
+      root.querySelector('[data-page="prev"]')?.toggleAttribute('disabled', page <= 1);
+      root.querySelector('[data-page="next"]')?.toggleAttribute('disabled', page >= count);
+    });
   }
 
   scrollToField(root, id, options = {}) {
@@ -1701,6 +1964,11 @@ class Workspace {
     if (!wrap || !el) {
       this.scrollToPage(root, this.page);
       return Promise.resolve();
+    }
+    const pageEl = el.closest('.pdf-page');
+    if (pageEl) {
+      pageEl.dataset.near = '1';
+      this.paintPdfPage(pageEl);
     }
 
     const wrapBox = wrap.getBoundingClientRect();
@@ -1746,7 +2014,7 @@ class Workspace {
     if (!smooth) {
       wrap.scrollTop = top;
       wrap.scrollLeft = left;
-      this.loadPages(root);
+      this.refreshPages(root);
       return new Promise((resolve) => {
         requestAnimationFrame(() => {
           this.suspend_scroll = false;
@@ -1768,7 +2036,7 @@ class Workspace {
         clearTimeout(fallback);
         wrap.removeEventListener('scrollend', finish);
         this.suspend_scroll = false;
-        this.loadPages(root);
+        this.refreshPages(root);
         resolve();
       };
       const fallback = setTimeout(finish, 800);
@@ -1784,11 +2052,13 @@ class Workspace {
     if (!wrap || !el) {
       return;
     }
+    el.dataset.near = '1';
+    this.paintPdfPage(el);
 
     this.suspend_scroll = true;
     const top = el.getBoundingClientRect().top - wrap.getBoundingClientRect().top;
     wrap.scrollTop += top;
-    this.loadPages(root);
+    this.refreshPages(root);
     requestAnimationFrame(() => {
       this.suspend_scroll = false;
     });
@@ -1923,10 +2193,44 @@ class Workspace {
       const root = document.querySelector('.saito-container > .workspace');
       if (root) {
         this.fitSheet(root);
-        this.loadPages(root);
+        this.refreshPages(root);
       }
     });
   }
+}
+
+function signerCoversAllPages(doc, userIndex) {
+  const count = Number(doc?.document?.page_count) || 0;
+  if (count < 2 || !Number.isInteger(userIndex)) {
+    return false;
+  }
+  const pages = new Set();
+  (doc.actions || []).forEach((action) => {
+    if (action.user !== userIndex || (action.type !== 'signature' && action.type !== 'initial')) {
+      return;
+    }
+    const page = Number(action.page);
+    if (page >= 1 && page <= count) {
+      pages.add(page);
+    }
+  });
+  return pages.size === count;
+}
+
+function unsignedPlacements(app, doc, userIndex) {
+  const user = doc?.users?.[userIndex];
+  if (!user) {
+    return [];
+  }
+  return (doc.actions || [])
+    .filter((action) => action.user === userIndex && canSignAction(app, action, user, doc))
+    .sort((left, right) => left.page - right.page || left.y - right.y || left.x - right.x || left.id - right.id);
+}
+
+function waitForPaint() {
+  return new Promise((resolve) => {
+    requestAnimationFrame(() => requestAnimationFrame(resolve));
+  });
 }
 
 function everyPageChecked(form, type) {
@@ -2288,3 +2592,5 @@ function clamp01(value) {
 }
 
 module.exports = Workspace;
+module.exports.signerCoversAllPages = signerCoversAllPages;
+module.exports.unsignedPlacements = unsignedPlacements;

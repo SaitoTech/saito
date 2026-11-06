@@ -175,7 +175,7 @@ function pagesHTML(view) {
     .map(
       (page) => `
         <article class="pdf-page" data-page="${page.page}">
-          <iframe class="page" title="${escapeHTML(view.file_name)}, page ${page.page}"></iframe>
+          <canvas class="page"></canvas>
           <div class="fields${placing}${marking}">${fieldsHTML(page)}</div>
         </article>
       `

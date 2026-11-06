@@ -36,7 +36,7 @@ function selectSlide(state) {
           </div>
     `;
   return {
-    title: 'How should users verify their identity before signing this document?',
+    title: 'Select a signing mode for this document.',
     body: `
       <div class="choice">
         <div class="options" role="tablist" aria-label="Account level">
