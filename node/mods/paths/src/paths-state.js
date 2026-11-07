@@ -205,6 +205,8 @@
 
     if (this.game.state.events.bolshevik_revolution) { position++; }
 
+    if (this.game.state.events.treaty_of_brest_litovsk) { position++; }
+
     if (position != this.game.state.russian_capitulation_track) {    
       this.game.state.russian_capitulation_track = position;
       this.displayRussianCapitulationTrack();

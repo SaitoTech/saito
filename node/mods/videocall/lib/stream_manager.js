@@ -25,172 +25,6 @@ class StreamManager {
 
     this.parseSettings(settings);
 
-    this.listen('stun-toggle-video', async () => {
-      // Turn off Video
-      if (!this.active) {
-        console.warn('TALK [stun-toggle] event when not active...');
-        return;
-      }
-
-      if (this.videoEnabled === true) {
-        if (!this.localStream.getVideoTracks()[0]) return;
-        this.localStream.getVideoTracks()[0].enabled = false;
-        this.videoEnabled = false;
-      } else {
-        // Turn on Video
-
-        this.videoEnabled = true;
-
-        if (!this.localStream.getVideoTracks()?.length) {
-          try {
-            const newLocalStream = await navigator.mediaDevices.getUserMedia(
-              this.returnConstraints(true)
-            );
-            if (this.detached) {
-              newLocalStream.getTracks().forEach((track) => track.stop());
-              return;
-            }
-
-            const videoTrack = newLocalStream.getVideoTracks()[0];
-            this.localStream.addTrack(videoTrack);
-
-            // Add new track to the local stream
-            this.app.connection.emit('videocall-stream', 'local', this.localStream);
-            this.app.connection.emit('add-local-stream-request', this.localStream);
-
-            this.mod.stun.peers.forEach((peerConnection, key) => {
-              console.info('TALK [stun-toggle-video] -- Attach new video to: ' + key);
-              if (this.mod.room_obj.call_peers.includes(key)) {
-                const videoSenders = peerConnection
-                  .getSenders()
-                  .filter((sender) => sender.track && sender.track.kind === 'video');
-                if (videoSenders.length > 0) {
-                  console.warn('TALK [stun-toggle-video]: replacing tracks!');
-                  videoSenders.forEach((sender) => {
-                    sender.replaceTrack(videoTrack);
-                  });
-                } else {
-                  peerConnection.addTrack(videoTrack);
-                }
-              }
-            });
-          } catch (err) {
-            this.mod.diagnostics?.record('local', `Enable camera failed: ${err.name}`);
-            console.error('TALK [stun-toggle-video] ERROR:', err);
-          }
-        } else {
-          this.localStream.getVideoTracks()[0].enabled = true;
-        }
-      }
-
-      let data = {
-        enabled: this.videoEnabled,
-        public_key: this.mod.publicKey
-      };
-
-      this.mod.sendOffChainMessage('toggle-video', data);
-    });
-
-    this.listen('stun-toggle-audio', async () => {
-      if (!this.active) {
-        console.warn('TALK [stun-toggle] event when not active...');
-        return;
-      }
-
-      this.audioEnabled = !this.audioEnabled;
-
-      this.localStream.getAudioTracks().forEach((track) => {
-        track.enabled = this.audioEnabled;
-      });
-
-      let data = {
-        public_key: this.mod.publicKey,
-        enabled: this.audioEnabled
-      };
-
-      this.app.connection.emit('peer-toggle-audio-status', {
-        enabled: this.audioEnabled,
-        public_key: 'local'
-      });
-
-      this.mod.sendOffChainMessage('toggle-audio', data);
-    });
-
-    this.listen('begin-share-screen', async () => {
-      if (!this.active) {
-        return;
-      }
-
-      try {
-        // this.presentationStream = await navigator.mediaDevices.getDisplayMedia({
-        //   video: {
-        //     displaySurface: 'window'
-        //   },
-        //   audio: true,
-        //   preferCurrentTab: false,
-        //   selfBrowserSurface: 'exclude',
-        //   surfaceSwitching: 'include',
-        //   monitorTypeSurfaces: 'exclude',
-        //   systemAudio: 'include',
-        // });
-
-        this.presentationStream = await navigator.mediaDevices.getDisplayMedia({
-          video: true,
-          audio: true,
-          selfBrowserSurface: 'include',
-          monitorTypeSurfaces: 'include',
-          systemAudio: 'include'
-        });
-        if (this.detached) {
-          this.presentationStream.getTracks().forEach((track) => track.stop());
-          this.presentationStream = null;
-          return;
-        }
-        this.presentationStream.getVideoTracks()[0].onended = this.endPresentation.bind(this);
-
-        this.mod.screen_share = true;
-
-        await this.mod.sendOffChainMessage('screen-share-start', {});
-
-        /// emit event to make presentation be the large screen and make presentation mode on
-        this.app.connection.emit(
-          'add-remote-stream-request',
-          'presentation',
-          this.presentationStream
-        );
-
-        console.debug(
-          'TALK [begin-screen-share]: ',
-          this.mod.room_obj.call_peers,
-          this.mod.stun.peers
-        );
-
-        this.mod.stun.peers.forEach((pc, key) => {
-          if (this.mod.room_obj.call_peers.includes(key)) {
-            this.presentationStream.getTracks().forEach((track) => {
-              pc.addTrack(track, this.presentationStream);
-            });
-            // for (let track of this.presentationStream.getTracks()) {
-            //   console.log('tracks added', track)
-            //   pc.addTrack(track);
-            // }
-          }
-        });
-
-        this.app.connection.emit('toggle-screen-share-label', true);
-      } catch (err) {
-        this.mod.diagnostics?.record('local', `Screen capture failed: ${err.name}`);
-        console.error('TALK [begin-screen-share]: Error:', err);
-      }
-    });
-
-    this.listen('stop-share-screen', () => {
-      if (!this.active) {
-        return;
-      }
-      this.endPresentation();
-    });
-
     this.listen('stun-connection-connected', (peerId) => {
       if (!this.active) {
         return;
@@ -270,7 +104,7 @@ class StreamManager {
 
         /*console.log(`STUN STATS [${peerId}]: `, my_stats);*/
 
-        app.connection.emit('videocall-connection-strength', peerId, my_stats.mos);
+        this.mod.CallInterface?.updateConnectionStrength?.(peerId, my_stats.mos);
       }, 1000);
     });
 
@@ -318,44 +152,8 @@ class StreamManager {
       }
 
       // Update interface / video element
-      this.app.connection.emit('add-remote-stream-request', id, remoteStream);
+      this.mod.CallInterface?.receiveRemoteStream?.(id, remoteStream);
 
-      if (remoteStream.getAudioTracks()?.length) {
-        this.analyzeAudio(remoteStream, peerId);
-      }
-    });
-
-    //Launch the Stun call
-    this.listen('start-stun-call', async () => {
-      this.active = true;
-      this.leaving = false;
-
-      this.app.browser.lockNavigation(this.visibilityChange.bind(this), true);
-
-      console.info('TALK [start-stun-call]', JSON.parse(JSON.stringify(this.mod.room_obj)));
-      this.firstConnect = true;
-
-      //Render the UI component
-      this.app.connection.emit('show-call-interface', this.videoEnabled, this.audioEnabled);
-
-      await this.getLocalMedia();
-      if (this.detached) return;
-
-      this.mod.sendCallEntryTransaction();
-
-      let sound = new Audio('/saito/sound/Calm.mp3');
-      sound.play();
-
-      this.analyzeAudio(this.localStream, 'local');
-
-      // Reattach remote-streams if necesssary
-      console.info('TALK [StreamManager] restore remote streams....');
-
-      /*this.remoteStreams.forEach((stream, id) => {
-        console.info('TALK [StreamManager] cached stream for ' + id, stream);
-        this.app.connection.emit('add-remote-stream-request', id, stream);
-        //analyze audio..., maybe?
-      });*/
     });
 
     this.listen('stun-new-peer-connection', async (publicKey, peerConnection) => {
@@ -369,7 +167,7 @@ class StreamManager {
       if (this.mod.room_obj.call_peers.includes(publicKey)) {
         // Show status even if capture or signaling fails before media arrives.
         if (!this.remoteStreams.has(publicKey)) {
-          this.app.connection.emit('add-remote-stream-request', publicKey, null);
+          this.mod.CallInterface?.receiveRemoteStream?.(publicKey, null);
         }
         peerConnection.firstConnect = true;
 
@@ -389,8 +187,10 @@ class StreamManager {
                 track
               );
               peerConnection.addTrack(track);
+              this.markOutgoingSender(peerConnection, track, 'camera');
               this.mod.diagnostics?.record(publicKey, `Attached local ${track.kind} track`);
             });
+            this.mod.applyCameraProfile?.();
           } catch (err) {
             this.mod.diagnostics?.record(publicKey, `Attach media failed: ${err.name}`);
             console.error(err);
@@ -415,33 +215,13 @@ class StreamManager {
             this.presentationStream.getTracks().forEach((track) => {
               if (peerConnection.getSenders().some((sender) => sender.track === track)) return;
               peerConnection.addTrack(track, this.presentationStream);
+              this.markOutgoingSender(peerConnection, track, 'screen');
             });
+            this.mod.applyScreenShareBitrate?.();
           }, 1500);
         }
       }
 
-      /*
-      console.info('TALK [StreamManager] restore remote streams AGAIN....');
-
-      const rs = this.remoteStreams.get(publicKey);
-      if (rs) {
-        this.app.connection.emit('add-remote-stream-request', publicKey, rs);
-      }*/
-    });
-
-    this.listen('stun-disconnect', () => {
-      if (!this.active) {
-        return;
-      }
-      console.info('TALK [stun-disconnect]: hanging up...');
-      this.app.keychain.addKey(this.mod.room_obj.call_id, { ended: true });
-
-      // Programatic -- also triggered by navigating or refreshing!
-      this.leaveCall();
-
-      if (this.mod.CallInterface?.close) {
-        this.mod.CallInterface.close();
-      }
     });
   }
 
@@ -464,10 +244,169 @@ class StreamManager {
       delete this.monitors[peerId];
     }
 
-    if (this.audioStreamAnalysis) {
-      clearInterval(this.audioStreamAnalysis);
-      this.audioStreamAnalysis = null;
+  }
+
+  async start() {
+    if (this.detached) return;
+    this.mod.diagnostics?.beginCall?.();
+    this.active = true;
+    this.leaving = false;
+
+    this.app.browser.lockNavigation(this.visibilityChange.bind(this), true);
+
+    console.info('TALK [start]', JSON.parse(JSON.stringify(this.mod.room_obj)));
+    this.firstConnect = true;
+
+    // Render the UI component and tell other modules the call has started.
+    this.app.connection.emit('videocall-call-started', this.videoEnabled, this.audioEnabled);
+
+    await this.getLocalMedia();
+    if (this.detached) return;
+
+    this.mod.sendCallEntryTransaction();
+
+    let sound = new Audio('/saito/sound/Calm.mp3');
+    sound.play();
+
+    console.info('TALK [StreamManager] restore remote streams....');
+  }
+
+  async toggleVideo() {
+    if (this.detached || !this.active) {
+      if (!this.active) console.warn('TALK [stun-toggle] event when not active...');
+      return;
     }
+
+    if (this.videoEnabled === true) {
+      if (!this.localStream.getVideoTracks()[0]) return;
+      this.localStream.getVideoTracks()[0].enabled = false;
+      this.videoEnabled = false;
+    } else {
+      this.videoEnabled = true;
+
+      if (!this.localStream.getVideoTracks()?.length) {
+        try {
+          const newLocalStream = await navigator.mediaDevices.getUserMedia(
+            this.returnConstraints(true)
+          );
+          if (this.detached) {
+            newLocalStream.getTracks().forEach((track) => track.stop());
+            return;
+          }
+
+          const videoTrack = newLocalStream.getVideoTracks()[0];
+          this.localStream.addTrack(videoTrack);
+
+          this.app.connection.emit('videocall-stream', 'local', this.localStream);
+          this.mod.CallInterface?.receiveLocalStream?.(this.localStream);
+
+          this.mod.stun.peers.forEach((peerConnection, key) => {
+            console.info('TALK [toggleVideo] -- Attach new video to: ' + key);
+            if (this.mod.room_obj.call_peers.includes(key)) {
+              const videoSenders = peerConnection
+                .getSenders()
+                .filter((sender) => sender.track && sender.track.kind === 'video');
+              if (videoSenders.length > 0) {
+                console.warn('TALK [toggleVideo]: replacing tracks!');
+                videoSenders.forEach((sender) => {
+                  sender.replaceTrack(videoTrack);
+                  if (sender.trackRole !== 'screen') sender.trackRole = 'camera';
+                });
+              } else {
+                peerConnection.addTrack(videoTrack);
+                this.markOutgoingSender(peerConnection, videoTrack, 'camera');
+              }
+            }
+          });
+          this.mod.applyCameraProfile?.();
+        } catch (err) {
+          this.mod.diagnostics?.record('local', `Enable camera failed: ${err.name}`);
+          console.error('TALK [toggleVideo] ERROR:', err);
+        }
+      } else {
+        this.localStream.getVideoTracks()[0].enabled = true;
+      }
+    }
+
+    this.mod.sendOffChainMessage('toggle-video', {
+      enabled: this.videoEnabled,
+      public_key: this.mod.publicKey
+    });
+  }
+
+  async toggleAudio() {
+    if (this.detached || !this.active) {
+      if (!this.active) console.warn('TALK [stun-toggle] event when not active...');
+      return;
+    }
+
+    this.audioEnabled = !this.audioEnabled;
+
+    this.localStream.getAudioTracks().forEach((track) => {
+      track.enabled = this.audioEnabled;
+    });
+
+    this.app.connection.emit('videocall-peer-audio-changed', {
+      enabled: this.audioEnabled,
+      public_key: 'local'
+    });
+
+    this.mod.sendOffChainMessage('toggle-audio', {
+      public_key: this.mod.publicKey,
+      enabled: this.audioEnabled
+    });
+  }
+
+  async beginShareScreen() {
+    if (this.detached || !this.active) {
+      return;
+    }
+
+    try {
+      this.presentationStream = await navigator.mediaDevices.getDisplayMedia({
+        video: true,
+        audio: true,
+        selfBrowserSurface: 'include',
+        monitorTypeSurfaces: 'include',
+        systemAudio: 'include'
+      });
+      if (this.detached) {
+        this.presentationStream.getTracks().forEach((track) => track.stop());
+        this.presentationStream = null;
+        return;
+      }
+      this.presentationStream.getVideoTracks()[0].onended = this.endPresentation.bind(this);
+
+      this.mod.screen_share = true;
+
+      await this.mod.sendOffChainMessage('screen-share-start', {});
+
+      this.mod.CallInterface?.receiveRemoteStream?.('presentation', this.presentationStream);
+
+      console.debug('TALK [begin-screen-share]: ', this.mod.room_obj.call_peers, this.mod.stun.peers);
+
+      this.mod.stun.peers.forEach((pc, key) => {
+        if (this.mod.room_obj.call_peers.includes(key)) {
+          this.presentationStream.getTracks().forEach((track) => {
+            pc.addTrack(track, this.presentationStream);
+            this.markOutgoingSender(pc, track, 'screen');
+          });
+        }
+      });
+      this.mod.applyScreenShareBitrate?.();
+
+      this.mod.CallInterface?.setPresenting?.(true);
+    } catch (err) {
+      this.mod.diagnostics?.record('local', `Screen capture failed: ${err.name}`);
+      console.error('TALK [begin-screen-share]: Error:', err);
+    }
+  }
+
+  stopShareScreen() {
+    if (this.detached || !this.active) {
+      return;
+    }
+    this.endPresentation();
   }
 
   parseSettings(settings) {
@@ -583,16 +522,6 @@ class StreamManager {
 
     this.localStream = captured;
 
-    if (this.videoEnabled) {
-      this.localStream.getVideoTracks().forEach((track) => {
-        track.applyConstraints({
-          width: { min: 640, /*ideal: 900,*/ max: 1280 },
-          height: { min: 400, max: 720 },
-          aspectRatio: { ideal: 1.333333 }
-        });
-      });
-    }
-
     this.localStream.getAudioTracks().forEach((track) => {
       track.enabled = this.audioEnabled;
     });
@@ -600,7 +529,59 @@ class StreamManager {
     this.mod.diagnostics?.record('local', `Captured ${this.localStream.getAudioTracks().length} audio / ${this.localStream.getVideoTracks().length} video tracks`);
     //Plug local stream into UI component
     this.app.connection.emit('videocall-stream', 'local', this.localStream);
-    this.app.connection.emit('add-local-stream-request', this.localStream);
+    this.mod.CallInterface?.receiveLocalStream?.(this.localStream);
+    await this.mod.applyCameraProfile?.();
+  }
+
+  markOutgoingSender(peerConnection, track, trackRole) {
+    if (track?.kind !== 'video') return;
+    const sender = peerConnection.getSenders().find((item) => item.track === track);
+    if (sender) sender.trackRole = trackRole;
+  }
+
+  // Width, height, and frame rate for the live camera track. This is not
+  // returnConstraints(), which only chooses the device for getUserMedia.
+  // Requests are applied one at a time so a newer profile replaces an older one.
+  setCameraCapture({ width, height, frameRate }) {
+    this.pendingCameraCapture = { width, height, frameRate };
+    if (!this.cameraCaptureQueue) {
+      this.cameraCaptureQueue = this.drainCameraCapture();
+    }
+    return this.cameraCaptureQueue;
+  }
+
+  async drainCameraCapture() {
+    try {
+      while (this.pendingCameraCapture) {
+        const requested = this.pendingCameraCapture;
+        this.pendingCameraCapture = null;
+        await this.applyCameraCapture(requested);
+      }
+    } finally {
+      this.cameraCaptureQueue = null;
+      if (this.pendingCameraCapture) return this.setCameraCapture(this.pendingCameraCapture);
+    }
+  }
+
+  async applyCameraCapture({ width, height, frameRate }) {
+    const track = this.localStream?.getVideoTracks?.()[0];
+    if (!track || track.readyState === 'ended' || typeof track.applyConstraints !== 'function') {
+      return;
+    }
+    const key = `${width}x${height}@${frameRate}`;
+    if (track.cameraCaptureKey === key) return;
+    try {
+      await track.applyConstraints({
+        width: { ideal: width },
+        height: { ideal: height },
+        frameRate: { ideal: frameRate }
+      });
+      if (this.pendingCameraCapture) return;
+      track.cameraCaptureKey = key;
+    } catch (err) {
+      this.mod.diagnostics?.record('local', `Camera capture failed: ${err.name}`);
+      console.error('TALK [setCameraCapture]', err);
+    }
   }
 
   setTranscribing(enabled) {
@@ -632,11 +613,10 @@ class StreamManager {
     if (this.auto_disconnect) {
       siteMessage(`${this.app.keychain.returnUsername(peer)} hung up`, 1500);
       setTimeout(() => {
-        this.app.connection.emit('stun-disconnect');
+        this.leaveCall();
       }, 1500);
     } else {
       siteMessage(`${this.app.keychain.returnUsername(peer)} ${message}`, 2500);
-      //this.app.connection.emit("stun-switch-view");
     }
 
     let sound = new Audio('/saito/sound/Sharp.mp3');
@@ -647,10 +627,12 @@ class StreamManager {
 
   async leaveCall() {
     if (this.leaving || !this.active) return;
+    console.info('TALK [leaveCall]: hanging up...');
+    this.app.keychain.addKey(this.mod.room_obj.call_id, { ended: true });
     this.leaving = true;
     this.detach();
     const completion = [];
-    this.app.connection.emit('videocall-ended', completion);
+    this.app.connection.emit('videocall-call-ended', completion);
     // Let transcript recognition drain and saving finish independently of hangup.
     void Promise.allSettled(completion);
 
@@ -658,7 +640,11 @@ class StreamManager {
 
     this.endPresentation();
 
-    await this.mod.sendCallDisconnectTransaction();
+    // Close the interface at the same point the old command handler resumed:
+    // after the synchronous hang-up work, while the disconnect transaction is in flight.
+    const disconnecting = this.mod.sendCallDisconnectTransaction();
+    this.mod.CallInterface?.close?.();
+    await disconnecting;
 
     if (this.localStream) {
       this.localStream.getTracks().forEach((track) => {
@@ -669,7 +655,7 @@ class StreamManager {
 
     this.localStream = null; //My Video Feed
 
-    this.app.connection.emit('reset-stun');
+    this.mod.resetCall();
 
     //
     // Reset parameters
@@ -680,67 +666,25 @@ class StreamManager {
     this.transcribingPeers.clear();
     this.active = false;
 
-    if (this.audioStreamAnalysis) {
-      clearInterval(this.audioStreamAnalysis);
-      this.audioStreamAnalysis = null;
-    }
-
     console.info('TALK [leaveCall]: successfully disconnected...');
     let sound = new Audio('/saito/sound/Sharp.mp3');
     sound.play();
   }
 
-  analyzeAudio(stream, peer) {
-    /*  
-    let peer_manager_self = this;
-
-    const audioContext = new AudioContext();
-    const source = audioContext.createMediaStreamSource(stream);
-    const analyser = audioContext.createAnalyser();
-    source.connect(analyser);
-    analyser.fftSize = 512;
-    const bufferLength = analyser.frequencyBinCount;
-    const dataArray = new Uint8Array(bufferLength);
-
-    let has_mike = false;
-    const threshold = 20;
-
-    function update() {
-      analyser.getByteFrequencyData(dataArray);
-      const average = dataArray.reduce((a, b) => a + b) / bufferLength;
-
-      if (average > threshold && !has_mike) {
-        this.current_speaker = peer;
-
-        setTimeout(() => {
-          if (peer === this.current_speaker) {
-            peer_manager_self.app.connection.emit('stun-new-speaker', peer);
-            has_mike = true;
-          }
-        }, 1000);
-      } else if (average <= threshold) {
-        has_mike = false;
-      }
-    }
-    this.audioStreamAnalysis = setInterval(update, 1000);
-    */
-  }
-
   endPresentation() {
     if (this.mod.screen_share === true) {
       console.info('TALK [endPresentation] Screen sharing stopped by user');
-      this.app.connection.emit('remove-peer-box', 'presentation');
-      this.app.connection.emit(
-        'stun-switch-view',
+      this.mod.CallInterface?.presentationStopped?.();
+      this.mod.CallInterface?.switchLayout?.(
         this.app.options.stun.settings?.layout || this.mod.layout
       );
       this.mod.screen_share = null;
 
       //
-      // Reset the button here (not in the stop-share-screen handler) so the
+      // Reset the button here (not in stopShareScreen) so the
       // browser's native "Stop sharing" bar resets it too
       //
-      this.app.connection.emit('toggle-screen-share-label', false);
+      this.mod.CallInterface?.setPresenting?.(false);
 
       this.mod.sendOffChainMessage('screen-share-stop');
     }

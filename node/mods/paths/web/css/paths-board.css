@@ -48,12 +48,16 @@
   }
 
   .space.opponent-move > .army-tile,
-  .space.opponent-attack > .army-tile,
-  .space.opponent-move > .activation-tile,
-  .space.opponent-attack > .activation-tile,
+  .space.opponent-attack > .army-tile {
+    z-index: 3;
+  }
   .space.opponent-move > .trench-tile,
   .space.opponent-attack > .trench-tile {
-    z-index: 2;
+    z-index: 1;
+  }
+  .space.opponent-move > .oos-tile,
+  .space.opponent-attack > .oos-tile {
+    z-index: 10000;
   }
 
   .game-minimap {
@@ -873,7 +877,14 @@
   }
 
   .oos-tile {
-    z-index: 9999;
+    z-index: 10000;
+    width: 58%;
+    height: 58%;
+    top: auto;
+    left: auto;
+    right: -0.35rem;
+    bottom: -0.35rem;
+    pointer-events: none;
   }
 
   .allies-reserve-box {

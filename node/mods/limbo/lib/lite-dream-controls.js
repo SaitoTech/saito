@@ -17,8 +17,7 @@ class DreamControls {
 
     this.callbacks = {};
 
-    //Oof, I should change the name in video call (this actually refers to the hang up action)
-    app.connection.on('stun-disconnect', async () => {
+    app.connection.on('videocall-call-ended', async () => {
       console.log(this.mod.externalMediaControl, 'mod external media control');
       if (this.mod.externalMediaControl && this.mod.gameStreamCapturer) {
         // we don't want to exit the space when inside a game call
@@ -47,13 +46,13 @@ class DreamControls {
     });
 
     //Videocall connections
-    app.connection.on('videocall-add-party', (publicKey) => {
+    app.connection.on('videocall-peer-joined', (publicKey) => {
       if (this.mod.dreamer == this.mod.publicKey) {
         this.mod.sendAddSpeakerTransaction(publicKey);
       }
     });
 
-    app.connection.on('videocall-remove-party', (publicKey) => {
+    app.connection.on('videocall-peer-left', (publicKey) => {
       if (this.mod.dreamer == this.mod.publicKey) {
         this.mod.sendRemoveSpeakerTransaction(publicKey);
       }
@@ -96,7 +95,7 @@ class DreamControls {
       }
     });
 
-    app.connection.on('peer-toggle-audio-status', (obj) => {
+    app.connection.on('videocall-peer-audio-changed', (obj) => {
       let { public_key, enabled } = obj;
 
       /*console.log("Peer Audio Toggled", public_key, enabled);

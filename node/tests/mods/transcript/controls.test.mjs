@@ -122,7 +122,7 @@ test('module forwards call lifecycle and navigation to the transcript runtime', 
   app.connection.emit('videocall-stream', 'bob', stream);
   app.connection.emit('videocall-peer-left', 'bob');
   const completion = [];
-  app.connection.emit('videocall-ended', completion);
+  app.connection.emit('videocall-call-ended', completion);
   await Promise.all(completion);
   const navigation = [];
   app.connection.emit('saito-before-navigate', navigation);
@@ -188,7 +188,7 @@ test('inactive Transcript opens Start/Settings menu; active Transcript stops dir
   runtime.capturing = false;
   await action.callback();
   const completion = [];
-  app.connection.emit('videocall-ended', completion);
+  app.connection.emit('videocall-call-ended', completion);
   await Promise.all(completion);
   assert.equal(document.querySelector('.transcript-action-menu'), null);
 });

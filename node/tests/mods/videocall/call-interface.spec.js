@@ -8,7 +8,7 @@ global.document = dom.window.document;
 global.HTMLElement = dom.window.HTMLElement;
 global.MouseEvent = dom.window.MouseEvent;
 
-const CallInterfaceEmbedded = require('../../../mods/videocall/lib/ui/embedded_interface');
+const Windows = require('../../../mods/videocall/lib/ui/windows');
 
 function emitter() {
   const handlers = {};
@@ -51,7 +51,7 @@ function harness() {
     }
   };
   const mod = { publicKey: 'local-key', streams: { audioEnabled: true, videoEnabled: true } };
-  const ui = new CallInterfaceEmbedded(app, mod, document.body);
+  const ui = new Windows(app, mod, document.body);
   return { app, connection, ui };
 }
 
@@ -77,14 +77,15 @@ describe('call presentation selection', () => {
   );
 
   test('chooses the meeting only when this page is videocall', () => {
-    expect(source).toMatch(/if \(this\.browser_active\) \{[\s\S]*new CallInterfaceFullScreen/);
-    expect(source).toMatch(/new CallInterfaceEmbedded\(app, this, settings\?\.container\)/);
+    expect(source).toMatch(/this\.browser_active \? 'meeting' : 'windows'/);
+    expect(source).toMatch(/new VideoCallInterface\(/);
+    expect(source).not.toMatch(/new Meeting\(|new Windows\(/);
     expect(source).not.toMatch(/settings\.ui ===|ui === 'custom'|ui === 'large'|ui === 'video'/);
     expect(source).not.toMatch(/CallInterfaceFloat|CallOverlay|call-interface-video|stream-mirror/);
     expect(source).not.toMatch(/removeAllListeners/);
 
     const meeting = fs.readFileSync(
-      path.join(__dirname, '../../../mods/videocall/lib/ui/full_screen_interface.template.js'),
+      path.join(__dirname, '../../../mods/videocall/lib/ui/meeting.template.js'),
       'utf8'
     );
     expect(meeting).toMatch(/id="stun-chatbox"/);
@@ -92,7 +93,7 @@ describe('call presentation selection', () => {
     expect(meeting).toMatch(/class="counter"/);
 
     const meetingCode = fs.readFileSync(
-      path.join(__dirname, '../../../mods/videocall/lib/ui/full_screen_interface.js'),
+      path.join(__dirname, '../../../mods/videocall/lib/ui/meeting.js'),
       'utf8'
     );
     expect(meetingCode).toMatch(/removeListener/);
@@ -102,7 +103,7 @@ describe('call presentation selection', () => {
   });
 });
 
-describe('CallInterfaceEmbedded', () => {
+describe('Windows', () => {
   let ui;
 
   afterEach(() => {
@@ -115,9 +116,9 @@ describe('CallInterfaceEmbedded', () => {
     const harnessed = harness();
     ui = harnessed.ui;
     const { connection } = harnessed;
-    connection.emit('add-local-stream-request', stream(false));
-    connection.emit('add-remote-stream-request', 'peer-a', stream(false));
-    connection.emit('add-remote-stream-request', 'peer-a', stream(false));
+    ui.receiveLocalStream(stream(false));
+    ui.receiveRemoteStream('peer-a', stream(false));
+    ui.receiveRemoteStream('peer-a', stream(false));
 
     expect(document.getElementById('stream_local-key')).not.toBeNull();
     expect(document.getElementById('stream_peer-a')).not.toBeNull();
@@ -127,7 +128,7 @@ describe('CallInterfaceEmbedded', () => {
     expect(document.getElementById('stream_peer-a').textContent).toMatch(/Connecting/);
     connection.emit('stun-update-connection-message', 'peer-a', 'connected');
     expect(document.getElementById('stream_peer-a').textContent).toMatch(/Waiting for video/);
-    connection.emit('peer-toggle-video-status', { public_key: 'peer-a', enabled: false });
+    connection.emit('videocall-peer-video-changed', { public_key: 'peer-a', enabled: false });
     expect(document.getElementById('stream_peer-a').textContent).toMatch(/Camera off/);
     connection.emit('stun-update-connection-message', 'peer-a', 'failed');
     expect(document.getElementById('stream_peer-a').textContent).toMatch(/Connection failed/);
@@ -139,7 +140,7 @@ describe('CallInterfaceEmbedded', () => {
     const harnessed = harness();
     ui = harnessed.ui;
     const { connection } = harnessed;
-    connection.emit('add-remote-stream-request', 'peer-a', stream(true));
+    ui.receiveRemoteStream('peer-a', stream(true));
     const panel = document.getElementById('stream_peer-a');
     panel.style.left = '80px';
     panel.style.top = '90px';
@@ -147,12 +148,12 @@ describe('CallInterfaceEmbedded', () => {
     panel.style.height = '200px';
     const video = panel.querySelector('video');
 
-    connection.emit('remove-peer-box', 'peer-a');
+    ui.participantLeft('peer-a');
     expect(document.getElementById('stream_peer-a')).toBe(panel);
     expect(panel.textContent).toMatch(/disconnected/);
 
     const replacement = stream(true);
-    connection.emit('add-remote-stream-request', 'peer-a', replacement);
+    ui.receiveRemoteStream('peer-a', replacement);
     expect(document.getElementById('stream_peer-a')).toBe(panel);
     expect(panel.style.left).toBe('80px');
     expect(panel.style.top).toBe('90px');
@@ -165,13 +166,13 @@ describe('CallInterfaceEmbedded', () => {
     const harnessed = harness();
     ui = harnessed.ui;
     const { connection } = harnessed;
-    connection.emit('add-remote-stream-request', 'peer-a', stream(true));
-    connection.emit('add-remote-stream-request', 'peer-b', stream(true));
+    ui.receiveRemoteStream('peer-a', stream(true));
+    ui.receiveRemoteStream('peer-b', stream(true));
     const a = document.getElementById('stream_peer-a');
     const b = document.getElementById('stream_peer-b');
     const bLeft = b.style.left;
 
-    connection.emit('remove-peer-box', 'peer-a');
+    ui.participantLeft('peer-a');
     expect(document.getElementById('stream_peer-b').style.left).toBe(bLeft);
 
     ui.drop('peer-a');
@@ -184,8 +185,8 @@ describe('CallInterfaceEmbedded', () => {
     const harnessed = harness();
     ui = harnessed.ui;
     const { connection } = harnessed;
-    connection.emit('add-remote-stream-request', 'peer-a', stream(true));
-    connection.emit('add-remote-stream-request', 'peer-b', stream(true));
+    ui.receiveRemoteStream('peer-a', stream(true));
+    ui.receiveRemoteStream('peer-b', stream(true));
     const a = document.getElementById('stream_peer-a');
     const b = document.getElementById('stream_peer-b');
     size(a);
@@ -224,8 +225,8 @@ describe('CallInterfaceEmbedded', () => {
     const harnessed = harness();
     ui = harnessed.ui;
     const { connection } = harnessed;
-    connection.emit('add-remote-stream-request', 'peer-a', stream(true));
-    connection.emit('add-remote-stream-request', 'peer-b', stream(true));
+    ui.receiveRemoteStream('peer-a', stream(true));
+    ui.receiveRemoteStream('peer-b', stream(true));
     const a = document.getElementById('stream_peer-a');
     const b = document.getElementById('stream_peer-b');
     const bLeft = b.style.left;
@@ -242,16 +243,14 @@ describe('CallInterfaceEmbedded', () => {
     const harnessed = harness();
     ui = harnessed.ui;
     const { connection } = harnessed;
-    const other = () => {};
-    connection.on('add-remote-stream-request', other);
-    connection.emit('add-remote-stream-request', 'peer-a', stream(true));
+    ui.receiveRemoteStream('peer-a', stream(true));
 
     ui.destroy();
     ui.destroy();
 
-    expect(connection.count('add-remote-stream-request')).toBe(1);
+    expect(connection.count('add-remote-stream-request')).toBe(0);
     expect(document.querySelector('.videocall-panel')).toBeNull();
-    connection.emit('add-remote-stream-request', 'peer-b', stream(true));
+    ui.receiveRemoteStream('peer-b', stream(true));
     expect(document.getElementById('stream_peer-b')).toBeNull();
   });
 
@@ -260,8 +259,8 @@ describe('CallInterfaceEmbedded', () => {
     const harnessed = harness();
     ui = harnessed.ui;
     const { connection } = harnessed;
-    connection.emit('add-local-stream-request', stream(false));
-    connection.emit('add-remote-stream-request', 'peer-a', stream(false));
+    ui.receiveLocalStream(stream(false));
+    ui.receiveRemoteStream('peer-a', stream(false));
     const timer = document.querySelector('.videocall-timer');
     expect(timer.textContent).toBe('00:00');
     jest.advanceTimersByTime(2000);

@@ -11,16 +11,7 @@ class CallDiagnostics {
     this.running = false;
     this.generation = 0;
 
-    app.connection.on('start-stun-call', () => {
-      this.stop();
-      this.history.clear();
-      this.samples.clear();
-      this.running = true;
-      this.record('local', 'Call started');
-      this.updateVisibility();
-    });
-    app.connection.on('videocall-ended', () => this.stop());
-    app.connection.on('reset-stun', () => this.stop());
+    app.connection.on('videocall-call-ended', () => this.stop());
     app.connection.on('stun-diagnostic', (peer, message) => {
       const room = this.mod.room_obj?.call_id ? this.mod.room_obj.call_id.slice(0, 8) : 'no-room';
       this.record(peer, `[room ${room}] ${message}`);
@@ -47,11 +38,23 @@ class CallDiagnostics {
         if (this.mod.room_obj?.call_peers?.includes(peer)) this.record(peer, event);
       });
     }
-    for (const kind of ['audio', 'video']) {
-      app.connection.on(`peer-toggle-${kind}-status`, ({ public_key, enabled }) => {
+    for (const [event, kind] of [
+      ['videocall-peer-audio-changed', 'audio'],
+      ['videocall-peer-video-changed', 'video']
+    ]) {
+      app.connection.on(event, ({ public_key, enabled }) => {
         this.record(public_key, `Peer reports ${kind} ${enabled ? 'enabled' : 'disabled'}`);
       });
     }
+  }
+
+  beginCall() {
+    this.stop();
+    this.history.clear();
+    this.samples.clear();
+    this.running = true;
+    this.record('local', 'Call started');
+    this.updateVisibility();
   }
 
   record(peer, message) {

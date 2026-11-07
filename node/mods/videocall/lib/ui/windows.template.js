@@ -10,9 +10,6 @@ module.exports = (audioOn, videoOn) => `
     <div class="videocall-control present-control icon_click_area" title="Present your screen">
       <i class="fa-solid fa-display"></i>
     </div>
-    <div class="videocall-control settings-control icon_click_area" title="Settings">
-      <i class="fa-solid fa-cog"></i>
-    </div>
     <div class="videocall-control invite-control icon_click_area" title="Invite users">
       <i class="fa fa-plus"></i>
     </div>

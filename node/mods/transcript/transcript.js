@@ -21,7 +21,7 @@ class Transcript extends ModTemplate {
           .catch((error) => console.error('Transcript recovery:', error));
       };
       app.connection.on('videocall-opened', recover);
-      app.connection.on('show-call-interface', () => {
+      app.connection.on('videocall-call-started', () => {
         recover();
         // The call UI may be replaced when switching between video and audio.
         setTimeout(() => this.runtime?.render(), 0);
@@ -35,7 +35,7 @@ class Transcript extends ModTemplate {
         this.runtime?.updateStream(peer, stream);
       });
       app.connection.on('videocall-peer-left', (peer) => this.runtime?.removePeer(peer));
-      app.connection.on('videocall-ended', (completion) => {
+      app.connection.on('videocall-call-ended', (completion) => {
         this.actionOverlay?.close();
         // Also invalidate an import/model load if the call ends while it is loading.
         this.generation = (this.generation || 0) + 1;

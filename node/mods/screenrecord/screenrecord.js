@@ -60,7 +60,7 @@ class Record extends ModTemplate {
     // the original 'start recording' message, so tell them now (and add
     // them to members so our eventual 'stop recording' reaches them too)
     //
-    this.app.connection.on('videocall-add-party', (publicKey) => {
+    this.app.connection.on('videocall-peer-joined', (publicKey) => {
       if (!this.mediaRecorder || this.type !== 'videocall') {
         return;
       }

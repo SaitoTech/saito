@@ -26,7 +26,7 @@ class StreamCapturer {
       console.log(this.activeStreams, 'activestreams');
     });
 
-    app.connection.on('start-stun-call', (event) => {
+    app.connection.on('videocall-call-started', () => {
       if (this.localStream) {
         this.localStream.getAudioTracks().forEach((track) => {
           this.removeAudioTrack(track.id);
@@ -77,7 +77,7 @@ class StreamCapturer {
       }, 100); // Check every 100ms
     });
 
-    app.connection.on('stun-disconnect', () => {
+    app.connection.on('videocall-call-ended', () => {
       const controlList = document.querySelector('#dream-controls .control-panel .control-list');
       if (controlList) {
         const videoControl = controlList.querySelector(

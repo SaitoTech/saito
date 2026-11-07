@@ -1,6 +1,5 @@
 const SaitoVideoBox = require('../../../../lib/saito/ui/saito-videobox/video-box');
-const VideocallSettings = require('./overlays/layout');
-const EmbeddedControlsTemplate = require('./embedded_interface.template');
+const WindowsControlsTemplate = require('./windows.template');
 
 const TILE_W = 240;
 const TILE_H = 180;
@@ -10,7 +9,7 @@ const GAP = 12;
  * Participant windows for a call that is not the open Talk meeting.
  * One window per public key. Audio-only calls use the same windows.
  */
-class CallInterfaceEmbedded {
+class Windows {
   constructor(app, mod, container) {
     this.app = app;
     this.mod = mod;
@@ -20,10 +19,8 @@ class CallInterfaceEmbedded {
     this.controls = null;
     this.nextSlot = 0;
     this.layer = 40;
-    this.listeners = {};
     this.closed = false;
     this.timer_interval = null;
-    this.settings = new VideocallSettings(app, mod);
 
     if (window.getComputedStyle(this.container).position === 'static') {
       this.container.style.position = 'relative';
@@ -31,53 +28,62 @@ class CallInterfaceEmbedded {
 
     this.onViewport = () => this.clampAll();
     window.addEventListener('resize', this.onViewport);
+  }
 
-    this.addListener('add-local-stream-request', (localStream) => {
-      this.showParticipant(this.mod.publicKey, localStream);
-    });
+  receiveLocalStream(localStream) {
+    this.showParticipant(this.mod.publicKey, localStream);
+  }
 
-    this.addListener('add-remote-stream-request', (peer, remoteStream) => {
-      if (peer === 'presentation') {
-        this.showPresentation(remoteStream);
-        return;
-      }
-      if (peer === 'local') {
-        this.showParticipant(this.mod.publicKey, remoteStream);
-        return;
-      }
-      if (!peer || peer === 'connecting') {
-        return;
-      }
-      this.showParticipant(peer, remoteStream);
-      if (remoteStream) {
-        this.callStarted = true;
-        this.startTimer();
-      }
-    });
+  receiveRemoteStream(peer, remoteStream) {
+    if (peer === 'presentation') {
+      this.showPresentation(remoteStream);
+      return;
+    }
+    if (peer === 'local') {
+      this.showParticipant(this.mod.publicKey, remoteStream);
+      return;
+    }
+    if (!peer || peer === 'connecting') {
+      return;
+    }
+    this.showParticipant(peer, remoteStream);
+    if (remoteStream) {
+      this.callStarted = true;
+      this.startTimer();
+    }
+  }
 
-    this.addListener('remove-peer-box', (peerId) => {
-      if (peerId === 'presentation') {
-        this.dropPresentation();
-        return;
-      }
-      const box = this.panels.get(peerId);
-      if (!box) {
-        return;
-      }
-      const el = document.getElementById(`stream_${peerId}`);
-      if (el) {
-        box.updateConnectionMessage('disconnected', false);
-      }
-    });
+  participantLeft(peerId) {
+    if (peerId === 'presentation') {
+      this.dropPresentation();
+      return;
+    }
+    const box = this.panels.get(peerId);
+    if (!box) {
+      return;
+    }
+    const el = document.getElementById(`stream_${peerId}`);
+    if (el) {
+      box.updateConnectionMessage('disconnected', false);
+    }
+  }
 
-    this.addListener('toggle-screen-share-label', (state = false) => {
-      const button = this.controls?.querySelector('.present-control');
-      if (!button) {
-        return;
-      }
-      button.classList.toggle('recording', !!state);
-      button.title = state ? 'Stop presenting' : 'Present your screen';
-    });
+  participantKicked(peerId) {
+    this.participantLeft(peerId);
+    this.drop(peerId);
+  }
+
+  presentationStopped() {
+    this.dropPresentation();
+  }
+
+  setPresenting(state = false) {
+    const button = this.controls?.querySelector('.present-control');
+    if (!button) {
+      return;
+    }
+    button.classList.toggle('recording', !!state);
+    button.title = state ? 'Stop presenting' : 'Present your screen';
   }
 
   resolveContainer(container) {
@@ -85,11 +91,6 @@ class CallInterfaceEmbedded {
       return document.querySelector(container) || document.body;
     }
     return container || document.body;
-  }
-
-  addListener(event, handler) {
-    this.listeners[event] = handler;
-    this.app.connection.on(event, handler);
   }
 
   showParticipant(publicKey, stream) {
@@ -144,7 +145,7 @@ class CallInterfaceEmbedded {
     const audioOn = this.mod.streams?.audioEnabled !== false;
     const videoOn = this.mod.streams?.videoEnabled !== false;
     const holder = document.createElement('div');
-    holder.innerHTML = EmbeddedControlsTemplate(audioOn, videoOn).trim();
+    holder.innerHTML = WindowsControlsTemplate(audioOn, videoOn).trim();
     const controls = holder.firstElementChild;
     this.container.appendChild(controls);
     const left = parseFloat(panel.style.left) || 16;
@@ -164,7 +165,7 @@ class CallInterfaceEmbedded {
     const video = controls.querySelector('.video-control');
 
     audio.onclick = () => {
-      this.app.connection.emit('stun-toggle-audio');
+      this.mod.streams?.toggleAudio();
       audio.classList.toggle('disabled');
       const icon = audio.querySelector('i');
       icon.classList.toggle('fa-microphone');
@@ -172,7 +173,7 @@ class CallInterfaceEmbedded {
     };
 
     video.onclick = () => {
-      this.app.connection.emit('stun-toggle-video');
+      this.mod.streams?.toggleVideo();
       video.classList.toggle('disabled');
       const icon = video.querySelector('i');
       icon.classList.toggle('fa-video');
@@ -183,11 +184,8 @@ class CallInterfaceEmbedded {
       if (this.mod.screen_share && this.mod.screen_share !== true) {
         return;
       }
-      this.app.connection.emit(this.mod.screen_share ? 'stop-share-screen' : 'begin-share-screen');
-    };
-
-    controls.querySelector('.settings-control').onclick = () => {
-      this.settings.render();
+      if (this.mod.screen_share) this.mod.streams?.stopShareScreen();
+      else this.mod.streams?.beginShareScreen();
     };
 
     controls.querySelector('.invite-control').onclick = () => {
@@ -195,7 +193,7 @@ class CallInterfaceEmbedded {
     };
 
     controls.querySelector('.disconnect-control').onclick = () => {
-      this.app.connection.emit('stun-disconnect');
+      this.mod.streams?.leaveCall();
     };
   }
 
@@ -360,12 +358,7 @@ class CallInterfaceEmbedded {
       this.controls.remove();
       this.controls = null;
     }
-
-    for (const event in this.listeners) {
-      this.app.connection.removeListener(event, this.listeners[event]);
-    }
-    this.listeners = {};
   }
 }
 
-module.exports = CallInterfaceEmbedded;
+module.exports = Windows;

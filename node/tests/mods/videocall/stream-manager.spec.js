@@ -2,16 +2,10 @@ const { EventEmitter } = require('events');
 const StreamManager = require('../../../mods/videocall/lib/stream_manager');
 
 const EVENTS = [
-  'stun-toggle-video',
-  'stun-toggle-audio',
-  'begin-share-screen',
-  'stop-share-screen',
   'stun-connection-connected',
   'stun-update-connection-message',
   'stun-track-event',
-  'start-stun-call',
-  'stun-new-peer-connection',
-  'stun-disconnect'
+  'stun-new-peer-connection'
 ];
 
 global.Audio = class {
@@ -56,16 +50,14 @@ function session() {
         if (peer !== this.publicKey) this.stun.removePeerConnection(peer);
       }
     },
-    CallInterface: { close: jest.fn() }
-  };
-
-  // Same cleanup the module performs on reset-stun.
-  connection.on('reset-stun', () => {
-    if (mod.streams) {
-      mod.streams.detach();
-      mod.streams = null;
+    CallInterface: { close: jest.fn() },
+    resetCall() {
+      if (this.streams) {
+        this.streams.detach();
+        this.streams = null;
+      }
     }
-  });
+  };
 
   return { app, mod, connection, removedPeers };
 }
@@ -112,7 +104,7 @@ describe('StreamManager lifecycle', () => {
     const media = localStream();
     active.localStream = media.stream;
 
-    context.connection.emit('stun-disconnect');
+    context.mod.streams.leaveCall();
     await settled();
 
     expect(context.mod.CallInterface.close).toHaveBeenCalledTimes(1);
@@ -146,7 +138,7 @@ describe('StreamManager lifecycle', () => {
     const first = manager(context);
     first.localStream = localStream().stream;
 
-    context.connection.emit('stun-disconnect');
+    context.mod.streams.leaveCall();
     await settled();
 
     const second = manager(context);
@@ -154,7 +146,7 @@ describe('StreamManager lifecycle', () => {
     second.localStream = media.stream;
     context.mod.sendOffChainMessage.mockClear();
 
-    context.connection.emit('stun-toggle-audio');
+    second.toggleAudio();
 
     expect(context.mod.sendOffChainMessage).toHaveBeenCalledTimes(1);
     expect(context.mod.sendOffChainMessage).toHaveBeenCalledWith('toggle-audio', {
@@ -185,8 +177,8 @@ describe('StreamManager lifecycle', () => {
       }
     };
 
-    const starting = context.connection.listeners('start-stun-call')[0]();
-    context.connection.emit('stun-disconnect');
+    const starting = active.start();
+    context.mod.streams.leaveCall();
     await settled();
     release();
     await starting;
@@ -210,7 +202,7 @@ describe('StreamManager lifecycle', () => {
         })
     });
     const samples = [];
-    context.connection.on('videocall-connection-strength', () => samples.push(1));
+    context.mod.CallInterface.updateConnectionStrength = () => samples.push(1);
 
     jest.useFakeTimers();
     context.connection.emit('stun-connection-connected', 'peer-a');

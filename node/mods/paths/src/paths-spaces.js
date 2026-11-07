@@ -230,6 +230,9 @@
     if (country == "bulgaria") {
       if (this.game.spaces["sofia"].control == "central" && this.game.spaces["sofia"].units.length < 3) { options.push("sofia"); }
     }
+    if (country == "turkey") {
+      if (this.game.spaces["constantinople"].control == "central" && this.game.spaces["constantinople"].units.length < 3) { options.push("constantinople"); }
+    }
 
     for (let i = options.length-1; i > 0; i--) {
       if (this.game.spaces[options[i]].fort > 0 && this.game.spaces[options[i]].besieged) { options.splice(i, 1); }

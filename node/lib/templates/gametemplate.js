@@ -1547,7 +1547,7 @@ class GameTemplate extends ModTemplate {
       if (txmsg.my_key !== this.publicKey && !this?.room_obj) {
         document.getElementById('game-social').classList.add('notification');
 
-        this.app.connection.emit('stun-receive-ingame-call', txmsg.data);
+        this.app.modules.returnModuleByName('Videocall')?.receiveInGameCall(txmsg.data);
 
         // We should save this, even after hanging up...
         this.room_obj = txmsg.data;

@@ -23,10 +23,8 @@ class SaitoVideoBox {
       if (public_key === key) this.renderTranscriptionStatus();
     });
 
-    this.addListener('peer-toggle-audio-status', ({ enabled, public_key }) => {
+    this.addListener('videocall-peer-audio-changed', ({ enabled, public_key }) => {
       if (!this.sameParticipant(public_key)) return;
-
-      //console.debug('Videobox.peer-toggle-audio-status', public_key, enabled);
 
       let icon = document.querySelector(`#stream_${this.stream_id} #audio-indicator`);
       if (icon) {
@@ -49,7 +47,7 @@ class SaitoVideoBox {
       }
     });
 
-    this.addListener('peer-toggle-video-status', ({ enabled, public_key }) => {
+    this.addListener('videocall-peer-video-changed', ({ enabled, public_key }) => {
       if (public_key !== this.stream_id) return;
 
       this.videoChoice = enabled;
@@ -135,7 +133,6 @@ class SaitoVideoBox {
           this.framesVisible = true;
           this.renderStatus();
         }
-        this.app.connection.emit('video-box-started', this.stream_id);
         console.debug(
           'Videobox: ',
           this.stream_id + ' Begin Playing Video:',
@@ -203,7 +200,7 @@ class SaitoVideoBox {
             this.stream_id === 'presentation'
               ? true
               : this.stream.getAudioTracks()[0].enabled && !this.stream.getAudioTracks()[0].muted;
-          this.app.connection.emit('peer-toggle-audio-status', {
+          this.app.connection.emit('videocall-peer-audio-changed', {
             enabled,
             public_key: this.stream_id
           });

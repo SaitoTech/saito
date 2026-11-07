@@ -1810,6 +1810,18 @@ try {
 	      if (!connected.includes(destination)) { return 1; }
 	    }
 	  }
+	  if (this.game.state.events.treaty_of_brest_litovsk && unit && destination != "aeubox" && destination != "ceubox" && destination != "arbox" && destination != "crbox" && this.game.spaces[destination]) {
+	    if (unit.ckey == "RU") {
+	      for (let ti = 0; ti < this.game.spaces[destination].units.length; ti++) {
+		let ou = this.game.spaces[destination].units[ti];
+		if (this.returnPowerOfUnit(ou) == "allies" && ou.ckey != "RU") { return 1; }
+	      }
+	    } else if (this.returnPowerOfUnit(unit) == "allies") {
+	      for (let ti = 0; ti < this.game.spaces[destination].units.length; ti++) {
+		if (this.game.spaces[destination].units[ti].ckey == "RU") { return 1; }
+	      }
+	    }
+	  }
 	  unit.redeployed = 1;
 
 	  this.game.spaces[source].units.splice(unit_idx, 1);
@@ -2034,6 +2046,21 @@ try {
 	      if (!home || !home.units[rec.unit_idx]) { continue; }
 	      let uk = home.units[rec.unit_idx].ckey;
 	      if (uk == "AH" || uk == "IT") { legal_attackers.push(rec); }
+	    }
+	    selected = legal_attackers;
+	    if (selected.length == 0) {
+	      this.game.queue.splice(qe, 1);
+	      return 1;
+	    }
+	  }
+
+	  if (this.game.state.events.treaty_of_brest_litovsk) {
+	    let legal_attackers = [];
+	    for (let z = 0; z < selected.length; z++) {
+	      let rec = selected[z];
+	      let home = this.game.spaces[rec.unit_sourcekey];
+	      if (!home || !home.units[rec.unit_idx]) { continue; }
+	      if (home.units[rec.unit_idx].ckey != "RU") { legal_attackers.push(rec); }
 	    }
 	    selected = legal_attackers;
 	    if (selected.length == 0) {
@@ -2989,7 +3016,8 @@ console.log("error updated attacker loss factor: " + JSON.stringify(err));
 	    // defender immediately suffers losses of "moved" units if they
 	    // suffer a loss_factor of >= 1. 
 	    //
-	    for (this.game.spaces[this.game.state.combat.key].units.length-1; z >= 0 ; z--) {
+	    if (loss_factor >= 1) {
+	    for (let z = this.game.spaces[this.game.state.combat.key].units.length-1; z >= 0; z--) {
 	      let u = this.game.spaces[this.game.state.combat.key].units[z];
 	      if (u.moved) {
 		this.paths_log.noteLoss(this.paths_log.label(u.name) + " eliminated (trapped)", this.game.state.combat.defending_faction);
@@ -3005,6 +3033,7 @@ console.log("error updated attacker loss factor: " + JSON.stringify(err));
 		  this.displaySpace(this.game.state.combat.key);
 		}
 	      }
+	    }
 	    }
 	  }
 
@@ -3221,7 +3250,13 @@ console.log("error updated attacker loss factor: " + JSON.stringify(err));
 	  //
 	  for (let z = this.game.spaces[this.game.state.combat.key].units.length-1; z >= 0; z--) {
 	    let u = this.game.spaces[this.game.state.combat.key].units[z];
-	    if (u.destroyed == true) { this.game.spaces[this.game.state.combat.key].units.splice(z, 1); }
+	    if (u.destroyed == true) {
+	      if (this.returnPowerOfUnit(u) === "central") {
+	        this.moveUnit(this.game.state.combat.key, z, "ceubox");
+	      } else {
+	        this.moveUnit(this.game.state.combat.key, z, "aeubox");
+	      }
+	    }
 	  }
 	  this.displaySpace(this.game.state.combat.key);
 
@@ -3630,6 +3665,11 @@ console.log("DAMAGE: " + JSON.stringify(tmpx));
 	      } else { 
 		unit.destroyed = true;
 	    	unit.damaged_this_combat = true;
+		if (this.returnPowerOfUnit(unit) === "central") {
+		  this.moveUnit(spacekey, unit_idx, "ceubox");
+		} else {
+		  this.moveUnit(spacekey, unit_idx, "aeubox");
+		}
 	      }
 	    }
 	  }
@@ -4073,7 +4113,7 @@ console.log("moving unit: " + JSON.stringify(u));
 
 	  this.game.queue.splice(qe, 1);
 	  if (mv[5]) {
-	     this.game.queue.push("move\t"+mv[1]+"\t"+mv[2]+"\t"+mv[3]+"\t"+mv[4]+"\t"+mv[5]);
+	     this.game.queue.push("move\t"+mv[1]+"\t"+mv[2]+"\t"+mv[3]+"\t"+mv[4]+"\t"+mv[5]+(mv[6] ? "\t"+mv[6] : ""));
 	  } else {
 	     this.game.queue.push("move\t"+mv[1]+"\t"+mv[2]+"\t"+mv[3]+"\t"+mv[4]);
 	  }
@@ -4108,21 +4148,113 @@ console.log("moving unit: " + JSON.stringify(u));
 	  let player_to_ignore = 0;
 	  if (mv[5]) { player_to_ignore = parseInt(mv[5]); }
 
-	  if (this.game.state.rules.italian_movement && !this.game.state.allies_total_war_cards_added && this.game.spaces[sourcekey] && this.game.spaces[destinationkey] && destinationkey != "aeubox" && destinationkey != "ceubox" && destinationkey != "arbox" && destinationkey != "crbox") {
-	    let moving = this.game.spaces[sourcekey].units[sourceidx];
+	  let italian_limit = this.game.state.rules.italian_movement && !this.game.state.allies_total_war_cards_added;
+	  if ((italian_limit || this.game.state.events.treaty_of_brest_litovsk) && this.game.spaces[sourcekey] && this.game.spaces[destinationkey] && destinationkey != "aeubox" && destinationkey != "ceubox" && destinationkey != "arbox" && destinationkey != "crbox") {
+	    let moving = null;
+	    let already_moved_idx = -1;
+	    let already_moved_space = destinationkey;
+	    if (this.game.player == player_to_ignore && mv[6] && this.game.spaces[destinationkey].units) {
+	      let dest_units = this.game.spaces[destinationkey].units;
+	      for (let z = dest_units.length-1; z >= 0; z--) {
+	        if (dest_units[z].key === mv[6] && dest_units[z].moved) {
+	          moving = dest_units[z];
+	          already_moved_idx = z;
+	          break;
+	        }
+	      }
+	    }
+	    if (!moving && this.game.player == player_to_ignore && mv[6]) {
+	      let matches = 0;
+	      let found_space = "";
+	      let found_idx = -1;
+	      let found_unit = null;
+	      for (let sk in this.game.spaces) {
+	        if (sk === sourcekey || !this.game.spaces[sk].units) { continue; }
+	        let units = this.game.spaces[sk].units;
+	        for (let z = units.length-1; z >= 0; z--) {
+	          if (units[z].key === mv[6] && units[z].moved) {
+	            matches++;
+	            found_space = sk;
+	            found_idx = z;
+	            found_unit = units[z];
+	          }
+	        }
+	      }
+	      if (matches == 1) {
+	        moving = found_unit;
+	        already_moved_idx = found_idx;
+	        already_moved_space = found_space;
+	      }
+	    }
+	    if (!moving && this.game.player != player_to_ignore) { moving = this.game.spaces[sourcekey].units[sourceidx]; }
 	    if (moving) {
 	      let illegal = false;
-	      if (this.game.spaces[destinationkey].country == "italy" && moving.ckey != "AH" && moving.ckey != "IT") { illegal = true; }
-	      if (moving.ckey == "GE" && (destinationkey == "trent" || destinationkey == "villach" || destinationkey == "trieste")) { illegal = true; }
-	      if (!illegal && moving.ckey != "AH" && moving.ckey != "IT") {
-		let reachable = this.returnSpacesWithinHops(sourcekey, 30, (spacekey) => {
-		  if (spacekey == sourcekey) { return 1; }
-		  if (this.game.spaces[spacekey].country == "italy") { return 0; }
-		  return 1;
-		}, moving);
-		if (!reachable.includes(destinationkey)) { illegal = true; }
+	      if (italian_limit) {
+	        if (this.game.spaces[destinationkey].country == "italy" && moving.ckey != "AH" && moving.ckey != "IT") { illegal = true; }
+	        if (moving.ckey == "GE" && (destinationkey == "trent" || destinationkey == "villach" || destinationkey == "trieste")) { illegal = true; }
+	        if (!illegal && moving.ckey != "AH" && moving.ckey != "IT") {
+		  let reachable = this.returnSpacesWithinHops(sourcekey, 30, (spacekey) => {
+		    if (spacekey == sourcekey) { return 1; }
+		    if (this.game.spaces[spacekey].country == "italy") { return 0; }
+		    return 1;
+		  }, moving);
+		  if (!reachable.includes(destinationkey)) { illegal = true; }
+	        }
+	      }
+	      if (!illegal && this.game.state.events.treaty_of_brest_litovsk && moving.ckey == "RU") {
+		let tc = this.game.spaces[destinationkey].country;
+		if (tc != "russia" && tc != "germany" && tc != "turkey" && tc != "austria" && tc != "romania") { illegal = true; }
+		if (!illegal) {
+		  for (let ti = 0; ti < this.game.spaces[destinationkey].units.length; ti++) {
+		    let ou = this.game.spaces[destinationkey].units[ti];
+		    if (ou != moving && this.returnPowerOfUnit(ou) == "allies" && ou.ckey != "RU") { illegal = true; }
+		  }
+		}
+		if (!illegal) {
+		  let reachable = this.returnSpacesWithinHops(sourcekey, 30, (spacekey) => {
+		    if (spacekey == sourcekey) { return 1; }
+		    let c = this.game.spaces[spacekey].country;
+		    if (c != "russia" && c != "germany" && c != "turkey" && c != "austria" && c != "romania") { return 0; }
+		    for (let ti = 0; ti < this.game.spaces[spacekey].units.length; ti++) {
+		      let ou = this.game.spaces[spacekey].units[ti];
+		      if (this.returnPowerOfUnit(ou) == "allies" && ou.ckey != "RU") { return 0; }
+		    }
+		    return 1;
+		  }, moving);
+		  if (!reachable.includes(destinationkey)) { illegal = true; }
+		}
+	      }
+	      if (!illegal && this.game.state.events.treaty_of_brest_litovsk && moving.ckey != "RU" && this.returnPowerOfUnit(moving) == "allies") {
+		for (let ti = 0; ti < this.game.spaces[destinationkey].units.length; ti++) {
+		  let ou = this.game.spaces[destinationkey].units[ti];
+		  if (ou != moving && ou.ckey == "RU") { illegal = true; }
+		}
+		if (!illegal) {
+		  let reachable = this.returnSpacesWithinHops(sourcekey, 30, (spacekey) => {
+		    if (spacekey == sourcekey) { return 1; }
+		    for (let ti = 0; ti < this.game.spaces[spacekey].units.length; ti++) {
+		      if (this.game.spaces[spacekey].units[ti].ckey == "RU") { return 0; }
+		    }
+		    return 1;
+		  }, moving);
+		  if (!reachable.includes(destinationkey)) { illegal = true; }
+		}
 	      }
 	      if (illegal) {
+		if (already_moved_idx >= 0 && this.game.spaces[already_moved_space]) {
+		  this.game.spaces[already_moved_space].units.splice(already_moved_idx, 1);
+		  moving.spacekey = sourcekey;
+		  moving.moved = 0;
+		  let src_units = this.game.spaces[sourcekey].units;
+		  if (this.game.spaces[sourcekey].fort > 0 && src_units.length == 0 && this.returnPowerOfUnit(moving) != this.game.spaces[sourcekey].control) {
+		    this.game.spaces[sourcekey].besieged = 1;
+		  }
+		  let insert_at = sourceidx;
+		  if (!(insert_at >= 0) || insert_at > src_units.length) { insert_at = src_units.length; }
+		  src_units.splice(insert_at, 0, moving);
+		  this.displaySpace(sourcekey);
+		  this.displaySpace(already_moved_space);
+		}
 		this.game.queue.splice(qe, 1);
 		return 1;
 	      }

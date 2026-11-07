@@ -894,6 +894,35 @@ class Stun extends ModTemplate {
 
   //This can get double processed by PeerTransaction and onConfirmation
   //So need safety checks
+  async setCameraSenderBitrate(peerId, maxBitrate) {
+    return this.setSenderBitrate(peerId, 'camera', maxBitrate);
+  }
+
+  async setScreenSenderBitrate(peerId, maxBitrate) {
+    return this.setSenderBitrate(peerId, 'screen', maxBitrate);
+  }
+
+  // trackRole is set when Videocall adds the track. Camera and screen are
+  // different video senders on the same peer connection.
+  async setSenderBitrate(peerId, trackRole, maxBitrate) {
+    const peerConnection = this.peers.get(peerId);
+    if (!peerConnection || peerConnection.signalingState === 'closed') return;
+    const sender = peerConnection.getSenders?.().find((item) => {
+      return item.trackRole === trackRole && item.track?.kind === 'video';
+    });
+    if (!sender?.getParameters || !sender.setParameters) return;
+    try {
+      const parameters = sender.getParameters();
+      if (!parameters.encodings) parameters.encodings = [];
+      if (parameters.encodings.length === 0) parameters.encodings.push({});
+      parameters.encodings[0].maxBitrate = maxBitrate;
+      await sender.setParameters(parameters);
+    } catch (err) {
+      this.diagnostic(peerId, `Sender bitrate failed (${trackRole}): ${err?.name || err}`);
+      console.error('STUN [setSenderBitrate]', peerId, trackRole, err);
+    }
+  }
+
   removePeerConnection(peerId) {
     const peerConnection = this.peers.get(peerId);
     if (peerConnection) {
