@@ -1028,8 +1028,10 @@ class Videocall extends ModTemplate {
     }
   }
 
+  // Only default is implemented. A missing, unknown, or not-yet-supported
+  // stored mode uses that profile rather than leaving capture uncapped.
   mediaMode() {
-    return this.app.options?.videocall?.settings?.mode || 'default';
+    return 'default';
   }
 
   // Zero remote peers uses the one-to-one capture size. Callers must not

@@ -300,24 +300,7 @@ class StreamManager {
           this.app.connection.emit('videocall-stream', 'local', this.localStream);
           this.mod.CallInterface?.receiveLocalStream?.(this.localStream);
 
-          this.mod.stun.peers.forEach((peerConnection, key) => {
-            console.info('TALK [toggleVideo] -- Attach new video to: ' + key);
-            if (this.mod.room_obj.call_peers.includes(key)) {
-              const videoSenders = peerConnection
-                .getSenders()
-                .filter((sender) => sender.track && sender.track.kind === 'video');
-              if (videoSenders.length > 0) {
-                console.warn('TALK [toggleVideo]: replacing tracks!');
-                videoSenders.forEach((sender) => {
-                  sender.replaceTrack(videoTrack);
-                  if (sender.trackRole !== 'screen') sender.trackRole = 'camera';
-                });
-              } else {
-                peerConnection.addTrack(videoTrack);
-                this.markOutgoingSender(peerConnection, videoTrack, 'camera');
-              }
-            }
-          });
+          await this.attachCameraToPeers(videoTrack);
           this.mod.applyCameraProfile?.();
         } catch (err) {
           this.mod.diagnostics?.record('local', `Enable camera failed: ${err.name}`);
@@ -432,7 +415,7 @@ class StreamManager {
     this.auto_disconnect = this?.auto_disconnect || settings?.auto_disconnect;
   }
 
-  updateInputs(type, source) {
+  async updateInputs(type, source) {
     if (type == 'video') {
       this.videoSource = source;
       this.videoEnabled = true;
@@ -444,14 +427,99 @@ class StreamManager {
     this.app.options.stun.settings[`preferred_${type}`] = source;
     this.app.storage.saveOptions();
 
-    if (this.localStream) {
-      console.debug('TALK [updateInputs]: ', type, source);
+    if (!this.localStream) return;
 
-      this.localStream.getTracks().forEach((track) => {
-        track.stop();
-      });
-      this.localStream = null;
-      this.getLocalMedia();
+    if (type == 'video') {
+      await this.replaceCameraTrack();
+      return;
+    }
+
+    console.debug('TALK [updateInputs]: ', type, source);
+    this.localStream.getTracks().forEach((track) => {
+      track.stop();
+    });
+    this.localStream = null;
+    this.getLocalMedia();
+  }
+
+  // Swap the camera on existing camera senders. Screen senders are left alone.
+  // A peer that connects later still receives the new track from attach().
+  async replaceCameraTrack() {
+    let captured = null;
+    try {
+      captured = await navigator.mediaDevices.getUserMedia(this.returnConstraints(true));
+    } catch (err) {
+      this.mod.diagnostics?.record('local', `Camera capture failed: ${err.name}`);
+      console.error('TALK [updateInputs]', err);
+      return;
+    }
+    if (this.detached) {
+      captured.getTracks().forEach((track) => track.stop());
+      return;
+    }
+
+    const videoTrack = captured.getVideoTracks()[0];
+    if (!videoTrack) {
+      captured.getTracks().forEach((track) => track.stop());
+      return;
+    }
+    captured.getAudioTracks().forEach((track) => track.stop());
+
+    const previous = this.localStream.getVideoTracks()[0] || null;
+    if (previous) this.localStream.removeTrack(previous);
+    this.localStream.addTrack(videoTrack);
+
+    try {
+      await this.attachCameraToPeers(videoTrack);
+    } catch (err) {
+      this.localStream.removeTrack(videoTrack);
+      if (previous) this.localStream.addTrack(previous);
+      videoTrack.stop();
+      this.mod.diagnostics?.record('local', `Camera replacement failed: ${err.name}`);
+      console.error('TALK [updateInputs]', err);
+      return;
+    }
+
+    if (previous) previous.stop();
+    this.app.connection.emit('videocall-stream', 'local', this.localStream);
+    this.mod.CallInterface?.receiveLocalStream?.(this.localStream);
+    await this.mod.applyCameraProfile?.();
+  }
+
+  async attachCameraToPeers(videoTrack) {
+    const changed = [];
+    try {
+      for (const [key, peerConnection] of this.mod.stun.peers) {
+        if (!this.mod.room_obj?.call_peers?.includes(key)) continue;
+        const cameraSender = peerConnection
+          .getSenders()
+          .find((sender) => sender.trackRole === 'camera');
+        if (cameraSender) {
+          const previousTrack = cameraSender.track;
+          await cameraSender.replaceTrack(videoTrack);
+          changed.push({ sender: cameraSender, previousTrack });
+        } else {
+          peerConnection.addTrack(videoTrack);
+          this.markOutgoingSender(peerConnection, videoTrack, 'camera');
+          const sender = peerConnection
+            .getSenders()
+            .find((item) => item.track === videoTrack && item.trackRole === 'camera');
+          changed.push({ sender, previousTrack: null, peerConnection });
+        }
+      }
+    } catch (err) {
+      for (const change of changed.reverse()) {
+        if (change.previousTrack && change.sender?.replaceTrack) {
+          await change.sender.replaceTrack(change.previousTrack).catch(() => {});
+        } else if (change.peerConnection?.removeTrack && change.sender) {
+          try {
+            change.peerConnection.removeTrack(change.sender);
+          } catch (removeError) {
+            console.error('TALK [attachCameraToPeers]', removeError);
+          }
+        }
+      }
+      throw err;
     }
   }
 

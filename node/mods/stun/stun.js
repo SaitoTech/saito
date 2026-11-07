@@ -903,7 +903,9 @@ class Stun extends ModTemplate {
   }
 
   // trackRole is set when Videocall adds the track. Camera and screen are
-  // different video senders on the same peer connection.
+  // different video senders on the same peer connection. Each sender applies
+  // one setParameters call at a time. A newer bitrate replaces a pending one
+  // and is written after the in-flight call finishes.
   async setSenderBitrate(peerId, trackRole, maxBitrate) {
     const peerConnection = this.peers.get(peerId);
     if (!peerConnection || peerConnection.signalingState === 'closed') return;
@@ -911,15 +913,50 @@ class Stun extends ModTemplate {
       return item.trackRole === trackRole && item.track?.kind === 'video';
     });
     if (!sender?.getParameters || !sender.setParameters) return;
+
+    if (!this.senderBitrate) this.senderBitrate = new WeakMap();
+    let state = this.senderBitrate.get(sender);
+    if (!state) {
+      state = { writing: false, desired: null };
+      this.senderBitrate.set(sender, state);
+    }
+    state.desired = maxBitrate;
+    if (state.writing) return;
+    state.writing = true;
+
     try {
-      const parameters = sender.getParameters();
-      if (!parameters.encodings) parameters.encodings = [];
-      if (parameters.encodings.length === 0) parameters.encodings.push({});
-      parameters.encodings[0].maxBitrate = maxBitrate;
-      await sender.setParameters(parameters);
-    } catch (err) {
-      this.diagnostic(peerId, `Sender bitrate failed (${trackRole}): ${err?.name || err}`);
-      console.error('STUN [setSenderBitrate]', peerId, trackRole, err);
+      while (state.desired != null) {
+        if (
+          this.peers.get(peerId) !== peerConnection ||
+          peerConnection.signalingState === 'closed' ||
+          !peerConnection.getSenders?.().includes(sender)
+        ) {
+          state.desired = null;
+          break;
+        }
+        const bitrate = state.desired;
+        state.desired = null;
+        try {
+          const parameters = sender.getParameters();
+          if (!parameters.encodings) parameters.encodings = [];
+          if (parameters.encodings.length === 0) parameters.encodings.push({});
+          parameters.encodings[0].maxBitrate = bitrate;
+          await sender.setParameters(parameters);
+        } catch (err) {
+          this.diagnostic(peerId, `Sender bitrate failed (${trackRole}): ${err?.name || err}`);
+          console.error('STUN [setSenderBitrate]', peerId, trackRole, err);
+        }
+      }
+    } finally {
+      state.writing = false;
+      if (
+        state.desired != null &&
+        this.peers.get(peerId) === peerConnection &&
+        peerConnection.signalingState !== 'closed' &&
+        peerConnection.getSenders?.().includes(sender)
+      ) {
+        return this.setSenderBitrate(peerId, trackRole, state.desired);
+      }
     }
   }
 

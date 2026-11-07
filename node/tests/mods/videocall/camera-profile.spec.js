@@ -109,13 +109,23 @@ describe('camera profile', () => {
     });
   });
 
-  test('leaves capture and senders unchanged when the mode is not default', async () => {
+  test('uses the default profile when the stored mode is not supported', async () => {
     const videocall = call();
-    videocall.app.options.videocall = { settings: { mode: 'unlimited' } };
+    videocall.app.options.videocall = {
+      settings: { mode: 'unlimited', layout: 'keep-me' }
+    };
     videocall.room_obj.call_peers = ['a'];
     await videocall.applyCameraProfile();
-    expect(videocall.streams.setCameraCapture).not.toHaveBeenCalled();
-    expect(videocall.stun.setCameraSenderBitrate).not.toHaveBeenCalled();
+    expect(videocall.streams.setCameraCapture).toHaveBeenCalledWith({
+      width: 1280,
+      height: 720,
+      frameRate: 24
+    });
+    expect(videocall.stun.setCameraSenderBitrate).toHaveBeenCalledWith('a', 1500000);
+    expect(videocall.app.options.videocall.settings).toEqual({
+      mode: 'unlimited',
+      layout: 'keep-me'
+    });
   });
 
   test('splits the screen budget across remote peers and not the camera senders', async () => {
@@ -300,5 +310,319 @@ describe('outgoing sender roles', () => {
     await created.beginShareScreen();
     expect(senders[1].trackRole).toBe('screen');
     expect(mod.applyScreenShareBitrate).toHaveBeenCalled();
+  });
+});
+
+function deferredSender(trackRole, track) {
+  const parameters = { transactionId: '1', encodings: [{ active: true }] };
+  const pending = [];
+  const sender = {
+    trackRole,
+    track,
+    parameters,
+    getParameters: () => parameters,
+    setParameters: jest.fn(
+      (next) =>
+        new Promise((resolve) => {
+          pending.push({ next, resolve });
+        })
+    ),
+    replaceTrack: jest.fn(async (next) => {
+      sender.track = next;
+    })
+  };
+  sender.release = () => {
+    const job = pending.shift();
+    if (!job) return false;
+    parameters.encodings = job.next.encodings;
+    parameters.transactionId = job.next.transactionId;
+    job.resolve();
+    return true;
+  };
+  return sender;
+}
+
+function stunWith(peerId, senders) {
+  const stun = Object.create(Stun.prototype);
+  stun.diagnostic = jest.fn();
+  stun.peers = new Map([
+    [peerId, { signalingState: 'stable', getSenders: () => senders }]
+  ]);
+  return stun;
+}
+
+async function flush() {
+  await new Promise((resolve) => setImmediate(resolve));
+}
+
+describe('sender bitrate serialization', () => {
+  test('applies a newer camera bitrate after the in-flight write and skips the superseded one', async () => {
+    const camera = deferredSender('camera', { kind: 'video' });
+    const stun = stunWith('peer-a', [camera]);
+
+    const first = stun.setCameraSenderBitrate('peer-a', 1500000);
+    await flush();
+    const second = stun.setCameraSenderBitrate('peer-a', 800000);
+    const third = stun.setCameraSenderBitrate('peer-a', 400000);
+    expect(camera.setParameters).toHaveBeenCalledTimes(1);
+
+    camera.release();
+    await flush();
+    camera.release();
+    await flush();
+    expect(camera.parameters.encodings[0].maxBitrate).toBe(400000);
+    expect(camera.parameters.transactionId).toBe('1');
+    expect(camera.setParameters).toHaveBeenCalledTimes(2);
+    await Promise.all([first, second, third]);
+  });
+
+  test('serializes screen bitrate updates on the screen sender only', async () => {
+    const camera = deferredSender('camera', { kind: 'video' });
+    const screen = deferredSender('screen', { kind: 'video' });
+    const stun = stunWith('peer-a', [camera, screen]);
+
+    const first = stun.setScreenSenderBitrate('peer-a', 1500000);
+    await flush();
+    stun.setScreenSenderBitrate('peer-a', 750000);
+    stun.setScreenSenderBitrate('peer-a', 500000);
+    expect(screen.setParameters).toHaveBeenCalledTimes(1);
+    expect(camera.setParameters).not.toHaveBeenCalled();
+
+    screen.release();
+    await flush();
+    screen.release();
+    await flush();
+    expect(screen.parameters.encodings[0].maxBitrate).toBe(500000);
+    expect(camera.parameters.encodings[0].maxBitrate).toBeUndefined();
+    await first;
+  });
+
+  test('a group join settles on the latest share after earlier writes', async () => {
+    const videocall = call();
+    const cameras = {
+      a: deferredSender('camera', { kind: 'video' }),
+      b: deferredSender('camera', { kind: 'video' }),
+      c: deferredSender('camera', { kind: 'video' })
+    };
+    const stun = Object.create(Stun.prototype);
+    stun.diagnostic = jest.fn();
+    stun.peers = new Map();
+    const connect = (peerId) => {
+      stun.peers.set(peerId, {
+        signalingState: 'stable',
+        getSenders: () => [cameras[peerId]]
+      });
+    };
+    videocall.stun = stun;
+    videocall.streams.setCameraCapture = jest.fn(() => Promise.resolve());
+
+    videocall.room_obj.call_peers = ['a'];
+    connect('a');
+    const first = videocall.applyCameraProfile();
+    await flush();
+
+    videocall.room_obj.call_peers = ['a', 'b'];
+    connect('b');
+    videocall.applyCameraProfile();
+    await flush();
+
+    videocall.room_obj.call_peers = ['a', 'b', 'c'];
+    connect('c');
+    videocall.applyCameraProfile();
+    await flush();
+
+    for (let attempt = 0; attempt < 6; attempt++) {
+      Object.values(cameras).forEach((sender) => sender.release());
+      await flush();
+    }
+
+    const share = Math.floor(1600000 / 3);
+    for (const sender of Object.values(cameras)) {
+      expect(sender.parameters.encodings[0].maxBitrate).toBe(share);
+    }
+    await first;
+  });
+});
+
+describe('camera track replacement', () => {
+  function ratedSender(trackRole, track) {
+    const parameters = { transactionId: '1', encodings: [{ active: true }] };
+    const sender = {
+      trackRole,
+      track,
+      parameters,
+      getParameters: () => parameters,
+      setParameters: jest.fn(async (next) => {
+        parameters.encodings = next.encodings;
+        parameters.transactionId = next.transactionId;
+      }),
+      replaceTrack: jest.fn(async (next) => {
+        sender.track = next;
+      })
+    };
+    return sender;
+  }
+
+  function peerConnection(senders) {
+    return {
+      signalingState: 'stable',
+      getSenders: () => senders,
+      addTrack(track) {
+        const createdSender = ratedSender('camera', track);
+        senders.push(createdSender);
+        return createdSender;
+      },
+      removeTrack(sender) {
+        const index = senders.indexOf(sender);
+        if (index >= 0) senders.splice(index, 1);
+      }
+    };
+  }
+
+  function mediaStream(tracks) {
+    return {
+      tracks,
+      getTracks() {
+        return this.tracks;
+      },
+      getAudioTracks() {
+        return this.tracks.filter((track) => track.kind === 'audio');
+      },
+      getVideoTracks() {
+        return this.tracks.filter((track) => track.kind === 'video');
+      },
+      addTrack(track) {
+        this.tracks.push(track);
+      },
+      removeTrack(track) {
+        this.tracks = this.tracks.filter((item) => item !== track);
+      }
+    };
+  }
+
+  function liveManager(peers) {
+    const app = {
+      connection: new EventEmitter(),
+      browser: { lockNavigation() {} },
+      options: { stun: { settings: {} } },
+      storage: { saveOptions() {} }
+    };
+    const mod = {
+      publicKey: 'local',
+      room_obj: { call_peers: peers },
+      applyCameraProfile: jest.fn(() => Promise.resolve()),
+      applyScreenShareBitrate: jest.fn(),
+      diagnostics: { record: jest.fn() },
+      screen_share: false,
+      stun: { peers: new Map() },
+      CallInterface: { receiveLocalStream: jest.fn() },
+      sendOffChainMessage: jest.fn(() => Promise.resolve())
+    };
+    const created = new StreamManager(app, mod, { video: false, audio: true });
+    created.active = true;
+    return { created, mod };
+  }
+
+  test('enabling the camera during screen sharing leaves both senders intact', async () => {
+    const { created, mod } = liveManager(['peer-a']);
+    const microphone = { kind: 'audio', enabled: true, readyState: 'live', stop: jest.fn() };
+    const screenTrack = { kind: 'video', enabled: true, readyState: 'live' };
+    const cameraTrack = { kind: 'video', enabled: true, readyState: 'live', stop: jest.fn() };
+    const screenSender = ratedSender('screen', screenTrack);
+    const senders = [screenSender];
+    const connection = peerConnection(senders);
+    mod.stun.peers.set('peer-a', connection);
+    created.localStream = mediaStream([microphone]);
+    global.navigator = {
+      mediaDevices: {
+        getUserMedia: async () => ({
+          getTracks: () => [cameraTrack],
+          getVideoTracks: () => [cameraTrack],
+          getAudioTracks: () => []
+        })
+      }
+    };
+
+    await created.toggleVideo();
+
+    const cameraSender = senders.find((sender) => sender.trackRole === 'camera');
+    expect(cameraSender.track).toBe(cameraTrack);
+    expect(screenSender.track).toBe(screenTrack);
+    expect(screenSender.replaceTrack).not.toHaveBeenCalled();
+
+    const stun = stunWith('peer-a', senders);
+    await stun.setCameraSenderBitrate('peer-a', 1500000);
+    await stun.setScreenSenderBitrate('peer-a', 500000);
+    expect(cameraSender.parameters.encodings[0].maxBitrate).toBe(1500000);
+    expect(screenSender.parameters.encodings[0].maxBitrate).toBe(500000);
+  });
+
+  test('replaces the camera on every peer and keeps the screen sender', async () => {
+    const { created, mod } = liveManager(['peer-a', 'peer-b']);
+    const oldCamera = { kind: 'video', readyState: 'live', stop: jest.fn() };
+    const microphone = { kind: 'audio', readyState: 'live', stop: jest.fn() };
+    const screenTrack = { kind: 'video', readyState: 'live' };
+    const newCamera = { kind: 'video', readyState: 'live', stop: jest.fn() };
+    const peers = ['peer-a', 'peer-b'].map((peerId) => {
+      const cameraSender = ratedSender('camera', oldCamera);
+      const screenSender = ratedSender('screen', screenTrack);
+      const connection = peerConnection([cameraSender, screenSender]);
+      mod.stun.peers.set(peerId, connection);
+      return { cameraSender, screenSender };
+    });
+    created.localStream = mediaStream([microphone, oldCamera]);
+    global.navigator = {
+      mediaDevices: {
+        getUserMedia: async () => ({
+          getTracks: () => [newCamera],
+          getVideoTracks: () => [newCamera],
+          getAudioTracks: () => []
+        })
+      }
+    };
+
+    await created.updateInputs('video', 'camera-two');
+
+    for (const peer of peers) {
+      expect(peer.cameraSender.track).toBe(newCamera);
+      expect(peer.screenSender.track).toBe(screenTrack);
+      expect(peer.screenSender.replaceTrack).not.toHaveBeenCalled();
+    }
+    expect(oldCamera.stop).toHaveBeenCalledTimes(1);
+    expect(microphone.stop).not.toHaveBeenCalled();
+    expect(created.localStream.getVideoTracks()[0]).toBe(newCamera);
+    expect(mod.applyCameraProfile).toHaveBeenCalled();
+    expect(created.app.options.stun.settings.preferred_video).toBe('camera-two');
+  });
+
+  test('keeps the old camera when replacement fails', async () => {
+    const { created, mod } = liveManager(['peer-a']);
+    const oldCamera = { kind: 'video', readyState: 'live', stop: jest.fn() };
+    const microphone = { kind: 'audio', readyState: 'live', stop: jest.fn() };
+    const newCamera = { kind: 'video', readyState: 'live', stop: jest.fn() };
+    const cameraSender = ratedSender('camera', oldCamera);
+    cameraSender.replaceTrack = jest.fn(async () => {
+      throw new Error('replace failed');
+    });
+    mod.stun.peers.set('peer-a', peerConnection([cameraSender]));
+    created.localStream = mediaStream([microphone, oldCamera]);
+    global.navigator = {
+      mediaDevices: {
+        getUserMedia: async () => ({
+          getTracks: () => [newCamera],
+          getVideoTracks: () => [newCamera],
+          getAudioTracks: () => []
+        })
+      }
+    };
+
+    await created.updateInputs('video', 'camera-two');
+
+    expect(created.localStream.getVideoTracks()[0]).toBe(oldCamera);
+    expect(oldCamera.stop).not.toHaveBeenCalled();
+    expect(newCamera.stop).toHaveBeenCalledTimes(1);
+    expect(microphone.stop).not.toHaveBeenCalled();
+    expect(mod.applyCameraProfile).not.toHaveBeenCalled();
+    expect(mod.diagnostics.record).toHaveBeenCalled();
   });
 });
