@@ -408,90 +408,169 @@ class Stun extends ModTemplate {
       return;
     }
 
-    // Stun protocol messages
-    if (request == 'peer-description') {
-      let description = data.description;
-      try {
-        const readyForOffer =
-          !peerConnection?.makingOffer &&
-          (peerConnection.signalingState == 'stable' || peerConnection?.answerPending);
-
-        const offerCollision = description.type === 'offer' && !readyForOffer;
-
-        peerConnection.ignoreOffer = offerCollision && peerConnection?.rude;
-
-        if (peerConnection.ignoreOffer) {
-          this.diagnostic(sender, 'Ignored colliding offer (impolite peer)');
-          console.debug('STUN: Impolite peer ignores offer collision');
-          return;
-        }
-
-        if (description.type === 'offer') {
-          // An incoming offer can satisfy the deferred negotiation. The browser
-          // will emit negotiationneeded again if local changes remain after the answer.
-          clearTimeout(peerConnection.offerTimer);
-          peerConnection.offerTimer = null;
-        }
-
-        peerConnection.answerPending = description.type == 'answer';
-        await peerConnection.setRemoteDescription(description);
-        this.diagnostic(sender, `Applied remote ${description.type}`);
-        peerConnection.answerPending = false;
-
-        // Relay delivery can put ICE candidates ahead of their SDP. WebRTC
-        // rejects them until a remote description exists, so apply them now.
-        const candidates = peerConnection.pendingCandidates || [];
-        delete peerConnection.pendingCandidates;
-        for (const candidate of candidates) {
-          await this.addIceCandidate(sender, peerConnection, candidate);
-        }
-
-        if (description.type === 'offer') {
-          await peerConnection.setLocalDescription();
-          this.sendPeerDescriptionTransaction(sender, peerConnection.localDescription);
-        }
-
-        this.peers.set(sender, peerConnection);
-      } catch (err) {
-        this.diagnostic(sender, `Apply description failed: ${err.name}`);
-        console.error('STUN: failure in peer-offer --- ', err);
-        console.debug(
-          'STUN: impolite? ',
-          peerConnection.rude,
-          'signalingState: ',
-          peerConnection.signalingState,
-          'answerPending: ',
-          peerConnection.answerPending,
-          'description type: ',
-          description.type
-        );
-      }
-      return;
-    }
-
-    if (request === 'peer-candidate') {
-      if (!peerConnection.remoteDescription) {
-        peerConnection.pendingCandidates ??= [];
-        peerConnection.pendingCandidates.push(data.iceCandidate);
-        this.diagnostic(sender, 'Queued remote ICE candidate until SDP arrives');
-        return;
-      }
-      await this.addIceCandidate(sender, peerConnection, data.iceCandidate);
-      return;
+    if (request === 'peer-description' || request === 'peer-candidate') {
+      return this.chainPeer(peerConnection, () => this.applySignal(sender, request, data, peerConnection));
     }
 
     console.warn('Unknown Stun Peer Transaction!', data);
   }
 
+  // One tail per peer connection. A task must not await chainPeer for its own pc.
+  chainPeer(peerConnection, task) {
+    const previous = peerConnection.signalChain || Promise.resolve();
+    const run = previous.then(() => task(), () => task());
+    peerConnection.signalChain = run.then(() => {}, () => {});
+    return run;
+  }
+
+  async applySignal(sender, request, data, peerConnection) {
+    if (this.peers.get(sender) !== peerConnection || peerConnection.signalingState === 'closed') {
+      return;
+    }
+
+    if (request === 'peer-description') {
+      await this.applyDescription(sender, data.description, peerConnection);
+      return;
+    }
+
+    if (request === 'peer-candidate') {
+      await this.receiveCandidate(sender, peerConnection, data.iceCandidate);
+    }
+  }
+
+  async applyDescription(sender, description, peerConnection) {
+    try {
+      const offerCollision = description.type === 'offer' &&
+        (peerConnection.makingOffer || peerConnection.signalingState !== 'stable');
+      peerConnection.ignoreOffer = !!(offerCollision && peerConnection.rude);
+
+      if (peerConnection.ignoreOffer) {
+        this.noteIgnoredOffer(peerConnection, description);
+        this.diagnostic(sender, `Ignored colliding offer (impolite peer) ufrag=${iceUfrag(description) || 'none'}`);
+        console.debug('STUN: Impolite peer ignores offer collision');
+        return;
+      }
+
+      if (description.type === 'offer') {
+        // An incoming offer can satisfy the deferred negotiation. The browser
+        // will emit negotiationneeded again if local changes remain after the answer.
+        clearTimeout(peerConnection.offerTimer);
+        peerConnection.offerTimer = null;
+      }
+
+      if (offerCollision) {
+        try {
+          await peerConnection.setLocalDescription({ type: 'rollback' });
+          this.diagnostic(sender, 'Rolled back local offer');
+        } catch (err) {
+          this.diagnostic(sender, `Rollback skipped: ${err.name} signaling=${peerConnection.signalingState}`);
+          console.debug('STUN: rollback skipped', err);
+        }
+      }
+
+      await peerConnection.setRemoteDescription(description);
+      this.diagnostic(sender, `Applied remote ${description.type}`);
+      // The ignored-ufrag set stays for the life of this connection.
+      peerConnection.ignoreOffer = false;
+      await this.drainCandidates(sender, peerConnection);
+
+      if (description.type === 'offer') {
+        await peerConnection.setLocalDescription();
+        if (this.peers.get(sender) !== peerConnection || peerConnection.signalingState === 'closed') return;
+        const answer = peerConnection.localDescription;
+        if (answer?.type === 'answer') {
+          await this.sendPeerDescriptionTransaction(sender, answer);
+        }
+      }
+    } catch (err) {
+      this.diagnostic(sender, `Apply description failed: ${err.name}`);
+      console.error('STUN: failure in peer-offer --- ', err);
+      console.debug(
+        'STUN: impolite? ',
+        peerConnection.rude,
+        'signalingState: ',
+        peerConnection.signalingState,
+        'makingOffer: ',
+        peerConnection.makingOffer,
+        'description type: ',
+        description?.type
+      );
+    }
+  }
+
+  noteIgnoredOffer(peerConnection, description) {
+    const ufrag = iceUfrag(description);
+    const current = iceUfrag(peerConnection.remoteDescription);
+    if (!peerConnection.ignoredOfferUfrags) peerConnection.ignoredOfferUfrags = new Set();
+    if (ufrag && ufrag !== current) {
+      peerConnection.ignoredOfferUfrags.add(ufrag);
+      peerConnection.pendingCandidates = (peerConnection.pendingCandidates || []).filter((candidate) => {
+        return candidateFragment(candidate) !== ufrag;
+      });
+    }
+    // Nothing has been accepted yet, so the queue can only belong to the offer we refused.
+    if (!peerConnection.remoteDescription) {
+      peerConnection.pendingCandidates = [];
+    }
+  }
+
+  async receiveCandidate(sender, peerConnection, candidate) {
+    const fragment = candidateFragment(candidate);
+    if (fragment && peerConnection.ignoredOfferUfrags?.has(fragment)) {
+      this.diagnostic(sender, `Discarded ICE candidate for ignored ufrag ${fragment}`);
+      return;
+    }
+
+    const remoteUfrag = iceUfrag(peerConnection.remoteDescription);
+    if (!fragment && peerConnection.ignoreOffer) {
+      this.queueCandidate(sender, peerConnection, candidate, 'during ignored offer');
+      return;
+    }
+    if (!peerConnection.remoteDescription || (fragment && fragment !== remoteUfrag)) {
+      this.queueCandidate(sender, peerConnection, candidate, 'until matching SDP arrives');
+      return;
+    }
+    await this.addIceCandidate(sender, peerConnection, candidate);
+  }
+
+  queueCandidate(sender, peerConnection, candidate, reason) {
+    peerConnection.pendingCandidates ??= [];
+    peerConnection.pendingCandidates.push(candidate);
+    this.diagnostic(sender, `Queued remote ICE candidate ${reason}`);
+  }
+
+  async drainCandidates(sender, peerConnection) {
+    const remoteUfrag = iceUfrag(peerConnection.remoteDescription);
+    const pending = peerConnection.pendingCandidates || [];
+    const keep = [];
+    peerConnection.pendingCandidates = [];
+    for (const candidate of pending) {
+      const fragment = candidateFragment(candidate);
+      if (fragment && peerConnection.ignoredOfferUfrags?.has(fragment)) continue;
+      if (!fragment || (remoteUfrag && fragment === remoteUfrag)) {
+        await this.addIceCandidate(sender, peerConnection, candidate);
+      } else {
+        keep.push(candidate);
+      }
+    }
+    if (keep.length) peerConnection.pendingCandidates = keep;
+  }
+
   async addIceCandidate(peerId, peerConnection, candidate) {
+    const fragment = candidateFragment(candidate);
+    const remoteType = peerConnection.remoteDescription?.type || 'none';
     try {
       await peerConnection.addIceCandidate(candidate);
       this.diagnostic(peerId, 'Applied remote ICE candidate');
     } catch (err) {
-      this.diagnostic(peerId, `ICE candidate rejected: ${err.name}${peerConnection.ignoreOffer ? ' (ignored offer)' : ''}`);
+      this.diagnostic(
+        peerId,
+        `ICE candidate rejected: ${err.name} signaling=${peerConnection.signalingState} remote=${remoteType} ufrag=${fragment || 'none'}`
+      );
       if (!peerConnection.ignoreOffer) {
-        console.error('STUN: Error adding remote candidate:', err, candidate);
-        console.warn(peerId, this.publicKey);
+        console.error(
+          `STUN: Error adding remote candidate for ${peerId}: ${err.name} signaling=${peerConnection.signalingState} remote=${remoteType} ufrag=${fragment || 'none'}`
+        );
       }
     }
   }
@@ -683,6 +762,9 @@ class Stun extends ModTemplate {
         pc.rude = true;
       }
 
+      pc.ignoredOfferUfrags = new Set();
+      pc.iceRestartCount = 0;
+      pc.iceRestartTimer = null;
       this.peers.set(peerId, pc);
       this.diagnostic(peerId, `Created peer connection (${pc.rude ? 'impolite' : 'polite'})`);
 
@@ -690,6 +772,8 @@ class Stun extends ModTemplate {
     }
 
     const peerConnection = this.peers.get(peerId);
+    // Set when this peer calls restartIce. negotiate() must not drop that offer.
+    let iceRestartNeeded = false;
 
     // Handle ICE candidates
     peerConnection.onicecandidate = async (event) => {
@@ -757,10 +841,42 @@ class Stun extends ModTemplate {
 
     peerConnection.oniceconnectionstatechange = () => {
       this.diagnostic(peerId, `ICE: ${peerConnection.iceConnectionState}`);
-      if (peerConnection.iceConnectionState === 'failed') {
-        this.diagnostic(peerId, 'Attempting ICE restart');
-        peerConnection.restartIce();
+      const iceState = peerConnection.iceConnectionState;
+      if (iceState === 'connected' || iceState === 'completed') {
+        const recovering = peerConnection.iceRestartTimer != null || peerConnection.iceRestartCount > 0;
+        clearTimeout(peerConnection.iceRestartTimer);
+        peerConnection.iceRestartTimer = null;
+        peerConnection.iceRestartCount = 0;
+        if (recovering) this.diagnostic(peerId, 'ICE recovered');
+        return;
       }
+      if (iceState !== 'failed') return;
+      if (peerConnection.iceRestartCount >= 3) {
+        this.diagnostic(peerId, 'ICE restarts exhausted');
+        return;
+      }
+      if (peerConnection.iceRestartTimer != null) return;
+      const delay = 1000 * (2 ** peerConnection.iceRestartCount);
+      this.diagnostic(peerId, `ICE restart scheduled in ${delay / 1000}s`);
+      peerConnection.iceRestartTimer = setTimeout(() => {
+        peerConnection.iceRestartTimer = null;
+        if (this.peers.get(peerId) !== peerConnection) {
+          this.diagnostic(peerId, 'ICE restart skipped: peer removed');
+          return;
+        }
+        if (peerConnection.signalingState === 'closed') {
+          this.diagnostic(peerId, 'ICE restart skipped: connection closed');
+          return;
+        }
+        if (peerConnection.iceConnectionState !== 'failed') {
+          this.diagnostic(peerId, 'ICE restart skipped: ICE no longer failed');
+          return;
+        }
+        peerConnection.iceRestartCount += 1;
+        iceRestartNeeded = true;
+        this.diagnostic(peerId, `ICE restart initiated (attempt ${peerConnection.iceRestartCount} of 3)`);
+        peerConnection.restartIce();
+      }, delay);
     };
 
     peerConnection.onicegatheringstatechange = () => {
@@ -796,7 +912,8 @@ class Stun extends ModTemplate {
         }
         console.log('STUN: Negotation needed, ', peerConnection.negotiation_counter);
 
-        if (peerConnection.negotiation_counter > 10) {
+        // A restart offer is the recovery attempt. The cool-off must not drop it.
+        if (peerConnection.negotiation_counter > 10 && !iceRestartNeeded) {
           console.warn(`STUN: Negotation needed, but going to cool off instead`);
           this.diagnostic(peerId, 'Negotiation throttled for 12s');
           peerConnection.negotiation_timeout = setTimeout(() => {
@@ -804,6 +921,7 @@ class Stun extends ModTemplate {
           }, 12000);
           return;
         }
+        iceRestartNeeded = false;
 
         peerConnection.negotiation_counter++;
         peerConnection.makingOffer = true;
@@ -814,8 +932,14 @@ class Stun extends ModTemplate {
 
         await peerConnection.setLocalDescription();
 
-        if (this.peers.get(peerId) !== peerConnection || peerConnection.signalingState === 'closed') return;
-        await this.sendPeerDescriptionTransaction(peerId, peerConnection.localDescription);
+        // A rollback can land before this send. have-local-offer is what proves
+        // the offer we just created is still the one the connection holds.
+        if (this.peers.get(peerId) !== peerConnection || peerConnection.signalingState !== 'have-local-offer') {
+          return;
+        }
+        const description = peerConnection.localDescription;
+        if (description?.type !== 'offer') return;
+        await this.sendPeerDescriptionTransaction(peerId, description);
       } catch (err) {
         this.diagnostic(peerId, `Negotiation failed: ${err.name}`);
         console.error('STUN offer ERROR:', err);
@@ -840,11 +964,16 @@ class Stun extends ModTemplate {
         // the deadline every time another track is added.
         if (peerConnection.offerTimer != null) return;
         this.diagnostic(peerId, 'Deferring initial offer for 1500ms');
-        peerConnection.offerTimer = setTimeout(() => void negotiate(), 1500);
+        peerConnection.offerTimer = setTimeout(() => {
+          if (this.peers.get(peerId) !== peerConnection) return;
+          void this.chainPeer(peerConnection, () => negotiate());
+        }, 1500);
         return;
       }
       clearTimeout(peerConnection.offerTimer);
-      return negotiate();
+      peerConnection.offerTimer = null;
+      // Schedule only. A caller already on this chain must not wait for the offer.
+      void this.chainPeer(peerConnection, () => negotiate());
     };
     peerConnection.onnegotiationneeded = requestNegotiation;
     peerConnection.onsignalingstatechange = () => {
@@ -883,13 +1012,17 @@ class Stun extends ModTemplate {
 
   async flushEarlySignals(peerId) {
     const queued = this.earlySignals.get(peerId);
-    if (!queued?.length || !this.peers.get(peerId)) {
+    const peerConnection = this.peers.get(peerId);
+    if (!queued?.length || !peerConnection) {
       return;
     }
+    // Drop the batch before yielding so a live message cannot join it out of order.
     this.earlySignals.delete(peerId);
-    for (const item of queued) {
-      await this.handleSignalingMessage(peerId, item.request, item.data);
-    }
+    await this.chainPeer(peerConnection, async () => {
+      for (const item of queued) {
+        await this.applySignal(peerId, item.request, item.data, peerConnection);
+      }
+    });
   }
 
   //This can get double processed by PeerTransaction and onConfirmation
@@ -902,25 +1035,48 @@ class Stun extends ModTemplate {
     return this.setSenderBitrate(peerId, 'screen', maxBitrate);
   }
 
+  findVideoSender(peerId, trackRole) {
+    const peerConnection = this.peers.get(peerId);
+    if (!peerConnection || peerConnection.signalingState === 'closed') return null;
+    return (
+      peerConnection.getSenders?.().find((item) => {
+        return item.trackRole === trackRole && item.track?.kind === 'video';
+      }) || null
+    );
+  }
+
+  senderBitrateStatus(peerId, trackRole) {
+    const sender = this.findVideoSender(peerId, trackRole);
+    const state = sender && this.senderBitrate?.get(sender);
+    if (!state) return null;
+    return {
+      desired: state.desired,
+      applied: state.applied ?? null,
+      failure: state.failure ? { bitrate: state.failure.bitrate, name: state.failure.name } : null
+    };
+  }
+
   // trackRole is set when Videocall adds the track. Camera and screen are
   // different video senders on the same peer connection. Each sender applies
   // one setParameters call at a time. A newer bitrate replaces a pending one
-  // and is written after the in-flight call finishes.
+  // and is written after the in-flight call finishes. applied is set only
+  // after setParameters resolves, so a rejection is not treated as success.
   async setSenderBitrate(peerId, trackRole, maxBitrate) {
     const peerConnection = this.peers.get(peerId);
-    if (!peerConnection || peerConnection.signalingState === 'closed') return;
-    const sender = peerConnection.getSenders?.().find((item) => {
-      return item.trackRole === trackRole && item.track?.kind === 'video';
-    });
+    const sender = this.findVideoSender(peerId, trackRole);
     if (!sender?.getParameters || !sender.setParameters) return;
 
     if (!this.senderBitrate) this.senderBitrate = new WeakMap();
     let state = this.senderBitrate.get(sender);
     if (!state) {
-      state = { writing: false, desired: null };
+      state = { writing: false, desired: null, applied: null, failure: null };
       this.senderBitrate.set(sender, state);
     }
     state.desired = maxBitrate;
+    if (!state.writing && state.applied === maxBitrate && state.failure == null) {
+      state.desired = null;
+      return;
+    }
     if (state.writing) return;
     state.writing = true;
 
@@ -936,14 +1092,18 @@ class Stun extends ModTemplate {
         }
         const bitrate = state.desired;
         state.desired = null;
+        if (bitrate === state.applied && state.failure == null) continue;
         try {
           const parameters = sender.getParameters();
           if (!parameters.encodings) parameters.encodings = [];
           if (parameters.encodings.length === 0) parameters.encodings.push({});
           parameters.encodings[0].maxBitrate = bitrate;
           await sender.setParameters(parameters);
+          state.applied = bitrate;
+          state.failure = null;
         } catch (err) {
-          this.diagnostic(peerId, `Sender bitrate failed (${trackRole}): ${err?.name || err}`);
+          state.failure = { bitrate, name: err?.name || 'Error' };
+          this.diagnostic(peerId, `Sender bitrate failed (${trackRole}): ${state.failure.name}`);
           console.error('STUN [setSenderBitrate]', peerId, trackRole, err);
         }
       }
@@ -968,10 +1128,21 @@ class Stun extends ModTemplate {
       clearTimeout(peerConnection.offerTimer);
       clearTimeout(peerConnection.negotiation_timeout);
       clearTimeout(peerConnection.timer);
+      clearTimeout(peerConnection.iceRestartTimer);
+      peerConnection.iceRestartTimer = null;
       peerConnection.close();
       this.peers.delete(peerId);
     }
   }
+}
+
+function iceUfrag(description) {
+  const match = description?.sdp?.match(/^a=ice-ufrag:(\S+)/m);
+  return match ? match[1] : '';
+}
+
+function candidateFragment(candidate) {
+  return candidate?.usernameFragment || '';
 }
 
 module.exports = Stun;

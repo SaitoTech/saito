@@ -442,6 +442,116 @@ describe('sender bitrate serialization', () => {
     }
     await first;
   });
+
+  test('retries a rejected bitrate when the peer connects and does not repeat it', async () => {
+    const videocall = call();
+    const camera = deferredSender('camera', { kind: 'video' });
+    const screen = deferredSender('screen', { kind: 'video' });
+    let cameraAttempts = 0;
+    camera.setParameters = jest.fn(
+      (next) =>
+        new Promise((resolve, reject) => {
+          cameraAttempts += 1;
+          if (cameraAttempts === 1) {
+            const error = new Error('not negotiated');
+            error.name = 'InvalidStateError';
+            reject(error);
+            return;
+          }
+          camera.parameters.encodings = next.encodings;
+          resolve();
+        })
+    );
+    screen.setParameters = jest.fn(async (next) => {
+      screen.parameters.encodings = next.encodings;
+    });
+    const stun = Object.create(Stun.prototype);
+    stun.diagnostic = jest.fn();
+    stun.peers = new Map([
+      ['a', { signalingState: 'stable', getSenders: () => [camera, screen] }],
+      ['b', { signalingState: 'stable', getSenders: () => [] }]
+    ]);
+    videocall.stun = stun;
+    videocall.screen_share = true;
+    videocall.streams.setCameraCapture = jest.fn(() => Promise.resolve());
+    videocall.room_obj.call_peers = ['a'];
+
+    await stun.setCameraSenderBitrate('a', 1500000);
+    expect(stun.senderBitrateStatus('a', 'camera')).toEqual({
+      desired: null,
+      applied: null,
+      failure: { bitrate: 1500000, name: 'InvalidStateError' }
+    });
+
+    videocall.room_obj.call_peers = ['a', 'b'];
+    await videocall.onPeerConnected();
+    await flush();
+
+    expect(stun.senderBitrateStatus('a', 'camera')).toEqual({
+      desired: null,
+      applied: 800000,
+      failure: null
+    });
+    expect(stun.senderBitrateStatus('a', 'screen')).toEqual({
+      desired: null,
+      applied: 750000,
+      failure: null
+    });
+    expect(camera.parameters.encodings[0].maxBitrate).toBe(800000);
+    expect(screen.parameters.encodings[0].maxBitrate).toBe(750000);
+
+    const cameraWrites = camera.setParameters.mock.calls.length;
+    const screenWrites = screen.setParameters.mock.calls.length;
+    await videocall.onPeerConnected();
+    await flush();
+    expect(camera.setParameters).toHaveBeenCalledTimes(cameraWrites);
+    expect(screen.setParameters).toHaveBeenCalledTimes(screenWrites);
+  });
+
+  test('records a rejected newer bitrate and then a later success', async () => {
+    const camera = deferredSender('camera', { kind: 'video' });
+    const pending = [];
+    camera.setParameters = jest.fn(
+      (next) =>
+        new Promise((resolve, reject) => {
+          pending.push({ next, resolve, reject });
+        })
+    );
+    const stun = stunWith('peer-a', [camera]);
+
+    const first = stun.setCameraSenderBitrate('peer-a', 1500000);
+    await flush();
+    const second = stun.setCameraSenderBitrate('peer-a', 400000);
+    expect(camera.setParameters).toHaveBeenCalledTimes(1);
+
+    pending.shift().resolve();
+    await flush();
+    expect(camera.setParameters).toHaveBeenCalledTimes(2);
+    const rejected = pending.shift();
+    const error = new Error('unsupported');
+    error.name = 'OperationError';
+    rejected.reject(error);
+    await flush();
+    await Promise.all([first, second]);
+
+    expect(stun.senderBitrateStatus('peer-a', 'camera')).toEqual({
+      desired: null,
+      applied: 1500000,
+      failure: { bitrate: 400000, name: 'OperationError' }
+    });
+
+    camera.setParameters = jest.fn(async (next) => {
+      camera.parameters.encodings = next.encodings;
+    });
+    await stun.setCameraSenderBitrate('peer-a', 800000);
+    expect(stun.senderBitrateStatus('peer-a', 'camera')).toEqual({
+      desired: null,
+      applied: 800000,
+      failure: null
+    });
+    await stun.setCameraSenderBitrate('peer-a', 800000);
+    expect(camera.setParameters).toHaveBeenCalledTimes(1);
+  });
 });
 
 describe('camera track replacement', () => {

@@ -268,3 +268,280 @@ describe('Windows', () => {
     jest.useRealTimers();
   });
 });
+
+class DeparturePeerConnection {
+  constructor() {
+    this.signalingState = 'stable';
+    this.connectionState = 'new';
+    this.iceConnectionState = 'new';
+    this.iceGatheringState = 'new';
+  }
+
+  addEventListener() {}
+
+  createDataChannel() {
+    return {};
+  }
+
+  close() {
+    this.connectionState = 'closed';
+    this.signalingState = 'closed';
+  }
+}
+
+global.navigator = dom.window.navigator;
+
+const Videocall = require('../../../mods/videocall/videocall');
+const VideoCallInterface = require('../../../mods/videocall/lib/ui/video_call_interface');
+const Stun = require('../../../mods/stun/stun');
+
+function departure() {
+  document.body.innerHTML = '';
+  const connection = emitter();
+  const app = {
+    BROWSER: 1,
+    connection,
+    options: { videocall: { settings: { mode: 'default' } }, stun: { settings: {} } },
+    keychain: {
+      returnUsername: (key) => key,
+      returnIdentifierByPublicKey: () => 'peer'
+    },
+    browser: {
+      addElementToDom(html, parent) {
+        const holder = document.createElement('div');
+        (parent || document.body).insertAdjacentElement('beforeend', holder);
+        holder.outerHTML = html;
+      }
+    },
+    storage: { saveOptions() {} }
+  };
+  const stun = new Stun(app);
+  stun.publicKey = 'local-key';
+  const call = Object.create(Videocall.prototype);
+  call.app = app;
+  call.publicKey = 'local-key';
+  call.name = 'Videocall';
+  call.processedTxs = {};
+  call.db_tables = [];
+  call.shortlinks_enabled = 0;
+  call.layout = 'focus';
+  call.screen_share = false;
+  call.have_joined_room = Date.now();
+  call.stun = stun;
+  call.room_obj = { call_id: 'room-1', call_peers: ['peer-a', 'peer-b'] };
+  call.streams = {
+    active: true,
+    audioEnabled: true,
+    videoEnabled: true,
+    remoteStreams: new Map([
+      ['peer-a', stream(true)],
+      ['peer-b', stream(true)],
+      ['presentation', stream(true)]
+    ]),
+    removals: [],
+    removePeer(peer, msg) {
+      this.remoteStreams.delete(peer);
+      this.removals.push({ peer, msg });
+    },
+    setCameraCapture() {}
+  };
+  call.CallInterface = new VideoCallInterface(app, call, 'windows', document.body);
+  return { app, call, stun };
+}
+
+function transaction(request, from, extra = {}) {
+  return {
+    signature: `${request}-${from}-${extra.signature || '1'}`,
+    timestamp: Date.now(),
+    from: [{ publicKey: from }],
+    isTo: () => true,
+    isFrom: (key) => key === from,
+    returnMessage: () => ({
+      module: 'Stun',
+      request,
+      call_id: 'room-1',
+      ...extra.message
+    })
+  };
+}
+
+describe('participant departure', () => {
+  const previousPeerConnection = global.RTCPeerConnection;
+
+  beforeAll(() => {
+    global.RTCPeerConnection = DeparturePeerConnection;
+    global.siteMessage = () => {};
+    global.salert = () => {};
+    global.AudioContext = class {
+      createMediaStreamSource() {
+        return { connect() {} };
+      }
+      createAnalyser() {
+        return { fftSize: 0, frequencyBinCount: 0, getByteFrequencyData() {} };
+      }
+    };
+    global.requestAnimationFrame = () => 0;
+    global.cancelAnimationFrame = () => {};
+    window.requestAnimationFrame = () => 0;
+    window.cancelAnimationFrame = () => {};
+  });
+
+  afterEach(() => {
+    jest.clearAllTimers();
+    jest.useRealTimers();
+  });
+
+  afterAll(() => {
+    global.RTCPeerConnection = previousPeerConnection;
+  });
+
+  test('ordinary departure removes the peer from the room and from Stun', async () => {
+    const { app, call, stun } = departure();
+    stun.createPeerConnection('peer-a');
+    stun.createPeerConnection('peer-b');
+
+    await call.handlePeerTransaction(app, transaction('peer-left', 'peer-a'));
+
+    expect(call.room_obj.call_peers).toEqual(['peer-b']);
+    expect(stun.peers.has('peer-a')).toBe(false);
+    expect(call.streams.remoteStreams.has('peer-a')).toBe(false);
+    expect(call.streams.removals).toEqual([{ peer: 'peer-a', msg: 'left the meeting' }]);
+    expect(document.getElementById('stream_peer-b')).toBeNull();
+  });
+
+  test('a kick broadcast removes the kicked peer connection for an observer', async () => {
+    const { app, call, stun } = departure();
+    stun.createPeerConnection('peer-a');
+    const tx = transaction('peer-kick-broadcast', 'peer-b', {
+      message: { data: { kicked_peer: 'peer-a' } }
+    });
+
+    await call.handlePeerTransaction(app, tx);
+
+    expect(call.room_obj.call_peers).toEqual(['peer-b']);
+    expect(stun.peers.has('peer-a')).toBe(false);
+    expect(call.streams.removals[0].msg).toBe('was kicked out of the call');
+  });
+
+  test('stun-connection-close uses the same departure cleanup', () => {
+    const { app, call, stun } = departure();
+    const live = new Videocall(app);
+    live.stun = stun;
+    live.room_obj = call.room_obj;
+    live.streams = call.streams;
+    live.CallInterface = call.CallInterface;
+    live.publicKey = 'local-key';
+    live.screen_share = false;
+    stun.createPeerConnection('peer-a');
+
+    app.connection.emit('stun-connection-close', 'peer-a');
+
+    expect(call.room_obj.call_peers).toEqual(['peer-b']);
+    expect(stun.peers.has('peer-a')).toBe(false);
+    expect(call.streams.removals).toEqual([{ peer: 'peer-a', msg: ' has no connection' }]);
+    live.CallInterface = null;
+  });
+
+  test('cleanup is safe when Stun already removed the connection', () => {
+    const { call, stun } = departure();
+    stun.createPeerConnection('peer-a');
+    stun.removePeerConnection('peer-a');
+
+    expect(() => call.disconnect('peer-a')).not.toThrow();
+
+    expect(stun.peers.has('peer-a')).toBe(false);
+    expect(call.room_obj.call_peers).toEqual(['peer-b']);
+    expect(call.streams.removals).toHaveLength(1);
+  });
+
+  test('a repeated departure notification does not repeat the interface update', () => {
+    const { call, stun } = departure();
+    stun.createPeerConnection('peer-a');
+    const left = jest.spyOn(call.CallInterface, 'participantLeft');
+
+    call.disconnect('peer-a');
+    call.disconnect('peer-a');
+
+    expect(left).toHaveBeenCalledTimes(1);
+    expect(call.streams.removals).toHaveLength(1);
+    expect(stun.peers.has('peer-a')).toBe(false);
+    expect(call.room_obj.call_peers).toEqual(['peer-b']);
+  });
+
+  test('departure of the presenter clears the presentation and leaves local capture alone', () => {
+    const { call } = departure();
+    call.screen_share = 'peer-a';
+    call.CallInterface.receiveRemoteStream('presentation', stream(true));
+    const track = { stop: jest.fn() };
+    call.streams.presentationStream = { getTracks: () => [track] };
+    const stopped = jest.spyOn(call.CallInterface, 'presentationStopped');
+
+    call.disconnect('peer-a');
+
+    expect(call.screen_share).toBeNull();
+    expect(stopped).toHaveBeenCalledTimes(1);
+    expect(call.streams.remoteStreams.has('presentation')).toBe(false);
+    expect(document.getElementById('stream_presentation')).toBeNull();
+    expect(track.stop).not.toHaveBeenCalled();
+  });
+
+  test('departure of someone else leaves the current presentation in place', () => {
+    const { call } = departure();
+    call.screen_share = 'peer-b';
+    call.CallInterface.receiveRemoteStream('presentation', stream(true));
+    const stopped = jest.spyOn(call.CallInterface, 'presentationStopped');
+
+    call.disconnect('peer-a');
+
+    expect(call.screen_share).toBe('peer-b');
+    expect(stopped).not.toHaveBeenCalled();
+    expect(call.streams.remoteStreams.has('presentation')).toBe(true);
+    expect(document.getElementById('stream_presentation')).not.toBeNull();
+  });
+
+  test('reconnecting the same public key creates a new peer connection', () => {
+    jest.useFakeTimers();
+    const { call, stun } = departure();
+    stun.createPeerConnection('peer-a');
+    const first = stun.peers.get('peer-a');
+    let late = false;
+    first.iceRestartTimer = setTimeout(() => {
+      late = true;
+    }, 1000);
+    call.CallInterface.receiveRemoteStream('peer-a', stream(true));
+    const panel = document.getElementById('stream_peer-a');
+    panel.style.left = '80px';
+    panel.style.top = '90px';
+    panel.style.width = '300px';
+
+    call.disconnect('peer-a');
+    call.room_obj.call_peers.push('peer-a');
+    stun.createPeerConnection('peer-a');
+    jest.advanceTimersByTime(1000);
+
+    const second = stun.peers.get('peer-a');
+    expect(second).not.toBe(first);
+    expect(first.signalingState).toBe('closed');
+    expect(late).toBe(false);
+    expect(second.iceRestartTimer).toBeNull();
+    call.CallInterface.receiveRemoteStream('peer-a', stream(true));
+    expect(document.getElementById('stream_peer-a')).toBe(panel);
+    expect(panel.style.left).toBe('80px');
+    expect(panel.style.top).toBe('90px');
+    expect(panel.style.width).toBe('300px');
+  });
+
+  test('removing one peer leaves the other connection in a three-party call', () => {
+    const { call, stun } = departure();
+    stun.createPeerConnection('peer-a');
+    stun.createPeerConnection('peer-b');
+    const remaining = stun.peers.get('peer-b');
+
+    call.disconnect('peer-a');
+
+    expect(stun.peers.get('peer-b')).toBe(remaining);
+    expect(remaining.signalingState).toBe('stable');
+    expect(call.room_obj.call_peers).toEqual(['peer-b']);
+    expect(call.streams.remoteStreams.has('peer-b')).toBe(true);
+  });
+});

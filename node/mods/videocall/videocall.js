@@ -58,6 +58,17 @@ class Videocall extends ModTemplate {
         salert('STUN connection failure. Try refreshing and reconnecting');
       }
     });
+
+    app.connection.on('stun-connection-connected', () => {
+      this.onPeerConnected();
+    });
+  }
+
+  // A sender cap attempted before negotiation can be rejected. Reapply from
+  // the current call membership once the peer is connected. One attempt per
+  // event; a permanent rejection is not scheduled again until policy changes.
+  onPeerConnected() {
+    this.applyCameraProfile();
   }
 
   /**
@@ -238,7 +249,7 @@ class Videocall extends ModTemplate {
               console.info('TALK: kicking user: ', public_key);
               this.CallInterface?.participantKicked?.(public_key);
               await this.sendKickTransaction(public_key);
-              this.streams.removePeer(public_key, 'was kicked out');
+              this.disconnect(public_key, 'was kicked out of the call');
             }
           }
         ];
@@ -578,7 +589,10 @@ class Videocall extends ModTemplate {
           }
 
           if (txmsg.request === 'peer-kick-broadcast') {
-            this.disconnect(txmsg.kicked_peer, 'was kicked out of the call');
+            const kicked = txmsg.data?.kicked_peer;
+            if (kicked) {
+              this.disconnect(kicked, 'was kicked out of the call');
+            }
           }
 
           const peerMediaEvent = {
@@ -633,22 +647,39 @@ class Videocall extends ModTemplate {
   }
 
   disconnect(peer, msg = 'left the meeting') {
-    for (let i = 0; i < this.room_obj.call_peers.length; i++) {
-      if (this.room_obj.call_peers[i] == peer) {
-        this.room_obj.call_peers.splice(i, 1);
+    if (!peer) return;
+
+    const members = this.room_obj?.call_peers;
+    let departed = false;
+    if (Array.isArray(members)) {
+      const index = members.indexOf(peer);
+      if (index !== -1) {
+        members.splice(index, 1);
+        departed = true;
         setTimeout(() => {
           this.CallInterface?.updateRoomLink?.();
           //wait to update because peer might come right back
         }, 300000);
-        break;
       }
     }
 
+    // Stun also removes on peer-left. Removing again is a no-op.
+    this.stun?.removePeerConnection?.(peer);
+
+    // Remote presentation only. Local display tracks stay with StreamManager.
+    if (this.screen_share === peer) {
+      this.screen_share = null;
+      this.streams?.remoteStreams?.delete?.('presentation');
+      this.CallInterface?.presentationStopped?.();
+      this.CallInterface?.setPresenting?.(false);
+      departed = true;
+    }
+
+    if (!departed) return;
+
     this.applyCameraProfile();
     this.CallInterface?.participantLeft?.(peer);
-
-    //See if we need to also hang up on our end
-    this.streams.removePeer(peer, msg);
+    this.streams?.removePeer?.(peer, msg);
   }
 
   // A convenience function to send metadata through the stun channel (if established) or over relay otherwise
