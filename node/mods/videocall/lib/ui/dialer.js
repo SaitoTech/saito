@@ -102,7 +102,7 @@ class Dialer {
 
         this.ring_sound = new Audio('/saito/sound/Cloud_edit.mp3');
         this.startRing(4500);
-        this.updateMessage('Dialing...');
+        this.updateMessage('dialing...');
         this.deactivateOptions();
 
         if (!recipient || recipient.length == 0) {
@@ -129,12 +129,12 @@ class Dialer {
             data
           });
           this.stopRing();
-          call_button.innerHTML = 'Call';
-          this.updateMessage('No answer');
+          call_button.innerHTML = 'call';
+          this.updateMessage('no answer');
           this.attachEvents();
         }, 3000);
 
-        call_button.innerHTML = 'Cancel';
+        call_button.innerHTML = 'cancel';
 
         call_button.onclick = (e) => {
           clearTimeout(this.dialing);
@@ -330,7 +330,7 @@ class Dialer {
         clearTimeout(this.dialing);
         this.updateMessage('did not answer');
         if (document.getElementById('startcall')) {
-          document.getElementById('startcall').innerHTML = 'Call';
+          document.getElementById('startcall').innerHTML = 'call';
         }
         this.attachEvents();
         break;
@@ -364,9 +364,9 @@ class Dialer {
             this.stopRing();
 
             if (document.getElementById('startcall')) {
-              document.getElementById('startcall').innerHTML = 'Call';
+              document.getElementById('startcall').innerHTML = 'call';
             }
-            this.updateMessage('No answer');
+            this.updateMessage('no answer');
             this.attachEvents();
           }, 29000);
         }

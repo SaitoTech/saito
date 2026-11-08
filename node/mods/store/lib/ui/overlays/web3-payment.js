@@ -87,6 +87,10 @@ class Web3PaymentOverlay {
   }
 
   async start(summary, quantity = 1, { note = '' } = {}) {
+    if (!this.mod?.web3PaymentsEnabled?.()) {
+      salert('Web3 payments are not enabled for this Store.');
+      return;
+    }
     const ticker = String(summary?.web3_ticker || '').trim().toUpperCase();
     const unitAmount = String(summary?.web3_amount || '').trim();
     const deposit = scaleAmount(unitAmount, quantity);
@@ -217,7 +221,32 @@ class Web3PaymentOverlay {
         expected_deposit: deposit,
         tx: this.purchase_tx.serialize_to_web(this.app)
       },
-      null,
+      (response) => {
+        if (!this.active || this.session !== session) {
+          return;
+        }
+        if (!response?.address || response.err) {
+          this.fail(
+            response?.message ||
+              response?.err ||
+              'The payment service did not return instructions. Please check your connection and try again.'
+          );
+          return;
+        }
+        const mixin = this.app.modules?.returnModule?.('Mixin');
+        if (Array.isArray(mixin?.pending_payments)) {
+          const recorded = mixin.pending_payments.some(
+            (row) =>
+              row?.id === response.id &&
+              row?.address === response.address &&
+              row?.ticker === response.ticker
+          );
+          if (!recorded) {
+            mixin.pending_payments.push(response);
+          }
+        }
+        this.receiveAddress(response);
+      },
       peerKey
     );
   }

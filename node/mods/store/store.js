@@ -40,9 +40,10 @@ class Store extends ModTemplate {
     this.summaries = {};
     this.image_cache = {};
     this.store_public_key = '';
-    // Treasury keys that may issue a web3 purchase. The server's own public key
-    // is added when a purchase is checked, so this node can issue those payments.
-    this.web3_payment_processor_publickey = ['cNACSaLdZQfbPkTTud4ezLWFYqRPUCMEt2dgLxJ9Axxx'];
+    // Saved treasury identity that signs Web3 purchase transactions. Empty until
+    // an administrator confirms the Mixin issuance key. Checkout stays off until then.
+    this.web3_treasury_publickey = '';
+    this.web3_payments_enabled = false;
     this.store_peer_index = null;
     this.shared_listing_path = '';
     this.listings_to_moderate = 0;
@@ -68,6 +69,7 @@ class Store extends ModTemplate {
 
     if (!this.app.BROWSER) {
       this.store_public_key = this.publicKey;
+      this.loadWeb3PaymentOptions();
       await this.warehouse.initialize();
     }
 
@@ -282,6 +284,7 @@ class Store extends ModTemplate {
     this.store_public_key = peer.publicKey;
     this.store_peer_index = peer.peerIndex;
     console.log('Store: onPeerServiceUp store_public_key=', this.store_public_key);
+    this.requestWeb3PaymentStatus();
 
     if (this.browser_active || Number(this.app.options?.store?.moderator) === 1) {
       this.requestStoreModerationState();
@@ -344,6 +347,13 @@ class Store extends ModTemplate {
     }
 
     let txmsg = tx.returnMessage();
+
+    if (txmsg?.request === 'store-web3-status') {
+      if (!this.app.BROWSER && mycallback != null) {
+        mycallback({ enabled: this.web3PaymentsEnabled() });
+        return 1;
+      }
+    }
 
     if (txmsg?.request === 'store-moderation-response') {
       if (this.app.BROWSER) {
@@ -760,6 +770,96 @@ class Store extends ModTemplate {
    * Node-operator keys in app.options.admin. An empty list authorizes nobody
    * (unlike Admin module's open-if-unconfigured default).
    */
+  loadWeb3PaymentOptions() {
+    const web3 = this.app.options?.store?.web3;
+    const key = String(web3?.treasury_publickey || '').trim();
+    const valid =
+      !!key &&
+      (typeof this.app.crypto?.isPublicKey !== 'function' || this.app.crypto.isPublicKey(key));
+    this.web3_treasury_publickey = valid ? key : '';
+    this.web3_payments_enabled = web3?.enabled === true && !!this.web3_treasury_publickey;
+  }
+
+  returnWeb3TreasuryPublicKey() {
+    return String(this.web3_treasury_publickey || '').trim();
+  }
+
+  web3PaymentsEnabled() {
+    if (this.app?.BROWSER) {
+      return this.web3_payments_enabled === true;
+    }
+    return this.web3_payments_enabled === true && !!this.returnWeb3TreasuryPublicKey();
+  }
+
+  /**
+   * Public key of the Mixin wallet that signs Web3 Saito fulfillment.
+   * A remote payout uses the configured treasury. Local payout uses this node.
+   */
+  returnDiscoveredWeb3IssuanceKey() {
+    const mixin = this.app.modules?.returnModule?.('Mixin');
+    if (!mixin || typeof mixin.returnSaitoIssuancePublicKey !== 'function') {
+      return '';
+    }
+    const key = String(mixin.returnSaitoIssuancePublicKey() || '').trim();
+    if (!key) {
+      return '';
+    }
+    if (typeof this.app.crypto?.isPublicKey === 'function' && !this.app.crypto.isPublicKey(key)) {
+      return '';
+    }
+    return key;
+  }
+
+  returnWeb3AdminConfig() {
+    return {
+      enabled: this.web3PaymentsEnabled(),
+      treasury_publickey: this.returnWeb3TreasuryPublicKey(),
+      discovered_publickey: this.returnDiscoveredWeb3IssuanceKey()
+    };
+  }
+
+  saveWeb3PaymentOptions({ enabled, treasury_publickey } = {}) {
+    if (!this.app.options || typeof this.app.options !== 'object') {
+      this.app.options = {};
+    }
+    if (!this.app.options.store || typeof this.app.options.store !== 'object') {
+      this.app.options.store = {};
+    }
+    const current =
+      this.app.options.store.web3 && typeof this.app.options.store.web3 === 'object'
+        ? this.app.options.store.web3
+        : {};
+    const key =
+      treasury_publickey === undefined
+        ? String(current.treasury_publickey || '').trim()
+        : String(treasury_publickey || '').trim();
+    this.app.options.store.web3 = {
+      enabled: enabled === true && !!key,
+      treasury_publickey: key
+    };
+    this.loadWeb3PaymentOptions();
+    this.app.storage?.saveOptions?.();
+    return this.returnWeb3AdminConfig();
+  }
+
+  requestWeb3PaymentStatus() {
+    if (!this.app.BROWSER) {
+      return;
+    }
+    const peerKey = this.store_public_key;
+    if (!peerKey || !this.app.network?.sendRequestAsTransaction) {
+      return;
+    }
+    this.app.network.sendRequestAsTransaction(
+      'store-web3-status',
+      { module: this.name },
+      (response) => {
+        this.web3_payments_enabled = response?.enabled === true;
+      },
+      peerKey
+    );
+  }
+
   isStoreAdmin(tx) {
     const admins = Array.isArray(this.app.options?.admin) ? this.app.options.admin : [];
     return this.txIsFromAnyKey(tx, admins);
@@ -773,6 +873,34 @@ class Store extends ModTemplate {
   }
 
   respondTo(type = '', obj) {
+    if (type === 'admin-config') {
+      if (this.app.BROWSER) {
+        return null;
+      }
+      return {
+        id: this.returnSlug(),
+        name: this.name,
+        getConfig: async () => this.returnWeb3AdminConfig(),
+        updateConfig: async (config = {}) => {
+          if (config.action === 'disable') {
+            return this.saveWeb3PaymentOptions({ enabled: false });
+          }
+          if (config.action === 'authorize') {
+            const discovered = this.returnDiscoveredWeb3IssuanceKey();
+            const submitted = String(config.treasury_publickey || '').trim();
+            if (!discovered || submitted !== discovered) {
+              throw new Error('That identity is not the Mixin issuance key.');
+            }
+            return this.saveWeb3PaymentOptions({
+              enabled: true,
+              treasury_publickey: discovered
+            });
+          }
+          throw new Error('Unsupported Store configuration action.');
+        }
+      };
+    }
+
     if (type === 'admin-sidebar') {
       if (!this.app.BROWSER) {
         return null;

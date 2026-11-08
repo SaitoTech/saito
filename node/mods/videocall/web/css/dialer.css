@@ -38,12 +38,27 @@
   text-align: center;
 }
 
+.stun-minimal-appspace .subtitle {
+  margin-top: -0.6rem;
+}
+
 .stun-minimal-appspace .contact {
   display: flex;
   justify-content: center;
   width: 100%;
   min-width: 0;
   color: var(--saito-foreground);
+}
+
+.stun-minimal-appspace .contact > .saito-user {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  row-gap: 0.6rem;
+  text-align: center;
+  text-transform: lowercase;
 }
 
 .stun-minimal-appspace .video_switch {
@@ -82,8 +97,10 @@
   position: absolute;
   cursor: pointer;
   inset: 0;
+  box-sizing: border-box;
+  border: 1px solid color-mix(in srgb, var(--saito-foreground) 42%, transparent);
   border-radius: 999px;
-  background: var(--saito-secondary);
+  background: color-mix(in srgb, var(--saito-foreground) 16%, var(--saito-secondary));
   transition: background-color 0.2s ease;
 }
 

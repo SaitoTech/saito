@@ -12,18 +12,8 @@ const SUPPORT_EMAIL = 'info@saito.io';
 const SUPPORT_URL = 'https://wiki.saito.io/applications/store/payments';
 
 function treasuryPublicKey(mod) {
-  const buysaito = mod.app?.modules?.returnModule?.('BuySaito');
-  const authorized = String(buysaito?.authorized_public_key || '').trim();
-  if (authorized) {
-    return authorized;
-  }
-  const configured = mod.web3_payment_processor_publickey;
-  const listed = Array.isArray(configured) ? configured : configured ? [configured] : [];
-  for (const candidate of [...listed, mod.publicKey]) {
-    const key = String(candidate || '').trim();
-    if (key) {
-      return key;
-    }
+  if (typeof mod?.returnWeb3TreasuryPublicKey === 'function') {
+    return String(mod.returnWeb3TreasuryPublicKey() || '').trim();
   }
   return '';
 }

@@ -4,6 +4,8 @@ const WindowsControlsTemplate = require('./windows.template');
 const TILE_W = 240;
 const TILE_H = 180;
 const GAP = 12;
+const EDGE = 28;
+const CONTROL_H = 52;
 
 /**
  * Participant windows for a call that is not the open Talk meeting.
@@ -104,12 +106,12 @@ class Windows {
       box.render(stream);
       const el = document.getElementById(`stream_${publicKey}`);
       if (el) {
+        if (!this.controls) {
+          this.placeControls();
+        }
         this.place(el);
         this.drag(el);
         this.resize(el);
-        if (!this.controls) {
-          this.placeControls(el);
-        }
       }
       return;
     }
@@ -135,23 +137,33 @@ class Windows {
   }
 
   place(el) {
-    const cols = Math.max(1, Math.floor((this.container.clientWidth - 16) / (TILE_W + GAP)));
+    const width = this.container === document.body ? window.innerWidth : this.container.clientWidth;
+    const height =
+      this.container === document.body ? window.innerHeight : this.container.clientHeight;
+    const cols = Math.max(1, Math.floor((width - EDGE) / (TILE_W + GAP)));
     const index = this.nextSlot++;
-    el.style.left = `${16 + (index % cols) * (TILE_W + GAP)}px`;
-    el.style.top = `${16 + Math.floor(index / cols) * (TILE_H + GAP)}px`;
+    const col = index % cols;
+    const row = Math.floor(index / cols);
+    const controlsH = this.controls?.offsetHeight || CONTROL_H;
+    el.style.left = `${EDGE + col * (TILE_W + GAP)}px`;
+    el.style.top = `${Math.max(
+      0,
+      height - EDGE - controlsH - GAP - TILE_H - row * (TILE_H + GAP)
+    )}px`;
   }
 
-  placeControls(panel) {
+  placeControls() {
     const audioOn = this.mod.streams?.audioEnabled !== false;
     const videoOn = this.mod.streams?.videoEnabled !== false;
     const holder = document.createElement('div');
     holder.innerHTML = WindowsControlsTemplate(audioOn, videoOn).trim();
     const controls = holder.firstElementChild;
     this.container.appendChild(controls);
-    const left = parseFloat(panel.style.left) || 16;
-    const top = parseFloat(panel.style.top) || 16;
-    controls.style.left = `${left}px`;
-    controls.style.top = `${top + TILE_H + 8}px`;
+    const height =
+      this.container === document.body ? window.innerHeight : this.container.clientHeight;
+    const controlsH = controls.offsetHeight || CONTROL_H;
+    controls.style.left = `${EDGE}px`;
+    controls.style.top = `${Math.max(0, height - EDGE - controlsH)}px`;
     this.bindControls(controls);
     this.drag(controls);
     this.controls = controls;
