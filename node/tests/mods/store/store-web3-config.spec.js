@@ -43,7 +43,7 @@ describe('Store web3 payment configuration', () => {
         action: 'authorize',
         treasury_publickey: 'not-a-key'
       })
-    ).rejects.toThrow(/not the Mixin issuance key/);
+    ).rejects.toThrow(/not a valid Saito public key/);
     expect(store.web3PaymentsEnabled()).toBe(false);
 
     application.mixin = {
@@ -51,10 +51,23 @@ describe('Store web3 payment configuration', () => {
     };
     const enabled = await store.respondTo('admin-config').updateConfig({
       action: 'authorize',
+      treasury_publickey: 'key-replacement'
+    });
+    expect(enabled.treasury_publickey).toBe('key-replacement');
+
+    const cleared = await store.respondTo('admin-config').updateConfig({
+      action: 'authorize',
+      treasury_publickey: ''
+    });
+    expect(cleared.enabled).toBe(false);
+    expect(cleared.treasury_publickey).toBe('');
+
+    const restored = await store.respondTo('admin-config').updateConfig({
+      action: 'authorize',
       treasury_publickey: 'key-treasury'
     });
-    expect(enabled.enabled).toBe(true);
-    expect(enabled.treasury_publickey).toBe('key-treasury');
+    expect(restored.enabled).toBe(true);
+    expect(restored.treasury_publickey).toBe('key-treasury');
     expect(application.options.store.web3).toEqual({
       enabled: true,
       treasury_publickey: 'key-treasury'

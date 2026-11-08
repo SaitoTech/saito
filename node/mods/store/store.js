@@ -886,14 +886,19 @@ class Store extends ModTemplate {
             return this.saveWeb3PaymentOptions({ enabled: false });
           }
           if (config.action === 'authorize') {
-            const discovered = this.returnDiscoveredWeb3IssuanceKey();
             const submitted = String(config.treasury_publickey || '').trim();
-            if (!discovered || submitted !== discovered) {
-              throw new Error('That identity is not the Mixin issuance key.');
+            if (!submitted) {
+              return this.saveWeb3PaymentOptions({ enabled: false, treasury_publickey: '' });
+            }
+            if (
+              typeof this.app.crypto?.isPublicKey === 'function' &&
+              !this.app.crypto.isPublicKey(submitted)
+            ) {
+              throw new Error('That is not a valid Saito public key.');
             }
             return this.saveWeb3PaymentOptions({
               enabled: true,
-              treasury_publickey: discovered
+              treasury_publickey: submitted
             });
           }
           throw new Error('Unsupported Store configuration action.');
