@@ -9,7 +9,7 @@ import { JSDOM } from 'jsdom';
 const require = createRequire(import.meta.url);
 const Transcript = require('../../../mods/transcript/transcript');
 const CallInterfaceVideo = require('../../../mods/videocall/lib/components/call-interface-video');
-const StreamManager = require('../../../mods/videocall/lib/StreamManager');
+const StreamManager = require('../../../mods/videocall/lib/stream_manager');
 const SaitoVideoBox = require('../../../lib/saito/ui/saito-videobox/video-box');
 
 test('transcription status appears beside the name and survives video box recreation', (t) => {
@@ -122,7 +122,7 @@ test('module forwards call lifecycle and navigation to the transcript runtime', 
   app.connection.emit('videocall-stream', 'bob', stream);
   app.connection.emit('videocall-peer-left', 'bob');
   const completion = [];
-  app.connection.emit('videocall-ended', completion);
+  app.connection.emit('videocall-call-ended', completion);
   await Promise.all(completion);
   const navigation = [];
   app.connection.emit('saito-before-navigate', navigation);
@@ -188,7 +188,7 @@ test('inactive Transcript opens Start/Settings menu; active Transcript stops dir
   runtime.capturing = false;
   await action.callback();
   const completion = [];
-  app.connection.emit('videocall-ended', completion);
+  app.connection.emit('videocall-call-ended', completion);
   await Promise.all(completion);
   assert.equal(document.querySelector('.transcript-action-menu'), null);
 });

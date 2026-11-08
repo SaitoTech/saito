@@ -102,7 +102,7 @@ class Dialer {
 
         this.ring_sound = new Audio('/saito/sound/Cloud_edit.mp3');
         this.startRing(4500);
-        this.updateMessage('Dialing...');
+        this.updateMessage('dialing...');
         this.deactivateOptions();
 
         if (!recipient || recipient.length == 0) {
@@ -111,7 +111,7 @@ class Dialer {
           setTimeout(() => {
             this.stopRing();
             this.overlay.remove();
-            this.app.connection.emit('start-game-call');
+            this.mod.beginGameCall();
           }, 2000);
           return;
         }
@@ -129,12 +129,12 @@ class Dialer {
             data
           });
           this.stopRing();
-          call_button.innerHTML = 'Call';
-          this.updateMessage('No answer');
+          call_button.innerHTML = 'call';
+          this.updateMessage('no answer');
           this.attachEvents();
         }, 3000);
 
-        call_button.innerHTML = 'Cancel';
+        call_button.innerHTML = 'cancel';
 
         call_button.onclick = (e) => {
           clearTimeout(this.dialing);
@@ -167,13 +167,13 @@ class Dialer {
 
         setTimeout(() => {
           this.overlay.remove();
-          this.app.connection.emit('stun-init-call-interface', {
+          this.mod.initializeCallInterface({
             ui: this.mod.room_obj.ui,
             audio: true,
             video: this.mod.room_obj.ui == 'video',
             auto_disconnect: recipient.length > 0
           });
-          this.app.connection.emit('start-stun-call');
+          this.mod.streams?.start();
         }, 1000);
       };
     }
@@ -192,7 +192,7 @@ class Dialer {
 
   remove(closeOverlay = true) {
     this.stopRing();
-    this.app.connection.emit('close-preview-window');
+    this.mod.closeLaunchers();
 
     this.receiver = {};
 
@@ -202,7 +202,7 @@ class Dialer {
     }
 
     if (closeOverlay) {
-      this.app.connection.emit('reset-stun');
+      this.mod.resetCall();
       this.overlay.remove();
     }
   }
@@ -330,7 +330,7 @@ class Dialer {
         clearTimeout(this.dialing);
         this.updateMessage('did not answer');
         if (document.getElementById('startcall')) {
-          document.getElementById('startcall').innerHTML = 'Call';
+          document.getElementById('startcall').innerHTML = 'call';
         }
         this.attachEvents();
         break;
@@ -341,13 +341,13 @@ class Dialer {
 
         setTimeout(() => {
           this.overlay.remove();
-          this.app.connection.emit('stun-init-call-interface', {
+          this.mod.initializeCallInterface({
             ui: this.mod.room_obj.ui,
             audio: true,
             video: this.mod.room_obj.ui == 'video',
             auto_disconnect: true
           });
-          this.app.connection.emit('start-stun-call');
+          this.mod.streams?.start();
         }, 1000);
 
         break;
@@ -364,9 +364,9 @@ class Dialer {
             this.stopRing();
 
             if (document.getElementById('startcall')) {
-              document.getElementById('startcall').innerHTML = 'Call';
+              document.getElementById('startcall').innerHTML = 'call';
             }
-            this.updateMessage('No answer');
+            this.updateMessage('no answer');
             this.attachEvents();
           }, 29000);
         }

@@ -1,12 +1,11 @@
 const SaitoVideoBox = require('../../../../lib/saito/ui/saito-videobox/video-box');
 
-const CallInterfaceVideoTemplate = require('./call-interface-video.template');
+const MeetingTemplate = require('./meeting.template');
 
-const Effects = require('../overlays/effects');
-const VideocallSettings = require('../overlays/videocall-settings');
-const StreamMirror = require('./stream-mirror');
+const Effects = require('./overlays/effects');
+const VideocallSettings = require('./overlays/layout');
 
-class CallInterfaceVideo {
+class Meeting {
   constructor(app, mod, fullScreen = true) {
     this.app = app;
     this.mod = mod;
@@ -29,9 +28,10 @@ class CallInterfaceVideo {
     //
     this.peer_order = [];
     this.expanded_peer = null;
+    this.listeners = {};
 
-    this.app.connection.on('show-call-interface', async (videoEnabled, audioEnabled) => {
-      console.info('TALK [show-call-interface]', videoEnabled, audioEnabled);
+    this.listen('videocall-call-started', async (videoEnabled, audioEnabled) => {
+      console.info('TALK [videocall-call-started]', videoEnabled, audioEnabled);
 
       //This will render the (full-screen) component
       if (!document.querySelector('.stun-chatbox')) {
@@ -50,137 +50,137 @@ class CallInterfaceVideo {
       }
     });
 
-    this.app.connection.on('stun-update-link', () => {
-      let room_link = this.mod.generateCallLink();
-
-      if (this.full_screen) {
-        window.history.replaceState({}, '', room_link);
-        document.title = 'Saito Talk';
-      }
-    });
-
-    this.app.connection.on('add-local-stream-request', (localStream) => {
-      this.addLocalStream(localStream);
-    });
-
-    this.app.connection.on('add-remote-stream-request', (peer, remoteStream) => {
-      this.remote_streams.set(peer, remoteStream);
-      this.addRemoteStream(peer, remoteStream);
-
-      this.updateImages();
-      if (remoteStream) {
-        this.startTimer();
-      }
-    });
-
-    this.app.connection.on('add-waiting-video-box', () => {
-      this.addRemoteStream('connecting', null);
-    });
-
-    this.app.connection.on('remove-waiting-video-box', () => {
-      let peer_id = 'connecting';
-      if (this.video_boxes[peer_id]?.video_box) {
-        this.video_boxes[peer_id].video_box.destroy();
-        delete this.video_boxes[peer_id];
-      }
-    });
-
-    this.app.connection.on('remove-peer-box', (peer_id) => {
-      this.remote_streams.delete(peer_id);
-
-      if (this.video_boxes[peer_id]?.video_box) {
-        this.video_boxes[peer_id].video_box.destroy();
-        delete this.video_boxes[peer_id];
-        this.updateImages();
-      }
-
-      if (this.expanded_peer === peer_id) {
-        this.expanded_peer = null;
-      }
-
-      //
-      // Reflow the remaining boxes in place -- no layout rebuild, no toast
-      //
-      this.setDisplayContainers();
-    });
-
-    // Change arrangement of video boxes (emitted from SwitchDisplay overlay)
-    app.connection.on('stun-switch-view', (newView = '', noMessage = false) => {
-      if (newView && !noMessage) {
-        siteMessage(`Switched to ${newView} display`, 2000);
-      }
-
-      if (newView == 'presentation') {
-        newView = 'focus';
-      }
-
-      if (newView) {
-        this.mod.layout = newView;
-      }
-
-      switch (this.mod.layout) {
-        case 'gallery':
-          this.switchDisplayToGallery();
-          break;
-        case 'speaker':
-          this.switchDisplayToExpanded();
-          break;
-        case 'focus':
-          this.switchDisplayToExpanded();
-      }
-    });
-
-    app.connection.on('stun-new-speaker', (peer) => {
-      if (!this.full_screen) {
-        return;
-      }
-
-      document.querySelectorAll('.saito-videobox').forEach((item) => {
-        if (item.id === `stream${peer}`) {
-          if (item.classList.contains('speaker')) {
-            return;
-          }
-
-          if (
-            this.mod.layout == 'speaker' &&
-            !item.parentElement.classList.contains('expanded-video')
-          ) {
-            console.debug('TALK [stun-new-speaker]: ' + peer);
-            this.flipDisplay(peer);
-          }
-
-          item.classList.add('speaker');
-        } else {
-          item.classList.remove('speaker');
-        }
-      });
-    });
-
-    app.connection.on('videocall-show-settings', () => {
-      this.videocall_settings.render();
-    });
-
-    app.connection.on('videocall-connection-strength', (peer, mos) => {
-      mos = Math.floor(mos);
-      if (this.video_boxes[peer]) {
-        if (this.video_boxes[peer].connection_strength == mos) {
-          return;
-        }
-        this.video_boxes[peer].connection_strength = mos;
-        this.video_boxes[peer].video_box.addConnectionStrength(mos);
-      }
-    });
-
-    app.connection.on('stun-data-channel-open', (pkey) => {
+    this.listen('stun-data-channel-open', (pkey) => {
       if (this.rendered) {
         //this.insertActions(this.mod.room_obj.call_peers);
       }
     });
   }
 
+  listen(event, handler) {
+    this.listeners[event] = handler;
+    this.app.connection.on(event, handler);
+  }
+
+  updateRoomLink() {
+    let room_link = this.mod.generateCallLink();
+
+    if (this.full_screen) {
+      window.history.replaceState({}, '', room_link);
+      document.title = 'Saito Talk';
+    }
+  }
+
+  receiveLocalStream(localStream) {
+    this.addLocalStream(localStream);
+  }
+
+  receiveRemoteStream(peer, remoteStream) {
+    this.remote_streams.set(peer, remoteStream);
+    this.addRemoteStream(peer, remoteStream);
+
+    this.updateImages();
+    if (remoteStream) {
+      this.startTimer();
+    }
+  }
+
+  participantLeft(peerId) {
+    this.remote_streams.delete(peerId);
+
+    if (this.video_boxes[peerId]?.video_box) {
+      this.video_boxes[peerId].video_box.destroy();
+      delete this.video_boxes[peerId];
+      this.updateImages();
+    }
+
+    if (this.expanded_peer === peerId) {
+      this.expanded_peer = null;
+    }
+
+    this.setDisplayContainers();
+  }
+
+  participantKicked(peerId) {
+    this.participantLeft(peerId);
+  }
+
+  presentationStopped() {
+    this.participantLeft('presentation');
+  }
+
+  switchLayout(newView = '', noMessage = false) {
+    if (newView && !noMessage) {
+      siteMessage(`Switched to ${newView} display`, 2000);
+    }
+
+    if (newView == 'presentation') {
+      newView = 'focus';
+    }
+
+    if (newView) {
+      this.mod.layout = newView;
+    }
+
+    switch (this.mod.layout) {
+    case 'gallery':
+      this.switchDisplayToGallery();
+      break;
+    case 'speaker':
+      this.switchDisplayToExpanded();
+      break;
+    case 'focus':
+      this.switchDisplayToExpanded();
+    }
+  }
+
+  showSettings() {
+    this.videocall_settings.render();
+  }
+
+  updateConnectionStrength(peer, mos) {
+    mos = Math.floor(mos);
+    if (this.video_boxes[peer]) {
+      if (this.video_boxes[peer].connection_strength == mos) {
+        return;
+      }
+      this.video_boxes[peer].connection_strength = mos;
+      this.video_boxes[peer].video_box.addConnectionStrength(mos);
+    }
+  }
+
+  setPresenting(state = false, sender = null) {
+    const container = document.getElementById(this.presentControlId);
+    if (!container) {
+      return;
+    }
+
+    const label = container.querySelector('label');
+    const icon = container.querySelector('i');
+
+    if (state) {
+      container.classList.add('recording');
+      icon?.classList.add('recording');
+
+      if (sender && sender !== this.mod.publicKey) {
+        container.classList.add('not-clickable');
+        container.title = `${this.app.keychain.returnUsername(sender)} is presenting`;
+        if (label) label.innerText = 'Presenting';
+      } else {
+        container.title = 'Stop presenting';
+        if (label) label.innerText = 'Stop';
+      }
+    } else {
+      container.classList.remove('recording', 'not-clickable');
+      icon?.classList.remove('recording');
+      container.title = 'Present your screen';
+      if (label) label.innerText = 'Present';
+    }
+  }
+
   close() {
-    for (let peer in this.video_boxes) {
-      this.app.connection.emit('remove-peer-box', peer);
+    for (const peer of Object.keys(this.video_boxes)) {
+      this.participantLeft(peer);
     }
 
     if (this.old_title) {
@@ -213,25 +213,20 @@ class CallInterfaceVideo {
   }
 
   destroy() {
+    if (this.destroyed) {
+      return;
+    }
+    this.destroyed = true;
     console.debug('TALK.destroy');
-    this.app.connection.removeAllListeners('show-call-interface');
-    this.app.connection.removeAllListeners('stun-update-link');
-    this.app.connection.removeAllListeners('add-local-stream-request');
-    this.app.connection.removeAllListeners('add-remote-stream-request');
-    this.app.connection.removeAllListeners('add-waiting-video-box');
-    this.app.connection.removeAllListeners('remove-waiting-video-box');
-    this.app.connection.removeAllListeners('remove-peer-box');
-    this.app.connection.removeAllListeners('stun-switch-view');
-    this.app.connection.removeAllListeners('stun-new-speaker');
-    this.app.connection.removeAllListeners('videocall-show-settings');
-    this.app.connection.removeAllListeners('videocall-connection-strength');
-    this.app.connection.removeAllListeners('stun-data-channel-open');
-    this.app.connection.removeAllListeners('toggle-screen-share-label');
+    for (const event in this.listeners) {
+      this.app.connection.removeListener(event, this.listeners[event]);
+    }
+    this.listeners = {};
 
     this.stopTimer();
 
     //
-    // close() normally destroys the boxes, but reset-stun can call destroy()
+    // close() normally destroys the boxes, but resetCall() can call destroy()
     // directly -- make sure their listeners are unhooked either way
     //
     for (let peer in this.video_boxes) {
@@ -242,13 +237,12 @@ class CallInterfaceVideo {
     }
 
     this.rendered = false;
-    this?.streamMirror?.destroy();
   }
 
   render(videoEnabled, audioEnabled) {
     if (!document.querySelector('#stun-chatbox')) {
       this.app.browser.addElementToDom(
-        CallInterfaceVideoTemplate(this.mod, videoEnabled, audioEnabled)
+        MeetingTemplate(this.mod, videoEnabled, audioEnabled)
       );
 
       //stun-overlay-container make
@@ -257,16 +251,10 @@ class CallInterfaceVideo {
       this.attachEvents();
     }
 
-    if (document.querySelector('.game-video-container')) {
-      if (!this?.streamMirror) {
-        this.streamMirror = new StreamMirror(this.app, this.mod);
-      }
-    }
-
     if (!this.mod.browser_active) {
-      this.app.connection.emit('stun-switch-view', 'gallery', true);
+      this.switchLayout('gallery', true);
     } else {
-      this.app.connection.emit('stun-switch-view', this.mod.layout, true);
+      this.switchLayout(this.mod.layout, true);
     }
 
     if (!this.full_screen) {
@@ -397,7 +385,7 @@ class CallInterfaceVideo {
 
     document.querySelectorAll('.disconnect-control').forEach((item) => {
       item.addEventListener('click', async (e) => {
-        this.app.connection.emit('stun-disconnect');
+        this.mod.streams?.leaveCall();
         siteMessage('You have been disconnected', 3000);
       });
     });
@@ -540,7 +528,7 @@ class CallInterfaceVideo {
 
     if (peer.toLowerCase() === 'presentation') {
       // switch mode to presentation
-      this.app.connection.emit('stun-switch-view', 'presentation');
+      this.switchLayout('presentation');
       this.flipDisplay('presentation');
     } else if (
       remoteStream &&
@@ -580,7 +568,7 @@ class CallInterfaceVideo {
 
   toggleAudio() {
     //Tell PeerManager to adjust streams
-    this.app.connection.emit('stun-toggle-audio');
+    this.mod.streams?.toggleAudio();
 
     //Update UI
     try {
@@ -595,7 +583,7 @@ class CallInterfaceVideo {
   }
 
   toggleVideo() {
-    this.app.connection.emit('stun-toggle-video');
+    this.mod.streams?.toggleVideo();
 
     //Update UI
     try {
@@ -986,4 +974,4 @@ class CallInterfaceVideo {
   }
 }
 
-module.exports = CallInterfaceVideo;
+module.exports = Meeting;

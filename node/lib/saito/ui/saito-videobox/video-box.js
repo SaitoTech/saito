@@ -1,12 +1,13 @@
 const videoBoxTemplate = require('./video-box.template');
 
 class SaitoVideoBox {
-  constructor(app, mod, peer, container_class = '') {
+  constructor(app, mod, peer, container_class = '', mountParent = null) {
     this.app = app;
     this.mod = mod;
     this.stream = null;
     this.stream_id = peer;
     this.containerClass = container_class;
+    this.mountParent = mountParent;
     this.peer_list = [];
     this.video_class = '';
     this.display_wave_form = false;
@@ -22,10 +23,8 @@ class SaitoVideoBox {
       if (public_key === key) this.renderTranscriptionStatus();
     });
 
-    this.addListener('peer-toggle-audio-status', ({ enabled, public_key }) => {
-      if (public_key !== this.stream_id) return;
-
-      //console.debug('Videobox.peer-toggle-audio-status', public_key, enabled);
+    this.addListener('videocall-peer-audio-changed', ({ enabled, public_key }) => {
+      if (!this.sameParticipant(public_key)) return;
 
       let icon = document.querySelector(`#stream_${this.stream_id} #audio-indicator`);
       if (icon) {
@@ -48,26 +47,28 @@ class SaitoVideoBox {
       }
     });
 
-    this.addListener('peer-toggle-video-status', ({ enabled, public_key }) => {
+    this.addListener('videocall-peer-video-changed', ({ enabled, public_key }) => {
       if (public_key !== this.stream_id) return;
 
-      //console.debug('Videobox.peer-toggle-video-status', public_key, enabled);
-
+      this.videoChoice = enabled;
       this.toggleMask(enabled);
+      this.renderStatus();
     });
 
     this.addListener('stun-update-connection-message', (peer_id, status) => {
       if (this.stream_id !== peer_id) {
         return;
       }
+      this.linkState = status;
+      this.renderStatus();
+    });
 
-      if (status === 'connecting') {
-        this.updateConnectionMessage('connecting');
-      } else if (status === 'connected') {
-        this.removeConnectionMessage();
-      } else if (status === 'disconnected') {
-        this.updateConnectionMessage('retrying connection');
+    this.addListener('stun-signaling-state', (peer_id, state) => {
+      if (this.stream_id !== peer_id) {
+        return;
       }
+      this.signalingState = state;
+      this.renderStatus();
     });
 
     this.addListener('peer-list', (address, list) => {
@@ -79,6 +80,14 @@ class SaitoVideoBox {
       this.peer_list = list;
       this.renderPeerList();
     });
+  }
+
+  sameParticipant(publicKey) {
+    return (
+      publicKey === this.stream_id ||
+      (publicKey === 'local' &&
+        (this.stream_id === 'local' || this.stream_id === this.mod.publicKey))
+    );
   }
 
   addListener(event, handler) {
@@ -105,16 +114,25 @@ class SaitoVideoBox {
 
     //Add Video Box
     if (!videoBox) {
-      this.app.browser.addElementToClass(
-        videoBoxTemplate(this.stream_id, this.app, this.mod, this.video_class),
-        this.containerClass
-      );
+      const markup = videoBoxTemplate(this.stream_id, this.app, this.mod, this.video_class);
+      if (this.mountParent) {
+        this.app.browser.addElementToDom(markup, this.mountParent);
+      } else {
+        this.app.browser.addElementToClass(markup, this.containerClass);
+      }
 
       videoBox = document.getElementById(`stream_${this.stream_id}`);
+      if (this.mountParent && videoBox) {
+        videoBox.classList.add('videocall-panel');
+        videoBox.dataset.id = this.stream_id;
+      }
 
       const videoBoxVideo = document.querySelector(`#stream_${this.stream_id} video`);
       videoBoxVideo.addEventListener('play', (event) => {
-        this.app.connection.emit('video-box-started', this.stream_id);
+        if (event.currentTarget.videoWidth > 0) {
+          this.framesVisible = true;
+          this.renderStatus();
+        }
         console.debug(
           'Videobox: ',
           this.stream_id + ' Begin Playing Video:',
@@ -129,10 +147,11 @@ class SaitoVideoBox {
           event.currentTarget.parentElement.classList.remove('portrait');
         }
       });
-    } else if (this.containerClass) {
+    } else if (this.containerClass && !this.mountParent) {
       //
       // Reconcile placement: move the live element rather than rebuilding it,
-      // so the <video> keeps playing without flashing black
+      // so the <video> keeps playing without flashing black.
+      // A caller-supplied parent is left where it was mounted.
       //
       const target = document.querySelector(`.video-container-large .${this.containerClass}`);
       if (target && videoBox.parentElement !== target) {
@@ -141,7 +160,6 @@ class SaitoVideoBox {
     }
 
     if (this.stream) {
-      this.removeConnectionMessage();
       const videoBoxVideo = document.querySelector(`#stream_${this.stream_id} video`);
 
       //
@@ -152,17 +170,22 @@ class SaitoVideoBox {
         videoBoxVideo.srcObject = this.stream;
       }
 
-      if (this.stream.getVideoTracks()?.length > 0) {
-        //steam includes video, as it should
-      } else {
-        if (this.display_wave_form) {
-          this.renderWave();
-        } else {
-          //add message saying NOT to expect video
-          this.updateConnectionMessage('No video feed', false);
-          this.toggleMask(true);
+      const videoTrack = this.stream.getVideoTracks()?.[0];
+      if (videoTrack && videoTrack !== this.watchedVideoTrack) {
+        this.watchedVideoTrack = videoTrack;
+        this.framesVisible = false;
+        if (videoTrack.addEventListener) {
+          for (const state of ['mute', 'unmute', 'ended']) {
+            videoTrack.addEventListener(state, () => this.renderStatus());
+          }
         }
       }
+      if (!videoTrack && !this.display_wave_form) {
+        this.toggleMask(true);
+      } else if (this.display_wave_form && !videoTrack) {
+        this.renderWave();
+      }
+      this.renderStatus();
 
       if (this.stream.getAudioTracks()?.length > 0) {
         //
@@ -177,7 +200,7 @@ class SaitoVideoBox {
             this.stream_id === 'presentation'
               ? true
               : this.stream.getAudioTracks()[0].enabled && !this.stream.getAudioTracks()[0].muted;
-          this.app.connection.emit('peer-toggle-audio-status', {
+          this.app.connection.emit('videocall-peer-audio-changed', {
             enabled,
             public_key: this.stream_id
           });
@@ -187,12 +210,73 @@ class SaitoVideoBox {
         icon.classList.add('disabled');
       }
     } else {
-      this.updateConnectionMessage();
+      this.linkState = this.linkState || 'new';
+      this.renderStatus();
     }
 
     this.renderPeerList();
     this.renderTranscriptionStatus();
     this.attachEvents();
+  }
+
+  showStatus(text) {
+    if (!text) {
+      this.removeConnectionMessage();
+      return;
+    }
+    const videoBox = document.getElementById(`stream_${this.stream_id}`);
+    if (!videoBox) {
+      return;
+    }
+    this.updateConnectionMessage(text, false);
+  }
+
+  renderStatus() {
+    if (
+      this.stream_id === 'local' ||
+      this.stream_id === 'presentation' ||
+      this.stream_id === this.mod.publicKey
+    ) {
+      return;
+    }
+    const link = this.linkState;
+    if (link === 'failed' || link === 'closed') {
+      this.showStatus('Connection failed');
+      return;
+    }
+    if (link === 'disconnected') {
+      this.showStatus('Reconnecting');
+      return;
+    }
+    if (
+      this.signalingState === 'have-local-offer' ||
+      this.signalingState === 'have-remote-offer'
+    ) {
+      this.showStatus('Negotiating');
+      return;
+    }
+    if (!link || link === 'new' || link === 'connecting') {
+      this.showStatus('Connecting');
+      return;
+    }
+    const video = this.stream?.getVideoTracks?.()?.[0];
+    if (this.videoChoice === false) {
+      this.showStatus('Camera off');
+      return;
+    }
+    if (!video) {
+      this.showStatus('Waiting for video');
+      return;
+    }
+    if (video.readyState === 'ended') {
+      this.showStatus('Video unavailable');
+      return;
+    }
+    if (this.framesVisible) {
+      this.showStatus('');
+      return;
+    }
+    this.showStatus('Waiting for video');
   }
 
   renderTranscriptionStatus() {

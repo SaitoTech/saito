@@ -119,7 +119,8 @@ async function serviceFor(options = {}) {
     publicKey: options.storeKey || STORE,
     fee: options.fee ?? 0,
     web3_withdrawal_blocks: 5,
-    warehouse: { db: database }
+    warehouse: { db: database },
+    returnWeb3TreasuryPublicKey: () => TREASURY
   };
   return { sqlite, app, service: new StoreWithdrawals(mod), mod };
 }

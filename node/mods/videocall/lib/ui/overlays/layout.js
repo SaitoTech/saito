@@ -1,5 +1,5 @@
-const SaitoOverlay = require('../../../../lib/saito/ui/saito-overlay/saito-overlay');
-const VideoCallSettingsTemplate = require('./videocall-settings.template');
+const SaitoOverlay = require('../../../../../lib/saito/ui/saito-overlay/saito-overlay');
+const VideoCallSettingsTemplate = require('./layout.template');
 
 class VideoCallSettings {
   constructor(app, mod) {
@@ -21,7 +21,7 @@ class VideoCallSettings {
     Array.from(root.querySelectorAll('.videocall-option-input')).forEach((option) => {
       option.onchange = (e) => {
         let choice = e.currentTarget.getAttribute('value');
-        this.app.connection.emit('stun-switch-view', choice);
+        this.mod.CallInterface?.switchLayout?.(choice);
 
         this.app.options.stun.settings.layout = choice;
         this.app.storage.saveOptions();

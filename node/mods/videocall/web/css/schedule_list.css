@@ -1,21 +1,19 @@
-/* Base styles */
+/* Schedule list */
 
-label {
+.call-schedule-join-container label {
   display: block;
 }
 
-input[type='datetime-local'] {
+.call-schedule-join-container input[type='datetime-local'] {
   color-scheme: dark;
 }
 
-.scheduled-calls {
+.call-schedule-join-container .scheduled-calls {
   max-height: 60vh;
   overflow: auto;
 }
 
 /* schedule wizard/event-link styles live in saito-scheduler.css */
-
-/* Call schedule join */
 
 .call-schedule-join-container {
   width: min(550px, 98vw);
@@ -24,8 +22,6 @@ input[type='datetime-local'] {
   box-sizing: border-box;
   border-radius: var(--saito-radius);
 }
-
-/* Call schedule card */
 
 .call-schedule-card-container {
   border-radius: 0.8rem;
@@ -45,12 +41,12 @@ input[type='datetime-local'] {
   margin-bottom: 0.5rem;
 }
 
-.card-value {
+.call-schedule-join-container .card-value {
   font-weight: bold;
   color: var(--saito-foreground);
 }
 
-.call-schedule-card .time-left {
+.call-schedule-join-container .call-schedule-card .time-left {
   margin-bottom: 1.5rem;
 }
 
@@ -69,8 +65,6 @@ input[type='datetime-local'] {
 .call-schedule-buttons .saito-button-primary {
   flex: 3;
 }
-
-/* Media Queries for Responsiveness */
 
 @media screen and (max-width: 600px) {
   .call-schedule-join-container,

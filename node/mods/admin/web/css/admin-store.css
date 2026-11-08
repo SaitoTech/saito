@@ -1,0 +1,72 @@
+.admin-store-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  width: max-content;
+  max-width: 100%;
+  margin: 4px 0 0;
+  font-size: 1.0625rem;
+  line-height: 1.2;
+  color: var(--admin-heading, #111827);
+  cursor: pointer;
+  user-select: none;
+}
+
+.admin-store-toggle input {
+  width: 1.35rem;
+  height: 1.35rem;
+  margin: 0;
+  flex: 0 0 auto;
+  cursor: pointer;
+}
+
+.admin-store-copy {
+  max-width: 46rem;
+  margin: 1.15rem 0 0.9rem;
+  line-height: 1.5;
+  color: var(--admin-text, #374151);
+}
+
+.admin-store-key {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: 52rem;
+}
+
+.admin-store-key .admin-input {
+  margin: 0;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.admin-store-key .admin-button {
+  margin-top: 0;
+  flex: 0 0 auto;
+}
+
+.admin-store-status,
+.admin-store-error {
+  max-width: 46rem;
+  margin: 0.9rem 0 0;
+  line-height: 1.45;
+}
+
+.admin-store-status:empty {
+  display: none;
+  margin: 0;
+}
+
+.admin-store-error {
+  color: #b42318;
+}
+
+@media (max-width: 640px) {
+  .admin-store-key {
+    flex-wrap: wrap;
+  }
+
+  .admin-store-key .admin-button {
+    width: 100%;
+  }
+}

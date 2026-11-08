@@ -1683,6 +1683,16 @@ class LossOverlay {
       // move to eliminated box
       //
       let f = this.mod.returnPowerOfUnit(unit);
+      if (space_idx >= 0) {
+        if (f === 'central') {
+          this.mod.moveUnit(unit_spacekey, space_idx, 'ceubox');
+        } else {
+          this.mod.moveUnit(unit_spacekey, space_idx, 'aeubox');
+        }
+        this.mod.displaySpace(unit_spacekey);
+        this.mod.displaySpace('ceubox');
+        this.mod.displaySpace('aeubox');
+      }
       this.updateInstructions(
         `${this.mod.returnFactionName(this.mod.returnFactionOfPlayer(this.mod.game.player))} — Assign ${this.loss_factor} More Damage`,
         'action'

@@ -169,6 +169,15 @@ function apply1917(mod) {
   state.events.egypt = 1;
   state.events.kuwait = 1;
   state.events.salonika = 1;
+  state.events.entrench = 1;
+  state.events.race_to_the_sea = 1;
+  state.events.oberost = 1;
+  state.events.sudarmy = 1;
+  state.events.eleventh_army = 1;
+  state.events.moltke = 1;
+  state.events.falkenhayn = 1;
+  state.events.hl_take_command = 1;
+  state.events.hoffman = 1;
 
   mod.convertCountryToPower("italy", "allies");
   mod.convertCountryToPower("romania", "allies");

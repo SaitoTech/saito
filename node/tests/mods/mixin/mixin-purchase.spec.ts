@@ -309,3 +309,22 @@ describe('Mixin purchase UI', () => {
     expect(mixin.convertToSaito(1, 'ETH')).toBeNaN();
   });
 });
+
+describe('Mixin Saito issuance identity', () => {
+  test('local payout uses this node and remote payout uses the configured treasury', () => {
+    const app = browserApp();
+    const mixin = new Mixin(app);
+    mixin.publicKey = 'local-key';
+    mixin.payout_mode = 'local';
+    mixin.fulfillment_mode = 'local';
+    expect(mixin.returnSaitoIssuancePublicKey()).toBe('local-key');
+
+    mixin.payout_mode = 'remote';
+    mixin.fulfillment_mode = 'remote';
+    mixin.treasury_provider_publickeys = ['treasury-key'];
+    expect(mixin.returnSaitoIssuancePublicKey()).toBe('treasury-key');
+
+    mixin.treasury_provider_publickeys = [];
+    expect(mixin.returnSaitoIssuancePublicKey()).toBe('');
+  });
+});

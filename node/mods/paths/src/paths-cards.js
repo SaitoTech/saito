@@ -3355,7 +3355,7 @@ deck['ap65'] = {
         type : "normal" ,
         removeFromDeckAfterPlay : function(paths_self, faction) { return 1; } ,
         canEvent : function(paths_self, faction) { return 1; } ,
-        onEvent : function(paths_self, faction) { paths_self.game.state.events.hottman = 1; return 1; } ,
+        onEvent : function(paths_self, faction) { paths_self.game.state.events.hoffman = 1; return 1; } ,
       }
 
    deck['cp38'] = { 
@@ -3546,6 +3546,7 @@ deck['ap65'] = {
         canEvent : function(paths_self, faction) { if (paths_self.game.state.events.bolshevik_revolution == 1) { return 1; } return 0; } ,
         onEvent : function(paths_self, faction) { 
 	  paths_self.game.state.events.treaty_of_brest_litovsk = 1;
+	  paths_self.calculateRussianCapitulationTrack();
 	  return 1;
 	} ,
       }

@@ -1,16 +1,13 @@
-const SaitoOverlay = require('../../../../lib/saito/ui/saito-overlay/saito-overlay.js');
-const CallScheduleJoinTemplate = require('./call-schedule-join.template.js');
+const SaitoOverlay = require('../../../../../lib/saito/ui/saito-overlay/saito-overlay.js');
+const CallScheduleJoinTemplate = require('./schedule_list.template.js');
 
 class CallScheduleJoin {
-  constructor(app, mod, keys) {
+  constructor(app, mod, keys, launcher) {
     this.app = app;
     this.mod = mod;
     this.keys = keys;
+    this.launcher = launcher;
     this.overlay = new SaitoOverlay(app, mod);
-
-    app.connection.on('remove-call-schedule-join', () => {
-      this.remove();
-    });
   }
 
   render(auto_join = true) {
@@ -48,7 +45,7 @@ class CallScheduleJoin {
             this.remove(auto_join);
 
             if (auto_join) {
-              this.app.connection.emit('call-launch-enter-call');
+              this.launcher.enterCall();
             } else {
               await this.mod.copyInviteLink();
             }
@@ -77,7 +74,7 @@ class CallScheduleJoin {
         this.remove(auto_join);
         this.link = await this.mod.createRoom();
         if (auto_join) {
-          this.app.connection.emit('call-launch-enter-call');
+          this.launcher.enterCall();
         } else {
           await this.mod.copyInviteLink();
         }
@@ -121,7 +118,7 @@ class CallScheduleJoin {
 
   remove(auto_join = true) {
     this.overlay.remove();
-    this.app.connection.emit('close-preview-window', !auto_join);
+    this.launcher.closePreview(!auto_join);
   }
 }
 

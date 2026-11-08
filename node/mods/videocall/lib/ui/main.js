@@ -1,8 +1,8 @@
 const SaitoOverlay = require('../../../../lib/saito/ui/saito-overlay/saito-overlay.js');
-const StunLaunchTemplate = require('./call-launch.template.js');
-const CallSetting = require('../components/call-setting.js');
+const StunLaunchTemplate = require('./main.template.js');
+const CallSetting = require('./overlays/media_preview.js');
 const SaitoLoader = require('../../../../lib/saito/ui/saito-loader/saito-loader.js');
-const CallScheduleJoin = require('./call-schedule-join.js');
+const CallScheduleJoin = require('./overlays/schedule_list.js');
 const SaitoScheduleWizard = require('../../../../lib/saito/ui/saito-calendar/saito-schedule-wizard.js');
 
 /**
@@ -18,27 +18,17 @@ class CallLaunch {
     this.container = container;
     this.overlay = new SaitoOverlay(app, mod);
     this.callSetting = new CallSetting(app, mod);
-    //
-    //this looks a lot better if it is in the dom structure
-    //
-    // this.loader = new SaitoLoader(app, mod, ".stunx-appspace-splash");
+    this.mod.registerLauncher(this);
+  }
 
-    //
-    // close-preview-window *also* shuts down the streams in call-settings
-    //
-    app.connection.on('close-preview-window', (rerender = false) => {
-      this.overlay.remove();
-      if (document.querySelector('.stun-appspace')) {
-        document.querySelector('.stun-appspace').remove();
-      }
-      if (rerender) {
-        this.render();
-      }
-    });
-
-    app.connection.on('call-launch-enter-call', () => {
-      this.enterCall();
-    });
+  closePreview(rerender = false) {
+    this.overlay.remove();
+    if (document.querySelector('.stun-appspace')) {
+      document.querySelector('.stun-appspace').remove();
+    }
+    if (rerender) {
+      this.render();
+    }
   }
 
   render() {
@@ -64,7 +54,7 @@ class CallLaunch {
     }
 
     if (!this.callScheduleJoin) {
-      this.callScheduleJoin = new CallScheduleJoin(this.app, this.mod, this.keys);
+      this.callScheduleJoin = new CallScheduleJoin(this.app, this.mod, this.keys, this);
     } else {
       this.callScheduleJoin.keys = this.keys;
     }
@@ -72,7 +62,7 @@ class CallLaunch {
     if (this.container === '.saito-overlay') {
       this.overlay.show(StunLaunchTemplate(this.app, this.mod, this.keys), () => {
         //Stop the video if we close the overlay
-        this.app.connection.emit('close-preview-window');
+        this.closePreview();
       });
     } else if (this.container === 'body') {
       this.app.browser.addElementToDom(StunLaunchTemplate(this.app, this.mod, this.keys));
@@ -142,7 +132,7 @@ class CallLaunch {
             link: call_link
           });
 
-          this.app.connection.emit('close-preview-window', true); // rerender screen
+          this.closePreview(true); // rerender screen
 
           let event_link = this.app.browser.createEventInviteLink(
             this.app.keychain.returnKey(call_id)
@@ -186,7 +176,7 @@ class CallLaunch {
     // Set big screen video as desired call interface
     //
 
-    this.app.connection.emit('stun-init-call-interface', this.callSetting.returnSettings());
+    this.mod.initializeCallInterface(this.callSetting.returnSettings());
 
     // Copy link here!
     if (this.mod.room_obj.host_public_key == this.mod.publicKey) {
@@ -196,11 +186,11 @@ class CallLaunch {
     //
     //Close this component
     //
-    this.app.connection.emit('close-preview-window');
+    this.closePreview();
     //
     // Start the stun call
     //
-    this.app.connection.emit('start-stun-call');
+    this.mod.streams?.start();
   }
 }
 

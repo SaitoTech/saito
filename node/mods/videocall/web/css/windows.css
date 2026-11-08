@@ -1,0 +1,101 @@
+/* Participant windows for calls that are not the open Talk meeting. */
+.videocall-panel.saito-videobox {
+  position: absolute;
+  width: 240px;
+  height: 180px;
+  min-width: 160px;
+  min-height: 120px;
+  max-width: 90vw;
+  max-height: 80vh;
+  flex: none;
+  z-index: 40;
+  overflow: hidden;
+  cursor: grab;
+  border: 1px solid var(--saito-border);
+  border-radius: var(--saito-radius);
+  background: var(--saito-card);
+  box-shadow: var(--saito-elevation-2);
+  color: var(--saito-foreground);
+}
+
+.videocall-panel .videocall-resize {
+  position: absolute;
+  z-index: 6;
+  left: 0;
+  top: 0;
+  width: 18px;
+  height: 18px;
+  cursor: nwse-resize;
+  background: linear-gradient(
+      135deg,
+      var(--saito-muted-foreground) 0 50%,
+      transparent 50% 100%
+    )
+    left top / 10px 10px no-repeat;
+}
+
+.videocall-panel #connection-message {
+  top: 2.2rem;
+  left: 0.8rem;
+  width: calc(100% - 1.6rem);
+  text-align: center;
+  pointer-events: none;
+}
+
+.videocall-panel #connection-message p {
+  margin: 0;
+  font-size: 1.2rem;
+  line-height: 1.3;
+}
+
+.videocall-panel video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+#videocall-controls {
+  position: absolute;
+  z-index: 41;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: fit-content;
+  padding: 5px;
+  border-radius: 999px;
+  background-color: var(--saito-card);
+  border: 1px solid var(--saito-border);
+  cursor: grab;
+}
+
+#videocall-controls .videocall-timer {
+  min-width: 3.2rem;
+  padding: 0 0.4rem;
+  color: var(--saito-foreground);
+  font-variant-numeric: tabular-nums;
+}
+
+#videocall-controls .videocall-control {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border-radius: 999px;
+  background-color: var(--saito-accent);
+  color: var(--saito-foreground);
+  cursor: pointer;
+}
+
+#videocall-controls .videocall-control.disabled {
+  background-color: var(--saito-muted);
+}
+
+#videocall-controls .disconnect-control {
+  background: var(--saito-destructive);
+  color: var(--saito-primary-foreground);
+}
+
+#videocall-controls .disconnect-control i {
+  color: var(--stun-noir-danger-text);
+}
