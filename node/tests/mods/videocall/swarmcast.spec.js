@@ -2667,3 +2667,252 @@ test('the viewer header counts video feeds and the share field keeps the full li
   global.navigator = previousNavigator;
 });
 
+test('the live swarm page reports children, descendants, capacity, and parent recovery', async () => {
+  const mod = harness();
+  const pub = new Swarmcast({ id: 'pub', callId: 'room-1', broadcaster: 'alice', mod });
+  mod.swarmcast = pub;
+  let picture = pub.census();
+  assert.equal(picture.max_slots, 4);
+  assert.equal(picture.direct, 0);
+  assert.equal(picture.listeners, 0);
+  assert.equal(picture.available, 4);
+  assert.equal(picture.occupied, 0);
+  assert.equal(picture.health, 'healthy');
+
+  pub.addChild('child-key-0001');
+  picture = pub.census();
+  assert.equal(picture.direct, 1);
+  assert.equal(picture.occupied, 1);
+  assert.equal(picture.listeners, 1);
+  assert.equal(picture.listeners_known, false);
+
+  pub.receiveSwarmUpdate({
+    direction: 'up',
+    publicationId: 'pub',
+    downstream: 3,
+    downstream_known: true,
+    children: [
+      { public_key: 'leaf-1', status: 'online' },
+      { public_key: 'leaf-2', status: 'online' },
+      { public_key: 'leaf-3', status: 'online' }
+    ]
+  }, 'child-key-0001');
+  picture = pub.census();
+  assert.equal(picture.direct, 1);
+  assert.equal(picture.listeners, 4);
+  assert.equal(picture.descendants, 3);
+  assert.equal(picture.listeners_known, true);
+  assert.equal(picture.known_nodes, 5);
+  assert.deepEqual(
+    picture.children[0].reported_children.map((child) => child.public_key),
+    ['leaf-1', 'leaf-2', 'leaf-3']
+  );
+
+  pub.onChildDisconnected('child-key-0001');
+  picture = pub.census();
+  assert.equal(picture.grace, 1);
+  assert.equal(picture.direct, 0);
+  assert.equal(picture.children[0].status, 'reconnecting');
+  assert.equal(picture.children[0].slot, 0);
+  pub.onChildReconnected('child-key-0001');
+  assert.equal(pub.census().children[0].status, 'online');
+  assert.equal(pub.census().grace, 0);
+
+  pub.outputs = [{ id: 'cam-1', role: 'video' }];
+  mod.peerManager.peers.set('child-key-0001', { signalingState: 'stable' });
+  assert.equal(pub.census().children[0].media, 'Waiting for tracks');
+  assert.equal(pub.census().health, 'degraded');
+  const child = pub.childFor('child-key-0001');
+  child.media_streams = [{ kind: 'video', sender: { track: { readyState: 'live' } } }];
+  child.last_map = 'sent';
+  assert.equal(pub.census().children[0].media, 'Forwarding 1 track');
+  assert.equal(pub.census().health, 'healthy');
+
+  assert.equal(pub.setMaxSlots(6).pending, false);
+  assert.equal(pub.children.length, 6);
+  assert.equal(pub.census().available, 5);
+  pub.addChild('child-key-0002');
+  assert.equal(pub.setMaxSlots(4).pending, false);
+  assert.equal(pub.max_slots, 4);
+  assert.equal(pub.childFor('child-key-0001').public_key, 'child-key-0001');
+  assert.equal(pub.childFor('child-key-0002').public_key, 'child-key-0002');
+
+  mod.peerManager.peers.set('child-key-0002', { signalingState: 'stable' });
+  assert.equal(pub.setMaxSlots(1).pending, false);
+  assert.equal(pub.max_slots, 1);
+  assert.equal(pub.childFor('child-key-0001').public_key, 'child-key-0001');
+  assert.equal(pub.childFor('child-key-0002'), null);
+  assert.equal(mod.peerManager.removed.includes('child-key-0002'), true);
+  assert.equal(pub.setMaxSlots(2).pending, false);
+  mod.peerManager.createPeerConnection = (peerId) => {
+    mod.peerManager.peers.set(peerId, { signalingState: 'stable', connectionState: 'new' });
+    return 1;
+  };
+  await pub.onConnectionRequest('child-key-0002', { publicationId: 'pub' });
+  assert.equal(pub.childFor('child-key-0002').public_key, 'child-key-0002');
+
+  pub.parent = 'parent-key';
+  pub.depth = 2;
+  pub.grandparent = 'origin';
+  pub.broadcaster = 'origin';
+  pub.siblings = [{ public_key: 'alice', status: 'online', tree_path: '', disconnected_at: 0 }];
+  pub.onParentDisconnected();
+  picture = pub.census();
+  assert.equal(picture.parent.status, 'offline');
+  assert.equal(picture.depth, 2);
+  assert.equal(picture.health, 'degraded');
+  assert.equal(
+    mod.sent.some((message) => message.to === 'origin' && message.request === 'video-call-swarmcast-join-request'),
+    true
+  );
+
+  const held = new Swarmcast({ id: 'pub', callId: 'room-1', broadcaster: 'alice', mod });
+  held.addChild('keep');
+  held.addChild('shed');
+  mod.peerManager.peers.set('shed', { signalingState: 'stable' });
+  mod.peerManager.removePeerConnection = (peerId) => {
+    mod.peerManager.removed.push(peerId);
+  };
+  const waiting = held.setMaxSlots(1);
+  assert.equal(waiting.pending, true);
+  assert.equal(held.max_slots, 4);
+  assert.equal(held.childFor('shed').public_key, 'shed');
+  mod.peerManager.peers.delete('shed');
+  held.onChildDisconnected('shed');
+  assert.equal(held.max_slots, 1);
+  assert.equal(held.childFor('keep').public_key, 'keep');
+  assert.equal(held.childFor('shed'), null);
+
+  const template = require('../../../mods/videocall/lib/ui/overlays/swarmcast-setup.template');
+  const shown = pub.census();
+  const view = template.monitorText(shown);
+  assert.equal(view.direct, String(shown.direct));
+  assert.equal(view.listeners, shown.listeners_known ? String(shown.listeners) : `at least ${shown.listeners}`);
+  assert.equal(view.health, 'Degraded');
+  const markup = template.monitorChildren(view.children);
+  assert.equal(markup.includes('child-key-0001'), true);
+  assert.equal(markup.includes('Slot 0'), true);
+  const html = template([]);
+  assert.equal(html.includes('Direct children'), true);
+  assert.equal(html.includes('Child slots'), true);
+  assert.equal(html.includes('swarmcast-setup-back" hidden'), true);
+
+  const Setup = require('../../../mods/videocall/lib/ui/overlays/swarmcast-setup');
+  const setup = new Setup(mod.app, mod);
+  const fields = {};
+  const field = (name) => fields[name] || (fields[name] = { textContent: '', hidden: true, dataset: {}, innerHTML: '' });
+  const input = { value: '1' };
+  const root = {
+    dataset: { state: 'live' },
+    querySelector(selector) {
+      if (selector === '.swarmcast-setup-live-link') return { href: '', textContent: '' };
+      if (selector === '.swarmcast-capacity-input') return input;
+      if (selector === '.swarmcast-setup-back') return { hidden: true };
+      const name = /data-monitor="([^"]+)"/.exec(selector)?.[1];
+      return name ? field(name) : null;
+    }
+  };
+  setup.paintLive(root);
+  assert.equal(field('direct').textContent, view.direct);
+  assert.equal(field('listeners').textContent, view.listeners);
+  assert.equal(field('max-slots').textContent, String(pub.max_slots));
+  assert.equal(field('children').innerHTML.includes('Copy key'), true);
+  assert.equal(field('tree').innerHTML.includes('leaf-1'.slice(0, 6)) || field('tree').innerHTML.includes('leaf-1'), true);
+  setup.showState(root, 'editing');
+  assert.equal(mod.swarmcast, pub);
+  setup.showState(root, 'live');
+  assert.equal(mod.swarmcast, pub);
+  setup.stopWatch();
+});
+
+test('a receiving page reports its parent and mutes playback locally', () => {
+  const SwarmcastViewer = require('../../../mods/videocall/lib/ui/swarmcast');
+  const mod = harness();
+  const sent = mod.sent.length;
+  const viewer = Object.create(SwarmcastViewer.prototype);
+  viewer.mod = mod;
+  viewer.route = { publicationId: 'pub', broadcaster: 'alice', callId: 'room-1' };
+  viewer.contact = 'alice';
+  viewer.state = 'playing';
+  viewer.connected_at = Date.now() - 4000;
+  viewer.muted = false;
+  viewer.hiddenOutputs = new Set();
+  viewer.quietAudio = new Set();
+  viewer.playbackBlocked = false;
+  viewer.layout = 'auto';
+  viewer.order = [];
+  viewer.customOrder = false;
+  viewer.sizes = {};
+  viewer.split = 0.7;
+  viewer.focusId = null;
+  viewer.midMap = new Map([
+    ['cam-1', [{ mid: '0', kind: 'video' }]],
+    ['aud-1', [{ mid: '1', kind: 'audio' }]]
+  ]);
+  viewer.media = new Map([
+    ['cam-1', new FakeStream([track('video', 'v')])],
+    ['aud-1', new FakeStream([track('audio', 'a')])]
+  ]);
+  viewer.publication = {
+    outputs: [
+      { id: 'cam-1', role: 'video', label: 'Alice', participant: 'alice' },
+      { id: 'aud-1', role: 'audio', label: 'Alice', participant: 'alice' },
+      { id: 'cam-2', role: 'video', label: 'Bob', participant: 'bob' }
+    ]
+  };
+  viewer.audio = new Map([
+    ['aud-1', { element: { muted: false }, playing: true }],
+    ['aud-2', { element: { muted: false }, playing: true }]
+  ]);
+  viewer.elements = new Map([
+    ['cam-1', { hidden: false, querySelector: () => ({ readyState: 4, paused: false }) }],
+    ['cam-2', { hidden: false, querySelector: () => null }]
+  ]);
+  mod.peerManager.peers.set('alice', { signalingState: 'stable', connectionState: 'connected' });
+  const previous = global.document;
+  global.document = { querySelector: () => null };
+  let picture = viewer.consumption();
+  assert.equal(picture.parent.public_key, 'alice');
+  assert.equal(picture.parent.status, 'online');
+  assert.equal(picture.depth, 1);
+  assert.equal(picture.health, 'healthy');
+  assert.equal(picture.rtt, null);
+  assert.equal(picture.outputs.find((output) => output.id === 'cam-1').active, true);
+  assert.equal(picture.outputs.find((output) => output.id === 'cam-1').mids[0], '0');
+  assert.equal(picture.outputs.find((output) => output.id === 'aud-1').rendered, true);
+
+  viewer.setLocalAudio('aud-1', false);
+  assert.equal(viewer.audio.get('aud-1').element.muted, true);
+  assert.equal(viewer.audio.get('aud-2').element.muted, false);
+  viewer.setMuted(true);
+  assert.equal(viewer.audio.get('aud-2').element.muted, true);
+  viewer.setMuted(false);
+  assert.equal(viewer.audio.get('aud-2').element.muted, false);
+  assert.equal(viewer.audio.get('aud-1').element.muted, true);
+  assert.equal(mod.sent.length, sent);
+
+  viewer.setLocalVideo('cam-2', false);
+  assert.equal(viewer.visibleIds().includes('cam-2'), false);
+  assert.equal(viewer.visibleIds().includes('cam-1'), true);
+  assert.equal(viewer.media.has('cam-2'), false);
+  assert.equal(mod.sent.length, sent);
+
+  mod.swarmcast = {
+    recovering: true,
+    tree_path: 'origin/alice',
+    census: () => ({ depth: 2, parent: { role: 'parent', public_key: 'alice', status: 'offline' } })
+  };
+  picture = viewer.consumption();
+  assert.equal(picture.parent.status, 'reconnecting');
+  assert.equal(picture.depth, 2);
+  assert.equal(picture.health, 'degraded');
+  assert.equal(picture.tree_path, 'origin/alice');
+
+  viewer.state = 'interrupted';
+  assert.equal(viewer.consumption().health, 'disconnected');
+  const markup = require('../../../mods/videocall/lib/ui/swarmcast.template')('playing', 'Live');
+  assert.equal(markup.includes('swarmcast-session-panel" hidden'), true);
+  assert.equal(markup.includes('>Session</span>'), true);
+  global.document = previous;
+});
+

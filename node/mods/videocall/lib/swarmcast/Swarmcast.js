@@ -2,6 +2,10 @@ const MAX_SLOTS = 4;
 const GRACE_INTERVAL = 30000;
 const UPWARD_MIN = 45000;
 const UPWARD_SPAN = 30000;
+const ADMISSION_TIMEOUT = 20000;
+const ADMISSION_ATTEMPTS = 8;
+const RECOVERY_GAP = 2000;
+const FAILURE_GRACE = 5000;
 
 function mediaApi() {
   return require('../swarmcast');
@@ -32,6 +36,13 @@ class Swarmcast {
     this.recovery_targets = [];
     this.recovery_timer = null;
     this.upward_timer = null;
+    this.attempt_timer = null;
+    this.attempt_token = 0;
+    this.failure_timer = null;
+    this.failure_token = 0;
+    this.admission_attempted = new Set();
+    this.parent_link = '';
+    this.media_forwarded = false;
     this.events_bound = false;
   }
 
@@ -137,6 +148,7 @@ class Swarmcast {
 
   slotFree(slot, now = Date.now()) {
     if (!slot) return true;
+    if (slot.status === 'pending' || slot.status === 'online') return false;
     return !!(slot.disconnected_at && now - slot.disconnected_at > this.grace_interval);
   }
 
@@ -145,7 +157,7 @@ class Swarmcast {
     return this.children.filter((slot) => this.slotFree(slot, now)).length;
   }
 
-  addChild(public_key) {
+  addChild(public_key, status = 'online') {
     if (!public_key || public_key === this.selfKey()) return null;
     const existing = this.childFor(public_key);
     if (existing) return existing;
@@ -155,15 +167,24 @@ class Swarmcast {
       index = this.children.findIndex((slot) => this.slotFree(slot, now) && slot);
     }
     if (index < 0) return null;
+    const admitted = status === 'online';
     const record = {
       public_key,
       tree_path: this.tree_path ? `${this.tree_path}/${public_key}` : public_key,
-      status: 'online',
+      status: admitted ? 'online' : 'pending',
       disconnected_at: 0,
+      connected_at: admitted ? now : 0,
       media_streams: [],
-      last_map: ''
+      last_map: '',
+      downstream: null,
+      downstream_known: false,
+      reported_children: null,
+      free_slots: null,
+      link_state: admitted ? 'channel' : 'reserved',
+      admission_token: 1
     };
     this.children[index] = record;
+    this.noteState();
     return record;
   }
 
@@ -174,19 +195,228 @@ class Swarmcast {
     if (patch.status) child.status = patch.status;
     if (patch.disconnected_at != null) child.disconnected_at = patch.disconnected_at;
     if (patch.last_map != null) child.last_map = patch.last_map;
-    if (patch.free_slots != null) child.free_slots = patch.free_slots;
+    if ('free_slots' in patch) child.free_slots = patch.free_slots;
+    if ('downstream' in patch) child.downstream = patch.downstream;
+    if ('downstream_known' in patch) child.downstream_known = patch.downstream_known;
+    if ('reported_children' in patch) child.reported_children = patch.reported_children;
     if (!patch || !Object.keys(patch).length) {
       child.status = 'online';
       child.disconnected_at = 0;
+      child.connected_at = Date.now();
     }
+    this.noteState();
     return child;
+  }
+
+  clearChildTimers(child) {
+    if (!child) return;
+    clearTimeout(child.admission_timer);
+    clearTimeout(child.grace_timer);
+    child.admission_timer = null;
+    child.grace_timer = null;
   }
 
   removeChild(public_key) {
     const index = this.children.findIndex((child) => child && child.public_key === public_key);
     if (index < 0) return false;
+    this.clearChildTimers(this.children[index]);
     this.children[index] = null;
+    this.noteState();
     return true;
+  }
+
+  noteState() {
+    this.mod?.app?.connection?.emit?.('swarmcast-state', this);
+  }
+
+  setMaxSlots(count) {
+    const next = Math.floor(Number(count));
+    if (!Number.isFinite(next) || next < 0) return { ok: false, pending: false, reason: 'Capacity must be zero or greater' };
+    if (this.capacity_pending) return { ok: false, pending: true, reason: this.capacity_pending.reason };
+    if (next === this.max_slots) return { ok: true, pending: false };
+    if (next > this.max_slots) {
+      while (this.children.length < next) this.children.push(null);
+      this.max_slots = next;
+      this.noteState();
+      this.announce();
+      return { ok: true, pending: false };
+    }
+    const pending = [];
+    for (let index = next; index < this.children.length; index += 1) {
+      const child = this.children[index];
+      if (!child) continue;
+      const connected =
+        child.status === 'online' ||
+        child.status === 'pending' ||
+        this.mod?.peerManager?.peers?.get(child.public_key);
+      if (connected) {
+        try {
+          this.mod?.peerManager?.removePeerConnection?.(child.public_key);
+        } catch (err) {
+          pending.push(child.public_key);
+          continue;
+        }
+      }
+      if (this.mod?.peerManager?.peers?.get(child.public_key)) {
+        pending.push(child.public_key);
+        continue;
+      }
+      this.children[index] = null;
+    }
+    if (pending.length) {
+      this.capacity_pending = {
+        requested: next,
+        public_keys: pending,
+        reason: 'Waiting for the last child connections to close'
+      };
+      this.noteState();
+      return { ok: true, pending: true, reason: this.capacity_pending.reason };
+    }
+    this.children = this.children.slice(0, next);
+    this.max_slots = next;
+    this.noteState();
+    this.announce();
+    return { ok: true, pending: false };
+  }
+
+  finishCapacity() {
+    const pending = this.capacity_pending;
+    if (!pending) return false;
+    const next = pending.requested;
+    for (let index = next; index < this.children.length; index += 1) {
+      const child = this.children[index];
+      if (!child) continue;
+      if (this.mod?.peerManager?.peers?.get(child.public_key)) return false;
+      this.children[index] = null;
+    }
+    this.children = this.children.slice(0, next);
+    this.max_slots = next;
+    this.capacity_pending = null;
+    this.noteState();
+    this.announce();
+    return true;
+  }
+
+  mediaStatus(child) {
+    if (child?.status === 'pending') {
+      return this.mod?.peerManager?.peers?.get(child.public_key)
+        ? 'Waiting for the data channel'
+        : 'Admission in progress';
+    }
+    if (!this.outputs.length) return 'This node has no outputs to forward';
+    const pc = this.mod?.peerManager?.peers?.get(child.public_key);
+    if (!pc) return 'No peer connection';
+    const streams = child.media_streams || [];
+    if (!streams.length) return 'Waiting for tracks';
+    const failed = streams.some((item) => item.sender?._swarmcastLimitsFailed);
+    if (failed) return 'Sender limits failed';
+    const live = streams.filter((item) => item.sender?.track && item.sender.track.readyState !== 'ended');
+    if (!child.last_map) return 'Track map not sent';
+    if (live.length < streams.length) return 'A sender has no live track';
+    if (pc.signalingState && pc.signalingState !== 'stable') return `Signaling ${pc.signalingState}`;
+    return `Forwarding ${live.length} track${live.length === 1 ? '' : 's'}`;
+  }
+
+  census(now = Date.now()) {
+    let online = 0;
+    let grace = 0;
+    let admissions = 0;
+    let available = 0;
+    let descendants = 0;
+    let descendants_known = true;
+    const children = this.children.map((child, slot) => {
+      if (!child) {
+        available += 1;
+        return null;
+      }
+      const held =
+        child.status === 'disconnected' &&
+        child.disconnected_at &&
+        now - child.disconnected_at <= this.grace_interval;
+      let shown = 'expired';
+      if (child.status === 'pending') {
+        admissions += 1;
+        shown = 'pending';
+      } else if (child.status === 'online') {
+        online += 1;
+        shown = 'online';
+      } else if (held) {
+        grace += 1;
+        shown = 'reconnecting';
+      } else available += 1;
+      if (child.status === 'online') {
+        if (child.downstream_known && Number.isFinite(child.downstream)) descendants += child.downstream;
+        else descendants_known = false;
+      }
+      const reported = Array.isArray(child.reported_children) ? child.reported_children : null;
+      return {
+        slot,
+        public_key: child.public_key,
+        status: shown,
+        link_state: child.link_state || '',
+        connected_at: child.connected_at || 0,
+        disconnected_at: child.disconnected_at || 0,
+        downstream: child.downstream_known ? child.downstream : null,
+        downstream_known: !!child.downstream_known,
+        reported_children: reported,
+        media: this.mediaStatus(child),
+        signaling: this.mod?.peerManager?.peers?.get(child.public_key)?.signalingState || ''
+      };
+    });
+    const keys = new Set();
+    const self = this.selfKey() || this.broadcaster;
+    if (self) keys.add(self);
+    if (this.parent) keys.add(this.parent);
+    for (const slot of this.siblings || []) if (slot?.public_key) keys.add(slot.public_key);
+    for (const child of children) {
+      if (!child) continue;
+      keys.add(child.public_key);
+      for (const reported of child.reported_children || []) if (reported?.public_key) keys.add(reported.public_key);
+    }
+    let health = 'healthy';
+    let reason = online ? 'Direct children are connected and media is forwarded' : 'No children are connected yet';
+    if (grace) {
+      health = 'degraded';
+      reason = 'A child disconnected and the slot is held for reconnection';
+    }
+    if (children.some((child) => child && child.status === 'online' && child.media !== 'Forwarding 1 track' && !child.media.startsWith('Forwarding ') && child.media !== 'This node has no outputs to forward')) {
+      health = 'degraded';
+      reason = 'A child connection is missing forwarded media';
+    }
+    const source = this.depth === 0 && !this.parent;
+    const parent = source
+      ? { role: 'source', status: 'online', public_key: this.broadcaster || self || '' }
+      : {
+          role: 'parent',
+          status: this.parent_status || (this.parent ? 'online' : 'unknown'),
+          public_key: this.parent || this.pending_parent || '',
+          link: this.parent_link || ''
+        };
+    if (!source && (parent.status === 'offline' || parent.status === 'unknown')) {
+      health = this.recovering ? 'degraded' : 'disconnected';
+      reason = this.recovering ? 'Parent disconnected. Reconnecting through the tree.' : 'Parent is disconnected';
+    }
+    return {
+      max_slots: this.max_slots,
+      occupied: online + grace + admissions,
+      admissions,
+      available,
+      grace,
+      direct: online,
+      listeners: online + descendants,
+      listeners_known: descendants_known,
+      descendants,
+      descendants_known,
+      depth: this.depth,
+      tree_path: this.tree_path || '',
+      parent,
+      health,
+      reason,
+      capacity_pending: this.capacity_pending || null,
+      media_forwarded: !!this.media_forwarded,
+      known_nodes: keys.size,
+      children
+    };
   }
 
   childSummaries() {
@@ -196,7 +426,11 @@ class Swarmcast {
         public_key: child.public_key,
         tree_path: child.tree_path,
         status: child.status,
-        disconnected_at: child.disconnected_at || 0
+        disconnected_at: child.disconnected_at || 0,
+        downstream: child.downstream_known ? child.downstream : null,
+        downstream_known: !!child.downstream_known,
+        free_slots: child.free_slots == null ? null : child.free_slots,
+        link_state: child.link_state || ''
       };
     });
   }
@@ -211,7 +445,8 @@ class Swarmcast {
         public_key: child.public_key,
         tree_path: child.tree_path || '',
         status: child.status || 'online',
-        disconnected_at: child.disconnected_at || 0
+        disconnected_at: child.disconnected_at || 0,
+        free_slots: child.free_slots == null ? null : child.free_slots
       };
     });
   }
@@ -231,35 +466,53 @@ class Swarmcast {
     }));
   }
 
-  candidateIndex() {
+  candidateIndex(exclude = '') {
+    const known = [];
+    const unknown = [];
     for (let index = 0; index < this.children.length; index += 1) {
       const child = this.children[index];
-      if (!child || child.status !== 'online') continue;
-      if (child.free_slots == null || child.free_slots > 0) return index;
+      if (!child || child.status !== 'online' || child.public_key === exclude) continue;
+      if (child.free_slots === 0) continue;
+      if (child.free_slots > 0) known.push(index);
+      else unknown.push(index);
     }
+    if (known.length) return known[0];
+    if (unknown.length) return unknown[0];
     return -1;
+  }
+
+  announce() {
+    this.sendSwarmUpdate('down').catch((err) => console.error(err));
+    this.sendSwarmUpdate('up').catch((err) => console.error(err));
+  }
+
+  releaseTimers() {
+    clearTimeout(this.upward_timer);
+    clearTimeout(this.recovery_timer);
+    clearTimeout(this.attempt_timer);
+    clearTimeout(this.failure_timer);
+    this.upward_timer = null;
+    this.recovery_timer = null;
+    this.attempt_timer = null;
+    this.failure_timer = null;
+    for (const child of this.children || []) this.clearChildTimers(child);
+  }
+
+  channelReady(public_key) {
+    const pc = this.mod?.peerManager?.peers?.get(public_key);
+    if (!pc) return false;
+    const connected =
+      pc.connectionState === 'connected' ||
+      pc.iceConnectionState === 'connected' ||
+      pc.iceConnectionState === 'completed';
+    return connected && pc.dc?.readyState === 'open';
   }
 
   async sendSwarmUpdate(direction, target = '') {
     const mod = this.mod;
     if (!mod?.sendSwarmcast) return;
-    const admission = direction === 'down' && !!target;
-    let children = this.childSummaries();
-    if (admission) {
-      const index = this.candidateIndex();
-      if (index < 0) {
-        await mod.sendSwarmcast(target, 'video-call-swarmcast-join-response', {
-          publicationId: this.id,
-          callId: this.callId,
-          contact: this.selfKey(),
-          state: 'unavailable',
-          reason: '',
-          publication: null
-        });
-        return;
-      }
-      children = children.map((child, childIndex) => (childIndex === index ? child : null));
-    }
+    const picture = this.census();
+    const children = this.childSummaries();
     const message = {
       direction,
       publication_id: this.id,
@@ -270,11 +523,13 @@ class Swarmcast {
       grandparent: this.grandparent,
       tree_path: this.tree_path,
       depth: this.depth,
-      status: 'online',
+      status: this.parent_status === 'offline' ? 'disconnected' : 'online',
       free_slots: this.freeSlotCount(),
+      downstream: picture.descendants,
+      downstream_known: picture.descendants_known,
       children,
       publication: this.document(),
-      admission
+      admission: false
     };
     const recipients = [];
     if (target) recipients.push(target);
@@ -296,10 +551,13 @@ class Swarmcast {
     if (publication_id && this.id && publication_id !== this.id) return;
     if (message.direction === 'up') {
       if (!this.childFor(peer)) return;
+      const downstream = Number.isFinite(Number(message.downstream)) ? Number(message.downstream) : null;
       this.updateChild(peer, {
         tree_path: message.tree_path,
-        status: message.status || 'online',
-        free_slots: message.free_slots
+        free_slots: message.free_slots == null ? null : message.free_slots,
+        downstream,
+        downstream_known: message.downstream_known !== false && downstream != null,
+        reported_children: Array.isArray(message.children) ? message.children : null
       });
       return;
     }
@@ -307,15 +565,10 @@ class Swarmcast {
     const listed = (message.children || []).some((child) => child && child.public_key === this.selfKey());
     if (message.admission && !listed) {
       const candidate = (message.children || []).find((child) => child && child.public_key);
-      if (!candidate) return;
-      const view = this.mod?.swarmcastView;
-      if (view && !view.closed) {
-        view.receiveAdmission(message);
-        return;
-      }
-      this.joinNewParent(candidate.public_key);
+      this.noteReferral(peer, candidate?.public_key, candidate?.free_slots);
       return;
     }
+    if (this.pending_parent && this.pending_parent !== this.parent && peer !== this.pending_parent) return;
     if (peer !== this.parent && peer !== this.pending_parent && this.parent) return;
     if (!this.parent) this.parent = message.public_key || peer || this.parent;
     this.grandparent = message.parent || '';
@@ -324,66 +577,209 @@ class Swarmcast {
     this.depth = Number(message.depth || 0) + 1;
     this.retainSiblings(message.children);
     if (message.publication) this.adoptPublication(message.publication);
+    this.noteState();
     this.sendSwarmUpdate('down').catch((err) => console.error(err));
   }
 
-  async onConnectionRequest(public_key, message = {}) {
+  answerChild(public_key) {
     const mod = this.mod;
-    const data = message || {};
-    const live = !!this.id && (!data.publicationId || data.publicationId === this.id);
-    const in_call = this.isCallMember(public_key);
-    let child = this.childFor(public_key);
-    const peer = mod?.peerManager?.peers?.get(public_key);
-    const foreign = !!(peer && !child);
-    const occupied = !!(live && (in_call || foreign));
-    if (live && !occupied && !child) {
-      child = this.addChild(public_key);
-      if (!child) {
-        await this.sendSwarmUpdate('down', public_key);
+    if (!mod?.peers?.connect || mod.peerManager?.peers?.get(public_key)) return;
+    mod.peers.connect(public_key, { role: 'answer' });
+  }
+
+  armAdmission(child) {
+    if (!child) return;
+    this.clearChildTimers(child);
+    const token = child.admission_token;
+    child.admission_timer = setTimeout(() => {
+      const current = this.childFor(child.public_key);
+      if (!current || current.admission_token !== token || current.status !== 'pending') return;
+      if (this.channelReady(child.public_key)) {
+        this.onChildReconnected(child.public_key);
         return;
       }
-      if (!peer) mod.peers.connect(public_key, { role: 'answer' });
+      this.releaseAdmission(child.public_key);
+    }, ADMISSION_TIMEOUT);
+    child.admission_timer.unref?.();
+  }
+
+  releaseAdmission(public_key) {
+    const child = this.childFor(public_key);
+    if (!child || child.status !== 'pending') return;
+    child.admission_token = (child.admission_token || 0) + 1;
+    this.removeChild(public_key);
+    if (!this.isCallMember(public_key)) this.mod?.peerManager?.removePeerConnection?.(public_key);
+    this.finishCapacity();
+    this.announce();
+  }
+
+  async replyJoin(public_key, data, accepted, reason) {
+    const mod = this.mod;
+    if (!mod?.sendSwarmcast) return;
+    let candidate = '';
+    let candidate_free_slots = null;
+    if (!accepted && reason !== 'existing-call-connection') {
+      const index = this.candidateIndex(public_key);
+      const chosen = index < 0 ? null : this.children[index];
+      candidate = chosen?.public_key || '';
+      candidate_free_slots = chosen ? (chosen.free_slots == null ? null : chosen.free_slots) : null;
     }
-    if (live && !occupied && child && child.disconnected_at) {
-      child.status = 'online';
-      child.disconnected_at = 0;
-    }
-    const accepted = live && !occupied && !!this.childFor(public_key);
     await mod.sendSwarmcast(public_key, 'video-call-swarmcast-join-response', {
       publicationId: data.publicationId || this.id,
       callId: data.callId || this.callId,
       contact: this.selfKey() || mod.publicKey,
       state: accepted ? 'ready' : 'unavailable',
-      reason: occupied ? 'existing-call-connection' : '',
+      reason: accepted ? '' : reason || 'full',
+      candidate,
+      candidate_free_slots,
       publication: accepted ? this.document() : null
     });
+  }
+
+  async onConnectionRequest(public_key, message = {}) {
+    const data = message || {};
+    const live = !!this.id && (!data.publicationId || data.publicationId === this.id);
+    const in_call = this.isCallMember(public_key);
+    let child = this.childFor(public_key);
+    const peer = this.mod?.peerManager?.peers?.get(public_key);
+    const foreign = !!(peer && !child);
+    const occupied = !!(live && (in_call || foreign));
+    if (!live || occupied) {
+      await this.replyJoin(public_key, data, false, occupied ? 'existing-call-connection' : '');
+      return;
+    }
+    if (child && (child.status === 'pending' || child.status === 'online')) {
+      this.answerChild(public_key);
+      if (child.status === 'pending') this.armAdmission(child);
+      await this.replyJoin(public_key, data, true, '');
+      return;
+    }
+    if (child && child.status === 'disconnected') {
+      if (this.slotFree(child)) {
+        this.removeChild(public_key);
+        child = null;
+      } else {
+        child.status = 'pending';
+        child.disconnected_at = 0;
+        child.link_state = 'reserved';
+        child.admission_token = (child.admission_token || 0) + 1;
+        this.answerChild(public_key);
+        this.armAdmission(child);
+        this.noteState();
+        this.announce();
+        await this.replyJoin(public_key, data, true, '');
+        return;
+      }
+    }
+    if (!child) {
+      child = this.addChild(public_key, 'pending');
+      if (!child) {
+        await this.replyJoin(public_key, data, false, 'full');
+        return;
+      }
+      this.answerChild(public_key);
+      this.armAdmission(child);
+      this.announce();
+    }
+    await this.replyJoin(public_key, data, !!this.childFor(public_key), this.childFor(public_key) ? '' : 'full');
   }
 
   receiveJoinResponse(data) {
     if (!data) return;
     if (data.state !== 'ready' || !data.contact) {
-      if (this.recovering) this.advanceRecovery();
+      if (this.attempt_token && this.pending_parent) this.noteRefusal(data);
       return;
     }
-    if (this.pending_parent && data.contact !== this.pending_parent) return;
-    this.parent = data.contact;
+    if (this.attempt_token) {
+      if (!this.pending_parent || data.contact !== this.pending_parent) return;
+    } else if (this.pending_parent && data.contact !== this.pending_parent) {
+      return;
+    }
+    const seeking = !!this.attempt_token;
+    this.invalidateParentMedia();
     this.pending_parent = data.contact;
-    this.parent_status = 'online';
-    this.parent_disconnected_at = 0;
-    this.recovering = false;
-    this.recovery_targets = [];
+    this.parent_status = 'admitted';
+    this.parent_link = 'signalling';
+    if (!seeking || !this.parent) this.parent = data.contact;
     const origin = data.publication?.broadcaster || this.broadcaster;
-    if (data.contact === origin) {
+    if (!seeking && data.contact === origin) {
       this.grandparent = '';
       this.depth = 1;
       this.tree_path = `${origin}/${this.selfKey()}`;
     }
     if (data.publication) this.adoptPublication(data.publication);
+    this.openParentConnection(data.contact);
+    this.noteState();
+  }
+
+  enqueueCandidate(public_key, free_slots) {
+    if (!public_key || public_key === this.selfKey()) return;
+    if (public_key === this.parent && this.parent_status === 'offline') return;
+    if (this.admission_attempted.has(public_key)) return;
+    if (free_slots === 0) return;
+    if (this.recovery_targets.includes(public_key)) return;
+    const known = Number(free_slots);
+    if (known > 0) this.recovery_targets.unshift(public_key);
+    else this.recovery_targets.push(public_key);
+  }
+
+  noteReferral(_from, public_key, free_slots) {
+    if (!this.attempt_token || !this.pending_parent) return;
+    this.enqueueCandidate(public_key, free_slots);
+    this.advanceRecovery();
+  }
+
+  noteRefusal(data = {}) {
+    const from = data.contact || '';
+    if (this.pending_parent && from && from !== this.pending_parent) return;
+    this.enqueueCandidate(data.candidate, data.candidate_free_slots);
+    this.advanceRecovery();
+  }
+
+  takeTarget() {
+    while (this.recovery_targets.length) {
+      const next = this.recovery_targets.shift();
+      if (!next || next === this.selfKey() || this.admission_attempted.has(next)) continue;
+      return next;
+    }
+    return '';
+  }
+
+  failSeeking() {
+    clearTimeout(this.attempt_timer);
+    this.attempt_timer = null;
+    clearTimeout(this.recovery_timer);
+    this.recovery_timer = null;
+    this.recovering = false;
+    this.recovery_targets = [];
+    this.pending_parent = '';
+    this.noteState();
+  }
+
+  armAttempt(public_key, token) {
+    clearTimeout(this.attempt_timer);
+    this.attempt_timer = setTimeout(() => {
+      if (this.attempt_token !== token || this.pending_parent !== public_key) return;
+      if (this.parent === public_key && ['channel', 'subscribed', 'mapped', 'forwarding'].includes(this.parent_link)) return;
+      if (this.channelReady(public_key)) {
+        this.commitParent(public_key);
+        return;
+      }
+      this.advanceRecovery();
+    }, ADMISSION_TIMEOUT);
+    this.attempt_timer.unref?.();
   }
 
   async joinNewParent(public_key) {
     const mod = this.mod;
     if (!mod || !public_key || public_key === this.selfKey()) return false;
+    if (this.admission_attempted.has(public_key)) return false;
+    if (this.admission_attempted.size >= ADMISSION_ATTEMPTS) {
+      this.failSeeking();
+      return false;
+    }
+    const token = ++this.attempt_token;
+    this.admission_attempted.add(public_key);
     this.pending_parent = public_key;
     this.recovering = true;
     try {
@@ -393,30 +789,48 @@ class Swarmcast {
       });
     } catch (err) {
       console.error(err);
-      this.advanceRecovery();
+      if (this.attempt_token === token) this.advanceRecovery();
       return false;
     }
-    if (!mod.peerManager?.peers?.get(public_key)) {
-      mod.peers.connect(public_key, {
-        role: 'offer',
-        onReady: (peerId) => {
-          Promise.resolve(mod.peerManager.sendJoinTransaction(peerId)).catch((err) => console.error(err));
-        }
-      });
-    }
+    if (this.attempt_token !== token || this.pending_parent !== public_key) return true;
+    this.armAttempt(public_key, token);
     return true;
   }
 
   advanceRecovery() {
-    const next = this.recovery_targets.shift();
+    if (!this.recovering && !this.attempt_token) return;
+    this.recovering = true;
+    const next = this.takeTarget();
     if (next) {
       this.joinNewParent(next);
       return;
     }
-    if (this.broadcaster && this.pending_parent !== this.broadcaster) {
-      this.recovery_targets = [];
+    if (
+      this.broadcaster &&
+      this.broadcaster !== this.selfKey() &&
+      !this.admission_attempted.has(this.broadcaster)
+    ) {
       this.joinNewParent(this.broadcaster);
+      return;
     }
+    this.failSeeking();
+  }
+
+  openParentConnection(public_key) {
+    const mod = this.mod;
+    if (!mod?.peers?.connect || !public_key) return;
+    const view = mod.swarmcastView;
+    if (view && !view.closed && view.phase === 'joining') return;
+    if (mod.peerManager?.peers?.get(public_key)) return;
+    const token = this.attempt_token;
+    mod.peers.connect(public_key, {
+      role: 'offer',
+      onReady: (peerId) => {
+        if (token && this.attempt_token !== token) return;
+        if (this.pending_parent !== public_key && this.parent !== public_key) return;
+        Promise.resolve(mod.peerManager.sendJoinTransaction(peerId)).catch((err) => console.error(err));
+      }
+    });
   }
 
   onNewChild(public_key) {
@@ -429,37 +843,124 @@ class Swarmcast {
   onChildDisconnected(public_key) {
     const child = this.childFor(public_key);
     if (!child || this.isCallMember(public_key)) return;
-    child.status = 'offline';
-    if (!child.disconnected_at) child.disconnected_at = Date.now();
-    if (!this.isCallMember(public_key)) {
-      this.mod?.peerManager?.removePeerConnection?.(public_key);
+    if (child.status === 'pending') {
+      this.releaseAdmission(public_key);
+      return;
     }
+    child.status = 'disconnected';
+    child.link_state = 'down';
+    if (!child.disconnected_at) child.disconnected_at = Date.now();
+    this.armGrace(child);
+    if (!this.isCallMember(public_key)) this.mod?.peerManager?.removePeerConnection?.(public_key);
+    this.finishCapacity();
+    this.announce();
+    this.noteState();
+  }
+
+  armGrace(child) {
+    if (!child) return;
+    clearTimeout(child.grace_timer);
+    const token = child.admission_token;
+    child.grace_timer = setTimeout(() => {
+      const current = this.childFor(child.public_key);
+      if (!current || current.admission_token !== token || current.status === 'online' || current.status === 'pending') return;
+      if (this.channelReady(child.public_key)) {
+        this.onChildReconnected(child.public_key);
+        return;
+      }
+      this.removeChild(child.public_key);
+      this.mod?.peerManager?.removePeerConnection?.(child.public_key);
+      this.announce();
+    }, this.grace_interval);
+    child.grace_timer.unref?.();
+  }
+
+  onChildLink(public_key, kind) {
+    const child = this.childFor(public_key);
+    if (!child || child.status === 'expired') return;
+    if (kind === 'stun' && child.link_state === 'reserved') child.link_state = 'stun';
+    if (kind === 'channel' || this.channelReady(public_key)) this.onChildReconnected(public_key);
+    else this.noteState();
   }
 
   onChildReconnected(public_key) {
-    const child = this.childFor(public_key);
+    let child = this.childFor(public_key);
     if (!child) return;
-    if (child.disconnected_at && Date.now() - child.disconnected_at > this.grace_interval) {
+    if (child.status === 'disconnected' && this.slotFree(child)) {
       this.removeChild(public_key);
-      this.addChild(public_key);
-    } else {
-      child.status = 'online';
-      child.disconnected_at = 0;
+      child = this.addChild(public_key, 'online');
+      if (!child) return;
     }
+    this.clearChildTimers(child);
+    child.status = 'online';
+    child.disconnected_at = 0;
+    child.connected_at = child.connected_at || Date.now();
+    child.link_state = 'channel';
     this.updateMediaStreams(public_key);
+    this.announce();
+    this.noteState();
   }
 
-  onParentDisconnected() {
-    if (!this.parent && !this.pending_parent) return;
+  onLinkFailure(public_key, state) {
+    if (state !== 'failed' && state !== 'disconnected' && state !== 'closed') return;
+    const child = this.childFor(public_key);
+    if (child) {
+      if (child.status === 'pending' && (state === 'failed' || state === 'closed')) {
+        this.releaseAdmission(public_key);
+        return;
+      }
+      if (child.status !== 'online') return;
+      child.status = 'disconnected';
+      child.link_state = 'down';
+      if (!child.disconnected_at) child.disconnected_at = Date.now();
+      this.armGrace(child);
+      this.announce();
+      this.noteState();
+      return;
+    }
+    if (public_key !== this.parent && public_key !== this.pending_parent) return;
+    if (this.pending_parent && public_key !== this.pending_parent) return;
+    this.armParentFailure(public_key);
+  }
+
+  armParentFailure(public_key) {
+    clearTimeout(this.failure_timer);
+    const token = ++this.failure_token;
+    this.failure_timer = setTimeout(() => {
+      if (this.failure_token !== token) return;
+      if (this.channelReady(public_key)) return;
+      if (this.recovering) return;
+      this.onParentDisconnected(public_key);
+    }, FAILURE_GRACE);
+    this.failure_timer.unref?.();
+  }
+
+  recoveryStillNeeded() {
+    if (this.channelReady(this.parent) && this.parent_status !== 'offline') return false;
+    if (['channel', 'subscribed', 'mapped', 'forwarding'].includes(this.parent_link) && this.channelReady(this.parent)) {
+      return false;
+    }
+    return this.parent_status === 'offline' || this.parent_status === 'disconnected' || this.recovering;
+  }
+
+  onParentDisconnected(peerId = '') {
+    if (peerId && peerId !== this.parent && peerId !== this.pending_parent) return;
+    if (this.recovering && this.pending_parent && peerId && peerId === this.pending_parent && peerId !== this.parent) {
+      this.advanceRecovery();
+      return;
+    }
     if (this.recovering) return;
-    const view = this.mod?.swarmcastView;
-    const has_children = this.children.some(Boolean);
-    if (view && !view.closed && !has_children) return;
+    if (!this.parent && !this.pending_parent) return;
     this.parent_status = 'offline';
+    this.parent_link = 'down';
     this.parent_disconnected_at = Date.now();
+    this.invalidateParentMedia();
+    this.admission_attempted = new Set();
+    this.recovery_targets = [];
+    clearTimeout(this.recovery_timer);
+    this.noteState();
     const self = this.selfKey();
     const index = this.siblings.findIndex((slot) => slot && slot.public_key === self);
-    clearTimeout(this.recovery_timer);
     if (this.depth <= 1 || !this.grandparent) {
       this.joinNewParent(this.broadcaster);
       return;
@@ -468,40 +969,111 @@ class Swarmcast {
       this.joinNewParent(this.grandparent);
       return;
     }
-    const slot_zero = this.siblings[0]?.public_key;
+    const slot_zero = this.siblings[0];
     const targets = [];
-    if (slot_zero && slot_zero !== self) targets.push(slot_zero);
-    for (let cursor = 1; cursor < this.siblings.length; cursor += 1) {
-      const key = this.siblings[cursor]?.public_key;
-      if (!key || key === self || key === slot_zero) continue;
+    const add = (slot) => {
+      const key = slot?.public_key;
+      if (!key || key === self || targets.includes(key) || slot.free_slots === 0) return;
       targets.push(key);
-    }
+    };
+    add(slot_zero);
+    for (let cursor = 1; cursor < this.siblings.length; cursor += 1) add(this.siblings[cursor]);
     this.recovery_targets = targets;
     this.recovering = true;
     this.recovery_timer = setTimeout(() => {
-      const next = this.recovery_targets.shift();
+      if (!this.recoveryStillNeeded()) return;
+      if (this.channelReady(this.parent)) return;
+      const next = this.takeTarget();
       if (next) this.joinNewParent(next);
       else this.joinNewParent(this.broadcaster);
-    }, index * 2000);
+    }, Math.max(index, 1) * RECOVERY_GAP);
+    this.recovery_timer.unref?.();
+  }
+
+  onParentLink(public_key, kind) {
+    if (public_key !== this.parent && public_key !== this.pending_parent) return;
+    if (this.pending_parent && public_key !== this.pending_parent) return;
+    if (kind === 'channel' || this.channelReady(public_key)) {
+      if (this.recovering && !this.pending_parent && public_key === this.parent) {
+        clearTimeout(this.recovery_timer);
+        this.recovery_timer = null;
+        this.recovering = false;
+        this.parent_status = 'online';
+        this.parent_link = 'channel';
+        this.parent_disconnected_at = 0;
+        this.subscribeToParent();
+        this.pushBroadcast();
+        this.announce();
+        this.noteState();
+        return;
+      }
+      this.commitParent(public_key);
+      return;
+    }
+    if (kind === 'stun') {
+      this.parent_link = 'stun';
+      this.noteState();
+    }
   }
 
   onParentReconnected(public_key) {
-    if (public_key !== this.parent && public_key !== this.pending_parent) return;
-    if (!this.parent) this.parent = public_key;
+    this.onParentLink(public_key, 'stun');
+  }
+
+  invalidateParentMedia() {
+    this.parent_mids = new Map();
+    if (['mapped', 'forwarding', 'subscribed'].includes(this.parent_link)) this.parent_link = 'down';
+    this.media_forwarded = false;
+    for (const child of this.children) {
+      if (!child) continue;
+      child.last_map = '';
+    }
+  }
+
+  commitParent(public_key) {
+    if (!public_key) return;
+    if (this.pending_parent && public_key !== this.pending_parent) return;
+    const previous = this.parent;
+    this.parent = public_key;
+    this.pending_parent = public_key;
     this.parent_status = 'online';
+    this.parent_link = 'channel';
     this.parent_disconnected_at = 0;
+    clearTimeout(this.attempt_timer);
+    this.attempt_timer = null;
+    clearTimeout(this.recovery_timer);
+    this.recovery_timer = null;
+    clearTimeout(this.failure_timer);
+    this.failure_timer = null;
+    if (previous && previous !== public_key) {
+      try {
+        this.mod?.peerManager?.removePeerConnection?.(previous);
+      } catch (err) {
+        console.error(err);
+      }
+    }
+    const origin = this.broadcaster;
+    if (public_key === origin) {
+      this.grandparent = '';
+      this.depth = 1;
+      this.tree_path = `${origin}/${this.selfKey()}`;
+    }
     this.recovering = false;
+    this.recovery_targets = [];
+    this.admission_attempted = new Set();
     this.subscribeToParent();
     this.pushBroadcast();
+    this.announce();
+    this.noteState();
   }
 
   subscribeToParent() {
     const mod = this.mod;
     const contact = this.parent || this.pending_parent;
     if (!mod?.sendSwarmcast || !contact || !this.id) return;
-    if (mod.swarmcastView && !mod.swarmcastView.closed) return;
     const connected = mod.peerManager?.hasConnectionWithPeer?.(contact);
     if (connected === false) return;
+    this.parent_link = 'subscribed';
     const output_ids = (this.outputs || []).map((output) => output.id);
     mod
       .sendSwarmcast(contact, 'video-call-swarmcast-subscribe', {
@@ -513,9 +1085,12 @@ class Swarmcast {
   }
 
   receiveParentTracks(data) {
+    if (this.recovering && this.pending_parent && this.pending_parent !== this.parent) return;
     if (data?.publication) this.adoptPublication(data.publication);
     this.parent_mids = new Map((data?.outputs || []).map((output) => [output.id, output.mids || []]));
+    this.parent_link = 'mapped';
     this.pushBroadcast();
+    this.noteState();
   }
 
   forwardedStream(output) {
@@ -594,12 +1169,15 @@ class Swarmcast {
       { mod: this.mod, peerId: public_key }
     );
     this.publishTrackMap(public_key);
+    this.noteState();
   }
 
   pushBroadcast() {
     if (!this.mod) return;
+    let waiting = 0;
+    let forwarded = 0;
     for (const child of this.children) {
-      if (!child) continue;
+      if (!child || child.status === 'pending') continue;
       const pc = this.mod.peerManager?.peers?.get(child.public_key);
       const output_ids = this.outputs.map((output) => output.id).join(',');
       console.info(
@@ -611,8 +1189,20 @@ class Swarmcast {
         'peer',
         pc ? 'yes' : 'no'
       );
-      if (!pc) continue;
+      if (!pc || child.status !== 'online') continue;
+      waiting += 1;
       this.updateMediaStreams(child.public_key);
+      const live = (child.media_streams || []).some(
+        (item) => item.sender?.track && item.sender.track.readyState !== 'ended'
+      );
+      if (live && child.last_map) forwarded += 1;
+    }
+    if (!waiting) {
+      this.media_forwarded =
+        this.parent_link === 'mapped' || this.parent_link === 'forwarding' || (this.depth === 0 && !this.parent);
+    } else {
+      this.media_forwarded = forwarded === waiting;
+      if (this.media_forwarded) this.parent_link = 'forwarding';
     }
   }
 
@@ -633,7 +1223,7 @@ class Swarmcast {
       return;
     }
     const outputs = mediaApi().trackMap(child.media_streams, pc);
-    if (!outputs) {
+    if (!outputs || (!outputs.length && !child.last_map)) {
       console.info(
         'SWARMCAST MEDIA TRACE',
         'tracks withheld',
@@ -660,6 +1250,7 @@ class Swarmcast {
       .join(',');
     console.info('SWARMCAST MEDIA TRACE', 'tracks sent', public_key, 'outputs', outputs.length, 'mids', mids);
     child.last_map = encoded;
+    child.link_state = 'mapped';
     this.mod.sendSwarmcast(public_key, 'video-call-swarmcast-tracks', data).catch((err) => {
       console.error(err);
       if (child.last_map === encoded) child.last_map = '';
@@ -684,12 +1275,19 @@ class Swarmcast {
     let child = this.childFor(from);
     const added = !child;
     if (!child) {
-      child = this.addChild(from);
+      child = this.addChild(from, 'online');
       if (!child) {
         console.info('SWARMCAST MEDIA TRACE', 'acceptBroadcastSubscribe', from, 'requested', requested, 'child', 'full');
         return;
       }
     }
+    if (child.status === 'pending' || child.status === 'disconnected') {
+      this.clearChildTimers(child);
+      child.status = 'online';
+      child.disconnected_at = 0;
+      child.connected_at = child.connected_at || Date.now();
+    }
+    child.link_state = 'subscribed';
     console.info(
       'SWARMCAST MEDIA TRACE',
       'acceptBroadcastSubscribe',
@@ -700,6 +1298,7 @@ class Swarmcast {
       added ? 'added' : 'existing'
     );
     this.updateMediaStreams(from);
+    this.announce();
   }
 
   onSignalingState(public_key, state) {
@@ -731,6 +1330,7 @@ class Swarmcast {
   }
 
   clearChildren() {
+    for (const child of this.children) this.clearChildTimers(child);
     for (let index = 0; index < this.children.length; index += 1) this.children[index] = null;
   }
 }
