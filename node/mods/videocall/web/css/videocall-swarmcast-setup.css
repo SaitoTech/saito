@@ -57,6 +57,107 @@
   gap: 0.6rem;
 }
 
+.swarmcast-monitor {
+  display: flex;
+  flex-direction: column;
+  gap: var(--saito-space-lg);
+  width: 100%;
+  max-height: 28rem;
+  overflow: auto;
+}
+
+.swarmcast-monitor h3 {
+  margin: 0;
+  font-size: 1.2rem;
+}
+
+.swarmcast-monitor section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.swarmcast-capacity-control {
+  grid-template-columns: 7rem 2.4rem minmax(4rem, 6rem) 2.4rem;
+}
+
+.swarmcast-capacity-input {
+  width: 100%;
+  padding: 0.35rem 0.4rem;
+  border: 1px solid var(--saito-border);
+  border-radius: var(--saito-radius);
+  background: var(--saito-background);
+  color: var(--saito-foreground);
+  text-align: center;
+}
+
+.swarmcast-capacity-pending {
+  margin: 0;
+  color: var(--saito-primary);
+}
+
+.swarmcast-health {
+  margin: 0;
+  font-weight: 600;
+}
+
+.swarmcast-health[data-health='degraded'] {
+  color: var(--saito-primary);
+}
+
+.swarmcast-health[data-health='disconnected'] {
+  color: var(--saito-destructive, var(--saito-primary));
+}
+
+.swarmcast-health-reason,
+.swarmcast-tree-note {
+  margin: 0;
+  color: var(--saito-muted-foreground);
+}
+
+.swarmcast-children,
+.swarmcast-tree {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.swarmcast-child,
+.swarmcast-tree li {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 0.55rem 0.7rem;
+  border: 1px solid var(--saito-border);
+  border-radius: var(--saito-radius);
+  background: var(--saito-secondary);
+}
+
+.swarmcast-child[data-status='reconnecting'] {
+  border-color: var(--saito-primary);
+}
+
+.swarmcast-child header,
+.swarmcast-tree li > span {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.swarmcast-child p,
+.swarmcast-tree ul {
+  margin: 0;
+}
+
+.swarmcast-child button {
+  margin-left: auto;
+  padding: 0.2rem 0.5rem;
+  border: 1px solid var(--saito-border);
+  border-radius: var(--saito-radius);
+  background: var(--saito-background);
+  color: var(--saito-foreground);
+}
+
 .swarmcast-setup-copy,
 .swarmcast-setup-edit {
   padding: 0.45rem 0.8rem;

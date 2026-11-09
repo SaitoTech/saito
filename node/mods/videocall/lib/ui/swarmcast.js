@@ -46,6 +46,10 @@ class SwarmcastViewer {
     this.split = 0.7;
     this.focusId = null;
     this.muted = false;
+    this.hiddenOutputs = new Set();
+    this.quietAudio = new Set();
+    this.sessionOpen = false;
+    this.connected_at = 0;
     this.phase = 'waiting-relay';
     this.joinAttempt = 0;
     this.joinTimer = null;
@@ -122,9 +126,13 @@ class SwarmcastViewer {
 
     this.onConnected = (peerId) => {
       if (this.closed || peerId !== this.contact) return;
+      this.connected_at = Date.now();
       this.sendSubscribe();
       if (!this.entered) this.considerReady();
+      this.paintSession();
     };
+    this.onSwarm = () => this.paintSession();
+    this.app?.connection?.on?.('swarmcast-state', this.onSwarm);
 
     this.onChannelClose = (peerId) => {
       if (this.closed || peerId !== this.contact || this.state === 'ended') return;
@@ -373,7 +381,7 @@ class SwarmcastViewer {
     const element = document.createElement('audio');
     element.dataset.output = output.id;
     element.autoplay = false;
-    element.muted = !!this.muted;
+    element.muted = !!this.muted || !!this.quietAudio?.has(output.id);
     document.querySelector('.swarmcast-audio')?.appendChild(element);
     this.audio.set(output.id, { element, stream, output });
     this.media.set(output.id, stream);
@@ -392,7 +400,7 @@ class SwarmcastViewer {
     const item = this.audio.get(id);
     if (!item || item.output?.muted || !this.entered || item.playing || item.starting) return;
     const element = item.element;
-    element.muted = !!this.muted;
+    element.muted = !!this.muted || !!this.quietAudio?.has(id);
     element.srcObject = item.stream;
     item.starting = true;
     let pending = null;
@@ -499,14 +507,17 @@ class SwarmcastViewer {
     }
     console.info('SWARMCAST MEDIA TRACE', 'paint', 'attached', attached);
     if (this.state === 'ended' || this.state === 'unavailable' || this.state === 'interrupted') {
+      this.paintSession();
       this.refreshEntry();
       return;
     }
     if (this.entered) {
       if (playing) this.mark('playing');
       else if (this.contact) this.mark('waiting');
+      this.paintSession();
       return;
     }
+    this.paintSession();
     this.considerReady();
   }
 
@@ -896,7 +907,7 @@ class SwarmcastViewer {
     return (this.publication?.outputs || [])
       .filter((output) => output.role !== 'audio')
       .map((output) => output.id)
-      .filter((id) => this.elements.has(id));
+      .filter((id) => this.elements.has(id) && !this.hiddenOutputs?.has(id));
   }
 
   syncOrder(ids) {
@@ -1015,10 +1026,98 @@ class SwarmcastViewer {
 
   setMuted(muted) {
     this.muted = !!muted;
-    for (const item of this.audio.values()) {
-      if (item?.element) item.element.muted = this.muted;
+    for (const [id, item] of this.audio) {
+      if (item?.element) item.element.muted = this.muted || !!this.quietAudio?.has(id);
     }
     this.paintToolbar();
+    this.paintSession();
+  }
+
+  setLocalVideo(id, shown) {
+    if (!id) return;
+    if (shown) this.hiddenOutputs.delete(id);
+    else this.hiddenOutputs.add(id);
+    const box = this.elements.get(id);
+    if (box) box.hidden = !shown;
+    this.arrange();
+    this.paintSession();
+  }
+
+  setLocalAudio(id, heard) {
+    if (!id) return;
+    if (heard) this.quietAudio.delete(id);
+    else this.quietAudio.add(id);
+    const item = this.audio.get(id);
+    if (item?.element) item.element.muted = !heard || this.muted;
+    this.paintSession();
+  }
+
+  consumption(now = Date.now()) {
+    const publication = this.mod?.swarmcast;
+    const tree = publication && typeof publication.census === 'function' ? publication.census(now) : null;
+    const parent_key = this.contact || '';
+    const pc = parent_key ? this.mod?.peerManager?.peers?.get?.(parent_key) : null;
+    const recovering = !!(publication?.recovering);
+    let status = 'disconnected';
+    if (this.state === 'ended') status = 'ended';
+    else if (this.state === 'interrupted' || this.state === 'unavailable') status = 'disconnected';
+    else if (recovering || tree?.parent?.status === 'offline') status = 'reconnecting';
+    else if (pc) status = 'online';
+    else if (parent_key) status = 'connecting';
+    let depth = null;
+    if (tree && (tree.parent?.public_key === parent_key || (tree.parent?.role === 'source' && parent_key === this.route?.broadcaster))) {
+      depth = tree.depth;
+    } else if (parent_key && parent_key === this.route?.broadcaster) depth = 1;
+    const outputs = (this.publication?.outputs || []).map((output) => {
+      const stream = this.media.get(output.id);
+      const tracks = (stream?.getTracks?.() || []).filter((item) => item.readyState !== 'ended');
+      const audio = this.audio.get(output.id);
+      const video = this.elements.get(output.id)?.querySelector?.('video');
+      const sample = this.inboundHistory?.get?.(output.id)?.at?.(-1) || null;
+      const active = tracks.some((item) => item.enabled !== false && item.muted !== true);
+      return {
+        id: output.id,
+        role: output.role || 'video',
+        label: output.label || output.participant || output.id,
+        participant: output.participant || '',
+        mids: (this.midMap.get(output.id) || []).map((item) => item.mid).filter(Boolean),
+        active,
+        kinds: [...new Set(tracks.map((item) => item.kind))],
+        rendered: output.role === 'audio'
+          ? !!audio?.playing && !this.muted && !this.quietAudio.has(output.id)
+          : !!(video && Number(video.readyState) >= 2 && !video.paused && !this.hiddenOutputs.has(output.id)),
+        local_hidden: this.hiddenOutputs.has(output.id),
+        local_muted: output.role === 'audio' && (this.muted || this.quietAudio.has(output.id)),
+        packets_lost: sample && Number.isFinite(Number(sample.packetsLost)) ? Number(sample.packetsLost) : null,
+        frames_decoded: sample && Number.isFinite(Number(sample.framesDecoded)) ? Number(sample.framesDecoded) : null
+      };
+    });
+    let health = 'healthy';
+    let reason = outputs.some((output) => output.active) ? 'Incoming media is arriving' : 'Waiting for incoming media';
+    if (!parent_key || status === 'disconnected' || status === 'ended') {
+      health = 'disconnected';
+      reason = this.state === 'interrupted' ? 'The parent connection was interrupted' : 'Not connected to a parent';
+    } else if (status === 'reconnecting' || status === 'connecting') {
+      health = 'degraded';
+      reason = status === 'reconnecting' ? 'Reconnecting to a parent' : 'Connecting to the parent';
+    } else if (this.playbackBlocked) {
+      health = 'degraded';
+      reason = 'Playback was blocked by the browser';
+    } else if (outputs.length && !outputs.some((output) => output.active)) {
+      health = 'degraded';
+      reason = 'No incoming track is active';
+    }
+    return {
+      parent: { public_key: parent_key, status },
+      depth,
+      recovering,
+      connected_at: status === 'online' ? this.connected_at || 0 : 0,
+      tree_path: publication?.tree_path || '',
+      health,
+      reason,
+      rtt: null,
+      outputs
+    };
   }
 
   toggleFullscreen() {
@@ -1052,7 +1151,81 @@ class SwarmcastViewer {
       this.toggleFullscreen();
     });
     root.querySelector('.swarmcast-leave')?.addEventListener('click', () => this.leave());
+    root.querySelector('.swarmcast-session')?.addEventListener('click', () => this.toggleSession());
+    const panel = document.querySelector('.swarmcast-session-panel');
+    panel?.addEventListener('click', (event) => {
+      const copy = event.target?.closest?.('[data-copy]');
+      if (copy) {
+        const key = copy.getAttribute('data-copy') || '';
+        Promise.resolve(globalThis.navigator?.clipboard?.writeText?.(key)).catch((err) => console.error(err));
+        return;
+      }
+      const show = event.target?.closest?.('[data-show]');
+      if (show) this.setLocalVideo(show.getAttribute('data-show'), !!show.checked);
+      const hear = event.target?.closest?.('[data-hear]');
+      if (hear) this.setLocalAudio(hear.getAttribute('data-hear'), !!hear.checked);
+    });
+    panel?.addEventListener('change', (event) => {
+      const show = event.target?.closest?.('[data-show]');
+      if (show) this.setLocalVideo(show.getAttribute('data-show'), !!show.checked);
+      const hear = event.target?.closest?.('[data-hear]');
+      if (hear) this.setLocalAudio(hear.getAttribute('data-hear'), !!hear.checked);
+    });
     this.paintToolbar();
+  }
+
+  toggleSession() {
+    this.sessionOpen = !this.sessionOpen;
+    const panel = typeof document !== 'undefined' ? document.querySelector('.swarmcast-session-panel') : null;
+    if (panel) panel.hidden = !this.sessionOpen;
+    const button = typeof document !== 'undefined' ? document.querySelector('.swarmcast-session') : null;
+    button?.setAttribute?.('aria-pressed', this.sessionOpen ? 'true' : 'false');
+    button?.setAttribute?.('aria-expanded', this.sessionOpen ? 'true' : 'false');
+    if (this.sessionOpen) this.paintSession();
+  }
+
+  paintSession() {
+    const body = typeof document !== 'undefined' ? document.querySelector?.('.swarmcast-session-body') : null;
+    if (!body) return;
+    const picture = this.consumption();
+    const text = (value) => String(value ?? '').replace(/[&<>"']/g, (character) => {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[character];
+    });
+    const key = picture.parent.public_key;
+    const short = key.length > 16 ? `${key.slice(0, 6)}…${key.slice(-4)}` : key || 'None';
+    const age = picture.connected_at ? `${Math.max(0, Math.floor((Date.now() - picture.connected_at) / 1000))}s` : 'Unavailable';
+    const depth = picture.depth == null ? 'Unavailable' : String(picture.depth);
+    const rows = picture.outputs.map((output) => {
+      const local = output.role === 'audio'
+        ? `<label><input type="checkbox" data-hear="${text(output.id)}"${output.local_muted ? '' : ' checked'}> Listen</label>`
+        : `<label><input type="checkbox" data-show="${text(output.id)}"${output.local_hidden ? '' : ' checked'}> Show</label>`;
+      const loss = output.packets_lost == null ? 'not measured' : String(output.packets_lost);
+      const frames = output.frames_decoded == null ? 'not measured' : String(output.frames_decoded);
+      return `<article class="swarmcast-session-row" data-status="${output.active ? 'online' : 'waiting'}">
+        <header><strong>${text(output.label)}</strong><span>${text(output.role)}</span></header>
+        <p>${output.active ? 'Active' : 'No active track'} · ${output.rendered ? 'playing' : 'not playing'} · mids ${text(output.mids.join(', ') || 'none')}</p>
+        <p>Packet loss ${text(loss)} · decoded frames ${text(frames)}</p>
+        ${local}
+      </article>`;
+    }).join('');
+    body.innerHTML = `<section>
+      <h3>Connection</h3>
+      <p class="swarmcast-session-health" data-health="${text(picture.health)}">${text(picture.health)}</p>
+      <p>${text(picture.reason)}</p>
+      <dl>
+        <div><dt>Parent</dt><dd>${text(short)}</dd></div>
+        <div><dt>Status</dt><dd>${text(picture.parent.status)}</dd></div>
+        <div><dt>Depth</dt><dd>${text(depth)}</dd></div>
+        <div><dt>Connected</dt><dd>${text(age)}</dd></div>
+        <div><dt>RTT</dt><dd>Not measured</dd></div>
+      </dl>
+      ${key ? `<button type="button" data-copy="${text(key)}">Copy key</button>` : ''}
+    </section>
+    <section>
+      <h3>Incoming media</h3>
+      <p>Show and Listen change only this page. They do not change the broadcast or other listeners. Incoming quality is chosen by the sender.</p>
+      ${rows || '<p>No publication has arrived yet.</p>'}
+    </section>`;
   }
 
   bindShare() {
@@ -1232,6 +1405,7 @@ class SwarmcastViewer {
     this.app.connection.removeListener?.('stun-data-channel-open', this.onChannel);
     this.app.connection.removeListener?.('stun-connection-connected', this.onConnected);
     this.app.connection.removeListener?.('stun-data-channel-close', this.onChannelClose);
+    this.app.connection.removeListener?.('swarmcast-state', this.onSwarm);
     window.removeEventListener('beforeunload', this.onLeave);
     this.stageObserver?.disconnect?.();
     if (this.contact) this.mod.peerManager?.removePeerConnection?.(this.contact);

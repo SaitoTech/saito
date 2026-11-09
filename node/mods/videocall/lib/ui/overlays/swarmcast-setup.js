@@ -1,5 +1,6 @@
 const SaitoOverlay = require('../../../../../lib/saito/ui/saito-overlay/saito-overlay');
 const SwarmcastSetupTemplate = require('./swarmcast-setup.template');
+const { monitorText, monitorChildren, monitorTree } = SwarmcastSetupTemplate;
 const { QUALITY_PRESETS, displayQuality, streamQuality, stepQuality } = require('../../swarmcast');
 
 function participants(mod) {
@@ -72,6 +73,7 @@ class SwarmcastSetup {
       this.confirm(root);
     });
     root.querySelector('.swarmcast-setup-close')?.addEventListener('click', () => {
+      this.stopWatch();
       this.overlay.close();
     });
     root.querySelector('.swarmcast-setup-stop')?.addEventListener('click', () => {
@@ -83,6 +85,28 @@ class SwarmcastSetup {
     root.querySelector('.swarmcast-setup-edit')?.addEventListener('click', () => {
       this.populate(root, this.mod.swarmcastConfig);
       this.showState(root, 'editing');
+    });
+    root.querySelector('.swarmcast-setup-back')?.addEventListener('click', () => {
+      this.showState(root, 'live');
+    });
+    root.querySelector('.swarmcast-monitor')?.addEventListener('click', (event) => {
+      const copy = event.target?.closest?.('[data-copy]');
+      if (copy) {
+        const key = copy.getAttribute('data-copy') || '';
+        Promise.resolve(navigator.clipboard?.writeText?.(key)).catch((err) => console.error(err));
+        return;
+      }
+      const step = event.target?.closest?.('[data-capacity]');
+      if (!step) return;
+      const publication = this.mod.swarmcast;
+      if (!publication) return;
+      const input = root.querySelector('.swarmcast-capacity-input');
+      const current = Number(input?.value);
+      const base = Number.isFinite(current) ? current : publication.max_slots;
+      this.applyCapacity(root, base + Number(step.getAttribute('data-capacity')));
+    });
+    root.querySelector('.swarmcast-capacity-input')?.addEventListener('change', (event) => {
+      this.applyCapacity(root, event.target.value);
     });
     if (this.mod.swarmcast) this.populate(root, this.mod.swarmcastConfig);
     sync();
@@ -99,8 +123,50 @@ class SwarmcastSetup {
       if (state === 'settings') start.textContent = 'Start Swarmcasting';
       if (state === 'editing') start.textContent = 'Update broadcast';
     }
-    if (state === 'live') this.paintLive(root);
+    const back = root.querySelector('.swarmcast-setup-back');
+    if (back) back.hidden = state !== 'editing';
+    if (state === 'live') {
+      this.paintLive(root);
+      if (root.querySelector?.('[data-monitor="max-slots"]')) this.watch(root);
+    } else this.stopWatch();
     if (state === 'starting' || state === 'live') this.showError(root, '');
+  }
+
+  watch(root) {
+    if (this.watching) return;
+    this.watching = true;
+    this.onState = () => {
+      if (root.dataset?.state === 'live') this.paintLive(root);
+    };
+    this.mod.app?.connection?.on?.('swarmcast-state', this.onState);
+    this.clock = setInterval(this.onState, 1000);
+    this.clock.unref?.();
+  }
+
+  stopWatch() {
+    if (this.onState) this.mod.app?.connection?.removeListener?.('swarmcast-state', this.onState);
+    clearInterval(this.clock);
+    this.onState = null;
+    this.clock = null;
+    this.watching = false;
+  }
+
+  applyCapacity(root, value) {
+    const publication = this.mod.swarmcast;
+    const input = root.querySelector('.swarmcast-capacity-input');
+    const next = Math.floor(Number(value));
+    if (!publication || !Number.isFinite(next) || next < 0) {
+      if (input && publication) input.value = String(publication.max_slots);
+      return;
+    }
+    const result = publication.setMaxSlots(next);
+    if (input && document.activeElement !== input) input.value = String(publication.max_slots);
+    const pending = root.querySelector('[data-monitor="pending"]');
+    if (pending) {
+      pending.hidden = !result?.pending;
+      pending.textContent = result?.pending ? result.reason : '';
+    }
+    this.paintLive(root);
   }
 
   showError(root, message) {
@@ -113,9 +179,45 @@ class SwarmcastSetup {
   paintLive(root) {
     const link = this.mod.swarmcastLink || '';
     const anchor = root.querySelector('.swarmcast-setup-live-link');
-    if (!anchor) return;
-    anchor.href = link;
-    anchor.textContent = link;
+    if (anchor) {
+      anchor.href = link;
+      anchor.textContent = link;
+    }
+    const publication = this.mod.swarmcast;
+    const slot = root.querySelector?.('[data-monitor="max-slots"]');
+    if (!publication || !slot) return;
+    const view = monitorText(publication.census());
+    const write = (name, value) => {
+      const node = root.querySelector(`[data-monitor="${name}"]`);
+      if (node) node.textContent = value;
+    };
+    write('max-slots', view.max_slots);
+    write('occupied', view.occupied);
+    write('available', view.available);
+    write('grace', view.grace);
+    write('direct', view.direct);
+    write('listeners', view.listeners);
+    write('reason', view.reason);
+    write('parent', view.parent);
+    write('depth', view.depth);
+    write('known', view.known);
+    write('tree-note', view.tree_note);
+    const health = root.querySelector('[data-monitor="health"]');
+    if (health) {
+      health.textContent = view.health;
+      health.dataset.health = view.health_state;
+    }
+    const pending = root.querySelector('[data-monitor="pending"]');
+    if (pending) {
+      pending.hidden = !view.pending;
+      pending.textContent = view.pending;
+    }
+    const input = root.querySelector('.swarmcast-capacity-input');
+    if (input && globalThis.document?.activeElement !== input) input.value = view.max_slots;
+    const children = root.querySelector('[data-monitor="children"]');
+    if (children) children.innerHTML = monitorChildren(view.children);
+    const tree = root.querySelector('[data-monitor="tree"]');
+    if (tree) tree.innerHTML = monitorTree(view.children);
   }
 
   populate(root, state) {

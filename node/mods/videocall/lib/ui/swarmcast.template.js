@@ -48,7 +48,14 @@ module.exports = (status, detail) => `
           </a>
         </div>
       </section>
+      <section class="swarmcast-session-panel" hidden>
+        <div class="swarmcast-session-body"></div>
+      </section>
       <div class="swarmcast-toolbar" role="toolbar" aria-label="Swarmcast playback">
+        <button type="button" class="swarmcast-session" aria-pressed="false" aria-expanded="false">
+          <i class="fa-solid fa-wave-square" aria-hidden="true"></i>
+          <span>Session</span>
+        </button>
         <button type="button" class="swarmcast-mute" aria-pressed="false">
           <i class="fa-solid fa-volume-high" aria-hidden="true"></i>
           <span>Mute</span>

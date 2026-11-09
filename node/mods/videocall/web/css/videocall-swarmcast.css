@@ -367,6 +367,85 @@
   color: var(--saito-primary);
 }
 
+.swarmcast-session-panel:not([hidden]) {
+  display: flex;
+  flex-direction: column;
+  gap: var(--saito-space-md);
+  max-height: 18rem;
+  margin: 0 var(--saito-space-md);
+  padding: var(--saito-space-md);
+  overflow: auto;
+  border: 1px solid var(--saito-border);
+  border-radius: var(--saito-radius);
+  background: var(--saito-secondary);
+  color: var(--saito-foreground);
+}
+
+.swarmcast-session-panel[hidden] {
+  display: none;
+}
+
+.swarmcast-session-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--saito-space-md);
+}
+
+.swarmcast-session-body h3 {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.swarmcast-session-body p,
+.swarmcast-session-body dl {
+  margin: 0;
+}
+
+.swarmcast-session-body dl div {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--saito-space-md);
+  border-top: 1px solid var(--saito-border);
+  padding-top: 0.35rem;
+}
+
+.swarmcast-session-body dt {
+  color: var(--saito-muted-foreground);
+}
+
+.swarmcast-session-health[data-health='degraded'] {
+  color: var(--saito-primary);
+}
+
+.swarmcast-session-health[data-health='disconnected'] {
+  color: var(--saito-destructive, var(--saito-primary));
+}
+
+.swarmcast-session-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  padding: 0.5rem 0.65rem;
+  border: 1px solid var(--saito-border);
+  border-radius: var(--saito-radius);
+}
+
+.swarmcast-session-row header,
+.swarmcast-session-row label {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.swarmcast-session-body button {
+  align-self: flex-start;
+  padding: 0.3rem 0.6rem;
+  border: 1px solid var(--saito-border);
+  border-radius: var(--saito-radius);
+  background: var(--saito-background);
+  color: var(--saito-foreground);
+}
+
 .swarmcast-toolbar {
   display: flex;
   justify-content: center;

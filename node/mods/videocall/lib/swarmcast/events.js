@@ -7,18 +7,27 @@ function bindSwarmcastEvents(publication) {
     close(peerId) {
       if (!mod.swarmcast || mod.swarmcast !== publication) return;
       if (publication.childFor(peerId)) publication.onChildDisconnected(peerId);
-      else if (peerId === publication.parent || peerId === publication.pending_parent) publication.onParentDisconnected();
+      else publication.onParentDisconnected(peerId);
     },
     connected(peerId) {
       if (!mod.swarmcast || mod.swarmcast !== publication) return;
-      if (publication.childFor(peerId)) publication.onChildReconnected(peerId);
-      else if (peerId === publication.parent || peerId === publication.pending_parent) publication.onParentReconnected(peerId);
+      if (publication.childFor(peerId)) publication.onChildLink(peerId, 'stun');
+      else publication.onParentLink(peerId, 'stun');
+    },
+    channelOpen(peerId) {
+      if (!mod.swarmcast || mod.swarmcast !== publication) return;
+      if (publication.childFor(peerId)) publication.onChildLink(peerId, 'channel');
+      else publication.onParentLink(peerId, 'channel');
     },
     channelClose(peerId) {
       if (!mod.swarmcast || mod.swarmcast !== publication) return;
       if (publication.isCallMember(peerId)) return;
       if (publication.childFor(peerId)) publication.onChildDisconnected(peerId);
-      else if (peerId === publication.parent || peerId === publication.pending_parent) publication.onParentDisconnected();
+      else publication.onParentDisconnected(peerId);
+    },
+    linkFailure(peerId, state) {
+      if (!mod.swarmcast || mod.swarmcast !== publication) return;
+      publication.onLinkFailure(peerId, state);
     },
     track(peerId) {
       if (!mod.swarmcast || mod.swarmcast !== publication) return;
@@ -32,7 +41,9 @@ function bindSwarmcastEvents(publication) {
   publication.event_handlers = handlers;
   connection.on('stun-connection-close', handlers.close);
   connection.on('stun-connection-connected', handlers.connected);
+  connection.on('stun-data-channel-open', handlers.channelOpen);
   connection.on('stun-data-channel-close', handlers.channelClose);
+  connection.on('stun-update-connection-message', handlers.linkFailure);
   connection.on('stun-track-event', handlers.track);
   connection.on('stun-signaling-state', handlers.signaling);
   publication.scheduleUpward();
@@ -41,11 +52,8 @@ function bindSwarmcastEvents(publication) {
 function unbindSwarmcastEvents(publication) {
   const connection = publication?.mod?.app?.connection;
   const handlers = publication?.event_handlers;
-  clearTimeout(publication?.upward_timer);
-  clearTimeout(publication?.recovery_timer);
+  publication?.releaseTimers?.();
   if (publication) {
-    publication.upward_timer = null;
-    publication.recovery_timer = null;
     publication.events_bound = false;
     publication.event_handlers = null;
   }
@@ -53,7 +61,9 @@ function unbindSwarmcastEvents(publication) {
   const forget = (name, listener) => connection.removeListener?.(name, listener);
   forget('stun-connection-close', handlers.close);
   forget('stun-connection-connected', handlers.connected);
+  forget('stun-data-channel-open', handlers.channelOpen);
   forget('stun-data-channel-close', handlers.channelClose);
+  forget('stun-update-connection-message', handlers.linkFailure);
   forget('stun-track-event', handlers.track);
   forget('stun-signaling-state', handlers.signaling);
 }
