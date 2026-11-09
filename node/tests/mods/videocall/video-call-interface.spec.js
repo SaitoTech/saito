@@ -6,9 +6,9 @@ global.window = dom.window;
 global.document = dom.window.document;
 global.HTMLElement = dom.window.HTMLElement;
 
-const VideoCallInterface = require('../../../mods/videocall/lib/ui/video_call_interface');
-const Meeting = require('../../../mods/videocall/lib/ui/meeting');
-const Windows = require('../../../mods/videocall/lib/ui/windows');
+const VideoCallFull = require('../../../mods/videocall/lib/ui/videocall-full');
+const VideoCallPopup = require('../../../mods/videocall/lib/ui/videocall-popup');
+const VideoBox = require('../../../mods/videocall/lib/ui/videobox');
 
 function app() {
   return {
@@ -28,14 +28,14 @@ function mod() {
   return { publicKey: 'local-key', layout: 'focus', streams: { audioEnabled: true, videoEnabled: true } };
 }
 
-describe('VideoCallInterface', () => {
+describe('Video Call interfaces', () => {
   afterEach(() => {
     document.body.innerHTML = '';
   });
 
-  test('meeting mode constructs the meeting presentation', () => {
-    const ui = new VideoCallInterface(app(), mod(), 'meeting');
-    expect(ui.presentation).toBeInstanceOf(Meeting);
+  test('full-page mode constructs VideoCallFull', () => {
+    const ui = new VideoCallFull(app(), mod(), true);
+    expect(ui).toBeInstanceOf(VideoCallFull);
     expect(typeof ui.switchLayout).toBe('function');
     expect(typeof ui.updateRoomLink).toBe('function');
     expect(typeof ui.showSettings).toBe('function');
@@ -43,9 +43,9 @@ describe('VideoCallInterface', () => {
     ui.destroy();
   });
 
-  test('windows mode constructs the floating windows and omits meeting operations', () => {
-    const ui = new VideoCallInterface(app(), mod(), 'windows', document.body);
-    expect(ui.presentation).toBeInstanceOf(Windows);
+  test('popup mode constructs VideoCallPopup and omits full-page operations', () => {
+    const ui = new VideoCallPopup(app(), mod(), document.body);
+    expect(ui).toBeInstanceOf(VideoCallPopup);
     expect(ui.switchLayout).toBeUndefined();
     expect(ui.updateRoomLink).toBeUndefined();
     expect(ui.showSettings).toBeUndefined();
@@ -54,13 +54,14 @@ describe('VideoCallInterface', () => {
   });
 
   test('shared methods delegate to the active presentation', () => {
-    const ui = new VideoCallInterface(app(), mod(), 'windows', document.body);
+    const ui = new VideoCallPopup(app(), mod(), document.body);
     const stream = {
       getVideoTracks: () => [{}],
       getAudioTracks: () => [{ enabled: true, muted: false }]
     };
 
     ui.receiveRemoteStream('peer-a', stream);
+    expect(ui.panels.get('peer-a')).toBeInstanceOf(VideoBox);
     expect(document.getElementById('stream_peer-a')).not.toBeNull();
 
     ui.participantLeft('peer-a');
@@ -71,28 +72,18 @@ describe('VideoCallInterface', () => {
     ui.destroy();
   });
 
-  test('meeting-only operations are forwarded only to the meeting', () => {
-    const ui = new VideoCallInterface(app(), mod(), 'meeting');
-    const calls = [];
-    ui.presentation.switchLayout = (...args) => calls.push(args);
-    ui.presentation.updateConnectionStrength = (...args) => calls.push(args);
-
-    ui.switchLayout('gallery', true);
-    ui.updateConnectionStrength('peer-a', 4.2);
+  test('full-page interface owns layout and connection updates', () => {
+    const ui = new VideoCallFull(app(), mod(), true);
     ui.presentControlId = 'present-button';
-
-    expect(calls).toEqual([
-      ['gallery', true],
-      ['peer-a', 4.2]
-    ]);
-    expect(ui.presentation.presentControlId).toBe('present-button');
+    expect(typeof ui.switchLayout).toBe('function');
+    expect(typeof ui.updateConnectionStrength).toBe('function');
     expect(ui.presentControlId).toBe('present-button');
     ui.destroy();
   });
 
   test('destroy delegates and removes the meeting listeners', () => {
     const context = app();
-    const ui = new VideoCallInterface(context, mod(), 'meeting');
+    const ui = new VideoCallFull(context, mod(), true);
     expect(context.connection.listenerCount('videocall-call-started')).toBe(1);
 
     ui.destroy();
@@ -102,7 +93,7 @@ describe('VideoCallInterface', () => {
   });
 
   test('destroy through the facade removes floating windows', () => {
-    const ui = new VideoCallInterface(app(), mod(), 'windows', document.body);
+    const ui = new VideoCallPopup(app(), mod(), document.body);
     ui.receiveRemoteStream('peer-a', {
       getVideoTracks: () => [{}],
       getAudioTracks: () => [{ enabled: true, muted: false }]
@@ -121,7 +112,7 @@ describe('VideoCallInterface', () => {
 
   test('floating windows follow registry add and remove', () => {
     const context = app();
-    const ui = new VideoCallInterface(context, mod(), 'windows', document.body);
+    const ui = new VideoCallPopup(context, mod(), document.body);
     const video = {
       getTracks: () => [{ kind: 'video' }],
       getVideoTracks: () => [{ kind: 'video' }],

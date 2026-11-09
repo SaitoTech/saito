@@ -1,5 +1,5 @@
 const { EventEmitter } = require('events');
-const StreamManager = require('../../../mods/videocall/lib/stream_manager');
+const Streams = require('../../../mods/videocall/lib/streams');
 
 const EVENTS = [
   'stun-connection-connected',
@@ -60,7 +60,7 @@ function session() {
 }
 
 function manager(context, settings = { video: false, audio: true }) {
-  const created = new StreamManager(context.app, context.mod, settings);
+  const created = new Streams(context.app, context.mod, settings);
   context.mod.streams = created;
   return created;
 }
@@ -94,7 +94,7 @@ async function settled() {
   await new Promise((resolve) => setImmediate(resolve));
 }
 
-describe('StreamManager lifecycle', () => {
+describe('Streams lifecycle', () => {
   afterEach(() => {
     jest.useRealTimers();
   });

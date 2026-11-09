@@ -1,16 +1,18 @@
 const saito = require('../../lib/saito/saito');
 const ModTemplate = require('../../lib/templates/modtemplate');
-const CallLaunch = require('./lib/ui/main');
-const VideoCallInterface = require('./lib/ui/video_call_interface');
+const CallLaunch = require('./lib/ui/splash');
+const VideoCallFull = require('./lib/ui/videocall-full');
+const VideoCallPopup = require('./lib/ui/videocall-popup');
 const DialingInterface = require('./lib/ui/dialer');
 const SaitoOverlay = require('../../lib/saito/ui/saito-overlay/saito-overlay');
-const StreamManager = require('./lib/stream_manager');
+const Streams = require('./lib/streams');
+const Peers = require('./lib/peers');
 const AppSettings = require('./lib/ui/settings');
 const CallDiagnostics = require('./lib/diagnostics');
 const HomePage = require('./index');
 const SaitoHeader = require('./../../lib/saito/ui/saito-header/saito-header');
 const SwarmcastViewer = require('./lib/ui/swarmcast');
-const { SwarmcastPublication, syncSenders, trackMap } = require('./lib/swarmcast-publication');
+const { Swarmcasts } = require('./lib/swarmcast');
 
 class Videocall extends ModTemplate {
   constructor(app) {
@@ -39,6 +41,8 @@ class Videocall extends ModTemplate {
 
     this.peerManager = null;
     this.streams = null;
+    this._peers = null;
+    this._swarmcasts = null;
     this.diagnostics = new CallDiagnostics(app, this);
     this.dialer = new DialingInterface(app, this);
 
@@ -55,10 +59,7 @@ class Videocall extends ModTemplate {
     });
 
     app.connection.on('stun-connection-close', (peerId) => {
-      if (this.broadcast?.viewers?.has(peerId)) {
-        this.broadcast.viewers.delete(peerId);
-        return;
-      }
+      if (this.swarmcast?.hasPeer?.(peerId)) return;
       if (this.swarmcastRoute && this.swarmcastView?.contact === peerId) {
         this.swarmcastView.interrupt();
         return;
@@ -77,6 +78,16 @@ class Videocall extends ModTemplate {
   // A sender cap attempted before negotiation can be rejected. Reapply from
   // the current call membership once the peer is connected. One attempt per
   // event; a permanent rejection is not scheduled again until policy changes.
+  get peers() {
+    if (!this._peers) this._peers = new Peers(this);
+    return this._peers;
+  }
+
+  get swarmcasts() {
+    if (!this._swarmcasts) this._swarmcasts = new Swarmcasts(this);
+    return this._swarmcasts;
+  }
+
   onPeerConnected() {
     this.applyCameraProfile();
   }
@@ -124,7 +135,7 @@ class Videocall extends ModTemplate {
       }
 
       if (!this.streams) {
-        this.streams = new StreamManager(this.app, this);
+        this.streams = new Streams(this.app, this);
       }
     }
   }
@@ -198,7 +209,7 @@ class Videocall extends ModTemplate {
 
     if (!this.streams) {
       console.debug('TALK: Instantiate StreamManager');
-      this.streams = new StreamManager(this.app, this, settings);
+      this.streams = new Streams(this.app, this, settings);
     } else {
       this.streams.parseSettings(settings);
     }
@@ -213,12 +224,9 @@ class Videocall extends ModTemplate {
     if (!this.browser_active) {
       this.attachStyleSheets();
     }
-    this.CallInterface = new VideoCallInterface(
-      this.app,
-      this,
-      this.browser_active ? 'meeting' : 'windows',
-      settings?.container
-    );
+    this.CallInterface = this.browser_active
+      ? new VideoCallFull(this.app, this, true)
+      : new VideoCallPopup(this.app, this, settings?.container);
 
     this.saveCallToKeychain();
   }
@@ -419,12 +427,12 @@ class Videocall extends ModTemplate {
     if (type === 'call-actions') {
       return [
         {
-          text: 'Broadcast',
+          text: 'Swarmcast',
           icon: 'fa-solid fa-tower-broadcast',
           hook: 'swarmcast onair',
           prepend: true,
           callback: function () {
-            call_self.toggleBroadcast();
+            call_self.showSwarmcast();
           },
           event: function (id) {
             call_self.broadcastControlId = id;
@@ -621,7 +629,7 @@ class Videocall extends ModTemplate {
             //Limbo Hook
             this.app.connection.emit('videocall-peer-joined', from);
 
-            this.peerManager.createPeerConnection(from, false);
+            this.peers.connect(from, { role: 'offer', onReady: false });
             this.applyCameraProfile();
 
             return;
@@ -931,9 +939,12 @@ class Videocall extends ModTemplate {
         const hasCallMedia = pc?.getSenders().some((sender) => localTracks.includes(sender.track));
         if (!this.peerManager.hasConnection(peer, true) || !hasCallMedia) {
           console.debug('TALK [callListResponse]: create connection with ', peer);
-          this.peerManager.createPeerConnection(peer, (peerId) => {
-            console.debug('TALK [callListResponse]: ready for STUN connection with ' + peerId);
-            this.sendCallJoinTransaction(peerId);
+          this.peers.connect(peer, {
+            role: 'offer',
+            onReady: (peerId) => {
+              console.debug('TALK [callListResponse]: ready for STUN connection with ' + peerId);
+              this.sendCallJoinTransaction(peerId);
+            }
           });
         } else {
           console.debug('TALK [callListResponse]: DONT create connection with ', peer);
@@ -1084,8 +1095,11 @@ class Videocall extends ModTemplate {
               'TALK [broadcastList]: post hoc peer list member, attempt connection with ',
               peer
             );
-            this.peerManager.createPeerConnection(peer, (peerId) => {
-              this.sendCallJoinTransaction(peerId);
+            this.peers.connect(peer, {
+              role: 'offer',
+              onReady: (peerId) => {
+                this.sendCallJoinTransaction(peerId);
+              }
             });
           }
         }
@@ -1274,392 +1288,87 @@ class Videocall extends ModTemplate {
   }
 
   async sendSwarmcast(publicKey, request, data = {}) {
-    const tx = await this.app.wallet.createUnsignedTransactionWithDefaultFee(publicKey);
-    tx.msg = {
-      module: 'Videocall',
-      request,
-      call_id: data.callId || this.broadcast?.callId || this.swarmcastRoute?.callId || this.room_obj?.call_id,
-      data
-    };
-    await tx.sign();
-    if (this.peerManager && this.peerManager.hasConnectionWithPeer(publicKey)) {
-      this.peerManager.sendTransaction(publicKey, tx);
-    } else {
-      this.app.connection.emit('relay-transaction', tx);
-    }
+    return this.swarmcasts.sendSwarmcast(publicKey, request, data);
   }
 
   async toggleBroadcast() {
-    if (this.broadcast) {
-      this.stopBroadcast();
-      siteMessage('Broadcast stopped', 1500);
-      return;
-    }
-    await this.startBroadcast();
+    return this.swarmcasts.toggleBroadcast();
   }
 
-  async startBroadcast() {
-    if (this.broadcast || this.broadcastStarting) return;
-    this.broadcastStarting = true;
-    try {
-      await this.openBroadcast();
-    } finally {
-      this.broadcastStarting = false;
-    }
+  showSwarmcast() {
+    return this.swarmcasts.showSetup();
+  }
+
+  async startBroadcast(config) {
+    return this.swarmcasts.startBroadcast(config);
+  }
+
+  async reviseBroadcast(config) {
+    return this.swarmcasts.reviseBroadcast(config);
+  }
+
+  copyBroadcastLink() {
+    return this.swarmcasts.copyBroadcastLink();
   }
 
   async openBroadcast() {
-    if (!this.room_obj?.call_id || !this.streams?.active) {
-      siteMessage('Join a call before broadcasting', 2000);
-      return;
-    }
-    const local = this.streams.find({ kind: 'camera', origin: 'local', session: 'call' });
-    if (!local?.mediaStream) {
-      siteMessage('Turn on your camera before broadcasting', 2000);
-      return;
-    }
-    const bytes = new Uint8Array(9);
-    crypto.getRandomValues(bytes);
-    const id = Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join('');
-    this.broadcast = new SwarmcastPublication({
-      id,
-      callId: this.room_obj.call_id,
-      broadcaster: this.publicKey
-    });
-    this.setBroadcasting(true);
-    this.listenForBroadcastChanges();
-    this.publishCallCameras();
-    const url =
-      `${window.location.origin}/videocall/swarmcast/${id}` +
-      `?broadcaster=${encodeURIComponent(this.publicKey)}` +
-      `&call_id=${encodeURIComponent(this.room_obj.call_id)}`;
-    try {
-      const link = await this.createShortLink(url);
-      await navigator.clipboard.writeText(link);
-      siteMessage('Broadcast link copied to clipboard', 1500);
-    } catch (err) {
-      console.error(err);
-      siteMessage(url, 4000);
-    }
-    if (this.broadcast) this.bindBroadcastSources();
+    return this.swarmcasts.openBroadcast();
   }
 
   publishCallCameras() {
-    const cameras = this.streams?.list({ kind: 'camera', session: 'call' }) || [];
-    for (const entry of cameras) this.noteBroadcastCamera(entry);
+    return this.swarmcasts.publishCallCameras();
   }
 
   listenForBroadcastChanges() {
-    this._onBroadcastSignaling = (peerId, state) => {
-      if (state !== 'stable') return;
-      this.publishTrackMap(peerId);
-    };
-    this._onBroadcastStream = (entry) => this.noteBroadcastCamera(entry);
-    this._onBroadcastStreamRemoved = (entry) => {
-      if (!this.broadcast || entry?.kind !== 'camera' || entry.session !== 'call') return;
-      const participant = entry.origin === 'local' ? this.publicKey : entry.peerId;
-      if (!participant || !this.broadcast.removeParticipant(participant)) return;
-      this.pushBroadcast();
-    };
-    this._onBroadcastChannelClose = (peerId) => {
-      const publication = this.broadcast;
-      if (!publication?.viewers.has(peerId) && !publication?.receivers?.has(peerId)) return;
-      if (this.room_obj?.call_peers?.includes(peerId)) return;
-      publication.viewers.delete(peerId);
-      publication.receivers?.delete(peerId);
-      this.peerManager?.removePeerConnection?.(peerId);
-    };
-    this._onBroadcastSourceTrack = () => this.syncBroadcastSources();
-    this.app.connection.on('stun-signaling-state', this._onBroadcastSignaling);
-    this.app.connection.on('stun-data-channel-close', this._onBroadcastChannelClose);
-    this.app.connection.on('videocall-stream-added', this._onBroadcastStream);
-    this.app.connection.on('videocall-stream-updated', this._onBroadcastStream);
-    this.app.connection.on('videocall-stream-removed', this._onBroadcastStreamRemoved);
+    return this.swarmcasts.listenForBroadcastChanges();
   }
 
   syncBroadcastSources() {
-    if (!this.broadcast) return;
-    for (const input of this.broadcast.inputs) {
-      const entry = this.streams?.get?.(input.registryId);
-      if (!entry?.mediaStream) continue;
-      if (entry.kind === 'camera' && entry.session === 'call') this.noteBroadcastCamera(entry);
-    }
+    return this.swarmcasts.syncBroadcastSources();
   }
 
   bindBroadcastSources() {
-    if (!this._onBroadcastSourceTrack) this._onBroadcastSourceTrack = () => this.syncBroadcastSources();
-    const next = new Set();
-    for (const input of this.broadcast?.inputs || []) {
-      const stream = this.streams?.get?.(input.registryId)?.mediaStream;
-      if (stream?.addEventListener) next.add(stream);
-    }
-    for (const stream of this._broadcastSources || []) {
-      if (!next.has(stream)) stream.removeEventListener('addtrack', this._onBroadcastSourceTrack);
-    }
-    for (const stream of next) {
-      if (!this._broadcastSources?.has(stream)) stream.addEventListener('addtrack', this._onBroadcastSourceTrack);
-    }
-    this._broadcastSources = next;
+    return this.swarmcasts.bindBroadcastSources();
   }
 
   clearBroadcastSources() {
-    for (const stream of this._broadcastSources || []) {
-      stream.removeEventListener?.('addtrack', this._onBroadcastSourceTrack);
-    }
-    this._broadcastSources = null;
+    return this.swarmcasts.clearBroadcastSources();
   }
 
   noteBroadcastCamera(entry) {
-    if (!this.broadcast || entry?.kind !== 'camera' || entry.session !== 'call' || !entry.mediaStream) {
-      return;
-    }
-    const tracks = entry.mediaStream.getTracks?.() || [];
-    const live = tracks.some(
-      (item) => (item.kind === 'audio' || item.kind === 'video') && item.readyState !== 'ended'
-    );
-    if (!live) return;
-    const local = entry.origin === 'local';
-    this.broadcast.addCamera({
-      registryId: entry.id,
-      participant: local ? this.publicKey : entry.peerId,
-      label: local ? 'You' : this.app.keychain.returnUsername(entry.peerId)
-    });
-    this.bindBroadcastSources();
-    this.pushBroadcast();
+    return this.swarmcasts.noteBroadcastCamera(entry);
   }
 
   stopBroadcast() {
-    const publication = this.broadcast;
-    if (!publication) return;
-    this.broadcast = null;
-    this.setBroadcasting(false);
-    this.clearBroadcastSources();
-    const forget = (name, listener) => {
-      if (listener) this.app.connection.removeListener?.(name, listener);
-    };
-    forget('stun-signaling-state', this._onBroadcastSignaling);
-    forget('stun-data-channel-close', this._onBroadcastChannelClose);
-    forget('videocall-stream-added', this._onBroadcastStream);
-    forget('videocall-stream-updated', this._onBroadcastStream);
-    forget('videocall-stream-removed', this._onBroadcastStreamRemoved);
-    this._onBroadcastSignaling = null;
-    const peers = new Set([
-      ...publication.viewers.keys(),
-      ...(publication.receivers || [])
-    ]);
-    for (const peerId of peers) {
-      this.sendSwarmcast(peerId, 'video-call-swarmcast-ended', {
-        publicationId: publication.id,
-        callId: publication.callId
-      })
-        .catch((err) => console.error(err))
-        .finally(() => {
-          if (!this.room_obj?.call_peers?.includes(peerId)) {
-            this.peerManager?.removePeerConnection?.(peerId);
-          }
-        });
-    }
-    publication.viewers.clear();
-    publication.receivers?.clear();
+    return this.swarmcasts.stopBroadcast();
   }
 
   setBroadcasting(active) {
-    const control = typeof document !== 'undefined' && document.getElementById(this.broadcastControlId);
-    if (!control) return;
-    const label = control.querySelector('label');
-    const icon = control.querySelector('i');
-    control.classList.toggle('recording', active);
-    icon?.classList.toggle('recording', active);
-    control.title = active ? 'Stop broadcasting' : 'Broadcast this call';
-    if (label) label.innerText = active ? 'Stop' : 'Broadcast';
+    return this.swarmcasts.setBroadcasting(active);
   }
 
   watchBroadcastNegotiation(peerId, pc) {
-    if (!pc || pc.swarmcastNegotiationWatched || typeof pc.addEventListener !== 'function') return;
-    pc.swarmcastNegotiationWatched = true;
-    pc.addEventListener('negotiationneeded', () => {
-      const kinds =
-        typeof pc.getSenders === 'function'
-          ? pc.getSenders()
-              .map((sender) => sender.track?.kind)
-              .filter(Boolean)
-              .join(',')
-          : '';
-      console.info(
-        'SWARMCAST MEDIA TRACE',
-        'negotiationneeded',
-        peerId,
-        'signaling',
-        pc.signalingState,
-        'tracks',
-        kinds || 'none'
-      );
-    });
+    return this.swarmcasts.watchBroadcastNegotiation(peerId, pc);
   }
 
   pushBroadcast() {
-    if (!this.broadcast) return;
-    for (const [peerId, viewer] of this.broadcast.viewers) {
-      const pc = this.peerManager?.peers?.get(peerId);
-      const outputIds = this.broadcast.outputs.map((output) => output.id).join(',');
-      console.info(
-        'SWARMCAST MEDIA TRACE',
-        'pushBroadcast',
-        peerId,
-        'outputs',
-        outputIds || 'none',
-        'peer',
-        pc ? 'yes' : 'no'
-      );
-      if (!pc) continue;
-      this.watchBroadcastNegotiation(peerId, pc);
-      syncSenders(pc, viewer.senders, this.broadcast.outputs, (output) =>
-        this.broadcast.streamFor(output, this.streams)
-      );
-      this.publishTrackMap(peerId);
-    }
+    return this.swarmcasts.pushBroadcast();
   }
 
   publishTrackMap(peerId) {
-    const viewer = this.broadcast?.viewers.get(peerId);
-    const pc = this.peerManager?.peers?.get(peerId);
-    if (!viewer || !pc) {
-      console.info(
-        'SWARMCAST MEDIA TRACE',
-        'tracks withheld',
-        peerId,
-        !viewer ? 'no viewer' : 'no peer connection'
-      );
-      return;
-    }
-    if (pc.signalingState !== 'stable') {
-      console.info('SWARMCAST MEDIA TRACE', 'tracks withheld', peerId, 'signaling', pc.signalingState);
-      return;
-    }
-    const outputs = trackMap(viewer.senders, pc);
-    if (!outputs) {
-      console.info(
-        'SWARMCAST MEDIA TRACE',
-        'tracks withheld',
-        peerId,
-        'mids not ready',
-        'senders',
-        viewer.senders.length
-      );
-      return;
-    }
-    const data = {
-      publicationId: this.broadcast.id,
-      callId: this.broadcast.callId,
-      publication: this.broadcast.document(),
-      outputs
-    };
-    const encoded = JSON.stringify(data);
-    if (viewer.lastMap === encoded) {
-      console.info('SWARMCAST MEDIA TRACE', 'tracks withheld', peerId, 'unchanged');
-      return;
-    }
-    const mids = outputs
-      .map((output) => `${output.id}:${(output.mids || []).map((item) => item.mid).join('+')}`)
-      .join(',');
-    console.info('SWARMCAST MEDIA TRACE', 'tracks sent', peerId, 'outputs', outputs.length, 'mids', mids);
-    viewer.lastMap = encoded;
-    this.sendSwarmcast(peerId, 'video-call-swarmcast-tracks', data).catch((err) => {
-      console.error(err);
-      if (viewer.lastMap === encoded) viewer.lastMap = '';
-    });
+    return this.swarmcasts.publishTrackMap(peerId);
   }
 
   async handleSwarmcastMessage(tx, txmsg) {
-    const from = tx.from[0].publicKey;
-    const data = txmsg.data || {};
-    if (txmsg.request === 'video-call-swarmcast-join-request') {
-      await this.answerBroadcastJoin(from, data);
-      return;
-    }
-    if (txmsg.request === 'video-call-swarmcast-join-response') {
-      this.swarmcastView?.receiveJoin(data);
-      return;
-    }
-    if (txmsg.request === 'video-call-swarmcast-subscribe') {
-      const requested = Array.isArray(data.outputIds) ? data.outputIds.join(',') : '';
-      console.info(
-        'SWARMCAST MEDIA TRACE',
-        'subscribe received',
-        from,
-        'publication',
-        data.publicationId || '',
-        'outputs',
-        requested
-      );
-      this.acceptBroadcastSubscribe(from, data);
-      return;
-    }
-    if (txmsg.request === 'video-call-swarmcast-tracks') {
-      this.swarmcastView?.receiveTracks(data);
-      return;
-    }
-    if (txmsg.request === 'video-call-swarmcast-ended') {
-      this.swarmcastView?.receiveEnded(data);
-    }
+    return this.swarmcasts.handlePeerTransaction(tx, txmsg);
   }
 
   async answerBroadcastJoin(from, data) {
-    const live = this.broadcast && data.publicationId === this.broadcast.id;
-    const inCall = !!this.room_obj?.call_peers?.includes(from);
-    if (live && !inCall && !this.peerManager?.peers?.get(from)) {
-      const created = this.peerManager.createPeerConnection(from, false, true);
-      if (created !== 0) this.broadcast.receivers.add(from);
-    }
-    const foreignPeer = !!(
-      this.peerManager?.peers?.get(from) && !this.broadcast?.receivers?.has(from)
-    );
-    const occupied = !!(live && (inCall || foreignPeer));
-    await this.sendSwarmcast(from, 'video-call-swarmcast-join-response', {
-      publicationId: data.publicationId,
-      callId: data.callId || this.broadcast?.callId,
-      contact: this.publicKey,
-      state: live && !occupied ? 'ready' : 'unavailable',
-      reason: occupied ? 'existing-call-connection' : '',
-      publication: live && !occupied ? this.broadcast.document() : null
-    });
+    return this.swarmcasts.answerBroadcastJoin(from, data);
   }
 
   acceptBroadcastSubscribe(from, data) {
-    const requested = Array.isArray(data.outputIds) ? data.outputIds.length : 0;
-    if (!this.broadcast || data.publicationId !== this.broadcast.id) {
-      console.info('SWARMCAST MEDIA TRACE', 'acceptBroadcastSubscribe', from, 'requested', requested, 'viewer', 'rejected');
-      return;
-    }
-    if (this.room_obj?.call_peers?.includes(from)) {
-      console.info('SWARMCAST MEDIA TRACE', 'acceptBroadcastSubscribe', from, 'requested', requested, 'viewer', 'call participant');
-      return;
-    }
-    const pc = this.peerManager?.peers?.get(from);
-    if (!pc) {
-      console.info('SWARMCAST MEDIA TRACE', 'acceptBroadcastSubscribe', from, 'requested', requested, 'viewer', 'no peer connection');
-      return;
-    }
-    let viewer = this.broadcast.viewers.get(from);
-    const added = !viewer;
-    if (!viewer) {
-      viewer = { senders: [], lastMap: '' };
-      this.broadcast.viewers.set(from, viewer);
-    }
-    console.info(
-      'SWARMCAST MEDIA TRACE',
-      'acceptBroadcastSubscribe',
-      from,
-      'requested',
-      requested,
-      'viewer',
-      added ? 'added' : 'existing'
-    );
-    this.watchBroadcastNegotiation(from, pc);
-    syncSenders(pc, viewer.senders, this.broadcast.outputs, (output) =>
-      this.broadcast.streamFor(output, this.streams)
-    );
-    this.publishTrackMap(from);
+    return this.swarmcasts.acceptBroadcastSubscribe(from, data);
   }
 
   webServer(app, expressapp, express) {

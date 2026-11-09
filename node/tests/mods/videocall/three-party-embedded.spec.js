@@ -352,7 +352,7 @@ function snapshot(clients) {
       trace: pc.trace
     })),
     windows: item.mod.CallInterface
-      ? [...item.mod.CallInterface.presentation.panels.keys()]
+      ? [...item.mod.CallInterface.panels.keys()]
       : [],
     remoteStreams: item.mod.streams ? [...item.mod.streams.remoteStreams.keys()] : [],
     signals: item.signals,
@@ -466,7 +466,7 @@ describe('three independent browsers in one embedded call', () => {
         expect(pc.localDescription?.type).toBeTruthy();
         expect(pc.remoteDescription?.type).toBeTruthy();
         expect(item.mod.streams.remoteStreams.has(key)).toBe(true);
-        expect(item.mod.CallInterface.presentation.panels.has(key)).toBe(true);
+        expect(item.mod.CallInterface.panels.has(key)).toBe(true);
       }
       expect(item.errors).toEqual([]);
     }

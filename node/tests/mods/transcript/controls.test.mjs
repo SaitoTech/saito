@@ -10,7 +10,7 @@ const require = createRequire(import.meta.url);
 const Transcript = require('../../../mods/transcript/transcript');
 const CallInterfaceVideo = require('../../../mods/videocall/lib/components/call-interface-video');
 const StreamManager = require('../../../mods/videocall/lib/stream_manager');
-const SaitoVideoBox = require('../../../lib/saito/ui/saito-videobox/video-box');
+const VideoBox = require('../../../mods/videocall/lib/ui/videobox');
 
 test('transcription status appears beside the name and survives video box recreation', (t) => {
   const dom = new JSDOM('<div class="videos"></div>');
@@ -33,7 +33,7 @@ test('transcription status appears beside the name and survives video box recrea
   // Receive status before the corresponding video has rendered.
   mod.streams.updateTranscriptionStatus('bob', true);
   const makeBox = () => {
-    const box = new SaitoVideoBox(app, mod, 'bob', 'videos');
+    const box = new VideoBox(app, mod, 'bob', 'videos');
     box.attachEvents = () => {};
     box.render();
     return box;

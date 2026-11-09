@@ -1,0 +1,209 @@
+/* Swarmcast settings. Layout only; the dialog chrome is the Saito overlay form. */
+
+.swarmcast-setup-loading,
+.swarmcast-setup-live,
+.swarmcast-setup-error[hidden],
+.swarmcast-setup-loading[hidden],
+.swarmcast-setup-live[hidden] {
+  display: none;
+}
+
+.swarmcast-setup[data-state='starting'] .swarmcast-setup-loading,
+.swarmcast-setup[data-state='live'] .swarmcast-setup-live {
+  display: flex;
+}
+
+.swarmcast-setup[data-state='starting'] .swarmcast-setup-columns,
+.swarmcast-setup[data-state='starting'] .swarmcast-setup-actions,
+.swarmcast-setup[data-state='live'] .swarmcast-setup-columns,
+.swarmcast-setup[data-state='live'] > .swarmcast-setup-actions {
+  display: none;
+}
+
+.swarmcast-setup-loading,
+.swarmcast-setup-live {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--saito-space-md);
+}
+
+.swarmcast-setup-spinner {
+  width: 1.6rem;
+  height: 1.6rem;
+  border: 3px solid var(--saito-border);
+  border-top-color: var(--saito-primary);
+  border-radius: 50%;
+  animation: swarmcast-setup-spin 0.8s linear infinite;
+}
+
+.swarmcast-setup-error {
+  margin: 0;
+  color: var(--saito-destructive, var(--saito-primary));
+}
+
+.swarmcast-setup-live-label {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+.swarmcast-setup-live-link {
+  color: var(--saito-primary);
+  overflow-wrap: anywhere;
+}
+
+.swarmcast-setup-live-tools {
+  display: flex;
+  gap: 0.6rem;
+}
+
+.swarmcast-setup-copy,
+.swarmcast-setup-edit {
+  padding: 0.45rem 0.8rem;
+  border: 1px solid var(--saito-border);
+  border-radius: var(--saito-radius);
+  background: var(--saito-secondary);
+  color: var(--saito-foreground);
+}
+
+.swarmcast-setup-start:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+@keyframes swarmcast-setup-spin {
+  to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .swarmcast-setup-spinner {
+    animation: none;
+  }
+}
+
+.swarmcast-setup-columns {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(16rem, 0.9fr);
+  gap: var(--saito-space-xl);
+  min-height: 0;
+}
+
+.swarmcast-setup-column,
+.swarmcast-setup-quality {
+  display: flex;
+  flex-direction: column;
+  gap: var(--saito-space-md);
+  min-width: 0;
+}
+
+.swarmcast-setup fieldset {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.swarmcast-setup legend {
+  margin-bottom: 0.2rem;
+  font-size: 1.35rem;
+  font-weight: 600;
+  color: var(--saito-foreground);
+}
+
+.swarmcast-setup-choice,
+.swarmcast-setup-person {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  cursor: pointer;
+}
+
+.swarmcast-setup input[type='radio'],
+.swarmcast-setup input[type='checkbox'] {
+  accent-color: var(--saito-primary);
+  width: 1.1rem;
+  height: 1.1rem;
+  margin: 0;
+}
+
+.swarmcast-setup-empty {
+  margin: 0;
+  color: var(--saito-muted-foreground);
+}
+
+.swarmcast-setup-video-list,
+.swarmcast-setup-audio-list,
+.swarmcast-setup-audio-included {
+  display: none;
+  flex-direction: column;
+  gap: 0.45rem;
+  max-height: 14rem;
+  margin-left: 1.8rem;
+  overflow: auto;
+}
+
+.swarmcast-setup[data-video='participants'] .swarmcast-setup-video-list,
+.swarmcast-setup[data-video='participants'] .swarmcast-setup-audio-list,
+.swarmcast-setup[data-video='interface'] .swarmcast-setup-audio-included {
+  display: flex;
+}
+
+.swarmcast-setup-audio-included {
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 0.4rem 0.8rem;
+}
+
+.swarmcast-setup-adjust {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  margin-top: var(--saito-space-sm);
+}
+
+.swarmcast-setup-adjust-row {
+  display: grid;
+  grid-template-columns: 7rem 2.4rem 1fr 2.4rem;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.swarmcast-setup-step {
+  width: 2.4rem;
+  height: 2.4rem;
+  border: 1px solid var(--saito-border);
+  border-radius: var(--saito-radius);
+  background: var(--saito-secondary);
+  color: var(--saito-foreground);
+}
+
+.swarmcast-setup-meters {
+  display: grid;
+  gap: 0.45rem;
+  margin: var(--saito-space-sm) 0 0;
+}
+
+.swarmcast-setup-meters div {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--saito-space-md);
+  border-top: 1px solid var(--saito-border);
+  padding-top: 0.4rem;
+}
+
+.swarmcast-setup-meters dt {
+  color: var(--saito-muted-foreground);
+}
+
+.swarmcast-setup-meters dd {
+  margin: 0;
+  text-align: right;
+}
+
+@media (max-width: 800px) {
+  .swarmcast-setup-columns {
+    grid-template-columns: 1fr;
+  }
+}
