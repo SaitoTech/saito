@@ -704,3 +704,336 @@ describe('bounded ICE restart', () => {
     expect(sentDescriptions(sent).map((msg) => msg.description.type)).toEqual(['offer']);
   });
 });
+
+describe('negotiation watchdog', () => {
+  const SwarmcastViewer = require('../../../mods/videocall/lib/ui/swarmcast');
+
+  beforeEach(() => jest.useFakeTimers());
+  afterEach(() => {
+    jest.clearAllTimers();
+    jest.useRealTimers();
+  });
+
+  async function advance(ms) {
+    jest.advanceTimersByTime(ms);
+    for (let step = 0; step < 8; step += 1) await Promise.resolve();
+  }
+
+  async function confirmJoin(mod, peerId) {
+    mod.app.BROWSER = 1;
+    await mod.onConfirmation(
+      null,
+      {
+        isFrom: (key) => key === mod.publicKey,
+        isTo: () => false,
+        returnMessage: () => ({ module: 'Stun', request: 'peer-joined' }),
+        to: [{ publicKey: peerId }]
+      },
+      0
+    );
+  }
+
+  function closes(mod) {
+    const closed = [];
+    mod.app.connection.on('stun-connection-close', (peer) => closed.push(peer));
+    return closed;
+  }
+
+  async function armed() {
+    const { mod } = stun();
+    mod.createPeerConnection(POLITE, false);
+    await confirmJoin(mod, POLITE);
+    return { mod, pc: mod.peers.get(POLITE), closed: closes(mod) };
+  }
+
+  function signal(pc, state) {
+    pc.signalingState = state;
+    pc.onsignalingstatechange();
+  }
+
+  function ice(pc, state) {
+    pc.iceConnectionState = state;
+    pc.oniceconnectionstatechange();
+  }
+
+  function installDocument() {
+    global.MediaStream = class {
+      constructor() {
+        this.tracks = [];
+      }
+      getTracks() {
+        return this.tracks;
+      }
+      addTrack(track) {
+        this.tracks.push(track);
+      }
+      removeTrack(track) {
+        this.tracks = this.tracks.filter((item) => item !== track);
+      }
+    };
+    const outputs = { appendChild() {}, children: [] };
+    const status = { dataset: {}, querySelector: () => ({ textContent: '' }) };
+    global.window = { addEventListener() {}, removeEventListener() {} };
+    global.document = {
+      body: { appendChild() {} },
+      createElement() {
+        return {
+          innerHTML: '',
+          firstElementChild: {},
+          children: [],
+          dataset: {},
+          appendChild(child) {
+            this.children.push(child);
+          },
+          querySelector: () => ({ textContent: '' }),
+          remove() {}
+        };
+      },
+      querySelector(selector) {
+        if (selector === '.swarmcast-viewer') return null;
+        if (selector === '.swarmcast-outputs') return outputs;
+        if (String(selector).includes('swarmcast-status')) return status;
+        return null;
+      }
+    };
+  }
+
+  function publication() {
+    return {
+      id: 'pub',
+      callId: 'room-1',
+      broadcaster: POLITE,
+      inputs: [],
+      outputs: [{ id: 'cam-1', label: 'You', inputs: ['cam-1'] }]
+    };
+  }
+
+  test('a negotiation that keeps making progress outlasts the old 10 second timeout', async () => {
+    const { pc, closed } = await armed();
+    signal(pc, 'have-local-offer');
+    await advance(10000);
+    expect(closed).toEqual([]);
+    signal(pc, 'stable');
+    ice(pc, 'checking');
+    await advance(10000);
+    expect(closed).toEqual([]);
+    expect(pc.signalingState).toBe('stable');
+  });
+
+  test('a connection stuck in have-local-offer expires and closes', async () => {
+    const { pc, closed } = await armed();
+    signal(pc, 'have-local-offer');
+    await advance(14999);
+    expect(closed).toEqual([]);
+    await advance(1);
+    expect(closed).toEqual([POLITE]);
+  });
+
+  test('a connection stuck in have-remote-offer expires and closes', async () => {
+    const { pc, closed } = await armed();
+    signal(pc, 'have-remote-offer');
+    await advance(14999);
+    expect(closed).toEqual([]);
+    await advance(1);
+    expect(closed).toEqual([POLITE]);
+  });
+
+  test('repeated notifications of an unchanged state do not reset the deadline', async () => {
+    const { pc, closed } = await armed();
+    ice(pc, 'checking');
+    await advance(20000);
+    ice(pc, 'checking');
+    await advance(9999);
+    expect(closed).toEqual([]);
+    await advance(1);
+    expect(closed).toEqual([POLITE]);
+  });
+
+  test('a genuine state transition resets the deadline', async () => {
+    const { pc, closed } = await armed();
+    signal(pc, 'have-local-offer');
+    await advance(14000);
+    signal(pc, 'stable');
+    await advance(14000);
+    expect(closed).toEqual([]);
+    await advance(1000);
+    expect(closed).toEqual([POLITE]);
+  });
+
+  test('ICE checking gets 30 seconds and ICE connected gets 10 seconds for the data channel', async () => {
+    const checking = await armed();
+    ice(checking.pc, 'checking');
+    await advance(29999);
+    expect(checking.closed).toEqual([]);
+    await advance(1);
+    expect(checking.closed).toEqual([POLITE]);
+
+    const connected = await armed();
+    ice(connected.pc, 'connected');
+    await advance(9999);
+    expect(connected.closed).toEqual([]);
+    await advance(1);
+    expect(connected.closed).toEqual([POLITE]);
+  });
+
+  test('an open data channel cancels the watchdog', async () => {
+    const { pc, closed } = await armed();
+    ice(pc, 'connected');
+    pc.connectionState = 'connected';
+    pc.dc.readyState = 'open';
+    pc.dc.onopen();
+    await advance(30000);
+    expect(closed).toEqual([]);
+    expect(pc.watchdogArmed).toBe(false);
+  });
+
+  test('an old watchdog cannot close a replaced peer connection', async () => {
+    const { mod, pc, closed } = await armed();
+    signal(pc, 'have-local-offer');
+    mod.removePeerConnection(POLITE);
+    mod.createPeerConnection(POLITE, false);
+    const replacement = mod.peers.get(POLITE);
+    await advance(20000);
+    expect(closed).toEqual([]);
+    expect(mod.peers.get(POLITE)).toBe(replacement);
+    expect(replacement.signalingState).not.toBe('closed');
+  });
+
+  test('failed and disconnected recovery stays independent of the watchdog', async () => {
+    const { mod, pc, closed } = await armed();
+    const messages = [];
+    global.siteMessage = (message) => messages.push(message);
+    pc.connectionState = 'disconnected';
+    pc.onconnectionstatechange();
+    await advance(5000);
+    expect(closed).toEqual([]);
+    expect(messages).toEqual([`Stun connection failed with ${POLITE}`]);
+    expect(pc.watchdogArmed).toBe(false);
+  });
+
+  test('a slow handshake opens one subscription and a stalled one interrupts the viewer', async () => {
+    installDocument();
+    const { mod } = stun();
+    mod.app.BROWSER = 1;
+    const sent = [];
+    const wrapper = {
+      isRelayConnected: false,
+      peerManager: mod,
+      async sendSwarmcast(_key, request, data) {
+        sent.push({ request, data });
+      }
+    };
+    const viewer = new SwarmcastViewer(mod.app, wrapper, {
+      publicationId: 'pub',
+      broadcaster: POLITE,
+      callId: 'room-1'
+    });
+    mod.app.connection.on('stun-connection-close', (peerId) => {
+      if (viewer.contact === peerId) viewer.interrupt();
+    });
+    viewer.render();
+    expect(sent).toEqual([]);
+
+    wrapper.isRelayConnected = true;
+    viewer.noteRelay();
+    await Promise.resolve();
+    expect(sent.map((item) => item.request)).toEqual(['video-call-swarmcast-join-request']);
+
+    viewer.receiveJoin({
+      publicationId: 'pub',
+      state: 'ready',
+      contact: POLITE,
+      publication: publication()
+    });
+    const pc = mod.peers.get(POLITE);
+    expect(pc).toBeTruthy();
+    await confirmJoin(mod, POLITE);
+    signal(pc, 'have-local-offer');
+    await advance(12000);
+    signal(pc, 'stable');
+    ice(pc, 'checking');
+    await advance(12000);
+    expect(viewer.closed).toBe(false);
+    ice(pc, 'connected');
+    pc.connectionState = 'connected';
+    pc.dc.readyState = 'open';
+    pc.dc.onopen();
+    expect(sent.filter((item) => item.request === 'video-call-swarmcast-subscribe')).toHaveLength(1);
+
+    const failed = stun();
+    failed.mod.app.BROWSER = 1;
+    const late = [];
+    const failedWrapper = {
+      isRelayConnected: true,
+      peerManager: failed.mod,
+      async sendSwarmcast(_key, request) {
+        late.push(request);
+      }
+    };
+    const stalled = new SwarmcastViewer(failed.mod.app, failedWrapper, {
+      publicationId: 'pub',
+      broadcaster: POLITE,
+      callId: 'room-1'
+    });
+    failed.mod.app.connection.on('stun-connection-close', (peerId) => {
+      if (stalled.contact === peerId) stalled.interrupt();
+    });
+    stalled.render();
+    await Promise.resolve();
+    stalled.receiveJoin({
+      publicationId: 'pub',
+      state: 'ready',
+      contact: POLITE,
+      publication: publication()
+    });
+    await confirmJoin(failed.mod, POLITE);
+    await advance(15000);
+    expect(stalled.state).toBe('interrupted');
+    expect(failed.mod.peers.has(POLITE)).toBe(false);
+    const before = failed.mod.peers.size;
+    stalled.receiveJoin({
+      publicationId: 'pub',
+      state: 'ready',
+      contact: POLITE,
+      publication: publication()
+    });
+    expect(failed.mod.peers.size).toBe(before);
+    expect(late.filter((request) => request === 'video-call-swarmcast-join-request')).toHaveLength(1);
+  });
+});
+
+describe('swarmcast answer-only peer connection', () => {
+  test('a queued viewer offer is answered and the broadcaster does not offer first', async () => {
+    const { mod, sent } = stun();
+    await mod.handleSignalingMessage(POLITE, 'peer-description', offer('viewer'));
+    expect(mod.peers.has(POLITE)).toBe(false);
+
+    mod.createPeerConnection(POLITE, false, true);
+    const pc = mod.peers.get(POLITE);
+    pc.onnegotiationneeded();
+    expect(sentDescriptions(sent)).toEqual([]);
+
+    for (let step = 0; step < 8; step += 1) await Promise.resolve();
+    expect(pc.remoteDescription.type).toBe('offer');
+    expect(sentDescriptions(sent).map((message) => message.description.type)).toEqual(['answer']);
+
+    mod.createPeerConnection(POLITE, false, true);
+    expect(mod.peers.get(POLITE)).toBe(pc);
+  });
+});
+
+describe('peer-manager api', () => {
+  test('reports an open data channel and forwards an answer-only connection', () => {
+    const { mod } = stun();
+    const peerManager = mod.respondTo('peer-manager');
+    peerManager.createPeerConnection(POLITE, false, true);
+    const pc = mod.peers.get(POLITE);
+    expect(pc.answerOnly).toBe(true);
+    expect(peerManager.hasConnectionWithPeer(POLITE)).toBe(false);
+
+    pc.connectionState = 'connected';
+    pc.dc.readyState = 'open';
+    expect(peerManager.hasConnectionWithPeer(POLITE)).toBe(true);
+    expect(peerManager.sendJoinTransaction).toBeInstanceOf(Function);
+  });
+});

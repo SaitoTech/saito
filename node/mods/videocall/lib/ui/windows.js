@@ -1,5 +1,6 @@
 const SaitoVideoBox = require('../../../../lib/saito/ui/saito-videobox/video-box');
 const WindowsControlsTemplate = require('./windows.template');
+const { callMount } = require('../stream_manager');
 
 const TILE_W = 240;
 const TILE_H = 180;
@@ -30,6 +31,55 @@ class Windows {
 
     this.onViewport = () => this.clampAll();
     window.addEventListener('resize', this.onViewport);
+    this.listeners = {
+      'videocall-stream-added': (entry) => this.showEntry(entry),
+      'videocall-stream-updated': (entry) => this.showEntry(entry),
+      'videocall-stream-removed': (entry) => this.hideEntry(entry)
+    };
+    for (const event of Object.keys(this.listeners)) {
+      this.app.connection.on(event, this.listeners[event]);
+    }
+  }
+
+  visibleMedia(entry) {
+    return entry?.mediaStream?.getTracks?.().length ? entry.mediaStream : null;
+  }
+
+  showEntry(entry) {
+    const mount = callMount(entry);
+    if (!mount) {
+      return;
+    }
+    const media = this.visibleMedia(entry);
+    if (mount === 'presentation') {
+      this.showPresentation(media);
+      return;
+    }
+    if (mount === 'local') {
+      this.showParticipant(this.mod.publicKey, media);
+      return;
+    }
+    this.showParticipant(mount, media);
+    if (media) {
+      this.callStarted = true;
+      this.startTimer();
+    }
+  }
+
+  hideEntry(entry) {
+    const mount = callMount(entry);
+    if (!mount) {
+      return;
+    }
+    if (mount === 'presentation') {
+      this.presentationStopped();
+      return;
+    }
+    if (mount === 'local') {
+      this.drop(this.mod.publicKey);
+      return;
+    }
+    this.participantLeft(mount);
   }
 
   receiveLocalStream(localStream) {
@@ -356,6 +406,10 @@ class Windows {
       return;
     }
     this.closed = true;
+    for (const event of Object.keys(this.listeners || {})) {
+      this.app.connection.removeListener(event, this.listeners[event]);
+    }
+    this.listeners = {};
     window.removeEventListener('resize', this.onViewport);
     clearInterval(this.timer_interval);
     this.timer_interval = null;

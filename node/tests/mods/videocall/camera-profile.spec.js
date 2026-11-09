@@ -11,9 +11,24 @@ function call() {
   };
   created.room_obj = { call_peers: [] };
   created.screen_share = false;
-  created.stun = { setCameraSenderBitrate: jest.fn(), setScreenSenderBitrate: jest.fn() };
+  created.peerManager = { setCameraSenderBitrate: jest.fn(), setScreenSenderBitrate: jest.fn() };
   created.streams = { setCameraCapture: jest.fn(() => Promise.resolve()) };
   return created;
+}
+
+function holdCamera(manager, stream) {
+  if (!manager.entries) manager.entries = new Map();
+  if (!manager.sequence) manager.sequence = 0;
+  manager.register({
+    source: manager.mod?.publicKey || 'local',
+    kind: 'camera',
+    origin: 'local',
+    session: 'call',
+    availability: 'live',
+    disposition: 'owned',
+    mediaStream: stream,
+    peerId: manager.mod?.publicKey || 'local'
+  });
 }
 
 function sender(trackRole, track) {
@@ -64,9 +79,9 @@ describe('camera profile', () => {
       height: 360,
       frameRate: 15
     });
-    expect(videocall.stun.setCameraSenderBitrate).toHaveBeenCalledTimes(4);
+    expect(videocall.peerManager.setCameraSenderBitrate).toHaveBeenCalledTimes(4);
     for (const peer of videocall.room_obj.call_peers) {
-      expect(videocall.stun.setCameraSenderBitrate).toHaveBeenCalledWith(peer, 400000);
+      expect(videocall.peerManager.setCameraSenderBitrate).toHaveBeenCalledWith(peer, 400000);
     }
   });
 
@@ -78,30 +93,30 @@ describe('camera profile', () => {
       height: 720,
       frameRate: 24
     });
-    expect(videocall.stun.setCameraSenderBitrate).not.toHaveBeenCalled();
+    expect(videocall.peerManager.setCameraSenderBitrate).not.toHaveBeenCalled();
   });
 
   test('reallocates when a peer joins or leaves', async () => {
     const videocall = call();
     videocall.room_obj.call_peers = ['a'];
     await videocall.applyCameraProfile();
-    expect(videocall.stun.setCameraSenderBitrate).toHaveBeenCalledWith('a', 1500000);
+    expect(videocall.peerManager.setCameraSenderBitrate).toHaveBeenCalledWith('a', 1500000);
 
     videocall.room_obj.call_peers.push('b');
     await videocall.applyCameraProfile();
-    expect(videocall.stun.setCameraSenderBitrate).toHaveBeenCalledWith('a', 800000);
-    expect(videocall.stun.setCameraSenderBitrate).toHaveBeenCalledWith('b', 800000);
+    expect(videocall.peerManager.setCameraSenderBitrate).toHaveBeenCalledWith('a', 800000);
+    expect(videocall.peerManager.setCameraSenderBitrate).toHaveBeenCalledWith('b', 800000);
 
     videocall.room_obj.call_peers.splice(1, 1);
     await videocall.applyCameraProfile();
-    expect(videocall.stun.setCameraSenderBitrate).toHaveBeenLastCalledWith('a', 1500000);
+    expect(videocall.peerManager.setCameraSenderBitrate).toHaveBeenLastCalledWith('a', 1500000);
   });
 
   test('gives a newly listed peer the current share', async () => {
     const videocall = call();
     videocall.room_obj.call_peers = ['a', 'b', 'c', 'd', 'e'];
     await videocall.applyCameraProfile();
-    expect(videocall.stun.setCameraSenderBitrate).toHaveBeenCalledWith('e', 240000);
+    expect(videocall.peerManager.setCameraSenderBitrate).toHaveBeenCalledWith('e', 240000);
     expect(videocall.streams.setCameraCapture).toHaveBeenCalledWith({
       width: 320,
       height: 180,
@@ -121,7 +136,7 @@ describe('camera profile', () => {
       height: 720,
       frameRate: 24
     });
-    expect(videocall.stun.setCameraSenderBitrate).toHaveBeenCalledWith('a', 1500000);
+    expect(videocall.peerManager.setCameraSenderBitrate).toHaveBeenCalledWith('a', 1500000);
     expect(videocall.app.options.videocall.settings).toEqual({
       mode: 'unlimited',
       layout: 'keep-me'
@@ -133,9 +148,9 @@ describe('camera profile', () => {
     videocall.screen_share = true;
     videocall.room_obj.call_peers = ['a', 'b', 'c'];
     videocall.applyScreenShareBitrate();
-    expect(videocall.stun.setScreenSenderBitrate).toHaveBeenCalledTimes(3);
-    expect(videocall.stun.setScreenSenderBitrate).toHaveBeenCalledWith('a', 500000);
-    expect(videocall.stun.setCameraSenderBitrate).not.toHaveBeenCalled();
+    expect(videocall.peerManager.setScreenSenderBitrate).toHaveBeenCalledTimes(3);
+    expect(videocall.peerManager.setScreenSenderBitrate).toHaveBeenCalledWith('a', 500000);
+    expect(videocall.peerManager.setCameraSenderBitrate).not.toHaveBeenCalled();
   });
 
   test('initializes and keeps the media mode on the videocall options', () => {
@@ -172,7 +187,7 @@ describe('camera capture and sender bitrate', () => {
       video: first
     };
     const manager = Object.create(StreamManager.prototype);
-    manager.localStream = stream;
+    holdCamera(manager, stream);
     manager.mod = { diagnostics: { record: jest.fn() } };
 
     await manager.setCameraCapture({ width: 1280, height: 720, frameRate: 24 });
@@ -200,7 +215,7 @@ describe('camera capture and sender bitrate', () => {
       })
     };
     const manager = Object.create(StreamManager.prototype);
-    manager.localStream = { getVideoTracks: () => [track] };
+    holdCamera(manager, { getVideoTracks: () => [track] });
     manager.mod = { diagnostics: { record: jest.fn() } };
 
     await expect(
@@ -266,7 +281,7 @@ describe('outgoing sender roles', () => {
       applyScreenShareBitrate: jest.fn(),
       diagnostics: { record() {} },
       screen_share: false,
-      stun: { peers: new Map() }
+      peerManager: { peers: new Map() }
     };
     const created = new StreamManager(app, mod, { video: true, audio: true });
     return { created, mod, connection };
@@ -286,12 +301,14 @@ describe('outgoing sender roles', () => {
         return createdSender;
       }
     };
-    created.localStream = {
+    created.active = true;
+    created.attach();
+    holdCamera(created, {
       getTracks: () => [cameraTrack],
       getVideoTracks: () => [cameraTrack],
       getAudioTracks: () => []
-    };
-    mod.stun.peers.set('peer-a', peerConnection);
+    });
+    mod.peerManager.peers.set('peer-a', peerConnection);
     connection.emit('stun-new-peer-connection', 'peer-a', peerConnection);
     expect(senders[0].trackRole).toBe('camera');
     expect(mod.applyCameraProfile).toHaveBeenCalled();
@@ -310,6 +327,7 @@ describe('outgoing sender roles', () => {
     await created.beginShareScreen();
     expect(senders[1].trackRole).toBe('screen');
     expect(mod.applyScreenShareBitrate).toHaveBeenCalled();
+    created.detach();
   });
 });
 
@@ -413,7 +431,7 @@ describe('sender bitrate serialization', () => {
         getSenders: () => [cameras[peerId]]
       });
     };
-    videocall.stun = stun;
+    videocall.peerManager = stun;
     videocall.streams.setCameraCapture = jest.fn(() => Promise.resolve());
 
     videocall.room_obj.call_peers = ['a'];
@@ -471,7 +489,7 @@ describe('sender bitrate serialization', () => {
       ['a', { signalingState: 'stable', getSenders: () => [camera, screen] }],
       ['b', { signalingState: 'stable', getSenders: () => [] }]
     ]);
-    videocall.stun = stun;
+    videocall.peerManager = stun;
     videocall.screen_share = true;
     videocall.streams.setCameraCapture = jest.fn(() => Promise.resolve());
     videocall.room_obj.call_peers = ['a'];
@@ -624,7 +642,7 @@ describe('camera track replacement', () => {
       applyScreenShareBitrate: jest.fn(),
       diagnostics: { record: jest.fn() },
       screen_share: false,
-      stun: { peers: new Map() },
+      peerManager: { peers: new Map() },
       CallInterface: { receiveLocalStream: jest.fn() },
       sendOffChainMessage: jest.fn(() => Promise.resolve())
     };
@@ -641,8 +659,8 @@ describe('camera track replacement', () => {
     const screenSender = ratedSender('screen', screenTrack);
     const senders = [screenSender];
     const connection = peerConnection(senders);
-    mod.stun.peers.set('peer-a', connection);
-    created.localStream = mediaStream([microphone]);
+    mod.peerManager.peers.set('peer-a', connection);
+    holdCamera(created, mediaStream([microphone]));
     global.navigator = {
       mediaDevices: {
         getUserMedia: async () => ({
@@ -677,10 +695,10 @@ describe('camera track replacement', () => {
       const cameraSender = ratedSender('camera', oldCamera);
       const screenSender = ratedSender('screen', screenTrack);
       const connection = peerConnection([cameraSender, screenSender]);
-      mod.stun.peers.set(peerId, connection);
+      mod.peerManager.peers.set(peerId, connection);
       return { cameraSender, screenSender };
     });
-    created.localStream = mediaStream([microphone, oldCamera]);
+    holdCamera(created, mediaStream([microphone, oldCamera]));
     global.navigator = {
       mediaDevices: {
         getUserMedia: async () => ({
@@ -714,8 +732,8 @@ describe('camera track replacement', () => {
     cameraSender.replaceTrack = jest.fn(async () => {
       throw new Error('replace failed');
     });
-    mod.stun.peers.set('peer-a', peerConnection([cameraSender]));
-    created.localStream = mediaStream([microphone, oldCamera]);
+    mod.peerManager.peers.set('peer-a', peerConnection([cameraSender]));
+    holdCamera(created, mediaStream([microphone, oldCamera]));
     global.navigator = {
       mediaDevices: {
         getUserMedia: async () => ({

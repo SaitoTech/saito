@@ -38,7 +38,7 @@ class Limbo extends ModTemplate {
 
     this.icons = { screen: 'fa-tv', audio: 'fa-microphone-lines', camera: 'fa-video' };
 
-    this.stun = null;
+    this.peerManager = null;
     this.rendered = false;
 
     this.social = this.buildSocial({
@@ -168,7 +168,7 @@ class Limbo extends ModTemplate {
 
     if (app.BROWSER) {
       try {
-        this.stun = app.modules.returnFirstRespondTo('peer-manager');
+        this.peerManager = app.modules.returnFirstRespondTo('peer-manager');
       } catch (err) {
         console.warn('No Stun available');
       }
@@ -1142,7 +1142,7 @@ class Limbo extends ModTemplate {
 
       let source = false;
 
-      let peerCt = this.stun.peers.size;
+      let peerCt = this.peerManager.peers.size;
 
       if (this.publicKey === this.dreamer) {
         source = true;
@@ -1240,7 +1240,7 @@ class Limbo extends ModTemplate {
       if (pc) {
         try {
           console.log(`Close my peerconnection with ${sender} who left`);
-          this.stun.removePeerConnection(sender);
+          this.peerManager.removePeerConnection(sender);
         } catch (err) {
           console.error(err);
         }
@@ -1320,7 +1320,7 @@ class Limbo extends ModTemplate {
       this.dreams[dreamer].muted = txmsg.muted;
 
       //Attempt to get connection
-      this.stun.createPeerConnection(sender);
+      this.peerManager.createPeerConnection(sender);
     }
   }
 
@@ -1633,7 +1633,7 @@ class Limbo extends ModTemplate {
     this.downstream.forEach((value, key) => {
       if (value) {
         try {
-          this.stun.removePeerConnection(key);
+          this.peerManager.removePeerConnection(key);
         } catch (err) {
           console.error(err);
         }
@@ -1643,7 +1643,7 @@ class Limbo extends ModTemplate {
     this.upstream.forEach((value, key) => {
       if (value) {
         try {
-          this.stun.removePeerConnection(key);
+          this.peerManager.removePeerConnection(key);
         } catch (err) {
           console.error(err);
         }

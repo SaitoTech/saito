@@ -1,0 +1,49 @@
+.swarmcast-viewer {
+  position: absolute;
+  top: var(--saito-header-height);
+  left: 0;
+  width: 100vw;
+  height: calc(100dvh - var(--saito-header-height));
+  overflow-y: auto;
+  padding: 2rem;
+  background: var(--saito-background);
+  color: var(--saito-foreground);
+}
+
+.swarmcast-status {
+  margin-bottom: 1.5rem;
+}
+
+.swarmcast-status-label {
+  font-size: 1.4rem;
+  text-transform: capitalize;
+}
+
+.swarmcast-status-detail {
+  color: var(--saito-muted-foreground);
+}
+
+.swarmcast-outputs {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1rem;
+}
+
+.swarmcast-output {
+  background: var(--saito-card, var(--saito-background));
+  border: 1px solid var(--saito-border);
+  border-radius: var(--saito-radius);
+  overflow: hidden;
+}
+
+.swarmcast-output p {
+  margin: 0;
+  padding: 0.6rem 0.8rem;
+}
+
+.swarmcast-output video {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  background: #000;
+}

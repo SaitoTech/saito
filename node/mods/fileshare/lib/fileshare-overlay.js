@@ -28,7 +28,7 @@ class FileShareOverlay {
     this.onStunConnectionClose = (peerId) => {
       if (peerId == this.recipient && this?.active) {
         console.debug('FILESHARE: stun-connection-close');
-        this.mod.stun.removePeerConnection(peerId);
+        this.mod.peerManager.removePeerConnection(peerId);
         this.onConnectionFailure();
         this.active = false;
       }
@@ -61,7 +61,7 @@ class FileShareOverlay {
     if (this.recipient) {
       this.senderUI = new SaitoUser(this.app, this.mod, `${this.qs} .contact`, this.recipient);
       this.senderUI.render();
-      if (this.mod.stun.hasConnection(this.recipient)) {
+      if (this.mod.peerManager.hasConnection(this.recipient)) {
         this.onConnectionSuccess();
       }
     }
@@ -87,7 +87,7 @@ class FileShareOverlay {
     this.recipient = recipient;
     this.senderUI = new SaitoUser(this.app, this.mod, `${this.qs} .contact`, this.recipient);
     this.senderUI.render();
-    if (this.mod.stun.hasConnection(this.recipient)) {
+    if (this.mod.peerManager.hasConnection(this.recipient)) {
       this.onConnectionSuccess();
     }
   }
@@ -281,7 +281,7 @@ class FileShareOverlay {
       close.onclick = async (e) => {
         const hasSelectedFile = !!this.mod.outgoing_files[this.fileId]?.file;
         const hasPeerConnection =
-          !!this.recipient && !!this.mod.stun?.hasConnection(this.recipient);
+          !!this.recipient && !!this.mod.peerManager?.hasConnection(this.recipient);
         const shouldConfirmCancel = hasSelectedFile || hasPeerConnection;
 
         if (this?.active && this?.fileId && shouldConfirmCancel) {

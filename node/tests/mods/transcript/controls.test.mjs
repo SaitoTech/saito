@@ -63,7 +63,12 @@ test('capture status is broadcast on changes and repeated for newly connected pe
     sendOffChainMessage: async (request, data) => sent.push({ request, data })
   };
   const streams = new StreamManager(app, mod, {});
-  t.after(() => Object.values(streams.monitors).forEach(clearInterval));
+  streams.active = true;
+  streams.attach();
+  t.after(() => {
+    Object.values(streams.monitors).forEach(clearInterval);
+    streams.detach();
+  });
   streams.setTranscribing(true);
   app.connection.emit('stun-connection-connected', 'bob');
   streams.setTranscribing(false);

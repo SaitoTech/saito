@@ -327,21 +327,43 @@ function departure() {
   call.layout = 'focus';
   call.screen_share = false;
   call.have_joined_room = Date.now();
-  call.stun = stun;
+  call.peerManager = stun;
   call.room_obj = { call_id: 'room-1', call_peers: ['peer-a', 'peer-b'] };
+  const entries = new Map([
+    ['peer-a', { id: 'cam-a', kind: 'camera', origin: 'remote', session: 'call', peerId: 'peer-a', availability: 'live', disposition: 'borrowed', mediaStream: stream(true) }],
+    ['peer-b', { id: 'cam-b', kind: 'camera', origin: 'remote', session: 'call', peerId: 'peer-b', availability: 'live', disposition: 'borrowed', mediaStream: stream(true) }],
+    ['display', { id: 'display', kind: 'display', origin: 'remote', session: 'call', peerId: 'peer-b', availability: 'live', disposition: 'borrowed', mediaStream: stream(true) }]
+  ]);
   call.streams = {
     active: true,
     audioEnabled: true,
     videoEnabled: true,
-    remoteStreams: new Map([
-      ['peer-a', stream(true)],
-      ['peer-b', stream(true)],
-      ['presentation', stream(true)]
-    ]),
+    entries,
     removals: [],
+    get remoteStreams() {
+      const map = new Map();
+      for (const entry of entries.values()) {
+        if (entry.kind === 'camera' && entry.peerId) map.set(entry.peerId, entry.mediaStream);
+        if (entry.kind === 'display') map.set('presentation', entry.mediaStream);
+      }
+      return map;
+    },
     removePeer(peer, msg) {
-      this.remoteStreams.delete(peer);
       this.removals.push({ peer, msg });
+      for (const [id, entry] of [...entries]) {
+        if (entry.kind === 'camera' && entry.peerId === peer) {
+          entries.delete(id);
+          app.connection.emit('videocall-stream-removed', entry);
+        }
+      }
+    },
+    clearDisplay() {
+      for (const [id, entry] of [...entries]) {
+        if (entry.kind === 'display') {
+          entries.delete(id);
+          app.connection.emit('videocall-stream-removed', entry);
+        }
+      }
     },
     setCameraCapture() {}
   };
@@ -426,7 +448,7 @@ describe('participant departure', () => {
   test('stun-connection-close uses the same departure cleanup', () => {
     const { app, call, stun } = departure();
     const live = new Videocall(app);
-    live.stun = stun;
+    live.peerManager = stun;
     live.room_obj = call.room_obj;
     live.streams = call.streams;
     live.CallInterface = call.CallInterface;
@@ -457,7 +479,7 @@ describe('participant departure', () => {
   test('a repeated departure notification does not repeat the interface update', () => {
     const { call, stun } = departure();
     stun.createPeerConnection('peer-a');
-    const left = jest.spyOn(call.CallInterface, 'participantLeft');
+    const left = jest.spyOn(call.CallInterface.presentation, 'participantLeft');
 
     call.disconnect('peer-a');
     call.disconnect('peer-a');
@@ -474,7 +496,7 @@ describe('participant departure', () => {
     call.CallInterface.receiveRemoteStream('presentation', stream(true));
     const track = { stop: jest.fn() };
     call.streams.presentationStream = { getTracks: () => [track] };
-    const stopped = jest.spyOn(call.CallInterface, 'presentationStopped');
+    const stopped = jest.spyOn(call.CallInterface.presentation, 'presentationStopped');
 
     call.disconnect('peer-a');
 
@@ -489,7 +511,7 @@ describe('participant departure', () => {
     const { call } = departure();
     call.screen_share = 'peer-b';
     call.CallInterface.receiveRemoteStream('presentation', stream(true));
-    const stopped = jest.spyOn(call.CallInterface, 'presentationStopped');
+    const stopped = jest.spyOn(call.CallInterface.presentation, 'presentationStopped');
 
     call.disconnect('peer-a');
 
