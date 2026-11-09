@@ -321,13 +321,13 @@ function client(name, publicKey) {
   const stun = new Stun(app);
   stun.publicKey = publicKey;
   stun.earlySignals = stun.earlySignals || new Map();
-  mod.stun = stun;
+  mod.peerManager = stun;
   app.modules.returnFirstRespondTo = () => stun;
   const created = {
     name,
     app,
     mod,
-    stun,
+    peerManager: stun,
     signals: [],
     errors: []
   };
@@ -342,7 +342,7 @@ function snapshot(clients) {
     name: item.name,
     key: item.mod.publicKey,
     membership: item.mod.room_obj?.call_peers || null,
-    connections: [...item.stun.peers.entries()].map(([peer, pc]) => ({
+    connections: [...item.peerManager.peers.entries()].map(([peer, pc]) => ({
       peer,
       connection: pc.connectionState,
       ice: pc.iceConnectionState,
@@ -387,7 +387,7 @@ describe('three independent browsers in one embedded call', () => {
         if (tx.isFrom(item.mod.publicKey) || !tx.isTo(item.mod.publicKey)) continue;
         try {
           if (message.module === 'Stun') {
-            await item.stun.handlePeerTransaction(item.app, tx);
+            await item.peerManager.handlePeerTransaction(item.app, tx);
           }
           if (message.module === 'Videocall' || message.module === 'Stun') {
             await item.mod.handlePeerTransaction(item.app, tx);
@@ -424,12 +424,12 @@ describe('three independent browsers in one embedded call', () => {
     });
     beta.mod.streams.start();
     await waitFor('A and B did not connect', clients, () => {
-      const forward = alpha.stun.peers.get(beta.mod.publicKey);
-      const back = beta.stun.peers.get(alpha.mod.publicKey);
+      const forward = alpha.peerManager.peers.get(beta.mod.publicKey);
+      const back = beta.peerManager.peers.get(alpha.mod.publicKey);
       return forward?.connectionState === 'connected' && back?.connectionState === 'connected';
     });
 
-    const pairBefore = alpha.stun.peers.get(beta.mod.publicKey);
+    const pairBefore = alpha.peerManager.peers.get(beta.mod.publicKey);
     expect(pairBefore.connectionState).toBe('connected');
     expect(pairBefore.iceConnectionState).toBe('connected');
 
@@ -448,7 +448,7 @@ describe('three independent browsers in one embedded call', () => {
         const others = clients
           .filter((peer) => peer !== item)
           .map((peer) => peer.mod.publicKey);
-        return others.every((key) => item.stun.peers.get(key)?.connectionState === 'connected');
+        return others.every((key) => item.peerManager.peers.get(key)?.connectionState === 'connected');
       });
     });
 
@@ -458,9 +458,9 @@ describe('three independent browsers in one embedded call', () => {
         .map((peer) => peer.mod.publicKey)
         .sort();
       expect([...(item.mod.room_obj.call_peers || [])].sort()).toEqual(others);
-      expect([...item.stun.peers.keys()].sort()).toEqual(others);
+      expect([...item.peerManager.peers.keys()].sort()).toEqual(others);
       for (const key of others) {
-        const pc = item.stun.peers.get(key);
+        const pc = item.peerManager.peers.get(key);
         expect(pc.connectionState).toBe('connected');
         expect(pc.iceConnectionState).toBe('connected');
         expect(pc.localDescription?.type).toBeTruthy();
@@ -471,8 +471,13 @@ describe('three independent browsers in one embedded call', () => {
       expect(item.errors).toEqual([]);
     }
 
-    expect(alpha.stun.peers.get(beta.mod.publicKey)).toBe(pairBefore);
+    expect(alpha.peerManager.peers.get(beta.mod.publicKey)).toBe(pairBefore);
     expect(pairBefore.connectionState).toBe('connected');
     expect(pairBefore.signalingState).not.toBe('closed');
+
+    for (const item of clients) {
+      item.mod.streams.releaseCall();
+      item.mod.CallInterface?.destroy();
+    }
   }, 20000);
 });

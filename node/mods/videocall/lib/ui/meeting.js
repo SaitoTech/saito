@@ -1,4 +1,5 @@
 const SaitoVideoBox = require('../../../../lib/saito/ui/saito-videobox/video-box');
+const { callMount } = require('../stream_manager');
 
 const MeetingTemplate = require('./meeting.template');
 
@@ -11,11 +12,9 @@ class Meeting {
     this.mod = mod;
     this.videocall_settings = new VideocallSettings(app, mod);
     this.effectsMenu = new Effects(app, mod);
-    this.localStream;
     this.video_boxes = {};
     this.local_container = 'expanded-video';
     this.remote_container = 'side-videos';
-    this.remote_streams = new Map();
     this.current_speaker = null;
     this.speaker_candidate = null;
     this.public_key = mod.publicKey;
@@ -55,6 +54,47 @@ class Meeting {
         //this.insertActions(this.mod.room_obj.call_peers);
       }
     });
+
+    this.listen('videocall-stream-added', (entry) => this.showEntry(entry));
+    this.listen('videocall-stream-updated', (entry) => this.showEntry(entry));
+    this.listen('videocall-stream-removed', (entry) => this.hideEntry(entry));
+  }
+
+  visibleMedia(entry) {
+    return entry?.mediaStream?.getTracks?.().length ? entry.mediaStream : null;
+  }
+
+  showEntry(entry) {
+    const mount = callMount(entry);
+    if (!mount) {
+      return;
+    }
+    const media = this.visibleMedia(entry);
+    if (mount === 'local') {
+      this.addLocalStream(media);
+      return;
+    }
+    this.addRemoteStream(mount, media);
+    this.updateImages();
+    if (media) {
+      this.startTimer();
+    }
+  }
+
+  hideEntry(entry) {
+    const mount = callMount(entry);
+    if (!mount || mount === 'local') {
+      if (mount === 'local' && this.video_boxes.local?.video_box) {
+        this.video_boxes.local.video_box.destroy();
+        delete this.video_boxes.local;
+      }
+      return;
+    }
+    if (mount === 'presentation') {
+      this.presentationStopped();
+      return;
+    }
+    this.participantLeft(mount);
   }
 
   listen(event, handler) {
@@ -76,7 +116,6 @@ class Meeting {
   }
 
   receiveRemoteStream(peer, remoteStream) {
-    this.remote_streams.set(peer, remoteStream);
     this.addRemoteStream(peer, remoteStream);
 
     this.updateImages();
@@ -86,8 +125,6 @@ class Meeting {
   }
 
   participantLeft(peerId) {
-    this.remote_streams.delete(peerId);
-
     if (this.video_boxes[peerId]?.video_box) {
       this.video_boxes[peerId].video_box.destroy();
       delete this.video_boxes[peerId];
@@ -284,10 +321,12 @@ class Meeting {
 
     let index = 0;
 
-    let streams = [this.localStream];
-    this.remote_streams.forEach((stream, key) => {
-      streams.push(stream);
-    });
+    let streams = [];
+    for (const box of Object.values(this.video_boxes)) {
+      if (box.video_box?.stream) {
+        streams.push(box.video_box.stream);
+      }
+    }
 
     for (const mod of this.app.modules.mods) {
       let item = mod.respondTo('call-actions', { call_id: this.mod.room_obj.call_id });
@@ -547,7 +586,6 @@ class Meeting {
   }
 
   addLocalStream(localStream) {
-    this.localStream = localStream;
     this.createVideoBox('local', this.local_container);
     this.video_boxes['local'].video_box.render(localStream);
     this.updateImages();
@@ -747,7 +785,7 @@ class Meeting {
       vb.containerClass =
         split_mode && i === this.expanded_peer ? this.local_container : this.remote_container;
 
-      vb.render(i === 'local' ? this.localStream : this.remote_streams.get(i));
+      vb.render(vb.stream);
       this.placeBox(i);
 
       if (i !== 'local' && this.video_boxes[i].connection_strength) {

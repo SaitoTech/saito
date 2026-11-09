@@ -2,6 +2,11 @@ const Transaction = require('../../lib/saito/transaction').default;
 const ModTemplate = require('../../lib/templates/modtemplate');
 const PeerService = require('saito-js/lib/peer_service').default;
 
+// Negotiation watchdog. Progress resets the deadline; it does not cancel it.
+const WATCH_SIGNAL_MS = 15000;
+const WATCH_CHECK_MS = 30000;
+const WATCH_CHANNEL_MS = 10000;
+
 /***
  *  A generic utility for creating stun connections that other modules can use
  *  API is a combination of respondTo and event space
@@ -147,6 +152,8 @@ class Stun extends ModTemplate {
           }
           return false;
         },
+        hasConnectionWithPeer: (peerId) => this.hasConnectionWithPeer(peerId),
+        sendJoinTransaction: (peerId) => this.sendJoinTransaction(peerId),
         sendTransaction: (peerId, tx) => {
           this.sendTransaction(peerId, tx);
         },
@@ -157,7 +164,7 @@ class Stun extends ModTemplate {
         // This is good for most data channel set ups, but if you need more control over who messages
         // who when you can get around this by setting the callback deliberately to false. (i.e. my friend
         // has texted me and it is on me to call them)
-        createPeerConnection: (peerId, callback = null) => {
+        createPeerConnection: (peerId, callback = null, answerOnly = false) => {
           //
           // send ready message to peer, so if they want to create the channel, we are receptive
           //
@@ -173,9 +180,9 @@ class Stun extends ModTemplate {
           }
 
           if (Array.isArray(peerId)) {
-            peerId.forEach((peer) => this.createPeerConnection(peer, callback));
+            peerId.forEach((peer) => this.createPeerConnection(peer, callback, answerOnly));
           } else {
-            this.createPeerConnection(peerId, callback);
+            this.createPeerConnection(peerId, callback, answerOnly);
           }
         },
         removePeerConnection: (peerId) => {
@@ -278,6 +285,138 @@ class Stun extends ModTemplate {
     return false;
   }
 
+  watchdogDelay(peerConnection) {
+    const ice = peerConnection.iceConnectionState;
+    if (
+      ice === 'connected' ||
+      ice === 'completed' ||
+      peerConnection.connectionState === 'connected'
+    ) {
+      return WATCH_CHANNEL_MS;
+    }
+    if (ice === 'checking') return WATCH_CHECK_MS;
+    return WATCH_SIGNAL_MS;
+  }
+
+  armNegotiationWatchdog(peerId, peerConnection) {
+    if (!peerConnection || peerConnection.watchdogArmed) return;
+    if (peerConnection.signalingState === 'closed') return;
+    if (this.hasConnectionWithPeer(peerId)) return;
+    if (
+      peerConnection.connectionState === 'failed' ||
+      peerConnection.connectionState === 'disconnected' ||
+      peerConnection.iceConnectionState === 'failed' ||
+      peerConnection.iceConnectionState === 'disconnected'
+    ) {
+      return;
+    }
+    peerConnection.watchdogArmed = true;
+    peerConnection.watchSignaling = peerConnection.signalingState;
+    peerConnection.watchIce = peerConnection.iceConnectionState;
+    this.scheduleWatchdog(peerId, peerConnection, 'arm');
+  }
+
+  scheduleWatchdog(peerId, peerConnection, reason) {
+    peerConnection.watchdogGeneration = (peerConnection.watchdogGeneration || 0) + 1;
+    const generation = peerConnection.watchdogGeneration;
+    const delay = this.watchdogDelay(peerConnection);
+    clearTimeout(peerConnection.watchdog);
+    peerConnection.watchdog = setTimeout(() => {
+      this.expireNegotiationWatchdog(peerId, peerConnection, generation);
+    }, delay);
+    peerConnection.watchdog.unref?.();
+    console.info(
+      'STUN TRACE watchdog',
+      reason,
+      peerId,
+      'generation',
+      generation,
+      'delay',
+      delay,
+      'signaling',
+      peerConnection.signalingState,
+      'ice',
+      peerConnection.iceConnectionState,
+      'connection',
+      peerConnection.connectionState
+    );
+  }
+
+  cancelNegotiationWatchdog(peerConnection, reason = '') {
+    if (!peerConnection) return;
+    clearTimeout(peerConnection.watchdog);
+    peerConnection.watchdog = null;
+    peerConnection.watchdogArmed = false;
+    peerConnection.watchdogGeneration = (peerConnection.watchdogGeneration || 0) + 1;
+    console.info(
+      'STUN TRACE watchdog cancel',
+      reason,
+      'generation',
+      peerConnection.watchdogGeneration,
+      'signaling',
+      peerConnection.signalingState,
+      'ice',
+      peerConnection.iceConnectionState,
+      'connection',
+      peerConnection.connectionState
+    );
+  }
+
+  noteWatchdogProgress(peerId, peerConnection, kind, value) {
+    if (!peerConnection?.watchdogArmed) return;
+    if (this.peers.get(peerId) !== peerConnection) return;
+    if (peerConnection.signalingState === 'closed') return;
+    if (this.hasConnectionWithPeer(peerId)) {
+      this.cancelNegotiationWatchdog(peerConnection, 'connection open');
+      return;
+    }
+    const previous = kind === 'signaling' ? peerConnection.watchSignaling : peerConnection.watchIce;
+    if (previous === value) return;
+    if (kind === 'signaling') peerConnection.watchSignaling = value;
+    else peerConnection.watchIce = value;
+    if (
+      peerConnection.connectionState === 'failed' ||
+      peerConnection.connectionState === 'disconnected' ||
+      value === 'failed' ||
+      value === 'disconnected'
+    ) {
+      this.cancelNegotiationWatchdog(peerConnection, 'failed or disconnected');
+      return;
+    }
+    const progressed =
+      (kind === 'signaling' &&
+        (value === 'have-local-offer' || value === 'have-remote-offer' || value === 'stable')) ||
+      (kind === 'ice' && (value === 'checking' || value === 'connected' || value === 'completed'));
+    if (!progressed) return;
+    this.scheduleWatchdog(peerId, peerConnection, `reset ${kind} ${value}`);
+  }
+
+  expireNegotiationWatchdog(peerId, peerConnection, generation) {
+    if (this.peers.get(peerId) !== peerConnection) return;
+    if (peerConnection.watchdogGeneration !== generation) return;
+    if (peerConnection.signalingState === 'closed') return;
+    if (this.hasConnectionWithPeer(peerId)) {
+      this.cancelNegotiationWatchdog(peerConnection, 'connected before expiry');
+      return;
+    }
+    peerConnection.watchdogArmed = false;
+    peerConnection.watchdog = null;
+    this.diagnostic(peerId, 'Negotiation watchdog expired');
+    console.warn(
+      'STUN TRACE watchdog expired',
+      peerId,
+      'generation',
+      generation,
+      'signaling',
+      peerConnection.signalingState,
+      'ice',
+      peerConnection.iceConnectionState,
+      'connection',
+      peerConnection.connectionState
+    );
+    this.app.connection.emit('stun-connection-close', peerId);
+  }
+
   sendTransaction(peerId, tx) {
     if (!this.hasConnectionWithPeer(peerId)) {
       console.warn('Stun: cannot send transaction over stun');
@@ -312,26 +451,11 @@ class Stun extends ModTemplate {
               console.log('STUN: onConfirmation', message);
               let peerId = tx.to[0].publicKey;
               let peerConnection = this.peers.get(peerId);
-              if (peerConnection) {
-                if (peerConnection.connectionState !== 'connected') {
-                  console.log(
-                    'STUN: setting connection timer with on chain confirmation that my peer join transaction was sent'
-                  );
-                  peerConnection.timer = setTimeout(() => {
-                    if (!this.hasConnectionWithPeer(peerId)) {
-                      this.app.connection.emit(
-                        'stun-connection-timeout',
-                        peerId,
-                        5000,
-                        this.callback
-                      );
-                    } else {
-                      console.warn(
-                        'Stun: peerConnection timer expired but we have a connection...'
-                      );
-                    }
-                  }, 10000);
-                }
+              if (peerConnection && !this.hasConnectionWithPeer(peerId)) {
+                console.log(
+                  'STUN: arming negotiation watchdog after peer-joined confirmation'
+                );
+                this.armNegotiationWatchdog(peerId, peerConnection);
               }
             }
           }
@@ -367,6 +491,24 @@ class Stun extends ModTemplate {
   }
 
   async handleSignalingMessage(sender, request, data) {
+    if (
+      request === 'peer-joined' ||
+      request === 'peer-left' ||
+      request === 'peer-kicked' ||
+      request === 'peer-description'
+    ) {
+      console.info(
+        'STUN TRACE signal',
+        request,
+        data?.description?.type || '',
+        'from',
+        sender,
+        'connection',
+        this.peers.get(sender)?.connectionState || 'none',
+        'signaling',
+        this.peers.get(sender)?.signalingState || 'none'
+      );
+    }
     this.diagnostic(sender, `Received ${request}${data.description?.type ? ` (${data.description.type})` : ''}`);
     //
     // Stun metadata messages
@@ -398,6 +540,15 @@ class Stun extends ModTemplate {
           this.earlySignals.set(sender, queued);
         }
         this.diagnostic(sender, `Queued ${request} until the peer connection exists`);
+        console.info(
+          'STUN TRACE queued',
+          request,
+          data?.description?.type || '',
+          'from',
+          sender,
+          'queued',
+          queued.length
+        );
         return;
       }
       this.diagnostic(sender, 'Signal ignored: no peer connection');
@@ -447,6 +598,7 @@ class Stun extends ModTemplate {
       if (peerConnection.ignoreOffer) {
         this.noteIgnoredOffer(peerConnection, description);
         this.diagnostic(sender, `Ignored colliding offer (impolite peer) ufrag=${iceUfrag(description) || 'none'}`);
+        console.info('STUN TRACE ignored offer', description?.type, 'from', sender);
         console.debug('STUN: Impolite peer ignores offer collision');
         return;
       }
@@ -468,7 +620,23 @@ class Stun extends ModTemplate {
         }
       }
 
+      console.info(
+        'STUN TRACE setRemoteDescription start',
+        description?.type,
+        'from',
+        sender,
+        'signaling',
+        peerConnection.signalingState
+      );
       await peerConnection.setRemoteDescription(description);
+      console.info(
+        'STUN TRACE setRemoteDescription done',
+        description?.type,
+        'from',
+        sender,
+        'signaling',
+        peerConnection.signalingState
+      );
       this.diagnostic(sender, `Applied remote ${description.type}`);
       // The ignored-ufrag set stays for the life of this connection.
       peerConnection.ignoreOffer = false;
@@ -479,11 +647,19 @@ class Stun extends ModTemplate {
         if (this.peers.get(sender) !== peerConnection || peerConnection.signalingState === 'closed') return;
         const answer = peerConnection.localDescription;
         if (answer?.type === 'answer') {
+          console.info('STUN TRACE answer created', sender, 'signaling', peerConnection.signalingState);
           await this.sendPeerDescriptionTransaction(sender, answer);
         }
       }
     } catch (err) {
       this.diagnostic(sender, `Apply description failed: ${err.name}`);
+      console.error(
+        'STUN TRACE apply description failed',
+        description?.type,
+        'from',
+        sender,
+        err?.name || err
+      );
       console.error('STUN: failure in peer-offer --- ', err);
       console.debug(
         'STUN: impolite? ',
@@ -680,7 +856,7 @@ class Stun extends ModTemplate {
     }
   }
 
-  createPeerConnection(peerId, callback = null) {
+  createPeerConnection(peerId, callback = null, answerOnly = false) {
     this.diagnostic(peerId, 'Requested peer connection');
     console.info(
       'STUN/TALK: Create Peer Connection with ' + peerId + ` and ${callback ? 'a' : 'no'} callback`,
@@ -753,6 +929,7 @@ class Stun extends ModTemplate {
       const pc = new RTCPeerConnection({
         iceServers: this.servers
       });
+      pc.answerOnly = !!answerOnly;
 
       // use string compare of public keys rather than presence or absence of callback
       // to determine who will be impolite in any pairing because we may be simultnaeously attempting
@@ -809,6 +986,7 @@ class Stun extends ModTemplate {
         peerConnection.connectionState === 'failed' ||
         peerConnection.connectionState === 'disconnected'
       ) {
+        this.cancelNegotiationWatchdog(peerConnection, 'connection failed or disconnected');
         console.debug('STUN: set reconnection timer...');
         let timerAmt = callback ? 9000 : 5000;
         this.diagnostic(peerId, `Waiting ${timerAmt / 1000}s for connection recovery`);
@@ -842,6 +1020,7 @@ class Stun extends ModTemplate {
     peerConnection.oniceconnectionstatechange = () => {
       this.diagnostic(peerId, `ICE: ${peerConnection.iceConnectionState}`);
       const iceState = peerConnection.iceConnectionState;
+      this.noteWatchdogProgress(peerId, peerConnection, 'ice', iceState);
       if (iceState === 'connected' || iceState === 'completed') {
         const recovering = peerConnection.iceRestartTimer != null || peerConnection.iceRestartCount > 0;
         clearTimeout(peerConnection.iceRestartTimer);
@@ -959,6 +1138,12 @@ class Stun extends ModTemplate {
         );
         return;
       }
+      // A Swarmcast broadcaster applies the viewer's offer. The data channel
+      // still fires negotiationneeded, and that must not become a second offer.
+      if (peerConnection.answerOnly && !peerConnection.remoteDescription) {
+        this.diagnostic(peerId, 'Waiting for the remote offer');
+        return;
+      }
       if (peerConnection.rude && peerConnection.iceConnectionState === 'new') {
         // Coalesce data-channel creation and media attachment without extending
         // the deadline every time another track is added.
@@ -978,6 +1163,7 @@ class Stun extends ModTemplate {
     peerConnection.onnegotiationneeded = requestNegotiation;
     peerConnection.onsignalingstatechange = () => {
       this.diagnostic(peerId, `Signaling: ${peerConnection.signalingState}`);
+      this.noteWatchdogProgress(peerId, peerConnection, 'signaling', peerConnection.signalingState);
       this.app.connection.emit('stun-signaling-state', peerId, peerConnection.signalingState);
       if (peerConnection.signalingState === 'stable' && peerConnection.negotiateAgain) {
         peerConnection.negotiateAgain = false;
@@ -994,6 +1180,7 @@ class Stun extends ModTemplate {
 
     dc.onopen = (event) => {
       console.info('STUN: Data channel is open');
+      this.cancelNegotiationWatchdog(peerConnection, 'data channel open');
       this.app.connection.emit('stun-data-channel-open', peerId);
     };
 
@@ -1123,11 +1310,24 @@ class Stun extends ModTemplate {
   removePeerConnection(peerId) {
     const peerConnection = this.peers.get(peerId);
     if (peerConnection) {
+      console.info(
+        'STUN TRACE removePeerConnection',
+        peerId,
+        'connection',
+        peerConnection.connectionState,
+        'signaling',
+        peerConnection.signalingState,
+        'ice',
+        peerConnection.iceConnectionState
+      );
+      console.trace('STUN TRACE removePeerConnection');
       console.info('Stun remove peer connection! ' + peerConnection.connectionState);
       this.diagnostic(peerId, 'Closing peer connection');
       clearTimeout(peerConnection.offerTimer);
       clearTimeout(peerConnection.negotiation_timeout);
       clearTimeout(peerConnection.timer);
+      clearTimeout(peerConnection.watchdog);
+      peerConnection.watchdogGeneration = (peerConnection.watchdogGeneration || 0) + 1;
       clearTimeout(peerConnection.iceRestartTimer);
       peerConnection.iceRestartTimer = null;
       peerConnection.close();

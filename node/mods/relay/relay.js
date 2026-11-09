@@ -276,7 +276,21 @@ class Relay extends ModTemplate {
           console.log('Relayed message : ', txjson);
         }
 
+        const relaySender = relayed_tx.from?.[0]?.publicKey || '';
+        const relayRecipients = (relayed_tx.to || []).map((to) => to.publicKey);
+        console.info(
+          'RELAY TRACE',
+          txjson?.module,
+          txjson?.request,
+          txjson?.description?.type || '',
+          'from',
+          relaySender,
+          'to',
+          relayRecipients.join(',')
+        );
+
         if (!relayed_tx.to[0]?.publicKey) {
+          console.info('RELAY TRACE drop', txjson?.module, txjson?.request, 'no recipient');
           return 0;
         }
 
@@ -290,6 +304,7 @@ class Relay extends ModTemplate {
             'in'
           )
         ) {
+          console.info('RELAY TRACE drop repeated', txjson?.module, txjson?.request, txjson?.description?.type || '');
           if (mycallback != null) {
             mycallback({ err: '', success: 1 });
           }
@@ -304,6 +319,7 @@ class Relay extends ModTemplate {
         }
 
         if (relayed_tx.isTo(this.publicKey)) {
+          console.info('RELAY TRACE deliver locally', txjson?.module, txjson?.request, txjson?.description?.type || '');
           return app.modules.handlePeerTransaction(relayed_tx, peer, mycallback);
         } else if (this.app.BROWSER == 0) {
           // check to see if original tx is for a peer
@@ -332,14 +348,23 @@ class Relay extends ModTemplate {
           }
 
           if (peer_found == 0) {
+            console.info('RELAY TRACE drop', txjson?.module, txjson?.request, 'peer not found', relayRecipients.join(','));
             if (mycallback != null) {
               mycallback({ err: 'ERROR 141423: peer not found in relay module', success: 0 });
               return 1;
             }
           } else {
+            console.info('RELAY TRACE forward', txjson?.module, txjson?.request, txjson?.description?.type || '', 'peers', peer_found);
             console.info(`Relay ${txjson?.module} tx to ${peer_found} peers`);
             return 1;
           }
+        } else {
+          console.info(
+            'RELAY TRACE not forwarded by browser',
+            txjson?.module,
+            txjson?.request,
+            txjson?.description?.type || ''
+          );
         }
       }
     } catch (err) {

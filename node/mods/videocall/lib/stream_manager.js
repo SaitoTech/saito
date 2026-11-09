@@ -1,15 +1,36 @@
 /**
- * This appears to hold the core code for connecting to peers over stun
+ * Call media and the registry of every stream Video Call knows about.
  *
+ * Stream ids are opaque. A public key is the source machine (`source`) or the
+ * Stun leg (`peerId`), never the stream id. One machine can publish several
+ * streams. Remote camera tracks still share one MediaStream per peer: they
+ * arrive without a stream association, so a second independent remote stream
+ * from the same peer needs a future signalling change.
  */
+
+function callMount(entry) {
+  if (!entry || entry.session !== 'call') {
+    return null;
+  }
+  if (entry.kind === 'display') {
+    return 'presentation';
+  }
+  if (entry.kind === 'camera' && entry.origin === 'local') {
+    return 'local';
+  }
+  if (entry.kind === 'camera' && entry.origin === 'remote' && entry.peerId) {
+    return entry.peerId;
+  }
+  return null;
+}
 
 class StreamManager {
   constructor(app, mod, settings) {
     this.app = app;
     this.mod = mod;
-    this.localStream = null; //My Video Feed
-    this.presentationStream = null;
-    this.remoteStreams = new Map(); //The video of the other parties
+    this.entries = new Map();
+    this.sequence = 0;
+    this.generation = 0;
     this.transcribingPeers = new Set();
 
     this.videoEnabled = true;
@@ -17,13 +38,268 @@ class StreamManager {
     this.videoSource = null;
     this.audioSource = null;
     this.auto_disconnect = false;
-    this.active = true;
+    this.active = false;
 
     this.monitors = {};
     this.listeners = {};
-    this.detached = false;
+    this.listening = false;
+    this.leaving = false;
 
     this.parseSettings(settings);
+  }
+
+  // The browser object for the local call camera. Derived from the registry.
+  get localStream() {
+    return this.find({ kind: 'camera', origin: 'local', session: 'call' })?.mediaStream || null;
+  }
+
+  // The call's display capture, local or remote. Derived from the registry.
+  get presentationStream() {
+    return this.find({ kind: 'display', session: 'call' })?.mediaStream || null;
+  }
+
+  // Legacy `{ peerId -> MediaStream, presentation }` view. Trackless pending
+  // entries are omitted so consumers do not treat a placeholder as media.
+  get remoteStreams() {
+    const map = new Map();
+    for (const entry of this.list({ kind: 'camera', origin: 'remote', session: 'call' })) {
+      if (entry.peerId && entry.mediaStream?.getTracks?.().length) {
+        map.set(entry.peerId, entry.mediaStream);
+      }
+    }
+    const display = this.find({ kind: 'display', session: 'call' });
+    if (display?.peerId && display.mediaStream?.getTracks?.().length) {
+      map.set('presentation', display.mediaStream);
+    }
+    return map;
+  }
+
+  allocateId() {
+    this.sequence += 1;
+    return `s${this.sequence.toString(36)}${Math.random().toString(36).slice(2, 8)}`;
+  }
+
+  blankStream() {
+    if (typeof MediaStream === 'function') {
+      return new MediaStream();
+    }
+    const tracks = [];
+    return {
+      getTracks: () => tracks,
+      getAudioTracks: () => tracks.filter((track) => track.kind === 'audio'),
+      getVideoTracks: () => tracks.filter((track) => track.kind === 'video'),
+      addTrack(track) {
+        if (!tracks.includes(track)) tracks.push(track);
+      },
+      removeTrack(track) {
+        const index = tracks.indexOf(track);
+        if (index >= 0) tracks.splice(index, 1);
+      }
+    };
+  }
+
+  register(fields = {}) {
+    const id = fields.id || this.allocateId();
+    if (this.entries.has(id)) {
+      return this.update(id, fields);
+    }
+    const entry = {
+      id,
+      source: fields.source ?? null,
+      kind: fields.kind,
+      origin: fields.origin,
+      session: fields.session || 'call',
+      availability: fields.availability || 'live',
+      disposition: fields.disposition || 'borrowed',
+      mediaStream: fields.mediaStream ?? null,
+      peerId: fields.peerId ?? null
+    };
+    this.entries.set(id, entry);
+    this.announce(entry, 'added');
+    return entry;
+  }
+
+  get(id) {
+    return this.entries.get(id) || null;
+  }
+
+  list(filter = {}) {
+    return [...this.entries.values()].filter((entry) =>
+      Object.entries(filter).every(([key, value]) => entry[key] === value)
+    );
+  }
+
+  find(filter) {
+    return this.list(filter)[0] || null;
+  }
+
+  update(id, changes = {}) {
+    const entry = this.entries.get(id);
+    if (!entry) {
+      return null;
+    }
+    const previous = entry.mediaStream;
+    Object.assign(entry, changes, { id });
+    if (
+      entry.disposition === 'owned' &&
+      previous &&
+      changes.mediaStream &&
+      changes.mediaStream !== previous
+    ) {
+      previous.getTracks?.().forEach((track) => {
+        try {
+          track.stop();
+        } catch (err) {
+          console.error(err);
+        }
+      });
+    }
+    this.announce(entry, 'updated');
+    return entry;
+  }
+
+  remove(id) {
+    const entry = this.entries.get(id);
+    if (!entry) {
+      return null;
+    }
+    this.entries.delete(id);
+    if (entry.disposition === 'owned') {
+      entry.mediaStream?.getTracks?.().forEach((track) => {
+        try {
+          track.stop();
+        } catch (err) {
+          console.error(err);
+        }
+      });
+    }
+    this.app?.connection?.emit('videocall-stream-removed', entry);
+    return entry;
+  }
+
+  registerExternal(mediaStream, fields = {}) {
+    return this.register({
+      source: fields.source ?? null,
+      session: fields.session || 'standalone',
+      availability: 'live',
+      peerId: null,
+      ...fields,
+      kind: 'external',
+      origin: 'application',
+      disposition: 'borrowed',
+      mediaStream
+    });
+  }
+
+  registerComposite(mediaStream, fields = {}) {
+    return this.register({
+      source: fields.source ?? this.mod.publicKey,
+      origin: fields.origin || 'local',
+      session: fields.session || 'broadcast',
+      availability: 'live',
+      peerId: null,
+      kind: 'composite',
+      disposition: fields.disposition === 'borrowed' ? 'borrowed' : 'owned',
+      mediaStream
+    });
+  }
+
+  announce(entry, verb) {
+    this.app?.connection?.emit(`videocall-stream-${verb}`, entry);
+    const mount = callMount(entry);
+    if (!mount || !entry.mediaStream?.getTracks?.().length) {
+      return;
+    }
+    this.app.connection.emit('videocall-stream', mount, entry.mediaStream);
+  }
+
+  adoptTrack(entry, track) {
+    if (!entry.mediaStream) {
+      entry.mediaStream = this.blankStream();
+    }
+    if (!entry.mediaStream.getTracks().includes(track)) {
+      entry.mediaStream.addTrack(track);
+    }
+    entry.availability = 'live';
+    this.announce(entry, 'updated');
+    return entry;
+  }
+
+  ensureRemote(peerId) {
+    if (!peerId) {
+      return null;
+    }
+    const existing = this.find({ kind: 'camera', origin: 'remote', session: 'call', peerId });
+    if (existing) {
+      return existing;
+    }
+    return this.register({
+      source: peerId,
+      kind: 'camera',
+      origin: 'remote',
+      session: 'call',
+      availability: 'pending',
+      disposition: 'borrowed',
+      mediaStream: this.blankStream(),
+      peerId
+    });
+  }
+
+  noteDisplay(source) {
+    const existing = this.find({ kind: 'display', session: 'call' });
+    if (existing && existing.peerId === source) {
+      return existing;
+    }
+    if (existing) {
+      this.remove(existing.id);
+    }
+    return this.register({
+      source,
+      kind: 'display',
+      origin: source === this.mod.publicKey ? 'local' : 'remote',
+      session: 'call',
+      availability: 'pending',
+      disposition: source === this.mod.publicKey ? 'owned' : 'borrowed',
+      mediaStream: this.blankStream(),
+      peerId: source
+    });
+  }
+
+  clearDisplay() {
+    for (const entry of this.list({ kind: 'display', session: 'call' })) {
+      this.remove(entry.id);
+    }
+  }
+
+  clearCallEntries() {
+    for (const entry of this.list({ session: 'call' })) {
+      this.remove(entry.id);
+    }
+  }
+
+  placeLocal(captured) {
+    const existing = this.find({ kind: 'camera', origin: 'local', session: 'call' });
+    const fields = {
+      source: this.mod.publicKey,
+      kind: 'camera',
+      origin: 'local',
+      session: 'call',
+      availability: 'live',
+      disposition: 'owned',
+      mediaStream: captured,
+      peerId: this.mod.publicKey
+    };
+    if (existing) {
+      return this.update(existing.id, fields);
+    }
+    return this.register(fields);
+  }
+
+  attach() {
+    if (this.listening) {
+      return;
+    }
+    this.listening = true;
 
     this.listen('stun-connection-connected', (peerId) => {
       if (!this.active) {
@@ -36,7 +312,7 @@ class StreamManager {
         return;
       }
 
-      let pc = this.mod.stun.peers.get(peerId);
+      let pc = this.mod.peerManager.peers.get(peerId);
       if (pc.firstConnect) {
         let sound = new Audio('/saito/sound/Polite.mp3');
         sound.play();
@@ -54,7 +330,6 @@ class StreamManager {
       });
       this.broadcastTranscriptionStatus();
 
-      // Add connection quality monitoring....
       if (this.monitors[peerId]) {
         clearInterval(this.monitors[peerId]);
         delete this.monitors[peerId];
@@ -63,16 +338,19 @@ class StreamManager {
       let my_stats = {};
 
       this.monitors[peerId] = setInterval(async () => {
-        if (!this.mod.stun.hasConnection(peerId)) {
+        if (this.mod.peerManager.hasConnection && !this.mod.peerManager.hasConnection(peerId)) {
           clearInterval(this.monitors[peerId]);
           delete this.monitors[peerId];
           return;
         }
+        if (typeof pc?.getStats !== 'function') {
+          return;
+        }
 
         let stats = await pc.getStats();
-        if (this.detached) return;
+        if (!this.listening) return;
 
-        stats.forEach((value, key) => {
+        stats.forEach((value) => {
           if (value.type == 'remote-inbound-rtp' && value.kind == 'video') {
             let rP = value.packetsReceived || 0;
             let rL = value.packetsLost || 0;
@@ -82,10 +360,6 @@ class StreamManager {
             my_stats.rtt = value.roundTripTime * 1000 || 0;
           }
         });
-
-        //
-        // Formula based on medium post of pseudocode of VLprojects/webrtc-issue-detector
-        //
 
         let effective_rtt = my_stats.rtt + my_stats.jitter * 2 + 10;
         if (effective_rtt < 160) {
@@ -102,58 +376,38 @@ class StreamManager {
           0.035 * my_stats.rFactor +
           0.000007 * my_stats.rFactor * (my_stats.rFactor - 60) * (100 - my_stats.rFactor);
 
-        /*console.log(`STUN STATS [${peerId}]: `, my_stats);*/
-
         this.mod.CallInterface?.updateConnectionStrength?.(peerId, my_stats.mos);
       }, 1000);
     });
 
-    this.listen('stun-update-connection-message', (peerId, connectionState) => {
+    this.listen('stun-update-connection-message', () => {
       if (this.active) {
         this.broadcastPeerList();
       }
     });
 
     this.listen('stun-track-event', (peerId, event) => {
-      //
-      // Note: This happens twice because audio and video are added separately as mediaTracks...
-      //
-      // Talk sends microphone/camera tracks without a stream association and
-      // screen-share tracks with their presentationStream. A presenter can
-      // still send new call tracks (e.g. when another participant joins).
-      const id =
-        peerId === this.mod.screen_share && event?.streams?.length
-          ? 'presentation'
-          : peerId;
-
-      // Keep one MediaStream object per participant. Replacing it restarts the
-      // video element and leaves a black window until playback begins again.
-      let remoteStream = this.remoteStreams.get(id);
-      if (!remoteStream) {
-        remoteStream = new MediaStream();
-      }
-      if (!remoteStream.getTracks().includes(event.track)) {
-        remoteStream.addTrack(event.track);
-      }
+      // Camera tracks are added with no MediaStream, so they share one entry
+      // per peer. Display tracks arrive associated with the presentation
+      // stream and only while that peer is the current presenter.
+      const display = peerId === this.mod.screen_share && event?.streams?.length;
+      const entry = display
+        ? this.find({ kind: 'display', session: 'call', peerId }) || this.noteDisplay(peerId)
+        : this.find({ kind: 'camera', origin: 'remote', session: 'call', peerId }) ||
+          this.ensureRemote(peerId);
 
       console.info(
         'TALK [stun-track-event]: remote stream (track) added for',
-        id,
+        entry.id,
         event.track,
         event.streams
       );
 
-      this.remoteStreams.set(id, remoteStream);
-      this.app.connection.emit('videocall-stream', id, remoteStream);
+      this.adoptTrack(entry, event.track);
 
       if (!this.active) {
         console.warn('STUN/TALK: Receiving media tracks before in call state');
-        return;
       }
-
-      // Update interface / video element
-      this.mod.CallInterface?.receiveRemoteStream?.(id, remoteStream);
-
     });
 
     this.listen('stun-new-peer-connection', async (publicKey, peerConnection) => {
@@ -164,64 +418,62 @@ class StreamManager {
       console.info('TALK [stun-new-peer-connection]: ' + publicKey);
       console.debug(JSON.parse(JSON.stringify(this.mod.room_obj)));
 
-      if (this.mod.room_obj.call_peers.includes(publicKey)) {
-        // Show status even if capture or signaling fails before media arrives.
-        if (!this.remoteStreams.has(publicKey)) {
-          this.mod.CallInterface?.receiveRemoteStream?.(publicKey, null);
-        }
-        peerConnection.firstConnect = true;
-
-        const currentConnection = () =>
-          !this.detached &&
-          this.active &&
-          this.mod.stun.peers.get(publicKey) === peerConnection &&
-          peerConnection.signalingState !== 'closed';
-        const attach = () => {
-          if (!currentConnection() || !this.localStream) return;
-          try {
-            this.localStream.getTracks().forEach((track) => {
-              // Discovery and connection reuse can notify us more than once.
-              if (peerConnection.getSenders().some((sender) => sender.track === track)) return;
-              console.info(
-                'TALK [stun-new-peer-connection] sending new track to ' + publicKey,
-                track
-              );
-              peerConnection.addTrack(track);
-              this.markOutgoingSender(peerConnection, track, 'camera');
-              this.mod.diagnostics?.record(publicKey, `Attached local ${track.kind} track`);
-            });
-            this.mod.applyCameraProfile?.();
-          } catch (err) {
-            this.mod.diagnostics?.record(publicKey, `Attach media failed: ${err.name}`);
-            console.error(err);
-          }
-        };
-
-        // Attach before the peer connection installs its negotiation handler, so the
-        // first offer includes the camera and microphone instead of only the data channel.
-        if (this.localStream) {
-          attach();
-        } else {
-          this.getLocalMedia().then(attach).catch((err) => {
-            this.mod.diagnostics?.record(publicKey, `Local media unavailable: ${err.name}`);
-          });
-        }
-
-        if (this.presentationStream) {
-          setTimeout(async () => {
-            if (!currentConnection() || !this.presentationStream) return;
-            await this.mod.sendOffChainMessage('screen-share-start', {});
-            if (!currentConnection() || !this.presentationStream) return;
-            this.presentationStream.getTracks().forEach((track) => {
-              if (peerConnection.getSenders().some((sender) => sender.track === track)) return;
-              peerConnection.addTrack(track, this.presentationStream);
-              this.markOutgoingSender(peerConnection, track, 'screen');
-            });
-            this.mod.applyScreenShareBitrate?.();
-          }, 1500);
-        }
+      if (!this.mod.room_obj.call_peers.includes(publicKey)) {
+        return;
       }
 
+      this.ensureRemote(publicKey);
+      peerConnection.firstConnect = true;
+
+      const generation = this.generation;
+      const currentConnection = () =>
+        this.listening &&
+        this.generation === generation &&
+        this.active &&
+        this.mod.peerManager.peers.get(publicKey) === peerConnection &&
+        peerConnection.signalingState !== 'closed';
+      const attach = () => {
+        if (!currentConnection() || !this.localStream) return;
+        try {
+          this.localStream.getTracks().forEach((track) => {
+            if (peerConnection.getSenders().some((sender) => sender.track === track)) return;
+            console.info(
+              'TALK [stun-new-peer-connection] sending new track to ' + publicKey,
+              track
+            );
+            peerConnection.addTrack(track);
+            this.markOutgoingSender(peerConnection, track, 'camera');
+            this.mod.diagnostics?.record(publicKey, `Attached local ${track.kind} track`);
+          });
+          this.mod.applyCameraProfile?.();
+        } catch (err) {
+          this.mod.diagnostics?.record(publicKey, `Attach media failed: ${err.name}`);
+          console.error(err);
+        }
+      };
+
+      if (this.localStream) {
+        attach();
+      } else {
+        this.getLocalMedia().then(attach).catch((err) => {
+          this.mod.diagnostics?.record(publicKey, `Local media unavailable: ${err.name}`);
+        });
+      }
+
+      const presentation = this.find({ kind: 'display', origin: 'local', session: 'call' });
+      if (presentation?.mediaStream) {
+        setTimeout(async () => {
+          if (!currentConnection() || !this.find({ id: presentation.id })) return;
+          await this.mod.sendOffChainMessage('screen-share-start', {});
+          if (!currentConnection() || !presentation.mediaStream) return;
+          presentation.mediaStream.getTracks().forEach((track) => {
+            if (peerConnection.getSenders().some((sender) => sender.track === track)) return;
+            peerConnection.addTrack(track, presentation.mediaStream);
+            this.markOutgoingSender(peerConnection, track, 'screen');
+          });
+          this.mod.applyScreenShareBitrate?.();
+        }, 1500);
+      }
     });
   }
 
@@ -231,8 +483,10 @@ class StreamManager {
   }
 
   detach() {
-    if (this.detached) return;
-    this.detached = true;
+    if (!this.listening && !Object.keys(this.listeners).length) {
+      return;
+    }
+    this.listening = false;
 
     for (const event of Object.keys(this.listeners)) {
       this.app.connection.removeListener(event, this.listeners[event]);
@@ -243,25 +497,43 @@ class StreamManager {
       clearInterval(this.monitors[peerId]);
       delete this.monitors[peerId];
     }
+  }
 
+  // Drop the call session. The manager and non-call entries remain.
+  releaseCall() {
+    this.generation += 1;
+    this.active = false;
+    this.detach();
+    this.clearCallEntries();
+    this.leaving = false;
+    this.videoEnabled = true;
+    this.audioEnabled = true;
+    this.auto_disconnect = false;
+    this.transcribingPeers.clear();
+  }
+
+  destroy() {
+    this.releaseCall();
+    for (const id of [...this.entries.keys()]) {
+      this.remove(id);
+    }
   }
 
   async start() {
-    if (this.detached) return;
-    this.mod.diagnostics?.beginCall?.();
+    this.attach();
     this.active = true;
     this.leaving = false;
+    const generation = this.generation;
+    this.mod.diagnostics?.beginCall?.();
 
     this.app.browser.lockNavigation(this.visibilityChange.bind(this), true);
 
     console.info('TALK [start]', JSON.parse(JSON.stringify(this.mod.room_obj)));
-    this.firstConnect = true;
 
-    // Render the UI component and tell other modules the call has started.
     this.app.connection.emit('videocall-call-started', this.videoEnabled, this.audioEnabled);
 
     await this.getLocalMedia();
-    if (this.detached) return;
+    if (generation !== this.generation || !this.active) return;
 
     this.mod.sendCallEntryTransaction();
 
@@ -272,8 +544,8 @@ class StreamManager {
   }
 
   async toggleVideo() {
-    if (this.detached || !this.active) {
-      if (!this.active) console.warn('TALK [stun-toggle] event when not active...');
+    if (!this.active) {
+      console.warn('TALK [stun-toggle] event when not active...');
       return;
     }
 
@@ -289,16 +561,15 @@ class StreamManager {
           const newLocalStream = await navigator.mediaDevices.getUserMedia(
             this.returnConstraints(true)
           );
-          if (this.detached) {
+          if (!this.active) {
             newLocalStream.getTracks().forEach((track) => track.stop());
             return;
           }
 
           const videoTrack = newLocalStream.getVideoTracks()[0];
           this.localStream.addTrack(videoTrack);
-
-          this.app.connection.emit('videocall-stream', 'local', this.localStream);
-          this.mod.CallInterface?.receiveLocalStream?.(this.localStream);
+          const camera = this.find({ kind: 'camera', origin: 'local', session: 'call' });
+          if (camera) this.announce(camera, 'updated');
 
           await this.attachCameraToPeers(videoTrack);
           this.mod.applyCameraProfile?.();
@@ -318,8 +589,8 @@ class StreamManager {
   }
 
   async toggleAudio() {
-    if (this.detached || !this.active) {
-      if (!this.active) console.warn('TALK [stun-toggle] event when not active...');
+    if (!this.active) {
+      console.warn('TALK [stun-toggle] event when not active...');
       return;
     }
 
@@ -341,37 +612,46 @@ class StreamManager {
   }
 
   async beginShareScreen() {
-    if (this.detached || !this.active) {
+    if (!this.active) {
       return;
     }
 
+    let captured = null;
     try {
-      this.presentationStream = await navigator.mediaDevices.getDisplayMedia({
+      captured = await navigator.mediaDevices.getDisplayMedia({
         video: true,
         audio: true,
         selfBrowserSurface: 'include',
         monitorTypeSurfaces: 'include',
         systemAudio: 'include'
       });
-      if (this.detached) {
-        this.presentationStream.getTracks().forEach((track) => track.stop());
-        this.presentationStream = null;
+      if (!this.active) {
+        captured.getTracks().forEach((track) => track.stop());
         return;
       }
-      this.presentationStream.getVideoTracks()[0].onended = this.endPresentation.bind(this);
+      this.clearDisplay();
+      const entry = this.register({
+        source: this.mod.publicKey,
+        kind: 'display',
+        origin: 'local',
+        session: 'call',
+        availability: 'live',
+        disposition: 'owned',
+        mediaStream: captured,
+        peerId: this.mod.publicKey
+      });
+      captured.getVideoTracks()[0].onended = this.endPresentation.bind(this);
 
       this.mod.screen_share = true;
 
       await this.mod.sendOffChainMessage('screen-share-start', {});
 
-      this.mod.CallInterface?.receiveRemoteStream?.('presentation', this.presentationStream);
+      console.debug('TALK [begin-screen-share]: ', this.mod.room_obj.call_peers, this.mod.peerManager.peers);
 
-      console.debug('TALK [begin-screen-share]: ', this.mod.room_obj.call_peers, this.mod.stun.peers);
-
-      this.mod.stun.peers.forEach((pc, key) => {
+      this.mod.peerManager.peers.forEach((pc, key) => {
         if (this.mod.room_obj.call_peers.includes(key)) {
-          this.presentationStream.getTracks().forEach((track) => {
-            pc.addTrack(track, this.presentationStream);
+          entry.mediaStream.getTracks().forEach((track) => {
+            pc.addTrack(track, entry.mediaStream);
             this.markOutgoingSender(pc, track, 'screen');
           });
         }
@@ -380,13 +660,14 @@ class StreamManager {
 
       this.mod.CallInterface?.setPresenting?.(true);
     } catch (err) {
+      captured?.getTracks?.().forEach((track) => track.stop());
       this.mod.diagnostics?.record('local', `Screen capture failed: ${err.name}`);
       console.error('TALK [begin-screen-share]: Error:', err);
     }
   }
 
   stopShareScreen() {
-    if (this.detached || !this.active) {
+    if (!this.active) {
       return;
     }
     this.endPresentation();
@@ -394,8 +675,6 @@ class StreamManager {
 
   parseSettings(settings) {
     this.videoEnabled = false;
-
-    // Check saved options (maybe redundant...)
 
     if (settings?.video) {
       this.videoEnabled = true;
@@ -438,12 +717,9 @@ class StreamManager {
     this.localStream.getTracks().forEach((track) => {
       track.stop();
     });
-    this.localStream = null;
     this.getLocalMedia();
   }
 
-  // Swap the camera on existing camera senders. Screen senders are left alone.
-  // A peer that connects later still receives the new track from attach().
   async replaceCameraTrack() {
     let captured = null;
     try {
@@ -453,7 +729,7 @@ class StreamManager {
       console.error('TALK [updateInputs]', err);
       return;
     }
-    if (this.detached) {
+    if (!this.active && this.generation) {
       captured.getTracks().forEach((track) => track.stop());
       return;
     }
@@ -465,6 +741,7 @@ class StreamManager {
     }
     captured.getAudioTracks().forEach((track) => track.stop());
 
+    const camera = this.find({ kind: 'camera', origin: 'local', session: 'call' });
     const previous = this.localStream.getVideoTracks()[0] || null;
     if (previous) this.localStream.removeTrack(previous);
     this.localStream.addTrack(videoTrack);
@@ -481,15 +758,14 @@ class StreamManager {
     }
 
     if (previous) previous.stop();
-    this.app.connection.emit('videocall-stream', 'local', this.localStream);
-    this.mod.CallInterface?.receiveLocalStream?.(this.localStream);
+    if (camera) this.announce(camera, 'updated');
     await this.mod.applyCameraProfile?.();
   }
 
   async attachCameraToPeers(videoTrack) {
     const changed = [];
     try {
-      for (const [key, peerConnection] of this.mod.stun.peers) {
+      for (const [key, peerConnection] of this.mod.peerManager.peers) {
         if (!this.mod.room_obj?.call_peers?.includes(key)) continue;
         const cameraSender = peerConnection
           .getSenders()
@@ -546,7 +822,8 @@ class StreamManager {
   }
 
   async getLocalMedia() {
-    if (this.detached) return;
+    const generation = this.generation;
+    if (!this.active) return;
 
     if (this.localStream) {
       let shouldReturn = true;
@@ -556,7 +833,7 @@ class StreamManager {
           shouldReturn = false;
         }
       });
-      if (shouldReturn) return; // If none of the tracks have ended, return early
+      if (shouldReturn) return;
     }
 
     let c = this.returnConstraints();
@@ -564,7 +841,6 @@ class StreamManager {
     console.debug('TALK [getLocalMedia]: ', this.videoSource, this.audioSource, c);
 
     this.mod.diagnostics?.record('local', `Requesting media: video=${!!c.video}, audio=${!!c.audio}`);
-    //Get my local media
     let captured = null;
     try {
       captured = await navigator.mediaDevices.getUserMedia(c);
@@ -583,21 +859,21 @@ class StreamManager {
       }
     }
 
-    if (this.detached) {
+    if (generation !== this.generation || !this.active) {
       captured?.getTracks().forEach((track) => track.stop());
       return;
     }
 
-    this.localStream = captured;
+    this.placeLocal(captured);
 
-    this.localStream.getAudioTracks().forEach((track) => {
+    captured.getAudioTracks().forEach((track) => {
       track.enabled = this.audioEnabled;
     });
 
-    this.mod.diagnostics?.record('local', `Captured ${this.localStream.getAudioTracks().length} audio / ${this.localStream.getVideoTracks().length} video tracks`);
-    //Plug local stream into UI component
-    this.app.connection.emit('videocall-stream', 'local', this.localStream);
-    this.mod.CallInterface?.receiveLocalStream?.(this.localStream);
+    this.mod.diagnostics?.record(
+      'local',
+      `Captured ${captured.getAudioTracks().length} audio / ${captured.getVideoTracks().length} video tracks`
+    );
     await this.mod.applyCameraProfile?.();
   }
 
@@ -607,9 +883,6 @@ class StreamManager {
     if (sender) sender.trackRole = trackRole;
   }
 
-  // Width, height, and frame rate for the live camera track. This is not
-  // returnConstraints(), which only chooses the device for getUserMedia.
-  // Requests are applied one at a time so a newer profile replaces an older one.
   setCameraCapture({ width, height, frameRate }) {
     this.pendingCameraCapture = { width, height, frameRate };
     if (!this.cameraCaptureQueue) {
@@ -676,7 +949,9 @@ class StreamManager {
   removePeer(peer, message = 'left the meeting') {
     this.updateTranscriptionStatus(peer, false);
     this.app.connection.emit('videocall-peer-left', peer);
-    this.remoteStreams.delete(peer);
+    for (const entry of this.list({ kind: 'camera', origin: 'remote', session: 'call', peerId: peer })) {
+      this.remove(entry.id);
+    }
 
     if (this.auto_disconnect) {
       siteMessage(`${this.app.keychain.returnUsername(peer)} hung up`, 1500);
@@ -698,41 +973,30 @@ class StreamManager {
     console.info('TALK [leaveCall]: hanging up...');
     this.app.keychain.addKey(this.mod.room_obj.call_id, { ended: true });
     this.leaving = true;
+    this.generation += 1;
+    this.active = false;
     this.detach();
     const completion = [];
     this.app.connection.emit('videocall-call-ended', completion);
-    // Let transcript recognition drain and saving finish independently of hangup.
     void Promise.allSettled(completion);
 
     this.app.browser.unlockNavigation(this.visibilityChange.bind(this));
 
     this.endPresentation();
 
-    // Close the interface at the same point the old command handler resumed:
-    // after the synchronous hang-up work, while the disconnect transaction is in flight.
     const disconnecting = this.mod.sendCallDisconnectTransaction();
     this.mod.CallInterface?.close?.();
     await disconnecting;
 
-    if (this.localStream) {
-      this.localStream.getTracks().forEach((track) => {
-        track.stop();
-        console.debug('TALK [leaveCall]: stopping track');
-      });
-    }
-
-    this.localStream = null; //My Video Feed
+    this.clearCallEntries();
 
     this.mod.resetCall();
 
-    //
-    // Reset parameters
-    //
     this.videoEnabled = true;
     this.audioEnabled = true;
     this.auto_disconnect = false;
     this.transcribingPeers.clear();
-    this.active = false;
+    this.leaving = false;
 
     console.info('TALK [leaveCall]: successfully disconnected...');
     let sound = new Audio('/saito/sound/Sharp.mp3');
@@ -740,33 +1004,27 @@ class StreamManager {
   }
 
   endPresentation() {
-    if (this.mod.screen_share === true) {
+    const sharing = this.mod.screen_share === true;
+    const local = this.find({ kind: 'display', origin: 'local', session: 'call' });
+    if (local) {
+      this.remove(local.id);
+    }
+
+    if (sharing) {
       console.info('TALK [endPresentation] Screen sharing stopped by user');
-      this.mod.CallInterface?.presentationStopped?.();
+      this.mod.screen_share = null;
       this.mod.CallInterface?.switchLayout?.(
         this.app.options.stun.settings?.layout || this.mod.layout
       );
-      this.mod.screen_share = null;
-
-      //
-      // Reset the button here (not in stopShareScreen) so the
-      // browser's native "Stop sharing" bar resets it too
-      //
       this.mod.CallInterface?.setPresenting?.(false);
-
       this.mod.sendOffChainMessage('screen-share-stop');
-    }
-
-    if (this.presentationStream) {
-      this.presentationStream.getTracks().forEach((track) => track.stop());
-      this.presentationStream = null;
     }
   }
 
   broadcastPeerList() {
     let peer_list = {};
 
-    this.mod.stun.peers.forEach((pc, address) => {
+    this.mod.peerManager.peers.forEach((pc, address) => {
       if (this.mod.room_obj.call_peers.includes(address)) {
         peer_list[address] = pc.connectionState;
       }
@@ -781,3 +1039,4 @@ class StreamManager {
 }
 
 module.exports = StreamManager;
+module.exports.callMount = callMount;

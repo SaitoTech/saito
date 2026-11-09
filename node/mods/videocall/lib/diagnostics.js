@@ -140,7 +140,7 @@ class CallDiagnostics {
     this.samples.set(peer, { pc, reports: current });
     // Stale peer samples are unnecessary once a connection is removed.
     for (const key of this.samples.keys()) {
-      if (!this.mod.stun?.peers.has(key)) this.samples.delete(key);
+      if (!this.mod.peerManager?.peers.has(key)) this.samples.delete(key);
     }
     return lines.length ? lines : ['No RTP media statistics yet'];
   }
@@ -169,7 +169,7 @@ class CallDiagnostics {
                 ? 'local'
                 : this.mod.screen_share
               : id;
-          const pc = this.mod.stun?.peers.get(peer);
+          const pc = this.mod.peerManager?.peers.get(peer);
           const media = box.querySelector('video, audio');
           const lines = [];
           if (peer === 'local') {

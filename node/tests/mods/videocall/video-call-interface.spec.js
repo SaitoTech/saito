@@ -118,4 +118,43 @@ describe('VideoCallInterface', () => {
     });
     expect(document.getElementById('stream_peer-b')).toBeNull();
   });
+
+  test('floating windows follow registry add and remove', () => {
+    const context = app();
+    const ui = new VideoCallInterface(context, mod(), 'windows', document.body);
+    const video = {
+      getTracks: () => [{ kind: 'video' }],
+      getVideoTracks: () => [{ kind: 'video' }],
+      getAudioTracks: () => []
+    };
+    const entry = {
+      id: 's1',
+      source: 'peer-a',
+      kind: 'camera',
+      origin: 'remote',
+      session: 'call',
+      availability: 'live',
+      disposition: 'borrowed',
+      mediaStream: video,
+      peerId: 'peer-a'
+    };
+
+    context.connection.emit('videocall-stream-added', entry);
+    expect(document.getElementById('stream_peer-a')).not.toBeNull();
+    expect(document.querySelector('#stream_peer-a video').srcObject).toBe(video);
+
+    context.connection.emit('videocall-stream-added', {
+      ...entry,
+      id: 'external',
+      kind: 'external',
+      origin: 'application',
+      session: 'standalone',
+      peerId: null
+    });
+    expect(document.querySelectorAll('.videocall-panel')).toHaveLength(1);
+
+    context.connection.emit('videocall-stream-removed', entry);
+    expect(document.getElementById('stream_peer-a').textContent).toMatch(/disconnected/);
+    ui.destroy();
+  });
 });
