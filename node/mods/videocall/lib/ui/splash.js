@@ -1,0 +1,197 @@
+const SaitoOverlay = require('../../../../lib/saito/ui/saito-overlay/saito-overlay.js');
+const StunLaunchTemplate = require('./splash.template.js');
+const CallSetting = require('./overlays/media_preview.js');
+const SaitoLoader = require('../../../../lib/saito/ui/saito-loader/saito-loader.js');
+const CallScheduleJoin = require('./overlays/schedule_list.js');
+const SaitoScheduleWizard = require('../../../../lib/saito/ui/saito-calendar/saito-schedule-wizard.js');
+
+/**
+ *
+ * This is a splash screen for initiating a Saito Video call
+ *
+ **/
+
+class CallLaunch {
+  constructor(app, mod, container = '') {
+    this.app = app;
+    this.mod = mod;
+    this.container = container;
+    this.overlay = new SaitoOverlay(app, mod);
+    this.callSetting = new CallSetting(app, mod);
+    this.mod.registerLauncher(this);
+  }
+
+  closePreview(rerender = false) {
+    this.overlay.remove();
+    if (document.querySelector('.stun-appspace')) {
+      document.querySelector('.stun-appspace').remove();
+    }
+    if (rerender) {
+      this.render();
+    }
+  }
+
+  render() {
+    if (document.querySelector('.stun-appspace')) {
+      return;
+    }
+
+    this.keys = this.app.keychain.returnKeys({ type: 'event', mod: 'videocall' });
+
+    let future = Date.now() + 15 * 60 * 1000;
+    let past = Date.now() - 15 * 60 * 1000;
+
+    if (this.keys.length) {
+      for (let i = this.keys.length - 1; i >= 0; i--) {
+        if (this.keys[i].startTime > future) {
+          this.keys.splice(i, 1);
+          continue;
+        }
+        if (this.keys[i].startTime < past) {
+          this.keys.splice(i, 1);
+        }
+      }
+    }
+
+    if (!this.callScheduleJoin) {
+      this.callScheduleJoin = new CallScheduleJoin(this.app, this.mod, this.keys, this);
+    } else {
+      this.callScheduleJoin.keys = this.keys;
+    }
+
+    if (this.container === '.saito-overlay') {
+      this.overlay.show(StunLaunchTemplate(this.app, this.mod, this.keys), () => {
+        //Stop the video if we close the overlay
+        this.closePreview();
+      });
+    } else if (this.container === 'body') {
+      this.app.browser.addElementToDom(StunLaunchTemplate(this.app, this.mod, this.keys));
+    }
+
+    //
+    // We should be able to toggle our video/audio controls
+    // Do not make it a blocking loader
+    //
+
+    this.attachEvents(this.app, this.mod);
+  }
+
+  attachEvents(app, mod) {
+    if (document.getElementById('createRoom')) {
+      document.getElementById('createRoom').onclick = async (e) => {
+        if (!this.mod.isRelayConnected) {
+          siteMessage('Wait for peer connection');
+          return;
+        }
+
+        //
+        // I am initializing the call
+        //
+        if (!this.mod.room_obj) {
+          await this.mod.createRoom();
+        }
+
+        this.enterCall();
+      };
+    }
+
+    if (document.getElementById('stunx-call-settings')) {
+      document.getElementById('stunx-call-settings').onclick = (e) => {
+        this.callSetting.render();
+      };
+    }
+
+    if (document.getElementById('createScheduleRoom')) {
+      document.getElementById('createScheduleRoom').onclick = async (e) => {
+        const saitoScheduleWizard = new SaitoScheduleWizard(this.app, this.mod);
+        saitoScheduleWizard.callbackAfterSubmit = async (
+          utcStartTime,
+          duration,
+          description = '',
+          title = ''
+        ) => {
+          //Creates public key for clal
+          const call_id = await this.mod.generateRoomId();
+
+          const room_obj = {
+            call_id,
+            scheduled: true,
+            call_peers: [],
+            startTime: utcStartTime,
+            duration,
+            profile: { description }
+          };
+
+          let call_link = this.mod.generateCallLink(room_obj);
+
+          this.app.keychain.addKey(call_id, {
+            identifier: title || 'Video Call',
+            startTime: utcStartTime,
+            duration,
+            description,
+            link: call_link
+          });
+
+          this.closePreview(true); // rerender screen
+
+          let event_link = this.app.browser.createEventInviteLink(
+            this.app.keychain.returnKey(call_id)
+          );
+          await navigator.clipboard.writeText(event_link);
+          siteMessage('Invitation link copied to clipboard', 3500);
+        };
+
+        saitoScheduleWizard.render();
+      };
+    }
+
+    if (document.getElementById('joinScheduleRoom')) {
+      document.getElementById('joinScheduleRoom').onclick = async (e) => {
+        let s = this.callScheduleJoin.render();
+
+        if (!s) {
+          document.getElementById('createRoom').click();
+        }
+      };
+    }
+
+    if (document.querySelector('.stunx-precall-link')) {
+      document.querySelector('.stunx-precall-link').onclick = async (e) => {
+        let mode = e.currentTarget.dataset.id;
+        if (mode == 'join') {
+          await this.mod.copyInviteLink();
+        } else if (mode == 'create') {
+          this.mod.createRoom();
+          await this.mod.copyInviteLink();
+        } else {
+          this.callScheduleJoin.render(false);
+          return;
+        }
+      };
+    }
+  }
+
+  enterCall() {
+    //
+    // Set big screen video as desired call interface
+    //
+
+    this.mod.initializeCallInterface(this.callSetting.returnSettings());
+
+    // Copy link here!
+    if (this.mod.room_obj.host_public_key == this.mod.publicKey) {
+      this.mod.copyInviteLink();
+    }
+
+    //
+    //Close this component
+    //
+    this.closePreview();
+    //
+    // Start the stun call
+    //
+    this.mod.streams?.start();
+  }
+}
+
+module.exports = CallLaunch;

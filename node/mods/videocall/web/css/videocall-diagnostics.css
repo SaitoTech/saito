@@ -1,0 +1,37 @@
+/* Call diagnostics panel, inserted into a VideoBox or audio tile. */
+
+.videocall-diagnostics {
+  position: absolute;
+  top: 0.5rem;
+  left: 0.5rem;
+  right: 0.5rem;
+  max-height: calc(100% - 5rem);
+  overflow: auto;
+  z-index: 5;
+  padding: 0.5rem 0.8rem;
+  background: var(--saito-background);
+  color: var(--saito-foreground);
+  border: 1px solid var(--saito-border);
+  border-radius: var(--saito-radius);
+  text-align: left;
+  user-select: text;
+  font-size: 1.2rem;
+}
+
+.videocall-diagnostics summary {
+  cursor: pointer;
+  padding: 0.4rem 0;
+  font-weight: 600;
+}
+
+.videocall-diagnostics pre {
+  margin: 0.5rem 0;
+  font: 1.1rem/1.5 monospace;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.videocall-diagnostics .videocall-diagnostics-log {
+  max-height: 16rem;
+  overflow-y: auto;
+}

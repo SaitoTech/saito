@@ -81,6 +81,7 @@ global.siteMessage = () => {};
 global.sconfirm = async () => false;
 
 const Stun = require('../../../mods/stun/stun.js');
+const Peers = require('../../../mods/videocall/lib/peers');
 
 function emitter() {
   const handlers = {};
@@ -923,6 +924,7 @@ describe('negotiation watchdog', () => {
         sent.push({ request, data });
       }
     };
+    wrapper.peers = new Peers(wrapper);
     const viewer = new SwarmcastViewer(mod.app, wrapper, {
       publicationId: 'pub',
       broadcaster: POLITE,
@@ -970,6 +972,7 @@ describe('negotiation watchdog', () => {
         late.push(request);
       }
     };
+    failedWrapper.peers = new Peers(failedWrapper);
     const stalled = new SwarmcastViewer(failed.mod.app, failedWrapper, {
       publicationId: 'pub',
       broadcaster: POLITE,

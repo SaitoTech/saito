@@ -1,5 +1,6 @@
 const CallSettingTemplate = require('./media_preview.template');
 const SaitoOverlay = require('../../../../../lib/saito/ui/saito-overlay/saito-overlay.js');
+const StreamCapture = require('../../stream-capture');
 
 /**
  *
@@ -140,6 +141,10 @@ class CallSetting {
     }
   }
 
+  captureClient() {
+    return this.mod.streams?.capture || this.mod.capture || (this.mod.capture = new StreamCapture(this.mod.streams));
+  }
+
   async getUserMedia(videoElement) {
     // check saved preferences...
     let audioConstraints = {
@@ -161,23 +166,26 @@ class CallSetting {
       videoConstraints.video['deviceId'] = this.app.options.stun.settings.preferred_video;
     }
 
-    try {
-      this.audioStream = await navigator.mediaDevices.getUserMedia(audioConstraints);
-      this.audioEnabled = true;
-    } catch (error) {
-      console.error('TALK.callSetting: Error accessing media devices.', error);
+    const preview = await this.captureClient().preview({
+      audio: audioConstraints,
+      video: videoConstraints
+    });
+    if (preview.audioError) {
+      console.error('TALK.callSetting: Error accessing media devices.', preview.audioError);
       salert('Error access media devices, please check your permissions');
+    } else {
+      this.audioStream = preview.audio;
+      this.audioEnabled = true;
     }
-
-    try {
-      this.videoStream = await navigator.mediaDevices.getUserMedia(videoConstraints);
-      videoElement.srcObject = this.videoStream;
-      this.videoEnabled = true;
-    } catch (error) {
-      console.error('TALK.callSetting: Error accessing media devices.', error);
+    if (preview.videoError) {
+      console.error('TALK.callSetting: Error accessing media devices.', preview.videoError);
       this.videoStream = null;
       this.videoEnabled = false;
       salert('Error access camera, using audio only mode ');
+    } else {
+      this.videoStream = preview.video;
+      videoElement.srcObject = this.videoStream;
+      this.videoEnabled = true;
     }
 
     this.attachEvents();
@@ -185,7 +193,7 @@ class CallSetting {
   }
 
   async loadMediaDevices() {
-    const devices = await navigator.mediaDevices.enumerateDevices();
+    const devices = await this.captureClient().enumerate();
     let videoCt = 0;
     let audioCt = 0;
     devices.forEach((device) => {
@@ -222,15 +230,15 @@ class CallSetting {
         ? { video: { deviceId: this.videoInput.value } }
         : { audio: { deviceId: this.audioInput.value } };
 
-    const stream = await navigator.mediaDevices.getUserMedia(constraints);
+    if (kind === 'video' && !this.videoStream) return;
+    const current = kind === 'video' ? this.videoStream : this.audioStream;
+    const stream = await this.captureClient().replaceInput(current, kind, kind === 'video' ? this.videoInput.value : this.audioInput.value);
 
     if (kind === 'video') {
       if (!this.videoStream) return;
-      this.videoStream.getVideoTracks()[0].stop();
       this.videoStream = stream;
       videoElement.srcObject = this.videoStream;
     } else {
-      this.audioStream.getAudioTracks()[0].stop();
       this.audioStream = stream;
     }
   }

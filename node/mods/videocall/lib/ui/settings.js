@@ -1,4 +1,5 @@
 const SettingsTemplate = require('./settings.template');
+const StreamCapture = require('../stream-capture');
 
 class Settings {
   constructor(app, mod, container = '.saito-module-settings') {
@@ -21,7 +22,8 @@ class Settings {
   }
 
   async loadMediaDevices(currentStream) {
-    const devices = await navigator.mediaDevices.enumerateDevices();
+    const capture = this.mod.streams?.capture || new StreamCapture(this.mod.streams);
+    const devices = await capture.enumerate();
     const videoInput = this.root.querySelector('#video-input');
     const audioInput = this.root.querySelector('#audio-input');
 

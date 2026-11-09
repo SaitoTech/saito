@@ -8,7 +8,7 @@ global.document = dom.window.document;
 global.HTMLElement = dom.window.HTMLElement;
 global.MouseEvent = dom.window.MouseEvent;
 
-const Windows = require('../../../mods/videocall/lib/ui/windows');
+const VideoCallPopup = require('../../../mods/videocall/lib/ui/videocall-popup');
 
 function emitter() {
   const handlers = {};
@@ -51,7 +51,7 @@ function harness() {
     }
   };
   const mod = { publicKey: 'local-key', streams: { audioEnabled: true, videoEnabled: true } };
-  const ui = new Windows(app, mod, document.body);
+  const ui = new VideoCallPopup(app, mod, document.body);
   return { app, connection, ui };
 }
 
@@ -77,15 +77,16 @@ describe('call presentation selection', () => {
   );
 
   test('chooses the meeting only when this page is videocall', () => {
-    expect(source).toMatch(/this\.browser_active \? 'meeting' : 'windows'/);
-    expect(source).toMatch(/new VideoCallInterface\(/);
-    expect(source).not.toMatch(/new Meeting\(|new Windows\(/);
+    expect(source).toMatch(/new VideoCallFull\(this\.app, this, true\)/);
+    expect(source).toMatch(/new VideoCallPopup\(this\.app, this, settings\?\.container\)/);
+    expect(source).toMatch(/this\.browser_active/);
+    expect(source).not.toMatch(/VideoCallInterface|new Meeting\(|new Windows\(/);
     expect(source).not.toMatch(/settings\.ui ===|ui === 'custom'|ui === 'large'|ui === 'video'/);
     expect(source).not.toMatch(/CallInterfaceFloat|CallOverlay|call-interface-video|stream-mirror/);
     expect(source).not.toMatch(/removeAllListeners/);
 
     const meeting = fs.readFileSync(
-      path.join(__dirname, '../../../mods/videocall/lib/ui/meeting.template.js'),
+      path.join(__dirname, '../../../mods/videocall/lib/ui/videocall-full.template.js'),
       'utf8'
     );
     expect(meeting).toMatch(/id="stun-chatbox"/);
@@ -93,17 +94,26 @@ describe('call presentation selection', () => {
     expect(meeting).toMatch(/class="counter"/);
 
     const meetingCode = fs.readFileSync(
-      path.join(__dirname, '../../../mods/videocall/lib/ui/meeting.js'),
+      path.join(__dirname, '../../../mods/videocall/lib/ui/videocall-full.js'),
       'utf8'
     );
     expect(meetingCode).toMatch(/removeListener/);
     expect(meetingCode).not.toMatch(/removeAllListeners|StreamMirror/);
     expect(meetingCode).toMatch(/respondTo\('call-actions'/);
     expect(meetingCode).toMatch(/respondTo\('record-actions'/);
+    expect(meetingCode).toMatch(/new VideoBox\(/);
+
+    const popupCode = fs.readFileSync(
+      path.join(__dirname, '../../../mods/videocall/lib/ui/videocall-popup.js'),
+      'utf8'
+    );
+    expect(popupCode).toMatch(/new VideoBox\(/);
+    expect(popupCode).toMatch(/require\('\.\/videobox'\)/);
+    expect(meetingCode).toMatch(/require\('\.\/videobox'\)/);
   });
 });
 
-describe('Windows', () => {
+describe('VideoCallPopup', () => {
   let ui;
 
   afterEach(() => {
@@ -134,6 +144,20 @@ describe('Windows', () => {
     expect(document.getElementById('stream_peer-a').textContent).toMatch(/Connection failed/);
     expect(document.querySelector('#videocall-controls .audio-control')).not.toBeNull();
     expect(document.querySelector('#videocall-controls .disconnect-control')).not.toBeNull();
+    expect(document.querySelector('#videocall-controls .swarmcast-control')).not.toBeNull();
+  });
+
+  test('the embedded Swarmcast control opens the shared overlay', () => {
+    const harnessed = harness();
+    ui = harnessed.ui;
+    let opened = 0;
+    ui.mod.showSwarmcast = () => {
+      opened += 1;
+    };
+    ui.receiveLocalStream(stream(false));
+    document.querySelector('#swarmcast-control').click();
+    expect(opened).toBe(1);
+    expect(ui.mod.swarmcast).toBeUndefined();
   });
 
   test('reconnect keeps the same window, position, and size', () => {
@@ -292,7 +316,6 @@ class DeparturePeerConnection {
 global.navigator = dom.window.navigator;
 
 const Videocall = require('../../../mods/videocall/videocall');
-const VideoCallInterface = require('../../../mods/videocall/lib/ui/video_call_interface');
 const Stun = require('../../../mods/stun/stun');
 
 function departure() {
@@ -367,7 +390,7 @@ function departure() {
     },
     setCameraCapture() {}
   };
-  call.CallInterface = new VideoCallInterface(app, call, 'windows', document.body);
+  call.CallInterface = new VideoCallPopup(app, call, document.body);
   return { app, call, stun };
 }
 
@@ -479,7 +502,7 @@ describe('participant departure', () => {
   test('a repeated departure notification does not repeat the interface update', () => {
     const { call, stun } = departure();
     stun.createPeerConnection('peer-a');
-    const left = jest.spyOn(call.CallInterface.presentation, 'participantLeft');
+    const left = jest.spyOn(call.CallInterface, 'participantLeft');
 
     call.disconnect('peer-a');
     call.disconnect('peer-a');
@@ -496,7 +519,7 @@ describe('participant departure', () => {
     call.CallInterface.receiveRemoteStream('presentation', stream(true));
     const track = { stop: jest.fn() };
     call.streams.presentationStream = { getTracks: () => [track] };
-    const stopped = jest.spyOn(call.CallInterface.presentation, 'presentationStopped');
+    const stopped = jest.spyOn(call.CallInterface, 'presentationStopped');
 
     call.disconnect('peer-a');
 
@@ -511,7 +534,7 @@ describe('participant departure', () => {
     const { call } = departure();
     call.screen_share = 'peer-b';
     call.CallInterface.receiveRemoteStream('presentation', stream(true));
-    const stopped = jest.spyOn(call.CallInterface.presentation, 'presentationStopped');
+    const stopped = jest.spyOn(call.CallInterface, 'presentationStopped');
 
     call.disconnect('peer-a');
 

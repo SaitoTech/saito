@@ -1,6 +1,6 @@
 const { EventEmitter } = require('events');
 const Videocall = require('../../../mods/videocall/videocall');
-const StreamManager = require('../../../mods/videocall/lib/stream_manager');
+const Streams = require('../../../mods/videocall/lib/streams');
 const Stun = require('../../../mods/stun/stun');
 
 function call() {
@@ -186,7 +186,7 @@ describe('camera capture and sender bitrate', () => {
       getVideoTracks: () => [stream.video],
       video: first
     };
-    const manager = Object.create(StreamManager.prototype);
+    const manager = Object.create(Streams.prototype);
     holdCamera(manager, stream);
     manager.mod = { diagnostics: { record: jest.fn() } };
 
@@ -214,7 +214,7 @@ describe('camera capture and sender bitrate', () => {
         throw error;
       })
     };
-    const manager = Object.create(StreamManager.prototype);
+    const manager = Object.create(Streams.prototype);
     holdCamera(manager, { getVideoTracks: () => [track] });
     manager.mod = { diagnostics: { record: jest.fn() } };
 
@@ -283,7 +283,7 @@ describe('outgoing sender roles', () => {
       screen_share: false,
       peerManager: { peers: new Map() }
     };
-    const created = new StreamManager(app, mod, { video: true, audio: true });
+    const created = new Streams(app, mod, { video: true, audio: true });
     return { created, mod, connection };
   }
 
@@ -646,7 +646,7 @@ describe('camera track replacement', () => {
       CallInterface: { receiveLocalStream: jest.fn() },
       sendOffChainMessage: jest.fn(() => Promise.resolve())
     };
-    const created = new StreamManager(app, mod, { video: false, audio: true });
+    const created = new Streams(app, mod, { video: false, audio: true });
     created.active = true;
     return { created, mod };
   }
