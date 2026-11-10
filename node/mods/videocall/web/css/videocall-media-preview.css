@@ -5,9 +5,10 @@
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  width: min(95vw, 860px);
-  padding: 3.2rem;
-  gap: 2.4rem;
+  width: min(95vw, 720px);
+  max-height: calc(100dvh - 4rem);
+  padding: 2rem 2.4rem;
+  gap: 1.2rem;
   border-radius: calc(var(--saito-radius) + 0.15rem);
   background: var(--saito-card);
   background-image: none;
@@ -93,8 +94,10 @@
   border-radius: 0.9rem;
   background-color: var(--stun-noir-surface-low);
   overflow: hidden;
-  width: min(640px, 90vw);
-  min-height: min(480px, 70dvh);
+  width: min(560px, 90vw);
+  aspect-ratio: 4 / 3;
+  max-height: min(32rem, calc(100dvh - 20rem));
+  min-height: 0;
   display: flex;
 }
 
@@ -109,6 +112,11 @@
 }
 
 .videocall-media-settings .chat-settings-preview video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
   transform: rotateY(180deg);
 }
 
@@ -176,24 +184,40 @@
   display: none;
 }
 
+.videocall-media-settings .stun-input-settings.cinematic-inputs:not(:has(.videocall-media-input:not([hidden]))) {
+  display: none;
+}
+
 .videocall-media-settings .stun-input-settings.cinematic-inputs {
   width: 100%;
   border-radius: 0.9rem;
-  padding: 1.2rem;
+  padding: 0.8rem 1.2rem;
   background-color: var(--stun-noir-surface-low);
   border: 1px solid var(--stun-noir-outline);
 }
 
-.videocall-media-settings .stun-input-settings.cinematic-inputs legend {
-  display: block;
-  font-size: 1.2rem;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--stun-noir-accent);
-  margin-bottom: 0.65rem;
+.videocall-media-settings .videocall-media-input {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  width: 100%;
+  margin: 0;
+}
+
+.videocall-media-settings .videocall-media-input[hidden] {
+  display: none;
+}
+
+.videocall-media-settings .videocall-media-input span {
+  flex: 0 0 5.6rem;
+  font-size: 1.4rem;
+  color: var(--saito-foreground);
 }
 
 .videocall-media-settings .stun-input-settings.cinematic-inputs select {
+  flex: 1 1 auto;
+  min-width: 0;
+  width: auto;
   background-color: var(--stun-noir-surface-high);
   color: var(--stun-noir-text);
   border-radius: 0.75rem;

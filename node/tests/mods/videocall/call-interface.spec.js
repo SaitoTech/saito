@@ -160,6 +160,38 @@ describe('VideoCallPopup', () => {
     expect(ui.mod.swarmcast).toBeUndefined();
   });
 
+  test('an expected peer appears as a connecting window and keeps that place', () => {
+    const harnessed = harness();
+    ui = harnessed.ui;
+    const { connection } = harnessed;
+    ui.mod.expected_peers = ['peer-a'];
+
+    ui.receiveLocalStream(stream(true));
+    const local = document.getElementById('stream_local-key');
+    const waiting = document.getElementById('stream_peer-a');
+    expect(waiting).not.toBeNull();
+    expect(waiting.textContent).toMatch(/Connecting\.\.\./);
+    expect(document.querySelectorAll('.videocall-panel')).toHaveLength(2);
+    waiting.style.left = '80px';
+    waiting.style.top = '90px';
+    waiting.style.width = '300px';
+    waiting.style.height = '200px';
+
+    const media = stream(true);
+    ui.receiveRemoteStream('peer-a', media);
+    const panel = document.getElementById('stream_peer-a');
+    expect(panel).toBe(waiting);
+    expect(document.querySelectorAll('.videocall-panel')).toHaveLength(2);
+    expect(panel.style.left).toBe('80px');
+    expect(panel.style.top).toBe('90px');
+    expect(panel.style.width).toBe('300px');
+    expect(panel.style.height).toBe('200px');
+    expect(panel.querySelector('video').srcObject).toBe(media);
+    expect(local.style.left).not.toBe(panel.style.left);
+    connection.emit('stun-update-connection-message', 'peer-a', 'connected');
+    expect(panel.textContent).toMatch(/Waiting for video/);
+  });
+
   test('reconnect keeps the same window, position, and size', () => {
     const harnessed = harness();
     ui = harnessed.ui;

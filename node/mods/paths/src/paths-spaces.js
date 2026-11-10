@@ -775,39 +775,44 @@ if (spacekey == "stanislau") {
     }
     
     if (faction == "central") {
-      if (this.game.state.events.eleventh_army == 1) {
-	let has_eleventh_army = false;
-	let has_other_army = false;
-	let number_cp_corps = 0;
-	for (let z = 0; z < space.units.length; z++) {
-	  if (space.units[z].corps) { number_cp_corps++; }
-	  if (space.units[z].key == "ge_army11") { has_eleventh_army = true; }
-	  if (space.units[z].key != "ge_army11" && space.units[z].army) { has_other_army = true; }
-        }
-        if (has_eleventh_army) { return this.game.spaces[key].units.length - number_cp_corps; }
-        if (has_other_army) { return this.game.spaces[key].units.length - number_cp_corps + 1; }
-      }
-
       if (this.game.state.events.falkenhayn != 1 && this.game.state.events.moltke == 1 && (space.country == "france" || space.country == "belgium")) {
         if (space.units.length == 1) { return 1; }
         if (space.units.length == 2) { return 2; }
         if (space.units.length == 3) { return 3; }
       }
+
+      let cost = total_nationalities;
+
+      // 11th Army and any CP corps in its space count as one nationality.
+      if (this.game.state.events.eleventh_army == 1 && space.units.some((u) => u.key == "ge_army11")) {
+	let folded = {};
+	for (let z = 0; z < space.units.length; z++) {
+	  let ckey = space.units[z].corps ? "GE" : space.units[z].ckey;
+	  folded[ckey] = 1;
+	}
+	cost = Math.min(cost, Object.keys(folded).length);
+      }
+
+      // Up to two GE corps stacked with an AH unit count as that one nationality.
       if (this.game.state.events.sudarmy == 1) {
-	if (countries["GE"] >= 1 && countries["AH"] == 1) {
-	  let sud_army_eligible = false;
-	  let sud_army_excess_cost = 0;
-	  for (let z = 0; z < space.units.length; z++) {
-	    if (space.units[z].ckey == "AH" && space.units[z].army) { sud_army_eligible = true; }
-	    if (space.units[z].ckey == "AH" && space.units[z].corps) { sud_army_excess_cost++; }
-	    if (space.units[z].ckey == "GE" && space.units[z].army) { sud_army_excess_cost++; }
-	    if (space.units[z].ckey != "GE" && space.units[z].ckey != "AH") { sud_army_excess_cost++; }
-	  }
-	  if (sud_army_eligible == true) {
-	    return (1 + sud_army_excess_cost);
-	  }
+	let ge_corps = 0;
+	let ge_armies = 0;
+	let ah_units = 0;
+	let present = {};
+	for (let z = 0; z < space.units.length; z++) {
+	  let u = space.units[z];
+	  present[u.ckey] = 1;
+	  if (u.ckey == "AH") { ah_units++; }
+	  if (u.ckey == "GE" && u.corps) { ge_corps++; }
+	  if (u.ckey == "GE" && u.army) { ge_armies++; }
+	}
+	if (ah_units >= 1 && ge_corps >= 1 && ge_armies + Math.max(0, ge_corps - 2) == 0) {
+	  delete present["GE"];
+	  cost = Math.min(cost, Object.keys(present).length);
 	}
       }
+
+      return cost;
     }
 
     return total_nationalities;

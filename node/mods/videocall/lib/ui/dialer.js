@@ -162,6 +162,7 @@ class Dialer {
           data: this.mod.room_obj
         });
 
+        this.rememberExpected(recipient);
         this.remove(false);
         this.updateMessage('connecting...');
 
@@ -188,6 +189,17 @@ class Dialer {
         this.remove();
       };
     }
+  }
+
+  rememberExpected(keys) {
+    const next = Array.isArray(this.mod.expected_peers) ? this.mod.expected_peers.slice() : [];
+    for (const key of [].concat(keys || [])) {
+      if (key && key !== this.mod.publicKey && !next.includes(key)) {
+        next.push(key);
+      }
+    }
+    this.mod.expected_peers = next;
+    this.mod.CallInterface?.anticipateExpected?.();
   }
 
   remove(closeOverlay = true) {
@@ -336,6 +348,7 @@ class Dialer {
         break;
 
       case 'stun-connection-accepted':
+        this.rememberExpected([sender]);
         this.remove(false);
         this.updateMessage('connecting...');
 

@@ -121,6 +121,9 @@ class VideoCallPopup {
   }
 
   participantKicked(peerId) {
+    if (Array.isArray(this.mod.expected_peers)) {
+      this.mod.expected_peers = this.mod.expected_peers.filter((key) => key !== peerId);
+    }
     this.participantLeft(peerId);
     this.drop(peerId);
   }
@@ -163,9 +166,27 @@ class VideoCallPopup {
         this.drag(el);
         this.resize(el);
       }
+    } else {
+      box.render(stream);
+    }
+    if (!stream && !box.stream && publicKey !== this.mod.publicKey) {
+      box.showStatus('Connecting...');
+    }
+    if (publicKey === this.mod.publicKey) {
+      this.anticipateExpected();
+    }
+  }
+
+  anticipateExpected() {
+    if (!this.panels.has(this.mod.publicKey)) {
       return;
     }
-    box.render(stream);
+    for (const peer of this.mod.expected_peers || []) {
+      if (!peer || peer === this.mod.publicKey || this.panels.has(peer)) {
+        continue;
+      }
+      this.showParticipant(peer, null);
+    }
   }
 
   showPresentation(stream) {

@@ -16,9 +16,14 @@ module.exports = () => {
             </div>
         </div>
         <fieldset class="stun-input-settings cinematic-inputs">
-            <legend class="stun-input-settings-label">Adjust Inputs</legend>
-            <select style="display:none" class="saito-form-select" id="video-input"></select>
-            <select style="display:none" class="saito-form-select" id="audio-input"></select>
+            <label class="videocall-media-input" for="video-input" hidden>
+                <span>Video:</span>
+                <select class="saito-form-select" id="video-input"></select>
+            </label>
+            <label class="videocall-media-input" for="audio-input" hidden>
+                <span>Audio:</span>
+                <select class="saito-form-select" id="audio-input"></select>
+            </label>
             <button style="display:none"  id="test-mic" class="chat-settings-test-mic">Test Microphone</button>
             <div style="display:none"  class="chat-settings-audio-controls">
             <i id="toggle-playback" class="fas fa-play chat-settings-toggle-icon"></i>

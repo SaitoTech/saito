@@ -338,11 +338,9 @@ But if the compilation process encounters it, it can break the browser bundle.
 
 Therefore:
 
-> Do not put arbitrary development files inside a module directory without understanding how the Saito compilation process discovers and handles them.
+> Do not put tests, specs, fixtures, or other Node-only development files inside `node/mods/<module>/`. A `node:` import such as `node:assert/strict` breaks the lite-client bundle.
 
-This is one reason Saito modules have conventional directory structures.
-
-It is also one reason tests and auxiliary development artifacts need to be placed carefully.
+The lite-client compile copies the whole module, and Webpack's dynamic `require(\`../../mods/${mod_path}\`)` includes every copied file. Put module tests in `node/tests/mods/<module-name>/`. The directory-structure guide states this as a placement rule.
 
 ---
 

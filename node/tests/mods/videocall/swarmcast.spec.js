@@ -966,20 +966,23 @@ test('swarmcast settings starts screen capture or selected participants', async 
     { key: 'bob', name: 'Bob' }
   ]);
   assert.equal(html.includes('saito-overlay-form'), true);
-  assert.equal(html.includes('Swarmcast Settings'), true);
+  assert.equal(html.includes('Swarmcast Settings'), false);
   assert.equal(html.includes('What do you want to Swarmcast?'), true);
   assert.equal(html.includes('value="interface" checked'), true);
   assert.equal(html.includes('My Screen'), true);
   assert.equal(html.includes('Video Boxes'), true);
-  assert.equal(html.includes('Include Audio Tracks?'), true);
-  assert.equal(html.includes('value="standard" checked'), true);
-  assert.equal(html.includes('name="swarmcast-audio-member" value="alice" checked'), true);
-  assert.equal(html.includes('name="swarmcast-video-member" value="bob"'), true);
-  assert.equal(html.includes('name="swarmcast-video-member" value="bob" checked'), false);
+  assert.equal(html.includes('name="swarmcast-include-video" checked'), true);
+  assert.equal(html.includes('name="swarmcast-include-audio" checked'), true);
+  assert.equal(html.includes('Include Audio Tracks?'), false);
+  assert.equal(html.includes('value="standard" selected'), true);
+  assert.equal(html.includes('name="swarmcast-audio-member"'), false);
+  assert.equal(html.includes('name="swarmcast-video-member"'), false);
+  assert.equal(html.includes('Open slots'), true);
   assert.equal(html.includes('My screen'), false);
   assert.equal(html.includes('All audio tracks'), false);
   assert.equal(html.includes('swarmcast-setup-cancel'), false);
-  assert.equal(html.includes('<select'), false);
+  assert.equal(html.includes('<select'), true);
+  assert.equal(html.includes('Quality Settings'), false);
 
   const mod = harness();
   placeCameras(mod);
@@ -2793,9 +2796,19 @@ test('the live swarm page reports children, descendants, capacity, and parent re
   assert.equal(markup.includes('child-key-0001'), true);
   assert.equal(markup.includes('Slot 0'), true);
   const html = template([]);
-  assert.equal(html.includes('Direct children'), true);
-  assert.equal(html.includes('Child slots'), true);
-  assert.equal(html.includes('swarmcast-setup-back" hidden'), true);
+  assert.equal(html.includes('Total listeners'), true);
+  assert.equal(html.includes('Address to join'), true);
+  assert.equal(html.includes('My listeners'), true);
+  assert.equal(html.includes('Open slots'), true);
+  assert.equal(html.includes('Filled slots'), false);
+  assert.equal(html.includes('Available slots'), true);
+  assert.equal(html.includes('How many people can join?'), false);
+  assert.equal(html.includes('Network status'), false);
+  assert.equal(html.includes('direct children'), false);
+  assert.equal(html.includes('Change broadcast'), false);
+  assert.equal(html.includes('swarmcast-setup-close'), false);
+  assert.equal(html.includes('swarmcast-setup-back'), false);
+  assert.equal(html.includes('Start Swarmcasting'), true);
 
   const Setup = require('../../../mods/videocall/lib/ui/overlays/swarmcast-setup');
   const setup = new Setup(mod.app, mod);

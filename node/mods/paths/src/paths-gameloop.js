@@ -3702,6 +3702,9 @@ console.log("moving unit: " + JSON.stringify(u));
 	  this.displaySpace("ceubox");
 	  this.displaySpace("aeubox");
 	  this.displaySpace(spacekey);
+	  if (this.loss_overlay) {
+	    this.loss_overlay.refreshPresentedUnits();
+	  }
 	  // Board loss-assignment: shake the specific damaged chit when the opponent assigns.
 	  // Assigner's own echo skips animation (they already refreshed locally).
 	  if (this.loss_overlay && this.loss_overlay.board_mode) {
@@ -3755,6 +3758,9 @@ console.log("moving unit: " + JSON.stringify(u));
 
 	  this.displaySpace(spacekey);
 	  this.shakeSpacekey(spacekey);
+	  if (this.loss_overlay) {
+	    this.loss_overlay.refreshPresentedUnits();
+	  }
 
 	  this.game.queue.splice(qe, 1);
 	  return 1;
@@ -3812,6 +3818,9 @@ console.log("moving unit: " + JSON.stringify(u));
 
 	  this.displaySpace(spacekey);
 	  this.shakeSpacekey(spacekey);
+	  if (this.loss_overlay) {
+	    this.loss_overlay.refreshPresentedUnits();
+	  }
 
 	  this.game.queue.splice(qe, 1);
 	  return 1;

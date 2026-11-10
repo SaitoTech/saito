@@ -18,7 +18,9 @@
   min-width: 3.2rem;
   padding: 0 0.4rem;
   color: var(--saito-foreground);
+  font-family: var(--saito-font-monospace, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace);
   font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum' 1;
 }
 
 .videocall-popup .videocall-control {

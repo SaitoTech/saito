@@ -908,6 +908,7 @@ class Swarmcasts {
       publication.show = nextInterface ? 'interface' : 'participants';
       this.reconcileSelection(selection);
       mod.swarmcastSelection = selection;
+      if (Number.isFinite(Number(config.slots))) publication.setMaxSlots(config.slots);
       this.rememberConfig(selection, config);
       mod.swarmcastLink = link;
       this.reapplyLimits();
@@ -979,12 +980,14 @@ class Swarmcasts {
   mod.swarmcastSelection = selection;
   mod.swarmcastCamera = new Map();
   mod.swarmcastMuted = new Map();
+  const slots = Number(config?.slots);
   mod.swarmcast = new Swarmcast({
     id,
     callId: mod.room_obj.call_id,
     broadcaster: mod.publicKey,
     show: selection.video.mode === 'interface' ? 'interface' : 'participants',
-    mod
+    mod,
+    ...(Number.isFinite(slots) && slots >= 0 ? { max_slots: Math.floor(slots) } : {})
   });
   try {
     if (selection.video.mode === 'interface') await this.captureInterface();
@@ -1012,6 +1015,7 @@ class Swarmcasts {
   }
   mod.swarmcastLink = link;
   this.rememberConfig(selection, config);
+  mod.persistSwarmcastState?.();
   try {
     await navigator.clipboard.writeText(link);
     notify('Broadcast link copied to clipboard', 1500);
@@ -1479,7 +1483,10 @@ class Swarmcasts {
         maxWidth: finiteNumber(quality.maxWidth) || modeLimits.maxWidth,
         maxHeight: finiteNumber(quality.maxHeight) || modeLimits.maxHeight,
         maxFramerate: finiteNumber(quality.maxFramerate) || modeLimits.maxFramerate
-      }
+      },
+      slots: Number.isFinite(Number(config?.slots))
+        ? Math.max(0, Math.floor(Number(config.slots)))
+        : this.mod.swarmcast?.max_slots
     };
   }
 
@@ -1600,13 +1607,12 @@ class Swarmcasts {
     doc.querySelectorAll('.swarmcast-live').forEach((node) => node.remove?.());
     const link = this.mod.swarmcast && this.mod.swarmcastLink;
     if (!link) return;
+    // The link, copy, and settings bar belongs on the full-screen stage.
+    // The embedded call only has floating windows and #videocall-controls.
     const stage = doc.querySelector('#stun-chatbox .video-container-large, #small-audio-chatbox');
-    const popup = doc.querySelector('#videocall-controls');
-    const host = stage || popup;
-    if (!host || typeof host.insertAdjacentHTML !== 'function') return;
+    if (!stage || typeof stage.insertAdjacentHTML !== 'function') return;
     const html = broadcastLinkMarkup(link);
-    if (stage) host.insertAdjacentHTML('beforeend', html);
-    else host.insertAdjacentHTML('beforebegin', html);
+    stage.insertAdjacentHTML('beforeend', html);
     const bar = doc.querySelector('.swarmcast-live');
     const copy = bar?.querySelector('.swarmcast-live-copy');
     const settings = bar?.querySelector('.swarmcast-live-settings');
@@ -1621,14 +1627,16 @@ class Swarmcasts {
     note.textContent = 'Link copied';
   }
 
-  stopBroadcast() {
+  stopBroadcast(options = {}) {
     const mod = this.mod;
+    const notify = options.notify !== false;
 
   const publication = mod.swarmcast;
   if (!publication) return;
   mod.swarmcast = null;
   mod.swarmcastLink = null;
   mod.swarmcastConfig = null;
+  mod.swarmcastNeedsResume = false;
   this.setBroadcasting(false);
   this.clearBroadcastSources();
   const forget = (name, listener) => {
@@ -1646,20 +1654,87 @@ class Swarmcasts {
   mod.swarmcastSelection = null;
   mod.swarmcastCamera = null;
   mod.swarmcastMuted = null;
-  const peers = publication.distributionPeers();
-  for (const peerId of peers) {
-    mod.sendSwarmcast(peerId, 'video-call-swarmcast-ended', {
-      publicationId: publication.id,
-      callId: publication.callId
-    })
-      .catch((err) => console.error(err))
-      .finally(() => {
-        if (!mod.room_obj?.call_peers?.includes(peerId)) {
-          mod.peerManager?.removePeerConnection?.(peerId);
-        }
-      });
+  if (notify) {
+    const peers = [...new Set([...publication.distributionPeers(), ...(publication.former_children || [])])];
+    for (const peerId of peers) {
+      mod.sendSwarmcast(peerId, 'video-call-swarmcast-ended', {
+        publicationId: publication.id,
+        callId: publication.callId,
+        broadcaster: publication.broadcaster
+      })
+        .catch((err) => console.error(err))
+        .finally(() => {
+          if (!mod.room_obj?.call_peers?.includes(peerId)) {
+            mod.peerManager?.removePeerConnection?.(peerId);
+          }
+        });
+    }
   }
   publication.clearChildren();
+  publication.releaseTimers?.();
+  mod.clearSwarmcastRecovery?.();
+  this.hideDeparture();
+  }
+
+  showResume() {
+    const doc = globalThis.document;
+    const mod = this.mod;
+    if (!doc || typeof doc.createElement !== 'function' || !mod.swarmcastNeedsResume) return;
+    if (doc.querySelector('.swarmcast-resume')) return;
+    const curtain = doc.createElement('div');
+    curtain.className = 'swarmcast-depart swarmcast-resume';
+    curtain.innerHTML = '<div class="swarmcast-depart-card"><p>Restoring screen capture</p><button type="button">Resume</button></div>';
+    curtain.querySelector('button').onclick = async () => {
+      try {
+        await this.captureInterface();
+        this.pushBroadcast();
+        mod.swarmcastNeedsResume = false;
+        curtain.remove();
+      } catch (err) {
+        console.error(err);
+      }
+    };
+    doc.body?.appendChild(curtain);
+  }
+
+  showDeparture(text) {
+    const doc = globalThis.document;
+    if (!doc || typeof doc.createElement !== 'function') return;
+    let curtain = doc.querySelector('.swarmcast-depart');
+    if (!curtain) {
+      curtain = doc.createElement('div');
+      curtain.className = 'swarmcast-depart';
+      curtain.innerHTML = '<div class="swarmcast-depart-card"><div class="swarmcast-depart-spin"></div><p></p></div>';
+      doc.body?.appendChild(curtain);
+    }
+    const line = curtain.querySelector('p');
+    if (line) line.textContent = text;
+  }
+
+  hideDeparture() {
+    globalThis.document?.querySelector?.('.swarmcast-depart')?.remove?.();
+  }
+
+  async depart() {
+    const publication = this.mod.swarmcast;
+    if (!publication || publication.departing) return;
+    publication.departing = true;
+    const pause = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+    const step = 400;
+    try {
+      this.showDeparture('Notifying peers…');
+      const notice = publication.announceDeparture();
+      await pause(step);
+      this.showDeparture('Notifying children…');
+      await notice;
+      await pause(step);
+      this.showDeparture('Allowing the network to rebalance…');
+      await pause(Math.max(0, Swarmcast.DEPARTURE_GRACE - step * 2));
+      this.showDeparture('Exiting…');
+    } finally {
+      if (this.mod.swarmcast === publication) this.stopBroadcast({ notify: false });
+      this.hideDeparture();
+    }
   }
 
   setBroadcasting(active) {
@@ -1776,15 +1851,33 @@ class Swarmcasts {
     return;
   }
   if (txmsg.request === 'video-call-swarmcast-tracks') {
-    if (mod.swarmcast && (from === mod.swarmcast.parent || from === mod.swarmcast.pending_parent)) {
+    if (mod.swarmcast && (from === mod.swarmcast.parent || from === mod.swarmcast.pending_parent || mod.swarmcast.upstreams?.has(from))) {
       mod.swarmcast.mod = mod;
-      mod.swarmcast.receiveParentTracks(data);
+      mod.swarmcast.receiveParentTracks(data, from);
     }
     mod.swarmcastView?.receiveTracks(data);
     return;
   }
+  if (txmsg.request === 'video-call-swarmcast-parent-available') {
+    if (mod.swarmcast) {
+      mod.swarmcast.mod = mod;
+      mod.swarmcast.receiveParentAvailable(data, from);
+    }
+    return;
+  }
+  if (txmsg.request === 'video-call-swarmcast-parent-leaving') {
+    if (mod.swarmcast) {
+      mod.swarmcast.mod = mod;
+      mod.swarmcast.receiveParentLeaving(data, from);
+    }
+    return;
+  }
   if (txmsg.request === 'video-call-swarmcast-ended') {
     mod.swarmcastView?.receiveEnded(data);
+    if (mod.swarmcast && data?.publicationId === mod.swarmcast.id && !mod.swarmcast.ended) {
+      mod.swarmcast.receivePublicationEnded(data);
+      this.stopBroadcast({ notify: false });
+    }
   }
   }
 
@@ -1856,9 +1949,43 @@ function normalizeSelection(config) {
   return { video, audio };
 }
 
+function recoveryBlocked(record, tabId, now = Date.now()) {
+  if (!record || record.status !== 'live') return false;
+  if (!record.owner || !tabId || record.owner === tabId) return false;
+  return now - Number(record.heartbeat || 0) < 15000;
+}
+
+function restorePublication(mod, record) {
+  if (!mod || !record || record.status !== 'live' || !record.publication_id) return null;
+  const tab = typeof mod.recoveryTabId === 'function' ? mod.recoveryTabId() : record.owner;
+  if (recoveryBlocked(record, tab)) return null;
+  const slots = Number(record.max_slots);
+  const pub = new Swarmcast({
+    id: record.publication_id,
+    callId: record.call_id,
+    broadcaster: record.broadcaster,
+    show: record.show,
+    mod,
+    ...(Number.isFinite(slots) && slots >= 0 ? { max_slots: slots } : {})
+  });
+  pub.former_children = Array.isArray(record.former_children) ? record.former_children.slice() : [];
+  if (record.active_parent) {
+    pub.parent = record.active_parent;
+    pub.noteUpstream(record.active_parent, { link: 'down' });
+  }
+  mod.swarmcast = pub;
+  mod.swarmcastLink = record.link || '';
+  mod.swarmcastConfig = record.config || null;
+  mod.swarmcastNeedsResume = record.show === 'interface' && record.broadcaster === mod.publicKey;
+  bindSwarmcastEvents(pub);
+  return pub;
+}
+
 module.exports = {
   Swarmcast,
   Swarmcasts,
+  recoveryBlocked,
+  restorePublication,
   syncSenders,
   trackMap,
   pipelineTrace,

@@ -326,9 +326,9 @@
       //
       if (space.oos == 1 && space.units.length > 0) { 
 	if (this.returnPowerOfUnit(space.units[0]) == "central") {
-          html += `<img src="/paths/img/tiles/oos_central.png" class="trench-tile oos-tile" />`;
+          html += `<img src="/paths/img/tiles/oos_central.png" class="oos-tile" />`;
 	} else {
-          html += `<img src="/paths/img/tiles/oos_allies.png" class="trench-tile oos-tile" />`;
+          html += `<img src="/paths/img/tiles/oos_allies.png" class="oos-tile" />`;
 	}
       } else {
 
@@ -346,6 +346,11 @@
 //        if (control == "central") { el.classList.add("central-highlight"); }
 //        if (control == "neutral") { el.classList.add("neutral-highlight"); }
 	el.innerHTML = html;
+	if (space.oos == 1 && space.units.length > 0) {
+	  el.style.setProperty("--oos-step", String(space.units.length));
+	} else {
+	  el.style.removeProperty("--oos-step");
+	}
 	el.classList.remove("opponent-move", "opponent-attack");
 	// Normal renders must not keep leftover loss-assignment presentation.
 	if (!(this.loss_overlay && this.loss_overlay.board_mode) && el.classList.contains("loss-assignment-open")) {
@@ -402,7 +407,7 @@ console.log("err: " + err);
     el.style.removeProperty("--stack-top");
     el.style.removeProperty("--stack-height");
     el.style.removeProperty("--stack-width");
-    el.querySelectorAll(":scope > .army-tile").forEach((tile) => {
+    el.querySelectorAll(":scope > .army-tile, :scope > .oos-tile").forEach((tile) => {
       tile.style.top = "";
       tile.style.left = "";
       tile.style.width = "";
@@ -411,10 +416,19 @@ console.log("err: " + err);
     });
   }
 
+  // Out-of-supply leads the column. Unit chits follow in their drawn order.
+  chitsInStackOrder(el) {
+    if (!el) { return []; }
+    let units = Array.from(el.querySelectorAll(":scope > .army-tile"));
+    let oos = el.querySelector(":scope > .oos-tile");
+    if (oos) { return [oos].concat(units); }
+    return units;
+  }
+
   layoutSpaceStack(spacekey) {
     let el = document.getElementById(spacekey);
     if (!el) { return; }
-    let tiles = el.querySelectorAll(":scope > .army-tile");
+    let tiles = this.chitsInStackOrder(el);
     if (tiles.length < 2) { return; }
 
     let size = el.offsetWidth || 90;

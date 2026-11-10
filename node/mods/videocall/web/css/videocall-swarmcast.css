@@ -250,9 +250,6 @@
   right: 1rem;
   bottom: 1rem;
   z-index: 6;
-}
-
-.swarmcast-live {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -557,4 +554,48 @@
   max-height: none;
   left: auto;
   top: auto;
+}
+
+.swarmcast-depart {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.55);
+}
+
+.swarmcast-depart-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  min-width: 16rem;
+  padding: 1.6rem 2rem;
+  color: var(--saito-foreground);
+  background: var(--saito-popover);
+  border: 1px solid var(--saito-border);
+  border-radius: 0.8rem;
+}
+
+.swarmcast-depart-spin {
+  width: 1.6rem;
+  height: 1.6rem;
+  border: 2px solid var(--saito-border);
+  border-top-color: var(--saito-foreground);
+  border-radius: 50%;
+  animation: swarmcast-depart-spin 0.8s linear infinite;
+}
+
+.swarmcast-depart-card p {
+  margin: 0;
+}
+
+.swarmcast-depart-card button {
+  padding: 0.4rem 1rem;
+}
+
+@keyframes swarmcast-depart-spin {
+  to { transform: rotate(360deg); }
 }

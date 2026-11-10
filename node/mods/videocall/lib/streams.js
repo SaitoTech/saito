@@ -975,7 +975,11 @@ class Streams {
       this.remove(entry.id);
     }
 
-    if (this.auto_disconnect) {
+    // call_peers lists the other participants, and disconnect() has already
+    // removed the person who just left. An empty list means this was a
+    // two-person call, so the remaining participant hangs up too.
+    const remaining = this.mod.room_obj?.call_peers?.length || 0;
+    if (remaining === 0) {
       siteMessage(`${this.app.keychain.returnUsername(peer)} hung up`, 1500);
       setTimeout(() => {
         this.leaveCall();
@@ -993,7 +997,13 @@ class Streams {
   async leaveCall() {
     if (this.leaving || !this.active) return;
     console.info('TALK [leaveCall]: hanging up...');
-    this.app.keychain.addKey(this.mod.room_obj.call_id, { ended: true });
+    if (this.mod.swarmcast && this.mod.departBroadcast) {
+      await this.mod.departBroadcast();
+    }
+
+    const callId = this.mod.room_obj?.call_id;
+    this.mod.clearPersistedCall?.(callId);
+    if (callId) this.app.keychain.addKey(callId, { ended: true });
     this.leaving = true;
     this.generation += 1;
     this.active = false;
@@ -1056,7 +1066,8 @@ class Streams {
   }
 
   visibilityChange() {
-    this.leaveCall();
+    this.mod.persistSwarmcastState?.();
+    this.mod.touchCallSession?.();
   }
 }
 

@@ -1,7 +1,7 @@
 const assert = require('node:assert/strict');
 const { EventEmitter } = require('events');
-const Swarmcast = require('./Swarmcast');
-const { bindSwarmcastEvents, unbindSwarmcastEvents } = require('./events');
+const Swarmcast = require('../../../mods/videocall/lib/swarmcast/Swarmcast');
+const { bindSwarmcastEvents, unbindSwarmcastEvents } = require('../../../mods/videocall/lib/swarmcast/events');
 
 function fakePc(extra = {}) {
   const pc = {
@@ -87,7 +87,13 @@ function wire(nodes) {
       } else if (request === 'video-call-swarmcast-subscribe') {
         target.acceptBroadcastSubscribe(pub.selfKey(), data);
       } else if (request === 'video-call-swarmcast-tracks') {
-        target.receiveParentTracks(data);
+        target.receiveParentTracks(data, pub.selfKey());
+      } else if (request === 'video-call-swarmcast-parent-available') {
+        target.receiveParentAvailable(data, pub.selfKey());
+      } else if (request === 'video-call-swarmcast-parent-leaving') {
+        target.receiveParentLeaving(data, pub.selfKey());
+      } else if (request === 'video-call-swarmcast-ended') {
+        target.receivePublicationEnded(data);
       }
     };
   }
@@ -433,7 +439,8 @@ test('replacement subscribes, clears old mids, and forwards the new track map do
   openChannel(relay, 'B');
   relay.onParentLink('B', 'channel');
   assert.equal(relay.parent, 'B');
-  assert.equal(relay.parent_mids.size, 0);
+  const carried = relay.parent_mids.get('cam-1') || [];
+  assert.notEqual(carried[0]?.mid, '9');
   assert.equal(requests(relay, 'video-call-swarmcast-subscribe', 'B').length, 1);
   assert.equal(relay.mod.peerManager.removed.includes('C'), true);
   assert.equal(relay.mod.peerManager.peers.has('B'), true);
@@ -477,4 +484,358 @@ test('an upward report does not revive a disconnected child or treat unknown cap
   provider.childFor('D').free_slots = 1;
   assert.equal(provider.candidateIndex(), 1);
   provider.releaseTimers();
+});
+
+function liveFeed(pub, parent, depth) {
+  pub.parent = parent;
+  pub.pending_parent = parent;
+  pub.depth = depth;
+  pub.parent_status = 'online';
+  pub.parent_link = 'forwarding';
+  pub.parent_mids = new Map([['cam', [{ mid: '1', kind: 'video' }]]]);
+  pub.noteUpstream(parent, { depth, usable: true, link: 'forwarding', mids: pub.parent_mids });
+}
+
+test('a returning parent is joined without dropping the live feed, then adopted when it is closer', async () => {
+  const child = node('D', { broadcaster: 'A' });
+  const returned = node('B', { broadcaster: 'A' });
+  wire([child, returned]);
+  liveFeed(child, 'C', 4);
+  child.mod.peerManager.peers.set('C', fakePc({ connectionState: 'connected', iceConnectionState: 'connected', dc: { readyState: 'open' } }));
+  returned.depth = 1;
+  returned.tree_path = 'A/B';
+  returned.parent = 'A';
+  returned.parent_link = 'forwarding';
+  returned.parent_mids = new Map([['cam', [{ mid: '1', kind: 'video' }]]]);
+  returned.former_children = ['D'];
+  returned.notifyFormerChildren();
+  assert.equal(requests(returned, 'video-call-swarmcast-parent-available', 'D').length, 1);
+  assert.equal(requests(child, 'video-call-swarmcast-join-request', 'B').length, 1);
+  assert.equal(child.parent, 'C');
+  assert.equal(child.parent_mids.get('cam')[0].mid, '1');
+  openChannel(returned, 'D');
+  returned.onChildLink('D', 'channel');
+  openChannel(child, 'B');
+  child.onParentLink('B', 'channel');
+  assert.equal(child.parent, 'C');
+  assert.equal(child.mod.peerManager.removed.includes('C'), false);
+  const pc = child.mod.peerManager.peers.get('B');
+  pc.getTransceivers = () => [{ mid: '7', receiver: { track: { kind: 'video', readyState: 'live', id: 'b' } } }];
+  child.receiveParentTracks({ publicationId: 'pub', outputs: [{ id: 'cam', mids: [{ mid: '7', kind: 'video' }] }] }, 'B');
+  assert.equal(child.parent, 'B');
+  assert.equal(child.depth, 2);
+  assert.equal(child.mod.peerManager.removed.includes('C'), true);
+  child.releaseTimers();
+  returned.releaseTimers();
+});
+
+test('a second upstream update does not replace the active topology', () => {
+  const child = node('D', { broadcaster: 'A' });
+  liveFeed(child, 'C', 3);
+  child.tree_path = 'A/C/D';
+  child.pending_parent = 'B';
+  child.receiveSwarmUpdate({
+    direction: 'down',
+    publicationId: 'pub',
+    public_key: 'B',
+    parent: 'A',
+    tree_path: 'A/B',
+    depth: 1,
+    children: [{ public_key: 'Z' }]
+  }, 'B');
+  assert.equal(child.tree_path, 'A/C/D');
+  assert.equal(child.parent, 'C');
+  assert.equal(child.upstreams.get('B').depth, 2);
+  assert.equal(child.upstreams.get('B').tree_path, 'A/B');
+  child.releaseTimers();
+});
+
+test('a returning parent is ignored when it is not closer than the live parent', () => {
+  const child = node('D', { broadcaster: 'A' });
+  liveFeed(child, 'C', 2);
+  child.receiveParentAvailable({
+    publicationId: 'pub',
+    broadcaster: 'A',
+    tree_path: 'A/B',
+    depth: 2,
+    free_slots: 2
+  }, 'B');
+  assert.equal(child.mod.sent.length, 0);
+  assert.equal(child.parent, 'C');
+  child.releaseTimers();
+});
+
+test('a candidate that never produces tracks leaves the live parent in place', () => {
+  const child = node('D', { broadcaster: 'A' });
+  liveFeed(child, 'C', 3);
+  child.attempt_token = 1;
+  child.pending_parent = 'B';
+  child.recovering = true;
+  child.receiveJoinResponse({ state: 'unavailable', contact: 'B', reason: 'full' });
+  assert.equal(child.parent, 'C');
+  assert.equal(child.parent_link, 'forwarding');
+  assert.equal(child.parent_mids.size, 1);
+  assert.equal(child.recovering, false);
+  child.releaseTimers();
+});
+
+test('a parent with no free slots is not joined while the current feed is live', () => {
+  const child = node('D', { broadcaster: 'A' });
+  liveFeed(child, 'C', 4);
+  child.receiveParentAvailable({
+    publicationId: 'pub',
+    broadcaster: 'A',
+    depth: 1,
+    free_slots: 0,
+    tree_path: 'A/B'
+  }, 'B');
+  assert.equal(requests(child, 'video-call-swarmcast-join-request').length, 0);
+  assert.equal(child.parent, 'C');
+  child.releaseTimers();
+});
+
+test('a missed return notice leaves the child on its current parent', () => {
+  const child = node('D', { broadcaster: 'A' });
+  liveFeed(child, 'C', 3);
+  assert.equal(child.id, 'pub');
+  assert.equal(child.parent, 'C');
+  assert.equal(child.mod.sent.length, 0);
+  child.releaseTimers();
+});
+
+test('an intermediate departure notifies children and is not a publication end', async () => {
+  const parent = node('B', { broadcaster: 'A' });
+  parent.addChild('D');
+  parent.former_children = ['D', 'E'];
+  const notice = await parent.announceDeparture();
+  assert.equal(notice.root, false);
+  assert.equal(notice.request, 'video-call-swarmcast-parent-leaving');
+  assert.equal(requests(parent, 'video-call-swarmcast-ended').length, 0);
+  assert.equal(requests(parent, 'video-call-swarmcast-parent-leaving').map((item) => item.to).sort().join(','), 'D,E');
+  parent.releaseTimers();
+});
+
+test('a leaving parent keeps the child feed up while the child looks elsewhere', () => {
+  const child = node('D', { broadcaster: 'A' });
+  const origin = node('A');
+  wire([child, origin]);
+  liveFeed(child, 'B', 2);
+  child.grandparent = 'A';
+  child.siblings = [{ public_key: 'D', status: 'online', free_slots: 1 }];
+  child.receiveParentLeaving({ publicationId: 'pub', broadcaster: 'A' }, 'B');
+  assert.equal(child.parent, 'B');
+  assert.equal(child.parent_link, 'forwarding');
+  assert.equal(requests(child, 'video-call-swarmcast-join-request')[0].to, 'A');
+  assert.equal(requests(child, 'video-call-swarmcast-ended').length, 0);
+  child.releaseTimers();
+  origin.releaseTimers();
+});
+
+test('the broadcaster ending the publication tells current and former children', async () => {
+  const origin = node('A');
+  origin.addChild('B');
+  origin.former_children = ['B', 'D'];
+  const notice = await origin.announceDeparture();
+  assert.equal(notice.root, true);
+  assert.equal(notice.request, 'video-call-swarmcast-ended');
+  const relay = node('B', { broadcaster: 'A' });
+  relay.addChild('D');
+  wire([origin, relay]);
+  relay.receivePublicationEnded({ publicationId: 'pub', callId: 'room-1', broadcaster: 'A' });
+  assert.equal(requests(relay, 'video-call-swarmcast-ended', 'D').length, 1);
+  assert.equal(relay.ended, true);
+  origin.releaseTimers();
+  relay.releaseTimers();
+});
+
+test('departure waits a bounded grace and then clears the publication even if nobody answers', async () => {
+  jest.useFakeTimers();
+  const previous = global.document;
+  const lines = [];
+  global.document = {
+    querySelector() {
+      return null;
+    },
+    createElement() {
+      const node = { className: '', innerHTML: '', text: '' };
+      node.querySelector = () => ({
+        set textContent(value) {
+          node.text = value;
+          lines.push(value);
+        }
+      });
+      return node;
+    },
+    body: { appendChild() {} }
+  };
+  try {
+    const { Swarmcasts } = require('../../../mods/videocall/lib/swarmcast');
+    const parent = node('B', { broadcaster: 'A' });
+    parent.addChild('D');
+    parent.mod.swarmcast = parent;
+    const casts = new Swarmcasts(parent.mod);
+    const finished = casts.depart();
+    await Promise.resolve();
+    await Promise.resolve();
+    assert.equal(requests(parent, 'video-call-swarmcast-parent-leaving', 'D').length, 1);
+    assert.equal(requests(parent, 'video-call-swarmcast-ended').length, 0);
+    assert.equal(parent.mod.swarmcast, parent);
+    for (let step = 0; step < Swarmcast.DEPARTURE_GRACE; step += 400) {
+      jest.advanceTimersByTime(400);
+      await Promise.resolve();
+      await Promise.resolve();
+    }
+    await finished;
+    assert.equal(parent.mod.swarmcast, null);
+    assert.equal(requests(parent, 'video-call-swarmcast-ended').length, 0);
+    assert.deepEqual(lines, [
+      'Notifying peers…',
+      'Notifying children…',
+      'Allowing the network to rebalance…',
+      'Exiting…'
+    ]);
+  } finally {
+    global.document = previous;
+    jest.useRealTimers();
+  }
+});
+
+test('refresh restores the same publication instead of minting a new one', () => {
+  const { restorePublication } = require('../../../mods/videocall/lib/swarmcast');
+  const mod = { publicKey: 'B', recoveryTabId: () => 'tab-1' };
+  const pub = restorePublication(mod, {
+    status: 'live',
+    publication_id: 'same-id',
+    call_id: 'room-1',
+    broadcaster: 'A',
+    show: 'participants',
+    active_parent: 'A',
+    former_children: ['D'],
+    owner: 'tab-1',
+    heartbeat: Date.now()
+  });
+  assert.equal(pub.id, 'same-id');
+  assert.equal(pub.parent, 'A');
+  assert.deepEqual(pub.former_children, ['D']);
+  assert.equal(mod.swarmcastNeedsResume, false);
+  pub.releaseTimers();
+});
+
+test('screen capture restore asks for resume instead of recapturing by itself', () => {
+  const { restorePublication } = require('../../../mods/videocall/lib/swarmcast');
+  const mod = { publicKey: 'A', recoveryTabId: () => 'tab-1' };
+  const pub = restorePublication(mod, {
+    status: 'live',
+    publication_id: 'same-id',
+    call_id: 'room-1',
+    broadcaster: 'A',
+    show: 'interface',
+    owner: 'tab-1',
+    heartbeat: Date.now()
+  });
+  assert.equal(mod.swarmcastNeedsResume, true);
+  assert.equal(pub.id, 'same-id');
+  pub.releaseTimers();
+});
+
+test('call membership does not block a swarmcast join', async () => {
+  const provider = node('B', { broadcaster: 'A' });
+  provider.mod.room_obj.call_peers = ['D'];
+  await provider.onConnectionRequest('D', { publicationId: 'pub', callId: 'room-1' });
+  assert.equal(provider.childFor('D').status, 'pending');
+  assert.equal(requests(provider, 'video-call-swarmcast-join-response')[0].data.state, 'ready');
+  const pc = fakePc();
+  provider.mod.peerManager.peers.set('D', pc);
+  provider.acceptBroadcastSubscribe('D', { publicationId: 'pub', outputIds: [] });
+  assert.equal(provider.childFor('D').link_state, 'subscribed');
+  provider.releaseTimers();
+});
+
+test('a second tab does not restore a publication the first tab still owns', () => {
+  const { recoveryBlocked, restorePublication } = require('../../../mods/videocall/lib/swarmcast');
+  const record = {
+    status: 'live',
+    publication_id: 'same-id',
+    owner: 'tab-1',
+    heartbeat: Date.now(),
+    broadcaster: 'A',
+    call_id: 'room-1'
+  };
+  assert.equal(recoveryBlocked(record, 'tab-2'), true);
+  assert.equal(recoveryBlocked(record, 'tab-1'), false);
+  const mod = { publicKey: 'D', recoveryTabId: () => 'tab-2' };
+  assert.equal(restorePublication(mod, record), null);
+  assert.equal(mod.swarmcast, undefined);
+});
+
+test('a join that would cycle is refused', async () => {
+  const provider = node('B', { broadcaster: 'A' });
+  provider.tree_path = 'A/D/B';
+  await provider.onConnectionRequest('D', { publicationId: 'pub', tree_path: 'A/D' });
+  assert.equal(provider.childFor('D'), null);
+  assert.equal(requests(provider, 'video-call-swarmcast-join-response')[0].data.reason, 'cycle');
+  provider.releaseTimers();
+});
+
+test('a standby upstream stays connected without a second media subscription', () => {
+  const child = node('D', { broadcaster: 'A' });
+  const standby = node('B', { broadcaster: 'A' });
+  wire([child, standby]);
+  liveFeed(child, 'C', 3);
+  child.tree_path = 'A/C/D';
+  child.mod.peerManager.peers.set('C', fakePc({ connectionState: 'connected', iceConnectionState: 'connected', dc: { readyState: 'open' } }));
+  child.mod.peerManager.peers.set('B', fakePc({ connectionState: 'connected', iceConnectionState: 'connected', dc: { readyState: 'open' } }));
+  child.pending_parent = 'B';
+  child.recovering = true;
+  standby.addChild('D', 'pending');
+  const standbyChild = standby.childFor('D');
+  standbyChild.status = 'online';
+  standbyChild.link_state = 'channel';
+  child.onParentLink('B', 'channel');
+  assert.equal(requests(child, 'video-call-swarmcast-subscribe', 'B').length, 0);
+  assert.equal(requests(standby, 'video-call-swarmcast-tracks', 'D').length, 0);
+  assert.equal(child.parent, 'C');
+  assert.equal(standby.childFor('D').status, 'online');
+
+  child.receiveSwarmUpdate({
+    direction: 'down',
+    publicationId: 'pub',
+    public_key: 'B',
+    parent: 'A',
+    tree_path: 'A/B',
+    depth: 1,
+    children: []
+  }, 'B');
+  assert.equal(requests(child, 'video-call-swarmcast-subscribe', 'B').length, 1);
+  assert.equal(child.parent, 'C');
+  assert.equal(child.mod.peerManager.removed.includes('C'), false);
+  const pc = child.mod.peerManager.peers.get('B');
+  pc.getTransceivers = () => [{ mid: '7', receiver: { track: { kind: 'video', readyState: 'live', id: 'b' } } }];
+  child.receiveParentTracks({ publicationId: 'pub', outputs: [{ id: 'cam', mids: [{ mid: '7', kind: 'video' }] }] }, 'B');
+  assert.equal(child.parent, 'B');
+  assert.equal(child.mod.peerManager.removed.includes('C'), true);
+  child.releaseTimers();
+  standby.releaseTimers();
+});
+
+test('a failed active parent starts media on the connected standby without a new join', () => {
+  const child = node('D', { broadcaster: 'A' });
+  const standby = node('B', { broadcaster: 'A' });
+  wire([child, standby]);
+  liveFeed(child, 'C', 3);
+  child.pending_parent = 'B';
+  child.recovering = true;
+  child.noteUpstream('B', { link: 'channel', depth: 2 });
+  child.mod.peerManager.peers.set('B', fakePc({ connectionState: 'connected', iceConnectionState: 'connected', dc: { readyState: 'open' } }));
+  standby.addChild('D', 'pending');
+  child.onParentDisconnected('C');
+  assert.equal(requests(child, 'video-call-swarmcast-join-request').length, 0);
+  assert.equal(requests(child, 'video-call-swarmcast-subscribe', 'B').length, 1);
+  assert.equal(child.parent, 'C');
+  const pc = child.mod.peerManager.peers.get('B');
+  pc.getTransceivers = () => [{ mid: '4', receiver: { track: { kind: 'video', readyState: 'live', id: 'b' } } }];
+  child.receiveParentTracks({ publicationId: 'pub', outputs: [{ id: 'cam', mids: [{ mid: '4', kind: 'video' }] }] }, 'B');
+  assert.equal(child.parent, 'B');
+  child.releaseTimers();
+  standby.releaseTimers();
 });

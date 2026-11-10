@@ -18,11 +18,6 @@ function checks(participants, name, checked) {
     .join('');
 }
 
-function names(participants) {
-  if (!participants.length) return '<p class="swarmcast-setup-empty">No audio tracks are in the call yet.</p>';
-  return participants.map((person) => `<span>${text(person.name)}</span>`).join('');
-}
-
 const presets = [
   ['economy', 'Economy'],
   ['standard', 'Standard'],
@@ -101,7 +96,10 @@ function monitorText(census, now = Date.now()) {
 module.exports = (participants) => `
   <section class="swarmcast-setup saito-overlay-form retain-surface" data-state="settings" data-video="interface" data-audio="all" data-preset="standard">
     <header class="saito-overlay-form-header">
-      <h2 class="saito-overlay-form-header-title">Swarmcast Settings</h2>
+      <h2 class="saito-overlay-form-header-title">
+        <span class="swarmcast-live-mark" hidden></span>
+        <span class="swarmcast-setup-heading">What do you want to Swarmcast?</span>
+      </h2>
     </header>
     <div class="swarmcast-setup-loading" role="status" hidden>
       <span class="swarmcast-setup-spinner" aria-hidden="true"></span>
@@ -111,110 +109,105 @@ module.exports = (participants) => `
     <div class="swarmcast-setup-columns">
       <div class="swarmcast-setup-column">
         <fieldset class="swarmcast-setup-video">
-          <legend>What do you want to Swarmcast?</legend>
-          <label class="swarmcast-setup-choice">
-            <input type="radio" name="swarmcast-video" value="interface" checked>
-            <span>My Screen</span>
-          </label>
-          <label class="swarmcast-setup-choice">
-            <input type="radio" name="swarmcast-video" value="participants">
-            <span>Video Boxes</span>
-          </label>
-          <div class="swarmcast-setup-video-list">${checks(participants, 'swarmcast-video-member', false)}</div>
-        </fieldset>
-        <fieldset class="swarmcast-setup-audio">
-          <legend>Include Audio Tracks?</legend>
-          <div class="swarmcast-setup-audio-included">${names(participants)}</div>
-          <div class="swarmcast-setup-audio-list">${checks(participants, 'swarmcast-audio-member', true)}</div>
+          <div class="swarmcast-setup-cards">
+            <label class="swarmcast-setup-card">
+              <input type="radio" name="swarmcast-video" value="interface" checked>
+              <svg class="swarmcast-setup-card-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="2.5" y="3.5" width="19" height="13" rx="1.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M8 20.5h8M12 16.5v4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+              <span>My Screen</span>
+            </label>
+            <label class="swarmcast-setup-card">
+              <input type="radio" name="swarmcast-video" value="participants">
+              <svg class="swarmcast-setup-card-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="2.5" y="3.5" width="8.5" height="7" rx="1" fill="none" stroke="currentColor" stroke-width="2"/><rect x="13" y="3.5" width="8.5" height="7" rx="1" fill="none" stroke="currentColor" stroke-width="2"/><rect x="2.5" y="13" width="8.5" height="7" rx="1" fill="none" stroke="currentColor" stroke-width="2"/><rect x="13" y="13" width="8.5" height="7" rx="1" fill="none" stroke="currentColor" stroke-width="2"/></svg>
+              <span>Video Boxes</span>
+            </label>
+          </div>
         </fieldset>
       </div>
-      <fieldset class="swarmcast-setup-quality">
-        <legend>Quality</legend>
-        ${presets
-          .map(
-            ([value, label]) => `<label class="swarmcast-setup-choice">
-            <input type="radio" name="swarmcast-quality" value="${value}"${value === 'standard' ? ' checked' : ''}>
-            <span>${label}</span>
-          </label>`
-          )
-          .join('')}
+      <div class="swarmcast-setup-side">
         <div class="swarmcast-setup-adjust">
-          <div class="swarmcast-setup-adjust-row">
-            <span>Resolution</span>
-            <button type="button" class="swarmcast-setup-step" data-step="size" data-dir="-1" aria-label="Decrease resolution">−</button>
-            <strong data-size>960×540</strong>
-            <button type="button" class="swarmcast-setup-step" data-step="size" data-dir="1" aria-label="Increase resolution">+</button>
+          <div class="swarmcast-setup-tune">
+            <span>Quality</span>
+            <select class="saito-form-select swarmcast-setup-select" name="swarmcast-quality">
+              ${presets
+                .map(
+                  ([value, label]) =>
+                    `<option value="${value}"${value === 'standard' ? ' selected' : ''}>${label}</option>`
+                )
+                .join('')}
+            </select>
           </div>
-          <div class="swarmcast-setup-adjust-row">
+          <div class="swarmcast-setup-tune">
+            <span>Resolution</span>
+            <div class="swarmcast-setup-stepper swarmcast-setup-stepper-size">
+              <button type="button" class="swarmcast-setup-step" data-step="size" data-dir="-1" aria-label="Decrease resolution">−</button>
+              <strong data-size>960 × 540</strong>
+              <button type="button" class="swarmcast-setup-step" data-step="size" data-dir="1" aria-label="Increase resolution">+</button>
+            </div>
+          </div>
+          <div class="swarmcast-setup-tune">
             <span>Frame rate</span>
-            <button type="button" class="swarmcast-setup-step" data-step="rate" data-dir="-1" aria-label="Decrease frame rate">−</button>
-            <strong data-rate>15 fps</strong>
-            <button type="button" class="swarmcast-setup-step" data-step="rate" data-dir="1" aria-label="Increase frame rate">+</button>
+            <div class="swarmcast-setup-stepper">
+              <button type="button" class="swarmcast-setup-step" data-step="rate" data-dir="-1" aria-label="Decrease frame rate">−</button>
+              <strong data-rate>15 fps</strong>
+              <button type="button" class="swarmcast-setup-step" data-step="rate" data-dir="1" aria-label="Increase frame rate">+</button>
+            </div>
+          </div>
+          <div class="swarmcast-setup-tune">
+            <span>Bitrate</span>
+            <strong class="swarmcast-setup-bitrate" data-bitrate>800 kbps</strong>
           </div>
         </div>
         <input type="hidden" name="swarmcast-width" value="960">
         <input type="hidden" name="swarmcast-height" value="540">
         <input type="hidden" name="swarmcast-fps" value="15">
-        <dl class="swarmcast-setup-meters">
-          <div><dt>Source</dt><dd data-source>Not shared yet</dd></div>
-          <div><dt>Outgoing</dt><dd data-outgoing>960×540</dd></div>
-          <div><dt>Frame rate</dt><dd data-outgoing-rate>15 fps</dd></div>
-          <div><dt>Bitrate</dt><dd data-bitrate>800 kbps</dd></div>
-        </dl>
-      </fieldset>
+        <input type="hidden" name="swarmcast-slots" value="4">
+        <div class="swarmcast-setup-slots">
+          <div class="swarmcast-setup-tune">
+            <span>Open slots</span>
+            <div class="swarmcast-setup-stepper">
+              <button type="button" class="swarmcast-slot-step" data-slots="-1" aria-label="Decrease open slots">−</button>
+              <strong data-slots>4</strong>
+              <button type="button" class="swarmcast-slot-step" data-slots="1" aria-label="Increase open slots">+</button>
+            </div>
+          </div>
+        </div>
+        <div class="swarmcast-setup-picks">
+          <label class="swarmcast-setup-include">
+            <span>Video</span>
+            <input type="checkbox" name="swarmcast-include-video" checked>
+          </label>
+          <label class="swarmcast-setup-include">
+            <span>Audio</span>
+            <input type="checkbox" name="swarmcast-include-audio" checked>
+          </label>
+        </div>
+      </div>
     </div>
     <div class="saito-button-row swarmcast-setup-actions">
-      <button type="button" class="saito-button-secondary swarmcast-setup-back" hidden>Back to swarm</button>
       <button type="button" class="saito-button-primary swarmcast-setup-start">Start Swarmcasting</button>
     </div>
     <div class="swarmcast-setup-live" hidden>
-      <p class="swarmcast-setup-live-label">Swarmcast is live</p>
-      <a class="swarmcast-setup-live-link" target="_blank" rel="noopener noreferrer"></a>
-      <div class="swarmcast-setup-live-tools">
-        <button type="button" class="swarmcast-setup-copy">Copy link</button>
-        <button type="button" class="swarmcast-setup-edit">Change broadcast</button>
-      </div>
-      <div class="swarmcast-monitor">
-        <section class="swarmcast-monitor-capacity">
-          <h3>Capacity</h3>
-          <dl class="swarmcast-setup-meters">
-            <div><dt>Maximum child slots</dt><dd data-monitor="max-slots">0</dd></div>
-            <div><dt>Occupied slots</dt><dd data-monitor="occupied">0</dd></div>
-            <div><dt>Available slots</dt><dd data-monitor="available">0</dd></div>
-            <div><dt>Reconnecting</dt><dd data-monitor="grace">0</dd></div>
-            <div><dt>Direct children</dt><dd data-monitor="direct">0</dd></div>
-            <div><dt>Listeners</dt><dd data-monitor="listeners">0</dd></div>
-          </dl>
-          <div class="swarmcast-setup-adjust-row swarmcast-capacity-control">
-            <span>Child slots</span>
-            <button type="button" class="swarmcast-setup-step" data-capacity="-1" aria-label="Decrease child slots">−</button>
-            <input class="swarmcast-capacity-input" type="number" min="0" step="1" value="4" aria-label="Maximum child slots">
-            <button type="button" class="swarmcast-setup-step" data-capacity="1" aria-label="Increase child slots">+</button>
+      <div class="swarmcast-live-body">
+        <section class="swarmcast-address">
+          <h3>Address to join</h3>
+          <div class="swarmcast-share">
+            <a class="swarmcast-setup-live-link" target="_blank" rel="noopener noreferrer"></a>
+            <button type="button" class="saito-icon-button swarmcast-setup-copy" aria-label="Copy link" title="Copy link">
+              <i class="fa-solid fa-copy" aria-hidden="true"></i>
+            </button>
           </div>
-          <p class="swarmcast-capacity-pending" data-monitor="pending" hidden></p>
         </section>
-        <section class="swarmcast-monitor-health">
-          <h3>Network health</h3>
-          <p class="swarmcast-health" data-monitor="health" data-health="healthy">Healthy</p>
-          <p class="swarmcast-health-reason" data-monitor="reason"></p>
-          <dl class="swarmcast-setup-meters">
-            <div><dt>Parent</dt><dd data-monitor="parent">This node is the source</dd></div>
-            <div><dt>Depth</dt><dd data-monitor="depth">0</dd></div>
-            <div><dt>Known nodes</dt><dd data-monitor="known">1</dd></div>
+        <section class="swarmcast-status">
+          <h3>Swarmcast status</h3>
+          <dl class="swarmcast-stat-list">
+            <div class="swarmcast-listeners"><dt>Total listeners</dt><dd data-monitor="listeners">0</dd></div>
+            <div><dt>My listeners</dt><dd data-monitor="direct">0</dd></div>
+            <div><dt>Open slots</dt><dd data-monitor="max-slots">0</dd></div>
+            <div><dt>Available slots</dt><dd data-monitor="available">0</dd></div>
           </dl>
         </section>
-        <section class="swarmcast-monitor-tree">
-          <h3>Swarm</h3>
-          <p class="swarmcast-tree-note" data-monitor="tree-note"></p>
-          <div class="swarmcast-tree" data-monitor="tree"></div>
-        </section>
-        <section class="swarmcast-monitor-children">
-          <h3>Direct children</h3>
-          <div class="swarmcast-children" data-monitor="children"></div>
-        </section>
       </div>
-      <div class="saito-button-row">
-        <button type="button" class="saito-button-secondary swarmcast-setup-close">Close</button>
+      <div class="saito-button-row swarmcast-live-actions">
         <button type="button" class="saito-button-primary swarmcast-setup-stop">Terminate Swarmcasting</button>
       </div>
     </div>

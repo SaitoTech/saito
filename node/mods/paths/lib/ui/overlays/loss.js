@@ -138,7 +138,9 @@ class LossOverlay {
     if (!el) {
       return;
     }
-    let tiles = el.querySelectorAll(':scope > .army-tile');
+    let tiles = this.mod.chitsInStackOrder
+      ? this.mod.chitsInStackOrder(el)
+      : Array.from(el.querySelectorAll(':scope > .army-tile'));
     if (tiles.length < 1) {
       return;
     }
@@ -313,7 +315,7 @@ class LossOverlay {
     el.style.removeProperty('--stack-width');
     el.onmouseenter = null;
     el.onmouseleave = null;
-    el.querySelectorAll(':scope > .army-tile').forEach((tile) => {
+    el.querySelectorAll(':scope > .army-tile, :scope > .oos-tile').forEach((tile) => {
       tile.style.top = '';
       tile.style.left = '';
       tile.style.width = '';
@@ -552,9 +554,12 @@ class LossOverlay {
     }
     // The assignment panel is already open. Rebuilding it here spends the
     // loss factor again and hides the overlay before painting it a second time.
+    // Repaint the counters from the spaces so a reduced army is not left up
+    // after the board has already replaced it.
     if (!document.querySelector('.loss-overlay')) {
       this.render(this.faction || this.assignment_faction || 'defender', false);
     } else {
+      this.refreshPresentedUnits();
       this.show();
     }
     try {
@@ -1255,6 +1260,38 @@ class LossOverlay {
     return container.querySelector(`.loss-overlay-unit[id="${idx}"]`);
   }
 
+  // Loss moves update the board as they are applied. The open combat panel
+  // otherwise keeps the counters from when assignment began, so the other
+  // player still sees an undamaged army after it has been reduced to a corps.
+  refreshPresentedUnits() {
+    if (this.board_mode || !this.overlayEnabled()) {
+      return;
+    }
+    let attacker_box = document.querySelector('.loss-overlay .units.attacker');
+    let defender_box = document.querySelector('.loss-overlay .units.defender');
+    if (!attacker_box || !defender_box) {
+      return;
+    }
+    let combat = this.mod.game && this.mod.game.state && this.mod.game.state.combat;
+    if (!combat || !combat.key || !combat.attacker) {
+      return;
+    }
+
+    let paint = (box, units) => {
+      let html = '';
+      for (let i = 0; i < units.length; i++) {
+        if (!units[i] || units[i].destroyed) {
+          continue;
+        }
+        html += this.unitCardHtml(units[i], i);
+      }
+      box.innerHTML = html;
+    };
+
+    paint(attacker_box, this.mod.returnAttackerUnits());
+    paint(defender_box, this.mod.returnDefenderUnits());
+  }
+
 
   renderToAssignAdditionalStepwiseLoss(faction = '') {
     if (this.board_mode) {
@@ -1738,6 +1775,7 @@ class LossOverlay {
       if (this.board_mode) {
         this.exitBoardMode();
       } else {
+        this.refreshPresentedUnits();
         this.mod.displaySpace(unit_spacekey);
         if (this.mod.game.state.combat.key !== unit_spacekey) {
           this.mod.displaySpace(this.mod.game.state.combat.key);

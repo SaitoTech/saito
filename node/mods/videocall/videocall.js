@@ -14,6 +14,49 @@ const SaitoHeader = require('./../../lib/saito/ui/saito-header/saito-header');
 const SwarmcastViewer = require('./lib/ui/swarmcast');
 const { Swarmcasts } = require('./lib/swarmcast');
 
+// A refresh rewrites the record heartbeat. A record older than this has been
+// closed long enough that it must not start the call again.
+const CALL_RECORD_MAX_AGE_MS = 6 * 60 * 60 * 1000;
+
+function recordStale(record, now = Date.now(), maxAge = CALL_RECORD_MAX_AGE_MS) {
+  if (!record || typeof record !== 'object') return false;
+  const marks = [record.updated_at, record.created_at, record.heartbeat]
+    .map((value) => Number(value))
+    .filter((value) => Number.isFinite(value) && value > 0);
+  if (!marks.length) return true;
+  return now - Math.max(...marks) > maxAge;
+}
+
+function sameRecovery(previous, next) {
+  if (!previous || previous.publication_id !== next.publication_id) return false;
+  return (
+    JSON.stringify({
+      call_id: previous.call_id || '',
+      broadcaster: previous.broadcaster || '',
+      show: previous.show || '',
+      active_parent: previous.active_parent || '',
+      former_children: previous.former_children || [],
+      max_slots: previous.max_slots,
+      link: previous.link || '',
+      config: previous.config || null,
+      owner: previous.owner || '',
+      status: previous.status || ''
+    }) ===
+    JSON.stringify({
+      call_id: next.call_id || '',
+      broadcaster: next.broadcaster || '',
+      show: next.show || '',
+      active_parent: next.active_parent || '',
+      former_children: next.former_children || [],
+      max_slots: next.max_slots,
+      link: next.link || '',
+      config: next.config || null,
+      owner: next.owner || '',
+      status: next.status || ''
+    })
+  );
+}
+
 class Videocall extends ModTemplate {
   constructor(app) {
     super(app);
@@ -115,6 +158,8 @@ class Videocall extends ModTemplate {
       }
 
       this.initializeMediaSettings();
+      this.expireStaleCallRecords();
+      this.restoreSwarmcast();
       this.swarmcastRoute = this.readSwarmcastRoute();
 
       if (!this.swarmcastRoute && app.browser.returnURLParameter('stun_video_chat')) {
@@ -229,12 +274,14 @@ class Videocall extends ModTemplate {
       : new VideoCallPopup(this.app, this, settings?.container);
 
     this.saveCallToKeychain();
+    this.persistCallState();
   }
 
   resetCall() {
     console.log('Reset Stun');
     this.stopBroadcast();
     this.room_obj = null;
+    this.expected_peers = null;
     if (this.CallInterface) {
       this.CallInterface.destroy();
       this.CallInterface = null;
@@ -954,6 +1001,7 @@ class Videocall extends ModTemplate {
 
     this.CallInterface?.updateRoomLink?.();
     this.applyCameraProfile();
+    this.persistCallState();
     this.app.storage.saveOptions();
   }
 
@@ -1343,6 +1391,174 @@ class Videocall extends ModTemplate {
     return this.swarmcasts.stopBroadcast();
   }
 
+  departBroadcast() {
+    return this.swarmcasts.depart();
+  }
+
+  recoveryTabId() {
+    try {
+      const store = globalThis.sessionStorage;
+      if (!store) return 'local';
+      let id = store.getItem('videocall-tab');
+      if (!id) {
+        id = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+        store.setItem('videocall-tab', id);
+      }
+      return id;
+    } catch (err) {
+      return 'local';
+    }
+  }
+
+  persistSwarmcastState() {
+    const publication = this.swarmcast;
+    if (!publication || publication.ended || publication.departing) return;
+    if (!this.app?.options) return;
+    if (!this.app.options.videocall) this.app.options.videocall = {};
+    const record = this.app.options.videocall.recovery;
+    const tab = this.recoveryTabId();
+    if (record?.status === 'live' && record.owner && record.owner !== tab && Date.now() - Number(record.heartbeat || 0) < 15000) {
+      return;
+    }
+    const now = Date.now();
+    const next = {
+      publication_id: publication.id,
+      call_id: publication.callId,
+      broadcaster: publication.broadcaster,
+      show: publication.show,
+      active_parent: publication.parent || '',
+      former_children: (publication.former_children || []).slice(),
+      max_slots: publication.max_slots,
+      link: this.swarmcastLink || '',
+      config: this.swarmcastConfig || null,
+      owner: tab,
+      heartbeat: now,
+      status: 'live'
+    };
+    const samePublication = record?.publication_id === publication.id;
+    next.created_at = samePublication && Number(record.created_at) ? record.created_at : now;
+    next.updated_at = samePublication && sameRecovery(record, next) ? record.updated_at || next.created_at : now;
+    this.app.options.videocall.recovery = next;
+    this.app.storage?.saveOptions?.();
+    this.ownSwarmcastRecovery();
+  }
+
+  persistCallState() {
+    const room = this.room_obj;
+    if (!room?.call_id || !this.app?.options) return;
+    if (!this.app.options.videocall) this.app.options.videocall = {};
+    const previous = this.app.options.videocall.session;
+    const now = Date.now();
+    const next = {
+      call_id: room.call_id,
+      host_public_key: room.host_public_key || '',
+      ui: room.ui || '',
+      call_peers: Array.isArray(room.call_peers) ? room.call_peers.slice() : [],
+      status: 'live',
+      heartbeat: now
+    };
+    const sameCall = previous?.call_id === next.call_id;
+    const sameContent =
+      sameCall &&
+      previous.host_public_key === next.host_public_key &&
+      (previous.ui || '') === next.ui &&
+      JSON.stringify(previous.call_peers || []) === JSON.stringify(next.call_peers) &&
+      previous.status === next.status;
+    next.created_at = sameCall && Number(previous.created_at) ? previous.created_at : now;
+    next.updated_at = sameContent ? previous.updated_at || next.created_at : now;
+    this.app.options.videocall.session = next;
+    this.app.storage?.saveOptions?.();
+  }
+
+  touchCallSession() {
+    const session = this.app?.options?.videocall?.session;
+    if (!session || session.status !== 'live') return;
+    session.heartbeat = Date.now();
+    this.app.storage?.saveOptions?.();
+  }
+
+  releaseWalletCall(callId) {
+    const keychain = this.app?.keychain;
+    if (!callId || typeof keychain?.returnKey !== 'function' || typeof keychain.addKey !== 'function') return;
+    const key = keychain.returnKey(callId, true);
+    if (!key || key.mod !== 'videocall') return;
+    keychain.addKey(callId, { ended: true, watched: false });
+  }
+
+  clearPersistedCall(callId) {
+    if (!callId) return;
+    const video = this.app?.options?.videocall;
+    this.releaseWalletCall(callId);
+    if (!video) return;
+    let changed = false;
+    if (video.session?.call_id === callId) {
+      video.session = null;
+      changed = true;
+    }
+    if (video.recovery?.call_id === callId) {
+      clearInterval(this.recoveryTimer);
+      this.recoveryTimer = null;
+      video.recovery = null;
+      changed = true;
+    }
+    if (changed) this.app.storage?.saveOptions?.();
+  }
+
+  expireStaleCallRecords(now = Date.now()) {
+    const video = this.app?.options?.videocall;
+    if (!video) return false;
+    let changed = false;
+    for (const field of ['session', 'recovery']) {
+      const record = video[field];
+      if (!record || typeof record !== 'object') continue;
+      if (!recordStale(record, now)) continue;
+      this.releaseWalletCall(record.call_id);
+      video[field] = null;
+      if (field === 'recovery') {
+        clearInterval(this.recoveryTimer);
+        this.recoveryTimer = null;
+      }
+      changed = true;
+    }
+    if (changed) this.app.storage?.saveOptions?.();
+    return changed;
+  }
+
+  clearSwarmcastRecovery() {
+    clearInterval(this.recoveryTimer);
+    this.recoveryTimer = null;
+    if (this.app.options?.videocall) this.app.options.videocall.recovery = null;
+    this.app.storage?.saveOptions?.();
+  }
+
+  ownSwarmcastRecovery() {
+    clearInterval(this.recoveryTimer);
+    this.recoveryTimer = setInterval(() => {
+      const record = this.app.options?.videocall?.recovery;
+      if (!record || record.status !== 'live' || record.owner !== this.recoveryTabId()) return;
+      record.heartbeat = Date.now();
+      this.app.storage?.saveOptions?.();
+    }, 5000);
+    this.recoveryTimer.unref?.();
+  }
+
+  restoreSwarmcast() {
+    this.expireStaleCallRecords();
+    const { recoveryBlocked, restorePublication } = require('./lib/swarmcast');
+    const record = this.app.options?.videocall?.recovery;
+    if (!record || record.status !== 'live') return null;
+    if (recoveryBlocked(record, this.recoveryTabId())) return null;
+    const publication = restorePublication(this, record);
+    if (!publication) return null;
+    this.ownSwarmcastRecovery();
+    if (this.swarmcastNeedsResume) this.swarmcasts.showResume();
+    else if (publication.parent) publication.joinNewParent(publication.parent).catch((err) => console.error(err));
+    else if (publication.broadcaster && publication.broadcaster !== publication.selfKey()) {
+      publication.joinNewParent(publication.broadcaster).catch((err) => console.error(err));
+    }
+    return publication;
+  }
+
   setBroadcasting(active) {
     return this.swarmcasts.setBroadcasting(active);
   }
@@ -1391,5 +1607,7 @@ class Videocall extends ModTemplate {
     expressapp.use('/' + encodeURI(this.returnSlug()), express.static(webdir));
   }
 }
+
+Videocall.CALL_RECORD_MAX_AGE_MS = CALL_RECORD_MAX_AGE_MS;
 
 module.exports = Videocall;

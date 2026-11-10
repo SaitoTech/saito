@@ -6565,9 +6565,9 @@ deck['cp65'] = {
       //
       if (space.oos == 1 && space.units.length > 0) { 
 	if (this.returnPowerOfUnit(space.units[0]) == "central") {
-          html += `<img src="/paths/img/tiles/oos_central.png" class="trench-tile oos-tile" />`;
+          html += `<img src="/paths/img/tiles/oos_central.png" class="oos-tile" />`;
 	} else {
-          html += `<img src="/paths/img/tiles/oos_allies.png" class="trench-tile oos-tile" />`;
+          html += `<img src="/paths/img/tiles/oos_allies.png" class="oos-tile" />`;
 	}
       } else {
 
@@ -6585,6 +6585,11 @@ deck['cp65'] = {
 //        if (control == "central") { el.classList.add("central-highlight"); }
 //        if (control == "neutral") { el.classList.add("neutral-highlight"); }
 	el.innerHTML = html;
+	if (space.oos == 1 && space.units.length > 0) {
+	  el.style.setProperty("--oos-step", String(space.units.length));
+	} else {
+	  el.style.removeProperty("--oos-step");
+	}
 	el.classList.remove("opponent-move", "opponent-attack");
 	// Normal renders must not keep leftover loss-assignment presentation.
 	if (!(this.loss_overlay && this.loss_overlay.board_mode) && el.classList.contains("loss-assignment-open")) {
@@ -6641,7 +6646,7 @@ console.log("err: " + err);
     el.style.removeProperty("--stack-top");
     el.style.removeProperty("--stack-height");
     el.style.removeProperty("--stack-width");
-    el.querySelectorAll(":scope > .army-tile").forEach((tile) => {
+    el.querySelectorAll(":scope > .army-tile, :scope > .oos-tile").forEach((tile) => {
       tile.style.top = "";
       tile.style.left = "";
       tile.style.width = "";
@@ -6650,10 +6655,19 @@ console.log("err: " + err);
     });
   }
 
+  // Out-of-supply leads the column. Unit chits follow in their drawn order.
+  chitsInStackOrder(el) {
+    if (!el) { return []; }
+    let units = Array.from(el.querySelectorAll(":scope > .army-tile"));
+    let oos = el.querySelector(":scope > .oos-tile");
+    if (oos) { return [oos].concat(units); }
+    return units;
+  }
+
   layoutSpaceStack(spacekey) {
     let el = document.getElementById(spacekey);
     if (!el) { return; }
-    let tiles = el.querySelectorAll(":scope > .army-tile");
+    let tiles = this.chitsInStackOrder(el);
     if (tiles.length < 2) { return; }
 
     let size = el.offsetWidth || 90;
@@ -8291,39 +8305,44 @@ if (spacekey == "stanislau") {
     }
     
     if (faction == "central") {
-      if (this.game.state.events.eleventh_army == 1) {
-	let has_eleventh_army = false;
-	let has_other_army = false;
-	let number_cp_corps = 0;
-	for (let z = 0; z < space.units.length; z++) {
-	  if (space.units[z].corps) { number_cp_corps++; }
-	  if (space.units[z].key == "ge_army11") { has_eleventh_army = true; }
-	  if (space.units[z].key != "ge_army11" && space.units[z].army) { has_other_army = true; }
-        }
-        if (has_eleventh_army) { return this.game.spaces[key].units.length - number_cp_corps; }
-        if (has_other_army) { return this.game.spaces[key].units.length - number_cp_corps + 1; }
-      }
-
       if (this.game.state.events.falkenhayn != 1 && this.game.state.events.moltke == 1 && (space.country == "france" || space.country == "belgium")) {
         if (space.units.length == 1) { return 1; }
         if (space.units.length == 2) { return 2; }
         if (space.units.length == 3) { return 3; }
       }
+
+      let cost = total_nationalities;
+
+      // 11th Army and any CP corps in its space count as one nationality.
+      if (this.game.state.events.eleventh_army == 1 && space.units.some((u) => u.key == "ge_army11")) {
+	let folded = {};
+	for (let z = 0; z < space.units.length; z++) {
+	  let ckey = space.units[z].corps ? "GE" : space.units[z].ckey;
+	  folded[ckey] = 1;
+	}
+	cost = Math.min(cost, Object.keys(folded).length);
+      }
+
+      // Up to two GE corps stacked with an AH unit count as that one nationality.
       if (this.game.state.events.sudarmy == 1) {
-	if (countries["GE"] >= 1 && countries["AH"] == 1) {
-	  let sud_army_eligible = false;
-	  let sud_army_excess_cost = 0;
-	  for (let z = 0; z < space.units.length; z++) {
-	    if (space.units[z].ckey == "AH" && space.units[z].army) { sud_army_eligible = true; }
-	    if (space.units[z].ckey == "AH" && space.units[z].corps) { sud_army_excess_cost++; }
-	    if (space.units[z].ckey == "GE" && space.units[z].army) { sud_army_excess_cost++; }
-	    if (space.units[z].ckey != "GE" && space.units[z].ckey != "AH") { sud_army_excess_cost++; }
-	  }
-	  if (sud_army_eligible == true) {
-	    return (1 + sud_army_excess_cost);
-	  }
+	let ge_corps = 0;
+	let ge_armies = 0;
+	let ah_units = 0;
+	let present = {};
+	for (let z = 0; z < space.units.length; z++) {
+	  let u = space.units[z];
+	  present[u.ckey] = 1;
+	  if (u.ckey == "AH") { ah_units++; }
+	  if (u.ckey == "GE" && u.corps) { ge_corps++; }
+	  if (u.ckey == "GE" && u.army) { ge_armies++; }
+	}
+	if (ah_units >= 1 && ge_corps >= 1 && ge_armies + Math.max(0, ge_corps - 2) == 0) {
+	  delete present["GE"];
+	  cost = Math.min(cost, Object.keys(present).length);
 	}
       }
+
+      return cost;
     }
 
     return total_nationalities;
@@ -16043,6 +16062,9 @@ console.log("moving unit: " + JSON.stringify(u));
 	  this.displaySpace("ceubox");
 	  this.displaySpace("aeubox");
 	  this.displaySpace(spacekey);
+	  if (this.loss_overlay) {
+	    this.loss_overlay.refreshPresentedUnits();
+	  }
 	  // Board loss-assignment: shake the specific damaged chit when the opponent assigns.
 	  // Assigner's own echo skips animation (they already refreshed locally).
 	  if (this.loss_overlay && this.loss_overlay.board_mode) {
@@ -16096,6 +16118,9 @@ console.log("moving unit: " + JSON.stringify(u));
 
 	  this.displaySpace(spacekey);
 	  this.shakeSpacekey(spacekey);
+	  if (this.loss_overlay) {
+	    this.loss_overlay.refreshPresentedUnits();
+	  }
 
 	  this.game.queue.splice(qe, 1);
 	  return 1;
@@ -16153,6 +16178,9 @@ console.log("moving unit: " + JSON.stringify(u));
 
 	  this.displaySpace(spacekey);
 	  this.shakeSpacekey(spacekey);
+	  if (this.loss_overlay) {
+	    this.loss_overlay.refreshPresentedUnits();
+	  }
 
 	  this.game.queue.splice(qe, 1);
 	  return 1;
@@ -21957,24 +21985,23 @@ console.log(JSON.stringify(unit));
   }
 
   returnUnitImage(unit, just_link=false) {
-    let key = unit.key;
-
     if (unit.destroyed) {
      return this.returnDestroyedUnitImage(unit, just_link);
     }
 
-    if (unit.damaged) {
-      if (just_link) { return `/paths/img/army/${key}_back.png`; }
-      return `<img src="/paths/img/army/${key}_back.png" class="army-tile ${unit.key}" />`;
-    } else {
-      if (just_link) { return `/paths/img/army/${key}.png`; }
-      return `<img src="/paths/img/army/${key}.png" class="army-tile ${unit.key}" />`;
-    }
+    // The map chit is the file named on the unit. Yilderim and the Army of
+    // Islam keep historical ids that do not match those filenames.
+    let file = unit.damaged
+      ? (unit.back || `${unit.key}_back.png`)
+      : (unit.front || `${unit.key}.png`);
+
+    if (just_link) { return `/paths/img/army/${file}`; }
+    return `<img src="/paths/img/army/${file}" class="army-tile ${unit.key}" />`;
   }
   returnUnitBackImage(unit, just_link=false) {
-    let key = unit.key;
-    if (just_link) { return `/paths/img/army/${key}_back.png`; }
-    return `<img src="/paths/img/army/${key}_back.png" class="army-tile ${unit.key}" />`;
+    let file = unit.back || `${unit.key}_back.png`;
+    if (just_link) { return `/paths/img/army/${file}`; }
+    return `<img src="/paths/img/army/${file}" class="army-tile ${unit.key}" />`;
   }
   returnUnitImageInSpaceWithIndex(spacekey, idx) {
     let unit = this.game.spaces[spacekey].units[idx];

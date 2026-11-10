@@ -24,6 +24,16 @@ function setField(root, name, value) {
   if (input) input.value = String(value);
 }
 
+function operationOf(publication, census) {
+  const source = census.depth === 0 && census.parent?.role === 'source';
+  const reconnecting = !!publication.recovering || census.grace > 0 || /reconnect/i.test(census.reason || '');
+  if (reconnecting) return { id: 'reconnecting', title: 'Reconnecting to Swarmcast' };
+  if (!source && publication.parent_status === 'admitted') return { id: 'connecting', title: 'Connecting to Swarmcast' };
+  if (census.health === 'disconnected') return { id: 'disconnected', title: 'Swarmcast is disconnected' };
+  if (census.health === 'degraded') return { id: 'error', title: 'Swarmcast has a problem' };
+  return { id: 'live', title: 'Swarmcast is live' };
+}
+
 function readNumber(root, name, fallback) {
   const value = Number(field(root, name)?.value);
   return Number.isFinite(value) && value > 0 ? value : fallback;
@@ -42,7 +52,9 @@ class SwarmcastSetup {
   }
 
   render() {
-    this.overlay.showClosable(SwarmcastSetupTemplate(participants(this.mod)));
+    this.overlay.showClosable(SwarmcastSetupTemplate(participants(this.mod)), () => {
+      this.stopWatch();
+    });
     const root = typeof document !== 'undefined' ? document.querySelector('.swarmcast-setup') : null;
     if (!root) return;
     this.attach(root);
@@ -51,7 +63,7 @@ class SwarmcastSetup {
 
   attach(root) {
     const sync = () => this.sync(root);
-    for (const input of root.querySelectorAll('input')) {
+    for (const input of root.querySelectorAll('input, select')) {
       input.addEventListener('change', sync);
     }
     for (const button of root.querySelectorAll('.swarmcast-setup-step')) {
@@ -69,44 +81,47 @@ class SwarmcastSetup {
         this.paint(root);
       });
     }
+    for (const button of root.querySelectorAll('.swarmcast-slot-step')) {
+      button.addEventListener('click', () => {
+        const input = root.querySelector('input[name="swarmcast-slots"]');
+        const current = Number(input?.value);
+        const next = Math.max(0, (Number.isFinite(current) ? Math.floor(current) : 4) + Number(button.dataset.slots));
+        if (input) input.value = String(next);
+        const label = root.querySelector('[data-slots]');
+        if (label) label.textContent = String(next);
+      });
+    }
     root.querySelector('.swarmcast-setup-start')?.addEventListener('click', () => {
       this.confirm(root);
-    });
-    root.querySelector('.swarmcast-setup-close')?.addEventListener('click', () => {
-      this.stopWatch();
-      this.overlay.close();
     });
     root.querySelector('.swarmcast-setup-stop')?.addEventListener('click', () => {
       this.terminate(root);
     });
-    root.querySelector('.swarmcast-setup-copy')?.addEventListener('click', () => {
-      this.mod.copyBroadcastLink?.();
+    root.querySelector('.swarmcast-setup-copy')?.addEventListener('click', async (event) => {
+      event.preventDefault();
+      const copied = await this.mod.copyBroadcastLink?.();
+      const button = root.querySelector('.swarmcast-setup-copy');
+      if (!copied || !button) return;
+      const icon = button.querySelector('i');
+      button.classList.add('is-copied');
+      button.setAttribute('aria-label', 'Copied');
+      icon?.classList.remove('fa-copy');
+      icon?.classList.add('fa-check');
+      clearTimeout(this.copyTimer);
+      this.copyTimer = setTimeout(() => {
+        button.classList.remove('is-copied');
+        button.setAttribute('aria-label', 'Copy link');
+        icon?.classList.remove('fa-check');
+        icon?.classList.add('fa-copy');
+      }, 1500);
     });
-    root.querySelector('.swarmcast-setup-edit')?.addEventListener('click', () => {
-      this.populate(root, this.mod.swarmcastConfig);
-      this.showState(root, 'editing');
-    });
-    root.querySelector('.swarmcast-setup-back')?.addEventListener('click', () => {
-      this.showState(root, 'live');
-    });
-    root.querySelector('.swarmcast-monitor')?.addEventListener('click', (event) => {
+    root.querySelector('.swarmcast-setup-live')?.addEventListener('click', (event) => {
       const copy = event.target?.closest?.('[data-copy]');
       if (copy) {
         const key = copy.getAttribute('data-copy') || '';
         Promise.resolve(navigator.clipboard?.writeText?.(key)).catch((err) => console.error(err));
         return;
       }
-      const step = event.target?.closest?.('[data-capacity]');
-      if (!step) return;
-      const publication = this.mod.swarmcast;
-      if (!publication) return;
-      const input = root.querySelector('.swarmcast-capacity-input');
-      const current = Number(input?.value);
-      const base = Number.isFinite(current) ? current : publication.max_slots;
-      this.applyCapacity(root, base + Number(step.getAttribute('data-capacity')));
-    });
-    root.querySelector('.swarmcast-capacity-input')?.addEventListener('change', (event) => {
-      this.applyCapacity(root, event.target.value);
     });
     if (this.mod.swarmcast) this.populate(root, this.mod.swarmcastConfig);
     sync();
@@ -114,6 +129,10 @@ class SwarmcastSetup {
 
   showState(root, state) {
     root.dataset.state = state;
+    const heading = root.querySelector('.swarmcast-setup-heading');
+    if (heading) heading.textContent = state === 'live' ? 'Swarmcast is live' : 'What do you want to Swarmcast?';
+    const mark = root.querySelector('.swarmcast-live-mark');
+    if (mark) mark.hidden = true;
     const loading = root.querySelector('.swarmcast-setup-loading');
     if (loading) loading.hidden = state !== 'starting';
     if (root.setAttribute) root.setAttribute('aria-busy', state === 'starting' ? 'true' : 'false');
@@ -123,12 +142,13 @@ class SwarmcastSetup {
       if (state === 'settings') start.textContent = 'Start Swarmcasting';
       if (state === 'editing') start.textContent = 'Update broadcast';
     }
-    const back = root.querySelector('.swarmcast-setup-back');
-    if (back) back.hidden = state !== 'editing';
     if (state === 'live') {
       this.paintLive(root);
-      if (root.querySelector?.('[data-monitor="max-slots"]')) this.watch(root);
-    } else this.stopWatch();
+      if (root.querySelector?.('[data-monitor="listeners"]')) this.watch(root);
+    } else {
+      if (root.dataset) delete root.dataset.operation;
+      this.stopWatch();
+    }
     if (state === 'starting' || state === 'live') this.showError(root, '');
   }
 
@@ -146,6 +166,7 @@ class SwarmcastSetup {
   stopWatch() {
     if (this.onState) this.mod.app?.connection?.removeListener?.('swarmcast-state', this.onState);
     clearInterval(this.clock);
+    clearTimeout(this.copyTimer);
     this.onState = null;
     this.clock = null;
     this.watching = false;
@@ -184,9 +205,13 @@ class SwarmcastSetup {
       anchor.textContent = link;
     }
     const publication = this.mod.swarmcast;
-    const slot = root.querySelector?.('[data-monitor="max-slots"]');
-    if (!publication || !slot) return;
-    const view = monitorText(publication.census());
+    if (!publication || typeof publication.census !== 'function') return;
+    const census = publication.census();
+    const operation = operationOf(publication, census);
+    if (root.dataset) root.dataset.operation = operation.id;
+    const heading = root.querySelector('.swarmcast-setup-heading');
+    if (heading) heading.textContent = operation.title;
+    const view = monitorText(census);
     const write = (name, value) => {
       const node = root.querySelector(`[data-monitor="${name}"]`);
       if (node) node.textContent = value;
@@ -212,8 +237,10 @@ class SwarmcastSetup {
       pending.hidden = !view.pending;
       pending.textContent = view.pending;
     }
-    const input = root.querySelector('.swarmcast-capacity-input');
-    if (input && globalThis.document?.activeElement !== input) input.value = view.max_slots;
+    const slots = root.querySelector('input[name="swarmcast-slots"]');
+    if (slots) slots.value = view.max_slots;
+    const slotLabel = root.querySelector('[data-slots]');
+    if (slotLabel) slotLabel.textContent = view.max_slots;
     const children = root.querySelector('[data-monitor="children"]');
     if (children) children.innerHTML = monitorChildren(view.children);
     const tree = root.querySelector('[data-monitor="tree"]');
@@ -236,6 +263,8 @@ class SwarmcastSetup {
       input.checked = allAudio || audios.has(input.value);
     }
     const preset = state.quality?.preset || 'standard';
+    const quality = root.querySelector('select[name="swarmcast-quality"]');
+    if (quality) quality.value = preset;
     for (const input of root.querySelectorAll('input[name="swarmcast-quality"]')) {
       input.checked = input.value === preset;
     }
@@ -244,6 +273,20 @@ class SwarmcastSetup {
     setField(root, 'swarmcast-width', state.quality?.maxWidth);
     setField(root, 'swarmcast-height', state.quality?.maxHeight);
     setField(root, 'swarmcast-fps', state.quality?.maxFramerate);
+    if (Number.isFinite(Number(state.slots))) {
+      setField(root, 'swarmcast-slots', Math.max(0, Math.floor(Number(state.slots))));
+      const slotLabel = root.querySelector('[data-slots]');
+      if (slotLabel) slotLabel.textContent = String(Math.max(0, Math.floor(Number(state.slots))));
+    }
+    const videoToggle = root.querySelector('input[name="swarmcast-include-video"]');
+    if (videoToggle) {
+      videoToggle.checked = screen || state.video?.mode === 'everyone' || (state.video?.participants || []).length > 0;
+    }
+    const audioToggle = root.querySelector('input[name="swarmcast-include-audio"]');
+    if (audioToggle) {
+      const audioOff = state.audio?.mode === 'none' || (state.audio?.mode === 'subset' && !(state.audio?.participants || []).length);
+      audioToggle.checked = !audioOff;
+    }
     const start = root.querySelector('.swarmcast-setup-start');
     if (start && this.mod.swarmcast) start.textContent = 'Update broadcast';
   }
@@ -252,7 +295,9 @@ class SwarmcastSetup {
     const video = root.querySelector('input[name="swarmcast-video"]:checked')?.value || 'interface';
     root.dataset.video = video === 'interface' ? 'interface' : 'participants';
     root.dataset.audio = root.dataset.video === 'interface' ? 'all' : 'participants';
-    const presetId = root.querySelector('input[name="swarmcast-quality"]:checked')?.value || 'standard';
+    const presetId = root.querySelector('select[name="swarmcast-quality"]')?.value
+      || root.querySelector('input[name="swarmcast-quality"]:checked')?.value
+      || 'standard';
     if (root.dataset.preset !== presetId) {
       const preset = QUALITY_PRESETS[presetId] || QUALITY_PRESETS.standard;
       root.dataset.preset = presetId;
@@ -276,19 +321,23 @@ class SwarmcastSetup {
 
   paint(root) {
     const choice = this.choice(root);
-    const videoCount = root.dataset.video === 'participants'
-      ? root.querySelectorAll('input[name="swarmcast-video-member"]:checked').length
-      : 1;
+    const includeVideo = root.querySelector('input[name="swarmcast-include-video"]');
+    const cameras = this.mod.streams?.list?.({ kind: 'camera', session: 'call' })?.length || 0;
+    const videoCount = root.dataset.video !== 'participants'
+      ? 1
+      : includeVideo
+        ? (includeVideo.checked ? Math.max(1, cameras) : 1)
+        : root.querySelectorAll('input[name="swarmcast-video-member"]:checked').length;
     const outgoing = root.dataset.video === 'participants' ? streamQuality(choice, Math.max(1, videoCount)) : displayQuality(choice, this.mod.swarmcastSource);
     const source = this.mod.swarmcastSource;
     const write = (selector, value) => {
       const node = root.querySelector(selector);
       if (node) node.textContent = value;
     };
-    write('[data-size]', `${choice.maxWidth}×${choice.maxHeight}`);
+    write('[data-size]', `${choice.maxWidth} × ${choice.maxHeight}`);
     write('[data-rate]', `${choice.maxFramerate} fps`);
-    write('[data-source]', source?.width && source?.height ? `${source.width}×${source.height}` : 'Not shared yet');
-    write('[data-outgoing]', root.dataset.video === 'participants' ? `${outgoing.maxWidth}×${outgoing.maxHeight} per stream` : `${outgoing.maxWidth}×${outgoing.maxHeight}`);
+    write('[data-source]', source?.width && source?.height ? `${source.width} × ${source.height}` : 'Not shared yet');
+    write('[data-outgoing]', root.dataset.video === 'participants' ? `${outgoing.maxWidth} × ${outgoing.maxHeight} per stream` : `${outgoing.maxWidth} × ${outgoing.maxHeight}`);
     write('[data-outgoing-rate]', `${outgoing.maxFramerate} fps`);
     write('[data-bitrate]', root.dataset.video === 'participants' ? `${kbps(outgoing.maxBitrate)} per stream` : kbps(outgoing.maxBitrate));
   }
@@ -299,14 +348,17 @@ class SwarmcastSetup {
     const video = root.querySelector('input[name="swarmcast-video"]:checked')?.value || 'interface';
     const screen = video === 'interface';
     const choice = this.choice(root);
-    return {
+    const videoToggle = root.querySelector('input[name="swarmcast-include-video"]');
+    const audioToggle = root.querySelector('input[name="swarmcast-include-audio"]');
+    const slots = root.querySelector('input[name="swarmcast-slots"]');
+    const config = {
       video: {
-        mode: screen ? 'interface' : 'subset',
-        participants: checked('swarmcast-video-member')
+        mode: screen ? 'interface' : videoToggle ? (videoToggle.checked ? 'everyone' : 'subset') : 'subset',
+        participants: videoToggle || screen ? [] : checked('swarmcast-video-member')
       },
       audio: {
-        mode: screen ? 'everyone' : 'subset',
-        participants: checked('swarmcast-audio-member')
+        mode: screen || (audioToggle && audioToggle.checked) ? 'everyone' : audioToggle ? 'none' : 'subset',
+        participants: audioToggle || screen ? [] : checked('swarmcast-audio-member')
       },
       quality: {
         preset: choice.id,
@@ -315,6 +367,8 @@ class SwarmcastSetup {
         maxFramerate: choice.maxFramerate
       }
     };
+    if (slots && Number.isFinite(Number(slots.value))) config.slots = Math.max(0, Math.floor(Number(slots.value)));
+    return config;
   }
 
   async confirm(root) {
@@ -339,7 +393,8 @@ class SwarmcastSetup {
   async terminate(root) {
     if (!this.mod.swarmcast || root.dataset.state === 'starting') return false;
     try {
-      await this.mod.stopBroadcast();
+      if (this.mod.departBroadcast) await this.mod.departBroadcast();
+      else await this.mod.stopBroadcast();
     } catch (err) {
       this.showError(root, err?.message || 'Swarmcast could not be stopped');
       this.showState(root, 'live');
