@@ -402,6 +402,12 @@ class VideoCallFull {
     }
   }
 
+  hangUp() {
+    const hangingUp = this.mod.streams?.leaveCall?.();
+    if (!hangingUp) this.close();
+    siteMessage('You have been disconnected', 3000);
+  }
+
   attachEvents() {
     let add_users = document.querySelector('.users-on-call .invite-control');
     if (add_users) {
@@ -422,12 +428,15 @@ class VideoCallFull {
       });
     }
 
-    document.querySelectorAll('.disconnect-control').forEach((item) => {
-      item.addEventListener('click', async (e) => {
-        this.mod.streams?.leaveCall();
-        siteMessage('You have been disconnected', 3000);
+    const root = document.querySelector('#stun-chatbox');
+    if (root && !root.dataset.hangupBound) {
+      root.dataset.hangupBound = '1';
+      root.addEventListener('click', (event) => {
+        const target = event.target?.closest ? event.target : event.target?.parentElement;
+        if (!target?.closest('.disconnect-control')) return;
+        this.hangUp();
       });
-    });
+    }
 
     /*document.getElementById('record-icon').onclick = async () => {
 			const recordIcon = document.querySelector('#record-icon i');

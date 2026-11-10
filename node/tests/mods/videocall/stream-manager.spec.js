@@ -136,6 +136,31 @@ describe('Streams lifecycle', () => {
     expect(active.find({ session: 'call' })).toBeNull();
   });
 
+  test('end call still closes the screen when the call is already inactive', async () => {
+    const context = session();
+    const active = manager(context);
+    active.active = false;
+
+    await active.leaveCall();
+
+    expect(context.mod.CallInterface.close).toHaveBeenCalledTimes(1);
+    expect(context.removedPeers).toEqual([]);
+  });
+
+  test('end call closes the screen when departure fails', async () => {
+    const context = session();
+    const active = manager(context);
+    active.active = true;
+    context.mod.swarmcast = { id: 'pub-1' };
+    context.mod.departBroadcast = () => Promise.reject(new Error('peer down'));
+
+    await active.leaveCall();
+
+    expect(context.mod.CallInterface.close).toHaveBeenCalledTimes(1);
+    expect(context.removedPeers).toEqual(['peer-a']);
+    expect(active.active).toBe(false);
+  });
+
   test('cleanup is harmless the second time', async () => {
     const context = session();
     const active = manager(context);

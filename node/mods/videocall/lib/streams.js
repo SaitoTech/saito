@@ -1006,44 +1006,73 @@ class Streams {
   }
 
   async leaveCall() {
-    if (this.leaving || !this.active) return;
-    console.info('TALK [leaveCall]: hanging up...');
-    if (this.mod.swarmcast && this.mod.departBroadcast) {
-      await this.mod.departBroadcast();
+    if (this.leaving) {
+      this.mod.CallInterface?.close?.();
+      return;
+    }
+    // A disrupted call can already be inactive while the screen is still up.
+    // End Call still has to close that screen.
+    if (!this.active) {
+      this.mod.CallInterface?.close?.();
+      return;
     }
 
-    const callId = this.mod.room_obj?.call_id;
-    this.mod.clearPersistedCall?.(callId);
-    if (callId) this.app.keychain.addKey(callId, { ended: true });
+    console.info('TALK [leaveCall]: hanging up...');
     this.leaving = true;
-    this.generation += 1;
-    this.active = false;
-    this.detach();
-    const completion = [];
-    this.app.connection.emit('videocall-call-ended', completion);
-    void Promise.allSettled(completion);
+    const callId = this.mod.room_obj?.call_id;
+    try {
+      this.mod.clearPersistedCall?.(callId);
+      if (callId) this.app.keychain.addKey(callId, { ended: true });
+      this.generation += 1;
+      this.active = false;
+      this.detach();
+      const completion = [];
+      this.app.connection.emit('videocall-call-ended', completion);
+      void Promise.allSettled(completion);
 
-    this.app.browser.unlockNavigation(this.visibilityChange.bind(this));
+      try {
+        this.app.browser.unlockNavigation(this.visibilityChange.bind(this));
+      } catch (err) {
+        console.error(err);
+      }
 
-    this.endPresentation();
+      try {
+        this.endPresentation();
+      } catch (err) {
+        console.error(err);
+      }
 
-    const disconnecting = this.mod.sendCallDisconnectTransaction();
-    this.mod.CallInterface?.close?.();
-    await disconnecting;
+      const disconnecting = this.mod.sendCallDisconnectTransaction?.();
+      this.mod.CallInterface?.close?.();
 
-    this.clearCallEntries();
+      try {
+        if (this.mod.swarmcast && this.mod.departBroadcast) {
+          await this.mod.departBroadcast();
+        }
+      } catch (err) {
+        console.error(err);
+      }
 
-    this.mod.resetCall();
+      try {
+        await disconnecting;
+      } catch (err) {
+        console.error(err);
+      }
 
-    this.videoEnabled = true;
-    this.audioEnabled = true;
-    this.auto_disconnect = false;
-    this.transcribingPeers.clear();
-    this.leaving = false;
+      this.clearCallEntries();
+      this.mod.resetCall();
 
-    console.info('TALK [leaveCall]: successfully disconnected...');
-    let sound = new Audio('/saito/sound/Sharp.mp3');
-    sound.play();
+      this.videoEnabled = true;
+      this.audioEnabled = true;
+      this.auto_disconnect = false;
+      this.transcribingPeers.clear();
+
+      console.info('TALK [leaveCall]: successfully disconnected...');
+      let sound = new Audio('/saito/sound/Sharp.mp3');
+      sound.play();
+    } finally {
+      this.leaving = false;
+    }
   }
 
   endPresentation() {

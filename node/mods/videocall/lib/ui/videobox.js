@@ -128,11 +128,17 @@ class VideoBox {
       }
 
       const videoBoxVideo = document.querySelector(`#stream_${this.stream_id} video`);
-      videoBoxVideo.addEventListener('play', (event) => {
-        if (event.currentTarget.videoWidth > 0) {
+      const noteFrames = () => {
+        if (videoBoxVideo.videoWidth > 0) {
           this.framesVisible = true;
           this.renderStatus();
         }
+      };
+      for (const eventName of ['loadeddata', 'playing', 'resize']) {
+        videoBoxVideo.addEventListener(eventName, noteFrames);
+      }
+      videoBoxVideo.addEventListener('play', (event) => {
+        noteFrames();
         console.debug(
           'Videobox: ',
           this.stream_id + ' Begin Playing Video:',
@@ -170,11 +176,17 @@ class VideoBox {
       // refreshed peer keeps this stream and replaces the track inside it.
       //
       const trackReplaced = this.watchedVideoTrack && videoTrack && videoTrack !== this.watchedVideoTrack;
+      if (trackReplaced) {
+        this.framesVisible = false;
+      }
       if (videoBoxVideo.srcObject !== this.stream || trackReplaced) {
         if (trackReplaced) {
           videoBoxVideo.srcObject = null;
         }
         videoBoxVideo.srcObject = this.stream;
+      }
+      if (!trackReplaced && videoBoxVideo.videoWidth > 0) {
+        this.framesVisible = true;
       }
       if (this.mod.playback_allowed !== false) {
         const playback = videoBoxVideo.play?.();
@@ -183,7 +195,6 @@ class VideoBox {
 
       if (videoTrack && videoTrack !== this.watchedVideoTrack) {
         this.watchedVideoTrack = videoTrack;
-        this.framesVisible = false;
         if (videoTrack.addEventListener) {
           for (const state of ['mute', 'unmute', 'ended']) {
             videoTrack.addEventListener(state, () => this.renderStatus());
@@ -269,7 +280,8 @@ class VideoBox {
       this.showStatus('Connecting');
       return;
     }
-    const video = this.stream?.getVideoTracks?.()?.[0];
+    const video = this.stream?.getVideoTracks?.()?.find((track) => track.readyState !== 'ended')
+      || this.stream?.getVideoTracks?.()?.[0];
     if (this.videoChoice === false) {
       this.showStatus('Camera off');
       return;
@@ -282,7 +294,9 @@ class VideoBox {
       this.showStatus('Video unavailable');
       return;
     }
-    if (this.framesVisible) {
+    const element = document.querySelector(`#stream_${this.stream_id} video`);
+    if (this.framesVisible || element?.videoWidth > 0) {
+      this.framesVisible = true;
       this.showStatus('');
       return;
     }
