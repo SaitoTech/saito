@@ -652,6 +652,22 @@ class Stun extends ModTemplate {
         }
       }
     } catch (err) {
+      const staleOffer = description?.type === 'offer'
+        && peerConnection.remoteDescription
+        && (err?.name === 'InvalidAccessError' || err?.name === 'InvalidSessionDescriptionError');
+      if (staleOffer && !peerConnection.replaced) {
+        const pending = peerConnection.pendingCandidates || [];
+        this.diagnostic(sender, `Replacing peer connection after ${err.name}`);
+        this.removePeerConnection(sender);
+        this.createPeerConnection(sender, false);
+        const fresh = this.peers.get(sender);
+        if (fresh && fresh !== peerConnection) {
+          fresh.pendingCandidates = pending;
+          fresh.replaced = true;
+          await this.applyDescription(sender, description, fresh);
+          return;
+        }
+      }
       this.diagnostic(sender, `Apply description failed: ${err.name}`);
       console.error(
         'STUN TRACE apply description failed',

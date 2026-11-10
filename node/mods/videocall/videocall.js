@@ -182,6 +182,7 @@ class Videocall extends ModTemplate {
       if (!this.streams) {
         this.streams = new Streams(this.app, this);
       }
+      this.restoreCall();
     }
   }
 
@@ -201,6 +202,7 @@ class Videocall extends ModTemplate {
     if (service.service === 'relay') {
       this.isRelayConnected = true;
       this.swarmcastView?.noteRelay?.();
+      await this.reconnectRestoredCall();
     }
   }
 
@@ -215,7 +217,9 @@ class Videocall extends ModTemplate {
         await super.render();
         return;
       }
-      this.addComponent(new CallLaunch(this.app, this, 'body'));
+      if (!this.streams?.active) {
+        this.addComponent(new CallLaunch(this.app, this, 'body'));
+      }
       await super.render();
       this.app.connection.emit('videocall-opened');
     }
@@ -667,6 +671,13 @@ class Videocall extends ModTemplate {
 						}*/
 
             this.streams?.ensureRemote?.(from);
+
+            // A refreshed peer has a new connection. The previous one still
+            // looks connected here, and it cannot accept the new media offer.
+            const existing = this.peerManager?.peers?.get(from);
+            if (existing && ['connected', 'disconnected', 'failed'].includes(existing.connectionState)) {
+              this.peerManager.removePeerConnection(from);
+            }
 
             if (!this.room_obj.call_peers.includes(from)) {
               this.room_obj.call_peers.push(from);
@@ -1443,6 +1454,95 @@ class Videocall extends ModTemplate {
     this.ownSwarmcastRecovery();
   }
 
+  restoreCall() {
+    const session = this.app?.options?.videocall?.session;
+    if (!session || session.status !== 'live' || !session.call_id) return null;
+    if (recordStale(session)) return null;
+    if (this.streams?.active || this.CallInterface) return null;
+    if (this.room_obj?.call_id && this.room_obj.call_id !== session.call_id) return null;
+
+    const savedPeers = Array.isArray(session.call_peers) ? session.call_peers.filter(Boolean) : [];
+    const video = session.video === true || (session.video !== false && session.ui !== 'voice');
+    const audio = session.audio !== false;
+    this.room_obj = {
+      ...(this.room_obj || {}),
+      call_id: session.call_id,
+      host_public_key: session.host_public_key || this.room_obj?.host_public_key || '',
+      ui: session.ui || (video ? 'video' : 'voice'),
+      call_peers: savedPeers.length ? savedPeers.slice() : (this.room_obj?.call_peers || []).slice()
+    };
+
+    this.call_reconnect = true;
+    this.initializeCallInterface({
+      ui: this.room_obj.ui,
+      audio,
+      video
+    });
+    this.local_media_ready = Promise.resolve(this.streams?.start?.()).catch((err) => {
+      console.error(err);
+    });
+    this.confirmRestoredPlayback();
+    if (this.isRelayConnected) this.reconnectRestoredCall();
+    return this.room_obj;
+  }
+
+  confirmRestoredPlayback() {
+    if (this.playback_prompt) return this.playback_prompt;
+    this.playback_allowed = false;
+    this.playback_prompt = this.finishRestoredPlayback();
+    return this.playback_prompt;
+  }
+
+  async finishRestoredPlayback() {
+    const message = this.swarmcast ? 'continue swarmcast?' : 'continue videocall?';
+    let accepted = true;
+    if (typeof sconfirm === 'function') accepted = await sconfirm(message);
+    if (!accepted) {
+      this.playback_allowed = false;
+      this.call_reconnect = false;
+      if (this.streams?.active) await this.streams.leaveCall();
+      else if (this.swarmcast) await this.departBroadcast?.();
+      return false;
+    }
+    this.playback_allowed = true;
+    this.playRestoredMedia();
+    return true;
+  }
+
+  playRestoredMedia() {
+    const videos = globalThis.document?.querySelectorAll?.('.videobox video, video.swarmcast-video');
+    videos?.forEach?.((video) => {
+      const playback = video.play?.();
+      playback?.catch?.((err) => console.error(err));
+    });
+    if (this.swarmcastView?.media) {
+      for (const id of this.swarmcastView.media.keys()) this.swarmcastView.playOutput(id);
+    }
+  }
+
+  async reconnectRestoredCall() {
+    if (!this.call_reconnect || !this.isRelayConnected) return null;
+    if (!this.room_obj?.call_id || !this.streams?.active) return null;
+    this.call_reconnect = false;
+    try {
+      await this.local_media_ready;
+    } catch (err) {
+      console.error(err);
+    }
+    if (!this.streams?.active || !this.room_obj?.call_id) return null;
+    const entry = this.sendCallEntryTransaction?.();
+    for (const peer of this.room_obj.call_peers) {
+      if (!peer || peer === this.publicKey) continue;
+      this.peers.connect(peer, {
+        role: 'offer',
+        onReady: (peerId) => {
+          this.sendCallJoinTransaction(peerId);
+        }
+      });
+    }
+    return entry || true;
+  }
+
   persistCallState() {
     const room = this.room_obj;
     if (!room?.call_id || !this.app?.options) return;
@@ -1454,6 +1554,8 @@ class Videocall extends ModTemplate {
       host_public_key: room.host_public_key || '',
       ui: room.ui || '',
       call_peers: Array.isArray(room.call_peers) ? room.call_peers.slice() : [],
+      video: this.streams?.videoEnabled === true,
+      audio: this.streams?.audioEnabled !== false,
       status: 'live',
       heartbeat: now
     };
@@ -1463,6 +1565,8 @@ class Videocall extends ModTemplate {
       previous.host_public_key === next.host_public_key &&
       (previous.ui || '') === next.ui &&
       JSON.stringify(previous.call_peers || []) === JSON.stringify(next.call_peers) &&
+      previous.video === next.video &&
+      previous.audio === next.audio &&
       previous.status === next.status;
     next.created_at = sameCall && Number(previous.created_at) ? previous.created_at : now;
     next.updated_at = sameContent ? previous.updated_at || next.created_at : now;
@@ -1556,6 +1660,7 @@ class Videocall extends ModTemplate {
     else if (publication.broadcaster && publication.broadcaster !== publication.selfKey()) {
       publication.joinNewParent(publication.broadcaster).catch((err) => console.error(err));
     }
+    this.confirmRestoredPlayback();
     return publication;
   }
 

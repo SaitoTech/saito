@@ -333,6 +333,24 @@ describe('stream registry', () => {
     expect(updated).toEqual([stream, stream]);
   });
 
+  test('a refreshed peer replaces the previous video track in the same stream', () => {
+    const context = session();
+    const active = manager(context);
+    const pending = active.ensureRemote('peer-a');
+    const stream = pending.mediaStream;
+    const first = track('video');
+    const audio = track('audio');
+    const second = track('video');
+
+    active.adoptTrack(pending, first);
+    active.adoptTrack(pending, audio);
+    active.adoptTrack(pending, second);
+
+    expect(pending.mediaStream).toBe(stream);
+    expect(stream.getTracks()).toEqual([audio, second]);
+    expect(stream.getVideoTracks()).toEqual([second]);
+  });
+
   test('owned tracks stop on removal and borrowed tracks do not', () => {
     const context = session();
     const active = manager(context);

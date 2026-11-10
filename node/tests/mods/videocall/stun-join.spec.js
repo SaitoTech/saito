@@ -18,6 +18,12 @@ class FakePeerConnection {
   }
 
   async setRemoteDescription(description) {
+    if (this.rejectRemote) {
+      this.rejectRemote = false;
+      const error = new Error('m-line order');
+      error.name = 'InvalidAccessError';
+      throw error;
+    }
     this.operations.push(`remote-${description.type}`);
     this.remoteEntered += 1;
     if (this.holdRemote) await this.holdRemote;
@@ -174,6 +180,24 @@ describe('mesh signaling when a third participant joins', () => {
     const pc = mod.peers.get(remote);
     expect(pc.remoteDescription).toEqual({ type: 'offer', sdp: 'v=0' });
     expect(pc.localDescription.type).toBe('answer');
+  });
+
+  test('a refreshed offer that the old connection cannot accept is answered on a new connection', async () => {
+    const { mod, sent } = stun();
+    const remote = 'bbbbbbbb';
+    mod.createPeerConnection(remote, false);
+    const stale = mod.peers.get(remote);
+    stale.connectionState = 'connected';
+    stale.remoteDescription = { type: 'answer', sdp: sdp('old') };
+    stale.rejectRemote = true;
+
+    await mod.handleSignalingMessage(remote, 'peer-description', offer('new'));
+
+    const fresh = mod.peers.get(remote);
+    expect(fresh).not.toBe(stale);
+    expect(stale.signalingState).toBe('closed');
+    expect(fresh.remoteDescription).toEqual({ type: 'offer', sdp: sdp('new') });
+    expect(sentDescriptions(sent).some((msg) => msg.description?.type === 'answer')).toBe(true);
   });
 
   test('a negotiation that starts while signaling is busy runs once it is stable', async () => {

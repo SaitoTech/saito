@@ -723,6 +723,7 @@ class SwarmcastViewer {
       return;
     }
     if (this.playbackTrack.get(id) === track.id && video.paused === false) return;
+    if (this.mod.playback_allowed === false) return;
     this.playback.add(id);
     this.playbackTrack.set(id, track.id);
     const stream = this.media.get(id);

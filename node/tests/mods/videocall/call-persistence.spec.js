@@ -224,4 +224,200 @@ describe('call persistence', () => {
     expect(entries[1].watched).toBe(true);
     expect(saved).toHaveBeenCalled();
   });
+
+  function liveSession(role) {
+    const now = Date.now();
+    const created = Object.create(Videocall.prototype);
+    const originator = role === 'originator';
+    created.publicKey = originator ? 'host' : 'guest';
+    created.room_obj = null;
+    created.createRoom = jest.fn();
+    created.app = {
+      options: {
+        videocall: {
+          settings: { mode: 'default' },
+          session: {
+            call_id: 'room-1',
+            host_public_key: 'host',
+            ui: 'video',
+            call_peers: originator ? ['guest'] : ['host'],
+            status: 'live',
+            created_at: now,
+            updated_at: now,
+            heartbeat: now
+          }
+        }
+      },
+      storage: { saveOptions: jest.fn() }
+    };
+    created.streams = { active: false, start: jest.fn(() => Promise.resolve()) };
+    created.initializeCallInterface = jest.fn(function () {
+      this.streams.active = true;
+      this.CallInterface = {};
+    });
+    Object.defineProperty(created, 'peers', { value: { connect: jest.fn() } });
+    created.sendCallJoinTransaction = jest.fn();
+    created.sendCallEntryTransaction = jest.fn();
+    created.app.BROWSER = 1;
+    return created;
+  }
+
+  async function relayUp(created) {
+    await created.onPeerServiceUp(created.app, {}, { service: 'relay' });
+  }
+
+  test('an originator refresh restores the call and connects after the relay is up', async () => {
+    const created = liveSession('originator');
+
+    created.restoreCall();
+
+    expect(created.createRoom).not.toHaveBeenCalled();
+    expect(created.room_obj).toMatchObject({
+      call_id: 'room-1',
+      host_public_key: 'host',
+      ui: 'video',
+      call_peers: ['guest']
+    });
+    expect(created.initializeCallInterface).toHaveBeenCalledWith({
+      ui: 'video',
+      audio: true,
+      video: true
+    });
+    expect(created.streams.start).toHaveBeenCalledTimes(1);
+    expect(created.peers.connect).not.toHaveBeenCalled();
+    expect(created.sendCallEntryTransaction).not.toHaveBeenCalled();
+
+    await relayUp(created);
+
+    expect(created.peers.connect).toHaveBeenCalledWith('guest', {
+      role: 'offer',
+      onReady: expect.any(Function)
+    });
+    expect(created.sendCallEntryTransaction).toHaveBeenCalledTimes(1);
+    created.peers.connect.mock.calls[0][1].onReady('guest');
+    expect(created.sendCallJoinTransaction).toHaveBeenCalledWith('guest');
+  });
+
+  test('a restored video call waits for the camera before connecting', async () => {
+    const created = liveSession('originator');
+    let releaseMedia;
+    created.streams.start = jest.fn(
+      () =>
+        new Promise((resolve) => {
+          releaseMedia = resolve;
+        })
+    );
+    created.app.options.videocall.session.ui = '';
+    delete created.app.options.videocall.session.video;
+
+    created.restoreCall();
+    const pending = created.onPeerServiceUp(created.app, {}, { service: 'relay' });
+    await Promise.resolve();
+
+    expect(created.initializeCallInterface).toHaveBeenCalledWith({
+      ui: 'video',
+      audio: true,
+      video: true
+    });
+    expect(created.peers.connect).not.toHaveBeenCalled();
+
+    releaseMedia();
+    await pending;
+    expect(created.peers.connect).toHaveBeenCalledWith('guest', {
+      role: 'offer',
+      onReady: expect.any(Function)
+    });
+  });
+
+  test('a restored voice call does not open the camera', () => {
+    const created = liveSession('originator');
+    created.app.options.videocall.session.ui = 'voice';
+    created.app.options.videocall.session.video = false;
+
+    created.restoreCall();
+
+    expect(created.initializeCallInterface).toHaveBeenCalledWith({
+      ui: 'voice',
+      audio: true,
+      video: false
+    });
+  });
+
+  test('confirming a restored call starts playback', async () => {
+    const created = liveSession('originator');
+    const previous = global.sconfirm;
+    const play = jest.fn(() => Promise.resolve());
+    const video = { play };
+    const previousDocument = global.document;
+    global.document = {
+      querySelectorAll: () => [video]
+    };
+    global.sconfirm = async (message) => {
+      expect(message).toBe('continue videocall?');
+      return true;
+    };
+
+    created.restoreCall();
+    await created.playback_prompt;
+
+    expect(created.playback_allowed).toBe(true);
+    expect(play).toHaveBeenCalledTimes(1);
+    global.document = previousDocument;
+    global.sconfirm = previous;
+  });
+
+  test('canceling a restored swarmcast ends the call', async () => {
+    const created = liveSession('originator');
+    const previous = global.sconfirm;
+    created.swarmcast = { id: 'pub-1' };
+    created.streams.leaveCall = jest.fn(() => Promise.resolve());
+    created.departBroadcast = jest.fn(() => Promise.resolve());
+    global.sconfirm = async (message) => {
+      expect(message).toBe('continue swarmcast?');
+      return false;
+    };
+
+    created.restoreCall();
+    await created.playback_prompt;
+
+    expect(created.streams.leaveCall).toHaveBeenCalledTimes(1);
+    expect(created.departBroadcast).not.toHaveBeenCalled();
+    expect(created.call_reconnect).toBe(false);
+    expect(created.playback_allowed).toBe(false);
+    global.sconfirm = previous;
+  });
+
+  test('an invited participant connects to the originator after the relay is up', async () => {
+    const created = liveSession('guest');
+
+    created.restoreCall();
+
+    expect(created.room_obj.call_id).toBe('room-1');
+    expect(created.room_obj.host_public_key).toBe('host');
+    expect(created.peers.connect).not.toHaveBeenCalled();
+
+    await relayUp(created);
+
+    expect(created.streams.start).toHaveBeenCalledTimes(1);
+    expect(created.peers.connect).toHaveBeenCalledWith('host', {
+      role: 'offer',
+      onReady: expect.any(Function)
+    });
+  });
+
+  test('an explicit exit leaves nothing for a later refresh to restore', async () => {
+    const created = liveSession('originator');
+    created.app.keychain = keychain([
+      { publicKey: 'room-1', mod: 'videocall', type: 'event', watched: true }
+    ]);
+    created.clearPersistedCall('room-1');
+
+    expect(created.restoreCall()).toBeNull();
+    await relayUp(created);
+    expect(created.initializeCallInterface).not.toHaveBeenCalled();
+    expect(created.streams.start).not.toHaveBeenCalled();
+    expect(created.peers.connect).not.toHaveBeenCalled();
+    expect(created.sendCallEntryTransaction).not.toHaveBeenCalled();
+    expect(created.room_obj).toBeNull();
+  });
 });

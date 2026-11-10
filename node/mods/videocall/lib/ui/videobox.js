@@ -162,15 +162,25 @@ class VideoBox {
     if (this.stream) {
       const videoBoxVideo = document.querySelector(`#stream_${this.stream_id} video`);
 
+      const videoTrack = this.stream.getVideoTracks()?.find((track) => track.readyState !== 'ended')
+        || this.stream.getVideoTracks()?.[0];
       //
       // Re-assigning the same MediaStream restarts playback, so only touch
-      // srcObject when the stream actually changed
+      // srcObject when the stream or its current video track changed. A
+      // refreshed peer keeps this stream and replaces the track inside it.
       //
-      if (videoBoxVideo.srcObject !== this.stream) {
+      const trackReplaced = this.watchedVideoTrack && videoTrack && videoTrack !== this.watchedVideoTrack;
+      if (videoBoxVideo.srcObject !== this.stream || trackReplaced) {
+        if (trackReplaced) {
+          videoBoxVideo.srcObject = null;
+        }
         videoBoxVideo.srcObject = this.stream;
       }
+      if (this.mod.playback_allowed !== false) {
+        const playback = videoBoxVideo.play?.();
+        playback?.catch?.((err) => console.error(err));
+      }
 
-      const videoTrack = this.stream.getVideoTracks()?.[0];
       if (videoTrack && videoTrack !== this.watchedVideoTrack) {
         this.watchedVideoTrack = videoTrack;
         this.framesVisible = false;

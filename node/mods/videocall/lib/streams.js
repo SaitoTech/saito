@@ -222,8 +222,16 @@ class Streams {
     if (!entry.mediaStream) {
       entry.mediaStream = this.blankStream();
     }
-    if (!entry.mediaStream.getTracks().includes(track)) {
-      entry.mediaStream.addTrack(track);
+    const stream = entry.mediaStream;
+    // A refreshed peer delivers a new track of the same kind. The video
+    // element keeps showing the first track, so the ended one has to leave.
+    for (const current of stream.getTracks()) {
+      if (current !== track && current.kind === track.kind) {
+        stream.removeTrack(current);
+      }
+    }
+    if (!stream.getTracks().includes(track)) {
+      stream.addTrack(track);
     }
     entry.availability = 'live';
     this.announce(entry, 'updated');
@@ -538,7 +546,10 @@ class Streams {
     await this.getLocalMedia();
     if (generation !== this.generation || !this.active) return;
 
-    this.mod.sendCallEntryTransaction();
+    // A restored call connects when the relay is up, not while the windows render.
+    if (!this.mod.call_reconnect) {
+      this.mod.sendCallEntryTransaction();
+    }
 
     let sound = new Audio('/saito/sound/Calm.mp3');
     sound.play();
