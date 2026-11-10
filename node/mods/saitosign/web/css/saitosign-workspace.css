@@ -301,9 +301,10 @@
 }
 
 .workspace button.export.primary.verified:not(:disabled) {
-  border-color: var(--saitosign-signed-ink);
-  background: var(--saitosign-signed-ground);
-  color: var(--saitosign-signed-ink);
+  border-color: #6ee7a8;
+  background: #14573a;
+  color: #fff;
+  cursor: pointer;
 }
 
 .workspace button.export:disabled {
@@ -579,6 +580,56 @@
   white-space: nowrap;
 }
 
+.workspace .field.cue-target {
+  overflow: visible;
+  justify-content: center;
+  opacity: 1;
+  z-index: 4;
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.workspace .field.cue-target .text {
+  flex: 0 1 auto;
+  max-width: 100%;
+  text-align: center;
+}
+
+.workspace .field.cue-target .cue {
+  position: absolute;
+  left: 100%;
+  top: -1px;
+  display: inline-flex;
+  align-items: center;
+  height: calc(100% + 2px);
+  margin: 0;
+  padding: 0 0.7em;
+  border: 1px solid var(--saito-primary);
+  border-left: 1px solid rgba(255, 255, 255, 0.45);
+  border-radius: 0 var(--saito-radius) var(--saito-radius) 0;
+  background: var(--saito-primary);
+  color: #fff;
+  font-size: 0.92em;
+  letter-spacing: 0.04em;
+  line-height: 1.2;
+  white-space: nowrap;
+  box-shadow: 0 0 0.7em var(--saito-primary);
+  animation: saitosign-click-cue 1.5s ease-in-out infinite;
+}
+
+@keyframes saitosign-click-cue {
+  0%,
+  100% {
+    filter: brightness(1);
+    box-shadow: 0 0 0.35em var(--saito-primary);
+  }
+
+  50% {
+    filter: brightness(1.2);
+    box-shadow: 0 0 1.15em var(--saito-primary);
+  }
+}
+
 .workspace .field:hover,
 .workspace .field:focus-visible,
 .workspace .field.moving {
@@ -665,6 +716,12 @@
 
   to {
     opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .workspace .field.cue-target .cue {
+    animation: none;
   }
 }
 

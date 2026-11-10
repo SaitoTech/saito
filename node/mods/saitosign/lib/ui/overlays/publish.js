@@ -1,6 +1,7 @@
 const SaitoOverlay = require('../../../../../lib/saito/ui/saito-overlay/saito-overlay');
 const PublishTemplate = require('./publish.template');
 const Photo = require('./photo');
+const SignerAudit = require('./signer-audit');
 const Passport = require('./passport');
 const IdentityPrompt = require('./identity');
 const WhoTemplate = require('./who.template');
@@ -28,7 +29,6 @@ const {
   knownSigner
 } = require('../../auth');
 const { addUser, copy, resolveSigner } = require('../../document');
-const { saveDraft } = require('../../draft');
 const { shareMetadata } = require('../../transaction');
 
 class PublishOverlay {
@@ -74,6 +74,52 @@ class PublishOverlay {
     }
     this.overlay.show(PublishTemplate(this.state));
     this.attachEvents();
+  }
+
+  openRecoveredVerification(user) {
+    if (this.mod.retired || !user) {
+      return;
+    }
+    const index = (this.mod.document?.users || []).indexOf(user);
+    if (index < 0) {
+      return;
+    }
+    this.state = flow.initialState();
+    if (this.mod.document.metadata) {
+      this.state = flow.applyShareMetadata(this.state, this.mod.document.metadata);
+    }
+    this.state.signers = readUsers(this.mod);
+    const signer = this.state.signers.find((candidate) => candidate.index === index);
+    if (!signer) {
+      return;
+    }
+    this.state = flow.confirmYou(this.state, {
+      index,
+      name: signer.name,
+      email: user.email || signer.email,
+      publicKey: user.publickey || signer.publickey,
+      identicon: ''
+    });
+    this.state = {
+      ...this.state,
+      step: 'verify',
+      history: [],
+      focus: 'email',
+      allowUnfinalize: false,
+      verifyError: ''
+    };
+    this.state = this.withKnownVerifications(this.state);
+    this.overlay.show(PublishTemplate(this.state));
+    this.attachEvents();
+  }
+
+  openSignerAudit(userIndex) {
+    if (this.state.step !== 'share' || !Number.isInteger(userIndex)) {
+      return;
+    }
+    const audit = new SignerAudit(this.app, this.mod);
+    this.signerAudit = audit;
+    audit.open(userIndex);
   }
 
   openStatus(completionNote = '') {
@@ -123,7 +169,7 @@ class PublishOverlay {
   }
 
   async commitFinalization() {
-    if (this.sliding || this.state.step !== 'share' || this.mod.document?.finalized) {
+    if (this.mod.retired || this.sliding || this.state.step !== 'share' || this.mod.document?.finalized) {
       return;
     }
     this.sliding = true;
@@ -299,7 +345,25 @@ class PublishOverlay {
       }
     });
 
+    root.addEventListener('keydown', (event) => {
+      if (event.key !== 'Enter' && event.key !== ' ') {
+        return;
+      }
+      const signer = event.target.closest('[data-signer-audit]');
+      if (!signer || this.state.step !== 'share') {
+        return;
+      }
+      event.preventDefault();
+      this.openSignerAudit(Number(signer.dataset.signerAudit));
+    });
+
     root.addEventListener('click', (event) => {
+      const signer = event.target.closest('[data-signer-audit]');
+      if (signer && this.state.step === 'share') {
+        this.openSignerAudit(Number(signer.dataset.signerAudit));
+        return;
+      }
+
       const plan = event.target.closest('[data-plan]');
       if (plan && this.state.step === 'select') {
         if (!this.state.canChooseTier) {
@@ -771,6 +835,9 @@ class PublishOverlay {
   }
 
   sendEmail() {
+    if (this.mod.retired) {
+      return;
+    }
     const input = document.querySelector('[data-verify-email]');
     const email = (input?.value || this.state.you?.email || '').trim();
     const publickey = this.state.you?.publicKey || '';
@@ -879,7 +946,7 @@ class PublishOverlay {
 
     if (res.signature) {
       try {
-        await saveDraft({ code: res.signature, document: copy(this.mod.document) });
+        await this.mod.persistDraft({ code: res.signature, document: copy(this.mod.document) });
       } catch (err) {}
     }
 
@@ -905,7 +972,7 @@ class PublishOverlay {
   }
 
   async submitSignature() {
-    if (this.state.checking) {
+    if (this.mod.retired || this.state.checking) {
       return;
     }
     const signature = document.querySelector('[data-verify-signature]')?.value.trim() || '';
@@ -945,10 +1012,11 @@ class PublishOverlay {
         method: 'email',
         publickey: this.serverkey,
         message: `Request received for verification of email ${email} with publickey ${publickey}`,
-        signature
+        signature,
+        returned: true
       });
     }
-    saveDraft({ code: signature, document: copy(this.mod.document) }).catch(() => {});
+    this.mod.persistDraft({ code: signature, document: copy(this.mod.document) }).catch(() => {});
     rememberEmail(this.app, publickey, email);
     this.state = flow.markMethodVerified(
       { ...this.state, checking: false, pendingCode: '', verifyError: '' },
@@ -958,6 +1026,9 @@ class PublishOverlay {
   }
 
   takePhoto() {
+    if (this.mod.retired) {
+      return;
+    }
     const photo = new Photo(this.app, this.mod);
     this.photo = photo;
     photo.open({
@@ -966,6 +1037,9 @@ class PublishOverlay {
   }
 
   async acceptPhoto(image) {
+    if (this.mod.retired) {
+      return;
+    }
     const you = this.state.you;
     const publickey = you?.publicKey || '';
     const live = you ? this.mod.document.users[you.index] : null;
@@ -1054,7 +1128,7 @@ class PublishOverlay {
     const record = this.mod.document;
     const signature = record?.users?.[this.state.you?.index]?.verifications?.[0]?.signature || '';
     if (signature) {
-      saveDraft({ code: signature, document: copy(record) }).catch(() => {});
+      this.mod.persistDraft({ code: signature, document: copy(record) }).catch(() => {});
     }
     if (this.state.afterVerify === 'sign') {
       const actionId = this.state.pendingActionId;
@@ -1097,6 +1171,9 @@ class PublishOverlay {
   }
 
   async signUserActions() {
+    if (this.mod.retired) {
+      return false;
+    }
     const record = this.mod.document;
     if (!record) {
       return false;

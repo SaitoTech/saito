@@ -71,7 +71,7 @@ function peopleHTML(state) {
         .join('<br>');
       const status = row.signed ? 'Signed' : 'Not signed';
       return `
-        <tr>
+        <tr class="signer-row" data-signer-audit="${escapeHTML(row.index)}" tabindex="0" role="button" aria-label="View verification details for ${escapeHTML(row.name)}">
           <td>${escapeHTML(row.name)}${row.creator ? ' (creator)' : ''}</td>
           <td>${requirements}</td>
           <td>${status}</td>

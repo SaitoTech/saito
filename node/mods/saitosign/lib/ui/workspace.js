@@ -112,6 +112,9 @@ class Workspace {
     this.reader_drag = null;
     this.reader_expanded = false;
     this.field_type = '';
+    this.sign_guide = null;
+    this.sign_guide_off = false;
+    this.sign_guide_ready = false;
   }
 
   show() {
@@ -135,6 +138,9 @@ class Workspace {
     this.reader_y = 16;
     this.reader_expanded = false;
     this.field_type = '';
+    this.sign_guide = null;
+    this.sign_guide_off = false;
+    this.sign_guide_ready = false;
     this.render();
   }
 
@@ -949,6 +955,7 @@ class Workspace {
       this.openExisting(field, root);
       return;
     }
+    this.followSignGuide(field);
 
     const user = doc.users[field.user];
     const relation = signerRelation(this.app, user, doc);
@@ -986,7 +993,78 @@ class Workspace {
     if (!canSignAction(this.app, action, user, doc)) {
       return;
     }
-    this.openSignPrompt(action);
+    this.ensureSignGuide();
+    const guided = actionById(doc, this.sign_guide) || unsignedPlacements(this.app, doc, action.user)[0] || action;
+    this.focus_field = null;
+    this.page = guided.page;
+    this.pending_scroll = true;
+    this.scroll_field = guided.id;
+    const root = document.querySelector('.saito-container > .workspace');
+    if (root) {
+      this.update(root);
+    }
+  }
+
+  ensureSignGuide() {
+    if (this.sign_guide_ready || this.sign_guide_off) {
+      return;
+    }
+    const doc = this.mod.document;
+    if (!doc?.finalized) {
+      return;
+    }
+    const index = recognizedSignerIndex(this.app, doc);
+    if (index == null) {
+      this.sign_guide_ready = true;
+      return;
+    }
+    const user = doc.users[index];
+    if (!verificationSatisfied(this.app, doc, user)) {
+      return;
+    }
+    this.sign_guide_ready = true;
+    const first = unsignedPlacements(this.app, doc, index)[0];
+    this.sign_guide = first ? first.id : null;
+  }
+
+  followSignGuide(field) {
+    if (!field || this.sign_guide == null || this.sign_guide_off) {
+      return;
+    }
+    const queue = unsignedPlacements(this.app, this.mod.document, field.user).map((action) => action.id);
+    const next = guideOnClick(this.sign_guide, false, field.id, queue);
+    this.sign_guide = next.guideId;
+    this.sign_guide_off = next.dismissed;
+  }
+
+  syncSignGuide() {
+    if (this.sign_guide == null || this.sign_guide_off) {
+      return;
+    }
+    const doc = this.mod.document;
+    const current = actionById(doc, this.sign_guide);
+    if (!current) {
+      this.sign_guide = null;
+      return;
+    }
+    const queue = unsignedPlacements(this.app, doc, current.user);
+    if (queue.some((action) => Number(action.id) === Number(this.sign_guide))) {
+      return;
+    }
+    this.sign_guide = queue[0] ? queue[0].id : null;
+  }
+
+  guideText(doc) {
+    const started = (doc?.actions || []).length > 0;
+    const index = recognizedSignerIndex(this.app, doc);
+    const user = index == null ? null : doc?.users?.[index];
+    const signing = Boolean(
+      doc?.finalized
+      && user
+      && verificationSatisfied(this.app, doc, user)
+      && unsignedPlacements(this.app, doc, index).length
+    );
+    return signingGuideText(doc?.finalized === true, started, signing);
   }
 
   openSignPrompt(field, options = {}) {
@@ -1090,13 +1168,17 @@ class Workspace {
         this.publish.openStatus('You have added your signature everywhere required on the document.');
         return true;
       }
-      this.focus_field = next.id;
+      const guided = this.sign_guide_ready && !this.sign_guide_off;
+      this.focus_field = guided ? null : next.id;
       this.page = next.page;
       if (current) {
         this.update(current);
         await this.scrollToField(current, next.id, { smooth: true, preferTop: true });
       }
       if (this.sign_step !== token || !document.querySelector('.saito-container > .workspace')) {
+        return true;
+      }
+      if (guided) {
         return true;
       }
       this.openSignPrompt(next, { sequence: true });
@@ -1210,6 +1292,11 @@ class Workspace {
           this.sign_error = `Signing stopped on page ${current.page}. ${reason} Signatures already added are saved.`;
           this.focus_field = current.id;
           this.page = current.page;
+          this.syncSignGuide();
+          const failed = document.querySelector('.saito-container > .workspace');
+          if (failed) {
+            this.paintFields(failed, this.view());
+          }
           return false;
         }
         this.markFieldSigned(root, current);
@@ -1230,6 +1317,7 @@ class Workspace {
   }
 
   finishSigning() {
+    this.syncSignGuide();
     this.dismissSignOverlay();
     this.focus_field = null;
     this.confirming_field = null;
@@ -1293,6 +1381,8 @@ class Workspace {
       return;
     }
     field.classList.add('signed');
+    field.classList.remove('cue-target');
+    field.querySelector('.cue')?.remove();
     field.style.background = '';
     field.style.borderColor = '';
     const text = field.querySelector('.text');
@@ -1306,6 +1396,10 @@ class Workspace {
   }
 
   async signAction(action, privateKey) {
+    if (this.mod.retired) {
+      this.sign_error = 'This signing session has moved to another tab.';
+      return false;
+    }
     const doc = this.mod.document;
     const user = action ? doc?.users?.[action.user] : null;
     if (!doc?.finalized || !action || !user || !canSignAction(this.app, action, user, doc)) {
@@ -1684,6 +1778,7 @@ class Workspace {
       this.page = 1;
     }
 
+    this.ensureSignGuide();
     const focus = this.focus_field;
     const confirming = this.confirming_field;
     const selected = (id) => focus != null && Number(id) === Number(focus);
@@ -1700,6 +1795,7 @@ class Workspace {
       page: this.page,
       page_count: doc.document.page_count,
       notice: this.notice || '',
+      guide: this.guideText(doc),
       placing: this.placing,
       adding_signer: this.adding_signer,
       edited: doc.edited,
@@ -1758,7 +1854,8 @@ class Workspace {
               width: action.width,
               height: action.height,
               active: selected(action.id),
-              confirming: marked(action.id)
+              confirming: marked(action.id),
+              cue: !signed && this.sign_guide != null && Number(action.id) === Number(this.sign_guide)
             };
           }),
           draft: draft && draft.page === page ? draft : null
@@ -1808,7 +1905,6 @@ class Workspace {
     if (!rail) {
       return false;
     }
-    const started = view.field_list.length > 0;
     const buttons = [...rail.querySelectorAll('.field-list [data-open-field]')];
     if (buttons.length !== view.field_list.length) {
       return false;
@@ -1818,11 +1914,7 @@ class Workspace {
         return false;
       }
     }
-    const guideText = view.finalized
-      ? 'Review the document and provide your signature where needed.'
-      : started
-        ? 'Add further signature boxes, then click Ready to Sign when done.'
-        : 'Click on any page where a signature is required.';
+    const guideText = view.guide;
     const guide = rail.querySelector('.guide');
     if (!guide) {
       return false;
@@ -1843,8 +1935,8 @@ class Workspace {
       return false;
     }
     const exportLabel = view.finalized
-      ? (view.verified ? 'Document Verified' : 'Check Document Status')
-      : (started ? 'Ready to Sign' : '');
+      ? (view.verified ? 'Verified - View Details' : 'Continue')
+      : (view.field_list.length > 0 ? 'Continue' : '');
     const exportButton = rail.querySelector('[data-export]');
     if (exportLabel) {
       if (!exportButton) {
@@ -2215,6 +2307,38 @@ function signerCoversAllPages(doc, userIndex) {
     }
   });
   return pages.size === count;
+}
+
+function recognizedSignerIndex(app, doc) {
+  const keys = walletKeys(app);
+  if (!keys.length) {
+    return null;
+  }
+  const index = (doc?.users || []).findIndex((user) => keys.includes(String(user?.publickey || '').trim()));
+  return index >= 0 ? index : null;
+}
+
+function signingGuideText(finalized, started, signing) {
+  if (finalized) {
+    return signing
+      ? 'Click below to add your signatures.'
+      : 'Review the document and provide your signature where needed.';
+  }
+  return started
+    ? 'Add further signature boxes, then click Ready to Sign when done.'
+    : 'Click on any page where a signature is required.';
+}
+
+function guideOnClick(guideId, dismissed, clickedId, queueIds) {
+  if (dismissed || guideId == null) {
+    return { guideId, dismissed: Boolean(dismissed) };
+  }
+  if (Number(clickedId) !== Number(guideId)) {
+    return { guideId: null, dismissed: true };
+  }
+  const index = (queueIds || []).findIndex((id) => Number(id) === Number(clickedId));
+  const next = index >= 0 ? queueIds[index + 1] : null;
+  return { guideId: next == null ? null : next, dismissed: false };
 }
 
 function unsignedPlacements(app, doc, userIndex) {
@@ -2592,5 +2716,7 @@ function clamp01(value) {
 }
 
 module.exports = Workspace;
+module.exports.guideOnClick = guideOnClick;
+module.exports.signingGuideText = signingGuideText;
 module.exports.signerCoversAllPages = signerCoversAllPages;
 module.exports.unsignedPlacements = unsignedPlacements;

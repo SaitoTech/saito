@@ -20,7 +20,18 @@ const { createZip, readZip, looksLikeZip, isZipFile } = require('./lib/zip');
 const Main = require('./lib/ui/main');
 const HomePage = require('./index');
 const { verifyEmail, myKeychainEmail, rememberVerifiedEmails, documentUnchanged, createCreatorProof, verifyCreatorProof, finalizeDocument, verifyFinalization, signingConfigurationError } = require('./lib/auth');
-const { loadDraft, clearDraft } = require('./lib/draft');
+const { loadDraft, saveDraft, clearDraft, claimDraft } = require('./lib/draft');
+const {
+  recoveryPlan,
+  sessionWriter,
+  rememberWriter,
+  newWriterId,
+  walletOwnsKey,
+  challengedKey,
+  clearVerificationQuery,
+  announceHandoff,
+  listenForHandoff
+} = require('./lib/recovery');
 const SaitoSignDatabase = require('./lib/database');
 
 const ARCHIVE_README = 'This is a SaitoSign zip archive. To sign this document, visit sato.io/SaitoSign, and copy the zip file or the SaitoSign file into the UI and follow the instructions.\n';
@@ -40,10 +51,37 @@ class SaitoSign extends ModTemplate {
     this.styles = ['/saitosign/style.css'];
 
     this.dev = 1;
+    this.retired = false;
+    this.recovery = 'none';
+    this.recoveryCode = '';
+    this.recoveredUser = null;
     this.document = emptyDocument();
     this.database = null;
     this.header = null;
     this.main = new Main(app, this);
+    this.skipWalletTabPrompt(app);
+  }
+
+  skipWalletTabPrompt(app) {
+    const browser = app?.browser;
+    if (!browser || browser.__saitosignTabPrompt || typeof window === 'undefined') {
+      return;
+    }
+    const original = browser.checkForMultipleWindows;
+    if (typeof original !== 'function') {
+      return;
+    }
+    browser.__saitosignTabPrompt = true;
+    browser.checkForMultipleWindows = function () {
+      try {
+        const url = new URL(window.location.href);
+        const path = url.pathname.replace(/\/+$/, '');
+        if (path.endsWith('/saitosign') && url.searchParams.has('code')) {
+          return;
+        }
+      } catch (err) {}
+      return original.call(this);
+    };
   }
 
   async initialize(app) {
@@ -57,33 +95,147 @@ class SaitoSign extends ModTemplate {
     if (this.browser_active) {
       this.header = new SaitoHeader(app, this);
       await this.header.initialize(app);
+      this.listenForRecovery();
       await this.openSavedDocument();
     }
   }
 
+  listenForRecovery() {
+    if (this.listeningForRecovery || typeof window === 'undefined') {
+      return;
+    }
+    this.listeningForRecovery = true;
+    listenForHandoff(() => this.retireSession());
+  }
+
+  async persistDraft(record) {
+    if (this.retired) {
+      return false;
+    }
+    const writerId = sessionWriter();
+    const next = writerId
+      ? { ...record, handoff: { code: record?.code, writerId } }
+      : record;
+    try {
+      return await saveDraft(next);
+    } catch (err) {
+      return false;
+    }
+  }
+
+  freezePersistence() {
+    const storage = this.app.storage;
+    if (storage) {
+      storage.active_tab = 0;
+      storage.saveOptions = () => {};
+    }
+    const wallet = this.app.wallet;
+    if (wallet) {
+      wallet.saveWallet = async () => {};
+      if (typeof wallet.save === 'function') {
+        wallet.save = async () => {};
+      }
+    }
+  }
+
+  retireSession() {
+    if (this.retired) {
+      return;
+    }
+    this.retired = true;
+    this.freezePersistence();
+    try {
+      this.app.browser?.setActiveTab?.(0);
+    } catch (err) {}
+    try {
+      this.main?.workspace?.publish?.close?.();
+    } catch (err) {}
+    this.main?.showRetired?.();
+    setTimeout(() => {
+      try {
+        window.close();
+      } catch (err) {}
+    }, 50);
+  }
+
   async openSavedDocument() {
-    const code = this.app.browser.returnURLParameter('code');
-    if (!code || hasPdf(this.document)) {
+    if (hasPdf(this.document)) {
+      return;
+    }
+    const urlCode = this.app.browser.returnURLParameter('code');
+    let saved = null;
+    try {
+      saved = await loadDraft();
+    } catch (err) {
+      saved = null;
+    }
+    const plan = recoveryPlan({
+      urlCode,
+      writerId: sessionWriter(),
+      saved,
+      eligible: this.recoveryEligible(saved, urlCode || saved?.code)
+    });
+    this.recovery = plan.action;
+    this.recoveryCode = plan.code || '';
+    if (plan.action === 'missing' || plan.action === 'none') {
       return;
     }
 
-    const saved = await loadDraft();
-    if (!saved || saved.code !== code || !saved.document || !this.signatureVerifies(saved.document, code)) {
-      return;
+    let record = saved;
+    if (plan.action === 'claim') {
+      const writerId = newWriterId();
+      try {
+        record = await claimDraft(plan.code, writerId);
+      } catch (err) {
+        record = null;
+      }
+      if (!record) {
+        this.recovery = 'missing';
+        return;
+      }
+      rememberWriter(writerId, plan.code);
+      const user = this.verifiedUser(record.document, plan.code);
+      if (user) {
+        rememberVerifiedEmails(this.app, record.document);
+      }
+      announceHandoff(plan.code, writerId);
     }
 
     try {
-      this.document = await hydrate(saved.document);
+      this.document = await hydrate(record.document);
       if (this.document.creator && !verifyCreatorProof(this.app, this.document)) {
         throw new Error('Creator identity could not be verified.');
       }
       if (this.document.finalized && !verifyFinalization(this.app, this.document)) {
         throw new Error('Finalized document signature is invalid.');
       }
-      rememberVerifiedEmails(this.app, this.document);
+      this.recoveredUser = this.verifiedUser(this.document, plan.code);
+      clearVerificationQuery();
     } catch (err) {
       this.document = emptyDocument();
+      this.recovery = 'missing';
+      this.recoveredUser = null;
     }
+  }
+
+  recoveryEligible(saved, code) {
+    if (!saved?.document || !code || saved.code !== code || !this.signatureVerifies(saved.document, code)) {
+      return false;
+    }
+    const user = this.verifiedUser(saved.document, code);
+    return Boolean(user && walletOwnsKey(this.app, user.publickey));
+  }
+
+  verifiedUser(document, code) {
+    const users = Array.isArray(document?.users) ? document.users : [];
+    return users.find((user) => {
+      const entries = Array.isArray(user?.verifications) ? user.verifications : [];
+      return entries.some((entry) => {
+        return entry?.signature === code
+          && challengedKey(entry.message) === String(user?.publickey || '').trim()
+          && this.app.crypto.verifyMessage(entry.message, entry.signature, entry.publickey);
+      });
+    }) || null;
   }
 
   signatureVerifies(record, signature) {
@@ -104,6 +256,10 @@ class SaitoSign extends ModTemplate {
 
   async render() {
     if (!this.app.BROWSER || !this.browser_active) {
+      return;
+    }
+    if (this.retired) {
+      this.main?.showRetired?.();
       return;
     }
 
@@ -191,6 +347,9 @@ class SaitoSign extends ModTemplate {
   }
 
   async importPdfs(files) {
+    if (this.retired) {
+      return;
+    }
     const list = Array.isArray(files) ? files.filter(Boolean) : [];
     if (!list.length) {
       this.main.fail('Choose a PDF or a SaitoSign transaction.');
@@ -234,6 +393,9 @@ class SaitoSign extends ModTemplate {
   }
 
   async exportDocument(options = {}) {
+    if (this.retired) {
+      return false;
+    }
     const document = this.document;
     if (!hasPdf(document) || (!options.draft && !document.edited)) {
       return false;

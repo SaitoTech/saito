@@ -1007,8 +1007,39 @@
   text-underline-offset: 0.28rem;
 }
 
+.saitosign-publish:has(.step[data-step="verify"]) {
+  height: auto;
+  min-height: 0;
+}
+
+.saitosign-publish .step[data-step="verify"] {
+  gap: 1.2rem;
+  min-height: 0;
+}
+
 .saitosign-publish .step[data-step="verify"] .title {
-  margin-bottom: var(--saito-space-sm);
+  margin-bottom: 0;
+}
+
+.saitosign-publish .step[data-step="verify"] .subtitle {
+  max-width: 78rem;
+  margin: 0;
+  color: var(--saito-muted-foreground);
+  font-size: 1.45rem;
+  line-height: 1.45;
+}
+
+.saitosign-publish .step[data-step="verify"] .disclosure {
+  max-width: 78rem;
+  margin: 0 0 0.4rem;
+  color: var(--saito-foreground);
+  font-size: var(--font-size-medium);
+  line-height: 1.5;
+}
+
+.saitosign-publish .step[data-step="verify"] .stage {
+  display: flex;
+  flex-direction: column;
 }
 
 .saitosign-publish .verify-lead,
@@ -1026,7 +1057,8 @@
 
 .saitosign-publish .verify-flow {
   display: grid;
-  grid-template-columns: minmax(26rem, 0.82fr) minmax(0, 1.35fr);
+  flex: 0 0 auto;
+  grid-template-columns: minmax(26rem, 0.78fr) minmax(0, 1.4fr);
   gap: var(--saito-space-lg);
   align-items: start;
 }
@@ -1034,22 +1066,26 @@
 .saitosign-publish .verify-methods {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
-  height: auto;
+  gap: 0.8rem;
   align-self: start;
+  height: auto;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
 }
 
 .saitosign-publish .verify-method {
   display: flex;
-  flex: 0 0 7.6rem;
+  flex: 0 0 auto;
   align-items: center;
   gap: 1.4rem;
   width: 100%;
-  height: 7.6rem;
-  min-height: 7.6rem;
+  height: auto;
+  min-height: 6.4rem;
   box-sizing: border-box;
   margin: 0;
-  padding: 1.4rem 1.6rem;
+  padding: 1.2rem 1.4rem;
   border: 1px solid var(--saito-border);
   border-radius: var(--saito-radius);
   background: var(--saito-secondary);
@@ -1059,17 +1095,23 @@
   cursor: pointer;
 }
 
+.saitosign-publish .verify-method:hover {
+  border-color: color-mix(in srgb, var(--saito-primary) 55%, var(--saito-border));
+}
+
 .saitosign-publish .verify-flow > .detail {
   display: flex;
   flex-direction: column;
   align-items: stretch;
   justify-content: flex-start;
   align-self: start;
+  gap: 1.2rem;
   min-height: 0;
   margin: 0;
-  padding: 0;
-  border: 0;
-  background: transparent;
+  padding: 2.2rem 2.4rem;
+  border: 1px solid var(--saito-border);
+  border-radius: var(--saito-radius);
+  background: color-mix(in srgb, var(--saito-card) 72%, transparent);
 }
 
 .saitosign-publish .verify-mark {
@@ -1113,7 +1155,8 @@
 
 .saitosign-publish .verify-method.selected {
   border-color: var(--saito-primary);
-  background: color-mix(in srgb, var(--saito-primary) 22%, var(--saito-secondary));
+  background: color-mix(in srgb, var(--saito-primary) 18%, var(--saito-secondary));
+  box-shadow: inset 0.35rem 0 0 var(--saito-primary);
 }
 
 .saitosign-publish .verify-method.verified {
@@ -1129,6 +1172,114 @@
 .saitosign-publish .verify-method.verified .verify-name,
 .saitosign-publish .verify-method.verified .verify-status {
   color: color-mix(in srgb, var(--saito-status-success, #10b981) 72%, var(--saito-foreground));
+}
+
+.saitosign-publish .verify-method.verified.selected {
+  box-shadow: inset 0.35rem 0 0 var(--saito-status-success, #10b981);
+}
+
+.saitosign-publish .verify-panel-title,
+.saitosign-publish .verify-flow > .detail > .heading {
+  margin: 0;
+  color: var(--saito-foreground);
+  font-family: var(--saito-font-medium);
+  font-size: 2rem;
+  font-weight: 500;
+  line-height: 1.3;
+}
+
+.saitosign-publish .verify-explain,
+.saitosign-publish .verify-flow > .detail > p:not(.note):not(.dev-code) {
+  max-width: 68rem;
+  margin: 0;
+  color: color-mix(in srgb, var(--saito-foreground) 88%, var(--saito-muted-foreground));
+  font-size: 1.5rem;
+  line-height: 1.55;
+}
+
+.saitosign-publish .verify-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.6rem;
+  margin-top: 0.6rem;
+}
+
+.saitosign-publish .verify-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.saitosign-publish .verify-field label {
+  color: var(--saito-foreground);
+  font-family: var(--saito-font-medium);
+  font-size: 1.4rem;
+  line-height: 1.3;
+}
+
+.saitosign-publish .verify-field.waiting {
+  opacity: 0.46;
+}
+
+.saitosign-publish .verify-form .send-row button {
+  width: auto;
+  min-width: 22rem;
+}
+
+.saitosign-publish .verify-action.accent {
+  border-color: transparent;
+  background: var(--saito-primary);
+  color: var(--saito-primary-foreground, #fff);
+}
+
+.saitosign-publish .verify-action.accent:disabled {
+  background: color-mix(in srgb, var(--saito-primary) 28%, var(--saito-secondary));
+  color: color-mix(in srgb, #fff 62%, var(--saito-muted-foreground));
+  opacity: 1;
+  cursor: default;
+}
+
+.saitosign-publish .verify-success {
+  display: flex;
+  align-items: flex-start;
+  gap: 1.4rem;
+  margin: 0;
+  padding: 1.6rem 1.8rem;
+  border: 1px solid color-mix(in srgb, var(--saito-status-success, #10b981) 55%, var(--saito-border));
+  border-radius: var(--saito-radius);
+  background: color-mix(in srgb, var(--saito-status-success, #10b981) 14%, var(--saito-secondary));
+}
+
+.saitosign-publish .verify-success-mark {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 3.6rem;
+  height: 3.6rem;
+  border-radius: 0.7rem;
+  background: var(--saito-status-success, #10b981);
+  color: #fff;
+  font-size: 1.6rem;
+}
+
+.saitosign-publish .verify-success h4,
+.saitosign-publish .verify-success p {
+  margin: 0;
+}
+
+.saitosign-publish .verify-success h4 {
+  color: var(--saito-foreground);
+  font-family: var(--saito-font-medium);
+  font-size: var(--font-size-medium);
+  line-height: 1.3;
+}
+
+.saitosign-publish .verify-success p {
+  margin-top: 0.3rem;
+  color: color-mix(in srgb, var(--saito-foreground) 82%, var(--saito-muted-foreground));
+  font-size: 1.45rem;
+  line-height: 1.45;
 }
 
 .saitosign-publish .dev-code {
@@ -1324,6 +1475,20 @@
     flex-direction: column;
   }
 
+  .saitosign-publish .verify-flow {
+    min-height: 0;
+  }
+
+  .saitosign-publish .verify-form .send-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .saitosign-publish .verify-form .send-row button {
+    width: 100%;
+    min-width: 0;
+  }
+
   .saitosign-publish .actions {
     flex-direction: column-reverse;
     align-items: stretch;
@@ -1334,4 +1499,240 @@
     width: 100%;
     min-width: 0;
   }
+}
+
+.saitosign-publish .signer-row {
+  cursor: pointer;
+}
+
+.saitosign-publish .signer-row:hover,
+.saitosign-publish .signer-row:focus-visible {
+  background: color-mix(in srgb, var(--saito-primary) 14%, transparent);
+  outline: none;
+}
+
+.saito-overlay.saitosign-audit-host {
+  width: min(96rem, 92vw);
+  max-height: 90vh;
+}
+
+.saitosign-audit {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 1.6rem;
+  max-height: 90vh;
+  overflow: auto;
+  padding: 2.4rem;
+  color: var(--saito-foreground);
+}
+
+.saitosign-audit .audit-head,
+.saitosign-audit .audit-section-head,
+.saitosign-audit summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.2rem;
+}
+
+.saitosign-audit h3,
+.saitosign-audit h4,
+.saitosign-audit h5,
+.saitosign-audit p {
+  margin: 0;
+}
+
+.saitosign-audit h3,
+.saitosign-audit h4,
+.saitosign-audit h5 {
+  font-family: var(--saito-font-medium);
+  font-weight: 500;
+}
+
+.saitosign-audit h3 {
+  font-size: var(--font-size-large);
+}
+
+.saitosign-audit .audit-kicker {
+  color: var(--saito-primary);
+  font-family: var(--saito-font-heavy);
+  font-size: 1.2rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.saitosign-audit .audit-close,
+.saitosign-audit button {
+  border: 1px solid var(--saito-border);
+  border-radius: var(--saito-radius);
+  background: var(--saito-secondary);
+  color: var(--saito-foreground);
+  font: inherit;
+  cursor: pointer;
+}
+
+.saitosign-audit .audit-close {
+  min-height: 4.2rem;
+  padding: 0 1.6rem;
+}
+
+.saitosign-audit .audit-section,
+.saitosign-audit .audit-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+  padding: 1.6rem;
+  border: 1px solid var(--saito-border);
+  border-radius: var(--saito-radius);
+  background: color-mix(in srgb, var(--saito-card) 72%, transparent);
+}
+
+.saitosign-audit .audit-label {
+  color: var(--saito-muted-foreground);
+  font-size: 1.3rem;
+}
+
+.saitosign-audit .audit-value,
+.saitosign-audit .audit-message,
+.saitosign-audit code {
+  color: var(--saito-foreground);
+  overflow-wrap: anywhere;
+}
+
+.saitosign-audit .audit-note,
+.saitosign-audit .audit-missing {
+  color: color-mix(in srgb, var(--saito-foreground) 78%, var(--saito-muted-foreground));
+  font-size: 1.4rem;
+  line-height: 1.45;
+}
+
+.saitosign-audit .audit-message,
+.saitosign-audit .audit-secret code {
+  margin: 0;
+  padding: 0.8rem 1rem;
+  border-radius: var(--saito-radius);
+  background: var(--saito-background);
+  font-family: inherit;
+  font-size: 1.35rem;
+  white-space: pre-wrap;
+}
+
+.saitosign-audit .audit-secret {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.8rem;
+}
+
+.saitosign-audit .audit-secret details {
+  flex: 1 1 100%;
+}
+
+.saitosign-audit .audit-secret button,
+.saitosign-audit .audit-nav button,
+.saitosign-audit .audit-section-head button {
+  min-height: 3.2rem;
+  padding: 0 1.2rem;
+}
+
+.saitosign-audit .audit-badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2.4rem;
+  padding: 0 0.8rem;
+  border: 1px solid var(--saito-border);
+  border-radius: 999px;
+  color: var(--saito-muted-foreground);
+  font-size: 1.2rem;
+}
+
+.saitosign-audit .audit-badge.ok {
+  border-color: #6ee7a8;
+  background: #14573a;
+  color: #fff;
+}
+
+.saitosign-audit summary {
+  cursor: pointer;
+  list-style: none;
+}
+
+.saitosign-audit summary::-webkit-details-marker {
+  display: none;
+}
+
+.saitosign-audit .audit-gallery {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.saitosign-audit .audit-thumb {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.6rem;
+  width: 16rem;
+  padding: 0.8rem;
+  text-align: left;
+}
+
+.saitosign-audit .audit-thumb img,
+.saitosign-audit .audit-frame img {
+  width: 100%;
+  height: auto;
+  border-radius: var(--saito-radius);
+}
+
+.saitosign-audit .audit-thumb img {
+  max-height: 12rem;
+  object-fit: cover;
+}
+
+.saitosign-audit .audit-frame img {
+  max-height: 70vh;
+  object-fit: contain;
+  background: #000;
+}
+
+.saitosign-audit .audit-nav {
+  display: flex;
+  gap: 0.8rem;
+}
+
+.saitosign-recovery {
+  box-sizing: border-box;
+  max-width: 72rem;
+  margin: 4rem auto;
+  padding: 2.4rem;
+  color: var(--saito-foreground);
+}
+
+.saitosign-recovery h1,
+.saitosign-recovery h2,
+.saitosign-recovery p {
+  margin: 0 0 1.2rem;
+}
+
+.saitosign-recovery h1 {
+  font-family: var(--saito-font-medium);
+  font-size: var(--font-size-large);
+  font-weight: 500;
+}
+
+.saitosign-recovery h2 {
+  margin-top: 2rem;
+  color: var(--saito-primary);
+  font-size: var(--font-size-medium);
+}
+
+.saitosign-recovery pre {
+  margin: 0 0 1.2rem;
+  padding: 1.2rem;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+  border-radius: var(--saito-radius);
+  background: var(--saito-background);
+  color: var(--saito-foreground);
 }

@@ -110,17 +110,13 @@ function signersSectionHTML(view) {
 function railHTML(view) {
   const notice = view.notice ? `<p class="notice">${escapeHTML(view.notice)}</p>` : '';
   const started = view.field_list.length > 0;
-  const guide = view.finalized
-    ? 'Review the document and provide your signature where needed.'
-    : started
-      ? 'Add further signature boxes, then click Ready to Sign when done.'
-      : 'Click on any page where a signature is required.';
+  const guide = view.guide;
   const next = view.finalized
     ? (view.verified
-      ? '<button type="button" class="export primary verified" data-export>Document Verified</button>'
-      : '<button type="button" class="export primary" data-export>Check Document Status</button>')
+      ? '<button type="button" class="export primary verified" data-export>Verified - View Details</button>'
+      : '<button type="button" class="export primary" data-export>Continue</button>')
     : started
-      ? '<button type="button" class="export primary" data-export>Ready to Sign</button>'
+      ? '<button type="button" class="export primary" data-export>Continue</button>'
       : '';
 
   return `
@@ -149,8 +145,9 @@ function fieldsHTML(page) {
   const placed = page.fields
     .map(
       (field) => `
-        <button type="button" class="field${field.signed ? ' signed' : ''}${field.active ? ' active' : ''}${field.confirming ? ' confirming' : ''}" data-field-id="${field.id}" style="left:${pct(field.x)};top:${pct(field.y)};width:${pct(field.width)};height:${pct(field.height)}${field.signed ? '' : `;background:${field.color};border-color:${field.color}`}">
+        <button type="button" class="field${field.signed ? ' signed' : ''}${field.active ? ' active' : ''}${field.confirming ? ' confirming' : ''}${field.cue ? ' cue-target' : ''}" data-field-id="${field.id}" style="left:${pct(field.x)};top:${pct(field.y)};width:${pct(field.width)};height:${pct(field.height)}${field.signed ? '' : `;background:${field.color};border-color:${field.color}`}">
           <span class="text">${escapeHTML(field.label)}</span>
+          ${field.cue ? '<span class="cue">CLICK HERE</span>' : ''}
           ${handlesHTML(page.editable)}
         </button>
       `

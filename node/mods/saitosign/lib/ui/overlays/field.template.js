@@ -45,7 +45,7 @@ function fieldTemplate(view) {
     : '';
 
   return `
-    <form class="saitosign-field">
+    <form class="saitosign-field" autocomplete="off">
       <label>
         Who
         <select data-field-signer${disabled}>
@@ -55,7 +55,7 @@ function fieldTemplate(view) {
       </label>
       <div class="new-signer"${chooseNew ? '' : ' hidden'}>
         <input data-signer-name type="text" placeholder="name" value="${escapeHTML(view.new_name || '')}" aria-label="Signer name" autocomplete="name" />
-        <input data-signer-email type="email" placeholder="email" value="${escapeHTML(view.new_email || '')}" aria-label="Signer email" autocomplete="email" />
+        <input data-signer-email type="email" placeholder="email" value="${escapeHTML(view.new_email || '')}" aria-label="Signer email" autocomplete="off" />
       </div>
       <div class="what"${signerReady ? '' : ' hidden'}>
         <select data-field-type aria-label="What should this user do?"${disabled}>${types}</select>

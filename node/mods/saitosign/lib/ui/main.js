@@ -14,6 +14,14 @@ class Main {
   }
 
   render() {
+    if (this.mod.retired) {
+      this.showRetired();
+      return;
+    }
+    if (this.mod.recovery === 'missing') {
+      this.showMissingDocument();
+      return;
+    }
     if (hasPdf(this.mod.document)) {
       this.screen = 'workspace';
     }
@@ -25,6 +33,10 @@ class Main {
 
     if (this.screen === 'workspace' && hasPdf(this.mod.document)) {
       this.workspace.render();
+      if (this.mod.recoveredUser && (this.mod.recovery === 'claim' || this.mod.recovery === 'restore')) {
+        this.workspace.publish.openRecoveredVerification(this.mod.recoveredUser);
+        this.mod.recoveredUser = null;
+      }
       return;
     }
 
@@ -40,6 +52,45 @@ class Main {
   showFaq() {
     this.screen = 'faq';
     this.faq.render();
+  }
+
+  showMissingDocument() {
+    const container = document.querySelector('.saito-container');
+    if (!container) {
+      return;
+    }
+    container.classList.add('saitosign');
+    container.innerHTML = missingDocumentHTML(this.mod.recoveryCode);
+    container.querySelector('[data-copy-code]')?.addEventListener('click', () => {
+      const code = container.querySelector('[data-verification-code]')?.textContent || '';
+      const button = container.querySelector('[data-copy-code]');
+      if (!code || !button) {
+        return;
+      }
+      const done = () => {
+        button.textContent = 'Copied';
+      };
+      if (navigator.clipboard?.writeText) {
+        navigator.clipboard.writeText(code).then(done).catch(() => selectCode(container));
+        return;
+      }
+      selectCode(container);
+    });
+  }
+
+  showRetired() {
+    const container = document.querySelector('.saito-container');
+    if (!container) {
+      return;
+    }
+    container.classList.add('saitosign');
+    container.innerHTML = `
+      <section class="saitosign-recovery">
+        <h1>Continue in the other tab</h1>
+        <p>Email verification is complete. This window is no longer the signing session.</p>
+        <p>Use the tab that opened from the verification email.</p>
+      </section>
+    `;
   }
 
   showWorkspace() {
@@ -60,6 +111,43 @@ class Main {
     this.splash.notice = message;
     this.splash.render();
   }
+}
+
+function missingDocumentHTML(code) {
+  const value = escapeHTML(code || '');
+  return `
+    <section class="saitosign-recovery">
+      <h1>Document Not Found</h1>
+      <p>We couldn't find the document you're preparing to sign in this browser.</p>
+      <p>This usually happens when you open the verification email in a different browser or on another device from the one you used to start signing.</p>
+      <p>Don't worry — your verification code is still valid.</p>
+      <p>To continue, return to the browser where you originally opened your document and enter the verification code below.</p>
+      <h2>Your verification code</h2>
+      <pre data-verification-code>${value}</pre>
+      <button type="button" class="saito-button-primary" data-copy-code>Copy Code</button>
+      <p>Return to your original SaitoSign window, select Email verification, and enter this code in the verification field.</p>
+    </section>
+  `;
+}
+
+function escapeHTML(value) {
+  return String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+function selectCode(container) {
+  const node = container.querySelector('[data-verification-code]');
+  if (!node) {
+    return;
+  }
+  const range = document.createRange();
+  range.selectNodeContents(node);
+  const selection = window.getSelection();
+  selection.removeAllRanges();
+  selection.addRange(range);
 }
 
 module.exports = Main;

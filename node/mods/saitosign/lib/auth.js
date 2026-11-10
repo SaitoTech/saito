@@ -1,14 +1,13 @@
 async function verifyEmail(app, email, publickey) {
   const message = `Request received for verification of email ${email} with publickey ${publickey}`;
   const signature = app.crypto.signMessage(message, await app.wallet.getPrivateKey());
-  const link = `https://saito.io/saitosign?code=${encodeURIComponent(signature)}`;
+  const link = verificationLink(app, signature);
   const text = [
     'A request was made to verify this email address for SaitoSign document signing.',
     '',
-    'To verify your email address, click the link below:',
-    '',
-    link,
-    '',
+    ...(link
+      ? ['To verify your email address, click the link below:', '', link, '']
+      : []),
     'If you are completing verification manually, enter the following code in SaitoSign:',
     '',
     signature,
@@ -59,6 +58,14 @@ async function verifyPassport(app, publickey, image) {
   const message = `Passport image supplied for verification of publickey ${key} with image ${digest}`;
   const signature = app.crypto.signMessage(message, await app.wallet.getPrivateKey());
   return { method: 'passport', publickey: key, message, signature, image: documentImage };
+}
+
+function verificationLink(app, signature) {
+  const origin = configuredPublicOrigin(app);
+  if (!origin || !signature) {
+    return '';
+  }
+  return `${origin}/saitosign?code=${encodeURIComponent(signature)}`;
 }
 
 function verifyEmailSignature(app, email, publickey, signature, serverkey) {
@@ -315,6 +322,66 @@ function addSignature(app, action, privateKey, documentHashValue) {
 function addInitial(app, action, privateKey, documentHashValue) {
   return signAction(app, { ...action, type: 'initial' }, privateKey, documentHashValue);
 }
+
+function actionSignatureEvidence(app, record, user, action) {
+  const entry = signatureEntry(user, action);
+  const documentHash = String(record?.hash || '').trim();
+  const payload = canonicalJSON({ ...actionPayload(action), document_hash: documentHash });
+  return {
+    id: Number(action?.id),
+    type: action?.type === 'initial' ? 'initial' : 'signature',
+    page: Number(action?.page) || 0,
+    group: String(action?.group || '').trim(),
+    payload,
+    documentHash,
+    signature: typeof entry?.signature === 'string' ? entry.signature : '',
+    recordedHash: String(entry?.document_hash || ''),
+    publicKey: String(user?.publickey || '').trim(),
+    recorded: Boolean(entry?.signature),
+    valid: verifyActionSignature(app, action, user, record) === true
+  };
+}
+
+function emailEvidence(app, user) {
+  const entries = Array.isArray(user?.verifications) ? user.verifications : [];
+  return entries
+    .filter((entry) => verificationMethod(entry) === 'email')
+    .map((entry) => ({
+      message: String(entry?.message || ''),
+      code: String(entry?.signature || ''),
+      serverKey: String(entry?.publickey || '').trim(),
+      signerKey: String(user?.publickey || '').trim(),
+      returned: entry?.returned === true,
+      valid: validVerification(app, entry, user) === true
+    }));
+}
+
+function imageEvidence(app, user) {
+  const entries = Array.isArray(user?.verifications) ? user.verifications : [];
+  const images = [];
+  entries.forEach((entry) => {
+    const method = verificationMethod(entry);
+    const src = method === 'photo'
+      ? String(entry?.photo || '').trim()
+      : method === 'passport'
+        ? String(entry?.image || '').trim()
+        : '';
+    if (!src.startsWith('data:image/')) {
+      return;
+    }
+    images.push({
+      kind: method === 'passport' ? 'Passport identity page' : 'Photograph',
+      src,
+      message: String(entry?.message || ''),
+      signature: String(entry?.signature || ''),
+      publicKey: String(entry?.publickey || '').trim(),
+      valid: validVerification(app, entry, user) === true
+    });
+  });
+  return images;
+}
+
+const { configuredPublicOrigin } = require('./recovery');
 
 const verificationCache = new WeakMap();
 
@@ -759,6 +826,7 @@ module.exports = {
   verifyPhoto,
   verifyPassport,
   verifyEmailSignature,
+  verificationLink,
   addSignature,
   addInitial,
   verifyActionSignature,
@@ -784,5 +852,8 @@ module.exports = {
   verifiedMethods,
   verifiedEmail,
   verificationSatisfied,
-  validVerification
+  validVerification,
+  actionSignatureEvidence,
+  emailEvidence,
+  imageEvidence
 };

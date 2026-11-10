@@ -48,6 +48,9 @@ function publishTemplate(state) {
   const subtitle = slide.subtitle
     ? `<p class="subtitle">${escapeHTML(slide.subtitle)}</p>`
     : '';
+  const disclosure = slide.disclosure
+    ? `<p class="disclosure">${escapeHTML(slide.disclosure)}</p>`
+    : '';
   const back = state.step === 'share'
     ? (!state.finalized && state.history.length
       ? `<button type="button" class="saito-button-square" data-publish-action="back" aria-label="Back"><i class="fa-solid fa-arrow-left" aria-hidden="true"></i></button>`
@@ -68,6 +71,7 @@ function publishTemplate(state) {
           <div id="saitosign-publish-step" class="step" data-step="${escapeHTML(state.step)}">
             ${heading}
             ${subtitle}
+            ${disclosure}
             <div class="stage">${slide.body}</div>
           </div>
         </div>
