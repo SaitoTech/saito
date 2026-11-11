@@ -22,7 +22,12 @@
 
     this.game.state.attacks = {};
 
-    if (this.game.state.events.high_seas_fleet > 1) { this.game.state.events.high_seas_fleet--; }
+    if (this.game.state.events.high_seas_fleet > 1) {
+      this.game.state.events.high_seas_fleet--;
+      if (this.game.state.events.high_seas_fleet == 1) {
+        console.log("Central Powers +1 VP from High Seas Fleet.");
+      }
+    }
 
     for (let key in this.game.spaces) {
       let redisplay = false;

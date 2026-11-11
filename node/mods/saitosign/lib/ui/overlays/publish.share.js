@@ -98,13 +98,13 @@ function peopleHTML(state) {
 function readyChoices() {
   return `
     <div class="status-choices">
-      <button type="button" class="status-choice stacked" data-publish-action="ready-no">
-        <span>No</span>
-        <span class="choice-note">I need to add more signatures.</span>
-      </button>
       <button type="button" class="status-choice stacked" data-publish-action="ready-yes">
         <span>Yes</span>
         <span class="choice-note">I'm ready to sign or share.</span>
+      </button>
+      <button type="button" class="status-choice stacked" data-publish-action="ready-no">
+        <span>No</span>
+        <span class="choice-note">I need to add more signatures.</span>
       </button>
     </div>
   `;

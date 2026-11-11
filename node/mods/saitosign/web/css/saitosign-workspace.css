@@ -74,6 +74,13 @@
   color: var(--saito-muted-foreground);
 }
 
+.workspace .identity[data-awaiting-identity] .file {
+  color: var(--saito-foreground);
+  font-family: var(--saito-font-heavy);
+  font-size: 2rem;
+  line-height: 1.2;
+}
+
 .workspace .guide {
   margin: 0;
   color: var(--saito-foreground);
@@ -318,6 +325,7 @@
 .workspace .notice {
   margin: 0;
   color: var(--saito-destructive);
+  white-space: pre-line;
 }
 
 .workspace .stage {
@@ -581,9 +589,13 @@
 }
 
 .workspace .field-list .row.cue-target,
-.workspace .field-list .row.cue-target:hover {
+.workspace .field-list .row.cue-target:hover,
+.workspace .field-list .row.cue-target.active,
+.workspace .field-list .row.cue-target.active:hover {
   overflow: hidden;
   border-color: var(--saito-primary);
+  background: var(--saito-background);
+  box-shadow: none;
 }
 
 .workspace .field-list .row.cue-target .open {

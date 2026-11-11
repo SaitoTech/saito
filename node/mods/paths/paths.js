@@ -291,7 +291,7 @@ class PathsOfGlory extends GameTemplate {
   }
 
   returnScenario() {
-    let id = "original";
+    let id = "optional";
     if (this.game && this.game.options && this.game.options.deck) {
       id = this.game.options.deck;
     }
@@ -1957,6 +1957,12 @@ console.log("INITIALIZING PATHS");
       c = this.debaters[card];
       if (c) { return `<span class="showcard ${card}" id="${card}">${c.name}</span>`; }
     }
+    if (card === "automatic_operations") {
+      return `<span class="showcard ${card}" id="${card}">Automatic Operations</span>`;
+    }
+    if (card === "peace_terms") {
+      return `<span class="showcard ${card}" id="${card}">Peace Terms</span>`;
+    }
     if (!c) {
       let x = this.returnDeck();
       if (x[card]) { c = x[card]; }
@@ -2354,16 +2360,7 @@ console.log(JSON.stringify(attacker_units));
 	    // get eligible spaces
 	    //
     	    let options = paths_self.returnSpacesWithFilter(
-      		(key) => {
-		  if (paths_self.game.spaces[key].trench > 0) { return 0; }
-        	  if (paths_self.game.spaces[key].control == "allies") {
-        	    if (paths_self.game.spaces[key].units.length > 0) {
-                      if (paths_self.checkSupplyStatus("allies", key)) {
-		        return 1;
-		      }
-		    }
-		  }
-		} ,
+      		(key) => paths_self.spaceMayReceiveTrench("allies", key)
             );
 
 	    //
@@ -2804,16 +2801,7 @@ deck['ap57'] = {
 	    // get eligible spaces
 	    //
     	    let options = paths_self.returnSpacesWithFilter(
-      		(key) => {
-		  if (paths_self.game.spaces[key].trench > 0) { return 0; }
-        	  if (paths_self.game.spaces[key].control == "central") {
-        	    if (paths_self.game.spaces[key].units.length > 0) {
-                      if (paths_self.checkSupplyStatus("central", key)) {
-		        return 1;
-		      }
-		    }
-		  }
-		} ,
+      		(key) => paths_self.spaceMayReceiveTrench("central", key)
             );
 
 	    //
@@ -4228,16 +4216,22 @@ console.log("execution available!");
 	  // indicates play as combat card
 	  //
 	  if (faction == "defender" || faction == "attacker") {
-            let attacker_units = paths_self.returnAttackerUnits();
-	    if (paths_self.game.spaces[paths_self.game.state.combat.key].fort > 0) {
-              for (let i = 0; i < attacker_units.length; i++) {
-                if (attacker_units[i].ckey === "GE") { paths_self.game.state.combat.attacker_drm++; return 1; }
-              }
+	    if (faction == "attacker") {
+	      let space = paths_self.game.spaces[paths_self.game.state.combat.key];
+	      let attacker_units = paths_self.returnAttackerUnits();
+	      if (space && space.country == "france" && space.fort > 0) {
+		for (let i = 0; i < attacker_units.length; i++) {
+		  if (attacker_units[i].ckey === "GE") {
+		    paths_self.game.state.combat.attacker_drm += 2;
+		    paths_self.updateLog("Place of Execution: attack DRM +2");
+		    paths_self.paths_log.addModifier("Place of Execution: attack DRM +2");
+		    break;
+		  }
+		}
+	      }
 	    }
-	  } else {
-	    //
-	    // indicates play as event for war status points
-	    //
+	    paths_self.game.queue.push("ws\tcp26\tcentral\t" + this.ws);
+	    return 1;
 	  }
           return 1;
         } ,
@@ -6998,6 +6992,12 @@ console.log("err: " + err);
     if (cardname === "pass") {
       return `<img class="${cardclass}" src="/paths/img/cards/PASS.png" /><div class="cardtext">pass</div>`;
     }
+    if (cardname === "automatic_operations") {
+      return `<img class="${cardclass}" src="/paths/img/cards/automatic_operation.png" />`;
+    }
+    if (cardname === "peace_terms") {
+      return `<img class="${cardclass}" src="/paths/img/cards/peace_terms.png" />`;
+    }
 
     if (deck[cardname]) {
       card = deck[cardname];
@@ -8347,6 +8347,16 @@ if (spacekey == "stanislau") {
 
     return total_nationalities;
 
+  }
+
+  spaceMayReceiveTrench(faction, key) {
+    if (key == "aeubox" || key == "ceubox" || key == "arbox" || key == "crbox") { return 0; }
+    let space = this.game.spaces[key];
+    if (!space || space.trench > 0) { return 0; }
+    if (space.control != faction) { return 0; }
+    if (!space.units || space.units.length == 0) { return 0; }
+    if (this.checkSupplyStatus(faction, key)) { return 1; }
+    return 0;
   }
 
   returnSpacesWithFilter(filter_func) {
@@ -11922,7 +11932,12 @@ spaces['crbox'] = {
 
     this.game.state.attacks = {};
 
-    if (this.game.state.events.high_seas_fleet > 1) { this.game.state.events.high_seas_fleet--; }
+    if (this.game.state.events.high_seas_fleet > 1) {
+      this.game.state.events.high_seas_fleet--;
+      if (this.game.state.events.high_seas_fleet == 1) {
+        console.log("Central Powers +1 VP from High Seas Fleet.");
+      }
+    }
 
     for (let key in this.game.spaces) {
       let redisplay = false;
@@ -16804,6 +16819,28 @@ console.log("moving unit: " + JSON.stringify(u));
     }
   }
 
+  // GMT 16.5.1. The VP marker starts at 10. Central Powers may offer at 11 or
+  // more; the Allies may offer at 9 or fewer. 14 Points, already in the event
+  // state, withdraws the Central Powers option. The card is not stored.
+  mayOfferPeaceTerms(faction) {
+    if (!this.game.state.rules || this.game.state.rules.peace_terms === false) { return false; }
+    let vp = this.calculateVictoryPoints().vp;
+    if (faction == "central") {
+      if (this.game.state.events.fourteen_points) { return false; }
+      return vp >= 11;
+    }
+    if (faction == "allies") { return vp <= 9; }
+    return false;
+  }
+
+  // Selection list only. The stored hand is copied and then left unchanged.
+  returnCardsAvailableToPlay(faction) {
+    let cards = this.returnPlayerHand().slice();
+    if (this.mayOfferPeaceTerms(faction)) { cards.push("peace_terms"); }
+    cards.push("automatic_operations");
+    return cards;
+  }
+
   playerAcknowledgeNotice(msg, mycallback) {
     let result = GameTemplate.prototype.playerAcknowledgeNotice.call(this, msg, mycallback);
     this.showPlayerHand();
@@ -17357,22 +17394,15 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
 
   playerMakePeaceOffer(faction) {
 
-    if (!this.game.state.rules.peace_terms) {
-      return;
-    }
-
-    let vp = this.calculateVictoryPoints().vp;
-
-    if (faction == "central" && this.game.state.events.fourteen_points) {
-      this.updateLog("14 Points: only the Allied Powers may offer Peace Terms");
-      return;
-    }
-    if (faction == "central" && vp < 11) {
-      this.updateLog("Central Powers may offer Peace Terms only at 11 VP or more");
-      return;
-    }
-    if (faction == "allies" && vp > 9) {
-      this.updateLog("Allied Powers may offer Peace Terms only at 9 VP or fewer");
+    if (!this.mayOfferPeaceTerms(faction)) {
+      if (!this.game.state.rules || !this.game.state.rules.peace_terms) { return; }
+      if (faction == "central" && this.game.state.events.fourteen_points) {
+        this.updateLog("14 Points: only the Allied Powers may offer Peace Terms");
+      } else if (faction == "central") {
+        this.updateLog("Central Powers may offer Peace Terms only at 11 VP or more");
+      } else if (faction == "allies") {
+        this.updateLog("Allied Powers may offer Peace Terms only at 9 VP or fewer");
+      }
       return;
     }
 
@@ -18512,7 +18542,27 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
     });
   }
 
+  playerPlayAutomaticOperation(faction) {
+
+    this.removeSelectable();
+    this.removeMovementCues();
+    this.game.state.active_card = "automatic_operations";
+    this.cardbox.hide();
+    this.addMove(`record\t${faction}\t${this.game.state.round}\tops`);
+    this.playerPlayOps(faction, "automatic_operations", 1);
+
+  }
+
   playerPlayCard(faction, card) {
+
+    if (card === "automatic_operations") {
+      this.playerPlayAutomaticOperation(faction);
+      return;
+    }
+    if (card === "peace_terms") {
+      this.playerMakePeaceOffer(faction);
+      return;
+    }
 
     //
     // avoid back-button select
@@ -20582,7 +20632,11 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
       if (this.game.queue[this.game.queue.length-1].split("\t")[0] == "play") {
         this.addMove("resolve\tplay");
       }
-      this.playerPlayCard(faction, card);
+      if (card === "automatic_operations") {
+        this.playerTurn(faction);
+      } else {
+        this.playerPlayCard(faction, card);
+      }
     });
     
     //
@@ -21445,16 +21499,34 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
     //
     if (hand.length <= 1) { hand.push("pass"); this.addMove("pass\t"+faction); }
     this.addMove("resolve\tplay");
+    let choices = this.returnCardsAvailableToPlay(faction);
 
     this.game.state.player_turn_card_select = true;
     this.game.status = `${name} - select card`;
     this.hud.updateStatus(this.game.status);
     this.hud.updateMenu([]);
-    this.hud.updateCards(hand);
+    this.hud.updateCards(choices);
     this.cardbox.bindCallback((card) => {
 
       if (this.game.state.turn == 1 && this.game.state.round == 1 && this.game.state.rules.guns_must_event && faction === "central" && hand.includes("cp01") && card !== "cp01") {
         alert("You must play Guns of August as an event.");
+        return;
+      }
+
+      if (card === "automatic_operations" || card === "peace_terms") {
+        this.hud.hideBackButton();
+        this.game.state.player_turn_card_select = false;
+        for (let z = 0; z < this.game.deck[0].hand.length; z++) {
+          if (this.game.deck[0].hand[z] == "pass") { this.game.deck[0].hand.splice(z, 1); }
+        }
+        for (let z = 0; z < this.game.deck[1].hand.length; z++) {
+          if (this.game.deck[1].hand[z] == "pass") { this.game.deck[1].hand.splice(z, 1); }
+        }
+        if (card === "automatic_operations") {
+          this.playerPlayAutomaticOperation(faction);
+        } else {
+          this.playerMakePeaceOffer(faction);
+        }
         return;
       }
 

@@ -79,10 +79,14 @@ function primary(state) {
 }
 
 function canGoBack(state) {
-  if (state.shareView?.busy) {
+  if (state.shareView?.busy || state.step === 'share-sent') {
     return false;
   }
-  if (state.entry === 'recipient' && state.step === 'share-method') {
+  if (
+    state.entry === 'recipient' &&
+    !state.history.length &&
+    (state.step === 'share-method' || state.step === 'share-recipients' || state.step === 'share-manual')
+  ) {
     return true;
   }
   return state.history.length > 0;

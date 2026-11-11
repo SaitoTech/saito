@@ -1,7 +1,7 @@
 const flow = require('./publish.flow');
 const PublishTemplate = require('./publish.template');
-const { shareRows } = require('./publish.flow');
-const { recipientList, invalidRecipients, sharePurpose, isEmailAddress, shareProtectionError } = require('../../share-protocol');
+const { recipientList, sharePurpose, isEmailAddress, shareProtectionError } = require('../../share-protocol');
+const { verifyActionSignature } = require('../../auth');
 const {
   sendShare,
   createShareTransaction,
@@ -73,27 +73,9 @@ class ShareFlow {
 
   ensureRecipients() {
     const view = this.view();
-    if (view.recipients.length) {
-      return;
-    }
     const record = this.mod.document;
-    const purpose = sharePurpose(record);
-    view.purpose = purpose;
-    if (purpose !== 'sign') {
-      view.recipients = [{ email: '', signerIndex: null }];
-      return;
-    }
-    const rows = shareRows({
-      signers: (record?.users || []).map((user, index) => ({
-        index,
-        name: user.name,
-        email: user.email,
-        places: (record.actions || []).filter((action) => action.user === index).length,
-        signed: false
-      })),
-      you: null
-    }).map((row) => ({ email: row.email || '', signerIndex: row.index }));
-    view.recipients = rows.length ? rows : [{ email: '', signerIndex: null }];
+    view.purpose = sharePurpose(record);
+    view.recipients = documentSigners(this.app, record);
   }
 
   open() {
@@ -240,12 +222,19 @@ class ShareFlow {
     if (view.busy) {
       return;
     }
+    this.ensureRecipients();
     if (view.stored && this.mod.share?.id && this.mod.share?.token) {
       return this.retryEmails();
     }
-    const recipients = recipientList(view.recipients).filter((recipient) => recipient.email);
-    if (!recipients.length || recipients.some((recipient) => !isEmailAddress(recipient.email)) || invalidRecipients(recipients).length) {
-      view.error = 'Enter a valid email address for every recipient before sending.';
+    const pending = view.recipients.filter((recipient) => !recipient.signed);
+    const recipients = recipientList(pending);
+    if (!pending.length) {
+      view.error = 'Everyone who needs to sign has already signed.';
+      this.show('share-recipients', 'replace');
+      return;
+    }
+    if (recipients.length !== pending.length || pending.some((recipient) => !isEmailAddress(recipient.email))) {
+      view.error = 'Every signer who still needs to sign must have an email address before invitations can be sent.';
       this.show('share-recipients', 'replace');
       return;
     }
@@ -282,7 +271,7 @@ class ShareFlow {
         stage = 'Creating your document archive';
         this.setWorking('Creating your document archive...');
         await this.pause();
-        const archive = stagedArchive(this.app, record, prepared);
+        const archive = await stagedArchive(this.app, record, prepared);
         const packed = zipPackage(archive.bytes);
         if (usePassword) {
           stage = 'Encrypting your document';
@@ -361,7 +350,8 @@ class ShareFlow {
     const invited = await sendShare(this.app, {
       action: 'invite',
       document_id: created.document_id,
-      token: created.token
+      token: created.token,
+      recipients
     }, 60000);
     this.finishInvite(invited, created.link || '');
   }
@@ -370,6 +360,13 @@ class ShareFlow {
     const view = this.view();
     const share = this.mod.share;
     if (view.busy || !share?.id || !share?.token) {
+      return;
+    }
+    this.ensureRecipients();
+    const recipients = recipientList(view.recipients.filter((recipient) => !recipient.signed));
+    if (!recipients.length) {
+      view.error = 'Everyone who needs to sign has already signed.';
+      this.show('share-recipients', 'replace');
       return;
     }
     view.busy = true;
@@ -381,7 +378,8 @@ class ShareFlow {
     const invited = await sendShare(this.app, {
       action: 'invite',
       document_id: share.id,
-      token: share.token
+      token: share.token,
+      recipients
     }, 60000);
     this.finishInvite(invited, view.link);
   }
@@ -434,7 +432,7 @@ class ShareFlow {
       this.mod.shareGate = null;
       view.busy = false;
       this.publish.close();
-      this.mod.useDocument(next, { notice: 'Document imported successfully.' });
+      this.mod.useDocument(next, { receivedBy: 'link' });
     } catch (err) {
       view.busy = false;
       view.error = err?.code === 'password'
@@ -516,6 +514,23 @@ class ShareFlow {
       this.show('share-retry', 'replace');
     }
   }
+}
+
+function documentSigners(app, record) {
+  return (record?.users || []).map((user, index) => {
+    const required = (record?.actions || []).filter((action) => {
+      return action.user === index && (action.type === 'signature' || action.type === 'initial');
+    });
+    if (!required.length) {
+      return null;
+    }
+    return {
+      signerIndex: index,
+      name: String(user?.name || '').trim() || 'Signer',
+      email: String(user?.email || '').trim(),
+      signed: required.every((action) => verifyActionSignature(app, action, user, record))
+    };
+  }).filter(Boolean);
 }
 
 module.exports = ShareFlow;

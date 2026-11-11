@@ -17,9 +17,9 @@
 
 .videocall-splash .stun-appspace-footer {
   width: 100%;
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
   align-items: center;
-  justify-content: space-between;
   gap: 1rem;
   color: var(--saito-muted-foreground);
 }
@@ -33,7 +33,15 @@
   transition: all 0.2s ease;
 }
 
-.videocall-splash .stun-appspace-footer > div:hover {
+.videocall-splash .stun-appspace-footer > .stunx-call-settings {
+  justify-self: start;
+}
+
+.videocall-splash .stun-appspace-footer > .stun-schedule-call {
+  justify-self: end;
+}
+
+.videocall-splash .stun-appspace-footer > div:not(.embedded_switch):hover {
   color: var(--saito-foreground);
   background-color: var(--saito-accent);
 }
@@ -76,15 +84,15 @@
   width: 100%;
 }
 
-.videocall-splash .embedded_switch {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--saito-space-lg);
-  width: 100%;
-  margin: 0.4rem 0 0.2rem;
-  font-size: 1.5rem;
-  color: var(--saito-foreground);
+.videocall-splash .stun-appspace-footer > .embedded_switch {
+  justify-self: center;
+  width: auto;
+  gap: 0.55rem;
+  margin: 0;
+  padding: 0;
+  font-size: 1.3rem;
+  color: var(--saito-muted-foreground);
+  background: none;
 }
 
 .videocall-splash .embedded_switch .switch {
@@ -230,8 +238,13 @@
   }
 
   .videocall-splash .stun-appspace-footer {
-    flex-direction: column;
-    align-items: stretch;
+    grid-template-columns: 1fr;
+    justify-items: center;
+  }
+
+  .videocall-splash .stun-appspace-footer > .stunx-call-settings,
+  .videocall-splash .stun-appspace-footer > .stun-schedule-call {
+    justify-self: center;
   }
 }
 

@@ -111,6 +111,33 @@ class Main {
     this.splash.notice = message;
     this.splash.render();
   }
+
+  showShareLoad(state) {
+    const container = document.querySelector('.saito-container');
+    if (!container) {
+      return;
+    }
+    container.querySelector('.saitosign-share-load')?.remove();
+    if (!state || (!state.status && !state.error)) {
+      return;
+    }
+    const card = document.createElement('div');
+    card.className = 'saitosign-share-load';
+    card.setAttribute('role', 'status');
+    const panel = document.createElement('div');
+    panel.className = 'saitosign-share-load-card';
+    if (!state.error) {
+      const spinner = document.createElement('div');
+      spinner.className = 'saitosign-share-spinner';
+      spinner.setAttribute('aria-hidden', 'true');
+      panel.appendChild(spinner);
+    }
+    const text = document.createElement('p');
+    text.textContent = state.error || state.status;
+    panel.appendChild(text);
+    card.appendChild(panel);
+    container.appendChild(card);
+  }
 }
 
 function missingDocumentHTML(code) {

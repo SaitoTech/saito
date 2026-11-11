@@ -110,6 +110,17 @@ function signersSectionHTML(view) {
 
 function railHTML(view) {
   const notice = view.notice ? `<p class="notice">${escapeHTML(view.notice)}</p>` : '';
+  if (view.awaiting_identity) {
+    return `
+      <div class="identity" data-awaiting-identity="1">
+        <p class="name">SaitoSign</p>
+        <p class="file">${escapeHTML(view.file_name)}</p>
+      </div>
+      <p class="guide">${escapeHTML(view.guide)}</p>
+      ${notice}
+      <button type="button" class="export primary" data-verify-identity>Verify Identity</button>
+    `;
+  }
   const started = view.field_list.length > 0;
   const guide = view.guide;
   const next = view.finalized
@@ -192,7 +203,7 @@ function readerHTML(view) {
   const extras = expanded
     ? `
       <div class="tools">
-        ${view.finalized ? '' : '<button type="button" class="tool" data-add-pdf>Add PDF</button>'}
+        ${view.can_edit ? '<button type="button" class="tool" data-add-pdf>Add PDF</button>' : ''}
         <button type="button" class="tool" data-close-document>Close document</button>
       </div>
     `

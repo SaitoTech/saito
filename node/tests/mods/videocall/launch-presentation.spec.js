@@ -23,7 +23,7 @@ describe('landing screen presentation', () => {
     const direct = splash({}, { browser_active: 1 }, []);
     const hosted = splash({}, { browser_active: 0 }, []);
 
-    expect(direct).toContain('Embedded call');
+    expect(direct).toContain('>embedded<');
     expect(direct).not.toContain('id="embedded_call_switch" checked');
     expect(hosted).toContain('id="embedded_call_switch" checked');
     expect(direct).not.toContain('video_call_switch');

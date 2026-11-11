@@ -28,7 +28,7 @@ function shareResponse(response) {
   return { success: false, error: 'SaitoSign sent a response that could not be read.' };
 }
 
-function sendShare(app, data, timeoutMs = 30000) {
+function sendShare(app, data, timeoutMs = 30000, peerKey) {
   return new Promise((resolve) => {
     let settled = false;
     const finish = (result) => {
@@ -45,11 +45,23 @@ function sendShare(app, data, timeoutMs = 30000) {
         error: 'The sharing server did not respond. Nothing new was confirmed. Check your connection and try again.'
       });
     }, timeoutMs);
-    try {
-      app.network.sendRequestAsTransaction('saitosign share', data, (res) => finish(res));
-    } catch (err) {
+    (async () => {
+      const tx = await app.wallet.createUnsignedTransaction();
+      tx.msg = { request: 'saitosign share', data };
+      if (typeof tx.packData === 'function') {
+        tx.packData();
+      }
+      if (data?.action === 'update' && data?.is_encrypted !== true) {
+        if (typeof tx.sign !== 'function') {
+          finish({ success: false, error: 'This upload could not be signed.' });
+          return;
+        }
+        await tx.sign();
+      }
+      app.network.sendTransactionWithCallback(tx, (response) => finish(response), peerKey || undefined);
+    })().catch((err) => {
       finish({ success: false, error: err?.message || 'The request could not be sent to the sharing server.' });
-    }
+    });
   });
 }
 

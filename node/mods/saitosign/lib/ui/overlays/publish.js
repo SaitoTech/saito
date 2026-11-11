@@ -143,8 +143,6 @@ class PublishOverlay {
       'share-manual',
       'share-standard',
       'share-encrypted',
-      'share-add',
-      'share-remove',
       'share-export',
       'share-password',
       'share-upload',
@@ -171,15 +169,6 @@ class PublishOverlay {
       this.shareFlow.show('share-recipients', 'forward');
     } else if (name === 'share-encrypted') {
       this.shareFlow.show('share-password', 'forward');
-    } else if (name === 'share-add') {
-      view.recipients.push({ email: '', signerIndex: null });
-      this.shareFlow.show('share-recipients', 'replace');
-    } else if (name === 'share-remove') {
-      view.recipients.splice(Number(action.dataset.shareIndex), 1);
-      if (!view.recipients.length) {
-        view.recipients.push({ email: '', signerIndex: null });
-      }
-      this.shareFlow.show('share-recipients', 'replace');
     } else if (name === 'share-export') {
       this.shareFlow.exportManual();
     } else if (name === 'share-password') {
@@ -292,14 +281,15 @@ class PublishOverlay {
     }
     this.state.signers = readUsers(this.mod);
     this.state.entry = entry === 'recipient' ? 'recipient' : 'status';
+    const locked = this.state.entry === 'recipient' ? this.lockedShareStep() : '';
     this.state = {
       ...this.summaryState(this.state),
-      step: this.state.entry === 'recipient' ? 'share-method' : 'share',
+      step: locked || (this.state.entry === 'recipient' ? 'share-method' : 'share'),
       history: [],
       allowUnfinalize: false,
       completionNote: String(completionNote || '')
     };
-    if (this.state.entry === 'recipient') {
+    if (this.state.step === 'share-recipients') {
       this.shareFlow.ensureRecipients();
     }
     this.overlay.show(PublishTemplate(this.state));
@@ -459,6 +449,7 @@ class PublishOverlay {
 
     const panel = document.querySelector('#saitosign-publish-step');
     const actionBar = document.querySelector('.saitosign-publish .actions');
+    const content = panel?.closest('.content');
     if (!panel) {
       this.sliding = false;
       this.overlay.show(PublishTemplate(this.state));
@@ -487,8 +478,14 @@ class PublishOverlay {
         });
       });
     }
-    if (actionBar && nextActions) {
-      actionBar.replaceWith(nextActions);
+    if (nextActions) {
+      if (actionBar) {
+        actionBar.replaceWith(nextActions);
+      } else if (content) {
+        content.appendChild(nextActions);
+      }
+    } else if (actionBar) {
+      actionBar.remove();
     }
 
     this.attachEvents();
@@ -517,20 +514,13 @@ class PublishOverlay {
       if (!view) {
         return;
       }
-      const email = event.target.closest('[data-share-email]');
-      if (email) {
-        const index = Number(email.dataset.shareEmail);
-        if (view.recipients[index]) {
-          view.recipients[index].email = email.value;
-        }
-      }
       if (event.target.matches('[data-share-password]')) {
         view.password = event.target.value;
       }
       if (event.target.matches('[data-share-password-confirm]')) {
         view.confirm = event.target.value;
       }
-      if (email || event.target.matches('[data-share-password], [data-share-password-confirm]')) {
+      if (event.target.matches('[data-share-password], [data-share-password-confirm]')) {
         view.prepared = null;
         if (!view.stored) {
           view.clientKey = '';
@@ -633,7 +623,7 @@ class PublishOverlay {
       }
 
       if (action.dataset.publishAction === 'back') {
-        if (this.state.entry === 'recipient' && this.state.step === 'share-method') {
+        if (this.recipientEntryStep()) {
           this.close();
           return;
         }
@@ -805,6 +795,27 @@ class PublishOverlay {
 
   currentPublicKey() {
     return this.normalizePublicKey(this.app.wallet?.publicKey);
+  }
+
+  isCreator() {
+    const creator = this.normalizePublicKey(this.mod.document?.creator);
+    return Boolean(creator && creator === this.currentPublicKey());
+  }
+
+  lockedShareStep() {
+    if (this.isCreator()) {
+      return '';
+    }
+    if (this.mod.receivedBy === 'link' || this.mod.share?.id) {
+      return 'share-recipients';
+    }
+    return 'share-manual';
+  }
+
+  recipientEntryStep() {
+    return this.state.entry === 'recipient'
+      && !this.state.history.length
+      && (this.state.step === 'share-method' || this.state.step === 'share-recipients' || this.state.step === 'share-manual');
   }
 
   normalizePublicKey(value) {

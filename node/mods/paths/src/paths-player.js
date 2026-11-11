@@ -18,6 +18,28 @@
     }
   }
 
+  // GMT 16.5.1. The VP marker starts at 10. Central Powers may offer at 11 or
+  // more; the Allies may offer at 9 or fewer. 14 Points, already in the event
+  // state, withdraws the Central Powers option. The card is not stored.
+  mayOfferPeaceTerms(faction) {
+    if (!this.game.state.rules || this.game.state.rules.peace_terms === false) { return false; }
+    let vp = this.calculateVictoryPoints().vp;
+    if (faction == "central") {
+      if (this.game.state.events.fourteen_points) { return false; }
+      return vp >= 11;
+    }
+    if (faction == "allies") { return vp <= 9; }
+    return false;
+  }
+
+  // Selection list only. The stored hand is copied and then left unchanged.
+  returnCardsAvailableToPlay(faction) {
+    let cards = this.returnPlayerHand().slice();
+    if (this.mayOfferPeaceTerms(faction)) { cards.push("peace_terms"); }
+    cards.push("automatic_operations");
+    return cards;
+  }
+
   playerAcknowledgeNotice(msg, mycallback) {
     let result = GameTemplate.prototype.playerAcknowledgeNotice.call(this, msg, mycallback);
     this.showPlayerHand();
@@ -571,22 +593,15 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
 
   playerMakePeaceOffer(faction) {
 
-    if (!this.game.state.rules.peace_terms) {
-      return;
-    }
-
-    let vp = this.calculateVictoryPoints().vp;
-
-    if (faction == "central" && this.game.state.events.fourteen_points) {
-      this.updateLog("14 Points: only the Allied Powers may offer Peace Terms");
-      return;
-    }
-    if (faction == "central" && vp < 11) {
-      this.updateLog("Central Powers may offer Peace Terms only at 11 VP or more");
-      return;
-    }
-    if (faction == "allies" && vp > 9) {
-      this.updateLog("Allied Powers may offer Peace Terms only at 9 VP or fewer");
+    if (!this.mayOfferPeaceTerms(faction)) {
+      if (!this.game.state.rules || !this.game.state.rules.peace_terms) { return; }
+      if (faction == "central" && this.game.state.events.fourteen_points) {
+        this.updateLog("14 Points: only the Allied Powers may offer Peace Terms");
+      } else if (faction == "central") {
+        this.updateLog("Central Powers may offer Peace Terms only at 11 VP or more");
+      } else if (faction == "allies") {
+        this.updateLog("Allied Powers may offer Peace Terms only at 9 VP or fewer");
+      }
       return;
     }
 
@@ -1726,7 +1741,27 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
     });
   }
 
+  playerPlayAutomaticOperation(faction) {
+
+    this.removeSelectable();
+    this.removeMovementCues();
+    this.game.state.active_card = "automatic_operations";
+    this.cardbox.hide();
+    this.addMove(`record\t${faction}\t${this.game.state.round}\tops`);
+    this.playerPlayOps(faction, "automatic_operations", 1);
+
+  }
+
   playerPlayCard(faction, card) {
+
+    if (card === "automatic_operations") {
+      this.playerPlayAutomaticOperation(faction);
+      return;
+    }
+    if (card === "peace_terms") {
+      this.playerMakePeaceOffer(faction);
+      return;
+    }
 
     //
     // avoid back-button select
@@ -3796,7 +3831,11 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
       if (this.game.queue[this.game.queue.length-1].split("\t")[0] == "play") {
         this.addMove("resolve\tplay");
       }
-      this.playerPlayCard(faction, card);
+      if (card === "automatic_operations") {
+        this.playerTurn(faction);
+      } else {
+        this.playerPlayCard(faction, card);
+      }
     });
     
     //
@@ -4659,16 +4698,34 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
     //
     if (hand.length <= 1) { hand.push("pass"); this.addMove("pass\t"+faction); }
     this.addMove("resolve\tplay");
+    let choices = this.returnCardsAvailableToPlay(faction);
 
     this.game.state.player_turn_card_select = true;
     this.game.status = `${name} - select card`;
     this.hud.updateStatus(this.game.status);
     this.hud.updateMenu([]);
-    this.hud.updateCards(hand);
+    this.hud.updateCards(choices);
     this.cardbox.bindCallback((card) => {
 
       if (this.game.state.turn == 1 && this.game.state.round == 1 && this.game.state.rules.guns_must_event && faction === "central" && hand.includes("cp01") && card !== "cp01") {
         alert("You must play Guns of August as an event.");
+        return;
+      }
+
+      if (card === "automatic_operations" || card === "peace_terms") {
+        this.hud.hideBackButton();
+        this.game.state.player_turn_card_select = false;
+        for (let z = 0; z < this.game.deck[0].hand.length; z++) {
+          if (this.game.deck[0].hand[z] == "pass") { this.game.deck[0].hand.splice(z, 1); }
+        }
+        for (let z = 0; z < this.game.deck[1].hand.length; z++) {
+          if (this.game.deck[1].hand[z] == "pass") { this.game.deck[1].hand.splice(z, 1); }
+        }
+        if (card === "automatic_operations") {
+          this.playerPlayAutomaticOperation(faction);
+        } else {
+          this.playerMakePeaceOffer(faction);
+        }
         return;
       }
 

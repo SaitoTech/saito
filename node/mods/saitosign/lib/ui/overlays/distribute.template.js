@@ -1,4 +1,19 @@
 const { escapeHTML } = require('./publish.escape');
+const { SHARE_RETENTION_MS } = require('../../share-protocol');
+
+function retentionPhrase(ms) {
+  const value = Number(ms);
+  const day = 24 * 60 * 60 * 1000;
+  if (!Number.isFinite(value) || value <= 0) {
+    return 'a short time';
+  }
+  const days = Math.round(value / day);
+  if (days >= 1) {
+    return days === 1 ? '1 day' : `${days} days`;
+  }
+  const hours = Math.max(1, Math.round(value / (60 * 60 * 1000)));
+  return hours === 1 ? '1 hour' : `${hours} hours`;
+}
 
 function choice(action, title, note, prominent) {
   return `
@@ -10,19 +25,19 @@ function choice(action, title, note, prominent) {
 }
 
 function recipientsHTML(view) {
-  const rows = (view.recipients || []).map((recipient, index) => {
-    const existing = Number.isInteger(recipient.signerIndex);
-    const address = existing
-      ? `<span class="share-recipient-email">${recipient.email ? escapeHTML(recipient.email) : 'No email address recorded'}</span>`
-      : `<input id="saitosign-share-email-${index}" type="email" data-share-email="${index}" value="${escapeHTML(recipient.email)}" autocomplete="off" aria-label="Additional recipient email">`;
+  const rows = (view.recipients || []).map((recipient) => {
+    const email = recipient.email
+      ? escapeHTML(recipient.email)
+      : 'No email address recorded';
     return `
       <tr>
-        <td>${address}</td>
-        <td class="share-trash-cell">
-          <button type="button" class="share-trash" data-publish-action="share-remove" data-share-index="${index}" aria-label="Remove recipient">
-            <i class="fa-solid fa-trash" aria-hidden="true"></i>
-          </button>
+        <td>
+          <span class="share-signer">
+            <span class="share-signer-name">${escapeHTML(recipient.name || 'Signer')}</span>
+            ${recipient.signed ? '<span class="share-signed">Signed</span>' : ''}
+          </span>
         </td>
+        <td>${email}</td>
       </tr>
     `;
   }).join('');
@@ -35,22 +50,20 @@ function recipientsHTML(view) {
       <label for="saitosign-share-password-confirm">Confirm password</label>
       <input id="saitosign-share-password-confirm" type="password" data-share-password-confirm value="${escapeHTML(view.confirm || '')}" autocomplete="new-password">
     </div>
+    <p class="share-instruction">Please note, SaitoSign will not have a copy of this password. You will need to share it with recipients separately. If this password is lost, we cannot recover your document for you.</p>
   ` : '';
   return `
     <div class="share-people">
-      <h4>Recipients</h4>
       <table class="signing-table share-recipient-table">
         <tbody>${rows}</tbody>
       </table>
-      <button type="button" class="share-add" data-publish-action="share-add">Add a recipient</button>
     </div>
     <div class="share-protect">
       <label class="share-protect-toggle">
         <input type="checkbox" data-share-protect ${view.protect ? 'checked' : ''}>
-        <span>Protect this document with a password</span>
+        <span>Encrypt this document with a password</span>
       </label>
       ${password}
-      <p class="share-instruction">Please note, SaitoSign will not have a copy of this password. You will need to share it with recipients separately. If the password is lost, we cannot recover the document for you.</p>
     </div>
   `;
 }
@@ -121,12 +134,12 @@ function shareFlowSlide(state) {
   }
   if (step === 'share-recipients') {
     return {
-      title: 'Who needs to sign?',
-      subtitle: 'These people will receive an email with a link to access the document. Anyone already listed as a signer will retain their existing signature requirements. Additional recipients will be given access to the document but will not be asked to sign.',
+      title: 'Is this ready to share?',
+      subtitle: 'The following addresses will receive an email with a link to access the document. This link will be valid for two days, after which time the server will delete this contract.',
       body: `
         <div class="share-step">
-          <p class="share-instruction">SaitoSign will keep a temporary server copy for about two days, then delete it. This is not permanent storage.</p>
           ${recipientsHTML(view)}
+          <p class="share-fallback">You can also <button type="button" class="share-text-link" data-publish-action="share-backup">download a backup</button> and share the file yourself.</p>
           ${error}
         </div>
       `
@@ -150,29 +163,28 @@ function shareFlowSlide(state) {
     const sent = view.outcome === 'success';
     const link = view.link
       ? `
-        <p class="share-instruction">${sent ? 'You can also give people access by sharing this link yourself.' : 'You can still give recipients access by sharing the link below.'}</p>
-        <div class="share-link-row">
+        <div class="share-link-field">
           <input type="text" readonly value="${escapeHTML(view.link)}" aria-label="Sharing link">
-          <button type="button" class="share-add" data-publish-action="share-copy">${view.copied ? 'Copied' : 'Copy Link'}</button>
+          <button type="button" class="share-copy" data-publish-action="share-copy" aria-label="${view.copied ? 'Copied' : 'Copy link'}">
+            <i class="fa-solid ${view.copied ? 'fa-check' : 'fa-copy'}" aria-hidden="true"></i>
+          </button>
         </div>
       `
       : '';
     return {
-      title: sent ? 'Success' : 'Document stored',
+      title: '',
       body: `
         <div class="share-step share-result">
-          <i class="fa-solid fa-circle-check share-mark" aria-hidden="true"></i>
-          <p class="share-status">${escapeHTML(sent
-            ? 'Your document has been stored and invitation emails have been sent.'
-            : 'Your document is safely stored on the sharing server, but SaitoSign could not send the invitation emails.')}</p>
-          ${error}
-          ${link}
-          <p class="share-instruction">${sent
-            ? 'The server copy will be available for about two days, then deleted. If you expect people will need longer to access the document, download a backup and keep it somewhere safe.'
-            : 'The server copy will be available for about two days, then deleted.'}</p>
-          ${sent
-            ? '<button type="button" class="share-add" data-publish-action="share-backup">Backup document</button>'
-            : '<button type="button" class="share-add" data-publish-action="share-retry-email">Retry emails</button>'}
+          <div class="share-confirm">
+            <i class="fa-solid fa-circle-check share-mark" aria-hidden="true"></i>
+            <p class="share-status">Your document is safely uploaded and ready to share.</p>
+            <p class="share-instruction">${escapeHTML(sent
+              ? 'Invitation emails have been sent to your recipients.'
+              : 'SaitoSign could not send the invitation emails. You can still share the document using the link below.')}</p>
+            ${link}
+            <p class="share-instruction">The server copy will be available for ${escapeHTML(retentionPhrase(SHARE_RETENTION_MS))}, then deleted.</p>
+          </div>
+          <p class="share-fallback">To keep a permanent copy of your document for manual sharing, <button type="button" class="share-text-link" data-publish-action="share-backup">download a backup</button>.</p>
         </div>
       `
     };

@@ -819,6 +819,16 @@ if (spacekey == "stanislau") {
 
   }
 
+  spaceMayReceiveTrench(faction, key) {
+    if (key == "aeubox" || key == "ceubox" || key == "arbox" || key == "crbox") { return 0; }
+    let space = this.game.spaces[key];
+    if (!space || space.trench > 0) { return 0; }
+    if (space.control != faction) { return 0; }
+    if (!space.units || space.units.length == 0) { return 0; }
+    if (this.checkSupplyStatus(faction, key)) { return 1; }
+    return 0;
+  }
+
   returnSpacesWithFilter(filter_func) {
     let spaces = [];
     for (let key in this.game.spaces) {

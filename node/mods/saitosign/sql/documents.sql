@@ -31,6 +31,3 @@ CREATE TABLE IF NOT EXISTS satosign_shares (
 
 CREATE INDEX IF NOT EXISTS satosign_shares_token_idx
   ON satosign_shares (token);
-
-CREATE UNIQUE INDEX IF NOT EXISTS satosign_shares_client_key_idx
-  ON satosign_shares (client_key);

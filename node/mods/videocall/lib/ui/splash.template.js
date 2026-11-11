@@ -7,14 +7,6 @@ module.exports = (app, mod, keys) => {
               <div class="saito-cta-subtitle stun-subtitle">PEER-TO-PEER VIDEO CHAT</div>
             </div>
 
-          <div class="embedded_switch">
-            <label class="switch_label" for="embedded_call_switch">Embedded call</label>
-            <label class="switch">
-              <input type="checkbox" id="embedded_call_switch"${mod.browser_active ? '' : ' checked'}>
-              <span class="slider"></span>
-            </label>
-          </div>
-
           <div class="stunx-appspace-actions">`;
 
   let mode = null;
@@ -34,6 +26,13 @@ module.exports = (app, mod, keys) => {
 
           <div class="stun-appspace-footer">
             <div id="stunx-call-settings" class="stunx-call-settings saito-anchor"><i class="fa-solid fa-gears"></i><span>media settings</span></div>
+            <div class="embedded_switch">
+              <label class="switch_label" for="embedded_call_switch">embedded</label>
+              <label class="switch">
+                <input type="checkbox" id="embedded_call_switch"${mod.browser_active ? '' : ' checked'}>
+                <span class="slider"></span>
+              </label>
+            </div>
             <div id="createScheduleRoom" class="stun-schedule-call saito-anchor"><i class="fas fa-calendar"></i><span>schedule call</span></div>
         </div>
 

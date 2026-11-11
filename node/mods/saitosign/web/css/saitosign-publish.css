@@ -691,6 +691,98 @@
   align-items: stretch;
 }
 
+.saitosign-publish .step[data-step="share-sent"] .stage {
+  display: flex;
+  flex: 1;
+}
+
+.saitosign-publish .step[data-step="share-sent"] .share-result {
+  flex: 1;
+  align-items: center;
+  width: 100%;
+  max-width: 52rem;
+  margin: 0 auto;
+  text-align: center;
+}
+
+.saitosign-publish .share-confirm {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--saito-space-lg);
+  width: 100%;
+  margin-top: auto;
+  margin-bottom: auto;
+}
+
+.saitosign-publish .step[data-step="share-sent"] .share-mark {
+  margin-top: 0;
+}
+
+.saitosign-publish .step[data-step="share-sent"] .share-link-field {
+  width: 100%;
+}
+
+.saitosign-publish .step[data-step="share-sent"] .share-link-field input[type="text"] {
+  text-align: left;
+}
+
+.saitosign-publish .share-backup {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.2rem;
+  width: 100%;
+}
+
+.saitosign-publish .share-backup-button {
+  min-width: 14rem;
+  min-height: 4.4rem;
+  margin: 0;
+  padding: 0 2rem;
+  border: 1px solid var(--saito-primary);
+  border-radius: var(--saito-radius);
+  background: var(--saito-primary);
+  color: var(--saito-primary-foreground, #fff);
+  font-family: var(--saito-font-medium);
+  font-size: var(--font-size-medium);
+  cursor: pointer;
+}
+
+.saitosign-publish .share-fallback {
+  margin: 0;
+  color: var(--saito-foreground);
+  font-size: var(--font-size-medium);
+  line-height: 1.45;
+  text-align: center;
+}
+
+.saitosign-publish .share-text-link {
+  display: inline;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.saitosign-publish .share-text-link:hover,
+.saitosign-publish .share-text-link:focus-visible {
+  color: var(--saito-primary);
+  outline: none;
+}
+
+.saitosign-publish .share-backup-button:hover,
+.saitosign-publish .share-backup-button:focus-visible {
+  border-color: var(--saito-button-primary-background-hover, var(--saito-chart-4));
+  background: var(--saito-button-primary-background-hover, var(--saito-chart-4));
+  color: var(--saito-primary-foreground, #fff);
+  outline: none;
+}
+
 .saitosign-publish .share-spinner {
   width: 7.2rem;
   height: 7.2rem;
@@ -729,15 +821,41 @@
   font-size: var(--font-size-medium);
 }
 
-.saitosign-publish .share-link-row {
+.saitosign-publish .share-link-field {
   display: flex;
   align-items: center;
   gap: 0.8rem;
 }
 
-.saitosign-publish .share-link-row input {
-  flex: 1;
+.saitosign-publish .share-step .share-link-field input[type="text"] {
+  flex: 1 1 auto;
+  width: auto;
   min-width: 0;
+  padding-right: 1.2rem;
+}
+
+.saitosign-publish .share-copy {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  width: 4.4rem;
+  height: 4.4rem;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--saito-border);
+  border-radius: var(--saito-radius);
+  background: var(--saito-background);
+  color: var(--saito-foreground);
+  font-size: 1.6rem;
+  cursor: pointer;
+}
+
+.saitosign-publish .share-copy:hover,
+.saitosign-publish .share-copy:focus-visible {
+  color: var(--saito-foreground);
+  outline: none;
 }
 
 @keyframes saitosign-share-spin {
@@ -1100,13 +1218,26 @@
   gap: 0.8rem;
 }
 
-.saitosign-publish .share-people h4 {
-  margin: 0;
-  color: var(--saito-foreground);
+.saitosign-publish .step[data-step="share-recipients"] .share-fallback {
+  text-align: left;
+}
+
+.saitosign-publish .share-signer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.2rem;
+  min-height: 4.4rem;
+}
+
+.saitosign-publish .share-signer-name {
+  min-width: 0;
+}
+
+.saitosign-publish .share-signed {
+  flex: none;
+  color: #3dd68c;
   font-family: var(--saito-font-medium);
-  font-size: var(--font-size-medium);
-  font-weight: 500;
-  line-height: 1.35;
 }
 
 .saitosign-publish .share-recipient-table td {

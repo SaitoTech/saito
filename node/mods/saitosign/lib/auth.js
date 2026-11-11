@@ -855,5 +855,6 @@ module.exports = {
   validVerification,
   actionSignatureEvidence,
   emailEvidence,
-  imageEvidence
+  imageEvidence,
+  emailVerificationMessage
 };

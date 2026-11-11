@@ -759,6 +759,12 @@ console.log("err: " + err);
     if (cardname === "pass") {
       return `<img class="${cardclass}" src="/paths/img/cards/PASS.png" /><div class="cardtext">pass</div>`;
     }
+    if (cardname === "automatic_operations") {
+      return `<img class="${cardclass}" src="/paths/img/cards/automatic_operation.png" />`;
+    }
+    if (cardname === "peace_terms") {
+      return `<img class="${cardclass}" src="/paths/img/cards/peace_terms.png" />`;
+    }
 
     if (deck[cardname]) {
       card = deck[cardname];

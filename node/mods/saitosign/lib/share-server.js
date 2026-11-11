@@ -1,6 +1,12 @@
 const { randomBytes } = require('crypto');
 const { configuredPublicOrigin } = require('./recovery');
-const { SHARE_RETENTION_MS, recipientList, invalidRecipients, shareLink } = require('./share-protocol');
+const { SHARE_RETENTION_MS, recipientList, invalidRecipients, normalizeEmail, shareLink } = require('./share-protocol');
+const { allActionsSigned } = require('./auth');
+const {
+  commitCanonicalMerge,
+  uploaderKey,
+  PUBLIC_KEY_MISMATCH
+} = require('./signature-merge');
 
 function sameToken(left, right) {
   const a = String(left || '');
@@ -140,16 +146,36 @@ async function fetchShare(mod, data) {
   };
 }
 
-async function updateShare(mod, data) {
+const mergeQueues = new Map();
+
+function enqueueMerge(id, task) {
+  const previous = mergeQueues.get(id) || Promise.resolve();
+  const run = previous.catch(() => {}).then(task);
+  mergeQueues.set(id, run);
+  return run.finally(() => {
+    if (mergeQueues.get(id) === run) {
+      mergeQueues.delete(id);
+    }
+  });
+}
+
+async function updateShare(mod, data, tx) {
   const id = String(data.document_id || '').trim();
   const share = await mod.database.readShare(id).catch(() => null);
   if (!share || !sameToken(share.token, data.token)) {
     return shareError('This sharing link is not valid. Ask the sender for a new link.');
   }
+  if (data.is_encrypted === true) {
+    return replaceShare(mod, id, data);
+  }
+  return enqueueMerge(id, () => mergeShare(mod, id, share, data, tx));
+}
+
+async function replaceShare(mod, id, data) {
   try {
     const stored = await mod.database.updateSharedPayload(id, data.document, {
       expectedHash: data.expected_hash,
-      isEncrypted: data.is_encrypted === true
+      isEncrypted: true
     });
     return {
       success: true,
@@ -158,13 +184,143 @@ async function updateShare(mod, data) {
       is_encrypted: stored.is_encrypted
     };
   } catch (err) {
-    if (err?.code === 'conflict') {
-      return shareError('conflict');
+    return shareUpdateError(err);
+  }
+}
+
+async function mergeShare(mod, id, share, data, tx) {
+  const signer = uploaderKey(mod.app, tx);
+  if (!signer.ok) {
+    return shareError(signer.error);
+  }
+  let serverKey = String(mod.publicKey || '').trim();
+  if (!serverKey && typeof mod.app?.wallet?.getPublicKey === 'function') {
+    serverKey = String(await mod.app.wallet.getPublicKey()).trim();
+  }
+  if (!serverKey) {
+    return shareError('SaitoSign could not confirm the identity server for this signature.');
+  }
+  let submitted;
+  try {
+    const { documentFromStored } = require('./share-client');
+    submitted = await documentFromStored(mod.app, data.document, '');
+  } catch (err) {
+    return shareError(err?.message || 'The signed document could not be read.');
+  }
+  let merged;
+  try {
+    const { buildDocumentArchive, zipPackage } = require('./archive');
+    merged = await commitCanonicalMerge({
+      app: mod.app,
+      signerKey: signer.publicKey,
+      serverKey,
+      submitted,
+      readCanonical: async () => {
+        const stored = await mod.database.getDocument(id);
+        if (!stored) {
+          const missing = new Error('SaitoSign document was not found.');
+          missing.code = 'not_found';
+          throw missing;
+        }
+        if (stored.expired) {
+          const expired = new Error('This shared document has expired.');
+          expired.code = 'expired';
+          throw expired;
+        }
+        if (stored.is_encrypted) {
+          const invalid = new Error('This shared document is password protected and cannot be merged by the server.');
+          invalid.code = 'invalid';
+          throw invalid;
+        }
+        const { documentFromStored } = require('./share-client');
+        return {
+          record: await documentFromStored(mod.app, stored.document, ''),
+          storageHash: stored.document_hash
+        };
+      },
+      buildArchive: async (record) => {
+        const archive = await buildDocumentArchive(mod.app, record);
+        return zipPackage(archive.bytes);
+      },
+      writeCanonical: (packed, expectedHash) => mod.database.saveMergedPayload(id, packed, {
+        expectedHash,
+        retentionMs: SHARE_RETENTION_MS
+      })
+    });
+  } catch (err) {
+    return shareUpdateError(err);
+  }
+  if (!merged.ok) {
+    return shareError(merged.error);
+  }
+  const complete = merged.complete === true && allActionsSigned(mod.app, merged.record.actions, merged.record.users, merged.record) === true;
+  if (merged.stored) {
+    await notifySignatureMerge(mod, share, {
+      complete,
+      signerName: merged.signerName
+    });
+  }
+  return {
+    success: true,
+    document_id: id,
+    document_hash: merged.storageHash,
+    is_encrypted: false,
+    merged: merged.stored === true,
+    already_present: merged.stored !== true,
+    added: merged.added,
+    complete,
+    stages: ['uploaded', 'verified', 'validated', 'merged', 'saved']
+  };
+}
+
+function shareUpdateError(err) {
+  if (err?.code === 'conflict') {
+    return shareError('conflict');
+  }
+  if (err?.code === 'expired') {
+    return shareError('This shared document has expired.');
+  }
+  if (err?.code === 'invalid') {
+    return shareError(err.message);
+  }
+  return shareError(err?.message || 'The updated document could not be stored. Try the upload again.');
+}
+
+async function notifySignatureMerge(mod, share, details) {
+  try {
+    const mail = mod.app.modules.returnModule('MailRelay');
+    if (!mail || typeof mail.sendMail !== 'function') {
+      return;
     }
-    if (err?.code === 'expired') {
-      return shareError('This shared document has expired.');
+    const link = shareLink(configuredPublicOrigin(mod.app), share.document_id, share.token);
+    const name = String(details.signerName || '').trim() || 'A recipient';
+    const complete = details.complete === true;
+    const subject = complete
+      ? `${share.document_name} is fully signed`
+      : `A signature was added to ${share.document_name}`;
+    const text = [
+      complete
+        ? `Every required signature is now present on "${share.document_name}".`
+        : `${name} added a signature to "${share.document_name}".`,
+      '',
+      'Open the latest version:',
+      link
+    ].join('\n');
+    for (let i = 0; i < share.recipients.length; i += 1) {
+      try {
+        await mail.sendMail({
+          to: share.recipients[i].email,
+          from: 'SaitoSign <no-reply@saito.tech>',
+          subject,
+          text,
+          ishtml: false
+        });
+      } catch (err) {
+        console.error(mailFailure(err));
+      }
     }
-    return shareError('The updated document could not be stored. Try the upload again.');
+  } catch (err) {
+    console.error(mailFailure(err));
   }
 }
 
@@ -205,10 +361,14 @@ async function inviteShare(mod, data) {
     'SaitoSign keeps this server copy for about two days. It is not permanent storage.',
     share.originator_email ? `If you were not expecting this, you can ignore the message or contact ${share.originator_email}.` : 'If you were not expecting this, you can ignore the message.'
   ].join('\n');
+  const requested = Array.isArray(data.recipients) ? recipientList(data.recipients) : null;
+  const targets = requested
+    ? share.recipients.filter((recipient) => requested.some((item) => item.email === normalizeEmail(recipient.email)))
+    : share.recipients;
   const failed = [];
   let sent = 0;
-  for (let i = 0; i < share.recipients.length; i += 1) {
-    const recipient = share.recipients[i];
+  for (let i = 0; i < targets.length; i += 1) {
+    const recipient = targets[i];
     try {
       await mail.sendMail({
         to: recipient.email,
@@ -234,7 +394,7 @@ async function inviteShare(mod, data) {
   return { success: true, stored: true, link, sent };
 }
 
-async function handleShareRequest(mod, data) {
+async function handleShareRequest(mod, data, tx) {
   if (data && Object.prototype.hasOwnProperty.call(data, 'password')) {
     delete data.password;
   }
@@ -244,9 +404,9 @@ async function handleShareRequest(mod, data) {
   }
   if (action === 'create') return createShare(mod, data);
   if (action === 'fetch') return fetchShare(mod, data);
-  if (action === 'update') return updateShare(mod, data);
+  if (action === 'update') return updateShare(mod, data, tx);
   if (action === 'invite') return inviteShare(mod, data);
   return shareError('SaitoSign did not recognize that sharing request.');
 }
 
-module.exports = { handleShareRequest };
+module.exports = { handleShareRequest, PUBLIC_KEY_MISMATCH };

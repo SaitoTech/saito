@@ -54,7 +54,8 @@ class SaitoSignDatabase {
     const db = await this.connection();
     await db.exec(filesystem.readFileSync(sqlPath, 'utf8'));
     const columns = await db.all('PRAGMA table_info(satosign_shares)');
-    if (Array.isArray(columns) && !columns.some((column) => column.name === 'client_key')) {
+    const names = Array.isArray(columns) ? columns.map((column) => column.name) : [];
+    if (!names.includes('client_key')) {
       await db.exec('ALTER TABLE satosign_shares ADD COLUMN client_key TEXT');
     }
     await db.exec('CREATE UNIQUE INDEX IF NOT EXISTS satosign_shares_client_key_idx ON satosign_shares (client_key)');
@@ -268,6 +269,52 @@ class SaitoSignDatabase {
     return present(stored, Date.now());
   }
 
+  async saveMergedPayload(documentId, document, options = {}) {
+    const id = requireId(documentId);
+    const existing = await this.readRow(id);
+    if (!existing) {
+      throw new DocumentStoreError('SaitoSign document was not found.', 'not_found');
+    }
+    const current = metadata(existing, Date.now());
+    if (current.expired) {
+      throw new DocumentStoreError('This shared document has expired.', 'expired');
+    }
+    if (current.is_encrypted) {
+      throw new DocumentStoreError('The stored document type does not match this update.', 'invalid');
+    }
+    const expectedHash = String(options.expectedHash || '');
+    if (!expectedHash || versionsConflict(existing.document_hash, expectedHash)) {
+      throw new DocumentStoreError('A newer version of this document is already stored.', 'conflict');
+    }
+    const documentData = serializeDocument(document);
+    const documentHash = sha256(documentData);
+    const updatedAt = Date.now();
+    const retention = options.retentionMs == null ? DEFAULT_RETENTION_MS : options.retentionMs;
+    const expiresAt = updatedAt + timestamp(retention);
+    await this.run(
+      `UPDATE satosign_documents
+          SET document_data = $document_data,
+              document_hash = $document_hash,
+              updated_at = $updated_at,
+              expires_at = $expires_at
+        WHERE document_id = $document_id
+          AND document_hash = $expected_hash`,
+      {
+        $document_id: id,
+        $document_data: documentData,
+        $document_hash: documentHash,
+        $updated_at: updatedAt,
+        $expires_at: expiresAt,
+        $expected_hash: expectedHash
+      }
+    );
+    const stored = await this.readRow(id);
+    if (!stored || stored.document_data !== documentData || stored.document_hash !== documentHash) {
+      throw new DocumentStoreError('A newer version of this document is already stored.', 'conflict');
+    }
+    return present(stored, updatedAt);
+  }
+
   async saveShare(share) {
     await this.run(
       `INSERT INTO satosign_shares (
@@ -385,8 +432,12 @@ class SaitoSignDatabase {
 }
 
 function serializeDocument(document) {
-  if (document && document.format === 'saitosign-zip' && typeof document.archive === 'string' && document.archive) {
-    return JSON.stringify({ format: 'saitosign-zip', archive: document.archive });
+  if (document && document.format === 'saitosign-zip') {
+    const archive = typeof document.archive === 'string' ? document.archive : '';
+    if (!archive.trim()) {
+      throw new DocumentStoreError('The SaitoSign document archive is empty.', 'invalid');
+    }
+    return JSON.stringify({ format: 'saitosign-zip', archive });
   }
   if (!document || typeof document !== 'object' || Array.isArray(document)) {
     throw new DocumentStoreError('SaitoSign document data must be a document object.', 'invalid');
@@ -544,3 +595,4 @@ function storageError(err) {
 module.exports = SaitoSignDatabase;
 module.exports.DocumentStoreError = DocumentStoreError;
 module.exports.DEFAULT_RETENTION_MS = DEFAULT_RETENTION_MS;
+module.exports.serializeDocument = serializeDocument;

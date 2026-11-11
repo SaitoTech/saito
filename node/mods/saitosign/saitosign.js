@@ -1,4 +1,5 @@
 const ModTemplate = require('../../lib/templates/modtemplate');
+const PeerService = require('saito-js/lib/peer_service').default;
 const SaitoHeader = require('../../lib/saito/ui/saito-header/saito-header');
 const {
   emptyDocument,
@@ -36,6 +37,20 @@ const SaitoSignDatabase = require('./lib/database');
 const { handleShareRequest } = require('./lib/share-server');
 const { sendShare, payloadForUpload, documentFromStored } = require('./lib/share-client');
 const { importFailure } = require('./lib/share-protocol');
+const { readShareParameters } = require('./lib/share-access');
+
+function currentShareParameters(app) {
+  const located = readShareParameters(
+    typeof window === 'undefined' ? '' : window.location.search,
+    typeof window === 'undefined' ? '' : window.location.hash
+  );
+  const id = app?.browser?.returnURLParameter?.('share') || '';
+  const token = app?.browser?.returnURLParameter?.('token') || '';
+  if (id && token) {
+    return { id, token };
+  }
+  return located;
+}
 
 class SaitoSign extends ModTemplate {
   constructor(app) {
@@ -100,9 +115,46 @@ class SaitoSign extends ModTemplate {
       this.header = new SaitoHeader(app, this);
       await this.header.initialize(app);
       this.listenForRecovery();
-      await this.openSharedLink();
+      const share = currentShareParameters(app);
+      if (share.id && share.token) {
+        this.receivedBy = 'link';
+        this.shareLoad = { status: 'Connecting to the sharing server...', error: '' };
+        this.shareWait = setTimeout(() => {
+          if (this.shareRequested || hasPdf(this.document) || this.shareGate) {
+            return;
+          }
+          this.reportShareFailure('SaitoSign could not find a sharing server. The server must be running and storing documents.');
+        }, 20000);
+      }
       await this.openSavedDocument();
     }
+  }
+
+  returnServices() {
+    if (this.app.BROWSER || !this.database) {
+      return [];
+    }
+    return [new PeerService(null, 'saitosign', this.publicKey)];
+  }
+
+  async onPeerServiceUp(app, peer, service = {}) {
+    if (!app.BROWSER || service.service !== 'saitosign' || !this.browser_active || this.shareRequested) {
+      return;
+    }
+    const share = currentShareParameters(app);
+    const id = share.id;
+    const token = share.token;
+    if (!id || !token) {
+      return;
+    }
+    if (this.share?.id === id && this.receivedBy === 'link' && hasPdf(this.document)) {
+      return;
+    }
+    this.shareRequested = true;
+    clearTimeout(this.shareWait);
+    this.shareLoad = { status: 'Opening the shared document...', error: '' };
+    this.main?.showShareLoad(this.shareLoad);
+    await this.openSharedLink(peer);
   }
 
   listenForRecovery() {
@@ -120,7 +172,10 @@ class SaitoSign extends ModTemplate {
     const writerId = sessionWriter();
     const next = writerId
       ? { ...record, handoff: { code: record?.code, writerId } }
-      : record;
+      : { ...record };
+    if (this.receivedBy === 'link' || this.receivedBy === 'file') {
+      next.receivedBy = this.receivedBy;
+    }
     try {
       return await saveDraft(next);
     } catch (err) {
@@ -163,18 +218,36 @@ class SaitoSign extends ModTemplate {
     }, 50);
   }
 
-  async openSharedLink() {
-    const id = this.app.browser.returnURLParameter('share');
-    const token = this.app.browser.returnURLParameter('token');
-    if (!id || !token || hasPdf(this.document)) {
+  reportShareFailure(message) {
+    const reason = message || 'The shared document could not be opened.';
+    this.shareLoad = { status: '', error: reason };
+    this.main?.fail(reason);
+    this.main?.showShareLoad(this.shareLoad);
+  }
+
+  async openSharedLink(peer) {
+    const share = currentShareParameters(this.app);
+    const id = share.id;
+    const token = share.token;
+    if (!id || !token) {
       return;
     }
-    const result = await sendShare(this.app, { action: 'fetch', document_id: id, token });
+    if (this.share?.id === id && this.receivedBy === 'link' && hasPdf(this.document)) {
+      return;
+    }
+    let result;
+    try {
+      result = await sendShare(this.app, { action: 'fetch', document_id: id, token }, 30000, peer?.publicKey);
+    } catch (err) {
+      this.reportShareFailure(err?.message || 'The shared document could not be requested.');
+      return;
+    }
     if (!result?.success) {
-      this.main.fail(result?.error || 'The shared document could not be opened.');
+      this.reportShareFailure(result?.error || 'The shared document could not be opened.');
       return;
     }
     if (result.is_encrypted) {
+      this.shareLoad = null;
       this.shareGate = {
         id,
         token,
@@ -182,6 +255,9 @@ class SaitoSign extends ModTemplate {
         serverHash: result.document_hash,
         purpose: result.purpose
       };
+      if (document.querySelector('.saito-container')) {
+        await this.render();
+      }
       return;
     }
     this.share = {
@@ -195,9 +271,10 @@ class SaitoSign extends ModTemplate {
       conflict: false
     };
     try {
-      this.useDocument(await hydrate(await documentFromStored(this.app, result.document, '')), { notice: 'Document imported successfully.' });
+      this.shareLoad = null;
+      this.useDocument(await hydrate(await documentFromStored(this.app, result.document, '')), { receivedBy: 'link' });
     } catch (err) {
-      this.main.fail('Document could not be imported. Open the invitation link again, or ask the sender to share it once more.');
+      this.reportShareFailure(err?.message || 'Document could not be imported. Open the invitation link again, or ask the sender to share it once more.');
     }
   }
 
@@ -215,7 +292,7 @@ class SaitoSign extends ModTemplate {
     share.conflict = false;
     this.setShareNotice(share.encrypted
       ? 'Saving your signature. Your signature has been added. Encrypting the updated document...'
-      : `Uploading updated document. Uploading ${this.document.document?.name || 'the document'} so other participants can see your signature.`);
+      : 'Uploading your signed document.');
     let payload;
     try {
       payload = await payloadForUpload(this.app, this.document, share.encrypted ? share.password : '');
@@ -239,17 +316,31 @@ class SaitoSign extends ModTemplate {
       share.conflict = result?.error === 'conflict';
       const message = share.conflict
         ? 'A newer version of this document was saved by someone else. Your signature is still on this device. Reload the latest document before uploading again.'
-        : 'Signature saved locally — upload required. Your signature has been completed, but the updated document has not yet been shared with the other participants.';
+        : (result?.error || 'Signature saved locally — upload required. Your signature has been completed, but the updated document has not yet been shared with the other participants.');
       this.setShareNotice(message);
-      return { ok: false, conflict: share.conflict, error: result?.error || message };
+      return { ok: false, conflict: share.conflict, error: message };
     }
     share.serverHash = result.document_hash;
     share.pending = false;
     share.conflict = false;
-    this.setShareNotice(share.encrypted
-      ? 'Document updated successfully. Your signature has been saved and the updated encrypted document is available to the other participants.'
-      : 'Document updated successfully. Your signature has been saved and the updated document is available to the other participants.');
-    return { ok: true };
+    if (share.encrypted) {
+      this.setShareNotice('Document updated successfully. Your signature has been saved and the updated encrypted document is available to the other participants.');
+      return { ok: true, complete: false };
+    }
+    const confirmation = result.complete
+      ? 'The shared document is now fully signed.'
+      : (result.already_present
+        ? 'Your signature is already in the shared document.'
+        : 'Your signature has been added to the shared document.');
+    this.setShareNotice([
+      'Uploading your signed document.',
+      'Verifying your identity and transaction.',
+      'Validating your signatures.',
+      'Merging signatures into the shared document.',
+      'Saving the updated document.',
+      confirmation
+    ].join('\n'));
+    return { ok: true, complete: result.complete === true, already_present: result.already_present === true };
   }
 
   setShareNotice(message) {
@@ -264,7 +355,7 @@ class SaitoSign extends ModTemplate {
   }
 
   async openSavedDocument() {
-    if (hasPdf(this.document) || this.share?.id || this.shareGate) {
+    if (hasPdf(this.document) || this.share?.id || this.shareGate || this.shareLoad) {
       return;
     }
     const urlCode = this.app.browser.returnURLParameter('code');
@@ -315,6 +406,7 @@ class SaitoSign extends ModTemplate {
         throw new Error('Finalized document signature is invalid.');
       }
       this.recoveredUser = this.verifiedUser(this.document, plan.code);
+      this.receivedBy = record.receivedBy === 'link' || record.receivedBy === 'file' ? record.receivedBy : '';
       clearVerificationQuery();
     } catch (err) {
       this.document = emptyDocument();
@@ -376,6 +468,9 @@ class SaitoSign extends ModTemplate {
     this.addComponent(this.header);
     await super.render();
     this.main.render();
+    if (this.shareLoad) {
+      this.main.showShareLoad(this.shareLoad);
+    }
     if (this.shareGate && !this.shareGate.opened && !hasPdf(this.document)) {
       this.shareGate.opened = true;
       this.main?.workspace?.publish?.openUnlock();
@@ -440,7 +535,7 @@ class SaitoSign extends ModTemplate {
       if (changed) {
         stripSignatures(data);
       }
-      this.useDocument(await hydrate(data), options.imported ? { notice: 'Document imported successfully.' } : {});
+      this.useDocument(await hydrate(data), { receivedBy: 'file' });
       if (changed && typeof salert === 'function') {
         salert('This document has changed. Signatures have been removed and signing must begin again.');
       }
@@ -495,7 +590,7 @@ class SaitoSign extends ModTemplate {
       }
     }
 
-    this.useDocument(next);
+    this.useDocument(next, { receivedBy: 'new' });
     if (this.main && this.main.workspace && this.main.workspace.publish) {
       this.main.workspace.publish.reset();
     }
@@ -549,6 +644,11 @@ class SaitoSign extends ModTemplate {
     if (previous && previous !== next) {
       revoke(previous);
     }
+    if (options.receivedBy === 'link' || options.receivedBy === 'file') {
+      this.receivedBy = options.receivedBy;
+    } else if (options.receivedBy === 'new') {
+      this.receivedBy = '';
+    }
     this.document = next;
     rememberVerifiedEmails(this.app, next);
     this.main.showWorkspace();
@@ -574,7 +674,7 @@ class SaitoSign extends ModTemplate {
     }
 
     if (txmsg?.request === 'saitosign share') {
-      const result = await handleShareRequest(this, txmsg.data || {});
+      const result = await handleShareRequest(this, txmsg.data || {}, tx);
       if (mycallback) {
         mycallback(result);
       }

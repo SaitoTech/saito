@@ -382,12 +382,13 @@ async function hydrate(saved) {
     record.metadata = saved.metadata;
   }
   const entries = Array.isArray(saved.document?.pdf) ? saved.document.pdf : [];
-  const list = [];
-  for (const entry of entries) {
-    list.push(await readBase64(entry?.pdf || '', entry?.name || saved.document?.name || 'document.pdf'));
+  const present = entries.filter((entry) => String(entry?.pdf || '').trim());
+  if (!present.length) {
+    throw new Error('The stored document did not contain a PDF.');
   }
-  if (!list.length) {
-    throw new Error('not a pdf');
+  const list = [];
+  for (const entry of present) {
+    list.push(await readBase64(entry.pdf, entry?.name || saved.document?.name || 'document.pdf'));
   }
   summarizePdfs(record, list);
   if (saved.document?.name) {
