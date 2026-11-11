@@ -176,6 +176,44 @@ function decideSlide() {
   };
 }
 
+function signatureCompleteSlide(state) {
+  const manual = state.step === 'signature-export';
+  const busy = state.uploadBusy === true;
+  const uploaded = state.uploaded === true;
+  let instruction = 'This is the state of the document. To complete your step, please click the link below to upload your signatures to the server. We will send you and your counterparties an email notifying them that you have completed the required signatures.';
+  let action = 'upload-signatures';
+  let actionLabel = 'Upload your signatures';
+  let working = 'Uploading your signatures.';
+  if (manual) {
+    instruction = 'This is the state of the document. You imported this file yourself, so SaitoSign cannot upload it or email the other signers. Export the signed document and send that new file back yourself.';
+    action = 'export-signed';
+    actionLabel = 'Export the signed document';
+    working = 'Exporting the signed document.';
+  }
+  if (uploaded) {
+    instruction = state.uploadNote || (manual
+      ? 'The signed document has been exported. Send that file to the other signers. SaitoSign does not deliver it for you.'
+      : 'Your signatures have been uploaded. You and your counterparties will be notified by email.');
+  }
+  const link = uploaded || busy
+    ? ''
+    : `<p class="share-fallback"><button type="button" class="share-text-link" data-publish-action="${action}">${escapeHTML(actionLabel)}</button></p>`;
+  const problem = !uploaded && !busy && state.uploadNote
+    ? `<p class="note fail">${escapeHTML(state.uploadNote)}</p>`
+    : '';
+  return {
+    title: manual ? 'Document Status' : 'Signature Complete -- Notify Counterparties',
+    body: `
+      <div class="share-step">
+        ${peopleHTML(state)}
+        <p class="share-instruction">${escapeHTML(instruction)}</p>
+        ${busy ? `<p class="share-status">${escapeHTML(working)}</p>` : link}
+        ${problem}
+      </div>
+    `
+  };
+}
+
 function shareSlide(state) {
   const status = state.actionStatus;
   const fullySigned = Boolean(status) && status.required > 0 && status.remaining === 0;
@@ -199,4 +237,5 @@ function shareSlide(state) {
 module.exports = shareSlide;
 module.exports.readySlide = readySlide;
 module.exports.decideSlide = decideSlide;
+module.exports.signatureCompleteSlide = signatureCompleteSlide;
 module.exports.requirementLines = requirementLines;

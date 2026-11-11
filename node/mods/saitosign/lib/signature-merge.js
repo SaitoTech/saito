@@ -1,3 +1,5 @@
+const Base58 = require('base-58');
+const secp256k1 = require('secp256k1');
 const { copy } = require('./document');
 const {
   allActionsSigned,
@@ -272,6 +274,41 @@ function foreignSignatureProblem(canonical, submitted, slot) {
   return '';
 }
 
+function transactionHashProof(hash, signature, publicKey) {
+  const bytes = hash instanceof Uint8Array ? hash : null;
+  const sigHex = String(signature || '');
+  if (!bytes || bytes.length !== 32 || !/^[0-9a-fA-F]{128}$/.test(sigHex)) {
+    return null;
+  }
+  try {
+    const key = Buffer.from(Base58.decode(String(publicKey)));
+    if (key.length !== 33) {
+      return null;
+    }
+    return {
+      hash: Buffer.from(bytes),
+      signature: Buffer.from(sigHex, 'hex'),
+      publicKey: key
+    };
+  } catch (err) {
+    return null;
+  }
+}
+
+function signedTransaction(app, hash, signature, publicKey) {
+  // Saito signs hash(serialize_for_signature()). app.crypto.verifySignature
+  // hashes its input again, so a real transaction hash has to be checked directly.
+  const proof = transactionHashProof(hash, signature, publicKey);
+  if (proof) {
+    try {
+      return secp256k1.verify(proof.hash, proof.signature, proof.publicKey) === true;
+    } catch (err) {
+      return false;
+    }
+  }
+  return app.crypto.verifySignature(hash, signature, publicKey) === true;
+}
+
 function uploaderKey(app, tx) {
   const signature = String(tx?.signature || '').trim();
   const publicKey = String(tx?.from?.[0]?.publicKey || '').trim();
@@ -283,7 +320,7 @@ function uploaderKey(app, tx) {
       tx.generateHashForSignature();
     }
     const hash = tx.getHashForSignature();
-    if (app.crypto.verifySignature(hash, signature, publicKey) !== true) {
+    if (signedTransaction(app, hash, signature, publicKey) !== true) {
       return fail(UNSIGNED_UPLOAD);
     }
   } catch (err) {

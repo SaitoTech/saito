@@ -43,13 +43,18 @@ function walletKeys(app) {
   return keys;
 }
 
-function decisionEntryFor(app, doc) {
+function decisionEntryFor(app, doc, mod) {
+  const imported = mod?.receivedBy === 'file';
+  const shared = !imported && (mod?.receivedBy === 'link' || Boolean(mod?.share?.id));
+  const index = recognizedSignerIndex(app, doc);
+  const pending = index == null ? [] : unsignedPlacements(app, doc, index);
+  if (index != null && pending.length === 0 && (shared || imported)) {
+    return imported ? 'signature-export' : 'signature-complete';
+  }
   const creator = String(doc?.creator || '').trim();
   if (creator && walletKeys(app).includes(creator)) {
     return 'status';
   }
-  const index = recognizedSignerIndex(app, doc);
-  const pending = index == null ? [] : unsignedPlacements(app, doc, index);
   return pending.length ? 'status' : 'recipient';
 }
 
@@ -319,16 +324,6 @@ class Workspace {
         event.preventDefault();
         this.cancelSignSequence();
         this.openClosePrompt();
-        return;
-      }
-
-      if (event.target.closest('[data-retry-upload]')) {
-        event.preventDefault();
-        if (this.mod.share?.conflict || (this.mod.share?.encrypted && !this.mod.share?.password)) {
-          this.publish?.openRetry();
-          return;
-        }
-        this.mod.syncIfShared();
         return;
       }
 
@@ -1161,7 +1156,7 @@ class Workspace {
   }
 
   decisionEntry() {
-    return decisionEntryFor(this.app, this.mod.document);
+    return decisionEntryFor(this.app, this.mod.document, this.mod);
   }
 
   guideText(doc) {
@@ -1190,7 +1185,7 @@ class Workspace {
       ? field
       : nextUnsignedAction(this.app, doc, field.user, field);
     if (!start) {
-      this.publish.openStatus('You have added your signature everywhere required on the document.', this.decisionEntry());
+      this.publish.openStatus('', this.decisionEntry());
       return;
     }
     const user = doc.users[start.user];
@@ -1252,7 +1247,6 @@ class Workspace {
         return false;
       }
       this.syncSignGuide();
-      const uploaded = await this.mod.syncIfShared?.();
       if (this.sign_step !== token) {
         if (root) {
           this.update(root);
@@ -1277,7 +1271,7 @@ class Workspace {
         if (current) {
           this.update(current);
         }
-        this.publish.openStatus(this.shareResultNote(uploaded), this.decisionEntry());
+        this.publish.openStatus('', this.decisionEntry());
         return true;
       }
       const guided = this.sign_guide_ready && !this.sign_guide_off;
@@ -1448,14 +1442,13 @@ class Workspace {
   async finishSigning() {
     this.syncSignGuide();
     this.dismissSignOverlay();
-    const result = await this.mod.syncIfShared?.();
     this.focus_field = null;
     this.confirming_field = null;
     const root = document.querySelector('.saito-container > .workspace');
     if (root) {
       this.update(root);
     }
-    this.publish.openStatus(this.shareResultNote(result), this.decisionEntry());
+    this.publish.openStatus('', this.decisionEntry());
   }
 
   focusSigningTarget(root, action) {
@@ -1930,7 +1923,6 @@ class Workspace {
       page: this.page,
       page_count: doc.document.page_count,
       notice: this.notice || '',
-      share_pending: this.mod.share?.pending === true,
       guide: awaitingIdentity
         ? 'Please verify your identity before signing this document.'
         : this.guideText(doc),
@@ -2090,8 +2082,7 @@ class Workspace {
     const exportLabel = view.finalized
       ? (view.verified ? 'Verified - View Details' : 'Continue')
       : (view.field_list.length > 0 ? 'Continue' : '');
-    const retry = rail.querySelector('[data-retry-upload]');
-    if (view.share_pending !== Boolean(retry)) {
+    if (rail.querySelector('[data-retry-upload]')) {
       return false;
     }
     const exportButton = rail.querySelector('[data-export]');

@@ -278,30 +278,38 @@ class SaitoSign extends ModTemplate {
     }
   }
 
+  signingUser() {
+    const keys = [];
+    const raw = String(this.app.wallet?.publicKey || '').trim();
+    if (raw) {
+      keys.push(raw);
+    }
+    if (/^[0-9a-fA-F]+$/.test(raw) && raw.length >= 64 && this.app.crypto?.compressPublicKey) {
+      const compressed = this.app.crypto.compressPublicKey(raw);
+      if (compressed && !keys.includes(compressed)) {
+        keys.push(compressed);
+      }
+    }
+    const users = Array.isArray(this.document?.users) ? this.document.users : [];
+    return users.find((user) => keys.includes(String(user?.publickey || '').trim())) || null;
+  }
+
   async syncIfShared() {
     const share = this.share;
     if (!share?.id || !hasPdf(this.document)) {
       return { ok: true, skipped: true };
     }
-    if (share.encrypted && !share.password) {
-      share.pending = true;
-      this.setShareNotice('Your signature has not yet been shared. Enter the document password and choose Retry Upload.');
-      return { ok: false, error: 'The document password is needed before the updated copy can be encrypted.' };
+    const password = share.encrypted ? String(share.password || '') : '';
+    if (share.encrypted && !password) {
+      return { ok: false, error: 'The password used to open this document is no longer available, so the signed copy cannot be uploaded.' };
     }
-    share.pending = true;
     share.conflict = false;
-    this.setShareNotice(share.encrypted
-      ? 'Saving your signature. Your signature has been added. Encrypting the updated document...'
-      : 'Uploading your signed document.');
+    const signer = this.signingUser();
     let payload;
     try {
-      payload = await payloadForUpload(this.app, this.document, share.encrypted ? share.password : '');
+      payload = await payloadForUpload(this.app, this.document, password);
     } catch (err) {
-      this.setShareNotice('Signature saved locally — upload required. The updated document could not be prepared for upload.');
-      return { ok: false, error: err?.message };
-    }
-    if (share.encrypted) {
-      this.setShareNotice('Uploading updated document. Your encrypted document is being uploaded so other participants can see your signature.');
+      return { ok: false, error: err?.message || 'The signed document could not be prepared for upload.' };
     }
     const result = await sendShare(this.app, {
       action: 'update',
@@ -309,37 +317,23 @@ class SaitoSign extends ModTemplate {
       token: share.token,
       expected_hash: share.serverHash,
       is_encrypted: payload.is_encrypted,
-      document: payload.document
+      document: payload.document,
+      signer_name: signer?.name || '',
+      signer_email: signer?.email || ''
     });
     if (!result?.success) {
-      share.pending = true;
       share.conflict = result?.error === 'conflict';
-      const message = share.conflict
-        ? 'A newer version of this document was saved by someone else. Your signature is still on this device. Reload the latest document before uploading again.'
-        : (result?.error || 'Signature saved locally — upload required. Your signature has been completed, but the updated document has not yet been shared with the other participants.');
-      this.setShareNotice(message);
-      return { ok: false, conflict: share.conflict, error: message };
+      return {
+        ok: false,
+        conflict: share.conflict,
+        error: share.conflict
+          ? 'A newer version of this document was saved by someone else. Open the invitation link again before uploading.'
+          : (result?.error || 'The signatures could not be uploaded.')
+      };
     }
     share.serverHash = result.document_hash;
     share.pending = false;
     share.conflict = false;
-    if (share.encrypted) {
-      this.setShareNotice('Document updated successfully. Your signature has been saved and the updated encrypted document is available to the other participants.');
-      return { ok: true, complete: false };
-    }
-    const confirmation = result.complete
-      ? 'The shared document is now fully signed.'
-      : (result.already_present
-        ? 'Your signature is already in the shared document.'
-        : 'Your signature has been added to the shared document.');
-    this.setShareNotice([
-      'Uploading your signed document.',
-      'Verifying your identity and transaction.',
-      'Validating your signatures.',
-      'Merging signatures into the shared document.',
-      'Saving the updated document.',
-      confirmation
-    ].join('\n'));
     return { ok: true, complete: result.complete === true, already_present: result.already_present === true };
   }
 
@@ -646,6 +640,10 @@ class SaitoSign extends ModTemplate {
     }
     if (options.receivedBy === 'link' || options.receivedBy === 'file') {
       this.receivedBy = options.receivedBy;
+      if (options.receivedBy === 'file') {
+        this.share = null;
+        this.shareGate = null;
+      }
     } else if (options.receivedBy === 'new') {
       this.receivedBy = '';
     }

@@ -166,16 +166,20 @@ async function updateShare(mod, data, tx) {
     return shareError('This sharing link is not valid. Ask the sender for a new link.');
   }
   if (data.is_encrypted === true) {
-    return replaceShare(mod, id, data);
+    return replaceShare(mod, id, share, data);
   }
   return enqueueMerge(id, () => mergeShare(mod, id, share, data, tx));
 }
 
-async function replaceShare(mod, id, data) {
+async function replaceShare(mod, id, share, data) {
   try {
     const stored = await mod.database.updateSharedPayload(id, data.document, {
       expectedHash: data.expected_hash,
       isEncrypted: true
+    });
+    await notifySignatureMerge(mod, share, {
+      signerName: data.signer_name,
+      signerEmail: data.signer_email
     });
     return {
       success: true,
@@ -255,9 +259,11 @@ async function mergeShare(mod, id, share, data, tx) {
   }
   const complete = merged.complete === true && allActionsSigned(mod.app, merged.record.actions, merged.record.users, merged.record) === true;
   if (merged.stored) {
+    const signer = merged.record?.users?.[merged.slot];
     await notifySignatureMerge(mod, share, {
       complete,
-      signerName: merged.signerName
+      signerName: merged.signerName,
+      signerEmail: signer?.email
     });
   }
   return {
@@ -286,6 +292,24 @@ function shareUpdateError(err) {
   return shareError(err?.message || 'The updated document could not be stored. Try the upload again.');
 }
 
+function notificationRecipients(share, signerEmail) {
+  const seen = new Set();
+  const emails = [];
+  const add = (value) => {
+    const email = normalizeEmail(value);
+    if (!email || seen.has(email)) {
+      return;
+    }
+    seen.add(email);
+    emails.push(email);
+  };
+  const recipients = Array.isArray(share?.recipients) ? share.recipients : [];
+  recipients.forEach((recipient) => add(recipient?.email));
+  add(share?.originator_email);
+  add(signerEmail);
+  return emails;
+}
+
 async function notifySignatureMerge(mod, share, details) {
   try {
     const mail = mod.app.modules.returnModule('MailRelay');
@@ -293,23 +317,19 @@ async function notifySignatureMerge(mod, share, details) {
       return;
     }
     const link = shareLink(configuredPublicOrigin(mod.app), share.document_id, share.token);
-    const name = String(details.signerName || '').trim() || 'A recipient';
-    const complete = details.complete === true;
-    const subject = complete
-      ? `${share.document_name} is fully signed`
-      : `A signature was added to ${share.document_name}`;
+    const name = String(details.signerName || '').trim() || 'A signer';
+    const subject = `${name} completed the required signatures on ${share.document_name}`;
     const text = [
-      complete
-        ? `Every required signature is now present on "${share.document_name}".`
-        : `${name} added a signature to "${share.document_name}".`,
+      `${name} has completed the required signatures on "${share.document_name}".`,
       '',
       'Open the latest version:',
       link
     ].join('\n');
-    for (let i = 0; i < share.recipients.length; i += 1) {
+    const targets = notificationRecipients(share, details.signerEmail);
+    for (let i = 0; i < targets.length; i += 1) {
       try {
         await mail.sendMail({
-          to: share.recipients[i].email,
+          to: targets[i],
           from: 'SaitoSign <no-reply@saito.tech>',
           subject,
           text,

@@ -140,7 +140,6 @@ function railHTML(view) {
     <p class="guide">${guide}</p>
     ${started ? fieldListHTML(view) : ''}
     ${notice}
-    ${view.share_pending ? '<button type="button" class="export primary" data-retry-upload>Retry Upload</button>' : ''}
     ${next}
   `;
 }

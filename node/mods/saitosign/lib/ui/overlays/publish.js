@@ -280,20 +280,89 @@ class PublishOverlay {
       this.state = flow.applyShareMetadata(this.state, record.metadata);
     }
     this.state.signers = readUsers(this.mod);
-    this.state.entry = entry === 'recipient' ? 'recipient' : 'status';
-    const locked = this.state.entry === 'recipient' ? this.lockedShareStep() : '';
+    const manual = entry === 'signature-export';
+    const completed = entry === 'signature-complete' || manual;
+    this.state.entry = entry === 'recipient' || completed ? 'recipient' : 'status';
+    const locked = this.state.entry === 'recipient' && !completed ? this.lockedShareStep() : '';
     this.state = {
       ...this.summaryState(this.state),
-      step: locked || (this.state.entry === 'recipient' ? 'share-method' : 'share'),
+      step: manual ? 'signature-export' : (completed ? 'signature-complete' : (locked || (this.state.entry === 'recipient' ? 'share-method' : 'share'))),
       history: [],
       allowUnfinalize: false,
-      completionNote: String(completionNote || '')
+      completionNote: String(completionNote || ''),
+      uploadBusy: false,
+      uploaded: false,
+      uploadNote: ''
     };
     if (this.state.step === 'share-recipients') {
       this.shareFlow.ensureRecipients();
     }
     this.overlay.show(PublishTemplate(this.state));
     this.attachEvents();
+  }
+
+  async uploadCompletedSignatures() {
+    if (this.state.step !== 'signature-complete' || this.state.uploadBusy || this.state.uploaded) {
+      return;
+    }
+    this.state = { ...this.state, uploadBusy: true, uploadNote: '' };
+    this.paintSlide();
+    let result;
+    try {
+      result = await this.mod.syncIfShared();
+    } catch (err) {
+      result = { ok: false, error: err?.message };
+    }
+    if (result?.ok) {
+      this.state = {
+        ...this.state,
+        uploadBusy: false,
+        uploaded: true,
+        uploadNote: 'Your signatures have been uploaded. You and your counterparties will be notified by email.'
+      };
+    } else {
+      const raw = String(result?.error || '');
+      this.state = {
+        ...this.state,
+        uploadBusy: false,
+        uploaded: false,
+        uploadNote: raw.startsWith('This upload was not signed')
+          ? 'The signatures could not be uploaded. Use the link to try again.'
+          : (raw || 'The signatures could not be uploaded. Use the link to try again.')
+      };
+    }
+    this.paintSlide();
+  }
+
+  async exportSignedCopy() {
+    if (this.state.step !== 'signature-export' || this.state.uploadBusy) {
+      return;
+    }
+    this.state = { ...this.state, uploadBusy: true, uploadNote: '' };
+    this.paintSlide();
+    let result;
+    try {
+      result = await this.mod.exportDocument();
+    } catch (err) {
+      result = { ok: false };
+    }
+    if (result?.ok) {
+      const filename = result.filename ? `Your browser downloaded ${result.filename}. ` : '';
+      this.state = {
+        ...this.state,
+        uploadBusy: false,
+        uploaded: true,
+        uploadNote: `${filename}Send that file to the other signers. SaitoSign does not deliver it for you.`
+      };
+    } else {
+      this.state = {
+        ...this.state,
+        uploadBusy: false,
+        uploaded: false,
+        uploadNote: 'The document was not exported. Use the link to try again.'
+      };
+    }
+    this.paintSlide();
   }
 
   beginVerification(signerIndex, actionId) {
@@ -718,6 +787,16 @@ class PublishOverlay {
 
       if (action.dataset.publishAction === 'close') {
         this.close();
+        return;
+      }
+
+      if (action.dataset.publishAction === 'upload-signatures') {
+        this.uploadCompletedSignatures();
+        return;
+      }
+
+      if (action.dataset.publishAction === 'export-signed') {
+        this.exportSignedCopy();
         return;
       }
 

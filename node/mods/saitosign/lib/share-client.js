@@ -57,6 +57,10 @@ function sendShare(app, data, timeoutMs = 30000, peerKey) {
           return;
         }
         await tx.sign();
+        if (!String(tx.signature || '').trim()) {
+          finish({ success: false, error: 'This upload could not be signed.' });
+          return;
+        }
       }
       app.network.sendTransactionWithCallback(tx, (response) => finish(response), peerKey || undefined);
     })().catch((err) => {

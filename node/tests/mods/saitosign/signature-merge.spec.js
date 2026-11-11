@@ -1,5 +1,7 @@
 const assert = require('node:assert/strict');
-const { createHash } = require('crypto');
+const { createHash, randomBytes } = require('crypto');
+const Base58 = require('base-58');
+const secp256k1 = require('secp256k1');
 const test = require('node:test');
 const {
   addSignature,
@@ -234,6 +236,28 @@ test('only the email-authorized public key can add that signer slot', async () =
 
   const unsigned = uploaderKey(cryptoApp, { signature: '', from: [{ publicKey: 'user-a' }], getHashForSignature() { return new Uint8Array(); } });
   assert.equal(unsigned.ok, false);
+});
+
+test('a Saito transaction signature is accepted without hashing the hash again', () => {
+  const cryptoApp = app();
+  cryptoApp.crypto.verifySignature = () => false;
+  let privateKey = randomBytes(32);
+  while (!secp256k1.privateKeyVerify(privateKey)) {
+    privateKey = randomBytes(32);
+  }
+  const hash = randomBytes(32);
+  const signature = Buffer.from(secp256k1.sign(hash, privateKey).signature);
+  const publicKey = Base58.encode(Buffer.from(secp256k1.publicKeyCreate(privateKey)));
+  const accepted = uploaderKey(cryptoApp, {
+    signature: signature.toString('hex'),
+    from: [{ publicKey }],
+    generateHashForSignature() {},
+    getHashForSignature() {
+      return new Uint8Array(hash);
+    }
+  });
+  assert.equal(accepted.ok, true);
+  assert.equal(accepted.publicKey, publicKey);
 });
 
 test('concurrent uploads from the same downloaded version merge in either arrival order', async () => {
