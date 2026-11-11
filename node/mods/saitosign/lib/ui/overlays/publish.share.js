@@ -95,42 +95,50 @@ function peopleHTML(state) {
   `;
 }
 
-function finalizeActions() {
+function readyChoices() {
   return `
-    <p class="share-instruction">Click below to prepare the document for users to sign.</p>
-    <div class="status-actions">
-      <button type="button" class="saito-button-primary" data-publish-action="finalize">Continue</button>
+    <div class="status-choices">
+      <button type="button" class="status-choice stacked" data-publish-action="ready-no">
+        <span>No</span>
+        <span class="choice-note">I need to add more signatures.</span>
+      </button>
+      <button type="button" class="status-choice stacked" data-publish-action="ready-yes">
+        <span>Yes</span>
+        <span class="choice-note">I'm ready to sign or share.</span>
+      </button>
     </div>
   `;
 }
 
-function signedActions(premium) {
-  const instruction = premium
-    ? 'All required signatures have been completed. Export this document, or upload it to our server and generate a link, to share the completed copy.'
-    : 'All required signatures have been completed. Export this document to share the completed copy.';
-  const upload = premium
-    ? '<button type="button" class="status-choice" data-publish-action="upload-share">UPLOAD AND SHARE</button>'
-    : '';
-  const layout = upload ? ' premium' : ' single';
+function decideChoices() {
   return `
-    <p class="share-instruction">${escapeHTML(instruction)}</p>
-    <div class="status-choices${layout}">
-      <button type="button" class="status-choice" data-publish-action="share">EXPORT DOCUMENT</button>
-      ${upload}
+    <div class="status-choices">
+      <button type="button" class="status-choice stacked" data-publish-action="sign-yes">
+        <span>Yes</span>
+        <span class="choice-note">I need to sign this document.</span>
+      </button>
+      <button type="button" class="status-choice stacked" data-publish-action="sign-no">
+        <span>No</span>
+        <span class="choice-note">I need to share this with others.</span>
+      </button>
     </div>
   `;
 }
 
-function distributeActions(premium) {
-  const upload = premium
-    ? '<button type="button" class="status-choice" data-publish-action="upload-share">UPLOAD AND SHARE</button>'
-    : '';
-  const layout = upload ? ' premium' : ' single';
+function signedActions() {
   return `
-    <p class="share-instruction">Click below to export this document, distribute it to the signers.</p>
-    <div class="status-choices${layout}">
-      <button type="button" class="status-choice" data-publish-action="share">EXPORT DOCUMENT</button>
-      ${upload}
+    <p class="share-instruction">All required signatures have been completed. Share the completed document with the people who need it.</p>
+    <div class="status-choices single">
+      <button type="button" class="status-choice" data-publish-action="share">I need to share this document</button>
+    </div>
+  `;
+}
+
+function distributeActions() {
+  return `
+    <p class="share-instruction">Share this document. If you export a ZIP, send the new file yourself after anyone else signs it. SaitoSign does not track who receives a manual export.</p>
+    <div class="status-choices single">
+      <button type="button" class="status-choice" data-publish-action="share">I need to share this document</button>
     </div>
   `;
 }
@@ -139,29 +147,46 @@ function readyActions() {
   return `
     <p class="share-instruction">This document is now ready to be signed.</p>
     <div class="status-choices">
-      <button type="button" class="status-choice" data-publish-action="sign-now">I'm signing this document.</button>
-      <button type="button" class="status-choice" data-publish-action="skip-sign">I'm preparing this document for someone else.</button>
+      <button type="button" class="status-choice" data-publish-action="sign-now">I need to sign this document</button>
+      <button type="button" class="status-choice" data-publish-action="skip-sign">I need to share this document</button>
     </div>
   `;
 }
 
+function readySlide(state) {
+  return {
+    title: 'Is this document ready to sign?',
+    body: `
+      <div class="share-step">
+        ${peopleHTML(state)}
+        ${readyChoices()}
+      </div>
+    `
+  };
+}
+
+function decideSlide() {
+  return {
+    title: 'Do you need to sign this document?',
+    body: `
+      <div class="share-step">
+        ${decideChoices()}
+      </div>
+    `
+  };
+}
+
 function shareSlide(state) {
-  const premium = state.plan === 'premium';
   const status = state.actionStatus;
   const fullySigned = Boolean(status) && status.required > 0 && status.remaining === 0;
-  let actions = finalizeActions();
-  if (state.finalized) {
-    if (fullySigned) {
-      actions = signedActions(premium);
-    } else if (state.distributeOnly) {
-      actions = distributeActions(premium);
-    } else {
-      actions = readyActions();
-    }
+  let actions = signedActions();
+  if (!fullySigned && !state.distributeOnly) {
+    actions = readyActions();
+  } else if (!fullySigned) {
+    actions = distributeActions();
   }
-  const confirming = !state.finalized;
   return {
-    title: confirming ? 'Ready to Sign Document?' : 'Document Status',
+    title: 'Document Status',
     body: `
       <div class="share-step">
         ${peopleHTML(state)}
@@ -172,4 +197,6 @@ function shareSlide(state) {
 }
 
 module.exports = shareSlide;
+module.exports.readySlide = readySlide;
+module.exports.decideSlide = decideSlide;
 module.exports.requirementLines = requirementLines;

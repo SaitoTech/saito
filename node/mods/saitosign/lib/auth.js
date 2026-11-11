@@ -19,13 +19,13 @@ async function verifyEmail(app, email, publickey) {
   ].join('\n');
 
   const mail = app.modules.returnModule('MailRelay');
-  mail.sendMail({
+  Promise.resolve(mail.sendMail({
     to: email,
     from: 'SaitoSign <no-reply@saito.tech>',
     subject: 'Verify your email for SaitoSign',
     text,
     ishtml: false
-  });
+  })).catch((err) => console.error(err));
 
   return { message, signature };
 }

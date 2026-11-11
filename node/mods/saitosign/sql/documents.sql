@@ -16,3 +16,21 @@ CREATE INDEX IF NOT EXISTS satosign_documents_hash_idx
 
 CREATE INDEX IF NOT EXISTS satosign_documents_expires_at_idx
   ON satosign_documents (expires_at);
+
+CREATE TABLE IF NOT EXISTS satosign_shares (
+  document_id TEXT PRIMARY KEY,
+  token TEXT NOT NULL,
+  purpose TEXT NOT NULL CHECK (purpose IN ('sign', 'access')),
+  originator_name TEXT NOT NULL,
+  originator_email TEXT NOT NULL,
+  document_name TEXT NOT NULL,
+  recipients TEXT NOT NULL,
+  created_at INTEGER NOT NULL,
+  client_key TEXT
+);
+
+CREATE INDEX IF NOT EXISTS satosign_shares_token_idx
+  ON satosign_shares (token);
+
+CREATE UNIQUE INDEX IF NOT EXISTS satosign_shares_client_key_idx
+  ON satosign_shares (client_key);

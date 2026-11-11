@@ -580,36 +580,28 @@
   white-space: nowrap;
 }
 
-.workspace .field.cue-target {
-  overflow: visible;
-  justify-content: center;
-  opacity: 1;
-  z-index: 4;
-  border-top-right-radius: 0;
-  border-bottom-right-radius: 0;
+.workspace .field-list .row.cue-target,
+.workspace .field-list .row.cue-target:hover {
+  overflow: hidden;
+  border-color: var(--saito-primary);
 }
 
-.workspace .field.cue-target .text {
-  flex: 0 1 auto;
-  max-width: 100%;
-  text-align: center;
+.workspace .field-list .row.cue-target .open {
+  padding-right: 0;
 }
 
-.workspace .field.cue-target .cue {
-  position: absolute;
-  left: 100%;
-  top: -1px;
+.workspace .field-list .row.cue-target .cue {
   display: inline-flex;
   align-items: center;
-  height: calc(100% + 2px);
-  margin: 0;
-  padding: 0 0.7em;
-  border: 1px solid var(--saito-primary);
+  align-self: stretch;
+  flex: none;
+  margin: 0 0 0 0.6rem;
+  padding: 0 0.9rem;
   border-left: 1px solid rgba(255, 255, 255, 0.45);
-  border-radius: 0 var(--saito-radius) var(--saito-radius) 0;
+  border-radius: 0 calc(var(--saito-radius) - 1px) calc(var(--saito-radius) - 1px) 0;
   background: var(--saito-primary);
   color: #fff;
-  font-size: 0.92em;
+  font-size: 1.1rem;
   letter-spacing: 0.04em;
   line-height: 1.2;
   white-space: nowrap;
@@ -720,7 +712,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .workspace .field.cue-target .cue {
+  .workspace .field-list .row.cue-target .cue {
     animation: none;
   }
 }

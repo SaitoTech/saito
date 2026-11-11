@@ -171,12 +171,22 @@ class CallLaunch {
     }
   }
 
+  presentationChoice() {
+    const input = globalThis.document?.getElementById?.('embedded_call_switch');
+    if (input) {
+      return input.checked ? 'embedded' : 'standalone';
+    }
+    return this.mod.browser_active ? 'standalone' : 'embedded';
+  }
+
   enterCall() {
     //
-    // Set big screen video as desired call interface
+    // The landing-screen toggle chooses the interface for this launch.
+    // Camera settings stay on the media preview and are not read from it.
     //
-
-    this.mod.initializeCallInterface(this.callSetting.returnSettings());
+    const settings = this.callSetting.returnSettings();
+    settings.presentation = this.presentationChoice();
+    this.mod.initializeCallInterface(settings);
 
     // Copy link here!
     if (this.mod.room_obj.host_public_key == this.mod.publicKey) {

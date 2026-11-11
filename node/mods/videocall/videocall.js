@@ -268,17 +268,28 @@ class Videocall extends ModTemplate {
     console.debug('TALK [initializeCallInterface]: UI settings ', settings);
 
     // browser_active is 1 only when this page was loaded as /videocall.
-    // Opening the Talk launcher over another app does not change it.
+    // The landing screen can pass presentation and that choice wins.
     // room_obj.ui remains video versus voice and is not a presentation choice.
+    const presentation = this.callPresentation(settings);
+    this.standalonePresentation = presentation === 'standalone';
     if (!this.browser_active) {
       this.attachStyleSheets();
     }
-    this.CallInterface = this.browser_active
-      ? new VideoCallFull(this.app, this, true)
-      : new VideoCallPopup(this.app, this, settings?.container);
+    this.CallInterface = presentation === 'embedded'
+      ? new VideoCallPopup(this.app, this, settings?.container)
+      : new VideoCallFull(this.app, this, true);
 
     this.saveCallToKeychain();
     this.persistCallState();
+  }
+
+  // Embedded is the floating interface. Standalone is the full-screen interface.
+  // An explicit landing-screen choice wins over the host application context.
+  callPresentation(settings) {
+    if (settings?.presentation === 'embedded' || settings?.presentation === 'standalone') {
+      return settings.presentation;
+    }
+    return this.browser_active ? 'standalone' : 'embedded';
   }
 
   resetCall() {
@@ -286,6 +297,7 @@ class Videocall extends ModTemplate {
     this.stopBroadcast();
     this.room_obj = null;
     this.expected_peers = null;
+    this.standalonePresentation = false;
     if (this.CallInterface) {
       this.CallInterface.destroy();
       this.CallInterface = null;

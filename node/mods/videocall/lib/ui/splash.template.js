@@ -7,6 +7,14 @@ module.exports = (app, mod, keys) => {
               <div class="saito-cta-subtitle stun-subtitle">PEER-TO-PEER VIDEO CHAT</div>
             </div>
 
+          <div class="embedded_switch">
+            <label class="switch_label" for="embedded_call_switch">Embedded call</label>
+            <label class="switch">
+              <input type="checkbox" id="embedded_call_switch"${mod.browser_active ? '' : ' checked'}>
+              <span class="slider"></span>
+            </label>
+          </div>
+
           <div class="stunx-appspace-actions">`;
 
   let mode = null;

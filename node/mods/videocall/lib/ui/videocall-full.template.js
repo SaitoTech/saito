@@ -46,7 +46,7 @@ module.exports = (mod, videoEnabled = true, audioEnabled = true) => {
         </section>
     </main>`;
 
-  if (!mod.browser_active) {
+  if (!mod.browser_active && !mod.standalonePresentation) {
     html += `<div class="minimizer">
       <i class=" fas fa-caret-down"></i>
     </div>`;

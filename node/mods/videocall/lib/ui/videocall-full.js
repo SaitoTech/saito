@@ -288,7 +288,7 @@ class VideoCallFull {
       this.attachEvents();
     }
 
-    if (!this.mod.browser_active) {
+    if (!this.mod.browser_active && !this.mod.standalonePresentation) {
       this.switchLayout('gallery', true);
     } else {
       this.switchLayout(this.mod.layout, true);
@@ -487,13 +487,14 @@ class VideoCallFull {
       };
     });
 
-    if (!this.mod.browser_active) {
+    const minimizer = document.querySelector('.stun-chatbox .minimizer');
+    if (!this.mod.browser_active && minimizer) {
       //
       // If you are in RedSquare/Arcade/etc, allow stun to shrink down to small box so you
       // can still interact with the site
       //
 
-      document.querySelector('.stun-chatbox .minimizer').addEventListener('click', (e) => {
+      minimizer.addEventListener('click', (e) => {
         // fas fa-expand"
         let icon = document.querySelector('.stun-chatbox .minimizer i');
         let chat_box = document.querySelector('.stun-overlay-container');

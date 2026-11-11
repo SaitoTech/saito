@@ -57,10 +57,11 @@ function fieldListHTML(view) {
       ${view.field_list
         .map(
           (field) => `
-            <li class="row${field.signed ? ' signed' : ''}${field.active ? ' active' : ''}${field.confirming ? ' confirming' : ''}">
+            <li class="row${field.signed ? ' signed' : ''}${field.active ? ' active' : ''}${field.confirming ? ' confirming' : ''}${field.cue ? ' cue-target' : ''}">
               <button type="button" class="open" data-open-field="${field.id}"${field.active ? ' aria-current="true"' : ''}>
                 <i class="swatch" style="background:${field.signed ? 'var(--saitosign-signed-ink)' : field.color}" aria-hidden="true"></i>
                 <span class="label">${escapeHTML(field.label)}</span>
+                ${field.cue ? '<span class="cue">CLICK HERE</span>' : ''}
               </button>
             </li>
           `
@@ -128,6 +129,7 @@ function railHTML(view) {
     <p class="guide">${guide}</p>
     ${started ? fieldListHTML(view) : ''}
     ${notice}
+    ${view.share_pending ? '<button type="button" class="export primary" data-retry-upload>Retry Upload</button>' : ''}
     ${next}
   `;
 }
@@ -145,9 +147,8 @@ function fieldsHTML(page) {
   const placed = page.fields
     .map(
       (field) => `
-        <button type="button" class="field${field.signed ? ' signed' : ''}${field.active ? ' active' : ''}${field.confirming ? ' confirming' : ''}${field.cue ? ' cue-target' : ''}" data-field-id="${field.id}" style="left:${pct(field.x)};top:${pct(field.y)};width:${pct(field.width)};height:${pct(field.height)}${field.signed ? '' : `;background:${field.color};border-color:${field.color}`}">
+        <button type="button" class="field${field.signed ? ' signed' : ''}${field.active ? ' active' : ''}${field.confirming ? ' confirming' : ''}" data-field-id="${field.id}" style="left:${pct(field.x)};top:${pct(field.y)};width:${pct(field.width)};height:${pct(field.height)}${field.signed ? '' : `;background:${field.color};border-color:${field.color}`}">
           <span class="text">${escapeHTML(field.label)}</span>
-          ${field.cue ? '<span class="cue">CLICK HERE</span>' : ''}
           ${handlesHTML(page.editable)}
         </button>
       `

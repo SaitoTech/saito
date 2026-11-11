@@ -27,7 +27,7 @@ class MailRelay extends ModTemplate {
     app.connection.on('mailrelay-send-email', async (data) => {
       console.log('mailrelay-send-email request');
       if (this.services.length > 0) {
-        this.sendMail(data);
+        Promise.resolve(this.sendMail(data)).catch((err) => console.error(err));
       } else {
         this.sendMailRelayTransaction(data);
       }
@@ -65,7 +65,7 @@ class MailRelay extends ModTemplate {
       email.text = 'Just a quick note to let you know that test net just spun up.';
     }
 
-    this.sendMail(email);
+    Promise.resolve(this.sendMail(email)).catch((err) => console.error(err));
   }
 
   async handlePeerTransaction(app, tx, peer, callback) {
@@ -76,7 +76,7 @@ class MailRelay extends ModTemplate {
 
     if (message.module == this.name) {
       if (message.request == 'send email') {
-        this.sendMail(message.data);
+        Promise.resolve(this.sendMail(message.data)).catch((err) => console.error(err));
         return 1;
       }
     }
@@ -116,7 +116,7 @@ class MailRelay extends ModTemplate {
   //
   sendMail(email) {
     if (this.app.BROWSER) {
-      return;
+      return Promise.resolve(false);
     }
 
     console.info('sending email...', email);
@@ -160,26 +160,40 @@ class MailRelay extends ModTemplate {
 
     if (!email.to) {
       console.error('Invalid email: ', email);
-      return;
+      return Promise.reject(new Error('The invitation email has no recipient.'));
+    }
+
+    let transport;
+    try {
+      transport = this.sendgridTransport();
+    } catch (err) {
+      console.error('Error sending mail: ' + err);
+      return Promise.reject(err);
+    }
+    if (!transport) {
+      return Promise.reject(new Error('The mail relay has no SendGrid transport configured.'));
     }
 
     try {
-      const transport = this.sendgridTransport();
-      const credentials = transport ? transport.config : {};
-
       const nodemailer = require('nodemailer');
-
-      let transporter = nodemailer.createTransport(credentials);
-      transporter.sendMail(email, (err, info) => {
-        if (info) {
-          console.log(info.envelope);
-          console.log(info.messageId);
-        } else {
-          console.error(err);
-        }
+      const transporter = nodemailer.createTransport(transport.config);
+      return new Promise((resolve, reject) => {
+        transporter.sendMail(email, (err, info) => {
+          if (err) {
+            console.error(err);
+            reject(err);
+            return;
+          }
+          if (info) {
+            console.log(info.envelope);
+            console.log(info.messageId);
+          }
+          resolve(info || true);
+        });
       });
     } catch (err) {
       console.error('Error sending mail: ' + err);
+      return Promise.reject(err);
     }
   }
 

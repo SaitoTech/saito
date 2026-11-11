@@ -42,6 +42,16 @@ function walletKeys(app) {
   return keys;
 }
 
+function decisionEntryFor(app, doc) {
+  const creator = String(doc?.creator || '').trim();
+  if (creator && walletKeys(app).includes(creator)) {
+    return 'status';
+  }
+  const index = recognizedSignerIndex(app, doc);
+  const pending = index == null ? [] : unsignedPlacements(app, doc, index);
+  return pending.length ? 'status' : 'recipient';
+}
+
 function canConfigure(app, record) {
   if (!record || record.finalized || !record.creator || !record.creatorProof?.signature) {
     return false;
@@ -300,10 +310,20 @@ class Workspace {
         return;
       }
 
+      if (event.target.closest('[data-retry-upload]')) {
+        event.preventDefault();
+        if (this.mod.share?.conflict || (this.mod.share?.encrypted && !this.mod.share?.password)) {
+          this.publish?.openRetry();
+          return;
+        }
+        this.mod.syncIfShared();
+        return;
+      }
+
       if (event.target.closest('[data-export]')) {
         if (doc.finalized) {
           this.cancelSignSequence();
-          this.publish.openStatus();
+          this.publish.openStatus('', this.decisionEntry());
           return;
         }
         const pending = (doc.actions || []).some((action) => !doc.users[action.user]);
@@ -315,7 +335,8 @@ class Workspace {
           return;
         }
         this.notice = '';
-        this.publish.render();
+        this.cancelSignSequence();
+        this.publish.render('prepare');
       }
     });
 
@@ -1054,6 +1075,10 @@ class Workspace {
     this.sign_guide = queue[0] ? queue[0].id : null;
   }
 
+  decisionEntry() {
+    return decisionEntryFor(this.app, this.mod.document);
+  }
+
   guideText(doc) {
     const started = (doc?.actions || []).length > 0;
     const index = recognizedSignerIndex(this.app, doc);
@@ -1080,7 +1105,7 @@ class Workspace {
       ? field
       : nextUnsignedAction(this.app, doc, field.user, field);
     if (!start) {
-      this.publish.openStatus('You have added your signature everywhere required on the document.');
+      this.publish.openStatus('You have added your signature everywhere required on the document.', this.decisionEntry());
       return;
     }
     const user = doc.users[start.user];
@@ -1141,6 +1166,7 @@ class Workspace {
       if (!signed) {
         return false;
       }
+      await this.mod.syncIfShared?.();
       if (this.sign_step !== token) {
         if (root) {
           this.update(root);
@@ -1165,7 +1191,7 @@ class Workspace {
         if (current) {
           this.update(current);
         }
-        this.publish.openStatus('You have added your signature everywhere required on the document.');
+        this.publish.openStatus('You have added your signature everywhere required on the document.', this.decisionEntry());
         return true;
       }
       const guided = this.sign_guide_ready && !this.sign_guide_off;
@@ -1318,6 +1344,7 @@ class Workspace {
 
   finishSigning() {
     this.syncSignGuide();
+    this.mod.syncIfShared?.();
     this.dismissSignOverlay();
     this.focus_field = null;
     this.confirming_field = null;
@@ -1325,7 +1352,7 @@ class Workspace {
     if (root) {
       this.update(root);
     }
-    this.publish.openStatus('You have added your signature everywhere required on the document.');
+    this.publish.openStatus('You have added your signature everywhere required on the document.', this.decisionEntry());
   }
 
   focusSigningTarget(root, action) {
@@ -1367,6 +1394,8 @@ class Workspace {
     const row = button?.closest('.row');
     if (row) {
       row.classList.add('signed');
+      row.classList.remove('cue-target');
+      button.querySelector('.cue')?.remove();
     }
     const label = button?.querySelector('.label');
     if (label) {
@@ -1381,8 +1410,6 @@ class Workspace {
       return;
     }
     field.classList.add('signed');
-    field.classList.remove('cue-target');
-    field.querySelector('.cue')?.remove();
     field.style.background = '';
     field.style.borderColor = '';
     const text = field.querySelector('.text');
@@ -1795,6 +1822,7 @@ class Workspace {
       page: this.page,
       page_count: doc.document.page_count,
       notice: this.notice || '',
+      share_pending: this.mod.share?.pending === true,
       guide: this.guideText(doc),
       placing: this.placing,
       adding_signer: this.adding_signer,
@@ -1830,7 +1858,8 @@ class Workspace {
           label: name ? `${kind} - ${name} - page ${action.page}` : `${kind} - page ${action.page}`,
           signed,
           active: selected(action.id),
-          confirming: marked(action.id)
+          confirming: marked(action.id),
+          cue: !signed && this.sign_guide != null && Number(action.id) === Number(this.sign_guide)
         };
       }),
       pages: Array.from({ length: doc.document.page_count }, (_, index) => {
@@ -1854,8 +1883,7 @@ class Workspace {
               width: action.width,
               height: action.height,
               active: selected(action.id),
-              confirming: marked(action.id),
-              cue: !signed && this.sign_guide != null && Number(action.id) === Number(this.sign_guide)
+              confirming: marked(action.id)
             };
           }),
           draft: draft && draft.page === page ? draft : null
@@ -1887,7 +1915,7 @@ class Workspace {
       return;
     }
     list.scrollTop = scrollTop;
-    const active = list.querySelector('.row.active');
+    const active = list.querySelector('.row.cue-target') || list.querySelector('.row.active');
     if (!active) {
       return;
     }
@@ -1937,6 +1965,10 @@ class Workspace {
     const exportLabel = view.finalized
       ? (view.verified ? 'Verified - View Details' : 'Continue')
       : (view.field_list.length > 0 ? 'Continue' : '');
+    const retry = rail.querySelector('[data-retry-upload]');
+    if (view.share_pending !== Boolean(retry)) {
+      return false;
+    }
     const exportButton = rail.querySelector('[data-export]');
     if (exportLabel) {
       if (!exportButton) {
@@ -1955,6 +1987,18 @@ class Workspace {
       row.classList.toggle('signed', field.signed === true);
       row.classList.toggle('active', field.active === true);
       row.classList.toggle('confirming', field.confirming === true);
+      row.classList.toggle('cue-target', field.cue === true);
+      const cue = button.querySelector('.cue');
+      if (field.cue) {
+        if (!cue) {
+          const marker = document.createElement('span');
+          marker.className = 'cue';
+          marker.textContent = 'CLICK HERE';
+          button.appendChild(marker);
+        }
+      } else if (cue) {
+        cue.remove();
+      }
       if (field.active) {
         button.setAttribute('aria-current', 'true');
       } else {
@@ -2325,7 +2369,7 @@ function signingGuideText(finalized, started, signing) {
       : 'Review the document and provide your signature where needed.';
   }
   return started
-    ? 'Add further signature boxes, then click Ready to Sign when done.'
+    ? 'Add more signature boxes, then click Continue when ready.'
     : 'Click on any page where a signature is required.';
 }
 
