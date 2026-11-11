@@ -77,6 +77,15 @@ available. An unavailable address is explicitly marked. Transport IPs can belong
 to a reverse proxy; forwarded headers are not treated as verified client IPs.
 The authenticated `list-peers` response includes this transport address as `ip`.
 
+The Network page ends with a collapsed "Peer diagnostics — raw Rust state"
+section. Opening it requests an unfiltered server snapshot through the
+authenticated `get-peer-diagnostics` request; Refresh snapshot captures it again.
+This uses the existing `app.core.network.peers.get()` binding and includes every
+Rust peer entry, preserving duplicate identities and unverified/disconnected
+entries. JSON represents Maps as `[key, value]` pairs, BigInts as decimal strings,
+and byte arrays as arrays. This is the server's Rust state at capture time, not
+the browser's peer list or the JS socket registry.
+
 Connections load when Overview opens and when Refresh is clicked. Disconnected
 and connecting peers are excluded. The heading, legend, status, and Refresh button
 sit over the diagram. The diagram scales to the available viewport height with a

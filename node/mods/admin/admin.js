@@ -91,6 +91,7 @@ class Admin extends ModTemplate {
       'list-databases',
       'list-database-tables',
       'list-peers',
+      'get-peer-diagnostics',
       'run-sql-query',
       'set-admin-key',
       'list-admins',
@@ -182,6 +183,22 @@ class Admin extends ModTemplate {
         if (mycallback) mycallback({ result });
       } catch (err) {
         if (mycallback) mycallback({ err: this.sqliteError(db, err) });
+      }
+      return 1;
+    }
+
+    if (txmsg.request === 'get-peer-diagnostics') {
+      try {
+        const snapshot = this.app.core.network.peers.get();
+        const result = JSON.stringify(snapshot, (_, value) => {
+          if (typeof value === 'bigint') return value.toString();
+          if (value instanceof Map) return [...value.entries()];
+          if (value instanceof Uint8Array) return [...value];
+          return value;
+        }, 2);
+        if (mycallback) mycallback({ result });
+      } catch (err) {
+        if (mycallback) mycallback({ err: err.message || String(err) });
       }
       return 1;
     }

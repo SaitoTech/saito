@@ -11,6 +11,12 @@ function xml(value) {
 }
 
 async function renderRss(app, mod, uri, publicKey = '') {
+  const endpoint = app.server?.server?.endpoint || app.options?.server?.endpoint;
+  const protocol = endpoint?.protocol?.replace(/:$/, '');
+  const port = endpoint?.port ? `:${endpoint.port}` : '';
+  const origin = protocol && endpoint?.host ? `${protocol}://${endpoint.host}${port}` : '';
+  const resolveUrl = (path) => (origin ? new URL(path, `${origin}/`).href : path);
+
   let cursor = null;
   const posts = [];
   // Read every page, rather than silently truncating the feed at Archive's limit.
@@ -32,13 +38,13 @@ async function renderRss(app, mod, uri, publicKey = '') {
     cursor = page.nextCursor;
   }
   const title = publicKey ? `Saito Stack — ${publicKey}` : 'Saito Stack';
-  const link = mod.resolveSocialUrl(`${uri}${publicKey ? '/' + publicKey : ''}`);
-  const feed = mod.resolveSocialUrl(`${uri}/rss${publicKey ? '/' + publicKey : ''}`);
+  const link = resolveUrl(`${uri}${publicKey ? '/' + publicKey : ''}`);
+  const feed = resolveUrl(`${uri}/rss${publicKey ? '/' + publicKey : ''}`);
   const items = collapsePosts(mod, posts)
     .map((tx) => {
       const data = tx.returnMessage().data;
       const author = tx.from?.[0]?.publicKey;
-      const url = mod.resolveSocialUrl(`${uri}/${author}/${tx.signature}`);
+      const url = resolveUrl(`${uri}/${author}/${tx.signature}`);
       return (
         `<item><title>${xml(data.title || 'Untitled')}</title>` +
         `<link>${xml(url)}</link><guid isPermaLink="true">${xml(url)}</guid>` +

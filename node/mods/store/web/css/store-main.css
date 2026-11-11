@@ -1052,6 +1052,13 @@
   word-break: break-word;
 }
 
+.listing-inspect-copyable {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  gap: var(--saito-space-sm);
+}
+
 .listing-inspect-text {
   margin: 0;
   max-height: 24rem;
