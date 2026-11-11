@@ -13,9 +13,14 @@ class AdminPeersUI {
     this.show_add_form = false;
     this.saving_server = false;
     this.detail = null;
+    this.diagnostics = { open: false, loading: false, json: '', error: '' };
+    this.diagnostics_generation = 0;
   }
 
   render() {
+    clearTimeout(this.diagnostics_timeout);
+    this.diagnostics_generation++;
+    this.diagnostics = { open: false, loading: false, json: '', error: '' };
     this.error = '';
     this.notice = '';
     this.live = [];
@@ -46,7 +51,8 @@ class AdminPeersUI {
         notice: this.notice,
         loading_live: this.loading_live,
         show_add_form: this.show_add_form,
-        detail: this.detail
+        detail: this.detail,
+        diagnostics: this.diagnostics
       }),
       this.container
     );
@@ -149,6 +155,18 @@ class AdminPeersUI {
   }
 
   attachEvents() {
+    const diagnostics = document.getElementById('admin-peer-diagnostics');
+    if (diagnostics) {
+      diagnostics.ontoggle = () => {
+        if (!diagnostics.isConnected) return;
+        this.diagnostics.open = diagnostics.open;
+        if (diagnostics.open && !this.diagnostics.json && !this.diagnostics.error) {
+          this.loadDiagnostics();
+        }
+      };
+      diagnostics.querySelector('button').onclick = () => this.loadDiagnostics();
+    }
+
     const refreshBtn = document.getElementById('admin-peers-refresh');
     if (refreshBtn) {
       refreshBtn.onclick = () => this.loadLivePeers();
@@ -450,6 +468,47 @@ class AdminPeersUI {
       },
       this.mod.server_publickey
     );
+  }
+
+  async loadDiagnostics() {
+    if (this.diagnostics.loading) return;
+    const generation = ++this.diagnostics_generation;
+    this.diagnostics.loading = true;
+    this.diagnostics.error = '';
+    this.diagnostics.json = '';
+    this.refresh();
+
+    const finish = (json, error = '') => {
+      if (generation !== this.diagnostics_generation) return;
+      this.diagnostics_generation++;
+      clearTimeout(this.diagnostics_timeout);
+      this.diagnostics.loading = false;
+      this.diagnostics.json = json;
+      this.diagnostics.error = error;
+      this.refresh();
+    };
+    this.diagnostics_timeout = setTimeout(() => {
+      finish('', 'Could not load peer diagnostics. Please refresh to retry.');
+    }, 15000);
+
+    try {
+      const tx = await this.app.wallet.createUnsignedTransactionWithDefaultFee(
+        this.mod.server_publickey
+      );
+      tx.msg = { module: 'Admin', request: 'get-peer-diagnostics' };
+      await tx.sign();
+      if (generation !== this.diagnostics_generation) return;
+      await this.app.network.sendTransactionWithCallback(tx, (response) => {
+        const res = this.responseMessage(response);
+        if (res?.err || typeof res?.result !== 'string') {
+          finish('', res?.err || 'Could not load peer diagnostics.');
+          return;
+        }
+        finish(res.result);
+      }, this.mod.server_publickey);
+    } catch (err) {
+      finish('', err.message || String(err));
+    }
   }
 
   async loadLivePeers() {
