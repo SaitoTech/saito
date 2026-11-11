@@ -36,6 +36,9 @@ Templates live in `apps/runner/config-src/`; generated configs and links are Git
 Configs previously under `node/config/` are migrated with compatibility links too.
 New configs keep wallet data under `node/runner-data/`, outside `config/`.
 
+A field reference and update workflow is in [the configuration guide](config-src/README.md).
+Setup also installs it as `config/README.md` without replacing an existing copy.
+
 ## Private agent connections
 
 Setup creates `apps/runner/config/agents.json` alongside the game configs. The

@@ -13,6 +13,8 @@ function configure(root, names) {
     name !== 'daemon' && oldSource(name).length)];
   for (const name of names) if (!Object.hasOwn(templates, name)) throw Error(`Unknown runner config: ${name}`);
   fs.mkdirSync(directory, { recursive: true, mode: 0o700 });
+  const guide = path.join(directory, 'README.md');
+  if (!fs.existsSync(guide)) fs.copyFileSync(path.join(__dirname, '../config-src/README.md'), guide, fs.constants.COPYFILE_EXCL);
   const agents = path.join(directory, 'agents.json');
   if (!fs.existsSync(agents)) fs.writeFileSync(agents,
     fs.readFileSync(path.join(__dirname, '../config-src/agents.example.json')),
