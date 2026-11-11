@@ -37,7 +37,7 @@ class ConquestRunner {
       add({ type: 'end_turn' });
     }
     // Explicit public-state allowlist: never send RNG seeds, deck order, battle secrets or other hands.
-    const observation = { seat: g.player, phase: s.phase, turn: s.turn, territories: s.territories,
+    const observation = { game: 'Conquest', seat: g.player, phase: s.phase, turn: s.turn, territories: s.territories,
       players: s.players.map(p => ({ id: p.id, cardCount: p.cardCount, eliminated: p.eliminated })),
       hand: s.players.find(p => p.id === g.player).cards, reinforcements: s.reinforcements,
       mustTrade: s.mustTrade, occupation: s.occupation, map: Object.fromEntries(Object.entries(Map.territories).map(([id, t]) => [id, { neighbors: t.neighbors, continent: t.continent }])), continents: Map.continents };

@@ -1,0 +1,27 @@
+{
+  "connections": [
+    {
+      "id": "local-codex",
+      "type": "codex",
+      "executable": "codex",
+      "timeoutMs": 120000,
+      "maxAttempts": 3,
+      "retryDelayMs": 30000,
+      "env": {}
+    },
+    {
+      "id": "heuristic",
+      "type": "heuristic"
+    },
+    {
+      "id": "jev",
+      "type": "jev",
+      "endpoint": "https://api.typesafe.ai/v1/systemone",
+      "model": "jev-latest",
+      "apiKeyEnv": "TYPESAFE_API_KEY",
+      "timeoutMs": 120000,
+      "maxAttempts": 3,
+      "retryDelayMs": 30000
+    }
+  ]
+}

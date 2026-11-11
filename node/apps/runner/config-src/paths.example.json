@@ -1,0 +1,16 @@
+{
+  "peer": "wss://saito.io/wsopen",
+  "game": "PathsOfGlory",
+  "players": 2,
+  "dataDir": "./runner-data/paths",
+  "options": {
+    "deck": "original"
+  },
+  "multi": {
+    "seats": 2,
+    "maxConcurrentDecisions": 1,
+    "joinTimeoutMs": 60000
+  },
+  "agent": "local-codex",
+  "chatAgent": "local-codex"
+}

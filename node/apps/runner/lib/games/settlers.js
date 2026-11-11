@@ -15,6 +15,8 @@ class SettlersRunner {
       'displayPlayers', 'displayBoard', 'showTradeOverlay', 'removeEvents']) mod[method] = () => {};
   }
   setDecision(phase, params = {}) {
+    // Other players can re-enter the shared discard queue while we are selecting.
+    if (phase === 'discard' && this.mod.game.runnerDecision?.phase === 'discard') return;
     this.mod.game.runnerDecision = { phase, ...params };
     this.mod.saveGame(this.mod.game.id);
   }
@@ -68,15 +70,10 @@ class SettlersRunner {
       for (const city of s.cities) if (city.player === p && city.level === 1) add({ type: 'city', slot: city.slot }, this.value(city.slot.slice(5)));
     } else if (d.phase === 'roll') add({ type: 'roll' });
     else if (d.phase === 'discard') {
-      // Enumerate all resource-count combinations, not permutations of identical cards.
-      const count = Math.floor(own.resources.length / 2);
-      const counts = resources.map(r => own.resources.filter(x => x === r).length);
-      const visit = (i, left, cards) => {
-        if (choices.length >= 1024) return;
-        if (i === resources.length) { if (!left) add({ type: 'discard', cards }, -cards.filter(r => ['ore', 'wheat'].includes(r)).length); return; }
-        for (let n = 0; n <= Math.min(left, counts[i]); n++) visit(i + 1, left - n, cards.concat(Array(n).fill(resources[i])));
-      };
-      visit(0, count, []);
+      const discard = this.discardState();
+      for (const resource of resources) if (discard.remaining.includes(resource)) {
+        add({ type: 'discard', resource }, ['ore', 'wheat'].includes(resource) ? -1 : 0);
+      }
     } else if (d.phase === 'bandit') {
       for (const [hex, tile] of Object.entries(s.hexes)) if (!tile.robber) add({ type: 'bandit', hex }, s.cities.filter(c => c.neighbours.includes(hex)).reduce((n, c) => n + (c.player === p ? -2 : 1) * c.level * Math.max(0, 6 - Math.abs(7 - tile.value)), 0));
     } else if (d.phase === 'victim') {
@@ -121,7 +118,7 @@ class SettlersRunner {
       }
     }
     if (d.canBackUp && ['town', 'road', 'city'].includes(d.phase)) add({ type: 'undo', item: { road: 0, town: 1, city: 2 }[d.phase] }, -1000);
-    const observation = { seat: p, phase: d.phase, turn: s.playerTurn, target: g.options.game_length,
+    const observation = { game: 'Settlers', seat: p, phase: d.phase, turn: s.playerTurn, target: g.options.game_length,
       hexes: s.hexes, cities: s.cities, roads: s.roads, ports: s.ports, longestRoad: s.longestRoad,
       largestArmy: s.largestArmy, robinhood: s.robinhood || 0,
       players: s.players.map((player, i) => ({ seat: i + 1, vp: player.vp, knights: player.knights,
@@ -129,7 +126,25 @@ class SettlersRunner {
         towns: player.towns, cities: player.cities })),
       resources: own.resources, cards: own.devcards.map(id => ({ id, ...g.deck[0].cards[id] })),
       costs: m.priceList, bankRates: m.analyzePorts() };
+    if (d.phase === 'discard') {
+      const discard = this.discardState();
+      observation.resources = discard.remaining;
+      observation.discard = { selected: discard.selected, total: discard.total, remaining: discard.total - discard.selected.length };
+    }
     return decision(g.id, { step: g.step, phase: d, queue: g.queue }, observation, choices);
+  }
+  discardState() {
+    const g = this.mod.game;
+    const remaining = [...g.state.players[g.player - 1].resources];
+    const total = Math.floor(remaining.length / 2);
+    const selected = g.runnerDecision.discarded || [];
+    if (!Array.isArray(selected) || selected.length >= total) throw Error('Invalid saved discard selection');
+    for (const resource of selected) {
+      const index = remaining.indexOf(resource);
+      if (index < 0) throw Error('Saved discard resource is no longer available');
+      remaining.splice(index, 1);
+    }
+    return { remaining, selected, total };
   }
   async submit(id, choiceId) {
     const a = selected(this.current(), id, choiceId).action;
@@ -150,7 +165,18 @@ class SettlersRunner {
       case 'roll': add(`roll\t${p}`); break;
       case 'end_turn': add(`end_turn\t${p}`); break;
       case 'undo': add(`undo_build\t${p}\t${a.item}`); break;
-      case 'discard': add(`RESOLVE\t${m.publicKey}`); for (const r of a.cards) add(`spend_resource\t${p}\t${r}`); break;
+      case 'discard': {
+        const discard = this.discardState();
+        const cards = [...discard.selected, a.resource];
+        if (cards.length < discard.total) {
+          g.runnerDecision.discarded = cards;
+          m.saveGame(g.id);
+          return;
+        }
+        add(`RESOLVE\t${m.publicKey}`);
+        for (const resource of cards) add(`spend_resource\t${p}\t${resource}`);
+        break;
+      }
       case 'bandit': add(`move_bandit\t${p}\tsector_value_${a.hex}`); break;
       case 'victim': {
         const loot = a.victim ? s.players[a.victim - 1].resources : [];

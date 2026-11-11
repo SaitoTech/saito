@@ -8,7 +8,7 @@ full node, download a browser bundle, or need Chromium on the runner's VPS.
 Conquest supports 2–6 players and Settlers 2–4. Twilight Struggle and Paths of Glory
 each support two. Games must be unstaked and have no turn clock. Set `players` to the total number of seats (default 2).
 The decision provider can use a locally installed and authenticated Codex
-CLI, or the included deterministic heuristic for fast test runs.
+CLI, the Jev HTTP API, or the included deterministic heuristic for fast test runs.
 
 ## Install dependencies on Ubuntu/Debian
 
@@ -18,7 +18,7 @@ a user with sudo access. The script works without an existing checkout: it clone
 build dependencies, Codex CLI, PM2 and locked npm dependencies in `/opt/saito/node`.
 Reruns update a matching checkout with a fast-forward-only pull. It prints the
 manual login and runner startup commands after installation. Active runner configs
-live in `config/` (for example, `/opt/saito/node/config/daemon.json` on the VM).
+live in `apps/runner/config/` (for example, `/opt/saito/node/apps/runner/config/daemon.json` on the VM).
 
 To migrate existing configs without reinstalling dependencies:
 
@@ -26,14 +26,112 @@ To migrate existing configs without reinstalling dependencies:
 node apps/runner/scripts/configure.js
 ```
 
-This creates `config/daemon.json` or moves an existing root-level `daemon.json`
+This creates `apps/runner/config/daemon.json` or moves an existing root-level `daemon.json`
 there, preserving settings and the exact wallet directory. Existing root-level
 Conquest, Settlers, Twilight, Paths and multi-seat configs are migrated too.
 An old config path becomes a link to its new location so existing PM2 commands
-continue working. Edit the file under `config/` thereafter. Existing destination
+continue working. Edit the file under `apps/runner/config/` thereafter. Existing destination
 files are never overwritten; conflicting old/new files require choosing one.
-Templates live in `apps/runner/config/`; generated configs and links are Git-ignored.
+Templates live in `apps/runner/config-src/`; generated configs and links are Git-ignored.
+Configs previously under `node/config/` are migrated with compatibility links too.
 New configs keep wallet data under `node/runner-data/`, outside `config/`.
+
+## Private agent connections
+
+Setup creates `apps/runner/config/agents.json` alongside the game configs. The
+entire `config/` directory is Git-ignored, including custom filenames and backups;
+only `config-src/` contains tracked templates. Generated files have mode 0600.
+Never put real credentials in templates.
+
+`agents.json` contains an array of named connections:
+
+```json
+{
+  "connections": [
+    { "id": "local-codex", "type": "codex", "executable": "codex", "env": {} },
+    { "id": "other-account", "type": "codex", "executable": "/path/to/provider-wrapper", "env": { "MY_PROVIDER_API_KEY": "replace-locally" } },
+    { "id": "heuristic", "type": "heuristic" }
+  ]
+}
+```
+
+Each game config selects a connection with `"agent": "local-codex"`.
+The daemon also has a `gameAgents` map from game names to connection IDs; those
+entries override `agent` for game decisions, including resumed games.
+Open chat uses a separate `chatAgent` connection; it does not follow `gameAgents`. Multi-seat runs use the selected game's connection for every seat.
+Set `"chatAgent": "local-codex"` to enable open chat with an LLM connection, or
+`"chatAgent": null` to disable it. Omitting `chatAgent` also disables open chat,
+including in legacy inline-provider configs. Templates explicitly enable it.
+Unknown IDs, duplicate IDs, non-LLM chat agents and invalid connection settings fail at config load.
+
+Connections support the existing provider settings (`type`, `executable`, `model`,
+`timeoutMs`, `maxAttempts`, `retryDelayMs`) plus `env`. Environment entries override
+the inherited environment only in the provider subprocess, so API keys need not
+appear in command arguments. Use the variable names required by your installed
+CLI or wrapper; a wrapper must implement the same CLI contract as the Codex provider.
+Connection types are `codex`, `jev`, and `heuristic`. Jev calls TypeSafe directly
+over HTTP; it does not use the CLI or a middleware service. Configs use sibling `agents.json` by default; `agentsFile` can specify
+another file relative to the game config. Restart runners after editing settings.
+
+Existing inline `decisionProvider` configs remain supported and migration preserves
+them. To switch one, move its provider settings into a connection in `agents.json`,
+remove `decisionProvider`, and set `agent`. Do not combine inline settings with
+named agents. Setup never overwrites existing configs or `agents.json`.
+
+## Jev connections and shared decision format
+
+The `jev` connection template uses TypeSafe's `https://api.typesafe.ai/v1/systemone`
+endpoint and `jev-latest`. Add your token to the **private** `config/agents.json`
+connection as `"apiKey": "your-token"`, or set `TYPESAFE_API_KEY` in the runner
+process environment. `apiKeyEnv` can select another variable; a connection's `env`
+map takes precedence over the process environment, and `apiKey` takes precedence
+over both. The API authenticates with one bearer token, not a public/private key pair.
+Never put a real token in `config-src/`.
+
+Select `"agent": "jev"` in the game config. For daemon play, change the relevant
+`gameAgents` entries too, as they override `agent`. Keep `"chatAgent": "local-codex"`
+for open chat, or set it to `null` for only programmed messages. Jev cannot be
+selected as an open-chat connection. Existing config files are never overwritten
+by setup; copy the new connection entry from the template when upgrading.
+
+Both model providers use the same `state` and `questions.move` payload. Its
+`criteria` maps legal choice IDs to their action objects and optional labels;
+local heuristic scores are excluded. Jev receives it with its configured `model`
+in the HTTP request; Codex receives it as JSON with an output schema. Both answers
+are read from `answers.move.choice`, with `answers.move.type` equal to `choice`.
+The same validator rejects unknown IDs. The existing game loop also rejects
+answers for a decision that became stale while the engine was thinking. Jev's
+extra probabilities, confidence and usage fields are accepted but not used to
+apply moves; Codex need not invent corresponding statistics. This replaces the
+old Codex `{ "choiceId": "..." }` output contract, including for custom CLI wrappers.
+
+Each model request allows 1–255 choices. Larger menus fail visibly without
+truncation; adapters must present successive small decisions, as Settlers does
+for discards. No heuristic is substituted when a model fails.
+
+Jev requests use `timeoutMs` for the whole request, including reading the body.
+Cancellation stops the HTTP request. Network errors, timeouts, HTTP 408/429 and
+5xx errors use the existing `maxAttempts`/`retryDelayMs` recovery policy (which
+can eventually forfeit a game). Authentication, other 4xx errors and malformed
+answers stop visibly. Error logs exclude remote response bodies and credentials.
+Redirects are rejected, responses are capped at 1 MiB, and endpoints require HTTPS
+except for loopback HTTP used in tests.
+
+`doctor` checks that the selected Jev connection has a token; it does not validate
+that token remotely or incur a model call. To make one real decision request
+without opening a wallet, connecting to Saito or joining a game:
+
+```sh
+node apps/runner/scripts/check-decision.js apps/runner/config/conquest.json
+```
+
+This uses the game config's selected connection and prints only the provider and
+chosen test action (`win` or `lose`). It tests connectivity and answer formatting,
+not playing strength. Run once with Jev and once with Codex to compare the paths.
+
+Protocol references: [TypeSafe System One API](https://docs.typesafe.ai/api/system-one),
+[Choice requests and answers](https://docs.typesafe.ai/primitives/choice), and
+[Codex structured output](https://learn.chatgpt.com/docs/non-interactive-mode#-create-structured-outputs-with-a-schema).
 
 ## Run
 
@@ -44,14 +142,14 @@ Run these commands from `node/`:
 ```sh
 node apps/runner/scripts/configure.js conquest
 # Or use: node apps/runner/scripts/configure.js settlers twilight paths
-# Edit peer, dataDir and decisionProvider.executable for this machine.
-npm run runner -- doctor ./config/conquest.json
-npm run runner -- list ./config/conquest.json
-npm run runner -- host ./config/conquest.json
+# Edit peer, dataDir and agent; set the executable in agents.json for this machine.
+npm run runner -- doctor ./apps/runner/config/conquest.json
+npm run runner -- list ./apps/runner/config/conquest.json
+npm run runner -- host ./apps/runner/config/conquest.json
 # On another player machine, with a different config/dataDir:
-npm run runner -- join ./config/opponent.json INVITE_ID
+npm run runner -- join ./apps/runner/config/opponent.json INVITE_ID
 # After stopping or restarting:
-npm run runner -- resume ./config/conquest.json GAME_ID
+npm run runner -- resume ./apps/runner/config/conquest.json GAME_ID
 ```
 
 `host` publishes an Arcade invitation, prints its ID and waits for an opponent.
@@ -68,14 +166,14 @@ The multi-seat supervisor below manages those directories and processes for you.
 Codex executable. It does not test login or call the model. Log into Codex under
 the same OS account first. If `codex` is absent from PATH, set `executable` to its
 absolute path. Relative executable paths and `dataDir` resolve relative to the
-configuration file. Optional `decisionProvider.model` selects a model; otherwise
-Codex uses its local default. No API key is required by this application.
+configuration file (connection executable paths resolve relative to `agents.json`).
+Optional connection `model` selects a model; otherwise Codex uses its local default.
 Commands that play games check that the configured executable starts before
 connecting or joining. This checks availability, not login or model access.
 `spawn codex ENOENT` means `codex` was not found on PATH; set the executable's
 absolute path and rerun `daemon` with the same `dataDir` to resume the saved game.
 
-To use the fast test policy, set `decisionProvider.type` to `heuristic`.
+To use the fast test policy, set `agent` to `heuristic`.
 `timeoutMs` limits a model call; `idleTimeoutMs` bounds standalone waits before a game has opponents;
 `maxDecisions` bounds successful decision attempts. Engine availability failures
 use the recovery policy below; invalid output and other errors still stop visibly.
@@ -85,13 +183,13 @@ The runner never substitutes a heuristic move for a failed model call. No wageri
 
 ```sh
 node apps/runner/scripts/configure.js multi
-# Edit peer, dataDir and decisionProvider.executable.
+# Edit peer, dataDir and agent; set the executable in agents.json.
 # Host a four-player Settlers game: three bots, one open seat for you.
-npm run runner -- multi-host ./config/multi.json
+npm run runner -- multi-host ./apps/runner/config/multi.json
 # Alternatively, put those three bots into an existing four-player invite:
-npm run runner -- multi-join ./config/multi.json INVITE_ID
+npm run runner -- multi-join ./apps/runner/config/multi.json INVITE_ID
 # After stopping, a provider error, or a restart:
-npm run runner -- multi-resume ./config/multi.json
+npm run runner -- multi-resume ./apps/runner/config/multi.json
 ```
 
 `players` is the total table size; `multi.seats` is how many wallets the runner
@@ -140,8 +238,8 @@ reports `multi-complete`. Logs include a `seat` field to distinguish bot activit
 
 ```sh
 node apps/runner/scripts/configure.js daemon
-# Edit peer, dataDir and the local Codex executable.
-npm run runner -- daemon ./config/daemon.json
+# Edit peer, dataDir and agent; configure connections in agents.json.
+npm run runner -- daemon ./apps/runner/config/daemon.json
 ```
 
 The daemon checks the current Arcade invite list at startup and after finishing
@@ -198,8 +296,8 @@ wallet connection. No browser is needed for monitoring or playing.
 ## Engine and connection recovery
 
 A model-call timeout, failed engine process startup, or nonzero engine exit is
-reported as `engine-unavailable` and retried. `decisionProvider.maxAttempts`
-defaults to **3** (including the initial attempt); `decisionProvider.retryDelayMs`
+reported as `engine-unavailable` and retried. connection `maxAttempts`
+defaults to **3** (including the initial attempt); connection `retryDelayMs`
 defaults to **30000**. The existing `timeoutMs` still limits each individual call.
 Retries do not spend the move decision limit, and each retry uses the current
 decision rather than applying an answer to an obsolete game position.
@@ -234,12 +332,16 @@ message: `GLHF! I'm a Saito runner bot. Have fun!` Greetings are recorded per ga
 and opponent, so restarting the daemon or resuming the match does not repeat them.
 An existing saved match receives a greeting the first time it runs with this feature.
 
-During the match, the runner answers new signed direct messages from opponents.
-It uses the configured Codex executable/model for short, friendly replies (at
-most 500 characters), with the game name and up to eight recent messages from
-that opponent. It does not send the wallet, private cards, game state or other
-opponents' conversations to the chat prompt. The heuristic test provider uses a
-fixed friendly acknowledgement instead.
+When `chatAgent` selects an LLM connection, the runner answers new signed direct
+messages from opponents. It uses that connection's executable/model independently
+of the game decision agent. Currently `codex` is the supported LLM type; selecting
+a heuristic connection for open chat is rejected. Without `chatAgent`, the runner
+sends no open-ended replies. Fixed greetings, invitation consent, and inactivity
+messages remain code-driven and do not require an LLM.
+
+Replies are short (at most 500 characters), with the game name and up to eight
+recent messages from that opponent. The runner does not send the wallet, private
+cards, game state or other opponents' conversations to the chat prompt.
 
 Chat replies run in the background, with one request at a time per runner and
 at least ten seconds between requests. Multi-seat chat uses the same model
@@ -289,7 +391,8 @@ joins, the existing standalone timeout / daemon reservation behavior still appli
 ```text
 apps/runner/
   index.ts              CLI entry point and command coordination
-  config/               Example JSON configurations
+  config-src/           Tracked example JSON configurations
+  config/               Private machine settings and agent connections (ignored)
   lib/                  Runtime, storage, play loop, chat and recovery
     daemon/             Invitation policy, supervisor and worker
     multi/              Multi-seat coordinator, processes and workers
@@ -301,8 +404,8 @@ apps/runner/
 
 `npm run runner` still starts `index.ts`. Setup scripts live under `scripts/`:
 use `node apps/runner/scripts/configure.js` from `node/`. The templates in
-`apps/runner/config/` are inputs to that script; machine-specific configurations
-remain in `node/config/`, and wallets remain in their configured data directories.
+`apps/runner/config-src/` are inputs to that script; machine-specific configurations
+remain in `node/apps/runner/config/`, and wallets remain in their configured data directories.
 Runner tests and native match harnesses live in `tests/apps/runner/`.
 
 ## How it works
@@ -329,8 +432,12 @@ Runner tests and native match harnesses live in `tests/apps/runner/`.
 Adapters expose a useful finite action menu, not every strategy expressible in a
 browser. Conquest offers blitz attacks and minimal/maximal deployments/occupations.
 Settlers supports initial placement, building/upgrading, bank trades, development
-cards, discards, robber movement and theft. It does not propose or accept trades
-between players. Discard candidates are capped at 1,024 for unusually large hands.
+cards, discards, robber movement and theft. Discards select one resource at a
+time from the remaining hand (at most five options), until half the original
+hand is selected. Each choice is saved locally for restart; the complete discard
+is sent together as one move. Observations include the remaining hand, selected
+resources, and number still required. Each selection counts toward `maxDecisions`.
+Settlers does not propose or accept trades between players.
 Twilight supports `options.deck` values `original`, `optional`, `late-war` and
 `saito`. Hosting defaults to `original`; an invitation without a deck field uses
 the game engine’s optional-card behavior. Joining and resuming use the invitation
@@ -368,9 +475,9 @@ To run both sides with the local Codex CLI:
 
 ```sh
 node apps/runner/scripts/configure.js paths
-# Set decisionProvider.executable to your installed Codex binary.
-npm run runner -- multi-host ./config/paths.json
-npm run runner -- multi-resume ./config/paths.json
+# Set the selected connection executable in agents.json to your installed Codex binary.
+npm run runner -- multi-host ./apps/runner/config/paths.json
+npm run runner -- multi-resume ./apps/runner/config/paths.json
 ```
 
 Use `host`, `join` or `daemon` with the same game name for a single bot against a
@@ -488,8 +595,8 @@ Its reliable IPC transport replays messages missed
 during the pause; live recovery still depends on peer/chain delivery.
 
 The runner's provider interface is `choose(decision, abortSignal) -> choiceId`.
-A future Jev or other provider can implement that interface without changing
-networking or game rules. Additional games need a module-specific adapter; raw
+Codex and Jev implement that interface using the same request format and answer
+validator, without changing networking or game rules. Additional games need a module-specific adapter; raw
 moves alone do not describe the legal choices or hidden information for all games.
 
 The Codex integration follows the CLI's [non-interactive mode](https://developers.openai.com/codex/noninteractive)
