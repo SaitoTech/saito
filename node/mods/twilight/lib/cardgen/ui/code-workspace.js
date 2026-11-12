@@ -190,7 +190,10 @@ class CodeWorkspace {
       this.main.scheduleCardSave();
     });
 
-    setTimeout(() => this.editor?.refresh(), 0);
+    requestAnimationFrame(() => {
+      this.editor?.refresh();
+      requestAnimationFrame(() => this.editor?.refresh());
+    });
   }
 
   loadActiveCodeIntoEditor() {
@@ -235,17 +238,24 @@ class CodeWorkspace {
       await this.main.downloadPng();
     });
 
-    root.querySelector('[data-action="test-code"]')?.addEventListener('click', (event) => {
-      event.preventDefault();
-      this.syncToCard();
-      this.requestTestCode();
-    });
-
     root.querySelector('[data-action="create-nft"]')?.addEventListener('click', async (event) => {
       event.preventDefault();
       this.syncToCard();
       await this.main.requestCreateNft();
     });
+  }
+
+  requestTestCode() {
+    if (typeof this.mod.startCustomCardTest === 'function') {
+      this.mod.startCustomCardTest();
+      return;
+    }
+    const game = this.app.modules?.returnModule?.('Twilight');
+    if (!game || typeof game.startCustomCardTest !== 'function') {
+      salert('Open this editor from a Twilight Struggle game to test card code');
+      return;
+    }
+    game.startCustomCardTest(this.mod.card);
   }
 }
 

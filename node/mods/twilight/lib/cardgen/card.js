@@ -209,9 +209,9 @@ class Card {
     const deck = DECK_KEYS[this.deck];
     const association = ASSOCIATION_KEYS[this.associationIndex()];
     if (!deck || !association) {
-      return '/tscardgen/img/templates/error.png';
+      return '/twilight/img/cardgen/error.png';
     }
-    return `/tscardgen/img/templates/${deck}${association}.png`;
+    return `/twilight/img/cardgen/${deck}${association}.png`;
   }
 
   titleSlug() {

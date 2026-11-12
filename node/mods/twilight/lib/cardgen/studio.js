@@ -37,14 +37,7 @@ class CardgenHost {
   }
 
   async openCreateNft() {
-    const studio = this.app.modules?.returnModule?.('TSCardGen');
-    if (!studio || typeof studio.openCreateNft !== 'function') {
-      salert('Card minting is unavailable in this game session');
-      return;
-    }
-    studio.card = this.card;
-    studio.main = this.game_mod.cardgen_studio?.main || studio.main;
-    return studio.openCreateNft();
+    return this.game_mod.openCreateNft();
   }
 }
 
@@ -68,7 +61,6 @@ class CardStudio {
     }
     this._assets_ready = (async () => {
       if (this.app?.browser?.addStylesheet) {
-        this.app.browser.addStylesheet('/tscardgen/style.css');
         this.app.browser.addStylesheet('/saito/lib/nftstudio/codemirror.min.css');
       }
       await loadScript('/saito/lib/nftstudio/codemirror.min.js');
@@ -112,6 +104,7 @@ class CardStudio {
     this.restoreDraft();
     this.main.workspace = workspace === 'code' ? 'code' : 'image';
     this.overlay.show(`<div id="twilight-cardgen-mount"></div>`, () => this.restoreHud());
+    this.keepCloseboxOnOverlay();
     this.main.render('generator');
     this.pushHudUnder();
   }
@@ -129,8 +122,22 @@ class CardStudio {
     const mount = document.getElementById('twilight-cardgen-mount');
     const html = mount ? '' : '<div id="twilight-cardgen-mount"></div>';
     this.overlay.show(html, () => this.restoreHud());
+    this.keepCloseboxOnOverlay();
     this.main.render('generator');
     this.pushHudUnder();
+  }
+
+  keepCloseboxOnOverlay() {
+    const mount = document.getElementById('twilight-cardgen-mount');
+    mount?.classList.remove('saito-overlay-panel');
+
+    const overlay_el = document.getElementById(`saito-overlay${this.overlay.ordinal}`);
+    if (!overlay_el) {
+      return;
+    }
+    const release = () => overlay_el.classList.remove('maximized-overlay');
+    release();
+    setTimeout(release, 40);
   }
 }
 

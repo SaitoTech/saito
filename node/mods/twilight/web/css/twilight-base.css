@@ -695,19 +695,4 @@
       height: calc(90vw * 1.4);
     }
   }
-
-  .saito-overlay.twilight-cardgen-overlay {
-    background: #101820;
-    width: min(1180px, 96vw);
-    max-height: 90vh;
-    overflow: auto;
-    border-radius: 0.75rem;
-  }
-
-  .saito-overlay.twilight-cardgen-overlay .tscardgen {
-    width: 100%;
-    min-height: 0;
-    margin: 0;
-    padding: 0.5rem 0.75rem 1rem;
-  }
 }

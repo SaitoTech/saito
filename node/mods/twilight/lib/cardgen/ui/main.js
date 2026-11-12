@@ -21,7 +21,7 @@ class Main {
     this.card_ui = new CardUI(app, mod, '.tscardgen-sidebar');
     this.form = new Form(app, mod, this);
     this.code_workspace = new CodeWorkspace(app, mod, this);
-    this.reference_sidebar = new ReferenceSidebar(app, mod);
+    this.reference_sidebar = new ReferenceSidebar(app, mod, this);
     this.my_cards = new MyCardsOverlay(app, mod);
     this.empty_code_confirm = new EmptyCodeConfirm(app, mod);
 

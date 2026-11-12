@@ -4,13 +4,10 @@ module.exports = () => `
     <div class="ts-code-editor" aria-label="Card code editor"></div>
     <footer class="ts-form-footer">
       <button type="button" class="saito-button-secondary" data-action="download-png">
-        Download PNG
-      </button>
-      <button type="button" class="saito-button-secondary" data-action="test-code">
-        Test Code
+        Generate Image
       </button>
       <button type="button" class="saito-button-primary" data-action="create-nft">
-        Create NFT
+        Generate Card
       </button>
     </footer>
   </section>

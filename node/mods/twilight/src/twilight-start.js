@@ -13,6 +13,7 @@ const htmlTemplate = require('./lib/core/game-html.template').default;
 const GameHelp = require('./lib/overlays/game-help');
 const GameMinimap = require('../../lib/saito/ui/game-minimap/game-minimap');
 const CardStudio = require('./lib/cardgen/studio');
+const Card = require('./lib/cardgen/card');
 const {
   TEST_BACKUP_KEY,
   TEST_COMPLETE,
@@ -115,6 +116,212 @@ class Twilight extends GameTemplate {
 
     this.can_play_async = 1;
 
+  }
+
+  respondTo(type = '', obj = null) {
+    if (type === 'saito-create-nft') {
+      return {
+        title: 'Twilight Struggle Card',
+        class: [Card.NFT_TYPE],
+        upload_text: 'Twilight Struggle card image',
+        createData: async (file, metadata = {}) => {
+          const card = metadata.card;
+          if (!card || typeof card !== 'object') {
+            salert('Missing card data for NFT');
+            return false;
+          }
+
+          const name = String(card.name || '').trim();
+          if (!name) {
+            salert('Card title is required');
+            return false;
+          }
+
+          const image = card.image || metadata.image || '';
+          if (!image) {
+            salert('Paint and attach a card image before minting');
+            return false;
+          }
+
+          const text = String(card.text || '');
+          if (!text.trim()) {
+            salert('Card text is required');
+            return false;
+          }
+
+          const player = ['us', 'ussr', 'both'].includes(card.player) ? card.player : 'both';
+          const deck = ['early', 'mid', 'late'].includes(card.deck) ? card.deck : 'early';
+          let code = '';
+          if (typeof card.code === 'string') {
+            code = card.code.replace(/\t/g, ' ');
+          } else if (Array.isArray(card.code)) {
+            code = card.code
+              .map((entry) => {
+                if (typeof entry === 'string') {
+                  return entry.replace(/\t/g, ' ');
+                }
+                if (!entry || typeof entry !== 'object') {
+                  return null;
+                }
+                const entryName = String(entry.name || '').trim();
+                const body = String(entry.code || '').replace(/\t/g, ' ');
+                if (!entryName || !body.trim()) {
+                  return null;
+                }
+                return { name: entryName, code: body };
+              })
+              .filter(Boolean);
+            if (code.length === 1) {
+              code = code[0].code;
+            } else if (!code.length) {
+              code = '';
+            }
+          }
+
+          return {
+            module: 'Twilight',
+            type: 'card',
+            name,
+            scoring: Number(card.scoring) ? 1 : 0,
+            player,
+            ops: Number(card.ops) || 0,
+            recurring: Number(card.recurring) ? 1 : 0,
+            permanent: Number(card.permanent) ? 1 : 0,
+            non_card: Number(card.non_card) ? 1 : 0,
+            deck,
+            text,
+            code,
+            img: typeof card.img === 'string' ? card.img : '',
+            image
+          };
+        }
+      };
+    }
+
+    return super.respondTo(type, obj);
+  }
+
+  async initialize(app) {
+    await super.initialize(app);
+    if (this.app.BROWSER && !this.transaction_monitor) {
+      const SaitoTransactionMonitor = require('../../lib/saito/ui/saito-transaction-monitor/saito-transaction-monitor');
+      this.transaction_monitor = new SaitoTransactionMonitor(this.app, this);
+    }
+  }
+
+  shouldAffixCallbackToModule(modname, tx = null) {
+    if (super.shouldAffixCallbackToModule(modname, tx)) {
+      return 1;
+    }
+    if (
+      this.transaction_monitor?.tx &&
+      tx?.signature &&
+      tx.signature === this.transaction_monitor.tx.signature
+    ) {
+      return 1;
+    }
+    return 0;
+  }
+
+  async openCreateNft() {
+    const studio = this.cardgen_studio;
+    const card = studio?.host?.card;
+    const main = studio?.main;
+    if (!card || !main) {
+      salert('Card minting is unavailable in this game session');
+      return;
+    }
+
+    let canvas = main.card_ui?.canvas?.();
+    if (canvas) {
+      await main.card_ui.draw();
+    } else if (main.paintCaptureCanvas) {
+      canvas = await main.paintCaptureCanvas();
+    } else {
+      canvas = document.createElement('canvas');
+      await card.paint(canvas);
+    }
+
+    let image = card.toDataURL(canvas);
+    if (!image) {
+      salert('Unable to capture the card image');
+      return;
+    }
+
+    if (typeof this.app.browser?.resizeImg === 'function') {
+      try {
+        image = await this.app.browser.resizeImg(image, 128, {
+          w: Card.WIDTH,
+          h: Card.HEIGHT
+        });
+      } catch (err) {
+        console.warn('Twilight: resizeImg failed, using original canvas capture', err);
+      }
+    }
+
+    const snapshot = card.buildSnapshot(image);
+    if (!snapshot.name) {
+      salert('Enter a card title before creating an NFT');
+      return;
+    }
+    if (!String(snapshot.text || '').trim()) {
+      salert('Enter card text before creating an NFT');
+      return;
+    }
+
+    let createNft =
+      this.header && this.header.select_nft_overlay && this.header.select_nft_overlay.create_nft_overlay;
+
+    if (!createNft) {
+      if (!this.create_nft_overlay) {
+        const CreateNFT = require('../../lib/saito/ui/saito-nft/overlays/create-overlay');
+        this.create_nft_overlay = new CreateNFT(this.app, this);
+      }
+      createNft = this.create_nft_overlay;
+    }
+
+    createNft.render({
+      type: Card.NFT_TYPE,
+      locked: ['type'],
+      image: snapshot.image,
+      title: snapshot.name,
+      description: `Twilight Struggle Optional Card - ${snapshot.name}`,
+      create_data: { card: snapshot },
+      callback: (obj) => {
+        if (obj?.status === 'created') {
+          this.watchMintTransaction(obj.tx, obj.nft_id);
+        }
+      }
+    });
+  }
+
+  watchMintTransaction(tx, nft_id = '') {
+    if (!this.transaction_monitor) {
+      console.error('Twilight: transaction_monitor is not initialized');
+      this.cardgen_studio?.main?.showHome?.();
+      return;
+    }
+
+    this.transaction_monitor.render({
+      tx,
+      nft_id: nft_id || '',
+      title: 'Creating Twilight Card',
+      lead: 'Your Twilight Struggle card NFT has been broadcast to the Saito network.',
+      subtitle: '',
+      successTitle: 'Card Received',
+      successLead: 'Your Twilight Struggle card has arrived in your wallet.',
+      successActionLabel: 'Continue',
+      callback: async (result) => {
+        if (result?.status === 'confirmed') {
+          try {
+            await this.app.wallet.updateNFTList();
+          } catch (err) {
+            console.warn('Twilight: updateNFTList after mint failed', err);
+          }
+          this.cardgen_studio?.main?.showHome?.();
+        }
+      }
+    });
   }
 
   showCardOverlay(cards, title = ""){

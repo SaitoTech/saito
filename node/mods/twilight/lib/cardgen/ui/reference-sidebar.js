@@ -1,9 +1,10 @@
 const ReferenceSidebarTemplate = require('./reference-sidebar.template');
 
 class ReferenceSidebar {
-  constructor(app, mod, container = '.tscardgen-sidebar') {
+  constructor(app, mod, main, container = '.tscardgen-sidebar') {
     this.app = app;
     this.mod = mod;
+    this.main = main;
     this.container = container;
   }
 
@@ -15,6 +16,11 @@ class ReferenceSidebar {
 
     host.innerHTML = '';
     this.app.browser.addElementToSelector(ReferenceSidebarTemplate(this.mod.card), this.container);
+    host.querySelector('[data-action="test-code"]')?.addEventListener('click', (event) => {
+      event.preventDefault();
+      this.main.code_workspace.syncToCard();
+      this.main.code_workspace.requestTestCode();
+    });
   }
 }
 
