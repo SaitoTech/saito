@@ -1,4 +1,4 @@
-const Card = require('../../../mods/tscardgen/lib/card');
+const Card = require('../../../mods/twilight/lib/cardgen/card');
 const {
   TEST_COMPLETE,
   TEST_ACKNOWLEDGE,

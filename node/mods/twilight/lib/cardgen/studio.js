@@ -1,6 +1,6 @@
 const SaitoOverlay = require('../../../../lib/saito/ui/saito-overlay/saito-overlay');
-const Card = require('../../../tscardgen/lib/card');
-const Main = require('../../../tscardgen/lib/ui/main');
+const Card = require('./card');
+const Main = require('./ui/main');
 
 const MOUNT = '#twilight-cardgen-mount';
 
