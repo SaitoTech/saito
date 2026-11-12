@@ -8,6 +8,67 @@
     return this.game.deck[this.game.player-1].hand;
   }
 
+  noteLocalPrompt(instruction) {
+    if (!this.local_prompts) { this.local_prompts = []; }
+    this.local_prompts.push(instruction);
+  }
+
+  consumeLocalPrompt(instruction) {
+    if (!this.local_prompts) { return false; }
+    let idx = this.local_prompts.indexOf(instruction);
+    if (idx < 0) { return false; }
+    this.local_prompts.splice(idx, 1);
+    return true;
+  }
+
+  showLocalMovement(faction) {
+    for (let key in this.game.spaces) {
+      if (this.game.spaces[key].activated_for_movement == 1) {
+        this.playerPlayMovement(faction);
+        if (this.moves.length > 0) {
+          this.noteLocalPrompt("player_play_movement");
+        }
+        return;
+      }
+    }
+  }
+
+  showLocalCombat(faction) {
+    for (let key in this.game.spaces) {
+      if (this.game.spaces[key].activated_for_combat != 1) { continue; }
+      let space = this.game.spaces[key];
+      for (let z = 0; z < space.units.length; z++) {
+        if (space.units[z].attacked == 0) {
+          this.playerPlayCombat(faction);
+          if (this.moves.length > 0) {
+            this.noteLocalPrompt("player_play_combat");
+          }
+          return;
+        }
+      }
+    }
+  }
+
+  // Movement if any spaces were activated for it, otherwise the attack picker.
+  // Trench rolls still happen when the move comes back and do not reopen the picker.
+  finishActivation(faction) {
+    this.showLocalMovement(faction);
+    if (this.moves.length == 0) { return; }
+    if (!(this.local_prompts && this.local_prompts.indexOf("player_play_movement") >= 0)) {
+      this.showLocalCombat(faction);
+    }
+    if (this.moves.length > 0) { this.endTurn(); }
+  }
+
+  dropCombatCardFromHand(faction, card) {
+    let deckidx = faction == "central" ? 0 : 1;
+    let hand = this.game.deck[deckidx] && this.game.deck[deckidx].hand;
+    if (!hand) { return; }
+    for (let i = 0; i < hand.length; i++) {
+      if (hand[i] == card) { hand.splice(i, 1); return; }
+    }
+  }
+
   showPlayerHand() {
     if (!this.game || !this.game.player || !this.game.deck) { return; }
     let deck = this.game.deck[this.game.player - 1];
@@ -212,21 +273,29 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
       }
 
       this.hud.hideBackButton();
-            this.game.status = "submitting...";
-      this.hud.updateStatus(this.game.status);
       this.hud.updateMenu([]);
-      this.hud.updateCards([]);
 
       if (card == "pass") {
+	this.game.status = "Defender selecting combat cards";
+	this.hud.updateStatus(this.game.status);
+	this.hud.updateCards([]);
 	this.endTurn();
 	return 1;
       }
 
+      this.dropCombatCardFromHand(faction, card);
       if (ccs.length > 2) { // > 1+PASS
         this.addMove("attacker_select_combat_cards");
         this.addMove("combat_card\t"+faction+"\t"+card);
-	this.endTurn();
+	this.playerSelectAttackerCombatCards();
+	if (this.moves.length > 0) {
+	  this.noteLocalPrompt("attacker_select_combat_cards");
+	  this.endTurn();
+	}
       } else {
+	this.game.status = "Defender selecting combat cards";
+	this.hud.updateStatus(this.game.status);
+	this.hud.updateCards([]);
         this.addMove("combat_card\t"+faction+"\t"+card);
 	this.endTurn();
       }
@@ -370,21 +439,29 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
       }
 
       this.hud.hideBackButton();
-            this.game.status = "submitting...";
-      this.hud.updateStatus(this.game.status);
       this.hud.updateMenu([]);
-      this.hud.updateCards([]);
 
       if (card == "pass") {
+	this.game.status = "Resolving combat";
+	this.hud.updateStatus(this.game.status);
+	this.hud.updateCards([]);
 	this.endTurn();
 	return 1;
       }
 
+      this.dropCombatCardFromHand(faction, card);
       if (ccs.length > 2) { // > 1+PASS
         this.addMove("defender_select_combat_cards");
         this.addMove("combat_card\t"+faction+"\t"+card);
-	this.endTurn();
+	this.playerSelectDefenderCombatCards();
+	if (this.moves.length > 0) {
+	  this.noteLocalPrompt("defender_select_combat_cards");
+	  this.endTurn();
+	}
       } else {
+	this.game.status = "Resolving combat";
+	this.hud.updateStatus(this.game.status);
+	this.hud.updateCards([]);
         this.addMove("combat_card\t"+faction+"\t"+card);
 	this.endTurn();
       }
@@ -761,7 +838,8 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
   finishAdvanceWithoutMoving() {
     this.addMove("NOTIFY\tNo units advanced");
     this.queuePeaceOffensiveNoAdvance();
-    this.endTurn();
+    this.showLocalCombat(this.returnFactionOfPlayer());
+    if (this.moves.length > 0) { this.endTurn(); }
   }
 
   selectAdvanceUnits(faction, dest, attacker_units, full_strength, cap) {
@@ -770,7 +848,8 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
     if (candidates.length == 0) {
       this.addMove("NOTIFY\tNo units eligible to advance");
       this.queuePeaceOffensiveNoAdvance();
-      this.endTurn();
+      this.showLocalCombat(faction);
+      if (this.moves.length > 0) { this.endTurn(); }
       return;
     }
     if (candidates.length == 1) {
@@ -780,7 +859,8 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
       this.hud.updateMenu([]);
       this.hud.updateCards([]);
       this.commitAdvance(faction, dest, candidates);
-      this.endTurn();
+      this.showLocalCombat(faction);
+      if (this.moves.length > 0) { this.endTurn(); }
       return;
     }
 
@@ -824,7 +904,8 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
             paths_self.hud.updateMenu([]);
             paths_self.hud.updateCards([]);
             paths_self.commitAdvance(faction, dest, chosen);
-            paths_self.endTurn();
+            paths_self.showLocalCombat(faction);
+            if (paths_self.moves.length > 0) { paths_self.endTurn(); }
             return;
           }
           if (selected.includes(action)) {
@@ -1239,15 +1320,18 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
     );
 
     //
-    // remove source and single-hop destination if needed
+    // A one-space retreat, including Withdrawal, keeps every adjacent
+    // space the hop search accepted. The connector test is only for a
+    // destination that is two spaces away.
     //
     let source = this.game.spaces[this.game.state.combat.key];
     for (let i = spaces_within_hops.length-1; i >= 0; i--) {
       let destination = spaces_within_hops[i];
       if (destination == this.game.state.combat.key) {
 	spaces_within_hops.splice(i, 1);
+	continue;
       }
-      if (source.neighbours.includes(destination)) {
+      if (spaces_to_retreat > 1 && source.neighbours.includes(destination)) {
 	let is_there_a_two_hop_connection = false;
 	let d = this.game.spaces[destination];
 	//
@@ -1291,9 +1375,9 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
     if (spaces_within_hops.length == 0) {
       for (let i = 0; i < source.units.length; i++) {
         paths_self.addMove(`eliminate\t${source.key}\t${i}`);
-	paths_self.endTurn();
-	return;
       }
+      paths_self.endTurn();
+      return;
     }
 
   
@@ -1606,6 +1690,10 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
     this.hud.updateStatus(this.game.status);
     this.hud.updateCards([]);
     this.hud.updateMenu(options, (action) => {
+      this.game.status = "Resolving flank attack";
+      this.hud.updateStatus(this.game.status);
+      this.hud.updateMenu([]);
+      this.hud.updateCards([]);
       this.addMove("combat_evaluate_flank_attack");
       this.addMove("SETVAR\tstate\tcombat\ttrench_cards_resolved\t1");
       if (action !== "continue") {
@@ -1658,7 +1746,7 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
     this.hud.updateMenu(options, (action) => {
 
       this.hud.hideBackButton();
-            this.game.status = "submitting...";
+      this.game.status = "Resolving flank attack";
       this.hud.updateStatus(this.game.status);
       this.hud.updateMenu([]);
       this.hud.updateCards([]);
@@ -1773,6 +1861,10 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
     // pass is pass!
     //
     if (card == "pass") {
+      this.game.status = "Ending turn";
+      this.hud.updateStatus(this.game.status);
+      this.hud.updateMenu([]);
+      this.hud.updateCards([]);
       this.addMove("pass\t"+faction);
       this.endTurn();
       return;
@@ -1884,6 +1976,8 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
 
       if (action === "event") {
 
+        this.game.status = "Playing event";
+        this.hud.updateStatus(this.game.status);
         acknowledgeNotice("for the Event");
 
 	//
@@ -2444,6 +2538,7 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
 
     let active_unit = null;
     let active_unit_moves = 0;
+    let movement_spent = false;
     let active_units = [];
     let movement_snapshot_taken = 0;
     let restore_movement_ui = null;
@@ -2839,7 +2934,8 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
         paths_self.hud.hideBackButton();
         paths_self.showing_movement_undo = 0;
         paths_self.removeMovementSnapshotUndo();
-	this.endTurn();
+	paths_self.showLocalCombat(faction);
+	if (paths_self.moves.length > 0) { paths_self.endTurn(); }
 	return;
       }
 
@@ -2866,7 +2962,8 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
         paths_self.hud.hideBackButton();
         paths_self.showing_movement_undo = 0;
         paths_self.removeMovementSnapshotUndo();
-	paths_self.endTurn();
+	paths_self.showLocalCombat(faction);
+	if (paths_self.moves.length > 0) { paths_self.endTurn(); }
 	return;
       }
 
@@ -2920,7 +3017,8 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
             paths_self.hud.hideBackButton();
             paths_self.showing_movement_undo = 0;
             paths_self.removeMovementSnapshotUndo();
-            paths_self.endTurn();
+            paths_self.showLocalCombat(faction);
+            if (paths_self.moves.length > 0) { paths_self.endTurn(); }
             return;
 	  }
 
@@ -2949,6 +3047,7 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
 
     let unitActionInterface = function(key, idx, options) {
 
+      movement_spent = false;
       let unit = paths_self.game.spaces[key].units[idx];
 
       active_unit = unit;
@@ -3008,7 +3107,8 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
 	  paths_self.addMove(`player_play_movement\t${faction}`);
           paths_self.game.state.entrenchments.push({ spacekey : sourcekey , loss_factor : lf , finished : 0 });
           paths_self.hud.hideBackButton();
-	  paths_self.endTurn();
+	  paths_self.showLocalMovement(faction);
+	  if (paths_self.moves.length > 0) { paths_self.endTurn(); }
 	  return;
         }
 
@@ -3095,7 +3195,8 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
       if (faction == "central" && paths_self.game.state.events.race_to_the_sea != 1 && (currentkey == "amiens" || currentkey == "ostend" || currentkey == "calais")) {
 	stop_move_option = [];
       }
-      if (sourcekey == currentkey && paths_self.game.spaces[sourcekey].oos != 1 && paths_self.game.state.events.entrench == 1) {
+      // A unit that has already left its start cannot entrench in the new space.
+      if (!movement_spent && sourcekey == currentkey && paths_self.game.spaces[sourcekey].oos != 1 && paths_self.game.state.events.entrench == 1) {
 	let can_entrench_here = true;
 	for (let z = 0; z < paths_self.game.state.entrenchments.length; z++) {
 	  if (paths_self.game.state.entrenchments[z].spacekey == sourcekey) { can_entrench_here = false; }
@@ -3203,7 +3304,8 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
 		paths_self.addMove(`player_play_movement\t${faction}`);
 		paths_self.game.state.entrenchments.push({ spacekey : sourcekey , loss_factor : lf , finished : 0 });
 		paths_self.hud.hideBackButton();
-		paths_self.endTurn();
+		paths_self.showLocalMovement(faction);
+		if (paths_self.moves.length > 0) { paths_self.endTurn(); }
 		return 1;
 	      }
 
@@ -3601,6 +3703,7 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
 	      }
 
 	      if (is_one_hop_move && active_unit_moves > 0) {
+	        movement_spent = true;
 	        continueMoveInterface(sourcekey, key2, idx, options);
 	      } else {
 	        if (mint) {
@@ -3710,6 +3813,7 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
       active_unit = null;
       active_units = [];
       active_unit_moves = 0;
+      movement_spent = false;
       movement_snapshot_taken = 0;
       paths_self.removeSelectable();
       if (paths_self.zoom_overlay) { paths_self.zoom_overlay.spaces_onclick_callback = null; }
@@ -3856,8 +3960,7 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
 	this.hud.updateStatus(this.game.status);
 	this.hud.updateMenu([]);
 	this.hud.updateCards([]);
-	this.clearOpponentMarks();
-	this.endTurn();
+	this.finishActivation(faction);
       }
 
       let movement_func = (movement_func) => {
@@ -3899,8 +4002,7 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
 	    this.addMove(`activate_for_movement\t${faction}\t${key}`);
 	    if (cost <= 0) {
 	      cost = 0;
-	      this.clearOpponentMarks();
-	      this.endTurn();
+	      this.finishActivation(faction);
 	    }
 	    if (cost > 0) {
 	      this.removeSelectable();
@@ -4009,8 +4111,7 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
 	    this.addMove(`activate_for_combat\t${faction}\t${key}`);
 	    if (cost <= 0) {
 	      cost = 0;
-	      this.clearOpponentMarks();
-	      this.endTurn();
+	      this.finishActivation(faction);
 	    }
 	    if (cost > 0) {
 	      this.removeSelectable();
@@ -4056,7 +4157,7 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
     //
     //
     //
-        this.game.status = "adding replacement points...";
+        this.game.status = "Ending turn";
     this.hud.updateStatus(this.game.status);
     this.hud.updateMenu([]);
     this.hud.updateCards([]);
@@ -4331,6 +4432,7 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
 
     });
 
+    document.querySelectorAll('.zoom-overlay .movement-actions').forEach((el) => { el.remove(); });
     document.querySelectorAll('.zoom-overlay .controls ul').forEach((ul) => {
       let entrench = ul.querySelector(':scope > li[id="entrench"]');
       let standdown = ul.querySelector(':scope > li[id="standdown"]');
@@ -4424,7 +4526,7 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
 
 	if (key === "end") {
 	  paths_self.hud.hideBackButton();
-	  	  paths_self.game.status = "submitting...";
+	  paths_self.game.status = "Ending turn";
 	  paths_self.hud.updateStatus(paths_self.game.status);
 	  paths_self.hud.updateMenu([]);
 	  paths_self.hud.updateCards([]);
@@ -4669,12 +4771,31 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
 	  paths_self.trackDeploymentIntoNearEast(faction, paths_self.game.spaces[spacekey].units[unit_idx]);
 	}
 
-		this.game.status = "redeploying...";
-	this.hud.updateStatus(this.game.status);
-	this.hud.updateMenu([]);
-	this.hud.updateCards([]);
-        this.addMove(`sr\t${faction}\t${spacekey}\t${key}\t${unit_idx}\t${value}\t${card}`);
-        this.endTurn();
+	let moving = paths_self.game.spaces[spacekey].units[unit_idx];
+	moving.redeployed = 1;
+	paths_self.game.spaces[spacekey].units.splice(unit_idx, 1);
+	moving.spacekey = key;
+	paths_self.game.spaces[key].units.push(moving);
+	if (paths_self.game.spaces[key].country != "russia" && moving.country === "Russia") {
+	  paths_self.game.state.has_russian_corps_moved_into_ne = 1;
+	}
+	paths_self.updateLog(moving.name + " redeploys to " + paths_self.returnSpaceNameForLog(key));
+	paths_self.displaySpace(spacekey);
+	paths_self.displaySpace(key);
+	paths_self.displayReserveBoxes();
+        paths_self.addMove(`sr\t${faction}\t${spacekey}\t${key}\t${unit_idx}\t${value}\t${card}`);
+	if (value > 0) {
+	  paths_self.playerPlayStrategicRedeployment(faction, card, value);
+	  if (paths_self.moves.length > 0) {
+	    paths_self.noteLocalPrompt("sr");
+	  }
+	} else {
+	  paths_self.game.status = "Ending turn";
+	  paths_self.hud.updateStatus(paths_self.game.status);
+	  paths_self.hud.updateMenu([]);
+	  paths_self.hud.updateCards([]);
+	}
+	if (paths_self.moves.length > 0) { paths_self.endTurn(); }
       },
       null ,
       true

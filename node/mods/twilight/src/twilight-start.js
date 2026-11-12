@@ -2671,10 +2671,6 @@ console.log("LATEST MOVE: " + mv);
 
     if (mv[0] === "reshuffle_and_insert_discards"){
 
-for (let z in this.game.deck[0].cards) {
-  console.log("reshuffle card: " + z);
-}
-
         this.game.queue.splice(qe, 1);
         let reshuffle_limit = 14;
         let cards_needed_per_player = (this.game.state.round >= 4)? 9 : 8;
@@ -7071,7 +7067,7 @@ async playerTurnHeadlineSelected(card, player) {
     //
     this.updateEventTiles();
     this.hud.hideBackButton();
-    this.game.status = "Submitting moves... awaiting response from peers...";
+    this.game.status = "submitting...";
     this.hud.updateStatus(this.game.status);
     this.hud.updateMenu([]);
     this.hud.updateCards([]);
@@ -7093,10 +7089,35 @@ async playerTurnHeadlineSelected(card, player) {
       this.game.state.events.wwby_triggers = 0;
     }
 
-    let extra = {};
-    this.game.turn = this.moves;
+    const extra = {};
+    const turn = this.moves;
     this.moves = [];
-    return this.sendGameMoveTransaction("game", extra);
+    this.game.turn = turn;
+
+    const dispatch = () => {
+      // A later endTurn may have replaced game.turn while this one waited to paint.
+      this.game.turn = turn;
+      return this.sendGameMoveTransaction("game", extra);
+    };
+
+    //
+    // The runner and the server have no frame to paint. Send before endTurn
+    // returns so the runner can wait on the in-flight move.
+    //
+    if (this.app.HEADLESS || this.app.BROWSER == 0) {
+      return dispatch();
+    }
+
+    //
+    // Paint "submitting..." before signing and relaying. A fast echo otherwise
+    // runs the queue, including the board refresh, before the browser draws.
+    // Callers may replace this status before the timer fires.
+    //
+    return new Promise((resolve, reject) => {
+      setTimeout(() => {
+        Promise.resolve(dispatch()).then(resolve, reject);
+      }, 0);
+    });
 
   }
 
@@ -7142,7 +7163,6 @@ async playerTurnHeadlineSelected(card, player) {
     try {
 
       for (let i in this.countries) {
-console.log("display: " + i);
         this.showInfluence(i);
       }
 console.log("before zoom overlaty check...");

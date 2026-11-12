@@ -501,7 +501,6 @@ deck['ap56'] = {
         removeFromDeckAfterPlay : function(paths_self, faction) { return 1; } ,
         canEvent : function(paths_self, faction) { return 1; } ,
         onEvent : function(paths_self, faction) { 
-	  paths_self.game.queue.push(`rp\tcentral\tap56`);
 	  paths_self.game.queue.push(`paris_taxis`);
 	  return 1;
 	} ,
@@ -538,16 +537,23 @@ deck['ap56'] = {
 	    } 
 
     	    //
-    	    // players can flip 1 damaged armies back to full strength
+    	    // Allies can flip 1 damaged army back to full strength
     	    //
-            paths_self.playerSelectUnitWithFilter(
-              "Select Unit to Repair / Deploy" ,
-              filter_fnct ,
-              execute_fnct ,
-              null ,
-              true ,
-              [{ key : "pass" , value : "pass" }]
-            );
+	    if (paths_self.game.player == p1) {
+              paths_self.playerSelectUnitWithFilter(
+                "Select Unit to Repair / Deploy" ,
+                filter_fnct ,
+                execute_fnct ,
+                null ,
+                true ,
+                [{ key : "pass" , value : "pass" }]
+              );
+	    } else {
+	      paths_self.game.status = "Allies playing " + paths_self.popup("ap56");
+	      paths_self.hud.updateStatus(paths_self.game.status);
+	      paths_self.hud.updateMenu([]);
+	      paths_self.showPlayerHand();
+	    }
 
             return 0;
           } 

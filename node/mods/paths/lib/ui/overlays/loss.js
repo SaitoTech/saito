@@ -1569,6 +1569,7 @@ class LossOverlay {
         this.loss_factor -= unit.loss;
       }
       paths_self.game.state.events.withdrawal_bonus_used = 1;
+      this.moves.push(`withdrawal_step\t${unit_spacekey}\t${unit_key}\t${paths_self.game.player}\t${space_idx}`);
       withdrawal_absorbed = true;
       this.updateInstructions(
         `${this.mod.returnFactionName(this.mod.returnFactionOfPlayer(this.mod.game.player))} — Assign ${this.loss_factor} More Damage`,
@@ -1662,24 +1663,17 @@ class LossOverlay {
           this.moves.push(`remove\t${corpsbox}\t${corpskey}\t${this.mod.game.player}\t${corps_damaged}`);
           box.units.splice(corps_idx, 1);
           if (!this.board_mode) {
-            this.app.browser.addElementToSelector(
-              this.unitCardHtml(this.units[this.units.length - 1], this.units.length - 1),
-              my_qs
-            );
-            //
-            // replace our specified element
-            //
-            if (el != null) {
+            try {
+              this.app.browser.addElementToSelector(
+                this.unitCardHtml(this.units[this.units.length - 1], this.units.length - 1),
+                my_qs
+              );
               let container = document.querySelector(my_qs);
-              el = container.querySelector('.loss-overlay-unit:last-child');
-              this.applyUnitTypeClass(el, this.units[this.units.length - 1]);
-            } else {
-              let container = document.querySelector(my_qs);
-              let new_el = container
+              let token = container
                 ? container.querySelector('.loss-overlay-unit:last-child')
                 : null;
-              this.applyUnitTypeClass(new_el, this.units[this.units.length - 1]);
-            }
+              this.applyUnitTypeClass(token, this.units[this.units.length - 1]);
+            } catch (err) {}
           }
         }
 

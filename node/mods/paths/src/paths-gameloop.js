@@ -1801,6 +1801,11 @@ try {
 	  let value = parseInt(mv[5]);
 	  let card = mv[6];
 
+	  if (this.consumeLocalPrompt("sr")) {
+	    if (value > 0) { return 0; }
+	    return 1;
+	  }
+
 	  let unit = this.game.spaces[source].units[unit_idx];
 	  if (this.game.state.rules.italian_movement && !this.game.state.allies_total_war_cards_added && unit && destination != "aeubox" && destination != "ceubox" && destination != "arbox" && destination != "crbox" && this.game.spaces[destination]) {
 	    if (this.game.spaces[destination].country == "italy" && unit.ckey != "AH" && unit.ckey != "IT") { return 1; }
@@ -1947,6 +1952,7 @@ try {
 	          let faction = this.game.queue[i].split("\t")[1];
 	          if (this.game.player == this.returnPlayerOfFaction(faction)) {
 	            if (this.minimap) { this.minimap.clear(); }
+	            this.clearOpponentMarks();
 	          } else {
 	            this.showOpponentMarks();
 	          }
@@ -1984,6 +1990,12 @@ try {
 	  // movement has happened, so we...
 	  //
 	  this.removeOverstackedUnits();
+
+	  //
+	  // The attack picker was already opened on this seat. Leave the
+	  // instruction in place until combat is finished.
+	  //
+	  if (this.consumeLocalPrompt("player_play_combat")) { return 0; }
 
 	  //
 	  // we do not splice, because combat involves multiple
@@ -2532,6 +2544,8 @@ console.log(JSON.stringify(this.game.state.cc_allies_active));
 
 	  this.game.queue.splice(qe, 1);
 
+	  if (this.consumeLocalPrompt("defender_select_combat_cards")) { return 0; }
+
 	  if (this.game.player != this.returnPlayerOfFaction(this.game.state.combat.attacking_faction)) {
 	    this.playerSelectDefenderCombatCards();
 	  } else {
@@ -2549,6 +2563,8 @@ console.log(JSON.stringify(this.game.state.cc_allies_active));
 	if (mv[0] == "attacker_select_combat_cards") {
 
 	  this.game.queue.splice(qe, 1);
+
+	  if (this.consumeLocalPrompt("attacker_select_combat_cards")) { return 0; }
 
 console.log("ME: " + this.game.player);
 console.log("AT: " + this.returnPlayerOfFaction(this.game.state.combat.attacking_faction));
@@ -3310,6 +3326,7 @@ console.log("error updated attacker loss factor: " + JSON.stringify(err));
 	  this.paths_log.publishCombat();
 
 	  if (does_defender_retreat) {
+	    try { this.loss_overlay.hide(); } catch (err) {}
 	    let player = this.returnPlayerOfFaction(this.game.state.combat.defender_power);
 	    if (this.game.player == player) {
 	      this.playerPlayPostCombatRetreat();
@@ -3338,12 +3355,12 @@ console.log("error updated attacker loss factor: " + JSON.stringify(err));
 	    if (this.game.player == player) {
 	      this.playerPlayAdvance();
 	    } else {
-	      	      this.game.status = "Opponent deciding on advance...";
+	      this.game.status = "Opponent deciding on advance...";
 	      this.hud.updateStatus(this.game.status);
 	      this.hud.updateMenu([]);
 	      this.showPlayerHand();
 	    }
-	    return 1;
+	    return 0;
 	  }
 
 	  if (this.game.state.combat.winner == "defender") {
@@ -3542,6 +3559,14 @@ console.log("moving unit in PCC 2: " + JSON.stringify(u));
 	    }
 	  }
 
+	  return 1;
+
+	}
+
+	if (mv[0] === "withdrawal_step") {
+
+	  this.game.queue.splice(qe, 1);
+	  this.game.state.events.withdrawal_bonus_used = 1;
 	  return 1;
 
 	}
@@ -3877,6 +3902,8 @@ console.log("moving unit: " + JSON.stringify(u));
 	  this.signals = { n: 0, marks: {} };
 	  this.game.queue.splice(qe, 1);
 	  let faction = mv[1];
+
+	  if (this.consumeLocalPrompt("player_play_movement")) { return 0; }
 
     	  let options = this.returnSpacesWithFilter(
     	    (key) => {
