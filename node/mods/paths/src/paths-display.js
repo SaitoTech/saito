@@ -258,17 +258,23 @@
         let bm = b.damaged ? b.rmovement : b.movement;
         return (am || 0) - (bm || 0);
       });
+      // A destroyed unit stays in the array until the assignment sweep so
+      // indexes do not move under the hits. It is not drawn, and it is not
+      // a black X.
+      let living = 0;
       for (let i = 0; i < draw_units.length; i++) {
+        if (draw_units[i].destroyed) { continue; }
+        living++;
         html += this.returnUnitImage(draw_units[i]);
       }
 
       //
       // activated for movement
       //
-      if (space.activated_for_movement && space.units.length > 0) {
+      if (space.activated_for_movement && living > 0) {
         html += `<img src="/paths/img/tiles/activate_move.png" class="activation-tile" />`;
       }
-      if (space.activated_for_combat && space.units.length > 0) {
+      if (space.activated_for_combat && living > 0) {
         html += `<img src="/paths/img/tiles/activate_attack.png" class="activation-tile" />`;
       }
       if (!space.activated_for_movement && !space.activated_for_combat && this.signals && this.signals.marks[key]) {

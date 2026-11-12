@@ -131,7 +131,6 @@
     let ccs = [];
     let cards = this.returnDeck();
     let faction = this.returnFactionOfPlayer(this.game.player);
-    let name = this.returnPlayerName(faction);
 
     //
     // cards can come from our hand, or the list which is active (on_table) and
@@ -258,8 +257,11 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
 
     ccs.push("pass");
    
-    this.game.status = `${name} - play combat card?`;
+    this.game.status = `Attack on ${this.returnSpaceNameForLog(this.game.state.combat.key)} - play combat card?`;
     this.hud.updateStatus(this.game.status);
+    if (this.zoom_overlay && this.zoom_overlay.visible) {
+      this.zoom_overlay.scrollTo(this.game.state.combat.key);
+    }
     this.hud.updateMenu([]);
     this.hud.updateCards(ccs);
     this.hud.pullToFront();
@@ -310,7 +312,6 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
     let ccs = [];
     let cards = this.returnDeck("all");
     let faction = this.returnFactionOfPlayer(this.game.player);
-    let name = this.returnPlayerName(faction);
 
     //
     // cards can come from our hand, or the list which is active (on_table) and
@@ -424,8 +425,11 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
 
     ccs.push("pass");
    
-    this.game.status = `${name} - play combat card?`;
+    this.game.status = `Attack on ${this.returnSpaceNameForLog(this.game.state.combat.key)} - play combat card?`;
     this.hud.updateStatus(this.game.status);
+    if (this.zoom_overlay && this.zoom_overlay.visible) {
+      this.zoom_overlay.scrollTo(this.game.state.combat.key);
+    }
     this.hud.updateMenu([]);
     this.hud.updateCards(ccs);
     this.hud.pullToFront();
@@ -1219,27 +1223,9 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
     let can_defender_cancel_retreat = false;
 
     //
-    // triggers if we only have 1 unit left and they are a damaged
-    // corps...
-    //
-    if (this.game.state.combat.can_defender_cancel == false) {
-      this.playerHandleRetreat();
-      return;
-    }
-
-    //
-    // withdrawal forces retreat -- no other options
-    //
-    if (this.game.state.events.withdrawal) {
-      this.playerHandleRetreat();
-      return;
-    }
-
-
-    //
     // Defending units in Trenches, Forests, Deserts, Mountains, or 
     // Swamps may chose to ignore a retreat by taking one additional
-    // step loss. 
+    // step loss. Withdrawal, and a last damaged corps, cannot.
     //
     let space = this.game.spaces[this.game.state.combat.key];
 
@@ -1248,8 +1234,36 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
     if (space.terrain == "swamp") 	{ can_defender_cancel_retreat = true; }
     if (space.terrain == "desert") 	{ can_defender_cancel_retreat = true; }
     if (space.trench > 0) 		{ can_defender_cancel_retreat = true; }
+    if (this.game.state.combat.can_defender_cancel == false) { can_defender_cancel_retreat = false; }
+    if (this.game.state.events.withdrawal) { can_defender_cancel_retreat = false; }
 
-    if (can_defender_cancel_retreat == false) {
+    let choices = [
+      { id: "retreat", label: "Retreat", chosen: "Retreating", close: true, go: () => { this.playerHandleRetreat(); } }
+    ];
+    if (can_defender_cancel_retreat) {
+      choices.push({
+        id: "hit",
+        label: "Take additional hit",
+        chosen: "Taking an additional hit",
+        close: false,
+        go: () => { this.loss_overlay.renderToAssignAdditionalStepwiseLoss(); }
+      });
+    }
+
+    // The result panel carries the choice and stays up until the defender clicks.
+    // Retreat closes it so the destination can be picked on the board. An extra
+    // hit replaces the choice with the assignment panel.
+    if (this.loss_overlay && this.loss_overlay.overlayEnabled() && !this.loss_overlay.board_mode) {
+      if (this.loss_overlay.showRetreatChoice(choices)) {
+        this.game.status = "Retreat?";
+        this.hud.updateStatus(this.game.status);
+        this.hud.updateCards([]);
+        this.hud.updateMenu([]);
+        return;
+      }
+    }
+
+    if (!can_defender_cancel_retreat) {
       this.playerHandleRetreat();
       return;
     }
@@ -1978,7 +1992,11 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
 
         this.game.status = "Playing event";
         this.hud.updateStatus(this.game.status);
-        acknowledgeNotice("for the Event");
+        // Guns of August starts a combat. The acknowledgement would run after
+        // that combat, once the opponent has already watched the battle.
+        if (card !== "cp01") {
+          acknowledgeNotice("for the Event");
+        }
 
 	//
 	// and trigger event

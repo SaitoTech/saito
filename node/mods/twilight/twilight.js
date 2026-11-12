@@ -12,6 +12,17 @@ const ZoomOverlay = require('./lib/overlays/zoom');
 const htmlTemplate = require('./lib/core/game-html.template').default;
 const GameHelp = require('./lib/overlays/game-help');
 const GameMinimap = require('../../lib/saito/ui/game-minimap/game-minimap');
+const CardStudio = require('./lib/cardgen/studio');
+const {
+  TEST_BACKUP_KEY,
+  TEST_COMPLETE,
+  firstEventCode,
+  testNftId,
+  buildTestNft,
+  testQueueInstructions,
+  pushLocalInstruction,
+  insertEndInstruction
+} = require('./lib/cardgen/test-run');
 const nftApi = require('./lib/core/api');
 const {
   TWILIGHT_QUEUE_COMMANDS,
@@ -77,6 +88,9 @@ class Twilight extends GameTemplate {
     this.headline_overlay = new HeadlineOverlay(this.app, this);
     this.zoom_overlay = new ZoomOverlay(this.app, this);
     this.game_help = new GameHelp(this.app, this);
+    this.cardgen_studio = new CardStudio(this.app, this);
+    this.cardgen_testing = false;
+    this._cardgen_test_snapshot = null;
     this.minimap = new GameMinimap(this.app, this);
     this.minimap.enable_zoom = 1;
     // Opening frame measured from the Europe–Asia crop on the 2550×1650 board.
@@ -138,13 +152,41 @@ class Twilight extends GameTemplate {
       };
     };
 
+    const localDuringTest = (fn, applyLocal) => {
+      return (instruction) => {
+        if (!isSandboxInstructionPermitted(instruction, engineCommands, twilightCommands)) {
+          const cmd =
+            typeof instruction === 'string' ? instruction.split('\t')[0] : '';
+          throw new Error(`command not permitted: ${cmd || '(empty)'}`);
+        }
+        if (this.cardgen_testing) {
+          applyLocal(instruction);
+          return;
+        }
+        return fn(instruction);
+      };
+    };
+
     return {
       commands,
       addToQueue: gate(base.addToQueue),
-      addMove: gate(base.addMove),
-      prependMove: gate(base.prependMove),
-      addEndMove: gate(base.addEndMove),
-      endTurn: base.endTurn
+      addMove: localDuringTest(base.addMove, (instruction) => {
+        pushLocalInstruction(this.game.queue, instruction);
+      }),
+      prependMove: localDuringTest(base.prependMove, (instruction) => {
+        pushLocalInstruction(this.game.queue, instruction);
+      }),
+      addEndMove: localDuringTest(base.addEndMove, (instruction) => {
+        insertEndInstruction(this.game.queue, instruction);
+      }),
+      endTurn: async (...args) => {
+        if (this.cardgen_testing) {
+          this.moves = [];
+          this.endmoves = [];
+          return;
+        }
+        return base.endTurn(...args);
+      }
     };
   }
 
@@ -172,6 +214,161 @@ class Twilight extends GameTemplate {
 
   returnContext(cardId) {
     return super.returnContext();
+  }
+
+  readCardgenTestBackup() {
+    try {
+      if (typeof sessionStorage === 'undefined') {
+        return null;
+      }
+      const raw = sessionStorage.getItem(TEST_BACKUP_KEY);
+      if (!raw) {
+        return null;
+      }
+      return JSON.parse(raw);
+    } catch (err) {
+      console.warn('cardgen test backup could not be read', err);
+      return null;
+    }
+  }
+
+  writeCardgenTestBackup(snapshot) {
+    try {
+      if (typeof sessionStorage === 'undefined') {
+        return;
+      }
+      sessionStorage.setItem(TEST_BACKUP_KEY, JSON.stringify(snapshot));
+    } catch (err) {
+      console.warn('cardgen test backup was not stored for refresh', err);
+    }
+  }
+
+  clearCardgenTestBackup() {
+    try {
+      if (typeof sessionStorage !== 'undefined') {
+        sessionStorage.removeItem(TEST_BACKUP_KEY);
+      }
+    } catch (err) {
+      console.warn('cardgen test backup could not be cleared', err);
+    }
+  }
+
+  async initializeGameQueue(game_id) {
+    const backup = this.readCardgenTestBackup();
+    if (backup && backup.id === game_id) {
+      this.game = backup;
+      this._cardgen_test_snapshot = null;
+      this.cardgen_testing = false;
+      this.clearCardgenTestBackup();
+      try {
+        this.saveGame(game_id);
+      } catch (err) {
+        console.error('cardgen test restore save failed', err);
+      }
+    }
+    return super.initializeGameQueue(game_id);
+  }
+
+  startCustomCardTest(card) {
+    if (!this.browser_active || !this.game?.id || !Array.isArray(this.game.queue)) {
+      salert('Open a Twilight Struggle game to test card code');
+      return;
+    }
+    if (this.gaming_active && !this.halted) {
+      salert('Wait for the game to pause before testing card code');
+      return;
+    }
+    if (this.cardgen_testing) {
+      salert('A card test is already running');
+      return;
+    }
+
+    const code = firstEventCode(card);
+    if (!String(code || '').trim()) {
+      salert('Add code to the first event before testing');
+      return;
+    }
+
+    let snapshot;
+    try {
+      snapshot = JSON.parse(JSON.stringify(this.game));
+    } catch (err) {
+      console.error('cardgen test backup failed', err);
+      salert('Unable to backup the game');
+      return;
+    }
+
+    this._cardgen_test_snapshot = snapshot;
+    this.writeCardgenTestBackup(snapshot);
+
+    if (!this.game.options) {
+      this.game.options = {};
+    }
+    if (!Array.isArray(this.game.options.nfts)) {
+      this.game.options.nfts = [];
+    }
+
+    const id = testNftId(card);
+    this.game.options.nfts.unshift(buildTestNft(card, id));
+
+    if (!this.game.state) {
+      this.game.state = {};
+    }
+    const role = this.roles && this.roles[this.game.player];
+    if (role === 'us' || role === 'ussr') {
+      this.game.state.eventing_player = role;
+    }
+
+    this.cardgen_testing = true;
+    this.cardgen_studio?.hideForTest?.();
+
+    for (const instruction of testQueueInstructions(id)) {
+      this.game.queue.push(instruction);
+    }
+
+    this.restartQueue();
+  }
+
+  finishCustomCardTest() {
+    const snapshot = this._cardgen_test_snapshot || this.readCardgenTestBackup();
+    this._cardgen_test_snapshot = null;
+    this.cardgen_testing = false;
+    this.clearCardgenTestBackup();
+
+    if (!snapshot) {
+      const queue = this.game?.queue;
+      if (Array.isArray(queue) && String(queue[queue.length - 1] || '').split('\t')[0] === TEST_COMPLETE) {
+        queue.pop();
+      }
+      console.error('custom_card_test_complete: missing backup');
+      return;
+    }
+
+    this.game = snapshot;
+    try {
+      this.saveGame(this.game.id);
+    } catch (err) {
+      console.error('cardgen test restore save failed', err);
+    }
+    try {
+      this.displayBoard();
+    } catch (err) {
+      console.error('cardgen test restore display failed', err);
+    }
+    if (this.hud) {
+      if (this.game.status) {
+        this.hud.updateStatus(this.game.status);
+      }
+      if (this.game.deck?.[0]?.hand) {
+        try {
+          this.hud.updateCards(this.game.deck[0].hand);
+        } catch (err) {
+          console.error('cardgen test restore hand failed', err);
+        }
+      }
+    }
+    this.halted = 1;
+    this.cardgen_studio?.showCode?.();
   }
 
   //
@@ -474,6 +671,16 @@ class Twilight extends GameTemplate {
         game_mod.lang = "es";
         game_mod.saveGamePreference("lang", "es");
         reloadWindow(1000);
+      }
+    });
+
+    this.menu.addSubMenuOption("game-game", {
+      text: "Custom Cards",
+      id: "game-custom-cards",
+      class: "game-custom-cards",
+      callback: async function(app, game_mod) {
+        game_mod.menu.hideSubMenus();
+        await game_mod.cardgen_studio.render();
       }
     });
 
@@ -1289,6 +1496,11 @@ console.log("error here 222");
       let shd_continue = 1;
 
 console.log("LATEST MOVE: " + mv);
+
+    if (mv[0] === TEST_COMPLETE) {
+      this.finishCustomCardTest();
+      return 0;
+    }
 
       //
       // cambridge region

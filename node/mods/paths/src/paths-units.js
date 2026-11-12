@@ -303,12 +303,10 @@ console.log(JSON.stringify(unit));
   }
 
   returnUnitImage(unit, just_link=false) {
-    if (unit.destroyed) {
-     return this.returnDestroyedUnitImage(unit, just_link);
-    }
-
     // The map chit is the file named on the unit. Yilderim and the Army of
     // Islam keep historical ids that do not match those filenames.
+    // Destroyed units are left out of space drawing entirely. Callers that
+    // still want a picture (the replacement list, for example) get the counter.
     let file = unit.damaged
       ? (unit.back || `${unit.key}_back.png`)
       : (unit.front || `${unit.key}.png`);
@@ -323,15 +321,8 @@ console.log(JSON.stringify(unit));
   }
   returnUnitImageInSpaceWithIndex(spacekey, idx) {
     let unit = this.game.spaces[spacekey].units[idx];
+    if (!unit || unit.destroyed) { return ""; }
     return this.returnUnitImage(unit);
-  }
-  returnDestroyedUnitImage(unit, just_link=false) {
-    if (just_link) {
-      return `/paths/img/cancel_x.png`;
-    } else {
-      return `<img src="/paths/img/cancel_x.png" class="army-tile ${unit.key}" />`;
-    }
-
   }
 
   cloneUnit(unitkey) {

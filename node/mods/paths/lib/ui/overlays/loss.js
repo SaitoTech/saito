@@ -130,7 +130,9 @@ class LossOverlay {
       let bm = b.damaged ? b.rmovement : b.movement;
       return (am || 0) - (bm || 0);
     });
-    return draw_units;
+    // Same filter as displaySpace. Board clicks pair tiles with this list by
+    // position, so a destroyed counter left in the sort would shift every hit.
+    return draw_units.filter((u) => u && !u.destroyed);
   }
 
   layoutBoardStack(spacekey) {
@@ -546,7 +548,7 @@ class LossOverlay {
     return false;
   }
 
-  showRetreatNotice() {
+  showRetreatNotice(message = '') {
     if (this.board_mode || !this.overlayEnabled()) {
       this.exitBoardMode();
       this.hide();
@@ -563,8 +565,9 @@ class LossOverlay {
       this.show();
     }
     try {
+      let line = message || 'All possible damage assigned';
       this.updateInstructions(
-        `<div class="continue_btn">All possible damage assigned — <span style="text-decoration:underline dashed;cursor:pointer">Close to Continue</span></div>`,
+        `<div class="continue_btn">${line} — <span style="text-decoration:underline dashed;cursor:pointer">Close to Continue</span></div>`,
         'resolved'
       );
       let btn = document.querySelector('.loss-overlay .continue_btn');
@@ -574,6 +577,54 @@ class LossOverlay {
         };
       }
     } catch (err) {}
+  }
+
+  // Defender picks retreat or an extra step on the result panel. The click
+  // records the choice in the header. Retreat then closes the panel so the
+  // destination can be chosen on the board. An extra step stays on the panel.
+  showRetreatChoice(choices = []) {
+    if (this.board_mode || !this.overlayEnabled()) {
+      return false;
+    }
+    if (!document.querySelector('.loss-overlay')) {
+      this.render(this.faction || this.assignment_faction || 'defender', false);
+    } else {
+      this.refreshPresentedUnits();
+      this.show();
+    }
+    let buttons = '';
+    for (let i = 0; i < choices.length; i++) {
+      buttons += `<button type="button" class="loss-overlay-choice" data-choice="${choices[i].id}">${choices[i].label}</button>`;
+    }
+    this.updateInstructions(`<div class="loss-overlay-choices">${buttons}</div>`, 'choice');
+    let box = document.querySelector('.loss-overlay .loss-overlay-choices');
+    if (!box) {
+      return false;
+    }
+    box.querySelectorAll('.loss-overlay-choice').forEach((btn) => {
+      btn.onclick = () => {
+        let choice = null;
+        for (let i = 0; i < choices.length; i++) {
+          if (choices[i].id === btn.dataset.choice) {
+            choice = choices[i];
+          }
+        }
+        if (!choice || btn.dataset.picked) {
+          return;
+        }
+        btn.dataset.picked = '1';
+        this.updateInstructions(choice.chosen, 'resolved');
+        if (choice.close) {
+          setTimeout(() => {
+            this.hide();
+            choice.go();
+          }, 400);
+        } else {
+          choice.go();
+        }
+      };
+    });
+    return true;
   }
 
   viewingPlayerPower() {
@@ -631,6 +682,7 @@ class LossOverlay {
       /automatically assigned|all possible damage|combat resolved/i.test(String(msg));
     let action =
       mode === 'action' ||
+      mode === 'choice' ||
       (!resolved && this.i_am_assigning && /assign/i.test(String(msg)));
     let waiting = mode === 'waiting' || (!resolved && !action);
 
@@ -643,7 +695,9 @@ class LossOverlay {
     // Title stays "Assign losses" during the assignment phase (action or waiting);
     // subtitle carries who is assigning / how much.
     let title = resolved ? 'Combat resolved' : 'Assign losses';
-    if (/take additional hit/i.test(String(msg))) {
+    if (mode === 'choice') {
+      title = 'Retreat?';
+    } else if (/take additional hit/i.test(String(msg))) {
       title = 'Cancel retreat?';
     }
 
@@ -1539,6 +1593,8 @@ class LossOverlay {
 
     console.log('assign hit to unit...');
 
+    this.clearIllegalAssignmentNotice();
+
     //
     // prevents auto-assigning next hit if only 1 unit left
     //
@@ -1702,27 +1758,17 @@ class LossOverlay {
           }
         }
 
-        //
-        // now handled below...
-        //
-        if (el != null) {
+        // Rebind only while hits remain. On the last hit assignHitToUnit
+        // commits the turn below; attaching here would send that turn twice.
+        if (el != null && this.canTakeMoreLosses()) {
           this.attachEvents(am_i_the_attacker, my_qs, faction, just_one_more_hit);
         }
       }
 
-      //
-      // move to eliminated box
-      //
-      let f = this.mod.returnPowerOfUnit(unit);
+      // The unit stays in the space until pull_destroyed, after every hit in
+      // this assignment has been applied. Redrawing the space hides it.
       if (space_idx >= 0) {
-        if (f === 'central') {
-          this.mod.moveUnit(unit_spacekey, space_idx, 'ceubox');
-        } else {
-          this.mod.moveUnit(unit_spacekey, space_idx, 'aeubox');
-        }
         this.mod.displaySpace(unit_spacekey);
-        this.mod.displaySpace('ceubox');
-        this.mod.displaySpace('aeubox');
       }
       this.updateInstructions(
         `${this.mod.returnFactionName(this.mod.returnFactionOfPlayer(this.mod.game.player))} — Assign ${this.loss_factor} More Damage`,
@@ -1756,6 +1802,9 @@ class LossOverlay {
       document.querySelectorAll('.loss-overlay-unit').forEach((card) => {
         card.onclick = (e) => {};
       });
+      // Queued first so it runs after the hits. Both seats then move destroyed
+      // units out and repair combat.attacker together.
+      this.mod.addMove('pull_destroyed');
       for (let i = this.moves.length - 1; i >= 0; i--) {
         this.mod.addMove(this.moves[i]);
       }
@@ -1781,6 +1830,9 @@ class LossOverlay {
       }
 
       this.mod.endTurn();
+      if (just_one_more_hit) {
+        this.showRetreatNotice('Taking an additional hit');
+      }
     } else {
       //
       // redisplay affected spaces while assignment continues
@@ -1810,15 +1862,11 @@ class LossOverlay {
     }
 
     //
-    // A negative loss factor means hits were cancelled. Reaching exactly
-    // zero is a finished assignment; leave the panel up for the retreat notice.
-    //
-    if (this.loss_factor < 0) {
-      if (this.board_mode) {
-        this.exitBoardMode();
-      } else {
-        this.hide();
-      }
+    // A finished assignment leaves the panel up. The retreat step is what
+    // offers Close, Retreat, or an extra hit. Hiding here ran after endTurn
+    // and removed that panel before anyone could read the result.
+    if (this.loss_factor < 0 && this.board_mode) {
+      this.exitBoardMode();
     }
   }
 
@@ -1839,7 +1887,7 @@ class LossOverlay {
   }
 
   // Visual + status feedback when stepwise rules forbid assigning to the clicked unit.
-  rejectInvalidHitAssignment(el) {
+  rejectInvalidHitAssignment(el, explain = false) {
     if (!el) {
       return;
     }
@@ -1853,7 +1901,53 @@ class LossOverlay {
       return;
     }
     this.shakeInvalidUnit(el);
-    this.updateInstructions(msg, 'action');
+    if (explain) {
+      this.showIllegalAssignmentNotice();
+    }
+  }
+
+  showIllegalAssignmentNotice() {
+    let note = document.querySelector('.loss-overlay .loss-overlay-rule-note');
+    if (note) {
+      note.hidden = false;
+      note.textContent =
+        'Assigning to that unit is against the rules as it avoids assigning the maximum damage taken. Please select another unit.';
+      note.classList.remove('is-fresh');
+      void note.offsetWidth;
+      note.classList.add('is-fresh');
+    }
+    this.markLegalAssignmentTargets();
+  }
+
+  clearIllegalAssignmentNotice() {
+    let note = document.querySelector('.loss-overlay .loss-overlay-rule-note');
+    if (note) {
+      note.hidden = true;
+      note.textContent = '';
+      note.classList.remove('is-fresh');
+    }
+    document.querySelectorAll('.loss-overlay-unit.loss-assign-target').forEach((el) => {
+      el.classList.remove('loss-assign-target');
+    });
+  }
+
+  markLegalAssignmentTargets() {
+    document.querySelectorAll('.loss-overlay-unit.loss-assign-target').forEach((el) => {
+      el.classList.remove('loss-assign-target');
+    });
+    let qs = this.board_bind && this.board_bind.my_qs;
+    if (!qs) {
+      return;
+    }
+    document.querySelectorAll(qs + ' .loss-overlay-unit').forEach((el) => {
+      let unit = this.units && this.units[el.id];
+      if (!unit || unit.destroyed || unit.unassignable == 1) {
+        return;
+      }
+      el.classList.remove('loss-assign-target');
+      void el.offsetWidth;
+      el.classList.add('loss-assign-target');
+    });
   }
 
   attachEvents(am_i_the_attacker, my_qs, faction, just_one_more_hit = false) {
@@ -1863,6 +1957,7 @@ class LossOverlay {
     console.log('just one more hit? ' + just_one_more_hit);
 
     if (!this.canTakeMoreLosses() && just_one_more_hit == false) {
+      paths_self.addMove('pull_destroyed');
       for (let i = this.moves.length - 1; i >= 0; i--) {
         paths_self.addMove(this.moves[i]);
       }
@@ -2001,7 +2096,7 @@ class LossOverlay {
           }
         } else {
           if (unit.unassignable == 1) {
-            this.rejectInvalidHitAssignment(e.currentTarget);
+            this.rejectInvalidHitAssignment(e.currentTarget, true);
             return;
           }
         }

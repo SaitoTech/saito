@@ -3053,6 +3053,27 @@ console.log("error updated attacker loss factor: " + JSON.stringify(err));
 	    }
 	  }
 
+	  // Warm the damaged faces and the reserve corps before the first click.
+	  // preloadImageArray keeps the decoded Image, so the chip swap does not
+	  // wait on a fetch.
+	  let hit_files = [];
+	  let warm_hit_counter = (unit) => {
+	    if (!unit || unit.destroyed) { return; }
+	    if (unit.back) { hit_files.push("img/army/" + unit.back); }
+	    if (unit.front) { hit_files.push("img/army/" + unit.front); }
+	  };
+	  let attackers_now = this.returnAttackerUnits();
+	  let defenders_now = this.returnDefenderUnits();
+	  for (let i = 0; i < attackers_now.length; i++) { warm_hit_counter(attackers_now[i]); }
+	  for (let i = 0; i < defenders_now.length; i++) { warm_hit_counter(defenders_now[i]); }
+	  for (let i = 0; i < this.game.spaces["arbox"].units.length; i++) {
+	    warm_hit_counter(this.game.spaces["arbox"].units[i]);
+	  }
+	  for (let i = 0; i < this.game.spaces["crbox"].units.length; i++) {
+	    warm_hit_counter(this.game.spaces["crbox"].units[i]);
+	  }
+	  this.preloadImageArray(hit_files);
+
 	  if (this.game.player === player) {
 
 	    this.combat_overlay.hide();
@@ -3151,6 +3172,7 @@ console.log("error updated attacker loss factor: " + JSON.stringify(err));
 	  // Great Retreat
 	  //
 	  if (parseInt(this.game.state.events.great_retreat_used) == 1) {
+	    try { this.loss_overlay.showRetreatNotice(); } catch (err) {}
 	    return 1;
 	  }
 
@@ -3160,6 +3182,7 @@ console.log("error updated attacker loss factor: " + JSON.stringify(err));
 	  if (this.game.state.combat.backs_to_the_wall == 1) {
 	    this.paths_log.note("Backs to the Wall: no retreat");
 	    this.paths_log.publishCombat();
+	    try { this.loss_overlay.showRetreatNotice(); } catch (err) {}
 	    return 1;
 	  }
 
@@ -3179,6 +3202,7 @@ console.log("error updated attacker loss factor: " + JSON.stringify(err));
 	    if (western && space.trench > 0 && has_german && british_attack) {
 	      this.paths_log.note("Haig: no retreat");
 	      this.paths_log.publishCombat();
+	      try { this.loss_overlay.showRetreatNotice(); } catch (err) {}
 	      return 1;
 	    }
 	  }
@@ -3251,7 +3275,11 @@ console.log("error updated attacker loss factor: " + JSON.stringify(err));
 	  //
 	  // no retreating from unoccupied fort
 	  //
-	  if (this.game.state.combat.unoccupied_fort == 1) { this.paths_log.publishCombat(); return 1; }
+	  if (this.game.state.combat.unoccupied_fort == 1) {
+	    this.paths_log.publishCombat();
+	    try { this.loss_overlay.showRetreatNotice(); } catch (err) {}
+	    return 1;
+	  }
 
 	  //
 	  // hide loss overlay
@@ -3326,7 +3354,6 @@ console.log("error updated attacker loss factor: " + JSON.stringify(err));
 	  this.paths_log.publishCombat();
 
 	  if (does_defender_retreat) {
-	    try { this.loss_overlay.hide(); } catch (err) {}
 	    let player = this.returnPlayerOfFaction(this.game.state.combat.defender_power);
 	    if (this.game.player == player) {
 	      this.playerPlayPostCombatRetreat();
@@ -3630,6 +3657,53 @@ console.log("moving unit in PCC 2: " + JSON.stringify(u));
 
 	}
 
+	if (mv[0] === "pull_destroyed") {
+
+	  this.game.queue.splice(qe, 1);
+
+	  // Both seats run this after the assignment's damage, add, and remove
+	  // moves. Destroyed units have stayed in place so the replacement corps
+	  // was recorded at the same index on each seat. Drop that dead record,
+	  // shift later indexes, then move the unit to the eliminated box.
+	  let touched = {};
+	  for (let key in this.game.spaces) {
+	    if (key === "aeubox" || key === "ceubox" || key === "arbox" || key === "crbox") { continue; }
+	    let space = this.game.spaces[key];
+	    if (!space || !space.units) { continue; }
+	    for (let i = space.units.length - 1; i >= 0; i--) {
+	      let u = space.units[i];
+	      if (!u || !u.destroyed) { continue; }
+	      if (this.game.state.combat && this.game.state.combat.attacker) {
+	        let attackers = this.game.state.combat.attacker;
+	        for (let zz = attackers.length - 1; zz >= 0; zz--) {
+	          if (attackers[zz].unit_sourcekey !== key) { continue; }
+	          if (attackers[zz].unit_idx === i) {
+	            attackers.splice(zz, 1);
+	          } else if (attackers[zz].unit_idx > i) {
+	            attackers[zz].unit_idx--;
+	          }
+	        }
+	      }
+	      if (this.returnPowerOfUnit(u) === "central") {
+	        this.moveUnit(key, i, "ceubox");
+	      } else {
+	        this.moveUnit(key, i, "aeubox");
+	      }
+	      touched[key] = 1;
+	    }
+	  }
+	  for (let key in touched) {
+	    this.displaySpace(key);
+	  }
+	  this.displaySpace("ceubox");
+	  this.displaySpace("aeubox");
+	  if (this.loss_overlay) {
+	    this.loss_overlay.refreshPresentedUnits();
+	  }
+	  return 1;
+
+	}
+
 	if (mv[0] === "damage") {
 
 	  this.game.queue.splice(qe, 1);
@@ -3648,13 +3722,6 @@ console.log("moving unit in PCC 2: " + JSON.stringify(u));
 	      }
 	    }
 	  }
-
-	  let is_last_unit = 0;
-	  let tmpx = this.game.queue[this.game.queue.length-1].split("\t");
-
-console.log("DAMAGE: " + JSON.stringify(tmpx));
-
-	  if (tmpx[0] !== "damage" && tmpx[0] !== "add") { is_last_unit = 1; }
 
 	  if (player_to_ignore != this.game.player) {
 	    let unit = null;
@@ -3688,42 +3755,15 @@ console.log("DAMAGE: " + JSON.stringify(tmpx));
 		unit.damaged = true;
 	    	unit.damaged_this_combat = true;
 	      } else { 
+		// Stay in the array until pull_destroyed. Removing it here shifts
+		// every later index while hits and the replacement corps are still
+		// being recorded.
 		unit.destroyed = true;
 	    	unit.damaged_this_combat = true;
-		if (this.returnPowerOfUnit(unit) === "central") {
-		  this.moveUnit(spacekey, unit_idx, "ceubox");
-		} else {
-		  this.moveUnit(spacekey, unit_idx, "aeubox");
-		}
 	      }
 	    }
 	  }
 
-console.log("# is last unit: " + is_last_unit);
-
-	  if (is_last_unit) {
-
-console.log("#");
-console.log("#");
-console.log("#");
-console.log("IS LAST UNIT!");
-console.log(JSON.stringify(this.game.spaces[spacekey].units));
-
-            for (let z = this.game.spaces[spacekey].units.length-1; z >= 0; z--) {
-              let u = this.game.spaces[spacekey].units[z];
-	      let f = this.returnPowerOfUnit(u);
-console.log("POU: " + f);
-              if (u.destroyed == true) {
-console.log("moving unit: " + JSON.stringify(u));
-		if (f === "central") {
-	          this.moveUnit(spacekey, z, "ceubox");
-		} else {
-	          this.moveUnit(spacekey, z, "aeubox");
-		}
-	      }
-            } 
-	  }
-            
 	  this.displaySpace("ceubox");
 	  this.displaySpace("aeubox");
 	  this.displaySpace(spacekey);

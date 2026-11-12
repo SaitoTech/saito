@@ -41,6 +41,8 @@ module.exports = (terrain = '') => {
               </div>
             </div>
 
+            <div class="loss-overlay-rule-note" hidden></div>
+
           </div>
 
           <div class="loss-overlay-details" aria-hidden="true">

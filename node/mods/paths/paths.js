@@ -6497,17 +6497,23 @@ deck['cp65'] = {
         let bm = b.damaged ? b.rmovement : b.movement;
         return (am || 0) - (bm || 0);
       });
+      // A destroyed unit stays in the array until the assignment sweep so
+      // indexes do not move under the hits. It is not drawn, and it is not
+      // a black X.
+      let living = 0;
       for (let i = 0; i < draw_units.length; i++) {
+        if (draw_units[i].destroyed) { continue; }
+        living++;
         html += this.returnUnitImage(draw_units[i]);
       }
 
       //
       // activated for movement
       //
-      if (space.activated_for_movement && space.units.length > 0) {
+      if (space.activated_for_movement && living > 0) {
         html += `<img src="/paths/img/tiles/activate_move.png" class="activation-tile" />`;
       }
-      if (space.activated_for_combat && space.units.length > 0) {
+      if (space.activated_for_combat && living > 0) {
         html += `<img src="/paths/img/tiles/activate_attack.png" class="activation-tile" />`;
       }
       if (!space.activated_for_movement && !space.activated_for_combat && this.signals && this.signals.marks[key]) {
@@ -15434,6 +15440,27 @@ console.log("error updated attacker loss factor: " + JSON.stringify(err));
 	    }
 	  }
 
+	  // Warm the damaged faces and the reserve corps before the first click.
+	  // preloadImageArray keeps the decoded Image, so the chip swap does not
+	  // wait on a fetch.
+	  let hit_files = [];
+	  let warm_hit_counter = (unit) => {
+	    if (!unit || unit.destroyed) { return; }
+	    if (unit.back) { hit_files.push("img/army/" + unit.back); }
+	    if (unit.front) { hit_files.push("img/army/" + unit.front); }
+	  };
+	  let attackers_now = this.returnAttackerUnits();
+	  let defenders_now = this.returnDefenderUnits();
+	  for (let i = 0; i < attackers_now.length; i++) { warm_hit_counter(attackers_now[i]); }
+	  for (let i = 0; i < defenders_now.length; i++) { warm_hit_counter(defenders_now[i]); }
+	  for (let i = 0; i < this.game.spaces["arbox"].units.length; i++) {
+	    warm_hit_counter(this.game.spaces["arbox"].units[i]);
+	  }
+	  for (let i = 0; i < this.game.spaces["crbox"].units.length; i++) {
+	    warm_hit_counter(this.game.spaces["crbox"].units[i]);
+	  }
+	  this.preloadImageArray(hit_files);
+
 	  if (this.game.player === player) {
 
 	    this.combat_overlay.hide();
@@ -15532,6 +15559,7 @@ console.log("error updated attacker loss factor: " + JSON.stringify(err));
 	  // Great Retreat
 	  //
 	  if (parseInt(this.game.state.events.great_retreat_used) == 1) {
+	    try { this.loss_overlay.showRetreatNotice(); } catch (err) {}
 	    return 1;
 	  }
 
@@ -15541,6 +15569,7 @@ console.log("error updated attacker loss factor: " + JSON.stringify(err));
 	  if (this.game.state.combat.backs_to_the_wall == 1) {
 	    this.paths_log.note("Backs to the Wall: no retreat");
 	    this.paths_log.publishCombat();
+	    try { this.loss_overlay.showRetreatNotice(); } catch (err) {}
 	    return 1;
 	  }
 
@@ -15560,6 +15589,7 @@ console.log("error updated attacker loss factor: " + JSON.stringify(err));
 	    if (western && space.trench > 0 && has_german && british_attack) {
 	      this.paths_log.note("Haig: no retreat");
 	      this.paths_log.publishCombat();
+	      try { this.loss_overlay.showRetreatNotice(); } catch (err) {}
 	      return 1;
 	    }
 	  }
@@ -15632,7 +15662,11 @@ console.log("error updated attacker loss factor: " + JSON.stringify(err));
 	  //
 	  // no retreating from unoccupied fort
 	  //
-	  if (this.game.state.combat.unoccupied_fort == 1) { this.paths_log.publishCombat(); return 1; }
+	  if (this.game.state.combat.unoccupied_fort == 1) {
+	    this.paths_log.publishCombat();
+	    try { this.loss_overlay.showRetreatNotice(); } catch (err) {}
+	    return 1;
+	  }
 
 	  //
 	  // hide loss overlay
@@ -15707,7 +15741,6 @@ console.log("error updated attacker loss factor: " + JSON.stringify(err));
 	  this.paths_log.publishCombat();
 
 	  if (does_defender_retreat) {
-	    try { this.loss_overlay.hide(); } catch (err) {}
 	    let player = this.returnPlayerOfFaction(this.game.state.combat.defender_power);
 	    if (this.game.player == player) {
 	      this.playerPlayPostCombatRetreat();
@@ -16011,6 +16044,53 @@ console.log("moving unit in PCC 2: " + JSON.stringify(u));
 
 	}
 
+	if (mv[0] === "pull_destroyed") {
+
+	  this.game.queue.splice(qe, 1);
+
+	  // Both seats run this after the assignment's damage, add, and remove
+	  // moves. Destroyed units have stayed in place so the replacement corps
+	  // was recorded at the same index on each seat. Drop that dead record,
+	  // shift later indexes, then move the unit to the eliminated box.
+	  let touched = {};
+	  for (let key in this.game.spaces) {
+	    if (key === "aeubox" || key === "ceubox" || key === "arbox" || key === "crbox") { continue; }
+	    let space = this.game.spaces[key];
+	    if (!space || !space.units) { continue; }
+	    for (let i = space.units.length - 1; i >= 0; i--) {
+	      let u = space.units[i];
+	      if (!u || !u.destroyed) { continue; }
+	      if (this.game.state.combat && this.game.state.combat.attacker) {
+	        let attackers = this.game.state.combat.attacker;
+	        for (let zz = attackers.length - 1; zz >= 0; zz--) {
+	          if (attackers[zz].unit_sourcekey !== key) { continue; }
+	          if (attackers[zz].unit_idx === i) {
+	            attackers.splice(zz, 1);
+	          } else if (attackers[zz].unit_idx > i) {
+	            attackers[zz].unit_idx--;
+	          }
+	        }
+	      }
+	      if (this.returnPowerOfUnit(u) === "central") {
+	        this.moveUnit(key, i, "ceubox");
+	      } else {
+	        this.moveUnit(key, i, "aeubox");
+	      }
+	      touched[key] = 1;
+	    }
+	  }
+	  for (let key in touched) {
+	    this.displaySpace(key);
+	  }
+	  this.displaySpace("ceubox");
+	  this.displaySpace("aeubox");
+	  if (this.loss_overlay) {
+	    this.loss_overlay.refreshPresentedUnits();
+	  }
+	  return 1;
+
+	}
+
 	if (mv[0] === "damage") {
 
 	  this.game.queue.splice(qe, 1);
@@ -16029,13 +16109,6 @@ console.log("moving unit in PCC 2: " + JSON.stringify(u));
 	      }
 	    }
 	  }
-
-	  let is_last_unit = 0;
-	  let tmpx = this.game.queue[this.game.queue.length-1].split("\t");
-
-console.log("DAMAGE: " + JSON.stringify(tmpx));
-
-	  if (tmpx[0] !== "damage" && tmpx[0] !== "add") { is_last_unit = 1; }
 
 	  if (player_to_ignore != this.game.player) {
 	    let unit = null;
@@ -16069,42 +16142,15 @@ console.log("DAMAGE: " + JSON.stringify(tmpx));
 		unit.damaged = true;
 	    	unit.damaged_this_combat = true;
 	      } else { 
+		// Stay in the array until pull_destroyed. Removing it here shifts
+		// every later index while hits and the replacement corps are still
+		// being recorded.
 		unit.destroyed = true;
 	    	unit.damaged_this_combat = true;
-		if (this.returnPowerOfUnit(unit) === "central") {
-		  this.moveUnit(spacekey, unit_idx, "ceubox");
-		} else {
-		  this.moveUnit(spacekey, unit_idx, "aeubox");
-		}
 	      }
 	    }
 	  }
 
-console.log("# is last unit: " + is_last_unit);
-
-	  if (is_last_unit) {
-
-console.log("#");
-console.log("#");
-console.log("#");
-console.log("IS LAST UNIT!");
-console.log(JSON.stringify(this.game.spaces[spacekey].units));
-
-            for (let z = this.game.spaces[spacekey].units.length-1; z >= 0; z--) {
-              let u = this.game.spaces[spacekey].units[z];
-	      let f = this.returnPowerOfUnit(u);
-console.log("POU: " + f);
-              if (u.destroyed == true) {
-console.log("moving unit: " + JSON.stringify(u));
-		if (f === "central") {
-	          this.moveUnit(spacekey, z, "ceubox");
-		} else {
-	          this.moveUnit(spacekey, z, "aeubox");
-		}
-	      }
-            } 
-	  }
-            
 	  this.displaySpace("ceubox");
 	  this.displaySpace("aeubox");
 	  this.displaySpace(spacekey);
@@ -16965,7 +17011,6 @@ console.log("moving unit: " + JSON.stringify(u));
     let ccs = [];
     let cards = this.returnDeck();
     let faction = this.returnFactionOfPlayer(this.game.player);
-    let name = this.returnPlayerName(faction);
 
     //
     // cards can come from our hand, or the list which is active (on_table) and
@@ -17092,8 +17137,11 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
 
     ccs.push("pass");
    
-    this.game.status = `${name} - play combat card?`;
+    this.game.status = `Attack on ${this.returnSpaceNameForLog(this.game.state.combat.key)} - play combat card?`;
     this.hud.updateStatus(this.game.status);
+    if (this.zoom_overlay && this.zoom_overlay.visible) {
+      this.zoom_overlay.scrollTo(this.game.state.combat.key);
+    }
     this.hud.updateMenu([]);
     this.hud.updateCards(ccs);
     this.hud.pullToFront();
@@ -17144,7 +17192,6 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
     let ccs = [];
     let cards = this.returnDeck("all");
     let faction = this.returnFactionOfPlayer(this.game.player);
-    let name = this.returnPlayerName(faction);
 
     //
     // cards can come from our hand, or the list which is active (on_table) and
@@ -17258,8 +17305,11 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
 
     ccs.push("pass");
    
-    this.game.status = `${name} - play combat card?`;
+    this.game.status = `Attack on ${this.returnSpaceNameForLog(this.game.state.combat.key)} - play combat card?`;
     this.hud.updateStatus(this.game.status);
+    if (this.zoom_overlay && this.zoom_overlay.visible) {
+      this.zoom_overlay.scrollTo(this.game.state.combat.key);
+    }
     this.hud.updateMenu([]);
     this.hud.updateCards(ccs);
     this.hud.pullToFront();
@@ -18053,27 +18103,9 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
     let can_defender_cancel_retreat = false;
 
     //
-    // triggers if we only have 1 unit left and they are a damaged
-    // corps...
-    //
-    if (this.game.state.combat.can_defender_cancel == false) {
-      this.playerHandleRetreat();
-      return;
-    }
-
-    //
-    // withdrawal forces retreat -- no other options
-    //
-    if (this.game.state.events.withdrawal) {
-      this.playerHandleRetreat();
-      return;
-    }
-
-
-    //
     // Defending units in Trenches, Forests, Deserts, Mountains, or 
     // Swamps may chose to ignore a retreat by taking one additional
-    // step loss. 
+    // step loss. Withdrawal, and a last damaged corps, cannot.
     //
     let space = this.game.spaces[this.game.state.combat.key];
 
@@ -18082,8 +18114,36 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
     if (space.terrain == "swamp") 	{ can_defender_cancel_retreat = true; }
     if (space.terrain == "desert") 	{ can_defender_cancel_retreat = true; }
     if (space.trench > 0) 		{ can_defender_cancel_retreat = true; }
+    if (this.game.state.combat.can_defender_cancel == false) { can_defender_cancel_retreat = false; }
+    if (this.game.state.events.withdrawal) { can_defender_cancel_retreat = false; }
 
-    if (can_defender_cancel_retreat == false) {
+    let choices = [
+      { id: "retreat", label: "Retreat", chosen: "Retreating", close: true, go: () => { this.playerHandleRetreat(); } }
+    ];
+    if (can_defender_cancel_retreat) {
+      choices.push({
+        id: "hit",
+        label: "Take additional hit",
+        chosen: "Taking an additional hit",
+        close: false,
+        go: () => { this.loss_overlay.renderToAssignAdditionalStepwiseLoss(); }
+      });
+    }
+
+    // The result panel carries the choice and stays up until the defender clicks.
+    // Retreat closes it so the destination can be picked on the board. An extra
+    // hit replaces the choice with the assignment panel.
+    if (this.loss_overlay && this.loss_overlay.overlayEnabled() && !this.loss_overlay.board_mode) {
+      if (this.loss_overlay.showRetreatChoice(choices)) {
+        this.game.status = "Retreat?";
+        this.hud.updateStatus(this.game.status);
+        this.hud.updateCards([]);
+        this.hud.updateMenu([]);
+        return;
+      }
+    }
+
+    if (!can_defender_cancel_retreat) {
       this.playerHandleRetreat();
       return;
     }
@@ -18812,7 +18872,11 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
 
         this.game.status = "Playing event";
         this.hud.updateStatus(this.game.status);
-        acknowledgeNotice("for the Event");
+        // Guns of August starts a combat. The acknowledgement would run after
+        // that combat, once the opponent has already watched the battle.
+        if (card !== "cp01") {
+          acknowledgeNotice("for the Event");
+        }
 
 	//
 	// and trigger event
@@ -22211,12 +22275,10 @@ console.log(JSON.stringify(unit));
   }
 
   returnUnitImage(unit, just_link=false) {
-    if (unit.destroyed) {
-     return this.returnDestroyedUnitImage(unit, just_link);
-    }
-
     // The map chit is the file named on the unit. Yilderim and the Army of
     // Islam keep historical ids that do not match those filenames.
+    // Destroyed units are left out of space drawing entirely. Callers that
+    // still want a picture (the replacement list, for example) get the counter.
     let file = unit.damaged
       ? (unit.back || `${unit.key}_back.png`)
       : (unit.front || `${unit.key}.png`);
@@ -22231,15 +22293,8 @@ console.log(JSON.stringify(unit));
   }
   returnUnitImageInSpaceWithIndex(spacekey, idx) {
     let unit = this.game.spaces[spacekey].units[idx];
+    if (!unit || unit.destroyed) { return ""; }
     return this.returnUnitImage(unit);
-  }
-  returnDestroyedUnitImage(unit, just_link=false) {
-    if (just_link) {
-      return `/paths/img/cancel_x.png`;
-    } else {
-      return `<img src="/paths/img/cancel_x.png" class="army-tile ${unit.key}" />`;
-    }
-
   }
 
   cloneUnit(unitkey) {
