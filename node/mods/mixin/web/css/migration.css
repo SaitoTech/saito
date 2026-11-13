@@ -1,0 +1,148 @@
+.migration-page {
+  position: absolute;
+  top: var(--saito-header-height);
+  left: 0;
+  right: 0;
+  height: calc(100dvh - var(--saito-header-height));
+  overflow-x: hidden;
+  overflow-y: auto;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  box-sizing: border-box;
+  padding: var(--saito-space-xl) var(--saito-space-md);
+  background-color: var(--saito-background);
+  background-image: url(/saito/img/tiled-logo.svg);
+}
+
+.migration-page .withdraw-container {
+  width: min(60rem, 100%);
+  margin: 0;
+}
+
+.migration-page .withdraw-form-fields {
+  display: flex;
+  flex-direction: column;
+  gap: var(--saito-space-md);
+  width: 100%;
+}
+
+.migration-page .withdraw-form-fields .saito-button-row {
+  width: 100%;
+}
+
+.migration-page .withdraw-form-fields .saito-button-row > button {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.migration-page .migration-qrcode {
+  height: auto;
+  display: flex;
+  justify-content: center;
+  margin: var(--saito-space-md) auto;
+}
+
+.migration-page .migration-qrcode canvas,
+.migration-page .migration-qrcode img,
+.migration-page .migration-qrcode svg {
+  max-width: 100%;
+  height: auto;
+}
+
+/* Reuse the shared white QR border, sized to one QR module. */
+.migration-page .migration-qrcode svg {
+  width: min(18rem, 70vw);
+  box-sizing: border-box;
+  border-width: calc(min(18rem, 70vw) / var(--migration-qr-total-modules, 43));
+  border-radius: 0;
+}
+
+.migration-page .migration-deposit-address {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  margin-top: var(--saito-space-sm);
+  text-align: center;
+  color: var(--saito-foreground);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.migration-page .migration-deposit-address .profile-public-key {
+  display: inline;
+  min-width: 0;
+  overflow: visible;
+  text-align: center;
+  text-overflow: clip;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.migration-page .migration-deposit-address > i {
+  display: inline-block;
+  margin-left: 0.6rem;
+  vertical-align: middle;
+}
+
+.migration-page .migration-instructions,
+.migration-page .migration-status,
+.migration-page .migration-reservation {
+  width: 100%;
+  text-align: center;
+  color: var(--saito-foreground);
+  margin-top: var(--saito-space-sm);
+}
+
+.migration-page .migration-reserved-title {
+  font-size: 1.35em;
+  font-weight: 600;
+  margin: 0 0 var(--saito-space-md);
+}
+
+.migration-page #migration-time-left {
+  font-family: var(--saito-font-monospace);
+}
+
+.migration-page .migration-reservation-actions {
+  justify-content: center;
+  margin-top: var(--saito-space-md);
+}
+
+.migration-page .migration-issuing-spinner {
+  display: block;
+  width: 4.8rem;
+  margin: var(--saito-space-xl) auto;
+}
+
+.migration-page .migration-complete {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--saito-space-lg);
+  margin: var(--saito-space-xl) 0;
+  text-align: center;
+}
+
+.migration-page .migration-complete-logo {
+  width: 8rem;
+  max-width: 100%;
+  height: auto;
+}
+
+.migration-page .withdraw-outtro {
+  text-align: center;
+  margin-top: var(--saito-space-sm);
+  color: var(--saito-foreground);
+}
+
+@media screen and (max-width: 600px) {
+  .migration-page {
+    padding: var(--saito-space-lg) var(--saito-space-md);
+  }
+
+  .migration-page .withdraw-form-fields .saito-button-row {
+    flex-direction: column;
+  }
+}

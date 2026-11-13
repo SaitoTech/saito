@@ -61,7 +61,7 @@ class Blackjack extends GameTableTemplate {
 			class: 'game-intro',
 			callback: function (app, game_mod) {
 				game_mod.menu.hideSubMenus();
-				game_mod.overlay.show(game_mod.returnGameRulesHTML());
+				game_mod.overlay.showClosable(game_mod.returnGameRulesHTML());
 			}
 		});
 		this.menu.addSubMenuOption('game-info', {

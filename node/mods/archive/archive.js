@@ -712,6 +712,14 @@ class Archive extends ModTemplate {
   }
 
   async loadTransactions(obj = {}) {
+    const originalQuery = { ...obj };
+    // Do not mutate callers' query objects (pagination queries are reused).
+    obj = { ...obj };
+    const cursor = obj.created_cursor;
+    if (cursor && (!Number.isSafeInteger(cursor.timestamp) || cursor.timestamp < 0 ||
+      typeof cursor.signature !== 'string' || !/^[a-f0-9]{0,128}$/i.test(cursor.signature))) {
+      throw new Error('Invalid archive creation cursor');
+    }
     let limit = 10;
     let timestamp_limiting_clause = '';
 
@@ -797,6 +805,13 @@ class Archive extends ModTemplate {
     let param_count = 0;
 
     let params = { $limit: limit };
+    if (cursor) {
+      timestamp_limiting_clause += ' AND (archives.created_at < $cursor_time OR (archives.created_at = $cursor_time AND archives.sig < $cursor_sig))';
+      params.$cursor_time = cursor.timestamp;
+      params.$cursor_sig = cursor.signature;
+      order_clause = ' ORDER BY archives.created_at DESC, archives.sig';
+      sort = 'DESC';
+    }
 
     ///////////////////////////////////////////////////////////////////
     // Try getting everything for convenience, but monitor performance
@@ -859,12 +874,29 @@ class Archive extends ModTemplate {
     let rows = await this.app.storage.queryDatabase(sql, params, 'archive');
 
     if (this.app.BROWSER && !rows?.length) {
-      rows = await this.localDB.select({
-        from: 'archives',
-        where: where_obj,
-        order: order_obj,
-        limit
-      });
+      if (cursor) {
+        // Two bounded IndexedDB queries implement the same composite cursor as SQL.
+        const sameTime = await this.localDB.select({
+          from: 'archives',
+          where: { ...where_obj, created_at: cursor.timestamp, sig: { '<': cursor.signature } },
+          order: { by: 'sig', type: 'desc' },
+          limit
+        });
+        const older = await this.localDB.select({
+          from: 'archives',
+          where: { ...where_obj, created_at: { '<': cursor.timestamp } },
+          order: [{ by: 'created_at', type: 'desc' }, { by: 'sig', type: 'desc' }],
+          limit
+        });
+        rows = [...sameTime, ...older].slice(0, limit);
+      } else {
+        rows = await this.localDB.select({
+          from: 'archives',
+          where: where_obj,
+          order: order_obj,
+          limit
+        });
+      }
     } else {
       const fs = this.app?.storage?.returnFileSystem();
       if (!fs) {
@@ -893,6 +925,8 @@ class Archive extends ModTemplate {
       }
     }
 
+    const rawLast = rows?.[rows.length - 1];
+    const rawCount = rows?.length || 0;
     if (vault_access_read) {
       const row_summaries = (rows || []).map((r) => ({
         sig: r.sig,
@@ -1041,6 +1075,15 @@ class Archive extends ModTemplate {
       rows = altered_rows;
     }
 
+    // Access checks may remove a full page. Continue until we have enough
+    // visible rows, so hidden posts cannot make a paginated feed appear finished.
+    if (cursor && rawCount === limit && rows.length < limit && rawLast) {
+      const more = await this.loadTransactions({
+        ...originalQuery,
+        created_cursor: { timestamp: rawLast.created_at, signature: rawLast.sig }
+      });
+      return [...rows, ...more].slice(0, limit);
+    }
     return rows;
   }
 

@@ -1,0 +1,142 @@
+/* Store Admin — web3 withdrawal balances. */
+
+.store-withdrawals {
+  display: flex;
+  flex-direction: column;
+  gap: var(--saito-space-lg);
+  max-width: 40rem;
+  min-width: 0;
+  padding-top: var(--saito-space-sm);
+}
+
+.store-withdrawals > .title {
+  margin: 0;
+  font-size: var(--font-size-large);
+  font-family: var(--saito-font-medium);
+  font-weight: normal;
+  line-height: 1.3;
+  color: var(--saito-foreground);
+}
+
+.store-withdrawals .balances {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.store-withdrawals .balances th,
+.store-withdrawals .balances td {
+  padding: 0.85rem 0;
+  border-bottom: 1px solid var(--saito-border);
+  vertical-align: top;
+  text-align: left;
+}
+
+.store-withdrawals .balances th {
+  width: 6.5rem;
+  padding-right: var(--saito-space-lg);
+  font-size: var(--font-size-medium);
+  font-family: var(--saito-font-medium);
+  font-weight: normal;
+  letter-spacing: 0.04em;
+  color: var(--saito-foreground);
+}
+
+.store-withdrawals .eligible,
+.store-withdrawals .pending {
+  display: grid;
+  grid-template-columns: 6.5rem 6.5rem 1fr;
+  align-items: baseline;
+  column-gap: var(--saito-space-md);
+}
+
+.store-withdrawals .pending {
+  margin-top: 0.35rem;
+}
+
+.store-withdrawals .amount,
+.store-withdrawals time {
+  font-variant-numeric: tabular-nums;
+}
+
+.store-withdrawals .amount {
+  text-align: right;
+  color: var(--saito-foreground);
+}
+
+.store-withdrawals .label,
+.store-withdrawals time,
+.store-withdrawals .empty {
+  color: var(--saito-muted-foreground);
+}
+
+.store-withdrawals .withdraw-link {
+  justify-self: end;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--saito-foreground);
+  font: inherit;
+  text-decoration: underline dashed;
+  text-underline-offset: 0.18em;
+  cursor: pointer;
+}
+
+.store-withdrawals .empty {
+  padding: var(--saito-space-lg) 0;
+}
+
+.saito-overlay > .store-withdrawal {
+  width: min(92vw, 42rem);
+  padding: var(--saito-space-lg);
+  box-sizing: border-box;
+}
+
+.store-withdrawal .detail,
+.store-withdrawal .activation-prompt,
+.store-withdrawal .activation-error,
+.store-withdrawal .activation-status {
+  margin: 0;
+}
+
+.store-withdrawal .detail,
+.store-withdrawal .activation-status {
+  display: flex;
+  flex-direction: column;
+  gap: var(--saito-space-sm);
+}
+
+.store-withdrawal .detail span,
+.store-withdrawal .activation-prompt {
+  color: var(--saito-muted-foreground);
+}
+
+.store-withdrawal .activation-error {
+  color: var(--saito-error, #b42318);
+}
+
+.store-withdrawal .saito-button-row {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: var(--saito-space-md);
+}
+
+.store-withdrawal .activation-status {
+  align-items: center;
+  text-align: center;
+}
+
+.store-withdrawal .activation-status .saito-spinner {
+  width: 4.8rem;
+  min-width: 4.8rem;
+  height: 4.8rem;
+  margin: var(--saito-space-sm) 0;
+}
+
+.store-withdrawal input[readonly] {
+  cursor: default;
+}
+
+.store-withdrawal a {
+  color: inherit;
+}

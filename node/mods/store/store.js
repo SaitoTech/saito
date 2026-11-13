@@ -12,6 +12,8 @@ const {
   categoryViewKey
 } = require('./lib/categories');
 const index = require('./index');
+const StoreWithdrawals = require('./lib/withdrawal');
+const StoreAdmin = require('./lib/admin/store-admin');
 
 class Store extends ModTemplate {
   constructor(app) {
@@ -38,15 +40,27 @@ class Store extends ModTemplate {
     this.summaries = {};
     this.image_cache = {};
     this.store_public_key = '';
+    // Saved treasury identity that signs Web3 purchase transactions. Empty until
+    // an administrator confirms the Mixin issuance key. Checkout stays off until then.
+    this.web3_treasury_publickey = '';
+    this.web3_payments_enabled = false;
     this.store_peer_index = null;
     this.shared_listing_path = '';
     this.listings_to_moderate = 0;
     this.fee = 0;
     this.order_retry_limit = 10;
+    // How long the same saved refund may be rebroadcast. Expiry stops retries.
+    // It does not authorize another signed refund.
+    this.refund_retry_ms = 6 * 60 * 60 * 1000;
+    // Longest-chain blocks searched for a settlement whose order update was missed.
+    this.fulfillment_reconcile_blocks = 512;
+    // Saito blocks after a web3 sale's inclusion before those proceeds are eligible.
+    this.web3_withdrawal_blocks = 5;
     // User-store chrome is read-only; edits stay on Profile / Red Square hosts.
     this.enable_profile_edits = false;
 
     this.warehouse = new Warehouse(app, this);
+    this.withdrawals = new StoreWithdrawals(this);
     Object.assign(this, transactions);
   }
 
@@ -55,6 +69,7 @@ class Store extends ModTemplate {
 
     if (!this.app.BROWSER) {
       this.store_public_key = this.publicKey;
+      this.loadWeb3PaymentOptions();
       await this.warehouse.initialize();
     }
 
@@ -269,6 +284,7 @@ class Store extends ModTemplate {
     this.store_public_key = peer.publicKey;
     this.store_peer_index = peer.peerIndex;
     console.log('Store: onPeerServiceUp store_public_key=', this.store_public_key);
+    this.requestWeb3PaymentStatus();
 
     if (this.browser_active || Number(this.app.options?.store?.moderator) === 1) {
       this.requestStoreModerationState();
@@ -331,6 +347,13 @@ class Store extends ModTemplate {
     }
 
     let txmsg = tx.returnMessage();
+
+    if (txmsg?.request === 'store-web3-status') {
+      if (!this.app.BROWSER && mycallback != null) {
+        mycallback({ enabled: this.web3PaymentsEnabled() });
+        return 1;
+      }
+    }
 
     if (txmsg?.request === 'store-moderation-response') {
       if (this.app.BROWSER) {
@@ -460,6 +483,49 @@ class Store extends ModTemplate {
           category: result.category,
           pagination: result.pagination
         });
+        return 1;
+      }
+    }
+
+    if (txmsg?.request === 'load-web3-proceeds') {
+      if (!this.app.BROWSER && mycallback != null) {
+        const seller = String(tx.from?.[0]?.publicKey || '').trim();
+        let latestBlockId = null;
+        try {
+          latestBlockId = Number(await this.app.blockchain?.getLatestBlockId?.());
+        } catch (err) {
+          latestBlockId = null;
+        }
+        const balances = seller
+          ? await this.warehouse.db.returnWeb3WithdrawalBalances(
+              seller,
+              latestBlockId,
+              this.web3_withdrawal_blocks
+            )
+          : { pending: {}, eligible: {} };
+        mycallback(balances);
+        return 1;
+      }
+    }
+
+    if (txmsg?.request === 'store-withdrawal-quote') {
+      if (!this.app.BROWSER && mycallback != null) {
+        const seller = String(tx.from?.[0]?.publicKey || '').trim();
+        const data = txmsg.data && typeof txmsg.data === 'object' ? txmsg.data : {};
+        const quote = await this.withdrawals.createQuote({
+          seller,
+          ticker: data.ticker,
+          withdrawalAddress: data.withdrawal_address
+        });
+        mycallback(quote);
+        return 1;
+      }
+    }
+
+    if (txmsg?.request === 'store-withdrawal') {
+      if (!this.app.BROWSER && mycallback != null) {
+        const result = await this.withdrawals.acceptSubmittedTransaction(tx);
+        mycallback(result);
         return 1;
       }
     }
@@ -704,6 +770,96 @@ class Store extends ModTemplate {
    * Node-operator keys in app.options.admin. An empty list authorizes nobody
    * (unlike Admin module's open-if-unconfigured default).
    */
+  loadWeb3PaymentOptions() {
+    const web3 = this.app.options?.store?.web3;
+    const key = String(web3?.treasury_publickey || '').trim();
+    const valid =
+      !!key &&
+      (typeof this.app.crypto?.isPublicKey !== 'function' || this.app.crypto.isPublicKey(key));
+    this.web3_treasury_publickey = valid ? key : '';
+    this.web3_payments_enabled = web3?.enabled === true && !!this.web3_treasury_publickey;
+  }
+
+  returnWeb3TreasuryPublicKey() {
+    return String(this.web3_treasury_publickey || '').trim();
+  }
+
+  web3PaymentsEnabled() {
+    if (this.app?.BROWSER) {
+      return this.web3_payments_enabled === true;
+    }
+    return this.web3_payments_enabled === true && !!this.returnWeb3TreasuryPublicKey();
+  }
+
+  /**
+   * Public key of the Mixin wallet that signs Web3 Saito fulfillment.
+   * A remote payout uses the configured treasury. Local payout uses this node.
+   */
+  returnDiscoveredWeb3IssuanceKey() {
+    const mixin = this.app.modules?.returnModule?.('Mixin');
+    if (!mixin || typeof mixin.returnSaitoIssuancePublicKey !== 'function') {
+      return '';
+    }
+    const key = String(mixin.returnSaitoIssuancePublicKey() || '').trim();
+    if (!key) {
+      return '';
+    }
+    if (typeof this.app.crypto?.isPublicKey === 'function' && !this.app.crypto.isPublicKey(key)) {
+      return '';
+    }
+    return key;
+  }
+
+  returnWeb3AdminConfig() {
+    return {
+      enabled: this.web3PaymentsEnabled(),
+      treasury_publickey: this.returnWeb3TreasuryPublicKey(),
+      discovered_publickey: this.returnDiscoveredWeb3IssuanceKey()
+    };
+  }
+
+  saveWeb3PaymentOptions({ enabled, treasury_publickey } = {}) {
+    if (!this.app.options || typeof this.app.options !== 'object') {
+      this.app.options = {};
+    }
+    if (!this.app.options.store || typeof this.app.options.store !== 'object') {
+      this.app.options.store = {};
+    }
+    const current =
+      this.app.options.store.web3 && typeof this.app.options.store.web3 === 'object'
+        ? this.app.options.store.web3
+        : {};
+    const key =
+      treasury_publickey === undefined
+        ? String(current.treasury_publickey || '').trim()
+        : String(treasury_publickey || '').trim();
+    this.app.options.store.web3 = {
+      enabled: enabled === true && !!key,
+      treasury_publickey: key
+    };
+    this.loadWeb3PaymentOptions();
+    this.app.storage?.saveOptions?.();
+    return this.returnWeb3AdminConfig();
+  }
+
+  requestWeb3PaymentStatus() {
+    if (!this.app.BROWSER) {
+      return;
+    }
+    const peerKey = this.store_public_key;
+    if (!peerKey || !this.app.network?.sendRequestAsTransaction) {
+      return;
+    }
+    this.app.network.sendRequestAsTransaction(
+      'store-web3-status',
+      { module: this.name },
+      (response) => {
+        this.web3_payments_enabled = response?.enabled === true;
+      },
+      peerKey
+    );
+  }
+
   isStoreAdmin(tx) {
     const admins = Array.isArray(this.app.options?.admin) ? this.app.options.admin : [];
     return this.txIsFromAnyKey(tx, admins);
@@ -717,6 +873,55 @@ class Store extends ModTemplate {
   }
 
   respondTo(type = '', obj) {
+    if (type === 'admin-config') {
+      if (this.app.BROWSER) {
+        return null;
+      }
+      return {
+        id: this.returnSlug(),
+        name: this.name,
+        getConfig: async () => this.returnWeb3AdminConfig(),
+        updateConfig: async (config = {}) => {
+          if (config.action === 'disable') {
+            return this.saveWeb3PaymentOptions({ enabled: false });
+          }
+          if (config.action === 'authorize') {
+            const submitted = String(config.treasury_publickey || '').trim();
+            if (!submitted) {
+              return this.saveWeb3PaymentOptions({ enabled: false, treasury_publickey: '' });
+            }
+            if (
+              typeof this.app.crypto?.isPublicKey === 'function' &&
+              !this.app.crypto.isPublicKey(submitted)
+            ) {
+              throw new Error('That is not a valid Saito public key.');
+            }
+            return this.saveWeb3PaymentOptions({
+              enabled: true,
+              treasury_publickey: submitted
+            });
+          }
+          throw new Error('Unsupported Store configuration action.');
+        }
+      };
+    }
+
+    if (type === 'admin-sidebar') {
+      if (!this.app.BROWSER) {
+        return null;
+      }
+      return {
+        id: this.returnSlug(),
+        name: this.name,
+        render: () => {
+          if (!this.admin_ui) {
+            this.admin_ui = new StoreAdmin(this.app, this);
+          }
+          this.admin_ui.render();
+        }
+      };
+    }
+
     if (type === 'redsquare-profile') {
       const publicKey = String(obj?.publicKey || '').trim();
       if (!publicKey) {
@@ -1186,6 +1391,16 @@ class Store extends ModTemplate {
       case 'order-refund':
         this.app.connection.emit('store-order-refund', { blk, tx, conf });
         console.log('Store: onConfirmation order-refund conf=0', tx.signature);
+        if (!this.app.BROWSER) {
+          try {
+            await this.warehouse.refunds.observeInclusion(blk, tx);
+          } catch (err) {
+            console.error('Store: refund inclusion was not recorded', {
+              refund_tx_sig: tx.signature,
+              error: err?.message || String(err)
+            });
+          }
+        }
         if (this.app.BROWSER && typeof siteMessage === 'function') {
           siteMessage('Refund Issued: order could not be processed.', 5000);
         }

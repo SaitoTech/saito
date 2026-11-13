@@ -211,6 +211,7 @@
 
 #qrcode img,
 #qrcode svg,
+.saito-qr-border,
 .saito-crypto-deposit .qrcode img,
 .saito-crypto-deposit .qrcode svg,
 .payment-box .qrcode img,

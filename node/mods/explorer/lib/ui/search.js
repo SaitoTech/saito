@@ -6,7 +6,7 @@ class Search {
     this.app = app;
     this.mod = mod;
     this.data = {
-      placeholder: 'Search by Block Hash, Public Key, or UTXOKEY'
+      placeholder: 'Search by Block Hash, Transaction Signature, Public Key, or UTXOKEY'
     };
   }
 
@@ -44,7 +44,7 @@ class Search {
     const match = classifySearchQuery(this.app, raw);
     if (!match) {
       this.app.browser?.alert?.(
-        'Enter a valid block hash (32 bytes), public key (33 bytes), or UTXOKEY (59 bytes).'
+        'Enter a valid block hash (32 bytes), transaction signature (64 bytes), public key (33 bytes), or UTXOKEY (59 bytes).'
       );
       return;
     }
@@ -61,6 +61,11 @@ class Search {
 
     if (match.type === 'utxo') {
       this.mod.renderUtxo(match.value, { pushState: true, animate: true });
+      return;
+    }
+
+    if (match.type === 'transaction') {
+      this.mod.renderTransactionSignature(match.value, { pushState: true, animate: true });
     }
   }
 }

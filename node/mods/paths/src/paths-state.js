@@ -22,7 +22,12 @@
 
     this.game.state.attacks = {};
 
-    if (this.game.state.events.high_seas_fleet > 1) { this.game.state.events.high_seas_fleet--; }
+    if (this.game.state.events.high_seas_fleet > 1) {
+      this.game.state.events.high_seas_fleet--;
+      if (this.game.state.events.high_seas_fleet == 1) {
+        console.log("Central Powers +1 VP from High Seas Fleet.");
+      }
+    }
 
     for (let key in this.game.spaces) {
       let redisplay = false;
@@ -121,7 +126,9 @@
     this.game.state.events.zeppelin_raids = 0;
     this.game.state.events.great_retreat = 0;
     this.game.state.events.great_retreat_used = 0;
-    this.game.state.events.fall_of_the_tsar_russian_vp = 0;
+    if (!this.game.state.events.fall_of_the_tsar) {
+      this.game.state.events.fall_of_the_tsar_russian_vp = 0;
+    }
     this.game.state.events.they_shall_not_pass = 0;
     this.game.state.events.wireless_intercepts = 0;
     this.game.state.events.everyone_into_battle = 0;
@@ -130,6 +137,9 @@
     this.game.state.events.withdrawal_bonus_used = 0;
     this.game.state.events.mine_attack = 0;
     this.game.state.events.influenza = 0;
+    this.game.state.events.lloyd_george = 0;
+    this.game.state.events.stavka_timidity = 0;
+    this.game.state.events.haig = 0;
 
   }
 
@@ -138,8 +148,8 @@
     this.game.state.central_fulfills_mo = false;
     this.game.state.allies_fulfills_mo = false;
 
-    if (this.game.state.mandated_offensives.central == "") { central_fulfills = true; }
-    if (this.game.state.mandated_offensives.allies == "") { allies_fulfills = true; }
+    if (this.game.state.mandated_offensives.central == "") { this.game.state.central_fulfills_mo = true; }
+    if (this.game.state.mandated_offensives.allies == "") { this.game.state.allies_fulfills_mo = true; }
       
     for (let z = 0; z < this.game.state.mo["central"].length; z++) {
       if (this.game.state.mo["central"][z] == this.game.state.mandated_offensives.central) {
@@ -174,12 +184,14 @@
   calculateRussianCapitulationTrack() {
 
     let count = 0;
+    let russian_vp_without_baku = 0;
     let position = 1;
 
     for (let key in this.game.spaces) {
       let space = this.game.spaces[key];
       if (space.country == "russia" && space.control == "central" && space.vp == 1) {
 	count++;
+	if (key != "baku") { russian_vp_without_baku++; }
       }
     }
     if (count >= 3) { position++; }
@@ -192,11 +204,13 @@
 
     if (this.game.state.events.fall_of_the_tsar) { position++; }
 
-    if (count == 7 || count > this.game.state.events.fall_of_the_tsar_russian_vp && this.game.state.events.fall_of_the_tsar_russian_vp != -1) {
+    if (this.game.state.events.fall_of_the_tsar && (russian_vp_without_baku == 7 || count > this.game.state.events.fall_of_the_tsar_russian_vp)) {
       position++;
     }
 
     if (this.game.state.events.bolshevik_revolution) { position++; }
+
+    if (this.game.state.events.treaty_of_brest_litovsk) { position++; }
 
     if (position != this.game.state.russian_capitulation_track) {    
       this.game.state.russian_capitulation_track = position;
@@ -265,6 +279,14 @@
     if (this.game.state.events.italian_nonentry > 0) { vp += this.game.state.events.italian_nonentry; }
     if (this.game.state.events.zimmerman_telegram) { vp--; results.events.push("Zimmerman Telegram (-1)"); }
     if (this.game.state.events.blockade > 1) { vp -= (this.game.state.events.blockade-1); results.events.push("Blockade (-"+(this.game.state.events.blockade-1)+")"); }
+    if (this.game.state.events.polish_restoration) { vp--; results.events.push("Polish Restoration (-1)"); }
+    if (this.game.state.events.french_mutiny_vp > 0) { vp += this.game.state.events.french_mutiny_vp; results.events.push("French Mutiny (+"+this.game.state.events.french_mutiny_vp+")"); }
+    if (this.game.state.events.peace_offensive_vp > 0) { vp -= this.game.state.events.peace_offensive_vp; results.events.push("Peace Offensive (-"+this.game.state.events.peace_offensive_vp+")"); }
+    if (this.game.state.events.peace_terms_vp) {
+      vp += this.game.state.events.peace_terms_vp;
+      let n = this.game.state.events.peace_terms_vp;
+      results.events.push("Peace Terms ("+(n > 0 ? "+" : "")+n+")");
+    }
 
     if (this.game.state.mo.vp_bonus > 0) { vp += this.game.state.mo.vp_bonus; let mo = "Mandatory Offensives ("; if (this.game.state.mo.vp_bonus >= 0) { mo += "+"; }; mo += this.game.state.mo.vp_bonus; mo += ")"; results.events.push(mo); }
 

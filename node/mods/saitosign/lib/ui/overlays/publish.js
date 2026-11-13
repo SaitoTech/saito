@@ -1,8 +1,13 @@
 const SaitoOverlay = require('../../../../../lib/saito/ui/saito-overlay/saito-overlay');
 const PublishTemplate = require('./publish.template');
 const Photo = require('./photo');
+const { signerAudit } = require('./signer-audit.model');
+const ShareFlow = require('./distribute');
 const Passport = require('./passport');
+const IdentityPrompt = require('./identity');
+const WhoTemplate = require('./who.template');
 const flow = require('./publish.flow');
+const { requirementLines } = require('./publish.share');
 const {
   verifyEmailSignature,
   verifyPhoto,
@@ -25,7 +30,6 @@ const {
   knownSigner
 } = require('../../auth');
 const { addUser, copy, resolveSigner } = require('../../document');
-const { saveDraft } = require('../../draft');
 const { shareMetadata } = require('../../transaction');
 
 class PublishOverlay {
@@ -36,10 +40,13 @@ class PublishOverlay {
     this.overlay.class = 'saito-overlay saitosign-publish-host';
     this.state = flow.initialState();
     this.sliding = false;
+    this.shareFlow = new ShareFlow(this);
     this.passport = new Passport();
+    this.whoOverlay = new SaitoOverlay(app, mod, true);
+    this.whoOverlay.class = 'saito-overlay saitosign-overlay';
   }
 
-  render() {
+  render(entry) {
     this.state = flow.initialState();
     const metadata = this.mod.document?.metadata;
     if (metadata) {
@@ -64,14 +71,205 @@ class PublishOverlay {
       );
     }
     this.state = flow.resolveInitial(this.state, this.workflowRequirements(this.state.canChooseTier));
-    if (this.state.step === 'share') {
+    if (entry === 'prepare' && !this.mod.document?.finalized && this.state.canChooseTier) {
+      this.state.entry = 'prepare';
+      this.state.step = 'select';
+      this.state.history = [];
+    } else if (this.state.step === 'share' && !this.mod.document?.finalized) {
+      this.state.entry = 'prepare';
+      this.state.step = 'ready';
+      this.state = this.summaryState(this.state);
+    } else if (this.state.step === 'share') {
+      this.state.entry = 'status';
       this.state = this.summaryState(this.state);
     }
     this.overlay.show(PublishTemplate(this.state));
     this.attachEvents();
   }
 
-  openStatus(completionNote = '') {
+  openRecoveredVerification(user) {
+    if (this.mod.retired || !user) {
+      return;
+    }
+    const index = (this.mod.document?.users || []).indexOf(user);
+    if (index < 0) {
+      return;
+    }
+    this.state = flow.initialState();
+    if (this.mod.document.metadata) {
+      this.state = flow.applyShareMetadata(this.state, this.mod.document.metadata);
+    }
+    this.state.signers = readUsers(this.mod);
+    const signer = this.state.signers.find((candidate) => candidate.index === index);
+    if (!signer) {
+      return;
+    }
+    this.state = flow.confirmYou(this.state, {
+      index,
+      name: signer.name,
+      email: user.email || signer.email,
+      publicKey: user.publickey || signer.publickey,
+      identicon: ''
+    });
+    this.state = {
+      ...this.state,
+      step: 'verify',
+      history: [],
+      focus: 'email',
+      allowUnfinalize: false,
+      verifyError: ''
+    };
+    this.state = this.withKnownVerifications(this.state);
+    this.overlay.show(PublishTemplate(this.state));
+    this.attachEvents();
+  }
+
+  openShare() {
+    this.shareFlow.open();
+  }
+
+  openRetry() {
+    this.shareFlow.openRetry();
+  }
+
+  openUnlock() {
+    this.shareFlow.openUnlock();
+  }
+
+  handleShareAction(action) {
+    const name = action.dataset.publishAction;
+    const known = [
+      'share-assisted',
+      'share-manual',
+      'share-standard',
+      'share-encrypted',
+      'share-export',
+      'share-password',
+      'share-upload',
+      'share-unlock',
+      'share-retry',
+      'share-reload',
+      'share-copy',
+      'share-backup',
+      'share-retry-email',
+      'share-retry-upload'
+    ];
+    if (!known.includes(name) || this.state.shareView?.busy) {
+      return false;
+    }
+    const view = this.shareFlow.view();
+    view.error = '';
+    if (name === 'share-assisted') {
+      this.shareFlow.ensureRecipients();
+      this.shareFlow.show('share-recipients', 'forward');
+    } else if (name === 'share-manual') {
+      this.shareFlow.show('share-manual', 'forward');
+    } else if (name === 'share-standard') {
+      view.encrypted = false;
+      this.shareFlow.show('share-recipients', 'forward');
+    } else if (name === 'share-encrypted') {
+      this.shareFlow.show('share-password', 'forward');
+    } else if (name === 'share-export') {
+      this.shareFlow.exportManual();
+    } else if (name === 'share-password') {
+      this.shareFlow.savePassword();
+    } else if (name === 'share-upload') {
+      this.shareFlow.uploadAndInvite();
+    } else if (name === 'share-unlock') {
+      this.shareFlow.unlock();
+    } else if (name === 'share-retry') {
+      this.shareFlow.retry();
+    } else if (name === 'share-copy') {
+      this.shareFlow.copyLink();
+    } else if (name === 'share-backup') {
+      this.shareFlow.backup();
+    } else if (name === 'share-retry-email') {
+      this.shareFlow.retryEmails();
+    } else if (name === 'share-retry-upload') {
+      this.shareFlow.uploadAndInvite();
+    } else if (name === 'share-reload') {
+      this.shareFlow.reloadLatest();
+    }
+    return true;
+  }
+
+  openSignerAudit(userIndex) {
+    if (this.sliding || this.state.step !== 'share' || !Number.isInteger(userIndex)) {
+      return;
+    }
+    const view = signerAudit(this.app, this.mod.document, userIndex);
+    if (!view) {
+      return;
+    }
+    this.state = flow.go(this.state, 'signer', {
+      audit: { index: view.index, section: 'email', photo: null },
+      auditView: view
+    });
+    this.showStep('forward');
+  }
+
+  handleAuditAction(event) {
+    if (this.state.step !== 'signer') {
+      return false;
+    }
+    const section = event.target.closest('[data-audit-section]');
+    if (section) {
+      event.preventDefault();
+      const name = section.dataset.auditSection;
+      this.state = {
+        ...this.state,
+        audit: {
+          ...this.state.audit,
+          section: name === 'signatures' || name === 'photos' ? name : 'email',
+          photo: null
+        }
+      };
+      this.paintSlide();
+      return true;
+    }
+    const photo = event.target.closest('[data-audit-photo]');
+    if (photo) {
+      event.preventDefault();
+      const images = this.state.auditView?.images || [];
+      const count = images.length;
+      const choice = photo.dataset.auditPhoto;
+      let next = this.state.audit?.photo;
+      if (choice === 'back') {
+        next = null;
+      } else if (choice === 'prev' && count) {
+        next = (Number(next) - 1 + count) % count;
+      } else if (choice === 'next' && count) {
+        next = (Number(next) + 1) % count;
+      } else if (images[Number(choice)]) {
+        next = Number(choice);
+      }
+      this.state = { ...this.state, audit: { ...this.state.audit, section: 'photos', photo: next } };
+      this.paintSlide();
+      return true;
+    }
+    const copy = event.target.closest('[data-audit-copy]');
+    if (!copy) {
+      return false;
+    }
+    event.preventDefault();
+    const root = document.querySelector('.saitosign-publish');
+    const source = root?.querySelector(`[data-audit-value="${CSS.escape(copy.dataset.auditCopy)}"]`);
+    const value = source?.textContent || '';
+    if (!value) {
+      return true;
+    }
+    const done = () => {
+      copy.textContent = 'Copied';
+    };
+    if (navigator.clipboard?.writeText) {
+      navigator.clipboard.writeText(value).then(done).catch(() => selectAuditText(source));
+      return true;
+    }
+    selectAuditText(source);
+    return true;
+  }
+
+  openStatus(completionNote = '', entry = 'status') {
     const record = this.mod.document;
     if (!record?.finalized || !verifyFinalization(this.app, record)) {
       this.mod.main?.fail('The finalized document creator signature is invalid.');
@@ -82,15 +280,89 @@ class PublishOverlay {
       this.state = flow.applyShareMetadata(this.state, record.metadata);
     }
     this.state.signers = readUsers(this.mod);
+    const manual = entry === 'signature-export';
+    const completed = entry === 'signature-complete' || manual;
+    this.state.entry = entry === 'recipient' || completed ? 'recipient' : 'status';
+    const locked = this.state.entry === 'recipient' && !completed ? this.lockedShareStep() : '';
     this.state = {
       ...this.summaryState(this.state),
-      step: 'share',
+      step: manual ? 'signature-export' : (completed ? 'signature-complete' : (locked || (this.state.entry === 'recipient' ? 'share-method' : 'share'))),
       history: [],
       allowUnfinalize: false,
-      completionNote: String(completionNote || '')
+      completionNote: String(completionNote || ''),
+      uploadBusy: false,
+      uploaded: false,
+      uploadNote: ''
     };
+    if (this.state.step === 'share-recipients') {
+      this.shareFlow.ensureRecipients();
+    }
     this.overlay.show(PublishTemplate(this.state));
     this.attachEvents();
+  }
+
+  async uploadCompletedSignatures() {
+    if (this.state.step !== 'signature-complete' || this.state.uploadBusy || this.state.uploaded) {
+      return;
+    }
+    this.state = { ...this.state, uploadBusy: true, uploadNote: '' };
+    this.paintSlide();
+    let result;
+    try {
+      result = await this.mod.syncIfShared();
+    } catch (err) {
+      result = { ok: false, error: err?.message };
+    }
+    if (result?.ok) {
+      this.state = {
+        ...this.state,
+        uploadBusy: false,
+        uploaded: true,
+        uploadNote: 'Your signatures have been uploaded. You and your counterparties will be notified by email.'
+      };
+    } else {
+      const raw = String(result?.error || '');
+      this.state = {
+        ...this.state,
+        uploadBusy: false,
+        uploaded: false,
+        uploadNote: raw.startsWith('This upload was not signed')
+          ? 'The signatures could not be uploaded. Use the link to try again.'
+          : (raw || 'The signatures could not be uploaded. Use the link to try again.')
+      };
+    }
+    this.paintSlide();
+  }
+
+  async exportSignedCopy() {
+    if (this.state.step !== 'signature-export' || this.state.uploadBusy) {
+      return;
+    }
+    this.state = { ...this.state, uploadBusy: true, uploadNote: '' };
+    this.paintSlide();
+    let result;
+    try {
+      result = await this.mod.exportDocument();
+    } catch (err) {
+      result = { ok: false };
+    }
+    if (result?.ok) {
+      const filename = result.filename ? `Your browser downloaded ${result.filename}. ` : '';
+      this.state = {
+        ...this.state,
+        uploadBusy: false,
+        uploaded: true,
+        uploadNote: `${filename}Send that file to the other signers. SaitoSign does not deliver it for you.`
+      };
+    } else {
+      this.state = {
+        ...this.state,
+        uploadBusy: false,
+        uploaded: false,
+        uploadNote: 'The document was not exported. Use the link to try again.'
+      };
+    }
+    this.paintSlide();
   }
 
   beginVerification(signerIndex, actionId) {
@@ -117,9 +389,37 @@ class PublishOverlay {
     this.attachEvents();
   }
 
-  async commitFinalization() {
-    if (this.sliding || this.state.step !== 'select') {
+  async confirmReady() {
+    const ready = await this.commitFinalization();
+    if (!ready) {
       return;
+    }
+    this.state.entry = 'prepare';
+    this.state = flow.go(this.state, 'decide-sign');
+    this.showStep('forward');
+  }
+
+  async reopenForEditing() {
+    if (!this.mod.document?.finalized) {
+      return true;
+    }
+    try {
+      const reopened = await unfinalizeDocument(this.app, this.mod.document);
+      if (!reopened) {
+        this.mod.main?.fail('Only the document creator can change this finalized document.');
+        return false;
+      }
+      this.refreshWorkspace();
+      return true;
+    } catch (err) {
+      this.mod.main?.fail('Only the document creator can change this finalized document.');
+      return false;
+    }
+  }
+
+  async commitFinalization() {
+    if (this.mod.retired || this.sliding || (this.state.step !== 'share' && this.state.step !== 'ready') || this.mod.document?.finalized) {
+      return false;
     }
     this.sliding = true;
     let ready = false;
@@ -129,38 +429,35 @@ class PublishOverlay {
       const creator = String(record?.creator || '').trim();
       if (!record || !creator) {
         this.mod.main?.fail('This document could not be finalized.');
-        return;
+        return false;
       }
-      if (!record.finalized) {
-        const problem = signingConfigurationError(record);
-        if (problem) {
-          this.mod.main?.fail(problem);
-          return;
-        }
-        const snapshot = {
-          finalized: record.finalized,
-          finalization: record.finalization ? JSON.parse(JSON.stringify(record.finalization)) : null,
-          creatorProof: record.creatorProof ? JSON.parse(JSON.stringify(record.creatorProof)) : null,
-          edited: record.edited,
-          hash: String(record.hash || '')
-        };
-        const finalized = await finalizeDocument(this.app, record, creator);
-        if (!finalized || !verifyFinalization(this.app, record) || !verifyCreatorProof(this.app, record)) {
-          record.finalized = snapshot.finalized;
-          record.finalization = snapshot.finalization;
-          record.creatorProof = snapshot.creatorProof;
-          record.edited = snapshot.edited;
-          record.hash = snapshot.hash;
-          this.mod.main?.fail('This document could not be finalized.');
-          return;
-        }
+      const problem = signingConfigurationError(record);
+      if (problem) {
+        this.mod.main?.fail(problem);
+        return false;
+      }
+      const snapshot = {
+        finalized: record.finalized,
+        finalization: record.finalization ? JSON.parse(JSON.stringify(record.finalization)) : null,
+        creatorProof: record.creatorProof ? JSON.parse(JSON.stringify(record.creatorProof)) : null,
+        edited: record.edited,
+        hash: String(record.hash || '')
+      };
+      const finalized = await finalizeDocument(this.app, record, creator);
+      if (!finalized || !verifyFinalization(this.app, record) || !verifyCreatorProof(this.app, record)) {
+        record.finalized = snapshot.finalized;
+        record.finalization = snapshot.finalization;
+        record.creatorProof = snapshot.creatorProof;
+        record.edited = snapshot.edited;
+        record.hash = snapshot.hash;
+        this.mod.main?.fail('This document could not be finalized.');
+        return false;
       }
       if (record.metadata) {
         const saved = flow.applyShareMetadata(this.state, record.metadata);
         this.state = { ...this.state, plan: saved.plan, options: saved.options };
       }
-      this.state = flow.go(this.state, 'share', { allowUnfinalize: true });
-      this.state = this.summaryState(this.state);
+      this.state = this.summaryState({ ...this.state, allowUnfinalize: false, entry: 'prepare' });
       this.refreshWorkspace();
       ready = true;
     } catch (err) {
@@ -168,9 +465,7 @@ class PublishOverlay {
     } finally {
       this.sliding = false;
     }
-    if (ready) {
-      await this.showStep('forward');
-    }
+    return ready;
   }
 
   async reopenTier() {
@@ -223,6 +518,7 @@ class PublishOverlay {
 
     const panel = document.querySelector('#saitosign-publish-step');
     const actionBar = document.querySelector('.saitosign-publish .actions');
+    const content = panel?.closest('.content');
     if (!panel) {
       this.sliding = false;
       this.overlay.show(PublishTemplate(this.state));
@@ -251,8 +547,14 @@ class PublishOverlay {
         });
       });
     }
-    if (actionBar && nextActions) {
-      actionBar.replaceWith(nextActions);
+    if (nextActions) {
+      if (actionBar) {
+        actionBar.replaceWith(nextActions);
+      } else if (content) {
+        content.appendChild(nextActions);
+      }
+    } else if (actionBar) {
+      actionBar.remove();
     }
 
     this.attachEvents();
@@ -276,7 +578,37 @@ class PublishOverlay {
     if (root.dataset.bound === '1') return;
     root.dataset.bound = '1';
 
+    root.addEventListener('input', (event) => {
+      const view = this.state.shareView;
+      if (!view) {
+        return;
+      }
+      if (event.target.matches('[data-share-password]')) {
+        view.password = event.target.value;
+      }
+      if (event.target.matches('[data-share-password-confirm]')) {
+        view.confirm = event.target.value;
+      }
+      if (event.target.matches('[data-share-password], [data-share-password-confirm]')) {
+        view.prepared = null;
+        if (!view.stored) {
+          view.clientKey = '';
+        }
+      }
+    });
+
     root.addEventListener('change', (event) => {
+      const protect = event.target.closest('[data-share-protect]');
+      if (protect && this.state.shareView) {
+        this.state.shareView.protect = protect.checked === true;
+        this.state.shareView.prepared = null;
+        if (!this.state.shareView.stored) {
+          this.state.shareView.clientKey = '';
+        }
+        this.state.shareView.error = '';
+        this.paintSlide();
+        return;
+      }
       const option = event.target.closest('[data-share-option]');
       if (option && this.state.step === 'select' && this.state.canChooseTier) {
         this.state = flow.setShareOption(this.state, option.dataset.shareOption, option.checked);
@@ -297,7 +629,28 @@ class PublishOverlay {
       }
     });
 
-    root.addEventListener('click', (event) => {
+    root.addEventListener('keydown', (event) => {
+      if (event.key !== 'Enter' && event.key !== ' ') {
+        return;
+      }
+      const signer = event.target.closest('[data-signer-audit]');
+      if (!signer || this.state.step !== 'share') {
+        return;
+      }
+      event.preventDefault();
+      this.openSignerAudit(Number(signer.dataset.signerAudit));
+    });
+
+    root.addEventListener('click', async (event) => {
+      if (this.handleAuditAction(event)) {
+        return;
+      }
+      const signer = event.target.closest('[data-signer-audit]');
+      if (signer && this.state.step === 'share') {
+        this.openSignerAudit(Number(signer.dataset.signerAudit));
+        return;
+      }
+
       const plan = event.target.closest('[data-plan]');
       if (plan && this.state.step === 'select') {
         if (!this.state.canChooseTier) {
@@ -339,15 +692,21 @@ class PublishOverlay {
       }
 
       if (action.dataset.publishAction === 'back') {
-        if (this.state.step === 'share') {
-          this.reopenTier();
+        if (this.recipientEntryStep()) {
+          this.close();
           return;
         }
         const next = flow.back(this.state);
         if (next === this.state) {
           return;
         }
-        this.state = next;
+        if (this.state.entry === 'prepare' && (next.step === 'select' || next.step === 'ready')) {
+          const reopened = await this.reopenForEditing();
+          if (!reopened) {
+            return;
+          }
+        }
+        this.state = next.step === 'ready' || next.step === 'share' ? this.summaryState(next) : next;
         this.showStep('back');
         return;
       }
@@ -374,25 +733,50 @@ class PublishOverlay {
         return;
       }
 
-      if (action.dataset.publishAction === 'share') {
-        this.mod.exportDocument();
+      if (action.dataset.publishAction === 'share' || action.dataset.publishAction === 'upload-share') {
+        this.openShare();
+        return;
+      }
+
+      if (action.dataset.publishAction === 'ready-no') {
+        this.close();
+        return;
+      }
+
+      if (action.dataset.publishAction === 'ready-yes') {
+        this.confirmReady();
+        return;
+      }
+
+      if (action.dataset.publishAction === 'sign-yes') {
+        this.showWhoAreYou();
+        return;
+      }
+
+      if (action.dataset.publishAction === 'sign-no') {
+        this.state.entry = 'prepare';
+        this.shareFlow.ensureRecipients();
+        this.state = flow.go(this.state, 'share-method');
+        this.showStep('forward');
+        return;
+      }
+
+      if (action.dataset.publishAction === 'finalize') {
+        this.commitFinalization();
         return;
       }
 
       if (action.dataset.publishAction === 'sign-now') {
-        this.state = { ...this.state, allowUnfinalize: false };
-        this.close();
-        this.refreshWorkspace();
+        this.showWhoAreYou();
         return;
       }
 
-      if (action.dataset.publishAction === 'upload-share') {
-        const notice = 'Upload and share is not implemented yet.';
-        if (typeof salert === 'function') {
-          salert(notice);
-        } else {
-          alert(notice);
-        }
+      if (action.dataset.publishAction === 'skip-sign') {
+        this.openShare();
+        return;
+      }
+
+      if (this.handleShareAction(action)) {
         return;
       }
 
@@ -406,9 +790,22 @@ class PublishOverlay {
         return;
       }
 
+      if (action.dataset.publishAction === 'upload-signatures') {
+        this.uploadCompletedSignatures();
+        return;
+      }
+
+      if (action.dataset.publishAction === 'export-signed') {
+        this.exportSignedCopy();
+        return;
+      }
+
       if (action.dataset.publishAction === 'advance') {
         if (this.state.step === 'select') {
-          this.commitFinalization();
+          this.writeShare();
+          this.state = flow.go(this.state, 'ready', { allowUnfinalize: false, entry: 'prepare' });
+          this.state = this.summaryState(this.state);
+          this.showStep('forward');
           return;
         }
         if (this.state.step === 'verify') {
@@ -479,6 +876,27 @@ class PublishOverlay {
     return this.normalizePublicKey(this.app.wallet?.publicKey);
   }
 
+  isCreator() {
+    const creator = this.normalizePublicKey(this.mod.document?.creator);
+    return Boolean(creator && creator === this.currentPublicKey());
+  }
+
+  lockedShareStep() {
+    if (this.isCreator()) {
+      return '';
+    }
+    if (this.mod.receivedBy === 'link' || this.mod.share?.id) {
+      return 'share-recipients';
+    }
+    return 'share-manual';
+  }
+
+  recipientEntryStep() {
+    return this.state.entry === 'recipient'
+      && !this.state.history.length
+      && (this.state.step === 'share-method' || this.state.step === 'share-recipients' || this.state.step === 'share-manual');
+  }
+
   normalizePublicKey(value) {
     let publickey = String(value || '').trim();
     if (/^[0-9a-fA-F]+$/.test(publickey) && publickey.length >= 64) {
@@ -500,6 +918,54 @@ class PublishOverlay {
     }
     this.keepUser(signer);
     this.continueAfterIdentity();
+  }
+
+  showWhoAreYou() {
+    if (!this.state.finalized) {
+      return;
+    }
+    const signers = shareRowsForWho(this.state);
+    if (!signers.length) {
+      return;
+    }
+    this.whoOverlay.show(WhoTemplate(signers));
+    const root = document.querySelector('.saitosign-who');
+    if (!root) {
+      return;
+    }
+    root.addEventListener('click', (event) => {
+      const choice = event.target.closest('[data-who-signer]');
+      if (!choice) {
+        return;
+      }
+      event.preventDefault();
+      const index = Number(choice.dataset.whoSigner);
+      const signer = this.state.signers.find((candidate) => candidate.index === index);
+      if (!signer) {
+        return;
+      }
+      this.whoOverlay.close();
+      const prompt = new IdentityPrompt(this.app, this.mod);
+      prompt.render(signer.name || signer.email || '', {
+        onYes: () => this.beginSigningAs(signer)
+      });
+    });
+  }
+
+  beginSigningAs(signer) {
+    if (!signer || !this.state.finalized) {
+      return;
+    }
+    this.keepUser(signer);
+    const actionId = firstUnsignedActionId(this.app, this.mod.document, signer.index);
+    this.state = flow.go(this.state, 'verify', {
+      afterVerify: 'sign',
+      pendingActionId: actionId,
+      allowUnfinalize: false,
+      verifyError: ''
+    });
+    this.state = this.withKnownVerifications(this.state);
+    this.showStep('forward');
   }
 
   addSigner() {
@@ -697,6 +1163,9 @@ class PublishOverlay {
   }
 
   sendEmail() {
+    if (this.mod.retired) {
+      return;
+    }
     const input = document.querySelector('[data-verify-email]');
     const email = (input?.value || this.state.you?.email || '').trim();
     const publickey = this.state.you?.publicKey || '';
@@ -805,7 +1274,7 @@ class PublishOverlay {
 
     if (res.signature) {
       try {
-        await saveDraft({ code: res.signature, document: copy(this.mod.document) });
+        await this.mod.persistDraft({ code: res.signature, document: copy(this.mod.document) });
       } catch (err) {}
     }
 
@@ -831,7 +1300,7 @@ class PublishOverlay {
   }
 
   async submitSignature() {
-    if (this.state.checking) {
+    if (this.mod.retired || this.state.checking) {
       return;
     }
     const signature = document.querySelector('[data-verify-signature]')?.value.trim() || '';
@@ -871,10 +1340,11 @@ class PublishOverlay {
         method: 'email',
         publickey: this.serverkey,
         message: `Request received for verification of email ${email} with publickey ${publickey}`,
-        signature
+        signature,
+        returned: true
       });
     }
-    saveDraft({ code: signature, document: copy(this.mod.document) }).catch(() => {});
+    this.mod.persistDraft({ code: signature, document: copy(this.mod.document) }).catch(() => {});
     rememberEmail(this.app, publickey, email);
     this.state = flow.markMethodVerified(
       { ...this.state, checking: false, pendingCode: '', verifyError: '' },
@@ -884,6 +1354,9 @@ class PublishOverlay {
   }
 
   takePhoto() {
+    if (this.mod.retired) {
+      return;
+    }
     const photo = new Photo(this.app, this.mod);
     this.photo = photo;
     photo.open({
@@ -892,6 +1365,9 @@ class PublishOverlay {
   }
 
   async acceptPhoto(image) {
+    if (this.mod.retired) {
+      return;
+    }
     const you = this.state.you;
     const publickey = you?.publicKey || '';
     const live = you ? this.mod.document.users[you.index] : null;
@@ -980,7 +1456,7 @@ class PublishOverlay {
     const record = this.mod.document;
     const signature = record?.users?.[this.state.you?.index]?.verifications?.[0]?.signature || '';
     if (signature) {
-      saveDraft({ code: signature, document: copy(record) }).catch(() => {});
+      this.mod.persistDraft({ code: signature, document: copy(record) }).catch(() => {});
     }
     if (this.state.afterVerify === 'sign') {
       const actionId = this.state.pendingActionId;
@@ -1002,24 +1478,30 @@ class PublishOverlay {
     const userIndex = state.you?.index;
     const status = actionStatus(this.app, record?.actions, record?.users, userIndex, record);
     const creatorKey = this.normalizePublicKey(record?.creator);
+    const pageCount = Number(record?.document?.page_count) || 0;
     const signers = readUsers(this.mod).map((signer) => {
       const signerStatus = actionStatus(this.app, record?.actions, record?.users, signer.index, record);
       return {
         ...signer,
         places: signerStatus.mine,
         signed: signerStatus.mine > 0 && signerStatus.userComplete,
-        creator: Boolean(creatorKey) && this.normalizePublicKey(signer.publickey) === creatorKey
+        creator: Boolean(creatorKey) && this.normalizePublicKey(signer.publickey) === creatorKey,
+        requirements: requirementLines(record?.actions, signer.index, pageCount)
       };
     }).filter((signer) => signer.places > 0);
     return {
       ...state,
       signers,
       signed: status.mine > 0 && status.userComplete,
-      actionStatus: status
+      actionStatus: status,
+      finalized: Boolean(record?.finalized)
     };
   }
 
   async signUserActions() {
+    if (this.mod.retired) {
+      return false;
+    }
     const record = this.mod.document;
     if (!record) {
       return false;
@@ -1071,6 +1553,9 @@ class PublishOverlay {
   }
 
   paintSlide() {
+    if (this.state.step === 'signer' && this.state.audit) {
+      this.state.auditView = signerAudit(this.app, this.mod.document, this.state.audit.index);
+    }
     if (this.state.step === 'verify') {
       this.state = this.withKnownVerifications(this.state);
     }
@@ -1171,6 +1656,26 @@ function signaturePlaces(mod, index) {
   }).length;
 }
 
+function firstUnsignedActionId(app, record, userIndex) {
+  const user = record?.users?.[userIndex];
+  const action = (record?.actions || []).find((item) =>
+    Number(item.user) === userIndex
+    && (item.type === 'signature' || item.type === 'initial')
+    && !verifyActionSignature(app, item, user, record)
+  );
+  return Number.isInteger(Number(action?.id)) ? Number(action.id) : null;
+}
+
+function shareRowsForWho(state) {
+  return (state.signers || [])
+    .filter((signer) => Number(signer.places) > 0)
+    .map((signer) => ({
+      index: signer.index,
+      name: signer.name || signer.email || 'Signer',
+      email: signer.email || ''
+    }));
+}
+
 function readUsers(mod) {
   const list = mod.document?.users || [];
   return list.map((user, index) => {
@@ -1248,6 +1753,17 @@ function escapeHTML(value) {
 
 function wait(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function selectAuditText(node) {
+  if (!node) {
+    return;
+  }
+  const range = document.createRange();
+  range.selectNodeContents(node);
+  const selection = window.getSelection();
+  selection.removeAllRanges();
+  selection.addRange(range);
 }
 
 module.exports = PublishOverlay;

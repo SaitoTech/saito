@@ -1,0 +1,691 @@
+{
+  "seat": 1,
+  "phase": "reinforce",
+  "turn": 1,
+  "territories": {
+    "alaska": {
+      "owner": 2,
+      "armies": 2
+    },
+    "northwest_territory": {
+      "owner": 1,
+      "armies": 2
+    },
+    "greenland": {
+      "owner": 1,
+      "armies": 4
+    },
+    "alberta": {
+      "owner": 0,
+      "armies": 2
+    },
+    "ontario": {
+      "owner": 0,
+      "armies": 5
+    },
+    "quebec": {
+      "owner": 2,
+      "armies": 2
+    },
+    "western_united_states": {
+      "owner": 0,
+      "armies": 3
+    },
+    "eastern_united_states": {
+      "owner": 0,
+      "armies": 4
+    },
+    "central_america": {
+      "owner": 1,
+      "armies": 3
+    },
+    "venezuela": {
+      "owner": 2,
+      "armies": 3
+    },
+    "peru": {
+      "owner": 0,
+      "armies": 4
+    },
+    "brazil": {
+      "owner": 0,
+      "armies": 2
+    },
+    "argentina": {
+      "owner": 2,
+      "armies": 5
+    },
+    "iceland": {
+      "owner": 1,
+      "armies": 3
+    },
+    "scandinavia": {
+      "owner": 0,
+      "armies": 3
+    },
+    "great_britain": {
+      "owner": 2,
+      "armies": 2
+    },
+    "northern_europe": {
+      "owner": 1,
+      "armies": 2
+    },
+    "ukraine": {
+      "owner": 2,
+      "armies": 5
+    },
+    "western_europe": {
+      "owner": 2,
+      "armies": 3
+    },
+    "southern_europe": {
+      "owner": 1,
+      "armies": 3
+    },
+    "north_africa": {
+      "owner": 0,
+      "armies": 1
+    },
+    "egypt": {
+      "owner": 0,
+      "armies": 3
+    },
+    "east_africa": {
+      "owner": 2,
+      "armies": 3
+    },
+    "congo": {
+      "owner": 2,
+      "armies": 3
+    },
+    "south_africa": {
+      "owner": 2,
+      "armies": 3
+    },
+    "madagascar": {
+      "owner": 0,
+      "armies": 1
+    },
+    "ural": {
+      "owner": 1,
+      "armies": 3
+    },
+    "siberia": {
+      "owner": 2,
+      "armies": 1
+    },
+    "yakutsk": {
+      "owner": 0,
+      "armies": 2
+    },
+    "kamchatka": {
+      "owner": 2,
+      "armies": 4
+    },
+    "irkutsk": {
+      "owner": 2,
+      "armies": 2
+    },
+    "mongolia": {
+      "owner": 1,
+      "armies": 3
+    },
+    "japan": {
+      "owner": 1,
+      "armies": 2
+    },
+    "afghanistan": {
+      "owner": 1,
+      "armies": 6
+    },
+    "china": {
+      "owner": 0,
+      "armies": 3
+    },
+    "middle_east": {
+      "owner": 1,
+      "armies": 2
+    },
+    "india": {
+      "owner": 1,
+      "armies": 3
+    },
+    "siam": {
+      "owner": 2,
+      "armies": 2
+    },
+    "indonesia": {
+      "owner": 0,
+      "armies": 4
+    },
+    "new_guinea": {
+      "owner": 1,
+      "armies": 2
+    },
+    "western_australia": {
+      "owner": 1,
+      "armies": 2
+    },
+    "eastern_australia": {
+      "owner": 0,
+      "armies": 3
+    }
+  },
+  "players": [
+    {
+      "id": 1,
+      "cardCount": 0,
+      "eliminated": false
+    },
+    {
+      "id": 2,
+      "cardCount": 0,
+      "eliminated": false
+    }
+  ],
+  "hand": [],
+  "reinforcements": 4,
+  "mustTrade": false,
+  "occupation": null,
+  "map": {
+    "alaska": {
+      "neighbors": [
+        "northwest_territory",
+        "alberta",
+        "kamchatka"
+      ],
+      "continent": "north_america"
+    },
+    "northwest_territory": {
+      "neighbors": [
+        "alaska",
+        "alberta",
+        "ontario",
+        "greenland"
+      ],
+      "continent": "north_america"
+    },
+    "greenland": {
+      "neighbors": [
+        "northwest_territory",
+        "ontario",
+        "quebec",
+        "iceland"
+      ],
+      "continent": "north_america"
+    },
+    "alberta": {
+      "neighbors": [
+        "alaska",
+        "northwest_territory",
+        "ontario",
+        "western_united_states"
+      ],
+      "continent": "north_america"
+    },
+    "ontario": {
+      "neighbors": [
+        "northwest_territory",
+        "greenland",
+        "alberta",
+        "quebec",
+        "western_united_states",
+        "eastern_united_states"
+      ],
+      "continent": "north_america"
+    },
+    "quebec": {
+      "neighbors": [
+        "greenland",
+        "ontario",
+        "eastern_united_states"
+      ],
+      "continent": "north_america"
+    },
+    "western_united_states": {
+      "neighbors": [
+        "alberta",
+        "ontario",
+        "eastern_united_states",
+        "central_america"
+      ],
+      "continent": "north_america"
+    },
+    "eastern_united_states": {
+      "neighbors": [
+        "ontario",
+        "quebec",
+        "western_united_states",
+        "central_america"
+      ],
+      "continent": "north_america"
+    },
+    "central_america": {
+      "neighbors": [
+        "western_united_states",
+        "eastern_united_states",
+        "venezuela"
+      ],
+      "continent": "north_america"
+    },
+    "venezuela": {
+      "neighbors": [
+        "central_america",
+        "peru",
+        "brazil"
+      ],
+      "continent": "south_america"
+    },
+    "peru": {
+      "neighbors": [
+        "venezuela",
+        "brazil",
+        "argentina"
+      ],
+      "continent": "south_america"
+    },
+    "brazil": {
+      "neighbors": [
+        "venezuela",
+        "peru",
+        "argentina",
+        "north_africa"
+      ],
+      "continent": "south_america"
+    },
+    "argentina": {
+      "neighbors": [
+        "peru",
+        "brazil"
+      ],
+      "continent": "south_america"
+    },
+    "iceland": {
+      "neighbors": [
+        "greenland",
+        "great_britain",
+        "scandinavia"
+      ],
+      "continent": "europe"
+    },
+    "scandinavia": {
+      "neighbors": [
+        "iceland",
+        "great_britain",
+        "northern_europe",
+        "ukraine"
+      ],
+      "continent": "europe"
+    },
+    "great_britain": {
+      "neighbors": [
+        "iceland",
+        "scandinavia",
+        "northern_europe",
+        "western_europe"
+      ],
+      "continent": "europe"
+    },
+    "northern_europe": {
+      "neighbors": [
+        "scandinavia",
+        "great_britain",
+        "ukraine",
+        "western_europe",
+        "southern_europe"
+      ],
+      "continent": "europe"
+    },
+    "ukraine": {
+      "neighbors": [
+        "scandinavia",
+        "northern_europe",
+        "southern_europe",
+        "middle_east",
+        "afghanistan",
+        "ural"
+      ],
+      "continent": "europe"
+    },
+    "western_europe": {
+      "neighbors": [
+        "great_britain",
+        "northern_europe",
+        "southern_europe",
+        "north_africa"
+      ],
+      "continent": "europe"
+    },
+    "southern_europe": {
+      "neighbors": [
+        "northern_europe",
+        "ukraine",
+        "western_europe",
+        "north_africa",
+        "egypt",
+        "middle_east"
+      ],
+      "continent": "europe"
+    },
+    "north_africa": {
+      "neighbors": [
+        "brazil",
+        "western_europe",
+        "southern_europe",
+        "egypt",
+        "east_africa",
+        "congo"
+      ],
+      "continent": "africa"
+    },
+    "egypt": {
+      "neighbors": [
+        "southern_europe",
+        "north_africa",
+        "east_africa",
+        "middle_east"
+      ],
+      "continent": "africa"
+    },
+    "east_africa": {
+      "neighbors": [
+        "north_africa",
+        "egypt",
+        "middle_east",
+        "congo",
+        "south_africa",
+        "madagascar"
+      ],
+      "continent": "africa"
+    },
+    "congo": {
+      "neighbors": [
+        "north_africa",
+        "east_africa",
+        "south_africa"
+      ],
+      "continent": "africa"
+    },
+    "south_africa": {
+      "neighbors": [
+        "east_africa",
+        "congo",
+        "madagascar"
+      ],
+      "continent": "africa"
+    },
+    "madagascar": {
+      "neighbors": [
+        "east_africa",
+        "south_africa"
+      ],
+      "continent": "africa"
+    },
+    "ural": {
+      "neighbors": [
+        "ukraine",
+        "siberia",
+        "china",
+        "afghanistan"
+      ],
+      "continent": "asia"
+    },
+    "siberia": {
+      "neighbors": [
+        "ural",
+        "yakutsk",
+        "irkutsk",
+        "mongolia",
+        "china"
+      ],
+      "continent": "asia"
+    },
+    "yakutsk": {
+      "neighbors": [
+        "siberia",
+        "irkutsk",
+        "kamchatka"
+      ],
+      "continent": "asia"
+    },
+    "kamchatka": {
+      "neighbors": [
+        "alaska",
+        "yakutsk",
+        "irkutsk",
+        "mongolia",
+        "japan"
+      ],
+      "continent": "asia"
+    },
+    "irkutsk": {
+      "neighbors": [
+        "siberia",
+        "yakutsk",
+        "kamchatka",
+        "mongolia"
+      ],
+      "continent": "asia"
+    },
+    "mongolia": {
+      "neighbors": [
+        "siberia",
+        "kamchatka",
+        "irkutsk",
+        "japan",
+        "china"
+      ],
+      "continent": "asia"
+    },
+    "japan": {
+      "neighbors": [
+        "kamchatka",
+        "mongolia"
+      ],
+      "continent": "asia"
+    },
+    "afghanistan": {
+      "neighbors": [
+        "ukraine",
+        "ural",
+        "china",
+        "india",
+        "middle_east"
+      ],
+      "continent": "asia"
+    },
+    "china": {
+      "neighbors": [
+        "ural",
+        "siberia",
+        "mongolia",
+        "afghanistan",
+        "india",
+        "siam"
+      ],
+      "continent": "asia"
+    },
+    "middle_east": {
+      "neighbors": [
+        "ukraine",
+        "southern_europe",
+        "egypt",
+        "east_africa",
+        "afghanistan",
+        "india"
+      ],
+      "continent": "asia"
+    },
+    "india": {
+      "neighbors": [
+        "afghanistan",
+        "china",
+        "middle_east",
+        "siam"
+      ],
+      "continent": "asia"
+    },
+    "siam": {
+      "neighbors": [
+        "china",
+        "india",
+        "indonesia"
+      ],
+      "continent": "asia"
+    },
+    "indonesia": {
+      "neighbors": [
+        "siam",
+        "new_guinea",
+        "western_australia"
+      ],
+      "continent": "australia"
+    },
+    "new_guinea": {
+      "neighbors": [
+        "indonesia",
+        "western_australia",
+        "eastern_australia"
+      ],
+      "continent": "australia"
+    },
+    "western_australia": {
+      "neighbors": [
+        "indonesia",
+        "new_guinea",
+        "eastern_australia"
+      ],
+      "continent": "australia"
+    },
+    "eastern_australia": {
+      "neighbors": [
+        "new_guinea",
+        "western_australia"
+      ],
+      "continent": "australia"
+    }
+  },
+  "continents": {
+    "north_america": {
+      "name": "North America",
+      "bonus": 5,
+      "color": "#b78a39",
+      "label": [
+        218,
+        48
+      ],
+      "id": "north_america",
+      "territories": [
+        "alaska",
+        "northwest_territory",
+        "greenland",
+        "alberta",
+        "ontario",
+        "quebec",
+        "western_united_states",
+        "eastern_united_states",
+        "central_america"
+      ],
+      "outline": "M38,105 L90,80 L150,88 L233,71 L306,83 L312,145 L340,181 L389,163 L429,196 L415,243 L376,295 L321,333 L278,351 L300,379 L325,392 L313,405 L281,388 L256,375 L219,367 L187,329 L150,288 L159,253 L137,216 L141,170 L76,171 L42,153 L38,105 Z M358,54 L422,38 L459,65 L447,125 L402,159 L356,132 L358,54 Z"
+    },
+    "south_america": {
+      "name": "South America",
+      "bonus": 2,
+      "color": "#bd624c",
+      "label": [
+        320,
+        686
+      ],
+      "id": "south_america",
+      "territories": [
+        "venezuela",
+        "peru",
+        "brazil",
+        "argentina"
+      ],
+      "outline": "M317,422 L342,410 L399,422 L474,448 L499,481 L474,530 L421,550 L443,561 L431,601 L415,652 L394,668 L374,632 L383,576 L346,542 L322,503 L326,451 L317,422 Z"
+    },
+    "europe": {
+      "name": "Europe",
+      "bonus": 5,
+      "color": "#498f97",
+      "label": [
+        555,
+        87
+      ],
+      "id": "europe",
+      "territories": [
+        "iceland",
+        "scandinavia",
+        "great_britain",
+        "northern_europe",
+        "ukraine",
+        "western_europe",
+        "southern_europe"
+      ],
+      "outline": "M484,129 L508,113 L547,119 L551,143 L517,157 L486,148 L484,129 Z M592,108 L629,76 L664,91 L660,143 L670,146 L711,126 L761,145 L779,194 L771,259 L735,290 L684,267 L690,307 L666,324 L640,308 L632,342 L604,318 L582,307 L555,339 L513,341 L500,318 L521,276 L559,257 L570,256 L566,200 L606,184 L601,165 L592,108 Z M509,175 L533,169 L551,210 L545,248 L516,269 L498,244 L515,217 L509,175 Z"
+    },
+    "africa": {
+      "name": "Africa",
+      "bonus": 3,
+      "color": "#b28b39",
+      "label": [
+        621,
+        673
+      ],
+      "id": "africa",
+      "territories": [
+        "north_africa",
+        "egypt",
+        "east_africa",
+        "congo",
+        "south_africa",
+        "madagascar"
+      ],
+      "outline": "M506,371 L552,349 L599,356 L660,352 L691,378 L684,412 L717,431 L749,447 L736,466 L719,482 L715,526 L700,590 L674,629 L638,645 L617,607 L597,552 L562,486 L513,459 L489,415 L506,371 Z M762,546 L783,538 L790,564 L775,610 L751,629 L744,601 L762,546 Z"
+    },
+    "asia": {
+      "name": "Asia",
+      "bonus": 7,
+      "color": "#7d8b4d",
+      "label": [
+        906,
+        40
+      ],
+      "id": "asia",
+      "territories": [
+        "ural",
+        "siberia",
+        "yakutsk",
+        "kamchatka",
+        "irkutsk",
+        "mongolia",
+        "japan",
+        "afghanistan",
+        "china",
+        "middle_east",
+        "india",
+        "siam"
+      ],
+      "outline": "M785,120 L821,104 L854,114 L858,96 L894,71 L932,81 L1002,61 L1056,90 L1121,102 L1160,132 L1149,167 L1175,190 L1148,202 L1112,171 L1114,211 L1092,260 L1064,305 L1082,347 L1038,382 L992,394 L1013,423 L1000,456 L1020,478 L1006,500 L982,471 L968,451 L946,473 L908,439 L878,487 L854,451 L838,416 L810,397 L816,422 L780,444 L730,416 L701,373 L686,341 L707,309 L749,300 L789,247 L793,195 L785,120 Z M1138,237 L1157,246 L1151,278 L1170,297 L1159,333 L1124,353 L1114,336 L1140,303 L1124,278 L1138,237 Z"
+    },
+    "australia": {
+      "name": "Australia",
+      "bonus": 2,
+      "color": "#a2698b",
+      "label": [
+        1035,
+        695
+      ],
+      "id": "australia",
+      "territories": [
+        "indonesia",
+        "new_guinea",
+        "western_australia",
+        "eastern_australia"
+      ],
+      "outline": "M912,503 L936,498 L960,527 L1000,520 L1043,539 L1040,559 L995,553 L974,570 L949,547 L935,528 L912,503 Z M1062,481 L1102,475 L1128,496 L1164,500 L1176,522 L1136,536 L1101,519 L1070,527 L1062,481 Z M1046,568 L1086,572 L1121,549 L1146,576 L1170,611 L1171,644 L1137,672 L1066,667 L1007,671 L976,646 L984,606 L1019,596 L1046,568 Z"
+    }
+  }
+}

@@ -1,0 +1,731 @@
+/* Swarmcast settings. Layout only; the dialog chrome is the Saito overlay form. */
+
+.swarmcast-setup-loading,
+.swarmcast-setup-live,
+.swarmcast-setup-error[hidden],
+.swarmcast-setup-loading[hidden],
+.swarmcast-setup-live[hidden] {
+  display: none;
+}
+
+.swarmcast-setup[data-state='starting'] .swarmcast-setup-loading,
+.swarmcast-setup[data-state='live'] .swarmcast-setup-live {
+  display: flex;
+}
+
+.swarmcast-setup[data-state='starting'] .swarmcast-setup-columns,
+.swarmcast-setup[data-state='starting'] .swarmcast-setup-actions,
+.swarmcast-setup[data-state='live'] .swarmcast-setup-columns,
+.swarmcast-setup[data-state='live'] > .swarmcast-setup-actions {
+  display: none;
+}
+
+.swarmcast-setup-loading,
+.swarmcast-setup-live {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--saito-space-md);
+}
+
+.swarmcast-setup-spinner {
+  width: 1.6rem;
+  height: 1.6rem;
+  border: 3px solid var(--saito-border);
+  border-top-color: var(--saito-primary);
+  border-radius: 50%;
+  animation: swarmcast-setup-spin 0.8s linear infinite;
+}
+
+.swarmcast-setup-error {
+  margin: 0;
+  color: var(--saito-destructive, var(--saito-primary));
+}
+
+.swarmcast-setup[data-state='live'] {
+  width: min(52rem, calc(100vw - 2rem));
+  max-height: calc(100dvh - 2.4rem);
+  box-sizing: border-box;
+  overflow: hidden;
+  gap: 1.2rem;
+}
+
+.swarmcast-setup[data-state='live'] .swarmcast-setup-live {
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
+  gap: 0.9rem;
+  overflow: hidden;
+}
+
+.swarmcast-live-body {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 1.4rem;
+  width: 100%;
+  min-height: 0;
+  overflow: auto;
+}
+
+.swarmcast-live-mark {
+  display: none;
+  flex: 0 0 auto;
+  width: 0.75rem;
+  height: 0.75rem;
+  border-radius: 50%;
+  background: #3ddc97;
+  box-shadow: 0 0 0 3px color-mix(in srgb, #3ddc97 40%, transparent);
+}
+
+.swarmcast-setup[data-operation='connecting'] .swarmcast-live-mark,
+.swarmcast-setup[data-operation='reconnecting'] .swarmcast-live-mark {
+  background: #f5c451;
+  box-shadow: 0 0 0 3px color-mix(in srgb, #f5c451 40%, transparent);
+}
+
+.swarmcast-setup[data-operation='disconnected'] .swarmcast-live-mark,
+.swarmcast-setup[data-operation='error'] .swarmcast-live-mark {
+  background: var(--saito-destructive, #e5484d);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--saito-destructive, #e5484d) 40%, transparent);
+}
+
+.swarmcast-setup[data-state='live'] .swarmcast-live-mark {
+  display: none;
+}
+
+.swarmcast-share {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 0.6rem;
+  width: fit-content;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.swarmcast-setup-live-link {
+  flex: 0 1 auto;
+  display: block;
+  min-width: 0;
+  max-width: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--saito-foreground);
+  font-size: 1.6rem;
+  font-weight: 600;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+  text-align: left;
+  text-decoration: none;
+}
+
+.swarmcast-share .swarmcast-setup-copy {
+  width: 2.8rem;
+  height: 2.8rem;
+  min-width: 2.8rem;
+  min-height: 2.8rem;
+  border-width: 2px;
+  border-color: color-mix(in srgb, var(--saito-foreground) 45%, var(--saito-border));
+  color: var(--saito-foreground);
+}
+
+.swarmcast-share .swarmcast-setup-copy i {
+  font-size: 1.5rem;
+}
+
+.swarmcast-setup-copy.is-copied {
+  border-color: var(--saito-primary);
+  color: var(--saito-primary);
+}
+
+.swarmcast-setup-live h3 {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--saito-foreground);
+}
+
+.swarmcast-address,
+.swarmcast-join,
+.swarmcast-status,
+.swarmcast-monitor,
+.swarmcast-monitor-health,
+.swarmcast-monitor-tree,
+.swarmcast-monitor-children {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  width: 100%;
+  min-width: 0;
+}
+
+.swarmcast-capacity-stepper {
+  display: grid;
+  grid-template-columns: 2.4rem 4.2rem 2.4rem;
+  align-items: stretch;
+  width: fit-content;
+  height: 2.8rem;
+  border: 2px solid color-mix(in srgb, var(--saito-foreground) 45%, var(--saito-border));
+  border-radius: var(--saito-radius);
+  overflow: hidden;
+  background: var(--saito-secondary);
+}
+
+.swarmcast-capacity-step {
+  width: auto;
+  height: auto;
+  border: 0;
+  background: color-mix(in srgb, var(--saito-foreground) 12%, var(--saito-secondary));
+  color: var(--saito-foreground);
+  font-size: 1.7rem;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.swarmcast-capacity-step:first-child {
+  border-right: 2px solid color-mix(in srgb, var(--saito-foreground) 45%, var(--saito-border));
+}
+
+.swarmcast-capacity-step:last-child {
+  border-left: 2px solid color-mix(in srgb, var(--saito-foreground) 45%, var(--saito-border));
+}
+
+.swarmcast-capacity-input {
+  width: auto;
+  height: auto;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--saito-foreground);
+  font-size: 1.5rem;
+  font-weight: 600;
+  text-align: center;
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+.swarmcast-capacity-input::-webkit-outer-spin-button,
+.swarmcast-capacity-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.swarmcast-stat-list,
+.swarmcast-detail-list {
+  display: grid;
+  gap: 0.75rem;
+  width: 100%;
+  margin: 0;
+}
+
+.swarmcast-stat-list div,
+.swarmcast-detail-list div {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.75rem;
+  min-width: 0;
+  min-height: 1.8rem;
+}
+
+.swarmcast-stat-list dt,
+.swarmcast-detail-list dt {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 500;
+  color: var(--saito-muted-foreground);
+}
+
+.swarmcast-stat-list dd,
+.swarmcast-detail-list dd {
+  margin: 0;
+  min-width: 0;
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--saito-foreground);
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+
+.swarmcast-listeners {
+  min-height: 2.4rem;
+}
+
+.swarmcast-listeners dd {
+  font-size: 2.4rem;
+  line-height: 1;
+}
+
+.swarmcast-details {
+  border-top: 1px solid var(--saito-border);
+  padding-top: 0.65rem;
+}
+
+.swarmcast-details summary {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  cursor: pointer;
+  list-style: none;
+  font-size: 1.35rem;
+  font-weight: 600;
+  color: var(--saito-foreground);
+}
+
+.swarmcast-details summary::-webkit-details-marker {
+  display: none;
+}
+
+.swarmcast-details[open] .swarmcast-setup-chevron {
+  transform: rotate(90deg);
+}
+
+.swarmcast-details .swarmcast-monitor {
+  margin-top: 0.7rem;
+}
+
+.swarmcast-live-actions {
+  flex: 0 0 auto;
+  justify-content: flex-end;
+  width: 100%;
+  margin-top: 0;
+}
+
+.swarmcast-setup > .swarmcast-setup-live > .swarmcast-live-actions .swarmcast-setup-stop {
+  width: auto;
+  min-width: 0;
+  flex: 0 0 auto;
+  padding-inline: 1.6rem;
+}
+
+.swarmcast-capacity-pending {
+  margin: 0;
+  color: var(--saito-primary);
+}
+
+.swarmcast-health {
+  margin: 0;
+  font-weight: 600;
+}
+
+.swarmcast-health[data-health='degraded'] {
+  color: var(--saito-primary);
+}
+
+.swarmcast-health[data-health='disconnected'] {
+  color: var(--saito-destructive, var(--saito-primary));
+}
+
+.swarmcast-health-reason,
+.swarmcast-tree-note {
+  margin: 0;
+  color: var(--saito-muted-foreground);
+}
+
+.swarmcast-children,
+.swarmcast-tree {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.swarmcast-child,
+.swarmcast-tree li {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 0.55rem 0.7rem;
+  border: 1px solid var(--saito-border);
+  border-radius: var(--saito-radius);
+  background: var(--saito-secondary);
+}
+
+.swarmcast-child[data-status='reconnecting'] {
+  border-color: var(--saito-primary);
+}
+
+.swarmcast-child header,
+.swarmcast-tree li > span {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.swarmcast-child p,
+.swarmcast-tree ul {
+  margin: 0;
+}
+
+.swarmcast-child button {
+  margin-left: auto;
+  padding: 0.2rem 0.5rem;
+  border: 1px solid var(--saito-border);
+  border-radius: var(--saito-radius);
+  background: var(--saito-background);
+  color: var(--saito-foreground);
+}
+
+.swarmcast-setup-actions {
+  margin-top: 0.35rem;
+}
+
+.swarmcast-setup-actions .swarmcast-setup-start {
+  width: 100%;
+  justify-content: center;
+}
+
+.swarmcast-setup-start:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+@keyframes swarmcast-setup-spin {
+  to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .swarmcast-setup-spinner {
+    animation: none;
+  }
+}
+
+.swarmcast-setup:not([data-state='live']) {
+  width: min(52rem, calc(100vw - 2rem));
+}
+
+.swarmcast-setup:not([data-state='live']) .saito-overlay-form-header-title {
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+}
+
+.swarmcast-setup[data-state='live'] .saito-overlay-form-header-title {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+}
+
+.swarmcast-setup-columns {
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+  align-items: stretch;
+  gap: 1.2rem;
+}
+
+.swarmcast-setup-column {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.swarmcast-setup-video {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.swarmcast-setup-side {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  min-width: 0;
+  height: 0;
+  min-height: 100%;
+  padding: 0.9rem 1rem;
+  overflow: auto;
+  border: 2px dashed color-mix(in srgb, var(--saito-foreground) 42%, var(--saito-border));
+  border-radius: var(--saito-radius);
+}
+
+.swarmcast-setup fieldset {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.swarmcast-setup legend {
+  margin-bottom: 0.35rem;
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--saito-foreground);
+}
+
+.swarmcast-setup-cards {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 0.8rem;
+}
+
+.swarmcast-setup-card,
+.swarmcast-setup-person {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  cursor: pointer;
+}
+
+.swarmcast-setup-card {
+  position: relative;
+  flex: 1 1 0;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.7rem;
+  min-height: 19rem;
+  padding: 1.2rem 0.8rem;
+  border: 2px solid color-mix(in srgb, var(--saito-foreground) 32%, var(--saito-border));
+  border-radius: 0.7rem;
+  background: var(--saito-background);
+  color: var(--saito-foreground);
+  font-size: 1.5rem;
+  font-weight: 600;
+  box-shadow: none;
+}
+
+.swarmcast-setup-card-icon {
+  width: 4rem;
+  height: 4rem;
+}
+
+.swarmcast-setup-card input {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.swarmcast-setup-card:has(input:checked) {
+  border-color: var(--saito-primary);
+  background: color-mix(in srgb, var(--saito-primary) 34%, var(--saito-background));
+  color: var(--saito-primary);
+  box-shadow: none;
+  outline: none;
+}
+
+.swarmcast-setup-card:has(input:focus-visible) {
+  outline: 2px solid var(--saito-primary);
+  outline-offset: 3px;
+}
+
+.swarmcast-setup-person {
+  font-size: 1.5rem;
+}
+
+.swarmcast-setup-person input[type='checkbox'] {
+  accent-color: var(--saito-primary);
+  width: 1.5rem;
+  height: 1.5rem;
+  margin: 0;
+}
+
+.swarmcast-setup-empty {
+  margin: 0;
+  color: var(--saito-muted-foreground);
+}
+
+.swarmcast-setup-video-list,
+.swarmcast-setup-audio-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  min-height: 0;
+}
+
+.swarmcast-setup-picks {
+  display: none;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 2px solid color-mix(in srgb, var(--saito-foreground) 28%, var(--saito-border));
+}
+
+.swarmcast-setup[data-video='participants'] .swarmcast-setup-picks {
+  display: flex;
+}
+
+.swarmcast-setup-chevron {
+  width: 0;
+  height: 0;
+  border-top: 0.28rem solid transparent;
+  border-bottom: 0.28rem solid transparent;
+  border-left: 0.38rem solid currentColor;
+}
+
+.swarmcast-setup-details[open] .swarmcast-setup-chevron,
+.swarmcast-details[open] .swarmcast-setup-chevron {
+  transform: rotate(90deg);
+}
+
+.swarmcast-setup-adjust {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.swarmcast-setup-tune {
+  display: grid;
+  grid-template-columns: 7rem minmax(15.8rem, 1fr);
+  align-items: center;
+  gap: 0.75rem;
+  min-height: 2.8rem;
+}
+
+.swarmcast-setup-tune > span,
+.swarmcast-setup-meters dt {
+  font-size: 1.5rem;
+  line-height: 1.2;
+  white-space: nowrap;
+  color: var(--saito-muted-foreground);
+}
+
+.swarmcast-setup-bitrate {
+  font-size: 1.5rem;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.swarmcast-setup-slots {
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 2px solid color-mix(in srgb, var(--saito-foreground) 28%, var(--saito-border));
+}
+
+.swarmcast-setup-include {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  min-height: 2.8rem;
+  font-size: 1.5rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.swarmcast-setup-include input {
+  width: 1.5rem;
+  height: 1.5rem;
+  margin: 0;
+  accent-color: var(--saito-primary);
+}
+
+.swarmcast-setup-stepper {
+  display: grid;
+  grid-template-columns: 2.4rem minmax(8.5rem, 1fr) 2.4rem;
+  align-items: stretch;
+  width: 100%;
+  height: 2.8rem;
+  box-sizing: border-box;
+  border: 2px solid color-mix(in srgb, var(--saito-foreground) 45%, var(--saito-border));
+  border-radius: var(--saito-radius);
+  overflow: hidden;
+  background: var(--saito-secondary);
+}
+
+.swarmcast-setup-stepper strong {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  padding: 0 0.3rem;
+  font-size: 1.5rem;
+  font-weight: 600;
+  line-height: 1;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.swarmcast-setup-side select.saito-form-select.swarmcast-setup-select {
+  width: 100%;
+  height: 2.8rem;
+  box-sizing: border-box;
+  padding: 0 2.2rem 0 0.7rem;
+  border: 2px solid color-mix(in srgb, var(--saito-foreground) 45%, var(--saito-border));
+  border-radius: var(--saito-radius);
+  background-color: var(--saito-secondary);
+  background-position: right 0.65rem center;
+  font-size: 1.5rem;
+  line-height: 1.2;
+}
+
+.swarmcast-setup > .swarmcast-setup-actions {
+  justify-content: flex-end;
+}
+
+.swarmcast-setup > .swarmcast-setup-actions .swarmcast-setup-start {
+  width: auto;
+  min-width: 0;
+  flex: 0 0 auto;
+  padding-inline: 1.6rem;
+}
+
+.swarmcast-setup-step {
+  width: auto;
+  height: auto;
+  border: 0;
+  border-right: 2px solid color-mix(in srgb, var(--saito-foreground) 45%, var(--saito-border));
+  background: color-mix(in srgb, var(--saito-foreground) 12%, var(--saito-secondary));
+  color: var(--saito-foreground);
+  font-size: 1.7rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.swarmcast-setup-step:last-of-type {
+  border-right: 0;
+  border-left: 2px solid color-mix(in srgb, var(--saito-foreground) 45%, var(--saito-border));
+}
+
+.swarmcast-setup-adjust-row {
+  display: grid;
+  grid-template-columns: 7rem 2.4rem 1fr 2.4rem;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.swarmcast-setup-meters {
+  display: grid;
+  gap: 0.75rem;
+  margin: 0.75rem 0 0;
+  padding-top: 0.75rem;
+  border-top: 2px solid color-mix(in srgb, var(--saito-foreground) 28%, var(--saito-border));
+}
+
+.swarmcast-setup-meters div {
+  display: grid;
+  grid-template-columns: 8rem minmax(0, 1fr);
+  align-items: center;
+  min-height: 1.8rem;
+  gap: 0.75rem;
+}
+
+.swarmcast-setup-meters dd {
+  margin: 0;
+  font-size: 1.5rem;
+  color: var(--saito-foreground);
+  text-align: left;
+}
+
+@media (max-width: 720px) {
+  .swarmcast-setup-columns {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .saito-button-row.swarmcast-setup-actions > .swarmcast-setup-start,
+  .saito-button-row.swarmcast-live-actions > .swarmcast-setup-stop {
+    width: auto;
+  }
+}

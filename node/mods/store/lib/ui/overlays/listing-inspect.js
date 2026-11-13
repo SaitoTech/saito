@@ -9,6 +9,7 @@ class ListingInspectOverlay {
     this.overlay = new SaitoOverlay(app, mod);
     this.overlay.class = 'saito-overlay listing-inspect-shell';
     this.tx = null;
+    this.copyValues = [];
   }
 
   escapeHtml(value = '') {
@@ -63,10 +64,16 @@ class ListingInspectOverlay {
       if (kind === 'binary') {
         return `<span class="listing-inspect-binary">BINARY</span><span class="listing-inspect-bytes">${value.length} bytes</span>`;
       }
-      if (kind === 'text') {
-        return `<pre class="listing-inspect-text">${this.escapeHtml(value)}</pre>`;
-      }
-      return `<span class="listing-inspect-scalar">${this.escapeHtml(value)}</span>`;
+      const index = this.copyValues.push(value) - 1;
+      const content = kind === 'text'
+        ? `<pre class="listing-inspect-text">${this.escapeHtml(value)}</pre>`
+        : `<span class="listing-inspect-scalar">${this.escapeHtml(value)}</span>`;
+      return `<div class="listing-inspect-copyable">
+        ${content}
+        <button type="button" class="saito-icon-button" data-inspect-copy="${index}" title="Copy ${this.escapeHtml(key)}" aria-label="Copy ${this.escapeHtml(key)}">
+          <i class="fas fa-copy" aria-hidden="true"></i>
+        </button>
+      </div>`;
     }
     if (Array.isArray(value)) {
       if (!value.length) {
@@ -121,6 +128,37 @@ class ListingInspectOverlay {
     URL.revokeObjectURL(url);
   }
 
+  async copyText(value) {
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(value);
+      } else {
+        const input = document.createElement('textarea');
+        const focused = document.activeElement;
+        input.value = value;
+        input.style.position = 'fixed';
+        input.style.opacity = '0';
+        document.body.appendChild(input);
+        try {
+          input.select();
+          if (!document.execCommand('copy')) {
+            throw new Error('Copy failed');
+          }
+        } finally {
+          input.remove();
+          focused?.focus();
+        }
+      }
+      if (typeof siteMessage === 'function') {
+        siteMessage('Field copied', 2000);
+      }
+    } catch (err) {
+      if (typeof siteMessage === 'function') {
+        siteMessage('Unable to copy field. Select the text and copy it manually.', 4000);
+      }
+    }
+  }
+
   open(summary) {
     if (!summary) {
       return;
@@ -141,6 +179,15 @@ class ListingInspectOverlay {
     const root = document.querySelector('.listing-inspect');
     root?.querySelector('[data-inspect-download]')?.addEventListener('click', () => {
       this.downloadTransaction();
+    });
+    root?.addEventListener('click', (event) => {
+      const button = event.target.closest('[data-inspect-copy]');
+      if (button) {
+        const value = this.copyValues[Number(button.dataset.inspectCopy)];
+        if (typeof value === 'string') {
+          this.copyText(value);
+        }
+      }
     });
 
     const finish = (tx) => {
@@ -171,6 +218,7 @@ class ListingInspectOverlay {
       }
 
       try {
+        this.copyValues = [];
         host.innerHTML = this.renderObject(txmsg);
       } catch (err) {
         host.textContent = String(err?.message || err);

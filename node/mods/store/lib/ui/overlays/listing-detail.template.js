@@ -34,8 +34,7 @@ module.exports = {
       ? `
               <div><dt>Duration</dt><dd>${view.rentalDuration || '—'}</dd></div>
               <div><dt>Rights</dt><dd>${view.rentalRights || 'All rights'}</dd></div>`
-      : `
-              <div><dt>File</dt><dd>${view.fileType}</dd></div>`;
+      : '';
 
     const note = view.isRental
       ? `<p class="rental-note">One rental NFT is transferred per rent. This grants temporary access to the protected file for the listed duration.</p>`
@@ -150,10 +149,6 @@ module.exports = {
           </section>
 
           <section class="section checkout">
-            <label class="setting submit-main-store">
-              <input type="checkbox" data-action="submit-main-store"${view.submitToMainStoreChecked ? ' checked' : ''} />
-              <span>Also submit listing for inclusion in Main Store</span>
-            </label>
             <button type="button" class="saito-button-primary action" data-action="submit">Submit Listing</button>
           </section>
         </div>

@@ -26,7 +26,7 @@ function readShareMetadata(value) {
     email: verification.email !== false,
     phone: tier === 'premium' && flag(verification.phone),
     photo: flag(verification.photo),
-    passport: tier === 'premium' && flag(verification.passport),
+    passport: flag(verification.passport),
     legal_review: tier === 'premium' && flag(verification.legal_review)
   };
   if (tier !== 'premium') {
@@ -52,7 +52,7 @@ function shareMetadata(plan, options, tierOwner = '') {
       email: flag(selected.email),
       phone: premium && flag(selected.phone),
       photo: flag(selected.photo),
-      passport: premium && flag(selected.passport),
+      passport: flag(selected.passport),
       legal_review: premium && flag(selected.legal_review)
     }
   };
@@ -121,9 +121,9 @@ function prepareData(tx) {
   }
 
   const data = msg.data;
-  const record = data.document && typeof data.document.pdf === 'string' && Array.isArray(data.actions)
+  const record = data.document && Array.isArray(data.document.pdf) && Array.isArray(data.actions)
     ? readRecord(data)
-    : readLegacy(data);
+    : null;
   if (!record) {
     return null;
   }
@@ -136,10 +136,35 @@ function prepareData(tx) {
   return record;
 }
 
-function readRecord(data) {
-  const pdf = data.document.pdf;
-  const name = String(data.document.name || 'document.pdf').trim();
+function readPdfEntry(entry) {
+  const name = String(entry?.name || 'document.pdf').trim();
+  const pdf = String(entry?.pdf || '');
   if (!name || !pdf) {
+    return null;
+  }
+  return {
+    name,
+    pdf,
+    page_count: Number(entry?.page_count) || 0,
+    page_width: Number(entry?.page_width) || 0,
+    page_height: Number(entry?.page_height) || 0
+  };
+}
+
+function readRecord(data) {
+  const pdf = [];
+  for (const entry of data.document.pdf) {
+    const next = readPdfEntry(entry);
+    if (!next) {
+      return null;
+    }
+    pdf.push(next);
+  }
+  if (!pdf.length) {
+    return null;
+  }
+  const name = String(data.document.name || pdf[0].name || 'document.pdf').trim();
+  if (!name) {
     return null;
   }
   const users = readUsers(data.users);
@@ -150,6 +175,7 @@ function readRecord(data) {
   if (!actions) {
     return null;
   }
+  const page_count = Number(data.document.page_count) || pdf.reduce((total, entry) => total + entry.page_count, 0);
   const record = {
     hash: String(data.hash || ''),
     creator: String(data.creator || ''),
@@ -163,9 +189,9 @@ function readRecord(data) {
     document: {
       name,
       pdf,
-      page_count: Number(data.document.page_count) || 0,
-      page_width: Number(data.document.page_width) || 0,
-      page_height: Number(data.document.page_height) || 0
+      page_count,
+      page_width: Number(data.document.page_width) || pdf[0].page_width || 0,
+      page_height: Number(data.document.page_height) || pdf[0].page_height || 0
     },
     users,
     actions
@@ -332,7 +358,7 @@ function readPlacement(action, userCount) {
   if (width <= 0 || height <= 0) {
     return null;
   }
-  return {
+  const next = {
     type,
     user,
     page,
@@ -341,11 +367,14 @@ function readPlacement(action, userCount) {
     width,
     height
   };
+  const group = String(action?.group || '').trim();
+  if (group) {
+    next.group = group;
+  }
+  return next;
 }
 
-function downloadTransaction(app, tx, filename) {
-  const json = tx.serialize_to_web(app);
-  const blob = new Blob([json], { type: 'application/json' });
+function downloadBlob(blob, filename) {
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
   link.href = url;
@@ -355,6 +384,15 @@ function downloadTransaction(app, tx, filename) {
   link.click();
   document.body.removeChild(link);
   URL.revokeObjectURL(url);
+}
+
+function downloadTransaction(app, tx, filename) {
+  const json = tx.serialize_to_web(app);
+  downloadBlob(new Blob([json], { type: 'application/json' }), filename);
+}
+
+function downloadBytes(bytes, filename, type = 'application/octet-stream') {
+  downloadBlob(new Blob([bytes], { type }), filename);
 }
 
 function fraction(value) {
@@ -372,6 +410,7 @@ module.exports = {
   createPrepareTransaction,
   readPrepareTransaction,
   downloadTransaction,
+  downloadBytes,
   shareMetadata,
   readShareMetadata
 };

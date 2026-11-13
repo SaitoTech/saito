@@ -1,5 +1,7 @@
 const GameWizardTemplate = require('./wizard.template.js');
+const AdvancedOptionsTemplate = require('./advanced-options.template.js');
 const CryptoStakingOverlay = require('./crypto-staking-overlay.js');
+const ArcadeNftSelectionOverlay = require('./nft-selection.js');
 const SaitoOverlay = require('./../../../../../lib/saito/ui/saito-overlay/saito-overlay.js');
 
 //
@@ -16,7 +18,9 @@ class GameWizard {
     this.game_mod = game_mod;
     this.overlay = new SaitoOverlay(app, mod);
     this.crypto_staking_overlay = new CryptoStakingOverlay(app, mod);
+    this.nft_selection_overlay = new ArcadeNftSelectionOverlay(app, mod);
     this.obj = obj;
+    this.selected_nfts = [];
     this._invite_menu_closer = null;
 
     app.connection.on('arcade-launch-game-wizard', async (obj) => {
@@ -53,6 +57,7 @@ class GameWizard {
             //Launch game wizard
             this.game_mod = game_mod;
             this.obj = obj;
+            this.selected_nfts = [];
             this.render();
           }
         } else {
@@ -78,37 +83,42 @@ class GameWizard {
       if (this.meta_overlay) {
         this.meta_overlay.remove();
       }
+      if (this.nft_selection_overlay?.overlay) {
+        this.nft_selection_overlay.overlay.remove();
+      }
     });
     this.overlay.setBackground(this.game_mod.respondTo('arcade-games').image);
 
-    //Test if we should include Advanced Options
-    let advancedOptions = this.game_mod.returnAdvancedOptions();
-    if (!advancedOptions) {
+    // Test if we should include Advanced Options
+    let advancedOptionsHtml = this.game_mod.returnAdvancedOptions();
+    if (!advancedOptionsHtml) {
       let advanced_btn = document.querySelector('.arcade-wizard .advanced-btn');
       if (advanced_btn) {
         advanced_btn.hidden = true;
       }
     } else {
-      let accept_button = `<div id="game-wizard-advanced-return-btn" class="game-wizard-advanced-return-btn saito-button-primary">Accept</div>`;
-      if (!advancedOptions.includes(accept_button)) {
-        advancedOptions += accept_button;
-      }
-      advancedOptions = `<div id="advanced-options-overlay-container">${advancedOptions}</div>`;
-
-      this.meta_overlay = new SaitoOverlay(this.app, this.mod, false, false); // Have to manually delete when done
-      this.meta_overlay.show(advancedOptions);
+      // Shared shell owns header / scroll body / Submit; game HTML is content only.
+      // Closebox on; keep DOM on hide so selections survive reopen.
+      this.meta_overlay = new SaitoOverlay(this.app, this.mod, true, false);
+      this.meta_overlay.show(AdvancedOptionsTemplate(advancedOptionsHtml));
       this.meta_overlay.hide();
+      // Bind while the controls are in the DOM, before the player opens the overlay,
+      // so scenario defaults are submitted even if Advanced is never opened.
+      if (typeof this.game_mod.attachAdvancedOptionsEventListeners === 'function') {
+        this.game_mod.attachAdvancedOptionsEventListeners();
+      }
     }
 
     //Hook for Crypto module (if installed) to add button to attach functionality
     await this.app.modules.renderInto('#arcade-advance-opt');
     this.attachCryptoHookEvents();
+    await this.updateNftsButtonVisibility();
 
     this.attachEvents();
 
     if (this.obj?.skip) {
       if (this.game_mod.maxPlayers === 1) {
-        if (!this.game_mod.returnSingularGameOption() && !advancedOptions) {
+        if (!this.game_mod.returnSingularGameOption() && !advancedOptionsHtml) {
           let btn = document.querySelector('.arcade-wizard .game-invite-btn');
           if (btn) {
             btn.click();
@@ -128,6 +138,51 @@ class GameWizard {
     }
 
     return true;
+  }
+
+  walletHasSupportedNfts() {
+    const supported = this.game_mod?.supported_nft_types;
+    if (!Array.isArray(supported) || !supported.length) {
+      return false;
+    }
+
+    const nft_list = this.app.options?.wallet?.nfts || [];
+    for (const rec of nft_list) {
+      let nft_type = '';
+      try {
+        nft_type = this.app.wallet.extractNFTType(rec?.slip3?.utxo_key || '') || '';
+      } catch (_) {
+        nft_type = '';
+      }
+      if (nft_type && supported.includes(nft_type)) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  async updateNftsButtonVisibility() {
+    const btn = document.querySelector('.arcade-wizard .nfts-btn');
+    if (!btn) {
+      return;
+    }
+
+    const supported = this.game_mod?.supported_nft_types;
+    if (!Array.isArray(supported) || !supported.length) {
+      btn.hidden = true;
+      return;
+    }
+
+    try {
+      await this.app.wallet.updateNFTList();
+    } catch (err) {
+      console.error('ARCADE: failed to refresh wallet NFTs for wizard', err);
+    }
+
+    const show = this.walletHasSupportedNfts();
+    btn.hidden = !show;
+    btn.classList.toggle('has-selection', show && this.selected_nfts.length > 0);
   }
 
   attachCryptoHookEvents() {
@@ -228,17 +283,41 @@ class GameWizard {
     // Display Advanced Options Overlay
     //
     const advancedOptionsToggle = root.querySelector('.advanced-btn');
-    if (advancedOptionsToggle) {
+    if (advancedOptionsToggle && this.meta_overlay) {
       advancedOptionsToggle.onclick = (e) => {
         this.meta_overlay.show();
         this.game_mod.attachAdvancedOptionsEventListeners();
+        // Backdrop click nudges Submit / closebox; neither creates the invite.
         this.meta_overlay.blockClose('#game-wizard-advanced-return-btn');
 
-        if (document.getElementById('game-wizard-advanced-return-btn')) {
-          document.querySelector('.game-wizard-advanced-return-btn').onclick = (e) => {
+        let submit_btn = document.getElementById('game-wizard-advanced-return-btn');
+        if (submit_btn) {
+          submit_btn.onclick = (e) => {
+            e.preventDefault();
+            e.stopPropagation();
             this.meta_overlay.hide();
           };
         }
+      };
+    }
+
+    //
+    // Display NFT Selection Overlay
+    //
+    const nftsOptionsToggle = root.querySelector('.nfts-btn');
+    if (nftsOptionsToggle) {
+      nftsOptionsToggle.onclick = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        this.nft_selection_overlay.render({
+          supported_nft_types: this.game_mod.supported_nft_types || [],
+          initially_selected: this.selected_nfts,
+          owner: this.mod.publicKey,
+          onConfirm: (records) => {
+            this.selected_nfts = Array.isArray(records) ? records : [];
+            nftsOptionsToggle.classList.toggle('has-selection', this.selected_nfts.length > 0);
+          }
+        });
       };
     }
 
@@ -330,6 +409,15 @@ class GameWizard {
           options['stake'][this.mod.publicKey] = parseFloat(hook.dataset.amount);
         }
       }
+    }
+
+    if (this.selected_nfts?.length) {
+      options.nfts = this.selected_nfts.map((rec) => ({
+        title: rec.title || '',
+        id: String(rec.id),
+        owner: rec.owner || this.mod.publicKey,
+        nft_type: rec.nft_type || ''
+      }));
     }
 
     if (this.mod.debug) {

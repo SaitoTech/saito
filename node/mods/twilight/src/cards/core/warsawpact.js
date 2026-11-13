@@ -19,7 +19,7 @@
 
         twilight_self.game.status = "USSR establishes the Warsaw Pact:";
         twilight_self.hud.updateStatus(twilight_self.game.status);
-        twilight_self.hud.updateCards(twilight_self.game.deck[0].hand);
+        twilight_self.hud.updateCards([]);
         twilight_self.hud.updateMenu([
           { id: 'remove', label: 'remove all US influence in four countries in Eastern Europe' },
           { id: 'add', label: 'add five USSR influence in Eastern Europe (max 2 per country)' }

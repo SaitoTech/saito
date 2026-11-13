@@ -2,6 +2,105 @@
   width: min(44rem, calc(100vw - 4rem));
 }
 
+.saitosign-share-load {
+  position: fixed;
+  z-index: 40;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  background: color-mix(in srgb, var(--saito-background) 55%, transparent);
+}
+
+.saitosign-share-load-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.4rem;
+  width: min(36rem, calc(100vw - 4rem));
+  padding: 2.4rem;
+  border: 1px solid var(--saito-border);
+  border-radius: var(--saito-radius);
+  background: var(--saito-popover, var(--saito-background));
+  color: var(--saito-foreground);
+  text-align: center;
+}
+
+.saitosign-share-load-card p {
+  margin: 0;
+  font-size: var(--font-size-medium);
+  line-height: 1.45;
+}
+
+.saitosign-share-spinner {
+  width: 4.8rem;
+  height: 4.8rem;
+  border: 0.4rem solid color-mix(in srgb, var(--saito-foreground) 16%, transparent);
+  border-top-color: var(--saito-primary);
+  border-radius: 50%;
+  animation: saitosign-share-spin 0.8s linear infinite;
+}
+
+@keyframes saitosign-share-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.saitosign-who {
+  display: flex;
+  flex-direction: column;
+  gap: var(--saito-space-md);
+  min-width: min(36rem, calc(100vw - 8rem));
+  padding: 2.8rem var(--saito-space-lg) var(--saito-space-lg);
+}
+
+.saitosign-who .title {
+  margin: 0;
+  color: var(--saito-foreground);
+  font-family: var(--saito-font-heavy);
+  font-size: 2rem;
+}
+
+.saitosign-who .who-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--saito-space-sm);
+}
+
+.saitosign-who .who-signer {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.2rem;
+  width: 100%;
+  margin: 0;
+  padding: var(--saito-space-md);
+  border: 1px solid var(--saito-border);
+  border-radius: var(--saito-radius);
+  background: var(--saito-secondary);
+  color: var(--saito-foreground);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.saitosign-who .who-signer:hover,
+.saitosign-who .who-signer:focus-visible {
+  border-color: color-mix(in srgb, var(--saito-foreground) 40%, var(--saito-border));
+  outline: none;
+}
+
+.saitosign-who .who-signer-name {
+  font-family: var(--saito-font-medium);
+}
+
+.saitosign-who .who-signer-email {
+  color: var(--saito-muted-foreground);
+  font-size: var(--font-size-small, 1.4rem);
+}
+
 .saitosign-identity {
   display: flex;
   flex-direction: column;
@@ -108,4 +207,125 @@
 .saitosign-close button:disabled {
   opacity: 0.45;
   cursor: default;
+}
+
+.saitosign-delete {
+  display: flex;
+  flex-direction: column;
+  gap: var(--saito-space-md);
+  min-width: min(42rem, calc(100vw - 8rem));
+  padding: 2.8rem var(--saito-space-lg) var(--saito-space-lg);
+}
+
+.saitosign-delete .title,
+.saitosign-delete .subject,
+.saitosign-delete .prompt,
+.saitosign-delete .choice-title,
+.saitosign-delete .choice-copy {
+  margin: 0;
+}
+
+.saitosign-delete .title {
+  color: var(--saito-foreground);
+  font-family: var(--saito-font-heavy);
+  font-size: 2rem;
+}
+
+.saitosign-delete .subject {
+  color: var(--saito-foreground);
+  font-family: var(--saito-font-medium);
+}
+
+.saitosign-delete .prompt {
+  color: var(--saito-muted-foreground);
+  line-height: 1.4;
+}
+
+.saitosign-delete .choices {
+  display: flex;
+  flex-direction: column;
+  gap: var(--saito-space-sm);
+}
+
+.saitosign-delete .choice {
+  display: grid;
+  grid-template-columns: 2.4rem minmax(0, 1fr);
+  column-gap: var(--saito-space-md);
+  align-items: start;
+  width: 100%;
+  margin: 0;
+  padding: var(--saito-space-md);
+  border: 1px solid var(--saito-border);
+  border-radius: var(--saito-radius);
+  background: var(--saito-secondary);
+  color: var(--saito-foreground);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.saitosign-delete .choice i {
+  margin-top: 0.2rem;
+  color: var(--saito-muted-foreground);
+  font-size: 1.7rem;
+  text-align: center;
+}
+
+.saitosign-delete .choice[data-delete-scope="all"] {
+  border-color: color-mix(in srgb, var(--saito-primary) 65%, var(--saito-border));
+}
+
+.saitosign-delete .choice[data-delete-scope="all"] i {
+  color: var(--saito-primary);
+}
+
+.saitosign-delete .choice[data-delete-scope="document"] i {
+  color: var(--saito-foreground);
+}
+
+.saitosign-delete .choice:hover,
+.saitosign-delete .choice:focus-visible {
+  border-color: var(--saito-primary);
+  outline: none;
+}
+
+.saitosign-delete .choice-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  min-width: 0;
+}
+
+.saitosign-delete .choice-title {
+  font-family: var(--saito-font-medium);
+  line-height: 1.3;
+}
+
+.saitosign-delete .choice-copy {
+  color: var(--saito-muted-foreground);
+  font-size: 1.4rem;
+  line-height: 1.4;
+}
+
+.saitosign-delete .actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: var(--saito-space-xs);
+}
+
+.saitosign-delete .actions button {
+  min-height: 4rem;
+  padding: var(--saito-space-sm) var(--saito-space-md);
+  border: 1px solid var(--saito-border);
+  border-radius: var(--saito-radius);
+  background: transparent;
+  color: var(--saito-foreground);
+  font: inherit;
+  cursor: pointer;
+}
+
+.saitosign-delete .actions button:hover,
+.saitosign-delete .actions button:focus-visible {
+  border-color: var(--saito-foreground);
+  outline: none;
 }

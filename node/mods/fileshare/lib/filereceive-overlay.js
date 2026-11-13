@@ -42,7 +42,7 @@ class FileReceiveOverlay {
     this.senderUI.render();
     this.attachEvents();
 
-    if (this.mod.stun.hasConnection(file.sender)) {
+    if (this.mod.peerManager.hasConnection(file.sender)) {
       this.onConnectionSuccess();
     }
   }

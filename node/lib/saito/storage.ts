@@ -759,7 +759,6 @@ class Storage {
         this.app.options.external_save_ids = Object.keys(saves);
       }
 
-      console.log('GT [saveOptions] before stringify', new Date().toISOString(), Date.now());
       if (externalize) {
         const shell = { ...this.app.options };
         delete shell.games;
@@ -825,27 +824,8 @@ class Storage {
       }
     }
 
-    console.log(
-      'GT [saveOptions] after stringify, options size ' +
-        new_wallet_json.length +
-        ' bytes (' +
-        (new_wallet_json.length / 1024).toFixed(1) +
-        ' KB)',
-      new Date().toISOString(),
-      Date.now()
-    );
-
     try {
       localStorage.setItem('options', new_wallet_json);
-      console.log(
-        'GT [saveOptions] after localStorage.setItem, options size ' +
-          new_wallet_json.length +
-          ' bytes (' +
-          (new_wallet_json.length / 1024).toFixed(1) +
-          ' KB)',
-        new Date().toISOString(),
-        Date.now()
-      );
     } catch (err) {
       for (let i = 0; i < localStorage.length; i++) {
         let item = localStorage.getItem(localStorage.key(i));

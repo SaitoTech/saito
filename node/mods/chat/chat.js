@@ -1564,8 +1564,16 @@ class Chat extends ModTemplate {
     }
 
     let txmsg = '';
+    let was_encrypted = false;
 
     try {
+      let pre_msg = tx.returnMessage ? tx.returnMessage() : tx.msg;
+      if (typeof pre_msg === 'string') {
+        was_encrypted = this.app.crypto.isAesEncrypted(pre_msg);
+      } else if (pre_msg && typeof pre_msg === 'object' && pre_msg.ct) {
+        was_encrypted = true;
+      }
+
       if (tx.decryptMessage) {
         await tx.decryptMessage(this.app);
       }
@@ -1576,6 +1584,38 @@ class Chat extends ModTemplate {
       }
     } catch (err) {
       console.log('ERROR: ' + JSON.stringify(err));
+    }
+
+    //
+    // Auto-recovery: encrypted DM could not be decrypted and we have no
+    // custom AES secret with the sender (typical after private-key reimport).
+    //
+    if (
+      this.app.BROWSER &&
+      was_encrypted &&
+      !tx.dmsg &&
+      tx.isTo(this.publicKey) &&
+      !tx.isFrom(this.publicKey)
+    ) {
+      let sender = tx.from[0]?.publicKey;
+      if (sender && !this.app.keychain.hasSharedSecret(sender)) {
+        let key = this.app.keychain.returnKey(sender, true);
+        let cooldown = 90000;
+        let recovering =
+          key?.aes_recovery_ts && Date.now() - key.aes_recovery_ts < cooldown;
+        let mid_exchange =
+          (key?.aes_privatekey || key?.aes_publicKey) && !key?.aes_secret;
+
+        if (!recovering && !mid_exchange) {
+          siteMessage(
+            `Requesting updated encryption key with ${this.app.keychain.returnUsername(sender)}....`,
+            5000
+          );
+          this.app.connection.emit('encrypt-regenerate-key-exchange', sender);
+        }
+      }
+
+      return;
     }
 
     if (this.debug) {

@@ -486,7 +486,13 @@ class ChatManagerMenu {
         ${
           hasDh
             ? `<h3 class="chat-settings-section-heading">Advanced Encryption</h3>
-        <div class="chat-settings-encryption-note">Encryption uses a Diffie-Hellman shared secret on a separate key pair. Transactions to this public key are encrypted by default.</div>`
+        <div class="chat-settings-encryption-note">Encryption uses a Diffie-Hellman shared secret on a separate key pair. Transactions to this public key are encrypted by default.</div>
+        <button type="button" class="saito-button-secondary compact" id="chat-settings-regenerate-dh" data-publickey="${this.escapeHtml(publicKey)}">
+          Regenerate Encryption
+        </button>
+        <button type="button" class="saito-button-secondary compact" id="chat-settings-delete-dh" data-publickey="${this.escapeHtml(publicKey)}">
+          Delete Encryption
+        </button>`
             : `<h3 class="chat-settings-section-heading">Standard Encryption</h3>
         <div class="chat-settings-encryption-note">Shared secrets are generated from the normal Saito key pairs. On-chain messages are only encrypted when applications specifically opt in.</div>
         <button type="button" class="saito-button-secondary compact" id="chat-settings-generate-dh" data-publickey="${this.escapeHtml(publicKey)}">
@@ -662,6 +668,28 @@ class ChatManagerMenu {
         const publicKey = generateDh.dataset.publickey;
         this.app.connection.emit('encrypt-key-exchange', publicKey);
         siteMessage('Diffie-Hellman key exchange started', 2000);
+      };
+    }
+
+    const regenerateDh = document.getElementById('chat-settings-regenerate-dh');
+    if (regenerateDh) {
+      regenerateDh.onclick = () => {
+        const publicKey = regenerateDh.dataset.publickey;
+        this.app.connection.emit('encrypt-regenerate-key-exchange', publicKey);
+        siteMessage('Requesting updated encryption key....', 2000);
+        this.renderDetailBody(publicKey);
+        this.attachDetailEvents();
+      };
+    }
+
+    const deleteDh = document.getElementById('chat-settings-delete-dh');
+    if (deleteDh) {
+      deleteDh.onclick = () => {
+        const publicKey = deleteDh.dataset.publickey;
+        this.app.connection.emit('encrypt-delete-key-exchange', publicKey);
+        siteMessage('Reverted to unencrypted communications', 2000);
+        this.renderDetailBody(publicKey);
+        this.attachDetailEvents();
       };
     }
 

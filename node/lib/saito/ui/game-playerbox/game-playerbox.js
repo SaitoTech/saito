@@ -93,6 +93,7 @@ class GamePlayerbox {
     this.returnBox(player_number)?.onclick(fn);
   }
 
+  // The class is only a marker. Calls render as separate windows.
   hostVideo(apply_to_all = true) {
     for (let i = 0; i < this.mod.game.players.length; i++) {
       if (this.mod.game.players[i] == this.mod.publicKey && !apply_to_all) {

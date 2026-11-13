@@ -5,7 +5,7 @@ const ListingsTableTemplate = require('./listings-table.template');
 const CatalogFooterTemplate = require('./catalog-footer.template');
 const { loadListingsPage } = require('./browse-listings');
 const { DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE } = require('../categories');
-const { submitListingForApproval } = require('./listing-approval');
+const { submitListingForApproval, markStoreWeb3Active } = require('./listing-approval');
 
 class StorefrontView {
   constructor(app, mod, container = '', callbacks = {}) {
@@ -314,6 +314,7 @@ class StorefrontView {
         return;
       }
       this.activeSummaries = result.listings || [];
+      this.noteWeb3Listings(this.activeSummaries);
       this.pagination = result.pagination || null;
       this.page = this.pagination?.page || this.page;
       this.inventoryLoaded = true;
@@ -358,6 +359,22 @@ class StorefrontView {
 
   isAdminActive() {
     return this.isAdminMode() && this.adminSection === 'active';
+  }
+
+  noteWeb3Listings(listings = []) {
+    if (!this.isOwnStorefront()) {
+      return;
+    }
+    const hasWeb3 = listings.some((summary) => {
+      const ticker = String(summary?.web3_ticker || '').trim().toUpperCase();
+      return ticker !== '' && ticker !== 'SAITO';
+    });
+    if (!hasWeb3 || !markStoreWeb3Active(this.app)) {
+      return;
+    }
+    if (this.mod.main?.menu?.mode === 'dashboard') {
+      this.mod.main.menu.render();
+    }
   }
 
   renderResults() {

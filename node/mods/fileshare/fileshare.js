@@ -18,7 +18,7 @@ class Fileshare extends ModTemplate {
     this.class = 'app';
     this.chunkSize = 64256; //32696;
 
-    this.stun = null;
+    this.peerManager = null;
 
     this.styles = ['/fileshare/style.css'];
 
@@ -93,7 +93,7 @@ class Fileshare extends ModTemplate {
     if (app.BROWSER) {
       this.attachStyleSheets();
       try {
-        this.stun = app.modules.returnFirstRespondTo('peer-manager');
+        this.peerManager = app.modules.returnFirstRespondTo('peer-manager');
       } catch (err) {
         console.warn('FILESHARE: No Stun available');
       }
@@ -150,12 +150,12 @@ class Fileshare extends ModTemplate {
     //
     let returnObj = null;
 
-    if (this?.stun) {
+    if (this?.peerManager) {
       let recipient = obj?.publicKey || obj?.members;
       let chat_id = obj?.call_id || obj?.publicKey;
 
       if (recipient && chat_id && recipient !== this.publicKey && recipient.length > 0) {
-        let icon = this.stun.hasConnection(recipient)
+        let icon = this.peerManager.hasConnection(recipient)
           ? 'fa-solid fa-file-arrow-up'
           : 'fa-solid fa-file';
 
@@ -178,8 +178,8 @@ class Fileshare extends ModTemplate {
               fss.outgoing_files[fileId].overlay.render();
 
               //
-              if (!fss.stun.hasConnection(recipient)) {
-                fss.stun.createPeerConnection(recipient);
+              if (!fss.peerManager.hasConnection(recipient)) {
+                fss.peerManager.createPeerConnection(recipient);
               } else {
                 console.debug('FILESHARE: emit dummy stun event');
                 fss.app.connection.emit('stun-data-channel-open', recipient);
@@ -406,7 +406,7 @@ class Fileshare extends ModTemplate {
           if (this.incoming[txmsg.data.old_id]) {
             this.incoming[txmsg.data.old_id].overlay.remove();
             this.reset(txmsg.data.old_id);
-            this.stun.createPeerConnection(tx.from[0].publicKey);
+            this.peerManager.createPeerConnection(tx.from[0].publicKey);
           }
 
           return;
@@ -416,7 +416,7 @@ class Fileshare extends ModTemplate {
           if (txmsg.request == 'share file') {
             const blob = this.incoming[txmsg.data.meta.id];
 
-            if (!this.stun || !blob?.sending) {
+            if (!this.peerManager || !blob?.sending) {
               console.warn('Fileshare: No stun / not ready to receive!');
               return;
             }
@@ -518,7 +518,7 @@ class Fileshare extends ModTemplate {
       //
       // Check stun connection here to break pointless looping
       //
-      if (this.stun.hasConnection(this.outgoing_files[fileId].recipient)) {
+      if (this.peerManager.hasConnection(this.outgoing_files[fileId].recipient)) {
         await this.sendFileChunk(fileId, event);
       } else {
         console.warn('FILESHARE: lost connection, pausing uploads...');
@@ -674,8 +674,8 @@ class Fileshare extends ModTemplate {
     //
     // No fallback to onchain or relay (on purpose!)
     //
-    if (this?.stun && this.stun.hasConnection(obj.recipient)) {
-      this.stun.sendTransaction(obj.recipient, tx);
+    if (this?.peerManager && this.peerManager.hasConnection(obj.recipient)) {
+      this.peerManager.sendTransaction(obj.recipient, tx);
     } else {
       console.warn('Fileshare: No stun connection to transfer file!');
     }
@@ -698,8 +698,8 @@ class Fileshare extends ModTemplate {
 
     await tx.sign();
 
-    if (this?.stun && this.stun.hasConnection(obj.sender)) {
-      this.stun.sendTransaction(obj.sender, tx);
+    if (this?.peerManager && this.peerManager.hasConnection(obj.sender)) {
+      this.peerManager.sendTransaction(obj.sender, tx);
     } else {
       console.warn('Fileshare: No stun connection to transfer file!');
     }

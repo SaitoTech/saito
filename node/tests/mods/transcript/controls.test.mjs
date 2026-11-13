@@ -9,8 +9,8 @@ import { JSDOM } from 'jsdom';
 const require = createRequire(import.meta.url);
 const Transcript = require('../../../mods/transcript/transcript');
 const CallInterfaceVideo = require('../../../mods/videocall/lib/components/call-interface-video');
-const StreamManager = require('../../../mods/videocall/lib/StreamManager');
-const SaitoVideoBox = require('../../../lib/saito/ui/saito-videobox/video-box');
+const StreamManager = require('../../../mods/videocall/lib/stream_manager');
+const VideoBox = require('../../../mods/videocall/lib/ui/videobox');
 
 test('transcription status appears beside the name and survives video box recreation', (t) => {
   const dom = new JSDOM('<div class="videos"></div>');
@@ -33,7 +33,7 @@ test('transcription status appears beside the name and survives video box recrea
   // Receive status before the corresponding video has rendered.
   mod.streams.updateTranscriptionStatus('bob', true);
   const makeBox = () => {
-    const box = new SaitoVideoBox(app, mod, 'bob', 'videos');
+    const box = new VideoBox(app, mod, 'bob', 'videos');
     box.attachEvents = () => {};
     box.render();
     return box;
@@ -63,7 +63,12 @@ test('capture status is broadcast on changes and repeated for newly connected pe
     sendOffChainMessage: async (request, data) => sent.push({ request, data })
   };
   const streams = new StreamManager(app, mod, {});
-  t.after(() => Object.values(streams.monitors).forEach(clearInterval));
+  streams.active = true;
+  streams.attach();
+  t.after(() => {
+    Object.values(streams.monitors).forEach(clearInterval);
+    streams.detach();
+  });
   streams.setTranscribing(true);
   app.connection.emit('stun-connection-connected', 'bob');
   streams.setTranscribing(false);
@@ -122,7 +127,7 @@ test('module forwards call lifecycle and navigation to the transcript runtime', 
   app.connection.emit('videocall-stream', 'bob', stream);
   app.connection.emit('videocall-peer-left', 'bob');
   const completion = [];
-  app.connection.emit('videocall-ended', completion);
+  app.connection.emit('videocall-call-ended', completion);
   await Promise.all(completion);
   const navigation = [];
   app.connection.emit('saito-before-navigate', navigation);
@@ -188,7 +193,7 @@ test('inactive Transcript opens Start/Settings menu; active Transcript stops dir
   runtime.capturing = false;
   await action.callback();
   const completion = [];
-  app.connection.emit('videocall-ended', completion);
+  app.connection.emit('videocall-call-ended', completion);
   await Promise.all(completion);
   assert.equal(document.querySelector('.transcript-action-menu'), null);
 });

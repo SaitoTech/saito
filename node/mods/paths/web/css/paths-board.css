@@ -23,12 +23,49 @@
       0 0 60px 20px rgba(255, 69, 0, 0.5); /* inner + outer glow */
   }
 
+  /* Opponent's last action. Drawn under the counters so the space stays clickable. */
+  .space.opponent-move::after,
+  .space.opponent-attack::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 220px;
+    height: 220px;
+    transform: translate(-50%, -50%);
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.4;
+  }
+
+  .space.opponent-move::after {
+    background: #e8c547;
+  }
+
+  .space.opponent-attack::after {
+    background: #e74c3c;
+  }
+
+  .space.opponent-move > .army-tile,
+  .space.opponent-attack > .army-tile {
+    z-index: 3;
+  }
+  .space.opponent-move > .trench-tile,
+  .space.opponent-attack > .trench-tile {
+    z-index: 1;
+  }
+  .space.opponent-move > .oos-tile,
+  .space.opponent-attack > .oos-tile {
+    z-index: 10000;
+  }
+
   .game-minimap {
     top: calc(40px + 1.667rem);
     left: 1.667rem;
     right: auto;
     bottom: auto;
-    width: 24vw;
+    width: 12vw;
   }
 
   .game-minimap .markers .circle {
@@ -840,7 +877,14 @@
   }
 
   .oos-tile {
-    z-index: 9999;
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    top: calc(var(--oos-step, 1) * -30px);
+    left: calc(var(--oos-step, 1) * 30px);
+    right: auto;
+    bottom: auto;
+    z-index: 6;
   }
 
   .allies-reserve-box {

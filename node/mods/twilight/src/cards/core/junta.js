@@ -36,7 +36,7 @@
               
           twilight_self.game.status = "Do you wish to use 2 free OPS for a coup or realignment rolls in Central or South America?";
           twilight_self.hud.updateStatus(twilight_self.game.status);
-          twilight_self.hud.updateCards(twilight_self.game.deck[0].hand);
+          twilight_self.hud.updateCards([]);
           twilight_self.hud.updateMenu([ { id: 'conduct', label: 'coup or realign' }, { id: 'skip', label: 'skip' } ], function(action2) {
 
             if (action2 == "conduct") {

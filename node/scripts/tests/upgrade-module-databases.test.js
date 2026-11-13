@@ -79,10 +79,23 @@ test('upgrade every active core staging schema and rerun without changes', async
   assert.equal(fs.existsSync(path.join(dir, 'warehouse.sq3')), false);
 });
 
+function archivedMigrationDefinition() {
+  return {
+    entry: 'migration/migration.js',
+    name: 'Migration',
+    slug: 'migration',
+    dbname: 'migration',
+    sqlFiles: [
+      path.join(root, 'scripts/fixtures/migration/migration.sql'),
+      path.join(root, 'scripts/fixtures/migration/migration2.sql')
+    ]
+  };
+}
+
 test('Migration CHECK rebuild preserves rows, extras, indexes, triggers, views, FKs and sequence', async (t) => {
   const dir = temporary(t);
   const filename = path.join(dir, 'migration.sq3');
-  const definition = moduleDefinition('migration/migration.js');
+  const definition = archivedMigrationDefinition();
   const target = await targetSchema(definition);
   let db = await connect(filename);
   await db.exec(stagingSql('mods/migration/sql/migration2.sql'));
@@ -261,7 +274,7 @@ test('CLI respects core selection and dry-run creates no directories', (t) => {
 
 test('dry-run rejects unknown CHECK changes without modifying data', async (t) => {
   const filename = path.join(temporary(t), 'migration.sq3');
-  const definition = moduleDefinition('migration/migration.js');
+  const definition = archivedMigrationDefinition();
   const target = await targetSchema(definition);
   const db = await connect(filename);
   await db.exec(

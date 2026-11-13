@@ -11,6 +11,8 @@ CREATE TABLE IF NOT EXISTS listings (
 
   quantity INTEGER NOT NULL DEFAULT 1,
   price INTEGER NOT NULL DEFAULT 0,
+  web3_ticker TEXT NOT NULL DEFAULT '',
+  web3_amount TEXT NOT NULL DEFAULT '',
 
   access_hash TEXT DEFAULT '',
   access_script TEXT NOT NULL DEFAULT '',

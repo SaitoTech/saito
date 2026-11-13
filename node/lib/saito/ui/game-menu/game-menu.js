@@ -138,6 +138,14 @@ class GameMenu {
         });
       }
 
+      for (let i = 0; i < this.options.length; i++) {
+        if (this.options[i].id === 'game-share' && !(this.sub_options[i] || []).length) {
+          this.options.splice(i, 1);
+          this.sub_options.splice(i, 1);
+          break;
+        }
+      }
+
       if (this.debug || this.game_mod.debug) {
         this.addSubMenuOption('game-game', {
           text: 'Debug',

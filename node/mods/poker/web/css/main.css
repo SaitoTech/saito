@@ -99,6 +99,10 @@ body.game.poker {
   display: none;
 }
 
+.game.poker .poker-rules-overlay.retain-surface {
+  color: var(--saito-popover-foreground);
+}
+
 @media (max-width: 900px), (max-height: 500px) {
   .game.poker .poker-main {
     grid-template-columns: minmax(0, 1fr);

@@ -5,6 +5,7 @@
   "scripts": {
     "test": "playwright test",
     "test:smoke": "playwright test tests/smoke.spec.ts",
+    "test:sandbox": "playwright test -c playwright.sandbox.config.ts",
     "test:headed": "playwright test --headed",
     "show-report": "playwright show-report"
   },

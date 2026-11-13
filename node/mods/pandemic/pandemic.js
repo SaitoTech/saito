@@ -269,7 +269,7 @@ class Pandemic extends GameTemplate {
         callback: function (app, game_mod) {
           game_mod.menu.hideSubMenus();
           let html = game_mod.returnPlayerCardHTML(i + 1);
-          game_mod.overlay.show(`<div class=" bighand">${html}</div>`);
+          game_mod.overlay.showClosable(`<div class="bighand">${html}</div>`);
                     game_mod.cardbox.attachCardEvents(); //Don't do anything on click
         }
       });

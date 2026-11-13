@@ -12,6 +12,23 @@ const ZoomOverlay = require('./lib/overlays/zoom');
 const htmlTemplate = require('./lib/core/game-html.template').default;
 const GameHelp = require('./lib/overlays/game-help');
 const GameMinimap = require('../../lib/saito/ui/game-minimap/game-minimap');
+const CardStudio = require('./lib/cardgen/studio');
+const Card = require('./lib/cardgen/card');
+const {
+  TEST_BACKUP_KEY,
+  TEST_COMPLETE,
+  firstEventCode,
+  testNftId,
+  buildTestNft,
+  testQueueInstructions,
+  pushLocalInstruction,
+  insertEndInstruction
+} = require('./lib/cardgen/test-run');
+const nftApi = require('./lib/core/api');
+const {
+  TWILIGHT_QUEUE_COMMANDS,
+  isSandboxInstructionPermitted
+} = nftApi;
 
 const JSON = require('json-bigint');
 
@@ -41,6 +58,7 @@ class Twilight extends GameTemplate {
 
     this.app             = app;
 
+    this.supported_nft_types = ["twilight-nft"];
     this.name  		 = "Twilight";
     this.gamename        = "Twilight Struggle";
     this.slug		 = "twilight";
@@ -71,6 +89,9 @@ class Twilight extends GameTemplate {
     this.headline_overlay = new HeadlineOverlay(this.app, this);
     this.zoom_overlay = new ZoomOverlay(this.app, this);
     this.game_help = new GameHelp(this.app, this);
+    this.cardgen_studio = new CardStudio(this.app, this);
+    this.cardgen_testing = false;
+    this._cardgen_test_snapshot = null;
     this.minimap = new GameMinimap(this.app, this);
     this.minimap.enable_zoom = 1;
     // Opening frame measured from the Europe–Asia crop on the 2550×1650 board.
@@ -97,6 +118,212 @@ class Twilight extends GameTemplate {
 
   }
 
+  respondTo(type = '', obj = null) {
+    if (type === 'saito-create-nft') {
+      return {
+        title: 'Twilight Struggle Card',
+        class: [Card.NFT_TYPE],
+        upload_text: 'Twilight Struggle card image',
+        createData: async (file, metadata = {}) => {
+          const card = metadata.card;
+          if (!card || typeof card !== 'object') {
+            salert('Missing card data for NFT');
+            return false;
+          }
+
+          const name = String(card.name || '').trim();
+          if (!name) {
+            salert('Card title is required');
+            return false;
+          }
+
+          const image = card.image || metadata.image || '';
+          if (!image) {
+            salert('Paint and attach a card image before minting');
+            return false;
+          }
+
+          const text = String(card.text || '');
+          if (!text.trim()) {
+            salert('Card text is required');
+            return false;
+          }
+
+          const player = ['us', 'ussr', 'both'].includes(card.player) ? card.player : 'both';
+          const deck = ['early', 'mid', 'late'].includes(card.deck) ? card.deck : 'early';
+          let code = '';
+          if (typeof card.code === 'string') {
+            code = card.code.replace(/\t/g, ' ');
+          } else if (Array.isArray(card.code)) {
+            code = card.code
+              .map((entry) => {
+                if (typeof entry === 'string') {
+                  return entry.replace(/\t/g, ' ');
+                }
+                if (!entry || typeof entry !== 'object') {
+                  return null;
+                }
+                const entryName = String(entry.name || '').trim();
+                const body = String(entry.code || '').replace(/\t/g, ' ');
+                if (!entryName || !body.trim()) {
+                  return null;
+                }
+                return { name: entryName, code: body };
+              })
+              .filter(Boolean);
+            if (code.length === 1) {
+              code = code[0].code;
+            } else if (!code.length) {
+              code = '';
+            }
+          }
+
+          return {
+            module: 'Twilight',
+            type: 'card',
+            name,
+            scoring: Number(card.scoring) ? 1 : 0,
+            player,
+            ops: Number(card.ops) || 0,
+            recurring: Number(card.recurring) ? 1 : 0,
+            permanent: Number(card.permanent) ? 1 : 0,
+            non_card: Number(card.non_card) ? 1 : 0,
+            deck,
+            text,
+            code,
+            img: typeof card.img === 'string' ? card.img : '',
+            image
+          };
+        }
+      };
+    }
+
+    return super.respondTo(type, obj);
+  }
+
+  async initialize(app) {
+    await super.initialize(app);
+    if (this.app.BROWSER && !this.transaction_monitor) {
+      const SaitoTransactionMonitor = require('../../lib/saito/ui/saito-transaction-monitor/saito-transaction-monitor');
+      this.transaction_monitor = new SaitoTransactionMonitor(this.app, this);
+    }
+  }
+
+  shouldAffixCallbackToModule(modname, tx = null) {
+    if (super.shouldAffixCallbackToModule(modname, tx)) {
+      return 1;
+    }
+    if (
+      this.transaction_monitor?.tx &&
+      tx?.signature &&
+      tx.signature === this.transaction_monitor.tx.signature
+    ) {
+      return 1;
+    }
+    return 0;
+  }
+
+  async openCreateNft() {
+    const studio = this.cardgen_studio;
+    const card = studio?.host?.card;
+    const main = studio?.main;
+    if (!card || !main) {
+      salert('Card minting is unavailable in this game session');
+      return;
+    }
+
+    let canvas = main.card_ui?.canvas?.();
+    if (canvas) {
+      await main.card_ui.draw();
+    } else if (main.paintCaptureCanvas) {
+      canvas = await main.paintCaptureCanvas();
+    } else {
+      canvas = document.createElement('canvas');
+      await card.paint(canvas);
+    }
+
+    let image = card.toDataURL(canvas);
+    if (!image) {
+      salert('Unable to capture the card image');
+      return;
+    }
+
+    if (typeof this.app.browser?.resizeImg === 'function') {
+      try {
+        image = await this.app.browser.resizeImg(image, 128, {
+          w: Card.WIDTH,
+          h: Card.HEIGHT
+        });
+      } catch (err) {
+        console.warn('Twilight: resizeImg failed, using original canvas capture', err);
+      }
+    }
+
+    const snapshot = card.buildSnapshot(image);
+    if (!snapshot.name) {
+      salert('Enter a card title before creating an NFT');
+      return;
+    }
+    if (!String(snapshot.text || '').trim()) {
+      salert('Enter card text before creating an NFT');
+      return;
+    }
+
+    let createNft =
+      this.header && this.header.select_nft_overlay && this.header.select_nft_overlay.create_nft_overlay;
+
+    if (!createNft) {
+      if (!this.create_nft_overlay) {
+        const CreateNFT = require('../../lib/saito/ui/saito-nft/overlays/create-overlay');
+        this.create_nft_overlay = new CreateNFT(this.app, this);
+      }
+      createNft = this.create_nft_overlay;
+    }
+
+    createNft.render({
+      type: Card.NFT_TYPE,
+      locked: ['type'],
+      image: snapshot.image,
+      title: snapshot.name,
+      description: `Twilight Struggle Optional Card - ${snapshot.name}`,
+      create_data: { card: snapshot },
+      callback: (obj) => {
+        if (obj?.status === 'created') {
+          this.watchMintTransaction(obj.tx, obj.nft_id);
+        }
+      }
+    });
+  }
+
+  watchMintTransaction(tx, nft_id = '') {
+    if (!this.transaction_monitor) {
+      console.error('Twilight: transaction_monitor is not initialized');
+      this.cardgen_studio?.main?.showHome?.();
+      return;
+    }
+
+    this.transaction_monitor.render({
+      tx,
+      nft_id: nft_id || '',
+      title: 'Creating Twilight Card',
+      lead: 'Your Twilight Struggle card NFT has been broadcast to the Saito network.',
+      subtitle: '',
+      successTitle: 'Card Received',
+      successLead: 'Your Twilight Struggle card has arrived in your wallet.',
+      successActionLabel: 'Continue',
+      callback: async (result) => {
+        if (result?.status === 'confirmed') {
+          try {
+            await this.app.wallet.updateNFTList();
+          } catch (err) {
+            console.warn('Twilight: updateNFTList after mint failed', err);
+          }
+          this.cardgen_studio?.main?.showHome?.();
+        }
+      }
+    });
+  }
+
   showCardOverlay(cards, title = ""){
     let html = `
       <div class="transparent-card-overlay hide-scrollbar">
@@ -115,6 +342,241 @@ class Twilight extends GameTemplate {
     this.overlay.show(html, ()=> { this.overlay.clickToClose = cc_status;});
   }
 
+  returnApiQueue() {
+    const base = super.returnApiQueue();
+    const engineCommands = base.commands;
+    const twilightCommands = TWILIGHT_QUEUE_COMMANDS;
+    const commands = engineCommands.concat(twilightCommands);
+
+    const gate = (fn) => {
+      return (instruction) => {
+        if (!isSandboxInstructionPermitted(instruction, engineCommands, twilightCommands)) {
+          const cmd =
+            typeof instruction === 'string' ? instruction.split('\t')[0] : '';
+          throw new Error(`command not permitted: ${cmd || '(empty)'}`);
+        }
+        return fn(instruction);
+      };
+    };
+
+    const localDuringTest = (fn, applyLocal) => {
+      return (instruction) => {
+        if (!isSandboxInstructionPermitted(instruction, engineCommands, twilightCommands)) {
+          const cmd =
+            typeof instruction === 'string' ? instruction.split('\t')[0] : '';
+          throw new Error(`command not permitted: ${cmd || '(empty)'}`);
+        }
+        if (this.cardgen_testing) {
+          applyLocal(instruction);
+          return;
+        }
+        return fn(instruction);
+      };
+    };
+
+    return {
+      commands,
+      addToQueue: gate(base.addToQueue),
+      addMove: localDuringTest(base.addMove, (instruction) => {
+        pushLocalInstruction(this.game.queue, instruction);
+      }),
+      prependMove: localDuringTest(base.prependMove, (instruction) => {
+        pushLocalInstruction(this.game.queue, instruction);
+      }),
+      addEndMove: localDuringTest(base.addEndMove, (instruction) => {
+        insertEndInstruction(this.game.queue, instruction);
+      }),
+      endTurn: async (...args) => {
+        if (this.cardgen_testing) {
+          this.moves = [];
+          this.endmoves = [];
+          return;
+        }
+        return base.endTurn(...args);
+      }
+    };
+  }
+
+  returnApi() {
+    const api = super.returnApi();
+    const queue = this.returnApiQueue();
+    return {
+      ...api,
+      addToQueue: queue.addToQueue,
+      addMove: queue.addMove,
+      prependMove: queue.prependMove,
+      addEndMove: queue.addEndMove,
+      endTurn: queue.endTurn,
+      returnEventingPlayer: nftApi.returnEventingPlayer.bind(this),
+      isPlayer: nftApi.isPlayer.bind(this),
+      playerSelectOption: nftApi.playerSelectOption.bind(this),
+      playerSelectCountry: nftApi.playerSelectCountry.bind(this),
+      isControlled: nftApi.isControlled.bind(this),
+      whoControls: nftApi.whoControls.bind(this),
+      isEventActive: nftApi.isEventActive.bind(this),
+      setEvent: nftApi.setEvent.bind(this),
+      advanceSpaceRace: nftApi.advanceSpaceRace.bind(this)
+    };
+  }
+
+  returnContext(cardId) {
+    return super.returnContext();
+  }
+
+  readCardgenTestBackup() {
+    try {
+      if (typeof sessionStorage === 'undefined') {
+        return null;
+      }
+      const raw = sessionStorage.getItem(TEST_BACKUP_KEY);
+      if (!raw) {
+        return null;
+      }
+      return JSON.parse(raw);
+    } catch (err) {
+      console.warn('cardgen test backup could not be read', err);
+      return null;
+    }
+  }
+
+  writeCardgenTestBackup(snapshot) {
+    try {
+      if (typeof sessionStorage === 'undefined') {
+        return;
+      }
+      sessionStorage.setItem(TEST_BACKUP_KEY, JSON.stringify(snapshot));
+    } catch (err) {
+      console.warn('cardgen test backup was not stored for refresh', err);
+    }
+  }
+
+  clearCardgenTestBackup() {
+    try {
+      if (typeof sessionStorage !== 'undefined') {
+        sessionStorage.removeItem(TEST_BACKUP_KEY);
+      }
+    } catch (err) {
+      console.warn('cardgen test backup could not be cleared', err);
+    }
+  }
+
+  async initializeGameQueue(game_id) {
+    const backup = this.readCardgenTestBackup();
+    if (backup && backup.id === game_id) {
+      this.game = backup;
+      this._cardgen_test_snapshot = null;
+      this.cardgen_testing = false;
+      this.clearCardgenTestBackup();
+      try {
+        this.saveGame(game_id);
+      } catch (err) {
+        console.error('cardgen test restore save failed', err);
+      }
+    }
+    return super.initializeGameQueue(game_id);
+  }
+
+  startCustomCardTest(card) {
+    if (!this.browser_active || !this.game?.id || !Array.isArray(this.game.queue)) {
+      salert('Open a Twilight Struggle game to test card code');
+      return;
+    }
+    if (this.gaming_active && !this.halted) {
+      salert('Wait for the game to pause before testing card code');
+      return;
+    }
+    if (this.cardgen_testing) {
+      salert('A card test is already running');
+      return;
+    }
+
+    const code = firstEventCode(card);
+    if (!String(code || '').trim()) {
+      salert('Add code to the first event before testing');
+      return;
+    }
+
+    let snapshot;
+    try {
+      snapshot = JSON.parse(JSON.stringify(this.game));
+    } catch (err) {
+      console.error('cardgen test backup failed', err);
+      salert('Unable to backup the game');
+      return;
+    }
+
+    this._cardgen_test_snapshot = snapshot;
+    this.writeCardgenTestBackup(snapshot);
+
+    if (!this.game.options) {
+      this.game.options = {};
+    }
+    if (!Array.isArray(this.game.options.nfts)) {
+      this.game.options.nfts = [];
+    }
+
+    const id = testNftId(card);
+    this.game.options.nfts.unshift(buildTestNft(card, id));
+
+    if (!this.game.state) {
+      this.game.state = {};
+    }
+    const role = this.roles && this.roles[this.game.player];
+    if (role === 'us' || role === 'ussr') {
+      this.game.state.eventing_player = role;
+    }
+
+    this.cardgen_testing = true;
+    this.cardgen_studio?.hideForTest?.();
+
+    for (const instruction of testQueueInstructions(id)) {
+      this.game.queue.push(instruction);
+    }
+
+    this.restartQueue();
+  }
+
+  finishCustomCardTest() {
+    const snapshot = this._cardgen_test_snapshot || this.readCardgenTestBackup();
+    this._cardgen_test_snapshot = null;
+    this.cardgen_testing = false;
+    this.clearCardgenTestBackup();
+
+    if (!snapshot) {
+      const queue = this.game?.queue;
+      if (Array.isArray(queue) && String(queue[queue.length - 1] || '').split('\t')[0] === TEST_COMPLETE) {
+        queue.pop();
+      }
+      console.error('custom_card_test_complete: missing backup');
+      return;
+    }
+
+    this.game = snapshot;
+    try {
+      this.saveGame(this.game.id);
+    } catch (err) {
+      console.error('cardgen test restore save failed', err);
+    }
+    try {
+      this.displayBoard();
+    } catch (err) {
+      console.error('cardgen test restore display failed', err);
+    }
+    if (this.hud) {
+      if (this.game.status) {
+        this.hud.updateStatus(this.game.status);
+      }
+      if (this.game.deck?.[0]?.hand) {
+        try {
+          this.hud.updateCards(this.game.deck[0].hand);
+        } catch (err) {
+          console.error('cardgen test restore hand failed', err);
+        }
+      }
+    }
+    this.halted = 1;
+    this.cardgen_studio?.showCode?.();
+  }
 
   //
   // async
@@ -416,6 +878,16 @@ class Twilight extends GameTemplate {
         game_mod.lang = "es";
         game_mod.saveGamePreference("lang", "es");
         reloadWindow(1000);
+      }
+    });
+
+    this.menu.addSubMenuOption("game-game", {
+      text: "Custom Cards",
+      id: "game-custom-cards",
+      class: "game-custom-cards",
+      callback: async function(app, game_mod) {
+        game_mod.menu.hideSubMenus();
+        await game_mod.cardgen_studio.render();
       }
     });
 
@@ -1090,6 +1562,74 @@ console.log("error here 222");
 }
 
 
+    //
+    // initialize any user-provided NFT cards etc.
+    //
+    initializeNFTs() {
+
+      if (!this.game.options) {
+        this.game.options = {};
+      }
+      if (!Array.isArray(this.game.options.nfts)) {
+        this.game.options.nfts = [];
+      }
+
+      // Deduplicate card ids before dealing into the deck.
+      const seenIds = new Set();
+
+      for (const nft of this.game.options.nfts) {
+        if (!nft || nft.id == null) { continue; }
+        const id = String(nft.id);
+        if (!id || /[\t\n\r ]/.test(id) || seenIds.has(id)) {
+          console.error('initializeNFTs: rejecting NFT card id:', id);
+          continue;
+        }
+        seenIds.add(id);
+
+        const data = nft.data || {};
+        // Non-cards stay in options.nfts for code calls, but are not dealt.
+        if (Number(data.non_card)) { continue; }
+
+        let code = data.code;
+        if (typeof code === 'string') {
+          code = code.replace(/\t/g, ' ');
+        } else if (Array.isArray(code)) {
+          const entries = [];
+          for (let i = 0; i < code.length; i++) {
+            const entry = code[i];
+            if (typeof entry === 'string') {
+              const body = entry.replace(/\t/g, ' ');
+              if (body.trim()) { entries.push(body); }
+            } else if (entry && typeof entry === 'object') {
+              const name = String(entry.name || '').trim();
+              const body = String(entry.code || '').replace(/\t/g, ' ');
+              if (name && body.trim()) { entries.push({ name, code: body }); }
+            }
+          }
+          if (!entries.length) {
+            code = '';
+          } else if (entries.length === 1 && typeof entries[0] === 'string') {
+            code = entries[0];
+          } else if (entries.length === 1) {
+            code = entries[0].code;
+          } else {
+            code = entries;
+          }
+        } else {
+          code = '';
+        }
+
+        this.addCardToDeck(1, id, {
+          name: data.name || nft.title || 'Optional Card',
+          scoring: Number(data.scoring) || 0,
+          player: data.player || 'both',
+          recurring: Number(data.recurring) ? 1 : 0,
+          ops: Number(data.ops) || 0,
+          img: data.image || data.img || '',
+          code
+        });
+      }
+    }
 
 
 
@@ -1109,7 +1649,7 @@ console.log("error here 222");
     });
   }
 
-  handleGameLoop() {
+  async handleGameLoop() {
 
     let twilight_self = this;
     let player = (this.game.player === 1) ? "ussr" : "us";
@@ -1163,6 +1703,11 @@ console.log("error here 222");
       let shd_continue = 1;
 
 console.log("LATEST MOVE: " + mv);
+
+    if (mv[0] === TEST_COMPLETE) {
+      this.finishCustomCardTest();
+      return 0;
+    }
 
       //
       // cambridge region
@@ -1394,6 +1939,8 @@ console.log("LATEST MOVE: " + mv);
     if (mv[0] == "init") {
 
       this.game.queue.splice(qe, 1);
+
+      this.initializeNFTs();
 
       for (let i = 0; i < this.game.players.length; i++){
         if (this.game.players[i] === this.publicKey){
@@ -1688,7 +2235,7 @@ console.log("LATEST MOVE: " + mv);
           options.push({ id: 'nope', label: 'return card' });
           this.game.status = user_message;
           this.hud.updateStatus(this.game.status);
-          this.hud.updateCards(this.game.deck[0].hand);
+          this.hud.updateCards([]);
           this.hud.updateMenu(options, function(action2) {
             if (action2 == "play") {
               // trigger play of selected card
@@ -1791,7 +2338,7 @@ console.log("LATEST MOVE: " + mv);
               let user_message = "Pick second target for coup:";
               twilight_self.game.status = user_message;
               twilight_self.hud.updateStatus(twilight_self.game.status);
-              twilight_self.hud.updateCards(twilight_self.game.deck[0].hand);
+              twilight_self.hud.updateCards([]);
               twilight_self.hud.updateMenu([ { id: 'skipche', label: 'or skip coup' } ], function(action2) {
                 if (action2 == "skipche") {
                   twilight_self.endTurn();
@@ -2136,7 +2683,7 @@ console.log("LATEST MOVE: " + mv);
         let user_message  = "Do you wish to take an extra turn?";
         this.game.status = user_message;
         this.hud.updateStatus(this.game.status);
-        this.hud.updateCards(this.game.deck[0].hand);
+        this.hud.updateCards([]);
         this.hud.updateMenu([ { id: 'play', label: 'yes' }, { id: 'nope', label: 'no' } ], function(action2) {
 
           if (action2 == "play") {
@@ -2297,7 +2844,7 @@ console.log("LATEST MOVE: " + mv);
         options.push({ id: 'hand', label: 'give to opponent' });
         twilight_self.game.status = user_message;
         twilight_self.hud.updateStatus(twilight_self.game.status);
-        twilight_self.hud.updateCards(twilight_self.game.deck[0].hand);
+        twilight_self.hud.updateCards([]);
         twilight_self.hud.updateMenu(options, function(action2) {
 	  if (action2 === "play") {
 	    twilight_self.addMove(`NOTIFY\tUS pulls and plays ${twilight_self.cardToText(card)}`);
@@ -2334,13 +2881,13 @@ console.log("LATEST MOVE: " + mv);
     if (mv[0] == "dice") {
       if (mv[1] == "burn") {
         if (this.game.player == 1 && mv[2] == "ussr") {
-          roll = this.rollDice(6);
+          this.rollDice(6);
         }
         if (this.game.player == 2 && mv[2] == "us")   {
-          roll = this.rollDice(6);
+          this.rollDice(6);
         }
         if (this.game.player == 0) {
-          roll = this.rollDice(6);
+          this.rollDice(6);
         }
       }
       this.game.queue.splice(qe, 1);
@@ -2472,7 +3019,7 @@ console.log("LATEST MOVE: " + mv);
         let user_message = "Tear Down this Wall is played -- US may make 3 OP free Coup Attempt or Realignments in Europe.";
         twilight_self.game.status = user_message;
         twilight_self.hud.updateStatus(twilight_self.game.status);
-        twilight_self.hud.updateCards(twilight_self.game.deck[0].hand);
+        twilight_self.hud.updateCards([]);
         twilight_self.hud.updateMenu([ { id: 'taketear', label: 'make coup or realign' }, { id: 'skiptear', label: 'skip coup' } ], function(action2) {
 
           if (action2 == "skiptear") {
@@ -2542,10 +3089,6 @@ console.log("LATEST MOVE: " + mv);
 
 
     if (mv[0] === "reshuffle_and_insert_discards"){
-
-for (let z in this.game.deck[0].cards) {
-  console.log("reshuffle card: " + z);
-}
 
         this.game.queue.splice(qe, 1);
         let reshuffle_limit = 14;
@@ -2851,7 +3394,7 @@ console.log("DESC: " + JSON.stringify(discarded_cards));
       }
       this.updateLog(mv[1].toUpperCase() + ` triggers ${this.game.state.event_name} as an event`);
 
-      shd_continue = this.playEvent(mv[1], mv[2]);
+      shd_continue = await this.playEvent(mv[1], mv[2]);
 
       //
       // show active events
@@ -3438,7 +3981,7 @@ try {
           //
           this.game.status = `Do you want to take an extra turn? (Khruschev Thaw)`;
           this.hud.updateStatus(this.game.status);
-          this.hud.updateCards(this.game.deck[0].hand);
+          this.hud.updateCards([]);
           this.hud.updateMenu([ { id: 'play', label: 'play extra turn' }, { id: 'nope', label: 'do not play' } ], function(action2) {
 
             if (action2 == "play") {
@@ -3474,7 +4017,7 @@ try {
           //
           this.game.status = `Do you want to take an extra turn? (North Sea Oil)`;
           this.hud.updateStatus(this.game.status);
-          this.hud.updateCards(this.game.deck[0].hand);
+          this.hud.updateCards([]);
           this.hud.updateMenu([ { id: 'play', label: 'play extra turn' }, { id: 'nope', label: 'do not play' } ], function(action2) {
 
             if (action2 == "play") {
@@ -3539,7 +4082,7 @@ try {
 
           this.game.status = user_message;
           this.hud.updateStatus(this.game.status);
-          this.hud.updateCards(this.game.deck[0].hand);
+          this.hud.updateCards([]);
           this.hud.updateMenu(options, function(action2) {
 
             if (action2 == "nope") {
@@ -3588,7 +4131,7 @@ try {
         //
         this.game.status = "Do you want to take an extra turn: (Space Shuttle)";
         this.hud.updateStatus(this.game.status);
-        this.hud.updateCards(this.game.deck[0].hand);
+        this.hud.updateCards([]);
         this.hud.updateMenu([ { id: 'play', label: 'play extra turn' }, { id: 'nope', label: 'do not play' } ], function(action2) {
           if (action2 == "play") {
             twilight_self.addMove("play\t"+bonus_player);
@@ -3612,7 +4155,9 @@ try {
       }
 
       //Increment state.round and resets state variables for next round
-      if (!this.endRound()) { return 0; }
+      // Military-operations penalties can end the game here. Do not bury
+      // the terminal protocol under a fresh round of dealing commands.
+      if (!this.endRound() || this.game.terminating || this.game.over) { return 0; }
 
 
       //
@@ -3701,7 +4246,9 @@ try {
         }
 
 
-        if (this.game.state.round == 8) {
+        // Late War starts with all eras already in its scenario deck.
+        // Reinserting these cards creates duplicate copies in players' hands.
+        if (this.game.state.round == 8 && this.game.options.deck !== "late-war") {
 
           this.game.queue.push("SHUFFLE\t1");
           this.game.queue.push("DECKRESTORE\t1");
@@ -4292,7 +4839,7 @@ try {
   playerPickHeadlineCard() {
 
     let twilight_self = this;
-    if (this.browser_active == 0) { return; }
+    if (this.browser_active == 0 && !this.app.HEADLESS) { return; }
 
     let player = this.roles[this.game.player];
     let x = "";
@@ -4416,7 +4963,7 @@ async playerTurnHeadlineSelected(card, player) {
 
     //
     let scoring_cards_available = 0;
-    for (i = 0; i < this.game.deck[0].hand.length; i++) {
+    for (let i = 0; i < this.game.deck[0].hand.length; i++) {
       if (this.game.deck[0].cards[this.game.deck[0].hand[i]]?.scoring == 1) {
           scoring_cards_available++;
       }
@@ -4496,7 +5043,7 @@ async playerTurnHeadlineSelected(card, player) {
 
           this.game.status = user_message;
           this.hud.updateStatus(this.game.status);
-          this.hud.updateCards(this.game.deck[0].hand);
+          this.hud.updateCards([]);
           this.hud.updateMenu(options, function (action2) {
             if (action2 === "select") {
               twilight_self.game.status = '';
@@ -4572,7 +5119,7 @@ async playerTurnHeadlineSelected(card, player) {
   playerTurn(selected_card=null) {
 
 
-    if (this.browser_active == 0) { return; }
+    if (this.browser_active == 0 && !this.app.HEADLESS) { return; }
 
     try {
       $(".easterneurope").removeClass("easterneurope");
@@ -4641,7 +5188,7 @@ async playerTurnHeadlineSelected(card, player) {
             let user_message = `You only have the ${this.cardToText("china")} card remaining. Do you wish to play it this turn?`;
             this.game.status = user_message;
             this.hud.updateStatus(this.game.status);
-            this.hud.updateCards(this.game.deck[0].hand);
+            this.hud.updateCards([]);
             this.hud.updateMenu([ { id: 'play', label: 'play card' }, { id: 'skipturn', label: 'skip turn' } ], function(action) {
               if (action === "play") {
                 twilight_self.playerTurn("china"); //reload function, ignoring this logic tree
@@ -4697,7 +5244,7 @@ async playerTurnHeadlineSelected(card, player) {
     /* Open play, choose a card from card list*/
     if (selected_card == null) {
       user_message = player.toUpperCase() + " pick a card: ";
-      for (i = 0; i < this.game.deck[0].hand.length; i++) {
+      for (let i = 0; i < this.game.deck[0].hand.length; i++) {
 
         // when UN Intervention is eventing, we can only select opponent cards
         if (this.game.state.events.unintervention == 1) {
@@ -4712,7 +5259,7 @@ async playerTurnHeadlineSelected(card, player) {
 
       if (selected_card === "scoringcard") {
         user_message = 'Scoring card must be played: <ul>';
-        for (i = 0; i < this.game.deck[0].hand.length; i++) {
+        for (let i = 0; i < this.game.deck[0].hand.length; i++) {
           if (this.game.deck[0].cards[this.game.deck[0].hand[i]]?.scoring == 1) {
             selected_card = this.game.deck[0].hand[i];
             playable_cards.push(this.game.deck[0].hand[i]);
@@ -4755,7 +5302,7 @@ async playerTurnHeadlineSelected(card, player) {
 
       user_message = `Select a card for ${(this.game.player == 1)? this.cardToText("beartrap"): this.cardToText("quagmire")}: `;
 
-      for (i = 0; i < this.game.deck[0].hand.length; i++) {
+      for (let i = 0; i < this.game.deck[0].hand.length; i++) {
         if (this.modifyOps(this.game.deck[0].cards[this.game.deck[0].hand[i]].ops, this.game.deck[0].hand[i], player, 0) >= 2 && this.game.deck[0].hand[i] != "china") {
           playable_cards.push(this.game.deck[0].hand[i]);
           cards_available++;
@@ -4796,7 +5343,7 @@ async playerTurnHeadlineSelected(card, player) {
         //
         if (cards_available > 0 && scoring_cards_available <= moves_remaining) {
           playable_cards = [];
-          for (i = 0; i < this.game.deck[0].hand.length; i++) {
+          for (let i = 0; i < this.game.deck[0].hand.length; i++) {
             if (this.game.deck[0].cards[this.game.deck[0].hand[i]] != undefined) {
               if (this.modifyOps(this.game.deck[0].cards[this.game.deck[0].hand[i]].ops, this.game.deck[0].hand[i], player, 0) >= 2 && this.game.deck[0].hand[i] != "china") {
                 playable_cards.push(this.game.deck[0].hand[i]);
@@ -4811,7 +5358,7 @@ async playerTurnHeadlineSelected(card, player) {
               user_message = "Quagmire restricts you to Scoring Cards: ";
             }
             playable_cards = [];
-            for (i = 0; i < this.game.deck[0].hand.length; i++) {
+            for (let i = 0; i < this.game.deck[0].hand.length; i++) {
               if (this.game.deck[0].cards[this.game.deck[0].hand[i]]?.scoring == 1) {
                 playable_cards.push(this.game.deck[0].hand[i]);
               }
@@ -4913,7 +5460,7 @@ async playerTurnHeadlineSelected(card, player) {
       if (twilight_self.game.state.round > 3) { rounds_in_turn = 7; }
       let moves_remaining = rounds_in_turn - twilight_self.game.state.turn_in_round;
 
-      for (i = 0; i < twilight_self.game.deck[0].hand.length; i++) {
+      for (let i = 0; i < twilight_self.game.deck[0].hand.length; i++) {
         if (ac[twilight_self.game.deck[0].hand[i]]?.scoring == 1) { 
           scoring_cards_available++; 
         }
@@ -5058,7 +5605,7 @@ async playerTurnHeadlineSelected(card, player) {
 
       twilight_self.game.status = card_play_header;
       twilight_self.hud.updateStatus(twilight_self.game.status);
-      twilight_self.hud.updateCards(twilight_self.game.deck[0].hand);
+      twilight_self.hud.updateCards([]);
       twilight_self.hud.updateMenu(card_play_options, async function(action) {
 
         $('.card').off();
@@ -5094,7 +5641,7 @@ async playerTurnHeadlineSelected(card, player) {
             twilight_self.hud.showBackButton(()=>{ twilight_self.back_button_clicked = true; twilight_self.playerTurn(original_selected_card); });
             twilight_self.game.status = fr_header;
             twilight_self.hud.updateStatus(twilight_self.game.status);
-            twilight_self.hud.updateCards(twilight_self.game.deck[0].hand);
+            twilight_self.hud.updateCards([]);
             twilight_self.hud.updateMenu([ { id: 'playevent', label: 'play event' } ], function(action) {
               $('.card').off();
               if (action == "playevent") {
@@ -5115,7 +5662,7 @@ async playerTurnHeadlineSelected(card, player) {
             twilight_self.hud.showBackButton(()=>{ twilight_self.back_button_clicked = true; twilight_self.playerTurn(original_selected_card)} );
             twilight_self.game.status = fr_header;
             twilight_self.hud.updateStatus(twilight_self.game.status);
-            twilight_self.hud.updateCards(twilight_self.game.deck[0].hand);
+            twilight_self.hud.updateCards([]);
             twilight_self.hud.updateMenu([ { id: 'playevent', label: 'play event' }, { id: 'dontshowme', label: "don't confirm (expert mode)..." } ], function(action) {
               $('.card').off();
   	      if (action === "dontshowme") {
@@ -5151,7 +5698,7 @@ async playerTurnHeadlineSelected(card, player) {
              twilight_self.hud.showBackButton(()=>{ twilight_self.back_button_clicked = true; twilight_self.playerTurn(original_selected_card)} );
              twilight_self.game.status = fr_header;
              twilight_self.hud.updateStatus(twilight_self.game.status);
-             twilight_self.hud.updateCards(twilight_self.game.deck[0].hand);
+             twilight_self.hud.updateCards([]);
              twilight_self.hud.updateMenu([ { id: 'playevent', label: 'play for ops' }, { id: 'dontshowme', label: "don't confirm (expert mode)..." } ], function(action) {
               $('.card').off();
 
@@ -5183,7 +5730,7 @@ async playerTurnHeadlineSelected(card, player) {
             twilight_self.hud.showBackButton(()=>{ twilight_self.back_button_clicked = true; twilight_self.playerTurn(original_selected_card)});
             twilight_self.game.status = fr_header;
             twilight_self.hud.updateStatus(twilight_self.game.status);
-            twilight_self.hud.updateCards(twilight_self.game.deck[0].hand);
+            twilight_self.hud.updateCards([]);
             twilight_self.hud.updateMenu([ { id: 'spaceit', label: 'send into orbit' }, { id: 'dontshowme', label: "don't confirm (expert mode)..." } ], function(action) {
               $('.card').off();
 
@@ -5277,7 +5824,7 @@ async playerTurnHeadlineSelected(card, player) {
       }
       twilight_self.game.status = `${player.toUpperCase()} plays ${ops} OPS:`;
       twilight_self.hud.updateStatus(twilight_self.game.status);
-      twilight_self.hud.updateCards(twilight_self.game.deck[0].hand);
+      twilight_self.hud.updateCards([]);
       twilight_self.hud.updateMenu(options, async function(action2) {
 
         //
@@ -5314,7 +5861,7 @@ async playerTurnHeadlineSelected(card, player) {
               twilight_self.hud.showBackButton(()=>{ twilight_self.back_button_clicked = true; twilight_self.playerOps(player, ops, card)});
               twilight_self.game.status = fr_header;
               twilight_self.hud.updateStatus(twilight_self.game.status);
-              twilight_self.hud.updateCards(twilight_self.game.deck[0].hand);
+              twilight_self.hud.updateCards([]);
               twilight_self.hud.updateMenu([ { id: 'spaceit', label: 'send into orbit' }, { id: 'dontshowme', label: "don't confirm (expert mode)..." } ], function(action) {
                 $('.card').off();
 
@@ -5448,7 +5995,7 @@ async playerTurnHeadlineSelected(card, player) {
           let header_msg = `Pick a target to realign (${alignment_rolls} rolls), or:`;
           twilight_self.game.status = header_msg;
           twilight_self.hud.updateStatus(twilight_self.game.status);
-          twilight_self.hud.updateCards(twilight_self.game.deck[0].hand);
+          twilight_self.hud.updateCards([]);
           twilight_self.hud.updateMenu([ { id: 'cancelrealign', label: 'end turn without rolling' } ], function(action2) {
             if (action2 == "cancelrealign") {
               twilight_self.addMove("NOTIFY\t"+player.toUpperCase()+" opts to end realignments");
@@ -5535,7 +6082,7 @@ async playerTurnHeadlineSelected(card, player) {
 	      //
               twilight_self.game.status = `Pick a target to realign (${alignment_rolls} rolls), or:`;
               twilight_self.hud.updateStatus(twilight_self.game.status);
-              twilight_self.hud.updateCards(twilight_self.game.deck[0].hand);
+              twilight_self.hud.updateCards([]);
               twilight_self.hud.updateMenu([ { id: 'cancelrealign', label: 'end turn' } ], function(action2) {
                 if (action2 == "cancelrealign") { //Not a cancel, keeps realignment rolls so far...
                   twilight_self.reverseMoves("realign");
@@ -5632,7 +6179,7 @@ async playerTurnHeadlineSelected(card, player) {
       }
       twilight_self.game.status = 'Select country from which to remove influence:';
       twilight_self.hud.updateStatus(twilight_self.game.status);
-      twilight_self.hud.updateCards(twilight_self.game.deck[0].hand);
+      twilight_self.hud.updateCards([]);
       twilight_self.hud.updateMenu(options, function(action2) {
 
         if (card != "" && player != "") {
@@ -5775,7 +6322,7 @@ async playerTurnHeadlineSelected(card, player) {
         twilight_self.hud.showBackButton(() => { twilight_self.back_button_clicked = true; twilight_self.playerTurnCardSelected(card, player);  });
         twilight_self.game.status = 'Playing opponent card:';
         twilight_self.hud.updateStatus(twilight_self.game.status);
-        twilight_self.hud.updateCards(twilight_self.game.deck[0].hand);
+        twilight_self.hud.updateCards([]);
         twilight_self.hud.updateMenu([ { id: 'before_ops', label: 'event before ops' }, { id: 'after_ops', label: 'event after ops' } ], function(action2) {
 
           twilight_self.resolveWeWillBuryYouOnCommit(player, card, false);
@@ -6939,7 +7486,7 @@ async playerTurnHeadlineSelected(card, player) {
     //
     this.updateEventTiles();
     this.hud.hideBackButton();
-    this.game.status = "Submitting moves... awaiting response from peers...";
+    this.game.status = "submitting...";
     this.hud.updateStatus(this.game.status);
     this.hud.updateMenu([]);
     this.hud.updateCards([]);
@@ -6961,10 +7508,35 @@ async playerTurnHeadlineSelected(card, player) {
       this.game.state.events.wwby_triggers = 0;
     }
 
-    let extra = {};
-    this.game.turn = this.moves;
+    const extra = {};
+    const turn = this.moves;
     this.moves = [];
-    this.sendGameMoveTransaction("game", extra);
+    this.game.turn = turn;
+
+    const dispatch = () => {
+      // A later endTurn may have replaced game.turn while this one waited to paint.
+      this.game.turn = turn;
+      return this.sendGameMoveTransaction("game", extra);
+    };
+
+    //
+    // The runner and the server have no frame to paint. Send before endTurn
+    // returns so the runner can wait on the in-flight move.
+    //
+    if (this.app.HEADLESS || this.app.BROWSER == 0) {
+      return dispatch();
+    }
+
+    //
+    // Paint "submitting..." before signing and relaying. A fast echo otherwise
+    // runs the queue, including the board refresh, before the browser draws.
+    // Callers may replace this status before the timer fires.
+    //
+    return new Promise((resolve, reject) => {
+      setTimeout(() => {
+        Promise.resolve(dispatch()).then(resolve, reject);
+      }, 0);
+    });
 
   }
 
@@ -7010,7 +7582,6 @@ async playerTurnHeadlineSelected(card, player) {
     try {
 
       for (let i in this.countries) {
-console.log("display: " + i);
         this.showInfluence(i);
       }
 console.log("before zoom overlaty check...");
@@ -7268,7 +7839,7 @@ console.log("DISPLAY ERROR: " + JSON.stringify(err));
   }
   removeTwilightCardFromHand(card) {
     if (this.game.player == 0) { return; }
-    for (i = 0; i < this.game.deck[0].hand.length; i++) {
+    for (let i = 0; i < this.game.deck[0].hand.length; i++) {
       if (this.game.deck[0].hand[i] == card) {
         this.game.deck[0].hand.splice(i, 1);
       }
@@ -7680,6 +8251,27 @@ console.log("DISPLAY ERROR: " + JSON.stringify(err));
     let b = Object.assign({}, a, z);
     b['china'] = this.returnChinaCard();
     this.game.options.deck = original_deck;
+
+    for (const nft of this.game.options?.nfts || []) {
+      if (!nft?.id) { continue; }
+      const data = nft.data || {};
+      let code = data.code;
+      if (typeof code === 'string') {
+        code = code.replace(/\t/g, ' ');
+      } else if (!Array.isArray(code)) {
+        code = '';
+      }
+      b[String(nft.id)] = {
+        name: data.name || nft.title || 'Optional Card',
+        scoring: Number(data.scoring) || 0,
+        player: data.player || 'both',
+        recurring: Number(data.recurring) ? 1 : 0,
+        ops: Number(data.ops) || 0,
+        img: data.image || data.img || '',
+        code
+      };
+    }
+
     return b;
   }
 
@@ -9804,7 +10396,7 @@ console.log("DISPLAY ERROR: " + JSON.stringify(err));
     // if VP are outstanding, do not update VP and trigger end
     //
     if (this.game.state.vp_outstanding != 0) { return; }
-    if (!this.browser_active) { return; }
+    if (!this.browser_active && !this.app.HEADLESS) { return; }
 
     let dt = 0;
     let dl = 0;
@@ -10379,7 +10971,7 @@ console.log("DISPLAY ERROR: " + JSON.stringify(err));
       //
       // dynamic cards removed, so refresh cardlist
       //
-      mid_war_cards = this.returnMidWarCards();
+      let mid_war_cards = this.returnMidWarCards();
 
       //
       // then add 
@@ -10430,7 +11022,7 @@ console.log("DISPLAY ERROR: " + JSON.stringify(err));
       //
       // dynamic cards removed, so refresh cardlist
       //
-      late_war_cards = this.returnLateWarCards();
+      let late_war_cards = this.returnLateWarCards();
 
       //
       // remove if needed
@@ -10682,7 +11274,7 @@ console.log("added card to deck!");
     if (this.game.deck.length > 0) {
       if (this.game.deck[0].hand.includes(key)) {
         for (let z = this.game.deck[0].hand.length-1; z >= 0; z--) {
-          if (this.game.deck[0].hand[z] === i) {
+          if (this.game.deck[0].hand[z] === key) {
             this.game.deck[0].hand.splice(z, 1);
   	  }
         }
@@ -10744,7 +11336,14 @@ console.log("added card to deck!");
   // in the handleGame loop managing the events / turns that are
   // queued up to go.
   //
-  playEvent(player, card) {
+  async playEvent(player, card) {
+
+    // Who triggered this event ("us" / "ussr"). Exposed to NFT scripts via
+    // api.returnEventingPlayer() so cards like Junta can place for the eventing
+    // faction rather than guessing from local seat alone.
+    if (this.game && this.game.state && (player === 'us' || player === 'ussr')) {
+      this.game.state.eventing_player = player;
+    }
 
     if (this.game.deck[0].cards[card] != undefined) {
       this.game.status = `${player.toUpperCase()} triggers ${this.cardToText(card)}`;
@@ -11245,7 +11844,7 @@ console.log("added card to deck!");
 
         this.game.status = `${this.cardToText(card)}:`;
         this.hud.updateStatus(this.game.status);
-        this.hud.updateCards(this.game.deck[0].hand);
+        this.hud.updateCards([]);
         this.hud.updateMenu([ { id: 'discard', label: 'discard 3 OP card' }, { id: 'remove', label: 'remove all US influence in W. Germany' } ], function(action) {
 
           if (action == "discard") {
@@ -11605,7 +12204,7 @@ console.log("added card to deck!");
 
         twilight_self.game.status = user_message;
         twilight_self.hud.updateStatus(twilight_self.game.status);
-        twilight_self.hud.updateCards(twilight_self.game.deck[0].hand);
+        twilight_self.hud.updateCards([]);
         twilight_self.hud.updateMenu(options, function(action2) {
           if (action2 == "cancelcmc") {
 	    twilight_self.cancelCubanMissileCrisis();
@@ -11651,7 +12250,7 @@ console.log("added card to deck!");
 
       this.game.status = "Chernobyl triggered. Designate region to prohibit USSR placement of influence from OPS:";
       this.hud.updateStatus(this.game.status);
-      this.hud.updateCards(this.game.deck[0].hand);
+      this.hud.updateCards([]);
       this.hud.updateMenu([
         { id: 'asia', label: 'Asia' },
         { id: 'europe', label: 'Europe' },
@@ -12739,7 +13338,7 @@ if (card == "defectors") {
       	//
         twilight_self.game.status = 'Set DEFCON to:';
         twilight_self.hud.updateStatus(twilight_self.game.status);
-        twilight_self.hud.updateCards(twilight_self.game.deck[0].hand);
+        twilight_self.hud.updateCards([]);
         twilight_self.hud.updateMenu([ { id: '5', label: 'five' }, { id: '4', label: 'four' }, { id: '3', label: 'three' }, { id: '2', label: 'two' }, { id: '1', label: 'one' } ], function(action2) {
           adjustDefcon(parseInt(action2));
       	  $('.set_defcon_box').remove();
@@ -12824,7 +13423,7 @@ if (card == "defectors") {
         twilight_self.addMove("resolve\tindopaki");
         twilight_self.game.status = 'Indo-Pakistani War. Choose Target to invade:';
         twilight_self.hud.updateStatus(twilight_self.game.status);
-        twilight_self.hud.updateCards(twilight_self.game.deck[0].hand);
+        twilight_self.hud.updateCards([]);
         twilight_self.hud.updateMenu([ { id: 'pakistan', label: 'Pakistan' }, { id: 'india', label: 'India' } ], invasion_function);
 
           $("#india").addClass("westerneurope");
@@ -12927,7 +13526,7 @@ console.log("total countries: " + total_countries);
           let twilight_self = this;
           this.game.status = "Match USSR influence in which country?";
           this.hud.updateStatus(this.game.status);
-          this.hud.updateCards(this.game.deck[0].hand);
+          this.hud.updateCards([]);
           this.hud.updateMenu(options, function(myselect) {
             $('.card').off();
 
@@ -13090,7 +13689,7 @@ console.log("total countries: " + total_countries);
 
         twilight_self.game.status = 'Iran-Iraq War. Choose Target:';
         twilight_self.hud.updateStatus(twilight_self.game.status);
-        twilight_self.hud.updateCards(twilight_self.game.deck[0].hand);
+        twilight_self.hud.updateCards([]);
         twilight_self.hud.updateMenu([ { id: 'iraq', label: 'Iraq' }, { id: 'iran', label: 'Iran' } ], invasion_function);
 
       } else {
@@ -13202,7 +13801,7 @@ console.log("total countries: " + total_countries);
               
           twilight_self.game.status = "Do you wish to use 2 free OPS for a coup or realignment rolls in Central or South America?";
           twilight_self.hud.updateStatus(twilight_self.game.status);
-          twilight_self.hud.updateCards(twilight_self.game.deck[0].hand);
+          twilight_self.hud.updateCards([]);
           twilight_self.hud.updateMenu([ { id: 'conduct', label: 'coup or realign' }, { id: 'skip', label: 'skip' } ], function(action2) {
 
             if (action2 == "conduct") {
@@ -13793,7 +14392,7 @@ console.log("respondant: " + respondant);
           }
           this.game.status = "Select card to give opponent:";
           this.hud.updateStatus(this.game.status);
-          this.hud.updateCards(this.game.deck[0].hand);
+          this.hud.updateCards([]);
           this.hud.updateMenu(options, function(action2) {
 
             //
@@ -14214,7 +14813,7 @@ console.log("respondant: " + respondant);
 
         twilight_self.game.status = `${opponent.toUpperCase()} hosts the ${this.cardToText(card)}:`;
         twilight_self.hud.updateStatus(twilight_self.game.status);
-        twilight_self.hud.updateCards(twilight_self.game.deck[0].hand);
+        twilight_self.hud.updateCards([]);
         twilight_self.hud.updateMenu([ { id: 'boycott', label: 'boycott' }, { id: 'participate', label: 'participate' } ], function(action) {
 
           if (action == "boycott") {
@@ -14229,14 +14828,14 @@ console.log("respondant: " + respondant);
           if (action == "participate") {
 
             let winner = 0;
+            let dice_burns = 0;
 
             while (winner == 0) {
 
               let usroll   = twilight_self.rollDice(6);
               let ussrroll = twilight_self.rollDice(6);
 
-              twilight_self.addMove("dice\tburn\t"+player);
-              twilight_self.addMove("dice\tburn\t"+player);
+              dice_burns += 2;
 
               if (opponent == "us") {
                 twilight_self.addMove(`NOTIFY\tOlympic Games: USSR rolls ${ussrroll} / US rolls ${usroll} (+2 hosting bonus)`);
@@ -14249,12 +14848,16 @@ console.log("respondant: " + respondant);
               if (ussrroll > usroll) {
                 twilight_self.addMove("vp\tussr\t2");
                 twilight_self.addMove("modal\t USSR wins the Olympics");
+                // Burn before VP in the LIFO queue: victory may end processing.
+                for (let i = 0; i < dice_burns; i++) twilight_self.addMove("dice\tburn\t"+player);
                 twilight_self.endTurn();
                 winner = 1;
               }
               if (usroll > ussrroll) {
                 twilight_self.addMove("vp\tus\t2");
                 twilight_self.addMove("modal\t US wins the Olympics");
+                // Burn before VP in the LIFO queue: victory may end processing.
+                for (let i = 0; i < dice_burns; i++) twilight_self.addMove("dice\tburn\t"+player);
                 twilight_self.endTurn();
                 winner = 2;
               }
@@ -14367,7 +14970,7 @@ console.log("respondant: " + respondant);
 
         twilight_self.game.status = "Pick a country adjacent to Nicaragua to coup:";
         twilight_self.hud.updateStatus(twilight_self.game.status);
-        twilight_self.hud.updateCards(twilight_self.game.deck[0].hand);
+        twilight_self.hud.updateCards([]);
         twilight_self.hud.updateMenu([ { id: 'skiportega', label: 'or skip coup' } ], function(action2) {
           if (action2 == "skiportega") {
             twilight_self.game.status = "Skipping Ortega coup...";
@@ -14809,7 +15412,6 @@ console.log("respondant: " + respondant);
             if (this.game.deck[0].discards[i].scoring == 0) {
               if (this.game.state.events.shuttlediplomacy == 0 || (this.game.state.events.shuttlediplomacy == 1 && i != "shuttle")) {
                 discard_deck.push(i);
-                console.log(i);
                 //html += '<li class="option" id="'+i+'">'+this.game.deck[0].discards[i].name+'</li>';
               }
             }
@@ -15030,7 +15632,7 @@ console.log("respondant: " + respondant);
 
         twilight_self.game.status = `${twilight_self.cardToText(card)}: `;
         twilight_self.hud.updateStatus(twilight_self.game.status);
-        twilight_self.hud.updateCards(twilight_self.game.deck[0].hand);
+        twilight_self.hud.updateCards([]);
         twilight_self.hud.updateMenu([ { id: 'southafrica', label: '2 Influence in South Africa' }, { id: 'adjacent', label: '1 Influence in South Africa and 2 Influence in an adjacent country' } ], function(action2) {
           twilight_self.addMove("resolve\tsouthafrican");
 
@@ -15431,7 +16033,7 @@ console.log("respondant: " + respondant);
 
           twilight_self.game.status = `You win the ${twilight_self.cardToText(card)}:`;
           twilight_self.hud.updateStatus(twilight_self.game.status);
-          twilight_self.hud.updateCards(twilight_self.game.deck[0].hand);
+          twilight_self.hud.updateCards([]);
           twilight_self.hud.updateMenu([ { id: 'raise', label: 'raise DEFCON' }, { id: 'lower', label: 'lower DEFCON' }, { id: 'same', label: 'do not change' } ], function(action2) {
 
             if (action2 == "raise") {
@@ -16002,7 +16604,7 @@ console.log("respondant: " + respondant);
 
         this.game.status = `${this.cardToText(card)}: Do you want to give your opponent 6 VP and End the Game? (VP ties will be won by opponent)`;
         this.hud.updateStatus(this.game.status);
-        this.hud.updateCards(this.game.deck[0].hand);
+        this.hud.updateCards([]);
         this.hud.updateMenu([ { id: 'endgame', label: 'end the game' }, { id: 'cont', label: 'continue playing' } ], function(action2) {
 
           if (action2 == "endgame") {
@@ -16050,7 +16652,7 @@ console.log("respondant: " + respondant);
 
         twilight_self.game.status = "USSR establishes the Warsaw Pact:";
         twilight_self.hud.updateStatus(twilight_self.game.status);
-        twilight_self.hud.updateCards(twilight_self.game.deck[0].hand);
+        twilight_self.hud.updateCards([]);
         twilight_self.hud.updateMenu([
           { id: 'remove', label: 'remove all US influence in four countries in Eastern Europe' },
           { id: 'add', label: 'add five USSR influence in Eastern Europe (max 2 per country)' }
@@ -16269,7 +16871,7 @@ console.log("respondant: " + respondant);
 
         twilight_self.game.status = `${twilight_self.cardToText(card)}: `;
         twilight_self.hud.updateStatus(twilight_self.game.status);
-        twilight_self.hud.updateCards(twilight_self.game.deck[0].hand);
+        twilight_self.hud.updateCards([]);
         twilight_self.hud.updateMenu([ { id: 'anywhere', label: '2 Influence in Non-Battlegrounds' }, { id: 'african', label: '2 Influence in African Battlegrounds' } ], function(action2) {
 
           let bgs = twilight_self.returnBattlegroundCountries();
@@ -16442,7 +17044,7 @@ console.log("respondant: " + respondant);
 
         this.game.status = `${this.cardToText(card)} discard:`;
         this.hud.updateStatus(this.game.status);
-        this.hud.updateCards(this.game.deck[0].hand);
+        this.hud.updateCards([]);
         this.hud.updateMenu(options, function(action2) {
 
 	  let discarded = false;
@@ -16572,7 +17174,7 @@ console.log("respondant: " + respondant);
 
         twilight_self.game.status = `${twilight_self.cardToText(card)}: `;
         twilight_self.hud.updateStatus(twilight_self.game.status);
-        twilight_self.hud.updateCards(twilight_self.game.deck[0].hand);
+        twilight_self.hud.updateCards([]);
         twilight_self.hud.updateMenu([ { id: 'givevp', label: 'give USSR 2 VP' }, { id: 'discard', label: 'discard US OPs' } ], function(action2) {
 
   	  if (action2 === "givevp") {
@@ -16736,7 +17338,7 @@ console.log("respondant: " + respondant);
 
       this.game.status = "Fischer-Spassky triggered. Designate region to downgrade Control and Dominance:";
       this.hud.updateStatus(this.game.status);
-      this.hud.updateCards(this.game.deck[0].hand);
+      this.hud.updateCards([]);
       this.hud.updateMenu([
         { id: 'asia', label: 'Asia' },
         { id: 'europe', label: 'Europe' },
@@ -16930,7 +17532,7 @@ console.log("respondant: " + respondant);
       let user_message = "Designate a region to turn all 1-stability countries into battleground countries:";
       this.game.status = user_message;
       this.hud.updateStatus(this.game.status);
-      this.hud.updateCards(this.game.deck[0].hand);
+      this.hud.updateCards([]);
       this.hud.updateMenu([
         { id: 'asia', label: 'Asia' },
         { id: 'europe', label: 'Europe' },
@@ -16988,7 +17590,7 @@ console.log("respondant: " + respondant);
 
         twilight_self.game.status = `${twilight_self.cardToText(card)}: `;
         twilight_self.hud.updateStatus(twilight_self.game.status);
-        twilight_self.hud.updateCards(twilight_self.game.deck[0].hand);
+        twilight_self.hud.updateCards([]);
         twilight_self.hud.updateMenu([ { id: 'draw', label: 'Drawl Additional Card from Deck' }, { id: 'skip', label: 'Skip' } ], function(action2) {
 
 	  if (action2 === "skip") {
@@ -17064,7 +17666,7 @@ console.log("respondant: " + respondant);
 
         twilight_self.game.status = `${twilight_self.cardToText(card)}: `;
         twilight_self.hud.updateStatus(twilight_self.game.status);
-        twilight_self.hud.updateCards(twilight_self.game.deck[0].hand);
+        twilight_self.hud.updateCards([]);
         twilight_self.hud.updateMenu([ { id: 'chile', label: '2 Influence in Chile' }, { id: 'argentina', label: '2 Influence in Argentina' } ], function(action2) {
 
           twilight_self.addMove("resolve\tpinochet");
@@ -17108,7 +17710,7 @@ console.log("respondant: " + respondant);
 
         this.game.status = `${this.cardToText(card)}: do you want to trigger Final Scoring?`;
         this.hud.updateStatus(this.game.status);
-        this.hud.updateCards(this.game.deck[0].hand);
+        this.hud.updateCards([]);
         this.hud.updateMenu([ { id: 'endgame', label: 'end the game' }, { id: 'cont', label: 'continue playing' } ], function(action2) {
 
           if (action2 == "endgame") {
@@ -17661,7 +18263,7 @@ console.log("respondant: " + respondant);
 
           twilight_self.game.status = "Select cards to discard:";
           twilight_self.hud.updateStatus(twilight_self.game.status);
-          twilight_self.hud.updateCards(twilight_self.game.deck[0].hand);
+          twilight_self.hud.updateCards([]);
           twilight_self.hud.updateMenu(options, function(card) {
 
             if (card == "finished") {
@@ -18034,7 +18636,7 @@ console.log("respondant: " + respondant);
 
         twilight_self.game.status = 'Remove four USSR influence from existing countries. You will receive 1 VP per influence removed from battleground countries, and 1 VP for every 2 influence removed from non-battleground countries controlled by the USSR:';
         twilight_self.hud.updateStatus(twilight_self.game.status);
-        twilight_self.hud.updateCards(twilight_self.game.deck[0].hand);
+        twilight_self.hud.updateCards([]);
         twilight_self.hud.updateMenu([ { id: 'skip', label: 'or skip...' } ], function(action2) {
           twilight_self.playerFinishedPlacingInfluence();
           twilight_self.endTurn();
@@ -18110,7 +18712,7 @@ console.log("respondant: " + respondant);
 
         this.game.status = "Do you choose to:";
         this.hud.updateStatus(this.game.status);
-        this.hud.updateCards(this.game.deck[0].hand);
+        this.hud.updateCards([]);
         this.hud.updateMenu([
           { id: 'place', label: 'place 1 influence in Argentina' },
           { id: 'couporrealign', label: 'coup or realign Argentina' }
@@ -18127,7 +18729,7 @@ console.log("respondant: " + respondant);
             let user_message = "Do you choose to:";
             twilight_self.game.status = user_message;
             twilight_self.hud.updateStatus(twilight_self.game.status);
-            twilight_self.hud.updateCards(twilight_self.game.deck[0].hand);
+            twilight_self.hud.updateCards([]);
             twilight_self.hud.updateMenu([
               { id: 'coup', label: 'coup in Argentina' },
               { id: 'realign', label: 'realign in Argentina' }
@@ -18409,7 +19011,7 @@ console.log("ROUND: " + this.game.state.round);
         twilight_self.addMove("resolve\tsovietcoup");
         twilight_self.game.status = 'Sacrifice any VP before rolling for +1 modifier:';
         twilight_self.hud.updateStatus(twilight_self.game.status);
-        twilight_self.hud.updateCards(twilight_self.game.deck[0].hand);
+        twilight_self.hud.updateCards([]);
         twilight_self.hud.updateMenu([ { id: 'zero', label: '0 VP' }, { id: 'one', label: '1 VP' }, { id: 'two', label: '2 VP' }, { id: 'three', label: '3 VP' } ], function(action) {
 
 	  let modifier = 0;
@@ -18524,6 +19126,42 @@ console.log("ROUND: " + this.game.state.round);
 
 
 
+    //
+    // final sanity check for NFT-provided cards
+    //
+    const nft = (this.game.options?.nfts || []).find((n) => String(n.id) === String(card));
+    const raw_code = nft?.data?.code || this.game.deck[0]?.cards?.[card]?.code;
+    let code = null;
+    if (typeof raw_code === 'string') {
+      code = raw_code.trim() ? raw_code : null;
+    } else if (Array.isArray(raw_code)) {
+      for (let i = 0; i < raw_code.length; i++) {
+        const entry = raw_code[i];
+        const value = typeof entry === 'string' ? entry : entry && entry.code;
+        if (typeof value === 'string' && value.trim()) {
+          code = value;
+          break;
+        }
+      }
+    }
+    if (typeof code === 'string' && code.trim()) {
+      const api = this.returnApi();
+      const context = this.returnContext(card);
+      // Runs on every client; the script decides any player-specific work.
+      // Script return 0 → pause queue (interactive / endTurn path).
+      // Any other return → continue queue (playEvent returns 1).
+      try {
+        const result = await this.app.browser.executeJS(
+          code,
+          { api, context },
+          { maxExecutionTime: 0 }
+        );
+        return result === 0 ? 0 : 1;
+      } catch (err) {
+        console.error('NFT event failed', card, err);
+        return 0;
+      }
+    }
 
     //
     // return 0 so other cards do not trigger infinite loop

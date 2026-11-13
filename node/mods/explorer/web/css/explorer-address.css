@@ -159,13 +159,21 @@
   text-align: center;
 }
 
-.explorer-utxo-status-panel.explorer-utxo-status-spendable {
+.explorer-utxo-status-panel.explorer-utxo-status-spendable,
+.explorer-utxo-status-panel.explorer-utxo-status-confirmed {
   color: var(--explorer-positive);
   background-color: color-mix(in oklch, var(--explorer-positive) 14%, var(--saito-card));
   border-color: color-mix(in oklch, var(--explorer-positive) 40%, var(--saito-border));
 }
 
-.explorer-utxo-status-panel.explorer-utxo-status-spent {
+.explorer-utxo-status-panel.explorer-utxo-status-unconfirmed {
+  color: var(--explorer-link);
+  background-color: color-mix(in oklch, var(--explorer-link) 14%, var(--saito-card));
+  border-color: color-mix(in oklch, var(--explorer-link) 40%, var(--saito-border));
+}
+
+.explorer-utxo-status-panel.explorer-utxo-status-spent,
+.explorer-utxo-status-panel.explorer-utxo-status-not-on-longest-chain {
   color: var(--explorer-negative, var(--saito-destructive));
   background-color: color-mix(
     in oklch,

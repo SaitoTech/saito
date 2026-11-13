@@ -54,7 +54,15 @@ class Encrypt extends ModTemplate {
 
     app.connection.on('encrypt-reset-key-exchange', (publicKey) => {
       siteMessage(`Resetting key exchange with ${publicKey}`, 30000);
-      this.reset_key_exchange(publicKey);
+      this.regenerate_key_exchange(publicKey);
+    });
+
+    app.connection.on('encrypt-delete-key-exchange', (publicKey) => {
+      this.delete_key_exchange(publicKey);
+    });
+
+    app.connection.on('encrypt-regenerate-key-exchange', (publicKey) => {
+      this.regenerate_key_exchange(publicKey);
     });
 
     app.connection.on('encrypt-key-exchange-confirm', (data) => {
@@ -127,6 +135,14 @@ class Encrypt extends ModTemplate {
       if (tx.isTo(this.publicKey)) {
         let sender = tx.from[0].publicKey;
         let receiver = tx.to[0].publicKey;
+
+        //
+        // Recovery/control messages may be encrypted with the wallet ECDH
+        // shared secret. Decrypt before reading request opcodes.
+        //
+        if (tx.decryptMessage) {
+          await tx.decryptMessage(this.app);
+        }
         let txmsg = tx.returnMessage();
         let request = txmsg.request; // "request"
 
@@ -159,6 +175,23 @@ class Encrypt extends ModTemplate {
           console.log('ENCRYPTION RESET!');
           this.app.keychain.updateEncryptionByPublicKey(sender, 'reset');
         }
+
+        if (txmsg.request == 'key exchange delete') {
+          if (sender !== this.publicKey) {
+            this.app.keychain.clearEncryptionByPublicKey(sender);
+            if (this.app.BROWSER == 1) {
+              siteMessage(
+                `${this.app.keychain.returnUsername(sender)} has reverted to unencrypted communications`
+              );
+            }
+          }
+        }
+
+        if (txmsg.request == 'key exchange regenerate') {
+          if (sender !== this.publicKey) {
+            this.handle_key_exchange_regenerate(sender, tx, 0);
+          }
+        }
       }
     }
   }
@@ -177,6 +210,10 @@ class Encrypt extends ModTemplate {
     let tx = new Transaction(undefined, message.data);
     let sender = tx.from[0].publicKey;
     let receiver = tx.to[0].publicKey;
+
+    if (tx.decryptMessage) {
+      await tx.decryptMessage(app);
+    }
     let txmsg = tx.returnMessage();
 
     if (message.request === 'diffie hellman key exchange') {
@@ -198,6 +235,27 @@ class Encrypt extends ModTemplate {
     if (message.request === 'diffie hellman key reset') {
       console.log('ENCRYPTION RESET!');
       this.app.keychain.updateEncryptionByPublicKey(sender, 'reset');
+    }
+
+    if (message.request === 'diffie hellman key delete') {
+      if (txmsg.request == 'key exchange delete') {
+        if (receiver == this.publicKey) {
+          this.app.keychain.clearEncryptionByPublicKey(sender);
+          if (this.app.BROWSER == 1) {
+            siteMessage(
+              `${this.app.keychain.returnUsername(sender)} has reverted to unencrypted communications`
+            );
+          }
+        }
+      }
+    }
+
+    if (message.request === 'diffie hellman key regenerate') {
+      if (txmsg.request == 'key exchange regenerate') {
+        if (receiver == this.publicKey) {
+          this.handle_key_exchange_regenerate(sender, tx, 1, peer);
+        }
+      }
     }
   }
 
@@ -242,6 +300,81 @@ class Encrypt extends ModTemplate {
     await tx.sign();
 
     this.app.network.propagateTransaction(tx);
+  }
+
+  async delete_key_exchange(recipient) {
+    let tx = await this.app.wallet.createUnsignedTransactionWithDefaultFee(recipient);
+    if (!tx) {
+      return;
+    }
+
+    this.app.keychain.clearEncryptionByPublicKey(recipient);
+
+    tx.msg = {
+      module: this.name,
+      request: 'key exchange delete'
+    };
+
+    await tx.sign();
+
+    this.app.network.propagateTransaction(tx);
+  }
+
+  async regenerate_key_exchange(recipient) {
+    let tx = await this.app.wallet.createUnsignedTransactionWithDefaultFee(recipient);
+    if (!tx) {
+      return;
+    }
+
+    //
+    // Clear local AES material first so encryption below uses the
+    // wallet-key-derived shared secret rather than a stale aes_secret.
+    //
+    this.app.keychain.clearEncryptionByPublicKey(recipient);
+    this.app.keychain.addKey(recipient, { aes_recovery_ts: Date.now() });
+
+    tx.msg = {
+      module: this.name,
+      request: 'key exchange regenerate'
+    };
+
+    tx = await this.app.wallet.signAndEncryptTransaction(tx, recipient, true);
+    if (!tx) {
+      return;
+    }
+
+    this.app.network.propagateTransaction(tx);
+  }
+
+  handle_key_exchange_regenerate(sender, tx = null, offchain = 0, peer = null) {
+    let key = this.app.keychain.returnKey(sender, true);
+    let tx_timestamp = tx?.timestamp || 0;
+
+    //
+    // Delayed/replayed request after a newer secret was already established
+    //
+    if (key?.aes_secret && key?.aes_secret_ts && tx_timestamp && key.aes_secret_ts > tx_timestamp) {
+      console.log('ENCRYPT: ignoring stale key exchange regenerate from ' + sender);
+      return;
+    }
+
+    //
+    // Already mid Diffie-Hellman with this peer — avoid a competing exchange
+    //
+    if ((key?.aes_privatekey || key?.aes_publicKey) && !key?.aes_secret) {
+      console.log('ENCRYPT: regenerate ignored, exchange already in progress with ' + sender);
+      return;
+    }
+
+    this.app.keychain.clearEncryptionByPublicKey(sender);
+
+    if (this.app.BROWSER == 1) {
+      siteMessage(
+        `${this.app.keychain.returnUsername(sender)} is requesting updated encryption key....`
+      );
+    }
+
+    this.initiate_key_exchange(sender, offchain, peer);
   }
 
   /**

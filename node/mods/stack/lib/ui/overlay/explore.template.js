@@ -27,10 +27,8 @@ module.exports = (app, mod, subs = []) => {
   html += `
           </div>
           
-          <!-- Contextual help note - only shown when subscription list is short (2 or fewer) -->
-          <div id="stack-explore-add-subscription-btn" class="help">
-            <p>This sidebar shows the accounts you follow. <span class="saito-anchor">Add others to see their posts here.</span></p>
-            <div class="item"><i class="fa-solid fa-user-plus"></i><span>add creator</span></div>
+          <div class="help">
+            <button type="button" id="stack-explore-add-subscription-btn" class="saito-button-secondary">+ Follow Account</button>
           </div>
         </div>
       <div class="mobile-header">

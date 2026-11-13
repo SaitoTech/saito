@@ -271,6 +271,10 @@ class ReplacementsOverlay {
         //
         // deduct RP
         //
+        if (unit.ckey == 'RU' && paths_self.game.state.events.bolshevik_revolution && paths_self.game.state.events.bolshevik_ru_rp_turn == paths_self.game.state.turn) {
+          alert('Bolshevik Revolution: only one Russian replacement point may be spent this turn');
+          return;
+        }
         if (paths_self.game.state.rp[faction][unit.ckey] > 0) {
           paths_self.game.state.rp[faction][unit.ckey]--;
         } else {
@@ -288,6 +292,10 @@ class ReplacementsOverlay {
               }
             }
           }
+        }
+
+        if (unit.ckey == 'RU' && paths_self.game.state.events.bolshevik_revolution) {
+          paths_self.game.state.events.bolshevik_ru_rp_turn = paths_self.game.state.turn;
         }
 
         if (id == 'uneliminate') {

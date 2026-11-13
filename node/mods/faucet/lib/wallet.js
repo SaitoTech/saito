@@ -9,6 +9,8 @@
 const Transaction = require('../../../lib/saito/transaction').default;
 const Slip = require('../../../lib/saito/slip').default;
 
+const LOW_BALANCE_THRESHOLD = 2001n * 100000000n;
+
 function outputIndexes(tx) {
   return (tx.to || []).map((slip) => Number(slip.index));
 }
@@ -106,6 +108,37 @@ class FaucetWallet {
     if (job) {
       this.queue.shift();
       job.resolve(tx);
+      this.notifyLowBalance(tx);
+    }
+  }
+
+  notifyLowBalance(tx) {
+    try {
+      // All faucet inputs are spent together. Its outputs are the remaining
+      // balance after payout and fee; the snapshot still contains spent inputs.
+      const remaining = slipTotal(
+        (tx.to || []).filter((slip) => slip.publicKey === this.publickey)
+      );
+      if (remaining >= LOW_BALANCE_THRESHOLD) {
+        return;
+      }
+
+      const balance = this.app.wallet.convertNolanToSaito(remaining);
+      this.app.connection.emit('mailrelay-send-email', {
+        to: 'faucet@saito.io',
+        from: 'Saito Faucet <network@saito.tech>',
+        subject: `Faucet low balance: ${balance} SAITO remaining`,
+        text: [
+          'The faucet has broadcast a payment and its remaining balance is below 2001 SAITO.',
+          '',
+          `Faucet public key: ${this.publickey}`,
+          `Remaining balance after payment and fee: ${balance} SAITO`,
+          `Payment transaction: ${tx.signature}`
+        ].join('\n'),
+        ishtml: false
+      });
+    } catch (err) {
+      console.error('[Faucet] failed to request low-balance email', err);
     }
   }
 

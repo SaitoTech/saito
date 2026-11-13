@@ -1,0 +1,181 @@
+/* Video Call dialer. */
+.videocall-dialer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  width: min(400px, 92vw);
+  height: auto;
+  max-height: 80vh;
+  padding: 2.4rem;
+  gap: var(--saito-space-lg);
+  color: var(--saito-foreground);
+  background: var(--saito-card);
+  background-image: none;
+  border: 1px solid var(--saito-border);
+  border-radius: var(--saito-radius);
+  font-family: var(--saito-font);
+}
+
+.videocall-dialer.saito-overlay-panel {
+  background: var(--saito-card);
+  background-image: none;
+  box-shadow: var(--saito-elevation-3);
+}
+
+.videocall-dialer h2 {
+  margin: 0;
+  color: var(--saito-foreground);
+  font-size: 2.4rem;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+}
+
+.videocall-dialer .subtitle,
+.videocall-dialer .notice {
+  color: var(--saito-muted-foreground);
+  font-size: 1.3rem;
+  text-align: center;
+}
+
+.videocall-dialer .subtitle {
+  margin-top: -0.6rem;
+}
+
+.videocall-dialer .contact {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  min-width: 0;
+  color: var(--saito-foreground);
+}
+
+.videocall-dialer .contact > .saito-user {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  row-gap: 0.6rem;
+  text-align: center;
+  text-transform: lowercase;
+}
+
+.videocall-dialer .video_switch {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--saito-space-lg);
+  width: 100%;
+  font-size: 1.5rem;
+  color: var(--saito-foreground);
+}
+
+.videocall-dialer .video_switch.deactivated {
+  pointer-events: none;
+  color: var(--saito-muted-foreground);
+}
+
+.videocall-dialer .switch {
+  position: relative;
+  display: inline-block;
+  width: 4.4rem;
+  height: 2.4rem;
+  flex: 0 0 auto;
+}
+
+.videocall-dialer .switch input {
+  appearance: none;
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+  margin: 0;
+}
+
+.videocall-dialer .slider {
+  position: absolute;
+  cursor: pointer;
+  inset: 0;
+  box-sizing: border-box;
+  border: 1px solid color-mix(in srgb, var(--saito-foreground) 42%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--saito-foreground) 16%, var(--saito-secondary));
+  transition: background-color 0.2s ease;
+}
+
+.videocall-dialer .slider:before {
+  content: '';
+  position: absolute;
+  height: 1.8rem;
+  width: 1.8rem;
+  left: 0.3rem;
+  bottom: 0.3rem;
+  border-radius: 50%;
+  background: var(--saito-foreground);
+  transition: transform 0.2s ease;
+}
+
+.videocall-dialer .switch input:checked + .slider {
+  background: var(--saito-primary);
+}
+
+.videocall-dialer .switch input:focus-visible + .slider {
+  box-shadow: var(--saito-focus-ring);
+}
+
+.videocall-dialer .switch input:checked + .slider:before {
+  transform: translateX(2rem);
+}
+
+.videocall-dialer > .saito-button-primary,
+.videocall-dialer .actions {
+  width: 100%;
+  margin: 0;
+}
+
+.videocall-dialer .actions {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: var(--saito-space-md);
+}
+
+.videocall-dialer .actions .saito-button-primary {
+  flex: 1 1 0;
+  min-width: 0;
+  margin: 0;
+}
+
+.videocall-dialer .chat-appspace-settings div {
+  width: 100%;
+}
+
+.videocall-dialer .chat-settings-toggle-icons {
+  display: none;
+}
+
+.videocall-dialer .chat-settings-preview {
+  width: 100% !important;
+}
+
+/* From the pre-call settings block; this rule is dialer-scoped. */
+.videocall-dialer .chat-settings-preview-section {
+  width: unset;
+}
+
+@media (max-width: 600px) {
+  .videocall-dialer {
+    padding: 1rem;
+  }
+
+  .videocall-dialer .actions {
+    flex-direction: column;
+  }
+
+  .videocall-dialer .actions .saito-button-primary {
+    min-width: 12rem;
+    width: 100%;
+  }
+}

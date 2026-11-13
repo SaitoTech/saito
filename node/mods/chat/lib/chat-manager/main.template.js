@@ -2,6 +2,8 @@ module.exports = (manager_self) => {
   const container = String(manager_self.container || '');
   const inOverlay = container.includes('chat-manager-overlay');
   const inChatPage = container.includes('chat-page-manager-content');
+  // RedSquare (.sidebar-left) and Arcade (.arcade-sidebar-left) side rails
+  const inSidebar = container.includes('sidebar-left');
 
   const settingsBtn = `<div class="chat-manager-options"><i class="fa-solid fa-ellipsis"></i></div>`;
   const closeBtn = `<div class="alternate-close-button"><i class="fa-solid fa-xmark"></i></div>`;
@@ -36,7 +38,7 @@ module.exports = (manager_self) => {
     ${header}
     <div class="chat-manager-list hide-scrollbar saito-menu-select-heavy${
       manager_self.mod.browser_active ? '' : ' saito-sidebar-element'
-    }">
+    }${inSidebar ? ' scroll-hint' : ''}">
     </div>
   </div>`;
 };

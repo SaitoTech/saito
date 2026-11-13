@@ -244,6 +244,11 @@ class ChatManager {
       this.app.browser.addElementToSelectorOrDom(ChatManagerTemplate(this), this.container);
     }
 
+    const list = document.querySelector('.chat-manager-list.scroll-hint');
+    if (list) {
+      this.app.browser.makeScrollHint(list);
+    }
+
     // Sort chat groups
     this.mod.groups = this.mod.groups.sort((a, b) => {
       let ts_a = a?.last_update || 0;

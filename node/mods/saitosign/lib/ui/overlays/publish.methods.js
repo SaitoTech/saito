@@ -11,7 +11,7 @@ function methodsTemplate(methods, activeId) {
         : '<i class="fa-solid fa-xmark" aria-hidden="true"></i>';
       const status = verified ? 'Verified' : method.required ? 'Required' : 'Not required';
       return `
-        <button type="button" class="verify-method${selected}${tone}" data-publish-action="method" data-method="${escapeHTML(method.id)}">
+        <button type="button" class="verify-method${selected}${tone}" data-publish-action="method" data-method="${escapeHTML(method.id)}" aria-pressed="${method.id === activeId ? 'true' : 'false'}">
           <span class="verify-mark" aria-hidden="true">${mark}</span>
           <span class="verify-copy">
             <span class="verify-name">${escapeHTML(method.title)}</span>

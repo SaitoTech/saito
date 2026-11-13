@@ -10,8 +10,10 @@ let SaitoOverlay = require('./../../saito/ui/saito-overlay/saito-overlay');
 
 class GameArcade {
   /**
-   * Advanced options interface in Arcade creates an overlay with the returned html
-   * Can use <div class="overlay-input"></div> to neatly group options
+   * Advanced options content for the Arcade Advanced Options overlay.
+   * Return field markup only (inputs/selects). Arcade owns the overlay shell,
+   * header, scrolling body, close control, and Submit button.
+   * Can use <div class="overlay-input"></div> to neatly group options.
    */
   returnAdvancedOptions() {
     return '';
@@ -181,6 +183,14 @@ class GameArcade {
           /*sgo['invited player'] = this.app.browser.returnAddressHTML(
 						options[i]
 					);*/
+        }
+
+        if (i == 'nfts') {
+          output_me = 0;
+          if (Array.isArray(options[i]) && options[i].length) {
+            const count = options[i].length;
+            sgo['nfts'] = count === 1 ? '1 NFT' : `${count} NFTs`;
+          }
         }
 
         if (output_me == 1) {

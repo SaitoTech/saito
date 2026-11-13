@@ -16,49 +16,41 @@ function optionRow(state, label, freeAvailable, key) {
 function selectSlide(state) {
   const free = state.plan !== 'premium';
   const disabled = state.canChooseTier ? '' : ' disabled';
-  const upgrade = free
+  const panel = free
     ? `
-      <section class="upgrade-for">
-        <p class="section-label">Upgrade for Additional Benefits</p>
-        <div class="benefit-box">
-          <div class="benefit">
-            <p class="benefit-label">Easier Document Sharing</p>
-            <p class="benefit-copy">avoid the need to export and import documents, share a link</p>
-          </div>
-          <div class="benefit">
-            <p class="benefit-label">Archive</p>
-            <p class="benefit-copy">avoid the need for manual archiving -- we'll save all documents for five years</p>
-          </div>
-        </div>
-      </section>
-    `
-    : '';
-  return {
-    title: 'How should users verify their identity before signing this document?',
-    body: `
-      <div class="choice">
-        <div class="options" role="tablist" aria-label="Account level">
-          <button type="button" class="option${free ? ' active' : ''}" data-plan="free" role="tab" aria-selected="${free}"${disabled}>
-            <span class="kicker">Free</span>
-            <span class="label">Basic security</span>
-          </button>
-          <button type="button" class="option${free ? '' : ' active'}" data-plan="premium" role="tab" aria-selected="${!free}"${disabled}>
-            <span class="kicker">Premium</span>
-            <span class="label">Higher security</span>
-          </button>
-        </div>
-        <section class="tier-details" role="tabpanel">
           <div class="verify-group">
             <p class="section-label">Verification Options</p>
             <div class="verify-box" aria-label="Verification options">
               ${optionRow(state, 'email', true, 'email')}
               ${optionRow(state, 'supporting photo', true, 'photo')}
-              ${optionRow(state, 'passport photo', false, 'passport')}
-              ${optionRow(state, 'mobile', false, 'phone')}
-              ${optionRow(state, 'human identity check', false, 'legal_review')}
+              ${optionRow(state, 'passport photo', true, 'passport')}
             </div>
           </div>
-          ${upgrade}
+    `
+    : `
+          <div class="verify-group">
+            <p class="section-label">Additional benefits</p>
+            <div class="verify-box" aria-label="Additional benefits">
+              <p class="coming-soon">More coming soon.</p>
+            </div>
+          </div>
+    `;
+  return {
+    title: 'Select a signing mode for this document.',
+    body: `
+      <div class="choice">
+        <div class="options" role="tablist" aria-label="Account level">
+          <button type="button" class="option${free ? ' active' : ''}" data-plan="free" role="tab" aria-selected="${free}"${disabled}>
+            <span class="kicker">Free</span>
+            <span class="label">High security</span>
+          </button>
+          <button type="button" class="option${free ? '' : ' active'}" data-plan="premium" role="tab" aria-selected="${!free}"${disabled}>
+            <span class="kicker">Premium</span>
+            <span class="label">More convenient</span>
+          </button>
+        </div>
+        <section class="tier-details" role="tabpanel">
+          ${panel}
         </section>
       </div>
     `

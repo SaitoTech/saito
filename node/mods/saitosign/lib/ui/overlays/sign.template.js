@@ -12,9 +12,10 @@ function signTemplate(view) {
       <p class="title">You are signing as:</p>
       <p class="name">${escapeHTML(view.name || '')}</p>
       <p class="email">${escapeHTML(view.email || '')}</p>
-      <p class="instruction">Click the button below to sign</p>
-      <div class="actions">
-        <button type="submit" class="primary">Sign</button>
+      <p class="sign-error" data-sign-error role="alert"></p>
+      <div class="actions${view.signAll ? ' split' : ''}">
+        ${view.signAll ? '<button type="button" class="secondary" data-sign-all>Sign All Pages</button>' : ''}
+        <button type="submit" class="primary" data-sign-button>Sign</button>
       </div>
     </form>
   `;

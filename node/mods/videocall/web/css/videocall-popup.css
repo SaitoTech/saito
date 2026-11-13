@@ -1,0 +1,49 @@
+/* VideoCall Popup. The floating control bar. Tiles are VideoBox. */
+
+.videocall-popup {
+  position: absolute;
+  z-index: 41;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: fit-content;
+  padding: 5px;
+  border-radius: 999px;
+  background-color: var(--saito-card);
+  border: 1px solid var(--saito-border);
+  cursor: grab;
+}
+
+.videocall-popup .videocall-timer {
+  min-width: 3.2rem;
+  padding: 0 0.4rem;
+  color: var(--saito-foreground);
+  font-family: var(--saito-font-monospace, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum' 1;
+}
+
+.videocall-popup .videocall-control {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border-radius: 999px;
+  background-color: var(--saito-accent);
+  color: var(--saito-foreground);
+  cursor: pointer;
+}
+
+.videocall-popup .videocall-control.disabled {
+  background-color: var(--saito-muted);
+}
+
+.videocall-popup .disconnect-control {
+  background: var(--saito-destructive);
+  color: var(--saito-primary-foreground);
+}
+
+.videocall-popup .disconnect-control i {
+  color: var(--stun-noir-danger-text);
+}
