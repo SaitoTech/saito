@@ -181,19 +181,23 @@ describe('sanitizeJS', () => {
       expectUnsafe('fetch("https://example.com")', apiPolicy, 'unauthorized_access');
     });
 
-    test('rejects computed property access via expressions', () => {
-      expectUnsafe(`
+    test('allows computed property access on local data and api calls', () => {
+      expectSafe(`
         const key = "addInfluence";
+        const board = { egypt: 1 };
+        const id = "egypt";
+        const n = board[id];
         api[key]("ussr", "poland", 1);
-      `, apiPolicy, 'unauthorized_access');
+      `);
     });
 
-    test('rejects dynamically constructed prohibited property names', () => {
-      expectUnsafe(`
+    test('allows a dynamically constructed property read', () => {
+      expectSafe(`
         const a = "con";
         const b = "structor";
-        api[a + b];
-      `, apiPolicy, 'unauthorized_access');
+        const obj = { label: 1 };
+        const n = obj[a + b];
+      `);
     });
 
     test('rejects destructuring authorized methods', () => {
@@ -223,10 +227,14 @@ describe('sanitizeJS', () => {
       expectUnsafe('api.addEventListener("click", () => {})', apiPolicy, 'unauthorized_access');
     });
 
-    test('rejects unsupported syntax such as classes and new', () => {
-      expectUnsafe('class Foo {}', {}, 'unsupported_syntax');
-      expectUnsafe('const x = new Date()', apiPolicy, 'unsupported_syntax');
+    test('rejects await when async is not enabled', () => {
       expectUnsafe('async function f() { await 1; }', apiPolicy);
+    });
+
+    test('rejects host constructors', () => {
+      expectUnsafe('const x = new Date()', apiPolicy, 'unauthorized_access');
+      expectUnsafe('const x = new Function("return 1")', apiPolicy, 'dynamic_execution');
+      expectUnsafe('const x = new Worker("worker.js")', apiPolicy, 'unauthorized_access');
     });
 
     test('rejects invalid JavaScript', () => {
@@ -371,6 +379,78 @@ describe('sanitizeJS', () => {
         }`,
         nftPolicy
       );
+    });
+
+    test('allows ordinary JavaScript inside the sandbox policy', () => {
+      expectSafe(
+        `
+        function calculateInfluence(country, amount) {
+          const base = Number(amount);
+          const extra = Math.min(2, parseInt("1", 10));
+          return base + extra;
+        }
+        const board = { egypt: 1, france: 0 };
+        const ids = Object.keys(board).filter((id) => board[id] > 0);
+        const placed = {};
+        for (const id of ids) {
+          placed[id] = Math.min(4, board[id] + calculateInfluence(id, "2"));
+        }
+        class Tally {
+          constructor(total) {
+            this.total = total;
+          }
+          add(n) {
+            this.total = this.total + n;
+            return this.total;
+          }
+        }
+        const tally = new Tally(0);
+        const sum = ids.map((id) => tally.add(placed[id]));
+        const parsed = JSON.parse(JSON.stringify(placed));
+        const matched = /eg/.test(ids[0]);
+        const listed = "egypt" in board;
+        const kind = typeof parsed;
+        const report = { sum, matched, listed, kind };
+        `,
+        { ...apiPolicy, allowAsync: true }
+      );
+    });
+
+    test('allows async functions when async is enabled', () => {
+      expectSafe(
+        `
+        async function load(n) {
+          const value = await Promise.resolve(Number(n));
+          return value;
+        }
+        `,
+        { allowAsync: true }
+      );
+    });
+
+    test('still rejects host, node, network, dynamic code and worker access', () => {
+      expectUnsafe('window.alert(1)', apiPolicy, 'unauthorized_access');
+      expectUnsafe('document.body', apiPolicy, 'unauthorized_access');
+      expectUnsafe('globalThis.api', apiPolicy, 'unauthorized_access');
+      expectUnsafe('parent.location', apiPolicy, 'unauthorized_access');
+      expectUnsafe('top.location', apiPolicy, 'unauthorized_access');
+      expectUnsafe('require("fs")', apiPolicy, 'unauthorized_access');
+      expectUnsafe('process.exit(1)', apiPolicy, 'unauthorized_access');
+      expectUnsafe('module.exports', apiPolicy, 'unauthorized_access');
+      expectUnsafe('fetch("https://example.com")', apiPolicy, 'unauthorized_access');
+      expectUnsafe('new XMLHttpRequest()', apiPolicy, 'unauthorized_access');
+      expectUnsafe('new WebSocket("wss://example.com")', apiPolicy, 'unauthorized_access');
+      expectUnsafe('new EventSource("https://example.com")', apiPolicy, 'unauthorized_access');
+      expectUnsafe('eval("1")', apiPolicy, 'dynamic_execution');
+      expectUnsafe('Function("return 1")()', apiPolicy, 'dynamic_execution');
+      expectUnsafe('import("fs")', apiPolicy, 'unauthorized_import');
+      expectUnsafe('new Worker("w.js")', apiPolicy, 'unauthorized_access');
+      expectUnsafe('new SharedWorker("w.js")', apiPolicy, 'unauthorized_access');
+      expectUnsafe('importScripts("w.js")', apiPolicy, 'unauthorized_access');
+      expectUnsafe('localStorage.setItem("a", "b")', apiPolicy, 'unauthorized_access');
+      expectUnsafe('indexedDB.open("db")', apiPolicy, 'unauthorized_access');
+      expectUnsafe('api.launchNukes()', apiPolicy, 'unauthorized_access');
+      expectUnsafe('api["constructor"]', apiPolicy, 'unauthorized_access');
     });
 
     test('plain allowedGlobals still cannot be property-accessed', () => {

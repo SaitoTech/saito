@@ -3,6 +3,15 @@
  * DocsClient can swap this for a fetched remote index without UI changes.
  */
 
+const juntaExample = require('./examples/junta');
+
+function escapeHtml(value) {
+  return String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
 module.exports = {
   baseUrl: null,
   entries: [
@@ -174,6 +183,21 @@ module.exports = {
       externalUrl: null,
       body: `
         <p><code>api.isEventActive(event)</code> when <code>game.state.events[event] == 1</code>.</p>
+      `
+    },
+    {
+      id: 'example-junta',
+      title: 'Example: two-stage Junta',
+      summary: 'Place influence, then queue NFT_EVENT for a coup or realignment.',
+      externalUrl: null,
+      body: `
+        <p>Card id <code>${escapeHtml(juntaExample.NFT_CARD_ID)}</code>. Put stage one in code box 0 and stage two in code box 1.</p>
+        <p>Stage one switches on <code>state.eventing_player</code>, places 2 influence in Central or South America, and <code>addMove</code>s <code>NFT_EVENT</code> with that player as the argument. The event is queued before the placement, so the stack runs the placement first.</p>
+        <p>Stage two reads that argument. A coup or a realignment is offered only when the opponent has influence in an available country in the Americas. Two realignment rolls use <code>playerRealign</code>. A coup is the <code>coup</code> instruction, which every client rolls when the queue reaches it.</p>
+        <p>Stage one:</p>
+        <pre><code>${escapeHtml(juntaExample.stageOne)}</code></pre>
+        <p>Stage two:</p>
+        <pre><code>${escapeHtml(juntaExample.stageTwo)}</code></pre>
       `
     },
     {

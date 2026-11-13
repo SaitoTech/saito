@@ -133,6 +133,102 @@ describe('executeJS', () => {
     ).rejects.toThrow(/validation failed/i);
   });
 
+  test('runs ordinary JavaScript and returns the result', async () => {
+    const result = await executeJS(
+      `
+      function calculateInfluence(amount) {
+        return Number(amount) + Math.min(2, parseInt("1", 10));
+      }
+      const board = { egypt: 1, france: 0 };
+      const placed = {};
+      for (const id of Object.keys(board)) {
+        if (board[id] > 0) {
+          placed[id] = board[id] + calculateInfluence("2");
+        }
+      }
+      class Tally {
+        constructor(total) {
+          this.total = total;
+        }
+        add(n) {
+          this.total = this.total + n;
+          return this.total;
+        }
+      }
+      const tally = new Tally(0);
+      const total = Object.keys(placed).reduce((sum, id) => tally.add(placed[id]), 0);
+      return { total, egypt: placed.egypt, json: JSON.parse(JSON.stringify(placed)).egypt };
+      `,
+      {},
+      {}
+    );
+    expect(result).toEqual({ total: 4, egypt: 4, json: 4 });
+  });
+
+  test('invokes an exposed api method through computed access', async () => {
+    const calls = [];
+    const result = await executeJS(
+      `
+      const name = "addInfluence";
+      return await api[name]("egypt", 2);
+      `,
+      {
+        api: {
+          addInfluence: async (country, amount) => {
+            calls.push([country, amount]);
+            return country + ":" + amount;
+          }
+        }
+      }
+    );
+    expect(result).toBe('egypt:2');
+    expect(calls).toEqual([['egypt', 2]]);
+  });
+
+  test('computed api access cannot invoke a method the host did not expose', async () => {
+    const calls = [];
+    await expect(
+      executeJS(
+        `
+        const name = "launchNukes";
+        return await api[name]();
+        `,
+        {
+          api: {
+            addInfluence: async () => {
+              calls.push('addInfluence');
+              return true;
+            }
+          }
+        }
+      )
+    ).rejects.toThrow();
+    expect(calls).toEqual([]);
+  });
+
+  test('rejects host, node, network, eval and worker access at validation', async () => {
+    const blocked = [
+      'window.alert(1)',
+      'document.body',
+      'globalThis.location',
+      'require("fs")',
+      'process.exit(1)',
+      'fetch("https://example.com")',
+      'new XMLHttpRequest()',
+      'eval("1")',
+      'Function("return 1")()',
+      'new Worker("w.js")',
+      'localStorage.getItem("a")',
+      'indexedDB.open("db")'
+    ];
+    for (const source of blocked) {
+      await expect(executeJS(source, { api: { addInfluence: async () => true } })).rejects.toThrow(
+        /validation failed/i
+      );
+    }
+    expect(sanitizeHelper.sandbox).toBe(null);
+  });
+
   test('rejects unauthorized methods at validation time', async () => {
     await expect(
       executeJS('await api.launchNukes();', {

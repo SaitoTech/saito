@@ -37,26 +37,9 @@ const ALWAYS_BANNED_GLOBALS = new Set([
   'Function',
   'Reflect',
   'Proxy',
-  'Object',
-  'Array',
-  'Promise',
-  'Symbol',
-  'Map',
-  'Set',
   'WeakMap',
   'WeakSet',
-  'RegExp',
-  'Error',
   'Date',
-  'JSON',
-  'Math',
-  'Number',
-  'String',
-  'Boolean',
-  'parseInt',
-  'parseFloat',
-  'isNaN',
-  'isFinite',
   'arguments',
   'debugger',
   'with',
@@ -120,6 +103,28 @@ const EVENT_PROPERTIES = new Set([
 
 // Language-level identifier literals (not mutable globals in practical terms).
 const SAFE_LANGUAGE_IDENTIFIERS = new Set(['undefined', 'NaN', 'Infinity']);
+
+// Ordinary ECMAScript intrinsics. These are language features, not host capabilities.
+// Property access and calls are allowed. Host objects stay in ALWAYS_BANNED_GLOBALS.
+const LANGUAGE_BUILTINS = new Set([
+  'Number',
+  'String',
+  'Boolean',
+  'Object',
+  'Array',
+  'Math',
+  'JSON',
+  'Map',
+  'Set',
+  'RegExp',
+  'Error',
+  'Promise',
+  'Symbol',
+  'parseInt',
+  'parseFloat',
+  'isNaN',
+  'isFinite'
+]);
 
 const DEFAULT_ALLOWED_SYNTAX = [
   'functions',
@@ -263,7 +268,7 @@ function mergePolicy(policy = {}) {
     allowStorage: policy.allowStorage === true,
     allowNetwork: policy.allowNetwork === true,
     allowAsync: policy.allowAsync === true,
-    allowComputedProperties: policy.allowComputedProperties === true
+    allowComputedProperties: policy.allowComputedProperties !== false
   };
 }
 
@@ -400,9 +405,13 @@ function createSanitizeJS() {
         type === 'ClassDeclaration' ||
         type === 'ClassExpression' ||
         type === 'ClassBody' ||
-        type === 'MethodDefinition'
+        type === 'MethodDefinition' ||
+        type === 'PropertyDefinition' ||
+        type === 'NewExpression' ||
+        type === 'ThisExpression' ||
+        type === 'Super'
       ) {
-        return false;
+        return true;
       }
       if (
         type === 'ImportDeclaration' ||
@@ -416,14 +425,7 @@ function createSanitizeJS() {
       if (type === 'AwaitExpression' || type === 'YieldExpression') {
         return cfg.allowAsync;
       }
-      if (
-        type === 'MetaProperty' ||
-        type === 'NewExpression' ||
-        type === 'ThisExpression' ||
-        type === 'Super' ||
-        type === 'WithStatement' ||
-        type === 'LabeledStatement'
-      ) {
+      if (type === 'MetaProperty' || type === 'WithStatement' || type === 'LabeledStatement') {
         return false;
       }
 
@@ -469,6 +471,9 @@ function createSanitizeJS() {
         !isDangerousPropertyName(name)
       ) {
         return bindingKind('context_data', { contextName: name });
+      }
+      if (LANGUAGE_BUILTINS.has(name) && !isBannedGlobalName(name)) {
+        return bindingKind('language_builtin', { globalName: name });
       }
       if (cfg.allowedGlobals.has(name) && !isBannedGlobalName(name)) {
         return bindingKind('allowed_global', { globalName: name });
@@ -544,6 +549,14 @@ function createSanitizeJS() {
 
         case 'FunctionExpression':
         case 'ArrowFunctionExpression':
+        case 'ClassExpression':
+          return bindingKind('local_function');
+
+        case 'NewExpression':
+        case 'ThisExpression':
+          return bindingKind('local');
+
+        case 'Super':
           return bindingKind('local_function');
 
         case 'UnaryExpression':
@@ -571,8 +584,63 @@ function createSanitizeJS() {
       }
     }
 
+    function memberPropertyName(node) {
+      if (!node.computed) {
+        return staticPropertyName(node.property);
+      }
+      if (node.property.type === 'Literal') {
+        return staticPropertyName(node.property);
+      }
+      return null;
+    }
+
+    function classifyDynamicMember(objectInfo, node) {
+      if (
+        objectInfo.kind === 'local' ||
+        objectInfo.kind === 'local_function' ||
+        objectInfo.kind === 'primitive' ||
+        objectInfo.kind === 'language_builtin'
+      ) {
+        return bindingKind('local');
+      }
+      if (objectInfo.kind === 'context_data') {
+        return bindingKind('context_data', {
+          contextName: objectInfo.contextName || null
+        });
+      }
+      if (objectInfo.kind === 'allowed_object') {
+        // The name is not known statically. The host allowlist rejects methods
+        // that were not exposed for this execution.
+        return bindingKind('allowed_method', {
+          objectName: objectInfo.objectName,
+          methodName: null
+        });
+      }
+      if (objectInfo.kind === 'allowed_method' || objectInfo.kind === 'allowed_property') {
+        reject(
+          'unauthorized_access',
+          'Unauthorized property access through authorized reference',
+          node
+        );
+        return bindingKind('forbidden');
+      }
+      if (objectInfo.kind === 'allowed_global') {
+        reject(
+          'unauthorized_access',
+          `Unauthorized property access on global: ${objectInfo.globalName}`,
+          node
+        );
+        return bindingKind('forbidden');
+      }
+      reject('unauthorized_access', 'Unauthorized property access', node);
+      return bindingKind('forbidden');
+    }
+
     function classifyMember(node, scope) {
       const objectInfo = classify(node.object, scope);
+      if (objectInfo.kind === 'forbidden') {
+        return bindingKind('forbidden');
+      }
 
       if (node.computed && !cfg.allowComputedProperties) {
         // Allow only static string/number literals that we can check.
@@ -582,7 +650,10 @@ function createSanitizeJS() {
         }
       }
 
-      const propName = staticPropertyName(node.property);
+      const propName = memberPropertyName(node);
+      if (propName == null && node.computed && cfg.allowComputedProperties) {
+        return classifyDynamicMember(objectInfo, node);
+      }
       if (
         node.computed &&
         node.property.type === 'Literal' &&
@@ -643,6 +714,10 @@ function createSanitizeJS() {
         });
       }
 
+      if (objectInfo.kind === 'language_builtin') {
+        return bindingKind('local');
+      }
+
       if (objectInfo.kind === 'allowed_global') {
         reject(
           'unauthorized_access',
@@ -675,7 +750,7 @@ function createSanitizeJS() {
         return bindingKind('local'); // return value treated as opaque local data
       }
 
-      if (calleeInfo.kind === 'local_function') {
+      if (calleeInfo.kind === 'local_function' || calleeInfo.kind === 'language_builtin') {
         return bindingKind('local');
       }
 
@@ -864,9 +939,7 @@ function createSanitizeJS() {
         ) {
           reject('unsupported_syntax', `Comparison operator not permitted: ${op}`, node);
         }
-        if (op === 'in' || op === 'instanceof') {
-          reject('unsupported_syntax', `Operator not permitted: ${op}`, node);
-        }
+        // `in` and `instanceof` are ordinary language operators.
       }
       if (node.type === 'UnaryExpression') {
         if ((op === '+' || op === '-' || op === '~') && !syntaxAllowed('arithmetic')) {
@@ -875,7 +948,7 @@ function createSanitizeJS() {
         if (op === '!' && !syntaxAllowed('logical') && !syntaxAllowed('conditionals')) {
           reject('unsupported_syntax', 'Logical operator not permitted: !', node);
         }
-        if (op === 'typeof' || op === 'delete' || op === 'void') {
+        if (op === 'delete' || op === 'void') {
           reject('unsupported_syntax', `Operator not permitted: ${op}`, node);
         }
       }
@@ -1113,9 +1186,6 @@ function createSanitizeJS() {
           break;
 
         case 'Literal':
-          if (node.regex) {
-            reject('unsupported_syntax', 'Regular expression literals are not permitted', node);
-          }
           break;
 
         case 'TemplateLiteral':
@@ -1159,19 +1229,23 @@ function createSanitizeJS() {
             reject('unsupported_syntax', 'Getters and setters are not permitted', node);
             break;
           }
-          if (node.computed) {
+          if (node.computed && node.key.type !== 'Literal') {
             if (!cfg.allowComputedProperties) {
-              // Allow only static literal keys.
-              if (
-                node.key.type !== 'Literal' ||
-                (typeof node.key.value !== 'string' && typeof node.key.value !== 'number')
-              ) {
-                reject('unauthorized_access', 'Computed property keys are not permitted', node);
-                break;
-              }
-            } else {
-              walk(node.key, scope);
+              reject('unauthorized_access', 'Computed property keys are not permitted', node);
+              break;
             }
+            walk(node.key, scope);
+            walk(node.value, scope);
+            break;
+          }
+          if (
+            node.computed &&
+            node.key.type === 'Literal' &&
+            typeof node.key.value !== 'string' &&
+            typeof node.key.value !== 'number'
+          ) {
+            reject('unauthorized_access', 'Computed property keys are not permitted', node);
+            break;
           }
           const keyName = staticPropertyName(node.key);
           if (!checkPropertyName(keyName, node, 'object key')) {
@@ -1236,8 +1310,71 @@ function createSanitizeJS() {
           }
           break;
 
-        case 'NewExpression':
-          reject('unsupported_syntax', 'new expressions are not permitted', node);
+        case 'NewExpression': {
+          if (
+            node.callee.type === 'Identifier' &&
+            !cfg.allowDynamicExecution &&
+            (node.callee.name === 'Function' || node.callee.name === 'eval')
+          ) {
+            reject(
+              'dynamic_execution',
+              `Dynamic code execution is not permitted: ${node.callee.name}`,
+              node
+            );
+          }
+          const ctor = classify(node.callee, scope);
+          const allowedCtor =
+            ctor.kind === 'language_builtin' ||
+            ctor.kind === 'local' ||
+            ctor.kind === 'local_function';
+          if (!allowedCtor) {
+            reject('unauthorized_access', 'Unauthorized constructor', node);
+          }
+          if (node.callee.type !== 'Identifier') {
+            walk(node.callee, scope);
+          }
+          for (const arg of node.arguments) {
+            walk(arg, scope);
+          }
+          break;
+        }
+
+        case 'ClassDeclaration':
+        case 'ClassExpression':
+          if (node.id && node.id.type === 'Identifier') {
+            scope.declare(node.id.name, bindingKind('local_function'));
+          }
+          if (node.superClass) {
+            walk(node.superClass, scope);
+          }
+          walk(node.body, scope);
+          break;
+
+        case 'ClassBody':
+          for (const element of node.body) {
+            walk(element, scope);
+          }
+          break;
+
+        case 'MethodDefinition':
+        case 'PropertyDefinition':
+          if (node.computed) {
+            walk(node.key, scope);
+          } else if (
+            node.key &&
+            node.key.type === 'Identifier' &&
+            isDangerousPropertyName(node.key.name) &&
+            node.kind !== 'constructor'
+          ) {
+            reject('unauthorized_access', `Unauthorized property access: ${node.key.name}`, node);
+            break;
+          }
+          if (node.value) {
+            walk(node.value, scope);
+          }
+          break;
+
+        case 'Super':
           break;
 
         case 'UnaryExpression':
@@ -1279,6 +1416,7 @@ function createSanitizeJS() {
               rightInfo.kind === 'primitive' ||
               rightInfo.kind === 'local_function' ||
               rightInfo.kind === 'allowed_global' ||
+              rightInfo.kind === 'language_builtin' ||
               rightInfo.kind === 'context_data'
             ) {
               scope.declare(
@@ -1329,7 +1467,6 @@ function createSanitizeJS() {
           break;
 
         case 'ThisExpression':
-          reject('unauthorized_access', 'Unauthorized this reference', node);
           break;
 
         case 'AwaitExpression':
