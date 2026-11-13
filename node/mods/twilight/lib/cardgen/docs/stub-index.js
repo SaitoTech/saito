@@ -70,7 +70,7 @@ module.exports = {
         <p><code>await api.endTurn();</code></p>
         <p><code>})</code></p>
         <p>The callback runs only when this seat is the eventing faction. Other clients get <code>0</code> and their event waits.</p>
-        <p>On a live game, a callback that returns nothing also yields <code>0</code>, so the event stays queued until <code>api.endTurn()</code> sends <code>resolve</code>. A card-studio test continues instead, so the preview can restore the board.</p>
+        <p>A callback that returns nothing yields <code>0</code>. <code>api.addMove</code> only buffers instructions. <code>api.endTurn()</code> submits that turn. The queue stays paused until the turn is on the queue.</p>
       `
     },
     {

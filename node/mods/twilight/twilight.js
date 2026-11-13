@@ -20,9 +20,7 @@ const {
   firstEventCode,
   testNftId,
   buildTestNft,
-  testQueueInstructions,
-  pushLocalInstruction,
-  insertEndInstruction
+  testQueueInstructions
 } = require('./lib/cardgen/test-run');
 const nftApi = require('./lib/core/api');
 const {
@@ -359,46 +357,49 @@ class Twilight extends GameTemplate {
       };
     };
 
-    const localDuringTest = (fn, applyLocal) => {
-      return (instruction) => {
-        if (!isSandboxInstructionPermitted(instruction, engineCommands, twilightCommands)) {
-          const cmd =
-            typeof instruction === 'string' ? instruction.split('\t')[0] : '';
-          throw new Error(`command not permitted: ${cmd || '(empty)'}`);
-        }
-        if (this.cardgen_testing) {
-          applyLocal(instruction);
-          return;
-        }
-        return fn(instruction);
-      };
-    };
-
     return {
       commands,
       addToQueue: gate(base.addToQueue),
-      addMove: localDuringTest(base.addMove, (instruction) => {
-        pushLocalInstruction(this.game.queue, instruction);
-      }),
-      prependMove: localDuringTest(base.prependMove, (instruction) => {
-        pushLocalInstruction(this.game.queue, instruction);
-      }),
-      addEndMove: localDuringTest(base.addEndMove, (instruction) => {
-        insertEndInstruction(this.game.queue, instruction);
-      }),
+      addMove: gate(base.addMove),
+      prependMove: gate(base.prependMove),
+      addEndMove: gate(base.addEndMove),
       endTurn: async (...args) => {
         if (this._sandbox_player_action) {
           this.reorderMoves('realign');
           const card = this.game && this.game.state ? this.game.state.eventing_card : '';
-          if (!this.cardgen_testing && card && !this._sandbox_event_resolved) {
+          if (card && !this._sandbox_event_resolved) {
             this.prependMove(`resolve\t${card}`);
             this._sandbox_event_resolved = true;
           }
           this._sandbox_player_action = false;
         }
         if (this.cardgen_testing) {
+          this.game.turn = Array.isArray(this.moves) ? this.moves.slice() : [];
+          if (Array.isArray(this.endmoves)) {
+            for (let i = 0; i < this.endmoves.length; i++) {
+              this.game.turn.push(this.endmoves[i]);
+            }
+          }
           this.moves = [];
           this.endmoves = [];
+          this.game.target = 0;
+          const turn = this.game.turn;
+          this.game.turn = [];
+          for (let i = 0; i < turn.length; i++) {
+            this.game.queue.push(turn[i]);
+          }
+          const gameId = this.game.id;
+          const resume = () => {
+            if (!this.cardgen_testing || !this.game || this.game.id !== gameId) {
+              return;
+            }
+            if (this.gaming_active && !this.halted) {
+              setTimeout(resume, 0);
+              return;
+            }
+            this.restartQueue();
+          };
+          setTimeout(resume, 0);
           return;
         }
         return base.endTurn(...args);

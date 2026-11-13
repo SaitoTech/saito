@@ -133,6 +133,7 @@ class CardStudio {
   }
 
   async showCode() {
+    this.mod.cardgen_testing = false;
     await this.ensureAssets();
     if (!this.restoreEditorSnapshot()) {
       this.restoreDraft();

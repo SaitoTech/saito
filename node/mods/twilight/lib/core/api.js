@@ -223,10 +223,6 @@ function readInfluence(mod, country, faction) {
 
 function queuePlayerMove(mod, instruction) {
   mod._sandbox_player_action = true;
-  if (mod.cardgen_testing && mod.game && Array.isArray(mod.game.queue)) {
-    mod.game.queue.push(instruction);
-    return;
-  }
   mod.addMove(instruction);
 }
 
@@ -329,6 +325,19 @@ module.exports = {
     }
 
     const hud = requireHud(this, 'playerSelectCountry');
+    const hand =
+      this.game && this.game.deck && this.game.deck[0] && Array.isArray(this.game.deck[0].hand)
+        ? this.game.deck[0].hand
+        : null;
+
+    // The hand and the HUD menu occupy the same space. Hide the cards while
+    // the country list is on screen, then restore them after the choice.
+    if (typeof hud.updateCards === 'function') {
+      hud.updateCards([]);
+    }
+    if (this.cardbox && typeof this.cardbox.hide === 'function') {
+      this.cardbox.hide(1);
+    }
 
     return await new Promise((resolve) => {
       let settled = false;
@@ -339,6 +348,9 @@ module.exports = {
         settled = true;
         clearCountryHighlights(ids);
         hud.updateMenu([]);
+        if (hand && typeof hud.updateCards === 'function') {
+          hud.updateCards(hand);
+        }
         resolve(id);
       };
 
@@ -399,8 +411,8 @@ module.exports = {
   /**
    * Run fn only on the client whose seat is the eventing faction.
    * Other clients return 0 so playEvent pauses until that client's moves arrive.
-   * A card-studio test continues the local queue when fn does not return 0,
-   * so the test can reach its restore step.
+   * A missing return is 0, in a card test and in a live game. endTurn delivers
+   * the buffered moves; the queue stays paused until that delivery resumes it.
    */
   asEventingPlayer: async function (fn) {
     if (typeof fn !== 'function') {
@@ -410,13 +422,10 @@ module.exports = {
       return 0;
     }
     const result = await fn();
-    if (result === 0) {
+    if (result === 0 || result == null) {
       return 0;
     }
-    if (this.cardgen_testing) {
-      return result == null ? 1 : result;
-    }
-    return result == null ? 0 : result;
+    return result;
   },
 
   /**
