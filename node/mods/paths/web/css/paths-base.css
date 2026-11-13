@@ -1,4 +1,9 @@
 .game.paths {
+  .showcard {
+    border-bottom: 2px dashed;
+    cursor: pointer;
+  }
+
   .space {
     width: 90px;
     height: 90px;
@@ -67,7 +72,8 @@
     margin-left: 1.333rem;
     position: absolute;
   }
-  .selectable::before {
+  .selectable::before,
+  .move-cue::before {
     content: ' ';
     box-shadow:
       1.667rem 1.667rem 5.833rem 2.5rem #fffc,
@@ -78,6 +84,11 @@
     margin-top: 1.333rem;
     margin-left: 1.333rem;
     position: absolute;
+  }
+  .move-cue::before {
+    box-shadow:
+      1.667rem 1.667rem 5.833rem 2.5rem #fffa,
+      -1.667rem -1.667rem 5.833rem 2.5rem #fffa;
   }
 
   .control-tile {
@@ -92,20 +103,15 @@
     right: 1.667rem;
     top: 1.667rem;
   }
-  .trench-tile:hover {
-    z-index: 999;
-  }
   .activation-tile {
     height: 100%;
     width: 100%;
     position: absolute;
-    top: -15;
-    left: +15px;
-    z-index: 10;
+    top: -2.4rem;
+    left: -2.4rem;
+    z-index: 4;
     display: block;
-  }
-  .activation-tile:hover {
-    display: none;
+    pointer-events: none;
   }
   .army-tile {
     width: 100%;
@@ -144,6 +150,62 @@
   .space .army-tile:nth-child(6) {
     top: -150px;
     left: 150px;
+  }
+
+  /* Clicking a space with several units fans those chits into one column. */
+  .space.stack-open {
+    z-index: 80;
+    overflow: visible;
+  }
+
+  .space.stack-open::before {
+    content: '';
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    top: var(--stack-top, 0px);
+    width: var(--stack-width, 100%);
+    height: var(--stack-height, 100%);
+    background: rgba(0, 0, 0, 0.55);
+    border-radius: 6px;
+    z-index: 1;
+  }
+
+  .space.stack-open > .army-tile {
+    z-index: 2;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.45);
+  }
+
+  .space.stack-open > .activation-tile,
+  .space.stack-open > .trench-tile {
+    z-index: 15;
+  }
+
+  /* The offset corner stays reachable. Hover brings the whole marker forward
+     so a level-1 trench can be told from a level-2 trench. */
+  .space > .trench-tile:not(.control-tile):not(.fort-besieged):not(.fort-destroyed):hover {
+    z-index: 1000;
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.65));
+  }
+
+  .space.loss-assignment-open > .army-tile.loss-board-unit {
+    cursor: pointer;
+  }
+
+  /* Combat participants not on the assigning side — full opacity, not clickable. */
+  .space.loss-assignment-open > .army-tile.loss-board-participant {
+    pointer-events: none;
+  }
+
+  /* Nonparticipating units that share an attacker source space. */
+  .space.loss-assignment-open > .army-tile.loss-board-other {
+    opacity: 0.55;
+    pointer-events: none;
+  }
+
+  /* Hit-ineligible for this step: keep full opacity; click still rejected. */
+  .space.loss-assignment-open > .army-tile.loss-board-unassignable {
+    cursor: not-allowed;
   }
 
   img {

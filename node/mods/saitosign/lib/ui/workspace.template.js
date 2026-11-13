@@ -57,10 +57,11 @@ function fieldListHTML(view) {
       ${view.field_list
         .map(
           (field) => `
-            <li class="row${field.signed ? ' signed' : ''}${field.active ? ' active' : ''}${field.confirming ? ' confirming' : ''}">
+            <li class="row${field.signed ? ' signed' : ''}${field.active ? ' active' : ''}${field.confirming ? ' confirming' : ''}${field.cue ? ' cue-target' : ''}">
               <button type="button" class="open" data-open-field="${field.id}"${field.active ? ' aria-current="true"' : ''}>
                 <i class="swatch" style="background:${field.signed ? 'var(--saitosign-signed-ink)' : field.color}" aria-hidden="true"></i>
                 <span class="label">${escapeHTML(field.label)}</span>
+                ${field.cue ? '<span class="cue">CLICK HERE</span>' : ''}
               </button>
             </li>
           `
@@ -109,18 +110,25 @@ function signersSectionHTML(view) {
 
 function railHTML(view) {
   const notice = view.notice ? `<p class="notice">${escapeHTML(view.notice)}</p>` : '';
+  if (view.awaiting_identity) {
+    return `
+      <div class="identity" data-awaiting-identity="1">
+        <p class="name">SaitoSign</p>
+        <p class="file">${escapeHTML(view.file_name)}</p>
+      </div>
+      <p class="guide">${escapeHTML(view.guide)}</p>
+      ${notice}
+      <button type="button" class="export primary" data-verify-identity>Verify Identity</button>
+    `;
+  }
   const started = view.field_list.length > 0;
-  const guide = view.finalized
-    ? 'Review the document and provide your signature where needed.'
-    : started
-      ? 'Add further signature boxes, then click Ready to Sign when done.'
-      : 'Click on any page where a signature is required.';
+  const guide = view.guide;
   const next = view.finalized
     ? (view.verified
-      ? '<button type="button" class="export primary verified" data-export>Document Verified</button>'
-      : '<button type="button" class="export primary" data-export>Check Document Status</button>')
+      ? '<button type="button" class="export primary verified" data-export>Verified - View Details</button>'
+      : '<button type="button" class="export primary" data-export>Continue</button>')
     : started
-      ? '<button type="button" class="export primary" data-export>Ready to Sign</button>'
+      ? '<button type="button" class="export primary" data-export>Continue</button>'
       : '';
 
   return `
@@ -175,7 +183,7 @@ function pagesHTML(view) {
     .map(
       (page) => `
         <article class="pdf-page" data-page="${page.page}">
-          <iframe class="page" title="${escapeHTML(view.file_name)}, page ${page.page}"></iframe>
+          <canvas class="page"></canvas>
           <div class="fields${placing}${marking}">${fieldsHTML(page)}</div>
         </article>
       `
@@ -188,6 +196,17 @@ function readerHTML(view) {
   const at_end = view.page >= view.page_count ? ' disabled' : '';
   const zoom_out = view.zoom <= (view.zoom_min || 1) + 0.01 ? ' disabled' : '';
   const zoom_in = view.zoom >= view.zoom_max ? ' disabled' : '';
+  const expanded = view.reader_expanded === true;
+  const menu_icon = expanded ? 'fa-ellipsis-vertical' : 'fa-ellipsis';
+  const menu_label = expanded ? 'Hide tools' : 'More tools';
+  const extras = expanded
+    ? `
+      <div class="tools">
+        ${view.can_edit ? '<button type="button" class="tool" data-add-pdf>Add PDF</button>' : ''}
+        <button type="button" class="tool" data-close-document>Close document</button>
+      </div>
+    `
+    : '';
   return `
     <div class="pages">
       <button type="button" data-page="prev" aria-label="Previous page"${at_start}><i class="fa-solid fa-chevron-left" aria-hidden="true"></i></button>
@@ -200,8 +219,9 @@ function readerHTML(view) {
     <div class="zoom">
       <button type="button" data-zoom="out" aria-label="Zoom out"${zoom_out}><i class="fa-solid fa-magnifying-glass-minus" aria-hidden="true"></i></button>
       <button type="button" data-zoom="in" aria-label="Zoom in"${zoom_in}><i class="fa-solid fa-magnifying-glass-plus" aria-hidden="true"></i></button>
-      <button type="button" data-close-document aria-label="Close document"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
+      <button type="button" data-reader-menu aria-label="${menu_label}" aria-expanded="${expanded ? 'true' : 'false'}"><i class="fa-solid ${menu_icon}" aria-hidden="true"></i></button>
     </div>
+    ${extras}
   `;
 }
 

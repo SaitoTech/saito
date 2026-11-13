@@ -19,6 +19,19 @@
 
   .module-settings-overlay {
     color: var(--saito-popover-foreground);
+    background-color: var(--saito-popover);
+    background-image: var(--saito-popover-wash);
+  }
+
+  /* Keep the title clear of the fixed top-right close control. */
+  .module-settings-overlay > h2 {
+    padding-right: 4.8rem;
+  }
+
+  /* Mobile overlay CSS clears panel backgrounds. This panel stays opaque. */
+  .saito-overlay > .module-settings-overlay.saito-overlay-panel {
+    background-color: var(--saito-popover);
+    background-image: var(--saito-popover-wash);
   }
 
   .gameboard {

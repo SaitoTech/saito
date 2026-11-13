@@ -385,6 +385,9 @@
 .chat-actions {
   display: flex;
   flex-direction: row-reverse;
+  /* Injected actions sit inside this wrapper. Stretch it so their
+     height: 100% resolves to the title bar, like .chat-action-menu. */
+  align-self: stretch;
 }
 
 .chat-action-icons {

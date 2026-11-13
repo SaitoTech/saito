@@ -1,0 +1,28 @@
+.redemption {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  min-height: 100%;
+  padding: 30px;
+}
+
+.redemption-title {
+  margin: 0;
+  font-size: 2rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.redemption-summary {
+  max-width: 36rem;
+  margin: 0;
+  color: var(--saito-muted-foreground);
+  font-size: 1.05rem;
+  line-height: 1.5;
+  text-align: center;
+}
+
+.redemption-cta .saito-button-primary {
+  background: var(--saito-cta-action-background);
+  box-shadow: var(--saito-cta-action-shadow);
+}

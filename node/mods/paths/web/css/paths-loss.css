@@ -133,6 +133,29 @@
     color: rgba(255, 255, 255, 0.78);
   }
 
+  .loss-overlay-choices {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+    margin-top: 0.35rem;
+  }
+
+  .loss-overlay-choice {
+    appearance: none;
+    border: 1px solid rgba(255, 255, 255, 0.55);
+    background: rgba(0, 0, 0, 0.28);
+    color: #fff;
+    font: inherit;
+    font-size: 0.95rem;
+    line-height: 1.2;
+    padding: 0.35rem 0.75rem;
+    cursor: pointer;
+  }
+
+  .loss-overlay-choice:hover {
+    background: rgba(255, 255, 255, 0.16);
+  }
+
   .loss-overlay-stage {
     position: relative;
     flex: 1 1 auto;
@@ -144,6 +167,7 @@
   .loss-overlay-body {
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr) auto;
     gap: 0.55rem;
     padding: 0.5rem;
     height: 100%;
@@ -392,17 +416,6 @@
     text-decoration: none;
   }
 
-  .destroyed_unit .loss-overlay-unit-token::after,
-  .loss-overlay-unit#destroyed_unit .loss-overlay-unit-token::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: url('/paths/img/cancel_x.png') no-repeat center;
-    background-size: contain;
-    pointer-events: none;
-    z-index: 2;
-  }
-
   .loss-overlay-unit.unassignable {
     cursor: not-allowed;
   }
@@ -443,6 +456,55 @@
     }
     80% {
       transform: translate3d(3px, 0, 0);
+    }
+  }
+
+  .loss-overlay-rule-note:not([hidden]) {
+    order: 3;
+    grid-column: 1 / -1;
+    margin: 0 0.15rem 0.15rem;
+    padding: 0.75rem 1rem;
+    border-radius: 0.35rem;
+    background: #f3e2a0;
+    color: #2a2114;
+    font-family: Helvetica, Arial, sans-serif;
+    font-size: 1.25rem;
+    font-weight: 600;
+    line-height: 1.35;
+    text-align: center;
+    box-shadow: inset 0 0 0 2px #c45a12;
+  }
+
+  .loss-overlay-rule-note.is-fresh {
+    animation: loss-rule-note-flash 0.45s ease;
+  }
+
+  @keyframes loss-rule-note-flash {
+    0% {
+      background: #fff6cf;
+      box-shadow: inset 0 0 0 3px #e07010, 0 0 0 3px rgba(224, 112, 16, 0.45);
+    }
+    100% {
+      background: #f3e2a0;
+      box-shadow: inset 0 0 0 2px #c45a12;
+    }
+  }
+
+  .loss-overlay-unit.loss-assign-target .loss-overlay-unit-token {
+    outline: 3px solid #ffe08a;
+    outline-offset: 2px;
+    animation: loss-assign-glow 1.1s ease-in-out infinite;
+  }
+
+  @keyframes loss-assign-glow {
+    0%,
+    100% {
+      outline-color: #f0c14a;
+      filter: drop-shadow(0 0 4px rgba(240, 193, 74, 0.7));
+    }
+    50% {
+      outline-color: #fff1b8;
+      filter: drop-shadow(0 0 10px rgba(255, 220, 110, 0.95));
     }
   }
 
@@ -631,7 +693,9 @@
     min-width: 0;
     justify-self: start;
     display: flex;
-    align-items: center;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.35rem;
   }
 
   .loss-overlay-footer .loss-overlay-title {
@@ -641,6 +705,30 @@
     letter-spacing: 0.01em;
     line-height: 1;
     color: rgba(255, 255, 255, 0.68);
+  }
+
+  .loss-overlay-board-pref {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin: 0;
+    font-family: Helvetica, Arial, sans-serif;
+    font-size: 1.15rem;
+    line-height: 1.2;
+    color: rgba(255, 255, 255, 0.55);
+    cursor: pointer;
+    user-select: none;
+  }
+
+  .loss-overlay-board-pref:hover {
+    color: rgba(255, 255, 255, 0.9);
+  }
+
+  .loss-overlay-board-pref input {
+    width: 1.05rem;
+    height: 1.05rem;
+    margin: 0;
+    cursor: pointer;
   }
 
   /* Centered pull-up affordance — small caret, large hit target */

@@ -1,6 +1,7 @@
 
   hideOverlays() {
     this.zoom_overlay.hide();
+    this.hideSpaceStack();
   }
 
   pulseSpacekey(spacekey) {
@@ -249,19 +250,31 @@
 
 
       //
-      // units / armies
+      // units / armies — largest current movement is drawn on top
       //
-      for (let i = 0; i < space.units.length; i++) {
-        html += this.returnUnitImageInSpaceWithIndex(key, i);
+      let draw_units = space.units.slice();
+      draw_units.sort((a, b) => {
+        let am = a.damaged ? a.rmovement : a.movement;
+        let bm = b.damaged ? b.rmovement : b.movement;
+        return (am || 0) - (bm || 0);
+      });
+      // A destroyed unit stays in the array until the assignment sweep so
+      // indexes do not move under the hits. It is not drawn, and it is not
+      // a black X.
+      let living = 0;
+      for (let i = 0; i < draw_units.length; i++) {
+        if (draw_units[i].destroyed) { continue; }
+        living++;
+        html += this.returnUnitImage(draw_units[i]);
       }
 
       //
       // activated for movement
       //
-      if (space.activated_for_movement && space.units.length > 0) {
+      if (space.activated_for_movement && living > 0) {
         html += `<img src="/paths/img/tiles/activate_move.png" class="activation-tile" />`;
       }
-      if (space.activated_for_combat && space.units.length > 0) {
+      if (space.activated_for_combat && living > 0) {
         html += `<img src="/paths/img/tiles/activate_attack.png" class="activation-tile" />`;
       }
       if (!space.activated_for_movement && !space.activated_for_combat && this.signals && this.signals.marks[key]) {
@@ -319,9 +332,9 @@
       //
       if (space.oos == 1 && space.units.length > 0) { 
 	if (this.returnPowerOfUnit(space.units[0]) == "central") {
-          html += `<img src="/paths/img/tiles/oos_central.png" class="trench-tile oos-tile" />`;
+          html += `<img src="/paths/img/tiles/oos_central.png" class="oos-tile" />`;
 	} else {
-          html += `<img src="/paths/img/tiles/oos_allies.png" class="trench-tile oos-tile" />`;
+          html += `<img src="/paths/img/tiles/oos_allies.png" class="oos-tile" />`;
 	}
       } else {
 
@@ -338,12 +351,248 @@
 //        if (control == "allies") { el.classList.add("allies-highlight"); }
 //        if (control == "central") { el.classList.add("central-highlight"); }
 //        if (control == "neutral") { el.classList.add("neutral-highlight"); }
-	el.innerHTML = html; 
+	el.innerHTML = html;
+	if (space.oos == 1 && space.units.length > 0) {
+	  el.style.setProperty("--oos-step", String(space.units.length));
+	} else {
+	  el.style.removeProperty("--oos-step");
+	}
+	el.classList.remove("opponent-move", "opponent-attack");
+	// Normal renders must not keep leftover loss-assignment presentation.
+	if (!(this.loss_overlay && this.loss_overlay.board_mode) && el.classList.contains("loss-assignment-open")) {
+	  el.classList.remove("loss-assignment-open", "stack-open");
+	  el.style.zIndex = "";
+	  el.style.removeProperty("--stack-top");
+	  el.style.removeProperty("--stack-height");
+	  el.style.removeProperty("--stack-width");
+	  el.onmouseenter = null;
+	  el.onmouseleave = null;
+	}
+	if (this.opponent_marks_visible && this.opponent_marks && this.opponent_marks[key] == "attack") {
+	  el.classList.add("opponent-attack");
+	} else if (this.opponent_marks_visible && this.opponent_marks && this.opponent_marks[key] == "move") {
+	  el.classList.add("opponent-move");
+	}
       });
+
+      if (this.space_stack_key === key) {
+        this.layoutSpaceStack(key);
+      }
+
+      if (this.loss_overlay && this.loss_overlay.board_mode) {
+        this.loss_overlay.onBoardSpaceRedrawn(key);
+      }
 
     } catch (err) {
 console.log("err: " + err);
     }
+  }
+
+  spaceHasMultipleUnits(spacekey) {
+    let space = this.game.spaces && this.game.spaces[spacekey];
+    return !!(space && space.units && space.units.length > 1);
+  }
+
+  showSpaceStack(spacekey) {
+    if (!this.spaceHasMultipleUnits(spacekey)) { return; }
+    if (this.space_stack_key && this.space_stack_key !== spacekey) {
+      this.hideSpaceStack();
+    }
+    this.space_stack_key = spacekey;
+    this.layoutSpaceStack(spacekey);
+  }
+
+  hideSpaceStack() {
+    if (!this.space_stack_key) { return; }
+    let key = this.space_stack_key;
+    this.space_stack_key = "";
+    let el = document.getElementById(key);
+    if (!el) { return; }
+    el.classList.remove("stack-open");
+    el.style.zIndex = "";
+    el.style.removeProperty("--stack-top");
+    el.style.removeProperty("--stack-height");
+    el.style.removeProperty("--stack-width");
+    el.querySelectorAll(":scope > .army-tile, :scope > .oos-tile").forEach((tile) => {
+      tile.style.top = "";
+      tile.style.left = "";
+      tile.style.width = "";
+      tile.style.height = "";
+      tile.style.zIndex = "";
+    });
+  }
+
+  // Out-of-supply leads the column. Unit chits follow in their drawn order.
+  chitsInStackOrder(el) {
+    if (!el) { return []; }
+    let units = Array.from(el.querySelectorAll(":scope > .army-tile"));
+    let oos = el.querySelector(":scope > .oos-tile");
+    if (oos) { return [oos].concat(units); }
+    return units;
+  }
+
+  layoutSpaceStack(spacekey) {
+    let el = document.getElementById(spacekey);
+    if (!el) { return; }
+    let tiles = this.chitsInStackOrder(el);
+    if (tiles.length < 2) { return; }
+
+    let size = el.offsetWidth || 90;
+    let gap = Math.round(size * 0.08);
+    let pad = Math.round(size * 0.16);
+    let total = tiles.length * size + (tiles.length - 1) * gap;
+    let start = (size - total) / 2;
+
+    el.classList.add("stack-open");
+    el.style.zIndex = "80";
+    el.style.setProperty("--stack-top", (start - pad) + "px");
+    el.style.setProperty("--stack-height", (total + pad * 2) + "px");
+    el.style.setProperty("--stack-width", (size + pad * 2) + "px");
+
+    tiles.forEach((tile, i) => {
+      tile.style.top = (start + i * (size + gap)) + "px";
+      tile.style.left = "0px";
+      tile.style.width = size + "px";
+      tile.style.height = size + "px";
+      tile.style.zIndex = String(20 + i);
+    });
+  }
+
+  noteOpponentBoardMark(spacekey, kind) {
+    if (!spacekey || !this.game.spaces[spacekey]) { return; }
+    if (!this.opponent_marks) { this.opponent_marks = {}; }
+    this.opponent_marks[spacekey] = kind;
+  }
+
+  showOpponentMarks() {
+    let keys = Object.keys(this.opponent_marks || {});
+    if (keys.length == 0) { return; }
+    this.opponent_marks_visible = true;
+    for (let i = 0; i < keys.length; i++) {
+      this.displaySpace(keys[i]);
+    }
+  }
+
+  clearOpponentMarks() {
+    let keys = Object.keys(this.opponent_marks || {});
+    this.opponent_marks = {};
+    this.opponent_marks_visible = false;
+    for (let i = 0; i < keys.length; i++) {
+      this.displaySpace(keys[i]);
+    }
+  }
+
+  movementMouseoverEnabled() {
+    let pref = this.loadGamePreference('pathsofglory_mouseover_for_movement');
+    if (pref === 0 || pref === '0' || pref === false) { return false; }
+    return true;
+  }
+
+  visualMenuEnabled() {
+    let pref = this.loadGamePreference('pathsofglory_use_visual_menu');
+    if (pref === 0 || pref === '0' || pref === false) { return false; }
+    return true;
+  }
+
+  cardPopupsRemoved() {
+    let pref = this.loadGamePreference('pathsofglory_remove_card_popups');
+    return pref === 1 || pref === '1' || pref === true;
+  }
+
+  applyCardPopupPreference() {
+    let cardbox = this.cardbox;
+    if (!cardbox) { return; }
+
+    if (this.cardPopupsRemoved()) {
+      if (!cardbox.paths_render) {
+        cardbox.paths_render = cardbox.render.bind(cardbox);
+      }
+      cardbox.render = function() {};
+      if (!cardbox.paths_show) {
+        cardbox.paths_show = cardbox.show.bind(cardbox);
+      }
+      cardbox.show = async function(card, action = '', mycallback = null) {
+        if (mycallback != null) {
+          await mycallback(card);
+        }
+      };
+      cardbox.hide(1);
+      return;
+    }
+
+    if (cardbox.paths_render) {
+      cardbox.render = cardbox.paths_render;
+      cardbox.paths_render = null;
+    }
+    if (cardbox.paths_show) {
+      cardbox.show = cardbox.paths_show;
+      cardbox.paths_show = null;
+    }
+  }
+
+  movementCuesSuspended() {
+    // Only suppress default move-range cues when the board is already in a
+    // selection mode where those highlights would conflict with .selectable.
+    try {
+      if (document.querySelector(".space.selectable")) { return true; }
+    } catch (err) {}
+    if (this.loss_overlay && this.loss_overlay.board_mode) { return true; }
+    return false;
+  }
+
+  addMovementCuesOnMouseover(spacekey) {
+    this.removeMovementCues();
+    if (!this.movementMouseoverEnabled()) { return; }
+    if (this.movementCuesSuspended()) { return; }
+    if (!spacekey || !this.game.spaces[spacekey]) { return; }
+    if (spacekey === 'aeubox' || spacekey === 'ceubox' || spacekey === 'arbox' || spacekey === 'crbox') { return; }
+
+    let space = this.game.spaces[spacekey];
+    let best = null;
+    let best_move = 0;
+    for (let i = 0; i < space.units.length; i++) {
+      let unit = space.units[i];
+      if (!unit || unit.destroyed) { continue; }
+      let distance = unit.damaged ? unit.rmovement : unit.movement;
+      distance = distance || 0;
+      if (distance > best_move) {
+        best_move = distance;
+        best = unit;
+      }
+    }
+    if (!best || best_move <= 0) { return; }
+
+    let power = this.returnPowerOfUnit(best);
+    let reached = this.returnSpacesWithinHops(spacekey, best_move, (dest) => {
+      if (dest === 'aeubox' || dest === 'ceubox' || dest === 'arbox' || dest === 'crbox') { return 0; }
+      let next = this.game.spaces[dest];
+      if (!next) { return 0; }
+      if (this.game.state.events[next.country] < 1) { return 0; }
+      if (next.units.length > 0 && this.returnPowerOfUnit(next.units[0]) != power) { return 0; }
+      // unbesieged enemy fort: show as reachable, do not cue spaces beyond it
+      if (next.fort > 0 && next.control != power && next.besieged != 1) {
+        let friendly_here = false;
+        if (next.units.length > 0 && this.returnPowerOfUnit(next.units[0]) == power) {
+          friendly_here = true;
+        }
+        if (!friendly_here) {
+          return 2;
+        }
+      }
+      return 1;
+    }, best);
+
+    for (let i = 0; i < reached.length; i++) {
+      document.querySelectorAll('.' + reached[i]).forEach((el) => {
+        el.classList.add('move-cue');
+      });
+    }
+  }
+
+  removeMovementCues() {
+    document.querySelectorAll('.move-cue').forEach((el) => {
+      el.classList.remove('move-cue');
+    });
   }
 
   displaySpaceDetailedView(key) {
@@ -399,20 +648,55 @@ console.log("err: " + err);
         // the selectable DIV, like a click on a unit in a key, etc.
         //
         if (e.target.classList.contains("selectable")) {
+          paths_self.hideSpaceStack();
           return;
         } else {
           let el = e.target;
           if (el.parentNode) {
             if (el.parentNode.classList.contains("selectable")) {
+              paths_self.hideSpaceStack();
               return;
             } else {
               if (el.parentNode.parentNode) {
                 if (el.parentNode.parentNode.classList.contains("selectable")) {
+                  paths_self.hideSpaceStack();
                   return;
                 }
               }
             }
           }
+        }
+
+        //
+        // a space with several units opens an equal-size chit stack instead of zoom
+        //
+        let space_el = e.target.closest ? e.target.closest(".space") : null;
+
+        //
+        // loss board-mode: do not open zoom only when the click is on a unit/space
+        // that is waiting for hits-assignment (assignment owns that target)
+        //
+        if (paths_self.loss_overlay && paths_self.loss_overlay.board_mode) {
+          if (e.target.closest && e.target.closest(".army-tile.loss-board-unit")) {
+            return;
+          }
+          if (space_el && space_el.classList.contains("loss-assignment-open")) {
+            return;
+          }
+        }
+        if (space_el && space_el.id && paths_self.spaceHasMultipleUnits(space_el.id)) {
+          if (paths_self.zoom_overlay && paths_self.zoom_overlay.visible) {
+            paths_self.zoom_overlay.hide();
+          }
+          if (paths_self.space_stack_key === space_el.id) {
+            paths_self.hideSpaceStack();
+          } else {
+            paths_self.showSpaceStack(space_el.id);
+          }
+          return;
+        }
+        if (paths_self.space_stack_key) {
+          paths_self.hideSpaceStack();
         }
 
   	const board = document.querySelector(".main .gameboard");
@@ -443,6 +727,19 @@ console.log("err: " + err);
         }
       });
 
+      document.addEventListener("mouseover", (e) => {
+        let space = e.target.closest ? e.target.closest(".space") : null;
+        if (!space || !space.id) { return; }
+        if (e.relatedTarget && space.contains(e.relatedTarget)) { return; }
+        paths_self.addMovementCuesOnMouseover(space.id);
+      });
+      document.addEventListener("mouseout", (e) => {
+        let space = e.target.closest ? e.target.closest(".space") : null;
+        if (!space) { return; }
+        if (e.relatedTarget && space.contains(e.relatedTarget)) { return; }
+        paths_self.removeMovementCues();
+      });
+
 
       //
       // we only attach this event to the gameboard once, so once we have done
@@ -468,6 +765,12 @@ console.log("err: " + err);
     if (cardname === "pass") {
       return `<img class="${cardclass}" src="/paths/img/cards/PASS.png" /><div class="cardtext">pass</div>`;
     }
+    if (cardname === "automatic_operations") {
+      return `<img class="${cardclass}" src="/paths/img/cards/automatic_operation.png" />`;
+    }
+    if (cardname === "peace_terms") {
+      return `<img class="${cardclass}" src="/paths/img/cards/peace_terms.png" />`;
+    }
 
     if (deck[cardname]) {
       card = deck[cardname];
@@ -491,25 +794,74 @@ console.log("err: " + err);
 
 
   async preloadImages() {
-    var allImages = [
-    //  "img/factions/england.png",
+    let allImages = [
+      "img/backgrounds/menu/artillery.png",
+      "img/backgrounds/menu/train.jpg",
+      "img/backgrounds/menu/recruiting.jpg",
+      "img/backgrounds/menu/suez.jpg",
+      "img/tiles/activate_attack.png",
+      "img/tiles/activate_move.png",
+      "img/tiles/ap_trench1.png",
+      "img/tiles/ap_trench2.png",
+      "img/tiles/cp_trench1.png",
+      "img/tiles/cp_trench2.png",
+      "img/tiles/control_ap.png",
+      "img/tiles/control_cp.png",
+      "img/tiles/fort_besieged.png",
+      "img/tiles/fort_destroyed.png",
+      "img/tiles/oos_allies.png",
+      "img/tiles/oos_central.png",
+      "img/tiles/trench_mod.png",
+      "img/vp.png",
+      "img/russianvp_current.png",
+      "img/warstatus_ap.png",
+      "img/warstatus_cp.png",
+      "img/warstatus_combined.png",
+      "img/rp/rp_ge.png",
+      "img/rp/rp_ah.png",
+      "img/rp/rp_tu.png",
+      "img/rp/rp_bu.png",
+      "img/rp/rp_cp.png",
+      "img/rp/rp_a.png",
+      "img/rp/rp_br.png",
+      "img/rp/rp_fr.png",
+      "img/rp/rp_it.png",
+      "img/rp/rp_ru.png",
+      "img/rp/rp_ap.png",
+      "img/rp/rp_allied.png",
+      "img/action_cp1.png",
+      "img/action_cp2.png",
+      "img/action_cp3.png",
+      "img/action_cp4.png",
+      "img/action_cp5.png",
+      "img/action_cp6.png",
+      "img/action_ap1.png",
+      "img/action_ap2.png",
+      "img/action_ap3.png",
+      "img/action_ap4.png",
+      "img/action_ap5.png",
+      "img/action_ap6.png",
     ];
+
+    if (this.game && this.game.units) {
+      for (let key in this.game.units) {
+        let unit = this.game.units[key];
+        if (unit.front) { allImages.push("img/army/" + unit.front); }
+        if (unit.back) { allImages.push("img/army/" + unit.back); }
+      }
+    }
 
     this.preloadImageArray(allImages);
   }
 
-  preloadImageArray(imageArray=[], idx=0) {
-
-    let pre_images = [imageArray.length];
-
-    if (imageArray && imageArray.length > idx) {
-      pre_images[idx] = new Image();
-      pre_images[idx].onload = () => {
-        this.preloadImageArray(imageArray, idx+1);
-      }
-      pre_images[idx].src = "/paths/" + imageArray[idx];
+  preloadImageArray(imageArray=[]) {
+    if (!imageArray || imageArray.length == 0) { return; }
+    if (!this._preloaded_images) { this._preloaded_images = []; }
+    for (let i = 0; i < imageArray.length; i++) {
+      let img = new Image();
+      img.src = "/paths/" + imageArray[i];
+      this._preloaded_images.push(img);
     }
-
   }
 
 
@@ -595,7 +947,7 @@ console.log("err: " + err);
       let allies_war_status = `<img src="/paths/img/warstatus_ap.png" />`;
       let central_war_status = `<img src="/paths/img/warstatus_cp.png" />`;
       let combined_war_status = `<img src="/paths/img/warstatus_combined.png" />`;
-      let current_cp_russian_vp = `<img src="/paths/img/current_cp_russian_vp.png" />`;
+      let current_cp_russian_vp = `<img src="/paths/img/russianvp_current.png" />`;
 
       document.querySelector(`.general-records-track-${this.game.state.general_records_track.allies_war_status}`).innerHTML += allies_war_status;
       document.querySelector(`.general-records-track-${this.game.state.general_records_track.central_war_status}`).innerHTML += central_war_status;

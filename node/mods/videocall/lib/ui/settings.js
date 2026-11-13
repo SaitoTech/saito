@@ -1,0 +1,88 @@
+const SettingsTemplate = require('./settings.template');
+const StreamCapture = require('../stream-capture');
+
+class Settings {
+  constructor(app, mod, container = '.saito-module-settings') {
+    this.app = app;
+    this.mod = mod;
+    this.container = container;
+  }
+
+  render() {
+    this.app.browser.addElementToSelector(SettingsTemplate(this.app, this.mod), this.container);
+
+    this.root = document.querySelector(this.container)?.querySelector('.stun-settings-shell');
+
+    if (this.mod?.streams?.localStream) {
+      this.loadMediaDevices(this.mod.streams.localStream).catch((error) => {
+        this.mod.diagnostics?.record('local', `Device enumeration failed: ${error.name}`);
+      });
+    }
+    this.attachEvents();
+  }
+
+  async loadMediaDevices(currentStream) {
+    const capture = this.mod.streams?.capture || new StreamCapture(this.mod.streams);
+    const devices = await capture.enumerate();
+    const videoInput = this.root.querySelector('#video-input');
+    const audioInput = this.root.querySelector('#audio-input');
+
+    const used_devices = currentStream.getTracks().map((track) => track.getSettings().deviceId);
+
+    let videoCt = 0;
+    let audioCt = 0;
+    devices.forEach((device) => {
+      const option = document.createElement('option');
+      option.value = device.deviceId;
+      if (used_devices.includes(option.value)) {
+        option.selected = 'true';
+      }
+      option.textContent = device.label || `${device.kind} - ${device.deviceId}`;
+      if (device.kind === 'videoinput' && videoInput) {
+        videoCt++;
+        videoInput.appendChild(option);
+      } else if (device.kind === 'audioinput' && audioInput) {
+        audioCt++;
+        audioInput.appendChild(option);
+      }
+    });
+    if (videoCt > 1) {
+      videoInput.parentElement.hidden = false;
+      this.root.querySelector('.stun-input-settings').hidden = false;
+    }
+    if (audioCt > 1) {
+      audioInput.parentElement.hidden = false;
+      this.root.querySelector('.stun-input-settings').hidden = false;
+    }
+
+    if (videoInput) {
+      videoInput.addEventListener('change', () =>
+        this.mod.streams.updateInputs('video', videoInput.value)
+      );
+    }
+
+    if (audioInput) {
+      audioInput.addEventListener('change', () =>
+        this.mod.streams.updateInputs('audio', audioInput.value)
+      );
+    }
+  }
+
+  attachEvents() {
+    this.root.querySelector('[name="videocall-diagnostics"]').onchange = (event) => {
+      this.app.options.stun.settings.diagnostics = event.currentTarget.checked;
+      this.app.storage.saveOptions();
+      this.mod.diagnostics?.updateVisibility();
+    };
+    Array.from(this.root.querySelectorAll("input[name='stun-privacy']")).forEach((radio) => {
+      radio.addEventListener('change', (e) => {
+        if (e.currentTarget.value !== this.app.options.stun.settings.privacy) {
+          this.app.options.stun.settings.privacy = e.currentTarget.value;
+          this.app.storage.saveOptions();
+        }
+      });
+    });
+  }
+}
+
+module.exports = Settings;

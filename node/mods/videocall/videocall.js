@@ -1,14 +1,61 @@
 const saito = require('../../lib/saito/saito');
 const ModTemplate = require('../../lib/templates/modtemplate');
-const CallLauncher = require('./lib/components/call-launch');
-const CallInterfaceVideo = require('./lib/components/call-interface-video');
-const CallInterfaceFloat = require('./lib/components/call-interface-float');
-const DialingInterface = require('./lib/components/dialer');
+const CallLaunch = require('./lib/ui/splash');
+const VideoCallFull = require('./lib/ui/videocall-full');
+const VideoCallPopup = require('./lib/ui/videocall-popup');
+const DialingInterface = require('./lib/ui/dialer');
 const SaitoOverlay = require('../../lib/saito/ui/saito-overlay/saito-overlay');
-const StreamManager = require('./lib/StreamManager');
-const AppSettings = require('./lib/stun-settings');
+const Streams = require('./lib/streams');
+const Peers = require('./lib/peers');
+const AppSettings = require('./lib/ui/settings');
+const CallDiagnostics = require('./lib/diagnostics');
 const HomePage = require('./index');
 const SaitoHeader = require('./../../lib/saito/ui/saito-header/saito-header');
+const SwarmcastViewer = require('./lib/ui/swarmcast');
+const { Swarmcasts } = require('./lib/swarmcast');
+
+// A refresh rewrites the record heartbeat. A record older than this has been
+// closed long enough that it must not start the call again.
+const CALL_RECORD_MAX_AGE_MS = 6 * 60 * 60 * 1000;
+
+function recordStale(record, now = Date.now(), maxAge = CALL_RECORD_MAX_AGE_MS) {
+  if (!record || typeof record !== 'object') return false;
+  const marks = [record.updated_at, record.created_at, record.heartbeat]
+    .map((value) => Number(value))
+    .filter((value) => Number.isFinite(value) && value > 0);
+  if (!marks.length) return true;
+  return now - Math.max(...marks) > maxAge;
+}
+
+function sameRecovery(previous, next) {
+  if (!previous || previous.publication_id !== next.publication_id) return false;
+  return (
+    JSON.stringify({
+      call_id: previous.call_id || '',
+      broadcaster: previous.broadcaster || '',
+      show: previous.show || '',
+      active_parent: previous.active_parent || '',
+      former_children: previous.former_children || [],
+      max_slots: previous.max_slots,
+      link: previous.link || '',
+      config: previous.config || null,
+      owner: previous.owner || '',
+      status: previous.status || ''
+    }) ===
+    JSON.stringify({
+      call_id: next.call_id || '',
+      broadcaster: next.broadcaster || '',
+      show: next.show || '',
+      active_parent: next.active_parent || '',
+      former_children: next.former_children || [],
+      max_slots: next.max_slots,
+      link: next.link || '',
+      config: next.config || null,
+      owner: next.owner || '',
+      status: next.status || ''
+    })
+  );
+}
 
 class Videocall extends ModTemplate {
   constructor(app) {
@@ -35,8 +82,11 @@ class Videocall extends ModTemplate {
 
     this.styles = ['/videocall/style.css'];
 
-    this.stun = null; //The stun API
+    this.peerManager = null;
     this.streams = null;
+    this._peers = null;
+    this._swarmcasts = null;
+    this.diagnostics = new CallDiagnostics(app, this);
     this.dialer = new DialingInterface(app, this);
 
     this.layout = 'focus';
@@ -51,54 +101,38 @@ class Videocall extends ModTemplate {
       image: '/videocall/img/video-call-og.png'
     });
 
-    //When CallLauncher is rendered or game-menu triggers it
-    app.connection.on('stun-init-call-interface', (settings) => {
-      if (this.CallInterface) {
-        console.warn('TALK: Already instatiated a video/audio call manager');
+    app.connection.on('stun-connection-close', (peerId) => {
+      if (this.swarmcast?.hasPeer?.(peerId)) return;
+      if (this.swarmcastRoute && this.swarmcastView?.contact === peerId) {
+        this.swarmcastView.interrupt();
         return;
       }
-
-      if (!this.streams) {
-        console.debug('TALK: Instantiate StreamManager');
-        this.streams = new StreamManager(this.app, this, settings);
-      } else {
-        this.streams.parseSettings(settings);
-        this.streams.active = true;
-      }
-
-      console.debug('TALK [stun-init-call-interface]: UI settings ', settings);
-
-      if (settings.ui === 'large') {
-        this.CallInterface = new CallInterfaceVideo(app, this, true);
-      } else if (settings.ui === 'video') {
-        this.CallInterface = new CallInterfaceVideo(app, this, false);
-      } else {
-        this.CallInterface = new CallInterfaceFloat(app, this);
-      }
-
-      this.saveCallToKeychain();
-    });
-
-    app.connection.on('reset-stun', () => {
-      console.log('Reset Stun');
-      this.room_obj = null;
-      if (this.CallInterface) {
-        this.CallInterface.destroy();
-        this.CallInterface = null;
-      }
-
-      this.streams = null;
-      this.have_joined_room = 0;
-
-      this.app.storage.saveOptions();
-    });
-
-    app.connection.on('stun-connection-close', (peerId) => {
       if (this?.streams?.active) {
         this.disconnect(peerId, ' has no connection');
         salert('STUN connection failure. Try refreshing and reconnecting');
       }
     });
+
+    app.connection.on('stun-connection-connected', () => {
+      this.onPeerConnected();
+    });
+  }
+
+  // A sender cap attempted before negotiation can be rejected. Reapply from
+  // the current call membership once the peer is connected. One attempt per
+  // event; a permanent rejection is not scheduled again until policy changes.
+  get peers() {
+    if (!this._peers) this._peers = new Peers(this);
+    return this._peers;
+  }
+
+  get swarmcasts() {
+    if (!this._swarmcasts) this._swarmcasts = new Swarmcasts(this);
+    return this._swarmcasts;
+  }
+
+  onPeerConnected() {
+    this.applyCameraProfile();
   }
 
   /**
@@ -123,7 +157,12 @@ class Videocall extends ModTemplate {
         this.layout = this.app.options.stun.settings?.layout;
       }
 
-      if (app.browser.returnURLParameter('stun_video_chat')) {
+      this.initializeMediaSettings();
+      this.expireStaleCallRecords();
+      this.restoreSwarmcast();
+      this.swarmcastRoute = this.readSwarmcastRoute();
+
+      if (!this.swarmcastRoute && app.browser.returnURLParameter('stun_video_chat')) {
         this.room_obj = JSON.parse(
           app.crypto.base64ToString(app.browser.returnURLParameter('stun_video_chat'))
         );
@@ -135,11 +174,25 @@ class Videocall extends ModTemplate {
       }
 
       try {
-        this.stun = app.modules.returnFirstRespondTo('peer-manager');
+        this.peerManager = app.modules.returnFirstRespondTo('peer-manager');
       } catch (err) {
         console.error('SaitoTalk: Videocall unavailable without Stun module installed!');
       }
+
+      if (!this.streams) {
+        this.streams = new Streams(this.app, this);
+      }
+      this.restoreCall();
     }
+  }
+
+  destroy(app) {
+    this.stopBroadcast();
+    this.swarmcastView?.destroy();
+    this.swarmcastView = null;
+    this.streams?.destroy();
+    this.streams = null;
+    super.destroy(app);
   }
 
   async onPeerServiceUp(app, peer, service) {
@@ -148,6 +201,8 @@ class Videocall extends ModTemplate {
     }
     if (service.service === 'relay') {
       this.isRelayConnected = true;
+      this.swarmcastView?.noteRelay?.();
+      await this.reconnectRestoredCall();
     }
   }
 
@@ -156,7 +211,15 @@ class Videocall extends ModTemplate {
       this.header = new SaitoHeader(this.app, this);
       await this.header.initialize(this.app);
       this.addComponent(this.header);
-      this.addComponent(new CallLauncher(this.app, this, 'body'));
+      if (this.swarmcastRoute) {
+        this.swarmcastView = new SwarmcastViewer(this.app, this, this.swarmcastRoute);
+        this.addComponent(this.swarmcastView);
+        await super.render();
+        return;
+      }
+      if (!this.streams?.active) {
+        this.addComponent(new CallLaunch(this.app, this, 'body'));
+      }
       await super.render();
       this.app.connection.emit('videocall-opened');
     }
@@ -166,7 +229,7 @@ class Videocall extends ModTemplate {
     if (qs == '.saito-overlay') {
       if (!this.renderIntos[qs]) {
         this.renderIntos[qs] = [];
-        this.renderIntos[qs].push(new CallLauncher(this.app, this, qs));
+        this.renderIntos[qs].push(new CallLaunch(this.app, this, qs));
       }
       this.attachStyleSheets();
       this.renderIntos[qs].forEach((comp) => {
@@ -174,6 +237,99 @@ class Videocall extends ModTemplate {
       });
       this.app.connection.emit('videocall-opened');
     }
+  }
+
+  registerLauncher(launcher) {
+    if (!this.launchers) this.launchers = [];
+    this.launchers.push(launcher);
+  }
+
+  closeLaunchers(rerender = false) {
+    for (const launcher of this.launchers || []) {
+      launcher.closePreview(rerender);
+    }
+  }
+
+  initializeCallInterface(settings) {
+    if (this.CallInterface) {
+      console.warn('TALK: Already instatiated a video/audio call manager');
+      return;
+    }
+
+    if (!this.streams) {
+      console.debug('TALK: Instantiate StreamManager');
+      this.streams = new Streams(this.app, this, settings);
+    } else {
+      this.streams.parseSettings(settings);
+    }
+    this.streams.attach();
+    this.streams.active = true;
+
+    console.debug('TALK [initializeCallInterface]: UI settings ', settings);
+
+    // browser_active is 1 only when this page was loaded as /videocall.
+    // The landing screen can pass presentation and that choice wins.
+    // room_obj.ui remains video versus voice and is not a presentation choice.
+    const presentation = this.callPresentation(settings);
+    this.standalonePresentation = presentation === 'standalone';
+    if (!this.browser_active) {
+      this.attachStyleSheets();
+    }
+    this.CallInterface = presentation === 'embedded'
+      ? new VideoCallPopup(this.app, this, settings?.container)
+      : new VideoCallFull(this.app, this, true);
+
+    this.saveCallToKeychain();
+    this.persistCallState();
+  }
+
+  // Embedded is the floating interface. Standalone is the full-screen interface.
+  // An explicit landing-screen choice wins over the host application context.
+  callPresentation(settings) {
+    if (settings?.presentation === 'embedded' || settings?.presentation === 'standalone') {
+      return settings.presentation;
+    }
+    return this.browser_active ? 'standalone' : 'embedded';
+  }
+
+  resetCall() {
+    console.log('Reset Stun');
+    this.stopBroadcast();
+    this.room_obj = null;
+    this.expected_peers = null;
+    this.standalonePresentation = false;
+    if (this.CallInterface) {
+      this.CallInterface.destroy();
+      this.CallInterface = null;
+    }
+
+    this.streams?.releaseCall?.();
+    this.have_joined_room = 0;
+
+    this.app.storage.saveOptions();
+    this.diagnostics?.stop();
+
+    const menu =
+      typeof document !== 'undefined' && document.getElementById('start-group-video-chat');
+    if (menu) {
+      menu.classList.remove('disable-menu');
+      menu.innerHTML = 'Start Call';
+    }
+  }
+
+  receiveInGameCall(room_obj) {
+    this.room_obj = room_obj;
+    this.dialer.render('', false);
+  }
+
+  beginGameCall() {
+    this.gameModule?.sendMetaMessage('CALL', this.room_obj);
+    this.initializeCallInterface({
+      ui: this.room_obj.ui,
+      audio: true,
+      video: this.room_obj.ui == 'video'
+    });
+    this.streams?.start();
   }
 
   respondTo(type, obj) {
@@ -192,9 +348,9 @@ class Videocall extends ModTemplate {
             icon: 'fa-solid fa-user-slash',
             callback: async (app, public_key) => {
               console.info('TALK: kicking user: ', public_key);
-              app.connection.emit('remove-peer-box', public_key);
+              this.CallInterface?.participantKicked?.(public_key);
               await this.sendKickTransaction(public_key);
-              this.streams.removePeer(public_key, 'was kicked out');
+              this.disconnect(public_key, 'was kicked out of the call');
             }
           }
         ];
@@ -243,19 +399,12 @@ class Videocall extends ModTemplate {
     if (type == 'game-menu') {
       this.attachStyleSheets();
 
-      //Set listeners for stun events
-      this.app.connection.on('show-call-interface', () => {
-        document.getElementById('start-group-video-chat').classList.add('disable-menu');
-      });
-      this.app.connection.on('reset-stun', () => {
-        document.getElementById('start-group-video-chat').classList.remove('disable-menu');
-        document.getElementById('start-group-video-chat').innerHTML = 'Start Call';
-      });
-
-      this.app.connection.on('stun-receive-ingame-call', (room_obj) => {
-        this.room_obj = room_obj;
-        this.dialer.render('', false);
-      });
+      if (!this.gameMenuListening) {
+        this.gameMenuListening = true;
+        this.app.connection.on('videocall-call-started', () => {
+          document.getElementById('start-group-video-chat')?.classList.add('disable-menu');
+        });
+      }
 
       if (obj?.game?.players?.length > 1) {
         let menu_items = {
@@ -268,18 +417,7 @@ class Videocall extends ModTemplate {
               id: 'start-group-video-chat',
               class: 'start-group-video-chat',
               callback: function (app, game_mod) {
-                if (!call_self?.added_game_listener) {
-                  app.connection.on('start-game-call', () => {
-                    game_mod.sendMetaMessage('CALL', call_self.room_obj);
-                    app.connection.emit('stun-init-call-interface', {
-                      ui: call_self.room_obj.ui,
-                      audio: true,
-                      video: call_self.room_obj.ui == 'video'
-                    });
-                    app.connection.emit('start-stun-call');
-                  });
-                  call_self.added_game_listener = true;
-                }
+                call_self.gameModule = game_mod;
 
                 //Start Call
                 game_mod.menu.hideSubMenus();
@@ -293,12 +431,12 @@ class Videocall extends ModTemplate {
                     salert('Already in or establishing a call');
                     console.debug('SaitoTalk: ', call_self.room_obj);
                   } else {
-                    app.connection.emit('stun-init-call-interface', {
+                    call_self.initializeCallInterface({
                       ui: call_self.room_obj.ui,
                       audio: true,
                       video: call_self.room_obj.ui == 'video'
                     });
-                    app.connection.emit('start-stun-call');
+                    call_self.streams?.start();
                   }
                 } else {
                   call_self.dialer.establishStunCallWithPeers(/*[...game_mod.game.players]*/);
@@ -352,6 +490,19 @@ class Videocall extends ModTemplate {
     if (type === 'call-actions') {
       return [
         {
+          text: 'Swarmcast',
+          icon: 'fa-solid fa-tower-broadcast',
+          hook: 'swarmcast onair',
+          prepend: true,
+          callback: function () {
+            call_self.showSwarmcast();
+          },
+          event: function (id) {
+            call_self.broadcastControlId = id;
+            if (call_self.broadcast) call_self.setBroadcasting(true);
+          }
+        },
+        {
           text: 'Present',
           icon: 'fa-solid fa-display',
           hook: 'screen_share onair',
@@ -368,51 +519,21 @@ class Videocall extends ModTemplate {
               return;
             }
             if (call_self.screen_share) {
-              call_self.app.connection.emit('stop-share-screen');
+              call_self.streams?.stopShareScreen();
             } else {
-              call_self.app.connection.emit('begin-share-screen');
+              call_self.streams?.beginShareScreen();
             }
           },
           event: function (id) {
-            call_self.app.connection.on(
-              'toggle-screen-share-label',
-              (state = false, sender = null) => {
-                let container = document.getElementById(id);
-                if (!container) {
-                  return;
-                }
-
-                let label = container.querySelector('label');
-                let icon = container.querySelector('i');
-
-                if (state) {
-                  container.classList.add('recording');
-                  icon?.classList.add('recording');
-
-                  if (sender && sender !== call_self.publicKey) {
-                    container.classList.add('not-clickable');
-                    container.title = `${call_self.app.keychain.returnUsername(sender)} is presenting`;
-                    if (label) label.innerText = 'Presenting';
-                  } else {
-                    container.title = 'Stop presenting';
-                    if (label) label.innerText = 'Stop';
-                  }
-                } else {
-                  container.classList.remove('recording', 'not-clickable');
-                  icon?.classList.remove('recording');
-                  container.title = 'Present your screen';
-                  if (label) label.innerText = 'Present';
-                }
-              }
-            );
+            if (call_self.CallInterface) call_self.CallInterface.presentControlId = id;
           }
         },
         {
           text: 'Settings',
           icon: 'fa-solid fa-cog',
           prepend: true,
-          callback: function (app) {
-            app.connection.emit('videocall-show-settings');
+          callback: function () {
+            call_self.CallInterface?.showSettings?.();
           }
         }
       ];
@@ -500,6 +621,15 @@ class Videocall extends ModTemplate {
           return;
         }
 
+        if (
+          txmsg.module == 'Videocall' &&
+          String(txmsg.request || '').startsWith('video-call-swarmcast-')
+        ) {
+          if (this.hasSeenTransaction(tx)) return;
+          await this.handleSwarmcastMessage(tx, txmsg);
+          return;
+        }
+
         if (txmsg.module == 'Videocall' || txmsg.module == 'Stun') {
           if (!this.have_joined_room || tx.timestamp + 3000 < this.have_joined_room) {
             console.log(
@@ -531,6 +661,9 @@ class Videocall extends ModTemplate {
             return;
           }
 
+          if (txmsg.request !== 'call-list-response') {
+            this.diagnostics?.record(from, `Received: ${txmsg.request}`);
+          }
           console.debug('TALK [HPT]: ' + txmsg.request);
 
           if (txmsg.request === 'call-list-response') {
@@ -544,23 +677,30 @@ class Videocall extends ModTemplate {
 
             console.debug('TALK [peer-joined]: ' + from);
             //Check if we have a broken stun connection
-            /*if (!this.stun.hasConnection(from, true)) {
+            /*if (!this.peerManager.hasConnection(from, true)) {
 							console.info('TALK [peer-joined]: reset stun peer connection for new join ', from);
-							this.stun.removePeerConnection(from);
+							this.peerManager.removePeerConnection(from);
 						}*/
 
-            this.app.connection.emit('remove-waiting-video-box');
-            this.app.connection.emit('add-remote-stream-request', from, null);
+            this.streams?.ensureRemote?.(from);
+
+            // A refreshed peer has a new connection. The previous one still
+            // looks connected here, and it cannot accept the new media offer.
+            const existing = this.peerManager?.peers?.get(from);
+            if (existing && ['connected', 'disconnected', 'failed'].includes(existing.connectionState)) {
+              this.peerManager.removePeerConnection(from);
+            }
 
             if (!this.room_obj.call_peers.includes(from)) {
               this.room_obj.call_peers.push(from);
-              this.app.connection.emit('stun-update-link');
+              this.CallInterface?.updateRoomLink?.();
             }
 
             //Limbo Hook
-            this.app.connection.emit('videocall-add-party', from);
+            this.app.connection.emit('videocall-peer-joined', from);
 
-            this.stun.createPeerConnection(from, false);
+            this.peers.connect(from, { role: 'offer', onReady: false });
+            this.applyCameraProfile();
 
             return;
           }
@@ -572,18 +712,25 @@ class Videocall extends ModTemplate {
           }
 
           if (txmsg.request === 'peer-kicked') {
-            this.app.connection.emit('stun-disconnect');
+            this.streams?.leaveCall();
             siteMessage(
               `${this.app.keychain.returnUsername(tx.from[0].publicKey)} kicked you out of the call`
             );
           }
 
           if (txmsg.request === 'peer-kick-broadcast') {
-            this.disconnect(txmsg.kicked_peer, 'was kicked out of the call');
+            const kicked = txmsg.data?.kicked_peer;
+            if (kicked) {
+              this.disconnect(kicked, 'was kicked out of the call');
+            }
           }
 
-          if (txmsg.request === 'toggle-audio' || txmsg.request == 'toggle-video') {
-            this.app.connection.emit(`peer-${txmsg.request}-status`, txmsg.data);
+          const peerMediaEvent = {
+            'toggle-audio': 'videocall-peer-audio-changed',
+            'toggle-video': 'videocall-peer-video-changed'
+          }[txmsg.request];
+          if (peerMediaEvent) {
+            this.app.connection.emit(peerMediaEvent, txmsg.data);
           }
 
           if (
@@ -598,8 +745,8 @@ class Videocall extends ModTemplate {
           if (txmsg.request === 'screen-share-start') {
             if (this.screen_share !== tx.from[0].publicKey) {
               this.screen_share = tx.from[0].publicKey;
-              this.app.connection.emit('add-remote-stream-request', 'presentation', null);
-              this.app.connection.emit('toggle-screen-share-label', true, tx.from[0].publicKey);
+              this.streams?.noteDisplay?.(tx.from[0].publicKey);
+              this.CallInterface?.setPresenting?.(true, tx.from[0].publicKey);
               siteMessage(
                 `${this.app.keychain.returnUsername(tx.from[0].publicKey)} started presenting`,
                 2500
@@ -608,15 +755,13 @@ class Videocall extends ModTemplate {
           }
 
           if (txmsg.request === 'screen-share-stop') {
-            this.app.connection.emit('remove-peer-box', 'presentation');
-            this.app.connection.emit(
-              'stun-switch-view',
+            this.streams?.clearDisplay?.();
+            this.CallInterface?.switchLayout?.(
               this.app.options.stun.settings?.layout || this.layout
             );
 
-            this.streams.remoteStreams.delete('presentation');
             this.screen_share = null;
-            this.app.connection.emit('toggle-screen-share-label', false);
+            this.CallInterface?.setPresenting?.(false);
           }
 
           // Peer sharing connection state with people in the call...
@@ -631,23 +776,37 @@ class Videocall extends ModTemplate {
   }
 
   disconnect(peer, msg = 'left the meeting') {
-    for (let i = 0; i < this.room_obj.call_peers.length; i++) {
-      if (this.room_obj.call_peers[i] == peer) {
-        this.room_obj.call_peers.splice(i, 1);
+    if (!peer) return;
+
+    const members = this.room_obj?.call_peers;
+    let departed = false;
+    if (Array.isArray(members)) {
+      const index = members.indexOf(peer);
+      if (index !== -1) {
+        members.splice(index, 1);
+        departed = true;
         setTimeout(() => {
-          this.app.connection.emit('stun-update-link');
+          this.CallInterface?.updateRoomLink?.();
           //wait to update because peer might come right back
         }, 300000);
-        break;
       }
     }
 
-    this.app.connection.emit('remove-peer-box', peer);
+    // Stun also removes on peer-left. Removing again is a no-op.
+    this.peerManager?.removePeerConnection?.(peer);
 
-    //Limbo Hook
-    this.app.connection.emit('videocall-remove-party', peer);
-    //See if we need to also hang up on our end
-    this.streams.removePeer(peer, msg);
+    // Remote presentation only. Local display tracks stay with StreamManager.
+    if (this.screen_share === peer) {
+      this.screen_share = null;
+      this.streams?.clearDisplay?.();
+      this.CallInterface?.setPresenting?.(false);
+      departed = true;
+    }
+
+    if (!departed) return;
+
+    this.applyCameraProfile();
+    this.streams?.removePeer?.(peer, msg);
   }
 
   // A convenience function to send metadata through the stun channel (if established) or over relay otherwise
@@ -686,6 +845,8 @@ class Videocall extends ModTemplate {
     if (this.room_obj?.host_public_key) {
       newtx.addTo(this.room_obj.host_public_key);
     }
+
+    this.diagnostics?.record('local', 'Requesting participant list from room / host');
 
     // Fallback for saved calls when blocks aren't forming correctly
     let event = this.app.keychain.returnKey(this.room_obj.call_id, true);
@@ -728,6 +889,7 @@ class Videocall extends ModTemplate {
 
     //We are getting a tx for the call we are in
     if (this?.room_obj?.call_id === txmsg.call_id) {
+      this.diagnostics?.record(from, 'Received: call-list-request');
       let call_list = [];
 
       if (this.room_obj.call_peers) {
@@ -742,7 +904,7 @@ class Videocall extends ModTemplate {
         call_list.push(this.publicKey);
       }
 
-      this.app.connection.emit('stun-update-link');
+      this.CallInterface?.updateRoomLink?.();
 
       if (!tx.isFrom(this.publicKey)) {
         setTimeout(
@@ -816,6 +978,7 @@ class Videocall extends ModTemplate {
       console.warn(`TALK received callListResponse for ${txmsg.public_key}`);
     }
 
+    this.diagnostics?.record(tx.from[0].publicKey, 'Received: call-list-response');
     let call_list = txmsg.call_list;
     // remove my own key
     call_list = call_list.filter((key) => this.publicKey !== key);
@@ -841,14 +1004,17 @@ class Videocall extends ModTemplate {
 
         // A pre-existing Saito data channel still needs the call join message
         // and the media-attachment event supplied by createPeerConnection.
-        const pc = this.stun.peers.get(peer);
+        const pc = this.peerManager.peers.get(peer);
         const localTracks = this.streams?.localStream?.getTracks() || [];
         const hasCallMedia = pc?.getSenders().some((sender) => localTracks.includes(sender.track));
-        if (!this.stun.hasConnection(peer, true) || !hasCallMedia) {
+        if (!this.peerManager.hasConnection(peer, true) || !hasCallMedia) {
           console.debug('TALK [callListResponse]: create connection with ', peer);
-          this.stun.createPeerConnection(peer, (peerId) => {
-            console.debug('TALK [callListResponse]: ready for STUN connection with ' + peerId);
-            this.sendCallJoinTransaction(peerId);
+          this.peers.connect(peer, {
+            role: 'offer',
+            onReady: (peerId) => {
+              console.debug('TALK [callListResponse]: ready for STUN connection with ' + peerId);
+              this.sendCallJoinTransaction(peerId);
+            }
           });
         } else {
           console.debug('TALK [callListResponse]: DONT create connection with ', peer);
@@ -856,7 +1022,9 @@ class Videocall extends ModTemplate {
       }
     }
 
-    this.app.connection.emit('stun-update-link');
+    this.CallInterface?.updateRoomLink?.();
+    this.applyCameraProfile();
+    this.persistCallState();
     this.app.storage.saveOptions();
   }
 
@@ -866,6 +1034,7 @@ class Videocall extends ModTemplate {
   // someone else establising a stun connection for other purposes)
   //
   async sendCallJoinTransaction(publicKey) {
+    this.diagnostics?.record(publicKey, 'Preparing call join message');
     let newtx = await this.app.wallet.createUnsignedTransactionWithDefaultFee(publicKey);
 
     newtx.msg = {
@@ -881,7 +1050,7 @@ class Videocall extends ModTemplate {
     this.app.connection.emit('relay-transaction', newtx);
     this.app.network.propagateTransaction(newtx);
 
-    this.app.connection.emit('add-remote-stream-request', publicKey, null);
+    this.streams?.ensureRemote?.(publicKey);
   }
 
   async sendCallDisconnectTransaction() {
@@ -917,7 +1086,7 @@ class Videocall extends ModTemplate {
       if (peer != this.publicKey) {
         //Disconnect stun on our end
         // the send tx will tell (former) peers to do the same
-        this.stun.removePeerConnection(peer);
+        this.peerManager.removePeerConnection(peer);
       }
     }
   }
@@ -944,7 +1113,7 @@ class Videocall extends ModTemplate {
     //
     // Allow us to use stun connection to send tx before disconnecting!
     //
-    this.stun.removePeerConnection(peer);
+    this.peerManager.removePeerConnection(peer);
     this.sendKickBroadcastMessageTransaction(peer);
   }
 
@@ -997,8 +1166,11 @@ class Videocall extends ModTemplate {
               'TALK [broadcastList]: post hoc peer list member, attempt connection with ',
               peer
             );
-            this.stun.createPeerConnection(peer, (peerId) => {
-              this.sendCallJoinTransaction(peerId);
+            this.peers.connect(peer, {
+              role: 'offer',
+              onReady: (peerId) => {
+                this.sendCallJoinTransaction(peerId);
+              }
             });
           }
         }
@@ -1007,6 +1179,79 @@ class Videocall extends ModTemplate {
 
     //Update display of videoboxes
     this.app.connection.emit('peer-list', sender, txmsg.data);
+    this.applyCameraProfile();
+  }
+
+  // Persist the media mode under the wallet options. Default is the only
+  // mode implemented; automatic and unlimited can use the same field later.
+  initializeMediaSettings() {
+    if (!this.app.options.videocall) this.app.options.videocall = {};
+    if (!this.app.options.videocall.settings) this.app.options.videocall.settings = {};
+    if (!this.app.options.videocall.settings.mode) {
+      this.app.options.videocall.settings.mode = 'default';
+      this.app.storage?.saveOptions?.();
+    }
+  }
+
+  // Only default is implemented. A missing, unknown, or not-yet-supported
+  // stored mode uses that profile rather than leaving capture uncapped.
+  mediaMode() {
+    return 'default';
+  }
+
+  // Zero remote peers uses the one-to-one capture size. Callers must not
+  // divide cameraBitrateBudget by zero or configure senders in that case.
+  cameraProfile(remotePeerCount) {
+    if (remotePeerCount <= 1) {
+      return { width: 1280, height: 720, frameRate: 24, cameraBitrateBudget: 1500000 };
+    }
+    if (remotePeerCount <= 4) {
+      return { width: 640, height: 360, frameRate: 15, cameraBitrateBudget: 1600000 };
+    }
+    return { width: 320, height: 180, frameRate: 10, cameraBitrateBudget: 1200000 };
+  }
+
+  applyCameraProfile() {
+    if (this.mediaMode() !== 'default' || !this.room_obj?.call_peers) return;
+
+    const remotePeerCount = this.room_obj.call_peers.length;
+    const profile = this.cameraProfile(remotePeerCount);
+    const generation = (this.cameraProfileGeneration = (this.cameraProfileGeneration || 0) + 1);
+    const peers = this.room_obj.call_peers.slice();
+    const share =
+      remotePeerCount > 0 ? Math.floor(profile.cameraBitrateBudget / remotePeerCount) : 0;
+
+    const finish = () => {
+      if (generation !== this.cameraProfileGeneration) return;
+      if (share > 0) {
+        for (const peerId of peers) {
+          void this.peerManager?.setCameraSenderBitrate?.(peerId, share);
+        }
+      }
+      this.applyScreenShareBitrate();
+    };
+
+    const pending = this.streams?.setCameraCapture?.({
+      width: profile.width,
+      height: profile.height,
+      frameRate: profile.frameRate
+    });
+    if (pending && typeof pending.then === 'function') {
+      return pending.then(finish, finish);
+    }
+    finish();
+  }
+
+  // Screen video is a separate sender. 1,500,000 bps is the total for every
+  // remote peer, not the cap on each sender.
+  applyScreenShareBitrate() {
+    if (this.mediaMode() !== 'default' || this.screen_share !== true) return;
+    const remotePeerCount = this.room_obj?.call_peers?.length || 0;
+    if (remotePeerCount < 1) return;
+    const maxBitrate = Math.floor(1500000 / remotePeerCount);
+    for (const peerId of this.room_obj.call_peers) {
+      void this.peerManager?.setScreenSenderBitrate?.(peerId, maxBitrate);
+    }
   }
 
   addCallParticipant(call_id, publicKey) {
@@ -1101,25 +1346,385 @@ class Videocall extends ModTemplate {
     siteMessage('Invite link copied to clipboard', 1500);
   }
 
+  readSwarmcastRoute() {
+    if (typeof window === 'undefined') return null;
+    const parts = window.location.pathname.split('/').filter(Boolean);
+    if (parts[0] !== 'videocall' || parts[1] !== 'swarmcast' || !parts[2]) return null;
+    const params = new URLSearchParams(window.location.search);
+    return {
+      publicationId: decodeURIComponent(parts[2]),
+      broadcaster: params.get('broadcaster') || '',
+      callId: params.get('call_id') || ''
+    };
+  }
+
+  async sendSwarmcast(publicKey, request, data = {}) {
+    return this.swarmcasts.sendSwarmcast(publicKey, request, data);
+  }
+
+  async toggleBroadcast() {
+    return this.swarmcasts.toggleBroadcast();
+  }
+
+  showSwarmcast() {
+    return this.swarmcasts.showSetup();
+  }
+
+  async startBroadcast(config) {
+    return this.swarmcasts.startBroadcast(config);
+  }
+
+  async reviseBroadcast(config) {
+    return this.swarmcasts.reviseBroadcast(config);
+  }
+
+  copyBroadcastLink() {
+    return this.swarmcasts.copyBroadcastLink();
+  }
+
+  async openBroadcast() {
+    return this.swarmcasts.openBroadcast();
+  }
+
+  publishCallCameras() {
+    return this.swarmcasts.publishCallCameras();
+  }
+
+  listenForBroadcastChanges() {
+    return this.swarmcasts.listenForBroadcastChanges();
+  }
+
+  syncBroadcastSources() {
+    return this.swarmcasts.syncBroadcastSources();
+  }
+
+  bindBroadcastSources() {
+    return this.swarmcasts.bindBroadcastSources();
+  }
+
+  clearBroadcastSources() {
+    return this.swarmcasts.clearBroadcastSources();
+  }
+
+  noteBroadcastCamera(entry) {
+    return this.swarmcasts.noteBroadcastCamera(entry);
+  }
+
+  stopBroadcast() {
+    return this.swarmcasts.stopBroadcast();
+  }
+
+  departBroadcast() {
+    return this.swarmcasts.depart();
+  }
+
+  recoveryTabId() {
+    try {
+      const store = globalThis.sessionStorage;
+      if (!store) return 'local';
+      let id = store.getItem('videocall-tab');
+      if (!id) {
+        id = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+        store.setItem('videocall-tab', id);
+      }
+      return id;
+    } catch (err) {
+      return 'local';
+    }
+  }
+
+  persistSwarmcastState() {
+    const publication = this.swarmcast;
+    if (!publication || publication.ended || publication.departing) return;
+    if (!this.app?.options) return;
+    if (!this.app.options.videocall) this.app.options.videocall = {};
+    const record = this.app.options.videocall.recovery;
+    const tab = this.recoveryTabId();
+    if (record?.status === 'live' && record.owner && record.owner !== tab && Date.now() - Number(record.heartbeat || 0) < 15000) {
+      return;
+    }
+    const now = Date.now();
+    const next = {
+      publication_id: publication.id,
+      call_id: publication.callId,
+      broadcaster: publication.broadcaster,
+      show: publication.show,
+      active_parent: publication.parent || '',
+      former_children: (publication.former_children || []).slice(),
+      max_slots: publication.max_slots,
+      link: this.swarmcastLink || '',
+      config: this.swarmcastConfig || null,
+      owner: tab,
+      heartbeat: now,
+      status: 'live'
+    };
+    const samePublication = record?.publication_id === publication.id;
+    next.created_at = samePublication && Number(record.created_at) ? record.created_at : now;
+    next.updated_at = samePublication && sameRecovery(record, next) ? record.updated_at || next.created_at : now;
+    this.app.options.videocall.recovery = next;
+    this.app.storage?.saveOptions?.();
+    this.ownSwarmcastRecovery();
+  }
+
+  restoreCall() {
+    const session = this.app?.options?.videocall?.session;
+    if (!session || session.status !== 'live' || !session.call_id) return null;
+    if (recordStale(session)) return null;
+    if (this.streams?.active || this.CallInterface) return null;
+    if (this.room_obj?.call_id && this.room_obj.call_id !== session.call_id) return null;
+
+    const savedPeers = Array.isArray(session.call_peers) ? session.call_peers.filter(Boolean) : [];
+    const video = session.video === true || (session.video !== false && session.ui !== 'voice');
+    const audio = session.audio !== false;
+    this.room_obj = {
+      ...(this.room_obj || {}),
+      call_id: session.call_id,
+      host_public_key: session.host_public_key || this.room_obj?.host_public_key || '',
+      ui: session.ui || (video ? 'video' : 'voice'),
+      call_peers: savedPeers.length ? savedPeers.slice() : (this.room_obj?.call_peers || []).slice()
+    };
+
+    this.call_reconnect = true;
+    this.initializeCallInterface({
+      ui: this.room_obj.ui,
+      audio,
+      video
+    });
+    this.local_media_ready = Promise.resolve(this.streams?.start?.()).catch((err) => {
+      console.error(err);
+    });
+    this.confirmRestoredPlayback();
+    if (this.isRelayConnected) this.reconnectRestoredCall();
+    return this.room_obj;
+  }
+
+  confirmRestoredPlayback() {
+    if (this.playback_prompt) return this.playback_prompt;
+    this.playback_allowed = false;
+    this.playback_prompt = this.finishRestoredPlayback();
+    return this.playback_prompt;
+  }
+
+  async finishRestoredPlayback() {
+    const message = this.swarmcast ? 'continue swarmcast?' : 'continue videocall?';
+    let accepted = true;
+    if (typeof sconfirm === 'function') accepted = await sconfirm(message);
+    if (!accepted) {
+      this.playback_allowed = false;
+      this.call_reconnect = false;
+      if (this.streams?.active) await this.streams.leaveCall();
+      else if (this.swarmcast) await this.departBroadcast?.();
+      return false;
+    }
+    this.playback_allowed = true;
+    this.playRestoredMedia();
+    return true;
+  }
+
+  playRestoredMedia() {
+    const videos = globalThis.document?.querySelectorAll?.('.videobox video, video.swarmcast-video');
+    videos?.forEach?.((video) => {
+      const playback = video.play?.();
+      playback?.catch?.((err) => console.error(err));
+    });
+    if (this.swarmcastView?.media) {
+      for (const id of this.swarmcastView.media.keys()) this.swarmcastView.playOutput(id);
+    }
+  }
+
+  async reconnectRestoredCall() {
+    if (!this.call_reconnect || !this.isRelayConnected) return null;
+    if (!this.room_obj?.call_id || !this.streams?.active) return null;
+    this.call_reconnect = false;
+    try {
+      await this.local_media_ready;
+    } catch (err) {
+      console.error(err);
+    }
+    if (!this.streams?.active || !this.room_obj?.call_id) return null;
+    const entry = this.sendCallEntryTransaction?.();
+    for (const peer of this.room_obj.call_peers) {
+      if (!peer || peer === this.publicKey) continue;
+      this.peers.connect(peer, {
+        role: 'offer',
+        onReady: (peerId) => {
+          this.sendCallJoinTransaction(peerId);
+        }
+      });
+    }
+    return entry || true;
+  }
+
+  persistCallState() {
+    const room = this.room_obj;
+    if (!room?.call_id || !this.app?.options) return;
+    if (!this.app.options.videocall) this.app.options.videocall = {};
+    const previous = this.app.options.videocall.session;
+    const now = Date.now();
+    const next = {
+      call_id: room.call_id,
+      host_public_key: room.host_public_key || '',
+      ui: room.ui || '',
+      call_peers: Array.isArray(room.call_peers) ? room.call_peers.slice() : [],
+      video: this.streams?.videoEnabled === true,
+      audio: this.streams?.audioEnabled !== false,
+      status: 'live',
+      heartbeat: now
+    };
+    const sameCall = previous?.call_id === next.call_id;
+    const sameContent =
+      sameCall &&
+      previous.host_public_key === next.host_public_key &&
+      (previous.ui || '') === next.ui &&
+      JSON.stringify(previous.call_peers || []) === JSON.stringify(next.call_peers) &&
+      previous.video === next.video &&
+      previous.audio === next.audio &&
+      previous.status === next.status;
+    next.created_at = sameCall && Number(previous.created_at) ? previous.created_at : now;
+    next.updated_at = sameContent ? previous.updated_at || next.created_at : now;
+    this.app.options.videocall.session = next;
+    this.app.storage?.saveOptions?.();
+  }
+
+  touchCallSession() {
+    const session = this.app?.options?.videocall?.session;
+    if (!session || session.status !== 'live') return;
+    session.heartbeat = Date.now();
+    this.app.storage?.saveOptions?.();
+  }
+
+  releaseWalletCall(callId) {
+    const keychain = this.app?.keychain;
+    if (!callId || typeof keychain?.returnKey !== 'function' || typeof keychain.addKey !== 'function') return;
+    const key = keychain.returnKey(callId, true);
+    if (!key || key.mod !== 'videocall') return;
+    keychain.addKey(callId, { ended: true, watched: false });
+  }
+
+  clearPersistedCall(callId) {
+    if (!callId) return;
+    const video = this.app?.options?.videocall;
+    this.releaseWalletCall(callId);
+    if (!video) return;
+    let changed = false;
+    if (video.session?.call_id === callId) {
+      video.session = null;
+      changed = true;
+    }
+    if (video.recovery?.call_id === callId) {
+      clearInterval(this.recoveryTimer);
+      this.recoveryTimer = null;
+      video.recovery = null;
+      changed = true;
+    }
+    if (changed) this.app.storage?.saveOptions?.();
+  }
+
+  expireStaleCallRecords(now = Date.now()) {
+    const video = this.app?.options?.videocall;
+    if (!video) return false;
+    let changed = false;
+    for (const field of ['session', 'recovery']) {
+      const record = video[field];
+      if (!record || typeof record !== 'object') continue;
+      if (!recordStale(record, now)) continue;
+      this.releaseWalletCall(record.call_id);
+      video[field] = null;
+      if (field === 'recovery') {
+        clearInterval(this.recoveryTimer);
+        this.recoveryTimer = null;
+      }
+      changed = true;
+    }
+    if (changed) this.app.storage?.saveOptions?.();
+    return changed;
+  }
+
+  clearSwarmcastRecovery() {
+    clearInterval(this.recoveryTimer);
+    this.recoveryTimer = null;
+    if (this.app.options?.videocall) this.app.options.videocall.recovery = null;
+    this.app.storage?.saveOptions?.();
+  }
+
+  ownSwarmcastRecovery() {
+    clearInterval(this.recoveryTimer);
+    this.recoveryTimer = setInterval(() => {
+      const record = this.app.options?.videocall?.recovery;
+      if (!record || record.status !== 'live' || record.owner !== this.recoveryTabId()) return;
+      record.heartbeat = Date.now();
+      this.app.storage?.saveOptions?.();
+    }, 5000);
+    this.recoveryTimer.unref?.();
+  }
+
+  restoreSwarmcast() {
+    this.expireStaleCallRecords();
+    const { recoveryBlocked, restorePublication } = require('./lib/swarmcast');
+    const record = this.app.options?.videocall?.recovery;
+    if (!record || record.status !== 'live') return null;
+    if (recoveryBlocked(record, this.recoveryTabId())) return null;
+    const publication = restorePublication(this, record);
+    if (!publication) return null;
+    this.ownSwarmcastRecovery();
+    if (this.swarmcastNeedsResume) this.swarmcasts.showResume();
+    else if (publication.parent) publication.joinNewParent(publication.parent).catch((err) => console.error(err));
+    else if (publication.broadcaster && publication.broadcaster !== publication.selfKey()) {
+      publication.joinNewParent(publication.broadcaster).catch((err) => console.error(err));
+    }
+    this.confirmRestoredPlayback();
+    return publication;
+  }
+
+  setBroadcasting(active) {
+    return this.swarmcasts.setBroadcasting(active);
+  }
+
+  watchBroadcastNegotiation(peerId, pc) {
+    return this.swarmcasts.watchBroadcastNegotiation(peerId, pc);
+  }
+
+  pushBroadcast() {
+    return this.swarmcasts.pushBroadcast();
+  }
+
+  publishTrackMap(peerId) {
+    return this.swarmcasts.publishTrackMap(peerId);
+  }
+
+  async handleSwarmcastMessage(tx, txmsg) {
+    return this.swarmcasts.handlePeerTransaction(tx, txmsg);
+  }
+
+  async answerBroadcastJoin(from, data) {
+    return this.swarmcasts.answerBroadcastJoin(from, data);
+  }
+
+  acceptBroadcastSubscribe(from, data) {
+    return this.swarmcasts.acceptBroadcastSubscribe(from, data);
+  }
+
   webServer(app, expressapp, express) {
     let webdir = `${__dirname}/../../mods/${this.dirname}/web`;
     let mod_self = this;
 
-    expressapp.get('/' + encodeURI(this.returnSlug()), async function (req, res) {
+    const servePage = async function (req, res) {
       let reqBaseURL = req.protocol + '://' + req.headers.host + '/';
-
       mod_self.social.url = reqBaseURL + encodeURI(mod_self.returnSlug());
-
       if (!res.finished) {
         res.setHeader('Content-type', 'text/html');
         res.charset = 'UTF-8';
         return res.send(HomePage(app, mod_self, app.build_number, mod_self.social));
       }
       return;
-    });
+    };
 
+    expressapp.get('/' + encodeURI(this.returnSlug()), servePage);
+    expressapp.get('/' + encodeURI(this.returnSlug()) + '/swarmcast/:publicationId', servePage);
     expressapp.use('/' + encodeURI(this.returnSlug()), express.static(webdir));
   }
 }
+
+Videocall.CALL_RECORD_MAX_AGE_MS = CALL_RECORD_MAX_AGE_MS;
 
 module.exports = Videocall;

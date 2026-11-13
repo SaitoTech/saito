@@ -18,7 +18,9 @@ function formatSaleDate(ms) {
   return date.toLocaleString();
 }
 
-function formatSaleAmount(app, nolan) {
+const { multiplyDecimalAmount, web3SaleTicker } = require('../web3-amount');
+
+function formatSaitoAmount(app, nolan) {
   try {
     const amount = BigInt(nolan ?? 0);
     if (amount > 0n && app?.wallet?.convertNolanToSaito) {
@@ -33,14 +35,20 @@ function formatSaleAmount(app, nolan) {
   return '';
 }
 
-function shortKey(key = '') {
-  if (!key) {
+function formatSaleAmount(app, summary, quantitySold) {
+  const ticker = web3SaleTicker(summary?.web3_ticker);
+  const unit = String(summary?.web3_amount || '').trim();
+  if (ticker && unit) {
+    const total = multiplyDecimalAmount(unit, quantitySold);
+    if (total !== '') {
+      return `${total} ${ticker}`;
+    }
+  }
+  try {
+    return formatSaitoAmount(app, BigInt(summary?.price ?? 0) * BigInt(quantitySold || 0));
+  } catch (err) {
     return '';
   }
-  if (key.length <= 18) {
-    return key;
-  }
-  return `${key.slice(0, 8)}…${key.slice(-6)}`;
 }
 
 module.exports = ({ listings = [], caption = 'Sales' } = {}) => {
@@ -50,12 +58,7 @@ module.exports = ({ listings = [], caption = 'Sales' } = {}) => {
       const signature = escapeHtml(summary.listing_signature || '');
       const title = escapeHtml(summary.returnTitle?.() || summary.title || 'Untitled Item');
       const quantity_sold = Math.max(0, Number(summary.quantity_sold ?? 0) || 0);
-      let total = '';
-      try {
-        total = formatSaleAmount(app, BigInt(summary.price ?? 0) * BigInt(quantity_sold));
-      } catch (err) {
-        total = '';
-      }
+      const total = formatSaleAmount(app, summary, quantity_sold);
       const sold_at = escapeHtml(formatSaleDate(summary.sold_at));
       const buyer = String(summary.buyer || '').trim();
       const seller_note = String(summary.seller_note || '').trim();
@@ -68,7 +71,7 @@ module.exports = ({ listings = [], caption = 'Sales' } = {}) => {
         buyer_html = `
             <div class="sales-buyer">
               <div class="sales-buyer-row">
-                <span class="sales-buyer-address" title="${escapeHtml(buyer)}">${escapeHtml(shortKey(buyer))}</span>
+                <span class="sales-buyer-address" title="${escapeHtml(buyer)}">${escapeHtml(buyer)}</span>
                 <button type="button" class="saito-icon-button sales-buyer-copy" data-action="copy-buyer" data-buyer="${escapeHtml(buyer)}" title="Copy buyer address" aria-label="Copy buyer address">
                   <i class="fas fa-copy" aria-hidden="true"></i>
                 </button>

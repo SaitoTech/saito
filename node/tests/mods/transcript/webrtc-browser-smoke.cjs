@@ -4,7 +4,7 @@ const { chromium } = require(process.env.TRANSCRIPT_PLAYWRIGHT || 'playwright');
 const express = require('express');
 const assert = require('node:assert/strict');
 const path = require('node:path');
-const StreamManager = require('../../../mods/videocall/lib/StreamManager');
+const StreamManager = require('../../../mods/videocall/lib/stream_manager');
 
 (async () => {
   const app = express();

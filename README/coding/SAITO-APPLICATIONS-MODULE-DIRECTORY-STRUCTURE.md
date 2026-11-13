@@ -831,29 +831,25 @@ The fact that one specialized module contains a `package.json` does not make it 
 
 ## 19. Tests
 
-Tests are not part of the distributed Saito application.
+Tests are not part of a Saito module.
 
-A developer may create tests for a module, and repository-level tests exist under structures such as:
+Module tests belong under:
 
     node/tests/mods/<module-name>/
 
-A test directory can also exist during development if that is useful.
+Do not put them inside `node/mods/<module>/`. That includes `*.spec.js`, `*.test.js`, fixtures, and any other file that exists only so Node can run a test.
 
-However, tests should not be treated as a required part of the module's distributable source structure.
+This is a build prohibition, not a style preference. A lite-client compile copies the whole module directory into the browser bundle. `lib/saito/app.ts` then loads modules with:
 
-This distinction matters because Saito modules can be compiled into browser applications and into standalone dynamic modules.
+    require(`../../mods/${mod_path}`)
 
-Development dependencies such as test frameworks and Node-specific `assert` functionality can become problematic if they are accidentally pulled into a compiled application.
+Webpack treats that dynamic require as a context over every file in the copied module. A file is included even when the application never imports it. A test that starts with `require('node:assert/strict')`, or any other `node:` import, then fails the bundle with `UnhandledSchemeError`. The same failure comes from any Node-only dependency the test pulls in, such as `assert`, `fs`, or a test runner.
 
-Therefore:
+Jest does not make a file inside `mods/` safe. Its default `roots` setting only discovers `node/tests/`, and the browser build does not consult Jest.
 
-> Do not add tests to a module merely because a software project convention says every module should have tests.
+> Do not place a test, spec, fixture, or other Node-only development file anywhere under `node/mods/<module>/`. Put module tests in `node/tests/mods/<module-name>/`.
 
-If tests are needed, keep them outside the compiled application path or in an appropriate development-only location.
-
-The exact location should be chosen according to the repository's testing conventions and the needs of the developer.
-
-For distributed modules, do not assume that the test suite is part of the module payload.
+Do not add a test suite merely because another ecosystem puts tests beside source. For a distributed `.saito` package, the test suite is not part of the module payload.
 
 ---
 
@@ -1357,7 +1353,12 @@ The following are optional or application-specific:
     index.js
     src/
     README
-    tests
+
+The following must not be placed under `node/mods/<module>/`, because the lite-client bundle compiles the whole directory:
+
+    *.spec.js
+    *.test.js
+    test fixtures and other Node-only development files
 
 The following should not be introduced as standard Saito architecture:
 
@@ -1656,7 +1657,7 @@ When modifying or creating a Saito application:
 
 25. Do not create controllers, repositories, services, routes, models, or middleware directories merely because another ecosystem commonly uses them.
 
-26. Do not add tests merely because the application could have tests. If tests are needed, keep them in an appropriate development-only location and do not accidentally compile them into the distributed application.
+26. Do not put tests, specs, fixtures, or other Node-only development files under `node/mods/<module>/`. The lite-client bundle compiles every file in that directory, and a `node:` import such as `node:assert/strict` breaks the build. Put module tests in `node/tests/mods/<module-name>/`.
 
 27. Do not add `src/` unless the application has a genuine source-generation or specialized compilation requirement.
 

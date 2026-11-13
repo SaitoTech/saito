@@ -35,7 +35,6 @@
             if (this.game.deck[0].discards[i].scoring == 0) {
               if (this.game.state.events.shuttlediplomacy == 0 || (this.game.state.events.shuttlediplomacy == 1 && i != "shuttle")) {
                 discard_deck.push(i);
-                console.log(i);
                 //html += '<li class="option" id="'+i+'">'+this.game.deck[0].discards[i].name+'</li>';
               }
             }

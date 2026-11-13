@@ -16,7 +16,7 @@ class VPOverlay {
   render(spacekey = '') {
     let vp = this.mod.calculateVictoryPoints();
 
-    this.overlay.show(VPTemplate());
+    this.overlay.showClosable(VPTemplate());
 
     document.querySelector('.vp-overlay').textContent = JSON.stringify(vp, null, 4);
   }

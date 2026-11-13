@@ -1,5 +1,7 @@
 const SaitoOverlay = require('../../../../../lib/saito/ui/saito-overlay/saito-overlay');
 const FieldTemplate = require('./field.template');
+const DeletePrompt = require('./delete');
+const { pdfEntries } = require('../../document');
 
 class FieldOverlay {
   constructor(app, mod) {
@@ -8,6 +10,7 @@ class FieldOverlay {
     this.overlay = new SaitoOverlay(app, mod, true);
     this.overlay.class = 'saito-overlay saitosign-overlay';
     this.hooks = {};
+    this.deletePrompt = null;
   }
 
   render(view, hooks = {}) {
@@ -25,21 +28,84 @@ class FieldOverlay {
 
   close() {
     this.unbindKeys();
+    if (this.deletePrompt) {
+      const prompt = this.deletePrompt;
+      this.deletePrompt = null;
+      prompt.close();
+    }
     this.overlay.close();
+  }
+
+  askDelete() {
+    if (this.deletePrompt || !this.view?.replicated) {
+      return;
+    }
+    const prompt = new DeletePrompt(this.app, this.mod);
+    this.deletePrompt = prompt;
+    prompt.render(
+      {
+        label: this.view.item_label || '',
+        documentName: this.view.document_name || '',
+        documentCount: pdfEntries(this.mod.document).length
+      },
+      {
+        onChoose: (scope) => {
+          this.deletePrompt = null;
+          if (this.hooks.onRemove) {
+            this.hooks.onRemove(scope);
+          }
+        },
+        onDismiss: () => {
+          this.deletePrompt = null;
+        }
+      }
+    );
   }
 
   bindKeys() {
     this.unbindKeys();
     this.onKeyDown = (event) => {
-      if (event.key !== 'Enter' || event.isComposing) {
+      const form = document.querySelector('.saitosign-field');
+      if (!form || !form.isConnected || event.isComposing) {
         return;
       }
-      const form = document.querySelector('.saitosign-field');
-      if (!form || !form.isConnected) {
+      if (document.querySelector('.saitosign-delete')) {
         return;
       }
       const target = event.target;
       if (target && target.closest && target.closest('.saito-overlay-closebox')) {
+        return;
+      }
+
+      if (event.key === 'Delete') {
+        if (isTypingTarget(target) || !this.view?.existing || !this.view?.editable || !this.hooks.onRemove) {
+          return;
+        }
+        if (form.dataset.deleting === '1') {
+          return;
+        }
+        event.preventDefault();
+        event.stopPropagation();
+        if (this.view?.replicated) {
+          this.askDelete();
+          return;
+        }
+        form.dataset.deleting = '1';
+        Promise.resolve(
+          typeof sconfirm === 'function' ? sconfirm('Delete this?') : window.confirm('Delete this?')
+        )
+          .then((confirmed) => {
+            if (confirmed && this.hooks.onRemove) {
+              this.hooks.onRemove();
+            }
+          })
+          .finally(() => {
+            form.dataset.deleting = '';
+          });
+        return;
+      }
+
+      if (event.key !== 'Enter') {
         return;
       }
       event.preventDefault();
@@ -68,6 +134,7 @@ class FieldOverlay {
     }
 
     const signer_select = form.querySelector('[data-field-signer]');
+    const type_select = form.querySelector('[data-field-type]');
     const extra = form.querySelector('.new-signer');
     const refreshMode = () => {
       const button = form.querySelector('.actions button.primary');
@@ -75,7 +142,7 @@ class FieldOverlay {
       if (!button || !view?.can_sign) {
         return;
       }
-      const type = form.querySelector('[data-field-type]')?.value;
+      const type = type_select?.value;
       const chosen = signer_select.value;
       const sign =
         !view.already_signed &&
@@ -91,16 +158,41 @@ class FieldOverlay {
       }
     };
 
+    const refreshDisclosure = () => {
+      const ready = signerReady(form);
+      const what = form.querySelector('.what');
+      if (what) {
+        what.hidden = !ready;
+      }
+      if (type_select && !ready) {
+        type_select.value = '';
+      }
+      refreshDetails(form);
+      refreshMode();
+      preview();
+    };
+
     signer_select.addEventListener('change', () => {
       extra.hidden = signer_select.value !== 'new';
       showError(form, '');
-      refreshMode();
-      preview();
+      refreshDisclosure();
       if (!extra.hidden) {
         form.querySelector('[data-signer-name]')?.focus();
       }
     });
-    form.querySelector('[data-field-type]')?.addEventListener('change', () => {
+
+    form.querySelector('[data-signer-name]')?.addEventListener('input', () => {
+      showError(form, '');
+      refreshDisclosure();
+    });
+    form.querySelector('[data-signer-email]')?.addEventListener('input', () => {
+      showError(form, '');
+      refreshDisclosure();
+    });
+
+    type_select?.addEventListener('change', () => {
+      showError(form, '');
+      refreshDetails(form);
       refreshMode();
       preview();
     });
@@ -111,7 +203,12 @@ class FieldOverlay {
 
     const remove = form.querySelector('[data-remove-field]');
     if (remove) {
-      remove.onclick = () => {
+      remove.onclick = (event) => {
+        event.preventDefault();
+        if (this.view?.replicated) {
+          this.askDelete();
+          return;
+        }
         if (this.hooks.onRemove) {
           this.hooks.onRemove();
         }
@@ -125,16 +222,10 @@ class FieldOverlay {
       }
       form.dataset.saving = '1';
       const mode = form.querySelector('.actions button.primary')?.dataset.mode;
-      if (mode !== 'sign' && signer_select.value === 'new') {
-        const name = form.querySelector('[data-signer-name]')?.value.trim();
-        const email = form.querySelector('[data-signer-email]')?.value.trim();
-        if (!name || !email) {
-          showError(form, 'Enter a name and email for the new signer.');
-          form.dataset.saving = '';
-          return;
-        }
-        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-          showError(form, 'Enter a valid email address.');
+      if (mode !== 'sign') {
+        const problem = validateFieldForm(form);
+        if (problem) {
+          showError(form, problem);
           form.dataset.saving = '';
           return;
         }
@@ -163,6 +254,59 @@ class FieldOverlay {
   }
 }
 
+function signerReady(form) {
+  const chosen = form.querySelector('[data-field-signer]')?.value;
+  if (chosen === 'new') {
+    const name = form.querySelector('[data-signer-name]')?.value.trim() || '';
+    const email = form.querySelector('[data-signer-email]')?.value.trim() || '';
+    return Boolean(name && isEmailAddress(email));
+  }
+  return chosen !== '' && chosen != null;
+}
+
+function refreshDetails(form) {
+  const details = form.querySelector('[data-field-details]');
+  const every = form.querySelector('[data-every-page]');
+  const type = form.querySelector('[data-field-type]')?.value;
+  const typeSelect = form.querySelector('[data-field-type]');
+  const what = form.querySelector('.what');
+  const allow = Boolean(every) && !what?.hidden && (type === 'signature' || type === 'initial');
+  if (!details) {
+    return;
+  }
+  details.hidden = !allow;
+  if (!allow && every) {
+    every.checked = false;
+  }
+}
+
+function validateFieldForm(form) {
+  const chosen = form.querySelector('[data-field-signer]')?.value;
+  if (chosen === 'new') {
+    const name = form.querySelector('[data-signer-name]')?.value.trim() || '';
+    const email = form.querySelector('[data-signer-email]')?.value.trim() || '';
+    if (!name || !email) {
+      return 'Enter a name and email for the new signer.';
+    }
+    if (!isEmailAddress(email)) {
+      return 'Enter a valid email address.';
+    }
+  } else if (chosen === '' || chosen == null) {
+    return 'Choose who this field is for.';
+  }
+
+  const what = form.querySelector('.what');
+  const typeSelect = form.querySelector('[data-field-type]');
+  if (!typeSelect || what?.hidden) {
+    return 'Choose who this field is for before selecting a field type.';
+  }
+  const type = typeSelect.value;
+  if (type !== 'signature' && type !== 'date' && type !== 'initial') {
+    return 'Please choose what this user should do.';
+  }
+  return '';
+}
+
 function showError(form, message) {
   const slot = form.querySelector('[data-form-error]');
   if (!slot) {
@@ -172,12 +316,18 @@ function showError(form, message) {
   slot.textContent = message || '';
 }
 
-function escapeHTML(value) {
-  return String(value)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
+function isEmailAddress(value) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value || '').trim());
+}
+
+function isTypingTarget(target) {
+  if (!target) {
+    return false;
+  }
+  if (typeof target.matches === 'function' && target.matches('input, textarea, select')) {
+    return true;
+  }
+  return Boolean(target.closest && target.closest('input, textarea, select'));
 }
 
 module.exports = FieldOverlay;

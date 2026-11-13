@@ -9,7 +9,7 @@ class RulesOverlay {
   }
 
   render() {
-    this.overlay.show(SettlersRulesOverlayTemplate(this, 'saitoa'));
+    this.overlay.showClosable(SettlersRulesOverlayTemplate(this, 'saitoa'));
 
     this.attachEvents();
   }

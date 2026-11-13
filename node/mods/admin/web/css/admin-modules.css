@@ -20,39 +20,79 @@
 
 .admin-modules-intro {
   max-width: 760px;
-  color: #555;
+  color: var(--admin-muted, #555);
 }
 
 .admin-modules-error {
   margin: 0 0 16px 0;
   padding: 14px 16px;
   border-radius: 10px;
-  border: 1px solid #f2c7c7;
-  background: #fff5f5;
-  color: #a52828;
+  border: 1px solid var(--admin-danger-border, #f2c7c7);
+  background: var(--admin-danger-bg, #fff5f5);
+  color: var(--admin-danger, #a52828);
 }
 
 .admin-modules-saved {
   margin: 0 0 16px 0;
   padding: 14px 16px;
   border-radius: 10px;
-  border: 1px solid #cfe6da;
-  background: #f1f8f4;
-  color: #1b5e20;
+  border: 1px solid var(--admin-accent-border, #cfe6da);
+  background: var(--admin-accent-bg, #f1f8f4);
+  color: var(--admin-accent, #1b5e20);
 }
 
-#admin-modules-filter {
-  max-width: 360px;
-  margin-bottom: 20px;
+.admin-modules-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 12px 16px;
+}
+
+.admin-modules-filters > label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  color: var(--admin-muted, #555);
+  max-width: 100%;
+}
+
+.admin-modules-search {
+  flex: 1 1 230px;
+  min-width: 0;
+}
+
+.admin-modules-filters select {
+  min-width: 130px;
+}
+
+.admin-modules-filters .admin-modules-checkbox {
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+  padding: 12px 0;
+}
+
+.admin-modules-checkbox input {
+  accent-color: var(--admin-accent, #2e7d32);
+}
+
+.admin-modules-count {
+  margin: 12px 0 20px;
+  color: var(--admin-muted, #555);
+}
+
+.admin-modules-page [hidden] {
+  display: none;
 }
 
 .admin-modules-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(180px, 100%), 1fr));
   gap: 12px;
 }
 
 .admin-module-card {
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
@@ -61,22 +101,41 @@
   margin: 0;
   padding: 16px;
   border-radius: 12px;
-  border: 1px solid #ddd;
-  background: #fafafa;
+  border: 1px solid var(--admin-border, #ddd);
+  background: var(--admin-subtle, #fafafa);
   text-align: left;
   cursor: pointer;
   font-family: inherit;
   appearance: none;
 }
 
+.admin-module-thumbnail {
+  position: absolute;
+  right: 16px;
+  bottom: 16px;
+  width: 36px;
+  height: 36px;
+  overflow: hidden;
+  border: 1px solid var(--admin-border, #ddd);
+  border-radius: 6px;
+  background: var(--admin-surface, #fff);
+}
+
+.admin-module-thumbnail img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+}
+
 .admin-module-card:hover {
-  border-color: #c8d6cc;
+  border-color: var(--admin-border-hover, #c8d6cc);
 }
 
 .admin-module-name {
   font-size: 15px;
   font-weight: 600;
-  color: #2c3e50;
+  color: var(--admin-heading, #2c3e50);
   word-break: break-all;
 }
 
@@ -85,47 +144,47 @@
   font-weight: 600;
   padding: 4px 10px;
   border-radius: 999px;
-  background: #eef1f4;
-  color: #4b5563;
+  background: var(--admin-badge-bg, #eef1f4);
+  color: var(--admin-muted, #4b5563);
 }
 
 .admin-module-card.mode-off {
-  background: #f7f7f7;
-  border-color: #e5e7eb;
+  background: var(--admin-subtle, #f7f7f7);
+  border-color: var(--admin-border, #e5e7eb);
 }
 
 .admin-module-card.mode-off .admin-module-name {
-  color: #6b7280;
+  color: var(--admin-muted, #6b7280);
 }
 
 .admin-module-card.mode-both {
-  background: #f5fbf7;
+  background: var(--admin-accent-subtle, #f5fbf7);
   border-color: #4caf50;
 }
 
 .admin-module-card.mode-both .admin-module-mode {
-  background: #e8f5e9;
-  color: #2e7d32;
+  background: var(--admin-accent-bg, #e8f5e9);
+  color: var(--admin-accent, #2e7d32);
 }
 
 .admin-module-card.mode-server {
-  background: #f5f8fc;
-  border-color: #90caf9;
+  background: var(--admin-server-bg, #f5f8fc);
+  border-color: var(--admin-server-border, #90caf9);
 }
 
 .admin-module-card.mode-server .admin-module-mode {
-  background: #e3f2fd;
-  color: #1565c0;
+  background: var(--admin-server-badge-bg, #e3f2fd);
+  color: var(--admin-server-text, #1565c0);
 }
 
 .admin-module-card.mode-client {
-  background: #f7fbfb;
-  border-color: #80cbc4;
+  background: var(--admin-client-bg, #f7fbfb);
+  border-color: var(--admin-client-border, #80cbc4);
 }
 
 .admin-module-card.mode-client .admin-module-mode {
-  background: #e0f2f1;
-  color: #00695c;
+  background: var(--admin-client-badge-bg, #e0f2f1);
+  color: var(--admin-client-text, #00695c);
 }
 
 .admin-module-card.missing {
@@ -142,11 +201,11 @@
 }
 
 .admin-modules-missing p {
-  color: #666;
+  color: var(--admin-muted, #666);
 }
 
 .admin-modules-empty {
-  color: #666;
+  color: var(--admin-muted, #666);
 }
 
 @media (max-width: 640px) {
@@ -159,7 +218,4 @@
     width: 100%;
   }
 
-  #admin-modules-filter {
-    max-width: none;
-  }
 }

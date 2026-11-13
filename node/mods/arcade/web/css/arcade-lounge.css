@@ -344,17 +344,11 @@
   font-family: var(--saito-font-medium);
 }
 
-.arcade-lounge--four-sector .arcade-lounge-header-desc--loading {
-  display: flex;
-  align-items: center;
-  gap: var(--saito-space-sm);
-}
-
-.arcade-lounge--four-sector .arcade-lounge-header-desc--loading .arcade-lounge-loader {
-  display: inline-block;
+.arcade-lounge--four-sector .arcade-lounge-loader {
   flex: 0 0 auto;
-  width: 1.6rem;
-  height: 1.6rem;
+  align-self: center;
+  width: 7rem;
+  height: 7rem;
   min-height: 0;
   margin: 0;
   border-width: 0.25rem;

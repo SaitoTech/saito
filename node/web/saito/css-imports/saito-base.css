@@ -319,6 +319,38 @@ Scrollbars
   overflow-x: auto;
 }
 
+/* Scroll hints — app.browser.makeScrollHint(el) sets data-scroll-more on a
+   scroll container; .scroll-hint fades the edge(s) with more content beyond.
+   The extra mask layers keep any border solid (border-box minus padding-box).
+   Components can opt in conditionally by applying the same mask declarations. */
+[data-scroll-more] {
+  --scroll-hint-size: 3rem;
+}
+
+[data-scroll-more='top'] {
+  --scroll-hint-mask: linear-gradient(to bottom, transparent, #000 var(--scroll-hint-size));
+}
+
+[data-scroll-more='bottom'] {
+  --scroll-hint-mask: linear-gradient(to bottom, #000 calc(100% - var(--scroll-hint-size)), transparent);
+}
+
+[data-scroll-more='both'] {
+  --scroll-hint-mask: linear-gradient(
+    to bottom,
+    transparent,
+    #000 var(--scroll-hint-size),
+    #000 calc(100% - var(--scroll-hint-size)),
+    transparent
+  );
+}
+
+.scroll-hint[data-scroll-more] {
+  mask-image: var(--scroll-hint-mask), linear-gradient(#000, #000), linear-gradient(#000, #000);
+  mask-clip: border-box, border-box, padding-box;
+  mask-composite: add, exclude;
+}
+
 /* ----------------------------------------------------------------
 Font family
 -----------------------------------------------------------------*/

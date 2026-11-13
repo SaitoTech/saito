@@ -25,6 +25,133 @@
 let saito = require('./../../saito/saito');
 const Transaction = require('./../../saito/transaction').default;
 
+function findNftByAppId(nfts, id) {
+  if (!Array.isArray(nfts) || id == null || String(id) === '') {
+    return null;
+  }
+  const key = String(id);
+  return nfts.find((n) => n && String(n.id) === key) || null;
+}
+
+function resolveNftEventCode(raw, index) {
+  if (!Number.isInteger(index) || index < 0) {
+    return { ok: false, error: `invalid code index ${index}` };
+  }
+
+  if (typeof raw === 'string') {
+    if (index !== 0) {
+      return { ok: false, error: `string code only valid at index 0 (got ${index})` };
+    }
+    if (!raw.trim()) {
+      return { ok: false, error: 'string code is empty' };
+    }
+    return { ok: true, code: raw };
+  }
+
+  if (!Array.isArray(raw)) {
+    return { ok: false, error: 'nft has no executable code' };
+  }
+
+  if (index >= raw.length) {
+    return { ok: false, error: `invalid code index ${index}` };
+  }
+
+  const entry = raw[index];
+  if (typeof entry === 'string') {
+    if (!entry.trim()) {
+      return { ok: false, error: `code at index ${index} is empty` };
+    }
+    return { ok: true, code: entry };
+  }
+
+  if (entry && typeof entry === 'object' && typeof entry.code === 'string') {
+    if (!entry.code.trim()) {
+      return { ok: false, error: `code at index ${index} is empty` };
+    }
+    return { ok: true, code: entry.code };
+  }
+
+  return { ok: false, error: `invalid code entry at index ${index}` };
+}
+
+function applyNftEventArgs(nft, argFields = []) {
+  const fields = Array.isArray(argFields) ? argFields.map(String) : [];
+  nft.args = [];
+  for (const a of fields) {
+    nft.args.push(a);
+  }
+  return nft.args;
+}
+
+function parseNftEventFields(gmv) {
+  const id = String(gmv[1] || '');
+  const indexRaw = gmv[2];
+  const index = Number(indexRaw);
+  const argFields = gmv.slice(3).map((a) => String(a));
+
+  if (!id) {
+    return { ok: false, error: 'missing nft id' };
+  }
+  if (!Number.isInteger(index) || String(index) !== String(indexRaw)) {
+    return { ok: false, error: `invalid code index ${indexRaw}` };
+  }
+
+  return { ok: true, id, index, argFields };
+}
+
+/**
+ * Run NFT_EVENT against game.options.nfts using the existing sandbox.
+ * Caller must already have spliced the instruction from the queue.
+ * Returns 0 to pause the GameTemplate queue, otherwise 1.
+ */
+async function runNftEvent(game_self, gmv) {
+  const parsed = parseNftEventFields(gmv);
+  if (!parsed.ok) {
+    console.error('NFT_EVENT:', parsed.error);
+    return 1;
+  }
+
+  const { id, index, argFields } = parsed;
+  const listed = game_self?.game?.options?.nfts;
+  if (!Array.isArray(listed)) {
+    console.error('NFT_EVENT: game.options.nfts missing');
+    return 1;
+  }
+
+  const nft = findNftByAppId(listed, id);
+  if (!nft) {
+    console.error('NFT_EVENT: nft not found', id);
+    return 1;
+  }
+
+  const resolved = resolveNftEventCode(nft.data?.code, index);
+  if (!resolved.ok) {
+    console.error('NFT_EVENT:', resolved.error, id);
+    return 1;
+  }
+
+  applyNftEventArgs(nft, argFields);
+
+  if (!game_self.app?.BROWSER || typeof game_self.app?.browser?.executeJS !== 'function') {
+    console.error('NFT_EVENT: no browser execution environment', id);
+    return 1;
+  }
+
+  try {
+    const api = game_self.returnApi();
+    const context = game_self.returnContext();
+    const result = await game_self.app.browser.executeJS(
+      resolved.code,
+      { api, context, args: nft.args },
+      { maxExecutionTime: 0 }
+    );
+    return result === 0 ? 0 : 1;
+  } catch (err) {
+    console.error('NFT_EVENT: execution failed', id, err);
+    return 1;
+  }
+}
+
 class GameQueue {
   //
   // Your game should implement this and add if-then logic to process your
@@ -113,6 +240,20 @@ class GameQueue {
             this.game.queue.push('REQUEST_AVAILABLE_CRYPTOS\t' + (i + 1));
           }
           this.game.cryptos = {};
+        }
+      }
+
+      //
+      // Players one-by-one share Archive payloads for contributed invite NFTs.
+      // Expands game.options.nfts[i].data in place (no parallel NFT store).
+      //
+      if (
+        Array.isArray(this.game.options?.nfts) &&
+        this.game.options.nfts.length > 0 &&
+        this.game.options.nfts.some((n) => !n?.data)
+      ) {
+        for (let i = 0; i < this.game.players.length; i++) {
+          this.game.queue.push('REQUEST_AVAILABLE_NFTS\t' + (i + 1));
         }
       }
 
@@ -525,6 +666,12 @@ class GameQueue {
     });
     this.commands.push(async (game_self, gmv) => {
       if (gmv[0] === 'ACKNOWLEDGE') {
+        // A headless player records notifications without a presentation pause.
+        if (game_self.app.HEADLESS) {
+          game_self.updateLog(gmv[1]);
+          game_self.game.queue.pop();
+          return 1;
+        }
         let notice = gmv[1];
         let player = gmv[2]; // optional = which player must acknowledge to continue, or array of players
 
@@ -609,7 +756,7 @@ class GameQueue {
         game_self.game.over = 1;
         game_self.game.last_block = game_self.app.blockchain.last_bid;
 
-        if (game_self.gameBrowserActive()) {
+        if (game_self.app.HEADLESS || game_self.gameBrowserActive()) {
           game_self.gameOverUserInterface();
         } else {
           if (game_self.game.reason !== 'cancellation') {
@@ -1004,7 +1151,7 @@ class GameQueue {
           game_self.game_state_pre_move = JSON.parse(JSON.stringify(game_self.game));
         }
 
-        if (game_self.gameBrowserActive()) {
+        if (game_self.app.HEADLESS || game_self.gameBrowserActive()) {
           return 1;
         } else {
           //Otherwise we want to pause game processing
@@ -2373,10 +2520,10 @@ class GameQueue {
         if (game_self.game.deck[deckidx - 1].to_add) {
           for (let c in game_self.game.deck[deckidx - 1].to_add) {
             if (!game_self.game.deck[deckidx - 1].to_remove[c]) {
-              cards[c] = game_self.game.deck[deckidx - 1].cards[c];
+              cards[c] = game_self.game.deck[deckidx - 1].to_add[c];
             } else {
               delete game_self.game.deck[deckidx - 1].to_remove[c];
-              cards[c] = game_self.game.deck[deckidx - 1].cards[c];
+              cards[c] = game_self.game.deck[deckidx - 1].to_add[c];
             }
           }
         }
@@ -2617,19 +2764,43 @@ class GameQueue {
     });
 
     //
-    // NFTs are handled in the same way
+    // NFTs are handled in the same way as AVAILABLE_CRYPTOS:
+    // one REQUEST per player, one AVAILABLE response packing that player's NFTs.
+    // Payload data is merged into game.options.nfts[].data (invite metadata expanded).
     //
     this.commands.push(async (game_self, gmv) => {
       if (gmv[0] === 'AVAILABLE_NFTS') {
         let playerkey = gmv[1];
-        let nfts = JSON.parse(gmv[2]);
+        let payload = JSON.parse(gmv[2]);
 
-        if (!this.game.cryptos) {
-          this.game.nfts = {};
+        game_self.game.queue.splice(game_self.game.queue.length - 1, 1);
+
+        if (payload && payload.error) {
+          salert('Game not Loaded: player could not load required NFT.');
+          return 0;
         }
 
-        this.game.nfts[playerkey] = nfts;
-        game_self.game.queue.splice(game_self.game.queue.length - 1, 1);
+        const updates = Array.isArray(payload) ? payload : [];
+        const listed = Array.isArray(game_self.game.options?.nfts)
+          ? game_self.game.options.nfts
+          : [];
+
+        for (const update of updates) {
+          if (!update?.id) {
+            continue;
+          }
+          const entry = listed.find((n) => String(n.id) === String(update.id));
+          if (!entry) {
+            continue;
+          }
+          let data = update.data && typeof update.data === 'object' ? update.data : {};
+          if (typeof data.code === 'string' && data.code.indexOf('\t') >= 0) {
+            data = Object.assign({}, data, {
+              code: data.code.replace(/\t/g, ' ')
+            });
+          }
+          entry.data = data;
+        }
 
         return 1;
       }
@@ -2637,15 +2808,65 @@ class GameQueue {
     });
 
     //
-    //
-    // players can share game-available cryptos + balances
+    // contributing player loads each required NFT from Archive and shares txmsg.data
     //
     this.commands.push(async (game_self, gmv) => {
       if (gmv[0] === 'REQUEST_AVAILABLE_NFTS') {
         let playerkey = parseInt(gmv[1]);
         game_self.game.queue.splice(game_self.game.queue.length - 1, 1);
+
         if (game_self.game.player == playerkey) {
           let an = [];
+          const listed = Array.isArray(game_self.game.options?.nfts)
+            ? game_self.game.options.nfts
+            : [];
+          const wallet_nfts = game_self.app.options?.wallet?.nfts || [];
+
+          const mine = listed.filter((rec) => {
+            if (!rec?.id || rec.data) {
+              return false;
+            }
+            if (String(rec.owner) === String(game_self.publicKey)) {
+              return true;
+            }
+            return wallet_nfts.some((n) => String(n.id) === String(rec.id));
+          });
+
+          for (const rec of mine) {
+            const nft_id = String(rec.id);
+            let txs = null;
+            try {
+              txs = await game_self.app.storage.loadNFTTransactions(nft_id);
+            } catch (err) {
+              console.error('REQUEST_AVAILABLE_NFTS: Archive load error', nft_id, err);
+              txs = null;
+            }
+
+            if (!Array.isArray(txs) || txs.length === 0) {
+              salert('Game not Loaded: player could not load required NFT.');
+              game_self.addMove(
+                `AVAILABLE_NFTS\t${playerkey}\t${JSON.stringify({ error: 1, nft_id })}`
+              );
+              game_self.game.turn = game_self.moves;
+              game_self.moves = [];
+              game_self.sendGameMoveTransaction('game', {});
+              return 0;
+            }
+
+            const txmsg = txs[0].returnMessage() || {};
+            let data = txmsg.data && typeof txmsg.data === 'object' ? txmsg.data : {};
+            if (typeof data.code === 'string' && data.code.indexOf('\t') >= 0) {
+              data = Object.assign({}, data, {
+                code: data.code.replace(/\t/g, ' ')
+              });
+            }
+
+            an.push({
+              id: nft_id,
+              data
+            });
+          }
+
           game_self.addMove(`AVAILABLE_NFTS\t${playerkey}\t${JSON.stringify(an)}`);
           game_self.game.turn = game_self.moves;
           game_self.moves = [];
@@ -2655,6 +2876,21 @@ class GameQueue {
         return 0;
       }
       return 1;
+    });
+
+    //
+    // NFT_EVENT\t<id>\t<index>\t<arg0>\t<arg1>\t...
+    // Locates game.options.nfts by application-level id, selects code by index,
+    // sets a fresh nft.args array, and runs the script in the NFT sandbox on
+    // every client. No player routing or network NFT ownership checks.
+    //
+    this.commands.push(async (game_self, gmv) => {
+      if (gmv[0] !== 'NFT_EVENT') {
+        return 1;
+      }
+
+      game_self.game.queue.splice(game_self.game.queue.length - 1, 1);
+      return await runNftEvent(game_self, gmv);
     });
 
     //
@@ -2853,3 +3089,8 @@ class GameQueue {
 }
 
 module.exports = GameQueue;
+module.exports.findNftByAppId = findNftByAppId;
+module.exports.resolveNftEventCode = resolveNftEventCode;
+module.exports.applyNftEventArgs = applyNftEventArgs;
+module.exports.parseNftEventFields = parseNftEventFields;
+module.exports.runNftEvent = runNftEvent;

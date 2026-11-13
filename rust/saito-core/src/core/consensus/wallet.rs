@@ -247,6 +247,7 @@ impl Wallet {
 
                 let mut emitted_chain_tx_sent = false;
                 let mut emitted_nft_sent = false;
+                let mut has_ordinary_input = false;
 
                 //
                 // Process inputs first: remove spent slips and NFT groups
@@ -339,53 +340,57 @@ impl Wallet {
                             wallet_changed |= WALLET_UPDATED;
                             self.delete_slip(input, None);
                         }
-                        //
-                        // Also remove from pending if present (at most one success per tx)
-                        //
-                        if self.delete_pending_transaction(tx) {
-                            wallet_changed |= WALLET_UPDATED;
-                            if let Some(io) = io {
-                                if !emitted_chain_tx_sent && !emitted_nft_sent {
-                                    emitted_chain_tx_sent = true;
-                                    let sender = tx
-                                        .from
-                                        .first()
-                                        .map(|s| s.public_key.to_base58())
-                                        .unwrap_or_default();
-                                    // receiver uses tx.to.first(); amount sums non-self to-slips.
-                                    // Both may be inaccurate when a transaction has multiple to-slips
-                                    // (e.g. multiple recipients, or change ordered before payment).
-                                    let receiver = tx
-                                        .to
-                                        .first()
-                                        .map(|s| s.public_key.to_base58())
-                                        .unwrap_or_default();
-                                    let amount: Currency = tx
-                                        .to
-                                        .iter()
-                                        .filter(|s| s.public_key != self.public_key)
-                                        .map(|s| s.amount)
-                                        .sum();
-                                    let signature = tx.signature.to_hex();
-                                    let payload = serde_json::to_string(&json!({
-                                        "ticker": "SAITO" ,
-                                        "block_id": block.id,
-                                        "block_hash": block.hash.to_hex(),
-                                        "timestamp": block.timestamp,
-                                        "signature": signature,
-                                        "transaction_type": format!("{:?}", tx.transaction_type),
-                                        "amount": amount,
-                                        "sender": sender,
-                                        "receiver": receiver,
-                                    }))
-                                    .unwrap_or_else(|_| "{}".to_string());
-                                    io.send_interface_event(InterfaceEvent::OnTransactionSent(
-                                        payload,
-                                    ));
-                                }
+
+                        has_ordinary_input = true;
+                        i += 1;
+                    }
+                }
+
+                //
+                // delete from pending
+                //
+                if tx.hash_for_signature.is_some() && self.delete_pending_transaction(tx) {
+                    wallet_changed |= WALLET_UPDATED;
+
+                    if has_ordinary_input {
+                        if let Some(io) = io {
+                            if !emitted_chain_tx_sent && !emitted_nft_sent {
+                                emitted_chain_tx_sent = true;
+                                let sender = tx
+                                    .from
+                                    .first()
+                                    .map(|s| s.public_key.to_base58())
+                                    .unwrap_or_default();
+                                // receiver uses tx.to.first(); amount sums non-self to-slips.
+                                // Both may be inaccurate when a transaction has multiple to-slips
+                                // (e.g. multiple recipients, or change ordered before payment).
+                                let receiver = tx
+                                    .to
+                                    .first()
+                                    .map(|s| s.public_key.to_base58())
+                                    .unwrap_or_default();
+                                let amount: Currency = tx
+                                    .to
+                                    .iter()
+                                    .filter(|s| s.public_key != self.public_key)
+                                    .map(|s| s.amount)
+                                    .sum();
+                                let signature = tx.signature.to_hex();
+                                let payload = serde_json::to_string(&json!({
+                                    "ticker": "SAITO" ,
+                                    "block_id": block.id,
+                                    "block_hash": block.hash.to_hex(),
+                                    "timestamp": block.timestamp,
+                                    "signature": signature,
+                                    "transaction_type": format!("{:?}", tx.transaction_type),
+                                    "amount": amount,
+                                    "sender": sender,
+                                    "receiver": receiver,
+                                }))
+                                .unwrap_or_else(|_| "{}".to_string());
+                                io.send_interface_event(InterfaceEvent::OnTransactionSent(payload));
                             }
                         }
-                        i += 1;
                     }
                 }
 

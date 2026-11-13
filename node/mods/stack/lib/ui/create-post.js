@@ -5122,6 +5122,36 @@ class CreatePost {
     }
   }
 
+  /**
+   * Leave the editor and show the module splash (write or browse).
+   * Flushes a pending autosave first so a recent edit is not dropped.
+   */
+  async returnToSplash() {
+    if (this.inactivityTimeout) {
+      clearTimeout(this.inactivityTimeout);
+      this.inactivityTimeout = null;
+      try {
+        await this.triggerSave();
+      } catch (err) {
+        console.error('Stack: save before returning to splash failed', err);
+      }
+    }
+
+    const editor = document.querySelector('.create-post');
+    if (editor) {
+      editor.remove();
+    }
+
+    const slug = '/' + (this.mod.slug || 'stack');
+    if (window.location.pathname !== slug || window.location.search) {
+      window.history.replaceState({}, '', slug);
+    }
+
+    if (this.mod.main && typeof this.mod.main.render === 'function') {
+      this.mod.main.render();
+    }
+  }
+
   attachEvents() {
     try {
       // Capture 'this' context for callbacks
@@ -5183,6 +5213,14 @@ class CreatePost {
           e.preventDefault();
           e.stopPropagation();
           this.handlePublishTriggerClick();
+        });
+      }
+
+      const backToSplash = document.querySelector('#stack-editor-back-splash');
+      if (backToSplash) {
+        backToSplash.addEventListener('click', (e) => {
+          e.preventDefault();
+          this.returnToSplash();
         });
       }
 

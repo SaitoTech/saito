@@ -1,3 +1,5 @@
+const { canWriteDraft, markCodeReturned } = require('./recovery');
+
 const DB_NAME = 'saitosign';
 const STORE = 'draft';
 const KEY = 'current';
@@ -22,10 +24,47 @@ function openDb() {
 async function saveDraft(record) {
   const db = await openDb();
   try {
-    await new Promise((resolve, reject) => {
+    return await new Promise((resolve, reject) => {
       const tx = db.transaction(STORE, 'readwrite');
-      tx.objectStore(STORE).put(record, KEY);
-      tx.oncomplete = () => resolve();
+      const store = tx.objectStore(STORE);
+      const request = store.get(KEY);
+      let allowed = false;
+      request.onsuccess = () => {
+        allowed = canWriteDraft(request.result, record);
+        if (allowed) {
+          store.put(record, KEY);
+        }
+      };
+      tx.oncomplete = () => resolve(allowed);
+      tx.onerror = () => reject(tx.error);
+    });
+  } finally {
+    db.close();
+  }
+}
+
+async function claimDraft(code, writerId) {
+  const db = await openDb();
+  try {
+    return await new Promise((resolve, reject) => {
+      const tx = db.transaction(STORE, 'readwrite');
+      const store = tx.objectStore(STORE);
+      const request = store.get(KEY);
+      let result = null;
+      request.onsuccess = () => {
+        const current = request.result;
+        if (!current || current.code !== code) {
+          return;
+        }
+        if (current.handoff?.writerId && current.handoff.writerId !== writerId) {
+          return;
+        }
+        markCodeReturned(current.document, code);
+        current.handoff = { code, writerId };
+        store.put(current, KEY);
+        result = current;
+      };
+      tx.oncomplete = () => resolve(result);
       tx.onerror = () => reject(tx.error);
     });
   } finally {
@@ -64,7 +103,14 @@ async function clearDraft() {
   try {
     await new Promise((resolve, reject) => {
       const tx = db.transaction(STORE, 'readwrite');
-      tx.objectStore(STORE).delete(KEY);
+      const store = tx.objectStore(STORE);
+      const request = store.get(KEY);
+      request.onsuccess = () => {
+        if (request.result?.handoff?.writerId) {
+          return;
+        }
+        store.delete(KEY);
+      };
       tx.oncomplete = () => resolve();
       tx.onerror = () => reject(tx.error);
     });
@@ -73,4 +119,4 @@ async function clearDraft() {
   }
 }
 
-module.exports = { saveDraft, loadDraft, clearDraft };
+module.exports = { saveDraft, loadDraft, clearDraft, claimDraft };

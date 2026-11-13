@@ -50,7 +50,7 @@
 
         this.game.status = `${this.cardToText(card)}:`;
         this.hud.updateStatus(this.game.status);
-        this.hud.updateCards(this.game.deck[0].hand);
+        this.hud.updateCards([]);
         this.hud.updateMenu([ { id: 'discard', label: 'discard 3 OP card' }, { id: 'remove', label: 'remove all US influence in W. Germany' } ], function(action) {
 
           if (action == "discard") {

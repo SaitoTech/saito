@@ -8,10 +8,12 @@ const ListingDetailOverlay = require('./overlays/listing-detail');
 const ListingInspectOverlay = require('./overlays/listing-inspect');
 const RentalListingOverlay = require('./overlays/rental-listing');
 const PurchaseOverlay = require('./overlays/purchase');
+const Web3PaymentOverlay = require('./overlays/web3-payment');
 const SettingsOverlay = require('./overlays/settings');
 const PurchaseLifecycle = require('./purchase-lifecycle');
 const ListingLifecycle = require('./listing-lifecycle');
 const { normalizeListingMode, categoryViewKey } = require('../categories');
+const { requestStoreWeb3Tickers } = require('./overlays/listing-field-edit');
 
 class Main {
   constructor(app, mod, container = '.saito-container') {
@@ -129,6 +131,7 @@ class Main {
     this.listing_inspect = new ListingInspectOverlay(this.app, this.mod);
     this.rental_listing = new RentalListingOverlay(this.app, this.mod);
     this.purchase_overlay = new PurchaseOverlay(this.app, this.mod);
+    this.web3_payment = new Web3PaymentOverlay(this.app, this.mod);
     this.settings_overlay = new SettingsOverlay(this.app, this.mod);
 
     this.prepare_store.onContinue = (defaults) => {
@@ -198,6 +201,11 @@ class Main {
 
     if (view === 'sold') {
       this.openSales();
+      return;
+    }
+
+    if (view === 'withdrawals') {
+      this.openWithdrawals();
       return;
     }
 
@@ -299,6 +307,15 @@ class Main {
     }
   }
 
+  openWithdrawals() {
+    this.menu.dashboardView = 'withdrawals';
+    this.setComposition('admin');
+    this.manager.showWithdrawals();
+    if (this.mod.publicKey) {
+      this.setAdminUrl(this.mod.publicKey);
+    }
+  }
+
   onStoreModeChange(mode = 'active') {
     if (mode === 'sold') {
       this.openSales();
@@ -380,6 +397,7 @@ class Main {
   }
 
   openSell(defaults = {}) {
+    requestStoreWeb3Tickers(this.app, { force: true });
     const next = {
       ...defaults,
       listing_mode: normalizeListingMode(defaults.listing_mode)

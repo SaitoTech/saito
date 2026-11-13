@@ -71,7 +71,7 @@ class Wordblocks extends GameTemplate {
 			class: 'game-intro',
 			callback: function (app, game_mod) {
 				game_mod.menu.hideSubMenus();
-				game_mod.overlay.show(game_mod.returnGameRulesHTML());
+				game_mod.overlay.showClosable(game_mod.returnGameRulesHTML());
 			}
 		});
 
@@ -81,7 +81,7 @@ class Wordblocks extends GameTemplate {
 			class: 'game-stats',
 			callback: function (app, game_mod) {
 				game_mod.menu.hideSubMenus();
-				game_mod.overlay.show(game_mod.returnStatsOverlay());
+				game_mod.overlay.showClosable(game_mod.returnStatsOverlay());
 			}
 		});
 
@@ -126,7 +126,7 @@ class Wordblocks extends GameTemplate {
 
 			let wordblocks_self = this;
 			$('.playerscore').on('click', function () {
-				wordblocks_self.overlay.show(wordblocks_self.returnStatsOverlay());
+				wordblocks_self.overlay.showClosable(wordblocks_self.returnStatsOverlay());
 			});
 		} catch (err) {
 			console.error(err);

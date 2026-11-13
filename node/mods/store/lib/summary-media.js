@@ -54,7 +54,17 @@ function applyListingTransaction(summary, tx) {
     }
   }
 
-  if (!Number(summary.price)) {
+  const web3Ticker = String(listing.web3_ticker || '').trim().toUpperCase();
+  if (web3Ticker) {
+    summary.web3_ticker = web3Ticker;
+  }
+  if (listing.web3_amount != null && String(listing.web3_amount) !== '') {
+    summary.web3_amount = String(listing.web3_amount).trim();
+  }
+
+  if (web3Ticker && web3Ticker !== 'SAITO') {
+    // Crypto amount stays on web3_amount. Do not store it as SAITO nolan.
+  } else if (!Number(summary.price)) {
     const raw_price = listing.price ?? txmsg.price;
     if (raw_price != null && raw_price !== '') {
       const converted = Number(

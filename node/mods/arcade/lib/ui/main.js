@@ -55,6 +55,9 @@ class ArcadeMain {
       this.app.browser.addElementToSelector(ArcadeMainTemplate(this.app, this.mod), this.container);
     }
 
+    // data-scroll-more drives the mobile-only edge fade in arcade-main.css
+    this.app.browser.makeScrollHint(document.querySelector('.arcade-main .library'));
+
     this.teasers.render();
     this.nav.render();
     await this.sidebar.render();

@@ -42,6 +42,14 @@ class GameWeb3 {
     }
   }
 
+  //
+  // default initialization hook for games that want to support NFTs. the game should
+  // provide code that validates the NFT structure and figures out how to handle it
+  // with the game rules.  note the browser.sanitizeJS and browser.executeJS functions
+  // exist.
+  //
+  initializeNFTs() {}
+
   insertCryptoLogo(ticker) {
     let results = this.app.modules.getRespondTos('crypto-logo', { ticker });
 

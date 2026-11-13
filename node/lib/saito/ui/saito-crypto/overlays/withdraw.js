@@ -533,6 +533,7 @@ class Withdraw {
       this.publicKey = address;
       this.renderSaitoRecipientPreview(address);
       this.showAddressPreview();
+      document.getElementById('withdraw-input-amount')?.focus();
     } else {
       let publicKey = this.app.crypto.isPublicKey(this.publicKey) ? this.publicKey : '';
       if (typeof this.pc.getSaitoPublicKey === 'function') {

@@ -11,6 +11,7 @@ const UserMenu = require('./ui/modals/user-menu/user-menu');
 const SaitoCrypto = require('./ui/saito-crypto/saito-crypto');
 const debounce = require('lodash/debounce');
 const SaitoMentions = require('./ui/saito-mentions/saito-mentions');
+const sanitizeHelper = require('../helpers/sanitize');
 
 //
 // references for modules
@@ -1541,6 +1542,36 @@ class Browser {
     });
   }
 
+  /**
+   * Mark a scroll container with data-scroll-more="top" | "bottom" | "both"
+   * while content extends past that edge, so CSS (.scroll-hint in saito-base.css)
+   * can fade the edge. Safe to call again on the same element.
+   */
+  makeScrollHint(element: HTMLElement) {
+    if (!element || (element as any).__scrollHint) {
+      return;
+    }
+    (element as any).__scrollHint = true;
+
+    const update = () => {
+      const up = element.scrollTop > 1;
+      const down = element.scrollTop + element.clientHeight < element.scrollHeight - 1;
+      const more = up && down ? 'both' : up ? 'top' : down ? 'bottom' : '';
+      if (more) {
+        element.dataset.scrollMore = more;
+      } else {
+        delete element.dataset.scrollMore;
+      }
+    };
+
+    element.addEventListener('scroll', update, { passive: true });
+    if (typeof ResizeObserver !== 'undefined') {
+      new ResizeObserver(update).observe(element);
+    }
+    new MutationObserver(update).observe(element, { childList: true, subtree: true });
+    update();
+  }
+
   makeDraggable(id_to_move, id_to_drag = '', dockable = false, mycallback = null) {
     //console.debug("make draggable: " + id_to_drag);
     //console.debug(" and move? " + id_to_move);
@@ -2248,7 +2279,8 @@ class Browser {
           div: ['class', 'id'],
           img: ['src', 'class', 'alt'],
           blockquote: ['href'],
-          code: ['class']
+          code: ['class'],
+          ol: ['start']
         },
         selfClosing: ['img', 'br', 'hr'],
         allowedSchemes: ['http', 'https', 'mailto'],
@@ -2391,6 +2423,37 @@ class Browser {
   //
   escapeHTML(text) {
     return sanitizer.escapeAttrib(text == null ? '' : String(text));
+  }
+
+  /**
+   * Validate untrusted JavaScript against a restrictive whitelist policy.
+   *
+   * Parses source with Acorn and walks the AST. Does not execute, evaluate,
+   * modify, or repair the source. Callers supply the policy (allowed objects,
+   * methods, syntax features). Successful validation is not a complete sandbox;
+   * pair with isolated execution (e.g. a Web Worker) and capability messaging.
+   *
+   * @param {string} source
+   * @param {object} [policy]
+   * @returns {{ safe: boolean, errors: Array, warnings: Array }}
+   */
+  sanitizeJS(source, policy = {}) {
+    return sanitizeHelper.sanitizeJS(source, policy);
+  }
+
+  /**
+   * Execute untrusted JavaScript in the persistent sandbox (iframe + Worker).
+   *
+   * Always runs sanitizeJS() first. Creates the sandbox on first use and reuses
+   * it for later calls. Does not evaluate source in the host page context.
+   *
+   * @param {string} source
+   * @param {{ capabilities?: object, data?: object }} [context]
+   * @param {object} [policy]
+   * @returns {Promise<any>}
+   */
+  executeJS(source, options = {}, policy = {}) {
+    return sanitizeHelper.executeJS(source, options, policy);
   }
 
   /**

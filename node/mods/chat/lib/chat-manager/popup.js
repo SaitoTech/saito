@@ -816,6 +816,7 @@ class ChatPopup {
 
           chatPopup.classList.add('maximized');
           chatPopup.querySelector('.resize-icon').style.display = 'none';
+          this.input.focus(true);
         }
       };
     }
@@ -936,6 +937,7 @@ class ChatPopup {
     chatPopup.classList.remove('maximized');
 
     this.activate();
+    this.input.focus(true);
 
     //console.log("Restore: ", this.dimensions);
     if (Object.keys(this.dimensions).length > 0) {

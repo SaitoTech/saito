@@ -1,4 +1,40 @@
 
+    //
+    // final sanity check for NFT-provided cards
+    //
+    const nft = (this.game.options?.nfts || []).find((n) => String(n.id) === String(card));
+    const raw_code = nft?.data?.code || this.game.deck[0]?.cards?.[card]?.code;
+    let code = null;
+    if (typeof raw_code === 'string') {
+      code = raw_code.trim() ? raw_code : null;
+    } else if (Array.isArray(raw_code)) {
+      for (let i = 0; i < raw_code.length; i++) {
+        const entry = raw_code[i];
+        const value = typeof entry === 'string' ? entry : entry && entry.code;
+        if (typeof value === 'string' && value.trim()) {
+          code = value;
+          break;
+        }
+      }
+    }
+    if (typeof code === 'string' && code.trim()) {
+      const api = this.returnApi();
+      const context = this.returnContext(card);
+      // Runs on every client; the script decides any player-specific work.
+      // Script return 0 → pause queue (interactive / endTurn path).
+      // Any other return → continue queue (playEvent returns 1).
+      try {
+        const result = await this.app.browser.executeJS(
+          code,
+          { api, context },
+          { maxExecutionTime: 0 }
+        );
+        return result === 0 ? 0 : 1;
+      } catch (err) {
+        console.error('NFT event failed', card, err);
+        return 0;
+      }
+    }
 
     //
     // return 0 so other cards do not trigger infinite loop

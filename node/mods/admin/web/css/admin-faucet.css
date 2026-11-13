@@ -22,9 +22,9 @@
   margin: 0 0 16px 0;
   padding: 14px 16px;
   border-radius: 10px;
-  border: 1px solid #f2c7c7;
-  background: #fff5f5;
-  color: #a52828;
+  border: 1px solid var(--admin-danger-border, #f2c7c7);
+  background: var(--admin-danger-bg, #fff5f5);
+  color: var(--admin-danger, #a52828);
 }
 
 .admin-faucet-identity {
@@ -33,9 +33,9 @@
   gap: 16px 24px;
   margin: 0 0 24px 0;
   padding: 20px 22px;
-  border: 1px solid #e1e4e8;
+  border: 1px solid var(--admin-border, #e1e4e8);
   border-radius: 14px;
-  background: #f5fbf7;
+  background: var(--admin-accent-subtle, #f5fbf7);
 }
 
 .admin-faucet-identity label,
@@ -43,20 +43,20 @@
   display: block;
   font-size: 13px;
   font-weight: 500;
-  color: #6b7280;
+  color: var(--admin-muted, #6b7280);
   margin-bottom: 4px;
 }
 
 .admin-faucet-balance {
   font-size: 28px;
   font-weight: 600;
-  color: #2c3e50;
+  color: var(--admin-heading, #2c3e50);
   line-height: 1.2;
 }
 
 .admin-faucet-nolan {
   font-size: 13px;
-  color: #6b7280;
+  color: var(--admin-muted, #6b7280);
 }
 
 .admin-faucet-identity label + .admin-faucet-key-row {
@@ -77,7 +77,7 @@
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   font-size: 14px;
   letter-spacing: 0.12em;
-  color: #374151;
+  color: var(--admin-text, #374151);
 }
 
 .admin-faucet-grid {
@@ -90,15 +90,15 @@
 .admin-faucet-stat div {
   font-size: 22px;
   font-weight: 600;
-  color: #111827;
+  color: var(--admin-heading, #111827);
 }
 
 .admin-faucet-settings {
   margin-bottom: 32px;
   padding: 20px 22px;
-  border: 1px solid #e1e4e8;
+  border: 1px solid var(--admin-border, #e1e4e8);
   border-radius: 14px;
-  background: #ffffff;
+  background: var(--admin-surface, #ffffff);
 }
 
 .admin-faucet-settings-header {
@@ -116,7 +116,7 @@
 
 .admin-faucet-settings-header p {
   margin: 0;
-  color: #6b7280;
+  color: var(--admin-muted, #6b7280);
   font-size: 13px;
 }
 
@@ -133,13 +133,13 @@
 
 .admin-faucet-config-saved,
 .admin-faucet-config-status.configured {
-  background: #e8f3ec;
-  color: #2e7d32;
+  background: var(--admin-accent-bg, #e8f3ec);
+  color: var(--admin-accent, #2e7d32);
 }
 
 .admin-faucet-config-status.missing {
-  background: #f3f4f6;
-  color: #6b7280;
+  background: var(--admin-subtle, #f3f4f6);
+  color: var(--admin-muted, #6b7280);
 }
 
 .admin-faucet-config-field {
@@ -155,7 +155,7 @@
 }
 
 .admin-faucet-config-label label {
-  color: #374151;
+  color: var(--admin-text, #374151);
   font-size: 14px;
   font-weight: 600;
 }
@@ -180,7 +180,7 @@
 
 .admin-faucet-toggle small {
   margin-top: 2px;
-  color: #6b7280;
+  color: var(--admin-muted, #6b7280);
   font-size: 13px;
   font-weight: 400;
 }
@@ -210,17 +210,17 @@
   justify-content: center;
   margin-top: 0;
   padding: 8px 14px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--admin-border, #ddd);
   border-radius: 8px;
-  background: #ffffff;
-  color: #444;
+  background: var(--admin-surface, #ffffff);
+  color: var(--admin-text, #444);
   font-size: 14px;
   font-family: inherit;
   cursor: pointer;
 }
 
 .admin-faucet-filters .admin-button-quiet:hover {
-  background: #f5f5f5;
+  background: var(--admin-subtle, #f5f5f5);
 }
 
 .admin-faucet-filters .admin-button-quiet:disabled {
@@ -229,9 +229,9 @@
 }
 
 .admin-faucet-filters .admin-button-quiet.active {
-  background: #e8f3ec;
-  color: #2e7d32;
-  border-color: #cfe6da;
+  background: var(--admin-accent-bg, #e8f3ec);
+  color: var(--admin-accent, #2e7d32);
+  border-color: var(--admin-accent-border, #cfe6da);
 }
 
 .admin-faucet-table {
@@ -244,14 +244,14 @@
   text-align: left;
   font-size: 12px;
   font-weight: 600;
-  color: #6b7280;
+  color: var(--admin-muted, #6b7280);
   padding: 8px 10px;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid var(--admin-border, #e5e7eb);
 }
 
 .admin-faucet-table td {
   padding: 10px;
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid var(--admin-hover, #f0f0f0);
   vertical-align: top;
 }
 
@@ -260,7 +260,7 @@
 }
 
 .admin-faucet-row:hover {
-  background: #f8faf9;
+  background: var(--admin-subtle, #f8faf9);
 }
 
 .admin-faucet-sig,
@@ -271,7 +271,7 @@
 }
 
 .admin-faucet-details td {
-  background: #f9fafb;
+  background: var(--admin-subtle, #f9fafb);
   padding: 14px 10px 18px 10px;
 }
 
@@ -283,12 +283,12 @@
   display: block;
   font-size: 12px;
   font-weight: 600;
-  color: #6b7280;
+  color: var(--admin-muted, #6b7280);
   margin-bottom: 2px;
 }
 
 .admin-faucet-empty {
-  color: #666;
+  color: var(--admin-muted, #666);
 }
 
 @media (max-width: 720px) {

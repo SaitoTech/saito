@@ -1196,55 +1196,50 @@ class SaitoHeader extends UIModTemplate {
           .join('');
       }
 
-      let ab = await preferred_crypto.getAvailableBalance();
-      let pb = await preferred_crypto.getPendingBalance();
-
-      //
-      // insert crypto balance
-      //
-      try {
-        if (preferred_crypto.isActivated()) {
+      const paintPreferredBalance = (balance_el, ab, pb) => {
+        try {
+          if (!preferred_crypto.isActivated() || !balance_el) {
+            return;
+          }
           if (preferred_crypto.categories === 'NFT') {
             if (pb !== ab) {
-              b_elm.classList.add('pending');
-              b_elm.innerHTML = `<span class="balance-amount-whole">${pb}</span>`;
+              balance_el.classList.add('pending');
+              balance_el.innerHTML = `<span class="balance-amount-whole">${pb}</span>`;
             } else {
-              b_elm.classList.remove('pending');
-              b_elm.innerHTML = `<span class="balance-amount-whole">${ab}</span>`;
+              balance_el.classList.remove('pending');
+              balance_el.innerHTML = `<span class="balance-amount-whole">${ab}</span>`;
             }
           } else if (pb !== ab) {
-            b_elm.classList.add('pending');
-            b_elm.innerHTML = this.app.browser.returnBalanceHTML(pb);
+            balance_el.classList.add('pending');
+            balance_el.innerHTML = this.app.browser.returnBalanceHTML(pb);
           } else {
-            b_elm.classList.remove('pending');
-            b_elm.innerHTML = this.app.browser.returnBalanceHTML(ab);
+            balance_el.classList.remove('pending');
+            balance_el.innerHTML = this.app.browser.returnBalanceHTML(ab);
           }
+        } catch (err) {
+          console.error('Error rendering crypto balance: ' + err);
         }
-      } catch (err) {
-        console.error('Error rendering crypto balance: ' + err);
-      }
+      };
 
-      let menu_html = '';
-      for (let i = 0; i < available_cryptos.length; i++) {
-        //
-        // get cryptos available
-        //
-        let crypto_mod = available_cryptos[i];
-        const is_activated = crypto_mod.isActivated();
+      const buildMenuHtml = (balances) => {
+        let menu_html = '';
+        for (let i = 0; i < available_cryptos.length; i++) {
+          let crypto_mod = available_cryptos[i];
+          const is_activated = crypto_mod.isActivated();
+          let rtn_val = crypto_mod.returnLogos();
+          let logo_src = rtn_val.img;
+          let sublogo_src = rtn_val.sub_logo;
 
-        //
-        // mixin handles logos
-        //
-        let rtn_val = crypto_mod.returnLogos();
-        let logo_src = rtn_val.img;
-        let sublogo_src = rtn_val.sub_logo;
+          if (!crypto_mod.ticker) {
+            continue;
+          }
 
-        if (crypto_mod.ticker) {
+          let ab = '0';
+          let pb = '0';
           if (is_activated) {
-            pb = await crypto_mod.getPendingBalance();
-            ab = await crypto_mod.getAvailableBalance();
-          } else {
-            pb = ab = '0';
+            const entry = balances[crypto_mod.ticker] || {};
+            ab = entry.ab ?? crypto_mod.returnDisplayBalance();
+            pb = entry.pb ?? ab;
           }
 
           menu_html += `<div class="saito-header-crypto ${is_activated ? 'active' : 'inactive'} ${crypto_mod.ticker === preferred_crypto.ticker ? 'selected' : ''}" data-ticker="${crypto_mod.ticker}">`;
@@ -1262,19 +1257,69 @@ class SaitoHeader extends UIModTemplate {
 
           menu_html += `</div>`;
         }
-      }
+        return menu_html;
+      };
 
+      // First paint from cache — do not await Mixin / network here.
+      const cached_ab = preferred_crypto.returnDisplayBalance();
+      paintPreferredBalance(b_elm, cached_ab, cached_ab);
       this.app.browser.replaceElementBySelector(
-        `<div class="saito-header-wallet-menu saito-menu-select-subtle">${menu_html}</div>`,
+        `<div class="saito-header-wallet-menu saito-menu-select-subtle">${buildMenuHtml({})}</div>`,
         '.saito-header-wallet-menu'
       );
+
+      // Background refresh; update UI when network responds.
+      if (!this.crypto_balance_refresh_pending) {
+        this.crypto_balance_refresh_pending = true;
+        (async () => {
+          try {
+            const balances = {};
+            const preferred_ab = await preferred_crypto.getAvailableBalance();
+            const preferred_pb = await preferred_crypto.getPendingBalance();
+            balances[preferred_crypto.ticker] = { ab: preferred_ab, pb: preferred_pb };
+
+            for (let i = 0; i < available_cryptos.length; i++) {
+              const crypto_mod = available_cryptos[i];
+              if (!crypto_mod.ticker || !crypto_mod.isActivated()) {
+                continue;
+              }
+              if (crypto_mod.ticker === preferred_crypto.ticker) {
+                continue;
+              }
+              const ab = await crypto_mod.getAvailableBalance();
+              const pb = await crypto_mod.getPendingBalance();
+              balances[crypto_mod.ticker] = { ab, pb };
+            }
+
+            if (!document.getElementById('saito-header')) {
+              return;
+            }
+
+            paintPreferredBalance(
+              document.querySelector('.balance-amount'),
+              preferred_ab,
+              preferred_pb
+            );
+            this.app.browser.replaceElementBySelector(
+              `<div class="saito-header-wallet-menu saito-menu-select-subtle">${buildMenuHtml(balances)}</div>`,
+              '.saito-header-wallet-menu'
+            );
+            this.bindCryptoMenuClicks();
+          } catch (err) {
+            console.error('Error refreshing crypto balances: ' + err);
+          } finally {
+            this.crypto_balance_refresh_pending = false;
+          }
+        })();
+      }
     } catch (err) {
       console.error('Error rendering crypto selector: ' + err);
     }
 
-    //
-    //
-    //
+    this.bindCryptoMenuClicks();
+  }
+
+  bindCryptoMenuClicks() {
     Array.from(document.querySelectorAll('.saito-header-crypto')).forEach((c) => {
       c.onclick = async (e) => {
         const ticker = e.currentTarget.dataset.ticker;

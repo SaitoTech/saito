@@ -60,7 +60,7 @@ class Steamed extends GameTemplate {
       class: 'game-rules',
       callback: function (app, game_mod) {
         game_mod.menu.hideSubMenus();
-        game_mod.overlay.show(game_mod.returnGameRulesHTML());
+        game_mod.overlay.showClosable(game_mod.returnGameRulesHTML());
       }
     });
 

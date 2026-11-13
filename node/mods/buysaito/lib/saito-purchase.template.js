@@ -1,5 +1,4 @@
 module.exports = (app, mod, self) => {
-  const explorer = mod.returnPaymentAddressExplorer(self.crypto_selected, self.destination);
   const processing = self.internal_payment_pending;
   return `
     <div class="buysaito-payment-box saito-overlay-panel saito-overlay-size${processing ? ' buysaito-payment-processing' : ''}">
@@ -33,21 +32,10 @@ module.exports = (app, mod, self) => {
         <div class="product-desc">${self.description || `Purchase ${app.browser.formatDecimals(self.amount, true)} SAITO`}</div>
       </div>
 
-      <div class="instructions" role="status">
-        This screen will update automatically when your payment is detected.
+      <div class="payment-status" role="status">
+        <p>This screen will update when your payment is detected.</p>
+        <p>Need support? Email <a href="mailto:info@saito.io">info@saito.io</a> for assistance.</p>
       </div>
-
-      <details class="help">
-        <summary>Help</summary>
-        <div class="help-content">
-          <a class="support-email" href="mailto:support@saito.io">support@saito.io</a>
-          ${
-            explorer
-              ? `<a href="${explorer}" target="_blank" rel="noopener noreferrer">check transactions to payment address</a>`
-              : '<span>Address explorer unavailable for this network.</span>'
-          }
-        </div>
-      </details>
       ${
         processing
           ? `<div class="payment-processing-overlay" role="status" aria-live="polite">

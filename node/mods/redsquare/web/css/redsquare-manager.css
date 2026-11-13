@@ -121,6 +121,7 @@
 
 .manager .feed-status .loader,
 .manager .feed-status .message,
+.manager .feed-status .check-again,
 .manager .feed-status .retry {
   display: none;
 }
@@ -156,8 +157,9 @@
 .manager .feed-status[data-status='end'] .message,
 .manager .feed-status[data-status='unavailable'] .message,
 .manager .feed-status[data-status='error'] .message,
-.manager .feed-status[data-status='unavailable'] .retry,
-.manager .feed-status[data-status='error'] .retry {
+.manager .feed-status[data-status='unavailable'] .retry:not([hidden]),
+.manager .feed-status[data-status='error'] .retry:not([hidden]),
+.manager .feed-status[data-status='error'] .check-again:not([hidden]) {
   display: block;
 }
 

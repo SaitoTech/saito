@@ -9,6 +9,8 @@ class Listing {
     this.category = data.category || STORE_CATEGORIES.OTHER;
     this.quantity = data.quantity ?? 1;
     this.price = data.price ?? 0;
+    this.web3_ticker = String(data.web3_ticker || '').trim().toUpperCase();
+    this.web3_amount = String(data.web3_amount || '').trim();
     this.access_hash = data.access_hash || '';
     this.access_script = data.access_script || '';
     this.p2sh_address = data.p2sh_address || '';

@@ -29,6 +29,20 @@ function setAutoSubmitListings(app, enabled) {
   app.storage.saveOptions();
 }
 
+function isStoreWeb3Active(app) {
+  return ensureStoreOptions(app).web3_active === true;
+}
+
+function markStoreWeb3Active(app) {
+  const store = ensureStoreOptions(app);
+  if (store.web3_active === true) {
+    return false;
+  }
+  store.web3_active = true;
+  app.storage?.saveOptions?.();
+  return true;
+}
+
 function isSubmitToMainStoreChecked(root) {
   const checkbox = root?.querySelector?.('[data-action="submit-main-store"]');
   return !!checkbox?.checked;
@@ -225,6 +239,8 @@ function scheduleSubmitAfterListingConfirmed(app, mod, signature) {
 
 module.exports = {
   ensureStoreOptions,
+  isStoreWeb3Active,
+  markStoreWeb3Active,
   isAutoSubmitListings,
   hasAutoSubmitBeenSelected,
   setAutoSubmitListings,

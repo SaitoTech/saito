@@ -722,8 +722,7 @@ export default class Wallet extends SaitoWallet {
 
       delete this.app.options.pending_txs;
 
-      console.info(`Recovered ${pending_txs.length} saved pending transaction(s)`);
-
+      const savedPendingCount = pending_txs.length;
       for (let i = pending_txs.length - 1, k = 0; i >= 0; i--, k++) {
         try {
           const serializedTx =
@@ -744,9 +743,19 @@ export default class Wallet extends SaitoWallet {
 
           if (newtx.timestamp > new Date().getTime() - 85000000) {
             await this.app.wallet.addTransactionToPending(newtx, false);
+          } else {
+            pending_txs.splice(i, 1);
           }
         } catch (err) {
           console.error(`Failed to restore pending transaction at index ${i}:`, err);
+        }
+      }
+      this.app.options.pending_txs = pending_txs;
+      if (pending_txs.length !== savedPendingCount) {
+        if (this.app.BROWSER) {
+          await this.app.storage.setLocalForageItem('pending_txs', pending_txs);
+        } else {
+          this.app.storage.saveOptions();
         }
       }
 

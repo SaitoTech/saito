@@ -8,11 +8,10 @@ function emptyDocument() {
   return {
     document: {
       name: '',
-      pdf: '',
+      pdf: [],
       page_count: 0,
       page_width: 0,
-      page_height: 0,
-      url: ''
+      page_height: 0
     },
     users: [],
     actions: [],
@@ -29,14 +28,51 @@ function isPdf(file) {
   return type === 'application/pdf' || name.endsWith('.pdf');
 }
 
+function pdfEntries(record) {
+  return Array.isArray(record?.document?.pdf) ? record.document.pdf : [];
+}
+
+function hasPdf(record) {
+  return pdfEntries(record).some((entry) => entry && String(entry.pdf || '').trim());
+}
+
+function summarizePdfs(record, pdfs) {
+  const list = Array.isArray(pdfs) ? pdfs : [];
+  record.document.pdf = list;
+  record.document.name = list[0]?.name || 'document.pdf';
+  record.document.page_count = list.reduce((total, entry) => total + (Number(entry.page_count) || 0), 0);
+  record.document.page_width = Number(list[0]?.page_width) || 0;
+  record.document.page_height = Number(list[0]?.page_height) || 0;
+  return record;
+}
+
+function pageSource(record, page) {
+  const wanted = Number(page);
+  if (!Number.isInteger(wanted) || wanted < 1) {
+    return null;
+  }
+  let remaining = wanted;
+  const list = pdfEntries(record);
+  for (let index = 0; index < list.length; index += 1) {
+    const entry = list[index];
+    const count = Number(entry?.page_count) || 0;
+    if (remaining <= count) {
+      return { entry, index, localPage: remaining };
+    }
+    remaining -= count;
+  }
+  return null;
+}
+
 function revoke(record) {
-  const url = record?.document?.url;
-  if (url && typeof URL.revokeObjectURL === 'function') {
-    URL.revokeObjectURL(url);
-  }
-  if (record?.document) {
-    record.document.url = '';
-  }
+  pdfEntries(record).forEach((entry) => {
+    if (entry?.url && typeof URL.revokeObjectURL === 'function') {
+      URL.revokeObjectURL(entry.url);
+    }
+    if (entry) {
+      entry.url = '';
+    }
+  });
 }
 
 function canEdit(record, actorKey) {
@@ -151,6 +187,10 @@ function addAction(record, action, actorKey) {
     width: action.width,
     height: action.height
   };
+  const group = String(action.group || '').trim();
+  if (group) {
+    next.group = group;
+  }
   record.actions.push(next);
   stripSignatures(record);
   record.edited = true;
@@ -168,13 +208,58 @@ function actionById(record, id) {
   return record.actions.find((action) => action.id === wanted) || null;
 }
 
-function removeAction(record, id, actorKey) {
+function documentPageSpan(record, page) {
+  const source = pageSource(record, page);
+  if (!source) {
+    return null;
+  }
+  const list = pdfEntries(record);
+  let start = 1;
+  for (let index = 0; index < source.index; index += 1) {
+    start += Number(list[index]?.page_count) || 0;
+  }
+  const count = Number(source.entry?.page_count) || 0;
+  if (count < 1) {
+    return null;
+  }
+  return { index: source.index, start, end: start + count - 1 };
+}
+
+function removeAction(record, id, actorKey, scope) {
   if (!canEdit(record, actorKey)) {
     return;
   }
   const wanted = Number(id);
+  const target = record.actions.find((action) => action.id === wanted);
+  if (!target) {
+    return;
+  }
+  if (scope != null && scope !== 'all' && scope !== 'document' && scope !== 'instance') {
+    return;
+  }
+  const group = String(target.group || '').trim();
+  const mode = scope || (group ? 'all' : 'instance');
   const before = record.actions.length;
-  record.actions = record.actions.filter((action) => action.id !== wanted);
+
+  if (mode === 'instance' || !group) {
+    record.actions = record.actions.filter((action) => action.id !== wanted);
+  } else if (mode === 'document') {
+    const span = documentPageSpan(record, target.page);
+    if (!span) {
+      record.actions = record.actions.filter((action) => action.id !== wanted);
+    } else {
+      record.actions = record.actions.filter((action) => {
+        if (String(action.group || '').trim() !== group) {
+          return true;
+        }
+        const page = Number(action.page);
+        return page < span.start || page > span.end;
+      });
+    }
+  } else {
+    record.actions = record.actions.filter((action) => String(action.group || '').trim() !== group);
+  }
+
   if (record.actions.length !== before) {
     record.edited = true;
   }
@@ -202,14 +287,25 @@ function copyVerification(entry) {
   return next;
 }
 
+function copyPdfEntry(entry) {
+  return {
+    name: entry?.name || '',
+    pdf: entry?.pdf || '',
+    page_count: entry?.page_count || 0,
+    page_width: entry?.page_width || 0,
+    page_height: entry?.page_height || 0
+  };
+}
+
 function copy(record) {
+  const pdfs = pdfEntries(record).map(copyPdfEntry);
   const next = {
     document: {
-      name: record.document?.name || '',
-      pdf: record.document?.pdf || '',
-      page_count: record.document?.page_count || 0,
-      page_width: record.document?.page_width || 0,
-      page_height: record.document?.page_height || 0
+      name: record.document?.name || pdfs[0]?.name || '',
+      pdf: pdfs,
+      page_count: record.document?.page_count || pdfs.reduce((total, entry) => total + (entry.page_count || 0), 0),
+      page_width: record.document?.page_width || pdfs[0]?.page_width || 0,
+      page_height: record.document?.page_height || pdfs[0]?.page_height || 0
     },
     users: (record.users || []).map((user) => ({
       name: user.name || '',
@@ -227,16 +323,23 @@ function copy(record) {
         return next;
       })
     })),
-    actions: (record.actions || []).map((action) => ({
-      id: action.id,
-      type: action.type,
-      user: action.user,
-      page: action.page,
-      x: action.x,
-      y: action.y,
-      width: action.width,
-      height: action.height
-    }))
+    actions: (record.actions || []).map((action) => {
+      const next = {
+        id: action.id,
+        type: action.type,
+        user: action.user,
+        page: action.page,
+        x: action.x,
+        y: action.y,
+        width: action.width,
+        height: action.height
+      };
+      const group = String(action.group || '').trim();
+      if (group) {
+        next.group = group;
+      }
+      return next;
+    })
   };
   next.creator = String(record.creator || '');
   next.finalized = record.finalized === true;
@@ -250,15 +353,23 @@ function copy(record) {
 }
 
 async function openPdf(file) {
+  return openPdfs([file]);
+}
+
+async function openPdfs(files) {
   const record = emptyDocument();
-  record.document = await readFile(file);
-  return record;
+  const list = [];
+  for (const file of files || []) {
+    list.push(await readFile(file));
+  }
+  if (!list.length) {
+    throw new Error('not a pdf');
+  }
+  return summarizePdfs(record, list);
 }
 
 async function hydrate(saved) {
   const record = emptyDocument();
-  record.document.name = saved.document?.name || 'document.pdf';
-  record.document.pdf = saved.document?.pdf || '';
   record.users = Array.isArray(saved.users) ? saved.users : [];
   record.actions = Array.isArray(saved.actions) ? saved.actions : [];
   record.creator = String(saved.creator || '');
@@ -270,8 +381,19 @@ async function hydrate(saved) {
   if (saved.metadata && typeof saved.metadata === 'object') {
     record.metadata = saved.metadata;
   }
-  const parsed = await readBase64(record.document.pdf, record.document.name);
-  record.document = parsed;
+  const entries = Array.isArray(saved.document?.pdf) ? saved.document.pdf : [];
+  const present = entries.filter((entry) => String(entry?.pdf || '').trim());
+  if (!present.length) {
+    throw new Error('The stored document did not contain a PDF.');
+  }
+  const list = [];
+  for (const entry of present) {
+    list.push(await readBase64(entry.pdf, entry?.name || saved.document?.name || 'document.pdf'));
+  }
+  summarizePdfs(record, list);
+  if (saved.document?.name) {
+    record.document.name = saved.document.name;
+  }
   return record;
 }
 
@@ -809,6 +931,9 @@ module.exports = {
   ACTION_TYPES,
   emptyDocument,
   isPdf,
+  hasPdf,
+  pdfEntries,
+  pageSource,
   revoke,
   addUser,
   resolveSigner,
@@ -821,5 +946,6 @@ module.exports = {
   actionsOnPage,
   copy,
   openPdf,
+  openPdfs,
   hydrate
 };

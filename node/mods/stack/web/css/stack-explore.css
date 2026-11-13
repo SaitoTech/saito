@@ -181,28 +181,15 @@
 
 .explore .help {
   margin-top: auto;
+  padding: 1.5rem;
   border-top: 1px solid var(--saito-border);
   background: color-mix(in srgb, var(--saito-background) 98%, var(--saito-foreground) 2%);
-  opacity: 0.7;
-  cursor: pointer;
 }
 
-.explore .help p {
+.explore .help button {
+  width: 100%;
+  min-width: 0;
   margin: 0;
-  padding: 1.5rem 2rem;
-  font-size: 1.4rem;
-  line-height: 1.5;
-  color: var(--saito-foreground);
-  font-weight: 400;
-}
-
-.explore .help.hide-help > p,
-.explore .help > .item {
-  display: none;
-}
-
-.explore .help.hide-help > .item {
-  display: flex;
 }
 
 .explore .main {
@@ -325,6 +312,12 @@
   align-items: center;
   min-height: 200px;
   padding: 4rem 2rem;
+}
+
+.explore .stack-feed-more {
+  text-align: center;
+  padding: 1rem;
+  color: var(--saito-muted-foreground);
 }
 
 .explore .loading-inner {
@@ -482,10 +475,6 @@
       border-left: 3px solid var(--saito-primary);
       padding-left: calc(1.5rem - 3px);
     }
-  }
-
-  .explore .help {
-    padding: 1.5rem;
   }
 
   .explore .main {

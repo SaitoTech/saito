@@ -1,5 +1,11 @@
 const ModTemplate = require('../../lib/templates/modtemplate');
 const PeerService = require('saito-js/lib/peer_service').default;
+const MailRelayAdmin = require('./lib/admin/mailrelay-admin');
+const {
+  parseSendgridConfig,
+  resolveSendgridTransport,
+  redactSendgridConfig
+} = require('./lib/config');
 
 class MailRelay extends ModTemplate {
   constructor(app) {
@@ -21,7 +27,7 @@ class MailRelay extends ModTemplate {
     app.connection.on('mailrelay-send-email', async (data) => {
       console.log('mailrelay-send-email request');
       if (this.services.length > 0) {
-        this.sendMail(data);
+        Promise.resolve(this.sendMail(data)).catch((err) => console.error(err));
       } else {
         this.sendMailRelayTransaction(data);
       }
@@ -37,9 +43,7 @@ class MailRelay extends ModTemplate {
       return;
     }
 
-    if (process.env.SENDGRID) {
-      this.services.push(new PeerService(null, 'mailrelay', 'Mail Relay Service'));
-    }
+    this.ensureMailRelayService();
 
     if (this.services.length) {
       console.log('I am a mail relay :)');
@@ -61,7 +65,7 @@ class MailRelay extends ModTemplate {
       email.text = 'Just a quick note to let you know that test net just spun up.';
     }
 
-    this.sendMail(email);
+    Promise.resolve(this.sendMail(email)).catch((err) => console.error(err));
   }
 
   async handlePeerTransaction(app, tx, peer, callback) {
@@ -72,7 +76,7 @@ class MailRelay extends ModTemplate {
 
     if (message.module == this.name) {
       if (message.request == 'send email') {
-        this.sendMail(message.data);
+        Promise.resolve(this.sendMail(message.data)).catch((err) => console.error(err));
         return 1;
       }
     }
@@ -112,7 +116,7 @@ class MailRelay extends ModTemplate {
   //
   sendMail(email) {
     if (this.app.BROWSER) {
-      return;
+      return Promise.resolve(false);
     }
 
     console.info('sending email...', email);
@@ -156,33 +160,139 @@ class MailRelay extends ModTemplate {
 
     if (!email.to) {
       console.error('Invalid email: ', email);
-      return;
+      return Promise.reject(new Error('The invitation email has no recipient.'));
+    }
+
+    let transport;
+    try {
+      transport = this.sendgridTransport();
+    } catch (err) {
+      console.error('Error sending mail: ' + err);
+      return Promise.reject(err);
+    }
+    if (!transport) {
+      return Promise.reject(new Error('The mail relay has no SendGrid transport configured.'));
     }
 
     try {
-      let credentials = {};
-      if (process.env.SENDGRID) {
-        credentials = JSON.parse(process.env.SENDGRID);
-      }
-
       const nodemailer = require('nodemailer');
-
-      let transporter = nodemailer.createTransport(credentials);
-      transporter.sendMail(email, (err, info) => {
-        if (info) {
-          console.log(info.envelope);
-          console.log(info.messageId);
-        } else {
-          console.error(err);
-        }
+      const transporter = nodemailer.createTransport(transport.config);
+      return new Promise((resolve, reject) => {
+        transporter.sendMail(email, (err, info) => {
+          if (err) {
+            console.error(err);
+            reject(err);
+            return;
+          }
+          if (info) {
+            console.log(info.envelope);
+            console.log(info.messageId);
+          }
+          resolve(info || true);
+        });
       });
     } catch (err) {
       console.error('Error sending mail: ' + err);
+      return Promise.reject(err);
     }
   }
 
   returnServices() {
     return this.services;
+  }
+
+  /**
+   * Prefer process.env.SENDGRID. When it is absent, use the transport stored
+   * at app.options.sendgrid.config.
+   */
+  sendgridTransport() {
+    return resolveSendgridTransport(process.env.SENDGRID, this.app?.options);
+  }
+
+  ensureMailRelayService() {
+    if (this.app.BROWSER || this.services.length > 0) {
+      return;
+    }
+    let transport = null;
+    try {
+      transport = this.sendgridTransport();
+    } catch (err) {
+      console.error('Error reading SendGrid configuration: ' + err);
+      return;
+    }
+    if (!transport) {
+      return;
+    }
+    this.services.push(new PeerService(null, 'mailrelay', 'Mail Relay Service'));
+  }
+
+  adminSnapshot() {
+    const transport = this.sendgridTransport();
+    if (!transport) {
+      return { configured: false, active: false, source: '', config: null };
+    }
+    this.ensureMailRelayService();
+    return {
+      configured: true,
+      active: this.services.length > 0,
+      source: transport.source,
+      config: redactSendgridConfig(transport.config)
+    };
+  }
+
+  saveSendgridConfig(raw) {
+    if (process.env.SENDGRID && String(process.env.SENDGRID).trim()) {
+      throw new Error('SendGrid is already supplied by the server environment');
+    }
+
+    const config = parseSendgridConfig(raw);
+    if (
+      !this.app.options.sendgrid ||
+      typeof this.app.options.sendgrid !== 'object' ||
+      Array.isArray(this.app.options.sendgrid)
+    ) {
+      this.app.options.sendgrid = {};
+    }
+    this.app.options.sendgrid.config = config;
+    if (this.app.storage?.saveOptions) {
+      this.app.storage.saveOptions();
+    }
+    this.ensureMailRelayService();
+    return this.adminSnapshot();
+  }
+
+  respondTo(type = '') {
+    if (type === 'admin-config') {
+      return {
+        id: this.returnSlug(),
+        name: this.name,
+        getConfig: async () => this.adminSnapshot(),
+        updateConfig: async (data = {}) => {
+          if (data.action === 'save-config') {
+            return this.saveSendgridConfig(data.config);
+          }
+          throw new Error('Unknown SendGrid configuration action');
+        }
+      };
+    }
+
+    if (type === 'admin-sidebar') {
+      if (!this.app.BROWSER) {
+        return null;
+      }
+      return {
+        id: 'sendgrid',
+        name: 'Sendgrid',
+        render: () => {
+          if (!this.admin_ui) {
+            this.admin_ui = new MailRelayAdmin(this.app, this);
+          }
+          this.admin_ui.render();
+        }
+      };
+    }
+
+    return super.respondTo(type);
   }
 }
 

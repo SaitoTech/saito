@@ -37,7 +37,9 @@ class Solitrio extends OnePlayerGameTemplate {
 
   loadSettings(container = null) {
     if (!container) {
-      this.overlay.show(`<div class="module-settings-overlay"><h2>Solitrio Settings</h2></div>`);
+      this.overlay.showClosable(
+        `<div class="module-settings-overlay"><h2>Solitrio Settings</h2></div>`
+      );
       container = '.module-settings-overlay';
     }
     let as = new SolitrioGameOptions(this.app, this, container);
@@ -143,7 +145,7 @@ class Solitrio extends OnePlayerGameTemplate {
       class: 'game-intro',
       callback: function (app, game_mod) {
         game_mod.menu.hideSubMenus();
-        game_mod.overlay.show(game_mod.returnGameRulesHTML());
+        game_mod.overlay.showClosable(game_mod.returnGameRulesHTML());
       }
     });
 
@@ -153,7 +155,7 @@ class Solitrio extends OnePlayerGameTemplate {
       class: 'game-stats',
       callback: function (app, game_mod) {
         game_mod.menu.hideSubMenus();
-        game_mod.overlay.show(game_mod.returnStatsHTML('Solitrio'));
+        game_mod.overlay.showClosable(game_mod.returnStatsHTML('Solitrio'));
       }
     });
 
@@ -220,7 +222,7 @@ class Solitrio extends OnePlayerGameTemplate {
         // Any way of dismissing the overlay other than "Go back" concedes
         // the round. overlay.close() runs this callback exactly once
         // (hide() would fire it too, so the buttons must not call hide)
-        this.overlay.show(this.returnStatsHTML('Game over', 1), async () => {
+        this.overlay.showClosable(this.returnStatsHTML('Game over', 1), async () => {
           this.prependMove('lose');
           await this.clearTable();
           this.endTurn();
@@ -651,7 +653,7 @@ class Solitrio extends OnePlayerGameTemplate {
       if (mv[0] === 'win') {
         this.game.state.session.round++;
         this.game.state.session.wins++;
-        this.overlay.show(this.returnStatsHTML('Congratulations!'), () => {
+        this.overlay.showClosable(this.returnStatsHTML('Congratulations!'), () => {
           this.newRound();
           this.game.queue.push(
             `ROUNDOVER\t${JSON.stringify([this.publicKey])}\troundover\t${JSON.stringify([])}`

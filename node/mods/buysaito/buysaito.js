@@ -8,18 +8,6 @@ const SaitoPurchaseOverlay = require('./lib/saito-purchase');
 
 const EXCLUDED_PAYMENT_TICKERS = new Set(['ERC-SAITO', 'BEP-SAITO']);
 
-// Mixin chain IDs identify the deposit network, including tokens sharing a ticker.
-const PAYMENT_ADDRESS_EXPLORERS = Object.freeze({
-  '43d61dcd-e413-450d-80b8-101d5e903357': 'https://etherscan.io/address/',
-  '1949e683-6a08-49e2-b087-d6b72398588f': 'https://bscscan.com/address/',
-  'c6d0c728-2624-429b-8e0d-d9d19b6592fa': 'https://mempool.space/address/',
-  '64692c23-8971-4cf4-84a7-4dd1271dd887': 'https://explorer.solana.com/address/',
-  '25dabac5-056a-48ff-b9f9-f67395dc407c': 'https://tronscan.org/#/address/',
-  'cbc77539-0a20-4666-8c8a-4ded62b36f0a': 'https://subnets.avax.network/c-chain/address/',
-  'fd11b6e3-0b87-41f1-a41f-f0e9b49e5bf0': 'https://www.blockchain.com/explorer/addresses/bch/',
-  EGLD: 'https://explorer.multiversx.com/accounts/'
-});
-
 function isAvailablePaymentCurrency(currency) {
   return Boolean(currency?.ticker) && !EXCLUDED_PAYMENT_TICKERS.has(currency.ticker);
 }
@@ -102,6 +90,9 @@ class BuySaito extends ModTemplate {
 
       setTimeout(async () => {
         try {
+          if (this.mixin_mod?.transfers) {
+            return;
+          }
           if (this.mixin_mod && this.authorized_public_key === this.publicKey) {
             const account = await this.mixin_mod.createAccount();
             if (account?.err || !this.mixin_mod.account_created) {
@@ -125,7 +116,7 @@ class BuySaito extends ModTemplate {
 
   returnServices() {
     let services = [];
-    if (!this.app.BROWSER) {
+    if (!this.app.BROWSER && !this.app.modules?.returnModule?.('Mixin')?.transfers) {
       if (this.publicKey == this.authorized_public_key) {
         services.push(new PeerService(null, 'buysaito'));
       }
@@ -196,6 +187,12 @@ class BuySaito extends ModTemplate {
     }
 
     if (typeof txmsg?.request === 'string' && txmsg.request.includes('buysaito')) {
+      if (!this.app.BROWSER && this.app.modules?.returnModule?.('Mixin')?.transfers) {
+        return 0;
+      }
+      if (this.app.BROWSER && this.app.modules?.returnModule?.('Mixin')?.purchase_overlay) {
+        return 0;
+      }
       console.debug(txmsg);
 
       if (txmsg.request == 'buysaito available currencies') {
@@ -317,6 +314,9 @@ class BuySaito extends ModTemplate {
    * The independent timer keeps deposit detection running between blocks.
    */
   async onNewBlock(blk, lc) {
+    if (!this.app.BROWSER && this.app.modules?.returnModule?.('Mixin')?.transfers) {
+      return;
+    }
     if (this.service_ready && this.publicKey == this.authorized_public_key && !this.app.BROWSER) {
       await this.confirmIssuedPaymentsInBlock(blk, lc);
       await this.processPendingPayments();
@@ -460,28 +460,6 @@ class BuySaito extends ModTemplate {
   //
   // Check what mixin-supported web3 cryptos are on the service node
   //
-  returnPaymentAddressExplorer(currency, address) {
-    if (!currency || !address) return '';
-    const localCurrency = this.app.wallet?.returnCryptoModuleByTicker?.(currency.ticker);
-    if (currency.ticker === 'EGLD') {
-      // EGLD is configured independently of Mixin and may use testnet or devnet.
-      const configured = currency.explorer_url || localCurrency?.options?.explorer_url;
-      if (configured) {
-        try {
-          const url = new URL(configured);
-          if (url.protocol !== 'https:') return '';
-          return `${url.origin}/accounts/${encodeURIComponent(address)}`;
-        } catch (_err) {
-          return '';
-        }
-      }
-      return PAYMENT_ADDRESS_EXPLORERS.EGLD + encodeURIComponent(address);
-    }
-    const chainId = currency.chain_id || localCurrency?.chain_id;
-    const base = PAYMENT_ADDRESS_EXPLORERS[chainId];
-    return base ? base + encodeURIComponent(address) : '';
-  }
-
   loadAvailableCryptos() {
     if (!this.mixin_mod) {
       console.error('BUYSAITO - No mixin module -- loadAvailableCryptos');
