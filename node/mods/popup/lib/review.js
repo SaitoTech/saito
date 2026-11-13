@@ -25,14 +25,11 @@ class ReviewOverlay {
 
   attachEvents() {
     document.querySelectorAll('.option').forEach((el) => {
-      el.bind('mouseover', function () {
-        $(this).addClass('option_hover');
+      el.addEventListener('mouseover', function () {
+        this.classList.add('option_hover');
       });
-    });
-
-    document.querySelectorAll('.option').forEach((el) => {
-      el.bind('mouseout', function () {
-        $(this).addClass('option_hover');
+      el.addEventListener('mouseout', function () {
+        this.classList.remove('option_hover');
       });
     });
   }

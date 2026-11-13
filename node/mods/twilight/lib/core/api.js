@@ -159,6 +159,77 @@ function clearCountryHighlights(ids) {
   }
 }
 
+function localFaction(mod) {
+  const seat = mod.game ? mod.game.player : null;
+  const role = mod.roles && Number.isInteger(seat) ? mod.roles[seat] : null;
+  if (role === 'us' || role === 'ussr') {
+    return role;
+  }
+  return null;
+}
+
+function eventingFaction(mod) {
+  const fromEvent = mod.game && mod.game.state ? mod.game.state.eventing_player : null;
+  if (fromEvent === 'us' || fromEvent === 'ussr') {
+    return fromEvent;
+  }
+  return null;
+}
+
+function isEventingClient(mod) {
+  const eventing = eventingFaction(mod);
+  return eventing != null && localFaction(mod) === eventing;
+}
+
+function requireEventingActor(mod, label) {
+  if (!isEventingClient(mod)) {
+    throw new Error(`${label}: not the eventing player`);
+  }
+  return eventingFaction(mod);
+}
+
+function requireCountry(mod, country, label) {
+  if (typeof country !== 'string' || !country) {
+    throw new Error(`${label}: expected a country id`);
+  }
+  if (!mod.countries || !mod.countries[country]) {
+    throw new Error(`${label}: unknown country: ${country}`);
+  }
+  return country;
+}
+
+function requireAmount(amount, label) {
+  const n = amount == null ? 1 : amount;
+  if (!Number.isInteger(n) || n < 1) {
+    throw new Error(`${label}: amount must be a positive integer`);
+  }
+  return n;
+}
+
+function requireFaction(faction, fallback, label) {
+  const value = faction == null ? fallback : faction;
+  if (value !== 'us' && value !== 'ussr') {
+    throw new Error(`${label}: faction must be "us" or "ussr"`);
+  }
+  return value;
+}
+
+function readInfluence(mod, country, faction) {
+  const record = mod.countries[country];
+  const raw = faction === 'us' ? record.us : record.ussr;
+  const n = parseInt(raw, 10);
+  return Number.isFinite(n) ? n : 0;
+}
+
+function queuePlayerMove(mod, instruction) {
+  mod._sandbox_player_action = true;
+  if (mod.cardgen_testing && mod.game && Array.isArray(mod.game.queue)) {
+    mod.game.queue.push(instruction);
+    return;
+  }
+  mod.addMove(instruction);
+}
+
 module.exports = {
   TWILIGHT_QUEUE_COMMANDS,
   isSandboxInstructionPermitted,
@@ -323,5 +394,108 @@ module.exports = {
    */
   advanceSpaceRace: function (player, withOSS = false) {
     return this.advanceSpaceRace(player, withOSS);
+  },
+
+  /**
+   * Run fn only on the client whose seat is the eventing faction.
+   * Other clients return 0 so playEvent pauses until that client's moves arrive.
+   * A card-studio test continues the local queue when fn does not return 0,
+   * so the test can reach its restore step.
+   */
+  asEventingPlayer: async function (fn) {
+    if (typeof fn !== 'function') {
+      throw new Error('asEventingPlayer: expected a function');
+    }
+    if (!isEventingClient(this)) {
+      return 0;
+    }
+    const result = await fn();
+    if (result === 0) {
+      return 0;
+    }
+    if (this.cardgen_testing) {
+      return result == null ? 1 : result;
+    }
+    return result == null ? 0 : result;
+  },
+
+  /**
+   * Place influence for the eventing client and queue the peer replay.
+   * faction is whose counters change; it defaults to the eventing player.
+   * The queued origin is always the eventing player, who already applied it.
+   *
+   * Add 2 influence in Egypt for the eventing player:
+   *
+   *   return await api.asEventingPlayer(async () => {
+   *     await api.playerPlaceInfluence("egypt", 2);
+   *     await api.endTurn();
+   *   });
+   *
+   * Add 3 Soviet influence in France:
+   *
+   *   await api.playerPlaceInfluence("france", 3, "ussr");
+   */
+  playerPlaceInfluence: async function (country, amount, faction) {
+    const eventing = requireEventingActor(this, 'playerPlaceInfluence');
+    const id = requireCountry(this, country, 'playerPlaceInfluence');
+    const n = requireAmount(amount, 'playerPlaceInfluence');
+    const side = requireFaction(faction, eventing, 'playerPlaceInfluence');
+    this.placeInfluence(id, n, side);
+    queuePlayerMove(this, `place\t${eventing}\t${side}\t${id}\t${n}`);
+    return { country: id, faction: side, amount: n };
+  },
+
+  /**
+   * Remove influence for the eventing client and queue the peer replay.
+   * removed is the amount actually taken after the zero clamp.
+   *
+   * Remove 2 influence in Egypt from the eventing player:
+   *
+   *   return await api.asEventingPlayer(async () => {
+   *     await api.playerRemoveInfluence("egypt", 2);
+   *     await api.endTurn();
+   *   });
+   *
+   * Remove 4 American influence from West Germany:
+   *
+   *   await api.playerRemoveInfluence("westgermany", 4, "us");
+   */
+  playerRemoveInfluence: async function (country, amount, faction) {
+    const eventing = requireEventingActor(this, 'playerRemoveInfluence');
+    const id = requireCountry(this, country, 'playerRemoveInfluence');
+    const n = requireAmount(amount, 'playerRemoveInfluence');
+    const side = requireFaction(faction, eventing, 'playerRemoveInfluence');
+    const before = readInfluence(this, id, side);
+    this.removeInfluence(id, n, side);
+    const removed = before - readInfluence(this, id, side);
+    queuePlayerMove(this, `remove\t${eventing}\t${side}\t${id}\t${n}`);
+    return { country: id, faction: side, amount: n, removed };
+  },
+
+  /**
+   * Roll a realignment on the eventing client and queue the peer replay.
+   * faction must be the eventing player: the realign instruction uses that
+   * field as the client that already rolled.
+   * Each call is one roll. Call it once per roll, then endTurn once.
+   *
+   * Realign Italy 3 times:
+   *
+   *   return await api.asEventingPlayer(async () => {
+   *     for (let n = 0; n < 3; n++) {
+   *       await api.playerRealign("italy");
+   *     }
+   *     await api.endTurn();
+   *   });
+   */
+  playerRealign: async function (country, faction) {
+    const eventing = requireEventingActor(this, 'playerRealign');
+    const id = requireCountry(this, country, 'playerRealign');
+    const side = requireFaction(faction, eventing, 'playerRealign');
+    if (side !== eventing) {
+      throw new Error('playerRealign: faction must be the eventing player');
+    }
+    const result = this.playRealign(side, id);
+    queuePlayerMove(this, `realign\t${side}\t${id}`);
+    return result;
   }
 };

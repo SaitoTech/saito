@@ -51,16 +51,22 @@ class LessonManager {
 
     this.showLoader();
 
-    if (this.mod.lessons.length == 0) {
+    const lessons = this.mod.catalog.getByCategory(level);
+    if (this.mod.catalog.getAll().length == 0) {
       this.waiting_to_display = true;
     } else {
       this.waiting_to_display = false;
     }
 
-    for (let i = 0; i < this.mod.lessons.length; i++) {
-      if (level === 'all' || this.mod.lessons[i].userslug === level) {
-        this.app.browser.addElementToSelector(TeaserTemplate(this.mod.lessons[i]), '.lessons');
-      }
+    for (let i = 0; i < lessons.length; i++) {
+      this.app.browser.addElementToSelector(TeaserTemplate(lessons[i]), '.lessons');
+    }
+
+    if (!this.waiting_to_display && lessons.length === 0 && level === 'quiz-night') {
+      this.app.browser.addElementToSelector(
+        '<div class="popup-empty-category">Quiz Night has no lessons.</div>',
+        '.lessons'
+      );
     }
 
     setTimeout(() => {
@@ -74,109 +80,55 @@ class LessonManager {
   }
 
   attachEvents() {
-    try {
-      document.querySelector('.absolute-beginners').onclick = (e) => {
-        window.history.pushState({}, document.title, '/popup/lessons/absolute-beginners');
-        history.replaceState(null, null, ' ');
-        this.app.connection.emit('popup-lessons-render-request', 'absolute-beginners');
-      };
+    const levels = [
+      'absolute-beginners',
+      'elementary',
+      'intermediate',
+      'advanced',
+      'film-friday',
+      'short-stories',
+      'ktv-wednesday',
+      'hsk-beginner',
+      'hsk-intermediate',
+      'hsk-advanced',
+      'new-hsk-level-1',
+      'new-hsk-level-2',
+      'new-hsk-level-3',
+      'new-hsk-level-4',
+      'new-hsk-level-5',
+      'new-hsk-level-6'
+    ];
 
-      document.querySelector('.elementary').onclick = (e) => {
-        window.history.pushState({}, document.title, '/popup/lessons/elementary');
-        history.replaceState(null, null, ' ');
-        this.app.connection.emit('popup-lessons-render-request', 'elementary');
-      };
-
-      document.querySelector('.intermediate').onclick = (e) => {
-        window.history.pushState({}, document.title, '/popup/lessons/intermediate');
-        history.replaceState(null, null, ' ');
-        this.app.connection.emit('popup-lessons-render-request', 'intermediate');
-      };
-
-      document.querySelector('.advanced').onclick = (e) => {
-        window.history.pushState({}, document.title, '/popup/lessons/advanced');
-        history.replaceState(null, null, ' ');
-        this.app.connection.emit('popup-lessons-render-request', 'advanced');
-      };
-
-      document.querySelector('.film-friday').onclick = (e) => {
-        window.history.pushState({}, document.title, '/popup/lessons/film-friday');
-        history.replaceState(null, null, ' ');
-        this.app.connection.emit('popup-lessons-render-request', 'film-friday');
-      };
-
-      document.querySelector('.quiz-night').onclick = (e) => {
-        window.history.pushState({}, document.title, '/popup/lessons/quiz-night');
-        history.replaceState(null, null, ' ');
-        this.app.connection.emit('popup-lessons-render-request', 'quiz-night');
-      };
-
-      document.querySelector('.short-stories').onclick = (e) => {
-        window.history.pushState({}, document.title, '/popup/lessons/short-stories');
-        history.replaceState(null, null, ' ');
-        this.app.connection.emit('popup-lessons-render-request', 'short-stories');
-      };
-
-      document.querySelector('.ktv-wednesday').onclick = (e) => {
-        window.history.pushState({}, document.title, '/popup/lessons/ktv-wednesday');
-        history.replaceState(null, null, ' ');
-        this.app.connection.emit('popup-lessons-render-request', 'ktv-wednesday');
-      };
-
-      //
-      // click to lesson
-      //
-      document.querySelectorAll('.teaser').forEach((el) => {
-        el.onclick = (e) => {
-          let lesson_id = e.currentTarget.id;
-          this.app.connection.emit('popup-lesson-render-request', lesson_id);
-        };
-      });
-
-      //
-      // dynamic content loading
-      //
-      let ob = document.getElementById('popup-intersection');
-      if (ob) {
-        this.intersectionObserver.observe(ob);
+    levels.forEach((level) => {
+      const menu = document.querySelector('.' + level);
+      if (!menu) {
+        return;
       }
-
-      document.querySelector('.absolute-beginners').onclick = (e) => {
-        window.history.pushState({}, document.title, '/popup/lessons/absolute-beginners');
-        history.replaceState(null, null, ' ');
-        this.app.connection.emit('popup-lessons-render-request', 'absolute-beginners');
+      menu.onclick = () => {
+        window.history.pushState({}, document.title, '/popup/lessons/' + level);
+        this.app.connection.emit('popup-lessons-render-request', level);
       };
+    });
 
-      document.querySelector('.elementary').onclick = (e) => {
-        window.history.pushState({}, document.title, '/popup/lessons/elementary');
-        history.replaceState(null, null, ' ');
-        this.app.connection.emit('popup-lessons-render-request', 'elementary');
+    document.querySelectorAll('.teaser').forEach((el) => {
+      el.onclick = (e) => {
+        let lesson_id = e.currentTarget.id;
+        let lesson = this.mod.catalog.getById(lesson_id);
+        if (lesson && lesson.userslug && lesson.slug) {
+          window.history.pushState(
+            {},
+            document.title,
+            `/popup/lessons/${encodeURIComponent(lesson.userslug)}/${encodeURIComponent(lesson.slug)}`
+          );
+        }
+        this.app.connection.emit('popup-lesson-render-request', lesson_id);
       };
+    });
 
-      document.querySelector('.intermediate').onclick = (e) => {
-        window.history.pushState({}, document.title, '/popup/lessons/intermediate');
-        history.replaceState(null, null, ' ');
-        this.app.connection.emit('popup-lessons-render-request', 'intermediate');
-      };
-
-      document.querySelector('.advanced').onclick = (e) => {
-        window.history.pushState({}, document.title, '/popup/lessons/advanced');
-        history.replaceState(null, null, ' ');
-        this.app.connection.emit('popup-lessons-render-request', 'advanced');
-      };
-
-      document.querySelector('.film-friday').onclick = (e) => {
-        window.history.pushState({}, document.title, '/popup/lessons/film-friday');
-        history.replaceState(null, null, ' ');
-        this.app.connection.emit('popup-lessons-render-request', 'film-friday');
-      };
-
-      document.querySelector('.quiz-night').onclick = (e) => {
-        window.history.pushState({}, document.title, '/popup/lessons/quiz-night');
-        history.replaceState(null, null, ' ');
-        this.app.connection.emit('popup-lessons-render-request', 'quiz-night');
-      };
-    } catch (err) {}
+    let ob = document.getElementById('popup-intersection');
+    if (ob) {
+      this.intersectionObserver.observe(ob);
+    }
   }
 
   showLoader() {

@@ -6,6 +6,7 @@ const PopupVocab = require('./lib/vocab');
 const PopupReview = require('./lib/review');
 const PopupMain = require('./lib/main');
 const PopupLessonManager = require('./lib/manager');
+const PopupCatalog = require('./lib/catalog');
 const PeerService = require('saito-js/lib/peer_service').default;
 const JsStore = require('jsstore');
 
@@ -52,7 +53,7 @@ class Popup extends ModTemplate {
     this.dbName = 'popup';
     this.dbVersion = 1;
 
-    this.lessons = [];
+    this.catalog = new PopupCatalog(app, this);
     this.offset = 0;
 
     return this;
@@ -195,39 +196,49 @@ class Popup extends ModTemplate {
 
     await super.render();
 
+    if (this.app.BROWSER && !this.history_bound) {
+      this.history_bound = true;
+      window.addEventListener('popstate', () => {
+        this.urlpath = window.location.pathname.split('/').filter((part) => part !== '');
+        this.routeFromLocation();
+      });
+    }
+
+    this.routeFromLocation();
+  }
+
+  routeFromLocation() {
     if (this.urlpath.length >= 2) {
       if (this.urlpath[1] == 'review' || this.urlpath[1] == 'vocab') {
         this.app.connection.emit('popup-vocab-render-request');
         return;
       }
       if (this.urlpath[1] == 'lessons') {
-        if (this.urlpath.length > 2) {
-          if (this.urlpath[2] == 'absolute-beginners') {
-            this.app.connection.emit('popup-lessons-render-request', 'absolute-beginners');
-          }
-          if (this.urlpath[2] == 'elementary') {
-            this.app.connection.emit('popup-lessons-render-request', 'elementary');
-          }
-          if (this.urlpath[2] == 'intermediate') {
-            this.app.connection.emit('popup-lessons-render-request', 'intermediate');
-          }
-          if (this.urlpath[2] == 'advanced') {
-            this.app.connection.emit('popup-lessons-render-request', 'advanced');
-          }
-          if (this.urlpath[2] == 'film-friday') {
-            this.app.connection.emit('popup-lessons-render-request', 'film-friday');
-          }
-          if (this.urlpath[2] == 'quiz-night') {
-            this.app.connection.emit('popup-lessons-render-request', 'quiz-night');
-          }
-        } else {
-          this.app.connection.emit('popup-lessons-render-request', 'all');
+        if (this.urlpath.length >= 4 && this.urlpath[2] && this.urlpath[3]) {
+          this.openLessonPath(decodeURIComponent(this.urlpath[2]), decodeURIComponent(this.urlpath[3]));
+          return;
         }
+        if (this.urlpath.length > 2 && this.urlpath[2]) {
+          this.app.connection.emit('popup-lessons-render-request', decodeURIComponent(this.urlpath[2]));
+          return;
+        }
+        this.app.connection.emit('popup-lessons-render-request', 'all');
         return;
       }
     }
 
     this.app.connection.emit('popup-home-render-request');
+  }
+
+  openLessonPath(userslug, slug) {
+    let lesson = this.catalog.getBySlug(userslug, slug);
+    if (lesson) {
+      this.pending_lesson = null;
+      this.app.connection.emit('popup-lesson-render-request', lesson.id);
+      return;
+    }
+    this.pending_lesson = { userslug, slug };
+    this.app.connection.emit('popup-lessons-render-request', userslug);
   }
 
   ////////////////////////////
@@ -332,7 +343,8 @@ class Popup extends ModTemplate {
         field3 = '',
         field4 = '',
         field5 = '',
-        label = ''
+        label = '',
+        lessonId = ''
       ) {
         if (field1 === 'unknown') {
           field1 = '';
@@ -350,7 +362,18 @@ class Popup extends ModTemplate {
           field5 = '';
         }
 
-        popup_self.addVocab(field1, field2, field3, field4, field5, label);
+        let lessonTitle = label;
+        let savedLessonId = lessonId;
+        if (popup_self.lesson) {
+          if (!lessonTitle && popup_self.lesson.title) {
+            lessonTitle = popup_self.lesson.title;
+          }
+          if (!savedLessonId && popup_self.lesson.id) {
+            savedLessonId = popup_self.lesson.id;
+          }
+        }
+
+        popup_self.addVocab(field1, field2, field3, field4, field5, lessonTitle, savedLessonId);
       };
     }
 
@@ -377,56 +400,29 @@ class Popup extends ModTemplate {
         this.peers.push(peer);
       }
 
-      //
-      // fetch all available lessons on load
-      //
-      let sql = `
-				SELECT lessons.id, lessons.title, lessons.content, lessons.slug, lessons.photo, lessons.username, lessons.userslug 
-				FROM lessons 
-                   		ORDER BY lessons.created_at DESC
-			`;
-
-      this.sendPeerDatabaseRequestWithFilter(
-        'Popup',
-        sql,
-        async (res) => {
-          let_lesson_id = 0;
-          if (res.rows) {
-            for (let record of res.rows) {
-              this.addLesson(record);
-            }
-            if (this.manager.waiting_to_display == true) {
-              this.manager.render(this.manager.level);
-            }
-            return;
+      this.catalog.load(peer, () => {
+        let opened_pending = false;
+        if (this.pending_lesson) {
+          let pending = this.catalog.getBySlug(
+            this.pending_lesson.userslug,
+            this.pending_lesson.slug
+          );
+          if (pending) {
+            this.pending_lesson = null;
+            opened_pending = true;
+            this.app.connection.emit('popup-lesson-render-request', pending.id);
           }
-        },
-        (p) => {
-          if (p.publicKey == peer.publicKey) {
-            return 1;
-          }
-          return 0;
         }
-      );
+        if (!opened_pending && this.manager && this.manager.waiting_to_display == true) {
+          this.manager.render(this.manager.level);
+        }
+      });
     }
   }
 
   //////////////////////
   // Lesson Functions //
   //////////////////////
-  //
-  //(add, load, return)
-  //
-  async addLesson(lesson) {
-    let add_me = true;
-    for (let i = 0; i < this.lessons.length; i++) {
-      if (this.lessons[i].id === lesson.id) {
-        return;
-      }
-    }
-    this.lessons.push(lesson);
-  }
-
   loadLessonSentences(lesson, mycallback) {
     if (!lesson) {
       return;
@@ -514,19 +510,6 @@ class Popup extends ModTemplate {
         return 0;
       }
     );
-  }
-
-  returnLesson(lesson_id = null) {
-    for (let i = 0; i < this.lessons.length; i++) {
-      if (this.lessons[i].id == lesson_id) {
-        return this.lessons[i];
-      }
-    }
-
-    return {
-      level: 'Unknown',
-      title: 'Placeholder Title'
-    };
   }
 
   ///////////////////////
@@ -916,7 +899,7 @@ class Popup extends ModTemplate {
         if (word) {
           word.updated_at = new Date().getTime(); // Update the timestamp
 
-          if (obj.correct) {
+          if (Number(obj.correct) === 1) {
             word.last_studied = new Date().getTime();
             word.last_correct = word.last_studied;
             word.times_studied++;

@@ -1,5 +1,5 @@
 var label = '';
-label = 'The Anarchists and the Printing Press';
+var lesson_id = '';
 
 //
 // over-rides version is "adso.js" that kicks into admin mode
@@ -40,7 +40,7 @@ function onWordClick() {
   tt3 = temptt;
 
   // do not submit part of speech (field5)
-  add_to_vocab(field1, field2, field3, field4, field5, label);
+  add_to_vocab(field1, field2, field3, field4, field5, label, lesson_id);
 }
 
 //
@@ -52,7 +52,8 @@ var add_to_vocab = function (
   field3 = '',
   field4 = '',
   field5 = '',
-  label = ''
+  label = '',
+  lesson_id = ''
 ) {};
 
 add_to_vocab();

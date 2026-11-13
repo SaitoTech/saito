@@ -18,7 +18,8 @@ module.exports = {
           <li><code>api</code> — callable game methods</li>
           <li><code>context</code> — read-only game snapshot and permitted commands</li>
         </ul>
-        <p>Only the acting player's client runs the script. Queue writes go through <code>api.addToQueue()</code> only. Call <code>await api.endTurn()</code> to submit.</p>
+        <p>The script runs on every client. Wrap choices and board actions in <code>api.asEventingPlayer</code> so only the player who evented the card performs them. That helper returns <code>0</code> on the other clients, which pauses their queue until the eventing client's moves arrive.</p>
+        <p>Call <code>await api.endTurn()</code> inside that callback to submit. The first <code>endTurn</code> after a player action also resolves the event.</p>
         <p>Scripts cannot access <code>game.queue</code>, <code>app</code>, wallets, or payment commands.</p>
       `
     },
@@ -30,9 +31,8 @@ module.exports = {
       body: `
         <p><code>api.addToQueue(instructionString)</code></p>
         <p>Host-side validation against <code>context.commands</code> / the NFT queue policy. Unknown or blocked commands throw.</p>
-        <p>Place influence (applies locally for the acting player, then enqueues native <code>place</code>):</p>
-        <p><code>api.addToQueue("place\\tus\\tus\\tegypt\\t2")</code></p>
-        <p>Format: <code>place\\t{origin}\\t{faction}\\t{country}\\t{amount}</code>. Origin is forced to the acting faction so peers apply once and the originator does not double-apply.</p>
+        <p>Use <code>api.playerPlaceInfluence</code>, <code>api.playerRemoveInfluence</code>, and <code>api.playerRealign</code> for those board actions. They update the eventing client and queue the matching instruction for everyone else.</p>
+        <p><code>api.addToQueue("place\\t...")</code> does not place influence on the client that queues it. The <code>place</code> instruction is skipped by the origin faction when the queue runs.</p>
         <p>Also permitted (engine baseline + Twilight): <code>NOTIFY</code>, <code>RESOLVE</code>, <code>ACKNOWLEDGE</code>, <code>resolve</code>.</p>
       `
     },
@@ -43,7 +43,80 @@ module.exports = {
       externalUrl: null,
       body: `
         <p><code>await api.endTurn()</code></p>
-        <p>Call this after queueing the moves that implement your card event.</p>
+        <p>Call this inside <code>api.asEventingPlayer</code> after the player actions that implement your card event.</p>
+        <p>The first <code>endTurn</code> after <code>playerPlaceInfluence</code>, <code>playerRemoveInfluence</code>, or <code>playerRealign</code> prepends <code>resolve</code> for the event and orders realignment moves so peers replay them in roll order.</p>
+      `
+    },
+    {
+      id: 'api-asEventingPlayer',
+      title: 'api.asEventingPlayer',
+      summary: 'Run board actions on the client that evented the card.',
+      externalUrl: null,
+      body: `
+        <p><code>return await api.asEventingPlayer(async () =&gt; {</code></p>
+        <p><code>const country = await api.playerSelectCountry(["egypt", "libya"]);</code></p>
+        <p><code>await api.playerPlaceInfluence(country, 1);</code></p>
+        <p><code>await api.playerRemoveInfluence("israel", 1, "ussr");</code></p>
+        <p><code>await api.playerRealign("egypt");</code></p>
+        <p><code>await api.endTurn();</code></p>
+        <p><code>})</code></p>
+        <p>The callback runs only when this seat is the eventing faction. Other clients get <code>0</code> and their event waits.</p>
+        <p>On a live game, a callback that returns nothing also yields <code>0</code>, so the event stays queued until <code>api.endTurn()</code> sends <code>resolve</code>. A card-studio test continues instead, so the preview can restore the board.</p>
+      `
+    },
+    {
+      id: 'api-playerPlaceInfluence',
+      title: 'api.playerPlaceInfluence',
+      summary: 'Place influence and sync it to the other clients.',
+      externalUrl: null,
+      body: `
+        <p><code>await api.playerPlaceInfluence(country, amount, faction?)</code></p>
+        <p><code>amount</code> is how much influence to add. <code>faction</code> is whose influence increases and defaults to the eventing player.</p>
+        <p>Add 2 influence in Egypt for the eventing player:</p>
+        <pre><code>return await api.asEventingPlayer(async () =&gt; {
+  await api.playerPlaceInfluence("egypt", 2);
+  await api.endTurn();
+});</code></pre>
+        <p>Add 3 Soviet influence in France:</p>
+        <pre><code>await api.playerPlaceInfluence("france", 3, "ussr");</code></pre>
+        <p>Returns <code>{ country, faction, amount }</code>.</p>
+      `
+    },
+    {
+      id: 'api-playerRemoveInfluence',
+      title: 'api.playerRemoveInfluence',
+      summary: 'Remove influence and sync it to the other clients.',
+      externalUrl: null,
+      body: `
+        <p><code>await api.playerRemoveInfluence(country, amount, faction?)</code></p>
+        <p><code>amount</code> is how much influence to remove. <code>faction</code> is whose influence is removed and defaults to the eventing player. Removal stops at zero. <code>removed</code> in the result is the amount actually taken.</p>
+        <p>Remove 2 influence in Egypt from the eventing player:</p>
+        <pre><code>return await api.asEventingPlayer(async () =&gt; {
+  await api.playerRemoveInfluence("egypt", 2);
+  await api.endTurn();
+});</code></pre>
+        <p>Remove 4 American influence from West Germany:</p>
+        <pre><code>await api.playerRemoveInfluence("westgermany", 4, "us");</code></pre>
+        <p>Returns <code>{ country, faction, amount, removed }</code>.</p>
+      `
+    },
+    {
+      id: 'api-playerRealign',
+      title: 'api.playerRealign',
+      summary: 'Roll a realignment and sync it to the other clients.',
+      externalUrl: null,
+      body: `
+        <p><code>await api.playerRealign(country)</code></p>
+        <p>Each call is one roll. The eventing client rolls and applies the result. Peers replay that roll from the queued <code>realign</code> instruction. Call <code>endTurn</code> once after the loop so the rolls stay in order.</p>
+        <p>Realign Italy 3 times:</p>
+        <pre><code>return await api.asEventingPlayer(async () =&gt; {
+  for (let n = 0; n &lt; 3; n++) {
+    await api.playerRealign("italy");
+  }
+  await api.endTurn();
+});</code></pre>
+        <p><code>usRoll</code> and <code>ussrRoll</code> are the raw dice. Bonuses are separate. <code>winner</code> is <code>"us"</code>, <code>"ussr"</code>, or <code>"draw"</code>.</p>
+        <p>Returns <code>{ country, usRoll, ussrRoll, usBonus, ussrBonus, winner, removed, removedFaction }</code>.</p>
       `
     },
     {
