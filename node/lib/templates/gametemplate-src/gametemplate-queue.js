@@ -2793,8 +2793,7 @@ class GameQueue {
           if (!entry) {
             continue;
           }
-          let data =
-            update.data && typeof update.data === 'object' ? update.data : {};
+          let data = update.data && typeof update.data === 'object' ? update.data : {};
           if (typeof data.code === 'string' && data.code.indexOf('\t') >= 0) {
             data = Object.assign({}, data, {
               code: data.code.replace(/\t/g, ' ')
@@ -2855,8 +2854,7 @@ class GameQueue {
             }
 
             const txmsg = txs[0].returnMessage() || {};
-            let data =
-              txmsg.data && typeof txmsg.data === 'object' ? txmsg.data : {};
+            let data = txmsg.data && typeof txmsg.data === 'object' ? txmsg.data : {};
             if (typeof data.code === 'string' && data.code.indexOf('\t') >= 0) {
               data = Object.assign({}, data, {
                 code: data.code.replace(/\t/g, ' ')

@@ -247,7 +247,7 @@ impl Wallet {
 
                 let mut emitted_chain_tx_sent = false;
                 let mut emitted_nft_sent = false;
-		let mut has_ordinary_input = false;
+                let mut has_ordinary_input = false;
 
                 //
                 // Process inputs first: remove spent slips and NFT groups
@@ -341,15 +341,14 @@ impl Wallet {
                             self.delete_slip(input, None);
                         }
 
-			has_ordinary_input = true;
+                        has_ordinary_input = true;
                         i += 1;
                     }
                 }
 
-
-		//
-		// delete from pending
-		//
+                //
+                // delete from pending
+                //
                 if tx.hash_for_signature.is_some() && self.delete_pending_transaction(tx) {
                     wallet_changed |= WALLET_UPDATED;
 
@@ -389,14 +388,11 @@ impl Wallet {
                                     "receiver": receiver,
                                 }))
                                 .unwrap_or_else(|_| "{}".to_string());
-                                io.send_interface_event(InterfaceEvent::OnTransactionSent(
-                                    payload,
-                                ));
+                                io.send_interface_event(InterfaceEvent::OnTransactionSent(payload));
                             }
                         }
                     }
                 }
-
 
                 //
                 // Process outputs: add new NFT groups or normal slips

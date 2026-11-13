@@ -418,7 +418,6 @@ class GameTemplate extends ModTemplate {
     }
   }
 
-
   /**
    * General sandbox API. Games spread super.returnApi() and add module methods.
    * Queue / move insertion lives in returnApiQueue().

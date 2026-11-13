@@ -139,12 +139,13 @@ const DEFAULT_ALLOWED_SYNTAX = [
 ];
 
 const SYNTAX_NODE_MAP = {
-  functions: new Set([
-    'FunctionDeclaration',
-    'FunctionExpression',
-    'ArrowFunctionExpression'
+  functions: new Set(['FunctionDeclaration', 'FunctionExpression', 'ArrowFunctionExpression']),
+  variables: new Set([
+    'VariableDeclaration',
+    'VariableDeclarator',
+    'AssignmentExpression',
+    'UpdateExpression'
   ]),
-  variables: new Set(['VariableDeclaration', 'VariableDeclarator', 'AssignmentExpression', 'UpdateExpression']),
   objects: new Set(['ObjectExpression', 'Property', 'ObjectPattern']),
   arrays: new Set(['ArrayExpression', 'ArrayPattern', 'SpreadElement']),
   conditionals: new Set(['IfStatement', 'ConditionalExpression', 'SwitchStatement', 'SwitchCase']),
@@ -167,10 +168,38 @@ const SYNTAX_NODE_MAP = {
   blocks: new Set(['BlockStatement', 'ExpressionStatement', 'EmptyStatement'])
 };
 
-const ARITHMETIC_OPS = new Set(['+', '-', '*', '/', '%', '**', '|', '&', '^', '~', '<<', '>>', '>>>']);
+const ARITHMETIC_OPS = new Set([
+  '+',
+  '-',
+  '*',
+  '/',
+  '%',
+  '**',
+  '|',
+  '&',
+  '^',
+  '~',
+  '<<',
+  '>>',
+  '>>>'
+]);
 const COMPARISON_OPS = new Set(['==', '===', '!=', '!==', '<', '<=', '>', '>=']);
 const LOGICAL_OPS = new Set(['&&', '||', '??', '!']);
-const ASSIGNMENT_OPS = new Set(['=', '+=', '-=', '*=', '/=', '%=', '**=', '<<=', '>>=', '>>>=', '|=', '&=', '^=']);
+const ASSIGNMENT_OPS = new Set([
+  '=',
+  '+=',
+  '-=',
+  '*=',
+  '/=',
+  '%=',
+  '**=',
+  '<<=',
+  '>>=',
+  '>>>=',
+  '|=',
+  '&=',
+  '^='
+]);
 
 function locOf(node) {
   const loc = node && node.loc && node.loc.start ? node.loc.start : null;
@@ -357,22 +386,44 @@ function createSanitizeJS() {
       if (type === 'CallExpression' || type === 'MemberExpression' || type === 'ChainExpression') {
         return true; // gated by deeper checks
       }
-      if (type === 'UnaryExpression' || type === 'BinaryExpression' || type === 'AssignmentExpression') {
+      if (
+        type === 'UnaryExpression' ||
+        type === 'BinaryExpression' ||
+        type === 'AssignmentExpression'
+      ) {
         return true; // gated by operator checks
       }
       if (type === 'ThrowStatement' || type === 'TryStatement' || type === 'CatchClause') {
         return false;
       }
-      if (type === 'ClassDeclaration' || type === 'ClassExpression' || type === 'ClassBody' || type === 'MethodDefinition') {
+      if (
+        type === 'ClassDeclaration' ||
+        type === 'ClassExpression' ||
+        type === 'ClassBody' ||
+        type === 'MethodDefinition'
+      ) {
         return false;
       }
-      if (type === 'ImportDeclaration' || type === 'ExportNamedDeclaration' || type === 'ExportDefaultDeclaration' || type === 'ExportAllDeclaration' || type === 'ImportExpression') {
+      if (
+        type === 'ImportDeclaration' ||
+        type === 'ExportNamedDeclaration' ||
+        type === 'ExportDefaultDeclaration' ||
+        type === 'ExportAllDeclaration' ||
+        type === 'ImportExpression'
+      ) {
         return cfg.allowImports;
       }
       if (type === 'AwaitExpression' || type === 'YieldExpression') {
         return cfg.allowAsync;
       }
-      if (type === 'MetaProperty' || type === 'NewExpression' || type === 'ThisExpression' || type === 'Super' || type === 'WithStatement' || type === 'LabeledStatement') {
+      if (
+        type === 'MetaProperty' ||
+        type === 'NewExpression' ||
+        type === 'ThisExpression' ||
+        type === 'Super' ||
+        type === 'WithStatement' ||
+        type === 'LabeledStatement'
+      ) {
         return false;
       }
 
@@ -412,7 +463,11 @@ function createSanitizeJS() {
       if (cfg.allowedObjects.has(name)) {
         return bindingKind('allowed_object', { objectName: name });
       }
-      if (cfg.contextData.has(name) && !isBannedGlobalName(name) && !isDangerousPropertyName(name)) {
+      if (
+        cfg.contextData.has(name) &&
+        !isBannedGlobalName(name) &&
+        !isDangerousPropertyName(name)
+      ) {
         return bindingKind('context_data', { contextName: name });
       }
       if (cfg.allowedGlobals.has(name) && !isBannedGlobalName(name)) {
@@ -522,17 +577,18 @@ function createSanitizeJS() {
       if (node.computed && !cfg.allowComputedProperties) {
         // Allow only static string/number literals that we can check.
         if (node.property.type !== 'Literal') {
-          reject(
-            'unauthorized_access',
-            'Computed property access is not permitted',
-            node
-          );
+          reject('unauthorized_access', 'Computed property access is not permitted', node);
           return bindingKind('forbidden');
         }
       }
 
       const propName = staticPropertyName(node.property);
-      if (node.computed && node.property.type === 'Literal' && typeof node.property.value !== 'string' && typeof node.property.value !== 'number') {
+      if (
+        node.computed &&
+        node.property.type === 'Literal' &&
+        typeof node.property.value !== 'string' &&
+        typeof node.property.value !== 'number'
+      ) {
         reject('unauthorized_access', 'Computed property access is not permitted', node);
         return bindingKind('forbidden');
       }
@@ -570,7 +626,11 @@ function createSanitizeJS() {
         return bindingKind('forbidden');
       }
 
-      if (objectInfo.kind === 'local' || objectInfo.kind === 'local_function' || objectInfo.kind === 'primitive') {
+      if (
+        objectInfo.kind === 'local' ||
+        objectInfo.kind === 'local_function' ||
+        objectInfo.kind === 'primitive'
+      ) {
         // Locals may read/write own static properties, but never dangerous ones (already checked).
         return bindingKind('local');
       }
@@ -621,11 +681,7 @@ function createSanitizeJS() {
 
       // Context data is read-only: no method calls (blocks push/splice/etc.).
       if (calleeInfo.kind === 'context_data') {
-        reject(
-          'unauthorized_access',
-          'Calls through context data are not permitted',
-          node
-        );
+        reject('unauthorized_access', 'Calls through context data are not permitted', node);
         return bindingKind('forbidden');
       }
 
@@ -698,7 +754,11 @@ function createSanitizeJS() {
                 prop
               );
             } else {
-              reject('unauthorized_access', 'Unauthorized destructuring source', nodeForError || pattern);
+              reject(
+                'unauthorized_access',
+                'Unauthorized destructuring source',
+                nodeForError || pattern
+              );
             }
           }
           break;
@@ -797,7 +857,11 @@ function createSanitizeJS() {
         if (ARITHMETIC_OPS.has(op) && !syntaxAllowed('arithmetic')) {
           reject('unsupported_syntax', `Arithmetic operator not permitted: ${op}`, node);
         }
-        if (COMPARISON_OPS.has(op) && !syntaxAllowed('comparisons') && !syntaxAllowed('conditionals')) {
+        if (
+          COMPARISON_OPS.has(op) &&
+          !syntaxAllowed('comparisons') &&
+          !syntaxAllowed('conditionals')
+        ) {
           reject('unsupported_syntax', `Comparison operator not permitted: ${op}`, node);
         }
         if (op === 'in' || op === 'instanceof') {
@@ -840,11 +904,16 @@ function createSanitizeJS() {
 
       if (!nodeTypeAllowed(node.type)) {
         if (
-          (node.type === 'ImportExpression' || node.type.startsWith('Import') || node.type.startsWith('Export')) &&
+          (node.type === 'ImportExpression' ||
+            node.type.startsWith('Import') ||
+            node.type.startsWith('Export')) &&
           !cfg.allowImports
         ) {
           reject('unauthorized_import', 'Import/export syntax is not permitted', node);
-        } else if ((node.type === 'AwaitExpression' || node.type === 'YieldExpression') && !cfg.allowAsync) {
+        } else if (
+          (node.type === 'AwaitExpression' || node.type === 'YieldExpression') &&
+          !cfg.allowAsync
+        ) {
           reject('unsupported_syntax', `${node.type} is not permitted`, node);
         } else {
           reject('unsupported_syntax', `Unsupported syntax: ${node.type}`, node);
@@ -1093,7 +1162,10 @@ function createSanitizeJS() {
           if (node.computed) {
             if (!cfg.allowComputedProperties) {
               // Allow only static literal keys.
-              if (node.key.type !== 'Literal' || (typeof node.key.value !== 'string' && typeof node.key.value !== 'number')) {
+              if (
+                node.key.type !== 'Literal' ||
+                (typeof node.key.value !== 'string' && typeof node.key.value !== 'number')
+              ) {
                 reject('unauthorized_access', 'Computed property keys are not permitted', node);
                 break;
               }
@@ -1115,7 +1187,10 @@ function createSanitizeJS() {
             break;
           }
           // Spreading may copy dangerous properties from objects; reject spreads of non-literals.
-          if (node.argument.type !== 'ArrayExpression' && node.argument.type !== 'ObjectExpression') {
+          if (
+            node.argument.type !== 'ArrayExpression' &&
+            node.argument.type !== 'ObjectExpression'
+          ) {
             reject('unauthorized_access', 'Spreading non-literal values is not permitted', node);
             break;
           }
@@ -1136,7 +1211,10 @@ function createSanitizeJS() {
           break;
 
         case 'CallExpression':
-          if (node.callee.type === 'ImportExpression' || (node.callee.type === 'Identifier' && node.callee.name === 'import')) {
+          if (
+            node.callee.type === 'ImportExpression' ||
+            (node.callee.type === 'Identifier' && node.callee.name === 'import')
+          ) {
             reject('unauthorized_import', 'Dynamic import is not permitted', node);
             break;
           }
@@ -1181,15 +1259,19 @@ function createSanitizeJS() {
           if (node.left.type === 'Identifier') {
             const existing = scope.lookup(node.left.name);
             if (!existing) {
-              reject('unauthorized_access', `Assignment to undeclared identifier: ${node.left.name}`, node.left);
-            } else if (existing.kind === 'context_data') {
               reject(
                 'unauthorized_access',
-                'Assignment to context data is not permitted',
+                `Assignment to undeclared identifier: ${node.left.name}`,
+                node.left
+              );
+            } else if (existing.kind === 'context_data') {
+              reject('unauthorized_access', 'Assignment to context data is not permitted', node);
+            } else if (rightInfo.kind === 'allowed_method') {
+              reject(
+                'unauthorized_access',
+                'Storing authorized method references is not permitted',
                 node
               );
-            } else if (rightInfo.kind === 'allowed_method') {
-              reject('unauthorized_access', 'Storing authorized method references is not permitted', node);
             } else if (
               rightInfo.kind === 'allowed_object' ||
               rightInfo.kind === 'allowed_property' ||
@@ -1199,18 +1281,17 @@ function createSanitizeJS() {
               rightInfo.kind === 'allowed_global' ||
               rightInfo.kind === 'context_data'
             ) {
-              scope.declare(node.left.name, rightInfo.kind === 'forbidden' ? bindingKind('forbidden') : rightInfo);
+              scope.declare(
+                node.left.name,
+                rightInfo.kind === 'forbidden' ? bindingKind('forbidden') : rightInfo
+              );
             } else {
               scope.declare(node.left.name, bindingKind('forbidden'));
             }
           } else if (node.left.type === 'MemberExpression') {
             const objectInfo = classify(node.left.object, scope);
             if (objectInfo.kind === 'context_data') {
-              reject(
-                'unauthorized_access',
-                'Assignment to context data is not permitted',
-                node
-              );
+              reject('unauthorized_access', 'Assignment to context data is not permitted', node);
             }
             classifyMember(node.left, scope);
             walk(node.left.object, scope);
@@ -1231,11 +1312,7 @@ function createSanitizeJS() {
           {
             const argInfo = classify(node.argument, scope);
             if (argInfo.kind === 'context_data') {
-              reject(
-                'unauthorized_access',
-                'Mutation of context data is not permitted',
-                node
-              );
+              reject('unauthorized_access', 'Mutation of context data is not permitted', node);
             }
           }
           walk(node.argument, scope);
@@ -1367,10 +1444,19 @@ function serializeTransferable(value, label = 'value', seen = new WeakSet()) {
     seen.add(value);
     return value.map((item, i) => serializeTransferable(item, `${label}[${i}]`, seen));
   }
-  if (value instanceof Date || value instanceof RegExp || value instanceof Map || value instanceof Set || value instanceof Error) {
+  if (
+    value instanceof Date ||
+    value instanceof RegExp ||
+    value instanceof Map ||
+    value instanceof Set ||
+    value instanceof Error
+  ) {
     throw new Error(`Unsupported object type in ${label}`);
   }
-  if (typeof ArrayBuffer !== 'undefined' && (value instanceof ArrayBuffer || ArrayBuffer.isView?.(value))) {
+  if (
+    typeof ArrayBuffer !== 'undefined' &&
+    (value instanceof ArrayBuffer || ArrayBuffer.isView?.(value))
+  ) {
     throw new Error(`Unsupported binary data in ${label}`);
   }
   if (!isPlainObject(value)) {
@@ -1526,10 +1612,7 @@ const sanitizeHelper = {
     }
 
     // `args` is a free identifier bound beside api/context (NFT_EVENT invocation args).
-    const validationPolicy = buildValidationPolicy(execPolicy, descriptors, [
-      'context',
-      'args'
-    ]);
+    const validationPolicy = buildValidationPolicy(execPolicy, descriptors, ['context', 'args']);
     const validation = this.sanitizeJS(wrapSourceForExecutionValidation(source), validationPolicy);
     if (!validation.safe) {
       const detail = validation.errors.map((e) => e.message).join('; ');
