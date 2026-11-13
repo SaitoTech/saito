@@ -12,6 +12,18 @@ const ZoomOverlay = require('./lib/overlays/zoom');
 const htmlTemplate = require('./lib/core/game-html.template').default;
 const GameHelp = require('./lib/overlays/game-help');
 const GameMinimap = require('../../lib/saito/ui/game-minimap/game-minimap');
+const CardStudio = require('./lib/cardgen/studio');
+const Card = require('./lib/cardgen/card');
+const {
+  TEST_BACKUP_KEY,
+  TEST_COMPLETE,
+  firstEventCode,
+  testNftId,
+  buildTestNft,
+  testQueueInstructions,
+  pushLocalInstruction,
+  insertEndInstruction
+} = require('./lib/cardgen/test-run');
 const nftApi = require('./lib/core/api');
 const {
   TWILIGHT_QUEUE_COMMANDS,
@@ -77,6 +89,9 @@ class Twilight extends GameTemplate {
     this.headline_overlay = new HeadlineOverlay(this.app, this);
     this.zoom_overlay = new ZoomOverlay(this.app, this);
     this.game_help = new GameHelp(this.app, this);
+    this.cardgen_studio = new CardStudio(this.app, this);
+    this.cardgen_testing = false;
+    this._cardgen_test_snapshot = null;
     this.minimap = new GameMinimap(this.app, this);
     this.minimap.enable_zoom = 1;
     // Opening frame measured from the Europe–Asia crop on the 2550×1650 board.
@@ -101,6 +116,212 @@ class Twilight extends GameTemplate {
 
     this.can_play_async = 1;
 
+  }
+
+  respondTo(type = '', obj = null) {
+    if (type === 'saito-create-nft') {
+      return {
+        title: 'Twilight Struggle Card',
+        class: [Card.NFT_TYPE],
+        upload_text: 'Twilight Struggle card image',
+        createData: async (file, metadata = {}) => {
+          const card = metadata.card;
+          if (!card || typeof card !== 'object') {
+            salert('Missing card data for NFT');
+            return false;
+          }
+
+          const name = String(card.name || '').trim();
+          if (!name) {
+            salert('Card title is required');
+            return false;
+          }
+
+          const image = card.image || metadata.image || '';
+          if (!image) {
+            salert('Paint and attach a card image before minting');
+            return false;
+          }
+
+          const text = String(card.text || '');
+          if (!text.trim()) {
+            salert('Card text is required');
+            return false;
+          }
+
+          const player = ['us', 'ussr', 'both'].includes(card.player) ? card.player : 'both';
+          const deck = ['early', 'mid', 'late'].includes(card.deck) ? card.deck : 'early';
+          let code = '';
+          if (typeof card.code === 'string') {
+            code = card.code.replace(/\t/g, ' ');
+          } else if (Array.isArray(card.code)) {
+            code = card.code
+              .map((entry) => {
+                if (typeof entry === 'string') {
+                  return entry.replace(/\t/g, ' ');
+                }
+                if (!entry || typeof entry !== 'object') {
+                  return null;
+                }
+                const entryName = String(entry.name || '').trim();
+                const body = String(entry.code || '').replace(/\t/g, ' ');
+                if (!entryName || !body.trim()) {
+                  return null;
+                }
+                return { name: entryName, code: body };
+              })
+              .filter(Boolean);
+            if (code.length === 1) {
+              code = code[0].code;
+            } else if (!code.length) {
+              code = '';
+            }
+          }
+
+          return {
+            module: 'Twilight',
+            type: 'card',
+            name,
+            scoring: Number(card.scoring) ? 1 : 0,
+            player,
+            ops: Number(card.ops) || 0,
+            recurring: Number(card.recurring) ? 1 : 0,
+            permanent: Number(card.permanent) ? 1 : 0,
+            non_card: Number(card.non_card) ? 1 : 0,
+            deck,
+            text,
+            code,
+            img: typeof card.img === 'string' ? card.img : '',
+            image
+          };
+        }
+      };
+    }
+
+    return super.respondTo(type, obj);
+  }
+
+  async initialize(app) {
+    await super.initialize(app);
+    if (this.app.BROWSER && !this.transaction_monitor) {
+      const SaitoTransactionMonitor = require('../../lib/saito/ui/saito-transaction-monitor/saito-transaction-monitor');
+      this.transaction_monitor = new SaitoTransactionMonitor(this.app, this);
+    }
+  }
+
+  shouldAffixCallbackToModule(modname, tx = null) {
+    if (super.shouldAffixCallbackToModule(modname, tx)) {
+      return 1;
+    }
+    if (
+      this.transaction_monitor?.tx &&
+      tx?.signature &&
+      tx.signature === this.transaction_monitor.tx.signature
+    ) {
+      return 1;
+    }
+    return 0;
+  }
+
+  async openCreateNft() {
+    const studio = this.cardgen_studio;
+    const card = studio?.host?.card;
+    const main = studio?.main;
+    if (!card || !main) {
+      salert('Card minting is unavailable in this game session');
+      return;
+    }
+
+    let canvas = main.card_ui?.canvas?.();
+    if (canvas) {
+      await main.card_ui.draw();
+    } else if (main.paintCaptureCanvas) {
+      canvas = await main.paintCaptureCanvas();
+    } else {
+      canvas = document.createElement('canvas');
+      await card.paint(canvas);
+    }
+
+    let image = card.toDataURL(canvas);
+    if (!image) {
+      salert('Unable to capture the card image');
+      return;
+    }
+
+    if (typeof this.app.browser?.resizeImg === 'function') {
+      try {
+        image = await this.app.browser.resizeImg(image, 128, {
+          w: Card.WIDTH,
+          h: Card.HEIGHT
+        });
+      } catch (err) {
+        console.warn('Twilight: resizeImg failed, using original canvas capture', err);
+      }
+    }
+
+    const snapshot = card.buildSnapshot(image);
+    if (!snapshot.name) {
+      salert('Enter a card title before creating an NFT');
+      return;
+    }
+    if (!String(snapshot.text || '').trim()) {
+      salert('Enter card text before creating an NFT');
+      return;
+    }
+
+    let createNft =
+      this.header && this.header.select_nft_overlay && this.header.select_nft_overlay.create_nft_overlay;
+
+    if (!createNft) {
+      if (!this.create_nft_overlay) {
+        const CreateNFT = require('../../lib/saito/ui/saito-nft/overlays/create-overlay');
+        this.create_nft_overlay = new CreateNFT(this.app, this);
+      }
+      createNft = this.create_nft_overlay;
+    }
+
+    createNft.render({
+      type: Card.NFT_TYPE,
+      locked: ['type'],
+      image: snapshot.image,
+      title: snapshot.name,
+      description: `Twilight Struggle Optional Card - ${snapshot.name}`,
+      create_data: { card: snapshot },
+      callback: (obj) => {
+        if (obj?.status === 'created') {
+          this.watchMintTransaction(obj.tx, obj.nft_id);
+        }
+      }
+    });
+  }
+
+  watchMintTransaction(tx, nft_id = '') {
+    if (!this.transaction_monitor) {
+      console.error('Twilight: transaction_monitor is not initialized');
+      this.cardgen_studio?.main?.showHome?.();
+      return;
+    }
+
+    this.transaction_monitor.render({
+      tx,
+      nft_id: nft_id || '',
+      title: 'Creating Twilight Card',
+      lead: 'Your Twilight Struggle card NFT has been broadcast to the Saito network.',
+      subtitle: '',
+      successTitle: 'Card Received',
+      successLead: 'Your Twilight Struggle card has arrived in your wallet.',
+      successActionLabel: 'Continue',
+      callback: async (result) => {
+        if (result?.status === 'confirmed') {
+          try {
+            await this.app.wallet.updateNFTList();
+          } catch (err) {
+            console.warn('Twilight: updateNFTList after mint failed', err);
+          }
+          this.cardgen_studio?.main?.showHome?.();
+        }
+      }
+    });
   }
 
   showCardOverlay(cards, title = ""){
@@ -138,13 +359,41 @@ class Twilight extends GameTemplate {
       };
     };
 
+    const localDuringTest = (fn, applyLocal) => {
+      return (instruction) => {
+        if (!isSandboxInstructionPermitted(instruction, engineCommands, twilightCommands)) {
+          const cmd =
+            typeof instruction === 'string' ? instruction.split('\t')[0] : '';
+          throw new Error(`command not permitted: ${cmd || '(empty)'}`);
+        }
+        if (this.cardgen_testing) {
+          applyLocal(instruction);
+          return;
+        }
+        return fn(instruction);
+      };
+    };
+
     return {
       commands,
       addToQueue: gate(base.addToQueue),
-      addMove: gate(base.addMove),
-      prependMove: gate(base.prependMove),
-      addEndMove: gate(base.addEndMove),
-      endTurn: base.endTurn
+      addMove: localDuringTest(base.addMove, (instruction) => {
+        pushLocalInstruction(this.game.queue, instruction);
+      }),
+      prependMove: localDuringTest(base.prependMove, (instruction) => {
+        pushLocalInstruction(this.game.queue, instruction);
+      }),
+      addEndMove: localDuringTest(base.addEndMove, (instruction) => {
+        insertEndInstruction(this.game.queue, instruction);
+      }),
+      endTurn: async (...args) => {
+        if (this.cardgen_testing) {
+          this.moves = [];
+          this.endmoves = [];
+          return;
+        }
+        return base.endTurn(...args);
+      }
     };
   }
 
@@ -172,6 +421,161 @@ class Twilight extends GameTemplate {
 
   returnContext(cardId) {
     return super.returnContext();
+  }
+
+  readCardgenTestBackup() {
+    try {
+      if (typeof sessionStorage === 'undefined') {
+        return null;
+      }
+      const raw = sessionStorage.getItem(TEST_BACKUP_KEY);
+      if (!raw) {
+        return null;
+      }
+      return JSON.parse(raw);
+    } catch (err) {
+      console.warn('cardgen test backup could not be read', err);
+      return null;
+    }
+  }
+
+  writeCardgenTestBackup(snapshot) {
+    try {
+      if (typeof sessionStorage === 'undefined') {
+        return;
+      }
+      sessionStorage.setItem(TEST_BACKUP_KEY, JSON.stringify(snapshot));
+    } catch (err) {
+      console.warn('cardgen test backup was not stored for refresh', err);
+    }
+  }
+
+  clearCardgenTestBackup() {
+    try {
+      if (typeof sessionStorage !== 'undefined') {
+        sessionStorage.removeItem(TEST_BACKUP_KEY);
+      }
+    } catch (err) {
+      console.warn('cardgen test backup could not be cleared', err);
+    }
+  }
+
+  async initializeGameQueue(game_id) {
+    const backup = this.readCardgenTestBackup();
+    if (backup && backup.id === game_id) {
+      this.game = backup;
+      this._cardgen_test_snapshot = null;
+      this.cardgen_testing = false;
+      this.clearCardgenTestBackup();
+      try {
+        this.saveGame(game_id);
+      } catch (err) {
+        console.error('cardgen test restore save failed', err);
+      }
+    }
+    return super.initializeGameQueue(game_id);
+  }
+
+  startCustomCardTest(card) {
+    if (!this.browser_active || !this.game?.id || !Array.isArray(this.game.queue)) {
+      salert('Open a Twilight Struggle game to test card code');
+      return;
+    }
+    if (this.gaming_active && !this.halted) {
+      salert('Wait for the game to pause before testing card code');
+      return;
+    }
+    if (this.cardgen_testing) {
+      salert('A card test is already running');
+      return;
+    }
+
+    const code = firstEventCode(card);
+    if (!String(code || '').trim()) {
+      salert('Add code to the first event before testing');
+      return;
+    }
+
+    let snapshot;
+    try {
+      snapshot = JSON.parse(JSON.stringify(this.game));
+    } catch (err) {
+      console.error('cardgen test backup failed', err);
+      salert('Unable to backup the game');
+      return;
+    }
+
+    this._cardgen_test_snapshot = snapshot;
+    this.writeCardgenTestBackup(snapshot);
+
+    if (!this.game.options) {
+      this.game.options = {};
+    }
+    if (!Array.isArray(this.game.options.nfts)) {
+      this.game.options.nfts = [];
+    }
+
+    const id = testNftId(card);
+    this.game.options.nfts.unshift(buildTestNft(card, id));
+
+    if (!this.game.state) {
+      this.game.state = {};
+    }
+    const role = this.roles && this.roles[this.game.player];
+    if (role === 'us' || role === 'ussr') {
+      this.game.state.eventing_player = role;
+    }
+
+    this.cardgen_testing = true;
+    this.cardgen_studio?.hideForTest?.();
+
+    for (const instruction of testQueueInstructions(id)) {
+      this.game.queue.push(instruction);
+    }
+
+    this.restartQueue();
+  }
+
+  finishCustomCardTest() {
+    const snapshot = this._cardgen_test_snapshot || this.readCardgenTestBackup();
+    this._cardgen_test_snapshot = null;
+    this.cardgen_testing = false;
+    this.clearCardgenTestBackup();
+
+    if (!snapshot) {
+      const queue = this.game?.queue;
+      if (Array.isArray(queue) && String(queue[queue.length - 1] || '').split('\t')[0] === TEST_COMPLETE) {
+        queue.pop();
+      }
+      console.error('custom_card_test_complete: missing backup');
+      return;
+    }
+
+    this.game = snapshot;
+    try {
+      this.saveGame(this.game.id);
+    } catch (err) {
+      console.error('cardgen test restore save failed', err);
+    }
+    try {
+      this.displayBoard();
+    } catch (err) {
+      console.error('cardgen test restore display failed', err);
+    }
+    if (this.hud) {
+      if (this.game.status) {
+        this.hud.updateStatus(this.game.status);
+      }
+      if (this.game.deck?.[0]?.hand) {
+        try {
+          this.hud.updateCards(this.game.deck[0].hand);
+        } catch (err) {
+          console.error('cardgen test restore hand failed', err);
+        }
+      }
+    }
+    this.halted = 1;
+    this.cardgen_studio?.showCode?.();
   }
 
   //
@@ -474,6 +878,16 @@ class Twilight extends GameTemplate {
         game_mod.lang = "es";
         game_mod.saveGamePreference("lang", "es");
         reloadWindow(1000);
+      }
+    });
+
+    this.menu.addSubMenuOption("game-game", {
+      text: "Custom Cards",
+      id: "game-custom-cards",
+      class: "game-custom-cards",
+      callback: async function(app, game_mod) {
+        game_mod.menu.hideSubMenus();
+        await game_mod.cardgen_studio.render();
       }
     });
 
@@ -1160,34 +1574,6 @@ console.log("error here 222");
         this.game.options.nfts = [];
       }
 
-      // Hard-coded test card — script runs on both clients; only the eventing
-      // faction broadcasts moves.
-      if (!this.game.options.nfts.some((n) => String(n.id) === 'nft-test-title-105')) {
-        this.game.options.nfts.push({
-          title: "NFT TEST TITLE",
-          id: "nft-test-title-105",
-          owner: this.publicKey || '',
-          nft_type: 'twilight-nft',
-          data: {
-            name: "NFT TEST TITLE",
-            scoring: 0,
-            player: 'both',
-            recurring: 1,
-            ops: 2,
-            img: 'TNRnTS-04',
-            code: `
-		if (!api.isPlayer(api.returnEventingPlayer())) {
-			return 0;
-		}
-		api.addMove("place\\tus\\tus\\tegypt\\t2");
-		api.addMove("resolve\\tnft-test-title-105");
-		await api.endTurn();
-		return 0;
-	    `.trim()
-          }
-        });
-      }
-
       // Deduplicate card ids before dealing into the deck.
       const seenIds = new Set();
 
@@ -1317,6 +1703,11 @@ console.log("error here 222");
       let shd_continue = 1;
 
 console.log("LATEST MOVE: " + mv);
+
+    if (mv[0] === TEST_COMPLETE) {
+      this.finishCustomCardTest();
+      return 0;
+    }
 
       //
       // cambridge region
@@ -2698,10 +3089,6 @@ console.log("LATEST MOVE: " + mv);
 
 
     if (mv[0] === "reshuffle_and_insert_discards"){
-
-for (let z in this.game.deck[0].cards) {
-  console.log("reshuffle card: " + z);
-}
 
         this.game.queue.splice(qe, 1);
         let reshuffle_limit = 14;
@@ -7099,7 +7486,7 @@ async playerTurnHeadlineSelected(card, player) {
     //
     this.updateEventTiles();
     this.hud.hideBackButton();
-    this.game.status = "Submitting moves... awaiting response from peers...";
+    this.game.status = "submitting...";
     this.hud.updateStatus(this.game.status);
     this.hud.updateMenu([]);
     this.hud.updateCards([]);
@@ -7121,10 +7508,35 @@ async playerTurnHeadlineSelected(card, player) {
       this.game.state.events.wwby_triggers = 0;
     }
 
-    let extra = {};
-    this.game.turn = this.moves;
+    const extra = {};
+    const turn = this.moves;
     this.moves = [];
-    return this.sendGameMoveTransaction("game", extra);
+    this.game.turn = turn;
+
+    const dispatch = () => {
+      // A later endTurn may have replaced game.turn while this one waited to paint.
+      this.game.turn = turn;
+      return this.sendGameMoveTransaction("game", extra);
+    };
+
+    //
+    // The runner and the server have no frame to paint. Send before endTurn
+    // returns so the runner can wait on the in-flight move.
+    //
+    if (this.app.HEADLESS || this.app.BROWSER == 0) {
+      return dispatch();
+    }
+
+    //
+    // Paint "submitting..." before signing and relaying. A fast echo otherwise
+    // runs the queue, including the board refresh, before the browser draws.
+    // Callers may replace this status before the timer fires.
+    //
+    return new Promise((resolve, reject) => {
+      setTimeout(() => {
+        Promise.resolve(dispatch()).then(resolve, reject);
+      }, 0);
+    });
 
   }
 
@@ -7170,7 +7582,6 @@ async playerTurnHeadlineSelected(card, player) {
     try {
 
       for (let i in this.countries) {
-console.log("display: " + i);
         this.showInfluence(i);
       }
 console.log("before zoom overlaty check...");
@@ -15001,7 +15412,6 @@ console.log("respondant: " + respondant);
             if (this.game.deck[0].discards[i].scoring == 0) {
               if (this.game.state.events.shuttlediplomacy == 0 || (this.game.state.events.shuttlediplomacy == 1 && i != "shuttle")) {
                 discard_deck.push(i);
-                console.log(i);
                 //html += '<li class="option" id="'+i+'">'+this.game.deck[0].discards[i].name+'</li>';
               }
             }

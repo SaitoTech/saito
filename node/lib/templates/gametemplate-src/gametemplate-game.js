@@ -759,7 +759,9 @@ class GameGame {
     const game_id = this.game.id;
     const slug = typeof this.returnSlug === 'function' ? this.returnSlug() : this.name;
     let link =
-      (this.app.HEADLESS || typeof window === 'undefined' ? (this.app.options.runnerOrigin || '') : window.location.origin) +
+      (this.app.HEADLESS || typeof window === 'undefined'
+        ? this.app.options.runnerOrigin || ''
+        : window.location.origin) +
       `/arcade/?game=${encodeURIComponent(slug)}&game_id=${encodeURIComponent(game_id)}`;
 
     newtx.msg = {

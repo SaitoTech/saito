@@ -98,7 +98,7 @@
         color-mix(in srgb, var(--saito-chart-1) 5%, transparent),
         transparent 37%
       ),
-      var(--saito-background)
+      var(--saito-background);
 
   --dreamscape:
     linear-gradient(125deg, #e8001e 30%, #0001 55%, #ff8235 80%),

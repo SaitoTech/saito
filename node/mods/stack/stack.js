@@ -1880,7 +1880,9 @@ class Stack extends ModTemplate {
         field1: field1,
         field2: field2,
         field4: field4,
-        request_tx: tx
+        request_tx: tx,
+        created_cursor: txmsg.data?.created_cursor,
+        limit: Math.min(100, Math.max(10, Number(txmsg.data?.limit) || 10))
       };
       if (access_witness) {
         query.access_witness = access_witness;
@@ -2291,269 +2293,70 @@ class Stack extends ModTemplate {
   }
 
   /**
-   * Same as loadPostsForAuthor, but also reports whether the result is complete.
-   * `complete` is false only when a remote query was requested but skipped because
-   * no peers were connected yet — callers should not treat that result as final.
+   * Fetch a page, with a cursor and lookahead for older posts. `complete` is false
+   * when the requested remote source is unavailable; callers can retry on connection.
    *
-   * @returns {Promise<{posts: Array<Transaction>, complete: boolean}>}
+   * @returns {Promise<{posts: Array<Transaction>, complete: boolean, hasMore: boolean, nextCursor: Object|null}>}
    */
-  async fetchPostsForAuthor(publicKey, { forceRemote = true } = {}) {
+  async fetchPostsForAuthor(publicKey, { forceRemote = true, cursor = null, limit = 10 } = {}) {
+    const { pageQuery, postPage, loadArchivePosts } = require('./lib/post-feed');
+    limit = Math.min(99, Math.max(1, Math.floor(Number(limit) || 10)));
     if (!publicKey || !this.app.crypto.isPublicKey(publicKey)) {
-      return { posts: [], complete: true };
+      return { posts: [], complete: true, hasMore: false, nextCursor: null };
     }
-
-    const seenSignatures = new Set();
-    const posts = [];
-    let access_witness = null;
-
-    // PART 1: Resolve Stack NFT access data (mirrors Vault pattern)
-    // This provides witness data that can be attached to Archive queries
+    const query = pageQuery(publicKey, cursor, limit);
     const accessData = await this.resolveStackAccessData(publicKey);
-    if (accessData?.access_witness) {
-      access_witness = accessData.access_witness;
-    }
-
-    if (accessData && accessData.access_witness) {
-      // Construct the access script for this author (transferable private posts)
-      // This matches the script used when creating private posts
-      const { getAccessScriptForIntent } = require('./lib/access/access-scripts');
-      const publishIntent = {
-        visibility: 'private',
-        access_mode: 'transferable',
-        time_limit: null,
-        author: publicKey
-      };
-    }
-
-    // PART 2.1: Query local archive first
-    // Build query object - attach access data if NFT exists
-    const localQuery = {
-      field1: 'Stack',
-      field2: publicKey,
-      field4: 'stack:post'
-    };
-    if (access_witness) {
-      localQuery.access_witness = access_witness;
-    }
-
-    // Private path: one signed proving Transaction for local request_tx and remote peer send
     let requestTx = null;
-    if (access_witness) {
-      const walletPublicKey = await this.app.wallet.getPublicKey();
+    if (accessData?.access_witness) {
+      query.access_witness = accessData.access_witness;
       requestTx = await this.app.wallet.createUnsignedTransaction(
-        walletPublicKey,
-        BigInt(0),
-        BigInt(0)
+        await this.app.wallet.getPublicKey(), BigInt(0), BigInt(0)
       );
-      requestTx.msg = {
-        request: 'load stack posts for author',
-        data: {
-          field1: 'Stack',
-          field2: publicKey,
-          field4: 'stack:post',
-          access_witness: access_witness
-        }
-      };
+      requestTx.msg = { request: 'load stack posts for author', data: { ...query } };
       await requestTx.sign();
-      localQuery.request_tx = requestTx;
+      query.request_tx = requestTx;
+    } else {
+      query.owner = '';
     }
 
-    const localPosts = await new Promise((resolve) => {
-      this.app.storage.loadTransactions(
-        localQuery,
-        (txs) => {
-          resolve(txs || []);
-        },
-        'localhost'
-      );
-    });
-
-    // PART 2.2: Collect and deduplicate local results
-    for (const tx of localPosts) {
-      if (tx && tx.signature && !seenSignatures.has(tx.signature)) {
-        seenSignatures.add(tx.signature);
-        posts.push(tx);
-      }
-    }
-
-    // PART 2.3: If forceRemote, query remote peers
+    const localPosts = await loadArchivePosts(this.app, query, 'localhost');
+    let remotePosts = [];
+    let complete = true;
     if (forceRemote) {
-      let peers = await this.app.network.getPeers();
-      if (peers.length === 0) {
-        // Explore retries from onPeerServiceUp once an archive peer connects
-        return { posts, complete: false };
-      }
-
-      let remotePosts = [];
-      if (access_witness && requestTx) {
-        // Private path: send the same signed Transaction to a Stack peer
-        const peerKeys = Object.keys(this.peers);
-        if (peerKeys.length > 0) {
-          const firstPeerKey = peerKeys[0];
-          const peerObj = this.peers[firstPeerKey]?.peer;
-          if (peerObj && peerObj.publicKey !== undefined) {
-            remotePosts = await new Promise((resolve) => {
-              this.app.network.sendTransactionWithCallback(
-                requestTx,
-                (responseTx) => {
-                  const response = responseTx?.msg;
-                  const txs = [];
-                  if (Array.isArray(response)) {
-                    for (let i = 0; i < response.length; i++) {
-                      try {
-                        const remoteTx = new Transaction();
-                        remoteTx.deserialize_from_web(this.app, response[i]);
-                        txs.push(remoteTx);
-                      } catch (error) {
-                        console.debug(
-                          'Stack.loadPostsForAuthor: Failed to deserialize peer response',
-                          error
-                        );
-                      }
-                    }
-                  }
-                  resolve(txs);
-                },
-                peerObj.publicKey
-              );
-            });
-          }
+      const peers = await this.app.network.getPeers();
+      if (!peers.length) {
+        complete = false;
+      } else if (requestTx) {
+        const peer = Object.values(this.peers).find((entry) => entry.peer?.publicKey)?.peer;
+        if (!peer) {
+          complete = false;
+        } else {
+          remotePosts = await new Promise((resolve, reject) => {
+            const timer = setTimeout(() => reject(new Error('Stack request timed out')), 15000);
+            this.app.network.sendTransactionWithCallback(requestTx, (responseTx) => {
+              clearTimeout(timer);
+              const txs = [];
+              for (const serialized of Array.isArray(responseTx?.msg) ? responseTx.msg : []) {
+                const tx = new Transaction();
+                tx.deserialize_from_web(this.app, serialized);
+                txs.push(tx);
+              }
+              resolve(txs);
+            }, peer.publicKey);
+          });
         }
       } else {
-        // Public path: unchanged Archive remote query
-        let remoteQuery = {
-          field1: 'Stack',
-          field2: publicKey,
-          field4: 'stack:post'
-        };
-
-        remotePosts = await new Promise((resolve) => {
-          this.app.storage.loadTransactions(
-            remoteQuery,
-            (txs) => {
-              resolve(txs || []);
-            },
-            null // null = remote peers
-          );
-        });
-      }
-
-      for (const tx of remotePosts) {
-        seenSignatures.add(tx.signature);
-        posts.push(tx);
-      }
-
-      // PART 2.4: For each remotely discovered post, append if unseen and save to localhost
-      /***
-      for (const tx of remotePosts) {
-        if (tx && tx.signature && !seenSignatures.has(tx.signature)) {
-          seenSignatures.add(tx.signature);
-          posts.push(tx);
-
-          // PART 2.5: Immediately save to localhost archive with proper revision handling
-          try {
-            const txmsg = tx.returnMessage();
-            const parent_id = txmsg?.data?.parent_id || null;
-            const from = tx?.from[0]?.publicKey;
-            
-            // For revisions: delete older revisions with same (author, parent_id)
-            if (parent_id && from) {
-              const olderRevisions = await new Promise((resolve) => {
-                this.app.storage.loadTransactions(
-                  {
-                    field1: 'Stack',
-                    field2: from,
-                    field4: 'stack:post',
-                    field5: parent_id
-                  },
-                  (txs) => {
-                    resolve(txs || []);
-                  },
-                  'localhost'
-                );
-              });
-              
-              // Delete all older revisions
-              for (const oldTx of olderRevisions) {
-                if (oldTx.signature !== tx.signature) {
-                  try {
-                    await this.app.storage.deleteTransaction(oldTx, null, 'localhost');
-                  } catch (error) {
-                    console.warn('Stack: Error deleting older revision when saving remote post:', error);
-                  }
-                }
-              }
-            }
-            
-            // Save with field5 = parent_id (or empty for root posts)
-            await this.app.storage.saveTransaction(
-              tx,
-              { 
-                field4: 'stack:post', 
-                field5: parent_id || '',
-                preserve: 1 
-              },
-              'localhost'
-            );
-          } catch (error) {
-            console.warn('Stack: Failed to save remote post to local archive:', error);
-          }
-        }
-      }
-***/
-    }
-
-    // ========================================================================
-    // COLLAPSE REVISIONS: Group by logical post identity, keep latest only
-    // ========================================================================
-    // A "post" is a LOGICAL OBJECT WITH REVISIONS, not a single transaction.
-    // We MUST show only ONE entry per logical post (the latest revision).
-    // This handles:
-    // - Race conditions during archive deletion
-    // - Remote peers returning stale data
-    // - Partial deletions
-    // - Reorgs
-    const postGroups = new Map(); // key: logicalPostId, value: Transaction
-
-    for (const tx of posts) {
-      try {
-        // Use canonical helper to compute logical post identity
-        const logicalPostId = this.getLogicalPostId(tx);
-
-        // Get current best revision for this logical post
-        const existingTx = postGroups.get(logicalPostId);
-
-        if (!existingTx) {
-          // First occurrence of this logical post
-          postGroups.set(logicalPostId, tx);
-        } else {
-          // Compare timestamps - keep the newer one
-          const existingTime = existingTx.timestamp || 0;
-          const currentTime = tx.timestamp || 0;
-          if (currentTime > existingTime) {
-            postGroups.set(logicalPostId, tx);
-          }
-        }
-      } catch (error) {
-        // Skip malformed transactions, but log for debugging
-        console.warn('Stack: Error processing transaction in loadPostsForAuthor:', error);
+        remotePosts = await loadArchivePosts(this.app, query, null);
       }
     }
-
-    // Create new array with collapsed versions (one per logical post)
-    // Do NOT reassign posts (it is const) - create new variable instead
-    const collapsedPosts = Array.from(postGroups.values());
-
-    // Sort by timestamp DESC (most recent first)
-    collapsedPosts.sort((a, b) => {
-      const aTime = a.timestamp || 0;
-      const bTime = b.timestamp || 0;
-      return bTime - aTime;
-    });
-
-    this.postsCache.byAuthor.set(publicKey, collapsedPosts);
-
-    return { posts: collapsedPosts, complete: true };
+    const matchingPosts = [...localPosts, ...remotePosts].filter((tx) =>
+      tx?.from?.[0]?.publicKey === publicKey &&
+      (!cursor || tx.timestamp < cursor.timestamp ||
+        (tx.timestamp === cursor.timestamp && tx.signature < cursor.signature))
+    );
+    const page = postPage(this, matchingPosts, limit);
+    this.postsCache.byAuthor.set(publicKey, page.posts);
+    return { ...page, complete };
   }
 
   /**
@@ -2689,6 +2492,8 @@ class Stack extends ModTemplate {
         HomePage(app, stack_self, app.build_number, Object.assign({}, stack_self.social))
       );
     });
+
+    require('./lib/rss').registerRssRoutes(app, stack_self, expressapp, uri);
 
     expressapp.get(`${uri}/:publickey`, (req, res) => {
       res.setHeader('Content-type', 'text/html');

@@ -135,7 +135,7 @@ describe('Store web3 purchase refund recipient', () => {
     warn.mockRestore();
   });
 
-  test('a web3 purchase is accepted from the server public key or a configured treasury', async () => {
+  test('a web3 purchase is accepted only from the authorized issuance key', async () => {
     const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
     const txmsg = {
       module: 'Store',
@@ -157,7 +157,7 @@ describe('Store web3 purchase refund recipient', () => {
             wallet: { convertSaitoToNolan: () => 0n }
           },
           publicKey: 'server-key',
-          web3_payment_processor_publickey: ['treasury-key'],
+          returnWeb3TreasuryPublicKey: () => 'treasury-key',
           warehouse: { returnSummaryByBucket: async () => null, returnAvailableQuantity: async () => 0 }
         },
         { id: 1, hash: 'block' },
@@ -172,13 +172,14 @@ describe('Store web3 purchase refund recipient', () => {
     await receive('stranger');
     expect(warn).toHaveBeenCalledWith(
       'Store: web3 purchase is not from the authorized processor',
-      expect.objectContaining({ sender: 'stranger', authorized: ['treasury-key', 'server-key'] })
+      expect.objectContaining({ sender: 'stranger', authorized: ['treasury-key'] })
     );
 
     warn.mockClear();
     await receive('server-key');
-    expect(warn.mock.calls.some((call) => String(call[0]).includes('authorized processor'))).toBe(
-      false
+    expect(warn).toHaveBeenCalledWith(
+      'Store: web3 purchase is not from the authorized processor',
+      expect.objectContaining({ sender: 'server-key', authorized: ['treasury-key'] })
     );
 
     warn.mockClear();

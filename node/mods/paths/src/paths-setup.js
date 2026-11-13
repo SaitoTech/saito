@@ -116,6 +116,7 @@ console.log("INITIALIZING PATHS");
     // and show the board
     //
     this.displayBoard();
+    this.preloadImages();
 
 
 

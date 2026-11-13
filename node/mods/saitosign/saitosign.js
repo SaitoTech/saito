@@ -1,4 +1,5 @@
 const ModTemplate = require('../../lib/templates/modtemplate');
+const PeerService = require('saito-js/lib/peer_service').default;
 const SaitoHeader = require('../../lib/saito/ui/saito-header/saito-header');
 const {
   emptyDocument,
@@ -12,18 +13,44 @@ const {
 } = require('./lib/document');
 const {
   looksLikeWebTransaction,
-  createPrepareTransaction,
   readPrepareTransaction,
   downloadBytes
 } = require('./lib/transaction');
-const { createZip, readZip, looksLikeZip, isZipFile } = require('./lib/zip');
+const { readZip, looksLikeZip, isZipFile } = require('./lib/zip');
+const { buildDocumentArchive, textFromZip } = require('./lib/archive');
 const Main = require('./lib/ui/main');
 const HomePage = require('./index');
 const { verifyEmail, myKeychainEmail, rememberVerifiedEmails, documentUnchanged, createCreatorProof, verifyCreatorProof, finalizeDocument, verifyFinalization, signingConfigurationError } = require('./lib/auth');
-const { loadDraft, clearDraft } = require('./lib/draft');
+const { loadDraft, saveDraft, clearDraft, claimDraft } = require('./lib/draft');
+const {
+  recoveryPlan,
+  sessionWriter,
+  rememberWriter,
+  newWriterId,
+  walletOwnsKey,
+  challengedKey,
+  clearVerificationQuery,
+  announceHandoff,
+  listenForHandoff
+} = require('./lib/recovery');
 const SaitoSignDatabase = require('./lib/database');
+const { handleShareRequest } = require('./lib/share-server');
+const { sendShare, payloadForUpload, documentFromStored } = require('./lib/share-client');
+const { importFailure } = require('./lib/share-protocol');
+const { readShareParameters } = require('./lib/share-access');
 
-const ARCHIVE_README = 'This is a SaitoSign zip archive. To sign this document, visit sato.io/SaitoSign, and copy the zip file or the SaitoSign file into the UI and follow the instructions.\n';
+function currentShareParameters(app) {
+  const located = readShareParameters(
+    typeof window === 'undefined' ? '' : window.location.search,
+    typeof window === 'undefined' ? '' : window.location.hash
+  );
+  const id = app?.browser?.returnURLParameter?.('share') || '';
+  const token = app?.browser?.returnURLParameter?.('token') || '';
+  if (id && token) {
+    return { id, token };
+  }
+  return located;
+}
 
 class SaitoSign extends ModTemplate {
   constructor(app) {
@@ -40,10 +67,37 @@ class SaitoSign extends ModTemplate {
     this.styles = ['/saitosign/style.css'];
 
     this.dev = 1;
+    this.retired = false;
+    this.recovery = 'none';
+    this.recoveryCode = '';
+    this.recoveredUser = null;
     this.document = emptyDocument();
     this.database = null;
     this.header = null;
     this.main = new Main(app, this);
+    this.skipWalletTabPrompt(app);
+  }
+
+  skipWalletTabPrompt(app) {
+    const browser = app?.browser;
+    if (!browser || browser.__saitosignTabPrompt || typeof window === 'undefined') {
+      return;
+    }
+    const original = browser.checkForMultipleWindows;
+    if (typeof original !== 'function') {
+      return;
+    }
+    browser.__saitosignTabPrompt = true;
+    browser.checkForMultipleWindows = function () {
+      try {
+        const url = new URL(window.location.href);
+        const path = url.pathname.replace(/\/+$/, '');
+        if (path.endsWith('/saitosign') && url.searchParams.has('code')) {
+          return;
+        }
+      } catch (err) {}
+      return original.call(this);
+    };
   }
 
   async initialize(app) {
@@ -52,38 +106,327 @@ class SaitoSign extends ModTemplate {
     if (!app.BROWSER) {
       this.database = new SaitoSignDatabase(app, this);
       await this.database.ensureSchema();
+      try {
+        await this.database.deleteExpiredDocuments();
+      } catch (err) {}
     }
 
     if (this.browser_active) {
       this.header = new SaitoHeader(app, this);
       await this.header.initialize(app);
+      this.listenForRecovery();
+      const share = currentShareParameters(app);
+      if (share.id && share.token) {
+        this.receivedBy = 'link';
+        this.shareLoad = { status: 'Connecting to the sharing server...', error: '' };
+        this.shareWait = setTimeout(() => {
+          if (this.shareRequested || hasPdf(this.document) || this.shareGate) {
+            return;
+          }
+          this.reportShareFailure('SaitoSign could not find a sharing server. The server must be running and storing documents.');
+        }, 20000);
+      }
       await this.openSavedDocument();
     }
   }
 
+  returnServices() {
+    if (this.app.BROWSER || !this.database) {
+      return [];
+    }
+    return [new PeerService(null, 'saitosign', this.publicKey)];
+  }
+
+  async onPeerServiceUp(app, peer, service = {}) {
+    if (!app.BROWSER || service.service !== 'saitosign' || !this.browser_active || this.shareRequested) {
+      return;
+    }
+    const share = currentShareParameters(app);
+    const id = share.id;
+    const token = share.token;
+    if (!id || !token) {
+      return;
+    }
+    if (this.share?.id === id && this.receivedBy === 'link' && hasPdf(this.document)) {
+      return;
+    }
+    this.shareRequested = true;
+    clearTimeout(this.shareWait);
+    this.shareLoad = { status: 'Opening the shared document...', error: '' };
+    this.main?.showShareLoad(this.shareLoad);
+    await this.openSharedLink(peer);
+  }
+
+  listenForRecovery() {
+    if (this.listeningForRecovery || typeof window === 'undefined') {
+      return;
+    }
+    this.listeningForRecovery = true;
+    listenForHandoff(() => this.retireSession());
+  }
+
+  async persistDraft(record) {
+    if (this.retired) {
+      return false;
+    }
+    const writerId = sessionWriter();
+    const next = writerId
+      ? { ...record, handoff: { code: record?.code, writerId } }
+      : { ...record };
+    if (this.receivedBy === 'link' || this.receivedBy === 'file') {
+      next.receivedBy = this.receivedBy;
+    }
+    try {
+      return await saveDraft(next);
+    } catch (err) {
+      return false;
+    }
+  }
+
+  freezePersistence() {
+    const storage = this.app.storage;
+    if (storage) {
+      storage.active_tab = 0;
+      storage.saveOptions = () => {};
+    }
+    const wallet = this.app.wallet;
+    if (wallet) {
+      wallet.saveWallet = async () => {};
+      if (typeof wallet.save === 'function') {
+        wallet.save = async () => {};
+      }
+    }
+  }
+
+  retireSession() {
+    if (this.retired) {
+      return;
+    }
+    this.retired = true;
+    this.freezePersistence();
+    try {
+      this.app.browser?.setActiveTab?.(0);
+    } catch (err) {}
+    try {
+      this.main?.workspace?.publish?.close?.();
+    } catch (err) {}
+    this.main?.showRetired?.();
+    setTimeout(() => {
+      try {
+        window.close();
+      } catch (err) {}
+    }, 50);
+  }
+
+  reportShareFailure(message) {
+    const reason = message || 'The shared document could not be opened.';
+    this.shareLoad = { status: '', error: reason };
+    this.main?.fail(reason);
+    this.main?.showShareLoad(this.shareLoad);
+  }
+
+  async openSharedLink(peer) {
+    const share = currentShareParameters(this.app);
+    const id = share.id;
+    const token = share.token;
+    if (!id || !token) {
+      return;
+    }
+    if (this.share?.id === id && this.receivedBy === 'link' && hasPdf(this.document)) {
+      return;
+    }
+    let result;
+    try {
+      result = await sendShare(this.app, { action: 'fetch', document_id: id, token }, 30000, peer?.publicKey);
+    } catch (err) {
+      this.reportShareFailure(err?.message || 'The shared document could not be requested.');
+      return;
+    }
+    if (!result?.success) {
+      this.reportShareFailure(result?.error || 'The shared document could not be opened.');
+      return;
+    }
+    if (result.is_encrypted) {
+      this.shareLoad = null;
+      this.shareGate = {
+        id,
+        token,
+        payload: result.document,
+        serverHash: result.document_hash,
+        purpose: result.purpose
+      };
+      if (document.querySelector('.saito-container')) {
+        await this.render();
+      }
+      return;
+    }
+    this.share = {
+      id,
+      token,
+      purpose: result.purpose,
+      encrypted: false,
+      password: '',
+      serverHash: result.document_hash,
+      pending: false,
+      conflict: false
+    };
+    try {
+      this.shareLoad = null;
+      this.useDocument(await hydrate(await documentFromStored(this.app, result.document, '')), { receivedBy: 'link' });
+    } catch (err) {
+      this.reportShareFailure(err?.message || 'Document could not be imported. Open the invitation link again, or ask the sender to share it once more.');
+    }
+  }
+
+  signingUser() {
+    const keys = [];
+    const raw = String(this.app.wallet?.publicKey || '').trim();
+    if (raw) {
+      keys.push(raw);
+    }
+    if (/^[0-9a-fA-F]+$/.test(raw) && raw.length >= 64 && this.app.crypto?.compressPublicKey) {
+      const compressed = this.app.crypto.compressPublicKey(raw);
+      if (compressed && !keys.includes(compressed)) {
+        keys.push(compressed);
+      }
+    }
+    const users = Array.isArray(this.document?.users) ? this.document.users : [];
+    return users.find((user) => keys.includes(String(user?.publickey || '').trim())) || null;
+  }
+
+  async syncIfShared() {
+    const share = this.share;
+    if (!share?.id || !hasPdf(this.document)) {
+      return { ok: true, skipped: true };
+    }
+    const password = share.encrypted ? String(share.password || '') : '';
+    if (share.encrypted && !password) {
+      return { ok: false, error: 'The password used to open this document is no longer available, so the signed copy cannot be uploaded.' };
+    }
+    share.conflict = false;
+    const signer = this.signingUser();
+    let payload;
+    try {
+      payload = await payloadForUpload(this.app, this.document, password);
+    } catch (err) {
+      return { ok: false, error: err?.message || 'The signed document could not be prepared for upload.' };
+    }
+    const result = await sendShare(this.app, {
+      action: 'update',
+      document_id: share.id,
+      token: share.token,
+      expected_hash: share.serverHash,
+      is_encrypted: payload.is_encrypted,
+      document: payload.document,
+      signer_name: signer?.name || '',
+      signer_email: signer?.email || ''
+    });
+    if (!result?.success) {
+      share.conflict = result?.error === 'conflict';
+      return {
+        ok: false,
+        conflict: share.conflict,
+        error: share.conflict
+          ? 'A newer version of this document was saved by someone else. Open the invitation link again before uploading.'
+          : (result?.error || 'The signatures could not be uploaded.')
+      };
+    }
+    share.serverHash = result.document_hash;
+    share.pending = false;
+    share.conflict = false;
+    return { ok: true, complete: result.complete === true, already_present: result.already_present === true };
+  }
+
+  setShareNotice(message) {
+    if (!this.main?.workspace) {
+      return;
+    }
+    this.main.workspace.notice = message;
+    const root = document.querySelector('.saito-container > .workspace');
+    if (root) {
+      this.main.workspace.update(root);
+    }
+  }
+
   async openSavedDocument() {
-    const code = this.app.browser.returnURLParameter('code');
-    if (!code || hasPdf(this.document)) {
+    if (hasPdf(this.document) || this.share?.id || this.shareGate || this.shareLoad) {
+      return;
+    }
+    const urlCode = this.app.browser.returnURLParameter('code');
+    let saved = null;
+    try {
+      saved = await loadDraft();
+    } catch (err) {
+      saved = null;
+    }
+    const plan = recoveryPlan({
+      urlCode,
+      writerId: sessionWriter(),
+      saved,
+      eligible: this.recoveryEligible(saved, urlCode || saved?.code)
+    });
+    this.recovery = plan.action;
+    this.recoveryCode = plan.code || '';
+    if (plan.action === 'missing' || plan.action === 'none') {
       return;
     }
 
-    const saved = await loadDraft();
-    if (!saved || saved.code !== code || !saved.document || !this.signatureVerifies(saved.document, code)) {
-      return;
+    let record = saved;
+    if (plan.action === 'claim') {
+      const writerId = newWriterId();
+      try {
+        record = await claimDraft(plan.code, writerId);
+      } catch (err) {
+        record = null;
+      }
+      if (!record) {
+        this.recovery = 'missing';
+        return;
+      }
+      rememberWriter(writerId, plan.code);
+      const user = this.verifiedUser(record.document, plan.code);
+      if (user) {
+        rememberVerifiedEmails(this.app, record.document);
+      }
+      announceHandoff(plan.code, writerId);
     }
 
     try {
-      this.document = await hydrate(saved.document);
+      this.document = await hydrate(record.document);
       if (this.document.creator && !verifyCreatorProof(this.app, this.document)) {
         throw new Error('Creator identity could not be verified.');
       }
       if (this.document.finalized && !verifyFinalization(this.app, this.document)) {
         throw new Error('Finalized document signature is invalid.');
       }
-      rememberVerifiedEmails(this.app, this.document);
+      this.recoveredUser = this.verifiedUser(this.document, plan.code);
+      this.receivedBy = record.receivedBy === 'link' || record.receivedBy === 'file' ? record.receivedBy : '';
+      clearVerificationQuery();
     } catch (err) {
       this.document = emptyDocument();
+      this.recovery = 'missing';
+      this.recoveredUser = null;
     }
+  }
+
+  recoveryEligible(saved, code) {
+    if (!saved?.document || !code || saved.code !== code || !this.signatureVerifies(saved.document, code)) {
+      return false;
+    }
+    const user = this.verifiedUser(saved.document, code);
+    return Boolean(user && walletOwnsKey(this.app, user.publickey));
+  }
+
+  verifiedUser(document, code) {
+    const users = Array.isArray(document?.users) ? document.users : [];
+    return users.find((user) => {
+      const entries = Array.isArray(user?.verifications) ? user.verifications : [];
+      return entries.some((entry) => {
+        return entry?.signature === code
+          && challengedKey(entry.message) === String(user?.publickey || '').trim()
+          && this.app.crypto.verifyMessage(entry.message, entry.signature, entry.publickey);
+      });
+    }) || null;
   }
 
   signatureVerifies(record, signature) {
@@ -106,6 +449,10 @@ class SaitoSign extends ModTemplate {
     if (!this.app.BROWSER || !this.browser_active) {
       return;
     }
+    if (this.retired) {
+      this.main?.showRetired?.();
+      return;
+    }
 
     if (!this.header) {
       this.header = new SaitoHeader(this.app, this);
@@ -115,6 +462,13 @@ class SaitoSign extends ModTemplate {
     this.addComponent(this.header);
     await super.render();
     this.main.render();
+    if (this.shareLoad) {
+      this.main.showShareLoad(this.shareLoad);
+    }
+    if (this.shareGate && !this.shareGate.opened && !hasPdf(this.document)) {
+      this.shareGate.opened = true;
+      this.main?.workspace?.publish?.openUnlock();
+    }
   }
 
   async importFile(file) {
@@ -150,22 +504,22 @@ class SaitoSign extends ModTemplate {
     try {
       const bytes = new Uint8Array(await file.arrayBuffer());
       if (!looksLikeZip(bytes)) {
-        this.main.fail('That ZIP archive could not be read.');
+        this.main.fail(importFailure('invalid'));
         return;
       }
       const entries = await readZip(bytes);
-      const text = saitosignTextFromZip(entries);
+      const text = textFromZip(entries);
       if (!text) {
-        this.main.fail('That ZIP archive does not contain a SaitoSign document.');
+        this.main.fail(importFailure('unsupported'));
         return;
       }
-      return this.openSaitoSignText(text);
+      return this.openSaitoSignText(text, { imported: true });
     } catch (err) {
-      this.main.fail(err?.message || 'That ZIP archive could not be read.');
+      this.main.fail(err?.message && err.message.includes('more than one') ? err.message : importFailure('failed'));
     }
   }
 
-  async openSaitoSignText(text) {
+  async openSaitoSignText(text, options = {}) {
     try {
       const data = readPrepareTransaction(this.app, text);
       if (data.finalized && !verifyFinalization(this.app, data)) {
@@ -175,14 +529,14 @@ class SaitoSign extends ModTemplate {
       if (changed) {
         stripSignatures(data);
       }
-      this.useDocument(await hydrate(data));
+      this.useDocument(await hydrate(data), { receivedBy: 'file' });
       if (changed && typeof salert === 'function') {
         salert('This document has changed. Signatures have been removed and signing must begin again.');
       }
     } catch (err) {
       const known = err?.message === 'That file is not a SaitoSign transaction.';
       const integrityError = err?.message?.includes('creator signature') || err?.message?.includes('creator identity');
-      this.main.fail(known || integrityError ? err.message : 'That SaitoSign transaction could not be read.');
+      this.main.fail(options.imported ? importFailure('failed') : (known || integrityError ? err.message : 'That SaitoSign transaction could not be read.'));
     }
   }
 
@@ -191,6 +545,9 @@ class SaitoSign extends ModTemplate {
   }
 
   async importPdfs(files) {
+    if (this.retired) {
+      return;
+    }
     const list = Array.isArray(files) ? files.filter(Boolean) : [];
     if (!list.length) {
       this.main.fail('Choose a PDF or a SaitoSign transaction.');
@@ -227,13 +584,16 @@ class SaitoSign extends ModTemplate {
       }
     }
 
-    this.useDocument(next);
+    this.useDocument(next, { receivedBy: 'new' });
     if (this.main && this.main.workspace && this.main.workspace.publish) {
       this.main.workspace.publish.reset();
     }
   }
 
   async exportDocument(options = {}) {
+    if (this.retired) {
+      return false;
+    }
     const document = this.document;
     if (!hasPdf(document) || (!options.draft && !document.edited)) {
       return false;
@@ -264,31 +624,39 @@ class SaitoSign extends ModTemplate {
         this.main.fail('The finalized document creator signature is invalid.');
         return false;
       }
-      const tx = await createPrepareTransaction(this.app, document);
-      const base = String(document.document.name || 'document.pdf').replace(/\.pdf$/i, '') || 'document';
-      const saitosignName = `${base}.saitosign`;
-      const saitosignBytes = new TextEncoder().encode(tx.serialize_to_web(this.app));
-      const files = [
-        { name: saitosignName, data: saitosignBytes },
-        { name: 'readme.txt', data: new TextEncoder().encode(ARCHIVE_README) },
-        ...pdfZipEntries(document)
-      ];
-      downloadBytes(createZip(files), `${base}.zip`, 'application/zip');
-      return true;
+      const archive = await buildDocumentArchive(this.app, document);
+      downloadBytes(archive.bytes, archive.filename, 'application/zip');
+      return { ok: true, filename: archive.filename };
     } catch (err) {
       this.main.fail('That document could not be exported.');
       return false;
     }
   }
 
-  useDocument(next) {
+  useDocument(next, options = {}) {
     const previous = this.document;
     if (previous && previous !== next) {
       revoke(previous);
     }
+    if (options.receivedBy === 'link' || options.receivedBy === 'file') {
+      this.receivedBy = options.receivedBy;
+      if (options.receivedBy === 'file') {
+        this.share = null;
+        this.shareGate = null;
+      }
+    } else if (options.receivedBy === 'new') {
+      this.receivedBy = '';
+    }
     this.document = next;
     rememberVerifiedEmails(this.app, next);
     this.main.showWorkspace();
+    if (options.notice && this.main.workspace) {
+      this.main.workspace.notice = options.notice;
+      const root = document.querySelector('.saito-container > .workspace');
+      if (root) {
+        this.main.workspace.update(root);
+      }
+    }
   }
 
   async handlePeerTransaction(app, tx = null, peer, mycallback = null) {
@@ -301,6 +669,14 @@ class SaitoSign extends ModTemplate {
       txmsg = tx.returnMessage();
     } catch (err) {
       return 0;
+    }
+
+    if (txmsg?.request === 'saitosign share') {
+      const result = await handleShareRequest(this, txmsg.data || {}, tx);
+      if (mycallback) {
+        mycallback(result);
+      }
+      return 1;
     }
 
     if (txmsg?.request !== 'saitosign verify email') {
@@ -388,92 +764,6 @@ async function pdfBytes(file) {
   } catch (err) {
     return false;
   }
-}
-
-function pdfZipEntries(record) {
-  const used = new Set();
-  const list = Array.isArray(record?.document?.pdf) ? record.document.pdf : [];
-  return list.map((entry, index) => {
-    const data = Uint8Array.from(Buffer.from(String(entry?.pdf || ''), 'base64'));
-    return {
-      name: `PDFs/${safePdfFilename(entry?.name, index, used)}`,
-      data
-    };
-  });
-}
-
-function safePdfFilename(original, index, used) {
-  let base = String(original || '')
-    .replace(/\\/g, '/')
-    .split('/')
-    .pop()
-    .trim()
-    .replace(/[^\w.\- ()[\]]+/g, '_')
-    .replace(/^\.+/, '');
-  if (!base) {
-    base = `document-${index + 1}.pdf`;
-  }
-  if (!/\.pdf$/i.test(base)) {
-    base = `${base}.pdf`;
-  }
-  let name = base;
-  let suffix = 2;
-  while (used.has(name.toLowerCase())) {
-    name = `${base.replace(/\.pdf$/i, '')}-${suffix}.pdf`;
-    suffix += 1;
-  }
-  used.add(name.toLowerCase());
-  return name;
-}
-
-function saitosignTextFromZip(entries) {
-  const candidates = [];
-  const seen = new Set();
-
-  (entries || []).forEach((entry) => {
-    const path = zipEntryPath(entry?.name);
-    if (!path) {
-      return;
-    }
-    const parts = path.split('/');
-    if (parts[0].toLowerCase() === 'pdfs') {
-      return;
-    }
-    const base = parts[parts.length - 1] || '';
-    if (/^readme\.txt$/i.test(base)) {
-      return;
-    }
-
-    const text = new TextDecoder().decode(entry.data).trim();
-    if (!/\.saitosign$/i.test(base) && !looksLikeWebTransaction(text)) {
-      return;
-    }
-    const key = path.toLowerCase();
-    if (seen.has(key)) {
-      return;
-    }
-    seen.add(key);
-    candidates.push({ path, text });
-  });
-
-  if (candidates.length > 1) {
-    throw new Error('That ZIP archive contains more than one SaitoSign document.');
-  }
-  if (!candidates.length) {
-    return '';
-  }
-  return candidates[0].text;
-}
-
-function zipEntryPath(name) {
-  const parts = String(name || '')
-    .replace(/\\/g, '/')
-    .split('/')
-    .filter((part) => part && part !== '.');
-  if (!parts.length || parts.some((part) => part === '..')) {
-    return '';
-  }
-  return parts.join('/');
 }
 
 module.exports = SaitoSign;

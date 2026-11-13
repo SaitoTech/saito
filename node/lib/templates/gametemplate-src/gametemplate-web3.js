@@ -48,9 +48,7 @@ class GameWeb3 {
   // with the game rules.  note the browser.sanitizeJS and browser.executeJS functions
   // exist.
   //
-  initializeNFTs() {
-
-  }
+  initializeNFTs() {}
 
   insertCryptoLogo(ticker) {
     let results = this.app.modules.getRespondTos('crypto-logo', { ticker });

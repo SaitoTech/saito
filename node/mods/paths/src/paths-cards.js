@@ -8,6 +8,12 @@
       c = this.debaters[card];
       if (c) { return `<span class="showcard ${card}" id="${card}">${c.name}</span>`; }
     }
+    if (card === "automatic_operations") {
+      return `<span class="showcard ${card}" id="${card}">Automatic Operations</span>`;
+    }
+    if (card === "peace_terms") {
+      return `<span class="showcard ${card}" id="${card}">Peace Terms</span>`;
+    }
     if (!c) {
       let x = this.returnDeck();
       if (x[card]) { c = x[card]; }
@@ -405,16 +411,7 @@ console.log(JSON.stringify(attacker_units));
 	    // get eligible spaces
 	    //
     	    let options = paths_self.returnSpacesWithFilter(
-      		(key) => {
-		  if (paths_self.game.spaces[key].trench > 0) { return 0; }
-        	  if (paths_self.game.spaces[key].control == "allies") {
-        	    if (paths_self.game.spaces[key].units.length > 0) {
-                      if (paths_self.checkSupplyStatus("allies", key)) {
-		        return 1;
-		      }
-		    }
-		  }
-		} ,
+      		(key) => paths_self.spaceMayReceiveTrench("allies", key)
             );
 
 	    //
@@ -504,7 +501,6 @@ deck['ap56'] = {
         removeFromDeckAfterPlay : function(paths_self, faction) { return 1; } ,
         canEvent : function(paths_self, faction) { return 1; } ,
         onEvent : function(paths_self, faction) { 
-	  paths_self.game.queue.push(`rp\tcentral\tap56`);
 	  paths_self.game.queue.push(`paris_taxis`);
 	  return 1;
 	} ,
@@ -541,16 +537,23 @@ deck['ap56'] = {
 	    } 
 
     	    //
-    	    // players can flip 1 damaged armies back to full strength
+    	    // Allies can flip 1 damaged army back to full strength
     	    //
-            paths_self.playerSelectUnitWithFilter(
-              "Select Unit to Repair / Deploy" ,
-              filter_fnct ,
-              execute_fnct ,
-              null ,
-              true ,
-              [{ key : "pass" , value : "pass" }]
-            );
+	    if (paths_self.game.player == p1) {
+              paths_self.playerSelectUnitWithFilter(
+                "Select Unit to Repair / Deploy" ,
+                filter_fnct ,
+                execute_fnct ,
+                null ,
+                true ,
+                [{ key : "pass" , value : "pass" }]
+              );
+	    } else {
+	      paths_self.game.status = "Allies playing " + paths_self.popup("ap56");
+	      paths_self.hud.updateStatus(paths_self.game.status);
+	      paths_self.hud.updateMenu([]);
+	      paths_self.showPlayerHand();
+	    }
 
             return 0;
           } 
@@ -855,16 +858,7 @@ deck['ap57'] = {
 	    // get eligible spaces
 	    //
     	    let options = paths_self.returnSpacesWithFilter(
-      		(key) => {
-		  if (paths_self.game.spaces[key].trench > 0) { return 0; }
-        	  if (paths_self.game.spaces[key].control == "central") {
-        	    if (paths_self.game.spaces[key].units.length > 0) {
-                      if (paths_self.checkSupplyStatus("central", key)) {
-		        return 1;
-		      }
-		    }
-		  }
-		} ,
+      		(key) => paths_self.spaceMayReceiveTrench("central", key)
             );
 
 	    //
@@ -2279,16 +2273,22 @@ console.log("execution available!");
 	  // indicates play as combat card
 	  //
 	  if (faction == "defender" || faction == "attacker") {
-            let attacker_units = paths_self.returnAttackerUnits();
-	    if (paths_self.game.spaces[paths_self.game.state.combat.key].fort > 0) {
-              for (let i = 0; i < attacker_units.length; i++) {
-                if (attacker_units[i].ckey === "GE") { paths_self.game.state.combat.attacker_drm++; return 1; }
-              }
+	    if (faction == "attacker") {
+	      let space = paths_self.game.spaces[paths_self.game.state.combat.key];
+	      let attacker_units = paths_self.returnAttackerUnits();
+	      if (space && space.country == "france" && space.fort > 0) {
+		for (let i = 0; i < attacker_units.length; i++) {
+		  if (attacker_units[i].ckey === "GE") {
+		    paths_self.game.state.combat.attacker_drm += 2;
+		    paths_self.updateLog("Place of Execution: attack DRM +2");
+		    paths_self.paths_log.addModifier("Place of Execution: attack DRM +2");
+		    break;
+		  }
+		}
+	      }
 	    }
-	  } else {
-	    //
-	    // indicates play as event for war status points
-	    //
+	    paths_self.game.queue.push("ws\tcp26\tcentral\t" + this.ws);
+	    return 1;
 	  }
           return 1;
         } ,
@@ -3355,7 +3355,7 @@ deck['ap65'] = {
         type : "normal" ,
         removeFromDeckAfterPlay : function(paths_self, faction) { return 1; } ,
         canEvent : function(paths_self, faction) { return 1; } ,
-        onEvent : function(paths_self, faction) { paths_self.game.state.events.hottman = 1; return 1; } ,
+        onEvent : function(paths_self, faction) { paths_self.game.state.events.hoffman = 1; return 1; } ,
       }
 
    deck['cp38'] = { 
@@ -3546,6 +3546,7 @@ deck['ap65'] = {
         canEvent : function(paths_self, faction) { if (paths_self.game.state.events.bolshevik_revolution == 1) { return 1; } return 0; } ,
         onEvent : function(paths_self, faction) { 
 	  paths_self.game.state.events.treaty_of_brest_litovsk = 1;
+	  paths_self.calculateRussianCapitulationTrack();
 	  return 1;
 	} ,
       }

@@ -303,36 +303,26 @@ console.log(JSON.stringify(unit));
   }
 
   returnUnitImage(unit, just_link=false) {
-    let key = unit.key;
+    // The map chit is the file named on the unit. Yilderim and the Army of
+    // Islam keep historical ids that do not match those filenames.
+    // Destroyed units are left out of space drawing entirely. Callers that
+    // still want a picture (the replacement list, for example) get the counter.
+    let file = unit.damaged
+      ? (unit.back || `${unit.key}_back.png`)
+      : (unit.front || `${unit.key}.png`);
 
-    if (unit.destroyed) {
-     return this.returnDestroyedUnitImage(unit, just_link);
-    }
-
-    if (unit.damaged) {
-      if (just_link) { return `/paths/img/army/${key}_back.png`; }
-      return `<img src="/paths/img/army/${key}_back.png" class="army-tile ${unit.key}" />`;
-    } else {
-      if (just_link) { return `/paths/img/army/${key}.png`; }
-      return `<img src="/paths/img/army/${key}.png" class="army-tile ${unit.key}" />`;
-    }
+    if (just_link) { return `/paths/img/army/${file}`; }
+    return `<img src="/paths/img/army/${file}" class="army-tile ${unit.key}" />`;
   }
   returnUnitBackImage(unit, just_link=false) {
-    let key = unit.key;
-    if (just_link) { return `/paths/img/army/${key}_back.png`; }
-    return `<img src="/paths/img/army/${key}_back.png" class="army-tile ${unit.key}" />`;
+    let file = unit.back || `${unit.key}_back.png`;
+    if (just_link) { return `/paths/img/army/${file}`; }
+    return `<img src="/paths/img/army/${file}" class="army-tile ${unit.key}" />`;
   }
   returnUnitImageInSpaceWithIndex(spacekey, idx) {
     let unit = this.game.spaces[spacekey].units[idx];
+    if (!unit || unit.destroyed) { return ""; }
     return this.returnUnitImage(unit);
-  }
-  returnDestroyedUnitImage(unit, just_link=false) {
-    if (just_link) {
-      return `/paths/img/cancel_x.png`;
-    } else {
-      return `<img src="/paths/img/cancel_x.png" class="army-tile ${unit.key}" />`;
-    }
-
   }
 
   cloneUnit(unitkey) {

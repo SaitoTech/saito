@@ -57,10 +57,11 @@ function fieldListHTML(view) {
       ${view.field_list
         .map(
           (field) => `
-            <li class="row${field.signed ? ' signed' : ''}${field.active ? ' active' : ''}${field.confirming ? ' confirming' : ''}">
+            <li class="row${field.signed ? ' signed' : ''}${field.active ? ' active' : ''}${field.confirming ? ' confirming' : ''}${field.cue ? ' cue-target' : ''}">
               <button type="button" class="open" data-open-field="${field.id}"${field.active ? ' aria-current="true"' : ''}>
                 <i class="swatch" style="background:${field.signed ? 'var(--saitosign-signed-ink)' : field.color}" aria-hidden="true"></i>
                 <span class="label">${escapeHTML(field.label)}</span>
+                ${field.cue ? '<span class="cue">CLICK HERE</span>' : ''}
               </button>
             </li>
           `
@@ -109,18 +110,25 @@ function signersSectionHTML(view) {
 
 function railHTML(view) {
   const notice = view.notice ? `<p class="notice">${escapeHTML(view.notice)}</p>` : '';
+  if (view.awaiting_identity) {
+    return `
+      <div class="identity" data-awaiting-identity="1">
+        <p class="name">SaitoSign</p>
+        <p class="file">${escapeHTML(view.file_name)}</p>
+      </div>
+      <p class="guide">${escapeHTML(view.guide)}</p>
+      ${notice}
+      <button type="button" class="export primary" data-verify-identity>Verify Identity</button>
+    `;
+  }
   const started = view.field_list.length > 0;
-  const guide = view.finalized
-    ? 'Review the document and provide your signature where needed.'
-    : started
-      ? 'Add further signature boxes, then click Ready to Sign when done.'
-      : 'Click on any page where a signature is required.';
+  const guide = view.guide;
   const next = view.finalized
     ? (view.verified
-      ? '<button type="button" class="export primary verified" data-export>Document Verified</button>'
-      : '<button type="button" class="export primary" data-export>Check Document Status</button>')
+      ? '<button type="button" class="export primary verified" data-export>Verified - View Details</button>'
+      : '<button type="button" class="export primary" data-export>Continue</button>')
     : started
-      ? '<button type="button" class="export primary" data-export>Ready to Sign</button>'
+      ? '<button type="button" class="export primary" data-export>Continue</button>'
       : '';
 
   return `
@@ -194,7 +202,7 @@ function readerHTML(view) {
   const extras = expanded
     ? `
       <div class="tools">
-        ${view.finalized ? '' : '<button type="button" class="tool" data-add-pdf>Add PDF</button>'}
+        ${view.can_edit ? '<button type="button" class="tool" data-add-pdf>Add PDF</button>' : ''}
         <button type="button" class="tool" data-close-document>Close document</button>
       </div>
     `

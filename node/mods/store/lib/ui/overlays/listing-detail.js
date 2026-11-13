@@ -466,6 +466,10 @@ class ListingDetailOverlay {
         const web3Payment = this.mod.main?.web3_payment;
         try {
           if (ticker && ticker !== 'SAITO' && web3Payment?.isWeb3Summary(summary)) {
+            if (!this.mod.web3PaymentsEnabled?.()) {
+              salert('Web3 payments are not enabled for this Store.');
+              return;
+            }
             await web3Payment.start(summary, quantity, { note });
             return;
           }

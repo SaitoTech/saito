@@ -1,4 +1,4 @@
-const Card = require('../../../mods/tscardgen/lib/card');
+const Card = require('../../../mods/twilight/lib/cardgen/card');
 const {
   normalizeEvents,
   serializeCode,
@@ -7,7 +7,7 @@ const {
   renameEvent,
   removeEvent,
   resolveExecutableCode
-} = require('../../../mods/tscardgen/lib/code-events');
+} = require('../../../mods/twilight/lib/cardgen/code-events');
 
 describe('TSCardGen multi-event code model', () => {
   test('legacy string remains a string when serializing one event', () => {

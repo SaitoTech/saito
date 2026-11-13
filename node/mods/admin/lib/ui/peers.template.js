@@ -60,7 +60,8 @@ module.exports = ({
   notice,
   loading_live,
   show_add_form,
-  detail
+  detail,
+  diagnostics = {}
 } = {}) => {
   const rows = peers || [];
   const proto = protocol === 'https' ? 'https' : 'http';
@@ -159,6 +160,14 @@ module.exports = ({
 
         ${body}
       </div>
+
+      <details class="admin-peer-diagnostics" id="admin-peer-diagnostics" ${diagnostics.open ? 'open' : ''}>
+        <summary>Peer diagnostics — raw Rust state</summary>
+        <p>All peer entries on this server, including unverified and disconnected peers. Map entries are shown as [peer ID, peer] pairs; large integers are strings.</p>
+        <button type="button" class="admin-button" ${diagnostics.loading ? 'disabled' : ''}>Refresh snapshot</button>
+        <p role="status">${escapeHtml(diagnostics.loading ? 'Loading snapshot…' : diagnostics.error || '')}</p>
+        <pre>${escapeHtml(diagnostics.json || '')}</pre>
+      </details>
 
       ${
         detail

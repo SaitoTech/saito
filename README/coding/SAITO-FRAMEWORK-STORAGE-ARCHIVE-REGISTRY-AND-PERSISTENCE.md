@@ -669,6 +669,15 @@ Applications should generally use the Archive API rather than directly querying 
 
 # 22. Archive Is a Queryable Transaction Store
 
+Archive supports an optional `created_cursor: { timestamp, signature }` load-query
+field for descending pagination by `(created_at, sig)`. Only rows strictly before
+that pair are returned, with signature breaking ties between equal creation
+timestamps. The same ordering applies in SQLite and browser storage. Queries
+without this option retain their existing ordering, and the maximum page size
+remains 100. Callers must use the stored creation time in the cursor; for Stack
+posts this is the transaction timestamp. Remote archive peers must support this
+option before clients use it for pagination.
+
 Archive allows applications to save transaction-shaped data and later query it.
 
 For example:

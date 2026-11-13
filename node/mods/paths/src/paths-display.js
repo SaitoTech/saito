@@ -258,17 +258,23 @@
         let bm = b.damaged ? b.rmovement : b.movement;
         return (am || 0) - (bm || 0);
       });
+      // A destroyed unit stays in the array until the assignment sweep so
+      // indexes do not move under the hits. It is not drawn, and it is not
+      // a black X.
+      let living = 0;
       for (let i = 0; i < draw_units.length; i++) {
+        if (draw_units[i].destroyed) { continue; }
+        living++;
         html += this.returnUnitImage(draw_units[i]);
       }
 
       //
       // activated for movement
       //
-      if (space.activated_for_movement && space.units.length > 0) {
+      if (space.activated_for_movement && living > 0) {
         html += `<img src="/paths/img/tiles/activate_move.png" class="activation-tile" />`;
       }
-      if (space.activated_for_combat && space.units.length > 0) {
+      if (space.activated_for_combat && living > 0) {
         html += `<img src="/paths/img/tiles/activate_attack.png" class="activation-tile" />`;
       }
       if (!space.activated_for_movement && !space.activated_for_combat && this.signals && this.signals.marks[key]) {
@@ -326,9 +332,9 @@
       //
       if (space.oos == 1 && space.units.length > 0) { 
 	if (this.returnPowerOfUnit(space.units[0]) == "central") {
-          html += `<img src="/paths/img/tiles/oos_central.png" class="trench-tile oos-tile" />`;
+          html += `<img src="/paths/img/tiles/oos_central.png" class="oos-tile" />`;
 	} else {
-          html += `<img src="/paths/img/tiles/oos_allies.png" class="trench-tile oos-tile" />`;
+          html += `<img src="/paths/img/tiles/oos_allies.png" class="oos-tile" />`;
 	}
       } else {
 
@@ -346,6 +352,11 @@
 //        if (control == "central") { el.classList.add("central-highlight"); }
 //        if (control == "neutral") { el.classList.add("neutral-highlight"); }
 	el.innerHTML = html;
+	if (space.oos == 1 && space.units.length > 0) {
+	  el.style.setProperty("--oos-step", String(space.units.length));
+	} else {
+	  el.style.removeProperty("--oos-step");
+	}
 	el.classList.remove("opponent-move", "opponent-attack");
 	// Normal renders must not keep leftover loss-assignment presentation.
 	if (!(this.loss_overlay && this.loss_overlay.board_mode) && el.classList.contains("loss-assignment-open")) {
@@ -402,7 +413,7 @@ console.log("err: " + err);
     el.style.removeProperty("--stack-top");
     el.style.removeProperty("--stack-height");
     el.style.removeProperty("--stack-width");
-    el.querySelectorAll(":scope > .army-tile").forEach((tile) => {
+    el.querySelectorAll(":scope > .army-tile, :scope > .oos-tile").forEach((tile) => {
       tile.style.top = "";
       tile.style.left = "";
       tile.style.width = "";
@@ -411,10 +422,19 @@ console.log("err: " + err);
     });
   }
 
+  // Out-of-supply leads the column. Unit chits follow in their drawn order.
+  chitsInStackOrder(el) {
+    if (!el) { return []; }
+    let units = Array.from(el.querySelectorAll(":scope > .army-tile"));
+    let oos = el.querySelector(":scope > .oos-tile");
+    if (oos) { return [oos].concat(units); }
+    return units;
+  }
+
   layoutSpaceStack(spacekey) {
     let el = document.getElementById(spacekey);
     if (!el) { return; }
-    let tiles = el.querySelectorAll(":scope > .army-tile");
+    let tiles = this.chitsInStackOrder(el);
     if (tiles.length < 2) { return; }
 
     let size = el.offsetWidth || 90;
@@ -516,6 +536,7 @@ console.log("err: " + err);
     try {
       if (document.querySelector(".space.selectable")) { return true; }
     } catch (err) {}
+    if (this.loss_overlay && this.loss_overlay.board_mode) { return true; }
     return false;
   }
 
@@ -744,6 +765,12 @@ console.log("err: " + err);
     if (cardname === "pass") {
       return `<img class="${cardclass}" src="/paths/img/cards/PASS.png" /><div class="cardtext">pass</div>`;
     }
+    if (cardname === "automatic_operations") {
+      return `<img class="${cardclass}" src="/paths/img/cards/automatic_operation.png" />`;
+    }
+    if (cardname === "peace_terms") {
+      return `<img class="${cardclass}" src="/paths/img/cards/peace_terms.png" />`;
+    }
 
     if (deck[cardname]) {
       card = deck[cardname];
@@ -767,25 +794,74 @@ console.log("err: " + err);
 
 
   async preloadImages() {
-    var allImages = [
-    //  "img/factions/england.png",
+    let allImages = [
+      "img/backgrounds/menu/artillery.png",
+      "img/backgrounds/menu/train.jpg",
+      "img/backgrounds/menu/recruiting.jpg",
+      "img/backgrounds/menu/suez.jpg",
+      "img/tiles/activate_attack.png",
+      "img/tiles/activate_move.png",
+      "img/tiles/ap_trench1.png",
+      "img/tiles/ap_trench2.png",
+      "img/tiles/cp_trench1.png",
+      "img/tiles/cp_trench2.png",
+      "img/tiles/control_ap.png",
+      "img/tiles/control_cp.png",
+      "img/tiles/fort_besieged.png",
+      "img/tiles/fort_destroyed.png",
+      "img/tiles/oos_allies.png",
+      "img/tiles/oos_central.png",
+      "img/tiles/trench_mod.png",
+      "img/vp.png",
+      "img/russianvp_current.png",
+      "img/warstatus_ap.png",
+      "img/warstatus_cp.png",
+      "img/warstatus_combined.png",
+      "img/rp/rp_ge.png",
+      "img/rp/rp_ah.png",
+      "img/rp/rp_tu.png",
+      "img/rp/rp_bu.png",
+      "img/rp/rp_cp.png",
+      "img/rp/rp_a.png",
+      "img/rp/rp_br.png",
+      "img/rp/rp_fr.png",
+      "img/rp/rp_it.png",
+      "img/rp/rp_ru.png",
+      "img/rp/rp_ap.png",
+      "img/rp/rp_allied.png",
+      "img/action_cp1.png",
+      "img/action_cp2.png",
+      "img/action_cp3.png",
+      "img/action_cp4.png",
+      "img/action_cp5.png",
+      "img/action_cp6.png",
+      "img/action_ap1.png",
+      "img/action_ap2.png",
+      "img/action_ap3.png",
+      "img/action_ap4.png",
+      "img/action_ap5.png",
+      "img/action_ap6.png",
     ];
+
+    if (this.game && this.game.units) {
+      for (let key in this.game.units) {
+        let unit = this.game.units[key];
+        if (unit.front) { allImages.push("img/army/" + unit.front); }
+        if (unit.back) { allImages.push("img/army/" + unit.back); }
+      }
+    }
 
     this.preloadImageArray(allImages);
   }
 
-  preloadImageArray(imageArray=[], idx=0) {
-
-    let pre_images = [imageArray.length];
-
-    if (imageArray && imageArray.length > idx) {
-      pre_images[idx] = new Image();
-      pre_images[idx].onload = () => {
-        this.preloadImageArray(imageArray, idx+1);
-      }
-      pre_images[idx].src = "/paths/" + imageArray[idx];
+  preloadImageArray(imageArray=[]) {
+    if (!imageArray || imageArray.length == 0) { return; }
+    if (!this._preloaded_images) { this._preloaded_images = []; }
+    for (let i = 0; i < imageArray.length; i++) {
+      let img = new Image();
+      img.src = "/paths/" + imageArray[i];
+      this._preloaded_images.push(img);
     }
-
   }
 
 
@@ -871,7 +947,7 @@ console.log("err: " + err);
       let allies_war_status = `<img src="/paths/img/warstatus_ap.png" />`;
       let central_war_status = `<img src="/paths/img/warstatus_cp.png" />`;
       let combined_war_status = `<img src="/paths/img/warstatus_combined.png" />`;
-      let current_cp_russian_vp = `<img src="/paths/img/current_cp_russian_vp.png" />`;
+      let current_cp_russian_vp = `<img src="/paths/img/russianvp_current.png" />`;
 
       document.querySelector(`.general-records-track-${this.game.state.general_records_track.allies_war_status}`).innerHTML += allies_war_status;
       document.querySelector(`.general-records-track-${this.game.state.general_records_track.central_war_status}`).innerHTML += central_war_status;

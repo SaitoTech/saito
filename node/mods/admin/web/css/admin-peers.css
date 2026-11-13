@@ -361,6 +361,24 @@
   word-break: break-all;
 }
 
+.admin-peer-diagnostics {
+  margin-top: 24px;
+  min-width: 0;
+}
+
+.admin-peer-diagnostics summary {
+  cursor: pointer;
+}
+
+.admin-peer-diagnostics pre {
+  max-height: 60vh;
+  overflow: auto;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  padding: 12px;
+  border: 1px solid var(--admin-border, #e1e4e8);
+}
+
 @media (max-width: 800px) {
   .admin-peers-server-form,
   .admin-peers-form {

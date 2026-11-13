@@ -24,7 +24,7 @@ test('new configs live under config while wallets stay outside it', t => {
   const files = configure(root, ['daemon', 'conquest', 'settlers', 'twilight', 'paths', 'multi']);
   assert.equal(files.length, 6);
   for (const file of files) {
-    assert.equal(path.dirname(file), path.join(root, 'config'));
+    assert.equal(path.dirname(file), path.join(root, 'apps/runner/config'));
     assert.ok(loadConfig(file).dataDir.startsWith(path.join(root, 'runner-data') + path.sep));
     assert.equal(fs.statSync(file).mode & 0o777, 0o600);
   }
@@ -56,7 +56,7 @@ test('default migration picks up existing root game and multi configs without cr
   const root = fixture(t);
   for (const name of ['multi', 'paths']) legacy(root, name);
   assert.deepEqual(configure(root).map(file => path.basename(file)), ['daemon.json', 'paths.json', 'multi.json']);
-  assert.ok(!fs.existsSync(path.join(root, 'config/conquest.json')));
+  assert.ok(!fs.existsSync(path.join(root, 'apps/runner/config/conquest.json')));
 });
 
 test('omitted legacy dataDir retains the original default directory', t => {

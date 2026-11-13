@@ -291,7 +291,7 @@ class PathsOfGlory extends GameTemplate {
   }
 
   returnScenario() {
-    let id = "original";
+    let id = "optional";
     if (this.game && this.game.options && this.game.options.deck) {
       id = this.game.options.deck;
     }

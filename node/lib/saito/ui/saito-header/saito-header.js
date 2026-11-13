@@ -1295,7 +1295,11 @@ class SaitoHeader extends UIModTemplate {
               return;
             }
 
-            paintPreferredBalance(document.querySelector('.balance-amount'), preferred_ab, preferred_pb);
+            paintPreferredBalance(
+              document.querySelector('.balance-amount'),
+              preferred_ab,
+              preferred_pb
+            );
             this.app.browser.replaceElementBySelector(
               `<div class="saito-header-wallet-menu saito-menu-select-subtle">${buildMenuHtml(balances)}</div>`,
               '.saito-header-wallet-menu'

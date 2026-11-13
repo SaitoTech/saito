@@ -3,6 +3,7 @@ const SaitoOverlay = require('../../../../../lib/saito/ui/saito-overlay/saito-ov
 const ViewPost = require('../view-post');
 const SaitoUser = require('../../../../../lib/saito/ui/saito-user/saito-user');
 const PostTeaser = require('../post-teaser');
+const { collapsePosts } = require('../../post-feed');
 
 class ExploreOverlay {
   constructor(app, mod) {
@@ -10,6 +11,7 @@ class ExploreOverlay {
     this.mod = mod;
     this.overlay = new SaitoOverlay(this.app, this.mod);
     this.posts = {};
+    this.pages = {};
     this.lastTimeStamp = {};
     this.isLoading = true;
     this.awaitingPeers = false;
@@ -36,7 +38,6 @@ class ExploreOverlay {
 
     setTimeout(() => {
       this.attachEvents();
-      this.updateHelpNoteVisibility();
       // Load posts after attaching events (skip if URL-based routing already loaded posts)
       this.loadPostsForFilter(this.targetPublicKey);
     }, 25);
@@ -101,20 +102,6 @@ class ExploreOverlay {
     }
 
     return subscriptions;
-  }
-
-  updateHelpNoteVisibility() {
-    // Count subscription items
-    const subscriptionItems = document.querySelectorAll('.explore .filters > .item');
-    const helpNote = document.querySelector('.explore .help');
-
-    if (helpNote && subscriptionItems.length > 2) {
-      // Hide help note if more than 2 subscriptions
-      helpNote.classList.add('hide-help');
-    } else if (helpNote) {
-      // Show help note if 2 or fewer subscriptions
-      helpNote.classList.remove('hide-help');
-    }
   }
 
   updateAuthorHeader() {
@@ -216,32 +203,59 @@ class ExploreOverlay {
       return;
     }
 
-    const ts = Date.now();
-    const fresh = this.lastTimeStamp[author] && ts - this.lastTimeStamp[author] <= 120000;
-
-    if (force || !fresh) {
-      this.isLoading = true;
+    const fresh = this.lastTimeStamp[author] && Date.now() - this.lastTimeStamp[author] <= 120000;
+    if (!force && (this.pages[author]?.loading || (fresh && this.pages[author]?.complete))) {
       this.updatePostsGrid(author);
-
-      console.log('fetching', author);
-      const { posts, complete } = await this.mod.fetchPostsForAuthor(author, {
-        forceRemote: true
-      });
-      this.posts[author] = posts;
-      if (complete) {
-        this.lastTimeStamp[author] = ts;
-      }
-      this.awaitingPeers = !complete;
+      return;
     }
+    this.pages[author] = { cursor: null, hasMore: true, loading: false, complete: true, error: false };
+    this.posts[author] = [];
+    await this.loadMorePosts(author);
+  }
 
-    this.isLoading = false;
+  async loadMorePosts(author = this.targetPublicKey) {
+    const page = this.pages[author];
+    if (!page || page.loading || !page.hasMore) return;
+    page.loading = true;
+    page.error = false;
     this.updatePostsGrid(author);
+    try {
+      const result = await this.mod.fetchPostsForAuthor(author, { cursor: page.cursor, limit: 10 });
+      if (this.pages[author] !== page) return;
+      this.posts[author] = collapsePosts(this.mod, [...(this.posts[author] || []), ...result.posts]);
+      page.complete = result.complete;
+      // Keep the cursor when offline so a retry can still fetch missing remote posts.
+      if (result.complete) {
+        page.cursor = result.nextCursor;
+        page.hasMore = result.hasMore;
+        this.lastTimeStamp[author] = Date.now();
+      }
+    } catch (error) {
+      page.error = true;
+      console.error('Stack: Unable to load posts', error);
+    } finally {
+      page.loading = false;
+      if (this.pages[author] === page) this.updatePostsGrid(author);
+    }
+  }
+
+  checkForMorePosts() {
+    const content = document.querySelector('.explore .main > .content');
+    const page = this.pages[this.targetPublicKey];
+    if (!content?.isConnected || !content.clientHeight || !page || page.loading || page.error || !page.complete) return;
+    if (content.scrollHeight - content.scrollTop - content.clientHeight <= 200) {
+      this.loadMorePosts();
+    }
   }
 
   /**
    * Updates the posts grid with current state (loading, empty, or populated).
    */
   updatePostsGrid(author = '') {
+    if (author !== this.targetPublicKey) return;
+    const page = this.pages[author];
+    this.isLoading = !!page?.loading;
+    this.awaitingPeers = page?.complete === false;
     const grid = document.querySelector('#stack-explore-posts-grid');
     if (!grid) {
       return;
@@ -251,7 +265,7 @@ class ExploreOverlay {
 
     const hasPosts = this.posts[author]?.length > 0;
 
-    if (this.isLoading || (this.awaitingPeers && !hasPosts)) {
+    if ((this.isLoading || this.awaitingPeers) && !hasPosts) {
       // PART 5: Show loading spinner with "Fetching latest posts…" message
       grid.innerHTML = `
         <div class="loading">
@@ -297,6 +311,17 @@ class ExploreOverlay {
       `;
       }
     }
+    if (page?.error || (hasPosts && page?.hasMore)) {
+      const footer = document.createElement('div');
+      footer.className = 'stack-feed-more';
+      footer.innerHTML = page.loading
+        ? '<span role="status">Loading…</span>'
+        : '<button type="button" class="saito-button-secondary">' + (page.error ? 'Retry' : 'Load more') + '</button>';
+      const button = footer.querySelector('button');
+      if (button) button.onclick = () => this.loadMorePosts(author);
+      grid.appendChild(footer);
+    }
+    requestAnimationFrame(() => this.checkForMorePosts());
   }
 
   pruneEditedPosts() {
@@ -501,10 +526,13 @@ class ExploreOverlay {
 
   attachEvents() {
     try {
+      const content = document.querySelector('.explore .main > .content');
+      if (content) content.onscroll = () => this.checkForMorePosts();
+
       // Update author header on initial load
       this.updateAuthorHeader();
 
-      // Add subscription function -> in help / bottom of the explore list
+      // Follow account button at the bottom of the explore list
       const addSubscriptionBtn = document.querySelector('#stack-explore-add-subscription-btn');
       if (addSubscriptionBtn) {
         addSubscriptionBtn.onclick = (e) => {
@@ -658,7 +686,6 @@ class ExploreOverlay {
       mobileSelector.appendChild(option);
     }
 
-    this.updateHelpNoteVisibility();
   }
 
   /**

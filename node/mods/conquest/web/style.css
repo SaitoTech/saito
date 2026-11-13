@@ -675,4 +675,7 @@ button.conquest-player-stat:hover {background:color-mix(in srgb,var(--player) 18
 .conquest-steamroll-targets .conquest-button {position:absolute;pointer-events:auto;width:84px;min-height:44px;margin:0!important;padding:8px!important;font-size:14px!important;line-height:1.15}
 .conquest-steamroll-targets .conquest-button[hidden] {display:none!important}
 
-.conquest-app .conquest-attack-menu .conquest-button.primary,.conquest-app .conquest-steamroll-targets .conquest-button.primary {border:3px solid #fff;clip-path:none}
+/* Layer the faction colour inside the original polygon so the white rim follows every edge. */
+.conquest-attack-menu .conquest-button {position:relative}
+.conquest-app .conquest-attack-menu .conquest-button.primary,.conquest-app .conquest-steamroll-targets .conquest-button.primary {border:3px solid #fff;background:#fff;isolation:isolate}
+.conquest-attack-menu .conquest-button.primary::before,.conquest-steamroll-targets .conquest-button.primary::before {content:'';position:absolute;inset:0;z-index:-1;background:var(--conquest-active);clip-path:inherit;pointer-events:none}

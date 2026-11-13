@@ -6,7 +6,8 @@ module.exports = async function run(config, task, { signal, report,
   playGame = require('../loop').play,
   resumeGame = require('../resume')
 }) {
-  const runtime = await boot({ ...config, game: task.game || config.game },
+  config = require('../agents').forGame(config, task.game || config.game);
+  const runtime = await boot(config,
     { monitor: task.mode === 'watch', chat: task.mode === 'play' || config.daemon.mode === 'ask', discover: true });
   const { app, arcade } = runtime;
   const save = () => app.storage.saveOptions();

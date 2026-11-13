@@ -4,14 +4,13 @@ const GAMES = { Conquest: 'conquest/conquest', Settlers: 'settlers/settlers', Tw
 const MAX_PLAYERS = { Conquest: 6, Settlers: 4, Twilight: 2, PathsOfGlory: 2 };
 const supportsPlayers = (game, players) => Number.isInteger(players) && players >= 2 && players <= MAX_PLAYERS[game];
 function loadConfig(filename) {
-  const absolute = path.resolve(filename);
+  const absolute = fs.realpathSync(filename);
   const input = JSON.parse(fs.readFileSync(absolute, 'utf8'));
   if (!input || typeof input !== 'object' || Array.isArray(input)) throw Error('Config must be an object');
   const config = {
     peer: input.peer, game: input.game || 'Conquest', players: input.players ?? 2,
     dataDir: path.resolve(path.dirname(absolute), input.dataDir || './runner-data'),
     options: input.options || {},
-    decisionProvider: { type: 'codex', executable: 'codex', timeoutMs: 120000, maxAttempts: 3, retryDelayMs: 30000, ...input.decisionProvider },
     pollMs: input.pollMs ?? 250, idleTimeoutMs: input.idleTimeoutMs ?? 600000,
     maxDecisions: input.maxDecisions ?? 10000,
     daemon: { games: [input.game || 'Conquest'], mode: 'delay', joinDelayMs: 60000,
@@ -36,19 +35,10 @@ function loadConfig(filename) {
   if (!['ws:', 'wss:'].includes(url.protocol) || url.pathname !== '/wsopen' || url.username || url.password || url.search || url.hash) {
     throw Error('peer must be ws(s)://host:port/wsopen');
   }
-  if (!['codex', 'heuristic'].includes(config.decisionProvider.type)) throw Error('Unknown decision provider');
   for (const key of ['pollMs', 'idleTimeoutMs', 'maxDecisions']) {
     if (!Number.isSafeInteger(config[key]) || config[key] <= 0) throw Error(`Invalid ${key}`);
   }
-  if (!Number.isSafeInteger(config.decisionProvider.timeoutMs) || config.decisionProvider.timeoutMs < 100) throw Error('Invalid provider timeout');
-  for (const key of ['maxAttempts', 'retryDelayMs']) {
-    if (!Number.isSafeInteger(config.decisionProvider[key]) || config.decisionProvider[key] < 1) throw Error(`Invalid decisionProvider.${key}`);
-  }
-  if (typeof config.decisionProvider.executable !== 'string' || !config.decisionProvider.executable) throw Error('Invalid Codex executable');
-  if (config.decisionProvider.executable.includes('/') && !path.isAbsolute(config.decisionProvider.executable)) {
-    config.decisionProvider.executable = path.resolve(path.dirname(absolute), config.decisionProvider.executable);
-  }
-  if (config.decisionProvider.model !== undefined && typeof config.decisionProvider.model !== 'string') throw Error('Invalid model');
+  Object.assign(config, require('./agents').resolveAgents(input, absolute, config.game, config.daemon.games));
   if (config.game === 'Twilight') {
     if (config.options.deck === undefined) config.options.deck = 'original';
     require('./games/twilight-options').validate(config.options);

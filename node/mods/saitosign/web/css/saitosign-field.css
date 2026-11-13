@@ -179,13 +179,11 @@
 
 .saitosign-sign .title,
 .saitosign-sign .name,
-.saitosign-sign .email,
-.saitosign-sign .instruction {
+.saitosign-sign .email {
   margin: 0;
 }
 
-.saitosign-sign .title,
-.saitosign-sign .instruction {
+.saitosign-sign .title {
   color: var(--saito-muted-foreground);
 }
 
@@ -197,10 +195,6 @@
 .saitosign-sign .name {
   margin-top: var(--saito-space-md);
   font-family: var(--saito-font-heavy);
-}
-
-.saitosign-sign .instruction {
-  margin-top: var(--saito-space-md);
 }
 
 .saitosign-sign .actions {
@@ -241,7 +235,7 @@
 }
 
 .saitosign-sign button.secondary {
-  border: 1px solid #111;
+  border: 1px solid rgba(255, 255, 255, 0.72);
   background: #111;
   color: #fff;
 }

@@ -74,6 +74,13 @@
   color: var(--saito-muted-foreground);
 }
 
+.workspace .identity[data-awaiting-identity] .file {
+  color: var(--saito-foreground);
+  font-family: var(--saito-font-heavy);
+  font-size: 2rem;
+  line-height: 1.2;
+}
+
 .workspace .guide {
   margin: 0;
   color: var(--saito-foreground);
@@ -301,9 +308,10 @@
 }
 
 .workspace button.export.primary.verified:not(:disabled) {
-  border-color: var(--saitosign-signed-ink);
-  background: var(--saitosign-signed-ground);
-  color: var(--saitosign-signed-ink);
+  border-color: #6ee7a8;
+  background: #14573a;
+  color: #fff;
+  cursor: pointer;
 }
 
 .workspace button.export:disabled {
@@ -317,6 +325,7 @@
 .workspace .notice {
   margin: 0;
   color: var(--saito-destructive);
+  white-space: pre-line;
 }
 
 .workspace .stage {
@@ -579,6 +588,52 @@
   white-space: nowrap;
 }
 
+.workspace .field-list .row.cue-target,
+.workspace .field-list .row.cue-target:hover,
+.workspace .field-list .row.cue-target.active,
+.workspace .field-list .row.cue-target.active:hover {
+  overflow: hidden;
+  border-color: var(--saito-primary);
+  background: var(--saito-background);
+  box-shadow: none;
+}
+
+.workspace .field-list .row.cue-target .open {
+  padding-right: 0;
+}
+
+.workspace .field-list .row.cue-target .cue {
+  display: inline-flex;
+  align-items: center;
+  align-self: stretch;
+  flex: none;
+  margin: 0 0 0 0.6rem;
+  padding: 0 0.9rem;
+  border-left: 1px solid rgba(255, 255, 255, 0.45);
+  border-radius: 0 calc(var(--saito-radius) - 1px) calc(var(--saito-radius) - 1px) 0;
+  background: var(--saito-primary);
+  color: #fff;
+  font-size: 1.1rem;
+  letter-spacing: 0.04em;
+  line-height: 1.2;
+  white-space: nowrap;
+  box-shadow: 0 0 0.7em var(--saito-primary);
+  animation: saitosign-click-cue 1.5s ease-in-out infinite;
+}
+
+@keyframes saitosign-click-cue {
+  0%,
+  100% {
+    filter: brightness(1);
+    box-shadow: 0 0 0.35em var(--saito-primary);
+  }
+
+  50% {
+    filter: brightness(1.2);
+    box-shadow: 0 0 1.15em var(--saito-primary);
+  }
+}
+
 .workspace .field:hover,
 .workspace .field:focus-visible,
 .workspace .field.moving {
@@ -665,6 +720,12 @@
 
   to {
     opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .workspace .field-list .row.cue-target .cue {
+    animation: none;
   }
 }
 

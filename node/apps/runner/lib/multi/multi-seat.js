@@ -136,11 +136,13 @@ class MultiSeat {
         if (adapter.current()?.id !== decision.id) return decision.choices[0].id;
         return await base.choose(decision, signal);
       } finally { release(); }
-    }, reply: async (conversation, signal) => {
-      const release = await this.permit(signal);
-      try { return await base.reply(conversation, signal); } finally { release(); }
     } };
-    this.running = play(this.runtime, this.config, { signal: this.signal, report: this.report, provider, waitForOpponent: true })
+    const chat = this.config.chatProvider ? providerFor(this.config.chatProvider) : null;
+    const chatProvider = chat ? { reply: async (conversation, signal) => {
+      const release = await this.permit(signal);
+      try { return await chat.reply(conversation, signal); } finally { release(); }
+    } } : {};
+    this.running = play(this.runtime, this.config, { signal: this.signal, report: this.report, provider, chatProvider, waitForOpponent: true })
       .catch(error => {
         if (error.name !== 'AbortError') { this.failure = error; this.report({ event: 'seat-error', message: error.message }); }
       });

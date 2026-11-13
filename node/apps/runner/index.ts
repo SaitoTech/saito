@@ -17,6 +17,10 @@ async function main() {
   // Fail before opening a wallet or accepting an invitation if the local provider
   // cannot start. Listing invites does not require a decision provider.
   const version = command === 'list' ? null : await require('./lib/providers/check')(config.decisionProvider);
+  if (command === 'daemon') {
+    for (const game of config.daemon.games) await require('./lib/providers/check')(require('./lib/agents').forGame(config, game).decisionProvider);
+  }
+  if (command !== 'list' && config.chatProvider) await require('./lib/providers/check')(config.chatProvider);
   const unlock = lock(config.dataDir);
   const controller = new AbortController();
   // A terminal Ctrl-C reaches the process group, and npm may forward SIGINT

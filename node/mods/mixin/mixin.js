@@ -246,6 +246,18 @@ class Mixin extends ModTemplate {
     }
   }
 
+  /**
+   * Public key that signs Saito fulfillment for a Web3 deposit.
+   * Remote payout forwards the transaction to the configured treasury.
+   * Local payout signs with this node's wallet.
+   */
+  returnSaitoIssuancePublicKey() {
+    if (this.payout_mode === 'remote') {
+      return this.configuredTreasuryProviderPublickey();
+    }
+    return String(this.publicKey || '').trim();
+  }
+
   configuredTreasuryProviderPublickey() {
     const own = String(this.publicKey || '').trim();
     return (

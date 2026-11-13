@@ -1,10 +1,10 @@
-const Card = require('../../../mods/tscardgen/lib/card');
+const Card = require('../../../mods/twilight/lib/cardgen/card');
 const {
   DRAFT_KEY,
   loadDraft,
   saveDraft,
   clearDraft
-} = require('../../../mods/tscardgen/lib/draft-store');
+} = require('../../../mods/twilight/lib/cardgen/draft-store');
 
 function memoryStorage() {
   const values = new Map();

@@ -24,6 +24,7 @@ class SpaceOverlay {
     document.querySelector('.space-overlay .name').innerHTML = space.name + ' - ' + space.country;
     let html = '';
     for (let z = 0; z < space.units.length; z++) {
+      if (space.units[z].destroyed) { continue; }
       html += this.mod.returnUnitImage(space.units[z]);
     }
     document.querySelector('.space-overlay .units').innerHTML = html;

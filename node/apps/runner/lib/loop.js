@@ -5,14 +5,15 @@ const { Inactivity } = require('./inactivity');
 const CodexProvider = require('./providers/codex');
 function providerFor(config) {
   if (config.type === 'codex') return new CodexProvider(config);
-  return { choose: async d => d.choices.reduce((best, c) => c.score > best.score ? c : best).id,
-    reply: async () => 'Thanks for the message! I am using the simple test policy, so my chat is limited. Have fun!' };
+  if (config.type === 'jev') return new (require('./providers/jev'))(config);
+  if (config.type !== 'heuristic') throw Error('Unknown decision provider');
+  return { choose: async d => d.choices.reduce((best, c) => c.score > best.score ? c : best).id };
 }
-async function play(runtime, config, { signal, report = console.log, provider = providerFor(config.decisionProvider), waitForOpponent = false } = {}) {
+async function play(runtime, config, { signal, report = console.log, provider = providerFor(config.decisionProvider), chatProvider = config.chatProvider ? providerFor(config.chatProvider) : {}, waitForOpponent = false } = {}) {
   const { mod, adapter, app } = runtime;
   const recovery = new EngineRecovery(runtime, config, { signal, report });
   const inactivity = new Inactivity(runtime, report);
-  const conversation = new Conversation(runtime, provider, { signal, report });
+  const conversation = new Conversation(runtime, chatProvider, { signal, report });
   let lastProgress = Date.now(), lastRevision = '', decisions = 0, resendAt = 0, failure;
   const onError = error => { failure = error; };
   app.connection.on('runner-error', onError);

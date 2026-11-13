@@ -63,9 +63,9 @@ Installed in /opt/saito. Run these commands:
 
   cd /opt/saito/node
   codex login --device-auth
-  # Review config/daemon.json, then:
-  npm run runner -- doctor ./config/daemon.json
-  pm2 start apps/runner/index.ts --name saito-runner --interpreter ./node_modules/.bin/ts-node --interpreter-args="--transpile-only --project config/build/tsconfig.json" --kill-timeout 30000 --restart-delay 30000 -- daemon ./config/daemon.json
+  # Review apps/runner/config/daemon.json and apps/runner/config/agents.json, then:
+  npm run runner -- doctor ./apps/runner/config/daemon.json
+  pm2 start apps/runner/index.ts --name saito-runner --interpreter ./node_modules/.bin/ts-node --interpreter-args="--transpile-only --project config/build/tsconfig.json" --kill-timeout 30000 --restart-delay 30000 -- daemon ./apps/runner/config/daemon.json
   pm2 save
   pm2 startup
 

@@ -2,7 +2,8 @@ const PathsScenarios = require('../scenarios');
 
 module.exports = () => {
   let options = PathsScenarios.list().map((scenario) => {
-    return `<option value="${scenario.id}">${scenario.label}</option>`;
+    let selected = scenario.id === "optional" ? " selected" : "";
+    return `<option value="${scenario.id}"${selected}>${scenario.label}</option>`;
   }).join("\n            ");
   let html = `
         <label for="deckselect">Scenario:</label>

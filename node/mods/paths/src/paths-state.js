@@ -22,7 +22,12 @@
 
     this.game.state.attacks = {};
 
-    if (this.game.state.events.high_seas_fleet > 1) { this.game.state.events.high_seas_fleet--; }
+    if (this.game.state.events.high_seas_fleet > 1) {
+      this.game.state.events.high_seas_fleet--;
+      if (this.game.state.events.high_seas_fleet == 1) {
+        console.log("Central Powers +1 VP from High Seas Fleet.");
+      }
+    }
 
     for (let key in this.game.spaces) {
       let redisplay = false;
@@ -204,6 +209,8 @@
     }
 
     if (this.game.state.events.bolshevik_revolution) { position++; }
+
+    if (this.game.state.events.treaty_of_brest_litovsk) { position++; }
 
     if (position != this.game.state.russian_capitulation_track) {    
       this.game.state.russian_capitulation_track = position;

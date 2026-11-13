@@ -24,13 +24,13 @@
  */
 const SANDBOX_CSP_BASE = [
   "default-src 'none'",
-  "worker-src blob:",
+  'worker-src blob:',
   "connect-src 'none'",
   "object-src 'none'",
   "base-uri 'none'",
   "form-action 'none'",
   "frame-src 'none'",
-  "child-src blob:"
+  'child-src blob:'
 ];
 
 function buildSandboxCsp(nonce) {

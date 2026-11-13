@@ -103,20 +103,15 @@
     right: 1.667rem;
     top: 1.667rem;
   }
-  .trench-tile:hover {
-    z-index: 999;
-  }
   .activation-tile {
     height: 100%;
     width: 100%;
     position: absolute;
-    top: -15;
-    left: +15px;
-    z-index: 10;
+    top: -2.4rem;
+    left: -2.4rem;
+    z-index: 4;
     display: block;
-  }
-  .activation-tile:hover {
-    display: none;
+    pointer-events: none;
   }
   .army-tile {
     width: 100%;
@@ -183,7 +178,14 @@
 
   .space.stack-open > .activation-tile,
   .space.stack-open > .trench-tile {
-    z-index: 0;
+    z-index: 15;
+  }
+
+  /* The offset corner stays reachable. Hover brings the whole marker forward
+     so a level-1 trench can be told from a level-2 trench. */
+  .space > .trench-tile:not(.control-tile):not(.fort-besieged):not(.fort-destroyed):hover {
+    z-index: 1000;
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.65));
   }
 
   .space.loss-assignment-open > .army-tile.loss-board-unit {

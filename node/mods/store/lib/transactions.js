@@ -75,16 +75,11 @@ function purchaseSenderPublicKey(tx) {
 }
 
 function web3PaymentProcessorKeys(mod) {
-  const configured = mod?.web3_payment_processor_publickey;
-  const listed = Array.isArray(configured) ? configured : configured ? [configured] : [];
-  const keys = [];
-  for (const candidate of [...listed, mod?.publicKey]) {
-    const key = String(candidate || '').trim();
-    if (key && !keys.includes(key)) {
-      keys.push(key);
-    }
-  }
-  return keys;
+  const key =
+    typeof mod?.returnWeb3TreasuryPublicKey === 'function'
+      ? String(mod.returnWeb3TreasuryPublicKey() || '').trim()
+      : '';
+  return key ? [key] : [];
 }
 
 function p2shPaymentRecipient(app, p2sh_address, context) {
