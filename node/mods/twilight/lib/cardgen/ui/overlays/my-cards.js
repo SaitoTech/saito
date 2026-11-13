@@ -19,6 +19,22 @@ class MyCardsOverlay {
     }
   }
 
+  /**
+   * Twilight declares the NFT types that belong to it. The wallet stores that
+   * type on the NFT record, so the collection follows the game rather than a title.
+   */
+  supportedGameTypes() {
+    const types = this.mod?.game_mod?.supported_nft_types;
+    if (Array.isArray(types) && types.length) {
+      return types;
+    }
+    return [Card.NFT_TYPE];
+  }
+
+  belongsToCurrentGame(rec = {}) {
+    return this.supportedGameTypes().includes(this.returnRecordType(rec));
+  }
+
   dedupeNftRecords(nft_list = []) {
     const seen = new Set();
     const unique = [];
@@ -60,9 +76,7 @@ class MyCardsOverlay {
     }
 
     const nft_list = this.dedupeNftRecords(
-      (this.app.options.wallet.nfts || []).filter(
-        (rec) => this.returnRecordType(rec) === Card.NFT_TYPE
-      )
+      (this.app.options.wallet.nfts || []).filter((rec) => this.belongsToCurrentGame(rec))
     );
 
     this.card_list = [];

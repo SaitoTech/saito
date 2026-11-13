@@ -111,13 +111,32 @@ class CardStudio {
 
   hideForTest() {
     this.main.flushActiveWorkspace();
+    const card = this.host.card;
+    this._editor_snapshot = {
+      data: card.toDraftData(),
+      image: card.image || null
+    };
+    this.main.saveCardDraft();
     this.overlay.hide();
     this.restoreHud();
   }
 
+  restoreEditorSnapshot() {
+    const snapshot = this._editor_snapshot;
+    if (!snapshot) {
+      return false;
+    }
+    this.host.card.reset(snapshot.data);
+    this.host.card.image = snapshot.image;
+    this._editor_snapshot = null;
+    return true;
+  }
+
   async showCode() {
     await this.ensureAssets();
-    this.restoreDraft();
+    if (!this.restoreEditorSnapshot()) {
+      this.restoreDraft();
+    }
     this.main.workspace = 'code';
     const mount = document.getElementById('twilight-cardgen-mount');
     const html = mount ? '' : '<div id="twilight-cardgen-mount"></div>';

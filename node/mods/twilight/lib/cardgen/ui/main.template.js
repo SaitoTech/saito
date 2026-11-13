@@ -1,3 +1,5 @@
+const actionBar = require('./action-bar.template');
+
 const creditFooter = `
   <footer class="tscardgen-footer">
     <p class="tscardgen-credit">
@@ -13,20 +15,7 @@ module.exports = (view = 'home', workspace = 'image') => {
     return `
       <div class="tscardgen tscardgen-generator" data-workspace="${workspace}">
         <div class="tscardgen-shell">
-          <div class="tscardgen-brand">
-            <p class="ts-form-kicker">Twilight Struggle</p>
-            <h1 class="ts-form-title">Card Generator</h1>
-          </div>
-          <div class="tscardgen-header-tools">
-            <div
-              class="tscardgen-save-status"
-              data-role="save-status"
-              aria-live="polite"
-              aria-atomic="true"
-            ></div>
-            <button type="button" class="tscardgen-new-card-btn" data-action="new-card">
-              New Card
-            </button>
+          <div class="tscardgen-header">
             <nav class="tscardgen-workspace-nav" aria-label="Workspace">
               <button type="button" class="tscardgen-workspace-btn${image_active}" data-workspace="image">
                 Image
@@ -35,6 +24,19 @@ module.exports = (view = 'home', workspace = 'image') => {
                 Code
               </button>
             </nav>
+            <button
+              type="button"
+              class="tscardgen-header-reset"
+              data-action="reset-card"
+              title="Reset card"
+              aria-label="Reset card"
+            >${actionBar.icon}</button>
+            <div
+              class="tscardgen-save-status"
+              data-role="save-status"
+              aria-live="polite"
+              aria-atomic="true"
+            ></div>
           </div>
           <div class="tscardgen-rule" role="presentation"></div>
           <aside class="tscardgen-controls" aria-label="Card controls"></aside>

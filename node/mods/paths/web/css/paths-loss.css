@@ -133,27 +133,139 @@
     color: rgba(255, 255, 255, 0.78);
   }
 
-  .loss-overlay-choices {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.45rem;
-    margin-top: 0.35rem;
+  .loss-overlay-faction-body {
+    position: relative;
   }
 
-  .loss-overlay-choice {
+  .loss-retreat-dock {
+    position: absolute;
+    z-index: 4;
+    left: 0.55rem;
+    right: 0.55rem;
+    bottom: 0.55rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    pointer-events: none;
+  }
+
+  .loss-retreat-dock[hidden] {
+    display: none !important;
+  }
+
+  .loss-retreat-sheet,
+  .loss-retreat-tab {
+    pointer-events: auto;
+  }
+
+  .loss-retreat-sheet {
+    overflow: hidden;
+    max-height: 18rem;
+    opacity: 1;
+    transform: translateY(0);
+    transition: max-height 0.38s ease, opacity 0.28s ease, transform 0.38s ease, padding 0.38s ease;
+    border: 1px solid rgba(245, 242, 234, 0.55);
+    border-bottom: 0;
+    border-radius: 0.55rem 0.55rem 0 0;
+    background:
+      linear-gradient(180deg, rgba(58, 42, 28, 0.96) 0%, rgba(22, 16, 12, 0.98) 100%);
+    box-shadow: 0 -0.8rem 1.8rem rgba(0, 0, 0, 0.45);
+    padding: 1rem 1rem 0.85rem;
+  }
+
+  .loss-retreat-dock.is-collapsed .loss-retreat-sheet {
+    max-height: 0;
+    opacity: 0;
+    transform: translateY(1.25rem);
+    padding: 0;
+    border-width: 0;
+  }
+
+  .loss-retreat-title {
+    margin: 0 0 0.85rem;
+    font-size: 2.05rem;
+    font-weight: 600;
+    line-height: 1.15;
+    color: #f5f2ea;
+  }
+
+  .loss-retreat-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.65rem;
+  }
+
+  .loss-retreat-choice {
     appearance: none;
-    border: 1px solid rgba(255, 255, 255, 0.55);
-    background: rgba(0, 0, 0, 0.28);
-    color: #fff;
+    flex: 1 1 8rem;
+    min-height: 4rem;
+    padding: 0.75rem 0.9rem;
+    border-radius: 0.4rem;
     font: inherit;
-    font-size: 0.95rem;
+    font-size: 1.45rem;
     line-height: 1.2;
-    padding: 0.35rem 0.75rem;
     cursor: pointer;
   }
 
-  .loss-overlay-choice:hover {
-    background: rgba(255, 255, 255, 0.16);
+  .loss-retreat-choice.is-retreat {
+    border: 1px solid #f5f2ea;
+    background: #f5f2ea;
+    color: #1a140f;
+  }
+
+  .loss-retreat-choice.is-retreat:hover {
+    background: #fff;
+  }
+
+  .loss-retreat-choice.is-hit {
+    border: 2px solid #c45a12;
+    background: rgba(196, 90, 18, 0.18);
+    color: #f5f2ea;
+  }
+
+  .loss-retreat-choice.is-hit:hover {
+    background: rgba(196, 90, 18, 0.34);
+  }
+
+  .loss-retreat-tab {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    width: 100%;
+    min-height: 2.6rem;
+    padding: 0.45rem 0.85rem;
+    border: 1px solid rgba(245, 242, 234, 0.55);
+    border-radius: 0 0 0.45rem 0.45rem;
+    background: #2a2118;
+    color: #f5f2ea;
+    font: inherit;
+    font-size: 1.25rem;
+    line-height: 1.2;
+    cursor: pointer;
+  }
+
+  .loss-retreat-dock.is-collapsed .loss-retreat-tab {
+    border-radius: 0.45rem;
+  }
+
+  .loss-retreat-arrow {
+    width: 0.7rem;
+    height: 0.7rem;
+    border-right: 2px solid currentColor;
+    border-bottom: 2px solid currentColor;
+    transform: rotate(45deg) translateY(-0.15rem);
+    flex: 0 0 auto;
+  }
+
+  .loss-retreat-dock.is-collapsed .loss-retreat-arrow {
+    transform: rotate(-135deg) translateY(-0.15rem);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .loss-retreat-sheet {
+      transition: none;
+    }
   }
 
   .loss-overlay-stage {

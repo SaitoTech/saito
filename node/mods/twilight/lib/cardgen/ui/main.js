@@ -53,7 +53,7 @@ class Main {
 
     if (this.view === 'generator') {
       this.attachWorkspaceNav();
-      this.attachNewCardControl();
+      this.attachHeaderReset();
       this.renderSaveStatus();
       this.renderWorkspace();
       return;
@@ -111,11 +111,22 @@ class Main {
     });
   }
 
-  attachNewCardControl() {
-    document.querySelector('[data-action="new-card"]')?.addEventListener('click', (event) => {
+  attachHeaderReset() {
+    document.querySelector('.tscardgen-header-reset')?.addEventListener('click', (event) => {
       event.preventDefault();
-      this.startNewCard();
+      this.requestResetCard();
     });
+  }
+
+  requestResetCard() {
+    this.flushActiveWorkspace();
+    if (this.mod.card.hasMeaningfulEdits()) {
+      const confirmed = window.confirm('Discard this card and start again?');
+      if (!confirmed) {
+        return;
+      }
+    }
+    this.startNewCard();
   }
 
   attachHomeEvents() {

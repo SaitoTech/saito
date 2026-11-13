@@ -25,7 +25,7 @@
 .game.twilight {
   /* Card studio, ported from tscardgen and fitted to the in-game overlay. */
   .saito-overlay.twilight-cardgen-overlay {
-    width: min(1180px, calc(100vw - 4.5rem));
+    width: min(108rem, calc(100vw - 4.8rem));
     height: auto;
     max-height: none;
     overflow: visible;
@@ -52,6 +52,13 @@
     display: block;
   }
 
+  .tscardgen,
+  .tscardgen *,
+  .tscardgen *::before,
+  .tscardgen *::after {
+    box-sizing: border-box;
+  }
+
   .tscardgen {
     --ts-ink: #211d1e;
     --ts-frost: #e3f5ff;
@@ -60,11 +67,19 @@
     --ts-font-title: clamp(2.2rem, 3.6vw, 2.8rem);
     --ts-font-heading: 1.55rem;
     --ts-font-body: 1.4rem;
-    --ts-font-small: 1.15rem;
-    --ts-space: 1.25rem;
+    --ts-font-small: 1rem;
+    --ts-space: 1.2rem;
+    --ts-side: 37.5rem;
+    --ts-heading: #f6f1e8;
+    --ts-section-heading: #efe8dc;
+    --ts-label: #d4cdc2;
+    --ts-placeholder: #a39c93;
+    --ts-input-text: #f7f5f1;
+    --ts-line: rgba(186, 198, 210, 0.55);
+    --ts-border: rgba(186, 198, 210, 0.4);
     width: 100%;
     margin: 0;
-    padding: 0.5rem 0.75rem 1rem;
+    padding: 0.5rem 1.2rem 1rem;
     min-height: 0;
     max-height: min(90vh, calc(100dvh - 4rem));
     overflow: auto;
@@ -160,13 +175,13 @@
 
   .tscardgen-shell {
     display: grid;
-    grid-template-columns: minmax(0, 1.35fr) minmax(280px, 0.9fr);
+    grid-template-columns: minmax(0, 1fr) var(--ts-side, 37.5rem);
     grid-template-areas:
-      "brand nav"
+      "header header"
       "rule rule"
       "main side";
-    column-gap: var(--saito-space-lg, 1.5rem);
-    row-gap: 0.85rem;
+    column-gap: var(--ts-space, 1.2rem);
+    row-gap: 0.5rem;
     align-items: start;
     flex: 1 1 auto;
   }
@@ -179,7 +194,7 @@
   .tscardgen[data-workspace="code"] .tscardgen-shell {
     flex: 1 1 auto;
     min-height: 0;
-    grid-template-columns: minmax(0, 1.65fr) minmax(280px, 0.8fr);
+    grid-template-columns: minmax(0, 1fr) var(--ts-side, 37.5rem);
     grid-template-rows: auto auto minmax(0, 1fr);
     align-items: stretch;
   }
@@ -194,28 +209,46 @@
     padding: 0;
   }
 
-  .tscardgen-brand {
-    grid-area: brand;
+  .tscardgen-header {
+    grid-area: header;
     min-width: 0;
+    min-height: 0;
     display: flex;
-    flex-direction: column;
-    justify-content: flex-end;
-    align-self: end;
+    flex-direction: row;
+    align-items: center;
+    gap: 1.2rem;
+    padding: 0 2.2rem 0 0;
   }
 
-  .tscardgen-header-tools {
-    grid-area: nav;
-    justify-self: end;
-    align-self: end;
-    display: flex;
+  .tscardgen-header-reset {
+    display: inline-flex;
     align-items: center;
-    gap: 0.85rem;
-    min-width: 0;
-    max-width: 100%;
+    justify-content: center;
+    flex: 0 0 auto;
+    width: 2.6rem;
+    height: 2.6rem;
+    margin: 0;
+    padding: 0;
+    border: 1px solid transparent;
+    border-radius: var(--saito-radius, 0.5rem);
+    background: transparent;
+    color: var(--ts-label, #d4cdc2);
+    cursor: pointer;
+  }
+
+  .tscardgen-header-reset:hover {
+    border-color: var(--ts-border, rgba(186, 198, 210, 0.4));
+    background: color-mix(in srgb, #0b1218 55%, transparent);
+    color: var(--ts-heading, #f6f1e8);
+  }
+
+  .tscardgen-header-reset .ts-reset-icon {
+    width: 1.5rem;
+    height: 1.5rem;
   }
 
   .tscardgen-save-status {
-    flex: 1 1 auto;
+    margin-left: auto;
     min-width: 4.5rem;
     text-align: right;
     font-size: var(--ts-font-small, 1.15rem);
@@ -239,25 +272,6 @@
 
   .tscardgen-save-status.is-error {
     color: var(--ts-signal, #de1c37);
-  }
-
-  .tscardgen-new-card-btn {
-    flex: 0 0 auto;
-    box-sizing: border-box;
-    border: 1px solid var(--saito-border, rgba(255, 255, 255, 0.16));
-    border-radius: var(--saito-radius, 0.5rem);
-    background: color-mix(in srgb, #0b1218 55%, transparent);
-    color: color-mix(in srgb, var(--saito-foreground, #f2f5f7) 82%, transparent);
-    padding: calc(0.75rem - 1px) 1.35rem;
-    font: inherit;
-    font-size: var(--ts-font-body);
-    line-height: 1.2;
-    cursor: pointer;
-  }
-
-  .tscardgen-new-card-btn:hover {
-    border-color: var(--ts-frost, #e3f5ff);
-    color: var(--saito-foreground, #f2f5f7);
   }
 
   .tscardgen-workspace-nav {
@@ -435,25 +449,18 @@
   }
 
   @media (max-width: 900px) {
-    .tscardgen-shell {
+    .tscardgen-shell,
+    .tscardgen[data-workspace="code"] .tscardgen-shell {
       grid-template-columns: 1fr;
       grid-template-areas:
-        "brand"
-        "nav"
+        "header"
         "rule"
         "side"
         "main";
     }
 
-    .tscardgen-header-tools {
-      justify-self: stretch;
-      flex-wrap: wrap;
-    }
-
-    .tscardgen-save-status {
-      flex-basis: 100%;
-      text-align: left;
-      order: 3;
+    .tscardgen-header {
+      padding-right: 2.2rem;
     }
   }
 
@@ -464,34 +471,40 @@
     gap: var(--saito-space-md, 1rem);
   }
 
-  .ts-card-stage {
+  .tscardgen-generator .ts-card,
+  .tscardgen-generator .ts-card-stage {
     width: 100%;
-    display: flex;
-    justify-content: center;
-    padding: var(--saito-space-md, 1rem);
-    border-radius: calc(var(--saito-radius, 0.75rem) + 0.35rem);
-    background:
-      linear-gradient(180deg, rgba(227, 245, 255, 0.08), transparent 42%),
-      color-mix(in srgb, #0b1218 78%, #1a2733);
-    border: 1px solid var(--saito-border, rgba(255, 255, 255, 0.12));
-    box-shadow: 0 22px 50px rgba(0, 0, 0, 0.35);
+    margin: 0;
+    padding: 0;
+    gap: 0;
+    border: 0;
+    border-radius: 0;
+    background: none;
+    box-shadow: none;
   }
 
   .ts-card-canvas {
-    width: min(100%, 375px);
+    display: block;
+    width: 100%;
+    max-width: var(--ts-side, 37.5rem);
     height: auto;
+    aspect-ratio: 375 / 525;
     border-radius: 1.35rem;
     background: #e3f5ff;
     box-shadow: 0 10px 28px rgba(0, 0, 0, 0.35);
+  }
+
+  .ts-form {
+    margin: 0;
   }
 
   .ts-form,
   .ts-code-workspace,
   .ts-reference-sidebar {
     background: var(--ts-panel, var(--saito-card));
-    border: 1px solid var(--saito-border, rgba(255, 255, 255, 0.12));
+    border: 1px solid var(--ts-border, rgba(186, 198, 210, 0.4));
     border-radius: calc(var(--saito-radius, 0.75rem) + 0.25rem);
-    padding: 1.5rem;
+    padding: calc(var(--ts-space, 1.2rem) * 1.15);
     color: var(--saito-foreground, #f2f5f7);
     box-shadow: 0 18px 48px rgba(0, 0, 0, 0.28);
     font-size: var(--ts-font-body, 1.4rem);
@@ -505,20 +518,82 @@
     text-transform: uppercase;
   }
 
-  .ts-form-title {
-    margin: 0;
-    font-family: ts-caslon-bold, "Libre Caslon Text", "Palatino Linotype", Palatino, serif;
-    font-size: var(--ts-font-title, clamp(2.2rem, 3.6vw, 2.8rem));
-    line-height: 1.1;
-    color: var(--saito-foreground, #f2f5f7);
-    text-transform: uppercase;
-    letter-spacing: 0.02em;
+  .ts-form-sections {
+    display: flex;
+    flex-direction: column;
+    gap: var(--ts-space, 1.2rem);
   }
 
-  .ts-form-grid {
+  .ts-section {
+    display: flex;
+    flex-direction: column;
+    gap: calc(var(--ts-space, 1.2rem) * 0.7);
+    min-width: 0;
+  }
+
+  .ts-section + .ts-section {
+    padding-top: var(--ts-space, 1.2rem);
+    border-top: 1px solid var(--ts-line, rgba(186, 198, 210, 0.55));
+  }
+
+  .ts-section-title {
+    margin: 0;
+    font-size: 1.15rem;
+    font-weight: 650;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--ts-section-heading, #efe8dc);
+  }
+
+  .ts-identity-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--ts-space, 1.2rem);
+    align-items: end;
+  }
+
+  .ts-identity-grid > *,
+  .ts-identity-metrics > * {
+    min-width: 0;
+  }
+
+  .ts-identity-title {
+    grid-column: 1 / 3;
+  }
+
+  .ts-identity-metrics {
+    grid-column: 3;
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: var(--ts-space, 1.25rem);
+    gap: var(--ts-space, 1.2rem);
+    align-items: end;
+    min-width: 0;
+  }
+
+  .ts-pre-event-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    min-width: 0;
+  }
+
+  .ts-pre-event-row .ts-label {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .ts-pre-event-row select.ts-font-size {
+    flex: 0 0 6.4rem;
+    width: 6.4rem;
+    box-sizing: border-box;
+    height: calc(var(--ts-font-small, 1rem) * 1.45);
+    margin: 0;
+    padding: 0 1.55rem 0 0.5rem;
+    font-size: 1.2rem;
+    line-height: 1;
+    background-position: right 0.45rem center;
+    background-size: 0.65rem 0.42rem;
   }
 
   .ts-field {
@@ -536,17 +611,17 @@
     font-size: var(--ts-font-small, 1.15rem);
     letter-spacing: 0.08em;
     text-transform: uppercase;
-    color: color-mix(in srgb, var(--saito-foreground, #f2f5f7) 82%, transparent);
+    color: var(--ts-label, #d4cdc2);
   }
 
   .ts-input,
   .ts-textarea,
   .ts-input option {
     width: 100%;
-    border: 1px solid var(--saito-border, rgba(255, 255, 255, 0.16));
+    border: 1px solid var(--ts-border, rgba(186, 198, 210, 0.4));
     border-radius: var(--saito-radius, 0.5rem);
     background: color-mix(in srgb, #0b1218 70%, transparent);
-    color: var(--saito-foreground, #f2f5f7);
+    color: var(--ts-input-text, #f7f5f1);
     padding: 0.8rem 0.9rem;
     font: inherit;
     font-size: var(--ts-font-body, 1.4rem);
@@ -563,6 +638,12 @@
     background-position: right 0.85rem center;
     background-size: 1.2rem 0.8rem;
     padding-right: 2.6rem;
+  }
+
+  .ts-input::placeholder,
+  .ts-textarea::placeholder {
+    color: var(--ts-placeholder, #a39c93);
+    opacity: 1;
   }
 
   .ts-input:focus,
@@ -582,6 +663,15 @@
   .ts-textarea {
     resize: vertical;
     min-height: 5rem;
+    color-scheme: dark;
+  }
+
+  .ts-textarea::-webkit-resizer {
+    background-color: transparent;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M10 2L2 10M10 6L6 10M10 10h.01' fill='none' stroke='%23b7c4d0' stroke-width='1.4' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: 10px 10px;
   }
 
   .ts-row-three {
@@ -602,22 +692,24 @@
     flex: 0 0 auto;
   }
 
-  .ts-image-action {
-    display: flex;
-    flex-direction: row;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 0.85rem 1.1rem;
-    align-self: end;
-    margin-bottom: 0.15rem;
+  .ts-attr-art {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    column-gap: var(--ts-space, 1.2rem);
+    align-items: start;
   }
 
   .ts-flag-stack {
     display: flex;
     flex-direction: column;
-    gap: 0.45rem;
-    align-self: end;
-    margin-bottom: 0.35rem;
+    gap: 1.5rem;
+  }
+
+  .ts-image-action {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    height: calc(var(--ts-font-body, 1.4rem) * 1.45);
   }
 
   .ts-add-image {
@@ -640,18 +732,100 @@
     color: color-mix(in srgb, var(--saito-foreground, #f2f5f7) 88%, transparent);
   }
 
-  .ts-form-footer {
+  .ts-action-bar {
     display: flex;
-    flex-wrap: wrap;
     align-items: center;
-    gap: 1rem;
-    margin-top: var(--ts-space, 1.25rem);
+    justify-content: space-between;
+    gap: 0.75rem;
+    width: 100%;
+    margin: var(--ts-space, 1.25rem) 0 0;
+    padding: 0;
+    box-sizing: border-box;
   }
 
-  .ts-form-footer .saito-button-primary,
-  .ts-form-footer .saito-button-secondary {
-    padding: 0.85rem 1.35rem !important;
-    font-size: var(--ts-font-body, 1.4rem) !important;
+  .ts-action-bar-main {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    min-width: 0;
+  }
+
+  .ts-action-btn,
+  .ts-action-reset {
+    box-sizing: border-box;
+    margin: 0;
+    min-width: 0;
+    height: 3.2rem;
+    border-radius: var(--saito-radius, 0.5rem);
+    font-family: inherit;
+    font-size: var(--ts-font-body, 1.4rem);
+    font-weight: 500;
+    line-height: 1;
+    cursor: pointer;
+  }
+
+  .ts-action-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 1.25rem;
+    white-space: nowrap;
+  }
+
+  .ts-action-primary {
+    border: 1px solid transparent;
+    background: color-mix(in srgb, var(--ts-signal, #de1c37) 88%, #101820);
+    color: #fff;
+    font-weight: 650;
+  }
+
+  .ts-action-primary:hover {
+    background: var(--ts-signal, #de1c37);
+  }
+
+  .ts-action-secondary {
+    border: 1px solid var(--saito-border, rgba(255, 255, 255, 0.16));
+    background: color-mix(in srgb, #0b1218 55%, transparent);
+    color: color-mix(in srgb, var(--saito-foreground, #f2f5f7) 82%, transparent);
+  }
+
+  .ts-action-secondary:hover:not(:disabled) {
+    border-color: var(--ts-frost, #e3f5ff);
+    color: var(--saito-foreground, #f2f5f7);
+  }
+
+  .ts-action-secondary:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+
+  .ts-action-test[hidden] {
+    display: none;
+  }
+
+  .ts-action-reset {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    width: 3.2rem;
+    margin-left: auto;
+    padding: 0;
+    border: 1px solid transparent;
+    background: transparent;
+    color: color-mix(in srgb, var(--saito-foreground, #f2f5f7) 62%, transparent);
+  }
+
+  .ts-action-reset:hover {
+    border-color: var(--saito-border, rgba(255, 255, 255, 0.16));
+    background: color-mix(in srgb, #0b1218 55%, transparent);
+    color: var(--saito-foreground, #f2f5f7);
+  }
+
+  .ts-reset-icon {
+    width: 1.35rem;
+    height: 1.35rem;
+    display: block;
   }
 
   .ts-code-workspace {
@@ -667,7 +841,7 @@
     box-sizing: border-box;
   }
 
-  .tscardgen[data-workspace="code"] .ts-code-workspace .ts-form-footer {
+  .tscardgen[data-workspace="code"] .ts-code-workspace .ts-action-bar {
     margin-top: auto;
   }
 
@@ -831,21 +1005,7 @@
     flex-direction: column;
     gap: 0.65rem;
     padding-bottom: 0.85rem;
-    border-bottom: 1px solid var(--saito-border, rgba(255, 255, 255, 0.12));
-  }
-
-  .ts-card-info-head {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 0.75rem;
-  }
-
-  .ts-card-info-head .saito-button-secondary {
-    flex: 0 0 auto;
-    margin-left: auto;
-    padding: 0.85rem 1.35rem !important;
-    font-size: var(--ts-font-body, 1.4rem) !important;
+    border-bottom: 1px solid var(--ts-line, rgba(186, 198, 210, 0.55));
   }
 
   .ts-card-info-title,
@@ -924,9 +1084,27 @@
   }
 
   @media (max-width: 720px) {
-    .ts-form-grid,
-    .ts-row-three {
-      grid-template-columns: 1fr;
+    .tscardgen-shell,
+    .tscardgen[data-workspace="code"] .tscardgen-shell {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .ts-identity-grid {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .ts-identity-title,
+    .ts-identity-metrics {
+      grid-column: 1 / -1;
+    }
+
+    .ts-attr-art {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .ts-image-action {
+      height: auto;
+      margin-top: 0.7rem;
     }
   }
 }

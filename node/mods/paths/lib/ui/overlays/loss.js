@@ -579,10 +579,9 @@ class LossOverlay {
     } catch (err) {}
   }
 
-  // Defender picks retreat or an extra step on the result panel. The click
-  // records the choice in the header. Retreat then closes the panel so the
-  // destination can be chosen on the board. An extra step stays on the panel.
-  showRetreatChoice(choices = []) {
+  // Slide the retreat decision up over the attacker's results. The header
+  // stays on its normal resolved copy. onChoose is the same handler the HUD uses.
+  showRetreatChoice(choices = [], onChoose = null) {
     if (this.board_mode || !this.overlayEnabled()) {
       return false;
     }
@@ -592,39 +591,70 @@ class LossOverlay {
       this.refreshPresentedUnits();
       this.show();
     }
-    let buttons = '';
-    for (let i = 0; i < choices.length; i++) {
-      buttons += `<button type="button" class="loss-overlay-choice" data-choice="${choices[i].id}">${choices[i].label}</button>`;
-    }
-    this.updateInstructions(`<div class="loss-overlay-choices">${buttons}</div>`, 'choice');
-    let box = document.querySelector('.loss-overlay .loss-overlay-choices');
-    if (!box) {
+    let dock = document.querySelector('.loss-overlay .attacker-panel .loss-retreat-dock');
+    let actions = dock && dock.querySelector('.loss-retreat-actions');
+    if (!dock || !actions) {
       return false;
     }
-    box.querySelectorAll('.loss-overlay-choice').forEach((btn) => {
-      btn.onclick = () => {
-        let choice = null;
-        for (let i = 0; i < choices.length; i++) {
-          if (choices[i].id === btn.dataset.choice) {
-            choice = choices[i];
-          }
-        }
-        if (!choice || btn.dataset.picked) {
-          return;
-        }
-        btn.dataset.picked = '1';
-        this.updateInstructions(choice.chosen, 'resolved');
-        if (choice.close) {
-          setTimeout(() => {
-            this.hide();
-            choice.go();
-          }, 400);
-        } else {
-          choice.go();
+
+    let buttons = '';
+    for (let i = 0; i < choices.length; i++) {
+      let kind = choices[i].id === 'hit' ? 'is-hit' : 'is-retreat';
+      buttons += `<button type="button" class="loss-retreat-choice ${kind}" data-choice="${choices[i].id}">${choices[i].label}</button>`;
+    }
+    actions.innerHTML = buttons;
+    this.updateInstructions('All possible damage assigned', 'resolved');
+
+    dock.hidden = false;
+    dock.classList.add('is-collapsed');
+    let tab = dock.querySelector('.loss-retreat-tab');
+    if (tab) {
+      tab.setAttribute('aria-expanded', 'false');
+      tab.onclick = (e) => {
+        e.preventDefault();
+        let collapsed = dock.classList.toggle('is-collapsed');
+        tab.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
+      };
+    }
+    actions.querySelectorAll('.loss-retreat-choice').forEach((btn) => {
+      btn.onclick = (e) => {
+        e.preventDefault();
+        if (typeof onChoose === 'function') {
+          onChoose(btn.dataset.choice);
         }
       };
     });
+
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        if (!dock.isConnected || dock.hidden) {
+          return;
+        }
+        dock.classList.remove('is-collapsed');
+        if (tab) {
+          tab.setAttribute('aria-expanded', 'true');
+        }
+      });
+    });
     return true;
+  }
+
+  clearRetreatDecision() {
+    let dock = document.querySelector('.loss-overlay .attacker-panel .loss-retreat-dock');
+    if (!dock) {
+      return;
+    }
+    dock.hidden = true;
+    dock.classList.add('is-collapsed');
+    let actions = dock.querySelector('.loss-retreat-actions');
+    if (actions) {
+      actions.innerHTML = '';
+    }
+    let tab = dock.querySelector('.loss-retreat-tab');
+    if (tab) {
+      tab.onclick = null;
+      tab.setAttribute('aria-expanded', 'false');
+    }
   }
 
   viewingPlayerPower() {
@@ -695,9 +725,7 @@ class LossOverlay {
     // Title stays "Assign losses" during the assignment phase (action or waiting);
     // subtitle carries who is assigning / how much.
     let title = resolved ? 'Combat resolved' : 'Assign losses';
-    if (mode === 'choice') {
-      title = 'Retreat?';
-    } else if (/take additional hit/i.test(String(msg))) {
+    if (/take additional hit/i.test(String(msg))) {
       title = 'Cancel retreat?';
     }
 

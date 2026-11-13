@@ -109,6 +109,7 @@ class CodeWorkspace {
     this.mod.card.active_event_index = index;
     this.renderTabs();
     this.loadActiveCodeIntoEditor();
+    this.updateTestCodeButton();
     this.main.scheduleCardSave({ immediate: true });
   }
 
@@ -170,8 +171,10 @@ class CodeWorkspace {
       const fallback = parent.querySelector('[data-role="fallback-editor"]');
       fallback?.addEventListener('input', () => {
         this.mod.card.setActiveCode(fallback.value);
+        this.updateTestCodeButton();
         this.main.scheduleCardSave();
       });
+      this.updateTestCodeButton();
       return;
     }
 
@@ -187,13 +190,26 @@ class CodeWorkspace {
 
     this.editor.on('change', () => {
       this.mod.card.setActiveCode(this.editor.getValue());
+      this.updateTestCodeButton();
       this.main.scheduleCardSave();
     });
+
+    this.updateTestCodeButton();
 
     requestAnimationFrame(() => {
       this.editor?.refresh();
       requestAnimationFrame(() => this.editor?.refresh());
     });
+  }
+
+  updateTestCodeButton() {
+    const button = document.querySelector(`${this.container} [data-action="test-code"]`);
+    if (!button) {
+      return;
+    }
+    const ready = String(this.mod.card.events?.[0]?.code || '').trim().length > 0;
+    button.hidden = !ready;
+    button.title = 'Test the first event';
   }
 
   loadActiveCodeIntoEditor() {
@@ -232,16 +248,19 @@ class CodeWorkspace {
       return;
     }
 
-    root.querySelector('[data-action="download-png"]')?.addEventListener('click', async (event) => {
-      event.preventDefault();
-      this.syncToCard();
-      await this.main.downloadPng();
-    });
-
     root.querySelector('[data-action="create-nft"]')?.addEventListener('click', async (event) => {
       event.preventDefault();
       this.syncToCard();
       await this.main.requestCreateNft();
+    });
+
+    root.querySelector('[data-action="test-code"]')?.addEventListener('click', (event) => {
+      event.preventDefault();
+      if (event.currentTarget.hidden) {
+        return;
+      }
+      this.syncToCard();
+      this.requestTestCode();
     });
   }
 

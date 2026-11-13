@@ -1238,62 +1238,61 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
     if (this.game.state.events.withdrawal) { can_defender_cancel_retreat = false; }
 
     let choices = [
-      { id: "retreat", label: "Retreat", chosen: "Retreating", close: true, go: () => { this.playerHandleRetreat(); } }
+      { id: "retreat", label: "Retreat" }
     ];
     if (can_defender_cancel_retreat) {
-      choices.push({
-        id: "hit",
-        label: "Take additional hit",
-        chosen: "Taking an additional hit",
-        close: false,
-        go: () => { this.loss_overlay.renderToAssignAdditionalStepwiseLoss(); }
-      });
+      choices.push({ id: "hit", label: "Take additional hit" });
     }
 
-    // The result panel carries the choice and stays up until the defender clicks.
-    // Retreat closes it so the destination can be picked on the board. An extra
-    // hit replaces the choice with the assignment panel.
-    if (this.loss_overlay && this.loss_overlay.overlayEnabled() && !this.loss_overlay.board_mode) {
-      if (this.loss_overlay.showRetreatChoice(choices)) {
-        this.game.status = "Retreat?";
-        this.hud.updateStatus(this.game.status);
-        this.hud.updateCards([]);
-        this.hud.updateMenu([]);
+    // One handler for the slide-up panel and the HUD. The first click wins.
+    let decided = false;
+    let resolveChoice = (id) => {
+      if (decided) {
         return;
       }
-    }
-
-    if (!can_defender_cancel_retreat) {
-      this.playerHandleRetreat();
-      return;
-    }
-
-    let options = [
-      { id: "retreat", label: "retreat" },
-      { id: "hit", label: "take additional hit" },
-    ];
-
-    this.game.status = `Retreat?`;
-    this.hud.updateStatus(this.game.status);
-    this.hud.updateCards([]);
-    this.hud.updateMenu(options, (action) => {
-
-            this.game.status = "continuing...";
+      decided = true;
+      this.game.status = "continuing...";
       this.hud.updateStatus(this.game.status);
       this.hud.updateMenu([]);
       this.hud.updateCards([]);
       this.hud.hideBackButton();
-
-      if (action === "retreat") {
-	this.playerHandleRetreat();
-	return;
+      if (this.loss_overlay) {
+        this.loss_overlay.clearRetreatDecision();
       }
-
-      if (action === "hit") {
-	this.loss_overlay.renderToAssignAdditionalStepwiseLoss();
+      if (id === "retreat") {
+        if (this.loss_overlay && !this.loss_overlay.board_mode) {
+          this.loss_overlay.hide();
+        }
+        this.playerHandleRetreat();
         return;
       }
+      if (id === "hit") {
+        this.loss_overlay.renderToAssignAdditionalStepwiseLoss();
+      }
+    };
 
+    let overlay_open = this.loss_overlay && this.loss_overlay.overlayEnabled() && !this.loss_overlay.board_mode;
+    let panel_shown = false;
+    if (overlay_open) {
+      panel_shown = this.loss_overlay.showRetreatChoice(choices, resolveChoice);
+    }
+
+    // No extra-hit option and no panel: retreat is mandatory, as before.
+    if (!can_defender_cancel_retreat && !panel_shown) {
+      this.playerHandleRetreat();
+      return;
+    }
+
+    let options = [];
+    for (let i = 0; i < choices.length; i++) {
+      options.push({ id: choices[i].id, label: choices[i].label.toLowerCase() });
+    }
+
+    this.game.status = "Retreat?";
+    this.hud.updateStatus(this.game.status);
+    this.hud.updateCards([]);
+    this.hud.updateMenu(options, (action) => {
+      resolveChoice(action);
     });
 
     return;

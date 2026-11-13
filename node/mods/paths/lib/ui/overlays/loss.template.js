@@ -24,6 +24,16 @@ module.exports = (terrain = '') => {
               <div class="loss-overlay-faction-body">
                 <div class="units attacker"></div>
                 <div class="loss-overlay-casualty attacker-casualty"></div>
+                <div class="loss-retreat-dock" hidden>
+                  <div class="loss-retreat-sheet" id="loss-retreat-sheet">
+                    <div class="loss-retreat-title">Defender must retreat</div>
+                    <div class="loss-retreat-actions"></div>
+                  </div>
+                  <button type="button" class="loss-retreat-tab" aria-expanded="false" aria-controls="loss-retreat-sheet">
+                    <span class="loss-retreat-tab-label">Defender must retreat</span>
+                    <span class="loss-retreat-arrow" aria-hidden="true"></span>
+                  </button>
+                </div>
               </div>
             </div>
 
