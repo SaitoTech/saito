@@ -1,5 +1,8 @@
 const { randomInt } = require('node:crypto');
 const { decision, selected, hasPending } = require('../decision');
+const Strategy = require('./settlers-strategy');
+const Planner = require('./settlers-planner');
+const { requestFor } = require('../providers/decision-format');
 
 class SettlersRunner {
   constructor(mod) {
@@ -17,6 +20,8 @@ class SettlersRunner {
   setDecision(phase, params = {}) {
     // Other players can re-enter the shared discard queue while we are selecting.
     if (phase === 'discard' && this.mod.game.runnerDecision?.phase === 'discard') return;
+    if (phase === 'roll' && this.mod.game.runnerDecision?.phase !== 'roll')
+      this.mod.game.runnerSettlersTurn = (this.mod.game.runnerSettlersTurn || 0) + 1;
     this.mod.game.runnerDecision = { phase, ...params };
     this.mod.saveGame(this.mod.game.id);
   }
@@ -131,7 +136,61 @@ class SettlersRunner {
       observation.resources = discard.remaining;
       observation.discard = { selected: discard.selected, total: discard.total, remaining: discard.total - discard.selected.length };
     }
-    return decision(g.id, { step: g.step, phase: d, queue: g.queue }, observation, choices);
+    const strategic = Strategy.summary(m, observation.resources);
+    observation.rules = Strategy.rules;
+    observation.strategic = strategic;
+    observation.plan = g.runnerSettlersPlan?.seat === p ? g.runnerSettlersPlan : null;
+    observation.recentActions = g.runnerSettlersHistory || [];
+    const revision = { step: g.step, phase: d, queue: g.queue };
+    for (const c of choices) c.consequences = Strategy.consequences(m, c.action, observation.resources, strategic);
+    observation.race = Planner.race(m);
+    if (d.phase === 'town' && initial) {
+      const key = JSON.stringify([s.hexes, s.cities, s.ports, own.ports]);
+      if (this.openingCache?.key !== key) this.openingCache = { key, values: Planner.openings(m, choices) };
+      for (const c of choices) if (c.action.type === 'town') {
+        const { productionPerRoll, ports, startingResources } = c.consequences;
+        c.consequences = { productionPerRoll, ports, startingResources, opening: this.openingCache.values.get(c.action.vertex) };
+      }
+    }
+    const next = Planner.continuation(m, choices);
+    if (next) return decision(g.id, revision, { ...observation, decision: 'Continue the selected sequence; this move is still legal' }, [next]);
+    if (d.phase === 'actions' && !initial) {
+      const descriptions = Planner.goals(m, observation.resources, strategic);
+      observation.race.finishRoutes = Planner.finishes(m, descriptions, observation.resources, strategic);
+      const plan = g.runnerSettlersPlan;
+      observation.objectiveStatus = plan?.goal ? Planner.status(m, plan.goal) : { valid: false, reason: 'Legacy or missing objective' };
+      // Legacy saves still reach their ordinary action menu until their old plan
+      // completes. New plans persist across turns and terminate on board facts.
+      const legacy = plan && !plan.goal && !plan.completed && plan.turn === (g.runnerSettlersTurn || 0);
+      if (!legacy && (!plan?.goal || !observation.objectiveStatus.valid || plan.completed)) {
+        const plans = Planner.planChoices(m, descriptions);
+        if (plans.length) choices.splice(0, choices.length, ...plans);
+      } else if (!legacy && !g.runnerSettlersManual) {
+        choices.splice(0, choices.length, ...Planner.actionChoices(m, choices, descriptions, observation.resources, strategic));
+      }
+    }
+    const full = decision(g.id, revision, observation, choices);
+    // Group by action type, then by card, before a detailed menu exceeds Jev's budget.
+    const fits = cs => cs.length < 255 && Buffer.byteLength(JSON.stringify(requestFor({ ...full, choices: cs.map((c, i) => ({ ...c, id: String(i) })) }))) < 46000;
+    if (fits(choices)) return full;
+    const path = g.runnerSettlersSelection?.base === full.id ? g.runnerSettlersSelection.path : [];
+    const key = (a, depth, index) => depth === 0 ? a.type : a.cardId || String(Math.floor(index / 10));
+    let candidates = choices.filter((c, index) => path.every((v, depth) => key(c.action, depth, index) === v));
+    if (!fits(candidates)) {
+      const groups = new Map();
+      for (const c of candidates) {
+        const k = key(c.action, path.length, choices.indexOf(c));
+        if (!k) throw Error('Settlers decision cannot be split further');
+        if (!groups.has(k)) groups.set(k, []);
+        groups.get(k).push(c);
+      }
+      candidates = [...groups].map(([k, cs]) => ({ action: { type: 'select_group', base: full.id, path: [...path, k] },
+        label: `Select ${k} (${cs.length} choices)`, score: Math.max(...cs.map(c => c.score)) }));
+    }
+    if (path.length) candidates.push({ action: { type: 'select_group', base: full.id, path: path.slice(0, -1) }, label: 'Back', score: -100000 });
+    const grouped = decision(g.id, revision, { ...observation, selection: path }, candidates);
+    if (grouped.choices.length > 255 || Buffer.byteLength(JSON.stringify(requestFor(grouped))) > 48000) throw Error('Settlers request budget exceeded');
+    return grouped;
   }
   discardState() {
     const g = this.mod.game;
@@ -149,6 +208,25 @@ class SettlersRunner {
   async submit(id, choiceId) {
     const a = selected(this.current(), id, choiceId).action;
     const m = this.mod, g = m.game, p = g.player, s = g.state;
+    if (a.type === 'plan') {
+      g.runnerSettlersPlan = { seat: p, turn: g.runnerSettlersTurn || 0, item: a.item, goal: a.goal, cost: a.goal ? Planner.cost(m, a.goal) : m.priceList[a.item], completed: false,
+        startMetrics: { vp: s.players[p - 1].vp, missingCards: a.goal ? m.returnResources().reduce((n, r) => n + Math.max(0, Planner.cost(m, a.goal).filter(x => x === r).length - s.players[p - 1].resources.filter(x => x === r).length), 0) : Strategy.economy(m, s.players[p - 1].resources).builds[a.item].missingCards, productionPerRoll: Strategy.production(m, p) },
+        sequence: 'Reserve the target cost; make required bank trades before buying; then choose placement for production and points.',
+        abandonWhen: 'An immediate win, blocked expansion, or a more urgent scoring opportunity takes priority.' };
+      delete g.runnerSettlersSequence; delete g.runnerSettlersManual;
+      delete g.runnerSettlersSelection; m.saveGame(g.id); return;
+    }
+    if (a.type === 'execute') {
+      g.runnerSettlersSequence = { goal: a.goal, goals: a.goals, turn: g.runnerSettlersTurn || 0, steps: a.steps };
+      g.runnerSettlersPlan = { seat: p, turn: g.runnerSettlersTurn || 0, item: a.goal.item, goal: a.goal, cost: Planner.cost(m, a.goal), completed: false };
+      delete g.runnerSettlersSelection; m.saveGame(g.id); return;
+    }
+    if (a.type === 'manual' || a.type === 'replan') {
+      if (a.type === 'manual') g.runnerSettlersManual = true;
+      else { delete g.runnerSettlersPlan; delete g.runnerSettlersManual; g.runnerSettlersReplannedTurn = g.runnerSettlersTurn || 0; }
+      delete g.runnerSettlersSequence; delete g.runnerSettlersSelection; m.saveGame(g.id); return;
+    }
+    if (a.type === 'select_group') { g.runnerSettlersSelection = { base: a.base, path: a.path }; m.saveGame(g.id); return; }
     const moves = [], add = command => moves.push(command);
     switch (a.type) {
       case 'town': {
@@ -203,6 +281,15 @@ class SettlersRunner {
       }
       default: throw Error('Unknown action');
     }
+    const sequence = g.runnerSettlersSequence;
+    if (sequence && Planner.same(a, sequence.steps[0])) {
+      sequence.steps.shift();
+      if (!sequence.steps.length) delete g.runnerSettlersSequence;
+    } else delete g.runnerSettlersSequence;
+    if (a.type === 'buy' && g.runnerSettlersPlan?.item === a.item && (!g.runnerSettlersPlan.goal || a.item === 3)) g.runnerSettlersPlan.completed = true;
+    if (a.type === 'end_turn') { delete g.runnerSettlersManual; delete g.runnerSettlersSequence; }
+    g.runnerSettlersHistory = [...(g.runnerSettlersHistory || []), { turn: g.runnerSettlersTurn || 0, action: a }].slice(-6);
+    delete g.runnerSettlersSelection;
     delete g.runnerDecision;
     // Stage private transitions and commands together before signing/sending.
     g.runnerDraft = moves;

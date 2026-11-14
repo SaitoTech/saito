@@ -1,0 +1,334 @@
+{
+  "mode": "jev",
+  "variant": "route",
+  "pairs": 2,
+  "seed": 1401,
+  "maxDecisions": 2000,
+  "candidateSha256": {
+    "conquest.js": "b04eb2e3a33a04a533c6b8e9cd1a82f1067bcb5b561a714f58eb9af2964e491c",
+    "conquest-strategy.js": "1c7c7aa05aa48d5d7e561c0e99c2b00d5454f5821e659e890760f3183ff6efae",
+    "conquest-campaign.js": "1e6809ca238b9b265c9cf159283af1a13cc380e189fd0fa437287810c10ebd22"
+  },
+  "baseline": {
+    "description": "Frozen strategy after six live games, before executable campaigns. Only import paths adjusted.",
+    "sourceSha256": {
+      "apps/runner/lib/games/conquest.js": "560eca0629123a497fdd5ea1dc660c1d5330083144321c1a76df4ec9c5691e34",
+      "apps/runner/lib/games/conquest-strategy.js": "4848a5ce6556fb9d05ec4249a16c4e0a8f13f4d89b57eb58b1a8ccac628e3c95"
+    },
+    "fixtureSha256": {
+      "strategy.cjs": "668db00432f8724f8f0b16e06cb223581c0dc8005c08cba3226094146e2cbdeb",
+      "adapter.cjs": "8aae86485cf800814ac451d3b6c8c77b6c0effe4ba31cdae4839f9f7eedf21b2"
+    }
+  },
+  "metricDefinitions": {
+    "unjustifiedLowOddsAttacks": "Below 50% full-battle capture odds without a tactical payoff under the candidate policy; a proxy, not proof of waste.",
+    "meanInteriorSpareArmies": "Mean troops beyond the mandatory garrison in territories surrounded by friendly territory, sampled once at each own turn start.",
+    "closeoutTurns": "Turns from first observed >=2x enemy armies (at least 20) and >=1.5x enemy income to victory, null if not observed or not won."
+  },
+  "results": [
+    {
+      "seed": 1401,
+      "enhancedSeat": 1,
+      "initialPositionHash": "4777e5d84e52acad1f06c811fa164452c421fdea8d2243af917128edffe7eac0",
+      "completed": true,
+      "winner": 2,
+      "winningArm": "baseline",
+      "turns": 17,
+      "decisions": 278,
+      "baseline": {
+        "unjustifiedLowOddsAttacks": 9,
+        "failedBlitzes": 5,
+        "lossesInFailedBlitzes": 9,
+        "meanInteriorSpareArmies": 11.666666666666666,
+        "firstDominantTurn": 11,
+        "closeoutTurns": 6,
+        "decisions": 174,
+        "actions": 104,
+        "lowProbabilityBlitzes": 1,
+        "meanLatencyMs": 272.2563348333326,
+        "p95LatencyMs": 341.24373699999705,
+        "meanPreparationMs": 27.78916186781631,
+        "meanRequestBytes": 22879.22988505747,
+        "totalRequestBytes": 3980986,
+        "battleStatistics": {
+          "dice": [
+            34,
+            56,
+            61,
+            43,
+            42,
+            51
+          ],
+          "lost": 68,
+          "defeated": 100,
+          "earned": 162,
+          "territoriesWon": 42,
+          "wins": 48,
+          "losses": 21,
+          "territoriesLost": 14
+        }
+      },
+      "enhanced": {
+        "unjustifiedLowOddsAttacks": 1,
+        "failedBlitzes": 5,
+        "lossesInFailedBlitzes": 11,
+        "meanInteriorSpareArmies": 0,
+        "firstDominantTurn": null,
+        "closeoutTurns": null,
+        "decisions": 104,
+        "actions": 58,
+        "lowProbabilityBlitzes": 0,
+        "meanLatencyMs": 271.71955445192293,
+        "p95LatencyMs": 323.40904499999306,
+        "meanPreparationMs": 25.02392311538513,
+        "meanRequestBytes": 23492.403846153848,
+        "totalRequestBytes": 2443210,
+        "battleStatistics": {
+          "dice": [
+            29,
+            33,
+            20,
+            26,
+            29,
+            25
+          ],
+          "lost": 72,
+          "defeated": 47,
+          "territoriesLost": 31,
+          "losses": 37,
+          "wins": 21,
+          "earned": 32,
+          "territoriesWon": 17
+        }
+      }
+    },
+    {
+      "seed": 1401,
+      "enhancedSeat": 2,
+      "initialPositionHash": "4777e5d84e52acad1f06c811fa164452c421fdea8d2243af917128edffe7eac0",
+      "completed": true,
+      "winner": 2,
+      "winningArm": "enhanced",
+      "turns": 21,
+      "decisions": 347,
+      "baseline": {
+        "unjustifiedLowOddsAttacks": 2,
+        "failedBlitzes": 4,
+        "lossesInFailedBlitzes": 6,
+        "meanInteriorSpareArmies": 0,
+        "firstDominantTurn": null,
+        "closeoutTurns": null,
+        "decisions": 135,
+        "actions": 83,
+        "lowProbabilityBlitzes": 0,
+        "meanLatencyMs": 273.5768301037049,
+        "p95LatencyMs": 332.5519519999798,
+        "meanPreparationMs": 29.761495207406202,
+        "meanRequestBytes": 22989.562962962962,
+        "totalRequestBytes": 3103591,
+        "battleStatistics": {
+          "dice": [
+            29,
+            45,
+            49,
+            37,
+            31,
+            35
+          ],
+          "lost": 84,
+          "defeated": 65,
+          "territoriesLost": 44,
+          "losses": 48,
+          "wins": 36,
+          "earned": 44,
+          "territoriesWon": 30
+        }
+      },
+      "enhanced": {
+        "unjustifiedLowOddsAttacks": 11,
+        "failedBlitzes": 9,
+        "lossesInFailedBlitzes": 22,
+        "meanInteriorSpareArmies": 7.909090909090909,
+        "firstDominantTurn": 9,
+        "closeoutTurns": 12,
+        "decisions": 212,
+        "actions": 108,
+        "lowProbabilityBlitzes": 3,
+        "meanLatencyMs": 277.19514664622653,
+        "p95LatencyMs": 333.6921389999916,
+        "meanPreparationMs": 55.20097899056617,
+        "meanRequestBytes": 24062.45754716981,
+        "totalRequestBytes": 5101241,
+        "battleStatistics": {
+          "dice": [
+            46,
+            63,
+            61,
+            49,
+            52,
+            66
+          ],
+          "lost": 89,
+          "defeated": 113,
+          "earned": 168,
+          "territoriesWon": 54,
+          "wins": 58,
+          "losses": 39,
+          "territoriesLost": 28
+        }
+      }
+    },
+    {
+      "seed": 1402,
+      "enhancedSeat": 1,
+      "initialPositionHash": "8809b5383047f0046f56ea894fc78971de32e1b62c8b823a1d47b32ebf3e57fb",
+      "completed": true,
+      "winner": 1,
+      "winningArm": "enhanced",
+      "turns": 18,
+      "decisions": 275,
+      "baseline": {
+        "unjustifiedLowOddsAttacks": 6,
+        "failedBlitzes": 7,
+        "lossesInFailedBlitzes": 19,
+        "meanInteriorSpareArmies": 1,
+        "firstDominantTurn": null,
+        "closeoutTurns": null,
+        "decisions": 92,
+        "actions": 56,
+        "lowProbabilityBlitzes": 0,
+        "meanLatencyMs": 269.71606020651996,
+        "p95LatencyMs": 310.32642299999134,
+        "meanPreparationMs": 42.5217026630407,
+        "meanRequestBytes": 22739.880434782608,
+        "totalRequestBytes": 2092069,
+        "battleStatistics": {
+          "dice": [
+            41,
+            34,
+            31,
+            28,
+            33,
+            32
+          ],
+          "lost": 86,
+          "defeated": 62,
+          "earned": 46,
+          "territoriesWon": 16,
+          "wins": 19,
+          "losses": 38,
+          "territoriesLost": 30
+        }
+      },
+      "enhanced": {
+        "unjustifiedLowOddsAttacks": 6,
+        "failedBlitzes": 6,
+        "lossesInFailedBlitzes": 19,
+        "meanInteriorSpareArmies": 8,
+        "firstDominantTurn": 6,
+        "closeoutTurns": 12,
+        "decisions": 183,
+        "actions": 86,
+        "lowProbabilityBlitzes": 1,
+        "meanLatencyMs": 273.5703910327872,
+        "p95LatencyMs": 353.88284599996405,
+        "meanPreparationMs": 37.62782037704964,
+        "meanRequestBytes": 23491.1912568306,
+        "totalRequestBytes": 4298888,
+        "battleStatistics": {
+          "dice": [
+            40,
+            50,
+            34,
+            44,
+            29,
+            51
+          ],
+          "lost": 64,
+          "defeated": 81,
+          "territoriesLost": 13,
+          "losses": 19,
+          "wins": 40,
+          "earned": 107,
+          "territoriesWon": 34
+        }
+      }
+    },
+    {
+      "seed": 1402,
+      "enhancedSeat": 2,
+      "initialPositionHash": "8809b5383047f0046f56ea894fc78971de32e1b62c8b823a1d47b32ebf3e57fb",
+      "completed": true,
+      "winner": 1,
+      "winningArm": "baseline",
+      "turns": 18,
+      "decisions": 271,
+      "baseline": {
+        "unjustifiedLowOddsAttacks": 3,
+        "failedBlitzes": 5,
+        "lossesInFailedBlitzes": 11,
+        "meanInteriorSpareArmies": 4.777777777777778,
+        "firstDominantTurn": 10,
+        "closeoutTurns": 8,
+        "decisions": 171,
+        "actions": 90,
+        "lowProbabilityBlitzes": 1,
+        "meanLatencyMs": 283.6247963333306,
+        "p95LatencyMs": 343.86232999997446,
+        "meanPreparationMs": 81.06099000584902,
+        "meanRequestBytes": 23358.602339181285,
+        "totalRequestBytes": 3994321,
+        "battleStatistics": {
+          "dice": [
+            47,
+            41,
+            40,
+            34,
+            35,
+            42
+          ],
+          "lost": 63,
+          "defeated": 73,
+          "territoriesLost": 15,
+          "losses": 22,
+          "earned": 109,
+          "territoriesWon": 36,
+          "wins": 40
+        }
+      },
+      "enhanced": {
+        "unjustifiedLowOddsAttacks": 4,
+        "failedBlitzes": 5,
+        "lossesInFailedBlitzes": 10,
+        "meanInteriorSpareArmies": 0,
+        "firstDominantTurn": null,
+        "closeoutTurns": null,
+        "decisions": 100,
+        "actions": 58,
+        "lowProbabilityBlitzes": 0,
+        "meanLatencyMs": 288.1894608100032,
+        "p95LatencyMs": 354.05449800001225,
+        "meanPreparationMs": 58.01362743999751,
+        "meanRequestBytes": 24337.88,
+        "totalRequestBytes": 2433788,
+        "battleStatistics": {
+          "dice": [
+            37,
+            36,
+            25,
+            31,
+            29,
+            37
+          ],
+          "lost": 82,
+          "defeated": 67,
+          "earned": 42,
+          "territoriesWon": 19,
+          "wins": 24,
+          "losses": 38,
+          "territoriesLost": 33
+        }
+      }
+    }
+  ]
+}

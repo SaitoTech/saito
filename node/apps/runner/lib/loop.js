@@ -9,7 +9,7 @@ function providerFor(config) {
   if (config.type !== 'heuristic') throw Error('Unknown decision provider');
   return { choose: async d => d.choices.reduce((best, c) => c.score > best.score ? c : best).id };
 }
-async function play(runtime, config, { signal, report = console.log, provider = providerFor(config.decisionProvider), chatProvider = config.chatProvider ? providerFor(config.chatProvider) : {}, waitForOpponent = false } = {}) {
+async function play(runtime, config, { signal, report = console.log, provider = providerFor(config.decisionProvider), chatProvider = config.chatProvider ? providerFor(config.chatProvider) : {}, waitForOpponent = false, gameId } = {}) {
   const { mod, adapter, app } = runtime;
   const recovery = new EngineRecovery(runtime, config, { signal, report });
   const inactivity = new Inactivity(runtime, report);
@@ -20,6 +20,14 @@ async function play(runtime, config, { signal, report = console.log, provider = 
   try {
     while (!signal?.aborted) {
       if (failure || app.runnerFailure) throw failure || app.runnerFailure;
+      // A reused wallet can still have its previous match loaded while the new
+      // invitation waits for an opponent. Never play or complete that old match.
+      if (gameId && mod.game?.id !== gameId) {
+        if (Date.now() > resendAt) { await runtime.retransmit(); resendAt = Date.now() + 20000; }
+        if (Date.now() - lastProgress > config.idleTimeoutMs) throw Error('Requested game did not start before idle timeout');
+        await delay(config.pollMs, undefined, { signal });
+        continue;
+      }
       if (mod.game?.over) { report({ event: 'complete', game: mod.game.id, winner: mod.game.winner }); return; }
       const revision = JSON.stringify([mod.game?.id, mod.game?.step, mod.game?.queue, mod.game?.runnerDecision]);
       if (revision !== lastRevision) { lastProgress = Date.now(); lastRevision = revision; }
@@ -35,9 +43,10 @@ async function play(runtime, config, { signal, report = console.log, provider = 
       if (current) {
         if (!current.choices.length) throw Error('No legal candidates for ' + current.observation.phase);
         if (decisions >= config.maxDecisions) throw Error('Decision limit reached');
-        report({ event: 'thinking', phase: current.observation.phase, choices: current.choices.length, decision: current.id });
+        const forced = current.choices.length === 1;
+        report({ event: forced ? 'forced' : 'thinking', phase: current.observation.phase, choices: current.choices.length, decision: current.id });
         let choice;
-        try { choice = await provider.choose(current, signal); }
+        try { choice = forced ? current.choices[0].id : await provider.choose(current, signal); }
         catch (error) {
           if (signal?.aborted || error.name === 'AbortError') throw error;
           await recovery.failed(error, current.id);

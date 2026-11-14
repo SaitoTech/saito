@@ -98,9 +98,9 @@ selected as an open-chat connection. Existing config files are never overwritten
 by setup; copy the new connection entry from the template when upgrading.
 
 Both model providers use the same `state` and `questions.move` payload. Its
-`criteria` maps legal choice IDs to their action objects and optional labels;
-local heuristic scores are excluded. Jev receives it with its configured `model`
-in the HTTP request; Codex receives it as JSON with an output schema. Both answers
+`criteria` maps legal choice IDs to their action objects, optional labels and
+computed consequences. Local heuristic scores are excluded. Jev receives it with
+its configured `model` in the HTTP request; Codex receives it as JSON with an output schema. Both answers
 are read from `answers.move.choice`, with `answers.move.type` equal to `choice`.
 The same validator rejects unknown IDs. The existing game loop also rejects
 answers for a decision that became stale while the engine was thinking. Jev's
@@ -110,7 +110,9 @@ old Codex `{ "choiceId": "..." }` output contract, including for custom CLI wrap
 
 Each model request allows 1–255 choices. Larger menus fail visibly without
 truncation; adapters must present successive small decisions, as Settlers does
-for discards. No heuristic is substituted when a model fails.
+for discards. Conquest also splits menus by action type, origin and target when
+they exceed its conservative 48,000-byte request budget. Backtracking is available;
+grouping does not drop policy-eligible candidates. No heuristic is substituted when a model fails.
 
 Jev requests use `timeoutMs` for the whole request, including reading the body.
 Cancellation stops the HTTP request. Network errors, timeouts, HTTP 408/429 and
@@ -156,6 +158,8 @@ npm run runner -- resume ./apps/runner/config/conquest.json GAME_ID
 ```
 
 `host` publishes an Arcade invitation, prints its ID and waits for an opponent.
+A reused wallet waits for that exact invitation's game before playing; a loaded
+completed match from an earlier session does not end the new host session.
 A normal browser player can join it. To restrict the opponent, set
 `options.desired_opponent_publickey` to their public key. `join` accepts an exact
 open invite ID from `list`; short Arcade share URLs are not accepted. Hosting and
@@ -226,7 +230,8 @@ Invites and signed joins are saved before sending; restarting reuses them.
 the same `multi-join` command resumes its unfinished session. It never silently
 starts a replacement game. Keep the same peer, game, player count, seat count and
 data directory when resuming; model settings may change. A completed session can
-be followed by a new `multi-host`/`multi-join` using the same wallets.
+be followed by a new `multi-host`/`multi-join` using the same wallets. Workers wait for the assigned game before reporting
+completion; retry cleanup is scoped to the invitation’s game ID.
 
 Ctrl-C stops all managed workers and releases their locks. An unrecoverable worker
 failure stops the other managed seats too and preserves their state for resume.
@@ -433,7 +438,9 @@ Runner tests and native match harnesses live in `tests/apps/runner/`.
   state. Browser gameplay continues using its usual presentation.
 
 Adapters expose a useful finite action menu, not every strategy expressible in a
-browser. Conquest offers blitz attacks and minimal/maximal deployments/occupations.
+browser. Conquest offers single-round attacks with each legal dice count, blitz
+with optional automatic occupation, and minimum/midpoint/maximum deployment,
+occupation and adjacent fortification amounts.
 Settlers supports initial placement, building/upgrading, bank trades, development
 cards, discards, robber movement and theft. Discards select one resource at a
 time from the remaining hand (at most five options), until half the original
@@ -541,6 +548,223 @@ private directory; losing a wallet or encrypted deck can prevent a game finishin
 The runner never reads the full node's `config/options` or chain directory.
 Framework debug logging is suppressed by the CLI because it can contain deck
 material. stdout contains structured progress events, not prompts or private hands.
+
+## Conquest strategic context
+
+Conquest sends a compact rules briefing, own-card symbols, public reinforcement
+income, continent control/completion, border threats and elimination targets.
+Reinforcement candidates also preview adjacent blitz capture probabilities after
+placement; occupation and fortification preview onward attacks from the destination.
+Movement also reports origin/destination defense against the strongest current
+adjacent enemy stack, excluding neutrals and a successfully captured target.
+These do not predict future reinforcements or an entire multi-territory campaign.
+Each candidate includes its immediate consequences: costs/gains, resulting troop
+distribution, capture-card eligibility, continent bonuses denied/completed and
+potential elimination or victory. Attack candidates include capture probability,
+expected casualties and expected movable survivors conditional on capture.
+These are fair-dice calculations, not forecasts of the game's RNG. Exact blitz
+calculations are capped at 40,000 dynamic-programming states; larger battles are
+explicitly marked unavailable, while single-round estimates remain available.
+Neutral forces are excluded from attacking border threats.
+
+At reinforcement the model selects a concrete continent, income-denial,
+elimination or defense campaign. Each choice identifies a staging territory,
+a connected route of at most six hostile captures, an origin reserve and an
+army estimate. It prefers an affordable prefix; otherwise it shows the cost to
+reach the first target and the funding deficit. Routes cannot march through
+friendly territory. The estimate uses `ceil(1.25 * defenders) + 1` per capture,
+plus two mobile armies and the origin reserve. This is conservative arithmetic,
+not a predicted success probability. Income-bearing origins reserve enough to
+match the largest unengaged adjacent enemy stack; other origins retain one.
+
+Plan status and candidate effects connect reinforcement, attacks, occupation and
+fortification to that campaign. Friendly-path distances identify staging toward
+the target front; they do not authorize connected-path fortification. Plans
+record armies, income, losses and exposed continent borders at selection.
+Before the next optional action, the model must reconsider after completing an
+objective or bounded route, losing its staging/route, exceeding its loss budget,
+newly exposing continent income, losing income, or falling below 55% capture
+odds for the next attack (or unavailable bounded odds). Mandatory trades and occupation take precedence.
+A review acknowledges the current revision so it cannot repeatedly interrupt
+an unchanged position. Legacy objectives are upgraded on the next eligible
+review. Selecting a plan remains local and does not alter network state or RNG.
+
+The tactical policy withholds attacks below 50% full-battle capture probability
+unless they offer immediate victory, elimination, continent completion, enemy
+income denial, a first capture card without an available 65% alternative, or
+desperate survival (at most three territories and outnumbered two to one).
+Single-round attacks use full-battle odds for this check, not their often-zero
+single-roll capture probability. Unknown odds remain explicitly unknown and are
+not blocked as if an exact probability existed. End-attack is always available.
+This is a strategic policy restriction, not a change to Conquest's legal rules.
+
+Plans, review anchors, menu paths and six recent actions persist in
+`runnerConquestPlan`, `runnerConquestSelection` and `runnerConquestHistory`.
+Nested menu checks include back-navigation. Paths and decisions bind to the
+exact observation/revision and expire when it changes. Planning and menu calls
+count toward `maxDecisions`; event-triggered reviews can increase model calls.
+
+Only the filtered observation goes to the provider. The NFT `returnContext()`
+full-game snapshot is not used. This enrichment applies to both Jev and Codex;
+heuristic scores remain a separate smoke-test policy.
+
+Compare the frozen pre-strategy adapter with the current adapter using paired
+local-engine games, with the enhanced seat swapped for each seed:
+
+```sh
+# Offline harness validation (does not measure Jev playing strength):
+node tests/apps/runner/conquest-benchmark.cjs --heuristic --pairs 1
+# Real Jev calls using the existing private runner connection:
+node tests/apps/runner/conquest-benchmark.cjs --config apps/runner/config/conquest-jev-ksaito.json --pairs 2 --seed 417 --max-decisions 300 --output /tmp/conquest-comparison.json
+```
+
+Use your own config path. Each game stops at `--max-decisions` (default 1000),
+including planning/menu calls. At most `2 * pairs * maxDecisions` provider calls
+are made. The harness creates no wallets, joins no network games and changes no
+production saves. Reports contain completion/winner, casualties, low-probability
+blitz counts (capture probability below 25%, a risk indicator rather than proof
+of a mistake), preparation/request latency and request bytes. Incomplete games
+are reported without declaring a winner. Paired seeds match initial placement;
+subsequent dice use diverges with the chosen moves. This comparison measures the
+combined context, planning and expanded-action change, not their individual
+contributions. Use multiple seeds before drawing conclusions about strength;
+this harness complements the native signed-transaction/restart test below.
+
+### Campaign comparison against the frozen six-game player
+
+`tests/apps/runner/fixtures/conquest-v1/` freezes the adapter and strategic context
+from the six live games, with SHA-256 checks. Both arms use the same rules engine
+and provider. Compare one incremental behavior at a time:
+
+```sh
+node tests/apps/runner/conquest-campaign-benchmark.cjs --config apps/runner/config/conquest-jev-saito.json --variant route --pairs 2 --seed 1401 --max-decisions 2000 --output /tmp/conquest-route.json
+# Repeat with --variant replan, then --variant full, using separate output files.
+# Use --heuristic instead of --config for offline harness validation only.
+```
+
+`route` adds concrete campaigns; `replan` also adds event-triggered review;
+`full` adds the tactical risk restriction. The adapter's constructor switches
+exist for these ablations; normal runner play enables all three. Each seed is
+played with the candidate in each seat. The report records initial-position
+hashes, source hashes, actual completion/winner, low-odds attacks without a
+policy payoff, failed-blitz losses, interior spare armies, and closeout time
+following a defined material/income advantage. These last metrics are proxies,
+not proofs of wasted moves or forced wins. Incomplete games do not count as wins.
+The decision cap includes planning/menu calls; subsequent RNG use diverges with
+moves. Small paired samples remain exploratory. Follow with native live games
+to verify signed transactions, restart behavior and encrypted-card transport.
+
+## Settlers strategic context
+
+Settlers supplies the implemented rules, per-player resource production and
+resource diversity, current scoring/award targets, legal expansion sites, build
+costs and shortages, port-aware bank-trade affordability, and discard exposure.
+Production estimates use fair dice and the engine's early-seven rerolls and
+Robin Hood protection. They describe the current board, not future dice or
+opponent resource identities. Expansion routes identify settlement sites within
+three new roads. Road candidates calculate continuous paths, stopping at enemy
+buildings, and identify Longest Road awards. The read-only search caps at 30,000
+visits; capped results are marked as lower bounds and do not claim an award.
+
+Candidate consequences explain production and ports gained by placement,
+resources remaining after a trade/discard/purchase, which builds become
+affordable, and production blocked/restored by moving the robber. Monopoly
+shows an upper bound from public hand counts, never an opponent's hidden
+resource composition. Building/buying closes bank trading for the turn, so
+Jev can finish exchanges before spending its reserved resources.
+Each build includes an ingredient-preserving bank-trade sequence when immediately
+fundable, missing resources with no production, and a production-rate funding
+projection capped at 72 rolls. This projection is not an expected waiting time:
+it ignores variance, future spending and board changes. Trades explicitly compare
+the target shortage before/after and identify reserved ingredients sacrificed.
+
+Opening choices evaluate settlement pairs, their ports and starting resources,
+and projected funding for a city or a settlement plus road. First-placement
+partners are provisional: an opponent can claim them before the second placement.
+Specialization is evaluated using exchange rates rather than requiring all five
+resources. Local evaluation values are heuristics, not calibrated win probabilities.
+
+The model chooses a concrete city, settlement destination and road route, road
+award, or development-card objective. `runnerSettlersPlan` persists across turns
+until completed, blocked or explicitly reconsidered. Voluntary reconsideration
+is limited to once per turn to prevent planning loops. Reserves include all
+remaining roads plus the destination's cost; progress records points, shortages
+and production. Legacy category plans remain usable until their next renewal.
+
+During build actions the model compares fully funded sequences with retaining
+resources, playable cards and changing its objective. Bank trades preserve the
+entire sequence cost and precede spending. Sequences use at most three new roads
+and 16 actions, and include two-build finishes near the target score. Public
+opponent scoring sites and award thresholds inform urgency and blocking value;
+hidden hand identities and card outcomes remain unknown. `runnerSettlersSequence`
+is saved with the normal move journal. Every continuation must still appear in
+the current legal menu and remain in the selected turn; an unavailable move or
+blocked destination returns control to the model. Unknown draws and theft are
+not forecast. Individual legal trades/builds remain accessible through a separate
+menu. Planning/menu selections do not send moves but count toward `maxDecisions`.
+Large menus split by action/card or numbered groups, with backtracking and a
+48,000-byte request ceiling. Stale and unknown choices are still rejected.
+
+The shared runner loop executes single-choice decisions without calling the
+provider, including legal continuations of a previously chosen sequence. It
+reports `forced` instead of `thinking`; normal legality, cancellation, persistence
+and decision limits still apply.
+
+The existing complete building, bank-trading and resource-card menus remain
+available. Player-to-player trading is still unsupported. No other LLM is
+consulted: the runner computes the facts and the configured provider chooses.
+
+```sh
+node --test tests/apps/runner/settlers.test.cjs tests/apps/runner/settlers-strategy.test.cjs tests/apps/runner/settlers-planner.test.cjs
+node tests/apps/runner/match.cjs Settlers --restart
+# Compare original/enriched Jev on identical tactical positions:
+node tests/apps/runner/settlers-benchmark.cjs apps/runner/config/conquest-jev-ksaito.json /tmp/settlers-comparison.json
+# Full 10-point game, with Jev choosing for both seats:
+node tests/apps/runner/settlers-match.cjs apps/runner/config/settlers-jev-saito.json /tmp/settlers-jev-game
+node tests/apps/runner/settlers-review.cjs /tmp/settlers-jev-game/decisions.jsonl
+# Replay observed trade mistakes against the frozen player from the live match:
+node tests/apps/runner/settlers-planner-benchmark.cjs apps/runner/config/settlers-jev-saito.json /tmp/settlers-trade-replay.json
+# Compare the frozen player in seat 1, then repeat with seat 2 and a new output:
+SETTLERS_PREVIOUS_SEAT=1 SETTLERS_BOARD=tests/apps/runner/fixtures/settlers-boards/board-1.json node tests/apps/runner/settlers-match.cjs apps/runner/config/settlers-jev-saito.json /tmp/settlers-paired-1
+```
+
+The comparison accepts any existing runner config selecting Jev; only its
+provider connection is used. It makes 16 calls across four synthetic positions,
+each tested twice with each adapter. The cases check trade-before-build timing,
+Year of Plenty resources, preserving a winning city through discard, and
+revealing a winning VP card. It writes decisions, correctness, latency and
+request size without creating wallets or network invites. These tactical cases
+are not a full-match win-rate benchmark; the native match command separately
+checks signed moves, restart recovery, board agreement and completion using
+the heuristic policy.
+
+`settlers-match.cjs` uses native wallets, encrypted decks and signed moves over
+local IPC, without publishing an invite. Both seats use the supplied Jev config;
+there is no heuristic or second-model fallback. It checks final board, resources,
+scores and RNG agreement and saves source snapshots, filtered decision traces and
+results. Output contains private wallets and is created with restrictive
+permissions. A failed run retains checkpoints; supply its game ID as the third
+argument to resume in the same directory. Review counts flag decisions for
+inspection: spending away from a plan or deferring a build can be justified, and
+negative robber income changes can be unavoidable when movement is forced.
+
+For comparisons, `SETTLERS_PREVIOUS_SEAT=1` or `2` loads the frozen live-match
+player in that in-game seat; the other seat uses the current adapter. Both skip
+model calls for forced moves. `SETTLERS_BOARD` names a JSON file containing
+`hexes` and `ports` in the native public-state format. Only the offline worker
+overrides the generated board; normal encrypted setup and signed moves still run.
+Two reproducible public maps are provided in `fixtures/settlers-boards/` under
+`tests/apps/runner/`. Use the identical board file with the opposite previous-player seat for each
+pair. Dice and development decks are not matched across games, so small samples
+are exploratory. Reports include board/source hashes and per-decision versions.
+The recorded-trade replay distinguishes a funded sequence or waiting from merely
+changing which resource a still-unfunded trade acquires.
+
+The [recorded planner comparison](reports/settlers-planner-comparison.json)
+contains four completed games on two boards with seats swapped: the planner won
+three and lost one. It chose a funded sequence or waiting in five of six recorded
+trade replays, versus zero of six for the frozen player. These small samples are
+exploratory; the report includes source hashes, recovery checks and limitations.
 
 ## Verification
 

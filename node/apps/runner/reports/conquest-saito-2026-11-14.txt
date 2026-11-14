@@ -1,0 +1,110 @@
+Conquest: five review-and-improve games, then one validation game
+Date: 2026-11-14
+Server: wss://saito.io/wsopen
+Format: two native runner wallets, Jev for both seats, quick setup, no stake or clock.
+These are live signed network games, not local-engine benchmark games. Both clients
+must confirm the same game and winner before a game is counted complete.
+
+Method
+Review uses selected objectives, public positions, candidate consequences and
+submitted moves. It does not reveal model reasoning; explanations below are
+interpretations of observable behavior. Both seats received each update. Games
+have different random positions and dice, so results do not establish a win-rate
+improvement or isolate each change's causal effect.
+
+Game 1 — complete, turn 11, bot-2 won
+Formation: one seat chose Asia; the other repeatedly chose North America.
+Updating: Asia's controller switched to elimination after securing its bonus.
+The loser retained North America even as its foothold disappeared.
+Execution: the winner converted continent income into a decisive army advantage.
+Change before Game 2: added an explicit enemy-continent income-denial objective,
+with completion when unified enemy control breaks. This makes disruption a
+first-class objective instead of requiring the model to reinterpret conquest.
+
+Game 2 — complete, turn 20, bot-2 won
+Formation: Asia and Africa were the opening objectives. Africa developed the
+stronger economic base; merely offering denial did not ensure its selection.
+Updating: the leader eventually selected elimination; the loser persisted with
+expansion while losing economic ground.
+Execution: reinforcement choices lacked direct information about attacks they
+would enable. Three blitzes had capture probabilities below 40%.
+Change before Game 3: reinforcement choices now preview adjacent blitz capture
+probabilities after placement, connecting deployment to immediate opportunities.
+
+Game 3 — complete, turn 17, bot-1 won
+Formation: North America versus Asia. The winner later pursued Europe and Asia.
+Updating: the winner changed objectives, while the losing seat repeatedly
+renewed Asia as its position deteriorated.
+Execution: four sub-40% blitzes remained. A menu-budget error interrupted play;
+the saved game resumed after repair and both seats confirmed completion.
+Change before Game 4: save armies, income and remaining targets when selecting
+an objective; report changes at subsequent decisions, including next-turn renewal.
+Older saves without a snapshot remain valid and report no invented progress.
+
+Game 4 — complete, turn 24, bot-1 won
+Formation: an opening European conquest created an 11-army income.
+Updating: that advantage disappeared as Europe changed hands; the eventual
+winner switched to elimination.
+Execution: maximum-advance attacks were frequent. Large total army strength did
+not guarantee a fast closeout against scattered enemy pockets.
+Change before Game 5: expose defense after troop movement, including a steamroll's
+one-army origin, strongest adjacent enemy capture probability, and continent
+bonus at risk. Exclude neutrals and the successfully captured target. These
+estimates omit future reinforcements and coordinated attacks.
+
+Game 5 — complete, turn 47, bot-2 won
+Formation: both initially selected Asia; one then repeatedly pursued Europe.
+Updating: objectives stayed repetitive despite changing fortunes. The new denial
+objective was selected on turn 34, but execution remained in North America.
+Execution: more attacks used explicit occupation. Troop advances repeatedly
+split the moving force (for example, 25 then 13 then 7), leaving large stacks
+behind. The leader took many turns to convert a large army advantage. This is a
+negative finding, not proof that added defensive context improved playing strength.
+Change before Game 6: objective choices and active plans now show friendly steps
+to their target front; occupation and fortification preview onward attack odds.
+Guidance explicitly weighs onward strength against origin defense rather than
+halving the advancing force by default. Distances do not authorize illegal
+connected-path fortification; actual movement remains one adjacent move.
+
+Game 6 — complete, turn 32, bot-2 won
+Formation/updating: opening Europe and Asia objectives changed with the board;
+the winner moved through Europe/Asia objectives before selecting elimination
+on turn 30 and finishing on turn 32. Both clients confirmed the same winner.
+Execution: 86 explicit occupations advanced an average of
+87.1% of available troops, versus 77.6% in Game 5; automatic steamrolls
+are excluded from this comparison. Maximum legal advances occurred in
+56 explicit occupations. This is behavioral evidence, not a controlled
+strength result. The game still included 5 blitzes below 40% capture probability.
+The final code completed live play without a runner or menu-budget failure.
+
+Runner repairs discovered during live play
+- Reused wallets could report a previous game's completion while joining a new
+  game. Workers now wait for the assigned game while continuing signed retries.
+- Outbox cleanup could use an unrelated game's progress to discard new Arcade
+  messages. Cleanup now matches the invitation/game identity.
+- Nested menu sizing omitted the back-navigation option. Budget checks now
+  measure the complete menu, including navigation and selection context.
+These repairs were applied when encountered, then the same invitations resumed.
+No stalled attempt was counted as an additional completed game.
+
+Validation
+40 focused Conquest, multi-seat and outbox tests pass after the final changes.
+The broader runner suite (before the final route/onward-preview change) passed
+148 tests; Paths and Twilight could not load because the local native
+canvas.node binary is absent. That dependency issue was not changed.
+
+Evidence and scope
+The companion JSON records exact game IDs, winner public keys, turns, decision
+counts and all selected objectives. Public decision traces and network logs are
+under node/tmp/conquest-review-saito/. Private wallets/checkpoints remain in the
+isolated node/runner-data/conquest-review-saito-20261114/ directory; do not publish
+that directory. No wallet keys, private hands or RNG seeds are in this report.
+Code changes are local and uncommitted; existing unrelated changes were preserved.
+No production deployment was performed. Native runner clients used this checkout
+while communicating through saito.io; browser UI behavior was not exercised.
+
+Remaining limitations
+Plans are advisory and renewed at reinforcement; progress can inform later
+choices but does not force a mid-turn objective replacement. Low-odds blitzes,
+repetitive objectives and slow closeouts remain observable weaknesses. One live
+validation game cannot establish a statistically reliable strength improvement.

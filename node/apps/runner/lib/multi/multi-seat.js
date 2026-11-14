@@ -142,7 +142,18 @@ class MultiSeat {
       const release = await this.permit(signal);
       try { return await chat.reply(conversation, signal); } finally { release(); }
     } } : {};
-    this.running = play(this.runtime, this.config, { signal: this.signal, report: this.report, provider, chatProvider, waitForOpponent: true })
+    this.running = (async () => {
+      // Initialization may still expose the previous completed game while the
+      // new invitation is awaiting acceptance. Never play/report that game.
+      let resendAt = 0;
+      while (mod.game?.id !== id) {
+        this.signal.throwIfAborted();
+        if (app.runnerFailure) throw app.runnerFailure;
+        if (Date.now() >= resendAt) { await this.runtime.retransmit(); resendAt = Date.now() + 20000; }
+        await delay(this.config.pollMs, undefined, { signal: this.signal });
+      }
+      return play(this.runtime, this.config, { signal: this.signal, report: this.report, provider, chatProvider, waitForOpponent: true });
+    })()
       .catch(error => {
         if (error.name !== 'AbortError') { this.failure = error; this.report({ event: 'seat-error', message: error.message }); }
       });
