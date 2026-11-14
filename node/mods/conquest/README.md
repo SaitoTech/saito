@@ -84,6 +84,16 @@ rm -rf tests/mods/conquest/.tools tests/mods/conquest/.cache tests/mods/conquest
 ## Automated player
 
 The optional [Node.js runner](../../apps/runner/README.md) can host or join an
-unstaked two-to-six-player campaign using local Codex or a heuristic policy. It executes
+unstaked two-to-six-player campaign using Jev, local Codex or a heuristic policy. It executes
 this module's signed action and encrypted-deck protocols without a browser; it
 is separate from the local hotseat interface.
+
+The runner supplies strategic summaries and fair-dice combat estimates, saves a concrete campaign with staging, route, army budget and reassessment
+triggers, and offers cautious single-round attacks,
+blitz attacks and intermediate troop movements. See the runner guide’s
+[Conquest strategic context](../../apps/runner/README.md#conquest-strategic-context)
+for scope, limits and paired benchmark commands.
+
+The runner applies a tactical policy to low-odds attacks, with explicit economic,
+elimination, card and survival exceptions. This does not change the game engine’s
+legal actions; see the runner guide for thresholds and paired comparisons.
