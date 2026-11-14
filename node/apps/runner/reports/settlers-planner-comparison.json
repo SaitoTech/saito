@@ -1,0 +1,526 @@
+{
+  "scope": "Two fixed public boards, each played twice with the new and frozen v3 players swapping in-game seats. Four complete native 10-point games over local IPC. Both use Jev; single-choice decisions execute without a model request.",
+  "currentWins": 3,
+  "previousWins": 1,
+  "games": [
+    {
+      "number": 1,
+      "id": "09cd2063a9d16b2acdef29f1a69ce2dbce51c3935dc6588d9137c3e081e43a1f4a5e6e2e6b8dac6db26afd7ad52ee25a01c4ebfddb021b81a6d73c0e29b283f0",
+      "boardHash": "55a9f8f53b6ee573e4213638201420145d71a21c7d8ef5f8d293921f6bc54a53",
+      "currentSeat": 2,
+      "previousSeat": 1,
+      "points": [
+        4,
+        10
+      ],
+      "winner": "iPDTwwsnr29EB1a6WWfY3TQ7SYAWHdVZKLT8BDe8tP7K",
+      "currentWon": true,
+      "agreement": true,
+      "sourceHashes": {
+        "settlers.js": "d0ac1dec11c612aef706bc15c47bc94621259d9fbd723fec1be6a672c06d460a",
+        "settlers-strategy.js": "1b0d888f1e73c18c620de8b07864c84a67bd1d4141a6534491e36a8bbb7c8dd8",
+        "settlers-network.js": "a4161bacaaa627c275c74a8835172439d711dcf5b032e5432fc921c1352fd2bf",
+        "settlers-planner.js": "c1ad3000cdbb9c7fb6e92125bed35da87ca782e1c359d5e10717212643905515"
+      },
+      "perArm": {
+        "current": {
+          "decisions": 200,
+          "jevCalls": 111,
+          "forcedDecisions": 89,
+          "medianDecisionAndSubmissionMs": 669,
+          "maxRequestBytes": 36859,
+          "actions": {
+            "town": 6,
+            "road": 13,
+            "roll": 52,
+            "plan": 12,
+            "manual": 9,
+            "buy": 20,
+            "end_turn": 51,
+            "bandit": 6,
+            "victim": 6,
+            "execute": 12,
+            "card": 6,
+            "bank": 6,
+            "city": 1
+          }
+        },
+        "v3": {
+          "decisions": 248,
+          "jevCalls": 128,
+          "forcedDecisions": 120,
+          "medianDecisionAndSubmissionMs": 570,
+          "maxRequestBytes": 34793,
+          "actions": {
+            "town": 3,
+            "road": 16,
+            "roll": 52,
+            "plan": 59,
+            "buy": 20,
+            "end_turn": 52,
+            "bandit": 18,
+            "victim": 18,
+            "card": 5,
+            "bank": 5
+          }
+        }
+      },
+      "bankCardsSpent": [
+        20,
+        21
+      ],
+      "resourcesProduced": {
+        "brick": [
+          21,
+          23
+        ],
+        "wood": [
+          17,
+          18
+        ],
+        "wheat": [
+          12,
+          27
+        ],
+        "wool": [
+          5,
+          7
+        ],
+        "ore": [
+          6,
+          7
+        ]
+      }
+    },
+    {
+      "number": 2,
+      "id": "594b86b098d6df2ecfab5b9202cbbf31d11ef89e81cf8840267d31fa6f8b8b68621d7695d1867b26b6d8390c36312c4573c97766c81aa080c3297499eeab46de",
+      "boardHash": "55a9f8f53b6ee573e4213638201420145d71a21c7d8ef5f8d293921f6bc54a53",
+      "currentSeat": 1,
+      "previousSeat": 2,
+      "points": [
+        10,
+        9
+      ],
+      "winner": "uefcLCS1yb7qhcnQQ1749Vuzm72qFL81k89YhzXfWM6V",
+      "currentWon": true,
+      "agreement": true,
+      "sourceHashes": {
+        "settlers.js": "d0ac1dec11c612aef706bc15c47bc94621259d9fbd723fec1be6a672c06d460a",
+        "settlers-strategy.js": "1b0d888f1e73c18c620de8b07864c84a67bd1d4141a6534491e36a8bbb7c8dd8",
+        "settlers-network.js": "a4161bacaaa627c275c74a8835172439d711dcf5b032e5432fc921c1352fd2bf",
+        "settlers-planner.js": "c1ad3000cdbb9c7fb6e92125bed35da87ca782e1c359d5e10717212643905515"
+      },
+      "perArm": {
+        "current": {
+          "decisions": 281,
+          "jevCalls": 198,
+          "forcedDecisions": 83,
+          "medianDecisionAndSubmissionMs": 557,
+          "maxRequestBytes": 39020,
+          "actions": {
+            "town": 5,
+            "road": 16,
+            "roll": 51,
+            "plan": 39,
+            "manual": 13,
+            "buy": 25,
+            "end_turn": 50,
+            "execute": 13,
+            "card": 10,
+            "bandit": 8,
+            "victim": 8,
+            "bank": 9,
+            "replan": 25,
+            "discard": 9
+          }
+        },
+        "v3": {
+          "decisions": 256,
+          "jevCalls": 140,
+          "forcedDecisions": 116,
+          "medianDecisionAndSubmissionMs": 596,
+          "maxRequestBytes": 33454,
+          "actions": {
+            "town": 6,
+            "road": 11,
+            "roll": 50,
+            "plan": 62,
+            "end_turn": 50,
+            "bank": 14,
+            "buy": 19,
+            "bandit": 19,
+            "victim": 19,
+            "card": 5,
+            "city": 1
+          }
+        }
+      },
+      "bankCardsSpent": [
+        36,
+        48
+      ],
+      "resourcesProduced": {
+        "brick": [
+          29,
+          7
+        ],
+        "wood": [
+          19,
+          8
+        ],
+        "wheat": [
+          12,
+          49
+        ],
+        "wool": [
+          56,
+          9
+        ],
+        "ore": [
+          6,
+          3
+        ]
+      }
+    },
+    {
+      "number": 3,
+      "id": "b8c184b8ba905d4d4073add67c641bb83732ec3f5f7e30a17428c341b630340f7759fe29ce684a08f7e76da89bb9e18cce5be0e1fca139fad0528418d27993ff",
+      "boardHash": "839086e581dcd508d2d9285ba4b787bf5f913e8980348fee0f029c263aee3089",
+      "currentSeat": 2,
+      "previousSeat": 1,
+      "points": [
+        10,
+        9
+      ],
+      "winner": "2AjW1uCBbYngFHX71SDQLuUEnDLiPiQXbidxUnXMBh7FJ",
+      "currentWon": false,
+      "agreement": true,
+      "sourceHashes": {
+        "settlers.js": "d0ac1dec11c612aef706bc15c47bc94621259d9fbd723fec1be6a672c06d460a",
+        "settlers-strategy.js": "1b0d888f1e73c18c620de8b07864c84a67bd1d4141a6534491e36a8bbb7c8dd8",
+        "settlers-network.js": "a4161bacaaa627c275c74a8835172439d711dcf5b032e5432fc921c1352fd2bf",
+        "settlers-planner.js": "c1ad3000cdbb9c7fb6e92125bed35da87ca782e1c359d5e10717212643905515"
+      },
+      "perArm": {
+        "current": {
+          "decisions": 258,
+          "jevCalls": 160,
+          "forcedDecisions": 98,
+          "medianDecisionAndSubmissionMs": 530,
+          "maxRequestBytes": 36907,
+          "actions": {
+            "town": 5,
+            "road": 9,
+            "roll": 52,
+            "plan": 35,
+            "manual": 6,
+            "buy": 20,
+            "end_turn": 52,
+            "bandit": 10,
+            "victim": 10,
+            "execute": 15,
+            "bank": 14,
+            "card": 11,
+            "replan": 19
+          }
+        },
+        "v3": {
+          "decisions": 270,
+          "jevCalls": 150,
+          "forcedDecisions": 120,
+          "medianDecisionAndSubmissionMs": 518,
+          "maxRequestBytes": 34883,
+          "actions": {
+            "town": 5,
+            "road": 8,
+            "roll": 53,
+            "plan": 67,
+            "end_turn": 52,
+            "bank": 20,
+            "buy": 19,
+            "card": 6,
+            "bandit": 18,
+            "victim": 18,
+            "city": 4
+          }
+        }
+      },
+      "bankCardsSpent": [
+        74,
+        42
+      ],
+      "resourcesProduced": {
+        "brick": [
+          34,
+          5
+        ],
+        "wood": [
+          0,
+          33
+        ],
+        "wheat": [
+          35,
+          21
+        ],
+        "wool": [
+          22,
+          31
+        ],
+        "ore": [
+          22,
+          0
+        ]
+      }
+    },
+    {
+      "number": 4,
+      "id": "0e3124e72800a2fe1a129e9d94f41da159047e08949bf1d9676bcf79d345b87030606ac67de6aa10b33ecfd9950a290f872d7117c2863fd578feab6e15eeabc0",
+      "boardHash": "839086e581dcd508d2d9285ba4b787bf5f913e8980348fee0f029c263aee3089",
+      "currentSeat": 1,
+      "previousSeat": 2,
+      "points": [
+        10,
+        9
+      ],
+      "winner": "eeJuTJuXfVy5PCdqNSEDNWggtAqGzopDJ8maBFZEoXHp",
+      "currentWon": true,
+      "agreement": true,
+      "sourceHashes": {
+        "settlers.js": "d0ac1dec11c612aef706bc15c47bc94621259d9fbd723fec1be6a672c06d460a",
+        "settlers-strategy.js": "1b0d888f1e73c18c620de8b07864c84a67bd1d4141a6534491e36a8bbb7c8dd8",
+        "settlers-network.js": "a4161bacaaa627c275c74a8835172439d711dcf5b032e5432fc921c1352fd2bf",
+        "settlers-planner.js": "c1ad3000cdbb9c7fb6e92125bed35da87ca782e1c359d5e10717212643905515"
+      },
+      "perArm": {
+        "current": {
+          "decisions": 372,
+          "jevCalls": 243,
+          "forcedDecisions": 129,
+          "medianDecisionAndSubmissionMs": 501,
+          "maxRequestBytes": 38965,
+          "actions": {
+            "town": 6,
+            "road": 9,
+            "roll": 72,
+            "plan": 60,
+            "replan": 41,
+            "end_turn": 71,
+            "manual": 8,
+            "buy": 25,
+            "bandit": 12,
+            "victim": 12,
+            "execute": 19,
+            "bank": 19,
+            "card": 10,
+            "city": 4,
+            "discard": 4
+          }
+        },
+        "v3": {
+          "decisions": 350,
+          "jevCalls": 185,
+          "forcedDecisions": 165,
+          "medianDecisionAndSubmissionMs": 494,
+          "maxRequestBytes": 33183,
+          "actions": {
+            "town": 2,
+            "road": 12,
+            "roll": 71,
+            "plan": 86,
+            "end_turn": 71,
+            "buy": 21,
+            "card": 14,
+            "bandit": 29,
+            "victim": 29,
+            "discard": 4,
+            "bank": 10,
+            "city": 1
+          }
+        }
+      },
+      "bankCardsSpent": [
+        52,
+        40
+      ],
+      "resourcesProduced": {
+        "brick": [
+          12,
+          19
+        ],
+        "wood": [
+          18,
+          0
+        ],
+        "wheat": [
+          59,
+          29
+        ],
+        "wool": [
+          24,
+          19
+        ],
+        "ore": [
+          13,
+          18
+        ]
+      }
+    }
+  ],
+  "replay": {
+    "scope": "Three observed unfunded trades, repeated twice per adapter. Avoiding the original trade is a diagnostic, not a proof of optimal play or win rate. Report funded-sequence-or-wait separately: changing the resource in another unfunded trade is not counted as a successful fix.",
+    "results": {
+      "v3": {
+        "trials": 6,
+        "fundedSequenceOrWait": 0,
+        "originalTradeAvoided": 0,
+        "actions": [
+          {
+            "type": "bank",
+            "give": "ore",
+            "get": "wheat",
+            "count": 4
+          },
+          {
+            "type": "bank",
+            "give": "wheat",
+            "get": "ore",
+            "count": 4
+          },
+          {
+            "type": "bank",
+            "give": "wheat",
+            "get": "ore",
+            "count": 4
+          },
+          {
+            "type": "bank",
+            "give": "ore",
+            "get": "wheat",
+            "count": 4
+          },
+          {
+            "type": "bank",
+            "give": "wheat",
+            "get": "ore",
+            "count": 4
+          },
+          {
+            "type": "bank",
+            "give": "wheat",
+            "get": "ore",
+            "count": 4
+          }
+        ]
+      },
+      "planner": {
+        "trials": 6,
+        "fundedSequenceOrWait": 5,
+        "originalTradeAvoided": 6,
+        "actions": [
+          {
+            "type": "execute",
+            "goal": {
+              "item": 0,
+              "route": [
+                "1_1_1"
+              ]
+            },
+            "steps": [
+              {
+                "type": "bank",
+                "give": "ore",
+                "count": 4,
+                "get": "wood"
+              },
+              {
+                "type": "buy",
+                "item": 0
+              },
+              {
+                "type": "road",
+                "edge": "1_1_1"
+              }
+            ]
+          },
+          {
+            "type": "bank",
+            "give": "wheat",
+            "get": "wood",
+            "count": 4
+          },
+          {
+            "type": "execute",
+            "goal": {
+              "item": 3
+            },
+            "steps": [
+              {
+                "type": "buy",
+                "item": 3
+              }
+            ]
+          },
+          {
+            "type": "execute",
+            "goal": {
+              "item": 0,
+              "route": [
+                "1_1_1"
+              ]
+            },
+            "steps": [
+              {
+                "type": "bank",
+                "give": "ore",
+                "count": 4,
+                "get": "wood"
+              },
+              {
+                "type": "buy",
+                "item": 0
+              },
+              {
+                "type": "road",
+                "edge": "1_1_1"
+              }
+            ]
+          },
+          {
+            "type": "end_turn"
+          },
+          {
+            "type": "execute",
+            "goal": {
+              "item": 3
+            },
+            "steps": [
+              {
+                "type": "buy",
+                "item": 3
+              }
+            ]
+          }
+        ]
+      }
+    }
+  },
+  "tests": {
+    "focused": "73 passed, plus the subsequently added frozen-source integrity test passed",
+    "nativeRestart": "Completed with a midgame restart; winner, board and RNG agree",
+    "connectionRecovery": "Game 3 resumed the same saved game after one Jev connection failure at decision 184",
+    "fullRunner": "174 passed; Paths and Twilight suites failed to load because node_modules/canvas/build/Release/canvas.node is missing"
+  },
+  "limitations": [
+    "Four games are exploratory; initial boards and seats are paired but dice and encrypted development decks differ across games.",
+    "Funding projections use current production rates and exchange rates; they omit variance and future opponent actions.",
+    "The planner enumerates settlement routes up to three roads, specific city upgrades, immediate road awards, development purchases and two existing-site builds near victory. It is not a full game-tree search.",
+    "Jev can still select individual moves and make poor unfunded trades; the replay improved but did not eliminate this behavior.",
+    "Two earlier pilot games were interrupted after discovering repeated replanning; they are excluded from the four fixed-version comparison games.",
+    "Player-to-player trading remains unsupported."
+  ],
+  "artifacts": {
+    "directory": "tmp/settlers-planner-comparison",
+    "frozenPlayer": "tests/apps/runner/fixtures/settlers-v3/manifest.json"
+  }
+}

@@ -1,0 +1,144 @@
+{
+  "experiments": [
+    {
+      "variant": "route",
+      "completed": 4,
+      "candidateWins": 2,
+      "candidate": {
+        "unjustifiedLowOddsAttacks": 22,
+        "failedBlitzes": 25,
+        "lossesInFailedBlitzes": 62,
+        "meanInteriorSpareArmies": 3.9772727272727275,
+        "decisions": 599,
+        "actions": 310,
+        "winningCloseoutTurns": [
+          12,
+          12
+        ],
+        "meanWinningCloseoutTurns": 12
+      },
+      "baseline": {
+        "unjustifiedLowOddsAttacks": 20,
+        "failedBlitzes": 21,
+        "lossesInFailedBlitzes": 45,
+        "meanInteriorSpareArmies": 4.361111111111111,
+        "decisions": 572,
+        "actions": 333,
+        "winningCloseoutTurns": [
+          6,
+          8
+        ],
+        "meanWinningCloseoutTurns": 7
+      }
+    },
+    {
+      "variant": "replan",
+      "completed": 4,
+      "candidateWins": 2,
+      "candidate": {
+        "unjustifiedLowOddsAttacks": 15,
+        "failedBlitzes": 33,
+        "lossesInFailedBlitzes": 106,
+        "meanInteriorSpareArmies": 2.6636363636363636,
+        "decisions": 1066,
+        "actions": 484,
+        "winningCloseoutTurns": [
+          12,
+          0
+        ],
+        "meanWinningCloseoutTurns": 6
+      },
+      "baseline": {
+        "unjustifiedLowOddsAttacks": 23,
+        "failedBlitzes": 20,
+        "lossesInFailedBlitzes": 52,
+        "meanInteriorSpareArmies": 4.904761904761905,
+        "decisions": 828,
+        "actions": 481,
+        "winningCloseoutTurns": [
+          12,
+          4
+        ],
+        "meanWinningCloseoutTurns": 8
+      }
+    },
+    {
+      "variant": "full",
+      "completed": 4,
+      "candidateWins": 2,
+      "candidate": {
+        "unjustifiedLowOddsAttacks": 0,
+        "failedBlitzes": 11,
+        "lossesInFailedBlitzes": 40,
+        "meanInteriorSpareArmies": 5.807575757575758,
+        "decisions": 786,
+        "actions": 409,
+        "winningCloseoutTurns": [
+          10,
+          2
+        ],
+        "meanWinningCloseoutTurns": 6
+      },
+      "baseline": {
+        "unjustifiedLowOddsAttacks": 20,
+        "failedBlitzes": 30,
+        "lossesInFailedBlitzes": 83,
+        "meanInteriorSpareArmies": 3.658333333333333,
+        "decisions": 788,
+        "actions": 462,
+        "winningCloseoutTurns": [
+          10,
+          8
+        ],
+        "meanWinningCloseoutTurns": 9
+      }
+    }
+  ],
+  "live": [
+    {
+      "number": 1,
+      "gameId": "e1113aaf45345e59fa0ed546c4c20133ec1b849599ea6094cec560a29cd8b9c94dff044fe4fdf996a862a72bf28cc095982c7e83cb7f41d576d0381b531f40fa",
+      "completed": true,
+      "turn": 21,
+      "winner": [
+        "26epsAiC3kw8et2Dsc7Qe1be2FHifhmopqzfaqRRWkNJE"
+      ],
+      "candidateWon": true,
+      "decisions": 360,
+      "candidateSeat": 2,
+      "reviews": {
+        "bounded route completed; extend or replace it": 15,
+        "next attack no longer meets campaign odds": 12,
+        "staging foothold lost": 6,
+        "campaign loss budget exhausted": 1,
+        "reinforcement income fell": 6,
+        "objective completed": 1,
+        "new exposure of controlled continent income": 3
+      },
+      "cleanRestart": true
+    },
+    {
+      "number": 2,
+      "gameId": "db963726fbb8ca065f93d3d8c2e58d658222a4b0515df590ff74c77b1612df5c77ab882a4a12b6273f86c5da88a78df41f73768af7b2d326058acfc27cc97abc",
+      "completed": true,
+      "turn": 28,
+      "winner": [
+        "21U8mv2tCkT11xQLpmDAoJtK18Y69pykDsupWE2YJxjYz"
+      ],
+      "candidateWon": true,
+      "decisions": 360,
+      "candidateSeat": 2,
+      "reviews": {
+        "bounded route completed; extend or replace it": 25,
+        "reinforcement income fell": 9,
+        "staging foothold lost": 4,
+        "next attack no longer meets campaign odds": 8,
+        "objective completed": 3,
+        "campaign loss budget exhausted": 1
+      },
+      "cleanRestart": false
+    }
+  ],
+  "initialPositionsVerified": true,
+  "unchangedCandidateVerified": true
+}

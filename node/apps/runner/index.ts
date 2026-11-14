@@ -65,6 +65,7 @@ async function main() {
     if (['host', 'join'].includes(command) && app.options.games.some(g => g.module === config.game && !g.over)) {
       throw Error('This wallet already has an unfinished game; use resume or another dataDir');
     }
+    let gameId = argument;
     if (command === 'host') {
       const tx = await arcade.createOpenTransaction({ ts: Date.now(), name: config.game,
         options: { game_length: 10, turn_limit: 0, conquest_setup: 'quick', ...config.options },
@@ -73,6 +74,7 @@ async function main() {
       await app.network.propagateTransaction(tx);
       app.connection.emit('relay-send-message', { recipient: 'PEERS', request: 'arcade spv update', data: tx.toJson() });
       report({ event: 'hosted', id: tx.signature });
+      gameId = tx.signature;
     } else if (command === 'join') {
       if (!argument) throw Error('join needs an invite id');
       const deadline = Date.now() + 20000;
@@ -83,7 +85,7 @@ async function main() {
     } else {
       await require('./lib/resume')(runtime, argument);
     }
-    await play(runtime, config, { signal: controller.signal, report });
+    await play(runtime, config, { signal: controller.signal, report, gameId });
     app.storage.saveOptions();
   } finally {
     unlock();

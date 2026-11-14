@@ -17,7 +17,8 @@ module.exports = async function retransmit({ app, mod, propagate, offline, Trans
     const finished = app.options.games.find(g => g.over &&
       (g.id === msg.game_id || (msg.module === 'Arcade' && g.id === tx.signature)));
     if (finished) { delete app.options.runnerOutbox[signature]; continue; }
-    if (msg.module === 'Arcade' && mod?.game?.players_set && mod.game.step.game > 2) {
+    if (msg.module === 'Arcade' && mod?.game?.players_set && mod.game.step.game > 2 &&
+        (mod.game.id === msg.game_id || mod.game.id === tx.signature)) {
       delete app.options.runnerOutbox[signature];
       continue;
     }

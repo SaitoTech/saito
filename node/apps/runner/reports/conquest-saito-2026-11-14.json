@@ -1,0 +1,1090 @@
+{
+  "peer": "wss://saito.io/wsopen",
+  "players": 2,
+  "provider": "jev",
+  "games": [
+    {
+      "gameNumber": 1,
+      "gameId": "67d5d64abf498c1732592910120287967a33f0f13c0b5a94c4528488bbba7683147faea25fe95cabebe35e4e6a7397d463f54a018ef45ff73d16ea34d6a38d5a",
+      "complete": true,
+      "winnerPublicKeys": [
+        "2AkFiSWihwLZCxNu9tjsfggy9PHAAxTJc5ueTm81Yxf7Y"
+      ],
+      "turn": 11,
+      "decisions": 147,
+      "actions": {
+        "plan": 11,
+        "place": 11,
+        "select_group": 51,
+        "attack": 53,
+        "end_attack": 10,
+        "fortify": 8,
+        "end_turn": 2,
+        "trade": 1
+      },
+      "blitzesBelow40Percent": 1,
+      "steamrollAttacks": 53,
+      "planChoices": [
+        {
+          "turn": 1,
+          "seat": 2,
+          "kind": "continent",
+          "target": "asia"
+        },
+        {
+          "turn": 2,
+          "seat": 1,
+          "kind": "continent",
+          "target": "north_america"
+        },
+        {
+          "turn": 3,
+          "seat": 2,
+          "kind": "continent",
+          "target": "asia"
+        },
+        {
+          "turn": 4,
+          "seat": 1,
+          "kind": "continent",
+          "target": "north_america"
+        },
+        {
+          "turn": 5,
+          "seat": 2,
+          "kind": "continent",
+          "target": "asia"
+        },
+        {
+          "turn": 6,
+          "seat": 1,
+          "kind": "continent",
+          "target": "north_america"
+        },
+        {
+          "turn": 7,
+          "seat": 2,
+          "kind": "eliminate",
+          "target": 1
+        },
+        {
+          "turn": 8,
+          "seat": 1,
+          "kind": "continent",
+          "target": "north_america"
+        },
+        {
+          "turn": 9,
+          "seat": 2,
+          "kind": "eliminate",
+          "target": 1
+        },
+        {
+          "turn": 10,
+          "seat": 1,
+          "kind": "continent",
+          "target": "africa"
+        },
+        {
+          "turn": 11,
+          "seat": 2,
+          "kind": "eliminate",
+          "target": 1
+        }
+      ],
+      "explicitOccupation": {
+        "count": 0,
+        "meanFractionOfAvailableTroopsAdvanced": null,
+        "maximumAdvances": 0
+      }
+    },
+    {
+      "gameNumber": 2,
+      "gameId": "d6716edf9cfe85082bd25d1daf0651132d708682da2c26e98552b969e688b6b91985aa29214879878e49cb2eacd84b82d306dd25ab04bda02d5ebab5c497e342",
+      "complete": true,
+      "winnerPublicKeys": [
+        "2AkFiSWihwLZCxNu9tjsfggy9PHAAxTJc5ueTm81Yxf7Y"
+      ],
+      "turn": 20,
+      "decisions": 241,
+      "actions": {
+        "plan": 20,
+        "place": 20,
+        "select_group": 88,
+        "attack": 70,
+        "end_attack": 19,
+        "fortify": 15,
+        "end_turn": 4,
+        "trade": 5
+      },
+      "blitzesBelow40Percent": 3,
+      "steamrollAttacks": 70,
+      "planChoices": [
+        {
+          "turn": 1,
+          "seat": 1,
+          "kind": "continent",
+          "target": "asia"
+        },
+        {
+          "turn": 2,
+          "seat": 2,
+          "kind": "continent",
+          "target": "africa"
+        },
+        {
+          "turn": 3,
+          "seat": 1,
+          "kind": "continent",
+          "target": "asia"
+        },
+        {
+          "turn": 4,
+          "seat": 2,
+          "kind": "continent",
+          "target": "africa"
+        },
+        {
+          "turn": 5,
+          "seat": 1,
+          "kind": "continent",
+          "target": "asia"
+        },
+        {
+          "turn": 6,
+          "seat": 2,
+          "kind": "continent",
+          "target": "asia"
+        },
+        {
+          "turn": 7,
+          "seat": 1,
+          "kind": "continent",
+          "target": "asia"
+        },
+        {
+          "turn": 8,
+          "seat": 2,
+          "kind": "continent",
+          "target": "asia"
+        },
+        {
+          "turn": 9,
+          "seat": 1,
+          "kind": "continent",
+          "target": "asia"
+        },
+        {
+          "turn": 10,
+          "seat": 2,
+          "kind": "continent",
+          "target": "asia"
+        },
+        {
+          "turn": 11,
+          "seat": 1,
+          "kind": "continent",
+          "target": "north_america"
+        },
+        {
+          "turn": 12,
+          "seat": 2,
+          "kind": "eliminate",
+          "target": 1
+        },
+        {
+          "turn": 13,
+          "seat": 1,
+          "kind": "continent",
+          "target": "north_america"
+        },
+        {
+          "turn": 14,
+          "seat": 2,
+          "kind": "eliminate",
+          "target": 1
+        },
+        {
+          "turn": 15,
+          "seat": 1,
+          "kind": "continent",
+          "target": "north_america"
+        },
+        {
+          "turn": 16,
+          "seat": 2,
+          "kind": "eliminate",
+          "target": 1
+        },
+        {
+          "turn": 17,
+          "seat": 1,
+          "kind": "defend",
+          "target": 1
+        },
+        {
+          "turn": 18,
+          "seat": 2,
+          "kind": "eliminate",
+          "target": 1
+        },
+        {
+          "turn": 19,
+          "seat": 1,
+          "kind": "eliminate",
+          "target": 2
+        },
+        {
+          "turn": 20,
+          "seat": 2,
+          "kind": "eliminate",
+          "target": 1
+        }
+      ],
+      "explicitOccupation": {
+        "count": 0,
+        "meanFractionOfAvailableTroopsAdvanced": null,
+        "maximumAdvances": 0
+      }
+    },
+    {
+      "gameNumber": 3,
+      "gameId": "6f5aaca08a040eac43523492241b2e6eee6f83dfb74fad4571ba37b8f40b4b473ba5c4dfa83208d22f31acda84cfc633550585409afd8efdb11f608cdf193a8f",
+      "complete": true,
+      "winnerPublicKeys": [
+        "21kY1op5zTpEjoVdGStyfgUdda7Ge6hL5v5THWjgqPgdM"
+      ],
+      "turn": 17,
+      "decisions": 227,
+      "actions": {
+        "plan": 17,
+        "place": 17,
+        "select_group": 90,
+        "attack": 68,
+        "end_attack": 16,
+        "fortify": 15,
+        "trade": 3,
+        "end_turn": 1
+      },
+      "blitzesBelow40Percent": 4,
+      "steamrollAttacks": 68,
+      "planChoices": [
+        {
+          "turn": 1,
+          "seat": 1,
+          "kind": "continent",
+          "target": "north_america"
+        },
+        {
+          "turn": 2,
+          "seat": 2,
+          "kind": "continent",
+          "target": "asia"
+        },
+        {
+          "turn": 3,
+          "seat": 1,
+          "kind": "continent",
+          "target": "north_america"
+        },
+        {
+          "turn": 4,
+          "seat": 2,
+          "kind": "continent",
+          "target": "asia"
+        },
+        {
+          "turn": 5,
+          "seat": 1,
+          "kind": "continent",
+          "target": "europe"
+        },
+        {
+          "turn": 6,
+          "seat": 2,
+          "kind": "continent",
+          "target": "asia"
+        },
+        {
+          "turn": 7,
+          "seat": 1,
+          "kind": "continent",
+          "target": "europe"
+        },
+        {
+          "turn": 8,
+          "seat": 2,
+          "kind": "continent",
+          "target": "asia"
+        },
+        {
+          "turn": 9,
+          "seat": 1,
+          "kind": "continent",
+          "target": "asia"
+        },
+        {
+          "turn": 10,
+          "seat": 2,
+          "kind": "continent",
+          "target": "asia"
+        },
+        {
+          "turn": 11,
+          "seat": 1,
+          "kind": "continent",
+          "target": "asia"
+        },
+        {
+          "turn": 12,
+          "seat": 2,
+          "kind": "continent",
+          "target": "asia"
+        },
+        {
+          "turn": 13,
+          "seat": 1,
+          "kind": "continent",
+          "target": "asia"
+        },
+        {
+          "turn": 14,
+          "seat": 2,
+          "kind": "continent",
+          "target": "africa"
+        },
+        {
+          "turn": 15,
+          "seat": 1,
+          "kind": "eliminate",
+          "target": 2
+        },
+        {
+          "turn": 16,
+          "seat": 2,
+          "kind": "continent",
+          "target": "australia"
+        },
+        {
+          "turn": 17,
+          "seat": 1,
+          "kind": "eliminate",
+          "target": 2
+        }
+      ],
+      "explicitOccupation": {
+        "count": 0,
+        "meanFractionOfAvailableTroopsAdvanced": null,
+        "maximumAdvances": 0
+      }
+    },
+    {
+      "gameNumber": 4,
+      "gameId": "6c7aef1dc36f32490bad3a21bc2c513161cd8297e27db5043216a90f5f6982401b93171e9ee72043719385e56793b5f737e13d6e5ecfd3711d0c60fdb9fa2d25",
+      "complete": true,
+      "winnerPublicKeys": [
+        "21kY1op5zTpEjoVdGStyfgUdda7Ge6hL5v5THWjgqPgdM"
+      ],
+      "turn": 24,
+      "decisions": 299,
+      "actions": {
+        "plan": 24,
+        "place": 24,
+        "select_group": 96,
+        "attack": 103,
+        "occupy": 1,
+        "end_attack": 23,
+        "fortify": 13,
+        "end_turn": 10,
+        "trade": 5
+      },
+      "blitzesBelow40Percent": 4,
+      "steamrollAttacks": 102,
+      "planChoices": [
+        {
+          "turn": 1,
+          "seat": 1,
+          "kind": "continent",
+          "target": "europe"
+        },
+        {
+          "turn": 2,
+          "seat": 2,
+          "kind": "continent",
+          "target": "north_america"
+        },
+        {
+          "turn": 3,
+          "seat": 1,
+          "kind": "continent",
+          "target": "asia"
+        },
+        {
+          "turn": 4,
+          "seat": 2,
+          "kind": "continent",
+          "target": "asia"
+        },
+        {
+          "turn": 5,
+          "seat": 1,
+          "kind": "continent",
+          "target": "asia"
+        },
+        {
+          "turn": 6,
+          "seat": 2,
+          "kind": "continent",
+          "target": "europe"
+        },
+        {
+          "turn": 7,
+          "seat": 1,
+          "kind": "continent",
+          "target": "asia"
+        },
+        {
+          "turn": 8,
+          "seat": 2,
+          "kind": "continent",
+          "target": "europe"
+        },
+        {
+          "turn": 9,
+          "seat": 1,
+          "kind": "continent",
+          "target": "asia"
+        },
+        {
+          "turn": 10,
+          "seat": 2,
+          "kind": "continent",
+          "target": "europe"
+        },
+        {
+          "turn": 11,
+          "seat": 1,
+          "kind": "continent",
+          "target": "asia"
+        },
+        {
+          "turn": 12,
+          "seat": 2,
+          "kind": "eliminate",
+          "target": 1
+        },
+        {
+          "turn": 13,
+          "seat": 1,
+          "kind": "continent",
+          "target": "asia"
+        },
+        {
+          "turn": 14,
+          "seat": 2,
+          "kind": "eliminate",
+          "target": 1
+        },
+        {
+          "turn": 15,
+          "seat": 1,
+          "kind": "continent",
+          "target": "asia"
+        },
+        {
+          "turn": 16,
+          "seat": 2,
+          "kind": "eliminate",
+          "target": 1
+        },
+        {
+          "turn": 17,
+          "seat": 1,
+          "kind": "continent",
+          "target": "asia"
+        },
+        {
+          "turn": 18,
+          "seat": 2,
+          "kind": "eliminate",
+          "target": 1
+        },
+        {
+          "turn": 19,
+          "seat": 1,
+          "kind": "eliminate",
+          "target": 2
+        },
+        {
+          "turn": 20,
+          "seat": 2,
+          "kind": "eliminate",
+          "target": 1
+        },
+        {
+          "turn": 21,
+          "seat": 1,
+          "kind": "eliminate",
+          "target": 2
+        },
+        {
+          "turn": 22,
+          "seat": 2,
+          "kind": "eliminate",
+          "target": 1
+        },
+        {
+          "turn": 23,
+          "seat": 1,
+          "kind": "defend",
+          "target": 1
+        },
+        {
+          "turn": 24,
+          "seat": 2,
+          "kind": "eliminate",
+          "target": 1
+        }
+      ],
+      "explicitOccupation": {
+        "count": 1,
+        "meanFractionOfAvailableTroopsAdvanced": 1.0,
+        "maximumAdvances": 1
+      }
+    },
+    {
+      "gameNumber": 5,
+      "gameId": "d7b13e24e9eaee42f277d4dba2b16a9f59e8c98d7768b1e0e6f049bc3fff47941a12d173fe553f72c44f04597b510cba178e5eb22a2c296d784a464e9ecadb42",
+      "complete": true,
+      "winnerPublicKeys": [
+        "2AkFiSWihwLZCxNu9tjsfggy9PHAAxTJc5ueTm81Yxf7Y"
+      ],
+      "turn": 47,
+      "decisions": 757,
+      "actions": {
+        "plan": 47,
+        "place": 50,
+        "select_group": 267,
+        "attack": 184,
+        "occupy": 104,
+        "end_attack": 46,
+        "fortify": 43,
+        "end_turn": 3,
+        "trade": 13
+      },
+      "blitzesBelow40Percent": 5,
+      "steamrollAttacks": 63,
+      "planChoices": [
+        {
+          "turn": 1,
+          "seat": 1,
+          "kind": "continent",
+          "target": "asia"
+        },
+        {
+          "turn": 2,
+          "seat": 2,
+          "kind": "continent",
+          "target": "asia"
+        },
+        {
+          "turn": 3,
+          "seat": 1,
+          "kind": "continent",
+          "target": "asia"
+        },
+        {
+          "turn": 4,
+          "seat": 2,
+          "kind": "continent",
+          "target": "europe"
+        },
+        {
+          "turn": 5,
+          "seat": 1,
+          "kind": "continent",
+          "target": "asia"
+        },
+        {
+          "turn": 6,
+          "seat": 2,
+          "kind": "continent",
+          "target": "europe"
+        },
+        {
+          "turn": 7,
+          "seat": 1,
+          "kind": "continent",
+          "target": "asia"
+        },
+        {
+          "turn": 8,
+          "seat": 2,
+          "kind": "continent",
+          "target": "europe"
+        },
+        {
+          "turn": 9,
+          "seat": 1,
+          "kind": "continent",
+          "target": "asia"
+        },
+        {
+          "turn": 10,
+          "seat": 2,
+          "kind": "continent",
+          "target": "europe"
+        },
+        {
+          "turn": 11,
+          "seat": 1,
+          "kind": "continent",
+          "target": "asia"
+        },
+        {
+          "turn": 12,
+          "seat": 2,
+          "kind": "continent",
+          "target": "europe"
+        },
+        {
+          "turn": 13,
+          "seat": 1,
+          "kind": "continent",
+          "target": "asia"
+        },
+        {
+          "turn": 14,
+          "seat": 2,
+          "kind": "continent",
+          "target": "europe"
+        },
+        {
+          "turn": 15,
+          "seat": 1,
+          "kind": "continent",
+          "target": "asia"
+        },
+        {
+          "turn": 16,
+          "seat": 2,
+          "kind": "continent",
+          "target": "europe"
+        },
+        {
+          "turn": 17,
+          "seat": 1,
+          "kind": "continent",
+          "target": "asia"
+        },
+        {
+          "turn": 18,
+          "seat": 2,
+          "kind": "continent",
+          "target": "europe"
+        },
+        {
+          "turn": 19,
+          "seat": 1,
+          "kind": "continent",
+          "target": "asia"
+        },
+        {
+          "turn": 20,
+          "seat": 2,
+          "kind": "continent",
+          "target": "europe"
+        },
+        {
+          "turn": 21,
+          "seat": 1,
+          "kind": "continent",
+          "target": "asia"
+        },
+        {
+          "turn": 22,
+          "seat": 2,
+          "kind": "continent",
+          "target": "europe"
+        },
+        {
+          "turn": 23,
+          "seat": 1,
+          "kind": "continent",
+          "target": "asia"
+        },
+        {
+          "turn": 24,
+          "seat": 2,
+          "kind": "continent",
+          "target": "north_america"
+        },
+        {
+          "turn": 25,
+          "seat": 1,
+          "kind": "continent",
+          "target": "asia"
+        },
+        {
+          "turn": 26,
+          "seat": 2,
+          "kind": "continent",
+          "target": "north_america"
+        },
+        {
+          "turn": 27,
+          "seat": 1,
+          "kind": "eliminate",
+          "target": 2
+        },
+        {
+          "turn": 28,
+          "seat": 2,
+          "kind": "continent",
+          "target": "north_america"
+        },
+        {
+          "turn": 29,
+          "seat": 1,
+          "kind": "eliminate",
+          "target": 2
+        },
+        {
+          "turn": 30,
+          "seat": 2,
+          "kind": "continent",
+          "target": "north_america"
+        },
+        {
+          "turn": 31,
+          "seat": 1,
+          "kind": "eliminate",
+          "target": 2
+        },
+        {
+          "turn": 32,
+          "seat": 2,
+          "kind": "continent",
+          "target": "north_america"
+        },
+        {
+          "turn": 33,
+          "seat": 1,
+          "kind": "eliminate",
+          "target": 2
+        },
+        {
+          "turn": 34,
+          "seat": 2,
+          "kind": "deny",
+          "target": "asia"
+        },
+        {
+          "turn": 35,
+          "seat": 1,
+          "kind": "eliminate",
+          "target": 2
+        },
+        {
+          "turn": 36,
+          "seat": 2,
+          "kind": "continent",
+          "target": "north_america"
+        },
+        {
+          "turn": 37,
+          "seat": 1,
+          "kind": "eliminate",
+          "target": 2
+        },
+        {
+          "turn": 38,
+          "seat": 2,
+          "kind": "continent",
+          "target": "north_america"
+        },
+        {
+          "turn": 39,
+          "seat": 1,
+          "kind": "eliminate",
+          "target": 2
+        },
+        {
+          "turn": 40,
+          "seat": 2,
+          "kind": "continent",
+          "target": "north_america"
+        },
+        {
+          "turn": 41,
+          "seat": 1,
+          "kind": "eliminate",
+          "target": 2
+        },
+        {
+          "turn": 42,
+          "seat": 2,
+          "kind": "continent",
+          "target": "europe"
+        },
+        {
+          "turn": 43,
+          "seat": 1,
+          "kind": "eliminate",
+          "target": 2
+        },
+        {
+          "turn": 44,
+          "seat": 2,
+          "kind": "continent",
+          "target": "europe"
+        },
+        {
+          "turn": 45,
+          "seat": 1,
+          "kind": "eliminate",
+          "target": 2
+        },
+        {
+          "turn": 46,
+          "seat": 2,
+          "kind": "continent",
+          "target": "africa"
+        },
+        {
+          "turn": 47,
+          "seat": 1,
+          "kind": "eliminate",
+          "target": 2
+        }
+      ],
+      "explicitOccupation": {
+        "count": 104,
+        "meanFractionOfAvailableTroopsAdvanced": 0.7755547663990897,
+        "maximumAdvances": 45
+      }
+    },
+    {
+      "gameNumber": 6,
+      "gameId": "41e9eef654bbac72841c7fb2e301cd5f0b602e09a2e14792f7251ecec4c45d3f0b6b38cea42685f283febd11ca67e5d4e4c4d607949240fe3541de0dc6d75e00",
+      "complete": true,
+      "winnerPublicKeys": [
+        "2AkFiSWihwLZCxNu9tjsfggy9PHAAxTJc5ueTm81Yxf7Y"
+      ],
+      "turn": 32,
+      "decisions": 533,
+      "actions": {
+        "plan": 32,
+        "place": 32,
+        "select_group": 181,
+        "attack": 132,
+        "occupy": 86,
+        "end_attack": 31,
+        "fortify": 30,
+        "trade": 8,
+        "end_turn": 1
+      },
+      "blitzesBelow40Percent": 5,
+      "steamrollAttacks": 30,
+      "planChoices": [
+        {
+          "turn": 1,
+          "seat": 2,
+          "kind": "continent",
+          "target": "europe"
+        },
+        {
+          "turn": 2,
+          "seat": 1,
+          "kind": "continent",
+          "target": "asia"
+        },
+        {
+          "turn": 3,
+          "seat": 2,
+          "kind": "continent",
+          "target": "north_america"
+        },
+        {
+          "turn": 4,
+          "seat": 1,
+          "kind": "continent",
+          "target": "asia"
+        },
+        {
+          "turn": 5,
+          "seat": 2,
+          "kind": "continent",
+          "target": "north_america"
+        },
+        {
+          "turn": 6,
+          "seat": 1,
+          "kind": "continent",
+          "target": "asia"
+        },
+        {
+          "turn": 7,
+          "seat": 2,
+          "kind": "continent",
+          "target": "north_america"
+        },
+        {
+          "turn": 8,
+          "seat": 1,
+          "kind": "continent",
+          "target": "asia"
+        },
+        {
+          "turn": 9,
+          "seat": 2,
+          "kind": "continent",
+          "target": "north_america"
+        },
+        {
+          "turn": 10,
+          "seat": 1,
+          "kind": "continent",
+          "target": "asia"
+        },
+        {
+          "turn": 11,
+          "seat": 2,
+          "kind": "continent",
+          "target": "africa"
+        },
+        {
+          "turn": 12,
+          "seat": 1,
+          "kind": "continent",
+          "target": "europe"
+        },
+        {
+          "turn": 13,
+          "seat": 2,
+          "kind": "continent",
+          "target": "asia"
+        },
+        {
+          "turn": 14,
+          "seat": 1,
+          "kind": "continent",
+          "target": "europe"
+        },
+        {
+          "turn": 15,
+          "seat": 2,
+          "kind": "continent",
+          "target": "asia"
+        },
+        {
+          "turn": 16,
+          "seat": 1,
+          "kind": "continent",
+          "target": "europe"
+        },
+        {
+          "turn": 17,
+          "seat": 2,
+          "kind": "continent",
+          "target": "asia"
+        },
+        {
+          "turn": 18,
+          "seat": 1,
+          "kind": "continent",
+          "target": "europe"
+        },
+        {
+          "turn": 19,
+          "seat": 2,
+          "kind": "continent",
+          "target": "asia"
+        },
+        {
+          "turn": 20,
+          "seat": 1,
+          "kind": "continent",
+          "target": "asia"
+        },
+        {
+          "turn": 21,
+          "seat": 2,
+          "kind": "continent",
+          "target": "asia"
+        },
+        {
+          "turn": 22,
+          "seat": 1,
+          "kind": "continent",
+          "target": "asia"
+        },
+        {
+          "turn": 23,
+          "seat": 2,
+          "kind": "continent",
+          "target": "asia"
+        },
+        {
+          "turn": 24,
+          "seat": 1,
+          "kind": "continent",
+          "target": "asia"
+        },
+        {
+          "turn": 25,
+          "seat": 2,
+          "kind": "continent",
+          "target": "europe"
+        },
+        {
+          "turn": 26,
+          "seat": 1,
+          "kind": "continent",
+          "target": "asia"
+        },
+        {
+          "turn": 27,
+          "seat": 2,
+          "kind": "continent",
+          "target": "africa"
+        },
+        {
+          "turn": 28,
+          "seat": 1,
+          "kind": "eliminate",
+          "target": 2
+        },
+        {
+          "turn": 29,
+          "seat": 2,
+          "kind": "continent",
+          "target": "asia"
+        },
+        {
+          "turn": 30,
+          "seat": 1,
+          "kind": "eliminate",
+          "target": 2
+        },
+        {
+          "turn": 31,
+          "seat": 2,
+          "kind": "continent",
+          "target": "asia"
+        },
+        {
+          "turn": 32,
+          "seat": 1,
+          "kind": "eliminate",
+          "target": 2
+        }
+      ],
+      "explicitOccupation": {
+        "count": 86,
+        "meanFractionOfAvailableTroopsAdvanced": 0.8713523870730113,
+        "maximumAdvances": 56
+      }
+    }
+  ]
+}

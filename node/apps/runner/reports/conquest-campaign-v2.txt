@@ -1,0 +1,111 @@
+Conquest executable campaigns — implementation and evaluation
+
+Implemented
+1. Frozen comparison player: tests/apps/runner/fixtures/conquest-v1/ contains the
+   adapter and strategic context from the previous six-game run. Import paths
+   are adjusted; a manifest records original and fixture SHA-256 digests. Both
+   arms deliberately share the same game engine and provider protocol.
+2. Concrete campaigns: each objective includes a staging territory, a connected
+   hostile route of at most six captures, origin reserve, available strength,
+   estimated required strength, placement suggestion and funding deficit. Prefer
+   an affordable prefix; otherwise estimate the route to the first target.
+   Friendly territories cannot be marched through as attacks. Candidate action
+   effects relate deployment, attacks and movement to the selected campaign.
+3. Reassessment: before optional actions, review completed objectives/routes,
+   lost staging/route, exhausted loss budgets, newly exposed continent income,
+   income loss and next-attack odds below 55% (or unavailable within the bounded
+   calculator). Mandatory trades/occupation take
+   precedence. Reviews acknowledge the current revision, persist across restart,
+   and cannot repeatedly interrupt an unchanged board. Legacy plans are upgraded.
+4. Tactical risk policy: attacks with full-battle capture probability below 50%
+   require victory, elimination, continent completion, income denial, a first
+   capture card with no available 65% alternative, or desperate survival (at most
+   three territories and outnumbered two to one). This applies to single-round
+   attacks too, using full-battle odds. Unknown odds remain unknown. This changes
+   runner policy, not game rules, and end-attack remains available.
+
+Paired evaluation
+12 completed local rules-engine games with real Jev requests; no network games
+are counted in these 12. Seeds 1401 and 1402 were each played with the candidate
+in both seats. Three incremental variants were compared to the frozen player:
+route only; route plus reassessment; then all features including risk policy.
+Both players used the same configured Jev connection. Every report records
+source hashes, initial-position hashes, completion, winner and metric definitions.
+Initial positions matched, and candidate source hashes stayed unchanged across
+all three experiments. Seeds reproduce starting positions, not deterministic
+model replies. Subsequent RNG use diverges when chosen moves differ.
+
+Variant       Candidate wins    Opponent wins
+Route only           2                2
++ Reassessment       2                2
++ Risk policy        2                2
+
+The winning in-game seat for each seed was the same across all variants. These
+small exploratory samples do not demonstrate a win-rate improvement.
+
+Full-policy diagnostics (candidate / frozen opponent, across four games):
+- Low-odds attacks without a policy payoff: 0 / 20.
+- Failed blitzes: 11 / 30; armies lost in those blitzes: 40 / 83.
+- Mean interior spare armies: 5.81 / 3.66 (unweighted per-game means).
+- Mean closeout turns in won games after the defined advantage: 6 / 9.
+- Provider decisions, including plans and menu navigation: 786 / 788.
+
+Interpretation: the risk rule operationally prevents its defined class of poor
+bets and the candidate incurred fewer failed-blitz casualties in this sample.
+That does not prove every blocked attack was strategically wrong. More troops
+remained in the interior, and there was no net win advantage. Absolute idle-army
+counts also depend on territory control and game length. The closeout measure
+uses a material/income threshold, not a proof that a position was winning.
+Route-only and reassessment-only did not independently improve win rate;
+reassessment-only consumed 1,066 candidate decisions versus 828 for its opponent.
+
+Live verification
+Two independent unstaked, untimed 2-player matches on wss://saito.io/wsopen use
+one full-policy candidate and one frozen player each. The candidate uses bot-1
+in the first and bot-2 in the second. Live starting positions are not matched.
+Completion and winner must be confirmed by both clients. The first match was
+cleanly interrupted on turn 6, saved its campaign/review anchor, and resumed the
+same game with the same wallets. It continued executing signed network moves.
+Both live games completed: the candidate won on turns 21 and 28, with matching
+confirmation from both clients. The game assigned the candidate to in-game
+player 2 in both matches despite the different bot roles. These are not matched
+or counterbalanced strength trials. Exact game IDs, winners and review-trigger
+counts are recorded in conquest-campaign-v2-summary.json.
+
+Validation
+The full runner test command passed 173 tests. Two unrelated suites (Paths and
+Twilight) could not load because node_modules/canvas/build/Release/canvas.node
+is missing. This environment dependency was not modified. Campaign tests cover
+frozen-source integrity, route legality and budgets, no game-state mutation,
+restart/mandatory-action precedence, event triggers, risk exceptions, stale
+choices, matched starting positions and no winner attribution for capped games.
+Existing Conquest tests cover request limits, navigation, hidden-information
+filtering and legal actions. Live games exercise the native network path.
+
+Files and reproduction
+Implementation: apps/runner/lib/games/conquest-campaign.js, conquest.js and
+conquest-strategy.js. Documentation: apps/runner/README.md and mods/conquest/README.md.
+Benchmark: tests/apps/runner/conquest-campaign-benchmark.cjs; the existing
+conquest-benchmark.cjs now supports the frozen opponent and added metrics.
+Tests: tests/apps/runner/conquest-campaign.test.cjs and existing Conquest specs.
+
+Example (repeat with separate outputs for route, replan and full):
+node tests/apps/runner/conquest-campaign-benchmark.cjs --config apps/runner/config/conquest-jev-saito.json --variant full --pairs 2 --seed 1401 --max-decisions 2000 --output /tmp/conquest-v2.json
+Use --heuristic instead of --config only to validate harness mechanics; heuristic
+results are not evidence about Jev strength. The cap includes planning/menu calls.
+
+Detailed paired reports: conquest-v2-route.json, conquest-v2-replan.json,
+conquest-v2-full.json. Consolidated results: conquest-campaign-v2-summary.json.
+Public decision traces/logs: node/tmp/conquest-campaign-v2/. Isolated wallet state
+is under node/runner-data/conquest-campaign-v2/ and conquest-campaign-v2-second/;
+those private directories are not report artifacts. Changes are uncommitted and
+preserve the checkout's other local work. No browser bundle or server deployment
+was needed; native runner clients used this checkout while playing on saito.io.
+
+Limits
+Routes are bounded greedy estimates, not a global campaign optimizer; reserves
+consider current adjacent stacks, not future reinforcements or coordinated enemy
+attacks. The model can depart from a campaign and may still choose an unsuitable
+objective. Risk exceptions can still permit losing attacks. Overall strength
+remains unproven; the measured improvement is tactical selectivity, with idle
+army concentration and planning overhead still needing attention.
