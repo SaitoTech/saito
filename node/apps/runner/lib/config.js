@@ -41,7 +41,7 @@ function loadConfig(filename) {
   Object.assign(config, require('./agents').resolveAgents(input, absolute, config.game, config.daemon.games));
   if (config.game === 'Twilight') {
     if (config.options.deck === undefined) config.options.deck = 'original';
-    require('./games/twilight-options').validate(config.options);
+    require('./games/twilight/options').validate(config.options);
   }
   if (config.game === 'PathsOfGlory') {
     config.options.deck ||= 'original';

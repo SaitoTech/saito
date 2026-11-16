@@ -1,4 +1,4 @@
-const Network = require('./settlers-network');
+const Network = require('./network');
 const names = ['road', 'settlement', 'city', 'development card'];
 const round = n => Math.round(n * 10000) / 10000;
 const count = (resources, hand) => Object.fromEntries(resources.map(r => [r, hand.filter(x => x === r).length]));
@@ -10,7 +10,7 @@ const rules = {
   road: 'Roads connect your network; enemy towns block continuation. A road alone scores no points except when it gains Longest Road. Expansion routes show up to three new roads to a legal settlement site. Compare paths and future production before buying a road; do not build disconnected dead ends merely because resources are available.',
   robber: 'A seven normally discards floor(half) for hands over seven; Robin Hood can exempt a player. The robber blocks a tile except for the protected player. Theft uses a random resource; opponent identities are unknown.',
   cards: '0: reveal 1 VP; 1: knight moves robber and advances Largest Army; 2: Year of Plenty gains two chosen resources; 3: Monopoly collects the named resource from opponents; 4: build two free roads. Only offered cards are playable under the engine’s timing rules.',
-  planning: 'Choose a concrete destination and compare complete trade/build sequences with waiting. Objectives persist across turns until completed, blocked or explicitly changed. Expansion reserves include the remaining roads and settlement. Near the target score, prioritize finishing and denying an opponent scoring opportunities. A selected sequence executes only while every next move remains legal; unknown draws and theft require a fresh decision.'
+  planning: 'Choose a concrete destination and compare complete trade/build sequences with waiting. Objectives persist across turns until completed, blocked or explicitly changed. Expansion reserves include the remaining roads and settlement. Staged roads retain the destination across turns. City upgrades return a settlement piece; when all five towns are used, a city unlocks further expansion. Resource marginal values measure funding bottlenecks. Dice samples and development-card odds are uncertain estimates, not guaranteed outcomes. Near the target score, prioritize finishing and denying an opponent scoring opportunities. A selected sequence executes only while every next move remains legal; unknown draws and theft require a fresh decision.'
 };
 function probability(m, value) {
   if (!Number.isInteger(value) || value < 2 || value > 12 || value === 7) return 0;

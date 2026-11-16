@@ -1,5 +1,5 @@
-const Engine = require('../../../../mods/conquest/lib/engine');
-const Map = require('../../../../mods/conquest/lib/map');
+const Engine = require('../../../../../mods/conquest/lib/engine');
+const Map = require('../../../../../mods/conquest/lib/map');
 
 const rules = {
   victory: 'Eliminate every other player. In two-player games neutral territories need not be conquered. Owner 0 is neutral and never takes a turn; null means unclaimed.',

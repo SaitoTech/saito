@@ -90,7 +90,7 @@ async function createRuntime(config, { offline = false, send, monitor = false, c
           message.options?.async_dealing || Number(message.options?.turn_limit || 0) !== 0) {
         throw Error('Unsupported game invitation options');
       }
-      if (config.game === 'Twilight') require('./games/twilight-options').validate(message.options);
+      if (config.game === 'Twilight') require('./games/twilight/options').validate(message.options);
       if (config.game === 'PathsOfGlory' && ((message.options?.deck && message.options.deck !== 'original') ||
           (message.options?.scenario && message.options.scenario !== 'original'))) {
         throw Error('Paths of Glory runner supports the original campaign only');

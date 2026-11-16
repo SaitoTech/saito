@@ -1,9 +1,9 @@
-const Engine = require('../../../../mods/conquest/lib/engine');
-const Map = require('../../../../mods/conquest/lib/map');
-const { decision, selected, hasPending } = require('../decision');
-const Strategy = require('./conquest-strategy');
-const Campaign = require('./conquest-campaign');
-const { MAX_CHOICES, requestFor } = require('../providers/decision-format');
+const Engine = require('../../../../../mods/conquest/lib/engine');
+const Map = require('../../../../../mods/conquest/lib/map');
+const { decision, selected, hasPending } = require('../../decision');
+const Strategy = require('./strategy');
+const Campaign = require('./campaign');
+const { MAX_CHOICES, requestFor } = require('../../providers/decision-format');
 // Leave ample token headroom for Jev: detailed consequences can exceed its
 // context window well before reaching 255 actions. Split, never truncate.
 const MAX_REQUEST_BYTES = 48000;

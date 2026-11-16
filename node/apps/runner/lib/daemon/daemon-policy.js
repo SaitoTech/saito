@@ -16,7 +16,7 @@ function compatible(record, games, publicKey, now = Date.now(), players = 2) {
   if (o.desired_opponent_publickey && o.desired_opponent_publickey !== publicKey) return false;
   if (m.request === 'private' && o.desired_opponent_publickey !== publicKey && !tx.isTo?.(publicKey)) return false;
   if ((o.stake && Number(o.stake) !== 0) || o.async_dealing || o['open-table'] || Number(o.turn_limit || 0) !== 0) return false;
-  if (m.game === 'Twilight' && !require('../games/twilight-options').supported(o)) return false;
+  if (m.game === 'Twilight' && !require('../games/twilight/options').supported(o)) return false;
   if (m.game === 'PathsOfGlory' && ((o.deck && o.deck !== 'original') || (o.scenario && o.scenario !== 'original'))) return false;
   if (m.game === 'Settlers') {
     const length = Number(o.game_length ?? 10);

@@ -1,8 +1,8 @@
 const { randomInt } = require('node:crypto');
-const { decision, selected, hasPending } = require('../decision');
-const Strategy = require('./settlers-strategy');
-const Planner = require('./settlers-planner');
-const { requestFor } = require('../providers/decision-format');
+const { decision, selected, hasPending } = require('../../decision');
+const Strategy = require('./strategy');
+const Planner = require('./planner');
+const { requestFor } = require('../../providers/decision-format');
 
 class SettlersRunner {
   constructor(mod) {
@@ -165,6 +165,8 @@ class SettlersRunner {
       if (!legacy && (!plan?.goal || !observation.objectiveStatus.valid || plan.completed)) {
         const plans = Planner.planChoices(m, descriptions);
         if (plans.length) choices.splice(0, choices.length, ...plans);
+      } else if (!legacy && g.runnerSettlersManual) {
+        choices.splice(0, choices.length, ...Planner.protect(m, choices, observation.resources, strategic));
       } else if (!legacy && !g.runnerSettlersManual) {
         choices.splice(0, choices.length, ...Planner.actionChoices(m, choices, descriptions, observation.resources, strategic));
       }

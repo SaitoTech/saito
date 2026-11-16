@@ -1,7 +1,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const { JSDOM } = require('jsdom');
-const { decision, selected, hasPending } = require('../decision');
+const { decision, selected, hasPending } = require('../../decision');
 
 const PUBLIC_EVENTS = [
   'formosan',
@@ -62,7 +62,7 @@ class TwilightRunner {
     this.cards = [];
     this.revision = 0;
     this.rejected = new Set();
-    const html = require('../../../../mods/twilight/lib/core/game-html.template').default;
+    const html = require('../../../../../mods/twilight/lib/core/game-html.template').default;
     this.dom = new JSDOM(
       '<div id="runner-cards"></div>' + html(mod.app, mod) +
         '<div id="runner-menu"></div><div class="saito-overlay"></div>',
@@ -71,7 +71,7 @@ class TwilightRunner {
     const window = this.dom.window;
     window.eval(
       fs.readFileSync(
-        path.resolve(__dirname, '../../../../web/saito/lib/jquery/jquery-3.2.1.min.js'),
+        path.resolve(__dirname, '../../../../../web/saito/lib/jquery/jquery-3.2.1.min.js'),
         'utf8'
       )
     );

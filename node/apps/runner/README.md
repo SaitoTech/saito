@@ -404,9 +404,14 @@ apps/runner/
   lib/                  Runtime, storage, play loop, chat and recovery
     daemon/             Invitation policy, supervisor and worker
     multi/              Multi-seat coordinator, processes and workers
-    games/              Game-specific adapters
+    games/              Game-specific adapters and helpers
+      conquest/         index.js, strategy.js, campaign.js
+      settlers/         index.js, strategy.js, planner.js, economy.js, network.js
+      twilight/         index.js, options.js
+      pathsofglory/     index.js
     providers/          Decision engines and executable checks
   scripts/              Configuration setup and VM installation
+  reports/              Local benchmark and match reports (ignored)
   README.md
 ```
 
@@ -415,13 +420,16 @@ use `node apps/runner/scripts/configure.js` from `node/`. The templates in
 `apps/runner/config-src/` are inputs to that script; machine-specific configurations
 remain in `node/apps/runner/config/`, and wallets remain in their configured data directories.
 Runner tests and native match harnesses live in `tests/apps/runner/`.
+Each game directory exports its adapter through `index.js`; related helpers stay
+beside it. Reports are local artifacts excluded from Git, so report paths mentioned
+below are available only in checkouts where those reports have been generated or retained.
 
 ## How it works
 
 - `index.ts` is the CLI. `lib/runtime.js` boots native SPV networking, Relay, Arcade and
   the chosen module. Normal Arcade open/join/accept transactions establish a game.
-- `lib/games/conquest.js`, `lib/games/settlers.js` and `lib/games/twilight.js` contain the
-  runner's adapters, exposing observations and enumerated legal action candidates.
+- Each `lib/games/<game>/index.js` exports a runner adapter, exposing observations
+  and enumerated legal action candidates.
   They call the real game modules under `mods/` and their move methods
   and queue, including encrypted decks and Conquest's battle commitment protocol.
 - `lib/loop.js` gives an observation to a provider, checks its revision again and
@@ -700,18 +708,63 @@ hidden hand identities and card outcomes remain unknown. `runnerSettlersSequence
 is saved with the normal move journal. Every continuation must still appear in
 the current legal menu and remain in the selected turn; an unavailable move or
 blocked destination returns control to the model. Unknown draws and theft are
-not forecast. Individual legal trades/builds remain accessible through a separate
-menu. Planning/menu selections do not send moves but count toward `maxDecisions`.
+not forecast. Individual trades/builds use a separate menu with reserve protection. Moves that
+consume reserved ingredients and delay the objective are withheld unless they
+score, fund a scoring build, or remove immediate discard exposure. Fully funded
+development-card sequences also respect an active scoring reserve; abandoning
+it requires an explicit plan change. Other sequences expose their impact on the
+active objective. A staged road reports zero immediate points, even when its
+future settlement would win. Planning/menu selections do not send moves but count toward `maxDecisions`.
 Large menus split by action/card or numbered groups, with backtracking and a
 48,000-byte request ceiling. Stale and unknown choices are still rejected.
+
+The five-game saito.io report (`reports/settlers-economy-saito-2026-11-15.json`)
+records three two-player and two three-player native online matches: all finished
+at ten points with board, score, winner and RNG agreement. The 2,017 decisions
+included 24 city purchases and 39 staged-road selections; requests stayed below
+48 KB. Three games resumed after a composite reserve-protection fix; two started
+with it. All seats used the new Jev player, so this is an operational self-play
+check, not evidence of a win-rate gain against the previous version.
+
+A subsequent three-game comparison against the existing saito.io bot (`reports/settlers-existing-bot-2026-11-15.json`)
+finished 1–2 for the unchanged candidate: 8–10, 10–7 and 8–10. The remote bot
+was identified by its signed chat offer and remained the same opponent throughout.
+In the deciding game, the candidate lost Largest Army after leading 9–7 and
+never finished its planned settlement. All three candidate seats were seat 1;
+the small, unpaired sample does not establish an improvement in playing strength.
+
+Optional `scripts/settlers-trace.cjs` can be preloaded with Node's `--require`.
+Set `SETTLERS_TRACE_DIR` to an existing directory to save filtered observations,
+selected actions/consequences and request sizes per seat process. Traces include
+that seat's own hand; the public report contains only aggregate results.
 
 The shared runner loop executes single-choice decisions without calling the
 provider, including legal continuations of a previously chosen sequence. It
 reports `forced` instead of `thinking`; normal legality, cancellation, persistence
 and decision limits still apply.
 
-The existing complete building, bank-trading and resource-card menus remain
-available. Player-to-player trading is still unsupported. No other LLM is
+City objectives value the returned settlement piece, especially with no towns
+remaining. Production gains are weighted by resource marginal value: the projected
+rolls saved toward scoring purchases, including port exchange opportunities.
+A partially funded expansion can buy its next connected road with resources
+already held, retaining the destination and recalculating the remaining cost.
+Its description includes opponent site competition and the trading-closure risk.
+
+For the ten highest-ranked goals and the active goal, `lib/games/settlers/economy.js` samples
+48 independent dice paths over 24 rolls using its own fixed seed. It reports
+funding by next turn, funding within the horizon, conditional median rolls, and
+discard exposure. Correlated production on a dice number and early-seven rerolls
+are preserved. This bounded estimate assumes a fixed board/robber/ports, no theft
+or other spending, and reserve-first discards; it never accesses engine RNG.
+
+Development-card estimates use the public starting composition, revealed VP cards
+and knights, own known cards, remaining deck size, and opponent hand counts.
+Unknown utility-card plays are allocated proportionally between utility subtypes;
+actual opponent-held identities remain unknown. VP odds include bounds, and
+knights/roads have diminishing value when the corresponding award is secure.
+These estimates do not claim a guaranteed point or an immediate playable draw.
+
+Resource-card menus remain complete. Player-to-player trading is still unsupported. No other LLM is
 consulted: the runner computes the facts and the configured provider chooses.
 
 ```sh
@@ -760,7 +813,7 @@ are exploratory. Reports include board/source hashes and per-decision versions.
 The recorded-trade replay distinguishes a funded sequence or waiting from merely
 changing which resource a still-unfunded trade acquires.
 
-The [recorded planner comparison](reports/settlers-planner-comparison.json)
+The recorded planner comparison (`reports/settlers-planner-comparison.json`)
 contains four completed games on two boards with seats swapped: the planner won
 three and lost one. It chose a funded sequence or waiting in five of six recorded
 trade replays, versus zero of six for the frozen player. These small samples are

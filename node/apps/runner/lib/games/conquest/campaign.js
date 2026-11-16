@@ -1,7 +1,7 @@
 // Public-board campaign estimates and tactical policy. Never reads hands or RNG.
-const Engine = require('../../../../mods/conquest/lib/engine');
-const Map = require('../../../../mods/conquest/lib/map');
-const Strategy = require('./conquest-strategy');
+const Engine = require('../../../../../mods/conquest/lib/engine');
+const Map = require('../../../../../mods/conquest/lib/map');
+const Strategy = require('./strategy');
 const cost = s => id => Math.ceil(s.territories[id].armies * 1.25) + 1;
 const losses = (s, seat) => s.statistics?.totals?.[seat]?.lost || 0;
 function targets(s, seat, objective) {
