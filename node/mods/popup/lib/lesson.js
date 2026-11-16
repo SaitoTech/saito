@@ -44,34 +44,33 @@ class PopupLesson {
 
     this.mod.loadLessonSentences(this.mod.lesson, () => {
       if (this.mod.lesson.sentences && this.mod.lesson.sentences.length > 0) {
-        let html = '<div class="lesson-section header">transcript</div>';
-        html += '<table style="width:100%;max-width:1400px;">';
+        let html = '<h2 class="lesson-section header">Transcript</h2><div class="popup-transcript">';
         for (let i = 0; i < this.mod.lesson.sentences.length; i++) {
           html += SentenceTemplate(this.mod.lesson, this.mod.lesson.sentences[i], this.mod);
         }
-        html += '</table>';
+        html += '</div>';
         this.app.browser.addElementToSelector(html, '.lesson-section.transcript');
       }
     });
 
     this.mod.loadLessonWords(this.mod.lesson, () => {
       if (this.mod.lesson.words && this.mod.lesson.words.length > 0) {
-        let html = '<div class="lesson-section header">vocabulary</div>';
-        html += '<table style="width:100%;max-width:1400px;">';
+        let html = '<h2 class="lesson-section header">Vocabulary</h2><ul class="popup-vocab-list">';
         for (let i = 0; i < this.mod.lesson.words.length; i++) {
           html += WordTemplate(this.mod.lesson, this.mod.lesson.words[i], this.mod);
         }
-        html += '</table>';
+        html += '</ul>';
         this.app.browser.addElementToSelector(html, '.lesson-section.vocabulary');
       }
     });
 
     this.mod.loadLessonQuestions(this.mod.lesson, () => {
       if (this.mod.lesson.questions && this.mod.lesson.questions.length > 0) {
-        let html = '<div class="lesson-section header">comprehension</div>';
+        let html = '<h2 class="lesson-section header">Comprehension</h2><div class="popup-questions">';
         for (let i = 0; i < this.mod.lesson.questions.length; i++) {
           html += QuestionTemplate(this.mod.lesson, this.mod.lesson.questions[i]);
         }
+        html += '</div>';
         this.app.browser.addElementToSelector(html, '.lesson-section.questions');
         this.attachQuestionEvents();
       }
@@ -107,6 +106,7 @@ class PopupLesson {
         }
         const explanation = card.querySelector('.lesson_question_explanation');
         if (explanation) {
+          explanation.hidden = false;
           explanation.style.display = 'block';
         }
         event.preventDefault();
@@ -114,7 +114,40 @@ class PopupLesson {
     });
   }
 
-  attachEvents() {}
+  attachEvents() {
+    const root = document.querySelector('.lesson-container');
+    if (!root || root.dataset.bound) {
+      return;
+    }
+    root.dataset.bound = '1';
+    root.addEventListener('click', (event) => {
+      const back = event.target.closest('.popup-lesson-back');
+      if (back) {
+        if (window.history.state && window.history.state.popupCategory && window.history.length > 1) {
+          window.history.back();
+          return;
+        }
+        const category = root.dataset.returnCategory || 'all';
+        const path = category === 'all' ? '/popup/lessons' : '/popup/lessons/' + category;
+        window.history.pushState({}, document.title, path);
+        this.app.connection.emit('popup-lessons-render-request', category);
+        return;
+      }
+      const save = event.target.closest('.popup-vocab-save');
+      if (save && typeof add_to_vocab === 'function') {
+        add_to_vocab(
+          save.dataset.field1 || '',
+          save.dataset.field2 || '',
+          save.dataset.field3 || '',
+          save.dataset.field4 || '',
+          save.dataset.field5 || '',
+          '',
+          ''
+        );
+        save.textContent = 'Saved';
+      }
+    });
+  }
 }
 
 module.exports = PopupLesson;

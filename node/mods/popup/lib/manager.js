@@ -45,9 +45,10 @@ class LessonManager {
     // insert list of lessons into .saito-main
     //
     document.querySelector('.saito-main').innerHTML = '';
+    document.querySelector('.saito-sidebar.left').innerHTML = '';
     document.querySelector('.saito-sidebar.right').innerHTML = '';
     this.app.browser.addElementToSelector(LessonListTemplate(), '.saito-main');
-    this.app.browser.addElementToSelector(LessonMenuTemplate(), '.saito-sidebar.right');
+    this.app.browser.addElementToSelector(LessonMenuTemplate(), '.saito-sidebar.left');
 
     this.showLoader();
 
@@ -77,6 +78,7 @@ class LessonManager {
     // enable intersection observer
     //
     this.attachEvents();
+    this.restoreListPosition();
   }
 
   attachEvents() {
@@ -100,10 +102,11 @@ class LessonManager {
     ];
 
     levels.forEach((level) => {
-      const menu = document.querySelector('.' + level);
+      const menu = document.querySelector('.popup-lesson-nav .' + level);
       if (!menu) {
         return;
       }
+      menu.classList.toggle('is-active', this.level === level);
       menu.onclick = () => {
         window.history.pushState({}, document.title, '/popup/lessons/' + level);
         this.app.connection.emit('popup-lessons-render-request', level);
@@ -112,11 +115,21 @@ class LessonManager {
 
     document.querySelectorAll('.teaser').forEach((el) => {
       el.onclick = (e) => {
+        const scroller = document.querySelector('.saito-container');
+        window.history.replaceState(
+          {
+            ...(window.history.state || {}),
+            popupScroll: scroller ? scroller.scrollTop : 0,
+            popupCategory: this.level || 'all'
+          },
+          document.title,
+          window.location.href
+        );
         let lesson_id = e.currentTarget.id;
         let lesson = this.mod.catalog.getById(lesson_id);
         if (lesson && lesson.userslug && lesson.slug) {
           window.history.pushState(
-            {},
+            { popupCategory: this.level || 'all' },
             document.title,
             `/popup/lessons/${encodeURIComponent(lesson.userslug)}/${encodeURIComponent(lesson.slug)}`
           );
@@ -129,6 +142,21 @@ class LessonManager {
     if (ob) {
       this.intersectionObserver.observe(ob);
     }
+  }
+
+  restoreListPosition() {
+    const scroll = window.history.state && window.history.state.popupScroll;
+    if (typeof scroll !== 'number') {
+      return;
+    }
+    const apply = () => {
+      const scroller = document.querySelector('.saito-container');
+      if (scroller) {
+        scroller.scrollTop = scroll;
+      }
+    };
+    apply();
+    requestAnimationFrame(apply);
   }
 
   showLoader() {

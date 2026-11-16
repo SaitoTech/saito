@@ -3,16 +3,20 @@
 #adso_tooltip {
   cursor: pointer;
   position: absolute;
-  width: auto;
+  width: max-content;
+  min-width: 180px;
+  max-width: min(360px, calc(100vw - 24px));
   height: auto;
-  max-width: 300px;
-  border: 1px solid black;
-  padding: 8px;
-  background-color: lightyellow;
-  line-height: 200%;
+  border: 1px solid var(--popup-border, #e6dfd6);
+  border-radius: 8px;
+  padding: 0.85rem 1rem 0.7rem;
+  background-color: #fff;
+  color: var(--popup-text, #2c2c2c);
+  box-shadow: 0 10px 28px rgba(44, 44, 44, 0.14);
+  line-height: 1.4;
   visibility: hidden;
   z-index: 10000;
-  overflow: hidden;
+  overflow: visible;
 }
 #adso_status {
   display: none;
@@ -24,30 +28,34 @@
 span.adso:hover,
 .lesson_sentence_source span:hover,
 .lesson_sentence_pinyin span:hover {
-  background-color: yellow;
+  background-color: #f6e7c1;
   cursor: pointer;
 }
-.row_1 {
-  font-size: 25px;
-  margin-top: 4px;
-  margin-bottom: 5px;
-}
+.row_1,
 .row_2 {
-  font-size: 25px;
-  margin-bottom: 5px;
+  font-family: var(--popup-font-chinese, 'Songti SC', 'PingFang SC', sans-serif);
+  font-size: 24px;
+  line-height: 1.45;
+  margin-bottom: 0.2rem;
 }
 .row_3 {
-  font-size: 20px;
-  margin-bottom: 5px;
+  font-family: var(--popup-font-sans, 'Helvetica Neue', Helvetica, Arial, sans-serif);
+  font-size: 17px;
+  color: var(--popup-text-secondary, #3e3934);
+  margin-bottom: 0.15rem;
 }
 .row_4 {
-  font-size: 20px;
-  margin-bottom: 5px;
+  font-family: var(--popup-font-sans, 'Helvetica Neue', Helvetica, Arial, sans-serif);
+  font-size: 18px;
+  line-height: 1.4;
+  margin-bottom: 0.15rem;
 }
 .row_5 {
-  font-size: 14px;
-  margin-bottom: 5px;
-  line-height: 1.1em;
+  font-family: var(--popup-font-sans, 'Helvetica Neue', Helvetica, Arial, sans-serif);
+  font-size: 15px;
+  color: var(--popup-text-muted, #5e584f);
+  margin-bottom: 0.2rem;
+  line-height: 1.3;
 }
 .row_6 {
   display: none;

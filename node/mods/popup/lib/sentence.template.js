@@ -1,35 +1,28 @@
 module.exports = (lesson, sentence, popup_mod) => {
-  let s = sentence.sentence_text.replaceAll('\\', '');
-  let s2 = sentence.sentence_text.replaceAll('\\', '');
-  let p = sentence.speaker_text.replaceAll('\\', '');
-
-  let pinyin_visible = 'none';
-  let english_visible = 'none';
-
-  if (popup_mod.app.options.popup.display.pinyin == 1) {
-    pinyin_visible = 'block';
-  }
-  if (popup_mod.app.options.popup.display.english == 1) {
-    english_visible = 'block';
-  }
+  let source = sentence.sentence_text.replaceAll('\\', '');
+  let pinyin = sentence.sentence_text.replaceAll('\\', '');
+  let speaker = sentence.speaker_text.replaceAll('\\', '');
+  const display = popup_mod.app.options.popup.display;
 
   try {
-    s2 = switch_display_mode_in_string(s2, 'pinyin', 'simplified');
-    if (popup_mod.app.options.popup.display.traditional == 1) {
-      s = switch_display_mode_in_string(s, 'traditional', 'simplified');
-      p = switch_display_mode_in_string(p, 'traditional', 'simplified');
+    pinyin = switch_display_mode_in_string(pinyin, 'pinyin', 'simplified');
+    if (display.traditional == 1) {
+      source = switch_display_mode_in_string(source, 'traditional', 'simplified');
+      speaker = switch_display_mode_in_string(speaker, 'traditional', 'simplified');
     }
   } catch (err) {}
 
+  const pinyinHidden = display.pinyin == 1 ? '' : ' hidden';
+  const englishHidden = display.english == 1 ? '' : ' hidden';
+
   return `
-    <tr class="sentence">
-      <td class="sentence-player"></td>
-      <td class="sentence-speaker">${p}</td>
-      <td class="sentence-data">
-	<div class="lesson_sentence_source" id="lesson_sentence_source_${sentence.id}">${s}</div>
-	<div class="lesson_sentence_pinyin" id="lesson_sentence_pinyin_${sentence.id}" style="display:${pinyin_visible}">${s2}</div>
-	<div class="lesson_sentence_translation" id="lesson_sentence_translation_${sentence.id}" style="display:${english_visible}">${sentence.sentence_translation}</div>
-      </td>
-    </tr>
+    <article class="sentence">
+      <div class="sentence-speaker">${speaker}</div>
+      <div class="sentence-lines">
+        <div class="lesson_sentence_source" id="lesson_sentence_source_${sentence.id}">${source}</div>
+        <div class="lesson_sentence_pinyin" id="lesson_sentence_pinyin_${sentence.id}"${pinyinHidden}>${pinyin}</div>
+        <div class="lesson_sentence_translation" id="lesson_sentence_translation_${sentence.id}"${englishHidden}>${sentence.sentence_translation || ''}</div>
+      </div>
+    </article>
   `;
 };

@@ -209,6 +209,7 @@
         if(legalMove&&this.selected&&!chained&&!root.ConquestMap.territories[this.selected].neighbors.some(to=>legalMove(s,this.selected,to))){this.selected=null;this.target=null;}
         if(legalMove&&this.target&&!legalMove(s,this.selected,this.target))this.target=null;
         this.applyContinuedAttack(s);
+        if(s.phase!=='attack'&&s.phase!=='occupy')this.blitzFrom=null;
       }
       if(s.phase==='reinforce'&&this.playbackState)this.deployCount=Math.max(1,Math.min(this.deployCount??s.reinforcements,s.reinforcements));
       const legalMove=s.phase==='attack'?root.ConquestEngine.canAttack:s.phase==='fortify'?root.ConquestEngine.canFortify:null;
@@ -707,6 +708,15 @@
         pause:Math.max(90,Math.round(800*Math.pow(0.55,index)))
       };
     }
+    // The next blitz is three times faster while it continues from the same
+    // country, or from the country just conquered. A non-blitz attack clears it.
+    successiveBlitz(next){
+      const battle=next.lastBattle,from=next.battleRolls[0]?.from;
+      const blitz=Number.isInteger(battle?.rounds);
+      const successive=blitz&&from===this.blitzFrom;
+      this.blitzFrom=blitz?(battle.conquered?battle.to:from):null;
+      return successive;
+    }
     battlePause(ms){
       return new Promise(resolve=>{
         const timer=root.setTimeout(()=>{this.cancelBattlePause=null;resolve();},ms);
@@ -728,6 +738,7 @@
       this.playbackState.phase='attack';
       this.playbackState.currentPlayer=next.battleRolls[0].before.attackerOwner;
       const losses={attacker:0,defender:0};
+      const successive=this.successiveBlitz(next);
       const finalRoll=next.battleRolls[next.battleRolls.length-1];
       try{
         for(const roll of next.battleRolls){
@@ -750,6 +761,7 @@
           if(preparations.length)await Promise.all(preparations);
           if(this.destroyed)return;
           const pace=this.blitzPace(next.battleRolls.indexOf(roll), next.battleRolls.length);
+          if(successive){pace.spin=Math.round(pace.spin/3);pace.pause=Math.round(pace.pause/3);}
           await Promise.all(['attacker','defender'].map(side=>{
             const battle=side==='attacker'?{attackerDice:roll.attackerDice}:{defenderDice:roll.defenderDice};
             return this.scenes[side]?.roll(battle, pace.spin)||Promise.resolve();
@@ -883,7 +895,7 @@
         return `<div class="conquest-continent-bonus ${controlled?'controlled':''}" style="--continent:var(--conquest-continent-${c.id},${escape(c.color)})" title="Control all ${c.territories.length} territories for ${c.bonus} extra armies each turn"><div><strong>${escape(c.name)}</strong><small>${controlled?escape(this.name(owner)): `${held}/${c.territories.length} held`}</small></div><b>+${c.bonus}<small>armies / turn</small></b></div>`;
       }).join('');
     }
-    rules(){this.modal('A campaign in three acts.',`<p>Conquer all 42 territories to win with 3–6 players. In a two-player game, defeat your opponent; you do not need to conquer the neutral army.</p><div class="conquest-rule"><b>01 / REINFORCE</b><p>Receive one army per three territories (minimum three), plus continent bonuses. Trade three matching card symbols, one of each, or a valid set with a wild card. Set values rise: 4, 6, 8, 10, 12, 15, then +5. At five cards, trade before attacking. An owned territory in your set grants two extra armies on one such territory.</p><p>Control every territory in a continent to receive its bonus at the start of your turn. Progress below is for the current player.</p><div class="conquest-guide-continents">${this.continentBonuses()}</div></div><div class="conquest-rule"><b>02 / ATTACK</b><p>Attack an adjacent rival from a territory with at least two armies. Roll up to three dice; the defender rolls up to two. Compare highest dice, then second highest. Each comparison costs the loser one army; ties favour the defender. Leave one army behind. After victory, move at least as many armies as the dice you rolled. Blitz, from the map button or Shift-click, repeats combat automatically and speeds up each following roll. Steamroll advances every surviving army except the one that must stay behind, then selects the conquered territory for the next attack. The Steamroll box is remembered. Shift-click blitzes and steamrolls that one attack without changing the box.</p></div><div class="conquest-rule"><b>03 / FORTIFY</b><p>Make one transfer to an adjacent territory you control, leaving one army at the origin, or skip it. Conquer at least one territory to earn one card at the end of your turn. Eliminating a player gives you their cards; trade immediately when required.</p></div><p class="conquest-small-note">Fast setup assigns territories and initial armies automatically. Classic setup lets players choose and reinforce their positions. In two-player setup, place two of your armies, then one neutral army. Neutral defenders always use the maximum legal dice. This edition uses classic adjacent-territory fortification and automatic maximum defence.</p>`);}
+    rules(){this.modal('A campaign in three acts.',`<p>Conquer all 42 territories to win with 3–6 players. In a two-player game, defeat your opponent; you do not need to conquer the neutral army.</p><div class="conquest-rule"><b>01 / REINFORCE</b><p>Receive one army per three territories (minimum three), plus continent bonuses. Trade three matching card symbols, one of each, or a valid set with a wild card. Set values rise: 4, 6, 8, 10, 12, 15, then +5. At five cards, trade before attacking. An owned territory in your set grants two extra armies on one such territory.</p><p>Control every territory in a continent to receive its bonus at the start of your turn. Progress below is for the current player.</p><div class="conquest-guide-continents">${this.continentBonuses()}</div></div><div class="conquest-rule"><b>02 / ATTACK</b><p>Attack an adjacent rival from a territory with at least two armies. Roll up to three dice; the defender rolls up to two. Compare highest dice, then second highest. Each comparison costs the loser one army; ties favour the defender. Leave one army behind. After victory, move at least as many armies as the dice you rolled. Blitz, from the map button or Shift-click, repeats combat automatically and speeds up each following roll. Another blitz from that country, or from the country just conquered, resolves three times faster. A normal attack, or a blitz from a different country, returns to the slower pace. Steamroll advances every surviving army except the one that must stay behind, then selects the conquered territory for the next attack. The Steamroll box is remembered. Shift-click blitzes and steamrolls that one attack without changing the box.</p></div><div class="conquest-rule"><b>03 / FORTIFY</b><p>Make one transfer to an adjacent territory you control, leaving one army at the origin, or skip it. Conquer at least one territory to earn one card at the end of your turn. Eliminating a player gives you their cards; trade immediately when required.</p></div><p class="conquest-small-note">Fast setup assigns territories and initial armies automatically. Classic setup lets players choose and reinforce their positions. In two-player setup, place two of your armies, then one neutral army. Neutral defenders always use the maximum legal dice. This edition uses classic adjacent-territory fortification and automatic maximum defence.</p>`);}
     unitIcon(type) {
       const drawings={
         infantry:'<circle cx="24" cy="9" r="5"/><path d="M18 17H29L32 33H26L29 51H23L21 36L17 51H11L16 31Z"/><path d="M30 13L40 43M28 26L37 28" fill="none" stroke="currentColor" stroke-width="4"/>',

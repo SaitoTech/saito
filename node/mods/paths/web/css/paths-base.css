@@ -107,11 +107,21 @@
     height: 100%;
     width: 100%;
     position: absolute;
-    top: -2.4rem;
-    left: -2.4rem;
+    top: 0;
+    left: 0;
     z-index: 4;
     display: block;
     pointer-events: none;
+    opacity: 1;
+    transition: opacity 0.18s ease;
+  }
+
+  /* The chit does not take the pointer, so hover is the space beneath it.
+     Touch devices do not hover, and their taps stay unchanged. */
+  @media (hover: hover) and (pointer: fine) {
+    .space:hover > .activation-tile {
+      opacity: 0.2;
+    }
   }
   .army-tile {
     width: 100%;

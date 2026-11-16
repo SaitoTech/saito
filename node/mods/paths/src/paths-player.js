@@ -645,28 +645,49 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
       { id: "refuse", label: "do not advance" },
     ];
 
+    let decided = false;
+    let resolveChoice = (id) => {
+      if (decided) {
+        return;
+      }
+      decided = true;
+      this.hud.hideBackButton();
+      this.game.status = "submitting...";
+      this.hud.updateStatus(this.game.status);
+      this.hud.updateMenu([]);
+      this.hud.updateCards([]);
+      if (this.loss_overlay) {
+        this.loss_overlay.clearRetreatDecision();
+      }
+      if (id === "advance") {
+        if (this.loss_overlay && !this.loss_overlay.board_mode) {
+          this.loss_overlay.hide();
+        }
+        this.playerHandleAdvance();
+        return;
+      }
+      if (id === "refuse") {
+        if (this.loss_overlay && !this.loss_overlay.board_mode) {
+          this.loss_overlay.hide();
+        }
+        this.queuePeaceOffensiveNoAdvance();
+        this.endTurn();
+      }
+    };
+
+    let overlay_open = this.loss_overlay && this.loss_overlay.overlayEnabled() && !this.loss_overlay.board_mode;
+    if (overlay_open) {
+      this.loss_overlay.showAdvanceChoice([
+        { id: "advance", label: "Advance" },
+        { id: "refuse", label: "Do not advance" }
+      ], resolveChoice);
+    }
+
     this.game.status = `Advance Full-Strength Units?`;
     this.hud.updateStatus(this.game.status);
     this.hud.updateCards([]);
     this.hud.updateMenu(options, (action) => {
-
-      this.hud.hideBackButton();
-            this.game.status = "submitting...";
-      this.hud.updateStatus(this.game.status);
-      this.hud.updateMenu([]);
-      this.hud.updateCards([]);
-
-      if (action === "advance") {
-	this.playerHandleAdvance();
-	return;
-      }
-
-      if (action === "refuse") {
-	this.queuePeaceOffensiveNoAdvance();
-	this.endTurn();
-	return;
-      }
-
+      resolveChoice(action);
     });
 
   }

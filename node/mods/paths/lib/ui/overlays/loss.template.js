@@ -23,17 +23,17 @@ module.exports = (terrain = '') => {
               </div>
               <div class="loss-overlay-faction-body">
                 <div class="units attacker"></div>
-                <div class="loss-overlay-casualty attacker-casualty"></div>
-                <div class="loss-retreat-dock" hidden>
-                  <div class="loss-retreat-sheet" id="loss-retreat-sheet">
-                    <div class="loss-retreat-title">Defender must retreat</div>
+                <div class="loss-retreat-dock" data-decision="advance" hidden>
+                  <div class="loss-retreat-sheet" id="loss-advance-sheet">
+                    <div class="loss-retreat-title">Attacker may advance</div>
                     <div class="loss-retreat-actions"></div>
                   </div>
-                  <button type="button" class="loss-retreat-tab" aria-expanded="false" aria-controls="loss-retreat-sheet">
-                    <span class="loss-retreat-tab-label">Defender must retreat</span>
+                  <button type="button" class="loss-retreat-tab" aria-expanded="false" aria-controls="loss-advance-sheet">
+                    <span class="loss-retreat-tab-label"></span>
                     <span class="loss-retreat-arrow" aria-hidden="true"></span>
                   </button>
                 </div>
+                <div class="loss-overlay-casualty attacker-casualty"></div>
               </div>
             </div>
 
@@ -47,6 +47,16 @@ module.exports = (terrain = '') => {
               </div>
               <div class="loss-overlay-faction-body">
                 <div class="units defender"></div>
+                <div class="loss-retreat-dock" data-decision="retreat" hidden>
+                  <div class="loss-retreat-sheet" id="loss-retreat-sheet">
+                    <div class="loss-retreat-title">Defender must retreat</div>
+                    <div class="loss-retreat-actions"></div>
+                  </div>
+                  <button type="button" class="loss-retreat-tab" aria-expanded="false" aria-controls="loss-retreat-sheet">
+                    <span class="loss-retreat-tab-label"></span>
+                    <span class="loss-retreat-arrow" aria-hidden="true"></span>
+                  </button>
+                </div>
                 <div class="loss-overlay-casualty defender-casualty"></div>
               </div>
             </div>

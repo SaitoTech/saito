@@ -987,6 +987,21 @@
     padding: 1.1rem 1.25rem;
   }
 
+  .ts-code-editor .CodeMirror-selected,
+  .ts-code-editor .CodeMirror-focused .CodeMirror-selected {
+    background: #1a4f86 !important;
+  }
+
+  .ts-code-editor .CodeMirror-line::selection,
+  .ts-code-editor .CodeMirror-line > span::selection,
+  .ts-code-editor .CodeMirror-line > span > span::selection,
+  .ts-code-editor .CodeMirror-line::-moz-selection,
+  .ts-code-editor .CodeMirror-line > span::-moz-selection,
+  .ts-code-editor .CodeMirror-line > span > span::-moz-selection {
+    background: #1a4f86;
+    color: #f4f8fc;
+  }
+
   .ts-code-editor .CodeMirror-cursor {
     border-left: 2px solid var(--saito-foreground, #f2f5f7);
   }

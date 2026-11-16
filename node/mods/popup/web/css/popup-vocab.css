@@ -1,10 +1,41 @@
 .saito-main .vocabulary table tr {
 }
+.saito-main .vocabulary table {
+  width: 100%;
+}
 .saito-main .vocabulary table tr th {
-  padding: 0.25rem;
+  padding: 0.55rem 0.4rem;
   text-align: left;
+  font-size: 16px;
+  color: var(--popup-text-secondary);
+  font-weight: 650;
 }
 .saito-main .vocabulary table tr td {
-  padding: 0.25rem;
+  padding: 0.55rem 0.4rem;
   text-align: left;
+  vertical-align: top;
+}
+
+body.popup-app .start_popup_review {
+  margin: 8px 0 24px 24px;
+  padding: 14px 28px;
+  border: 1px solid var(--popup-accent-strong);
+  border-radius: 8px;
+  cursor: pointer;
+  text-align: center;
+  background-color: var(--popup-accent-strong);
+  color: white;
+  font-weight: 650;
+  letter-spacing: 0.01em;
+}
+
+body.popup-app .start_popup_review:hover {
+  color: var(--popup-accent-strong);
+  background-color: white;
+}
+
+@media screen and (max-width: 600px) {
+  body.popup-app .start_popup_review {
+    margin-left: 0;
+  }
 }

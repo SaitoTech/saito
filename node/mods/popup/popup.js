@@ -1,5 +1,5 @@
 const ModTemplate = require('../../lib/templates/modtemplate');
-const SaitoHeader = require('../../lib/saito/ui/saito-header/saito-header');
+const PopupHeader = require('./lib/ui/popup-header');
 const PopupHome = require('./index.js');
 const PopupLesson = require('./lib/lesson');
 const PopupVocab = require('./lib/vocab');
@@ -166,13 +166,16 @@ class Popup extends ModTemplate {
     if (!this.app.options.popup) {
       this.load();
     }
+    if (this.app.BROWSER && document.body) {
+      document.body.classList.add('popup-app');
+    }
 
     //
     // create and render components
     //
     if (this.main == null) {
       // initialize components
-      this.header = new SaitoHeader(this.app, this);
+      this.header = new PopupHeader(this.app, this);
       await this.header.initialize(this.app);
       this.main = new PopupMain(this.app, this);
       this.manager = new PopupLessonManager(this.app, this);
@@ -186,9 +189,11 @@ class Popup extends ModTemplate {
       //
       // chat manager can insert itself into left-sidebar if exists
       //
+      this.main.ensureShell();
       for (const mod of this.app.modules.returnModulesRespondingTo('chat-manager')) {
         let cm = mod.respondTo('chat-manager');
-        cm.container = '.saito-sidebar.left';
+        cm.container = '.popup-chat-host';
+        cm.chat_popup_container = '.popup-chat-dock';
         cm.render_manager_to_screen = 1;
         this.addComponent(cm);
       }
@@ -213,6 +218,10 @@ class Popup extends ModTemplate {
         this.app.connection.emit('popup-vocab-render-request');
         return;
       }
+      if (this.urlpath[1] == 'testimonials') {
+        this.app.connection.emit('popup-testimonials-render-request');
+        return;
+      }
       if (this.urlpath[1] == 'lessons') {
         if (this.urlpath.length >= 4 && this.urlpath[2] && this.urlpath[3]) {
           this.openLessonPath(decodeURIComponent(this.urlpath[2]), decodeURIComponent(this.urlpath[3]));
@@ -228,6 +237,9 @@ class Popup extends ModTemplate {
     }
 
     this.app.connection.emit('popup-home-render-request');
+    if (this.header && this.header.syncNavigation) {
+      this.header.syncNavigation();
+    }
   }
 
   openLessonPath(userslug, slug) {
@@ -412,6 +424,10 @@ class Popup extends ModTemplate {
             opened_pending = true;
             this.app.connection.emit('popup-lesson-render-request', pending.id);
           }
+        }
+        const lessonCount = document.querySelector('.popup-home-lesson-count');
+        if (lessonCount) {
+          lessonCount.textContent = String(this.catalog.getAll().length);
         }
         if (!opened_pending && this.manager && this.manager.waiting_to_display == true) {
           this.manager.render(this.manager.level);
@@ -696,177 +712,59 @@ class Popup extends ModTemplate {
     });
   }
 
-  async loadQuestion() {
+  async returnAllVocabulary() {
+    if (!this.app.BROWSER || !this.localDB) {
+      return [];
+    }
+
     return new Promise((resolve, reject) => {
-      let question_types = ['multiple_choice_english', 'multiple_choice_pinyin'];
-      let question_type = question_types[Math.floor(Math.random() * question_types.length)];
-
-      let tdate1 = new Date().getTime();
-      let tdate2 = new Date().getTime() - 172800 * 1000;
-      let tdate3 = new Date().getTime() - 518400 * 1000;
-      let tdate4 = new Date().getTime() - 1123200 * 1000;
-      let tdate5 = new Date().getTime() - 2419200 * 1000;
-      let tdate6 = new Date().getTime() - 4924800 * 1000;
-      let tdate7 = new Date().getTime() - 14774400 * 1000;
-
       const transaction = this.localDB.transaction(['vocabulary'], 'readonly');
       const objectStore = transaction.objectStore('vocabulary');
-
-      // Use a cursor to fetch and filter records
       const request = objectStore.openCursor();
-      const rows = [];
-
-      let last_entry = '';
+      const allEntries = [];
 
       request.onsuccess = (event) => {
         const cursor = event.target.result;
-
         if (cursor) {
-          // Check the conditions for filtering the rows
-          if (
-            cursor.value.srs_rank === 0 ||
-            (cursor.value.srs_rank === 1 && cursor.value.last_studied < tdate1) ||
-            (cursor.value.srs_rank < 2 && cursor.value.last_studied < tdate2) ||
-            (cursor.value.srs_rank < 3 && cursor.value.last_studied < tdate3) ||
-            (cursor.value.srs_rank < 4 && cursor.value.last_studied < tdate4) ||
-            (cursor.value.srs_rank < 5 && cursor.value.last_studied < tdate5) ||
-            (cursor.value.srs_rank < 6 && cursor.value.last_studied < tdate6) ||
-            (cursor.value.srs_rank < 7 && cursor.value.last_studied < tdate7)
-          ) {
-            rows.push(cursor.value);
-          }
-
-          last_entry = cursor.value;
+          allEntries.push(cursor.value);
           cursor.continue();
         } else {
-          if (rows.length == 0) {
-            if (last_entry) {
-              rows.push(last_entry);
-            }
-          }
-
-          // Resolve with a random row if rows exist
-          if (rows.length > 0) {
-            let idx = Math.floor(Math.random() * rows.length);
-            let word = rows[idx];
-
-            let words = [];
-            let options = [];
-
-            const shuffleArray = (array) => array.sort(() => Math.random() - 0.5);
-
-            if (rows.length > 4) {
-              while (options.length < 4) {
-                shuffleArray(rows);
-                if (!options.includes(rows[0].field1)) {
-                  words.push(rows[0]);
-                  options.push(rows[0].field1);
-                }
-              }
-            } else {
-              words.push({
-                english: 'good',
-                pinyin: 'hao3',
-                field1: 'good',
-                field2: 'hao3',
-                field3: '好',
-                field4: '好'
-              });
-              words.push({
-                english: 'ok',
-                pinyin: 'xing2',
-                field1: 'ok',
-                field2: 'xing2',
-                field3: '行',
-                field4: '行'
-              });
-              words.push({
-                english: 'to eat',
-                pinyin: 'chi1',
-                field1: 'to eat',
-                field2: 'chi1',
-                field3: '吃',
-                field4: '吃'
-              });
-              words.push({
-                english: 'to go',
-                pinyin: 'zou3',
-                field1: 'to go',
-                field2: 'zou3',
-                field3: '走',
-                field4: '走'
-              });
-            }
-
-            //
-            // substitute random entry for our test
-            //
-            let correct = Math.floor(Math.random() * 4);
-            if (word != null) {
-              words[correct] = word;
-            } else {
-              word = words[correct];
-            }
-
-            let option1 = '';
-            let option2 = '';
-            let option3 = '';
-            let option4 = '';
-            let question = '';
-            let english = '';
-
-            //
-            // options depend on question type
-            //
-            if (question_type === 'multiple_choice_english') {
-              option1 = words[0].field1;
-              option2 = words[1].field1;
-              option3 = words[2].field1;
-              option4 = words[3].field1;
-              question = word.field3;
-              english = word.field1;
-              pinyin = word.field2;
-            }
-            if (question_type === 'multiple_choice_pinyin') {
-              option1 = words[0].field2;
-              option2 = words[1].field2;
-              option3 = words[2].field2;
-              option4 = words[3].field2;
-              question = word.field3;
-              english = word.field1;
-              pinyin = word.field2;
-            }
-
-            obj = {
-              lesson_id: word.lesson_id,
-              word_id: word.id,
-              question_type: question_type,
-              question: question,
-              english: english,
-              pinyin: pinyin,
-              language: 'chinese',
-              option1: option1,
-              option2: option2,
-              option3: option3,
-              option4: option4,
-              correct: `option${correct + 1}`,
-              answer: '',
-              hint: '',
-              source_audio_url: 'http://popupchinese.com/data/'
-            };
-
-            resolve(obj);
-          } else {
-            resolve(null); // No matching rows found
-          }
+          resolve(allEntries);
         }
       };
 
       request.onerror = (event) => {
-        console.error('Error fetching vocabulary:', event.target.error);
-        reject(event.target.error); // Reject on error
+        reject(event.target.error);
       };
     });
+  }
+
+  async loadQuestion() {
+    const ReviewSession = require('./lib/review-session');
+    const session = new ReviewSession(this.app, this);
+    await session.prepare();
+    const next = session.selectQuestion();
+    if (!next) {
+      return null;
+    }
+    const choices = next.model.choices;
+    return {
+      lesson_id: next.word.lessonId,
+      word_id: next.word.id,
+      question_type: next.format.id,
+      question: next.model.prompt,
+      english: next.word.english,
+      pinyin: next.word.pinyin,
+      language: 'chinese',
+      option1: choices[0] || '',
+      option2: choices[1] || '',
+      option3: choices[2] || '',
+      option4: choices[3] || '',
+      correct: 'option' + (next.model.correctIndex + 1),
+      answer: choices[next.model.correctIndex] || '',
+      hint: '',
+      source_audio_url: ''
+    };
   }
 
   async saveAnswer(obj) {
@@ -952,6 +850,16 @@ class Popup extends ModTemplate {
     });
 
     expressapp.get('/' + encodeURI(this.returnSlug() + '/review/*'), async function (req, res) {
+      let html = PopupHome(app, popup_self, app.build_number);
+      if (!res.finished) {
+        res.setHeader('Content-type', 'text/html');
+        res.charset = 'UTF-8';
+        return res.send(html);
+      }
+      return;
+    });
+
+    expressapp.get('/' + encodeURI(this.returnSlug() + '/testimonials'), async function (req, res) {
       let html = PopupHome(app, popup_self, app.build_number);
       if (!res.finished) {
         res.setHeader('Content-type', 'text/html');

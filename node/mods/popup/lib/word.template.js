@@ -1,51 +1,60 @@
 module.exports = (lesson, word, popup_self) => {
-  let as = '';
-  let play_button_visible = 'visibility:hidden';
+  let audio = '';
   if (word.audio_source) {
-    as = word.audio_source;
-    play_button_visible = '';
-  }
-  if (as != '') {
-    as = `https://popupchinese.com/data/${lesson.id}/mp3/vocab/${as}`;
+    audio = `https://popupchinese.com/data/${lesson.id}/mp3/vocab/${word.audio_source}`;
   }
 
-  let df1 = '';
-  let df2 = '';
-  let df3 = '';
-  let df4 = '';
-  let df5 = '';
+  const display = popup_self.app.options.popup.display || {};
+  const vocab = popup_self.app.options.popup.vocab || {};
+  const traditional = display.traditional == 1;
+  const hide = (field, scriptHidden) => {
+    if (vocab[field] == 0 || scriptHidden) {
+      return ' hidden';
+    }
+    return '';
+  };
 
-  if (popup_self.app.options.popup.vocab.field1 == 0) {
-    df1 = 'none';
-  }
-  if (popup_self.app.options.popup.vocab.field2 == 0) {
-    df2 = 'none';
-  }
-  if (popup_self.app.options.popup.vocab.field3 == 0) {
-    df3 = 'none';
-  }
-  if (popup_self.app.options.popup.vocab.field4 == 0) {
-    df4 = 'none';
-  }
-  if (popup_self.app.options.popup.vocab.field5 == 0) {
-    df5 = 'none';
-  }
-
+  let pinyin = word.field3 || '';
   try {
-    if (popup_mod.app.options.popup.display.traditional == 1) {
-      s = switch_display_mode_in_string(s, 'traditional', 'simplified');
-      p = switch_display_mode_in_string(p, 'traditional', 'simplified');
+    if (pinyin && typeof convert_pinyin === 'function') {
+      pinyin = convert_pinyin(pinyin);
     }
   } catch (err) {}
 
+  const play = audio
+    ? `<button type="button" class="popup-vocab-play" onclick="playWordAudio('${escapeAttr(audio)}', this)" aria-label="Play pronunciation"><img src="/popup/img/buttons/play_button.gif" alt=""></button>`
+    : '<span class="popup-vocab-play"></span>';
+
   return `
-    	<tr class="word">
-    	  <td class="player" style="${play_button_visible}"><img src="/popup/img/buttons/play_button.gif" onclick="playWordAudio('${as}',this);"></td>
-    	  <td class="lesson_word_field4 field4" style="display:${df4}">${word.field4}</td>
-    	  <td class="lesson_word_field3 field3" style="display:${df3}">${word.field3}</td>
-    	  <td class="lesson_word_field1 field1" style="display:${df1}">${word.field1}</td>
-    	  <td class="lesson_word_field2 field2" style="display:${df2}">${word.field2}</td>
-    	  <td class="lesson_word_field5 field5" style="display:${df5}">${word.field5}</td>
-    	</tr>
-    `;
+    <li class="popup-vocab-entry word">
+      <div class="popup-vocab-text">
+        <div class="popup-vocab-head">
+          <span class="lesson_word_field1 field1"${hide('field1', traditional)}>${word.field1 || ''}</span>
+          <span class="lesson_word_field2 field2"${hide('field2', !traditional)}>${word.field2 || ''}</span>
+        </div>
+        <div class="lesson_word_field3 field3"${hide('field3', false)}>${escapeText(pinyin)}</div>
+        <div class="lesson_word_field4 field4"${hide('field4', false)}>${escapeText(word.field4 || '')}</div>
+        <div class="lesson_word_field5 field5"${hide('field5', false)}>${escapeText(word.field5 || '')}</div>
+      </div>
+      <div class="popup-vocab-actions">
+        ${play}
+        <button type="button" class="popup-vocab-save" data-field1="${escapeAttr(word.field1)}" data-field2="${escapeAttr(word.field2)}" data-field3="${escapeAttr(word.field3)}" data-field4="${escapeAttr(word.field4)}" data-field5="${escapeAttr(word.field5)}">Save</button>
+      </div>
+    </li>
+  `;
 };
+
+function escapeAttr(value) {
+  return String(value || '')
+    .replace(/&/g, '&amp;')
+    .replace(/'/g, '&#39;')
+    .replace(/"/g, '&quot;')
+    .replace(/</g, '&lt;');
+}
+
+function escapeText(value) {
+  return String(value || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}

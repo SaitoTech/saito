@@ -138,15 +138,18 @@
   }
 
   .loss-retreat-dock {
-    position: absolute;
+    position: relative;
     z-index: 4;
-    left: 0.55rem;
-    right: 0.55rem;
-    bottom: 0.55rem;
+    flex: 0 0 auto;
+    margin-top: auto;
     display: flex;
     flex-direction: column;
     justify-content: flex-end;
     pointer-events: none;
+  }
+
+  .loss-overlay-faction-body:has(.loss-retreat-dock:not([hidden])) > .loss-overlay-casualty {
+    display: none;
   }
 
   .loss-retreat-dock[hidden] {
@@ -165,8 +168,7 @@
     transform: translateY(0);
     transition: max-height 0.38s ease, opacity 0.28s ease, transform 0.38s ease, padding 0.38s ease;
     border: 1px solid rgba(245, 242, 234, 0.55);
-    border-bottom: 0;
-    border-radius: 0.55rem 0.55rem 0 0;
+    border-radius: 0.55rem;
     background:
       linear-gradient(180deg, rgba(58, 42, 28, 0.96) 0%, rgba(22, 16, 12, 0.98) 100%);
     box-shadow: 0 -0.8rem 1.8rem rgba(0, 0, 0, 0.45);
@@ -233,20 +235,24 @@
     justify-content: space-between;
     gap: 0.75rem;
     width: 100%;
-    min-height: 2.6rem;
-    padding: 0.45rem 0.85rem;
-    border: 1px solid rgba(245, 242, 234, 0.55);
-    border-radius: 0 0 0.45rem 0.45rem;
-    background: #2a2118;
-    color: #f5f2ea;
+    min-height: 1.6rem;
+    margin-top: 0.7rem;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    color: rgba(255, 255, 255, 0.92);
     font: inherit;
-    font-size: 1.25rem;
-    line-height: 1.2;
+    font-size: 1.15rem;
+    font-weight: 400;
+    line-height: 1.3;
+    text-align: left;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.75);
     cursor: pointer;
   }
 
   .loss-retreat-dock.is-collapsed .loss-retreat-tab {
-    border-radius: 0.45rem;
+    margin-top: 0;
   }
 
   .loss-retreat-arrow {

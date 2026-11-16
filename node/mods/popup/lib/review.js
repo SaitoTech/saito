@@ -1,4 +1,5 @@
 const ReviewTemplate = require('./review.template');
+const ReviewSession = require('./review-session');
 const SaitoOverlay = require('./../../../lib/saito/ui/saito-overlay/saito-overlay');
 
 class ReviewOverlay {
@@ -7,30 +8,37 @@ class ReviewOverlay {
     this.mod = mod;
     this.visible = false;
     this.overlay = new SaitoOverlay(app, mod);
+    this.session = null;
   }
 
   hide() {
     this.visible = false;
+    if (this.session) {
+      this.session.cancel();
+    }
     this.overlay.hide();
   }
 
-  render() {
+  async render() {
     this.visible = true;
-    this.overlay.show(ReviewTemplate(this.mod));
-
-    loadQuestion();
-
-    this.attachEvents();
-  }
-
-  attachEvents() {
-    document.querySelectorAll('.option').forEach((el) => {
-      el.addEventListener('mouseover', function () {
-        this.classList.add('option_hover');
-      });
-      el.addEventListener('mouseout', function () {
-        this.classList.remove('option_hover');
-      });
+    if (this.session) {
+      this.session.cancel();
+    }
+    this.overlay.show(ReviewTemplate(), () => {
+      if (this.session) {
+        this.session.cancel();
+      }
+    });
+    const root = document.querySelector('.review-overlay');
+    if (!root) {
+      return;
+    }
+    this.session = new ReviewSession(this.app, this.mod);
+    await this.session.start({
+      progress: root.querySelector('.review-progress'),
+      prompt: root.querySelector('.review-prompt'),
+      answers: root.querySelector('.review-answers'),
+      feedback: root.querySelector('.review-feedback')
     });
   }
 }

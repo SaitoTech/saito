@@ -146,6 +146,20 @@
   }
 
 
+  toggleHideUnits() {
+    this.units_hidden = !this.units_hidden;
+    let text = this.units_hidden ? "✓ Hide Units" : "Hide Units";
+    let item = this.menu && this.menu.returnMenuFromID("game-info-hide-units");
+    if (item) {
+      item.text = text;
+    }
+    let label = document.querySelector("#game-info-hide-units .game-menu-option-label span");
+    if (label) {
+      label.textContent = text;
+    }
+    this.displayBoard();
+  }
+
   displayBoard() {
 
     let paths_self = this;
@@ -248,6 +262,16 @@
       }
       }
 
+
+      if (this.units_hidden) {
+        document.querySelectorAll(`.${key}`).forEach((el) => {
+          el.innerHTML = "";
+          el.classList.remove("oos-highlight", "opponent-move", "opponent-attack", "stack-open");
+          el.style.removeProperty("--oos-step");
+          el.style.zIndex = "";
+        });
+        return;
+      }
 
       //
       // units / armies — largest current movement is drawn on top
@@ -1201,6 +1225,8 @@ console.log("err: " + err);
       arb.innerHTML = "";
       crb.innerHTML = "";
 
+      if (this.units_hidden) { return; }
+
       for (let z = 0; z < this.game.spaces["arbox"].units.length; z++) {
 	if (this.game.spaces["arbox"].units[z].damaged) {
           arb.innerHTML += `<img class="army-tile ${this.game.spaces["arbox"].units[z].key}" src="/paths/img/army/${this.game.spaces["arbox"].units[z].back}" />`;
@@ -1231,6 +1257,8 @@ console.log("err: " + err);
 
       arb.innerHTML = "";
       crb.innerHTML = "";
+
+      if (this.units_hidden) { return; }
 
       for (let z = 0; z < this.game.spaces["aeubox"].units.length; z++) {
         arb.innerHTML += `<img class="army-tile ${this.game.spaces["aeubox"].units[z].key}" src="/paths/img/army/${this.game.spaces["aeubox"].units[z].front}" />`;
