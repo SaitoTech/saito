@@ -10,6 +10,9 @@ each support two. Games must be unstaked and have no turn clock. Set `players` t
 The decision provider can use a locally installed and authenticated Codex
 CLI, the Jev HTTP API, or the included deterministic heuristic for fast test runs.
 
+For a short explanation of context, decisions, and move submission, see
+[How the runner plays games](HOW-IT-PLAYS.md).
+
 ## Install dependencies on Ubuntu/Debian
 
 Copy `apps/runner/scripts/install-vm.sh` to the VM and run `bash install-vm.sh` as root or
