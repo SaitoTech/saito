@@ -108,82 +108,118 @@ class Storage {
     if (this.app.BROWSER != 1) {
       return;
     }
-    const publicKey = this.app.options?.wallet?.publicKey;
-    if (!publicKey) {
+    let public_key = this.app.options?.wallet?.publicKey;
+    if (!public_key) {
       return;
     }
 
-    const embeddedGames =
+    //
+    // A wallet that still has game objects inside options, and has never
+    // recorded an id list, is copied into the data-file store once.
+    //
+    let embedded_games =
       Array.isArray(this.app.options.games) &&
       this.app.options.games.length > 0 &&
       this.app.options.games[0] &&
       typeof this.app.options.games[0] === 'object';
-    const embeddedSaves =
+    if (embedded_games && !Array.isArray(this.app.options.external_game_ids)) {
+      for (let i = 0; i < this.app.options.games.length; i++) {
+        let game = this.app.options.games[i];
+        if (!game || !game.id) {
+          continue;
+        }
+        try {
+          let existing = await this.loadDataFile('games', game.id);
+          if (existing) {
+            continue;
+          }
+          await this.saveDataFile('games', game.id, JSON.stringify(game));
+        } catch (err) {
+          console.error(err);
+        }
+      }
+    }
+
+    //
+    // Checkpoints stay on their existing keys. This one-time copy is unchanged.
+    //
+    let embedded_saves =
       this.app.options.saves &&
       typeof this.app.options.saves === 'object' &&
       Object.keys(this.app.options.saves).length > 0;
-
-    if (!Array.isArray(this.app.options.external_game_ids) && (embeddedGames || embeddedSaves)) {
-      const gameIds = [];
-      const writes = [];
-      if (embeddedGames) {
-        for (let i = 0; i < this.app.options.games.length; i++) {
-          const game = this.app.options.games[i];
-          if (!game?.id) {
-            continue;
-          }
-          gameIds.push(game.id);
-          writes.push(localforage.setItem(`game:${publicKey}:${game.id}`, JSON.stringify(game)));
-        }
-      }
-      const saveIds = [];
-      if (embeddedSaves) {
-        const saveKeys = Object.keys(this.app.options.saves);
-        for (let i = 0; i < saveKeys.length; i++) {
-          saveIds.push(saveKeys[i]);
-          writes.push(
-            localforage.setItem(
-              `save:${publicKey}:${saveKeys[i]}`,
-              JSON.stringify(this.app.options.saves[saveKeys[i]])
-            )
-          );
-        }
+    if (embedded_saves && !Array.isArray(this.app.options.external_save_ids)) {
+      let save_ids = [];
+      let save_keys = Object.keys(this.app.options.saves);
+      let writes = [];
+      for (let i = 0; i < save_keys.length; i++) {
+        save_ids.push(save_keys[i]);
+        writes.push(
+          localforage.setItem(
+            `save:${public_key}:${save_keys[i]}`,
+            JSON.stringify(this.app.options.saves[save_keys[i]])
+          )
+        );
       }
       await Promise.all(writes);
-      this.app.options.external_game_ids = gameIds;
-      this.app.options.external_save_ids = saveIds;
+      this.app.options.external_save_ids = save_ids;
       this.saveOptions();
-      return;
     }
 
-    const gameIds = Array.isArray(this.app.options.external_game_ids)
-      ? this.app.options.external_game_ids
-      : [];
-    const games = [];
-    for (let i = 0; i < gameIds.length; i++) {
-      const raw = await localforage.getItem(`game:${publicKey}:${gameIds[i]}`);
-      if (typeof raw === 'string') {
-        try {
-          games.push(JSON.parse(raw));
-        } catch (err) {}
-      } else if (raw && typeof raw === 'object') {
-        games.push(raw);
+    //
+    // The session list is rebuilt from data files. A legacy
+    // game:<publicKey>:<id> record is copied across by loadDataFile.
+    // external_game_ids is not the index.
+    //
+    let keys = [];
+    try {
+      keys = await localforage.keys();
+    } catch (err) {
+      console.error(err);
+      keys = [];
+    }
+    if (!Array.isArray(keys)) {
+      keys = [];
+    }
+
+    let games = [];
+    let seen_ids = {};
+    let legacy_prefix = 'game:' + public_key + ':';
+    for (let i = 0; i < keys.length; i++) {
+      let key = keys[i];
+      let game_id = '';
+      if (typeof key === 'string' && key.indexOf('datafile:games:') === 0) {
+        game_id = key.substring('datafile:games:'.length);
+      } else if (typeof key === 'string' && key.indexOf(legacy_prefix) === 0) {
+        game_id = key.substring(legacy_prefix.length);
+      }
+      if (!game_id || seen_ids[game_id]) {
+        continue;
+      }
+      seen_ids[game_id] = 1;
+      try {
+        let game = await this.loadDataFile('games', game_id);
+        if (game) {
+          games.push(game);
+        }
+      } catch (err) {
+        console.error(err);
       }
     }
     this.app.options.games = games;
+    delete this.app.options.external_game_ids;
 
-    const saveIds = Array.isArray(this.app.options.external_save_ids)
+    let save_ids = Array.isArray(this.app.options.external_save_ids)
       ? this.app.options.external_save_ids
       : [];
-    const saves = {};
-    for (let i = 0; i < saveIds.length; i++) {
-      const raw = await localforage.getItem(`save:${publicKey}:${saveIds[i]}`);
+    let saves = {};
+    for (let i = 0; i < save_ids.length; i++) {
+      let raw = await localforage.getItem(`save:${public_key}:${save_ids[i]}`);
       if (typeof raw === 'string') {
         try {
-          saves[saveIds[i]] = JSON.parse(raw);
+          saves[save_ids[i]] = JSON.parse(raw);
         } catch (err) {}
       } else if (raw && typeof raw === 'object') {
-        saves[saveIds[i]] = raw;
+        saves[save_ids[i]] = raw;
       }
     }
     this.app.options.saves = saves;
@@ -682,6 +718,119 @@ class Storage {
     }
   }
 
+  //
+  // One record in IndexedDB. data is text the caller has already serialized.
+  // The browser has no data_dir. The key is datafile:<namespace>:<id>.
+  //
+  async saveDataFile(namespace, id, data) {
+    if (this.app.BROWSER != 1) {
+      return false;
+    }
+    if (typeof namespace !== 'string' || /^[A-Za-z]{1,32}$/.test(namespace) == false) {
+      throw new Error('data file namespace is not valid');
+    }
+    if (
+      typeof id !== 'string' ||
+      /^[A-Za-z0-9_-]{1,128}(\.[A-Za-z0-9_-]{1,128})?$/.test(id) == false
+    ) {
+      throw new Error('data file id is not valid');
+    }
+    if (typeof data !== 'string') {
+      throw new Error('data file body must be a string');
+    }
+
+    let record_key = 'datafile:' + namespace + ':' + id;
+    await localforage.setItem(record_key, data);
+    return true;
+  }
+
+  //
+  // Return the parsed record, or null when it has never been saved.
+  // A games id that exists only under the old game:<publicKey>:<id> key
+  // is copied to the new key and then returned. Invalid JSON is thrown.
+  //
+  async loadDataFile(namespace, id) {
+    if (this.app.BROWSER != 1) {
+      return null;
+    }
+    if (typeof namespace !== 'string' || /^[A-Za-z]{1,32}$/.test(namespace) == false) {
+      throw new Error('data file namespace is not valid');
+    }
+    if (
+      typeof id !== 'string' ||
+      /^[A-Za-z0-9_-]{1,128}(\.[A-Za-z0-9_-]{1,128})?$/.test(id) == false
+    ) {
+      throw new Error('data file id is not valid');
+    }
+
+    let record_key = 'datafile:' + namespace + ':' + id;
+    let body = await localforage.getItem(record_key);
+
+    if (body == null && namespace === 'games') {
+      let public_key = this.app.options?.wallet?.publicKey;
+      if (public_key) {
+        let legacy_key = 'game:' + public_key + ':' + id;
+        let legacy_body = await localforage.getItem(legacy_key);
+        if (typeof legacy_body === 'string') {
+          body = legacy_body;
+          await localforage.setItem(record_key, legacy_body);
+        } else if (legacy_body && typeof legacy_body === 'object') {
+          body = JSON.stringify(legacy_body);
+          await localforage.setItem(record_key, body);
+        }
+      }
+    }
+
+    if (body == null) {
+      return null;
+    }
+    if (typeof body !== 'string') {
+      throw new Error('data file body is not text');
+    }
+    return JSON.parse(body);
+  }
+
+  //
+  // Remove one record. A missing record is a normal outcome.
+  // A legacy games key is removed as well so the next load does not
+  // copy it back.
+  //
+  async deleteDataFile(namespace, id) {
+    if (this.app.BROWSER != 1) {
+      return false;
+    }
+    if (typeof namespace !== 'string' || /^[A-Za-z]{1,32}$/.test(namespace) == false) {
+      throw new Error('data file namespace is not valid');
+    }
+    if (
+      typeof id !== 'string' ||
+      /^[A-Za-z0-9_-]{1,128}(\.[A-Za-z0-9_-]{1,128})?$/.test(id) == false
+    ) {
+      throw new Error('data file id is not valid');
+    }
+
+    let record_key = 'datafile:' + namespace + ':' + id;
+    let existing = await localforage.getItem(record_key);
+    await localforage.removeItem(record_key);
+
+    if (namespace === 'games') {
+      let public_key = this.app.options?.wallet?.publicKey;
+      if (public_key) {
+        let legacy_key = 'game:' + public_key + ':' + id;
+        let legacy_body = await localforage.getItem(legacy_key);
+        if (legacy_body != null) {
+          existing = legacy_body;
+        }
+        await localforage.removeItem(legacy_key);
+      }
+    }
+
+    if (existing == null) {
+      return false;
+    }
+    return true;
+  }
+
   saveOptions(replacements: Array<{ path: Array<string | number>; json: string }> = []) {
     if (this.app.BROWSER == 1) {
       if (this.active_tab == 0) {
@@ -692,18 +841,12 @@ class Storage {
     // A replacement is an already-serialized value somewhere in app.options.
     // The live object is swapped for a token while stringify runs, then the
     // token is replaced with that JSON so the subtree is not walked again.
-    // games and saves are not part of the localStorage wallet; they are written
-    // as one IndexedDB record each. A replacement whose path starts at games
-    // supplies the JSON for that record.
+    // Game bodies are data files. Saves remain one IndexedDB record each.
     const publicKey = this.app.options?.wallet?.publicKey;
     const externalize = this.app.BROWSER == 1 && !!publicKey;
-    const previousGameIds = Array.isArray(this.app.options?.external_game_ids)
-      ? this.app.options.external_game_ids.slice()
-      : [];
     const previousSaveIds = Array.isArray(this.app.options?.external_save_ids)
       ? this.app.options.external_save_ids.slice()
       : [];
-    const gameJsonById = {};
     const applied = [];
     let new_wallet_json = '';
 
@@ -719,10 +862,6 @@ class Storage {
           continue;
         }
         if (externalize && item.path[0] === 'games') {
-          const game = this.app.options.games?.[item.path[1]];
-          if (game?.id) {
-            gameJsonById[game.id] = item.json;
-          }
           continue;
         }
         if (externalize && item.path[0] === 'saves') {
@@ -744,18 +883,10 @@ class Storage {
       }
 
       if (externalize) {
-        const games = Array.isArray(this.app.options.games) ? this.app.options.games : [];
         const saves =
           this.app.options.saves && typeof this.app.options.saves === 'object'
             ? this.app.options.saves
             : {};
-        const currentGameIds = [];
-        for (let i = 0; i < games.length; i++) {
-          if (games[i]?.id) {
-            currentGameIds.push(games[i].id);
-          }
-        }
-        this.app.options.external_game_ids = currentGameIds;
         this.app.options.external_save_ids = Object.keys(saves);
       }
 
@@ -779,35 +910,13 @@ class Storage {
     }
 
     if (externalize) {
-      const games = Array.isArray(this.app.options.games) ? this.app.options.games : [];
       const saves =
         this.app.options.saves && typeof this.app.options.saves === 'object'
           ? this.app.options.saves
           : {};
-      const currentGameIds = Array.isArray(this.app.options.external_game_ids)
-        ? this.app.options.external_game_ids
-        : [];
       const currentSaveIds = Array.isArray(this.app.options.external_save_ids)
         ? this.app.options.external_save_ids
         : [];
-
-      for (let i = 0; i < games.length; i++) {
-        const id = games[i]?.id;
-        if (!id) {
-          continue;
-        }
-        const body = gameJsonById[id] || JSON.stringify(games[i]);
-        localforage.setItem(`game:${publicKey}:${id}`, body).catch((err) => {
-          console.error(err);
-        });
-      }
-      for (let i = 0; i < previousGameIds.length; i++) {
-        if (currentGameIds.indexOf(previousGameIds[i]) === -1) {
-          localforage.removeItem(`game:${publicKey}:${previousGameIds[i]}`).catch((err) => {
-            console.error(err);
-          });
-        }
-      }
 
       for (let i = 0; i < currentSaveIds.length; i++) {
         const id = currentSaveIds[i];

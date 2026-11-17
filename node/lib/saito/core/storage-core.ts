@@ -450,13 +450,128 @@ class StorageCore extends Storage {
   // private key is swapped for its ciphertext in a shallow copy, so the running app keeps
   // holding the plaintext key.
   //
-  returnOptionsForSaving() {
-    const secret = this.returnOptionsSecret();
-    if (!secret || !this.app.options.wallet) {
-      return this.app.options;
+  //
+  // Replace one record under data_dir/<namespace>/<id>.json.
+  // data is text the caller has already serialized. The body is synced
+  // to a temporary file and renamed over the destination.
+  //
+  async saveDataFile(namespace, id, data) {
+    if (typeof namespace !== 'string' || /^[A-Za-z]{1,32}$/.test(namespace) == false) {
+      throw new Error('data file namespace is not valid');
+    }
+    if (
+      typeof id !== 'string' ||
+      /^[A-Za-z0-9_-]{1,128}(\.[A-Za-z0-9_-]{1,128})?$/.test(id) == false
+    ) {
+      throw new Error('data file id is not valid');
+    }
+    if (typeof data !== 'string') {
+      throw new Error('data file body must be a string');
     }
 
+    let record_dir = path.resolve(this.data_dir, namespace);
+    let record_path = path.resolve(record_dir, id + '.json');
+    let data_root = path.resolve(this.data_dir) + path.sep;
+    if (record_path.startsWith(data_root) == false) {
+      throw new Error('data file path escapes data_dir');
+    }
+
+    if (fs.existsSync(record_dir) == false) {
+      fs.mkdirSync(record_dir, { recursive: true });
+    }
+
+    let temporary_path = record_path + '.' + Date.now() + '.tmp';
+    let file_handle = 0;
+    try {
+      file_handle = fs.openSync(temporary_path, 'w');
+      fs.writeSync(file_handle, data, 0, this.file_encoding_save);
+      fs.fsyncSync(file_handle);
+    } catch (err) {
+      if (file_handle) {
+        fs.closeSync(file_handle);
+        file_handle = 0;
+      }
+      if (fs.existsSync(temporary_path)) {
+        fs.unlinkSync(temporary_path);
+      }
+      throw err;
+    }
+    if (file_handle) {
+      fs.closeSync(file_handle);
+    }
+    fs.renameSync(temporary_path, record_path);
+    return true;
+  }
+
+  //
+  // Read one record. A missing file is null. Invalid JSON is thrown
+  // so the caller does not treat a damaged file as a game that was
+  // never saved.
+  //
+  async loadDataFile(namespace, id) {
+    if (typeof namespace !== 'string' || /^[A-Za-z]{1,32}$/.test(namespace) == false) {
+      throw new Error('data file namespace is not valid');
+    }
+    if (
+      typeof id !== 'string' ||
+      /^[A-Za-z0-9_-]{1,128}(\.[A-Za-z0-9_-]{1,128})?$/.test(id) == false
+    ) {
+      throw new Error('data file id is not valid');
+    }
+
+    let record_dir = path.resolve(this.data_dir, namespace);
+    let record_path = path.resolve(record_dir, id + '.json');
+    let data_root = path.resolve(this.data_dir) + path.sep;
+    if (record_path.startsWith(data_root) == false) {
+      throw new Error('data file path escapes data_dir');
+    }
+    if (fs.existsSync(record_path) == false) {
+      return null;
+    }
+
+    let raw_body = fs.readFileSync(record_path, this.file_encoding_load);
+    let body = typeof raw_body === 'string' ? raw_body : String(raw_body);
+    return JSON.parse(body);
+  }
+
+  //
+  // Remove one record. An already-missing file is a normal outcome.
+  //
+  async deleteDataFile(namespace, id) {
+    if (typeof namespace !== 'string' || /^[A-Za-z]{1,32}$/.test(namespace) == false) {
+      throw new Error('data file namespace is not valid');
+    }
+    if (
+      typeof id !== 'string' ||
+      /^[A-Za-z0-9_-]{1,128}(\.[A-Za-z0-9_-]{1,128})?$/.test(id) == false
+    ) {
+      throw new Error('data file id is not valid');
+    }
+
+    let record_dir = path.resolve(this.data_dir, namespace);
+    let record_path = path.resolve(record_dir, id + '.json');
+    let data_root = path.resolve(this.data_dir) + path.sep;
+    if (record_path.startsWith(data_root) == false) {
+      throw new Error('data file path escapes data_dir');
+    }
+    if (fs.existsSync(record_path) == false) {
+      return false;
+    }
+    fs.unlinkSync(record_path);
+    return true;
+  }
+
+  returnOptionsForSaving() {
+    const secret = this.returnOptionsSecret();
     const options = Object.assign({}, this.app.options);
+
+    // Game bodies are data files. They are not part of the options file.
+    delete options.games;
+
+    if (!secret || !options.wallet) {
+      return options;
+    }
+
     options.wallet = Object.assign({}, options.wallet);
 
     for (const field of ['privateKey', 'privatekey']) {

@@ -103,14 +103,14 @@ class GamePlayers {
   // If other people are "watching" the game, we want to let all the players
   // know their address, so that game moves can be broadcast to them as well
   //
-  addFollower(address) {
+  async addFollower(address) {
     console.info('GT Adding follower: ' + address);
     if (address === '') {
       return;
     }
     if (!this.game.accepted.includes(address)) {
       this.game.accepted.push(address);
-      this.saveGame(this.game.id);
+      await this.saveGame(this.game.id);
     }
   }
 
