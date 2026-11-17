@@ -71,13 +71,13 @@ class TeleportPayments {
           transaction
         };
         game.state.teleportPayment = payment;
-        this.mod.saveGame(game.id);
+        await this.mod.saveGame(game.id);
       }
       this.mod.main.update('SENDING TELEPORT PAYMENT');
       await this.app.network.propagateTransaction(tx);
       // Submission is sufficient for this local game; confirmation is not a turn barrier.
       if (payment.status === 'pending') payment.status = 'submitted';
-      this.mod.saveGame(game.id);
+      await this.mod.saveGame(game.id);
     } finally {
       this.sending = false;
     }
@@ -95,7 +95,7 @@ class TeleportPayments {
   }
 
   // Called only by the module's on-chain confirmation hook, never a relay message.
-  confirm(tx, conf) {
+  async confirm(tx, conf) {
     if (!this.app.BROWSER || Number(conf) !== 0) return false;
     const msg = tx.returnMessage();
     if (
@@ -129,8 +129,11 @@ class TeleportPayments {
       return false;
     payment.status = 'confirmed';
     delete payment.transaction;
-    if (game === this.mod.game) this.mod.saveGame(game.id);
-    else this.app.storage.saveOptions();
+    if (game === this.mod.game) {
+      await this.mod.saveGame(game.id);
+    } else {
+      await this.app.storage.saveDataFile('games', game.id, JSON.stringify(game));
+    }
     return game === this.mod.game;
   }
 

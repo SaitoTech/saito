@@ -1633,13 +1633,16 @@ if (this.game.state.events.society_of_jesus == 1) {
         his_self.hud.updateMenu([]);
         his_self.hud.updateCards(cards);
         his_self.cardbox.attachCardEvents();
-                his_self.cardbox.bindCallback((card) => {
+                his_self.cardbox.bindCallback(async (card) => {
           try {
             $('.card').off();
             $('.card img').off();
           } catch (err) {}
 
-          his_self.game = his_self.loadGame(my_specific_game_id);
+          await his_self.loadGame(my_specific_game_id);
+          if (his_self.game?.id != my_specific_game_id) {
+            return;
+          }
             
           // tell game engine we can move
           his_self.halted = 0;
@@ -1656,7 +1659,7 @@ if (this.game.state.events.society_of_jesus == 1) {
           // that we have moves still pending, but should clear if it now finds
           // UNHALT is the latest instruction and this resolve is coming from us!
           //
-          his_self.processFutureMoves();
+          await his_self.processFutureMoves();
 
         });
 

@@ -2409,7 +2409,7 @@ class Wordblocks extends GameTemplate {
 
 			// We add a save point here so closing the tab doesn't break the game
 			console.log('Save Wordblocks game');
-			this.saveGame(this.game.id);
+			await this.saveGame(this.game.id);
 		}
 
 		return 1;

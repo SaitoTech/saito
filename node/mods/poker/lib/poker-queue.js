@@ -339,7 +339,7 @@ class PokerQueue {
             await this.timeout(1000);
             this.restartQueue();
           });
-          this.saveGame(this.game.id);
+          await this.saveGame(this.game.id);
           this.setShotClock('.acknowledge', Result.ACKNOWLEDGE_MS, false);
           if (this.result) {
             this.result.startCountdown(Result.ACKNOWLEDGE_MS);
@@ -728,7 +728,7 @@ class PokerQueue {
         this.hud.updateMenu([]);
         this.hud.updateCards([]);
 
-        this.saveGame(this.game.id);
+        await this.saveGame(this.game.id);
 
         const clearBoardAndContinue = (screenshot = null) => {
           this.game.queue.push(`settle\t${JSON.stringify(winner_keys)}\tbesthand`);

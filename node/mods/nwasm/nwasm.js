@@ -302,16 +302,9 @@ class Nwasm extends OnePlayerGameTemplate {
     await super.initialize(app);
 
     //
-    // non-browsers don't monitor the log
-    //
-    if (app.BROWSER == 0) {
-      return;
-    }
-
-    //
     // monitor log if browser
     //
-    if (this.browser_active == 1) {
+    if (this.browser_active) {
       {
         const log = console.log.bind(console);
         console.log = (...args) => {

@@ -115,10 +115,10 @@ class Steamed extends GameTemplate {
   //
   // Core Game Logic
   //
-  handleGameLoop() {
+  async handleGameLoop() {
     let we_self = this;
 
-    this.saveGame(this.game.id);
+    await this.saveGame(this.game.id);
 
     console.log(JSON.parse(JSON.stringify(this.game.state)));
 

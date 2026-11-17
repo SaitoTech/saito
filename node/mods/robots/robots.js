@@ -62,11 +62,11 @@ class Robots extends OnePlayerGameTemplate {
     return Art.dataURI(Art.banner());
   }
   returnGameRulesHTML() {
-    if (this.app.BROWSER) this.main.ensureStyles();
+    if (this.browser_active) { this.main.ensureStyles(); }
     return RulesTemplate();
   }
 
-  initializeGame() {
+  async initializeGame() {
     const newRun = !this.game.state;
     if (!this.game.state) {
       this.game.state = super.returnState();
@@ -84,17 +84,18 @@ class Robots extends OnePlayerGameTemplate {
     }
     // Existing saves now use the paid safe-teleport rule too.
     this.game.state.run.safeJumps = 0;
-    this.saveGame(this.game.id);
+    await this.saveGame(this.game.id);
     if (newRun) this.levelSaves.capture();
   }
 
   async onConfirmation(blk, tx, conf) {
-    if (this.app.BROWSER && tx.returnMessage().checkpoint) {
+
+    if (tx.returnMessage().checkpoint) {
       await this.levelSaves.confirm(tx, conf);
     }
-    if (tx.returnMessage().request === 'level-save') return;
+    if (tx.returnMessage().request === 'level-save') { return; }
     if (tx.returnMessage().request === TeleportPayments.REQUEST) {
-      if (this.teleportPayments.confirm(tx, conf) && this.browser_active) {
+      if ((await this.teleportPayments.confirm(tx, conf)) && this.browser_active) {
         this.main.update();
       }
       return;
@@ -104,7 +105,7 @@ class Robots extends OnePlayerGameTemplate {
 
   async onPeerServiceUp(app, peer, service = {}) {
     await super.onPeerServiceUp(app, peer, service);
-    if (app.BROWSER && service.service === 'archive') {
+    if (service.service === 'archive') {
       try {
         await this.levelSaves.connect(peer);
       } catch (error) {
@@ -155,7 +156,7 @@ class Robots extends OnePlayerGameTemplate {
     this.main.mount();
   }
 
-  handleGameLoop() {
+  async handleGameLoop() {
     const command = this.game.queue[this.game.queue.length - 1];
     if (command === 'robots-play') {
       if (this.browser_active) this.main.update();
@@ -194,7 +195,7 @@ class Robots extends OnePlayerGameTemplate {
     }
     const best = this.loadGamePreference('Robots_best') || 0;
     if (state.run.score > best) this.saveGamePreference('Robots_best', state.run.score);
-    this.saveGame(this.game.id);
+    await this.saveGame(this.game.id);
     if (this.browser_active) this.main.update(result.message);
     // Keep the input marker in place; stop here so a rejected-move notice remains visible.
     return this.game.queue[this.game.queue.length - 1] === 'robots-play' ? 0 : 1;

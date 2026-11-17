@@ -719,7 +719,7 @@ class Settlers extends GameTemplate {
         this.updateStatus('submitting game move...');
     this.setToolbarState('WAIT');
 
-    return super.endTurn();
+    super.endTurn();
   }
 
   setToolbarState(str) {

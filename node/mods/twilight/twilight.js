@@ -482,7 +482,7 @@ class Twilight extends GameTemplate {
       this.cardgen_testing = false;
       this.clearCardgenTestBackup();
       try {
-        this.saveGame(game_id);
+        await this.saveGame(game_id);
       } catch (err) {
         console.error('cardgen test restore save failed', err);
       }
@@ -550,7 +550,7 @@ class Twilight extends GameTemplate {
     this.restartQueue();
   }
 
-  finishCustomCardTest() {
+  async finishCustomCardTest() {
     const snapshot = this._cardgen_test_snapshot || this.readCardgenTestBackup();
     this._cardgen_test_snapshot = null;
     this.cardgen_testing = false;
@@ -567,7 +567,7 @@ class Twilight extends GameTemplate {
 
     this.game = snapshot;
     try {
-      this.saveGame(this.game.id);
+      await this.saveGame(this.game.id);
     } catch (err) {
       console.error('cardgen test restore save failed', err);
     }
@@ -1719,7 +1719,7 @@ console.log("error here 222");
 console.log("LATEST MOVE: " + mv);
 
     if (mv[0] === TEST_COMPLETE) {
-      this.finishCustomCardTest();
+      await this.finishCustomCardTest();
       return 0;
     }
 
@@ -4853,7 +4853,7 @@ try {
   playerPickHeadlineCard() {
 
     let twilight_self = this;
-    if (this.browser_active == 0 && !this.app.HEADLESS) { return; }
+    if (!this.browser_active) { return; }
 
     let player = this.roles[this.game.player];
     let x = "";
@@ -5132,8 +5132,7 @@ async playerTurnHeadlineSelected(card, player) {
 
   playerTurn(selected_card=null) {
 
-
-    if (this.browser_active == 0 && !this.app.HEADLESS) { return; }
+    if (!this.browser_active) { return; }
 
     try {
       $(".easterneurope").removeClass("easterneurope");
@@ -7565,7 +7564,7 @@ async playerTurnHeadlineSelected(card, player) {
     // The runner and the server have no frame to paint. Send before endTurn
     // returns so the runner can wait on the in-flight move.
     //
-    if (this.app.HEADLESS || this.app.BROWSER == 0) {
+    if (!this.browser_active) {
       return dispatch();
     }
 
@@ -10438,7 +10437,7 @@ console.log("DISPLAY ERROR: " + JSON.stringify(err));
     // if VP are outstanding, do not update VP and trigger end
     //
     if (this.game.state.vp_outstanding != 0) { return; }
-    if (!this.browser_active && !this.app.HEADLESS) { return; }
+    if (!this.browser_active) { return; }
 
     let dt = 0;
     let dl = 0;
@@ -10457,7 +10456,7 @@ console.log("DISPLAY ERROR: " + JSON.stringify(err));
     }
 
 
-    if (this.app.BROWSER == 1) {
+    if (this.browser_active) {
       dt = this.scale(dt);
       dl = this.scale(dl);
 

@@ -532,13 +532,16 @@ class Realms extends GameTemplate {
                         realms_self.game.status = msg;
             realms_self.hud.updateStatus(realms_self.game.status);
             realms_self.hud.updateCards([]);
-            realms_self.hud.updateMenu(html, function (user_choice) {
+            realms_self.hud.updateMenu(html, async function (user_choice) {
 
               $('.option').off();
         let action = user_choice;
 
               if (realms_self.game.id != my_specific_game_id) {
-                realms_self.game = realms_self.loadGame(my_specific_game_id);
+                await realms_self.loadGame(my_specific_game_id);
+              }
+              if (realms_self.game?.id != my_specific_game_id) {
+                return;
               }
 
               // tell game engine we can move
@@ -559,7 +562,15 @@ class Realms extends GameTemplate {
                 //
                 // debugging -- maybe my move has arrived
                 //
-              setTimeout(() => { realms_self.processFutureMoves(); }, 5);
+              setTimeout(async () => {
+	        if (realms_self.game?.id != my_specific_game_id) {
+	          await realms_self.loadGame(my_specific_game_id);
+	        }
+	        if (realms_self.game?.id != my_specific_game_id) {
+	          return;
+	        }
+	        await realms_self.processFutureMoves();
+	      }, 5);
 
             });
 
@@ -619,10 +630,13 @@ class Realms extends GameTemplate {
 
                     let action = user_choice;
 
-                    setTimeout(() => {
+                    setTimeout(async () => {
 
                             if (realms_self.game.id != my_specific_game_id) {
-                              realms_self.game = realms_self.loadGame(my_specific_game_id);
+                              await realms_self.loadGame(my_specific_game_id);
+                            }
+                            if (realms_self.game?.id != my_specific_game_id) {
+                              return;
                             }
 
                             // tell game engine we can move
@@ -635,7 +649,7 @@ class Realms extends GameTemplate {
                             // that we have moves still pending, but should clear if it now finds
                             // UNHALT is the latest instruction and this resolve is coming from us!
                             //
-                            realms_self.processFutureMoves();
+                            await realms_self.processFutureMoves();
 
                     }, 5);
             });

@@ -230,7 +230,7 @@ class Scotland extends GameTemplate {
   ////////////////
   // initialize //
   ////////////////
-  initializeGame(game_id) {
+  async initializeGame(game_id) {
     //
     // initialize
     //
@@ -266,7 +266,7 @@ class Scotland extends GameTemplate {
     console.log(JSON.parse(JSON.stringify(this.game.state)));
 
     if (!this.browser_active) {
-      this.saveGame(this.game.id);
+      await this.saveGame(this.game.id);
       return;
     }
 

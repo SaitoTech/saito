@@ -1,36 +1,31 @@
-.gamebot-main,
-.gamebot-game {
+.gamebot-main {
+  display: flex;
+  flex-direction: column;
+  gap: var(--saito-space-lg);
+  max-width: 40rem;
   color: var(--saito-foreground);
   padding: var(--saito-space-lg);
 }
 
-.gamebot-main {
-  display: flex;
-  flex-direction: column;
-  gap: var(--saito-space-md);
-  max-width: 48rem;
-}
-
-.gamebot-lead {
-  margin: 0;
-}
-
 .gamebot-accept,
-.gamebot-response {
+.gamebot-open,
+.gamebot-manual {
   display: flex;
   flex-direction: column;
   gap: var(--saito-space-sm);
 }
 
 .gamebot-accept label,
-.gamebot-response label {
+.gamebot-open label,
+.gamebot-manual label {
   display: flex;
   flex-direction: column;
   gap: var(--saito-space-sm);
 }
 
 .gamebot-accept textarea,
-.gamebot-response input {
+.gamebot-open input,
+.gamebot-manual input {
   width: 100%;
   color: var(--saito-foreground);
   background: var(--saito-card);
@@ -39,34 +34,7 @@
   padding: var(--saito-space-sm);
 }
 
-.gamebot-game-list {
-  display: flex;
-  flex-direction: column;
-  gap: var(--saito-space-sm);
-}
-
-.gamebot-game-row {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  gap: var(--saito-space-sm);
-  align-items: center;
-  padding: var(--saito-space-sm);
-  background: var(--saito-card);
-  border: 1px solid var(--saito-border);
-  border-radius: var(--saito-radius);
-}
-
-.gamebot-game-meta {
-  grid-column: 1;
-}
-
-.gamebot-game-actions {
-  display: flex;
-  gap: var(--saito-space-sm);
-  grid-column: 2;
-  grid-row: 1 / span 2;
-}
-
 .gamebot-notice {
-  min-height: 1.2em;
+  min-height: 1.2rem;
+  margin: 0;
 }

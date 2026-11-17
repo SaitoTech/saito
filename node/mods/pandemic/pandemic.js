@@ -214,9 +214,9 @@ class Pandemic extends GameTemplate {
       text: `Classic ${this.game.options.theme == 'classic' ? '✔' : ''}`,
       id: 'game-confirm-easy',
       class: 'game-confirm-easy',
-      callback: function (app, game_mod) {
+      callback: async function (app, game_mod) {
         game_mod.game.options.theme = 'classic';
-        game_mod.saveGame(game_mod.game.id);
+        await game_mod.saveGame(game_mod.game.id);
         reloadWindow(500);
       }
     });
@@ -225,9 +225,9 @@ class Pandemic extends GameTemplate {
       text: `Retro ${this.game.options.theme == 'retro' ? '✔' : ''}`,
       id: 'game-confirm-medium',
       class: 'game-confirm-medium',
-      callback: function (app, game_mod) {
+      callback: async function (app, game_mod) {
         game_mod.game.options.theme = 'retro';
-        game_mod.saveGame(game_mod.game.id);
+        await game_mod.saveGame(game_mod.game.id);
         reloadWindow(500);
       }
     });
@@ -238,7 +238,7 @@ class Pandemic extends GameTemplate {
       class:"game-confirm-hard",
       callback: function(app,game_mod){
         game_mod.game.options.theme = "modern";
-        game_mod.saveGame(game_mod.game.id);
+        await game_mod.saveGame(game_mod.game.id);
        	reloadWindow(500); 
       
     });*/
@@ -1683,7 +1683,7 @@ class Pandemic extends GameTemplate {
     if (this.game.queue.length > 0) {
       console.log('State:');
       console.log(JSON.parse(JSON.stringify(this.game.state)));
-      //pandemic_self.saveGame(pandemic_self.game.id);
+      //await pandemic_self.saveGame(pandemic_self.game.id);
       pandemic_self.showBoard();
 
       let qe = this.game.queue.length - 1;
@@ -2842,7 +2842,7 @@ class Pandemic extends GameTemplate {
     return html;
   }
 
-  processResignation(resigning_player) {
+  async processResignation(resigning_player) {
     this.updateLog(`${resigning_player} quits the game, perhaps they fell ill?`);
     this.removeEvents();
 
@@ -2851,7 +2851,7 @@ class Pandemic extends GameTemplate {
     }
 
     this.game.over = 2;
-    this.saveGame(this.game.id);
+    await this.saveGame(this.game.id);
     this.triggerGameOver([], 'cancellation');
   }
 }

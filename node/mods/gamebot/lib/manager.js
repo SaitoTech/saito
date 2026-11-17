@@ -1,434 +1,310 @@
-const Transaction = require('../../../lib/saito/transaction').default;
-
-const LOG_LIMIT = 30;
-
-function decodeParam(value) {
-  try {
-    return decodeURIComponent(value);
-  } catch (err) {
-    return value;
-  }
-}
-
-function parseInvitation(text) {
-  const raw = String(text || '').trim();
-  if (!raw) {
-    return null;
-  }
-
-  if (raw.startsWith('{')) {
-    try {
-      const parsed = JSON.parse(raw);
-      if (parsed && (parsed.t || parsed.signature || parsed.msg)) {
-        return { serialized: raw };
-      }
-    } catch (err) {
-      return null;
-    }
-  }
-
-  let gameId = '';
-  let game = '';
-  try {
-    const url = new URL(raw, 'https://gamebot.local');
-    gameId = url.searchParams.get('game_id') || '';
-    game = url.searchParams.get('game') || '';
-  } catch (err) {
-    gameId = '';
-  }
-
-  if (!gameId) {
-    const idMatch = raw.match(/game_id=([^&\s]+)/);
-    const gameMatch = raw.match(/(?:^|[?&])game=([^&\s]+)/);
-    if (idMatch) {
-      gameId = decodeParam(idMatch[1]);
-      game = gameMatch ? decodeParam(gameMatch[1]) : '';
-    }
-  }
-
-  if (!gameId && /^[A-Za-z0-9+/=_-]{16,}$/.test(raw)) {
-    gameId = raw;
-  }
-
-  if (!gameId) {
-    return null;
-  }
-
-  return {
-    game_id: decodeParam(gameId),
-    game: decodeParam(game)
-  };
-}
-
-function plain(value) {
-  return String(value || '')
-    .replace(/<[^>]*>/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
-}
-
 class Manager {
   constructor(app, mod) {
     this.app = app;
     this.mod = mod;
-    this.logs = {};
-    this.onChange = null;
-    this.onNote = null;
+    this.active_game_mod = null;
+    this.view = null;
+    this.manual = null;
+    this.on_context = null;
     this.listening = false;
   }
 
-  async initialize() {
-    this.ensure();
-    this.watchInstalledGames();
-    this.listen();
-    this.sync();
-  }
-
-  ensure() {
-    if (!this.app.options) {
-      this.app.options = {};
+  listen() {
+    if (this.listening || !this.app.connection?.on) {
+      return;
     }
-    if (!this.app.options.gamebot) {
-      this.app.options.gamebot = {};
-    }
-    if (!this.app.options.gamebot.games) {
-      this.app.options.gamebot.games = {};
-    }
-    return this.app.options.gamebot.games;
+    this.listening = true;
+    this.app.connection.on('game-queue-stable', (payload) => {
+      const game_id = payload?.game_id;
+      if (!game_id) {
+        return;
+      }
+      this.examine_game_move(game_id).catch((err) => {
+        console.error('GameBot could not examine ' + game_id, err);
+      });
+    });
   }
 
-  save() {
-    this.app.storage?.saveOptions?.();
-  }
-
-  gameIdFromHash() {
-    if (typeof window === 'undefined') {
-      return '';
-    }
-    const raw = String(window.location.hash || '').replace(/^#/, '');
-    const params = new URLSearchParams(raw);
-    return params.get('gid') || '';
-  }
-
-  records() {
-    return Object.values(this.ensure()).sort((a, b) => (b.accepted_at || 0) - (a.accepted_at || 0));
-  }
-
-  gameModule(name) {
+  game_module(name) {
     if (!name) {
       return null;
     }
     return (
-      this.app.modules.returnModule(name) ||
-      this.app.modules.returnModuleBySlug?.(name) ||
+      this.app.modules?.returnModule?.(name) ||
+      this.app.modules?.returnModuleBySlug?.(String(name).toLowerCase()) ||
       null
     );
   }
 
-  watchInstalledGames() {
-    const mods = this.app.modules?.mods || [];
-    for (const gameMod of mods) {
-      if (gameMod?.hud) {
-        this.mod.dom.watch(gameMod);
-        this.watchSaves(gameMod);
+  async accept_game(invite_link) {
+    const arcade = this.app.modules?.returnModule?.('Arcade');
+    if (!arcade?.returnGameInvite || !arcade?.sendJoinTransaction) {
+      throw new Error('Arcade is not available');
+    }
+
+    const raw = String(invite_link || '').trim();
+    let game_id = '';
+    let game_name = '';
+    try {
+      const url = new URL(raw);
+      game_id = url.searchParams.get('game_id') || '';
+      game_name = url.searchParams.get('game') || '';
+    } catch (err) {
+      const id_match = raw.match(/game_id=([^&\s]+)/);
+      const game_match = raw.match(/(?:^|[?&])game=([^&\s]+)/);
+      if (id_match) {
+        try {
+          game_id = decodeURIComponent(id_match[1]);
+        } catch (decode_err) {
+          game_id = id_match[1];
+        }
+        if (game_match) {
+          try {
+            game_name = decodeURIComponent(game_match[1]);
+          } catch (decode_err) {
+            game_name = game_match[1];
+          }
+        }
       }
     }
-  }
-
-  watchSaves(gameMod) {
-    if (!gameMod || gameMod.gamebotSaveWrapped || typeof gameMod.saveGame !== 'function') {
-      return;
-    }
-    const save = gameMod.saveGame.bind(gameMod);
-    gameMod.saveGame = (gameId) => {
-      const result = save(gameId);
-      try {
-        this.onGameSaved(gameMod, gameId);
-      } catch (err) {
-        console.error('GameBot could not record the saved game', err);
-      }
-      return result;
-    };
-    gameMod.gamebotSaveWrapped = true;
-  }
-
-  listen() {
-    if (this.listening) {
-      return;
-    }
-    this.listening = true;
-
-    this.app.connection.on('arcade-notify-player-turn', (gameId, target, status) => {
-      const record = this.ensure()[gameId];
-      if (!record) {
-        return;
-      }
-      record.target = target;
-      this.append(gameId, {
-        kind: 'activity',
-        text: plain(status) || 'turn notice',
-        target
-      });
-      this.sync();
-    });
-
-    this.app.connection.on('arcade-invite-manager-render-request', () => {
-      this.sync();
-    });
-
-    this.app.connection.on('chat-popup-render-request', (group) => {
-      this.noteChat(group);
-    });
-  }
-
-  noteChat(group) {
-    const members = group?.members || [];
-    if (!members.length) {
-      return;
-    }
-    const games = this.app.options?.games || [];
-    for (const record of this.records()) {
-      const live = games.find((game) => game.id === record.id);
-      const players = live?.players || live?.accepted || [];
-      const involved = players.some(
-        (key) => members.includes(key) && key !== this.mod.publicKey
-      );
-      if (!involved) {
-        continue;
-      }
-      this.append(record.id, {
-        kind: 'activity',
-        text: 'chat: ' + (plain(latestChat(group)) || 'message')
-      });
-    }
-  }
-
-  async acceptInvitation(text) {
-    const arcade = this.app.modules.returnModule('Arcade');
-    if (!arcade) {
-      throw new Error('Arcade is not installed');
+    if (!game_id) {
+      throw new Error('Paste an Arcade invite link');
     }
 
-    const parsed = parseInvitation(text);
-    if (!parsed) {
-      throw new Error('Paste an Arcade invite link or a game id');
+    const found = await arcade.returnGameInvite(game_id, game_name);
+    if (!found?.game_tx || found.from_archive) {
+      throw new Error('No open invitation found for that link');
     }
-
-    let gameTx = null;
-    if (parsed.serialized) {
-      gameTx = new Transaction();
-      gameTx.deserialize_from_web(this.app, parsed.serialized);
-      if (!gameTx.signature) {
-        throw new Error('That text is not a game invitation');
-      }
-    } else {
-      const found = await arcade.returnGameInvite(parsed.game_id, parsed.game);
-      if (!found?.game_tx) {
-        throw new Error('No invitation found for that link');
-      }
-      if (found.from_archive) {
-        throw new Error('That id is archived history, not an open invitation');
-      }
-      gameTx = found.game_tx;
-    }
-
-    const message = gameTx.returnMessage?.() || gameTx.msg;
-    if (!message?.game) {
+    const message = found.game_tx.returnMessage?.() || found.game_tx.msg || {};
+    if (!message.game) {
       throw new Error('The invitation has no game module');
     }
-
-    const gameMod = this.gameModule(message.game);
-    if (!gameMod) {
-      throw new Error(message.game + ' is not installed on this node');
-    }
-    this.mod.dom.watch(gameMod);
-    this.watchSaves(gameMod);
-
-    const openTable = message.request === 'active' && message.options?.['open-table'];
-    if (openTable) {
-      if (typeof gameMod.requestSeatAtTable !== 'function') {
-        throw new Error('This open table cannot be joined from GameBot');
-      }
-      await gameMod.requestSeatAtTable(gameTx);
-    } else if (typeof arcade.isAvailableGame === 'function' && !arcade.isAvailableGame(gameTx)) {
-      throw new Error('That invitation is not open (' + (message.request || 'unknown') + ')');
-    } else {
-      if (message.options && typeof message.options === 'object') {
-        message.options.desired_opponent_publickey = this.mod.publicKey;
-      }
-      arcade.addInviteRecord?.(gameTx);
-      await arcade.sendJoinTransaction({ tx: gameTx });
+    if (this.game_module(message.game) == null && this.game_module(game_name) == null) {
+      throw new Error(message.game + ' is not installed');
     }
 
-    const id = gameTx.signature;
-    const records = this.ensure();
-    records[id] = {
-      id,
-      module: message.game,
-      status: 'joining',
-      accepted_at: Date.now()
+    const open_table = message.request === 'active' && message.options?.['open-table'];
+    const table_mod = open_table ? this.game_module(message.game) : null;
+    if (open_table && typeof table_mod?.requestSeatAtTable !== 'function') {
+      throw new Error('This open table cannot be joined');
+    }
+    if (!open_table && typeof arcade.isAvailableGame === 'function' && !arcade.isAvailableGame(found.game_tx)) {
+      throw new Error('That invitation is not open');
+    }
+    if (!open_table && message.options && typeof message.options === 'object') {
+      message.options.desired_opponent_publickey = this.mod.publicKey;
+    }
+    if (!open_table) {
+      arcade.addInviteRecord?.(found.game_tx);
+    }
+
+    const accepted_id = found.game_tx.signature || game_id;
+    if (this.game_initialized(accepted_id)) {
+      return accepted_id;
+    }
+
+    let settled = false;
+    let resolve_ready = () => {};
+    const ready = new Promise((resolve) => {
+      resolve_ready = resolve;
+    });
+    const on_ready = (payload) => {
+      if (payload?.id !== accepted_id) {
+        return;
+      }
+      settled = true;
+      this.app.connection.off('arcade-game-ready-render-request', on_ready);
+      resolve_ready();
     };
-    this.save();
-    this.sync();
-    this.onChange?.();
-    return records[id];
-  }
+    if (this.app.connection?.on) {
+      this.app.connection.on('arcade-game-ready-render-request', on_ready);
+    }
 
-  async cancel(gameId) {
-    const record = this.ensure()[gameId];
-    if (!record) {
-      throw new Error('GameBot is not tracking that game');
-    }
-    const arcade = this.app.modules.returnModule('Arcade');
-    if (!arcade?.sendCancelTransaction) {
-      throw new Error('Arcade cannot cancel this invitation');
-    }
-    if (arcade.returnGame && !arcade.returnGame(gameId)) {
-      throw new Error('Arcade does not have that invitation');
-    }
-    await arcade.sendCancelTransaction(gameId);
-    record.status = 'cancelled';
-    this.save();
-    this.onChange?.();
-  }
-
-  async forfeit(gameId) {
-    const record = this.ensure()[gameId];
-    if (!record) {
-      throw new Error('GameBot is not tracking that game');
-    }
-    const gameMod = this.gameModule(record.module);
-    if (!gameMod) {
-      throw new Error(record.module + ' is not installed');
-    }
-    this.app.connection.emit('arcade-stop-game', gameMod.name, gameId, 'forfeit');
-    record.status = 'forfeit';
-    this.save();
-    this.onChange?.();
-  }
-
-  sync() {
-    const records = this.ensure();
-    let changed = false;
-    for (const game of this.app.options?.games || []) {
-      const record = records[game.id];
-      if (!record) {
-        continue;
+    try {
+      if (open_table) {
+        await table_mod.requestSeatAtTable(found.game_tx);
+      } else {
+        await arcade.sendJoinTransaction({ tx: found.game_tx });
       }
-      const status = game.over ? 'over' : 'active';
-      if (record.status !== status && record.status !== 'forfeit' && record.status !== 'cancelled') {
-        record.status = status;
-        record.module = game.module || record.module;
-        changed = true;
+    } catch (err) {
+      this.app.connection?.off?.('arcade-game-ready-render-request', on_ready);
+      throw err;
+    }
+
+    if (!settled && this.game_initialized(accepted_id)) {
+      this.app.connection?.off?.('arcade-game-ready-render-request', on_ready);
+      settled = true;
+    }
+    if (!settled) {
+      if (!this.app.connection?.on) {
+        throw new Error('The game was not initialized');
       }
-      record.target = game.target;
-      record.player = game.player;
+      await ready;
     }
-    if (changed) {
-      this.save();
-      this.onChange?.();
-    }
+    return accepted_id;
   }
 
-  onGameSaved(gameMod, gameId) {
-    const record = this.ensure()[gameId];
-    if (!record || !gameMod?.game || gameMod.game.id !== gameId) {
-      return;
+  async open_game(game_id) {
+    const id = String(game_id || '').trim();
+    const stored = (this.app.options?.games || []).find((game) => game.id === id);
+    if (!stored) {
+      throw new Error('No local game has that id');
     }
-    const status = gameMod.game.over ? 'over' : 'active';
-    if (record.status !== status && record.status !== 'forfeit' && record.status !== 'cancelled') {
-      record.status = status;
-      this.save();
-      this.onChange?.();
-    }
-    const analysis = this.mod.ai.analyseMove(gameMod, this.mod.dom.interactions(gameMod));
-    this.append(gameId, { kind: 'context', analysis });
+    return id;
   }
 
-  log(gameId) {
-    if (!this.logs[gameId]) {
-      this.logs[gameId] = [];
+  async examine_game_move(game_id) {
+    const game_mod = await this.prepare_game(game_id);
+    if (!game_mod) {
+      this.view = { game_id, context: null, clickable_items: [], context_error: 'That game is not on this node' };
+      this.on_context?.(game_id);
+      return this.view;
     }
-    return this.logs[gameId];
+
+    let context = null;
+    let context_error = '';
+    try {
+      context = game_mod.returnContext?.() ?? null;
+    } catch (err) {
+      context_error = err?.message || 'returnContext() failed';
+    }
+
+    const clickable_items = this.mod.jsdom.get_clickable_items();
+    const stored = (this.app.options?.games || []).find((game) => game.id === game_id);
+    this.view = {
+      game_id,
+      module_name: stored?.module || game_mod.name || '',
+      slug: game_mod.returnSlug?.() || game_mod.slug || '',
+      context,
+      context_error,
+      clickable_items
+    };
+    this.on_context?.(game_id);
+
+    if (!context_error) {
+      const analysis = await this.mod.ai.submit_analysis({
+        game_id,
+        context,
+        clickable_items
+      });
+      await this.receive_ai_analysis(game_id, analysis);
+    }
+    return this.view;
   }
 
-  append(gameId, entry) {
-    const log = this.log(gameId);
-    if (entry.kind === 'activity') {
-      const previous = log[log.length - 1];
-      if (previous?.kind === 'activity' && previous.text === entry.text) {
-        return previous;
-      }
+  async receive_manual_input(game_id, input) {
+    const text = String(input ?? '');
+    const instruction = text.trim();
+    if (!instruction) {
+      return this.record_manual(game_id, {
+        input: text,
+        processed: false,
+        response: 'Type an instruction'
+      });
     }
-    if (entry.kind === 'context') {
-      let serialized = null;
-      try {
-        serialized = JSON.stringify(entry.analysis?.context ?? null);
-      } catch (err) {
-        serialized = null;
-      }
-      if (serialized != null) {
-        const previous = [...log].reverse().find((item) => item.kind === 'context');
-        if (previous && previous.serialized === serialized) {
-          return previous;
-        }
-        entry.serialized = serialized;
-      }
+
+    const game_mod = await this.prepare_game(game_id);
+    if (!game_mod) {
+      return this.record_manual(game_id, {
+        input: instruction,
+        processed: false,
+        response: 'That game is not on this node'
+      });
     }
-    entry.seq = log.length + 1;
-    entry.at = new Date().toISOString();
-    log.push(entry);
-    if (log.length > LOG_LIMIT) {
-      log.splice(0, log.length - LOG_LIMIT);
+
+    let context = null;
+    try {
+      context = game_mod.returnContext?.() ?? null;
+    } catch (err) {
+      context = null;
     }
-    this.onNote?.(gameId, entry);
-    return entry;
+    const analysis = await this.mod.ai.submit_analysis({
+      game_id,
+      instruction,
+      context,
+      clickable_items: this.mod.jsdom.get_clickable_items()
+    });
+
+    let executed = null;
+    try {
+      executed = await this.receive_ai_analysis(game_id, analysis);
+    } catch (err) {
+      return this.record_manual(game_id, {
+        input: instruction,
+        processed: false,
+        response: err.message || 'The instruction could not be processed'
+      });
+    }
+
+    if (!executed) {
+      return this.record_manual(game_id, {
+        input: instruction,
+        processed: false,
+        response: 'No AI is configured to interpret this instruction'
+      });
+    }
+    return this.record_manual(game_id, {
+      input: instruction,
+      processed: true,
+      response: 'Executed ' + executed
+    });
   }
 
-  captureContext(gameId) {
-    const record = this.ensure()[gameId];
-    if (!record) {
+  async execute_clickable_item(game_id, identifier) {
+    const game_mod = await this.prepare_game(game_id);
+    if (!game_mod) {
+      throw new Error('That game is not on this node');
+    }
+    await this.mod.jsdom.execute_click(identifier);
+    return this.examine_game_move(game_id);
+  }
+
+  async receive_ai_analysis(game_id, analysis) {
+    const identifier = String(analysis?.identifier || '').trim();
+    if (!identifier || (analysis?.game_id && analysis.game_id !== game_id)) {
       return null;
     }
-    const gameMod = this.gameModule(record.module);
-    if (!gameMod) {
+    const game_mod = await this.prepare_game(game_id);
+    if (!game_mod) {
       return null;
     }
-    this.mod.dom.watch(gameMod);
-    this.watchSaves(gameMod);
-    const live = (this.app.options?.games || []).find((game) => game.id === gameId);
-    if (live && gameMod.game?.id !== gameId && typeof gameMod.loadGame === 'function') {
-      gameMod.loadGame(gameId);
+    const items = this.mod.jsdom.get_clickable_items();
+    if (!items.some((item) => item.identifier === identifier)) {
+      return null;
     }
-    if (gameMod.game?.id !== gameId) {
-      return { record, gameMod, analysis: null };
-    }
-    const analysis = this.mod.ai.analyseMove(gameMod, this.mod.dom.interactions(gameMod));
-    this.append(gameId, { kind: 'context', analysis });
-    return { record, gameMod, analysis };
+    await this.mod.jsdom.execute_click(identifier);
+    return identifier;
   }
-}
 
-function latestChat(group) {
-  const txs = group?.txs;
-  if (!Array.isArray(txs) || !txs.length) {
-    return '';
+  record_manual(game_id, reply) {
+    this.manual = { game_id, ...reply };
+    this.on_context?.(game_id);
+    return this.manual;
   }
-  const last = txs[txs.length - 1];
-  if (typeof last === 'string') {
-    return last;
+
+  async prepare_game(game_id) {
+    const stored = (this.app.options?.games || []).find((game) => game.id === game_id);
+    const game_mod = this.game_module(stored?.module);
+    if (!game_mod) {
+      this.active_game_mod = null;
+      return null;
+    }
+    this.active_game_mod = game_mod;
+
+    if (!this.app.BROWSER && typeof game_mod.loadGameWithJSDOM === 'function') {
+      if (game_mod.uses_jsdom != 1 || game_mod.game?.id !== game_id) {
+        await game_mod.loadGameWithJSDOM(game_id);
+      }
+    } else if (game_mod.game?.id !== game_id && typeof game_mod.loadGame === 'function') {
+      await game_mod.loadGame(game_id);
+    }
+    return game_mod;
   }
-  if (typeof last?.message === 'string') {
-    return last.message;
+
+  game_initialized(game_id) {
+    const game_mod = (this.app.modules?.mods || []).find((mod) => mod?.game?.id === game_id);
+    return game_mod != null && Number(game_mod.game.initializing) === 0;
   }
-  if (typeof last?.msg === 'string') {
-    return last.msg;
-  }
-  if (typeof last?.msg?.message === 'string') {
-    return last.msg.message;
-  }
-  return '';
 }
 
 module.exports = Manager;
-module.exports.parseInvitation = parseInvitation;
