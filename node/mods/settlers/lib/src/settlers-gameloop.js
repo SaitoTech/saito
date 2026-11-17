@@ -13,7 +13,7 @@ class SettlersGameloop {
       //
       // catch win condition
       //
-      if (this.app.HEADLESS) this.updateScore();
+      this.updateScore();
       if (this.browser_active) {
         this.displayPlayers(); //Is it enough to update the player huds each iteration, board doesn't get redrawn at all?
       }
@@ -38,8 +38,8 @@ class SettlersGameloop {
         //
         this.status = [];
 
-        if (!this.app.HEADLESS) $('.dark').css('background-color', 'unset');
-        if (!this.app.HEADLESS) $('#settlers-hud-controls .option').css('visibility', 'visible');
+        $('.dark').css('background-color', 'unset');
+        $('#settlers-hud-controls .option').css('visibility', 'visible');
         return 1;
       }
 
@@ -79,7 +79,7 @@ class SettlersGameloop {
         // because it creates information in generateMap
         // that disappears,
         //
-        this.saveGame(this.game.id);
+        await this.saveGame(this.game.id);
         return 1;
       }
 
@@ -123,9 +123,9 @@ class SettlersGameloop {
           this.hud.updateStatus(this.game.status);
           this.hud.updateMenu([]);
           this.hud.updateCards([]);
-          return this.app.HEADLESS ? 1 : 0;
+          return 0;
         } else {
-          if (!this.app.HEADLESS) $('#settlers-hud-controls #playcard').addClass('enabled').addClass('flashme');
+          $('#settlers-hud-controls #playcard').addClass('enabled').addClass('flashme');
 
           let lastcard =
             this.game.deck[0].cards[this.game.deck[0].hand[this.game.deck[0].hand.length - 1]];
@@ -466,9 +466,9 @@ class SettlersGameloop {
             this.animateHarvest(player, bounty, hextile);
           }
         }
-        if (!this.app.HEADLESS) this.runAnimationQueue();
+        this.runAnimationQueue();
         this.updateLog(logMsg);
-        return this.app.HEADLESS ? 1 : 0;
+        return 0;
       }
 
       //Allow other players to update board status
@@ -580,7 +580,6 @@ class SettlersGameloop {
             //Player exchanges city for town
             this.game.state.players[player - 1].cities--;
             this.game.state.players[player - 1].towns++;
-            if (this.app.HEADLESS) return 1;
             let divname = '#' + slot;
 
             $(divname)
@@ -831,21 +830,17 @@ class SettlersGameloop {
         this.playerbox.setActive(player);
 
         this.setToolbarState('');
-        if (this.app.HEADLESS) {
-          if (this.game.player == player) this.runner.setDecision('roll');
-          return 0;
-        }
 
         if (this.game.player == player) {
           //Messaging to User
           let statushtml = 'ROLL DICE:';
 
-          if (!this.app.HEADLESS) $('#rolldice').html(`<i class="fa-solid fa-dice"></i>`);
-          if (!this.app.HEADLESS) $('#rolldice').addClass('enabled');
+          $('#rolldice').html(`<i class="fa-solid fa-dice"></i>`);
+          $('#rolldice').addClass('enabled');
 
           let timer = 3000;
           if (this.canPlayerPlayCard(true)) {
-            if (!this.app.HEADLESS) $('#playcard').addClass('enabled');
+            $('#playcard').addClass('enabled');
             statushtml = 'YOUR TURN:';
             timer = 5000;
           }
@@ -1015,12 +1010,9 @@ class SettlersGameloop {
             discardString += `${this.game.playerNames[i - 1]}`;
             confirmsNeeded++;
             if (this.game.player == i) {
-              if (this.app.HEADLESS) this.runner.setDecision('discard');
-              else {
-                this.addMove('RESOLVE\t' + this.publicKey);
-                this.discard.discardString = discardString;
-                this.discard.render();
-              }
+              this.addMove('RESOLVE\t' + this.publicKey);
+              this.discard.discardString = discardString;
+              this.discard.render();
               amIPlaying = true;
             }
           }
@@ -1065,7 +1057,7 @@ class SettlersGameloop {
             this.hud.updateCards([]);
           } else {
                         this.updateStatus(`ROBIN HOOD is on the loose, ${this.game.playerNames[player - 1]} moving him...`);
-            if (!this.app.HEADLESS) $('#settlers-hud-controls .option').css('visibility', 'hidden');
+            $('#settlers-hud-controls .option').css('visibility', 'hidden');
           }
         }
         return 0;
@@ -1078,8 +1070,8 @@ class SettlersGameloop {
         this.game.queue.splice(qe, 1);
 
         //Move Bandit in DOM
-        if (!this.app.HEADLESS) $('.bandit').removeClass('bandit');
-        if (!this.app.HEADLESS) $('#' + hex).addClass('bandit');
+        $('.bandit').removeClass('bandit');
+        $('#' + hex).addClass('bandit');
         let temp = hex.split('_'); // sector_value_3_3
         let hexId = temp[2] + '_' + temp[3];
 
@@ -1214,8 +1206,8 @@ class SettlersGameloop {
         this.game.state.canTrade = false;
         this.game.queue.splice(qe - 1, 2);
         console.log('CLEAR FORMATTING!!!!');
-        if (!this.app.HEADLESS) $('.sector_value').attr('style', '');
-        if (!this.app.HEADLESS) $('.rolled').removeClass('rolled');
+        $('.sector_value').attr('style', '');
+        $('.rolled').removeClass('rolled');
         return 1;
       }
     }

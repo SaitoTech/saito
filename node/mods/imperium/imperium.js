@@ -12245,7 +12245,7 @@ console.log("qe: " + qe);
 //
 // dan's new logic will call initializeGame every time a game move is received
 //
-//    this.loadGame(game_id);
+//    await this.loadGame(game_id);
 
     if (this.game.status != "") {     this.hud.prepareIdle(this.game.status); }
   
@@ -14031,7 +14031,7 @@ console.log("#");
 
     if (this.game.queue.length > 0) {
 
-      imperium_self.saveGame(imperium_self.game.id);
+      await imperium_self.saveGame(imperium_self.game.id);
 
       let qe = this.game.queue.length-1;
       let mv = this.game.queue[qe].split("\t");
@@ -14042,7 +14042,7 @@ console.log("#");
   	  salert("Game Over");
   	}
   	imperium_self.game.over = 1;
-  	imperium_self.saveGame(imperium_self.game.id);
+  	await imperium_self.saveGame(imperium_self.game.id);
   	return;
       }
 

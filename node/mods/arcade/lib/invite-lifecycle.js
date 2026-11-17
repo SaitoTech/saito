@@ -1226,7 +1226,7 @@ module.exports = {
     });
   },
 
-  purge() {
+  async purge() {
     const INVITE_CUTOFF = 2000000; // 30 minutes
     const GAME_CUTOFF = 600000000;
 
@@ -1272,13 +1272,16 @@ module.exports = {
     }
 
     // --- Purge malformed wallet games (from purgeBadGamesFromWallet) ---
+    let removed_game_ids = [];
     if (this.app.options.games) {
       for (let i = this.app.options.games.length - 1; i >= 0; i--) {
         if (this.app.options.games[i].module === '' && this.app.options.games[i].id.length < 25) {
+          removed_game_ids.push(this.app.options.games[i].id);
           this.app.options.games.splice(i, 1);
           walletModified = true;
         } else if (this.app.options.games[i].players_set == 0) {
           //This will be games created but not fully initialized for whatever reason
+          removed_game_ids.push(this.app.options.games[i].id);
           this.app.options.games.splice(i, 1);
           walletModified = true;
         }
@@ -1292,10 +1295,17 @@ module.exports = {
         if (g.over >= 1) {
           if (g.timestamp < now - 240000) {
             // after 1 hour
+            removed_game_ids.push(g.id);
             this.app.options.games.splice(i, 1);
             walletModified = true;
           }
         }
+      }
+    }
+
+    for (let i = 0; i < removed_game_ids.length; i++) {
+      if (removed_game_ids[i]) {
+        await this.app.storage.deleteDataFile('games', removed_game_ids[i]);
       }
     }
 
@@ -1318,7 +1328,7 @@ module.exports = {
     this.app.storage.saveOptions();
   },
 
-  removeGameFromWallet(game_id) {
+  async removeGameFromWallet(game_id) {
     this.removeInviteRecord(game_id);
     if (this.app.options.games) {
       for (let i = 0; i < this.app.options.games.length; i++) {
@@ -1327,6 +1337,9 @@ module.exports = {
           break;
         }
       }
+    }
+    if (game_id) {
+      await this.app.storage.deleteDataFile('games', game_id);
     }
     this.app.storage.saveOptions();
     this.renderInvites();

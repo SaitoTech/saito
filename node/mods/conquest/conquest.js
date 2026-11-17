@@ -117,7 +117,7 @@ class Conquest extends GameTemplate {
     return '';
   }
 
-  initializeGame() {
+  async initializeGame() {
     if (!this.game.conquestInitialized) {
       this.initializeDice();
       this.game.conquestRevision = 0;
@@ -132,7 +132,7 @@ class Conquest extends GameTemplate {
       this.game.queue.push('CONQUEST_WAIT');
       this.game.queue.push('READY');
       this.game.queue.push(`DECKANDENCRYPT\t1\t${this.game.players.length}\t${JSON.stringify(Engine.cards)}`);
-      this.saveGame(this.game.id);
+      await this.saveGame(this.game.id);
     }
     this.game.target = this.game.state.currentPlayer;
     this.mountConquest();
@@ -196,7 +196,7 @@ class Conquest extends GameTemplate {
       if (this.needsRandom(action)) {
         const secret = this.randomSecret();
         this.game.conquestSecret = { revision: this.game.conquestRevision, secret };
-        this.saveGame(this.game.id); // Persist BEFORE sending, so reload can reveal.
+        await this.saveGame(this.game.id); // Persist BEFORE sending, so reload can reveal.
         await this.broadcast('CONQUEST_COMMIT', { action, commitment: this.app.crypto.hash(secret) });
       } else {
         await this.broadcast('CONQUEST_ACTION', { action });
@@ -223,7 +223,7 @@ class Conquest extends GameTemplate {
         if (!this.responseSent.has(key)) {
           this.responseSent.add(key);
           this.game.conquestEntropy = this.game.conquestEntropy?.id === pending.id ? this.game.conquestEntropy : { id: pending.id, value: this.randomSecret() };
-          this.saveGame(this.game.id);
+          await this.saveGame(this.game.id);
           await this.broadcast('CONQUEST_ENTROPY', { id: pending.id, value: this.game.conquestEntropy.value });
         }
       } else if (pending.entropy && this.game.player === pending.player) {
@@ -277,7 +277,7 @@ class Conquest extends GameTemplate {
         this.game.queue.push(`SAFEDEAL\t1\t${draw.player}\t${draw.count}`);
       }
     }
-    this.saveGame(this.game.id);
+    await this.saveGame(this.game.id);
     this.mountConquest();
     // Every client (including defenders and observers) finishes playback before
     // processing another queue action or opening the game-over overlay.
@@ -339,7 +339,7 @@ class Conquest extends GameTemplate {
       this.conquestSending = false;
       console.warn('Conquest rejected command:', error.message);
     }
-    this.saveGame(this.game.id);
+    await this.saveGame(this.game.id);
     this.mountConquest();
     return 1;
   }

@@ -225,7 +225,7 @@ class LevelSaves {
     await this.archive(tx, 'localhost');
   }
 
-  restore(tx = this.latest) {
+  async restore(tx = this.latest) {
     if (!tx || !this.valid(tx)) return false;
     const checkpoint = tx.returnMessage().checkpoint;
     // Retain the active Arcade identity and unused payment receipt. Restoring an
@@ -236,7 +236,7 @@ class LevelSaves {
     this.mod.game.dice = checkpoint.dice;
     this.mod.game.queue = ['robots-play'];
     this.mod.game.over = 0;
-    this.mod.saveGame(this.mod.game.id);
+    await this.mod.saveGame(this.mod.game.id);
     return true;
   }
 }

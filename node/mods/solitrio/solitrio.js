@@ -198,14 +198,14 @@ class Solitrio extends OnePlayerGameTemplate {
 	  survive a page refresh. initializeGame restores them and handToBoard
 	  replays them on top of the last synced hand.
 	*/
-  savePendingMoves() {
+  async savePendingMoves() {
     this.game.pending_moves = this.moves.slice();
-    this.saveGame(this.game.id);
+    await this.saveGame(this.game.id);
   }
 
   async endTurn(nextTarget = 0) {
     this.game.pending_moves = [];
-    this.saveGame(this.game.id);
+    await this.saveGame(this.game.id);
     return super.endTurn(nextTarget);
   }
 
@@ -634,8 +634,8 @@ class Solitrio extends OnePlayerGameTemplate {
     return 10 * (parseInt(x) - 1) + parseInt(y) - 1;
   }
 
-  handleGameLoop(msg = null) {
-    this.saveGame(this.game.id);
+  async handleGameLoop(msg = null) {
+    await this.saveGame(this.game.id);
     ///////////
     // QUEUE //
     ///////////

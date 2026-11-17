@@ -212,9 +212,7 @@ class Quake3 extends GameTemplate {
   }
 
   initialize(app) {
-    if (app.BROWSER == 0) {
-      return;
-    }
+
     super.initialize(app);
 
     if (this.browser_active) {
@@ -364,20 +362,19 @@ class Quake3 extends GameTemplate {
   }
 
   onPeerHandshakeComplete(app, peer) {
-    if (app.BROWSER == 0 || !document) {
+    if (!this.browser_active || !document) {
       return;
     }
-    if (this.browser_active == 1) {
-      if (document.querySelector('.chat-input')) {
-        let c = document.querySelector('.chat-input');
-        if (c) {
-          c.placeholder = 'typing T activates chat...';
-        }
+    if (document.querySelector('.chat-input')) {
+      let c = document.querySelector('.chat-input');
+      if (c) {
+        c.placeholder = 'typing T activates chat...';
       }
     }
   }
 
   async render(app) {
+
     if (this.browser_active != 1) {
       return;
     }
@@ -424,15 +421,13 @@ class Quake3 extends GameTemplate {
     this.menu.addChatMenu();
     this.menu.render();
 
-    if (app.BROWSER) {
-      if (this.game.options.server === 'as') {
-        this.content_server = 'q3.saito.io';
-        this.game_server = 'q3.saito.io:27960';
-      }
-      if (this.game.options.server === 'na') {
-        this.content_server = 'q3-us.saito.io';
-        this.game_server = 'q3-us.saito.io:27959';
-      }
+    if (this.game.options.server === 'as') {
+      this.content_server = 'q3.saito.io';
+      this.game_server = 'q3.saito.io:27960';
+    }
+    if (this.game.options.server === 'na') {
+      this.content_server = 'q3-us.saito.io';
+      this.game_server = 'q3-us.saito.io:27959';
     }
 
     //

@@ -35,7 +35,7 @@ class Mahjong extends OnePlayerGameTemplate {
   //
   // runs the first time the game is created / initialized
   //
-  initializeGame(game_id) {
+  async initializeGame(game_id) {
     console.log('GAMEID: ' + game_id);
 
     //
@@ -52,7 +52,7 @@ class Mahjong extends OnePlayerGameTemplate {
       this.game.queue.push('READY');
     }
 
-    this.saveGame(this.game.id);
+    await this.saveGame(this.game.id);
   }
 
   //

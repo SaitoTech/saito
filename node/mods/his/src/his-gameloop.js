@@ -5822,13 +5822,16 @@ console.log("index_to_insert_moves: " + index_to_insert_moves);
                         his_self.game.status = msg;
             his_self.hud.updateStatus(his_self.game.status);
             his_self.hud.updateCards([]);
-            his_self.hud.updateMenu(html, function (user_choice) {
+            his_self.hud.updateMenu(html, async function (user_choice) {
 
               $('.option').off();
         let action = user_choice;
 
               if (his_self.game.id != my_specific_game_id) {
-                his_self.game = his_self.loadGame(my_specific_game_id);
+                await his_self.loadGame(my_specific_game_id);
+              }
+              if (his_self.game?.id != my_specific_game_id) {
+                return;
               }
 
 	      // tell game engine we can move
@@ -5849,7 +5852,15 @@ console.log("index_to_insert_moves: " + index_to_insert_moves);
 		//
 		// debugging -- maybe my move has arrived 
 		//
-	      setTimeout(() => { his_self.processFutureMoves(); }, 5);
+	      setTimeout(async () => {
+	        if (his_self.game?.id != my_specific_game_id) {
+	          await his_self.loadGame(my_specific_game_id);
+	        }
+	        if (his_self.game?.id != my_specific_game_id) {
+	          return;
+	        }
+	        await his_self.processFutureMoves();
+	      }, 5);
 
 	    });
 
@@ -5967,10 +5978,13 @@ console.log("index_to_insert_moves: " + index_to_insert_moves);
 
                     let action = user_choice;
                 
-  		    setTimeout(() => {
+  		    setTimeout(async () => {
 
                 	    if (his_self.game.id != my_specific_game_id) {
-                	      his_self.game = his_self.loadGame(my_specific_game_id);
+                	      await his_self.loadGame(my_specific_game_id);
+                	    }
+                	    if (his_self.game?.id != my_specific_game_id) {
+                	      return;
                 	    }
 
                 	    // tell game engine we can move
@@ -5983,7 +5997,7 @@ console.log("index_to_insert_moves: " + index_to_insert_moves);
                 	    // that we have moves still pending, but should clear if it now finds
                 	    // UNHALT is the latest instruction and this resolve is coming from us!
                 	    //
-                	    his_self.processFutureMoves();
+                	    await his_self.processFutureMoves();
 
 		    }, 5);
 	    });

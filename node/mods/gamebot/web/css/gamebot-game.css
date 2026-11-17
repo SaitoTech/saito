@@ -1,82 +1,54 @@
-.gamebot-game {
-  display: grid;
-  grid-template-columns: minmax(16rem, 1fr) minmax(22rem, 1.3fr);
-  gap: var(--saito-space-lg);
-  align-items: start;
+.gamebot-stage {
+  position: relative;
+  min-height: calc(100vh - 4rem);
 }
 
-.gamebot-game-toolbar {
-  display: flex;
-  gap: var(--saito-space-sm);
-  align-items: center;
-}
-
-.gamebot-game-heading {
-  margin: 0;
-  font-size: 1.4rem;
-}
-
-.gamebot-board-frame {
+.gamebot-game-frame {
+  position: absolute;
+  inset: 0;
   width: 100%;
-  min-height: 24rem;
-  border: 1px solid var(--saito-border);
-  border-radius: var(--saito-radius);
-  background: var(--saito-card);
+  height: 100%;
+  border: 0;
+  background: var(--saito-background);
 }
 
-.gamebot-board-note {
-  margin: var(--saito-space-sm) 0 0;
-}
-
-.gamebot-log {
-  height: 32rem;
-  overflow: auto;
-  padding: var(--saito-space-sm);
-  background: var(--saito-card);
-  border: 1px solid var(--saito-border);
-  border-radius: var(--saito-radius);
-}
-
-.gamebot-log-entry {
-  padding-bottom: var(--saito-space-md);
-  margin-bottom: var(--saito-space-md);
-  border-bottom: 1px solid var(--saito-border);
-}
-
-.gamebot-log-entry header {
-  font-weight: 600;
-}
-
-.gamebot-log-entry pre {
-  white-space: pre-wrap;
-  word-break: break-word;
-  margin: var(--saito-space-sm) 0 0;
-}
-
-.gamebot-interactions {
+.gamebot-panel {
+  position: relative;
+  z-index: 2;
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
   gap: var(--saito-space-sm);
-  max-height: 16rem;
-  overflow: auto;
+  width: min(28rem, calc(100% - 2rem));
+  margin: var(--saito-space-md);
+  padding: var(--saito-space-md);
+  color: var(--saito-foreground);
+  background: var(--saito-card);
+  border: 1px solid var(--saito-border);
+  border-radius: var(--saito-radius);
 }
 
-@media (max-width: 800px) {
-  .gamebot-game {
-    grid-template-columns: 1fr;
-  }
+.gamebot-panel h2 {
+  margin: 0;
+  font-size: 1rem;
+}
 
-  .gamebot-log {
-    height: 24rem;
-  }
+.gamebot-clickable-actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--saito-space-sm);
+}
 
-  .gamebot-game-row {
-    grid-template-columns: 1fr;
-  }
+.gamebot-manual-result {
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
 
-  .gamebot-game-actions {
-    grid-column: 1;
-    grid-row: auto;
-  }
+.gamebot-context,
+.gamebot-clickable {
+  max-height: 16rem;
+  overflow: auto;
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
 }
