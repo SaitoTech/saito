@@ -128,7 +128,7 @@ class OnePlayerGameTemplate extends GameTemplate {
 
     this.game.over = 0;
 
-    this.saveGame(this.game.id);
+    await this.saveGame(this.game.id);
 
     await super.render(app);
   }
@@ -153,8 +153,8 @@ class OnePlayerGameTemplate extends GameTemplate {
     let game_id = txmsg.game_id;
 
     //Load last session
-    if (!this.loadGame()) {
-      this.loadGame(game_id);
+    if (!await this.loadGame()) {
+      await this.loadGame(game_id);
     }
 
     //Then overwrite with new id
@@ -199,7 +199,7 @@ class OnePlayerGameTemplate extends GameTemplate {
       );
     }
 
-    this.saveGame(game_id);
+    await this.saveGame(game_id);
     await this.initializeGameQueue(game_id);
 
     /*
@@ -249,7 +249,7 @@ class OnePlayerGameTemplate extends GameTemplate {
       this.game.queue.push(turn[i]);
     }
 
-    this.saveGame(this.game.id);
+    await this.saveGame(this.game.id);
 
     // The queue is already walking this list and will play what we just appended.
     if (this.gaming_active && !this.halted) {
@@ -277,7 +277,7 @@ class OnePlayerGameTemplate extends GameTemplate {
     if (this.game.over > 0) {
       if (resigning_player == this.publicKey && txmsg) {
         console.info('GTO: Receiving quit message from Arcade, delete game from wallet');
-        this.removeGameFromOptions(this.game.id);
+        await this.removeGameFromOptions(this.game.id);
       }
       return;
     }
@@ -294,7 +294,7 @@ class OnePlayerGameTemplate extends GameTemplate {
     this.triggerGameOver([], msg);
   }
 
-  receiveGameOverTransaction(blk, tx, conf, app) {
+  async receiveGameOverTransaction(blk, tx, conf, app) {
     console.log('The game never ends when you play by yourself!');
 
     try {
@@ -315,7 +315,7 @@ class OnePlayerGameTemplate extends GameTemplate {
 
     this.game.queue.push('READY');
     this.game.moves = [];
-    this.saveGame(this.game.id);
+    await this.saveGame(this.game.id);
 
     if (this.browser_active && this.request_exit) {
       siteMessage('Game saved, exiting now', 750);
@@ -335,10 +335,10 @@ class OnePlayerGameTemplate extends GameTemplate {
     super.initializeQueueCommands();
 
     //Add some more ones
-    this.commands.push((game_self, gmv) => {
+    this.commands.push(async (game_self, gmv) => {
       if (gmv[0] === 'EXITGAME') {
         game_self.game.queue.splice(game_self.game.queue.length - 1, 1);
-        game_self.saveGame(game_self.game.id);
+        await game_self.saveGame(game_self.game.id);
         game_self.request_exit = true;
 
         //

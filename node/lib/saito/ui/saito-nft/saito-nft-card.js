@@ -262,9 +262,6 @@ class SaitoNFTCard {
   }
 
   insertNFTDetails() {
-    if (!this.app.BROWSER) {
-      return 0;
-    }
 
     console.log('Insert fetched NFT details into CARD');
 

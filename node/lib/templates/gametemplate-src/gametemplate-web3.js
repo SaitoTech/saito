@@ -25,7 +25,7 @@ class GameWeb3 {
     this.updateLog(`Crypto Activated: ${stake} ${ticker}`);
     siteMessage(`Crypto Activated: ${stake} ${ticker}`, 2000);
 
-    this.saveGame(this.game.id);
+    await this.saveGame(this.game.id);
 
     if (this.gameBrowserActive()) {
       this.insertCryptoLogo(ticker);
