@@ -1,0 +1,18 @@
+#saito-container.gamebot-page {
+  grid-template-columns: minmax(0, 42rem);
+  justify-content: center;
+  column-gap: 0;
+  padding-top: var(--saito-space-lg);
+  padding-bottom: var(--saito-space-lg);
+}
+
+.gamebot-page .saito-main {
+  min-width: 0;
+  width: 100%;
+}
+
+@media (max-width: 768px) {
+  #saito-container.gamebot-page {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

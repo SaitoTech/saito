@@ -2,6 +2,8 @@ const LessonListTemplate = require('./manager-main.template');
 const LessonMenuTemplate = require('./manager-right.template');
 const TeaserTemplate = require('./teaser.template');
 const SaitoLoader = require('./../../../lib/saito/ui/saito-loader/saito-loader');
+const PremiumDownloads = require('./ui/premium-downloads');
+const { isHskCategory } = require('./hsk-archive');
 
 class LessonManager {
   constructor(app, mod, container = '.saito-main') {
@@ -13,6 +15,7 @@ class LessonManager {
     this.level = '';
 
     this.loader = new SaitoLoader(app, mod, '#popup-intersection');
+    this.premium = new PremiumDownloads(app, mod);
 
     //////////////////////////////
     // load more on scroll-down //
@@ -35,6 +38,10 @@ class LessonManager {
 
   render(level = 'all') {
     this.level = level;
+    if (this.mod.hsk) {
+      this.mod.hsk.waiting = false;
+      this.mod.hsk.active = false;
+    }
 
     //
     // stop observering while we rebuild the page
@@ -45,14 +52,15 @@ class LessonManager {
     // insert list of lessons into .saito-main
     //
     document.querySelector('.saito-main').innerHTML = '';
-    document.querySelector('.saito-sidebar.left').innerHTML = '';
-    document.querySelector('.saito-sidebar.right').innerHTML = '';
+    this.showMenu(level);
     this.app.browser.addElementToSelector(LessonListTemplate(), '.saito-main');
-    this.app.browser.addElementToSelector(LessonMenuTemplate(), '.saito-sidebar.left');
 
     this.showLoader();
 
-    const lessons = this.mod.catalog.getByCategory(level);
+    let lessons = this.mod.catalog.getByCategory(level);
+    if (level === 'all' || level === '' || level == null) {
+      lessons = lessons.filter((lesson) => !isHskCategory(lesson.userslug));
+    }
     if (this.mod.catalog.getAll().length == 0) {
       this.waiting_to_display = true;
     } else {
@@ -81,7 +89,22 @@ class LessonManager {
     this.restoreListPosition();
   }
 
-  attachEvents() {
+  showMenu(active = this.level) {
+    this.level = active;
+    const left = document.querySelector('.saito-sidebar.left');
+    const right = document.querySelector('.saito-sidebar.right');
+    if (left) {
+      left.innerHTML = '';
+    }
+    if (right) {
+      right.innerHTML = '';
+    }
+    this.app.browser.addElementToSelector(LessonMenuTemplate(), '.saito-sidebar.left');
+    this.premium.render();
+    this.attachMenuEvents();
+  }
+
+  attachMenuEvents() {
     const levels = [
       'absolute-beginners',
       'elementary',
@@ -89,16 +112,7 @@ class LessonManager {
       'advanced',
       'film-friday',
       'short-stories',
-      'ktv-wednesday',
-      'hsk-beginner',
-      'hsk-intermediate',
-      'hsk-advanced',
-      'new-hsk-level-1',
-      'new-hsk-level-2',
-      'new-hsk-level-3',
-      'new-hsk-level-4',
-      'new-hsk-level-5',
-      'new-hsk-level-6'
+      'ktv-wednesday'
     ];
 
     levels.forEach((level) => {
@@ -112,6 +126,19 @@ class LessonManager {
         this.app.connection.emit('popup-lessons-render-request', level);
       };
     });
+
+    const hsk = document.querySelector('.popup-lesson-nav .hsk-test');
+    if (hsk) {
+      hsk.classList.toggle('is-active', this.level === 'hsk-test');
+      hsk.onclick = () => {
+        window.history.pushState({}, document.title, '/popup/hsk');
+        this.app.connection.emit('popup-hsk-render-request');
+      };
+    }
+  }
+
+  attachEvents() {
+    this.attachMenuEvents();
 
     document.querySelectorAll('.teaser').forEach((el) => {
       el.onclick = (e) => {

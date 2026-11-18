@@ -213,19 +213,24 @@
 .create-post .publish-actions {
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: stretch;
   gap: 0.7rem;
   width: 100%;
 }
 
-.create-post .back {
+.create-post .links {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 1rem;
+  width: 100%;
+}
+
+.create-post .links .saito-anchor {
   font-size: 1.2rem;
   color: var(--saito-muted-foreground);
   text-decoration: none;
-}
-
-.create-post .back span {
-  line-height: 1.3;
 }
 
 .create-post .title-field {

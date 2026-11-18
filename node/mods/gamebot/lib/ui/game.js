@@ -1,158 +1,123 @@
 const GameTemplate = require('./game.template');
+const jsonTree = require('json-tree-viewer');
 
 class GamePage {
   constructor(app, mod) {
     this.app = app;
     this.mod = mod;
-    this.game_id = '';
+    this.mounted = false;
   }
 
   async render() {
+    await this.mount();
+  }
+
+  async mount() {
+    this.mod.manager.remove_loading_veil?.();
+    const created = this.place_inspector();
+    if (created) {
+      this.mounted = true;
+      this.attachEvents();
+    }
+    this.draw();
+  }
+
+  // The game replaces document.body and paints positioned layers, including
+  // the clock at z-index 900000 and the observer bar at 99999999. A panel
+  // inside body participates in that same order. Keep the inspector on the
+  // document element, above those layers and below Saito alerts.
+  place_inspector() {
+    let host = document.getElementById('gamebot-inspector-root');
+    const created = !host;
+    if (!host) {
+      host = document.createElement('div');
+      host.id = 'gamebot-inspector-root';
+      host.innerHTML = GameTemplate();
+    }
+    document.documentElement.appendChild(host);
+    host.style.position = 'fixed';
+    host.style.inset = '0';
+    host.style.zIndex = '100000000';
+    host.style.pointerEvents = 'none';
+    return created;
+  }
+
+  game_id() {
     const raw = String(window.location.hash || '').replace(/^#/, '');
-    const params = new URLSearchParams(raw);
-    let game_id = params.get('gid') || '';
-    try {
-      game_id = decodeURIComponent(game_id);
-    } catch (err) {}
-    this.game_id = game_id;
+    return new URLSearchParams(raw).get('gid') || this.mod.manager.view?.game_id || '';
+  }
 
-    const html = GameTemplate();
-    const existing = document.querySelector('.gamebot-container');
-    if (existing) {
-      existing.outerHTML = html;
-    } else {
-      this.app.browser.addElementToDom(html);
-    }
-
-    const back = document.querySelector('.gamebot-back');
-    if (back) {
-      back.onclick = () => {
-        window.location.hash = '';
-        this.mod.render();
-      };
-    }
-
-    const form = document.querySelector('.gamebot-manual');
-    if (form) {
-      form.onsubmit = async (event) => {
-        event.preventDefault();
-        const field = form.querySelector('[name="instruction"]');
-        const instruction = field.value;
-        field.value = '';
-        try {
-          await this.mod.manager.receive_manual_input(this.game_id, instruction);
-          this.notice('');
-        } catch (err) {
-          this.notice(err.message || 'That instruction failed');
-        }
-      };
-    }
-
-    this.mod.manager.on_context = (id) => {
-      if (id === this.game_id) {
-        this.draw_context();
+  attachEvents() {
+    const toggle = () => {
+      const host = document.getElementById('gamebot-inspector-root');
+      const open = host ? host.classList.toggle('gamebot-inspector-open') : false;
+      const tab = document.querySelector('.gamebot-inspector-tab');
+      const panel = document.getElementById('gamebot-inspector');
+      if (tab) {
+        tab.setAttribute('aria-expanded', open ? 'true' : 'false');
+      }
+      if (panel) {
+        panel.setAttribute('aria-hidden', open ? 'false' : 'true');
       }
     };
-
-    const frame = document.querySelector('.gamebot-game-frame');
-    if (frame) {
-      frame.onload = () => {
-        if (this.game_id === game_id) {
-          this.mod.manager.examine_game_move(game_id).catch((err) => {
-            this.notice(err.message || 'Could not examine the game');
-          });
+    const tab = document.querySelector('.gamebot-inspector-tab');
+    if (tab) {
+      tab.onclick = toggle;
+    }
+    const copy = document.querySelector('.gamebot-inspector-copy');
+    if (copy) {
+      copy.onclick = async () => {
+        const text = JSON.stringify(this.mod.manager.view?.context ?? null, null, 2);
+        const clipboard = typeof navigator !== 'undefined' ? navigator.clipboard : null;
+        if (clipboard?.writeText) {
+          await clipboard.writeText(text);
         }
       };
     }
 
-    try {
-      await this.mod.manager.examine_game_move(game_id);
-    } catch (err) {
-      this.notice(err.message || 'Could not examine the game');
-    }
-    this.show_game();
-    this.draw_context();
-  }
+    this.mod.manager.on_context = () => {
+      this.draw();
+    };
 
-  show_game() {
-    const frame = document.querySelector('.gamebot-game-frame');
-    const view = this.mod.manager.view;
-    if (!frame || !view?.slug) {
-      return;
-    }
-    const src = '/' + view.slug + '/#gid=' + encodeURIComponent(view.game_id);
-    if (frame.getAttribute('src') !== src) {
-      frame.setAttribute('src', src);
-    }
-  }
-
-  draw_context() {
-    const view = this.mod.manager.view;
-    const context_el = document.querySelector('.gamebot-context');
-    const clickable_el = document.querySelector('.gamebot-clickable');
-    if (context_el) {
-      if (view?.context_error) {
-        context_el.textContent = view.context_error;
-      } else {
+    const click = document.querySelector('.gamebot-click');
+    if (click) {
+      click.onsubmit = async (event) => {
+        event.preventDefault();
+        const field = click.querySelector('[name="identifier"]');
+        const result = click.querySelector('.gamebot-click-result');
+        const identifier = String(field?.value || '').trim();
         try {
-          context_el.textContent = JSON.stringify(view?.context ?? null, null, 2);
+          await this.mod.manager.execute_clickable_item(this.game_id(), identifier);
+          if (result) {
+            result.textContent = identifier;
+          }
         } catch (err) {
-          context_el.textContent = err.message || 'Context could not be shown';
+          if (result) {
+            result.textContent = err.message || 'That item could not be clicked';
+          }
         }
-      }
-    }
-    if (clickable_el) {
-      try {
-        clickable_el.textContent = JSON.stringify(view?.clickable_items ?? [], null, 2);
-      } catch (err) {
-        clickable_el.textContent = err.message || 'Clickable items could not be shown';
-      }
-    }
-    this.draw_clickable_actions(view?.clickable_items || []);
-    this.draw_manual();
-  }
-
-  draw_clickable_actions(items) {
-    const list = document.querySelector('.gamebot-clickable-actions');
-    if (!list) {
-      return;
-    }
-    list.replaceChildren();
-    for (const item of items) {
-      const button = document.createElement('button');
-      button.type = 'button';
-      button.className = 'saito-button-secondary';
-      button.textContent = item.identifier;
-      button.onclick = () => {
-        this.execute_item(item.identifier);
       };
-      list.append(button);
     }
   }
 
-  async execute_item(identifier) {
-    this.notice('Running ' + identifier);
-    try {
-      await this.mod.manager.execute_clickable_item(this.game_id, identifier);
-      this.notice('');
-    } catch (err) {
-      this.notice(err.message || 'That control could not be used');
-    }
-  }
-
-  draw_manual() {
-    const el = document.querySelector('.gamebot-manual-result');
-    const manual = this.mod.manager.manual;
-    if (!el || !manual || manual.game_id !== this.game_id) {
+  draw() {
+    const view = this.mod.manager.view;
+    const host = document.querySelector('.gamebot-tree');
+    if (!host || !view) {
       return;
     }
-    el.textContent = manual.input + ' — ' + manual.response;
-  }
-
-  notice(text) {
-    const el = document.querySelector('.gamebot-notice');
-    if (el) {
-      el.textContent = text || '';
+    host.innerHTML = '';
+    if (view.context_error) {
+      host.textContent = view.context_error;
+      return;
+    }
+    if (!view.context) {
+      return;
+    }
+    try {
+      jsonTree.create(view.context, host);
+    } catch (err) {
+      host.textContent = err.message || 'The context could not be displayed';
     }
   }
 }

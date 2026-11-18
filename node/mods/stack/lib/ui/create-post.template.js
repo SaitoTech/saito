@@ -64,9 +64,14 @@ module.exports = (app, mod) => {
               <button type="button" class="saito-button-primary compact control" id="stack-editor-publish-btn">
                 Publish
               </button>
-              <a href="/${mod.slug || 'stack'}" class="saito-anchor back" id="stack-editor-back-splash">
-                <span>back to splash page</span>
-              </a>
+              <div class="links">
+                <a href="/${mod.slug || 'stack'}" class="saito-anchor back" id="stack-editor-back-splash">
+                  <span>back to main</span>
+                </a>
+                <a href="#" class="saito-anchor help" id="stack-editor-help" role="button">
+                  <span>help?</span>
+                </a>
+              </div>
             </div>
           </aside>
         </div>

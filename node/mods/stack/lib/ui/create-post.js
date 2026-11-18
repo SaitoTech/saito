@@ -5023,6 +5023,17 @@ class CreatePost {
   }
 
   /**
+   * Open the writing and formatting guide.
+   */
+  openHelpOverlay() {
+    if (!this.mod.helpOverlay) {
+      const HelpOverlay = require('./overlay/help');
+      this.mod.helpOverlay = new HelpOverlay(this.app, this.mod);
+    }
+    this.mod.helpOverlay.render();
+  }
+
+  /**
    * Handle publish trigger click - open publish settings overlay
    */
   handlePublishTriggerClick() {
@@ -5221,6 +5232,14 @@ class CreatePost {
         backToSplash.addEventListener('click', (e) => {
           e.preventDefault();
           this.returnToSplash();
+        });
+      }
+
+      const helpLink = document.querySelector('#stack-editor-help');
+      if (helpLink) {
+        helpLink.addEventListener('click', (e) => {
+          e.preventDefault();
+          this.openHelpOverlay();
         });
       }
 

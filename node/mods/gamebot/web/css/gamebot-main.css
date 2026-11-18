@@ -1,32 +1,36 @@
-.gamebot-main {
+.gamebot-page .gamebot-main {
   display: flex;
   flex-direction: column;
   gap: var(--saito-space-lg);
-  max-width: 40rem;
-  color: var(--saito-foreground);
-  padding: var(--saito-space-lg);
-}
-
-.gamebot-accept,
-.gamebot-open,
-.gamebot-manual {
-  display: flex;
-  flex-direction: column;
-  gap: var(--saito-space-sm);
-}
-
-.gamebot-accept label,
-.gamebot-open label,
-.gamebot-manual label {
-  display: flex;
-  flex-direction: column;
-  gap: var(--saito-space-sm);
-}
-
-.gamebot-accept textarea,
-.gamebot-open input,
-.gamebot-manual input {
   width: 100%;
+  max-width: 42rem;
+  color: var(--saito-foreground);
+}
+
+.gamebot-page .gamebot-main h1,
+.gamebot-page .gamebot-main p,
+.gamebot-page .gamebot-main label {
+  margin: 0;
+}
+
+.gamebot-page .gamebot-main form,
+.gamebot-inspector form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--saito-space-sm);
+}
+
+.gamebot-page .gamebot-row,
+.gamebot-inspector .gamebot-row {
+  display: flex;
+  gap: var(--saito-space-sm);
+  align-items: center;
+}
+
+.gamebot-page .gamebot-row input,
+.gamebot-inspector .gamebot-row input {
+  flex: 1;
+  min-width: 0;
   color: var(--saito-foreground);
   background: var(--saito-card);
   border: 1px solid var(--saito-border);
@@ -34,7 +38,55 @@
   padding: var(--saito-space-sm);
 }
 
-.gamebot-notice {
+.gamebot-page .gamebot-row button,
+.gamebot-inspector .gamebot-row button,
+.gamebot-inspector-close,
+.gamebot-inspector-tab {
+  flex: none;
+  border: 1px solid transparent;
+  border-radius: var(--saito-radius);
+  padding: 0.7rem 1rem;
+  cursor: pointer;
+  font: inherit;
+}
+
+.gamebot-page .gamebot-row button:hover,
+.gamebot-inspector .gamebot-row button:hover,
+.gamebot-inspector-close:hover,
+.gamebot-inspector-tab:hover {
+  filter: brightness(1.08);
+}
+
+.gamebot-page .gamebot-row button:focus-visible,
+.gamebot-inspector .gamebot-row button:focus-visible,
+.gamebot-inspector-close:focus-visible,
+.gamebot-inspector-tab:focus-visible {
+  outline: 2px solid var(--saito-primary);
+  outline-offset: 2px;
+}
+
+.gamebot-page .gamebot-notice {
   min-height: 1.2rem;
   margin: 0;
+}
+
+.gamebot-page .gamebot-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: calc(100dvh - var(--saito-header-height));
+  color: var(--saito-foreground);
+  font-size: 1.4rem;
+}
+
+#gamebot-loading {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--saito-background, #111);
+  color: var(--saito-foreground, #fff);
+  font-size: 1.4rem;
 }

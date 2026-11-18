@@ -533,9 +533,78 @@ class GameTemplate extends ModTemplate {
       );
     }
 
+    const omit = [
+      'accept',
+      'accepted',
+      'clock',
+      'confirms_needed',
+      'cryptos',
+      'dice',
+      'future',
+      'initialize_game_run',
+      'initializing',
+      'invitation',
+      'invite_sig',
+      'issued_keys_deleted',
+      'keys',
+      'last_block',
+      'lock_interface',
+      'opponents',
+      'originator',
+      'over',
+      'playerNames',
+      'players_needed',
+      'players_set',
+      'recent_moves_cache',
+      'step',
+      'target',
+      'time',
+      'timestamp',
+      'turn',
+      'NTS',
+      'winner',
+      's_pick_card',
+      's_pick_done',
+      's_pick_hash',
+      's_roll',
+      's_roll_done',
+      's_roll_hash'
+    ];
+    for (let i = 0; i < omit.length; i++) {
+      delete game[omit[i]];
+    }
+    if (Array.isArray(game.queue)) {
+      const hidden = {
+        s_pick_card: true,
+        s_pick_done: true,
+        s_pick_hash: true,
+        s_roll: true,
+        s_roll_done: true,
+        s_roll_hash: true
+      };
+      game.queue = game.queue.filter((entry) => {
+        const token = String(entry || '').split(/[\s\t]/)[0];
+        return !hidden[token];
+      });
+    }
+    for (const key of Object.keys(game)) {
+      if (game[key] === null || game[key] === '') {
+        delete game[key];
+      }
+    }
+
+    let menu = [];
+    const hud = this.hud && typeof this.hud.returnContext === 'function' ? this.hud.returnContext() : null;
+    if (hud && Array.isArray(hud.menu) && hud.menu.length > 0) {
+      menu = hud.menu;
+    } else if (hud && Array.isArray(hud.cards) && hud.cards.length > 0) {
+      menu = hud.cards;
+    }
+
     return {
       ...ctx,
-      game
+      game,
+      menu
     };
   }
 

@@ -53,11 +53,13 @@ class PopupLesson {
       }
     });
 
-    this.mod.loadLessonWords(this.mod.lesson, () => {
+    this.mod.loadLessonWords(this.mod.lesson, async () => {
       if (this.mod.lesson.words && this.mod.lesson.words.length > 0) {
+        const saved = await this.saved_vocabulary();
         let html = '<h2 class="lesson-section header">Vocabulary</h2><ul class="popup-vocab-list">';
         for (let i = 0; i < this.mod.lesson.words.length; i++) {
-          html += WordTemplate(this.mod.lesson, this.mod.lesson.words[i], this.mod);
+          const word = this.mod.lesson.words[i];
+          html += WordTemplate(this.mod.lesson, word, this.mod, this.word_is_saved(word, saved));
         }
         html += '</ul>';
         this.app.browser.addElementToSelector(html, '.lesson-section.vocabulary');
@@ -133,20 +135,91 @@ class PopupLesson {
         this.app.connection.emit('popup-lessons-render-request', category);
         return;
       }
-      const save = event.target.closest('.popup-vocab-save');
-      if (save && typeof add_to_vocab === 'function') {
+      const spoken = event.target.closest('.popup-vocab-chinese');
+      if (spoken) {
+        event.preventDefault();
+        event.stopPropagation();
+        const src = spoken.dataset.audio;
+        if (src && typeof playWordAudio === 'function') {
+          try {
+            playWordAudio(src, spoken);
+          } catch (err) {}
+        }
+        return;
+      }
+      const card = event.target.closest('.popup-vocab-entry');
+      if (!card || card.classList.contains('is-saved') || card.dataset.saving === '1') {
+        return;
+      }
+      if (typeof add_to_vocab !== 'function') {
+        return;
+      }
+      card.dataset.saving = '1';
+      Promise.resolve(
         add_to_vocab(
-          save.dataset.field1 || '',
-          save.dataset.field2 || '',
-          save.dataset.field3 || '',
-          save.dataset.field4 || '',
-          save.dataset.field5 || '',
+          card.dataset.field1 || '',
+          card.dataset.field2 || '',
+          card.dataset.field3 || '',
+          card.dataset.field4 || '',
+          card.dataset.field5 || '',
           '',
           ''
-        );
-        save.textContent = 'Saved';
-      }
+        )
+      )
+        .then(() => {
+          this.mark_saved(card);
+        })
+        .catch((err) => {
+          card.dataset.saving = '';
+          if (err && err.message === 'That pinyin or English translation is already saved') {
+            this.mark_saved(card);
+          }
+        });
     });
+    root.addEventListener('keydown', (event) => {
+      if (event.key !== 'Enter' && event.key !== ' ') {
+        return;
+      }
+      const card = event.target.closest('.popup-vocab-entry');
+      if (!card || event.target.closest('.popup-vocab-chinese')) {
+        return;
+      }
+      event.preventDefault();
+      card.click();
+    });
+  }
+
+  mark_saved(card) {
+    card.dataset.saving = '';
+    card.classList.add('is-saved');
+    card.setAttribute('aria-pressed', 'true');
+  }
+
+  async saved_vocabulary() {
+    const keys = { pinyin: new Set(), english: new Set() };
+    if (typeof this.mod.returnAllVocabulary !== 'function') {
+      return keys;
+    }
+    try {
+      const records = await this.mod.returnAllVocabulary();
+      for (let i = 0; i < records.length; i++) {
+        const pinyin = String(records[i].field3 || '').trim();
+        const english = String(records[i].field4 || '').trim();
+        if (pinyin) {
+          keys.pinyin.add(pinyin);
+        }
+        if (english) {
+          keys.english.add(english);
+        }
+      }
+    } catch (err) {}
+    return keys;
+  }
+
+  word_is_saved(word, saved) {
+    const pinyin = String(word.field3 || '').trim();
+    const english = String(word.field4 || '').trim();
+    return (pinyin && saved.pinyin.has(pinyin)) || (english && saved.english.has(english));
   }
 }
 

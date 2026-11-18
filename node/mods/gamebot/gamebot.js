@@ -16,7 +16,7 @@ class GameBot extends ModTemplate {
     this.categories = 'Games Entertainment';
     this.class = 'utility';
     this.icon = 'fas fa-robot';
-    this.styles = ['/gamebot/style.css'];
+    this.styles = ['/gamebot/style.css', '/saito/lib/jsonTree/jsonTree.css'];
 
     this.manager = new Manager(app, this);
     this.ai = new AI(app, this);
@@ -32,7 +32,7 @@ class GameBot extends ModTemplate {
 
     if (app.BROWSER) {
       window.addEventListener('hashchange', () => {
-        if (this.browser_active) {
+        if (this.browser_active && this.manager.phase === 'splash') {
           this.render();
         }
       });
@@ -52,12 +52,42 @@ class GameBot extends ModTemplate {
 
     await super.render();
 
+    if (this.manager.phase === 'loading') {
+      this.main.render();
+      return;
+    }
+    if (this.manager.phase === 'game') {
+      await this.game_page.mount();
+      return;
+    }
+
     const raw = String(window.location.hash || '').replace(/^#/, '');
     const game_id = new URLSearchParams(raw).get('gid');
     if (game_id) {
-      await this.game_page.render();
-    } else {
+      await this.recover_game(game_id);
+      return;
+    }
+    this.main.render();
+  }
+
+  async recover_game(game_id) {
+    if (this.recovering) {
+      return;
+    }
+    this.recovering = true;
+    this.manager.phase = 'loading';
+    this.main.render();
+    try {
+      await this.manager.open_game(game_id);
+      this.manager.phase = 'game';
+      document.querySelector('.gamebot-screen')?.remove();
+      await this.game_page.mount();
+    } catch (err) {
+      this.manager.phase = 'splash';
+      this.manager.notice = err.message || 'Could not open that game';
       this.main.render();
+    } finally {
+      this.recovering = false;
     }
   }
 

@@ -16,15 +16,7 @@ module.exports = () => {
         ${item('film-friday', 'Film Friday')}
         ${item('short-stories', 'Short Stories')}
         ${item('ktv-wednesday', 'KTV Wednesday')}
-        ${item('hsk-beginner', 'HSK Beginner')}
-        ${item('hsk-intermediate', 'HSK Intermediate')}
-        ${item('hsk-advanced', 'HSK Advanced')}
-        ${item('new-hsk-level-1', 'New HSK 1')}
-        ${item('new-hsk-level-2', 'New HSK 2')}
-        ${item('new-hsk-level-3', 'New HSK 3')}
-        ${item('new-hsk-level-4', 'New HSK 4')}
-        ${item('new-hsk-level-5', 'New HSK 5')}
-        ${item('new-hsk-level-6', 'New HSK 6')}
+        ${item('hsk-test', 'HSK Test')}
       </ul>
     </nav>
   `;
