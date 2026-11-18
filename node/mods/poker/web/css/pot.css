@@ -198,3 +198,65 @@
     flex: 0 0 auto;
   }
 }
+
+/* One-shot effects when the pot increases. The chip keeps its centering translate. */
+.game.poker .pot-shine {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  overflow: hidden;
+  border-radius: inherit;
+  pointer-events: none;
+}
+
+.game.poker .pot-shine::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 40%;
+  pointer-events: none;
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.35) 34%,
+    rgba(255, 255, 255, 0.9) 50%,
+    rgba(255, 255, 255, 0.35) 66%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  transform: translateX(-110%);
+}
+
+.game.poker .pot-chip.pot-chip-spin {
+  animation: pot-chip-spin 500ms ease-out;
+}
+
+.game.poker .poker-pot.pot-shimmer .pot-shine::after {
+  animation: pot-shimmer 650ms ease;
+}
+
+@keyframes pot-chip-spin {
+  from {
+    transform: translateY(-50%) rotate(0deg);
+  }
+  to {
+    transform: translateY(-50%) rotate(360deg);
+  }
+}
+
+@keyframes pot-shimmer {
+  from {
+    transform: translateX(-110%);
+  }
+  to {
+    transform: translateX(260%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .game.poker .pot-chip.pot-chip-spin,
+  .game.poker .poker-pot.pot-shimmer .pot-shine::after {
+    animation: none;
+  }
+}

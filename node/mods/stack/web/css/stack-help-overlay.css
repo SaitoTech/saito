@@ -1,0 +1,96 @@
+/* Writing guide overlay — layout only; panel chrome from Saito overlay */
+
+.guide {
+  max-width: 640px;
+  width: min(640px, 90vw);
+  max-height: 90vh;
+  overflow-y: auto;
+  background: var(--saito-background);
+  border-radius: var(--saito-radius-lg);
+  box-shadow: var(--saito-elevation-3);
+  border: 1px solid var(--saito-border);
+  padding: 0;
+}
+
+.guide .body {
+  padding: 3rem 3rem 2.4rem;
+}
+
+.guide .title {
+  font-size: 2.6rem;
+  font-weight: 600;
+  color: var(--saito-foreground);
+  margin: 0 0 1rem;
+  text-align: left;
+}
+
+.guide .lead {
+  margin: 0 0 2rem;
+  font-size: 1.45rem;
+  line-height: 1.5;
+  color: var(--saito-muted-foreground);
+}
+
+.guide .group {
+  margin: 0 0 1.8rem;
+}
+
+.guide .group:last-child {
+  margin-bottom: 0;
+}
+
+.guide h3 {
+  margin: 0 0 0.4rem;
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--saito-foreground);
+}
+
+.guide .group > p {
+  margin: 0 0 0.7rem;
+  font-size: 1.3rem;
+  line-height: 1.45;
+  color: var(--saito-muted-foreground);
+}
+
+.guide .items {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.guide .items li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.7rem;
+  font-size: 1.35rem;
+  line-height: 1.4;
+  color: var(--saito-foreground);
+}
+
+.guide code {
+  font-family: var(--saito-font-monospace);
+  font-size: 0.92em;
+  padding: 0.1rem 0.4rem;
+  border-radius: var(--saito-radius-sm);
+  background: var(--saito-secondary);
+  color: var(--saito-foreground);
+}
+
+@media (max-width: 768px) {
+  .guide {
+    width: 100vw;
+    max-width: none;
+    max-height: none;
+    height: 100%;
+    border-radius: 0;
+  }
+
+  .guide .body {
+    padding: 2.4rem 1.6rem 2rem;
+  }
+}

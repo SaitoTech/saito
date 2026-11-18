@@ -44,6 +44,11 @@ class PopupMain {
         this.syncHeader();
       });
     } catch (err) {}
+
+    this.app.connection.on('popup-hsk-render-request', () => {
+      this.mod.hsk.render();
+      this.syncHeader();
+    });
   }
 
   render() {
@@ -113,7 +118,7 @@ class PopupMain {
     this.ensureShell();
     const container = document.querySelector('.saito-container');
     container.classList.add('popup-editorial-view');
-    container.classList.remove('popup-catalog-view', 'popup-tool-view');
+    container.classList.remove('popup-catalog-view', 'popup-tool-view', 'popup-vocab-view');
     document.body.classList.add('popup-editorial-body');
     document.querySelector('.saito-main').innerHTML = '';
     document.querySelector('.saito-sidebar.right').innerHTML = '';
@@ -124,7 +129,7 @@ class PopupMain {
     this.ensureShell();
     const container = document.querySelector('.saito-container');
     if (container) {
-      container.classList.remove('popup-editorial-view');
+      container.classList.remove('popup-editorial-view', 'popup-vocab-view');
       container.classList.toggle('popup-catalog-view', mode === 'catalog');
       container.classList.toggle('popup-tool-view', mode === 'tool');
     }

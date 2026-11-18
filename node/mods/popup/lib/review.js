@@ -19,7 +19,7 @@ class ReviewOverlay {
     this.overlay.hide();
   }
 
-  async render() {
+  async render(ids) {
     this.visible = true;
     if (this.session) {
       this.session.cancel();
@@ -34,12 +34,16 @@ class ReviewOverlay {
       return;
     }
     this.session = new ReviewSession(this.app, this.mod);
-    await this.session.start({
-      progress: root.querySelector('.review-progress'),
-      prompt: root.querySelector('.review-prompt'),
-      answers: root.querySelector('.review-answers'),
-      feedback: root.querySelector('.review-feedback')
-    });
+    const selected = Array.isArray(ids) ? ids.filter((id) => id != null) : [];
+    await this.session.start(
+      {
+        progress: root.querySelector('.review-progress'),
+        prompt: root.querySelector('.review-prompt'),
+        answers: root.querySelector('.review-answers'),
+        feedback: root.querySelector('.review-feedback')
+      },
+      selected.length ? { ids: selected } : {}
+    );
   }
 }
 

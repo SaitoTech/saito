@@ -249,6 +249,11 @@ body.popup-app #saito-header.popup-header {
   color: var(--popup-accent);
 }
 
+#saito-header.popup-header .popup-header-nav a:focus,
+#saito-header.popup-header .popup-header-nav a:focus-visible {
+  outline: none;
+}
+
 #saito-header.popup-header .popup-header-pages {
   display: none;
   border: 1px solid var(--popup-border);

@@ -130,7 +130,7 @@ body.popup-app .lesson_sentence_translation {
   display: none;
 }
 
-.popup-vocab-list {
+.lesson-container .popup-vocab-list {
   list-style: none;
   margin: 0;
   padding: 0;
@@ -139,23 +139,69 @@ body.popup-app .lesson_sentence_translation {
   gap: 14px;
 }
 
-.popup-vocab-entry {
+.lesson-container .popup-vocab-entry {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 6px;
   min-width: 0;
-  padding: 14px 14px 12px;
+  padding: 14px 36px 12px 14px;
   border: 1px solid var(--popup-border);
   border-radius: 10px;
   background: var(--popup-bg-raised);
+  cursor: pointer;
 }
 
-.popup-vocab-actions {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  margin-top: 8px;
+.lesson-container .popup-vocab-entry.is-saved {
+  border-color: var(--popup-accent);
+  background: var(--popup-hover);
+}
+
+.lesson-container .popup-vocab-mark {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 16px;
+  height: 16px;
+  border: 1px solid var(--popup-border);
+  border-radius: 50%;
+}
+
+.lesson-container .popup-vocab-entry.is-saved .popup-vocab-mark {
+  border-color: var(--popup-accent);
+  background: var(--popup-accent);
+}
+
+.lesson-container .popup-vocab-entry.is-saved .popup-vocab-mark::after {
+  content: '';
+  position: absolute;
+  left: 4px;
+  top: 2px;
+  width: 4px;
+  height: 7px;
+  border: solid #fff;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+.lesson-container .popup-vocab-chinese {
+  display: block;
+  width: 100%;
+  margin: 0 0 2px;
+  padding: 2px 0 4px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+@media (hover: hover) {
+  .lesson-container .popup-vocab-chinese:hover .field1,
+  .lesson-container .popup-vocab-chinese:hover .field2 {
+    color: var(--popup-accent);
+  }
 }
 
 .popup-vocab-play {
@@ -172,41 +218,30 @@ body.popup-app .lesson_sentence_translation {
   height: 22px;
 }
 
-body.popup-app .popup-vocab-head .field1,
-body.popup-app .popup-vocab-head .field2 {
+body.popup-app .lesson-container .popup-vocab-head .field1,
+body.popup-app .lesson-container .popup-vocab-head .field2,
+body.popup-app .lesson-container .popup-vocab-chinese .field1,
+body.popup-app .lesson-container .popup-vocab-chinese .field2 {
   font-family: var(--popup-font-chinese);
   font-size: 28px;
   line-height: 1.35;
   color: var(--popup-text);
 }
 
-body.popup-app .popup-vocab-text .field3,
-body.popup-app .popup-vocab-text .field4,
-body.popup-app .popup-vocab-text .field5 {
+body.popup-app .lesson-container .popup-vocab-text .field3,
+body.popup-app .lesson-container .popup-vocab-text .field4,
+body.popup-app .lesson-container .popup-vocab-text .field5 {
   margin-top: 2px;
   font-family: var(--popup-font-sans);
   font-size: 17px;
   line-height: 1.4;
 }
 
-body.popup-app .popup-vocab-text .field3,
-body.popup-app .popup-vocab-text .field5 {
+body.popup-app .lesson-container .popup-vocab-text .field3,
+body.popup-app .lesson-container .popup-vocab-text .field5 {
   color: var(--popup-text-secondary);
 }
 
-body.popup-app .popup-vocab-save {
-  appearance: none;
-  border: 1px solid var(--popup-border);
-  border-radius: 8px;
-  background: var(--popup-bg-raised);
-  color: var(--popup-accent);
-  font-family: var(--popup-font-sans);
-  font-size: 15px;
-  font-weight: 650;
-  min-height: 36px;
-  padding: 0 12px;
-  cursor: pointer;
-}
 
 .popup-questions {
   display: flex;

@@ -79,13 +79,14 @@ body.popup-app .popup-lesson-nav li {
 body.popup-app .popup-lesson-description {
   margin: 6px 0 0;
   color: var(--popup-text-secondary);
+  font-family: var(--popup-font-sans);
   font-size: var(--popup-size-body);
+  font-weight: 400;
   line-height: 1.45;
 }
 
 body.popup-app .lessons .teaser {
   font-size: var(--popup-size-body);
-  min-height: 92px;
   height: auto;
   clear: both;
   width: 100%;
@@ -97,8 +98,8 @@ body.popup-app .lessons .teaser {
   background: var(--popup-bg);
   display: grid;
   flex-direction: row;
-  grid-template-columns: 140px minmax(0, 1fr);
-  align-items: center;
+  grid-template-columns: clamp(168px, 22%, 220px) minmax(0, 1fr);
+  align-items: stretch;
   gap: 16px;
   padding: 12px 8px;
   overflow: visible;
@@ -127,8 +128,8 @@ body.popup-app .lessons .teaser .title {
   right: auto;
   top: auto;
   padding: 0;
-  margin-top: auto;
-  margin-bottom: auto;
+  margin-top: 0;
+  margin-bottom: 0;
   line-height: var(--popup-leading-tight);
   white-space: normal;
   overflow: visible;
@@ -153,14 +154,21 @@ body.popup-app .lessons .teaser .title .level {
 }
 
 body.popup-app .lessons .teaser .photo {
-  height: 88px;
-  width: 140px;
+  width: 100%;
+  height: auto;
+  align-self: stretch;
   background-size: cover;
   background-position: center;
+  background-repeat: no-repeat;
   padding: 0;
 }
 
 @media (max-width: 800px) {
+  body.popup-app .lessons .teaser {
+    grid-template-columns: 112px minmax(0, 1fr);
+    gap: 12px;
+  }
+
   .popup-lesson-nav {
     display: flex;
     gap: 16px;
