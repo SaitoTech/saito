@@ -17,26 +17,7 @@ class Manager {
     }
     this.listening = true;
     this.app.connection.on('game-queue-stable', (payload) => {
-      const game_id = payload?.game_id;
-      if (!game_id) {
-        return;
-      }
-      // One examination per game while that examination is still running.
-      // A later stable event, after it finishes, examines the new boundary.
-      if (!this.examinations) {
-        this.examinations = {};
-      }
-      if (this.examinations[game_id]) {
-        return;
-      }
-      this.examinations[game_id] = true;
-      this.examine_game_move(game_id)
-        .catch((err) => {
-          console.error('GameBot could not examine ' + game_id, err);
-        })
-        .finally(() => {
-          delete this.examinations[game_id];
-        });
+      this.examine_stable(payload);
     });
     this.app.connection.on('arcade-game-ready-render-request', (payload) => {
       if (this.phase !== 'loading' && this.phase !== 'game') {
@@ -462,6 +443,38 @@ class Manager {
     return id;
   }
 
+  // One examination per game while that examination is still running.
+  // A stable event that arrives during it is kept and run afterwards, so a
+  // board that renders on the later boundary is not left with an empty menu.
+  examine_stable(payload) {
+    const game_id = payload?.game_id;
+    if (!game_id) {
+      return;
+    }
+    if (!this.examinations) {
+      this.examinations = {};
+    }
+    if (this.examinations[game_id]) {
+      if (!this.examinations_pending) {
+        this.examinations_pending = {};
+      }
+      this.examinations_pending[game_id] = true;
+      return;
+    }
+    this.examinations[game_id] = true;
+    this.examine_game_move(game_id)
+      .catch((err) => {
+        console.error('GameBot could not examine ' + game_id, err);
+      })
+      .finally(() => {
+        delete this.examinations[game_id];
+        if (this.examinations_pending?.[game_id]) {
+          delete this.examinations_pending[game_id];
+          this.examine_stable({ game_id });
+        }
+      });
+  }
+
   async examine_game_move(game_id) {
     const game_mod = await this.prepare_game(game_id);
     if (!game_mod) {
@@ -507,7 +520,73 @@ class Manager {
       });
       await this.receive_ai_analysis(game_id, analysis);
     }
+    // The board can finish rendering while analysis is in flight. Read the
+    // actions again before the view is what the operator keeps looking at.
+    this.refresh_empty_menu();
     return this.view;
+  }
+
+  // Replace a stored empty menu with the actions the player can use now.
+  // A non-empty menu is left alone so a HUD menu is not overwritten.
+  refresh_empty_menu() {
+    const view = this.view;
+    if (!view?.context || typeof view.context !== 'object' || Array.isArray(view.context)) {
+      return false;
+    }
+    if (!Array.isArray(view.context.menu) || view.context.menu.length > 0) {
+      return false;
+    }
+    let menu = [];
+    try {
+      menu = this.mod.jsdom.game_actions();
+    } catch (err) {
+      return false;
+    }
+    if (!menu.length) {
+      return false;
+    }
+    view.context.menu = menu;
+    try {
+      view.clickable_items = this.mod.jsdom.get_clickable_items();
+    } catch (err) {
+      view.clickable_items = view.clickable_items || [];
+    }
+    this.on_context?.(view.game_id);
+    return true;
+  }
+
+  // While the menu is empty, a later render of the board should fill it.
+  // Once actions are listed, the observer stays quiet until the next examine.
+  watch_actions() {
+    if (this.action_watch || typeof MutationObserver === 'undefined' || typeof document === 'undefined') {
+      return;
+    }
+    const root = document.documentElement;
+    if (!root) {
+      return;
+    }
+    this.action_watch = new MutationObserver(() => {
+      const menu = this.view?.context?.menu;
+      if (!Array.isArray(menu) || menu.length > 0 || this.refresh_queued) {
+        return;
+      }
+      this.refresh_queued = true;
+      const run = () => {
+        this.refresh_queued = false;
+        this.refresh_empty_menu();
+      };
+      if (typeof requestAnimationFrame === 'function') {
+        requestAnimationFrame(run);
+      } else {
+        setTimeout(run, 0);
+      }
+    });
+    this.action_watch.observe(root, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      attributeFilter: ['disabled', 'hidden', 'aria-hidden', 'class', 'style']
+    });
   }
 
   async receive_manual_input(game_id, input) {
