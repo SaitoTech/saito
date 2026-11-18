@@ -303,7 +303,181 @@ class GameDom {
       });
     }
     this.listed = found;
+    this.record_action_trace(nodes, actions);
     return actions;
+  }
+
+  // Temporary discovery trace. It records why a visible control was left out of
+  // the menu, including a disabled button that is still painted.
+  record_action_trace(nodes, actions) {
+    if (!this.trace_actions) {
+      return;
+    }
+    const rows = [];
+    for (let i = 0; i < nodes.length; i++) {
+      const el = nodes[i];
+      const text = String(el.innerText || el.textContent || '')
+        .replace(/\s+/g, ' ')
+        .trim()
+        .slice(0, 80);
+      const action = el.getAttribute?.('data-do') || '';
+      const tag = el.tagName ? el.tagName.toLowerCase() : '';
+      if (tag !== 'button' && !action && !/finish attacking/i.test(text)) {
+        continue;
+      }
+      rows.push(this.describe_candidate(el, text));
+    }
+    this.action_trace = rows;
+    const finish = rows.filter((row) => row.action === 'end_attack' || /finish attacking/i.test(row.text));
+    const excluded = {};
+    for (let i = 0; i < rows.length; i++) {
+      const reason = rows[i].excluded_by || 'included';
+      excluded[reason] = (excluded[reason] || 0) + 1;
+    }
+    if (typeof console !== 'undefined' && console.info) {
+      console.info('[gamebot] menu discovery', {
+        menu: actions.map((item) => item.label),
+        counts: excluded,
+        finish
+      });
+    }
+  }
+
+  describe_candidate(el, text) {
+    const view = el.ownerDocument?.defaultView;
+    const style = this.computed_style(view, el);
+    const rect = typeof el.getBoundingClientRect === 'function' ? el.getBoundingClientRect() : null;
+    const box = rect ? { width: rect.width, height: rect.height, top: rect.top, left: rect.left } : null;
+    return {
+      tag: el.tagName ? el.tagName.toLowerCase() : '',
+      text: text || '',
+      action: el.getAttribute?.('data-do') || '',
+      identifier: this.element_path(el),
+      disabled: el.disabled === true,
+      disabled_attribute: el.hasAttribute?.('disabled') === true,
+      display: style?.display || '',
+      visibility: style?.visibility || '',
+      opacity: style?.opacity || '',
+      pointer_events: style?.pointerEvents || '',
+      box,
+      has_interaction: this.has_interaction(el),
+      passes_visibility: this.is_interactable(el),
+      own_listener: typeof el.onclick === 'function' || !!el.getAttribute?.('onclick'),
+      delegated: true,
+      excluded_by: this.exclusion_reason(el, text)
+    };
+  }
+
+  exclusion_reason(el, text) {
+    if (!this.has_interaction(el)) {
+      return 'has_interaction';
+    }
+    const unavailable = this.interactable_failure(el);
+    if (unavailable) {
+      return unavailable;
+    }
+    if (el.disabled === true) {
+      return 'game_actions.disabled';
+    }
+    if (this.preview_only(el)) {
+      return 'preview_only';
+    }
+    const chrome = [
+      '#saito-header',
+      '.game-menu',
+      '.gamebot-inspector',
+      '.gamebot-inspector-tab',
+      '.game-observer-hud',
+      '#game_board_sizer',
+      '.game_board_sizer',
+      '.game-board-sizer-step',
+      '.game-board-sizer-center',
+      '.hud-back-button',
+      '#cardbox-exit',
+      '.cardbox-exit',
+      '#cardbox-exit-background',
+      '.cardbox-exit-background',
+      '.saito-header-hamburger-contents',
+      '#log-wrapper',
+      '#log',
+      '#mobile-log-tab',
+      '.mobile-log-tab',
+      '.game-minimap',
+      '.saito-overlay-closebox',
+      '#game-menu-close',
+      '#game-menu-toggle',
+      '.saito-cta-loader-shell',
+      '#game-help',
+      '.hud-notice'
+    ].join(', ');
+    if (this.is_game_board(el) || el.closest?.(chrome)) {
+      return 'chrome';
+    }
+    const tag = el.tagName ? el.tagName.toLowerCase() : '';
+    if (tag === 'input' || tag === 'textarea' || tag === 'select' || tag === 'label') {
+      return 'form control';
+    }
+    const incidental = {
+      game: true,
+      info: true,
+      chat: true,
+      difficulty: true,
+      settings: true,
+      menu: true,
+      help: true,
+      observer: true,
+      log: true,
+      rules: true
+    };
+    if (incidental[String(text || '').toLowerCase()]) {
+      return 'incidental label';
+    }
+    return '';
+  }
+
+  interactable_failure(el) {
+    if (!el || el.nodeType !== 1) {
+      return 'not an element';
+    }
+    const view = el.ownerDocument?.defaultView;
+    if (!view || el.isConnected === false) {
+      return 'not connected';
+    }
+    if (this.control_disabled(el)) {
+      return 'control_disabled';
+    }
+    let node = el;
+    while (node && node.nodeType === 1) {
+      const where = node.tagName ? node.tagName.toLowerCase() : 'node';
+      if (node.hidden === true || node.hasAttribute?.('hidden')) {
+        return 'hidden on ' + where;
+      }
+      if (node.getAttribute?.('aria-hidden') === 'true') {
+        return 'aria-hidden on ' + where;
+      }
+      if (node.inert === true || node.hasAttribute?.('inert')) {
+        return 'inert on ' + where;
+      }
+      const style = this.computed_style(view, node);
+      if (style && style.display === 'none') {
+        return 'display none on ' + where;
+      }
+      if (this.fully_transparent(style)) {
+        return 'opacity 0 on ' + where;
+      }
+      node = node.parentElement;
+    }
+    const own = this.computed_style(view, el);
+    if (own && (own.visibility === 'hidden' || own.visibility === 'collapse')) {
+      return 'visibility ' + own.visibility;
+    }
+    if (own && own.pointerEvents === 'none') {
+      return 'pointer-events none';
+    }
+    if (!this.geometry_reaches(el, view)) {
+      return 'geometry:' + (this._geometry_reason || 'rejected');
+    }
+    return '';
   }
 
   game_document() {
@@ -366,9 +540,15 @@ class GameDom {
   // When the document reports no root layout box, geometry is skipped and the
   // element stays. A headless document does not distinguish a real box from an
   // unmeasured one. Occlusion samples the visible area; one clear point is
-  // enough. elementFromPoint returning nothing is treated as unmeasured.
-  // Delegated listeners are not discovered here. Only elements the existing
-  // handler check already accepts are filtered.
+  // enough. A layer with pointer-events: none is not a cover: the player can
+  // see and click through it, but some documents still return it from
+  // elementFromPoint. That layer must not empty the menu.
+  //
+  // The GameBot inspector is the operator's overlay, not a game cover. A hit
+  // on it is ignored so an open drawer cannot erase the actions underneath.
+  // The click may land on a descendant (an SVG path inside a territory) while
+  // the listener lives on an ancestor. Those targets are already accepted by
+  // has_interaction when they are buttons, links, or role=button widgets.
   is_interactable(el) {
     if (!el || el.nodeType !== 1) {
       return false;
@@ -526,6 +706,7 @@ class GameDom {
   }
 
   geometry_reaches(el, view) {
+    this._geometry_reason = '';
     const doc = el.ownerDocument;
     if (!this.layout_measured(doc) || typeof el.getBoundingClientRect !== 'function') {
       return true;
@@ -544,6 +725,7 @@ class GameDom {
       height
     });
     if (!visible) {
+      this._geometry_reason = 'outside viewport';
       return false;
     }
     const own = this.computed_style(view, el);
@@ -555,6 +737,8 @@ class GameDom {
       if ((!in_fixed || block) && this.clips_overflow(style)) {
         visible = this.intersect_box(visible, this.rect_box(node.getBoundingClientRect()));
         if (!visible) {
+          const where = node.id || (node.className && String(node.className).split(' ')[0]) || node.tagName;
+          this._geometry_reason = 'clipped by ' + where;
           return false;
         }
       }
@@ -566,13 +750,50 @@ class GameDom {
       }
       node = node.parentElement;
     }
-    return this.point_reaches(el, doc, visible);
+    const reaches = this.point_reaches(el, doc, visible);
+    if (!reaches) {
+      this._geometry_reason = 'covered';
+    }
+    return reaches;
   }
 
-  point_reaches(el, doc, visible) {
-    if (typeof doc.elementFromPoint !== 'function') {
+  receives_hits(view, node) {
+    const style = this.computed_style(view, node);
+    return !style || style.pointerEvents !== 'none';
+  }
+
+  hit_stack(doc, x, y) {
+    try {
+      if (typeof doc.elementsFromPoint === 'function') {
+        const stack = doc.elementsFromPoint(x, y);
+        if (stack && stack.length) {
+          return Array.from(stack);
+        }
+      }
+      if (typeof doc.elementFromPoint !== 'function') {
+        return null;
+      }
+      const hit = doc.elementFromPoint(x, y);
+      return hit ? [hit] : [];
+    } catch (err) {
+      return null;
+    }
+  }
+
+  // The inspector sits above the board so the operator can read the menu.
+  // It is not part of the game, and execute_click does not depend on it
+  // being out of the way.
+  is_operator_overlay(node) {
+    if (!node || node.nodeType !== 1) {
+      return false;
+    }
+    if (node.id === 'gamebot-inspector-root') {
       return true;
     }
+    return typeof node.closest === 'function' && node.closest('#gamebot-inspector-root') != null;
+  }
+
+  sample_points(el, visible) {
     const inset_x = Math.min(1, visible.width / 2);
     const inset_y = Math.min(1, visible.height / 2);
     const points = [
@@ -582,23 +803,67 @@ class GameDom {
       { x: visible.left + inset_x, y: visible.bottom - inset_y },
       { x: visible.right - inset_x, y: visible.bottom - inset_y }
     ];
-    let measured = false;
-    for (let i = 0; i < points.length; i++) {
-      let hit = null;
-      try {
-        hit = doc.elementFromPoint(points[i].x, points[i].y);
-      } catch (err) {
-        return true;
-      }
-      if (!hit) {
+    // An irregular country can have a bounding box whose center is ocean.
+    // The painted shape is the click target, so sample that shape as well.
+    const shapes = el.querySelectorAll ? el.querySelectorAll('path, polygon, polyline, rect, circle, ellipse') : [];
+    let added = 0;
+    for (let i = 0; i < shapes.length && added < 3; i++) {
+      const shape = shapes[i];
+      if (shape.getAttribute?.('aria-hidden') === 'true' || shape.closest?.('[aria-hidden="true"]')) {
         continue;
       }
-      measured = true;
-      if (hit === el || el.contains(hit)) {
+      if (typeof shape.getBoundingClientRect !== 'function') {
+        continue;
+      }
+      const rect = shape.getBoundingClientRect();
+      if (!rect || rect.width <= 0 || rect.height <= 0) {
+        continue;
+      }
+      points.push({ x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 });
+      added += 1;
+    }
+    return points;
+  }
+
+  // 'hit' means a point lands on the control or a descendant of it.
+  // 'covered' means some other game element is in front.
+  // 'clear' means the only nodes at that point are the operator overlay or
+  // layers that do not receive hits.
+  stack_reaches(el, view, stack) {
+    for (let n = 0; n < stack.length; n++) {
+      const node = stack[n];
+      if (this.is_operator_overlay(node) || !this.receives_hits(view, node)) {
+        continue;
+      }
+      if (node === el || (typeof el.contains === 'function' && el.contains(node))) {
+        return 'hit';
+      }
+      return 'covered';
+    }
+    return 'clear';
+  }
+
+  point_reaches(el, doc, visible) {
+    if (typeof doc.elementFromPoint !== 'function' && typeof doc.elementsFromPoint !== 'function') {
+      return true;
+    }
+    const view = doc.defaultView;
+    const points = this.sample_points(el, visible);
+    let covered = false;
+    for (let i = 0; i < points.length; i++) {
+      const stack = this.hit_stack(doc, points[i].x, points[i].y);
+      if (stack === null) {
         return true;
       }
+      const reached = this.stack_reaches(el, view, stack);
+      if (reached === 'hit') {
+        return true;
+      }
+      if (reached === 'covered') {
+        covered = true;
+      }
     }
-    return !measured;
+    return !covered;
   }
 
   // jQuery's .on('click') does not set onclick. The listener is stored on the

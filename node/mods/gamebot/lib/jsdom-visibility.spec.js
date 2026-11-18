@@ -37,7 +37,7 @@ function use_layout(dom, boxes, hit) {
   view.Element.prototype.getBoundingClientRect = function () {
     return boxes.get(this) || box(0, 0, 0, 0);
   };
-    doc.elementFromPoint = (x, y) => {
+  const at = (x, y) => {
     if (hit) {
       return hit(x, y);
     }
@@ -53,6 +53,11 @@ function use_layout(dom, boxes, hit) {
       }
     }
     return found;
+  };
+  doc.elementFromPoint = at;
+  doc.elementsFromPoint = (x, y) => {
+    const found = at(x, y);
+    return found ? [found] : [];
   };
 }
 
@@ -139,6 +144,18 @@ describe('visible interactions', () => {
     expect(found).toContain('button#edge');
   });
 
+  test('a visible button stays available under a pointer-events none layer', () => {
+    const { dom, game, document } = page('<button id="end">Finish attacking →</button><div id="veil" style="pointer-events:none"></div>');
+    const end = document.getElementById('end');
+    const veil = document.getElementById('veil');
+    use_layout(dom, new Map([
+      [end, box(600, 40, 160, 48)],
+      [veil, box(0, 0, 800, 600)]
+    ]), () => veil);
+    dom.window.document.elementsFromPoint = () => [veil, end];
+    expect(ids(game)).toContain('button#end');
+  });
+
   test('a fixed button is included without reading offsetParent', () => {
     const { dom, game, document } = page('<button id="pin" style="position:fixed">Pin</button>');
     const pin = document.getElementById('pin');
@@ -170,5 +187,114 @@ describe('visible interactions', () => {
     expect(found).not.toContain('g#quiet');
     expect(found).not.toContain('span#label');
     expect(found).toContain('button#move');
+  });
+
+  test('fortify lists the enabled skip control, SVG countries, and delegated hits', () => {
+    const html = [
+      '<div id="gamebot-inspector-root">',
+      '<button type="button" class="gamebot-inspector-tab">Context</button>',
+      '<aside id="gamebot-inspector" class="gamebot-inspector"></aside>',
+      '</div>',
+      '<main id="board">',
+      '<svg id="map">',
+      '<g id="alaska" class="conquest-territory" data-territory="alaska" role="button" tabindex="0"><path id="alaska-shape" class="conquest-country"></path><text>Alaska</text></g>',
+      '<g id="siam" class="conquest-territory" data-territory="siam" role="button" tabindex="0"><polygon id="siam-shape"></polygon><text>Siam</text></g>',
+      '</svg>',
+      '<button id="skip" data-do="skip_movement">Skip fortification</button>',
+      '<button id="waiting" data-do="skip_movement" disabled>Skip fortification</button>',
+      '<button id="advance" hidden>Advance</button>',
+      '<button id="buried" style="display:none">Buried</button>',
+      '<button id="finish">Finish attacking →</button>',
+      '<button id="finish-wait" disabled>Finish attacking →</button>',
+      '<div id="real-cover"></div>',
+      '<button id="covered">Covered command</button>',
+      '</main>'
+    ].join('');
+    const { dom, game, document } = page(html);
+    const board = document.getElementById('board');
+    const selected = [];
+    board.addEventListener('click', (event) => {
+      const territory = event.target.closest('[data-territory]');
+      if (territory) {
+        selected.push(territory.id);
+      }
+    });
+    const alaska = document.getElementById('alaska');
+    const siam = document.getElementById('siam');
+    const alaskaShape = document.getElementById('alaska-shape');
+    const siamShape = document.getElementById('siam-shape');
+    const skip = document.getElementById('skip');
+    const finish = document.getElementById('finish');
+    const covered = document.getElementById('covered');
+    const cover = document.getElementById('real-cover');
+    const inspector = document.getElementById('gamebot-inspector');
+    expect(typeof alaska.onclick).not.toBe('function');
+    expect(typeof siam.onclick).not.toBe('function');
+
+    const alaskaBox = box(20, 40, 140, 90);
+    const siamBox = box(200, 40, 120, 80);
+    use_layout(dom, new Map([
+      [alaska, alaskaBox],
+      [alaskaShape, alaskaBox],
+      [siam, siamBox],
+      [siamShape, siamBox],
+      [skip, box(560, 500, 180, 48)],
+      [finish, box(560, 420, 180, 48)],
+      [covered, box(40, 500, 160, 40)],
+      [cover, box(40, 500, 160, 40)],
+      [inspector, box(0, 0, 400, 600)]
+    ]));
+    document.elementsFromPoint = (x, y) => {
+      if (x >= 560) {
+        return y >= 480 ? [skip] : [finish];
+      }
+      if (y >= 480) {
+        return [cover];
+      }
+      if (x < 180) {
+        return [inspector, alaskaShape, alaska];
+      }
+      return [siamShape, siam];
+    };
+
+    const menu = game.game_actions();
+    const ids = menu.map((item) => item.id);
+    expect(menu.length).toBeGreaterThan(0);
+    expect(menu).toEqual(expect.arrayContaining([
+      { id: 'skip', label: 'Skip fortification', identifier: 'button#skip' },
+      { id: 'alaska', label: 'Alaska', identifier: 'g#alaska' },
+      { id: 'siam', label: 'Siam', identifier: 'g#siam' },
+      { id: 'finish', label: 'Finish attacking →', identifier: 'button#finish' }
+    ]));
+    expect(ids).not.toContain('waiting');
+    expect(ids).not.toContain('advance');
+    expect(ids).not.toContain('buried');
+    expect(ids).not.toContain('finish-wait');
+    expect(ids).not.toContain('covered');
+    expect(ids).not.toContain('gamebot-inspector');
+
+    alaskaShape.dispatchEvent(new document.defaultView.MouseEvent('click', { bubbles: true }));
+    expect(selected).toEqual(['alaska']);
+  });
+
+  test('the operator overlay alone does not empty a fortify menu', () => {
+    const { dom, game, document } = page(
+      '<div id="gamebot-inspector-root"><aside id="gamebot-inspector" class="gamebot-inspector"></aside></div><button id="skip">Skip fortification</button><svg id="map"><g id="india" role="button"><path id="india-shape"></path><text>India</text></g></svg>'
+    );
+    const skip = document.getElementById('skip');
+    const india = document.getElementById('india');
+    const shape = document.getElementById('india-shape');
+    const inspector = document.getElementById('gamebot-inspector');
+    const root = document.getElementById('gamebot-inspector-root');
+    use_layout(dom, new Map([
+      [skip, box(600, 40, 160, 48)],
+      [india, box(40, 40, 120, 80)],
+      [shape, box(40, 40, 120, 80)],
+      [inspector, box(0, 0, 800, 600)],
+      [root, box(0, 0, 800, 600)]
+    ]));
+    document.elementsFromPoint = () => [root, inspector];
+    const ids = game.game_actions().map((item) => item.id);
+    expect(ids).toEqual(expect.arrayContaining(['skip', 'india']));
   });
 });

@@ -420,7 +420,7 @@ describe('GameBot manager', () => {
     expect(manager.view.context).toBeNull();
   });
 
-  test('a repeated stable event does not examine the same game twice until that examination finishes', async () => {
+  test('a stable event during an examination is examined once that examination finishes', async () => {
     const chess = gameModule('Chess', 'game-a', '<button id="e4">e4</button>');
     const { app, manager } = harness({ chess });
     app.options.games = [{ id: 'game-a', module: 'Chess' }];
@@ -443,8 +443,25 @@ describe('GameBot manager', () => {
 
     release();
     await new Promise((resolve) => setImmediate(resolve));
-    app.connection.emit('game-queue-stable', { game_id: 'game-a' });
+    await new Promise((resolve) => setImmediate(resolve));
     expect(examined).toEqual(['game-a', 'game-a']);
+  });
+
+  test('an empty menu is filled when the board appears while examination is still running', async () => {
+    const chess = gameModule('Chess', 'game-a', '<main id="board"></main>');
+    const { app, manager } = harness({ chess });
+    app.options.games = [{ id: 'game-a', module: 'Chess' }];
+    const submit = manager.mod.ai.submit_analysis.bind(manager.mod.ai);
+    manager.mod.ai.submit_analysis = async (payload) => {
+      chess.jsdom.window.document.getElementById('board').innerHTML = '<button id="skip">Skip fortification</button>';
+      return submit(payload);
+    };
+
+    const view = await manager.examine_game_move('game-a');
+
+    expect(view.context.menu).toEqual([
+      { id: 'skip', label: 'Skip fortification', identifier: 'button#skip' }
+    ]);
   });
 
   test('examine_game_move waits for that game to load and reads its context and controls', async () => {

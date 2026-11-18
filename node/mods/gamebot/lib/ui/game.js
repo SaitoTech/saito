@@ -20,6 +20,7 @@ class GamePage {
       this.attachEvents();
     }
     this.draw();
+    this.mod.manager.watch_actions?.();
   }
 
   // The game replaces document.body and paints positioned layers, including
@@ -58,6 +59,9 @@ class GamePage {
       }
       if (panel) {
         panel.setAttribute('aria-hidden', open ? 'false' : 'true');
+      }
+      if (open) {
+        this.mod.manager.refresh_empty_menu?.();
       }
     };
     const tab = document.querySelector('.gamebot-inspector-tab');
