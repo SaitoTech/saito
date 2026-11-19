@@ -46,6 +46,8 @@ class Mixin extends ModTemplate {
     this.MixinModule = MixinModule;
     this.credentials = {};
     this.api_key = null;
+    this.default_user_agent = 'Saito-Mixin/1.0';
+    this.user_agent = this.default_user_agent;
     this.deposit_addresses = [];
     this.mixin_peer = null;
     this.buysaito_peer = null;
@@ -98,6 +100,7 @@ class Mixin extends ModTemplate {
         credentials[field] = options[field];
       }
     }
+    this.user_agent = this.normalizeMixinUserAgent(options.user_agent ?? '');
     this.credentials = credentials;
     this.account_created = credentials.user_id ? 1 : 0;
 
@@ -146,6 +149,7 @@ class Mixin extends ModTemplate {
       next.api_key = this.api_key;
     }
 
+    next.user_agent = this.user_agent;
     next.deposit_addresses = Array.isArray(this.deposit_addresses)
       ? this.deposit_addresses.map((item) => ({ ...item }))
       : [];
@@ -475,7 +479,7 @@ class Mixin extends ModTemplate {
     this.load();
 
     this.database = new Database(app, this);
-    this.api = new Api();
+    this.api = new Api(this);
     this.accounts = new Accounts(app, this);
 
     if (!app.BROWSER) {
@@ -1288,6 +1292,13 @@ class Mixin extends ModTemplate {
     return !!(mixinAppKeystoreFromEnv() || mixinAppKeystore(this.api_key));
   }
 
+  normalizeMixinUserAgent(raw) {
+    if (typeof raw !== 'string' || /[^\x20-\x7e]/.test(raw)) {
+      throw new Error('Mixin User-Agent must contain only printable ASCII characters.');
+    }
+    return raw.trim() || this.default_user_agent;
+  }
+
   saveMixinApiKey(raw) {
     if (mixinAppKeystoreFromEnv()) {
       throw new Error('The Mixin API key is already supplied by the server environment');
@@ -1338,6 +1349,8 @@ class Mixin extends ModTemplate {
             page_size: 20,
             account: this.accountSummary(),
             api_key_configured: false,
+            user_agent: this.user_agent,
+            default_user_agent: this.default_user_agent,
             fulfillment_mode,
             payout_mode,
             treasury_provider_publickeys,
@@ -1354,6 +1367,8 @@ class Mixin extends ModTemplate {
           ...listed,
           account: this.accountSummary(),
           api_key_configured: true,
+          user_agent: this.user_agent,
+          default_user_agent: this.default_user_agent,
           deposit_addresses: await this.depositAddressReport(),
           fulfillment_mode,
           payout_mode,
@@ -1367,6 +1382,14 @@ class Mixin extends ModTemplate {
         name: this.name,
         getConfig,
         updateConfig: async (config = {}) => {
+          if (config.action === 'save-user-agent') {
+            this.user_agent = this.normalizeMixinUserAgent(config.user_agent);
+            this.save();
+            if (this.api) {
+              this.appSession = this.api.createAppSession();
+            }
+            return getConfig(config);
+          }
           if (config.action === 'save-api-key') {
             this.saveMixinApiKey(config.api_key);
             return getConfig(config);
@@ -1553,7 +1576,7 @@ class Mixin extends ModTemplate {
             await cryptoModule.activate();
           }
         }
-      }, 250);
+      }, 250 + i * 5000);
     }
   }
 

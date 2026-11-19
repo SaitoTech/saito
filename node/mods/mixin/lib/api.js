@@ -42,16 +42,16 @@ function mixinAppKeystoreFromEnv() {
   }
 }
 
-function createAppSession(fallback) {
+function createAppSession(fallback, userAgent) {
   const keystore = mixinAppKeystoreFromEnv() || mixinAppKeystore(fallback);
   if (!keystore) {
     return null;
   }
 
-  return MixinApi({ keystore });
+  return MixinApi({ keystore, requestConfig: { userAgent, retry: 0 } });
 }
 
-function createUserSession(credentials = {}) {
+function createUserSession(credentials = {}, userAgent) {
   const keystore = {
     app_id: credentials.user_id,
     session_id: credentials.session_id,
@@ -74,7 +74,7 @@ function createUserSession(credentials = {}) {
   return MixinApi({
     keystore,
     // Browser balance/history polls must fail fast; default retry: 5 ≈ 20s per call.
-    requestConfig: { timeout: 3000, retry: 0 }
+    requestConfig: { timeout: 3000, retry: 0, userAgent }
   });
 }
 
@@ -126,12 +126,17 @@ function snapshotOffset(createdAt = 0) {
 }
 
 class Api {
-  constructor() {
+  constructor(mod) {
+    this.mod = mod;
     this.appKeystore = null;
   }
 
   createAppSession() {
-    return createAppSession(this.appKeystore);
+    return createAppSession(this.appKeystore, this.mod?.user_agent);
+  }
+
+  createUserSession(credentials) {
+    return createUserSession(credentials, this.mod?.user_agent);
   }
 
   async createAccount(displayName) {
@@ -156,7 +161,8 @@ class Api {
         session_id: user.session_id,
         pin_token_base64: user.pin_token_base64,
         session_private_key: sessionPrivateKey
-      }
+      },
+      requestConfig: { userAgent: this.mod?.user_agent, retry: 0 }
     });
 
     const { publicKey: spendPublicKey, seed: spendPrivateKey } = getED25519KeyPair();
@@ -188,7 +194,7 @@ class Api {
     }
 
     try {
-      const session = createUserSession(credentials);
+      const session = this.createUserSession(credentials);
       console.log('MIXIN API REQUEST', 'safe.createDeposit', 'POST /safe/deposit/entries', chainId);
       const created = await session.safe.createDeposit(chainId);
       const address = created?.[0]?.destination;
@@ -206,7 +212,7 @@ class Api {
 
   async fetchBalance(credentials, assetId) {
     try {
-      const session = createUserSession(credentials);
+      const session = this.createUserSession(credentials);
       console.log('MIXIN API REQUEST', 'utxo.safeAssetBalance', 'GET /safe/outputs', assetId);
       return await session.utxo.safeAssetBalance({
         members: [credentials.user_id],
@@ -221,7 +227,7 @@ class Api {
 
   async fetchHistory(credentials, assetId, since = 0) {
     try {
-      const session = createUserSession(credentials);
+      const session = this.createUserSession(credentials);
       console.log('MIXIN API REQUEST', 'safe.fetchSafeSnapshots', 'GET /safe/snapshots', assetId);
       return await session.safe.fetchSafeSnapshots({
         asset: assetId,
@@ -239,7 +245,7 @@ class Api {
       if (!address) {
         return [];
       }
-      const session = createUserSession(credentials);
+      const session = this.createUserSession(credentials);
       console.log('MIXIN API REQUEST', 'safe.pendingDeposits', 'GET /safe/deposits', assetId);
       return await session.safe.pendingDeposits({
         asset: assetId,
@@ -269,7 +275,7 @@ class Api {
 
   async fetchWithdrawalFee(credentials, assetId, address) {
     try {
-      const session = createUserSession(credentials);
+      const session = this.createUserSession(credentials);
       console.log('MIXIN API REQUEST', 'safe.fetchAsset', `GET /safe/assets/${assetId}`);
       const asset = await session.safe.fetchAsset(assetId);
       let chain = asset;
@@ -314,7 +320,7 @@ class Api {
   }
 
   async sendToUser(credentials, assetId, mixinUserId, amount, memo = '') {
-    const session = createUserSession(credentials);
+    const session = this.createUserSession(credentials);
     const spendPrivateKey = credentials.spend_private_key;
     const members = [mixinUserId];
     const threshold = 1;
@@ -371,7 +377,7 @@ class Api {
   }
 
   async sendToAddress(credentials, assetId, address, amount, memo = '') {
-    const session = createUserSession(credentials);
+    const session = this.createUserSession(credentials);
     const spendPrivateKey = credentials.spend_private_key;
     console.log('MIXIN API REQUEST', 'utxo.safeAssetBalance', 'GET /safe/outputs', assetId);
     const balance = await session.utxo.safeAssetBalance({

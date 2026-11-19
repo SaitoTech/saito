@@ -123,14 +123,18 @@ describe('Mixin api helpers', () => {
   });
 
   test('createUserSession translates credentials and rejects an incomplete bundle before the SDK', () => {
-    const session = createUserSession(credentials);
+    const session = createUserSession(credentials, 'Saito-Mixin/1.0');
     expect(session.config.keystore).toEqual({
       app_id: 'user-1',
       session_id: 'session-1',
       pin_token_base64: 'tip',
       session_private_key: 'seed'
     });
-    expect(session.config.requestConfig).toEqual({ timeout: 3000, retry: 0 });
+    expect(session.config.requestConfig).toEqual({
+      timeout: 3000,
+      retry: 0,
+      userAgent: 'Saito-Mixin/1.0'
+    });
 
     MixinApi.mockClear();
     expect(() => createUserSession({ user_id: 'user-1' })).toThrow(
@@ -180,7 +184,7 @@ describe('Mixin api helpers', () => {
   });
 
   test('fetch methods pass the supplied credentials to the user session', async () => {
-    const api = new Api();
+    const api = new Api({ user_agent: 'Saito-Mixin/1.0' });
     await api.fetchBalance(credentials, 'asset-id');
     await api.fetchHistory(credentials, 'asset-id', 50);
     await api.fetchDeposits(credentials, 'asset-id', '0xabc');
@@ -197,7 +201,7 @@ describe('Mixin api helpers', () => {
       server_public_key: 'server-pub',
       session_private_key: 'app-session-key'
     });
-    const api = new Api();
+    const api = new Api({ user_agent: 'Saito-Mixin/1.0' });
 
     await expect(api.fetchAsset('asset-id')).resolves.toEqual({
       confirmations: 12,
@@ -211,7 +215,8 @@ describe('Mixin api helpers', () => {
         session_id: '7ca007b2-e237-4bcb-89b1-8ff89fc24fc3',
         server_public_key: 'server-pub',
         session_private_key: 'app-session-key'
-      }
+      },
+      requestConfig: { userAgent: 'Saito-Mixin/1.0', retry: 0 }
     });
     const session = MixinApi.mock.results.at(-1).value;
     expect(session.network.fetchAsset).toHaveBeenCalledWith('asset-id');
@@ -220,7 +225,7 @@ describe('Mixin api helpers', () => {
 
   test('fetchAsset does not call Mixin when the application session is missing', async () => {
     delete process.env.MIXIN;
-    const api = new Api();
+    const api = new Api({ user_agent: 'Saito-Mixin/1.0' });
     const error = jest.spyOn(console, 'error').mockImplementation(() => {});
 
     await expect(api.fetchAsset('asset-id')).resolves.toBe(false);
@@ -237,7 +242,7 @@ describe('Mixin api helpers', () => {
       server_public_key: 'server-pub',
       session_private_key: 'app-session-key'
     });
-    const api = new Api();
+    const api = new Api({ user_agent: 'Saito-Mixin/1.0' });
     const error = jest.spyOn(console, 'error').mockImplementation(() => {});
     MixinApi.mockImplementationOnce(() => ({
       network: {
@@ -1467,6 +1472,63 @@ describe('Mixin ticker module', () => {
 });
 
 describe('Mixin admin payments account', () => {
+  test('User-Agent override persists, refreshes sessions, and resets to the module default', async () => {
+    const originalMixin = process.env.MIXIN;
+    delete process.env.MIXIN;
+    try {
+      const app = { options: {}, storage: { saveOptions: jest.fn() } };
+      const mixin = new Mixin(app);
+      mixin.api = new Api(mixin);
+      mixin.api.appKeystore = {
+        app_id: 'app', session_id: 'session', server_public_key: 'public', session_private_key: 'private'
+      };
+      const config = mixin.respondTo('admin-config');
+      expect((await config.getConfig()).user_agent).toBe('Saito-Mixin/1.0');
+      const before = mixin.api.createUserSession(credentials);
+      const saved = await config.updateConfig({ action: 'save-user-agent', user_agent: ' Custom-Mixin/2.0 ' });
+      expect(saved.user_agent).toBe('Custom-Mixin/2.0');
+      expect(app.options.mixin.user_agent).toBe('Custom-Mixin/2.0');
+      expect(new Mixin(app).user_agent).toBe('Custom-Mixin/2.0');
+      expect(mixin.appSession.config.requestConfig.userAgent).toBe('Custom-Mixin/2.0');
+      expect(mixin.api.createUserSession(credentials).config.requestConfig.userAgent).toBe('Custom-Mixin/2.0');
+      expect(before.config.requestConfig.userAgent).toBe('Saito-Mixin/1.0');
+      const persisted = JSON.stringify(app.options.mixin);
+      for (const invalid of ['bad\r\nHeader: value', 'bad\tvalue', 'non-ascii-☃', null]) {
+        await expect(config.updateConfig({ action: 'save-user-agent', user_agent: invalid })).rejects.toThrow(/printable ASCII/);
+        expect(JSON.stringify(app.options.mixin)).toBe(persisted);
+      }
+      const reset = await config.updateConfig({ action: 'save-user-agent', user_agent: '  ' });
+      expect(reset.user_agent).toBe(mixin.default_user_agent);
+      expect(mixin.appSession.config.requestConfig.userAgent).toBe(mixin.default_user_agent);
+      expect(app.storage.saveOptions).toHaveBeenCalledTimes(2);
+    } finally {
+      if (originalMixin === undefined) delete process.env.MIXIN;
+      else process.env.MIXIN = originalMixin;
+    }
+  });
+
+  test('Admin sends the User-Agent to the server and renders it before account setup', async () => {
+    const MixinAdmin = require('../../../mods/mixin/lib/admin/mixin-admin');
+    const template = require('../../../mods/mixin/lib/admin/mixin-admin.template');
+    const panel = new MixinAdmin({}, {});
+    panel.refresh = jest.fn();
+    panel.applyResult({ user_agent: 'Saito-Mixin/1.0', default_user_agent: 'Saito-Mixin/1.0' });
+    panel.user_agent = 'Custom/2.0';
+    panel.sendAdminRequest = jest.fn(async (request, data, callback) => {
+      callback({ result: { user_agent: data.data.user_agent } });
+    });
+    await panel.saveUserAgent();
+    expect(panel.sendAdminRequest).toHaveBeenCalledWith('update-admin-config', {
+      module_id: 'mixin', data: { action: 'save-user-agent', user_agent: 'Custom/2.0' }
+    }, expect.any(Function));
+    expect(panel.savingUserAgent).toBe(false);
+    for (const state of [{ apiKeyConfigured: false }, { apiKeyConfigured: true, account: null }, { tab: 'config' }]) {
+      const html = template({ ...state, user_agent: 'Custom/2.0 "quoted"', default_user_agent: 'Saito-Mixin/1.0' });
+      expect(html).toContain('id="admin-payments-user-agent"');
+      expect(html).toContain('Custom/2.0 &quot;quoted&quot;');
+    }
+  });
+
   test('create-account saves the server user and returns one backup object', async () => {
     const app = {
       options: {},
