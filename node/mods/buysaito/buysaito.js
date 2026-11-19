@@ -6,6 +6,8 @@ const SaitoHeader = require('./../../lib/saito/ui/saito-header/saito-header');
 const BuySaitoHome = require('./index');
 const SaitoPurchaseOverlay = require('./lib/saito-purchase');
 
+const { MIXIN_REQUEST_FREQUENCE_MILLISECONDS } = require('../mixin/lib/mixinmodule');
+
 const EXCLUDED_PAYMENT_TICKERS = new Set(['ERC-SAITO', 'BEP-SAITO']);
 
 function isAvailablePaymentCurrency(currency) {
@@ -53,6 +55,13 @@ class BuySaito extends ModTemplate {
     this.authorized_public_key = 'cNACSaLdZQfbPkTTud4ezLWFYqRPUCMEt2dgLxJ9Axxx';
 
     this.available_currencies = [];
+    this.available_currencies_at = 0;
+    this.available_currencies_failed_at = 0;
+    this.currency_catalogue_peer = '';
+    this.currency_failure_peer = '';
+    this.currency_request = null;
+    this.currency_request_peer = '';
+    this.currency_request_started_at = 0;
     this.service_ready = false;
     this.processing_payments = false;
     this.payment_poll_timer = null;
@@ -133,13 +142,98 @@ class BuySaito extends ModTemplate {
       this.authorized_public_key = peer.publicKey;
     }
 
-    if (this.browser_active && ['relay', 'buysaito'].includes(service.service)) {
-      this.app.connection.emit('relay-send-message', {
-        recipient: this.authorized_public_key,
-        request: 'buysaito available currencies',
-        data: null
-      });
+    if (this.app?.modules?.returnModule?.('Mixin')) {
+      return;
     }
+    const services = Array.isArray(peer?.services) ? peer.services : [];
+    const peerOffersBuySaito = services.some(
+      (row) => row?.service === 'buysaito' || row === 'buysaito'
+    );
+    if (service.service === 'relay' && peerOffersBuySaito) {
+      return;
+    }
+    if (this.browser_active && ['relay', 'buysaito'].includes(service.service)) {
+      this.requestLegacyAvailableCurrencies();
+    }
+  }
+
+  currencyProvider() {
+    return String(this.authorized_public_key || '').trim();
+  }
+
+  hasCurrencyCatalogue() {
+    const provider = this.currencyProvider();
+    return (
+      !!provider &&
+      this.currency_catalogue_peer === provider &&
+      !!this.available_currencies_at &&
+      Array.isArray(this.available_currencies)
+    );
+  }
+
+  currencyCatalogueIsFresh() {
+    return (
+      this.hasCurrencyCatalogue() &&
+      Date.now() - this.available_currencies_at <= MIXIN_REQUEST_FREQUENCE_MILLISECONDS
+    );
+  }
+
+  currencyRequestCooling() {
+    const provider = this.currencyProvider();
+    return (
+      !!provider &&
+      this.currency_failure_peer === provider &&
+      !!this.available_currencies_failed_at &&
+      Date.now() - this.available_currencies_failed_at <= MIXIN_REQUEST_FREQUENCE_MILLISECONDS / 2
+    );
+  }
+
+  requestLegacyAvailableCurrencies() {
+    const provider = this.currencyProvider();
+    if (!provider || !this.browser_active) {
+      return false;
+    }
+    if (this.currencyCatalogueIsFresh() || this.currencyRequestCooling()) {
+      return false;
+    }
+    const requestAge = this.currency_request_started_at
+      ? Date.now() - this.currency_request_started_at
+      : MIXIN_REQUEST_FREQUENCE_MILLISECONDS;
+    if (
+      this.currency_request &&
+      this.currency_request_peer === provider &&
+      requestAge < MIXIN_REQUEST_FREQUENCE_MILLISECONDS / 2
+    ) {
+      return false;
+    }
+    this.currency_request = true;
+    this.currency_request_peer = provider;
+    this.currency_request_started_at = Date.now();
+    this.app.connection.emit('relay-send-message', {
+      recipient: provider,
+      request: 'buysaito available currencies',
+      data: null
+    });
+    return true;
+  }
+
+  receiveLegacyAvailableCurrencies(data) {
+    const provider = this.currencyProvider();
+    this.currency_request = null;
+    if (!data || data.err || !Array.isArray(data.ac) || data.ac.length === 0) {
+      this.available_currencies_failed_at = Date.now();
+      this.currency_failure_peer = provider;
+      if (!this.hasCurrencyCatalogue()) {
+        this.available_currencies = null;
+      }
+      return false;
+    }
+    this.available_currencies = data.ac;
+    this.available_currencies_at = Date.now();
+    this.currency_catalogue_peer = provider;
+    this.available_currencies_failed_at = 0;
+    this.currency_failure_peer = '';
+    return true;
   }
 
   async render() {
@@ -210,14 +304,22 @@ class BuySaito extends ModTemplate {
           });
           this.hasPendingPayment(tx.from[0].publicKey);
         } else if (txmsg.data && this.app.BROWSER) {
-          this.available_currencies = Array.isArray(txmsg.data.ac)
-            ? txmsg.data.ac.filter(isAvailablePaymentCurrency)
-            : null;
-          if (!this.erc_saito) {
-            this.erc_saito = { price_usd: txmsg.data.erc };
+          const mixin = this.app.modules?.returnModule?.('Mixin');
+          if (typeof mixin?.receiveAvailableCurrencies === 'function') {
+            mixin.receiveAvailableCurrencies(txmsg.data, {
+              provider: mixin.buysaito_peer?.publicKey || this.authorized_public_key
+            });
+          } else {
+            const ac = Array.isArray(txmsg.data.ac)
+              ? txmsg.data.ac.filter(isAvailablePaymentCurrency)
+              : null;
+            this.receiveLegacyAvailableCurrencies({ ...txmsg.data, ac });
+            if (!this.erc_saito && txmsg.data.erc) {
+              this.erc_saito = { price_usd: txmsg.data.erc };
+            }
+            if (this.browser_active) this.purchase_overlay.renderAmountPage();
+            this.app.connection.emit('saito-purchase-cryptos');
           }
-          if (this.browser_active) this.purchase_overlay.renderAmountPage();
-          this.app.connection.emit('saito-purchase-cryptos');
         } else {
           console.warn("BUYSAITO - We are getting a request we shouldn't be...");
           // console.warn(txmsg);
@@ -492,7 +594,7 @@ class BuySaito extends ModTemplate {
   async checkPrices() {
     let updated = false;
     for (let cm of this.mixin_mod.crypto_mods) {
-      if (!cm.last_update || Date.now() - cm.last_update > 300000) {
+      if (!cm.last_update || Date.now() - cm.last_update > MIXIN_REQUEST_FREQUENCE_MILLISECONDS) {
         updated = true;
         await cm.returnMixinNetworkInfo();
       }

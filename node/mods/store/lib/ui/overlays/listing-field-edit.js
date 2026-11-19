@@ -46,61 +46,15 @@ function returnStoreWeb3Tickers(app, current = 'SAITO') {
   return tickers;
 }
 
-function storeWeb3TickersAnswered(app) {
-  if (requestStoreWeb3Tickers.resolved) {
-    return true;
-  }
+function requestStoreWeb3Tickers(app) {
   const mixin = app?.modules?.returnModule?.('Mixin');
-  const currencies = mixin?.available_currencies;
-  // null is only assigned when a reply arrives without a currency list.
-  // [] is also the value before any reply, so it does not count as an answer.
-  if (currencies === null) {
-    requestStoreWeb3Tickers.resolved = true;
-    return true;
-  }
-  if (Array.isArray(currencies) && currencies.length) {
-    requestStoreWeb3Tickers.resolved = true;
-    return true;
-  }
-  return false;
-}
-
-function rememberStoreWeb3TickerResponse(app) {
-  if (requestStoreWeb3Tickers.listening || !app?.connection?.on) {
+  if (typeof mixin?.requestAvailableCurrencies !== 'function') {
     return;
   }
-  requestStoreWeb3Tickers.listening = true;
-  app.connection.on('saito-purchase-cryptos', () => {
-    requestStoreWeb3Tickers.resolved = true;
-    requestStoreWeb3Tickers.pending = false;
-  });
+  mixin.requestAvailableCurrencies(mixin.buysaito_peer?.publicKey);
 }
 
-function requestStoreWeb3Tickers(app, { force = false } = {}) {
-  const mixin = app?.modules?.returnModule?.('Mixin');
-  const peerKey = mixin?.buysaito_peer?.publicKey;
-  if (!peerKey) {
-    return;
-  }
-  rememberStoreWeb3TickerResponse(app);
-  if (force) {
-    requestStoreWeb3Tickers.resolved = false;
-    requestStoreWeb3Tickers.pending = false;
-  } else if (storeWeb3TickersAnswered(app) || requestStoreWeb3Tickers.pending) {
-    return;
-  }
-  requestStoreWeb3Tickers.pending = true;
-  app.network.sendRequestAsTransaction('buysaito available currencies', null, null, peerKey);
-}
-
-requestStoreWeb3Tickers.resolved = false;
-requestStoreWeb3Tickers.pending = false;
-requestStoreWeb3Tickers.listening = false;
-requestStoreWeb3Tickers.reset = () => {
-  requestStoreWeb3Tickers.resolved = false;
-  requestStoreWeb3Tickers.pending = false;
-  requestStoreWeb3Tickers.listening = false;
-};
+requestStoreWeb3Tickers.reset = () => {};
 
 class ListingFieldEdit {
   constructor(app, mod) {
@@ -196,4 +150,3 @@ class ListingFieldEdit {
 module.exports = ListingFieldEdit;
 module.exports.returnStoreWeb3Tickers = returnStoreWeb3Tickers;
 module.exports.requestStoreWeb3Tickers = requestStoreWeb3Tickers;
-module.exports.storeWeb3TickersAnswered = storeWeb3TickersAnswered;
