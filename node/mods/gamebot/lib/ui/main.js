@@ -49,7 +49,7 @@ class Main {
         this.mod.manager.notice = '';
         this.render();
         try {
-          const game_id = await this.mod.manager.accept_game(field.value);
+          const game_id = await this.mod.manager.acceptGame(field.value);
           this.open_page(game_id);
         } catch (err) {
           this.mod.manager.phase = 'splash';
@@ -69,7 +69,7 @@ class Main {
         this.mod.manager.notice = '';
         this.render();
         try {
-          const game_id = await this.mod.manager.open_game(value);
+          const game_id = await this.mod.manager.openGame(value);
           this.open_page(game_id);
         } catch (err) {
           this.mod.manager.phase = 'splash';
@@ -82,14 +82,14 @@ class Main {
 
   open_page(game_id) {
     this.mod.manager.phase = 'game';
-    if (typeof this.mod.manager.set_game_hash === 'function') {
-      this.mod.manager.set_game_hash(game_id);
+    if (typeof this.mod.game_screen?.set_game_hash === 'function') {
+      this.mod.game_screen.set_game_hash(game_id);
     } else if (typeof window !== 'undefined' && window.location) {
       window.location.hash = 'gid=' + encodeURIComponent(game_id);
     }
     document.querySelector('.gamebot-screen')?.remove();
-    if (this.mod.game_page && typeof this.mod.game_page.mount === 'function') {
-      this.mod.game_page.mount();
+    if (typeof this.mod.game_screen?.render === 'function') {
+      this.mod.game_screen.render();
     }
   }
 }

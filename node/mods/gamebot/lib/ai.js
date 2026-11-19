@@ -4,15 +4,21 @@ class AI {
     this.mod = mod;
   }
 
-  // No provider is configured. A later connection should return
-  // { game_id, identifier } when it has chosen a listed control.
-  async submit_analysis(context) {
-    return {
-      configured: false,
-      game_id: context?.game_id || '',
-      identifier: null,
-      context
-    };
+  async requestResponse(context) {
+    this.context = context;
+    if (typeof this.mod.game_screen?.context?.update === 'function') {
+      this.mod.game_screen.context.update(context);
+    }
+    return context;
+  }
+
+  async receiveResponse(game_id, response) {
+    const timestamp = response?.timestamp;
+    const current = this.mod.manager?.games?.[game_id]?.last_queue_stable ?? 0;
+    if (timestamp !== current) {
+      return null;
+    }
+    return this.mod.manager.handleResponse(game_id, response);
   }
 }
 

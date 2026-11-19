@@ -4,7 +4,7 @@ const Manager = require('./lib/manager');
 const AI = require('./lib/ai');
 const GameDom = require('./lib/jsdom');
 const Main = require('./lib/ui/main');
-const GamePage = require('./lib/ui/game');
+const Game = require('./lib/ui/game');
 
 class GameBot extends ModTemplate {
   constructor(app) {
@@ -22,7 +22,7 @@ class GameBot extends ModTemplate {
     this.ai = new AI(app, this);
     this.jsdom = new GameDom(app, this);
     this.main = new Main(app, this);
-    this.game_page = new GamePage(app, this);
+    this.game_screen = new Game(app, this);
     this.header = null;
   }
 
@@ -57,7 +57,7 @@ class GameBot extends ModTemplate {
       return;
     }
     if (this.manager.phase === 'game') {
-      await this.game_page.mount();
+      await this.game_screen.render();
       return;
     }
 
@@ -78,10 +78,10 @@ class GameBot extends ModTemplate {
     this.manager.phase = 'loading';
     this.main.render();
     try {
-      await this.manager.open_game(game_id);
+      await this.manager.openGame(game_id);
       this.manager.phase = 'game';
       document.querySelector('.gamebot-screen')?.remove();
-      await this.game_page.mount();
+      await this.game_screen.render();
     } catch (err) {
       this.manager.phase = 'splash';
       this.manager.notice = err.message || 'Could not open that game';

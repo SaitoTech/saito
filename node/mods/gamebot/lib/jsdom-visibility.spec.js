@@ -10,7 +10,7 @@ function page(html) {
 }
 
 function ids(game) {
-  return game.get_clickable_items().map((item) => item.identifier);
+  return game.returnOptions().map((item) => item.identifier);
 }
 
 function box(left, top, width, height) {
@@ -257,7 +257,7 @@ describe('visible interactions', () => {
       return [siamShape, siam];
     };
 
-    const menu = game.game_actions();
+    const menu = game.gameActions();
     const ids = menu.map((item) => item.id);
     expect(menu.length).toBeGreaterThan(0);
     expect(menu).toEqual(expect.arrayContaining([
@@ -294,7 +294,7 @@ describe('visible interactions', () => {
       [root, box(0, 0, 800, 600)]
     ]));
     document.elementsFromPoint = () => [root, inspector];
-    const ids = game.game_actions().map((item) => item.id);
+    const ids = game.gameActions().map((item) => item.id);
     expect(ids).toEqual(expect.arrayContaining(['skip', 'india']));
   });
 });

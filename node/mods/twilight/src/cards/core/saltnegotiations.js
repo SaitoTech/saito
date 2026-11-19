@@ -62,9 +62,8 @@
         this.overlay.show(html, (card) => { 
 	  this.overlay.clickToClose = cc_status;
         });
-        setTimeout(() => {
-	  document.querySelectorAll('.saito-overlay .transparent-card-overlay .card').forEach((el) => {
-	    el.onclick = (e) => {
+	document.querySelectorAll('.saito-overlay .transparent-card-overlay .card').forEach((el) => {
+	  el.onclick = (e) => {
 		let action2 = e.currentTarget.id;
 		document.querySelectorAll('.saito-overlay .transparent-card-overlay .card').forEach((el) => { el.onclick = (e) => {}; });
 	  	twilight_self.overlay.clickToClose = true;
@@ -79,9 +78,8 @@
           	twilight_self.addMove("NOTIFY\t"+player.toUpperCase() +" retrieved "+twilight_self.cardToText(action2));
           	twilight_self.addMove("undiscard\t"+action2); 
           	twilight_self.endTurn();
-	    }
-	  });
-	}, 25);
+	  }
+	});
 
 /****
                 twilight_self.game.status = "Choose Card to Reclaim:";

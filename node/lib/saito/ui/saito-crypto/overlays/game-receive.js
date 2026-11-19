@@ -8,7 +8,8 @@
  *   - Payment arrived → success UI, then completeReceiveOnce()
  *   - inbound trusted pref → 3s progress bar, then completeReceiveOnce()
  * Overlay close must not re-fire the game callback.
- * Continue does not write crypto_transfers_inbound_trusted.
+ * Continue writes crypto_transfers_inbound_trusted so later receipts
+ * use automatic receipt. Payment arrival does not.
  */
 
 const GameReceiveTemplate = require('./game-receive.template');
@@ -95,9 +96,20 @@ class GameReceive {
     this.overlay.close();
   }
 
+  /**
+   * Same preference as Crypto menu → Fast Inbound Payments.
+   * A manual Continue means the player is done waiting on this overlay.
+   */
+  enableAutomaticReceipt() {
+    this.app.options.gameprefs = this.app.options.gameprefs || {};
+    this.app.options.gameprefs.crypto_transfers_inbound_trusted = 1;
+    this.app.storage.saveOptions();
+  }
+
   attachEvents() {
     if (this.el?.closeBtn) {
       this.el.closeBtn.addEventListener('click', () => {
+        this.enableAutomaticReceipt();
         this.completeReceiveOnce();
       });
     }
