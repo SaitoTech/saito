@@ -45,7 +45,7 @@
   "homepage": "https://saito.io",
   "dependencies": {
     "@giphy/js-fetch-api": "5.8.0",
-    "@mixin.dev/mixin-node-sdk": "7.4.9",
+    "@mixin.dev/mixin-node-sdk": "7.6.2",
     "@multiversx/sdk-core": "13.17.2",
     "@taasfi/multicoin-address-validator": "0.5.27",
     "acorn": "8.15.0",

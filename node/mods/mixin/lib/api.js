@@ -42,16 +42,16 @@ function mixinAppKeystoreFromEnv() {
   }
 }
 
-function createAppSession(fallback) {
+function createAppSession(fallback, userAgent) {
   const keystore = mixinAppKeystoreFromEnv() || mixinAppKeystore(fallback);
   if (!keystore) {
     return null;
   }
 
-  return MixinApi({ keystore });
+  return MixinApi({ keystore, requestConfig: { userAgent } });
 }
 
-function createUserSession(credentials = {}) {
+function createUserSession(credentials = {}, userAgent) {
   const keystore = {
     app_id: credentials.user_id,
     session_id: credentials.session_id,
@@ -74,7 +74,7 @@ function createUserSession(credentials = {}) {
   return MixinApi({
     keystore,
     // Browser balance/history polls must fail fast; default retry: 5 ≈ 20s per call.
-    requestConfig: { timeout: 3000, retry: 0 }
+    requestConfig: { timeout: 3000, retry: 0, userAgent }
   });
 }
 
@@ -126,12 +126,17 @@ function snapshotOffset(createdAt = 0) {
 }
 
 class Api {
-  constructor() {
+  constructor(mod) {
+    this.mod = mod;
     this.appKeystore = null;
   }
 
   createAppSession() {
-    return createAppSession(this.appKeystore);
+    return createAppSession(this.appKeystore, this.mod?.user_agent);
+  }
+
+  createUserSession(credentials) {
+    return createUserSession(credentials, this.mod?.user_agent);
   }
 
   async createAccount(displayName) {
@@ -155,7 +160,8 @@ class Api {
         session_id: user.session_id,
         pin_token_base64: user.pin_token_base64,
         session_private_key: sessionPrivateKey
-      }
+      },
+      requestConfig: { userAgent: this.mod?.user_agent }
     });
 
     const { publicKey: spendPublicKey, seed: spendPrivateKey } = getED25519KeyPair();
@@ -184,7 +190,7 @@ class Api {
     }
 
     try {
-      const session = createUserSession(credentials);
+      const session = this.createUserSession(credentials);
       const created = await session.safe.createDeposit(chainId);
       const address = created?.[0]?.destination;
       if (!address) {
@@ -201,7 +207,7 @@ class Api {
 
   async fetchBalance(credentials, assetId) {
     try {
-      const session = createUserSession(credentials);
+      const session = this.createUserSession(credentials);
       return await session.utxo.safeAssetBalance({
         members: [credentials.user_id],
         threshold: 1,
@@ -215,7 +221,7 @@ class Api {
 
   async fetchHistory(credentials, assetId, since = 0) {
     try {
-      const session = createUserSession(credentials);
+      const session = this.createUserSession(credentials);
       return await session.safe.fetchSafeSnapshots({
         asset: assetId,
         limit: 500,
@@ -232,7 +238,7 @@ class Api {
       if (!address) {
         return [];
       }
-      const session = createUserSession(credentials);
+      const session = this.createUserSession(credentials);
       return await session.safe.pendingDeposits({
         asset: assetId,
         destination: address
@@ -260,7 +266,7 @@ class Api {
 
   async fetchWithdrawalFee(credentials, assetId, address) {
     try {
-      const session = createUserSession(credentials);
+      const session = this.createUserSession(credentials);
       const asset = await session.safe.fetchAsset(assetId);
       const chain =
         asset.chain_id === asset.asset_id ? asset : await session.safe.fetchAsset(asset.chain_id);
@@ -291,7 +297,7 @@ class Api {
   }
 
   async sendToUser(credentials, assetId, mixinUserId, amount, memo = '') {
-    const session = createUserSession(credentials);
+    const session = this.createUserSession(credentials);
     const spendPrivateKey = credentials.spend_private_key;
     const members = [mixinUserId];
     const threshold = 1;
@@ -343,7 +349,7 @@ class Api {
   }
 
   async sendToAddress(credentials, assetId, address, amount, memo = '') {
-    const session = createUserSession(credentials);
+    const session = this.createUserSession(credentials);
     const spendPrivateKey = credentials.spend_private_key;
     const balance = await session.utxo.safeAssetBalance({
       members: [credentials.user_id],

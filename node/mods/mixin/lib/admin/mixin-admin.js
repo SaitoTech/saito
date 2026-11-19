@@ -41,6 +41,9 @@ class MixinAdmin {
     this.total = 0;
     this.apiKeyConfigured = undefined;
     this.apiKeyText = '';
+    this.user_agent = '';
+    this.default_user_agent = '';
+    this.savingUserAgent = false;
     this.savingApiKey = false;
     this.depositAddresses = [];
     this.fulfillment_mode = 'local';
@@ -74,6 +77,9 @@ class MixinAdmin {
     this.total = 0;
     this.apiKeyConfigured = undefined;
     this.apiKeyText = '';
+    this.user_agent = '';
+    this.default_user_agent = '';
+    this.savingUserAgent = false;
     this.savingApiKey = false;
     this.depositAddresses = [];
     this.fulfillment_mode = 'local';
@@ -117,6 +123,9 @@ class MixinAdmin {
         apiKeyConfigured: this.apiKeyConfigured,
         apiKeyText: this.apiKeyText,
         savingApiKey: this.savingApiKey,
+        user_agent: this.user_agent,
+        default_user_agent: this.default_user_agent,
+        savingUserAgent: this.savingUserAgent,
         depositAddresses: this.depositAddresses,
         fulfillment_mode: this.fulfillment_mode,
         payout_mode: this.payout_mode,
@@ -193,6 +202,20 @@ class MixinAdmin {
       refresh.onclick = (e) => {
         e.preventDefault();
         this.load();
+      };
+    }
+
+    const userAgent = document.getElementById('admin-payments-user-agent');
+    if (userAgent) {
+      userAgent.oninput = () => {
+        this.user_agent = userAgent.value;
+      };
+    }
+    const saveUserAgent = document.getElementById('admin-payments-user-agent-save');
+    if (saveUserAgent) {
+      saveUserAgent.onclick = (e) => {
+        e.preventDefault();
+        this.saveUserAgent();
       };
     }
 
@@ -350,6 +373,12 @@ class MixinAdmin {
   }
 
   applyResult(result) {
+    if (typeof result?.user_agent === 'string') {
+      this.user_agent = result.user_agent;
+    }
+    if (typeof result?.default_user_agent === 'string') {
+      this.default_user_agent = result.default_user_agent;
+    }
     this.transfers = result?.transfers || [];
     this.total = Number(result?.total || 0);
     this.page = Number(result?.page || this.page || 1);
@@ -431,6 +460,28 @@ class MixinAdmin {
     this.error = '';
     this.configNotice = '';
     this.refresh();
+  }
+
+  async saveUserAgent() {
+    if (this.savingUserAgent) {
+      return;
+    }
+    this.savingUserAgent = true;
+    this.error = '';
+    this.refresh();
+    await this.sendAdminRequest(
+      'update-admin-config',
+      { module_id: 'mixin', data: { action: 'save-user-agent', user_agent: this.user_agent } },
+      (res) => {
+        this.savingUserAgent = false;
+        if (res?.err) {
+          this.error = res.err;
+        } else {
+          this.applyResult(res.result);
+        }
+        this.refresh();
+      }
+    );
   }
 
   async saveConfig() {
