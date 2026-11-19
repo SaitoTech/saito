@@ -867,20 +867,26 @@ class Mixin extends ModTemplate {
       const authorized_peer = this.isAuthorizedFulfillmentPeer(peer, from);
       const can_fulfill = !!this.appSession && !!this.transfers && buysaitoProvider;
       const accepted = can_fulfill && authorized_peer;
-      console.log('Mixin buysaito request', {
-        request: message.request,
-        app_session: !!this.appSession,
-        transfers: !!this.transfers,
-        fulfillment_mode: this.fulfillment_mode,
-        server: this.publicKey,
-        addressed_to_server: tx.isTo(this.publicKey),
-        buysaito_provider: buysaitoProvider,
-        buyer: from || '',
-        connected_peer: peer?.publicKey || '',
-        direct_peer,
-        delegated_peer,
-        accepted
-      });
+      if (message.request === 'buysaito available currencies') {
+        console.log(
+          `MIXIN PEER REQUEST IN | buysaito available currencies | from=${from || ''}`
+        );
+      } else {
+        console.log('Mixin buysaito request', {
+          request: message.request,
+          app_session: !!this.appSession,
+          transfers: !!this.transfers,
+          fulfillment_mode: this.fulfillment_mode,
+          server: this.publicKey,
+          addressed_to_server: tx.isTo(this.publicKey),
+          buysaito_provider: buysaitoProvider,
+          buyer: from || '',
+          connected_peer: peer?.publicKey || '',
+          direct_peer,
+          delegated_peer,
+          accepted
+        });
+      }
       if (!authorized_peer) {
         return 0;
       }
@@ -927,14 +933,13 @@ class Mixin extends ModTemplate {
           ac: currencies,
           erc: Number.isFinite(Number(erc?.price_usd)) && Number(erc.price_usd) > 0 ? Number(erc.price_usd) : null
         };
-        console.log('Mixin buysaito available currencies reply', {
-          count: currencies.length,
-          tickers: currencies.map((currency) => currency.ticker),
-          erc: response.erc,
-          callback: typeof mycallback === 'function',
-          buyer: from
-        });
+        console.log(
+          `MIXIN PEER RESPONSE READY | buysaito available currencies | to=${from || ''} | tickers=${currencies.length}`
+        );
         if (direct_peer) {
+          console.log(
+            `MIXIN PEER RESPONSE OUT | buysaito available currencies | to=${from || ''}`
+          );
           this.app.network.sendRequestAsTransaction(
             'buysaito available currencies',
             response,
@@ -943,6 +948,9 @@ class Mixin extends ModTemplate {
           );
         }
         if (mycallback) {
+          console.log(
+            `MIXIN PEER RESPONSE OUT | buysaito available currencies | to=${from || ''}`
+          );
           mycallback(response);
         }
         return 1;
