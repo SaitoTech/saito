@@ -162,24 +162,6 @@
   color: #5a3d22;
 }
 
-/*
-  Clock-is-ticking overlay checkbox: shared `.saito-checkbox` uses
-  `--saito-border: #45423e`, which disappears on the dark #0009 opt-out chip.
-*/
-.game.poker .game-help-overlay-optout .saito-checkbox {
-  border-color: #f4ead0;
-  background-color: transparent;
-}
-
-.game.poker .game-help-overlay-optout .saito-checkbox:checked {
-  background-color: color-mix(in srgb, #f4ead0 22%, transparent);
-  border-color: #f4ead0;
-}
-
-.game.poker .game-help-overlay-optout .saito-checkbox:checked::after {
-  color: #f4ead0;
-}
-
 @media (max-width: 900px), (max-height: 500px) {
   .game.poker .poker-result {
     padding: 0.6rem;

@@ -13,22 +13,19 @@
   margin: 0;
 }
 
-.gamebot-page .gamebot-main form,
-.gamebot-inspector form {
+.gamebot-page .gamebot-main form {
   display: flex;
   flex-direction: column;
   gap: var(--saito-space-sm);
 }
 
-.gamebot-page .gamebot-row,
-.gamebot-inspector .gamebot-row {
+.gamebot-page .gamebot-row {
   display: flex;
   gap: var(--saito-space-sm);
   align-items: center;
 }
 
-.gamebot-page .gamebot-row input,
-.gamebot-inspector .gamebot-row input {
+.gamebot-page .gamebot-row input {
   flex: 1;
   min-width: 0;
   color: var(--saito-foreground);
@@ -38,10 +35,7 @@
   padding: var(--saito-space-sm);
 }
 
-.gamebot-page .gamebot-row button,
-.gamebot-inspector .gamebot-row button,
-.gamebot-inspector-close,
-.gamebot-inspector-tab {
+.gamebot-page .gamebot-row button {
   flex: none;
   border: 1px solid transparent;
   border-radius: var(--saito-radius);
@@ -50,17 +44,11 @@
   font: inherit;
 }
 
-.gamebot-page .gamebot-row button:hover,
-.gamebot-inspector .gamebot-row button:hover,
-.gamebot-inspector-close:hover,
-.gamebot-inspector-tab:hover {
+.gamebot-page .gamebot-row button:hover {
   filter: brightness(1.08);
 }
 
-.gamebot-page .gamebot-row button:focus-visible,
-.gamebot-inspector .gamebot-row button:focus-visible,
-.gamebot-inspector-close:focus-visible,
-.gamebot-inspector-tab:focus-visible {
+.gamebot-page .gamebot-row button:focus-visible {
   outline: 2px solid var(--saito-primary);
   outline-offset: 2px;
 }
@@ -79,14 +67,3 @@
   font-size: 1.4rem;
 }
 
-#gamebot-loading {
-  position: fixed;
-  inset: 0;
-  z-index: 1000;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--saito-background, #111);
-  color: var(--saito-foreground, #fff);
-  font-size: 1.4rem;
-}

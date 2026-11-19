@@ -5,8 +5,8 @@ class GameDom {
     this.listed = [];
   }
 
-  get_clickable_items() {
-    const root = this.game_document();
+  returnOptions() {
+    const root = this.gameDocument();
     if (!root?.querySelectorAll) {
       this.listed = [];
       return [];
@@ -16,7 +16,7 @@ class GameDom {
     const nodes = root.querySelectorAll('*');
     for (let i = 0; i < nodes.length; i++) {
       const el = nodes[i];
-      if (!this.is_clickable(el)) {
+      if (!this.isClickable(el)) {
         continue;
       }
       if (el.closest?.('.gamebot-inspector, .gamebot-inspector-tab, .gamebot-loading, .gamebot-screen')) {
@@ -30,7 +30,7 @@ class GameDom {
         .trim()
         .slice(0, 180);
       found.push({
-        identifier: this.element_path(el),
+        identifier: this.elementPath(el),
         text,
         tag: el.tagName.toLowerCase(),
         type: el.getAttribute?.('type') || '',
@@ -59,40 +59,109 @@ class GameDom {
     });
   }
 
-  async execute_click(identifier) {
-    const wanted = String(identifier || '').trim();
+  // The operator copies from the context menu. The tree shows JSON strings
+  // with quotes, and a menu entry also has an id and a label. Any one of
+  // those is the same control.
+  normalizeChoice(value) {
+    let text = String(value ?? '').trim();
+    if (text.endsWith(',')) {
+      text = text.slice(0, -1).trim();
+    }
+    if (text.length >= 2) {
+      const open = text[0];
+      const close = text[text.length - 1];
+      if ((open === '"' && close === '"') || (open === "'" && close === "'")) {
+        text = text.slice(1, -1).trim();
+      }
+    }
+    return text;
+  }
+
+  currentMenu() {
+    const menu = this.mod.manager?.view?.context?.menu;
+    return Array.isArray(menu) ? menu : [];
+  }
+
+  matchingMenuItem(wanted) {
+    const exact = [];
+    const labels = [];
+    const menu = this.currentMenu();
+    for (let i = 0; i < menu.length; i++) {
+      const item = menu[i];
+      if (!item || typeof item !== 'object') {
+        continue;
+      }
+      const identifier = this.normalizeChoice(item.identifier);
+      const id = this.normalizeChoice(item.id);
+      const label = this.normalizeChoice(item.label);
+      if ((identifier && identifier === wanted) || (id && id === wanted)) {
+        exact.push(item);
+      } else if (label && label === wanted) {
+        labels.push(item);
+      }
+    }
+    if (exact.length > 0) {
+      return exact[0];
+    }
+    if (labels.length === 1) {
+      return labels[0];
+    }
+    return null;
+  }
+
+  elementText(el) {
+    return String(el?.innerText || el?.textContent || el?.value || '')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
+  elementFromIdentifier(identifier) {
+    const root = this.gameDocument();
+    if (!root?.querySelectorAll || !identifier) {
+      return null;
+    }
+    const hash = identifier.indexOf('#');
+    const chain = identifier.indexOf('>');
+    if (hash > 0 && (chain === -1 || hash < chain) && typeof root.getElementById === 'function') {
+      const id = identifier.slice(hash + 1).split('>')[0];
+      const by_id = root.getElementById(id);
+      if (by_id && this.elementPath(by_id) === identifier) {
+        return by_id;
+      }
+    }
+    const nodes = root.querySelectorAll('*');
+    for (let i = 0; i < nodes.length; i++) {
+      if (this.elementPath(nodes[i]) === identifier) {
+        return nodes[i];
+      }
+    }
+    return null;
+  }
+
+  async executeClick(identifier) {
+    const wanted = this.normalizeChoice(identifier);
     if (!wanted) {
       throw new Error('Choose a listed control');
     }
-    const previous = this.listed.find((item) => item.identifier === wanted);
-    if (!previous) {
+    const menu_item = this.matchingMenuItem(wanted);
+    const target = this.normalizeChoice(menu_item?.identifier) || wanted;
+    const previous = this.listed.find((item) => item.identifier === target || item.identifier === wanted);
+    if (!previous && !menu_item) {
       throw new Error('That control is not in the current list. Examine the game again.');
     }
 
-    const current_items = [];
-    const root = this.game_document();
-    const nodes = root?.querySelectorAll ? root.querySelectorAll('*') : [];
-    for (let i = 0; i < nodes.length; i++) {
-      const el = nodes[i];
-      if (!this.is_clickable(el)) {
-        continue;
-      }
-      current_items.push({
-        identifier: this.element_path(el),
-        text: String(el.innerText || el.textContent || el.value || '')
-          .replace(/\s+/g, ' ')
-          .trim(),
-        tag: el.tagName.toLowerCase(),
-        element: el
-      });
-    }
-    const current = current_items.find((item) => item.identifier === wanted);
-    if (!current || current.tag !== previous.tag || current.text !== previous.text) {
+    const el = this.elementFromIdentifier(target);
+    if (!el) {
       throw new Error('That control changed since it was listed');
     }
-    this.dispatch_click(current.element);
+    const text = this.elementText(el);
+    const tag = el.tagName.toLowerCase();
+    if (previous && (previous.tag !== tag || previous.text !== text)) {
+      throw new Error('That control changed since it was listed');
+    }
+    this.dispatchClick(el);
     this.listed = [];
-    return wanted;
+    return target;
   }
 
   // Synthetic events are not trusted. A browser may ignore the default action
@@ -101,14 +170,14 @@ class GameDom {
   // mouseup does not cause this DOM to emit click, so click is dispatched once.
   // PointerEvent is not part of every document; pointer actions use mouse
   // events when it is missing. mouseenter and mouseleave do not bubble.
-  document_view(el) {
+  documentView(el) {
     if (!el || el.nodeType !== 1 || !el.ownerDocument?.defaultView) {
       throw new Error('That element is not in the document');
     }
     return el.ownerDocument.defaultView;
   }
 
-  event_constructor(view, type) {
+  eventConstructor(view, type) {
     if (type.indexOf('pointer') === 0) {
       return typeof view.PointerEvent === 'function' ? view.PointerEvent : null;
     }
@@ -121,10 +190,10 @@ class GameDom {
     return view.MouseEvent;
   }
 
-  dispatch_event(el, type, init) {
-    const view = this.document_view(el);
+  dispatchEvent(el, type, init) {
+    const view = this.documentView(el);
     let event_type = type;
-    let Ctor = this.event_constructor(view, type);
+    let Ctor = this.eventConstructor(view, type);
     if (type.indexOf('pointer') === 0 && !Ctor) {
       const mouse_type = {
         pointerdown: 'mousedown',
@@ -162,23 +231,23 @@ class GameDom {
     return event_type;
   }
 
-  dispatch_click(el) {
-    this.dispatch_event(el, 'mousedown');
-    this.dispatch_event(el, 'mouseup');
-    this.dispatch_event(el, 'click');
+  dispatchClick(el) {
+    this.dispatchEvent(el, 'mousedown');
+    this.dispatchEvent(el, 'mouseup');
+    this.dispatchEvent(el, 'click');
   }
 
-  pointer_down(el) {
-    return this.dispatch_event(el, 'pointerdown');
+  pointerDown(el) {
+    return this.dispatchEvent(el, 'pointerdown');
   }
 
-  pointer_up(el) {
-    return this.dispatch_event(el, 'pointerup');
+  pointerUp(el) {
+    return this.dispatchEvent(el, 'pointerup');
   }
 
   hover(el) {
-    this.dispatch_event(el, 'mouseover');
-    this.dispatch_event(el, 'mouseenter');
+    this.dispatchEvent(el, 'mouseover');
+    this.dispatchEvent(el, 'mouseenter');
   }
 
   key(el, key) {
@@ -186,21 +255,21 @@ class GameDom {
     if (!name) {
       throw new Error('A key is required');
     }
-    this.dispatch_event(el, 'keydown', { key: name, code: name, bubbles: true });
-    this.dispatch_event(el, 'keyup', { key: name, code: name, bubbles: true });
+    this.dispatchEvent(el, 'keydown', { key: name, code: name, bubbles: true });
+    this.dispatchEvent(el, 'keyup', { key: name, code: name, bubbles: true });
   }
 
-  input_text(el, value) {
+  inputText(el, value) {
     const tag = el?.tagName ? el.tagName.toLowerCase() : '';
     if (tag !== 'input' && tag !== 'textarea') {
       throw new Error('That element does not accept text');
     }
     el.value = String(value ?? '');
-    this.dispatch_event(el, 'input', { bubbles: true });
-    this.dispatch_event(el, 'change', { bubbles: true });
+    this.dispatchEvent(el, 'input', { bubbles: true });
+    this.dispatchEvent(el, 'change', { bubbles: true });
   }
 
-  select_option(el, value) {
+  selectOption(el, value) {
     if (!el || !el.tagName || el.tagName.toLowerCase() !== 'select') {
       throw new Error('That element is not a select control');
     }
@@ -210,11 +279,21 @@ class GameDom {
       throw new Error('That option is not in the select control');
     }
     el.value = wanted;
-    this.dispatch_event(el, 'input', { bubbles: true });
-    this.dispatch_event(el, 'change', { bubbles: true });
+    this.dispatchEvent(el, 'input', { bubbles: true });
+    this.dispatchEvent(el, 'change', { bubbles: true });
   }
 
-  game_actions() {
+  returnContext(context) {
+    if (!context || typeof context !== 'object' || Array.isArray(context)) {
+      return context;
+    }
+    if (!Array.isArray(context.menu) || context.menu.length === 0) {
+      context.menu = this.gameActions();
+    }
+    return context;
+  }
+
+  gameActions() {
     const incidental = {
       game: true,
       info: true,
@@ -258,14 +337,14 @@ class GameDom {
     const actions = [];
     const seen = {};
     const found = [];
-    const root = this.game_document();
+    const root = this.gameDocument();
     const nodes = root?.querySelectorAll ? root.querySelectorAll('*') : [];
     for (let i = 0; i < nodes.length; i++) {
       const el = nodes[i];
-      if (!this.is_clickable(el) || el.disabled === true || this.preview_only(el)) {
+      if (!this.isClickable(el) || el.disabled === true || this.previewOnly(el)) {
         continue;
       }
-      if (this.is_game_board(el) || el.closest?.(chrome)) {
+      if (this.isGameBoard(el) || el.closest?.(chrome)) {
         continue;
       }
       const tag = el.tagName ? el.tagName.toLowerCase() : '';
@@ -278,7 +357,7 @@ class GameDom {
       if (incidental[text.toLowerCase()]) {
         continue;
       }
-      const identifier = this.element_path(el);
+      const identifier = this.elementPath(el);
       if (!identifier || seen[identifier]) {
         continue;
       }
@@ -303,13 +382,47 @@ class GameDom {
       });
     }
     this.listed = found;
-    this.record_action_trace(nodes, actions);
+    this.recordActionTrace(nodes, actions);
     return actions;
+  }
+
+  // Shown in the document. Geometry and pointer-events are left to the
+  // clickable-control check so a container can hold a visible menu.
+  isShown(el) {
+    if (!el || el.nodeType !== 1) {
+      return false;
+    }
+    const view = el.ownerDocument?.defaultView;
+    if (!view || el.isConnected === false) {
+      return false;
+    }
+    let node = el;
+    while (node && node.nodeType === 1) {
+      if (node.hidden === true || node.hasAttribute?.('hidden')) {
+        return false;
+      }
+      if (node.getAttribute?.('aria-hidden') === 'true') {
+        return false;
+      }
+      if (node.inert === true || node.hasAttribute?.('inert')) {
+        return false;
+      }
+      const style = this.computedStyle(view, node);
+      if (style && style.display === 'none') {
+        return false;
+      }
+      if (this.fullyTransparent(style)) {
+        return false;
+      }
+      node = node.parentElement;
+    }
+    const own = this.computedStyle(view, el);
+    return !(own && (own.visibility === 'hidden' || own.visibility === 'collapse'));
   }
 
   // Temporary discovery trace. It records why a visible control was left out of
   // the menu, including a disabled button that is still painted.
-  record_action_trace(nodes, actions) {
+  recordActionTrace(nodes, actions) {
     if (!this.trace_actions) {
       return;
     }
@@ -325,7 +438,7 @@ class GameDom {
       if (tag !== 'button' && !action && !/finish attacking/i.test(text)) {
         continue;
       }
-      rows.push(this.describe_candidate(el, text));
+      rows.push(this.describeCandidate(el, text));
     }
     this.action_trace = rows;
     const finish = rows.filter((row) => row.action === 'end_attack' || /finish attacking/i.test(row.text));
@@ -343,16 +456,16 @@ class GameDom {
     }
   }
 
-  describe_candidate(el, text) {
+  describeCandidate(el, text) {
     const view = el.ownerDocument?.defaultView;
-    const style = this.computed_style(view, el);
+    const style = this.computedStyle(view, el);
     const rect = typeof el.getBoundingClientRect === 'function' ? el.getBoundingClientRect() : null;
     const box = rect ? { width: rect.width, height: rect.height, top: rect.top, left: rect.left } : null;
     return {
       tag: el.tagName ? el.tagName.toLowerCase() : '',
       text: text || '',
       action: el.getAttribute?.('data-do') || '',
-      identifier: this.element_path(el),
+      identifier: this.elementPath(el),
       disabled: el.disabled === true,
       disabled_attribute: el.hasAttribute?.('disabled') === true,
       display: style?.display || '',
@@ -360,27 +473,27 @@ class GameDom {
       opacity: style?.opacity || '',
       pointer_events: style?.pointerEvents || '',
       box,
-      has_interaction: this.has_interaction(el),
-      passes_visibility: this.is_interactable(el),
+      hasInteraction: this.hasInteraction(el),
+      passes_visibility: this.isInteractable(el),
       own_listener: typeof el.onclick === 'function' || !!el.getAttribute?.('onclick'),
       delegated: true,
-      excluded_by: this.exclusion_reason(el, text)
+      excluded_by: this.exclusionReason(el, text)
     };
   }
 
-  exclusion_reason(el, text) {
-    if (!this.has_interaction(el)) {
-      return 'has_interaction';
+  exclusionReason(el, text) {
+    if (!this.hasInteraction(el)) {
+      return 'hasInteraction';
     }
-    const unavailable = this.interactable_failure(el);
+    const unavailable = this.interactableFailure(el);
     if (unavailable) {
       return unavailable;
     }
     if (el.disabled === true) {
-      return 'game_actions.disabled';
+      return 'gameActions.disabled';
     }
-    if (this.preview_only(el)) {
-      return 'preview_only';
+    if (this.previewOnly(el)) {
+      return 'previewOnly';
     }
     const chrome = [
       '#saito-header',
@@ -410,7 +523,7 @@ class GameDom {
       '#game-help',
       '.hud-notice'
     ].join(', ');
-    if (this.is_game_board(el) || el.closest?.(chrome)) {
+    if (this.isGameBoard(el) || el.closest?.(chrome)) {
       return 'chrome';
     }
     const tag = el.tagName ? el.tagName.toLowerCase() : '';
@@ -435,7 +548,7 @@ class GameDom {
     return '';
   }
 
-  interactable_failure(el) {
+  interactableFailure(el) {
     if (!el || el.nodeType !== 1) {
       return 'not an element';
     }
@@ -443,8 +556,8 @@ class GameDom {
     if (!view || el.isConnected === false) {
       return 'not connected';
     }
-    if (this.control_disabled(el)) {
-      return 'control_disabled';
+    if (this.controlDisabled(el)) {
+      return 'controlDisabled';
     }
     let node = el;
     while (node && node.nodeType === 1) {
@@ -458,29 +571,29 @@ class GameDom {
       if (node.inert === true || node.hasAttribute?.('inert')) {
         return 'inert on ' + where;
       }
-      const style = this.computed_style(view, node);
+      const style = this.computedStyle(view, node);
       if (style && style.display === 'none') {
         return 'display none on ' + where;
       }
-      if (this.fully_transparent(style)) {
+      if (this.fullyTransparent(style)) {
         return 'opacity 0 on ' + where;
       }
       node = node.parentElement;
     }
-    const own = this.computed_style(view, el);
+    const own = this.computedStyle(view, el);
     if (own && (own.visibility === 'hidden' || own.visibility === 'collapse')) {
       return 'visibility ' + own.visibility;
     }
     if (own && own.pointerEvents === 'none') {
       return 'pointer-events none';
     }
-    if (!this.geometry_reaches(el, view)) {
+    if (!this.geometryReaches(el, view)) {
       return 'geometry:' + (this._geometry_reason || 'rejected');
     }
     return '';
   }
 
-  game_document() {
+  gameDocument() {
     const game_mod = this.mod.manager?.active_game_mod;
     if (game_mod?.jsdom?.window?.document) {
       return game_mod.jsdom.window.document;
@@ -491,14 +604,14 @@ class GameDom {
     return null;
   }
 
-  is_clickable(el) {
-    if (!this.has_interaction(el)) {
+  isClickable(el) {
+    if (!this.hasInteraction(el)) {
       return false;
     }
-    return this.is_interactable(el);
+    return this.isInteractable(el);
   }
 
-  has_interaction(el) {
+  hasInteraction(el) {
     const tag = el.tagName ? el.tagName.toLowerCase() : '';
     if (!tag || tag === 'script' || tag === 'style' || tag === 'html' || tag === 'head' || tag === 'body') {
       return false;
@@ -519,7 +632,7 @@ class GameDom {
     if (typeof el.onmouseup === 'function' || typeof el.onmousedown === 'function') {
       return true;
     }
-    if (this.jquery_click(el)) {
+    if (this.jqueryClick(el)) {
       return true;
     }
     const symbols = Object.getOwnPropertySymbols(el);
@@ -548,8 +661,8 @@ class GameDom {
   // on it is ignored so an open drawer cannot erase the actions underneath.
   // The click may land on a descendant (an SVG path inside a territory) while
   // the listener lives on an ancestor. Those targets are already accepted by
-  // has_interaction when they are buttons, links, or role=button widgets.
-  is_interactable(el) {
+  // hasInteraction when they are buttons, links, or role=button widgets.
+  isInteractable(el) {
     if (!el || el.nodeType !== 1) {
       return false;
     }
@@ -557,7 +670,7 @@ class GameDom {
     if (!view || el.isConnected === false) {
       return false;
     }
-    if (this.control_disabled(el)) {
+    if (this.controlDisabled(el)) {
       return false;
     }
     let node = el;
@@ -571,26 +684,26 @@ class GameDom {
       if (node.inert === true || node.hasAttribute?.('inert')) {
         return false;
       }
-      const style = this.computed_style(view, node);
+      const style = this.computedStyle(view, node);
       if (style && style.display === 'none') {
         return false;
       }
-      if (this.fully_transparent(style)) {
+      if (this.fullyTransparent(style)) {
         return false;
       }
       node = node.parentElement;
     }
-    const own = this.computed_style(view, el);
+    const own = this.computedStyle(view, el);
     if (own && (own.visibility === 'hidden' || own.visibility === 'collapse')) {
       return false;
     }
     if (own && own.pointerEvents === 'none') {
       return false;
     }
-    return this.geometry_reaches(el, view);
+    return this.geometryReaches(el, view);
   }
 
-  control_disabled(el) {
+  controlDisabled(el) {
     const tag = el.tagName ? el.tagName.toLowerCase() : '';
     const control = tag === 'button' || tag === 'input' || tag === 'select' || tag === 'textarea' || tag === 'option' || tag === 'optgroup';
     if (!control) {
@@ -616,7 +729,7 @@ class GameDom {
     return false;
   }
 
-  fully_transparent(style) {
+  fullyTransparent(style) {
     const value = style && style.opacity;
     if (value === '' || value == null) {
       return false;
@@ -625,7 +738,7 @@ class GameDom {
     return Number.isFinite(number) && number === 0;
   }
 
-  computed_style(view, el) {
+  computedStyle(view, el) {
     if (typeof view.getComputedStyle !== 'function') {
       return null;
     }
@@ -636,7 +749,7 @@ class GameDom {
     }
   }
 
-  layout_measured(doc) {
+  layoutMeasured(doc) {
     const root = doc.documentElement;
     const root_box = root && typeof root.getBoundingClientRect === 'function' ? root.getBoundingClientRect() : null;
     if (root_box && root_box.width > 0 && root_box.height > 0) {
@@ -647,7 +760,7 @@ class GameDom {
     return !!(body_box && body_box.width > 0 && body_box.height > 0);
   }
 
-  rect_box(rect) {
+  rectBox(rect) {
     if (!rect) {
       return null;
     }
@@ -663,7 +776,7 @@ class GameDom {
     return { left, top, right, bottom, width, height };
   }
 
-  intersect_box(a, b) {
+  intersectBox(a, b) {
     if (!a || !b) {
       return null;
     }
@@ -677,7 +790,7 @@ class GameDom {
     return { left, top, right, bottom, width: right - left, height: bottom - top };
   }
 
-  clips_overflow(style) {
+  clipsOverflow(style) {
     if (!style) {
       return false;
     }
@@ -685,7 +798,7 @@ class GameDom {
     return clips[style.overflowX] === true || clips[style.overflowY] === true || clips[style.overflow] === true;
   }
 
-  creates_containing_block(style) {
+  createsContainingBlock(style) {
     if (!style) {
       return false;
     }
@@ -705,10 +818,10 @@ class GameDom {
     return will.indexOf('transform') !== -1 || will.indexOf('filter') !== -1 || will.indexOf('perspective') !== -1;
   }
 
-  geometry_reaches(el, view) {
+  geometryReaches(el, view) {
     this._geometry_reason = '';
     const doc = el.ownerDocument;
-    if (!this.layout_measured(doc) || typeof el.getBoundingClientRect !== 'function') {
+    if (!this.layoutMeasured(doc) || typeof el.getBoundingClientRect !== 'function') {
       return true;
     }
     const width = Number(view.innerWidth) || doc.documentElement.clientWidth || 0;
@@ -716,7 +829,7 @@ class GameDom {
     if (width <= 0 || height <= 0) {
       return true;
     }
-    let visible = this.intersect_box(this.rect_box(el.getBoundingClientRect()), {
+    let visible = this.intersectBox(this.rectBox(el.getBoundingClientRect()), {
       left: 0,
       top: 0,
       right: width,
@@ -728,14 +841,14 @@ class GameDom {
       this._geometry_reason = 'outside viewport';
       return false;
     }
-    const own = this.computed_style(view, el);
+    const own = this.computedStyle(view, el);
     let in_fixed = own?.position === 'fixed';
     let node = el.parentElement;
     while (node && node.nodeType === 1 && node !== doc.documentElement) {
-      const style = this.computed_style(view, node);
-      const block = this.creates_containing_block(style);
-      if ((!in_fixed || block) && this.clips_overflow(style)) {
-        visible = this.intersect_box(visible, this.rect_box(node.getBoundingClientRect()));
+      const style = this.computedStyle(view, node);
+      const block = this.createsContainingBlock(style);
+      if ((!in_fixed || block) && this.clipsOverflow(style)) {
+        visible = this.intersectBox(visible, this.rectBox(node.getBoundingClientRect()));
         if (!visible) {
           const where = node.id || (node.className && String(node.className).split(' ')[0]) || node.tagName;
           this._geometry_reason = 'clipped by ' + where;
@@ -750,19 +863,19 @@ class GameDom {
       }
       node = node.parentElement;
     }
-    const reaches = this.point_reaches(el, doc, visible);
+    const reaches = this.pointReaches(el, doc, visible);
     if (!reaches) {
       this._geometry_reason = 'covered';
     }
     return reaches;
   }
 
-  receives_hits(view, node) {
-    const style = this.computed_style(view, node);
+  receivesHits(view, node) {
+    const style = this.computedStyle(view, node);
     return !style || style.pointerEvents !== 'none';
   }
 
-  hit_stack(doc, x, y) {
+  hitStack(doc, x, y) {
     try {
       if (typeof doc.elementsFromPoint === 'function') {
         const stack = doc.elementsFromPoint(x, y);
@@ -781,9 +894,9 @@ class GameDom {
   }
 
   // The inspector sits above the board so the operator can read the menu.
-  // It is not part of the game, and execute_click does not depend on it
+  // It is not part of the game, and executeClick does not depend on it
   // being out of the way.
-  is_operator_overlay(node) {
+  isOperatorOverlay(node) {
     if (!node || node.nodeType !== 1) {
       return false;
     }
@@ -793,7 +906,7 @@ class GameDom {
     return typeof node.closest === 'function' && node.closest('#gamebot-inspector-root') != null;
   }
 
-  sample_points(el, visible) {
+  samplePoints(el, visible) {
     const inset_x = Math.min(1, visible.width / 2);
     const inset_y = Math.min(1, visible.height / 2);
     const points = [
@@ -829,10 +942,10 @@ class GameDom {
   // 'covered' means some other game element is in front.
   // 'clear' means the only nodes at that point are the operator overlay or
   // layers that do not receive hits.
-  stack_reaches(el, view, stack) {
+  stackReaches(el, view, stack) {
     for (let n = 0; n < stack.length; n++) {
       const node = stack[n];
-      if (this.is_operator_overlay(node) || !this.receives_hits(view, node)) {
+      if (this.isOperatorOverlay(node) || !this.receivesHits(view, node)) {
         continue;
       }
       if (node === el || (typeof el.contains === 'function' && el.contains(node))) {
@@ -843,19 +956,19 @@ class GameDom {
     return 'clear';
   }
 
-  point_reaches(el, doc, visible) {
+  pointReaches(el, doc, visible) {
     if (typeof doc.elementFromPoint !== 'function' && typeof doc.elementsFromPoint !== 'function') {
       return true;
     }
     const view = doc.defaultView;
-    const points = this.sample_points(el, visible);
+    const points = this.samplePoints(el, visible);
     let covered = false;
     for (let i = 0; i < points.length; i++) {
-      const stack = this.hit_stack(doc, points[i].x, points[i].y);
+      const stack = this.hitStack(doc, points[i].x, points[i].y);
       if (stack === null) {
         return true;
       }
-      const reached = this.stack_reaches(el, view, stack);
+      const reached = this.stackReaches(el, view, stack);
       if (reached === 'hit') {
         return true;
       }
@@ -868,7 +981,7 @@ class GameDom {
 
   // jQuery's .on('click') does not set onclick. The listener is stored on the
   // element and is what a board country uses for placement.
-  jquery_click(el) {
+  jqueryClick(el) {
     const jq = el.ownerDocument?.defaultView?.jQuery || el.ownerDocument?.defaultView?.$;
     if (typeof jq?._data !== 'function') {
       return false;
@@ -884,11 +997,11 @@ class GameDom {
 
   // A cardbox mouseup with no live callback only opens the card image.
   // onclick, a jQuery click, or a cardbox callback remains an action.
-  preview_only(el) {
+  previewOnly(el) {
     if (typeof el.onclick === 'function' || el.getAttribute?.('onclick')) {
       return false;
     }
-    if (this.jquery_click(el)) {
+    if (this.jqueryClick(el)) {
       return false;
     }
     if (typeof el.onmouseup !== 'function' && typeof el.onmousedown !== 'function') {
@@ -916,7 +1029,7 @@ class GameDom {
 
   // The board surface itself is not a move. Countries and other controls
   // inside it remain available.
-  is_game_board(el) {
+  isGameBoard(el) {
     const id = el.id || '';
     if (id === 'gameboard' || id === 'game-board') {
       return true;
@@ -924,7 +1037,45 @@ class GameDom {
     return el.classList?.contains('gameboard') === true || el.classList?.contains('game-board') === true;
   }
 
-  element_path(el) {
+  // A later board render can fill an empty menu. This refreshes the actions
+  // already on display. It does not start an examination or an AI decision.
+  watchBoard() {
+    if (this.board_watch || typeof document === 'undefined') {
+      return;
+    }
+    const root = document.documentElement;
+    const view = document.defaultView;
+    const Observer = view?.MutationObserver || (typeof MutationObserver !== 'undefined' ? MutationObserver : null);
+    if (!root || typeof Observer !== 'function') {
+      return;
+    }
+    this.board_watch = new Observer(() => {
+      const menu = this.mod.manager?.view?.context?.menu;
+      if (!Array.isArray(menu) || menu.length > 0 || this.refresh_queued) {
+        return;
+      }
+      this.refresh_queued = true;
+      const refresh = () => {
+        this.refresh_queued = false;
+        this.mod.manager?.refreshEmptyMenu?.();
+      };
+      if (typeof view?.requestAnimationFrame === 'function') {
+        view.requestAnimationFrame(refresh);
+      } else if (typeof requestAnimationFrame === 'function') {
+        requestAnimationFrame(refresh);
+      } else {
+        setTimeout(refresh, 0);
+      }
+    });
+    this.board_watch.observe(root, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      attributeFilter: ['disabled', 'hidden', 'aria-hidden', 'class', 'style']
+    });
+  }
+
+  elementPath(el) {
     const parts = [];
     let node = el;
     while (node && node.nodeType === 1 && node.tagName !== 'HTML') {
