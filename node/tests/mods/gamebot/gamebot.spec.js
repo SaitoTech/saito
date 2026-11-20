@@ -5,6 +5,7 @@ const { JSDOM } = require('jsdom');
 const Manager = require('../../../mods/gamebot/lib/manager');
 const GameTemplate = require('../../../lib/templates/gametemplate');
 const GameHUD2 = require('../../../lib/saito/ui/game-hud2/game-hud2');
+const GameCardbox = require('../../../lib/saito/ui/game-cardbox/game-cardbox');
 const AI = require('../../../mods/gamebot/lib/ai');
 const GameDom = require('../../../mods/gamebot/lib/jsdom');
 const Main = require('../../../mods/gamebot/lib/ui/main');
@@ -361,7 +362,7 @@ describe('GameBot manager', () => {
   });
 
   test('opening a saved game starts the queue once and examines only after it is stable', async () => {
-    const chess = gameModule('Chess', 'game-a', '<button id="e4">e4</button>');
+    const chess = gameModule('Chess', 'game-a', '<button id="e4">e4</button><button id="e5">e5</button>');
     chess.initialize_game_run = 0;
     chess.game.initialize_game_run = 1;
     const trace = [];
@@ -409,7 +410,10 @@ describe('GameBot manager', () => {
     expect(chess.initialize_game_run).toBe(1);
     expect(examined).toEqual(['game-a']);
     expect(manager.view.game_id).toBe('game-a');
-    expect(manager.view.context.menu).toEqual([{ id: 'e4', label: 'e4', identifier: 'button#e4' }]);
+    expect(manager.view.context.menu).toEqual([
+      { id: 'e4', label: 'e4', identifier: 'button#e4' },
+      { id: 'e5', label: 'e5', identifier: 'button#e5' }
+    ]);
 
     await manager.openGame('game-a');
     await new Promise((resolve) => setImmediate(resolve));
@@ -493,13 +497,17 @@ describe('GameBot manager', () => {
     const chess = gameModule('Chess', 'game-a', '<main id="board"></main>');
     const { app, manager } = harness({ chess });
     app.options.games = [{ id: 'game-a', module: 'Chess' }];
+    const asked = [];
     manager.mod.ai.requestResponse = async () => {
-      chess.jsdom.window.document.getElementById('board').innerHTML = '<button id="skip">Skip fortification</button>';
+      asked.push('ai');
     };
 
     const prepared = await manager.examineGameState('game-a');
     expect(prepared.context.menu).toEqual([]);
+    expect(prepared.context.instructions).toBe('The AI is halted until another move is received.');
+    expect(asked).toEqual([]);
 
+    chess.jsdom.window.document.getElementById('board').innerHTML = '<button id="skip">Skip fortification</button>';
     const view = await manager.examineGameState('game-a');
     expect(view.context.menu).toEqual([
       { id: 'skip', label: 'Skip fortification', identifier: 'button#skip' }
@@ -544,7 +552,7 @@ describe('GameBot manager', () => {
   });
 
   test('examineGameState uses the requested game when another game is active', async () => {
-    const chess = gameModule('Chess', 'game-a', '<button id="e4">e4</button>');
+    const chess = gameModule('Chess', 'game-a', '<button id="e4">e4</button><button id="e5">e5</button>');
     const go = gameModule('Go', 'game-b', '<button id="pass">pass</button>');
     const { app, manager } = harness({ chess, go });
     app.options.games = [
@@ -570,7 +578,7 @@ describe('GameBot manager', () => {
   });
 
   test('manual input is recorded and is not treated as a click', async () => {
-    const chess = gameModule('Chess', 'game-a', '<button id="e4">e4</button>');
+    const chess = gameModule('Chess', 'game-a', '<button id="e4">e4</button><button id="e5">e5</button>');
     const { app, manager, clicks } = harness({ chess, track_clicks: true });
     app.options.games = [{ id: 'game-a', module: 'Chess' }];
     await manager.examineGameState('game-a');
@@ -584,7 +592,7 @@ describe('GameBot manager', () => {
   });
 
   test('executeAiAction clicks the selected control and ignores instructions', async () => {
-    const chess = gameModule('Chess', 'game-a', '<button id="e4">e4</button>');
+    const chess = gameModule('Chess', 'game-a', '<button id="e4">e4</button><button id="e5">e5</button>');
     const hits = [];
     chess.jsdom.window.document.getElementById('e4').addEventListener('click', function () {
       hits.push(this.id);
@@ -626,13 +634,13 @@ describe('GameBot manager', () => {
     manager.games['game-a'].moves = [];
     await manager.handleResponse('game-a', 'Skip fortification');
 
-    expect(hits).toEqual(['place', 'place']);
+    expect(hits).toEqual(['place', 'place', 'place']);
     manager.mod.jsdom.listed = [];
     await expect(manager.handleResponse('game-a', 'not-listed')).rejects.toThrow(/not in the current list/);
   });
 
   test('handleResponse clicks only a listed identifier for that game', async () => {
-    const chess = gameModule('Chess', 'game-a', '<button id="e4">e4</button>');
+    const chess = gameModule('Chess', 'game-a', '<button id="e4">e4</button><button id="e5">e5</button>');
     const hits = [];
     chess.jsdom.window.document.getElementById('e4').addEventListener('click', () => hits.push('e4'));
     const { app, manager } = harness({ chess });
@@ -804,12 +812,12 @@ describe('GameBot manager', () => {
     expect(chess.uses_jsdom).toBe(1);
     expect(chess.render).toBeDefined();
     expect(view.context.game.module).toBe('Chess');
-    expect(view.context.instructions).toMatch(/Chess/);
+    expect(view.context.instructions).toBe('The AI is halted until another move is received.');
   });
 
   test('game-queue-stable examines the event game and does not click without an identifier', async () => {
-    const chess = gameModule('Chess', 'game-a', '<button id="e4">e4</button>');
-    const go = gameModule('Go', 'game-b', '<button id="pass">pass</button>');
+    const chess = gameModule('Chess', 'game-a', '<button id="e4">e4</button><button id="e5">e5</button>');
+    const go = gameModule('Go', 'game-b', '<button id="pass">pass</button><button id="resign">resign</button>');
     const hits = [];
     go.jsdom.window.document.getElementById('pass').addEventListener('click', () => hits.push('pass'));
     const { app, manager } = harness({ chess, go, track_clicks: true });
@@ -832,7 +840,7 @@ describe('GameBot manager', () => {
 
 describe('GameBot examination loop', () => {
   test('onGameQueueStable starts the examination', async () => {
-    const chess = gameModule('Chess', 'game-a', '<button id="e4">e4</button>');
+    const chess = gameModule('Chess', 'game-a', '<button id="e4">e4</button><button id="e5">e5</button>');
     const { app, manager } = harness({ chess });
     app.options.games = [{ id: 'game-a', module: 'Chess' }];
     const started = [];
@@ -847,7 +855,10 @@ describe('GameBot examination loop', () => {
     await new Promise((resolve) => setImmediate(resolve));
 
     expect(started).toEqual(['game-a']);
-    expect(manager.view.context.menu).toEqual([{ id: 'e4', label: 'e4', identifier: 'button#e4' }]);
+    expect(manager.view.context.menu).toEqual([
+      { id: 'e4', label: 'e4', identifier: 'button#e4' },
+      { id: 'e5', label: 'e5', identifier: 'button#e5' }
+    ]);
   });
 
   test('a manual response does not examine between its moves', async () => {
@@ -874,26 +885,38 @@ describe('GameBot examination loop', () => {
     const chess = gameModule('Chess', 'game-a', '<button id="old">Old</button>');
     chess.returnContext = () => ({
       game: { id: 'game-a', module: 'Chess' },
-      menu: [{ id: 'old', label: 'Old', identifier: 'li#old' }]
+      menu: [
+        { id: 'old', label: 'Old', identifier: 'li#old' },
+        { id: 'older', label: 'Older', identifier: 'li#older' }
+      ]
     });
     const { app, manager } = harness({ chess });
     app.options.games = [{ id: 'game-a', module: 'Chess' }];
 
     await manager.examineGameState('game-a');
-    expect(manager.view.context.menu).toEqual([{ id: 'old', label: 'Old', identifier: 'li#old' }]);
+    expect(manager.view.context.menu).toEqual([
+      { id: 'old', label: 'Old', identifier: 'li#old' },
+      { id: 'older', label: 'Older', identifier: 'li#older' }
+    ]);
 
     chess.returnContext = () => ({
       game: { id: 'game-a', module: 'Chess' },
-      menu: [{ id: 'new', label: 'New', identifier: 'li#new' }]
+      menu: [
+        { id: 'new', label: 'New', identifier: 'li#new' },
+        { id: 'newer', label: 'Newer', identifier: 'li#newer' }
+      ]
     });
     const view = await manager.examineGameState('game-a');
 
-    expect(view.context.menu).toEqual([{ id: 'new', label: 'New', identifier: 'li#new' }]);
+    expect(view.context.menu).toEqual([
+      { id: 'new', label: 'New', identifier: 'li#new' },
+      { id: 'newer', label: 'Newer', identifier: 'li#newer' }
+    ]);
     expect(manager.view.context).toBe(view.context);
   });
 
   test('reloading the manager starts from the saved game and drops the unfinished sequence', async () => {
-    const chess = gameModule('Chess', 'game-a', '<button id="e4">e4</button>');
+    const chess = gameModule('Chess', 'game-a', '<button id="e4">e4</button><button id="e5">e5</button>');
     const hits = [];
     chess.jsdom.window.document.getElementById('e4').addEventListener('click', () => hits.push('e4'));
     const { app, mod } = harness({ chess });
@@ -929,7 +952,7 @@ describe('GameBot examination loop', () => {
 
 describe('GameBot game records', () => {
   test('a new game creates an entry with the record fields', async () => {
-    const chess = gameModule('Chess', 'game-a', '<button id="e4">e4</button>');
+    const chess = gameModule('Chess', 'game-a', '<button id="e4">e4</button><button id="e5">e5</button>');
     chess.game.player = 1;
     const { app, manager } = harness({ chess });
     app.options.games = [{ id: 'game-a', module: 'Chess' }];
@@ -954,7 +977,7 @@ describe('GameBot game records', () => {
   });
 
   test('loading the same hash preserves moves', async () => {
-    const chess = gameModule('Chess', 'game-a', '<button id="e4">e4</button>');
+    const chess = gameModule('Chess', 'game-a', '<button id="e4">e4</button><button id="e5">e5</button>');
     const { app, manager } = harness({ chess });
     app.options.games = [{ id: 'game-a', module: 'Chess' }];
     await manager.loadGame('game-a');
@@ -973,7 +996,7 @@ describe('GameBot game records', () => {
   });
 
   test('a live game change does not clear moves or the queue-stable timestamp', async () => {
-    const chess = gameModule('Chess', 'game-a', '<button id="e4">e4</button>');
+    const chess = gameModule('Chess', 'game-a', '<button id="e4">e4</button><button id="e5">e5</button>');
     const { app, manager } = harness({ chess });
     app.options.games = [{ id: 'game-a', module: 'Chess' }];
     await manager.loadGame('game-a');
@@ -1102,7 +1125,7 @@ describe('GameBot game records', () => {
   });
 
   test('onGameQueueStable does not replay stored moves', async () => {
-    const chess = gameModule('Chess', 'game-a', '<button id="first">First</button>');
+    const chess = gameModule('Chess', 'game-a', '<button id="first">First</button><button id="second">Second</button>');
     const hits = [];
     chess.jsdom.window.document.getElementById('first').addEventListener('click', () => hits.push('first'));
     const { app, manager } = harness({ chess });
@@ -1159,7 +1182,7 @@ describe('GameBot game records', () => {
   });
 
   test('onGameQueueStable loads and reconciles before examination', async () => {
-    const chess = gameModule('Chess', 'game-a', '<button id="e4">e4</button>');
+    const chess = gameModule('Chess', 'game-a', '<button id="e4">e4</button><button id="e5">e5</button>');
     const { app, manager } = harness({ chess });
     app.options.games = [{ id: 'game-a', module: 'Chess' }];
     const order = [];
@@ -1182,7 +1205,7 @@ describe('GameBot game records', () => {
   });
 
   test('examineGameState does not load or hash the game', async () => {
-    const chess = gameModule('Chess', 'game-a', '<button id="e4">e4</button>');
+    const chess = gameModule('Chess', 'game-a', '<button id="e4">e4</button><button id="e5">e5</button>');
     const loads = [];
     chess.loadGame = (id) => {
       loads.push(id);
@@ -1207,7 +1230,7 @@ describe('GameBot game records', () => {
     const chess = gameModule(
       'Chess',
       'game-a',
-      '<ul class="hud-menu"><li id="confirmit" class="option acknowledge">acknowledge</li></ul><button id="play">Play</button>'
+      '<ul class="hud-menu"><li id="confirmit" class="option acknowledge">acknowledge</li></ul><button id="play">Play</button><button id="stay">Stay</button>'
     );
     const clicks = [];
     let acknowledged = false;
@@ -1250,6 +1273,22 @@ describe('GameBot game records', () => {
     expect(loads).toEqual([]);
   });
 
+  test('an empty menu halts the AI until another move is received', async () => {
+    const chess = gameModule('Chess', 'game-a', '<div id="board"></div>');
+    const { app, manager } = harness({ chess });
+    app.options.games = [{ id: 'game-a', module: 'Chess' }];
+    const asked = [];
+    manager.mod.ai.requestResponse = async () => {
+      asked.push('ai');
+    };
+
+    const view = await manager.examineGameState('game-a');
+
+    expect(asked).toEqual([]);
+    expect(view.context.menu).toEqual([]);
+    expect(view.context.instructions).toBe('The AI is halted until another move is received.');
+  });
+
   test('no automatic action submits the final context to the AI', async () => {
     const chess = gameModule('Chess', 'game-a', '<button id="e4">e4</button><button id="e5">e5</button>');
     const { app, manager } = harness({ chess });
@@ -1265,7 +1304,7 @@ describe('GameBot game records', () => {
   });
 
   test('context passes through the module, the game file, then generic processing', async () => {
-    const chess = gameModule('Chess', 'game-a', '<button id="e4">e4</button>');
+    const chess = gameModule('Chess', 'game-a', '<button id="e4">e4</button><button id="e5">e5</button>');
     const order = [];
     chess.returnContext = () => {
       order.push('module');
@@ -1292,11 +1331,14 @@ describe('GameBot game records', () => {
     expect(view.context.note).toBe('game');
     expect(view.context.instructions).toMatch(/Chess/);
     expect(view.context.game.empty).toBeUndefined();
-    expect(view.context.menu).toEqual([{ id: 'e4', label: 'e4', identifier: 'button#e4' }]);
+    expect(view.context.menu).toEqual([
+      { id: 'e4', label: 'e4', identifier: 'button#e4' },
+      { id: 'e5', label: 'e5', identifier: 'button#e5' }
+    ]);
   });
 
   test('the first automatic action stops the rest and examines again', async () => {
-    const chess = gameModule('Chess', 'game-a', '<button id="e4">e4</button>');
+    const chess = gameModule('Chess', 'game-a', '<button id="e4">e4</button><button id="e5">e5</button>');
     const { app, manager } = harness({ chess });
     app.options.games = [{ id: 'game-a', module: 'Chess' }];
     const calls = [];
@@ -1355,7 +1397,7 @@ describe('GameBot game records', () => {
   });
 
   test('a completed response examines directly and does not re-enter the queue', async () => {
-    const chess = gameModule('Chess', 'game-a', '<button id="e4">e4</button>');
+    const chess = gameModule('Chess', 'game-a', '<button id="e4">e4</button><button id="e5">e5</button>');
     const { app, manager } = harness({ chess });
     app.options.games = [{ id: 'game-a', module: 'Chess' }];
     const stable = [];
@@ -1378,7 +1420,7 @@ describe('GameBot game records', () => {
   });
 
   test('a game-specific handler succeeds only when it returns 1', async () => {
-    const chess = gameModule('Chess', 'game-a', '<button id="e4">e4</button>');
+    const chess = gameModule('Chess', 'game-a', '<button id="e4">e4</button><button id="e5">e5</button>');
     const hits = [];
     chess.jsdom.window.document.getElementById('e4').addEventListener('click', () => hits.push('e4'));
     const { app, manager } = harness({ chess });
@@ -1395,7 +1437,7 @@ describe('GameBot game records', () => {
   });
 
   test('a game-specific handler that returns 1 is not also clicked', async () => {
-    const chess = gameModule('Chess', 'game-a', '<button id="e4">e4</button>');
+    const chess = gameModule('Chess', 'game-a', '<button id="e4">e4</button><button id="e5">e5</button>');
     const hits = [];
     chess.jsdom.window.document.getElementById('e4').addEventListener('click', () => hits.push('e4'));
     const { app, manager } = harness({ chess });
@@ -1417,7 +1459,7 @@ describe('GameBot game records', () => {
   });
 
   test('a game-specific handler that returns nothing uses generic clicks', async () => {
-    const chess = gameModule('Chess', 'game-a', '<button id="e4">e4</button>');
+    const chess = gameModule('Chess', 'game-a', '<button id="e4">e4</button><button id="e5">e5</button>');
     const hits = [];
     chess.jsdom.window.document.getElementById('e4').addEventListener('click', () => hits.push('e4'));
     const { app, manager } = harness({ chess });
@@ -1457,7 +1499,7 @@ describe('GameBot game records', () => {
 
 describe('GameBot queue-stable timestamps', () => {
   test('onGameQueueStable records a timestamp before examination', async () => {
-    const chess = gameModule('Chess', 'game-a', '<button id="e4">e4</button>');
+    const chess = gameModule('Chess', 'game-a', '<button id="e4">e4</button><button id="e5">e5</button>');
     const { app, manager } = harness({ chess });
     app.options.games = [{ id: 'game-a', module: 'Chess' }];
     let seen = 0;
@@ -1474,7 +1516,7 @@ describe('GameBot queue-stable timestamps', () => {
   });
 
   test('two queue-stable events produce strictly increasing timestamps', async () => {
-    const chess = gameModule('Chess', 'game-a', '<button id="e4">e4</button>');
+    const chess = gameModule('Chess', 'game-a', '<button id="e4">e4</button><button id="e5">e5</button>');
     const { app, manager } = harness({ chess });
     app.options.games = [{ id: 'game-a', module: 'Chess' }];
 
@@ -1487,7 +1529,7 @@ describe('GameBot queue-stable timestamps', () => {
   });
 
   test('a new queue-stable event invalidates older replay history', async () => {
-    const chess = gameModule('Chess', 'game-a', '<button id="e4">e4</button>');
+    const chess = gameModule('Chess', 'game-a', '<button id="e4">e4</button><button id="e5">e5</button>');
     const { app, manager } = harness({ chess });
     app.options.games = [{ id: 'game-a', module: 'Chess' }];
     await manager.loadGame('game-a');
@@ -1562,7 +1604,7 @@ describe('GameBot queue-stable timestamps', () => {
   });
 
   test('an AI response is delivered only when its inquiry timestamp is current', async () => {
-    const chess = gameModule('Chess', 'game-a', '<button id="e4">e4</button>');
+    const chess = gameModule('Chess', 'game-a', '<button id="e4">e4</button><button id="e5">e5</button>');
     const hits = [];
     chess.jsdom.window.document.getElementById('e4').addEventListener('click', () => hits.push('e4'));
     const { app, manager } = harness({ chess });
@@ -1625,7 +1667,7 @@ describe('GameBot queue-stable timestamps', () => {
   });
 
   test('a queue-stable event that is superseded during load does not examine', async () => {
-    const chess = gameModule('Chess', 'other', '<button id="e4">e4</button>');
+    const chess = gameModule('Chess', 'other', '<button id="e4">e4</button><button id="e5">e5</button>');
     const { app, manager } = harness({ chess });
     app.options.games = [{ id: 'game-a', module: 'Chess' }];
     let release;
@@ -1663,7 +1705,7 @@ describe('GameBot queue-stable timestamps', () => {
   });
 
   test('an obsolete examination does not submit an AI inquiry', async () => {
-    const chess = gameModule('Chess', 'game-a', '<button id="e4">e4</button>');
+    const chess = gameModule('Chess', 'game-a', '<button id="e4">e4</button><button id="e5">e5</button>');
     const { app, manager } = harness({ chess });
     app.options.games = [{ id: 'game-a', module: 'Chess' }];
     await manager.loadGame('game-a');
@@ -1685,7 +1727,7 @@ describe('GameBot queue-stable timestamps', () => {
   });
 
   test('a recursive examination keeps the original queue-stable timestamp', async () => {
-    const chess = gameModule('Chess', 'game-a', '<button id="e4">e4</button>');
+    const chess = gameModule('Chess', 'game-a', '<button id="e4">e4</button><button id="e5">e5</button>');
     const { app, manager } = harness({ chess });
     app.options.games = [{ id: 'game-a', module: 'Chess' }];
     await manager.loadGame('game-a');
@@ -1728,7 +1770,7 @@ describe('GameBot queue-stable timestamps', () => {
   });
 
   test('manual input does not need a queue-stable timestamp', async () => {
-    const chess = gameModule('Chess', 'game-a', '<button id="e4">e4</button>');
+    const chess = gameModule('Chess', 'game-a', '<button id="e4">e4</button><button id="e5">e5</button>');
     const { app, manager } = harness({ chess });
     app.options.games = [{ id: 'game-a', module: 'Chess' }];
     await manager.onGameQueueStable({ game_id: 'game-a' });
@@ -2401,7 +2443,7 @@ describe('available actions', () => {
     expect(view.context.menu.map((entry) => entry.id)).toEqual(['asia', 'europe', 'eastgermany']);
 
     await manager.handleResponse('game-a', 'div#eastgermany');
-    expect(placed).toEqual(['eastgermany']);
+    expect(placed).toEqual(['eastgermany', 'eastgermany']);
   });
 
   test('the game board is omitted and clicks inside it remain', async () => {
@@ -2442,10 +2484,12 @@ describe('available actions', () => {
     const view = await manager.examineGameState('game-a');
     expect(view.context.menu).toEqual([{ id: 'asia', label: 'Asia', identifier: 'div#asia' }]);
     await manager.handleResponse('game-a', 'div#asia');
-    expect(hits).toEqual(['asia']);
+    expect(hits).toEqual(['asia', 'asia']);
   });
 
   function useGameContext(chess) {
+    chess.cardbox = new GameCardbox({}, chess);
+    chess.cardbox.cardbox_lock = 1;
     chess.hud = new GameHUD2({}, chess);
     chess.returnContext = function () {
       return GameTemplate.prototype.returnContext.call(this);
@@ -2495,6 +2539,8 @@ describe('available actions', () => {
     const previous_window = global.window;
     global.document = doc;
     global.window = chess.jsdom.window;
+    doc.getElementById('headline').onclick = () => {};
+    doc.getElementById('submit').onclick = () => {};
     useGameContext(chess);
     try {
       const { app, manager } = harness({ chess });
@@ -2541,6 +2587,10 @@ describe('available actions', () => {
       clicks.push(this.id);
       this.style.display = 'none';
     };
+    const previous_document = global.document;
+    const previous_window = global.window;
+    global.document = doc;
+    global.window = chess.jsdom.window;
     useGameContext(chess);
     const { app, manager } = harness({ chess });
     app.options.games = [{ id: 'game-a', module: 'Chess' }];
@@ -2548,7 +2598,13 @@ describe('available actions', () => {
       asked.push(context?.menu);
     };
 
-    const view = await manager.examineGameState('game-a');
+    let view;
+    try {
+      view = await manager.examineGameState('game-a');
+    } finally {
+      global.document = previous_document;
+      global.window = previous_window;
+    }
 
     expect(clicks).toEqual(['cardbox-menu']);
     expect(asked).toEqual([[
@@ -2599,9 +2655,14 @@ describe('available actions', () => {
   test('a single card-box option is not clicked again on the next observation', async () => {
     const chess = cardboxModule('<div id="cardbox-menu" class="cardbox-menu" style="display:block">Submit</div>');
     const clicks = [];
-    chess.jsdom.window.document.getElementById('cardbox-menu').onclick = function () {
+    const doc = chess.jsdom.window.document;
+    doc.getElementById('cardbox-menu').onclick = function () {
       clicks.push(this.id);
     };
+    const previous_document = global.document;
+    const previous_window = global.window;
+    global.document = doc;
+    global.window = chess.jsdom.window;
     useGameContext(chess);
     const { app, manager } = harness({ chess });
     app.options.games = [{ id: 'game-a', module: 'Chess' }];
@@ -2610,14 +2671,52 @@ describe('available actions', () => {
       asked.push(context?.menu);
     };
 
-    await manager.examineGameState('game-a');
-    await manager.examineGameState('game-a');
+    try {
+      await manager.examineGameState('game-a');
+      await manager.examineGameState('game-a');
+    } finally {
+      global.document = previous_document;
+      global.window = previous_window;
+    }
 
     expect(clicks).toEqual(['cardbox-menu']);
     expect(asked).toEqual([
       [{ id: 'cardbox-menu', label: 'Submit', identifier: 'div#cardbox-menu' }],
       [{ id: 'cardbox-menu', label: 'Submit', identifier: 'div#cardbox-menu' }]
     ]);
+  });
+
+  test('a visible headline overlay keeps the close box and closes it', async () => {
+    const html = [
+      '<div id="saito-overlay1" class="saito-overlay center-overlay" style="display:block">',
+      '<div id="saito-overlay-closebox1" class="saito-overlay-closebox"><i class="fas fa-times-circle"></i></div>',
+      '<div class="saito-overlay-panel">Soviet / American Headlines * higher value card triggered first, US breaks ties</div>',
+      '</div>',
+      '<div id="saito-overlay-backdrop1" class="saito-overlay-backdrop" style="display:block"></div>',
+      '<button id="play">Play</button>'
+    ].join('');
+    const chess = gameModule('Chess', 'game-a', html);
+    const doc = chess.jsdom.window.document;
+    const clicks = [];
+    doc.getElementById('saito-overlay1').onclick = () => {};
+    doc.getElementById('saito-overlay-backdrop1').onclick = () => {};
+    doc.getElementById('saito-overlay-closebox1').onclick = function () {
+      clicks.push(this.id);
+      doc.getElementById('saito-overlay1').style.display = 'none';
+      doc.getElementById('saito-overlay-backdrop1').style.display = 'none';
+    };
+    chess.returnContext = () => ({ game: { id: 'game-a', module: 'Chess' }, menu: [] });
+    const { app, manager } = harness({ chess });
+    app.options.games = [{ id: 'game-a', module: 'Chess' }];
+    const asked = [];
+    manager.mod.ai.requestResponse = async (context) => {
+      asked.push(context?.menu?.map((entry) => entry.id));
+    };
+
+    await manager.examineGameState('game-a');
+
+    expect(clicks).toEqual(['saito-overlay-closebox1']);
+    expect(asked).toEqual([['play']]);
   });
 
   test('a close-only overlay is closed and an acknowledge button is clicked', async () => {
@@ -2734,6 +2833,29 @@ describe('available actions', () => {
 
     expect(clicks).toEqual(['saito-overlay-closebox1']);
     expect(asked).toEqual(['ai', 'ai']);
+  });
+
+  test('a single board country is clicked', async () => {
+    const chess = gameModule('Chess', 'game-a', '<div id="yugoslavia" class="country">1 1</div>');
+    const clicks = [];
+    chess.jsdom.window.document.getElementById('yugoslavia').onclick = function () {
+      clicks.push(this.id);
+    };
+    chess.returnContext = () => ({
+      game: { id: 'game-a', module: 'Chess' },
+      menu: [{ id: 'yugoslavia', label: '1 1', identifier: 'div#yugoslavia' }]
+    });
+    const { app, manager } = harness({ chess });
+    app.options.games = [{ id: 'game-a', module: 'Chess' }];
+    const asked = [];
+    manager.mod.ai.requestResponse = async (context) => {
+      asked.push(context?.menu?.map((entry) => entry.id));
+    };
+
+    await manager.examineGameState('game-a');
+
+    expect(clicks).toEqual(['yugoslavia']);
+    expect(asked).toEqual([['yugoslavia']]);
   });
 
   test('several acknowledge options stay in the menu', async () => {

@@ -1,10 +1,9 @@
-const { cardboxMenuActive } = require('./hud');
-
 // Automatic UI actions. Each handler returns the ordered DOM interactions to
 // run, or an empty array when the decision stays with the AI. A control that
 // is still present on the following observation is not returned again.
 //
-// These shortcuts replace AI deliberation. They do not click the board.
+// These shortcuts replace AI deliberation. A single menu entry is one of them.
+// An empty menu halts the AI until another move arrives.
 
 class Actions {
   constructor(manager) {
@@ -13,72 +12,44 @@ class Actions {
     this.single = null;
   }
 
-  // A shown Saito overlay whose only control is its close box. The scoring
-  // result is this shape: the player can read it, and the close box is how
-  // the game continues. The close box is not part of the normal menu, so it
-  // is added to the click list before the click.
+  // The menu has already been limited to a visible overlay. One dismiss
+  // control, the close box or the backdrop when nothing else can be clicked,
+  // is how the game continues. It is not asked of the AI again while it remains.
   async handleInformationalOverlay(context) {
     const jsdom = this.manager.mod.jsdom;
-    const root = jsdom.gameDocument();
-    let close = null;
-    if (root?.querySelectorAll) {
-      const overlays = root.querySelectorAll('.saito-overlay');
-      for (let i = 0; i < overlays.length && !close; i++) {
-        const overlay = overlays[i];
-        if (!jsdom.isShown(overlay)) {
-          continue;
-        }
-        const closes = overlay.querySelectorAll('.saito-overlay-closebox');
-        let box = null;
-        for (let c = 0; c < closes.length; c++) {
-          if (jsdom.isShown(closes[c])) {
-            box = closes[c];
-            break;
-          }
-        }
-        if (!box) {
-          continue;
-        }
-        const nodes = overlay.querySelectorAll('*');
-        let other = false;
-        for (let n = 0; n < nodes.length; n++) {
-          const el = nodes[n];
-          if (el === box || box.contains(el)) {
-            continue;
-          }
-          if (jsdom.isClickable(el)) {
-            other = true;
-            break;
-          }
-        }
-        if (!other) {
-          close = box;
-        }
-      }
-    }
-    if (!close) {
+    const items = Array.isArray(context?.menu) ? context.menu : [];
+    if (items.length !== 1 || !items[0]?.identifier) {
       this.overlay = null;
       return [];
     }
-    const identifier = jsdom.elementPath(close);
-    if (!identifier || this.overlay === identifier) {
+    const identifier = String(items[0].identifier).trim();
+    const el = identifier ? jsdom.elementFromIdentifier(identifier) : null;
+    const dismiss =
+      el?.classList?.contains('saito-overlay-closebox') ||
+      el?.classList?.contains('saito-overlay-backdrop') ||
+      el?.classList?.contains('saito-overlay');
+    if (!identifier || !dismiss) {
+      this.overlay = null;
+      return [];
+    }
+    if (this.overlay === identifier) {
       return [];
     }
     if (!jsdom.listed.some((item) => item.identifier === identifier)) {
       jsdom.listed.push({
         identifier,
-        text: jsdom.elementText(close),
-        tag: close.tagName.toLowerCase(),
-        element: close
+        text: jsdom.elementText(el),
+        tag: el.tagName.toLowerCase(),
+        element: el
       });
     }
     this.overlay = identifier;
     return [identifier];
   }
 
-  // One menu entry is unambiguous when it is the engine acknowledge control
-  // or the only control in a visible card-box menu. Several options, and a
-  // single ordinary board control, stay for the AI.
+  // One menu entry is the move. It is clicked whatever control it is.
+  // The same entry is not clicked again on the next observation while it
+  // remains, so a click that does not change the menu does not loop.
   async handleSingleMenuOption(context) {
     const menu = context?.menu;
     const items = Array.isArray(menu) ? menu : [];
@@ -87,26 +58,29 @@ class Actions {
       return [];
     }
     const identifier = String(items[0].identifier).trim();
-    if (!identifier || !this.singleOptionIsDetermined(items[0], identifier)) {
+    if (!identifier) {
       this.single = null;
       return [];
     }
-    if (this.single === identifier) {
+    if (this.single === identifier || this.overlay === identifier) {
       return [];
     }
     this.single = identifier;
     return [identifier];
   }
 
-  singleOptionIsDetermined(item, identifier) {
-    if (String(item?.id || '') === 'confirmit') {
-      return true;
+  // No menu entry means there is nothing to ask. The context window says the
+  // AI is halted, and the examination does not request a response.
+  handleEmptyMenu(context) {
+    if (!context || typeof context !== 'object' || Array.isArray(context)) {
+      return false;
     }
-    const el = this.manager.mod.jsdom.elementFromIdentifier(identifier);
-    if (el?.classList?.contains('acknowledge')) {
-      return true;
+    const menu = context.menu;
+    if (Array.isArray(menu) && menu.length > 0) {
+      return false;
     }
-    return cardboxMenuActive(this.manager.mod.jsdom);
+    context.instructions = 'The AI is halted until another move is received.';
+    return true;
   }
 }
 

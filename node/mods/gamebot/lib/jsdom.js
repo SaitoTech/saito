@@ -287,10 +287,119 @@ class GameDom {
     if (!context || typeof context !== 'object' || Array.isArray(context)) {
       return context;
     }
+    const overlay_menu = this.overlayActions();
+    if (overlay_menu) {
+      context.menu = overlay_menu;
+      return context;
+    }
     if (!Array.isArray(context.menu) || context.menu.length === 0) {
       context.menu = this.gameActions();
     }
     return context;
+  }
+
+  // A visible Saito overlay covers the board. The menu is the controls inside
+  // it. The overlay shell and the backdrop are ways to dismiss it, so they are
+  // omitted while a real control, including the close box, is available.
+  overlayActions() {
+    const root = this.gameDocument();
+    if (!root?.querySelectorAll) {
+      return null;
+    }
+    const overlays = [];
+    const found_overlays = root.querySelectorAll('.saito-overlay');
+    for (let i = 0; i < found_overlays.length; i++) {
+      const overlay = found_overlays[i];
+      if (overlay.classList?.contains('saito-overlay-backdrop')) {
+        continue;
+      }
+      if (this.isShown(overlay)) {
+        overlays.push(overlay);
+      }
+    }
+    if (!overlays.length) {
+      return null;
+    }
+    const controls = [];
+    const seen = {};
+    for (let i = 0; i < overlays.length; i++) {
+      const overlay = overlays[i];
+      const closes = overlay.querySelectorAll('.saito-overlay-closebox');
+      for (let c = 0; c < closes.length; c++) {
+        if (this.hasInteraction(closes[c])) {
+          controls.push(closes[c]);
+        }
+      }
+      const nodes = overlay.querySelectorAll('*');
+      for (let n = 0; n < nodes.length; n++) {
+        const el = nodes[n];
+        if (el.classList?.contains('saito-overlay-closebox') || el.closest?.('.saito-overlay-closebox')) {
+          continue;
+        }
+        if (!this.isShown(el) || !this.hasInteraction(el) || this.previewOnly(el)) {
+          continue;
+        }
+        controls.push(el);
+      }
+    }
+    const leaves = controls.filter((el) => !controls.some((other) => other !== el && el.contains(other)));
+    const chosen = [];
+    for (let i = 0; i < leaves.length; i++) {
+      const identifier = this.elementPath(leaves[i]);
+      if (identifier && !seen[identifier]) {
+        seen[identifier] = true;
+        chosen.push(leaves[i]);
+      }
+    }
+    if (!chosen.length) {
+      const backs = root.querySelectorAll('.saito-overlay-backdrop');
+      for (let i = 0; i < backs.length; i++) {
+        if (this.isShown(backs[i]) && this.hasInteraction(backs[i])) {
+          chosen.push(backs[i]);
+          break;
+        }
+      }
+    }
+    if (!chosen.length) {
+      for (let i = 0; i < overlays.length; i++) {
+        if (this.hasInteraction(overlays[i])) {
+          chosen.push(overlays[i]);
+          break;
+        }
+      }
+    }
+    const actions = [];
+    const found = [];
+    for (let i = 0; i < chosen.length; i++) {
+      const el = chosen[i];
+      const text = String(el.innerText || el.textContent || el.value || '')
+        .replace(/\s+/g, ' ')
+        .trim();
+      const identifier = this.elementPath(el);
+      if (!identifier) {
+        continue;
+      }
+      const label = text || el.getAttribute?.('aria-label') || el.id || identifier;
+      found.push({
+        identifier,
+        text,
+        tag: el.tagName.toLowerCase(),
+        type: el.getAttribute?.('type') || '',
+        role: el.getAttribute?.('role') || '',
+        name: el.getAttribute?.('name') || el.getAttribute?.('aria-label') || '',
+        classes: el.classList ? Array.from(el.classList) : [],
+        disabled: false,
+        context: '',
+        element: el
+      });
+      actions.push({
+        id: el.id || identifier,
+        label,
+        identifier
+      });
+    }
+    this.listed = found;
+    return actions;
   }
 
   gameActions() {
@@ -662,6 +771,8 @@ class GameDom {
   // The click may land on a descendant (an SVG path inside a territory) while
   // the listener lives on an ancestor. Those targets are already accepted by
   // hasInteraction when they are buttons, links, or role=button widgets.
+  // A listener whose own box has no area stays when a child is visible: the
+  // click lands on the child and reaches the listener.
   isInteractable(el) {
     if (!el || el.nodeType !== 1) {
       return false;
@@ -790,6 +901,37 @@ class GameDom {
     return { left, top, right, bottom, width: right - left, height: bottom - top };
   }
 
+  // The listener can have no border box of its own. Floated children still
+  // paint and still deliver the click, so their boxes stand in for the parent.
+  layoutBox(el) {
+    const own = this.rectBox(el.getBoundingClientRect());
+    if (own || typeof el.querySelectorAll !== 'function') {
+      return own;
+    }
+    const nodes = el.querySelectorAll('*');
+    let box = null;
+    for (let i = 0; i < nodes.length; i++) {
+      const node = nodes[i];
+      if (!this.isShown(node)) {
+        continue;
+      }
+      const part = typeof node.getBoundingClientRect === 'function' ? this.rectBox(node.getBoundingClientRect()) : null;
+      if (!part) {
+        continue;
+      }
+      if (!box) {
+        box = part;
+        continue;
+      }
+      const left = Math.min(box.left, part.left);
+      const top = Math.min(box.top, part.top);
+      const right = Math.max(box.right, part.right);
+      const bottom = Math.max(box.bottom, part.bottom);
+      box = { left, top, right, bottom, width: right - left, height: bottom - top };
+    }
+    return box;
+  }
+
   clipsOverflow(style) {
     if (!style) {
       return false;
@@ -829,7 +971,7 @@ class GameDom {
     if (width <= 0 || height <= 0) {
       return true;
     }
-    let visible = this.intersectBox(this.rectBox(el.getBoundingClientRect()), {
+    let visible = this.intersectBox(this.layoutBox(el), {
       left: 0,
       top: 0,
       right: width,

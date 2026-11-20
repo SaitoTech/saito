@@ -467,6 +467,13 @@ class GameHUD2 {
   }
 
   returnContext() {
+    const cardbox = this.mod && this.mod.cardbox;
+    if (cardbox && typeof cardbox.returnContext === 'function') {
+      const reported = cardbox.returnContext();
+      if (reported && Array.isArray(reported.menu) && reported.menu.length > 0) {
+        return { cards: [], menu: reported.menu };
+      }
+    }
     const cards = [];
     const menu = [];
     if (typeof document === 'undefined' || !document.querySelectorAll) {

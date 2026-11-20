@@ -279,6 +279,23 @@ class GameMoves {
   }
 
   async addNextMove(gametx) {
+    const previous = this.add_next_move_chain || Promise.resolve();
+
+    let release;
+    const finished = new Promise((resolve) => {
+      release = resolve;
+    });
+
+    this.add_next_move_chain = previous.then(() => finished);
+
+    const result = previous.then(() => this.addNextMoveInternal(gametx));
+
+    result.then(release, release);
+
+    return result;
+  }
+
+  async addNextMoveInternal(gametx) {
     let gametxmsg = gametx.returnMessage();
     let intended_game = this.game;
     const guard = this.halted == 1 || this.gaming_active == 1 || this.game.initialize_game_run == 0;
@@ -481,7 +498,7 @@ class GameMoves {
 
           //This move (future[i]) is the next one, move it to the queue
           this.game.future.splice(i, 1);
-          await this.addNextMove(ftx);
+          await this.addNextMoveInternal(ftx);
           return 1;
         } else if (this.isFutureMove(ftx.from[0].publicKey, ftxmsg)) {
           //This move (future[i]) is still for the future, so leave it alone

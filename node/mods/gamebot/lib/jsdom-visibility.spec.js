@@ -168,6 +168,35 @@ describe('visible interactions', () => {
     expect(ids(game)).toContain('button#pin');
   });
 
+  test('a zero-height parent stays when a child is visible', () => {
+    const { dom, game, document } = page(
+      '<div id="poland" class="country"><div class="ussr">3</div></div><div id="empty" class="country"><div class="ussr">0</div></div><div id="austria" class="country"><div class="ussr">1</div></div>'
+    );
+    const poland = document.getElementById('poland');
+    const empty = document.getElementById('empty');
+    const austria = document.getElementById('austria');
+    const tile = poland.querySelector('.ussr');
+    const hidden = empty.querySelector('.ussr');
+    const away = austria.querySelector('.ussr');
+    poland.onclick = () => {};
+    empty.onclick = () => {};
+    austria.onclick = () => {};
+    hidden.style.display = 'none';
+    use_layout(dom, new Map([
+      [poland, box(10, 10, 202, 0)],
+      [tile, box(110, 10, 100, 100)],
+      [empty, box(10, 200, 202, 0)],
+      [hidden, box(110, 200, 100, 100)],
+      [austria, box(10, 400, 202, 0)],
+      [away, box(900, 400, 100, 100)]
+    ]));
+    const found = ids(game);
+    expect(found).toContain('div#poland');
+    expect(found).not.toContain('div.ussr');
+    expect(found).not.toContain('div#empty');
+    expect(found).not.toContain('div#austria');
+  });
+
   test('a visible map region stays and a delegated child follows existing discovery', () => {
     const { dom, game, document } = page('<svg id="map"><g id="country"></g><g id="quiet"></g></svg><div id="board"><span id="label">Label</span><button id="move">Move</button></div>');
     const country = document.getElementById('country');
