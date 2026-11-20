@@ -24,6 +24,7 @@ const MIXIN_CREDENTIAL_FIELDS = [
   'session_private_key',
   'spend_private_key',
   'spend_public_key',
+  'setup',
   'backed_up'
 ];
 
@@ -102,7 +103,7 @@ class Mixin extends ModTemplate {
     }
     this.user_agent = this.normalizeMixinUserAgent(options.user_agent ?? '');
     this.credentials = credentials;
-    this.account_created = credentials.user_id ? 1 : 0;
+    this.account_created = credentials.user_id && !credentials.setup ? 1 : 0;
 
     const keystore = mixinAppKeystore(options.api_key);
     this.api_key =
@@ -159,7 +160,7 @@ class Mixin extends ModTemplate {
     next.treasury_delegate_publickeys = [...(this.treasury_delegate_publickeys || [])];
 
     this.app.options.mixin = next;
-    this.app.storage?.saveOptions?.();
+    return this.app.storage?.saveOptions?.();
   }
 
   /**
@@ -458,18 +459,8 @@ class Mixin extends ModTemplate {
       console.info('Mixin Module: API online!');
       this.mixin_peer = peer;
 
-      if (this.credentials?.user_id && !this.credentials.backed_up) {
-        console.info('Need to back up my mixin');
-        const accountHash = this.accounts.encryptCredentials(this.credentials, this.publicKey);
-        this.app.network.sendRequestAsTransaction(
-          'mixin account backup',
-          { account_hash: accountHash },
-          () => {
-            this.credentials.backed_up = true;
-            this.accounts.saveCredentials(this.credentials);
-          },
-          peer.publicKey
-        );
+      if (this.app.BROWSER && this.credentials?.user_id && !this.credentials.setup && !this.credentials.backed_up) {
+        await this.accounts.backupCredentials(peer.publicKey);
       }
     }
   }
@@ -766,7 +757,9 @@ class Mixin extends ModTemplate {
         return 0;
       }
       try {
-        const created = await this.accounts.createAccount(from);
+        const created = await this.accounts.createAccount(from, {
+          browserSetup: message.data?.setup_in_browser === true
+        });
         if (mycallback) {
           mycallback({ res: created.ciphertext, restored: created.restored });
         }
@@ -1031,9 +1024,16 @@ class Mixin extends ModTemplate {
         }
         return 1;
       }
-      await this.database.saveCredentials(owner, message.data.account_hash);
-      if (mycallback) {
-        mycallback();
+      const data = message.data || {};
+      if (typeof data.account_hash !== 'string' || !data.account_hash) {
+        mycallback?.({ err: 'Missing encrypted Mixin account backup.' });
+        return 1;
+      }
+      try {
+        await this.database.saveCredentials(owner, data.account_hash, data.user_id || null);
+        mycallback?.({ ok: true });
+      } catch (err) {
+        mycallback?.({ err: formatMixinError(err) });
       }
       return 1;
     }
@@ -1596,7 +1596,7 @@ class Mixin extends ModTemplate {
         Promise.resolve(
           this.app.network.sendRequestAsTransaction(
             'mixin create account',
-            {},
+            { setup_in_browser: !!this.app.BROWSER },
             finish,
             this.mixin_peer?.publicKey
           )
@@ -1609,6 +1609,9 @@ class Mixin extends ModTemplate {
 
   async createAccount() {
     if (this.account_created && this.credentials?.user_id) {
+      if (this.app.BROWSER && !this.credentials.backed_up) {
+        await this.accounts.backupCredentials();
+      }
       console.warn('You already have a Mixin Account created...');
       return { keys: this.credentials, existing: true };
     }
@@ -1618,6 +1621,16 @@ class Mixin extends ModTemplate {
     }
 
     this.account_creation_promise = (async () => {
+      // A failed browser setup must resume its saved account, not create another user.
+      if (this.app.BROWSER && this.credentials?.setup) {
+        try {
+          await this.accounts.finishBrowserAccount(this.credentials);
+          await this.accounts.backupCredentials();
+          return { keys: this.credentials, restored: true };
+        } catch (err) {
+          return { err: formatMixinError(err) };
+        }
+      }
       const privateKey = await this.app.wallet.getPrivateKey();
       let response;
 
@@ -1644,17 +1657,22 @@ class Mixin extends ModTemplate {
 
       try {
         const keys = this.accounts.decryptCredentials(response.res, privateKey);
+        if (keys.setup) {
+          await this.accounts.finishBrowserAccount(keys);
+        } else {
+          await this.accounts.saveCredentials(keys);
+        }
+        if (this.app.BROWSER && !this.credentials.backed_up) {
+          await this.accounts.backupCredentials();
+        }
         if (response.restored) {
           console.log('Successfully Restored Mixin Account!');
         } else {
           console.log('Successfully Created Mixin Account!');
         }
-        this.credentials = keys;
-        this.account_created = 1;
-        this.accounts.saveCredentials(keys);
-        return { keys, restored: !!response.restored };
+        return { keys: this.credentials, restored: !!response.restored };
       } catch (err) {
-        const error = `Unable to decrypt Mixin account: ${formatMixinError(err)}`;
+        const error = `Unable to finish Mixin account setup: ${formatMixinError(err)}`;
         console.error(error);
         return { err: error };
       }

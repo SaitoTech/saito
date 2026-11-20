@@ -161,6 +161,12 @@ webpack(
 
     module: {
       rules: [
+        // Mixin and Noble must resolve their own nested dependency versions.
+        // The root-first resolver otherwise mixes Noble 2.x with hashes 1.x.
+        {
+          test: /[\\/]node_modules[\\/](?:@noble[\\/]|@mixin\.dev[\\/]mixin-node-sdk[\\/])/,
+          resolve: { modules: ['node_modules'] }
+        },
         // All files with a '.ts' or '.tsx' extension will be handled by 'ts-loader'.
         {
           test: /\.tsx?$/,

@@ -52,6 +52,9 @@ function createAppSession(fallback, userAgent) {
 }
 
 function createUserSession(credentials = {}, userAgent) {
+  if (credentials.setup) {
+    throw new Error('Mixin account setup is not complete');
+  }
   const keystore = {
     app_id: credentials.user_id,
     session_id: credentials.session_id,
@@ -139,7 +142,7 @@ class Api {
     return createUserSession(credentials, this.mod?.user_agent);
   }
 
-  async createAccount(displayName) {
+  async createBareAccount(displayName) {
     const appSession = this.createAppSession();
     if (!appSession) {
       throw new Error('Cannot process Mixin account request for peer');
@@ -153,39 +156,120 @@ class Api {
       base64RawURLEncode(sessionPublicKey)
     );
 
-    // This session exists only long enough to set the first spend key.
-    // createUserSession requires that key, so it cannot build this session.
-    const session = MixinApi({
-      keystore: {
-        app_id: user.user_id,
-        session_id: user.session_id,
+    const { publicKey: spendPublicKey, seed: spendPrivateKey } = getED25519KeyPair();
+    return {
+      user_id: user.user_id,
+      full_name: user.full_name,
+      session_id: user.session_id,
+      session_seed: sessionPrivateKey,
+      spend_private_key: spendPrivateKey.toString('hex'),
+      spend_public_key: spendPublicKey.toString('hex'),
+      backed_up: false,
+      setup: {
         server_public_key: user.server_public_key,
-        session_private_key: sessionPrivateKey
-      },
+        pin_token_base64: user.pin_token_base64,
+        tip_counter: user.tip_counter,
+        pin_verified: false
+      }
+    };
+  }
+
+  createSetupSession(keys) {
+    if (!keys.setup || !keys.user_id || !keys.session_id || !keys.session_seed || !keys.spend_private_key) {
+      throw new Error('Mixin setup credentials are incomplete');
+    }
+    const setupKey = keys.setup.server_public_key
+      ? { server_public_key: keys.setup.server_public_key }
+      : { pin_token_base64: keys.setup.pin_token_base64 };
+    if (!Object.values(setupKey)[0]) {
+      throw new Error('Mixin setup server key is missing');
+    }
+    return MixinApi({
+      keystore: { app_id: keys.user_id, session_id: keys.session_id,
+        session_private_key: keys.session_seed, ...setupKey },
       requestConfig: { userAgent: this.mod?.user_agent, retry: 0 }
     });
+  }
 
-    const { publicKey: spendPublicKey, seed: spendPrivateKey } = getED25519KeyPair();
-    const spendPrivateKeyHex = spendPrivateKey.toString('hex');
-
+  async updateAccountPin(session, keys) {
+    if (!Number.isSafeInteger(keys.setup.tip_counter) || keys.setup.tip_counter < 0) {
+      throw new Error('Mixin setup PIN counter is invalid');
+    }
     console.log('MIXIN API REQUEST', 'pin.updateTipPin', 'POST /pin/update');
-    await session.pin.updateTipPin('', spendPublicKey.toString('hex'), user.tip_counter + 1);
-    console.log('MIXIN API REQUEST', 'pin.verifyTipPin', 'POST /pin/verify');
-    //await session.pin.verifyTipPin(spendPrivateKey);
-    await session.pin.verifyTipPin(spendPrivateKeyHex);
-    console.log('MIXIN API REQUEST', 'safe.register', 'POST /safe/users');
-    const account = await session.safe.register(user.user_id, spendPrivateKeyHex, spendPrivateKey);
+    await session.pin.updateTipPin('', keys.spend_public_key, keys.setup.tip_counter + 1);
+  }
 
+  async verifyAccountPin(session, keys) {
+    if (!this.mod?.app?.BROWSER) {
+      throw new Error('Mixin PIN verification may only run in the browser');
+    }
+    console.log('MIXIN API REQUEST', 'pin.verifyTipPin', 'POST /pin/verify');
+    await session.pin.verifyTipPin(keys.spend_private_key);
+  }
+
+  async registerAccount(session, keys) {
+    console.log('MIXIN API REQUEST', 'safe.register', 'POST /safe/users');
+    const account = await session.safe.register(
+      keys.user_id, keys.spend_private_key, Buffer.from(keys.spend_private_key, 'hex')
+    );
+    return this.completedAccount(keys, account);
+  }
+
+  completedAccount(keys, account) {
+    if (account?.user_id !== keys.user_id || account?.has_safe !== true || !account?.tip_key_base64) {
+      throw new Error('Mixin Safe registration has not been confirmed');
+    }
     return {
       user_id: account.user_id,
-      full_name: account.full_name,
-      session_id: account.session_id,
+      full_name: account.full_name || keys.full_name,
+      session_id: account.session_id || keys.session_id,
       tip_key_base64: account.tip_key_base64,
-      spend_private_key: spendPrivateKeyHex,
-      spend_public_key: spendPublicKey.toString('hex'),
-      session_seed: sessionPrivateKey,
-      backed_up: true
+      spend_private_key: keys.spend_private_key,
+      spend_public_key: keys.spend_public_key,
+      session_seed: keys.session_seed,
+      backed_up: false
     };
+  }
+
+  // Treasury-owned accounts still need server-side setup, but never PIN verification.
+  async createAccount(displayName) {
+    const keys = await this.createBareAccount(displayName);
+    const session = this.createSetupSession(keys);
+    await this.updateAccountPin(session, keys);
+    return this.registerAccount(session, keys);
+  }
+
+  async finishAccountSetup(keys, checkpoint = async () => {}) {
+    if (!this.mod?.app?.BROWSER) {
+      throw new Error('Mixin wallet setup may only run in the browser');
+    }
+    const session = this.createSetupSession(keys);
+    // Reconcile a response lost to a timeout before repeating a state-changing call.
+    console.log('MIXIN API REQUEST', 'user.profile', 'GET /me');
+    const profile = await session.user.profile();
+    if (profile?.user_id !== keys.user_id) {
+      throw new Error('Mixin account setup status could not be read');
+    }
+    if (profile.has_safe) {
+      console.log('MIXIN API REQUEST', 'safe.checkRegisteration', 'GET /safe/me');
+      return this.completedAccount(keys, await session.safe.checkRegisteration());
+    }
+    const pinInstalled = profile.has_pin === true || (
+      Number.isSafeInteger(profile.tip_counter) && profile.tip_counter > keys.setup.tip_counter
+    );
+    if (!pinInstalled && typeof profile.has_pin !== 'boolean') {
+      throw new Error('Mixin PIN setup status could not be read');
+    }
+    if (!pinInstalled) {
+      keys.setup.pin_verified = false;
+      await this.updateAccountPin(session, keys);
+    }
+    if (!keys.setup.pin_verified) {
+      await this.verifyAccountPin(session, keys);
+      keys.setup.pin_verified = true;
+      await checkpoint(keys);
+    }
+    return this.registerAccount(session, keys);
   }
 
   async createAddress(credentials, chainId) {
