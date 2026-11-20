@@ -159,7 +159,7 @@ class Api {
       keystore: {
         app_id: user.user_id,
         session_id: user.session_id,
-        pin_token_base64: user.pin_token_base64,
+        server_public_key: user.server_public_key,
         session_private_key: sessionPrivateKey
       },
       requestConfig: { userAgent: this.mod?.user_agent, retry: 0 }
@@ -171,7 +171,8 @@ class Api {
     console.log('MIXIN API REQUEST', 'pin.updateTipPin', 'POST /pin/update');
     await session.pin.updateTipPin('', spendPublicKey.toString('hex'), user.tip_counter + 1);
     console.log('MIXIN API REQUEST', 'pin.verifyTipPin', 'POST /pin/verify');
-    await session.pin.verifyTipPin(spendPrivateKey);
+    //await session.pin.verifyTipPin(spendPrivateKey);
+    await session.pin.verifyTipPin(spendPrivateKeyHex);
     console.log('MIXIN API REQUEST', 'safe.register', 'POST /safe/users');
     const account = await session.safe.register(user.user_id, spendPrivateKeyHex, spendPrivateKey);
 
