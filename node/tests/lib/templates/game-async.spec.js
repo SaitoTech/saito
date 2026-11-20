@@ -118,6 +118,102 @@ test('addNextMove resumes game A after game B takes the active slot during the s
   expect(game_b.future).toEqual(['b-future']);
 });
 
+function queuedMove(step, turn) {
+  return {
+    from: [{ publicKey: 'pk' }],
+    returnMessage() {
+      return { step: { game: step, timestamp: step }, turn: turn };
+    }
+  };
+}
+
+function sequentialMoveModule(game) {
+  const mod = loadableModule({});
+  mod.game = game;
+  mod.halted = 0;
+  mod.gaming_active = 0;
+  mod.browser_active = 1;
+  mod.gameBrowserActive = () => false;
+  mod.stopClock = () => {};
+  mod.app.keychain = { returnUsername: () => 'player' };
+  mod.saveGame = async () => {};
+  mod.startQueue = async () => {};
+  return mod;
+}
+
+test('overlapping addNextMove calls cannot change the step or queue together', async () => {
+  const game = {
+    id: 'a',
+    queue: [],
+    future: [],
+    step: { game: 1, players: { pk: 1 }, timestamp: 1 },
+    players: ['pk'],
+    turn: [],
+    initialize_game_run: 1,
+    player: 1
+  };
+  const mod = sequentialMoveModule(game);
+  const gate = deferred();
+  const saved = [];
+  mod.saveFutureMoves = async function () {
+    saved.push({ step: this.game.step.game, queue: this.game.queue.slice() });
+    if (saved.length === 1) {
+      await gate.promise;
+    }
+  };
+
+  const first = mod.addNextMove(queuedMove(2, ['AVAILABLE_CRYPTOS']));
+  await Promise.resolve();
+  const second = mod.addNextMove(queuedMove(3, ['CARDS']));
+  await Promise.resolve();
+
+  expect(game.step.game).toBe(2);
+  expect(game.queue).toEqual(['AVAILABLE_CRYPTOS']);
+  expect(saved).toEqual([{ step: 2, queue: ['AVAILABLE_CRYPTOS'] }]);
+
+  gate.release();
+  await first;
+  await second;
+
+  expect(saved).toEqual([
+    { step: 2, queue: ['AVAILABLE_CRYPTOS'] },
+    { step: 3, queue: ['AVAILABLE_CRYPTOS', 'CARDS'] }
+  ]);
+  expect(game.step.game).toBe(3);
+  expect(game.queue).toEqual(['AVAILABLE_CRYPTOS', 'CARDS']);
+});
+
+test('a rejected addNextMove does not block the following call', async () => {
+  const game = {
+    id: 'a',
+    queue: [],
+    future: [],
+    step: { game: 1, players: { pk: 1 }, timestamp: 1 },
+    players: ['pk'],
+    turn: [],
+    initialize_game_run: 1,
+    player: 1
+  };
+  const mod = sequentialMoveModule(game);
+  let saves = 0;
+  mod.saveFutureMoves = async () => {
+    saves += 1;
+    if (saves === 1) {
+      throw new Error('save failed');
+    }
+  };
+
+  const first = mod.addNextMove(queuedMove(2, ['ONE']));
+  const second = mod.addNextMove(queuedMove(3, ['TWO']));
+
+  await expect(first).rejects.toThrow('save failed');
+  await second;
+
+  expect(saves).toBe(2);
+  expect(game.step.game).toBe(3);
+  expect(game.queue).toEqual(['ONE', 'TWO']);
+});
+
 test('an older loadGame does not replace a newer active game', async () => {
   const gates = { a: deferred(), b: deferred() };
   const mod = loadableModule({});
@@ -861,7 +957,7 @@ test('a boundary from the deepest of three calls is emitted once', async () => {
     };
     mod.isFutureMove = () => 0;
     mod.saveFutureMoves = async () => {};
-    mod.addNextMove = async function () {
+    mod.addNextMoveInternal = async function () {
       this.game.future = ['future-move'];
       await this.processFutureMoves();
     };

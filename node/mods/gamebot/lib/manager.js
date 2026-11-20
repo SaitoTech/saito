@@ -1,14 +1,11 @@
 const Actions = require('./actions');
 const { returnContext } = require('./context');
-const hud = require('./hud');
 
 class Manager {
   constructor(app, mod) {
     this.app = app;
     this.mod = mod;
     this.actions = new Actions(this);
-    hud.use(mod.jsdom);
-    hud.install();
     this.active_game_mod = null;
     this.games = {};
     this.view = null;
@@ -322,6 +319,7 @@ class Manager {
     const game_mod = this.active_game_mod?.game?.id === game_id ? this.active_game_mod : null;
     let context = null;
     let context_error = '';
+    let halted = false;
     if (!game_mod) {
       context_error = 'That game is not on this node';
     } else {
@@ -344,6 +342,7 @@ class Manager {
         if (context && typeof context === 'object' && !Array.isArray(context)) {
           context.timestamp = timestamp;
         }
+        halted = this.actions.handleEmptyMenu(context);
       } catch (err) {
         context = null;
         context_error = err?.message || 'returnContext() failed';
@@ -378,6 +377,9 @@ class Manager {
       return this.examineGameState(game_id, timestamp);
     }
     if ((this.games[game_id]?.last_queue_stable ?? 0) !== timestamp) {
+      return this.view;
+    }
+    if (halted) {
       return this.view;
     }
     await this.mod.ai.requestResponse(context);
