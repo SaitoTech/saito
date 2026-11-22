@@ -51,6 +51,9 @@ class Actions {
   // The same entry is not clicked again on the next observation while it
   // remains, so a click that does not change the menu does not loop.
   async handleSingleMenuOption(context) {
+    if (context?.decision === 'strategic_move') {
+      return [];
+    }
     const menu = context?.menu;
     const items = Array.isArray(menu) ? menu : [];
     if (items.length !== 1 || !items[0]?.identifier) {

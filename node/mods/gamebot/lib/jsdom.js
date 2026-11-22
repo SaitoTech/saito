@@ -77,15 +77,14 @@ class GameDom {
     return text;
   }
 
-  currentMenu() {
-    const menu = this.mod.manager?.view?.context?.menu;
-    return Array.isArray(menu) ? menu : [];
-  }
-
+  // Identifier, then id, then label. A tier that points at more than one
+  // control is ambiguous and is not clicked.
   matchingMenuItem(wanted) {
-    const exact = [];
+    const identifiers = [];
+    const ids = [];
     const labels = [];
-    const menu = this.currentMenu();
+    const shown = this.mod.manager?.view?.context?.menu;
+    const menu = Array.isArray(shown) ? shown : [];
     for (let i = 0; i < menu.length; i++) {
       const item = menu[i];
       if (!item || typeof item !== 'object') {
@@ -94,19 +93,33 @@ class GameDom {
       const identifier = this.normalizeChoice(item.identifier);
       const id = this.normalizeChoice(item.id);
       const label = this.normalizeChoice(item.label);
-      if ((identifier && identifier === wanted) || (id && id === wanted)) {
-        exact.push(item);
+      if (identifier && identifier === wanted) {
+        identifiers.push(item);
+      } else if (id && id === wanted) {
+        ids.push(item);
       } else if (label && label === wanted) {
         labels.push(item);
       }
     }
-    if (exact.length > 0) {
-      return exact[0];
+    const tier = identifiers.length ? identifiers : ids.length ? ids : labels;
+    if (!tier.length) {
+      return null;
     }
-    if (labels.length === 1) {
-      return labels[0];
+    const chosen = [];
+    const seen = {};
+    for (let i = 0; i < tier.length; i++) {
+      const identifier = this.normalizeChoice(tier[i].identifier);
+      const key = identifier || String(i);
+      if (seen[key]) {
+        continue;
+      }
+      seen[key] = true;
+      chosen.push(tier[i]);
     }
-    return null;
+    if (chosen.length !== 1) {
+      throw new Error('"' + wanted + '" matches more than one menu option');
+    }
+    return chosen[0];
   }
 
   elementText(el) {
@@ -168,8 +181,6 @@ class GameDom {
   // of an untrusted click, such as following a link or submitting a form.
   // Listeners still run, including listeners on ancestor elements.
   // mouseup does not cause this DOM to emit click, so click is dispatched once.
-  // PointerEvent is not part of every document; pointer actions use mouse
-  // events when it is missing. mouseenter and mouseleave do not bubble.
   documentView(el) {
     if (!el || el.nodeType !== 1 || !el.ownerDocument?.defaultView) {
       throw new Error('That element is not in the document');
@@ -177,58 +188,26 @@ class GameDom {
     return el.ownerDocument.defaultView;
   }
 
-  eventConstructor(view, type) {
-    if (type.indexOf('pointer') === 0) {
-      return typeof view.PointerEvent === 'function' ? view.PointerEvent : null;
-    }
-    if (type === 'keydown' || type === 'keyup') {
-      return view.KeyboardEvent;
-    }
-    if (type === 'input' || type === 'change') {
-      return view.Event;
-    }
-    return view.MouseEvent;
-  }
-
-  dispatchEvent(el, type, init) {
+  dispatchEvent(el, type) {
     const view = this.documentView(el);
-    let event_type = type;
-    let Ctor = this.eventConstructor(view, type);
-    if (type.indexOf('pointer') === 0 && !Ctor) {
-      const mouse_type = {
-        pointerdown: 'mousedown',
-        pointerup: 'mouseup',
-        pointermove: 'mousemove',
-        pointerover: 'mouseover',
-        pointerout: 'mouseout',
-        pointerenter: 'mouseenter',
-        pointerleave: 'mouseleave'
-      };
-      event_type = mouse_type[type];
-      if (!event_type) {
-        throw new Error('This document cannot dispatch a ' + type + ' event');
-      }
-      Ctor = view.MouseEvent;
-    }
-    if (typeof Ctor !== 'function') {
+    if (typeof view.MouseEvent !== 'function') {
       throw new Error('This document cannot dispatch a ' + type + ' event');
     }
-    const composed = event_type !== 'mouseenter' && event_type !== 'mouseleave' && event_type !== 'pointerenter' && event_type !== 'pointerleave';
     let event;
     try {
-      event = new Ctor(event_type, Object.assign({
-        bubbles: composed,
+      event = new view.MouseEvent(type, {
+        bubbles: true,
         cancelable: true,
         view,
         clientX: 0,
         clientY: 0,
         button: 0
-      }, init || {}));
+      });
     } catch (err) {
       throw new Error('This document cannot dispatch a ' + type + ' event');
     }
     el.dispatchEvent(event);
-    return event_type;
+    return type;
   }
 
   dispatchClick(el) {
@@ -237,58 +216,15 @@ class GameDom {
     this.dispatchEvent(el, 'click');
   }
 
-  pointerDown(el) {
-    return this.dispatchEvent(el, 'pointerdown');
-  }
-
-  pointerUp(el) {
-    return this.dispatchEvent(el, 'pointerup');
-  }
-
-  hover(el) {
-    this.dispatchEvent(el, 'mouseover');
-    this.dispatchEvent(el, 'mouseenter');
-  }
-
-  key(el, key) {
-    const name = String(key || '');
-    if (!name) {
-      throw new Error('A key is required');
-    }
-    this.dispatchEvent(el, 'keydown', { key: name, code: name, bubbles: true });
-    this.dispatchEvent(el, 'keyup', { key: name, code: name, bubbles: true });
-  }
-
-  inputText(el, value) {
-    const tag = el?.tagName ? el.tagName.toLowerCase() : '';
-    if (tag !== 'input' && tag !== 'textarea') {
-      throw new Error('That element does not accept text');
-    }
-    el.value = String(value ?? '');
-    this.dispatchEvent(el, 'input', { bubbles: true });
-    this.dispatchEvent(el, 'change', { bubbles: true });
-  }
-
-  selectOption(el, value) {
-    if (!el || !el.tagName || el.tagName.toLowerCase() !== 'select') {
-      throw new Error('That element is not a select control');
-    }
-    const wanted = String(value ?? '');
-    const options = el.options ? Array.from(el.options) : [];
-    if (!options.some((option) => option.value === wanted)) {
-      throw new Error('That option is not in the select control');
-    }
-    el.value = wanted;
-    this.dispatchEvent(el, 'input', { bubbles: true });
-    this.dispatchEvent(el, 'change', { bubbles: true });
-  }
-
+  // Called only when the game offered no menu. A visible overlay with controls
+  // replaces the board. An overlay that produced no controls does not: an empty
+  // array is still a value, and it must not hide the board clicks.
   returnContext(context) {
     if (!context || typeof context !== 'object' || Array.isArray(context)) {
       return context;
     }
     const overlay_menu = this.overlayActions();
-    if (overlay_menu) {
+    if (overlay_menu && overlay_menu.length) {
       context.menu = overlay_menu;
       return context;
     }
@@ -491,7 +427,6 @@ class GameDom {
       });
     }
     this.listed = found;
-    this.recordActionTrace(nodes, actions);
     return actions;
   }
 
@@ -527,179 +462,6 @@ class GameDom {
     }
     const own = this.computedStyle(view, el);
     return !(own && (own.visibility === 'hidden' || own.visibility === 'collapse'));
-  }
-
-  // Temporary discovery trace. It records why a visible control was left out of
-  // the menu, including a disabled button that is still painted.
-  recordActionTrace(nodes, actions) {
-    if (!this.trace_actions) {
-      return;
-    }
-    const rows = [];
-    for (let i = 0; i < nodes.length; i++) {
-      const el = nodes[i];
-      const text = String(el.innerText || el.textContent || '')
-        .replace(/\s+/g, ' ')
-        .trim()
-        .slice(0, 80);
-      const action = el.getAttribute?.('data-do') || '';
-      const tag = el.tagName ? el.tagName.toLowerCase() : '';
-      if (tag !== 'button' && !action && !/finish attacking/i.test(text)) {
-        continue;
-      }
-      rows.push(this.describeCandidate(el, text));
-    }
-    this.action_trace = rows;
-    const finish = rows.filter((row) => row.action === 'end_attack' || /finish attacking/i.test(row.text));
-    const excluded = {};
-    for (let i = 0; i < rows.length; i++) {
-      const reason = rows[i].excluded_by || 'included';
-      excluded[reason] = (excluded[reason] || 0) + 1;
-    }
-    if (typeof console !== 'undefined' && console.info) {
-      console.info('[gamebot] menu discovery', {
-        menu: actions.map((item) => item.label),
-        counts: excluded,
-        finish
-      });
-    }
-  }
-
-  describeCandidate(el, text) {
-    const view = el.ownerDocument?.defaultView;
-    const style = this.computedStyle(view, el);
-    const rect = typeof el.getBoundingClientRect === 'function' ? el.getBoundingClientRect() : null;
-    const box = rect ? { width: rect.width, height: rect.height, top: rect.top, left: rect.left } : null;
-    return {
-      tag: el.tagName ? el.tagName.toLowerCase() : '',
-      text: text || '',
-      action: el.getAttribute?.('data-do') || '',
-      identifier: this.elementPath(el),
-      disabled: el.disabled === true,
-      disabled_attribute: el.hasAttribute?.('disabled') === true,
-      display: style?.display || '',
-      visibility: style?.visibility || '',
-      opacity: style?.opacity || '',
-      pointer_events: style?.pointerEvents || '',
-      box,
-      hasInteraction: this.hasInteraction(el),
-      passes_visibility: this.isInteractable(el),
-      own_listener: typeof el.onclick === 'function' || !!el.getAttribute?.('onclick'),
-      delegated: true,
-      excluded_by: this.exclusionReason(el, text)
-    };
-  }
-
-  exclusionReason(el, text) {
-    if (!this.hasInteraction(el)) {
-      return 'hasInteraction';
-    }
-    const unavailable = this.interactableFailure(el);
-    if (unavailable) {
-      return unavailable;
-    }
-    if (el.disabled === true) {
-      return 'gameActions.disabled';
-    }
-    if (this.previewOnly(el)) {
-      return 'previewOnly';
-    }
-    const chrome = [
-      '#saito-header',
-      '.game-menu',
-      '.gamebot-inspector',
-      '.gamebot-inspector-tab',
-      '.game-observer-hud',
-      '#game_board_sizer',
-      '.game_board_sizer',
-      '.game-board-sizer-step',
-      '.game-board-sizer-center',
-      '.hud-back-button',
-      '#cardbox-exit',
-      '.cardbox-exit',
-      '#cardbox-exit-background',
-      '.cardbox-exit-background',
-      '.saito-header-hamburger-contents',
-      '#log-wrapper',
-      '#log',
-      '#mobile-log-tab',
-      '.mobile-log-tab',
-      '.game-minimap',
-      '.saito-overlay-closebox',
-      '#game-menu-close',
-      '#game-menu-toggle',
-      '.saito-cta-loader-shell',
-      '#game-help',
-      '.hud-notice'
-    ].join(', ');
-    if (this.isGameBoard(el) || el.closest?.(chrome)) {
-      return 'chrome';
-    }
-    const tag = el.tagName ? el.tagName.toLowerCase() : '';
-    if (tag === 'input' || tag === 'textarea' || tag === 'select' || tag === 'label') {
-      return 'form control';
-    }
-    const incidental = {
-      game: true,
-      info: true,
-      chat: true,
-      difficulty: true,
-      settings: true,
-      menu: true,
-      help: true,
-      observer: true,
-      log: true,
-      rules: true
-    };
-    if (incidental[String(text || '').toLowerCase()]) {
-      return 'incidental label';
-    }
-    return '';
-  }
-
-  interactableFailure(el) {
-    if (!el || el.nodeType !== 1) {
-      return 'not an element';
-    }
-    const view = el.ownerDocument?.defaultView;
-    if (!view || el.isConnected === false) {
-      return 'not connected';
-    }
-    if (this.controlDisabled(el)) {
-      return 'controlDisabled';
-    }
-    let node = el;
-    while (node && node.nodeType === 1) {
-      const where = node.tagName ? node.tagName.toLowerCase() : 'node';
-      if (node.hidden === true || node.hasAttribute?.('hidden')) {
-        return 'hidden on ' + where;
-      }
-      if (node.getAttribute?.('aria-hidden') === 'true') {
-        return 'aria-hidden on ' + where;
-      }
-      if (node.inert === true || node.hasAttribute?.('inert')) {
-        return 'inert on ' + where;
-      }
-      const style = this.computedStyle(view, node);
-      if (style && style.display === 'none') {
-        return 'display none on ' + where;
-      }
-      if (this.fullyTransparent(style)) {
-        return 'opacity 0 on ' + where;
-      }
-      node = node.parentElement;
-    }
-    const own = this.computedStyle(view, el);
-    if (own && (own.visibility === 'hidden' || own.visibility === 'collapse')) {
-      return 'visibility ' + own.visibility;
-    }
-    if (own && own.pointerEvents === 'none') {
-      return 'pointer-events none';
-    }
-    if (!this.geometryReaches(el, view)) {
-      return 'geometry:' + (this._geometry_reason || 'rejected');
-    }
-    return '';
   }
 
   gameDocument() {
@@ -961,7 +723,6 @@ class GameDom {
   }
 
   geometryReaches(el, view) {
-    this._geometry_reason = '';
     const doc = el.ownerDocument;
     if (!this.layoutMeasured(doc) || typeof el.getBoundingClientRect !== 'function') {
       return true;
@@ -980,7 +741,6 @@ class GameDom {
       height
     });
     if (!visible) {
-      this._geometry_reason = 'outside viewport';
       return false;
     }
     const own = this.computedStyle(view, el);
@@ -992,8 +752,6 @@ class GameDom {
       if ((!in_fixed || block) && this.clipsOverflow(style)) {
         visible = this.intersectBox(visible, this.rectBox(node.getBoundingClientRect()));
         if (!visible) {
-          const where = node.id || (node.className && String(node.className).split(' ')[0]) || node.tagName;
-          this._geometry_reason = 'clipped by ' + where;
           return false;
         }
       }
@@ -1005,11 +763,7 @@ class GameDom {
       }
       node = node.parentElement;
     }
-    const reaches = this.pointReaches(el, doc, visible);
-    if (!reaches) {
-      this._geometry_reason = 'covered';
-    }
-    return reaches;
+    return this.pointReaches(el, doc, visible);
   }
 
   receivesHits(view, node) {
@@ -1134,7 +888,9 @@ class GameDom {
     } catch (err) {
       return false;
     }
-    return Array.isArray(events?.click) && events.click.length > 0;
+    const click = Array.isArray(events?.click) && events.click.length > 0;
+    const mouseup = Array.isArray(events?.mouseup) && events.mouseup.length > 0;
+    return click || mouseup;
   }
 
   // A cardbox mouseup with no live callback only opens the card image.
@@ -1177,44 +933,6 @@ class GameDom {
       return true;
     }
     return el.classList?.contains('gameboard') === true || el.classList?.contains('game-board') === true;
-  }
-
-  // A later board render can fill an empty menu. This refreshes the actions
-  // already on display. It does not start an examination or an AI decision.
-  watchBoard() {
-    if (this.board_watch || typeof document === 'undefined') {
-      return;
-    }
-    const root = document.documentElement;
-    const view = document.defaultView;
-    const Observer = view?.MutationObserver || (typeof MutationObserver !== 'undefined' ? MutationObserver : null);
-    if (!root || typeof Observer !== 'function') {
-      return;
-    }
-    this.board_watch = new Observer(() => {
-      const menu = this.mod.manager?.view?.context?.menu;
-      if (!Array.isArray(menu) || menu.length > 0 || this.refresh_queued) {
-        return;
-      }
-      this.refresh_queued = true;
-      const refresh = () => {
-        this.refresh_queued = false;
-        this.mod.manager?.refreshEmptyMenu?.();
-      };
-      if (typeof view?.requestAnimationFrame === 'function') {
-        view.requestAnimationFrame(refresh);
-      } else if (typeof requestAnimationFrame === 'function') {
-        requestAnimationFrame(refresh);
-      } else {
-        setTimeout(refresh, 0);
-      }
-    });
-    this.board_watch.observe(root, {
-      childList: true,
-      subtree: true,
-      attributes: true,
-      attributeFilter: ['disabled', 'hidden', 'aria-hidden', 'class', 'style']
-    });
   }
 
   elementPath(el) {

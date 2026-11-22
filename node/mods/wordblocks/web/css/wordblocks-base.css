@@ -1,606 +1,774 @@
-.game.wordblocks {
-.main, .scrollable-page {
-	position: absolute;
-	width: 100%;
-	height: 100%;
-	background: url('/wordblocks/img/background.jpg');
-	background-size: cover;
-}
-
-.textchoice:hover {
-	color: black;
-}
-
-/*
-  Format Player Boxes for score keeping
-*/
-
-#game-scoreboard {
-	display: none;
-}
-
-.plog {
-	padding: 0.5em;
-}
-
-.playedword {
-	text-transform: uppercase;
-	color: #3df71f;
-	text-decoration: underline dotted;
-	cursor: pointer;
-}
-
-.wordscore {
-	font-weight: bold;
-}
-
-.playerscore {
-	text-shadow: -1px 1px 1px red;
-	color: black;
-	background-image: url('/wordblocks/img/slot2.png');
-	background-size: contain;
-	border-radius: 0.5rem;
-	border: 1px solid var(--saito-border);
-	display: flex;
-	justify-content: center;
-	align-items: center;
-	width: 6rem;
-	height: 3.5rem;
-	font-size: 2rem;
-	cursor: pointer;
-}
-
-.discardedtiles {
-	text-transform: uppercase;
-	color: var(--saito-red);
-}
-
-.saito-overlay {
-	background-color: transparent;
-	box-shadow: none;
-}
-
-.score-overlay, .stats-overlay {
-	width: min(500px, 90vw);
-	min-height: 200px;
-	max-height: 65vh;
-	border-radius: 30px;
-	background: rgb(43, 29, 14);
-	overflow-y: auto;
-	overflow-x: auto;
-	color: rgb(250, 244, 239);
-	box-shadow: -5px 3px 4px black;
-	border: 1px solid rgb(230, 206, 180);
-}
-
-.stats-overlay table, .score-overlay table {
-	margin: auto;
-	width: 100%;
-	border-spacing: 1em;
-	padding: 1em;
-	color: rgb(250, 244, 239);
-}
-
-.score-overlay td.center_align, .stats-overlay td.center_align {
-	text-align: center;
-}
-
-.score-overlay td.right_align, .stats-overlay td.right_align {
-	text-align: right;
-	padding-right: 2.5rem;
-}
-
-thead, tfoot {
-	font-weight: bold;
-	text-align: center;
-}
-
-.link {
-	border-bottom: 1px dashed;
-	cursor: pointer;
-}
-
-.tosstiles {
-	border-bottom: 1px dashed;
-}
-
-.gameboard {
-	display: grid;
-	grid-template-columns: repeat(15, 15fr);
-	grid-template-rows: repeat(15, 15fr);
-	grid-gap: 3px;
-	background: rgb(230, 204, 179);
-	border: 8px solid rgb(43, 29, 14);
-	border-radius: 10px;
-	padding: 6.5px;
-	width: 900px;
-	height: 900px;
-	background-image: url('/wordblocks/img/textures/wood2.jpg');
-	background-size: cover;
-	filter: drop-shadow(5px 5px 10px black);
-}
-
-/* Popup menu controls */
-
-.tile-placement-controls, .tile-submit-controls {
-	position: absolute;
-	bottom: 100%;
-	text-align: center;
-	display: flex;
-	align-items: center;
-}
-
-.tile-placement-controls {
-	flex-direction: column;
-	width: 150px;
-	/*left: 50%;
-	transform: translateX(-50%);*/
-}
-
-.tile-submit-controls {
-	left: 50%;
-	transform: translateX(-50%);
-	max-width: 100%;
-	justify-content: space-between;
-	gap: 1rem;
-}
-
-.tile-submit-controls .playable {
-	font-size: 2.8rem;
-	color: #fff;
-	text-shadow: 1px 1px #555;
-	background: rgb(43, 29, 14);
-	border: 4px solid #cccccc;
-	padding: 5px;
-	border-radius: 10px;
-	margin: 5px 0;
-	width: 200px;
-}
-
-.tile-submit-controls .playable.invalid_word {
-	color: #777;
-}
-
-.action {
-	color: #fff;
-	border: 4px solid #cccccc;
-	padding: 7px;
-	border-radius: 10px;
-	margin: 5px 0;
-	background-color: #777;
-	cursor: pointer;
-	width: 150px;
-	font-size: 16px;
-}
-
-.tile-submit-controls .action {
-	width: 120px;
-}
-
-.action:hover {
-	border-color: var(--saito-white);
-	text-shadow: 1px 1px 3px black;
-}
-
-#lastmove {
-	cursor: pointer;
-}
-
-.tile {
-	width: 100%;
-	height: 100%;
-	cursor: pointer;
-	text-indent: 5px;
-	font-family: arial, helvetica, sans-serif;
-}
-
-.letter::after {
-	vertical-align: sub;
-	font-size: 33%;
-	margin-left: 1px;
-}
-
-.sc1::after {
-	content: '1';
-}
-
-.sc2::after {
-	content: '2';
-}
-
-.sc3::after {
-	content: '3';
-}
-
-.sc4::after {
-	content: '4';
-}
-
-.sc5::after {
-	content: '5';
-}
-
-.sc6::after {
-	content: '6';
-}
-
-.sc7::after {
-	content: '7';
-}
-
-.sc8::after {
-	content: '8';
-}
-
-.sc9::after {
-	content: '9';
-}
-
-.sc10::after {
-	content: '10';
-}
-
-.sc11::after {
-	content: '11';
-}
-
-/* Player Tile Rack*/
-
-.rack {
-	align-self: center;
-	display: flex;
-	/* padding: 10px 0;
-  height: 80px; */
-}
-
-.tiles {
-	margin: auto;
-	display: flex;
-	/*height: 76px;*/
-}
-
-.tiles div.tile {
-	width: 58px;
-	height: 58px;
-	margin: 9px;
-	background-image: url('/wordblocks/img/empty_tile.png');
-	background-size: cover;
-	color: rgb(43, 29, 14);
-	border-radius: 6px;
-	font-size: 36px;
-}
-
-/*Game board spaces*/
-
-.active_board .slot {
-	cursor: pointer;
-}
-
-.slot .tile {
-	filter: brightness(1.15);
-}
-
-.slot.set .tile {
-	filter: revert;
-}
-
-.slot.set.new .tile {
-	filter: brightness(0.85) opacity(0.9);
-}
-
-.active_board .slot:hover {
-	filter: brightness(0.8);
-}
-
-.slot {
-	display: flex;
-	background-image: url('/wordblocks/img/slot2.png');
-	background-size: contain;
-	border-image: initial;
-	border-radius: 4px;
-	width: 54px;
-	height: 54px;
-}
-
-.slot .bonus, div.tile {
-	display: flex;
-	flex-wrap: wrap;
-	align-items: center;
-	justify-content: space-around;
-}
-
-.slot div.tile {
-	color: rgb(43, 29, 14);
-	font-size: 36px;
-	background-color: rgba(68, 68, 68, 0.85);
-	background-image: url('/wordblocks/img/empty_tile.png');
-	background-size: cover;
-	text-align: center;
-	/*padding-top: 6px;*/
-	border-radius: 6px;
-	height: 50px;
-	width: 50px;
-	margin: auto;
-}
-
-.slot.selected_space {
-	filter: brightness(0.4) hue-rotate(90deg);
-}
-
-/*
-  Double/Triple Letter/Word Bonus Tiles and Star Tiles
-*/
-
-.slot .bonus {
-	font-weight: bold;
-	font-size: 12px;
-	color: rgb(238, 238, 238);
-	text-align: center;
-	height: 100%;
-	width: 100%;
-	/*padding: 10px 2px;
-  line-height: 15px;*/
-}
-
-.tw, .twbk {
-	border: 1px solid rgb(133, 20, 0);
-	background: rgba(159, 24, 0, 0.8);
-}
-
-.dw, .dwbk {
-	border: 1px solid rgb(221, 70, 0);
-	background: rgba(221, 102, 0, 0.8);
-}
-
-.tl, .tlbk {
-	border: 1px solid rgb(54, 0, 108);
-	background: rgba(0, 64, 128, 0.8);
-}
-
-.dl, .dlbk {
-	border: 1px solid rgb(0, 103, 51);
-	background: rgba(0, 128, 64, 0.8);
-}
-
-.star, .starbk {
-	border: 1px solid #888822;
-	background: rgba(187, 187, 102, 0.8);
-}
-
-.bonus.starbk {
-	font-size: 36px !important;
-	color: rgb(51, 51, 51);
-}
-
-.status {
-	width: unset !important;
-}
-
-.rack {
-	width: auto;
-}
-
-.rack-controls {
-	display: flex;
-	justify-content: space-around;
-}
-
-.rack-controls>div {
-	display: flex;
-	align-items: center;
-	justify-content: space-evenly;
-}
-
-.rack-controls i {
-	padding: 10px;
-}
-
-.shuffle, #skipturn, #deletectrl, #canceldelete {
-	cursor: pointer;
-}
-
-/*Rearrange HUD/Playerbox elements for portrait layout  */
-
-@media (orientation: portrait) {
-	.player-box-head-name {
-		font-size: 2vh;
-	}
-	.tile-submit-controls {
-		flex-direction: row;
-		justify-content: space-between;
-		width: 550px;
-		max-width: 100vw;
-	}
-}
-
-.game-scoreboard .player-identicon {
-	width: 30px;
-}
-
-.game-scoreboard .score {
-	display: flex;
-	flex-direction: row;
-	align-items: center;
-}
-
-/* End of responsive layout */
-
-.hidden, .rack-controls>div.hidden {
-	display: none;
-}
-
-/* Highlight selected tile in rack*/
-
-.tiles .tile.highlighttile {
-	color: rgb(250, 244, 239);
-	border-color: rgb(250, 244, 239);
-}
-
-/* Highlight temporary tiles on board*/
-
-.slot .tile.tempplacement {
-	background-color: #32cd3279;
-	color: black;
-}
-
-/* Highlight selected tile on board*/
-
-.slot .tile.highlighttile {
-	background-color: limegreen;
-	color: black;
-}
-
-#helper {
+.game.wordblocks,
+.game.wordblocks body {
+	background: #1e4c6e url('/wordblocks/img/background.jpg') center / cover no-repeat;
+	color: #f6f1e7;
+}
+
+.game.wordblocks .wb-shell,
+.game.wordblocks .game-minimap {
+	-webkit-user-select: none;
+	-moz-user-select: none;
+	-ms-user-select: none;
+	user-select: none;
+	-webkit-touch-callout: none;
+}
+
+.game.wordblocks .wb-shell input,
+.game.wordblocks .wb-shell textarea,
+.game.wordblocks .wb-shell select,
+.game.wordblocks .game-minimap input,
+.game.wordblocks .game-minimap textarea,
+.game.wordblocks .game-minimap select {
+	-webkit-user-select: text;
+	-moz-user-select: text;
+	-ms-user-select: text;
+	user-select: text;
+}
+
+.game.wordblocks .wb-shell {
 	position: fixed;
-	transition: transform 0.13s;
+	inset: 0;
+	z-index: auto;
+	display: grid;
+	grid-template-columns: auto minmax(0, 1fr);
+	grid-template-rows: minmax(0, 1fr);
+	grid-template-areas: 'rail stage';
 	pointer-events: none;
-	width: 54px;
-	height: 54px;
-	/*background-color: limegreen;*/
-	background-image: url('/wordblocks/img/empty_tile.png');
-	background-size: cover;
-	color: rgb(43, 29, 14);
-	font-size: 36px;
-	text-align: center;
-	padding-top: 6px;
-	border-radius: 3px;
+}
+
+.game.wordblocks .wb-rail,
+.game.wordblocks .wb-dock,
+.game.wordblocks .game-minimap {
+	pointer-events: auto;
+}
+
+.game.wordblocks .wb-rail {
+	grid-area: rail;
+	display: flex;
+	flex-direction: column;
+	gap: 1rem;
+	min-width: 0;
+	min-height: 0;
+	position: relative;
+	z-index: 3;
+	overflow: auto;
+	padding: 4.6rem 1rem 1rem;
+	background: transparent;
+}
+
+.game.wordblocks .wb-stage {
+	grid-area: stage;
+	position: relative;
+	min-width: 0;
+	min-height: 0;
+	pointer-events: none;
+}
+
+.game.wordblocks .wb-nav {
+	position: absolute;
+	top: 4.8rem;
+	left: 0.8rem;
+	z-index: 4;
+	pointer-events: auto;
+}
+
+.game.wordblocks .wb-nav-fit {
+	border: 0;
+	border-radius: 999px;
+	background: rgba(18, 24, 32, 0.78);
+	color: #f6f1e7;
+	font-family: inherit;
+	font-size: 1.6rem;
+	padding: 0.35rem 0.75rem;
+	cursor: pointer;
+}
+
+.game.wordblocks .wb-dock {
+	position: fixed;
 	z-index: 50;
+	left: 50%;
+	bottom: 1rem;
+	transform: translateX(-50%);
+	width: max-content;
+	max-width: calc(100vw - 1rem);
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 0.35rem;
+	padding: 0.55rem 0.75rem 0.65rem;
+	border-radius: 1.2rem;
+	background: rgba(18, 24, 32, 0.94);
+	border: 1px solid rgba(214, 226, 236, 0.16);
+	box-shadow: 0 14px 36px rgba(0, 0, 0, 0.35);
+	font-size: 1.6rem;
+	line-height: 1.35;
+}
+
+.game.wordblocks .wb-turn {
+	margin: 0;
+	min-height: 1.2em;
+	color: #d5dee6;
+	font-size: 1em;
+	font-weight: 500;
+	line-height: 1.35;
+	text-align: center;
+	cursor: grab;
+	user-select: none;
+	touch-action: none;
+}
+
+.game.wordblocks .wb-turn:active {
 	cursor: grabbing;
 }
 
-.tiles .tile.todelete {
+.game.wordblocks .wb-playline {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 1rem;
+	width: min(100%, 72rem);
+}
+
+.game.wordblocks .wb-hud {
+	display: none;
+}
+
+.game.wordblocks .wb-playerbox {
+	display: grid;
+	grid-template-columns: 12rem minmax(0, 1fr);
+	gap: 1rem;
+	flex: 0 0 auto;
+	width: 32rem;
+	height: 14rem;
+	min-height: 14rem;
+	max-height: 14rem;
 	position: relative;
-	bottom: 10px;
-	background-color: rgb(244, 6, 6);
-	color: rgb(244, 6, 6);
+	padding: 1rem;
+	border-radius: 1.4rem;
+	border: 1px solid color-mix(in srgb, var(--saito-foreground, #f3e6cf) 32%, transparent);
+	background: color-mix(in srgb, #0c1c2e 72%, transparent);
+	color: var(--saito-foreground, #f6f1e7);
+	box-sizing: border-box;
+	overflow: hidden;
 }
 
-#promptval {
-	text-transform: uppercase;
+.game.wordblocks .wb-playerbox.active {
+	border-color: #e6c98a;
+	box-shadow: 0 0 0 1px rgba(230, 201, 138, 0.75);
 }
 
-.status-message {
-	background-color: unset;
+.game.wordblocks .playerbox-character {
+	width: 12rem;
+	height: 12rem;
+	overflow: hidden;
+	border-radius: var(--saito-radius-full, 999px);
+	border: 2px solid color-mix(in srgb, var(--saito-foreground, #f3e6cf) 50%, transparent);
 }
 
-.status_container {
+.game.wordblocks .playerbox-character-img {
+	display: block;
 	width: 100%;
+	height: 100%;
+	object-fit: cover;
 }
 
-#remainingctrl {
+.game.wordblocks .playerbox-info {
+	display: flex;
+	flex-direction: column;
+	min-width: 0;
+	justify-content: center;
+	gap: 0.2rem;
+}
+
+.game.wordblocks .playerbox-name {
+	font-family: var(--saito-font-medium, Palatino, serif);
+	font-size: 2.4rem;
+	font-weight: 600;
+	line-height: 1.15;
+	color: var(--saito-white, #fffaf3);
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.game.wordblocks .playerbox-chips {
+	font-family: var(--saito-font-medium, Palatino, serif);
+	font-size: 2rem;
+	line-height: 1.2;
+	color: #efe2c0;
+	margin: 0 0 0.35rem;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.game.wordblocks .wb-player-rank,
+.game.wordblocks .playerbox-action {
+	font-size: 1.45rem;
+	line-height: 1.25;
+	color: var(--saito-muted-foreground, #d5deE6);
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.game.wordblocks .playerbox-action:empty,
+.game.wordblocks .wb-player-rank:empty {
+	display: none;
+}
+
+.game.wordblocks .wb-dots {
+	display: inline-flex;
+	gap: 0.18rem;
+	margin-left: 0.28rem;
+	vertical-align: middle;
+}
+
+.game.wordblocks .wb-dots i {
+	width: 0.28rem;
+	height: 0.28rem;
+	border-radius: 50%;
+	background: currentColor;
+	opacity: 0.25;
+	animation: wb-dot 1.2s ease-in-out infinite;
+}
+
+.game.wordblocks .wb-dots i:nth-child(2) {
+	animation-delay: 0.2s;
+}
+
+.game.wordblocks .wb-dots i:nth-child(3) {
+	animation-delay: 0.4s;
+}
+
+@keyframes wb-dot {
+	0%,
+	80%,
+	100% {
+		opacity: 0.25;
+	}
+	40% {
+		opacity: 1;
+	}
+}
+
+.game.wordblocks .gameboard {
+	display: grid;
+	grid-template-columns: repeat(15, 1fr);
+	grid-template-rows: repeat(15, 1fr);
+	gap: 2px;
+	width: 900px;
+	height: 900px;
+	box-sizing: border-box;
+	padding: 8px;
+	border-radius: 10px;
+	background-color: #3a342c;
+	background-image: none;
+	pointer-events: auto;
+	cursor: grab;
+	border: 8px solid #1c2836;
+	box-shadow:
+		0 0 0 1px rgba(198, 161, 90, 0.55),
+		0 18px 40px rgba(0, 0, 0, 0.35);
+	touch-action: none;
+}
+
+.game.wordblocks .gameboard.wb-panning,
+.game.wordblocks .gameboard.wb-panning .slot {
+	cursor: grabbing;
+}
+
+.game.wordblocks .slot {
+	position: relative;
+	min-width: 0;
+	min-height: 0;
+	overflow: hidden;
+	border-radius: 2px;
+	background: #f7f3ea;
+}
+
+.game.wordblocks .slot:nth-child(even):not(.tw):not(.dw):not(.tl):not(.dl):not(.star) {
+	background: #f3efe4;
+}
+
+.game.wordblocks .active_board .slot {
 	cursor: pointer;
 }
 
-.remaining_tiles {
-	width: 500px;
-	max-width: 90vw;
-	max-height: min(600px, 90vh);
-	font-size: 28px;
+.game.wordblocks .slot .bonus {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 100%;
+	height: 100%;
+	overflow: hidden;
+	font-size: 0;
+	font-weight: 700;
+	line-height: 1;
+	color: #f6f1e6;
+}
+
+.game.wordblocks .slot .bonus::after {
+	font-family: var(--saito-font-heavy, Palatino, 'Palatino Linotype', serif);
+	font-size: 20px;
+	font-weight: 700;
+	letter-spacing: 0.02em;
+	line-height: 1;
+}
+
+.game.wordblocks .tw,
+.game.wordblocks .twbk {
+	background: #6e2e3a;
+	color: #f6f1e6;
+}
+.game.wordblocks .twbk::after { content: '3W'; }
+.game.wordblocks .dw,
+.game.wordblocks .dwbk {
+	background: #8a6232;
+	color: #f6f1e6;
+}
+.game.wordblocks .dwbk::after { content: '2W'; }
+.game.wordblocks .tl,
+.game.wordblocks .tlbk {
+	background: #2c4560;
+	color: #f4f7fb;
+}
+.game.wordblocks .tlbk::after { content: '3L'; }
+.game.wordblocks .dl,
+.game.wordblocks .dlbk {
+	background: #2f5a45;
+	color: #f3f7f4;
+}
+.game.wordblocks .dlbk::after { content: '2L'; }
+.game.wordblocks .star,
+.game.wordblocks .starbk {
+	background: #c6a15a;
+	color: #2a2114;
+}
+.game.wordblocks .starbk::after {
+	content: '★';
+	font-size: 26px;
+	color: #2a2114;
+}
+
+.game.wordblocks .tile {
+	width: 100%;
+	height: 100%;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	box-sizing: border-box;
+	border-radius: 4px;
+	background: linear-gradient(180deg, #fffaf1 0%, #f0e2c8 100%);
+	color: #2c2418;
+	font-family: Palatino, 'Palatino Linotype', 'Times New Roman', serif;
+	box-shadow:
+		0 1px 0 rgba(255, 255, 255, 0.8),
+		0 2px 3px rgba(40, 24, 8, 0.35),
+		inset 0 0 0 1px rgba(90, 60, 20, 0.2);
+	cursor: pointer;
+}
+
+.game.wordblocks .letter {
+	font-size: 1.15em;
+	font-weight: 600;
+	line-height: 1;
+	position: relative;
+}
+
+.game.wordblocks .letter::after {
+	position: absolute;
+	right: -0.55em;
+	bottom: -0.05em;
+	font-size: 0.34em;
+	font-weight: 650;
+	letter-spacing: 0;
+}
+
+.game.wordblocks .sc1::after { content: '1'; }
+.game.wordblocks .sc2::after { content: '2'; }
+.game.wordblocks .sc3::after { content: '3'; }
+.game.wordblocks .sc4::after { content: '4'; }
+.game.wordblocks .sc5::after { content: '5'; }
+.game.wordblocks .sc6::after { content: '6'; }
+.game.wordblocks .sc7::after { content: '7'; }
+.game.wordblocks .sc8::after { content: '8'; }
+.game.wordblocks .sc9::after { content: '9'; }
+.game.wordblocks .sc10::after { content: '10'; }
+
+.game.wordblocks .slot .tile {
+	width: calc(100% - 3px);
+	height: calc(100% - 3px);
+	margin: auto;
+}
+
+.game.wordblocks .slot .tile.tempplacement {
+	box-shadow:
+		0 0 0 2px #c6a15a,
+		0 3px 6px rgba(40, 24, 8, 0.28);
+}
+
+.game.wordblocks .slot.wb-open {
+	box-shadow: inset 0 0 0 2px rgba(198, 161, 90, 0.85);
+}
+
+.game.wordblocks .slot.wb-axis {
+	box-shadow: inset 0 0 0 1px rgba(198, 161, 90, 0.55);
+}
+
+.game.wordblocks .slot.wb-target {
+	box-shadow: inset 0 0 0 3px rgba(255, 250, 240, 0.95);
+	background: rgba(255, 248, 230, 0.85);
+}
+
+.game.wordblocks .wb-shake {
+	animation: wb-shake 0.28s linear;
+}
+
+@keyframes wb-shake {
+	0%,
+	100% { transform: translateX(0); }
+	25% { transform: translateX(-4px); }
+	75% { transform: translateX(4px); }
+}
+
+.game.wordblocks .slot.wb-bad {
+	box-shadow: inset 0 0 0 2px rgba(120, 48, 40, 0.8);
+}
+
+.game.wordblocks .slot.wb-origin,
+.game.wordblocks .slot.wb-cursor {
+	box-shadow: inset 0 0 0 2px rgba(255, 250, 240, 0.85);
+}
+
+.game.wordblocks .tiles {
+	display: flex;
+	position: relative;
+	flex-wrap: nowrap;
+	justify-content: center;
+	align-items: flex-end;
+	gap: clamp(0.35rem, 0.8vw, 0.7rem);
+	min-height: 6.4rem;
+	padding: 0.35rem 0 0.15rem;
+}
+
+.game.wordblocks .tiles .tile {
+	width: min(6.4rem, calc((100vw - 2.4rem) / 7.6));
+	height: min(6.4rem, calc((100vw - 2.4rem) / 7.6));
+	flex: 0 0 auto;
+	font-size: min(3.1rem, calc((100vw - 2.4rem) / 15));
+	transition: transform 0.16s ease, box-shadow 0.16s ease;
+	touch-action: none;
+}
+
+.game.wordblocks .tiles .tile.highlighttile,
+.game.wordblocks .tiles .tile:hover {
+	transform: translateY(-0.35rem);
+	box-shadow:
+		0 8px 16px rgba(20, 16, 10, 0.28),
+		inset 0 0 0 1px rgba(90, 60, 20, 0.22);
+}
+
+.game.wordblocks .tiles .tile.wb-dragging {
+	position: absolute;
+	width: 0;
+	height: 0;
+	margin: 0;
+	padding: 0;
+	overflow: hidden;
+	opacity: 0;
+	pointer-events: none;
+	transform: none;
+}
+
+.game.wordblocks .wb-ghost {
+	position: fixed;
+	z-index: 80;
+	width: min(6.4rem, calc((100vw - 2.4rem) / 7.6));
+	height: min(6.4rem, calc((100vw - 2.4rem) / 7.6));
+	font-size: min(3.1rem, calc((100vw - 2.4rem) / 15));
+	pointer-events: none;
+	margin: 0;
+	transform: translate(-50%, -58%);
+	box-shadow: 0 12px 24px rgba(20, 16, 10, 0.35);
+}
+
+.game.wordblocks .wb-caret {
+	width: min(6.4rem, calc((100vw - 2.4rem) / 7.6));
+	height: min(6.4rem, calc((100vw - 2.4rem) / 7.6));
+	flex: 0 0 auto;
+	align-self: flex-end;
+	border-radius: 4px;
+	background: rgba(255, 250, 240, 0.16);
+	box-shadow: inset 0 0 0 2px rgba(255, 250, 240, 0.85);
+}
+
+.game.wordblocks .wb-dir {
+	position: fixed;
+	z-index: 60;
+	display: flex;
+	gap: 0.35rem;
+	padding: 0.35rem;
+	border-radius: 999px;
+	background: rgba(18, 24, 32, 0.94);
+	box-shadow: 0 8px 20px rgba(0, 0, 0, 0.28);
+}
+
+.game.wordblocks .wb-dir button {
+	border: 0;
+	border-radius: 999px;
+	background: #efe2c0;
+	color: #2a1c14;
+	font: inherit;
+	font-size: 0.95rem;
+	padding: 0.4rem 0.75rem;
+	cursor: pointer;
+}
+
+.game.wordblocks .tiles .tile.highlighttile,
+.game.wordblocks .slot .tile.highlighttile {
+	outline: 2px solid #2c2418;
+	outline-offset: -3px;
+}
+
+.game.wordblocks .tiles .tile.todelete {
+	background: #e7c8c2;
+	transform: translateY(-6px);
+}
+
+.game.wordblocks .wb-controls {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	width: 100%;
+	gap: 0;
+}
+
+.game.wordblocks .wb-playrow {
 	display: flex;
 	flex-wrap: wrap;
-	gap: 0.25rem;
-	padding: 1rem;
-	background: rgb(43, 29, 14);
+	align-items: center;
+	justify-content: space-between;
+	gap: 0.8rem;
+}
+
+.game.wordblocks .wb-toolbar,
+.game.wordblocks .wb-exchange {
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: center;
+	align-items: center;
+	gap: 0.35rem 0.9rem;
+}
+
+.game.wordblocks .wb-toolbar .wb-action,
+.game.wordblocks .wb-exchange .wb-action {
+	background: transparent;
+	border-color: transparent;
+	color: #d5dee6;
+	padding: 0.3rem 0.15rem;
+	min-height: 0;
+}
+
+.game.wordblocks .wb-toolbar .wb-action:hover,
+.game.wordblocks .wb-exchange .wb-action:hover {
+	color: #fffaf3;
+}
+
+.game.wordblocks .wb-info {
+	border: 0;
+	background: transparent;
+	color: #b7c3ce;
+	font: inherit;
+	font-size: 0.95rem;
+	padding: 0.3rem 0.15rem;
+	cursor: pointer;
+}
+
+.game.wordblocks .wb-move {
+	min-width: 16rem;
+	flex: 1 1 16rem;
+}
+
+.game.wordblocks .wb-move-word {
+	font-family: Palatino, 'Palatino Linotype', serif;
+	font-size: 1.8rem;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+	color: #fffaf3;
+}
+
+.game.wordblocks .wb-move-note {
+	min-height: 1.2rem;
+	color: #e4d3b8;
+	font-size: 0.95rem;
+}
+
+.game.wordblocks .wb-exchange {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.45rem;
+	align-items: center;
+}
+
+.game.wordblocks .wb-play,
+.game.wordblocks .wb-action {
+	border: 1px solid rgba(243, 230, 207, 0.45);
+	background: transparent;
+	color: #d5dee6;
+	border-radius: 999px;
+	padding: 0.35rem 0.2rem;
+	font-family: inherit;
+	font-size: 0.92em;
+	font-weight: 500;
+	line-height: 1.2;
+	cursor: pointer;
+}
+
+.game.wordblocks .wb-play {
+	background: #efe2c0;
+	color: #2a1c14;
+	border-color: #efe2c0;
+	font-weight: 700;
+	letter-spacing: 0.06em;
+	text-transform: uppercase;
+	min-height: 3.1rem;
+	padding: 0.7rem 1.3rem;
+}
+
+.game.wordblocks .wb-play:disabled,
+.game.wordblocks .wb-action:disabled {
+	opacity: 0.4;
+	cursor: default;
+}
+
+.game.wordblocks .wb-size {
+	display: flex;
+	align-items: center;
+	gap: 0.45rem;
+	color: #d5dee6;
+	font-size: 0.9rem;
+}
+
+.game.wordblocks .wb-size input {
+	width: 8rem;
+	accent-color: #efe2c0;
+}
+
+.game.wordblocks .wb-hud.game-hud2,
+.game.wordblocks .wb-hud.game-hud2.docked {
+	width: 100%;
+	background: transparent;
+	box-shadow: none;
+}
+
+.game.wordblocks .wb-hud .hud-status {
+	background: transparent;
+	box-shadow: none;
+	color: #f6f1e7;
+	text-align: left;
+	padding: 0;
+	font-size: 1rem;
+}
+
+.game.wordblocks .wb-hud .hud-menu:empty,
+.game.wordblocks .wb-hud .hud-cards:empty,
+.game.wordblocks .wb-hud .hud-notice {
+	display: none;
+}
+
+.game.wordblocks .game-minimap {
+	top: 4.6rem;
+	right: 0.8rem;
+	bottom: auto;
+	width: min(16rem, 22vw);
+}
+
+.game.wordblocks .saito-overlay,
+.game.wordblocks .score-overlay,
+.game.wordblocks .stats-overlay,
+.game.wordblocks .remaining_tiles {
+	background: #2b1d0e;
+	color: #faf4ef;
+	border: 1px solid #e6ceb4;
 	border-radius: 1rem;
-	border: 1px solid rgb(230, 206, 180);
-	justify-content: space-evenly;
 }
 
-.remaining_tiles .tile {
-	background-image: url(/wordblocks/img/empty_tile.png);
-	background-size: cover;
-	color: rgb(43, 29, 14);
-	border-radius: 5px;
+.game.wordblocks .remaining_tiles {
+	width: min(36rem, 92vw);
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.35rem;
+	padding: 1rem;
 }
 
-.remaining_tiles .tile, .remaining_tiles .gap {
-	width: 4.5rem;
-	height: 4.5rem;
+.game.wordblocks .remaining_tiles .tile {
+	width: 3.2rem;
+	height: 3.2rem;
 }
 
-/*
-Resize board on smaller screens
-*/
+.game.wordblocks .rules-overlay,
+.game.wordblocks .score-overlay,
+.game.wordblocks .stats-overlay {
+	padding: 1.2rem 1.4rem;
+	max-width: min(40rem, 92vw);
+}
 
-@media only screen and (max-width: 600px) {
-	#game-scoreboard {
-		display: flex;
-		cursor: pointer;
-		max-width: calc(100% - 12rem);
-		font-size: 24px;
-		color: rgb(250, 244, 239);
-		background: rgb(43, 29, 14);
-		height: 4rem;
-		padding: 0;
+@media (max-width: 900px), (max-height: 560px) {
+	.game.wordblocks .wb-shell {
+		grid-template-columns: minmax(0, 1fr);
+		grid-template-rows: auto minmax(0, 1fr);
+		grid-template-areas:
+			'rail'
+			'stage';
 	}
-	#game-scoreboard .score {
-		gap: 0.5rem;
-		padding: 0.5rem;
+
+	.game.wordblocks .wb-rail {
+		flex-direction: row;
+		overflow-x: auto;
+		padding: 3.6rem 0.6rem 0.4rem;
+		gap: 0.6rem;
 	}
-	#opponentbox {
-		display: none;
-	}
-	.visible#opponentbox {
-		display: flex;
-	}
-	.remaining_tiles {
-		font-size: 20px;
-	}
-	.remaining_tiles .tile, .remaining_tiles .gap {
-		width: 3rem;
-		height: 3rem;
-	}
-	.hud-status-update-message, .subrack {
-		font-size: 0.8em;
-	}
-	.tile-submit-controls .playable {
-		font-size: 2rem;
-	}
-	.hud {
-		font-size: 22px;
-		width: 100vw;
-		position: fixed;
-		top: unset !important;
-		bottom: 0 !important;
-		left: 0 !important;
-		height: unset;
-		height: -moz-fit-content;
-		min-height: unset;
-		min-width: 100vw;
-		transform: none;
-		display: block;
-		z-index: 100;
-	}
-	.hud-header, .hud-menu {
-		display: none;
-	}
-	.hud-body {
-		height: unset;
-		max-height: unset;
-		height: fit-content;
-		height: -moz-fit-content;
-	}
-	.tiles {
+
+	.game.wordblocks .wb-playerbox {
+		flex: 1 1 calc(50% - 0.8rem);
 		width: auto;
-		/*height: 72px;*/
+		min-width: 0;
+		height: 8.8rem;
+		min-height: 8.8rem;
+		max-height: 8.8rem;
+		grid-template-columns: 7.2rem minmax(0, 1fr);
+		padding: 0.8rem;
+		gap: 0.8rem;
 	}
-	.tiles div.tile, #helper {
-		margin: 1vw;
-		font-size: min(7vw, 36px);
-		/*width: 72px;
-    height: 72px;*/
-		max-width: 11vw;
-		max-height: 11vw;
-	}
-	.tiles .tile.highlighttile {
-		visibility: hidden;
-	}
-	.rack-controls i {
-		padding: 8px;
-	}
-}
-}
 
-.game.wordblocks .stats-overlay.retain-surface {
-	color: var(--saito-popover-foreground);
+	.game.wordblocks .playerbox-character {
+		width: 7.2rem;
+		height: 7.2rem;
+	}
+
+	.game.wordblocks .playerbox-name {
+		font-size: 1.8rem;
+	}
+
+	.game.wordblocks .playerbox-chips {
+		font-size: 1.65rem;
+		margin-bottom: 0.2rem;
+	}
+
+	.game.wordblocks .playerbox-action,
+	.game.wordblocks .wb-player-rank {
+		font-size: 1.2rem;
+	}
+
+	.game.wordblocks .game-minimap {
+		top: 4.2rem;
+		right: 0.4rem;
+		bottom: auto;
+		width: 7.2rem;
+	}
+
+	.game.wordblocks .wb-move-word {
+		font-size: 1.25rem;
+	}
 }

@@ -46,9 +46,6 @@ class Context {
       if (panel) {
         panel.setAttribute('aria-hidden', open ? 'false' : 'true');
       }
-      if (open) {
-        this.mod.manager.refreshEmptyMenu?.();
-      }
     };
     const tab = document.querySelector('.gamebot-inspector-tab');
     if (tab) {
@@ -59,9 +56,17 @@ class Context {
       copy.onclick = async () => {
         const text = JSON.stringify(this.mod.manager.view?.context ?? null, null, 2);
         const clipboard = typeof navigator !== 'undefined' ? navigator.clipboard : null;
-        if (clipboard?.writeText) {
-          await clipboard.writeText(text);
+        if (!clipboard?.writeText) {
+          return;
         }
+        await clipboard.writeText(text);
+        copy.classList.add('gamebot-copied');
+        copy.setAttribute('aria-label', 'Copied');
+        clearTimeout(this.copy_timer);
+        this.copy_timer = setTimeout(() => {
+          copy.classList.remove('gamebot-copied');
+          copy.setAttribute('aria-label', 'Copy');
+        }, 1200);
       };
     }
     this.mod.manager.on_context = () => {
@@ -76,8 +81,12 @@ class Context {
         const identifier = String(field?.value || '').trim();
         try {
           await this.mod.manager.handleResponse(this.gameId(), identifier);
+          if (field) {
+            field.value = '';
+          }
           if (result) {
-            result.textContent = identifier;
+            const move = this.mod.manager?.last_move || identifier || '';
+            result.textContent = move ? 'last move: ' + move : 'last move:';
           }
         } catch (err) {
           if (result) {
@@ -99,19 +108,40 @@ class Context {
       return;
     }
     const host = document.querySelector('.gamebot-tree');
-    if (!host) {
-      return;
-    }
+    const tab = document.querySelector('.gamebot-inspector-tab');
     if (context === undefined) {
       if (!view) {
+        if (tab) {
+          tab.classList.remove('gamebot-needs-move');
+        }
         return;
       }
       if (view.context_error) {
-        host.innerHTML = '';
-        host.textContent = view.context_error;
+        if (tab) {
+          tab.classList.remove('gamebot-needs-move');
+        }
+        if (host) {
+          host.innerHTML = '';
+          host.textContent = view.context_error;
+        }
         return;
       }
       context = view.context;
+    }
+
+    // Yellow with black text when a menu is waiting for a choice. Black with
+    // yellow text while the AI is halted and another move has to arrive first.
+    if (tab) {
+      const menu = context?.menu;
+      tab.classList.toggle('gamebot-needs-move', Array.isArray(menu) && menu.length > 0);
+    }
+    const result = document.querySelector('.gamebot-click-result');
+    if (result) {
+      const move = this.mod.manager?.last_move || '';
+      result.textContent = move ? 'last move: ' + move : 'last move:';
+    }
+    if (!host) {
+      return;
     }
     host.innerHTML = '';
     if (!context) {
