@@ -1,6 +1,8 @@
 const Actions = require('./actions');
 const { returnContext } = require('./context');
 
+const MAX_AI_ATTEMPTS = 5;
+
 class Manager {
   constructor(app, mod) {
     this.app = app;
@@ -35,6 +37,8 @@ class Manager {
       game = {
         game_id,
         hash: '',
+        attempts: 0,
+        answered: '',
         moves: [],
         created_at: now,
         updated_at: now,
@@ -47,6 +51,12 @@ class Manager {
     }
     if (game.last_queue_stable == null) {
       game.last_queue_stable = 0;
+    }
+    if (game.attempts == null) {
+      game.attempts = 0;
+    }
+    if (game.answered == null) {
+      game.answered = '';
     }
     return game;
   }
@@ -317,6 +327,15 @@ class Manager {
       return this.view;
     }
     const game_mod = this.active_game_mod?.game?.id === game_id ? this.active_game_mod : null;
+    if (game_mod?.game) {
+      const record = this.returnGame(game_id);
+      const saved = this.app.crypto.hash(JSON.stringify(game_mod.game));
+      if (record.hash !== saved) {
+        record.hash = saved;
+        record.attempts = 0;
+        record.answered = '';
+      }
+    }
     let context = null;
     let context_error = '';
     let halted = false;
@@ -331,13 +350,19 @@ class Manager {
             )
           : null;
         const hooks = this.gameHooks(game_mod);
+        if (context && typeof context === 'object' && this.games[game_id]?.ordinary) {
+          context.ordinary = true;
+        }
         if (typeof hooks?.returnContext === 'function') {
           const specific = hooks.returnContext(context);
           if (specific !== undefined) {
             context = specific;
           }
         }
-        context = this.mod.jsdom.returnContext(context);
+        const offered = context?.menu;
+        if (!Array.isArray(offered) || offered.length <= 0) {
+          context = this.mod.jsdom.returnContext(context);
+        }
         context = returnContext(game_mod, context);
         if (context && typeof context === 'object' && !Array.isArray(context)) {
           context.timestamp = timestamp;
@@ -358,61 +383,80 @@ class Manager {
       context_error,
       clickable_items
     };
-    this.on_context?.(game_id);
 
     if (!game_mod || context_error) {
+      this.on_context?.(game_id);
       return this.view;
     }
     if ((this.games[game_id]?.last_queue_stable ?? 0) !== timestamp) {
+      this.on_context?.(game_id);
       return this.view;
     }
 
     const overlay = await this.actions.handleInformationalOverlay(context);
-    const automatic = overlay?.length ? overlay : await this.actions.handleSingleMenuOption(context);
+    const planned = this.games[game_id]?.plan;
+    const automatic = overlay?.length || planned ? overlay : await this.actions.handleSingleMenuOption(context);
     if (automatic?.length) {
       await this.executeMoves(game_id, automatic, timestamp, true);
       if ((this.games[game_id]?.last_queue_stable ?? 0) !== timestamp) {
+        this.on_context?.(game_id);
         return this.view;
       }
       return this.examineGameState(game_id, timestamp);
     }
+    const resumed = await this.resumePlan(game_id, timestamp, context);
+    if (resumed === 'again') {
+      if ((this.games[game_id]?.last_queue_stable ?? 0) !== timestamp) {
+        this.on_context?.(game_id);
+        return this.view;
+      }
+      return this.examineGameState(game_id, timestamp);
+    }
+    if (resumed === 'stop') {
+      this.on_context?.(game_id);
+      return this.view;
+    }
+    if (resumed === 'abort') {
+      const record = this.returnGame(game_id);
+      delete record.plan;
+      record.ordinary = true;
+      return this.examineGameState(game_id, timestamp);
+    }
     if ((this.games[game_id]?.last_queue_stable ?? 0) !== timestamp) {
+      this.on_context?.(game_id);
       return this.view;
     }
     if (halted) {
+      this.on_context?.(game_id);
       return this.view;
     }
-    await this.mod.ai.requestResponse(context);
+    const record = this.returnGame(game_id);
+    if (record.attempts >= MAX_AI_ATTEMPTS) {
+      if (context && typeof context === 'object') {
+        context.instructions =
+          'GameBot stopped after ' + MAX_AI_ATTEMPTS + ' AI attempts. The saved game has not changed.';
+      }
+      this.on_context?.(game_id);
+      return this.view;
+    }
+    if (record.attempts >= 1 && context && typeof context === 'object') {
+      const note =
+        'This is AI attempt ' +
+        (record.attempts + 1) +
+        ' of ' +
+        MAX_AI_ATTEMPTS +
+        '. The previous action did not advance the saved game. Choose a different action that will.';
+      const current = typeof context.instructions === 'string' ? context.instructions : '';
+      if (!current.includes('This is AI attempt ')) {
+        context.instructions = current ? current + ' ' + note : note;
+      }
+    }
+    this.on_context?.(game_id);
+    const reply = await this.mod.ai.requestResponse(context);
+    if (reply === context) {
+      record.attempts += 1;
+    }
     return this.view;
-  }
-
-  // The board watcher fills an empty menu from the live document.
-  // A new examination replaces the stored context instead of using this.
-  refreshEmptyMenu() {
-    const view = this.view;
-    if (!view?.context || typeof view.context !== 'object' || Array.isArray(view.context)) {
-      return false;
-    }
-    if (!Array.isArray(view.context.menu) || view.context.menu.length > 0) {
-      return false;
-    }
-    let menu = [];
-    try {
-      menu = this.mod.jsdom.gameActions();
-    } catch (err) {
-      return false;
-    }
-    if (!menu.length) {
-      return false;
-    }
-    view.context.menu = menu;
-    try {
-      view.clickable_items = this.mod.jsdom.returnOptions();
-    } catch (err) {
-      view.clickable_items = view.clickable_items || [];
-    }
-    this.on_context?.(view.game_id);
-    return true;
   }
 
   async handleManualInput(game_id, input) {
@@ -469,6 +513,20 @@ class Manager {
     }
 
     const hooks = this.gameHooks(this.active_game_mod);
+    let body = response;
+    if (typeof response === 'string') {
+      const text = response.trim();
+      if (text.startsWith('{') || text.startsWith('[')) {
+        try {
+          body = JSON.parse(text);
+        } catch (err) {
+          throw new Error('The response is not valid JSON');
+        }
+      }
+    }
+    if (body && typeof body === 'object' && !Array.isArray(body) && body.type === 'strategic_move') {
+      return this.beginPlan(game_id, body, timestamp);
+    }
     if (typeof hooks?.handleResponse === 'function' && (await hooks.handleResponse(response)) === 1) {
       if ((this.games[game_id]?.last_queue_stable ?? 0) !== timestamp) {
         return 1;
@@ -486,6 +544,9 @@ class Manager {
       throw new Error('That game is not on this node');
     }
     const executed = await this.executeMoves(game_id, moves, timestamp, true);
+    if (executed.length === moves.length) {
+      this.last_move = moves.join(', ');
+    }
     if ((this.games[game_id]?.last_queue_stable ?? 0) !== timestamp) {
       return executed;
     }
@@ -540,17 +601,38 @@ class Manager {
     if ('moves' in analysis) {
       return analysis;
     }
+    // Identifier stays first so an older response that sends that field is unchanged.
+    let choice;
     if ('identifier' in analysis) {
-      if (analysis.identifier == null || String(analysis.identifier).trim() === '') {
-        return null;
-      }
-      return String(analysis.identifier);
+      choice = analysis.identifier;
+    } else if ('id' in analysis) {
+      choice = analysis.id;
+    } else if ('label' in analysis) {
+      choice = analysis.label;
+    } else {
+      return analysis;
     }
-    return analysis;
+    if (choice === undefined) {
+      return analysis;
+    }
+    if (choice == null || String(choice).trim() === '') {
+      return null;
+    }
+    return String(choice);
   }
 
   responseMoves(response) {
-    const value = this.parseResponse(response);
+    let value = response;
+    if (typeof response === 'string') {
+      const text = response.trim();
+      if (text.startsWith('{') || text.startsWith('[')) {
+        try {
+          value = JSON.parse(text);
+        } catch (err) {
+          throw new Error('The response is not valid JSON');
+        }
+      }
+    }
     if (typeof value === 'string') {
       const identifier = value.trim();
       if (!identifier) {
@@ -575,19 +657,69 @@ class Manager {
     return moves;
   }
 
-  parseResponse(response) {
-    if (typeof response !== 'string') {
-      return response;
+  // A strategic plan is one decision. Execution is still one click at a time.
+  // An unusable plan is dropped and this stable queue is examined again with
+  // ordinary clicks. It is not sent back to the AI as the same plan.
+  async beginPlan(game_id, body, timestamp) {
+    const hooks = this.gameHooks(this.active_game_mod);
+    const record = this.returnGame(game_id);
+    const plan = typeof hooks?.acceptPlan === 'function' ? hooks.acceptPlan(body, this.view?.context) : null;
+    if (!plan) {
+      delete record.plan;
+      record.ordinary = true;
+      await this.examineGameState(game_id, timestamp);
+      return [];
     }
-    const text = response.trim();
-    if (!text.startsWith('{') && !text.startsWith('[')) {
-      return text;
+    record.plan = plan;
+    record.ordinary = false;
+    await this.examineGameState(game_id, timestamp);
+    return [plan.card];
+  }
+
+  async resumePlan(game_id, timestamp, context) {
+    const record = this.games[game_id];
+    if (!record?.plan) {
+      return null;
     }
+    const hooks = this.gameHooks(this.active_game_mod);
+    if (typeof hooks?.nextAction !== 'function') {
+      return 'abort';
+    }
+    const step = hooks.nextAction(context, record.plan);
+    if (!step || step.abort) {
+      return 'abort';
+    }
+    if (step.done) {
+      delete record.plan;
+      return null;
+    }
+    if (!step.move || (step.hold && this.actions.single === step.move)) {
+      return 'stop';
+    }
+    if ((record.last_queue_stable ?? 0) !== timestamp) {
+      return 'stop';
+    }
+    this.mod.jsdom.returnOptions();
+    let target;
     try {
-      return JSON.parse(text);
+      target = await this.mod.jsdom.executeClick(step.move);
     } catch (err) {
-      throw new Error('The response is not valid JSON');
+      return 'abort';
     }
+    const changed = (record.last_queue_stable ?? 0) !== timestamp;
+    if (!changed && Array.isArray(record.moves)) {
+      record.moves.push({ move: target, timestamp: this.returnTimestamp() });
+      record.updated_at = new Date().getTime();
+    }
+    record.plan = step.plan;
+    if (step.hold) {
+      this.actions.single = step.move;
+    }
+    this.last_move = target;
+    if (changed) {
+      return 'stop';
+    }
+    return 'again';
   }
 
   recordManual(game_id, reply) {
@@ -624,6 +756,9 @@ class Manager {
     }
     if (timestamp != null) {
       const game = this.returnGame(game_id);
+      if (game.last_queue_stable !== timestamp) {
+        game.ordinary = false;
+      }
       game.last_queue_stable = timestamp;
       game.moves = game.moves.filter((item) => item && item.timestamp > timestamp);
     }

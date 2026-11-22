@@ -15,7 +15,6 @@ class Game {
     this.remove_loading_veil();
     this.context.render();
     this.context.attachEvents();
-    this.mod.jsdom?.watchBoard?.();
   }
 
   async present(game_mod, game_id, mode) {

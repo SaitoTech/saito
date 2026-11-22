@@ -22,9 +22,9 @@
   z-index: 2;
   writing-mode: vertical-rl;
   pointer-events: auto;
-  background: #ffd84a;
-  color: #1a1a1a;
-  border: 3px solid #1a1a1a;
+  background: #1a1a1a;
+  color: #ffd84a;
+  border: 3px solid #ffd84a;
   box-shadow: 0 0 0 4px #1a1a1a, 0 6px 18px rgba(0, 0, 0, 0.55);
   min-width: 3.4rem;
   min-height: 12rem;
@@ -35,6 +35,12 @@
   letter-spacing: 0.08em;
   line-height: 1;
   cursor: pointer;
+}
+
+#gamebot-inspector-root .gamebot-inspector-tab.gamebot-needs-move {
+  background: #ffd84a;
+  color: #1a1a1a;
+  border-color: #1a1a1a;
 }
 
 #gamebot-inspector-root.gamebot-inspector-open .gamebot-inspector-tab {
@@ -83,17 +89,43 @@
 
 #gamebot-inspector-root .gamebot-inspector-copy {
   flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.4rem;
+  height: 2.4rem;
+  padding: 0;
   background: #f4efe4;
   color: #1a1a1a;
-  border: 2px solid #f4efe4;
+  border: 2px solid #1a1a1a;
   border-radius: 4px;
-  padding: 0.55rem 0.9rem;
-  font-family: inherit;
-  font-size: 14px;
-  font-weight: 700;
-  line-height: 1;
-  letter-spacing: normal;
   cursor: pointer;
+}
+
+#gamebot-inspector-root .gamebot-inspector-copy svg {
+  width: 1.15rem;
+  height: 1.15rem;
+  display: block;
+}
+
+#gamebot-inspector-root .gamebot-inspector-copy .gamebot-copied-icon {
+  display: none;
+}
+
+#gamebot-inspector-root .gamebot-inspector-copy.gamebot-copied {
+  background: #ffd84a;
+}
+
+#gamebot-inspector-root .gamebot-inspector-copy.gamebot-copied .gamebot-copy-icon {
+  display: none;
+}
+
+#gamebot-inspector-root .gamebot-inspector-copy.gamebot-copied .gamebot-copied-icon {
+  display: block;
+}
+
+#gamebot-inspector-root .gamebot-inspector-copy:active {
+  transform: scale(0.9);
 }
 
 #gamebot-inspector-root .gamebot-tree {

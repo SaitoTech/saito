@@ -168,6 +168,15 @@ describe('visible interactions', () => {
     expect(ids(game)).toContain('button#pin');
   });
 
+  test('an empty overlay does not replace a board country', () => {
+    const { game, document } = page(
+      '<div id="saito-overlay1" class="saito-overlay" style="display:block"></div><div id="yugoslavia" class="country">1 1</div>'
+    );
+    document.getElementById('yugoslavia').onclick = () => {};
+    const menu = game.returnContext({ menu: [] }).menu.map((item) => item.identifier);
+    expect(menu).toContain('div#yugoslavia');
+  });
+
   test('a zero-height parent stays when a child is visible', () => {
     const { dom, game, document } = page(
       '<div id="poland" class="country"><div class="ussr">3</div></div><div id="empty" class="country"><div class="ussr">0</div></div><div id="austria" class="country"><div class="ussr">1</div></div>'

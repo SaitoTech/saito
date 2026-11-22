@@ -77,6 +77,27 @@ describe('Twilight context', () => {
     });
   });
 
+  test('a confirm menu keeps the click that carries out the choice already made', () => {
+    const context = {
+      menu: [
+        { id: 'playevent', label: 'play event', identifier: 'li#playevent' },
+        { id: 'dontshowme', label: "don't confirm (expert mode)...", identifier: 'li#dontshowme' }
+      ],
+      game: {
+        player: 2,
+        status: 'Confirm you want to play this event: ',
+        countries: {},
+        deck: [],
+        state: { round: 1 },
+        log: []
+      }
+    };
+
+    const result = returnContext(context);
+
+    expect(result.menu).toEqual([{ id: 'playevent', label: 'play event', identifier: 'li#playevent' }]);
+  });
+
   test('leaves a context without a game unchanged', () => {
     const context = { menu: [] };
     expect(returnContext(context)).toBe(context);
