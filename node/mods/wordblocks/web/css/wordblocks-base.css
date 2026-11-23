@@ -102,6 +102,15 @@
 	box-shadow: 0 14px 36px rgba(0, 0, 0, 0.35);
 	font-size: 1.6rem;
 	line-height: 1.35;
+	cursor: grab;
+	touch-action: none;
+}
+
+.game.wordblocks .wb-dock .tile,
+.game.wordblocks .wb-dock button,
+.game.wordblocks .wb-dock a,
+.game.wordblocks .wb-dock input {
+	cursor: pointer;
 }
 
 .game.wordblocks .wb-turn {
@@ -291,8 +300,14 @@
 	background: #f3efe4;
 }
 
+.game.wordblocks #gameboard.ui-state-disabled,
+.game.wordblocks #gameboard.ui-draggable-disabled,
+.game.wordblocks #gameboard .slot {
+	pointer-events: auto;
+}
+
 .game.wordblocks .active_board .slot {
-	cursor: pointer;
+	cursor: grab;
 }
 
 .game.wordblocks .slot .bonus {
