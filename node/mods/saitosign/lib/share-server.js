@@ -1,24 +1,41 @@
-const { randomBytes } = require('crypto');
+const { createHash, randomBytes } = require('crypto');
 const { configuredPublicOrigin } = require('./recovery');
-const { SHARE_RETENTION_MS, recipientList, invalidRecipients, normalizeEmail, shareLink } = require('./share-protocol');
-const { allActionsSigned } = require('./auth');
+const { SHARE_RETENTION_MS, recipientList, invalidRecipients, normalizeEmail, shareLink, recipientLink, sameToken } = require('./share-protocol');
+const { allActionsSigned, signEmailVerification, createServerFinalization } = require('./auth');
 const {
   commitCanonicalMerge,
   uploaderKey,
   PUBLIC_KEY_MISMATCH
 } = require('./signature-merge');
 
-function sameToken(left, right) {
-  const a = String(left || '');
-  const b = String(right || '');
-  if (a.length !== b.length || !a) {
-    return false;
+function hashRecipientSecret(secret) {
+  return createHash('sha256').update(String(secret || '')).digest('hex');
+}
+
+function assignRecipientSecrets(recipients) {
+  return (Array.isArray(recipients) ? recipients : []).map((recipient) => {
+    if (recipient?.verify_secret && recipient?.verify_hash) {
+      return recipient;
+    }
+    const verify_secret = randomBytes(32).toString('hex');
+    return {
+      ...recipient,
+      verify_secret,
+      verify_hash: hashRecipientSecret(verify_secret)
+    };
+  });
+}
+
+function recipientForSecret(recipients, secret) {
+  const presented = String(secret || '').trim();
+  if (!presented) {
+    return null;
   }
-  let mismatch = 0;
-  for (let i = 0; i < a.length; i += 1) {
-    mismatch |= a.charCodeAt(i) ^ b.charCodeAt(i);
-  }
-  return mismatch === 0;
+  const hash = hashRecipientSecret(presented);
+  const matches = (Array.isArray(recipients) ? recipients : []).filter((recipient) => {
+    return recipient?.verify_hash && sameToken(recipient.verify_hash, hash);
+  });
+  return matches.length === 1 ? matches[0] : null;
 }
 
 function shareError(error) {
@@ -80,7 +97,7 @@ async function createShare(mod, data) {
   try {
     stored = await mod.database.saveDocument(payload, {
       isEncrypted: encrypted,
-      retentionMs: SHARE_RETENTION_MS,
+      expiresAt: null,
       tier: data.tier === 'premium' ? 'premium' : 'free'
     });
   } catch (err) {
@@ -159,66 +176,58 @@ function enqueueMerge(id, task) {
   });
 }
 
-async function updateShare(mod, data, tx) {
+async function updateShare(mod, data, tx, password) {
   const id = String(data.document_id || '').trim();
   const share = await mod.database.readShare(id).catch(() => null);
   if (!share || !sameToken(share.token, data.token)) {
     return shareError('This sharing link is not valid. Ask the sender for a new link.');
   }
-  if (data.is_encrypted === true) {
-    return replaceShare(mod, id, share, data);
-  }
-  return enqueueMerge(id, () => mergeShare(mod, id, share, data, tx));
+  return enqueueMerge(id, () => mergeShare(mod, id, share, data, tx, password));
 }
 
-async function replaceShare(mod, id, share, data) {
-  try {
-    const stored = await mod.database.updateSharedPayload(id, data.document, {
-      expectedHash: data.expected_hash,
-      isEncrypted: true
-    });
-    await notifySignatureMerge(mod, share, {
-      signerName: data.signer_name,
-      signerEmail: data.signer_email
-    });
-    return {
-      success: true,
-      document_id: id,
-      document_hash: stored.document_hash,
-      is_encrypted: stored.is_encrypted
-    };
-  } catch (err) {
-    return shareUpdateError(err);
-  }
-}
-
-async function mergeShare(mod, id, share, data, tx) {
-  const signer = uploaderKey(mod.app, tx);
-  if (!signer.ok) {
-    return shareError(signer.error);
-  }
+async function serverIdentity(mod) {
   let serverKey = String(mod.publicKey || '').trim();
   if (!serverKey && typeof mod.app?.wallet?.getPublicKey === 'function') {
     serverKey = String(await mod.app.wallet.getPublicKey()).trim();
   }
+  return serverKey;
+}
+
+async function mergeShare(mod, id, share, data, tx, password) {
+  const encrypted = data.is_encrypted === true;
+  const signer = uploaderKey(mod.app, tx);
+  if (!signer.ok) {
+    return shareError(signer.error);
+  }
+  const serverKey = await serverIdentity(mod);
   if (!serverKey) {
     return shareError('SaitoSign could not confirm the identity server for this signature.');
+  }
+  if (encrypted && !password) {
+    return shareError('Enter the document password so SaitoSign can validate this encrypted document.');
   }
   let submitted;
   try {
     const { documentFromStored } = require('./share-client');
-    submitted = await documentFromStored(mod.app, data.document, '');
+    submitted = await documentFromStored(mod.app, data.document, encrypted ? password : '');
   } catch (err) {
+    if (err?.code === 'password') {
+      return shareError('The password could not unlock this document.');
+    }
     return shareError(err?.message || 'The signed document could not be read.');
   }
   let merged;
   try {
     const { buildDocumentArchive, zipPackage } = require('./archive');
+    const { encryptPackage } = require('./envelope');
+    const { documentFromStored } = require('./share-client');
     merged = await commitCanonicalMerge({
       app: mod.app,
       signerKey: signer.publicKey,
       serverKey,
       submitted,
+      restart: data.restart_signer === true,
+      finalize: (record) => createServerFinalization(mod.app, record, serverKey),
       readCanonical: async () => {
         const stored = await mod.database.getDocument(id);
         if (!stored) {
@@ -231,25 +240,38 @@ async function mergeShare(mod, id, share, data, tx) {
           expired.code = 'expired';
           throw expired;
         }
-        if (stored.is_encrypted) {
-          const invalid = new Error('This shared document is password protected and cannot be merged by the server.');
+        if (Boolean(stored.is_encrypted) !== encrypted) {
+          const invalid = new Error('The stored document type does not match this update.');
           invalid.code = 'invalid';
           throw invalid;
         }
-        const { documentFromStored } = require('./share-client');
+        const payload = stored.is_encrypted ? stored.document_data : stored.document;
         return {
-          record: await documentFromStored(mod.app, stored.document, ''),
+          record: await documentFromStored(mod.app, payload, encrypted ? password : ''),
           storageHash: stored.document_hash
         };
       },
       buildArchive: async (record) => {
         const archive = await buildDocumentArchive(mod.app, record);
-        return zipPackage(archive.bytes);
+        const packed = zipPackage(archive.bytes);
+        if (!encrypted) {
+          return packed;
+        }
+        return encryptPackage(JSON.stringify(packed), password);
       },
-      writeCanonical: (packed, expectedHash) => mod.database.saveMergedPayload(id, packed, {
-        expectedHash,
-        retentionMs: SHARE_RETENTION_MS
-      })
+      writeCanonical: (packed, expectedHash, meta) => {
+        const expiry = meta?.finalizedNow ? 'final' : 'clear';
+        const writeOptions = {
+          expectedHash,
+          expiry,
+          finalizedAt: meta?.finalizedAt,
+          retentionMs: SHARE_RETENTION_MS
+        };
+        if (encrypted) {
+          return mod.database.updateSharedPayload(id, packed, { ...writeOptions, isEncrypted: true });
+        }
+        return mod.database.saveMergedPayload(id, packed, writeOptions);
+      }
     });
   } catch (err) {
     return shareUpdateError(err);
@@ -258,28 +280,37 @@ async function mergeShare(mod, id, share, data, tx) {
     return shareError(merged.error);
   }
   const complete = merged.complete === true && allActionsSigned(mod.app, merged.record.actions, merged.record.users, merged.record) === true;
-  if (merged.stored) {
-    const signer = merged.record?.users?.[merged.slot];
+  let completionEmail = null;
+  if (merged.stored && merged.finalizedNow) {
+    const party = merged.record?.users?.[merged.slot];
+    completionEmail = await sendCompletionEmail(mod, share, merged.record, party?.email);
+  } else if (merged.stored) {
+    const party = merged.record?.users?.[merged.slot];
     await notifySignatureMerge(mod, share, {
       complete,
       signerName: merged.signerName,
-      signerEmail: signer?.email
+      signerEmail: party?.email
     });
   }
   return {
     success: true,
     document_id: id,
     document_hash: merged.storageHash,
-    is_encrypted: false,
+    is_encrypted: encrypted,
     merged: merged.stored === true,
     already_present: merged.stored !== true,
     added: merged.added,
     complete,
+    finalized: Boolean(merged.record?.serverFinalization) && complete,
+    completion_email_sent: completionEmail?.sent || 0,
     stages: ['uploaded', 'verified', 'validated', 'merged', 'saved']
   };
 }
 
 function shareUpdateError(err) {
+  if (err?.code === 'password') {
+    return shareError('The password could not unlock this document.');
+  }
   if (err?.code === 'conflict') {
     return shareError('conflict');
   }
@@ -308,6 +339,60 @@ function notificationRecipients(share, signerEmail) {
   add(share?.originator_email);
   add(signerEmail);
   return emails;
+}
+
+async function sendCompletionEmail(mod, share, record, signerEmail) {
+  try {
+    const mail = mod.app.modules.returnModule('MailRelay');
+    if (!mail || typeof mail.sendMail !== 'function') {
+      console.error('SaitoSign completion email was not sent: the mail relay is unavailable.');
+      return { sent: 0, failed: true };
+    }
+    const link = shareLink(configuredPublicOrigin(mod.app), share.document_id, share.token);
+    const subject = 'Your SaitoSign document has been completed';
+    const text = [
+      'Your document has been successfully completed.',
+      '',
+      'All required parties have provided their signatures, and SaitoSign has cryptographically finalized the document.',
+      '',
+      'You can download your completed copy using the link below.',
+      '',
+      link,
+      '',
+      'Please note that the document will remain available for download for two days, after which it will be permanently deleted from our server.',
+      '',
+      'Please download and retain your own copy.'
+    ].join('\n');
+    const targets = notificationRecipients(share, signerEmail);
+    (Array.isArray(record?.users) ? record.users : []).forEach((user) => {
+      const email = normalizeEmail(user?.email);
+      if (email && !targets.includes(email)) {
+        targets.push(email);
+      }
+    });
+    let sent = 0;
+    for (let i = 0; i < targets.length; i += 1) {
+      try {
+        await mail.sendMail({
+          to: targets[i],
+          from: 'SaitoSign <no-reply@saito.tech>',
+          subject,
+          text,
+          ishtml: false
+        });
+        sent += 1;
+      } catch (err) {
+        console.error(mailFailure(err));
+      }
+    }
+    if (sent !== targets.length) {
+      console.error(`SaitoSign completion email reached ${sent} of ${targets.length} parties. It was not retried.`);
+    }
+    return { sent, failed: sent !== targets.length };
+  } catch (err) {
+    console.error(mailFailure(err));
+    return { sent: 0, failed: true };
+  }
 }
 
 async function notifySignatureMerge(mod, share, details) {
@@ -344,13 +429,30 @@ async function notifySignatureMerge(mod, share, details) {
   }
 }
 
+async function ensureRecipientSecrets(mod, share) {
+  const recipients = assignRecipientSecrets(share.recipients);
+  const changed = recipients.some((recipient, index) => recipient !== share.recipients[index]);
+  if (!changed) {
+    return share;
+  }
+  await mod.database.updateShareRecipients(share.document_id, recipients);
+  return { ...share, recipients };
+}
+
 async function inviteShare(mod, data) {
   const id = String(data.document_id || '').trim();
-  const share = await mod.database.readShare(id).catch(() => null);
-  if (!share || !sameToken(share.token, data.token)) {
+  const storedShare = await mod.database.readShare(id).catch(() => null);
+  if (!storedShare || !sameToken(storedShare.token, data.token)) {
     return shareError('This sharing link is not valid.');
   }
-  const link = shareLink(configuredPublicOrigin(mod.app), id, share.token);
+  let share;
+  try {
+    share = await ensureRecipientSecrets(mod, storedShare);
+  } catch (err) {
+    return shareError('SaitoSign could not save the invitation secrets, so the emails were not sent.');
+  }
+  const origin = configuredPublicOrigin(mod.app);
+  const link = shareLink(origin, id, share.token);
   if (!link) {
     return shareError('This server does not have a public address configured, so the invitation link could not be created.');
   }
@@ -389,12 +491,14 @@ async function inviteShare(mod, data) {
   let sent = 0;
   for (let i = 0; i < targets.length; i += 1) {
     const recipient = targets[i];
+    const personal = recipientLink(origin, id, share.token, recipient.verify_secret) || link;
+    const personalText = text.replace(link, personal);
     try {
       await mail.sendMail({
         to: recipient.email,
         from: 'SaitoSign <no-reply@saito.tech>',
         subject,
-        text,
+        text: personalText,
         ishtml: false
       });
       sent += 1;
@@ -414,8 +518,56 @@ async function inviteShare(mod, data) {
   return { success: true, stored: true, link, sent };
 }
 
+async function redeemEmail(mod, data, tx) {
+  const signer = uploaderKey(mod.app, tx);
+  if (!signer.ok) {
+    return shareError(signer.error);
+  }
+  const id = String(data.document_id || '').trim();
+  const share = await mod.database.readShare(id).catch(() => null);
+  if (!share || !sameToken(share.token, data.token)) {
+    return shareError('This sharing link is not valid.');
+  }
+  let stored;
+  try {
+    stored = await mod.database.getDocument(id);
+  } catch (err) {
+    return shareError(err?.code === 'expired' ? 'This shared document has expired.' : 'The shared document could not be read.');
+  }
+  if (!stored || stored.expired) {
+    return shareError('This shared document has expired.');
+  }
+  const recipient = recipientForSecret(share.recipients, data.verify_secret);
+  if (!recipient || !recipient.email) {
+    return shareError('This invitation could not be verified.');
+  }
+  let serverKey = String(mod.publicKey || '').trim();
+  if (!serverKey && typeof mod.app?.wallet?.getPublicKey === 'function') {
+    serverKey = String(await mod.app.wallet.getPublicKey()).trim();
+  }
+  if (!serverKey) {
+    return shareError('SaitoSign could not confirm the identity server for this invitation.');
+  }
+  try {
+    const proof = await signEmailVerification(mod.app, recipient.email, signer.publicKey);
+    return {
+      success: true,
+      email: recipient.email,
+      signer_index: Number.isInteger(recipient.signerIndex) ? recipient.signerIndex : null,
+      signer_publickey: signer.publicKey,
+      publickey: serverKey,
+      message: proof.message,
+      signature: proof.signature
+    };
+  } catch (err) {
+    return shareError('SaitoSign could not sign the email verification.');
+  }
+}
+
 async function handleShareRequest(mod, data, tx) {
+  let password = '';
   if (data && Object.prototype.hasOwnProperty.call(data, 'password')) {
+    password = String(data.password || '');
     delete data.password;
   }
   const action = String(data?.action || '');
@@ -424,9 +576,17 @@ async function handleShareRequest(mod, data, tx) {
   }
   if (action === 'create') return createShare(mod, data);
   if (action === 'fetch') return fetchShare(mod, data);
-  if (action === 'update') return updateShare(mod, data, tx);
+  if (action === 'update') return updateShare(mod, data, tx, password);
   if (action === 'invite') return inviteShare(mod, data);
+  if (action === 'redeem-email') return redeemEmail(mod, data, tx);
   return shareError('SaitoSign did not recognize that sharing request.');
 }
 
-module.exports = { handleShareRequest, PUBLIC_KEY_MISMATCH };
+module.exports = {
+  handleShareRequest,
+  PUBLIC_KEY_MISMATCH,
+  assignRecipientSecrets,
+  recipientForSecret,
+  hashRecipientSecret,
+  redeemEmail
+};

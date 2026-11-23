@@ -1,3 +1,5 @@
+const { copyVerification } = require('./verification-records');
+
 const ACTION_TYPES = {
   signature: 'signature',
   initial: 'initial',
@@ -269,24 +271,6 @@ function actionsOnPage(record, page) {
   return record.actions.filter((action) => action.page === page);
 }
 
-function copyVerification(entry) {
-  const next = {
-    method: entry.method || '',
-    publickey: entry.publickey || '',
-    message: entry.message || '',
-    signature: entry.signature || ''
-  };
-  const photo = typeof entry.photo === 'string' ? entry.photo : '';
-  if (photo) {
-    next.photo = photo;
-  }
-  const image = typeof entry.image === 'string' ? entry.image : '';
-  if (image) {
-    next.image = image;
-  }
-  return next;
-}
-
 function copyPdfEntry(entry) {
   return {
     name: entry?.name || '',
@@ -349,6 +333,9 @@ function copy(record) {
   if (record?.metadata && typeof record.metadata === 'object') {
     next.metadata = JSON.parse(JSON.stringify(record.metadata));
   }
+  if (record?.serverFinalization && typeof record.serverFinalization === 'object') {
+    next.serverFinalization = JSON.parse(JSON.stringify(record.serverFinalization));
+  }
   return next;
 }
 
@@ -380,6 +367,9 @@ async function hydrate(saved) {
   record.edited = saved.edited === true || record.actions.length > 0;
   if (saved.metadata && typeof saved.metadata === 'object') {
     record.metadata = saved.metadata;
+  }
+  if (saved.serverFinalization && typeof saved.serverFinalization === 'object') {
+    record.serverFinalization = JSON.parse(JSON.stringify(saved.serverFinalization));
   }
   const entries = Array.isArray(saved.document?.pdf) ? saved.document.pdf : [];
   const present = entries.filter((entry) => String(entry?.pdf || '').trim());

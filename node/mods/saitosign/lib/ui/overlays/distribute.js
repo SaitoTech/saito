@@ -83,7 +83,7 @@ class ShareFlow {
     view.purpose = sharePurpose(this.mod.document);
     view.error = '';
     this.ensureRecipients();
-    this.show('share-method', 'forward');
+    this.show('share-recipients', 'forward');
   }
 
   openRetry() {
@@ -432,7 +432,9 @@ class ShareFlow {
       this.mod.shareGate = null;
       view.busy = false;
       this.publish.close();
-      this.mod.useDocument(next, { receivedBy: 'link' });
+      const prepared = await this.mod.withSavedInvitation(next);
+      this.mod.useDocument(prepared, { receivedBy: 'link' });
+      await this.mod.redeemInvitation();
     } catch (err) {
       view.busy = false;
       view.error = err?.code === 'password'

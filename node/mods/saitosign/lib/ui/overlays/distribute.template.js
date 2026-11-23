@@ -50,7 +50,7 @@ function recipientsHTML(view) {
       <label for="saitosign-share-password-confirm">Confirm password</label>
       <input id="saitosign-share-password-confirm" type="password" data-share-password-confirm value="${escapeHTML(view.confirm || '')}" autocomplete="new-password">
     </div>
-    <p class="share-instruction">Please note, SaitoSign will not have a copy of this password. You will need to share it with recipients separately. If this password is lost, we cannot recover your document for you.</p>
+    <p class="share-instruction">Please note: SaitoSign does not have a copy of your password. You will need to share it with recipients separately so they can decrypt the document. If you lose this password, we cannot recover your document for you.</p>
   ` : '';
   return `
     <div class="share-people">
@@ -61,7 +61,7 @@ function recipientsHTML(view) {
     <div class="share-protect">
       <label class="share-protect-toggle">
         <input type="checkbox" data-share-protect ${view.protect ? 'checked' : ''}>
-        <span>Encrypt this document with a password</span>
+        <span>Encrypt document with password</span>
       </label>
       ${password}
     </div>
@@ -134,12 +134,11 @@ function shareFlowSlide(state) {
   }
   if (step === 'share-recipients') {
     return {
-      title: 'Is this ready to share?',
-      subtitle: 'The following addresses will receive an email with a link to access the document. This link will be valid for two days, after which time the server will delete this contract.',
+      title: 'Ready to share document?',
+      subtitle: `The following email addresses will receive an invitation with a link to access this document and verify their email address. This link will be valid for ${retentionPhrase(SHARE_RETENTION_MS)}. After that, the server will delete the document and its associated information.`,
       body: `
         <div class="share-step">
           ${recipientsHTML(view)}
-          <p class="share-fallback">You can also <button type="button" class="share-text-link" data-publish-action="share-backup">download a backup</button> and share the file yourself.</p>
           ${error}
         </div>
       `
@@ -184,7 +183,6 @@ function shareFlowSlide(state) {
             ${link}
             <p class="share-instruction">The server copy will be available for ${escapeHTML(retentionPhrase(SHARE_RETENTION_MS))}, then deleted.</p>
           </div>
-          <p class="share-fallback">To keep a permanent copy of your document for manual sharing, <button type="button" class="share-text-link" data-publish-action="share-backup">download a backup</button>.</p>
         </div>
       `
     };

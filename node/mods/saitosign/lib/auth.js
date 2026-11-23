@@ -1,6 +1,11 @@
-async function verifyEmail(app, email, publickey) {
-  const message = `Request received for verification of email ${email} with publickey ${publickey}`;
+async function signEmailVerification(app, email, publickey) {
+  const message = emailVerificationMessage(email, publickey);
   const signature = app.crypto.signMessage(message, await app.wallet.getPrivateKey());
+  return { message, signature };
+}
+
+async function verifyEmail(app, email, publickey) {
+  const { message, signature } = await signEmailVerification(app, email, publickey);
   const link = verificationLink(app, signature);
   const text = [
     'A request was made to verify this email address for SaitoSign document signing.',
@@ -811,6 +816,244 @@ function documentUnchanged(app, record) {
   return Boolean(hash) && hash === cachedDocumentHash(app, record);
 }
 
+function contractDocuments(app, record) {
+  const files = pdfPayload(record?.document?.pdf);
+  const documents = files.map((entry) => ({
+    kind: 'pdf',
+    name: entry.name,
+    hash: app.crypto.hash(canonicalJSON({ name: entry.name, pdf: entry.pdf }))
+  }));
+  documents.push({
+    kind: 'pdf_set',
+    name: '',
+    hash: pdfHash(app, record?.document?.pdf)
+  });
+  documents.push({
+    kind: 'commitment',
+    name: '',
+    hash: String(record?.hash || '').trim()
+  });
+  documents.push({
+    kind: 'creator_contract',
+    name: '',
+    hash: String(record?.creatorProof?.contract_hash || '').trim()
+  });
+  documents.sort((left, right) => left.kind.localeCompare(right.kind)
+    || String(left.name).localeCompare(String(right.name))
+    || String(left.hash).localeCompare(String(right.hash)));
+  return documents;
+}
+
+function collectedSignatures(record) {
+  const list = [];
+  const creator = String(record?.creator || '').trim();
+  const finalization = record?.finalization;
+  if (finalization?.signature) {
+    list.push({
+      kind: 'creator_finalization',
+      user: -1,
+      id: 0,
+      publickey: String(finalization.creator || creator).trim(),
+      signature: String(finalization.signature),
+      document_hash: '',
+      message: '',
+      type: ''
+    });
+  }
+  const proof = record?.creatorProof;
+  if (proof?.signature) {
+    list.push({
+      kind: 'creator_proof',
+      user: -1,
+      id: 0,
+      publickey: String(proof.creator || creator).trim(),
+      signature: String(proof.signature),
+      document_hash: String(proof.contract_hash || ''),
+      message: '',
+      type: ''
+    });
+  }
+  const users = Array.isArray(record?.users) ? record.users : [];
+  const actions = Array.isArray(record?.actions) ? record.actions : [];
+  users.forEach((user, index) => {
+    const publickey = String(user?.publickey || '').trim();
+    (Array.isArray(user?.verifications) ? user.verifications : []).forEach((entry) => {
+      const kind = verificationMethod(entry);
+      if (kind !== 'email' && kind !== 'photo' && kind !== 'passport') {
+        return;
+      }
+      if (!entry?.signature) {
+        return;
+      }
+      list.push({
+        kind,
+        user: index,
+        id: 0,
+        publickey: String(entry.publickey || '').trim(),
+        signature: String(entry.signature),
+        document_hash: '',
+        message: String(entry.message || ''),
+        type: ''
+      });
+    });
+    (Array.isArray(user?.signatures) ? user.signatures : []).forEach((entry) => {
+      if (!entry?.signature) {
+        return;
+      }
+      const action = actions.find((item) => Number(item?.id) === Number(entry.id));
+      list.push({
+        kind: 'user_action',
+        user: index,
+        id: Number(entry.id) || 0,
+        publickey,
+        signature: String(entry.signature),
+        document_hash: String(entry.document_hash || ''),
+        message: '',
+        type: action?.type === 'initial' ? 'initial' : 'signature'
+      });
+    });
+  });
+  list.sort((left, right) => left.kind.localeCompare(right.kind)
+    || left.user - right.user
+    || left.id - right.id
+    || String(left.signature).localeCompare(String(right.signature)));
+  return list;
+}
+
+function serverFinalizationMessage(app, record) {
+  return `Request received for finalization of documents ${canonicalJSON(contractDocuments(app, record))} with signatures ${canonicalJSON(collectedSignatures(record))}`;
+}
+
+function emailServerKeys(record) {
+  const keys = [];
+  (Array.isArray(record?.users) ? record.users : []).forEach((user) => {
+    (Array.isArray(user?.verifications) ? user.verifications : []).forEach((entry) => {
+      if (verificationMethod(entry) !== 'email') {
+        return;
+      }
+      const key = String(entry?.publickey || '').trim();
+      if (key && !keys.includes(key)) {
+        keys.push(key);
+      }
+    });
+  });
+  return keys;
+}
+
+function verifyServerAttestation(app, record, expectedServerKey) {
+  const proof = record?.serverFinalization;
+  if (!proof || typeof proof !== 'object') {
+    return false;
+  }
+  const key = String(proof.publickey || '').trim();
+  const signature = String(proof.signature || '');
+  const message = String(proof.message || '');
+  if (Number(proof.version) !== 1 || !key || !signature || !message || !String(proof.finalized_at || '').trim()) {
+    return false;
+  }
+  const expected = String(expectedServerKey || '').trim();
+  if (expected && key !== expected) {
+    return false;
+  }
+  const known = emailServerKeys(record);
+  if (known.length && !known.includes(key)) {
+    return false;
+  }
+  if (!expected && !known.length) {
+    return false;
+  }
+  if (message !== serverFinalizationMessage(app, record)) {
+    return false;
+  }
+  return app.crypto.verifyMessage(message, signature, key) === true;
+}
+
+function storedUserSignaturesVerify(app, record) {
+  const users = Array.isArray(record?.users) ? record.users : [];
+  const actions = Array.isArray(record?.actions) ? record.actions : [];
+  for (let index = 0; index < users.length; index += 1) {
+    const signatures = Array.isArray(users[index]?.signatures) ? users[index].signatures : [];
+    for (let i = 0; i < signatures.length; i += 1) {
+      const action = actions.find((item) => Number(item?.id) === Number(signatures[i]?.id));
+      if (!action || Number(action.user) !== index) {
+        return false;
+      }
+      if (verifyActionSignature(app, action, users[index], record) !== true) {
+        return false;
+      }
+    }
+  }
+  return true;
+}
+
+function includedProofsVerify(app, record) {
+  const users = Array.isArray(record?.users) ? record.users : [];
+  for (let index = 0; index < users.length; index += 1) {
+    const entries = Array.isArray(users[index]?.verifications) ? users[index].verifications : [];
+    for (let i = 0; i < entries.length; i += 1) {
+      const kind = verificationMethod(entries[i]);
+      if (kind !== 'email' && kind !== 'photo' && kind !== 'passport') {
+        continue;
+      }
+      if (validVerification(app, entries[i], users[index]) !== true) {
+        return false;
+      }
+    }
+  }
+  return true;
+}
+
+function serverFinalizationReady(app, record) {
+  if (!commitmentIntact(app, record) || !verifyFinalization(app, record) || !verifyCreatorProof(app, record)) {
+    return false;
+  }
+  if (allActionsSigned(app, record?.actions, record?.users, record) !== true) {
+    return false;
+  }
+  if (!storedUserSignaturesVerify(app, record) || !includedProofsVerify(app, record)) {
+    return false;
+  }
+  const required = new Set(requiredActions(record?.actions).map((action) => Number(action.user)));
+  const users = Array.isArray(record?.users) ? record.users : [];
+  for (const index of required) {
+    if (!users[index] || verificationSatisfied(app, record, users[index]) !== true) {
+      return false;
+    }
+  }
+  return required.size > 0;
+}
+
+async function createServerFinalization(app, record, serverPublicKey, now = Date.now()) {
+  const serverKey = String(serverPublicKey || '').trim();
+  if (!record || !serverKey) {
+    return { created: false, incomplete: true };
+  }
+  if (record.serverFinalization) {
+    if (verifyServerAttestation(app, record, serverKey)) {
+      return { created: false, already: true };
+    }
+    return { created: false, invalid: true };
+  }
+  if (!serverFinalizationReady(app, record)) {
+    return { created: false, incomplete: true };
+  }
+  const privateKey = await app.wallet.getPrivateKey();
+  const message = serverFinalizationMessage(app, record);
+  const signature = app.crypto.signMessage(message, privateKey);
+  record.serverFinalization = {
+    version: 1,
+    publickey: serverKey,
+    message,
+    signature,
+    finalized_at: new Date(now).toISOString()
+  };
+  if (verifyServerAttestation(app, record, serverKey) !== true) {
+    delete record.serverFinalization;
+    return { created: false, invalid: true };
+  }
+  return { created: true, finalizedAt: record.serverFinalization.finalized_at };
+}
+
 function rememberVerifiedEmails(app, record) {
   const users = Array.isArray(record?.users) ? record.users : [];
   users.forEach((user) => {
@@ -823,9 +1066,11 @@ function rememberVerifiedEmails(app, record) {
 
 module.exports = {
   verifyEmail,
+  signEmailVerification,
   verifyPhoto,
   verifyPassport,
   verifyEmailSignature,
+  walletKeys,
   verificationLink,
   addSignature,
   addInitial,
@@ -853,8 +1098,15 @@ module.exports = {
   verifiedEmail,
   verificationSatisfied,
   validVerification,
+  verificationMethod,
   actionSignatureEvidence,
   emailEvidence,
   imageEvidence,
-  emailVerificationMessage
+  emailVerificationMessage,
+  contractDocuments,
+  collectedSignatures,
+  serverFinalizationMessage,
+  serverFinalizationReady,
+  createServerFinalization,
+  verifyServerAttestation
 };

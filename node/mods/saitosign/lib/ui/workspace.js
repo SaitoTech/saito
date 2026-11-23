@@ -7,6 +7,7 @@ const SignOverlay = require('./overlays/sign');
 const ClosePrompt = require('./overlays/close');
 const SignerOverlay = require('./overlays/signer');
 const PublishOverlay = require('./overlays/publish');
+const WalletRestartPrompt = require('./overlays/wallet-restart');
 const {
   ACTION_TYPES,
   addUser,
@@ -134,6 +135,29 @@ class Workspace {
     this.sign_guide = null;
     this.sign_guide_off = false;
     this.sign_guide_ready = false;
+  }
+
+  offerWalletRestart(outcome) {
+    if (this.walletRestart) {
+      return;
+    }
+    const prompt = new WalletRestartPrompt(this.app, this.mod);
+    this.walletRestart = prompt;
+    const name = outcome?.name || outcome?.email || '';
+    prompt.render(name, {
+      onYes: () => {
+        this.walletRestart = null;
+        this.mod.acceptWalletRestart();
+      },
+      onNo: () => {
+        this.walletRestart = null;
+        this.mod.declineWalletRestart();
+      },
+      onClose: () => {
+        this.walletRestart = null;
+        this.mod.declineWalletRestart();
+      }
+    });
   }
 
   show() {

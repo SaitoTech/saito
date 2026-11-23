@@ -6,7 +6,8 @@ const {
   emailVerificationMessage,
   validVerification,
   verificationSatisfied,
-  verifyActionSignature
+  verifyActionSignature,
+  verifyServerAttestation
 } = require('./auth');
 
 const PUBLIC_KEY_MISMATCH = 'Public key mismatch. You can only submit signatures using the identity authorized for this document.';
@@ -15,6 +16,8 @@ const IDENTITY_MISSING = 'The identity verification for this signer is missing o
 const SIGNATURE_INVALID = 'A signature in this upload could not be verified.';
 const SIGNATURE_CONFLICT = 'This upload contains a different signature for a field that is already signed.';
 const UNSIGNED_UPLOAD = 'This upload was not signed. Sign in with the identity authorized for this document and try again.';
+const FINALIZED_LOCKED = 'This document has been finalized and can no longer be changed.';
+const INVALID_SERVER_FINALIZATION = 'The server finalization signature on this document could not be verified.';
 
 function fail(error) {
   return { ok: false, error, changed: false, added: [], record: null, complete: false };
@@ -163,13 +166,20 @@ function appendVerifications(app, user, incoming) {
   return added;
 }
 
-function mergeSignatureRecords(app, canonical, submitted, signerKey, serverKey) {
+function mergeSignatureRecords(app, canonical, submitted, signerKey, serverKey, options = {}) {
   const key = String(signerKey || '').trim();
   if (!key) {
     return fail(PUBLIC_KEY_MISMATCH);
   }
   if (!documentMatches(canonical, submitted)) {
     return fail(DOCUMENT_MISMATCH);
+  }
+  const alreadyFinal = Boolean(canonical?.serverFinalization);
+  if (alreadyFinal && verifyServerAttestation(app, canonical, serverKey) !== true) {
+    return fail(INVALID_SERVER_FINALIZATION);
+  }
+  if (alreadyFinal && options.restart === true) {
+    return fail(FINALIZED_LOCKED);
   }
   const slot = authorizedSlot(app, canonical, submitted, key, serverKey);
   if (slot == null) {
@@ -182,10 +192,17 @@ function mergeSignatureRecords(app, canonical, submitted, signerKey, serverKey) 
   const user = next.users[slot];
   const incomingUser = submitted.users[slot];
   const existingKey = String(user.publickey || '').trim();
-  if (existingKey && existingKey !== key) {
+  const restart = options.restart === true && Boolean(existingKey) && existingKey !== key;
+  if (existingKey && existingKey !== key && !restart) {
     return fail(PUBLIC_KEY_MISMATCH);
   }
-  user.publickey = key;
+  if (restart) {
+    user.publickey = key;
+    user.signatures = [];
+    user.verifications = [];
+  } else {
+    user.publickey = key;
+  }
   const addedVerifications = appendVerifications(app, user, incomingUser?.verifications);
   if (!verificationSatisfied(app, next, user)) {
     return fail(IDENTITY_MISSING);
@@ -235,6 +252,9 @@ function mergeSignatureRecords(app, canonical, submitted, signerKey, serverKey) 
     || !sameProof(next.finalization, canonical.finalization)
     || !sameProof(next.creatorProof, canonical.creatorProof)) {
     return fail(DOCUMENT_MISMATCH);
+  }
+  if (alreadyFinal && (additions.length > 0 || addedVerifications > 0 || existingKey !== key)) {
+    return fail(FINALIZED_LOCKED);
   }
 
   return {
@@ -336,22 +356,36 @@ async function commitCanonicalMerge({
   submitted,
   readCanonical,
   writeCanonical,
-  buildArchive
+  buildArchive,
+  finalize,
+  restart = false
 }) {
   let sawConflict = false;
   for (let attempt = 0; attempt < 5; attempt += 1) {
     const current = await readCanonical();
-    const merged = mergeSignatureRecords(app, current.record, submitted, signerKey, serverKey);
+    const merged = mergeSignatureRecords(app, current.record, submitted, signerKey, serverKey, {
+      restart: restart === true
+    });
     if (!merged.ok) {
       return merged;
     }
-    if (!merged.changed) {
-      return { ...merged, stored: false, storageHash: current.storageHash };
+    let finalizedNow = false;
+    let finalizedAt = '';
+    if (typeof finalize === 'function') {
+      const result = await finalize(merged.record);
+      if (result?.invalid) {
+        return fail(INVALID_SERVER_FINALIZATION);
+      }
+      finalizedNow = result?.created === true;
+      finalizedAt = String(result?.finalizedAt || merged.record?.serverFinalization?.finalized_at || '');
+    }
+    if (!merged.changed && !finalizedNow) {
+      return { ...merged, stored: false, finalizedNow: false, storageHash: current.storageHash };
     }
     const packed = await buildArchive(merged.record);
     try {
-      const saved = await writeCanonical(packed, current.storageHash);
-      return { ...merged, stored: true, storageHash: saved.document_hash, saved };
+      const saved = await writeCanonical(packed, current.storageHash, { finalizedNow, finalizedAt });
+      return { ...merged, stored: true, finalizedNow, storageHash: saved.document_hash, saved };
     } catch (err) {
       if (err?.code === 'conflict') {
         sawConflict = true;
@@ -372,6 +406,8 @@ module.exports = {
   SIGNATURE_INVALID,
   SIGNATURE_CONFLICT,
   UNSIGNED_UPLOAD,
+  FINALIZED_LOCKED,
+  INVALID_SERVER_FINALIZATION,
   mergeSignatureRecords,
   uploaderKey,
   commitCanonicalMerge
