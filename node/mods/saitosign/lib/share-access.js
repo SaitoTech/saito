@@ -1,3 +1,45 @@
+function readRecipientSecret(search, hash) {
+  const read = (query) => {
+    const params = new URLSearchParams(String(query || '').replace(/^\?/, ''));
+    return params.get('verify') || '';
+  };
+  const searched = read(search);
+  if (searched) {
+    return searched;
+  }
+  const raw = String(hash || '').replace(/^#/, '');
+  if (!raw) {
+    return '';
+  }
+  const query = raw.includes('?') ? raw.slice(raw.indexOf('?') + 1) : raw;
+  return read(query);
+}
+
+function locationWithoutRecipientSecret(href) {
+  const url = new URL(String(href || ''), 'http://localhost');
+  url.searchParams.delete('verify');
+  const raw = url.hash.replace(/^#/, '');
+  if (raw) {
+    const splitAt = raw.indexOf('?');
+    const prefix = splitAt >= 0 ? raw.slice(0, splitAt) : '';
+    const query = splitAt >= 0 ? raw.slice(splitAt + 1) : (raw.includes('=') ? raw : '');
+    if (query) {
+      const params = new URLSearchParams(query);
+      params.delete('verify');
+      const nextQuery = params.toString();
+      const hashBody = prefix
+        ? (nextQuery ? `${prefix}?${nextQuery}` : prefix)
+        : nextQuery;
+      url.hash = hashBody ? `#${hashBody}` : '';
+    }
+  }
+  const relative = `${url.pathname}${url.search}${url.hash}`;
+  if (/^https?:/i.test(String(href || ''))) {
+    return `${url.origin}${relative}`;
+  }
+  return relative;
+}
+
 function readShareParameters(search, hash) {
   const read = (query) => {
     const params = new URLSearchParams(String(query || '').replace(/^\?/, ''));
@@ -44,6 +86,8 @@ function visibleSignerIndex(source) {
 }
 
 module.exports = {
+  readRecipientSecret,
+  locationWithoutRecipientSecret,
   readShareParameters,
   openedThroughShare,
   documentIsEditable,

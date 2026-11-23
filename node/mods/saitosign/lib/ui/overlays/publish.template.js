@@ -62,7 +62,7 @@ function primary(state) {
     case 'share-password':
       return { label: 'Continue', action: 'share-password' };
     case 'share-recipients':
-      return { label: 'Send emails', action: 'share-upload', disabled: state.shareView?.busy === true };
+      return { label: 'Continue', action: 'share-upload', disabled: state.shareView?.busy === true };
     case 'share-unlock':
       return { label: 'Unlock Document', action: 'share-unlock', disabled: state.shareView?.busy === true };
     case 'share-retry':

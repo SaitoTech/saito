@@ -1,6 +1,6 @@
 const { createHash, randomBytes } = require('crypto');
 const { copy } = require('./document');
-const { versionsConflict } = require('./share-protocol');
+const { versionsConflict, retentionExpiry } = require('./share-protocol');
 
 // SaitoSign has no existing retention period. Stored documents are a temporary
 // cache, and each save can override this default.
@@ -245,22 +245,28 @@ class SaitoSignDatabase {
     }
     const documentHash = sha256(documentData);
     const updatedAt = Date.now();
+    const expiresAt = assignedExpiry(current, options, updatedAt);
+    const expirySql = expiresAt === undefined ? '' : ',\n              expires_at = $expires_at';
+    const params = {
+      $document_id: id,
+      $document_data: documentData,
+      $document_hash: documentHash,
+      $updated_at: updatedAt,
+      $is_encrypted: encrypted ? 1 : 0,
+      $expected_hash: expectedHash
+    };
+    if (expiresAt !== undefined) {
+      params.$expires_at = expiresAt;
+    }
     await this.run(
       `UPDATE satosign_documents
           SET document_data = $document_data,
               document_hash = $document_hash,
               updated_at = $updated_at,
-              is_encrypted = $is_encrypted
+              is_encrypted = $is_encrypted${expirySql}
         WHERE document_id = $document_id
           AND document_hash = $expected_hash`,
-      {
-        $document_id: id,
-        $document_data: documentData,
-        $document_hash: documentHash,
-        $updated_at: updatedAt,
-        $is_encrypted: encrypted ? 1 : 0,
-        $expected_hash: expectedHash
-      }
+      params
     );
     const stored = await this.readRow(id);
     if (!stored || stored.document_data !== documentData || stored.document_hash !== documentHash) {
@@ -289,8 +295,9 @@ class SaitoSignDatabase {
     const documentData = serializeDocument(document);
     const documentHash = sha256(documentData);
     const updatedAt = Date.now();
+    const assigned = assignedExpiry(current, options, updatedAt);
     const retention = options.retentionMs == null ? DEFAULT_RETENTION_MS : options.retentionMs;
-    const expiresAt = updatedAt + timestamp(retention);
+    const expiresAt = assigned === undefined ? updatedAt + timestamp(retention) : assigned;
     await this.run(
       `UPDATE satosign_documents
           SET document_data = $document_data,
@@ -334,6 +341,22 @@ class SaitoSignDatabase {
         $recipients: JSON.stringify(share.recipients),
         $created_at: share.created_at,
         $client_key: share.client_key || null
+      }
+    );
+  }
+
+  async updateShareRecipients(documentId, recipients) {
+    const id = String(documentId || '').trim();
+    if (!id) {
+      throw new DocumentStoreError('SaitoSign share was not found.', 'not_found');
+    }
+    await this.run(
+      `UPDATE satosign_shares
+          SET recipients = $recipients
+        WHERE document_id = $document_id`,
+      {
+        $document_id: id,
+        $recipients: JSON.stringify(Array.isArray(recipients) ? recipients : [])
       }
     );
   }
@@ -491,6 +514,23 @@ function expiryValue(now, options) {
   }
   const retention = options.retentionMs == null ? DEFAULT_RETENTION_MS : options.retentionMs;
   return now + timestamp(retention);
+}
+
+function assignedExpiry(current, options, updatedAt) {
+  if (!options || !options.expiry) {
+    return undefined;
+  }
+  try {
+    return retentionExpiry({
+      mode: options.expiry,
+      current: current?.expires_at,
+      finalizedAt: options.finalizedAt,
+      retentionMs: options.retentionMs == null ? DEFAULT_RETENTION_MS : options.retentionMs,
+      now: updatedAt
+    });
+  } catch (err) {
+    throw new DocumentStoreError(err.message || 'SaitoSign document expiry is invalid.', 'invalid');
+  }
 }
 
 function timestamp(value) {

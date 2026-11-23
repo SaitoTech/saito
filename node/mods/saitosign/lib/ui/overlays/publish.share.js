@@ -136,7 +136,7 @@ function signedActions() {
 
 function distributeActions() {
   return `
-    <p class="share-instruction">Share this document. If you export a ZIP, send the new file yourself after anyone else signs it. SaitoSign does not track who receives a manual export.</p>
+    <p class="share-instruction">Share this document. SaitoSign will email each recipient a link to open it.</p>
     <div class="status-choices single">
       <button type="button" class="status-choice" data-publish-action="share">I need to share this document</button>
     </div>

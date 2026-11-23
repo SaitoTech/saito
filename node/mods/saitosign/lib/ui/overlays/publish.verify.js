@@ -106,9 +106,8 @@ function verifySlide(state) {
           : `<p class="heading">${escapeHTML(method?.description || 'This verification method is not available.')}</p>`;
 
   return {
-    title: 'Verify Your identity',
-    subtitle: 'Please complete the steps below to advance.',
-    disclosure: 'Any information you provide will be included in the final document, and available to any party to whom you provide access.',
+    title: 'Before you sign the document, please provide the required information.',
+    subtitle: 'Any information you provide will be included in the final document, and available to any party to whom you provide access.',
     body: `
       <div class="verify-flow">
         ${methodsTemplate(state.verificationMethods, state.upsell || focus)}

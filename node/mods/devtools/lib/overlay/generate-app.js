@@ -31,6 +31,16 @@ class GenerateAppOverlay {
           async function (res) {
             console.log('mod details: ', res);
 
+            if (res?.error || res?.err) {
+              salert(res.error || res.err);
+              const button = document.querySelector('#saito-app-generate-btn');
+              if (button?.isConnected) {
+                button.innerHTML = 'Generate App';
+                button.classList.remove('active');
+              }
+              return;
+            }
+
             let obj = {
               module: 'Appstore',
               request: 'submit application',

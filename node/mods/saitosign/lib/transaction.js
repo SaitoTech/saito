@@ -1,6 +1,10 @@
-const Transaction = require('../../../lib/saito/transaction').default;
 const { copy, ACTION_TYPES } = require('./document');
 const { documentHash, verifyFinalization, verifyCreatorProof } = require('./auth');
+const { copyVerification } = require('./verification-records');
+
+function SaitoTransaction() {
+  return require('../../../lib/saito/transaction').default;
+}
 
 const MODULE = 'SaitoSign';
 const REQUEST = 'saitosign document';
@@ -71,6 +75,7 @@ async function createPrepareTransaction(app, record) {
   if (record?.finalized && !verifyFinalization(app, record)) {
     throw new Error('The creator signature for this finalized document is invalid.');
   }
+  const Transaction = SaitoTransaction();
   const tx = new Transaction();
   const data = copy(record);
   const stored = String(data.hash || '').trim();
@@ -99,6 +104,7 @@ function readPrepareTransaction(app, text) {
     throw new Error('That file is not a SaitoSign transaction.');
   }
 
+  const Transaction = SaitoTransaction();
   const tx = new Transaction();
   tx.deserialize_from_web(app, raw);
   const data = prepareData(tx);
@@ -199,6 +205,9 @@ function readRecord(data) {
   if (data.metadata && typeof data.metadata === 'object') {
     record.metadata = readShareMetadata(data.metadata);
   }
+  if (data.serverFinalization && typeof data.serverFinalization === 'object') {
+    record.serverFinalization = JSON.parse(JSON.stringify(data.serverFinalization));
+  }
   return record;
 }
 
@@ -251,6 +260,9 @@ function readLegacy(data) {
   if (data.metadata && typeof data.metadata === 'object') {
     record.metadata = readShareMetadata(data.metadata);
   }
+  if (data.serverFinalization && typeof data.serverFinalization === 'object') {
+    record.serverFinalization = JSON.parse(JSON.stringify(data.serverFinalization));
+  }
   return record;
 }
 
@@ -300,23 +312,7 @@ function readVerifications(list) {
   if (!Array.isArray(list)) {
     return [];
   }
-  return list.map((entry) => {
-    const next = {
-      method: String(entry?.method || ''),
-      publickey: String(entry?.publickey || ''),
-      message: String(entry?.message || ''),
-      signature: String(entry?.signature || '')
-    };
-    const photo = typeof entry?.photo === 'string' ? entry.photo : '';
-    if (photo) {
-      next.photo = photo;
-    }
-    const image = typeof entry?.image === 'string' ? entry.image : '';
-    if (image) {
-      next.image = image;
-    }
-    return next;
-  });
+  return list.map((entry) => copyVerification(entry));
 }
 
 function readActions(list, userCount) {
@@ -412,5 +408,6 @@ module.exports = {
   downloadTransaction,
   downloadBytes,
   shareMetadata,
-  readShareMetadata
+  readShareMetadata,
+  readVerifications
 };
