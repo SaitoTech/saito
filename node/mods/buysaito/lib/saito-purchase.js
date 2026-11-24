@@ -112,19 +112,33 @@ class SaitoPurchaseOverlay {
         this.recipient = recipient || this.mod.publicKey;
         this.tx = tx;
 
-        if (this.mod.available_currencies?.length == 0) {
+        const catalogueReady =
+          typeof this.mod.currencyCatalogueIsFresh === 'function'
+            ? this.mod.currencyCatalogueIsFresh()
+            : this.mod.available_currencies?.length > 0;
+        if (!catalogueReady) {
           this.showOverlay(SaitoPurchaseLoaderTemplate('Checking availability...'));
-          this.app.connection.emit('relay-send-message', {
-            recipient: this.mod.authorized_public_key,
-            request: 'buysaito available currencies',
-            data: null
-          });
+          if (typeof this.mod.requestLegacyAvailableCurrencies === 'function') {
+            this.mod.requestLegacyAvailableCurrencies();
+          } else {
+            this.app.connection.emit('relay-send-message', {
+              recipient: this.mod.authorized_public_key,
+              request: 'buysaito available currencies',
+              data: null
+            });
+          }
 
           this.timer = setTimeout(() => {
             if (!this.active) {
               return;
             }
-            this.mod.available_currencies = null;
+            const kept =
+              typeof this.mod.hasCurrencyCatalogue === 'function'
+                ? this.mod.hasCurrencyCatalogue()
+                : this.mod.available_currencies?.length > 0;
+            if (!kept) {
+              this.mod.available_currencies = null;
+            }
             this.render();
           }, 5000);
 

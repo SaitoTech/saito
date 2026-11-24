@@ -113,25 +113,47 @@ class SaitoPurchaseOverlay {
         this.recipient = recipient || this.mod.publicKey;
         this.tx = tx;
 
-        if (this.mod.available_currencies?.length == 0) {
-          if (!this.mod.buysaito_peer?.publicKey) {
-            this.mod.available_currencies = null;
+        const peerKey = this.mod.buysaito_peer?.publicKey;
+        const catalogueReady =
+          typeof this.mod.currencyCatalogueIsFresh === 'function'
+            ? this.mod.currencyCatalogueIsFresh(peerKey)
+            : this.mod.available_currencies?.length > 0;
+        if (!catalogueReady) {
+          if (!peerKey) {
+            if (
+              !(
+                typeof this.mod.hasCurrencyCatalogue === 'function' &&
+                this.mod.hasCurrencyCatalogue(peerKey)
+              )
+            ) {
+              this.mod.available_currencies = null;
+            }
             this.render();
             return;
           }
           this.showOverlay(SaitoPurchaseLoaderTemplate('Checking availability...'));
-          this.app.network.sendRequestAsTransaction(
-            'buysaito available currencies',
-            null,
-            (response) => this.mod.receiveAvailableCurrencies(response),
-            this.mod.buysaito_peer.publicKey
-          );
+          if (typeof this.mod.requestAvailableCurrencies === 'function') {
+            this.mod.requestAvailableCurrencies(peerKey);
+          } else {
+            this.app.network.sendRequestAsTransaction(
+              'buysaito available currencies',
+              null,
+              (response) => this.mod.receiveAvailableCurrencies(response),
+              peerKey
+            );
+          }
 
           this.timer = setTimeout(() => {
             if (!this.active) {
               return;
             }
-            this.mod.available_currencies = null;
+            const kept =
+              typeof this.mod.hasCurrencyCatalogue === 'function'
+                ? this.mod.hasCurrencyCatalogue(peerKey)
+                : this.mod.available_currencies?.length > 0;
+            if (!kept) {
+              this.mod.available_currencies = null;
+            }
             this.render();
           }, 5000);
 
@@ -804,8 +826,6 @@ class SaitoPurchaseOverlay {
       return;
     }
 
-    console.log('Payment Address Request:', data);
-
     this.clearPaymentInstructionTimer();
     this.payment_instruction_timer = setTimeout(() => {
       if (!this.active || this.address) {
@@ -848,11 +868,6 @@ class SaitoPurchaseOverlay {
     if (!this.active || !this.crypto_selected) return;
     if (data?.ticker && data.ticker !== this.crypto_selected.ticker) return;
     this.clearPaymentInstructionTimer();
-
-    console.log('\n/////////////////////////////////////');
-    console.log('RESERVE ADDRESS RESPONSE');
-    console.log(data);
-    console.log('/////////////////////////////////////\n');
 
     if (!data?.address || !data?.mixin_id || !data?.ticker) {
       this.app.connection.emit('saito-purchase-error-notification', {

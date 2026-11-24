@@ -48,7 +48,7 @@ function createAppSession(fallback, userAgent) {
     return null;
   }
 
-  return MixinApi({ keystore, requestConfig: { userAgent } });
+  return MixinApi({ keystore, requestConfig: { userAgent, retry: 0 } });
 }
 
 function createUserSession(credentials = {}, userAgent) {
@@ -151,6 +151,7 @@ class Api {
 
     const { seed: sessionSeed, publicKey: sessionPublicKey } = getED25519KeyPair();
     const sessionPrivateKey = sessionSeed.toString('hex');
+    console.log('MIXIN API REQUEST', 'user.createBareUser', 'POST /users');
     const user = await appSession.user.createBareUser(
       displayName,
       base64RawURLEncode(sessionPublicKey)
@@ -162,17 +163,20 @@ class Api {
       keystore: {
         app_id: user.user_id,
         session_id: user.session_id,
-        pin_token_base64: user.pin_token_base64,
+        server_public_key: user.server_public_key,
         session_private_key: sessionPrivateKey
       },
-      requestConfig: { userAgent: this.userAgent }
+      requestConfig: { userAgent: this.userAgent, retry: 0 }
     });
 
     const { publicKey: spendPublicKey, seed: spendPrivateKey } = getED25519KeyPair();
     const spendPrivateKeyHex = spendPrivateKey.toString('hex');
 
+    console.log('MIXIN API REQUEST', 'pin.updateTipPin', 'POST /pin/update');
     await session.pin.updateTipPin('', spendPublicKey.toString('hex'), user.tip_counter + 1);
-    await session.pin.verifyTipPin(spendPrivateKey);
+    console.log('MIXIN API REQUEST', 'pin.verifyTipPin', 'POST /pin/verify');
+    await session.pin.verifyTipPin(spendPrivateKeyHex);
+    console.log('MIXIN API REQUEST', 'safe.register', 'POST /safe/users');
     const account = await session.safe.register(user.user_id, spendPrivateKeyHex, spendPrivateKey);
 
     return {
@@ -195,6 +199,7 @@ class Api {
 
     try {
       const session = this.createUserSession(credentials);
+      console.log('MIXIN API REQUEST', 'safe.createDeposit', 'POST /safe/deposit/entries', chainId);
       const created = await session.safe.createDeposit(chainId);
       const address = created?.[0]?.destination;
       if (!address) {
@@ -212,6 +217,7 @@ class Api {
   async fetchBalance(credentials, assetId) {
     try {
       const session = this.createUserSession(credentials);
+      console.log('MIXIN API REQUEST', 'utxo.safeAssetBalance', 'GET /safe/outputs', assetId);
       return await session.utxo.safeAssetBalance({
         members: [credentials.user_id],
         threshold: 1,
@@ -226,6 +232,7 @@ class Api {
   async fetchHistory(credentials, assetId, since = 0) {
     try {
       const session = this.createUserSession(credentials);
+      console.log('MIXIN API REQUEST', 'safe.fetchSafeSnapshots', 'GET /safe/snapshots', assetId);
       return await session.safe.fetchSafeSnapshots({
         asset: assetId,
         limit: 500,
@@ -243,6 +250,7 @@ class Api {
         return [];
       }
       const session = this.createUserSession(credentials);
+      console.log('MIXIN API REQUEST', 'safe.pendingDeposits', 'GET /safe/deposits', assetId);
       return await session.safe.pendingDeposits({
         asset: assetId,
         destination: address
@@ -261,6 +269,7 @@ class Api {
       return false;
     }
     try {
+      console.log('MIXIN API REQUEST', 'network.fetchAsset', `GET /network/assets/${assetId}`);
       return await session.network.fetchAsset(assetId);
     } catch (err) {
       console.error('ERROR: Mixin error check network fee: ' + formatMixinError(err));
@@ -271,9 +280,18 @@ class Api {
   async fetchWithdrawalFee(credentials, assetId, address) {
     try {
       const session = this.createUserSession(credentials);
+      console.log('MIXIN API REQUEST', 'safe.fetchAsset', `GET /safe/assets/${assetId}`);
       const asset = await session.safe.fetchAsset(assetId);
-      const chain =
-        asset.chain_id === asset.asset_id ? asset : await session.safe.fetchAsset(asset.chain_id);
+      let chain = asset;
+      if (asset.chain_id !== asset.asset_id) {
+        console.log(
+          'MIXIN API REQUEST',
+          'safe.fetchAsset',
+          `GET /safe/assets/${asset.chain_id}`
+        );
+        chain = await session.safe.fetchAsset(asset.chain_id);
+      }
+      console.log('MIXIN API REQUEST', 'safe.fetchFee', `GET /safe/assets/${asset.asset_id}/fees`);
       const quotes = await session.safe.fetchFee(asset.asset_id, address);
       const quote = getWithdrawalFeeQuote(quotes, asset.asset_id, chain.asset_id);
 
@@ -281,12 +299,17 @@ class Api {
         throw new Error(`No withdrawal fee available for ${assetId}`);
       }
 
-      const feeAsset =
-        quote.asset_id === asset.asset_id
-          ? asset
-          : quote.asset_id === chain.asset_id
-            ? chain
-            : await session.safe.fetchAsset(quote.asset_id);
+      let feeAsset = asset;
+      if (quote.asset_id === chain.asset_id && quote.asset_id !== asset.asset_id) {
+        feeAsset = chain;
+      } else if (quote.asset_id !== asset.asset_id && quote.asset_id !== chain.asset_id) {
+        console.log(
+          'MIXIN API REQUEST',
+          'safe.fetchAsset',
+          `GET /safe/assets/${quote.asset_id}`
+        );
+        feeAsset = await session.safe.fetchAsset(quote.asset_id);
+      }
 
       return {
         ...quote,
@@ -306,12 +329,14 @@ class Api {
     const members = [mixinUserId];
     const threshold = 1;
     const recipients = [buildSafeTransactionRecipient(members, threshold, amount)];
+    console.log('MIXIN API REQUEST', 'utxo.safeOutputs', 'GET /safe/outputs', assetId);
     const outputs = await session.utxo.safeOutputs({
       members: [credentials.user_id],
       threshold: 1,
       asset: assetId,
       state: 'unspent'
     });
+    console.log('MIXIN API REQUEST', 'utxo.safeAssetBalance', 'GET /safe/outputs', assetId);
     const balance = await session.utxo.safeAssetBalance({
       members: [credentials.user_id],
       threshold: 1,
@@ -331,6 +356,7 @@ class Api {
     }
 
     const requestId = v4();
+    console.log('MIXIN API REQUEST', 'utxo.ghostKey', 'POST /safe/keys');
     const ghosts = await session.utxo.ghostKey(recipients, requestId, spendPrivateKey);
     const tx = buildSafeTransaction(utxos, recipients, ghosts, memoBytes(memo));
     let raw;
@@ -342,8 +368,10 @@ class Api {
       );
     }
 
+    console.log('MIXIN API REQUEST', 'utxo.verifyTransaction', 'POST /safe/transaction/requests');
     const verifiedTx = await session.utxo.verifyTransaction([{ raw, request_id: requestId }]);
     const signedRaw = signSafeTransaction(tx, verifiedTx[0].views, spendPrivateKey);
+    console.log('MIXIN API REQUEST', 'utxo.sendTransactions', 'POST /safe/transactions');
     const sent = await session.utxo.sendTransactions([{ raw: signedRaw, request_id: requestId }]);
 
     return {
@@ -355,15 +383,21 @@ class Api {
   async sendToAddress(credentials, assetId, address, amount, memo = '') {
     const session = this.createUserSession(credentials);
     const spendPrivateKey = credentials.spend_private_key;
+    console.log('MIXIN API REQUEST', 'utxo.safeAssetBalance', 'GET /safe/outputs', assetId);
     const balance = await session.utxo.safeAssetBalance({
       members: [credentials.user_id],
       threshold: 1,
       asset: assetId,
       state: 'unspent'
     });
+    console.log('MIXIN API REQUEST', 'safe.fetchAsset', `GET /safe/assets/${assetId}`);
     const asset = await session.safe.fetchAsset(assetId);
-    const chain =
-      asset.chain_id === asset.asset_id ? asset : await session.safe.fetchAsset(asset.chain_id);
+    let chain = asset;
+    if (asset.chain_id !== asset.asset_id) {
+      console.log('MIXIN API REQUEST', 'safe.fetchAsset', `GET /safe/assets/${asset.chain_id}`);
+      chain = await session.safe.fetchAsset(asset.chain_id);
+    }
+    console.log('MIXIN API REQUEST', 'safe.fetchFee', `GET /safe/assets/${asset.asset_id}/fees`);
     const quotes = await session.safe.fetchFee(asset.asset_id, address);
     const quote = getWithdrawalFeeQuote(quotes, asset.asset_id, chain.asset_id);
 
@@ -372,12 +406,13 @@ class Api {
     }
 
     const assetTicker = asset.display_symbol || asset.symbol;
-    const feeAsset =
-      quote.asset_id === asset.asset_id
-        ? asset
-        : quote.asset_id === chain.asset_id
-          ? chain
-          : await session.safe.fetchAsset(quote.asset_id);
+    let feeAsset = asset;
+    if (quote.asset_id === chain.asset_id && quote.asset_id !== asset.asset_id) {
+      feeAsset = chain;
+    } else if (quote.asset_id !== asset.asset_id && quote.asset_id !== chain.asset_id) {
+      console.log('MIXIN API REQUEST', 'safe.fetchAsset', `GET /safe/assets/${quote.asset_id}`);
+      feeAsset = await session.safe.fetchAsset(quote.asset_id);
+    }
     const feeTicker = feeAsset.display_symbol || feeAsset.symbol;
     const assetRequired = new Decimal(amount).plus(
       quote.asset_id === asset.asset_id ? quote.amount : 0
@@ -390,11 +425,14 @@ class Api {
     }
 
     if (quote.asset_id !== asset.asset_id) {
+      console.log('MIXIN API REQUEST', 'utxo.safeOutputs', 'GET /safe/outputs', assetId);
       const outputs = await session.utxo.safeOutputs({ asset: assetId, state: 'unspent' });
+      console.log('MIXIN API REQUEST', 'utxo.safeOutputs', 'GET /safe/outputs', quote.asset_id);
       const feeOutputs = await session.utxo.safeOutputs({
         asset: quote.asset_id,
         state: 'unspent'
       });
+      console.log('MIXIN API REQUEST', 'utxo.safeAssetBalance', 'GET /safe/outputs', quote.asset_id);
       const feeBalance = await session.utxo.safeAssetBalance({
         members: [credentials.user_id],
         threshold: 1,
@@ -422,6 +460,7 @@ class Api {
       }
 
       const txId = v4();
+      console.log('MIXIN API REQUEST', 'utxo.ghostKey', 'POST /safe/keys');
       const ghosts = await session.utxo.ghostKey(recipients, txId, spendPrivateKey);
       const tx = buildSafeTransaction(utxos, recipients, ghosts, memoBytes(memo));
       const raw = encodeSafeTransaction(tx);
@@ -443,15 +482,18 @@ class Api {
       }
 
       const feeId = v4();
+      console.log('MIXIN API REQUEST', 'utxo.ghostKey', 'POST /safe/keys');
       const feeGhosts = await session.utxo.ghostKey(feeRecipients, feeId, spendPrivateKey);
       const feeTx = buildSafeTransaction(feeUtxos, feeRecipients, feeGhosts, memoBytes(), [ref]);
       const feeRaw = encodeSafeTransaction(feeTx);
+      console.log('MIXIN API REQUEST', 'utxo.verifyTransaction', 'POST /safe/transaction/requests');
       const txs = await session.utxo.verifyTransaction([
         { raw, request_id: txId },
         { raw: feeRaw, request_id: feeId }
       ]);
       const signedRaw = signSafeTransaction(tx, txs[0].views, spendPrivateKey);
       const signedFeeRaw = signSafeTransaction(feeTx, txs[1].views, spendPrivateKey);
+      console.log('MIXIN API REQUEST', 'utxo.sendTransactions', 'POST /safe/transactions');
       const sent = await session.utxo.sendTransactions([
         { raw: signedRaw, request_id: txId },
         { raw: signedFeeRaw, request_id: feeId }
@@ -463,6 +505,7 @@ class Api {
       };
     }
 
+    console.log('MIXIN API REQUEST', 'utxo.safeOutputs', 'GET /safe/outputs', assetId);
     const outputs = await session.utxo.safeOutputs({ asset: assetId, state: 'unspent' });
     const recipients = [
       { amount, destination: address },
@@ -480,11 +523,14 @@ class Api {
     }
 
     const requestId = v4();
+    console.log('MIXIN API REQUEST', 'utxo.ghostKey', 'POST /safe/keys');
     const ghosts = await session.utxo.ghostKey(recipients, requestId, spendPrivateKey);
     const tx = buildSafeTransaction(utxos, recipients, ghosts, memoBytes(memo));
     const raw = encodeSafeTransaction(tx);
+    console.log('MIXIN API REQUEST', 'utxo.verifyTransaction', 'POST /safe/transaction/requests');
     const txs = await session.utxo.verifyTransaction([{ raw, request_id: requestId }]);
     const signedRaw = signSafeTransaction(tx, txs[0].views, spendPrivateKey);
+    console.log('MIXIN API REQUEST', 'utxo.sendTransactions', 'POST /safe/transactions');
     const sent = await session.utxo.sendTransactions([{ raw: signedRaw, request_id: requestId }]);
 
     return {

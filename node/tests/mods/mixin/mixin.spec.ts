@@ -46,7 +46,9 @@ const { createUserSession, getWithdrawalFeeQuote, createAppSession } = Api;
 const Accounts = require('../../../mods/mixin/lib/accounts');
 const Database = require('../../../mods/mixin/lib/database');
 const Mixin = require('../../../mods/mixin/mixin');
+const BuySaito = require('../../../mods/buysaito/buysaito');
 const MixinModule = require('../../../mods/mixin/lib/mixinmodule');
+const { MIXIN_REQUEST_FREQUENCE_MILLISECONDS } = MixinModule;
 const Transfers = require('../../../mods/mixin/lib/transfers');
 const CryptoModule = require('../../../lib/templates/cryptomodule');
 
@@ -223,7 +225,7 @@ describe('Mixin api helpers', () => {
         server_public_key: 'server-pub',
         session_private_key: 'app-session-key'
       },
-      requestConfig: { userAgent: 'Saito-Mixin/1.0' }
+      requestConfig: { userAgent: 'Saito-Mixin/1.0', retry: 0 }
     });
     const session = MixinApi.mock.results.at(-1).value;
     expect(session.network.fetchAsset).toHaveBeenCalledWith('asset-id');
@@ -1031,6 +1033,337 @@ describe('Mixin ticker module', () => {
     expect(crypto.confirmations).toBe(3);
     expect(crypto.icon_url).toBe('icon');
     expect(crypto.last_update).toEqual(expect.any(Number));
+  });
+
+  test('returnMixinNetworkInfo caches a price for twenty minutes and backs off for ten after failure', async () => {
+    jest.useFakeTimers({ now: new Date('2026-11-19T12:00:00.000Z') });
+    try {
+      const crypto = Object.create(MixinModule.prototype);
+      crypto.asset_id = 'asset-id';
+      crypto.mixin = {
+        api: {
+          fetchAsset: jest.fn(async () => ({
+            confirmations: 3,
+            price_usd: '2.5',
+            icon_url: 'icon'
+          }))
+        }
+      };
+
+      const info = await crypto.returnMixinNetworkInfo();
+      expect(crypto.mixin.api.fetchAsset).toHaveBeenCalledTimes(1);
+      expect(crypto.mixin.api.fetchAsset).toHaveBeenCalledWith('asset-id');
+      expect(info.price_usd).toBe('2.5');
+      expect(crypto.price_usd).toBe(2.5);
+      expect(crypto.confirmations).toBe(3);
+      expect(crypto.icon_url).toBe('icon');
+      expect(crypto.last_update).toBe(Date.now());
+
+      crypto.mixin.api.fetchAsset.mockClear();
+      const cached = await crypto.returnMixinNetworkInfo();
+      expect(crypto.mixin.api.fetchAsset).not.toHaveBeenCalled();
+      expect(cached).toEqual({ confirmations: 3, price_usd: 2.5, icon_url: 'icon' });
+
+      jest.setSystemTime(Date.now() + MIXIN_REQUEST_FREQUENCE_MILLISECONDS + 1);
+      crypto.mixin.api.fetchAsset.mockResolvedValue({
+        confirmations: 4,
+        price_usd: '9',
+        icon_url: 'new-icon'
+      });
+      const refreshed = await crypto.returnMixinNetworkInfo();
+      expect(crypto.mixin.api.fetchAsset).toHaveBeenCalledTimes(1);
+      expect(refreshed.price_usd).toBe('9');
+      expect(crypto.price_usd).toBe(9);
+      expect(crypto.confirmations).toBe(4);
+      expect(crypto.icon_url).toBe('new-icon');
+      expect(crypto.last_update).toBe(Date.now());
+
+      jest.setSystemTime(Date.now() + MIXIN_REQUEST_FREQUENCE_MILLISECONDS + 1);
+      const failedAt = Date.now();
+      crypto.mixin.api.fetchAsset.mockResolvedValue(false);
+      await expect(crypto.returnMixinNetworkInfo()).resolves.toBe(false);
+      expect(crypto.price_usd).toBe(9);
+      expect(crypto.confirmations).toBe(4);
+      expect(crypto.icon_url).toBe('new-icon');
+      expect(crypto.last_update).toBe(failedAt - MIXIN_REQUEST_FREQUENCE_MILLISECONDS / 2);
+
+      crypto.mixin.api.fetchAsset.mockClear();
+      jest.setSystemTime(failedAt + MIXIN_REQUEST_FREQUENCE_MILLISECONDS / 2 - 1);
+      const duringCooldown = await crypto.returnMixinNetworkInfo();
+      expect(crypto.mixin.api.fetchAsset).not.toHaveBeenCalled();
+      expect(duringCooldown).toEqual({ confirmations: 4, price_usd: 9, icon_url: 'new-icon' });
+
+      jest.setSystemTime(failedAt + MIXIN_REQUEST_FREQUENCE_MILLISECONDS / 2 + 1);
+      crypto.mixin.api.fetchAsset.mockResolvedValue({
+        confirmations: 5,
+        price_usd: '11',
+        icon_url: 'later-icon'
+      });
+      const afterCooldown = await crypto.returnMixinNetworkInfo();
+      expect(crypto.mixin.api.fetchAsset).toHaveBeenCalledTimes(1);
+      expect(afterCooldown.price_usd).toBe('11');
+      expect(crypto.price_usd).toBe(11);
+      expect(crypto.last_update).toBe(Date.now());
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  test('concurrent callers share one asset refresh and different assets stay independent', async () => {
+    let resolveEth;
+    const eth = Object.create(MixinModule.prototype);
+    eth.asset_id = 'eth';
+    eth.mixin = {
+      api: {
+        fetchAsset: jest.fn(
+          () =>
+            new Promise((resolve) => {
+              resolveEth = resolve;
+            })
+        )
+      }
+    };
+    let resolveSol;
+    const sol = Object.create(MixinModule.prototype);
+    sol.asset_id = 'sol';
+    sol.mixin = {
+      api: {
+        fetchAsset: jest.fn(
+          () =>
+            new Promise((resolve) => {
+              resolveSol = resolve;
+            })
+        )
+      }
+    };
+
+    const first = eth.returnMixinNetworkInfo();
+    const shared = eth.network_info_request;
+    const second = eth.returnMixinNetworkInfo();
+    const other = sol.returnMixinNetworkInfo();
+    expect(eth.mixin.api.fetchAsset).toHaveBeenCalledTimes(1);
+    expect(sol.mixin.api.fetchAsset).toHaveBeenCalledTimes(1);
+    expect(shared).toBe(eth.network_info_request);
+    expect(sol.network_info_request).not.toBe(shared);
+    expect(second).not.toBe(other);
+
+    resolveEth({ confirmations: 2, price_usd: '3', icon_url: 'eth-icon' });
+    resolveSol({ confirmations: 1, price_usd: '4', icon_url: 'sol-icon' });
+    await expect(first).resolves.toMatchObject({ price_usd: '3' });
+    await expect(second).resolves.toMatchObject({ price_usd: '3' });
+    await expect(other).resolves.toMatchObject({ price_usd: '4' });
+    expect(eth.price_usd).toBe(3);
+    expect(sol.price_usd).toBe(4);
+    expect(eth.network_info_request).toBeNull();
+    expect(sol.network_info_request).toBeNull();
+  });
+
+  test('a failed refresh keeps the cached price in the currency catalogue', async () => {
+    const app = {
+      BROWSER: 0,
+      modules: {
+        returnModule: () => ({ publicKey: 'server', authorized_public_key: 'server' })
+      },
+      network: { sendRequestAsTransaction: jest.fn() }
+    };
+    const mixin = new Mixin(app);
+    mixin.app = app;
+    mixin.publicKey = 'server';
+    mixin.appSession = {};
+    mixin.transfers = {};
+    mixin.fulfillment_mode = 'local';
+    mixin.isHandshakeVerifiedPeer = () => true;
+    const fresh = {
+      ticker: 'ETH',
+      chain_id: 'eth-chain',
+      price_usd: 2,
+      last_update: Date.now(),
+      icon_url: 'eth-icon',
+      confirmations: 3
+    };
+    const stale = {
+      ticker: 'SOL',
+      chain_id: 'sol-chain',
+      price_usd: 8,
+      last_update: Date.now() - MIXIN_REQUEST_FREQUENCE_MILLISECONDS - 1,
+      icon_url: 'sol-icon',
+      confirmations: 1,
+      returnMixinNetworkInfo: jest.fn(async () => false)
+    };
+    const erc = {
+      ticker: 'ERC-SAITO',
+      price_usd: 0.02,
+      last_update: Date.now()
+    };
+    const excluded = {
+      ticker: 'BEP-SAITO',
+      price_usd: 0.03,
+      last_update: Date.now()
+    };
+    mixin.crypto_mods = [fresh, stale, erc, excluded];
+    const callbacks = [];
+    const tx = {
+      isTo: () => true,
+      from: [{ publicKey: 'buyer' }],
+      returnMessage: () => ({ request: 'buysaito available currencies', data: {} })
+    };
+
+    const handled = await mixin.handlePeerTransaction(
+      app,
+      tx,
+      { publicKey: 'buyer' },
+      (response) => callbacks.push(response)
+    );
+
+    expect(handled).toBe(1);
+    expect(stale.returnMixinNetworkInfo).toHaveBeenCalledTimes(1);
+    expect(stale.price_usd).toBe(8);
+    expect(callbacks[0]).toEqual({
+      ac: [
+        {
+          ticker: 'ETH',
+          chain_id: 'eth-chain',
+          price_usd: 2,
+          last_update: fresh.last_update,
+          icon_url: 'eth-icon'
+        },
+        {
+          ticker: 'SOL',
+          chain_id: 'sol-chain',
+          price_usd: 8,
+          last_update: stale.last_update,
+          icon_url: 'sol-icon'
+        }
+      ],
+      erc: 0.02
+    });
+  });
+
+  test('browser currency requests follow the provider, cache, and failure cooldown', async () => {
+    jest.useFakeTimers({ now: new Date('2026-11-19T12:00:00.000Z') });
+    try {
+      const sent = [];
+      const events = [];
+      const app = {
+        network: {
+          sendRequestAsTransaction: (...args) => sent.push(args)
+        },
+        connection: { emit: (...args) => events.push(args) }
+      };
+      const mixin = Object.assign(Object.create(Mixin.prototype), {
+        app,
+        buysaito_peer: { publicKey: 'provider-a' },
+        available_currencies: [],
+        available_currencies_at: 0,
+        available_currencies_failed_at: 0,
+        currency_catalogue_peer: '',
+        currency_failure_peer: '',
+        currency_request: null,
+        currency_request_peer: '',
+        currency_request_generation: 0,
+        currency_request_started_at: 0,
+        erc_saito: null,
+        browser_active: false
+      });
+      const reply = {
+        ac: [{ ticker: 'ETH', price_usd: 2, chain_id: 'eth' }],
+        erc: 0.02
+      };
+
+      const first = mixin.requestAvailableCurrencies('provider-a');
+      const second = mixin.requestAvailableCurrencies('provider-a');
+      expect(sent).toHaveLength(1);
+      expect(second).toBe(first);
+      sent[0][2](reply);
+      await expect(first).resolves.toBe(true);
+      const receivedAt = mixin.available_currencies_at;
+      expect(mixin.available_currencies).toEqual([
+        { ticker: 'ETH', price_usd: 2, chain_id: 'eth' }
+      ]);
+
+      mixin.requestAvailableCurrencies('provider-a');
+      expect(sent).toHaveLength(1);
+
+      jest.setSystemTime(Date.now() + MIXIN_REQUEST_FREQUENCE_MILLISECONDS + 1);
+      const stale = mixin.requestAvailableCurrencies('provider-a');
+      expect(sent).toHaveLength(2);
+      sent[1][2]({ err: 'unavailable' });
+      await expect(stale).resolves.toBe(false);
+      expect(mixin.available_currencies).toEqual([
+        { ticker: 'ETH', price_usd: 2, chain_id: 'eth' }
+      ]);
+      expect(mixin.available_currencies_at).toBe(receivedAt);
+
+      mixin.requestAvailableCurrencies('provider-a');
+      expect(sent).toHaveLength(2);
+      jest.setSystemTime(Date.now() + MIXIN_REQUEST_FREQUENCE_MILLISECONDS / 2 + 1);
+      mixin.requestAvailableCurrencies('provider-a');
+      expect(sent).toHaveLength(3);
+
+      mixin.buysaito_peer = { publicKey: 'provider-b' };
+      const switched = mixin.requestAvailableCurrencies('provider-b');
+      expect(sent).toHaveLength(4);
+      sent[2][2]({
+        ac: [{ ticker: 'SOL', price_usd: 9 }],
+        erc: 0.03
+      });
+      await Promise.resolve();
+      expect(mixin.available_currencies[0].ticker).not.toBe('SOL');
+      sent[3][2]({
+        ac: [{ ticker: 'BTC', price_usd: 10 }],
+        erc: 0.04
+      });
+      await expect(switched).resolves.toBe(true);
+      expect(mixin.currency_catalogue_peer).toBe('provider-b');
+      expect(mixin.available_currencies).toEqual([{ ticker: 'BTC', price_usd: 10 }]);
+      expect(events.some((event) => event[0] === 'saito-purchase-cryptos')).toBe(true);
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  test('buysaito and relay discovery share one Mixin currency request', async () => {
+    const sent = [];
+    const mixin = Object.assign(Object.create(Mixin.prototype), {
+      buysaito_peer: null,
+      available_currencies: [],
+      available_currencies_at: 0,
+      available_currencies_failed_at: 0,
+      currency_catalogue_peer: '',
+      currency_failure_peer: '',
+      currency_request: null,
+      currency_request_peer: '',
+      currency_request_generation: 0,
+      currency_request_started_at: 0,
+      erc_saito: null
+    });
+    const app = {
+      BROWSER: 1,
+      modules: { returnModule: (name) => (name === 'Mixin' ? mixin : null) },
+      network: { sendRequestAsTransaction: (...args) => sent.push(args) },
+      connection: { emit: jest.fn() }
+    };
+    mixin.app = app;
+    const buysaito = Object.assign(Object.create(BuySaito.prototype), {
+      app,
+      browser_active: true,
+      authorized_public_key: 'previous-provider'
+    });
+    const peer = {
+      publicKey: 'provider-a',
+      services: [{ service: 'buysaito' }, { service: 'relay' }]
+    };
+
+    await buysaito.onPeerServiceUp(app, peer, { service: 'relay' });
+    await buysaito.onPeerServiceUp(app, peer, { service: 'buysaito' });
+    await mixin.onPeerServiceUp(app, peer, { service: 'relay' });
+    await mixin.onPeerServiceUp(app, peer, { service: 'buysaito' });
+    await mixin.onPeerServiceUp(app, peer, { service: 'buysaito' });
+
+    expect(buysaito.authorized_public_key).toBe('provider-a');
+    expect(sent).toHaveLength(1);
+    expect(sent[0][0]).toBe('buysaito available currencies');
+    expect(sent[0][3]).toBe('provider-a');
   });
 
   test('installCryptos skips network-info lookup when the application session is absent', async () => {

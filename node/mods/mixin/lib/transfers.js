@@ -5,6 +5,7 @@ const {
   restoreSavedSignedTransaction
 } = require('./transactions');
 const { storePurchaseMessage, storePurchaseRecipient } = require('./buysaito');
+const { MIXIN_REQUEST_FREQUENCE_MILLISECONDS } = require('./mixinmodule');
 
 // Outbound SAITO payouts complete after one included block by default.
 // Required N means the confirmation height is inclusion + (N - 1).
@@ -963,7 +964,7 @@ class Transfers {
     }
     if (
       typeof crypto.returnMixinNetworkInfo === 'function' &&
-      (!crypto.last_update || Date.now() - crypto.last_update > 300000)
+      (!crypto.last_update || Date.now() - crypto.last_update > MIXIN_REQUEST_FREQUENCE_MILLISECONDS)
     ) {
       await crypto.returnMixinNetworkInfo();
     }

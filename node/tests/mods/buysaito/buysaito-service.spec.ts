@@ -180,4 +180,47 @@ describe('BuySaito treasury service', () => {
       { ticker: 'USDT', chain_id: 'ethereum-chain', price_usd: 1 }
     ]);
   });
+
+  test('legacy BuySaito requests currencies once when Mixin is not loaded', async () => {
+    const sent = [];
+    const app = {
+      BROWSER: 1,
+      modules: { returnModule: () => null },
+      connection: {
+        emit: (...args) => sent.push(args)
+      }
+    };
+    const mod = Object.assign(Object.create(BuySaito.prototype), {
+      app,
+      browser_active: true,
+      authorized_public_key: 'provider-a',
+      available_currencies: [],
+      available_currencies_at: 0,
+      available_currencies_failed_at: 0,
+      currency_catalogue_peer: '',
+      currency_failure_peer: '',
+      currency_request: null,
+      currency_request_peer: '',
+      currency_request_started_at: 0
+    });
+    const peer = {
+      publicKey: 'provider-a',
+      services: [{ service: 'buysaito' }, { service: 'relay' }]
+    };
+
+    await mod.onPeerServiceUp(app, peer, { service: 'relay' });
+    await mod.onPeerServiceUp(app, peer, { service: 'buysaito' });
+    await mod.onPeerServiceUp(app, peer, { service: 'relay' });
+    expect(sent).toHaveLength(1);
+    expect(sent[0][0]).toBe('relay-send-message');
+    expect(sent[0][1]).toMatchObject({
+      recipient: 'provider-a',
+      request: 'buysaito available currencies'
+    });
+
+    const next = { publicKey: 'provider-b', services: [{ service: 'buysaito' }] };
+    await mod.onPeerServiceUp(app, next, { service: 'buysaito' });
+    expect(sent).toHaveLength(2);
+    expect(sent[1][1].recipient).toBe('provider-b');
+  });
 });

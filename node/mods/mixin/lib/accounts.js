@@ -93,9 +93,7 @@ class Accounts {
           address,
           publickey: this.mod.publicKey
         },
-        function (res) {
-          console.log('Callback for mixin save new deposit address: ', res);
-        },
+        function () {},
         this.mod.mixin_peer?.publicKey
       );
     }
