@@ -161,6 +161,11 @@ webpack(
 
     module: {
       rules: [
+        {
+          // Mixin and Noble must resolve their own dependency versions for signing.
+          include: /[\\/]node_modules[\\/](?:@mixin\.dev|@noble)[\\/]/,
+          resolve: { modules: ['node_modules'] }
+        },
         // All files with a '.ts' or '.tsx' extension will be handled by 'ts-loader'.
         {
           test: /\.tsx?$/,
