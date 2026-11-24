@@ -131,12 +131,16 @@ class Api {
     this.appKeystore = null;
   }
 
+  get userAgent() {
+    return this.mod?.app?.BROWSER ? undefined : this.mod?.user_agent;
+  }
+
   createAppSession() {
-    return createAppSession(this.appKeystore, this.mod?.user_agent);
+    return createAppSession(this.appKeystore, this.userAgent);
   }
 
   createUserSession(credentials) {
-    return createUserSession(credentials, this.mod?.user_agent);
+    return createUserSession(credentials, this.userAgent);
   }
 
   async createAccount(displayName) {
@@ -161,7 +165,7 @@ class Api {
         pin_token_base64: user.pin_token_base64,
         session_private_key: sessionPrivateKey
       },
-      requestConfig: { userAgent: this.mod?.user_agent }
+      requestConfig: { userAgent: this.userAgent }
     });
 
     const { publicKey: spendPublicKey, seed: spendPrivateKey } = getED25519KeyPair();
