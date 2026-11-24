@@ -465,6 +465,116 @@ class GameHUD2 {
       };
     });
   }
+
+  returnContext() {
+    const cardbox = this.mod && this.mod.cardbox;
+    if (cardbox && typeof cardbox.returnContext === 'function') {
+      const reported = cardbox.returnContext();
+      if (reported && Array.isArray(reported.menu) && reported.menu.length > 0) {
+        return { cards: [], menu: reported.menu };
+      }
+    }
+    const cards = [];
+    const menu = [];
+    if (typeof document === 'undefined' || !document.querySelectorAll) {
+      return { cards, menu };
+    }
+
+    const seen_cards = {};
+    const card_els = document.querySelectorAll('.hud-cards .card');
+    for (let i = 0; i < card_els.length; i++) {
+      const el = card_els[i];
+      const id = el.id;
+      let actionable = typeof el.onclick === 'function';
+      if (!actionable && typeof el.onmouseup === 'function' && !el.classList.contains('noclick')) {
+        const types = this.mod?.cardbox?.card_types || [];
+        for (let t = 0; t < types.length && !actionable; t++) {
+          if (!el.classList.contains(types[t].css)) {
+            continue;
+          }
+          const live = types[t].action
+            ? this.mod.cardbox.callback || types[t].mycallback
+            : types[t].mycallback;
+          actionable = typeof live === 'function';
+        }
+      }
+      if (!id || seen_cards[id] || !actionable) {
+        continue;
+      }
+      let shown = el.isConnected !== false;
+      for (let node = el; shown && node && node.nodeType === 1; node = node.parentElement) {
+        if (node.hidden) {
+          shown = false;
+          break;
+        }
+        let display = node.style ? node.style.display : '';
+        if (typeof window !== 'undefined' && window.getComputedStyle) {
+          display = window.getComputedStyle(node).display;
+        }
+        if (display === 'none') {
+          shown = false;
+        }
+      }
+      if (!shown) {
+        continue;
+      }
+      if (typeof window !== 'undefined' && window.getComputedStyle) {
+        const css = window.getComputedStyle(el);
+        if (css.visibility === 'hidden' || css.pointerEvents === 'none') {
+          continue;
+        }
+      }
+      seen_cards[id] = true;
+      cards.push({
+        id,
+        label: String(el.textContent || '').replace(/\s+/g, ' ').trim() || id,
+        identifier: 'div#' + id
+      });
+    }
+
+    const seen_menu = {};
+    const menu_els = document.querySelectorAll(
+      '.hud-menu .option, .zoom-overlay .controls .option, .saito-overlay .controls .option'
+    );
+    for (let i = 0; i < menu_els.length; i++) {
+      const el = menu_els[i];
+      const id = el.id;
+      if (!id || seen_menu[id] || el.tagName !== 'LI' || typeof el.onclick !== 'function') {
+        continue;
+      }
+      let shown = el.isConnected !== false;
+      for (let node = el; shown && node && node.nodeType === 1; node = node.parentElement) {
+        if (node.hidden) {
+          shown = false;
+          break;
+        }
+        let display = node.style ? node.style.display : '';
+        if (typeof window !== 'undefined' && window.getComputedStyle) {
+          display = window.getComputedStyle(node).display;
+        }
+        if (display === 'none') {
+          shown = false;
+        }
+      }
+      if (!shown) {
+        continue;
+      }
+      if (typeof window !== 'undefined' && window.getComputedStyle) {
+        const css = window.getComputedStyle(el);
+        if (css.visibility === 'hidden' || css.pointerEvents === 'none') {
+          continue;
+        }
+      }
+      seen_menu[id] = true;
+      menu.push({
+        id,
+        label: String(el.textContent || '').replace(/\s+/g, ' ').trim(),
+        identifier: 'li#' + id
+      });
+    }
+
+    return { cards, menu };
+  }
 }
 
 module.exports = GameHUD2;

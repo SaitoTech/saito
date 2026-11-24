@@ -72,7 +72,7 @@ class PopupHeader extends SaitoHeader {
   syncNavigation() {
     const path = window.location.pathname;
     let active = 'home';
-    if (path.indexOf('/lessons') !== -1) {
+    if (path.indexOf('/lessons') !== -1 || path.indexOf('/hsk') !== -1) {
       active = 'lessons';
     } else if (path.indexOf('/review') !== -1 || path.indexOf('/vocab') !== -1) {
       active = 'vocabulary';

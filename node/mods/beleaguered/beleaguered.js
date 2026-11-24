@@ -71,8 +71,8 @@ class Beleaguered extends OnePlayerGameTemplate {
   }
 
   async render(app) {
-    //console.trace("Initialize HTML");
-    if (!this.browser_active || !this.app.BROWSER || this.initialize_game_run) {
+
+    if (!this.browser_active || this.initialize_game_run) {
       return;
     }
 
@@ -406,7 +406,7 @@ class Beleaguered extends OnePlayerGameTemplate {
   }
 
   async handleGameLoop(msg = null) {
-    this.saveGame(this.game.id);
+    await this.saveGame(this.game.id);
     ///////////
     // QUEUE //
     ///////////

@@ -1,4 +1,4 @@
-module.exports = (app, mod, invite) => {
+module.exports = async (app, mod, invite) => {
   const image = invite.game_mod.respondTo('arcade-games')?.image || '';
   const tentative = invite.tentative || { join: [], leave: [] };
   const leaving = new Set(tentative.leave || []);
@@ -84,7 +84,7 @@ module.exports = (app, mod, invite) => {
     detailsHtml += detailRow('game ending', invite.method);
   }
 
-  const controls = renderControls(mod, invite);
+  const controls = await renderControls(mod, invite);
   const playerRows = Math.min(3, Math.max(1, Math.ceil(playerCount / 2)));
   const controlsState = isInPlay
     ? 'arcade-lounge-controls--in-play'
@@ -143,7 +143,7 @@ const playerBox = (app, pkey, extraClass = '', note = '', winner = false) => `
     </div>
   </div>`;
 
-const renderControls = (mod, invite) => {
+const renderControls = async (mod, invite) => {
   const controls = [];
 
   if (!invite.time_finished) {
@@ -173,7 +173,7 @@ const renderControls = (mod, invite) => {
         controls.push(
           `<div id="arcade-game-controls-watch-game" class="saito-button-primary">watch game</div>`
         );
-        if (invite.game_mod.doesGameExistLocally(invite.game_id)) {
+        if (await invite.game_mod.doesGameExistLocally(invite.game_id)) {
           controls.push(
             `<div id="arcade-game-controls-clear-game" class="saito-button-secondary">clear</div>`
           );
@@ -200,7 +200,7 @@ const renderControls = (mod, invite) => {
         `<div id="arcade-game-controls-cancel-join" class="saito-button-secondary">decline invite</div>`
       );
     }
-  } else if (invite.game_mod.doesGameExistLocally(invite.game_id)) {
+  } else if (await invite.game_mod.doesGameExistLocally(invite.game_id)) {
     controls.push(
       `<div id="arcade-game-controls-continue-game" class="saito-button-primary">view game</div>`
     );

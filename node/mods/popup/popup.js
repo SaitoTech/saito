@@ -7,6 +7,8 @@ const PopupReview = require('./lib/review');
 const PopupMain = require('./lib/main');
 const PopupLessonManager = require('./lib/manager');
 const PopupCatalog = require('./lib/catalog');
+const HskTests = require('./lib/ui/hsk-tests/hsk-tests');
+const { isHskCategory } = require('./lib/hsk-archive');
 const PeerService = require('saito-js/lib/peer_service').default;
 const JsStore = require('jsstore');
 
@@ -182,6 +184,7 @@ class Popup extends ModTemplate {
       this.lessonui = new PopupLesson(this.app, this);
       this.review = new PopupReview(this.app, this);
       this.vocab = new PopupVocab(this.app, this);
+      this.hsk = new HskTests(this.app, this);
 
       this.addComponent(this.header);
       this.addComponent(this.main);
@@ -222,9 +225,17 @@ class Popup extends ModTemplate {
         this.app.connection.emit('popup-testimonials-render-request');
         return;
       }
+      if (this.urlpath[1] == 'hsk') {
+        this.app.connection.emit('popup-hsk-render-request');
+        return;
+      }
       if (this.urlpath[1] == 'lessons') {
         if (this.urlpath.length >= 4 && this.urlpath[2] && this.urlpath[3]) {
           this.openLessonPath(decodeURIComponent(this.urlpath[2]), decodeURIComponent(this.urlpath[3]));
+          return;
+        }
+        if (this.urlpath.length > 2 && isHskCategory(decodeURIComponent(this.urlpath[2]))) {
+          this.app.connection.emit('popup-hsk-render-request');
           return;
         }
         if (this.urlpath.length > 2 && this.urlpath[2]) {
@@ -385,7 +396,15 @@ class Popup extends ModTemplate {
           }
         }
 
-        popup_self.addVocab(field1, field2, field3, field4, field5, lessonTitle, savedLessonId);
+        return popup_self.addVocab(
+          field1,
+          field2,
+          field3,
+          field4,
+          field5,
+          lessonTitle,
+          savedLessonId
+        );
       };
     }
 
@@ -431,6 +450,9 @@ class Popup extends ModTemplate {
         }
         if (!opened_pending && this.manager && this.manager.waiting_to_display == true) {
           this.manager.render(this.manager.level);
+        }
+        if (this.hsk && this.hsk.waiting) {
+          this.hsk.render();
         }
       });
     }
@@ -528,6 +550,29 @@ class Popup extends ModTemplate {
     );
   }
 
+  loadQuestions(lessonId) {
+    const id = Number(lessonId);
+    if (!Number.isFinite(id) || this.peers.length === 0) {
+      return Promise.resolve([]);
+    }
+    const peer = this.peers[0];
+    return new Promise((resolve) => {
+      this.sendPeerDatabaseRequestWithFilter(
+        'Popup',
+        `SELECT * FROM questions WHERE lesson_id = ${id} ORDER BY display_order ASC`,
+        (res) => {
+          resolve((res && res.rows) || []);
+        },
+        (candidate) => {
+          if (candidate.publicKey == peer.publicKey) {
+            return 1;
+          }
+          return 0;
+        }
+      );
+    });
+  }
+
   ///////////////////////
   // network functions //
   ///////////////////////
@@ -568,6 +613,19 @@ class Popup extends ModTemplate {
     if (!this.app.options.popup.review) {
       this.app.options.popup.review = {};
       this.app.options.popup.review.enable = 1;
+    }
+    if (!this.app.options.popup.vocab_list) {
+      this.app.options.popup.vocab_list = {
+        simplified: 1,
+        traditional: 0,
+        pinyin: 1,
+        english: 1,
+        pos: 0,
+        srs_rank: 0,
+        times_correct: 0,
+        times_incorrect: 0,
+        last_studied: 0
+      };
     }
   }
 
@@ -632,6 +690,27 @@ class Popup extends ModTemplate {
     return false;
   }
 
+  async ensureIntroductoryVocabulary() {
+    if (!this.app.options.popup) {
+      this.app.options.popup = {};
+    }
+    const records = (await this.returnAllVocabulary()) || [];
+    if (records.length > 0) {
+      if (!this.app.options.popup.vocab_intro_seeded) {
+        this.app.options.popup.vocab_intro_seeded = 1;
+        this.save();
+      }
+      return false;
+    }
+    if (this.app.options.popup.vocab_intro_seeded) {
+      return false;
+    }
+    await this.addVocab('你好', '你好', 'nǐ hǎo', 'hello', '', '', 0);
+    this.app.options.popup.vocab_intro_seeded = 1;
+    this.save();
+    return true;
+  }
+
   async addVocab(
     field1 = '',
     field2 = '',
@@ -659,19 +738,45 @@ class Popup extends ModTemplate {
     obj.times_correct = 0;
     obj.times_incorrect = 0;
     obj.srs_rank = 0;
+    obj.last_studied = 0;
 
     const transaction = this.localDB.transaction(['vocabulary'], 'readwrite');
     const objectStore = transaction.objectStore('vocabulary');
 
-    const request = objectStore.add(obj);
+    return new Promise((resolve, reject) => {
+      const request = objectStore.add(obj);
 
-    request.onsuccess = async () => {
-      console.log('Vocabulary added successfully:', obj);
-    };
+      request.onsuccess = () => {
+        resolve(request.result);
+      };
 
-    request.onerror = (event) => {
-      console.error('Error adding vocabulary:', event.target.error);
-    };
+      request.onerror = (event) => {
+        const error = event.target.error;
+        if (error && error.name === 'ConstraintError') {
+          reject(new Error('That pinyin or English translation is already saved'));
+        } else {
+          reject(error || new Error('Could not add vocabulary'));
+        }
+      };
+    });
+  }
+
+  async deleteVocabulary(ids) {
+    const keys = (ids || []).map((id) => Number(id)).filter((id) => Number.isFinite(id));
+    if (!keys.length || !this.localDB) {
+      return 0;
+    }
+
+    return new Promise((resolve, reject) => {
+      const transaction = this.localDB.transaction(['vocabulary'], 'readwrite');
+      const objectStore = transaction.objectStore('vocabulary');
+      keys.forEach((id) => {
+        objectStore.delete(id);
+      });
+      transaction.oncomplete = () => resolve(keys.length);
+      transaction.onerror = (event) => reject(event.target.error);
+      transaction.onabort = (event) => reject(event.target.error);
+    });
   }
 
   async returnVocab(offset = 0, limit = 10) {
@@ -860,6 +965,16 @@ class Popup extends ModTemplate {
     });
 
     expressapp.get('/' + encodeURI(this.returnSlug() + '/testimonials'), async function (req, res) {
+      let html = PopupHome(app, popup_self, app.build_number);
+      if (!res.finished) {
+        res.setHeader('Content-type', 'text/html');
+        res.charset = 'UTF-8';
+        return res.send(html);
+      }
+      return;
+    });
+
+    expressapp.get('/' + encodeURI(this.returnSlug() + '/hsk'), async function (req, res) {
       let html = PopupHome(app, popup_self, app.build_number);
       if (!res.finished) {
         res.setHeader('Content-type', 'text/html');

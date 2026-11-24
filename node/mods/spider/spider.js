@@ -918,10 +918,10 @@ class Spider extends OnePlayerGameTemplate {
     else return true;
   }
 
-  handleGameLoop(msg = null) {
+  async handleGameLoop(msg = null) {
     let spider_self = this;
 
-    this.saveGame(this.game.id);
+    await this.saveGame(this.game.id);
     ///////////
     // QUEUE //
     ///////////

@@ -201,7 +201,7 @@ class RobotsUI {
       const position = run.status === 'cleared' ? 'after' : 'at the start of';
       if (await sconfirm(`Resume ${position} level ${run.wave}? This replaces your current board.`)) {
         // Keep the chosen checkpoint stable if an Archive response arrives during the prompt.
-        if (this.mod.levelSaves.restore(tx)) this.update('LEVEL RESTORED');
+        if (await this.mod.levelSaves.restore(tx)) this.update('LEVEL RESTORED');
       }
     } finally {
       this.confirming = false;

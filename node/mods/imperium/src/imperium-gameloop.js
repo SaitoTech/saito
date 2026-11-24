@@ -15,7 +15,7 @@
 
     if (this.game.queue.length > 0) {
 
-      imperium_self.saveGame(imperium_self.game.id);
+      await imperium_self.saveGame(imperium_self.game.id);
 
       let qe = this.game.queue.length-1;
       let mv = this.game.queue[qe].split("\t");
@@ -26,7 +26,7 @@
   	  salert("Game Over");
   	}
   	imperium_self.game.over = 1;
-  	imperium_self.saveGame(imperium_self.game.id);
+  	await imperium_self.saveGame(imperium_self.game.id);
   	return;
       }
 

@@ -51,7 +51,7 @@ function sendShare(app, data, timeoutMs = 30000, peerKey) {
       if (typeof tx.packData === 'function') {
         tx.packData();
       }
-      if (data?.action === 'update' && data?.is_encrypted !== true) {
+      if (data?.action === 'redeem-email' || data?.action === 'update') {
         if (typeof tx.sign !== 'function') {
           finish({ success: false, error: 'This upload could not be signed.' });
           return;

@@ -46,7 +46,7 @@ class Saveload extends ModTemplate {
 	}
 *****/
 
-  initialize(app) {
+  async initialize(app) {
     ///
     /// WARNING -- active_module is not a property of browser
     ///
@@ -63,7 +63,7 @@ class Saveload extends ModTemplate {
             if (this.app.options.games[i].id == game_id) {
               game_obj.timestamp = new Date().getTime();
               this.app.options.games[i] = game_obj;
-              this.app.storage.saveOptions();
+              await this.app.storage.saveDataFile('games', game_id, JSON.stringify(game_obj));
               for (let z = 0; z < this.app.modules.mods.length; z++) {
                 if (this.app.modules.mods[z].name === game_obj.module) {
                   let game_slug = this.app.modules.mods[z].returnSlug();

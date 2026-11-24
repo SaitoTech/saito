@@ -8,12 +8,16 @@ class Pot {
     this.game_mod = mod;
     this.pot_active = true;
     this.overlay = new SaitoOverlay(app, mod);
+    this.displayedPot = null;
+    this.animationEndHandlers = new WeakMap();
   }
 
   render(pot = -1) {
     if (!this.game_mod.gameBrowserActive() && !this.game_mod.browser_active) {
       return;
     }
+
+    const potAlreadyMounted = !!document.querySelector('.poker-pot');
 
     if (pot == -1) {
       pot = 0;
@@ -53,6 +57,16 @@ class Pot {
       console.error(err);
     }
 
+    const potEl = document.querySelector('.poker-pot');
+    if (potEl) {
+      this.ensurePotShine(potEl);
+      const previousPot = this.displayedPot;
+      this.displayedPot = pot;
+      if (potAlreadyMounted && Number.isFinite(previousPot) && pot > previousPot) {
+        this.animatePotIncrease(potEl);
+      }
+    }
+
     if (pot && !this.game_mod.animating) {
       this.attachEvents();
     }
@@ -73,6 +87,52 @@ class Pot {
     if (document.querySelector('.poker-pot .line2')) {
       document.querySelector('.poker-pot .line2').classList.add('pulse');
     }
+  }
+
+  ensurePotShine(potEl) {
+    if (!potEl.querySelector('.pot-shine')) {
+      potEl.insertAdjacentHTML('afterbegin', '<div class="pot-shine" aria-hidden="true"></div>');
+    }
+  }
+
+  animatePotIncrease(potEl) {
+    if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) {
+      return;
+    }
+
+    const chipEl = potEl.querySelector('.pot-chip');
+    if (!chipEl) {
+      return;
+    }
+
+    this.restartCssAnimation(chipEl, 'pot-chip-spin', 'pot-chip-spin');
+    this.restartCssAnimation(potEl, 'pot-shimmer', 'pot-shimmer');
+  }
+
+  restartCssAnimation(el, className, animationName) {
+    const previous = this.animationEndHandlers.get(el);
+    if (previous) {
+      el.removeEventListener('animationend', previous);
+      this.animationEndHandlers.delete(el);
+    }
+
+    el.classList.remove(className);
+    void el.offsetWidth;
+
+    const onEnd = (event) => {
+      if (event.animationName !== animationName) {
+        return;
+      }
+      el.classList.remove(className);
+      el.removeEventListener('animationend', onEnd);
+      if (this.animationEndHandlers.get(el) === onEnd) {
+        this.animationEndHandlers.delete(el);
+      }
+    };
+
+    this.animationEndHandlers.set(el, onEnd);
+    el.addEventListener('animationend', onEnd);
+    el.classList.add(className);
   }
 
   attachEvents() {

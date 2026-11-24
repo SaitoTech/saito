@@ -172,7 +172,7 @@ class GameQueue {
     //
     if (!this.game || this.game.id !== game_id) {
       //console.debug('GT [initializeGameQueue]: Loading Game');
-      this.loadGame(game_id);
+      await this.loadGame(game_id);
     }
 
     //
@@ -217,7 +217,7 @@ class GameQueue {
       this.game.crypto = this.game.options.crypto;
     }
 
-    this.initializeGame(game_id);
+    await this.initializeGame(game_id);
 
     //
     // True initialization!!
@@ -257,7 +257,7 @@ class GameQueue {
         }
       }
 
-      this.saveGame(this.game.id);
+      await this.saveGame(this.game.id);
     }
 
     //
@@ -351,7 +351,7 @@ class GameQueue {
       }
     }
 
-    this.saveGame(this.game.id);
+    await this.saveGame(this.game.id);
 
     await this.startQueue();
 
@@ -540,7 +540,7 @@ class GameQueue {
 
     this.commands.push(async (game_self, gmv) => {
       if (gmv[0] === 'SALERT' || gmv[0] === 'salert') {
-        if (game_self.app.BROWSER == 1) {
+        if (game_self.browser_active) {
           try {
             salert(gmv[1]);
           } catch (err) {}
@@ -619,11 +619,9 @@ class GameQueue {
         let game_id = game_self.game.id;
         let backup_game = JSON.parse(JSON.stringify(game_self.game));
 
-        for (let i = 0; i < this.app.options.games.length; i++) {
-          if (this.app.options.games[i].id === game_id) {
-            backup_game = JSON.parse(JSON.stringify(this.app.options.games[i]));
-            i = this.app.options.games.length + 1;
-          }
+        let stored_game = await game_self.app.storage.loadDataFile('games', game_id);
+        if (stored_game) {
+          backup_game = stored_game;
         }
 
         backup_game.queue.push(
@@ -666,12 +664,6 @@ class GameQueue {
     });
     this.commands.push(async (game_self, gmv) => {
       if (gmv[0] === 'ACKNOWLEDGE') {
-        // A headless player records notifications without a presentation pause.
-        if (game_self.app.HEADLESS) {
-          game_self.updateLog(gmv[1]);
-          game_self.game.queue.pop();
-          return 1;
-        }
         let notice = gmv[1];
         let player = gmv[2]; // optional = which player must acknowledge to continue, or array of players
 
@@ -685,7 +677,7 @@ class GameQueue {
 
         game_self.hud.hideBackButton();
 
-        game_self.saveGame(game_self.game.id);
+        await game_self.saveGame(game_self.game.id);
 
         if (game_self.game.player == 0) {
           game_self.game.queue.splice(game_self.game.queue.length - 1, 1);
@@ -721,9 +713,12 @@ class GameQueue {
           // provide a slight window which allows the status/hud to update
           // before we continue throwing work at the CPU.
           //
-          setTimeout(() => {
-            if (game_self.game.id != my_specific_game_id) {
-              game_self.game = game_self.loadGame(my_specific_game_id);
+          setTimeout(async () => {
+            if (game_self.game?.id != my_specific_game_id) {
+              await game_self.loadGame(my_specific_game_id);
+            }
+            if (game_self.game?.id != my_specific_game_id) {
+              return;
             }
             game_self.acknowledge_overlay.hide();
             game_self.hud.hideBackButton();
@@ -756,7 +751,7 @@ class GameQueue {
         game_self.game.over = 1;
         game_self.game.last_block = game_self.app.blockchain.last_bid;
 
-        if (game_self.app.HEADLESS || game_self.gameBrowserActive()) {
+        if (game_self.gameBrowserActive()) {
           game_self.gameOverUserInterface();
         } else {
           if (game_self.game.reason !== 'cancellation') {
@@ -765,7 +760,7 @@ class GameQueue {
           }
         }
 
-        game_self.saveGame(game_self.game.id);
+        await game_self.saveGame(game_self.game.id);
         return 0;
       }
       return 1;
@@ -1142,7 +1137,7 @@ class GameQueue {
       if (gmv[0] == 'READY') {
         game_self.game.initializing = 0;
         game_self.game.queue.splice(game_self.game.queue.length - 1, 1);
-        game_self.saveGame(game_self.game.id);
+        await game_self.saveGame(game_self.game.id);
 
         //
         // observer mode
@@ -1151,7 +1146,7 @@ class GameQueue {
           game_self.game_state_pre_move = JSON.parse(JSON.stringify(game_self.game));
         }
 
-        if (game_self.app.HEADLESS || game_self.gameBrowserActive()) {
+        if (game_self.gameBrowserActive()) {
           return 1;
         } else {
           //Otherwise we want to pause game processing
@@ -2441,7 +2436,7 @@ class GameQueue {
                 'pool:',
                 JSON.parse(JSON.stringify(game_self.game.pool[poolidx - 1]))
               );
-              if (game_self.app.BROWSER) {
+              if (game_self.browser_active) {
                 siteMessage('There was a decryption error which will make the game unplayable');
               }
             }
@@ -2463,7 +2458,7 @@ class GameQueue {
         if (game_self.game.player == 0) {
           //console.info('GT: Halt game for observer checkpoint');
           game_self.halted = 1;
-          game_self.saveGame(game_self.game.id);
+          await game_self.saveGame(game_self.game.id);
           game_self.observerControls?.updateStatus('Pause for Observer Checkpoint');
           return 0;
         }
@@ -2935,7 +2930,7 @@ class GameQueue {
 
         let my_specific_game_id = game_self.game.id;
         let my_queue_entry = game_self.game.queue[game_self.game.queue.length - 1];
-        game_self.saveGame(game_self.game.id);
+        await game_self.saveGame(game_self.game.id);
         game_self.halted = 1;
 
         let sendPaymentWrapper = async () => {
@@ -2945,9 +2940,12 @@ class GameQueue {
             [receiver_crypto_address],
             [amount],
             unique_hash,
-            function (robj) {
-              if (game_self.game.id != my_specific_game_id) {
-                game_self.game = game_self.loadGame(my_specific_game_id);
+            async function (robj) {
+              if (game_self.game?.id != my_specific_game_id) {
+                await game_self.loadGame(my_specific_game_id);
+              }
+              if (game_self.game?.id != my_specific_game_id) {
+                return 0;
               }
 
               game_self.app.connection.emit('saito-crypto-send-confirm', robj);
@@ -3033,7 +3031,7 @@ class GameQueue {
 
         let my_specific_game_id = game_self.game.id;
         let my_queue_entry = game_self.game.queue[game_self.game.queue.length - 1];
-        game_self.saveGame(game_self.game.id);
+        await game_self.saveGame(game_self.game.id);
         game_self.halted = 1;
 
         //
@@ -3049,9 +3047,12 @@ class GameQueue {
           ticker,
           hash: unique_hash,
           game_id: game_self.game.id,
-          mycallback: function () {
-            if (game_self.game.id != my_specific_game_id) {
-              game_self.game = game_self.loadGame(my_specific_game_id);
+          mycallback: async function () {
+            if (game_self.game?.id != my_specific_game_id) {
+              await game_self.loadGame(my_specific_game_id);
+            }
+            if (game_self.game?.id != my_specific_game_id) {
+              return 0;
             }
 
             //

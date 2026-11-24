@@ -73,3 +73,21 @@ const SettingsTemplate = require('./settings.template');
 ```
 
 Stylesheets are not required from JavaScript. A module lists them on `this.styles` as URLs, for example `'/saitosign/style.css'`. The browser loads that file on its own. `web/` and `www/` are also excluded from the bundle by `/\/web\//` and `/\/www\//`.
+
+## Node-only libraries stay on the full node
+
+The lite list in `node/config/modules.config.js` is the browser bundle. Webpack follows every `require()` and `import()` it can see from those entries, including imports inside `if (!app.BROWSER)`. A comment that a library is only used on the server does not keep it out of the bundle.
+
+Do not give the lite client a Node-only library unless the browser itself must run that code. That includes `jsdom`, database drivers, proxy agents, and anything else that imports Node core modules such as `assert`, `fs`, `net`, or `tls`. Webpack 5 does not polyfill those modules, and the lite compile fails on the first one it cannot resolve.
+
+Put server-only code in a file the lite entry never imports. The full node loads that file only when `app.BROWSER` is false:
+
+```javascript
+if (!app.BROWSER) {
+  const loaded = await import(/* webpackIgnore: true */ './lib/server-only.js');
+}
+```
+
+`import()` honors `/* webpackIgnore: true */`. The same comment on `require()` does nothing unless `module.parser.javascript.commonjsMagicComments` is enabled, which this repository does not enable. A variable passed to `require()` is also unsafe: Webpack may bundle every file in that directory.
+
+When the browser needs a result from that server-only code, send a peer transaction. The server module receives it in `handlePeerTransaction()` and returns the response. The browser keeps the interface. The library stays on the node that can run it. [Module distribution](SAITO-DEVELOPMENT-MODULE-DISTRIBUTION-AND-RUNTIME-INSTALLATION.md) describes that server boundary.

@@ -44,7 +44,6 @@ config/.temp.*
 /twilight.json
 /paths.json
 /multi.json
-/runner-data/
 
 scripts/mods
 scripts/mods/*

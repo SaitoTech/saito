@@ -66,6 +66,7 @@
     "html2canvas": "1.4.1",
     "identicon.js": "2.3.3",
     "jimp": "0.22.12",
+    "jquery": "3.7.1",
     "jsdom": "16.7.0",
     "json-bigint": "1.0.0",
     "json-tree-viewer": "0.0.2",

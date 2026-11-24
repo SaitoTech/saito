@@ -320,3 +320,26 @@ test('concurrent uploads from the same downloaded version merge in either arriva
   assert.equal(duplicate.stored, false);
   assert.equal(writes.length, 3);
 });
+
+test('a confirmed wallet restart replaces one signer and leaves the others in place', async () => {
+  const cryptoApp = app();
+  const original = await baseDocument(cryptoApp);
+  const saved = merge(cryptoApp, original, signedCopy(cryptoApp, original, 0, 'user-a'), 'user-a').record;
+  const withBea = merge(cryptoApp, saved, signedCopy(cryptoApp, original, 1, 'user-b'), 'user-b').record;
+  const restarted = signedCopy(cryptoApp, original, 0, 'user-a2');
+  restarted.users[1] = clone(withBea.users[1]);
+
+  const blocked = merge(cryptoApp, withBea, restarted, 'user-a2');
+  assert.equal(blocked.error, PUBLIC_KEY_MISMATCH);
+  assert.equal(withBea.users[0].publickey, 'user-a');
+  assert.equal(withBea.users[1].publickey, 'user-b');
+
+  const replaced = mergeSignatureRecords(cryptoApp, withBea, restarted, 'user-a2', SERVER, { restart: true });
+  assert.equal(replaced.ok, true);
+  assert.equal(replaced.record.users[0].publickey, 'user-a2');
+  assert.equal(replaced.record.users[0].signatures.length, 1);
+  assert.equal(replaced.record.users[1].publickey, 'user-b');
+  assert.deepEqual(replaced.record.users[1].signatures, withBea.users[1].signatures);
+  assert.equal(replaced.record.users[2].publickey, '');
+  assert.deepEqual(replaced.record.users[2].signatures, []);
+});

@@ -36,8 +36,8 @@ class GameTableTemplate extends GameTemplate {
     this.exitOverlay = new SaitoOverlay(app, this, false);
   }
 
-  initializeGame() {
-    super.initializeGame();
+  async initializeGame() {
+    await super.initializeGame();
   }
 
   //
@@ -190,7 +190,7 @@ class GameTableTemplate extends GameTemplate {
       // make sure the joiner receives our sig rebroadcasts and the eventual
       // boundary SHARE, regardless of FOLLOW/JOIN arrival order
       //
-      this.addFollower(pkey);
+      await this.addFollower(pkey);
 
       // Temporary storage here
       if (!this.joining[pkey]) {
@@ -286,7 +286,7 @@ class GameTableTemplate extends GameTemplate {
     // of our latest hand-boundary state
     //
     if (txmsg.request == 'FOLLOW') {
-      this.addFollower(txmsg.my_key);
+      await this.addFollower(txmsg.my_key);
       if (!tx.isFrom(this.publicKey)) {
         if (this.cacheGame) {
           this.sendMetaMessage('SHARE', JSON.stringify(this.cacheGame));
@@ -305,10 +305,10 @@ class GameTableTemplate extends GameTemplate {
     //
     if (txmsg.request == 'SHARE') {
       for (let i = 0; i < tx.to.length; i++) {
-        this.addFollower(tx.to[i].publicKey);
+        await this.addFollower(tx.to[i].publicKey);
       }
       if (this.game?.pending_join && txmsg.game_id == this.game.id) {
-        this.adoptSharedTableState(tx);
+        await this.adoptSharedTableState(tx);
       }
       return;
     }
@@ -323,7 +323,7 @@ class GameTableTemplate extends GameTemplate {
   // state (following as player 0) and record a commitment baseline so
   // incoming signatures can be verified against exactly what we hold.
   //
-  adoptSharedTableState(tx) {
+  async adoptSharedTableState(tx) {
     let txmsg = tx.returnMessage();
 
     // any response proves the table is live -- stop the no-response timer
@@ -372,7 +372,7 @@ class GameTableTemplate extends GameTemplate {
       }
     }
 
-    this.saveGame(this.game.id);
+    await this.saveGame(this.game.id);
 
     if (my_seat >= 0) {
       // seated via the boundary handoff
@@ -488,13 +488,13 @@ class GameTableTemplate extends GameTemplate {
     return true;
   }
 
-  abortPendingJoin(reason) {
+  async abortPendingJoin(reason) {
     console.error('GTT: aborting join -- ' + reason);
     this.sendMetaMessage('CANCEL');
     delete this.joining[this.publicKey];
     delete this.game.pending_join;
     this.game.over = 2;
-    this.saveGame(this.game.id);
+    await this.saveGame(this.game.id);
     if (this.browser_active) {
       this.syncBodyGameClasses();
     }
@@ -507,9 +507,9 @@ class GameTableTemplate extends GameTemplate {
   // abortPendingJoin this is user-initiated and not an error, so it just
   // withdraws quietly and hides the abandoned stub from the arcade.
   //
-  cancelPendingJoin(game_id = this.game?.id) {
+  async cancelPendingJoin(game_id = this.game?.id) {
     if (game_id && this.game?.id !== game_id) {
-      this.loadGame(game_id);
+      await this.loadGame(game_id);
     }
     if (!this.game?.pending_join) {
       return;
@@ -522,7 +522,7 @@ class GameTableTemplate extends GameTemplate {
     delete this.joining[this.publicKey];
     delete this.game.pending_join;
     this.game.over = 2; // hide the abandoned stub from arcade continue-lists
-    this.saveGame(this.game.id);
+    await this.saveGame(this.game.id);
     siteMessage('Cancelled your seat request', 2500);
   }
 
@@ -536,8 +536,8 @@ class GameTableTemplate extends GameTemplate {
   async requestSeatAtTable(game_tx) {
     let game_id = game_tx.signature;
 
-    if (this.doesGameExistLocally(game_id)) {
-      this.loadGame(game_id);
+    if (await this.doesGameExistLocally(game_id)) {
+      await this.loadGame(game_id);
       if (this.game?.players?.includes(this.publicKey)) {
         return 'already-playing';
       }
@@ -550,7 +550,7 @@ class GameTableTemplate extends GameTemplate {
     this.game.pending_join = true; // persisted -- survives navigation and reloads
     this.game.initializing = 1; // arcade lounge shows the initializing spinner
     this.join_ready_emitted = false;
-    this.saveGame(this.game.id);
+    await this.saveGame(this.game.id);
 
     //
     // FOLLOW gets us onto every player's accepted[] list and prompts a SHARE
@@ -567,10 +567,10 @@ class GameTableTemplate extends GameTemplate {
     //
     // nobody home? don't leave the joiner staring at a spinner forever
     //
-    this.pending_join_timeout = setTimeout(() => {
+    this.pending_join_timeout = setTimeout(async () => {
       if (this.game?.pending_join && !this.join_ready_emitted) {
         delete this.game.pending_join;
-        this.saveGame(this.game.id);
+        await this.saveGame(this.game.id);
         salert('Unable to join: the players did not respond. Try again later.');
       }
     }, 20000);
@@ -648,7 +648,7 @@ class GameTableTemplate extends GameTemplate {
 
     if (this.publicKey === resigning_player) {
       this.game.over = 2;
-      this.saveGame(this.game.id);
+      await this.saveGame(this.game.id);
     }
 
     //Stop receiving game txs
@@ -660,7 +660,7 @@ class GameTableTemplate extends GameTemplate {
         }
       }
       console.warn(`GTT: ${resigning_player} not in ${JSON.stringify(this.game.players)}`);
-      this.saveGame(this.game.id);
+      await this.saveGame(this.game.id);
 
       return;
     }
@@ -756,7 +756,7 @@ class GameTableTemplate extends GameTemplate {
       return;
     }
 
-    this.saveGame(this.game.id);
+    await this.saveGame(this.game.id);
 
     for (let payment of payments) {
       await this.executeExitPayment(payment);
@@ -844,7 +844,7 @@ class GameTableTemplate extends GameTemplate {
     this.app.connection.emit('saito-crypto-send-confirm', robj);
   }
 
-  resetGameWithFewerPlayers() {
+  async resetGameWithFewerPlayers() {
     console.log('!!!!!!!!!!!!!!!!!!!!\n', '!!! GAME UPDATED !!!\n', '!!!!!!!!!!!!!!!!!!!!');
     console.log('My Public Key: ' + this.publicKey);
     console.log('My Position: ' + this.game.player);
@@ -855,7 +855,7 @@ class GameTableTemplate extends GameTemplate {
 
     this.game.queue = [this.resetCommand];
     this.game.live = true;
-    this.saveGame(this.game.id);
+    await this.saveGame(this.game.id);
 
     this.reinitializeGameRun(1000);
   }
@@ -904,7 +904,7 @@ class GameTableTemplate extends GameTemplate {
           await game_self.sendStopGameTransaction('withdraw');
           game_self.game.over = 2;
           game_self.removePlayer(game_self.publicKey);
-          game_self.saveGame(game_self.game.id);
+          await game_self.saveGame(game_self.game.id);
           setTimeout(() => {
             //Recursive but will call super because changed the flag
             game_self.exitGame();
@@ -1029,7 +1029,7 @@ class GameTableTemplate extends GameTemplate {
       return 1;
     });
 
-    this.commands.push((game_self, gmv) => {
+    this.commands.push(async (game_self, gmv) => {
       if (gmv[0] === 'RESTARTGAME') {
         this.toLeave = [];
 
@@ -1042,7 +1042,7 @@ class GameTableTemplate extends GameTemplate {
 
         this.halted = 1;
 
-        this.resetGameWithFewerPlayers();
+        await this.resetGameWithFewerPlayers();
         return 0;
       }
       return 1;

@@ -57,12 +57,17 @@ class ReviewSession {
     this.slots = null;
     this.timer = null;
     this.closed = false;
+    this.onlyIds = null;
   }
 
   async prepare() {
     const records = (await this.mod.returnAllVocabulary()) || [];
     this.pool = records.map(mapVocabRecord).filter((word) => word && word.id != null);
-    this.due = this.pool.filter((word) => isDue(word));
+    if (this.onlyIds) {
+      this.due = this.pool.filter((word) => this.onlyIds.has(Number(word.id)));
+    } else {
+      this.due = this.pool.filter((word) => isDue(word));
+    }
     return this;
   }
 
@@ -109,9 +114,13 @@ class ReviewSession {
     }
   }
 
-  async start(slots) {
+  async start(slots, options = {}) {
     this.slots = slots;
     this.closed = false;
+    this.onlyIds = null;
+    if (options && Array.isArray(options.ids) && options.ids.length) {
+      this.onlyIds = new Set(options.ids.map((id) => Number(id)));
+    }
     await this.prepare();
     this.showNext();
   }

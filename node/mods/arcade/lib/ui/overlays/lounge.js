@@ -46,7 +46,7 @@ class LoungeOverlay {
     });
   }
 
-  render() {
+  async render() {
     if (this.game_id != null && this.invite == null) {
       this._renderGameIdMode();
       return;
@@ -76,7 +76,7 @@ class LoungeOverlay {
         console.error('ARCADE: [joinGame] error creating jsonTree: ', err);
       }
     } else {
-      this.overlay.show(LoungeOverlayTemplate(this.app, this.mod, this.invite));
+      this.overlay.show(await LoungeOverlayTemplate(this.app, this.mod, this.invite));
     }
 
     this.overlay.setBackground(game_mod.respondTo('arcade-games').image);
@@ -577,10 +577,10 @@ class LoungeOverlay {
     // ... or revoke the pending seat request (CANCEL meta, not a game cancel)
     //
     if (document.getElementById('arcade-game-controls-cancel-tentative')) {
-      document.getElementById('arcade-game-controls-cancel-tentative').onclick = (e) => {
+      document.getElementById('arcade-game-controls-cancel-tentative').onclick = async (e) => {
         let game_mod = this.app.modules.returnModuleBySlug(this.invite.game_slug);
         if (typeof game_mod?.cancelPendingJoin === 'function') {
-          game_mod.cancelPendingJoin(this.invite.game_id);
+          await game_mod.cancelPendingJoin(this.invite.game_id);
         }
         this.overlay.remove();
       };
