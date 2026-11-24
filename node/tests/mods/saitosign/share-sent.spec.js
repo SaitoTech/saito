@@ -67,6 +67,29 @@ test('password encryption stays on the readiness screen', () => {
   assert.equal(shareProtectionError({ protect: true, password: 'secret', confirm: 'secret' }), '');
 });
 
+test('the ready screen continues with one footer button', () => {
+  const html = publishTemplate({
+    step: 'ready',
+    history: ['select'],
+    signers: [{
+      index: 0,
+      name: 'Ada',
+      places: 1,
+      signed: false,
+      creator: true,
+      requirements: ['Signature required: all pages']
+    }]
+  });
+  assert.match(html, /<h3 class="title">Digital Signatures Required:<\/h3>/);
+  assert.match(html, /Signature required: all pages/);
+  assert.match(html, />Not signed</);
+  assert.match(html, /data-publish-action="back"/);
+  assert.match(html, /<div class="actions"><button type="button" class="saito-button-primary" data-publish-action="ready-yes">Continue<\/button><\/div>/);
+  assert.match(html, /On the next page we will prepare the document for all parties to sign/);
+  assert.match(html, /<button type="button" class="share-text-link" data-publish-action="ready-sign">click here<\/button>/);
+  assert.doesNotMatch(html, /ready-no|status-choice|I'm ready to sign or share|I need to add more signatures|Is this document ready to sign/);
+});
+
 test('continue sends the existing invitation', () => {
   const html = publishTemplate({
     step: 'share-recipients',

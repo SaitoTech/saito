@@ -6,6 +6,13 @@ function emailAddress(state) {
   return state.you && state.you.email ? state.you.email : '';
 }
 
+function emailFrame() {
+  return emailPanel({
+    you: { email: '' },
+    verificationMethods: [{ id: 'email', status: 'pending' }]
+  }).replace(/\s(?:id|for|name|data-[\w-]+)(?:="[^"]*")?/g, '');
+}
+
 function emailPanel(state) {
   const email = state.verificationMethods.find((method) => method.id === 'email');
   if (email && email.status === 'verified') {
@@ -112,7 +119,8 @@ function verifySlide(state) {
       <div class="verify-flow">
         ${methodsTemplate(state.verificationMethods, state.upsell || focus)}
         <div class="detail">
-          ${panel}
+          <div class="verify-panel">${panel}</div>
+          <div class="verify-sizer" aria-hidden="true" inert>${emailFrame()}</div>
         </div>
       </div>
     `

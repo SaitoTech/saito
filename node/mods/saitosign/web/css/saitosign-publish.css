@@ -1447,18 +1447,39 @@
 }
 
 .saitosign-publish .verify-flow > .detail {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  align-self: start;
+  min-width: 0;
+  margin: 0;
+  padding: 2.2rem 2.4rem;
+  overflow: hidden;
+  border: 1px solid var(--saito-border);
+  border-radius: var(--saito-radius);
+  background: color-mix(in srgb, var(--saito-card) 72%, transparent);
+}
+
+.saitosign-publish .verify-sizer,
+.saitosign-publish .verify-panel {
   display: flex;
   flex-direction: column;
   align-items: stretch;
   justify-content: flex-start;
-  align-self: start;
   gap: 1.2rem;
-  min-height: 0;
-  margin: 0;
-  padding: 2.2rem 2.4rem;
-  border: 1px solid var(--saito-border);
-  border-radius: var(--saito-radius);
-  background: color-mix(in srgb, var(--saito-card) 72%, transparent);
+  min-width: 0;
+}
+
+.saitosign-publish .verify-sizer {
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.saitosign-publish .verify-panel {
+  position: absolute;
+  inset: 2.2rem 2.4rem;
+  overflow: auto;
 }
 
 .saitosign-publish .verify-mark {

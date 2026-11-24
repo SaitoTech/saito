@@ -95,21 +95,6 @@ function peopleHTML(state) {
   `;
 }
 
-function readyChoices() {
-  return `
-    <div class="status-choices">
-      <button type="button" class="status-choice stacked" data-publish-action="ready-yes">
-        <span>Yes</span>
-        <span class="choice-note">I'm ready to sign or share.</span>
-      </button>
-      <button type="button" class="status-choice stacked" data-publish-action="ready-no">
-        <span>No</span>
-        <span class="choice-note">I need to add more signatures.</span>
-      </button>
-    </div>
-  `;
-}
-
 function decideChoices() {
   return `
     <div class="status-choices">
@@ -155,11 +140,11 @@ function readyActions() {
 
 function readySlide(state) {
   return {
-    title: 'Is this document ready to sign?',
+    title: 'Digital Signatures Required:',
     body: `
       <div class="share-step">
         ${peopleHTML(state)}
-        ${readyChoices()}
+        <p class="share-instruction">On the next page we will prepare the document for all parties to sign. As part of this process, you will be sent an email to sign along with the other participants if you are a signatory. If you wish to sign the document in advance, you can <button type="button" class="share-text-link" data-publish-action="ready-sign">click here</button> to verify your identity and sign before sharing.</p>
       </div>
     `
   };

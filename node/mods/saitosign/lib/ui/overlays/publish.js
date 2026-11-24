@@ -390,12 +390,31 @@ class PublishOverlay {
   }
 
   async confirmReady() {
-    const ready = await this.commitFinalization();
-    if (!ready) {
-      return;
+    if (!this.mod.document?.finalized) {
+      const ready = await this.commitFinalization();
+      if (!ready) {
+        return;
+      }
     }
+    this.openPreparedShare();
+  }
+
+  async signBeforeSharing() {
+    if (!this.mod.document?.finalized) {
+      const ready = await this.commitFinalization();
+      if (!ready) {
+        return;
+      }
+    } else if (!this.state.finalized) {
+      this.state = this.summaryState({ ...this.state, allowUnfinalize: false, entry: 'prepare' });
+    }
+    this.showWhoAreYou();
+  }
+
+  openPreparedShare() {
     this.state.entry = 'prepare';
-    this.state = flow.go(this.state, 'decide-sign');
+    this.shareFlow.ensureRecipients();
+    this.state = flow.go(this.state, 'share-recipients');
     this.showStep('forward');
   }
 
@@ -738,13 +757,13 @@ class PublishOverlay {
         return;
       }
 
-      if (action.dataset.publishAction === 'ready-no') {
-        this.close();
+      if (action.dataset.publishAction === 'ready-yes') {
+        this.confirmReady();
         return;
       }
 
-      if (action.dataset.publishAction === 'ready-yes') {
-        this.confirmReady();
+      if (action.dataset.publishAction === 'ready-sign') {
+        this.signBeforeSharing();
         return;
       }
 
@@ -754,10 +773,7 @@ class PublishOverlay {
       }
 
       if (action.dataset.publishAction === 'sign-no') {
-        this.state.entry = 'prepare';
-        this.shareFlow.ensureRecipients();
-        this.state = flow.go(this.state, 'share-recipients');
-        this.showStep('forward');
+        this.openPreparedShare();
         return;
       }
 
