@@ -1,5 +1,7 @@
 .game.wordblocks,
 .game.wordblocks body {
+	--wb-chit: min(6.4rem, calc((100vw - 2.4rem) / 7.6));
+	--wb-gap: clamp(0.35rem, 0.8vw, 0.7rem);
 	background: #1e4c6e url('/wordblocks/img/background.jpg') center / cover no-repeat;
 	color: #f6f1e7;
 }
@@ -211,6 +213,37 @@
 	white-space: nowrap;
 }
 
+.game.wordblocks .wb-player-stats {
+	display: grid;
+	grid-template-columns: max-content minmax(0, 1fr);
+	column-gap: 0.8rem;
+	row-gap: 0.12rem;
+	align-items: baseline;
+	min-width: 0;
+	margin: 0.15rem 0 0;
+}
+
+.game.wordblocks .wb-player-stats dt,
+.game.wordblocks .wb-player-stats dd {
+	margin: 0;
+	min-width: 0;
+	font-size: 1.35rem;
+	line-height: 1.25;
+}
+
+.game.wordblocks .wb-player-stats dt {
+	color: var(--saito-muted-foreground, #d5dee6);
+	font-weight: 500;
+}
+
+.game.wordblocks .wb-player-stats dd {
+	color: #efe2c0;
+	text-align: right;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
 .game.wordblocks .wb-player-rank,
 .game.wordblocks .playerbox-action {
 	font-size: 1.45rem;
@@ -412,6 +445,8 @@
 .game.wordblocks .sc10::after { content: '10'; }
 
 .game.wordblocks .slot .tile {
+	position: relative;
+	z-index: 2;
 	width: calc(100% - 3px);
 	height: calc(100% - 3px);
 	margin: auto;
@@ -431,9 +466,21 @@
 	box-shadow: inset 0 0 0 1px rgba(198, 161, 90, 0.55);
 }
 
-.game.wordblocks .slot.wb-target {
-	box-shadow: inset 0 0 0 3px rgba(255, 250, 240, 0.95);
-	background: rgba(255, 248, 230, 0.85);
+.game.wordblocks .slot.wb-target,
+.game.wordblocks .slot.wb-hover {
+	box-shadow:
+		inset 0 0 0 3px rgba(198, 161, 90, 0.95),
+		0 6px 14px rgba(20, 16, 10, 0.28);
+}
+
+.game.wordblocks .slot.wb-target::after,
+.game.wordblocks .slot.wb-hover::after {
+	content: '';
+	position: absolute;
+	inset: 0;
+	z-index: 1;
+	background: rgba(255, 248, 230, 0.34);
+	pointer-events: none;
 }
 
 .game.wordblocks .wb-shake {
@@ -456,21 +503,50 @@
 	box-shadow: inset 0 0 0 2px rgba(255, 250, 240, 0.85);
 }
 
+.game.wordblocks .wb-place-arrow {
+	position: absolute;
+	inset: 0;
+	z-index: 4;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	pointer-events: none;
+	font-size: 22px;
+	font-weight: 700;
+	line-height: 1;
+	color: rgba(42, 33, 20, 0.78);
+	text-shadow: 0 1px 0 rgba(255, 250, 240, 0.85);
+}
+
+.game.wordblocks .wb-rack {
+	width: calc(7 * var(--wb-chit) + 6 * var(--wb-gap));
+	box-sizing: border-box;
+}
+
 .game.wordblocks .tiles {
 	display: flex;
 	position: relative;
 	flex-wrap: nowrap;
-	justify-content: center;
+	justify-content: flex-start;
 	align-items: flex-end;
-	gap: clamp(0.35rem, 0.8vw, 0.7rem);
-	min-height: 6.4rem;
+	gap: var(--wb-gap);
+	width: 100%;
+	min-height: calc(var(--wb-chit) + 0.5rem);
 	padding: 0.35rem 0 0.15rem;
+	border-radius: 0.4rem;
+	background: repeating-linear-gradient(
+		90deg,
+		rgba(255, 250, 240, 0.08) 0,
+		rgba(255, 250, 240, 0.08) var(--wb-chit),
+		transparent var(--wb-chit),
+		transparent calc(var(--wb-chit) + var(--wb-gap))
+	);
 }
 
 .game.wordblocks .tiles .tile {
-	width: min(6.4rem, calc((100vw - 2.4rem) / 7.6));
-	height: min(6.4rem, calc((100vw - 2.4rem) / 7.6));
-	flex: 0 0 auto;
+	width: var(--wb-chit);
+	height: var(--wb-chit);
+	flex: 0 0 var(--wb-chit);
 	font-size: min(3.1rem, calc((100vw - 2.4rem) / 15));
 	transition: transform 0.16s ease, box-shadow 0.16s ease;
 	touch-action: none;
@@ -499,8 +575,8 @@
 .game.wordblocks .wb-ghost {
 	position: fixed;
 	z-index: 80;
-	width: min(6.4rem, calc((100vw - 2.4rem) / 7.6));
-	height: min(6.4rem, calc((100vw - 2.4rem) / 7.6));
+	width: var(--wb-chit);
+	height: var(--wb-chit);
 	font-size: min(3.1rem, calc((100vw - 2.4rem) / 15));
 	pointer-events: none;
 	margin: 0;
@@ -509,9 +585,9 @@
 }
 
 .game.wordblocks .wb-caret {
-	width: min(6.4rem, calc((100vw - 2.4rem) / 7.6));
-	height: min(6.4rem, calc((100vw - 2.4rem) / 7.6));
-	flex: 0 0 auto;
+	width: var(--wb-chit);
+	height: var(--wb-chit);
+	flex: 0 0 var(--wb-chit);
 	align-self: flex-end;
 	border-radius: 4px;
 	background: rgba(255, 250, 240, 0.16);
@@ -769,6 +845,16 @@
 	.game.wordblocks .playerbox-chips {
 		font-size: 1.65rem;
 		margin-bottom: 0.2rem;
+	}
+
+	.game.wordblocks .wb-player-stats {
+		column-gap: 0.45rem;
+		row-gap: 0.05rem;
+	}
+
+	.game.wordblocks .wb-player-stats dt,
+	.game.wordblocks .wb-player-stats dd {
+		font-size: 1.15rem;
 	}
 
 	.game.wordblocks .playerbox-action,
