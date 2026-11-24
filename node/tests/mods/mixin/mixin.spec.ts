@@ -141,6 +141,15 @@ describe('Mixin api helpers', () => {
     expect(MixinApi).not.toHaveBeenCalled();
   });
 
+  test('browser sessions leave the User-Agent header to the browser', () => {
+    const api = new Api({ app: { BROWSER: 1 }, user_agent: 'Saito-Mixin/1.0' });
+    api.appKeystore = {
+      app_id: 'app', session_id: 'session', server_public_key: 'public', session_private_key: 'private'
+    };
+    expect(api.createAppSession().config.requestConfig.userAgent).toBeUndefined();
+    expect(api.createUserSession(credentials).config.requestConfig.userAgent).toBeUndefined();
+  });
+
   test('getWithdrawalFeeQuote prefers the withdrawal asset, then the chain asset, then a sole quote', () => {
     expect(
       getWithdrawalFeeQuote(
