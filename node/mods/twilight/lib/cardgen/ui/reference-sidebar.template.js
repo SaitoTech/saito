@@ -3,14 +3,8 @@ module.exports = (card = {}) => {
   const card_id = typeof card.generatedId === 'function' ? card.generatedId() : '';
 
   return `
-  <aside class="ts-reference-sidebar" aria-label="Programming guide">
-    <section class="ts-card-info" aria-label="Your card">
-      <div class="ts-card-info-head">
-        <h2 class="ts-card-info-title">Your Card</h2>
-        <button type="button" class="saito-button-secondary" data-action="test-code">
-          Test Code
-        </button>
-      </div>
+  <aside class="ts-reference-sidebar" aria-label="Card reference">
+    <section class="ts-card-info" aria-label="Card details">
       <dl class="ts-card-info-list">
         <div class="ts-card-info-row">
           <dt>Title:</dt>
@@ -22,11 +16,10 @@ module.exports = (card = {}) => {
         </div>
       </dl>
     </section>
-    <h2 class="ts-reference-title">Programming Guide</h2>
     <nav class="ts-reference-nav" aria-label="Reference topics">
       <a
         class="ts-reference-link"
-        href="https://wiki.saito.io/applications/twilight/custom"
+        href="https://wiki.saito.io/applications/twilight/api/"
         target="_blank"
         rel="noopener noreferrer"
       >
@@ -34,16 +27,13 @@ module.exports = (card = {}) => {
       </a>
       <a
         class="ts-reference-link"
-        href="https://wiki.saito.io/applications/twilight/custom/queue"
+        href="https://wiki.saito.io/applications/twilight/api/queue"
         target="_blank"
         rel="noopener noreferrer"
       >
         Queue Commands
       </a>
     </nav>
-    <p class="ts-reference-note">
-      Documentation lives on the Saito Wiki.
-    </p>
   </aside>
 `;
 };

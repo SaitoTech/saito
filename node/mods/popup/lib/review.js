@@ -1,4 +1,5 @@
 const ReviewTemplate = require('./review.template');
+const ReviewSession = require('./review-session');
 const SaitoOverlay = require('./../../../lib/saito/ui/saito-overlay/saito-overlay');
 
 class ReviewOverlay {
@@ -7,34 +8,42 @@ class ReviewOverlay {
     this.mod = mod;
     this.visible = false;
     this.overlay = new SaitoOverlay(app, mod);
+    this.session = null;
   }
 
   hide() {
     this.visible = false;
+    if (this.session) {
+      this.session.cancel();
+    }
     this.overlay.hide();
   }
 
-  render() {
+  async render(ids) {
     this.visible = true;
-    this.overlay.show(ReviewTemplate(this.mod));
-
-    loadQuestion();
-
-    this.attachEvents();
-  }
-
-  attachEvents() {
-    document.querySelectorAll('.option').forEach((el) => {
-      el.bind('mouseover', function () {
-        $(this).addClass('option_hover');
-      });
+    if (this.session) {
+      this.session.cancel();
+    }
+    this.overlay.show(ReviewTemplate(), () => {
+      if (this.session) {
+        this.session.cancel();
+      }
     });
-
-    document.querySelectorAll('.option').forEach((el) => {
-      el.bind('mouseout', function () {
-        $(this).addClass('option_hover');
-      });
-    });
+    const root = document.querySelector('.review-overlay');
+    if (!root) {
+      return;
+    }
+    this.session = new ReviewSession(this.app, this.mod);
+    const selected = Array.isArray(ids) ? ids.filter((id) => id != null) : [];
+    await this.session.start(
+      {
+        progress: root.querySelector('.review-progress'),
+        prompt: root.querySelector('.review-prompt'),
+        answers: root.querySelector('.review-answers'),
+        feedback: root.querySelector('.review-feedback')
+      },
+      selected.length ? { ids: selected } : {}
+    );
   }
 }
 

@@ -87,3 +87,77 @@ describe('GameCardbox hover dismiss', () => {
     expect(box.style.display).toBe('block');
   });
 });
+
+describe('GameCardbox returnContext', () => {
+  function node(id, tag, text) {
+    return {
+      id,
+      tagName: tag,
+      style: { display: 'block' },
+      textContent: text,
+      onclick: null,
+      querySelectorAll() {
+        return [];
+      }
+    };
+  }
+
+  let nodes;
+  let previous;
+
+  beforeEach(() => {
+    nodes = {
+      'game-cardbox': node('game-cardbox', 'DIV', ''),
+      'cardbox-menu': node('cardbox-menu', 'DIV', 'select'),
+      'cardbox-exit': node('cardbox-exit', 'DIV', '×')
+    };
+    previous = global.document;
+    global.document = {
+      getElementById(id) {
+        return nodes[id] || null;
+      }
+    };
+  });
+
+  afterEach(() => {
+    global.document = previous;
+  });
+
+  test('a locked menu with a callback is the only option', () => {
+    const cb = new GameCardbox({}, {});
+    cb.cardbox_lock = 1;
+    nodes['cardbox-menu'].onclick = () => {};
+    nodes['cardbox-exit'].onclick = () => {};
+
+    expect(cb.returnContext()).toEqual({
+      menu: [{ id: 'cardbox-menu', label: 'select', identifier: 'div#cardbox-menu' }]
+    });
+  });
+
+  test('buttons inside the menu are the options', () => {
+    const headline = node('headline', 'BUTTON', 'Headline');
+    const submit = node('submit', 'BUTTON', 'Submit');
+    headline.onclick = () => {};
+    submit.onclick = () => {};
+    nodes['cardbox-menu'].querySelectorAll = () => [headline, submit];
+    const cb = new GameCardbox({}, {});
+    cb.cardbox_lock = 1;
+
+    expect(cb.returnContext().menu.map((entry) => entry.id)).toEqual(['headline', 'submit']);
+  });
+
+  test('a hidden menu, an unlocked box, and a preview return no options', () => {
+    const cb = new GameCardbox({}, {});
+    nodes['cardbox-menu'].onclick = () => {};
+
+    expect(cb.returnContext()).toEqual({ menu: [] });
+
+    cb.cardbox_lock = 1;
+    nodes['cardbox-menu'].style.display = 'none';
+    expect(cb.returnContext()).toEqual({ menu: [] });
+
+    nodes['cardbox-menu'].style.display = 'block';
+    nodes['cardbox-menu'].onclick = null;
+    expect(cb.returnContext()).toEqual({ menu: [] });
+  });
+});

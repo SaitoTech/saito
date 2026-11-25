@@ -5,23 +5,18 @@
 }
 
 .manager .menu {
-  max-width: 20rem;
-  font-size: 1.8rem;
-}
-
-.manager .menu {
-  max-width: 22rem;
-  font-size: 1.8rem;
-  width: 22rem;
-  line-height: 3rem;
+  max-width: 100%;
+  font-size: var(--popup-size-nav);
+  width: auto;
+  line-height: 1.8;
 }
 
 .manager-menu {
-  font-size: 2rem;
-  line-height: 2.5rem;
+  font-size: var(--popup-size-nav);
+  line-height: 1.8;
 }
 .manager-menu:hover {
-  color: #9c1010;
+  color: var(--popup-accent);
 }
 
 .lessons {
@@ -29,28 +24,88 @@
   width: 100%;
 }
 
-.saito-sidebar.right ul {
-  padding-left: 2rem;
+.popup-lesson-nav {
+  padding: 0 12px 24px;
+}
+
+.popup-lesson-nav-label {
+  margin: 16px 8px 6px;
+  color: var(--popup-text-muted);
+  font-size: var(--popup-size-meta);
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.popup-lesson-nav-label:first-child {
+  margin-top: 0;
+}
+
+body.popup-app .popup-lesson-nav ul,
+body.popup-app .popup-lesson-nav li {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+body.popup-app .popup-lesson-nav li {
+  display: block;
 }
 
 .manager-menu {
   cursor: pointer;
 }
 
-.teaser {
-  font-size: 1.4em;
-  height: 80px;
-  clear: both;
-  width: 98%;
-  border-bottom: 1px solid #dddddd;
-  display: grid;
-  grid-template-columns: min-content 1fr;
-  padding-left: 0.5rem;
-  padding-right: 0.5rem;
-  padding: 0.5rem;
+.manager-menu button {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  color: var(--popup-text);
+  font-family: var(--popup-font-sans);
+  font-size: var(--popup-size-nav);
+  line-height: 1.35;
+  text-align: left;
+  padding: 8px 10px;
+  border-radius: 8px;
+  cursor: pointer;
 }
 
-.teaser:nth-child(even) {
+.manager-menu:hover button,
+.manager-menu.is-active button {
+  background: var(--popup-hover);
+  color: var(--popup-accent);
+}
+
+body.popup-app .popup-lesson-description {
+  margin: 6px 0 0;
+  color: var(--popup-text-secondary);
+  font-family: var(--popup-font-sans);
+  font-size: var(--popup-size-body);
+  font-weight: 400;
+  line-height: 1.45;
+}
+
+body.popup-app .lessons .teaser {
+  font-size: var(--popup-size-body);
+  height: auto;
+  clear: both;
+  width: 100%;
+  max-width: none;
+  border: 0;
+  border-bottom: 1px solid var(--popup-border);
+  border-radius: 0;
+  box-shadow: none;
+  background: var(--popup-bg);
+  display: grid;
+  flex-direction: row;
+  grid-template-columns: clamp(168px, 22%, 220px) minmax(0, 1fr);
+  align-items: stretch;
+  gap: 16px;
+  padding: 12px 8px;
+  overflow: visible;
+}
+
+body.popup-app .lessons .teaser:nth-child(even) {
   background-color: #f7f7f7;
 }
 
@@ -65,27 +120,75 @@
   margin-right: 1rem;
 }
 
-.teaser .title {
+body.popup-app .lessons .teaser .title {
+  position: static;
   display: block;
-  padding-left: 1rem;
-  margin-top: auto;
-  margin-bottom: auto;
-  line-height: 2.9rem;
+  width: auto;
+  left: auto;
+  right: auto;
+  top: auto;
+  padding: 0;
+  margin-top: 0;
+  margin-bottom: 0;
+  line-height: var(--popup-leading-tight);
+  white-space: normal;
+  overflow: visible;
+  text-transform: none;
+  background: transparent;
+  color: var(--popup-text);
 }
 
-.teaser .title a {
-  font-size: 1.9rem;
-  color: #222;
+body.popup-app .lessons .teaser .title .nonlink,
+body.popup-app .lessons .teaser .title a {
+  font-size: var(--popup-size-card-title);
+  color: var(--popup-text);
+  text-decoration: none;
+  white-space: normal;
 }
 
-.teaser .title .level {
-  font-weight: bold;
-  font-size: 1.8rem;
+body.popup-app .lessons .teaser .title .level {
+  font-weight: 650;
+  font-size: 16px;
+  line-height: 1.4;
+  margin-top: 4px;
 }
 
-.teaser .photo {
-  height: 70px;
-  width: 110px;
+body.popup-app .lessons .teaser .photo {
+  width: 100%;
+  height: auto;
+  align-self: stretch;
   background-size: cover;
-  padding: 1rem;
+  background-position: center;
+  background-repeat: no-repeat;
+  padding: 0;
+}
+
+@media (max-width: 800px) {
+  body.popup-app .lessons .teaser {
+    grid-template-columns: 112px minmax(0, 1fr);
+    gap: 12px;
+  }
+
+  .popup-lesson-nav {
+    display: flex;
+    gap: 16px;
+    overflow-x: auto;
+    padding: 8px 12px 12px;
+  }
+
+  .popup-lesson-nav-label {
+    display: none;
+  }
+
+  .popup-lesson-nav ul {
+    display: flex;
+    gap: 8px;
+  }
+
+  .manager-menu button {
+    white-space: nowrap;
+    width: auto;
+    border: 1px solid var(--popup-border);
+    background: var(--popup-bg-raised);
+  }
 }

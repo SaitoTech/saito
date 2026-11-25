@@ -283,7 +283,6 @@ class SettlersDisplay {
    *
    ***********/
   animateHarvest(player, resource, tile = null) {
-    if (this.app.HEADLESS) return;
     let destination;
 
     if (player == this.game.player) {
@@ -319,7 +318,6 @@ class SettlersDisplay {
   }
 
   animateDevCard(player) {
-    if (this.app.HEADLESS) return;
     let destination = '#game-playerbox-' + player;
 
     if (player == this.game.player) {
@@ -355,7 +353,6 @@ class SettlersDisplay {
   Briefly animate the longest road and update log if there is a change in ownership
   */
   highlightRoad(player, road, msg) {
-    if (this.app.HEADLESS) return;
     this.updateLog(`${this.formatPlayer(player)} ${msg}`);
     for (let segment of road) {
       let selector = '#road_' + segment;
@@ -402,7 +399,6 @@ class SettlersDisplay {
   Flashes tiles activated by dice roll
   */
   animateDiceRoll(roll) {
-    if (this.app.HEADLESS) return;
     //console.log("Dice Animated: " + roll);
     $('.rolled').removeClass('rolled');
     $('.sector_value:not(.bandit)').attr('style', '');

@@ -41,9 +41,9 @@ function setup() {
     app,
     publicKey: 'buyer',
     authorized_public_key: 'treasury',
-    pending_payments: [],
-    available_currencies: [{ ticker: 'USDT' }]
+    pending_payments: []
   });
+  mod.receiveLegacyAvailableCurrencies({ ac: [{ ticker: 'USDT' }] });
   const overlay = new PurchaseOverlay(app, mod);
   overlay.active = true;
   overlay.crypto_selected = mod.available_currencies[0];
@@ -611,6 +611,23 @@ describe('BuySaito automatic payment progress', () => {
       expect(global.salert).not.toHaveBeenCalled();
     }
   );
+
+  test('external Get SAITO launches share a refresh when the currency catalogue is stale', async () => {
+    const { app, mod, overlay, receive } = setup();
+    mod.browser_active = false;
+    mod.available_currencies_at = 0;
+    const relay = jest.fn();
+    app.connection.on('relay-send-message', relay);
+    app.connection.emit('saito-purchase-launch', 100);
+    app.connection.emit('saito-purchase-launch', 100);
+    expect(relay).toHaveBeenCalledTimes(1);
+    expect(relay).toHaveBeenCalledWith(expect.objectContaining({
+      recipient: 'treasury', request: 'buysaito available currencies'
+    }));
+    await receive('buysaito available currencies', { ac: [{ ticker: 'USDT', price_usd: 1 }] });
+    jest.advanceTimersByTime(1000);
+    expect(overlay.overlay.show.mock.calls.at(-1)[0]).toContain('CHOOSE PAYMENT METHOD');
+  });
 
   test('external Get SAITO launches start at crypto selection and ignore old deposit instructions', async () => {
     const { app, mod, overlay, reservation, receive } = setup();

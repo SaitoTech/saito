@@ -83,6 +83,7 @@ class PathsOfGlory extends GameTemplate {
     this.signals = { n: 0, marks: {} };
     this.opponent_marks = {};
     this.opponent_marks_visible = false;
+    this.units_hidden = false;
 
     let hud_update_menu = this.hud.updateMenu.bind(this.hud);
     let hud_update_cards = this.hud.updateCards.bind(this.hud);
@@ -238,6 +239,14 @@ class PathsOfGlory extends GameTemplate {
       callback : function(app, game_mod) {
         game_mod.menu.hideSubMenus();
 	alert("terrain help");
+      }
+    });
+    this.menu.addSubMenuOption("game-info", {
+      text : "Hide Units",
+      id : "game-info-hide-units",
+      class : "game-info-hide-units",
+      callback : function(app, game_mod) {
+        game_mod.toggleHideUnits();
       }
     });
 
@@ -6385,6 +6394,20 @@ deck['cp65'] = {
   }
 
 
+  toggleHideUnits() {
+    this.units_hidden = !this.units_hidden;
+    let text = this.units_hidden ? "✓ Hide Units" : "Hide Units";
+    let item = this.menu && this.menu.returnMenuFromID("game-info-hide-units");
+    if (item) {
+      item.text = text;
+    }
+    let label = document.querySelector("#game-info-hide-units .game-menu-option-label span");
+    if (label) {
+      label.textContent = text;
+    }
+    this.displayBoard();
+  }
+
   displayBoard() {
 
     let paths_self = this;
@@ -6487,6 +6510,16 @@ deck['cp65'] = {
       }
       }
 
+
+      if (this.units_hidden) {
+        document.querySelectorAll(`.${key}`).forEach((el) => {
+          el.innerHTML = "";
+          el.classList.remove("oos-highlight", "opponent-move", "opponent-attack", "stack-open");
+          el.style.removeProperty("--oos-step");
+          el.style.zIndex = "";
+        });
+        return;
+      }
 
       //
       // units / armies — largest current movement is drawn on top
@@ -7440,6 +7473,8 @@ console.log("err: " + err);
       arb.innerHTML = "";
       crb.innerHTML = "";
 
+      if (this.units_hidden) { return; }
+
       for (let z = 0; z < this.game.spaces["arbox"].units.length; z++) {
 	if (this.game.spaces["arbox"].units[z].damaged) {
           arb.innerHTML += `<img class="army-tile ${this.game.spaces["arbox"].units[z].key}" src="/paths/img/army/${this.game.spaces["arbox"].units[z].back}" />`;
@@ -7470,6 +7505,8 @@ console.log("err: " + err);
 
       arb.innerHTML = "";
       crb.innerHTML = "";
+
+      if (this.units_hidden) { return; }
 
       for (let z = 0; z < this.game.spaces["aeubox"].units.length; z++) {
         arb.innerHTML += `<img class="army-tile ${this.game.spaces["aeubox"].units[z].key}" src="/paths/img/army/${this.game.spaces["aeubox"].units[z].front}" />`;
@@ -17525,28 +17562,49 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
       { id: "refuse", label: "do not advance" },
     ];
 
+    let decided = false;
+    let resolveChoice = (id) => {
+      if (decided) {
+        return;
+      }
+      decided = true;
+      this.hud.hideBackButton();
+      this.game.status = "submitting...";
+      this.hud.updateStatus(this.game.status);
+      this.hud.updateMenu([]);
+      this.hud.updateCards([]);
+      if (this.loss_overlay) {
+        this.loss_overlay.clearRetreatDecision();
+      }
+      if (id === "advance") {
+        if (this.loss_overlay && !this.loss_overlay.board_mode) {
+          this.loss_overlay.hide();
+        }
+        this.playerHandleAdvance();
+        return;
+      }
+      if (id === "refuse") {
+        if (this.loss_overlay && !this.loss_overlay.board_mode) {
+          this.loss_overlay.hide();
+        }
+        this.queuePeaceOffensiveNoAdvance();
+        this.endTurn();
+      }
+    };
+
+    let overlay_open = this.loss_overlay && this.loss_overlay.overlayEnabled() && !this.loss_overlay.board_mode;
+    if (overlay_open) {
+      this.loss_overlay.showAdvanceChoice([
+        { id: "advance", label: "Advance" },
+        { id: "refuse", label: "Do not advance" }
+      ], resolveChoice);
+    }
+
     this.game.status = `Advance Full-Strength Units?`;
     this.hud.updateStatus(this.game.status);
     this.hud.updateCards([]);
     this.hud.updateMenu(options, (action) => {
-
-      this.hud.hideBackButton();
-            this.game.status = "submitting...";
-      this.hud.updateStatus(this.game.status);
-      this.hud.updateMenu([]);
-      this.hud.updateCards([]);
-
-      if (action === "advance") {
-	this.playerHandleAdvance();
-	return;
-      }
-
-      if (action === "refuse") {
-	this.queuePeaceOffensiveNoAdvance();
-	this.endTurn();
-	return;
-      }
-
+      resolveChoice(action);
     });
 
   }
@@ -18118,62 +18176,61 @@ console.log("JSON.stringify(Ccs): " + JSON.stringify(ccs));
     if (this.game.state.events.withdrawal) { can_defender_cancel_retreat = false; }
 
     let choices = [
-      { id: "retreat", label: "Retreat", chosen: "Retreating", close: true, go: () => { this.playerHandleRetreat(); } }
+      { id: "retreat", label: "Retreat" }
     ];
     if (can_defender_cancel_retreat) {
-      choices.push({
-        id: "hit",
-        label: "Take additional hit",
-        chosen: "Taking an additional hit",
-        close: false,
-        go: () => { this.loss_overlay.renderToAssignAdditionalStepwiseLoss(); }
-      });
+      choices.push({ id: "hit", label: "Take additional hit" });
     }
 
-    // The result panel carries the choice and stays up until the defender clicks.
-    // Retreat closes it so the destination can be picked on the board. An extra
-    // hit replaces the choice with the assignment panel.
-    if (this.loss_overlay && this.loss_overlay.overlayEnabled() && !this.loss_overlay.board_mode) {
-      if (this.loss_overlay.showRetreatChoice(choices)) {
-        this.game.status = "Retreat?";
-        this.hud.updateStatus(this.game.status);
-        this.hud.updateCards([]);
-        this.hud.updateMenu([]);
+    // One handler for the slide-up panel and the HUD. The first click wins.
+    let decided = false;
+    let resolveChoice = (id) => {
+      if (decided) {
         return;
       }
-    }
-
-    if (!can_defender_cancel_retreat) {
-      this.playerHandleRetreat();
-      return;
-    }
-
-    let options = [
-      { id: "retreat", label: "retreat" },
-      { id: "hit", label: "take additional hit" },
-    ];
-
-    this.game.status = `Retreat?`;
-    this.hud.updateStatus(this.game.status);
-    this.hud.updateCards([]);
-    this.hud.updateMenu(options, (action) => {
-
-            this.game.status = "continuing...";
+      decided = true;
+      this.game.status = "continuing...";
       this.hud.updateStatus(this.game.status);
       this.hud.updateMenu([]);
       this.hud.updateCards([]);
       this.hud.hideBackButton();
-
-      if (action === "retreat") {
-	this.playerHandleRetreat();
-	return;
+      if (this.loss_overlay) {
+        this.loss_overlay.clearRetreatDecision();
       }
-
-      if (action === "hit") {
-	this.loss_overlay.renderToAssignAdditionalStepwiseLoss();
+      if (id === "retreat") {
+        if (this.loss_overlay && !this.loss_overlay.board_mode) {
+          this.loss_overlay.hide();
+        }
+        this.playerHandleRetreat();
         return;
       }
+      if (id === "hit") {
+        this.loss_overlay.renderToAssignAdditionalStepwiseLoss();
+      }
+    };
 
+    let overlay_open = this.loss_overlay && this.loss_overlay.overlayEnabled() && !this.loss_overlay.board_mode;
+    let panel_shown = false;
+    if (overlay_open) {
+      panel_shown = this.loss_overlay.showRetreatChoice(choices, resolveChoice);
+    }
+
+    // No extra-hit option and no panel: retreat is mandatory, as before.
+    if (!can_defender_cancel_retreat && !panel_shown) {
+      this.playerHandleRetreat();
+      return;
+    }
+
+    let options = [];
+    for (let i = 0; i < choices.length; i++) {
+      options.push({ id: choices[i].id, label: choices[i].label.toLowerCase() });
+    }
+
+    this.game.status = "Retreat?";
+    this.hud.updateStatus(this.game.status);
+    this.hud.updateCards([]);
+    this.hud.updateMenu(options, (action) => {
+      resolveChoice(action);
     });
 
     return;

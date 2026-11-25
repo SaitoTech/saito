@@ -2,6 +2,8 @@ const CryptoModule = require('./../../../lib/templates/cryptomodule');
 const WAValidator = require('@taasfi/multicoin-address-validator');
 const Decimal = require('decimal.js');
 
+const MIXIN_REQUEST_FREQUENCE_MILLISECONDS = 20 * 60 * 1000;
+
 class MixinModule extends CryptoModule {
   constructor(app, mixinMod, ticker, assetId, chainId) {
     super(app, ticker);
@@ -20,7 +22,6 @@ class MixinModule extends CryptoModule {
   async activate() {
     try {
       if (!this.mixin.account_created) {
-        console.info('Create Mixin account');
         const result = await this.mixin.createAccount();
         if (result?.err || !this.mixin.account_created) {
           throw new Error(result?.err || 'Mixin account was not created');
@@ -28,7 +29,6 @@ class MixinModule extends CryptoModule {
       }
 
       if (!this.address) {
-        console.info(`Create Mixin deposit address -- ${this.ticker}`);
         const address = await this.mixin.accounts.createAddress(this.asset_id, this.chain_id);
         if (!address) {
           throw new Error('Mixin deposit address was not created');
@@ -63,7 +63,6 @@ class MixinModule extends CryptoModule {
 
     const ts = Date.now();
     if (!this.last_balance_fetch || ts - this.last_balance_fetch > 10000) {
-      console.log('@@@ FetchBalance ' + this.ticker);
       this.last_balance_fetch = ts;
 
       const balance = await this.mixin.api.fetchBalance(
@@ -220,8 +219,6 @@ class MixinModule extends CryptoModule {
       }
       return [];
     }
-
-    console.log('@@@ fetchHistory -- ' + this.ticker);
 
     if (!this.asset_id) {
       if (callback) {
@@ -410,8 +407,54 @@ class MixinModule extends CryptoModule {
   }
 
   async returnMixinNetworkInfo() {
+    const cached = this.cachedMixinNetworkInfo();
+    if (cached) {
+      return cached;
+    }
+    if (this.network_info_request) {
+      return this.network_info_request;
+    }
+
+    let resolveRequest;
+    let rejectRequest;
+    const request = new Promise((resolve, reject) => {
+      resolveRequest = resolve;
+      rejectRequest = reject;
+    });
+    this.network_info_request = request;
+    this.refreshMixinNetworkInfo().then(resolveRequest, rejectRequest);
+    try {
+      return await request;
+    } finally {
+      if (this.network_info_request === request) {
+        this.network_info_request = null;
+      }
+    }
+  }
+
+  cachedMixinNetworkInfo() {
+    if (
+      !this.last_update ||
+      Date.now() - this.last_update > MIXIN_REQUEST_FREQUENCE_MILLISECONDS
+    ) {
+      return null;
+    }
+    return {
+      confirmations: this.confirmations || 0,
+      price_usd: this.price_usd,
+      icon_url: this.icon_url
+    };
+  }
+
+  async refreshMixinNetworkInfo() {
+    const cached = this.cachedMixinNetworkInfo();
+    if (cached) {
+      return cached;
+    }
+
     const info = await this.mixin.api.fetchAsset(this.asset_id);
     if (!info) {
+      this.last_update = Date.now() - MIXIN_REQUEST_FREQUENCE_MILLISECONDS / 2;
       return false;
     }
     this.confirmations = info.confirmations || 0;
@@ -550,3 +593,4 @@ class MixinModule extends CryptoModule {
 }
 
 module.exports = MixinModule;
+module.exports.MIXIN_REQUEST_FREQUENCE_MILLISECONDS = MIXIN_REQUEST_FREQUENCE_MILLISECONDS;

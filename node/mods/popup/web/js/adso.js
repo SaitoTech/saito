@@ -279,6 +279,11 @@ function update_tooltip(e) {
 
   tooltip.style.left = current_x + 10 + 'px';
   tooltip.style.top = current_y + 10 + 'px';
+
+  const tipWidth = tooltip.offsetWidth;
+  if (current_x + 10 + tipWidth > scrollX + availW - 8) {
+    tooltip.style.left = Math.max(8, scrollX + availW - tipWidth - 8) + 'px';
+  }
 }
 function ie_backward_compatibility() {
   return document.compatMode && document.compatMode != 'BackCompat'

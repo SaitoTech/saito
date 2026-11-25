@@ -200,21 +200,8 @@ class GameMoves {
   // 0 = unsure
   // -1 = no
   //
-  isUnprocessedMoveQuickCheck(publickey, step, gameid) {
-    if (!this.app.options) {
-      return 0;
-    }
-    if (!this.app.options.games) {
-      return 0;
-    }
-
-    let gameobj = null;
-
-    for (let z = 0; z < this.app.options.games.length; z++) {
-      if (this.app.options.games[z].id === gameid) {
-        gameobj = this.app.options.games[z];
-      }
-    }
+  async isUnprocessedMoveQuickCheck(publickey, step, gameid) {
+    let gameobj = await this.app.storage.loadDataFile('games', gameid);
 
     if (!gameobj == null) {
       return -1;
@@ -292,7 +279,25 @@ class GameMoves {
   }
 
   async addNextMove(gametx) {
+    const previous = this.add_next_move_chain || Promise.resolve();
+
+    let release;
+    const finished = new Promise((resolve) => {
+      release = resolve;
+    });
+
+    this.add_next_move_chain = previous.then(() => finished);
+
+    const result = previous.then(() => this.addNextMoveInternal(gametx));
+
+    result.then(release, release);
+
+    return result;
+  }
+
+  async addNextMoveInternal(gametx) {
     let gametxmsg = gametx.returnMessage();
+    let intended_game = this.game;
     const guard = this.halted == 1 || this.gaming_active == 1 || this.game.initialize_game_run == 0;
 
     if (guard) {
@@ -334,6 +339,10 @@ class GameMoves {
     //
     if (!this.browser_active) {
       await this.initializeGameQueue(this.game.id);
+      if (this.game.id !== intended_game.id) {
+        await this.loadGame(intended_game.id);
+        this.game = intended_game;
+      }
     }
 
     if (this.game.queue) {
@@ -348,8 +357,16 @@ class GameMoves {
         gametxmsg.turn
       );
 
-      this.saveFutureMoves(this.game.id);
-      this.saveGame(this.game.id);
+      await this.saveFutureMoves(this.game.id);
+      if (this.game.id !== intended_game.id) {
+        await this.loadGame(intended_game.id);
+        this.game = intended_game;
+      }
+      await this.saveGame(this.game.id);
+      if (this.game.id !== intended_game.id) {
+        await this.loadGame(intended_game.id);
+        this.game = intended_game;
+      }
       await this.startQueue();
     } else {
       console.error('No queue in game engine');
@@ -393,7 +410,7 @@ class GameMoves {
 
     if (!this.game.future.includes(ftx)) {
       this.game.future.push(ftx);
-      this.saveFutureMoves(this.game.id);
+      await this.saveFutureMoves(this.game.id);
 
       if (this.game.player == 0 && this.gameBrowserActive() && !this.gaming_active) {
         console.warn(
@@ -412,74 +429,124 @@ class GameMoves {
     // this is always called after runQueue which locks the queue for newMoves while processing
     // but there are multiple paths out of the queue, so we unlock it here
     this.gaming_active = 0;
+    let intended_game = this.game;
+    let intended_game_id = intended_game?.id || '';
+    if (!this.process_future_moves_depth) {
+      this.process_future_moves_depth = {};
+    }
+    if (!this.process_future_moves_boundary) {
+      this.process_future_moves_boundary = {};
+    }
+    this.process_future_moves_depth[intended_game_id] =
+      (this.process_future_moves_depth[intended_game_id] || 0) + 1;
+    let queue_boundary = false;
+    let failed = false;
+    let deferred_game_over = false;
 
-    //
-    // process any stopgame / gameover that arrived while the queue was running
-    //
-    if (this.deferred_game_end?.length && this.halted != 1) {
-      await this.processDeferredGameEndTransactions();
-      if (this.game.over) {
-        return 0;
+    try {
+      //
+      // process any stopgame / gameover that arrived while the queue was running
+      //
+      if (this.deferred_game_end?.length && this.halted != 1) {
+        await this.processDeferredGameEndTransactions();
+        if (this.game.id !== intended_game.id) {
+          await this.loadGame(intended_game.id);
+          this.game = intended_game;
+        }
+        if (this.game.over) {
+          deferred_game_over = true;
+          return 0;
+        }
       }
-    }
 
-    if (this.game.futurePlus && this.game.futurePlus[this.game.step.game]) {
-      //>>>>>>>>>>>>>>>>>>>
-      console.warn('Execute meta game transaction');
-      await this.handlePeerTransaction(this.app, this.game.futurePlus[this.game.step.game]);
-      delete this.game.futurePlus[this.game.step.game];
-    }
+      if (this.game.futurePlus && this.game.futurePlus[this.game.step.game]) {
+        //>>>>>>>>>>>>>>>>>>>
+        console.warn('Execute meta game transaction');
+        await this.handlePeerTransaction(this.app, this.game.futurePlus[this.game.step.game]);
+        if (this.game.id !== intended_game.id) {
+          await this.loadGame(intended_game.id);
+          this.game = intended_game;
+        }
+        delete this.game.futurePlus[this.game.step.game];
+      }
 
-    if (this.halted == 1 || this.game.initialize_game_run == 0) {
-      console.info(
-        `GT [processFutureMoves] Unable to process (${this.game.future.length}) moves now because halted (${this.halted}) or gamefeeder not initialized (${this.initialize_game_run})`
-      );
-      return -1;
-    }
-
-    console.info(
-      `GT [processFutureMoves] -- Check ${this.game.future.length} moves for next one...`
-    );
-
-    //Search all future moves for the next one. Only the stale-move branch
-    //changes the list without saving on the way out.
-    let future_changed = false;
-    for (let i = 0; i < this.game.future.length; i++) {
-      let ftx = new Transaction();
-      ftx.deserialize_from_web(this.app, this.game.future[i]);
-      let ftxmsg = ftx.returnMessage();
-
-      if (this.isUnprocessedMove(ftx.from[0].publicKey, ftxmsg)) {
+      if (this.halted == 1 || this.game.initialize_game_run == 0) {
         console.info(
-          `GT [processFutureMoves] Found FTMSG (${ftxmsg.step.game}): `,
-          JSON.parse(JSON.stringify(ftxmsg.turn))
+          `GT [processFutureMoves] Unable to process (${this.game.future.length}) moves now because halted (${this.halted}) or gamefeeder not initialized (${this.initialize_game_run})`
         );
+        queue_boundary = this.halted == 1 && intended_game.initialize_game_run != 0;
+        return -1;
+      }
 
-        //This move (future[i]) is the next one, move it to the queue
-        this.game.future.splice(i, 1);
-        await this.addNextMove(ftx);
-        return 1;
-      } else if (this.isFutureMove(ftx.from[0].publicKey, ftxmsg)) {
-        //This move (future[i]) is still for the future, so leave it alone
-      } else {
-        //Old move, can ignore
-        this.game.future.splice(i, 1);
-        i--; // reduce index as deleted
-        future_changed = true;
+      console.info(
+        `GT [processFutureMoves] -- Check ${this.game.future.length} moves for next one...`
+      );
+
+      //Search all future moves for the next one. Only the stale-move branch
+      //changes the list without saving on the way out.
+      let future_changed = false;
+      for (let i = 0; i < this.game.future.length; i++) {
+        let ftx = new Transaction();
+        ftx.deserialize_from_web(this.app, this.game.future[i]);
+        let ftxmsg = ftx.returnMessage();
+
+        if (this.isUnprocessedMove(ftx.from[0].publicKey, ftxmsg)) {
+          console.info(
+            `GT [processFutureMoves] Found FTMSG (${ftxmsg.step.game}): `,
+            JSON.parse(JSON.stringify(ftxmsg.turn))
+          );
+
+          //This move (future[i]) is the next one, move it to the queue
+          this.game.future.splice(i, 1);
+          await this.addNextMoveInternal(ftx);
+          return 1;
+        } else if (this.isFutureMove(ftx.from[0].publicKey, ftxmsg)) {
+          //This move (future[i]) is still for the future, so leave it alone
+        } else {
+          //Old move, can ignore
+          this.game.future.splice(i, 1);
+          i--; // reduce index as deleted
+          future_changed = true;
+        }
+      }
+
+      if (future_changed) {
+        await this.saveFutureMoves(this.game.id);
+        if (this.game.id !== intended_game.id) {
+          await this.loadGame(intended_game.id);
+          this.game = intended_game;
+        }
+      }
+
+      if (this.game.future?.length > 0) {
+        console.warn(
+          `GT [processFutureMoves] We have ${this.game.future.length} future moves, but NOT the next one!`
+        );
+      }
+
+      queue_boundary = true;
+      return 0; //No processable moves in future
+    } catch (err) {
+      failed = true;
+      throw err;
+    } finally {
+      this.process_future_moves_depth[intended_game_id] -= 1;
+      let depth = this.process_future_moves_depth[intended_game_id];
+      this.process_future_moves_boundary[intended_game_id] =
+        this.process_future_moves_boundary[intended_game_id] ||
+        (!failed && queue_boundary);
+      if (depth == 0) {
+        let ready =
+          !failed &&
+          !deferred_game_over &&
+          this.process_future_moves_boundary[intended_game_id] == true;
+        this.process_future_moves_boundary[intended_game_id] = false;
+        if (ready) {
+          console.info(`GT [processFutureMoves] game-queue-stable ${intended_game_id}`);
+          this.app.connection.emit('game-queue-stable', { game_id: intended_game_id });
+        }
       }
     }
-
-    if (future_changed) {
-      this.saveFutureMoves(this.game.id);
-    }
-
-    if (this.game.future?.length > 0) {
-      console.warn(
-        `GT [processFutureMoves] We have ${this.game.future.length} future moves, but NOT the next one!`
-      );
-    }
-
-    return 0; //No processable moves in future
   }
 
   //
@@ -487,20 +554,24 @@ class GameMoves {
   // so that we can continue without reloading and reload
   // without losing future moves.
   //
-  saveFutureMoves(game_id = null) {
-    if (game_id === null) {
+  async saveFutureMoves(game_id = null) {
+    //
+    // The stored record is the one that is updated. A later loadGame can
+    // replace this.game before the file returns.
+    //
+    let saved_id = game_id;
+    let saved_future = this.game?.future;
+    if (saved_id === null) {
       return;
     }
 
-    if (this.app.options?.games) {
-      for (let i = 0; i < this.app.options.games.length; i++) {
-        if (this.app.options.games[i].id === this.game.id) {
-          this.app.options.games[i].future = this.game.future;
-        }
-      }
+    let stored_game = await this.app.storage.loadDataFile('games', saved_id);
+    if (!stored_game) {
+      return;
     }
 
-    this.app.storage.saveOptions();
+    stored_game.future = saved_future;
+    await this.app.storage.saveDataFile('games', saved_id, JSON.stringify(stored_game));
   }
 
   prependMove(mv) {
@@ -583,8 +654,7 @@ class GameMoves {
     //
     // AWAIT on this causes issues -- delays UI update
     //
-    const sending = this.sendGameMoveTransaction('game', extra);
-    if (this.app.HEADLESS) await sending;
+    this.sendGameMoveTransaction('game', extra);
   }
 
   async sendGameMoveTransaction(type = 'game', extra = {}, mycallback = null) {
@@ -691,7 +761,6 @@ class GameMoves {
 
     let newtx = await this.app.wallet.createUnsignedTransactionWithDefaultFee();
     if (newtx == null) {
-      if (this.app.HEADLESS) throw Error('Unable to create game transaction');
       salert('ERROR: Difficulty Sending Transaction, please reload');
       return;
     }
@@ -708,10 +777,9 @@ class GameMoves {
     // if there is an issue with the network we don't lose the transaction when the network
     // comes back online. refreshing the browser will also try to auto-resend the tx this way.
     //
-    const pendingSave = game_self.app.wallet.addTransactionToPending(newtx);
-    if (this.app.HEADLESS) await pendingSave;
+    game_self.app.wallet.addTransactionToPending(newtx);
 
-    game_self.saveGame(game_self.game.id);
+    await game_self.saveGame(game_self.game.id);
 
     // console.debug('GT: Sending Move: ', JSON.parse(JSON.stringify(mymsg)));
 
@@ -751,8 +819,7 @@ class GameMoves {
       }
     }
 
-    const delivery = game_self.app.network.propagateTransaction(newtx);
-    if (this.app.HEADLESS) await delivery;
+    game_self.app.network.propagateTransaction(newtx);
   }
 }
 

@@ -1,0 +1,11 @@
+#gamebot-loading {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--saito-background, #111);
+  color: var(--saito-foreground, #fff);
+  font-size: 1.4rem;
+}

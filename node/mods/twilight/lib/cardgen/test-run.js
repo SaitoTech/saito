@@ -34,28 +34,6 @@ function testQueueInstructions(id) {
   return [TEST_COMPLETE, TEST_ACKNOWLEDGE, `NFT_EVENT\t${id}\t0`];
 }
 
-function pushLocalInstruction(queue, instruction) {
-  queue.push(instruction);
-}
-
-/**
- * End-of-turn instructions run after immediate pushes and before the
- * completion notice, so their board changes are visible in the test.
- */
-function insertEndInstruction(queue, instruction) {
-  const ack = queue.lastIndexOf(TEST_ACKNOWLEDGE);
-  if (ack !== -1) {
-    queue.splice(ack + 1, 0, instruction);
-    return;
-  }
-  const marker = queue.lastIndexOf(TEST_COMPLETE);
-  if (marker !== -1) {
-    queue.splice(marker + 1, 0, instruction);
-    return;
-  }
-  queue.push(instruction);
-}
-
 module.exports = {
   TEST_BACKUP_KEY,
   TEST_COMPLETE,
@@ -63,7 +41,5 @@ module.exports = {
   firstEventCode,
   testNftId,
   buildTestNft,
-  testQueueInstructions,
-  pushLocalInstruction,
-  insertEndInstruction
+  testQueueInstructions
 };

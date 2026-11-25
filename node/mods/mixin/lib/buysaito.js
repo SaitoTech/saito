@@ -1,4 +1,5 @@
 const Transaction = require('../../../lib/saito/transaction').default;
+const { MIXIN_REQUEST_FREQUENCE_MILLISECONDS } = require('./mixinmodule');
 
 // A submitted amount may differ from the cached quote by this fraction.
 // One basis point of floating-point noise is inside this band; a different rate is not.
@@ -53,11 +54,11 @@ class BuySaitoService {
     if (!crypto) {
       throw new Error(`Unsupported payment ticker: ${ticker}`);
     }
-    if (!crypto.last_update || Date.now() - crypto.last_update > 300000) {
+    if (!crypto.last_update || Date.now() - crypto.last_update > MIXIN_REQUEST_FREQUENCE_MILLISECONDS) {
       await crypto.returnMixinNetworkInfo();
     }
     const erc = this.mod.crypto_mods.find((item) => item.ticker === 'ERC-SAITO');
-    if (erc && (!erc.last_update || Date.now() - erc.last_update > 300000)) {
+    if (erc && (!erc.last_update || Date.now() - erc.last_update > MIXIN_REQUEST_FREQUENCE_MILLISECONDS)) {
       await erc.returnMixinNetworkInfo();
     }
 
@@ -72,7 +73,8 @@ class BuySaitoService {
     }
     const ercPrice = Number(erc?.price_usd);
     const usdPrice = Number(crypto.price_usd);
-    const priceFresh = (item) => item?.last_update && Date.now() - item.last_update <= 300000;
+    const priceFresh = (item) =>
+      item?.last_update && Date.now() - item.last_update <= MIXIN_REQUEST_FREQUENCE_MILLISECONDS;
     if (
       !priceFresh(crypto) ||
       !priceFresh(erc) ||

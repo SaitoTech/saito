@@ -58,6 +58,27 @@ function versionsConflict(storedHash, expectedHash) {
   return String(storedHash || '') !== String(expectedHash || '');
 }
 
+function retentionExpiry({ mode, current, finalizedAt, retentionMs, now }) {
+  const retention = Number(retentionMs);
+  if (mode === 'clear') {
+    return null;
+  }
+  if (mode === 'retain') {
+    return current == null ? null : Number(current);
+  }
+  if (mode === 'final') {
+    const start = Date.parse(finalizedAt);
+    if (!Number.isFinite(start) || !Number.isFinite(retention)) {
+      throw new Error('SaitoSign finalization time is invalid.');
+    }
+    return Math.trunc(start) + retention;
+  }
+  if (!Number.isFinite(now) || !Number.isFinite(retention)) {
+    throw new Error('SaitoSign document expiry is invalid.');
+  }
+  return Math.trunc(now) + retention;
+}
+
 function shareProtectionError(view) {
   if (!view?.protect) {
     return '';
@@ -80,6 +101,28 @@ function shareLink(origin, documentId, token) {
   return `${base}/saitosign?share=${encodeURIComponent(documentId)}&token=${encodeURIComponent(token)}`;
 }
 
+function recipientLink(origin, documentId, token, verifyToken) {
+  const link = shareLink(origin, documentId, token);
+  const secret = String(verifyToken || '').trim();
+  if (!link || !secret) {
+    return link;
+  }
+  return `${link}#verify=${encodeURIComponent(secret)}`;
+}
+
+function sameToken(left, right) {
+  const a = String(left || '');
+  const b = String(right || '');
+  if (a.length !== b.length || !a) {
+    return false;
+  }
+  let mismatch = 0;
+  for (let i = 0; i < a.length; i += 1) {
+    mismatch |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  }
+  return mismatch === 0;
+}
+
 module.exports = {
   SHARE_RETENTION_MS,
   normalizeEmail,
@@ -90,5 +133,8 @@ module.exports = {
   shareProtectionError,
   importFailure,
   versionsConflict,
-  shareLink
+  retentionExpiry,
+  shareLink,
+  recipientLink,
+  sameToken
 };

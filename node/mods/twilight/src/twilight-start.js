@@ -20,9 +20,7 @@ const {
   firstEventCode,
   testNftId,
   buildTestNft,
-  testQueueInstructions,
-  pushLocalInstruction,
-  insertEndInstruction
+  testQueueInstructions
 } = require('./lib/cardgen/test-run');
 const nftApi = require('./lib/core/api');
 const {
@@ -359,37 +357,49 @@ class Twilight extends GameTemplate {
       };
     };
 
-    const localDuringTest = (fn, applyLocal) => {
-      return (instruction) => {
-        if (!isSandboxInstructionPermitted(instruction, engineCommands, twilightCommands)) {
-          const cmd =
-            typeof instruction === 'string' ? instruction.split('\t')[0] : '';
-          throw new Error(`command not permitted: ${cmd || '(empty)'}`);
-        }
-        if (this.cardgen_testing) {
-          applyLocal(instruction);
-          return;
-        }
-        return fn(instruction);
-      };
-    };
-
     return {
       commands,
       addToQueue: gate(base.addToQueue),
-      addMove: localDuringTest(base.addMove, (instruction) => {
-        pushLocalInstruction(this.game.queue, instruction);
-      }),
-      prependMove: localDuringTest(base.prependMove, (instruction) => {
-        pushLocalInstruction(this.game.queue, instruction);
-      }),
-      addEndMove: localDuringTest(base.addEndMove, (instruction) => {
-        insertEndInstruction(this.game.queue, instruction);
-      }),
+      addMove: gate(base.addMove),
+      prependMove: gate(base.prependMove),
+      addEndMove: gate(base.addEndMove),
       endTurn: async (...args) => {
+        if (this._sandbox_player_action) {
+          this.reorderMoves('realign');
+          const card = this.game && this.game.state ? this.game.state.eventing_card : '';
+          if (card && !this._sandbox_event_resolved) {
+            this.prependMove(`resolve\t${card}`);
+            this._sandbox_event_resolved = true;
+          }
+          this._sandbox_player_action = false;
+        }
         if (this.cardgen_testing) {
+          this.game.turn = Array.isArray(this.moves) ? this.moves.slice() : [];
+          if (Array.isArray(this.endmoves)) {
+            for (let i = 0; i < this.endmoves.length; i++) {
+              this.game.turn.push(this.endmoves[i]);
+            }
+          }
           this.moves = [];
           this.endmoves = [];
+          this.game.target = 0;
+          const turn = this.game.turn;
+          this.game.turn = [];
+          for (let i = 0; i < turn.length; i++) {
+            this.game.queue.push(turn[i]);
+          }
+          const gameId = this.game.id;
+          const resume = () => {
+            if (!this.cardgen_testing || !this.game || this.game.id !== gameId) {
+              return;
+            }
+            if (this.gaming_active && !this.halted) {
+              setTimeout(resume, 0);
+              return;
+            }
+            this.restartQueue();
+          };
+          setTimeout(resume, 0);
           return;
         }
         return base.endTurn(...args);
@@ -415,7 +425,11 @@ class Twilight extends GameTemplate {
       whoControls: nftApi.whoControls.bind(this),
       isEventActive: nftApi.isEventActive.bind(this),
       setEvent: nftApi.setEvent.bind(this),
-      advanceSpaceRace: nftApi.advanceSpaceRace.bind(this)
+      advanceSpaceRace: nftApi.advanceSpaceRace.bind(this),
+      asEventingPlayer: nftApi.asEventingPlayer.bind(this),
+      playerPlaceInfluence: nftApi.playerPlaceInfluence.bind(this),
+      playerRemoveInfluence: nftApi.playerRemoveInfluence.bind(this),
+      playerRealign: nftApi.playerRealign.bind(this)
     };
   }
 
@@ -468,7 +482,7 @@ class Twilight extends GameTemplate {
       this.cardgen_testing = false;
       this.clearCardgenTestBackup();
       try {
-        this.saveGame(game_id);
+        await this.saveGame(game_id);
       } catch (err) {
         console.error('cardgen test restore save failed', err);
       }
@@ -536,7 +550,7 @@ class Twilight extends GameTemplate {
     this.restartQueue();
   }
 
-  finishCustomCardTest() {
+  async finishCustomCardTest() {
     const snapshot = this._cardgen_test_snapshot || this.readCardgenTestBackup();
     this._cardgen_test_snapshot = null;
     this.cardgen_testing = false;
@@ -553,7 +567,7 @@ class Twilight extends GameTemplate {
 
     this.game = snapshot;
     try {
-      this.saveGame(this.game.id);
+      await this.saveGame(this.game.id);
     } catch (err) {
       console.error('cardgen test restore save failed', err);
     }
@@ -1705,7 +1719,7 @@ console.log("error here 222");
 console.log("LATEST MOVE: " + mv);
 
     if (mv[0] === TEST_COMPLETE) {
-      this.finishCustomCardTest();
+      await this.finishCustomCardTest();
       return 0;
     }
 
@@ -4839,7 +4853,7 @@ try {
   playerPickHeadlineCard() {
 
     let twilight_self = this;
-    if (this.browser_active == 0 && !this.app.HEADLESS) { return; }
+    if (!this.browser_active) { return; }
 
     let player = this.roles[this.game.player];
     let x = "";
@@ -5118,8 +5132,7 @@ async playerTurnHeadlineSelected(card, player) {
 
   playerTurn(selected_card=null) {
 
-
-    if (this.browser_active == 0 && !this.app.HEADLESS) { return; }
+    if (!this.browser_active) { return; }
 
     try {
       $(".easterneurope").removeClass("easterneurope");
@@ -6120,17 +6133,24 @@ async playerTurnHeadlineSelected(card, player) {
 
   }
 
-  reverseMoves(action){
+  reorderMoves(action) {
+    if (!Array.isArray(this.moves)) {
+      return;
+    }
     let new_moves = [];
-    for (let z = this.moves.length-1; z >= 0; z--) {
-      let tmpar = this.moves[z].split("\t");
+    for (let z = this.moves.length - 1; z >= 0; z--) {
+      let tmpar = this.moves[z].split('\t');
       if (tmpar[0] === action) {
         new_moves.push(this.moves[z]);
       } else {
-        new_moves.unshift(this.moves[z])
+        new_moves.unshift(this.moves[z]);
       }
     }
     this.moves = new_moves;
+  }
+
+  reverseMoves(action){
+    this.reorderMoves(action);
     this.endTurn();
   }
 
@@ -7434,29 +7454,50 @@ async playerTurnHeadlineSelected(card, player) {
         bonus_us--;
       }
 
-      let roll_us   = this.rollDice(6);
-      let roll_ussr = this.rollDice(6);
+      let die_us = this.rollDice(6);
+      let die_ussr = this.rollDice(6);
 
-      roll_us   = roll_us + bonus_us;
-      roll_ussr = roll_ussr + bonus_ussr;
+      let roll_us   = die_us + bonus_us;
+      let roll_ussr = die_ussr + bonus_ussr;
+
+      let winner = "draw";
+      let removed = 0;
+      let removedFaction = "";
 
       if (roll_us > roll_ussr) {
+        winner = "us";
         this.updateLog(`US wins realignment roll with ${roll_us} (incl. ${bonus_us} bonus) vs. USSR ${roll_ussr} (incl. ${bonus_ussr} bonus)`);
         let diff = roll_us - roll_ussr;
         if (this.countries[country].ussr > 0) {
           diff = Math.min(diff, this.countries[country].ussr);
           this.removeInfluence(country, diff, "ussr");
+          removed = diff;
+          removedFaction = "ussr";
         }
       }else if (roll_us < roll_ussr) {
+        winner = "ussr";
         this.updateLog(`USSR wins realignment roll with ${roll_ussr} (incl. ${bonus_ussr} bonus) vs. US ${roll_us} (incl. ${bonus_us} bonus)`);
         let diff = roll_ussr - roll_us;
         if (this.countries[country].us > 0) {
           diff = Math.min(diff, this.countries[country].us);
           this.removeInfluence(country, diff, "us");
+          removed = diff;
+          removedFaction = "us";
         }
       }else{
         this.updateLog(`Realignment roll is a draw! US [${roll_us-bonus_us} + ${bonus_us}] = USSR [${roll_ussr-bonus_ussr} + ${bonus_ussr}]`);
       }
+
+      return {
+        country,
+        usRoll: die_us,
+        ussrRoll: die_ussr,
+        usBonus: bonus_us,
+        ussrBonus: bonus_ussr,
+        winner,
+        removed,
+        removedFaction
+      };
 
   }
 
@@ -7523,7 +7564,7 @@ async playerTurnHeadlineSelected(card, player) {
     // The runner and the server have no frame to paint. Send before endTurn
     // returns so the runner can wait on the in-flight move.
     //
-    if (this.app.HEADLESS || this.app.BROWSER == 0) {
+    if (!this.browser_active) {
       return dispatch();
     }
 
@@ -10396,7 +10437,7 @@ console.log("DISPLAY ERROR: " + JSON.stringify(err));
     // if VP are outstanding, do not update VP and trigger end
     //
     if (this.game.state.vp_outstanding != 0) { return; }
-    if (!this.browser_active && !this.app.HEADLESS) { return; }
+    if (!this.browser_active) { return; }
 
     let dt = 0;
     let dl = 0;
@@ -10415,7 +10456,7 @@ console.log("DISPLAY ERROR: " + JSON.stringify(err));
     }
 
 
-    if (this.app.BROWSER == 1) {
+    if (this.browser_active) {
       dt = this.scale(dt);
       dl = this.scale(dl);
 
@@ -11341,8 +11382,11 @@ console.log("added card to deck!");
     // Who triggered this event ("us" / "ussr"). Exposed to NFT scripts via
     // api.returnEventingPlayer() so cards like Junta can place for the eventing
     // faction rather than guessing from local seat alone.
+    this._sandbox_player_action = false;
+    this._sandbox_event_resolved = false;
     if (this.game && this.game.state && (player === 'us' || player === 'ussr')) {
       this.game.state.eventing_player = player;
+      this.game.state.eventing_card = card;
     }
 
     if (this.game.deck[0].cards[card] != undefined) {

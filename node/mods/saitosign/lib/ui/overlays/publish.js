@@ -17,7 +17,6 @@ const {
   verifyActionSignature,
   clearEmailIdentifier,
   rememberEmail,
-  verifiedMethods,
   verifyPassport,
   validVerification,
   verifyCreatorProof,
@@ -29,6 +28,7 @@ const {
   verificationSatisfied,
   knownSigner
 } = require('../../auth');
+const { applyKnownVerifications, keepMethod, proofPublicKey, signerKeyForRecord } = require('../../verification-records');
 const { addUser, copy, resolveSigner } = require('../../document');
 const { shareMetadata } = require('../../transaction');
 
@@ -286,7 +286,7 @@ class PublishOverlay {
     const locked = this.state.entry === 'recipient' && !completed ? this.lockedShareStep() : '';
     this.state = {
       ...this.summaryState(this.state),
-      step: manual ? 'signature-export' : (completed ? 'signature-complete' : (locked || (this.state.entry === 'recipient' ? 'share-method' : 'share'))),
+      step: manual ? 'signature-export' : (completed ? 'signature-complete' : (locked || (this.state.entry === 'recipient' ? 'share-recipients' : 'share'))),
       history: [],
       allowUnfinalize: false,
       completionNote: String(completionNote || ''),
@@ -390,12 +390,31 @@ class PublishOverlay {
   }
 
   async confirmReady() {
-    const ready = await this.commitFinalization();
-    if (!ready) {
-      return;
+    if (!this.mod.document?.finalized) {
+      const ready = await this.commitFinalization();
+      if (!ready) {
+        return;
+      }
     }
+    this.openPreparedShare();
+  }
+
+  async signBeforeSharing() {
+    if (!this.mod.document?.finalized) {
+      const ready = await this.commitFinalization();
+      if (!ready) {
+        return;
+      }
+    } else if (!this.state.finalized) {
+      this.state = this.summaryState({ ...this.state, allowUnfinalize: false, entry: 'prepare' });
+    }
+    this.showWhoAreYou();
+  }
+
+  openPreparedShare() {
     this.state.entry = 'prepare';
-    this.state = flow.go(this.state, 'decide-sign');
+    this.shareFlow.ensureRecipients();
+    this.state = flow.go(this.state, 'share-recipients');
     this.showStep('forward');
   }
 
@@ -738,13 +757,13 @@ class PublishOverlay {
         return;
       }
 
-      if (action.dataset.publishAction === 'ready-no') {
-        this.close();
+      if (action.dataset.publishAction === 'ready-yes') {
+        this.confirmReady();
         return;
       }
 
-      if (action.dataset.publishAction === 'ready-yes') {
-        this.confirmReady();
+      if (action.dataset.publishAction === 'ready-sign') {
+        this.signBeforeSharing();
         return;
       }
 
@@ -754,10 +773,7 @@ class PublishOverlay {
       }
 
       if (action.dataset.publishAction === 'sign-no') {
-        this.state.entry = 'prepare';
-        this.shareFlow.ensureRecipients();
-        this.state = flow.go(this.state, 'share-method');
-        this.showStep('forward');
+        this.openPreparedShare();
         return;
       }
 
@@ -1017,10 +1033,8 @@ class PublishOverlay {
     const email = signer.email || (isEmailAddress(signer.name) ? signer.name : '');
     // The public key and identicon come from the wallet and keychain.
     // Email and every verification belong to this document's signer record.
-    let publickey = String(this.app.wallet?.publicKey || '').trim();
-    if (/^[0-9a-fA-F]+$/.test(publickey) && publickey.length >= 64) {
-      publickey = this.app.crypto.compressPublicKey(publickey);
-    }
+    const live = this.mod.document.users[signer.index];
+    const publickey = signerKeyForRecord(this.app, live, email);
     const identicon = this.app.keychain.returnIdenticon(publickey) || '';
     const you = {
       index: signer.index,
@@ -1029,7 +1043,6 @@ class PublishOverlay {
       publicKey: publickey,
       identicon
     };
-    const live = this.mod.document.users[signer.index];
     if (live) {
       const previousPublickey = String(live.publickey || '').trim();
       if (email) {
@@ -1068,28 +1081,7 @@ class PublishOverlay {
 
   withKnownVerifications(state) {
     const live = this.mod.document?.users?.[state.you?.index];
-    const known = verifiedMethods(this.app, live);
-    const image = storedPhoto(live);
-    const passport = storedPassport(live);
-    const verificationMethods = (state.verificationMethods || []).map((method) => {
-      if (!method.required) {
-        return method;
-      }
-      if (!known.includes(method.id)) {
-        return method.status === 'verified'
-          ? { ...method, status: 'pending' }
-          : method;
-      }
-      const next = method.status === 'verified' ? method : { ...method, status: 'verified', selected: true };
-      if (method.id === 'photo' && image) {
-        return { ...next, photo: image };
-      }
-      if (method.id === 'passport' && passport) {
-        return { ...next, image: passport };
-      }
-      return next;
-    });
-    return { ...state, verificationMethods };
+    return applyKnownVerifications(this.app, live, state);
   }
 
   workflowRequirements(newDocument = false) {
@@ -1257,6 +1249,7 @@ class PublishOverlay {
 
   async keepVerification(res, email, publickey) {
     const verification = {
+      method: 'email',
       publickey: res.publickey,
       message:
         res.message ||
@@ -1269,7 +1262,7 @@ class PublishOverlay {
       if (!live.publickey) {
         live.publickey = publickey;
       }
-      keepMethod(live, verification);
+      keepMethod(this.app, live, verification);
     }
 
     if (res.signature) {
@@ -1336,7 +1329,7 @@ class PublishOverlay {
     if (live) {
       live.email = email;
       live.publickey = publickey;
-      keepMethod(live, {
+      keepMethod(this.app, live, {
         method: 'email',
         publickey: this.serverkey,
         message: `Request received for verification of email ${email} with publickey ${publickey}`,
@@ -1369,8 +1362,8 @@ class PublishOverlay {
       return;
     }
     const you = this.state.you;
-    const publickey = you?.publicKey || '';
     const live = you ? this.mod.document.users[you.index] : null;
+    const publickey = proofPublicKey(live, you?.publicKey);
     if (!live || !publickey) {
       photoNotice('That photo could not be saved.');
       return;
@@ -1387,7 +1380,7 @@ class PublishOverlay {
     if (!live.publickey) {
       live.publickey = publickey;
     }
-    keepMethod(live, proof);
+    keepMethod(this.app, live, proof);
     this.mod.document.edited = true;
     const verified = flow.markMethodVerified(
       { ...this.state, focus: 'photo', upsell: null, verifyError: '' },
@@ -1407,14 +1400,17 @@ class PublishOverlay {
 
   async acceptPassport(image) {
     const you = this.state.you;
-    const publickey = you?.publicKey || '';
     const live = you ? this.mod.document.users[you.index] : null;
+    const publickey = proofPublicKey(live, you?.publicKey);
     if (!live || !publickey) {
       return;
     }
     try {
       const proof = await verifyPassport(this.app, publickey, image);
-      keepMethod(live, proof);
+      if (!live.publickey) {
+        live.publickey = publickey;
+      }
+      keepMethod(this.app, live, proof);
       this.mod.document.edited = true;
       this.state = {
         ...flow.markMethodVerified({ ...this.state, passportError: '', focus: 'passport' }, 'passport'),
@@ -1690,39 +1686,10 @@ function readUsers(mod) {
   });
 }
 
-function storedPhoto(user) {
-  const entries = Array.isArray(user?.verifications) ? user.verifications : [];
-  const entry = entries.find((item) => item?.method === 'photo' && typeof item.photo === 'string');
-  const image = String(entry?.photo || '').trim();
-  return image.startsWith('data:image/') ? image : '';
-}
-
-function storedPassport(user) {
-  const entries = Array.isArray(user?.verifications) ? user.verifications : [];
-  const entry = entries.find((item) => item?.method === 'passport' && typeof item.image === 'string');
-  const image = String(entry?.image || '').trim();
-  return image.startsWith('data:image/') ? image : '';
-}
-
 function photoNotice(message) {
   if (typeof siteMessage === 'function') {
     siteMessage(message, 3000);
   }
-}
-
-function keepMethod(user, entry) {
-  const method = String(entry?.method || '');
-  const kept = (user.verifications || []).filter((item) => {
-    if (!item.method) {
-      return false;
-    }
-    if (!method) {
-      return item.method !== 'email';
-    }
-    return item.method !== method;
-  });
-  kept.push(entry);
-  user.verifications = kept;
 }
 
 function duplicateSignerNotice() {

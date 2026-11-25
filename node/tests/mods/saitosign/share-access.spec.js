@@ -1,6 +1,8 @@
 const assert = require('node:assert/strict');
 const test = require('node:test');
 const {
+  readRecipientSecret,
+  locationWithoutRecipientSecret,
   readShareParameters,
   openedThroughShare,
   documentIsEditable,
@@ -24,6 +26,15 @@ function source(overrides) {
 }
 
 const link = { receivedBy: 'link', shareId: 'doc', finalized: true };
+
+test('a recipient secret is read from the fragment and then removed', () => {
+  assert.equal(readRecipientSecret('?share=abc&token=def', '#verify=secret-1'), 'secret-1');
+  assert.equal(readRecipientSecret('', '#verify=secret-1'), 'secret-1');
+  assert.equal(readRecipientSecret('?share=abc&token=def', ''), '');
+  const next = locationWithoutRecipientSecret('https://saito.tech/saitosign?share=abc&token=def#verify=secret-1');
+  assert.equal(next, 'https://saito.tech/saitosign?share=abc&token=def');
+  assert.equal(readRecipientSecret('', '#/saitosign?share=abc&token=def'), '');
+});
 
 test('share parameters are read from the query or the hash', () => {
   assert.deepEqual(readShareParameters('?share=abc&token=def', ''), { id: 'abc', token: 'def' });

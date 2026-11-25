@@ -1,11 +1,14 @@
 const ModTemplate = require('../../lib/templates/modtemplate');
-const SaitoHeader = require('../../lib/saito/ui/saito-header/saito-header');
+const PopupHeader = require('./lib/ui/popup-header');
 const PopupHome = require('./index.js');
 const PopupLesson = require('./lib/lesson');
 const PopupVocab = require('./lib/vocab');
 const PopupReview = require('./lib/review');
 const PopupMain = require('./lib/main');
 const PopupLessonManager = require('./lib/manager');
+const PopupCatalog = require('./lib/catalog');
+const HskTests = require('./lib/ui/hsk-tests/hsk-tests');
+const { isHskCategory } = require('./lib/hsk-archive');
 const PeerService = require('saito-js/lib/peer_service').default;
 const JsStore = require('jsstore');
 
@@ -52,7 +55,7 @@ class Popup extends ModTemplate {
     this.dbName = 'popup';
     this.dbVersion = 1;
 
-    this.lessons = [];
+    this.catalog = new PopupCatalog(app, this);
     this.offset = 0;
 
     return this;
@@ -165,19 +168,23 @@ class Popup extends ModTemplate {
     if (!this.app.options.popup) {
       this.load();
     }
+    if (this.app.BROWSER && document.body) {
+      document.body.classList.add('popup-app');
+    }
 
     //
     // create and render components
     //
     if (this.main == null) {
       // initialize components
-      this.header = new SaitoHeader(this.app, this);
+      this.header = new PopupHeader(this.app, this);
       await this.header.initialize(this.app);
       this.main = new PopupMain(this.app, this);
       this.manager = new PopupLessonManager(this.app, this);
       this.lessonui = new PopupLesson(this.app, this);
       this.review = new PopupReview(this.app, this);
       this.vocab = new PopupVocab(this.app, this);
+      this.hsk = new HskTests(this.app, this);
 
       this.addComponent(this.header);
       this.addComponent(this.main);
@@ -185,9 +192,11 @@ class Popup extends ModTemplate {
       //
       // chat manager can insert itself into left-sidebar if exists
       //
+      this.main.ensureShell();
       for (const mod of this.app.modules.returnModulesRespondingTo('chat-manager')) {
         let cm = mod.respondTo('chat-manager');
-        cm.container = '.saito-sidebar.left';
+        cm.container = '.popup-chat-host';
+        cm.chat_popup_container = '.popup-chat-dock';
         cm.render_manager_to_screen = 1;
         this.addComponent(cm);
       }
@@ -195,39 +204,64 @@ class Popup extends ModTemplate {
 
     await super.render();
 
+    if (this.app.BROWSER && !this.history_bound) {
+      this.history_bound = true;
+      window.addEventListener('popstate', () => {
+        this.urlpath = window.location.pathname.split('/').filter((part) => part !== '');
+        this.routeFromLocation();
+      });
+    }
+
+    this.routeFromLocation();
+  }
+
+  routeFromLocation() {
     if (this.urlpath.length >= 2) {
       if (this.urlpath[1] == 'review' || this.urlpath[1] == 'vocab') {
         this.app.connection.emit('popup-vocab-render-request');
         return;
       }
+      if (this.urlpath[1] == 'testimonials') {
+        this.app.connection.emit('popup-testimonials-render-request');
+        return;
+      }
+      if (this.urlpath[1] == 'hsk') {
+        this.app.connection.emit('popup-hsk-render-request');
+        return;
+      }
       if (this.urlpath[1] == 'lessons') {
-        if (this.urlpath.length > 2) {
-          if (this.urlpath[2] == 'absolute-beginners') {
-            this.app.connection.emit('popup-lessons-render-request', 'absolute-beginners');
-          }
-          if (this.urlpath[2] == 'elementary') {
-            this.app.connection.emit('popup-lessons-render-request', 'elementary');
-          }
-          if (this.urlpath[2] == 'intermediate') {
-            this.app.connection.emit('popup-lessons-render-request', 'intermediate');
-          }
-          if (this.urlpath[2] == 'advanced') {
-            this.app.connection.emit('popup-lessons-render-request', 'advanced');
-          }
-          if (this.urlpath[2] == 'film-friday') {
-            this.app.connection.emit('popup-lessons-render-request', 'film-friday');
-          }
-          if (this.urlpath[2] == 'quiz-night') {
-            this.app.connection.emit('popup-lessons-render-request', 'quiz-night');
-          }
-        } else {
-          this.app.connection.emit('popup-lessons-render-request', 'all');
+        if (this.urlpath.length >= 4 && this.urlpath[2] && this.urlpath[3]) {
+          this.openLessonPath(decodeURIComponent(this.urlpath[2]), decodeURIComponent(this.urlpath[3]));
+          return;
         }
+        if (this.urlpath.length > 2 && isHskCategory(decodeURIComponent(this.urlpath[2]))) {
+          this.app.connection.emit('popup-hsk-render-request');
+          return;
+        }
+        if (this.urlpath.length > 2 && this.urlpath[2]) {
+          this.app.connection.emit('popup-lessons-render-request', decodeURIComponent(this.urlpath[2]));
+          return;
+        }
+        this.app.connection.emit('popup-lessons-render-request', 'all');
         return;
       }
     }
 
     this.app.connection.emit('popup-home-render-request');
+    if (this.header && this.header.syncNavigation) {
+      this.header.syncNavigation();
+    }
+  }
+
+  openLessonPath(userslug, slug) {
+    let lesson = this.catalog.getBySlug(userslug, slug);
+    if (lesson) {
+      this.pending_lesson = null;
+      this.app.connection.emit('popup-lesson-render-request', lesson.id);
+      return;
+    }
+    this.pending_lesson = { userslug, slug };
+    this.app.connection.emit('popup-lessons-render-request', userslug);
   }
 
   ////////////////////////////
@@ -332,7 +366,8 @@ class Popup extends ModTemplate {
         field3 = '',
         field4 = '',
         field5 = '',
-        label = ''
+        label = '',
+        lessonId = ''
       ) {
         if (field1 === 'unknown') {
           field1 = '';
@@ -350,7 +385,26 @@ class Popup extends ModTemplate {
           field5 = '';
         }
 
-        popup_self.addVocab(field1, field2, field3, field4, field5, label);
+        let lessonTitle = label;
+        let savedLessonId = lessonId;
+        if (popup_self.lesson) {
+          if (!lessonTitle && popup_self.lesson.title) {
+            lessonTitle = popup_self.lesson.title;
+          }
+          if (!savedLessonId && popup_self.lesson.id) {
+            savedLessonId = popup_self.lesson.id;
+          }
+        }
+
+        return popup_self.addVocab(
+          field1,
+          field2,
+          field3,
+          field4,
+          field5,
+          lessonTitle,
+          savedLessonId
+        );
       };
     }
 
@@ -377,56 +431,36 @@ class Popup extends ModTemplate {
         this.peers.push(peer);
       }
 
-      //
-      // fetch all available lessons on load
-      //
-      let sql = `
-				SELECT lessons.id, lessons.title, lessons.content, lessons.slug, lessons.photo, lessons.username, lessons.userslug 
-				FROM lessons 
-                   		ORDER BY lessons.created_at DESC
-			`;
-
-      this.sendPeerDatabaseRequestWithFilter(
-        'Popup',
-        sql,
-        async (res) => {
-          let_lesson_id = 0;
-          if (res.rows) {
-            for (let record of res.rows) {
-              this.addLesson(record);
-            }
-            if (this.manager.waiting_to_display == true) {
-              this.manager.render(this.manager.level);
-            }
-            return;
+      this.catalog.load(peer, () => {
+        let opened_pending = false;
+        if (this.pending_lesson) {
+          let pending = this.catalog.getBySlug(
+            this.pending_lesson.userslug,
+            this.pending_lesson.slug
+          );
+          if (pending) {
+            this.pending_lesson = null;
+            opened_pending = true;
+            this.app.connection.emit('popup-lesson-render-request', pending.id);
           }
-        },
-        (p) => {
-          if (p.publicKey == peer.publicKey) {
-            return 1;
-          }
-          return 0;
         }
-      );
+        const lessonCount = document.querySelector('.popup-home-lesson-count');
+        if (lessonCount) {
+          lessonCount.textContent = String(this.catalog.getAll().length);
+        }
+        if (!opened_pending && this.manager && this.manager.waiting_to_display == true) {
+          this.manager.render(this.manager.level);
+        }
+        if (this.hsk && this.hsk.waiting) {
+          this.hsk.render();
+        }
+      });
     }
   }
 
   //////////////////////
   // Lesson Functions //
   //////////////////////
-  //
-  //(add, load, return)
-  //
-  async addLesson(lesson) {
-    let add_me = true;
-    for (let i = 0; i < this.lessons.length; i++) {
-      if (this.lessons[i].id === lesson.id) {
-        return;
-      }
-    }
-    this.lessons.push(lesson);
-  }
-
   loadLessonSentences(lesson, mycallback) {
     if (!lesson) {
       return;
@@ -516,17 +550,27 @@ class Popup extends ModTemplate {
     );
   }
 
-  returnLesson(lesson_id = null) {
-    for (let i = 0; i < this.lessons.length; i++) {
-      if (this.lessons[i].id == lesson_id) {
-        return this.lessons[i];
-      }
+  loadQuestions(lessonId) {
+    const id = Number(lessonId);
+    if (!Number.isFinite(id) || this.peers.length === 0) {
+      return Promise.resolve([]);
     }
-
-    return {
-      level: 'Unknown',
-      title: 'Placeholder Title'
-    };
+    const peer = this.peers[0];
+    return new Promise((resolve) => {
+      this.sendPeerDatabaseRequestWithFilter(
+        'Popup',
+        `SELECT * FROM questions WHERE lesson_id = ${id} ORDER BY display_order ASC`,
+        (res) => {
+          resolve((res && res.rows) || []);
+        },
+        (candidate) => {
+          if (candidate.publicKey == peer.publicKey) {
+            return 1;
+          }
+          return 0;
+        }
+      );
+    });
   }
 
   ///////////////////////
@@ -569,6 +613,19 @@ class Popup extends ModTemplate {
     if (!this.app.options.popup.review) {
       this.app.options.popup.review = {};
       this.app.options.popup.review.enable = 1;
+    }
+    if (!this.app.options.popup.vocab_list) {
+      this.app.options.popup.vocab_list = {
+        simplified: 1,
+        traditional: 0,
+        pinyin: 1,
+        english: 1,
+        pos: 0,
+        srs_rank: 0,
+        times_correct: 0,
+        times_incorrect: 0,
+        last_studied: 0
+      };
     }
   }
 
@@ -633,6 +690,27 @@ class Popup extends ModTemplate {
     return false;
   }
 
+  async ensureIntroductoryVocabulary() {
+    if (!this.app.options.popup) {
+      this.app.options.popup = {};
+    }
+    const records = (await this.returnAllVocabulary()) || [];
+    if (records.length > 0) {
+      if (!this.app.options.popup.vocab_intro_seeded) {
+        this.app.options.popup.vocab_intro_seeded = 1;
+        this.save();
+      }
+      return false;
+    }
+    if (this.app.options.popup.vocab_intro_seeded) {
+      return false;
+    }
+    await this.addVocab('你好', '你好', 'nǐ hǎo', 'hello', '', '', 0);
+    this.app.options.popup.vocab_intro_seeded = 1;
+    this.save();
+    return true;
+  }
+
   async addVocab(
     field1 = '',
     field2 = '',
@@ -660,19 +738,45 @@ class Popup extends ModTemplate {
     obj.times_correct = 0;
     obj.times_incorrect = 0;
     obj.srs_rank = 0;
+    obj.last_studied = 0;
 
     const transaction = this.localDB.transaction(['vocabulary'], 'readwrite');
     const objectStore = transaction.objectStore('vocabulary');
 
-    const request = objectStore.add(obj);
+    return new Promise((resolve, reject) => {
+      const request = objectStore.add(obj);
 
-    request.onsuccess = async () => {
-      console.log('Vocabulary added successfully:', obj);
-    };
+      request.onsuccess = () => {
+        resolve(request.result);
+      };
 
-    request.onerror = (event) => {
-      console.error('Error adding vocabulary:', event.target.error);
-    };
+      request.onerror = (event) => {
+        const error = event.target.error;
+        if (error && error.name === 'ConstraintError') {
+          reject(new Error('That pinyin or English translation is already saved'));
+        } else {
+          reject(error || new Error('Could not add vocabulary'));
+        }
+      };
+    });
+  }
+
+  async deleteVocabulary(ids) {
+    const keys = (ids || []).map((id) => Number(id)).filter((id) => Number.isFinite(id));
+    if (!keys.length || !this.localDB) {
+      return 0;
+    }
+
+    return new Promise((resolve, reject) => {
+      const transaction = this.localDB.transaction(['vocabulary'], 'readwrite');
+      const objectStore = transaction.objectStore('vocabulary');
+      keys.forEach((id) => {
+        objectStore.delete(id);
+      });
+      transaction.oncomplete = () => resolve(keys.length);
+      transaction.onerror = (event) => reject(event.target.error);
+      transaction.onabort = (event) => reject(event.target.error);
+    });
   }
 
   async returnVocab(offset = 0, limit = 10) {
@@ -713,177 +817,59 @@ class Popup extends ModTemplate {
     });
   }
 
-  async loadQuestion() {
+  async returnAllVocabulary() {
+    if (!this.app.BROWSER || !this.localDB) {
+      return [];
+    }
+
     return new Promise((resolve, reject) => {
-      let question_types = ['multiple_choice_english', 'multiple_choice_pinyin'];
-      let question_type = question_types[Math.floor(Math.random() * question_types.length)];
-
-      let tdate1 = new Date().getTime();
-      let tdate2 = new Date().getTime() - 172800 * 1000;
-      let tdate3 = new Date().getTime() - 518400 * 1000;
-      let tdate4 = new Date().getTime() - 1123200 * 1000;
-      let tdate5 = new Date().getTime() - 2419200 * 1000;
-      let tdate6 = new Date().getTime() - 4924800 * 1000;
-      let tdate7 = new Date().getTime() - 14774400 * 1000;
-
       const transaction = this.localDB.transaction(['vocabulary'], 'readonly');
       const objectStore = transaction.objectStore('vocabulary');
-
-      // Use a cursor to fetch and filter records
       const request = objectStore.openCursor();
-      const rows = [];
-
-      let last_entry = '';
+      const allEntries = [];
 
       request.onsuccess = (event) => {
         const cursor = event.target.result;
-
         if (cursor) {
-          // Check the conditions for filtering the rows
-          if (
-            cursor.value.srs_rank === 0 ||
-            (cursor.value.srs_rank === 1 && cursor.value.last_studied < tdate1) ||
-            (cursor.value.srs_rank < 2 && cursor.value.last_studied < tdate2) ||
-            (cursor.value.srs_rank < 3 && cursor.value.last_studied < tdate3) ||
-            (cursor.value.srs_rank < 4 && cursor.value.last_studied < tdate4) ||
-            (cursor.value.srs_rank < 5 && cursor.value.last_studied < tdate5) ||
-            (cursor.value.srs_rank < 6 && cursor.value.last_studied < tdate6) ||
-            (cursor.value.srs_rank < 7 && cursor.value.last_studied < tdate7)
-          ) {
-            rows.push(cursor.value);
-          }
-
-          last_entry = cursor.value;
+          allEntries.push(cursor.value);
           cursor.continue();
         } else {
-          if (rows.length == 0) {
-            if (last_entry) {
-              rows.push(last_entry);
-            }
-          }
-
-          // Resolve with a random row if rows exist
-          if (rows.length > 0) {
-            let idx = Math.floor(Math.random() * rows.length);
-            let word = rows[idx];
-
-            let words = [];
-            let options = [];
-
-            const shuffleArray = (array) => array.sort(() => Math.random() - 0.5);
-
-            if (rows.length > 4) {
-              while (options.length < 4) {
-                shuffleArray(rows);
-                if (!options.includes(rows[0].field1)) {
-                  words.push(rows[0]);
-                  options.push(rows[0].field1);
-                }
-              }
-            } else {
-              words.push({
-                english: 'good',
-                pinyin: 'hao3',
-                field1: 'good',
-                field2: 'hao3',
-                field3: '好',
-                field4: '好'
-              });
-              words.push({
-                english: 'ok',
-                pinyin: 'xing2',
-                field1: 'ok',
-                field2: 'xing2',
-                field3: '行',
-                field4: '行'
-              });
-              words.push({
-                english: 'to eat',
-                pinyin: 'chi1',
-                field1: 'to eat',
-                field2: 'chi1',
-                field3: '吃',
-                field4: '吃'
-              });
-              words.push({
-                english: 'to go',
-                pinyin: 'zou3',
-                field1: 'to go',
-                field2: 'zou3',
-                field3: '走',
-                field4: '走'
-              });
-            }
-
-            //
-            // substitute random entry for our test
-            //
-            let correct = Math.floor(Math.random() * 4);
-            if (word != null) {
-              words[correct] = word;
-            } else {
-              word = words[correct];
-            }
-
-            let option1 = '';
-            let option2 = '';
-            let option3 = '';
-            let option4 = '';
-            let question = '';
-            let english = '';
-
-            //
-            // options depend on question type
-            //
-            if (question_type === 'multiple_choice_english') {
-              option1 = words[0].field1;
-              option2 = words[1].field1;
-              option3 = words[2].field1;
-              option4 = words[3].field1;
-              question = word.field3;
-              english = word.field1;
-              pinyin = word.field2;
-            }
-            if (question_type === 'multiple_choice_pinyin') {
-              option1 = words[0].field2;
-              option2 = words[1].field2;
-              option3 = words[2].field2;
-              option4 = words[3].field2;
-              question = word.field3;
-              english = word.field1;
-              pinyin = word.field2;
-            }
-
-            obj = {
-              lesson_id: word.lesson_id,
-              word_id: word.id,
-              question_type: question_type,
-              question: question,
-              english: english,
-              pinyin: pinyin,
-              language: 'chinese',
-              option1: option1,
-              option2: option2,
-              option3: option3,
-              option4: option4,
-              correct: `option${correct + 1}`,
-              answer: '',
-              hint: '',
-              source_audio_url: 'http://popupchinese.com/data/'
-            };
-
-            resolve(obj);
-          } else {
-            resolve(null); // No matching rows found
-          }
+          resolve(allEntries);
         }
       };
 
       request.onerror = (event) => {
-        console.error('Error fetching vocabulary:', event.target.error);
-        reject(event.target.error); // Reject on error
+        reject(event.target.error);
       };
     });
+  }
+
+  async loadQuestion() {
+    const ReviewSession = require('./lib/review-session');
+    const session = new ReviewSession(this.app, this);
+    await session.prepare();
+    const next = session.selectQuestion();
+    if (!next) {
+      return null;
+    }
+    const choices = next.model.choices;
+    return {
+      lesson_id: next.word.lessonId,
+      word_id: next.word.id,
+      question_type: next.format.id,
+      question: next.model.prompt,
+      english: next.word.english,
+      pinyin: next.word.pinyin,
+      language: 'chinese',
+      option1: choices[0] || '',
+      option2: choices[1] || '',
+      option3: choices[2] || '',
+      option4: choices[3] || '',
+      correct: 'option' + (next.model.correctIndex + 1),
+      answer: choices[next.model.correctIndex] || '',
+      hint: '',
+      source_audio_url: ''
+    };
   }
 
   async saveAnswer(obj) {
@@ -916,7 +902,7 @@ class Popup extends ModTemplate {
         if (word) {
           word.updated_at = new Date().getTime(); // Update the timestamp
 
-          if (obj.correct) {
+          if (Number(obj.correct) === 1) {
             word.last_studied = new Date().getTime();
             word.last_correct = word.last_studied;
             word.times_studied++;
@@ -969,6 +955,26 @@ class Popup extends ModTemplate {
     });
 
     expressapp.get('/' + encodeURI(this.returnSlug() + '/review/*'), async function (req, res) {
+      let html = PopupHome(app, popup_self, app.build_number);
+      if (!res.finished) {
+        res.setHeader('Content-type', 'text/html');
+        res.charset = 'UTF-8';
+        return res.send(html);
+      }
+      return;
+    });
+
+    expressapp.get('/' + encodeURI(this.returnSlug() + '/testimonials'), async function (req, res) {
+      let html = PopupHome(app, popup_self, app.build_number);
+      if (!res.finished) {
+        res.setHeader('Content-type', 'text/html');
+        res.charset = 'UTF-8';
+        return res.send(html);
+      }
+      return;
+    });
+
+    expressapp.get('/' + encodeURI(this.returnSlug() + '/hsk'), async function (req, res) {
       let html = PopupHome(app, popup_self, app.build_number);
       if (!res.finished) {
         res.setHeader('Content-type', 'text/html');

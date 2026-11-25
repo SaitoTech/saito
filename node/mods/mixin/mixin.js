@@ -1,5 +1,6 @@
 const Decimal = require('decimal.js');
 const MixinModule = require('./lib/mixinmodule');
+const { MIXIN_REQUEST_FREQUENCE_MILLISECONDS } = MixinModule;
 const ModTemplate = require('../../lib/templates/modtemplate');
 const PeerService = require('saito-js/lib/peer_service').default;
 const Database = require('./lib/database');
@@ -45,10 +46,20 @@ class Mixin extends ModTemplate {
     this.MixinModule = MixinModule;
     this.credentials = {};
     this.api_key = null;
+    this.default_user_agent = 'Saito-Mixin/1.0';
+    this.user_agent = this.default_user_agent;
     this.deposit_addresses = [];
     this.mixin_peer = null;
     this.buysaito_peer = null;
     this.available_currencies = [];
+    this.available_currencies_at = 0;
+    this.available_currencies_failed_at = 0;
+    this.currency_catalogue_peer = '';
+    this.currency_failure_peer = '';
+    this.currency_request = null;
+    this.currency_request_peer = '';
+    this.currency_request_generation = 0;
+    this.currency_request_started_at = 0;
     this.erc_saito = null;
     this.pending_payments = [];
     this.purchase_overlay = null;
@@ -89,6 +100,7 @@ class Mixin extends ModTemplate {
         credentials[field] = options[field];
       }
     }
+    this.user_agent = this.normalizeMixinUserAgent(options.user_agent ?? '');
     this.credentials = credentials;
     this.account_created = credentials.user_id ? 1 : 0;
 
@@ -137,6 +149,7 @@ class Mixin extends ModTemplate {
       next.api_key = this.api_key;
     }
 
+    next.user_agent = this.user_agent;
     next.deposit_addresses = Array.isArray(this.deposit_addresses)
       ? this.deposit_addresses.map((item) => ({ ...item }))
       : [];
@@ -429,13 +442,16 @@ class Mixin extends ModTemplate {
 
   async onPeerServiceUp(app, peer, service = {}) {
     if (service.service === 'buysaito' && this.app.BROWSER) {
+      const nextPeer = String(peer?.publicKey || '').trim();
+      const previousPeer = String(this.buysaito_peer?.publicKey || '').trim();
       this.buysaito_peer = peer;
-      this.app.network.sendRequestAsTransaction(
-        'buysaito available currencies',
-        null,
-        (response) => this.receiveAvailableCurrencies(response),
-        peer.publicKey
-      );
+      if (previousPeer && nextPeer && previousPeer !== nextPeer) {
+        this.available_currencies = [];
+        this.available_currencies_at = 0;
+        this.erc_saito = null;
+        this.currency_catalogue_peer = '';
+      }
+      this.requestAvailableCurrencies(nextPeer);
     }
 
     if (service.service === 'mixin') {
@@ -463,7 +479,7 @@ class Mixin extends ModTemplate {
     this.load();
 
     this.database = new Database(app, this);
-    this.api = new Api();
+    this.api = new Api(this);
     this.accounts = new Accounts(app, this);
 
     if (!app.BROWSER) {
@@ -855,20 +871,26 @@ class Mixin extends ModTemplate {
       const authorized_peer = this.isAuthorizedFulfillmentPeer(peer, from);
       const can_fulfill = !!this.appSession && !!this.transfers && buysaitoProvider;
       const accepted = can_fulfill && authorized_peer;
-      console.log('Mixin buysaito request', {
-        request: message.request,
-        app_session: !!this.appSession,
-        transfers: !!this.transfers,
-        fulfillment_mode: this.fulfillment_mode,
-        server: this.publicKey,
-        addressed_to_server: tx.isTo(this.publicKey),
-        buysaito_provider: buysaitoProvider,
-        buyer: from || '',
-        connected_peer: peer?.publicKey || '',
-        direct_peer,
-        delegated_peer,
-        accepted
-      });
+      if (message.request === 'buysaito available currencies') {
+        console.log(
+          `MIXIN PEER REQUEST IN | buysaito available currencies | from=${from || ''}`
+        );
+      } else {
+        console.log('Mixin buysaito request', {
+          request: message.request,
+          app_session: !!this.appSession,
+          transfers: !!this.transfers,
+          fulfillment_mode: this.fulfillment_mode,
+          server: this.publicKey,
+          addressed_to_server: tx.isTo(this.publicKey),
+          buysaito_provider: buysaitoProvider,
+          buyer: from || '',
+          connected_peer: peer?.publicKey || '',
+          direct_peer,
+          delegated_peer,
+          accepted
+        });
+      }
       if (!authorized_peer) {
         return 0;
       }
@@ -885,8 +907,7 @@ class Mixin extends ModTemplate {
         let erc = null;
         try {
           for (const crypto of this.crypto_mods) {
-            if (!crypto.last_update || Date.now() - crypto.last_update > 300000) {
-              console.log('Mixin buysaito refreshing price', crypto.ticker);
+            if (!crypto.last_update || Date.now() - crypto.last_update > MIXIN_REQUEST_FREQUENCE_MILLISECONDS) {
               await crypto.returnMixinNetworkInfo();
             }
             const price = Number(crypto.price_usd);
@@ -916,14 +937,13 @@ class Mixin extends ModTemplate {
           ac: currencies,
           erc: Number.isFinite(Number(erc?.price_usd)) && Number(erc.price_usd) > 0 ? Number(erc.price_usd) : null
         };
-        console.log('Mixin buysaito available currencies reply', {
-          count: currencies.length,
-          tickers: currencies.map((currency) => currency.ticker),
-          erc: response.erc,
-          callback: typeof mycallback === 'function',
-          buyer: from
-        });
+        console.log(
+          `MIXIN PEER RESPONSE READY | buysaito available currencies | to=${from || ''} | tickers=${currencies.length}`
+        );
         if (direct_peer) {
+          console.log(
+            `MIXIN PEER RESPONSE OUT | buysaito available currencies | to=${from || ''}`
+          );
           this.app.network.sendRequestAsTransaction(
             'buysaito available currencies',
             response,
@@ -932,6 +952,9 @@ class Mixin extends ModTemplate {
           );
         }
         if (mycallback) {
+          console.log(
+            `MIXIN PEER RESPONSE OUT | buysaito available currencies | to=${from || ''}`
+          );
           mycallback(response);
         }
         return 1;
@@ -1269,6 +1292,13 @@ class Mixin extends ModTemplate {
     return !!(mixinAppKeystoreFromEnv() || mixinAppKeystore(this.api_key));
   }
 
+  normalizeMixinUserAgent(raw) {
+    if (typeof raw !== 'string' || /[^\x20-\x7e]/.test(raw)) {
+      throw new Error('Mixin User-Agent must contain only printable ASCII characters.');
+    }
+    return raw.trim() || this.default_user_agent;
+  }
+
   saveMixinApiKey(raw) {
     if (mixinAppKeystoreFromEnv()) {
       throw new Error('The Mixin API key is already supplied by the server environment');
@@ -1319,6 +1349,8 @@ class Mixin extends ModTemplate {
             page_size: 20,
             account: this.accountSummary(),
             api_key_configured: false,
+            user_agent: this.user_agent,
+            default_user_agent: this.default_user_agent,
             fulfillment_mode,
             payout_mode,
             treasury_provider_publickeys,
@@ -1335,6 +1367,8 @@ class Mixin extends ModTemplate {
           ...listed,
           account: this.accountSummary(),
           api_key_configured: true,
+          user_agent: this.user_agent,
+          default_user_agent: this.default_user_agent,
           deposit_addresses: await this.depositAddressReport(),
           fulfillment_mode,
           payout_mode,
@@ -1348,6 +1382,14 @@ class Mixin extends ModTemplate {
         name: this.name,
         getConfig,
         updateConfig: async (config = {}) => {
+          if (config.action === 'save-user-agent') {
+            this.user_agent = this.normalizeMixinUserAgent(config.user_agent);
+            this.save();
+            if (this.api) {
+              this.appSession = this.api.createAppSession();
+            }
+            return getConfig(config);
+          }
           if (config.action === 'save-api-key') {
             this.saveMixinApiKey(config.api_key);
             return getConfig(config);
@@ -1534,7 +1576,7 @@ class Mixin extends ModTemplate {
             await cryptoModule.activate();
           }
         }
-      }, 250);
+      }, 250 + i * 5000);
     }
   }
 
@@ -1676,33 +1718,132 @@ class Mixin extends ModTemplate {
     expressapp.use('/' + encodeURI(this.returnSlug()), express.static(webdir));
   }
 
-  receiveAvailableCurrencies(response) {
+  currencyProvider(peerKey) {
+    return String(peerKey || this.buysaito_peer?.publicKey || '').trim();
+  }
+
+  hasCurrencyCatalogue(peerKey = '') {
+    const provider = this.currencyProvider(peerKey);
+    return (
+      !!provider &&
+      this.currency_catalogue_peer === provider &&
+      !!this.available_currencies_at &&
+      Array.isArray(this.available_currencies)
+    );
+  }
+
+  currencyCatalogueIsFresh(peerKey = '') {
+    return (
+      this.hasCurrencyCatalogue(peerKey) &&
+      Date.now() - this.available_currencies_at <= MIXIN_REQUEST_FREQUENCE_MILLISECONDS
+    );
+  }
+
+  currencyRequestCooling(peerKey = '') {
+    const provider = this.currencyProvider(peerKey);
+    return (
+      !!provider &&
+      this.currency_failure_peer === provider &&
+      !!this.available_currencies_failed_at &&
+      Date.now() - this.available_currencies_failed_at <= MIXIN_REQUEST_FREQUENCE_MILLISECONDS / 2
+    );
+  }
+
+  requestAvailableCurrencies(peerKey) {
+    const provider = this.currencyProvider(peerKey);
+    if (!provider || !this.app?.network?.sendRequestAsTransaction) {
+      return Promise.resolve(false);
+    }
+    if (this.currencyCatalogueIsFresh(provider) || this.currencyRequestCooling(provider)) {
+      return Promise.resolve(this.available_currencies);
+    }
+    const requestAge = this.currency_request_started_at
+      ? Date.now() - this.currency_request_started_at
+      : MIXIN_REQUEST_FREQUENCE_MILLISECONDS;
+    if (
+      this.currency_request &&
+      this.currency_request_peer === provider &&
+      requestAge < MIXIN_REQUEST_FREQUENCE_MILLISECONDS / 2
+    ) {
+      return this.currency_request;
+    }
+
+    const generation = this.currency_request_generation + 1;
+    this.currency_request_generation = generation;
+    this.currency_request_peer = provider;
+    this.currency_request_started_at = Date.now();
+    let resolveRequest;
+    const request = new Promise((resolve) => {
+      resolveRequest = resolve;
+    });
+    this.currency_request = request;
+    try {
+      this.app.network.sendRequestAsTransaction(
+        'buysaito available currencies',
+        null,
+        (response) => resolveRequest(this.finishCurrencyRequest(generation, provider, response)),
+        provider
+      );
+    } catch (err) {
+      resolveRequest(this.finishCurrencyRequest(generation, provider, { err: err?.message || err }));
+    }
+    return request;
+  }
+
+  finishCurrencyRequest(generation, provider, response) {
+    if (generation !== this.currency_request_generation) {
+      return false;
+    }
+    this.currency_request = null;
+    if (this.currencyProvider() !== provider) {
+      return false;
+    }
+    return this.receiveAvailableCurrencies(response, { provider });
+  }
+
+  receiveAvailableCurrencies(response, source = {}) {
+    const current = this.currencyProvider();
+    const provider = String(source.provider || current || '').trim();
+    if (source.provider && current && provider !== current) {
+      return false;
+    }
     const data = response?.request ? response.data : response;
-    if (!data || data.err) {
+    const excluded = new Set(['ERC-SAITO', 'BEP-SAITO']);
+    const currencies = Array.isArray(data?.ac)
+      ? data.ac.filter((currency) => {
+          const price = Number(currency?.price_usd);
+          return currency?.ticker && !excluded.has(currency.ticker) && Number.isFinite(price) && price > 0;
+        })
+      : null;
+    if (!data || data.err || !currencies || currencies.length === 0) {
       const message = data?.message || data?.err || 'empty reply';
       console.log('Mixin buysaito available currencies error', message);
-      this.available_currencies = null;
+      this.available_currencies_failed_at = Date.now();
+      this.currency_failure_peer = provider;
+      if (!this.hasCurrencyCatalogue(provider)) {
+        this.available_currencies = null;
+        this.erc_saito = null;
+      }
       if (data?.message || data?.err) {
         this.app.connection.emit('saito-purchase-error-notification', {
           message: data.message || data.err
         });
       }
       this.app.connection.emit('saito-purchase-cryptos');
-      return;
+      return false;
     }
-    const excluded = new Set(['ERC-SAITO', 'BEP-SAITO']);
-    this.available_currencies = Array.isArray(data.ac)
-      ? data.ac.filter((currency) => {
-          const price = Number(currency?.price_usd);
-          return currency?.ticker && !excluded.has(currency.ticker) && Number.isFinite(price) && price > 0;
-        })
-      : null;
     const ercPrice = Number(data.erc);
+    this.available_currencies = currencies;
     this.erc_saito = Number.isFinite(ercPrice) && ercPrice > 0 ? { price_usd: ercPrice } : null;
+    this.available_currencies_at = Date.now();
+    this.currency_catalogue_peer = provider;
+    this.available_currencies_failed_at = 0;
+    this.currency_failure_peer = '';
     if (this.browser_active) {
       this.purchase_overlay?.renderAmountPage();
     }
     this.app.connection.emit('saito-purchase-cryptos');
+    return true;
   }
 
   receiveBuySaitoReply(tx, message) {
@@ -1714,7 +1855,7 @@ class Mixin extends ModTemplate {
     const data = message.data;
 
     if (message.request === 'buysaito available currencies') {
-      this.receiveAvailableCurrencies(data);
+      this.receiveAvailableCurrencies(data, { provider: peerKey });
       return 1;
     }
 

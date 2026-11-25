@@ -6,6 +6,13 @@ function emailAddress(state) {
   return state.you && state.you.email ? state.you.email : '';
 }
 
+function emailFrame() {
+  return emailPanel({
+    you: { email: '' },
+    verificationMethods: [{ id: 'email', status: 'pending' }]
+  }).replace(/\s(?:id|for|name|data-[\w-]+)(?:="[^"]*")?/g, '');
+}
+
 function emailPanel(state) {
   const email = state.verificationMethods.find((method) => method.id === 'email');
   if (email && email.status === 'verified') {
@@ -106,14 +113,14 @@ function verifySlide(state) {
           : `<p class="heading">${escapeHTML(method?.description || 'This verification method is not available.')}</p>`;
 
   return {
-    title: 'Verify Your identity',
-    subtitle: 'Please complete the steps below to advance.',
-    disclosure: 'Any information you provide will be included in the final document, and available to any party to whom you provide access.',
+    title: 'Before you sign the document, please provide the required information.',
+    subtitle: 'Any information you provide will be included in the final document, and available to any party to whom you provide access.',
     body: `
       <div class="verify-flow">
         ${methodsTemplate(state.verificationMethods, state.upsell || focus)}
         <div class="detail">
-          ${panel}
+          <div class="verify-panel">${panel}</div>
+          <div class="verify-sizer" aria-hidden="true" inert>${emailFrame()}</div>
         </div>
       </div>
     `

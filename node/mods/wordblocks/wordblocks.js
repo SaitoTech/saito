@@ -1,7 +1,11 @@
 const GameTemplate = require('../../lib/templates/gametemplate');
 const WordblocksGameRulesTemplate = require('./lib/wordblocks-game-rules.template');
 const WordblocksGameOptionsTemplate = require('./lib/wordblocks-game-options.template');
-const htmlTemplate = require('./lib/game-html.template');
+const MainTemplate = require('./lib/ui/main.template');
+const WordblocksHUD = require('./lib/ui/hud');
+const WordblocksPlayers = require('./lib/ui/players');
+const WordblocksPlay = require('./lib/ui/play');
+const GameMinimap = require('../../lib/saito/ui/game-minimap/game-minimap');
 
 class Wordblocks extends GameTemplate {
 	constructor(app) {
@@ -43,9 +47,16 @@ class Wordblocks extends GameTemplate {
 		this.last_played_word = [];
 		this.loadingDictionary = null; //a flag that we are loading the dictionary in the background
 
-		this.defaultMsg = `Click on the board to enter a word from that square, click a tile to select it for play, or <span class="link tosstiles" title="Double click tiles to select them for deletion">discard tiles</span> if you cannot move.`;
+		this.defaultMsg = 'Select a tile, place it on the board, then press Play word.';
 
 		this.clock.container = '#clock_';
+
+		this.hud = new WordblocksHUD(app, this);
+		this.players = new WordblocksPlayers(app, this);
+		this.playerbox = this.players;
+		this.play = new WordblocksPlay(app, this);
+		this.minimap = new GameMinimap(app, this);
+		this.minimap.enable_zoom = 1;
 
 		return this;
 	}
@@ -54,17 +65,13 @@ class Wordblocks extends GameTemplate {
 		if (!this.browser_active) {
 			return;
 		}
-
 		if (this.initialize_game_run) {
 			return;
 		}
-
-		await this.injectGameHTML(htmlTemplate());
-
+		await this.injectGameHTML(MainTemplate());
 		await super.render(app);
 
 		this.menu.addMenuOption('game-game', 'Game');
-
 		this.menu.addSubMenuOption('game-game', {
 			text: 'How to Play',
 			id: 'game-intro',
@@ -74,7 +81,6 @@ class Wordblocks extends GameTemplate {
 				game_mod.overlay.showClosable(game_mod.returnGameRulesHTML());
 			}
 		});
-
 		this.menu.addSubMenuOption('game-game', {
 			text: 'Stats',
 			id: 'game-stats',
@@ -84,75 +90,213 @@ class Wordblocks extends GameTemplate {
 				game_mod.overlay.showClosable(game_mod.returnStatsOverlay());
 			}
 		});
-
+		this.menu.addSubMenuOption('game-game', {
+			text: 'Log',
+			id: 'game-log',
+			class: 'game-log',
+			callback: function (app, game_mod) {
+				game_mod.menu.hideSubMenus();
+				game_mod.log.toggleLog();
+			}
+		});
 		this.menu.addChatMenu();
-
 		this.menu.render();
-
-		this.hud.auto_sizing = 0; //turn off default sizing
-		this.hud.draggable_whole = false;
-		this.hud.render();
 		this.log.render();
 
-		//Remove hide-scrollbar class from hud
-		$('#hud').removeClass('hide-scrollbar');
-
-		try {
-			this.playerbox.render();
-
-			let compact_html = '';
-
-			for (let i = 1; i <= this.game.players.length; i++) {
-				let score = this.getPlayerScore(i);
-
-				let newhtml = `<div class="playerscore" id="score_${i}">${score}</div>`;
-				if (this.useClock) {
-					newhtml += `<div class="player_clock" id="clock_${i}"></div>`;
-				}
-
-				this.playerbox.updateBody(newhtml, i);
-
-				compact_html += `<div class="score" id="mobile_score_${i}"><img class="player-identicon" src="${this.app.keychain.returnIdenticon(
-					this.game.players[i - 1]
-				)}"/><span>: ${score}</span></div>`;
-			}
-
-			this.scoreboard.update(compact_html);
-
-			$('#game-scoreboard').off();
-			$('#game-scoreboard').on('click', function () {
-				$('.game-playerbox-manager').toggleClass('visible');
-			});
-
-			let wordblocks_self = this;
-			$('.playerscore').on('click', function () {
-				wordblocks_self.overlay.showClosable(wordblocks_self.returnStatsOverlay());
-			});
-		} catch (err) {
-			console.error(err);
+		this.players.render();
+		this.hud.container = '#wb-hud-dock';
+		this.hud.render();
+		this.paintBoard();
+		this.play.render();
+		if (this.minimap) {
+			this.minimap.render();
 		}
+		if (this.play && this.play.armBoardDrag) {
+			this.play.armBoardDrag();
+		}
+		this.centerBoard();
+	}
 
-		if (this.useClock == 1) {
-			this.clock.render();
-			for (let i = 0; i < this.game.clock.length; i++) {
-				this.clock.displayTime(this.game.clock[i].limit - this.game.clock[i].spent, i + 1);
+	getBoardBackdrop() {
+		return '';
+	}
+
+	syncBoardMap() {
+		if (this.minimap && this.browser_active && typeof document !== 'undefined') {
+			this.minimap.render();
+		}
+	}
+
+	stageRect() {
+		let stage = typeof document !== 'undefined' ? document.querySelector('.wb-stage') : null;
+		if (stage) {
+			let box = stage.getBoundingClientRect();
+			if (box.width > 160 && box.height > 160) {
+				return {
+					left: box.left + 4,
+					top: box.top + 4,
+					width: Math.max(160, box.width - 8),
+					height: Math.max(160, box.height - 8)
+				};
 			}
 		}
+		return this.playfieldRect();
+	}
 
-		try {
-			if (
-				app.browser.isMobileBrowser(navigator.userAgent) ||
-				window.innerWidth < 600 ||
-				window.innerHeight < 600
-			) {
-				this.hammer.render('#gameboard', 600);
-			} else {
-				this.sizer.render();
-				this.sizer.attachEvents('.gameboard');
-			}
-		} catch (err) {
-			console.error(err);
+	fitScale() {
+		const el = this.getBoardElement();
+		if (!el || !el.offsetWidth || !el.offsetHeight) {
+			return 100;
 		}
+		const stage = this.stageRect();
+		let scale = Math.floor(100 * Math.min(stage.width / el.offsetWidth, stage.height / el.offsetHeight));
+		return Math.max(2, Math.min(200, scale));
+	}
+
+	playfieldRect() {
+		let top = 8;
+		let left = 8;
+		let right = 8;
+		let bottom = 8;
+		let header = document.querySelector('#saito-header');
+		if (header) {
+			let box = header.getBoundingClientRect();
+			if (box.bottom > 0) {
+				top = Math.max(top, box.bottom + 8);
+			}
+		}
+		let rail = document.querySelector('.wb-rail');
+		let dock = document.querySelector('.wb-dock');
+		let narrow = window.innerWidth < 900 || window.innerHeight < 560;
+		if (rail) {
+			let box = rail.getBoundingClientRect();
+			if (narrow) {
+				top = Math.max(top, box.bottom + 8);
+			} else if (box.right > 0) {
+				left = Math.max(left, box.right + 8);
+			}
+		}
+		if (dock) {
+			let box = dock.getBoundingClientRect();
+			if (box.top > 0 && box.top < window.innerHeight) {
+				bottom = Math.max(bottom, window.innerHeight - box.top + 8);
+			}
+		}
+		return {
+			left,
+			top,
+			width: Math.max(160, window.innerWidth - left - right),
+			height: Math.max(160, window.innerHeight - top - bottom)
+		};
+	}
+
+	// The shared minimap places a board point at the centre of the window.
+	// Shift that point into the centre of the open table, and leave a board
+	// that already fits the table where centerBoard put it.
+	playfieldAnchor(x, y, board) {
+		const stage = this.stageRect();
+		const scale = board && board.scale ? board.scale : 1;
+		const width = board && board.width ? board.width : 0;
+		const height = board && board.height ? board.height : 0;
+		const viewW = window.innerWidth / scale;
+		const viewH = window.innerHeight / scale;
+		if (width && height && viewW >= width - 1 && viewH >= height - 1) {
+			return {
+				left: stage.left + (stage.width - width * scale) / 2,
+				top: stage.top + (stage.height - height * scale) / 2
+			};
+		}
+		return {
+			left: x + stage.left + stage.width / 2 - window.innerWidth / 2,
+			top: y + stage.top + stage.height / 2 - window.innerHeight / 2
+		};
+	}
+
+	setBoardPosition(x, y) {
+		const el = this.getBoardElement();
+		if (!el) {
+			return;
+		}
+		const anchor = this.playfieldAnchor(x, y, this.getBoardState());
+		this.moveBoardTo(el, anchor.left, anchor.top);
+		this.saveBoardDocumentOffset(el);
+	}
+
+	setBoardScale(scale, save = true) {
+		const el = this.getBoardElement();
+		if (!el) {
+			return;
+		}
+		scale = Math.max(2, Math.min(200, Math.round(Number(scale) || 100)));
+		this.prepareBoard(el);
+		const stage = this.stageRect();
+		const before = el.getBoundingClientRect();
+		const oldScale = el.offsetWidth ? before.width / el.offsetWidth : 0;
+		const cx = stage.left + stage.width / 2;
+		const cy = stage.top + stage.height / 2;
+		const bx = oldScale ? (cx - before.left) / oldScale : 0;
+		const by = oldScale ? (cy - before.top) / oldScale : 0;
+		el.style.transform = `scale(${scale / 100})`;
+		if (oldScale) {
+			const newScale = scale / 100;
+			el.style.left = cx - bx * newScale + 'px';
+			el.style.top = cy - by * newScale + 'px';
+		}
+		if (save) {
+			this.saveGamePreference(this.returnSlug() + '-board-scale', scale);
+			this.saveBoardDocumentOffset(el);
+		}
+	}
+
+	centerBoard() {
+		const el = this.getBoardElement();
+		if (!el) {
+			return;
+		}
+		const boardWidth = el.offsetWidth;
+		const boardHeight = el.offsetHeight;
+		if (!boardWidth || !boardHeight) {
+			return;
+		}
+		const stage = this.stageRect();
+		let scale = this.fitScale();
+		this.prepareBoard(el);
+		el.style.transform = `scale(${scale / 100})`;
+		const visualW = boardWidth * (scale / 100);
+		const visualH = boardHeight * (scale / 100);
+		el.style.left = stage.left + (stage.width - visualW) / 2 + 'px';
+		el.style.top = stage.top + (stage.height - visualH) / 2 + 'px';
+		this.saveGamePreference(this.returnSlug() + '-board-scale', scale);
+		this.saveBoardDocumentOffset(el);
+		if (this.play && this.play.placeHud) {
+			this.play.placeHud();
+		}
+	}
+
+	paintBoard() {
+		if (!this.game?.board || typeof $ === 'undefined') {
+			return;
+		}
+		for (var i in this.game.board) {
+			let divname = '#' + i;
+			let letter = this.game.board[i].letter;
+			let already = $(divname).hasClass('set');
+			this.addTile($(divname), letter);
+			if (!(letter == '_') && !(letter == '')) {
+				try {
+					if (this.game.state && this.game.state.newLetters && this.game.state.newLetters.includes(i)) {
+						$(divname).addClass('new');
+					}
+					if (!already) {
+						$(divname).addClass('set');
+						if (this.letters[letter]) {
+							this.letters[letter].count--;
+						}
+					}
+				} catch (err) {}
+			}
+		}
+		this.syncBoardMap();
 	}
 
 	returnGameRulesHTML() {
@@ -336,23 +480,7 @@ class Wordblocks extends GameTemplate {
 			this.game.board = this.returnBoard();
 		}
 
-		//
-		// Draw board
-		//
-		for (var i in this.game.board) {
-			let divname = '#' + i;
-			let letter = this.game.board[i].letter; // $(divname).html(this.returnTile(letter));
-			this.addTile($(divname), letter);
-			if (!(letter == '_') && !(letter == '')) {
-				try {
-					if (this.game.state.newLetters.includes(i)) {
-						$(divname).addClass('new');
-					}
-					$(divname).addClass('set');
-					this.letters[letter].count--;
-				} catch (err) {}
-			}
-		}
+		this.paintBoard();
 
 		//
 		// has a move been made
@@ -379,6 +507,9 @@ class Wordblocks extends GameTemplate {
 			}
 		}
 
+		if (this.players) {
+			this.players.render();
+		}
 		$('.score.active').removeClass('active');
 		this.playerbox.setActive(this.game.target);
 		$(`#mobile_score_${this.game.target}`).addClass('active');
@@ -427,57 +558,24 @@ class Wordblocks extends GameTemplate {
 	}
 
 	updateStatusWithTiles(status) {
-		if (this.game.player == 0) {
-						this.game.status = `<div class="hud-status-update-message">${status}</div>`;
-			this.hud.updateStatus(this.game.status);
+		let text = String(status || '').replace(/<[^>]+>/g, '');
+		let turnNotice = /your go|waiting|['’]s turn|peers/i.test(text);
+		let html = turnNotice ? '' : `<div class="wb-status-line">${text}</div>`;
+		this.game.status = html;
+		if (this.browser_active && this.hud) {
+			this.hud.updateStatus(html);
 			this.hud.updateMenu([]);
 			this.hud.updateCards([]);
-			return;
 		}
-
-		try {
-			let tile_html = '';
-			for (let i = 0; i < this.game.deck[0].hand.length; i++) {
-				tile_html += this.returnTileHTML(this.game.deck[0].cards[this.game.deck[0].hand[i]].name);
+		if (this.gameBrowserActive() && this.play) {
+			this.play.renderRack();
+			this.play.renderControls();
+			if (this.game.player === this.game.target) {
+				this.play.enable();
 			}
-
-			if (!this.gameBrowserActive()) {
-								this.game.status = status + tile_html;
-				this.hud.updateStatus(this.game.status);
-				this.hud.updateMenu([]);
-				this.hud.updateCards([]);
-				return;
-			}
-
-			let html = `
-      <div class="hud-status-update-message">${status}</div>
-      <div class="status_container">
-        <div class="rack" id="rack">
-          <div class="tiles" id="tiles">
-            ${tile_html}
-          </div>
-        </div>
-        <div class="subrack" id="subrack">
-          <div class="rack-controls">
-            <div id="shuffle" class="shuffle">Shuffle: <i class="fa fa-random"></i></div>
-            <div id="canceldelete" class="hidden">Cancel: <i id="canceldelete" class="far fa-window-close"></i></div>
-            <div id="deletectrl" class="deletectrl hidden">Discard: <i class="fa fa-trash" id="delete"></i></div>
-            <div id="remainingctrl" >Tiles: ${this.game.deck[0].crypt.length}</div>
-            <div id="skipturn" class="hidden">Skip: <i class="fas fa-fast-forward"></i></div>
-          </div>
-        </div>
-      </div>
-    `;
-
-						this.game.status = html;
-			this.hud.updateStatus(this.game.status);
-			this.hud.updateMenu([]);
-			this.hud.updateCards([]); //Attach html to #status box
-			this.limitedEvents(); //Baseline functionality
-		} catch (err) {
-			console.error(err);
-			console.log('HAND: ' + JSON.stringify(this.game.deck[0].hand));
-			console.log('CARDS: ' + JSON.stringify(this.game.deck[0].cards));
+		}
+		if (this.players) {
+			this.players.refreshStatus();
 		}
 	}
 
@@ -505,539 +603,53 @@ class Wordblocks extends GameTemplate {
   Basic events for all players to interact with their hud even when not their turn
   */
 	limitedEvents() {
-		let wordblocks_self = this;
-
-		if (this.gameBrowserActive()) {
-			$('.gameboard').removeClass('active_board');
-			$('.slot').off();
-			$('#rack .tile').off();
-
-			$('#tiles').disableSelection();
-			//Drag to Sort tiles on Rack
-			$('#tiles').sortable({
-				axis: 'x',
-				tolerance: 'pointer',
-				containment: 'parent',
-				distance: 3,
-				start: function (event, ui) {
-					$(ui.item).addClass('noclick');
-				},
-				stop: function (event, ui) {
-					setTimeout(function () {
-						$(ui.item).removeClass('noclick');
-					}, 350);
-				}
-			});
-
-			//Shuffle Rack
-			$('#shuffle').on('click', function () {
-				for (var i = $('#tiles').children.length; i >= 0; i--) {
-					$('#tiles')[0].appendChild($('#tiles')[0].childNodes[(Math.random() * i) | 0]);
-				}
-			});
-
-			$('#remainingctrl').on('click', function () {
-				wordblocks_self.displayRemainingTiles();
-			});
-
-			/* Click to popup more information on what the last move just was */
-			for (let i = 1; i <= this.game.players.length; i++) {
-				let handle = '#lastmove_' + i;
-				$(handle).off();
-				$(handle).on('click', function () {
-					if (
-						wordblocks_self.last_played_word[i - 1] &&
-						wordblocks_self.last_played_word[i - 1].play
-					) {
-						wordblocks_self.overlay.show(
-							wordblocks_self.returnMath(wordblocks_self.last_played_word[i - 1].play)
-						);
-					}
-				});
-			}
+		if (this.play) {
+			this.play.bindAlways();
 		}
 	}
 
 	removeEvents() {
-		if (this.gameBrowserActive()) {
-			$('#skipturn').off();
-			$('#shuffle').off(); //Don't want to shuffle when manually placing tiles or deleting
-			$('.slot').off(); //Reset clicking on board
-			$('.tosstiles').off();
-			$('#rack .tile').off();
-			$('#deletectrl').off();
-			$('#status').off();
-			$('#canceldelete').off();
-			$('.tile').off();
-			$('.selected_space').removeClass('selected_space');
-			$('.gameboard').removeClass('active_board');
+		let board = typeof document !== 'undefined' ? document.getElementById('gameboard') : null;
+		if (board) {
+			board.classList.remove('active_board');
 		}
 	}
 
 	enableEvents() {
-		if (this.gameBrowserActive()) {
-			this.addEventsToBoard();
-			$('.gameboard').addClass('active_board');
+		if (this.gameBrowserActive() && this.play) {
+			this.play.enable();
 		}
 	}
 
-	/*
-    Create event listeners for user interaction
-    We have various modes, which when changed need to call this function again to refresh the event model
-    hud-status-update-message
-  */
-	async addEventsToBoard() {
-		if (!this.gameBrowserActive()) {
+	clearBoard() {
+		if (typeof document === 'undefined') {
 			return;
 		}
-
-		$('.selected_space').removeClass('selected_space');
-
-		let wordblocks_self = this;
-		let tile = document.querySelector('.highlighttile');
-		let interactiveMode =
-			document.querySelector('.slot .tempplacement') ||
-			document.querySelector('#tiles .highlighttile');
-
-		$('#remainingctrl').on('click', function () {
-			wordblocks_self.displayRemainingTiles();
-		});
-
-		try {
-			//Show delete and skip controls
-			if (this.game.deck[0].crypt.length > 0) {
-				$('#deletectrl').removeClass('hidden');
-			}
-
-			$('#skipturn').removeClass('hidden');
-
-			/*
-      Define a few helper functions because there are multiple ways to get to the same code
-      */
-			const revertToPlay = function () {
-				//Unselect all double-clicked tiles
-				$('.tiles .tile').removeClass('todelete');
-				$('#shuffle').removeClass('hidden');
-				$('#tiles').sortable('enable');
-				$('#canceldelete').addClass('hidden');
-				$('#deletectrl').off();
-				$('#canceldelete').off();
-				wordblocks_self.addEventsToBoard();
-			};
-			const selectTile = function (selection, e) {
-				$('.highlighttile').removeClass('highlighttile');
-				tile = selection;
-				$(tile).addClass('highlighttile');
-				let helper = tile.cloneNode(true);
-				helper.id = 'helper';
-				$(document.body).append(helper);
-				$('#helper').css({ top: e.clientY - 25, left: e.clientX - 25 });
-
-				$('#status').on('click', function () {
-					//console.log("*** Click on rack ***");
-					returnToRack(tile);
-				});
-			};
-			const deselectTile = function () {
-				$('.highlighttile').removeClass('highlighttile');
-				tile = null;
-				$('#helper').remove();
-				$('#status').off();
-			};
-			const returnToRack = function (tile) {
-				let slot = tile.parentElement.id;
-				$('#tiles').append(tile);
-				$(tile).removeClass('tempplacement');
-				//console.log("slot: " + slot);
-				deselectTile();
-				if (slot != 'tiles') {
-					wordblocks_self.game.board[slot].letter = '_';
-					//Show bonus information if uncovered
-					$(`#${slot}`).find('.bonus').css('display', 'flex');
-					checkBoard(); //Helper function to display submission button if deleting this tile gives us a "playable" word
-				}
-
-				//if (!(document.querySelector(".slot .tempplacement") || document.querySelector("#tiles .highlighttile"))) {
-				wordblocks_self.addEventsToBoard();
-				//}
-			};
-
-			const checkBoard = function () {
-				$('.tile-submit-controls').remove(); //Removes previous addition
-				//Popup to commit word
-				//Get the x,y, orientation and word from tiles
-				let [word, orientation, y, x] = wordblocks_self.readWordFromBoard();
-				if (word) {
-					let html = `
-            <div class="tile-submit-controls">
-              <div class="playable ${
-								wordblocks_self.checkWord(word) ? 'valid_word' : 'invalid_word'
-							}">${word}</div>
-              <div class="action" id="cancel"><i class="far fa-window-close"></i> Cancel</div>
-              <div class="action" id="submit"><i class="fa fa-paper-plane"></i> Submit</div>
-            </div>`;
-
-					//Change this because stupid game-playerbox-manager not opponent box
-					$('.hud').append(html);
-
-					$('.action').off();
-					$('.action').on('click', function () {
-						$('.action').off();
-						$('.tile-submit-controls').remove();
-						//Remove the temporary tiles
-						wordblocks_self.clearBoard();
-						if ($(this).attr('id') == 'submit') {
-							//console.log(`Submitting ${word}, ${orientation} at column ${x}, row ${y}`);
-							wordblocks_self.tryPlayingWord(x, y, orientation, word);
-						} else {
-							//reload events
-							wordblocks_self.addEventsToBoard();
-						}
-					});
-				}
-			};
-
-			$('#skipturn').off();
-			$('#skipturn').on('click', async function () {
-				let c = await sconfirm('Are you sure you want to end your turn without playing?');
-				if (c) {
-					wordblocks_self.clearBoard();
-					wordblocks_self.addMove('discard_tiles\t' + wordblocks_self.game.player + '\t');
-					wordblocks_self.endTurn();
-				}
-			});
-
-			//Float helper tile with mouse over board
-			$(document).on('mousemove', function (e) {
-				//$("#helper").css("transform",`translate(${e.clientX+5}px, ${e.clientY+5}px)`);
-				$('#helper').css({ top: e.clientY - 25, left: e.clientX - 25 });
-			});
-
-			$('#shuffle').off(); //Don't want to shuffle when manually placing tiles or deleting
-			$('.slot').off(); //Reset clicking on board
-
-			$('#rack .tile').off();
-			//Single click to select a tile and enter interactive placement mode
-			$('#rack .tile').on('click', function (e) {
-				if (!$(this).hasClass('noclick')) {
-					//Wasn't just dragging this tile and triggering a click event
-					if (tile == this) {
-						deselectTile();
-					} else {
-						deselectTile();
-						if (!$(this).hasClass('highlighttile')) {
-							//console.log("Selection: " + this);
-							selectTile(this, e); //Helper function to create floating tile
-						}
-					}
-
-					//Reload events if changing input model
-					if (
-						interactiveMode !=
-						(document.querySelector('.slot .tempplacement') ||
-							document.querySelector('#tiles .highlighttile'))
-					)
-						wordblocks_self.addEventsToBoard();
-				}
-				e.stopPropagation();
-			});
-
-			//Discard Tiles -- Method 2
-			$('#deletectrl').off();
-			$('#deletectrl').on('click', function () {
-				wordblocks_self.clearBoard();
-				//Enter interactive discard mode.
-				$('.hud-status-update-message').text(
-					'Select the tiles you want to discard and click the trash icon to confirm (this will count as your turn).'
-				);
-
-				$('#tiles').sortable('disable');
-				$('.tile').off('click'); //block clicking
-				$('#shuffle').addClass('hidden');
-				$('#canceldelete').removeClass('hidden');
-				//Single click to select for deletion
-				$('#rack .tile').on('click', function (e) {
-					this.classList.toggle('todelete');
-				});
-
-				$('#canceldelete').off();
-				$('#canceldelete').on('click', revertToPlay);
-
-				$('#deletectrl').off();
-				$('#deletectrl').on('click', function () {
-					let deletedTiles = '';
-					let tileRack = document.querySelectorAll('.tiles .tile');
-					for (let i = 0; i < tileRack.length; i++) {
-						if (tileRack[i].classList.contains('todelete')) deletedTiles += tileRack[i].textContent;
-					}
-					if (deletedTiles && deletedTiles.length <= wordblocks_self.game.deck[0].crypt.length) {
-						wordblocks_self.discardAndDrawTiles(deletedTiles);
-					} else {
-						//salert('You must discard at least one tile and no more than are available to draw!');
-						revertToPlay();
-					}
-				});
-			});
-
-			/*$("#rack .tile").on("dblclick", function () {
-        //Toggle deleted on/off with each double click
-        this.classList.toggle("todelete");
-        //Do we have tiles selected for deletion?
-        let deletedTiles = "";
-        let tileRack = document.querySelectorAll(".tiles .tile");
-        for (let i = 0; i < tileRack.length; i++) {
-          if (tileRack[i].classList.contains("todelete"))
-            deletedTiles += tileRack[i].textContent;
-        }
-
-        //If tiles selected for deletion enter deletemode
-        if (deletedTiles.length > 0) {
-          $(".hud-status-update-message").text(
-            "Select the tiles you want to discard and click the trash icon to confirm (this will count as your turn)."
-          );
-
-          $("#tiles").sortable("disable");
-          $(".tile").off("click"); //block clicking
-          $("#canceldelete").removeClass("hidden");
-          $("#delete").off();
-          $("#delete").on("click", function () {
-            wordblocks_self.discardAndDrawTiles(deletedTiles);
-          });
-          $("#canceldelete").off();
-          $("#canceldelete").on("click", revertToPlay);
-        } else {
-          //Exit deletemode
-          revertToPlay();
-        }
-      });*/
-
-			/*
-      Default/Original mode
-      Allow shuffling of rack and click on board to launch text entry
-      */
-			if (!interactiveMode) {
-				let xpos = 0;
-				let ypos = 0;
-				$('#helper').remove(); //clean up just in case
-				$('.hud-status-update-message').html(wordblocks_self.defaultMsg); //update instructions to player
-				//Click on game board to type a word
-
-				$('.slot').on('mousedown', function (e) {
-					xpos = e.clientX;
-					ypos = e.clientY;
-				});
-				//Create as menu on the game board to input word from a tile in horizontal or vertical direction
-				$('.slot').on('mouseup', function (e) {
-					if (Math.abs(xpos - e.clientX) > 4) {
-						return;
-					}
-					if (Math.abs(ypos - e.clientY) > 4) {
-						return;
-					}
-					$('.selected_space').removeClass('selected_space');
-					$(this).addClass('selected_space');
-
-					let divname = $(this).attr('id');
-					let html = `
-            <div class="tile-placement-controls">
-              <div class="action" id="horizontal"><i class="fas fa-arrows-alt-h"></i> horizontally</div>
-              <div class="action" id="vertical"><i class="fas fa-arrows-alt-v"></i> vertically</div>
-              <div class="action" id="cancel"><i class="far fa-window-close"></i> cancel</div>
-            </div>`;
-					let tmpx = divname.split('_');
-					let y = tmpx[0];
-					let x = tmpx[1];
-					let word = '';
-
-					let offsetX = wordblocks_self.app.browser.isMobileBrowser(navigator.userAgent) ? 25 : 55;
-					let offsetY = wordblocks_self.app.browser.isMobileBrowser(navigator.userAgent) ? 25 : 55;
-
-					let greater_offsetX = wordblocks_self.app.browser.isMobileBrowser(navigator.userAgent)
-						? 135
-						: 155;
-					let greater_offsetY = wordblocks_self.app.browser.isMobileBrowser(navigator.userAgent)
-						? 135
-						: 155;
-
-					let left = $(this).offset().left + offsetX;
-					let top = $(this).offset().top + offsetY;
-
-					if (x > 8) {
-						left -= greater_offsetX;
-					}
-					if (y > 8) {
-						top -= greater_offsetY;
-					}
-
-					$('.tile-placement-controls').remove(); //Removes previous addition
-
-					$('body').append(html);
-					$('.tile-placement-controls').css({
-						top: top,
-						left: left,
-						bottom: 'unset',
-						right: 'unset'
-					});
-
-					//Launch asynch prompt for typed word
-					$('.action').off();
-					$('.action').on('click', async function () {
-						$('.tile-placement-controls').remove();
-						let orientation = $(this).attr('id'); //horizontal, vertical, cancel
-
-						if (orientation == 'cancel') {
-							wordblocks_self.updateStatusWithTiles(wordblocks_self.defaultMsg);
-							wordblocks_self.enableEvents();
-							return;
-						}
-
-						word = await sprompt('Provide your word:');
-						$('.selected_space').removeClass('selected_space');
-						//Process Word
-						if (word) {
-							//console.log(`Submitting ${word}, ${orientation} at col ${x}, row ${y}`);
-							wordblocks_self.tryPlayingWord(x, y, orientation, word);
-						}
-					});
-				});
-
-				/* 
-      Enable shuffling in this mode 
-      */
-				$('#shuffle').on('click', function () {
-					for (var i = $('#tiles').children.length; i >= 0; i--) {
-						$('#tiles')[0].appendChild($('#tiles')[0].childNodes[(Math.random() * i) | 0]);
-					}
-				});
-			} else {
-				//Alternate tile manipulation event model:     interactive placement
-
-				$('.hud-status-update-message').text(
-					'Click a tile to select/deselect it, then click the board to place it. Double click to move it back to the rack'
-				);
-				$('.tile-placement-controls').remove();
-
-				$('#rack .tile').off('dblclick'); //Turn off dbl click to delete
-
-				//Double click to remove from board
-				$('.slot').on('dblclick', function () {
-					let clkTarget = this.querySelector('.tile');
-					if (clkTarget && $(clkTarget).hasClass('tempplacement')) {
-						returnToRack(clkTarget /*, $(this).attr("id")*/);
-					} else {
-						//console.log(JSON.parse(JSON.stringify(wordblocks_self.game.board)));
-					}
-				});
-				//Click rack when tile is selected to return it to rack
-
-				//Click slot to move tile on board
-				$('.slot').on('click', function (e) {
-					//do we have a tile selected
-
-					//Is there a tile to select?
-					if (this.querySelector('.tile')) {
-						//Will select tile first
-						let conflict = this.querySelector('.tile');
-						if (conflict.classList.contains('tempplacement')) {
-							if (!tile) {
-								//If we don't have a currently selected tile
-								//console.log(`Select new at (${$(this).attr("id")}):`, tile, conflict);
-								selectTile(conflict, e);
-							} else if (conflict.classList.contains('highlighttile')) {
-								//Toggle selection of tile
-								//console.log(`Deselect (${$(this).attr("id")}):`, tile, conflict);
-								deselectTile();
-							} else {
-								//console.log("Swap selection:", tile, conflict);
-								deselectTile();
-								selectTile(conflict, e);
-							}
-						}
-					} else {
-						//Slot is empty
-						if (tile) {
-							//Fill in board
-							wordblocks_self.game.board[$(this).attr('id')].letter = tile.textContent;
-							//Remove from board (if necessary)
-							let parentSlot = $('.slot .highlighttile').parent().attr('id');
-							if (parentSlot) {
-								wordblocks_self.game.board[parentSlot].letter = '_';
-							}
-
-							//Move tile if we have one selected
-							//Hide bonus information if covered
-							if (this.querySelector('.bonus')) {
-								this.querySelector('.bonus').style.display = 'none';
-							} //Show bonus information if uncovered
-							if (tile.parentElement.querySelector('.bonus')) {
-								tile.parentElement.querySelector('.bonus').style.display = 'flex';
-							}
-							//Move tile to board
-							this.append(tile);
-							$(tile).addClass('tempplacement');
-							$(tile).off();
-							deselectTile();
-						}
-					}
-					checkBoard();
-				});
-
-				checkBoard();
-			}
-
-			//Discard Tiles -- Old Method
-			//Must be added here because maybe refreshing the hud-status-message
-			$('.tosstiles').off();
-			$('.tosstiles').on('click', async function () {
-				if (wordblocks_self.game.deck[0].crypt.length > 0) {
-					tiles = await sprompt('Which tiles do you want to discard?');
-					if (tiles) {
-						if (tiles.length > wordblocks_self.game.deck[0].crypt.length) {
-							salert('INVALID: You cannot throw away more letters than you can draw');
-							return false;
-						}
-
-						let tmphand = JSON.parse(JSON.stringify(wordblocks_self.game.deck[0].hand));
-						for (let i = 0; i < tiles.length; i++) {
-							let letter = tiles[i].toUpperCase();
-							let letter_found = 0;
-							for (let k = 0; k < tmphand.length; k++) {
-								if (wordblocks_self.game.deck[0].cards[tmphand[k]].name == letter) {
-									tmphand.splice(k, 1);
-									letter_found = 1;
-									k = tmphand.length + 1;
-								}
-							}
-							if (letter_found == 0) {
-								salert('INVALID: letter not in hand: ' + letter);
-								return false;
-							}
-						}
-						wordblocks_self.discardAndDrawTiles(tiles);
-					}
-				} else {
-					salert('You can only discard if there are tiles to draw');
-				}
-			});
-		} catch (err) {
-			console.log(err);
+		document.querySelectorAll('.tile-submit-controls').forEach((el) => el.remove());
+		let helper = document.getElementById('helper');
+		if (helper) {
+			helper.remove();
 		}
-	}
-
-	/*
-  Move all temporary tiles from board back to rack
-*/
-	clearBoard() {
-		$('.tile-submit-controls').remove();
-		$('#helper').remove();
-		let playedTiles = document.querySelectorAll('.slot .tempplacement');
+		let root = document.getElementById('gameboard');
+		if (!root || !this.game?.board) {
+			return;
+		}
+		let playedTiles = root.querySelectorAll('.tempplacement');
 		for (let t of playedTiles) {
-			this.game.board[t.parentElement.id].letter = '_';
-			if (t.parentElement.querySelector('.bonus')) {
-				t.parentElement.querySelector('.bonus').style.display = 'flex';
+			if (this.game.board[t.parentElement.id]) {
+				this.game.board[t.parentElement.id].letter = '_';
 			}
-			$('#tiles').append(t);
+			let bonus = t.parentElement.querySelector('.bonus');
+			if (bonus) {
+				bonus.style.display = '';
+			}
+			let rack = document.getElementById('tiles');
+			if (rack) {
+				rack.appendChild(t);
+			}
+			t.classList.remove('tempplacement');
 		}
+		this.syncBoardMap();
 	}
 
 	/*
@@ -1045,7 +657,7 @@ class Wordblocks extends GameTemplate {
   Returns: Word, orientation, x, y (of starting square)
 */
 	readWordFromBoard() {
-		let playedTiles = document.querySelectorAll('.slot .tempplacement');
+		let playedTiles = document.querySelectorAll('#gameboard .slot .tempplacement');
 		let minx = 16,
 			miny = 16,
 			maxx = 0,
@@ -1137,8 +749,7 @@ class Wordblocks extends GameTemplate {
 				let newOrientation = orientation == 'vertical' ? 'horizontal' : 'vertical';
 				if (this.expandWord(y, x, newOrientation).word.length > 1) {
 					this.removeWordFromBoard(word, orientation, x, y);
-					this.tryPlayingWord(x, y, newOrientation, word);
-					return;
+					return this.tryPlayingWord(x, y, newOrientation, word);
 				} //Otherwise just let it fail with normal logic
 			}
 
@@ -1148,6 +759,7 @@ class Wordblocks extends GameTemplate {
 				this.removeWordFromBoard(word, orientation, x, y);
 				this.updateStatusWithTiles(`Not a valid word, try again! ${this.defaultMsg}`);
 				this.enableEvents();
+				return false;
 			} else {
 				this.game.words_played[parseInt(this.game.player) - 1].push({
 					word: fullword,
@@ -1174,12 +786,15 @@ class Wordblocks extends GameTemplate {
 				}
 
 				this.endTurn();
+				return true;
 			}
 		} else {
 			//!isEntryValid
 			this.updateStatusWithTiles(`Not a valid word, try again! ${this.defaultMsg}`);
 			this.enableEvents();
+			return false;
 		}
+		return false;
 	}
 
 	drawTiles() {
@@ -1422,7 +1037,7 @@ class Wordblocks extends GameTemplate {
 		x = parseInt(x);
 		y = parseInt(y);
 
-		$('.new').removeClass('new');
+		$('#gameboard .new').removeClass('new');
 
 		this.game.state.newLetters = [];
 		for (let i = 0; i < word.length; i++) {
@@ -1514,6 +1129,7 @@ class Wordblocks extends GameTemplate {
 				this.addTile($(divname), letter);
 			}
 		}
+		this.syncBoardMap();
 	}
 
 	/*
@@ -2059,6 +1675,8 @@ class Wordblocks extends GameTemplate {
 		let thisword = '';
 		let score = 0;
 		let html = '';
+		let boardslot = '';
+		let touchesWord = 0;
 		if (Object.keys(this.letters).length === 0) {
 			this.letters = this.returnLetters();
 		}
@@ -2202,6 +1820,7 @@ class Wordblocks extends GameTemplate {
 		let wordBoundaries = this.getWordScope(mainAxis, boardSlotTemplate);
 
 		let fullword = '';
+		let boardslot = '';
 
 		for (let i = wordBoundaries.start; i <= wordBoundaries.end; i++) {
 			boardslot = boardSlotTemplate.replace('#', i);
@@ -2406,10 +2025,13 @@ class Wordblocks extends GameTemplate {
 			$('.score.active').removeClass('active');
 			this.playerbox.setActive(this.game.target);
 			$(`#mobile_score_${this.game.target}`).addClass('active');
+			if (this.playerbox && this.playerbox.refreshStatus) {
+				this.playerbox.refreshStatus();
+			}
 
 			// We add a save point here so closing the tab doesn't break the game
 			console.log('Save Wordblocks game');
-			this.saveGame(this.game.id);
+			await this.saveGame(this.game.id);
 		}
 
 		return 1;
@@ -2466,6 +2088,9 @@ class Wordblocks extends GameTemplate {
 				`<img class="player-identicon" src="${this.app.keychain.returnIdenticon(
 					this.game.players[player - 1]
 				)}"><span>: ${score}</span>`;
+		}
+		if (this.players) {
+			this.players.refreshStatus();
 		}
 	}
 

@@ -143,8 +143,8 @@ class SaitoRun extends OnePlayerGameTemplate {
     return state;
   }
 
-  handleGameLoop(msg = null) {
-    this.saveGame(this.game.id);
+  async handleGameLoop(msg = null) {
+    await this.saveGame(this.game.id);
     ///////////
     // QUEUE //
     ///////////

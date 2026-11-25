@@ -57,6 +57,7 @@ const GameQueue = require('./gametemplate-src/gametemplate-queue');
 const GameGame = require('./gametemplate-src/gametemplate-game');
 const GameUI = require('./gametemplate-src/gametemplate-ui');
 const GameWeb3 = require('./gametemplate-src/gametemplate-web3');
+const GameAI = require('./gametemplate-src/gametemplate-ai');
 
 const HomePage = require('./gametemplate-src/index');
 
@@ -88,6 +89,10 @@ class GameTemplate extends ModTemplate {
     this.is_game_template = true;
     this.game_length = 30; //Estimated number of minutes to complete a game
     this.game = {};
+    this.uses_jsdom = 0;
+    this.jsdom = null;
+    this.process_future_moves_depth = {};
+    this.process_future_moves_boundary = {};
     this.moves = [];
     this.snapshot = [];
     this.future = [];
@@ -323,9 +328,9 @@ class GameTemplate extends ModTemplate {
       if (this.name === game) {
         if (!this.gameBrowserActive()) {
           let current_game_id = this.game.id;
-          this.loadGame(id);
+          await this.loadGame(id);
           await this.sendStopGameTransaction(reason);
-          this.loadGame(current_game_id);
+          await this.loadGame(current_game_id);
         } else {
           // we have received arcade-stop-game that should not be triggered if we are IN the game... this means
           // something is sending an event that is forcing game-over...
@@ -400,7 +405,7 @@ class GameTemplate extends ModTemplate {
         await this.header.render();
       }
 
-      this.initializeHTML(app);
+      await this.initializeHTML(app);
       this.game_move_notification = new Audio('/saito/sound/Belligerent.mp3');
 
       if (this.game.crypto) {
@@ -416,21 +421,6 @@ class GameTemplate extends ModTemplate {
     } catch (err) {
       console.error(err);
     }
-  }
-
-  /**
-   * General sandbox API. Games spread super.returnApi() and add module methods.
-   * Queue / move insertion lives in returnApiQueue().
-   */
-  returnApi() {
-    const api = super.returnApi();
-    const self = this;
-    return {
-      ...api,
-      rollDice: function (sides = 6, mycallback = null) {
-        return self.rollDice(sides, mycallback);
-      }
-    };
   }
 
   /**
@@ -510,31 +500,6 @@ class GameTemplate extends ModTemplate {
     };
   }
 
-  /**
-   * Read-only NFT / script context. Every game module inherits a deep snapshot
-   * of `this.game` under `context.game`. Modules extend via super.returnContext()
-   * and add only module-specific fields (never replace `game`).
-   */
-  returnContext() {
-    const ctx = super.returnContext();
-    let game = {};
-
-    // JSON clone: plain data only, no live references, functions, or host objects.
-    // serializeTransferable later rejects non-JSON types; this also drops `undefined`.
-    try {
-      game = JSON.parse(JSON.stringify(this.game || {}));
-    } catch (err) {
-      throw new Error(
-        `Unable to snapshot game for NFT context: ${err && err.message ? err.message : err}`
-      );
-    }
-
-    return {
-      ...ctx,
-      game
-    };
-  }
-
   returnImage() {
     return `/${this.returnSlug()}/img/arcade/arcade.jpg`;
   }
@@ -543,7 +508,7 @@ class GameTemplate extends ModTemplate {
     return `/${this.returnSlug()}/img/arcade/arcade-banner-background.png`;
   }
 
-  initializeHTML(app) {
+  async initializeHTML(app) {
     //
     // if we are trying to load a game, check
     //
@@ -555,7 +520,12 @@ class GameTemplate extends ModTemplate {
             if (this.app.options.saves[load_id]) {
               this.app.options.games[z] = this.app.options.saves[load_id];
               this.app.options.games[z].timestamp = new Date().getTime();
-              this.loadGame(load_id);
+              await this.app.storage.saveDataFile(
+                'games',
+                load_id,
+                JSON.stringify(this.app.options.games[z])
+              );
+              await this.loadGame(load_id);
               let newUrl =
                 this.app.browser.protocol + '://' + this.app.browser.host + '/' + this.returnSlug();
               try {
@@ -631,7 +601,7 @@ class GameTemplate extends ModTemplate {
           for (let i = 0; i < this.game.players.length; i++) {
             this.game.clock.push({ limit, spent: 0 });
           }
-          this.saveGame(this.game.id);
+          await this.saveGame(this.game.id);
         }
         this.useClock = 1;
       }
@@ -867,10 +837,10 @@ class GameTemplate extends ModTemplate {
 
     // console.log(' !!!!!\n GT: OBSERVER MODE\n !!!!!\n', game_id, JSON.parse(JSON.stringify(txmsg)));
 
-    this.loadGame(game_id);
+    await this.loadGame(game_id);
 
     this.game.player = 0;
-    this.saveGame(game_id);
+    await this.saveGame(game_id);
 
     //
     // otherwise setup the game
@@ -884,7 +854,7 @@ class GameTemplate extends ModTemplate {
       this.addPlayer(txmsg.players[i]);
     }
 
-    this.saveGame(game_id);
+    await this.saveGame(game_id);
     if (this.game.players_set == 0) {
       this.gaming_active = 1; //Prevent any moves processing while sorting players
 
@@ -921,11 +891,11 @@ class GameTemplate extends ModTemplate {
       this.game.players_set = 1;
     }
 
-    this.saveGame(game_id);
+    await this.saveGame(game_id);
 
     if (use_state) {
       this.game.live = true;
-      this.saveGame(game_id);
+      await this.saveGame(game_id);
     } else {
       await this.initializeGameQueue(game_id);
     }
@@ -988,7 +958,7 @@ class GameTemplate extends ModTemplate {
     // we grab the game with the most current timestamp (ts)
     // since no ID is provided
     const params = new URLSearchParams(window.location.search);
-    if (!this.loadGame()) {
+    if (!(await this.loadGame())) {
       const observerParam = params.get('observer') === '1';
       const vars_in_url =
         typeof window !== 'undefined' && window.location?.hash
@@ -1008,7 +978,9 @@ class GameTemplate extends ModTemplate {
     if (params.get('observer') === '1') {
       this.game = this.game || {};
       this.game.player = 0;
-      if (this.game.id && !this._observer_stub_bootstrap) this.saveGame(this.game.id);
+      if (this.game.id && !this._observer_stub_bootstrap) {
+        await this.saveGame(this.game.id);
+      }
     }
 
     if (this.game?.player === 0 && this.observerControls && !this.game?.pending_join) {
@@ -1026,7 +998,7 @@ class GameTemplate extends ModTemplate {
 
     //Just make sure I am in the accepted, so if I send a message, I also receive it
     //edge case with table games/observer
-    this.addFollower(this.publicKey);
+    await this.addFollower(this.publicKey);
 
     //Set navigation protection
     this.app.browser.lockNavigation(this.visibilityChange.bind(this));
@@ -1036,7 +1008,7 @@ class GameTemplate extends ModTemplate {
     if (this.game.dice == '') {
       this.initializeDice();
       this.queue.push('READY');
-      this.saveGame(this.game.id);
+      await this.saveGame(this.game.id);
     }
   }
 
@@ -1057,11 +1029,7 @@ class GameTemplate extends ModTemplate {
         return;
       }
 
-      if (!this.app.BROWSER && !this.app.HEADLESS) {
-        return;
-      }
-
-      if (!this.doesGameExistLocally(game_id)) {
+      if (!(await this.doesGameExistLocally(game_id))) {
         return;
       }
 
@@ -1087,7 +1055,9 @@ class GameTemplate extends ModTemplate {
             player_step = txmsg.step.game;
           }
 
-          if (this.isUnprocessedMoveQuickCheck(player_publickey, player_step, game_id) == -1) {
+          if (
+            (await this.isUnprocessedMoveQuickCheck(player_publickey, player_step, game_id)) == -1
+          ) {
             return;
           }
 
@@ -1098,14 +1068,14 @@ class GameTemplate extends ModTemplate {
           game_gaming_active = this.gaming_active;
           game_initialize_game_run = this.initialize_game_run;
 
-          this.saveGame(current_game_id);
-          this.loadGame(game_id);
+          await this.saveGame(current_game_id);
+          await this.loadGame(game_id);
         }
       } else {
         //
         // No current game, just load the one to process the move
         //
-        this.loadGame(game_id);
+        await this.loadGame(game_id);
       }
 
       //
@@ -1160,7 +1130,7 @@ class GameTemplate extends ModTemplate {
       // Restore game state after processing onchain transactions
       //
       if (current_game_id && current_game_id !== game_id) {
-        this.loadGame(current_game_id);
+        await this.loadGame(current_game_id);
 
         //
         // track execution state of game we shift away from...
@@ -1180,9 +1150,53 @@ class GameTemplate extends ModTemplate {
         if (this.gameBrowserActive()) {
           // We need to do something to restore the status that aren't saved in the wallet
           // like the chess engine or worblocks dictionary
-          this.initializeGame();
+          await this.initializeGame();
         }
       }
+    }
+  }
+
+  async receiveRelayMovesReturn(gametx, gametxmsg, envelope_game_id = null) {
+    this._activation_hold = (this._activation_hold || 0) + 1;
+    let previous_game = this.game && this.game.id ? this.game : null;
+    let switched = false;
+    let relay_game = null;
+    try {
+      let relay_id = gametxmsg?.game_id || gametxmsg?.id || envelope_game_id;
+      if (!relay_id) {
+        return;
+      }
+      if (!previous_game || previous_game.id !== relay_id) {
+        if (!(await this.doesGameExistLocally(relay_id))) {
+          return;
+        }
+        let loaded = await this.app.storage.loadDataFile('games', relay_id);
+        if (!loaded) {
+          return;
+        }
+        this.normalizeGameShape(loaded);
+        this.clearSnapshots();
+        this.game = loaded;
+        relay_game = loaded;
+        switched = true;
+      }
+
+      if (
+        this?.treat_all_moves_as_future ||
+        this.isFutureMove(gametx.from[0].publicKey, gametxmsg)
+      ) {
+        await this.addFutureMove(gametx);
+      } else if (this.isUnprocessedMove(gametx.from[0].publicKey, gametxmsg)) {
+        await this.addNextMove(gametx);
+        this.notifyMove();
+      } else {
+        console.warn('GT HPT: is old move ' + gametxmsg.step.game);
+      }
+    } finally {
+      if (switched && previous_game && this.game === relay_game) {
+        this.game = previous_game;
+      }
+      this._activation_hold -= 1;
     }
   }
 
@@ -1195,10 +1209,6 @@ class GameTemplate extends ModTemplate {
       message = tx.returnMessage();
     } catch (err) {
       // console.error('GT HPT Error: ', err);
-      return 0;
-    }
-
-    if (app.BROWSER == 0 && !app.HEADLESS) {
       return 0;
     }
 
@@ -1223,17 +1233,7 @@ class GameTemplate extends ModTemplate {
             // console.log('error with game relay moves return');
           }
 
-          if (
-            this?.treat_all_moves_as_future ||
-            this.isFutureMove(gametx.from[0].publicKey, gametxmsg)
-          ) {
-            await this.addFutureMove(gametx);
-          } else if (this.isUnprocessedMove(gametx.from[0].publicKey, gametxmsg)) {
-            await this.addNextMove(gametx);
-            this.notifyMove();
-          } else {
-            console.warn('GT HPT: is old move ' + gametxmsg.step.game);
-          }
+          await this.receiveRelayMovesReturn(gametx, gametxmsg, message.game_id);
 
           return;
         }
@@ -1246,7 +1246,7 @@ class GameTemplate extends ModTemplate {
             gametxmsg.game_id = gametxmsg.id;
           }
 
-          if (!this.doesGameExistLocally(gametxmsg.game_id)) {
+          if (!(await this.doesGameExistLocally(gametxmsg.game_id))) {
             console.info(
               `GT HPT Game does not exist locally. waiting for on-chain to process (${message.request}): `
             );
@@ -1510,13 +1510,13 @@ class GameTemplate extends ModTemplate {
    * redirecting the user back to the Saito main page (e.g. Arcade, RedSquare,
    * wherever)
    */
-  exitGame() {
+  async exitGame() {
     this.app.browser.unlockNavigation();
 
     // Don't process game moves while exiting!
     console.info('GT: Halt game to exit');
     this.halted = 1;
-    this.saveGame(this.game.id);
+    await this.saveGame(this.game.id);
 
     this.visibilityChange();
 
@@ -1668,9 +1668,9 @@ class GameTemplate extends ModTemplate {
   // non-participant (observer or a table joiner waiting for a seat).
   //
   syncBodyGameClasses() {
-    if (!this.app.BROWSER || !document?.body) {
-      return;
-    }
+
+    if (!this.browser_active || !document?.body) { return; }
+
     document.body.classList.toggle('observer-mode', this.game?.player == 0);
     document.body.classList.toggle('pending-join', !!this.game?.pending_join);
   }
@@ -1841,7 +1841,8 @@ GameTemplate.importFunctions(
   GamePlayers,
   GameUI,
   GameQueue,
-  GameWeb3
+  GameWeb3,
+  GameAI
 );
 
 module.exports = GameTemplate;

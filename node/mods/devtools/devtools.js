@@ -4,6 +4,14 @@ const SaitoHeader = require('../../lib/saito/ui/saito-header/saito-header');
 const Transaction = require('../../lib/saito/transaction').default;
 const AddAppOverlay = require('./lib/overlay/add-app');
 const GenerateAppOverlay = require('./lib/overlay/generate-app');
+const DevToolsAdmin = require('./lib/admin/devtools-admin');
+const {
+  COMPILATION_DISABLED_MESSAGE,
+  COMPILATION_UNAVAILABLE_MESSAGE,
+  isCompilationEnabled,
+  isAllowedModuleSlug,
+  compilationDisabledHtml
+} = require('./lib/compilation');
 
 class DevTools extends ModTemplate {
   constructor(app) {
@@ -61,7 +69,13 @@ class DevTools extends ModTemplate {
     this.addComponent(this.header);
 
     await super.render();
-    this.attachEvents();
+    const drop = document.getElementById('appstore-zip-upload');
+    if (drop) {
+      drop.setAttribute('data-devtools-compile-slot', '');
+      drop.textContent = 'Checking whether this server can compile applications…';
+    }
+    this.attachInstallEvents(document);
+    await this.syncCompilationInterface(document);
   }
 
   async initializeHTML(app) {
@@ -76,22 +90,99 @@ class DevTools extends ModTemplate {
   }
 
   respondTo(type) {
-    let this_self = this;
     if (type === 'saito-header') {
-      // let x = [];
-      // if (!this.browser_active) {
-      // 	x.push({
-      // 		text: 'Add app',
-      // 		icon: 'fa-solid fa-plus',
-      //		type: 'quicklaunch',
-      // 		callback: function (app, id) {
-      // 			this_self.addAppOverlay.render();
-      // 		}
-      // 	});
-      // 	return x;
-      // }
+      // Browser installation is offered from other modules. Compilation is not
+      // implied by that entry point.
+    }
+
+    if (type === 'admin-config') {
+      if (this.app.BROWSER) {
+        return null;
+      }
+      return {
+        id: this.returnSlug(),
+        name: this.name,
+        getConfig: async () => this.compilationConfig(),
+        updateConfig: async (data = {}) => this.updateCompilationConfig(data)
+      };
+    }
+
+    if (type === 'admin-sidebar') {
+      if (!this.app.BROWSER) {
+        return null;
+      }
+      return {
+        id: this.returnSlug(),
+        name: this.name,
+        render: () => {
+          if (!this.admin_ui) {
+            this.admin_ui = new DevToolsAdmin(this.app, this);
+          }
+          this.admin_ui.render();
+        }
+      };
+    }
+
+    return null;
+  }
+
+  serverCompilationEnabled() {
+    return isCompilationEnabled(this.app?.options);
+  }
+
+  compilationConfig() {
+    return { compilation_enabled: this.serverCompilationEnabled() };
+  }
+
+  updateCompilationConfig(data = {}) {
+    if (this.app.BROWSER) {
+      throw new Error('Server compilation settings cannot be changed from the browser.');
+    }
+    if (!data || typeof data !== 'object' || Array.isArray(data)) {
+      throw new Error('compilation_enabled must be a boolean.');
+    }
+    const keys = Object.keys(data);
+    if (
+      keys.length !== 1 ||
+      keys[0] !== 'compilation_enabled' ||
+      typeof data.compilation_enabled !== 'boolean'
+    ) {
+      throw new Error('compilation_enabled must be a boolean.');
+    }
+
+    if (!this.app.options || typeof this.app.options !== 'object') {
+      this.app.options = {};
+    }
+    if (
+      !this.app.options.devtools ||
+      typeof this.app.options.devtools !== 'object' ||
+      Array.isArray(this.app.options.devtools)
+    ) {
+      this.app.options.devtools = {};
+    }
+    this.app.options.devtools.compilation_enabled = data.compilation_enabled;
+    if (this.app.storage?.saveOptions) {
+      this.app.storage.saveOptions();
+    }
+    return this.compilationConfig();
+  }
+
+  compilationRefusal() {
+    if (!this.serverCompilationEnabled()) {
+      return COMPILATION_DISABLED_MESSAGE;
     }
     return null;
+  }
+
+  answerPeer(mycallback, payload) {
+    try {
+      if (typeof mycallback === 'function') {
+        mycallback(payload);
+      }
+    } catch (err) {
+      console.error('DevTools peer callback failed:', err);
+    }
+    return 1;
   }
 
   async sendSubmitModuleTransaction(zip, slug, callback) {
@@ -145,29 +236,81 @@ class DevTools extends ModTemplate {
     );
   }
 
+  async requestCompilationStatus() {
+    const peers = await this.app.network.getPeers();
+    if (!peers || peers.length === 0) {
+      throw new Error('No peers');
+    }
+
+    return new Promise((resolve, reject) => {
+      this.app.network.sendRequestAsTransaction(
+        'compilation status',
+        { module: 'DevTools', request: 'compilation status' },
+        (res) => {
+          if (!res || res.err || res.error || typeof res.compilation_enabled !== 'boolean') {
+            reject(new Error(res?.err || res?.error || COMPILATION_UNAVAILABLE_MESSAGE));
+            return;
+          }
+          resolve({
+            compilation_enabled: res.compilation_enabled === true
+          });
+        },
+        peers[0].publicKey
+      );
+    });
+  }
+
   async handlePeerTransaction(app, tx = null, peer, mycallback) {
-    let this_self = this;
     if (tx == null) {
       return 0;
     }
 
-    let txmsg = tx.returnMessage();
-
-    if (!txmsg.request) {
+    let txmsg;
+    try {
+      txmsg = tx.returnMessage();
+    } catch (err) {
       return 0;
     }
 
-    if (txmsg.request === 'submit module') {
-      let { module_zip, slug } = txmsg.data;
-      await this_self.createAppBinary(module_zip, slug, mycallback);
+    if (!txmsg?.request) {
+      return 0;
     }
 
-    if (txmsg.request === 'get module details') {
-      let { module_zip, slug } = txmsg.data;
-      await this_self.getNameAndDescriptionFromZip(module_zip, mycallback);
+    const compilationRequest =
+      txmsg.request === 'compilation status' ||
+      txmsg.request === 'submit module' ||
+      txmsg.request === 'get module details';
+
+    if (!compilationRequest) {
+      return super.handlePeerTransaction(app, tx, peer, mycallback);
     }
 
-    return super.handlePeerTransaction(app, tx, peer, mycallback);
+    if (this.app.BROWSER) {
+      return super.handlePeerTransaction(app, tx, peer, mycallback);
+    }
+
+    if (txmsg.request === 'compilation status') {
+      return this.answerPeer(mycallback, {
+        compilation_enabled: this.serverCompilationEnabled()
+      });
+    }
+
+    const refusal = this.compilationRefusal();
+    if (refusal) {
+      return this.answerPeer(mycallback, { error: refusal });
+    }
+
+    const data = txmsg.data || {};
+    try {
+      if (txmsg.request === 'submit module') {
+        await this.createAppBinary(data.module_zip, data.slug, mycallback);
+      } else {
+        await this.getNameAndDescriptionFromZip(data.module_zip, mycallback);
+      }
+    } catch (err) {
+      console.error('DevTools compilation failed:', err);
+    }
+    return 1;
   }
 
   clear() {
@@ -181,62 +324,148 @@ class DevTools extends ModTemplate {
     this.img = null;
   }
 
-  attachEvents() {
+  attachInstallEvents(root = document) {
+    if (!this.app.BROWSER || !root?.querySelector) {
+      return;
+    }
+    const install = root.querySelector('[data-devtools-install], #install');
+    if (!install || install.dataset.devtoolsInstallBound === '1') {
+      return;
+    }
+    install.dataset.devtoolsInstallBound = '1';
+    install.onclick = () => {
+      this.app.connection.emit('saito-app-app-render-request');
+    };
+  }
+
+  attachCompilationEvents(root = document) {
+    if (!this.app.BROWSER || !root?.querySelector) {
+      return;
+    }
+    const drop = root.querySelector('[data-devtools-compile-slot]');
+    if (!drop || drop.dataset.devtoolsCompileBound === '1' || !drop.id) {
+      return;
+    }
+    if (!this.app.browser?.addDragAndDropFileUploadToElement) {
+      return;
+    }
+
+    drop.dataset.devtoolsCompileBound = '1';
+    const this_self = this;
     try {
-      if (this.app.BROWSER) {
-        let this_self = this;
+      this.app.browser.addDragAndDropFileUploadToElement(
+        drop.id,
+        async (filesrc) => {
+          if (drop.dataset.devtoolsCompileBound !== '1' || !drop.isConnected) {
+            return;
+          }
+          this_self.clear();
 
-        this.app.browser.addDragAndDropFileUploadToElement(
-          `appstore-zip-upload`,
-          async (filesrc) => {
-            this_self.clear();
+          let startPoint = String(filesrc || '').indexOf('base64');
+          if (startPoint < 0) {
+            salert('File not base64 zipped');
+            return;
+          }
+          this_self.zip_file = filesrc.substring(startPoint + 7);
 
-            let startPoint = filesrc.indexOf('base64');
-            if (startPoint < 0) {
-              throw new Error('File not base64 zipped');
+          await this_self.sendModuleDetailsTransaction(this_self.zip_file, async function (res) {
+            if (res?.error || res?.err) {
+              salert(res.error || res.err);
+              return;
             }
-            this_self.zip_file = filesrc.substring(startPoint + 7);
-            console.log('zip_file: ', this_self.zip_file);
+            if (!res || res.slug == '') {
+              salert('Error: Application missing slug');
+              return;
+            }
 
-            await this_self.sendModuleDetailsTransaction(this_self.zip_file, async function (res) {
-              console.log('mod details: ', res);
-
-              if (res.slug == '') {
-                salert('Error: Application missing slug');
-                return;
-              }
-
-              this_self.generateAppOverlay.mod_details = res;
-              this_self.generateAppOverlay.mod_details.publisher = this_self.publicKey;
-              this_self.generateAppOverlay.zip_file = this_self.zip_file;
-              this_self.generateAppOverlay.render();
-            });
-          },
-          true,
-          false,
-          false
-        );
-
-        if (document.getElementById('install')) {
-          document.getElementById('install').onclick = (e) => {
-            this.app.connection.emit('saito-app-app-render-request');
-          };
-        }
-      }
+            this_self.generateAppOverlay.mod_details = res;
+            this_self.generateAppOverlay.mod_details.publisher = this_self.publicKey;
+            this_self.generateAppOverlay.zip_file = this_self.zip_file;
+            this_self.generateAppOverlay.render();
+          });
+        },
+        true,
+        false,
+        false
+      );
     } catch (err) {
+      drop.dataset.devtoolsCompileBound = '';
       console.error('Error: ', err);
       salert('An error occurred while compiling application. Check console for details.');
     }
   }
 
+  replaceCompilationSlot(drop, messageHtml) {
+    if (!drop?.parentNode) {
+      return;
+    }
+    const note = document.createElement('div');
+    note.className = 'devtools-compilation-notice';
+    note.innerHTML = messageHtml;
+    drop.replaceWith(note);
+  }
+
+  setCompilationGuide(root, visible) {
+    if (!root?.querySelectorAll) {
+      return;
+    }
+    root.querySelectorAll('.how-to').forEach((guide) => {
+      guide.hidden = !visible;
+      guide.style.display = visible ? '' : 'none';
+    });
+  }
+
+  async syncCompilationInterface(root = document) {
+    if (!this.app.BROWSER || !root?.querySelector) {
+      return;
+    }
+    const drop = root.querySelector('[data-devtools-compile-slot]');
+    if (!drop) {
+      return;
+    }
+
+    let status = null;
+    try {
+      status = await this.requestCompilationStatus();
+    } catch (err) {
+      status = null;
+    }
+
+    if (!drop.isConnected) {
+      return;
+    }
+    const supported = status?.compilation_enabled === true;
+    this.setCompilationGuide(root, supported);
+    if (!status || typeof status.compilation_enabled !== 'boolean') {
+      this.replaceCompilationSlot(drop, COMPILATION_UNAVAILABLE_MESSAGE);
+      return;
+    }
+    if (status.compilation_enabled !== true) {
+      this.replaceCompilationSlot(drop, compilationDisabledHtml());
+      return;
+    }
+
+    drop.textContent = 'drag-and-drop module zip file';
+    this.attachCompilationEvents(root);
+  }
+
   async createAppBinary(zip_bin, slug, mycallback) {
+    if (!this.serverCompilationEnabled()) {
+      if (mycallback) mycallback({ error: COMPILATION_DISABLED_MESSAGE });
+      return;
+    }
+    if (!isAllowedModuleSlug(slug)) {
+      if (mycallback) mycallback({ error: 'Invalid application slug.' });
+      return;
+    }
+
     const path = require('path');
-    const fs = this.app.storage.returnFileSystem();
     const { execSync } = require('child_process');
     const projectRoot = path.join(__dirname, '../..');
     const zipDir = path.join(projectRoot, 'dist', 'mods', 'zip');
     const saitoDir = path.join(projectRoot, 'dist', 'mods', 'saito');
     try {
+      const fs = this.app.storage.returnFileSystem();
       if (!fs.existsSync(zipDir)) {
         fs.mkdirSync(zipDir, { recursive: true });
       }
@@ -244,12 +473,24 @@ class DevTools extends ModTemplate {
       const zipBin2 = Buffer.from(zip_bin, 'base64').toString('binary');
       fs.writeFileSync(tempZipPath, zipBin2, { encoding: 'binary' });
       try {
-        execSync(`node scripts/dynmods/compile.js --zip "${tempZipPath}" --slug "${slug}"`, {
+        const output = execSync(`node scripts/dynmods/compile.js --zip "${tempZipPath}" --slug "${slug}"`, {
           cwd: projectRoot,
+          encoding: 'utf8',
           stdio: 'pipe',
           maxBuffer: 10 * 1024 * 1024
         });
-        const saitoPath = path.join(saitoDir, `${slug}.saito`);
+        const reported = String(output || '').match(/OK -> (.+\.saito)\s*$/m);
+        let saitoPath = path.join(saitoDir, `${slug}.saito`);
+        if (reported) {
+          const written = reported[1].trim();
+          saitoPath = path.isAbsolute(written) ? written : path.join(projectRoot, written);
+        }
+        if (!fs.existsSync(saitoPath)) {
+          const message = `Compiled module was not written to ${saitoPath}`;
+          console.log('Error in Appstore createAppBinary:', message);
+          if (mycallback) mycallback({ error: message });
+          return;
+        }
         const content = fs.readFileSync(saitoPath, 'utf8');
         const webObj = JSON.parse(content);
         const msgStr = Buffer.from(webObj.m, 'base64').toString('utf8');
@@ -262,7 +503,9 @@ class DevTools extends ModTemplate {
         } catch (e) {}
       }
     } catch (err) {
-      console.log('Error in Appstore createAppBinary:', err);
+      const message = err?.stderr ? String(err.stderr) : (err?.message || String(err));
+      console.log('Error in Appstore createAppBinary:', message.trim());
+      if (mycallback) mycallback({ error: message.trim() });
     }
   }
 
@@ -290,6 +533,11 @@ class DevTools extends ModTemplate {
   }
 
   async getNameAndDescriptionFromZip(zip_bin, mycallback) {
+    if (!this.serverCompilationEnabled()) {
+      if (mycallback) mycallback({ error: COMPILATION_DISABLED_MESSAGE });
+      return;
+    }
+
     try {
       const fs = this.app.storage.returnFileSystem();
       const path = require('path');

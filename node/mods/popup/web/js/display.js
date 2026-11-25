@@ -7,17 +7,25 @@ function playWordAudio(audioFile, imgElement) {
   audioPlayer.load(); // Reload audio source
 
   // Toggle play/pause when clicking the image
+  const image =
+    imgElement && imgElement.tagName === 'IMG' ? imgElement : imgElement && imgElement.querySelector('img');
+
   if (audioPlayer.paused) {
-    audioPlayer.play(); // Play the audio
-    imgElement.src = '/popup/img/buttons/pause_button.gif'; // Change image to pause button
+    audioPlayer.play();
+    if (image) {
+      image.src = '/popup/img/buttons/pause_button.gif';
+    }
   } else {
-    audioPlayer.pause(); // Pause the audio
-    imgElement.src = '/popup/img/buttons/play_button.gif'; // Change image to play button
+    audioPlayer.pause();
+    if (image) {
+      image.src = '/popup/img/buttons/play_button.gif';
+    }
   }
 
-  // Optional: Set up event to change back to play button when audio ends
   audioPlayer.onended = function () {
-    imgElement.src = '/popup/img/buttons/play_button.gif'; // Reset image when audio ends
+    if (image) {
+      image.src = '/popup/img/buttons/play_button.gif';
+    }
   };
 }
 
@@ -258,24 +266,18 @@ function switch_display_mode_in_string(
 function switch_display_mode(dmode = 'simplified') {
   if (dmode == 'pinyin') {
     document.querySelectorAll('.lesson_sentence_pinyin').forEach((el) => {
-      if (el.style.display == 'none') {
-        el.style.display = 'block';
-      } else {
-        el.style.display = 'none';
-      }
+      el.hidden = !el.hidden;
     });
     save_display_mode(dmode);
+    syncPopupLessonDisplay();
     return true;
   }
   if (dmode == 'english') {
     document.querySelectorAll('.lesson_sentence_translation').forEach((el) => {
-      if (el.style.display == 'none') {
-        el.style.display = 'block';
-      } else {
-        el.style.display = 'none';
-      }
+      el.hidden = !el.hidden;
     });
     save_display_mode(dmode);
+    syncPopupLessonDisplay();
     return true;
   }
 
@@ -293,8 +295,39 @@ function switch_display_mode(dmode = 'simplified') {
   });
 
   save_display_mode(dmode);
+  syncPopupLessonDisplay();
 
   return true;
+}
+
+function syncPopupLessonDisplay() {
+  const display = window.saito_mod && saito_mod.app.options.popup && saito_mod.app.options.popup.display;
+  if (!display) {
+    return;
+  }
+  document.querySelectorAll('[data-popup-toggle]').forEach((control) => {
+    const on = display[control.dataset.popupToggle] == 1;
+    if (control.type === 'checkbox' || control.type === 'radio') {
+      control.checked = on;
+    }
+    control.setAttribute('aria-pressed', on ? 'true' : 'false');
+    control.classList.toggle('is-on', on);
+  });
+  const simplifiedInput = document.querySelector('input[name="display_select"][value="simplified"]');
+  const traditionalInput = document.querySelector('input[name="display_select"][value="traditional"]');
+  const traditional = display.traditional == 1;
+  if (simplifiedInput) {
+    simplifiedInput.checked = !traditional;
+  }
+  if (traditionalInput) {
+    traditionalInput.checked = traditional;
+  }
+  document.querySelectorAll('.popup-vocab-entry .field1').forEach((el) => {
+    el.hidden = traditional;
+  });
+  document.querySelectorAll('.popup-vocab-entry .field2').forEach((el) => {
+    el.hidden = !traditional;
+  });
 }
 
 function toggle_vocab_mode(dmode = '') {

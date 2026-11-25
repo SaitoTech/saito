@@ -1,10 +1,183 @@
-.saito-main .vocabulary table tr {
+.popup-vocab-manager {
+  padding: 8px 16px 32px;
+  color: var(--popup-text);
 }
-.saito-main .vocabulary table tr th {
-  padding: 0.25rem;
+
+.popup-vocab-sidebar {
+  padding: 8px 12px 24px;
+}
+
+.popup-vocab-sidebar .popup-display-controls {
+  margin-top: 0;
+}
+
+.popup-vocab-sidebar .popup-vocab-review {
+  width: 100%;
+  margin-top: 14px;
+  min-height: 44px;
+  font-family: var(--popup-font-sans);
+  font-size: var(--popup-size-button);
+  font-weight: 650;
+}
+
+.popup-vocab-toolbar,
+.popup-vocab-pager {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+}
+
+.popup-vocab-toolbar {
+  margin-bottom: 8px;
+}
+
+.popup-vocab-action {
+  margin: 0;
+  padding: 6px 12px;
+  border: 1px solid var(--popup-border);
+  border-radius: 8px;
+  background: var(--popup-bg-raised);
+  color: var(--popup-text);
+  font-family: var(--popup-font-sans);
+  font-size: 15px;
+  cursor: pointer;
+}
+
+.popup-vocab-action:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.popup-vocab-review {
+  border-color: var(--popup-accent-strong);
+  background: var(--popup-accent-strong);
+  color: white;
+}
+
+.popup-vocab-review:hover:not(:disabled) {
+  background: white;
+  color: var(--popup-accent-strong);
+}
+
+.popup-vocab-selection,
+.popup-vocab-range,
+.popup-vocab-page-label,
+.popup-vocab-notice,
+.popup-vocab-empty {
+  color: var(--popup-text-muted);
+  font-size: 15px;
+}
+
+.popup-vocab-notice,
+.popup-vocab-empty {
+  min-height: 0;
+  margin: 0 0 8px;
+}
+
+.popup-vocab-notice:empty {
+  display: none;
+}
+
+.popup-vocab-scroll {
+  overflow-x: auto;
+  border-top: 1px solid var(--popup-divider);
+}
+
+.popup-vocab-sheet {
+  min-width: 100%;
+}
+
+.popup-vocab-row {
+  display: grid;
+  grid-template-columns: 32px repeat(var(--popup-vocab-cols), minmax(4.5rem, 1fr));
+  align-items: center;
+  min-height: 34px;
+  border-bottom: 1px solid var(--popup-divider);
+  user-select: none;
+}
+
+.popup-vocab-columns {
+  min-height: 32px;
+  background: var(--popup-bg);
+  position: sticky;
+  top: 0;
+}
+
+.popup-vocab-row:not(.popup-vocab-columns):hover,
+.popup-vocab-row.is-selected {
+  background: var(--popup-hover);
+}
+
+.popup-vocab-check {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.popup-vocab-cell,
+.popup-vocab-sort {
+  min-width: 0;
+  padding: 4px 8px;
   text-align: left;
 }
-.saito-main .vocabulary table tr td {
-  padding: 0.25rem;
-  text-align: left;
+
+.popup-vocab-sort {
+  border: 0;
+  background: transparent;
+  color: var(--popup-text-secondary);
+  font-family: var(--popup-font-sans);
+  font-size: 13px;
+  font-weight: 650;
+  line-height: 1.3;
+  cursor: pointer;
+}
+
+.popup-vocab-sort.is-active {
+  color: var(--popup-text);
+}
+
+.popup-vocab-chinese {
+  font-family: var(--popup-font-chinese);
+  font-size: 18px;
+  line-height: 1.3;
+  color: var(--popup-text);
+}
+
+.popup-vocab-cell:not(.popup-vocab-chinese) {
+  color: var(--popup-text);
+  font-family: var(--popup-font-sans);
+  font-size: 15px;
+  line-height: 1.35;
+}
+
+.popup-vocab-cell.popup-vocab-stat {
+  color: var(--popup-text-secondary);
+}
+
+.popup-vocab-pager {
+  padding-top: 10px;
+}
+
+.popup-vocab-page-size {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--popup-text-muted);
+  font-size: 15px;
+}
+
+.popup-vocab-page-size select {
+  margin-left: 4px;
+}
+
+@media (max-width: 800px) {
+  .popup-vocab-manager {
+    padding-left: 8px;
+    padding-right: 8px;
+  }
+
+  .popup-vocab-sidebar {
+    padding-top: 4px;
+  }
 }

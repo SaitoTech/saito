@@ -15,6 +15,7 @@ jest.mock('@mixin.dev/mixin-node-sdk', () => ({
 
 const Transfers = require('../../../mods/mixin/lib/transfers');
 const BuySaitoService = require('../../../mods/mixin/lib/buysaito');
+const { MIXIN_REQUEST_FREQUENCE_MILLISECONDS } = require('../../../mods/mixin/lib/mixinmodule');
 
 function service(prices = { eth: 2, erc: 1 }) {
   const saved = [];
@@ -170,7 +171,7 @@ describe('BuySaito server quotes', () => {
     );
 
     const stale = service();
-    stale.crypto.last_update = Date.now() - 400000;
+    stale.crypto.last_update = Date.now() - MIXIN_REQUEST_FREQUENCE_MILLISECONDS - 1;
     stale.crypto.price_usd = 2;
     stale.crypto.returnMixinNetworkInfo.mockImplementation(async () => {
       stale.crypto.price_usd = null;

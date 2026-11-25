@@ -362,6 +362,45 @@ class GameCardbox {
     this.callback = callback;
   }
 
+  // The confirm control is the current decision. The exit button is not an option.
+  // A hover preview has no locked menu and returns none.
+  returnContext() {
+    const menu = [];
+    if (this.cardbox_lock !== 1 || typeof document === 'undefined' || typeof document.getElementById !== 'function') {
+      return { menu };
+    }
+    const box = document.getElementById('game-cardbox');
+    const root = document.getElementById('cardbox-menu');
+    if (!box || box.style.display === 'none' || !root || root.style.display === 'none') {
+      return { menu };
+    }
+    const choices = [];
+    const buttons = root.querySelectorAll ? root.querySelectorAll('button') : [];
+    for (let i = 0; i < buttons.length; i++) {
+      if (typeof buttons[i].onclick === 'function') {
+        choices.push(buttons[i]);
+      }
+    }
+    if (choices.length === 0 && typeof root.onclick === 'function') {
+      choices.push(root);
+    }
+    for (let i = 0; i < choices.length; i++) {
+      const el = choices[i];
+      const id = el.id || '';
+      if (!id) {
+        continue;
+      }
+      const tag = el.tagName ? el.tagName.toLowerCase() : 'div';
+      const label = String(el.textContent || el.innerText || '').replace(/\s+/g, ' ').trim() || id;
+      menu.push({
+        id,
+        label,
+        identifier: tag + '#' + id
+      });
+    }
+    return { menu };
+  }
+
   /**
    * A "card" is a triplicate of a css class name, a textual description of an action associated with the card, and a callback functon to be called if the card is selected
    * This function adds a triplicate to the class method so that subsequent calls to attachCardEvents

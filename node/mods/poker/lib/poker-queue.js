@@ -1,4 +1,3 @@
-const html2canvas = require('html2canvas');
 const Result = require('./ui/result');
 
 class PokerQueue {
@@ -339,7 +338,7 @@ class PokerQueue {
             await this.timeout(1000);
             this.restartQueue();
           });
-          this.saveGame(this.game.id);
+          await this.saveGame(this.game.id);
           this.setShotClock('.acknowledge', Result.ACKNOWLEDGE_MS, false);
           if (this.result) {
             this.result.startCountdown(Result.ACKNOWLEDGE_MS);
@@ -728,94 +727,49 @@ class PokerQueue {
         this.hud.updateMenu([]);
         this.hud.updateCards([]);
 
-        this.saveGame(this.game.id);
+        await this.saveGame(this.game.id);
 
-        const clearBoardAndContinue = (screenshot = null) => {
-          this.game.queue.push(`settle\t${JSON.stringify(winner_keys)}\tbesthand`);
+        this.game.queue.push(`settle\t${JSON.stringify(winner_keys)}\tbesthand`);
 
-          if (this.result) {
-            let local_win = winners.includes(this.game.player - 1);
-            let headline = 'SPLIT POT';
-            if (winners.length == 1) {
-              headline = local_win
-                ? 'YOU WIN'
-                : `${this.game.state.player_names[winners[0]]} WINS`;
-            } else if (local_win) {
-              headline = 'YOU WIN';
-            }
-            this.result.show({
-              cards: topPlayer.player_hand.cards_to_score,
-              headline,
-              hand: this.result.formatHandName(winning_hand)
-            });
+        if (this.result) {
+          let local_win = winners.includes(this.game.player - 1);
+          let headline = 'SPLIT POT';
+          if (winners.length == 1) {
+            headline = local_win
+              ? 'YOU WIN'
+              : `${this.game.state.player_names[winners[0]]} WINS`;
+          } else if (local_win) {
+            headline = 'YOU WIN';
           }
-
-          this.playerAcknowledgeNotice(winnerStr, async () => {
-            if (this.result) {
-              this.result.hide();
-            }
-                        this.updateStatus(`Clearing the table${this.needToSettleDebt() ? ' and settling bets' : ''}...`);
-            this.hud.updateMenu([]);
-            this.hud.updateCards([]);
-            console.log('Continuing poker...');
-            this.animating = false;
-            this.cardfan.hide();
-            this.pot.clearPot();
-            this.board.clearTable();
-            this.clearPlayers();
-            await this.timeout(800);
-            this.restartQueue();
+          this.result.show({
+            cards: topPlayer.player_hand.cards_to_score,
+            headline,
+            hand: this.result.formatHandName(winning_hand)
           });
+        }
 
-          this.setShotClock('.acknowledge', Result.ACKNOWLEDGE_MS, false, () => {
-            this.game_help.render({
-              title: 'The Clock is Ticking',
-              text: `Cards auto-clear after several seconds. Check the game log for more information...`,
-              img: '/poker/img/showdown-clock.png',
-              line1: 'what',
-              line2: 'happened?',
-              fontsize: '2.1rem',
-              id: 'showdown'
-            });
-          });
+        this.playerAcknowledgeNotice(winnerStr, async () => {
           if (this.result) {
-            this.result.startCountdown(Result.ACKNOWLEDGE_MS);
+            this.result.hide();
           }
-        };
+          this.updateStatus(
+            `Clearing the table${this.needToSettleDebt() ? ' and settling bets' : ''}...`
+          );
+          this.hud.updateMenu([]);
+          this.hud.updateCards([]);
+          console.log('Continuing poker...');
+          this.animating = false;
+          this.cardfan.hide();
+          this.pot.clearPot();
+          this.board.clearTable();
+          this.clearPlayers();
+          await this.timeout(800);
+          this.restartQueue();
+        });
 
-        if (this.game.player) {
-          // Screenshot is optional (game-help tip only). html2canvas cannot parse
-          // modern CSS Color 5 values such as computed `color(srgb …)` from
-          // `color-mix(...)`. A rejection must not abort settle → acknowledge → newround.
-          html2canvas(document.body, {
-            /*scale: 0.8,
-	                	width: 0.8*window.innerWidth,
-	                	height: 0.8*window.innerHeight,*/
-            ignoreElements: function (element) {
-              if (element.classList.contains('cardBack')) {
-                return true;
-              }
-              if (element.classList.contains('pot')) {
-                return true;
-              }
-              if (element.classList.contains('poker-player-stake')) {
-                return true;
-              }
-              if (element.id === 'log-wrapper') {
-                return true;
-              }
-              if (element.id === 'saito-header') {
-                return true;
-              }
-            }
-          })
-            .then(clearBoardAndContinue)
-            .catch((err) => {
-              console.warn('Poker: showdown screenshot failed; continuing hand lifecycle', err);
-              clearBoardAndContinue();
-            });
-        } else {
-          clearBoardAndContinue();
+        this.setShotClock('.acknowledge', Result.ACKNOWLEDGE_MS, false);
+        if (this.result) {
+          this.result.startCountdown(Result.ACKNOWLEDGE_MS);
         }
 
         return 0;

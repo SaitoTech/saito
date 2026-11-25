@@ -45,9 +45,10 @@ function primary(state) {
       return { label: 'Sign', action: 'advance', disabled: !state.identified };
     case 'verify':
       return { label: 'Continue', action: 'advance', disabled: !flow.requiredComplete(state) };
+    case 'ready':
+      return { label: 'Continue', action: 'ready-yes' };
     case 'share':
     case 'signer':
-    case 'ready':
     case 'decide-sign':
     case 'signature-complete':
     case 'signature-export':
@@ -62,7 +63,7 @@ function primary(state) {
     case 'share-password':
       return { label: 'Continue', action: 'share-password' };
     case 'share-recipients':
-      return { label: 'Send emails', action: 'share-upload', disabled: state.shareView?.busy === true };
+      return { label: 'Continue', action: 'share-upload', disabled: state.shareView?.busy === true };
     case 'share-unlock':
       return { label: 'Unlock Document', action: 'share-unlock', disabled: state.shareView?.busy === true };
     case 'share-retry':
@@ -112,7 +113,7 @@ function publishTemplate(state) {
   const disclosure = slide.disclosure
     ? `<p class="disclosure">${escapeHTML(slide.disclosure)}</p>`
     : '';
-  const choiceScreen = state.step === 'share' || state.step === 'signer' || state.step === 'ready' || state.step === 'decide-sign' || state.step === 'signature-complete' || state.step === 'signature-export' || state.step === 'share-method' || state.step === 'share-privacy' || state.step === 'share-exported' || state.step === 'share-progress' || state.step === 'share-sent';
+  const choiceScreen = state.step === 'share' || state.step === 'signer' || state.step === 'decide-sign' || state.step === 'signature-complete' || state.step === 'signature-export' || state.step === 'share-method' || state.step === 'share-privacy' || state.step === 'share-exported' || state.step === 'share-progress' || state.step === 'share-sent';
   const forward = !choiceScreen && action
     ? `<button type="button" class="${action.disabled ? 'saito-button-secondary' : 'saito-button-primary'}" data-publish-action="${action.action}"${action.disabled ? ' disabled' : ''}>${escapeHTML(action.label)}</button>`
     : '';

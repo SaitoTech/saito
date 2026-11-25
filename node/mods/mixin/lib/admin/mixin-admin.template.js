@@ -425,6 +425,9 @@ module.exports = ({
   total = 0,
   apiKeyConfigured = undefined,
   apiKeyText = '',
+  user_agent = '',
+  default_user_agent = '',
+  savingUserAgent = false,
   savingApiKey = false,
   depositAddresses = [],
   fulfillment_mode = 'local',
@@ -468,8 +471,22 @@ module.exports = ({
     body = transfersTab({ rows, search, purpose, advancing, page, total });
   }
 
+  if (!loading && (needsApiKey || needsAccount || activeTab === 'config')) {
+    body += `<section class="admin-payments-section">
+      <h2>Mixin User-Agent</h2>
+      <label class="admin-payments-label" for="admin-payments-user-agent">Server User-Agent</label>
+      <input class="admin-input" id="admin-payments-user-agent" type="text"
+        value="${escapeHtml(user_agent)}" placeholder="${escapeHtml(default_user_agent)}"
+        ${savingUserAgent ? 'disabled' : ''}>
+      <p class="admin-payments-note">Identifies this server's requests to Mixin. Leave blank to restore the default: ${escapeHtml(default_user_agent)}. Applies to new requests after saving.</p>
+      <button type="button" class="admin-button" id="admin-payments-user-agent-save" ${savingUserAgent ? 'disabled' : ''}>
+        ${savingUserAgent ? 'Saving…' : 'Save User-Agent'}
+      </button>
+    </section>`;
+  }
+
   const refreshDisabled =
-    loading || advancing || creating || restoring || savingApiKey || savingConfig ? 'disabled' : '';
+    loading || advancing || creating || restoring || savingApiKey || savingConfig || savingUserAgent ? 'disabled' : '';
   return `
     <div class="admin-payments-page">
       <div class="admin-payments-header">

@@ -1,14 +1,23 @@
-module.exports = (app, mod) => {
+module.exports = () => {
+  const item = (slug, label) =>
+    `<li class="manager-menu ${slug}"><button type="button">${label}</button></li>`;
+
   return `
-    <ul>
-          <li class="manager-menu absolute-beginners">Absolute Beginners</li>
-          <li class="manager-menu elementary">Elementary</li>
-          <li class="manager-menu intermediate">Intermediate</li>
-          <li class="manager-menu advanced">Advanced</li>
-          <li class="manager-menu film-friday">Film Friday</li>
-          <li class="manager-menu quiz-night">Quiz Night</li>
-          <li class="manager-menu short-stories">Short Stories</li>
-          <li class="manager-menu ktv-wednesday">KTV Wednesday</li>
-    </ul>
+    <nav class="popup-lesson-nav" aria-label="Lesson categories">
+      <div class="popup-lesson-nav-label">Difficulty</div>
+      <ul>
+        ${item('absolute-beginners', 'Absolute Beginners')}
+        ${item('elementary', 'Elementary')}
+        ${item('intermediate', 'Intermediate')}
+        ${item('advanced', 'Advanced')}
+      </ul>
+      <div class="popup-lesson-nav-label">Collections</div>
+      <ul>
+        ${item('film-friday', 'Film Friday')}
+        ${item('short-stories', 'Short Stories')}
+        ${item('ktv-wednesday', 'KTV Wednesday')}
+        ${item('hsk-test', 'HSK Test')}
+      </ul>
+    </nav>
   `;
 };

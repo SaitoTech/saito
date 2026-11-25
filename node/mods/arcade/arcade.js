@@ -353,7 +353,7 @@ class Arcade extends ModTemplate {
         this.lounge_overlay.observer_has_archive_data = data.observer_has_archive_data === true;
         this.lounge_overlay.observer_game_module_slug =
           data.game_module_slug != null ? data.game_module_slug : null;
-        this.lounge_overlay.render();
+        await this.lounge_overlay.render();
       }
     }
   }

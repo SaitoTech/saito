@@ -397,7 +397,7 @@ class Main {
   }
 
   openSell(defaults = {}) {
-    requestStoreWeb3Tickers(this.app, { force: true });
+    requestStoreWeb3Tickers(this.app);
     const next = {
       ...defaults,
       listing_mode: normalizeListingMode(defaults.listing_mode)

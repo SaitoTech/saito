@@ -63,8 +63,8 @@ class GameObserver {
    * into its queue and have it execute the game appropriately.
    *
    */
-  initialize(game_id) {
-    let game = this.game_mod.loadGame(game_id);
+  async initialize(game_id) {
+    let game = await this.game_mod.loadGame(game_id);
 
     if (!game) {
       this.game_mod.game = {
@@ -81,7 +81,7 @@ class GameObserver {
       }
     }
 
-    if (this.app.BROWSER) {
+    if (this.game_mod.browser_active) {
       this.playback_timer = setInterval(async () => {
         if (this.player_timer_active == true) {
           return;

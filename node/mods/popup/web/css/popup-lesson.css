@@ -1,96 +1,364 @@
 audio {
-  margin-top: 0.5rem;
+  margin-top: 12px;
   width: 100%;
 }
 
 .lesson-container {
   display: block;
-  margin-top: 1.5rem;
   width: 100%;
+  max-width: 860px;
+  margin-top: 8px;
+  padding: 8px 8px 64px;
+  color: var(--popup-text);
+}
+
+.popup-lesson-back.saito-button-square {
+  width: 40px;
+  height: 40px;
+  min-width: 40px;
+  min-height: 40px;
+  margin-top: 2px;
+  border: 1px solid var(--popup-border);
+  border-radius: 8px;
+  background: var(--popup-bg-raised);
+  color: var(--popup-text);
+  font-size: 16px;
+  opacity: 1;
+}
+
+.popup-lesson-back.saito-button-square:hover {
+  background: var(--popup-hover);
+  color: var(--popup-text);
 }
 
 .lesson-header {
-  margin-left: 2rem;
-  font-size: 2.4rem;
-  cursor: pointer;
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  margin: 0 0 8px;
 }
 
-.lesson-header .user {
-  display: inline;
+.lesson-heading {
+  min-width: 0;
 }
 
+.lesson-header .user,
 .lesson-header .title {
-  display: inline;
+  font-family: var(--popup-font-serif);
+  font-size: var(--popup-size-h2);
+  font-weight: 650;
+  line-height: 1.25;
+}
+
+body.popup-app .lesson-header .user {
+  color: var(--popup-accent);
+}
+
+body.popup-app .lesson-header .title {
+  color: var(--popup-text);
 }
 
 .lesson-section.header {
-  margin-top: 2rem;
-  margin-bottom: 1rem;
-  font-size: 2rem;
-  text-decoration: underline;
-}
-
-.lesson-section {
-  margin-left: 2rem;
-  font-size: 2.5rem;
-}
-
-.lesson-section.vocabulary table {
-  margin-left: 3.5rem;
-}
-
-.lesson-section.questions table {
-  margin-left: 3.5rem;
+  margin: 36px 0 14px;
 }
 
 .lesson-container .discussion {
-  padding: 1.5rem 0rem;
-  font-size: 2rem;
-  line-height: 2.6rem;
-  margin-left: 2rem;
-  margin-right: 2rem;
+  margin: 16px 0 8px;
+  padding: 0;
+  font-size: var(--popup-size-body);
+  line-height: var(--popup-leading-body);
 }
 
 .lesson-container .discussion p {
-  margin-top: 2rem;
+  margin: 0 0 12px;
 }
 
-.lesson-container .transcript {
-  font-size: 2.5rem;
-  line-height: 3rem;
-  margin-left: 2rem;
+.popup-transcript {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  --popup-dialogue-size: 32px;
+}
+
+.sentence {
+  display: grid;
+  grid-template-columns: calc(var(--popup-dialogue-size) * 4.6) minmax(0, 1fr);
+  column-gap: 20px;
+  align-items: start;
+}
+
+.sentence-speaker,
+.sentence-speaker span {
+  margin: 0;
+  padding: 0;
+  color: var(--popup-accent);
+  font-family: var(--popup-font-chinese);
+  font-size: var(--popup-dialogue-size);
+  font-weight: 500;
+  line-height: 1.45;
+}
+
+body.popup-app .lesson_sentence_source,
+body.popup-app .lesson_sentence_source span {
+  margin: 0;
+  font-family: var(--popup-font-chinese);
+  font-size: var(--popup-dialogue-size);
+  line-height: 1.45;
+  color: var(--popup-text);
+}
+
+body.popup-app .lesson_sentence_pinyin,
+body.popup-app .lesson_sentence_translation {
+  margin: 4px 0 0;
+  font-family: var(--popup-font-sans);
+  font-size: 18px;
+  line-height: 1.45;
+}
+
+body.popup-app .lesson_sentence_pinyin {
+  color: var(--popup-text-secondary);
+}
+
+body.popup-app .lesson_sentence_translation {
+  color: var(--popup-text);
+}
+
+.lesson_sentence_pinyin[hidden],
+.lesson_sentence_translation[hidden],
+.popup-vocab-entry [hidden],
+.lesson_question_explanation[hidden] {
+  display: none;
+}
+
+.lesson-container .popup-vocab-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 14px;
+}
+
+.lesson-container .popup-vocab-entry {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  padding: 14px 36px 12px 14px;
+  border: 1px solid var(--popup-border);
+  border-radius: 10px;
+  background: var(--popup-bg-raised);
+  cursor: pointer;
+}
+
+.lesson-container .popup-vocab-entry.is-saved {
+  border-color: var(--popup-accent);
+  background: var(--popup-hover);
+}
+
+.lesson-container .popup-vocab-mark {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 16px;
+  height: 16px;
+  border: 1px solid var(--popup-border);
+  border-radius: 50%;
+}
+
+.lesson-container .popup-vocab-entry.is-saved .popup-vocab-mark {
+  border-color: var(--popup-accent);
+  background: var(--popup-accent);
+}
+
+.lesson-container .popup-vocab-entry.is-saved .popup-vocab-mark::after {
+  content: '';
+  position: absolute;
+  left: 4px;
+  top: 2px;
+  width: 4px;
+  height: 7px;
+  border: solid #fff;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+.lesson-container .popup-vocab-chinese {
+  display: block;
   width: 100%;
+  margin: 0 0 2px;
+  padding: 2px 0 4px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
 }
 
-.lesson-container .transcript table {
+@media (hover: hover) {
+  .lesson-container .popup-vocab-chinese:hover .field1,
+  .lesson-container .popup-vocab-chinese:hover .field2 {
+    color: var(--popup-accent);
+  }
+}
+
+.popup-vocab-play {
+  appearance: none;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.popup-vocab-play img {
+  display: block;
+  width: 22px;
+  height: 22px;
+}
+
+body.popup-app .lesson-container .popup-vocab-head .field1,
+body.popup-app .lesson-container .popup-vocab-head .field2,
+body.popup-app .lesson-container .popup-vocab-chinese .field1,
+body.popup-app .lesson-container .popup-vocab-chinese .field2 {
+  font-family: var(--popup-font-chinese);
+  font-size: 28px;
+  line-height: 1.35;
+  color: var(--popup-text);
+}
+
+body.popup-app .lesson-container .popup-vocab-text .field3,
+body.popup-app .lesson-container .popup-vocab-text .field4,
+body.popup-app .lesson-container .popup-vocab-text .field5 {
+  margin-top: 2px;
+  font-family: var(--popup-font-sans);
+  font-size: 17px;
+  line-height: 1.4;
+}
+
+body.popup-app .lesson-container .popup-vocab-text .field3,
+body.popup-app .lesson-container .popup-vocab-text .field5 {
+  color: var(--popup-text-secondary);
+}
+
+
+.popup-questions {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+
+.lesson_question {
+  padding: 16px 0 4px;
+  border-top: 1px solid var(--popup-border);
+}
+
+body.popup-app .lesson_question_question_text,
+body.popup-app .lesson_question_audio_transcript {
+  font-family: var(--popup-font-chinese);
+  font-size: 24px;
+  line-height: 1.5;
+  color: var(--popup-text);
+}
+
+.popup-question-media {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.popup-question-choices {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.lesson-question-choice {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--popup-border);
+  border-radius: 8px;
+  background: var(--popup-bg-raised);
+  cursor: pointer;
+  font-size: 17px;
+  line-height: 1.45;
+}
+
+body.popup-app .lesson-question-choice.option_correct {
+  background-color: #ebffd6;
+}
+
+body.popup-app .lesson-question-choice.option_incorrect {
+  background-color: #ffd6cc;
+}
+
+.lesson_question_explanation {
+  margin-top: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--popup-border);
+  border-radius: 8px;
+  background: var(--popup-hover);
+  color: var(--popup-text-secondary);
+  font-size: 16px;
+  line-height: 1.45;
+}
+
+.lesson-sidebar .podcast_photo {
+  display: block;
   width: 100%;
+  height: auto;
 }
 
-.lesson-container .transcript table tr td {
-  padding-bottom: 2rem;
+.popup-display-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 14px;
+  padding: 14px 14px 12px;
+  border: 1px solid var(--popup-border);
+  border-radius: 10px;
+  background: var(--popup-bg-raised);
+  font-family: var(--popup-font-sans);
+  font-size: 16px;
+  line-height: 1.35;
+  color: var(--popup-text);
 }
 
-.sentence-player {
-  vertical-align: top;
-  padding-right: 2rem;
+.popup-display-controls legend {
+  padding: 0 4px;
+  color: var(--popup-text-secondary);
+  font-size: 15px;
+  font-weight: 650;
 }
 
-.sentence-speaker {
-  vertical-align: top;
-  padding-right: 2rem;
+.popup-display-controls label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
 }
 
-.sentence-data * {
-  padding-bottom: 1rem;
-}
+@media (max-width: 800px) {
+  .lesson-container {
+    max-width: none;
+    padding: 12px 4px 48px;
+  }
 
-.word {
-  width: 100%;
-  font-size: 2rem;
-  line-height: 3rem;
-  margin-left: 2rem;
-}
+  .popup-transcript {
+    --popup-dialogue-size: 26px;
+  }
 
-.word .player {
-  padding-right: 1.5rem;
+  .sentence {
+    grid-template-columns: minmax(0, 1fr);
+    row-gap: 4px;
+  }
+
+  .popup-vocab-list {
+    grid-template-columns: 1fr;
+  }
 }

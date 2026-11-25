@@ -39,7 +39,7 @@ class SettlersActions {
   // OVERRIDE THIS FUNCTION FROM THE PARENT GAME LIBRARY TO CHANGE THE ACKNOWLEDGE TEXT TO CONTINUE
   // and override the callback
   //
-  playerAcknowledgeNotice(msg, mycallback) {
+  async playerAcknowledgeNotice(msg, mycallback) {
     try {
             this.game.status = `<div class="player-notice">${msg}</div>`;
       this.hud.updateStatus(this.game.status);
@@ -62,7 +62,7 @@ class SettlersActions {
     }
 
     this.halted = 1;
-    this.saveGame(this.game.id);
+    await this.saveGame(this.game.id);
 
     return 0;
   }

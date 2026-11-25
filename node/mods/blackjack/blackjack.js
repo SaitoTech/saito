@@ -584,7 +584,7 @@ class Blackjack extends GameTableTemplate {
 
 				if (removal) {
 					//Save game with fewer players
-					this.saveGame(this.game.id);
+					await this.saveGame(this.game.id);
 
 					//Let's just try reloading the game
 					setTimeout(() => {

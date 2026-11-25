@@ -55,11 +55,6 @@ class Form {
       event.preventDefault();
       await this.main.downloadPng();
     });
-
-    form.querySelector('.ts-create-nft')?.addEventListener('click', async () => {
-      this.syncFromForm();
-      await this.main.requestCreateNft();
-    });
   }
 
   currentCardType() {

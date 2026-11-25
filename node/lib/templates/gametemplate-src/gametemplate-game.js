@@ -10,22 +10,20 @@ class GameGame {
   /////////////////////////////////////////////////////////////////////
   // Does a game object of this ID exist in our wallet already??
   //
-  doesGameExistLocally(game_id) {
-    if (this.app?.options?.games) {
-      for (let i = 0; i < this.app.options.games.length; i++) {
-        if (this.app.options.games[i].id === game_id) {
-          return 1;
-        }
-      }
+  async doesGameExistLocally(game_id) {
+    let stored_game = await this.app.storage.loadDataFile('games', game_id);
+    if (stored_game) {
+      return 1;
     }
     return 0;
   }
 
-  removeGameFromOptions(game_id = '') {
+  async removeGameFromOptions(game_id = '') {
     if (game_id === '') {
       return;
     }
-    if (this.app.options?.games) {
+    await this.app.storage.deleteDataFile('games', game_id);
+    if (Array.isArray(this.app.options?.games)) {
       for (let i = 0; i < this.app.options.games.length; i++) {
         if (this.app.options.games[i].id === game_id) {
           this.app.options.games.splice(i, 1);
@@ -33,7 +31,6 @@ class GameGame {
         }
       }
     }
-    this.app.storage.saveOptions();
   }
 
   /**
@@ -168,86 +165,76 @@ class GameGame {
     if (!Array.isArray(game.queue)) game.queue = [];
   }
 
-  saveGame(game_id) {
-    if (!this.app.BROWSER && !this.app.HEADLESS) {
-      return;
-    }
+  async saveGame(game_id) {
+    //
+    // Capture the game before the first await. loadGame() can replace
+    // this.game while a read or write is pending.
+    //
+    let saved_game = this.game;
+    let saved_id = game_id;
 
-    if (!this.game) {
+    if (!saved_game) {
       console.error('GT: Saving Game Error: safety catch 1');
       return;
     }
-
-    console.debug('--- SAVE GAME --- ');
-
-    if (!this.app.options) {
-      this.app.options = {};
-    }
-    if (!this.app.options.games) {
-      this.app.options = Object.assign(
-        {
-          games: [],
-          gameprefs: { random: this.app.crypto.generateKeys() }
-        },
-        this.app.options
-      );
-    }
-
-    if (!game_id || game_id !== this.game.id) {
-      //game_id = this.app.crypto.hash(Math.random().toString(32));
-      //console.warn(
-      //  'GT ERR? Save game with wrong id',
-      //  'Parameter: ' + game_id,
-      //  'this game.id = ' + this.game.id
-      //);
+    if (!saved_id || saved_id !== saved_game.id) {
       return;
     }
 
-    if (game_id != null) {
-      if (this.app.options?.games) {
-        for (let i = 0; i < this.app.options.games.length; i++) {
-          if (this.app.options.games[i].id === game_id) {
-            this.game.timestamp = new Date().getTime();
+    //
+    // A server stores a game only when it is one of the players.
+    // game.accepted also contains followers, so it is not the test.
+    // game.player is still 0 on the first save during accept.
+    //
+    if (!this.app.BROWSER) {
+      if (
+        !Array.isArray(saved_game.players) ||
+        saved_game.players.includes(this.publicKey) == false
+      ) {
+        return;
+      }
+    }
 
-            this.normalizeGameShape(this.game);
-            this.normalizeGameShape(this.app.options.games[i]);
-
-            //
-            // sept 25 - do not overwrite any future moves saved separately
-            //
-            for (let ii = 0; ii < this.app.options.games[i].future.length; ii++) {
-              let do_we_contain_this_move = 0;
-              for (let iii = 0; iii < this.game.future.length; iii++) {
-                if (this.app.options.games[i].future[ii] === this.game.future[iii]) {
-                  do_we_contain_this_move = 1;
-                }
-              }
-              if (do_we_contain_this_move == 0) {
-                this.game.future.push(this.app.options.games[i].future[ii]);
-              }
-            }
-
-            console.log('GT [saveGame] before game clone', new Date().toISOString(), Date.now());
-            const gameJson = JSON.stringify(this.game);
-            this.app.options.games[i] = JSON.parse(gameJson);
-            console.log('GT [saveGame] after game clone', new Date().toISOString(), Date.now());
-            this.app.storage.saveOptions([{ path: ['games', i], json: gameJson }]);
-            console.log('GT [saveGame] after saveOptions', new Date().toISOString(), Date.now());
-            return;
+    let stored_game = await this.app.storage.loadDataFile('games', saved_id);
+    if (stored_game && Array.isArray(stored_game.future)) {
+      this.normalizeGameShape(saved_game);
+      for (let ii = 0; ii < stored_game.future.length; ii++) {
+        let do_we_contain_this_move = 0;
+        for (let iii = 0; iii < saved_game.future.length; iii++) {
+          if (stored_game.future[ii] === saved_game.future[iii]) {
+            do_we_contain_this_move = 1;
           }
+        }
+        if (do_we_contain_this_move == 0) {
+          saved_game.future.push(stored_game.future[ii]);
         }
       }
     }
 
-    //
-    // If we didn't find the game (by id) in our wallet
-    // add it and save the options
+    saved_game.timestamp = new Date().getTime();
+    this.normalizeGameShape(saved_game);
+    let game_json = JSON.stringify(saved_game);
+    await this.app.storage.saveDataFile('games', saved_id, game_json);
 
-    const gameJson = JSON.stringify(this.game);
-    this.app.options.games.push(JSON.parse(gameJson));
-    this.app.storage.saveOptions([
-      { path: ['games', this.app.options.games.length - 1], json: gameJson }
-    ]);
+    //
+    // Session list for callers that still scan app.options.games.
+    // The options file does not receive this array.
+    //
+    if (this.app.BROWSER) {
+      if (!Array.isArray(this.app.options.games)) {
+        this.app.options.games = [];
+      }
+      let replaced = 0;
+      for (let i = 0; i < this.app.options.games.length; i++) {
+        if (this.app.options.games[i].id === saved_id) {
+          this.app.options.games[i] = JSON.parse(game_json);
+          replaced = 1;
+        }
+      }
+      if (replaced == 0) {
+        this.app.options.games.push(JSON.parse(game_json));
+      }
+    }
   }
 
   /**
@@ -258,7 +245,15 @@ class GameGame {
    *
    * Note: "game" refers to the game object
    */
-  loadGame(game_id = null) {
+  async loadGame(game_id = null) {
+    //
+    // A server load always names the game. The hash and the session
+    // list exist only in the browser.
+    //
+    if (game_id == null && !this.app.BROWSER) {
+      return null;
+    }
+
     //
     // try to URL specified game
     //
@@ -312,30 +307,68 @@ class GameGame {
 
     //If we were given the game_id or found the most recent valid game, then load it
     if (game_id) {
-      for (let i = 0; i < this.app.options?.games?.length; i++) {
-        if (this.app.options.games[i].id === game_id) {
-          this.game = JSON.parse(JSON.stringify(this.app.options.games[i]));
-          this.normalizeGameShape(this.game);
-          this.clearSnapshots();
-          console.info('GT loading game: ' + game_id);
-
-          return this.game;
+      //
+      // A GameBot process sets uses_jsdom once. Later loads, including an
+      // incoming move, keep the flag and replace the document after the
+      // active game has been committed. A stale token or a relay hold
+      // leaves the current document in place.
+      //
+      // The browser bundle must not see require("jsdom"). webpackIgnore on
+      // require() is not honored, and webpack also follows module.require.
+      // A direct eval is not a static require, so the lite graph never parses
+      // gametemplate-jsdom.js or the jsdom package.
+      let install_jsdom = () => {
+        if (this.app?.BROWSER || this.uses_jsdom != 1 || this.game?.id !== game_id) {
+          return;
         }
+        eval('require')('./gametemplate-jsdom.js')(this, game_id);
+      };
+
+      //
+      // Taken after the id is known, so a request that finds no id does
+      // not retire an in-flight load. A later request has a higher token.
+      //
+      let load_token = (this._load_token || 0) + 1;
+      this._load_token = load_token;
+      let stored_game = await this.app.storage.loadDataFile('games', game_id);
+      if (stored_game) {
+        this.normalizeGameShape(stored_game);
+        this.clearSnapshots();
+        if (load_token === this._load_token && !this._activation_hold) {
+          this.game = stored_game;
+          install_jsdom();
+        }
+        console.info('GT loading game: ' + game_id);
+        return stored_game;
       }
 
       //No game to load, must create one
       console.info(`GT: [loadGame] create new game with id ${game_id}`);
 
-      //we don't have a game with game_id stored in app.options.games
-      this.game = this.newGame(game_id);
-      this.saveGame(this.game.id);
+      let created_game = this.newGame(game_id);
+      let game_before_create = this.game;
+      this.game = created_game;
+      await this.saveGame(created_game.id);
+      if (load_token !== this._load_token || this._activation_hold) {
+        if (this.game === created_game) {
+          this.game = game_before_create;
+        }
+      } else {
+        this.game = created_game;
+        install_jsdom();
+      }
 
-      console.debug('GT [loadGame]: ', JSON.parse(JSON.stringify(this.app.options.games)));
+      console.debug('GT [loadGame]: ', created_game.id);
 
-      return this.game;
+      return created_game;
     }
 
     return null;
+  }
+
+  async loadGameWithJSDOM(game_id) {
+    this.uses_jsdom = 1;
+    return await this.loadGame(game_id);
   }
 
   /*******************************************************************************************************
@@ -376,8 +409,8 @@ class GameGame {
     // NOTE: re-loading the game might throw out some data
     // But this should create the game
     if (!this.game || this.game.id != game_id) {
-      if (this.doesGameExistLocally(game_id)) {
-        this.loadGame(game_id);
+      if (await this.doesGameExistLocally(game_id)) {
+        await this.loadGame(game_id);
       } else {
         this.game = this.newGame(game_id);
       }
@@ -451,7 +484,7 @@ class GameGame {
       this.addPlayer(txmsg.players[i]);
     }
 
-    this.saveGame(game_id);
+    await this.saveGame(game_id);
 
     if (this.game.players_set == 0) {
       //
@@ -510,7 +543,7 @@ class GameGame {
 
       this.game.players_set = 1;
 
-      this.saveGame(game_id);
+      await this.saveGame(game_id);
 
       //
       // players are set and game is accepted, so move into handleGame
@@ -654,11 +687,11 @@ class GameGame {
 
     if (this.game.players.length == 1) {
       this.game.over = 1;
-      this.saveGame(this.game.id);
+      await this.saveGame(this.game.id);
       return;
     }
 
-    this.saveGame(this.game.id);
+    await this.saveGame(this.game.id);
 
     let winners = [];
 
@@ -759,9 +792,7 @@ class GameGame {
     const game_id = this.game.id;
     const slug = typeof this.returnSlug === 'function' ? this.returnSlug() : this.name;
     let link =
-      (this.app.HEADLESS || typeof window === 'undefined'
-        ? this.app.options.runnerOrigin || ''
-        : window.location.origin) +
+      window.location.origin +
       `/arcade/?game=${encodeURIComponent(slug)}&game_id=${encodeURIComponent(game_id)}`;
 
     newtx.msg = {
@@ -804,7 +835,7 @@ class GameGame {
       });
 
       this.game.gameover_sent = 1;
-      this.saveGame(this.game.id);
+      await this.saveGame(this.game.id);
 
       return 0;
     }
@@ -856,7 +887,7 @@ class GameGame {
       this.game.reason = reason;
       this.game.canProcess = true;
       this.enqueueTerminalQueueProtocol();
-      this.saveGame(this.game.id);
+      await this.saveGame(this.game.id);
       await this.restartQueue();
     } else {
       if (
@@ -865,7 +896,7 @@ class GameGame {
       ) {
         this.game.winner = winner;
         this.game.reason = reason;
-        this.saveGame(this.game.id);
+        await this.saveGame(this.game.id);
       }
     }
   }

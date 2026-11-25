@@ -29,7 +29,7 @@ module.exports = function gameCryptoSettingsTemplate(details) {
             class="saito-checkbox"
             ${details.inboundTrusted ? 'checked' : ''}
           />
-          <span class="game-crypto-settings-overlay__setting-label">auto-continue on inbound payment</span>
+          <span class="game-crypto-settings-overlay__setting-label">Fast Inbound Payments</span>
         </label>
         <p class="game-crypto-settings-overlay__hint">
           Automatically continue future in-game payment receipts without requiring you to press Continue.

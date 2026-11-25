@@ -88,8 +88,21 @@ class Card {
   }
 
   /**
-   * Plain object for local draft persistence (not NFT create_data).
+   * True when the card differs from the default initialization, ignoring
+   * empty code tabs created just by opening the editor.
    */
+  hasMeaningfulEdits() {
+    const current = this.toDraftData();
+    current.events = (current.events || []).filter((event) => String(event?.code || '').trim());
+    current.active_event_index = 0;
+
+    const fresh = new Card(this.app, this.mod).toDraftData();
+    fresh.events = [];
+    fresh.active_event_index = 0;
+
+    return Boolean(this.image) || JSON.stringify(current) !== JSON.stringify(fresh);
+  }
+
   toDraftData() {
     return {
       card_id: this.card_id,

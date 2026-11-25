@@ -368,7 +368,7 @@ class Chessgame extends GameTemplate {
       }
     }
 
-    this.saveGame(this.game.id);
+    await this.saveGame(this.game.id);
 
     return 0;
   }

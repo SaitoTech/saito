@@ -9,7 +9,8 @@ const {
   openPdfs,
   hydrate,
   addUser,
-  stripSignatures
+  stripSignatures,
+  copy
 } = require('./lib/document');
 const {
   looksLikeWebTransaction,
@@ -20,7 +21,7 @@ const { readZip, looksLikeZip, isZipFile } = require('./lib/zip');
 const { buildDocumentArchive, textFromZip } = require('./lib/archive');
 const Main = require('./lib/ui/main');
 const HomePage = require('./index');
-const { verifyEmail, myKeychainEmail, rememberVerifiedEmails, documentUnchanged, createCreatorProof, verifyCreatorProof, finalizeDocument, verifyFinalization, signingConfigurationError } = require('./lib/auth');
+const { verifyEmail, signEmailVerification, myKeychainEmail, rememberVerifiedEmails, rememberEmail, documentUnchanged, createCreatorProof, verifyCreatorProof, finalizeDocument, verifyFinalization, signingConfigurationError, walletKeys } = require('./lib/auth');
 const { loadDraft, saveDraft, clearDraft, claimDraft } = require('./lib/draft');
 const {
   recoveryPlan,
@@ -37,7 +38,8 @@ const SaitoSignDatabase = require('./lib/database');
 const { handleShareRequest } = require('./lib/share-server');
 const { sendShare, payloadForUpload, documentFromStored } = require('./lib/share-client');
 const { importFailure } = require('./lib/share-protocol');
-const { readShareParameters } = require('./lib/share-access');
+const { readShareParameters, readRecipientSecret, locationWithoutRecipientSecret } = require('./lib/share-access');
+const { acceptableEmailProof, applyEmailProof, restartSignerWallet, restoreWalletProgress } = require('./lib/recipient-proof');
 
 function currentShareParameters(app) {
   const located = readShareParameters(
@@ -118,6 +120,10 @@ class SaitoSign extends ModTemplate {
       const share = currentShareParameters(app);
       if (share.id && share.token) {
         this.receivedBy = 'link';
+        this.invitationSecret = readRecipientSecret(
+          typeof window === 'undefined' ? '' : window.location.search,
+          typeof window === 'undefined' ? '' : window.location.hash
+        );
         this.shareLoad = { status: 'Connecting to the sharing server...', error: '' };
         this.shareWait = setTimeout(() => {
           if (this.shareRequested || hasPdf(this.document) || this.shareGate) {
@@ -272,9 +278,126 @@ class SaitoSign extends ModTemplate {
     };
     try {
       this.shareLoad = null;
-      this.useDocument(await hydrate(await documentFromStored(this.app, result.document, '')), { receivedBy: 'link' });
+      const hydrated = await hydrate(await documentFromStored(this.app, result.document, ''));
+      this.useDocument(await this.withSavedInvitation(hydrated), { receivedBy: 'link' });
+      await this.redeemInvitation();
     } catch (err) {
       this.reportShareFailure(err?.message || 'Document could not be imported. Open the invitation link again, or ask the sender to share it once more.');
+    }
+  }
+
+  async withSavedInvitation(record) {
+    let saved = null;
+    try {
+      saved = await loadDraft();
+    } catch (err) {
+      saved = null;
+    }
+    if (!saved?.document || !this.share?.id || saved.shareId !== this.share.id) {
+      return record;
+    }
+    return restoreWalletProgress(this.app, record, saved.document, walletKeys(this.app));
+  }
+
+  async redeemInvitation() {
+    const secret = String(this.invitationSecret || '').trim();
+    const share = this.share;
+    if (!secret || !share?.id || !share.token || this.invitationRedeemed || !hasPdf(this.document)) {
+      return;
+    }
+    this.invitationRedeemed = true;
+    let result;
+    try {
+      result = await sendShare(this.app, {
+        action: 'redeem-email',
+        document_id: share.id,
+        token: share.token,
+        verify_secret: secret
+      });
+    } catch (err) {
+      return;
+    }
+    if (!result?.success) {
+      return;
+    }
+    const proof = {
+      email: result.email,
+      publickey: result.signer_publickey,
+      serverKey: result.publickey,
+      message: result.message,
+      signature: result.signature
+    };
+    if (!acceptableEmailProof(this.app, proof)) {
+      return;
+    }
+    const outcome = applyEmailProof(this.document, proof, this.app);
+    if (outcome.status === 'mismatch') {
+      this.pendingInvitationProof = proof;
+      this.main?.workspace?.offerWalletRestart(outcome);
+      return;
+    }
+    if (outcome.status !== 'applied') {
+      return;
+    }
+    await this.keepInvitationProof(proof);
+  }
+
+  async keepInvitationProof(proof) {
+    rememberEmail(this.app, proof.publickey, proof.email);
+    rememberVerifiedEmails(this.app, this.document);
+    await this.persistDraft({
+      code: proof.signature,
+      document: copy(this.document),
+      shareId: this.share?.id || ''
+    });
+    this.invitationSecret = '';
+    this.clearInvitationLocation();
+    this.refreshWorkspace();
+  }
+
+  async acceptWalletRestart() {
+    const proof = this.pendingInvitationProof;
+    if (!proof || !this.document) {
+      return;
+    }
+    const outcome = applyEmailProof(this.document, proof, this.app);
+    if (outcome.status !== 'mismatch') {
+      return;
+    }
+    if (!restartSignerWallet(this.document, outcome.index)) {
+      return;
+    }
+    const applied = applyEmailProof(this.document, proof, this.app);
+    if (applied.status !== 'applied') {
+      return;
+    }
+    if (this.share) {
+      this.share.restartSigner = true;
+    }
+    this.pendingInvitationProof = null;
+    await this.keepInvitationProof(proof);
+  }
+
+  declineWalletRestart() {
+    this.pendingInvitationProof = null;
+    this.invitationSecret = '';
+    this.clearInvitationLocation();
+  }
+
+  clearInvitationLocation() {
+    if (typeof window === 'undefined') {
+      return;
+    }
+    try {
+      const next = locationWithoutRecipientSecret(window.location.href);
+      window.history.replaceState(null, '', next);
+    } catch (err) {}
+  }
+
+  refreshWorkspace() {
+    const root = typeof document === 'undefined' ? null : document.querySelector('.saito-container > .workspace');
+    if (root && this.main?.workspace) {
+      this.main.workspace.update(root);
     }
   }
 
@@ -318,8 +441,10 @@ class SaitoSign extends ModTemplate {
       expected_hash: share.serverHash,
       is_encrypted: payload.is_encrypted,
       document: payload.document,
+      ...(payload.is_encrypted ? { password } : {}),
       signer_name: signer?.name || '',
-      signer_email: signer?.email || ''
+      signer_email: signer?.email || '',
+      restart_signer: share.restartSigner === true
     });
     if (!result?.success) {
       share.conflict = result?.error === 'conflict';
@@ -334,6 +459,7 @@ class SaitoSign extends ModTemplate {
     share.serverHash = result.document_hash;
     share.pending = false;
     share.conflict = false;
+    share.restartSigner = false;
     return { ok: true, complete: result.complete === true, already_present: result.already_present === true };
   }
 
@@ -703,10 +829,9 @@ class SaitoSign extends ModTemplate {
       if (!this.dev) {
         return { success: false };
       }
-      const message = `Request received for verification of email ${email} with publickey ${publickey}`;
-      const signature = this.app.crypto.signMessage(message, await this.app.wallet.getPrivateKey());
+      const proof = await signEmailVerification(this.app, email, publickey);
       const serverkey = this.publicKey || (await this.app.wallet.getPublicKey());
-      return { success: false, error: signature, publickey: serverkey };
+      return { success: false, error: proof.signature, publickey: serverkey };
     }
 
     try {
