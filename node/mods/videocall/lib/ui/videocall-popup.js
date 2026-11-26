@@ -263,6 +263,7 @@ class VideoCallPopup {
       icon.classList.toggle('fa-video-slash');
     };
 
+    this.mod.recorder?.bind(controls.querySelector('.record-control'));
     this.mod.swarmcastControlId = 'swarmcast-control';
     controls.querySelector('.swarmcast-control').onclick = () => {
       this.mod.showSwarmcast();
@@ -424,6 +425,7 @@ class VideoCallPopup {
   }
 
   close() {
+    this.mod.recorder?.close();
     this.destroy();
   }
 

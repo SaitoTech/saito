@@ -47,3 +47,22 @@
 .videocall-popup .disconnect-control i {
   color: var(--stun-noir-danger-text);
 }
+
+.videocall-popup .record-control.recording {
+  background: var(--saito-destructive);
+  color: var(--saito-primary-foreground);
+}
+
+@media (max-width: 420px) {
+  .videocall-popup {
+    gap: 3px;
+    max-width: calc(100% - 10px);
+    box-sizing: border-box;
+  }
+
+  .videocall-popup .videocall-control {
+    width: 32px;
+    height: 32px;
+    flex-shrink: 1;
+  }
+}

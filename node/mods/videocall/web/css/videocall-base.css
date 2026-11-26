@@ -113,3 +113,119 @@ html[data-theme='noir'] .stun-settings-shell {
   text-align: center;
   font-size: 8px;
 }
+
+/* Keep the two-choice picker compact inside both call presentations. */
+.saito-overlay:has(> .videocall-recording-options) {
+  inset: 50% auto auto 50%;
+  transform: translate(-50%, -50%);
+  width: min(34rem, calc(100vw - 2rem));
+  height: auto;
+  max-height: calc(100dvh - 2rem);
+  overflow: auto;
+  padding: 0;
+  border-radius: var(--saito-radius-lg);
+}
+
+.saito-overlay:has(> .videocall-recording-options) .saito-overlay-closebox {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  width: max(32px, 2.6rem);
+  height: max(32px, 2.6rem);
+}
+
+.videocall-recording-options {
+  display: grid;
+  gap: 0.8rem;
+  background-image: radial-gradient(ellipse at top left, color-mix(in srgb, var(--saito-primary) 8%, transparent), transparent 65%);
+  padding: clamp(1.25rem, 4vw, 2rem);
+  color: var(--saito-popover-foreground);
+}
+
+.videocall-recording-options h2 {
+  margin: 0 3rem 0.7rem 0;
+  font: 400 max(22px, 2rem)/1.2 var(--saito-font-heavy);
+}
+
+.videocall-recording-options button {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.9rem;
+  padding: 1rem;
+  text-align: start;
+  color: var(--saito-foreground);
+  border: 1px solid var(--saito-border);
+  border-radius: var(--saito-radius);
+  background: var(--saito-secondary);
+}
+
+.videocall-recording-options button:is(:hover, :focus-visible) {
+  border-color: var(--saito-primary);
+  background: color-mix(in srgb, var(--saito-primary) 8%, var(--saito-secondary));
+}
+
+.videocall-recording-options button:focus-visible {
+  outline: 2px solid var(--saito-primary);
+  outline-offset: 2px;
+}
+
+.videocall-recording-options .mode-icon {
+  display: grid;
+  place-items: center;
+  width: 2.85rem;
+  height: 2.85rem;
+  border-radius: var(--saito-radius);
+  background: color-mix(in srgb, var(--saito-primary) 12%, var(--saito-secondary));
+  color: var(--saito-primary);
+  font-size: 1.3rem;
+}
+
+.videocall-recording-options strong,
+.videocall-recording-options small {
+  display: block;
+}
+
+.videocall-recording-options strong {
+  font: 400 max(16px, 1.4rem)/1.25 var(--saito-font-heavy);
+}
+
+.videocall-recording-options small,
+.videocall-recording-options p {
+  font: 400 max(13px, 1.05rem)/1.4 var(--saito-font-medium);
+  color: var(--saito-muted-foreground);
+}
+
+.videocall-recording-options small {
+  margin-top: 0.15rem;
+}
+
+.videocall-recording-options .mode-arrow {
+  font-size: 0.9rem;
+  color: var(--saito-muted-foreground);
+}
+
+.videocall-recording-options p {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+  margin: 0.55rem 0 0;
+}
+
+.videocall-recording-countdown {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  z-index: 10000;
+  background: rgb(0 0 0 / 75%);
+  color: white;
+  font-size: clamp(2rem, 5vw, 5rem);
+  text-align: center;
+  pointer-events: none;
+}
+
+.videocall-recording-border {
+  outline: 3px solid var(--saito-destructive);
+  outline-offset: -3px;
+}

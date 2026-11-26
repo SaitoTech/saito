@@ -622,3 +622,78 @@ describe('participant departure', () => {
     expect(call.streams.remoteStreams.has('peer-b')).toBe(true);
   });
 });
+
+
+describe('recording controls', () => {
+  let recordingDom;
+  beforeEach(() => {
+    recordingDom = new JSDOM('<!doctype html><body></body>');
+    global.window = recordingDom.window;
+    global.document = recordingDom.window.document;
+  });
+  afterEach(() => {
+    recordingDom.window.close();
+    global.window = dom.window;
+    global.document = dom.window.document;
+  });
+
+  const CallRecorder = require('../../../mods/videocall/lib/call-recorder');
+  const VideoCallFull = require('../../../mods/videocall/lib/ui/videocall-full');
+
+  test.each(['full', 'popup'])('%s toolbar opens recording options', (presentation) => {
+    const { app, call } = departure();
+    call.recorder = new CallRecorder(call);
+    const open = jest.spyOn(call.recorder, 'toggle');
+    const previous = global.MediaRecorder;
+    global.MediaRecorder = class {};
+    try {
+      if (presentation === 'full') {
+        app.modules = { mods: [call] };
+        document.body.innerHTML = '<div class="control-list imported-actions"></div>';
+        const ui = new VideoCallFull(app, call);
+        ui.insertActions();
+      } else {
+        call.CallInterface.placeControls();
+      }
+      expect(call.recorder.button).toBe(document.querySelector('.record-control'));
+      document.querySelector('.record-control').click();
+      expect(open).toHaveBeenCalledTimes(1);
+      expect(document.querySelector('[data-mode="audio"]')).not.toBeNull();
+      expect(document.querySelector('[data-mode="video"]')).not.toBeNull();
+    } finally {
+      global.MediaRecorder = previous;
+      call.recorder.close();
+      call.CallInterface.destroy();
+    }
+  });
+
+  test('peer count-ins and indicators follow the active room and ignore stale updates', async () => {
+    const { app, call } = departure();
+    app.browser.escapeHTML = (value) => value;
+    call.recorder = new CallRecorder(call);
+    const previous = global.siteMessage;
+    global.siteMessage = jest.fn();
+    const signal = async (phase, version, peer = 'peer-a', room = 'room-1') => {
+      const tx = transaction('call-recording', peer);
+      tx.signature += phase + version + room;
+      tx.returnMessage = () => ({ module: 'Videocall', request: 'call-recording',
+        call_id: room, data: { phase, version, seconds: 5 } });
+      await call.handlePeerTransaction(app, tx);
+    };
+    try {
+      await signal('countdown', 1);
+      expect(document.querySelector('.videocall-recording-countdown').textContent).toContain('peer-a starts recording in 5');
+      await signal('start', 2);
+      expect(document.querySelector('.videocall-recording-countdown')).toBeNull();
+      await signal('stop', 1);
+      await signal('start', 3, 'peer-b', 'another-room');
+      expect([...call.recorder.remote]).toEqual(['peer-a']);
+      await signal('stop', 4);
+      expect(call.recorder.remote.size).toBe(0);
+    } finally {
+      call.recorder.close();
+      call.CallInterface.destroy();
+      global.siteMessage = previous;
+    }
+  });
+});

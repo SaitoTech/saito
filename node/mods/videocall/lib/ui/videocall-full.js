@@ -216,6 +216,9 @@ class VideoCallFull {
   }
 
   close() {
+    if (this.closed) return;
+    this.closed = true;
+    const saving = this.mod.recorder?.close();
     for (const peer of Object.keys(this.video_boxes)) {
       this.participantLeft(peer);
     }
@@ -225,15 +228,17 @@ class VideoCallFull {
       delete this.old_title;
     }
 
-    this.app.connection.emit('interrupt-screen-recording');
-
     if (this.mod.browser_active) {
       let homeModule = this.app.options?.homeModule || this.name;
       let mod = this.app.modules.returnModuleByName(homeModule);
       let slug = mod?.returnSlug() || 'videocall';
       let url = '/' + slug;
 
-      navigateWindow(url, 2000);
+      const navigateHome = () => {
+        if (!this.mod.CallInterface || this.mod.CallInterface === this) navigateWindow(url, 2000);
+      };
+      if (saving) saving.then(navigateHome);
+      else navigateHome();
     } else {
       //
       // Hopefully we don't have to reload the page on the end of a stun call
@@ -243,7 +248,11 @@ class VideoCallFull {
         document.querySelector('.stun-overlay-container').remove();
 
         if (this.full_screen) {
-          window.history.back();
+          const goBack = () => {
+            if (!this.mod.CallInterface || this.mod.CallInterface === this) window.history.back();
+          };
+          if (saving) saving.then(goBack);
+          else goBack();
         }
       }
     }
@@ -357,13 +366,6 @@ class VideoCallFull {
         this.createActionItem(item, container, index++);
       }
     }
-
-    /*
-			<span class="record-control icon_click_area" id="record-icon">
-			  <label>Record</label>
-			  <i class="fa-solid fa-record-vinyl"></i>
-			</span>
-		*/
   }
 
   createActionItem(item, container, index) {
@@ -437,43 +439,6 @@ class VideoCallFull {
         this.hangUp();
       });
     }
-
-    /*document.getElementById('record-icon').onclick = async () => {
-			const recordIcon = document.querySelector('#record-icon i');
-			const recordLabel = document.querySelector('#record-icon label');
-
-			const formatTime = (totalSeconds) => {
-				const hours = Math.floor(totalSeconds / 3600)
-					.toString()
-					.padStart(2, '0');
-				const minutes = Math.floor((totalSeconds % 3600) / 60)
-					.toString()
-					.padStart(2, '0');
-				const seconds = (totalSeconds % 60).toString().padStart(2, '0');
-				return `${hours}:${minutes}:${seconds}`;
-			};
-
-			if (this.mod.peerManager.recording === true) {
-				console.log('stopping recording');
-				this.mod.peerManager.stopRecordCall();
-
-				clearInterval(this.recordingInterval);
-
-				recordLabel.textContent = 'Record';
-				recordIcon.classList.remove('recording');
-			} else {
-				let recording = await this.mod.peerManager.recordCall();
-				if (!recording) return;
-				let totalSeconds = 0;
-				recordLabel.textContent = '00:00:00';
-				this.recordingInterval = setInterval(() => {
-					totalSeconds++;
-					recordLabel.textContent = `${formatTime(totalSeconds)}`;
-				}, 1000);
-
-				recordIcon.classList.add('recording');
-			}
-		};*/
 
     document.querySelectorAll('.call-controls .video-control').forEach((item) => {
       item.onclick = () => {

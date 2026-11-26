@@ -10,6 +10,9 @@ module.exports = (audioOn, videoOn) => `
     <div id="swarmcast-control" class="videocall-control swarmcast-control icon_click_area" title="Swarmcast">
       <i class="fa-solid fa-tower-broadcast"></i>
     </div>
+    <button type="button" class="videocall-control record-control icon_click_area" title="Record the call" aria-label="Record the call">
+      <i class="fa-solid fa-record-vinyl"></i>
+    </button>
     <div class="videocall-control present-control icon_click_area" title="Present your screen">
       <i class="fa-solid fa-display"></i>
     </div>

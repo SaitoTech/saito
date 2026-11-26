@@ -8,6 +8,7 @@ const SaitoOverlay = require('../../lib/saito/ui/saito-overlay/saito-overlay');
 const Streams = require('./lib/streams');
 const Peers = require('./lib/peers');
 const AppSettings = require('./lib/ui/settings');
+const CallRecorder = require('./lib/call-recorder');
 const CallDiagnostics = require('./lib/diagnostics');
 const HomePage = require('./index');
 const SaitoHeader = require('./../../lib/saito/ui/saito-header/saito-header');
@@ -275,6 +276,7 @@ class Videocall extends ModTemplate {
     if (!this.browser_active) {
       this.attachStyleSheets();
     }
+    this.recorder = new CallRecorder(this);
     this.CallInterface = presentation === 'embedded'
       ? new VideoCallPopup(this.app, this, settings?.container)
       : new VideoCallFull(this.app, this, true);
@@ -294,6 +296,8 @@ class Videocall extends ModTemplate {
 
   resetCall() {
     console.log('Reset Stun');
+    this.recorder?.close();
+    this.recorder = null;
     this.stopBroadcast();
     this.room_obj = null;
     this.expected_peers = null;
@@ -487,6 +491,16 @@ class Videocall extends ModTemplate {
       }
     }
 
+    if (type === 'record-actions' && this.recorder) {
+      return {
+        text: 'Record',
+        icon: 'fa-solid fa-record-vinyl',
+        hook: 'record-control record-container',
+        callback: () => this.recorder.toggle(),
+        event: (id) => this.recorder.bind(document.getElementById(id))
+      };
+    }
+
     if (type === 'call-actions') {
       return [
         {
@@ -586,6 +600,7 @@ class Videocall extends ModTemplate {
           }
 
           if (!tx.isFrom(this.publicKey)) {
+            if (message.request === 'call-recording') this.recorder?.receive(tx);
             //Someone joined call room
             if (message.request === 'call-list-request') {
               console.info('TALK: [callListRequest -- onConfirmation] from ', from);
@@ -672,6 +687,11 @@ class Videocall extends ModTemplate {
             return;
           }
 
+          if (txmsg.request === 'call-recording') {
+            this.recorder?.receive(tx);
+            return;
+          }
+
           if (txmsg.request === 'peer-joined') {
             let from = tx.from[0].publicKey;
 
@@ -696,6 +716,7 @@ class Videocall extends ModTemplate {
               this.CallInterface?.updateRoomLink?.();
             }
 
+            this.recorder?.peerJoined(from);
             //Limbo Hook
             this.app.connection.emit('videocall-peer-joined', from);
 
@@ -778,6 +799,7 @@ class Videocall extends ModTemplate {
   disconnect(peer, msg = 'left the meeting') {
     if (!peer) return;
 
+    this.recorder?.peerLeft(peer);
     const members = this.room_obj?.call_peers;
     let departed = false;
     if (Array.isArray(members)) {
