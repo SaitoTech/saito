@@ -63,6 +63,7 @@ class Teaser {
     summary.hydrateFromListingTransaction?.();
 
     const title = summary.returnTitle() || 'Untitled Item';
+    const description = String(summary.returnDescription?.() || '').trim();
     const seller = summary.returnSeller?.() || summary.seller || '';
     const shortSeller =
       !seller || seller.length <= 18
@@ -76,24 +77,18 @@ class Teaser {
         titleEl.textContent = title;
       }
 
-      let sellerEl = card.querySelector('.info .seller');
-      if (shortSeller) {
-        if (!sellerEl) {
-          sellerEl = document.createElement('p');
-          sellerEl.className = 'seller';
-          card.querySelector('.info')?.appendChild(sellerEl);
-        }
+      const descriptionEl = card.querySelector('.description');
+      if (descriptionEl) {
+        descriptionEl.textContent = description;
+      }
+
+      const sellerEl = card.querySelector('.seller');
+      if (sellerEl) {
         sellerEl.textContent = shortSeller;
       }
 
-      const media = card.querySelector('.media');
-      let priceEl = card.querySelector('.price');
-      if (price) {
-        if (!priceEl) {
-          priceEl = document.createElement('div');
-          priceEl.className = 'price';
-          media?.appendChild(priceEl);
-        }
+      const priceEl = card.querySelector('.info .price');
+      if (priceEl) {
         priceEl.textContent = price;
       }
     }
@@ -126,13 +121,13 @@ class Teaser {
     const bg = display.backgroundImage;
     if (bg && app?.browser?.isSafeMediaUrl?.(bg)) {
       media.classList.add('has-image');
-      media.style.background = `url("${String(bg).replace(/"/g, '%22')}") center / cover no-repeat`;
+      media.style.background = Teaser.mediaBackground(bg, 'contain');
       return;
     }
 
     if (!display.innerHtml) {
       media.classList.add('placeholder');
-      media.style.background = `url(${placeholder}) center / cover no-repeat`;
+      media.style.background = Teaser.mediaBackground(placeholder, 'cover');
     } else {
       media.style.background = '';
     }
@@ -173,6 +168,7 @@ class Teaser {
     const price = Teaser.formatListingPrice(this.summary.returnPrice?.() || '');
     const templateData = {
       title: this.summary.returnTitle() || 'Untitled Item',
+      description: String(this.summary.returnDescription?.() || '').trim(),
       price,
       seller: shortSeller,
       identicon,
@@ -219,13 +215,19 @@ class Teaser {
     return 'has-image';
   }
 
+  static mediaBackground(url = '', fit = 'contain') {
+    const safe = String(url || '').replace(/"/g, '%22');
+    return `var(--saito-muted) url("${safe}") center / ${fit} no-repeat`;
+  }
+
   returnMediaBackground(image = '', display = {}) {
     const fallback = this.summary.returnPlaceholderImage?.() || DREAMSCAPE_PLACEHOLDER;
     const raw = display.backgroundImage || image || fallback;
+    const fit = display.backgroundImage || (image && image !== fallback) ? 'contain' : 'cover';
     if (!this.app.browser.isSafeMediaUrl(raw)) {
-      return `url("${fallback}") center / cover no-repeat`;
+      return Teaser.mediaBackground(fallback, 'cover');
     }
-    return `url("${String(raw).replace(/"/g, '%22')}") center / cover no-repeat`;
+    return Teaser.mediaBackground(raw, fit);
   }
 
   attachEvents() {

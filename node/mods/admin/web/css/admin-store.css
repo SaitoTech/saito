@@ -61,6 +61,10 @@
   color: #b42318;
 }
 
+.admin-store [data-store-navigation] {
+  margin-top: 2rem;
+}
+
 @media (max-width: 640px) {
   .admin-store-key {
     flex-wrap: wrap;

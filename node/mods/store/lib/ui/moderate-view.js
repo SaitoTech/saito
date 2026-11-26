@@ -40,6 +40,39 @@ class ModerateView {
 
     this.renderTable();
     this.attachToolbarEvents();
+    void this.loadMarketCategories();
+  }
+
+  async loadMarketCategories() {
+    const select = document.querySelector(`${this.container} [data-market-category]`);
+    if (!select || select.dataset.loaded === '1') {
+      return;
+    }
+    try {
+      const { loadListingsPage } = require('./browse-listings');
+      const result = await loadListingsPage(this.app, this.mod, {
+        public_key: '',
+        category: '',
+        featured: false,
+        offset: 0,
+        page_size: 1
+      });
+      const current = select.value;
+      const options = (result.categories || [])
+        .map((category) => {
+          const id = String(category.category_id || '');
+          const name = String(category.name || id)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;');
+          return `<option value="${id}">${name}</option>`;
+        })
+        .join('');
+      select.innerHTML = `<option value="">Uncategorized</option>${options}`;
+      select.value = current;
+      select.dataset.loaded = '1';
+    } catch (err) {
+      console.warn('Store: main categories failed', err?.message || err);
+    }
   }
 
   reload() {
@@ -94,13 +127,19 @@ class ModerateView {
         return;
       }
 
+      const market_category =
+        document.querySelector('[data-moderation-root] [data-market-category]')?.value || '';
+      const payload = {
+        module: 'Store',
+        action,
+        signatures
+      };
+      if (action === 'approve' && market_category) {
+        payload.market_category = market_category;
+      }
       this.app.network.sendRequestAsTransaction(
         'moderate-listings',
-        {
-          module: 'Store',
-          action,
-          signatures
-        },
+        payload,
         (response) => {
           if (!response || response.err || Number(response.authorized) !== 1) {
             reject(new Error(response?.err || 'Unauthorized access'));

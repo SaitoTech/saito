@@ -1,5 +1,6 @@
 const SaitoOverlay = require('../../../../../lib/saito/ui/saito-overlay/saito-overlay');
 const SettingsTemplate = require('./settings.template');
+const NavigationEditor = require('../navigation-editor');
 const { isAutoSubmitListings, setAutoSubmitListings } = require('../listing-approval');
 
 class SettingsOverlay {
@@ -25,6 +26,13 @@ class SettingsOverlay {
       })
     );
     this.attachEvents();
+    this.navigation = new NavigationEditor(this.app, this.mod, {
+      scope: '',
+      container: '.store-settings [data-store-navigation]'
+    });
+    void this.navigation.load().catch((err) => {
+      console.warn('Store: navigation editor failed', err?.message || err);
+    });
   }
 
   attachEvents() {

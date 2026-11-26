@@ -21,7 +21,7 @@ const { readZip, looksLikeZip, isZipFile } = require('./lib/zip');
 const { buildDocumentArchive, textFromZip } = require('./lib/archive');
 const Main = require('./lib/ui/main');
 const HomePage = require('./index');
-const { verifyEmail, signEmailVerification, myKeychainEmail, rememberVerifiedEmails, rememberEmail, documentUnchanged, createCreatorProof, verifyCreatorProof, finalizeDocument, verifyFinalization, signingConfigurationError, walletKeys } = require('./lib/auth');
+const { verifyEmail, signEmailVerification, myKeychainEmail, rememberVerifiedEmails, rememberEmail, documentUnchanged, createCreatorProof, verifyCreatorProof, finalizeDocument, verifyFinalization, signingConfigurationError, requireEmailVerification, walletKeys, rememberAcceptedSignatures } = require('./lib/auth');
 const { loadDraft, saveDraft, clearDraft, claimDraft } = require('./lib/draft');
 const {
   recoveryPlan,
@@ -266,7 +266,7 @@ class SaitoSign extends ModTemplate {
       }
       return;
     }
-    this.share = {
+      this.share = {
       id,
       token,
       purpose: result.purpose,
@@ -279,6 +279,7 @@ class SaitoSign extends ModTemplate {
     try {
       this.shareLoad = null;
       const hydrated = await hydrate(await documentFromStored(this.app, result.document, ''));
+      rememberAcceptedSignatures(this.share, hydrated);
       this.useDocument(await this.withSavedInvitation(hydrated), { receivedBy: 'link' });
       await this.redeemInvitation();
     } catch (err) {
@@ -417,7 +418,12 @@ class SaitoSign extends ModTemplate {
     return users.find((user) => keys.includes(String(user?.publickey || '').trim())) || null;
   }
 
-  async syncIfShared() {
+  async syncIfShared(onStage) {
+    const report = (stage) => {
+      if (typeof onStage === 'function') {
+        onStage(stage);
+      }
+    };
     const share = this.share;
     if (!share?.id || !hasPdf(this.document)) {
       return { ok: true, skipped: true };
@@ -429,11 +435,13 @@ class SaitoSign extends ModTemplate {
     share.conflict = false;
     const signer = this.signingUser();
     let payload;
+    report('upload');
     try {
       payload = await payloadForUpload(this.app, this.document, password);
     } catch (err) {
       return { ok: false, error: err?.message || 'The signed document could not be prepared for upload.' };
     }
+    report('confirm');
     const result = await sendShare(this.app, {
       action: 'update',
       document_id: share.id,
@@ -460,7 +468,14 @@ class SaitoSign extends ModTemplate {
     share.pending = false;
     share.conflict = false;
     share.restartSigner = false;
-    return { ok: true, complete: result.complete === true, already_present: result.already_present === true };
+    rememberAcceptedSignatures(share, this.document);
+    return {
+      ok: true,
+      complete: result.complete === true,
+      already_present: result.already_present === true,
+      notification_attempted: result.notification_attempted === true,
+      notification_failed: result.notification_failed === true
+    };
   }
 
   setShareNotice(message) {
@@ -721,7 +736,7 @@ class SaitoSign extends ModTemplate {
       return false;
     }
     const document = this.document;
-    if (!hasPdf(document) || (!options.draft && !document.edited)) {
+    if (!hasPdf(document) || (!options.draft && !document.edited && document.finalized !== true)) {
       return false;
     }
 
@@ -736,6 +751,7 @@ class SaitoSign extends ModTemplate {
           this.main.fail('Add at least one action before finalizing this document.');
           return false;
         }
+        requireEmailVerification(document);
         const problem = signingConfigurationError(document);
         if (problem) {
           this.main.fail(problem);

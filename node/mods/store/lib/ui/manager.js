@@ -74,10 +74,10 @@ class Manager {
    */
   showStorefront(
     publicKey = '',
-    { viewMode = 'public', adminSection = 'home', category = '' } = {}
+    { viewMode = 'public', adminSection = 'home', category = '', featured = false } = {}
   ) {
     this.show('my-listings');
-    return this.storefront.show(publicKey, { viewMode, adminSection, category });
+    return this.storefront.show(publicKey, { viewMode, adminSection, category, featured });
   }
 
   showSales() {
@@ -103,9 +103,9 @@ class Manager {
     this.browse.renderListings();
   }
 
-  loadBrowsePage({ category = '', page = 1, scroll = false } = {}) {
+  loadBrowsePage({ category = '', page = 1, scroll = false, featured = false } = {}) {
     this.show('browse');
-    return this.browse.loadPage({ category, page, scroll });
+    return this.browse.loadPage({ category, page, scroll, featured });
   }
 
   reloadBrowsePage() {
@@ -115,6 +115,7 @@ class Manager {
     return this.browse.loadPage({
       category: this.browse.category,
       page: this.browse.page,
+      featured: !!this.browse.featured,
       scroll: false
     });
   }

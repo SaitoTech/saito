@@ -1,4 +1,5 @@
 const StoreAdminTemplate = require('./store-admin.template');
+const NavigationEditor = require('../ui/navigation-editor');
 
 class StoreAdmin {
   constructor(app, mod, container = '.admin-store') {
@@ -41,6 +42,23 @@ class StoreAdmin {
       this.container
     );
     this.attachEvents();
+    this.mountNavigation();
+  }
+
+  mountNavigation() {
+    if (!this.navigation) {
+      this.navigation = new NavigationEditor(this.app, this.mod, {
+        scope: 'main',
+        container: `${this.container} [data-store-navigation]`
+      });
+    }
+    if (this.navigation.categories.length) {
+      this.navigation.render();
+      return;
+    }
+    void this.navigation.load().catch((err) => {
+      console.warn('Store: main navigation editor failed', err?.message || err);
+    });
   }
 
   statusText() {

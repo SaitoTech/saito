@@ -39,6 +39,9 @@ class StorefrontView {
     /** @type {'home' | 'active'} Admin content section when viewMode is admin */
     this.adminSection = 'home';
     this.category = '';
+    this.featured = true;
+    this.categories = [];
+    this.featuredIds = [];
 
     // Progress overlay complete → refresh inventory from warehouse (no local injection).
     this.app.connection.on('store-listing-lifecycle', (entry) => {
@@ -199,7 +202,7 @@ class StorefrontView {
    */
   async show(
     publicKey = '',
-    { viewMode = 'public', adminSection = 'home', category = '' } = {}
+    { viewMode = 'public', adminSection = 'home', category = '', featured = false } = {}
   ) {
     const nextKey = String(publicKey || '').trim();
     if (!nextKey) {
@@ -221,6 +224,7 @@ class StorefrontView {
     this.viewMode = nextViewMode;
     this.adminSection = nextSection;
     this.category = nextCategory;
+    this.featured = nextViewMode === 'public' && (!!featured || !nextCategory);
 
     if (this.viewMode === 'admin-denied') {
       this.loading = false;
@@ -263,7 +267,8 @@ class StorefrontView {
     try {
       const result = await loadListingsPage(this.app, this.mod, {
         public_key: this.publicKey,
-        category: this.category || '',
+        category: this.featured ? '' : this.category || '',
+        featured: this.featured,
         offset: 0,
         page_size: MAX_PAGE_SIZE
       });
@@ -271,7 +276,13 @@ class StorefrontView {
         return;
       }
       this.activeSummaries = result.listings || [];
+      this.categories = result.categories || [];
+      this.featuredIds = result.featured || [];
       this.inventoryLoaded = true;
+      this.mod.main?.user_store_sidebar?.setCategories?.(this.categories, {
+        category: this.category,
+        featured: this.featured
+      });
     } catch (err) {
       console.warn('Store: load-listings (storefront) failed', err?.message || err);
       if (token !== this.loadToken) {
@@ -305,7 +316,8 @@ class StorefrontView {
     try {
       const result = await loadListingsPage(this.app, this.mod, {
         public_key: this.publicKey,
-        category: this.category || '',
+        category: '',
+        featured: false,
         offset,
         page_size: this.page_size,
         status: 'active'
@@ -314,6 +326,8 @@ class StorefrontView {
         return;
       }
       this.activeSummaries = result.listings || [];
+      this.categories = result.categories || [];
+      this.featuredIds = result.featured || [];
       this.noteWeb3Listings(this.activeSummaries);
       this.pagination = result.pagination || null;
       this.page = this.pagination?.page || this.page;
@@ -435,14 +449,25 @@ class StorefrontView {
       return;
     }
 
+    const names = {};
+    (this.categories || []).forEach((category) => {
+      names[category.category_id] = category.name;
+    });
     host.innerHTML = ListingsTableTemplate({
       listings,
-      caption: 'Listings'
+      caption: 'Listings',
+      categoryNames: names,
+      featuredIds: this.featuredIds || [],
+      showFeatured: true
     });
+    this.renderFeaturedOrder(host);
 
     host.querySelectorAll('.listings-table tbody tr[data-signature]').forEach((row) => {
       row.classList.add('is-clickable');
       row.addEventListener('click', (e) => {
+        if (e.target.closest('[data-feature-nft], [data-feature-move], [data-feature-save]')) {
+          return;
+        }
         e.preventDefault();
         const signature = row.getAttribute('data-signature') || '';
         if (!signature) {
@@ -459,6 +484,21 @@ class StorefrontView {
           this.mod.delist_overlay = new DelistOverlay(this.app, this.mod);
         }
         this.mod.delist_overlay.open(summary);
+      });
+
+      row.querySelector('[data-feature-nft]')?.addEventListener('change', (e) => {
+        e.stopPropagation();
+        const nft_id = String(e.target.getAttribute('data-feature-nft') || '').toLowerCase();
+        if (!nft_id) {
+          return;
+        }
+        const next = (this.featuredIds || []).filter((id) => id !== nft_id);
+        if (e.target.checked) {
+          next.push(nft_id);
+        }
+        this.featuredIds = next;
+        this.renderFeaturedOrder(host);
+        void this.saveFeatured();
       });
 
       const submitBtn = row.querySelector('[data-action="submit-main-store"]');
@@ -492,6 +532,73 @@ class StorefrontView {
         onPage: (page) => this.loadAdminPage({ page })
       });
     }
+  }
+
+  renderFeaturedOrder(host) {
+    if (!host) {
+      return;
+    }
+    let panel = host.querySelector('[data-featured-order]');
+    if (!panel) {
+      panel = document.createElement('div');
+      panel.className = 'store-featured-order';
+      panel.setAttribute('data-featured-order', '');
+      host.prepend(panel);
+    }
+    const titles = {};
+    (this.activeSummaries || []).forEach((summary) => {
+      if (summary.nft_id) {
+        titles[String(summary.nft_id).toLowerCase()] = summary.returnTitle?.() || summary.title || summary.nft_id;
+      }
+    });
+    const rows = (this.featuredIds || [])
+      .map((nft_id, index) => {
+        const title = titles[nft_id] || nft_id;
+        return `<li>
+          <span>${this.escapeHtml(title)}</span>
+          <button type="button" data-feature-move="up" data-index="${index}">Up</button>
+          <button type="button" data-feature-move="down" data-index="${index}">Down</button>
+        </li>`;
+      })
+      .join('');
+    panel.innerHTML = `<p>Featured</p><ol>${rows || '<li>No featured assets</li>'}</ol><p data-featured-status></p>`;
+    panel.querySelectorAll('[data-feature-move]').forEach((button) => {
+      button.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const index = Number(button.getAttribute('data-index'));
+        const direction = button.getAttribute('data-feature-move');
+        const next = this.featuredIds.slice();
+        const target = direction === 'up' ? index - 1 : index + 1;
+        if (target < 0 || target >= next.length) {
+          return;
+        }
+        const [item] = next.splice(index, 1);
+        next.splice(target, 0, item);
+        this.featuredIds = next;
+        this.renderFeaturedOrder(host);
+        void this.saveFeatured();
+      });
+    });
+  }
+
+  escapeHtml(value = '') {
+    return String(value)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
+  }
+
+  saveFeatured() {
+    const status = document.querySelector(`${this.container} [data-featured-status]`);
+    return new Promise((resolve) => {
+      this.mod.createModifyStoreFeaturedListingsTransaction(this.featuredIds || [], '', (response) => {
+        if (status) {
+          status.textContent = response?.err ? response.err : 'Featured order saved';
+        }
+        resolve(response);
+      });
+    });
   }
 
   returnVisibleSummaries() {

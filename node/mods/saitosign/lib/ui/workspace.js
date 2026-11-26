@@ -27,7 +27,7 @@ const {
   isPdf,
   openPdfs
 } = require('../document');
-const { addInitial, addSignature, verifiedMethods, verifyActionSignature, commitmentIntact, documentFullyVerified, verificationSatisfied, createCreatorProof } = require('../auth');
+const { addInitial, addSignature, userActionsSigned, userSignaturesUploaded, verifiedMethods, verifyActionSignature, commitmentIntact, documentFullyVerified, verificationSatisfied, createCreatorProof } = require('../auth');
 
 function walletKeys(app) {
   const raw = String(app.wallet?.publicKey || '').trim();
@@ -360,7 +360,16 @@ class Workspace {
       if (event.target.closest('[data-export]')) {
         if (doc.finalized) {
           this.cancelSignSequence();
-          this.publish.openStatus('', this.decisionEntry());
+          if (userSignaturesUploaded(this.app, doc, this.mod.share?.acceptedSignatures)) {
+            this.publish.openStatus('', 'status');
+            return;
+          }
+          const entry = this.decisionEntry();
+          if (entry === 'signature-complete') {
+            this.publish.uploadCompletedSignatures();
+            return;
+          }
+          this.publish.openStatus('', entry);
           return;
         }
         const pending = (doc.actions || []).some((action) => !doc.users[action.user]);
@@ -1209,7 +1218,10 @@ class Workspace {
       ? field
       : nextUnsignedAction(this.app, doc, field.user, field);
     if (!start) {
-      this.publish.openStatus('', this.decisionEntry());
+      const entry = this.decisionEntry();
+      if (entry !== 'signature-complete') {
+        this.publish.openStatus('', entry);
+      }
       return;
     }
     const user = doc.users[start.user];
@@ -1295,7 +1307,10 @@ class Workspace {
         if (current) {
           this.update(current);
         }
-        this.publish.openStatus('', this.decisionEntry());
+        const entry = this.decisionEntry();
+        if (entry !== 'signature-complete') {
+          this.publish.openStatus('', entry);
+        }
         return true;
       }
       const guided = this.sign_guide_ready && !this.sign_guide_off;
@@ -1472,7 +1487,10 @@ class Workspace {
     if (root) {
       this.update(root);
     }
-    this.publish.openStatus('', this.decisionEntry());
+    const entry = this.decisionEntry();
+    if (entry !== 'signature-complete') {
+      this.publish.openStatus('', entry);
+    }
   }
 
   focusSigningTarget(root, action) {
@@ -1944,6 +1962,9 @@ class Workspace {
       can_edit: canConfigure(this.app, doc, this.mod),
       finalized: doc.finalized === true,
       verified: documentFullyVerified(this.app, doc),
+      signatures_uploaded: userSignaturesUploaded(this.app, doc, this.mod.share?.acceptedSignatures),
+      signing_ready: signingReady(this.app, doc),
+      uploading: this.uploading === true,
       page: this.page,
       page_count: doc.document.page_count,
       notice: this.notice || '',
@@ -2103,21 +2124,17 @@ class Workspace {
     } else if (notice) {
       return false;
     }
-    const exportLabel = view.finalized
-      ? (view.verified ? 'Verified - View Details' : 'Continue')
-      : (view.field_list.length > 0 ? 'Continue' : '');
-    if (rail.querySelector('[data-retry-upload]')) {
-      return false;
-    }
     const exportButton = rail.querySelector('[data-export]');
-    if (exportLabel) {
+    const control = WorkspaceTemplate.exportControl(view);
+    if (control.show) {
       if (!exportButton) {
         return false;
       }
-      if (exportButton.textContent !== exportLabel) {
-        exportButton.textContent = exportLabel;
+      if (exportButton.textContent !== control.label) {
+        exportButton.textContent = control.label;
       }
-      exportButton.classList.toggle('verified', view.verified === true);
+      exportButton.classList.toggle('verified', control.verified === true);
+      exportButton.disabled = view.uploading === true;
     } else if (exportButton) {
       return false;
     }
@@ -2539,6 +2556,17 @@ function recognizedSignerIndex(app, doc) {
   return index >= 0 ? index : null;
 }
 
+function signingReady(app, doc) {
+  if (!doc?.finalized) {
+    return true;
+  }
+  const index = recognizedSignerIndex(app, doc);
+  if (index == null) {
+    return true;
+  }
+  return userActionsSigned(app, doc.actions, doc.users, index, doc);
+}
+
 function signingGuideText(finalized, started, signing) {
   if (finalized) {
     return signing
@@ -2939,3 +2967,4 @@ module.exports.guideOnClick = guideOnClick;
 module.exports.signingGuideText = signingGuideText;
 module.exports.signerCoversAllPages = signerCoversAllPages;
 module.exports.unsignedPlacements = unsignedPlacements;
+module.exports.signingReady = signingReady;

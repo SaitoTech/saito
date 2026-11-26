@@ -4,8 +4,6 @@ const {
   ensureListingTransaction,
   enrichSummaryMedia
 } = require('./summary-media');
-const { STORE_CATEGORIES } = require('./categories');
-
 const SUMMARY_STATUS_ACTIVE = 1;
 const SUMMARY_STATUS_INACTIVE = 0;
 
@@ -17,7 +15,7 @@ class Summary {
     this.id = data.id ?? 0;
     this.nft_id = data.nft_id || '';
     this.seller = data.seller || '';
-    this.category = data.category || STORE_CATEGORIES.OTHER;
+    this.category = data.category == null ? '' : String(data.category);
     this.title = data.title || '';
     this.description = data.description || '';
     this.image = data.image ?? null;
@@ -235,7 +233,7 @@ class Summary {
     return {
       nft_id: this.nft_id,
       seller: this.seller,
-      category: this.category || STORE_CATEGORIES.OTHER,
+      category: this.category || '',
       title: this.title,
       description: this.description,
       listing_signature: this.listing_signature || '',

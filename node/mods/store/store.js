@@ -5,12 +5,8 @@ const Main = require('./lib/ui/main');
 const Warehouse = require('./lib/warehouse');
 const transactions = require('./lib/transactions');
 const { serveCachedImageResponse } = require('./lib/images');
-const {
-  normalizeOffset,
-  normalizePageSize,
-  mapNFTTypeToCategory,
-  categoryViewKey
-} = require('./lib/categories');
+const { normalizeOffset, normalizePageSize } = require('./lib/categories');
+const { parseStorePath, isCategoryId } = require('./lib/navigation');
 const index = require('./index');
 const StoreWithdrawals = require('./lib/withdrawal');
 const StoreAdmin = require('./lib/admin/store-admin');
@@ -337,6 +333,7 @@ class Store extends ModTemplate {
     void manager.browse.loadPage({
       category: manager.browse.category,
       page: manager.browse.page || 1,
+      featured: !!manager.browse.featured,
       scroll: false
     });
   }
@@ -434,9 +431,25 @@ class Store extends ModTemplate {
         const signatures = Array.isArray(data.signatures)
           ? [...new Set(data.signatures.map((sig) => String(sig || '').trim()).filter(Boolean))]
           : [];
+        const market_category = String(data.market_category || '').trim();
+        if (action === 'approve' && market_category) {
+          if (!isCategoryId(market_category)) {
+            mycallback({ err: 'Invalid category', results: [] });
+            return 1;
+          }
+          const category = await this.warehouse.db.returnStoreCategory('', market_category);
+          if (!category) {
+            mycallback({ err: 'Unknown main Store category', results: [] });
+            return 1;
+          }
+        }
+
         const results = [];
         for (const signature of signatures) {
           const result = await this.warehouse.db.moderatePendingListing(signature, action);
+          if (result?.ok && action === 'approve' && market_category) {
+            await this.warehouse.db.setListingMarketCategory(signature, market_category);
+          }
           results.push({
             signature,
             ok: !!result?.ok,
@@ -455,32 +468,55 @@ class Store extends ModTemplate {
       }
     }
 
+    if (txmsg?.request === 'store-modify-navigation' || txmsg?.request === 'store-modify-featured') {
+      if (!this.app.BROWSER && mycallback != null) {
+        try {
+          const result =
+            txmsg.request === 'store-modify-navigation'
+              ? await this.receiveModifyStoreNavigationTransaction(app, tx)
+              : await this.receiveModifyStoreFeaturedListingsTransaction(app, tx);
+          mycallback(result);
+        } catch (err) {
+          mycallback({ err: err?.message || 'Unable to update store' });
+        }
+        return 1;
+      }
+    }
+
     if (txmsg?.request === 'load-listings') {
       if (!this.app.BROWSER && mycallback != null) {
         const data = txmsg.data && typeof txmsg.data === 'object' ? txmsg.data : {};
         const public_key = String(data.public_key || '').trim();
         let result;
+        const featured = Number(data.featured) === 1 || data.featured === true;
         if (public_key) {
           result = await this.warehouse.returnActiveListingsPage({
             sellers: [public_key],
             category: data.category || '',
             offset: normalizeOffset(data.offset),
             page_size: normalizePageSize(data.page_size),
-            status: data.status
+            status: data.status,
+            featured
           });
         } else {
           result = await this.warehouse.returnMarketplaceListingsPage({
             whitelist_sellers: this.returnMarketplaceWhitelist(),
             category: data.category || '',
             offset: normalizeOffset(data.offset),
-            page_size: normalizePageSize(data.page_size)
+            page_size: normalizePageSize(data.page_size),
+            featured
           });
         }
+        const store_key = public_key;
+        const categories = await this.warehouse.db.returnStoreCategories(store_key);
+        const featured_ids = await this.warehouse.db.returnFeaturedNftIds(store_key);
         const listings = result.listings.map((summary) => summary.serialize());
         mycallback({
           listings,
           public_key,
           category: result.category,
+          categories,
+          featured: featured_ids,
           pagination: result.pagination
         });
         return 1;
@@ -600,15 +636,31 @@ class Store extends ModTemplate {
         }
 
         const approved = action === 'approve';
+        const market_category = String(data.market_category || '').trim();
+        if (approved && market_category) {
+          if (!isCategoryId(market_category)) {
+            mycallback({ err: 'Invalid category' });
+            return 1;
+          }
+          const category = await this.warehouse.db.returnStoreCategory('', market_category);
+          if (!category) {
+            mycallback({ err: 'Unknown main Store category' });
+            return 1;
+          }
+        }
         const ok = await this.warehouse.db.setListingApproved(signature, approved);
         if (!ok) {
           mycallback({ err: 'Unable to update listing' });
           return 1;
         }
+        if (approved && market_category) {
+          await this.warehouse.db.setListingMarketCategory(signature, market_category);
+        }
 
         mycallback({
           signature,
-          approved: approved ? 1 : 0
+          approved: approved ? 1 : 0,
+          market_category: approved ? market_category : String(row.market_category || '')
         });
         return 1;
       }
@@ -1267,75 +1319,25 @@ class Store extends ModTemplate {
       return;
     }
 
-    if (route.category) {
-      this.main.manager.browse.category = route.category;
-      this.main.menu.setActive(categoryViewKey(route.category));
+    if (!route.publicKey && !route.moderate && !route.signature) {
+      this.main.manager.browse.category = route.category || '';
+      this.main.manager.browse.featured = route.featured !== false && !route.category;
+      this.main.menu.setActive(route.category || (this.main.manager.browse.featured ? 'featured' : 'all'));
     }
   }
 
   /**
-   * Parse storefront, admin, moderation, and current or legacy item URLs.
-   * Optional ?type=<nft-type> is mapped to a marketplace/storefront category.
-   * Item routes also include nft_id, or signature for legacy links.
+   * Parse storefront, admin, moderation, category, and listing URLs.
+   * A 128-character hex segment is a listing signature, 66-character hex is a
+   * legacy NFT id, and a lowercase slug is a category.
    */
   returnStoreRouteFromPath(location = null) {
-    const empty = { publicKey: '', admin: false, moderate: false, category: '' };
     const currentLocation =
       location || (this.app.BROWSER && typeof window !== 'undefined' ? window.location : null);
     if (!currentLocation) {
-      return empty;
+      return parseStorePath(this.slug, '');
     }
-
-    const type = new URLSearchParams(currentLocation.search || '').get('type') || '';
-    const category = type ? mapNFTTypeToCategory(type) : '';
-
-    const pathname = currentLocation.pathname || '';
-    const slug = '/' + this.slug;
-    if (pathname !== slug && !pathname.startsWith(`${slug}/`)) {
-      return { ...empty, category };
-    }
-
-    const segments = pathname
-      .substring(slug.length)
-      .split('/')
-      .filter((seg) => seg.length > 0);
-
-    if (segments.length === 1 && segments[0] === 'moderate') {
-      return { publicKey: '', admin: false, moderate: true, category };
-    }
-
-    if (segments.length === 1 && segments[0] !== 'cache') {
-      return {
-        publicKey: decodeURIComponent(segments[0]),
-        admin: false,
-        moderate: false,
-        category
-      };
-    }
-
-    if (segments.length === 2 && segments[0] === 'listing') {
-      return { ...empty, signature: decodeURIComponent(segments[1]), category };
-    }
-
-    if (segments.length === 2 && segments[0] !== 'cache' && segments[1] === 'admin') {
-      return {
-        publicKey: decodeURIComponent(segments[0]),
-        admin: true,
-        moderate: false,
-        category
-      };
-    }
-
-    if (segments.length === 2 && !['cache', 's', 'moderate'].includes(segments[0])) {
-      return {
-        ...empty,
-        publicKey: decodeURIComponent(segments[0]),
-        nft_id: decodeURIComponent(segments[1]),
-        category
-      };
-    }
-
-    return { publicKey: '', admin: false, moderate: false, category };
+    return parseStorePath(this.slug, currentLocation.pathname || '');
   }
 
   /**
@@ -1515,6 +1517,8 @@ class Store extends ModTemplate {
 
     // /store/moderate — marketplace moderation (must precede /:publickey)
     expressapp.get(`${uri}/moderate`, sendStoreHtml);
+
+    expressapp.get(`${uri}/category/:category_id`, sendStoreHtml);
 
     // /store/<publickey>/admin — seller administration shell (client routes after load)
     expressapp.get(`${uri}/:publickey/admin`, sendStoreHtml);

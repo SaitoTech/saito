@@ -1,12 +1,11 @@
-const { STORE_CATEGORIES } = require('./categories');
-
 class Listing {
   constructor(data = {}) {
     this.id = data.id ?? 0;
     this.signature = data.signature || '';
     this.nft_id = data.nft_id || '';
     this.seller = data.seller || '';
-    this.category = data.category || STORE_CATEGORIES.OTHER;
+    this.category = data.category == null ? '' : String(data.category);
+    this.market_category = String(data.market_category || '');
     this.quantity = data.quantity ?? 1;
     this.price = data.price ?? 0;
     this.web3_ticker = String(data.web3_ticker || '').trim().toUpperCase();

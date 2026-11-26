@@ -1,12 +1,18 @@
 function optionRow(state, label, freeAvailable, key) {
   const included = state.plan === 'premium' || freeAvailable;
-  const selectable = included && state.canChooseTier;
-  const checked = state.options?.[key] === true;
-  const control = selectable
-    ? `<input type="checkbox" data-share-option="${key}" aria-label="${label}"${checked ? ' checked' : ''}>`
-    : `<span class="feature-indicator" role="img" aria-label="${included ? checked ? 'Required by this document' : 'Available with this tier' : 'Not available on this tier'}">${included && checked ? '✓' : ''}</span>`;
+  const mandatory = key === 'email';
+  const selectable = included && state.canChooseTier && !mandatory;
+  const checked = mandatory || state.options?.[key] === true;
+  let control;
+  if (mandatory && included) {
+    control = `<input type="checkbox" data-share-option="${key}" aria-label="${label}" checked disabled>`;
+  } else if (selectable) {
+    control = `<input type="checkbox" data-share-option="${key}" aria-label="${label}"${checked ? ' checked' : ''}>`;
+  } else {
+    control = `<span class="feature-indicator" role="img" aria-label="${included ? checked ? 'Required by this document' : 'Available with this tier' : 'Not available on this tier'}">${included && checked ? '✓' : ''}</span>`;
+  }
   return `
-    <label class="verify-row${included ? ' included' : ' unavailable'}" data-tier-feature data-free-available="${freeAvailable}">
+    <label class="verify-row${included ? ' included' : ' unavailable'}${mandatory ? ' mandatory' : ''}" data-tier-feature data-free-available="${freeAvailable}">
       ${control}
       <span class="verify-label">${label}</span>
     </label>
@@ -36,7 +42,7 @@ function selectSlide(state) {
           </div>
     `;
   return {
-    title: 'Select a signing mode for this document.',
+    title: 'Select the Information Required for Verification',
     body: `
       <div class="choice">
         <div class="options" role="tablist" aria-label="Account level">

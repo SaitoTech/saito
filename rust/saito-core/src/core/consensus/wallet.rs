@@ -250,7 +250,7 @@ impl Wallet {
                 let mut has_ordinary_input = false;
 
                 //
-                // Process inputs first: remove spent slips and NFT groups
+                // Process inputs first: remove spent slips and NFT tuples
                 //
                 let mut i = 0;
                 while i < tx.from.len() {
@@ -274,7 +274,7 @@ impl Wallet {
 
                             if let Some(io) = io {
                                 let sender = self.return_nft_sender_publickey(tx);
-                                // receiver = first TO NFT group's slip2 (the primary recipient)
+                                // receiver = first TO NFT tuple's slip2 (the primary recipient)
                                 let receiver = (0..tx.to.len().saturating_sub(2))
                                     .find(|&i| tx.is_nft(&tx.to, i))
                                     .and_then(|i| tx.to.get(i + 1))
@@ -285,7 +285,7 @@ impl Wallet {
                                             .map(|s| s.public_key.to_base58())
                                             .unwrap_or_default()
                                     });
-                                // amount = sum of TO NFT groups going to recipients (not self)
+                                // amount = sum of TO NFT tuples going to recipients (not self)
                                 let sent_amount: Currency = {
                                     let mut total: Currency = 0;
                                     let mut j = 0;
@@ -395,7 +395,7 @@ impl Wallet {
                 }
 
                 //
-                // Process outputs: add new NFT groups or normal slips
+                // Process outputs: add new NFT tuples or normal slips
                 //
                 let mut i = 0;
                 while i < tx.to.len() {
@@ -522,7 +522,7 @@ impl Wallet {
                         }) {
                             self.nfts.remove(pos);
                             debug!(
-                                "Unwound NFT output group, removed slip2 group: {:?}",
+                                "Unwound NFT output tuple, removed slip2: {:?}",
                                 slip2.utxoset_key.to_hex()
                             );
 
@@ -567,7 +567,7 @@ impl Wallet {
                         );
 
                         debug!(
-                            "Unwound NFT input group, re-added id: {:?}",
+                            "Unwound NFT input tuple, re-added id: {:?}",
                             slip2.utxoset_key.to_hex()
                         );
 
@@ -957,7 +957,7 @@ impl Wallet {
         let mut total_slip2_in: Currency = 0;
 
         //
-        // first pass: gather enough NFT groups (no mutation yet)
+        // first pass: gather enough NFT tuples (no mutation yet)
         //
         for nft in &self.nfts {
             let slip1 = match Slip::parse_slip_from_utxokey(&nft.slip1) {
@@ -2043,10 +2043,10 @@ impl Wallet {
 
         //
         // Add all original slips as inputs,
-        // preserving the [slip1, slip2, slip3] order for each group
+        // preserving the [slip1, slip2, slip3] order for each tuple
         //
-        let group_count = input_slips1.len();
-        for i in 0..group_count {
+        let tuple_count = input_slips1.len();
+        for i in 0..tuple_count {
             transaction.add_from_slip(input_slips1[i].clone());
             transaction.add_from_slip(input_slips2[i].clone());
             transaction.add_from_slip(input_slips3[i].clone());
@@ -2110,7 +2110,7 @@ impl Wallet {
 
         //
         // build bound transaction — inputs are the full NFT triplet,
-        // output is only the deposit refund (no NFT group = burn)
+        // output is only the deposit refund (no NFT tuple = burn)
         //
         let mut transaction = Transaction::default();
         transaction.transaction_type = TransactionType::Bound;

@@ -8,37 +8,12 @@ module.exports = function faqTemplate() {
 
       <header class="intro">
         <h1>SaitoSign</h1>
-        <p class="summary">Share and sign documents with cryptographic proofs.</p>
       </header>
 
       <section>
-        <p class="title">What SaitoSign does</p>
-        <p>SaitoSign is for sharing a document and collecting signatures, together with a cryptographic record of who signed it.</p>
-        <p>You start with a PDF on your computer, mark the places that need a signature, and pass the document to the people who need to sign.</p>
-      </section>
-
-      <section>
-        <p class="title">How a document is signed</p>
-        <ol>
-          <li>
-            <p class="title">Upload document</p>
-            <p>Choose a PDF from your computer. SaitoSign keeps that file locally while you prepare it.</p>
-          </li>
-          <li>
-            <p class="title">Add signature fields</p>
-            <p>Place a field where someone needs to sign, initial, or date the document, and say who that person is.</p>
-          </li>
-          <li>
-            <p class="title">Share and sign it</p>
-            <p>Sign the fields that are yours, or share the document with another person so they can sign theirs.</p>
-          </li>
-        </ol>
-      </section>
-
-      <section>
-        <p class="title">The document stays with the people involved</p>
-        <p>SaitoSign does not upload your PDF to a server while you prepare it. The file stays on your computer until you choose to share it.</p>
-        <p>When a document is shared, it is meant to go directly from one person to another, along with cryptographic proof of who signed which part. There is no signing service holding the only copy.</p>
+        <p>SaitoSign is a decentralized digital signing application built on the Saito Network. It allows you to import PDFs and mark them up to indicate where other parties should affix their digital signatures.</p>
+        <p>The application then takes care of emailing all of the parties to the document, assisting them with verifying the private information and then affixing their signatures to the document. Once all parties have signed the document, SaitoSign then finalizes the document and distributes it to all of the signatories.</p>
+        <p>The result is a document-signing application that is incredibly powerful but also trivially simple to use. At the same time, it is powered by sophisticated cryptographic functionality that ensures all signatures can be verified and linked to the email addresses of the users who are party to the contract.</p>
       </section>
     </main>
   `;

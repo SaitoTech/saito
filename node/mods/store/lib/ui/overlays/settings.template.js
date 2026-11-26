@@ -24,6 +24,7 @@ module.exports = ({ profileLinkChecked = false, autoSubmitListings = false } = {
           <input type="checkbox" data-action="toggle-auto-submit"${autoSubmitChecked} />
           <span>Automatically submit listings to Main Store</span>
         </label>
+        <div data-store-navigation></div>
       </div>
     </div>
   `;

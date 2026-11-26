@@ -1305,5 +1305,57 @@ module.exports = {
       console.warn('Store: escrow payment record failed', err?.message);
       await refund('queue-failed');
     }
+  },
+
+  createModifyStoreNavigationTransaction(categories = [], scope = '', callback = null) {
+    const data = { module: 'Store', categories };
+    if (scope) {
+      data.scope = scope;
+    }
+    const peerKey = this.store_public_key;
+    if (!peerKey || !this.app?.network?.sendRequestAsTransaction) {
+      if (typeof callback === 'function') {
+        callback({ err: 'Store peer unavailable' });
+      }
+      return null;
+    }
+    return this.app.network.sendRequestAsTransaction(
+      'store-modify-navigation',
+      data,
+      callback,
+      peerKey,
+      true
+    );
+  },
+
+  async receiveModifyStoreNavigationTransaction(app, tx) {
+    const { receiveModifyStoreNavigation } = require('./navigation');
+    return receiveModifyStoreNavigation(this, tx);
+  },
+
+  createModifyStoreFeaturedListingsTransaction(featured = [], scope = '', callback = null) {
+    const data = { module: 'Store', featured };
+    if (scope) {
+      data.scope = scope;
+    }
+    const peerKey = this.store_public_key;
+    if (!peerKey || !this.app?.network?.sendRequestAsTransaction) {
+      if (typeof callback === 'function') {
+        callback({ err: 'Store peer unavailable' });
+      }
+      return null;
+    }
+    return this.app.network.sendRequestAsTransaction(
+      'store-modify-featured',
+      data,
+      callback,
+      peerKey,
+      true
+    );
+  },
+
+  async receiveModifyStoreFeaturedListingsTransaction(app, tx) {
+    const { receiveModifyStoreFeatured } = require('./navigation');
+    return receiveModifyStoreFeatured(this, tx);
   }
 };

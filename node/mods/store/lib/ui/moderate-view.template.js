@@ -126,6 +126,12 @@ module.exports = ({ loading = true, denied = false } = {}) => {
     <section class="catalog storefront-catalog moderation-page" data-moderation-root>
       ${status}
       <div class="moderation-toolbar">
+        <label>
+          Main Store category
+          <select data-market-category aria-label="Main Store category">
+            <option value="">Uncategorized</option>
+          </select>
+        </label>
         <button type="button" class="saito-button-primary" data-action="approve" disabled>Approve</button>
         <button type="button" class="saito-button-secondary" data-action="reject" disabled>Reject</button>
       </div>

@@ -686,17 +686,25 @@
   gap: var(--saito-space-lg);
 }
 
-.saitosign-publish .share-progress,
-.saitosign-publish .share-result {
-  align-items: stretch;
+.saitosign-publish .step[data-step="signature-upload"] .share-progress {
+  flex: 1;
+  align-items: center;
+  justify-content: center;
 }
 
-.saitosign-publish .step[data-step="share-sent"] .stage {
+.saitosign-publish .step[data-step="share-sent"] .stage,
+.saitosign-publish .step[data-step="share-progress"] .stage,
+.saitosign-publish .step[data-step="signature-uploaded"] .stage,
+.saitosign-publish .step[data-step="signature-upload"] .stage {
   display: flex;
   flex: 1;
+  flex-direction: column;
 }
 
-.saitosign-publish .step[data-step="share-sent"] .share-result {
+.saitosign-publish .step[data-step="share-sent"] .share-result,
+.saitosign-publish .step[data-step="share-progress"] .share-result,
+.saitosign-publish .step[data-step="signature-uploaded"] .share-result,
+.saitosign-publish .step[data-step="signature-upload"] .share-result {
   flex: 1;
   align-items: center;
   width: 100%;
@@ -713,17 +721,41 @@
   width: 100%;
   margin-top: auto;
   margin-bottom: auto;
+  text-align: center;
 }
 
-.saitosign-publish .step[data-step="share-sent"] .share-mark {
+.saitosign-publish .share-confirm .share-spinner {
+  margin: 0;
+}
+
+.saitosign-publish .share-confirm .share-instruction,
+.saitosign-publish .share-confirm .note.fail {
+  width: 100%;
+  margin: 0;
+  text-align: center;
+}
+
+.saitosign-publish .share-progress-copy {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.6rem;
+  width: 100%;
+  min-height: 7.2rem;
+}
+
+.saitosign-publish .step[data-step="share-sent"] .share-mark,
+.saitosign-publish .step[data-step="signature-uploaded"] .share-mark {
   margin-top: 0;
 }
 
-.saitosign-publish .step[data-step="share-sent"] .share-link-field {
+.saitosign-publish .step[data-step="share-sent"] .share-link-field,
+.saitosign-publish .step[data-step="signature-uploaded"] .share-link-field {
   width: 100%;
 }
 
-.saitosign-publish .step[data-step="share-sent"] .share-link-field input[type="text"] {
+.saitosign-publish .step[data-step="share-sent"] .share-link-field input[type="text"],
+.saitosign-publish .step[data-step="signature-uploaded"] .share-link-field input[type="text"] {
   text-align: left;
 }
 
@@ -773,6 +805,12 @@
 .saitosign-publish .share-text-link:focus-visible {
   color: var(--saito-primary);
   outline: none;
+}
+
+.saitosign-publish .share-fallback .share-text-link[data-publish-action="download-completed"] {
+  color: var(--saito-primary);
+  font-family: var(--saito-font-medium);
+  font-size: var(--font-size-medium);
 }
 
 .saitosign-publish .share-backup-button:hover,
@@ -1355,8 +1393,8 @@
 }
 
 .saitosign-publish:has(.step[data-step="verify"]) {
-  height: auto;
-  min-height: 0;
+  height: min(64rem, 90vh);
+  max-height: 90vh;
 }
 
 .saitosign-publish .step[data-step="verify"] {
@@ -1461,6 +1499,26 @@
   background: color-mix(in srgb, var(--saito-card) 72%, transparent);
 }
 
+.saitosign-publish .step[data-step="verify"] {
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.saitosign-publish .step[data-step="verify"] .stage {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.saitosign-publish .verify-flow {
+  flex: 1 1 auto;
+  grid-template-rows: minmax(0, 1fr);
+  height: 100%;
+  min-height: 0;
+}
+
 .saitosign-publish .verify-sizer,
 .saitosign-publish .verify-panel {
   display: flex;
@@ -1472,14 +1530,21 @@
 }
 
 .saitosign-publish .verify-sizer {
-  visibility: hidden;
-  pointer-events: none;
+  display: none;
+}
+
+.saitosign-publish .verify-flow > .detail {
+  align-self: start;
+  min-height: 0;
+  max-height: 100%;
+  overflow: auto;
 }
 
 .saitosign-publish .verify-panel {
-  position: absolute;
-  inset: 2.2rem 2.4rem;
-  overflow: auto;
+  position: relative;
+  flex: 0 1 auto;
+  min-height: 0;
+  overflow: visible;
 }
 
 .saitosign-publish .verify-mark {
@@ -1842,6 +1907,7 @@
   }
 
   .saitosign-publish .verify-flow {
+    grid-template-rows: auto minmax(0, 1fr);
     min-height: 0;
   }
 
@@ -1985,16 +2051,24 @@
 }
 
 .saitosign-publish .evidence-copy {
+  display: block;
+  box-sizing: border-box;
+  width: 100%;
   max-height: 12rem;
   overflow: auto;
-  margin: 0;
+  margin: 0.4rem 0 0;
   padding: 0.8rem 1rem;
+  border: 0;
   border-radius: var(--saito-radius);
   background: var(--saito-background);
   color: var(--saito-foreground);
   font-family: inherit;
   font-size: var(--font-size-medium);
+  line-height: 1.45;
   white-space: pre-wrap;
+  resize: vertical;
+  user-select: text;
+  cursor: text;
 }
 
 .saitosign-publish .copy-row {

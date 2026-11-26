@@ -53,7 +53,7 @@ function shareMetadata(plan, options, tierOwner = '') {
     tier: premium ? 'premium' : 'free',
     tier_owner: owner,
     verification: {
-      email: flag(selected.email),
+      email: true,
       phone: premium && flag(selected.phone),
       photo: flag(selected.photo),
       passport: flag(selected.passport),

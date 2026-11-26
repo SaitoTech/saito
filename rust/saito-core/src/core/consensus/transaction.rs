@@ -284,13 +284,13 @@ impl Transaction {
 
     //
     // Create a single ATR transaction by rebroadcasting
-    // exactly the 3 slips from `from_group` as inputs
-    // and the 3 slips from `to_group` as outputs
+    // every NFT tuple in `from_nft_tuples` as inputs
+    // and every NFT tuple in `to_nft_tuples` as outputs
     //
     pub fn create_rebroadcast_bound_transaction(
         transaction_to_rebroadcast: &Transaction,
-        from_group: Vec<(Slip, Slip, Slip)>,
-        to_group: Vec<(Slip, Slip, Slip)>,
+        from_nft_tuples: Vec<(Slip, Slip, Slip)>,
+        to_nft_tuples: Vec<(Slip, Slip, Slip)>,
     ) -> Transaction {
         let mut tx = Transaction::default();
         tx.transaction_type = TransactionType::ATR;
@@ -305,18 +305,18 @@ impl Transaction {
         };
 
         //
-        // Attach exactly the 3 “from” slips as inputs
+        // Attach every from NFT tuple as inputs
         //
-        for (slip1, slip2, slip3) in &from_group {
+        for (slip1, slip2, slip3) in &from_nft_tuples {
             tx.add_from_slip(slip1.clone());
             tx.add_from_slip(slip2.clone());
             tx.add_from_slip(slip3.clone());
         }
 
         //
-        // Attach exactly the 3 “to” slips as outputs
+        // Attach every to NFT tuple as outputs
         //
-        for (slip1, slip2, slip3) in &to_group {
+        for (slip1, slip2, slip3) in &to_nft_tuples {
             tx.add_to_slip(slip1.clone());
             tx.add_to_slip(slip2.clone());
             tx.add_to_slip(slip3.clone());
@@ -1747,7 +1747,7 @@ impl Transaction {
 
     //
     // Returns true if the given slice of slips at `i` forms a
-    // Bound–Normal–Bound triple (an NFT group).
+    // Bound–Normal–Bound triple (an NFT tuple).
     //
     pub fn is_nft(&self, slips: &[Slip], i: usize) -> bool {
         if i + 2 >= slips.len() {

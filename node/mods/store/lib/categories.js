@@ -45,12 +45,8 @@ function isStoreCategory(category = '') {
  * Uses a stored listing category when it is one of the canonical labels;
  * otherwise maps protocol nft_type (unknown → Other).
  */
-function storeCategoryLabel(category = '', nft_type = '') {
-  const stored = String(category || '').trim();
-  if (isStoreCategory(stored)) {
-    return stored;
-  }
-  return mapNFTTypeToCategory(nft_type);
+function storeCategoryLabel(category = '') {
+  return String(category || '').trim();
 }
 
 function normalizePageSize(page_size) {

@@ -1,7 +1,8 @@
 const flow = require('./publish.flow');
 const PublishTemplate = require('./publish.template');
 const { recipientList, sharePurpose, isEmailAddress, shareProtectionError } = require('../../share-protocol');
-const { verifyActionSignature } = require('../../auth');
+const { verifyActionSignature, rememberAcceptedSignatures } = require('../../auth');
+const { holdProgress } = require('./publish.share');
 const {
   sendShare,
   createShareTransaction,
@@ -59,7 +60,10 @@ class ShareFlow {
     const current = this.publish.state.step;
     if (direction === 'replace' || current === step) {
       this.publish.state.step = step;
-      if (document.querySelector('#saitosign-publish-step')) {
+      const root = typeof document !== 'undefined' && typeof document.querySelector === 'function'
+        ? document.querySelector('#saitosign-publish-step')
+        : null;
+      if (root) {
         this.publish.paintSlide();
         return;
       }
@@ -82,8 +86,8 @@ class ShareFlow {
     const view = this.view();
     view.purpose = sharePurpose(this.mod.document);
     view.error = '';
-    this.ensureRecipients();
-    this.show('share-recipients', 'forward');
+    view.protect = false;
+    this.publish.openPreparedShare();
   }
 
   openRetry() {
@@ -163,12 +167,12 @@ class ShareFlow {
     const problem = shareProtectionError(view);
     if (problem) {
       view.error = problem;
-      this.show('share-recipients', 'replace');
+      this.show('share-password', 'replace');
       return;
     }
     view.encrypted = true;
     view.error = '';
-    this.show('share-recipients', 'replace');
+    await this.uploadAndInvite();
   }
 
   startClock() {
@@ -206,9 +210,11 @@ class ShareFlow {
     this.startClock();
   }
 
-  failStage(stage, detail) {
+  async failStage(stage, detail) {
     const view = this.view();
+    await holdProgress(view.startedAt);
     view.busy = false;
+    view.startedAt = 0;
     view.outcome = 'failed';
     view.heading = 'Sharing your document';
     view.detail = '';
@@ -229,19 +235,16 @@ class ShareFlow {
     const pending = view.recipients.filter((recipient) => !recipient.signed);
     const recipients = recipientList(pending);
     if (!pending.length) {
-      view.error = 'Everyone who needs to sign has already signed.';
-      this.show('share-recipients', 'replace');
+      await this.failStage('Preparing your document', 'Everyone who needs to sign has already signed.');
       return;
     }
     if (recipients.length !== pending.length || pending.some((recipient) => !isEmailAddress(recipient.email))) {
-      view.error = 'Every signer who still needs to sign must have an email address before invitations can be sent.';
-      this.show('share-recipients', 'replace');
+      await this.failStage('Preparing your document', 'Every signer who still needs to sign must have an email address before invitations can be sent.');
       return;
     }
     const protection = shareProtectionError(view);
     if (protection) {
-      view.error = protection;
-      this.show('share-recipients', 'replace');
+      await this.failStage('Preparing your document', protection);
       return;
     }
     const record = this.mod.document;
@@ -285,7 +288,7 @@ class ShareFlow {
       }
     } catch (err) {
       view.prepared = null;
-      this.failStage(stage, err?.message || 'The document could not be prepared.');
+      await this.failStage(stage, err?.message || 'The document could not be prepared.');
       return;
     }
     const originator = (record.users || []).find((user) => user.publickey && user.publickey === record.creator) || {};
@@ -321,13 +324,13 @@ class ShareFlow {
       const created = await submitShareTransaction(this.app, tx);
       view.pendingResult = created;
     } catch (err) {
-      this.failStage('Sending your document to the sharing server', err?.message || 'The document transaction could not be sent.');
+      await this.failStage('Sending your document to the sharing server', err?.message || 'The document transaction could not be sent.');
       return;
     }
     const created = view.pendingResult;
     view.pendingResult = null;
     if (!created?.success || !created.document_id || !created.token) {
-      this.failStage(
+      await this.failStage(
         'Sending your document to the sharing server',
         created?.error || 'The sharing server did not confirm that the document was stored. Nothing was confirmed as shared.'
       );
@@ -343,6 +346,7 @@ class ShareFlow {
       pending: false,
       conflict: false
     };
+    rememberAcceptedSignatures(this.mod.share, record);
     view.stored = true;
     view.link = created.link || '';
     this.setWorking('Sending invitation emails...');
@@ -353,7 +357,7 @@ class ShareFlow {
       token: created.token,
       recipients
     }, 60000);
-    this.finishInvite(invited, created.link || '');
+    await this.finishInvite(invited, created.link || '');
   }
 
   async retryEmails() {
@@ -365,8 +369,7 @@ class ShareFlow {
     this.ensureRecipients();
     const recipients = recipientList(view.recipients.filter((recipient) => !recipient.signed));
     if (!recipients.length) {
-      view.error = 'Everyone who needs to sign has already signed.';
-      this.show('share-recipients', 'replace');
+      await this.failStage('Sending invitation emails', 'Everyone who needs to sign has already signed.');
       return;
     }
     view.busy = true;
@@ -381,12 +384,14 @@ class ShareFlow {
       token: share.token,
       recipients
     }, 60000);
-    this.finishInvite(invited, view.link);
+    await this.finishInvite(invited, view.link);
   }
 
-  finishInvite(invited, fallbackLink) {
+  async finishInvite(invited, fallbackLink) {
     const view = this.view();
+    await holdProgress(view.startedAt);
     view.busy = false;
+    view.startedAt = 0;
     view.link = invited?.link || fallbackLink || view.link || '';
     view.copied = false;
     this.stopClock();
@@ -401,7 +406,6 @@ class ShareFlow {
       view.detail = 'Your document is safely stored on the sharing server, but SaitoSign could not send the invitation emails.';
       view.error = invited?.error || 'The mail relay did not report why the invitation failed.';
     }
-    this.publish.state.step = 'share-recipients';
     this.show('share-sent', 'forward');
   }
 
@@ -429,6 +433,7 @@ class ShareFlow {
         pending: false,
         conflict: false
       };
+      rememberAcceptedSignatures(this.mod.share, next);
       this.mod.shareGate = null;
       view.busy = false;
       this.publish.close();
@@ -502,11 +507,13 @@ class ShareFlow {
       } else {
         record = await documentFromStored(this.app, result.document, '');
       }
+      const next = await hydrate(record);
       share.serverHash = result.document_hash;
       share.pending = false;
       share.conflict = false;
+      rememberAcceptedSignatures(share, next);
       this.publish.close();
-      this.mod.useDocument(await hydrate(record), {
+      this.mod.useDocument(next, {
         notice: 'The latest shared document has replaced the copy on this device. Add your signature again if it is not already there, then retry the upload.'
       });
     } catch (err) {

@@ -1,6 +1,12 @@
 const methodsTemplate = require('./publish.methods');
+const { requiredComplete } = require('./publish.flow');
 const { escapeHTML } = require('./publish.escape');
 const passportTemplate = require('./passport.template');
+
+const pendingTitle = 'Before you sign the document, please provide the required information.';
+const pendingSubtitle = 'Any information you provide will be included in the final document, and available to any party to whom you provide access.';
+const completeTitle = 'All information provided, please continue to sign document';
+const completeSubtitle = 'Any photos or media provided as part of the verification process will be compiled into the digital contract and provided to all counterparties once the contract is fully signed.';
 
 function emailAddress(state) {
   return state.you && state.you.email ? state.you.email : '';
@@ -112,9 +118,10 @@ function verifySlide(state) {
           ? emailPanel(state)
           : `<p class="heading">${escapeHTML(method?.description || 'This verification method is not available.')}</p>`;
 
+  const complete = requiredComplete(state);
   return {
-    title: 'Before you sign the document, please provide the required information.',
-    subtitle: 'Any information you provide will be included in the final document, and available to any party to whom you provide access.',
+    title: complete ? completeTitle : pendingTitle,
+    subtitle: complete ? completeSubtitle : pendingSubtitle,
     body: `
       <div class="verify-flow">
         ${methodsTemplate(state.verificationMethods, state.upsell || focus)}

@@ -148,6 +148,11 @@ module.exports = {
             </dl>
           </section>
 
+          <section class="section category">
+            <h3 class="label">Category</h3>
+            <select data-field="category" aria-label="Listing category"></select>
+          </section>
+
           <section class="section checkout">
             <button type="button" class="saito-button-primary action" data-action="submit">Submit Listing</button>
           </section>

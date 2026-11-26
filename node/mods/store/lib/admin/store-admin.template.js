@@ -36,6 +36,7 @@ module.exports = (view = {}) => {
             ${status ? `<p class="admin-store-status" data-web3-status>${escape(status)}</p>` : '<p class="admin-store-status" data-web3-status></p>'}`
           : ''
       }
+      <div data-store-navigation></div>
     </div>
   `;
 };

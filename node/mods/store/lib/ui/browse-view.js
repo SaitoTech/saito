@@ -12,6 +12,7 @@ class BrowseView {
     this.teasers = new Teasers(app, mod, '.teasers');
 
     this.category = '';
+    this.featured = true;
     this.page = 1;
     this.page_size = DEFAULT_PAGE_SIZE;
     this.listings = [];
@@ -52,16 +53,28 @@ class BrowseView {
   /**
    * Fetch a category page from the Store peer and replace the catalog.
    */
-  async loadPage({ category = this.category, page = this.page, scroll = false } = {}) {
+  async loadPage({
+    category = this.category,
+    page = this.page,
+    scroll = false,
+    featured = this.featured
+  } = {}) {
     const next_category = String(category || '');
+    const next_featured = !!featured && !next_category;
     const next_page = Math.max(1, Number(page) || 1);
     const offset = (next_page - 1) * this.page_size;
 
-    if (this.loading && this.category === next_category && this.page === next_page) {
+    if (
+      this.loading &&
+      this.category === next_category &&
+      this.page === next_page &&
+      this.featured === next_featured
+    ) {
       return;
     }
 
     this.category = next_category;
+    this.featured = next_featured;
     this.page = next_page;
     const token = ++this.request_token;
     this.loading = true;
@@ -70,7 +83,8 @@ class BrowseView {
     try {
       const result = await loadListingsPage(this.app, this.mod, {
         public_key: '',
-        category: this.category,
+        category: this.featured ? '' : this.category,
+        featured: this.featured,
         offset,
         page_size: this.page_size
       });
@@ -81,6 +95,10 @@ class BrowseView {
 
       this.listings = result.listings || [];
       this.pagination = result.pagination || null;
+      this.mod.main?.menu?.setCategories?.(
+        result.categories || [],
+        this.featured ? 'featured' : this.category || 'all'
+      );
       this.page = this.pagination?.page || this.page;
       this.has_loaded = true;
       this.loading = false;

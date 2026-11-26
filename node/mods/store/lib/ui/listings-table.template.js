@@ -18,17 +18,30 @@ function formatCreatedAt(ms) {
   return date.toLocaleString();
 }
 
-module.exports = ({ listings = [], caption = '' } = {}) => {
+module.exports = ({
+  listings = [],
+  caption = '',
+  categoryNames = {},
+  featuredIds = [],
+  showFeatured = false
+} = {}) => {
+  const featured = new Set((featuredIds || []).map((id) => String(id || '').toLowerCase()));
   const rows = (listings || [])
     .map((summary) => {
       const signature = escapeHtml(summary.listing_signature || '');
       const title = escapeHtml(summary.returnTitle?.() || summary.title || 'Untitled Item');
-      const category = escapeHtml(summary.category || '');
+      const categoryId = String(summary.category || '');
+      const category = escapeHtml(categoryNames[categoryId] || categoryId);
       const price = escapeHtml(summary.returnPrice?.() || '');
       const quantity = Number(summary.quantity_total ?? summary.quantity_available ?? 0) || 0;
       const created = escapeHtml(formatCreatedAt(summary.created_at));
+      const nftId = String(summary.nft_id || '').toLowerCase();
+      const featuredCell = showFeatured
+        ? `<td><input type="checkbox" data-feature-nft="${escapeHtml(nftId)}" ${featured.has(nftId) ? 'checked' : ''} aria-label="Feature listing" /></td>`
+        : '';
       return `
           <tr data-signature="${signature}">
+            ${featuredCell}
             <td>${title}</td>
             <td>${category}</td>
             <td>${price || '—'}</td>
@@ -46,6 +59,7 @@ module.exports = ({ listings = [], caption = '' } = {}) => {
         ${captionHtml}
         <thead>
           <tr>
+            ${showFeatured ? '<th scope="col">Featured</th>' : ''}
             <th scope="col">Title</th>
             <th scope="col">Category</th>
             <th scope="col">Price</th>

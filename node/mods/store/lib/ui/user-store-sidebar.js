@@ -15,6 +15,9 @@ class UserStoreSidebar {
     this.mod = mod;
     this.container = container;
     this.publicKey = '';
+    this.categories = [];
+    this.activeCategory = '';
+    this.featured = true;
     this.profile = new SaitoProfile(app, mod, '');
     // Public storefront is always read-only (no camera / pencil).
     this.profile.editable = false;
@@ -130,6 +133,7 @@ class UserStoreSidebar {
 
     root.innerHTML = `
       <div class="user-store-profile"></div>
+      <nav class="user-store-categories saito-menu-select-subtle" data-store-categories aria-label="Store categories"></nav>
       <p class="user-store-attribution">
         Listings indexed on the
         <a href="${marketPath}" data-store-attribution="marketplace">Saito Store</a>
@@ -143,7 +147,64 @@ class UserStoreSidebar {
     this.profile.render();
 
     this.renderNav();
+    this.renderCategories();
     this.attachEvents();
+  }
+
+  setCategories(categories = [], { category = '', featured = false } = {}) {
+    this.categories = Array.isArray(categories) ? categories : [];
+    this.activeCategory = String(category || '');
+    this.featured = !!featured && !this.activeCategory;
+    this.renderCategories();
+  }
+
+  renderCategories() {
+    const nav = document.querySelector(`${this.container} [data-store-categories]`);
+    if (!nav) {
+      return;
+    }
+    const featuredClass = this.featured ? ' active' : '';
+    const allClass = !this.featured && !this.activeCategory ? ' active' : '';
+    const items = (this.categories || [])
+      .map((category) => {
+        const id = String(category.category_id || '');
+        const name = String(category.name || id);
+        const active = !this.featured && id === this.activeCategory ? ' active' : '';
+        return `<div class="item${active}" role="button" tabindex="0" data-store-category="${this.escape(id)}">${this.escape(name)}</div>`;
+      })
+      .join('');
+    nav.innerHTML = `
+      <div class="item${featuredClass}" role="button" tabindex="0" data-store-category="">Featured</div>
+      ${items}
+      <div class="item${allClass}" role="button" tabindex="0" data-store-view="all">All Listings</div>
+    `;
+    nav.querySelectorAll('[data-store-category]').forEach((item) => {
+      item.onclick = (e) => {
+        e.preventDefault();
+        const category = item.getAttribute('data-store-category') || '';
+        this.mod.main?.openStorefront?.(this.publicKey, {
+          category,
+          featured: !category,
+          admin: false
+        });
+      };
+    });
+    nav.querySelector('[data-store-view="all"]')?.addEventListener('click', (e) => {
+      e.preventDefault();
+      this.mod.main?.openStorefront?.(this.publicKey, {
+        category: '',
+        featured: false,
+        admin: false
+      });
+    });
+  }
+
+  escape(value = '') {
+    return String(value)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
   }
 
   attachEvents() {

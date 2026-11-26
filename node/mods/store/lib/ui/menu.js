@@ -10,7 +10,8 @@ class Menu {
     this.onSell = callbacks.onSell || null;
     this.onSettings = callbacks.onSettings || null;
     this.onStoreModeChange = callbacks.onStoreModeChange || null;
-    this.active = 'all';
+    this.active = 'featured';
+    this.categories = [];
     this.mode = 'browse';
     this.dashboardView = 'store-admin';
     this.has_store = false;
@@ -67,7 +68,7 @@ class Menu {
             dashboardView: this.dashboardView,
             showWithdrawals: isStoreWeb3Active(this.app)
           })
-        : MenuTemplate.browse({ showMyStore: this.has_store });
+        : MenuTemplate.browse({ showMyStore: this.has_store, categories: this.categories });
 
     this.app.browser.replaceElementContentBySelector(html, this.container);
 
@@ -200,6 +201,16 @@ class Menu {
   /** @deprecated Prefer setDashboardView — kept for callers that still pass storeMode. */
   setStoreMode(storeMode = 'active') {
     this.setDashboardView(storeMode === 'sold' ? 'sold' : 'store-admin');
+  }
+
+  setCategories(categories = [], active = this.active) {
+    this.categories = Array.isArray(categories) ? categories : [];
+    if (active) {
+      this.active = active;
+    }
+    if (this.mode === 'browse') {
+      this.render();
+    }
   }
 
   setActive(view = '') {

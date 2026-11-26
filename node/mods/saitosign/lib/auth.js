@@ -109,6 +109,15 @@ function pdfHash(app, pdf) {
   return app.crypto.hash(canonicalJSON(pdfPayload(pdf)));
 }
 
+function requireEmailVerification(record) {
+  if (!record || record.finalized) {
+    return;
+  }
+  if (record.metadata?.verification && typeof record.metadata.verification === 'object') {
+    record.metadata.verification.email = true;
+  }
+}
+
 function signingConfigurationError(record) {
   if (!pdfPayload(record?.document?.pdf).length) {
     return 'Add the PDF before finalizing this document.';
@@ -139,6 +148,9 @@ function signingConfigurationError(record) {
   }
   if (!record?.metadata || typeof record.metadata !== 'object' || !record.metadata.verification) {
     return 'Choose how signers verify their identity before finalizing this document.';
+  }
+  if (record.metadata.verification.email !== true) {
+    return 'Email verification is required.';
   }
   return '';
 }
@@ -235,7 +247,13 @@ function verifyCreatorProof(app, record) {
 
 async function finalizeDocument(app, record, creator) {
   const publickey = String(creator || '').trim();
-  if (!publickey || !record || record.finalized || signingConfigurationError(record)) {
+  if (!publickey || !record || record.finalized) {
+    return false;
+  }
+  if (record.metadata?.verification) {
+    requireEmailVerification(record);
+  }
+  if (signingConfigurationError(record)) {
     return false;
   }
   record.creator = publickey;
@@ -429,6 +447,52 @@ function userActionsSigned(app, actions, users, userIndex, record) {
   return requiredActions(actions)
     .filter((action) => action.user === userIndex)
     .every((action) => verifyActionSignature(app, action, user, record));
+}
+
+function acceptedSignatureKeys(record) {
+  const accepted = new Set();
+  (record?.users || []).forEach((user, index) => {
+    const list = Array.isArray(user?.signatures) ? user.signatures : [];
+    list.forEach((entry) => {
+      const signature = typeof entry?.signature === 'string' ? entry.signature : '';
+      const id = Number(entry?.id);
+      if (!signature || !Number.isInteger(id)) {
+        return;
+      }
+      accepted.add(`${index}:${id}:${signature}`);
+    });
+  });
+  return accepted;
+}
+
+function rememberAcceptedSignatures(share, record) {
+  if (!share || !record) {
+    return;
+  }
+  share.acceptedSignatures = acceptedSignatureKeys(record);
+}
+
+function userSignaturesUploaded(app, record, accepted) {
+  if (!record?.finalized || !(accepted instanceof Set)) {
+    return false;
+  }
+  const keys = walletKeys(app);
+  if (!keys.length) {
+    return false;
+  }
+  const index = (record.users || []).findIndex((user) => keys.includes(String(user?.publickey || '').trim()));
+  if (index < 0) {
+    return false;
+  }
+  const mine = requiredActions(record.actions).filter((action) => action.user === index);
+  if (!mine.length || !userActionsSigned(app, record.actions, record.users, index, record)) {
+    return false;
+  }
+  const user = record.users[index];
+  return mine.every((action) => {
+    const entry = signatureEntry(user, action);
+    return Boolean(entry?.signature) && accepted.has(`${index}:${Number(action.id)}:${entry.signature}`);
+  });
 }
 
 function allActionsSigned(app, actions, users, record) {
@@ -1086,7 +1150,11 @@ module.exports = {
   commitmentIntact,
   documentFullyVerified,
   signingConfigurationError,
+  requireEmailVerification,
   userActionsSigned,
+  acceptedSignatureKeys,
+  rememberAcceptedSignatures,
+  userSignaturesUploaded,
   allActionsSigned,
   actionStatus,
   myKeychainEmail,

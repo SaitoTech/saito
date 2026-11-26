@@ -276,6 +276,85 @@ test('repainting after photo verification leaves a valid email proof verified', 
   assert.equal(waiting.body.includes('Email address verified'), false);
 });
 
+const pendingTitle = 'Before you sign the document, please provide the required information.';
+const pendingSubtitle = 'Any information you provide will be included in the final document, and available to any party to whom you provide access.';
+const completeTitle = 'All information provided, please continue to sign document';
+const completeSubtitle = 'Any photos or media provided as part of the verification process will be compiled into the digital contract and provided to all counterparties once the contract is fully signed.';
+
+function verificationState(cryptoApp, entries, ids) {
+  return applyKnownVerifications(cryptoApp, user(entries), {
+    step: 'verify',
+    history: ['identity'],
+    you: { index: 0, email: EMAIL, publicKey: SIGNER },
+    focus: 'email',
+    verificationMethods: ids.map((id) => ({
+      id,
+      required: true,
+      status: 'pending',
+      selected: true,
+      description: id
+    }))
+  });
+}
+
+test('the verification heading changes only when every required method is valid', () => {
+  const cryptoApp = app();
+  const email = emailEntry(cryptoApp, SIGNER, 'email');
+  const photo = photoEntry(cryptoApp, PHOTO);
+  const passport = passportEntry(cryptoApp, PASSPORT);
+  const invalidPhoto = { ...photo, signature: 'sig:not-a-valid-proof' };
+  const required = ['email', 'photo'];
+
+  const pending = verifySlide(verificationState(cryptoApp, [], required));
+  assert.equal(pending.title, pendingTitle);
+  assert.equal(pending.subtitle, pendingSubtitle);
+
+  const emailOnly = verifySlide(verificationState(cryptoApp, [email], required));
+  assert.equal(emailOnly.title, pendingTitle);
+  assert.equal(emailOnly.subtitle, pendingSubtitle);
+
+  const photoOnly = verifySlide(verificationState(cryptoApp, [photo], required));
+  assert.equal(photoOnly.title, pendingTitle);
+  assert.equal(photoOnly.subtitle, pendingSubtitle);
+
+  const invalid = verifySlide(verificationState(cryptoApp, [email, invalidPhoto], required));
+  assert.equal(verifiedMethods(cryptoApp, user([email, invalidPhoto])).includes('photo'), false);
+  assert.equal(invalid.title, pendingTitle);
+  assert.equal(invalid.subtitle, pendingSubtitle);
+
+  const both = verificationState(cryptoApp, [email, photo], required);
+  const complete = verifySlide(both);
+  assert.equal(complete.title, completeTitle);
+  assert.equal(complete.subtitle, completeSubtitle);
+  const html = publishTemplate(both);
+  assert.equal(html.includes(`<h3 class="title">${completeTitle}</h3>`), true);
+  assert.equal(html.includes(`<p class="subtitle">${completeSubtitle}</p>`), true);
+
+  const passportPending = verifySlide(verificationState(cryptoApp, [email, photo], ['email', 'photo', 'passport']));
+  assert.equal(passportPending.title, pendingTitle);
+  assert.equal(passportPending.subtitle, pendingSubtitle);
+
+  const passportDone = verifySlide(verificationState(cryptoApp, [email, photo, passport], ['email', 'photo', 'passport']));
+  assert.equal(passportDone.title, completeTitle);
+  assert.equal(passportDone.subtitle, completeSubtitle);
+});
+
+test('the verification heading updates on the next repaint when the last required proof becomes valid', () => {
+  const cryptoApp = app();
+  const live = user([emailEntry(cryptoApp, SIGNER, 'email')]);
+  const before = verificationState(cryptoApp, live.verifications, ['email', 'photo']);
+  const waiting = verifySlide(before);
+  assert.equal(waiting.title, pendingTitle);
+  assert.equal(waiting.subtitle, pendingSubtitle);
+
+  keepMethod(cryptoApp, live, photoEntry(cryptoApp, PHOTO));
+  const repainted = applyKnownVerifications(cryptoApp, live, before);
+  const slide = verifySlide(repainted);
+  assert.equal(slide.title, completeTitle);
+  assert.equal(slide.subtitle, completeSubtitle);
+  assert.equal(validVerification(cryptoApp, live.verifications.find((entry) => entry.method === 'photo'), live), true);
+});
+
 test('the identity screen uses the required-information heading and privacy subtitle', () => {
   const state = {
     step: 'verify',

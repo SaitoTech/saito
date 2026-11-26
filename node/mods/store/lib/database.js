@@ -4,7 +4,6 @@ const LISTINGS_MIGRATION_TABLE = 'listings_inclusion_migration';
 /** Order identity: one row per block inclusion of a purchase transaction. */
 const ORDERS_INCLUSION_INDEX = 'orders_order_tx_sig_block_hash_uidx';
 const ORDERS_PAYMENT_INCLUSION_INDEX = 'orders_payment_utxo_block_hash_uidx';
-const { STORE_CATEGORIES } = require('./categories');
 const { classifyWeb3Proceeds, web3SaleTicker } = require('./web3-amount');
 
 // Shared across Database instances using the same SQLite connection.
@@ -52,7 +51,8 @@ class Database {
       'ALTER TABLE listings ADD COLUMN approved INTEGER NOT NULL DEFAULT 0',
       'ALTER TABLE listings ADD COLUMN risk TEXT NOT NULL DEFAULT ""',
       'ALTER TABLE listings ADD COLUMN web3_ticker TEXT NOT NULL DEFAULT ""',
-      'ALTER TABLE listings ADD COLUMN web3_amount TEXT NOT NULL DEFAULT ""'
+      'ALTER TABLE listings ADD COLUMN web3_amount TEXT NOT NULL DEFAULT ""',
+      'ALTER TABLE listings ADD COLUMN market_category TEXT NOT NULL DEFAULT ""'
     ];
     const summary_columns = [
       'ALTER TABLE summary ADD COLUMN category TEXT DEFAULT "Other"',
@@ -88,6 +88,8 @@ class Database {
     await this.migrateListingChainFields();
     await this.migrateListingInclusionUniqueness();
     await this.ensureListingSales();
+    await this.ensureStoreCatalog();
+    await this.migrateLegacyMarketplaceCategories();
     await this.ensureStoreWithdrawals();
     await this.ensureOrderRefunds();
     await this.migrateOrderChainFields();
@@ -104,6 +106,82 @@ class Database {
     for (const sql of statements) {
       await db.exec(sql);
     }
+  }
+
+  async ensureStoreCatalog() {
+    const db = await this.app.storage.returnDatabaseByName(this.dbname);
+    if (!db) {
+      return;
+    }
+    for (const filename of ['store_categories.sql', 'store_featured.sql']) {
+      for (const sql of this.returnSchemaStatements(filename)) {
+        await db.exec(sql);
+      }
+    }
+  }
+
+  /**
+   * One-time move of the old fixed marketplace labels into the main Store's
+   * market_category and navigation. Runs only while those labels are still
+   * stored on listings, inside one transaction, so a later restart does not
+   * put the eight categories back after an operator deletes them.
+   */
+  async migrateLegacyMarketplaceCategories() {
+    const { LEGACY_MARKET_CATEGORIES } = require('./navigation');
+    const labels = LEGACY_MARKET_CATEGORIES.map(([label]) => label);
+    let present = [];
+    try {
+      const placeholders = labels.map((_, index) => `$label_${index}`).join(', ');
+      const params = {};
+      labels.forEach((label, index) => {
+        params[`$label_${index}`] = label;
+      });
+      present = await this.app.storage.queryDatabase(
+        `SELECT DISTINCT category AS label FROM listings WHERE category IN (${placeholders})`,
+        params,
+        this.dbname
+      );
+    } catch (err) {
+      return;
+    }
+    if (!present?.length) {
+      return;
+    }
+
+    await this.withImmediateTransaction(async (db) => {
+      for (const [label, category_id] of LEGACY_MARKET_CATEGORIES) {
+        await db.run(
+          `UPDATE listings
+              SET market_category = $market_category
+            WHERE category = $label`,
+          { $market_category: category_id, $label: label }
+        );
+      }
+      const existing = await db.all(
+        `SELECT COUNT(*) AS total FROM store_categories WHERE store_key = ''`
+      );
+      if (!Number(existing?.[0]?.total || 0)) {
+        for (let index = 0; index < LEGACY_MARKET_CATEGORIES.length; index += 1) {
+          const [, category_id, name] = LEGACY_MARKET_CATEGORIES[index];
+          await db.run(
+            `INSERT INTO store_categories (store_key, category_id, name, sort_order, listing_order)
+             VALUES ('', $category_id, $name, $sort_order, 'newest')`,
+            { $category_id: category_id, $name: name, $sort_order: index }
+          );
+        }
+      }
+      const clear = labels.map((_, index) => `$clear_${index}`).join(', ');
+      const clear_params = {};
+      labels.forEach((label, index) => {
+        clear_params[`$clear_${index}`] = label;
+      });
+      await db.run(`UPDATE listings SET category = '' WHERE category IN (${clear})`, clear_params);
+      try {
+        await db.run(`UPDATE summary SET category = '' WHERE category IN (${clear})`, clear_params);
+      } catch (err) {
+        // Summary is a projection. A database without it still keeps the listing migration.
+      }
+    });
   }
 
   async ensureStoreWithdrawals() {
@@ -513,7 +591,7 @@ class Database {
         ? row.risk
         : '';
     const sql = `INSERT INTO listings (
-			  signature, nft_id, seller, category, quantity, price, web3_ticker, web3_amount,
+			  signature, nft_id, seller, category, market_category, quantity, price, web3_ticker, web3_amount,
 			  access_hash, access_script, p2sh_address, slip_id,
 			  block_id_listed, block_hash_listed, transaction_id_listed, longest_chain_listed,
 			  block_id_sold, block_hash_sold, transaction_id_sold, longest_chain_sold,
@@ -521,7 +599,7 @@ class Database {
 			  utxo_slip1, utxo_slip2, utxo_slip3,
 			  created_at, updated_at, risk, approved
 			) VALUES (
-			  $signature, $nft_id, $seller, $category, $quantity, $price, $web3_ticker, $web3_amount,
+			  $signature, $nft_id, $seller, $category, $market_category, $quantity, $price, $web3_ticker, $web3_amount,
 			  $access_hash, $access_script, $p2sh_address, $slip_id,
 			  $block_id_listed, $block_hash_listed, $transaction_id_listed, $longest_chain_listed,
 			  $block_id_sold, $block_hash_sold, $transaction_id_sold, $longest_chain_sold,
@@ -533,7 +611,8 @@ class Database {
       $signature: row.signature,
       $nft_id: row.nft_id,
       $seller: row.seller || '',
-      $category: row.category || STORE_CATEGORIES.OTHER,
+      $category: row.category == null ? '' : String(row.category),
+      $market_category: String(row.market_category || ''),
       $quantity: Number(row.quantity ?? 1),
       $price: Number(row.price ?? 0),
       $web3_ticker: String(row.web3_ticker || '').trim().toUpperCase(),
@@ -677,14 +756,15 @@ class Database {
    * Listed on the longest chain, not reserved locally, and no sale inclusion
    * of this listing inclusion is currently canonical.
    */
-  availableListingWhere() {
-    return `on_chain = 1
-				   AND longest_chain_listed = 1
-				   AND settlement_pending = 0
+  availableListingWhere(alias = 'listings') {
+    const table = String(alias || 'listings');
+    return `${table}.on_chain = 1
+				   AND ${table}.longest_chain_listed = 1
+				   AND ${table}.settlement_pending = 0
 				   AND NOT EXISTS (
 				     SELECT 1 FROM listing_sales
-				      WHERE listing_sales.signature = listings.signature
-				        AND listing_sales.block_hash_listed = listings.block_hash_listed
+				      WHERE listing_sales.signature = ${table}.signature
+				        AND listing_sales.block_hash_listed = ${table}.block_hash_listed
 				        AND listing_sales.longest_chain_sold = 1
 				   )`;
   }
@@ -1444,7 +1524,9 @@ class Database {
    * Main Store eligibility: active listing AND (seller IN whitelist OR approved = 1).
    * Empty whitelist is valid — approved listings still qualify.
    */
-  marketplaceEligibilityClause(whitelist_sellers = []) {
+  marketplaceEligibilityClause(whitelist_sellers = [], alias = '') {
+    const seller = alias ? `${alias}.seller` : 'seller';
+    const approved = alias ? `${alias}.approved` : 'approved';
     const keys = [
       ...new Set(
         (Array.isArray(whitelist_sellers) ? whitelist_sellers : [])
@@ -1454,7 +1536,7 @@ class Database {
     ];
     const params = {};
     if (!keys.length) {
-      return { sql: 'approved = 1', params };
+      return { sql: `${approved} = 1`, params };
     }
 
     const placeholders = keys.map((key, i) => {
@@ -1463,7 +1545,7 @@ class Database {
       return name;
     });
     return {
-      sql: `(seller IN (${placeholders.join(', ')}) OR approved = 1)`,
+      sql: `(${seller} IN (${placeholders.join(', ')}) OR ${approved} = 1)`,
       params
     };
   }
@@ -1523,20 +1605,71 @@ class Database {
     return { ok: false, err: 'Unable to submit listing' };
   }
 
-  async countMarketplaceListings({ whitelist_sellers = [], category = '' } = {}) {
+  listingOrderSql(order = 'updated') {
+    if (order === 'featured') {
+      return 'store_featured.sort_order ASC, listings.signature ASC';
+    }
+    if (order === 'alphabetical') {
+      return `COALESCE(summary.title, '') COLLATE NOCASE ASC, listings.signature ASC`;
+    }
+    if (order === 'newest') {
+      return 'listings.created_at DESC, listings.signature ASC';
+    }
+    return 'CASE WHEN listings.updated_at > 0 THEN listings.updated_at ELSE listings.created_at END DESC, listings.signature ASC';
+  }
+
+  /**
+   * One active listing per featured NFT: the newest row that passes
+   * availableListingWhere. Seller stores also require listings.seller = store_key.
+   */
+  featuredListingSql(storeKey = '', eligibilitySql = '') {
+    const seller_sql = storeKey ? 'AND l2.seller = listings.seller' : '';
+    const inner_eligibility = eligibilitySql ? `AND ${eligibilitySql}` : '';
+    return {
+      join: `INNER JOIN store_featured
+              ON lower(store_featured.nft_id) = lower(listings.nft_id)
+             AND store_featured.store_key = $featured_store_key`,
+      where: `AND listings.id = (
+              SELECT l2.id FROM listings l2
+               WHERE l2.nft_id = listings.nft_id
+                 ${seller_sql}
+                 AND ${this.availableListingWhere('l2')}
+                 ${inner_eligibility}
+               ORDER BY l2.created_at DESC, l2.id DESC
+               LIMIT 1
+            )`,
+      params: { $featured_store_key: storeKey }
+    };
+  }
+
+  async countMarketplaceListings({
+    whitelist_sellers = [],
+    category = '',
+    featured = false,
+    order = ''
+  } = {}) {
     const filter = String(category || '').trim();
     const eligibility = this.marketplaceEligibilityClause(whitelist_sellers);
-    const params = { ...eligibility.params };
+    const use_featured = !!featured;
+    const featured_sql = use_featured ? this.featuredListingSql('', '') : null;
+    const inner = use_featured ? this.marketplaceEligibilityClause(whitelist_sellers, 'l2') : null;
+    const params = { ...eligibility.params, ...(featured_sql?.params || {}) };
     let category_sql = '';
-    if (filter) {
-      category_sql = ' AND category = $category';
+    if (filter && !use_featured) {
+      category_sql = ' AND listings.market_category = $category';
       params.$category = filter;
     }
+    const featured_where = use_featured
+      ? this.featuredListingSql('', inner.sql).where
+      : '';
+    const join = use_featured ? featured_sql.join : '';
     try {
       const res = await this.app.storage.queryDatabase(
         `SELECT COUNT(*) AS total FROM listings
+         ${join}
 				 WHERE ${this.sellerListingWhere('active')}
-				   AND ${eligibility.sql}${category_sql}`,
+				   AND ${eligibility.sql}${category_sql}
+           ${featured_where}`,
         params,
         this.dbname
       );
@@ -1550,26 +1683,40 @@ class Database {
     whitelist_sellers = [],
     category = '',
     offset = 0,
-    page_size = 24
+    page_size = 24,
+    featured = false,
+    order = ''
   } = {}) {
     const filter = String(category || '').trim();
+    const use_featured = !!featured;
     const eligibility = this.marketplaceEligibilityClause(whitelist_sellers);
+    const inner = use_featured ? this.marketplaceEligibilityClause(whitelist_sellers, 'l2') : null;
+    const featured_sql = use_featured ? this.featuredListingSql('', inner.sql) : null;
+    const sort = use_featured ? 'featured' : order || (filter ? 'newest' : 'updated');
     const params = {
       ...eligibility.params,
+      ...(featured_sql?.params || {}),
       $limit: Math.max(1, Number(page_size) || 24),
       $offset: Math.max(0, Number(offset) || 0)
     };
     let category_sql = '';
-    if (filter) {
-      category_sql = ' AND category = $category';
+    if (filter && !use_featured) {
+      category_sql = ' AND listings.market_category = $category';
       params.$category = filter;
     }
+    const title_join =
+      sort === 'alphabetical'
+        ? `LEFT JOIN summary ON summary.nft_id = listings.nft_id AND summary.price = listings.price`
+        : '';
     try {
       return await this.app.storage.queryDatabase(
-        `SELECT * FROM listings
+        `SELECT listings.* FROM listings
+         ${title_join}
+         ${featured_sql?.join || ''}
 				 WHERE ${this.sellerListingWhere('active')}
 				   AND ${eligibility.sql}${category_sql}
-				 ORDER BY CASE WHEN updated_at > 0 THEN updated_at ELSE created_at END DESC, signature ASC
+           ${featured_sql?.where || ''}
+				 ORDER BY ${this.listingOrderSql(sort)}
 				 LIMIT $limit OFFSET $offset`,
         params,
         this.dbname
@@ -1579,23 +1726,33 @@ class Database {
     }
   }
 
-  async countListingsForSeller({ seller = '', status = 'active', category = '' } = {}) {
+  async countListingsForSeller({
+    seller = '',
+    status = 'active',
+    category = '',
+    featured = false,
+    order = ''
+  } = {}) {
     const key = String(seller || '').trim();
     if (!key) {
       return 0;
     }
     const filter = String(category || '').trim();
-    const params = { $seller: key };
+    const use_featured = !!featured && status !== 'sold';
+    const featured_sql = use_featured ? this.featuredListingSql(key, '') : null;
+    const params = { $seller: key, ...(featured_sql?.params || {}) };
     let category_sql = '';
-    if (filter) {
-      category_sql = ' AND category = $category';
+    if (filter && !use_featured) {
+      category_sql = ' AND listings.category = $category';
       params.$category = filter;
     }
     try {
       const res = await this.app.storage.queryDatabase(
         `SELECT COUNT(*) AS total FROM listings
-				 WHERE seller = $seller
-				   AND ${this.sellerListingWhere(status)}${category_sql}`,
+         ${featured_sql?.join || ''}
+				 WHERE listings.seller = $seller
+				   AND ${this.sellerListingWhere(status)}${category_sql}
+           ${featured_sql?.where || ''}`,
         params,
         this.dbname
       );
@@ -1610,32 +1767,46 @@ class Database {
     status = 'active',
     category = '',
     offset = 0,
-    page_size = 24
+    page_size = 24,
+    featured = false,
+    order = ''
   } = {}) {
     const key = String(seller || '').trim();
     if (!key) {
       return [];
     }
     const filter = String(category || '').trim();
+    const use_featured = !!featured && status !== 'sold';
+    const featured_sql = use_featured ? this.featuredListingSql(key, '') : null;
+    const sort =
+      status === 'sold' ? 'sold' : use_featured ? 'featured' : order || (filter ? 'newest' : 'newest');
     const params = {
       $seller: key,
+      ...(featured_sql?.params || {}),
       $limit: Math.max(1, Number(page_size) || 24),
       $offset: Math.max(0, Number(offset) || 0)
     };
     let category_sql = '';
-    if (filter) {
-      category_sql = ' AND category = $category';
+    if (filter && !use_featured) {
+      category_sql = ' AND listings.category = $category';
       params.$category = filter;
     }
+    const title_join =
+      sort === 'alphabetical'
+        ? `LEFT JOIN summary ON summary.nft_id = listings.nft_id AND summary.price = listings.price`
+        : '';
+    const order_sql =
+      sort === 'sold'
+        ? 'CASE WHEN listings.sold_at > 0 THEN listings.sold_at ELSE listings.updated_at END DESC, listings.block_id_sold DESC, listings.signature ASC'
+        : this.listingOrderSql(sort);
     try {
-      const order_sql =
-        status === 'sold'
-          ? 'CASE WHEN sold_at > 0 THEN sold_at ELSE updated_at END DESC, block_id_sold DESC, signature ASC'
-          : 'created_at DESC, signature ASC';
       return await this.app.storage.queryDatabase(
-        `SELECT * FROM listings
-				 WHERE seller = $seller
+        `SELECT listings.* FROM listings
+         ${title_join}
+         ${featured_sql?.join || ''}
+				 WHERE listings.seller = $seller
 				   AND ${this.sellerListingWhere(status)}${category_sql}
+           ${featured_sql?.where || ''}
 				 ORDER BY ${order_sql}
 				 LIMIT $limit OFFSET $offset`,
         params,
@@ -1696,7 +1867,7 @@ class Database {
       $price: Number(summary.price ?? 0),
       $web3_ticker: String(summary.web3_ticker || '').trim().toUpperCase(),
       $web3_amount: String(summary.web3_amount || '').trim(),
-      $category: summary.category || STORE_CATEGORIES.OTHER,
+      $category: summary.category == null ? '' : String(summary.category),
       $title: summary.title || '',
       $description: summary.description || '',
       $image: summary.image ?? null,
@@ -1783,7 +1954,7 @@ class Database {
         await db.run(insert_sql, {
           $nft_id: summary.nft_id,
           $price: Number(summary.price ?? 0),
-          $category: summary.category || STORE_CATEGORIES.OTHER,
+          $category: summary.category == null ? '' : String(summary.category),
           $title: summary.title || '',
           $description: summary.description || '',
           $image: summary.image ?? null,
@@ -1844,7 +2015,7 @@ class Database {
     );
   }
 
-  async updateSummaryCategory(nft_id, price, category = STORE_CATEGORIES.OTHER) {
+  async updateSummaryCategory(nft_id, price, category = '') {
     await this.app.storage.runDatabase(
       `UPDATE summary
 			 SET category = $category,
@@ -1853,7 +2024,7 @@ class Database {
       {
         $nft_id: nft_id,
         $price: Number(price ?? 0),
-        $category: String(category || STORE_CATEGORIES.OTHER),
+        $category: category == null ? '' : String(category),
         $updated_at: Date.now()
       },
       this.dbname
@@ -2289,6 +2460,142 @@ class Database {
         $updated_at: Date.now()
       }
     );
+  }
+
+  async returnStoreCategories(storeKey = '') {
+    try {
+      const rows = await this.app.storage.queryDatabase(
+        `SELECT category_id, name, sort_order, listing_order
+           FROM store_categories
+          WHERE store_key = $store_key
+          ORDER BY sort_order ASC, category_id ASC`,
+        { $store_key: String(storeKey || '') },
+        this.dbname
+      );
+      return rows || [];
+    } catch (err) {
+      return [];
+    }
+  }
+
+  async returnStoreCategory(storeKey = '', categoryId = '') {
+    const category_id = String(categoryId || '').trim();
+    if (!category_id) {
+      return null;
+    }
+    try {
+      const rows = await this.app.storage.queryDatabase(
+        `SELECT category_id, name, sort_order, listing_order
+           FROM store_categories
+          WHERE store_key = $store_key AND category_id = $category_id`,
+        { $store_key: String(storeKey || ''), $category_id: category_id },
+        this.dbname
+      );
+      return rows?.[0] || null;
+    } catch (err) {
+      return null;
+    }
+  }
+
+  async returnFeaturedNftIds(storeKey = '') {
+    try {
+      const rows = await this.app.storage.queryDatabase(
+        `SELECT nft_id FROM store_featured
+          WHERE store_key = $store_key
+          ORDER BY sort_order ASC, nft_id ASC`,
+        { $store_key: String(storeKey || '') },
+        this.dbname
+      );
+      return (rows || []).map((row) => String(row.nft_id || ''));
+    } catch (err) {
+      return [];
+    }
+  }
+
+  async replaceStoreCategories(storeKey, categories = []) {
+    const store_key = String(storeKey || '');
+    await this.withImmediateTransaction(async (db) => {
+      await db.run(`DELETE FROM store_categories WHERE store_key = $store_key`, {
+        $store_key: store_key
+      });
+      for (const category of categories) {
+        await db.run(
+          `INSERT INTO store_categories (store_key, category_id, name, sort_order, listing_order)
+           VALUES ($store_key, $category_id, $name, $sort_order, $listing_order)`,
+          {
+            $store_key: store_key,
+            $category_id: category.category_id,
+            $name: category.name,
+            $sort_order: Number(category.sort_order) || 0,
+            $listing_order: category.listing_order === 'alphabetical' ? 'alphabetical' : 'newest'
+          }
+        );
+      }
+    });
+  }
+
+  async replaceStoreFeatured(storeKey, nftIds = []) {
+    const store_key = String(storeKey || '');
+    await this.withImmediateTransaction(async (db) => {
+      await db.run(`DELETE FROM store_featured WHERE store_key = $store_key`, {
+        $store_key: store_key
+      });
+      for (let index = 0; index < nftIds.length; index += 1) {
+        await db.run(
+          `INSERT INTO store_featured (store_key, nft_id, sort_order)
+           VALUES ($store_key, $nft_id, $sort_order)`,
+          { $store_key: store_key, $nft_id: nftIds[index], $sort_order: index }
+        );
+      }
+    });
+  }
+
+  async nftHasActiveListing(nftId, { seller = '', marketplace = null } = {}) {
+    const nft_id = String(nftId || '').trim().toLowerCase();
+    if (!nft_id) {
+      return false;
+    }
+    const params = { $nft_id: nft_id };
+    let owner_sql = '';
+    if (seller) {
+      owner_sql = 'AND listings.seller = $seller';
+      params.$seller = seller;
+    }
+    let eligibility_sql = '';
+    if (marketplace) {
+      const eligibility = this.marketplaceEligibilityClause(marketplace.whitelist_sellers || []);
+      eligibility_sql = `AND ${eligibility.sql}`;
+      Object.assign(params, eligibility.params);
+    }
+    try {
+      const rows = await this.app.storage.queryDatabase(
+        `SELECT listings.id FROM listings
+          WHERE lower(listings.nft_id) = $nft_id
+            ${owner_sql}
+            AND ${this.availableListingWhere()}
+            ${eligibility_sql}
+          LIMIT 1`,
+        params,
+        this.dbname
+      );
+      return !!rows?.length;
+    } catch (err) {
+      return false;
+    }
+  }
+
+  async setListingMarketCategory(signature, marketCategory = '') {
+    const sig = String(signature || '').trim();
+    const market_category = String(marketCategory || '').trim();
+    if (!sig) {
+      return { ok: false, err: 'Listing signature required' };
+    }
+    await this.app.storage.runDatabase(
+      `UPDATE listings SET market_category = $market_category WHERE signature = $signature`,
+      { $signature: sig, $market_category: market_category },
+      this.dbname
+    );
+    return { ok: true, market_category };
   }
 }
 

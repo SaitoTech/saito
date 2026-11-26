@@ -93,6 +93,12 @@ async function createShare(mod, data) {
   if (encrypted && !payload) {
     return shareError('The encrypted document was not included in the upload.');
   }
+  if (payload) {
+    const omitted = await unfinalizedEmailOmitted(mod, payload, encrypted ? String(data.password || '') : '');
+    if (omitted) {
+      return shareError('Email verification is required and cannot be removed.');
+    }
+  }
   let stored;
   try {
     stored = await mod.database.saveDocument(payload, {
@@ -281,12 +287,17 @@ async function mergeShare(mod, id, share, data, tx, password) {
   }
   const complete = merged.complete === true && allActionsSigned(mod.app, merged.record.actions, merged.record.users, merged.record) === true;
   let completionEmail = null;
+  let notification = { attempted: false, failed: false };
   if (merged.stored && merged.finalizedNow) {
     const party = merged.record?.users?.[merged.slot];
     completionEmail = await sendCompletionEmail(mod, share, merged.record, party?.email);
+    notification = {
+      attempted: true,
+      failed: completionEmail?.failed === true
+    };
   } else if (merged.stored) {
     const party = merged.record?.users?.[merged.slot];
-    await notifySignatureMerge(mod, share, {
+    notification = await notifySignatureMerge(mod, share, {
       complete,
       signerName: merged.signerName,
       signerEmail: party?.email
@@ -303,6 +314,8 @@ async function mergeShare(mod, id, share, data, tx, password) {
     complete,
     finalized: Boolean(merged.record?.serverFinalization) && complete,
     completion_email_sent: completionEmail?.sent || 0,
+    notification_attempted: notification?.attempted === true,
+    notification_failed: notification?.failed === true,
     stages: ['uploaded', 'verified', 'validated', 'merged', 'saved']
   };
 }
@@ -396,10 +409,14 @@ async function sendCompletionEmail(mod, share, record, signerEmail) {
 }
 
 async function notifySignatureMerge(mod, share, details) {
+  const targets = notificationRecipients(share, details.signerEmail);
+  if (!targets.length) {
+    return { attempted: false, failed: false };
+  }
   try {
     const mail = mod.app.modules.returnModule('MailRelay');
     if (!mail || typeof mail.sendMail !== 'function') {
-      return;
+      return { attempted: true, failed: true };
     }
     const link = shareLink(configuredPublicOrigin(mod.app), share.document_id, share.token);
     const name = String(details.signerName || '').trim() || 'A signer';
@@ -410,7 +427,7 @@ async function notifySignatureMerge(mod, share, details) {
       'Open the latest version:',
       link
     ].join('\n');
-    const targets = notificationRecipients(share, details.signerEmail);
+    let sent = 0;
     for (let i = 0; i < targets.length; i += 1) {
       try {
         await mail.sendMail({
@@ -420,12 +437,25 @@ async function notifySignatureMerge(mod, share, details) {
           text,
           ishtml: false
         });
+        sent += 1;
       } catch (err) {
         console.error(mailFailure(err));
       }
     }
+    return { attempted: true, failed: sent !== targets.length };
   } catch (err) {
     console.error(mailFailure(err));
+    return { attempted: true, failed: true };
+  }
+}
+
+async function unfinalizedEmailOmitted(mod, payload, password) {
+  try {
+    const { documentFromStored } = require('./share-client');
+    const record = await documentFromStored(mod.app, payload, password || '');
+    return record?.finalized !== true && record?.metadata?.verification?.email === false;
+  } catch (err) {
+    return false;
   }
 }
 

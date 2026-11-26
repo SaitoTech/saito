@@ -640,12 +640,12 @@ multiplier = 1 + expected_atr_payout
 
 For each transaction in the lookback block, scan its outputs:
 
-- A `Bound` slip with two slips after it is tested as a group `(slip1, slip2, slip3)`. If `slip2`'s UTXO key is in `slips_spent_this_block`, skip three slips. If `slip2` is `Normal` or `ATR` and `slip3` is `Bound`, and all three `Slip::validate` against the current UTXO set, keep the group and skip three. Otherwise skip one slip. A `Bound` slip without two following slips is not a group.
+- A `Bound` slip with two slips after it is tested as a tuple `(slip1, slip2, slip3)`. If `slip2`'s UTXO key is in `slips_spent_this_block`, skip three slips. If `slip2` is `Normal` or `ATR` and `slip3` is `Bound`, and all three `Slip::validate` against the current UTXO set, keep the tuple and skip three. Otherwise skip one slip. A `Bound` slip without two following slips is not a tuple.
 - Any other slip that `Slip::validate` accepts and whose UTXO key is not in `slips_spent_this_block` is a regular slip.
 
 `slips_spent_this_block` during validation is the map `generate` built from this block's non-fee inputs (§8). During `Block::create` it is built from the golden ticket and mempool transactions before ATR transactions exist.
 
-**NFT groups of one lookback transaction** are merged into one ATR transaction. `tx_size` is that lookback transaction's serialized size. `atr_fee = tx_size * parent.avg_fee_per_byte`. Sum the first-slip amounts and the middle-slip amounts across groups. Clone the first group's three slips and overwrite amounts with those sums; the third amount is `0`.
+**NFT tuples of one lookback transaction** are merged into one ATR transaction. `tx_size` is that lookback transaction's serialized size. `atr_fee = tx_size * parent.avg_fee_per_byte`. Sum the first-slip amounts and the middle-slip amounts across tuples. Clone the first tuple's three slips and overwrite amounts with those sums; the third amount is `0`.
 
 ```
 atr_payout = middle_amount * multiplier
@@ -654,7 +654,7 @@ atr_payout = middle_amount * multiplier
 If `atr_payout > atr_fee`:
 
 - Add `middle_amount` to `total_rebroadcast_nolan` and `1` to `total_rebroadcast_slips`.
-- Input group: middle amount becomes `atr_payout`. Output group: middle type becomes `ATR`, middle amount becomes `atr_payout - atr_fee`.
+- Input tuple: middle amount becomes `atr_payout`. Output tuple: middle type becomes `ATR`, middle amount becomes `atr_payout - atr_fee`.
 - `total_payout_atr += atr_payout - middle_amount`. `total_fees_atr += atr_fee`.
 - Append `hash(previous_rebroadcast_hash || rebroadcast_tx.serialize_for_signature())` into `rebroadcast_hash`, starting from 32 zero bytes.
 - The ATR transaction's type is `ATR`. Its `data` is the lookback transaction's `data` if that transaction is already `ATR`, otherwise the lookback transaction's full network encoding. Its signature bytes are copied from the lookback transaction. Its timestamp stays `0`. `generate_total_fees(0, 0)` is called at construction.

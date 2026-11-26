@@ -7,6 +7,8 @@ const shareSlide = require('./publish.share');
 const readySlide = shareSlide.readySlide;
 const decideSlide = shareSlide.decideSlide;
 const signatureCompleteSlide = shareSlide.signatureCompleteSlide;
+const signatureUploadSlide = shareSlide.signatureUploadSlide;
+const signatureUploadedSlide = shareSlide.signatureUploadedSlide;
 const shareFlowSlide = require('./distribute.template');
 const premiumSlide = require('./publish.premium');
 const signerSlide = require('./signer-audit.template');
@@ -21,6 +23,8 @@ const slides = {
   'decide-sign': decideSlide,
   'signature-complete': signatureCompleteSlide,
   'signature-export': signatureCompleteSlide,
+  'signature-upload': signatureUploadSlide,
+  'signature-uploaded': signatureUploadedSlide,
   premium: premiumSlide,
   'share-method': shareFlowSlide,
   'share-manual': shareFlowSlide,
@@ -52,6 +56,8 @@ function primary(state) {
     case 'decide-sign':
     case 'signature-complete':
     case 'signature-export':
+    case 'signature-upload':
+    case 'signature-uploaded':
     case 'share-method':
     case 'share-privacy':
     case 'share-exported':
@@ -84,8 +90,12 @@ function primary(state) {
   }
 }
 
+function centeredProgress(state) {
+  return state.step === 'share-progress' || state.step === 'signature-upload';
+}
+
 function canGoBack(state) {
-  if (state.shareView?.busy || state.step === 'share-sent') {
+  if (state.shareView?.busy || state.step === 'share-sent' || centeredProgress(state)) {
     return false;
   }
   if (
@@ -104,16 +114,17 @@ function publishTemplate(state) {
   const back = canGoBack(state)
     ? `<button type="button" class="saito-button-square" data-publish-action="back" aria-label="Back"><i class="fa-solid fa-arrow-left" aria-hidden="true"></i></button>`
     : '';
-  const heading = slide.title
+  const progress = centeredProgress(state);
+  const heading = !progress && slide.title
     ? `<div class="step-head">${back}<h3 class="title">${escapeHTML(slide.title)}</h3></div>`
     : '';
-  const subtitle = slide.subtitle
+  const subtitle = !progress && slide.subtitle
     ? `<p class="subtitle">${escapeHTML(slide.subtitle)}</p>`
     : '';
   const disclosure = slide.disclosure
     ? `<p class="disclosure">${escapeHTML(slide.disclosure)}</p>`
     : '';
-  const choiceScreen = state.step === 'share' || state.step === 'signer' || state.step === 'decide-sign' || state.step === 'signature-complete' || state.step === 'signature-export' || state.step === 'share-method' || state.step === 'share-privacy' || state.step === 'share-exported' || state.step === 'share-progress' || state.step === 'share-sent';
+  const choiceScreen = state.step === 'share' || state.step === 'signer' || state.step === 'decide-sign' || state.step === 'signature-complete' || state.step === 'signature-export' || state.step === 'signature-upload' || state.step === 'signature-uploaded' || state.step === 'share-method' || state.step === 'share-privacy' || state.step === 'share-exported' || state.step === 'share-progress' || state.step === 'share-sent';
   const forward = !choiceScreen && action
     ? `<button type="button" class="${action.disabled ? 'saito-button-secondary' : 'saito-button-primary'}" data-publish-action="${action.action}"${action.disabled ? ' disabled' : ''}>${escapeHTML(action.label)}</button>`
     : '';

@@ -584,7 +584,7 @@ class Wordblocks extends GameTemplate {
 		let letterScore = this.returnLetters();
 		if (letterScore[letter]) {
 			//html =`<div class="tile ${letter} sc${letterScore[letter].score}">${letter}</div>`;
-			html = `<div class="tile"><div class="letter sc${letterScore[letter].score}">${letter}</div></div>`;
+			html = `<div class="tile sc${letterScore[letter].score}"><div class="letter">${letter}</div></div>`;
 		}
 		return html;
 	}

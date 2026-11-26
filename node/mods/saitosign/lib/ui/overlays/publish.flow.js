@@ -70,6 +70,9 @@ function setShareOption(state, key, checked) {
   if (!state.options || !Object.prototype.hasOwnProperty.call(state.options, key)) {
     return state;
   }
+  if (key === 'email') {
+    return updateRequirements(state, { email: true });
+  }
   return updateRequirements(state, { [key]: checked === true });
 }
 
@@ -77,7 +80,7 @@ function applyShareMetadata(state, metadata) {
   const options = defaultOptions();
   const plan = metadata?.tier === 'premium' ? 'premium' : 'free';
   const verification = metadata?.verification || {};
-  options.email = verification.email !== false;
+  options.email = true;
   options.phone = plan === 'premium' && verification.phone === true;
   options.photo = verification.photo === true;
   options.passport = verification.passport === true;

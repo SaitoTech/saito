@@ -255,7 +255,8 @@ class ListingDetailOverlay {
       web3_ticker: 'SAITO',
       web3_amount: '1',
       quantity_total: max_quantity_total,
-      quantity_available: max_quantity_total
+      quantity_available: max_quantity_total,
+      category: ''
     };
   }
 
@@ -369,6 +370,43 @@ class ListingDetailOverlay {
     });
     this.attachEditEvents();
     this.applyEditDefaults();
+    void this.loadSellerCategories();
+  }
+
+  async loadSellerCategories() {
+    const select = document.querySelector('.listing-detail.edit [data-field="category"]');
+    if (!select) {
+      return;
+    }
+    try {
+      const { loadListingsPage } = require('../browse-listings');
+      const result = await loadListingsPage(this.app, this.mod, {
+        public_key: this.mod.publicKey || '',
+        category: '',
+        featured: false,
+        offset: 0,
+        page_size: 1
+      });
+      const categories = result.categories || [];
+      select.innerHTML = categories
+        .map((category) => {
+          const id = String(category.category_id || '');
+          const name = String(category.name || id)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;');
+          return `<option value="${id}">${name}</option>`;
+        })
+        .join('');
+      if (!categories.length) {
+        select.innerHTML = '<option value="">Create a category in Settings first</option>';
+      }
+      this.listing.category = select.value || '';
+      select.addEventListener('change', () => {
+        this.listing.category = select.value || '';
+      });
+    } catch (err) {
+      console.warn('Store: listing categories failed', err?.message || err);
+    }
   }
 
   attachViewEvents() {

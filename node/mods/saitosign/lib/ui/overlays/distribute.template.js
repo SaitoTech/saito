@@ -41,29 +41,11 @@ function recipientsHTML(view) {
       </tr>
     `;
   }).join('');
-  const password = view.protect ? `
-    <div class="verify-field">
-      <label for="saitosign-share-password">Password</label>
-      <input id="saitosign-share-password" type="password" data-share-password value="${escapeHTML(view.password || '')}" autocomplete="new-password">
-    </div>
-    <div class="verify-field">
-      <label for="saitosign-share-password-confirm">Confirm password</label>
-      <input id="saitosign-share-password-confirm" type="password" data-share-password-confirm value="${escapeHTML(view.confirm || '')}" autocomplete="new-password">
-    </div>
-    <p class="share-instruction">Please note: SaitoSign does not have a copy of your password. You will need to share it with recipients separately so they can decrypt the document. If you lose this password, we cannot recover your document for you.</p>
-  ` : '';
   return `
     <div class="share-people">
       <table class="signing-table share-recipient-table">
         <tbody>${rows}</tbody>
       </table>
-    </div>
-    <div class="share-protect">
-      <label class="share-protect-toggle">
-        <input type="checkbox" data-share-protect ${view.protect ? 'checked' : ''}>
-        <span>Encrypt document with password</span>
-      </label>
-      ${password}
     </div>
   `;
 }
@@ -146,14 +128,23 @@ function shareFlowSlide(state) {
   }
   if (step === 'share-progress') {
     const working = view.outcome !== 'failed';
+    const detail = working
+      ? `<div class="share-progress-copy"><p class="share-status">${escapeHTML(view.detail || 'Preparing your document...')}</p><p class="share-elapsed"></p></div>`
+      : '';
+    const retry = view.outcome === 'failed'
+      ? '<button type="button" class="share-backup-button" data-publish-action="share-retry-upload">Retry</button>'
+      : '';
     return {
       title: 'Sharing your document',
       body: `
-        <div class="share-step share-progress">
-          ${working ? '<div class="share-spinner" role="status" aria-label="Working"></div>' : ''}
-          ${working ? `<p class="share-status">${escapeHTML(view.detail || 'Preparing your document...')}</p><p class="share-elapsed"></p>` : ''}
-          ${error}
-          ${view.outcome === 'failed' ? '<button type="button" class="share-add" data-publish-action="share-retry-upload">Retry</button>' : ''}
+        <div class="share-step share-result">
+          <div class="share-confirm">
+            ${working ? '<div class="share-spinner" role="status" aria-label="Working"></div>' : ''}
+            <p class="share-status">Sharing your document</p>
+            ${detail}
+            ${error}
+            ${retry}
+          </div>
         </div>
       `
     };

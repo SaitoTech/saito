@@ -108,6 +108,19 @@ function signersSectionHTML(view) {
   `;
 }
 
+function exportControl(view) {
+  if (view.signatures_uploaded) {
+    return { show: true, verified: true, label: 'Check Status' };
+  }
+  if (view.finalized && view.signing_ready === false) {
+    return { show: false, verified: false, label: '' };
+  }
+  if (view.finalized || view.field_list.length > 0) {
+    return { show: true, verified: false, label: 'Continue' };
+  }
+  return { show: false, verified: false, label: '' };
+}
+
 function railHTML(view) {
   const notice = view.notice ? `<p class="notice">${escapeHTML(view.notice)}</p>` : '';
   if (view.awaiting_identity) {
@@ -121,15 +134,11 @@ function railHTML(view) {
       <button type="button" class="export primary" data-verify-identity>Verify Identity</button>
     `;
   }
-  const started = view.field_list.length > 0;
   const guide = view.guide;
-  const next = view.finalized
-    ? (view.verified
-      ? '<button type="button" class="export primary verified" data-export>Verified - View Details</button>'
-      : '<button type="button" class="export primary" data-export>Continue</button>')
-    : started
-      ? '<button type="button" class="export primary" data-export>Continue</button>'
-      : '';
+  const control = exportControl(view);
+  const next = control.show
+    ? `<button type="button" class="export primary${control.verified ? ' verified' : ''}" data-export${view.uploading ? ' disabled' : ''}>${control.label}</button>`
+    : '';
 
   return `
     <div class="identity${view.verified ? ' verified' : ''}">
@@ -138,7 +147,7 @@ function railHTML(view) {
     </div>
 
     <p class="guide">${guide}</p>
-    ${started ? fieldListHTML(view) : ''}
+    ${view.field_list.length > 0 ? fieldListHTML(view) : ''}
     ${notice}
     ${next}
   `;
@@ -247,5 +256,6 @@ function workspaceTemplate(view) {
 
 module.exports = workspaceTemplate;
 module.exports.rail = railHTML;
+module.exports.exportControl = exportControl;
 module.exports.fields = fieldsHTML;
 module.exports.reader = readerHTML;

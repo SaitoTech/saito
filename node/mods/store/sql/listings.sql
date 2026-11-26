@@ -8,6 +8,7 @@ CREATE TABLE IF NOT EXISTS listings (
   nft_id TEXT NOT NULL,
   seller TEXT DEFAULT '',
   category TEXT DEFAULT 'Other',
+  market_category TEXT NOT NULL DEFAULT '',
 
   quantity INTEGER NOT NULL DEFAULT 1,
   price INTEGER NOT NULL DEFAULT 0,

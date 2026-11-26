@@ -20,10 +20,9 @@ module.exports = (
     : '';
   const loadingClass = showLoading ? ' loading' : '';
   const title = escapeHtml(data.title || 'Untitled Item');
-  const price = data.price
-    ? `<div class="price">${escapeHtml(data.price)}</div>`
-    : '';
-  const seller = data.seller ? `<p class="seller">${escapeHtml(data.seller)}</p>` : '';
+  const description = escapeHtml(data.description || '');
+  const price = escapeHtml(data.price || '');
+  const seller = escapeHtml(data.seller || 'anon');
   const label = `View listing: ${title}`;
   const attrs = listingAttrs ? ` ${listingAttrs}` : '';
   const identicon = escapeHtml(data.identicon || '');
@@ -34,12 +33,15 @@ module.exports = (
       <div class="media ${escapeHtml(mediaClass)}${loadingClass}" style="background: ${safeBackground};">
         ${loader}
         ${badge}
-        <h3 class="title">${title}</h3>
-        ${price}
-        <img class="saito-identicon" src="${identicon}" alt="" />
       </div>
       <div class="info">
-        ${seller}
+        <h3 class="title">${title}</h3>
+        <p class="description">${description}</p>
+        <div class="price">${price}</div>
+      </div>
+      <div class="seller-row">
+        <img class="saito-identicon" src="${identicon}" alt="" />
+        <p class="seller">${seller}</p>
       </div>
     </article>
   `;

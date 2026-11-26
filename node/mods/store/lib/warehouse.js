@@ -30,13 +30,8 @@ const {
   returnSpentNftTuples
 } = require('./scripting');
 const SaitoNFT = require('../../../lib/saito/ui/saito-nft/saito-nft');
-const {
-  mapNFTTypeToCategory,
-  STORE_CATEGORIES,
-  normalizePageSize,
-  normalizeOffset,
-  isStoreCategory
-} = require('./categories');
+const { normalizePageSize, normalizeOffset } = require('./categories');
+const { normalizeCategoryId } = require('./navigation');
 
 class Warehouse {
   constructor(app, mod) {
@@ -1151,7 +1146,7 @@ class Warehouse {
       planned.push({
         nft_id,
         price,
-        category: prev.category || active_listing?.category || STORE_CATEGORIES.OTHER,
+        category: String(prev.category || active_listing?.category || ''),
         title: prev.title || '',
         description: prev.description || '',
         image: null,
@@ -1235,7 +1230,7 @@ class Warehouse {
     return new Summary(this.app, this.mod, {
       nft_id: row.nft_id,
       seller: row.seller || '',
-      category: row.category || meta.category || STORE_CATEGORIES.OTHER,
+      category: String(row.category || ''),
       title: String(meta.title || '').trim(),
       description: String(meta.description ?? '').trim(),
       image,
@@ -1271,6 +1266,18 @@ class Warehouse {
     });
   }
 
+  async listingOrderFor(storeKey = '', category = '', featured = false) {
+    if (featured) {
+      return 'featured';
+    }
+    const filter = String(category || '').trim();
+    if (!filter) {
+      return '';
+    }
+    const row = await this.db.returnStoreCategory(storeKey, filter);
+    return row?.listing_order === 'alphabetical' ? 'alphabetical' : 'newest';
+  }
+
   /**
    * Listing rows filtered by seller set, category, and active/sold status, then paged.
    * sellers: public keys to include (single seller or ModTools whitelist). Empty → no results.
@@ -1283,7 +1290,8 @@ class Warehouse {
     category = '',
     offset = 0,
     page_size = 24,
-    status = 'active'
+    status = 'active',
+    featured = false
   } = {}) {
     const size = normalizePageSize(page_size);
     let start = normalizeOffset(offset);
@@ -1308,18 +1316,17 @@ class Warehouse {
       }
     };
 
-    if (filter && !isStoreCategory(filter)) {
-      return empty;
-    }
-
     let rows = [];
     let total = 0;
 
     if (seller_keys.length === 1) {
+      const order = await this.listingOrderFor(seller_keys[0], filter, featured);
       total = await this.db.countListingsForSeller({
         seller: seller_keys[0],
         status: listing_status,
-        category: filter
+        category: filter,
+        featured,
+        order
       });
       if (total > 0 && start >= total) {
         start = Math.floor((total - 1) / size) * size;
@@ -1330,6 +1337,8 @@ class Warehouse {
               seller: seller_keys[0],
               status: listing_status,
               category: filter,
+              featured,
+              order,
               offset: start,
               page_size: size
             })) || []
@@ -1392,7 +1401,8 @@ class Warehouse {
     whitelist_sellers = [],
     category = '',
     offset = 0,
-    page_size = 24
+    page_size = 24,
+    featured = false
   } = {}) {
     const size = normalizePageSize(page_size);
     let start = normalizeOffset(offset);
@@ -1412,17 +1422,16 @@ class Warehouse {
       }
     };
 
-    if (filter && !isStoreCategory(filter)) {
-      return empty;
-    }
-
     const keys = (Array.isArray(whitelist_sellers) ? whitelist_sellers : [])
       .map((key) => String(key || '').trim())
       .filter(Boolean);
 
+    const order = await this.listingOrderFor('', filter, featured);
     let total = await this.db.countMarketplaceListings({
       whitelist_sellers: keys,
-      category: filter
+      category: filter,
+      featured,
+      order
     });
     if (total > 0 && start >= total) {
       start = Math.floor((total - 1) / size) * size;
@@ -1433,6 +1442,8 @@ class Warehouse {
         ? (await this.db.returnMarketplaceListingsPage({
             whitelist_sellers: keys,
             category: filter,
+            featured,
+            order,
             offset: start,
             page_size: size
           })) || []
@@ -1610,6 +1621,10 @@ class Warehouse {
     const prior_inclusion = await this.db.returnLatestListingInclusion(tx.signature);
     if (prior_inclusion) {
       observation.approved = Number(prior_inclusion.approved ?? 0) || 0;
+      observation.market_category = String(prior_inclusion.market_category || '');
+      if (!observation.category) {
+        observation.category = normalizeCategoryId(prior_inclusion.category);
+      }
     } else if (observation.nft_id && observation.seller && Number(observation.quantity) > 0) {
       // A partial sale spends the moderated listing and immediately creates a
       // new list-asset for what is left. That transaction has a new signature,
@@ -1621,6 +1636,14 @@ class Warehouse {
       );
       if (prior_decision) {
         observation.approved = prior_decision;
+      }
+    }
+
+    const spent_signature = String(txmsg?.fulfill_sale?.prior_inventory?.signature || '').trim();
+    if (spent_signature) {
+      const spent = await this.db.returnCanonicalListingBySignature(spent_signature);
+      if (spent) {
+        observation.market_category = String(spent.market_category || '');
       }
     }
 
@@ -1668,7 +1691,7 @@ class Warehouse {
     const price = Number(listing.price ?? 0);
     const available = await this.db.sumListingQuantityForBucket(nft_id, price);
     const { title, description } = this.extractListingMetadata(txmsg);
-    const category = listing.category || STORE_CATEGORIES.OTHER;
+    const category = String(listing.category || '');
     const now = Date.now();
 
     const existing = await this.db.returnSummaryByBucket(nft_id, price);
@@ -1746,7 +1769,7 @@ class Warehouse {
       if (!listing?.nft_id) {
         return;
       }
-      const category = listing.category || STORE_CATEGORIES.OTHER;
+      const category = String(listing.category || '');
       await this.db.updateSummaryCategory(listing.nft_id, listing.price, category);
       await this._syncSummaryToCache(listing.nft_id, listing.price);
     });
@@ -1826,15 +1849,14 @@ class Warehouse {
       listing_seller = from1.publicKey;
     }
 
-    const nft_type =
-      (typeof nft?.returnType === 'function' ? nft.returnType() : null) || nft?.nft_type || '';
-    const category = mapNFTTypeToCategory(nft_type);
+    const meta_category = normalizeCategoryId(meta.category);
 
     return {
       signature: tx.signature,
       nft_id: String(nft.id || nft.uuid || meta.nft_id || ''),
       seller: fulfill.seller || listing_seller || '',
-      category,
+      category: meta_category,
+      market_category: '',
       quantity: Number(change_qty ?? nft.amount ?? inventory_triple[0]?.amount ?? 1) || 1,
       price: price_nolan,
       web3_ticker: web3_sale ? web3_ticker : '',
@@ -1905,7 +1927,7 @@ class Warehouse {
       await this.db.insertSummary({
         nft_id,
         price: Number(price ?? 0),
-        category: STORE_CATEGORIES.OTHER,
+        category: '',
         title: '',
         description: '',
         image: null,

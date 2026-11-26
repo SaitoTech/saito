@@ -8,12 +8,15 @@ function escapeHtml(value = '') {
     .replace(/"/g, '&quot;');
 }
 
-/** Public marketplace sidebar — All Listings is a normal category row. */
-function browseTemplate({ showMyStore = false } = {}) {
-  const categoryItems = STORE_CATEGORY_LIST.map((category) => {
-    const view = categoryViewKey(category);
-    return `<li class="item" role="button" tabindex="0" data-view="${view}" data-category="${escapeHtml(category)}">${escapeHtml(category)}</li>`;
-  }).join('\n      ');
+/** Public marketplace sidebar. Featured is a page, not a saved category. */
+function browseTemplate({ showMyStore = false, categories = [] } = {}) {
+  const categoryItems = (Array.isArray(categories) ? categories : [])
+    .map((category) => {
+      const id = String(category.category_id || category.id || '');
+      const name = String(category.name || id);
+      return `<li class="item" role="button" tabindex="0" data-view="${escapeHtml(id)}" data-category="${escapeHtml(id)}">${escapeHtml(name)}</li>`;
+    })
+    .join('\n      ');
 
   const footerItem = showMyStore
     ? `<li class="item" role="button" tabindex="0" data-view="my-store">My Saito Store</li>`
@@ -25,8 +28,9 @@ function browseTemplate({ showMyStore = false } = {}) {
         <span class="label">Moderate</span>
         <span class="saito-notification-dot badge" data-moderation-count aria-hidden="true">0</span>
       </li>
-      <li class="item active" role="button" tabindex="0" data-view="all" data-category="">All Listings</li>
+      <li class="item active" role="button" tabindex="0" data-view="featured">Featured</li>
       ${categoryItems}
+      <li class="item" role="button" tabindex="0" data-view="all" data-category="">All Listings</li>
       <li class="divider" role="separator"></li>
       ${footerItem}
     </ul>

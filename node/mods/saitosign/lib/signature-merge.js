@@ -16,6 +16,7 @@ const IDENTITY_MISSING = 'The identity verification for this signer is missing o
 const SIGNATURE_INVALID = 'A signature in this upload could not be verified.';
 const SIGNATURE_CONFLICT = 'This upload contains a different signature for a field that is already signed.';
 const UNSIGNED_UPLOAD = 'This upload was not signed. Sign in with the identity authorized for this document and try again.';
+const EMAIL_REQUIRED = 'Email verification is required and cannot be removed.';
 const FINALIZED_LOCKED = 'This document has been finalized and can no longer be changed.';
 const INVALID_SERVER_FINALIZATION = 'The server finalization signature on this document could not be verified.';
 
@@ -170,6 +171,9 @@ function mergeSignatureRecords(app, canonical, submitted, signerKey, serverKey, 
   const key = String(signerKey || '').trim();
   if (!key) {
     return fail(PUBLIC_KEY_MISMATCH);
+  }
+  if (submitted?.metadata?.verification?.email === false && canonical?.metadata?.verification?.email !== false) {
+    return fail(EMAIL_REQUIRED);
   }
   if (!documentMatches(canonical, submitted)) {
     return fail(DOCUMENT_MISMATCH);
@@ -406,6 +410,7 @@ module.exports = {
   SIGNATURE_INVALID,
   SIGNATURE_CONFLICT,
   UNSIGNED_UPLOAD,
+  EMAIL_REQUIRED,
   FINALIZED_LOCKED,
   INVALID_SERVER_FINALIZATION,
   mergeSignatureRecords,

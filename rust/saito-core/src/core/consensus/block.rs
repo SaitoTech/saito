@@ -1641,10 +1641,6 @@ impl Block {
                     self.id - (configs.get_consensus_config().unwrap().genesis_period + 1),
                 )
             {
-                trace!(
-                    "found pruned block hash {:?} for ATR generation",
-                    pruned_block_hash.to_hex()
-                );
                 if let Some(pruned_block) = blockchain.blocks.get(&pruned_block_hash) {
                     if !configs.is_browser() && !configs.is_spv_mode() {
                         if let Ok(mut atr_block) = storage
@@ -1688,12 +1684,16 @@ impl Block {
                                 atr_block.hash.to_hex()
                             );
 
+			    //
                             // estimate amount looping around chain
+			    //
                             let total_utxo_staked =
                                 configs.get_consensus_config().unwrap().genesis_period
                                     * previous_block_avg_nolan_rebroadcast_per_block;
 
+			    //
                             // divide the treasury
+			    //
                             let expected_atr_payout = if total_utxo_staked > 0 {
                                 previous_block_treasury / total_utxo_staked
                             } else {
@@ -1703,27 +1703,27 @@ impl Block {
                             // +1 gives us payout multiplier
                             let expected_atr_multiplier = 1 + expected_atr_payout;
 
-                            trace!("iterating through ATR block transactions for rebroadcasts. count : {:?}",
-                                   atr_block.transactions.len());
-                            // loop through block to find eligible transactions
+			    //
+                            // loop through block to find transactions needing ATR rebroadcasting
+			    //
                             for transaction in &atr_block.transactions {
-                                // Prepare two collections:
-                                // - `nft_groups` will hold tuples of three slips ([Bound, Normal, Bound]) representing NFTs
-                                // - `regular_slips` will hold any standalone valid slips
-                                let mut nft_groups: Vec<(Slip, Slip, Slip)> = Vec::new();
+
+				//
+				// two types of transactions, handled separately
+				//
+                                // - `nft_tuples` ([Bound, Normal, Bound])
+                                // - `regular_slips` (normal valid UTXO)
+				//
+                                let mut nft_tuples: Vec<(Slip, Slip, Slip)> = Vec::new();
                                 let mut regular_slips: Vec<Slip> = Vec::new();
-                                // currently un-used
-                                //let mut total_nolan_eligible_for_atr_payout: Currency = 0;
 
-                                // Loop output slip in the transaction
-                                // recognized NFT groups once they are collected.
                                 let mut i = 0;
-
                                 while i < transaction.to.len() {
                                     let slip = &transaction.to[i];
 
-                                    // If we see a Bound slip and there's room for two more, check for
-                                    // an NFT group pattern: [Bound, Normal, Bound]
+				    //
+				    // NFT Tuples
+				    //
                                     if slip.slip_type == SlipType::Bound
                                         && i + 2 < transaction.to.len()
                                     {
@@ -1731,7 +1731,9 @@ impl Block {
                                         let slip2 = &transaction.to[i + 1];
                                         let slip3 = &transaction.to[i + 2];
 
-                                        // if slip2 was already spent in this block, skip whole nft group
+					//
+					// skip if spent
+					//
                                         if self
                                             .slips_spent_this_block
                                             .contains_key(&slip2.get_utxoset_key())
@@ -1740,58 +1742,41 @@ impl Block {
                                             continue;
                                         }
 
+					//
+					// skip if not spendable
+					//
                                         if (slip2.slip_type == SlipType::Normal
                                             || slip2.slip_type == SlipType::ATR)
                                             && slip3.slip_type == SlipType::Bound
                                         {
-                                            //
-                                            // Validate each of the three slips against our UTXO set
-                                            // - slip1 provides the NFT identifier
-                                            // - slip2 is the staking/deposit payload
-                                            // - slip3 re-encodes the NFT UUID for provenance
-                                            //
                                             if slip1.validate(&blockchain.utxoset)
                                                 && slip2.validate(&blockchain.utxoset)
                                                 && slip3.validate(&blockchain.utxoset)
                                             {
-                                                //
-                                                // Collect this group for later ATR merging
-                                                //
-                                                nft_groups.push((
+                                                nft_tuples.push((
                                                     slip1.clone(),
                                                     slip2.clone(),
                                                     slip3.clone(),
                                                 ));
 
-                                                //
-                                                // Only the payload slip2 amount counts toward the ATR payout
-                                                //
-                                                //total_nolan_eligible_for_atr_payout += slip2.amount;
                                             }
 
-                                            //
-                                            // Jump past this entire NFT group so we don’t double-count
-                                            //
                                             i += 3;
                                             continue;
+
+					//
+					// skip non-tupled bound slips
+					//
                                         } else {
-                                            //
-                                            // if the bound slip is not part of NFT group,
-                                            // skip it to prevent rebroadcast
-                                            //
                                             i += 1;
                                             continue;
                                         }
                                     }
 
                                     //
-                                    // If not part of an NFT group, treat it as a single slip:
-                                    // validate it and add to the list of regular slips
-                                    //
+				    // otherwise, collect all normal, unspent slips
+				    //
                                     if slip.validate(&blockchain.utxoset) {
-                                        //
-                                        // if slip was already spent in this block, skip it
-                                        //
                                         if self
                                             .slips_spent_this_block
                                             .contains_key(&slip.get_utxoset_key())
@@ -1799,42 +1784,37 @@ impl Block {
                                             i += 1;
                                             continue;
                                         }
-
                                         regular_slips.push(slip.clone());
-                                        //total_nolan_eligible_for_atr_payout += slip.amount;
                                     }
                                     i += 1;
                                 }
 
+
                                 //
-                                // Generate a single ATR rebroadcast transaction for all NFT groups
+                                // Generate a single ATR rebroadcast transaction for all NFT tuples
                                 // so they move together as one UTXO in the network.
                                 //
-                                if !nft_groups.is_empty() {
-                                    trace!("processing NFT groups for rebroadcast ATR transaction");
-                                    let mut from_nft_group: Vec<(Slip, Slip, Slip)> = Vec::new();
-                                    let mut to_nft_group: Vec<(Slip, Slip, Slip)> = Vec::new();
+                                if !nft_tuples.is_empty() {
+
+                                    let mut from_nft_tuples: Vec<(Slip, Slip, Slip)> = Vec::new();
+                                    let mut to_nft_tuples: Vec<(Slip, Slip, Slip)> = Vec::new();
 
                                     let tx_size = transaction.get_serialized_size() as u64;
                                     let atr_fee = tx_size * previous_block_avg_fee_per_byte;
 
                                     //
-                                    // Build the rebroadcast transaction merging all NFT groups at once
-                                    //
-
-                                    //
-                                    // Compute combined amounts across every group
+                                    // Compute combined amounts across every tuple
                                     //
                                     let slip1_amount: u64 =
-                                        nft_groups.iter().map(|(s1, _, _)| s1.amount).sum();
+                                        nft_tuples.iter().map(|(s1, _, _)| s1.amount).sum();
                                     let slip2_amount: u64 =
-                                        nft_groups.iter().map(|(_, s2, _)| s2.amount).sum();
+                                        nft_tuples.iter().map(|(_, s2, _)| s2.amount).sum();
 
                                     //
-                                    // Clone slips from first group, then overwrite amounts/types
+                                    // Clone slips from the first tuple, then overwrite amounts/types
                                     //
                                     let (ref base_slip1, ref base_slip2, ref base_slip3) =
-                                        nft_groups[0];
+                                        nft_tuples[0];
                                     let mut slip1 = base_slip1.clone();
                                     slip1.amount = slip1_amount;
 
@@ -1857,23 +1837,23 @@ impl Block {
                                         cv.total_rebroadcast_slips += 1;
 
                                         //
-                                        // create input nft group for atr tx
+                                        // create input nft tuple for atr tx
                                         //
                                         let mut from_slip2 = slip2.clone();
                                         from_slip2.amount = atr_payout_for_slip;
-                                        from_nft_group.push((
+                                        from_nft_tuples.push((
                                             slip1.clone(),
                                             from_slip2.clone(),
                                             slip3.clone(),
                                         ));
 
                                         //
-                                        // create input nft group for atr tx
+                                        // create output nft tuple for atr tx
                                         //
                                         let mut to_slip2 = slip2.clone();
                                         to_slip2.slip_type = SlipType::ATR;
                                         to_slip2.amount = atr_payout_for_slip - atr_fee_for_slip;
-                                        to_nft_group.push((
+                                        to_nft_tuples.push((
                                             slip1.clone(),
                                             to_slip2.clone(),
                                             slip3.clone(),
@@ -1882,8 +1862,8 @@ impl Block {
                                         let rebroadcast_tx =
                                             Transaction::create_rebroadcast_bound_transaction(
                                                 transaction,
-                                                from_nft_group.clone(),
-                                                to_nft_group.clone(),
+                                                from_nft_tuples.clone(),
+                                                to_nft_tuples.clone(),
                                             );
 
                                         // Update metrics: count of UTXOs, number of slips, payout vs deposit, fees
@@ -1906,7 +1886,7 @@ impl Block {
                                         cv.total_fees_atr += slip2.amount;
                                         cv.total_fees_paid_by_nonrebroadcast_atr_transactions +=
                                             slip2.amount;
-                                        debug!("we don't rebroadcast Bound slip in tx - {:?} since atr_payout_for_slip = {:?} atr_fee = {:?} \n{:?}",transaction.hash_for_signature.unwrap().to_hex(),atr_payout_for_slip,atr_fee,nft_groups);
+                                        debug!("we don't rebroadcast Bound slip in tx - {:?} since atr_payout_for_slip = {:?} atr_fee = {:?} \n{:?}",transaction.hash_for_signature.unwrap().to_hex(),atr_payout_for_slip,atr_fee,nft_tuples);
                                     }
                                 }
 
@@ -2055,7 +2035,7 @@ impl Block {
                                     //
 
                                     //
-                                    // Determine whether this is an NFT‐group ATR (3 slips) or a single‐slip ATR.
+                                    // Determine whether this is an NFT-tuple ATR or a single‐slip ATR.
                                     // [Bound, Normal, Bound]
                                     //
                                     if rebroadcast_tx.to.len() == 3

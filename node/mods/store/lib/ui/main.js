@@ -12,7 +12,7 @@ const Web3PaymentOverlay = require('./overlays/web3-payment');
 const SettingsOverlay = require('./overlays/settings');
 const PurchaseLifecycle = require('./purchase-lifecycle');
 const ListingLifecycle = require('./listing-lifecycle');
-const { normalizeListingMode, categoryViewKey } = require('../categories');
+const { normalizeListingMode } = require('../categories');
 const { requestStoreWeb3Tickers } = require('./overlays/listing-field-edit');
 
 class Main {
@@ -114,14 +114,16 @@ class Main {
       this.openStorefront(route.publicKey, {
         updateUrl: false,
         admin: !!route.admin,
-        category: route.category
+        category: route.category,
+        featured: !!route.featured && !route.category && !route.admin
       });
       return;
     }
+    const featured = !!route.featured && !route.category;
     this.setComposition('marketplace');
-    this.menu.setActive(route.category ? categoryViewKey(route.category) : 'all');
+    this.menu.setActive(route.category || (featured ? 'featured' : 'all'));
     this.manager.show('browse');
-    this.loadBrowsePage({ category: route.category || '', page: 1 });
+    this.loadBrowsePage({ category: route.category || '', featured, page: 1 });
   }
 
   async initialize() {
@@ -214,30 +216,42 @@ class Main {
       return;
     }
 
+    if (view === 'featured') {
+      this.setComposition('marketplace');
+      this.menu.setActive('featured');
+      this.manager.show('browse');
+      this.setBrowseUrl({ featured: true });
+      this.loadBrowsePage({ category: '', featured: true, page: 1, scroll: true });
+      return;
+    }
+
     if (view === 'all') {
       this.setComposition('marketplace');
       this.menu.setActive('all');
       this.manager.show('browse');
-      this.setBrowseUrl();
-      this.loadBrowsePage({ category: '', page: 1, scroll: true });
+      this.setBrowseUrl({ featured: false, category: '' });
+      this.loadBrowsePage({ category: '', featured: false, page: 1, scroll: true });
       return;
     }
 
     // Category browse (data-category from menu items).
-    if (Object.prototype.hasOwnProperty.call(opts, 'category')) {
+    if (Object.prototype.hasOwnProperty.call(opts, 'category') && opts.category) {
+      const category = String(opts.category || '');
       this.setComposition('marketplace');
+      this.menu.setActive(category);
       this.manager.show('browse');
-      this.setBrowseUrl();
+      this.setBrowseUrl({ category });
       this.loadBrowsePage({
-        category: String(opts.category || ''),
+        category,
+        featured: false,
         page: 1,
         scroll: true
       });
     }
   }
 
-  loadBrowsePage({ category = '', page = 1, scroll = false } = {}) {
-    return this.manager.loadBrowsePage({ category, page, scroll });
+  loadBrowsePage({ category = '', page = 1, scroll = false, featured = false } = {}) {
+    return this.manager.loadBrowsePage({ category, page, scroll, featured });
   }
 
   /**
@@ -252,7 +266,8 @@ class Main {
       celebrate = false,
       dashboardView = 'store-admin',
       admin = false,
-      category = ''
+      category = '',
+      featured
     } = {}
   ) {
     const key = String(publicKey || this.mod.publicKey || '').trim();
@@ -277,7 +292,8 @@ class Main {
         await this.manager.showStorefront(key, {
           viewMode: 'admin',
           adminSection: view === 'active' ? 'active' : 'home',
-          category
+          category,
+          featured: false
         });
       } else {
         this.setComposition('marketplace');
@@ -290,11 +306,16 @@ class Main {
       return;
     }
 
+    const showFeatured = featured !== false && (!category || featured === true);
     this.setComposition('user-store', key);
-    await this.manager.showStorefront(key, { viewMode: 'public', category });
+    await this.manager.showStorefront(key, {
+      viewMode: 'public',
+      category: showFeatured ? '' : category,
+      featured: showFeatured
+    });
 
     if (updateUrl) {
-      this.setStorefrontUrl(key);
+      this.setStorefrontUrl(key, showFeatured ? '' : category);
     }
   }
 
@@ -329,13 +350,14 @@ class Main {
     });
   }
 
-  setBrowseUrl() {
+  setBrowseUrl({ category = '', featured = false } = {}) {
     if (!this.app.BROWSER || typeof history === 'undefined') {
       return;
     }
-    const path = '/' + (this.mod.returnSlug?.() || 'store');
+    const slug = '/' + (this.mod.returnSlug?.() || 'store');
+    const path = category ? `${slug}/category/${encodeURIComponent(category)}` : slug;
     if (window.location.pathname !== path) {
-      history.pushState({ store: 'browse' }, '', path);
+      history.pushState({ store: featured ? 'featured' : 'browse', category }, '', path);
     }
   }
 
@@ -358,13 +380,14 @@ class Main {
     }
   }
 
-  setStorefrontUrl(publicKey = '') {
+  setStorefrontUrl(publicKey = '', category = '') {
     if (!this.app.BROWSER || typeof history === 'undefined' || !publicKey) {
       return;
     }
-    const path = this.mod.returnStorefrontPath?.(publicKey);
+    const base = this.mod.returnStorefrontPath?.(publicKey);
+    const path = base && category ? `${base}/${encodeURIComponent(category)}` : base;
     if (path && window.location.pathname !== path) {
-      history.pushState({ store: 'storefront', publicKey }, '', path);
+      history.pushState({ store: 'storefront', publicKey, category }, '', path);
     }
   }
 

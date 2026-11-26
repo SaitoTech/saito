@@ -9,7 +9,14 @@ const { DEFAULT_PAGE_SIZE, normalizeOffset, normalizePageSize } = require('../ca
 function loadListingsPage(
   app,
   mod,
-  { public_key = '', category = '', offset = 0, page_size = DEFAULT_PAGE_SIZE, status = 'active' } = {}
+  {
+    public_key = '',
+    category = '',
+    offset = 0,
+    page_size = DEFAULT_PAGE_SIZE,
+    status = 'active',
+    featured = false
+  } = {}
 ) {
   return new Promise((resolve, reject) => {
     const peerKey = mod.store_public_key;
@@ -24,7 +31,8 @@ function loadListingsPage(
       category: String(category || ''),
       offset: normalizeOffset(offset),
       page_size: normalizePageSize(page_size),
-      status: String(status || '').toLowerCase() === 'sold' ? 'sold' : 'active'
+      status: String(status || '').toLowerCase() === 'sold' ? 'sold' : 'active',
+      featured: featured ? 1 : 0
     };
 
     app.network.sendRequestAsTransaction(
@@ -46,6 +54,8 @@ function loadListingsPage(
           listings,
           public_key: response.public_key || request.public_key,
           category: response.category || request.category,
+          categories: Array.isArray(response.categories) ? response.categories : [],
+          featured: Array.isArray(response.featured) ? response.featured : [],
           pagination: response.pagination || {
             offset: request.offset,
             page_size: request.page_size,
