@@ -189,17 +189,27 @@ class UserStoreSidebar {
     }
     const featuredClass = this.featured ? ' active' : '';
     const manage = UserStoreNavTemplate(this.returnNavItems(this.publicKey));
-    const categories = this.categoryRows(this.categoryForest(this.categories));
+    const categories = (this.categories || []).filter((category) =>
+      String(category.category_id || '').trim()
+    );
+    const destinations = (this.featuredVisible ? 1 : 0) + categories.length;
+    const showNav = destinations > 1;
     const featuredItem = this.featuredVisible
       ? `<div class="item${featuredClass}" role="button" tabindex="0" data-store-category="">${this.escape(this.featuredName || 'Featured Items')}</div>`
       : '';
+    const categoryMarkup = showNav ? this.categoryRows(this.categoryForest(this.categories)) : '';
+    const nav = showNav
+      ? `<nav class="user-store-nav saito-menu-select-subtle" aria-label="Seller store">${featuredItem}${categoryMarkup}</nav>`
+      : '';
     footer.innerHTML = `
-      <nav class="user-store-nav saito-menu-select-subtle" aria-label="Seller store">
-        ${featuredItem}
-        ${categories}
-        ${manage ? `<div class="divider" role="separator"></div>${manage}` : ''}
-      </nav>
+      ${nav}
+      <div class="store-search-slot" data-store-search></div>
+      ${manage ? `<div class="user-store-manage">${manage}</div>` : ''}
     `;
+    if (this.searchBox) {
+      this.searchBox.setPublicKey(this.publicKey);
+      this.searchBox.mount(footer.querySelector('[data-store-search]'));
+    }
     this.attachNavEvents();
     this.attachCategoryEvents(footer);
   }
@@ -251,7 +261,7 @@ class UserStoreSidebar {
       return;
     }
 
-    footer.querySelectorAll('.user-store-nav .item[data-nav-action]').forEach((item) => {
+    footer.querySelectorAll('.user-store-manage .item[data-nav-action]').forEach((item) => {
       item.onclick = (e) => {
         e.preventDefault();
         this.activateNav(item.getAttribute('data-nav-action') || '');

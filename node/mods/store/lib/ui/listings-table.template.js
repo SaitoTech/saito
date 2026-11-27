@@ -6,18 +6,6 @@ function escapeHtml(value = '') {
     .replace(/"/g, '&quot;');
 }
 
-function formatCreatedAt(ms) {
-  const n = Number(ms);
-  if (!n) {
-    return '—';
-  }
-  const date = new Date(n);
-  if (Number.isNaN(date.getTime())) {
-    return '—';
-  }
-  return date.toLocaleString();
-}
-
 module.exports = ({
   listings = [],
   caption = '',
@@ -36,19 +24,17 @@ module.exports = ({
       );
       const price = escapeHtml(summary.returnPrice?.() || '');
       const quantity = Number(summary.quantity_total ?? summary.quantity_available ?? 0) || 0;
-      const created = escapeHtml(formatCreatedAt(summary.created_at));
       const nftId = String(summary.nft_id || '').toLowerCase();
       const featuredCell = showFeatured
-        ? `<td><input type="checkbox" data-feature-nft="${escapeHtml(nftId)}" ${featured.has(nftId) ? 'checked' : ''} aria-label="Feature listing" /></td>`
+        ? `<td class="listings-featured"><input type="checkbox" data-feature-nft="${escapeHtml(nftId)}" ${featured.has(nftId) ? 'checked' : ''} aria-label="Feature listing" /></td>`
         : '';
       return `
           <tr data-signature="${signature}">
+            <td class="listings-title">${title}</td>
+            <td class="listings-price">${price || '—'}</td>
+            <td class="listings-quantity">${quantity}</td>
+            <td class="listings-category">${category}</td>
             ${featuredCell}
-            <td>${title}</td>
-            <td>${category}</td>
-            <td>${price || '—'}</td>
-            <td>${quantity}</td>
-            <td>${created}</td>
           </tr>`;
     })
     .join('');
@@ -57,16 +43,15 @@ module.exports = ({
 
   return `
     <div class="listings-table-wrap">
-      <table class="listings-table">
+      <table class="listings-table admin-listings-table">
         ${captionHtml}
         <thead>
           <tr>
-            ${showFeatured ? '<th scope="col">Featured</th>' : ''}
-            <th scope="col">Title</th>
-            <th scope="col">Category</th>
-            <th scope="col">Price</th>
-            <th scope="col">Quantity</th>
-            <th scope="col">Created_at</th>
+            <th scope="col" class="listings-title">Title</th>
+            <th scope="col" class="listings-price">Price</th>
+            <th scope="col" class="listings-quantity">Quantity</th>
+            <th scope="col" class="listings-category">Category</th>
+            ${showFeatured ? '<th scope="col" class="listings-featured">Featured</th>' : ''}
           </tr>
         </thead>
         <tbody>${rows}

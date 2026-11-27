@@ -80,6 +80,9 @@ class Menu {
     this.app.browser.replaceElementContentBySelector(html, this.container);
 
     if (this.mode === 'browse') {
+      const slot = document.querySelector(`${this.container} [data-store-search]`);
+      this.searchBox?.setPublicKey?.('');
+      this.searchBox?.mount?.(slot);
       this.setActive(this.active);
       this.showModeration(this.mod.listings_to_moderate);
       if (!this.has_store) {

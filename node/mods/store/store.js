@@ -93,6 +93,7 @@ class Store extends ModTemplate {
 
     if (this.browser_active) {
       this.header = new SaitoHeader(this.app, this);
+      this.header.header_class = 'store';
       await this.header.initialize(this.app);
       this.addComponent(this.header);
 
@@ -478,6 +479,25 @@ class Store extends ModTemplate {
           mycallback(result);
         } catch (err) {
           mycallback({ err: err?.message || 'Unable to update store' });
+        }
+        return 1;
+      }
+    }
+
+    if (txmsg?.request === 'store-search') {
+      if (!this.app.BROWSER && mycallback != null) {
+        const data = txmsg.data && typeof txmsg.data === 'object' ? txmsg.data : {};
+        const public_key = String(data.public_key || '').trim();
+        try {
+          const result = await this.warehouse.db.search({
+            search_term: data.search_term || '',
+            public_key,
+            offset: data.offset,
+            whitelist_sellers: public_key ? [] : this.returnMarketplaceWhitelist()
+          });
+          mycallback(result);
+        } catch (err) {
+          mycallback({ err: err?.message || 'Unable to search' });
         }
         return 1;
       }
@@ -1305,6 +1325,11 @@ class Store extends ModTemplate {
     if (!this.browser_active || !this.main) {
       return;
     }
+
+    if (this.header) {
+      this.header.header_class = 'store';
+    }
+    document.body.classList.add('store-body');
 
     await super.render();
 

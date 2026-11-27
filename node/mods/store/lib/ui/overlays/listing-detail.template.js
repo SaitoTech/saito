@@ -11,41 +11,68 @@ module.exports = {
           .join('')}</div>`
       : '';
 
-    const description = view.hasDescription ? view.description : 'No description provided.';
     const loader = view.imageLoading
       ? `<i class="fas fa-spinner fa-spin loader" aria-hidden="true"></i>`
       : '';
     const imageAlt = view.listingTitle || 'Listing image';
-
-    const quantity =
-      !view.isRental && view.showQuantity
-        ? `<div class="quantity">
-          <label for="listing-qty">Quantity</label>
-          <input class="saito-input" id="listing-qty" type="number" min="1" max="${view.supply}" value="1" />
-          <span class="hint">max ${view.supply}</span>
-        </div>`
-        : '';
-
     const nextBid = view.showNextBid
       ? `<p class="next-bid">Next minimum bid ${view.nextBidDisplay}</p>`
       : '';
-
     const rentalFacts = view.isRental
-      ? `
-              <div><dt>Duration</dt><dd>${view.rentalDuration || '—'}</dd></div>
-              <div><dt>Rights</dt><dd>${view.rentalRights || 'All rights'}</dd></div>`
+      ? `${view.rentalDuration ? `<div><dt>Duration</dt><dd>${view.rentalDuration}</dd></div>` : ''}${view.rentalRights ? `<div><dt>Rights</dt><dd>${view.rentalRights}</dd></div>` : ''}`
       : '';
+
+    const description = view.hasDescription
+      ? `<section class="section description">
+            <h3 class="label">Description</h3>
+            <p class="text">${view.description}</p>
+            ${rentalFacts ? `<dl class="facts rental-facts">${rentalFacts}</dl>` : ''}
+          </section>`
+      : '';
+
+    const fallbackFacts = [
+      view.showType ? `<div><dt>Type</dt><dd>${view.productType}</dd></div>` : '',
+      !view.hasDescription ? rentalFacts : '',
+      view.showFile ? `<div><dt>File</dt><dd>${view.fileType}</dd></div>` : '',
+      view.createdDate ? `<div><dt>Listed</dt><dd>${view.createdDate}</dd></div>` : ''
+    ]
+      .filter(Boolean)
+      .join('');
+    const fallback = !view.hasDescription && fallbackFacts
+      ? `<section class="section meta-facts"><dl class="facts">${fallbackFacts}</dl></section>`
+      : '';
+
+    const quantity =
+      view.showQuantity
+        ? `<div class="quantity">
+            <p class="label" id="listing-qty-label">Quantity</p>
+            <div class="qty-stepper">
+              <button type="button" data-qty="down" aria-label="Decrease quantity" disabled>−</button>
+              <input id="listing-qty" type="text" inputmode="numeric" min="1" max="${view.supply}" value="1" aria-labelledby="listing-qty-label" />
+              <button type="button" data-qty="up" aria-label="Increase quantity"${Number(view.supply) <= 1 ? ' disabled' : ''}>+</button>
+            </div>
+          </div>`
+        : '';
 
     const note = view.isRental
       ? `<p class="rental-note">One rental NFT is transferred per rent. This grants temporary access to the protected file for the listed duration.</p>`
-      : `<textarea id="listing-note" class="saito-textarea note" placeholder="Note to seller (optional)" aria-label="Note to seller"></textarea>`;
+      : `<div class="note-field">
+          <label class="note-label" for="listing-note">note to seller (optional)</label>
+          <textarea id="listing-note" class="saito-textarea note" aria-label="note to seller (optional)"></textarea>
+          <p class="note-help">Include your mailing address or any special instructions for the seller.</p>
+        </div>`;
+
+    const share = view.canShare
+      ? '<button type="button" class="saito-icon-button share" data-action="share" aria-label="Share listing" title="Share listing"><i class="fas fa-share-nodes" aria-hidden="true"></i></button>'
+      : '';
+    const availableLabel = Number(view.supply) === 1 ? '1 available' : `${view.supply} available`;
 
     return `
     <article class="listing-detail view${view.isRental ? ' rental' : ''}">
       <header>
         <img class="saito-identicon" src="${view.identicon}" alt="" />
         <div class="meta">
-          <h2 class="title" id="listing-detail-title"><span class="title-text">${view.listingTitle}</span></h2>
+          <h2 class="title" id="listing-detail-title"><span class="title-text">${view.listingTitle}</span>${share}</h2>
           <p class="meta-row nft-id">
             <span class="meta-label">NFT ID:</span>
             <span class="meta-value" title="${view.nftId}">${view.nftIdDisplay}</span>
@@ -67,28 +94,20 @@ module.exports = {
         </div>
 
         <div class="details">
-          <section class="section price">
-            ${view.canShare ? '<button type="button" class="saito-icon-button share" data-action="share" aria-label="Share listing" title="Share listing"><i class="fas fa-share-nodes" aria-hidden="true"></i></button>' : ''}
-            <p class="label">${view.primaryLabel}</p>
-            <p class="amount">${view.primaryDisplay}</p>
-            ${nextBid}
+          <section class="section purchase-controls">
+            <div class="purchase-price">
+              <p class="label">${view.primaryLabel}</p>
+              <p class="amount" data-price-amount data-unit="${view.unitAmount}" data-currency="${view.currencyCode}">${view.primaryDisplay}</p>
+              ${view.showQuantity ? `<p class="price-note">per unit · ${availableLabel}</p>` : ''}
+              ${nextBid}
+            </div>
+            ${quantity}
           </section>
 
-          <section class="section description">
-            <h3 class="label">Description</h3>
-            <p class="text">${description}</p>
-          </section>
-
-          <section class="section meta-facts">
-            <dl class="facts">
-              <div><dt>Type</dt><dd>${view.productType}</dd></div>
-              ${rentalFacts}
-              <div><dt>Listed</dt><dd>${view.createdDate}</dd></div>
-            </dl>
-          </section>
+          ${description}
+          ${fallback}
 
           <section class="section checkout">
-            ${quantity}
             ${note}
             <button type="button" class="saito-button-primary action" data-action="buy">${view.actionText}</button>
           </section>

@@ -344,19 +344,104 @@
   color: var(--saito-muted-foreground);
 }
 
-.listing-detail.view .price {
-  position: relative;
-  padding-right: 4.4rem;
+.listing-detail.view .purchase-controls {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--saito-space-lg);
+  flex-wrap: wrap;
 }
 
-.listing-detail .price .share {
-  position: absolute;
-  right: 0;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 4.4rem;
-  height: 4.4rem;
-  font-size: 1.8rem;
+.listing-detail .purchase-price,
+.listing-detail .purchase-controls .quantity {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+.listing-detail .purchase-controls .quantity {
+  align-items: flex-end;
+}
+
+.listing-detail .price-note,
+.listing-detail .note-help {
+  margin: 0;
+  font-size: var(--font-size-tiny);
+  line-height: 1.4;
+  color: var(--saito-muted-foreground);
+}
+
+.listing-detail .qty-stepper {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--saito-border);
+  border-radius: var(--saito-radius);
+  background: var(--saito-card);
+}
+
+.listing-detail .qty-stepper button {
+  width: 2.4rem;
+  height: 2.4rem;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--saito-foreground);
+  font-size: var(--font-size-medium);
+  line-height: 1;
+  cursor: pointer;
+}
+
+.listing-detail .qty-stepper button:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.listing-detail .qty-stepper input {
+  width: 2.6rem;
+  height: 2.4rem;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--saito-foreground);
+  font-family: var(--saito-font-medium);
+  font-size: var(--font-size-medium);
+  text-align: center;
+}
+
+.listing-detail header .share {
+  width: 2.2rem;
+  height: 2.2rem;
+  margin-left: auto;
+  font-size: 1rem;
+}
+
+.listing-detail .description .text {
+  display: block;
+  white-space: pre-wrap;
+}
+
+.listing-detail .note-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--saito-space-xs);
+}
+
+.listing-detail .note-label {
+  margin: 0;
+  font-size: var(--font-size-medium);
+  line-height: 1.3;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--saito-muted-foreground);
+}
+
+.listing-detail.view .purchase-controls {
+  position: static;
+  padding-right: 0;
 }
 
 .listing-detail .amount {
@@ -435,7 +520,7 @@
 }
 
 .listing-detail.view .note {
-  min-height: 11rem;
+  min-height: 6.5rem;
 }
 
 .listing-detail .checkout {
@@ -444,29 +529,6 @@
   margin-top: auto;
   gap: var(--saito-space-md);
   padding-top: var(--saito-space-md);
-}
-
-.listing-detail .quantity {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--saito-space-sm);
-}
-
-.listing-detail .quantity label {
-  margin: 0;
-  font-size: var(--font-size-tiny);
-  color: var(--saito-muted-foreground);
-}
-
-.listing-detail .quantity input {
-  width: 5rem;
-  min-height: 2.75rem;
-}
-
-.listing-detail .hint {
-  font-size: var(--font-size-tiny);
-  color: var(--saito-muted-foreground);
 }
 
 .listing-detail .note {
@@ -549,6 +611,14 @@
 
   .listing-detail .amount {
     font-size: 2rem;
+  }
+
+  .listing-detail .purchase-controls {
+    align-items: flex-start;
+  }
+
+  .listing-detail .purchase-controls .quantity {
+    align-items: flex-start;
   }
 
   .listing-detail .facts > div {

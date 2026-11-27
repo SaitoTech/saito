@@ -13,7 +13,7 @@ function pageWindow(current, total_pages, max_buttons = 5) {
   return Array.from({ length: end - start + 1 }, (_, i) => start + i);
 }
 
-module.exports = ({ pagination = null, empty = false, categoryLabel = '' } = {}) => {
+module.exports = ({ pagination = null, empty = false, categoryLabel = '', showAllListings = true } = {}) => {
   if (empty) {
     const label = categoryLabel ? ` in ${categoryLabel}` : '';
     return `
@@ -31,6 +31,9 @@ module.exports = ({ pagination = null, empty = false, categoryLabel = '' } = {})
   const { page, total, total_pages, has_next, has_previous } = pagination;
 
   if (total_pages <= 1) {
+    if (!showAllListings) {
+      return '';
+    }
     return `
       <p class="catalog-info" role="status">Showing all listings.</p>
     `;

@@ -10,6 +10,8 @@ const RentalListingOverlay = require('./overlays/rental-listing');
 const PurchaseOverlay = require('./overlays/purchase');
 const Web3PaymentOverlay = require('./overlays/web3-payment');
 const SettingsOverlay = require('./overlays/settings');
+const SearchBox = require('./searchbox');
+const SearchView = require('./search');
 const PurchaseLifecycle = require('./purchase-lifecycle');
 const ListingLifecycle = require('./listing-lifecycle');
 const { normalizeListingMode } = require('../categories');
@@ -37,6 +39,19 @@ class Main {
       onStoreModeChange: (mode) => this.onStoreModeChange(mode)
     });
     this.user_store_sidebar = new UserStoreSidebar(app, mod, '');
+    this.searchView = new SearchView(app, mod, '', {
+      onPage: (offset) => this.activeSearch?.search(offset)
+    });
+    this.activeSearch = null;
+    this.menu.searchBox = new SearchBox(app, mod, {
+      publicKey: '',
+      onResults: (result) => this.showSearch(this.menu.searchBox, result),
+      onClear: () => this.clearSearch()
+    });
+    this.user_store_sidebar.searchBox = new SearchBox(app, mod, {
+      onResults: (result) => this.showSearch(this.user_store_sidebar.searchBox, result),
+      onClear: () => this.clearSearch()
+    });
     this.manager = new Manager(app, mod, '', {
       onSell: () => this.openSell(),
       onStoreModeChange: (mode) => this.onStoreModeChange(mode)
@@ -60,6 +75,16 @@ class Main {
     if (this.app.BROWSER && typeof window !== 'undefined') {
       window.addEventListener('popstate', () => this.onPathChange());
     }
+  }
+
+  showSearch(box, result) {
+    this.activeSearch = box;
+    this.manager.show('search');
+    this.searchView.show(result);
+  }
+
+  clearSearch() {
+    this.manager.show(this.composition === 'user-store' ? 'my-listings' : 'browse');
   }
 
   userStoreContextSelector() {
@@ -178,6 +203,7 @@ class Main {
 
     this.menu.render(`${this.container} .store > .menu`);
     this.manager.render(`${this.container} .store > .main-column > .manager`);
+    this.searchView.render(`${this.container} .store [data-panel="search"]`);
   }
 
   onNavigate(view = '', opts = {}) {

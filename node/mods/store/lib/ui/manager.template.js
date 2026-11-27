@@ -1,6 +1,7 @@
 module.exports = () => {
   return `
     <section data-panel="browse" class="is-active"></section>
+    <section data-panel="search"></section>
     <section data-panel="my-listings"></section>
     <section data-panel="sales"></section>
     <section data-panel="withdrawals"></section>

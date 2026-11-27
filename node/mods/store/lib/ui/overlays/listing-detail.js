@@ -175,14 +175,25 @@ class ListingDetailOverlay {
     const primaryLabel = isRental ? 'Rental Price' : isBid ? 'Current Bid' : 'Price';
     const currency = summary.currency || summary.denomination || 'SAITO';
     const nextBid = summary.next_bid || summary.nextMinBid || '';
-    const supply = summary.returnQuantity?.() || 1;
     const actionText = isRental ? 'Rent' : isBid ? 'Bid' : 'Buy';
-    const description = this.escapeHtml(summary.returnDescription?.() || '');
+    const rawDescription = String(summary.returnDescription?.() || '').trim();
+    const description = this.escapeHtml(rawDescription);
     const primaryDisplay = this.escapeHtml(this.formatSaitoPriceDisplay(primaryValue, currency));
     const nextBidDisplay = this.escapeHtml(this.formatSaitoPriceDisplay(nextBid, currency));
+    const unitMatch = String(primaryValue).match(/[\d.]+/);
+    const unitAmount = unitMatch ? unitMatch[0] : '';
+    const currencyCode = String(currency || 'SAITO').trim() || 'SAITO';
+    const available = Math.max(0, Number(summary.returnQuantity?.() ?? 0) || 0);
+    const supply = available > 0 ? available : 1;
 
     const durationHours = listingMeta.rental_duration_hours || summary.nft?.data?.duration_hours;
     const rights = listingMeta.rental_rights || summary.nft?.data?.rights || 'all';
+    const createdRaw = summary.created_at || summary.createdAt || summary.timestamp;
+    const productType = String(this.returnProductType(summary) || '').trim();
+    const fileType =
+      (typeof summary?.nft?.returnType === 'function' ? summary.nft.returnType() : '') ||
+      summary?.nft?.nft_type ||
+      '';
 
     return {
       identicon: this.escapeHtml(
@@ -202,12 +213,17 @@ class ListingDetailOverlay {
       showNextBid: !!nextBid && !isRental,
       nextBidDisplay,
       supply,
-      showQuantity: !isRental && supply > 1,
+      unitAmount,
+      currencyCode: this.escapeHtml(currencyCode),
+      showQuantity: !isRental,
       actionText: this.escapeHtml(actionText),
       description,
-      hasDescription: !!description,
-      productType: this.escapeHtml(this.returnProductType(summary)),
-      createdDate: this.escapeHtml(this.returnCreatedDate(summary)),
+      hasDescription: rawDescription.length > 0,
+      productType: this.escapeHtml(productType),
+      showType: !!productType && !/^(nft|unknown|other)$/i.test(productType),
+      createdDate: createdRaw ? this.escapeHtml(this.returnCreatedDate(summary)) : '',
+      fileType: this.escapeHtml(String(fileType || '').trim()),
+      showFile: !!fileType && !/^(image|unknown|nft)$/i.test(String(fileType)),
       imageLoading: summary.isImageLoading?.() ?? false,
       isRental,
       rentalDuration: this.escapeHtml(durationHours ? durationLabel(durationHours) : ''),
@@ -473,6 +489,8 @@ class ListingDetailOverlay {
       };
     }
 
+    this.bindQuantity(root);
+
     const buyBtn = root.querySelector('[data-action="buy"]');
     if (this.preview) {
       const checkout = root.querySelector('.checkout');
@@ -495,7 +513,14 @@ class ListingDetailOverlay {
         const listingMeta = this.returnListingMeta(summary);
         const isRental = isStoreRentalListing(summary, listingMeta);
         const qtyInput = root.querySelector('#listing-qty');
-        const quantity = isRental ? 1 : qtyInput ? Number(qtyInput.value) || 1 : 1;
+        const max = Math.max(1, Number(qtyInput?.getAttribute('max')) || summary.returnQuantity?.() || 1);
+        let quantity = isRental ? 1 : Math.floor(Number(qtyInput?.value) || 1);
+        if (!Number.isFinite(quantity) || quantity < 1) {
+          quantity = 1;
+        }
+        if (quantity > max) {
+          quantity = max;
+        }
         const noteEl = root.querySelector('#listing-note');
         const note = noteEl ? String(noteEl.value || '').trim() : '';
 
@@ -521,6 +546,45 @@ class ListingDetailOverlay {
         }
       };
     }
+  }
+
+  bindQuantity(root) {
+    const input = root?.querySelector('#listing-qty');
+    const amount = root?.querySelector('[data-price-amount]');
+    if (!input) {
+      return;
+    }
+    const max = Math.max(1, Number(input.getAttribute('max')) || 1);
+    const unit = Number(amount?.getAttribute('data-unit'));
+    const currency = amount?.getAttribute('data-currency') || 'SAITO';
+    const down = root.querySelector('[data-qty="down"]');
+    const up = root.querySelector('[data-qty="up"]');
+    const apply = (next) => {
+      let qty = Math.floor(Number(next));
+      if (!Number.isFinite(qty) || qty < 1) {
+        qty = 1;
+      }
+      if (qty > max) {
+        qty = max;
+      }
+      input.value = String(qty);
+      if (down) {
+        down.disabled = qty <= 1;
+      }
+      if (up) {
+        up.disabled = qty >= max;
+      }
+      if (amount && Number.isFinite(unit) && unit > 0) {
+        amount.textContent = this.formatSaitoPriceDisplay(String(unit * qty), currency);
+      }
+    };
+    down?.addEventListener('click', () => apply(Number(input.value) - 1));
+    up?.addEventListener('click', () => apply(Number(input.value) + 1));
+    input.addEventListener('input', () => {
+      input.value = input.value.replace(/[^\d]/g, '');
+    });
+    input.addEventListener('change', () => apply(input.value));
+    apply(input.value || 1);
   }
 
   attachEditEvents() {

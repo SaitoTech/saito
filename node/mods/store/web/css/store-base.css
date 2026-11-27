@@ -1,4 +1,10 @@
-/* Page shell under #saito-header */
+/* Page shell under #saito-header.
+   Store follows Arcade: an app body class and header class share one gutter,
+   so the logo and account controls line up with this container. */
+
+body.store-body #saito-header.store {
+  padding-inline: var(--saito-space-lg);
+}
 
 .saito-container.store-container {
   display: block;
@@ -46,6 +52,11 @@
 }
 
 @media (max-width: 600px) {
+  body.store-body #saito-header.store {
+    padding-left: max(var(--saito-space-md), env(safe-area-inset-left, 0px));
+    padding-right: max(var(--saito-space-md), env(safe-area-inset-right, 0px));
+  }
+
   .saito-container.store-container {
     padding: 0.5rem max(var(--saito-space-md), env(safe-area-inset-right, 0px))
       calc(var(--saito-space-xl) + env(safe-area-inset-bottom, 0px))
@@ -328,4 +339,25 @@
   border: 1px solid var(--saito-border);
   color: var(--saito-foreground);
   font-size: var(--font-size-medium);
+}
+
+.store.user-store .teasers {
+  grid-template-columns: repeat(auto-fill, var(--store-card-width));
+  justify-content: start;
+}
+
+.store.user-store .teasers .teaser {
+  width: var(--store-card-width);
+  max-width: 100%;
+}
+
+.store.user-store .teasers .teaser .title {
+  min-height: calc(1.3em * 2);
+}
+
+.store.user-store .teasers .teaser .description,
+.store.user-store .teasers .teaser .description:empty {
+  display: -webkit-box;
+  min-height: calc(1.4em * 3);
+  height: auto;
 }

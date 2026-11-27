@@ -1614,6 +1614,64 @@ class Database {
     return { ok: false, err: 'Unable to submit listing' };
   }
 
+  /**
+   * Available listings whose summary title or description matches search_term.
+   * An empty term matches nothing. A seller key limits the rows to that store.
+   * An empty key uses the main-store whitelist and approval rules.
+   */
+  async search({
+    search_term = '',
+    public_key = '',
+    offset = 0,
+    whitelist_sellers = []
+  } = {}) {
+    const term = String(search_term || '').trim();
+    const start = Math.max(0, Math.floor(Number(offset) || 0));
+    if (!term) {
+      return { signatures: [], total: 0, offset: 0 };
+    }
+
+    const escaped = term.replace(/\\/g, '\\\\').replace(/%/g, '\\%').replace(/_/g, '\\_');
+    const like = '%' + escaped + '%';
+    const seller = String(public_key || '').trim();
+    const params = { $term: like };
+    let scope = '';
+    if (seller) {
+      scope = 'AND listings.seller = $public_key';
+      params.$public_key = seller;
+    } else {
+      const eligibility = this.marketplaceEligibilityClause(whitelist_sellers);
+      scope = `AND ${eligibility.sql}`;
+      Object.assign(params, eligibility.params);
+    }
+    const where = `WHERE (summary.title LIKE $term ESCAPE '\\'
+				        OR summary.description LIKE $term ESCAPE '\\')
+				   AND ${this.availableListingWhere()}
+				   ${scope}`;
+    const join = `FROM listings
+				 INNER JOIN summary
+				    ON summary.nft_id = listings.nft_id
+				   AND summary.price = listings.price`;
+    const counted = await this.app.storage.queryDatabase(
+      `SELECT COUNT(*) AS total ${join} ${where}`,
+      params,
+      this.dbname
+    );
+    const rows = await this.app.storage.queryDatabase(
+      `SELECT listings.signature ${join}
+				 ${where}
+				 ORDER BY listings.created_at DESC, listings.signature ASC
+				 LIMIT $limit OFFSET $offset`,
+      { ...params, $limit: 24, $offset: start },
+      this.dbname
+    );
+    return {
+      signatures: (rows || []).map((row) => String(row.signature || '')).filter(Boolean),
+      total: Number(counted?.[0]?.total || 0),
+      offset: start
+    };
+  }
+
   listingOrderSql(order = 'updated') {
     if (order === 'featured') {
       return 'store_featured.sort_order ASC, listings.signature ASC';

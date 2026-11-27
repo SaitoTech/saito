@@ -28,6 +28,7 @@ function browseTemplate({
     : `<li class="item" role="button" tabindex="0" data-action="list-item">List Item for Sale</li>`;
 
   return `
+    <div class="store-search-slot" data-store-search></div>
     <ul class="list saito-menu-select-subtle" role="list">
       <li class="item moderation-item" id="store-menu-moderate" hidden role="button" tabindex="-1" data-view="moderation" aria-hidden="true">
         <span class="label">Moderate</span>

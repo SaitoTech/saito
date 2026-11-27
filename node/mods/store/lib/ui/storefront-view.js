@@ -475,7 +475,6 @@ class StorefrontView {
       featuredIds: this.featuredIds || [],
       showFeatured: true
     });
-    this.renderFeaturedOrder(host);
 
     host.querySelectorAll('.listings-table tbody tr[data-signature]').forEach((row) => {
       row.classList.add('is-clickable');
@@ -512,7 +511,6 @@ class StorefrontView {
           next.push(nft_id);
         }
         this.featuredIds = next;
-        this.renderFeaturedOrder(host);
         void this.saveFeatured();
       });
 
@@ -536,72 +534,19 @@ class StorefrontView {
     });
 
     if (footer) {
-      footer.hidden = false;
-      footer.innerHTML = CatalogFooterTemplate({
+      const footerHtml = CatalogFooterTemplate({
         pagination: this.pagination,
-        empty: false
+        empty: false,
+        showAllListings: false
       });
+      footer.hidden = !footerHtml;
+      footer.innerHTML = footerHtml;
       CatalogFooterTemplate.attachCatalogFooterEvents(footer, {
         page: this.page,
         pagination: this.pagination,
         onPage: (page) => this.loadAdminPage({ page })
       });
     }
-  }
-
-  renderFeaturedOrder(host) {
-    if (!host) {
-      return;
-    }
-    let panel = host.querySelector('[data-featured-order]');
-    if (!panel) {
-      panel = document.createElement('div');
-      panel.className = 'store-featured-order';
-      panel.setAttribute('data-featured-order', '');
-      host.prepend(panel);
-    }
-    const titles = {};
-    (this.activeSummaries || []).forEach((summary) => {
-      if (summary.nft_id) {
-        titles[String(summary.nft_id).toLowerCase()] = summary.returnTitle?.() || summary.title || summary.nft_id;
-      }
-    });
-    const rows = (this.featuredIds || [])
-      .map((nft_id, index) => {
-        const title = titles[nft_id] || nft_id;
-        return `<li>
-          <span>${this.escapeHtml(title)}</span>
-          <button type="button" data-feature-move="up" data-index="${index}">Up</button>
-          <button type="button" data-feature-move="down" data-index="${index}">Down</button>
-        </li>`;
-      })
-      .join('');
-    panel.innerHTML = `<p>Featured</p><ol>${rows || '<li>No featured assets</li>'}</ol><p data-featured-status></p>`;
-    panel.querySelectorAll('[data-feature-move]').forEach((button) => {
-      button.addEventListener('click', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        const index = Number(button.getAttribute('data-index'));
-        const direction = button.getAttribute('data-feature-move');
-        const next = this.featuredIds.slice();
-        const target = direction === 'up' ? index - 1 : index + 1;
-        if (target < 0 || target >= next.length) {
-          return;
-        }
-        const [item] = next.splice(index, 1);
-        next.splice(target, 0, item);
-        this.featuredIds = next;
-        this.renderFeaturedOrder(host);
-        void this.saveFeatured();
-      });
-    });
-  }
-
-  escapeHtml(value = '') {
-    return String(value)
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;');
   }
 
   saveFeatured() {
