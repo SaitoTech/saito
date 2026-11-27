@@ -18,22 +18,23 @@
  * User-store page composition — not the marketplace category rail.
  *
  * Two regions:
- *   .user-store-context  → identity (SaitoProfile) + Store-owned nav + attribution
+ *   .user-store-context  → seller profile card, including store navigation
  *   .main-column         → shared StorefrontView / listings
  *
  * Spacing model:
  *   - Page top inset: `.saito-container.store-container:has(.store.user-store)`
  *     padding-top → --saito-space-xl (see store-base.css)
  *   - Inter-column / stacked separation: this grid `gap` → --store-user-rhythm
- *   - Below profile card: context column `gap` → --saito-space-md (attribution)
+ *   - The context column holds the profile card. It sizes to that card.
  *
  * Profile and listings are grid siblings with align-items: start — same top edge.
  * Do not pad .saito-profile to fake page rhythm.
  */
 .store.user-store {
-  --store-user-rhythm: var(--saito-space-xxl);
-  grid-template-columns: minmax(0, 300px) minmax(0, 1fr);
-  gap: var(--store-user-rhythm);
+  --store-user-rhythm: 1.25rem;
+  grid-template-columns: 18.75rem minmax(0, 1fr);
+  gap: var(--store-user-rhythm) 1.5rem;
+  align-items: start;
 }
 
 /* —— Menu rail (marketplace / admin only) —— */
@@ -63,53 +64,17 @@
 .store.user-store > .user-store-context {
   display: flex;
   flex-direction: column;
-  gap: var(--saito-space-md);
+  gap: 0;
   position: sticky;
-  top: 0;
+  top: 0.75rem;
   align-self: start;
-  width: 100%;
+  min-width: 0;
 }
 
 .store.user-store .user-store-profile {
   min-width: 0;
 }
 
-/* Store-owned attribution — outside SaitoProfile, under the card */
-.store.user-store .user-store-attribution {
-  margin: 0;
-  padding: 0 var(--saito-space-xs);
-  font-size: 1.25rem;
-  line-height: 1.45;
-  color: var(--saito-muted-foreground);
-  opacity: 0.85;
-}
-
-.store.user-store .user-store-attribution a {
-  color: inherit;
-  text-decoration: underline;
-  text-underline-offset: 0.12em;
-  text-decoration-thickness: 1px;
-}
-
-.store.user-store .user-store-attribution a:hover,
-.store.user-store .user-store-attribution a:focus-visible {
-  color: var(--saito-foreground);
-  opacity: 1;
-  outline: none;
-}
-
-/* Listings share the grid top edge — no extra top inset in the main column */
-.store.user-store > .main-column,
-.store.user-store > .main-column > .manager,
-.store.user-store .storefront-catalog {
-  margin-top: 0;
-  padding-top: 0;
-}
-
-/*
- * Store-owned nav in the shared profile footer slot — visually inside the card.
- * Labels/icons/routing stay Store-specific; SaitoProfile only provides the slot.
- */
 .store.user-store .saito-profile-footer:not(:empty) {
   display: block;
   border-top: 1px solid var(--saito-border);
@@ -118,24 +83,48 @@
 .store.user-store .user-store-nav {
   display: flex;
   flex-direction: column;
-  gap: 0;
+  gap: var(--saito-space-xs);
   margin: 0;
   padding: var(--saito-space-xs) 0;
 }
 
+.store.user-store .user-store-nav .divider {
+  height: 1px;
+  flex: 0 0 auto;
+  margin: 0 var(--saito-space-sm);
+  background: var(--saito-border);
+}
+
 .store.user-store .user-store-nav .item {
-  display: grid;
-  grid-template-columns: 2.4rem minmax(0, 1fr);
+  display: flex;
   align-items: center;
-  column-gap: var(--saito-space-sm);
-  min-height: 2.6rem;
-  margin: 0 var(--saito-space-xs);
-  padding: 0.55rem 0.75rem;
-  border-radius: var(--saito-radius);
+  width: 100%;
+  min-height: 2.75rem;
+  margin: 0;
+  padding: 0.85rem 1.1rem;
+  border-radius: var(--saito-radius-sm);
   font-size: var(--font-size-medium);
-  line-height: 1.25;
+  line-height: 1.3;
   color: var(--saito-muted-foreground);
   cursor: pointer;
+  box-sizing: border-box;
+}
+
+.store.user-store .user-store-nav .item.active {
+  font-family: var(--saito-font-heavy);
+  background: color-mix(in srgb, var(--saito-primary) 24%, transparent);
+  color: var(--saito-foreground);
+}
+
+.store.user-store > .main-column {
+  min-width: 0;
+}
+
+.store.user-store > .main-column,
+.store.user-store > .main-column > .manager,
+.store.user-store .storefront-catalog {
+  margin-top: 0;
+  padding-top: 0;
 }
 
 .store.user-store .user-store-nav .item:focus-visible {
@@ -144,11 +133,9 @@
 }
 
 .store.user-store .user-store-nav .item .icon {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  justify-content: center;
-  width: 2.4rem;
-  height: 2.4rem;
+  margin-right: var(--saito-space-sm);
 }
 
 .store.user-store .user-store-nav .item .icon i {
@@ -875,11 +862,6 @@
     gap: var(--saito-space-xl);
   }
 
-  /*
-   * Stack user-store regions. Profile context stays card-sized (≤300px) and
-   * start-aligned — do not stretch SaitoProfile into a full-width banner.
-   * Keep --store-user-rhythm so stacked separation matches page top inset.
-   */
   .store.user-store {
     grid-template-columns: minmax(0, 1fr);
     gap: var(--store-user-rhythm);
@@ -887,9 +869,7 @@
 
   .store.user-store > .user-store-context {
     position: static;
-    width: 300px;
-    max-width: 100%;
-    justify-self: start;
+    width: 100%;
   }
 
   .store > .menu {
@@ -1139,14 +1119,12 @@
   }
 }
 
-.store-navigation-editor,
 .store-featured-order {
   display: grid;
   gap: 0.75rem;
   margin-top: 1.5rem;
 }
 
-.store-navigation-editor ol,
 .store-featured-order ol {
   display: grid;
   gap: 0.5rem;
@@ -1155,8 +1133,6 @@
   list-style: none;
 }
 
-.store-navigation-editor li,
-.store-navigation-add,
 .store-featured-order li {
   display: flex;
   flex-wrap: wrap;
@@ -1164,8 +1140,291 @@
   align-items: center;
 }
 
-.store-navigation-editor input,
-.store-navigation-editor select,
+.store-navigation-editor {
+  display: grid;
+  gap: var(--saito-space-md);
+  margin-top: 0.25rem;
+  width: 100%;
+}
+
+.store-navigation-editor h3 {
+  margin: 0;
+  font-size: var(--font-size-medium);
+  font-family: var(--saito-font-medium);
+  line-height: 1.3;
+  color: var(--saito-foreground);
+}
+
+.store-nav-layout {
+  display: grid;
+  grid-template-columns: min(22rem, 100%) minmax(0, 1fr);
+  column-gap: var(--saito-space-xl);
+  align-items: start;
+}
+
+.store-nav-menu {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--saito-space-sm);
+  width: min(22rem, 100%);
+}
+
+.store-nav-item {
+  display: flex;
+  align-items: center;
+  gap: var(--saito-space-sm);
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 3.2rem;
+  margin: 0;
+  padding: 0.8rem 1rem;
+  border: 1px solid var(--saito-border);
+  border-radius: var(--saito-radius-sm);
+  background: var(--saito-secondary);
+  color: var(--saito-foreground);
+  font-family: var(--saito-font);
+  font-size: var(--font-size-medium);
+  line-height: 1.3;
+  text-align: left;
+  cursor: grab;
+}
+
+.store-nav-item.is-featured {
+  cursor: default;
+  border-left: 3px solid var(--saito-primary);
+}
+
+.store-nav-item.is-add {
+  cursor: pointer;
+  border-color: var(--saito-primary);
+  background: color-mix(in srgb, var(--saito-primary) 16%, var(--saito-secondary));
+  color: var(--saito-primary);
+  font-family: var(--saito-font-medium);
+}
+
+.store-nav-name {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.store-nav-item.is-dragging {
+  opacity: 0.55;
+  border-color: var(--saito-primary);
+}
+
+.store-nav-item.is-drop-target {
+  border-color: var(--saito-primary);
+  background: color-mix(in srgb, var(--saito-primary) 18%, var(--saito-secondary));
+}
+
+.store-nav-grip {
+  width: 0.7rem;
+  height: 1.05rem;
+  flex: 0 0 auto;
+  background-image: radial-gradient(circle, currentColor 1.4px, transparent 1.6px);
+  background-size: 0.35rem 0.35rem;
+  background-repeat: repeat;
+  opacity: 0.75;
+}
+
+.store-nav-plus {
+  line-height: 1;
+  color: var(--saito-primary);
+  font-family: var(--saito-font-medium);
+}
+
+.store-nav-featured-name {
+  width: 100%;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  line-height: inherit;
+}
+
+.store-nav-featured-name:focus {
+  outline: none;
+}
+
+.store-nav-delete {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.4rem;
+  height: 2.4rem;
+  margin: -0.3rem -0.2rem -0.3rem auto;
+  padding: 0;
+  border: 0;
+  border-radius: var(--saito-radius-sm);
+  background: transparent;
+  color: var(--saito-muted-foreground);
+  font-size: var(--font-size-tiny);
+  line-height: 1;
+  cursor: pointer;
+}
+
+.store-nav-delete:hover,
+.store-nav-delete:focus-visible {
+  color: var(--saito-red);
+  background: color-mix(in srgb, var(--saito-red) 16%, transparent);
+  outline: none;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .store-nav-item[draggable='true']:hover {
+    border-color: color-mix(in srgb, var(--saito-primary) 55%, var(--saito-border));
+    background: color-mix(in srgb, var(--saito-foreground) 8%, var(--saito-secondary));
+  }
+
+  .store-nav-item.is-add:hover {
+    background: var(--saito-primary);
+    color: var(--saito-primary-foreground);
+  }
+
+  .store-nav-item.is-add:hover .store-nav-plus {
+    color: var(--saito-primary-foreground);
+  }
+}
+
+.store-nav-copy {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--saito-space-md);
+}
+
+.store-nav-explain {
+  margin: 0;
+  max-width: none;
+  font-family: var(--saito-font);
+  font-size: var(--font-size-medium);
+  line-height: 1.45;
+  color: var(--saito-muted-foreground);
+}
+
+.store-nav-featured-toggle {
+  display: flex;
+  align-items: center;
+  gap: var(--saito-space-sm);
+  margin: 0;
+  color: var(--saito-foreground);
+  font-family: var(--saito-font);
+  font-size: var(--font-size-medium);
+  line-height: 1.4;
+  cursor: pointer;
+  user-select: none;
+}
+
+.store-nav-featured-toggle input {
+  width: 1.35rem;
+  height: 1.35rem;
+  margin: 0;
+  flex: 0 0 auto;
+  accent-color: var(--saito-primary);
+  cursor: pointer;
+}
+
+.store-nav-actions {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: var(--saito-space-md);
+  width: 100%;
+}
+
+.store-navigation-editor .store-nav-save {
+  margin-left: 0;
+}
+
+.store-nav-save:disabled {
+  opacity: 0.65;
+  cursor: progress;
+}
+
+.store-nav-status {
+  margin: 0;
+  font-family: var(--saito-font);
+  font-size: var(--font-size-medium);
+  line-height: 1.3;
+}
+
+.store-nav-status:empty {
+  display: none;
+}
+
+.store-nav-status.is-ok {
+  color: #7dcea0;
+}
+
+.store-nav-status.is-error {
+  color: #e07a7a;
+}
+
+.store-nav-dialog {
+  width: min(36rem, 92vw);
+  padding: var(--saito-space-lg);
+  border: 1px solid var(--saito-border);
+  border-radius: var(--saito-radius);
+  background: var(--saito-card, var(--saito-background));
+  color: var(--saito-foreground);
+}
+
+.store-nav-dialog::backdrop {
+  background: color-mix(in srgb, var(--saito-background) 55%, transparent);
+}
+
+.store-nav-dialog form {
+  display: grid;
+  gap: var(--saito-space-md);
+}
+
+.store-nav-dialog p {
+  margin: 0;
+  font-family: var(--saito-font);
+  font-size: var(--font-size-medium);
+  line-height: 1.3;
+}
+
+.store-nav-dialog input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.7rem 0.9rem;
+  border: 1px solid var(--saito-border);
+  border-radius: var(--saito-radius);
+  background: transparent;
+  color: var(--saito-foreground);
+  font-family: var(--saito-font);
+  font-size: var(--font-size-medium);
+  line-height: 1.3;
+}
+
+.store-nav-dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: var(--saito-space-sm);
+}
+
+.store-nav-dialog .saito-button-primary,
+.store-nav-dialog .saito-button-secondary {
+  min-width: 8rem;
+}
+
+.store-nav-dialog .store-nav-status:empty {
+  display: none;
+}
+
+@media (max-width: 800px) {
+  .store-nav-layout {
+    grid-template-columns: minmax(0, 1fr);
+    row-gap: var(--saito-space-md);
+  }
+}
+
 .listing-detail .section.category select {
   min-width: 8rem;
 }

@@ -118,6 +118,15 @@ class Database {
         await db.exec(sql);
       }
     }
+    try {
+      await this.app.storage.runDatabase(
+        'ALTER TABLE store_categories ADD COLUMN visible INTEGER NOT NULL DEFAULT 1',
+        {},
+        this.dbname
+      );
+    } catch (err) {
+      // column already exists
+    }
   }
 
   /**
@@ -1619,6 +1628,22 @@ class Database {
   }
 
   /**
+   * Seller front page: listings with no category, or a category the seller has removed.
+   * Featured is this destination. It is not a row in store_categories.
+   */
+  sellerFrontPageSql() {
+    return `AND (
+				     listings.category = ''
+				     OR NOT EXISTS (
+				       SELECT 1 FROM store_categories
+				        WHERE store_categories.store_key = listings.seller
+				          AND store_categories.category_id = listings.category
+				          AND store_categories.category_id != 'featured'
+				     )
+				   )`;
+  }
+
+  /**
    * One active listing per featured NFT: the newest row that passes
    * availableListingWhere. Seller stores also require listings.seller = store_key.
    */
@@ -1739,20 +1764,19 @@ class Database {
     }
     const filter = String(category || '').trim();
     const use_featured = !!featured && status !== 'sold';
-    const featured_sql = use_featured ? this.featuredListingSql(key, '') : null;
-    const params = { $seller: key, ...(featured_sql?.params || {}) };
+    const params = { $seller: key };
     let category_sql = '';
-    if (filter && !use_featured) {
+    if (use_featured) {
+      category_sql = this.sellerFrontPageSql();
+    } else if (filter) {
       category_sql = ' AND listings.category = $category';
       params.$category = filter;
     }
     try {
       const res = await this.app.storage.queryDatabase(
         `SELECT COUNT(*) AS total FROM listings
-         ${featured_sql?.join || ''}
 				 WHERE listings.seller = $seller
-				   AND ${this.sellerListingWhere(status)}${category_sql}
-           ${featured_sql?.where || ''}`,
+				   AND ${this.sellerListingWhere(status)}${category_sql}`,
         params,
         this.dbname
       );
@@ -1777,17 +1801,16 @@ class Database {
     }
     const filter = String(category || '').trim();
     const use_featured = !!featured && status !== 'sold';
-    const featured_sql = use_featured ? this.featuredListingSql(key, '') : null;
-    const sort =
-      status === 'sold' ? 'sold' : use_featured ? 'featured' : order || (filter ? 'newest' : 'newest');
+    const sort = status === 'sold' ? 'sold' : use_featured ? 'newest' : order || 'newest';
     const params = {
       $seller: key,
-      ...(featured_sql?.params || {}),
       $limit: Math.max(1, Number(page_size) || 24),
       $offset: Math.max(0, Number(offset) || 0)
     };
     let category_sql = '';
-    if (filter && !use_featured) {
+    if (use_featured) {
+      category_sql = this.sellerFrontPageSql();
+    } else if (filter) {
       category_sql = ' AND listings.category = $category';
       params.$category = filter;
     }
@@ -1803,10 +1826,8 @@ class Database {
       return await this.app.storage.queryDatabase(
         `SELECT listings.* FROM listings
          ${title_join}
-         ${featured_sql?.join || ''}
 				 WHERE listings.seller = $seller
 				   AND ${this.sellerListingWhere(status)}${category_sql}
-           ${featured_sql?.where || ''}
 				 ORDER BY ${order_sql}
 				 LIMIT $limit OFFSET $offset`,
         params,
@@ -2465,9 +2486,10 @@ class Database {
   async returnStoreCategories(storeKey = '') {
     try {
       const rows = await this.app.storage.queryDatabase(
-        `SELECT category_id, name, sort_order, listing_order
+        `SELECT category_id, name, sort_order, listing_order, visible
            FROM store_categories
           WHERE store_key = $store_key
+            AND category_id != 'featured'
           ORDER BY sort_order ASC, category_id ASC`,
         { $store_key: String(storeKey || '') },
         this.dbname
@@ -2478,6 +2500,19 @@ class Database {
     }
   }
 
+  async returnFeaturedName(storeKey = '') {
+    const config = await this.returnFeaturedConfig(storeKey);
+    return config.name;
+  }
+
+  async returnFeaturedConfig(storeKey = '') {
+    const row = await this.returnStoreCategory(storeKey, 'featured');
+    const fallback = String(storeKey || '') ? 'Featured Items' : 'Featured';
+    const name = String(row?.name || '').trim() || fallback;
+    const visible = row && Number(row.visible) === 0 ? 0 : 1;
+    return { name, visible };
+  }
+
   async returnStoreCategory(storeKey = '', categoryId = '') {
     const category_id = String(categoryId || '').trim();
     if (!category_id) {
@@ -2485,7 +2520,7 @@ class Database {
     }
     try {
       const rows = await this.app.storage.queryDatabase(
-        `SELECT category_id, name, sort_order, listing_order
+        `SELECT category_id, name, sort_order, listing_order, visible
            FROM store_categories
           WHERE store_key = $store_key AND category_id = $category_id`,
         { $store_key: String(storeKey || ''), $category_id: category_id },
@@ -2520,15 +2555,31 @@ class Database {
       });
       for (const category of categories) {
         await db.run(
-          `INSERT INTO store_categories (store_key, category_id, name, sort_order, listing_order)
-           VALUES ($store_key, $category_id, $name, $sort_order, $listing_order)`,
+          `INSERT INTO store_categories (store_key, category_id, name, sort_order, listing_order, visible)
+           VALUES ($store_key, $category_id, $name, $sort_order, $listing_order, $visible)`,
           {
             $store_key: store_key,
             $category_id: category.category_id,
             $name: category.name,
             $sort_order: Number(category.sort_order) || 0,
-            $listing_order: category.listing_order === 'alphabetical' ? 'alphabetical' : 'newest'
+            $listing_order: category.listing_order === 'alphabetical' ? 'alphabetical' : 'newest',
+            $visible: Number(category.visible) === 0 ? 0 : 1
           }
+        );
+      }
+      if (store_key) {
+        await db.run(
+          `UPDATE listings
+              SET category = ''
+            WHERE seller = $store_key
+              AND category != ''
+              AND NOT EXISTS (
+                SELECT 1 FROM store_categories
+                 WHERE store_categories.store_key = $store_key
+                   AND store_categories.category_id = listings.category
+                   AND store_categories.category_id != 'featured'
+              )`,
+          { $store_key: store_key }
         );
       }
     });

@@ -3,8 +3,7 @@ const SaitoProfile = require('../../../../lib/saito/ui/saito-profile/saito-profi
 
 /**
  * User-store profile context: shared SaitoProfile (read-only) with Store nav
- * injected into the profile card footer slot, plus Store-owned attribution
- * below the card (outside SaitoProfile).
+ * injected into the profile card footer slot.
  *
  * Footer follows the Red Square pattern: host owns the slot; Chat is opened
  * via connection events (no hard Chat module API).
@@ -18,6 +17,8 @@ class UserStoreSidebar {
     this.categories = [];
     this.activeCategory = '';
     this.featured = true;
+    this.featuredName = 'Featured Items';
+    this.featuredVisible = true;
     this.profile = new SaitoProfile(app, mod, '');
     // Public storefront is always read-only (no camera / pencil).
     this.profile.editable = false;
@@ -35,40 +36,21 @@ class UserStoreSidebar {
    * @returns {Array<{ action: string, label: string, icon: string }>}
    */
   returnNavItems(publicKey = this.publicKey) {
-    const items = [];
-    const key = String(publicKey || '').trim();
-    if (key && this.hasChat() && !this.isOwnStore(key)) {
-      items.push({
-        action: 'send-message',
-        label: 'Send Message',
-        icon: 'fa-solid fa-lock'
-      });
+    if (!this.isOwnStore(publicKey)) {
+      return [];
     }
-    if (this.isOwnStore(publicKey)) {
-      items.push({
+    return [
+      {
         action: 'admin-store',
         label: 'Manage Store',
         icon: 'fa-solid fa-gear'
-      });
-    }
-    return items;
+      }
+    ];
   }
 
   /** Canonical marketplace path — same slug routing as Store header / setBrowseUrl. */
   marketplacePath() {
     return `/${encodeURI(this.mod.returnSlug?.() || 'store')}`;
-  }
-
-  openMarketplace(e) {
-    if (e) {
-      e.preventDefault();
-    }
-    const path = this.marketplacePath();
-    if (typeof navigateWindow === 'function') {
-      navigateWindow(path);
-    } else {
-      window.location.assign(path);
-    }
   }
 
   openAdminStore(publicKey = this.publicKey) {
@@ -103,13 +85,7 @@ class UserStoreSidebar {
   }
 
   renderNav() {
-    const footer = this.profile.getFooterEl();
-    if (!footer) {
-      return;
-    }
-
-    footer.innerHTML = UserStoreNavTemplate(this.returnNavItems(this.publicKey));
-    this.attachNavEvents();
+    this.renderProfileMenu();
   }
 
   render(container = '', publicKey = '') {
@@ -129,15 +105,8 @@ class UserStoreSidebar {
       return;
     }
 
-    const marketPath = this.marketplacePath();
-
     root.innerHTML = `
       <div class="user-store-profile"></div>
-      <nav class="user-store-categories saito-menu-select-subtle" data-store-categories aria-label="Store categories"></nav>
-      <p class="user-store-attribution">
-        Listings indexed on the
-        <a href="${marketPath}" data-store-attribution="marketplace">Saito Store</a>
-      </p>
     `;
 
     this.profile.editable = false;
@@ -151,35 +120,97 @@ class UserStoreSidebar {
     this.attachEvents();
   }
 
-  setCategories(categories = [], { category = '', featured = false } = {}) {
+  setCategories(
+    categories = [],
+    { category = '', featured = false, featuredName = '', featuredVisible = true } = {}
+  ) {
+    const label = String(featuredName || '').trim();
+    if (label) {
+      this.featuredName = label;
+    }
+    this.featuredVisible = featuredVisible !== false && featuredVisible !== 0;
     this.categories = Array.isArray(categories) ? categories : [];
     this.activeCategory = String(category || '');
     this.featured = !!featured && !this.activeCategory;
     this.renderCategories();
   }
 
-  renderCategories() {
-    const nav = document.querySelector(`${this.container} [data-store-categories]`);
-    if (!nav) {
+  parentId(category) {
+    return String(category?.parent_id || category?.parent_category_id || '').trim();
+  }
+
+  visibleCategories(categories = []) {
+    return (Array.isArray(categories) ? categories : []).filter((category) => {
+      const count = category?.listing_count ?? category?.count;
+      if (count == null || count === '') {
+        return true;
+      }
+      const total = Number(count);
+      return !Number.isFinite(total) || total > 0;
+    });
+  }
+
+  categoryForest(categories = []) {
+    const nodes = this.visibleCategories(categories).map((category) => ({
+      category,
+      children: []
+    }));
+    const byId = new Map(
+      nodes.map((node) => [String(node.category.category_id || ''), node])
+    );
+    const roots = [];
+    nodes.forEach((node) => {
+      const parent = byId.get(this.parentId(node.category));
+      if (parent && parent !== node) {
+        parent.children.push(node);
+        return;
+      }
+      roots.push(node);
+    });
+    return roots;
+  }
+
+  categoryRows(nodes = [], depth = 0) {
+    return nodes
+      .map((node) => {
+        const id = String(node.category.category_id || '');
+        const name = String(node.category.name || id);
+        const active = !this.featured && id && id === this.activeCategory ? ' active' : '';
+        const row = `<div class="item${active}" role="button" tabindex="0" data-store-category="${this.escape(id)}">${this.escape(name)}</div>`;
+        return row + this.categoryRows(node.children, depth + 1);
+      })
+      .join('');
+  }
+
+  renderProfileMenu() {
+    const footer = this.profile.getFooterEl();
+    if (!footer) {
       return;
     }
     const featuredClass = this.featured ? ' active' : '';
-    const allClass = !this.featured && !this.activeCategory ? ' active' : '';
-    const items = (this.categories || [])
-      .map((category) => {
-        const id = String(category.category_id || '');
-        const name = String(category.name || id);
-        const active = !this.featured && id === this.activeCategory ? ' active' : '';
-        return `<div class="item${active}" role="button" tabindex="0" data-store-category="${this.escape(id)}">${this.escape(name)}</div>`;
-      })
-      .join('');
-    nav.innerHTML = `
-      <div class="item${featuredClass}" role="button" tabindex="0" data-store-category="">Featured</div>
-      ${items}
-      <div class="item${allClass}" role="button" tabindex="0" data-store-view="all">All Listings</div>
+    const manage = UserStoreNavTemplate(this.returnNavItems(this.publicKey));
+    const categories = this.categoryRows(this.categoryForest(this.categories));
+    const featuredItem = this.featuredVisible
+      ? `<div class="item${featuredClass}" role="button" tabindex="0" data-store-category="">${this.escape(this.featuredName || 'Featured Items')}</div>`
+      : '';
+    footer.innerHTML = `
+      <nav class="user-store-nav saito-menu-select-subtle" aria-label="Seller store">
+        ${featuredItem}
+        ${categories}
+        ${manage ? `<div class="divider" role="separator"></div>${manage}` : ''}
+      </nav>
     `;
-    nav.querySelectorAll('[data-store-category]').forEach((item) => {
-      item.onclick = (e) => {
+    this.attachNavEvents();
+    this.attachCategoryEvents(footer);
+  }
+
+  renderCategories() {
+    this.renderProfileMenu();
+  }
+
+  attachCategoryEvents(footer) {
+    footer.querySelectorAll('[data-store-category]').forEach((item) => {
+      const open = (e) => {
         e.preventDefault();
         const category = item.getAttribute('data-store-category') || '';
         this.mod.main?.openStorefront?.(this.publicKey, {
@@ -188,14 +219,12 @@ class UserStoreSidebar {
           admin: false
         });
       };
-    });
-    nav.querySelector('[data-store-view="all"]')?.addEventListener('click', (e) => {
-      e.preventDefault();
-      this.mod.main?.openStorefront?.(this.publicKey, {
-        category: '',
-        featured: false,
-        admin: false
-      });
+      item.onclick = open;
+      item.onkeydown = (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          open(e);
+        }
+      };
     });
   }
 
@@ -212,10 +241,6 @@ class UserStoreSidebar {
     if (!root) {
       return;
     }
-
-    root.querySelectorAll('[data-store-attribution="marketplace"]').forEach((link) => {
-      link.onclick = (e) => this.openMarketplace(e);
-    });
 
     this.attachNavEvents();
   }
@@ -247,6 +272,25 @@ class UserStoreSidebar {
     }
     if (action === 'send-message') {
       this.openChat(this.publicKey);
+      return;
+    }
+    if (action === 'share-store') {
+      const url = this.mod.returnStorefrontUrl?.(this.publicKey) || '';
+      if (!url) {
+        return;
+      }
+      const copy = navigator.clipboard?.writeText
+        ? navigator.clipboard.writeText(url)
+        : Promise.reject(new Error('clipboard unavailable'));
+      copy
+        .then(() => {
+          if (typeof siteMessage === 'function') {
+            siteMessage('Store link copied', 1500);
+          }
+        })
+        .catch((err) => {
+          console.warn('Store: copy storefront URL failed', err?.message || err);
+        });
     }
   }
 }

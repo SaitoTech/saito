@@ -9,7 +9,12 @@ function escapeHtml(value = '') {
 }
 
 /** Public marketplace sidebar. Featured is a page, not a saved category. */
-function browseTemplate({ showMyStore = false, categories = [] } = {}) {
+function browseTemplate({
+  showMyStore = false,
+  categories = [],
+  featuredName = 'Featured',
+  featuredVisible = true
+} = {}) {
   const categoryItems = (Array.isArray(categories) ? categories : [])
     .map((category) => {
       const id = String(category.category_id || category.id || '');
@@ -28,9 +33,12 @@ function browseTemplate({ showMyStore = false, categories = [] } = {}) {
         <span class="label">Moderate</span>
         <span class="saito-notification-dot badge" data-moderation-count aria-hidden="true">0</span>
       </li>
-      <li class="item active" role="button" tabindex="0" data-view="featured">Featured</li>
+      ${
+        featuredVisible
+          ? `<li class="item" role="button" tabindex="0" data-view="featured">${escapeHtml(featuredName || 'Featured')}</li>`
+          : ''
+      }
       ${categoryItems}
-      <li class="item" role="button" tabindex="0" data-view="all" data-category="">All Listings</li>
       <li class="divider" role="separator"></li>
       ${footerItem}
     </ul>

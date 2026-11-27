@@ -1,40 +1,46 @@
 const secp256k1 = require('secp256k1');
 
-function decodeHex(value) {
-  const text = String(value || '');
-  return text.length % 2 === 0 && /^[0-9a-f]*$/i.test(text) ? Buffer.from(text, 'hex') : null;
-}
-
 /**
- * Verify the signature already stored on a transaction.
+ * Confirm the transaction was signed by its from-slip.
  *
- * Transaction::generate_hash_for_signature() is the hash that was signed.
- * Wasm verify_signature hashes its buffer again, and so does app.crypto.verifySignature.
- * Passing the precomputed hash through either of those rejects a valid transaction.
- * The peer receive path does not call Transaction::validate before handlePeerTransaction.
+ * The peer path does not validate the transaction, and the deserialized
+ * transaction has no crypto object. The sender key is decoded with
+ * app.crypto.fromBase58. app.crypto.verifySignature hashes its input, while
+ * getHashForSignature() is already the digest the wallet signed, so that
+ * digest is checked directly.
+ *
+ * Returns the verified sender public key, or an empty string.
  */
-function verifyTransactionSignatureHash(tx) {
+function verifyTransactionSender(app, tx) {
   try {
-    const signature = decodeHex(tx?.signature);
-    const publicKey = Buffer.from(tx?.app?.crypto?.fromBase58(tx?.from?.[0]?.publicKey) || '', 'hex');
+    const signer = String(tx?.from?.[0]?.publicKey || '').trim();
     if (
-      !tx ||
-      signature?.length !== 64 ||
-      publicKey.length !== 33 ||
-      typeof tx.generateHashForSignature !== 'function' ||
+      !signer ||
+      !tx?.signature ||
+      typeof app?.crypto?.fromBase58 !== 'function' ||
       typeof tx.getHashForSignature !== 'function'
     ) {
-      return false;
+      return '';
     }
-    tx.generateHashForSignature();
+    if (typeof tx.generateHashForSignature === 'function') {
+      tx.generateHashForSignature();
+    }
     const hash = Buffer.from(tx.getHashForSignature() || []);
-    if (hash.length !== 32) {
-      return false;
+    const signature = Buffer.from(String(tx.signature), 'hex');
+    const publicKey = Buffer.from(app.crypto.fromBase58(signer), 'hex');
+    if (hash.length !== 32 || signature.length !== 64 || publicKey.length !== 33) {
+      return '';
     }
-    return secp256k1.verify(hash, signature, publicKey);
+    if (secp256k1.verify(hash, signature, publicKey) !== true) {
+      return '';
+    }
+    if (typeof tx.isFrom === 'function' && tx.isFrom(signer) !== true) {
+      return '';
+    }
+    return signer;
   } catch (err) {
-    return false;
+    return '';
   }
 }
 
-module.exports = { verifyTransactionSignatureHash };
+module.exports = { verifyTransactionSender };

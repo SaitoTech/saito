@@ -31,7 +31,9 @@ module.exports = ({
       const signature = escapeHtml(summary.listing_signature || '');
       const title = escapeHtml(summary.returnTitle?.() || summary.title || 'Untitled Item');
       const categoryId = String(summary.category || '');
-      const category = escapeHtml(categoryNames[categoryId] || categoryId);
+      const category = escapeHtml(
+        categoryId ? categoryNames[categoryId] || categoryId : 'Featured'
+      );
       const price = escapeHtml(summary.returnPrice?.() || '');
       const quantity = Number(summary.quantity_total ?? summary.quantity_available ?? 0) || 0;
       const created = escapeHtml(formatCreatedAt(summary.created_at));

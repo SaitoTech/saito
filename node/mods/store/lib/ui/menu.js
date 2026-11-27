@@ -12,6 +12,8 @@ class Menu {
     this.onStoreModeChange = callbacks.onStoreModeChange || null;
     this.active = 'featured';
     this.categories = [];
+    this.featuredName = 'Featured';
+    this.featuredVisible = true;
     this.mode = 'browse';
     this.dashboardView = 'store-admin';
     this.has_store = false;
@@ -68,7 +70,12 @@ class Menu {
             dashboardView: this.dashboardView,
             showWithdrawals: isStoreWeb3Active(this.app)
           })
-        : MenuTemplate.browse({ showMyStore: this.has_store, categories: this.categories });
+        : MenuTemplate.browse({
+            showMyStore: this.has_store,
+            categories: this.categories,
+            featuredName: this.featuredName,
+            featuredVisible: this.featuredVisible
+          });
 
     this.app.browser.replaceElementContentBySelector(html, this.container);
 
@@ -203,10 +210,17 @@ class Menu {
     this.setDashboardView(storeMode === 'sold' ? 'sold' : 'store-admin');
   }
 
-  setCategories(categories = [], active = this.active) {
+  setCategories(categories = [], active = this.active, options = {}) {
     this.categories = Array.isArray(categories) ? categories : [];
     if (active) {
       this.active = active;
+    }
+    const label = String(options.featuredName || '').trim();
+    if (label) {
+      this.featuredName = label;
+    }
+    if (options.featuredVisible != null) {
+      this.featuredVisible = options.featuredVisible !== false && options.featuredVisible !== 0;
     }
     if (this.mode === 'browse') {
       this.render();

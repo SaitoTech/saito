@@ -3,9 +3,9 @@
    Width follows the checkbox labels; 42rem was far too wide under Saito rem scaling. */
 
 .saito-overlay > .store-settings {
-  width: max-content;
+  width: min(92vw, 64rem);
   max-width: 92vw;
-  max-height: min(90dvh, 40rem);
+  max-height: min(90dvh, 48rem);
   overflow: auto;
   box-sizing: border-box;
 }
@@ -13,7 +13,7 @@
 .store-settings {
   display: flex;
   flex-direction: column;
-  width: max-content;
+  width: 100%;
   max-width: 92vw;
 }
 
@@ -58,6 +58,13 @@
   margin: 0;
   flex: 0 0 auto;
   cursor: pointer;
+}
+
+.store-settings-divider {
+  border: 0;
+  border-top: 1px solid var(--saito-border);
+  margin: 0.35rem 0 0.15rem;
+  width: 100%;
 }
 
 @media (max-width: 600px) {

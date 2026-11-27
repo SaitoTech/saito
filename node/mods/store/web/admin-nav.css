@@ -1,0 +1,304 @@
+/* Store Navigation on the Admin app.
+   The Admin page does not load saito.css or /store/style.css, so these
+   rules reproduce the seller settings controls with Admin theme colors. */
+
+.admin-store .store-navigation-editor {
+  --nav-fg: var(--admin-heading, #111827);
+  --nav-muted: var(--admin-muted, #6b7280);
+  --nav-surface: var(--admin-subtle, #f3f4f6);
+  --nav-border: var(--admin-border, #d1d5db);
+  --nav-accent: #f54900;
+  --nav-accent-fg: #fff8f2;
+  --nav-danger: var(--admin-danger, #b42318);
+  display: grid;
+  gap: 1rem;
+  width: 100%;
+  margin-top: 0.5rem;
+  color: var(--nav-fg);
+  font-size: 1rem;
+  line-height: 1.4;
+}
+
+.admin-store .store-navigation-editor h3 {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--nav-fg);
+}
+
+.admin-store .store-nav-layout {
+  display: grid;
+  grid-template-columns: min(22rem, 100%) minmax(0, 1fr);
+  column-gap: 2rem;
+  align-items: start;
+}
+
+.admin-store .store-nav-menu {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.65rem;
+  width: min(22rem, 100%);
+}
+
+.admin-store .store-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 3rem;
+  margin: 0;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--nav-border);
+  border-radius: 0.35rem;
+  background: var(--nav-surface);
+  color: var(--nav-fg);
+  font: inherit;
+  text-align: left;
+  cursor: grab;
+}
+
+.admin-store .store-nav-item.is-featured {
+  cursor: default;
+  border-left: 3px solid var(--nav-accent);
+}
+
+.admin-store .store-nav-featured-name {
+  width: 100%;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  line-height: inherit;
+}
+
+.admin-store .store-nav-featured-name:focus {
+  outline: none;
+}
+
+.admin-store .store-nav-item.is-add {
+  cursor: pointer;
+  border-color: var(--nav-accent);
+  background: color-mix(in srgb, var(--nav-accent) 14%, var(--nav-surface));
+  color: var(--nav-accent);
+  font-weight: 600;
+}
+
+.admin-store .store-nav-name {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.admin-store .store-nav-item.is-dragging {
+  opacity: 0.55;
+  border-color: var(--nav-accent);
+}
+
+.admin-store .store-nav-item.is-drop-target {
+  border-color: var(--nav-accent);
+  background: color-mix(in srgb, var(--nav-accent) 18%, var(--nav-surface));
+}
+
+.admin-store .store-nav-grip {
+  width: 0.7rem;
+  height: 1.05rem;
+  flex: 0 0 auto;
+  background-image: radial-gradient(circle, currentColor 1.4px, transparent 1.6px);
+  background-size: 0.35rem 0.35rem;
+  background-repeat: repeat;
+  opacity: 0.75;
+}
+
+.admin-store .store-nav-plus {
+  line-height: 1;
+  color: var(--nav-accent);
+  font-weight: 600;
+}
+
+.admin-store .store-nav-delete {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.2rem;
+  height: 2.2rem;
+  margin-left: auto;
+  padding: 0;
+  border: 0;
+  border-radius: 0.35rem;
+  background: transparent;
+  color: var(--nav-muted);
+  cursor: pointer;
+}
+
+.admin-store .store-nav-delete:hover,
+.admin-store .store-nav-delete:focus-visible {
+  color: var(--nav-danger);
+  background: color-mix(in srgb, var(--nav-danger) 14%, transparent);
+  outline: none;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .admin-store .store-nav-item[draggable='true']:hover {
+    border-color: color-mix(in srgb, var(--nav-accent) 55%, var(--nav-border));
+    background: color-mix(in srgb, var(--nav-fg) 6%, var(--nav-surface));
+  }
+
+  .admin-store .store-nav-item.is-add:hover {
+    background: var(--nav-accent);
+    color: var(--nav-accent-fg);
+  }
+
+  .admin-store .store-nav-item.is-add:hover .store-nav-plus {
+    color: var(--nav-accent-fg);
+  }
+}
+
+.admin-store .store-nav-copy {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.85rem;
+}
+
+.admin-store .store-nav-explain {
+  margin: 0;
+  max-width: none;
+  font-size: 1rem;
+  line-height: 1.45;
+  color: var(--nav-muted);
+}
+
+.admin-store .store-nav-featured-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  margin: 0;
+  color: var(--nav-fg);
+  font-size: 1rem;
+  line-height: 1.4;
+  cursor: pointer;
+  user-select: none;
+}
+
+.admin-store .store-nav-featured-toggle input {
+  width: 1.15rem;
+  height: 1.15rem;
+  margin: 0;
+  flex: 0 0 auto;
+  accent-color: var(--nav-accent);
+  cursor: pointer;
+}
+
+.admin-store .store-nav-actions {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 1rem;
+  width: 100%;
+}
+
+.admin-store .store-navigation-editor .saito-button-primary,
+.admin-store .store-navigation-editor .saito-button-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.6rem;
+  margin: 0;
+  padding: 0.55rem 1.1rem;
+  border-radius: 0.45rem;
+  font: inherit;
+  cursor: pointer;
+}
+
+.admin-store .store-navigation-editor .saito-button-primary {
+  border: 1px solid var(--nav-accent);
+  background: var(--nav-accent);
+  color: var(--nav-accent-fg);
+}
+
+.admin-store .store-navigation-editor .saito-button-secondary {
+  border: 1px solid var(--nav-border);
+  background: var(--nav-surface);
+  color: var(--nav-fg);
+}
+
+.admin-store .store-nav-save:disabled {
+  opacity: 0.65;
+  cursor: progress;
+}
+
+.admin-store .store-nav-status {
+  margin: 0;
+  font-size: 1rem;
+  line-height: 1.3;
+}
+
+.admin-store .store-nav-status:empty {
+  display: none;
+}
+
+.admin-store .store-nav-status.is-ok {
+  color: #1b7f4a;
+}
+
+.admin-store .store-nav-status.is-error {
+  color: var(--nav-danger);
+}
+
+.admin-store .store-nav-dialog {
+  width: min(36rem, 92vw);
+  padding: 1.25rem;
+  border: 1px solid var(--nav-border);
+  border-radius: 0.5rem;
+  background: var(--admin-surface, #fff);
+  color: var(--nav-fg);
+}
+
+.admin-store .store-nav-dialog::backdrop {
+  background: color-mix(in srgb, var(--admin-page, #111) 45%, transparent);
+}
+
+.admin-store .store-nav-dialog form {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.admin-store .store-nav-dialog p {
+  margin: 0;
+  font-size: 1rem;
+  line-height: 1.3;
+}
+
+.admin-store .store-nav-dialog input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.65rem 0.8rem;
+  border: 1px solid var(--nav-border);
+  border-radius: 0.4rem;
+  background: transparent;
+  color: var(--nav-fg);
+  font: inherit;
+}
+
+.admin-store .store-nav-dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+}
+
+.admin-store .store-nav-dialog .store-nav-status:empty {
+  display: none;
+}
+
+@media (max-width: 800px) {
+  .admin-store .store-nav-layout {
+    grid-template-columns: minmax(0, 1fr);
+    row-gap: 1rem;
+  }
+}

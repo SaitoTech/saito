@@ -94,6 +94,7 @@ test('signed store navigation and featured updates use the verified sender', asy
     CREATE TABLE store_categories (
       store_key TEXT NOT NULL, category_id TEXT NOT NULL, name TEXT NOT NULL,
       sort_order INTEGER NOT NULL, listing_order TEXT NOT NULL DEFAULT 'newest',
+      visible INTEGER NOT NULL DEFAULT 1,
       PRIMARY KEY (store_key, category_id)
     );
     CREATE TABLE store_featured (
@@ -115,6 +116,11 @@ test('signed store navigation and featured updates use the verified sender', asy
   const admin = identity(9);
   const outsider = identity(2);
   const mod = {
+    app: {
+      crypto: {
+        fromBase58: (key) => Buffer.from(base58.decode(key)).toString('hex')
+      }
+    },
     warehouse: { db },
     isStoreAdmin: (tx) => tx.isFrom(admin.publicKey),
     returnMarketplaceWhitelist: () => []
@@ -139,6 +145,24 @@ test('signed store navigation and featured updates use the verified sender', asy
   });
   await main.sign();
   await receiveModifyStoreNavigation(mod, main);
+  assert.deepEqual(
+    (await db.returnStoreCategories('')).map((row) => row.category_id),
+    ['apps-and-games']
+  );
+  assert.deepEqual(await db.returnFeaturedConfig(''), { name: 'Featured', visible: 1 });
+
+  await db.replaceStoreFeatured('', ['aa'.repeat(33)]);
+  const hidden = signedTx(admin, {
+    module: 'Store',
+    scope: 'main',
+    featured_name: 'Front Page',
+    featured_visible: 0,
+    categories: [{ category_id: 'apps-and-games', name: 'Apps & Games', listing_order: 'newest' }]
+  });
+  await hidden.sign();
+  await receiveModifyStoreNavigation(mod, hidden);
+  assert.deepEqual(await db.returnFeaturedConfig(''), { name: 'Front Page', visible: 0 });
+  assert.deepEqual(await db.returnFeaturedNftIds(''), ['aa'.repeat(33)]);
   assert.deepEqual(
     (await db.returnStoreCategories('')).map((row) => row.category_id),
     ['apps-and-games']

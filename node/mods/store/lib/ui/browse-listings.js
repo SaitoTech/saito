@@ -55,6 +55,8 @@ function loadListingsPage(
           public_key: response.public_key || request.public_key,
           category: response.category || request.category,
           categories: Array.isArray(response.categories) ? response.categories : [],
+          featured_name: String(response.featured_name || ''),
+          featured_visible: !(response.featured_visible === 0 || response.featured_visible === false),
           featured: Array.isArray(response.featured) ? response.featured : [],
           pagination: response.pagination || {
             offset: request.offset,

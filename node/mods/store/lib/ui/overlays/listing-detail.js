@@ -388,18 +388,22 @@ class ListingDetailOverlay {
         page_size: 1
       });
       const categories = result.categories || [];
-      select.innerHTML = categories
-        .map((category) => {
+      const featuredLabel = String(result.featured_name || 'Featured')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;');
+      const options = [
+        `<option value="">${featuredLabel}</option>`,
+        ...categories.map((category) => {
           const id = String(category.category_id || '');
           const name = String(category.name || id)
             .replace(/&/g, '&amp;')
             .replace(/</g, '&lt;');
           return `<option value="${id}">${name}</option>`;
         })
-        .join('');
-      if (!categories.length) {
-        select.innerHTML = '<option value="">Create a category in Settings first</option>';
-      }
+      ];
+      select.innerHTML = options.join('');
+      const current = String(this.listing?.category || '');
+      select.value = [...select.options].some((option) => option.value === current) ? current : '';
       this.listing.category = select.value || '';
       select.addEventListener('change', () => {
         this.listing.category = select.value || '';

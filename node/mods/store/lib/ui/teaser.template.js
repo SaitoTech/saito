@@ -13,8 +13,11 @@ module.exports = (
   mediaBackground = '',
   showLoading = false
 ) => {
-  const badge =
-    data.has_action_text || data.show_buy_now ? `<span class="badge">Buy Now</span>` : '';
+  const cart =
+    data.has_action_text || data.show_buy_now
+      ? `<span class="cart" aria-hidden="true"><i class="fas fa-shopping-cart"></i></span>`
+      : '';
+  const featured = data.featured ? `<span class="badge">Featured</span>` : '';
   const loader = showLoading
     ? `<i class="fas fa-spinner fa-spin loader" aria-hidden="true"></i>`
     : '';
@@ -22,26 +25,23 @@ module.exports = (
   const title = escapeHtml(data.title || 'Untitled Item');
   const description = escapeHtml(data.description || '');
   const price = escapeHtml(data.price || '');
-  const seller = escapeHtml(data.seller || 'anon');
   const label = `View listing: ${title}`;
   const attrs = listingAttrs ? ` ${listingAttrs}` : '';
-  const identicon = escapeHtml(data.identicon || '');
   const safeBackground = escapeHtml(mediaBackground || '');
 
   return `
     <article class="teaser"${attrs} role="button" tabindex="0" aria-label="${label}">
       <div class="media ${escapeHtml(mediaClass)}${loadingClass}" style="background: ${safeBackground};">
         ${loader}
-        ${badge}
+        ${featured}
       </div>
       <div class="info">
         <h3 class="title">${title}</h3>
         <p class="description">${description}</p>
-        <div class="price">${price}</div>
-      </div>
-      <div class="seller-row">
-        <img class="saito-identicon" src="${identicon}" alt="" />
-        <p class="seller">${seller}</p>
+        <div class="price-row">
+          <div class="price">${price}</div>
+          ${cart}
+        </div>
       </div>
     </article>
   `;

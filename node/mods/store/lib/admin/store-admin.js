@@ -21,6 +21,7 @@ class StoreAdmin {
   }
 
   render() {
+    this.ensureStyles();
     this.loading = true;
     this.error = '';
     this.expanded = false;
@@ -43,6 +44,17 @@ class StoreAdmin {
     );
     this.attachEvents();
     this.mountNavigation();
+  }
+
+  ensureStyles() {
+    if (typeof document === 'undefined' || document.querySelector('link[data-store-admin-nav]')) {
+      return;
+    }
+    const link = document.createElement('link');
+    link.rel = 'stylesheet';
+    link.href = '/store/admin-nav.css';
+    link.setAttribute('data-store-admin-nav', '');
+    document.head.appendChild(link);
   }
 
   mountNavigation() {

@@ -1307,11 +1307,22 @@ module.exports = {
     }
   },
 
-  createModifyStoreNavigationTransaction(categories = [], scope = '', callback = null) {
+  createModifyStoreNavigationTransaction(
+    categories = [],
+    scope = '',
+    callback = null,
+    featuredName = '',
+    featuredVisible = true
+  ) {
     const data = { module: 'Store', categories };
     if (scope) {
       data.scope = scope;
     }
+    const featured_name = String(featuredName || '').trim();
+    if (featured_name) {
+      data.featured_name = featured_name;
+    }
+    data.featured_visible = featuredVisible === false || featuredVisible === 0 ? 0 : 1;
     const peerKey = this.store_public_key;
     if (!peerKey || !this.app?.network?.sendRequestAsTransaction) {
       if (typeof callback === 'function') {

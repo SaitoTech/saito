@@ -104,7 +104,9 @@ class Teaser {
       return;
     }
 
-    media.classList.remove('placeholder', 'has-image', 'loading', 'has-media-content');
+    media.classList.remove('loading');
+    media.querySelector('.loader')?.remove();
+    media.classList.remove('placeholder', 'has-image', 'has-media-content');
 
     let content = media.querySelector('.media-content');
     if (display.innerHtml) {
@@ -122,6 +124,7 @@ class Teaser {
     if (bg && app?.browser?.isSafeMediaUrl?.(bg)) {
       media.classList.add('has-image');
       media.style.background = Teaser.mediaBackground(bg, 'contain');
+      Teaser.confirmBackground(media, bg, placeholder);
       return;
     }
 
@@ -131,6 +134,27 @@ class Teaser {
     } else {
       media.style.background = '';
     }
+  }
+
+  static confirmBackground(media, url, placeholder) {
+    const expected = String(url || '');
+    media.dataset.mediaUrl = expected;
+    const probe = new Image();
+    probe.onload = () => {
+      if (media.dataset.mediaUrl === expected) {
+        media.querySelector('.loader')?.remove();
+      }
+    };
+    probe.onerror = () => {
+      if (media.dataset.mediaUrl !== expected) {
+        return;
+      }
+      media.classList.remove('has-image');
+      media.classList.add('placeholder');
+      media.style.background = Teaser.mediaBackground(placeholder, 'cover');
+      media.querySelector('.loader')?.remove();
+    };
+    probe.src = expected;
   }
 
   static applyMediaDisplay(app, summary, display = {}) {
@@ -172,6 +196,7 @@ class Teaser {
       price,
       seller: shortSeller,
       identicon,
+      featured: this.summary.featured === true || this.summary.is_featured === true,
       show_buy_now: this.summary.show_buy_now ?? this.summary.can_buy ?? this.summary.badge ?? false
     };
 

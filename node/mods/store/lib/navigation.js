@@ -1,12 +1,14 @@
-const { verifyTransactionSignatureHash } = require('./signature');
+const { verifyTransactionSender } = require('./signature');
 
 const CATEGORY_ID = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const NFT_ID = /^[0-9a-fA-F]{66}$/;
 const LISTING_SIGNATURE = /^[0-9a-fA-F]{128}$/;
 const MAX_CATEGORIES = 30;
 const MAX_NAME = 40;
+const FEATURED_LABEL_ID = 'featured';
+const DEFAULT_FEATURED_NAME = 'Featured Items';
 const MAX_FEATURED = 200;
-const RESERVED_IDS = new Set(['admin', 'moderate', 'cache', 'listing', 'category', 's']);
+const RESERVED_IDS = new Set(['admin', 'moderate', 'cache', 'listing', 'category', 'featured', 's']);
 const OWNER_FIELDS = ['store_key', 'seller_public_key', 'public_key', 'publickey', 'owner', 'seller'];
 
 const LEGACY_MARKET_CATEGORIES = [
@@ -48,6 +50,23 @@ function payloadHasOwnerField(value) {
   return OWNER_FIELDS.some((field) => Object.prototype.hasOwnProperty.call(value, field));
 }
 
+function validateFeaturedName(value, categories = []) {
+  const name = String(value == null ? DEFAULT_FEATURED_NAME : value)
+    .trim()
+    .replace(/\s+/g, ' ');
+  if (!name || name.length > MAX_NAME) {
+    throw new Error('Invalid featured name');
+  }
+  if (
+    (Array.isArray(categories) ? categories : []).some(
+      (entry) => String(entry?.name || '').trim().toLowerCase() === name.toLowerCase()
+    )
+  ) {
+    throw new Error('That category already exists');
+  }
+  return name;
+}
+
 function validateCategories(categories) {
   if (!Array.isArray(categories)) {
     throw new Error('Categories must be a list');
@@ -70,6 +89,9 @@ function validateCategories(categories) {
     }
     if (!name || name.length > MAX_NAME) {
       throw new Error('Invalid category name');
+    }
+    if (name.toLowerCase() === 'featured' || category_id === 'featured') {
+      throw new Error('Featured is reserved');
     }
     if (listing_order !== 'newest' && listing_order !== 'alphabetical') {
       throw new Error('Invalid listing order');
@@ -126,8 +148,7 @@ function navigationPayload(tx) {
   return data;
 }
 
-function storeKeyForPayload(mod, tx, data) {
-  const sender = String(tx?.from?.[0]?.publicKey || '').trim();
+function storeKeyForPayload(mod, tx, data, sender) {
   if (!sender) {
     throw new Error('Invalid signature');
   }
@@ -144,11 +165,8 @@ function storeKeyForPayload(mod, tx, data) {
   return sender;
 }
 
-function verifiedSender(tx) {
-  if (!verifyTransactionSignatureHash(tx)) {
-    throw new Error('Invalid signature');
-  }
-  const sender = String(tx?.from?.[0]?.publicKey || '').trim();
+function verifiedSender(app, tx) {
+  const sender = verifyTransactionSender(app, tx);
   if (!sender) {
     throw new Error('Invalid signature');
   }
@@ -156,23 +174,40 @@ function verifiedSender(tx) {
 }
 
 async function receiveModifyStoreNavigation(mod, tx) {
-  verifiedSender(tx);
+  const sender = verifiedSender(mod?.app, tx);
   const data = navigationPayload(tx);
   const categories = validateCategories(data.categories);
-  const store_key = storeKeyForPayload(mod, tx, data);
+  const store_key = storeKeyForPayload(mod, tx, data, sender);
   const db = mod.warehouse?.db;
   if (!db?.replaceStoreCategories) {
     throw new Error('Store database unavailable');
   }
-  await db.replaceStoreCategories(store_key, categories);
-  return { ok: 1, store_key, categories };
+  const fallback = store_key ? DEFAULT_FEATURED_NAME : 'Featured';
+  const featured_name = validateFeaturedName(
+    Object.prototype.hasOwnProperty.call(data, 'featured_name') ? data.featured_name : fallback,
+    categories
+  );
+  const featured_visible =
+    data.featured_visible === false || data.featured_visible === 0 || data.featured_visible === '0'
+      ? 0
+      : 1;
+  const stored = categories.slice();
+  stored.push({
+    category_id: FEATURED_LABEL_ID,
+    name: featured_name,
+    sort_order: -1,
+    listing_order: 'newest',
+    visible: featured_visible
+  });
+  await db.replaceStoreCategories(store_key, stored);
+  return { ok: 1, store_key, categories, featured_name, featured_visible };
 }
 
 async function receiveModifyStoreFeatured(mod, tx) {
-  verifiedSender(tx);
+  const sender = verifiedSender(mod?.app, tx);
   const data = navigationPayload(tx);
   const featured = validateFeaturedIds(data.featured);
-  const store_key = storeKeyForPayload(mod, tx, data);
+  const store_key = storeKeyForPayload(mod, tx, data, sender);
   const db = mod.warehouse?.db;
   if (!db?.replaceStoreFeatured) {
     throw new Error('Store database unavailable');
@@ -269,6 +304,9 @@ module.exports = {
   isListingSignature,
   normalizeCategoryId,
   payloadHasOwnerField,
+  FEATURED_LABEL_ID,
+  DEFAULT_FEATURED_NAME,
+  validateFeaturedName,
   validateCategories,
   validateFeaturedIds,
   receiveModifyStoreNavigation,

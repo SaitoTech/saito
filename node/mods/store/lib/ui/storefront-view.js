@@ -94,12 +94,11 @@ class StorefrontView {
     }
 
     const isDashboard = this.isAdminMode();
-    const rawTitle = this.app.keychain?.returnUsername?.(this.publicKey) || 'Store';
     const shareUrl = this.publicKey ? this.mod.returnStorefrontUrl?.(this.publicKey) || '' : '';
 
     this.app.browser.replaceElementContentBySelector(
       StorefrontViewTemplate({
-        title: this.escapeHtml(rawTitle),
+        title: '',
         description: '',
         shareUrl,
         loading:
@@ -275,13 +274,29 @@ class StorefrontView {
       if (token !== this.loadToken) {
         return;
       }
+      const featuredVisible =
+        result.featured_visible !== 0 && result.featured_visible !== false;
+      if (this.featured && !featuredVisible) {
+        const next = (result.categories || []).find((category) => category?.category_id);
+        if (next?.category_id) {
+          this.loading = false;
+          this.mod.main?.openStorefront?.(this.publicKey, {
+            category: next.category_id,
+            featured: false,
+            admin: false
+          });
+          return;
+        }
+      }
       this.activeSummaries = result.listings || [];
       this.categories = result.categories || [];
       this.featuredIds = result.featured || [];
       this.inventoryLoaded = true;
       this.mod.main?.user_store_sidebar?.setCategories?.(this.categories, {
         category: this.category,
-        featured: this.featured
+        featured: this.featured && featuredVisible,
+        featuredName: result.featured_name || '',
+        featuredVisible
       });
     } catch (err) {
       console.warn('Store: load-listings (storefront) failed', err?.message || err);

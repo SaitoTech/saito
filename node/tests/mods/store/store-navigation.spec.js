@@ -6,7 +6,8 @@ const {
   parseStorePath,
   receiveModifyStoreNavigation,
   receiveModifyStoreFeatured,
-  validateCategories
+  validateCategories,
+  validateFeaturedName
 } = require('../../../mods/store/lib/navigation');
 
 
@@ -99,6 +100,7 @@ async function schema(sqlite) {
       name TEXT NOT NULL,
       sort_order INTEGER NOT NULL,
       listing_order TEXT NOT NULL DEFAULT 'newest',
+      visible INTEGER NOT NULL DEFAULT 1,
       PRIMARY KEY (store_key, category_id)
     );
     CREATE TABLE store_featured (
@@ -265,7 +267,33 @@ describe('store navigation and featured listings', () => {
     expect(rows.map((row) => row.category_id)).toEqual(['prints']);
   });
 
-  test('deleting and recreating a category keeps listing ids and restores the category page', async () => {
+  test('a featured display name is stored apart from listing categories', async () => {
+    await listing(sqlite, {
+      signature: 'sig-home',
+      nft_id: NFT_A,
+      seller: SELLER,
+      category: '',
+      created_at: 5
+    });
+    expect(validateFeaturedName('Home', [])).toBe('Home');
+    expect(() => validateFeaturedName('Prints', [{ name: 'Prints' }])).toThrow(/already exists/i);
+    expect(() => validateCategories([{ category_id: 'featured', name: 'Home' }])).toThrow(/invalid category id/i);
+
+    await db.replaceStoreCategories(SELLER, [
+      { category_id: 'prints', name: 'Prints', sort_order: 0, listing_order: 'newest' },
+      { category_id: 'featured', name: 'Home', sort_order: -1, listing_order: 'newest' }
+    ]);
+
+    expect((await db.returnStoreCategories(SELLER)).map((row) => row.category_id)).toEqual(['prints']);
+    expect(await db.returnFeaturedName(SELLER)).toBe('Home');
+    expect(
+      (await db.returnListingsPageForSeller({ seller: SELLER, featured: true })).map(
+        (row) => row.signature
+      )
+    ).toEqual(['sig-home']);
+  });
+
+  test('deleting a category clears its listings and shows them on the front page', async () => {
     await listing(sqlite, {
       signature: 'sig-1',
       nft_id: NFT_A,
@@ -276,13 +304,19 @@ describe('store navigation and featured listings', () => {
     await db.replaceStoreCategories(SELLER, [
       { category_id: 'prints', name: 'Prints', sort_order: 0, listing_order: 'newest' }
     ]);
+    expect(
+      await db.returnListingsPageForSeller({ seller: SELLER, featured: true })
+    ).toHaveLength(0);
+
     await db.replaceStoreCategories(SELLER, []);
     const stored = await sqlite.all('SELECT category FROM listings');
-    expect(stored[0].category).toBe('prints');
-    const all = await db.countListingsForSeller({ seller: SELLER, category: '' });
-    const filtered = await db.countListingsForSeller({ seller: SELLER, category: 'prints' });
-    expect(all).toBe(1);
-    expect(filtered).toBe(1);
+    expect(stored[0].category).toBe('');
+    expect(await db.countListingsForSeller({ seller: SELLER, category: 'prints' })).toBe(0);
+    expect(
+      (await db.returnListingsPageForSeller({ seller: SELLER, featured: true })).map(
+        (row) => row.signature
+      )
+    ).toEqual(['sig-1']);
 
     await db.replaceStoreCategories(SELLER, [
       { category_id: 'prints', name: 'New Prints', sort_order: 0, listing_order: 'alphabetical' }
@@ -292,11 +326,12 @@ describe('store navigation and featured listings', () => {
       category: 'prints',
       order: 'alphabetical'
     });
-    expect(page).toHaveLength(1);
-    expect(page[0].category).toBe('prints');
+    expect(page).toHaveLength(0);
+    expect(
+      await db.returnListingsPageForSeller({ seller: SELLER, featured: true })
+    ).toHaveLength(1);
     const nav = await db.returnStoreCategory(SELLER, 'prints');
     expect(nav.name).toBe('New Prints');
-    expect(nav.category_id).toBe('prints');
   });
 
   test('featured keeps one newest active listing per nft and survives sale, relist, and reorg flags', async () => {
@@ -328,7 +363,7 @@ describe('store navigation and featured listings', () => {
     await db.replaceStoreFeatured(SELLER, [NFT_A, NFT_B]);
 
     let page = await db.returnListingsPageForSeller({ seller: SELLER, featured: true });
-    expect(page.map((row) => row.signature)).toEqual(['new']);
+    expect(page.map((row) => row.signature)).toEqual(['new', 'old']);
 
     await sqlite.run(
       `INSERT INTO listing_sales (signature, block_hash_listed, longest_chain_sold, buyer)
@@ -454,7 +489,8 @@ describe('store navigation and featured listings', () => {
     expect(calls[0][0]).toBe('store-modify-navigation');
     expect(calls[0][1]).toEqual({
       module: 'Store',
-      categories: [{ category_id: 'prints', name: 'Prints' }]
+      categories: [{ category_id: 'prints', name: 'Prints' }],
+      featured_visible: 1
     });
     expect(calls[0][4]).toBe(true);
     expect(calls[1][0]).toBe('store-modify-featured');

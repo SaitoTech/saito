@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8">
+<link rel="stylesheet" href="css/store-base.css">
+<link rel="stylesheet" href="css/store-main.css">
+<link rel="stylesheet" href="css/store-teaser.css">
+<style>
+  :root {
+    --saito-header-height: 0px; --saito-space-xs: .25rem; --saito-space-sm: .5rem;
+    --saito-space-md: .75rem; --saito-space-lg: 1.25rem; --saito-space-xl: 2rem; --saito-space-xxl: 2.5rem;
+    --saito-card: #1c1c1e; --saito-card-wash: #1c1c1e; --saito-background: #111;
+    --saito-border: #2e2e32; --saito-foreground: #f4f4f5; --saito-muted: #222;
+    --saito-muted-foreground: #a1a1aa; --saito-primary: #f97316;
+    --saito-font-medium: system-ui,sans-serif; --saito-radius: .7rem; --saito-focus-ring: 0 0 0 2px #f97316;
+    --saito-profile-inset: .75rem; --saito-profile-avatar-ring: 5px;
+  }
+  body { margin: 0; background: #0c0c0c; color: #f4f4f5; font-family: system-ui,sans-serif; }
+  .saito-container.store-container { position: static; height: auto; }
+  .saito-profile-card { background: var(--saito-card-wash); border: 1px solid var(--saito-border); border-radius: .7rem; overflow: hidden; }
+  .saito-profile-banner { height: 5.5rem; background: linear-gradient(90deg,#ff2d55,#ff9f0a); }
+  .saito-profile-identity { display: grid; grid-template-columns: 4.2rem 1fr; gap: .7rem; margin-top: -1.4rem; padding: 0 .8rem .6rem; align-items: end; }
+  .saito-profile-avatar { width: 4.2rem; height: 4.2rem; border-radius: .6rem; background: #eee; display: block; }
+  .saito-profile-name { font-weight: 650; }
+  .saito-profile-public-key { display: block; max-width: 12rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--saito-muted-foreground); font-size: .85rem; }
+  .teaser .media { background: #333; }
+</style></head>
+<body>
+<div class="saito-container store-container">
+  <div class="store user-store">
+    <aside class="user-store-context">
+      <div class="user-store-profile"><div class="saito-profile"><div class="saito-profile-card">
+        <div class="saito-profile-banner"></div>
+        <div class="saito-profile-identity">
+          <img class="saito-profile-avatar" alt="">
+          <div><span class="saito-profile-name">Anon-bujP18</span><span class="saito-profile-public-key">bujP18K4fkzHvtuRriXqgN…</span></div>
+        </div>
+        <div class="saito-profile-footer">
+          <nav class="user-store-nav">
+            <div class="item"><span class="label">Contact Seller</span></div>
+            <div class="user-store-nav-divider"></div>
+            <div class="user-store-nav-categories">
+              <div class="item active">Featured Items</div>
+              <div class="item category depth-0">Prints</div>
+              <div class="item category depth-0">Games</div>
+              <div class="item">All Listings</div>
+            </div>
+          </nav>
+        </div>
+      </div></div></div>
+    </aside>
+    <div class="main-column">
+      <header class="storefront-heading"><h2>Featured</h2><p>Listings without a category appear on the front of this store.</p></header>
+      <div class="teasers">
+        <article class="teaser"><div class="media"></div><div class="info"><h3 class="title">Tiger Land</h3><p class="description">Featured listing</p><div class="price-row"><div class="price">10 SAITO</div></div></div></article>
+        <article class="teaser"><div class="media"></div><div class="info"><h3 class="title">Chess Set</h3><p class="description">Featured listing</p><div class="price-row"><div class="price">50 SAITO</div></div></div></article>
+      </div>
+    </div>
+  </div>
+</div>
+</body></html>

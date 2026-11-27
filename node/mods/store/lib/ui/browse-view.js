@@ -93,11 +93,31 @@ class BrowseView {
         return;
       }
 
+      const featuredVisible =
+        result.featured_visible !== 0 && result.featured_visible !== false;
+      if (this.featured && !featuredVisible) {
+        const next = (result.categories || []).find((category) => category?.category_id);
+        if (next?.category_id) {
+          this.loading = false;
+          this.mod.main?.setBrowseUrl?.({ category: next.category_id, featured: false });
+          return this.loadPage({
+            category: next.category_id,
+            featured: false,
+            page: 1,
+            scroll
+          });
+        }
+      }
+
       this.listings = result.listings || [];
       this.pagination = result.pagination || null;
       this.mod.main?.menu?.setCategories?.(
         result.categories || [],
-        this.featured ? 'featured' : this.category || 'all'
+        this.featured && featuredVisible ? 'featured' : this.category || '',
+        {
+          featuredName: result.featured_name || '',
+          featuredVisible
+        }
       );
       this.page = this.pagination?.page || this.page;
       this.has_loaded = true;

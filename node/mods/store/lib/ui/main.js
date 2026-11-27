@@ -121,7 +121,7 @@ class Main {
     }
     const featured = !!route.featured && !route.category;
     this.setComposition('marketplace');
-    this.menu.setActive(route.category || (featured ? 'featured' : 'all'));
+    this.menu.setActive(route.category || (featured ? 'featured' : ''));
     this.manager.show('browse');
     this.loadBrowsePage({ category: route.category || '', featured, page: 1 });
   }
@@ -222,15 +222,6 @@ class Main {
       this.manager.show('browse');
       this.setBrowseUrl({ featured: true });
       this.loadBrowsePage({ category: '', featured: true, page: 1, scroll: true });
-      return;
-    }
-
-    if (view === 'all') {
-      this.setComposition('marketplace');
-      this.menu.setActive('all');
-      this.manager.show('browse');
-      this.setBrowseUrl({ featured: false, category: '' });
-      this.loadBrowsePage({ category: '', featured: false, page: 1, scroll: true });
       return;
     }
 

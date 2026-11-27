@@ -509,6 +509,7 @@ class Store extends ModTemplate {
         }
         const store_key = public_key;
         const categories = await this.warehouse.db.returnStoreCategories(store_key);
+        const featuredConfig = await this.warehouse.db.returnFeaturedConfig(store_key);
         const featured_ids = await this.warehouse.db.returnFeaturedNftIds(store_key);
         const listings = result.listings.map((summary) => summary.serialize());
         mycallback({
@@ -516,6 +517,8 @@ class Store extends ModTemplate {
           public_key,
           category: result.category,
           categories,
+          featured_name: featuredConfig.name,
+          featured_visible: featuredConfig.visible,
           featured: featured_ids,
           pagination: result.pagination
         });
@@ -1322,7 +1325,7 @@ class Store extends ModTemplate {
     if (!route.publicKey && !route.moderate && !route.signature) {
       this.main.manager.browse.category = route.category || '';
       this.main.manager.browse.featured = route.featured !== false && !route.category;
-      this.main.menu.setActive(route.category || (this.main.manager.browse.featured ? 'featured' : 'all'));
+      this.main.menu.setActive(route.category || (this.main.manager.browse.featured ? 'featured' : ''));
     }
   }
 
