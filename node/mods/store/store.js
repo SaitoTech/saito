@@ -1,5 +1,5 @@
 const ModTemplate = require('../../lib/templates/modtemplate');
-const SaitoHeader = require('../../lib/saito/ui/saito-header/saito-header');
+const StoreHeader = require('./lib/ui/header');
 const PeerService = require('saito-js/lib/peer_service').default;
 const Main = require('./lib/ui/main');
 const Warehouse = require('./lib/warehouse');
@@ -92,7 +92,7 @@ class Store extends ModTemplate {
     }
 
     if (this.browser_active) {
-      this.header = new SaitoHeader(this.app, this);
+      this.header = new StoreHeader(this.app, this);
       this.header.header_class = 'store';
       await this.header.initialize(this.app);
       this.addComponent(this.header);
@@ -1326,14 +1326,14 @@ class Store extends ModTemplate {
       return;
     }
 
+    const route = this.returnStoreRouteFromPath();
     if (this.header) {
       this.header.header_class = 'store';
+      this.header.storeKey = !route.moderate && route.publicKey ? String(route.publicKey) : '';
     }
     document.body.classList.add('store-body');
 
     await super.render();
-
-    const route = this.returnStoreRouteFromPath();
     if (route.moderate) {
       await this.main.openModerate({ updateUrl: false });
       return;

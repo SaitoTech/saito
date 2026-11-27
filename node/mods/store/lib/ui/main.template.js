@@ -1,8 +1,8 @@
 module.exports = () => {
   return `
     <div class="store">
-      <nav class="menu marketplace" aria-label="Store"></nav>
-      <aside class="user-store-context" aria-label="User store"></aside>
+      <nav class="store-catalog-nav" aria-label="Store"></nav>
+      <nav class="menu dashboard" aria-label="Store admin"></nav>
       <div class="main-column">
         <main class="manager"></main>
       </div>

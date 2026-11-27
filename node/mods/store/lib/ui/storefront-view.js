@@ -19,6 +19,7 @@ class StorefrontView {
     this.activeSummaries = [];
     this.inventoryLoaded = false;
     this.loading = false;
+    this.loadFailed = false;
     this.loadToken = 0;
     this.page = 1;
     this.page_size = DEFAULT_PAGE_SIZE;
@@ -260,6 +261,7 @@ class StorefrontView {
     }
 
     this.loading = true;
+    this.loadFailed = false;
     const token = ++this.loadToken;
     this.render();
 
@@ -292,10 +294,9 @@ class StorefrontView {
       this.categories = result.categories || [];
       this.featuredIds = result.featured || [];
       this.inventoryLoaded = true;
-      this.mod.main?.user_store_sidebar?.setCategories?.(this.categories, {
-        category: this.category,
-        featured: this.featured && featuredVisible,
-        featuredName: result.featured_name || '',
+      this.mod.header?.setCatalog?.({
+        categories: this.categories,
+        active: this.featured && featuredVisible ? 'featured' : this.category || '',
         featuredVisible
       });
     } catch (err) {
@@ -305,6 +306,7 @@ class StorefrontView {
       }
       this.activeSummaries = [];
       this.inventoryLoaded = true;
+      this.loadFailed = true;
     }
 
     if (token !== this.loadToken) {
@@ -325,6 +327,7 @@ class StorefrontView {
 
     this.page = next_page;
     this.loading = true;
+    this.loadFailed = false;
     const token = ++this.loadToken;
     this.render();
 
@@ -353,6 +356,7 @@ class StorefrontView {
         return;
       }
       this.activeSummaries = [];
+      this.loadFailed = true;
       this.pagination = {
         offset: 0,
         page: 1,
@@ -425,19 +429,49 @@ class StorefrontView {
 
     const visible = this.returnVisibleSummaries();
     if (!visible.length) {
-      teasersEl.innerHTML = '';
-      const emptyHost = document.createElement('div');
-      emptyHost.className = 'storefront-empty';
-      teasersEl.appendChild(emptyHost);
-      this.empty.title = 'No listings yet';
-      this.empty.body = 'This creator has not published any listings yet.';
-      this.empty.actionLabel = '';
-      this.empty.onAction = null;
-      this.empty.render(`${this.container} .storefront-empty`);
+      if (this.loadFailed) {
+        teasersEl.innerHTML = '';
+        const status = document.querySelector(`${this.container} [data-storefront-status]`);
+        if (status) {
+          status.hidden = false;
+          status.innerHTML = '<p>Unable to load listings.</p>';
+        }
+        return;
+      }
+      this.renderVisitorEmpty(teasersEl);
       return;
     }
 
     this.teasers.render(`${this.container} .teasers`, visible);
+  }
+
+  renderVisitorEmpty(teasersEl) {
+    const path = this.mod.returnStorefrontPath?.('') || `/${this.mod.returnSlug?.() || 'store'}`;
+    const safePath = String(path)
+      .replace(/&/g, '&amp;')
+      .replace(/"/g, '&quot;')
+      .replace(/</g, '&lt;');
+    teasersEl.innerHTML = '';
+    const host = document.createElement('div');
+    host.className = 'storefront-empty storefront-visitor-empty';
+    host.innerHTML = `
+      <div class="empty">
+        <h2>Nothing to see here yet...</h2>
+        <p>If you're looking for something to buy, why not visit the <a href="${safePath}">Saito Store</a>?</p>
+      </div>
+    `;
+    teasersEl.appendChild(host);
+    host.querySelector('a')?.addEventListener('click', (event) => {
+      if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) {
+        return;
+      }
+      event.preventDefault();
+      if (typeof navigateWindow === 'function') {
+        navigateWindow(path);
+        return;
+      }
+      window.location.assign(path);
+    });
   }
 
   renderAdminTable() {
@@ -451,13 +485,26 @@ class StorefrontView {
     const total = Number(this.pagination?.total ?? listings.length);
 
     if (!total) {
+      if (this.loadFailed) {
+        host.innerHTML = '';
+        const failed = document.querySelector(`${this.container} [data-storefront-status]`);
+        if (failed) {
+          failed.hidden = false;
+          failed.innerHTML = '<p>Unable to load listings.</p>';
+        }
+        if (footer) {
+          footer.hidden = true;
+          footer.innerHTML = '';
+        }
+        return;
+      }
       host.innerHTML = '<div class="storefront-empty"></div>';
       if (footer) {
         footer.hidden = true;
         footer.innerHTML = '';
       }
-      this.empty.title = 'No active listings.';
-      this.empty.body = '';
+      this.empty.title = 'Nothing listed yet';
+      this.empty.body = 'Add a listing and it will show up here.';
       this.empty.actionLabel = '+ Add New Listing';
       this.empty.onAction = () => this.onSell?.();
       this.empty.render(`${this.container} .storefront-empty`);

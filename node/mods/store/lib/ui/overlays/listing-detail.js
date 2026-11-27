@@ -213,6 +213,7 @@ class ListingDetailOverlay {
       showNextBid: !!nextBid && !isRental,
       nextBidDisplay,
       supply,
+      inventory: available,
       unitAmount,
       currencyCode: this.escapeHtml(currencyCode),
       showQuantity: !isRental,
@@ -257,7 +258,8 @@ class ListingDetailOverlay {
       productType: this.escapeHtml(nft?.returnType?.() || 'NFT'),
       fileType: this.escapeHtml(this.returnFileTypeFromNft(nft)),
       createdDate: new Date().toLocaleDateString(),
-      supply: this.listing.quantity_total
+      supply: Math.max(1, Number(this.listing.quantity_total) || 1),
+      maxSupply: Math.max(1, Number(this.max_quantity_total) || 1)
     };
   }
 
@@ -270,8 +272,8 @@ class ListingDetailOverlay {
       price: '1',
       web3_ticker: 'SAITO',
       web3_amount: '1',
-      quantity_total: max_quantity_total,
-      quantity_available: max_quantity_total,
+      quantity_total: 1,
+      quantity_available: 1,
       category: ''
     };
   }
@@ -283,20 +285,20 @@ class ListingDetailOverlay {
 
     const display = summary.returnMediaDisplay?.() || {};
     const media = document.querySelector('.listing-detail .media');
-    const mainImage = document.querySelector('.listing-detail .image');
     if (!media) {
       return;
     }
 
     let content = media.querySelector('.media-content');
+    const images = media.querySelectorAll('.image, .image-blur');
     if (display.loading) {
       return;
     }
 
     if (display.innerHtml) {
-      if (mainImage) {
-        mainImage.style.display = 'none';
-      }
+      images.forEach((img) => {
+        img.style.display = 'none';
+      });
       if (!content) {
         content = document.createElement('div');
         content.className = 'media-content';
@@ -309,12 +311,25 @@ class ListingDetailOverlay {
     if (content) {
       content.remove();
     }
-    if (mainImage) {
-      mainImage.style.display = '';
-      if (display.backgroundImage && this.app?.browser?.isSafeMediaUrl?.(display.backgroundImage)) {
-        mainImage.setAttribute('src', display.backgroundImage);
-      }
+    if (display.backgroundImage && this.app?.browser?.isSafeMediaUrl?.(display.backgroundImage)) {
+      this.setViewImage(display.backgroundImage);
     }
+    images.forEach((img) => {
+      img.style.display = '';
+    });
+  }
+
+  setViewImage(src) {
+    const media = document.querySelector('.listing-detail.view .media');
+    if (!media || !src) {
+      return;
+    }
+    media.querySelectorAll('.image, .image-blur').forEach((img) => {
+      img.hidden = false;
+      if (img.getAttribute('src') !== src) {
+        img.setAttribute('src', src);
+      }
+    });
   }
 
   /**
@@ -436,12 +451,13 @@ class ListingDetailOverlay {
     }
 
     const mainImage = root.querySelector('.image');
+    const blurImage = root.querySelector('.image-blur');
     root.querySelectorAll('.thumb').forEach((thumb) => {
       thumb.onclick = (e) => {
         e.preventDefault();
         const src = thumb.getAttribute('data-src');
-        if (mainImage && src) {
-          mainImage.setAttribute('src', src);
+        if (src) {
+          this.setViewImage(src);
         }
         root.querySelectorAll('.thumb').forEach((n) => {
           n.classList.remove('active');
@@ -451,6 +467,12 @@ class ListingDetailOverlay {
         thumb.setAttribute('aria-pressed', 'true');
       };
     });
+
+    if (blurImage) {
+      blurImage.onerror = () => {
+        blurImage.hidden = true;
+      };
+    }
 
     if (mainImage) {
       mainImage.onerror = () => {
@@ -548,34 +570,51 @@ class ListingDetailOverlay {
     }
   }
 
+  clampQuantity(value, max) {
+    const limit = Math.max(1, Math.floor(Number(max) || 1));
+    let qty = Math.floor(Number(value));
+    if (!Number.isFinite(qty) || qty < 1) {
+      qty = 1;
+    }
+    if (qty > limit) {
+      qty = limit;
+    }
+    return { qty, max: limit };
+  }
+
+  returnMaxQuantity() {
+    const nft = this.selectedNft;
+    const raw = Number(nft?.getTotalAmount?.() || nft?.amount || this.max_quantity_total || 1);
+    const max = Number.isFinite(raw) && raw >= 1 ? Math.floor(raw) : 1;
+    this.max_quantity_total = max;
+    return max;
+  }
+
+  listingQuantityIsValid(raw, max) {
+    const text = String(raw ?? '').trim();
+    if (!/^\d+$/.test(text)) {
+      return false;
+    }
+    const qty = Number(text);
+    return qty >= 1 && qty <= max;
+  }
+
   bindQuantity(root) {
     const input = root?.querySelector('#listing-qty');
-    const amount = root?.querySelector('[data-price-amount]');
     if (!input) {
       return;
     }
-    const max = Math.max(1, Number(input.getAttribute('max')) || 1);
-    const unit = Number(amount?.getAttribute('data-unit'));
-    const currency = amount?.getAttribute('data-currency') || 'SAITO';
     const down = root.querySelector('[data-qty="down"]');
     const up = root.querySelector('[data-qty="up"]');
     const apply = (next) => {
-      let qty = Math.floor(Number(next));
-      if (!Number.isFinite(qty) || qty < 1) {
-        qty = 1;
-      }
-      if (qty > max) {
-        qty = max;
-      }
+      const { qty, max } = this.clampQuantity(next, input.getAttribute('max'));
       input.value = String(qty);
+      input.setAttribute('max', String(max));
       if (down) {
         down.disabled = qty <= 1;
       }
       if (up) {
         up.disabled = qty >= max;
-      }
-      if (amount && Number.isFinite(unit) && unit > 0) {
-        amount.textContent = this.formatSaitoPriceDisplay(String(unit * qty), currency);
       }
     };
     down?.addEventListener('click', () => apply(Number(input.value) - 1));
@@ -585,6 +624,55 @@ class ListingDetailOverlay {
     });
     input.addEventListener('change', () => apply(input.value));
     apply(input.value || 1);
+  }
+
+  bindListingQuantity(root) {
+    const input = root?.querySelector('#listing-available-qty');
+    if (!input) {
+      return;
+    }
+    const down = root.querySelector('.offer-available [data-qty="down"]');
+    const up = root.querySelector('.offer-available [data-qty="up"]');
+    const locked = this.defaults?.locked?.includes('quantity');
+    const paint = (qtyText, max) => {
+      input.setAttribute('max', String(max));
+      const qty = Number(qtyText);
+      const valid = this.listingQuantityIsValid(qtyText, max);
+      if (down) {
+        down.disabled = locked || !valid || qty <= 1;
+      }
+      if (up) {
+        up.disabled = locked || !valid || qty >= max;
+      }
+      if (locked) {
+        input.readOnly = true;
+      }
+      const submit = root.querySelector('[data-action="submit"]');
+      if (submit && !this.listing_busy) {
+        submit.disabled = !valid;
+      }
+    };
+    const apply = (next, { refreshMax = false } = {}) => {
+      const max = refreshMax ? this.returnMaxQuantity() : this.max_quantity_total;
+      const { qty } = this.clampQuantity(next, max);
+      input.value = String(qty);
+      this.listing.quantity_total = qty;
+      this.listing.quantity_available = qty;
+      paint(input.value, max);
+    };
+    this.syncListingQuantity = () => apply(input.value, { refreshMax: true });
+    this.refreshListingQuantity = () => {
+      const max = this.returnMaxQuantity();
+      paint(input.value, max);
+    };
+    down?.addEventListener('click', () => apply(Number(input.value) - 1, { refreshMax: true }));
+    up?.addEventListener('click', () => apply(Number(input.value) + 1, { refreshMax: true }));
+    input.addEventListener('input', () => {
+      input.value = input.value.replace(/[^\d]/g, '');
+      this.refreshListingQuantity();
+    });
+    input.addEventListener('change', () => apply(input.value, { refreshMax: true }));
+    apply(input.value || 1, { refreshMax: true });
   }
 
   attachEditEvents() {
@@ -722,32 +810,7 @@ class ListingDetailOverlay {
       }
     });
 
-    root.querySelector('[data-edit="available"]')?.addEventListener('click', (e) => {
-      e.preventDefault();
-      openFieldEdit({
-        name: 'available',
-        lockKey: 'quantity',
-        title: 'Edit Available Quantity',
-        value: String(this.listing.quantity_total),
-        inputType: 'number',
-        placeholder: `1–${this.max_quantity_total}`,
-        parse: (raw) => {
-          let qty = parseInt(String(raw || '').trim(), 10);
-          if (!Number.isFinite(qty) || qty < 1) {
-            return false;
-          }
-          if (qty > this.max_quantity_total) {
-            qty = this.max_quantity_total;
-          }
-          return qty;
-        },
-        apply: (qty) => {
-          this.listing.quantity_total = qty;
-          this.listing.quantity_available = qty;
-          root.querySelector('[data-field="available"]').textContent = String(qty);
-        }
-      });
-    });
+    this.bindListingQuantity(root);
 
     const submitBtn = root.querySelector('[data-action="submit"]');
     if (submitBtn) {
@@ -787,28 +850,24 @@ class ListingDetailOverlay {
       if (!Number.isFinite(qty) || qty < 1) {
         qty = 1;
       }
-      if (qty > this.max_quantity_total) {
-        qty = this.max_quantity_total;
+      const max = this.returnMaxQuantity();
+      if (qty > max) {
+        qty = max;
       }
       this.listing.quantity_total = qty;
       this.listing.quantity_available = qty;
-      const qtyEl = root.querySelector('[data-field="available"]');
+      const qtyEl = root.querySelector('#listing-available-qty');
       if (qtyEl) {
-        qtyEl.textContent = String(qty);
-      }
-      if (this.defaults.locked?.includes('quantity')) {
-        const affordance = root.querySelector('[data-edit="available"]');
-        if (affordance) {
-          affordance.hidden = true;
-        }
+        qtyEl.value = String(qty);
       }
     }
+    this.syncListingQuantity?.();
 
     if (this.defaults?.description) {
       this.listing.description = String(this.defaults.description);
       const descEl = root.querySelector('[data-field="description"]');
       if (descEl) {
-        descEl.textContent = this.listing.description || 'No description provided';
+        descEl.textContent = this.listing.description || 'No description provided.';
       }
       if (this.defaults.locked?.includes('description')) {
         const affordance = root.querySelector('[data-edit="description"]');
@@ -835,9 +894,11 @@ class ListingDetailOverlay {
       if (!submitBtn) {
         return;
       }
-      submitBtn.disabled = false;
       submitBtn.removeAttribute('aria-busy');
       submitBtn.textContent = 'Submit Listing';
+      const max = this.returnMaxQuantity();
+      const raw = root?.querySelector('#listing-available-qty')?.value;
+      submitBtn.disabled = !this.listingQuantityIsValid(raw, max);
     };
 
     this.listing_busy = true;
@@ -855,6 +916,24 @@ class ListingDetailOverlay {
     await yieldForPaint();
 
     try {
+      const max = this.returnMaxQuantity();
+      const qtyInput = root?.querySelector('#listing-available-qty');
+      const rawQty = qtyInput ? qtyInput.value : String(this.listing.quantity_total);
+      if (!this.listingQuantityIsValid(rawQty, max)) {
+        if (qtyInput) {
+          qtyInput.setAttribute('max', String(max));
+        }
+        this.refreshListingQuantity?.();
+        if (typeof salert === 'function') {
+          salert(`Choose a quantity from 1 to ${max}.`);
+        }
+        restore();
+        return;
+      }
+      const quantity = Number(rawQty);
+      this.listing.quantity_total = quantity;
+      this.listing.quantity_available = quantity;
+
       const ticker = String(this.listing.web3_ticker || 'SAITO').trim().toUpperCase() || 'SAITO';
       this.listing.web3_ticker = ticker;
       this.listing.web3_amount = String(this.listing.price || '').trim();

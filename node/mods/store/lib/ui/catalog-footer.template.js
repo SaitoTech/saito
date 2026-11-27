@@ -1,3 +1,11 @@
+function escapeHtml(value = '') {
+  return String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
 function pageWindow(current, total_pages, max_buttons = 5) {
   if (total_pages <= max_buttons) {
     return Array.from({ length: total_pages }, (_, i) => i + 1);
@@ -14,15 +22,15 @@ function pageWindow(current, total_pages, max_buttons = 5) {
 }
 
 module.exports = ({ pagination = null, empty = false, categoryLabel = '', showAllListings = true } = {}) => {
-  if (empty) {
-    const label = categoryLabel ? ` in ${categoryLabel}` : '';
-    return `
+    if (empty) {
+      const where = categoryLabel ? ` in ${escapeHtml(categoryLabel)}` : '';
+      return `
       <div class="catalog-empty empty">
-        <h2>No listings${label}</h2>
-        <p>Nothing is for sale in this category yet.</p>
+        <h2>Nothing here yet...</h2>
+        <p>There isn't anything for sale${where} right now.</p>
       </div>
     `;
-  }
+    }
 
   if (!pagination || !pagination.total) {
     return '';

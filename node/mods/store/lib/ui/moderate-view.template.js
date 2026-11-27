@@ -110,7 +110,10 @@ module.exports = ({ loading = true, denied = false } = {}) => {
   if (denied) {
     return `
     <section class="catalog storefront-catalog moderation-page" data-moderation-root>
-      <p class="body" role="status">You are not authorized to moderate Store listings.</p>
+      <div class="empty" role="status">
+        <h2>Not available</h2>
+        <p>You are not authorized to moderate Store listings.</p>
+      </div>
     </section>
   `;
   }

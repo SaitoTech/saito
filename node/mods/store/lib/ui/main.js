@@ -1,7 +1,6 @@
 const MainTemplate = require('./main.template');
 const Menu = require('./menu');
 const Manager = require('./manager');
-const UserStoreSidebar = require('./user-store-sidebar');
 const NftPickerOverlay = require('./overlays/nft-picker');
 const PrepareStoreOverlay = require('./overlays/prepare-store');
 const ListingDetailOverlay = require('./overlays/listing-detail');
@@ -38,20 +37,18 @@ class Main {
       onSettings: () => this.openSettings(),
       onStoreModeChange: (mode) => this.onStoreModeChange(mode)
     });
-    this.user_store_sidebar = new UserStoreSidebar(app, mod, '');
     this.searchView = new SearchView(app, mod, '', {
       onPage: (offset) => this.activeSearch?.search(offset)
     });
     this.activeSearch = null;
-    this.menu.searchBox = new SearchBox(app, mod, {
+    this.searchBox = new SearchBox(app, mod, {
       publicKey: '',
-      onResults: (result) => this.showSearch(this.menu.searchBox, result),
+      onResults: (result) => this.showSearch(this.searchBox, result),
       onClear: () => this.clearSearch()
     });
-    this.user_store_sidebar.searchBox = new SearchBox(app, mod, {
-      onResults: (result) => this.showSearch(this.user_store_sidebar.searchBox, result),
-      onClear: () => this.clearSearch()
-    });
+    if (this.mod.header) {
+      this.mod.header.searchBox = this.searchBox;
+    }
     this.manager = new Manager(app, mod, '', {
       onSell: () => this.openSell(),
       onStoreModeChange: (mode) => this.onStoreModeChange(mode)
@@ -87,18 +84,13 @@ class Main {
     this.manager.show(this.composition === 'user-store' ? 'my-listings' : 'browse');
   }
 
-  userStoreContextSelector() {
-    return `${this.container} .store > .user-store-context`;
-  }
-
   storeRoot() {
     return document.querySelector(`${this.container} .store`);
   }
 
   /**
-   * Page composition modes share Main/Manager, but not left-rail semantics:
-   * - marketplace / admin → `.menu` (categories or dashboard)
-   * - user-store → `.user-store-context` (SaitoProfile + Store nav); listings stay in `.main-column`
+   * Public storefronts share one header catalogue row.
+   * Admin keeps the dashboard menu and hides that row.
    */
   setComposition(mode = 'marketplace', publicKey = '') {
     const next = mode === 'user-store' ? 'user-store' : mode === 'admin' ? 'admin' : 'marketplace';
@@ -107,12 +99,11 @@ class Main {
     const store = this.storeRoot();
     if (store) {
       store.classList.toggle('user-store', next === 'user-store');
+      store.classList.toggle('admin-store', next === 'admin');
     }
 
-    if (next === 'user-store') {
-      this.user_store_sidebar.render(this.userStoreContextSelector(), publicKey);
-      return;
-    }
+    const sellerKey = next === 'marketplace' ? '' : String(publicKey || '').trim();
+    this.mod.header?.setStorefront(sellerKey);
 
     if (next === 'admin') {
       this.menu.setMode('dashboard', {
@@ -121,7 +112,8 @@ class Main {
       return;
     }
 
-    this.menu.setMode('browse');
+    this.menu.mode = 'browse';
+    this.mod.header?.paintCatalog?.();
   }
 
   onPathChange() {
@@ -201,7 +193,14 @@ class Main {
 
     this.app.browser.replaceElementContentBySelector(MainTemplate(), this.container);
 
-    this.menu.render(`${this.container} .store > .menu`);
+    this.menu.container = `${this.container} .store > .menu`;
+    if (this.mod.header) {
+      this.mod.header.searchBox = this.searchBox;
+      this.mod.header.attachCatalog(`${this.container} .store > .store-catalog-nav`);
+    }
+    if (this.menu.mode === 'dashboard') {
+      this.menu.render();
+    }
     this.manager.render(`${this.container} .store > .main-column > .manager`);
     this.searchView.render(`${this.container} .store [data-panel="search"]`);
   }
@@ -325,6 +324,7 @@ class Main {
 
     const showFeatured = featured !== false && (!category || featured === true);
     this.setComposition('user-store', key);
+    this.mod.header?.setCatalogActive?.(showFeatured ? 'featured' : category);
     await this.manager.showStorefront(key, {
       viewMode: 'public',
       category: showFeatured ? '' : category,

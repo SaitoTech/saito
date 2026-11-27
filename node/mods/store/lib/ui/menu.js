@@ -40,8 +40,8 @@ class Menu {
   }
 
   renderBrowseIfVisible() {
-    if (this.mode === 'browse' && this.container) {
-      this.render();
+    if (this.mode === 'browse') {
+      this.mod.header?.syncUtilityMenu?.();
     }
   }
 
@@ -64,32 +64,20 @@ class Menu {
       root.classList.toggle('dashboard', this.mode === 'dashboard');
     }
 
-    const html =
-      this.mode === 'dashboard'
-        ? MenuTemplate.dashboard({
-            dashboardView: this.dashboardView,
-            showWithdrawals: isStoreWeb3Active(this.app)
-          })
-        : MenuTemplate.browse({
-            showMyStore: this.has_store,
-            categories: this.categories,
-            featuredName: this.featuredName,
-            featuredVisible: this.featuredVisible
-          });
-
-    this.app.browser.replaceElementContentBySelector(html, this.container);
-
-    if (this.mode === 'browse') {
-      const slot = document.querySelector(`${this.container} [data-store-search]`);
-      this.searchBox?.setPublicKey?.('');
-      this.searchBox?.mount?.(slot);
-      this.setActive(this.active);
-      this.showModeration(this.mod.listings_to_moderate);
+    if (this.mode !== 'dashboard') {
       if (!this.has_store) {
         void this.refreshHasStore();
       }
+      this.mod.header?.syncUtilityMenu?.();
+      return;
     }
 
+    const html = MenuTemplate.dashboard({
+      dashboardView: this.dashboardView,
+      showWithdrawals: isStoreWeb3Active(this.app)
+    });
+
+    this.app.browser.replaceElementContentBySelector(html, this.container);
     this.attachEvents();
   }
 
@@ -98,35 +86,8 @@ class Menu {
    * count > 0 shows the item and badge; 0 hides the item (it stays in the DOM).
    */
   showModeration(count = 0) {
-    if (!this.container || this.mode !== 'browse') {
-      return;
-    }
-
-    const root = document.querySelector(this.container);
-    const item = root?.querySelector('#store-menu-moderate');
-    if (!item) {
-      return;
-    }
-
-    const pending = Math.max(0, Number(count) || 0);
-    const badge = item.querySelector('[data-moderation-count]');
-
-    if (pending > 0) {
-      item.hidden = false;
-      item.removeAttribute('aria-hidden');
-      item.setAttribute('tabindex', '0');
-      if (badge) {
-        badge.textContent = String(pending);
-      }
-      return;
-    }
-
-    item.hidden = true;
-    item.setAttribute('aria-hidden', 'true');
-    item.setAttribute('tabindex', '-1');
-    if (badge) {
-      badge.textContent = '0';
-    }
+    this.mod.listings_to_moderate = Math.max(0, Number(count) || 0);
+    this.mod.header?.syncUtilityMenu?.();
   }
 
   /**
@@ -225,9 +186,11 @@ class Menu {
     if (options.featuredVisible != null) {
       this.featuredVisible = options.featuredVisible !== false && options.featuredVisible !== 0;
     }
-    if (this.mode === 'browse') {
-      this.render();
-    }
+    this.mod.header?.setCatalog?.({
+      categories: this.categories,
+      active: this.active || 'featured',
+      featuredVisible: this.featuredVisible
+    });
   }
 
   setActive(view = '') {
@@ -237,6 +200,8 @@ class Menu {
         : this.dashboardView;
     } else {
       this.active = view;
+      this.mod.header?.setCatalogActive?.(view);
+      return;
     }
     if (!this.container) {
       return;
@@ -245,7 +210,7 @@ class Menu {
     if (!root) {
       return;
     }
-    const current = this.mode === 'dashboard' ? this.dashboardView : this.active;
+    const current = this.dashboardView;
     root.querySelectorAll('.item').forEach((item) => {
       if (item.dataset.action) {
         item.classList.remove('active');

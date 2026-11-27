@@ -1,0 +1,128 @@
+/* Store header identity and the catalogue row under #saito-header.
+   Scoped so other applications keep the standard header. */
+
+#saito-header.store {
+  gap: var(--saito-space-md);
+}
+
+#saito-header.store.store-seller .saito-header-logo-wrapper {
+  display: flex;
+  align-items: center;
+  flex: 0 0 auto;
+  height: auto;
+}
+
+#saito-header.store.store-seller .saito-header-logo {
+  width: 4rem;
+  height: auto;
+}
+
+#saito-header.store .store-header-identity {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.2rem;
+  min-width: 0;
+  max-width: min(36rem, calc(100vw - 18rem));
+  margin-left: 0.45rem;
+  line-height: 1.15;
+}
+
+#saito-header.store .store-header-name {
+  overflow: hidden;
+  color: var(--saito-foreground);
+  font-family: var(--saito-font-medium, var(--saito-font));
+  font-size: 2rem;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+#saito-header.store .store-header-key {
+  overflow: hidden;
+  color: var(--saito-muted-foreground);
+  font-size: 1.167rem;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.store > .store-catalog-nav {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--saito-space-sm) var(--saito-space-lg);
+  width: 100%;
+  min-width: 0;
+  margin: 0;
+  padding: 0.25rem 0 0.1rem;
+  border-bottom: 0;
+}
+
+.store.admin-store > .store-catalog-nav {
+  display: none;
+}
+
+.store-catalog-nav .store-catalog-links {
+  display: flex;
+  flex: 1 1 auto;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--saito-space-xs) var(--saito-space-lg);
+  min-width: 0;
+}
+
+.store-catalog-nav .store-nav-link {
+  margin: 0;
+  padding: 0.1rem 0.05rem 0.28rem;
+  border: 0;
+  background: transparent;
+  color: var(--saito-muted-foreground);
+  font-family: var(--saito-font);
+  font-size: 1.4rem;
+  line-height: 1.2;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.store-catalog-nav .store-nav-link.is-active {
+  color: var(--saito-foreground);
+  box-shadow: inset 0 -2px 0 var(--saito-primary);
+}
+
+.store-catalog-nav .store-nav-link:hover,
+.store-catalog-nav .store-nav-link:focus-visible {
+  color: var(--saito-foreground);
+}
+
+.store > .store-catalog-nav .store-search-slot {
+  flex: 0 1 16rem;
+  width: 16rem;
+  max-width: 100%;
+  margin: 0 0 0 auto;
+}
+
+.store-catalog-nav .store-search input {
+  padding: 0.35rem 2.4rem 0.35rem 0.8rem;
+  font-size: 1.35rem;
+}
+
+@media (max-width: 720px) {
+  #saito-header.store .store-header-identity {
+    max-width: calc(100vw - 11rem);
+    margin-left: 0.25rem;
+  }
+
+  #saito-header.store .store-header-name {
+    font-size: 1.833rem;
+  }
+
+  .store > .store-catalog-nav {
+    align-items: center;
+  }
+
+  .store > .store-catalog-nav .store-search-slot {
+    flex-basis: 100%;
+    width: 100%;
+    margin-left: 0;
+  }
+}

@@ -246,8 +246,13 @@ class ModerateView {
 
     const total = Number(this.pagination?.total ?? this.listings.length);
     if (!total) {
-      host.innerHTML =
-        '<div class="storefront-empty"><p class="body">No listings awaiting moderation.</p></div>';
+      host.innerHTML = `
+        <div class="storefront-empty">
+          <div class="empty">
+            <h2>Nothing to moderate</h2>
+            <p>There are no listings waiting for review.</p>
+          </div>
+        </div>`;
       if (footer) {
         footer.hidden = true;
         footer.innerHTML = '';

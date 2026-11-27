@@ -15,9 +15,10 @@ class SalesView {
     this.page = 1;
     this.page_size = DEFAULT_PAGE_SIZE;
     this.pagination = null;
+    this.loadFailed = false;
     this.empty = new EmptyPanel(app, mod, {
-      title: 'No completed sales.',
-      body: '',
+      title: 'No sales yet',
+      body: 'Completed sales will show up here.',
       actionLabel: '',
       onAction: null
     });
@@ -135,6 +136,7 @@ class SalesView {
 
     this.page = next_page;
     this.loading = true;
+    this.loadFailed = false;
     const token = ++this.loadToken;
     this.render();
 
@@ -159,6 +161,7 @@ class SalesView {
         return;
       }
       this.summaries = [];
+      this.loadFailed = true;
       this.pagination = {
         offset: 0,
         page: 1,
@@ -195,6 +198,18 @@ class SalesView {
     const total = Number(this.pagination?.total ?? listings.length);
 
     if (!total) {
+      if (this.loadFailed) {
+        host.innerHTML = '';
+        if (status) {
+          status.hidden = false;
+          status.innerHTML = '<p>Unable to load sales.</p>';
+        }
+        if (footer) {
+          footer.hidden = true;
+          footer.innerHTML = '';
+        }
+        return;
+      }
       host.innerHTML = '<div class="storefront-empty"></div>';
       if (footer) {
         footer.hidden = true;

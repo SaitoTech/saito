@@ -20,6 +20,7 @@ class BrowseView {
     this.loading = false;
     this.request_token = 0;
     this.has_loaded = false;
+    this.loadFailed = false;
   }
 
   render(container = '') {
@@ -78,6 +79,7 @@ class BrowseView {
     this.page = next_page;
     const token = ++this.request_token;
     this.loading = true;
+    this.loadFailed = false;
     this.showLoading();
 
     try {
@@ -134,6 +136,7 @@ class BrowseView {
       console.warn('Store: browse load failed', err?.message || err);
       this.loading = false;
       this.has_loaded = true;
+      this.loadFailed = true;
       this.listings = [];
       this.pagination = {
         offset: 0,
@@ -206,6 +209,20 @@ class BrowseView {
     if (status) {
       status.hidden = true;
       status.innerHTML = '';
+    }
+
+    if (this.loadFailed) {
+      teasers.hidden = true;
+      teasers.innerHTML = '';
+      if (status) {
+        status.hidden = false;
+        status.innerHTML = '<p>Unable to load listings.</p>';
+      }
+      if (footer) {
+        footer.hidden = true;
+        footer.innerHTML = '';
+      }
+      return;
     }
 
     const total = Number(this.pagination?.total ?? this.listings.length);

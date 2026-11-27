@@ -244,6 +244,32 @@
   object-fit: cover;
 }
 
+.listing-detail.view .media .image-blur {
+  position: absolute;
+  inset: -18%;
+  z-index: 0;
+  width: 136%;
+  height: 136%;
+  max-width: none;
+  max-height: none;
+  object-fit: cover;
+  filter: blur(36px) brightness(0.76);
+  pointer-events: none;
+  transform: translateZ(0);
+}
+
+.listing-detail.view .media .image {
+  position: relative;
+  z-index: 1;
+  object-fit: contain;
+  object-position: center;
+  background: transparent;
+}
+
+.listing-detail.view .media .loader {
+  z-index: 2;
+}
+
 .listing-detail .media-content,
 .listing-detail .media-text {
   position: absolute;
@@ -346,9 +372,10 @@
 
 .listing-detail.view .purchase-controls {
   display: flex;
-  align-items: flex-end;
+  flex-direction: row;
+  align-items: flex-start;
   justify-content: space-between;
-  gap: var(--saito-space-lg);
+  gap: var(--saito-space-xl);
   flex-wrap: wrap;
 }
 
@@ -363,14 +390,23 @@
 
 .listing-detail .purchase-controls .quantity {
   align-items: flex-end;
+  margin-left: auto;
 }
 
-.listing-detail .price-note,
-.listing-detail .note-help {
+.listing-detail .stock {
   margin: 0;
   font-size: var(--font-size-tiny);
   line-height: 1.4;
   color: var(--saito-muted-foreground);
+  text-align: right;
+}
+
+.listing-detail .unit-suffix {
+  font-family: var(--saito-font-medium);
+  font-size: 0.42em;
+  letter-spacing: 0;
+  color: var(--saito-muted-foreground);
+  white-space: nowrap;
 }
 
 .listing-detail .qty-stepper {
@@ -419,24 +455,47 @@
   font-size: 1rem;
 }
 
+.listing-detail.edit .offer-row {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--saito-space-lg);
+  flex-wrap: wrap;
+}
+
+.listing-detail.edit .offer-price,
+.listing-detail.edit .offer-available {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+.listing-detail.edit .offer-available {
+  align-items: flex-end;
+}
+
+.listing-detail.edit .description,
+.listing-detail.edit .description .label,
+.listing-detail.edit .description .text {
+  width: 100%;
+  text-align: left;
+}
+
 .listing-detail .description .text {
   display: block;
   white-space: pre-wrap;
 }
 
-.listing-detail .note-field {
-  display: flex;
-  flex-direction: column;
-  gap: var(--saito-space-xs);
+.listing-detail .seller-note {
+  width: 100%;
+  align-items: stretch;
 }
 
-.listing-detail .note-label {
-  margin: 0;
-  font-size: var(--font-size-medium);
-  line-height: 1.3;
-  letter-spacing: 0;
-  text-transform: none;
-  color: var(--saito-muted-foreground);
+.listing-detail .seller-note .note {
+  width: 100%;
 }
 
 .listing-detail.view .purchase-controls {
@@ -613,12 +672,19 @@
     font-size: 2rem;
   }
 
-  .listing-detail .purchase-controls {
+  .listing-detail .purchase-controls,
+  .listing-detail.edit .offer-row {
     align-items: flex-start;
   }
 
-  .listing-detail .purchase-controls .quantity {
+  .listing-detail .purchase-controls .quantity,
+  .listing-detail.edit .offer-available {
     align-items: flex-start;
+    margin-left: 0;
+  }
+
+  .listing-detail .stock {
+    text-align: left;
   }
 
   .listing-detail .facts > div {

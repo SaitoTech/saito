@@ -7,33 +7,27 @@
 
 .store {
   display: grid;
-  grid-template-columns: 15rem minmax(0, 1fr);
-  gap: var(--saito-space-xxl);
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--saito-space-lg);
   align-items: start;
   width: 100%;
   min-width: 0;
 }
 
-/*
- * User-store page composition — not the marketplace category rail.
- *
- * Two regions:
- *   .user-store-context  → seller profile card, including store navigation
- *   .main-column         → shared StorefrontView / listings
- *
- * Spacing model:
- *   - Page top inset: `.saito-container.store-container:has(.store.user-store)`
- *     padding-top → --saito-space-xl (see store-base.css)
- *   - Inter-column / stacked separation: this grid `gap` → --store-user-rhythm
- *   - The context column holds the profile card. It sizes to that card.
- *
- * Profile and listings are grid siblings with align-items: start — same top edge.
- * Do not pad .saito-profile to fake page rhythm.
- */
+.store.admin-store {
+  grid-template-columns: 15rem minmax(0, 1fr);
+  gap: var(--saito-space-xxl);
+}
+
+.store:not(.admin-store) > .menu {
+  display: none;
+}
+
+/* Seller storefront listings use the full page width under the catalogue row. */
 .store.user-store {
   --store-card-width: 18rem;
   --store-user-rhythm: var(--saito-space-lg);
-  grid-template-columns: var(--store-card-width) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--store-user-rhythm);
   align-items: start;
 }
@@ -366,7 +360,8 @@
 .store .storefront-status {
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
+  align-items: center;
+  text-align: center;
   gap: var(--saito-space-md);
   padding: var(--saito-space-xl) 0;
   min-height: 12rem;
@@ -560,7 +555,8 @@
 .store .catalog-status {
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
+  align-items: center;
+  text-align: center;
   gap: var(--saito-space-md);
   padding: var(--saito-space-xl) 0;
   min-height: 10rem;
@@ -905,8 +901,51 @@
   min-height: 14rem;
 }
 
+.store .teasers .storefront-visitor-empty {
+  grid-column: 1 / -1;
+  justify-self: stretch;
+  flex: 1 0 100%;
+  width: 100%;
+}
+
+.store .teasers .storefront-visitor-empty .empty {
+  align-items: center;
+  text-align: center;
+  max-width: 34rem;
+  min-height: 12rem;
+  margin-inline: auto;
+  padding-top: var(--saito-space-xl);
+}
+
+.store .teasers .storefront-visitor-empty .empty h2 {
+  font-size: 1.7rem;
+}
+
+.store .teasers .storefront-visitor-empty .empty p {
+  max-width: 32rem;
+  font-size: 1.25rem;
+}
+
+.store .teasers .storefront-visitor-empty .empty a {
+  color: var(--saito-foreground);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.18em;
+}
+
 /* Empty panels — Saito empty-state tokens */
-.store .empty,
+.store .empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  max-width: 34rem;
+  min-height: 12rem;
+  margin-inline: auto;
+  padding: var(--saito-space-xl) 0;
+  text-align: center;
+}
+
 .nft-picker .empty {
   display: flex;
   flex-direction: column;
@@ -915,10 +954,17 @@
   min-height: 22rem;
   padding: var(--saito-space-xxl) 0;
   max-width: 28rem;
+  text-align: left;
 }
 
 .store .empty h2,
-.store .empty h3,
+.store .empty h3 {
+  margin: 0 0 var(--saito-space-sm);
+  font-size: 1.7rem;
+  font-family: var(--saito-font-medium);
+  color: var(--saito-empty-state-title-foreground);
+}
+
 .nft-picker .empty h2,
 .nft-picker .empty h3 {
   margin: 0 0 var(--saito-space-sm);
@@ -927,7 +973,14 @@
   color: var(--saito-empty-state-title-foreground);
 }
 
-.store .empty p,
+.store .empty p {
+  margin: 0;
+  max-width: 32rem;
+  font-size: 1.25rem;
+  line-height: 1.5;
+  color: var(--saito-empty-state-text-foreground);
+}
+
 .nft-picker .empty p {
   margin: 0;
   font-size: var(--font-size-medium);
@@ -941,7 +994,8 @@
 }
 
 @media (max-width: 900px) {
-  .store {
+  .store,
+  .store.admin-store {
     grid-template-columns: 1fr;
     gap: var(--saito-space-xl);
   }
@@ -979,10 +1033,14 @@
     text-overflow: unset;
   }
 
-  .store .empty,
-  .nft-picker .empty {
-    min-height: 16rem;
+  .store .empty {
+    min-height: 12rem;
     padding: var(--saito-space-xl) 0;
+  }
+
+  .nft-picker .empty {
+    min-height: 0;
+    padding: 0;
   }
 }
 
@@ -994,14 +1052,6 @@
 
   .store.user-store > .user-store-context {
     position: static;
-    width: 100%;
-  }
-
-  .store.user-store .teasers {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .store.user-store .teasers .teaser {
     width: 100%;
   }
 }
@@ -1024,11 +1074,9 @@
     gap: var(--saito-space-md);
   }
 
-  .store .empty,
-  .nft-picker .empty {
+  .store .empty {
     min-height: 12rem;
     padding: var(--saito-space-lg) 0;
-    max-width: none;
   }
 }
 
